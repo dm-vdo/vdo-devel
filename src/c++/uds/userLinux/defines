@@ -1,0 +1,16 @@
+# -*-makefile-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# define variables used for userLinux makefiles
+#
+# $Id$
+
+VERSION           = -DCURRENT_VERSION='"$(VDO_VERSION)"'
+INTERNAL          = -DTEST_INTERNAL -DEXTERNAL_STATIC=
+PLATFORM_INCLUDES = -I$(PLATFORM_DIR)/uds
+
+PLATFORM_CFLAGS = $(GLOBAL_CFLAGS) $(VERSION) $(INTERNAL)	\
+		$(PLATFORM_INCLUDES)

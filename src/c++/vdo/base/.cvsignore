@@ -1,0 +1,7 @@
+.deps
+doxygen
+doxygen.log      
+doxygen_err.log  
+pool-sysfs-stats.c
+release-versions.h
+statistics.h

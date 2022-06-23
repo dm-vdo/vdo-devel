@@ -1,0 +1,37 @@
+## -*-makefile-*-
+# vim:filetype=make
+#
+# Define variables used for all makefiles.
+#
+# $Id$
+##
+
+include $(SRC_DIR)/c++/defines
+include $(CURRENT_VERSION_FILE)
+
+# VDO directories
+VDO_TOP        = $(C_DIR)/vdo
+VDO_BASE_DIR   = $(VDO_TOP)/base
+VDO_BIN_DIR    = $(VDO_TOP)/bin
+VDO_FAKE_DIR   = $(VDO_TOP)/fake
+VDO_KERNEL_DIR = $(VDO_TOP)/kernel
+VDO_USER_DIR   = $(VDO_TOP)/user
+
+# Fake include files
+FAKE_INCLUDES := $(wildcard $(VDO_FAKE_DIR)/*/*.h)
+
+# UDS directories
+UDS_TOP            = $(C_DIR)/uds
+UDS_USER_DIR       = $(UDS_TOP)/userLinux
+UDS_USER_BUILD_DIR = $(UDS_USER_DIR)/build
+UDS_USER_SRC_DIR   = $(UDS_USER_DIR)/uds
+UDS_SRC_DIR        = $(UDS_TOP)/src/uds
+
+UDS_INCLUDES = -I$(VDO_TOP)/user	\
+               -I$(UDS_SRC_DIR)		\
+               -I$(UDS_USER_SRC_DIR)
+
+UDS_USER_FILES =					\
+	$(wildcard $(UDS_SRC_DIR)/*.[ch])		\
+	$(wildcard $(UDS_SRC_DIR)/*/*.[ch])		\
+	$(wildcard $(UDS_USER_SRC_DIR)/*.[ch])

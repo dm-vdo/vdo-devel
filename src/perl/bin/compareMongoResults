@@ -1,0 +1,274 @@
+#!/usr/bin/perl -w
+
+##
+# Compare two runs of VDOTest::Mongo.
+#
+# $Id$
+##
+
+use strict;
+use utf8;
+use warnings FATAL => qw(all);
+use English qw(-no_match_vars);
+
+use FindBin;
+use lib (
+  "${FindBin::RealBin}/../lib",
+  (defined($ENV{PERMABIT_PERL_PATH}))
+           ? split('\s*,\s*', $ENV{PERMABIT_PERL_PATH})
+           : "${FindBin::RealBin}/../commonlib",
+);
+
+use Carp;
+use List::Compare;
+use List::MoreUtils qw(each_array);
+use Permabit::Assertions qw(assertEqualNumeric assertMinArgs assertNumArgs);
+
+my $csvOutput        = "mongo.csv";
+my $csvDeltaOutput   = "mongoDelta.csv";
+my $gnuplotTemp      = "mongoPlot.gnuplot";
+my $gnuplotPNGOutput = "mongoPlot.png";
+my $gnuplotSVGOutput = "mongoPlot.svg";
+my $gnuplotPDFOutput = "mongoPlot.pdf";
+
+######################################################################
+# Fetch performance statistics from a Mongo log file.
+#
+# @param input   Pathname of the log file
+#
+# @return   a hashref mapping config string to a list of rate and
+#           standard deviation
+##
+sub getStatsFromLogFile {
+  my ($input) = assertNumArgs(1, @_);
+  my %stats;
+
+  open(INPUT, "< $input") || croak("Can't open $input");
+  while (<INPUT>) {
+    # Extract just the test parameters, throughput, and sample
+    # standard deviation from the log.
+    if (!m/,.*=.*:.* ssd .* cv/) {
+      next;
+    }
+    # The process ID in the log file may be of the form "[ 1234]" or
+    # "[1234]", so we don't have a consistent set of field numbers to
+    # use to process the file directly until we fix that.
+    s/^.* Mongo - //;
+    my @fields = split(/ /, $_);
+    $stats{$fields[0]} = [ @fields[3, 6] ];
+  }
+  close(INPUT);
+  return \%stats;
+}
+
+######################################################################
+# Compare the lists of configuration strings.
+#
+# @param oldConfigs  an array(ref) of strings
+# @param newConfigs  an array(ref) of strings
+#
+# @return  an array of two arrayrefs, one for common configurations,
+#          one for configurations in only one of the input lists
+##
+sub compareConfigs {
+  my ($oldConfigs, $newConfigs) = assertNumArgs(2, @_);
+  # Find common configurations
+  my $lc = List::Compare->new($oldConfigs, $newConfigs);
+  my @sharedConfigs = $lc->get_intersection();
+  my @diffConfigs = $lc->get_symmetric_difference();
+  return (\@sharedConfigs, \@diffConfigs);
+}
+
+######################################################################
+# Make CSV files.
+#
+# One CSV file is generated containing both the old and new stats. A
+# second is generated with the throughput rates and a computed column
+# indicating the percentage change in performance from the old value
+# to the new one.
+#
+# @param csvOutput        The output filename for the merged data
+# @param csvDeltaOutput   The output filename for the change data
+# @param dataRef          The previously read performance numbers
+##
+sub writeCSV {
+  my ($csvOutput, $csvDeltaOutput, $dataRef) = assertNumArgs(3, @_);
+
+  my $params = $dataRef->[0]->[0];
+  $params =~ s/ .*$//;
+  $params =~ s/=[^,]*,/,/g;
+  $params =~ s/=[^,]*$//;
+
+  open(CSV, "> $csvOutput");
+  open(CSVDELTA, "> $csvDeltaOutput");
+  print CSV "$params,oldRate,oldSSD,newRate,newSSD\n";
+  print CSVDELTA "$params,oldRate,newRate,\"\%change\"\n";
+  foreach my $dataPointRef (@{$dataRef}) {
+    my @fields = @{$dataPointRef};
+
+    my $change = ($fields[3] - $fields[1]) * 100 / $fields[1];
+    my $config = $fields[0];
+    $config =~ s/[^ ,]*=//g;
+    $config =~ s/ /,/g;
+    print CSVDELTA "$config,$fields[1],$fields[3],$change\n";
+
+    shift(@fields);
+    print CSV join(",", $config, @fields), "\n";
+  }
+  close(CSV);
+  close(CSVDELTA);
+  print "CSV rate data written to $csvOutput.\n";
+  print "CSV delta data written to $csvDeltaOutput.\n";
+}
+
+######################################################################
+# Make a Gnuplot script plotting the performance comparison data in
+# various formats.
+#
+# The formats and how the data points are broken down into groups is
+# hardcoded for now.
+#
+# @param gnuplotTemp   The script output file name
+# @param dataRef       The performance numbers
+##
+sub writeGnuplotScript {
+  my ($gnuplotTemp, $dataRef) = assertNumArgs(2, @_);
+
+  # Comments show examples of how we can split the configurations to
+  # be displayed with different types of points in the gnuplot
+  # graphs. By default, we'll just display them all the same way.
+  #
+  # TODO: Use an associative array instead of parallel arrays? Pull it
+  # out to top level where it's easier to find, instead of buried
+  # here?
+  #
+  # TODO: Eliminate patterns not matching any data points from graph.
+
+  #                "1 job, same node",
+  #                "2 jobs, same node",
+  my @plotNames = (
+                   "test configs",
+                  );
+  #                   qr/cpusAllowed=0-7.*jobs=1$/,
+  #                   qr/cpusAllowed=0-7.*jobs=2$/,
+  my @plotPatterns = (
+                      qr/./,
+                     );
+
+  my %dataSets;
+  my $iter = each_array(@plotNames, @plotPatterns);
+  while (my ($name, $pattern) = $iter->()) {
+    # Filter on requested pattern.
+    my @points = grep { $_->[0] =~ m/$pattern/ } @$dataRef;
+    # Turn into lines for gnuplot file.
+    @points = map { join(" ", @{$_}) . "\n" } @points;
+    # Join them and the end-of-data marker.
+    $dataSets{$name} = join("", @points, "e\n");
+  }
+
+  my @orderedDataSets = @dataSets{@plotNames};
+  my @plots = map { "'-' using 2:4 with points title \"$_\"" } @plotNames;
+  my @extraPlots = (
+                    "x with lines title \"if old=new\"",
+		    #"x*1.2 with lines dashtype 3 title \"if 20\% faster\"",
+                    "x*1.1 with lines dashtype 2 title \"if 10\% faster\"",
+                    "x*0.9 with lines dashtype 2 title \"if 10\% slower\"",
+                    #"x*0.8 with lines dashtype 3 title \"if 20\% slower\"",
+                   );
+  my $plotCommand =
+    "plot "
+    . join(", \\\n     ", @plots, @extraPlots)
+    . "\n"
+    . join("", @orderedDataSets);
+
+  open(GP, "> $gnuplotTemp");
+  print GP <<"EOF";
+#!/usr/bin/gnuplot
+
+set title "Performance changes\\n\\n(Each point represents one fio test configuration;\\nplacement above the diagonal represents a speedup.)"
+
+set xrange [0:*]
+set yrange [0:*]
+set xlabel "Old throughput"
+set ylabel "New throughput"
+set key outside below reverse Left vertical maxrows 3 maxcols 3
+set pointsize 0.6
+
+set terminal svg
+set output "$gnuplotSVGOutput"
+$plotCommand
+
+set terminal png
+set output "$gnuplotPNGOutput"
+$plotCommand
+
+set terminal pdf color size 7in,7in
+set output "$gnuplotPDFOutput"
+$plotCommand
+
+EOF
+}
+
+######################################################################
+# Create graphs of the performance data.
+#
+# @param dataRef  The performance numbers
+##
+sub createGraphs {
+  my ($dataRef) = assertNumArgs(1, @_);
+  writeGnuplotScript($gnuplotTemp, $dataRef);
+  system("gnuplot $gnuplotTemp");
+  print "PNG plot written to $gnuplotPNGOutput.\n";
+  print "SVG plot written to $gnuplotSVGOutput.\n";
+  print "PDF plot written to $gnuplotPDFOutput.\n";
+}
+
+######################################################################
+# Read performance numbers from two log files, and generate
+# spreadsheets and graphs comparing the "old" and "new" performance
+# characteristics.
+#
+# @param old   The "old" log file name
+# @param new   The "new" log file name
+##
+sub processLogFiles {
+  my ($old, $new) = assertNumArgs(2, @_);
+
+  # PARAMLIST => RATE SSD
+  my $oldStats = getStatsFromLogFile($old);
+  my $newStats = getStatsFromLogFile($new);
+
+  my @oldConfigs = keys(%$oldStats);
+  my @newConfigs = keys(%$newStats);
+  my ($sharedConfigs, $diffConfigs) =
+    compareConfigs(\@oldConfigs, \@newConfigs);
+  if (@$diffConfigs) {
+    # Error? Maybe, maybe not. Depends on usage.
+    # Command-line option?
+  }
+
+  my @allDataPoints;
+  foreach my $config (@$sharedConfigs) {
+    my @oldNumbers = @{$oldStats->{$config}};
+    my @newNumbers = @{$newStats->{$config}};
+    push(@allDataPoints, [ $config, @oldNumbers, @newNumbers ]);
+  }
+  # allDataPoints entries are PARAMLIST OLDRATE OLDSSD NEWRATE NEWSSD.
+
+  writeCSV($csvOutput, $csvDeltaOutput, \@allDataPoints);
+  createGraphs(\@allDataPoints);
+}
+
+######################################################################
+# The main program. Drives everything.
+##
+sub main {
+  if (scalar(@ARGV) != 2) {
+    print STDERR "usage: $0 oldLogFile newLogFile\n";
+    exit(1);
+  }
+  processLogFiles($ARGV[0], $ARGV[1]);
+}
+
+main();
+exit(0);

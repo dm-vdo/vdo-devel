@@ -1,0 +1,63 @@
+# -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# Define variables used for all makefiles
+#
+# $Id$
+
+SRC_DIR = $(TOP_DIR)/../..
+include $(SRC_DIR)/defines
+include $(SRC_DIR)/c++/defines
+include $(CURRENT_VERSION_FILE)
+
+SRC_UDS_DIR = $(TOP_DIR)/src/uds
+
+DEPDIR  = .deps
+PROFDIR = profiled-binaries
+
+ARCHIVE_DIR = $(TOP_DIR)/archive
+PERL_DIR    = $(SRC_DIR)/perl
+UDSTEST_DIR = $(PERL_DIR)/udstest
+
+RUN_UDSTESTS = cd $(UDSTEST_DIR) && ./udstests.pl --log --threads=8
+
+###############################################################################
+# This is the base set of source files used to build UDS on all platforms
+
+UDS_COMMON_SOURCES =						\
+	$(addprefix $(SRC_UDS_DIR)/,	buffer.c		\
+					buffered-reader.c	\
+					buffered-writer.c	\
+					chapter-index.c		\
+					config.c		\
+					delta-index.c		\
+					dory.c			\
+					errors.c		\
+					event-count.c		\
+					funnel-queue.c		\
+					geometry.c		\
+					hash-utils.c		\
+					index.c			\
+					index-layout.c		\
+					index-page-map.c	\
+					index-session.c		\
+					volume-index005.c	\
+					volume-index006.c	\
+					volume-index-ops.c	\
+					open-chapter.c		\
+					open-chapter-zone.c	\
+					page-cache.c		\
+					permassert.c		\
+					radix-sort.c		\
+					random.c		\
+					record-page.c		\
+					request.c		\
+					sparse-cache.c		\
+					string-utils.c		\
+					time-utils.c		\
+					volume.c		\
+					volume-store.c)		\
+	$(addprefix $(SRC_UDS_DIR)/murmur/,	murmurhash3.c)

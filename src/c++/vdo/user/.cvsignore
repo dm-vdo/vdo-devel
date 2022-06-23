@@ -1,0 +1,3 @@
+.deps
+messageStatsReader.c
+vdoStatsWriter.c

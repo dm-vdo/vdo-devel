@@ -1,0 +1,25 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+
+DORY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+DORY_SRCS = $(notdir $(wildcard $(DORY_DIR)/*.c))
+DORY_OBJS = $(DORY_SRCS:.c=.o)
+DORY_HDRS = $(notdir $(wildcard $(DORY_DIR)/*.h))
+
+INCLUDES += -I$(DORY_DIR)
+
+VPATH += $(DORY_DIR)
+
+EXTRA_CFLAGS =	-std=gnu99				\
+		-fno-builtin-memset			\
+		-fno-stack-protector			\
+		-Werror					\
+		-Wno-declaration-after-statement	\
+		-DPUBLIC_LINUX_KERNEL

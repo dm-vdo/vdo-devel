@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: GPL-2.0-only
+## -*-makefile-*-
+# vim:filetype=make
+#
+# Copyright Red Hat
+#
+# Define variables used for vdo/base and vdo/kernel.
+##
+
+BASE_OBJS :=     			\
+	action-manager.o     		\
+	admin-completion.o		\
+	admin-state.o			\
+	allocation-selector.o		\
+	bio.o                           \
+	block-allocator.o		\
+	block-map.o			\
+	block-map-format.o		\
+	block-map-page.o		\
+	block-map-recovery.o		\
+	block-map-tree.o		\
+	completion.o			\
+	compressed-block.o		\
+	compression-state.o		\
+	constants.o			\
+	data-vio.o			\
+	data-vio-pool.o                 \
+        dedupe-index.o                  \
+	device-config.o			\
+        device-registry.o		\
+	dirty-lists.o			\
+	flush.o				\
+	forest.o			\
+	header.o			\
+	hash-lock.o			\
+	hash-zone.o			\
+	heap.o				\
+	instance-number.o		\
+	int-map.o			\
+	io-submitter.o			\
+	lock-counter.o			\
+	logical-zone.o			\
+	packer.o			\
+	pbn-lock.o			\
+	pbn-lock-pool.o			\
+	physical-zone.o			\
+	pointer-map.o			\
+	pool-sysfs.o			\
+	pool-sysfs-stats.o		\
+	priority-table.o		\
+	read-only-notifier.o		\
+	read-only-rebuild.o		\
+	recovery-journal.o		\
+	recovery-journal-block.o	\
+	recovery-journal-format.o	\
+	recovery-utils.o		\
+	ref-counts.o			\
+	reference-count-rebuild.o	\
+	reference-operation.o		\
+	slab.o				\
+	slab-depot.o			\
+	slab-depot-format.o		\
+	slab-journal.o			\
+	slab-journal-format.o		\
+	slab-scrubber.o			\
+	slab-summary.o			\
+	status-codes.o			\
+	super-block.o			\
+	super-block-codec.o		\
+	sync-completion.o		\
+	thread-config.o			\
+	vdo.o				\
+	vdo-component.o         	\
+	vdo-component-states.o  	\
+	vdo-layout.o			\
+	vdo-load.o			\
+	vdo-page-cache.o		\
+	vdo-recovery.o			\
+	vdo-resize.o			\
+	vdo-resize-logical.o		\
+	vdo-resume.o			\
+	vdo-suspend.o           	\
+	vio.o				\
+	vio-pool.o			\
+	vio-read.o			\
+	vio-write.o			\
+	volume-geometry.o		\
+	wait-queue.o
+
+KERNEL_OBJS:=                           \
+        dm-vdo-target.o                 \
+        dump.o                          \
+        histogram.o                     \
+        messageStats.o                  \
+        sysfs.o                         \
+        vdoHistograms.o                 \
+        workQueue.o
+	
+USER_OBJECTS:=                  	\
+	block-map-format.o      	\
+	block-map-page.o		\
+	constants.o			\
+	header.o			\
+	recovery-journal-format.o	\
+	slab-depot-format.o		\
+	slab-journal-format.o		\
+	status-codes.o			\
+	super-block-codec.o		\
+	vdo-component.o			\
+	vdo-component-states.o		\
+	vdo-layout-user.o		\
+	volume-geometry.o

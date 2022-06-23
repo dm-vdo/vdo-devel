@@ -1,0 +1,10 @@
+# -*-perl-*-
+# $Id$
+#
+
+$RUNTESTS_OPTIONS = {
+    baseTestClass	=> 'testcases',
+    copySharedFiles	=> 1,
+    config		=> 'testcases/log.conf',
+    suiteFile		=> '.suites',
+};

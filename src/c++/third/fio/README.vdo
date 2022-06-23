@@ -1,0 +1,36 @@
+Modifications to fio for VDO testing:
+
+New files:
+
+pst.c
+pst.h
+  Prunable segment tree implementation.
+
+streamGen.c
+streamGen.h
+  Data stream generatior.
+
+Modified files:
+
+Makefile
+  streamGen.c and pst.c added to the list of sources.
+
+backend.c
+  Terminate the data generation loop if get_io_u() returned ENODATA
+  from get_io_u.
+
+init.c
+  Add streamGen initialization and cleanup.
+
+io_u.c
+  Fill I/O buffers from streamGen if configured, returning -ENODATA on
+  end of stream.
+
+options.c
+  Define the command line option to get data from streamGen.
+
+thread_options.h
+  Add the stream configuration file name to the thread options.
+
+See https:://github.com/dm-vdo/open-sourcing/tools/third/fio.git
+

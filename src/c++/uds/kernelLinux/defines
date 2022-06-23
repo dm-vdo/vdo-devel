@@ -1,0 +1,72 @@
+# -*-makefile-*-
+# vim:filetype=make
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# define variables used for kernelLinux makefiles
+#
+# $Id$
+
+K_UDS_DIR	= $(PLATFORM_DIR)/uds
+
+UDS_NAME    = uds
+UDS_PACKAGE = $(UDS_NAME)-$(VDO_MARKETING_VERSION).tgz
+
+# The arguments to pass to the kernel make scripts to build an out of tree
+# module with clang. The config options are to force not passing
+# -mrecord-mcount, which clang seems to dislike though nominally supporting.
+LLVM_ARGS = LLVM=1				\
+	    V=1					\
+	    CONFIG_FTRACE_MCOUNT_USE_CC= 	\
+	    CONFIG_FTRACE_MCOUNT_USE_OBJTOOL=y
+
+# VDO_VERSION uses \" so that it expands to a text string when the C
+# compiler is invoked.
+EXTRA_CFLAGS =	-fno-builtin-memset					    \
+		-fno-stack-protector					    \
+		-Werror							    \
+		'$$(if $$(CONFIG_KASAN) $$(LLVM),,-Wframe-larger-than=400)' \
+		-DLOG_INTERNAL						    \
+		-DUDS_MURMURHASH3					    \
+		-DCURRENT_VERSION=\"$(VDO_VERSION)\"			    \
+		-I'$$(KBUILD_EXTMOD)'
+
+###############################################################################
+# Create the contents of a DKMS subdirectory makefile.  We have to change the
+# \" into \\\" so that the echo command will put \" into the makefile.
+#
+# Argument 1:  The module name
+# Argument 2:  The list of object files to link into the module
+# Argument 3:  Any additions to EXTRA_CFLAGS
+
+DKMS_MAKEFILE =							\
+	(echo EXTRA_CFLAGS = $(subst \,\\\,$(EXTRA_CFLAGS));	\
+	$(if $(3),echo EXTRA_CFLAGS += $(strip $(3));)		\
+	echo obj-m += $(strip $(1)).o;				\
+	echo $(strip $(1))-objs = $(strip $(2)))
+
+###############################################################################
+# Create the contents of a DKMS conf file.
+#
+# Argument 1:  The DKMS package name
+# Argument 2:  The DKMS package version
+# Argument 3:  The 1st kernel module name
+# Argument 4:  The 2nd kernel module name (optional)
+# Argument 5:  The 3rd kernel module name (optional)
+
+DKMS_CONF =	(echo PACKAGE_NAME=\"$(strip $(1))\";	\
+		echo PACKAGE_VERSION=\"$(strip $(2))\";	\
+		echo MODULE_NAME=\"$(strip $(1))\";	\
+		echo AUTOINSTALL=\"yes\";		\
+		$(call DKMS_MODULE,0,$(strip $(3)))	\
+		$(call DKMS_MODULE,1,$(strip $(4)))	\
+		$(call DKMS_MODULE,2,$(strip $(5))))
+
+DKMS_MODULE = $(if $(2),						\
+	echo;								\
+	echo BUILT_MODULE_NAME[$(1)]=\"$(2)\";				\
+	echo BUILT_MODULE_LOCATION[$(1)]=\"$(2)\";			\
+	echo DEST_MODULE_LOCATION[$(1)]=\"/kernel/drivers/block/\";	\
+	echo STRIP[$(1)]=\"no\";)

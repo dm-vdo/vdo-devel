@@ -1,0 +1,7 @@
+# Release numbers and Codenames -*- cperl -*-
+# $Id$
+##
+VDO_VERSION               = 8.2.0.0
+VDO_MARKETING_VERSION     = 8.2
+VDO_PROJECT_CODENAME      = "Chlorine"
+VDO_MODNAME               = kvdo

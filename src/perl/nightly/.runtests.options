@@ -1,0 +1,9 @@
+# -*-perl-*-
+# $Id: //eng/main/src/perl/upgrade2test/.runtests.options#4 $
+#
+
+$RUNTESTS_OPTIONS = {
+    baseTestClass	=> 'testcases',
+    copySharedFiles	=> 0,
+    suiteFile		=> 'runtests.suites',
+};

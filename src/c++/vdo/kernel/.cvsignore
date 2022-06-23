@@ -1,0 +1,11 @@
+.*.ko.cmd
+.*.o.cmd
+.tmp_versions
+Module.symvers
+doxygen
+kvdo-*.*.tgz
+kvdo.ko
+kvdo.mod.c
+messageStats.c
+modules.order
+vdobase.lo

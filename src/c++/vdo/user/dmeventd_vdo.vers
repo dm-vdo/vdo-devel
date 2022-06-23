@@ -1,0 +1,8 @@
+{
+global:
+  register_device;
+  unregister_device;
+  process_event;
+local:
+  *;
+};

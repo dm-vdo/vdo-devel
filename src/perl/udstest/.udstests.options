@@ -1,0 +1,10 @@
+# -*-cperl-*-
+# $Id$
+#
+
+$RUNTESTS_OPTIONS
+  = {
+     baseTestClass   => 'UDSTest',
+     copySharedFiles => 1,
+     suiteFile       => 'udstests.suites',
+    };

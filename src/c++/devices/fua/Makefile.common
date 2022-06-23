@@ -1,0 +1,25 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+
+FUA_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+FUA_SRCS = $(notdir $(wildcard $(FUA_DIR)/*.c))
+FUA_OBJS = $(FUA_SRCS:.c=.o)
+FUA_HDRS = $(notdir $(wildcard $(FUA_DIR)/*.h))
+
+INCLUDES += -I$(FUA_DIR)
+
+VPATH += $(FUA_DIR)
+
+EXTRA_CFLAGS =	-std=gnu99				\
+		-fno-builtin-memset			\
+		-fno-stack-protector			\
+		-Werror					\
+		-Wno-declaration-after-statement	\
+		-DPUBLIC_LINUX_KERNEL

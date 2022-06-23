@@ -1,0 +1,2 @@
+#!/bin/bash
+exec valgrind --error-exitcode=105 --leak-check=full --show-reachable=yes --suppressions=valgrind.supp ./albtest --no-fork --no-unload $*

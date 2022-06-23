@@ -1,0 +1,54 @@
+/**
+ * Unit test implementations of linux/highmem.h (and mm.h)
+ *
+ * DO NOT DISTRIBUTE
+ *
+ * $Id$
+ **/
+
+#ifndef __LINUX_HIGHMEM_H
+#define __LINUX_HIGHMEM_H
+
+#include "permassert.h"
+
+#include "constants.h"
+
+struct page {
+  char page_data[VDO_BLOCK_SIZE];
+} __packed;
+
+#define PAGE_SHIFT 12
+#define PAGE_SIZE  (((unsigned long) 1) << PAGE_SHIFT)
+#define PAGE_MASK  (~(PAGE_SIZE - 1))
+
+#define offset_in_page(p) ((unsigned long)(p) & ~PAGE_MASK)
+#define is_vmalloc_addr(x) (true)
+#define virt_to_page(addr) vmalloc_to_page(addr)
+
+/**********************************************************************/
+static inline struct page *vmalloc_to_page(void *addr)
+{
+  return addr;
+}
+
+/**********************************************************************/
+static inline void memcpy_to_page(struct page *page,
+                                  size_t offset,
+                                  const char *from,
+                                  size_t len)
+{
+  STATIC_ASSERT(PAGE_SIZE == VDO_BLOCK_SIZE);
+  ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
+  memcpy(page->page_data + offset, from, len);
+}
+
+static inline void memcpy_from_page(char *to,
+                                    struct page *page,
+				    size_t offset,
+                                    size_t len)
+{
+  ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
+  memcpy(to, page->page_data + offset, len);
+}
+
+#endif // __LINUX_HIGHMEM_H

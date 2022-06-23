@@ -1,0 +1,18 @@
+# Makefile for building dory with DKMS -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+
+MODNAME=pbitfua
+MODULE_VERSION=1
+
+include $(src)/Makefile.common
+
+obj-m += $(MODNAME).o
+$(MODNAME)-objs := $(FUA_OBJS)
+
+INCLUDES += -I$(src)/
+EXTRA_CFLAGS += $(INCLUDES)

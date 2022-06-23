@@ -1,0 +1,4 @@
+This directory contains the source files for programs which do not need access
+to VDO internals. If you are trying to use a program in this directory, use
+the compiled version in ../bin/. If you are adding a new program which does
+need to be linked against VDO, please put it in ../user/.

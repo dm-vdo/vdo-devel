@@ -1,0 +1,26 @@
+# -*-cperl-*-
+# vim:filetype=perl
+# $Id$
+#
+
+###########################################################################
+# Base classes, perf tests and manual tests go here.
+##
+@baseExcludes
+  = ();
+
+###########################################################################
+# Suites that should not run are here
+##
+@deferred
+  = (
+     "DDBenchTest",                # This is failing the continuous build
+    );
+
+###########################################################################
+# The full list of tests are the ones contained in these suites.
+##
+@excludes = (
+             @baseExcludes,
+             @deferred,
+            );

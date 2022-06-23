@@ -1,0 +1,27 @@
+# Makefile for building optofs with DKMS -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+
+MODNAME=pbittracer
+MODULE_VERSION=1
+
+include $(src)/Makefile.common
+include $(src)/Makefile.murmur
+
+obj-m += $(MODNAME).o
+$(MODNAME)-objs := $(TRACER_OBJS) $(MURMUR_OBJS)
+
+INCLUDES += -I$(src)/
+EXTRA_CFLAGS += $(INCLUDES)
+
+###############################################################################
+# Override kernel-object build rule when sources are in another directory
+
+MURMUR_OBJS_FULL_PATH = $(addprefix $(obj)/,$(MURMUR_OBJS))
+$(MURMUR_OBJS_FULL_PATH): $(obj)/%.o: $(MURMUR_DIR)/%.c
+	$(call cmd,force_checksrc)
+	$(call if_changed_rule,cc_o_c)

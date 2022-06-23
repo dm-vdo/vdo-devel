@@ -1,0 +1,25 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+
+CORRUPTOR_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+CORRUPTOR_SRCS = $(notdir $(wildcard $(CORRUPTOR_DIR)/*.c))
+CORRUPTOR_OBJS = $(CORRUPTOR_SRCS:.c=.o)
+CORRUPTOR_HDRS = $(notdir $(wildcard $(CORRUPTOR_DIR)/*.h))
+
+INCLUDES += -I$(CORRUPTOR_DIR)
+
+VPATH += $(CORRUPTOR_DIR)
+
+EXTRA_CFLAGS =	-std=gnu99				\
+		-fno-builtin-memset			\
+		-fno-stack-protector			\
+		-Werror					\
+		-Wno-declaration-after-statement	\
+		-DPUBLIC_LINUX_KERNEL

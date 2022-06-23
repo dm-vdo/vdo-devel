@@ -1,0 +1,244 @@
+The major change between the //eng/albireo and //eng/uds trees is that we have
+eliminated all of the tests that were written in perl to run different programs
+such as albscan and aldgendata.  This change happened early in the
+zubenelbenubi prototype effort to support a non-Unix version of UDS.  We needed
+to test UDS in enviroments where we could not run standalone programs, and
+could not access data residing in a file system.
+
+We recoded all the important tests in C to run as albtests.  Thus some of the
+albtests are unit tests, and some are system tests.  As much as possible, we
+run every test in every environment.
+
+
+Checkin Tests
+=============
+
+The checkin suite is all the "_t" tests.  The primary criterion for naming a
+test an "_t" test is that it runs quickly, so that the entire checkin suite can
+run in under 5 minutes.
+
+Generally any test that runs in less than 5 seconds is an "_t" test, and any
+test that runs in more than 20 seconds is not.  In the middle range, we need a
+compelling reason to make it an "_t" test.
+
+Note that "make checkin" (at the top level) will do a "make all" and then run
+the checkin suite on all platforms and OS choices.  It is possible to run
+checkin on only one platform (e.g. just kernelLinux) by doing "make -C
+kernelLinux checkin".
+
+
+Jenkins Tests
+=============
+
+The jenkins suite is all the "_t" and all the "_n" tests.  Our goal is to make
+this suite run in less than 25 minutes.
+
+Generally any test that runs in less than 4 minutes is an "_n" test, unless it
+is an "_t" test.
+
+When we starting replacing the Albireo perl tests, we intended for the "_t"
+tests to be the checkin tests, and the "_n" tests to be the nightly tests
+(hence the "n"), and the "_x" tests to be the weekly tests.  The amount of time
+needed to run the checkin/nightly/weekly tests were short enough that we
+changed these categories to be the checkin/jenkins/nightly tests.
+
+It is intended that it is reasonable to run "make jenkins" before checking in a
+change.  Like "make checkin", "make jenkins" will do a "make all" and one can
+run the jenkins suite on only a single platform by doing "make -C userLinux
+jenkins".
+
+
+Nightly and Performance Tests
+=============================
+
+The nightly suite runs all the "_t", "_n" and "_x" tests.  Some of the "_x"
+tests take an hour to run.
+
+The performance suite runs all the "_p" tests.  These tests are separated from
+the others because the nightly run rules want to run them on real hardware.
+
+In user mode, we build the performance tests as executable files (rather than
+.so files).  The reason for this is that it was easier to run profiling tools
+using the executable files.
+
+
+Changes to albtest
+==================
+
+The albtest code was split into 2 pieces.  One piece is common to all
+platforms, and the other must be recoded for each platform.  Importantly, the
+tests could no longer directly invoke user space methods like printf.  We had
+to eliminate such calls or replace them with system-dependent wrappers.  The
+new wrappers include:
+
+- albFlush (replaces fflush)
+- albPrint (replaces printf)
+- getTestIndexName to get the name of the test index
+- getTestIndexNames to get the names all of all the test indices
+- getTestMultiIndexNames to get the names of 2 indices for simultaneous usage
+
+Performance tests
+-----------------
+
+//eng/albireo performance tests did not use the albtest mechanism, but rather
+contained a main method.  The main method could only be used in user space, so
+we converted all these tests to use the albtest mechanism.
+
+Multi-suite testing
+-------------------
+
+We replaced the existing multi-suite mechanism, because it used a dynamic
+method lookup by name that we could not do on every platform.  We instead used
+only the initializeModule method, but added a "next" field to the suite so that
+we now have a linked list of suites.
+
+An example of a multi-suite tests is found in Volume_t2.  We run the same list
+of tests, but with 2 different initializers:
+
+static const CU_SuiteInfo suites[] = {
+  {
+    .name        = "Volume_t2.normal",
+    .initializer = initDefault,
+    .tests       = tests,
+    .next        = &suites[1],
+  },
+  {
+    .name        = "Volume_t2.small",
+    .initializer = initSmall,
+    .tests       = tests,
+  }
+};
+
+const CU_SuiteInfo *initializeModule(void)
+{
+  return suites;
+}
+
+Test initializers
+-----------------
+
+We added additional initializers to the suite mechanism.  The added methods
+allow the test infrastructure to set some test parameters, and in some cases
+the existance of the initializer causes albtest to do additional setup steps.
+
+With one exception, the initializers can be called in any order.  But we
+guarantee that the one called "initializer" will be called last.
+
+The first new initializer is called "initializerWithIndexName".  When this
+initializer is non-NULL, we clone the suite and invoke it once for each name
+listed in the return value of the getTestIndexNames method.
+
+This initializer makes the test source code independent of the platform's index
+naming scheme, and has been used in the past when platforms support multiple
+naming options.  For example, in //eng/uds tree you can call the index
+"file=/u1/zubengenubi" to test using a single file index, or "dir=/u1/albireo"
+to test using a multi-file index.  A example of a test using this initializer
+is BiasedNames_n1:
+
+
+static const char *indexName;
+
+static void initializerWithIndexName(const char *name)
+{
+  indexName = name;
+}
+
+static const CU_SuiteInfo suite = {
+  .name                     = "BiasedNames_n1",
+  .initializerWithIndexName = initializerWithIndexName,
+  .tests                    = tests,
+};
+
+The second new initializer is called "initializerWithSession".  When this
+initializer is non-NULL, we clone the suite and invoke it once for each
+standard UDS configuration.  Such tests then run using a dense index, and then
+run again using a sparse index.  Note that this initializer also does the same
+index name cloning as does "initializerWithIndexName".  A simple example of the
+usage of this initializer is PostBlockName_p1:
+
+static struct uds_index_session *indexSession;
+
+static void initializerWithSession(struct uds_index_session **is)
+{
+  indexSession = *is;
+}
+
+static const CU_SuiteInfo suite = {
+  .name                   = "PostBlockName_p1",
+  .initializerWithSession = initializerWithSession,
+  .tests                  = tests
+};
+
+There is also a new flag that allows a suite to use "initializerWithSession"
+without running with a sparse UDS configuration.  The example of this flag is
+PostBlockName_p2:
+
+static const CU_SuiteInfo suite = {
+  .name                   = "PostBlockName_p2",
+  .initializerWithSession = initializerWithSession,
+  .modifyUdsConfiguration = modifyUdsConfiguration,
+  .noSparse               = true,
+  .tests                  = tests
+};
+
+It is possible to combine many of these initializers together to run many
+variations of the same basic test.  The largest example is BlockName_n2 (q.v.).
+
+
+AllTests_t1
+===========
+
+In some environments, running tests is a manual process, and we needed our
+customer to drive that process.  So we created mechanisms to let us combine all
+the tests into a single multi-suite test.  There is a python script that
+combines all the tests into a single monster suite called AllTests_t1.
+
+
+Linux Kernel Testing
+====================
+
+Testing in the Linux kernel has its own challenges.  We need to run the tests
+in the kernel, but the kernel does not make it easy to run arbitrary code
+driven from user space.
+
+For running tests, we build two kernel modules.  The "uds" module is the uds
+index code, unchanged except that we compile it with -DTEST_INTERNAL.  The
+tests themselves are in the "zubenelgenubi" module.  The test module includes a
+sysfs tree under the name /sys/zubenelgenubi.
+
+The perl test code runs the tests using the sysfs interface.  The user space
+code gets a list of all the tests (using the ls command), and writes a "run"
+inode to run a test, and reads the test results.
+
+The checkin suite includes all the "_t" tests.  The checkin test runner uses
+the AllTests_t1 mechanism so that it only loads the zubenelgenubi module into
+the kernel once and runs all of the checkin tests.
+
+When a test fails, the test thread exits with an error code.  The test runner
+sees that this happens and reboots system to recover the leaked resources.
+It's not pretty but it works.
+
+The jenkins suite includes all the "_t" and "_n" tests.  Like the checkin
+tests, we load the zubenelgenubi module into the kernel once and run all of the
+jenkins tests.
+
+The nightly suite includes all the "_t" and "_n" and "_x" tests.  The nightly
+test runner uses the AllTests_t1 mechanism to discover the test names, but
+loads the zubelgenubi module once for each test.  This takes about 30 seconds
+per test, but keeps the triage tools happy.
+
+The performance suite includes all the "_p" tests.  This is like the nightly
+tests, but is separate so that nighty run rules can specify a different type of
+host.
+
+
+UDSTests vs. VDOTests
+=====================
+
+The first difference between UDS and VDO tests is that UDS never puts an OS
+class into the clientClass specification.  It always uses the rsvpOSClass
+specifier for an OS class.
+
+The second difference is that UDS does not use /permabit/not-backed-up at all.
+We have been able to run tests on AFARMs without needing to run tests from an
+AFARM.

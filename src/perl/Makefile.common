@@ -1,0 +1,134 @@
+# Common Makefile rules	      -*-makefile-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id$
+
+ifndef ROOT
+$(error "ROOT must be set before including Makefile.common")
+endif
+
+PWD ?= $(CURDIR)
+
+PDOC2POD:= pdoc2pod.pl
+POD2HTML:= pod2html
+ifeq (Maipo, $(shell lsb_release -s -c))
+  POD2HTML:= pod2html --quiet
+endif
+
+POD2MAN:= pod2man
+
+# find the Export.pm being used, to make sure we can create doc links to it
+EXPORTER:= $(shell perl -e 'map { -f "$$_/Exporter.pm" && print "$$_/Exporter.pm\n"; } @INC;')
+EXPORTER_COPY:= $(ROOT)/Exporter.pm
+
+HTMLROOT:= http://127.0.0.1/~${USER}/perldoc
+PODPATH:= .:Permabit:${USER}:vdotest
+
+CRITIC_PROFILE := $(ROOT)/.perlcritic
+
+PERL_MODULE_CHECK_INCLUDE_PATH = -I${ROOT}/lib \
+                                 -I/permabit/build/common/lastrun/perl/lib
+
+DESTDIR:= .
+
+NAKEDSCRIPTS:= $(shell find . -maxdepth 1 \! -name '*~' \! -name '*.pl' \
+                       | xargs file | fgrep /usr/bin/perl | cut -f1 -d:)
+OTHERSCRIPTS:= $(addsuffix .pl, $(filter-out ${NO_CHECK}, \
+                                             $(notdir ${NAKEDSCRIPTS})))
+SCRIPTS     := $(sort ${OTHERSCRIPTS} $(wildcard *.pl))
+MODULES     := $(wildcard *.pm)
+
+HTMLFILES   := $(MODULES:.pm=.html)
+HTMLFILES   += $(SCRIPTS:.pl=.html)
+MAN1PAGES   := $(SCRIPTS:.pl=.1)
+MAN3PAGES   := $(MODULES:.pm=.3pm)
+
+CHECKFILES   := $(filter-out ${NO_CHECK}, ${MODULES} ${SCRIPTS})
+
+%.3pm: %.pm
+	$(PDOC2POD) $< | $(POD2MAN) > $@
+
+%.1: %.pl
+	$(PDOC2POD) $< | $(POD2MAN) > $@
+
+.PHONY: pod2html_rebuild
+pod2html_rebuild:
+	-$(POD2HTML) --flush --htmlroot=$(HTMLROOT) --norecurse \
+	   --podroot=$(ROOT) --podpath=$(PODPATH) </dev/null >/dev/null 2>&1
+
+%.html: %.pod $(EXPORTER_COPY) pod2html_rebuild
+	$(POD2HTML) --htmlroot=$(HTMLROOT) \
+	   --podroot=$(ROOT) --podpath=$(PODPATH) $< > $@
+
+%.html: %.pl $(EXPORTER_COPY) pod2html_rebuild
+	$(PDOC2POD) $< | $(POD2HTML) --htmlroot=$(HTMLROOT) \
+	   --podroot=$(ROOT) --podpath=$(PODPATH) > $@
+
+%.pod: %.pm
+	$(PDOC2POD) $< > $@
+
+%.pod: %.pl
+	$(PDOC2POD) $< > $@
+	#
+# Create temporary symlinks of foo to foo.pl so that our default rules
+# work for scripts without .pl extensions
+$(OTHERSCRIPTS):
+	ln -s $(basename $@) $@
+.INTERMEDIATE: $(OTHERSCRIPTS)
+
+doc: $(HTMLFILES)
+	mkdir -p $(DESTDIR)
+	for file in $(HTMLFILES); do \
+		(mv -f $$file $(DESTDIR) || true); \
+	done
+	for dir in $(DOCDIRS); do \
+	  mkdir -p $(DESTDIR)/$$dir; \
+	  $(MAKE) -C $$dir $@ DESTDIR=$(DESTDIR)/$$dir; \
+	done
+	rm -f $(EXPORTER_COPY)
+
+man: $(MAN1PAGES) $(MAN3PAGES)
+	mkdir -p $(DESTDIR)/man1 $(DESTDIR)/man3
+	for file in $(MAN1PAGES); do \
+		(mv -f $$file $(DESTDIR)/man1/$$file || true); \
+	done
+	for file in $(MAN3PAGES); do \
+		(mv -f $$file $(DESTDIR)/man3/$(MANPREFIX)$$file || true); \
+	done
+	for dir in $(DOCDIRS); do \
+	  $(MAKE) -C $$dir $@; \
+	done
+
+$(EXPORTER_COPY): $(EXPORTER)
+	ln -s $(EXPORTER) $(EXPORTER_COPY)
+
+check_%.pl: %.pl
+	perl -cw ./$<
+
+check_%.pm: %.pm
+	perl ${PERL_MODULE_CHECK_INCLUDE_PATH} ${CHECKARGS} -cw ./$<
+
+do-critic: ${CHECKFILES}
+ifneq ($(strip ${CHECKFILES}),)
+	! perlcritic --profile ${CRITIC_PROFILE} $(CHECKFILES) 2>&1 \
+	  | grep -v "source OK$$" >&2
+endif
+
+check: do-critic $(addprefix check_,${CHECKFILES})
+	for dir in $(DOCDIRS); do \
+	  $(MAKE) -C $$dir $@ || exit 1; \
+	done
+
+cleanlogs::
+	rm -f filecopy.stdout rsvp.log
+
+cleanall:: clean cleanlogs
+
+clean::
+	rm -f pod2htm?.* $(HTMLFILES) $(MAN1PAGES) $(MAN3PAGES) $(EXPORTER_COPY)
+	for dir in $(DOCDIRS); do \
+	  $(MAKE) -C $$dir clean; \
+	done

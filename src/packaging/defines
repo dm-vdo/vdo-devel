@@ -1,0 +1,35 @@
+## -*-makefile-*-
+# vim:filetype=make
+#
+# Define variables used by packaging Makefiles.
+#
+# Users of this file (or any file which includes it) must define SRC_DIR
+#
+# $Id: //eng/vdo/src/defines#9 $
+##
+
+TEST_ROOT = $(realpath $(SRC_DIR)/..)
+
+ifdef AUTHOR
+  AUTHOR_FLAG = --author=$(AUTHOR)
+endif
+
+ifdef CHANGELOG
+  CHANGELOG_FLAGS = --changelog=$(CHANGELOG) $(AUTHOR_FLAG)
+endif
+
+ifndef VDO_ROOT
+  include $(SRC_DIR)/defines
+  include $(CURRENT_VERSION_FILE)
+  DEFAULT_VDO_ROOT = \
+    /permabit/release/vdo-$(VDO_MARKETING_VERSION)/current/tree.tgz
+  ifneq ("$(wildcard $(DEFAULT_VDO_ROOT))","")
+    $(info VDO_ROOT being set to the release default $(DEFAULT_VDO_ROOT))
+    VDO_ROOT := $(DEFAULT_VDO_ROOT)
+  else
+    $(info VDO_ROOT being set to the test default $(TEST_ROOT))
+    VDO_ROOT := $(TEST_ROOT)
+  endif
+endif
+
+

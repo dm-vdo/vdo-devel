@@ -1,0 +1,25 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+
+TRACER_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+TRACER_SRCS = $(notdir $(wildcard $(TRACER_DIR)/*.c))
+TRACER_OBJS = $(TRACER_SRCS:.c=.o)
+TRACER_HDRS = $(notdir $(wildcard $(TRACER_DIR)/*.h))
+
+INCLUDES += -I$(TRACER_DIR)
+
+VPATH += $(TRACER_DIR)
+
+EXTRA_CFLAGS =	-std=gnu99				\
+		-fno-builtin-memset			\
+		-fno-stack-protector			\
+		-Werror					\
+		-Wno-declaration-after-statement	\
+		-DPUBLIC_LINUX_KERNEL

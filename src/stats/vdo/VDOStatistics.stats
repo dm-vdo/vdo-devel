@@ -1,0 +1,927 @@
+# The statistics definitions for VDO.
+#
+# This file is parsed by generateStatsCode.pl in order to generate:
+# - C header files for statistics
+# - Perl classes used by VDO tests to parse the output from vdoStats
+#
+# This file also documents the .stats language. A detailed description of
+# the language appears at the end of the file.
+#
+# Note: the C printf formats specified here should work for any
+# platform on which uint64_t is the same as "unsigned long int". In
+# the unlikely event that uint64_t is defined in some other way, it
+# will be necessary to do some platform specific preprocessing.
+
+# $Id$
+
+# This version number is used to make sure that different programs interpreting
+# the statistics are in sync with the generators of them. Any change to the
+# statistics configuration should include incrementing this number.
+version 34;
+
+# Type blocks
+type bool {
+  C      bool;
+  kernel %d;
+  user   %d;
+}
+
+type constant32 {
+  C      uint32_t;
+  Perl   constant;
+  kernel %u;
+  user   %u;  
+}
+
+type constant64 {
+  C      uint64_t;
+  Perl   constant;
+  kernel %llu;
+  user   %lu;  
+}
+
+type constantString {
+  C      char;
+  Perl   constant;
+  kernel %s;
+  user   %s;
+}
+
+type constantBlockCount {
+  C      block_count_t;
+  Perl   constant;
+  kernel %llu;
+  user   %lu;  
+}
+
+type counter64 {
+  C      uint64_t;
+  Perl   counter;
+  kernel %llu;
+  user   %lu;  
+}
+
+type float {
+  C      double;
+  Perl   snapshot;
+  kernel %.2f;
+  user   %.2f;
+}
+
+type maximum32 {
+  C      uint32_t;
+  Perl   maximum;
+  kernel %u;    
+  user   %u;  
+}
+
+type maximum64 {
+  C      uint64_t;
+  Perl   maximum;
+  kernel %llu;
+  user   %lu;
+}
+
+type releaseVersionNumber {
+  C      uint32_t;
+  Perl   constant;
+  kernel %u;
+  user   %u;
+}
+
+type snapshot32 {
+  C      uint32_t;
+  Perl   snapshot;
+  kernel %u;
+  user   %u;
+}
+
+type snapshot64 {
+  C      uint64_t;
+  Perl   snapshot;
+  kernel %llu;
+  user   %lu;
+}
+
+type signed {
+  C      int32_t;
+  Perl   state;
+  kernel %d;
+  user   %d;
+}
+
+type state8 {
+  C      uint8_t;
+  Perl   state;
+  kernel %u;
+  user   %hhu;
+}
+
+type stateString {
+  C      char;
+  Perl   constant;
+  kernel %s;
+  user   %s;
+}
+
+type versionNumber {
+  C      uint32_t;
+  Perl   constant;
+  kernel %u;
+  user   %u;
+}
+
+stats {
+  perlDefinitions      VDO_STATISTICS_DEFINITIONS;
+  perlHeader           Definitions.pm;
+  perlPackage          Permabit::Statistics::Definitions;
+  csysfsOutput         pool-sysfs-stats.c;
+  cmessageOutput       messageStats.c;
+  cmessagereaderOutput messageStatsReader.c;
+  cvdostatsOutput      vdoStatsWriter.c;
+
+  releaseVersions {
+    cHeader      release-versions.h;
+
+    enum ReleaseVersions {
+      VDO_OXYGEN_RELEASE_VERSION_NUMBER    109583;
+      VDO_FLUORINE_RELEASE_VERSION_NUMBER  115838;
+      VDO_NEON_RELEASE_VERSION_NUMBER      120965;
+      VDO_SODIUM_RELEASE_VERSION_NUMBER    127441;
+      VDO_MAGNESIUM_RELEASE_VERSION_NUMBER 131337;
+      VDO_ALUMINUM_RELEASE_VERSION_NUMBER  133524;
+      VDO_HEAD_RELEASE_VERSION_NUMBER      0;
+      VDO_CURRENT_RELEASE_VERSION_NUMBER   VDO_HEAD_RELEASE_VERSION_NUMBER;
+    }
+  }
+
+  vdo {
+    cHeader      statistics.h;
+    cVersionEnum 1;
+    cIncludes    header.h, types.h;
+
+    struct BlockAllocatorStatistics {
+      counter64 slabCount {
+        comment The total number of slabs from which blocks may be allocated;
+        unit    Count;
+      }
+
+      counter64 slabsOpened {
+        comment The total number of slabs from which blocks have ever been allocated;
+        unit    Count;
+      }
+
+      counter64 slabsReopened {
+        comment The number of times since loading that a slab has been re-opened;
+        unit    Count;
+      }
+    }
+
+    struct CommitStatistics {
+      comment Counters for tracking the number of items written (blocks, requests, etc.)
+that keep track of totals at steps in the write pipeline. Three counters
+allow the number of buffered, in-memory items and the number of in-flight,
+unacknowledged writes to be derived, while still tracking totals for
+reporting purposes;
+
+      snapshot64 batching {
+        unit     Count;
+        no       C, CMessage, CMessageReader, CSysfs;
+        cderived $started - $written;        
+      }
+
+      counter64 started {
+        comment The total number of items on which processing has started;
+        unit    Count;
+      }
+
+      snapshot64 writing {
+        unit     Count;
+        no       C, CMessage, CMessageReader, CSysfs;
+        cderived $written - $committed;              
+      }
+
+      counter64 written {
+        comment The total number of items for which a write operation has been issued;
+        unit    Count;
+      }
+
+      counter64 committed {
+        comment The total number of items for which a write operation has completed;
+        unit    Count;
+      }
+    }
+
+    struct RecoveryJournalStatistics {
+      comment     Counters for events in the recovery journal;
+      labelPrefix journal;
+
+      counter64 diskFull {
+        comment Number of times the on-disk journal was full;
+        label   disk full count;
+        unit    Count;
+      }
+
+      counter64 slabJournalCommitsRequested {
+        comment Number of times the recovery journal requested slab journal commits.;
+        label   commits requested count;
+        unit    Count;
+      }
+
+      CommitStatistics entries {
+        comment     Write/Commit totals for individual journal entries;
+        labelPrefix entries;
+        unit        Entries;
+      }
+
+      CommitStatistics blocks {
+        comment     Write/Commit totals for journal blocks;
+        labelPrefix blocks;
+        unit        Blocks;
+      }
+    }
+
+    struct PackerStatistics {
+      comment The statistics for the compressed block packer.;
+
+      counter64 compressedFragmentsWritten {
+        comment Number of compressed data items written since startup;
+        unit    Blocks;
+      }
+
+      counter64 compressedBlocksWritten {
+        comment Number of blocks containing compressed items written since startup;
+        unit    Blocks;
+      }
+
+      snapshot64 compressedFragmentsInPacker {
+        comment Number of VIOs that are pending in the packer;
+        unit    Blocks;
+      }
+    }
+
+    struct SlabJournalStatistics {
+      comment     The statistics for the slab journals.;
+      labelPrefix slab journal;
+
+      counter64 diskFullCount {
+        comment Number of times the on-disk journal was full;
+        unit    Count;
+      }
+
+      counter64 flushCount {
+        comment Number of times an entry was added over the flush threshold;
+        unit    Count;
+      }
+
+      counter64 blockedCount {
+        comment Number of times an entry was added over the block threshold;
+        unit    Count;
+      }
+
+      counter64 blocksWritten {
+        comment Number of times a tail block was written;
+        unit    Count;
+      }
+
+      counter64 tailBusyCount {
+        comment Number of times we had to wait for the tail to write;
+        unit    Count;
+      }
+    }
+
+    struct SlabSummaryStatistics {
+      comment The statistics for the slab summary.;
+      labelPrefix slab summary;
+
+      counter64 blocksWritten {
+        comment Number of blocks written;
+        unit    Count;
+      }
+    }
+
+    struct RefCountsStatistics {
+      comment The statistics for the reference counts.;
+      labelPrefix reference;
+
+      counter64 blocksWritten {
+        comment Number of reference blocks written;
+        unit    Count;
+      }
+    }
+
+    struct BlockMapStatistics {
+      comment The statistics for the block map.;
+      labelPrefix block map;
+
+      snapshot32 dirtyPages {
+        comment number of dirty (resident) pages;
+        unit    Count;
+      }
+
+      snapshot32 cleanPages {
+        comment number of clean (resident) pages;
+        unit    Count;
+      }
+
+      snapshot32 freePages {
+        comment number of free pages;
+        unit    Count;
+      }
+
+      snapshot32 failedPages {
+        comment number of pages in failed state;
+        unit    Count;
+      }
+
+      snapshot32 incomingPages {
+        comment number of pages incoming;
+        unit    Count;
+      }
+
+      snapshot32 outgoingPages {
+        comment number of pages outgoing;
+        unit    Count;
+      }
+
+      snapshot32 cachePressure {
+        comment how many times free page not avail;
+        unit    Count;
+      }
+
+      counter64 readCount {
+        comment number of get_vdo_page() calls for read;
+        unit    Count;
+      }
+
+      counter64 writeCount {
+        comment number of get_vdo_page() calls for write;
+        unit    Count;
+      }
+
+      counter64 failedReads {
+        comment number of times pages failed to read;
+        unit    Count;
+      }
+
+      counter64 failedWrites {
+        comment number of times pages failed to write;
+        unit    Count;
+      }
+
+      counter64 reclaimed {
+        comment number of gets that are reclaimed;
+        unit    Count;
+      }
+
+      counter64 readOutgoing {
+        comment number of gets for outgoing pages;
+        unit    Count;
+      }
+
+      counter64 foundInCache {
+        comment number of gets that were already there;
+        unit    Count;
+      }
+
+      counter64 discardRequired {
+        comment number of gets requiring discard;
+        unit    Count;
+      }
+
+      counter64 waitForPage {
+        comment number of gets enqueued for their page;
+        unit    Count;
+      }
+
+      counter64 fetchRequired {
+        comment number of gets that have to fetch;
+        unit    Count;
+      }
+
+      counter64 pagesLoaded {
+        comment number of page fetches;
+        unit    Count;
+      }
+
+      counter64 pagesSaved {
+        comment number of page saves;
+        unit    Count;
+      }
+
+      counter64 flushCount {
+        comment the number of flushes issued;
+        unit    Count;
+      }
+    }
+
+    struct HashLockStatistics {
+      comment The dedupe statistics from hash locks;
+
+      counter64 dedupeAdviceValid {
+        comment Number of times the UDS advice proved correct;
+        unit    Blocks;
+      }
+
+      counter64 dedupeAdviceStale {
+        comment Number of times the UDS advice proved incorrect;
+        unit    Blocks;
+      }
+
+      counter64 concurrentDataMatches {
+        comment Number of writes with the same data as another in-flight write;
+        unit    Blocks;
+      }
+
+      counter64 concurrentHashCollisions {
+        comment Number of writes whose hash collided with an in-flight write;
+        unit    Blocks;
+      }
+    }
+
+    struct ErrorStatistics {
+      comment Counts of error conditions in VDO.;
+
+      snapshot64 invalidAdvicePBNCount {
+        comment number of times VDO got an invalid dedupe advice PBN from UDS;
+      }
+
+      snapshot64 noSpaceErrorCount {
+        comment number of times a VIO completed with a VDO_NO_SPACE error;
+      }
+
+      snapshot64 readOnlyErrorCount {
+        comment number of times a VIO completed with a VDO_READ_ONLY error;
+      }
+    }
+
+    struct BioStats {
+      counter64 read {
+        comment Number of REQ_OP_READ bios;
+        unit    Count;
+      }
+
+      counter64 write {
+        comment Number of REQ_OP_WRITE bios with data;
+        unit    Count;
+      }
+
+      counter64 emptyFlush {
+	comment Number of bios tagged with REQ_PREFLUSH and containing no data;
+        unit    Count;
+      }
+
+      counter64 discard {
+        comment Number of REQ_OP_DISCARD bios;
+        unit    Count;
+      }
+
+      counter64 flush {
+	comment Number of bios tagged with REQ_PREFLUSH;
+        unit    Count;
+      }
+
+      counter64 fua {
+        comment Number of bios tagged with REQ_FUA;
+        unit    Count;
+      }
+    }
+
+    struct MemoryUsage {
+      snapshot64 bytesUsed {
+        comment Tracked bytes currently allocated.;
+        unit    Count;
+      }
+
+      snapshot64 peakBytesUsed {
+        comment Maximum tracked bytes allocated.;
+        unit    Count;
+      }
+    }
+
+    struct IndexStatistics {
+      comment UDS index statistics;
+
+      counter64 entriesIndexed {
+        comment Number of chunk names stored in the index;
+      }
+
+      counter64 postsFound {
+        comment Number of post calls that found an existing entry;
+      }
+
+      counter64 postsNotFound {
+        comment Number of post calls that added a new entry;
+      }
+
+      counter64 queriesFound {
+        comment Number of query calls that found an existing entry;
+      }
+
+      counter64 queriesNotFound {
+        comment Number of query calls that added a new entry;
+      }
+
+      counter64 updatesFound {
+        comment Number of update calls that found an existing entry;
+      }
+
+      counter64 updatesNotFound {
+        comment Number of update calls that added a new entry;
+      }
+
+      snapshot32 currDedupeQueries {
+        comment Current number of dedupe queries that are in flight;
+        label   current dedupe queries;
+        unit    Count;
+      }
+
+      maximum32 maxDedupeQueries {
+        comment Maximum number of dedupe queries that have been in flight;
+        label   maximum dedupe queries;
+        unit    Count;
+      }
+    }
+
+    versionedStruct VDOStatistics {
+      comment  The statistics of the vdo service.;
+      ioctl    stats;
+      perlStat VDOStats;
+
+      snapshot64 dataBlocksUsed {
+        comment    Number of blocks used for data;
+        unit       Blocks;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
+      }
+
+      snapshot64 overheadBlocksUsed {
+        comment    Number of blocks used for VDO metadata;
+        unit       Blocks;
+        cavailable !$inRecoveryMode;
+      }
+
+      snapshot64 logicalBlocksUsed {
+        comment    Number of logical blocks that are currently mapped to physical blocks;
+        unit       Blocks;
+        cavailable !$inRecoveryMode;
+      }
+
+      constantBlockCount physicalBlocks {
+        comment number of physical blocks;
+      }
+
+      constantBlockCount logicalBlocks {
+        comment number of logical blocks;
+      }
+
+      snapshot64 oneKBlocks {
+        label    1K-blocks;
+        no       C, CMessage, CMessageReader, CSysfs;
+        unit     Blocks;
+        cderived $physicalBlocks * $blockSize / 1024;        
+      }
+
+      snapshot64 oneKBlocksUsed {
+        label      1K-blocks used;
+        no         C, CMessage, CMessageReader, CSysfs;
+        unit       Blocks;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
+        cderived   ($dataBlocksUsed + $overheadBlocksUsed) * $blockSize / 1024; 
+      }
+
+      snapshot64 oneKBlocksAvailable {
+        label      1K-blocks available;
+        no         C, CMessage, CMessageReader, CSysfs;
+        unit       Blocks;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));        
+        cderived   ($physicalBlocks - $dataBlocksUsed - $overheadBlocksUsed) * $blockSize / 1024;        
+      }
+
+      state8 usedPercent {
+        no         C, CMessage, CMessageReader, CSysfs;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
+        cderived   (int) (100 * ($dataBlocksUsed + $overheadBlocksUsed) / $physicalBlocks) + 0.5;        
+      }
+
+      signed savings {
+        display    False;
+        no         C, CMessage, CMessageReader, CSysfs;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));        
+        cderived   ($logicalBlocksUsed > 0) ? (int) (100 * (int64_t) ($logicalBlocksUsed - $dataBlocksUsed) / (uint64_t) $logicalBlocksUsed) : -1;
+      }
+
+      state8 savingPercent {
+        no         C, CMessage, CMessageReader, CSysfs;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode)) && ($savings >= 0);
+        cderived   $savings;
+      }
+
+      constant64 blockMapCacheSize {
+        comment Size of the block map page cache, in bytes;
+        unit    Blocks;
+      }
+
+      constant64 blockSize {
+        comment The physical block size;
+      }
+
+      counter64 completeRecoveries {
+        comment Number of times the VDO has successfully recovered;
+        label   completed recovery count;
+        unit    Count;
+      }
+
+      counter64 readOnlyRecoveries {
+        comment Number of times the VDO has recovered from read-only mode;
+        label   read-only recovery count;
+        unit    Count;
+      }
+
+      stateString mode[15] {
+        comment String describing the operating mode of the VDO;
+        label   operating mode;
+      }
+
+      bool inRecoveryMode {
+        comment Whether the VDO is in recovery mode;
+        display False;
+        no      Perl;
+      }
+
+      state8 recoveryPercentage {
+        comment    What percentage of recovery mode work has been completed;
+        label      recovery progress (%);
+        cavailable $inRecoveryMode;
+      }
+
+      PackerStatistics packer {
+        comment The statistics for the compressed block packer;
+      }
+
+      BlockAllocatorStatistics allocator {
+        comment Counters for events in the block allocator;
+      }
+
+      RecoveryJournalStatistics journal {
+        comment Counters for events in the recovery journal;
+      }
+
+      SlabJournalStatistics slabJournal {
+        comment The statistics for the slab journals;
+      }
+
+      SlabSummaryStatistics slabSummary {
+        comment The statistics for the slab summary;
+      }
+
+      RefCountsStatistics refCounts {
+        comment The statistics for the reference counts;
+      }
+
+      BlockMapStatistics blockMap {
+        comment The statistics for the block map;
+      }
+
+      HashLockStatistics hashLock {
+        comment The dedupe statistics from hash locks;
+      }
+
+      ErrorStatistics errors {
+        comment Counts of error conditions;
+      }
+
+      constant32 instance {
+        comment The VDO instance;
+      }
+
+      stateString fiveTwelveByteEmulation[4] {
+        label    512 byte emulation;
+        no       C, CMessage, CMessageReader, CSysfs;
+        cderived ($logicalBlockSize == 512) ? "on" : "off";        
+      }
+
+      snapshot32 currentVIOsInProgress {
+        C       current_vios_in_progress;
+        comment Current number of active VIOs;
+        label   current VDO IO requests in progress;
+        unit    Count;
+      }
+
+      maximum32 maxVIOs {
+ 	C       max_vios;
+        comment Maximum number of active VIOs;
+        label   maximum VDO IO requests in progress;
+        unit    Count;
+      }
+
+      counter64 dedupeAdviceTimeouts {
+        comment Number of times the UDS index was too slow in responding;
+        unit    Blocks;
+      }
+
+      counter64 flushOut {
+        comment Number of flush requests submitted to the storage device;
+        unit    Count;
+      }
+
+      constant64 logicalBlockSize {
+        comment Logical block size;
+        display False;
+      }
+
+      float writeAmplificationRatio {
+        no       C, CMessage, CMessageReader, CSysfs;
+        cderived ($biosIn.write > 0) ? roundf(($biosMeta.write + $biosOut.write) / ($biosIn.write)) : 0.00;        
+      }
+
+      BioStats biosIn {
+        comment     Bios submitted into VDO from above;
+        labelPrefix bios in;
+      }
+
+      BioStats biosInPartial {
+        labelPrefix bios in partial;
+      }
+
+      BioStats biosOut {
+        comment     Bios submitted onward for user data;
+        labelPrefix bios out;
+      }
+
+      BioStats biosMeta {
+        comment     Bios submitted onward for metadata;
+        labelPrefix bios meta;
+      }
+
+      BioStats biosJournal {
+        labelPrefix bios journal;
+      }
+
+      BioStats biosPageCache {
+        labelPrefix bios page cache;
+      }
+
+      BioStats biosOutCompleted {
+        labelPrefix bios out completed;
+      }
+
+      BioStats biosMetaCompleted {
+        labelPrefix bios meta completed;
+      }
+
+      BioStats biosJournalCompleted {
+        labelPrefix bios journal completed;
+      }
+
+      BioStats biosPageCacheCompleted {
+        labelPrefix bios page cache completed;
+      }
+
+      BioStats biosAcknowledged {
+        labelPrefix bios acknowledged;
+      }
+
+      BioStats biosAcknowledgedPartial {
+        labelPrefix bios acknowledged partial;
+      }
+
+      BioStats biosInProgress {
+        comment Current number of bios in progress;
+        labelPrefix bios in progress;
+      }
+
+      MemoryUsage memoryUsage {
+        labelPrefix KVDO module;
+        comment Memory usage stats.;
+      }
+
+      IndexStatistics index {
+        comment The statistics for the UDS index;
+      }
+    }
+  }
+}
+
+# A .stats file consists of two types of statements: definitions and blocks.
+# The first statement must be a version definition. All type blocks must
+# follow the version definition and precede all other statements.
+#
+# A definition is an identifier or keyword followed by whitespace followed by
+# any arbitrary text excluding braces or semicolons, up to a terminating
+# semicolon. Whitespace appearing in the text after the initial separation from
+# the identifier is *not* ignored.
+#
+# A block has three forms:
+#
+#   keyword { statements }
+#   keyword identifier { statements }
+#   identifier { statements }
+#
+# Whether or not a keyword requires an identifier depends on the keyword (see
+# below). Blocks which do not have keywords are used for grouping. Definitions
+# are lexically scoped.
+#
+# An identifier is a string of characters in the set [a-zA-Z0-9_] which is not
+# a keyword.
+#
+# Comments are delimited by a '#' and continue to the end of the line.
+#
+# The .stats keywords are:
+#
+#   enum -- an enum block defines a set of enumerated constants. 'enum' is
+#           followed by a block describing the enum.
+#
+#   type -- a type block defines the types referred to in other statements.
+#           'type' is followed by an identifier, and a block. The identifier
+#           is the name of the type. The block defines the language specific
+#           types to which fields of the given type are to be. The "printf"
+#           field gives the C printf format escape to use when printing a
+#           datum of this type.
+#
+#   struct -- a struct block defines a statistics structure. 'struct' is
+#             followed by an identifier naming the structure and then a block
+#             describing the structure.
+#
+#   version -- The version of a set of statistics. This is the only keyword
+#              used in a definition. The text should be a single number, and
+#              should be incremented each change to the specification. There
+#              should be only one version statement in a .stats file.
+#
+#   versionedStruct -- a versionedStruct block is a struct block, but a
+#                      field to hold the stats version (as defined in the
+#                      version statement) will be automatically added to the
+#                      generated code for the structure. Parsers of the
+#                      structure will automatically validate the version.
+#
+# Fields:
+#
+# Once an identifier has been declared to be a type with a type, struct, or
+# versioned struct block, that identifier becomes a pseudo-keyword which is
+# used to start a field statement. A field consists of a type name followed by
+# an identifier, and a block describing the field. If the field is actually an
+# array, the field identifier may be followed by an array size specifier which
+# is an identifier wrapped in square brackets. Strings do not need to be
+# treated as arrays.
+#
+# Definitions:
+#
+# Other then the version definition, any identifier which is not already
+# declared as a type or struct may be defined (or redefined) in any scope.
+# Definitions are used by the code generators. Here is a description of all
+# of the definitions currently in use:
+#
+# cavailable: a boolean expression based on other fields in this structure
+#             which determines whether the current field is available
+#             for display
+#
+# C: used in type blocks to define the c type for a field of the type being
+#    defined
+#
+# cHeader: the name of the c file to generate
+#
+# cIncludes: a comma delimited list of c header files to include in the c
+#            file currently being generated
+#
+# comment: a comment to include in c header files describing the current field
+#          or structure
+#
+# cVersionEnum: If set to a value which perl evaluates as true, the c header
+#               currently being generated will be given an enum with a constant
+#               containing the stats version from the version definition.
+#
+# cderived: A field which is derived from other fields in the same structure
+#           by the operation described in the definition. The value of a
+#           derived entry should be the C code which provides the derivation.
+#           Field names should be expressed as $<name>.
+#
+# display: True or False, if False, this field will not to be displayed in
+#          stats output, defaults to True
+#
+# displayVersion: True of False, if False, the implicit version field will not
+#                 be displayed in stats output, defaults to True
+#
+# ioctl: the dmsetup message value to send to the vdo device to get the
+#        appropriate stats
+#
+# label: the label to use when displaying this field; if unspecified, defaults
+#        to the un-camel-cased name of the field
+#
+# labelPrefix: a prefix to apply to all labels for fields and structures within
+#              the current block
+#
+# no: a comma delimited list of languages for which this field is not to be
+#     generated
+#
+# Perl: used in type blocks to define the Permabit::Statistics type for a field
+#       of the type being defined
+#
+# perlDefinitions: the name of the hash in the generated perl class which holds
+#                  the statistics definitions
+#
+# perlHeader: the name of the perl module to generate
+#
+# perlPackage: the name of the perl package to generate
+#
+# perlStat: the name of the statistics group in which to include this struct
+#
+# unit: the Permabit::Statistics unit for the current field

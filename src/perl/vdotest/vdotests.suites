@@ -1,0 +1,949 @@
+# -*-cperl-*-
+# vim:filetype=perl
+# $Id$
+#
+use Permabit::Constants qw(
+  $MB
+  $GB
+  $TB
+);
+
+###########################################################################
+# These suites define convenient groups of tests
+##
+
+# Basic VDO functional tests using filesystems
+$suiteNames{basic}
+  = [
+     "Basic01",
+    ];
+
+# VDO tests of blocks that have MurmurHash3 collisions
+$suiteNames{collide}
+  = [
+     "Collide01",
+     "Collide02",
+     "Collide03",
+    ];
+
+# VDO functional tests using direct I/O
+$suiteNames{direct}
+  = [
+     "Direct01",
+     "Direct02",
+     "Direct03",
+     "Direct04",
+     "Direct05",
+     "Direct06",
+    ];
+
+# VDO out of space tests
+$suiteNames{full}
+  = [
+     "Full01",
+     "Full02",
+     "Full04",
+    ];
+
+# VDO stress tests using filesystems
+$suiteNames{genData}
+  = [
+     "GenData01",
+     "GenData02",
+     "GenData03",
+     "GenData04",
+    ];
+
+# VDO functional tests of dirty shutdown and rebuild that can run anywhere.
+$suiteNames{rebuild}
+  = [
+     "DoryRebuild01",
+     "DoryRebuild02",
+     "DoryRebuild03",
+     "DoryRebuildFast",
+     "Rebuild01",
+     "Rebuild02",
+     "Rebuild03",
+     "Rebuild04",
+     "Rebuild05",
+     "Rebuild07",
+     "RebuildZones",
+    ];
+
+###########################################################################
+# These suites define convenient groups of tests, and are derived from the
+# suites already defined.
+##
+
+# FUA tests (derived from genData)
+$suiteNames{fuaGenData}
+  = [ map { ("Fua$_") } @{$suiteNames{genData}} ];
+
+# Low memory tests using NFS filesystem (derived from genData)
+$suiteNames{lowMemNfs} = [ map { "LowMemNfs$_" } @{$suiteNames{genData}} ];
+
+# VDO stress tests using NFS filesystem (derived from genData).
+# NfsGenData03 excluded due to VDO-2249.
+$suiteNames{nfsGenData}
+  = [ map { "Nfs$_" } grep { !m/GenData03/ } @{$suiteNames{genData}} ];
+
+# VDO rebuild tests that use a filesystem.
+$suiteNames{filesystemRebuild}
+  = [
+     "Rebuild03",
+     "Rebuild04",
+     "Rebuild05",
+     "Rebuild07",
+    ];
+
+# VDO tests that test filesystem behavior in some way.
+$suiteNames{filesystem}
+  = [
+     @{$suiteNames{basic}},
+     @{$suiteNames{filesystemRebuild}},
+     @{$suiteNames{genData}},
+     "GrowPhysical03",
+     "MultipleDevices",
+     "QuickDedupe",
+     "Zero01",
+    ];
+
+###########################################################################
+# Rebuild stress tests
+##
+
+{
+  my @smallStress = (
+                     "RebuildStress01",
+                     "RebuildStress02",
+                     # "RebuildStress03", # VDO-5416
+                     "Stress01",
+                     "Stress02",
+                    );
+  $suiteNames{smallStress}
+    = [
+       @smallStress,
+      ];
+}
+
+{
+  my @largeStress = (
+                     "RebuildStress01",
+                     "RebuildStress02",
+                     # "RebuildStress03", # VDO-5416
+                     "Stress01",
+                     "Stress02",
+                    );
+  my $largeStressOptions
+    = "--blockMapCacheSize=400M --datasetCount=40 --logicalSize=200G";
+  map { $aliasNames{"Large$_"} = "$_ $largeStressOptions" } @largeStress;
+
+  $suiteNames{largeStress}
+    = [
+       (map { "Large$_" } @largeStress),
+      ];
+}
+
+$suiteNames{rebuildStress512}
+  = [
+     "512BRebuildStress01",
+     "512BRebuildStress02",
+    ];
+
+###########################################################################
+# Local Full VDO tests
+##
+{
+  my $largeFullOptions = ("--physicalSize=3G --logicalSize=24G"
+                          . " --logicalThreadCount=3 --physicalThreadCount=2"
+                          . " --clientClass=ALBIREO-PMI");
+  foreach my $test (@{$suiteNames{full}}, "Full03") {
+    $aliasNames{"Large$test"} = "$test $largeFullOptions";
+  }
+}
+
+$suiteNames{localFull}
+  = [
+     "Full03",
+     "LargeFull04",
+    ];
+
+###########################################################################
+# A selection of interesting torn write tests.
+##
+{
+  $suiteNames{tornWrites} = [];
+  sub _makeTornWriteTest {
+    my ($name, $mask, $modulus) = @_;
+    $aliasNames{"TornWrite_$name"}
+      = "TornWriteBase --doryOptions=tornMask=$mask,tornModulus=$modulus";
+    push(@{$suiteNames{tornWrites}}, "TornWrite_$name");
+  }
+
+  foreach my $bit (0 .. 7) {
+    my $mask = 1 << $bit;
+    # Add a test with mask/modulus settings that will cause us to write only
+    # 7 sectors of a few 4K blocks, failing to write the other sector.
+    _makeTornWriteTest("Fail1Fixed$bit", $mask, 8);
+
+    # Add a test with mask/modulus settings that will cause us to write only
+    # 1 sectors of a few 4K blocks, failing to write the other 7 sectors.
+    _makeTornWriteTest("Write1Fixed$bit", 0xFF ^ $mask, 8);
+  }
+
+  # Add a test with mask/modulus settings that will cause us to write only 7
+  # sectors of a few 4K blocks, failing to write the other sector.  The chosen
+  # victim sector varies with the block number.
+  _makeTornWriteTest("Fail1Rotating", 1, 9);
+
+  # Add a test with mask/modulus settings that will cause us to write only 1
+  # sector of a few 4K blocks, failing to write the other 7 sectors.  The
+  # chosen sector to write varies with the block number.
+  _makeTornWriteTest("Write1Rotating", 0x1FE, 9);
+}
+
+###########################################################################
+# Tests to run with the shipped-code test RPMs instead of the internal build.
+##
+$suiteNames{distributionTests}
+  = [
+     "DistBasic01",
+     "DistRebuild01",
+     "DistRebuild03",
+    ];
+
+###########################################################################
+# Weekly upgrade tests.
+##
+$suiteNames{weeklyVDOUpgradeTests}
+  = [
+#     "DirtyUpgrade",  # Requires explicit upgrade feature
+#     "Downgrade",     # Requires explicit upgrade feature
+#     "LargeUpgrade",  # Requires lvm VDO usage; see VDO-5257
+#     "Upgrade",       # Requires lvm VDO usage; see VDO-5257
+    ];
+
+###########################################################################
+# Tests that should be run before any commit. Not alphebetized so that
+# the longest tests (DoryRebuildFast and Direct06) start first.
+##
+$suiteNames{checkin}
+  = [
+     @{$suiteNames{basic}},
+     "Direct06",
+     "DoryRebuildFast",
+     "AuditTool",
+     "Compress01",
+     "Direct04",
+    ];
+
+###########################################################################
+# Tests to make sure we can install and start on any supported platform (on
+# a farm host).
+##
+foreach my $class (qw(FEDORA35 FEDORA36)) {
+  my $alias = "Basic01_" . ucfirst(lc($class));
+  $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
+  push(@{$suiteNames{platformTests}}, $alias);
+}
+
+###########################################################################
+# Run Discard Performance tests
+##
+$aliasNames{DiscardMaximumHD}
+  = "DiscardMaximum --clientClass=ALBIREO-PMI";
+$aliasNames{DiscardPerfHD}
+  = "DiscardPerf --clientClass=ALBIREO-PMI";
+
+$suiteNames{discardPerf}
+  = [
+     "DiscardPerf",
+     "DiscardPerfHD",
+    ];
+
+$suiteNames{discardMaximum}
+  = [
+     "DiscardMaximum",
+     "DiscardMaximumHD",
+    ];
+
+###########################################################################
+# A collection of tests which work well under flat and hybrid block maps
+# (i.e. they write across the entire logical space).
+##
+$suiteNames{blockMapExerciseTests}
+  = [
+     @{$suiteNames{basic}},
+     @{$suiteNames{full}},
+     @{$suiteNames{genData}},
+     "Rebuild01",
+     "Rebuild02",
+     "Rebuild03",
+     "Rebuild04",
+     "Rebuild05",
+    ];
+
+###########################################################################
+# Tests that run using the ext3 filesystem
+##
+$suiteNames{ext3} = [ map { "Ext3$_" } @{$suiteNames{filesystem}} ];
+$suiteNames{ext3Basic} = [ map { "Ext3$_" } @{$suiteNames{basic}} ];
+
+###########################################################################
+# Tests that run using the ext4 filesystem
+##
+$suiteNames{ext4} = [ map { "Ext4$_" } @{$suiteNames{filesystem}} ];
+$suiteNames{ext4Basic} = [ map { "Ext4$_" } @{$suiteNames{basic}} ];
+
+###########################################################################
+# Tests that run using the xfs filesystem.
+##
+$suiteNames{xfs} = [ @{$suiteNames{filesystem}} ];
+
+###########################################################################
+# Tests that run under the kmemleak kernel memory checker
+##
+$suiteNames{kmemleak}
+  = [
+     map { "Kmemleak$_" }
+         (
+          @{$suiteNames{basic}},
+          @{$suiteNames{direct}},
+          @{$suiteNames{genData}},
+         )
+    ];
+
+############################################################################
+# Test that stress the kernel code by running with extremely limited
+# physical memory.  We start with a full Albireo index so that albireo
+# wants most of its memory at startup.
+##
+$suiteNames{lowMem}
+  = [
+     map { "LowMem$_" }
+         (
+          @{$suiteNames{genData}},
+          "Rebuild01",
+         )
+    ];
+
+###########################################################################
+# Valgrind tests
+##
+$suiteNames{valgrindTests}
+  = [
+     "ValgrindUnitTests",
+    ];
+
+###########################################################################
+# Upgrade tests that are short enough to run nightly.
+##
+$suiteNames{localUpgradeTests}
+  = [
+#     "UpgradeLatest",         # Requires lvm VDO usage; see VDO-5257
+#     "UpgradeCompressDedupe", # Requires lvm VDO usage; see VDO-5257
+    ];
+
+###########################################################################
+# VDO tests that need to run on local hardware.  A "needs bigger machine" test
+# requires more resources than the cloud machines are provisioned with.  A
+# "needs more I/O bandwidth" test does more I/O than a cloud machine can handle
+# using shared access to a disk spindle.  A "needs a real machine" test needs
+# to run on a real (i.e. not virtual) machine. A "needs sync storage" test
+# needs hardware that does not accept flushes and FUAs in order to complete in
+# a reasonable amount of time.
+##
+$suiteNames{localTests}
+  = [
+     @{$suiteNames{localFull}},    # Needs more I/O bandwidth
+     @{$suiteNames{discardPerf}},  # Needs bigger machine
+     @{$suiteNames{nfsGenData}},   # Needs local network
+     "Dual01",                     # Needs bigger machine
+     "GrowPhysical02",             # Needs sync storage
+     "MemoryMeasurement",          # Needs bigger machine
+     "MurmurHash3Perf",            # Needs bigger machine
+     "RawDirect06",                # Needs backing device that changes bio size
+    ];
+
+###########################################################################
+# Generates test aliases by using the base VDOFIOPerfTest.
+#
+# @param size      The amount of data to write
+# @param jobs      The number of threads/procs to run
+# @param ioEngine  The method to submit IOs (write/pwrite/aio/etc)
+# @param ioTypes   A list of IO patterns (write, randwrite, etc)
+#
+# @return  A list of test names
+##
+sub _makeBasicFioPerfTest {
+  my ($size, $jobs, $ioEngine, @ioTypes) = @_;
+  my @testNames;
+  foreach my $ioType (@ioTypes) {
+    my $name = "VDOPerfFio_${ioType}_${jobs}jobs";
+
+    $aliasNames{$name} = "VDOFIOPerfTest"
+                         . " --ioType=$ioType"
+                         . " --ioEngine=$ioEngine"
+                         . " --directIo=" . (($ioEngine eq 'libaio') ? 1 : 0)
+                         . " --jobCt=$jobs"
+                         . " --writePerJob=$size"
+                         . (($ioType =~ /rw$/) ? " --rwmixread=70" : "")
+                         . (($ioEngine =~ /sync$/) ? " --ioDepth=1" : "");
+    push(@testNames, $name);
+  }
+  return @testNames;
+}
+
+###########################################################################
+# Generates a miscellaneous test alias using the base VDOFIOPerfTest.
+#
+# @param name      The name of the test
+# @param size      The amount of data to write
+# @param jobs      The number of threads/procs to run
+# @param ioEngine  The method to submit IOs (write/pwrite/aio/etc)
+# @param ioType    The IO pattern
+# @param params    Other command parameters to pass in
+#
+# @return  The test name
+##
+sub _makeOtherFioTest {
+  my ($name, $size, $jobs, $ioEngine, $ioType, @params) = @_;
+  my $testSpec;
+
+  $testSpec = "VDOFIOPerfTest"
+              . " --ioType=$ioType"
+              . " --ioEngine=$ioEngine"
+              . " --directIo=" . (($ioEngine eq 'libaio') ? 1 : 0)
+              . " --jobCt=$jobs"
+              . " --writePerJob=$size"
+              . (($ioType =~ /rw$/) ? " --rwmixread=70" : "")
+              . (($ioEngine =~ /sync$/) ? " --ioDepth=1" : "");
+  $aliasNames{$name} = join(' ', $testSpec, @params);
+  return $name;
+}
+
+###########################################################################
+# Takes an existing test alias and creates a new test with different params.
+# The new tests aliases will begin with the same name but will have the
+# given suffix appended to it. The new test will also have the same params
+# of the original test along with the args passed to this function.
+#
+# @param testName  The name of the test we want to extend
+# @param suffix    A suffix to add to the existing test name
+# @param params    The extra params to run the new test with
+#
+# @return  The name of the new test
+##
+sub _makeNewTest {
+  my ($testName, $suffix, @params) = @_;
+  my $newName = $testName . $suffix;
+  $aliasNames{$newName} = join(' ', $aliasNames{$testName}, @params);
+  return $newName;
+}
+
+###########################################################################
+# VDO FIO Perf tests
+#
+# See VDOFIOPerfTest.pm
+# TODO: * Have randwrite tests using both pwrite and aio.
+##
+{
+  my $fileSize = "100GB";             # amount of data to write
+  my $jobCt    = 1;                   # only 1 job for now
+
+  # Most apps will probably just use read()/write() and will be
+  # using the page cache.
+  $suiteNames{basicFioSeqWrite}
+    = [ _makeBasicFioPerfTest($fileSize, $jobCt, 'sync', 'write') ];
+
+  $suiteNames{basicFioSeq}
+    = [
+       @{$suiteNames{basicFioSeqWrite}},
+       _makeBasicFioPerfTest($fileSize, $jobCt, 'sync', 'read', 'rw'),
+      ];
+
+  # It seems natural that a random workload would use AIO (esp. reads).
+  $suiteNames{basicFioRandWrite}
+    = [ _makeBasicFioPerfTest($fileSize, $jobCt, 'libaio', 'randwrite') ];
+
+  $suiteNames{basicFioRand}
+    = [
+       @{$suiteNames{basicFioRandWrite}},
+       _makeBasicFioPerfTest($fileSize, $jobCt, 'libaio', 'randread',
+                             'randrw'),
+      ];
+
+  # Run all the basic FIO tests
+  $suiteNames{basicFio}
+    = [
+       @{$suiteNames{basicFioSeq}},
+       @{$suiteNames{basicFioRand}},
+      ];
+
+  # Run all the FIO tests using a Filesystem as well
+  $suiteNames{basicFioFS}
+    = [
+       map { _makeNewTest($_, '_FileSystem', '--useFilesystem') }
+           @{$suiteNames{basicFio}},
+      ];
+
+  $suiteNames{basicFioNoAlbireo}
+    = [
+       map { _makeNewTest($_, '_NoAlbireo', '--disableAlbireo') }
+           @{$suiteNames{basicFio}},
+      ];
+
+  $suiteNames{basicFioBaseline}
+    = [
+       map { _makeNewTest($_, '_Baseline', '--deviceType=""') }
+           (
+            @{$suiteNames{basicFio}},
+            @{$suiteNames{basicFioFS}},
+           ),
+      ];
+}
+
+###########################################################################
+# Build the FusionIO settings tests
+#
+# See VDOFusionIOPerfTest.pm and ESC-519 for parameter details
+##
+$suiteNames{fusionFioTests} = [];
+foreach my $ioType (qw(randwrite write randread read randrw rw)) {
+  my $testName = "VDOPerfFioFusionIO_${ioType}";
+  $aliasNames{$testName} = "VDOFusionIOPerfTest"
+                           . " --ioType=$ioType"
+                           . (($ioType =~ /rw$/) ? " --rwmixread=70" : "");
+  push(@{$suiteNames{fusionFioTests}}, $testName);
+}
+
+# For use with dedupePercent= since albgenstream currently needs 4KB chunks.
+$suiteNames{fusionFioTests4KB}
+  = [
+     map { _makeNewTest($_, '_4KB', "--fioBlockSize=4KB") }
+         @{$suiteNames{fusionFioTests}},
+    ];
+
+# Don't do sequential tests with 1MB. They don't really test anything
+$suiteNames{fusionFioTests1MB}
+  = [
+     map { _makeNewTest($_, '_1MB', "--fioBlockSize=1MB") }
+         grep { m/rand/ } @{$suiteNames{fusionFioTests}},
+    ];
+
+# Cut down on the size of the run due to performance issues.
+$suiteNames{fusionFioTests512B}
+  = [
+     map { _makeNewTest($_, '_512B', "--emulate512Enabled=1",
+                        "--fioBlockSize=512", "--writePerJob=1GB") }
+         @{$suiteNames{fusionFioTests}},
+    ];
+
+$suiteNames{fusionFioTestsFS}
+  = [
+     map { _makeNewTest($_, '_FileSystem', '--useFilesystem') }
+         @{$suiteNames{fusionFioTests4KB}},
+    ];
+
+$suiteNames{fusionFioTests512FS}
+  = [
+     map { _makeNewTest($_, '_512e', '--emulate512Enabled=1') }
+         @{$suiteNames{fusionFioTestsFS}},
+    ];
+
+$suiteNames{fusionFioTestsBaseline}
+  = [
+      map { _makeNewTest($_, '_Baseline', '--deviceType=""') }
+          (
+           @{$suiteNames{fusionFioTests4KB}},
+           @{$suiteNames{fusionFioTests1MB}},
+           @{$suiteNames{fusionFioTests512B}},
+           @{$suiteNames{fusionFioTestsFS}},
+          )
+    ];
+
+# Run all the basic Fusion IO tests
+$suiteNames{basicFusionFioTests}
+  = [
+     @{$suiteNames{fusionFioTests4KB}},
+     @{$suiteNames{fusionFioTests1MB}},
+     @{$suiteNames{fusionFioTests512B}},
+    ];
+
+###########################################################################
+# Build the FIO Albgenstream settings tests. Dedupe rates were
+# selected from ones used in AlbGenAll. We don't run these tests on any
+# of the workloads that contain reads because dedupe rates will be
+# unpredictable.
+#
+# TODO: Add 100% dedupe after getAlbGenConfig() is fixed.
+#
+# See VDOFIOPerfTest.pm
+##
+$suiteNames{basicFioDedupe} = [];
+$suiteNames{fusionFioDedupe} = [];
+foreach my $dedupe (qw(0 5 30 45 50 70 90 99)) {
+  push(@{$suiteNames{basicFioDedupe}},
+       map { _makeNewTest($_, "_${dedupe}dedupe", "--dedupePercent=$dedupe") }
+           @{$suiteNames{basicFio}});
+  push(@{$suiteNames{fusionFioDedupe}},
+       map { _makeNewTest($_, "_${dedupe}dedupe", "--dedupePercent=$dedupe") }
+           @{$suiteNames{fusionFioTests4KB}});
+}
+
+###########################################################################
+# Build the FIO tests for compression
+#
+# See VDOFIOPerfTest.pm
+##
+$suiteNames{basicFioCompress} = [];
+$suiteNames{fusionFioCompress} = [];
+foreach my $comp (qw(0 25 55 80)) {
+  push(@{$suiteNames{basicFioCompress}},
+       map { _makeNewTest($_, "_${comp}compress", "--compressPercent=$comp") }
+           @{$suiteNames{basicFio}});
+  push(@{$suiteNames{fusionFioCompress}},
+       map { _makeNewTest($_, "_${comp}compress", "--compressPercent=$comp") }
+           @{$suiteNames{fusionFioTests4KB}});
+}
+
+###########################################################################
+# Build the FIO tests for mixed dedupe and compression
+#
+# See VDOFIOPerfTest.pm
+##
+my @testParameters = (
+                      { dedupe => '90', compress => '0'  },
+                      { dedupe => '90', compress => '55' },
+                      { dedupe => '50', compress => '0'  },
+                      { dedupe => '50', compress => '80' },
+                     );
+
+$suiteNames{basicFioDedupeCompress} = [];
+$suiteNames{fusionFioDedupeCompress} = [];
+foreach my $parameters (@testParameters) {
+  my $dedupe = $parameters->{dedupe};
+  my $comp = $parameters->{compress};
+  push(@{$suiteNames{basicFioDedupeCompress}},
+       map { _makeNewTest($_, "_${dedupe}dedupe_${comp}compress",
+                          "--dedupePercent=$dedupe",
+                          "--compressPercent=$comp")}
+           @{$suiteNames{basicFio}});
+  push(@{$suiteNames{fusionFioDedupeCompress}},
+       map { _makeNewTest($_, "_${dedupe}dedupe_${comp}compress",
+                          "--dedupePercent=$dedupe",
+                          "--compressPercent=$comp")}
+           @{$suiteNames{fusionFioTests4KB}});
+}
+
+$suiteNames{basicFioDedupeCompressMinimal}
+  = [
+     map { _makeNewTest($_, "_90dedupe_55compress",
+                       "--dedupePercent=90", "--compressPercent=55") }
+         @{$suiteNames{basicFio}},
+    ];
+
+$suiteNames{fusionFioDedupeCompressMinimal}
+  = [
+     map { _makeNewTest($_, "_90dedupe_55compress",
+                        "--dedupePercent=90", "--compressPercent=55") }
+         @{$suiteNames{fusionFioTests4KB}},
+    ];
+
+###########################################################################
+# A test which has cache around half the size of the working set
+##
+_makeOtherFioTest("CacheThrashingPerf", "210G", 1, "libaio",
+                  "randwrite", "--blockMapCacheSize=128M");
+
+###########################################################################
+# FIO performance tests of 100% dedupe of a single unique non-zero data block,
+# where all dedupe is concurrent dedupe.
+##
+$suiteNames{singleBlockPerf}
+  = [
+     map {
+       _makeOtherFioTest("SingleBlockPerf_${_}", "10GB", 4, "libaio", $_,
+                         "--bufferPattern=0xDeadBeef")
+     } qw(write randwrite),
+    ];
+
+###########################################################################
+# Tests with higher IO depths.
+##
+$suiteNames{highIODepthTests} = [];
+foreach my $ioDepth (qw(256 512 1024)) {
+  foreach my $logicalThreadCount (qw(1 2 7)) {
+    my $cacheSize = 128 * $MB * $logicalThreadCount;
+    push(@{$suiteNames{highIODepthTests}},
+         _makeNewTest("VDOPerfFioFusionIO_randwrite",
+                      "_${logicalThreadCount}logical_${ioDepth}ioDepth",
+                      "--ioDepth=${ioDepth}",
+                      "--logicalThreadCount=${logicalThreadCount}",
+                      "--blockMapCacheSize=${cacheSize}"));
+  }
+}
+
+###########################################################################
+# FIO tests on the XFS and ext4 filesystems.
+##
+$suiteNames{fusionFioExt3}
+  = [ map("Ext3$_", @{$suiteNames{fusionFioTestsFS}}) ];
+
+$suiteNames{fusionFioExt4}
+  = [ map("Ext4$_", @{$suiteNames{fusionFioTestsFS}}) ];
+
+$suiteNames{fusionFio512Ext3}
+  = [ map("Ext3$_", @{$suiteNames{fusionFioTests512FS}}) ];
+
+$suiteNames{fusionFio512Ext4}
+  = [ map("Ext4$_", @{$suiteNames{fusionFioTests512FS}}) ];
+
+###########################################################################
+# Nightly VDO Perf tests
+##
+$suiteNames{nightlyVDOPerfTests}
+  = [
+     @{$suiteNames{basicFio}},
+     @{$suiteNames{basicFioDedupe}},
+     @{$suiteNames{basicFioCompress}},
+     @{$suiteNames{basicFioNoAlbireo}},
+     @{$suiteNames{basicFusionFioTests}},
+
+     @{$suiteNames{highIODepthTests}},
+     @{$suiteNames{singleBlockPerf}},
+     "CacheThrashingPerf",
+    ];
+
+###########################################################################
+# Weekly VDO Perf tests
+#
+# These tests run less often to mitigate SSD wear-out and some take too
+# long to fit in nightly
+##
+$suiteNames{weeklyVDOPerfTests}
+  = [
+     @{$suiteNames{basicFioDedupeCompressMinimal}},
+     @{$suiteNames{basicFioBaseline}},
+     @{$suiteNames{basicFioFS}},
+     @{$suiteNames{fusionFioDedupeCompressMinimal}},
+     @{$suiteNames{fusionFioTestsBaseline}},
+     @{$suiteNames{fusionFioTestsFS}},
+     @{$suiteNames{fusionFioTests512B}},
+
+     # XXX This isn't really a perf suite, but needs to run on SSDs to finish
+     # in any sort of reasonable time.
+     @{$suiteNames{largeStress}},
+     # These tests are too slow in sync mode on HDDs and get 120s stalls there.
+     @{$suiteNames{rebuildStress512}},
+     @{$suiteNames{smallStress}},
+
+     "LargeRebuild",
+     "ShiftingWorkingSet",
+    ];
+
+###########################################################################
+# Weekly VDO single thread perf tests
+##
+$suiteNames{weeklyVDOSingleThreadPerfTests}
+  = [
+     "RebuildDuration",
+    ];
+
+###########################################################################
+# Weekly rebuild VDO Tests
+##
+$suiteNames{weeklyVDORebuildTests}
+  = [
+     map { ($_, "Ext3$_", "Ext4$_") }
+         ("Rebuild06"),
+    ];
+
+###########################################################################
+# Weekly VDO Tests
+##
+$suiteNames{weeklyVDOTests}
+  = [
+     @{$suiteNames{weeklyVDORebuildTests}},
+    ];
+
+###########################################################################
+# Weekly VDO Local Tests
+##
+$suiteNames{weeklyVDOLocalTests}
+  = [
+     "MemoryFail01",
+     "MemoryFail02",
+     "ReadWriteStress",
+     @{$suiteNames{discardMaximum}},
+     @{$suiteNames{fuaGenData}},
+    ];
+
+###########################################################################
+# Run some normal tests with 512-byte blocks, because a few customers
+# need that mode.
+##
+
+$suiteNames{logical512Tests}
+  = [
+     "Discard512",
+     "Discard512Compressed",
+     "Logical512",
+     "Logical512Compressed",
+    ];
+
+###########################################################################
+# Tests to run on machines running the debug kernel.
+##
+$suiteNames{debugKernelTests}
+  = [
+     @{$suiteNames{checkin}},	# A bunch of basic VDO operation tests.
+    ];
+
+###########################################################################
+# Some tests that exercise various kernel interface areas, to run on rawhide.
+##
+$suiteNames{rawhideTests}
+  = [
+     @{$suiteNames{checkin}},	# A bunch of basic VDO operation tests.
+     "Create03",		# Test that many restarts works
+     "DiscardPerf",     	# Test that normal discards work. Longer.
+     "Discard512",		# Test that 512 byte discards work
+     "Dmsetup",			# Test that dmsetup interface works
+     "Full01",			# Test filling a device works. Longer.
+     "Logical512",		# Test that 512 byte emulation works
+     "Suspend",			# Test that suspending works
+     "VDOStats",		# Test that vdostats works
+    ];
+
+###########################################################################
+# Tests that we currently DO NOT run in the Beaker test environment across
+# machine architectures.
+#
+# As issues are resolved this list is hoped to shrink to being empty.
+# As specifying a non-existent suite is safe it may be preferable to leave
+# beaker testing specifying this suite thus easing excluding any new tests
+# as necessary.
+
+$suiteNames{beakerExcludedTests}
+  = [
+     ISCSIDevice01,
+     ISCSIDevice02,
+     LowMemGenData01,
+     LowMemGenData02,
+     LowMemGenData03,
+     LowMemGenData04,
+     LowMemRebuild01,
+     StackedVDO,
+     UDSTimeout01,
+    ];
+
+###########################################################################
+# Tests that do not run (yet) are here.
+##
+@deferred
+  = (
+     "DirtyUpgrade",               # Requires explicit upgrade step
+     "Downgrade",                  # Requires explicit upgrade step
+     "LargeUpgrade",               # VDO-5257
+     "RebuildStress03",            # VDO-5416
+     "Upgrade",                    # VDO-5257
+     "UpgradeCompressDedupe",      # VDO-5257
+     "UpgradeLatest",              # VDO-5257
+     "Vdorecover",                 # VDO-5377
+    );
+
+###########################################################################
+# Tests that we don't want to run as part of nightly.  The "nightly" suite is
+# the default suite, which is specified by a command line that contains no test
+# or suite to be run.  The default suite takes all the tests in the VDOTest
+# directory, adds the aliased tests named in @addToDefaultTests, and then
+# removes any tests named in @excludes.
+#
+# There is no need to exclude any aliased tests unless they are named in
+# @addToDefaultTests.  There is no need to exclude any suite that consists
+# entirely of aliased tests.
+##
+@excludes
+  = (
+     @deferred,
+     @{$suiteNames{localTests}},
+     @{$suiteNames{localUpgradeTests}},
+     @{$suiteNames{nightlyVDOPerfTests}},
+     @{$suiteNames{valgrindTests}},
+     @{$suiteNames{weeklyVDOLocalTests}},
+     @{$suiteNames{weeklyVDOPerfTests}},
+     @{$suiteNames{weeklyVDOSingleThreadPerfTests}},
+     @{$suiteNames{weeklyVDOTests}},
+     @{$suiteNames{weeklyVDOUpgradeTests}},
+
+     "CorruptionBase",      # Base class
+     "Create01",            # This mostly just tests VDOTest infrastructure
+     "Create02",            # This mostly just tests VDOTest infrastructure
+     "DoryBase",            # Base class
+     "FullBase",            # Base class
+     "GrowFailure01",       # Manual test
+     "Manual01",            # Manual test
+     "MemoryFailBase",      # Base class
+     "Mongo",               # Manual test
+     "MongoThreadConfigs",  # Manual test
+     "RebuildBase",         # Base class
+     "RebuildStressBase",   # Base class
+     "StressBase",          # Base class
+     "Stress02",            # Manual test
+     "TornWriteBase",       # Base class
+     "UnitTestBase",        # Base class
+     "UpgradeBase",         # Base class
+     "VDOFIOPerfTest",      # Perf tests are invoked explicitly
+     "VDOFIOPerfTestBase",  # Base class
+     "VDOFusionIOPerfTest", # Perf tests are invoked explicitly
+     "VDOLoadFailure02",    # Manual test
+     "VDOPerfBase",         # Base class
+    );
+
+###########################################################################
+# Aliased tests
+##
+$aliasNames{ManualDKMS} = "DKMS --manualWaitPoint=DKMSinstalled";
+$aliasNames{ManualFS}   = "Create02 --manualWaitPoint=FilesystemCreated";
+$aliasNames{ManualVDO}  = "Create01 --manualWaitPoint=VDODeviceCreated";
+
+# Detects VDO-4248 when run on ALBIREO-PMI hosts
+$aliasNames{RawDirect06}
+  = "Direct06 --deviceType=lvmvdo-raw --clientClass=ALBIREO-PMI";
+
+$aliasPrefixes{"512B"}   = "--emulate512Enabled=1 --compressibleChunkSize=512";
+$aliasPrefixes{Dist}     = "--useDistribution=1";
+$aliasPrefixes{Ext3}     = "--fsType=ext3";
+$aliasPrefixes{Ext4}     = "--fsType=ext4";
+$aliasPrefixes{Fedora35} = "--clientClass=FEDORA35";
+$aliasPrefixes{Fedora36} = "--clientClass=FEDORA36";
+$aliasPrefixes{Fua}      = "--deviceType=fua-lvmvdo";
+$aliasPrefixes{LowMem}   = "--lowMemoryTest=1 --memorySize=0.25";
+$aliasPrefixes{RHEL9}    = "--clientClass=RHEL9";
+$aliasPrefixes{Xfs}      = "--fsType=xfs";
+
+$aliasPrefixes{Kmemleak}
+  = "--kmemleak=1 --stallDetection=0 --clientClass=ALBIREO-PMI";
+$aliasPrefixes{Nfs}
+  = "--fsType=nfs-ext3 --clientClass=ALBIREO-PMI";
+
+############################################################################
+# Aliased tests to run in the default set of tests
+##
+push(@addToDefaultTests,
+     @{$suiteNames{ext3}},
+     @{$suiteNames{ext4}},
+     @{$suiteNames{lowMem}},
+     @{$suiteNames{tornWrites}},
+    );
+
+############################################################################
+# Each user may define his own "vdotests.private" file.
+# If that file exists, "do" it now.
+##
+if (-f "vdotests.private") {
+  doFile("vdotests.private");
+}
+
+1;

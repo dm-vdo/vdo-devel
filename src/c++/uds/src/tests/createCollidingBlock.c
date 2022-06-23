@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright Red Hat
+ */
+
+#include "hash-utils.h"
+#include "random.h"
+#include "testPrototypes.h"
+
+/**********************************************************************/
+void createCollidingBlock(const struct uds_chunk_name *orig,
+                          struct uds_chunk_name *collision)
+{
+  createRandomBlockName(collision);
+  uint64_t addrField = extract_volume_index_bytes(orig);
+  set_volume_index_bytes(collision, addrField);
+}

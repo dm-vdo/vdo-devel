@@ -1,0 +1,5 @@
+Note that this directory contains hidden files that affect the behavior
+of the perl code.  Notably:
+
+.cvsignore
+.vdotests.options

@@ -1,0 +1,189 @@
+########################################################################
+# .editorconfig file defining editor style values.
+#
+# See https://editorconfig.org/#download for whether your editor supports
+# EditorConfig directly or does so using a plugin.
+########################################################################
+
+########################################################################
+# EditorConfig files use an INI format that is compatible with the format used
+# by Python ConfigParser Library, but [ and ] are allowed in the section names.
+#
+# The section names are filepath globs (case sensitive), similar to the format
+# accepted by gitignore.
+#
+# Only forward slashes (/, not backslashes) are used as path separators.
+#
+# Octothorpes (#) or semicolons (;) are used for comments.  Comments should go
+# on their own lines.
+#
+# EditorConfig files should be UTF-8 encoded, with either CRLF or LF line
+# separators.
+#
+# EditorConfig files are read top to bottom and the most recent rules found
+# take precedence.
+########################################################################
+
+########################################################################
+# For any property, a value of unset is to remove the effect of that property,
+# even if it has been set before. For example, add indent_size = unset to
+# undefine indent_size property (and use editor default).
+#
+# Currently all properties and values are case-insensitive. They are lowercased
+# when parsed. Generally, if a property is not specified, the editor settings
+# will be used, i.e. EditorConfig takes no effect on that part. For any
+# property, a value of unset is to remove the effect of that property, even if
+# it has been set before. For example, add indent_size = unset to undefine
+# indent_size property (and use editor default).
+#
+# It is acceptable and often preferred to leave certain EditorConfig properties
+# unspecified. For example, tab_width need not be specified unless it differs
+# from the value of indent_size. Also, when indent_style is set to tab, it may
+# be desirable to leave indent_size unspecified so readers may view the file
+# using their preferred indentation width. Additionally, if a property is not
+# standardized in your project (end_of_line for example), it may be best to
+# leave it blank.
+########################################################################
+
+########################################################################
+# Wildcard Patterns
+# Special characters recognized in section names for wildcard matching:
+#
+#   *	            Matches any string of characters, except path separators (/)
+#   **	          Matches any string of characters
+#   ?	            Matches any single character
+#   [name]	      Matches any single character in name
+#   [!name]	      Matches any single character not in name
+#   {s1,s2,s3}	  Matches any of the strings given (separated by commas)
+#                   (Available since EditorConfig Core 0.11.0)
+#   {num1..num2}  Matches any integer numbers between num1 and num2, where num1
+#                   and num2 can be either positive or negative
+#
+# Special characters can be escaped with a backslash so they won't be
+# interpreted as wildcard patterns.
+########################################################################
+
+########################################################################
+# Stop processing of .editorconfig files.
+#
+# Special property that should be specified at the top of the file outside of
+# any sections. Set to true to stop .editorconfig files search on current file.
+#
+# Possible Values
+#   true
+#   false
+########################################################################
+root = true
+
+########################################################################
+# File character encoding
+#
+# Possible Values
+#   latin1
+#   utf-8
+#   utf-16be
+#   utf-16le
+#   utf-8-bom
+########################################################################
+[*]
+# charset = utf-8
+
+########################################################################
+# Line ending file format (Unix, DOS, Mac)
+#
+# Supported By
+#   all plugins
+#
+# Possible Values
+#   lf
+#   crlf
+#   cr
+#
+# NOTE: if you want to use native line endings between different operating
+# systems it is better not to set this option and leave that task to the VCS!
+# In the future we might add a value like native for this scenario.
+########################################################################
+[*]
+# end_of_line = lf
+
+########################################################################
+# Indentation Size (in single-spaced characters)
+#
+# Supported By
+#   all plugins
+#
+# Possible Values
+#   an integer
+#   tab
+#
+# If indent_size equals to tab, the indent_size will be set to the tab size,
+# which should be tab_width if tab_width is specified, or the tab size set by
+# editor if tab_width is not specified.
+#
+########################################################################
+[*.{c,c++,h}]
+indent_size = tab
+
+########################################################################
+# Indentation Style
+#
+# Supported By
+#   all plugins
+#
+# Possible Values:
+#   tab
+#   space
+#
+########################################################################
+[*.{c,c++,h}]
+indent_style = tab
+
+########################################################################
+# Denotes whether file should end with a newline
+#
+# Possible Values
+#   true
+#   false
+########################################################################
+[*]
+insert_final_newline = true
+
+########################################################################
+# Forces hard line wrapping after the amount of characters specified. off to
+# turn off this feature (use the editor settings).
+#
+# Supported By
+#   Emacs
+#   Vim
+#   Atom
+#   ReSharper and Rider
+#   AppCode, IntelliJ IDEA, PhpStorm, PyCharm, RubyMine, and WebStorm
+#
+# Possible Values
+#   positive integers
+#   off
+########################################################################
+[*]
+# max_line_length = 79
+
+########################################################################
+# Width of a single tabstop character
+#
+# Supported By
+#   all plugins
+#
+# Possible Values
+#   a positive integer (defaults indent_size when indent_size is a number)
+########################################################################
+[*.{c,c++,h}]
+tab_width = 8
+
+########################################################################
+# Denotes whether whitespace is allowed at the end of lines
+#
+# Possible Values
+#   true
+#   false
+########################################################################
+[*]
+trim_trailing_whitespace = true

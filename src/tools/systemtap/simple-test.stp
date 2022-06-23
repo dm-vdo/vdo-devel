@@ -1,0 +1,37 @@
+# Script to test basic System Tap functionality.
+
+global tickCounter = 0;
+global vmallocCounter = 0;
+
+function sayHello()
+%{
+    printk("systemtap script says hello\n");
+%}
+
+probe begin
+{
+    sayHello();
+    printf("hello\n");
+}
+
+probe timer.ms(100)
+{
+    tickCounter++;
+}
+
+function sayGoodbye()
+%{
+    printk("systemtap script says goodbye\n");
+%}
+
+// Force use of some basic debug info.
+probe kernel.function("vmalloc")
+{
+    vmallocCounter++;
+}
+
+probe end
+{
+    sayGoodbye();
+    printf("counter = %d\nvmalloc = %d\nbye!\n", tickCounter, vmallocCounter);
+}

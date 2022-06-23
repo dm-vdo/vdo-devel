@@ -1,0 +1,10 @@
+# -*-cperl-*-
+# $Id$
+#
+
+$RUNTESTS_OPTIONS
+  = {
+     baseTestClass   => 'VDOTest',
+     copySharedFiles => 1,
+     suiteFile       => 'vdotests.suites',
+    };

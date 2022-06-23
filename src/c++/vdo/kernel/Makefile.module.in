@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: GPL-2.0-only
+## -*-makefile-*-
+# Makefile for building VDO with DKMS
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id$
+
+MODNAME=@MODNAME@
+VDO_VERSION=@CURRENT_VERSION@
+
+obj-m += @MODNAME@.o
+
+OBJS = $(BASE_OBJS) $(KERNEL_OBJS) $(UDS_OBJS)
+$(MODNAME)-objs = $(OBJS)
+
+# XXX - Temporary fix for latest version of gcc to
+# fix kernel include-file issue.  This need to be reviewed
+# when Fedora 36 is out.
+GCCVERSION = $(shell gcc -dumpversion)
+ifeq "$(shell test ${GCCVERSION} -ge 12 && echo y)" 'y'
+  EXTRA_GCC_CFLAGS = -Wno-infinite-recursion \
+                     -Wno-implicit-function-declaration
+else
+  EXTRA_GCC_CFLAGS =
+endif
+
+# With gcc-4.4 and linux-3.2 on x86_64, at least, the kernel-exported
+# memset appears to be better than the compiler-expanded version.
+
+ifeq ($(ARCH),x86)
+EXTRA_ARCH_CFLAGS = -mno-omit-leaf-frame-pointer
+else
+EXTRA_ARCH_CFLAGS =
+endif
+EXTRA_CFLAGS =	-I$(KBUILD_EXTMOD)					\
+		-std=gnu89						\
+		-fno-builtin-memset					\
+		-fno-omit-frame-pointer					\
+		-fno-optimize-sibling-calls				\
+		-fno-stack-protector					\
+		-Werror							\
+		$(EXTRA_GCC_CFLAGS)                                     \
+		$(if $(CONFIG_KASAN)$(LLVM),,-Wframe-larger-than=400)	\
+		-g							\
+		$(EXTRA_ARCH_CFLAGS)					\
+		-DEXTERNAL_STATIC=static                		\
+		-DVDO_INTERNAL						\
+		-DLOG_INTERNAL						\
+		-DUDS_MURMURHASH3					\
+		-DCURRENT_VERSION='"$(VDO_VERSION)"'

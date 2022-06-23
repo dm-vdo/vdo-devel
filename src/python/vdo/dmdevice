@@ -1,0 +1,273 @@
+#! /usr/bin/env python
+
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from vdo.dmmgmnt.Corruptor import Corruptor
+from vdo.dmmgmnt.DeviceMapper import DeviceMapper
+from vdo.dmmgmnt.Tracer import Tracer
+
+import argparse
+import gettext
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+import sys
+
+gettext.install('dmdevice')
+
+###############################################################################
+class InvalidParameter(Exception):
+  """Exception raised when given an invalid parameter.
+  """
+  def __init__(self, msg = None, *args, **kwargs):
+    super(InvalidParameter, self).__init__(*args, **kwargs)
+    if msg is None:
+      msg = "invalid parameter"
+    self._msg = msg
+
+  ######################################################################
+  def __str__(self):
+    return self._msg
+
+###############################################################################
+def _makeCorruptorDevice(args):
+  """Return an instance of Corruptor created from the specified arguments.
+  """
+  return Corruptor(deviceName = args.deviceName,
+                   storageDevicePath = getattr(args, "storageDevice", None))
+
+###############################################################################
+def _makeTracerDevice(args):
+  """Return an instance of Tracer created from the specified arguments.
+  """
+  return Tracer(deviceName = args.deviceName,
+                storageDevicePath = getattr(args, "storageDevice", None),
+                traceSectorCount = getattr(args, "sectorCount", None))
+
+########################################################################
+def configureLogger(name, logfile = None, debug = False):
+  """Configure the logging system according to the arguments."""
+  debugging   = debug
+  myname      = os.path.basename(sys.argv[0])
+  formatBase  = ': %(levelname)s - %(message)s'
+  debugBase   = (': %(name)s' if debugging else '') + formatBase
+
+  logger = logging.getLogger()
+  logger.setLevel(logging.NOTSET)
+
+  handler = logging.StreamHandler(sys.stderr)
+  handler.setFormatter(logging.Formatter(myname + debugBase))
+  handler.setLevel(logging.DEBUG if debugging else logging.WARNING)
+  logger.addHandler(handler)
+
+  if logfile is not None:
+    if os.path.exists(logfile) and not os.path.isfile(logfile):
+      # Support /dev/stderr and the like.
+      handler = logging.FileHandler(logfile)
+    else:
+      handler = RotatingFileHandler(logfile,
+                                    maxBytes=10*1024*1024,
+                                    backupCount=5)
+    formatter = logging.Formatter('%(asctime)s %(name)s' + formatBase)
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.DEBUG if debugging else logging.INFO)
+    logger.addHandler(handler)
+
+  try:
+    handler = logging.handlers.SysLogHandler(address='/dev/log')
+    handler.setFormatter(logging.Formatter(myname + formatBase))
+    handler.setLevel(logging.WARNING)
+    logger.addHandler(handler)
+  except Exception as ex:
+    logger.warn('Unable to configure logging for rsyslog: {0}'.format(ex))
+
+###############################################################################
+def main(args):
+  # Check the parameters.
+  operations = { "configure"  : lambda device, args :
+                                  device.configure(
+                                        read = args.read,
+                                        readFrequency = args.readFrequency,
+                                        write = args.write,
+                                        writeFrequency = args.writeFrequency),
+                 "create"     : lambda device, args : device.create(),
+                 "disable"    : lambda device, args : device.disable(),
+                 "enable"     : lambda device, args : device.enable(),
+                 "remove"     : lambda device, args : device.remove(),
+                 "status"     : lambda device, args : device.status() }
+  serviceTypes = { "corruptor"  : _makeCorruptorDevice,
+                   "tracer"     : _makeTracerDevice }
+
+  if args.operation not in operations:
+    raise InvalidParameter(_("invalid operation type: {op}").format(
+                            op = args.operation))
+
+  serviceType = None
+  if hasattr(args, "serviceType"):
+    serviceType = args.serviceType
+  else:
+    serviceType = DeviceMapper.deviceServiceType(args.deviceName)
+  if serviceType not in serviceTypes:
+    raise InvalidParameter(_("invalid service type: {type}").format(
+                            type = serviceType))
+
+  # Construct the appropriate device instance.
+  device = serviceTypes[serviceType](args)
+
+  # Execute the requested operation returning its result.
+  return operations[args.operation](device, args)
+
+###############################################################################
+if __name__ == "__main__":
+  # Root parser.
+  rootParser = argparse.ArgumentParser(description = """
+    Utility to manage device-mapper utility devices which are used for
+    testing and/or trouble-shooting purposes.
+                                                     """)
+  rootAdder = rootParser.add_subparsers(title = "operations",
+                                        dest = "operation",
+                                        description = """
+    Operation to perform relative to the specified service.
+                                                      """)
+
+  # Common.
+  commonArgsParser = argparse.ArgumentParser(add_help = False)
+  commonArgsParser.add_argument("--deviceName",
+                                type = str,
+                                required = True,
+                                help = """
+    The name of the device providing the service; REQUIRED.
+                                       """)
+  commonArgsParser.add_argument("--debug", "-d",
+                                dest = "debug",
+                                action = "store_true",
+                                default = False)
+  commonArgsParser.add_argument("--logfile",
+                                type = str,
+                                default = None,
+                                metavar = "<pathname>")
+
+  # Corruptor group parser.
+  corruptorGroupParser = argparse.ArgumentParser(add_help = False)
+  corruptorGroup = corruptorGroupParser.add_argument_group("corruptor options")
+
+  corruptorGroup.add_argument("--read",
+                              type = str,
+                              choices = ["disable", "enable", "modulo",
+                                         "random", "sequential"],
+                              help = """
+    Corruptor read control.
+                                     """)
+  corruptorGroup.add_argument("--readFrequency",
+                              type = int,
+                              default = None,
+                              help = """
+    Corruptor frequency value for "--read" selection; applicable only to
+    "modulo", "random" and "sequential"; default = current configured value.
+                                     """)
+  corruptorGroup.add_argument("--write",
+                              type = str,
+                              choices = ["disable", "enable", "modulo",
+                                         "random", "sequential"],
+                              help = """
+    Corruptor write control.
+                                     """)
+  corruptorGroup.add_argument("--writeFrequency",
+                              type = int,
+                              default = None,
+                              help = """
+    Corruptor frequency value for "--write" selection; applicable only to
+    "modulo", "random" and "sequential"; default = current configured value.
+                                     """)
+
+  # Tracer group parser.
+  tracerGroupParser = argparse.ArgumentParser(add_help = False)
+  tracerGroup = tracerGroupParser.add_argument_group("tracer options")
+  tracerGroup.add_argument("--sectorCount",
+                           type = int,
+                           choices = [1, 8],
+                           help = """
+    Sector count at which tracing is performed.
+                                  """)
+
+  # Create.
+  createParser = rootAdder.add_parser("create",
+                                      parents = [commonArgsParser,
+                                                 tracerGroupParser],
+                                      description = """
+    Create the specified service. Options specified that are not applicable
+    to the specified service type are silently ignored.
+                                                    """)
+  createParser.add_argument("--serviceType",
+                            type = str,
+                            required = True,
+                            choices = ["corruptor", "tracer"],
+                            default = None,
+                            help = """
+    The service type being manipulated; REQUIRED.
+                                   """)
+  createParser.add_argument("--storageDevice",
+                            type = str,
+                            required = True,
+                            default = None,
+                            help = """
+    The storage device upon which the service is built; REQUIRED.
+                                   """)
+
+  # Configure.
+  configureParser = rootAdder.add_parser("configure",
+                                         parents = [commonArgsParser,
+                                                    corruptorGroupParser,
+                                                    tracerGroupParser],
+                                         description = """
+    Configure the specified service.  Options specified that are not applicable
+    to the specified service are silently ignored.
+                                                       """)
+  # Disable.
+  disableParser = rootAdder.add_parser("disable",
+                                       parents = [commonArgsParser],
+                                       description = """
+    Disable the specified service.
+                                                     """)
+
+  # Enable.
+  enableParser = rootAdder.add_parser("enable",
+                                      parents = [commonArgsParser],
+                                      description = """
+    Enable the specified service.
+                                                    """)
+
+  # Remove.
+  removeParser = rootAdder.add_parser("remove",
+                                      parents = [commonArgsParser],
+                                      description = """
+    Remove the specified service.
+                                                    """)
+
+  # Status.
+  statusParser = rootAdder.add_parser("status",
+                                      parents = [commonArgsParser],
+                                      description = """
+    Return the status of the specified service.
+                                                    """)
+
+  # Parse the arguments.
+  args = rootParser.parse_args()
+
+  # Configure the logger.
+  configureLogger(os.path.basename(sys.argv[0]), args.logfile, args.debug)
+
+  # Perform the request.
+  output = main(args)
+  if output is not None:
+    print(output)
+
+  sys.exit(0)

@@ -1,0 +1,40 @@
+# This file is used to configure the GitHub source distribution build
+# for VDO. It is intended to be read by the prepareSourceDist.pl and
+# prepareGitHubDist.pl utilities. See
+# //eng/main/src/perl/Permabit/DistFramework.pm for a description of the syntax
+# of this file.
+#
+# $Id$
+
+manifest: ../src-dist/MANIFEST.yaml
+tarballs:
+  vdo:
+    sources:
+      vdo:
+        +src/packaging/github:
+          dest: .
+          sources: CONTRIBUTORS.txt
+        +src/packaging/github/user:
+          dest: .
+          sources: README.md
+        src/c++/uds/src/uds:
+          +postProcessor: removeInternal.sh
+        src/c++/uds/userLinux/uds:
+          +postProcessor: removeInternal.sh
+  kvdo:
+    sources:
+      vdo:
+        +src/packaging/github:
+          dest: .
+          sources: CONTRIBUTORS.txt
+        +src/packaging/github/kernel:
+          dest: .
+          sources: |
+            README.md
+            TODO
+        src/c++/vdo/base:
+          +postProcessor: removeInternal.sh
+        src/c++/uds/src/uds:
+          +postProcessor: removeInternal.sh
+        src/c++/uds/kernelLinux/uds:
+          +postProcessor: removeInternal.sh

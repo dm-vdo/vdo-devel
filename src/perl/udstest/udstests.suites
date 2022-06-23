@@ -1,0 +1,151 @@
+# -*-cperl-*-
+# vim:filetype=perl
+# $Id$
+#
+
+###############################################################################
+# Our tests are OS-agnostic, and clientClass never contains an OS class. We
+# use these prefixes to select an OS to test on.
+##
+$aliasPrefixes{Fedora35} = "--rsvpOSClass=FEDORA35";
+$aliasPrefixes{Fedora36} = "--rsvpOSClass=FEDORA36";
+$aliasPrefixes{RHEL8}    = "--rsvpOSClass=RHEL8";
+$aliasPrefixes{RHEL9}    = "--rsvpOSClass=RHEL9";
+
+###############################################################################
+# Basic test definitions.
+#
+# The name prefix identifies the platform (Kernel or User).
+#
+# The name suffix identifies the intended usage of the test. Checkin
+# runs tests on the build platform and is for "make checkin". Full
+# runs nightly tests on virtual machines, such as pfarms. Jenkins
+# runs tests on virtual machines on all platforms, and is for "make
+# jenkins". Perf runs performance tests on real hardware in the lab.
+# Local runs other tests that need to run on real hardware.
+##
+
+{
+  my $CCA = "--clientClass=ALBIREO-PMI";
+  my $CCV = "--clientClass=VDO-PMI";
+  $aliasNames{KernelCheckin} = "KernelGrouped   --unitTestName=*_t*";
+  $aliasNames{KernelFarm}    = "KernelSeparated --unitTestName=*_t*";
+  $aliasNames{KernelFull}    = "KernelSeparated --unitTestName=*_[nptx]*";
+  $aliasNames{KernelHDD}     = "KernelSeparated --unitTestName=*_[nx]* $CCA";
+  $aliasNames{KernelJenkins} = "KernelGrouped   --unitTestName=*_[nt]*";
+  $aliasNames{KernelPerf}    = "KernelSeparated --unitTestName=*_p* $CCV";
+}
+
+$aliasNames{UserCheckin} = "UserGrouped   --unitTestName=*_t?";
+$aliasNames{UserFull}    = "UserSeparated --unitTests=full";
+$aliasNames{UserJenkins} = "UserGrouped   --unitTestName=*_[nt]?";
+
+###############################################################################
+# Linux kernel mode tests on all platforms. Runs nightly.
+##
+$suiteNames{kernelFarm}
+  = [
+     "KernelFarm",
+    ];
+
+###############################################################################
+# Linux user mode tests on all platforms. Runs nightly.
+##
+$suiteNames{userFull}
+  = [
+     "UserFull",
+    ];
+
+###############################################################################
+# Performance tests and local tests. Runs nightly in lab.
+##
+$suiteNames{performance}
+  = [
+     "KernelHDD",
+     "KernelPerf",
+     "UserPerf",
+    ];
+
+###############################################################################
+# valgrind tests. These can run on any platform, but there is little value in
+# running nightly on more than one.
+##
+$suiteNames{valgrind}
+  = [
+     "UserValgrind",
+    ];
+
+###############################################################################
+# Aliased tests to run nightly on pfarms.
+##
+$suiteNames{nightly}
+  = [
+     @{$suiteNames{kernelFarm}},
+     @{$suiteNames{userFull}},
+     @{$suiteNames{valgrind}},
+    ];
+
+###############################################################################
+# General checkin tests run by jenkins. Note that the makefiles refer to this
+# suite for the "jenkins" make target.
+##
+$suiteNames{jenkins}
+  = [
+     "KernelJenkins",
+     "UserJenkins",
+    ];
+
+###############################################################################
+# Local checkin tests. Note that the makefiles refer to this suite for the
+# "checkin" make target.
+##
+$suiteNames{checkin}
+  = [
+     "KernelCheckin",
+     "UserCheckin",
+    ];
+
+###############################################################################
+# Tests to disable temporarily.
+##
+@deferred = ();
+
+###############################################################################
+# Tests that we don't want to include in the default suite. The default suite
+# is specified by a command line that contains no test or suite to be run. For
+# UDS, specific test groups are all defined by aliases, so exclude all the base
+# classes.
+#
+# There is no need to exclude any aliased tests since they are not added to the
+# default suite by default.
+##
+@excludes
+  = (
+     @deferred,
+     "KernelGrouped",    # Base class, although runnable as is
+     "KernelSeparated",  # Base class, although runnable as is
+     "UserGrouped",      # Base class, although runnable as is
+     "UserSeparated",    # Base class, although runnable as is
+     "UserPerf",         # Needs hosts from VDO-PMI
+     "UserValgrind",     # Base class, although runnable as is
+    );
+
+###############################################################################
+# The default set of OS-agnostic test aliases. These suites run everything. It
+# is generally better to run specific suite aliases.
+##
+push(@addToDefaultTests,
+     "KernelFull",
+     "UserFull",
+     "UserValgrind",
+    );
+
+###############################################################################
+# Each user may define their own "udstests.private" file.
+# If that file exists, "do" it now.
+##
+if (-f "udstests.private") {
+  doFile("udstests.private");
+}
+
+1;

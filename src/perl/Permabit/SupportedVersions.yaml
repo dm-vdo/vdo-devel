@@ -1,0 +1,65 @@
+# This is the list of supported VDO releases and associated properties for
+# testing upgrades from those versions.
+#
+# $Id$
+##
+
+head:
+  # The loader of this file should expand this to the appropriate
+  # value from the CURRENT_VERSION file.
+  moduleVersion: VDO_MARKETING_VERSION
+  isCurrent: 1
+  branch: head
+  statistics: Permabit::Statistics::VDO
+  path:
+
+# This probably isn't useful for upgrade testing now.
+#8.2.0-current:
+#  moduleVersion: 8.2.0
+#  isCurrent: 1
+#  branch: chlorine
+#  statistics: Permabit::Statistics::VDO
+#  path: /permabit/build/linux-vdo-rpm/current/
+
+8.1.0-current:
+  moduleVersion: 8.1.0
+  isCurrent: 1
+  branch: sulfur
+  statistics: Permabit::Statistics::VDO
+  path: /permabit/release/vdo-8.1/current/
+
+  
+8.0.0-current:
+  moduleVersion: 8.0.0
+  isCurrent: 1
+  branch: phosphorus
+  statistics: Permabit::Statistics::VDO
+  path: /permabit/release/vdo-8.0/current/
+
+6.2.0.293:
+  moduleVersion: 6.2.0.293
+  isCurrent: 0
+  branch: aluminum
+  statistics: Permabit::Statistics::VDOAluminum30
+  path: /permabit/release/source/vdo-aluminum/vdo-aluminum-6-2-0-293
+
+6.2.1.138:
+  moduleVersion: 6.2.1.138
+  isCurrent: 0
+  branch: aluminum
+  statistics: Permabit::Statistics::VDOAluminum30
+  path: /permabit/release/source/vdo-aluminum/vdo-aluminum-6-2-1-138
+
+6.2.2.117:
+  moduleVersion: 6.2.2.117
+  isCurrent: 0
+  branch: aluminum
+  statistics: Permabit::Statistics::VDOAluminum30
+  path: /permabit/release/source/vdo-aluminum/vdo-aluminum-6-2-2-117
+
+6.2.3-current:
+  moduleVersion: 6.2.3
+  isCurrent: 1
+  branch: aluminum
+  statistics: Permabit::Statistics::VDOAluminum
+  path: /permabit/release/vdo-6.2.3/current/

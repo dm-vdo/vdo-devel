@@ -1,0 +1,15 @@
+## -*-makefile-*-
+# vim:filetype=make
+#
+# Define variables used for Makefiles which need to auto-generate stats code.
+# This file should not be included directly, but rather via the defines
+# file in the top-level src directory.
+#
+# $Id$
+##
+
+STATS_GENERATOR_DEPS = $(STATS_GENERATOR_DIR)/generateStatsCode.pl \
+                       $(wildcard $(STATS_GENERATOR_DIR)/*.pm)     \
+                       $(wildcard $(STATS_GENERATOR_DIR)/*/*.pm)
+
+STATS_GENERATOR = $(STATS_GENERATOR_DIR)/generateStatsCode.pl

@@ -1,0 +1,49 @@
+## -*-makefile-*-
+# vim:filetype=make
+#
+# Define variables used for all makefiles.
+#
+# Users of this file (or any file which includes it) must define SRC_DIR
+#
+# $Id$
+##
+
+# Source trees
+C_DIR      = $(SRC_DIR)/c++
+PERL_DIR   = $(SRC_DIR)/perl
+PYTHON_DIR = $(SRC_DIR)/python
+STATS_DIR  = $(SRC_DIR)/stats
+TOOLS_DIR  = $(SRC_DIR)/tools
+KERNEL_SOURCE_DIR ?= /lib/modules/$(shell uname -r)/build
+
+# Current version file
+CURRENT_VERSION_FILE = $(TOOLS_DIR)/installers/CURRENT_VERSION
+
+# VDO stats auto-generation
+STATS_GENERATOR_DIR = $(PERL_DIR)/statsGenerator
+include $(STATS_GENERATOR_DIR)/definitions
+
+VDO_STATS_DIR = $(SRC_DIR)/stats/vdo
+include $(VDO_STATS_DIR)/definitions
+
+VDO_STATS_DEPS = $(STATS_GENERATOR_DEPS) \
+                 $(VDO_STATS_FILES)
+
+PERL_LIB = $(PERL_DIR)/lib
+
+CHECKPATCH_TYPES := CVS_KEYWORD, \
+                    LEADING_SPACE, \
+                    LINE_SPACING, \
+                    NEW_TYPEDEFS, \
+                    RETURN_PARENTHESES, \
+                    SPACE_BEFORE_TAB, \
+                    SPDX_LICENSE_TAG, \
+                    TRAILING_WHITESPACE, \
+                    WHITESPACE_AFTER_LINE_CONTINUATION, \
+		    YIELD
+
+CHECKPATCH := $(KERNEL_SOURCE_DIR)/scripts/checkpatch.pl
+CHECKPATCH_ARGS := --no-tree --summary-file --types='$(CHECKPATCH_TYPES)' \
+	--file
+
+CHECKPATCH_FILES = *.EXPERIMENTAL-checkpatch-fixes

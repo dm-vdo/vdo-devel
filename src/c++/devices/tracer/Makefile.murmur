@@ -1,0 +1,18 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+
+MURMUR_DIR  = $(src)/murmur
+MURMUR_SRCS = $(wildcard $(MURMUR_DIR)/*.c)
+MURMUR_OBJS = $(notdir $(wildcard $(MURMUR_DIR)/*.c))
+MURMUR_OBJS := $(MURMUR_OBJS:.c=.o)
+MURMUR_HDRS = $(wildcard $(MURMUR_DIR)/*.h)
+
+INCLUDES += -I$(MURMUR_DIR)
+
+VPATH += $(MURMUR_DIR)

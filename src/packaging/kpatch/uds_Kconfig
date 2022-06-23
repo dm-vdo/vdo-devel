@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config DM_UDS
+	tristate "Deduplication index service for VDO"
+	depends on 64BIT
+	select DM_BUFIO
+	help
+	  This module provides the indexing service for the VDO disk
+	  optimization  target.
+
+	  To compile this code as a module, choose M here: the module will
+	  be called uds.
+
+	  If you are not using VDO, say N.

@@ -1,0 +1,27 @@
+{
+   dlopen_calling_malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.2.5
+   ...
+}
+{
+   dlopen_calling_calloc
+   Memcheck:Leak
+   fun:calloc
+   ...
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.2.5
+   fun:loadModule
+   ...
+}
+{
+   pthread_create_allocating_tls
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   ...
+}

@@ -1,0 +1,28 @@
+# -*-makefile-*-
+# vim:filetype=make
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# Global Makefile fragment for python code
+#
+# $Id:$
+
+.DEFAULT_GOAL  := all
+
+# Find the pylintrc file in the same directory as this Makefile
+PYTHON_DIR ?= $(dir $(lastword $(MAKEFILE_LIST)))
+
+PYLINT_ARGS = --rcfile=$(PYTHON_DIR)/pylintrc -E
+
+check: check_python
+clean: clean_python
+
+# Do nothing for pylint and check_python.
+pylint check_python:
+
+clean_python:
+	-rm -f *.pyc
+
+.PHONY: check check_python clean clean_python pylint

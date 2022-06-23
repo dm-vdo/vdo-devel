@@ -1,0 +1,17 @@
+# Makefile variables common to all module builds -*-makefile-gmake-*-
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id: $
+#
+DEVICE_COMMON_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+DEVICE_COMMON_SRCS = $(wildcard $(DEVICE_COMMON_DIR)/*.c)
+DEVICE_COMMON_OBJS = $(notdir $(wildcard $(DEVICE_COMMON_DIR)/*.c))
+DEVICE_COMMON_OBJS := $(DEVICE_COMMON_OBJS:.c=.o)
+DEVICE_COMMON_HDRS = $(wildcard $(DEVICE_COMMON_DIR)/*.h)
+
+INCLUDES += -I$(DEVICE_COMMON_DIR)
+
+VPATH += $(DEVICE_COMMON_DIR)

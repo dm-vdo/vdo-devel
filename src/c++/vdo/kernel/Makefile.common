@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0-only
+## -*-makefile-*-
+# vim:filetype=make
+# Auxiliary Makefile for building VDO
+#
+# %COPYRIGHT%
+#
+# %LICENSE%
+#
+# $Id$
+##
+
+VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
+VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))
+VDO_VERSION_MICRO = $(word 3,$(subst ., ,$(VDO_VERSION)))
+
+# Stack-overflow debugging support; add $(STACK_CHECK_OPTIONS) to
+# EXTRA_CFLAGS to enable. See kernelLayer.c for implementation
+# details. (Only works on x86-64 at the moment.)
+STACK_CHECK_FNS=get_current,current_thread_info
+STACK_CHECK_OPTIONS=							\
+	-finstrument-functions						\
+	-finstrument-functions-exclude-function-list=$(STACK_CHECK_FNS)	\
+	-DSTACK_CHECK							\
+	-fno-omit-frame-pointer						\
+	-fno-optimize-sibling-calls					\
+	-mno-omit-leaf-frame-pointer

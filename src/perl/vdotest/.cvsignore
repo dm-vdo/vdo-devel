@@ -1,0 +1,5 @@
+*::*
+filecopy.stdout
+nohup.out
+rsvp.log
+vdotests.private
