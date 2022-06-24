@@ -220,8 +220,8 @@ int read_index_page_map(struct index_page_map *map,
 	result = get_uint16_les_from_buffer(buffer,
 					    get_entry_count(map->geometry),
 					    map->entries);
+	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
