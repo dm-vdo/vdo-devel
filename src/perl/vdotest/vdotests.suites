@@ -883,6 +883,8 @@ $suiteNames{beakerExcludedTests}
      "DoryBase",            # Base class
      "FullBase",            # Base class
      "GrowFailure01",       # Manual test
+     ISCSIDevice01,         # targetcli issues [see VDO-5347]
+     ISCSIDevice02,         # targetcli issues [see VDO-5347]
      "Manual01",            # Manual test
      "MemoryFailBase",      # Base class
      "Mongo",               # Manual test
