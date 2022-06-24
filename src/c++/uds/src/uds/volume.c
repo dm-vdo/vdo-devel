@@ -152,7 +152,8 @@ static int init_chapter_index_page(const struct volume *volume,
 {
 	uint64_t ci_virtual;
 	unsigned int ci_chapter;
-	struct index_page_bounds bounds;
+	unsigned int lowest_list;
+	unsigned int highest_list;
 	struct geometry *geometry = volume->geometry;
 
 	int result = initialize_chapter_index_page(chapter_index_page,
@@ -167,27 +168,26 @@ static int init_chapter_index_page(const struct volume *volume,
 					      chapter, index_page_number);
 	}
 
-	result = get_list_number_bounds(volume->index_page_map, chapter,
-					index_page_number, &bounds);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
+	get_list_number_bounds(volume->index_page_map,
+			       chapter,
+			       index_page_number,
+			       &lowest_list,
+			       &highest_list);
 	ci_virtual = chapter_index_page->virtual_chapter_number;
 	ci_chapter = map_to_physical_chapter(geometry, ci_virtual);
 	if ((chapter == ci_chapter) &&
-	    (bounds.lowest_list == chapter_index_page->lowest_list_number) &&
-	    (bounds.highest_list == chapter_index_page->highest_list_number)) {
+	    (lowest_list == chapter_index_page->lowest_list_number) &&
+	    (highest_list == chapter_index_page->highest_list_number)) {
 		return UDS_SUCCESS;
 	}
 
 	uds_log_warning("Index page map updated to %llu",
-			(unsigned long long) get_last_update(volume->index_page_map));
+			(unsigned long long) volume->index_page_map->last_update);
 	uds_log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
 			chapter,
 			index_page_number,
-			bounds.lowest_list,
-			bounds.highest_list,
+			lowest_list,
+			highest_list,
 			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
@@ -789,17 +789,15 @@ int search_volume_page_cache(struct volume *volume,
 			     struct uds_chunk_data *metadata,
 			     bool *found)
 {
+	int result;
 	unsigned int physical_chapter =
 		map_to_physical_chapter(volume->geometry, virtual_chapter);
 	unsigned int index_page_number;
 	int record_page_number;
-	int result = find_index_page_number(volume->index_page_map,
-					    name,
-					    physical_chapter,
-					    &index_page_number);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+
+	index_page_number = find_index_page_number(volume->index_page_map,
+						   name,
+						   physical_chapter);
 
 	if ((request != NULL) &&
 	    (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP)) {
@@ -957,15 +955,12 @@ int write_index_pages(struct volume *volume,
 		} else {
 			delta_list_number += lists_packed;
 		}
-		result = update_index_page_map(volume->index_page_map,
-					       chapter_index->virtual_chapter_number,
-					       physical_chapter_number,
-					       index_page_number,
-					       delta_list_number - 1);
-		if (result != UDS_SUCCESS) {
-			return uds_log_error_strerror(result,
-						      "failed to update index page map");
-		}
+
+		update_index_page_map(volume->index_page_map,
+				      chapter_index->virtual_chapter_number,
+				      physical_chapter_number,
+				      index_page_number,
+				      delta_list_number - 1);
 
 		/* Donate the page data for the index page to the page cache. */
 		uds_lock_mutex(&volume->read_threads_mutex);

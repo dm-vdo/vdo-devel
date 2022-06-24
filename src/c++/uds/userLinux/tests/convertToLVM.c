@@ -99,7 +99,7 @@ static int reduce_index_page_map(struct volume *volume, uint64_t new_physical)
 {
 	struct index_page_map *map = volume->index_page_map;
 	struct geometry *geometry = volume->geometry;
-	int entries_per_chapter = geometry->index_pages_per_chapter - 1;
+	int entries_per_chapter = map->entries_per_chapter;
 	int reduced_entries =
 		(geometry->chapters_per_volume - 1) * entries_per_chapter;
 
@@ -107,13 +107,14 @@ static int reduce_index_page_map(struct volume *volume, uint64_t new_physical)
 	if (new_physical > 0) {
 		size_t slot = new_physical * entries_per_chapter;
 		size_t chapter_slot_size =
-			sizeof(index_page_map_entry_t) * entries_per_chapter;
+			sizeof(uint16_t) * entries_per_chapter;
+
 		memcpy(&map->entries[slot], map->entries, chapter_slot_size);
 	}
 
 	// Shift the entries down to match the new set of chapters.
 	memmove(map->entries, &map->entries[entries_per_chapter],
-		reduced_entries * sizeof(index_page_map_entry_t));
+		reduced_entries * sizeof(uint16_t));
 
 	return UDS_SUCCESS;
 }

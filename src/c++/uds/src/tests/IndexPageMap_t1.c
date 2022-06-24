@@ -57,19 +57,21 @@ static void fillChapter(struct index_page_map *map,
     if (listNumber >= geometry->delta_lists_per_chapter) {
       listNumber = geometry->delta_lists_per_chapter - 1;
     }
+
     if (listNumbers != NULL) {
       listNumbers[page] = listNumber;
     }
-    UDS_ASSERT_SUCCESS(update_index_page_map(map, vcn, chapterNumber, page,
-                                             listNumber));
+
+    update_index_page_map(map, vcn, chapterNumber, page, listNumber);
   }
+
   unsigned int lastDeltaListNumber = geometry->delta_lists_per_chapter - 1;
   if (listNumbers != NULL) {
     listNumbers[lastIndexPageNumber] = lastDeltaListNumber;
   }
-  UDS_ASSERT_SUCCESS(update_index_page_map(map, vcn, chapterNumber,
-                                           lastIndexPageNumber,
-                                           lastDeltaListNumber));
+
+  update_index_page_map(map, vcn, chapterNumber, lastIndexPageNumber,
+                        lastDeltaListNumber);
 }
 
 /**********************************************************************/
@@ -82,17 +84,13 @@ static void verifyChapter(struct index_page_map *map,
   unsigned int list, page;
   for (page = 0; page < geometry->index_pages_per_chapter; page++) {
     for (list = firstList; list <= listNumbers[page]; list++) {
-      unsigned int indexPage = 0;
 
       // Stuff the list number into a chunk name so it maps to the list number.
       struct uds_chunk_name name;
       memset(&name, 0, sizeof(name));
       set_chapter_delta_list_bits(&name, geometry, list);
       CU_ASSERT_EQUAL(list, hash_to_chapter_delta_list(&name, geometry));
-
-      UDS_ASSERT_SUCCESS(find_index_page_number(map, &name, chapter,
-                                                &indexPage));
-      CU_ASSERT_EQUAL(indexPage, page);
+      CU_ASSERT_EQUAL(page, find_index_page_number(map, &name, chapter));
     }
     firstList = listNumbers[page] + 1;
   }

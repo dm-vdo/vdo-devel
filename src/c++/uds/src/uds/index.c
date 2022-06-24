@@ -1307,17 +1307,12 @@ static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 						      chapter,
 						      index_page_number);
 		}
-		result = update_index_page_map(index->volume->index_page_map,
-					       vcn,
-					       chapter,
-					       index_page_number,
-					       highest_delta_list);
-		if (result != UDS_SUCCESS) {
-			return uds_log_error_strerror(result,
-						      "failed to update chapter %u index page %u",
-						      chapter,
-						      index_page_number);
-		}
+
+		update_index_page_map(index->volume->index_page_map,
+				      vcn,
+				      chapter,
+				      index_page_number,
+				      highest_delta_list);
 		expected_list_number = highest_delta_list + 1;
 	}
 	return UDS_SUCCESS;
@@ -1499,7 +1494,7 @@ static int replay_volume(struct uds_index *index)
 	 * index page map.
 	 */
 	geometry = index->volume->geometry;
-	old_ipm_update = get_last_update(index->volume->index_page_map);
+	old_ipm_update = index->volume->index_page_map->last_update;
 	for (vcn = from_vcn; vcn < upto_vcn; ++vcn) {
 		bool will_be_sparse_chapter;
 		unsigned int chapter;
@@ -1566,8 +1561,7 @@ static int replay_volume(struct uds_index *index)
 	/* We also need to reap the chapter being replaced by the open chapter */
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 
-	new_ipm_update = get_last_update(index->volume->index_page_map);
-
+	new_ipm_update = index->volume->index_page_map->last_update;
 	if (new_ipm_update != old_ipm_update) {
 		uds_log_info("replay changed index page map update from %llu to %llu",
 			     (unsigned long long) old_ipm_update,

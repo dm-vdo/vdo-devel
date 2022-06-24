@@ -1077,13 +1077,8 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 	 */
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
-	unsigned int index_page_number;
-	int result = find_index_page_number(index_page_map, name,
-					    physical_chapter,
-					    &index_page_number);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
+	unsigned int index_page_number =
+		find_index_page_number(index_page_map, name, physical_chapter);
 
 	return search_chapter_index_page(&chapter->index_pages[index_page_number],
 				         geometry,
