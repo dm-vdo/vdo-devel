@@ -31,7 +31,6 @@ tarballs:
           dest: .
           sources: |
             README.md
-            TODO
         src/c++/vdo/base:
           +postProcessor: removeInternal.sh
         src/c++/uds/src/uds:
