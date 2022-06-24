@@ -12,6 +12,34 @@
 #include "request-queue.h"
 #include "time-utils.h"
 
+/*
+ * The index session mediates all interactions with a UDS index. Once the
+ * session is created, it can be used to open, close, suspend, or recreate an
+ * index. The session contains a lock (the request_mutex) which ensures that
+ * only one thread can change the state of its index at a time. The state field
+ * indicates the current state of the index through a set of descriptive
+ * flags. The request_mutex must be notified whenever a non-transient state
+ * flag is cleared. The request_mutex is also used to count the number of
+ * requests currently in progress so that they can be drained when suspending
+ * or closing the index.
+ *
+ * If the index session is suspended shortly after opening an index, it may
+ * have to suspend during a rebuild. Depending on the size of the index, a
+ * rebuild may take a significant amount of time, so UDS allows the rebuild to
+ * be paused in order to suspend the session in a timely manner. When the index
+ * session is resumed, the rebuild can continue from where it left off. If the
+ * index session is shut down with a suspended rebuild, the rebuild progress is
+ * abandoned and the rebuild will start from the beginning the next time the
+ * index is loaded. The mutex and status fields in the index_load_context are
+ * used to record the state of any interrupted rebuild.
+ *
+ * If any deduplication request fails due to an internal error, the index is
+ * marked disabled. It will not accept any further requests and can only be
+ * closed. Closing the index will clear the disabled flag, and the index can
+ * then be reopened and recovered.
+ */
+
+/* Statistics collection is intended to be thread-safe, */
 static void collect_stats(const struct uds_index_session *index_session,
 			  struct uds_index_stats *stats)
 {
@@ -39,11 +67,6 @@ static void collect_stats(const struct uds_index_session *index_session,
 static void handle_callbacks(struct uds_request *request)
 {
 	if (request->status == UDS_SUCCESS) {
-		/*
-		 * Measure the turnaround time of this request and include that
-		 * time, along with the rest of the request, in the context's
-		 * stat counters.
-		 */
 		update_request_context_stats(request);
 	}
 
@@ -56,12 +79,17 @@ static void handle_callbacks(struct uds_request *request)
 		request->callback((struct uds_request *) request);
 		/*
 		 * We do this release after the callback because of the
-		 * contract of the uds_flush_index_session method.
+		 * contract of the uds_flush_index_session() method.
 		 */
 		release_index_session(index_session);
 	}
 }
 
+/*
+ * Acquire a reference to the index session for an asynchronous index request.
+ * The reference must eventually be released with a corresponding call to
+ * release_index_session().
+ **/
 int get_index_session(struct uds_index_session *index_session)
 {
 	unsigned int state;
@@ -88,6 +116,7 @@ int get_index_session(struct uds_index_session *index_session)
 	return result;
 }
 
+/* Release a reference to an index session. */
 void release_index_session(struct uds_index_session *index_session)
 {
 	uds_lock_mutex(&index_session->request_mutex);
@@ -215,7 +244,6 @@ static int initialize_index_session(struct uds_index_session *index_session,
 		return result;
 	}
 
-	/* Zero the stats for the new index. */
 	memset(&index_session->stats, 0, sizeof(index_session->stats));
 
 	result = make_index(config,
@@ -247,6 +275,10 @@ static const char *get_open_type_string(enum uds_open_index_type open_type)
 	}
 }
 
+/*
+ * Open an index under the given session. This operation will fail if the
+ * index session is suspended, or if there is already an open index.
+ */
 int uds_open_index(enum uds_open_index_type open_type,
 		   const struct uds_parameters *parameters,
 		   struct uds_index_session *session)
@@ -357,14 +389,19 @@ static void suspend_rebuild(struct uds_index_session *session)
 	uds_unlock_mutex(&session->load_context.mutex);
 }
 
+/*
+ * Suspend index operation, draining all current index requests and
+ * preventing new index requests from starting. Optionally saves all index
+ * data before returning.
+ */
 int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
 	int result = UDS_SUCCESS;
 	bool no_work = false;
 	bool rebuilding = false;
 
+	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&session->request_mutex);
-	/* Wait for any pending close operation to complete. */
 	while (session->state & IS_FLAG_CLOSING) {
 		uds_wait_cond(&session->request_cond, &session->request_mutex);
 	}
@@ -429,6 +466,11 @@ static int replace_device(struct uds_index_session *session,
 	return UDS_SUCCESS;
 }
 
+/*
+ * Resume index operation after being suspended. If the index is suspended
+ * and the supplied name is different from the current backing store, the
+ * index will start using the new backing store.
+ */
 int uds_resume_index_session(struct uds_index_session *session,
 			     const char *name)
 {
@@ -442,7 +484,7 @@ int uds_resume_index_session(struct uds_index_session *session,
 		no_work = true;
 		result = -EBUSY;
 	} else if (!(session->state & IS_FLAG_SUSPENDED)) {
-		/* If not suspended, just succeed */
+		/* If not suspended, just succeed. */
 		no_work = true;
 		result = UDS_SUCCESS;
 	} else {
@@ -542,16 +584,14 @@ static int save_and_free_index(struct uds_index_session *index_session)
 	return result;
 }
 
+/* Save and close the current index. */
 int uds_close_index(struct uds_index_session *index_session)
 {
 	int result = UDS_SUCCESS;
 
 	uds_lock_mutex(&index_session->request_mutex);
 
-	/*
-	 * Wait for any pending suspend, resume or close operations to
-	 * complete.
-	 */
+	/* Wait for any current index state change to complete. */
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
@@ -588,6 +628,7 @@ int uds_close_index(struct uds_index_session *index_session)
 	return uds_map_to_system_error(result);
 }
 
+/* This will save and close an open index before destroying the session. */
 int uds_destroy_index_session(struct uds_index_session *index_session)
 {
 	int result;
@@ -597,10 +638,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	uds_lock_mutex(&index_session->request_mutex);
 
-	/*
-	 * Wait for any pending suspend, resume, or close operations to
-	 * complete.
-	 */
+	/* Wait for any current index state change to complete. */
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
@@ -650,14 +688,18 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	return uds_map_to_system_error(result);
 }
 
+/* Wait until all callbacks for index operations are complete. */
 int uds_flush_index_session(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	/* Wait until any open chapter writes are complete */
 	wait_for_idle_index(index_session->index);
 	return UDS_SUCCESS;
 }
 
+/*
+ * Return the most recent parameters used to open an index. The caller is
+ * responsible for freeing the returned structure.
+ */
 int uds_get_index_parameters(struct uds_index_session *index_session,
 			     struct uds_parameters **parameters)
 {
