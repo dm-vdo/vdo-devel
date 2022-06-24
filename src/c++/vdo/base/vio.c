@@ -19,18 +19,17 @@
 #include "vdo.h"
 
 /**
- * Create a vio.
+ * create_multi_block_metadata_vio() - Create a vio.
+ * @vdo: The vdo on which the vio will operate.
+ * @vio_type: The type of vio to create.
+ * @priority: The relative priority to assign to the vio.
+ * @parent: The parent of the vio.
+ * @block_count: The size of the vio in blocks.
+ * @data: The buffer.
+ * @vio_ptr: A pointer to hold the new vio.
  *
- * @param vdo          The vdo on which the vio will operate
- * @param vio_type     The type of vio to create
- * @param priority     The relative priority to assign to the vio
- * @param parent       The parent of the vio
- * @param block_count  The size of the vio in blocks
- * @param data         The buffer
- * @param vio_ptr      A pointer to hold the new vio
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int create_multi_block_metadata_vio(struct vdo *vdo,
 				    enum vio_type vio_type,
 				    enum vio_priority priority,
@@ -93,10 +92,9 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 }
 
 /**
- * Destroy a vio.
- *
- * @param vio  The vio to destroy
- **/
+ * free_vio() - Destroy a vio.
+ * @vio: The vio to destroy.
+ */
 void free_vio(struct vio *vio)
 {
 	if (vio == NULL) {
@@ -109,11 +107,11 @@ void free_vio(struct vio *vio)
 }
 
 /**
- * Update per-vio error stats and log the error.
- *
- * @param vio     The vio which got an error
- * @param format  The format of the message to log (a printf style format)
- **/
+ * update_vio_error_stats() - Update per-vio error stats and log the
+ *                            error.
+ * @vio: The vio which got an error.
+ * @format: The format of the message to log (a printf style format).
+ */
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
 #ifdef __KERNEL__

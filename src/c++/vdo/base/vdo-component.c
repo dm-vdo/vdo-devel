@@ -16,20 +16,20 @@
 #include "status-codes.h"
 #include "types.h"
 
-/**
+/*
  * The current version for the data encoded in the super block. This must
  * be changed any time there is a change to encoding of the component data
  * of any VDO component.
- **/
+ */
 static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 	.major_version = 41,
 	.minor_version = 0,
 };
 
-/**
+/*
  * A packed, machine-independent, on-disk representation of the vdo_config
  * in the VDO component data in the super block.
- **/
+ */
 struct packed_vdo_config {
 	__le64 logical_blocks;
 	__le64 physical_blocks;
@@ -38,10 +38,10 @@ struct packed_vdo_config {
 	__le64 slab_journal_blocks;
 } __packed;
 
-/**
+/*
  * A packed, machine-independent, on-disk representation of version 41.0
  * of the VDO component data in the super block.
- **/
+ */
 struct packed_vdo_component_41_0 {
 	__le32 state;
 	__le64 complete_recoveries;
@@ -51,10 +51,11 @@ struct packed_vdo_component_41_0 {
 } __packed;
 
 /**
- * Get the size of the encoded state of the vdo itself.
+ * vdo_get_component_encoded_size() - Get the size of the encoded state of the
+ *                                    vdo itself.
  *
- * @return the encoded size of the vdo's state
- **/
+ * Return: The encoded size of the vdo's state.
+ */
 size_t vdo_get_component_encoded_size(void)
 {
 	return (sizeof(struct packed_version_number)
@@ -62,12 +63,12 @@ size_t vdo_get_component_encoded_size(void)
 }
 
 /**
- * Convert a vdo_config to its packed on-disk representation.
+ * pack_vdo_config() - Convert a vdo_config to its packed on-disk
+ *                     representation.
+ * @config: The vdo config to convert.
  *
- * @param config  The vdo config to convert
- *
- * @return the platform-independent representation of the config
- **/
+ * Return: The platform-independent representation of the config.
+ */
 static inline struct packed_vdo_config
 pack_vdo_config(struct vdo_config config)
 {
@@ -83,12 +84,12 @@ pack_vdo_config(struct vdo_config config)
 }
 
 /**
- * Convert a vdo_component to its packed on-disk representation.
+ * pack_vdo_component() - Convert a vdo_component to its packed on-disk
+ *                        representation.
+ * @component: The VDO component data to convert.
  *
- * @param component  The VDO component data to convert
- *
- * @return the platform-independent representation of the component
- **/
+ * Return: The platform-independent representation of the component.
+ */
 static inline struct packed_vdo_component_41_0
 pack_vdo_component(const struct vdo_component component)
 {
@@ -104,13 +105,12 @@ pack_vdo_component(const struct vdo_component component)
 }
 
 /**
- * Encode the component data for the vdo itself.
+ * vdo_encode_component() - Encode the component data for the vdo itself.
+ * @component: The component structure.
+ * @buffer: The buffer in which to encode the vdo.
  *
- * @param component  The component structure
- * @param buffer     The buffer in which to encode the vdo
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_encode_component(struct vdo_component component, struct buffer *buffer)
 {
 	int result;
@@ -126,12 +126,12 @@ int vdo_encode_component(struct vdo_component component, struct buffer *buffer)
 }
 
 /**
- * Convert a packed_vdo_config to its native in-memory representation.
+ * unpack_vdo_config() - Convert a packed_vdo_config to its native in-memory
+ *                       representation.
+ * @config: The packed vdo config to convert.
  *
- * @param config  The packed vdo config to convert
- *
- * @return the native in-memory representation of the vdo config
- **/
+ * Return: The native in-memory representation of the vdo config.
+ */
 static inline struct vdo_config
 unpack_vdo_config(struct packed_vdo_config config)
 {
@@ -147,12 +147,12 @@ unpack_vdo_config(struct packed_vdo_config config)
 }
 
 /**
- * Convert a packed_vdo_component_41_0 to its native in-memory representation.
+ * unpack_vdo_component_41_0() - Convert a packed_vdo_component_41_0 to its
+ *                               native in-memory representation.
+ * @component: The packed vdo component data to convert.
  *
- * @param component  The packed vdo component data to convert
- *
- * @return the native in-memory representation of the component
- **/
+ * Return: The native in-memory representation of the component.
+ */
 static inline struct vdo_component
 unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
 {
@@ -168,13 +168,13 @@ unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
 }
 
 /**
- * Decode the version 41.0 component data for the vdo itself from a buffer.
+ * vdo_decode_component_41_0() - Decode the version 41.0 component data for
+ *                               the vdo itself from a buffer.
+ * @buffer: A buffer positioned at the start of the encoding.
+ * @component: The component structure to receive the decoded values.
  *
- * @param buffer     A buffer positioned at the start of the encoding
- * @param component  The component structure to receive the decoded values
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check
 vdo_decode_component_41_0(struct buffer *buffer,
 			  struct vdo_component *component)
@@ -191,15 +191,14 @@ vdo_decode_component_41_0(struct buffer *buffer,
 }
 
 /**
- * Decode the component data for the vdo itself from the component data buffer
- * in the super block.
+ * vdo_decode_component() - Decode the component data for the vdo itself from
+ *                          the component data buffer in the super block.
+ * @buffer: The buffer being decoded.
+ * @component: The component structure in which to store the result of a
+ *             successful decode.
  *
- * @param buffer     The buffer being decoded
- * @param component  The component structure in which to store
- *                   the result of a successful decode
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_decode_component(struct buffer *buffer,
 			 struct vdo_component *component)
 {
@@ -220,16 +219,14 @@ int vdo_decode_component(struct buffer *buffer,
 }
 
 /**
- * Validate constraints on a VDO config.
+ * vdo_validate_config() - Validate constraints on a VDO config.
+ * @config: The VDO config.
+ * @physical_block_count: The minimum block count of the underlying storage.
+ * @logical_block_count: The expected logical size of the VDO, or 0 if the
+ *                       logical size may be unspecified.
  *
- * @param config                The VDO config
- * @param physical_block_count  The minimum block count of the underlying
- *                              storage
- * @param logical_block_count   The expected logical size of the VDO, or 0 if
- *                              the logical size may be unspecified
- *
- * @return a success or error code
- **/
+ * Return: A success or error code.
+ */
 int vdo_validate_config(const struct vdo_config *config,
 			block_count_t physical_block_count,
 			block_count_t logical_block_count)

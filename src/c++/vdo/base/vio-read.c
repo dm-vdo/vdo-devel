@@ -65,11 +65,12 @@ static void continue_partial_write(struct vdo_completion *completion)
 }
 
 /**
- * Do the modify-write part of a read-modify-write cycle. This callback is
- * registered in read_block().
+ * modify_for_partial_write() - Do the modify-write part of a
+ *                              read-modify-write cycle.
+ * @completion: The data_vio which has just finished its read.
  *
- * @param completion  The data_vio which has just finished its read
- **/
+ * This callback is registered in read_block().
+ */
 static void modify_for_partial_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -158,11 +159,11 @@ static void complete_zero_read(struct vdo_completion *completion)
 }
 
 /**
- * Read a block asynchronously. This is the callback registered in
- * read_block_mapping().
+ * read_block() - Read a block asynchronously.
+ * @completion: The data_vio to read.
  *
- * @param completion  The data_vio to read
- **/
+ * This is the callback registered in read_block_mapping().
+ */
 static void read_block(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -238,11 +239,11 @@ static void read_block(struct vdo_completion *completion)
 }
 
 /**
- * Read the data_vio's mapping from the block map. This callback is registered
- * in launch_read_data_vio().
+ * read_block_mapping() - Read the data_vio's mapping from the block map.
+ * @completion: The data_vio to be read.
  *
- * @param completion  The data_vio to be read
- **/
+ * This callback is registered in launch_read_data_vio().
+ */
 static void read_block_mapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -259,12 +260,13 @@ static void read_block_mapping(struct vdo_completion *completion)
 }
 
 /**
- * Start the asynchronous processing of the data_vio for a read or
+ * launch_read_data_vio() - Start the asynchronous processing of a read vio.
+ * @data_vio: The data_vio doing the read.
+ *
+ * Starts the asynchronous processing of the data_vio for a read or
  * read-modify-write request which has acquired a lock on its logical block.
  * The first step is to perform a block map lookup.
- *
- * @param data_vio  The data_vio doing the read
- **/
+ */
 void launch_read_data_vio(struct data_vio *data_vio)
 {
 	assert_data_vio_in_logical_zone(data_vio);
@@ -276,11 +278,10 @@ void launch_read_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * Release the logical block lock which a read data_vio obtained now that it
- * is done.
- *
- * @param completion  The data_vio
- **/
+ * release_logical_lock() - Release the logical block lock which a read
+ *                          data_vio obtained now that it is done.
+ * @completion: The data_vio.
+ */
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -291,10 +292,10 @@ static void release_logical_lock(struct vdo_completion *completion)
 }
 
 /**
- * Clean up a data_vio which has finished processing a read.
- *
- * @param data_vio  The data_vio to clean up
- **/
+ * cleanup_read_data_vio() - Clean up a data_vio which has finished processing
+ *                           a read.
+ * @data_vio: The data_vio to clean up.
+ */
 void cleanup_read_data_vio(struct data_vio *data_vio)
 {
 	launch_data_vio_logical_callback(data_vio, release_logical_lock);

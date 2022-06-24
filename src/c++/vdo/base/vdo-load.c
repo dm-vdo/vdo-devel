@@ -82,8 +82,8 @@ struct kobj_type vdo_directory_type = {
 #endif /* not __KERNEL__ */
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -99,13 +99,12 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Extract the vdo from an admin_completion, checking that the current
- * operation is a load.
+ * vdo_from_load_sub_task() - Extract the vdo from an admin_completion,
+ *                            checking that the current operation is a load.
+ * @completion: The admin_completion's sub-task completion.
  *
- * @param completion  The admin_completion's sub-task completion
- *
- * @return The vdo
- **/
+ * Return: The vdo.
+ */
 static inline struct vdo *
 vdo_from_load_sub_task(struct vdo_completion *completion)
 {
@@ -113,24 +112,23 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 }
 
 /**
- * Check whether the vdo was new when it was loaded.
+ * was_new() - Check whether the vdo was new when it was loaded.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo was new
- **/
+ * Return: true if the vdo was new.
+ */
 static bool was_new(const struct vdo *vdo)
 {
 	return (vdo->load_state == VDO_NEW);
 }
 
 /**
- * Check whether the vdo requires a read-only mode rebuild.
+ * requires_read_only_rebuild() - Check whether the vdo requires a read-only
+ *                                mode rebuild.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo requires a read-only rebuild
- **/
+ * Return: true if the vdo requires a read-only rebuild.
+ */
 static bool __must_check requires_read_only_rebuild(const struct vdo *vdo)
 {
 	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
@@ -138,12 +136,11 @@ static bool __must_check requires_read_only_rebuild(const struct vdo *vdo)
 }
 
 /**
- * Check whether a vdo should enter recovery mode.
+ * requires_recovery() - Check whether a vdo should enter recovery mode.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo requires recovery
- **/
+ * Return: true if the vdo requires recovery.
+ */
 static bool __must_check requires_recovery(const struct vdo *vdo)
 {
 	return ((vdo->load_state == VDO_DIRTY) ||
@@ -152,12 +149,11 @@ static bool __must_check requires_recovery(const struct vdo *vdo)
 }
 
 /**
- * Check whether a vdo requires rebuilding.
+ * requires_rebuild() - Check whether a vdo requires rebuilding.
+ * @vdo: The vdo to query.
  *
- * @param vdo  The vdo to query
- *
- * @return <code>true</code> if the vdo must be rebuilt
- **/
+ * Return: true if the vdo must be rebuilt.
+ */
 static bool __must_check requires_rebuild(const struct vdo *vdo)
 {
 	switch (vdo_get_state(vdo)) {
@@ -173,12 +169,11 @@ static bool __must_check requires_rebuild(const struct vdo *vdo)
 }
 
 /**
- * Determine how the slab depot was loaded.
+ * get_load_type() - Determine how the slab depot was loaded.
+ * @vdo: The vdo.
  *
- * @param vdo  The vdo
- *
- * @return How the depot was loaded
- **/
+ * Return: How the depot was loaded.
+ */
 static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
 	if (requires_read_only_rebuild(vdo)) {
@@ -193,12 +188,11 @@ static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 }
 
 /**
- * Initialize the vdo sysfs directory.
+ * vdo_initialize_kobjects() - Initialize the vdo sysfs directory.
+ * @vdo: The vdo being initialized.
  *
- * @param vdo     The vdo being initialized
- *
- * @return VDO_SUCCESS or an error code
- **/
+ * Return: VDO_SUCCESS or an error code.
+ */
 static int vdo_initialize_kobjects(struct vdo *vdo)
 {
 	int result;
@@ -227,10 +221,9 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 }
 
 /**
- * Callback to do the destructive parts of loading a VDO.
- *
- * @param completion  The sub-task completion
- **/
+ * load_callback() - Callback to do the destructive parts of loading a VDO.
+ * @completion: The sub-task completion.
+ */
 static void load_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -356,11 +349,12 @@ static void load_callback(struct vdo_completion *completion)
 }
 
 /**
- * Handle an error during the load operation. If at all possible, bring the vdo
- * online in read-only mode. This handler is registered in vdo_load().
+ * handle_load_error() - Handle an error during the load operation.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * If at all possible, brings the vdo online in read-only mode. This handler
+ * is registered in vdo_load().
+ */
 static void handle_load_error(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -391,13 +385,13 @@ static void handle_load_error(struct vdo_completion *completion)
 }
 
 /**
- * Load a vdo for normal operation. This method must not be called from a base
- * thread.
+ * vdo_load() - Load a vdo for normal operation.
+ * @vdo: The vdo to load.
  *
- * @param vdo  The vdo to load
+ * Context: This method must not be called from a base thread.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_load(struct vdo *vdo)
 {
 	const char *device_name;
@@ -432,13 +426,13 @@ int vdo_load(struct vdo *vdo)
 }
 
 /**
- * Extract the vdo from an admin_completion, checking that the current
- * operation is a pre-load.
+ * vdo_from_pre_load_sub_task() - Extract the vdo from an admin_completion,
+ * @completion: The admin_completion's sub-task completion.
  *
- * @param completion  The admin_completion's sub-task completion
+ * Checks that the current operation is a pre-load.
  *
- * @return The vdo
- **/
+ * Return: The vdo.
+ */
 static inline struct vdo *
 vdo_from_pre_load_sub_task(struct vdo_completion *completion)
 {
@@ -447,15 +441,16 @@ vdo_from_pre_load_sub_task(struct vdo_completion *completion)
 }
 
 /**
- * Decode the VDO state from the super block and validate that it is correct.
+ * decode_from_super_block() - Decode the VDO state from the super block and
+ *                             validate that it is correct.
+ * @vdo: The vdo being loaded.
+ * 
  * On error from this method, the component states must be destroyed
  * explicitly. If this method returns successfully, the component states must
  * not be destroyed.
  *
- * @param vdo  The vdo being loaded
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check decode_from_super_block(struct vdo *vdo)
 {
 	const struct device_config *config = vdo->device_config;
@@ -482,16 +477,17 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 }
 
 /**
- * Decode the component data portion of a super block and fill in the
- * corresponding portions of the vdo being loaded. This will also allocate the
- * recovery journal and slab depot. If this method is called with an
- * asynchronous layer (i.e. a thread config which specifies at least one base
- * thread), the block map and packer will be constructed as well.
+ * decode_vdo() - Decode the component data portion of a super block and fill
+ *                in the corresponding portions of the vdo being loaded.
+ * @vdo: The vdo being loaded.
  *
- * @param vdo  The vdo being loaded
+ * This will also allocate the recovery journal and slab depot. If this method
+ * is called with an asynchronous layer (i.e. a thread config which specifies
+ * at least one base thread), the block map and packer will be constructed as
+ * well.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check decode_vdo(struct vdo *vdo)
 {
 	block_count_t maximum_age, journal_length;
@@ -575,10 +571,9 @@ static int __must_check decode_vdo(struct vdo *vdo)
 }
 
 /**
- * Callback to finish the load operation.
- *
- * @param completion  The admin_completion's sub-task completion
- **/
+ * finish_operation_callback() - Callback to finish the load operation.
+ * @completion: The admin_completion's sub-task completion.
+ */
 static void finish_operation_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
@@ -587,11 +582,11 @@ static void finish_operation_callback(struct vdo_completion *completion)
 }
 
 /**
- * Load the components of a VDO. This is the super block load callback
- * set by load_callback().
+ * vdo_load_components() - Load the components of a VDO.
+ * @completion: The sub-task completion.
  *
- * @param completion The sub-task completion
- **/
+ * This is the super block load callback set by load_callback().
+ */
 static void vdo_load_components(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
@@ -603,10 +598,10 @@ static void vdo_load_components(struct vdo_completion *completion)
 }
 
 /**
- * Callback to initiate a pre-load, registered in vdo_prepare_to_load().
- *
- * @param completion  The sub-task completion
- **/
+ * pre_load_callback() - Callback to initiate a pre-load, registered in
+ *                       vdo_prepare_to_load().
+ * @completion: The sub-task completion.
+ */
 static void pre_load_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -631,11 +626,13 @@ static void pre_load_callback(struct vdo_completion *completion)
 }
 
 /**
- * Perpare a vdo for loading by reading structures off disk. This method does
- * not alter the on-disk state. It should be called from the vdo constructor,
- * whereas perform_vdo_load() will be called during pre-resume if the vdo has
- * not been resumed before.
- **/
+ * vdo_prepare_to_load() - Perpare a vdo for loading by reading structures off
+ *                         disk.
+ *
+ * This method does not alter the on-disk state. It should be called from the
+ * vdo constructor, whereas perform_vdo_load() will be called during
+ * pre-resume if the vdo has not been resumed before.
+ */
 int vdo_prepare_to_load(struct vdo *vdo)
 {
 	return vdo_perform_admin_operation(vdo,

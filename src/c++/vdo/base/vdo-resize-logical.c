@@ -30,8 +30,8 @@ static const char *GROW_LOGICAL_PHASE_NAMES[] = {
 };
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -39,11 +39,11 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Callback to initiate a grow logical, registered in
- * vdo_perform_grow_logical().
+ * grow_logical_callback() - Callback to initiate a grow logical.
+ * @completion: The sub-task completion.
  *
- * @param completion  The sub-task completion
- **/
+ * Registered in vdo_perform_grow_logical().
+ */
 static void grow_logical_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -99,10 +99,9 @@ static void grow_logical_callback(struct vdo_completion *completion)
 }
 
 /**
- * Handle an error during the grow physical process.
- *
- * @param completion  The sub-task completion
- **/
+ * handle_growth_error() - Handle an error during the grow physical process.
+ * @completion: The sub-task completion.
+ */
 static void handle_growth_error(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -124,14 +123,15 @@ static void handle_growth_error(struct vdo_completion *completion)
 }
 
 /**
- * Grow the logical size of the vdo. This method may only be called when the
- * vdo has been suspended and must not be called from a base thread.
+ * vdo_perform_grow_logical() - Grow the logical size of the vdo.
+ * @vdo: The vdo to grow.
+ * @new_logical_blocks: The size to which the vdo should be grown.
  *
- * @param vdo		The vdo to grow
- * @param new_logical_blocks	The size to which the vdo should be grown
+ * Context: This method may only be called when the vdo has been suspended and
+ * must not be called from a base thread.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 {
 	int result;
@@ -167,14 +167,14 @@ int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 }
 
 /**
- * Prepare to grow the logical size of vdo. This method may only be called
- * while the vdo is running.
+ * vdo_prepare_to_grow_logical() - Prepare to grow the logical size of vdo.
+ * @vdo: The vdo to prepare for growth.
+ * @new_logical_blocks: The size to which the vdo should be grown.
  *
- * @param vdo		The vdo to prepare for growth
- * @param new_logical_blocks	The size to which the vdo should be grown
+ * Context: This method may only be called while the vdo is running.
  *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_prepare_to_grow_logical(struct vdo *vdo,
 				block_count_t new_logical_blocks)
 {

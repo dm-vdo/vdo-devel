@@ -51,8 +51,8 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 };
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -75,11 +75,10 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Update the VDO state and save the super block.
- *
- * @param vdo         The vdo being suspended
- * @param completion  The admin_completion's sub-task completion
- **/
+ * write_super_block() - Update the VDO state and save the super block.
+ * @vdo: The vdo being suspended.
+ * @completion: The admin_completion's sub-task completion.
+ */
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
@@ -106,10 +105,10 @@ static void write_super_block(struct vdo *vdo,
 }
 
 /**
- * Callback to initiate a suspend, registered in vdo_suspend().
- *
- * @param completion  The sub-task completion
- **/
+ * suspend_callback() - Callback to initiate a suspend, registered in
+ *                      vdo_suspend().
+ * @completion: The sub-task completion.
+ */
 static void suspend_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -237,13 +236,12 @@ static void suspend_callback(struct vdo_completion *completion)
 }
 
 /**
- * Ensure that the vdo has no outstanding I/O and will issue none until it is
- * resumed.
+ * vdo_suspend() - Ensure that the vdo has no outstanding I/O and will issue
+ *                 none until it is resumed.
+ * @vdo: The vdo to suspend.
  *
- * @param vdo   The vdo to suspend
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_suspend(struct vdo *vdo)
 {
 	const char *device_name;

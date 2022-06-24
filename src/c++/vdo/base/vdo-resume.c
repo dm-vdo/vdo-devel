@@ -54,8 +54,8 @@ static const char *RESUME_PHASE_NAMES[] = {
 };
 
 /**
- * Implements vdo_thread_id_getter_for_phase.
- **/
+ * get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase.
+ */
 static thread_id_t __must_check
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
@@ -77,11 +77,10 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 }
 
 /**
- * Update the VDO state and save the super block.
- *
- * @param vdo         The vdo being resumed
- * @param completion  The admin_completion's sub-task completion
- **/
+ * write_super_block() - Update the VDO state and save the super block.
+ * @vdo: The vdo being resumed.
+ * @completion: The admin_completion's sub-task completion.
+ */
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
@@ -108,10 +107,9 @@ static void write_super_block(struct vdo *vdo,
 }
 
 /**
- * Callback to resume a VDO.
- *
- * @param completion  The sub-task completion
- **/
+ * resume_callback() - Callback to resume a VDO.
+ * @completion: The sub-task completion.
+ */
 static void resume_callback(struct vdo_completion *completion)
 {
 	struct admin_completion *admin_completion =
@@ -204,14 +202,14 @@ static void resume_callback(struct vdo_completion *completion)
 }
 
 /**
- * Attempt to make any configuration changes from the table being resumed.
+ * apply_new_vdo_configuration() - Attempt to make any configuration changes
+ *                                 from the table being resumed.
+ * @vdo: The vdo being resumed.
+ * @config: The new device configuration derived from the table with which
+ *          the vdo is being resumed.
  *
- * @param vdo     The vdo being resumed
- * @param config  The new device configuration derived from the table with which
- *                the vdo is being resumed
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 static int __must_check
 apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 {
@@ -233,15 +231,15 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 }
 
 /**
- * Resume a suspended vdo (technically preresume because resume can't fail).
+ * vdo_preresume_internal() - Resume a suspended vdo (technically preresume
+ *                            because resume can't fail).
+ * @vdo: The vdo being resumed.
+ * @config: The device config derived from the table with which the vdo is
+ *          being resumed.
+ * @device_name: The vdo device name (for logging).
  *
- * @param vdo          The vdo being resumed
- * @param config       The device config derived from the table with which the
- *                     vdo is being resumed
- * @param device_name  The vdo device name (for logging)
- *
- * @return VDO_SUCCESS or an error
- **/
+ * Return: VDO_SUCCESS or an error.
+ */
 int vdo_preresume_internal(struct vdo *vdo,
 			   struct device_config *config,
 			   const char *device_name)
