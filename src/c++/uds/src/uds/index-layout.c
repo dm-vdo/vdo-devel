@@ -19,12 +19,10 @@
 #include "volume-index-ops.h"
 
 /*
- * Overall layout of an index on disk:
- *
- * The layout is divided into a number of fixed-size regions, the sizes of
- * which are computed when the index is created. Every header and region
- * begins on 4K block boundary. Save regions are further sub-divided into
- * regions of their own.
+ * The UDS layout on storage media is divided into a number of fixed-size
+ * regions, the sizes of which are computed when the index is created. Every
+ * header and region begins on 4K block boundary. Save regions are further
+ * sub-divided into regions of their own.
  *
  * Each region has a kind and an instance number. Some kinds only have one
  * instance and therefore use RL_SOLE_INSTANCE (-1) as the instance number.
@@ -34,35 +32,35 @@
  * slot is used. The RL_KIND_VOLUME_INDEX uses instances to record which zone
  * is being saved.
  *
- *     +-+-+--------+--------+--------+-----+---  -+-+
- *     | | |   I N D E X   0      101, 0    | ...  | |
- *     |H|C+--------+--------+--------+-----+---  -+S|
- *     |D|f| Volume | Save   | Save   |     |      |e|
- *     |R|g| Region | Region | Region | ... | ...  |a|
- *     | | | 201 -1 | 202  0 | 202  1 |     |      |l|
- *     +-+-+--------+--------+--------+-----+---  -+-+
+ *     +-+-+---------+--------+--------+-+
+ *     | | |   I N D E X  0   101, 0   | |
+ *     |H|C+---------+--------+--------+S|
+ *     |D|f| Volume  | Save   | Save   |e|
+ *     |R|g| Region  | Region | Region |a|
+ *     | | | 201, -1 | 202, 0 | 202, 1 |l|
+ *     +-+-+--------+---------+--------+-+
  *
  * The header contains the encoded region layout table as well as the saved
  * index configuration record. The sub-index region and its subdivisions are
  * maintained in the same table.
  *
- * There are at least two save regions to preserve the old state should the
- * saving of a state be incomplete. They are used in a round-robin fashion.
+ * There are two save regions to preserve the old state in case saving the new
+ * state is incomplete. They are used in alternation.
  *
- * Anatomy of a save region:
+ * Each save region is further divided into sub-regions.
  *
- *     +-+-----+------+------+-----+   -+-----+
- *     |H| IPM | MI   | MI   |     |    | OC  |
- *     |D|     | zone | zone | ... |    |     |
- *     |R| 301 | 302  | 302  |     |    | 303 |
- *     | | -1  | 0    | 1    |     |    | -1  |
- *     +-+-----+------+------+-----+   -+-----+
+ *     +-+-----+------+------+-----+-----+
+ *     |H| IPM | MI   | MI   |     | OC  |
+ *     |D|     | zone | zone | ... |     |
+ *     |R| 301 | 302  | 302  |     | 303 |
+ *     | | -1  |  0   |  1   |     | -1  |
+ *     +-+-----+------+------+-----+-----+
  *
- * Every region header has a type (and version).
+ * Every region header has a type and version.
  *
  * The header contains the encoded region layout table as well as the index
  * state record for that save. Each save has a unique generation number and
- * nonce which is used to seed the checksums of those regions.
+ * nonce which is used to seed the checksums of its regions.
  */
 #ifdef TEST_INTERNAL
 
@@ -73,6 +71,7 @@ enum {
 	NONCE_INFO_SIZE = 32,
 };
 
+/* Some region types are historical and are no longer used. */
 enum region_type {
 	RH_TYPE_FREE = 0, /* unused */
 	RH_TYPE_SUPER = 1,
@@ -88,18 +87,19 @@ enum {
 static const uint64_t REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
 
 struct region_header {
-	uint64_t magic;         /* REGION_MAGIC */
-	uint64_t region_blocks; /* size of whole region */
-	uint16_t type;          /* RH_TYPE_... */
-	uint16_t version;       /* 1 */
-	uint16_t num_regions;   /* number of layouts in the table */
-	uint16_t payload;       /* extra data beyond region table */
+	uint64_t magic; 
+	uint64_t region_blocks;
+	uint16_t type;
+	/* Currently always version 1 */
+	uint16_t version;
+	uint16_t num_regions;
+	uint16_t payload;
 };
 
 struct layout_region {
 	uint64_t start_block;
 	uint64_t num_blocks;
-	uint32_t checksum; /* only used for save regions */
+	uint32_t checksum;
 	uint16_t kind;
 	uint16_t instance;
 };
@@ -110,9 +110,10 @@ struct region_table {
 };
 
 struct index_save_data {
-	uint64_t timestamp; /* ms since epoch... */
+	uint64_t timestamp;
 	uint64_t nonce;
-	uint32_t version; /* 1 */
+	/* Currently always version 1 */
+	uint32_t version;
 	uint32_t unused__;
 };
 
@@ -147,11 +148,12 @@ struct super_block_data {
 	byte magic_label[32];
 	byte nonce_info[NONCE_INFO_SIZE];
 	uint64_t nonce;
-	uint32_t version; /* 2 or 3 for normal, 7 for converted */
-	uint32_t block_size; /* for verification */
-	uint16_t num_indexes; /* always 1 */
+	uint32_t version;
+	uint32_t block_size;
+	uint16_t num_indexes;
 	uint16_t max_saves;
-	byte padding[4]; /* pad to 64 bit boundary */
+	/* Padding reflects a blank field on permanent storage */
+	byte padding[4];
 	uint64_t open_chapter_blocks;
 	uint64_t page_map_blocks;
 	uint64_t volume_offset;
@@ -188,35 +190,31 @@ static const struct index_state_version INDEX_STATE_VERSION_301 = {
 	.version_id = 301,
 };
 
-/**
- * Structure used to compute single file layout sizes.
- *
- * Note that the volume_index_blocks represent all zones and are sized for
- * the maximum number of blocks that would be needed regardless of the number
- * of zones (up to the maximum value) that are used at run time.
- **/
 struct save_layout_sizes {
-	unsigned int num_saves; /* per sub-index */
-	size_t block_size; /* in bytes */
-	uint64_t volume_blocks; /* per sub-index */
-	uint64_t volume_index_blocks; /* per save */
-	uint64_t page_map_blocks; /* per save */
-	uint64_t open_chapter_blocks; /* per save */
-	uint64_t save_blocks; /* per sub-index */
-	uint64_t sub_index_blocks; /* per sub-index */
-	uint64_t total_blocks; /* for whole layout */
-	size_t total_size; /* in bytes, for whole layout */
+	unsigned int num_saves;
+	size_t block_size;
+	uint64_t volume_blocks;
+	uint64_t volume_index_blocks;
+	uint64_t page_map_blocks;
+	uint64_t open_chapter_blocks;
+	uint64_t save_blocks;
+	uint64_t sub_index_blocks;
+	uint64_t total_blocks;
+	size_t total_size;
 };
 
 /*
- * Version 3 is the normal version used from RHEL8.2 onwards.
+ * Super block version 2 is the first released version.
  *
- * Versions 4 through 6 were incremental development versions and are not
- * supported.
+ * Super block version 3 is the normal version used from RHEL 8.2 onwards.
  *
- * Version 7 is used for volumes which have been reduced in size by one chapter
- * in order to make room to prepend LVM metadata to an existing VDO without
- * losing all deduplication.
+ * Super block versions 4 through 6 were incremental development versions and
+ * are not supported.
+ *
+ * Super block version 7 is used for volumes which have been reduced in size by
+ * one chapter in order to make room to prepend LVM metadata to a volume
+ * originally created without lvm. This allows the index to retain most its
+ * deduplication records.
  */
 enum {
 	SUPER_VERSION_MINIMUM = 3,
@@ -314,22 +312,13 @@ int uds_compute_index_size(const struct uds_parameters *parameters,
 	return UDS_SUCCESS;
 }
 
-/**
- * Create NONCE_INFO_SIZE (32) bytes of unique data for generating a
- * nonce, using the current time and a pseudorandom number.
- *
- * @param buffer        Where to put the data
- **/
+/* Create unique data using the current time and a pseudorandom number. */
 static void create_unique_nonce_data(byte *buffer)
 {
 	ktime_t now = current_time_ns(CLOCK_REALTIME);
 	uint32_t rand = random_in_range(1, (1 << 30) - 1);
 	size_t offset = 0;
 
-	/*
-	 * Fill NONCE_INFO_SIZE bytes with copies of the time and a
-	 * pseudorandom number.
-	 */
 	memcpy(buffer + offset, &now, sizeof(now));
 	offset += sizeof(now);
 	memcpy(buffer + offset, &rand, sizeof(rand));
@@ -351,31 +340,17 @@ static uint64_t hash_stuff(uint64_t start, const void *data, size_t len)
 	return get_unaligned_le64(hash_buffer + 4);
 }
 
-/**
- * Generate a primary nonce, using the specified data.
- *
- * @param data          Some arbitrary information.
- * @param len           The length of the information.
- *
- * @return a number which will be fairly unique
- **/
+/* Generate a primary nonce from the provided data. */
 static uint64_t generate_primary_nonce(const void *data, size_t len)
 {
 	return hash_stuff(0xa1b1e0fc, data, len);
 }
 
-/**
- * Deterministically generate a secondary nonce based on an existing
- * nonce and some arbitrary data. Effectively hashes the nonce and
- * the data to produce a new nonce which is deterministic.
- *
- * @param nonce         An existing nonce which is well known.
- * @param data          Some data related to the creation of this nonce.
- * @param len           The length of the data.
- *
- * @return a number which will be fairly unique and depend solely on
- *      the nonce and the data.
- **/
+/*
+ * Deterministically generate a secondary nonce from an existing nonce and some
+ * arbitrary data by hashing the original nonce and the data to produce a new
+ * nonce.
+ */
 static uint64_t
 generate_secondary_nonce(uint64_t nonce, const void *data, size_t len)
 {
@@ -740,11 +715,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					      (unsigned long long) super->volume_offset);
 	}
 
-	/*
-	 * We dropped the usage of multiple subindices before we ever ran UDS
-	 * code in the kernel.  We do not have code that will handle multiple
-	 * subindices.
-	 */
+	/* Sub-indexes are no longer used but the layout retains this field. */
 	if (super->num_indexes != 1) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "invalid subindex count %u",
@@ -820,20 +791,10 @@ static void iter_error(struct region_iterator *iter, const char *fmt, ...)
 	}
 }
 
-/**
- * Set the next layout region in the layout according to a region table
- * iterator, unless the iterator already contains an error
- *
- * @param expect        whether to record an error or return false
- * @param lr            the layout region field to set
- * @param iter          the region iterator, which also holds the cumulative
- *                        result
- * @param num_blocks     if non-zero, the expected number of blocks
- * @param kind          the expected kind of the region
- * @param instance      the expected instance number of the region
- *
- * @return true if we meet expectations, false if we do not
- **/
+/*
+ * Advance the layout iterator and validate that the next region in the layout
+ * corresponds to what is expected.
+ */
 static bool expect_layout(bool expect,
 			  struct layout_region *lr,
 			  struct region_iterator *iter,
@@ -921,17 +882,6 @@ static void expect_sub_index(struct index_layout *layout,
 	define_sub_index_nonce(layout, instance);
 }
 
-
-/**
- * Initialize a single file layout from the region table and super block data
- * stored in stable storage.
- *
- * @param layout       the layout to initialize
- * @param table        the region table read from the superblock
- * @param first_block  the first block number in the region
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check
 reconstitute_single_file_layout(struct index_layout *layout,
 				struct region_table *table,
@@ -1406,15 +1356,6 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 	return UDS_SUCCESS;
 }
 
-/**
- * Read the index configuration, and verify that it matches the given
- * configuration.
- *
- * @param layout  the generic index layout
- * @param config  the index configuration
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check
 verify_uds_index_config(struct index_layout *layout,
 			struct configuration *config)
@@ -1542,10 +1483,6 @@ reset_index_save_layout(struct index_save_layout *isl,
 		     remaining,
 		     RL_KIND_SCRATCH,
 		     RL_SOLE_INSTANCE);
-	/*
-	 * number of zones is a save-time parameter
-	 * presence of open chapter is a save-time parameter
-	 */
 	return UDS_SUCCESS;
 }
 
@@ -1588,14 +1525,6 @@ static int __must_check setup_sub_index(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-/**
- * Initialize a single file layout using the save layout sizes specified.
- *
- * @param layout  the layout to initialize
- * @param sls     a populated struct save_layout_sizes object
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check
 init_single_file_layout(struct index_layout *layout,
 			struct save_layout_sizes *sls)
@@ -1706,7 +1635,7 @@ encode_index_save_data(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = zero_bytes(buffer, sizeof(uint32_t)); /* padding */
+	result = zero_bytes(buffer, sizeof(uint32_t));
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1819,7 +1748,7 @@ static int __must_check encode_super_block_data(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = zero_bytes(buffer, 4); /* aligment */
+	result = zero_bytes(buffer, 4);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2124,15 +2053,6 @@ write_single_file_header(struct index_layout *layout,
 	return flush_buffered_writer(writer);
 }
 
-/**
- * Save an index layout table to persistent storage using the io_factory in
- * the layout.
- *
- * @param layout  The layout to save
- * @param offset  A block offset to apply when writing the layout
- *
- * @return UDS_SUCCESS or an error code
- */
 static int __must_check
 save_single_file_layout(struct index_layout *layout, off_t offset)
 {
@@ -2160,15 +2080,6 @@ save_single_file_layout(struct index_layout *layout, off_t offset)
 	return result;
 }
 
-/**
- * Write the index configuration.
- *
- * @param layout  the generic index layout
- * @param config  the index configuration to write
- * @param offset  A block offset to apply when writing the configuration
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check
 write_uds_index_config(struct index_layout *layout,
 		       struct configuration *config,
@@ -2234,15 +2145,6 @@ static int create_index_layout(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-/**
- * Make an IO factory from a name string.
- *
- * @param layout      The layout in which to store the parsed values
- * @param config      The index configuration for the new layout
- * @param new_layout  Whether this is a new layout
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int create_layout_factory(struct index_layout *layout,
 				 const struct configuration *config,
 				 bool new_layout)
@@ -2311,10 +2213,8 @@ int make_uds_index_layout(struct configuration *config,
 	}
 
 	if (new_layout) {
-		/* Populate the layout from the UDS configuration */
 		result = create_index_layout(layout, config);
 	} else {
-		/* Populate the layout from the saved index. */
 		result = load_index_layout(layout, config);
 	}
 	if (result != UDS_SUCCESS) {
@@ -2362,6 +2262,7 @@ int replace_index_layout_storage(struct index_layout *layout,
 }
 
 #ifdef __KERNEL__
+/* Obtain a dm_bufio_client for the volume region. */
 int open_uds_volume_bufio(struct index_layout *layout,
 			  size_t block_size,
 			  unsigned int reserved_buffers,
@@ -2378,6 +2279,7 @@ int open_uds_volume_bufio(struct index_layout *layout,
 			      client_ptr);
 }
 #else
+/* Obtain an IO region for the volume region. */
 int open_uds_volume_region(struct index_layout *layout,
 			   struct io_region **region_ptr)
 {
@@ -2418,7 +2320,7 @@ static uint64_t generate_index_save_nonce(uint64_t volume_nonce,
 	encode_uint64_le(buffer, &offset, nonce_data.data.timestamp);
 	encode_uint64_le(buffer, &offset, nonce_data.data.nonce);
 	encode_uint32_le(buffer, &offset, nonce_data.data.version);
-	encode_uint32_le(buffer, &offset, 0U); /* padding */
+	encode_uint32_le(buffer, &offset, 0U);
 	encode_uint64_le(buffer, &offset, nonce_data.offset);
 	ASSERT_LOG_ONLY(offset == sizeof(nonce_data),
 			"%zu bytes encoded of %zu expected",
@@ -2453,8 +2355,6 @@ select_oldest_index_save_layout(struct sub_index_layout *sil,
 	struct index_save_layout *oldest = NULL;
 	uint64_t oldest_time = 0;
 	int result;
-
-	/* find the oldest valid or first invalid slot */
 	struct index_save_layout *isl;
 
 	for (isl = sil->saves; isl < sil->saves + max_saves; ++isl) {
@@ -2486,7 +2386,6 @@ select_latest_index_save_layout(struct sub_index_layout *sil,
 	struct index_save_layout *latest = NULL;
 	uint64_t latest_time = 0;
 
-	/* find the latest valid save slot */
 	struct index_save_layout *isl;
 
 	for (isl = sil->saves; isl < sil->saves + max_saves; ++isl) {
@@ -2761,15 +2660,7 @@ static int open_uds_index_buffered_writer(struct index_layout *layout,
 	return open_layout_writer(layout, lr, -layout->super.start_offset,
 				  writer_ptr);
 }
-/**
- * The index state buffer reader.
- *
- * @param state      The index state
- * @param index      The index
- * @param load_slot  The load slot to use
- *
- * @return UDS_SUCCESS or an error code
- **/
+
 static int read_index_state_data(struct index_layout *layout,
 				 struct uds_index *index,
 				 unsigned int load_slot)
@@ -2905,15 +2796,6 @@ int load_index_state(struct index_layout *layout, struct uds_index *index)
 	return UDS_SUCCESS;
 }
 
-/**
- * The index state buffer writer.
- *
- * @param layout     The index layout
- * @param index      The index
- * @param save_slot  The save slot to use
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int write_index_state_data(struct index_layout *layout,
 				  struct uds_index *index,
 				  unsigned int save_slot)
@@ -3109,6 +2991,14 @@ int discard_open_chapter(struct index_layout *layout)
 }
 #ifdef TEST_INTERNAL
 
+/*
+ * Write a reduced layout and a configuration during conversion to lvm.
+ *
+ * @param layout      The index_layout to be reconfigured
+ * @param config      The configuration to be written with the layout
+ * @param lvm_offset  The adjustment for lvm space, in bytes
+ * @param offset      The offset in bytes to move the index
+ */
 int update_uds_layout(struct index_layout *layout,
 		      struct configuration *config,
 		      off_t lvm_offset,
