@@ -7,12 +7,15 @@
 
 #include "thread-registry.h"
 
-/*
- * A registry of all threads temporarily associated with particular
- * VDO devices.
- */
+/* A registry of threads associated with device id numbers. */
 static struct thread_registry device_id_thread_registry;
 
+/*
+ * Associate the current thread with a device id number for logging.
+ *
+ * A registered thread must be unregistered via
+ * unregister_thread_device_id.
+ */
 void uds_register_thread_device_id(struct registered_thread *new_thread,
 				   unsigned int *id_ptr)
 {
