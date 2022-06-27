@@ -11,7 +11,7 @@
 
 /*
  * We need to be careful when using other facilities that may use
- * threadRegistry functions in their normal operation.  For example,
+ * thread registry functions in their normal operation. For example,
  * we do not want to invoke the logger while holding a lock.
  */
 
@@ -21,6 +21,7 @@ void uds_initialize_thread_registry(struct thread_registry *registry)
 	spin_lock_init(&registry->lock);
 }
 
+/* Register the current thread and associate it with a data pointer. */
 void uds_register_thread(struct thread_registry *registry,
 			 struct registered_thread *new_thread,
 			 const void *pointer)
