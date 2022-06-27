@@ -18,14 +18,58 @@ atomic_t chapters_replayed;
 atomic_t chapters_written;
 #endif /* TEST_INTERNAL */
 
+/*
+ * When searching for deduplication records, the index first searches the
+ * volume index, and then searches the chapter index for the relevant
+ * chapter. If the chapter has been fully committed to storage, the chapter
+ * pages are loaded into the page cache. If the chapter has not yet been
+ * committed (either the open chapter or a recently closed one), the index
+ * searches the in-memory representation of the chapter. Finally, if the volume
+ * index does not find a record and the index is sparse, the index will search
+ * the sparse cache.
+ *
+ * The index send two kinds of messages to coordinate between zones: chapter
+ * close messages for the chapter writer, and sparse cache barrier messages for
+ * the sparse cache.
+ *
+ * The chapter writer is responsible for committing chapters of records to
+ * storage. Since zones can get different numbers of records, some zones may
+ * fall behind others. Each time a zone fills up its available space in a
+ * chapter, it informs the chapter writer that the chapter is complete, and
+ * also informs all other zones that it has closed the chapter. Each other zone
+ * will then close the chapter immediately, regardless of how full it is, in
+ * order to minimize skew between zones. Once every zone has closed the
+ * chapter, the chapter writer will commit that chapter to storage.
+ * 
+ * The last zone to close the chapter also removes the oldest chapter from the
+ * volume index. Although that chapter is invalid for zones that have moved on,
+ * the existence of the open chapter means that those zones will never ask the
+ * volume index about it.  No zone is allowed to get more than one chapter
+ * ahead of any other. If a zone is so far ahead that it tries to close another
+ * chapter before the previous one has been closed by all zones, it is forced
+ * to wait.
+ *
+ * The sparse cache relies on having the same set of chapter indexes available
+ * to all zones. When a request wants to add a chapter to the sparse cache, it
+ * sends a barrier message to each zone during the triage stage that acts as a
+ * rendezvous. Once every zone has reached the barrier and paused its
+ * operations, the cache membership is changed and each zone is then informed
+ * that it can proceed. More details can be found in the sparse cache
+ * documentation.
+ *
+ * If a sparse cache has only one zone, it will not create a triage queue, but
+ * it still needs the barrier message to change the sparse cache membership,
+ * so the index simulates the message by invoking the handler directly.
+ */
+
 struct chapter_writer {
 	/* The index to which we belong */
 	struct uds_index *index;
 	/* The thread to do the writing */
 	struct thread *thread;
-	/* lock protecting the following fields */
+	/* The lock protecting the following fields */
 	struct mutex mutex;
-	/* condition signalled on state changes */
+	/* The condition signalled on state changes */
 	struct cond_var cond;
 	/* Set to true to stop the thread */
 	bool stop;
@@ -43,29 +87,12 @@ struct chapter_writer {
 	struct open_chapter_zone *chapters[];
 };
 
-/**
- * Get the zone for a request.
- *
- * @param index The index
- * @param request The request
- *
- * @return The zone for the request
- **/
 static struct index_zone *get_request_zone(struct uds_index *index,
 					   struct uds_request *request)
 {
 	return index->zones[request->zone_number];
 }
 
-/**
- * Check whether a chapter is sparse or dense based on the current state of
- * the index zone.
- *
- * @param zone             The index zone to check against
- * @param virtual_chapter  The virtual chapter number of the chapter to check
- *
- * @return true if the chapter is in the sparse part of the volume
- **/
 static bool is_zone_chapter_sparse(const struct index_zone *zone,
 				   uint64_t virtual_chapter)
 {
@@ -75,23 +102,11 @@ static bool is_zone_chapter_sparse(const struct index_zone *zone,
 				 virtual_chapter);
 }
 
-/**
- * Triage an index request, deciding whether it requires that a sparse cache
- * barrier message precede it.
- *
- * This resolves the chunk name in the request in the volume index,
- * determining if it is a hook or not, and if a hook, what virtual chapter (if
- * any) it might be found in. If a virtual chapter is found, it checks whether
- * that chapter appears in the sparse region of the index. If all these
- * conditions are met, the (sparse) virtual chapter number is returned. In all
- * other cases it returns <code>UINT64_MAX</code>.
- *
- * @param index	   the index that will process the request
- * @param request  the index request containing the chunk name to triage
- *
- * @return the sparse chapter number for the sparse cache barrier message, or
- *	   <code>UINT64_MAX</code> if the request does not require a barrier
- **/
+/*
+ * Determine whether this request should trigger a sparse cache barrier message
+ * to change the membership of the sparse cache. If a change in membership is
+ * desired, the function returns the chapter number to add.
+ */
 static uint64_t triage_index_request(struct uds_index *index,
 				     struct uds_request *request)
 {
@@ -101,7 +116,6 @@ static uint64_t triage_index_request(struct uds_index *index,
 	lookup_volume_index_name(index->volume_index, &request->chunk_name,
 				 &triage);
 	if (!triage.in_sampled_chapter) {
-		/* Not indexed or not a hook. */
 		return UINT64_MAX;
 	}
 
@@ -111,22 +125,14 @@ static uint64_t triage_index_request(struct uds_index *index,
 	}
 
 	/*
-	 * XXX Optimize for a common case by remembering the chapter from the
-	 * most recent barrier message and skipping this chapter if is it the
-	 * same.
+	 * FIXME: Optimize for a common case by remembering the chapter from
+	 * the most recent barrier message and skipping this chapter if is it
+	 * the same.
 	 */
 
-	/* Return the sparse chapter number to trigger the barrier messages. */
 	return triage.virtual_chapter;
 }
 
-/**
- * Construct and enqueue asynchronous control messages to add the chapter
- * index for a given virtual chapter to the sparse chapter index cache.
- *
- * @param index            the index with the relevant cache and chapter
- * @param virtual_chapter  the virtual chapter number of the chapter to cache
- **/
 static void enqueue_barrier_messages(struct uds_index *index,
 				     uint64_t virtual_chapter)
 {
@@ -144,88 +150,41 @@ static void enqueue_barrier_messages(struct uds_index *index,
 	}
 }
 
-/**
- * Simulate the creation of a sparse cache barrier message by the triage
- * queue, and the later execution of that message in an index zone.
- *
- * If the index receiving the request is multi-zone or dense, this function
- * does nothing. This simulation is an optimization for single-zone sparse
- * indexes. It also supports unit testing of indexes without queues.
- *
- * @param zone	   the index zone responsible for the index request
- * @param request  the index request about to be executed
- *
- * @return UDS_SUCCESS always
- **/
+/*
+ * Simulate a message to change the sparse cache membership for a single-zone
+ * sparse index. This allows us to forgo the complicated locking required by a
+ * multi-zone sparse index. Any other kind of index does nothing here.
+ */
 static int simulate_index_zone_barrier_message(struct index_zone *zone,
 					       struct uds_request *request)
 {
 	uint64_t sparse_virtual_chapter;
-	/* Do nothing unless this is a single-zone sparse index. */
 	if ((zone->index->zone_count > 1) ||
 	    !is_sparse_geometry(zone->index->volume->geometry)) {
 		return UDS_SUCCESS;
 	}
 
-	/*
-	 * Check if the index request is for a sampled name in a sparse
-	 * chapter.
-	 */
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
 	if (sparse_virtual_chapter == UINT64_MAX) {
-		/*
-		 * Not indexed, not a hook, or in a chapter that is still
-		 * dense, which means there should be no change to the sparse
-		 * chapter index cache.
-		 */
 		return UDS_SUCCESS;
 	}
 
-	/*
-	 * The triage queue would have generated and enqueued a barrier message
-	 * preceding this request, which we simulate by directly invoking the
-	 * message function.
-	 */
 	return update_sparse_cache(zone, sparse_virtual_chapter);
 }
 
-/**
- * This is the request processing function for the triage stage queue. Each
- * request is resolved in the volume index, determining if it is a hook or
- * not, and if a hook, what virtual chapter (if any) it might be found in. If
- * a virtual chapter is found, this enqueues a sparse chapter cache barrier in
- * every zone before enqueueing the request in its zone.
- *
- * @param request  the request to triage
- **/
+/* This is the request processing function for the triage queue. */
 static void triage_request(struct uds_request *request)
 {
 	struct uds_index *index = request->index;
-
-	/*
-	 * Check if the name is a hook in the index pointing at a sparse
-	 * chapter.
-	 */
 	uint64_t sparse_virtual_chapter = triage_index_request(index, request);
 
 	if (sparse_virtual_chapter != UINT64_MAX) {
-		/* Generate and place a barrier request on every zone queue. */
 		enqueue_barrier_messages(index, sparse_virtual_chapter);
 	}
 
 	enqueue_request(request, STAGE_INDEX);
 }
 
-/**
- * Wait for the chapter writer thread to finish closing the chapter previous
- * to the one specified.
- *
- * @param index                   the index
- * @param current_chapter_number  the current chapter number
- *
- * @return UDS_SUCCESS or an error code from the most recent write
- *         request
- **/
 static int finish_previous_chapter(struct uds_index *index,
        				   uint64_t current_chapter_number)
 {
@@ -247,39 +206,22 @@ static int finish_previous_chapter(struct uds_index *index,
 	return UDS_SUCCESS;
 }
 
-/**
- * Swap the open and writing chapters after blocking until there are no active
- * chapter writers on the index.
- *
- * @param zone  The zone swapping chapters
- *
- * @return UDS_SUCCESS or a return code
- **/
 static int swap_open_chapter(struct index_zone *zone)
 {
 	struct open_chapter_zone *temp_chapter;
-	/* Wait for any currently writing chapter to complete */
 	int result = finish_previous_chapter(zone->index,
 					     zone->newest_virtual_chapter);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	/* Swap the writing and open chapters */
 	temp_chapter = zone->open_chapter;
 	zone->open_chapter = zone->writing_chapter;
 	zone->writing_chapter = temp_chapter;
 	return UDS_SUCCESS;
 }
 
-/**
- * Advance to a new open chapter, and forget the oldest chapter in the
- * index if necessary.
- *
- * @param zone                 The zone containing the chapter to reap
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int reap_oldest_chapter(struct index_zone *zone)
 {
 	struct uds_index *index = zone->index;
@@ -301,16 +243,10 @@ static int reap_oldest_chapter(struct index_zone *zone)
 	return UDS_SUCCESS;
 }
 
-/**
- * Asychronously close and write a chapter by passing it to the writer
- * thread. Writing won't start until all zones have submitted a chapter.
- *
- * @param index        the index
- * @param zone_number  the number of the zone submitting a chapter
- * @param chapter      the chapter to write
- *
- * @return The number of zones which have submitted the current chapter
- **/
+/*
+ * Inform the chapter writer that this zone is done with this chapter. The
+ * chapter won't start writing until all zones have closed it.
+ */
 static unsigned int start_closing_chapter(struct uds_index *index,
 					  unsigned int zone_number,
 					  struct open_chapter_zone *chapter)
@@ -327,14 +263,6 @@ static unsigned int start_closing_chapter(struct uds_index *index,
 	return finished_zones;
 }
 
-/**
- * Announce the closure of the current open chapter to the other zones.
- *
- * @param zone            The zone which first closed the chapter
- * @param closed_chapter  The chapter which was closed
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int announce_chapter_closed(struct index_zone *zone,
 				   uint64_t closed_chapter)
 {
@@ -360,13 +288,6 @@ static int announce_chapter_closed(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**
- * Open the next chapter.
- *
- * @param zone  The zone containing the open chapter
- *
- * @return UDS_SUCCESS if successful
- **/
 static int open_next_chapter(struct index_zone *zone)
 {
 	uint64_t closed_chapter, victim;
@@ -398,11 +319,6 @@ static int open_next_chapter(struct index_zone *zone)
 					       zone->id,
 					       zone->writing_chapter);
 	if ((finished_zones == 1) && (zone->index->zone_count > 1)) {
-		/*
-		 * This is the first zone of a multi-zone index to close this
-		 * chapter, so inform the other zones in order to control zone
-		 * skew.
-		 */
 		result = announce_chapter_closed(zone, closed_chapter);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -415,17 +331,9 @@ static int open_next_chapter(struct index_zone *zone)
 	zone->oldest_virtual_chapter += expired_chapters;
 
 	if (finished_zones < zone->index->zone_count) {
-		/* We are not the last zone to close the chapter, so we're done */
 		return UDS_SUCCESS;
 	}
 
-	/*
-	 * We are the last zone to close the chapter, so clean up the cache.
-	 * That it is safe to let the last thread out of the previous chapter
-	 * to do this relies on the fact that although the new open chapter
-	 * shadows the oldest chapter in the cache, until we write the new open
-	 * chapter to disk, we'll never look for it in the cache.
-	 */
 	while ((expired_chapters-- > 0) && (result == UDS_SUCCESS)) {
 		result = forget_chapter(zone->index->volume, victim++);
 	}
@@ -433,16 +341,6 @@ static int open_next_chapter(struct index_zone *zone)
 	return result;
 }
 
-/**
- * Handle notification that some other zone has closed its open chapter. If
- * the chapter that was closed is still the open chapter for this zone,
- * close it now in order to minimize skew.
- *
- * @param zone             The zone receiving the notification
- * @param virtual_chapter  The closed virtual chapter
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int handle_chapter_closed(struct index_zone *zone,
 				 uint64_t virtual_chapter)
 {
@@ -453,13 +351,6 @@ static int handle_chapter_closed(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**
- * Dispatch a control request to an index zone.
- *
- * @param request The request to dispatch
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int dispatch_index_zone_control_request(struct uds_request *request)
 {
 	struct uds_zone_message *message = &request->zone_message;
@@ -478,14 +369,6 @@ static int dispatch_index_zone_control_request(struct uds_request *request)
 	}
 }
 
-/**
- * Determine the index region in which a block was found.
- *
- * @param zone                The zone that was searched
- * @param virtual_chapter     The virtual chapter number
- *
- * @return the index region of the chapter in which the block was found
- **/
 static enum uds_index_region
 compute_index_region(const struct index_zone *zone,
 		     uint64_t virtual_chapter)
@@ -499,19 +382,6 @@ compute_index_region(const struct index_zone *zone,
 	return UDS_LOCATION_IN_DENSE;
 }
 
-/**
- * Search the cached sparse chapter index, either for a cached sparse hook, or
- * as the last chance for finding the record named by a request.
- *
- * @param [in]  zone             the index zone
- * @param [in]  request          the request originating the search
- * @param [in]  virtual_chapter  if UINT64_MAX, search the entire cache;
- *                               otherwise search this chapter, if cached
- * @param [out] found            A pointer to a bool which will be set to
- *                               <code>true</code> if the record was found
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int search_sparse_cache_in_zone(struct index_zone *zone,
 				       struct uds_request *request,
 				       uint64_t virtual_chapter,
@@ -538,16 +408,6 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 					 &request->old_metadata, found);
 }
 
-/**
- * Get a record from either the volume or the open chapter in a zone.
- *
- * @param zone             The index zone to query
- * @param request          The request originating the query
- * @param found            A pointer to a bool which will be set to
- *                         <code>true</code> if the record was found.
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int get_record_from_zone(struct index_zone *zone,
 				struct uds_request *request,
 				bool *found)
@@ -573,10 +433,6 @@ static int get_record_from_zone(struct index_zone *zone,
 	if ((zone->newest_virtual_chapter > 0) &&
 	    (request->virtual_chapter == (zone->newest_virtual_chapter - 1)) &&
 	    (zone->writing_chapter->size > 0)) {
-		/*
-		 * Only search the writing chapter if it is full, else look on
-		 * disk.
-		 */
 		search_open_chapter(zone->writing_chapter,
 				    &request->chunk_name,
 				    &request->old_metadata,
@@ -589,11 +445,6 @@ static int get_record_from_zone(struct index_zone *zone,
 	    sparse_cache_contains(volume->sparse_cache,
 				  request->virtual_chapter,
 				  request->zone_number)) {
-		/*
-		 * The named chunk, if it exists, is in a sparse chapter that
-		 * is cached, so just run the chunk through the sparse chapter
-		 * cache search.
-		 */
 		return search_sparse_cache_in_zone(zone,
 						   request,
 						   request->virtual_chapter,
@@ -606,16 +457,6 @@ static int get_record_from_zone(struct index_zone *zone,
 					&request->old_metadata, found);
 }
 
-/**
- * Put a record in the open chapter. If this fills the chapter, the chapter
- * will be closed and a new one will be opened.
- *
- * @param zone     The index zone containing the chapter
- * @param request  The request containing the name of the record
- * @param metadata The record metadata
- *
- * @return UDS_SUCCESS or an error
- **/
 static int put_record_in_zone(struct index_zone *zone,
 			      struct uds_request *request,
 			      const struct uds_chunk_data *metadata)
@@ -634,14 +475,6 @@ static int put_record_in_zone(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**
- * Search an index zone. This function is only correct for LRU.
- *
- * @param zone     The index zone to query
- * @param request  The request originating the query
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int search_index_zone(struct index_zone *zone,
 			     struct uds_request *request)
 {
@@ -688,8 +521,7 @@ static int search_index_zone(struct index_zone *zone,
 	if (found || overflow_record) {
 		if ((request->type == UDS_QUERY_NO_UPDATE) ||
 		    ((request->type == UDS_QUERY) && overflow_record)) {
-			/* This is a query without update, or with nothing to
-			 * update */
+			/* There is nothing left to do. */
 			return UDS_SUCCESS;
 		}
 
@@ -702,8 +534,7 @@ static int search_index_zone(struct index_zone *zone,
 			result = set_volume_index_record_chapter(&record,
 								 chapter);
 		} else if (request->type != UDS_UPDATE) {
-			/* The record is already in the open chapter, so we're
-			 * done */
+			/* The record is already in the open chapter. */
 			return UDS_SUCCESS;
 		}
 	} else {
@@ -719,10 +550,6 @@ static int search_index_zone(struct index_zone *zone,
 		} else if (is_sparse_geometry(zone->index->volume->geometry) &&
 			   !is_volume_index_sample(zone->index->volume_index,
 						   &request->chunk_name)) {
-			/*
-			 * Passing UINT64_MAX triggers a search of the entire
-			 * sparse cache.
-			 */
 			result = search_sparse_cache_in_zone(zone, request,
 							     UINT64_MAX,
 							     &found);
@@ -737,10 +564,7 @@ static int search_index_zone(struct index_zone *zone,
 
 		if ((request->type == UDS_QUERY_NO_UPDATE) ||
 		    ((request->type == UDS_QUERY) && !found)) {
-			/*
-			 * This is a query without update or for a new record,
-			 * so we're done.
-			 */
+			/* There is nothing left to do. */
 			return UDS_SUCCESS;
 		}
 
@@ -769,10 +593,7 @@ static int search_index_zone(struct index_zone *zone,
 		/* This is a new record or we're updating an existing record. */
 		metadata = &request->new_metadata;
 	} else {
-		/*
-		 * This is a duplicate, so move the record to the open chapter
-		 * (for LRU).
-		 */
+		/* Move the existing record to the open chapter. */
 		metadata = &request->old_metadata;
 	}
 	return put_record_in_zone(zone, request, metadata);
@@ -793,10 +614,6 @@ static int remove_from_index_zone(struct index_zone *zone,
 	}
 
 	if (!record.is_found) {
-		/*
-		 * The name does not exist in volume index, so there is nothing
-		 * to remove.
-		 */
 		return UDS_SUCCESS;
 	}
 
@@ -865,35 +682,6 @@ static int remove_from_index_zone(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-/**
- * Perform the index operation specified by the type field of a UDS request.
- *
- * For UDS API requests, this searches the index for the chunk name in the
- * request. If the chunk name is already present in the index, the location
- * field of the request will be set to the uds_index_region where it was
- * found. If the action is not DELETE, the old_metadata field of the request
- * will also be filled in with the prior metadata for the name.
- *
- * If the API request type is:
- *
- *   UDS_POST, a record will be added to the open chapter with the metadata
- *     in the request for new records, and the existing metadata for existing
- *     records.
- *
- *   UDS_UPDATE, a record will be added to the open chapter with the metadata
- *     in the request.
- *
- *   UDS_DELETE, any entry with the name will removed from the index.
- *
- *   UDS_QUERY, any record found will be moved to the open chapter.
- *
- *   UDS_QUERY_NO_UPDATE, the contents of the index will remain unchanged.
- *
- * @param index	      The index
- * @param request     The originating request
- *
- * @return UDS_SUCCESS, UDS_QUEUED, or an error code
- **/
 static int dispatch_index_request(struct uds_index *index,
 				  struct uds_request *request)
 {
@@ -901,11 +689,6 @@ static int dispatch_index_request(struct uds_index *index,
 	struct index_zone *zone = get_request_zone(index, request);
 
 	if (!request->requeued) {
-		/*
-		 * Single-zone sparse indexes don't have a triage queue to
-		 * generate cache barrier requests, so see if we need to
-		 * synthesize a barrier.
-		 */
 		int result =
 			simulate_index_zone_barrier_message(zone, request);
 		if (result != UDS_SUCCESS) {
@@ -935,12 +718,7 @@ static int dispatch_index_request(struct uds_index *index,
 	return result;
 }
 
-/**
- * This is the request processing function invoked by the zone's
- * uds_request_queue worker thread.
- *
- * @param request  the request to be indexed or executed by the zone worker
- **/
+/* This is the request processing function invoked by each zone's thread. */
 static void execute_zone_request(struct uds_request *request)
 {
 	int result;
@@ -953,12 +731,8 @@ static void execute_zone_request(struct uds_request *request)
 					       "error executing message: %d",
 					       request->zone_message.type);
 		}
-		/*
-		 * Asynchronous control messages are complete when they are
-		 * executed. There should be nothing they need to do on the
-		 * callback thread. The message has been completely processed,
-		 * so just free it.
-		 */
+
+		/* Once the message is processed it can be freed. */
 		UDS_FREE(UDS_FORGET(request));
 		return;
 	}
@@ -972,7 +746,7 @@ static void execute_zone_request(struct uds_request *request)
 
 	result = dispatch_index_request(index, request);
 	if (result == UDS_QUEUED) {
-		/* Take the request off the pipeline. */
+		/* The request has been requeued so don't let it complete. */
 		return;
 	}
 
@@ -983,12 +757,6 @@ static void execute_zone_request(struct uds_request *request)
 	index->callback(request);
 }
 
-/**
- * Advance the newest virtual chapter. If this will overwrite the oldest
- * virtual chapter, advance that also.
- *
- * @param index The index to advance
- **/
 static void advance_active_chapters(struct uds_index *index)
 {
 	index->newest_virtual_chapter++;
@@ -997,10 +765,7 @@ static void advance_active_chapters(struct uds_index *index)
 				   index->newest_virtual_chapter);
 }
 
-/**
- * This is the driver function for the writer thread. It loops until
- * terminated, waiting for a chapter to provided to close.
- **/
+/* This is the driver function for the chapter writer thread. */
 static void close_chapters(void *arg)
 {
 	int result;
@@ -1026,17 +791,18 @@ static void close_chapters(void *arg)
 		/*
 		 * Release the lock while closing a chapter. We probably don't
 		 * need to do this, but it seems safer in principle. It's OK to
-		 * access the chapter and chapterNumber fields without the lock
-		 * since those aren't allowed to change until we're done.
+		 * access the chapter and chapter_number fields without the
+		 * lock since those aren't allowed to change until we're done.
 		 */
 		uds_unlock_mutex(&writer->mutex);
 
 		if (writer->index->has_saved_open_chapter) {
 			/*
-			 * Remove the saved open chapter as that chapter is
-			 * about to be written to the volume.  This matters the
-			 * first time we close the open chapter after loading
-			 * from a clean shutdown, or after doing a clean save.
+			 * Remove the saved open chapter the first time we
+			 * close an open chapter after loading from a clean
+			 * shutdown, or after doing a clean save. The lack of
+			 * the saved open chapter will indicate that a recovery
+			 * is necessary.
 			 */
 			writer->index->has_saved_open_chapter = false;
 			result = discard_open_chapter(writer->index->layout);
@@ -1063,10 +829,6 @@ static void close_chapters(void *arg)
 #endif /* TEST_INTERNAL */
 
 		uds_lock_mutex(&writer->mutex);
-		/*
-		 * Note that the index is totally finished with the writing
-		 * chapter
-		 */
 		advance_active_chapters(writer->index);
 		writer->result = result;
 		writer->zones_to_write = 0;
@@ -1074,14 +836,6 @@ static void close_chapters(void *arg)
 	}
 }
 
-/**
- * Stop the chapter writer and wait for it to finish.
- *
- * @param writer  the chapter writer to stop
- *
- * @return UDS_SUCCESS or an error code from the most recent write
- *         request
- **/
 static int stop_chapter_writer(struct chapter_writer *writer)
 {
 	int result;
@@ -1108,11 +862,6 @@ static int stop_chapter_writer(struct chapter_writer *writer)
 	return UDS_SUCCESS;
 }
 
-/**
- * Free a chapter writer, waiting for its thread to finish.
- *
- * @param writer  the chapter writer to destroy
- **/
 static void free_chapter_writer(struct chapter_writer *writer)
 {
 	int result __always_unused;
@@ -1129,14 +878,6 @@ static void free_chapter_writer(struct chapter_writer *writer)
 	UDS_FREE(writer);
 }
 
-/**
- * Create a chapter writer and start its thread.
- *
- * @param index       the index containing the chapters to be written
- * @param writer_ptr  pointer to hold the new writer
- *
- * @return           UDS_SUCCESS or an error code
- **/
 static int make_chapter_writer(struct uds_index *index,
 			       struct chapter_writer **writer_ptr)
 {
@@ -1166,10 +907,6 @@ static int make_chapter_writer(struct uds_index *index,
 		return result;
 	}
 
-	/*
-	 * Now that we have the mutex+cond, it is safe to call
-	 * free_chapter_writer.
-	 */
 	result = uds_allocate_cache_aligned(collated_records_size,
 					    "collated records",
 					    &writer->collated_records);
@@ -1191,7 +928,6 @@ static int make_chapter_writer(struct uds_index *index,
 		 collated_records_size +
 		 writer->open_chapter_index->memory_allocated);
 
-	/* We're initialized, so now it's safe to start the writer thread. */
 	result = uds_create_thread(close_chapters, writer, "writer",
 				   &writer->thread);
 	if (result != UDS_SUCCESS) {
@@ -1203,14 +939,6 @@ static int make_chapter_writer(struct uds_index *index,
 	return UDS_SUCCESS;
 }
 
-/**
- * Initialize the zone queues and the triage queue.
- *
- * @param index     the index containing the queues
- * @param geometry  the geometry governing the indexes
- *
- * @return  UDS_SUCCESS or error code
- **/
 static int initialize_index_queues(struct uds_index *index,
 				   const struct geometry *geometry)
 {
@@ -1237,13 +965,6 @@ static int initialize_index_queues(struct uds_index *index,
 	return UDS_SUCCESS;
 }
 
-/**
- * Set the active chapter numbers for a zone based on its index. The active
- * chapters consist of the range of chapters from the current oldest to
- * the current newest virtual chapter.
- *
- * @param zone          The zone to set
- **/
 static void set_active_chapters(struct index_zone *zone)
 {
 	zone->oldest_virtual_chapter = zone->index->oldest_virtual_chapter;
@@ -1318,19 +1039,6 @@ static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 	return UDS_SUCCESS;
 }
 
-/**
- * Add an entry to the volume index when rebuilding.
- *
- * @param index			  The index to query.
- * @param name			  The block name of interest.
- * @param virtual_chapter	  The virtual chapter number to write to the
- *				  volume index
- * @param will_be_sparse_chapter  True if this entry will be in the sparse
- *				  portion of the index at the end of
- *				  rebuilding
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int replay_record(struct uds_index *index,
 			 const struct uds_chunk_name *name,
 			 uint64_t virtual_chapter,
@@ -1357,8 +1065,7 @@ static int replay_record(struct uds_index *index,
 	if (record.is_found) {
 		if (record.is_collision) {
 			if (record.virtual_chapter == virtual_chapter) {
-				/* The record is already correct, so we don't
-				 * need to do anything */
+				/* The record is already correct. */
 				return UDS_SUCCESS;
 			}
 			update_record = true;
@@ -1379,7 +1086,7 @@ static int replay_record(struct uds_index *index,
 			 * disk to see if the record exists, since we will
 			 * likely have just read the record from disk (i.e. we
 			 * know it's there). The exception to this is when we
-			 * already find an entry in the volume index that has a
+			 * find an entry in the volume index that has a
 			 * different chapter. In this case, we need to search
 			 * that chapter to determine if the volume index entry
 			 * was for the same record or a different one.
@@ -1423,13 +1130,6 @@ static int replay_record(struct uds_index *index,
 	return result;
 }
 
-/**
- * Suspend the index if necessary and wait for a signal to resume.
- *
- * @param index	 The index to replay
- *
- * @return <code>true</code> if the replay should terminate
- **/
 static bool check_for_suspend(struct uds_index *index)
 {
 	bool ret_val;
@@ -1459,13 +1159,6 @@ static bool check_for_suspend(struct uds_index *index)
 	return ret_val;
 }
 
-/**
- * Replay the volume file to repopulate the volume index.
- *
- * @param index         The index
- *
- * @return              UDS_SUCCESS if successful
- **/
 static int replay_volume(struct uds_index *index)
 {
 	int result;
@@ -1558,7 +1251,7 @@ static int replay_volume(struct uds_index *index)
 		}
 	}
 
-	/* We also need to reap the chapter being replaced by the open chapter */
+	/* Also reap the chapter being replaced by the open chapter. */
 	set_volume_index_open_chapter(index->volume_index, upto_vcn);
 
 	new_ipm_update = index->volume->index_page_map->last_update;
@@ -1573,7 +1266,6 @@ static int replay_volume(struct uds_index *index)
 
 static int rebuild_index(struct uds_index *index)
 {
-	/* Find the volume chapter boundaries */
 	int result;
 	unsigned int i;
 	uint64_t lowest_vcn, highest_vcn;
@@ -1601,7 +1293,7 @@ static int rebuild_index(struct uds_index *index)
 		index->oldest_virtual_chapter = lowest_vcn;
 		if (index->newest_virtual_chapter ==
 		    (index->oldest_virtual_chapter + num_chapters)) {
-			/* skip the chapter shadowed by the open chapter */
+			/* Skip the chapter shadowed by the open chapter. */
 			index->oldest_virtual_chapter++;
 		}
 	}
@@ -1631,11 +1323,6 @@ static int rebuild_index(struct uds_index *index)
 	return UDS_SUCCESS;
 }
 
-/**
- * Clean up an index zone.
- *
- * @param zone The index zone to free
- **/
 static void free_index_zone(struct index_zone *zone)
 {
 	if (zone == NULL) {
@@ -1647,14 +1334,6 @@ static void free_index_zone(struct index_zone *zone)
 	UDS_FREE(zone);
 }
 
-/**
- * Allocate an index zone.
- *
- * @param index        The index receiving the zone
- * @param zone_number  The number of the zone to allocate
- *
- * @return UDS_SUCCESS or an error code.
- **/
 static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 {
 	struct index_zone *zone;
@@ -1687,15 +1366,6 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 	return UDS_SUCCESS;
 }
 
-/**
- * Construct a new index from the given configuration.
- *
- * @param config     The configuration to use
- * @param new        Whether this is a newly formatted index
- * @param new_index  A pointer to hold a pointer to the new index
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int allocate_index(struct configuration *config,
 			  bool new,
 			  struct uds_index **new_index)
@@ -1869,21 +1539,19 @@ void free_index(struct uds_index *index)
 	UDS_FREE(index);
 }
 
+/* Wait for the chapter writer to complete any outstanding writes. */
 void wait_for_idle_index(struct uds_index *index)
 {
 	struct chapter_writer *writer = index->chapter_writer;
 
 	uds_lock_mutex(&writer->mutex);
 	while (writer->zones_to_write > 0) {
-		/*
-		 * The chapter writer is probably writing a chapter.  If it is
-		 * not, it will soon wake up and write a chapter.
-		 */
 		uds_wait_cond(&writer->cond, &writer->mutex);
 	}
 	uds_unlock_mutex(&writer->mutex);
 }
 
+/* This function assumes that all requests have been drained. */
 int save_index(struct uds_index *index)
 {
 	int result;
@@ -1917,12 +1585,9 @@ int replace_index_storage(struct uds_index *index, const char *path)
 	return replace_volume_storage(index->volume, index->layout, path);
 }
 
+/* Accessing statistics should be safe from any thread. */
 void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 {
-	/*
-	 * We're accessing the volume index while not on a zone thread, but
-	 * that's safe to do when acquiring statistics.
-	 */
 	struct volume_index_stats dense_stats, sparse_stats;
 
 	get_volume_index_stats(index->volume_index, &dense_stats,
@@ -1941,24 +1606,16 @@ void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 		(dense_stats.discard_count + sparse_stats.discard_count);
 }
 
+/* Select the appropriate request queue for the next stage of a request. */
 struct uds_request_queue *select_index_queue(struct uds_index *index,
 					     struct uds_request *request,
 					     enum request_stage next_stage)
 {
 	switch (next_stage) {
 	case STAGE_TRIAGE:
-		/*
-		 * The triage queue is only needed for multi-zone sparse
-		 * indexes and won't be allocated by the index if not needed,
-		 * so simply check for NULL.
-		 */
 		if (index->triage_queue != NULL) {
 			return index->triage_queue;
 		}
-		/*
-		 * Dense index or single zone, so route it directly to the zone
-		 * queue.
-		 */
 		fallthrough;
 
 	case STAGE_INDEX:
