@@ -13,34 +13,6 @@
 #include "uds-threads.h"
 #include "uds.h"
 
-enum index_session_flag_bit {
-	IS_FLAG_BIT_START = 8,
-	/* The session has started loading an index but not completed it. */
-	IS_FLAG_BIT_LOADING = IS_FLAG_BIT_START,
-	/* The session has loaded an index, which can handle requests. */
-	IS_FLAG_BIT_LOADED,
-	/* The session's index has been permanently disabled. */
-	IS_FLAG_BIT_DISABLED,
-	/* The session's index is suspended. */
-	IS_FLAG_BIT_SUSPENDED,
-	/* The session is handling some index state change. */
-	IS_FLAG_BIT_WAITING,
-	/* The session's index is closing and draining requests. */
-	IS_FLAG_BIT_CLOSING,
-	/* The session is being destroyed and is draining requests. */
-	IS_FLAG_BIT_DESTROYING,
-};
-
-enum index_session_flag {
-	IS_FLAG_LOADED = (1 << IS_FLAG_BIT_LOADED),
-	IS_FLAG_LOADING = (1 << IS_FLAG_BIT_LOADING),
-	IS_FLAG_DISABLED = (1 << IS_FLAG_BIT_DISABLED),
-	IS_FLAG_SUSPENDED = (1 << IS_FLAG_BIT_SUSPENDED),
-	IS_FLAG_WAITING = (1 << IS_FLAG_BIT_WAITING),
-	IS_FLAG_CLOSING = (1 << IS_FLAG_BIT_CLOSING),
-	IS_FLAG_DESTROYING = (1 << IS_FLAG_BIT_DESTROYING),
-};
-
 struct __attribute__((aligned(CACHE_LINE_BYTES))) session_stats {
 	/* Post requests that found an entry */
 	uint64_t posts_found;
@@ -91,7 +63,7 @@ struct uds_index_session {
 	unsigned int state;
 	struct uds_index *index;
 	struct uds_request_queue *callback_queue;
-	struct uds_parameters params;
+	struct uds_parameters parameters;
 	struct index_load_context load_context;
 	struct mutex request_mutex;
 	struct cond_var request_cond;

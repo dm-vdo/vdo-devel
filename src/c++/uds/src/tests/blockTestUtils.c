@@ -34,5 +34,5 @@ unsigned int getChaptersPerIndex(struct uds_index_session *session)
 /**********************************************************************/
 bool isIndexSparse(struct uds_index_session *session)
 {
-  return session->params.sparse;
+  return session->parameters.sparse;
 }
