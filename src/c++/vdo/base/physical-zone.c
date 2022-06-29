@@ -57,7 +57,13 @@ static int initialize_zone(struct vdo *vdo,
 	zone->allocator = vdo->depot->allocators[zone_number];
 	zone->next = &zones->zones[(zone_number + 1) %
 				   vdo->thread_config->physical_zone_count];
-	return vdo_make_default_thread(vdo, zone->thread_id);
+	result = vdo_make_default_thread(vdo, zone->thread_id);
+	if (result != VDO_SUCCESS) {
+		vdo_free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
+		free_int_map(zone->pbn_operations);
+		return result;
+	}
+	return result;
 }
 
 /**
