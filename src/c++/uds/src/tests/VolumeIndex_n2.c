@@ -184,15 +184,11 @@ static void verifyVolumeIndex(TestMI *testmi)
     UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, chapter);
-    struct volume_index_triage triage;
-    UDS_ASSERT_SUCCESS(lookup_volume_index_name(testmi->mi, &name, &triage));
-    CU_ASSERT_EQUAL(get_volume_index_zone(testmi->mi, &name), triage.zone);
-    CU_ASSERT_EQUAL(is_volume_index_sample(testmi->mi, &name),
-                    triage.is_sample);
-    CU_ASSERT_EQUAL(triage.is_sample && record.is_found,
-                    triage.in_sampled_chapter);
-    if (triage.in_sampled_chapter) {
-      CU_ASSERT_EQUAL(triage.virtual_chapter, chapter);
+    uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
+    if (is_volume_index_sample(testmi->mi, &name)) {
+      CU_ASSERT_EQUAL(virtual_chapter, chapter);
+    } else {
+      CU_ASSERT_EQUAL(virtual_chapter, UINT64_MAX);
     }
   }
 }
@@ -359,12 +355,10 @@ static void threadLookup(void *arg)
       uint64_t counter = i;
       struct uds_chunk_name name
         = murmurHashChunkName(&counter, sizeof(counter), 0);
-      struct volume_index_triage triage;
-      UDS_ASSERT_SUCCESS(lookup_volume_index_name(testmi->mi, &name, &triage));
-      CU_ASSERT_EQUAL(get_volume_index_zone(testmi->mi, &name), triage.zone);
-      if (triage.in_sampled_chapter) {
+      uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
+      if (virtual_chapter != UINT64_MAX) {
         uint64_t chapter = counter / testmi->geometry.records_per_chapter;
-        CU_ASSERT_EQUAL(triage.virtual_chapter, chapter);
+        CU_ASSERT_EQUAL(virtual_chapter, chapter);
       }
     }
   }

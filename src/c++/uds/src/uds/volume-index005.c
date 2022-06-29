@@ -950,74 +950,69 @@ get_volume_index_zone_005(const struct volume_index *volume_index,
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
- * @param volume_index The volume index
- * @param name         The chunk name
- * @param triage       Information about the chunk name
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static int
-lookup_volume_index_name_005(const struct volume_index *volume_index,
-			     const struct uds_chunk_name *name,
-			     struct volume_index_triage *triage)
+static uint64_t
+lookup_volume_index_name_005(const struct volume_index *volume_index
+			     __always_unused,
+			     const struct uds_chunk_name *name
+			     __always_unused)
 {
-	triage->is_sample = false;
-	triage->in_sampled_chapter = false;
-	triage->zone = get_volume_index_zone_005(volume_index, name);
-	return UDS_SUCCESS;
+	return UINT64_MAX;
 }
 
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
  *
- * @param volume_index The volume index
- * @param name         The chunk name
- * @param triage       Information about the chunk name.  The zone and
- *                     is_sample fields are already filled in.  Set
- *                     in_sampled_chapter and virtual_chapter if the chunk
- *                     name is found in the index.
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static int
+static uint64_t
 lookup_volume_index_sampled_name_005(const struct volume_index *volume_index,
-				     const struct uds_chunk_name *name,
-				     struct volume_index_triage *triage)
+				     const struct uds_chunk_name *name)
 {
 	const struct volume_index5 *vi5 =
 		const_container_of(volume_index, struct volume_index5, common);
+	int result;
 	unsigned int address = extract_address(vi5, name);
 	unsigned int delta_list_number = extract_dlist_num(vi5, name);
+	unsigned int zone_number =
+		get_volume_index_zone_005(volume_index, name);
+	const struct volume_index_zone *zone = &vi5->zones[zone_number];
+	uint64_t virtual_chapter;
+	unsigned int index_chapter;
+	unsigned int rolling_chapter;
 	struct delta_index_entry delta_entry;
-	int result = get_delta_index_entry(&vi5->delta_index,
-					   delta_list_number,
-					   address,
-					   name->name,
-					   &delta_entry);
+
+	result = get_delta_index_entry(&vi5->delta_index,
+				       delta_list_number,
+				       address,
+				       name->name,
+				       &delta_entry);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UINT64_MAX;
 	}
-	triage->in_sampled_chapter =
-		!delta_entry.at_end && (delta_entry.key == address);
-	if (triage->in_sampled_chapter) {
-		const struct volume_index_zone *volume_index_zone =
-			&vi5->zones[triage->zone];
-		unsigned int index_chapter =
-			get_delta_entry_value(&delta_entry);
-		unsigned int rolling_chapter =
-			((index_chapter -
-			  volume_index_zone->virtual_chapter_low) &
-			 vi5->chapter_mask);
-		triage->virtual_chapter =
-			volume_index_zone->virtual_chapter_low +
-		  rolling_chapter;
-		if (triage->virtual_chapter >
-		    volume_index_zone->virtual_chapter_high) {
-			triage->in_sampled_chapter = false;
-		}
+
+	if (delta_entry.at_end || (delta_entry.key != address)) {
+		return UINT64_MAX;
 	}
-	return UDS_SUCCESS;
+
+	index_chapter = get_delta_entry_value(&delta_entry);
+	rolling_chapter = ((index_chapter - zone->virtual_chapter_low) &
+			   vi5->chapter_mask);
+
+	virtual_chapter = zone->virtual_chapter_low + rolling_chapter;
+	if (virtual_chapter > zone->virtual_chapter_high) {
+		return UINT64_MAX;
+	}
+
+	return virtual_chapter;
 }
 
 /**

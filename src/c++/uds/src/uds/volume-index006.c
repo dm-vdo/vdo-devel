@@ -460,30 +460,29 @@ get_volume_index_zone_006(const struct volume_index *volume_index,
  *
  * @param volume_index  The volume index
  * @param name          The chunk name
- * @param triage        Information about the chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static int
+static uint64_t
 lookup_volume_index_name_006(const struct volume_index *volume_index,
-			     const struct uds_chunk_name *name,
-			     struct volume_index_triage *triage)
+			     const struct uds_chunk_name *name)
 {
-	int result = UDS_SUCCESS;
 	const struct volume_index6 *vi6 =
 		const_container_of(volume_index, struct volume_index6, common);
-	triage->is_sample = is_volume_index_sample_006(volume_index, name);
-	triage->in_sampled_chapter = false;
-	triage->zone = get_volume_index_zone_006(volume_index, name);
-	if (triage->is_sample) {
-		struct mutex *mutex =
-			&vi6->zones[triage->zone].hook_mutex;
-		uds_lock_mutex(mutex);
-		result = lookup_volume_index_sampled_name(vi6->vi_hook, name,
-							  triage);
-		uds_unlock_mutex(mutex);
+	unsigned int zone_number =
+		get_volume_index_zone_006(volume_index, name);
+	struct mutex *mutex = &vi6->zones[zone_number].hook_mutex;
+	uint64_t virtual_chapter;
+
+	if (!is_volume_index_sample_006(volume_index, name)) {
+		return UINT64_MAX;
 	}
-	return result;
+
+	uds_lock_mutex(mutex);
+	virtual_chapter = lookup_volume_index_sampled_name(vi6->vi_hook, name);
+	uds_unlock_mutex(mutex);
+
+        return virtual_chapter;
 }
 
 /**
@@ -492,23 +491,17 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
  *
  * @param volume_index  The volume index
  * @param name          The chunk name
- * @param triage        Information about the chunk name.  The zone and
- *                      is_sample fields are already filled in.  Set
- *                      in_sampled_chapter and virtual_chapter if the chunk
- *                      name is found in the index.
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static int
+static uint64_t
 lookup_volume_index_sampled_name_006(const struct volume_index *volume_index
 				     __always_unused,
 				     const struct uds_chunk_name *name
-				     __always_unused,
-				     struct volume_index_triage *triage
 				     __always_unused)
 {
-	return ASSERT_WITH_ERROR_CODE(false, UDS_BAD_STATE,
-				      "%s should not be called", __func__);
+	/* FIXME: This should never get called. */
+	return UINT64_MAX;
 }
 
 /**

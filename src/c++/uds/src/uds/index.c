@@ -110,17 +110,17 @@ static bool is_zone_chapter_sparse(const struct index_zone *zone,
 static uint64_t triage_index_request(struct uds_index *index,
 				     struct uds_request *request)
 {
-	struct volume_index_triage triage;
+	uint64_t virtual_chapter;
 	struct index_zone *zone;
 
-	lookup_volume_index_name(index->volume_index, &request->chunk_name,
-				 &triage);
-	if (!triage.in_sampled_chapter) {
+	virtual_chapter = lookup_volume_index_name(index->volume_index,
+						   &request->chunk_name);
+	if (virtual_chapter == UINT64_MAX) {
 		return UINT64_MAX;
 	}
 
 	zone = get_request_zone(index, request);
-	if (!is_zone_chapter_sparse(zone, triage.virtual_chapter)) {
+	if (!is_zone_chapter_sparse(zone, virtual_chapter)) {
 		return UINT64_MAX;
 	}
 
@@ -130,7 +130,7 @@ static uint64_t triage_index_request(struct uds_index *index,
 	 * the same.
 	 */
 
-	return triage.virtual_chapter;
+	return virtual_chapter;
 }
 
 static void enqueue_barrier_messages(struct uds_index *index,

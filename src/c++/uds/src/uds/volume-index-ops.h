@@ -27,24 +27,6 @@ struct volume_index_stats {
 };
 
 /*
- * The volume_index_triage structure is used by lookup_volume_index_name(),
- * which is a read-only operation that looks at the chunk name and returns
- * some information used by the index to select the thread/queue/code_path
- * that will process the chunk.
- */
-struct volume_index_triage {
-	uint64_t virtual_chapter;  /* If in_sampled_chapter is true, then this */
-				   /* is the chapter containing the entry for */
-				   /* the chunk name */
-	unsigned int zone;         /* The zone containing the chunk name */
-	bool is_sample;            /* If true, this chunk name belongs to the */
-				   /* sampled index */
-	bool in_sampled_chapter;   /* If true, this chunk already has an entry */
-				   /* in the sampled index and virtual_chapter */
-				   /* is valid */
-};
-
-/*
  * The volume_index_record structure is used for normal index read-write
  * processing of a chunk name.  The first call must be to
  * get_volume_index_record() to find the volume index record for a chunk name.
@@ -96,12 +78,10 @@ struct volume_index {
 					      const struct uds_chunk_name *name);
 	bool (*is_volume_index_sample)(const struct volume_index *volume_index,
 				       const struct uds_chunk_name *name);
-	int (*lookup_volume_index_name)(const struct volume_index *volume_index,
-					const struct uds_chunk_name *name,
-					struct volume_index_triage *triage);
-	int (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
-					        const struct uds_chunk_name *name,
-					        struct volume_index_triage *triage);
+	uint64_t (*lookup_volume_index_name)(const struct volume_index *volume_index,
+					     const struct uds_chunk_name *name);
+	uint64_t (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
+						     const struct uds_chunk_name *name);
 	void (*set_volume_index_open_chapter)(struct volume_index *volume_index,
 					      uint64_t virtual_chapter);
 	void (*set_volume_index_tag)(struct volume_index *volume_index,
@@ -324,41 +304,33 @@ is_volume_index_sample(const struct volume_index *volume_index,
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
- * @param volume_index  The volume index
- * @param name          The chunk name
- * @param triage        Information about the chunk name
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static INLINE int
+static INLINE uint64_t
 lookup_volume_index_name(const struct volume_index *volume_index,
-			 const struct uds_chunk_name *name,
-			 struct volume_index_triage *triage)
+			 const struct uds_chunk_name *name)
 {
-	return volume_index->lookup_volume_index_name(volume_index, name,
-						      triage);
+	return volume_index->lookup_volume_index_name(volume_index, name);
 }
 
 /**
  * Do a quick read-only lookup of the sampled chunk name and return
  * information needed by the index code to process the chunk name.
  *
- * @param volume_index  The volume index
- * @param name          The chunk name
- * @param triage        Information about the chunk name.  The zone and
- *                      is_sample fields are already filled in.  Set
- *                      in_sampled_chapter and virtual_chapter if the chunk
- *                      name is found in the index.
+ * @param volume_index     The volume index
+ * @param name             The chunk name
  *
- * @return UDS_SUCCESS or an error code
+ * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
-static INLINE int
+static INLINE uint64_t
 lookup_volume_index_sampled_name(const struct volume_index *volume_index,
-				 const struct uds_chunk_name *name,
-				 struct volume_index_triage *triage)
+				 const struct uds_chunk_name *name)
 {
 	return volume_index->lookup_volume_index_sampled_name(volume_index,
-							      name, triage);
+							      name);
 }
 
 /**
