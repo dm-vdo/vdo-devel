@@ -247,8 +247,9 @@ sub _installBinaries {
 ##
 sub getInstalledVersion {
   my ($self)  = assertNumArgs(1, @_);
-  my $modinfo = YAML::Load($self->runOnHost("sudo modinfo kvdo"));
-  return $modinfo->{version};
+  my $version = $self->runOnHost("sudo modinfo kvdo -F version");
+  chomp($version);
+  return $version;
 }
 
 ########################################################################
