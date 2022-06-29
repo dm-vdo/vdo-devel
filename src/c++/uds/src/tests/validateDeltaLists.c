@@ -8,9 +8,9 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-void validateDeltaLists(const struct delta_memory *delta_memory)
+void validateDeltaLists(const struct delta_zone *delta_zone)
 {
-  struct delta_list *delta_lists = delta_memory->delta_lists;
+  struct delta_list *delta_lists = delta_zone->delta_lists;
   unsigned int i;
 
   enum { GUARD_BITS = (sizeof(uint64_t) -1 ) * CHAR_BIT };
@@ -18,37 +18,34 @@ void validateDeltaLists(const struct delta_memory *delta_memory)
   /* Validate the delta index fields set by restoring a delta index. */
 
   /* There are not more collisions than total records. */
-  CU_ASSERT_TRUE(delta_memory->collision_count <= delta_memory->record_count);
+  CU_ASSERT_TRUE(delta_zone->collision_count <= delta_zone->record_count);
 
   /* Validate each delta list. */
 
   /* The head guard list starts at 0. */
-  CU_ASSERT_TRUE(get_delta_list_start(&delta_lists[0]) == 0);
+  CU_ASSERT_TRUE(delta_lists[0].start == 0);
 
   /* The tail guard list ends at the end of the memory. */
-  uint64_t num_bits
-    = get_delta_list_end(&delta_lists[delta_memory->num_lists + 1]);
-  CU_ASSERT_TRUE(num_bits == delta_memory->size * CHAR_BIT);
+  struct delta_list *tail_list = &delta_lists[delta_zone->list_count + 1];
+  uint64_t num_bits = tail_list->start + tail_list->size;;
+  CU_ASSERT_TRUE(num_bits == delta_zone->size * CHAR_BIT);
 
   /* The tail guard list contains sufficient guard bits. */
-  int num_guard_bits
-    = get_delta_list_size(&delta_lists[delta_memory->num_lists + 1]);
+  CU_ASSERT_TRUE(tail_list->size == GUARD_BITS);
 
-  CU_ASSERT_TRUE(num_guard_bits == GUARD_BITS);
-
-  for (i = 0; i <= delta_memory->num_lists + 1; i++) {
+  for (i = 0; i <= delta_zone->list_count + 1; i++) {
     /* This list starts before it ends. */
-    CU_ASSERT_TRUE(get_delta_list_start(&delta_lists[i])
-                   <= get_delta_list_end(&delta_lists[i]));
+    CU_ASSERT_TRUE(delta_lists[i].start
+                   <= delta_lists[i].start + delta_lists[i].size);
 
     /* The rest of the checks do not apply to the tail guard list. */
-    if (i > delta_memory->num_lists) {
+    if (i > delta_zone->list_count) {
       continue;
     }
 
     /* This list ends before the next one starts. */
-    CU_ASSERT_TRUE(get_delta_list_end(&delta_lists[i])
-                   <= get_delta_list_start(&delta_lists[i + 1]));
+    CU_ASSERT_TRUE(delta_lists[i].start + delta_lists[i].size
+                   <= delta_lists[i + 1].start);
 
     /* The final check does not apply to the head guard list. */
     if (i == 0) {
@@ -56,7 +53,6 @@ void validateDeltaLists(const struct delta_memory *delta_memory)
     }
 
     /* The saved offset is within the list. */
-    CU_ASSERT_TRUE(delta_lists[i].save_offset
-                   <= get_delta_list_size(&delta_lists[i]));
+    CU_ASSERT_TRUE(delta_lists[i].save_offset <= delta_lists[i].size);
   }
 }

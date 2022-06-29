@@ -337,8 +337,8 @@ static INLINE void set_volume_index_bytes(struct uds_chunk_name *name,
 /**
  * Validate the delta list headers.
  *
- * @param delta_memory  A delta memory structure
+ * @param delta_zone  A delta memory structure
  **/
-void validateDeltaLists(const struct delta_memory *delta_memory);
+void validateDeltaLists(const struct delta_zone *delta_zone);
 
 #endif /* TEST_PROTOTYPES_H */

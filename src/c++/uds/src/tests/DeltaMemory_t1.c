@@ -12,20 +12,20 @@
 
 static const unsigned int MEAN_DELTA = 4096;
 static const unsigned int NUM_PAYLOAD_BITS = 10;
-static struct delta_memory dm;
+static struct delta_zone dm;
 
 /**
  * Initialize lists evenly, all memory is free
  */
-static void initEvenly(const struct delta_memory *pdm)
+static void initEvenly(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
-  memset(pdl, 0, (pdm->num_lists + 1) * sizeof(struct delta_list));
-  size_t usableBytes = pdl[pdm->num_lists + 1].start_offset / CHAR_BIT;
-  size_t spacing = usableBytes / (pdm->num_lists + 1);
+  memset(pdl, 0, (pdm->list_count + 1) * sizeof(struct delta_list));
+  size_t usableBytes = pdl[pdm->list_count + 1].start / CHAR_BIT;
+  size_t spacing = usableBytes / (pdm->list_count + 1);
   unsigned int i;
-  for (i = 0; i <= pdm->num_lists; i++) {
-    pdl[i].start_offset = i * spacing * CHAR_BIT;
+  for (i = 0; i <= pdm->list_count; i++) {
+    pdl[i].start = i * spacing * CHAR_BIT;
     pdl[i].size = 0;
   }
   validateDeltaLists(pdm);
@@ -34,39 +34,38 @@ static void initEvenly(const struct delta_memory *pdm)
 /**
  * Initialize lists evenly, using all of the memory
  */
-static void initFully(const struct delta_memory *pdm)
+static void initFully(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
-  memset(pdl, 0, (pdm->num_lists + 1) * sizeof(struct delta_list));
-  size_t usableBytes = pdl[pdm->num_lists + 1].start_offset / CHAR_BIT;
-  size_t spacing = usableBytes / pdm->num_lists * CHAR_BIT;
-  pdl[0].start_offset = 0;
+  unsigned int list_count = pdm->list_count;
+  memset(pdl, 0, (pdm->list_count + 1) * sizeof(struct delta_list));
+  size_t usableBytes = pdl[list_count + 1].start / CHAR_BIT;
+  size_t spacing = usableBytes / pdm->list_count * CHAR_BIT;
+  pdl[0].start = 0;
   pdl[0].size = 0;
   unsigned int i;
-  for (i = 1; i <= pdm->num_lists; i++) {
-    pdl[i].start_offset = pdl[i - 1].start_offset + pdl[i - 1].size;
+  for (i = 1; i <= list_count; i++) {
+    pdl[i].start = pdl[i - 1].start + pdl[i - 1].size;
     pdl[i].size = spacing;
   }
-  pdl[pdm->num_lists].size = (pdm->size * CHAR_BIT
-                             - pdl[pdm->num_lists].start_offset);
-  pdl[pdm->num_lists].size = (pdl[pdm->num_lists + 1].start_offset
-                             - pdl[pdm->num_lists].start_offset);
+  pdl[pdm->list_count].size = (pdm->size * CHAR_BIT - pdl[pdm->list_count].start);
+  pdl[pdm->list_count].size = (pdl[pdm->list_count + 1].start
+                             - pdl[pdm->list_count].start);
   validateDeltaLists(pdm);
 }
 
 /**
  * Allocate random space
  */
-static void allocateRandomly(const struct delta_memory *pdm)
+static void allocateRandomly(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
   unsigned int i;
-  for (i = 1; i <= pdm->num_lists; i++) {
+  for (i = 1; i <= pdm->list_count; i++) {
     int j = ((unsigned int) random()
-             % ((pdl[i + 1].start_offset - pdl[i].start_offset) / CHAR_BIT));
+             % ((pdl[i + 1].start - pdl[i].start) / CHAR_BIT));
     pdl[i].size = j * CHAR_BIT;
-    CU_ASSERT_TRUE(pdl[i].start_offset + pdl[i].size
-                     <= pdl[i + 1].start_offset);
+    CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
   validateDeltaLists(pdm);
 }
@@ -74,14 +73,13 @@ static void allocateRandomly(const struct delta_memory *pdm)
 /**
  * Allocate triangular space (the Nth list is longer than the N-1st list)
  */
-static void allocateTriangularly(const struct delta_memory *pdm)
+static void allocateTriangularly(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
   unsigned int i;
-  for (i = 1; i <= pdm->num_lists; i++) {
+  for (i = 1; i <= pdm->list_count; i++) {
     pdl[i].size = i * CHAR_BIT;
-    CU_ASSERT_TRUE(pdl[i].start_offset + pdl[i].size
-                     <= pdl[i + 1].start_offset);
+    CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
   validateDeltaLists(pdm);
 }
@@ -90,16 +88,15 @@ static void allocateTriangularly(const struct delta_memory *pdm)
  * Allocate reversed triangular space (the Nth list is shorter than the
  * N-1st list
  */
-static void allocateReverseTriangularly(const struct delta_memory *pdm)
+static void allocateReverseTriangularly(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
   unsigned int i;
-  for (i = 1; i <= pdm->num_lists; i++) {
-    int j = pdm->num_lists + 1 - i;
+  for (i = 1; i <= pdm->list_count; i++) {
+    int j = pdm->list_count + 1 - i;
     pdl[i].size = j * CHAR_BIT;
 
-    CU_ASSERT_TRUE(pdl[i].start_offset + pdl[i].size
-                     <= pdl[i + 1].start_offset);
+    CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
   validateDeltaLists(pdm);
 }
@@ -107,12 +104,12 @@ static void allocateReverseTriangularly(const struct delta_memory *pdm)
 /**
  * Store predictable data into each list
  */
-static void storeData(const struct delta_memory *pdm)
+static void storeData(const struct delta_zone *pdm)
 {
   const struct delta_list *pdl = pdm->delta_lists;
   unsigned int i, j;
-  for (i = 1; i <= pdm->num_lists; i++) {
-    uint64_t offset = pdl[i].start_offset / CHAR_BIT;
+  for (i = 1; i <= pdm->list_count; i++) {
+    uint64_t offset = pdl[i].start / CHAR_BIT;
     for (j = 0; j < pdl[i].size / CHAR_BIT; j++) {
       pdm->memory[offset + j] = (byte)(i + j);
     }
@@ -122,12 +119,12 @@ static void storeData(const struct delta_memory *pdm)
 /**
  * Verify the predictable data
  */
-static void verifyData(const struct delta_memory *pdm)
+static void verifyData(const struct delta_zone *pdm)
 {
   const struct delta_list *pdl = pdm->delta_lists;
   unsigned int i, j;
-  for (i = 1; i <= pdm->num_lists; i++) {
-    uint64_t offset = pdl[i].start_offset / CHAR_BIT;
+  for (i = 1; i <= pdm->list_count; i++) {
+    uint64_t offset = pdl[i].start / CHAR_BIT;
     for (j = 0; j < pdl[i].size / CHAR_BIT; j++) {
       CU_ASSERT_EQUAL(pdm->memory[offset + j], (byte)(i + j));
     }
@@ -137,16 +134,16 @@ static void verifyData(const struct delta_memory *pdm)
 /**
  * Verify the unused spacing of the rebalanced delta memory
  */
-static void verifyEvenSpacing(const struct delta_memory *pdm,
+static void verifyEvenSpacing(const struct delta_zone *pdm,
                               unsigned int growingIndex, int growingSize)
 {
   const struct delta_list *pdl = pdm->delta_lists;
   size_t expectedGap = 0, firstGap = 0;
   unsigned int i;
-  for (i = 1; i <= pdm->num_lists + 1; i++) {
+  for (i = 1; i <= pdm->list_count + 1; i++) {
     size_t gap
-      = (pdl[i].start_offset / CHAR_BIT
-         - (pdl[i - 1].start_offset / CHAR_BIT + pdl[i - 1].size / CHAR_BIT));
+      = (pdl[i].start / CHAR_BIT
+         - (pdl[i - 1].start / CHAR_BIT + pdl[i - 1].size / CHAR_BIT));
     // There must be space between lists
     CU_ASSERT_TRUE((int) gap > 0);
     if (i == growingIndex) {
@@ -159,7 +156,7 @@ static void verifyEvenSpacing(const struct delta_memory *pdm,
       firstGap = gap;
     } else if (i == 2) {
       expectedGap = gap;
-    } else if (i <= pdm->num_lists) {
+    } else if (i <= pdm->list_count) {
       CU_ASSERT_EQUAL(gap, expectedGap);
     }
   }
@@ -172,8 +169,8 @@ static void verifyEvenSpacing(const struct delta_memory *pdm,
 static void rebalanceTest(int nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
-  UDS_ASSERT_SUCCESS(initialize_delta_memory(&dm, initSize, 0, nLists,
-                                             MEAN_DELTA, NUM_PAYLOAD_BITS));
+  UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, initSize, 0, nLists,
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
   // Use lists that increase in size.
   initEvenly(&dm);
   allocateTriangularly(&dm);
@@ -181,7 +178,7 @@ static void rebalanceTest(int nLists, int bytesPerList, int allocIncr)
   storeData(&dm);
   verifyData(&dm);
   // Rebalance and Verify
-  UDS_ASSERT_SUCCESS(extend_delta_memory(&dm, 0, 0));
+  UDS_ASSERT_SUCCESS(extend_delta_zone(&dm, 0, 0));
   validateDeltaLists(&dm);
   verifyData(&dm);
 
@@ -190,11 +187,11 @@ static void rebalanceTest(int nLists, int bytesPerList, int allocIncr)
   allocateReverseTriangularly(&dm);
   storeData(&dm);
   verifyData(&dm);
-  UDS_ASSERT_SUCCESS(extend_delta_memory(&dm, 0, 0));
+  UDS_ASSERT_SUCCESS(extend_delta_zone(&dm, 0, 0));
   validateDeltaLists(&dm);
   verifyData(&dm);
 
-  uninitialize_delta_memory(&dm);
+  uninitialize_delta_zone(&dm);
 }
 
 static void smallRebalanceTest(void)
@@ -213,27 +210,27 @@ static void largeRebalanceTest(void)
 static void growingTest(unsigned int nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
-  UDS_ASSERT_SUCCESS(initialize_delta_memory(&dm, initSize, 0, nLists,
-                                             MEAN_DELTA, NUM_PAYLOAD_BITS));
+  UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, initSize, 0, nLists,
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
 
   // Use random list sizes.
   initEvenly(&dm);
   allocateRandomly(&dm);
 
   // Rebalance and verify evenness
-  UDS_ASSERT_SUCCESS(extend_delta_memory(&dm, 0, 0));
+  UDS_ASSERT_SUCCESS(extend_delta_zone(&dm, 0, 0));
   validateDeltaLists(&dm);
   verifyEvenSpacing(&dm, 0, 0);
 
   // Rebalance with growth and verify evenness
   unsigned int i;
   for (i = 1; i <= nLists + 1; i++) {
-    UDS_ASSERT_SUCCESS(extend_delta_memory(&dm, i, i));
+    UDS_ASSERT_SUCCESS(extend_delta_zone(&dm, i, i));
     validateDeltaLists(&dm);
     verifyEvenSpacing(&dm, i, i);
   }
 
-  uninitialize_delta_memory(&dm);
+  uninitialize_delta_zone(&dm);
 }
 
 static void smallGrowingTest(void)
@@ -251,18 +248,18 @@ static void largeGrowingTest(void)
  **/
 static void overflowTest(void)
 {
-  enum { NUM_LISTS = 1 << 10 };
+  enum { LIST_COUNT = 1 << 10 };
   enum { ALLOC_SIZE = 1 << 17 };
-  UDS_ASSERT_SUCCESS(initialize_delta_memory(&dm, ALLOC_SIZE, 0, NUM_LISTS,
-                                             MEAN_DELTA, NUM_PAYLOAD_BITS));
+  UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, ALLOC_SIZE, 0, LIST_COUNT,
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
   CU_ASSERT_EQUAL(dm.size, ALLOC_SIZE);
 
   // Fill and extend, expecting a UDS_OVERFLOW error
   initFully(&dm);
-  UDS_ASSERT_ERROR(UDS_OVERFLOW, extend_delta_memory(&dm, 1, 1));
+  UDS_ASSERT_ERROR(UDS_OVERFLOW, extend_delta_zone(&dm, 1, 1));
   CU_ASSERT_EQUAL(dm.size, ALLOC_SIZE);
 
-  uninitialize_delta_memory(&dm);
+  uninitialize_delta_zone(&dm);
 }
 
 /**********************************************************************/

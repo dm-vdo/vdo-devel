@@ -17,23 +17,23 @@
 #include "type-defs.h"
 
 struct delta_list {
-	/* The offset of the delta list start within memory */
-	uint64_t start_offset;
+	/* The offset of the delta list start, in bits */
+	uint64_t start;
 	/* The number of bits in the delta list */
 	uint16_t size;
-	/* Where the last search "found" the key */
+	/* Where the last search "found" the key, in bits */
 	uint16_t save_offset;
 	/* The key for the record just before save_offset */
 	unsigned int save_key;
 };
 
-struct delta_memory {
+struct delta_zone {
 	/* The delta list memory */
 	byte *memory;
 	/* The delta list headers */
 	struct delta_list *delta_lists;
 	/* Temporary starts of delta lists */
-	uint64_t *temp_offsets;
+	uint64_t *new_offsets;
 	/* Buffered writer for saving an index */
 	struct buffered_writer *buffered_writer;
 	/* The size of delta list memory */
@@ -61,7 +61,7 @@ struct delta_memory {
 	/* The index of the first delta list */
 	unsigned int first_list;
 	/* The number of delta lists */
-	unsigned int num_lists;
+	unsigned int list_count;
 	/* Tag belonging to this delta index */
 	byte tag;
 } __attribute__((aligned(CACHE_LINE_BYTES)));
@@ -79,17 +79,17 @@ struct delta_list_save_info {
 
 struct delta_index {
 	/* The zones */
-	struct delta_memory *delta_zones;
+	struct delta_zone *delta_zones;
 	/* The number of zones */
-	unsigned int num_zones;
+	unsigned int zone_count;
 	/* The number of delta lists */
-	unsigned int num_lists;
+	unsigned int list_count;
 	/* Maximum lists per zone */
 	unsigned int lists_per_zone;
 	/* The number of non-empty lists at load time per zone */
 	unsigned int load_lists[MAX_ZONES];
 	/* True if this index is mutable */
-	bool is_mutable;
+	bool mutable;
 	/* Tag belonging to this delta index */
 	byte tag;
 };
@@ -97,7 +97,7 @@ struct delta_index {
 /*
  * A delta_index_page describes a single page of a chapter index. The
  * delta_index field allows the page to be treated as an immutable delta_index.
- * We use the delta_memory field to treat the chapter index page as a single
+ * We use the delta_zone field to treat the chapter index page as a single
  * zone index, and without the need to do an additional memory allocation.
  */
 struct delta_index_page {
@@ -107,7 +107,7 @@ struct delta_index_page {
 	unsigned int highest_list_number;
 	uint64_t virtual_chapter_number;
 	/* This structure describes the single zone of a delta index page. */
-	struct delta_memory delta_memory;
+	struct delta_zone delta_zone;
 };
 
 /*
@@ -144,7 +144,7 @@ struct delta_index_entry {
 	/* Public fields */
 	/* The key for this entry */
 	unsigned int key;
-	/* We are after the last list entry the list */
+	/* We are after the last list entry */
 	bool at_end;
 	/* This record is a collision */
 	bool is_collision;
@@ -157,7 +157,7 @@ struct delta_index_entry {
 	/* The number of bits used for the entire entry */
 	unsigned short entry_bits;
 	/* The delta index zone */
-	struct delta_memory *delta_zone;
+	struct delta_zone *delta_zone;
 	/* The delta list containing the entry */
 	struct delta_list *delta_list;
 	/* The delta list number */
@@ -186,103 +186,86 @@ struct delta_index_stats {
 	/* The number of UDS_OVERFLOW errors detected */
 	long overflow_count;
 	/* The number of delta lists */
-	unsigned int num_lists;
+	unsigned int list_count;
 };
 
 #ifdef TEST_INTERNAL
-void move_bits(const byte *s_memory,
-	       uint64_t source,
-	       byte *d_memory,
-	       uint64_t destination,
+void move_bits(const byte *from,
+	       uint64_t from_offset,
+	       byte *to,
+	       uint64_t to_offset,
 	       int size);
 
-int __must_check extend_delta_memory(struct delta_memory *delta_memory,
-				     unsigned int growing_index,
-				     size_t growing_size);
+int __must_check extend_delta_zone(struct delta_zone *delta_zone,
+				   unsigned int growing_index,
+				   size_t growing_size);
 
 void swap_delta_index_page_endianness(byte *memory);
 
-static INLINE uint64_t
-get_delta_list_start(const struct delta_list *delta_list)
-{
-	return delta_list->start_offset;
-}
+void uninitialize_delta_zone(struct delta_zone *delta_zone);
 
-static INLINE uint16_t
-get_delta_list_size(const struct delta_list *delta_list)
-{
-	return delta_list->size;
-}
+int __must_check initialize_delta_zone(struct delta_zone *delta_zone,
+				       size_t size,
+				       unsigned int first_list,
+				       unsigned int list_count,
+				       unsigned int mean_delta,
+				       unsigned int payload_bits);
 
-static INLINE uint64_t get_delta_list_end(const struct delta_list *delta_list)
-{
-	return delta_list->start_offset + delta_list->size;
-}
-
-void uninitialize_delta_memory(struct delta_memory *delta_memory);
-
-int __must_check initialize_delta_memory(struct delta_memory *delta_memory,
-					 size_t size,
-					 unsigned int first_list,
-					 unsigned int num_lists,
-					 unsigned int mean_delta,
-					 unsigned int num_payload_bits);
-
-void initialize_delta_memory_page(struct delta_memory *delta_memory,
-				  byte *memory,
-				  size_t size,
-				  unsigned int num_lists,
-				  unsigned int mean_delta,
-				  unsigned int num_payload_bits);
+void initialize_delta_zone_page(struct delta_zone *delta_zone,
+				byte *memory,
+				size_t size,
+				unsigned int list_count,
+				unsigned int mean_delta,
+				unsigned int payload_bits);
 
 #endif /* TEST_INTERNAL */
 int __must_check initialize_delta_index(struct delta_index *delta_index,
-					unsigned int num_zones,
-					unsigned int num_lists,
+					unsigned int zone_count,
+					unsigned int list_count,
 					unsigned int mean_delta,
-					unsigned int num_payload_bits,
+					unsigned int payload_bits,
 					size_t memory_size);
 
 int __must_check
 initialize_delta_index_page(struct delta_index_page *delta_index_page,
 			    uint64_t expected_nonce,
 			    unsigned int mean_delta,
-			    unsigned int num_payload_bits,
+			    unsigned int payload_bits,
 			    byte *memory,
-			    size_t mem_size);
+			    size_t memory_size);
 
 void uninitialize_delta_index(struct delta_index *delta_index);
 
 void empty_delta_index(const struct delta_index *delta_index);
 
-void empty_delta_index_zone(const struct delta_index *delta_index,
-			    unsigned int zone_number);
+void empty_delta_zone(const struct delta_index *delta_index,
+		      unsigned int zone_number);
 
 int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       uint64_t header_nonce,
 				       byte *memory,
-				       size_t mem_size,
+				       size_t memory_size,
 				       uint64_t virtual_chapter_number,
 				       unsigned int first_list,
-				       unsigned int *num_lists);
+				       unsigned int *list_count);
 
 void set_delta_index_tag(struct delta_index *delta_index, byte tag);
 
 int __must_check
 start_restoring_delta_index(struct delta_index *delta_index,
 			    struct buffered_reader **buffered_readers,
-			    unsigned int num_readers);
+			    unsigned int reader_count);
 
 int __must_check
 finish_restoring_delta_index(struct delta_index *delta_index,
 			     struct buffered_reader **buffered_readers,
-			     unsigned int num_readers);
+			     unsigned int reader_count);
 
 void abort_restoring_delta_index(const struct delta_index *delta_index);
 
 int __must_check
 check_guard_delta_lists(struct buffered_reader **buffered_readers,
-			unsigned int num_readers);
+			unsigned int reader_count);
 
 int __must_check
 start_saving_delta_index(const struct delta_index *delta_index,
@@ -296,7 +279,7 @@ finish_saving_delta_index(const struct delta_index *delta_index,
 int __must_check
 write_guard_delta_list(struct buffered_writer *buffered_writer);
 
-size_t __must_check compute_delta_index_save_bytes(unsigned int num_lists,
+size_t __must_check compute_delta_index_save_bytes(unsigned int list_count,
 						   size_t memory_size);
 
 int __must_check
@@ -336,43 +319,43 @@ int __must_check
 remove_delta_index_entry(struct delta_index_entry *delta_entry);
 
 static INLINE unsigned int
-get_delta_index_zone(const struct delta_index *delta_index,
-		     unsigned int list_number)
+get_delta_zone_number(const struct delta_index *delta_index,
+		      unsigned int list_number)
 {
 	return list_number / delta_index->lists_per_zone;
 }
 
 unsigned int
-get_delta_index_zone_first_list(const struct delta_index *delta_index,
-				unsigned int zone_number);
+get_delta_zone_first_list(const struct delta_index *delta_index,
+			  unsigned int zone_number);
 
 unsigned int
-get_delta_index_zone_num_lists(const struct delta_index *delta_index,
-			       unsigned int zone_number);
+get_delta_zone_list_count(const struct delta_index *delta_index,
+			  unsigned int zone_number);
 
 uint64_t __must_check
-get_delta_index_zone_dlist_bits_used(const struct delta_index *delta_index,
-				     unsigned int zone_number);
+get_delta_zone_bits_used(const struct delta_index *delta_index,
+			 unsigned int zone_number);
 
 #ifdef TEST_INTERNAL
 uint64_t __must_check
-get_delta_index_dlist_bits_used(const struct delta_index *delta_index);
+get_delta_index_bits_used(const struct delta_index *delta_index);
 
 #endif /* TEST_INTERNAL */
 uint64_t __must_check
-get_delta_index_dlist_bits_allocated(const struct delta_index *delta_index);
+get_delta_index_bits_allocated(const struct delta_index *delta_index);
 
 void get_delta_index_stats(const struct delta_index *delta_index,
 			   struct delta_index_stats *stats);
 
-size_t __must_check get_delta_memory_size(unsigned long num_entries,
-					  unsigned int mean_delta,
-					  unsigned int num_payload_bits);
+size_t __must_check compute_delta_index_size(unsigned long entry_count,
+					     unsigned int mean_delta,
+					     unsigned int payload_bits);
 
-unsigned int get_delta_index_page_count(unsigned int num_entries,
-					unsigned int num_lists,
+unsigned int get_delta_index_page_count(unsigned int entry_count,
+					unsigned int list_count,
 					unsigned int mean_delta,
-					unsigned int num_payload_bits,
+					unsigned int payload_bits,
 					size_t bytes_per_page);
 
 void log_delta_index_entry(struct delta_index_entry *delta_entry);

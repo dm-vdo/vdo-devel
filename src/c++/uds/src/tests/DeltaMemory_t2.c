@@ -103,12 +103,12 @@ static void moveBitsTest(void)
 static void setupDeltaList(struct delta_list *pdl, int index,
                            unsigned int gapSize, unsigned int listSize)
 {
-  pdl[index].start_offset = get_delta_list_end(&pdl[index - 1]) + gapSize;
-  pdl[index].size         = listSize;
+  pdl[index].start = pdl[index - 1].start + pdl[index - 1].size + gapSize;
+  pdl[index].size  = listSize;
 }
 
 /**
- * Test extend_delta_memory
+ * Test extend_delta_zone
  *
  * @param pdl           The delta lists
  * @param numLists      The number of delta lists
@@ -116,20 +116,20 @@ static void setupDeltaList(struct delta_list *pdl, int index,
  **/
 static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
 {
-  struct delta_memory *dm, *random;
-  int initSize = get_delta_list_end(&pdl[numLists + 1]) / CHAR_BIT;
+  struct delta_zone *dm, *random;
+  int initSize = (pdl[numLists + 1].start + pdl[numLists + 1].size) / CHAR_BIT;
   size_t pdlSize = (numLists + 2) * sizeof(struct delta_list);
 
   // Get some random bits
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_memory, __func__, &random));
-  UDS_ASSERT_SUCCESS(initialize_delta_memory(random, initSize, 0, numLists,
-                                             MEAN_DELTA, NUM_PAYLOAD_BITS));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &random));
+  UDS_ASSERT_SUCCESS(initialize_delta_zone(random, initSize, 0, numLists,
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
   fill_randomly(random->memory, random->size);
 
   // Get the delta memory corresponding to the delta lists
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_memory, __func__, &dm));
-  UDS_ASSERT_SUCCESS(initialize_delta_memory(dm, initSize, 0, numLists,
-                                             MEAN_DELTA, NUM_PAYLOAD_BITS));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &dm));
+  UDS_ASSERT_SUCCESS(initialize_delta_zone(dm, initSize, 0, numLists,
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
   memset(dm->memory, initialValue, dm->size);
   memcpy(dm->delta_lists, pdl, pdlSize);
   validateDeltaLists(dm);
@@ -138,34 +138,34 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
   uint64_t randomOffset = 0;
   int i;
   for (i = 1; i <= numLists; i++) {
-    unsigned int size = get_delta_list_size(&dm->delta_lists[i]);
+    unsigned int size = dm->delta_lists[i].size;
     move_bits(random->memory, randomOffset, dm->memory,
-              get_delta_list_start(&dm->delta_lists[i]), size);
+              dm->delta_lists[i].start, size);
     randomOffset += size;
   }
 
   // Balance the delta lists - this will move them around evenly (if
   // possible), but should always leave the delta lists in a usable state.
-  UDS_ASSERT_ERROR2(UDS_SUCCESS, UDS_OVERFLOW, extend_delta_memory(dm, 0, 0));
+  UDS_ASSERT_ERROR2(UDS_SUCCESS, UDS_OVERFLOW, extend_delta_zone(dm, 0, 0));
   validateDeltaLists(dm);
 
   // Verify the random data in the delta lists
   randomOffset = 0;
   for (i = 1; i <= numLists; i++) {
-    unsigned int size = get_delta_list_size(&dm->delta_lists[i]);
+    unsigned int size = dm->delta_lists[i].size;
     CU_ASSERT_TRUE(sameBits(random->memory, randomOffset, dm->memory,
-                            get_delta_list_start(&dm->delta_lists[i]), size));
+                            dm->delta_lists[i].start, size));
     randomOffset += size;
   }
 
-  uninitialize_delta_memory(dm);
-  uninitialize_delta_memory(random);
+  uninitialize_delta_zone(dm);
+  uninitialize_delta_zone(random);
   UDS_FREE(dm);
   UDS_FREE(random);
 }
 
 /**
- * Finish delta list setup and run the extend_delta_memory tests
+ * Finish delta list setup and run the extend_delta_zone tests
  *
  * @param pdl           The delta lists
  * @param numLists      The number of delta lists
@@ -180,8 +180,8 @@ static void guardAndTest(struct delta_list *pdl, int numLists,
                                   &deltaListsCopy));
 
   // Set the tail guard list, which starts and ends on a byte boundary
-  pdl[numLists + 1].start_offset
-    = ((get_delta_list_end(&pdl[numLists]) + gapSize + CHAR_BIT - 1)
+  pdl[numLists + 1].start
+    = ((pdl[numLists].start + pdl[numLists].size + gapSize + CHAR_BIT - 1)
        & (-CHAR_BIT));
   pdl[numLists + 1].size = GUARD_BITS;
 
@@ -202,10 +202,10 @@ static void diffBlocks(bool increasing)
 {
   enum {
     NUM_SIZES = 2048,
-    NUM_LISTS = NUM_SIZES,
+    LIST_COUNT = NUM_SIZES,
   };
   struct delta_list *deltaLists;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_LISTS + 2, struct delta_list, __func__,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(LIST_COUNT + 2, struct delta_list, __func__,
                                   &deltaLists));
 
   unsigned int gapSize, i, offset;
@@ -223,7 +223,7 @@ static void diffBlocks(bool increasing)
       }
       deltaLists[0].size = 0;
 
-      guardAndTest(deltaLists, NUM_LISTS, gapSize);
+      guardAndTest(deltaLists, LIST_COUNT, gapSize);
     }
   }
   UDS_FREE(deltaLists);
@@ -250,18 +250,18 @@ static void smallToLargeTest(void)
  **/
 static void randomTest(void)
 {
-  enum { NUM_LISTS = 8 * 1024 };
+  enum { LIST_COUNT = 8 * 1024 };
   struct delta_list *deltaLists;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_LISTS + 2, struct delta_list, __func__,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(LIST_COUNT + 2, struct delta_list, __func__,
                                   &deltaLists));
   unsigned int i;
-  for (i = 1; i <= NUM_LISTS; i++) {
+  for (i = 1; i <= LIST_COUNT; i++) {
     setupDeltaList(deltaLists, i,
                    random_in_range(0, sizeof(uint16_t) * CHAR_BIT),
                    random_in_range(0, 8 * 1024));
   }
 
-  guardAndTest(deltaLists, NUM_LISTS,
+  guardAndTest(deltaLists, LIST_COUNT,
                random_in_range(0, sizeof(uint16_t) * CHAR_BIT));
   UDS_FREE(deltaLists);
 }

@@ -91,7 +91,7 @@ static void validateDeltaIndex(const struct delta_index *delta_index)
 {
   unsigned int z;
  
- for (z = 0; z < delta_index->num_zones; z++) {
+ for (z = 0; z < delta_index->zone_count; z++) {
     validateDeltaLists(&delta_index->delta_zones[z]);
   }
 }
@@ -301,7 +301,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   enum { NUM_LISTS = 1, PAYLOAD_BITS = 4 };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
                                             PAYLOAD_BITS, 2 * MEGABYTE));
-  CU_ASSERT_EQUAL(di.num_lists, NUM_LISTS);
+  CU_ASSERT_EQUAL(di.list_count, NUM_LISTS);
   get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
 
@@ -468,7 +468,7 @@ static void overflowTest(void)
 
   // How big was that entry?  We expect that all subsequent entries have
   // the same size, and compute the expected number of entries accordingly.
-  int entrySize = get_delta_index_dlist_bits_used(&di);
+  int entrySize = get_delta_index_bits_used(&di);
   unsigned int entryCount = UINT16_MAX / entrySize;
 
   // Fill the index with more records, each with a delta of 1
