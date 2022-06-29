@@ -19,6 +19,13 @@ static void isZeroTest(void)
   static char dataBlock[VDO_BLOCK_SIZE];
 
   fill_randomly(dataBlock, sizeof(dataBlock));
+  // The tests below assume leading/trailing bytes are nonzero.
+  if (dataBlock[0] == 0) {
+    dataBlock[0] = 1;
+  }
+  if (dataBlock[VDO_BLOCK_SIZE-1] == 0) {
+    dataBlock[VDO_BLOCK_SIZE-1] = 1;
+  }
 
   // All zeros
   memset(testBlock, 0, sizeof(testBlock));
