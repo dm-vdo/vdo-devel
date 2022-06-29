@@ -327,6 +327,15 @@ void tearDownVDOTest(void)
   }
 
   tearDownDataBlocks();
+
+  /*
+   * Since data_vio_count is a global variable, changes to it can bleed across
+   * tests when running with --no-fork. Therefore, we always reset it to the
+   * default at the end of a test so that future test writers needn't remember
+   * to do so. This is especially important since tracking down the resulting
+   * hangs is tricky.
+   */
+  data_vio_count = MAXIMUM_VDO_USER_VIOS;
 }
 
 /**********************************************************************/

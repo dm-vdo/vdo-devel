@@ -167,9 +167,9 @@ struct vdo {
 	char **compression_context;
 };
 
-#ifdef VDO_INTERNAL
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 extern int data_vio_count;
-#endif /* VDO_INTERNAL */
+#endif /* VDO_INTERNAL or INTERNAL */
 
 /**
  * Indicate whether the vdo is configured to use a separate work queue for

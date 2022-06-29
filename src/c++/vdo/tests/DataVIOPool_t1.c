@@ -23,8 +23,6 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-extern int data_vio_count;
-
 enum {
   DATA_VIO_COUNT = 4,
   REQUEST_COUNT  = 13,
