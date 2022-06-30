@@ -204,6 +204,10 @@ finish_saving_volume_index(const struct volume_index *volume_index,
  **/
 static INLINE void free_volume_index(struct volume_index *volume_index)
 {
+	if (volume_index == NULL) {
+		return;
+	}
+
 	volume_index->free_volume_index(volume_index);
 }
 

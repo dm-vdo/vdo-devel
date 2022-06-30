@@ -118,9 +118,7 @@ static void testSingleton(void)
   UDS_ASSERT_BLOCKDATA_EQUAL(&meta2, &metaOut);
 
   // Delete the record and check that it's not there.
-  bool removed;
-  remove_from_open_chapter(openChapter, &name1, &removed);
-  CU_ASSERT_EQUAL(removed, true);
+  remove_from_open_chapter(openChapter, &name1);
   CU_ASSERT_EQUAL(0, open_chapter_size(openChapter));
   openChapterSearch(&name1, &metaOut, false);
 }

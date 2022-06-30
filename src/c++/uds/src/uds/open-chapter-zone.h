@@ -134,12 +134,9 @@ int __must_check put_open_chapter(struct open_chapter_zone *open_chapter,
  *
  * @param open_chapter  The chapter from which to remove the record
  * @param name          The name of the record
- * @param removed       Pointer to bool set to <code>true</code> if the
- *                      record was found
  **/
 void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
-			      const struct uds_chunk_name *name,
-			      bool *removed);
+			      const struct uds_chunk_name *name);
 
 /**
  * Clean up an open chapter and its memory.

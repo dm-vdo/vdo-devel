@@ -228,15 +228,13 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 }
 
 void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
-			      const struct uds_chunk_name *name,
-			      bool *removed)
+			      const struct uds_chunk_name *name)
 {
 	unsigned int record_number;
 	struct uds_chunk_record *record =
 		probe_chapter_slots(open_chapter, name, NULL, &record_number);
 
 	if (record == NULL) {
-		*removed = false;
 		return;
 	}
 
@@ -246,7 +244,6 @@ void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 	 */
 	open_chapter->slots[record_number].record_deleted = true;
 	open_chapter->deleted += 1;
-	*removed = true;
 }
 
 void free_open_chapter(struct open_chapter_zone *open_chapter)
