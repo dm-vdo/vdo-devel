@@ -19,19 +19,6 @@
 extern atomic_t saves_begun;
 #endif /* TEST_INTERNAL */
 
-enum region_kind {
-	RL_KIND_SCRATCH = 0, /* uninitialized or scrapped */
-	RL_KIND_HEADER = 1,
-	RL_KIND_CONFIG = 100,
-	RL_KIND_INDEX = 101,
-	RL_KIND_SEAL = 102,
-	RL_KIND_VOLUME = 201,
-	RL_KIND_SAVE = 202,
-	RL_KIND_INDEX_PAGE_MAP = 301,
-	RL_KIND_VOLUME_INDEX = 302,
-	RL_KIND_OPEN_CHAPTER = 303,
-};
-
 struct index_layout;
 
 int __must_check make_uds_index_layout(struct configuration *config,
