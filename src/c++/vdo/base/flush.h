@@ -13,21 +13,21 @@
 #include "wait-queue.h"
 #include "workQueue.h"
 
-/**
+/*
  * A marker for tracking which journal entries are affected by a flush request.
- **/
+ */
 struct vdo_flush {
-	/** The completion for enqueueing this flush request. */
+	/* The completion for enqueueing this flush request. */
 	struct vdo_completion completion;
-	/** The flush bios covered by this request */
+	/* The flush bios covered by this request */
 	struct bio_list bios;
 #ifdef VDO_INTERNAL
-	/** Time when the earlier bio arrived */
+	/* Time when the earlier bio arrived */
 	uint64_t arrival_jiffies;
 #endif /* VDO_INTERNAL */
-	/** The wait queue entry for this flush */
+	/* The wait queue entry for this flush */
 	struct waiter waiter;
-	/** Which flush this struct represents */
+	/* Which flush this struct represents */
 	sequence_number_t flush_generation;
 };
 

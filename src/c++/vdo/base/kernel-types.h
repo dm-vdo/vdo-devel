@@ -16,41 +16,43 @@
 #endif /* not __KERNEL__ */
 
 /**
- * A count of compressed fragments
- **/
+ * typedef compressed_fragment_count_t - A count of compressed fragments.
+ */
 typedef uint8_t compressed_fragment_count_t;
 
 /**
- * The size of a page.  Must be evenly divisible by block size.
- **/
+ * typedef page_size_t - The size of a page.
+ *
+ * Must be evenly divisible by block size.
+ */
 typedef uint32_t page_size_t;
 
 /**
- * A thread counter
- **/
+ * typedef thread_count_t - A thread counter.
+ */
 typedef uint8_t thread_count_t;
 
 /**
- * A thread ID
+ * typedef thread_id_t - A thread ID.
  *
  * Base-code threads are numbered sequentially starting from 0.
- **/
+ */
 typedef uint8_t thread_id_t;
 
-/**
+/*
  * The thread ID returned when the current base code thread ID cannot be found
  * or is otherwise undefined.
- **/
+ */
 static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
 
 /**
- * A number of vios.
- **/
+ * typedef vio_count_t - A number of vios.
+ */
 typedef uint16_t vio_count_t;
 
-/**
+/*
  * The type of request a data_vio is performing
- **/
+ */
 enum data_vio_operation_bits {
 	__DATA_VIO_READ,
 	__DATA_VIO_WRITE,
@@ -67,9 +69,9 @@ enum data_vio_operation {
 #define DATA_VIO_READ_MODIFY_WRITE (DATA_VIO_READ | DATA_VIO_WRITE)
 #define DATA_VIO_READ_WRITE_MASK DATA_VIO_READ_MODIFY_WRITE
 
-/**
+/*
  * vio types for statistics and instrumentation.
- **/
+ */
 enum vio_type {
 	VIO_TYPE_UNINITIALIZED = 0,
 	VIO_TYPE_DATA,
@@ -85,20 +87,19 @@ enum vio_type {
 } __packed;
 
 /**
- * Check whether a vio_type is for servicing an external data request.
- *
- * @param type  The vio_type to check
- **/
+ * vdo_is_data_vio_type() - Check whether a vio_type is for servicing an
+ *                          external data request.
+ * @type: The vio_type to check.
+ */
 static inline bool vdo_is_data_vio_type(enum vio_type type)
 {
 	return (type == VIO_TYPE_DATA);
 }
 
 /**
- * Check whether a vio_type is for metadata
- *
- * @param type  The vio_type to check
- **/
+ * vdo_is_metadata_vio_type() - Check whether a vio_type is for metadata.
+ * @type: The vio_type to check.
+ */
 static inline bool vdo_is_metadata_vio_type(enum vio_type type)
 {
 	return ((type != VIO_TYPE_UNINITIALIZED) &&
@@ -135,9 +136,9 @@ enum vdo_completion_priority {
 	VDO_WORK_Q_DEFAULT_PRIORITY = VDO_WORK_Q_MAX_PRIORITY + 1,
 };
 
-/**
+/*
  * Priority levels for asynchronous I/O operations performed on a vio.
- **/
+ */
 enum vio_priority {
 	VIO_PRIORITY_LOW = 0,
 	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
@@ -153,9 +154,9 @@ enum vdo_zone_type {
 	VDO_ZONE_TYPE_PHYSICAL,
 };
 
-/**
+/*
  * Forward declarations of abstract types
- **/
+ */
 struct action_manager;
 struct allocation_selector;
 struct atomic_bio_stats;

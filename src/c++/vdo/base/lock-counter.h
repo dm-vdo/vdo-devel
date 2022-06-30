@@ -10,6 +10,8 @@
 #include "types.h"
 
 /**
+ * DOC: Lock Counters.
+ *
  * A lock_counter provides a set of shared reference count locks which is safe
  * across multiple zones with a minimum of cross-thread synchronization
  * operations. For each lock in the set, it maintains a set of per-zone lock
@@ -23,7 +25,7 @@
  * check for which locks have been released, and to inform the lock counter
  * that it has received the notification by calling
  * vdo_acknowledge_lock_unlock().
- **/
+ */
 
 int __must_check vdo_make_lock_counter(struct vdo *vdo,
 				       void *parent,

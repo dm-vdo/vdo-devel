@@ -15,32 +15,32 @@
 #include "types.h"
 
 struct hash_zone {
-	/** Which hash zone this is */
+	/* Which hash zone this is */
 	zone_count_t zone_number;
 
-	/** The thread ID for this zone */
+	/* The thread ID for this zone */
 	thread_id_t thread_id;
 
-	/** Mapping from chunk_name fields to hash_locks */
+	/* Mapping from chunk_name fields to hash_locks */
 	struct pointer_map *hash_lock_map;
 
-	/** List containing all unused hash_locks */
+	/* List containing all unused hash_locks */
 	struct list_head lock_pool;
 
-	/**
+	/*
 	 * Statistics shared by all hash locks in this zone. Only modified on
 	 * the hash zone thread, but queried by other threads.
-	 **/
+	 */
 	struct hash_lock_statistics statistics;
 
-	/** Array of all hash_locks */
+	/* Array of all hash_locks */
 	struct hash_lock *lock_array;
 };
 
 struct hash_zones {
-	/** The number of zones */
+	/* The number of zones */
 	zone_count_t zone_count;
-	/** The hash zones themselves */
+	/* The hash zones themselves */
 	struct hash_zone zones[];
 };
 

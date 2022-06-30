@@ -10,16 +10,17 @@
 #include "type-defs.h"
 
 /**
- * An int_map associates pointers (<code>void *</code>) with integer keys
- * (<code>uint64_t</code>). <code>NULL</code> pointer values are not
- * supported.
+ * DOC: int_map
+ *
+ * An int_map associates pointers (void *) with integer keys (uint64_t). NULL
+ * pointer values are not supported.
  *
  * The map is implemented as hash table, which should provide constant-time
  * insert, query, and remove operations, although the insert may occasionally
  * grow the table, which is linear in the number of entries in the map. The
  * table will grow as needed to hold new entries, but will not shrink as
  * entries are removed.
- **/
+ */
 
 struct int_map;
 
