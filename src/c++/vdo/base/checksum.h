@@ -9,13 +9,12 @@
 #include <zlib.h>
 
 /**
- * A function to calculate a CRC-32 checksum.
+ * vdo_crc32() - Calculate a CRC-32 checksum.
+ * @buffer: The data to  checksum.
+ * @length: The length of the data.
  *
- * @param buffer  The data to  checksum
- * @param length  The length of the data
- *
- * @return The checksum
- **/
+ * Return: The checksum.
+ */
 static inline uint32_t vdo_crc32(const byte *buffer, size_t length)
 {
 	/*

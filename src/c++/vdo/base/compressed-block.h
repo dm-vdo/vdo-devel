@@ -13,17 +13,17 @@
 #include "header.h"
 #include "types.h"
 
-/**
+/*
  * The header of a compressed block.
- **/
+ */
 struct compressed_block_header {
-	/**
+	/*
 	 * Unsigned 32-bit major and minor versions,
 	 * in little-endian byte order
 	 */
 	struct packed_version_number version;
 
-	/**
+	/*
 	 * List of unsigned 16-bit compressed block sizes,
 	 * in little-endian order
 	 */
@@ -42,9 +42,9 @@ enum {
 	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE - 1,
 };
 
-/**
+/*
  * The compressed block overlay.
- **/
+ */
 struct compressed_block {
 	struct compressed_block_header header;
 	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE];

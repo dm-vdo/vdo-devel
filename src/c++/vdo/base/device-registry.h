@@ -10,10 +10,10 @@
 #include "types.h"
 
 /**
- * Method type for vdo matching methods.
+ * typedef vdo_filter_t - Method type for vdo matching methods.
  *
  * A filter function returns false if the vdo doesn't match.
- **/
+ */
 typedef bool vdo_filter_t(struct vdo *vdo, void *context);
 
 void vdo_initialize_device_registry_once(void);

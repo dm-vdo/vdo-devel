@@ -10,11 +10,11 @@
 #include "block-mapping-state.h"
 #include "types.h"
 
-/**
+/*
  * An explicitly numbered block mapping. Numbering the mappings allows them to
  * be sorted by logical block number during recovery while still preserving
  * the relative order of journal entries with the same logical block number.
- **/
+ */
 struct numbered_block_mapping {
 	struct block_map_slot block_map_slot;
 	struct block_map_entry block_map_entry;

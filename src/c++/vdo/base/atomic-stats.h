@@ -20,10 +20,10 @@ struct atomic_bio_stats {
 	atomic64_t fua; /* Number of REQ_FUA bios */
 };
 
-/**
+/*
  * Counters are atomic since updates can arrive concurrently from arbitrary
  * threads.
- **/
+ */
 struct atomic_statistics {
 	atomic64_t bios_submitted;
 	atomic64_t bios_completed;

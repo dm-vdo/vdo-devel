@@ -9,10 +9,10 @@
 #include "kernel-types.h"
 #include "types.h"
 
-/**
+/*
  * Where a data_vio is on the compression path; advance_status() depends on the
  * order of this enum.
- **/
+ */
 enum vio_compression_status {
 	/* A VIO which has not yet entered the compression path */
 	VIO_PRE_COMPRESSOR,

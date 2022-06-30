@@ -30,17 +30,17 @@ struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
 	struct vdo *vdo;
-	/** All configs referencing a layer are kept on a list in the layer */
+	/* All configs referencing a layer are kept on a list in the layer */
 	struct list_head config_list;
 	char *original_string;
 	unsigned int version;
 	char *parent_device_name;
 	block_count_t physical_blocks;
-	/**
+	/*
 	 * This is the number of logical blocks from VDO's internal point of
 	 * view. It is the number of 4K blocks regardles of the value of the
 	 * logical_block_size parameter below.
-	 **/
+	 */
 	block_count_t logical_blocks;
 	unsigned int logical_block_size;
 	unsigned int cache_size;
@@ -52,13 +52,14 @@ struct device_config {
 };
 
 /**
- * Convert a list entry to the device_config that contains it. If non-NULL,
- * the list must not be empty.
+ * vdo_as_device_config() - Convert a list entry to the device_config that
+ *                          contains it.
+ * @entry: The list entry to convert.
  *
- * @param entry  The list entry to convert
+ * If non-NULL, the list must not be empty.
  *
- * @return The device_config wrapping the list entry
- **/
+ * Return: The device_config wrapping the list entry.
+ */
 static inline struct device_config *vdo_as_device_config(struct list_head *entry)
 {
 	if (entry == NULL) {

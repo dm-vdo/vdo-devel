@@ -9,19 +9,27 @@
 #include "completion.h"
 
 /**
+ * DOC: Allocation selectors
+ *
  * An allocation_selector is used by any zone which does data block allocations.
  * The selector is used to round-robin allocation requests to different
  * physical zones. Currently, 128 allocations will be made to a given physical
  * zone before switching to the next.
- **/
+ */
 
-/** Structure used to select which physical zone to allocate from */
+/**
+ * struct allocation_selector: Structure used to select which physical zone to
+ *                             allocate from.
+ */
 struct allocation_selector {
-	/** The number of allocations done in the current zone */
+	/**
+	 * @allocation_count: The number of allocations done in the current
+	 *                    zone.
+	 */
 	block_count_t allocation_count;
-	/** The physical zone to allocate from next */
+	/** @next_allocation_zone: The physical zone to allocate from next. */
 	zone_count_t next_allocation_zone;
-	/** The number of the last physical zone */
+	/** @last_physical_cone: The number of the last physical zone. */
 	zone_count_t last_physical_zone;
 };
 
