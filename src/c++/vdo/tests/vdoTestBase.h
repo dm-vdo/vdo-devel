@@ -315,10 +315,11 @@ int modifyCompressDedupe(bool compress, bool dedupe);
  * Increase the logical size of a VDO.
  *
  * @param newSize  The new size (in blocks)
+ * @param save     Whether to save VDO state
  *
  * @return VDO_SUCCESS or an error
  **/
-int growVDOLogical(block_count_t newSize)
+int growVDOLogical(block_count_t newSize, bool save)
   __attribute__((warn_unused_result));
 
 /**

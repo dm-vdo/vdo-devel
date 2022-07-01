@@ -30,6 +30,7 @@ static const block_count_t NEW_LOGICAL_SIZE = 100000000;
 
 static bool success;
 static bool empty;
+static bool save;
 
 /**
  * Test-specific initialization.
@@ -44,6 +45,7 @@ static void initialize(void)
   initializeVDOTest(&parameters);
   success = true;
   empty   = true;
+  save    = false;
 }
 
 /**
@@ -98,7 +100,7 @@ static void testGrowLogical(void)
 
   // Attempt to grow
   CU_ASSERT_EQUAL((success ? VDO_SUCCESS : LAYER_ERROR),
-                  growVDOLogical(NEW_LOGICAL_SIZE));
+                  growVDOLogical(NEW_LOGICAL_SIZE, save));
   CU_ASSERT_EQUAL(expectedSize, getTestConfig().config.logical_blocks);
 
   logical_block_number_t newRangeLBN = NEW_LOGICAL_SIZE - 1;
@@ -159,6 +161,14 @@ static void testGrowLogical(void)
 }
 
 /**********************************************************************/
+static void testGrowLogicalWithSave(void)
+{
+  save = true;
+  empty = false;
+  testGrowLogical();
+}
+
+/**********************************************************************/
 static void testGrowLogicalNotEmpty(void)
 {
   empty = false;
@@ -183,10 +193,11 @@ static void testGrowLogicalFailureNotEmpty(void)
 /**********************************************************************/
 
 static CU_TestInfo tests[] = {
-  { "grow logical succeeds, empty VDO",     testGrowLogical                },
-  { "grow logical succeeds, non-empty VDO", testGrowLogicalNotEmpty        },
-  { "grow logical fails, empty VDO",        testGrowLogicalFailure         },
-  { "grow logical fails, non-empty VDO",    testGrowLogicalFailureNotEmpty },
+  { "grow logical succeeds, empty VDO",               testGrowLogical                },
+  { "grow logical succeeds, non-empty VDO",           testGrowLogicalNotEmpty        },
+  { "grow logical fails, empty VDO",                  testGrowLogicalFailure         },
+  { "grow logical fails, non-empty VDO",              testGrowLogicalFailureNotEmpty },
+  { "grow logical with save succeeds, non-empty VDO", testGrowLogicalWithSave        },
   CU_TEST_INFO_NULL,
 };
 

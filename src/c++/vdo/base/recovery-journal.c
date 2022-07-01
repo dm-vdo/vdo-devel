@@ -362,6 +362,9 @@ static void initialize_journal_state(struct recovery_journal *journal)
 	journal->slab_journal_head_block_number =
 		vdo_get_recovery_journal_block_number(journal,
 						      journal->slab_journal_head);
+	journal->available_space =
+		(journal->entries_per_block *
+		 vdo_get_recovery_journal_length(journal->size));
 }
 
 /**
@@ -461,7 +464,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 				const struct thread_config *thread_config,
 				struct recovery_journal **journal_ptr)
 {
-	block_count_t journal_length;
 	block_count_t i;
 	struct recovery_journal *journal;
 	int result = UDS_ALLOCATE(1, struct recovery_journal, __func__, &journal);
@@ -483,6 +485,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	journal->slab_journal_commit_threshold = (journal_size * 2) / 3;
 	journal->logical_blocks_used = state.logical_blocks_used;
 	journal->block_map_data_blocks = state.block_map_data_blocks;
+	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
 
@@ -491,10 +494,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	 * resume
 	 */
 	vdo_set_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
-
-	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
-	journal_length = vdo_get_recovery_journal_length(journal_size);
-	journal->available_space = journal->entries_per_block * journal_length;
 
 	for (i = 0; i < tail_buffer_size; i++) {
 		struct recovery_journal_block *block;

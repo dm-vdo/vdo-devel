@@ -554,7 +554,9 @@ int modifyCompressDedupe(bool compress, bool dedupe)
 }
 
 /**********************************************************************/
-static int modifyVDO(block_count_t logicalSize, block_count_t physicalSize)
+static int modifyVDO(block_count_t logicalSize,
+		     block_count_t physicalSize,
+		     bool          save)
 {
   char *error;
   struct device_config *old_config = vdo->device_config;
@@ -570,7 +572,8 @@ static int modifyVDO(block_count_t logicalSize, block_count_t physicalSize)
     return result;
   }
 
-  VDO_ASSERT_SUCCESS(perform_vdo_suspend(false));
+  VDO_ASSERT_SUCCESS(perform_vdo_suspend(save));
+
   block_count_t oldSize = synchronousLayer->getBlockCount(synchronousLayer);
   if (oldSize < physicalSize) {
     VDO_ASSERT_SUCCESS(resizeRAMLayer(synchronousLayer, physicalSize));
@@ -586,9 +589,9 @@ static int modifyVDO(block_count_t logicalSize, block_count_t physicalSize)
 }
 
 /**********************************************************************/
-int growVDOLogical(block_count_t newSize)
+int growVDOLogical(block_count_t newSize, bool save)
 {
-  return modifyVDO(newSize, vdo->device_config->physical_blocks);
+  return modifyVDO(newSize, vdo->device_config->physical_blocks, save);
 }
 
 /**********************************************************************/
@@ -603,7 +606,8 @@ void growVDOPhysical(block_count_t newSize, int expectedResult)
   }
 
   CU_ASSERT_EQUAL(expectedResult,
-                  modifyVDO(vdo->device_config->logical_blocks, newSize));
+                  modifyVDO(vdo->device_config->logical_blocks, newSize,
+                            false));
 
   if (readOnly) {
     verifyReadOnly();

@@ -222,6 +222,8 @@ vdo_get_slab_journal_block_offset(struct slab_journal *journal,
 	return (sequence % journal->size);
 }
 
+void vdo_resume_slab_journal(struct slab_journal *journal);
+
 void vdo_dump_slab_journal(const struct slab_journal *journal);
 
 #ifdef INTERNAL

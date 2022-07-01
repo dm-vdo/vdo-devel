@@ -1338,6 +1338,23 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 }
 
 /**
+ * vdo_resume_slab_journal() - Reset slab journal state, if necessary, for
+ *                             a suspend-resume cycle.
+ * @journal: The journal to reset
+ *
+ * After a successful save, any info about locks, journal blocks
+ * partially filled, etc., is out of date and should be reset.
+ **/
+void vdo_resume_slab_journal(struct slab_journal *journal)
+{
+	struct vdo *vdo = journal->slab->allocator->depot->vdo;
+	if ((vdo->suspend_type == VDO_ADMIN_STATE_SAVING) &&
+	    !is_vdo_read_only(journal)) {
+		vdo_reopen_slab_journal(journal);
+	}
+}
+
+/**
  * vdo_drain_slab_journal() - Drain slab journal I/O.
  * @journal: The journal to drain.
  *

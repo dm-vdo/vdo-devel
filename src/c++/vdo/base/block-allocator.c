@@ -326,6 +326,7 @@ void vdo_queue_slab(struct vdo_slab *slab)
 		}
 	}
 
+	vdo_resume_slab_journal(slab->journal);
 	prioritize_slab(slab);
 }
 
