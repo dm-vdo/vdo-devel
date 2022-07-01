@@ -8,7 +8,6 @@
 
 #include "hash-utils.h"
 #include "logger.h"
-#include "open-chapter.h"
 #include "request-queue.h"
 #include "sparse-cache.h"
 

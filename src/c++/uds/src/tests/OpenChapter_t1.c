@@ -8,7 +8,7 @@
 #include "config.h"
 #include "errors.h"
 #include "hash-utils.h"
-#include "open-chapter-zone.h"
+#include "open-chapter.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "type-defs.h"

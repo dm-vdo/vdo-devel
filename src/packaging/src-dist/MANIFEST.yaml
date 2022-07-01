@@ -159,7 +159,6 @@ tarballs:
             memory-alloc.h
             numeric.h
             open-chapter.[hc]
-            open-chapter-zone.[hc]
             page-cache.[hc]
             permassert.[hc]
             radix-sort.[hc]
@@ -451,8 +450,6 @@ tarballs:
             numeric.h
             open-chapter.c
             open-chapter.h
-            open-chapter-zone.c
-            open-chapter-zone.h
             page-cache.c
             page-cache.h
             permassert.c

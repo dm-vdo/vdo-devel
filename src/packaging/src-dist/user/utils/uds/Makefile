@@ -76,7 +76,6 @@ UDS_OBJECTS =	murmurhash3.o		\
 		memoryAlloc.o		\
 		minisyslog.o		\
 		open-chapter.o		\
-		open-chapter-zone.o	\
 		page-cache.o		\
 		permassert.o		\
 		radix-sort.o		\

@@ -48,7 +48,6 @@ UDS_COMMON_SOURCES =						\
 					volume-index006.c	\
 					volume-index-ops.c	\
 					open-chapter.c		\
-					open-chapter-zone.c	\
 					page-cache.c		\
 					permassert.c		\
 					radix-sort.c		\

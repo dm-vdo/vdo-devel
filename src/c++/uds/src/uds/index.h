@@ -8,7 +8,7 @@
 
 #include "index-layout.h"
 #include "index-session.h"
-#include "open-chapter-zone.h"
+#include "open-chapter.h"
 #include "request.h"
 #include "volume.h"
 #include "volume-index-ops.h"
