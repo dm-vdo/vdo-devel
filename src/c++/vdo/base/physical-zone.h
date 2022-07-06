@@ -11,24 +11,24 @@
 #include "types.h"
 
 struct physical_zone {
-	/** Which physical zone this is */
+	/* Which physical zone this is */
 	zone_count_t zone_number;
-	/** The thread ID for this zone */
+	/* The thread ID for this zone */
 	thread_id_t thread_id;
-	/** In progress operations keyed by PBN */
+	/* In progress operations keyed by PBN */
 	struct int_map *pbn_operations;
-	/** Pool of unused pbn_lock instances */
+	/* Pool of unused pbn_lock instances */
 	struct pbn_lock_pool *lock_pool;
-	/** The block allocator for this zone */
+	/* The block allocator for this zone */
 	struct block_allocator *allocator;
-	/** The next zone from which to attempt an allocation */
+	/* The next zone from which to attempt an allocation */
 	struct physical_zone *next;
 };
 
 struct physical_zones {
-	/** The number of zones */
+	/* The number of zones */
 	zone_count_t zone_count;
-	/** The physical zones themselves */
+	/* The physical zones themselves */
 	struct physical_zone zones[];
 };
 

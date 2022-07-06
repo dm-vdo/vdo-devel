@@ -9,7 +9,7 @@
 #include "compiler.h"
 #include "type-defs.h"
 
-/**
+/*
  * A pointer_map associates pointer values (<code>void *</code>) with the data
  * referenced by pointer keys (<code>void *</code>). <code>NULL</code> pointer
  * values are not supported. A <code>NULL</code> key value is supported when
@@ -28,36 +28,39 @@
  * that keys will be properties of the values, or that keys will not be memory
  * managed, or that keys will not need to be freed as a result of being
  * replaced when a key is re-mapped.
- **/
+ */
 
 struct pointer_map;
 
 /**
- * The prototype of functions that compare the referents of two pointer keys
- * for equality. If two keys are equal, then both keys must have the same the
- * hash code associated with them by the hasher function defined below.
-
- * @param this_key  The first element to compare
- * @param that_key  The second element to compare
+ * typedef pointer_key_comparator - The prototype of functions that compare
+ *                                  the referents of two pointer keys for
+ *                                  equality.
+ * @this_key: The first element to compare.
+ * @that_key: The second element to compare.
  *
- * @return <code>true</code> if and only if the referents of the two
- *         key pointers are to be treated as the same key by the map
- **/
+ * If two keys are equal, then both keys must have the same the hash code
+ * associated with them by the hasher function defined below.
+ *
+ * Return: true if and only if the referents of the two key pointers are to be
+ *         treated as the same key by the map.
+ */
 typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
 
 /**
- * The prototype of functions that get or calculate a hash code associated
- * with the referent of pointer key. The hash code must be uniformly
- * distributed over all uint32_t values. The hash code associated with a given
- * key must not change while the key is in the map. If the comparator function
- * says two keys are equal, then this function must return the same hash code
- * for both keys. This function may be called many times for a key while an
- * entry is stored for it in the map.
+ * typedef pointer_key_hasher - The prototype of functions that get or
+ *                              calculate a hash code associated with the
+ *                              referent of pointer key.
+ * @key: The pointer key to hash.
  *
- * @param key  The pointer key to hash
+ * The hash code must be uniformly distributed over all uint32_t values. The
+ * hash code associated with a given key must not change while the key is in
+ * the map. If the comparator function says two keys are equal, then this
+ * function must return the same hash code for both keys. This function may be
+ * called many times for a key while an entry is stored for it in the map.
  *
- * @return the hash code for the key
- **/
+ * Return: The hash code for the key.
+ */
 typedef uint32_t pointer_key_hasher(const void *key);
 
 int __must_check make_pointer_map(size_t initial_capacity,

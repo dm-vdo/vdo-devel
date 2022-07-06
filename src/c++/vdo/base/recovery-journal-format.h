@@ -40,14 +40,15 @@ const char * __must_check
 vdo_get_journal_operation_name(enum journal_operation operation);
 
 /**
- * Determine whether the header of the given sector could describe a
- * valid sector for the given journal block header.
+ * vdo_is_valid_recovery_journal_sector() - Determine whether the header of
+ *                                          the given sector could describe a
+ *                                          valid sector for the given journal
+ *                                          block header.
+ * @header: The unpacked block header to compare against.
+ * @sector: The packed sector to check.
  *
- * @param header  The unpacked block header to compare against
- * @param sector  The packed sector to check
- *
- * @return <code>True</code> if the sector matches the block header
- **/
+ * Return: true if the sector matches the block header.
+ */
 static inline bool __must_check
 vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 				     const struct packed_journal_sector *sector)
@@ -57,15 +58,16 @@ vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 }
 
 /**
- * Compute the physical block number of the recovery journal block which would
- * have a given sequence number.
+ * vdo_compute_recovery_journal_block_number() - Compute the physical block
+ *                                               number of the recovery
+ *                                               journal block which would
+ *                                               have a given sequence number.
+ * @journal_size: The size of the journal.
+ * @sequence_number: The sequence number.
  *
- * @param journal_size     The size of the journal
- * @param sequence_number  The sequence number
- *
- * @return The pbn of the journal block which would the specified sequence
- *         number
- **/
+ * Return: The pbn of the journal block which would the specified sequence
+ *         number.
+ */
 static inline physical_block_number_t __must_check
 vdo_compute_recovery_journal_block_number(block_count_t journal_size,
 					  sequence_number_t sequence_number)

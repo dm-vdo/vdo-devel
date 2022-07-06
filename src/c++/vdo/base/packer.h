@@ -20,7 +20,7 @@ enum {
 	DEFAULT_PACKER_BINS = 16,
 };
 
-/**
+/*
  * Each packer_bin holds an incomplete batch of data_vios that only partially
  * fill a compressed block. The bins are kept in a ring sorted by the amount of
  * unused space so the first bin with enough space to hold a newly-compressed
@@ -39,47 +39,47 @@ enum {
  * canceled and removed from their bin by the packer. These data_vios need to
  * wait for the canceller to rendezvous with them (VDO-2809) and so they sit in
  * this special bin.
- **/
+ */
 struct packer_bin {
-	/** List links for packer.packer_bins */
+	/* List links for packer.packer_bins */
 	struct list_head list;
-	/** The number of items in the bin */
+	/* The number of items in the bin */
 	slot_number_t slots_used;
-	/**
+	/*
 	 * The number of compressed block bytes remaining in the current batch
 	 */
 	size_t free_space;
-	/** The current partial batch of data_vios, waiting for more */
+	/* The current partial batch of data_vios, waiting for more */
 	struct data_vio *incoming[];
 };
 
 struct packer {
-	/** The ID of the packer's callback thread */
+	/* The ID of the packer's callback thread */
 	thread_id_t thread_id;
-	/** The number of bins */
+	/* The number of bins */
 	block_count_t size;
-	/** The block size minus header size */
+	/* The block size minus header size */
 	size_t bin_data_size;
-	/** The number of compression slots */
+	/* The number of compression slots */
 	size_t max_slots;
-	/** A list of all packer_bins, kept sorted by free_space */
+	/* A list of all packer_bins, kept sorted by free_space */
 	struct list_head bins;
-	/**
+	/*
 	 * A bin to hold data_vios which were canceled out of the packer and
 	 * are waiting to rendezvous with the canceling data_vio.
-	 **/
+	 */
 	struct packer_bin *canceled_bin;
 
-	/** The current flush generation */
+	/* The current flush generation */
 	sequence_number_t flush_generation;
 
-	/** The administrative state of the packer */
+	/* The administrative state of the packer */
 	struct admin_state state;
 
-	/**
+	/*
 	 * Statistics are only updated on the packer thread, but are
 	 * accessed from other threads.
-	 **/
+	 */
 	struct packer_statistics statistics;
 };
 

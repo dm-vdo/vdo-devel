@@ -12,7 +12,7 @@
 #include "journal-point.h"
 #include "types.h"
 
-/**
+/*
  * A recovery journal entry stores two physical locations: a data location
  * that is the value of a single mapping in the block map tree, and the
  * location of the block map page and slot that is either acquiring or
@@ -20,22 +20,22 @@
  * an operation code that says whether the reference is being acquired (an
  * increment) or released (a decrement), and whether the mapping is for a
  * logical block or for the block map tree itself.
- **/
+ */
 struct recovery_journal_entry {
 	struct block_map_slot slot;
 	struct data_location mapping;
 	enum journal_operation operation;
 };
 
-/** The packed, on-disk representation of a recovery journal entry. */
+/* The packed, on-disk representation of a recovery journal entry. */
 struct packed_recovery_journal_entry {
-	/**
+	/*
 	 * In little-endian bit order:
 	 * Bits 15..12:  The four highest bits of the 36-bit physical
 	 * block number of the block map tree page Bits 11..2:   The
 	 * 10-bit block map page slot number Bits 1..0:    The 2-bit
 	 * journal_operation of the entry
-	 **/
+	 */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	unsigned operation : 2;
 	unsigned slot_low : 6;
@@ -48,26 +48,27 @@ struct packed_recovery_journal_entry {
 	unsigned slot_high : 4;
 #endif
 
-	/**
+	/*
 	 * Bits 47..16:  The 32 low-order bits of the block map page
 	 * PBN, in little-endian byte order
-	 **/
+	 */
 	__le32 pbn_low_word;
 
-	/**
+	/*
 	 * Bits 87..48:  The five-byte block map entry encoding the
 	 * location that was or will be stored in the block map page slot
-	 **/
+	 */
 	struct block_map_entry block_map_entry;
 } __packed;
 
 /**
- * Return the packed, on-disk representation of a recovery journal entry.
+ * vdo_pack_recovery_journal_entry() - Return the packed, on-disk
+ *                                     representation of a recovery journal
+ *                                     entry.
+ * @entry: The journal entry to pack.
  *
- * @param entry   The journal entry to pack
- *
- * @return  The packed representation of the journal entry
- **/
+ * Return: The packed representation of the journal entry.
+ */
 static inline struct packed_recovery_journal_entry
 vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 {
@@ -83,12 +84,12 @@ vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 }
 
 /**
- * Unpack the on-disk representation of a recovery journal entry.
+ * vdo_unpack_recovery_journal_entry() - Unpack the on-disk representation of
+ *                                       a recovery journal entry.
+ * @entry: The recovery journal entry to unpack.
  *
- * @param entry  The recovery journal entry to unpack
- *
- * @return  The unpacked entry
- **/
+ * Return: The unpacked entry.
+ */
 static inline struct recovery_journal_entry
 vdo_unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *entry)
 {

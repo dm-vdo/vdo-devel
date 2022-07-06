@@ -19,12 +19,11 @@
 #include "completion.h"
 
 /**
- * A function to notify a listener that the VDO has gone read-only.
- *
- * @param listener  The object to notify
- * @param parent    The completion to notify in order to acknowledge the
- *                  notification
- **/
+ * typedef vdo_read_only_notification - A function to notify a listener that
+ *                                      the VDO has gone read-only.
+ * @listener: The object to notify.
+ * @parent: The completion to notify in order to acknowledge the notification.
+ */
 typedef void vdo_read_only_notification(void *listener,
 					struct vdo_completion *parent);
 

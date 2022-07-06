@@ -13,14 +13,15 @@
 #include "types.h"
 
 /**
- * Get the block header for a block at a position in the journal data.
+ * vdo_get_recovery_journal_block_header() - Get the block header for a block
+ *                                           at a position in the journal
+ *                                           data.
+ * @journal: The recovery journal.
+ * @journal_data: The recovery journal data.
+ * @sequence: The sequence number.
  *
- * @param journal       The recovery journal
- * @param journal_data  The recovery journal data
- * @param sequence      The sequence number
- *
- * @return A pointer to a packed recovery journal blokck header.
- **/
+ * Return: A pointer to a packed recovery journal block header.
+ */
 static inline struct packed_journal_header * __must_check
 vdo_get_recovery_journal_block_header(struct recovery_journal *journal,
 				      char *journal_data,
@@ -33,15 +34,17 @@ vdo_get_recovery_journal_block_header(struct recovery_journal *journal,
 }
 
 /**
- * Determine whether the given header describes a valid block for the
- * given journal. A block is not valid if it is unformatted, or if it
- * is older than the last successful recovery or reformat.
+ * vdo_is_valid_recovery_journal_block() - Determine whether the given header
+ *                                         describes a valid block for the
+ *                                         given journal.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
  *
- * @param journal  The journal to use
- * @param header   The unpacked block header to check
+ * A block is not valid if it is unformatted, or if it is older than the last
+ * successful recovery or reformat.
  *
- * @return <code>True</code> if the header is valid
- **/
+ * Return: True if the header is valid.
+ */
 static inline bool __must_check
 vdo_is_valid_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header)
@@ -52,14 +55,14 @@ vdo_is_valid_recovery_journal_block(const struct recovery_journal *journal,
 }
 
 /**
- * Determine whether the given header describes the exact block indicated.
+ * vdo_is_exact_recovery_journal_block() - Determine whether the given header
+ *                                         describes the exact block indicated.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
+ * @sequence: The expected sequence number.
  *
- * @param journal   The journal to use
- * @param header    The unpacked block header to check
- * @param sequence  The expected sequence number
- *
- * @return <code>True</code> if the block matches
- **/
+ * Return: True if the block matches.
+ */
 static inline bool __must_check
 vdo_is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
