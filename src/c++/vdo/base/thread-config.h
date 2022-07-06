@@ -36,13 +36,12 @@ vdo_make_thread_config(struct thread_count_config counts,
 void vdo_free_thread_config(struct thread_config *config);
 
 /**
- * Get the thread id for a given logical zone.
+ * vdo_get_logical_zone_thread() - Get the thread id for a given logical zone.
+ * @thread_config: The thread config.
+ * @logical_zone: The number of the logical zone.
  *
- * @param thread_config  the thread config
- * @param logical_zone   the number of the logical zone
- *
- * @return the thread id for the given zone
- **/
+ * Return: The thread id for the given zone.
+ */
 static inline thread_id_t __must_check
 vdo_get_logical_zone_thread(const struct thread_config *thread_config,
 			    zone_count_t logical_zone)
@@ -53,13 +52,13 @@ vdo_get_logical_zone_thread(const struct thread_config *thread_config,
 }
 
 /**
- * Get the thread id for a given physical zone.
+ * vdo_get_physical_zone_thread() - Get the thread id for a given physical
+ *                                  zone.
+ * @thread_config: The thread config.
+ * @physical_zone: The number of the physical zone.
  *
- * @param thread_config  the thread config
- * @param physical_zone  the number of the physical zone
- *
- * @return the thread id for the given zone
- **/
+ * Return: The thread id for the given zone.
+ */
 static inline thread_id_t __must_check
 vdo_get_physical_zone_thread(const struct thread_config *thread_config,
 			     zone_count_t physical_zone)
@@ -70,13 +69,12 @@ vdo_get_physical_zone_thread(const struct thread_config *thread_config,
 }
 
 /**
- * Get the thread id for a given hash zone.
+ * vdo_get_hash_zone_thread() - Get the thread id for a given hash zone.
+ * @thread_config: The thread config.
+ * @hash_zone: The number of the hash zone.
  *
- * @param thread_config  the thread config
- * @param hash_zone      the number of the hash zone
- *
- * @return the thread id for the given zone
- **/
+ * Return: The thread id for the given zone.
+ */
 static inline thread_id_t __must_check
 vdo_get_hash_zone_thread(const struct thread_config *thread_config,
 			 zone_count_t hash_zone)

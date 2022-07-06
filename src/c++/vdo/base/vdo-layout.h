@@ -4,6 +4,8 @@
  */
 
 /**
+ * DOC: VDO Layout.
+ *
  * vdo_layout is an object which manages the layout of a VDO. It wraps
  * fixed_layout, but includes the knowledge of exactly which partitions a VDO
  * is expected to have. Because of this knowledge, the vdo_layout validates
@@ -13,7 +15,7 @@
  *
  * The vdo_layout also manages the preparation and growth of the layout for
  * grow physical operations.
- **/
+ */
 
 #ifndef VDO_LAYOUT_H
 #define VDO_LAYOUT_H
@@ -33,11 +35,11 @@ enum partition_direction {
 
 extern const block_count_t VDO_ALL_FREE_BLOCKS;
 
-/**
+/*
  * A fixed layout is like a traditional disk partitioning scheme.  In the
  * beginning there is one large unused area, of which parts are carved off.
  * Each carved off section has its own internal offset and size.
- **/
+ */
 struct fixed_layout;
 struct partition;
 

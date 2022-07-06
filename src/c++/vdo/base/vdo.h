@@ -56,17 +56,17 @@ struct vdo {
 	struct vdo_completion *completion;
 	struct vio_tracer *vio_tracer;
 
-	/** The connection to the UDS index */
+	/* The connection to the UDS index */
 	struct dedupe_index *dedupe_index;
 
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
 	/* The full state of all components */
 	struct vdo_component_states states;
-	/**
+	/*
 	 * A counter value to attach to thread names and log messages to
 	 * identify the individual device.
-	 **/
+	 */
 	unsigned int instance;
 	/* The read-only notifier */
 	struct read_only_notifier *read_only_notifier;
@@ -110,10 +110,10 @@ struct vdo {
 	/* The hash lock zones of this vdo */
 	struct hash_zones *hash_zones;
 
-	/**
+	/*
 	 * Bio submission manager used for sending bios to the storage
 	 * device.
-	 **/
+	 */
 	struct io_submitter *io_submitter;
 
 	/* The pool of data_vios for servicing incoming bios */
@@ -149,13 +149,13 @@ struct vdo {
 	struct vdo_histograms histograms;
 #endif /* VDO_INTERNAL */
 
-	/** A list of all device_configs referencing this vdo */
+	/* A list of all device_configs referencing this vdo */
 	struct list_head device_config_list;
 
-	/** This VDO's list entry for the device registry */
+	/* This VDO's list entry for the device registry */
 	struct list_head registration;
 
-	/** Underlying block device info. */
+	/* Underlying block device info. */
 	uint64_t starting_sector_offset;
 	struct volume_geometry geometry;
 
@@ -163,7 +163,7 @@ struct vdo {
 	struct kobject vdo_directory;
 	struct kobject stats_directory;
 
-	/** N blobs of context data for LZ4 code, one per CPU thread. */
+	/* N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 };
 
@@ -172,17 +172,17 @@ extern int data_vio_count;
 #endif /* VDO_INTERNAL or INTERNAL */
 
 /**
- * Indicate whether the vdo is configured to use a separate work queue for
- * acknowledging received and processed bios.
+ * vdo_uses_bio_ack_queue() - Indicate whether the vdo is configured to use a
+ *                            separate work queue for acknowledging received
+ *                            and processed bios.
+ * @vdo: The vdo.
  *
  * Note that this directly controls the handling of write operations, but the
  * compile-time flag VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
  * operations.
  *
- * @param vdo  The vdo
- *
- * @return Whether a bio-acknowledgement work queue is in use
- **/
+ * Return: Whether a bio-acknowledgement work queue is in use.
+ */
 static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 {
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;

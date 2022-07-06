@@ -20,40 +20,40 @@
 #include "types.h"
 #include "wait-queue.h"
 
-/**
+/*
  * Generation counter for page references.
- **/
+ */
 typedef uint32_t vdo_page_generation;
 
 /**
- * Signature for a function to call when a page is read into the cache.
+ * typedef vdo_page_read_function - Signature for a function to call when a
+ *                                  page is read into the cache.
+ * @raw_page: The raw memory of the freshly-fetched page.
+ * @pbn: The absolute physical block number of the page.
+ * @zone: The block map zone to which the cache belongs.
+ * @page_context: A pointer to client-specific data for the new page.
  *
- * <p>If specified, this function is called when a page is fetched from disk.
+ * If specified, this function is called when a page is fetched from disk.
  *
- * @param raw_page      The raw memory of the freshly-fetched page
- * @param pbn           The absolute physical block number of the page
- * @param zone          The block map zone to which the cache belongs
- * @param page_context  A pointer to client-specific data for the new page
- *
- * @return VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
- *         formatted
- **/
+ * Return: VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
+ *         formatted.
+ */
 typedef int vdo_page_read_function(void *raw_page,
 				   physical_block_number_t pbn,
 				   struct block_map_zone *zone,
 				   void *page_context);
 
 /**
- * Signature for a function to call when a page is written from the cache.
+ * typedef vdo_page_write_function - Signature for a function to call when a
+ *                                   page is written from the cache.
+ * @raw_page: The raw memory of the freshly-written page.
+ * @zone: The block map zone to which the cache belongs.
+ * @page_context: A pointer to client-specific data for the new page.
  *
- * <p>If specified, this function is called when a page is written to disk.
+ * If specified, this function is called when a page is written to disk.
  *
- * @param raw_page      The raw memory of the freshly-written page
- * @param zone          The block map zone to which the cache belongs
- * @param page_context  A pointer to client-specific data for the new page
- *
- * @return whether the page needs to be rewritten
- **/
+ * Return: Whether the page needs to be rewritten.
+ */
 typedef bool vdo_page_write_function(void *raw_page,
 				     struct block_map_zone *zone,
 				     void *page_context);
@@ -64,65 +64,65 @@ enum {
 
 static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
-/**
+/*
  * The VDO Page Cache abstraction.
- **/
+ */
 struct vdo_page_cache {
-	/** the VDO which owns this cache */
+	/* the VDO which owns this cache */
 	struct vdo *vdo;
-	/** number of pages in cache */
+	/* number of pages in cache */
 	page_count_t page_count;
-	/** function to call on page read */
+	/* function to call on page read */
 	vdo_page_read_function *read_hook;
-	/** function to call on page write */
+	/* function to call on page write */
 	vdo_page_write_function *write_hook;
-	/** number of pages to write in the current batch */
+	/* number of pages to write in the current batch */
 	page_count_t pages_in_batch;
-	/** Whether the VDO is doing a read-only rebuild */
+	/* Whether the VDO is doing a read-only rebuild */
 	bool rebuilding;
 
-	/** array of page information entries */
+	/* array of page information entries */
 	struct page_info *infos;
-	/** raw memory for pages */
+	/* raw memory for pages */
 	char *pages;
-	/** cache last found page info */
+	/* cache last found page info */
 	struct page_info *last_found;
-	/** map of page number to info */
+	/* map of page number to info */
 	struct int_map *page_map;
-	/** main LRU list (all infos) */
+	/* main LRU list (all infos) */
 	struct list_head lru_list;
-	/** dirty pages by period */
+	/* dirty pages by period */
 	struct dirty_lists *dirty_lists;
-	/** free page list (oldest first) */
+	/* free page list (oldest first) */
 	struct list_head free_list;
-	/** outgoing page list */
+	/* outgoing page list */
 	struct list_head outgoing_list;
-	/** number of read I/O operations pending */
+	/* number of read I/O operations pending */
 	page_count_t outstanding_reads;
-	/** number of write I/O operations pending */
+	/* number of write I/O operations pending */
 	page_count_t outstanding_writes;
-	/** number of pages covered by the current flush */
+	/* number of pages covered by the current flush */
 	page_count_t pages_in_flush;
-	/** number of pages waiting to be included in the next flush */
+	/* number of pages waiting to be included in the next flush */
 	page_count_t pages_to_flush;
-	/** number of discards in progress */
+	/* number of discards in progress */
 	unsigned int discard_count;
-	/** how many VPCs waiting for free page */
+	/* how many VPCs waiting for free page */
 	unsigned int waiter_count;
-	/** queue of waiters who want a free page */
+	/* queue of waiters who want a free page */
 	struct wait_queue free_waiters;
-	/**
+	/*
 	 * Statistics are only updated on the logical zone thread, but are
 	 * accessed from other threads.
-	 **/
+	 */
 	struct block_map_statistics stats;
-	/** counter for pressure reports */
+	/* counter for pressure reports */
 	uint32_t pressure_report;
-	/** the block map zone to which this cache belongs */
+	/* the block map zone to which this cache belongs */
 	struct block_map_zone *zone;
 };
 
-/**
+/*
  * The state of a page buffer. If the page buffer is free no particular page is
  * bound to it, otherwise the page buffer is bound to particular page whose
  * absolute pbn is in the pbn field. If the page is resident or dirty the page
@@ -131,7 +131,7 @@ struct vdo_page_cache {
  *
  * @note Update the static data in get_page_state_name() if you change this
  * enumeration.
- **/
+ */
 enum vdo_page_buffer_state {
 	/* this page buffer is not being used */
 	PS_FREE,
@@ -149,38 +149,38 @@ enum vdo_page_buffer_state {
 	PAGE_STATE_COUNT,
 } __packed;
 
-/**
+/*
  * The write status of page
- **/
+ */
 enum vdo_page_write_status {
 	WRITE_STATUS_NORMAL,
 	WRITE_STATUS_DISCARD,
 	WRITE_STATUS_DEFERRED,
 } __packed;
 
-/**
+/*
  * Per-page-slot information.
- **/
+ */
 struct page_info {
-	/** Preallocated page struct vio */
+	/* Preallocated page struct vio */
 	struct vio *vio;
-	/** back-link for references */
+	/* back-link for references */
 	struct vdo_page_cache *cache;
-	/** the pbn of the page */
+	/* the pbn of the page */
 	physical_block_number_t pbn;
-	/** page is busy (temporarily locked) */
+	/* page is busy (temporarily locked) */
 	uint16_t busy;
-	/** the write status the page */
+	/* the write status the page */
 	enum vdo_page_write_status write_status;
-	/** page state */
+	/* page state */
 	enum vdo_page_buffer_state state;
-	/** queue of completions awaiting this item */
+	/* queue of completions awaiting this item */
 	struct wait_queue waiting;
-	/** state linked list entry */
+	/* state linked list entry */
 	struct list_head state_entry;
-	/** LRU entry */
+	/* LRU entry */
 	struct list_head lru_entry;
-	/** Space for per-page client data */
+	/* Space for per-page client data */
 	byte context[MAX_PAGE_CONTEXT_SIZE];
 };
 
@@ -208,24 +208,24 @@ void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
 
 /* ASYNC */
 
-/**
+/*
  * A completion awaiting a specific page.  Also a live reference into the
  * page once completed, until freed.
- **/
+ */
 struct vdo_page_completion {
-	/** The generic completion */
+	/* The generic completion */
 	struct vdo_completion completion;
-	/** The cache involved */
+	/* The cache involved */
 	struct vdo_page_cache *cache;
-	/** The waiter for the pending list */
+	/* The waiter for the pending list */
 	struct waiter waiter;
-	/** The absolute physical block number of the page on disk */
+	/* The absolute physical block number of the page on disk */
 	physical_block_number_t pbn;
-	/** Whether the page may be modified */
+	/* Whether the page may be modified */
 	bool writable;
-	/** Whether the page is available */
+	/* Whether the page is available */
 	bool ready;
-	/** The info structure for the page, only valid when ready */
+	/* The info structure for the page, only valid when ready */
 	struct page_info *info;
 };
 

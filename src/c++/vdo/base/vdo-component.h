@@ -10,9 +10,9 @@
 
 #include "types.h"
 
-/**
+/*
  * The configuration of the VDO service.
- **/
+ */
 struct vdo_config {
 	block_count_t logical_blocks; /* number of logical blocks */
 	block_count_t physical_blocks; /* number of physical blocks */
@@ -21,10 +21,10 @@ struct vdo_config {
 	block_count_t slab_journal_blocks; /* number of slab journal blocks */
 };
 
-/**
+/*
  * This is the structure that captures the vdo fields saved as a super block
  * component.
- **/
+ */
 struct vdo_component {
 	enum vdo_state state;
 	uint64_t complete_recoveries;

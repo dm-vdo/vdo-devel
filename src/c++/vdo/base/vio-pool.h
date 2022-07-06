@@ -14,14 +14,14 @@
 #include "types.h"
 #include "wait-queue.h"
 
-/**
+/*
  * A vio_pool is a collection of preallocated vios used to write arbitrary
  * metadata blocks.
- **/
+ */
 
-/**
+/*
  * A vio_pool_entry is the pair of vio and buffer whether in use or not.
- **/
+ */
 struct vio_pool_entry {
 	struct list_head available_entry;
 	struct vio *vio;
@@ -31,13 +31,12 @@ struct vio_pool_entry {
 };
 
 /**
- * A function which constructs a vio for a pool.
- *
- * @param [in]  vdo      The vdo in which the vio will operate
- * @param [in]  parent   The parent of the vio
- * @param [in]  buffer   The data buffer for the vio
- * @param [out] vio_ptr  A pointer to hold the new vio
- **/
+ * typedef vio_constructor - A function which constructs a vio for a pool.
+ * @vdo: The vdo in which the vio will operate.
+ * @parent: The parent of the vio.
+ * @buffer: The data buffer for the vio.
+ * @vio_ptr: A pointer to hold the new vio.
+ */
 typedef int vio_constructor(struct vdo *vdo,
 			    void *parent,
 			    void *buffer,
@@ -59,12 +58,12 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
 
 /**
- * Convert a list entry to the vio_pool_entry that contains it.
+ * as_vio_pool_entry() - Convert a list entry to the vio_pool_entry
+ *                       that contains it.
+ * @entry: The list entry to convert.
  *
- * @param entry  The list entry to convert
- *
- * @return The vio_pool_entry wrapping the list entry
- **/
+ * Return: The vio_pool_entry wrapping the list entry.
+ */
 static inline struct vio_pool_entry *as_vio_pool_entry(struct list_head *entry)
 {
 	return list_entry(entry, struct vio_pool_entry, available_entry);
