@@ -15,11 +15,11 @@
 
 struct slab_scrubber {
 	struct vdo_completion completion;
-	/** The queue of slabs to scrub first */
+	/* The queue of slabs to scrub first */
 	struct list_head high_priority_slabs;
-	/** The queue of slabs to scrub once there are no high_priority_slabs */
+	/* The queue of slabs to scrub once there are no high_priority_slabs */
 	struct list_head slabs;
-	/** The queue of VIOs waiting for a slab to be scrubbed */
+	/* The queue of VIOs waiting for a slab to be scrubbed */
 	struct wait_queue waiters;
 
 	/*
@@ -29,17 +29,17 @@ struct slab_scrubber {
 	 */
 	slab_count_t slab_count;
 
-	/** The administrative state of the scrubber */
+	/* The administrative state of the scrubber */
 	struct admin_state admin_state;
-	/** Whether to only scrub high-priority slabs */
+	/* Whether to only scrub high-priority slabs */
 	bool high_priority_only;
-	/** The context for entering read-only mode */
+	/* The context for entering read-only mode */
 	struct read_only_notifier *read_only_notifier;
-	/** The slab currently being scrubbed */
+	/* The slab currently being scrubbed */
 	struct vdo_slab *slab;
-	/** The vio for loading slab journal blocks */
+	/* The vio for loading slab journal blocks */
 	struct vio *vio;
-	/** A buffer to store the slab journal blocks */
+	/* A buffer to store the slab journal blocks */
 	char *journal_data;
 };
 

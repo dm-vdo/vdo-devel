@@ -29,108 +29,109 @@ struct journal_lock {
 };
 
 struct slab_journal {
-	/** A waiter object for getting a VIO pool entry */
+	/* A waiter object for getting a VIO pool entry */
 	struct waiter resource_waiter;
-	/** A waiter object for updating the slab summary */
+	/* A waiter object for updating the slab summary */
 	struct waiter slab_summary_waiter;
-	/** A waiter object for getting a vio with which to flush */
+	/* A waiter object for getting a vio with which to flush */
 	struct waiter flush_waiter;
-	/** The queue of VIOs waiting to make an entry */
+	/* The queue of VIOs waiting to make an entry */
 	struct wait_queue entry_waiters;
-	/** The parent slab reference of this journal */
+	/* The parent slab reference of this journal */
 	struct vdo_slab *slab;
 
-	/** Whether a tail block commit is pending */
+	/* Whether a tail block commit is pending */
 	bool waiting_to_commit;
-	/** Whether the journal is updating the slab summary */
+	/* Whether the journal is updating the slab summary */
 	bool updating_slab_summary;
-	/** Whether the journal is adding entries from the entry_waiters queue */
+	/* Whether the journal is adding entries from the entry_waiters queue */
 	bool adding_entries;
-	/** Whether a partial write is in progress */
+	/* Whether a partial write is in progress */
 	bool partial_write_in_progress;
 
-	/** The oldest block in the journal on disk */
+	/* The oldest block in the journal on disk */
 	sequence_number_t head;
-	/** The oldest block in the journal which may not be reaped */
+	/* The oldest block in the journal which may not be reaped */
 	sequence_number_t unreapable;
-	/** The end of the half-open interval of the active journal */
+	/* The end of the half-open interval of the active journal */
 	sequence_number_t tail;
-	/** The next journal block to be committed */
+	/* The next journal block to be committed */
 	sequence_number_t next_commit;
-	/** The tail sequence number that is written in the slab summary */
+	/* The tail sequence number that is written in the slab summary */
 	sequence_number_t summarized;
-	/** The tail sequence number that was last summarized in slab summary */
+	/* The tail sequence number that was last summarized in slab summary */
 	sequence_number_t last_summarized;
 
-	/** The sequence number of the recovery journal lock */
+	/* The sequence number of the recovery journal lock */
 	sequence_number_t recovery_lock;
 
-	/**
+	/*
 	 * The number of entries which fit in a single block. Can't use the
 	 * constant because unit tests change this number.
-	 **/
+	 */
 	journal_entry_count_t entries_per_block;
-	/**
+	/*
 	 * The number of full entries which fit in a single block. Can't use
 	 * the constant because unit tests change this number.
-	 **/
+	 */
 	journal_entry_count_t full_entries_per_block;
 
-	/** The recovery journal of the VDO (slab journal holds locks on it) */
+	/* The recovery journal of the VDO (slab journal holds locks on it) */
 	struct recovery_journal *recovery_journal;
 
-	/** The slab summary to update tail block location */
+	/* The slab summary to update tail block location */
 	struct slab_summary_zone *summary;
-	/** The statistics shared by all slab journals in our physical zone */
+	/* The statistics shared by all slab journals in our physical zone */
 	struct slab_journal_statistics *events;
-	/**
+	/*
 	 * A list of the VIO pool entries for outstanding journal block writes
 	 */
 	struct list_head uncommitted_blocks;
 
-	/**
+	/*
 	 * The current tail block header state. This will be packed into
 	 * the block just before it is written.
-	 **/
+	 */
 	struct slab_journal_block_header tail_header;
-	/** A pointer to a block-sized buffer holding the packed block data */
+	/* A pointer to a block-sized buffer holding the packed block data */
 	struct packed_slab_journal_block *block;
 
-	/** The number of blocks in the on-disk journal */
+	/* The number of blocks in the on-disk journal */
 	block_count_t size;
-	/** The number of blocks at which to start pushing reference blocks */
+	/* The number of blocks at which to start pushing reference blocks */
 	block_count_t flushing_threshold;
-	/** The number of blocks at which all reference blocks should be writing
+	/*
+	 * The number of blocks at which all reference blocks should be writing
 	 */
 	block_count_t flushing_deadline;
-	/**
+	/*
 	 * The number of blocks at which to wait for reference blocks to write
 	 */
 	block_count_t blocking_threshold;
-	/**
+	/*
 	 * The number of blocks at which to scrub the slab before coming online
 	 */
 	block_count_t scrubbing_threshold;
 
-	/**
+	/*
 	 * This list entry is for block_allocator to keep a queue of dirty
 	 * journals
 	 */
 	struct list_head dirty_entry;
 
-	/** The lock for the oldest unreaped block of the journal */
+	/* The lock for the oldest unreaped block of the journal */
 	struct journal_lock *reap_lock;
-	/** The locks for each on disk block */
+	/* The locks for each on disk block */
 	struct journal_lock locks[];
 };
 
 /**
- * Generate the packed encoding of a slab journal entry.
- *
- * @param packed        The entry into which to pack the values
- * @param sbn           The slab block number of the entry to encode
- * @param is_increment  The increment flag
- **/
+ * vdo_pack_slab_journal_entry() - Generate the packed encoding of a
+ *                                 slab journal entry.
+ * @packed: The entry into which to pack the values.
+ * @sbn: The slab block number of the entry to encode.
+ * @is_increment: The increment flag.
+ */
 static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed,
 					       slab_block_number sbn,
 					       bool is_increment)
@@ -142,11 +143,12 @@ static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed
 }
 
 /**
- * Decode the packed representation of a slab block header.
- *
- * @param packed  The packed header to decode
- * @param header  The header into which to unpack the values
- **/
+ * vdo_unpack_slab_journal_block_header() - Decode the packed
+ *                                          representation of a slab
+ *                                          block header.
+ * @packed: The packed header to decode.
+ * @header: The header into which to unpack the values.
+ */
 static inline void
 vdo_unpack_slab_journal_block_header(
 	const struct packed_slab_journal_block_header *packed,
@@ -208,13 +210,13 @@ bool __must_check
 vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal);
 
 /**
- * Get the slab journal block offset of the given sequence number.
+ * vdo_get_slab_journal_block_offset() - Get the slab journal block offset of
+ *                                       the given sequence number.
+ * @journal: The slab journal.
+ * @sequence: The sequence number.
  *
- * @param journal   The slab journal
- * @param sequence  The sequence number
- *
- * @return the offset corresponding to the sequence number
- **/
+ * Return: The offset corresponding to the sequence number.
+ */
 static inline tail_block_offset_t __must_check
 vdo_get_slab_journal_block_offset(struct slab_journal *journal,
 				  sequence_number_t sequence)

@@ -12,42 +12,42 @@
 struct reference_operation;
 
 /**
- * Get the pbn_lock associated with a reference_operation.
+ * typedef pbn_lock_getter - Get the pbn_lock associated with a
+ *                           reference_operation.
+ * @operation: The reference_operation.
  *
- * @param operation  The reference_operation
- *
- * @return The pbn_lock on the block of a reference_operation or NULL if there
- *         isn't one
- **/
+ * Return: The pbn_lock on the block of a reference_operation or NULL if there
+ *         isn't one.
+ */
 typedef struct pbn_lock *pbn_lock_getter(struct reference_operation operation);
 
-/**
+/*
  * The current operation on a physical block (from the point of view of the
  * data_vio doing the operation)
- **/
+ */
 struct reference_operation {
-	/** The operation being performed */
+	/* The operation being performed */
 	enum journal_operation type;
-	/** The PBN of the block being operated on */
+	/* The PBN of the block being operated on */
 	physical_block_number_t pbn;
-	/** The mapping state of the block being operated on */
+	/* The mapping state of the block being operated on */
 	enum block_mapping_state state;
-	/**
+	/*
 	 * A function to use to get any pbn_lock associated with this operation
 	 */
 	pbn_lock_getter *lock_getter;
-	/** The context to pass to the pbn_lock_getter */
+	/* The context to pass to the pbn_lock_getter */
 	void *context;
 };
 
 /**
- * Get the pbn_lock associated with the current reference_operation.
+ * vdo_get_reference_operation_pbn_lock() - Get the pbn_lock associated with
+ *                                          the current reference_operation.
+ * @operation: The reference operation.
  *
- * @param operation  The reference operation
- *
- * @return The pbn_lock on the block of the current operation or NULL if there
- *         isn't one
- **/
+ * Return: The pbn_lock on the block of the current operation or NULL if there
+ *         isn't one.
+ */
 static inline struct pbn_lock * __must_check
 vdo_get_reference_operation_pbn_lock(struct reference_operation operation)
 {

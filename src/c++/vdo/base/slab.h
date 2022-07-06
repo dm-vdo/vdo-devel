@@ -23,56 +23,56 @@ enum slab_rebuild_status {
 	VDO_SLAB_REBUILDING,
 };
 
-/**
+/*
  * This is the type declaration for the vdo_slab type. A vdo_slab currently
  * consists of a run of 2^23 data blocks, but that will soon change to
  * dedicate a small number of those blocks for metadata storage for the
  * reference counts and slab journal for the slab.
- **/
+ */
 struct vdo_slab {
-	/** A list entry to queue this slab in a block_allocator list */
+	/* A list entry to queue this slab in a block_allocator list */
 	struct list_head allocq_entry;
 
-	/** The struct block_allocator that owns this slab */
+	/* The struct block_allocator that owns this slab */
 	struct block_allocator *allocator;
 
-	/** The reference counts for the data blocks in this slab */
+	/* The reference counts for the data blocks in this slab */
 	struct ref_counts *reference_counts;
-	/** The journal for this slab */
+	/* The journal for this slab */
 	struct slab_journal *journal;
 
-	/** The slab number of this slab */
+	/* The slab number of this slab */
 	slab_count_t slab_number;
-	/**
+	/*
 	 * The offset in the allocator partition of the first block in this
 	 * slab
 	 */
 	physical_block_number_t start;
-	/** The offset of the first block past the end of this slab */
+	/* The offset of the first block past the end of this slab */
 	physical_block_number_t end;
-	/** The starting translated PBN of the slab journal */
+	/* The starting translated PBN of the slab journal */
 	physical_block_number_t journal_origin;
-	/** The starting translated PBN of the reference counts */
+	/* The starting translated PBN of the reference counts */
 	physical_block_number_t ref_counts_origin;
 
-	/** The administrative state of the slab */
+	/* The administrative state of the slab */
 	struct admin_state state;
-	/** The status of the slab */
+	/* The status of the slab */
 	enum slab_rebuild_status status;
-	/** Whether the slab was ever queued for scrubbing */
+	/* Whether the slab was ever queued for scrubbing */
 	bool was_queued_for_scrubbing;
 
-	/** The priority at which this slab has been queued for allocation */
+	/* The priority at which this slab has been queued for allocation */
 	uint8_t priority;
 };
 
 /**
- * Convert a vdo_slab's list entry back to the vdo_slab.
+ * vdo_slab_from_list_entry() - Convert a vdo_slab's list entry back to the
+ *                              vdo_slab.
+ * @entry: The list entry to convert.
  *
- * @param entry  The list entry to convert
- *
- * @return  The list entry as a vdo_slab
- **/
+ * Return: The list entry as a vdo_slab.
+ */
 static inline struct vdo_slab *vdo_slab_from_list_entry(struct list_head *entry)
 {
 	return list_entry(entry, struct vdo_slab, allocq_entry);
@@ -93,36 +93,33 @@ void vdo_free_slab(struct vdo_slab *slab);
 zone_count_t __must_check vdo_get_slab_zone_number(struct vdo_slab *slab);
 
 /**
- * Check whether a slab is unrecovered.
+ * vdo_is_unrecovered_slab() - Check whether a slab is unrecovered.
+ * @slab: The slab to check.
  *
- * @param slab  The slab to check
- *
- * @return <code>true</code> if the slab is unrecovered
- **/
+ * Return: true if the slab is unrecovered.
+ */
 static inline bool vdo_is_unrecovered_slab(const struct vdo_slab *slab)
 {
 	return (slab->status != VDO_SLAB_REBUILT);
 }
 
 /**
- * Check whether a slab is being replayed into.
+ * vdo_is_replaying_slab() - Check whether a slab is being replayed into.
+ * @slab: The slab to check.
  *
- * @param slab  The slab to check
- *
- * @return <code>true</code> if the slab is replaying
- **/
+ * Return: true if the slab is replaying.
+ */
 static inline bool vdo_is_replaying_slab(const struct vdo_slab *slab)
 {
 	return (slab->status == VDO_SLAB_REPLAYING);
 }
 
 /**
- * Check whether a slab is being rebuilt.
+ * vdo_is_slab_rebuilding() - Check whether a slab is being rebuilt.
+ * @slab: The slab to check.
  *
- * @param slab  The slab to check
- *
- * @return <code>true</code> if the slab is being rebuilt
- **/
+ * Return: true if the slab is being rebuilt.
+ */
 static inline bool vdo_is_slab_rebuilding(const struct vdo_slab *slab)
 {
 	return (slab->status == VDO_SLAB_REBUILDING);
