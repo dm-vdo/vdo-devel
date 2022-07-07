@@ -199,7 +199,13 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		blocks = vio->block_count;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
+#ifdef RHEL_RELEASE_CODE
+#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
+#else
+#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
+#endif
+
+#if USE_ALTERNATE
 	bio_reset(bio);
 #else
 	bio_reset(bio, bio->bi_bdev, bi_opf);
