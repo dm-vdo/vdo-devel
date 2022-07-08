@@ -149,7 +149,13 @@ static inline int getBioResult(struct bio *bio)
 static inline struct bio *cloneBio(struct bio *bio,
                                    struct bio_set *bs)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
+#ifdef RHEL_RELEASE_CODE
+#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
+#else
+#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
+#endif
+
+#if USE_ALTERNATE
   return bio_clone_fast(bio, GFP_KERNEL, bs);
 #else
   return bio_alloc_clone(bio->bi_bdev, bio, GFP_KERNEL, bs);
