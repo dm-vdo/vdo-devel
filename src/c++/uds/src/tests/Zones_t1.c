@@ -86,9 +86,7 @@ static void addBlocksToZone(unsigned int zone, unsigned int count)
     request->type         = UDS_POST;
     request->unbatched    = true;
     createRandomBlockNameInZone(theIndex, zone, &request->chunk_name);
-    struct uds_request_queue *queue
-      = select_index_queue(theIndex, request, STAGE_INDEX);
-    uds_request_queue_enqueue(queue, request);
+    enqueue_request(request, STAGE_INDEX);
   }
 }
 
@@ -170,9 +168,7 @@ static void laggingZonesTest(void)
     request->index        = theIndex;
     request->type         = UDS_POST;
     request->unbatched    = true;
-    struct uds_request_queue *queue
-      = select_index_queue(theIndex, request, STAGE_INDEX);
-    uds_request_queue_enqueue(queue, request);
+    enqueue_request(request, STAGE_INDEX);
   }
 
   waitForCallbacks(recordsPerChapter / 2);

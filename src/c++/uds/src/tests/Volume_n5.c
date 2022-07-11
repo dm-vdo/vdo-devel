@@ -103,11 +103,9 @@ static void dispatchRequest(struct uds_request          *request,
                             const struct uds_chunk_data *expectedMetaData)
 {
   request->index = theIndex;
-  struct uds_request_queue *queue
-    = select_index_queue(theIndex, request, STAGE_TRIAGE);
   incrementCallbackCount();
   request->unbatched = true;
-  uds_request_queue_enqueue(queue, request);
+  enqueue_request(request, STAGE_TRIAGE);
   waitForCallbacks();
   UDS_ASSERT_SUCCESS(request->status);
   assertLastLocation(expectedLocation);
@@ -120,10 +118,8 @@ static void dispatchRequest(struct uds_request          *request,
 static void dispatchNonWaitingRequest(struct uds_request *request)
 {
   request->index = theIndex;
-  struct uds_request_queue *queue
-    = select_index_queue(theIndex, request, STAGE_TRIAGE);
   request->unbatched = true;
-  uds_request_queue_enqueue(queue, request);
+  enqueue_request(request, STAGE_TRIAGE);
 }
 
 /**********************************************************************/

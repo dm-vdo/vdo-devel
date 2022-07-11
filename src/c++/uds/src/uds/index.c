@@ -95,6 +95,44 @@ static bool is_zone_chapter_sparse(const struct index_zone *zone,
 				 virtual_chapter);
 }
 
+static int launch_zone_message(struct uds_zone_message message,
+			       unsigned int zone,
+			       struct uds_index *index)
+{
+	int result;
+	struct uds_request *request;
+
+	result = UDS_ALLOCATE(1, struct uds_request, __func__, &request);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	request->index = index;
+	request->unbatched = true;
+	request->zone_number = zone;
+	request->zone_message = message;
+
+	enqueue_request(request, STAGE_MESSAGE);
+	return UDS_SUCCESS;
+}
+
+static void enqueue_barrier_messages(struct uds_index *index,
+				     uint64_t virtual_chapter)
+{
+	struct uds_zone_message message = {
+		.type = UDS_MESSAGE_SPARSE_CACHE_BARRIER,
+		.virtual_chapter = virtual_chapter,
+	};
+	unsigned int zone;
+
+	for (zone = 0; zone < index->zone_count; zone++) {
+		int result = launch_zone_message(message, zone, index);
+
+		ASSERT_LOG_ONLY((result == UDS_SUCCESS),
+				"barrier message allocation");
+	}
+}
+
 /*
  * Determine whether this request should trigger a sparse cache barrier message
  * to change the membership of the sparse cache. If a change in membership is
@@ -124,23 +162,6 @@ static uint64_t triage_index_request(struct uds_index *index,
 	 */
 
 	return virtual_chapter;
-}
-
-static void enqueue_barrier_messages(struct uds_index *index,
-				     uint64_t virtual_chapter)
-{
-	struct uds_zone_message message = {
-		.type = UDS_MESSAGE_SPARSE_CACHE_BARRIER,
-		.virtual_chapter = virtual_chapter,
-	};
-	unsigned int zone;
-
-	for (zone = 0; zone < index->zone_count; zone++) {
-		int result = launch_zone_message(message, zone, index);
-
-		ASSERT_LOG_ONLY((result == UDS_SUCCESS),
-				"barrier message allocation");
-	}
 }
 
 /*
@@ -345,19 +366,27 @@ static int dispatch_index_zone_control_request(struct uds_request *request)
 	}
 }
 
-static enum uds_index_region
-compute_index_region(const struct index_zone *zone,
-		     uint64_t virtual_chapter)
+static void set_request_location(struct uds_request *request,
+				 enum uds_index_region new_location)
 {
+	request->location = new_location;
+	request->found = ((new_location == UDS_LOCATION_IN_OPEN_CHAPTER) ||
+			  (new_location == UDS_LOCATION_IN_DENSE) ||
+			  (new_location == UDS_LOCATION_IN_SPARSE));
+}
+
+static void set_chapter_location(struct uds_request *request,
+				 const struct index_zone *zone,
+				 uint64_t virtual_chapter)
+{
+	request->found = true;
 	if (virtual_chapter == zone->newest_virtual_chapter) {
-		return UDS_LOCATION_IN_OPEN_CHAPTER;
+		request->location = UDS_LOCATION_IN_OPEN_CHAPTER;
+	} else if (is_zone_chapter_sparse(zone, virtual_chapter)) {
+		request->location = UDS_LOCATION_IN_SPARSE;
+	} else {
+		request->location = UDS_LOCATION_IN_DENSE;
 	}
-
-	if (is_zone_chapter_sparse(zone, virtual_chapter)) {
-		return UDS_LOCATION_IN_SPARSE;
-	}
-
-	return UDS_LOCATION_IN_DENSE;
 }
 
 static int search_sparse_cache_in_zone(struct index_zone *zone,
@@ -468,7 +497,6 @@ static int search_index_zone(struct index_zone *zone,
 {
 	int result;
 	struct volume_index_record record;
-	enum uds_index_region location;
 	bool overflow_record, found = false;
 	struct uds_chunk_data *metadata;
 	uint64_t chapter;
@@ -494,8 +522,7 @@ static int search_index_zone(struct index_zone *zone,
 	}
 
 	if (found) {
-		location = compute_index_region(zone, record.virtual_chapter);
-		set_request_location(request, location);
+		set_chapter_location(request, zone, record.virtual_chapter);
 	}
 
 	/*
@@ -592,7 +619,6 @@ static int remove_from_index_zone(struct index_zone *zone,
 				  struct uds_request *request)
 {
 	int result;
-	enum uds_index_region location;
 	struct volume_index_record record;
 
 	result = get_volume_index_record(zone->index->volume_index,
@@ -612,8 +638,7 @@ static int remove_from_index_zone(struct index_zone *zone,
 	 */
 
 	if (record.is_collision) {
-		location = compute_index_region(zone, record.virtual_chapter);
-		set_request_location(request, location);
+		set_chapter_location(request, zone, record.virtual_chapter);
 	} else {
 		/*
 		 * Non-collision records are hints, so resolve the name in the
@@ -638,8 +663,7 @@ static int remove_from_index_zone(struct index_zone *zone,
 		}
 	}
 
-	location = compute_index_region(zone, record.virtual_chapter);
-	set_request_location(request, location);
+	set_chapter_location(request, zone, record.virtual_chapter);
 
 	/*
 	 * Delete the volume index entry for the named record only. Note that a
@@ -1583,16 +1607,18 @@ void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 		(dense_stats.discard_count + sparse_stats.discard_count);
 }
 
-/* Select the appropriate request queue for the next stage of a request. */
-struct uds_request_queue *select_index_queue(struct uds_index *index,
-					     struct uds_request *request,
-					     enum request_stage next_stage)
+void enqueue_request(struct uds_request *request, enum request_stage stage)
 {
-	switch (next_stage) {
+	struct uds_index *index = request->index;
+	struct uds_request_queue *queue;
+
+	switch (stage) {
 	case STAGE_TRIAGE:
 		if (index->triage_queue != NULL) {
-			return index->triage_queue;
+			queue = index->triage_queue;
+			break;
 		}
+
 		fallthrough;
 
 	case STAGE_INDEX:
@@ -1602,11 +1628,13 @@ struct uds_request_queue *select_index_queue(struct uds_index *index,
 		fallthrough;
 
 	case STAGE_MESSAGE:
-		return index->zone_queues[request->zone_number];
+		queue = index->zone_queues[request->zone_number];
+		break;
 
 	default:
-		ASSERT_LOG_ONLY(false, "invalid index stage: %d", next_stage);
+		ASSERT_LOG_ONLY(false, "invalid index stage: %d", stage);
+		return;
 	}
 
-	return NULL;
+	uds_request_queue_enqueue(queue, request);
 }

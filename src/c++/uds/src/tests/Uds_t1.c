@@ -11,7 +11,6 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "memory-alloc.h"
-#include "request.h"
 #include "testPrototypes.h"
 #include "uds.h"
 

@@ -13,7 +13,6 @@
 #include "compiler.h"
 #include "geometry.h"
 #include "permassert.h"
-#include "request.h"
 #include "volume-store.h"
 
 struct request_list {

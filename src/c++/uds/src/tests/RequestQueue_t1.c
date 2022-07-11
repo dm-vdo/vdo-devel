@@ -7,7 +7,6 @@
 #include "assertions.h"
 #include "common.h"
 #include "memory-alloc.h"
-#include "request.h"
 #include "request-queue.h"
 #include "uds-threads.h"
 

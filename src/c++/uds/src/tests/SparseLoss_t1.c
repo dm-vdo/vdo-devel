@@ -122,10 +122,8 @@ static void dispatchRequest(struct uds_request *request)
 {
   request->index = theIndex;
   request->unbatched = true;
-  struct uds_request_queue *queue
-    = select_index_queue(theIndex, request, STAGE_TRIAGE);
   incrementCallbackCount();
-  uds_request_queue_enqueue(queue, request);
+  enqueue_request(request, STAGE_TRIAGE);
 }
 
 /**********************************************************************/

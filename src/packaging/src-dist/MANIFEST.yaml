@@ -164,7 +164,6 @@ tarballs:
             radix-sort.[hc]
             random.[hc]
             record-page.[hc]
-            request.[hc]
             request-queue.h
             sparse-cache.[hc]
             string-utils.[hc]
@@ -460,8 +459,6 @@ tarballs:
             random.h
             record-page.c
             record-page.h
-            request.c
-            request.h
             request-queue.h
             sparse-cache.c
             sparse-cache.h

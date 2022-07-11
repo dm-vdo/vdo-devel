@@ -13,9 +13,9 @@
 #include "index-page-map.h"
 #include "page-cache.h"
 #include "radix-sort.h"
-#include "request.h"
 #include "sparse-cache.h"
 #include "uds.h"
+#include "uds-threads.h"
 #include "volume-store.h"
 
 enum reader_state {
@@ -70,6 +70,18 @@ struct volume {
 	unsigned int reserved_buffers;
 };
 
+#ifdef TEST_INTERNAL
+typedef void (*request_restarter_t)(struct uds_request *);
+
+/**
+ * Set the function pointer which is used to restart requests.
+ * This is used as a test hook by the unit tests.
+ *
+ * @param restarter   The function to call to restart requests.
+ **/
+void set_request_restarter(request_restarter_t restarter);
+
+#endif /* TEST_INTERNAL*/
 /**
  * Create a volume.
  *

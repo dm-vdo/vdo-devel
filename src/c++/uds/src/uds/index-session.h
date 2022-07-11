@@ -71,10 +71,4 @@ struct uds_index_session {
 	struct session_stats stats;
 };
 
-void disable_index_session(struct uds_index_session *index_session);
-
-int __must_check get_index_session(struct uds_index_session *index_session);
-
-void release_index_session(struct uds_index_session *index_session);
-
 #endif /* INDEX_SESSION_H */

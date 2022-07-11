@@ -191,11 +191,9 @@ static void dispatchRequest(struct uds_request          *request,
                             const struct uds_chunk_data *expectedMetaData)
 {
   request->index = theIndex;
-  struct uds_request_queue *queue
-    = select_index_queue(theIndex, request, STAGE_TRIAGE);
   incrementCallbackCount();
   request->unbatched = true;
-  uds_request_queue_enqueue(queue, request);
+  enqueue_request(request, STAGE_TRIAGE);
   waitForCallbacks();
   assertLastLocation(expectedLocation);
   if (request->found && (expectedMetaData != NULL)) {

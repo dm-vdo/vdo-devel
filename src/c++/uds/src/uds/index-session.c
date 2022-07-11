@@ -5,6 +5,8 @@
 
 #include "index-session.h"
 
+#include <linux/atomic.h>
+
 #include "index.h"
 #include "index-layout.h"
 #include "logger.h"
@@ -67,12 +69,22 @@ enum index_session_flag {
 	IS_FLAG_DESTROYING = (1 << IS_FLAG_BIT_DESTROYING),
 };
 
+/* Release a reference to an index session. */
+static void release_index_session(struct uds_index_session *index_session)
+{
+	uds_lock_mutex(&index_session->request_mutex);
+	if (--index_session->request_count == 0) {
+		uds_broadcast_cond(&index_session->request_cond);
+	}
+	uds_unlock_mutex(&index_session->request_mutex);
+}
+
 /*
  * Acquire a reference to the index session for an asynchronous index request.
  * The reference must eventually be released with a corresponding call to
  * release_index_session().
  **/
-int get_index_session(struct uds_index_session *index_session)
+static int get_index_session(struct uds_index_session *index_session)
 {
 	unsigned int state;
 	int result = UDS_SUCCESS;
@@ -98,21 +110,118 @@ int get_index_session(struct uds_index_session *index_session)
 	return result;
 }
 
-/* Release a reference to an index session. */
-void release_index_session(struct uds_index_session *index_session)
+int uds_start_chunk_operation(struct uds_request *request)
 {
-	uds_lock_mutex(&index_session->request_mutex);
-	if (--index_session->request_count == 0) {
-		uds_broadcast_cond(&index_session->request_cond);
+	size_t internal_size;
+	int result;
+
+	if (request->callback == NULL) {
+		uds_log_error("missing required callback");
+		return -EINVAL;
 	}
-	uds_unlock_mutex(&index_session->request_mutex);
+
+	switch (request->type) {
+	case UDS_DELETE:
+	case UDS_POST:
+	case UDS_QUERY:
+	case UDS_QUERY_NO_UPDATE:
+	case UDS_UPDATE:
+		break;
+	default:
+		uds_log_error("received invalid callback type");
+		return -EINVAL;
+	}
+
+	/* Reset all internal fields before processing. */
+	internal_size = sizeof(struct uds_request) -
+		offsetof(struct uds_request, zone_number);
+	// FIXME should be using struct_group for this instead
+	memset((char *) request + sizeof(*request) - internal_size,
+	       0, internal_size);
+
+	result = get_index_session(request->session);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	request->found = false;
+	request->unbatched = false;
+	request->index = request->session->index;
+
+	enqueue_request(request, STAGE_TRIAGE);
+	return UDS_SUCCESS;
 }
 
-void disable_index_session(struct uds_index_session *index_session)
+static void enter_callback_stage(struct uds_request *request)
 {
-	uds_lock_mutex(&index_session->request_mutex);
-	index_session->state |= IS_FLAG_DISABLED;
-	uds_unlock_mutex(&index_session->request_mutex);
+	if (request->status != UDS_SUCCESS) {
+		/* All request errors are considered unrecoverable */
+		uds_lock_mutex(&request->session->request_mutex);
+		request->session->state |= IS_FLAG_DISABLED;
+		uds_unlock_mutex(&request->session->request_mutex);
+	}
+
+	uds_request_queue_enqueue(request->session->callback_queue, request);
+}
+
+static INLINE void count_once(uint64_t *count_ptr)
+{
+	WRITE_ONCE(*count_ptr, READ_ONCE(*count_ptr) + 1);
+}
+
+static void update_session_stats(struct uds_request *request)
+{
+	struct session_stats *session_stats = &request->session->stats;
+
+	count_once(&session_stats->requests);
+
+	switch (request->type) {
+	case UDS_POST:
+		if (request->found) {
+			count_once(&session_stats->posts_found);
+		} else {
+			count_once(&session_stats->posts_not_found);
+		}
+
+		if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
+			count_once(&session_stats->posts_found_open_chapter);
+		} else if (request->location == UDS_LOCATION_IN_DENSE) {
+			count_once(&session_stats->posts_found_dense);
+		} else if (request->location == UDS_LOCATION_IN_SPARSE) {
+			count_once(&session_stats->posts_found_sparse);
+		}
+		break;
+
+	case UDS_UPDATE:
+		if (request->found) {
+			count_once(&session_stats->updates_found);
+		} else {
+			count_once(&session_stats->updates_not_found);
+		}
+		break;
+
+	case UDS_DELETE:
+		if (request->found) {
+			count_once(&session_stats->deletions_found);
+		} else {
+			count_once(&session_stats->deletions_not_found);
+		}
+		break;
+
+	case UDS_QUERY:
+	case UDS_QUERY_NO_UPDATE:
+		if (request->found) {
+			count_once(&session_stats->queries_found);
+		} else {
+			count_once(&session_stats->queries_not_found);
+		}
+		break;
+
+	default:
+		request->status = ASSERT(false,
+					 "unknown request type: %d",
+					 request->type);
+	}
 }
 
 static void handle_callbacks(struct uds_request *request)
@@ -120,9 +229,10 @@ static void handle_callbacks(struct uds_request *request)
 	struct uds_index_session *index_session = request->session;
 
 	if (request->status == UDS_SUCCESS) {
-		update_request_context_stats(request);
+		update_session_stats(request);
 	}
 
+	request->status = uds_map_to_system_error(request->status);
 	request->callback(request);
 	release_index_session(index_session);
 }

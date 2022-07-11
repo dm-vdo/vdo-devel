@@ -11,11 +11,11 @@
 #include "errors.h"
 #include "geometry.h"
 #include "hash-utils.h"
+#include "index.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 #include "record-page.h"
-#include "request.h"
 #include "sparse-cache.h"
 #include "string-utils.h"
 #include "uds-threads.h"
@@ -24,6 +24,19 @@ enum {
 	MAX_BAD_CHAPTERS = 100,  /* max number of contiguous bad chapters */
 };
 
+#ifdef TEST_INTERNAL
+/*
+ * This function pointer allows unit test code to intercept the slow-lane
+ * requeuing of a request.
+ */
+static request_restarter_t request_restarter = NULL;
+
+void set_request_restarter(request_restarter_t restarter)
+{
+	request_restarter = restarter;
+}
+
+#endif /* TEST_INTERNAL */
 static INLINE unsigned int map_to_page_number(struct geometry *geometry,
 					      unsigned int physical_page)
 {
@@ -249,7 +262,8 @@ static int search_page(struct cached_page *page,
 		}
 	}
 
-	set_request_location(request, location);
+	request->location = location;
+	request->found = false;
 	return UDS_SUCCESS;
 }
 
@@ -376,7 +390,14 @@ static void read_thread_function(void *arg)
 
 			/* reflect any read failures in the request status */
 			request->status = result;
-			restart_request(request);
+			request->requeued = true;
+#ifdef TEST_INTERNAL
+			if (request_restarter != NULL) {
+				request_restarter(request);
+				continue;
+			}
+#endif /* TEST_INTERNAL*/
+			enqueue_request(request, STAGE_INDEX);
 		}
 
 		release_read_queue_entry(volume->page_cache, queue_pos);

@@ -11,7 +11,6 @@
 #include "event-count.h"
 #include "funnel-queue.h"
 #include "logger.h"
-#include "request.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"
 #include "time-utils.h"

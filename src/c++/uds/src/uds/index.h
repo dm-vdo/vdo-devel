@@ -9,7 +9,6 @@
 #include "index-layout.h"
 #include "index-session.h"
 #include "open-chapter.h"
-#include "request.h"
 #include "volume.h"
 #include "volume-index-ops.h"
 
@@ -51,6 +50,12 @@ struct uds_index {
 	struct uds_request_queue *zone_queues[];
 };
 
+enum request_stage {
+	STAGE_TRIAGE,
+	STAGE_INDEX,
+	STAGE_MESSAGE,
+};
+
 int __must_check make_index(struct configuration *config,
 			    enum uds_open_index_type open_type,
 			    struct index_load_context *load_context,
@@ -67,9 +72,7 @@ int __must_check replace_index_storage(struct uds_index *index,
 void get_index_stats(struct uds_index *index,
 		     struct uds_index_stats *counters);
 
-struct uds_request_queue *select_index_queue(struct uds_index *index,
-					     struct uds_request *request,
-					     enum request_stage next_stage);
+void enqueue_request(struct uds_request *request, enum request_stage stage);
 
 void wait_for_idle_index(struct uds_index *index);
 
