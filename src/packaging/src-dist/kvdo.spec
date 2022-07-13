@@ -24,9 +24,10 @@ Requires:       make
 BuildRequires:  elfutils-libelf-devel
 %endif
 BuildRequires:	glibc
-%if 0%{?rhel}
-# Fedora doesn't have abi whitelists.
-BuildRequires:	kernel-abi-whitelists
+%if 0%{?rhel} && 0%{?rhel} < 9
+# Fedora doesn't have abi whitelists,
+# And RHEL9 doesn't have it yet.
+BuildRequires:  kernel-abi-whitelists
 %endif
 BuildRequires:  libuuid-devel
 BuildRequires:  redhat-rpm-config
