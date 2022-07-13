@@ -58,17 +58,21 @@ static void fillOpenChapter(struct open_chapter_index *oci,
                             struct uds_chunk_record *records,
                             struct geometry *geometry)
 {
+  struct delta_index_stats stats;
   unsigned int i;
+
   for (i = 0; i < geometry->records_per_chapter; i++) {
-    CU_ASSERT_EQUAL(get_open_chapter_index_size(oci), i);
+    get_delta_index_stats(&oci->delta_index, &stats);
+    CU_ASSERT_EQUAL(stats.record_count, i);
     int result = put_open_chapter_index_record(oci, &records[i].name,
                                                i / geometry->records_per_page);
     if (result != UDS_OVERFLOW) {
       UDS_ASSERT_SUCCESS(result);
     }
   }
-  CU_ASSERT_EQUAL(get_open_chapter_index_size(oci),
-  		  geometry->records_per_chapter);
+
+  get_delta_index_stats(&oci->delta_index, &stats);
+  CU_ASSERT_EQUAL(stats.record_count, geometry->records_per_chapter);
 }
 
 /**********************************************************************

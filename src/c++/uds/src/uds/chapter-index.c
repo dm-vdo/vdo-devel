@@ -269,13 +269,6 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 	return UDS_SUCCESS;
 }
 
-int get_open_chapter_index_size(struct open_chapter_index *chapter_index)
-{
-	struct delta_index_stats stats;
-	get_delta_index_stats(&chapter_index->delta_index, &stats);
-	return stats.record_count;
-}
-
 /*
  * Make a new chapter index page, initializing it with the data from the
  * given index_page buffer.

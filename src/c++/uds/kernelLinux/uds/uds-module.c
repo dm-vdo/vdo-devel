@@ -186,7 +186,6 @@ EXPORT_SYMBOL_GPL(get_delta_index_bits_used);
 EXPORT_SYMBOL_GPL(get_delta_index_entry);
 EXPORT_SYMBOL_GPL(get_delta_index_stats);
 EXPORT_SYMBOL_GPL(get_index_stats);
-EXPORT_SYMBOL_GPL(get_open_chapter_index_size);
 EXPORT_SYMBOL_GPL(get_page_from_cache);
 EXPORT_SYMBOL_GPL(get_sparse_cache_counters);
 EXPORT_SYMBOL_GPL(get_volume_index_combined_stats);

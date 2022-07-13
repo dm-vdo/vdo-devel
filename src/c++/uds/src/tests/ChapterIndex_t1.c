@@ -45,21 +45,25 @@ static struct open_chapter_index *fillOpenChapter(struct uds_chunk_name *names,
 {
   struct open_chapter_index *oci;
   int overflowCount = 0;
+  struct delta_index_stats stats;
+
   UDS_ASSERT_SUCCESS(make_open_chapter_index(&oci, g, volumeNonce));
   empty_open_chapter_index(oci, SAMPLE_CHAPTER_NUMBER);
   unsigned int i;
   for (i = 0; i < g->records_per_chapter; i++) {
-    CU_ASSERT_EQUAL(get_open_chapter_index_size(oci) + overflowCount, i);
+    get_delta_index_stats(&oci->delta_index, &stats);
+    CU_ASSERT_EQUAL(stats.record_count + overflowCount, i);
     int result = put_open_chapter_index_record(oci, &names[i],
-                                           generatePageNumber(g, i));
+                                               generatePageNumber(g, i));
     if (overflowFlag && (result == UDS_OVERFLOW)) {
       overflowCount++;
     } else {
       UDS_ASSERT_SUCCESS(result);
     }
   }
-  CU_ASSERT_EQUAL(get_open_chapter_index_size(oci) + overflowCount,
-                  g->records_per_chapter);
+
+  get_delta_index_stats(&oci->delta_index, &stats);
+  CU_ASSERT_EQUAL(stats.record_count + overflowCount, g->records_per_chapter);
   return oci;
 }
 
@@ -143,9 +147,11 @@ static void emptyChapterTest(void)
 
   // Create an open chapter index that is empty (no blocknames in it)
   struct open_chapter_index *oci;
+  struct delta_index_stats stats;
   UDS_ASSERT_SUCCESS(make_open_chapter_index(&oci, g, volumeNonce));
   empty_open_chapter_index(oci, 0);
-  CU_ASSERT_EQUAL(get_open_chapter_index_size(oci), 0);
+  get_delta_index_stats(&oci->delta_index, &stats);
+  CU_ASSERT_EQUAL(stats.record_count, 0);
 
   // Pack the index pages - this will test pages with empty lists, and will
   // test pages that have no lists at all

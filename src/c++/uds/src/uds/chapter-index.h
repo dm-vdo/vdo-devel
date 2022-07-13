@@ -57,9 +57,6 @@ pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 			     unsigned int *num_lists);
 
 int __must_check
-get_open_chapter_index_size(struct open_chapter_index *chapter_index);
-
-int __must_check
 initialize_chapter_index_page(struct delta_index_page *index_page,
 			      const struct geometry *geometry,
 			      byte *page_buffer,
