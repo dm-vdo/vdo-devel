@@ -274,14 +274,17 @@ void uds_log_embedded_message(int priority,
 }
 
 /**********************************************************************/
-int uds_vlog_strerror(int priority,
-		      int errnum,
-		      const char *module,
-		      const char *format,
-		      va_list args)
+int __uds_log_strerror(int priority,
+		       int errnum,
+		       const char *module,
+		       const char *format,
+		       ...)
 {
 	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
         const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
+	va_list args;
+
+	va_start(args, format);
 	uds_log_embedded_message(priority,
 				 module,
 				 NULL,
@@ -290,20 +293,6 @@ int uds_vlog_strerror(int priority,
 				 ": %s (%d)",
 				 message,
 				 errnum);
-	return errnum;
-}
-
-/**********************************************************************/
-int __uds_log_strerror(int priority,
-		       int errnum,
-		       const char *module,
-		       const char *format,
-		       ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	uds_vlog_strerror(priority, errnum, module, format, args);
 	va_end(args);
 	return errnum;
 }
