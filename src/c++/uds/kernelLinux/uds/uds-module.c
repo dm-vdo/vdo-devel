@@ -118,6 +118,7 @@ EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_v_append_to_buffer);
+EXPORT_SYMBOL_GPL(uds_vlog_strerror);
 EXPORT_SYMBOL_GPL(uncompacted_amount);
 EXPORT_SYMBOL_GPL(wrap_buffer);
 EXPORT_SYMBOL_GPL(zero_bytes);

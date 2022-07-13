@@ -194,6 +194,24 @@ int __uds_log_strerror(int priority,
 	__printf(4, 5);
 
 /**
+ * Log a message with an error from an error code.
+ *
+ * @param priority  The priority of the logging entry
+ * @param errnum    Int value of errno or a UDS_* value
+ * @param module    The name of the module doing the logging
+ * @param format    The format of the message (a printf style format)
+ * @param args	    The list of arguments with format.
+ *
+ * @return errnum
+ **/
+int uds_vlog_strerror(int priority,
+		      int errnum,
+		      const char *module,
+		      const char *format,
+		      va_list args)
+	__printf(4, 0);
+
+/**
  * Log an error prefixed with the string associated with the errnum.
  *
  * @param errnum Int value of errno or a UDS_* value.
