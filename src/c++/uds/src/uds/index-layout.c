@@ -2287,7 +2287,7 @@ int load_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 	}
 
-	result = load_open_chapters(index, readers[0]);
+	result = load_open_chapter(index, readers[0]);
 	free_buffered_reader(readers[0]);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -2361,7 +2361,7 @@ int save_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 	}
 
-	result = save_open_chapters(index, writers[0]);
+	result = save_open_chapter(index, writers[0]);
 	free_buffered_writer(writers[0]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);

@@ -91,7 +91,6 @@ int make_geometry(size_t bytes_per_page,
 	geometry->records_per_volume =
 		((unsigned long) geometry->records_per_chapter *
 		 chapters_per_volume);
-	geometry->open_chapter_load_ratio = DEFAULT_OPEN_CHAPTER_LOAD_RATIO;
 
 	geometry->chapter_mean_delta = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
 	geometry->chapter_payload_bits =

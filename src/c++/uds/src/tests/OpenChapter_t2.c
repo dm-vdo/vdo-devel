@@ -83,12 +83,12 @@ static void requestIndex(struct uds_chunk_name *hash,
 static void testSaveLoadEmpty(void)
 {
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapters(theIndex, writer));
+  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
   reset_open_chapter(theIndex->zones[0]->open_chapter);
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapters(theIndex, reader));
+  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
   free_buffered_reader(reader);
 
   unsigned int i;
@@ -116,12 +116,12 @@ static void testSaveLoadWithData(void)
 
   // Save the open chapter file and assert that all records can be found.
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapters(theIndex, writer));
+  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
   reset_open_chapter(theIndex->zones[0]->open_chapter);
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapters(theIndex, reader));
+  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
   free_buffered_reader(reader);
 
   for (i = 0; i < totalRecords; i++) {
@@ -162,7 +162,7 @@ static void testSaveLoadWithDiscard(void)
 
   // Save the open chapter file, and reload with a three-zone index.
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapters(theIndex, writer));
+  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
   free_index(theIndex);
 
@@ -175,7 +175,7 @@ static void testSaveLoadWithDiscard(void)
   }
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapters(theIndex, reader));
+  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
   free_buffered_reader(reader);
 
   // At least one zone will have more records than will fit in the
@@ -211,7 +211,7 @@ static void testSaveLoadWithDiscard(void)
 static void modifyOpenChapter(off_t offset, const char *data)
 {
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapters(theIndex, writer));
+  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
 
   char *block;
@@ -237,7 +237,7 @@ static void loadModifiedOpenChapter(void)
   struct buffered_reader *reader = openBufferedReaderForChapter();
   struct uds_index *restoringIndex = NULL;
   UDS_ASSERT_ERROR(UDS_CORRUPT_DATA,
-                   load_open_chapters(restoringIndex, reader));
+                   load_open_chapter(restoringIndex, reader));
   free_buffered_reader(reader);
   free_index(restoringIndex);
 }

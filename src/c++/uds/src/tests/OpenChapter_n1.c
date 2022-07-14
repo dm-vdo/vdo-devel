@@ -67,8 +67,8 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   unsigned int remaining;
   for (remaining = UINT_MAX; remaining > 0;) {
     struct uds_chunk_data metaData;
-    UDS_ASSERT_SUCCESS(put_open_chapter(openChapter, &names[recordCount],
-                                        &metaData, &remaining));
+
+    remaining = put_open_chapter(openChapter, &names[recordCount], &metaData);
     ++recordCount;
   }
   ktime_t putTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
@@ -90,7 +90,7 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
   unsigned int zone;
   for (zone = 0; zone < zoneCount; zone++) {
     fillOpenChapterZone(openChapters[zone]);
-    recordCount += open_chapter_size(openChapters[zone]);
+    recordCount += openChapters[zone]->size;
   }
 
   size_t collatedRecordsSize

@@ -474,17 +474,11 @@ static int put_record_in_zone(struct index_zone *zone,
 			      struct uds_request *request,
 			      const struct uds_chunk_data *metadata)
 {
-	int result;
 	unsigned int remaining;
 
-	result = put_open_chapter(zone->open_chapter,
-				  &request->chunk_name,
-				  metadata,
-				  &remaining);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
+	remaining = put_open_chapter(zone->open_chapter,
+				     &request->chunk_name,
+				     metadata);
 	if (remaining == 0) {
 		return open_next_chapter(zone);
 	}
@@ -612,6 +606,7 @@ static int search_index_zone(struct index_zone *zone,
 		/* Move the existing record to the open chapter. */
 		metadata = &request->old_metadata;
 	}
+
 	return put_record_in_zone(zone, request, metadata);
 }
 
@@ -903,7 +898,7 @@ static int make_chapter_writer(struct uds_index *index,
 	struct chapter_writer *writer;
 	size_t collated_records_size =
 		(sizeof(struct uds_chunk_record) *
-		 (1 + index->volume->geometry->records_per_chapter));
+		 index->volume->geometry->records_per_chapter);
 
 	result = UDS_ALLOCATE_EXTENDED(struct chapter_writer,
 				       index->zone_count,

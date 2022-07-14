@@ -241,7 +241,7 @@ int __must_check write_index_pages(struct volume *volume,
  *
  * @param volume         the volume containing the chapter
  * @param physical_page  the page number in the volume for the chapter
- * @param records        a 1-based array of chunk records in the chapter
+ * @param records        an array of chunk records in the chapter
  * @param pages          pointer to array of page pointers. Used only in
  *                       testing to return what data has been written to disk.
  *
@@ -249,7 +249,7 @@ int __must_check write_index_pages(struct volume *volume,
  **/
 int __must_check write_record_pages(struct volume *volume,
 				    int physical_page,
-				    const struct uds_chunk_record records[],
+				    const struct uds_chunk_record *records,
 				    byte **pages);
 
 /**

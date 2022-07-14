@@ -63,14 +63,12 @@ enum uds_status_codes {
 	UDS_SHORT_READ = UDS_ERROR_CODE_BASE + 18,
 	/* Internal resource limits exceeded */
 	UDS_RESOURCE_LIMIT_EXCEEDED = UDS_ERROR_CODE_BASE + 19,
-	/* Memory overflow due to storage failure */
-	UDS_VOLUME_OVERFLOW = UDS_ERROR_CODE_BASE + 20,
 	/* No index state found */
-	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 21,
+	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 20,
 	/* Premature end of file in scanned file */
-	UDS_END_OF_FILE = UDS_ERROR_CODE_BASE + 22,
+	UDS_END_OF_FILE = UDS_ERROR_CODE_BASE + 21,
 	/* Attempt to access incomplete index save data */
-	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 23,
+	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 22,
 	/* One more than the last UDS_INTERNAL error code */
 	UDS_ERROR_CODE_LAST,
 	/* One more than the last error this block will ever use */

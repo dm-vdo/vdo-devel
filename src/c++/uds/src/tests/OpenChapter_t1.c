@@ -61,13 +61,15 @@ static void testEmpty(void)
   createRandomBlockName(&name);
   memset(&zero, 0, sizeof(zero));
 
-  CU_ASSERT_EQUAL(0, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(0, openChapter->size);
+  CU_ASSERT_EQUAL(0, openChapter->deletions);
   openChapterSearch(&zero, &meta, false);
   openChapterSearch(&name, &meta, false);
 
   // Opening an empty chapter should work, but do nothing.
   reset_open_chapter(openChapter);
-  CU_ASSERT_EQUAL(0, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(0, openChapter->size);
+  CU_ASSERT_EQUAL(0, openChapter->deletions);
   openChapterSearch(&zero, &meta, false);
 }
 
@@ -75,8 +77,8 @@ static void testEmpty(void)
 static void put(struct uds_chunk_name *name, struct uds_chunk_data *data,
                 bool expectFull)
 {
-  unsigned int remaining;
-  UDS_ASSERT_SUCCESS(put_open_chapter(openChapter, name, data, &remaining));
+  unsigned int remaining = put_open_chapter(openChapter, name, data);
+
   CU_ASSERT_EQUAL((remaining == 0), expectFull);
 }
 
@@ -103,7 +105,8 @@ static void testSingleton(void)
 
   // Add one record to the chapter.
   putNotFull(&name1, &meta1);
-  CU_ASSERT_EQUAL(1, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(1, openChapter->size);
+  CU_ASSERT_EQUAL(0, openChapter->deletions);
 
   // Make sure we see the record we added.
   openChapterSearch(&name1, &metaOut, true);
@@ -119,7 +122,8 @@ static void testSingleton(void)
 
   // Delete the record and check that it's not there.
   remove_from_open_chapter(openChapter, &name1);
-  CU_ASSERT_EQUAL(0, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(1, openChapter->size);
+  CU_ASSERT_EQUAL(1, openChapter->deletions);
   openChapterSearch(&name1, &metaOut, false);
 }
 
@@ -133,28 +137,29 @@ static void testFilling(void)
   unsigned int fullLessOne = openChapter->capacity - 1;
   unsigned int i;
   for (i = 0; i < fullLessOne; i++) {
-    CU_ASSERT_EQUAL(i, open_chapter_size(openChapter));
+    CU_ASSERT_EQUAL(i, openChapter->size - openChapter->deletions);
     createRandomBlockName(&name);
     createRandomMetadata(&meta);
     putNotFull(&name, &meta);
   }
 
-  CU_ASSERT_EQUAL(fullLessOne, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(fullLessOne, openChapter->size - openChapter->deletions);
 
   // Add one more entry. It should indicate the chapter is full.
   createRandomBlockName(&name);
   createRandomMetadata(&meta);
 
   put(&name, &meta, true);
-  CU_ASSERT_EQUAL(openChapter->capacity, open_chapter_size(openChapter));
+  CU_ASSERT_EQUAL(openChapter->capacity,
+                  openChapter->size - openChapter->deletions);
 
-  // Add one more entry. It should fail.
+  // Add one more entry. It should be ignored.
   createRandomBlockName(&name);
   createRandomMetadata(&meta);
 
-  unsigned int remaining;
-  UDS_ASSERT_ERROR(UDS_VOLUME_OVERFLOW,
-                   put_open_chapter(openChapter, &name, &meta, &remaining));
+  CU_ASSERT_EQUAL(0, put_open_chapter(openChapter, &name, &meta));
+  CU_ASSERT_EQUAL(openChapter->capacity,
+                  openChapter->size - openChapter->deletions);
 }
 
 /**********************************************************************/
@@ -163,10 +168,9 @@ static void testQuadraticProbing(void)
   /*
    * Test that we can always insert records into the open chapter (via
    * quadratic probing) up to its capacity. Repeatedly add names that have
-   * hash slot 0. The failure mode is that put_open_chapter loops indefinitely.
+   * hash slot 0. The failure mode is that put_open_chapter() loops indefinitely.
    */
   struct open_chapter_zone *theChapter;
-  geometry->open_chapter_load_ratio = 2;
   geometry->records_per_chapter = 16;
   unsigned int zoneCount = 3;
   unsigned int recordsPerZone = 5;
@@ -175,14 +179,14 @@ static void testQuadraticProbing(void)
 
   unsigned int i;
   for (i = 0; i < recordsPerZone; ++i) {
-    unsigned int remaining;
     struct uds_chunk_name name;
     struct uds_chunk_data data;
     do {
       createRandomBlockName(&name);
       memcpy(&data.data, &name.name, UDS_CHUNK_NAME_SIZE);
     } while (name_to_hash_slot(&name, theChapter->slot_count) != 0);
-    UDS_ASSERT_SUCCESS(put_open_chapter(theChapter, &name, &data, &remaining));
+    CU_ASSERT_EQUAL(recordsPerZone - i - 1,
+                    put_open_chapter(theChapter, &name, &data));
   }
   free_open_chapter(theChapter);
 }

@@ -163,8 +163,7 @@ static void testWriteChapter(void)
       createRandomMetadata(&metadata[i]);
 
       unsigned int remaining;
-      UDS_ASSERT_SUCCESS(put_open_chapter(chapters[zone], &hashes[i],
-                                          &metadata[i], &remaining));
+      remaining = put_open_chapter(chapters[zone], &hashes[i], &metadata[i]);
       if (remaining == 0) {
         if (i > highestRecord) {
           highestRecord = i;

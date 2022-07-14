@@ -77,7 +77,6 @@ static const struct error_info error_list[] = {
 	{ "UDS_CORRUPT_DATA", "Some index structure is corrupt" },
 	{ "UDS_SHORT_READ", "Could not read requested number of bytes" },
 	{ "UDS_RESOURCE_LIMIT_EXCEEDED", "Internal resource limits exceeded" },
-	{ "UDS_VOLUME_OVERFLOW", "Memory overflow due to storage failure" },
 	{ "UDS_NO_INDEX", "No index found" },
 	{ "UDS_END_OF_FILE", "Unexpected end of file" },
 	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },

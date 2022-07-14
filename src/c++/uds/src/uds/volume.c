@@ -999,13 +999,12 @@ int write_index_pages(struct volume *volume,
 
 int write_record_pages(struct volume *volume,
 		       int physical_page,
-		       const struct uds_chunk_record records[],
+		       const struct uds_chunk_record *records,
 		       byte **pages)
 {
 	unsigned int record_page_number;
 	struct geometry *geometry = volume->geometry;
-	/* The record array from the open chapter is 1-based. */
-	const struct uds_chunk_record *next_record = &records[1];
+	const struct uds_chunk_record *next_record = records;
 	/* Skip over the index pages, which come before the record pages */
 	physical_page += geometry->index_pages_per_chapter;
 
@@ -1054,7 +1053,7 @@ int write_record_pages(struct volume *volume,
 
 int write_chapter(struct volume *volume,
 		  struct open_chapter_index *chapter_index,
-		  const struct uds_chunk_record records[])
+		  const struct uds_chunk_record *records)
 {
 	/* Determine the position of the virtual chapter in the volume file. */
 	struct geometry *geometry = volume->geometry;

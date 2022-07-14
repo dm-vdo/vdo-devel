@@ -40,8 +40,6 @@ struct geometry {
 	unsigned int pages_per_chapter;
 	/* Number of index pages in a chapter index */
 	unsigned int index_pages_per_chapter;
-	/* The minimum ratio of hash slots to records in an open chapter */
-	unsigned int open_chapter_load_ratio;
 	/* Number of records that fit on a page */
 	unsigned int records_per_page;
 	/* Number of records that fit in a chapter */
@@ -90,9 +88,6 @@ enum {
 
 	/* The log2 of the number of delta lists in a small chapter */
 	SMALL_CHAPTER_DELTA_LIST_BITS = 10,
-
-	/* The default minimum ratio of slots to records in an open chapter */
-	DEFAULT_OPEN_CHAPTER_LOAD_RATIO = 2,
 };
 
 int __must_check make_geometry(size_t bytes_per_page,
