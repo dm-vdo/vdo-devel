@@ -124,11 +124,17 @@ static void printReadableSize(size_t size)
 {
   const char *UNITS[] = { "B", "KB", "MB", "GB", "TB", "PB" };
   unsigned int unit = 0;
+  float floatSize = 0;
   while ((size >= 1024) && (unit < ARRAY_SIZE(UNITS) - 1)) {
-    size /= 1024;
+    floatSize = (float)size / 1024;
+    size = size / 1024;
     unit++;
   };
-  printf("%zu %s", size, UNITS[unit]);
+  if (unit > 0) {
+    printf("%4.2f %s", floatSize, UNITS[unit]);    
+  } else {
+    printf("%zu %s", size, UNITS[unit]);    
+  }
 }
 
 /**********************************************************************/
