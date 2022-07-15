@@ -1,5 +1,6 @@
 ##
-# Basic VDO functional test
+# Test deduplication of multiple copies of the same block being written at the
+# same time.
 #
 # $Id$
 ##
@@ -11,11 +12,11 @@ use Cwd;
 use English qw(-no_match_vars);
 use Log::Log4perl;
 
-use Permabit::Assertions qw(assertEq
-                            assertEqualNumeric
-                            assertGENumeric
-                            assertLENumeric
-                            assertNumArgs);
+use Permabit::Assertions qw(
+  assertGENumeric
+  assertLENumeric
+  assertNumArgs
+);
 use Permabit::Constants;
 
 use base qw(VDOTest);
@@ -35,11 +36,24 @@ our %PROPERTIES
 # correctly (VDO-2711).
 ##
 sub testInFlightDedupeWithCompression {
-  my ($self)    = assertNumArgs(1, @_);
-  my $device    = $self->getDevice();
-  my $machine   = $device->getMachine();
-  my $inputFile = '/permabit/datasets/vdo/iobw.tst';
-  my $size      = 2 * $GB;
+  my ($self)  = assertNumArgs(1, @_);
+  my $device  = $self->getDevice();
+  my $machine = $device->getMachine();
+
+  # Originally used a static dataset that repeated unique 4K blocks six times
+  # in a row. Start by generating the unique blocks to repeat.
+  my $dataSize = 256 * $MB;
+  my $dataFile = $self->generateDataFile($dataSize);
+
+  # Use a little Perl script to read each unique block and write six
+  # consecutive copies of that block to the input file.
+  my $inputFile = "$self->{scratchDir}/input";
+  $machine->runSystemCmd("perl -e '\n"
+                         . "local \$/ = \\" . $self->{blockSize} . ";\n"
+                         . "while (<>) { print; print; print; print; print; print }' "
+                         . "< $dataFile > $inputFile");
+
+  my $size      = 6 * $dataSize;
   my $blockSize = 1 * $MB;
   my $blocks    = $size / $blockSize;
   $device->ddWrite(
@@ -50,13 +64,13 @@ sub testInFlightDedupeWithCompression {
                    oflag => "direct",
                   );
 
-  my $readBack = "$self->{scratchDir}/iobw.tst";
+  my $outputFile = "$self->{scratchDir}/output";
   $device->ddRead(
-                  of    => $readBack,
+                  of    => $outputFile,
                   count => $blocks,
                   bs    => $blockSize,
                  );
-  $machine->runSystemCmd("cmp $inputFile $readBack");
+  $machine->runSystemCmd("cmp $inputFile $outputFile");
 
   my $stats = $self->getVDOStats();
   assertGENumeric($stats->{'saving percent'}, 82);
