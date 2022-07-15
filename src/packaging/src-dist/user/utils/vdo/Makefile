@@ -83,7 +83,8 @@ PROGS = vdoaudit               \
 
 COMPLETIONS=vdostats
 
-NOBUILDPROGS = adaptLVMVDO.sh
+NOBUILDPROGS = adaptLVMVDO.sh \
+	       vdorecover
 PROG_SOURCES := $(PROGS:%=%.c)
 C_FILES      := $(filter-out $(PROG_SOURCES),$(wildcard *.c))
 LIB_OBJECTS  := $(C_FILES:%.c=%.o)

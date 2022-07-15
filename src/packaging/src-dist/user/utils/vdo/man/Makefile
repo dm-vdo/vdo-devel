@@ -17,6 +17,7 @@ INSTALLFILES= \
 	vdoformat.8              \
 	vdolistmetadata.8        \
 	vdoreadonly.8            \
+	vdorecover.8             \
 	vdoregenerategeometry.8  \
 	vdosetuuid.8             \
         vdostats.8

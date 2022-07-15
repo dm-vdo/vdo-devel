@@ -133,6 +133,12 @@ tarballs:
             monitor_check_vdostats_logicalSpace.pl
             monitor_check_vdostats_physicalSpace.pl
             monitor_check_vdostats_savingPercent.pl
+        src/tools/vdorecover/man:
+          dest: utils/vdo/man
+          sources: 'vdorecover.8'
+        src/tools/vdorecover:
+          dest: utils/vdo
+          sources: vdorecover
         src/c++/uds/src/uds:
           dest: utils/uds
           sources: |

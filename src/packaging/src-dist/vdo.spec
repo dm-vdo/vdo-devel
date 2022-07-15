@@ -1,4 +1,4 @@
-%define spec_release 29
+%define spec_release 30
 #
 #
 #
@@ -99,6 +99,7 @@ This package provides the user-space support tools for VDO.
 %{_bindir}/vdodumpmetadata
 %{_bindir}/vdolistmetadata
 %{_bindir}/vdoreadonly
+%{_bindir}/vdorecover
 %{_bindir}/vdoregenerategeometry
 %{_mandir}/man8/adaptlvm.8.gz
 %{_mandir}/man8/vdoaudit.8.gz
@@ -107,9 +108,13 @@ This package provides the user-space support tools for VDO.
 %{_mandir}/man8/vdodumpmetadata.8.gz
 %{_mandir}/man8/vdolistmetadata.8.gz
 %{_mandir}/man8/vdoreadonly.8.gz
+%{_mandir}/man8/vdorecover.8.gz
 %{_mandir}/man8/vdoregenerategeometry.8.gz
 
 %changelog
+* Fri Jul 15 2022 - Andy Walsh <awalsh@redhat.com> - 8.1.0.0-30
+- Added vdorecover utility.
+
 * Tue May 10 2022 - Bruce Johnston <bjohnsto@redhat.com> - 8.1.0.0-29
 - Removed ansible examples.
 
