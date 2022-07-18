@@ -119,7 +119,7 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
 
   // Rebuild the volume index.
   UDS_ASSERT_SUCCESS(save_index(index));
-  discard_index_state_data(index->layout);
+  UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
   free_index(index);
   UDS_ASSERT_SUCCESS(make_index(config, UDS_LOAD, NULL, NULL, &index));
 

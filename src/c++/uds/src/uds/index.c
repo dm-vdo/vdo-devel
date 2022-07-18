@@ -1447,9 +1447,7 @@ int make_index(struct configuration *config,
 		return result;
 	}
 
-	if (new) {
-		discard_index_state_data(index->layout);
-	} else {
+	if (!new) {
 		result = load_index(index);
 		switch (result) {
 		case UDS_SUCCESS:

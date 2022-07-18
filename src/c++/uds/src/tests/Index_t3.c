@@ -154,7 +154,7 @@ static struct uds_index *rebuildIndex(struct uds_index *index)
   wait_for_idle_index(index);
 
   // Do a full rebuild from the volume file
-  discard_index_state_data(index->layout);
+  UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
   free_index(index);
   return recreateTestIndex(UDS_LOAD);
 }

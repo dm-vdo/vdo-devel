@@ -174,7 +174,7 @@ static void suspendRebuildTest(void)
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(make_index(tempConfig, UDS_NO_REBUILD, NULL, NULL,
                                 &index));
-  discard_index_state_data(index->layout);
+  UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
   free_index(index);
   free_configuration(tempConfig);
 
