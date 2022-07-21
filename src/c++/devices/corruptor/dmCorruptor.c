@@ -730,14 +730,13 @@ static void corruptorStatus(struct dm_target *ti,
                             unsigned int      maxlen)
 {
   CorruptorDevice *cd = ti->private;
-  char nameBuffer[BDEVNAME_SIZE];
   unsigned int sz = 0;  // used by the DMEMIT macro
 
   switch (type) {
   case STATUSTYPE_INFO:
-    DMEMIT("%s /dev/%s read %s %s %u write %s %s %u",
+    DMEMIT("%s /dev/%pg read %s %s %u write %s %s %u",
 	   cd->corruptorName,
-           bdevname(cd->dev->bdev, nameBuffer),
+           cd->dev->bdev,
 	   cd->corruptRead ? "on" : "off",
 	   getCorruptionTypeString(cd->readCorruption),
 	   cd->readFrequency,
@@ -747,9 +746,7 @@ static void corruptorStatus(struct dm_target *ti,
     break;
 
   case STATUSTYPE_TABLE:
-    DMEMIT("%s /dev/%s",
-	   cd->corruptorName,
-           bdevname(cd->dev->bdev, nameBuffer));
+    DMEMIT("%s /dev/%pg", cd->corruptorName, cd->dev->bdev);
     break;
   case STATUSTYPE_IMA:
     *result = '\0';

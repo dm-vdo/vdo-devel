@@ -407,23 +407,22 @@ static void tracerStatus(struct dm_target *ti,
                          unsigned int      maxlen)
 {
   TracerDevice *td = ti->private;
-  char nameBuffer[BDEVNAME_SIZE];
   unsigned int sz = 0;  // used by the DMEMIT macro
   unsigned long sectorCount = td->sectorCount;
 
   switch (type) {
   case STATUSTYPE_INFO:
-    DMEMIT("%s /dev/%s %lu %s",
+    DMEMIT("%s /dev/%pg %lu %s",
            td->tracerName,
-           bdevname(td->dev->bdev, nameBuffer),
+           td->dev->bdev,
            sectorCount,
            td->enabled ? "on" : "off");
     break;
 
   case STATUSTYPE_TABLE:
-    DMEMIT("%s /dev/%s %lu",
+    DMEMIT("%s /dev/%pg %lu",
            td->tracerName,
-           bdevname(td->dev->bdev, nameBuffer),
+           td->dev->bdev,
            sectorCount);
     break;
   case STATUSTYPE_IMA:
