@@ -79,7 +79,6 @@ struct dedupe_index {
 	 */
 	spinlock_t state_lock;
 	struct vdo_completion completion; /* protected by state_lock */
-	struct vdo_work_queue *uds_queue; /* protected by state_lock */
 	unsigned int maximum; /* protected by state_lock */
 	enum index_state index_state; /* protected by state_lock */
 	enum index_state index_target; /* protected by state_lock */
@@ -772,7 +771,6 @@ void vdo_finish_dedupe_index(struct dedupe_index *index)
 	}
 
 	uds_destroy_index_session(index->index_session);
-	finish_work_queue(index->uds_queue);
 }
 
 void vdo_free_dedupe_index(struct dedupe_index *index)
@@ -785,7 +783,6 @@ void vdo_free_dedupe_index(struct dedupe_index *index)
 	 * The queue will get freed along with all the others, but give up
 	 * our reference to it.
 	 */
-	UDS_FORGET(index->uds_queue);
 	stop_periodic_event_reporter(&index->timeout_reporter);
 	spin_lock_bh(&index->pending_lock);
 	if (index->started_timer) {
@@ -1102,8 +1099,6 @@ int vdo_make_dedupe_index(struct vdo *vdo, struct dedupe_index **index_ptr)
 	vdo_set_completion_callback(&index->completion,
 				    change_dedupe_state,
 				    vdo->thread_config->dedupe_thread);
-	index->uds_queue
-		= vdo->threads[vdo->thread_config->dedupe_thread].queue;
 	kobject_init(&index->dedupe_directory, &dedupe_directory_type);
 	INIT_LIST_HEAD(&index->pending_head);
 	spin_lock_init(&index->pending_lock);
