@@ -11,11 +11,10 @@
 #include "numeric.h"
 #include "random.h"
 
-#include "hash-zone.h"
+#include "dedupe.h"
 #include "thread-config.h"
 #include "vdo.h"
 
-#include "hash-zone.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 

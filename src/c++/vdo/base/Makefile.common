@@ -25,6 +25,7 @@ BASE_OBJS :=     			\
 	constants.o			\
 	data-vio.o			\
 	data-vio-pool.o                 \
+        dedupe.o                        \
         dedupe-index.o                  \
 	device-config.o			\
         device-registry.o		\
@@ -33,7 +34,6 @@ BASE_OBJS :=     			\
 	forest.o			\
 	header.o			\
 	hash-lock.o			\
-	hash-zone.o			\
 	heap.o				\
 	instance-number.o		\
 	int-map.o			\

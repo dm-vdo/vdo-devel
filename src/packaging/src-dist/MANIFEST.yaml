@@ -271,6 +271,8 @@ tarballs:
             data-vio.h
             data-vio-pool.c
             data-vio-pool.h
+            dedupe.c
+            dedupe.h
             dedupe-index.c
             dedupe-index.h
             device-config.c
@@ -288,8 +290,6 @@ tarballs:
             forest.h
             hash-lock.c
             hash-lock.h
-            hash-zone.c
-            hash-zone.h
             header.c
             header.h
             heap.c

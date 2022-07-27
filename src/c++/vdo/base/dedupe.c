@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include "hash-zone.h"
+#include "dedupe.h"
 
 #include <linux/list.h>
 

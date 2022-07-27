@@ -17,7 +17,7 @@
 #include "completion.h"
 #include "compressed-block.h"
 #include "constants.h"
-#include "hash-zone.h"
+#include "dedupe.h"
 #include "journal-point.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
@@ -1040,7 +1040,7 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
  * set_data_vio_bio_zone_callback() - Set a callback as a bio zone operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
- * 
+ *
  * This function assumes that the physical field of the data_vio's vio has
  * already been set to the pbn to which I/O will be performed.
  */

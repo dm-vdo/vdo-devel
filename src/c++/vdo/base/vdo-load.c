@@ -12,9 +12,9 @@
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
+#include "dedupe.h"
 #include "dedupe-index.h"
 #include "device-config.h"
-#include "hash-zone.h"
 #include "header.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
@@ -444,7 +444,7 @@ vdo_from_pre_load_sub_task(struct vdo_completion *completion)
  * decode_from_super_block() - Decode the VDO state from the super block and
  *                             validate that it is correct.
  * @vdo: The vdo being loaded.
- * 
+ *
  * On error from this method, the component states must be destroyed
  * explicitly. If this method returns successfully, the component states must
  * not be destroyed.

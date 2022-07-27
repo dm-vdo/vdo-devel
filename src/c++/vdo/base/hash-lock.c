@@ -98,8 +98,8 @@
 #include "compression-state.h"
 #include "constants.h"
 #include "data-vio.h"
+#include "dedupe.h"
 #include "dedupe-index.h"
-#include "hash-zone.h"
 #include "io-submitter.h"
 #include "packer.h"
 #include "pbn-lock.h"
@@ -859,7 +859,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
  * @data_vio: The data_vio to deduplicate using the hash lock.
  * @has_claim: true if the data_vio already has claimed an increment from the
  *             duplicate lock.
- * 
+ *
  * If no increments are available, this will roll over to a new hash lock and
  * launch the data_vio as the writing agent for that lock.
  */
