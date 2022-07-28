@@ -91,10 +91,10 @@ KERNEL_OBJS:=                           \
         dm-vdo-target.o                 \
         dump.o                          \
         histogram.o                     \
-        messageStats.o                  \
+        message-stats.o                 \
         sysfs.o                         \
         vdoHistograms.o                 \
-        workQueue.o
+        work-queue.o
 	
 USER_OBJECTS:=                  	\
 	block-map-format.o      	\

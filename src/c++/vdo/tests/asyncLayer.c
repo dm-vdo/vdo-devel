@@ -33,7 +33,7 @@
 #include "vdo-load.h"
 #include "vdo-suspend.h"
 #include "volume-geometry.h"
-#include "workQueue.h"
+#include "work-queue.h"
 
 #include "physicalLayer.h"
 

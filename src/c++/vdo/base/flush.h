@@ -11,7 +11,7 @@
 #include "kernel-types.h"
 #include "types.h"
 #include "wait-queue.h"
-#include "workQueue.h"
+#include "work-queue.h"
 
 /*
  * A marker for tracking which journal entries are affected by a flush request.

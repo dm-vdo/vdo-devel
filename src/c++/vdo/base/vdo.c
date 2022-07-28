@@ -49,7 +49,7 @@
 #include "vdo-layout.h"
 #include "vdo-resize.h"
 #include "vdo-resize-logical.h"
-#include "workQueue.h"
+#include "work-queue.h"
 
 #ifdef __KERNEL__
 #ifdef VDO_INTERNAL

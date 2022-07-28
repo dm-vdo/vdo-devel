@@ -11,7 +11,7 @@
 #include "kernel-types.h"
 #include "status-codes.h"
 #include "types.h"
-#include "workQueue.h"
+#include "work-queue.h"
 
 enum vdo_completion_type {
 	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */

@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include "workQueue.h"
+#include "work-queue.h"
 
 #include <linux/atomic.h>
 #include <linux/kthread.h>

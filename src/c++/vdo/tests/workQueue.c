@@ -6,9 +6,10 @@
  * $Id$
  */
 
-#include "workQueue.h"
+#include "work-queue.h"
 
 #include <linux/atomic.h>
+
 #include "event-count.h"
 #include "funnel-queue.h"
 

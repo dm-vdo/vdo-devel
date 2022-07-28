@@ -409,8 +409,8 @@ tarballs:
             volume-geometry.h
             wait-queue.c
             wait-queue.h
-            workQueue.c
-            workQueue.h
+            work-queue.c
+            work-queue.h
           undefines: INTERNAL,LOG_INTERNAL,TEST_INTERNAL,VDO_INTERNAL,VDO_USER
           defines: __KERNEL__
         src/c++/uds/src/uds:

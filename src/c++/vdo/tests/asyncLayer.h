@@ -11,7 +11,6 @@
 
 #include "completion.h"
 #include "types.h"
-#include "workQueue.h"
 
 #include "physicalLayer.h"
 
