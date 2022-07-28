@@ -15,6 +15,7 @@
 #include "thread-config.h"
 #include "vdo.h"
 
+#include "hashZone.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
@@ -49,11 +50,11 @@ static void verifySelectHashZone(struct vdo *vdo, thread_count_t hashZones)
   for (unsigned int selector = 0; selector < NAME_COUNT; selector++) {
     // XXX factor ala hashUtils
     name.name[0] = selector;
-    struct hash_zone *zone = vdo_select_hash_zone(vdo, &name);
+    struct hash_zone *zone = vdo_select_hash_zone(vdo->hash_zones, &name);
     histogram[zone->zone_number] += 1;
     // Check that we get the same name if we ask again, which should catch the
     // unlikely case of even but non-repeatable distribution, such as a rotor.
-    CU_ASSERT_PTR_EQUAL(zone, vdo_select_hash_zone(vdo, &name));
+    CU_ASSERT_PTR_EQUAL(zone, vdo_select_hash_zone(vdo->hash_zones, &name));
   }
 
   // The names should have been evenly distributed among all the zones.

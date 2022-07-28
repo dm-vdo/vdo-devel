@@ -272,9 +272,6 @@ static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo,
 
 void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name);
 
-struct hash_zone * __must_check
-vdo_select_hash_zone(const struct vdo *vdo, const struct uds_chunk_name *name);
-
 int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);

@@ -26,6 +26,36 @@ enum {
 	LOCK_POOL_CAPACITY = MAXIMUM_VDO_USER_VIOS,
 };
 
+struct hash_zone {
+	/* Which hash zone this is */
+	zone_count_t zone_number;
+
+	/* The thread ID for this zone */
+	thread_id_t thread_id;
+
+	/* Mapping from chunk_name fields to hash_locks */
+	struct pointer_map *hash_lock_map;
+
+	/* List containing all unused hash_locks */
+	struct list_head lock_pool;
+
+	/*
+	 * Statistics shared by all hash locks in this zone. Only modified on
+	 * the hash zone thread, but queried by other threads.
+	 */
+	struct hash_lock_statistics statistics;
+
+	/* Array of all hash_locks */
+	struct hash_lock *lock_array;
+};
+
+struct hash_zones {
+	/* The number of zones */
+	zone_count_t zone_count;
+	/* The hash zones themselves */
+	struct hash_zone zones[];
+};
+
 /**
  * compare_keys() - Implements pointer_key_comparator.
  */
@@ -155,26 +185,62 @@ thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
 }
 
 /**
- * vdo_get_hash_zone_statistics() - Get the statistics for this hash zone.
- * @zone: The hash zone to query.
- *
- * Return: A copy of the current statistics for the hash zone.
+ * vdo_get_hash_zone_statistics() - Tally all hash zone statistics.
+ * @zones The hash zones to query.
+ * @totals The tally
  */
-struct hash_lock_statistics
-vdo_get_hash_zone_statistics(const struct hash_zone *zone)
-{
-	const struct hash_lock_statistics *stats = &zone->statistics;
+void vdo_get_hash_zone_statistics(struct hash_zones *zones,
+				  struct hash_lock_statistics *tally)
 
-	return (struct hash_lock_statistics) {
-		.dedupe_advice_valid =
-			READ_ONCE(stats->dedupe_advice_valid),
-		.dedupe_advice_stale =
-			READ_ONCE(stats->dedupe_advice_stale),
-		.concurrent_data_matches =
-			READ_ONCE(stats->concurrent_data_matches),
-		.concurrent_hash_collisions =
-			READ_ONCE(stats->concurrent_hash_collisions),
-	};
+{
+	zone_count_t zone;
+
+	for (zone = 0; zone < zones->zone_count; zone++) {
+		struct hash_lock_statistics *stats =
+			&zones->zones[zone].statistics;
+
+		tally->dedupe_advice_valid +=
+			READ_ONCE(stats->dedupe_advice_valid);
+		tally->dedupe_advice_stale +=
+			READ_ONCE(stats->dedupe_advice_stale);
+		tally->concurrent_data_matches +=
+			READ_ONCE(stats->concurrent_data_matches);
+		tally->concurrent_hash_collisions +=
+			READ_ONCE(stats->concurrent_hash_collisions);
+	}
+}
+
+/**
+ * vdo_select_hash_zone() - Select the hash zone responsible for locking a
+ *                          given chunk name.
+ * @zones: The hash_zones from which to select.
+ * @name: The chunk name.
+ *
+ * Return: The hash zone responsible for the chunk name.
+ */
+struct hash_zone *vdo_select_hash_zone(struct hash_zones *zones,
+				       const struct uds_chunk_name *name)
+{
+	/*
+	 * Use a fragment of the chunk name as a hash code. To ensure uniform
+	 * distributions, it must not overlap with fragments used elsewhere.
+	 * Eight bits of hash should suffice since the number of hash zones is
+	 * small.
+	 *
+	 * XXX Make a central repository for these offsets ala hashUtils.
+	 * XXX Verify that the first byte is independent enough.
+	 */
+	uint32_t hash = name->name[0];
+
+	/*
+	 * Scale the 8-bit hash fragment to a zone index by treating it as a
+	 * binary fraction and multiplying that by the zone count. If the hash
+	 * is uniformly distributed over [0 .. 2^8-1], then (hash * count / 2^8)
+	 * should be uniformly distributed over [0 .. count-1]. The multiply and
+	 * shift is much faster than a divide (modulus) on X86 CPUs.
+	 */
+	hash = (hash * zones->zone_count) >> 8;
+	return &zones->zones[hash];
 }
 
 /**
@@ -396,22 +462,28 @@ void vdo_bump_hash_zone_collision_count(struct hash_zone *zone)
 }
 
 /**
- * vdo_dump_hash_zone() - Dump information about a hash zone to the log for
- *                        debugging.
- * @zone: The zone to dump.
+ * vdo_dump_hash_zones() - Dump information about the hash zones to the log for
+ *                         debugging.
+ * @zones: The zones to dump.
  */
-void vdo_dump_hash_zone(const struct hash_zone *zone)
+void vdo_dump_hash_zones(struct hash_zones *zones)
 {
 	vio_count_t i;
+	zone_count_t z;
 
-	if (zone->hash_lock_map == NULL) {
-		uds_log_info("struct hash_zone %u: NULL map", zone->zone_number);
-		return;
-	}
+	for (z = 0; z < zones->zone_count; z++) {
+		struct hash_zone *zone = &zones->zones[z];
 
-	uds_log_info("struct hash_zone %u: mapSize=%zu", zone->zone_number,
-		     pointer_map_size(zone->hash_lock_map));
-	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
-		dump_hash_lock(&zone->lock_array[i]);
+		if (zone->hash_lock_map == NULL) {
+			uds_log_info("struct hash_zone %u: NULL map", z);
+			continue;
+		}
+
+		uds_log_info("struct hash_zone %u: mapSize=%zu",
+			     z,
+			     pointer_map_size(zone->hash_lock_map));
+		for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
+			dump_hash_lock(&zone->lock_array[i]);
+		}
 	}
 }

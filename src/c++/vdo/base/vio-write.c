@@ -796,7 +796,7 @@ static void hash_data_vio(struct vdo_completion *completion)
 			&data_vio->chunk_name);
 
 	data_vio->hash_zone =
-		vdo_select_hash_zone(vdo_from_data_vio(data_vio),
+		vdo_select_hash_zone(vdo_from_data_vio(data_vio)->hash_zones,
 				     &data_vio->chunk_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio,

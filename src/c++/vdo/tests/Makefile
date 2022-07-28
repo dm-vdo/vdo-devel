@@ -98,7 +98,7 @@ doc:
 .PHONY: clean
 clean:
 	rm -f $(PROGS) $(PERF_PROGS) $(VDOTEST) *.so *.o vdo-checkin.xml core*
-	rm -fr $(DEPDIR) tmpdir
+	rm -fr $(DEPDIR) tmpdir hashZone.h
 
 checkin: all
 ifeq ($(SAVELOGS),1)
@@ -129,6 +129,22 @@ vdotest: vdotest.o $(TESTDEPLIBS)
 	$(CC) $(LDFLAGS) -Wl,-rpath,'$$ORIGIN/../uds' \
 		vdotest.o $(TESTLIBS) $(LIBFLAGS) -o $@
 
+define guard
+  $(guile (string-upcase "$(1)_H"))
+endef
+
+define struct_header =
+  $(1): $(2)
+	echo '#ifndef $(call guard,$(3))' > $(1)
+	echo '#define $(call guard,$(3))' >> $(1)
+	grep '^#' $(2) >> $(1)
+	sed -n '/^struct $(3)/, /^};/p;' $(2) \
+	  | sed -n '/./, /^};/p;/^};/q;' >> $(1)
+	echo '#endif /* not $(call guard,$(3)) */' >> $1
+endef
+
+$(eval $(call struct_header,hashZone.h,$(VDO_BASE_DIR)/dedupe.c,hash_zone))
+
 .PHONY: FORCE
 FORCE:
 
@@ -144,7 +160,7 @@ FORCE:
 		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ;	 \
 	fi
 
-$(DEPDIR)/%.d: %.c $(FAKE_INCLUDES)
+$(DEPDIR)/%.d: %.c $(FAKE_INCLUDES) hashZone.h
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -M -MF $@ -MP -MT $*.o $<
 
