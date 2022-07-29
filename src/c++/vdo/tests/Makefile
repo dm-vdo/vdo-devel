@@ -129,18 +129,14 @@ vdotest: vdotest.o $(TESTDEPLIBS)
 	$(CC) $(LDFLAGS) -Wl,-rpath,'$$ORIGIN/../uds' \
 		vdotest.o $(TESTLIBS) $(LIBFLAGS) -o $@
 
-define guard
-  $(guile (string-upcase "$(1)_H"))
-endef
-
 define struct_header =
   $(1): $(2)
-	echo '#ifndef $(call guard,$(3))' > $(1)
-	echo '#define $(call guard,$(3))' >> $(1)
+	echo '#ifndef GUARD_$(3)_GUARD' > $(1)
+	echo '#define GUARD_$(3)_GUARD' >> $(1)
 	grep '^#' $(2) >> $(1)
 	sed -n '/^struct $(3)/, /^};/p;' $(2) \
 	  | sed -n '/./, /^};/p;/^};/q;' >> $(1)
-	echo '#endif /* not $(call guard,$(3)) */' >> $1
+	echo '#endif /* not GUARD_$(3)_GUARD */' >> $1
 endef
 
 $(eval $(call struct_header,hashZone.h,$(VDO_BASE_DIR)/dedupe.c,hash_zone))
