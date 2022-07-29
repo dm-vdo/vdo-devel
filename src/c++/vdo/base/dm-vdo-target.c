@@ -16,7 +16,7 @@
 #include "io-submitter.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "messageStats.h"
+#include "message-stats.h"
 #include "string-utils.h"
 #include "thread-config.h"
 #include "thread-device.h"

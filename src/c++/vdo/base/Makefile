@@ -18,7 +18,7 @@ LDFLAGS  = $(GLOBAL_LDFLAGS)
 OBJECTS := $(sort $(BASE_OBJS) $(USER_OBJECTS))
 
 GENERATED_HEADERS = release-versions.h statistics.h
-GENERATED_FILES   = $(GENERATED_HEADERS) messageStats.c
+GENERATED_FILES   = $(GENERATED_HEADERS) message-stats.c
 
 .PHONY: all
 all: libvdo.a libvdouser.a

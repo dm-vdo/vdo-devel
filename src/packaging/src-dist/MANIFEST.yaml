@@ -306,8 +306,8 @@ tarballs:
             lock-counter.h
             logical-zone.c
             logical-zone.h
-            messageStats.c
-            messageStats.h
+            message-stats.c
+            message-stats.h
             num-utils.h
             packed-recovery-journal-block.h
             packed-reference-block.h

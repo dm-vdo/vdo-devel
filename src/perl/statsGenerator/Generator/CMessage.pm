@@ -248,7 +248,7 @@ sub generateHeader {
 #include "dedupe-index.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "messageStats.h"
+#include "message-stats.h"
 #include "statistics.h"
 #include "thread-device.h"
 #include "vdo.h"

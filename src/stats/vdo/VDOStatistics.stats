@@ -136,7 +136,7 @@ stats {
   perlHeader           Definitions.pm;
   perlPackage          Permabit::Statistics::Definitions;
   csysfsOutput         pool-sysfs-stats.c;
-  cmessageOutput       messageStats.c;
+  cmessageOutput       message-stats.c;
   cmessagereaderOutput messageStatsReader.c;
   cvdostatsOutput      vdoStatsWriter.c;
 

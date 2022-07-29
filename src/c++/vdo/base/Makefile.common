@@ -91,7 +91,7 @@ KERNEL_OBJS:=                           \
         dm-vdo-target.o                 \
         dump.o                          \
         histogram.o                     \
-        messageStats.o                  \
+        message-stats.o                 \
         sysfs.o                         \
         vdoHistograms.o                 \
         work-queue.o
