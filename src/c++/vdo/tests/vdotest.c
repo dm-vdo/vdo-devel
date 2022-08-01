@@ -132,6 +132,23 @@ static void setThreadName(const char *name)
 }
 
 /**
+ * Set up test index files.
+ **/
+static void setupFiles(void)
+{
+  int fd;
+  const char *path = getTestIndexName();
+  int result = open_file(path, FU_CREATE_READ_WRITE, &fd);
+  if (result != UDS_SUCCESS) {
+    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    errx(1, "Failed to initialize index file: %s: %s", path,
+         uds_string_error(result, errbuf, sizeof(errbuf)));
+  }
+
+  close_file(fd, NULL);
+}
+
+/**
  * Cleanup any leftover test files
  **/
 static void cleanupFiles(void)
@@ -873,6 +890,7 @@ int main(int argc, char **argv)
     *s = nullSuite;
 
     cleanupFiles();
+    setupFiles();
 
     // run the test the specified number of times (or until failure)
     for (int iteration = 0; iteration != repCount; iteration++) {
