@@ -67,7 +67,6 @@ static const struct error_info error_list[] = {
 	{ "UDS_BUFFER_ERROR", "Buffer error" },
 	{ "UDS_NO_DIRECTORY", "Expected directory is missing" },
 	{ "UDS_ALREADY_REGISTERED", "Error range already registered" },
-	{ "UDS_BAD_IO_DIRECTION", "Bad I/O direction" },
 	{ "UDS_INCORRECT_ALIGNMENT", "Offset not at block alignment" },
 	{ "UDS_OUT_OF_RANGE", "Cannot access data outside specified limits" },
 	{ "UDS_EMODULE_LOAD", "Could not load modules" },
@@ -75,10 +74,8 @@ static const struct error_info error_list[] = {
 	{ "UDS_UNKNOWN_ERROR", "Unknown error" },
 	{ "UDS_UNSUPPORTED_VERSION", "Unsupported version" },
 	{ "UDS_CORRUPT_DATA", "Some index structure is corrupt" },
-	{ "UDS_SHORT_READ", "Could not read requested number of bytes" },
 	{ "UDS_RESOURCE_LIMIT_EXCEEDED", "Internal resource limits exceeded" },
 	{ "UDS_NO_INDEX", "No index found" },
-	{ "UDS_END_OF_FILE", "Unexpected end of file" },
 	{ "UDS_INDEX_NOT_SAVED_CLEANLY", "Index not saved cleanly" },
 };
 

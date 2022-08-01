@@ -6,14 +6,10 @@
 #ifndef IO_FACTORY_H
 #define IO_FACTORY_H
 
+#include <linux/dm-bufio.h>
+
 #include "buffered-reader.h"
 #include "buffered-writer.h"
-#ifdef __KERNEL__
-#include <linux/dm-bufio.h>
-#else
-#include "fileUtils.h"
-#include "ioRegion.h"
-#endif
 
 /*
  * An IO factory object is responsible for controlling access to index
@@ -37,7 +33,6 @@ struct io_factory;
  */
 enum { UDS_BLOCK_SIZE = 4096 };
 
-#ifdef __KERNEL__
 /**
  * Create an IO factory. The IO factory is returned with a reference
  * count of 1.
@@ -50,22 +45,6 @@ enum { UDS_BLOCK_SIZE = 4096 };
  **/
 int __must_check make_uds_io_factory(const char *path,
 				     struct io_factory **factory_ptr);
-#else
-/**
- * Create an IO factory.  The IO factory is returned with a reference
- * count of 1.
- *
- * @param path        The path to the block device or file that contains the
- *                    block stream
- * @param access      The requested access kind.
- * @param factory_ptr The IO factory is returned here
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check make_uds_io_factory(const char *path,
-				     enum file_access access,
-				     struct io_factory **factory_ptr);
-#endif
 
 /**
  * Replace the backing store for an IO factory.
@@ -104,7 +83,6 @@ void put_uds_io_factory(struct io_factory *factory);
  **/
 size_t __must_check get_uds_writable_size(struct io_factory *factory);
 
-#ifdef __KERNEL__
 /**
  * Create a struct dm_bufio_client for a region of the index.
  *
@@ -121,22 +99,6 @@ int __must_check make_uds_bufio(struct io_factory *factory,
 				size_t block_size,
 				unsigned int reserved_buffers,
 				struct dm_bufio_client **client_ptr);
-#else
-/**
- * Create an IO region for a region of the index.
- *
- * @param factory    The IO factory
- * @param offset     The byte offset to the region within the index
- * @param size       The size in bytes of the region
- * @param region_ptr The IO region is returned here
- *
- * @return UDS_SUCCESS or an error code
- **/
-int __must_check make_uds_io_region(struct io_factory *factory,
-				    off_t offset,
-				    size_t size,
-				    struct io_region **region_ptr);
-#endif
 
 /**
  * Create a buffered reader for a region of the index.

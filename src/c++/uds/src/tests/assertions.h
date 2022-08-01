@@ -201,7 +201,6 @@ static INLINE void cuDie(void)
     }                                                             \
   } while (0)
 
-#ifdef __KERNEL__
 #define UDS_ASSERT_KERNEL_SUCCESS(result)       \
   do {                                          \
     void *_r = (result);                        \
@@ -211,7 +210,8 @@ static INLINE void cuDie(void)
       cuDie();                                  \
     }                                           \
   } while (0)
-#else
+
+#ifndef __KERNEL__
 #define UDS_ASSERT_SYSTEM_CALL(result)       \
   do {                                       \
     int _r = (result);                       \

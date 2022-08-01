@@ -5,6 +5,8 @@
 
 #include "buffered-writer.h"
 
+#include <linux/dm-bufio.h>
+
 #include "compiler.h"
 #ifdef TEST_INTERNAL
 #include "dory.h"
@@ -16,7 +18,6 @@
 #include "numeric.h"
 
 struct buffered_writer {
-#ifdef __KERNEL__
 	/* IO factory owning the block device */
 	struct io_factory *factory;
 	/* The dm_bufio_client to write to */
@@ -27,12 +28,6 @@ struct buffered_writer {
 	sector_t limit;
 	/* Number of the current block */
 	sector_t block_number;
-#else
-	/* Region to write to */
-	struct io_region *region;
-	/* Number of the current block */
-	uint64_t block_number;
-#endif
 	/* Start of the buffer */
 	byte *start;
 	/* End of the data written to the buffer */
@@ -52,7 +47,6 @@ size_t space_remaining_in_write_buffer(struct buffered_writer *writer)
 	return UDS_BLOCK_SIZE - space_used_in_buffer(writer);
 }
 
-#ifdef __KERNEL__
 static int __must_check prepare_next_buffer(struct buffered_writer *writer)
 {
 	struct dm_buffer *buffer = NULL;
@@ -108,9 +102,7 @@ static int flush_previous_buffer(struct buffered_writer *writer)
 	writer->block_number++;
 	return writer->error;
 }
-#endif
 
-#ifdef __KERNEL__
 /*
  * Make a new buffered writer.
  *
@@ -152,52 +144,6 @@ int make_buffered_writer(struct io_factory *factory,
 	*writer_ptr = writer;
 	return UDS_SUCCESS;
 }
-#else
-/*
- * Make a new buffered writer.
- *
- * @param region      The IO region to write to
- * @param writer_ptr  The new buffered writer goes here
- *
- * @return UDS_SUCCESS or an error code
- */
-int make_buffered_writer(struct io_region *region,
-			 struct buffered_writer **writer_ptr)
-{
-	int result;
-	byte *data;
-	struct buffered_writer *writer;
-
-	result = UDS_ALLOCATE_IO_ALIGNED(UDS_BLOCK_SIZE,
-					 byte,
-					 "buffered writer buffer",
-					 &data);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = UDS_ALLOCATE(1,
-			      struct buffered_writer,
-			      "buffered writer",
-			      &writer);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(data);
-		return result;
-	}
-
-	*writer = (struct buffered_writer) {
-		.region = region,
-		.start = data,
-		.end = data,
-		.block_number = 0,
-		.error = UDS_SUCCESS,
-	};
-
-	get_io_region(region);
-	*writer_ptr = writer;
-	return UDS_SUCCESS;
-}
-#endif
 
 void free_buffered_writer(struct buffered_writer *writer)
 {
@@ -207,25 +153,16 @@ void free_buffered_writer(struct buffered_writer *writer)
 		return;
 	}
 
-#ifdef __KERNEL__
 	flush_previous_buffer(writer);
 	result = -dm_bufio_write_dirty_buffers(writer->client);
-#else
-	result = sync_region_contents(writer->region);
-#endif
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result,
 					 "%s: failed to sync storage",
 					 __func__);
 	}
 
-#ifdef __KERNEL__
 	dm_bufio_client_destroy(writer->client);
 	put_uds_io_factory(writer->factory);
-#else
-	put_io_region(writer->region);
-	UDS_FREE(writer->start);
-#endif
 	UDS_FREE(writer);
 }
 
@@ -246,13 +183,11 @@ int write_to_buffered_writer(struct buffered_writer *writer,
 	}
 
 	while ((len > 0) && (result == UDS_SUCCESS)) {
-#ifdef __KERNEL__
 		if (writer->buffer == NULL) {
 			result = prepare_next_buffer(writer);
 			continue;
 		}
 
-#endif
 		chunk = min(len, space_remaining_in_write_buffer(writer));
 		memcpy(writer->end, dp, chunk);
 		len -= chunk;
@@ -277,12 +212,10 @@ int write_zeros_to_buffered_writer(struct buffered_writer *writer, size_t len)
 	}
 
 	while ((len > 0) && (result == UDS_SUCCESS)) {
-#ifdef __KERNEL__
 		if (writer->buffer == NULL) {
 			result = prepare_next_buffer(writer);
 			continue;
 		}
-#endif
 
 		chunk = min(len, space_remaining_in_write_buffer(writer));
 		memset(writer->end, 0, chunk);
@@ -303,23 +236,5 @@ int flush_buffered_writer(struct buffered_writer *writer)
 		return writer->error;
 	}
 
-#ifdef __KERNEL__
 	return flush_previous_buffer(writer);
-#else
-	if (space_used_in_buffer(writer) == 0) {
-		return UDS_SUCCESS;
-	}
-
-	writer->error = write_to_region(writer->region,
-					writer->block_number * UDS_BLOCK_SIZE,
-					writer->start,
-					UDS_BLOCK_SIZE,
-					space_used_in_buffer(writer));
-	if (writer->error == UDS_SUCCESS) {
-		writer->end = writer->start;
-		writer->block_number++;
-	}
-
-	return writer->error;
-#endif
 }

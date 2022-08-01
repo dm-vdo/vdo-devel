@@ -22,13 +22,13 @@ static void trivialTest(void)
 
   // UDS
 
-  CU_ASSERT_STRING_EQUAL(uds_string_error_name(UDS_END_OF_FILE, buf,
+  CU_ASSERT_STRING_EQUAL(uds_string_error_name(UDS_NO_INDEX, buf,
                                                sizeof(buf)),
-                         "UDS_END_OF_FILE");
+                         "UDS_NO_INDEX");
 
-  CU_ASSERT_CONTAINS_SUBSTRING(uds_string_error(UDS_END_OF_FILE, buf,
+  CU_ASSERT_CONTAINS_SUBSTRING(uds_string_error(UDS_NO_INDEX, buf,
                                                 sizeof(buf)),
-                               "Unexpected end of file");
+                               "No index found");
 
   // VDO
 

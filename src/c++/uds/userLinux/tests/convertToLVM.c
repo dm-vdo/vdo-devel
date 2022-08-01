@@ -34,31 +34,48 @@ static int __must_check move_chapter(struct volume *volume,
 {
 	struct geometry *geometry = volume->geometry;
 	struct volume_store vs;
+	struct volume_page read_page;
+	struct volume_page write_page;
 	int result = UDS_SUCCESS;
 	unsigned int page;
+
 	result = open_volume_store(&vs, layout, 0, geometry->bytes_per_page);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
+	result = initialize_volume_page(geometry->bytes_per_page,
+					&read_page);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = initialize_volume_page(geometry->bytes_per_page,
+					&write_page);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 	for (page = 0; page < geometry->pages_per_chapter; page++) {
-		struct volume_page vp;
 		unsigned int physical_page =
 			map_to_physical_page(geometry, 0, page);
-		result = initialize_volume_page(geometry->bytes_per_page, &vp);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-		result = read_volume_page(&vs, physical_page, &vp);
+
+		result = read_volume_page(&vs, physical_page, &read_page);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
 		physical_page =
 			map_to_physical_page(geometry, new_physical, page);
-		result = write_volume_page(&vs, physical_page, &vp);
+		result = prepare_to_write_volume_page(&vs, physical_page,
+						      &write_page);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-		destroy_volume_page(&vp);
+		memcpy(get_page_data(&write_page), get_page_data(&read_page),
+		       geometry->bytes_per_page);
+		result = write_volume_page(&vs, physical_page, &write_page);
+		if (result != UDS_SUCCESS) {
+			return result;
+		}
+		destroy_volume_page(&read_page);
+		destroy_volume_page(&write_page);
 	}
 	close_volume_store(&vs);
 	return UDS_SUCCESS;

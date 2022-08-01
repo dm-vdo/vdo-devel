@@ -2297,20 +2297,13 @@ static int load_index_layout(struct index_layout *layout,
 
 static int create_layout_factory(struct index_layout *layout,
 				 const struct configuration *config,
-				 bool new_layout)
+				 bool new_layout __always_unused)
 {
 	int result;
 	size_t writable_size;
 	struct io_factory *factory = NULL;
-#ifdef __KERNEL__
 
 	result = make_uds_io_factory(config->name, &factory);
-#else
-	enum file_access access =
-		(new_layout ? FU_CREATE_READ_WRITE : FU_READ_WRITE);
-
-	result = make_uds_io_factory(config->name, access, &factory);
-#endif
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -2397,7 +2390,6 @@ int replace_index_layout_storage(struct index_layout *layout,
 	return replace_uds_storage(layout->factory, name);
 }
 
-#ifdef __KERNEL__
 /* Obtain a dm_bufio_client for the volume region. */
 int open_uds_volume_bufio(struct index_layout *layout,
 			  size_t block_size,
@@ -2415,27 +2407,6 @@ int open_uds_volume_bufio(struct index_layout *layout,
 			      reserved_buffers,
 			      client_ptr);
 }
-#else
-/* Obtain an IO region for the volume region. */
-int open_uds_volume_region(struct index_layout *layout,
-			   struct io_region **region_ptr)
-{
-	int result;
-	struct layout_region *lr = &layout->index.volume;
-	off_t start = (lr->start_block + layout->super.volume_offset -
-		       layout->super.start_offset) *
-		layout->super.block_size;
-	size_t size = lr->block_count * layout->super.block_size;
-
-	result = make_uds_io_region(layout->factory, start, size, region_ptr);
-	if (result != UDS_SUCCESS) {
-		return uds_log_error_strerror(result,
-					      "cannot access index volume region");
-	}
-
-	return UDS_SUCCESS;
-}
-#endif
 
 uint64_t get_uds_volume_nonce(struct index_layout *layout)
 {

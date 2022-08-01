@@ -62,7 +62,6 @@ UDS_OBJECTS =	murmurhash3.o		\
 		delta-index.o		\
 		errors.o		\
 		event-count.o		\
-		fileIORegion.o		\
 		fileUtils.o		\
 		funnel-queue.o		\
 		geometry.o		\
@@ -71,7 +70,7 @@ UDS_OBJECTS =	murmurhash3.o		\
 		index-layout.o		\
 		index-page-map.o	\
 		index-session.o		\
-		ioFactory.o		\
+		io-factory.o		\
 		logger.o		\
 		memoryAlloc.o		\
 		minisyslog.o		\

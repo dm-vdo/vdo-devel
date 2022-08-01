@@ -160,7 +160,7 @@ tarballs:
             index-layout.[hc]
             index-page-map.[hc]
             index-session.[hc]
-            io-factory.h
+            io-factory.[hc]
             logger.h
             memory-alloc.h
             numeric.h
@@ -195,11 +195,8 @@ tarballs:
           dest: utils/uds
           sources: |
             atomicDefs.h
-            fileIORegion.[hc]
             fileUtils.[hc]
             hlist.h
-            ioFactory.c
-            ioRegion.h
             logger.c
             memoryAlloc.c
             minisyslog.[hc]
@@ -213,7 +210,10 @@ tarballs:
           undefines: MEMORY_INTERNAL,TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/userLinux/uds/linux:
           dest: utils/uds/linux
-          sources: atomic.h
+          sources: |
+            atomic.h
+            blkdev.h
+            dm-bufio.h
           undefines: __KERNEL__
   kvdo:
     versionFiles:
@@ -448,6 +448,7 @@ tarballs:
             index-page-map.h
             index-session.c
             index-session.h
+            io-factory.c
             io-factory.h
             logger.h
             memory-alloc.h
@@ -495,7 +496,6 @@ tarballs:
         src/c++/uds/kernelLinux/uds:
           dest: vdo
           sources: |
-            io-factory.c
             logger.c
             memory-alloc.c
             request-queue.c

@@ -9,22 +9,13 @@
 #include "common.h"
 
 struct buffered_reader;
-#ifdef __KERNEL__
 struct dm_bufio_client;
 struct io_factory;
-#else
-struct io_region;
-#endif
 
-#ifdef __KERNEL__
 int __must_check make_buffered_reader(struct io_factory *factory,
 				      struct dm_bufio_client *client,
 				      sector_t block_limit,
 				      struct buffered_reader **reader_ptr);
-#else
-int __must_check make_buffered_reader(struct io_region *region,
-				      struct buffered_reader **reader_ptr);
-#endif
 
 void free_buffered_reader(struct buffered_reader *reader);
 

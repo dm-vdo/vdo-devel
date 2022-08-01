@@ -24,8 +24,8 @@
 #endif
 
 typedef unsigned char byte;
-#ifdef __KERNEL__
 
+#ifdef __KERNEL__
 #define CHAR_BIT 8
 
 #define INT64_MAX  (9223372036854775807L)
@@ -33,5 +33,7 @@ typedef unsigned char byte;
 #define UINT8_MAX  ((uint8_t)~0ul)
 #define UINT16_MAX ((uint16_t)~0ul)
 #define UINT64_MAX ((uint64_t)~0ul)
+#else
+#define sector_t uint64_t
 #endif /* __KERNEL__ */
 #endif /* TYPE_DEFS_H */

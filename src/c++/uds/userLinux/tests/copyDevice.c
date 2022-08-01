@@ -7,14 +7,12 @@
  */
 
 #include "assertions.h"
+#include "fileUtils.h"
 #include "numeric.h"
 #include "testPrototypes.h"
 
 int copyDevice(const char *source, const char *destination, off_t bytes)
 {
-  enum {
-    SECTOR_SIZE = 512,
-  };
   int read_fd;
   int write_fd;
   byte buffer[SECTOR_SIZE];

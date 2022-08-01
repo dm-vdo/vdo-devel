@@ -27,11 +27,11 @@ LIBRARIES =	libuds.a				\
 		libuds-int.so
 
 UDS_OBJECTS =	$(notdir $(UDS_COMMON_SOURCES:%.c=%.o))	\
+		blkdev.o		\
 		directoryReader.o	\
 		directoryUtils.o	\
-		fileIORegion.o		\
+		dm-bufio.o		\
 		fileUtils.o		\
-		ioFactory.o		\
 		logger.o		\
 		memoryAlloc.o		\
 		minisyslog.o		\

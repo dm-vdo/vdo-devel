@@ -9,22 +9,13 @@
 #include "common.h"
 
 struct buffered_writer;
-#ifdef __KERNEL__
 struct dm_bufio_client;
 struct io_factory;
-#else
-struct io_region;
-#endif
 
-#ifdef __KERNEL__
 int __must_check make_buffered_writer(struct io_factory *factory,
 				      struct dm_bufio_client *client,
 				      sector_t block_limit,
 				      struct buffered_writer **writer_ptr);
-#else
-int __must_check make_buffered_writer(struct io_region *region,
-				      struct buffered_writer **writer_ptr);
-#endif
 
 void free_buffered_writer(struct buffered_writer *buffer);
 

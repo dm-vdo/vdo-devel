@@ -5,27 +5,19 @@
 
 #include "buffered-reader.h"
 
+#include <linux/dm-bufio.h>
+
 #include "compiler.h"
 #include "io-factory.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
 
-#ifndef __KERNEL__
-/*
- * Define sector_t, because the kernel uses it extensively. Note that
- * the use of #define means that even if a user mode include typedefs
- * sector_t, it will not affect this module.
- */
-#define sector_t uint64_t
-#endif
-
 /*
  * The buffered reader allows efficient I/O for IO regions. The internal
  * buffer always reads aligned data from the underlying region.
  */
 struct buffered_reader {
-#ifdef __KERNEL__
 	/* IO factory owning the block device */
 	struct io_factory *factory;
 	/* The dm_bufio_client to read from */
@@ -36,19 +28,12 @@ struct buffered_reader {
 	sector_t limit;
 	/* Number of the current block */
 	sector_t block_number;
-#else
-	/* Region to read from */
-	struct io_region *region;
-	/* Number of the current block */
-	uint64_t block_number;
-#endif
 	/* Start of the buffer */
 	byte *start;
 	/* End of the data read from the buffer */
 	byte *end;
 };
 
-#ifdef __KERNEL__
 static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 {
 	if (block_number < reader->limit) {
@@ -59,9 +44,7 @@ static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 		dm_bufio_prefetch(reader->client, block_number, read_ahead);
 	}
 }
-#endif
 
-#ifdef __KERNEL__
 /*
  * Make a new buffered reader.
  *
@@ -103,51 +86,6 @@ int make_buffered_reader(struct io_factory *factory,
 	*reader_ptr = reader;
 	return UDS_SUCCESS;
 }
-#else
-/*
- * Make a new buffered reader.
- *
- * @param region      An IO region to read from
- * @param reader_ptr  The pointer to hold the newly allocated buffered reader
- *
- * @return UDS_SUCCESS or error code.
- */
-int make_buffered_reader(struct io_region *region,
-			 struct buffered_reader **reader_ptr)
-{
-	byte *data;
-	struct buffered_reader *reader = NULL;
-	int result;
-
-	result = UDS_ALLOCATE_IO_ALIGNED(UDS_BLOCK_SIZE,
-					 byte,
-					 "buffered reader buffer",
-					 &data);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = UDS_ALLOCATE(1,
-			      struct buffered_reader,
-			      "buffered reader",
-			      &reader);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(data);
-		return result;
-	}
-
-	*reader = (struct buffered_reader) {
-		.region = region,
-		.block_number = 0,
-		.start = data,
-		.end = NULL,
-	};
-
-	get_io_region(region);
-	*reader_ptr = reader;
-	return UDS_SUCCESS;
-}
-#endif
 
 void free_buffered_reader(struct buffered_reader *reader)
 {
@@ -155,17 +93,12 @@ void free_buffered_reader(struct buffered_reader *reader)
 		return;
 	}
 
-#ifdef __KERNEL__
 	if (reader->buffer != NULL) {
 		dm_bufio_release(reader->buffer);
 	}
 
 	dm_bufio_client_destroy(reader->client);
 	put_uds_io_factory(reader->factory);
-#else
-	put_io_region(reader->region);
-	UDS_FREE(reader->start);
-#endif
 	UDS_FREE(reader);
 }
 
@@ -174,7 +107,6 @@ static int position_reader(struct buffered_reader *reader,
 			   off_t offset)
 {
 	if ((reader->end == NULL) || (block_number != reader->block_number)) {
-#ifdef __KERNEL__
 		struct dm_buffer *buffer = NULL;
 		void *data;
 
@@ -197,19 +129,6 @@ static int position_reader(struct buffered_reader *reader,
 		if (block_number == reader->block_number + 1) {
 			read_ahead(reader, block_number + 1);
 		}
-#else
-		int result = read_from_region(reader->region,
-					      block_number * UDS_BLOCK_SIZE,
-					      reader->start,
-					      UDS_BLOCK_SIZE,
-					      NULL);
-		if (result != UDS_SUCCESS) {
-			uds_log_warning_strerror(result,
-						 "%s: read_from_region error",
-						 __func__);
-			return result;
-		}
-#endif
 	}
 
 	reader->block_number = block_number;
@@ -268,11 +187,6 @@ int read_from_buffered_reader(struct buffered_reader *reader,
 		length -= chunk;
 		dp += chunk;
 		reader->end += chunk;
-	}
-
-	if (((result == UDS_OUT_OF_RANGE) || (result == UDS_END_OF_FILE)) &&
-	    (dp - (byte *) data > 0)) {
-		result = UDS_SHORT_READ;
 	}
 
 	return result;

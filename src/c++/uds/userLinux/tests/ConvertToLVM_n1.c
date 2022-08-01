@@ -14,6 +14,7 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "convertToLVM.h"
+#include "fileUtils.h"
 #include "geometry.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"

@@ -126,6 +126,38 @@ static int parseDirectory(const char *arg, const char **testDir)
 }
 
 /**********************************************************************/
+static void createTestFile(const char *path)
+{
+  int fd;
+  int result;
+
+  result = open_file(path, FU_CREATE_READ_WRITE, &fd);
+  if (result != UDS_SUCCESS) {
+    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    errx(1, "Failed to initialize test files: %s: %s",
+         uds_string_error(result, errbuf, sizeof(errbuf)),
+         path);
+  }
+  close_file(fd, NULL);
+}
+
+/**********************************************************************/
+static void setupTestState(void)
+{
+  const char *const *names = getTestIndexNames();
+  while (*names != NULL) {
+    createTestFile(*names);
+    names++;
+  }
+
+  names = getTestMultiIndexNames();
+  while (*names != NULL) {
+    createTestFile(*names);
+    names++;
+  }
+}
+
+/**********************************************************************/
 static const char *testModuleMetaInitializer(void  *handle,
                                              void **params,
                                              int   *ptype)
@@ -445,6 +477,8 @@ int main(int argc, char **argv)
     // Run all the tests.
     loadTestModules("*_t[0-9]*", &count, &moduleList[moduleIndex++]);
   }
+
+  setupTestState();
 
   const CU_SuiteInfo *suites = NULL;
   const CU_SuiteInfo **pSuites = &suites;

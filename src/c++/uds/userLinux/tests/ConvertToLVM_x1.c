@@ -16,6 +16,7 @@
 #include "blockTestUtils.h"
 #include "config.h"
 #include "convertToLVM.h"
+#include "fileUtils.h"
 #include "hash-utils.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"

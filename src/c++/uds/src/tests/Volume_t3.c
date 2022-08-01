@@ -20,7 +20,7 @@ static int myProbe(void *aux, unsigned int chapter, uint64_t *vcn)
   struct auxData *ad = (struct auxData *) aux;
 
   if (chapter >= ad->length) {
-    return UDS_SHORT_READ;
+    return UDS_OUT_OF_RANGE;
   }
 
   *vcn = ad->data[chapter];
@@ -49,7 +49,7 @@ static void testFindBoundaries(int             expectedResult,
   if (expectedResult == UDS_CORRUPT_DATA) {
     // use shorter max bad to save typing in test data
     maxBadChapters = 2;
-  } else if (expectedResult == UDS_SHORT_READ) {
+  } else if (expectedResult == UDS_OUT_OF_RANGE) {
     // force probe function to get illegal chapter number by lying about
     // the number of chapters
     chapterLimit *= 3;
@@ -114,7 +114,7 @@ static void findBoundariesTest(void)
   testFindBoundaries(UDS_CORRUPT_DATA, 0, 0, data9, sizeof(data9));
 
   static const uint64_t data10[] = { 0, 1, 2, 3 };
-  testFindBoundaries(UDS_SHORT_READ, 0, 0, data10, sizeof(data10));
+  testFindBoundaries(UDS_OUT_OF_RANGE, 0, 0, data10, sizeof(data10));
 
   static const uint64_t data11[] = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 9 };
   testFindBoundaries(UDS_SUCCESS, 9, 18, data11, sizeof(data11));

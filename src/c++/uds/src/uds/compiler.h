@@ -9,6 +9,8 @@
 #ifdef __KERNEL__
 #include <asm/rwonce.h>
 #include <linux/compiler.h>
+#else 
+#include "type-defs.h"
 #endif
 
 #ifndef __KERNEL__
@@ -56,6 +58,28 @@
  **/
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
+#endif
+
+#ifndef __KERNEL__
+#define MAX_ERRNO 4095
+
+#define IS_ERR_VALUE(x) unlikely((unsigned long)(void *)(x) >= \
+				 (unsigned long)-MAX_ERRNO)
+
+static inline void * __must_check ERR_PTR(long error)
+{
+	return (void *) error;
+}
+
+static inline long __must_check PTR_ERR(const void *ptr)
+{
+	return (long) ptr;
+}
+
+static inline bool __must_check IS_ERR(const void *ptr)
+{
+	return IS_ERR_VALUE((unsigned long)ptr);
+}
 #endif
 
 #ifdef __KERNEL__

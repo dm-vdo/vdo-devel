@@ -44,15 +44,10 @@ int __must_check discard_open_chapter(struct index_layout *layout);
 
 uint64_t __must_check get_uds_volume_nonce(struct index_layout *layout);
 
-#ifdef __KERNEL__
 int __must_check open_uds_volume_bufio(struct index_layout *layout,
 				       size_t block_size,
 				       unsigned int reserved_buffers,
 				       struct dm_bufio_client **client_ptr);
-#else
-int __must_check open_uds_volume_region(struct index_layout *layout,
-					struct io_region **region_ptr);
-#endif
 
 #ifdef TEST_INTERNAL
 int update_uds_layout(struct index_layout *layout,

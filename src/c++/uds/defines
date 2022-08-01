@@ -44,9 +44,7 @@ UDS_COMMON_SOURCES =						\
 					index-layout.c		\
 					index-page-map.c	\
 					index-session.c		\
-					volume-index005.c	\
-					volume-index006.c	\
-					volume-index-ops.c	\
+					io-factory.c		\
 					open-chapter.c		\
 					page-cache.c		\
 					permassert.c		\
@@ -56,5 +54,8 @@ UDS_COMMON_SOURCES =						\
 					string-utils.c		\
 					time-utils.c		\
 					volume.c		\
+					volume-index005.c	\
+					volume-index006.c	\
+					volume-index-ops.c	\
 					volume-store.c)		\
 	$(addprefix $(SRC_UDS_DIR)/murmur/,	murmurhash3.c)
