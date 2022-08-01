@@ -104,7 +104,7 @@
 #include "block-map.h"
 #include "compression-state.h"
 #include "data-vio.h"
-#include "hash-lock.h"
+#include "dedupe.h"
 #include "io-submitter.h"
 #include "kernel-types.h"
 #include "recovery-journal.h"

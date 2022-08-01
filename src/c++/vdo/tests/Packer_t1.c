@@ -13,7 +13,7 @@
 
 #include "admin-state.h"
 #include "compression-state.h"
-#include "hash-lock.h"
+#include "dedupe.h"
 #include "packer.h"
 #include "thread-config.h"
 #include "vdo.h"

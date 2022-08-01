@@ -33,7 +33,6 @@ BASE_OBJS :=     			\
 	flush.o				\
 	forest.o			\
 	header.o			\
-	hash-lock.o			\
 	heap.o				\
 	instance-number.o		\
 	int-map.o			\

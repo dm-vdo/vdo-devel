@@ -287,8 +287,6 @@ tarballs:
             flush.h
             forest.c
             forest.h
-            hash-lock.c
-            hash-lock.h
             header.c
             header.h
             heap.c
