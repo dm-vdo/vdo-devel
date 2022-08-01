@@ -16,7 +16,6 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
-#include "record-page.h"
 #include "string-utils.h"
 #include "uds-threads.h"
 

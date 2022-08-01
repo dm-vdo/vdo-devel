@@ -80,7 +80,6 @@ UDS_OBJECTS =	murmurhash3.o		\
 		permassert.o		\
 		radix-sort.o		\
 		random.o		\
-		record-page.o		\
 		requestQueue.o		\
 		sparse-cache.o		\
 		string-utils.o		\

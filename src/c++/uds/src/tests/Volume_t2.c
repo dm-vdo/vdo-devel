@@ -9,7 +9,6 @@
 #include "memory-alloc.h"
 #include "open-chapter.h"
 #include "random.h"
-#include "record-page.h"
 #include "testPrototypes.h"
 #include "volume.h"
 #include "volumeUtils.h"

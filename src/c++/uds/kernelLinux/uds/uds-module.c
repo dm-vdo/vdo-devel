@@ -133,7 +133,6 @@ EXPORT_SYMBOL_GPL(zero_bytes);
 #include "io-factory.h"
 #include "open-chapter.h"
 #include "random.h"
-#include "record-page.h"
 #include "request-queue.h"
 #include "volume.h"
 

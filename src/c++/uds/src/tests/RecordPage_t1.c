@@ -7,43 +7,8 @@
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "random.h"
-#include "record-page.h"
 #include "testPrototypes.h"
-
-/**********************************************************************/
-static void testMemcmp(void)
-{
-  enum { SIZE =16 };
-  byte basic[SIZE];
-  fill_randomly(basic, SIZE);
-  byte s1[SIZE], s2[SIZE];
-  memcpy(s1, basic, SIZE);
-  memcpy(s2, basic, SIZE);
-
-  CU_ASSERT_EQUAL(0, memcmp(s1, s2, SIZE));
-  int i1, i2, index;
-  for (index = 0; index < SIZE; index++) {
-    memcpy(s1, basic, SIZE);
-    for (i1 = 0; i1 <= UCHAR_MAX; i1++) {
-      byte b1 = i1;
-      s1[index] = b1;
-      memcpy(s2, basic, SIZE);
-      if (index + 1 < SIZE) {
-        s2[index + 1] = b1;
-      }
-      for (i2 = 0; i2 <= UCHAR_MAX; i2++) {
-        byte b2 = i2;
-        s2[index] = b2;
-        if (index + 1 < SIZE) {
-          s1[index + 1] = b2;
-        }
-        CU_ASSERT_EQUAL(b1 < b2,  memcmp(s1, s2, SIZE) < 0);
-        CU_ASSERT_EQUAL(b1 == b2, memcmp(s1, s2, SIZE) == 0);
-        CU_ASSERT_EQUAL(b1 > b2,  memcmp(s1, s2, SIZE) > 0);
-      }
-    }
-  }
-}
+#include "volume.h"
 
 /**********************************************************************/
 static void testSearchRecordPage(void)
@@ -104,7 +69,6 @@ static void testSearchRecordPage(void)
 
 /**********************************************************************/
 static const CU_TestInfo tests[] = {
-  {"memcmp",             testMemcmp},
   {"Search record page", testSearchRecordPage},
   CU_TEST_INFO_NULL,
 };

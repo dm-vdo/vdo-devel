@@ -7,8 +7,8 @@
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "random.h"
-#include "record-page.h"
 #include "testPrototypes.h"
+#include "volume.h"
 
 static void recordPageTest(int numRecords)
 {
