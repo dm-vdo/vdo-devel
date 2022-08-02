@@ -115,6 +115,118 @@
 #include "vio-write.h"
 #include "wait-queue.h"
 
+enum hash_lock_state {
+	/* State for locks that are not in use or are being initialized. */
+	VDO_HASH_LOCK_INITIALIZING,
+
+	/*
+	 * This is the sequence of states typically used on the non-dedupe
+	 * path.
+	 */
+	VDO_HASH_LOCK_QUERYING,
+	VDO_HASH_LOCK_WRITING,
+	VDO_HASH_LOCK_UPDATING,
+
+	/*
+	 * The remaining states are typically used on the dedupe path in this
+	 * order.
+	 */
+	VDO_HASH_LOCK_LOCKING,
+	VDO_HASH_LOCK_VERIFYING,
+	VDO_HASH_LOCK_DEDUPING,
+	VDO_HASH_LOCK_UNLOCKING,
+
+	/*
+	 * XXX This is a temporary state denoting a lock which is sending VIOs
+	 * back to the old dedupe and vioWrite pathways. It won't be in the
+	 * final version of VDOSTORY-190.
+	 */
+	VDO_HASH_LOCK_BYPASSING,
+
+	/*
+	 * Terminal state for locks returning to the pool. Must be last both
+	 * because it's the final state, and also because it's used to count
+	 * the states.
+	 */
+	VDO_HASH_LOCK_DESTROYING,
+};
+
+static const char *LOCK_STATE_NAMES[] = {
+	[VDO_HASH_LOCK_BYPASSING] = "BYPASSING",
+	[VDO_HASH_LOCK_DEDUPING] = "DEDUPING",
+	[VDO_HASH_LOCK_DESTROYING] = "DESTROYING",
+	[VDO_HASH_LOCK_INITIALIZING] = "INITIALIZING",
+	[VDO_HASH_LOCK_LOCKING] = "LOCKING",
+	[VDO_HASH_LOCK_QUERYING] = "QUERYING",
+	[VDO_HASH_LOCK_UNLOCKING] = "UNLOCKING",
+	[VDO_HASH_LOCK_UPDATING] = "UPDATING",
+	[VDO_HASH_LOCK_VERIFYING] = "VERIFYING",
+	[VDO_HASH_LOCK_WRITING] = "WRITING",
+};
+
+struct hash_lock {
+	/* The block hash covered by this lock */
+	struct uds_chunk_name hash;
+
+	/*
+	 * When the lock is unused, this list entry allows the lock to be
+	 * pooled
+	 */
+	struct list_head pool_node;
+
+	/*
+	 * A list containing the data VIOs sharing this lock, all having the
+	 * same chunk name and data block contents, linked by their
+	 * hash_lock_node fields.
+	 */
+	struct list_head duplicate_ring;
+
+	/* The number of data_vios sharing this lock instance */
+	vio_count_t reference_count;
+
+	/* The maximum value of reference_count in the lifetime of this lock */
+	vio_count_t max_references;
+
+	/* The current state of this lock */
+	enum hash_lock_state state;
+
+	/* True if the UDS index should be updated with new advice */
+	bool update_advice;
+
+	/* True if the advice has been verified to be a true duplicate */
+	bool verified;
+
+	/*
+	 * True if the lock has already accounted for an initial verification
+	 */
+	bool verify_counted;
+
+	/* True if this lock is registered in the lock map (cleared on
+	 * rollover)
+	 */
+	bool registered;
+
+	/*
+	 * If verified is false, this is the location of a possible duplicate.
+	 * If verified is true, it is the verified location of a true duplicate.
+	 */
+	struct zoned_pbn duplicate;
+
+	/* The PBN lock on the block containing the duplicate data */
+	struct pbn_lock *duplicate_lock;
+
+	/* The data_vio designated to act on behalf of the lock */
+	struct data_vio *agent;
+
+	/*
+	 * Other data_vios with data identical to the agent who are currently
+	 * waiting for the agent to get the information they all need to
+	 * deduplicate--either against each other, or against an existing
+	 * duplicate on disk.
+	 */
+	struct wait_queue waiters;
+};
+
 enum {
 	LOCK_POOL_CAPACITY = MAXIMUM_VDO_USER_VIOS,
 };
@@ -149,27 +261,17 @@ struct hash_zones {
 	struct hash_zone zones[];
 };
 
-static const char *LOCK_STATE_NAMES[] = {
-	[VDO_HASH_LOCK_BYPASSING] = "BYPASSING",
-	[VDO_HASH_LOCK_DEDUPING] = "DEDUPING",
-	[VDO_HASH_LOCK_DESTROYING] = "DESTROYING",
-	[VDO_HASH_LOCK_INITIALIZING] = "INITIALIZING",
-	[VDO_HASH_LOCK_LOCKING] = "LOCKING",
-	[VDO_HASH_LOCK_QUERYING] = "QUERYING",
-	[VDO_HASH_LOCK_UNLOCKING] = "UNLOCKING",
-	[VDO_HASH_LOCK_UPDATING] = "UPDATING",
-	[VDO_HASH_LOCK_VERIFYING] = "VERIFYING",
-	[VDO_HASH_LOCK_WRITING] = "WRITING",
-};
-
-/* There are loops in the state diagram, so some forward decl's are needed. */
-static void start_deduping(struct hash_lock *lock,
-			   struct data_vio *agent,
-			   bool agent_is_done);
-static void start_locking(struct hash_lock *lock, struct data_vio *agent);
-static void start_writing(struct hash_lock *lock, struct data_vio *agent);
-static void unlock_duplicate_pbn(struct vdo_completion *completion);
-static void transfer_allocation_lock(struct data_vio *data_vio);
+/**
+ * initialize_hash_lock() - Initialize a hash_lock instance which
+ *                              has been newly allocated.
+ * @lock: The lock to initialize.
+ */
+static inline void initialize_hash_lock(struct hash_lock *lock)
+{
+	INIT_LIST_HEAD(&lock->pool_node);
+	INIT_LIST_HEAD(&lock->duplicate_ring);
+	initialize_wait_queue(&lock->waiters);
+}
 
 /**
  * vdo_get_duplicate_lock() - Get the PBN lock on the duplicate data
@@ -189,13 +291,14 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 }
 
 /**
- * vdo_get_hash_lock_state_name() - Get the string representation of a
- *                                  hash lock state.
+ * get_hash_lock_state_name() - Get the string representation of a hash lock
+ *                              state.
+ *
  * @state: The hash lock state.
  *
  * Return: The short string representing the state
  **/
-const char *vdo_get_hash_lock_state_name(enum hash_lock_state state)
+static const char *get_hash_lock_state_name(enum hash_lock_state state)
 {
 	/* Catch if a state has been added without updating the name array. */
 	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1)
@@ -215,8 +318,8 @@ static void set_hash_lock_state(struct hash_lock *lock,
 	if (false) {
 		uds_log_warning("XXX %px %s -> %s",
 				(void *) lock,
-				vdo_get_hash_lock_state_name(lock->state),
-				vdo_get_hash_lock_state_name(new_state));
+				get_hash_lock_state_name(lock->state),
+				get_hash_lock_state_name(new_state));
 	}
 	lock->state = new_state;
 }
@@ -340,7 +443,7 @@ static void set_hash_lock(struct data_vio *data_vio,
 			ASSERT_LOG_ONLY(
 				old_lock->reference_count > 1,
 				"hash locks should only become unreferenced in a terminal state, not state %s",
-				vdo_get_hash_lock_state_name(old_lock->state));
+				get_hash_lock_state_name(old_lock->state));
 		}
 
 		list_del_init(&data_vio->hash_lock_entry);
@@ -370,6 +473,15 @@ static void set_hash_lock(struct data_vio *data_vio,
 		data_vio->hash_lock = new_lock;
 	}
 }
+
+/* There are loops in the state diagram, so some forward decl's are needed. */
+static void start_deduping(struct hash_lock *lock,
+			   struct data_vio *agent,
+			   bool agent_is_done);
+static void start_locking(struct hash_lock *lock, struct data_vio *agent);
+static void start_writing(struct hash_lock *lock, struct data_vio *agent);
+static void unlock_duplicate_pbn(struct vdo_completion *completion);
+static void transfer_allocation_lock(struct data_vio *data_vio);
 
 /**
  * exit_hash_lock() - Bottleneck for data_vios that have written or
@@ -1705,7 +1817,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
 {
 	int result =
 		ASSERT_FALSE("hash lock must not be in unimplemented state %s",
-			     vdo_get_hash_lock_state_name(lock->state));
+			     get_hash_lock_state_name(lock->state));
 	continue_data_vio_in(data_vio, result, compress_data_callback);
 }
 
@@ -2110,7 +2222,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 		for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 			struct hash_lock *lock = &zone->lock_array[i];
 
-			vdo_initialize_hash_lock(lock);
+			initialize_hash_lock(lock);
 			list_add_tail(&lock->pool_node, &zone->lock_pool);
 		}
 
@@ -2222,7 +2334,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone,
 				     struct hash_lock *lock)
 {
 	memset(lock, 0, sizeof(*lock));
-	vdo_initialize_hash_lock(lock);
+	initialize_hash_lock(lock);
 	list_add_tail(&lock->pool_node, &zone->lock_pool);
 }
 
@@ -2332,7 +2444,7 @@ void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
 			"hash lock returned to zone must not reference a PBN lock");
 	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
 			"returned hash lock must not be in use with state %s",
-			vdo_get_hash_lock_state_name(lock->state));
+			get_hash_lock_state_name(lock->state));
 	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
 			"hash lock returned to zone must not be in a pool ring");
 	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
@@ -2360,7 +2472,7 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	 * chars of state is unambiguous. 'U' indicates a lock not registered in
 	 * the map.
 	 */
-	state = vdo_get_hash_lock_state_name(lock->state);
+	state = get_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
 		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		     (unsigned long long) lock->duplicate.pbn,
