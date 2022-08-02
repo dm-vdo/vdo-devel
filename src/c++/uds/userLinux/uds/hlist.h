@@ -7,7 +7,8 @@
 #ifndef HLIST_H
 #define HLIST_H
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "compiler.h"
 
 /*

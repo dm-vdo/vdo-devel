@@ -7,7 +7,8 @@
 #ifndef LIST_H
 #define LIST_H
 
-#include "atomic.h"
+#include <linux/atomic.h>
+
 #include "permassert.h"
 
 struct list_head {

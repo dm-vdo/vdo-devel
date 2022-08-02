@@ -7,7 +7,8 @@
 #ifndef KOBJECT_H
 #define KOBJECT_H
 
-#include "atomic.h"
+#include <linux/atomic.h>
+
 #include "list.h"
 #include "types.h"
 

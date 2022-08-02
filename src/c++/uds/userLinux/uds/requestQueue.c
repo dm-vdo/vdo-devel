@@ -6,7 +6,8 @@
 
 #include "request-queue.h"
 
-#include "atomicDefs.h"
+#include <linux/atomic.h>
+
 #include "compiler.h"
 #include "event-count.h"
 #include "funnel-queue.h"
