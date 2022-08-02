@@ -6,11 +6,13 @@
  * $Id$
  */
 
+#include <err.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
 #include "albtest.h"
 #include "albtestCommon.h"
+#include "fileUtils.h"
 #include "logger.h"
 #include "testPrototypes.h"
 
@@ -28,6 +30,20 @@ void albPrint(const char *format, ...)
   vprintf(format, args);
   putchar('\n');
   va_end(args);
+}
+
+/**********************************************************************/
+static void createIndexFile(void)
+{
+  int fd;
+  const char *path = getTestIndexName();
+  int result = open_file(path, FU_CREATE_READ_WRITE, &fd);
+  if (result != UDS_SUCCESS) {
+    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    errx(1, "Failed to initialize index file: %s: %s", path,
+         uds_string_error(result, errbuf, sizeof(errbuf)));
+  }
+  close_file(fd, NULL);
 }
 
 /**********************************************************************/
@@ -76,6 +92,7 @@ int main(int argc, const char **argv)
   umask(0);
 
   open_uds_logger();
+  createIndexFile();
   TestResult result = runSuites(initializeModule());
   printFailuresToStderr(0, result);
   freeTestResults(&result);
