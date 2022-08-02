@@ -181,7 +181,7 @@ tarballs:
             volume-index005.[hc]
             volume-index006.[hc]
             volume-store.[hc]
-          undefines: MEMORY_INTERNAL,TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/src/uds/murmur:
           dest: utils/uds
           sources: murmurhash3.c
@@ -206,7 +206,7 @@ tarballs:
             threadSemaphore.c
             threadMutex.c
             uds-threads.c
-          undefines: MEMORY_INTERNAL,TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/userLinux/uds/linux:
           dest: utils/uds/linux
           sources: |
@@ -407,7 +407,7 @@ tarballs:
             wait-queue.h
             work-queue.c
             work-queue.h
-          undefines: INTERNAL,LOG_INTERNAL,TEST_INTERNAL,VDO_INTERNAL,VDO_USER
+          undefines: INTERNAL,TEST_INTERNAL,VDO_INTERNAL,VDO_USER
           defines: __KERNEL__
         src/c++/uds/src/uds:
           dest: vdo
@@ -480,7 +480,7 @@ tarballs:
             volume-index-ops.h
             volume-store.c
             volume-store.h
-          undefines: MEMORY_INTERNAL,TEST_INTERNAL,VDO_INTERNAL
+          undefines: TEST_INTERNAL,VDO_INTERNAL
           defines: __KERNEL__
         src/c++/uds/src/uds/linux:
           dest: vdo/linux
@@ -504,5 +504,5 @@ tarballs:
             uds-sysfs.c
             uds-sysfs.h
             uds-threads.c
-          undefines: LOG_INTERNAL,MEMORY_INTERNAL,TEST_INTERNAL,VDO_INTERNAL
+          undefines: TEST_INTERNAL,VDO_INTERNAL
           defines: __KERNEL__
