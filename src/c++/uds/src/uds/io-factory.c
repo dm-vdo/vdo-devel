@@ -21,8 +21,12 @@
 enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 
 /*
- * A kernel mode IO Factory object controls access to an index stored
- * on a block device.
+ * The I/O factory object manages access to index storage, which is a
+ * contiguous range of blocks on a block device.
+ *
+ * The factory holds the open device and is responsible for closing
+ * it. The factory has methods to make helper structures that can be
+ * used to access sections of the index.
  */
 struct io_factory {
 	struct block_device *bdev;
@@ -30,42 +34,31 @@ struct io_factory {
 };
 
 /*
- * The buffered reader allows efficient I/O for IO regions. The internal
- * buffer always reads aligned data from the underlying region.
+ * The buffered reader allows efficient I/O by reading page-sized
+ * segments into a buffer.
  */
 struct buffered_reader {
-	/* IO factory owning the block device */
 	struct io_factory *factory;
-	/* The dm_bufio_client to read from */
 	struct dm_bufio_client *client;
-	/* The current dm_buffer */
 	struct dm_buffer *buffer;
-	/* The number of blocks that can be read from */
 	sector_t limit;
-	/* Number of the current block */
 	sector_t block_number;
-	/* Start of the buffer */
 	byte *start;
-	/* End of the data read from the buffer */
 	byte *end;
 };
 
+/*
+ * The buffered writer allows efficient I/O by buffering writes and
+ * committing page-sized segments to storage.
+ */
 struct buffered_writer {
-	/* IO factory owning the block device */
 	struct io_factory *factory;
-	/* The dm_bufio_client to write to */
 	struct dm_bufio_client *client;
-	/* The current dm_buffer */
 	struct dm_buffer *buffer;
-	/* The number of blocks that can be written to */
 	sector_t limit;
-	/* Number of the current block */
 	sector_t block_number;
-	/* Start of the buffer */
 	byte *start;
-	/* End of the data written to the buffer */
 	byte *end;
-	/* Error code */
 	int error;
 };
 
@@ -132,6 +125,7 @@ int replace_uds_storage(struct io_factory *factory, const char *path)
 	return UDS_SUCCESS;
 }
 
+/* Free an I/O factory once all references have been released. */
 void put_uds_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
@@ -145,6 +139,7 @@ size_t get_uds_writable_size(struct io_factory *factory)
 	return i_size_read(factory->bdev->bd_inode);
 }
 
+/* Create a struct dm_bufio_client for an index region starting at offset. */
 int make_uds_bufio(struct io_factory *factory,
 		   off_t offset,
 		   size_t block_size,
@@ -189,16 +184,6 @@ static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 	}
 }
 
-/*
- * Make a new buffered reader.
- *
- * @param factory      The IO factory creating the buffered reader
- * @param client       The dm_bufio_client to read from
- * @param block_limit  The number of blocks that may be read
- * @param reader_ptr   The pointer to hold the newly allocated buffered reader
- *
- * @return UDS_SUCCESS or error code
- */
 int make_buffered_reader(struct io_factory *factory,
 			 struct dm_bufio_client *client,
 			 sector_t block_limit,
@@ -246,6 +231,7 @@ void free_buffered_reader(struct buffered_reader *reader)
 	UDS_FREE(reader);
 }
 
+/* Create a buffered reader for an index region starting at offset. */
 int open_uds_buffered_reader(struct io_factory *factory,
 			     off_t offset,
 			     size_t size,
@@ -332,15 +318,6 @@ static int reset_reader(struct buffered_reader *reader)
 	return position_reader(reader, block_number, 0);
 }
 
-/*
- * Retrieve data from a buffered reader, reading from the region when needed.
- *
- * @param reader  The buffered reader
- * @param data    The buffer to read data into
- * @param length  The length of the data to read
- *
- * @return UDS_SUCCESS or an error code
- */
 int read_from_buffered_reader(struct buffered_reader *reader,
 			      void *data,
 			      size_t length)
@@ -366,16 +343,9 @@ int read_from_buffered_reader(struct buffered_reader *reader,
 }
 
 /*
- * Verify that the data currently in the buffer matches the required value.
- *
- * @param reader  The buffered reader
- * @param value   The value that must match the buffer contents
- * @param length  The length of the value that must match
- *
- * @return UDS_SUCCESS or UDS_CORRUPT_DATA if the value does not match
- *
- * @note If the value matches, the matching contents are consumed. However,
- *       if the match fails, any buffer contents are left as is.
+ * Verify that the next data on the reader matches the required value. If the
+ * value matches, the matching contents are consumed. If the value does not
+ * match, the reader state is unchanged.
  */
 int verify_buffered_data(struct buffered_reader *reader,
 			 const void *value,
@@ -412,16 +382,6 @@ int verify_buffered_data(struct buffered_reader *reader,
 	return result;
 }
 
-/*
- * Make a new buffered writer.
- *
- * @param factory      The IO factory creating the buffered writer
- * @param client       The dm_bufio_client to write to
- * @param block_limit  The number of blocks that may be written to
- * @param writer_ptr   The new buffered writer goes here
- *
- * @return UDS_SUCCESS or an error code
- */
 int make_buffered_writer(struct io_factory *factory,
 			 struct dm_bufio_client *client,
 			 sector_t block_limit,
@@ -454,6 +414,7 @@ int make_buffered_writer(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
+/* Create a buffered writer for an index region starting at offset. */
 int open_uds_buffered_writer(struct io_factory *factory,
 			     off_t offset,
 			     size_t size,
