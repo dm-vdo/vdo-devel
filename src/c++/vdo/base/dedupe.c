@@ -262,15 +262,19 @@ struct hash_zones {
 };
 
 /**
- * initialize_hash_lock() - Initialize a hash_lock instance which
- *                              has been newly allocated.
- * @lock: The lock to initialize.
+ * return_hash_lock_to_pool() - (Re)initialize a hash lock and return it to
+ *                              its pool.
+ * @zone: The zone from which the lock was borrowed.
+ * @lock: The lock that is no longer in use.
  */
-static inline void initialize_hash_lock(struct hash_lock *lock)
+static void return_hash_lock_to_pool(struct hash_zone *zone,
+				     struct hash_lock *lock)
 {
+	memset(lock, 0, sizeof(*lock));
 	INIT_LIST_HEAD(&lock->pool_node);
 	INIT_LIST_HEAD(&lock->duplicate_ring);
 	initialize_wait_queue(&lock->waiters);
+	list_add_tail(&lock->pool_node, &zone->lock_pool);
 }
 
 /**
@@ -950,6 +954,87 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
+ * acquire_lock() - Get the lock for a chunk name.
+ * @zone: The zone responsible for the hash.
+ * @hash: The hash to lock.
+ * @replace_lock:  If non-NULL, the lock already registered for the
+ *                 hash which should be replaced by the new lock.
+ * @lock_ptr: A pointer to receive the hash lock.
+ *
+ * Gets the lock for the hash (chunk name) of the data in a data_vio, or if
+ * one does not exist (or if we are explicitly rolling over), initialize a new
+ * lock for the hash and register it in the zone. This must only be called in
+ * the correct thread for the zone.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static int __must_check acquire_lock(struct hash_zone *zone,
+				     const struct uds_chunk_name *hash,
+				     struct hash_lock *replace_lock,
+				     struct hash_lock **lock_ptr)
+{
+	struct hash_lock *lock, *new_lock;
+
+	/*
+	 * Borrow and prepare a lock from the pool so we don't have to do two
+	 * pointer_map accesses in the common case of no lock contention.
+	 */
+	int result = ASSERT(!list_empty(&zone->lock_pool),
+			    "never need to wait for a free hash lock");
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	new_lock = list_entry(zone->lock_pool.prev,
+			      struct hash_lock,
+			      pool_node);
+	list_del_init(&new_lock->pool_node);
+
+	/*
+	 * Fill in the hash of the new lock so we can map it, since we have to
+	 * use the hash as the map key.
+	 */
+	new_lock->hash = *hash;
+
+	result = pointer_map_put(zone->hash_lock_map,
+				 &new_lock->hash,
+				 new_lock,
+				 (replace_lock != NULL),
+				 (void **) &lock);
+	if (result != VDO_SUCCESS) {
+		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
+		return result;
+	}
+
+	if (replace_lock != NULL) {
+		/*
+		 * XXX on mismatch put the old lock back and return a severe
+		 * error
+		 */
+		ASSERT_LOG_ONLY(lock == replace_lock,
+				"old lock must have been in the lock map");
+		/* XXX check earlier and bail out? */
+		ASSERT_LOG_ONLY(replace_lock->registered,
+				"old lock must have been marked registered");
+		replace_lock->registered = false;
+	}
+
+	if (lock == replace_lock) {
+		lock = new_lock;
+		lock->registered = true;
+	} else {
+		/*
+		 * There's already a lock for the hash, so we don't need the
+		 * borrowed lock.
+		 */
+		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
+	}
+
+	*lock_ptr = lock;
+	return VDO_SUCCESS;
+}
+
+/**
  * enter_forked_lock() - Bind the data_vio to a new hash lock.
  *
  * Implements waiter_callback. Binds the data_vio that was waiting to a new
@@ -978,9 +1063,11 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 			   struct data_vio *new_agent)
 {
 	struct hash_lock *new_lock;
-	int result = vdo_acquire_lock_from_hash_zone(new_agent->hash_zone,
-						     &new_agent->chunk_name,
-						     old_lock, &new_lock);
+	int result = acquire_lock(new_agent->hash_zone,
+				  &new_agent->chunk_name,
+				  old_lock,
+				  &new_lock);
+
 	if (result != VDO_SUCCESS) {
 		abort_hash_lock(old_lock, new_agent);
 		return;
@@ -1096,6 +1183,20 @@ static void start_deduping(struct hash_lock *lock,
 }
 
 /**
+ * increment_stat() - Increment a statistic counter in a non-atomic yet
+ *                    thread-safe manner.
+ * @stat: The statistic field to increment.
+ */
+static void increment_stat(uint64_t *stat)
+{
+	/*
+	 * Must only be mutated on the hash zone thread. Prevents any compiler
+	 * shenanigans from affecting other threads reading stats.
+	 */
+	WRITE_ONCE(*stat, *stat + 1);
+}
+
+/**
  * finish_verifying() - Handle the result of the agent for the lock comparing
  *                      its data to the duplicate candidate.
  * @completion: The completion of the data_vio used to verify dedupe
@@ -1126,11 +1227,13 @@ static void finish_verifying(struct vdo_completion *completion)
 	 * releases.
 	 */
 	if (!lock->verify_counted) {
+		struct hash_zone *zone = agent->hash_zone;
+
 		lock->verify_counted = true;
 		if (lock->verified) {
-			vdo_bump_hash_zone_valid_advice_count(agent->hash_zone);
+			increment_stat(&zone->statistics.dedupe_advice_valid);
 		} else {
-			vdo_bump_hash_zone_stale_advice_count(agent->hash_zone);
+			increment_stat(&zone->statistics.dedupe_advice_stale);
 		}
 	}
 
@@ -1299,6 +1402,8 @@ static void finish_locking(struct vdo_completion *completion)
 	}
 
 	if (!agent->is_duplicate) {
+		struct hash_zone *zone = agent->hash_zone;
+
 		ASSERT_LOG_ONLY(
 			lock->duplicate_lock == NULL,
 			"must not hold duplicate_lock if not flagged as a duplicate");
@@ -1308,7 +1413,7 @@ static void finish_locking(struct vdo_completion *completion)
 		 * compress the data, remembering to update UDS later with the
 		 * new advice.
 		 */
-		vdo_bump_hash_zone_stale_advice_count(agent->hash_zone);
+		increment_stat(&zone->statistics.dedupe_advice_stale);
 		lock->update_advice = true;
 		start_writing(lock, agent);
 		return;
@@ -1957,6 +2062,7 @@ static bool is_hash_collision(struct hash_lock *lock,
 			      struct data_vio *candidate)
 {
 	struct data_vio *lock_holder;
+	struct hash_zone *zone;
 	bool collides;
 
 	if (list_empty(&lock->duplicate_ring)) {
@@ -1964,12 +2070,13 @@ static bool is_hash_collision(struct hash_lock *lock,
 	}
 
 	lock_holder = data_vio_from_lock_entry(lock->duplicate_ring.next);
+	zone = candidate->hash_zone;
 	collides = !blocks_equal(lock_holder->data_block,
 				 candidate->data_block);
 	if (collides) {
-		vdo_bump_hash_zone_collision_count(candidate->hash_zone);
+		increment_stat(&zone->statistics.concurrent_hash_collisions);
 	} else {
-		vdo_bump_hash_zone_data_match_count(candidate->hash_zone);
+		increment_stat(&zone->statistics.concurrent_data_matches);
 	}
 
 	return collides;
@@ -2010,10 +2117,10 @@ int vdo_acquire_hash_lock(struct data_vio *data_vio)
 		return result;
 	}
 
-	result = vdo_acquire_lock_from_hash_zone(data_vio->hash_zone,
-						 &data_vio->chunk_name,
-						 NULL,
-						 &lock);
+	result = acquire_lock(data_vio->hash_zone,
+			      &data_vio->chunk_name,
+			      NULL,
+			      &lock);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -2048,6 +2155,7 @@ int vdo_acquire_hash_lock(struct data_vio *data_vio)
 void vdo_release_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
+	struct hash_zone *zone = data_vio->hash_zone;
 
 	if (lock == NULL) {
 		return;
@@ -2061,7 +2169,30 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 	}
 
 	set_hash_lock_state(lock, VDO_HASH_LOCK_DESTROYING);
-	vdo_return_lock_to_hash_zone(data_vio->hash_zone, lock);
+	if (lock->registered) {
+		struct hash_lock *removed =
+			pointer_map_remove(zone->hash_lock_map, &lock->hash);
+		ASSERT_LOG_ONLY(lock == removed,
+				"hash lock being released must have been mapped");
+	} else {
+		ASSERT_LOG_ONLY(lock != pointer_map_get(zone->hash_lock_map,
+							&lock->hash),
+				"unregistered hash lock must not be in the lock map");
+	}
+
+	ASSERT_LOG_ONLY(!has_waiters(&lock->waiters),
+			"hash lock returned to zone must have no waiters");
+	ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
+			"hash lock returned to zone must not reference a PBN lock");
+	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
+			"returned hash lock must not be in use with state %s",
+			get_hash_lock_state_name(lock->state));
+	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
+			"hash lock returned to zone must not be in a pool ring");
+	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
+			"hash lock returned to zone must not reference DataVIOs");
+
+	return_hash_lock_to_pool(zone, lock);
 }
 
 /**
@@ -2220,10 +2351,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 		}
 
 		for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
-			struct hash_lock *lock = &zone->lock_array[i];
-
-			initialize_hash_lock(lock);
-			list_add_tail(&lock->pool_node, &zone->lock_pool);
+			return_hash_lock_to_pool(zone, &zone->lock_array[i]);
 		}
 
 		result = vdo_make_default_thread(vdo, zone->thread_id);
@@ -2326,134 +2454,6 @@ struct hash_zone *vdo_select_hash_zone(struct hash_zones *zones,
 }
 
 /**
- * return_hash_lock_to_pool() - Return a hash lock to the zone's pool.
- * @zone: The zone from which the lock was borrowed.
- * @lock: The lock that is no longer in use.
- */
-static void return_hash_lock_to_pool(struct hash_zone *zone,
-				     struct hash_lock *lock)
-{
-	memset(lock, 0, sizeof(*lock));
-	initialize_hash_lock(lock);
-	list_add_tail(&lock->pool_node, &zone->lock_pool);
-}
-
-/**
- * vdo_acquire_lock_from_hash_zone() - Get the lock for a chunk name.
- * @zone: The zone responsible for the hash.
- * @hash: The hash to lock.
- * @replace_lock:  If non-NULL, the lock already registered for the
- *                 hash which should be replaced by the new lock.
- * @lock_ptr: A pointer to receive the hash lock.
- *
- * Gets the lock for the hash (chunk name) of the data in a data_vio, or if
- * one does not exist (or if we are explicitly rolling over), initialize a new
- * lock for the hash and register it in the zone. This must only be called in
- * the correct thread for the zone.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_acquire_lock_from_hash_zone(struct hash_zone *zone,
-				    const struct uds_chunk_name *hash,
-				    struct hash_lock *replace_lock,
-				    struct hash_lock **lock_ptr)
-{
-	struct hash_lock *lock, *new_lock;
-
-	/*
-	 * Borrow and prepare a lock from the pool so we don't have to do two
-	 * pointer_map accesses in the common case of no lock contention.
-	 */
-	int result = ASSERT(!list_empty(&zone->lock_pool),
-			    "never need to wait for a free hash lock");
-	if (result != VDO_SUCCESS) {
-		return result;
-	}
-	new_lock = list_entry(zone->lock_pool.prev, struct hash_lock,
-			      pool_node);
-	list_del_init(&new_lock->pool_node);
-
-	/*
-	 * Fill in the hash of the new lock so we can map it, since we have to
-	 * use the hash as the map key.
-	 */
-	new_lock->hash = *hash;
-
-	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
-				 (replace_lock != NULL), (void **) &lock);
-	if (result != VDO_SUCCESS) {
-		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
-		return result;
-	}
-
-	if (replace_lock != NULL) {
-		/*
-		 * XXX on mismatch put the old lock back and return a severe
-		 * error
-		 */
-		ASSERT_LOG_ONLY(lock == replace_lock,
-				"old lock must have been in the lock map");
-		/* XXX check earlier and bail out? */
-		ASSERT_LOG_ONLY(replace_lock->registered,
-				"old lock must have been marked registered");
-		replace_lock->registered = false;
-	}
-
-	if (lock == replace_lock) {
-		lock = new_lock;
-		lock->registered = true;
-	} else {
-		/*
-		 * There's already a lock for the hash, so we don't need the
-		 * borrowed lock.
-		 */
-		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
-	}
-
-	*lock_ptr = lock;
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_return_lock_to_hash_zone() - Return a hash lock.
- * @zone: The zone from which the lock was borrowed.
- * @lock: The lock that is no longer in use.
- *
- * Returns a hash lock to the zone it was borrowed from, remove it from the
- * zone's lock map, and return it to the pool. This must only be called when
- * the lock has been completely released, and only in the correct thread for
- * the zone.
- */
-void vdo_return_lock_to_hash_zone(struct hash_zone *zone,
-				  struct hash_lock *lock)
-{
-	if (lock->registered) {
-		struct hash_lock *removed =
-			pointer_map_remove(zone->hash_lock_map, &lock->hash);
-		ASSERT_LOG_ONLY(lock == removed,
-				"hash lock being released must have been mapped");
-	} else {
-		ASSERT_LOG_ONLY(lock != pointer_map_get(zone->hash_lock_map,
-							&lock->hash),
-				"unregistered hash lock must not be in the lock map");
-	}
-
-	ASSERT_LOG_ONLY(!has_waiters(&lock->waiters),
-			"hash lock returned to zone must have no waiters");
-	ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
-			"hash lock returned to zone must not reference a PBN lock");
-	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
-			"returned hash lock must not be in use with state %s",
-			get_hash_lock_state_name(lock->state));
-	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),
-			"hash lock returned to zone must not be in a pool ring");
-	ASSERT_LOG_ONLY(list_empty(&lock->duplicate_ring),
-			"hash lock returned to zone must not reference DataVIOs");
-
-	return_hash_lock_to_pool(zone, lock);
-}
-
-/**
  * dump_hash_lock() - Dump a compact description of hash_lock to the log if
  *                    the lock is not on the free list.
  * @lock: The hash lock to dump.
@@ -2478,69 +2478,6 @@ static void dump_hash_lock(const struct hash_lock *lock)
 		     (unsigned long long) lock->duplicate.pbn,
 		     lock->duplicate.state, lock->reference_count,
 		     count_waiters(&lock->waiters), (void *) lock->agent);
-}
-
-/**
- * increment_stat() - Increment a statistic counter in a non-atomic yet
- *                    thread-safe manner.
- * @stat: The statistic field to increment.
- */
-static void increment_stat(uint64_t *stat)
-{
-	/*
-	 * Must only be mutated on the hash zone thread. Prevents any compiler
-	 * shenanigans from affecting other threads reading stats.
-	 */
-	WRITE_ONCE(*stat, *stat + 1);
-}
-
-/**
- * vdo_bump_hash_zone_valid_advice_count() - Increment the valid advice count
- *                                           in the hash zone statistics.
- * @zone: The hash zone of the lock that received valid advice.
- *
- * Context: Must only be called from the hash zone thread.
- */
-void vdo_bump_hash_zone_valid_advice_count(struct hash_zone *zone)
-{
-	increment_stat(&zone->statistics.dedupe_advice_valid);
-}
-
-/**
- * vdo_bump_hash_zone_stale_advice_count() - Increment the stale advice count
- *                                           in the hash zone statistics.
- * @zone: The hash zone of the lock that received stale advice.
- *
- * Context: Must only be called from the hash zone thread.
- */
-void vdo_bump_hash_zone_stale_advice_count(struct hash_zone *zone)
-{
-	increment_stat(&zone->statistics.dedupe_advice_stale);
-}
-
-/**
- * vdo_bump_hash_zone_data_match_count() - Increment the concurrent dedupe
- *                                         count in the hash zone statistics.
- * @zone: The hash zone of the lock that matched a new data_vio.
- *
- * Context: Must only be called from the hash zone thread.
- */
-void vdo_bump_hash_zone_data_match_count(struct hash_zone *zone)
-{
-	increment_stat(&zone->statistics.concurrent_data_matches);
-}
-
-/**
- * vdo_bump_hash_zone_collision_count() - Increment the concurrent hash
- *                                        collision count in the hash zone
- *                                        statistics.
- * @zone: The hash zone of the lock that rejected a colliding data_vio.
- *
- * Context: Must only be called from the hash zone thread.
- */
-void vdo_bump_hash_zone_collision_count(struct hash_zone *zone)
-{
-	increment_stat(&zone->statistics.concurrent_hash_collisions);
 }
 
 /**
