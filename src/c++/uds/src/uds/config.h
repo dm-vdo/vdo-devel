@@ -6,9 +6,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "buffered-reader.h"
-#include "buffered-writer.h"
 #include "geometry.h"
+#include "io-factory.h"
 #include "uds.h"
 
 enum {

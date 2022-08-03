@@ -55,8 +55,6 @@ vpath %.c ./murmur
 
 UDS_OBJECTS =	murmurhash3.o		\
 		buffer.o		\
-		buffered-reader.o	\
-		buffered-writer.o	\
 		chapter-index.o		\
 		config.o		\
 		delta-index.o		\

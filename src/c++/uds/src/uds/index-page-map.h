@@ -6,10 +6,9 @@
 #ifndef INDEX_PAGE_MAP_H
 #define INDEX_PAGE_MAP_H 1
 
-#include "buffered-reader.h"
-#include "buffered-writer.h"
 #include "common.h"
 #include "geometry.h"
+#include "io-factory.h"
 
 struct index_page_map {
 	const struct geometry *geometry;

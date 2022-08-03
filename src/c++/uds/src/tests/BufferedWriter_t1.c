@@ -5,7 +5,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "buffered-writer.h"
+#include "io-factory.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 

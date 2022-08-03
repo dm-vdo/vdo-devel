@@ -8,10 +8,8 @@
 
 #include "compiler.h"
 #include "config.h"
-#include "buffered-reader.h"
-#include "buffered-writer.h"
-#include "compiler.h"
 #include "cpu.h"
+#include "io-factory.h"
 #include "numeric.h"
 #include "time-utils.h"
 #include "type-defs.h"

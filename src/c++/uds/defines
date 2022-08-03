@@ -29,8 +29,6 @@ RUN_UDSTESTS = cd $(UDSTEST_DIR) && ./udstests.pl --log --threads=8
 
 UDS_COMMON_SOURCES =						\
 	$(addprefix $(SRC_UDS_DIR)/,	buffer.c		\
-					buffered-reader.c	\
-					buffered-writer.c	\
 					chapter-index.c		\
 					config.c		\
 					delta-index.c		\

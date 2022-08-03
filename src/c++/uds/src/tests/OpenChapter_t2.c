@@ -5,9 +5,8 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "buffered-reader.h"
-#include "buffered-writer.h"
 #include "index.h"
+#include "io-factory.h"
 #include "memory-alloc.h"
 #include "open-chapter.h"
 #include "random.h"

@@ -143,8 +143,6 @@ tarballs:
           dest: utils/uds
           sources: |
             buffer.[hc]
-            buffered-reader.[hc]
-            buffered-writer.[hc]
             chapter-index.[hc]
             common.h
             compiler.h
@@ -413,10 +411,6 @@ tarballs:
           dest: vdo
           sources: |
             buffer.c
-            buffered-reader.c
-            buffered-reader.h
-            buffered-writer.c
-            buffered-writer.h
             buffer.h
             chapter-index.c
             chapter-index.h

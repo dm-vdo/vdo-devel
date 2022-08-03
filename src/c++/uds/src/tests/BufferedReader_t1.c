@@ -5,6 +5,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "io-factory.h"
 #include "memory-alloc.h"
 #include "random.h"
 #include "testPrototypes.h"
