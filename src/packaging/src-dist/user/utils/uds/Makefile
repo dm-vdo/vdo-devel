@@ -63,7 +63,6 @@ UDS_OBJECTS =	murmurhash3.o		\
 		fileUtils.o		\
 		funnel-queue.o		\
 		geometry.o		\
-		hash-utils.o		\
 		index.o			\
 		index-layout.o		\
 		index-page-map.o	\

@@ -4,12 +4,13 @@
  */
 #include "delta-index.h"
 
+#include <linux/log2.h>
+
 #include "buffer.h"
 #include "compiler.h"
 #include "config.h"
 #include "cpu.h"
 #include "errors.h"
-#include "hash-utils.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -417,7 +418,7 @@ static void compute_coding_constants(unsigned int mean_delta,
 	 * approximation.
 	 */
 	*incr_keys = (836158UL * mean_delta + 603160UL) / 1206321UL;
-	*min_bits = compute_bits(*incr_keys + 1);
+	*min_bits = bits_per(*incr_keys + 1);
 	*min_keys = (1 << *min_bits) - *incr_keys;
 }
 

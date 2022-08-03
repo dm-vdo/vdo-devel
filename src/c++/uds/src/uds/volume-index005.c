@@ -4,6 +4,8 @@
  */
 #include "volume-index005.h"
 
+#include <linux/log2.h>
+
 #include "buffer.h"
 #include "compiler.h"
 #include "config.h"
@@ -1359,8 +1361,8 @@ compute_volume_index_parameters005(const struct configuration *config,
 	num_addresses = config->volume_index_mean_delta * DELTA_LIST_SIZE;
 	params->num_delta_lists =
 		max(delta_list_records / DELTA_LIST_SIZE, min_delta_lists);
-	params->address_bits = compute_bits(num_addresses - 1);
-	params->chapter_bits = compute_bits(rounded_chapters - 1);
+	params->address_bits = bits_per(num_addresses - 1);
+	params->chapter_bits = bits_per(rounded_chapters - 1);
 	if ((unsigned int) params->num_delta_lists !=
 	    params->num_delta_lists) {
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,

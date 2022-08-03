@@ -5,9 +5,10 @@
 
 #include "geometry.h"
 
+#include <linux/log2.h>
+
 #include "delta-index.h"
 #include "errors.h"
-#include "hash-utils.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -94,21 +95,21 @@ int make_geometry(size_t bytes_per_page,
 
 	geometry->chapter_mean_delta = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
 	geometry->chapter_payload_bits =
-		compute_bits(record_pages_per_chapter - 1);
+		bits_per(record_pages_per_chapter - 1);
 	/*
 	 * We want 1 delta list for every 64 records in the chapter.
 	 * The "| 077" ensures that the chapter_delta_list_bits computation
 	 * does not underflow.
 	 */
 	geometry->chapter_delta_list_bits =
-		compute_bits((geometry->records_per_chapter - 1) | 077) - 6;
+		bits_per((geometry->records_per_chapter - 1) | 077) - 6;
 	geometry->delta_lists_per_chapter =
 		1 << geometry->chapter_delta_list_bits;
 	/* We need enough address bits to achieve the desired mean delta. */
 	geometry->chapter_address_bits =
 		(DEFAULT_CHAPTER_MEAN_DELTA_BITS -
 		 geometry->chapter_delta_list_bits +
-		 compute_bits(geometry->records_per_chapter - 1));
+		 bits_per(geometry->records_per_chapter - 1));
 	geometry->index_pages_per_chapter =
 		get_delta_index_page_count(geometry->records_per_chapter,
 					   geometry->delta_lists_per_chapter,

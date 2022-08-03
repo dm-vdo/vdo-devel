@@ -69,8 +69,4 @@ static INLINE unsigned int name_to_hash_slot(const struct uds_chunk_name *name,
 	return (unsigned int) (extract_chapter_index_bytes(name) % slot_count);
 }
 
-unsigned int __must_check compute_bits(unsigned int max_value);
-
-void hash_utils_compile_time_assertions(void);
-
 #endif /* HASH_UTILS_H */

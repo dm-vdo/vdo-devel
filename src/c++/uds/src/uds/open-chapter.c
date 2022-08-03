@@ -5,6 +5,8 @@
 
 #include "open-chapter.h"
 
+#include <linux/log2.h>
+
 #include "compiler.h"
 #include "config.h"
 #include "hash-utils.h"
@@ -78,7 +80,7 @@ int make_open_chapter(const struct geometry *geometry,
 	int result;
 	struct open_chapter_zone *open_chapter;
 	size_t capacity = geometry->records_per_chapter / zone_count;
-	size_t slot_count = (1 << compute_bits(capacity * LOAD_RATIO));
+	size_t slot_count = (1 << bits_per(capacity * LOAD_RATIO));
 
 	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
 				       slot_count,

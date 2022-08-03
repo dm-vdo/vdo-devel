@@ -153,7 +153,7 @@ tarballs:
             event-count.[hc]
             funnel-queue.[hc]
             geometry.[hc]
-            hash-utils.[hc]
+            hash-utils.h
             index.[hc]
             index-layout.[hc]
             index-page-map.[hc]
@@ -211,6 +211,7 @@ tarballs:
             atomic.h
             blkdev.h
             dm-bufio.h
+            log2.h
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
   kvdo:
     versionFiles:
@@ -429,7 +430,6 @@ tarballs:
             funnel-queue.h
             geometry.c
             geometry.h
-            hash-utils.c
             hash-utils.h
             index.c
             index.h

@@ -37,7 +37,6 @@ UDS_COMMON_SOURCES =						\
 					event-count.c		\
 					funnel-queue.c		\
 					geometry.c		\
-					hash-utils.c		\
 					index.c			\
 					index-layout.c		\
 					index-page-map.c	\

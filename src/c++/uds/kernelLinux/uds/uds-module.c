@@ -141,7 +141,6 @@ EXPORT_SYMBOL_GPL(chapter_index_overflow_count);
 EXPORT_SYMBOL_GPL(chapters_replayed);
 EXPORT_SYMBOL_GPL(chapters_written);
 EXPORT_SYMBOL_GPL(close_open_chapter);
-EXPORT_SYMBOL_GPL(compute_bits);
 EXPORT_SYMBOL_GPL(compute_delta_index_save_bytes);
 EXPORT_SYMBOL_GPL(compute_index_page_map_save_size);
 EXPORT_SYMBOL_GPL(compute_volume_index_save_blocks);
