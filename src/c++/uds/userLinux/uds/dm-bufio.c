@@ -109,10 +109,10 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 			return ERR_PTR(-ENOMEM);
 		}
 
-		result = UDS_ALLOCATE_IO_ALIGNED(client->bytes_per_page,
-						 byte,
-						 __func__,
-						 &buffer->data);
+		result = UDS_ALLOCATE(client->bytes_per_page,
+				      byte,
+				      __func__,
+				      &buffer->data);
 		if (result != UDS_SUCCESS) {
 			UDS_FREE(buffer);
 			return ERR_PTR(-ENOMEM);
