@@ -1,14 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * Definitions from linux/const.h that we actually require for
+ * unit testing.
  *
- * These are the small parts of linux/bits.h that we actually require for
- * unit testing, reimplemented without all of the architecture specific
- * macros.
+ * Copyright Red Hat
  *
- * $Id$
  */
-
-/* const.h: Macros for dealing with constants.  */
 
 #ifndef _UAPI_LINUX_CONST_H
 #define _UAPI_LINUX_CONST_H
@@ -22,6 +19,7 @@
  * leave it unchanged in asm.
  */
 
+/* Macros for dealing with constants.  */
 #ifdef __ASSEMBLY__
 #define _AC(X,Y)	X
 #define _AT(T,X)	X

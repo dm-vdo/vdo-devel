@@ -1,17 +1,15 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * kcopyd provides a simple interface for copying an area of one
+ * block-device to one or more other block-devices, either synchronous
+ * or with an asynchronous completion notification.
  *
  * The functions declared here are only defined in tests/dm-kcopyd.c, as they
  * are using VDO completions to implement.
  *
  * Copyright (C) 2001 - 2003 Sistina Software
- * Copyright (C) 2004 - 2008 Red Hat, Inc. All rights reserved.
+ * Copyright Red Hat
  *
- * kcopyd provides a simple interface for copying an area of one
- * block-device to one or more other block-devices, either synchronous
- * or with an asynchronous completion notification.
- *
- * This file is released under the GPL.
  */
 
 #ifndef _LINUX_DM_KCOPYD_H

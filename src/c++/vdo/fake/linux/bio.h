@@ -1,15 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * For INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Unit test requirements from linux/bio.h.
  *
- * $Id$
+ * Copyright (C) 2001 Jens Axboe <axboe@suse.de>
+ * Copyright Red Hat
+ *
  */
 
-/* SPDX-License-Identifier: GPL-2.0 */
-/*
- * Copyright (C) 2001 Jens Axboe <axboe@suse.de>
- */
 #ifndef __LINUX_BIO_H
 #define __LINUX_BIO_H
 

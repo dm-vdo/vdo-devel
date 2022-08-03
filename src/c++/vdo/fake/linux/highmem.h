@@ -1,10 +1,10 @@
-/**
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
  * Unit test implementations of linux/highmem.h (and mm.h)
  *
- * DO NOT DISTRIBUTE
+ * Copyright Red Hat
  *
- * $Id$
- **/
+ */
 
 #ifndef __LINUX_HIGHMEM_H
 #define __LINUX_HIGHMEM_H

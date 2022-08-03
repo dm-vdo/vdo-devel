@@ -1,10 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * For INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Unit test requirements from linux/wait.h.
  *
- * $Id$
+ * Copyright Red Hat
+ *
  */
+
 #ifndef LINUX_WAIT_H
 #define LINUX_WAIT_H
 

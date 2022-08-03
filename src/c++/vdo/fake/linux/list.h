@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * This is a temporary edited version of linux/list.h for use in
- * user space programs.
+ * This is an edited version of linux/list.h for use in user space
+ * programs.
+ *
+ * Copyright Red Hat
+ *
  */
 
 #ifndef LIST_H

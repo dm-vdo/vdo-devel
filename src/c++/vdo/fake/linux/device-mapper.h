@@ -1,11 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Copyright (C) 2001 Sistina Software (UK) Limited.
- * Copyright (C) 2004-2008, 2021 Red Hat, Inc. All rights reserved.
+ * Copyright Red Hat
  *
- * $Id$
  */
+
 #ifndef _LINUX_DEVICE_MAPPER_H
 #define _LINUX_DEVICE_MAPPER_H
 

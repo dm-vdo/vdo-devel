@@ -1,12 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * Implementation of fake device mapper functionality for user space.
  *
- * A moderately heavily edited version of the kernel's kobject.c implementing
- * the functions we use with our library and something of our style, but
- * retaining (most of) the kerneldoc, naming, and as much code structure as
- * possible.
+ * Copyright Red Hat
  *
- * $Id$
  */
 
 #include <linux/device-mapper.h>

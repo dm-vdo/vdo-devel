@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * Copyright (C) 2008 IBM Corporation
+ * Copyright Red Hat
  *
- * $Id$
  */
 
 #include <linux/bitops.h>

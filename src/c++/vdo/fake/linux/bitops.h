@@ -1,12 +1,13 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * These are the small parts of linux/bits.h that we actually require for
  * unit testing, reimplemented without all of the architecture specific
  * macros.
  *
- * $Id$
+ * Copyright Red Hat
+ *
  */
+
 #ifndef _TOOLS_LINUX_BITOPS_H_
 #define _TOOLS_LINUX_BITOPS_H_
 

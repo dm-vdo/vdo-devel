@@ -1,10 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Fake implementation of linux/lz4.h for unit tests.
  *
- * $Id$
+ * Copyright Red Hat
  */
+
 #ifndef LINUX_LZ4_H
 #define LINUX_LZ4_H
 

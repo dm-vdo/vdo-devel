@@ -1,10 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Wrap our own mutexes to mimic the kernel.
  *
- * $Id$
+ * Copyright Red Hat
+ *
  */
+
 #ifndef LINUX_MUTEX_H
 #define LINUX_MUTEX_H
 

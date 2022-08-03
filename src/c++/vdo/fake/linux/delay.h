@@ -1,11 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * For INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Unit tests need access to struct completion which comes from
  * linux/completion.h but is included in vdo via linux/delay.h.
  *
- * $Id$
+ * Copyright Red Hat
+ *
  */
+
 #ifndef LINUX_DELAY_H
 #define LINUX_DELAY_H
 

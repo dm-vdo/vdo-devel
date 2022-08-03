@@ -3,9 +3,10 @@
  * Copied from linux/bdev/h.
  *
  * Copyright (C) 2001 Ming Lei <ming.lei@canonical.com>
+ * Copyright Red Hat
  *
- * $Id$
  */
+
 #ifndef __LINUX_BVEC_H
 #define __LINUX_BVEC_H
 

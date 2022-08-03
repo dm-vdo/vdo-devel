@@ -1,10 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
  * Adapted from linux/kernel.h
  *
- * $Id$
+ * Copyright Red Hat
+ *
  */
+
 #ifndef LINUX_KERNEL_H
 #define LINUX_KERNEL_H
 

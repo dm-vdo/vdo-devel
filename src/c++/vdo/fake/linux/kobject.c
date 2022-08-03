@@ -1,12 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * A moderately heavily edited version of kobject.c - library routines
+ * for handling generic kernel objects
  *
- * A moderately heavily edited version of the kernel's kobject.c implementing
- * the functions we use with our library and something of our style, but
- * retaining (most of) the kerneldoc, naming, and as much code structure as
- * possible.
+ * Copyright (c) 2002-2003 Patrick Mochel <mochel@osdl.org>
+ * Copyright (c) 2006-2007 Greg Kroah-Hartman <greg@kroah.com>
+ * Copyright (c) 2006-2007 Novell Inc.
+ * Copyright Red Hat
  *
- * $Id$
  */
 
 #include <linux/kobject.h>

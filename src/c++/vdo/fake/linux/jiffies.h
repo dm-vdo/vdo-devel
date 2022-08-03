@@ -1,7 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * FOR INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
+ * Copyright Red Hat
  *
- * $Id$
  */
 
 #ifndef LINUX_JIFFIES_H
