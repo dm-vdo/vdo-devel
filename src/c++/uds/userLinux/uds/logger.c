@@ -159,7 +159,15 @@ static void init_logger(void)
 	opened = 1;
 }
 
-/**********************************************************************/
+/**
+ * Initialize the user space logger using optional environment
+ * variables to set the default log level and log file. Can be called
+ * more than once, but only the first call affects logging by user
+ * space programs. For testing purposes, when the logging environment
+ * needs to be changed, see reinit_uds_logger. The kernel module uses
+ * kernel logging facilities and therefore doesn't need an open_uds_logger
+ * method.
+ **/
 void open_uds_logger(void)
 {
 	perform_once(&logger_once, init_logger);
@@ -194,20 +202,32 @@ static void format_current_time(char *buffer, size_t buffer_size)
 		 (int) ((now % NSEC_PER_SEC) / NSEC_PER_MSEC));
 }
 
-/**********************************************************************/
-void uds_log_message_pack(int priority,
-			  const char *module __always_unused,
-			  const char *prefix,
-			  const char *fmt1,
-			  va_list args1,
-			  const char *fmt2,
-			  va_list args2)
-	{
+/**
+ * Log a message embedded within another message.
+ *
+ * @param priority      the priority at which to log the message
+ * @param module        the name of the module doing the logging
+ * @param prefix        optional string prefix to message, may be NULL
+ * @param fmt1          format of message first part (required)
+ * @param args1         arguments for message first part (required)
+ * @param fmt2          format of message second part
+ **/
+void uds_log_embedded_message(int priority,
+			      const char *module __always_unused,
+			      const char *prefix,
+			      const char *fmt1,
+			      va_list args1,
+			      const char *fmt2,
+			      ...)
+{
+	va_list args2;
+
 	open_uds_logger();
 	if (priority > get_uds_log_level()) {
 		return;
 	}
 
+	va_start(args2, fmt2);
 	// Preserve errno since the caller cares more about their own error
 	// state than about errors in the logging code.
 	int error = errno;
@@ -256,21 +276,7 @@ void uds_log_message_pack(int priority,
 
 	// Reset errno
 	errno = error;
-}
-
-/**********************************************************************/
-void uds_log_embedded_message(int priority,
-			      const char *module,
-			      const char *prefix,
-			      const char *fmt1,
-			      va_list args1,
-			      const char *fmt2,
-			      ...)
-{
-	va_list ap;
-	va_start(ap, fmt2);
-	uds_log_message_pack(priority, module, prefix, fmt1, args1, fmt2, ap);
-	va_end(ap);
+	va_end(args2);
 }
 
 /**********************************************************************/
@@ -374,8 +380,10 @@ void uds_pause_for_logger(void)
 }
 
 #ifdef TEST_INTERNAL
-#ifndef __KERNEL__
-/**********************************************************************/
+/**
+ * Reinitialize the user space logger. This is only for tests of
+ * logging itself that need to manipulate the log level and log file.
+ **/
 void reinit_uds_logger(void)
 {
 	if (fp == NULL) {
@@ -387,5 +395,4 @@ void reinit_uds_logger(void)
 
 	init_logger();
 }
-#endif /* __KERNEL__ */
 #endif /* TEST_INTERNAL */

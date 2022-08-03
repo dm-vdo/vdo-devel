@@ -115,7 +115,7 @@ static const char *get_current_interrupt_type(void)
 	return "INTR";
 }
 
-/**
+/*
  * Emit a log message to the kernel log in a format suited to the current
  * thread context. Context info formats:
  *
@@ -131,7 +131,7 @@ static const char *get_current_interrupt_type(void)
  * @param prefix  The prefix of the log message
  * @param vaf1    The first message format descriptor
  * @param vaf2    The second message format descriptor
- **/
+ */
 static void emit_log_message(const char *level,
 			     const char *module,
 			     const char *prefix,
@@ -185,17 +185,29 @@ static void emit_log_message(const char *level,
 	       level, module, current->comm, prefix, vaf1, vaf2);
 }
 
-void uds_log_message_pack(int priority,
-			  const char *module,
-			  const char *prefix,
-			  const char *fmt1,
-			  va_list args1,
-			  const char *fmt2,
-			  va_list args2)
+/*
+ * uds_log_embedded_message() - Log a message embedded within another message.
+ * @priority: the priority at which to log the message
+ * @module: the name of the module doing the logging
+ * @prefix: optional string prefix to message, may be NULL
+ * @fmt1: format of message first part (required)
+ * @args1: arguments for message first part (required)
+ * @fmt2: format of message second part
+ */
+void uds_log_embedded_message(int priority,
+			      const char *module,
+			      const char *prefix,
+			      const char *fmt1,
+			      va_list args1,
+			      const char *fmt2,
+			      ...)
 {
 	const char *level;
-	va_list args1_copy, args2_copy;
+	va_list args1_copy;
+	va_list args2;
 	struct va_format vaf1, vaf2;
+
+	va_start(args2, fmt2);
 
 	if (priority > get_uds_log_level()) {
 		return;
@@ -220,29 +232,13 @@ void uds_log_message_pack(int priority,
 	vaf1.fmt = fmt1;
 	vaf1.va = &args1_copy;
 
-	va_copy(args2_copy, args2);
 	vaf2.fmt = fmt2;
-	vaf2.va = &args2_copy;
+	vaf2.va = &args2;
 
 	emit_log_message(level, module, prefix, &vaf1, &vaf2);
 
 	va_end(args1_copy);
-	va_end(args2_copy);
-}
-
-void uds_log_embedded_message(int priority,
-			      const char *module,
-			      const char *prefix,
-			      const char *fmt1,
-			      va_list args1,
-			      const char *fmt2,
-			      ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt2);
-	uds_log_message_pack(priority, module, prefix, fmt1, args1, fmt2, ap);
-	va_end(ap);
+	va_end(args2);
 }
 
 int uds_vlog_strerror(int priority,
@@ -300,8 +296,11 @@ void __uds_log_message(int priority,
 	va_end(args);
 }
 
+/*
+ * Sleep or delay a few milliseconds in an attempt allow the log buffers to be
+ * flushed lest they be overrun.
+ */
 void uds_pause_for_logger(void)
 {
-	/* Allow a few milliseconds for the kernel log buffer to be flushed. */
 	fsleep(4000);
 }
