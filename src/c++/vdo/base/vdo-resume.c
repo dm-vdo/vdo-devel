@@ -13,7 +13,7 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio-pool.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"

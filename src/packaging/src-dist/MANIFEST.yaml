@@ -270,8 +270,6 @@ tarballs:
             data-vio-pool.h
             dedupe.c
             dedupe.h
-            dedupe-index.c
-            dedupe-index.h
             device-config.c
             device-config.h
             device-registry.c

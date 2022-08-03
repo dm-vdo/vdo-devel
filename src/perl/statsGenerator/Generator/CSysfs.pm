@@ -67,7 +67,7 @@ sub generateHeader {
 
 #include "logger.h"
 
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "pool-sysfs.h"
 #include "statistics.h"
 #include "vdo.h"

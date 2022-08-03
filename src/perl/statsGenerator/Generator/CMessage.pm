@@ -245,7 +245,7 @@ sub generateHeader {
   $self->blankLine();
 
   my $headerText = <<"EOH";
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "message-stats.h"

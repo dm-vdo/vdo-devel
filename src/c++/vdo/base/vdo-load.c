@@ -13,7 +13,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "dedupe.h"
-#include "dedupe-index.h"
 #include "device-config.h"
 #include "header.h"
 #include "kernel-types.h"

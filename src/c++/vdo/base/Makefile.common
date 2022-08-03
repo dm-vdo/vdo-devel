@@ -26,7 +26,6 @@ BASE_OBJS :=     			\
 	data-vio.o			\
 	data-vio-pool.o                 \
         dedupe.o                        \
-        dedupe-index.o                  \
 	device-config.o			\
         device-registry.o		\
 	dirty-lists.o			\

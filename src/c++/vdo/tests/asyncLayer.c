@@ -22,7 +22,7 @@
 #include "uds-threads.h"
 
 #include "compressed-block.h"
-#include "dedupe-index.h"
+#include "dedupe.h"
 #include "device-config.h"
 #include "instance-number.h"
 #include "io-submitter.h"

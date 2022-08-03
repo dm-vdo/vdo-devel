@@ -24,7 +24,6 @@
 #include "block-map.h"
 #include "data-vio-pool.h"
 #include "dedupe.h"
-#include "dedupe-index.h"
 #include "device-registry.h"
 #include "header.h"
 #include "instance-number.h"
