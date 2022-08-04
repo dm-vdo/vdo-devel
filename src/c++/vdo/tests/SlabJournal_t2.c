@@ -250,7 +250,7 @@ static void assertSlabJournalDirty(struct vdo_completion *completion)
 static void testLockReleaseRequestOnBlockedSlabJournal(void)
 {
   // Block the first reference block write so that the journal can fill up.
-  setBlockBIO(isRefCountsWrite, false, true);
+  setBlockBIO(isRefCountsWrite, true, true);
 
   // Fill the slab journal writing data which was never written before to
   // avoid dedupe against previously written and trimmed data.
