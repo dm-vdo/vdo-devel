@@ -56,9 +56,6 @@ struct vdo {
 	struct vdo_completion *completion;
 	struct vio_tracer *vio_tracer;
 
-	/* The connection to the UDS index */
-	struct dedupe_index *dedupe_index;
-
 	/* The atomic version of the state of this vdo */
 	atomic_t state;
 	/* The full state of all components */
