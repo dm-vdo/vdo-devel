@@ -178,61 +178,44 @@ void waitForNotNull(void **ptr);
  * @param vio             The VIO to check
  * @param blockCondition  A function to check whether the VIO should be blocked
  * @param context         The context for the blockCondition
- * @param notify          Broadcast to the condition if <code>true</code> and
- *                        the VIO was blocked
  **/
 void blockVIOOnCondition(struct vio     *vio,
                          BlockCondition  blockCondition,
-                         void           *context,
-                         bool            notify);
+                         void           *context);
 
 /**
  * Add a completion enqueue hook to block a vio.
  *
  * @param blockCondition  A function to check whether a VIO should be blocked
- * @param notify          If <code>true</code>, broadcast to the condition when
- *                        a VIO is blocked
  * @param takeOut         If <code>true</code>, take out the hook once a VIO
  *                        has been blocked
  **/
-void addBlockVIOCompletionEnqueueHook(BlockCondition *condition,
-                                      bool            notify,
-                                      bool            takeOut);
+void addBlockVIOCompletionEnqueueHook(BlockCondition *condition, bool takeOut);
 
 /**
  * Set a completion enqueue hook to block a vio.
  *
  * @param blockCondition  A function to check whether a VIO should be blocked
- * @param notify          If <code>true</code>, broadcast to the condition when
- *                        a VIO is blocked
  * @param takeOut         If <code>true</code>, take out the hook once a VIO
  *                        has been blocked
  **/
-void setBlockVIOCompletionEnqueueHook(BlockCondition *condition,
-                                      bool            notify,
-                                      bool            takeOut);
+void setBlockVIOCompletionEnqueueHook(BlockCondition *condition, bool takeOut);
 
 /**
  * Set a bio submit hook to block a bio.
  *
  * @param blockCondition  A function to check whether a bio should be blocked
- * @param notify          If <code>true</code>, broadcast to the condition when
- *                        a bio is blocked
  * @param takeOut         If <code>true</code>, take out the hook once a bio
  *                        has been blocked
  **/
-void setBlockBIO(BlockCondition *condition,
-                 bool            notify,
-                 bool            takeOut);
+void setBlockBIO(BlockCondition *condition, bool takeOut);
 
 /**
  * Block a vio.
  *
- * @param vio     The VIO to check
- * @param notify  Broadcast to the condition if <code>true</code> and the VIO
- *                was blocked
+ * @param vio  The VIO to check
  **/
-void blockVIO(struct vio *vio, bool notify);
+void blockVIO(struct vio *vio);
 
 /**
  * Wait until a VIO has been blocked.

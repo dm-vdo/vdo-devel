@@ -459,7 +459,7 @@ static void testPendingUpdatesError(void)
   firstBlockClients[1].isClean    = true;
 
   // Launch the first update and latch its commit.
-  setBlockBIO(isSlabSummaryWrite, true, true);
+  setBlockBIO(isSlabSummaryWrite, true);
   launchUpdateSlabSummaryEntry(&firstBlockClients[0]);
   struct vio *firstBlockWrite = getBlockedVIO();
 
@@ -538,7 +538,7 @@ static void testReadOnlyDuringWrite(void)
   firstBlockClients[1].isClean    = true;
 
   // Launch the first update and latch its commit.
-  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
   launchUpdateSlabSummaryEntry(&firstBlockClients[0]);
   struct vio *blockedWrites[2];
   blockedWrites[0] = getBlockedVIO();
@@ -557,7 +557,7 @@ static void testReadOnlyDuringWrite(void)
   secondBlockClients[0].isClean    = true;
   secondBlockClients[1].freeBlocks = 19 << 17;
   secondBlockClients[1].isClean    = true;
-  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
   launchUpdateSlabSummaryEntry(&secondBlockClients[0]);
   blockedWrites[1] = getBlockedVIO();
 
@@ -588,7 +588,7 @@ static void testReadOnlyDuringWrite(void)
 
   // Another save should immediately return VDO_SUCCESS without launching any
   // IO.
-  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
   VDO_ASSERT_SUCCESS(drainSlabSummary(summary));
   assertNoBlockedVIOs();
 }
@@ -612,7 +612,7 @@ static void testBlockSimultaneousUpdate(void)
   clients[1].isClean         = true;
 
   // Launch the first and latch it.
-  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
   launchUpdateSlabSummaryEntry(&clients[0]);
   struct vio *latched = getBlockedVIO();
 
@@ -657,7 +657,7 @@ static void testSlabSimultaneousUpdate(void)
   clients[2].isClean         = false;
 
   // Launch the first and latch it.
-  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
   launchUpdateSlabSummaryEntry(&clients[0]);
   struct vio *latched = getBlockedVIO();
 

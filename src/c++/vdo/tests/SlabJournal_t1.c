@@ -1653,7 +1653,7 @@ static void testReapFlushing(void)
 
   // Let go of block 1's locks. It should launch a flush synchronously, which
   // we will block.
-  setBlockBIO(isSlabJournalFlushVIO, true, true);
+  setBlockBIO(isSlabJournalFlushVIO, true);
   performAdjustment(1,
                     -journal->slab->reference_counts->reference_block_count);
   waitForBlockedVIO();

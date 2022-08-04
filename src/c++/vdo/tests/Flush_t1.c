@@ -225,7 +225,7 @@ static void launchFirstWritesAndFlush(void)
   lbnToBlock     = 4;
   targetAckCount = 5;
   addCompletionEnqueueHook(countAcknowledgmentsHook);
-  addBlockVIOCompletionEnqueueHook(shouldBlockVIO, true, true);
+  addBlockVIOCompletionEnqueueHook(shouldBlockVIO, true);
   request        = launchIndexedWrite(0, 4, 0);
   blocked        = launchIndexedWrite(lbnToBlock, 1, lbnToBlock);
   waitForBlockedVIO();

@@ -784,7 +784,7 @@ static void testBusyCachePage(void)
   waitForState(&getRequested);
 
   // Block the next metadata write
-  setBlockBIO(shouldBlock, true, true);
+  setBlockBIO(shouldBlock, true);
 
   // Release the original reference, should trigger saving.
   performPageAction(&p1comp, vdo_release_page_completion);

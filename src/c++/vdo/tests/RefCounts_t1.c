@@ -610,7 +610,7 @@ shouldBlockVIO(struct vdo_completion *completion,
 static void setupBlockLatch(physical_block_number_t pbn)
 {
   pbnToBlock = pbn;
-  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true, true);
+  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true);
 }
 
 /**

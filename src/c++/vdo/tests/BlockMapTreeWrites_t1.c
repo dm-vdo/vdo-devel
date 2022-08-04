@@ -244,7 +244,7 @@ static void testBlockMapTreeWrites(void)
    * journal so that the dirty pages are written, but block the flush.
    */
   clearState(&writeBlocked);
-  setBlockVIOCompletionEnqueueHook(blockFlusherSecondWrite, true, false);
+  setBlockVIOCompletionEnqueueHook(blockFlusherSecondWrite, false);
   writeTarget += trees;
   for (root_count_t i = 0; i < trees; i++) {
     writeData(((i + DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT)
@@ -379,8 +379,7 @@ static void testBlockMapTreeGenerationRollOver(void)
 
   // Make three generations of dirty tree pages.
   clearState(&writeBlocked);
-  setBlockVIOCompletionEnqueueHook(blockFirstNotFlusherCountAllWrites,
-                                   true, false);
+  setBlockVIOCompletionEnqueueHook(blockFirstNotFlusherCountAllWrites, false);
   for (block_count_t i = 0; i < 3; i++) {
     writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE * i, 0, NEW_TREE_WRITES_PER_BLOCK,
               VDO_SUCCESS);
@@ -484,7 +483,7 @@ static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
    * non-flusher.
    */
   writeBlocked = false;
-  setBlockVIOCompletionEnqueueHook(blockNotFlusher, true, true);
+  setBlockVIOCompletionEnqueueHook(blockNotFlusher, true);
   writeData(0, 1, ENTRIES_PER_BLOCK, VDO_SUCCESS);
   struct vio *writer = getBlockedVIO();
 

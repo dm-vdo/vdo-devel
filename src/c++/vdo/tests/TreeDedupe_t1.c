@@ -139,7 +139,7 @@ static void testNoDedupeAfterRecovery(void)
 /**********************************************************************/
 static void testNoDedupeAfterRebuild(void)
 {
-  setBlockVIOCompletionEnqueueHook(checkForAcknowledgement, true, true);
+  setBlockVIOCompletionEnqueueHook(checkForAcknowledgement, true);
   IORequest *request
     = launchIndexedWrite(VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 1, blocksWritten);
   waitForBlockedVIO();

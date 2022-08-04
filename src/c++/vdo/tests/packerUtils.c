@@ -65,9 +65,7 @@ isLeavingCompressorBlockCondition(struct vdo_completion *completion,
 /**********************************************************************/
 void setupCompressorLatch(void)
 {
-  setBlockVIOCompletionEnqueueHook(isLeavingCompressorBlockCondition,
-                                   true,
-                                   false);
+  setBlockVIOCompletionEnqueueHook(isLeavingCompressorBlockCondition, false);
 }
 
 /**********************************************************************/

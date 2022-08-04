@@ -111,7 +111,7 @@ static bool blockFirstVIO(struct vdo_completion *completion)
   }
 
   clearCompletionEnqueueHooks();
-  blockVIO(as_vio(completion), true);
+  blockVIO(as_vio(completion));
   return false;
 }
 

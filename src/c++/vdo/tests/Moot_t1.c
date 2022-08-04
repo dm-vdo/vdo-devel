@@ -74,7 +74,7 @@ static void launchWriteAndRead(logical_block_number_t  lbn,
                                char                   *buffer,
                                CompletionHook         *hook)
 {
-  setBlockVIOCompletionEnqueueHook(shouldBlock, true, true);
+  setBlockVIOCompletionEnqueueHook(shouldBlock, true);
   IORequest *request = launchIndexedWrite(lbn, 1, offset);
   waitForBlockedVIO();
   if (hook != NULL) {

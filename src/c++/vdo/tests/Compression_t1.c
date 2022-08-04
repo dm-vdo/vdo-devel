@@ -147,7 +147,7 @@ static void fillCompressedBlock(void)
  **/
 static void setupCompressBlockWriteAndWait(void)
 {
-  setBlockBIO(isCompressedWrite, true, true);
+  setBlockBIO(isCompressedWrite, true);
   fillCompressedBlock();
   waitForBlockedVIO();
 

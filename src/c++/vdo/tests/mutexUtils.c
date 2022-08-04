@@ -24,7 +24,6 @@ typedef void ClearHook(void);
 
 typedef struct {
   BlockCondition *condition;
-  bool            signalWhenBlocked;
   ClearHook      *clearHook;
 } HookContext;
 
@@ -267,14 +266,11 @@ static bool attemptVIOBlock(struct vio     *vio,
 /**********************************************************************/
 void blockVIOOnCondition(struct vio     *vio,
                          BlockCondition *blockCondition,
-                         void           *context,
-                         bool            notify)
+                         void           *context)
 {
   uds_lock_mutex(&mutex);
   if (attemptVIOBlock(vio, blockCondition, context)) {
-    if (notify) {
-      uds_broadcast_cond(&condition);
-    }
+    uds_broadcast_cond(&condition);
   }
   uds_unlock_mutex(&mutex);
 }
@@ -298,9 +294,7 @@ static bool blockVIOLocked(struct vio *vio, HookContext *hookContext)
     hookContext->clearHook();
   }
 
-  if (hookContext->signalWhenBlocked) {
-    uds_broadcast_cond(&condition);
-  }
+  uds_broadcast_cond(&condition);
 
   return true;
 }
@@ -329,28 +323,22 @@ static void removeBlockVIOHook(void)
 }
 
 /**********************************************************************/
-void addBlockVIOCompletionEnqueueHook(BlockCondition *condition,
-                                      bool            notify,
-                                      bool            takeOut)
+void addBlockVIOCompletionEnqueueHook(BlockCondition *condition, bool takeOut)
 {
   callbackEnqueueContext = (HookContext) {
-    .condition          = condition,
-    .signalWhenBlocked  = notify,
-    .clearHook          = (takeOut ? removeBlockVIOHook : NULL),
+    .condition = condition,
+    .clearHook = (takeOut ? removeBlockVIOHook : NULL),
   };
   addCompletionEnqueueHook(blockVIOCompletionHook);
 }
 
 
 /**********************************************************************/
-void setBlockVIOCompletionEnqueueHook(BlockCondition *condition,
-                                      bool            notify,
-                                      bool            takeOut)
+void setBlockVIOCompletionEnqueueHook(BlockCondition *condition, bool takeOut)
 {
   callbackEnqueueContext = (HookContext) {
-    .condition          = condition,
-    .signalWhenBlocked  = notify,
-    .clearHook          = (takeOut ? clearCompletionEnqueueHooks : NULL),
+    .condition = condition,
+    .clearHook = (takeOut ? clearCompletionEnqueueHooks : NULL),
   };
   setCompletionEnqueueHook(blockVIOCompletionHook);
 }
@@ -370,22 +358,19 @@ static bool blockBIOSubmitHook(struct bio *bio)
 }
 
 /**********************************************************************/
-void setBlockBIO(BlockCondition *condition,
-                 bool            notify,
-                 bool            takeOut)
+void setBlockBIO(BlockCondition *condition, bool takeOut)
 {
   bioSubmitContext = (HookContext) {
-    .condition          = condition,
-    .signalWhenBlocked  = notify,
-    .clearHook          = (takeOut ? clearBIOSubmitHook : NULL),
+    .condition = condition,
+    .clearHook = (takeOut ? clearBIOSubmitHook : NULL),
   };
   setBIOSubmitHook(blockBIOSubmitHook);
 }
 
 /**********************************************************************/
-void blockVIO(struct vio *vio, bool notify)
+void blockVIO(struct vio *vio)
 {
-  blockVIOOnCondition(vio, NULL, NULL, notify);
+  blockVIOOnCondition(vio, NULL, NULL);
 }
 
 /**********************************************************************/

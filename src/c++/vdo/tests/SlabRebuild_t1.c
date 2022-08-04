@@ -493,7 +493,7 @@ static void testRebuild(void)
   writeSlabJournalBlocks();
 
   // Setup hook to latch the first metadata write.
-  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true, false);
+  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, false);
 
   block_count_t slabJournalSize
     = vdo_get_slab_config(depot)->slab_journal_blocks;

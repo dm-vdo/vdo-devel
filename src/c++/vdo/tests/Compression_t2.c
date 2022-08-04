@@ -78,7 +78,7 @@ static bool blockFirstVIO(struct vdo_completion *completion) {
   }
 
   setCompletionEnqueueHook(releaseBlockedVIOHook);
-  blockVIO(as_vio(completion), true);
+  blockVIO(as_vio(completion));
   return false;
 }
 
@@ -195,7 +195,7 @@ static bool trapVIO4(struct vdo_completion *completion)
 {
   if (lastAsyncOperationIs(completion, VIO_ASYNC_OP_UPDATE_DEDUPE_INDEX)
       && logicalIs(completion, 4)) {
-    blockVIO(as_vio(completion), true);
+    blockVIO(as_vio(completion));
     return false;
   }
 
@@ -355,7 +355,7 @@ static void testDedupeVsOverwrittenCompressedBlock(void)
    * Write the data we originally wrote to logical block 0, but block it before
    * it queries UDS.
    */
-  setBlockVIOCompletionEnqueueHook(trapVIO0, true, true);
+  setBlockVIOCompletionEnqueueHook(trapVIO0, true);
   requests[0] = launchIndexedWrite(0, 1, mappableBlocks + 1);
   waitForBlockedVIO();
 

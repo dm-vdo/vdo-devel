@@ -406,7 +406,7 @@ static void testWaitForSlabJournalSpace(void)
   /*
    * Set up a hook to block the first slab journal write.
    */
-  setBlockBIO(isSlabJournalWrite, true, false);
+  setBlockBIO(isSlabJournalWrite, false);
 
   // Let go of the VIO pool entry; it will be issued and then blocked.
   // Recovery will replay another blockful, then be out of space again.

@@ -156,7 +156,7 @@ static void testVerificationRaceWithTrim(void)
 
   // Write a duplicate of LBN 2 at LBN 1 and block the callback after the
   // read-verify.
-  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true, true);
+  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true);
   IORequest *request = launchIndexedWrite(1, 1, 2);
   waitForBlockedVIO();
 
@@ -199,7 +199,7 @@ static bool falsifyAdvice(struct vdo_completion *completion)
   };
   VDO_ASSERT_SUCCESS(vdo_get_physical_zone(vdo, pbn2, &advice.zone));
   set_data_vio_duplicate_location(dataVIO, advice);
-  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true, true);
+  setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true);
   return true;
 }
 

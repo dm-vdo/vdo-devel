@@ -373,7 +373,7 @@ static void testScrubSlabDuringRebuild(void)
   clearCompletionEnqueueHooks();
 
   // Launch a zero block write which will be blocked in the slab journal.
-  setBlockVIOCompletionEnqueueHook(isRecoveryJournalBlockWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isRecoveryJournalBlockWrite, true);
   IORequest *trim = launchIndexedWrite(trimBlock, 1, 0);
 
   // Wait until the recovery journal updates with the increment for this trim.
@@ -389,7 +389,7 @@ static void testScrubSlabDuringRebuild(void)
 
   // Release the journal block's first write, and catch its second (which
   // contains the decrement which will block in the slab journal).
-  setBlockVIOCompletionEnqueueHook(isRecoveryJournalBlockWrite, true, true);
+  setBlockVIOCompletionEnqueueHook(isRecoveryJournalBlockWrite, true);
   reallyEnqueueVIO(blockedVIO);
   blockedVIO = getBlockedVIO();
 
@@ -407,7 +407,7 @@ static void testScrubSlabDuringRebuild(void)
   slabJournalFull->destroy(&slabJournalFull);
 
   // Restart the VDO.
-  setBlockBIO(checkRecoveryMode, true, true);
+  setBlockBIO(checkRecoveryMode, true);
   startVDO(VDO_DIRTY);
   blockedVIO  = getBlockedVIO();
   depot       = vdo->depot;
