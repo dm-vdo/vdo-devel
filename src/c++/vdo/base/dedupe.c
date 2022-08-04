@@ -421,7 +421,7 @@ static const char *get_hash_lock_state_name(enum hash_lock_state state)
 	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1)
 		      == ARRAY_SIZE(LOCK_STATE_NAMES));
 	return (state < ARRAY_SIZE(LOCK_STATE_NAMES)) ? LOCK_STATE_NAMES[state]
-						      : NULL;
+						      : "INVALID";
 }
 
 /**
