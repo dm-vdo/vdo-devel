@@ -197,7 +197,6 @@ tarballs:
             logger.c
             memoryAlloc.c
             minisyslog.[hc]
-            numericDefs.h
             requestQueue.c
             syscalls.[hc]
             threadCondVar.c
@@ -212,6 +211,11 @@ tarballs:
             blkdev.h
             dm-bufio.h
             log2.h
+          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+        src/c++/uds/userLinux/uds/asm:
+          dest: utils/uds/asm
+          sources: |
+            unaligned.h
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
   kvdo:
     versionFiles:
