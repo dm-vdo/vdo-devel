@@ -225,8 +225,8 @@ static void save(unsigned int numZones)
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
   struct buffered_writer *writers[numZones];
   for (unsigned int z = 0; z < numZones; z++) {
-    UDS_ASSERT_SUCCESS(open_uds_buffered_writer(factory, z * zoneSize,
-                                                zoneSize, &writers[z]));
+    UDS_ASSERT_SUCCESS(make_buffered_writer(factory, z * zoneSize, zoneSize,
+                                            &writers[z]));
   }
 
   UDS_ASSERT_SUCCESS(save_volume_index(volumeIndex, writers, numZones));
@@ -251,8 +251,8 @@ static void restore(unsigned int oldZones, unsigned int newZones)
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   struct buffered_reader *readers[oldZones];
   for (unsigned int z = 0; z < oldZones; z++) {
-    UDS_ASSERT_SUCCESS(open_uds_buffered_reader(factory, z * zoneSize,
-                                                zoneSize, &readers[z]));
+    UDS_ASSERT_SUCCESS(make_buffered_reader(factory, z * zoneSize, zoneSize,
+                                            &readers[z]));
   }
   UDS_ASSERT_SUCCESS(load_volume_index(volumeIndex, readers, oldZones));
   for (unsigned int z = 0; z < oldZones; z++) {

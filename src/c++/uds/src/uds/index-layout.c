@@ -351,10 +351,7 @@ open_layout_reader(struct index_layout *layout,
 	off_t start = (lr->start_block + offset) * layout->super.block_size;
 	size_t size = lr->block_count * layout->super.block_size;
 
-	return open_uds_buffered_reader(layout->factory,
-					start,
-					size,
-					reader_ptr);
+	return make_buffered_reader(layout->factory, start, size, reader_ptr);
 }
 
 static int open_region_reader(struct index_layout *layout,
@@ -376,10 +373,7 @@ open_layout_writer(struct index_layout *layout,
 	off_t start = (lr->start_block + offset) * layout->super.block_size;
 	size_t size = lr->block_count * layout->super.block_size;
 
-	return open_uds_buffered_writer(layout->factory,
-					start,
-					size,
-					writer_ptr);
+	return make_buffered_writer(layout->factory, start, size, writer_ptr);
 }
 
 static int open_region_writer(struct index_layout *layout,
@@ -1182,7 +1176,7 @@ int discard_open_chapter(struct index_layout *layout)
 		return result;
 	}
 
-	result = write_zeros_to_buffered_writer(writer, UDS_BLOCK_SIZE);
+	result = write_to_buffered_writer(writer, NULL, UDS_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
 		free_buffered_writer(writer);
 		return result;
@@ -2269,10 +2263,10 @@ static int load_index_layout(struct index_layout *layout,
 	int result;
 	struct buffered_reader *reader;
 
-	result = open_uds_buffered_reader(layout->factory,
-					  layout->offset,
-					  UDS_BLOCK_SIZE,
-					  &reader);
+	result = make_buffered_reader(layout->factory,
+				      layout->offset,
+				      UDS_BLOCK_SIZE,
+				      &reader);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "unable to read superblock");

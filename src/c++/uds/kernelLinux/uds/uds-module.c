@@ -201,6 +201,8 @@ EXPORT_SYMBOL_GPL(is_chapter_sparse);
 EXPORT_SYMBOL_GPL(load_open_chapter);
 EXPORT_SYMBOL_GPL(load_volume_index);
 EXPORT_SYMBOL_GPL(log_uds_memory_allocations);
+EXPORT_SYMBOL_GPL(make_buffered_reader);
+EXPORT_SYMBOL_GPL(make_buffered_writer);
 EXPORT_SYMBOL_GPL(make_configuration);
 EXPORT_SYMBOL_GPL(make_event_count);
 EXPORT_SYMBOL_GPL(make_geometry);
@@ -222,8 +224,6 @@ EXPORT_SYMBOL_GPL(map_to_physical_page);
 EXPORT_SYMBOL_GPL(min_volume_index_delta_lists);
 EXPORT_SYMBOL_GPL(move_bits);
 EXPORT_SYMBOL_GPL(next_delta_index_entry);
-EXPORT_SYMBOL_GPL(open_uds_buffered_reader);
-EXPORT_SYMBOL_GPL(open_uds_buffered_writer);
 EXPORT_SYMBOL_GPL(pack_open_chapter_index_page);
 EXPORT_SYMBOL_GPL(put_delta_index_entry);
 EXPORT_SYMBOL_GPL(put_open_chapter);
@@ -254,7 +254,6 @@ EXPORT_SYMBOL_GPL(set_delta_entry_value);
 EXPORT_SYMBOL_GPL(set_request_restarter);
 EXPORT_SYMBOL_GPL(set_volume_index_record_chapter);
 EXPORT_SYMBOL_GPL(sleep_for);
-EXPORT_SYMBOL_GPL(space_remaining_in_write_buffer);
 EXPORT_SYMBOL_GPL(start_delta_index_search);
 EXPORT_SYMBOL_GPL(start_restoring_delta_index);
 EXPORT_SYMBOL_GPL(start_saving_delta_index);
@@ -295,7 +294,6 @@ EXPORT_SYMBOL_GPL(write_index_page_map);
 EXPORT_SYMBOL_GPL(write_index_pages);
 EXPORT_SYMBOL_GPL(write_record_pages);
 EXPORT_SYMBOL_GPL(write_to_buffered_writer);
-EXPORT_SYMBOL_GPL(write_zeros_to_buffered_writer);
 #endif /* TEST_INTERNAL */
 
 

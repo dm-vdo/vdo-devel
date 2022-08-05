@@ -46,15 +46,15 @@ static void verifyData(int count)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, byte, __func__, &buf));
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(open_uds_buffered_reader(factory, 0, DATA_SIZE, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, DATA_SIZE, &reader));
 
   for (offset = 0; offset + count <= DATA_SIZE; offset += count) {
     UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, buf, count));
     UDS_ASSERT_EQUAL_BYTES(&data[offset], buf, count);
   }
 
-    UDS_ASSERT_ERROR(UDS_OUT_OF_RANGE,
-                     read_from_buffered_reader(reader, buf, count));
+  UDS_ASSERT_ERROR(UDS_OUT_OF_RANGE,
+                   read_from_buffered_reader(reader, buf, count));
   free_buffered_reader(reader);
   UDS_FREE(buf);
 }

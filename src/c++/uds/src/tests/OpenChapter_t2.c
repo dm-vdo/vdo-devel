@@ -51,8 +51,8 @@ __attribute__((warn_unused_result))
 static struct buffered_reader *openBufferedReaderForChapter(void)
 {
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(open_uds_buffered_reader(factory, scratchOffset,
-                                              CHAPTER_REGION_SIZE, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, scratchOffset,
+                                          CHAPTER_REGION_SIZE, &reader));
   return reader;
 }
 
@@ -61,8 +61,8 @@ __attribute__((warn_unused_result))
 static struct buffered_writer *openBufferedWriterForChapter(void)
 {
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(open_uds_buffered_writer(factory, scratchOffset,
-                                              CHAPTER_REGION_SIZE, &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, scratchOffset,
+                                          CHAPTER_REGION_SIZE, &writer));
   return writer;
 }
 
@@ -213,8 +213,8 @@ static void modifyOpenChapter(off_t offset, const char *data)
   UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
 
-  char *block;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(UDS_BLOCK_SIZE, char, __func__, &block));
+  byte *block;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(UDS_BLOCK_SIZE, byte, __func__, &block));
   struct buffered_reader *reader = openBufferedReaderForChapter();
   UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, block, UDS_BLOCK_SIZE));
   free_buffered_reader(reader);

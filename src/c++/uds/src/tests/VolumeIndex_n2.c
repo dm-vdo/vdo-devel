@@ -86,10 +86,10 @@ static void saveVolumeIndex(TestMI *testmi)
   struct buffered_writer *writers[ZONES];
 
   for (z = 0; z < testmi->numZones; z++) {
-    UDS_ASSERT_SUCCESS(open_uds_buffered_writer(testmi->factory,
-                                                testmi->zoneOff[z],
-                                                testmi->saveSize,
-                                                &writers[z]));
+    UDS_ASSERT_SUCCESS(make_buffered_writer(testmi->factory,
+                                            testmi->zoneOff[z],
+                                            testmi->saveSize,
+                                            &writers[z]));
   }
 
   UDS_ASSERT_SUCCESS(save_volume_index(testmi->mi, writers, testmi->numZones));
@@ -117,10 +117,10 @@ static void reopenVolumeIndex(TestMI       *testmi,
   struct buffered_reader *readers[ZONES];
   unsigned int z;
   for (z = 0; z < testmi->numZones; z++) {
-    UDS_ASSERT_SUCCESS(open_uds_buffered_reader(testmi->factory,
-                                                testmi->zoneOff[z],
-                                                testmi->saveSize,
-                                                &readers[z]));
+    UDS_ASSERT_SUCCESS(make_buffered_reader(testmi->factory,
+                                            testmi->zoneOff[z],
+                                            testmi->saveSize,
+                                            &readers[z]));
   }
   UDS_ASSERT_ERROR(status, load_volume_index(testmi->mi, readers,
                                              testmi->numZones));

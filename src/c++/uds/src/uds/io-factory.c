@@ -34,8 +34,8 @@ struct io_factory {
 };
 
 /*
- * The buffered reader allows efficient I/O by reading page-sized
- * segments into a buffer.
+ * The buffered reader allows efficient I/O by reading page-sized segments into
+ * a buffer.
  */
 struct buffered_reader {
 	struct io_factory *factory;
@@ -47,9 +47,11 @@ struct buffered_reader {
 	byte *end;
 };
 
+enum { MAX_READ_AHEAD_BLOCKS = 4 };
+
 /*
- * The buffered writer allows efficient I/O by buffering writes and
- * committing page-sized segments to storage.
+ * The buffered writer allows efficient I/O by buffering writes and committing
+ * page-sized segments to storage.
  */
 struct buffered_writer {
 	struct io_factory *factory;
@@ -62,7 +64,7 @@ struct buffered_writer {
 	int error;
 };
 
-void get_uds_io_factory(struct io_factory *factory)
+static void get_uds_io_factory(struct io_factory *factory)
 {
 	atomic_inc(&factory->ref_count);
 }
@@ -79,7 +81,8 @@ static int get_block_device_from_name(const char *name,
 	}
 	if (IS_ERR(*bdev)) {
 		uds_log_error_strerror(-PTR_ERR(*bdev),
-				       "%s is not a block device", name);
+				       "%s is not a block device",
+				       name);
 		return UDS_INVALID_ARGUMENT;
 	}
 
@@ -148,22 +151,26 @@ int make_uds_bufio(struct io_factory *factory,
 {
 	struct dm_bufio_client *client;
 
-	if (offset % SECTOR_SIZE != 0) {
+	if ((offset % SECTOR_SIZE) != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
 					      "offset %zd not multiple of %d",
 					      offset,
 					      SECTOR_SIZE);
 	}
-	if (block_size % UDS_BLOCK_SIZE != 0) {
-		return uds_log_error_strerror(
-			UDS_INCORRECT_ALIGNMENT,
-			"block_size %zd not multiple of %d",
-			block_size,
-			UDS_BLOCK_SIZE);
+
+	if ((block_size % UDS_BLOCK_SIZE) != 0) {
+		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					      "block_size %zd not multiple of %d",
+					      block_size,
+					      UDS_BLOCK_SIZE);
 	}
 
-	client = dm_bufio_client_create(
-		factory->bdev, block_size, reserved_buffers, 0, NULL, NULL);
+	client = dm_bufio_client_create(factory->bdev,
+					block_size,
+					reserved_buffers,
+					0,
+					NULL,
+					NULL);
 	if (IS_ERR(client)) {
 		return -PTR_ERR(client);
 	}
@@ -176,44 +183,11 @@ int make_uds_bufio(struct io_factory *factory,
 static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 {
 	if (block_number < reader->limit) {
-		enum { MAX_READ_AHEAD = 4 };
-		sector_t read_ahead = min((sector_t) MAX_READ_AHEAD,
+		sector_t read_ahead = min((sector_t) MAX_READ_AHEAD_BLOCKS,
 					  reader->limit - block_number);
 
 		dm_bufio_prefetch(reader->client, block_number, read_ahead);
 	}
-}
-
-int make_buffered_reader(struct io_factory *factory,
-			 struct dm_bufio_client *client,
-			 sector_t block_limit,
-			 struct buffered_reader **reader_ptr)
-{
-	int result;
-	struct buffered_reader *reader = NULL;
-
-	result = UDS_ALLOCATE(1,
-			      struct buffered_reader,
-			      "buffered reader",
-			      &reader);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	*reader = (struct buffered_reader) {
-		.factory = factory,
-		.client = client,
-		.buffer = NULL,
-		.limit = block_limit,
-		.block_number = 0,
-		.start = NULL,
-		.end = NULL,
-	};
-
-	read_ahead(reader, 0);
-	get_uds_io_factory(factory);
-	*reader_ptr = reader;
-	return UDS_SUCCESS;
 }
 
 void free_buffered_reader(struct buffered_reader *reader)
@@ -232,20 +206,20 @@ void free_buffered_reader(struct buffered_reader *reader)
 }
 
 /* Create a buffered reader for an index region starting at offset. */
-int open_uds_buffered_reader(struct io_factory *factory,
-			     off_t offset,
-			     size_t size,
-			     struct buffered_reader **reader_ptr)
+int make_buffered_reader(struct io_factory *factory,
+			 off_t offset,
+			 size_t size,
+			 struct buffered_reader **reader_ptr)
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
+	struct buffered_reader *reader = NULL;
 
 	if (size % UDS_BLOCK_SIZE != 0) {
-		return uds_log_error_strerror(
-			UDS_INCORRECT_ALIGNMENT,
-			"region size %zd is not multiple of %d",
-			size,
-			UDS_BLOCK_SIZE);
+		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
+					      "region size %zd is not multiple of %d",
+					      size,
+					      UDS_BLOCK_SIZE);
 	}
 
 	result = make_uds_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
@@ -253,29 +227,45 @@ int open_uds_buffered_reader(struct io_factory *factory,
 		return result;
 	}
 
-	result = make_buffered_reader(
-		factory, client, size / UDS_BLOCK_SIZE, reader_ptr);
+	result = UDS_ALLOCATE(1,
+			      struct buffered_reader,
+			      "buffered reader",
+			      &reader);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
+		return result;
 	}
-	return result;
+
+	*reader = (struct buffered_reader) {
+		.factory = factory,
+		.client = client,
+		.buffer = NULL,
+		.limit = (size / UDS_BLOCK_SIZE),
+		.block_number = 0,
+		.start = NULL,
+		.end = NULL,
+	};
+
+	read_ahead(reader, 0);
+	get_uds_io_factory(factory);
+	*reader_ptr = reader;
+	return UDS_SUCCESS;
 }
 
 static int position_reader(struct buffered_reader *reader,
 			   sector_t block_number,
 			   off_t offset)
 {
-	if ((reader->end == NULL) || (block_number != reader->block_number)) {
-		struct dm_buffer *buffer = NULL;
-		void *data;
+	struct dm_buffer *buffer = NULL;
+	void *data;
 
+	if ((reader->end == NULL) || (block_number != reader->block_number)) {
 		if (block_number >= reader->limit) {
 			return UDS_OUT_OF_RANGE;
 		}
 
 		if (reader->buffer != NULL) {
-			dm_bufio_release(reader->buffer);
-			reader->buffer = NULL;
+			dm_bufio_release(UDS_FORGET(reader->buffer));
 		}
 
 		data = dm_bufio_read(reader->client, block_number, &buffer);
@@ -319,27 +309,26 @@ static int reset_reader(struct buffered_reader *reader)
 }
 
 int read_from_buffered_reader(struct buffered_reader *reader,
-			      void *data,
+			      byte *data,
 			      size_t length)
 {
-	byte *dp = data;
 	int result = UDS_SUCCESS;
-	size_t chunk;
+	size_t chunk_size;
 
 	while (length > 0) {
 		result = reset_reader(reader);
 		if (result != UDS_SUCCESS) {
-			break;
+			return result;
 		}
 
-		chunk = min(length, bytes_remaining_in_read_buffer(reader));
-		memcpy(dp, reader->end, chunk);
-		length -= chunk;
-		dp += chunk;
-		reader->end += chunk;
+		chunk_size = min(length, bytes_remaining_in_read_buffer(reader));
+		memcpy(data, reader->end, chunk_size);
+		length -= chunk_size;
+		data += chunk_size;
+		reader->end += chunk_size;
 	}
 
-	return result;
+	return UDS_SUCCESS;
 }
 
 /*
@@ -348,12 +337,11 @@ int read_from_buffered_reader(struct buffered_reader *reader,
  * match, the reader state is unchanged.
  */
 int verify_buffered_data(struct buffered_reader *reader,
-			 const void *value,
+			 const byte *value,
 			 size_t length)
 {
 	int result = UDS_SUCCESS;
-	size_t chunk;
-	const byte *vp = value;
+	size_t chunk_size;
 	sector_t start_block_number = reader->block_number;
 	int start_offset = reader->end - reader->start;
 
@@ -364,15 +352,15 @@ int verify_buffered_data(struct buffered_reader *reader,
 			break;
 		}
 
-		chunk = min(length, bytes_remaining_in_read_buffer(reader));
-		if (memcmp(vp, reader->end, chunk) != 0) {
+		chunk_size = min(length, bytes_remaining_in_read_buffer(reader));
+		if (memcmp(value, reader->end, chunk_size) != 0) {
 			result = UDS_CORRUPT_DATA;
 			break;
 		}
 
-		length -= chunk;
-		vp += chunk;
-		reader->end += chunk;
+		length -= chunk_size;
+		value += chunk_size;
+		reader->end += chunk_size;
 	}
 
 	if (result != UDS_SUCCESS) {
@@ -382,46 +370,15 @@ int verify_buffered_data(struct buffered_reader *reader,
 	return result;
 }
 
+/* Create a buffered writer for an index region starting at offset. */
 int make_buffered_writer(struct io_factory *factory,
-			 struct dm_bufio_client *client,
-			 sector_t block_limit,
+			 off_t offset,
+			 size_t size,
 			 struct buffered_writer **writer_ptr)
 {
 	int result;
-	struct buffered_writer *writer;
-
-	result = UDS_ALLOCATE(1,
-			      struct buffered_writer,
-			      "buffered writer",
-			      &writer);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	*writer = (struct buffered_writer) {
-		.factory = factory,
-		.client = client,
-		.buffer = NULL,
-		.limit = block_limit,
-		.start = NULL,
-		.end = NULL,
-		.block_number = 0,
-		.error = UDS_SUCCESS,
-	};
-
-	get_uds_io_factory(factory);
-	*writer_ptr = writer;
-	return UDS_SUCCESS;
-}
-
-/* Create a buffered writer for an index region starting at offset. */
-int open_uds_buffered_writer(struct io_factory *factory,
-			     off_t offset,
-			     size_t size,
-			     struct buffered_writer **writer_ptr)
-{
-	int result;
 	struct dm_bufio_client *client = NULL;
+	struct buffered_writer *writer;
 
 	if (size % UDS_BLOCK_SIZE != 0) {
 		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
@@ -435,23 +392,34 @@ int open_uds_buffered_writer(struct io_factory *factory,
 		return result;
 	}
 
-	result = make_buffered_writer(
-		factory, client, size / UDS_BLOCK_SIZE, writer_ptr);
+	result = UDS_ALLOCATE(1,
+			      struct buffered_writer,
+			      "buffered writer",
+			      &writer);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
+		return result;
 	}
-	return result;
+
+	*writer = (struct buffered_writer) {
+		.factory = factory,
+		.client = client,
+		.buffer = NULL,
+		.limit = size / UDS_BLOCK_SIZE,
+		.start = NULL,
+		.end = NULL,
+		.block_number = 0,
+		.error = UDS_SUCCESS,
+	};
+
+	get_uds_io_factory(factory);
+	*writer_ptr = writer;
+	return UDS_SUCCESS;
 }
 
-static INLINE size_t space_used_in_buffer(struct buffered_writer *writer)
+static size_t get_remaining_write_space(struct buffered_writer *writer)
 {
-	return writer->end - writer->start;
-}
-
-EXTERNAL_STATIC
-size_t space_remaining_in_write_buffer(struct buffered_writer *writer)
-{
-	return UDS_BLOCK_SIZE - space_used_in_buffer(writer);
+	return writer->start + UDS_BLOCK_SIZE - writer->end;
 }
 
 static int __must_check prepare_next_buffer(struct buffered_writer *writer)
@@ -485,7 +453,7 @@ static int flush_previous_buffer(struct buffered_writer *writer)
 	}
 
 	if (writer->error == UDS_SUCCESS) {
-		available = space_remaining_in_write_buffer(writer);
+		available = get_remaining_write_space(writer);
 
 		if (available > 0) {
 			memset(writer->end, 0, available);
@@ -532,62 +500,35 @@ void free_buffered_writer(struct buffered_writer *writer)
 }
 
 /*
- * Append data to the buffer, writing as needed. If a write error occurs, it
- * is recorded and returned on every subsequent write attempt.
+ * Append data to the buffer, writing as needed. If no data is provided, zeros
+ * are written instead. If a write error occurs, it is recorded and returned on
+ * every subsequent write attempt.
  */
 int write_to_buffered_writer(struct buffered_writer *writer,
-			     const void *data,
-			     size_t len)
+			     const byte *data,
+			     size_t length)
 {
-	const byte *dp = data;
-	int result = UDS_SUCCESS;
-	size_t chunk;
+	int result = writer->error;
+	size_t chunk_size;
 
-	if (writer->error != UDS_SUCCESS) {
-		return writer->error;
-	}
-
-	while ((len > 0) && (result == UDS_SUCCESS)) {
+	while ((length > 0) && (result == UDS_SUCCESS)) {
 		if (writer->buffer == NULL) {
 			result = prepare_next_buffer(writer);
 			continue;
 		}
 
-		chunk = min(len, space_remaining_in_write_buffer(writer));
-		memcpy(writer->end, dp, chunk);
-		len -= chunk;
-		dp += chunk;
-		writer->end += chunk;
-
-		if (space_remaining_in_write_buffer(writer) == 0) {
-			result = flush_buffered_writer(writer);
-		}
-	}
-
-	return result;
-}
-
-int write_zeros_to_buffered_writer(struct buffered_writer *writer, size_t len)
-{
-	int result = UDS_SUCCESS;
-	size_t chunk;
-
-	if (writer->error != UDS_SUCCESS) {
-		return writer->error;
-	}
-
-	while ((len > 0) && (result == UDS_SUCCESS)) {
-		if (writer->buffer == NULL) {
-			result = prepare_next_buffer(writer);
-			continue;
+		chunk_size = min(length, get_remaining_write_space(writer));
+		if (data == NULL) {
+			memset(writer->end, 0, chunk_size);
+		} else {
+			memcpy(writer->end, data, chunk_size);
+			data += chunk_size;
 		}
 
-		chunk = min(len, space_remaining_in_write_buffer(writer));
-		memset(writer->end, 0, chunk);
-		len -= chunk;
-		writer->end += chunk;
+		length -= chunk_size;
+		writer->end += chunk_size;
 
-		if (space_remaining_in_write_buffer(writer) == 0) {
+		if (get_remaining_write_space(writer) == 0) {
 			result = flush_buffered_writer(writer);
 		}
 	}

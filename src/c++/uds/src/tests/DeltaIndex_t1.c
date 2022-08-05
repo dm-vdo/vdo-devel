@@ -787,7 +787,7 @@ static void saveRestoreTest(void)
   // Do a save, and verify the data
   struct io_factory *factory = getTestIOFactory();
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(open_uds_buffered_writer(factory, 0, saveSize, &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, saveSize, &writer));
   UDS_ASSERT_SUCCESS(start_saving_delta_index(&di, 0, writer));
   UDS_ASSERT_SUCCESS(finish_saving_delta_index(&di, 0));
   UDS_ASSERT_SUCCESS(write_guard_delta_list(writer));
@@ -797,7 +797,7 @@ static void saveRestoreTest(void)
 
   // Restore and verify the data
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(open_uds_buffered_reader(factory, 0, saveSize, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, saveSize, &reader));
   restoreIndex(&di, reader);
   free_buffered_reader(reader);
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);

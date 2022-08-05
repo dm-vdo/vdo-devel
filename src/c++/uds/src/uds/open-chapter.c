@@ -369,7 +369,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 
 			record = &open_chapter->records[record_index];
 			result = write_to_buffered_writer(writer,
-							  record,
+							  (byte *) record,
 							  sizeof(*record));
 			if (result != UDS_SUCCESS) {
 				return result;
@@ -410,7 +410,7 @@ static int load_version20(struct uds_index *index,
 	};
 
 	result = read_from_buffered_reader(reader,
-					   &record_count_data,
+					   (byte *) &record_count_data,
 					   sizeof(record_count_data));
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -421,7 +421,7 @@ static int load_version20(struct uds_index *index,
 		unsigned int zone = 0;
 
 		result = read_from_buffered_reader(reader,
-						   &record,
+						   (byte *) &record,
 						   sizeof(record));
 		if (result != UDS_SUCCESS) {
 			return result;
