@@ -17,15 +17,12 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
+#include "dory.h"
 #include "memory-alloc.h"
 #include "random.h"
 #include "testPrototypes.h"
 #include "uds-threads.h"
 #include "uds.h"
-
-#ifdef TEST_INTERNAL
-#include "dory.h"
-#endif /* TEST_INTERNAL */
 
 static const char *indexName;
 

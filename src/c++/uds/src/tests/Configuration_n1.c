@@ -223,12 +223,10 @@ static void testRun(TestConfig *tc)
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   free_configuration(config);
 
-#ifdef TEST_INTERNAL
   // Make sure the chapter index did not throw away any entries by an
   // unexpected discard or an overflow.
   CU_ASSERT_EQUAL(chapter_index_empty_count, chapter_index_discard_count);
   CU_ASSERT_EQUAL(0, chapter_index_overflow_count);
-#endif /* TEST_INTERNAL */
 }
 
 /**********************************************************************/

@@ -72,7 +72,7 @@ static INLINE void smp_mb(void)
    * X86 full fence. Supposedly __sync_synchronize() will do this, but
    * either the GCC documentation is a lie or GCC is broken.
    *
-   * XXX http://blogs.sun.com/dave/entry/atomic_fetch_and_add_vs says
+   * FIXME: http://blogs.sun.com/dave/entry/atomic_fetch_and_add_vs says
    * atomicAdd of zero may be a better way to spell this on current CPUs.
    */
   __asm__ __volatile__("mfence" : : : "memory");
@@ -99,7 +99,7 @@ static INLINE void smp_mb(void)
 static INLINE void smp_rmb(void)
 {
 #if defined __x86_64__
-  // XXX The implementation on x86 is more aggressive than necessary.
+  // The implementation on x86 is more aggressive than necessary.
   __asm__ __volatile__("lfence" : : : "memory");
 #elif defined __aarch64__
   __asm__ __volatile__("dmb ishld" : : : "memory");
@@ -124,7 +124,7 @@ static INLINE void smp_rmb(void)
 static INLINE void smp_wmb(void)
 {
 #if defined __x86_64__
-  // XXX The implementation on x86 is more aggressive than necessary.
+  // The implementation on x86 is more aggressive than necessary.
   __asm__ __volatile__("sfence" : : : "memory");
 #elif defined __aarch64__
   __asm__ __volatile__("dmb ishst" : : : "memory");
@@ -227,8 +227,10 @@ static INLINE void read_once_size(const volatile void *p, void *res, int size)
 #pragma GCC diagnostic pop
     barrier();
   }
-  /* XXX Some platforms such as Alpha may need an additional barrier
-   * here. See https://lkml.org/lkml/2019/11/8/1021 */
+  /*
+   * FIXME: Some platforms such as Alpha may need an additional barrier
+   * here. See https://lkml.org/lkml/2019/11/8/1021
+   */
 }
 
 static INLINE void write_once_size(volatile void *p, void *res, int size)
@@ -252,24 +254,12 @@ static INLINE void write_once_size(volatile void *p, void *res, int size)
 #define WRITE_ONCE(x, val)  ((x) = (val))
 #endif /* TEST_INTERNAL */
 
-/*
- * Prevent the compiler from merging or refetching accesses.  The compiler is
- * also forbidden from reordering successive instances of ACCESS_ONCE(), but
- * only when the compiler is aware of some particular ordering.  One way to
- * make the compiler aware of ordering is to put the two invocations of
- * ACCESS_ONCE() in different C statements.
- *
- * XXX RHEL8 no longer uses ACCESS_ONCE, so we need to use READ_ONCE or
- *     WRITE_ONCE instead.
- */
-#define ACCESS_ONCE(x) (*(volatile __typeof__(x) *)&(x))
-
 /*****************************************************************************
  * Beginning of the 32 bit atomic support.
  *****************************************************************************/
 
 /*
- * XXX As noted above, there are a lot of explicit barriers here, in places
+ * As noted above, there are a lot of explicit barriers here, in places
  * where we need barriers. Ideally, GCC should just Get It Right on all the
  * platforms. But there have been bugs in the past, and it looks like there
  * might be one still (in GCC 8) at least on s390 (no bug report filed yet),

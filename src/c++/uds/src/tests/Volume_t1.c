@@ -93,8 +93,8 @@ static void testStumblingGet(void)
 /**********************************************************************/
 static void testWriteChapter(void)
 {
-  // XXX this test only exercises the write code, and does nothing to check
-  // that it does anything correctly.
+  // This test only exercises the write code, and does nothing to check
+  // that the chapter is constructed correctly.
   struct uds_chunk_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
                                   struct uds_chunk_record, __func__,

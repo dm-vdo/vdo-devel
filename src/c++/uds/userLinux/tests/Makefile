@@ -120,11 +120,9 @@ list-tests:
 oldtests:
 	rm -f $(OLDTESTS)
 
-#XXX for the future
 .PHONY:	profiled
 profile:	$(PROFILE_PROFS)
 
-#XXX for the future
 .PHONY:	profiled
 profiled: $(PROF_PROGS)
 

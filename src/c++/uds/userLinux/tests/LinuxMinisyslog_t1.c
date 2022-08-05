@@ -68,7 +68,7 @@ static void assertFound(const char *str)
                                        timeBuffer));
   // ALB-2828 showed a delay in our logging making it to a syslog file.
   // ALB-2919 showed a delay longer than 3 seconds, so hunt longer.
-  // XXX It is far from clear that this is relevant to journalctl.
+  // FIXME: It is not clear that this is relevant now that we use journalctl.
   for (int delay = 0; delay < 12; delay++) {
     // Sleep a little to give syslog a chance.  Sleep a little longer each time
     // around the loop.

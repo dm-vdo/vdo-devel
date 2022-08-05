@@ -23,7 +23,6 @@ static void createBlockName(struct uds_chunk_name *name)
 {
   static uint64_t counter = 0;
   memset(name, 0, UDS_CHUNK_NAME_SIZE);
-  // XXX We should have a "native byte order" version.
   put_unaligned_le64(counter, name->name);
   counter++;
 }

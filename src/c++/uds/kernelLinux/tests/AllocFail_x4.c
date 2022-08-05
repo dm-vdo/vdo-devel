@@ -11,13 +11,10 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
+#include "dory.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 #include "uds.h"
-
-#ifdef TEST_INTERNAL
-#include "dory.h"
-#endif /* TEST_INTERNAL */
 
 static const char *indexName;
 

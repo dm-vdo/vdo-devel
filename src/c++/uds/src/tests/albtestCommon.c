@@ -6,14 +6,11 @@
 #include "albtestCommon.h"
 
 #include "assertions.h"
+#include "dory.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "type-defs.h"
-
-#ifdef TEST_INTERNAL
-#include "dory.h"
-#endif /* TEST_INTERNAL */
 
 int          testArgc;
 const char **testArgv;
