@@ -2827,8 +2827,6 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 	kobject_init(&zones->dedupe_directory, &dedupe_directory_type);
 	timer_setup(&zones->pending_timer, timeout_index_operations, 0);
 	init_periodic_event_reporter(&zones->timeout_reporter);
-	vdo_set_admin_state_code(&zones->state,
-				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	return VDO_SUCCESS;
 }
 
@@ -2916,6 +2914,8 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 		return result;
 	}
 
+	vdo_set_admin_state_code(&zones->state, VDO_ADMIN_STATE_NEW);
+
 	zones->zone_count = zone_count;
 	for (z = 0; z < zone_count; z++) {
 		result = initialize_zone(vdo, zones, z);
@@ -2932,6 +2932,10 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 					 NULL,
 					 vdo,
 					 &zones->manager);
+	if (result != VDO_SUCCESS) {
+		vdo_free_hash_zones(zones);
+		return result;
+	}
 
 	*zones_ptr = zones;
 	return VDO_SUCCESS;
@@ -2978,7 +2982,11 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 		vdo_finish_dedupe_index(zones);
 	}
 
-	kobject_put(&zones->dedupe_directory);
+	if (vdo_get_admin_state_code(&zones->state) == VDO_ADMIN_STATE_NEW) {
+		UDS_FREE(zones);
+	} else {
+		kobject_put(&zones->dedupe_directory);
+	}
 }
 
 /**
@@ -3706,9 +3714,16 @@ int vdo_message_dedupe_index(struct hash_zones *zones, const char *name)
 
 int vdo_add_dedupe_index_sysfs(struct hash_zones *zones)
 {
-	return kobject_add(&zones->dedupe_directory,
-			   &zones->completion.vdo->vdo_directory,
-			   "dedupe");
+	int result = kobject_add(&zones->dedupe_directory,
+				 &zones->completion.vdo->vdo_directory,
+				 "dedupe");
+
+	if (result == 0) {
+		vdo_set_admin_state_code(&zones->state,
+					 VDO_ADMIN_STATE_NORMAL_OPERATION);
+	}
+
+	return result;
 }
 
 /*
