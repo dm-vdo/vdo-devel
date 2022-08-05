@@ -19,11 +19,10 @@ static struct io_factory *factory;
 /**********************************************************************/
 static void createAndWriteData(void)
 {
-  factory = getTestIOFactory();
-
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, byte, __func__, &data));
   fill_randomly(data, DATA_SIZE);
 
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   struct dm_bufio_client *client = NULL;
   UDS_ASSERT_SUCCESS(make_uds_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
   int i;
@@ -75,7 +74,7 @@ static void readerTest(void)
   verifyData(4);
   verifyData(5);
   put_uds_io_factory(factory);
-  factory = getTestIOFactory();
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   verifyData(2 * UDS_BLOCK_SIZE);
   verifyData(42);
   freeEverything();

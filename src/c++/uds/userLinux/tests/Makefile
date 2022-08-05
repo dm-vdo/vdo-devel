@@ -74,7 +74,6 @@ ALL_COMMON =	assertions.o			\
 		configUtils.o			\
 		createConfigForAlbtest.o	\
 		fillBufferFromSeed.o		\
-		getTestIOFactory.o		\
 		getTestIndexNames.o		\
 		oldInterfaces.o			\
 		processManager.o		\

@@ -75,7 +75,8 @@ static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
     testmi->zoneOff[z] = z * testmi->saveSize;
   }
 
-  testmi->factory = getTestIOFactory();
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(),
+                                         &testmi->factory));
   return testmi;
 }
 

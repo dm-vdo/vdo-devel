@@ -24,7 +24,8 @@ enum {
 /**********************************************************************/
 static void bufferTest(void)
 {
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_SIZE,
@@ -61,7 +62,8 @@ static void bufferTest(void)
 /**********************************************************************/
 static void largeWriteTest(void)
 {
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_SIZE, &writer));
@@ -119,7 +121,8 @@ static void zeroTest(void)
 {
   byte zeros[ZERO_LEN];
   memset(zeros, 0, ZERO_LEN);
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4 * UDS_BLOCK_SIZE,
@@ -150,7 +153,8 @@ static void verifyTest(void)
   enum { X1_LEN = sizeof(X1) - 1 };
   enum { X2_LEN = sizeof(X2) - 1 };
   enum { COUNT = UDS_BLOCK_SIZE / X1_LEN };
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4 * UDS_BLOCK_SIZE,

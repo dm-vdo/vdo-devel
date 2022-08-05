@@ -48,7 +48,6 @@ ZUB_DKMS_OBJECTS =	AllTests_t1.o				\
 ZUB_DKMS_SOURCES =	albtest.c		\
 			copyDevice.c		\
 			getMemTotalInGB.c	\
-			getTestIOFactory.c	\
 			getTestIndexNames.c	\
 			resourceUsage.c		\
 	$(addprefix $(TEST_DIR)/,	albtestCommon.c			\

@@ -785,7 +785,8 @@ static void saveRestoreTest(void)
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);
 
   // Do a save, and verify the data
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, saveSize, &writer));
   UDS_ASSERT_SUCCESS(start_saving_delta_index(&di, 0, writer));

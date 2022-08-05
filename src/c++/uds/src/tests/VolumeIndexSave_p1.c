@@ -167,7 +167,8 @@ static void saveRestoreTest(void)
   UDS_ASSERT_SUCCESS(compute_volume_index_save_blocks(config, UDS_BLOCK_SIZE,
                                                       &blockCount));
   size_t saveSize = blockCount * UDS_BLOCK_SIZE;
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   saveTestIndex(volumeIndex, factory, saveSize);
   free_volume_index(volumeIndex);
 

@@ -89,8 +89,9 @@ static void readPage(struct io_factory *factory,
 /**********************************************************************/
 static void noioTest(void)
 {
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
   struct dm_bufio_client *client = NULL;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   UDS_ASSERT_SUCCESS(make_uds_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
   dm_bufio_client_destroy(client);
   put_uds_io_factory(factory);
@@ -99,7 +100,8 @@ static void noioTest(void)
 /**********************************************************************/
 static void singleTest(void)
 {
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   writePage(factory, 0, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   readPage(factory, 0, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   put_uds_io_factory(factory);
@@ -108,7 +110,8 @@ static void singleTest(void)
 /**********************************************************************/
 static void doubleTest(void)
 {
-  struct io_factory *factory = getTestIOFactory();
+  struct io_factory *factory;
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   writePage(factory, 1, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   writePage(factory, 2, SHAKESPEARE_SONNET_3, sizeof(SHAKESPEARE_SONNET_3));
   readPage(factory, 1, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));

@@ -322,7 +322,7 @@ static void initSuite(int argc, const char **argv)
 {
   config = createConfigForAlbtest(argc, argv);
   geometry = config->geometry;
-  factory = getTestIOFactory();
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 }
 
 /**********************************************************************/

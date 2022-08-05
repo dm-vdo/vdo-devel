@@ -2290,8 +2290,7 @@ static int load_index_layout(struct index_layout *layout,
 }
 
 static int create_layout_factory(struct index_layout *layout,
-				 const struct configuration *config,
-				 bool new_layout __always_unused)
+				 const struct configuration *config)
 {
 	int result;
 	size_t writable_size;
@@ -2336,7 +2335,7 @@ int make_uds_index_layout(struct configuration *config,
 		return result;
 	}
 
-	result = create_layout_factory(layout, config, new_layout);
+	result = create_layout_factory(layout, config);
 	if (result != UDS_SUCCESS) {
 		free_uds_index_layout(layout);
 		return result;

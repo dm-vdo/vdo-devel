@@ -23,8 +23,8 @@ static void setup(void)
     .name = getTestIndexName(),
   };
   UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
-  factory = getTestIOFactory();
   geometry = config->geometry;
   vcn = geometry->chapters_per_volume * 3;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE((geometry->index_pages_per_chapter

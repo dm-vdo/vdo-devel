@@ -148,14 +148,6 @@ static INLINE void freeRequest(struct uds_request *request)
 }
 
 /**
- * Get an IO factory for a test that accesses the test index storage.
- * This method is defined by platform dependent code.
- *
- * @return a pointer to an IO factory.
- **/
-struct io_factory *getTestIOFactory(void) __attribute__((warn_unused_result));
-
-/**
  * Get test index names.  The index names are platform-specific, and
  * therefore this method is defined by platform dependent code.
  *

@@ -31,8 +31,8 @@ static void initializeTest(void)
   resizeDenseConfiguration(config, config->geometry->bytes_per_page / 8,
                            config->geometry->record_pages_per_chapter / 2, 16);
   UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
-  factory = getTestIOFactory();
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
   initialize_test_requests();
 }
