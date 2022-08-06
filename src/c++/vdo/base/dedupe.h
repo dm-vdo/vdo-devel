@@ -45,9 +45,6 @@ void vdo_free_hash_zones(struct hash_zones *zones);
 thread_id_t __must_check
 vdo_get_hash_zone_thread_id(const struct hash_zone *zone);
 
-void vdo_drain_hash_zones(struct hash_zones *zones,
-			  struct vdo_completion *parent);
-
 void vdo_get_hash_zone_statistics(struct hash_zones *zones,
 				  struct hash_lock_statistics *tally);
 
@@ -57,26 +54,36 @@ vdo_select_hash_zone(struct hash_zones *zones,
 
 void vdo_dump_hash_zones(struct hash_zones *zones);
 
-const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones);
+int __must_check
+vdo_make_dedupe_index(struct vdo *vdo, struct dedupe_index **index_ptr);
 
-uint64_t vdo_get_dedupe_index_timeout_count(struct hash_zones *zones);
+void vdo_dump_dedupe_index(struct dedupe_index *index);
 
-void vdo_get_dedupe_index_statistics(struct hash_zones *zones,
+void vdo_free_dedupe_index(struct dedupe_index *index);
+
+const char *vdo_get_dedupe_index_state_name(struct dedupe_index *index);
+
+uint64_t vdo_get_dedupe_index_timeout_count(struct dedupe_index *index);
+
+void vdo_get_dedupe_index_statistics(struct dedupe_index *index,
 				     struct index_statistics *stats);
 
-int vdo_message_dedupe_index(struct hash_zones *zones, const char *name);
+int vdo_message_dedupe_index(struct dedupe_index *index, const char *name);
 
 void vdo_query_index(struct data_vio *data_vio,
 		     enum uds_request_type operation);
 
-int vdo_add_dedupe_index_sysfs(struct hash_zones *zones);
+int vdo_add_dedupe_index_sysfs(struct dedupe_index *index,
+			       struct kobject *parent);
 
-void vdo_start_dedupe_index(struct hash_zones *zones, bool create_flag);
+void vdo_start_dedupe_index(struct dedupe_index *index, bool create_flag);
 
-void vdo_resume_hash_zones(struct hash_zones *zones,
-			   struct vdo_completion *parent);
+void vdo_suspend_dedupe_index(struct dedupe_index *index, bool save_flag);
 
-void vdo_finish_dedupe_index(struct hash_zones *zones);
+void vdo_resume_dedupe_index(struct dedupe_index *index,
+			     struct device_config *config);
+
+void vdo_finish_dedupe_index(struct dedupe_index *index);
 
 /*
  * Interval (in milliseconds) from submission until switching to fast path and

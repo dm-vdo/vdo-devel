@@ -81,7 +81,7 @@ static void do_dump(struct vdo *vdo,
 		}
 	}
 
-	vdo_dump_hash_zones(vdo->hash_zones);
+	vdo_dump_dedupe_index(vdo->dedupe_index);
 	dump_data_vio_pool(vdo->data_vio_pool,
 			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {

@@ -295,7 +295,7 @@ static struct device_config *makeDeviceConfig(TestConfiguration configuration)
 static void wrapOpenIndex(struct vdo_completion *completion)
 {
   runSavedCallback(completion);
-  CU_ASSERT_STRING_EQUAL(vdo_get_dedupe_index_state_name(vdo->hash_zones),
+  CU_ASSERT_STRING_EQUAL(vdo_get_dedupe_index_state_name(vdo->dedupe_index),
                          "online");
   signalState(&asAsyncLayer()->indexOpen);
 }
@@ -303,7 +303,7 @@ static void wrapOpenIndex(struct vdo_completion *completion)
 /**********************************************************************/
 static bool openIndexHook(struct vdo_completion *completion)
 {
-  if (completion->type == VDO_HASH_ZONES_COMPLETION) {
+  if (completion->type == VDO_DEDUPE_INDEX_COMPLETION) {
     wrapCompletionCallback(completion, wrapOpenIndex);
     removeCompletionEnqueueHook(openIndexHook);
   }
