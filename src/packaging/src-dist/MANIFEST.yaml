@@ -178,7 +178,6 @@ tarballs:
             volume-index-ops.[hc]
             volume-index005.[hc]
             volume-index006.[hc]
-            volume-store.[hc]
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/src/uds/murmur:
           dest: utils/uds
@@ -474,8 +473,6 @@ tarballs:
             volume-index006.h
             volume-index-ops.c
             volume-index-ops.h
-            volume-store.c
-            volume-store.h
           undefines: TEST_INTERNAL,VDO_INTERNAL
           defines: __KERNEL__
         src/c++/uds/src/uds/linux:

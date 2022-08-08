@@ -7,13 +7,40 @@
 #define PAGE_CACHE_H
 
 #include <linux/atomic.h>
+#include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
 #include "common.h"
 #include "compiler.h"
 #include "geometry.h"
 #include "permassert.h"
-#include "volume-store.h"
+
+#ifdef TEST_INTERNAL
+/*
+ * A volume store is the actual storage behind the volume.  More precisely it
+ * contains a pointer to the platform specific mechanism for accessing that
+ * storage.  In kernel mode, we use a block device that is accessed by the
+ * dm-bufio module.  In user mode, we use a file system file that is accessed
+ * by our IO region module.  All of the platform specific code is framed by
+ * using #ifdef __KERNEL__, and is contained in the volumeStore module.
+ */
+#endif /* TEST_INTERNAL */
+
+struct volume_store {
+	struct dm_bufio_client *vs_client;
+};
+
+#ifdef TEST_INTERNAL
+/*
+ * A volume page is the actual buffer for a single record or index page.  In
+ * kernel mode, the actual memory is allocated by and managed by the dm-bufio
+ * module.  In user mode, this module allocates and frees the actual memory.
+ */
+#endif /* TEST_INTERNAL */
+
+struct volume_page {
+	struct dm_buffer *vp_buffer;
+};
 
 struct request_list {
 	struct uds_request *first;

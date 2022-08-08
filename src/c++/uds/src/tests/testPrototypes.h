@@ -14,6 +14,7 @@
 #include "hash-utils.h"
 #include "index.h"
 #include "io-factory.h"
+#include "memory-alloc.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
 #include "random.h"

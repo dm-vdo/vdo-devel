@@ -5,6 +5,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "memory-alloc.h"
 #include "volume.h"
 
 struct auxData {

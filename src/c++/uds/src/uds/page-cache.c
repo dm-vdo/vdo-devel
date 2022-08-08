@@ -18,6 +18,7 @@
 #include "permassert.h"
 #include "string-utils.h"
 #include "uds-threads.h"
+#include "volume.h"
 
 int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)
 {

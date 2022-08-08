@@ -15,7 +15,6 @@
 #include "logger.h"
 #include "uds.h"
 #include "volume.h"
-#include "volume-store.h"
 
 #include "convertToLVM.h"
 

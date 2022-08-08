@@ -88,8 +88,7 @@ UDS_OBJECTS =	murmurhash3.o		\
 		volume.o		\
 		volume-index005.o	\
 		volume-index006.o	\
-		volume-index-ops.o	\
-		volume-store.o
+		volume-index-ops.o
 
 .PHONY: all
 all: libuds.a
