@@ -5,7 +5,7 @@
 
 #include "sync-completion.h"
 
-#include <linux/delay.h>
+#include <linux/completion.h>
 
 #include "completion.h"
 

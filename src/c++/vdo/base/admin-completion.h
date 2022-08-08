@@ -7,7 +7,7 @@
 #define ADMIN_COMPLETION_H
 
 #include <linux/atomic.h>
-#include <linux/delay.h>
+#include <linux/completion.h>
 
 #include "uds-threads.h"
 

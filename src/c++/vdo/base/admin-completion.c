@@ -6,6 +6,7 @@
 #include "admin-completion.h"
 
 #include <linux/atomic.h>
+#include <linux/completion.h>
 #include <linux/delay.h>
 
 #include "logger.h"
