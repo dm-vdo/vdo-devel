@@ -143,13 +143,17 @@ Miscellaneous parameters:
                 Whether deduplication should be started. The default is 'on';
                 the acceptable values are 'on' and 'off'.
 
+	compression:
+                Whether compression should be started. The default is 'off';
+                the acceptable values are 'on' and 'off'.
+		
 Device modification
 -------------------
 
 A modified table may be loaded into a running, non-suspended VDO volume. The
 modifications will take effect when the device is next resumed. The modifiable
 parameters are <logical device size>, <physical device size>, <write policy>,
-<maxDiscard>, and <deduplication>. 
+<maxDiscard>, <compression>, and <deduplication>. 
 
 If the logical device size or physical device size are changed, upon successful
 resume VDO will store the new values and require them on future startups. These
@@ -235,18 +239,6 @@ Possible messages are:
                all: All of the above.
         
         dump-on-shutdown: Perform a default dump next time VDO shuts down.
-
-        compression: Can be used to change whether compression is enabled
-                without shutting VDO down. Must have either "on" or "off"
-                specified.
-
-        index-create: Reformat the deduplication index belonging to this VDO.
-
-        index-close: Turn off and save the deduplication index belonging to
-                this VDO.
-
-        index-enable: Enable deduplication.
-        index-disable: Disable deduplication.
 
 
 Status
