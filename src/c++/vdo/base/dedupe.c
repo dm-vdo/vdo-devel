@@ -2518,6 +2518,7 @@ static void open_index(struct hash_zones *zones)
 	 */
 	zones->index_state = IS_CHANGING;
 	zones->error_flag = false;
+
 	/* Open the index session, while not holding the state_lock */
 	spin_unlock(&zones->state_lock);
 	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
@@ -2526,6 +2527,7 @@ static void open_index(struct hash_zones *zones)
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error opening index");
 	}
+
 	spin_lock(&zones->state_lock);
 	if (!create_flag) {
 		switch (result) {
@@ -3000,6 +3002,31 @@ thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
 	return zone->thread_id;
 }
 
+static void initiate_suspend_index(struct admin_state *state)
+{
+	struct hash_zones *zones = container_of(state,
+						struct hash_zones,
+						state);
+	enum index_state index_state;
+
+	spin_lock(&zones->state_lock);
+	index_state = zones->index_state;
+	spin_unlock(&zones->state_lock);
+
+	if (index_state != IS_CLOSED) {
+		bool save = vdo_is_state_saving(&zones->state);
+		int result;
+
+		result = uds_suspend_index_session(zones->index_session, save);
+		if (result != UDS_SUCCESS) {
+			uds_log_error_strerror(result,
+					       "Error suspending dedupe index");
+		}
+	}
+
+	vdo_finish_draining(state);
+}
+
 /**
  * suspend_index() - Suspend the UDS index prior to draining hash zones.
  *
@@ -3007,26 +3034,12 @@ thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
  */
 static void suspend_index(void *context, struct vdo_completion *completion)
 {
-	enum index_state state;
 	struct hash_zones *zones = context;
 
-	vdo_set_admin_state_code(&zones->state,
-				 vdo_get_current_manager_operation(zones->manager));
-	spin_lock(&zones->state_lock);
-	state = zones->index_state;
-	spin_unlock(&zones->state_lock);
-
-	if (state != IS_CLOSED) {
-		bool save = vdo_is_state_saving(&zones->state);
-		int result = uds_suspend_index_session(zones->index_session,
-						       save);
-		if (result != UDS_SUCCESS) {
-			uds_log_error_strerror(result,
-					       "Error suspending dedupe index");
-		}
-	}
-
-	vdo_complete_completion(completion);
+	vdo_start_draining(&zones->state,
+			   vdo_get_current_manager_operation(zones->manager),
+			   completion,
+			   initiate_suspend_index);
 }
 
 /**
