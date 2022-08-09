@@ -47,7 +47,8 @@ dm_bufio_client_create(struct block_device *bdev,
 		       void (*alloc_callback)(struct dm_buffer *)
 		       __always_unused,
 		       void (*write_callback)(struct dm_buffer *)
-		       __always_unused)
+		       __always_unused,
+		       unsigned int flags __always_unused)
 {
 	int result;
 	struct dm_bufio_client *client;

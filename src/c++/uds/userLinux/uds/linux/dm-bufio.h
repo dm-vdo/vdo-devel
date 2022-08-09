@@ -14,13 +14,19 @@
 struct dm_bufio_client;
 struct dm_buffer;
 
+/*
+ * Flags for dm_bufio_client_create
+ */
+#define DM_BUFIO_CLIENT_NO_SLEEP 0x1
+
 struct dm_bufio_client *
 dm_bufio_client_create(struct block_device *bdev,
 		       unsigned block_size,
 		       unsigned reserved_buffers,
 		       unsigned aux_size,
 		       void (*alloc_callback)(struct dm_buffer *),
-		       void (*write_callback)(struct dm_buffer *));
+		       void (*write_callback)(struct dm_buffer *),
+		       unsigned int flags);
 
 void dm_bufio_client_destroy(struct dm_bufio_client *c);
 
