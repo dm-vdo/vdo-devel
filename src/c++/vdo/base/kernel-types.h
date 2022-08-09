@@ -173,7 +173,6 @@ struct block_map_zone;
 struct data_vio;
 struct data_vio_pool;
 struct dedupe_context;
-struct dedupe_index;
 struct device_config;
 struct flusher;
 struct forest;

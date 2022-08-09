@@ -309,12 +309,6 @@ int vdo_make(unsigned int instance,
 		return result;
 	}
 
-	result = vdo_make_dedupe_index(vdo, &vdo->dedupe_index);
-	if (result != UDS_SUCCESS) {
-		*reason = "Cannot initialize dedupe index";
-		return result;
-	}
-
 	BUG_ON(vdo->device_config->logical_block_size <= 0);
 	BUG_ON(vdo->device_config->owned_device == NULL);
 #if (defined(VDO_INTERNAL) || defined(INTERNAL))
@@ -377,7 +371,7 @@ static void finish_vdo(struct vdo *vdo)
 	}
 
 	vdo_cleanup_io_submitter(vdo->io_submitter);
-	vdo_finish_dedupe_index(vdo->dedupe_index);
+	vdo_finish_dedupe_index(vdo->hash_zones);
 
 	for (i = 0; i < vdo->thread_config->thread_count; i++) {
 		finish_work_queue(vdo->threads[i].queue);
@@ -415,7 +409,6 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_unregister(vdo);
 	free_data_vio_pool(vdo->data_vio_pool);
 	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
-	vdo_free_dedupe_index(UDS_FORGET(vdo->dedupe_index));
 	vdo_free_flusher(UDS_FORGET(vdo->flusher));
 	vdo_free_packer(UDS_FORGET(vdo->packer));
 	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
@@ -1009,7 +1002,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	 * of earlier timeouts.
 	 */
 	stats->dedupe_advice_timeouts =
-		(vdo_get_dedupe_index_timeout_count(vdo->dedupe_index) +
+		(vdo_get_dedupe_index_timeout_count(vdo->hash_zones) +
 		 atomic64_read(&vdo->stats.dedupe_context_busy));
 	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
 	stats->logical_block_size =
@@ -1037,7 +1030,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	get_uds_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
 #endif /* __KERNEL__ */
-	vdo_get_dedupe_index_statistics(vdo->dedupe_index, &stats->index);
+	vdo_get_dedupe_index_statistics(vdo->hash_zones, &stats->index);
 }
 
 /**
