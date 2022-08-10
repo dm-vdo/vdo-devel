@@ -331,18 +331,18 @@ struct hash_zones {
 	 * This spinlock protects the state fields and the starting of dedupe
 	 * requests.
 	 */
-	spinlock_t state_lock;
-	struct vdo_completion completion; /* protected by state_lock */
-	unsigned int maximum; /* protected by state_lock */
-	enum index_state index_state; /* protected by state_lock */
-	enum index_state index_target; /* protected by state_lock */
+	spinlock_t lock;
+	struct vdo_completion completion; /* protected by lock */
+	unsigned int maximum; /* protected by lock */
+	enum index_state index_state; /* protected by lock */
+	enum index_state index_target; /* protected by lock */
 	struct admin_state state;
 
-	bool changing; /* protected by state_lock */
-	bool create_flag; /* protected by state_lock */
-	bool dedupe_flag; /* protected by state_lock */
-	bool deduping; /* protected by state_lock */
-	bool error_flag; /* protected by state_lock */
+	bool changing; /* protected by lock */
+	bool create_flag; /* protected by lock */
+	bool dedupe_flag; /* protected by lock */
+	bool deduping; /* protected by lock */
+	bool error_flag; /* protected by lock */
 
 	/*
 	 * This spinlock protects the pending list, the pending flag in each
@@ -2492,14 +2492,14 @@ static void close_index(struct hash_zones *zones)
 	 * not try to use the index session we are closing.
 	 */
 	zones->index_state = IS_CHANGING;
-	/* Close the index session, while not holding the state_lock. */
-	spin_unlock(&zones->state_lock);
+	/* Close the index session, while not holding the lock. */
+	spin_unlock(&zones->lock);
 	result = uds_close_index(zones->index_session);
 
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error closing index");
 	}
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	zones->index_state = IS_CLOSED;
 	zones->error_flag |= result != UDS_SUCCESS;
 	/* ASSERTION: We leave in IS_CLOSED state. */
@@ -2519,8 +2519,8 @@ static void open_index(struct hash_zones *zones)
 	zones->index_state = IS_CHANGING;
 	zones->error_flag = false;
 
-	/* Open the index session, while not holding the state_lock */
-	spin_unlock(&zones->state_lock);
+	/* Open the index session, while not holding the lock */
+	spin_unlock(&zones->lock);
 	result = uds_open_index(create_flag ? UDS_CREATE : UDS_LOAD,
 				&zones->parameters,
 				zones->index_session);
@@ -2528,7 +2528,7 @@ static void open_index(struct hash_zones *zones)
 		uds_log_error_strerror(result, "Error opening index");
 	}
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	if (!create_flag) {
 		switch (result) {
 		case -ENOENT:
@@ -2550,9 +2550,9 @@ static void open_index(struct hash_zones *zones)
 		zones->index_state = IS_CLOSED;
 		zones->index_target = IS_CLOSED;
 		zones->error_flag = true;
-		spin_unlock(&zones->state_lock);
+		spin_unlock(&zones->lock);
 		uds_log_info("Setting UDS index target state to error");
-		spin_lock(&zones->state_lock);
+		spin_lock(&zones->lock);
 	}
 	/*
 	 * ASSERTION: On success, we leave in IS_OPENED state.
@@ -2564,7 +2564,7 @@ static void change_dedupe_state(struct vdo_completion *completion)
 {
 	struct hash_zones *zones = as_hash_zones(completion);
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 
 	/*
 	 * Loop until the index is in the target state and the create flag is
@@ -2582,7 +2582,7 @@ static void change_dedupe_state(struct vdo_completion *completion)
 	zones->changing = false;
 	zones->deduping =
 		zones->dedupe_flag && (zones->index_state == IS_OPENED);
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 }
 
 /*
@@ -2806,7 +2806,7 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 
 	INIT_LIST_HEAD(&zones->pending_head);
 	spin_lock_init(&zones->pending_lock);
-	spin_lock_init(&zones->state_lock);
+	spin_lock_init(&zones->lock);
 
 	result = vdo_make_thread(vdo,
 				 vdo->thread_config->dedupe_thread,
@@ -3009,9 +3009,9 @@ static void initiate_suspend_index(struct admin_state *state)
 						state);
 	enum index_state index_state;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	index_state = zones->index_state;
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	if (index_state != IS_CLOSED) {
 		bool save = vdo_is_state_saving(&zones->state);
@@ -3100,7 +3100,7 @@ void vdo_drain_hash_zones(struct hash_zones *zones,
 
 static void launch_dedupe_state_change(struct hash_zones *zones)
 {
-	/* ASSERTION: We enter with the state_lock held. */
+	/* ASSERTION: We enter with the lock held. */
 	if (zones->changing || !vdo_is_state_normal(&zones->state)) {
 		/*
 		 * Either a change is already in progress, or changes are
@@ -3122,7 +3122,7 @@ static void launch_dedupe_state_change(struct hash_zones *zones)
 			   vdo_is_state_normal(&zones->state) &&
 			   (zones->index_state == IS_OPENED));
 
-	/* ASSERTION: We exit with the state_lock held. */
+	/* ASSERTION: We exit with the lock held. */
 }
 
 /**
@@ -3143,7 +3143,7 @@ static void resume_index(void *context, struct vdo_completion *parent)
 		uds_log_error_strerror(result, "Error resuming dedupe index");
 	}
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	vdo_resume_if_quiescent(&zones->state);
 
 	if (config->deduplication) {
@@ -3154,7 +3154,7 @@ static void resume_index(void *context, struct vdo_completion *parent)
 	}
 
 	launch_dedupe_state_change(zones);
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	vdo_complete_completion(parent);
 }
@@ -3311,12 +3311,12 @@ void vdo_dump_hash_zones(struct hash_zones *zones)
 	zone_count_t z;
 	const char *state, *target;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	state = index_state_to_string(zones, zones->index_state);
 	target = (zones->changing ?
 			 index_state_to_string(zones, zones->index_target) :
 			 NULL);
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	uds_log_info("UDS index: state: %s", state);
 	if (target != NULL) {
@@ -3548,7 +3548,7 @@ static void set_target_state(struct hash_zones *zones,
 {
 	const char *old_state, *new_state;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	old_state = index_state_to_string(zones, zones->index_target);
 	if (change_dedupe) {
 		zones->dedupe_flag = dedupe;
@@ -3559,7 +3559,7 @@ static void set_target_state(struct hash_zones *zones,
 	zones->index_target = target;
 	launch_dedupe_state_change(zones);
 	new_state = index_state_to_string(zones, zones->index_target);
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	if (old_state != new_state) {
 		uds_log_info("Setting UDS index target state to %s",
@@ -3571,9 +3571,9 @@ const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones)
 {
 	const char *state;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	state = index_state_to_string(zones, zones->index_state);
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	return state;
 }
@@ -3583,10 +3583,10 @@ void vdo_get_dedupe_index_statistics(struct hash_zones *zones,
 {
 	enum index_state state;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	state = zones->index_state;
 	stats->max_dedupe_queries = zones->maximum;
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	stats->curr_dedupe_queries = atomic_read(&zones->active);
 	if (state == IS_OPENED) {
@@ -3626,10 +3626,10 @@ static int process_fill_message(struct hash_zones *zones)
 	bool can_fill;
 
 	/* Check that the fill can actually happen. */
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	can_fill = (vdo_is_state_normal(&zones->state) &&
 		    (zones->index_state == IS_OPENED));
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 	if (!can_fill) {
 		return -EINVAL;
 	}
@@ -3754,9 +3754,9 @@ bool data_vio_may_query_index(struct data_vio *data_vio)
 	struct hash_zones *zones = vdo->hash_zones;
 	bool deduping;
 
-	spin_lock(&zones->state_lock);
+	spin_lock(&zones->lock);
 	deduping = zones->deduping;
-	spin_unlock(&zones->state_lock);
+	spin_unlock(&zones->lock);
 
 	if (!deduping) {
 		return false;
