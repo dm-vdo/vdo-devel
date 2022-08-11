@@ -136,32 +136,32 @@ int uds_join_threads(struct thread *th)
 	int result = pthread_join(th->thread, NULL);
 	pthread_t pthread = th->thread;
 	UDS_FREE(th);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result, "th: %p",
-				      (void *)pthread);
+	ASSERT_LOG_ONLY((result == 0), "th: %p", (void *)pthread);
+	return result;
 }
 
 /**********************************************************************/
 int uds_create_thread_key(pthread_key_t *key, void (*destr_function)(void *))
 {
 	int result = pthread_key_create(key, destr_function);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_key_create error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_key_create error");
+	return result;
 }
 
 /**********************************************************************/
 int uds_delete_thread_key(pthread_key_t key)
 {
 	int result = pthread_key_delete(key);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_key_delete error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_key_delete error");
+	return result;
 }
 
 /**********************************************************************/
 int uds_set_thread_specific(pthread_key_t key, const void *pointer)
 {
 	int result = pthread_setspecific(key, pointer);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_setspecific error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_setspecific error");
+	return result;
 }
 
 /**********************************************************************/
@@ -175,16 +175,16 @@ int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
 	int result =
 		pthread_barrier_init(&barrier->barrier, NULL, thread_count);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_barrier_init error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
+	return result;
 }
 
 /**********************************************************************/
 int uds_destroy_barrier(struct barrier *barrier)
 {
 	int result = pthread_barrier_destroy(&barrier->barrier);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_barrier_destroy error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_destroy error");
+	return result;
 }
 
 /**********************************************************************/
@@ -204,8 +204,8 @@ int uds_enter_barrier(struct barrier *barrier, bool *winner)
 	if (winner != NULL) {
 		*winner = false;
 	}
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_barrier_wait error");
+	ASSERT_LOG_ONLY((result == 0),  "pthread_barrier_wait error");
+	return result;
 }
 
 /**********************************************************************/

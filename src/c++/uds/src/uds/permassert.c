@@ -9,7 +9,6 @@
 #include "logger.h"
 
 #ifndef __KERNEL__
-/* Here begins a large block of userspace-only stuff. */
 #ifdef NDEBUG
 #define DEBUGGING_OFF
 #undef NDEBUG
@@ -17,7 +16,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <strings.h> /* for strcasecmp() */
+#include <strings.h>
 #include <syslog.h>
 
 #include "common.h"
@@ -26,7 +25,7 @@
 
 #ifdef DEBUGGING_OFF
 static bool exit_on_assertion_failure = false;
-#else /* !DEBUGGING_OFF */
+#else /* not DEBUGGING_OFF */
 static bool exit_on_assertion_failure = true;
 #endif /* DEBUGGING_OFF */
 
@@ -60,12 +59,9 @@ bool set_exit_on_assertion_failure(bool should_exit)
 	return previous_setting;
 }
 
-/* Here ends large block of userspace stuff. */
-#endif /* !__KERNEL__ */
+#endif /*  not __KERNEL__ */
 
 int uds_assertion_failed(const char *expression_string,
-			 int code,
-			 const char *module_name,
 			 const char *file_name,
 			 int line_number,
 			 const char *format,
@@ -76,7 +72,7 @@ int uds_assertion_failed(const char *expression_string,
 	va_start(args, format);
 
 	uds_log_embedded_message(UDS_LOG_ERR,
-				 module_name,
+				 UDS_LOGGING_MODULE_NAME,
 				 "assertion \"",
 				 format,
 				 args,
@@ -96,9 +92,9 @@ int uds_assertion_failed(const char *expression_string,
 			      __ASSERT_FUNCTION);
 	}
 	uds_unlock_mutex(&mutex);
-#endif /* !__KERNEL__ */
+#endif /* not __KERNEL__ */
 
 	va_end(args);
 
-	return code;
+	return UDS_ASSERTION_FAILED;
 }

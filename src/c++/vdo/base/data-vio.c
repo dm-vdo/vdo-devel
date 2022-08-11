@@ -7,6 +7,7 @@
 
 #include <linux/lz4.h>
 
+#include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 

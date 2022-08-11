@@ -81,9 +81,9 @@ decode_index_config_06_02(struct buffer *buffer,
 	config->remapped_virtual = 0;
 	config->remapped_physical = 0;
 
-	result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				 "%zu bytes read but not decoded",
-				 content_length(buffer));
+	result = ASSERT(content_length(buffer) == 0,
+			"%zu bytes read but not decoded",
+			content_length(buffer));
 	if (result != UDS_SUCCESS) {
 		return UDS_CORRUPT_DATA;
 	}
@@ -157,9 +157,9 @@ decode_index_config_08_02(struct buffer *buffer,
 		return result;
 	}
 
-	result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				 "%zu bytes read but not decoded",
-				 content_length(buffer));
+	result = ASSERT(content_length(buffer) == 0,
+			"%zu bytes read but not decoded",
+			content_length(buffer));
 	if (result != UDS_SUCCESS) {
 		return UDS_CORRUPT_DATA;
 	}
@@ -388,10 +388,10 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 		return result;
 	}
 
-	return ASSERT_LOG_ONLY((available_space(buffer) == 0),
-			       "%zu bytes encoded, of %zu expected",
-			       content_length(buffer),
-			       buffer_length(buffer));
+	return ASSERT((available_space(buffer) == 0),
+		      "%zu bytes encoded, of %zu expected",
+		      content_length(buffer),
+		      buffer_length(buffer));
 }
 
 static int __must_check
@@ -460,10 +460,10 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 		return result;
 	}
 
-	return ASSERT_LOG_ONLY((available_space(buffer) == 0),
-			       "%zu bytes encoded, of %zu expected",
-			       content_length(buffer),
-			       buffer_length(buffer));
+	return ASSERT((available_space(buffer) == 0),
+		      "%zu bytes encoded, of %zu expected",
+		      content_length(buffer),
+		      buffer_length(buffer));
 }
 
 /*

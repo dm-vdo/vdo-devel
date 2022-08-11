@@ -1104,11 +1104,10 @@ decode_delta_index_header(struct buffer *buffer,
 		return result;
 	}
 
-	result = ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				 "%zu bytes decoded of %zu expected",
-				 buffer_length(buffer) - content_length(buffer),
-				 buffer_length(buffer));
-	return result;
+	return ASSERT(content_length(buffer) == 0,
+		      "%zu bytes decoded of %zu expected",
+		      buffer_length(buffer) - content_length(buffer),
+		      buffer_length(buffer));
 }
 
 static int __must_check
@@ -1548,10 +1547,10 @@ encode_delta_index_header(struct buffer *buffer,
 		return result;
 	}
 
-	return ASSERT_LOG_ONLY(content_length(buffer) == sizeof(*header),
-			       "%zu bytes encoded of %zu expected",
-			       content_length(buffer),
-			       sizeof(*header));
+	return ASSERT(content_length(buffer) == sizeof(*header),
+		      "%zu bytes encoded of %zu expected",
+		      content_length(buffer),
+		      sizeof(*header));
 }
 
 static int __must_check
@@ -1714,9 +1713,13 @@ size_t compute_delta_index_save_bytes(unsigned int list_count,
 
 static int assert_not_at_end(const struct delta_index_entry *delta_entry)
 {
-	return ASSERT_WITH_ERROR_CODE(!delta_entry->at_end,
-				      UDS_BAD_STATE,
-		                      "operation is invalid because the list entry is at the end of the delta list");
+	int result = ASSERT(!delta_entry->at_end,
+			    "operation is invalid because the list entry is at the end of the delta list");
+	if (result != UDS_SUCCESS) {
+		result = UDS_BAD_STATE;
+	}
+
+	return result;
 }
 
 static void prefetch_delta_list(const struct delta_zone *delta_zone,
@@ -1747,26 +1750,24 @@ int start_delta_index_search(const struct delta_index *delta_index,
 	struct delta_zone *delta_zone;
 	struct delta_list *delta_list;
 
-	result = ASSERT_WITH_ERROR_CODE((list_number < delta_index->list_count),
-					UDS_CORRUPT_DATA,
-					"Delta list number (%u) is out of range (%u)",
-					list_number,
-					delta_index->list_count);
+	result = ASSERT((list_number < delta_index->list_count),
+			"Delta list number (%u) is out of range (%u)",
+			list_number,
+			delta_index->list_count);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_CORRUPT_DATA;
 	}
 
 	zone_number = get_delta_zone_number(delta_index, list_number);
 	delta_zone = &delta_index->delta_zones[zone_number];
 	list_number -= delta_zone->first_list;
-	result = ASSERT_WITH_ERROR_CODE((list_number < delta_zone->list_count),
-					UDS_CORRUPT_DATA,
-					"Delta list number (%u) is out of range (%u) for zone (%u)",
-					list_number,
-					delta_zone->list_count,
-					zone_number);
+	result = ASSERT((list_number < delta_zone->list_count),
+			"Delta list number (%u) is out of range (%u) for zone (%u)",
+			list_number,
+			delta_zone->list_count,
+			zone_number);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_CORRUPT_DATA;
 	}
 
 	if (delta_index->mutable) {
@@ -1887,9 +1888,13 @@ noinline int next_delta_index_entry(struct delta_index_entry *delta_entry)
 		delta_entry->at_end = true;
 		delta_entry->delta = 0;
 		delta_entry->is_collision = false;
-		return ASSERT_WITH_ERROR_CODE((delta_entry->offset == size),
-					      UDS_CORRUPT_DATA,
-					      "next offset past end of delta list");
+		result = ASSERT((delta_entry->offset == size),
+				"next offset past end of delta list");
+		if (result != UDS_SUCCESS) {
+			result = UDS_CORRUPT_DATA;
+		}
+
+		return result;
 	}
 
 	decode_delta(delta_entry);
@@ -2044,11 +2049,10 @@ int get_delta_entry_collision(const struct delta_index_entry *delta_entry,
 		return result;
 	}
 
-	result = ASSERT_WITH_ERROR_CODE(delta_entry->is_collision,
-					UDS_BAD_STATE,
-					"Cannot get full block name from a non-collision delta index entry");
+	result = ASSERT(delta_entry->is_collision,
+			"Cannot get full block name from a non-collision delta index entry");
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_BAD_STATE;
 	}
 
 	get_collision_name(delta_entry, name);
@@ -2064,10 +2068,14 @@ unsigned int get_delta_entry_value(const struct delta_index_entry *delta_entry)
 
 static int assert_mutable_entry(const struct delta_index_entry *delta_entry)
 {
-	return ASSERT_WITH_ERROR_CODE((delta_entry->delta_list !=
-				       &delta_entry->temp_delta_list),
-				      UDS_BAD_STATE,
-				      "delta index is mutable");
+	int result = ASSERT((delta_entry->delta_list !=
+			     &delta_entry->temp_delta_list),
+			    "delta index is mutable");
+	if (result != UDS_SUCCESS) {
+		result = UDS_BAD_STATE;
+	}
+
+	return result;
 }
 
 int set_delta_entry_value(const struct delta_index_entry *delta_entry,
@@ -2086,13 +2094,12 @@ int set_delta_entry_value(const struct delta_index_entry *delta_entry,
 		return result;
 	}
 
-	result = ASSERT_WITH_ERROR_CODE((value & value_mask) == value,
-					UDS_INVALID_ARGUMENT,
-					"Value (%u) being set in a delta index is too large (must fit in %u bits)",
-					value,
-					delta_entry->value_bits);
+	result = ASSERT((value & value_mask) == value,
+			"Value (%u) being set in a delta index is too large (must fit in %u bits)",
+			value,
+			delta_entry->value_bits);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_INVALID_ARGUMENT;
 	}
 
 	set_field(value,

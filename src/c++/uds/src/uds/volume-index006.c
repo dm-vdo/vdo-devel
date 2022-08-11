@@ -152,12 +152,10 @@ static int __must_check encode_volume_index_header(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = ASSERT_LOG_ONLY(content_length(buffer) ==
-					sizeof(struct vi006_data),
-				 "%zu bytes of config written, of %zu expected",
-				 content_length(buffer),
-				 sizeof(struct vi006_data));
-	return result;
+	return ASSERT(content_length(buffer) == sizeof(struct vi006_data),
+		      "%zu bytes of config written, of %zu expected",
+		      content_length(buffer),
+		      sizeof(struct vi006_data));
 }
 
 /**
@@ -253,11 +251,10 @@ static int __must_check decode_volume_index_header(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result =
-		ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				"%zu bytes decoded of %zu expected",
-				buffer_length(buffer) - content_length(buffer),
-				buffer_length(buffer));
+	result = ASSERT(content_length(buffer) == 0,
+			"%zu bytes decoded of %zu expected",
+			buffer_length(buffer) - content_length(buffer),
+			buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		result = UDS_CORRUPT_DATA;
 	}
@@ -281,12 +278,10 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 	struct volume_index6 *vi6 =
 		container_of(volume_index, struct volume_index6, common);
 	unsigned int i;
-	int result =
-		ASSERT_WITH_ERROR_CODE(volume_index != NULL,
-				       UDS_BAD_STATE,
-				       "cannot restore to null volume index");
+	int result = ASSERT(volume_index != NULL,
+			    "cannot restore to null volume index");
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_BAD_STATE;
 	}
 
 	for (i = 0; i < num_readers; i++) {
@@ -615,18 +610,16 @@ static int split_configuration006(const struct configuration *config,
 {
 	uint64_t sample_rate, num_chapters, num_sparse_chapters;
 	uint64_t num_dense_chapters, sample_records;
-	int result = ASSERT_WITH_ERROR_CODE(config->geometry->sparse_chapters_per_volume != 0,
-					    UDS_INVALID_ARGUMENT,
-					    "cannot initialize sparse+dense volume index with no sparse chapters");
+	int result = ASSERT(config->geometry->sparse_chapters_per_volume != 0,
+			    "cannot initialize sparse+dense volume index with no sparse chapters");
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_INVALID_ARGUMENT;
 	}
-	result = ASSERT_WITH_ERROR_CODE(config->sparse_sample_rate != 0,
-					UDS_INVALID_ARGUMENT,
-					"cannot initialize sparse+dense volume index with a sparse sample rate of %u",
-					config->sparse_sample_rate);
+	result = ASSERT(config->sparse_sample_rate != 0,
+			"cannot initialize sparse+dense volume index with a sparse sample rate of %u",
+			config->sparse_sample_rate);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_INVALID_ARGUMENT;
 	}
 
 	/* Start with copies of the base configuration */

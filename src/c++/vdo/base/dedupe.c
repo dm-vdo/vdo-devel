@@ -2033,10 +2033,10 @@ static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 static void report_bogus_lock_state(struct hash_lock *lock,
 				    struct data_vio *data_vio)
 {
-	int result =
-		ASSERT_FALSE("hash lock must not be in unimplemented state %s",
-			     get_hash_lock_state_name(lock->state));
-	continue_data_vio_in(data_vio, result, compress_data_callback);
+	ASSERT_LOG_ONLY(false,
+			"hash lock must not be in unimplemented state %s",
+			get_hash_lock_state_name(lock->state));
+	continue_data_vio_in(data_vio, VDO_LOCK_ERROR, compress_data_callback);
 }
 
 /**

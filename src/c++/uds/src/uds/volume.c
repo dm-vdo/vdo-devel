@@ -321,9 +321,8 @@ static int init_chapter_index_page(const struct volume *volume,
 			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
-	return ASSERT_WITH_ERROR_CODE(false,
-				      UDS_CORRUPT_DATA,
-				      "index page map mismatch with chapter index");
+	ASSERT_LOG_ONLY(false, "index page map mismatch with chapter index");
+	return UDS_CORRUPT_DATA;
 }
 
 static int initialize_index_page(const struct volume *volume,
@@ -834,9 +833,9 @@ static int search_cached_index_page(struct volume *volume,
 		return result;
 	}
 
-	result = ASSERT_LOG_ONLY(search_pending(get_invalidate_counter(volume->page_cache, zone_number)),
-						"Search is pending for zone %u",
-						zone_number);
+	result = ASSERT(search_pending(get_invalidate_counter(volume->page_cache, zone_number)),
+			"Search is pending for zone %u",
+			zone_number);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

@@ -402,12 +402,10 @@ static int __must_check encode_volume_index_header(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result = ASSERT_LOG_ONLY(content_length(buffer) ==
-					sizeof(struct vi005_data),
-				 "%zu bytes of config written, of %zu expected",
-				 content_length(buffer),
-				 sizeof(struct vi005_data));
-	return result;
+	return ASSERT(content_length(buffer) == sizeof(struct vi005_data),
+		      "%zu bytes of config written, of %zu expected",
+		      content_length(buffer),
+		      sizeof(struct vi005_data));
 }
 
 /**
@@ -541,14 +539,14 @@ static int __must_check decode_volume_index_header(struct buffer *buffer,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	result =
-		ASSERT_LOG_ONLY(content_length(buffer) == 0,
-				"%zu bytes decoded of %zu expected",
-				buffer_length(buffer) - content_length(buffer),
-				buffer_length(buffer));
+	result = ASSERT(content_length(buffer) == 0,
+			"%zu bytes decoded of %zu expected",
+			buffer_length(buffer) - content_length(buffer),
+			buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		result = UDS_CORRUPT_DATA;
 	}
+
 	return result;
 }
 

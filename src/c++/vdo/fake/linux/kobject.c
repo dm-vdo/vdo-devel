@@ -215,13 +215,13 @@ static void kobject_cleanup(struct kobject *kobj)
 		      __func__,
 		      (void *) kobj->parent);
 
-	int result = ASSERT_LOG_ONLY((t && t->release),
-				     "kobject: '%s' (%p): "
-				     "does not have a release() function, "
-				     "it is broken and must be fixed. "
-				     "See Documentation/core-api/kobject.rst.",
-				     kobj->name,
-				     (void *) kobj);
+	int result = ASSERT((t && t->release),
+			    "kobject: '%s' (%p): "
+			    "does not have a release() function, "
+			    "it is broken and must be fixed. "
+			    "See Documentation/core-api/kobject.rst.",
+			    kobj->name,
+			    (void *) kobj);
 
 	if (result == VDO_SUCCESS) {
 		uds_log_debug("kobject: '%s' (%p): calling ktype release\n",

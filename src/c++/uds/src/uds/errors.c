@@ -6,6 +6,7 @@
 #include "errors.h"
 
 #include "common.h"
+#include "logger.h"
 #include "permassert.h"
 #include "string-utils.h"
 

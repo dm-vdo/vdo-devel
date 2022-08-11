@@ -15,15 +15,16 @@
 int uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
 {
 	int result = sem_init(&semaphore->semaphore, false, value);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result, "sem_init error");
+	ASSERT_LOG_ONLY((result == 0), "sem_init error");
+	return result;
 }
 
 /**********************************************************************/
 int uds_destroy_semaphore(struct semaphore *semaphore)
 {
 	int result = sem_destroy(&semaphore->semaphore);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "sem_destroy error");
+	ASSERT_LOG_ONLY((result == 0), "sem_destroy error");
+	return result;
 }
 
 /**********************************************************************/

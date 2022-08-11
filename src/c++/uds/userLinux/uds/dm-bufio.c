@@ -9,6 +9,7 @@
 #include <linux/blkdev.h>
 
 #include "fileUtils.h"
+#include "logger.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"
 

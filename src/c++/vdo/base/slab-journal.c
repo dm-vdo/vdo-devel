@@ -884,9 +884,9 @@ static void add_entry(struct slab_journal *journal,
 	}
 
 	if (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
-		result = ASSERT_LOG_ONLY((journal->tail_header.entry_count <
-					  journal->full_entries_per_block),
-					 "block has room for full entries");
+		result = ASSERT((journal->tail_header.entry_count <
+				 journal->full_entries_per_block),
+				"block has room for full entries");
 		if (result != VDO_SUCCESS) {
 			enter_journal_read_only_mode(journal, result);
 			return;

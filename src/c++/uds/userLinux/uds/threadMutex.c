@@ -58,16 +58,15 @@ int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error)
 	pthread_mutexattr_t attr;
 	int result = pthread_mutexattr_init(&attr);
 	if (result != 0) {
-		return ASSERT_WITH_ERROR_CODE((result == 0), result,
-					      "pthread_mutexattr_init error");
+		ASSERT_LOG_ONLY((result == 0), "pthread_mutexattr_init error");
+		return result;
 	}
 	if (get_mutex_kind() == error_checking) {
 		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
 	}
 	result = pthread_mutex_init(&mutex->mutex, &attr);
 	if ((result != 0) && assert_on_error) {
-		result = ASSERT_WITH_ERROR_CODE((result == 0), result,
-						"pthread_mutex_init error");
+		ASSERT_LOG_ONLY((result == 0), "pthread_mutex_init error");
 	}
 	int result2 = pthread_mutexattr_destroy(&attr);
 	if (result2 != 0) {
@@ -90,8 +89,8 @@ int uds_init_mutex(struct mutex *mutex)
 int uds_destroy_mutex(struct mutex *mutex)
 {
 	int result = pthread_mutex_destroy(&mutex->mutex);
-	return ASSERT_WITH_ERROR_CODE((result == 0), result,
-				      "pthread_mutex_destroy error");
+	ASSERT_LOG_ONLY((result == 0), "pthread_mutex_destroy error");
+	return result;
 }
 
 /**********************************************************************

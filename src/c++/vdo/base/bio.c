@@ -295,26 +295,27 @@ int check_bio_validity(struct bio *bio)
 	/* Is this a flush? It must be empty. */
 	if ((bio_op(bio) == REQ_OP_FLUSH) ||
 	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		return ASSERT_WITH_ERROR_CODE(is_empty, -EINVAL,
-					      "flush bios must be empty");
+		result = ASSERT(is_empty, "flush bios must be empty");
+		if (result != UDS_SUCCESS) {
+			result = -EINVAL;
+		}
+
+		return result;
 	}
 
 	/* Is this anything else? It must not be empty. */
-	result = ASSERT_WITH_ERROR_CODE(!is_empty, -EINVAL,
-					"data bios must not be empty");
+	result = ASSERT(!is_empty, "data bios must not be empty");
 	if (result != UDS_SUCCESS) {
-		return result;
+		return -EINVAL;
 	}
 
 	/* Is this something other than a discard? Must have size <= 4k. */
 	if (bio_op(bio) != REQ_OP_DISCARD) {
-		bool is_properly_split =
-			(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE);
-		result = ASSERT_WITH_ERROR_CODE(is_properly_split, -EINVAL,
-						"data bios must not be more than %d bytes",
-						VDO_BLOCK_SIZE);
+		result = ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
+				"data bios must not be more than %d bytes",
+				VDO_BLOCK_SIZE);
 		if (result != UDS_SUCCESS) {
-			return result;
+			return -EINVAL;
 		}
 	}
 

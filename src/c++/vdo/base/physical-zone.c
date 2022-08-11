@@ -5,6 +5,7 @@
 
 #include "physical-zone.h"
 
+#include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 

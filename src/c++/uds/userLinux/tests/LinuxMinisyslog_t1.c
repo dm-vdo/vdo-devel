@@ -17,6 +17,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "logger.h"
 #include "memory-alloc.h"
 #include "minisyslog.h"
 #include "processManager.h"

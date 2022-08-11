@@ -10,6 +10,7 @@
 #endif /* __KERNEL__ */
 
 #include "errors.h"
+#include "logger.h"
 #include "permassert.h"
 #include "uds-threads.h"
 

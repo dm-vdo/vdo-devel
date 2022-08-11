@@ -124,13 +124,12 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 	unsigned int chapter_number = chapter_index->virtual_chapter_number;
 	unsigned int record_pages = geometry->record_pages_per_chapter;
 
-	result = ASSERT_WITH_ERROR_CODE(page_number < record_pages,
-					UDS_INVALID_ARGUMENT,
-					"Page number within chapter (%u) exceeds the maximum value %u",
-					page_number,
-					record_pages);
+	result = ASSERT(page_number < record_pages,
+			"Page number within chapter (%u) exceeds the maximum value %u",
+			page_number,
+			record_pages);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_INVALID_ARGUMENT;
 	}
 
 	address = hash_to_chapter_delta_address(name, geometry);
@@ -145,12 +144,11 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 	}
 
 	found = was_entry_found(&entry, address);
-	result = ASSERT_WITH_ERROR_CODE(!(found && entry.is_collision),
-					UDS_BAD_STATE,
-					"Chunk appears more than once in chapter %llu",
-					(unsigned long long) chapter_number);
+	result = ASSERT(!(found && entry.is_collision),
+			"Chunk appears more than once in chapter %llu",
+			(unsigned long long) chapter_number);
 	if (result != UDS_SUCCESS) {
-		return result;
+		return UDS_BAD_STATE;
 	}
 
 	found_name = (found ? name->name : NULL);
