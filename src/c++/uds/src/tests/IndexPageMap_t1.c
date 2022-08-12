@@ -128,10 +128,9 @@ static void testReadWrite(void)
 
   uint64_t mapBlocks
     = DIV_ROUND_UP(compute_index_page_map_save_size(geometry), UDS_BLOCK_SIZE);
-  uint64_t mapSize = mapBlocks * UDS_BLOCK_SIZE;
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, mapSize, &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, mapBlocks, &writer));
   UDS_ASSERT_SUCCESS(write_index_page_map(map, writer));
   free_buffered_writer(writer);
   free_index_page_map(UDS_FORGET(map));
@@ -140,7 +139,7 @@ static void testReadWrite(void)
   UDS_ASSERT_SUCCESS(make_index_page_map(geometry, &map));
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, mapSize, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, mapBlocks, &reader));
   UDS_ASSERT_SUCCESS(read_index_page_map(map, reader));
 
   CU_ASSERT_EQUAL(map->last_update, vcn + geometry->chapters_per_volume - 1);

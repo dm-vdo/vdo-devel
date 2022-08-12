@@ -45,7 +45,7 @@ static void verifyData(int count)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, byte, __func__, &buf));
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, DATA_SIZE, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, DATA_BLOCKS, &reader));
 
   for (offset = 0; offset + count <= DATA_SIZE; offset += count) {
     UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, buf, count));

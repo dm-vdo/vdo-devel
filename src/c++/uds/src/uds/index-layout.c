@@ -348,10 +348,10 @@ open_layout_reader(struct index_layout *layout,
 		   off_t offset,
 		   struct buffered_reader **reader_ptr)
 {
-	off_t start = (lr->start_block + offset) * layout->super.block_size;
-	size_t size = lr->block_count * layout->super.block_size;
-
-	return make_buffered_reader(layout->factory, start, size, reader_ptr);
+	return make_buffered_reader(layout->factory,
+				    lr->start_block + offset,
+				    lr->block_count,
+				    reader_ptr);
 }
 
 static int open_region_reader(struct index_layout *layout,
@@ -370,10 +370,10 @@ open_layout_writer(struct index_layout *layout,
 		   off_t offset,
 		   struct buffered_writer **writer_ptr)
 {
-	off_t start = (lr->start_block + offset) * layout->super.block_size;
-	size_t size = lr->block_count * layout->super.block_size;
-
-	return make_buffered_writer(layout->factory, start, size, writer_ptr);
+	return make_buffered_writer(layout->factory,
+				    lr->start_block + offset,
+				    lr->block_count,
+				    writer_ptr);
 }
 
 static int open_region_writer(struct index_layout *layout,
@@ -2264,8 +2264,8 @@ static int load_index_layout(struct index_layout *layout,
 	struct buffered_reader *reader;
 
 	result = make_buffered_reader(layout->factory,
-				      layout->offset,
-				      UDS_BLOCK_SIZE,
+				      layout->offset / UDS_BLOCK_SIZE,
+				      1,
 				      &reader);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
@@ -2391,8 +2391,7 @@ int open_uds_volume_bufio(struct index_layout *layout,
 {
 	off_t offset = (layout->index.volume.start_block +
 			layout->super.volume_offset -
-			layout->super.start_offset) *
-		layout->super.block_size;
+			layout->super.start_offset);
 
 	return make_uds_bufio(layout->factory,
 			      offset,

@@ -16,9 +16,9 @@ static const byte BOSTON[] =
   "And Lowells speak only to God.\n";
 
 enum {
-  BOSTON_LEN  = sizeof(BOSTON) - 1,
-  REGION_SIZE = 12 * UDS_BLOCK_SIZE,
-  ZERO_LEN    = 13,
+  BOSTON_LEN    = sizeof(BOSTON) - 1,
+  REGION_BLOCKS = 12,
+  ZERO_LEN      = 13,
 };
 
 /**********************************************************************/
@@ -28,8 +28,7 @@ static void bufferTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_SIZE,
-                                              &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_BLOCKS, &writer));
 
   // write until the buffered writer flushes by itself
   unsigned int count = 0;
@@ -47,7 +46,7 @@ static void bufferTest(void)
 
   // check file contents, using a buffered reader
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, REGION_SIZE, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, REGION_BLOCKS, &reader));
   byte inputArray[BOSTON_LEN];
   unsigned int i;
   for (i = 0; i < count; ++i) {
@@ -66,7 +65,7 @@ static void largeWriteTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_SIZE, &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, REGION_BLOCKS, &writer));
 
   size_t bufSize = UDS_BLOCK_SIZE;
   size_t buflen = 4 * bufSize;
@@ -92,7 +91,7 @@ static void largeWriteTest(void)
   free_buffered_writer(writer);
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, REGION_SIZE, &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, REGION_BLOCKS, &reader));
 
   fillBufferFromSeed(0, bigbuf, buflen);
   UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, verbuf, buflen));
@@ -125,8 +124,7 @@ static void zeroTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4 * UDS_BLOCK_SIZE,
-                                          &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4, &writer));
   UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, BOSTON, BOSTON_LEN));
   UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, NULL, ZERO_LEN));
   UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, BOSTON, BOSTON_LEN));
@@ -135,8 +133,7 @@ static void zeroTest(void)
 
   // check file contents, using a buffered reader
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, 4 * UDS_BLOCK_SIZE,
-                                          &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, 4, &reader));
   UDS_ASSERT_SUCCESS(verify_buffered_data(reader, BOSTON, BOSTON_LEN));
   UDS_ASSERT_SUCCESS(verify_buffered_data(reader, zeros,  ZERO_LEN));
   UDS_ASSERT_SUCCESS(verify_buffered_data(reader, BOSTON, BOSTON_LEN));
@@ -157,8 +154,7 @@ static void verifyTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4 * UDS_BLOCK_SIZE,
-                                          &writer));
+  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, 4, &writer));
   UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, BOSTON, BOSTON_LEN));
   for (i = 0; i < COUNT; i++) {
     UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, X1, X1_LEN));
@@ -170,8 +166,7 @@ static void verifyTest(void)
 
   // check file contents, using a buffered reader
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, 4 * UDS_BLOCK_SIZE,
-                                          &reader));
+  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, 4, &reader));
   UDS_ASSERT_SUCCESS(verify_buffered_data(reader, BOSTON, BOSTON_LEN));
   for (i = 0; i < COUNT; i++) {
     UDS_ASSERT_ERROR(UDS_CORRUPT_DATA, verify_buffered_data(reader, X2, X2_LEN));

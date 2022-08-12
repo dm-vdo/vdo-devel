@@ -144,26 +144,12 @@ size_t get_uds_writable_size(struct io_factory *factory)
 
 /* Create a struct dm_bufio_client for an index region starting at offset. */
 int make_uds_bufio(struct io_factory *factory,
-		   off_t offset,
+		   off_t block_offset,
 		   size_t block_size,
 		   unsigned int reserved_buffers,
 		   struct dm_bufio_client **client_ptr)
 {
 	struct dm_bufio_client *client;
-
-	if ((offset % SECTOR_SIZE) != 0) {
-		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					      "offset %zd not multiple of %d",
-					      offset,
-					      SECTOR_SIZE);
-	}
-
-	if ((block_size % UDS_BLOCK_SIZE) != 0) {
-		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					      "block_size %zd not multiple of %d",
-					      block_size,
-					      UDS_BLOCK_SIZE);
-	}
 
 #ifdef DM_BUFIO_CLIENT_NO_SLEEP
 	client = dm_bufio_client_create(factory->bdev,
@@ -185,7 +171,7 @@ int make_uds_bufio(struct io_factory *factory,
 		return -PTR_ERR(client);
 	}
 
-	dm_bufio_set_sector_offset(client, offset >> SECTOR_SHIFT);
+	dm_bufio_set_sector_offset(client, block_offset * SECTORS_PER_BLOCK);
 	*client_ptr = client;
 	return UDS_SUCCESS;
 }
@@ -218,19 +204,12 @@ void free_buffered_reader(struct buffered_reader *reader)
 /* Create a buffered reader for an index region starting at offset. */
 int make_buffered_reader(struct io_factory *factory,
 			 off_t offset,
-			 size_t size,
+			 uint64_t block_count,
 			 struct buffered_reader **reader_ptr)
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
 	struct buffered_reader *reader = NULL;
-
-	if (size % UDS_BLOCK_SIZE != 0) {
-		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					      "region size %zd is not multiple of %d",
-					      size,
-					      UDS_BLOCK_SIZE);
-	}
 
 	result = make_uds_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
@@ -250,7 +229,7 @@ int make_buffered_reader(struct io_factory *factory,
 		.factory = factory,
 		.client = client,
 		.buffer = NULL,
-		.limit = (size / UDS_BLOCK_SIZE),
+		.limit = block_count,
 		.block_number = 0,
 		.start = NULL,
 		.end = NULL,
@@ -383,19 +362,12 @@ int verify_buffered_data(struct buffered_reader *reader,
 /* Create a buffered writer for an index region starting at offset. */
 int make_buffered_writer(struct io_factory *factory,
 			 off_t offset,
-			 size_t size,
+			 uint64_t block_count,
 			 struct buffered_writer **writer_ptr)
 {
 	int result;
 	struct dm_bufio_client *client = NULL;
 	struct buffered_writer *writer;
-
-	if (size % UDS_BLOCK_SIZE != 0) {
-		return uds_log_error_strerror(UDS_INCORRECT_ALIGNMENT,
-					      "region size %zd is not multiple of %d",
-					      size,
-					      UDS_BLOCK_SIZE);
-	}
 
 	result = make_uds_bufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
 	if (result != UDS_SUCCESS) {
@@ -415,7 +387,7 @@ int make_buffered_writer(struct io_factory *factory,
 		.factory = factory,
 		.client = client,
 		.buffer = NULL,
-		.limit = size / UDS_BLOCK_SIZE,
+		.limit = block_count,
 		.start = NULL,
 		.end = NULL,
 		.block_number = 0,

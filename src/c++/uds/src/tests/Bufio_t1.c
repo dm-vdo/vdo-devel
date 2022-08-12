@@ -55,8 +55,8 @@ static void writePage(struct io_factory *factory,
                       size_t             sonnetSize)
 {
   struct dm_bufio_client *client = NULL;
-  UDS_ASSERT_SUCCESS(make_uds_bufio(factory, blockOffset * UDS_BLOCK_SIZE,
-                                    UDS_BLOCK_SIZE, 1, &client));
+  UDS_ASSERT_SUCCESS(make_uds_bufio(factory, blockOffset, UDS_BLOCK_SIZE, 1,
+                                    &client));
   struct dm_buffer *buffer = NULL;
   void *data = dm_bufio_new(client, 0, &buffer);
   UDS_ASSERT_KERNEL_SUCCESS(data);
@@ -75,8 +75,8 @@ static void readPage(struct io_factory *factory,
                      size_t             sonnetSize)
 {
   struct dm_bufio_client *client = NULL;
-  UDS_ASSERT_SUCCESS(make_uds_bufio(factory, blockOffset * UDS_BLOCK_SIZE,
-                                    UDS_BLOCK_SIZE, 1, &client));
+  UDS_ASSERT_SUCCESS(make_uds_bufio(factory, blockOffset, UDS_BLOCK_SIZE, 1,
+                                    &client));
   struct dm_buffer *buffer = NULL;
   void *data = dm_bufio_read(client, 0, &buffer);
   UDS_ASSERT_KERNEL_SUCCESS(data);

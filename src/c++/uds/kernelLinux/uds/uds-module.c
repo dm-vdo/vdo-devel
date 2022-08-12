@@ -143,6 +143,7 @@ EXPORT_SYMBOL_GPL(chapters_written);
 EXPORT_SYMBOL_GPL(close_open_chapter);
 EXPORT_SYMBOL_GPL(compute_delta_index_save_bytes);
 EXPORT_SYMBOL_GPL(compute_index_page_map_save_size);
+EXPORT_SYMBOL_GPL(compute_saved_open_chapter_size);
 EXPORT_SYMBOL_GPL(compute_volume_index_save_blocks);
 EXPORT_SYMBOL_GPL(destroy_volume_page);
 EXPORT_SYMBOL_GPL(discard_index_state_data);

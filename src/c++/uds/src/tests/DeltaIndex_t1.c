@@ -758,7 +758,7 @@ static void saveRestoreTest(void)
   // Compute the size needed for saving the delta index
   size_t saveSize = compute_delta_index_save_bytes(NUM_LISTS, MEMORY_SIZE);
   saveSize += sizeof(struct delta_list_save_info);
-  saveSize = (saveSize + UDS_BLOCK_SIZE - 1) / UDS_BLOCK_SIZE * UDS_BLOCK_SIZE;
+  saveSize = DIV_ROUND_UP(saveSize, UDS_BLOCK_SIZE);
 
   // Create the keys+names and put them all into different lists using
   // chapter 0

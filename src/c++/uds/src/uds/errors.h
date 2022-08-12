@@ -43,26 +43,22 @@ enum uds_status_codes {
 	UDS_NO_DIRECTORY = UDS_ERROR_CODE_BASE + 8,
 	/* This error range has already been registered */
 	UDS_ALREADY_REGISTERED = UDS_ERROR_CODE_BASE + 9,
-	/* Cannot do I/O at this offset */
-	UDS_INCORRECT_ALIGNMENT = UDS_ERROR_CODE_BASE + 10,
 	/* Attempt to read or write data outside the valid range */
-	UDS_OUT_OF_RANGE = UDS_ERROR_CODE_BASE + 11,
+	UDS_OUT_OF_RANGE = UDS_ERROR_CODE_BASE + 10,
 	/* Could not load modules */
-	UDS_EMODULE_LOAD = UDS_ERROR_CODE_BASE + 12,
+	UDS_EMODULE_LOAD = UDS_ERROR_CODE_BASE + 11,
 	/* The index session is disabled */
-	UDS_DISABLED = UDS_ERROR_CODE_BASE + 13,
+	UDS_DISABLED = UDS_ERROR_CODE_BASE + 12,
 	/* Unknown error */
-	UDS_UNKNOWN_ERROR = UDS_ERROR_CODE_BASE + 14,
+	UDS_UNKNOWN_ERROR = UDS_ERROR_CODE_BASE + 13,
 	/* The index configuration or volume format is no longer supported */
-	UDS_UNSUPPORTED_VERSION = UDS_ERROR_CODE_BASE + 15,
+	UDS_UNSUPPORTED_VERSION = UDS_ERROR_CODE_BASE + 14,
 	/* Some index structure is corrupt */
-	UDS_CORRUPT_DATA = UDS_ERROR_CODE_BASE + 16,
-	/* Internal resource limits exceeded */
-	UDS_RESOURCE_LIMIT_EXCEEDED = UDS_ERROR_CODE_BASE + 17,
+	UDS_CORRUPT_DATA = UDS_ERROR_CODE_BASE + 15,
 	/* No index state found */
-	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 18,
+	UDS_NO_INDEX = UDS_ERROR_CODE_BASE + 16,
 	/* Attempt to access incomplete index save data */
-	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 19,
+	UDS_INDEX_NOT_SAVED_CLEANLY = UDS_ERROR_CODE_BASE + 17,
 	/* One more than the last UDS_INTERNAL error code */
 	UDS_ERROR_CODE_LAST,
 	/* One more than the last error this block will ever use */

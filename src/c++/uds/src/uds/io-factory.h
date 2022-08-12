@@ -15,7 +15,10 @@ struct buffered_writer;
 
 struct io_factory;
 
-enum { UDS_BLOCK_SIZE = 4096 };
+enum {
+	UDS_BLOCK_SIZE = 4096,
+	SECTORS_PER_BLOCK = UDS_BLOCK_SIZE >> SECTOR_SHIFT,
+ };
 
 int __must_check make_uds_io_factory(const char *path,
 				     struct io_factory **factory_ptr);
@@ -28,14 +31,14 @@ void put_uds_io_factory(struct io_factory *factory);
 size_t __must_check get_uds_writable_size(struct io_factory *factory);
 
 int __must_check make_uds_bufio(struct io_factory *factory,
-				off_t offset,
+				off_t block_offset,
 				size_t block_size,
 				unsigned int reserved_buffers,
 				struct dm_bufio_client **client_ptr);
 
 int __must_check make_buffered_reader(struct io_factory *factory,
 				      off_t offset,
-				      size_t size,
+				      uint64_t block_count,
 				      struct buffered_reader **reader_ptr);
 
 void free_buffered_reader(struct buffered_reader *reader);
@@ -50,7 +53,7 @@ int __must_check verify_buffered_data(struct buffered_reader *reader,
 
 int __must_check make_buffered_writer(struct io_factory *factory,
 				      off_t offset,
-				      size_t size,
+				      uint64_t block_count,
 				      struct buffered_writer **writer_ptr);
 
 void free_buffered_writer(struct buffered_writer *buffer);

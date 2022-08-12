@@ -8,17 +8,17 @@
 #include "index.h"
 #include "io-factory.h"
 #include "memory-alloc.h"
+#include "numeric.h"
 #include "open-chapter.h"
 #include "random.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-enum { CHAPTER_REGION_SIZE = 2 * 1024 * 1024 };
-
 static struct configuration *config;
 static struct io_factory    *factory;
 static struct uds_index     *theIndex;
 static uint64_t              scratchOffset;
+static uint64_t              chapterBlocks;
 
 /**********************************************************************/
 static void initializeTest(void)
@@ -34,6 +34,11 @@ static void initializeTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
+  scratchOffset = DIV_ROUND_UP(scratchOffset, UDS_BLOCK_SIZE);
+  chapterBlocks
+    = DIV_ROUND_UP(compute_saved_open_chapter_size(config->geometry),
+                   UDS_BLOCK_SIZE);
+
   initialize_test_requests();
 }
 
@@ -52,7 +57,7 @@ static struct buffered_reader *openBufferedReaderForChapter(void)
 {
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(make_buffered_reader(factory, scratchOffset,
-                                          CHAPTER_REGION_SIZE, &reader));
+                                          chapterBlocks, &reader));
   return reader;
 }
 
@@ -62,7 +67,7 @@ static struct buffered_writer *openBufferedWriterForChapter(void)
 {
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, scratchOffset,
-                                          CHAPTER_REGION_SIZE, &writer));
+                                          chapterBlocks, &writer));
   return writer;
 }
 
