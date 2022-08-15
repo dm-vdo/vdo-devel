@@ -48,8 +48,8 @@ vdo_get_hash_zone_thread_id(const struct hash_zone *zone);
 void vdo_drain_hash_zones(struct hash_zones *zones,
 			  struct vdo_completion *parent);
 
-void vdo_get_hash_zone_statistics(struct hash_zones *zones,
-				  struct hash_lock_statistics *tally);
+void vdo_get_dedupe_statistics(struct hash_zones *zones,
+			       struct vdo_statistics *stats);
 
 struct hash_zone * __must_check
 vdo_select_hash_zone(struct hash_zones *zones,
@@ -61,13 +61,7 @@ const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones);
 
 uint64_t vdo_get_dedupe_index_timeout_count(struct hash_zones *zones);
 
-void vdo_get_dedupe_index_statistics(struct hash_zones *zones,
-				     struct index_statistics *stats);
-
 int vdo_message_dedupe_index(struct hash_zones *zones, const char *name);
-
-void vdo_query_index(struct data_vio *data_vio,
-		     enum uds_request_type operation);
 
 int vdo_add_dedupe_index_sysfs(struct hash_zones *zones);
 
@@ -93,6 +87,8 @@ extern unsigned int vdo_dedupe_index_min_timer_interval;
 void vdo_set_dedupe_index_timeout_interval(unsigned int value);
 void vdo_set_dedupe_index_min_timer_interval(unsigned int value);
 
-bool data_vio_may_query_index(struct data_vio *data_vio);
-
+#ifdef INTERNAL
+typedef int uds_request_hook(struct uds_request *request);
+extern uds_request_hook *uds_chunk_operation_hook;
+#endif /* INTERNAL */
 #endif /* DEDUPE_H */

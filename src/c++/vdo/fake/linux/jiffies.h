@@ -7,8 +7,6 @@
 #ifndef LINUX_JIFFIES_H
 #define LINUX_JIFFIES_H
 
-#include "time-utils.h"
-
 #include "types.h"
 
 enum {
@@ -16,7 +14,9 @@ enum {
 	US_PER_JIFFY = MS_PER_JIFFY * 1000,
 };
 
-#define jiffies (current_time_us() / US_PER_JIFFY)
+unsigned long getUnitTestJiffies(void);
+
+#define jiffies (getUnitTestJiffies() / 1)
 
 static inline unsigned long msecs_to_jiffies(const unsigned int m)
 {

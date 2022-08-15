@@ -982,7 +982,7 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->journal = vdo_get_recovery_journal_statistics(journal);
 	stats->packer = vdo_get_packer_statistics(vdo->packer);
 	stats->block_map = vdo_get_block_map_statistics(vdo->block_map);
-	vdo_get_hash_zone_statistics(vdo->hash_zones, &stats->hash_lock);
+	vdo_get_dedupe_statistics(vdo->hash_zones, stats);
 	stats->errors = get_vdo_error_statistics(vdo);
 	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
@@ -996,14 +996,6 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	stats->max_vios =
 		get_data_vio_pool_maximum_requests(vdo->data_vio_pool);
 
-	/*
-	 * vdo_get_dedupe_index_timeout_count() gives the number of timeouts,
-	 * and dedupe_context_busy gives the number of queries not made because
-	 * of earlier timeouts.
-	 */
-	stats->dedupe_advice_timeouts =
-		(vdo_get_dedupe_index_timeout_count(vdo->hash_zones) +
-		 atomic64_read(&vdo->stats.dedupe_context_busy));
 	stats->flush_out = atomic64_read(&vdo->stats.flush_out);
 	stats->logical_block_size =
 		vdo->device_config->logical_block_size;
@@ -1030,7 +1022,6 @@ static void get_vdo_statistics(const struct vdo *vdo,
 	get_uds_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
 #endif /* __KERNEL__ */
-	vdo_get_dedupe_index_statistics(vdo->hash_zones, &stats->index);
 }
 
 /**

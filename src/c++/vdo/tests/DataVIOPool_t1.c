@@ -164,9 +164,6 @@ static void testDataVIOPool(void)
   // Launch each of the remaining requests, each on its own thread.
   for (uint8_t i = 0; i < REQUEST_COUNT; i++) {
     launchRequest(launchOrder[i]);
-    // Sleep for a couple of jiffies to ensure that the arrival times are
-    // unique.
-    usleep(US_PER_JIFFY * 2);
   }
 
   // Release the 4 blocked data_vios (lbns 15-18).

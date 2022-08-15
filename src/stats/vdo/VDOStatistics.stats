@@ -17,7 +17,7 @@
 # This version number is used to make sure that different programs interpreting
 # the statistics are in sync with the generators of them. Any change to the
 # statistics configuration should include incrementing this number.
-version 34;
+version 35;
 
 # Type blocks
 type bool {
@@ -437,6 +437,12 @@ reporting purposes;
         comment Number of writes whose hash collided with an in-flight write;
         unit    Blocks;
       }
+
+      snapshot32 currDedupeQueries {
+        comment Current number of dedupe queries that are in flight;
+        label   current dedupe queries;
+        unit    Count;
+      }
     }
 
     struct ErrorStatistics {
@@ -528,18 +534,6 @@ reporting purposes;
 
       counter64 updatesNotFound {
         comment Number of update calls that added a new entry;
-      }
-
-      snapshot32 currDedupeQueries {
-        comment Current number of dedupe queries that are in flight;
-        label   current dedupe queries;
-        unit    Count;
-      }
-
-      maximum32 maxDedupeQueries {
-        comment Maximum number of dedupe queries that have been in flight;
-        label   maximum dedupe queries;
-        unit    Count;
       }
     }
 

@@ -9,6 +9,7 @@
 #include "albtest.h"
 
 #include "memory-alloc.h"
+#include "uds.h"
 
 #include "dedupe.h"
 #include "ref-counts.h"
@@ -18,6 +19,7 @@
 
 #include "asyncLayer.h"
 #include "dataBlocks.h"
+#include "dedupeContext.h"
 #include "ioRequest.h"
 #include "mutexUtils.h"
 #include "vdoAsserts.h"
@@ -183,22 +185,24 @@ static void testVerificationRaceWithTrim(void)
  **/
 static bool falsifyAdvice(struct vdo_completion *completion)
 {
-  if (completion->callback_thread_id == vdo->thread_config->dedupe_thread) {
-    return true;
-  }
-
   if (!lastAsyncOperationIs(completion, VIO_ASYNC_OP_CHECK_FOR_DUPLICATION)) {
     return true;
   }
 
+  removeCompletionEnqueueHook(falsifyAdvice);
+
   struct data_vio *dataVIO = as_data_vio(completion);
   CU_ASSERT_FALSE(dataVIO->is_duplicate);
-  struct zoned_pbn advice = (struct zoned_pbn) {
-    .pbn   = pbn2,
-    .state = VDO_MAPPING_STATE_UNCOMPRESSED,
-  };
-  VDO_ASSERT_SUCCESS(vdo_get_physical_zone(vdo, pbn2, &advice.zone));
-  set_data_vio_duplicate_location(dataVIO, advice);
+
+  struct uds_request    *request  = &dataVIO->dedupe_context->request;
+  struct uds_chunk_data *encoding = &request->old_metadata;
+  size_t                 offset   = 0;
+  encoding->data[offset++] = 2; // UDS_ADVICE_VERSION
+  encoding->data[offset++] = VDO_MAPPING_STATE_UNCOMPRESSED;
+  put_unaligned_le64(pbn2, &encoding->data[offset]);
+
+  request->status = UDS_SUCCESS;
+  request->found = true;
   setBlockVIOCompletionEnqueueHook(shouldBlockVIO, true);
   return true;
 }

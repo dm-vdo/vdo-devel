@@ -79,9 +79,12 @@ TEST_COMMON  = adminUtils.o              \
                sparseLayer.o             \
                testBIO.o                 \
                testParameters.o          \
+               testTimer.o               \
                testUtils.o               \
                vdoTestBase.o             \
                workQueue.o
+
+STRUCT_HEADERS = dedupeContext.h hashZone.h
 
 LOGDIR ?= $(CURDIR)
 
@@ -98,7 +101,7 @@ doc:
 .PHONY: clean
 clean:
 	rm -f $(PROGS) $(PERF_PROGS) $(VDOTEST) *.so *.o vdo-checkin.xml core*
-	rm -fr $(DEPDIR) tmpdir hashZone.h
+	rm -fr $(DEPDIR) tmpdir $(STRUCT_HEADERS)
 
 checkin: all
 ifeq ($(SAVELOGS),1)
@@ -139,6 +142,7 @@ define struct_header =
 	echo '#endif /* not GUARD_$(3)_GUARD */' >> $1
 endef
 
+$(eval $(call struct_header,dedupeContext.h,$(VDO_BASE_DIR)/dedupe.c,dedupe_context))
 $(eval $(call struct_header,hashZone.h,$(VDO_BASE_DIR)/dedupe.c,hash_zone))
 
 .PHONY: FORCE
@@ -156,7 +160,7 @@ FORCE:
 		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ;	 \
 	fi
 
-$(DEPDIR)/%.d: %.c $(FAKE_INCLUDES) hashZone.h
+$(DEPDIR)/%.d: %.c $(FAKE_INCLUDES) $(STRUCT_HEADERS)
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -M -MF $@ -MP -MT $*.o $<
 

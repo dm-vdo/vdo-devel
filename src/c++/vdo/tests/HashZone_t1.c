@@ -15,6 +15,7 @@
 #include "thread-config.h"
 #include "vdo.h"
 
+#include "dedupeContext.h"
 #include "hashZone.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
