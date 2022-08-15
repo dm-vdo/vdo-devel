@@ -6,7 +6,7 @@
 #ifndef VOLUMEINDEX006_H
 #define VOLUMEINDEX006_H 1
 
-#include "volume-index-ops.h"
+#include "volume-index.h"
 
 /**
  * Make a new volume index.

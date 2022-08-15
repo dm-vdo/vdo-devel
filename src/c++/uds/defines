@@ -53,5 +53,5 @@ UDS_COMMON_SOURCES =						\
 					volume.c		\
 					volume-index005.c	\
 					volume-index006.c	\
-					volume-index-ops.c)	\
+					volume-index.c)		\
 	$(addprefix $(SRC_UDS_DIR)/murmur/,	murmurhash3.c)

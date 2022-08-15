@@ -5,7 +5,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "volume-index-ops.h"
+#include "volume-index.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "testPrototypes.h"

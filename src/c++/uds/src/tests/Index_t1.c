@@ -7,7 +7,7 @@
 #include "assertions.h"
 #include "config.h"
 #include "index.h"
-#include "volume-index-ops.h"
+#include "volume-index.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "testRequests.h"

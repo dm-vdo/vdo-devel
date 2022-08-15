@@ -16,7 +16,7 @@
 #include "open-chapter.h"
 #include "random.h"
 #include "time-utils.h"
-#include "volume-index-ops.h"
+#include "volume-index.h"
 
 /*
  * The UDS layout on storage media is divided into a number of fixed-size

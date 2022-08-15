@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef VOLUMEINDEXOPS_H
-#define VOLUMEINDEXOPS_H 1
+#ifndef VOLUMEINDEX_H
+#define VOLUMEINDEX_H 1
 
 #include "compiler.h"
 #include "config.h"
@@ -98,15 +98,6 @@ struct volume_index {
 };
 
 /**
- * Return the combined volume index stats.
- *
- * @param volume_index  The volume index
- * @param stats         Combined stats for the index
- **/
-void get_volume_index_combined_stats(const struct volume_index *volume_index,
-				     struct volume_index_stats *stats);
-
-/**
  * Make a new volume index.
  *
  * @param config        The configuration of the volume index
@@ -118,6 +109,20 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 int __must_check make_volume_index(const struct configuration *config,
 				   uint64_t volume_nonce,
 				   struct volume_index **volume_index);
+
+/**
+ * Terminate and clean up the volume index
+ *
+ * @param volume_index The volume index to terminate
+ **/
+static INLINE void free_volume_index(struct volume_index *volume_index)
+{
+	if (volume_index == NULL) {
+		return;
+	}
+
+	volume_index->free_volume_index(volume_index);
+}
 
 /**
  * Compute the number of blocks required to save a volume index of a given
@@ -134,83 +139,6 @@ compute_volume_index_save_blocks(const struct configuration *config,
 				 size_t block_size,
 				 uint64_t *block_count);
 
-/**
- * Restore a volume index.
- *
- * @param volume_index  The volume index
- * @param readers       The readers to read from.
- * @param num_readers   The number of readers.
- *
- * @return UDS_SUCCESS on success, or an error code on failure
- **/
-int __must_check load_volume_index(struct volume_index *volume_index,
-				   struct buffered_reader **readers,
-				   unsigned int num_readers);
-
-int __must_check save_volume_index(struct volume_index *volume_index,
-				   struct buffered_writer **writers,
-				   unsigned int num_writers);
-
-/**
- * Abort restoring a volume index from an input stream.
- *
- * @param volume_index  The volume index
- **/
-static INLINE void
-abort_restoring_volume_index(struct volume_index *volume_index)
-{
-	volume_index->abort_restoring_volume_index(volume_index);
-}
-
-/**
- * Finish restoring a volume index from an input stream.
- *
- * @param volume_index      The volume index to restore into
- * @param buffered_readers  The buffered readers to read the volume index from
- * @param num_readers       The number of buffered readers
- **/
-static INLINE int
-finish_restoring_volume_index(struct volume_index *volume_index,
-			      struct buffered_reader **buffered_readers,
-			      unsigned int num_readers)
-{
-	return volume_index->finish_restoring_volume_index(volume_index,
-							   buffered_readers,
-							   num_readers);
-}
-
-/**
- * Finish saving a volume index to an output stream.  Force the writing of
- * all of the remaining data.  If an error occurred asynchronously during
- * the save operation, it will be returned here.
- *
- * @param volume_index  The volume index
- * @param zone_number   The number of the zone to save
- *
- * @return UDS_SUCCESS on success, or an error code on failure
- **/
-static INLINE int
-finish_saving_volume_index(const struct volume_index *volume_index,
-			   unsigned int zone_number)
-{
-	return volume_index->finish_saving_volume_index(volume_index,
-							zone_number);
-}
-
-/**
- * Terminate and clean up the volume index
- *
- * @param volume_index The volume index to terminate
- **/
-static INLINE void free_volume_index(struct volume_index *volume_index)
-{
-	if (volume_index == NULL) {
-		return;
-	}
-
-	volume_index->free_volume_index(volume_index);
-}
-
 #ifdef TEST_INTERNAL
 /**
  * Get the number of bytes used for volume index entries.
@@ -226,54 +154,6 @@ get_volume_index_memory_used(const struct volume_index *volume_index)
 }
 
 #endif /* TEST_INTERNAL */
-/**
- * Find the volume index record associated with a block name
- *
- * This is always the first routine to be called when dealing with a delta
- * volume index entry.  The fields of the record parameter should be
- * examined to determine the state of the record:
- *
- * If is_found is false, then we did not find an entry for the block name.
- * Information is saved in the volume_index_record so that
- * put_volume_index_record() will insert an entry for that block name at the
- * proper place.
- *
- * If is_found is true, then we did find an entry for the block name.
- * Information is saved in the volume_index_record so that the "chapter" and
- * "is_collision" fields reflect the entry found.  Calls to
- * remove_volume_index_record() will remove the entry, calls to
- * set_volume_index_record_chapter() can modify the entry, and calls to
- * put_volume_index_record() can insert a collision record with this entry.
- *
- * @param volume_index  The volume index to search
- * @param name          The chunk name
- * @param record        Set to the info about the record searched for
- *
- * @return UDS_SUCCESS or an error code
- **/
-static INLINE int get_volume_index_record(struct volume_index *volume_index,
-					  const struct uds_chunk_name *name,
-					  struct volume_index_record *record)
-{
-	return volume_index->get_volume_index_record(volume_index, name,
-						     record);
-}
-
-/**
- * Return the volume index stats.
- *
- * @param volume_index  The volume index
- * @param dense         Stats for the dense portion of the index
- * @param sparse        Stats for the sparse portion of the index
- **/
-static INLINE void
-get_volume_index_stats(const struct volume_index *volume_index,
-		       struct volume_index_stats *dense,
-		       struct volume_index_stats *sparse)
-{
-	volume_index->get_volume_index_stats(volume_index, dense, sparse);
-}
-
 /**
  * Find the volume index zone associated with a chunk name
  *
@@ -335,6 +215,39 @@ lookup_volume_index_sampled_name(const struct volume_index *volume_index,
 {
 	return volume_index->lookup_volume_index_sampled_name(volume_index,
 							      name);
+}
+
+/**
+ * Find the volume index record associated with a block name
+ *
+ * This is always the first routine to be called when dealing with a delta
+ * volume index entry.  The fields of the record parameter should be
+ * examined to determine the state of the record:
+ *
+ * If is_found is false, then we did not find an entry for the block name.
+ * Information is saved in the volume_index_record so that
+ * put_volume_index_record() will insert an entry for that block name at the
+ * proper place.
+ *
+ * If is_found is true, then we did find an entry for the block name.
+ * Information is saved in the volume_index_record so that the "chapter" and
+ * "is_collision" fields reflect the entry found.  Calls to
+ * remove_volume_index_record() will remove the entry, calls to
+ * set_volume_index_record_chapter() can modify the entry, and calls to
+ * put_volume_index_record() can insert a collision record with this entry.
+ *
+ * @param volume_index  The volume index to search
+ * @param name          The chunk name
+ * @param record        Set to the info about the record searched for
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static INLINE int get_volume_index_record(struct volume_index *volume_index,
+					  const struct uds_chunk_name *name,
+					  struct volume_index_record *record)
+{
+	return volume_index->get_volume_index_record(volume_index, name,
+						     record);
 }
 
 /**
@@ -431,6 +344,19 @@ set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 }
 
 /**
+ * Restore a volume index.
+ *
+ * @param volume_index  The volume index
+ * @param readers       The readers to read from.
+ * @param num_readers   The number of readers.
+ *
+ * @return UDS_SUCCESS on success, or an error code on failure
+ **/
+int __must_check load_volume_index(struct volume_index *volume_index,
+				   struct buffered_reader **readers,
+				   unsigned int num_readers);
+
+/**
  * Start restoring the volume index from multiple buffered readers
  *
  * @param volume_index      The volume index to restore into
@@ -448,6 +374,38 @@ start_restoring_volume_index(struct volume_index *volume_index,
 							  buffered_readers,
 							  num_readers);
 }
+
+/**
+ * Finish restoring a volume index from an input stream.
+ *
+ * @param volume_index      The volume index to restore into
+ * @param buffered_readers  The buffered readers to read the volume index from
+ * @param num_readers       The number of buffered readers
+ **/
+static INLINE int
+finish_restoring_volume_index(struct volume_index *volume_index,
+			      struct buffered_reader **buffered_readers,
+			      unsigned int num_readers)
+{
+	return volume_index->finish_restoring_volume_index(volume_index,
+							   buffered_readers,
+							   num_readers);
+}
+
+/**
+ * Abort restoring a volume index from an input stream.
+ *
+ * @param volume_index  The volume index
+ **/
+static INLINE void
+abort_restoring_volume_index(struct volume_index *volume_index)
+{
+	volume_index->abort_restoring_volume_index(volume_index);
+}
+
+int __must_check save_volume_index(struct volume_index *volume_index,
+				   struct buffered_writer **writers,
+				   unsigned int num_writers);
 
 /**
  * Start saving a volume index to a buffered output stream.
@@ -468,4 +426,46 @@ start_saving_volume_index(const struct volume_index *volume_index,
 						       buffered_writer);
 }
 
-#endif /* VOLUMEINDEXOPS_H */
+/**
+ * Finish saving a volume index to an output stream.  Force the writing of
+ * all of the remaining data.  If an error occurred asynchronously during
+ * the save operation, it will be returned here.
+ *
+ * @param volume_index  The volume index
+ * @param zone_number   The number of the zone to save
+ *
+ * @return UDS_SUCCESS on success, or an error code on failure
+ **/
+static INLINE int
+finish_saving_volume_index(const struct volume_index *volume_index,
+			   unsigned int zone_number)
+{
+	return volume_index->finish_saving_volume_index(volume_index,
+							zone_number);
+}
+
+/**
+ * Return the volume index stats.
+ *
+ * @param volume_index  The volume index
+ * @param dense         Stats for the dense portion of the index
+ * @param sparse        Stats for the sparse portion of the index
+ **/
+static INLINE void
+get_volume_index_stats(const struct volume_index *volume_index,
+		       struct volume_index_stats *dense,
+		       struct volume_index_stats *sparse)
+{
+	volume_index->get_volume_index_stats(volume_index, dense, sparse);
+}
+
+/**
+ * Return the combined volume index stats.
+ *
+ * @param volume_index  The volume index
+ * @param stats         Combined stats for the index
+ **/
+void get_volume_index_combined_stats(const struct volume_index *volume_index,
+				     struct volume_index_stats *stats);
+
+#endif /* VOLUMEINDEX_H */

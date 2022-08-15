@@ -10,7 +10,7 @@
 #include "index-session.h"
 #include "open-chapter.h"
 #include "volume.h"
-#include "volume-index-ops.h"
+#include "volume-index.h"
 
 #ifdef TEST_INTERNAL
 extern atomic_t chapters_replayed;
