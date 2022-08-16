@@ -1023,6 +1023,27 @@ static void release_context(struct dedupe_context *context)
 	list_move(&context->list_entry, &zone->available);
 }
 
+static void process_update_result(struct data_vio *agent)
+{
+	struct dedupe_context *context = agent->dedupe_context;
+
+	if (context == NULL) {
+		return;
+	}
+
+	if (change_context_state(context,
+				 DEDUPE_CONTEXT_COMPLETE,
+				 DEDUPE_CONTEXT_IDLE)) {
+#ifdef VDO_INTERNAL
+		struct vdo *vdo = vdo_from_data_vio(agent);
+
+		enter_histogram_sample(vdo->histograms.update_histogram,
+				       jiffies - context->submission_jiffies);
+#endif /* VDO_INTERNAL */
+		release_context(context);
+	}
+}
+
 /**
  * finish_updating() - Process the result of a UDS update performed by the
  *                     agent for the lock.
@@ -1034,23 +1055,10 @@ static void finish_updating(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
-	struct dedupe_context *context = agent->dedupe_context;
 
 	assert_hash_lock_agent(agent, __func__);
 
-	if (change_context_state(context,
-				 DEDUPE_CONTEXT_COMPLETE,
-				 DEDUPE_CONTEXT_IDLE)) {
-#ifdef VDO_INTERNAL
-		struct histogram *histogram =
-			completion->vdo->histograms.update_histogram;
-
-		enter_histogram_sample(histogram,
-				       jiffies - context->submission_jiffies);
-#endif /* VDO_INTERNAL */
-		release_context(context);
-	}
-
+	process_update_result(agent);
 	if (completion->result != VDO_SUCCESS) {
 		abort_hash_lock(lock, agent);
 		return;
@@ -2102,6 +2110,32 @@ static bool decode_uds_advice(struct dedupe_context *context)
 	return true;
 }
 
+static void process_query_result(struct data_vio *agent)
+{
+	struct dedupe_context *context = agent->dedupe_context;
+
+	if (context == NULL) {
+		return;
+	}
+
+	if (change_context_state(context,
+				 DEDUPE_CONTEXT_COMPLETE,
+				 DEDUPE_CONTEXT_IDLE)) {
+#ifdef VDO_INTERNAL
+		struct vdo *vdo = vdo_from_data_vio(agent);
+		struct histogram *histogram =
+			((context->request.type == UDS_POST) ?
+			 vdo->histograms.post_histogram :
+			 vdo->histograms.query_histogram);
+
+		enter_histogram_sample(histogram,
+				       jiffies - context->submission_jiffies);
+#endif /* VDO_INTERNAL */
+		agent->is_duplicate = decode_uds_advice(context);
+		release_context(context);
+	}
+}
+
 /**
  * finish_querying() - Process the result of a UDS query performed by the
  *                     agent for the lock.
@@ -2113,26 +2147,10 @@ static void finish_querying(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 	struct hash_lock *lock = agent->hash_lock;
-	struct dedupe_context *context = agent->dedupe_context;
 
 	assert_hash_lock_agent(agent, __func__);
 
-	if (change_context_state(context,
-				 DEDUPE_CONTEXT_COMPLETE,
-				 DEDUPE_CONTEXT_IDLE)) {
-#ifdef VDO_INTERNAL
-		struct histogram *histogram =
-			((context->request.type == UDS_POST) ?
-			 completion->vdo->histograms.post_histogram :
-			 completion->vdo->histograms.query_histogram);
-
-		enter_histogram_sample(histogram,
-				       jiffies - context->submission_jiffies);
-#endif /* VDO_INTERNAL */
-		agent->is_duplicate = decode_uds_advice(context);
-		release_context(context);
-	}
-
+	process_query_result(agent);
 	if (completion->result != VDO_SUCCESS) {
 		abort_hash_lock(lock, agent);
 		return;
