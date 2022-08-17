@@ -18,6 +18,7 @@
 #include "convertToLVM.h"
 #include "fileUtils.h"
 #include "hash-utils.h"
+#include "numeric.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
@@ -204,7 +205,7 @@ static void initializerWithIndexName(const char *name)
 }
 
 /**********************************************************************/
-static void slide_file(void)
+static void slide_file(off_t bytes)
 {
   enum {
     BUFFER_SIZE  = 4096,
@@ -219,6 +220,8 @@ static void slide_file(void)
   UDS_ASSERT_SUCCESS(open_file(indexName, FU_READ_WRITE, &fd));
 
   UDS_ASSERT_SUCCESS(get_open_file_size(fd, &file_size));
+  file_size = min(file_size, bytes);
+
   for (offset = LVM_OFFSET; offset < file_size; offset += BUFFER_SIZE) {
     UDS_ASSERT_SUCCESS(read_data_at_offset(fd, offset,
                                            buf, BUFFER_SIZE, &length));
@@ -232,14 +235,16 @@ static void slide_file(void)
 /**********************************************************************/
 static void do_conversion(struct uds_parameters *params, off_t *start_p)
 {
+  uint64_t index_size;
   off_t moved = 0;
+  UDS_ASSERT_SUCCESS(uds_compute_index_size(params, &index_size));
   UDS_ASSERT_SUCCESS(uds_convert_to_lvm(params, LVM_OFFSET, &moved));
   converted = true;
   chapters_written_at_conversion = chapters_written_so_far;
   num_chapters--; // should re-retrieve it from index...
   // update for new num_chapters
   recalculate_stats();
-  slide_file();
+  slide_file(index_size);
   *start_p += moved - LVM_OFFSET;
 }
 

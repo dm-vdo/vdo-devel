@@ -86,7 +86,7 @@ static void initializerWithIndexName(const char *name)
 }
 
 /**********************************************************************/
-static void slide_file(void)
+static void slide_file(off_t bytes)
 {
   enum {
     BUFFER_SIZE  = 4096,
@@ -101,6 +101,8 @@ static void slide_file(void)
   UDS_ASSERT_SUCCESS(open_file(indexName, FU_READ_WRITE, &fd));
 
   UDS_ASSERT_SUCCESS(get_open_file_size(fd, &file_size));
+  file_size = min(file_size, bytes);
+
   for (offset = LVM_OFFSET; offset < file_size; offset += BUFFER_SIZE) {
     UDS_ASSERT_SUCCESS(read_data_at_offset(fd, offset,
                                            buf, BUFFER_SIZE, &length));
@@ -118,6 +120,7 @@ static void doTestCase(unsigned long record_count1,
                        bool sparse)
 {
   struct uds_index_session *session;
+  uint64_t index_size = 0;
   uint64_t nonce = 0xdeadface;
   uint64_t seed1 = 0;
   uint64_t seed2 = 0;
@@ -136,13 +139,14 @@ static void doTestCase(unsigned long record_count1,
     .offset = start,
     .sparse = sparse,
   };
+  UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &index_size));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_CREATE, &params, session));
   seed1 = fillIndex(session, record_count1);
   UDS_ASSERT_SUCCESS(uds_close_index(session));
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(session));
 
   UDS_ASSERT_SUCCESS(uds_convert_to_lvm(&params, LVM_OFFSET, &moved));
-  slide_file();
+  slide_file(index_size);
 
   struct uds_parameters params2 = {
     .memory_size = params.memory_size,
