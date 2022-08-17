@@ -92,8 +92,10 @@ unsigned long getNextTimeout(void)
 }
 
 /**********************************************************************/
-void fireTimers(unsigned long at)
+bool fireTimers(unsigned long at)
 {
+  bool fired = false;
+
   lockMutex();
   if (at > unitTestJiffies) {
     unitTestJiffies = at;
@@ -104,7 +106,10 @@ void fireTimers(unsigned long at)
     if (timer->expires <= unitTestJiffies) {
       list_del_init(&timer->entry);
       timer->function(timer);
+      fired = true;
     }
   }
   unlockMutex();
+
+  return fired;
 }

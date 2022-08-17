@@ -14,6 +14,7 @@
 #include "statistics.h"
 #include "vdo.h"
 
+#include "callbackWrappingUtils.h"
 #include "dedupeContext.h"
 #include "ioRequest.h"
 #include "mutexUtils.h"
@@ -30,6 +31,7 @@ static struct uds_request *blockedRequests[TOTAL_COUNT];
 static vio_count_t         blockedCount;
 static struct data_vio    *querying;
 static bool                queryDone;
+static bool                timeoutsProcessed;
 
 // The dedupe requests which will not be timed out, chosen (arbitrarily) to
 // provide different sized groupings and gaps in the pending list.
@@ -78,6 +80,24 @@ static bool allRequestsBlocked(void *context __attribute__((unused)))
 }
 
 /**********************************************************************/
+static void signalTimeoutsProcessed(struct vdo_completion *completion)
+{
+  runSavedCallback(completion);
+  signalState(&timeoutsProcessed);
+}
+
+/**********************************************************************/
+static bool wrapTimeout(struct vdo_completion *completion)
+{
+  if (completion->type == VDO_HASH_ZONE_COMPLETION) {
+    wrapCompletionCallback(completion, signalTimeoutsProcessed);
+    removeCompletionEnqueueHook(wrapTimeout);
+  }
+
+  return true;
+}
+
+/**********************************************************************/
 static bool signalQueryComplete(struct vdo_completion *completion)
 {
   if (isDataVIO(completion) && (as_data_vio(completion) == querying)) {
@@ -107,6 +127,7 @@ static void testDedupeTimeouts(void)
   IORequest *request = launchIndexedWrite(TOTAL_COUNT, TOTAL_COUNT, 0);
   waitForCondition(allRequestsBlocked, NULL);
 
+  timeoutsProcessed = false;
   queryDone = false;
   uint8_t completeIndex = 0;
   for (vio_count_t i = 0; i < TOTAL_COUNT; i++) {
@@ -117,7 +138,10 @@ static void testDedupeTimeouts(void)
     struct dedupe_context *context = container_of(blockedRequests[i],
                                                   struct dedupe_context,
                                                   request);
-    fireTimers(context->submission_jiffies + 250);
+    setCompletionEnqueueHook(wrapTimeout);
+    if (fireTimers(context->submission_jiffies + 250)) {
+      waitForStateAndClear(&timeoutsProcessed);
+    }
     querying = context->requestor;
     setCompletionEnqueueHook(signalQueryComplete);
     VDO_ASSERT_SUCCESS(uds_start_chunk_operation(blockedRequests[i]));
