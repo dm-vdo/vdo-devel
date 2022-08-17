@@ -3313,7 +3313,7 @@ static void resume_index(void *context, struct vdo_completion *parent)
 
 	if (config->deduplication) {
 		zones->index_target = IS_OPENED;
-		zones->dedupe_flag = true;
+		WRITE_ONCE(zones->dedupe_flag, true);
 	} else {
 		zones->index_target = IS_CLOSED;
 	}
@@ -3516,7 +3516,7 @@ static const char *index_state_to_string(struct hash_zones *zones,
 	case IS_CHANGING:
 		return zones->index_target == IS_OPENED ? OPENING : CLOSING;
 	case IS_OPENED:
-		return zones->dedupe_flag ? ONLINE : OFFLINE;
+		return READ_ONCE(zones->dedupe_flag) ? ONLINE : OFFLINE;
 	default:
 		return UNKNOWN;
 	}
@@ -3722,6 +3722,11 @@ query_index(struct data_vio *data_vio, enum uds_request_type operation)
 
 	assert_data_vio_in_hash_zone(data_vio);
 
+	if (!READ_ONCE(vdo->hash_zones->dedupe_flag)) {
+		continue_data_vio(data_vio, VDO_SUCCESS);
+		return;
+	}
+
 	context = acquire_context(zone);
 	if (context == NULL) {
 		atomic64_inc(&vdo->hash_zones->dedupe_context_busy);
@@ -3758,7 +3763,7 @@ static void set_target_state(struct hash_zones *zones,
 	spin_lock(&zones->lock);
 	old_state = index_state_to_string(zones, zones->index_target);
 	if (change_dedupe) {
-		zones->dedupe_flag = dedupe;
+		WRITE_ONCE(zones->dedupe_flag, dedupe);
 	}
 
 	if (set_create) {
