@@ -176,8 +176,6 @@ tarballs:
             uds-threads.h
             volume.[hc]
             volume-index.[hc]
-            volume-index005.[hc]
-            volume-index006.[hc]
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/src/uds/murmur:
           dest: utils/uds
@@ -467,10 +465,6 @@ tarballs:
             uds-threads.h
             volume.c
             volume.h
-            volume-index005.c
-            volume-index005.h
-            volume-index006.c
-            volume-index006.h
             volume-index.c
             volume-index.h
           undefines: TEST_INTERNAL,VDO_INTERNAL

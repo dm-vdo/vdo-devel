@@ -86,8 +86,6 @@ UDS_OBJECTS =	murmurhash3.o		\
 		time-utils.o		\
 		uds-threads.o		\
 		volume.o		\
-		volume-index005.o	\
-		volume-index006.o	\
 		volume-index.o
 
 .PHONY: all
