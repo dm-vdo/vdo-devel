@@ -376,7 +376,6 @@ struct hash_zone {
 	struct list_head timed_out;
 	struct timer_list timer;
 	struct vdo_completion completion;
-	spinlock_t lock;
 	unsigned int active;
 	atomic_t timer_state;
 
@@ -3046,7 +3045,6 @@ static int __must_check initialize_zone(struct vdo *vdo,
 	INIT_LIST_HEAD(&zone->available);
 	INIT_LIST_HEAD(&zone->pending);
 	INIT_LIST_HEAD(&zone->timed_out);
-	spin_lock_init(&zone->lock);
 	timer_setup(&zone->timer, timeout_index_operations, 0);
 
 	for (i = 0; i < MAXIMUM_VDO_USER_VIOS; i++) {
