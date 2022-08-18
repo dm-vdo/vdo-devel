@@ -3406,6 +3406,7 @@ static void get_index_statistics(struct hash_zones *zones,
 	stats->queries_not_found = index_stats.queries_not_found;
 	stats->updates_found = index_stats.updates_found;
 	stats->updates_not_found = index_stats.updates_not_found;
+	stats->entries_discarded = index_stats.entries_discarded;
 }
 
 /**

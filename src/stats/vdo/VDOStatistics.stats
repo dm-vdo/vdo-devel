@@ -17,7 +17,7 @@
 # This version number is used to make sure that different programs interpreting
 # the statistics are in sync with the generators of them. Any change to the
 # statistics configuration should include incrementing this number.
-version 35;
+version 36;
 
 # Type blocks
 type bool {
@@ -534,6 +534,10 @@ reporting purposes;
 
       counter64 updatesNotFound {
         comment Number of update calls that added a new entry;
+      }
+
+      counter64 entriesDiscarded {
+        comment Number of entries discarded;
       }
     }
 
