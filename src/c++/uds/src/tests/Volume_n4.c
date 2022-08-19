@@ -401,7 +401,7 @@ static void invalidatePageThread(void *arg __attribute__((unused)))
                                                        false);
     UDS_ASSERT_SUCCESS(result);
     uds_unlock_mutex(&volume->read_threads_mutex);
-    uds_yield_scheduler();
+    cond_resched();
 
   }
 }
@@ -454,7 +454,7 @@ static void indexThreadAsync(void *arg)
     }
 
     end_pending_search(volume->page_cache, zoneNumber);
-    uds_yield_scheduler();
+    cond_resched();
   }
 
   uds_signal_cond(&volume->read_threads_cond);

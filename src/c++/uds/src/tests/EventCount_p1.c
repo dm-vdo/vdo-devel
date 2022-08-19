@@ -201,12 +201,12 @@ static void spinAdder(void *arg __attribute__((unused)))
   // Wait for a non-NULL message - a NULL message means that the loop in
   // the main thread has not started yet
   while (spinMessage == NULL) {
-    uds_yield_scheduler();
+    cond_resched();
   }
   for (;;) {
     // Wait for a message (an integer to increment) from the driver thread.
     while (spinMessage == &reply) {
-      uds_yield_scheduler();
+      cond_resched();
     }
     // A NULL message is the signal to shut down.
     if (spinMessage == NULL) {
@@ -236,7 +236,7 @@ static void testSpinLoop(int messageCount)
 
     // Wait for the adder thread to send a reply (the incremented value).
     while (spinMessage == &x) {
-      uds_yield_scheduler();
+      cond_resched();
     }
 
     // increment the loop variable by assigning the reply value (x + 1).

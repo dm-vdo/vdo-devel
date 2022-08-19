@@ -401,6 +401,6 @@ bool event_count_wait(struct event_count *count,
 		uds_release_semaphore(&count->semaphore);
 
 		/* Attempt to give an earlier waiter a shot at the semaphore. */
-		uds_yield_scheduler();
+		cond_resched();
 	}
 }

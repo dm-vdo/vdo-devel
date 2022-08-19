@@ -156,10 +156,12 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			/*
 			 * There is an active search using the physical page.
 			 * We need to wait for the search to finish.
+			 * FIXME: Investigate using wait_event() to
+			 * wait for the search to finish.
 			 */
 			while (initial_counters[i] ==
 			       get_invalidate_counter(cache, i)) {
-				uds_yield_scheduler();
+				cond_resched();
 			}
 		}
 	}

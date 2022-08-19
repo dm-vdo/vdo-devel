@@ -41,7 +41,7 @@ void perform_once(atomic_t *once, void (*function)(void))
 			atomic_set_release(once, ONCE_COMPLETE);
 			return;
 		case ONCE_IN_PROGRESS:
-			uds_yield_scheduler();
+			cond_resched();
 			break;
 		case ONCE_COMPLETE:
 			return;
@@ -238,11 +238,5 @@ int uds_enter_barrier(struct barrier *barrier, bool *winner)
 	if (winner != NULL) {
 		*winner = last_thread;
 	}
-	return UDS_SUCCESS;
-}
-
-int uds_yield_scheduler(void)
-{
-	yield();
 	return UDS_SUCCESS;
 }

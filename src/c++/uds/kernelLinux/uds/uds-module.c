@@ -279,7 +279,6 @@ EXPORT_SYMBOL_GPL(uds_thread_exit);
 EXPORT_SYMBOL_GPL(uds_timed_wait_cond);
 EXPORT_SYMBOL_GPL(uds_wait_cond);
 EXPORT_SYMBOL_GPL(uds_wrap_vsnprintf);
-EXPORT_SYMBOL_GPL(uds_yield_scheduler);
 EXPORT_SYMBOL_GPL(uninitialize_delta_index);
 EXPORT_SYMBOL_GPL(uninitialize_delta_zone);
 EXPORT_SYMBOL_GPL(update_index_page_map);

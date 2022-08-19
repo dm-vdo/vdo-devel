@@ -15,6 +15,7 @@
 #include "event-count.h"
 #else
 #include <pthread.h>
+#include <sched.h>
 #include <semaphore.h>
 #include <stdbool.h>
 #endif
@@ -434,13 +435,6 @@ static INLINE void uds_release_semaphore(struct semaphore *semaphore)
 void uds_release_semaphore(struct semaphore *semaphore);
 #endif
 
-/**
- * Yield the time slice in the given thread.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int uds_yield_scheduler(void);
-
 #ifndef __KERNEL__
 /**
  * Allocate a thread specific key for thread specific data.
@@ -477,6 +471,18 @@ int uds_set_thread_specific(pthread_key_t key, const void *pointer);
  * @param key  key identifying the thread specific data
  **/
 void *uds_get_thread_specific(pthread_key_t key);
+
+/**
+ * Simulate the action of cond_resched() for user programs.
+ **/
+static inline void cond_resched(void)
+{
+	/*
+	 * On Linux sched_yield always succeeds so the result can be
+	 * safely ignored.
+	 */
+	(void) sched_yield();
+}
 #endif
 
 #endif /* UDS_THREADS_H */

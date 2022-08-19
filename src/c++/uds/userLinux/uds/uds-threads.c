@@ -68,7 +68,7 @@ void perform_once(atomic_t *once, void (*function)(void))
 			atomic_set_release(once, ONCE_COMPLETE);
 			return;
 		case ONCE_IN_PROGRESS:
-			uds_yield_scheduler();
+			sched_yield();
 			break;
 		case ONCE_COMPLETE:
 			return;
@@ -206,15 +206,4 @@ int uds_enter_barrier(struct barrier *barrier, bool *winner)
 	}
 	ASSERT_LOG_ONLY((result == 0),  "pthread_barrier_wait error");
 	return result;
-}
-
-/**********************************************************************/
-int uds_yield_scheduler(void)
-{
-	int result = sched_yield();
-	if (result != 0) {
-		return uds_log_error_strerror(errno, "sched_yield failed");
-	}
-
-	return UDS_SUCCESS;
 }
