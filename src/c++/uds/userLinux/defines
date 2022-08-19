@@ -1,12 +1,10 @@
 # -*-makefile-*-
-#
-# %COPYRIGHT%
-#
-# %LICENSE%
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # define variables used for userLinux makefiles
 #
-# $Id$
+# Copyright Red Hat
+#
 
 VERSION           = -DCURRENT_VERSION='"$(VDO_VERSION)"'
 INTERNAL          = -DTEST_INTERNAL -DEXTERNAL_STATIC=

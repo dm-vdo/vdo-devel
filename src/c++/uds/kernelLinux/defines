@@ -1,13 +1,11 @@
 # -*-makefile-*-
 # vim:filetype=make
-#
-# %COPYRIGHT%
-#
-# %LICENSE%
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # define variables used for kernelLinux makefiles
 #
-# $Id$
+# Copyright Red Hat
+#
 
 K_UDS_DIR	= $(PLATFORM_DIR)/uds
 

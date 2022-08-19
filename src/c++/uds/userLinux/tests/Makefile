@@ -1,8 +1,7 @@
-# %COPYRIGHT%
+# SPDX-License-Identifier: GPL-2.0-only
 #
-# %LICENSE%
+# Copyright Red Hat
 #
-# $Id$
 
 TOP_DIR      = ../..
 TEST_DIR     = $(TOP_DIR)/src/tests

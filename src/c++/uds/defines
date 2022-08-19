@@ -1,12 +1,10 @@
 # -*-makefile-gmake-*-
-#
-# %COPYRIGHT%
-#
-# %LICENSE%
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Define variables used for all makefiles
 #
-# $Id$
+# Copyright Red Hat
+#
 
 SRC_DIR = $(TOP_DIR)/../..
 include $(SRC_DIR)/defines
