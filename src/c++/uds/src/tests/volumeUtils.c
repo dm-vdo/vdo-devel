@@ -3,6 +3,8 @@
  * Copyright Red Hat
  */
 
+#include <linux/dm-bufio.h>
+
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "random.h"
@@ -115,7 +117,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
   UDS_ASSERT_SUCCESS(write_record_pages(volume, physicalPage, records,
                                         &pages[geometry->index_pages_per_chapter]));
 
-  UDS_ASSERT_SUCCESS(sync_volume_store(&volume->volume_store));
+  UDS_ASSERT_SUCCESS(dm_bufio_write_dirty_buffers(volume->client));
   free_open_chapter_index(chapterIndex);
   UDS_FREE(records);
 }

@@ -84,6 +84,8 @@
 
 #include "sparse-cache.h"
 
+#include <linux/dm-bufio.h>
+
 #include "chapter-index.h"
 #include "common.h"
 #include "config.h"
@@ -156,7 +158,7 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
 	struct delta_index_page *index_pages;
 
 	/* pointer to an array of volume pages containing the index pages */
-	struct volume_page *volume_pages;
+	struct dm_buffer **volume_buffers;
 
 	/*
 	 * The cache-aligned counters change often and are placed at the end of
@@ -284,7 +286,6 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 				const struct geometry *geometry)
 {
 	int result;
-	unsigned int i;
 
 	chapter->virtual_chapter = UINT64_MAX;
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
@@ -297,22 +298,10 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 		return result;
 	}
 
-	result = UDS_ALLOCATE(chapter->index_pages_count,
-			      struct volume_page,
-			      "sparse index volume pages",
-			      &chapter->volume_pages);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	for (i = 0; i < chapter->index_pages_count; i++) {
-		result = initialize_volume_page(geometry->bytes_per_page,
-						&chapter->volume_pages[i]);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-	}
-	return UDS_SUCCESS;
+	return UDS_ALLOCATE(chapter->index_pages_count,
+			    struct dm_buffer *,
+			    "sparse index volume pages",
+			    &chapter->volume_buffers);
 }
 
 /**
@@ -562,6 +551,25 @@ static void score_search_miss(struct sparse_cache *cache,
 }
 
 /**
+ * Release all cached page data for a cached_chapter_index.
+ *
+ * @param chapter  the chapter index cache entry to release
+ **/
+static void release_cached_chapter_index(struct cached_chapter_index *chapter)
+{
+	if (chapter->volume_buffers != NULL) {
+		unsigned int i;
+
+		for (i = 0; i < chapter->index_pages_count; i++) {
+			if (chapter->volume_buffers[i] != NULL) {
+				dm_bufio_release(chapter->volume_buffers[i]);
+				chapter->volume_buffers[i] = NULL;
+			}
+		}
+	}
+}
+
+/**
  * Destroy a cached_chapter_index, freeing the memory allocated for the
  * ChapterIndexPages and raw index page data.
  *
@@ -569,15 +577,9 @@ static void score_search_miss(struct sparse_cache *cache,
  **/
 static void destroy_cached_chapter_index(struct cached_chapter_index *chapter)
 {
-	if (chapter->volume_pages != NULL) {
-		unsigned int i;
-
-		for (i = 0; i < chapter->index_pages_count; i++) {
-			destroy_volume_page(&chapter->volume_pages[i]);
-		}
-	}
+	release_cached_chapter_index(chapter);
 	UDS_FREE(chapter->index_pages);
-	UDS_FREE(chapter->volume_pages);
+	UDS_FREE(chapter->volume_buffers);
 }
 
 void free_sparse_cache(struct sparse_cache *cache)
@@ -851,6 +853,7 @@ cache_chapter_index(struct cached_chapter_index *chapter,
 	int result;
 	/* Mark the cached chapter as unused in case the update fails midway. */
 	chapter->virtual_chapter = UINT64_MAX;
+	release_cached_chapter_index(chapter);
 
 	/*
 	 * Read all the page data and initialize the entire delta_index_page
@@ -859,7 +862,7 @@ cache_chapter_index(struct cached_chapter_index *chapter,
 	 */
 	result = read_chapter_index_from_volume(volume,
 						virtual_chapter,
-						chapter->volume_pages,
+						chapter->volume_buffers,
 						chapter->index_pages);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -977,22 +980,6 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 
 	uds_enter_barrier(&cache->end_cache_update, NULL);
 	return result;
-}
-
-/**
- * Release the all cached page data for a cached_chapter_index.
- *
- * @param chapter  the chapter index cache entry to release
- **/
-static void release_cached_chapter_index(struct cached_chapter_index *chapter)
-{
-	if (chapter->volume_pages != NULL) {
-		unsigned int i;
-
-		for (i = 0; i < chapter->index_pages_count; i++) {
-			release_volume_page(&chapter->volume_pages[i]);
-		}
-	}
 }
 
 void invalidate_sparse_cache(struct sparse_cache *cache)

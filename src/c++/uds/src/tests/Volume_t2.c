@@ -3,6 +3,8 @@
  * Copyright Red Hat
  */
 
+#include <linux/dm-bufio.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "config.h"
@@ -61,14 +63,12 @@ static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
 
   writeTestVolumeChapter(volume, geometry, chapter, pages);
 
-  struct volume_page volume_page;
-  UDS_ASSERT_SUCCESS(initialize_volume_page(geometry->bytes_per_page,
-                                            &volume_page));
-  UDS_ASSERT_SUCCESS(read_volume_page(&volume->volume_store, physPage,
-                                      &volume_page));
-  UDS_ASSERT_EQUAL_BYTES(get_page_data(&volume_page), pages[page],
+  struct dm_buffer *volume_page;
+  UDS_ASSERT_KERNEL_SUCCESS(dm_bufio_read(volume->client, physPage,
+                                          &volume_page));
+  UDS_ASSERT_EQUAL_BYTES(dm_bufio_get_block_data(volume_page), pages[page],
                          geometry->bytes_per_page);
-  destroy_volume_page(&volume_page);
+  dm_bufio_release(volume_page);
 
   byte *pageData;
   // Make sure the page read is synchronous
@@ -86,18 +86,15 @@ static void writeAndVerifyChapterIndex(unsigned int chapter)
     = makePageArray(geometry->pages_per_chapter, geometry->bytes_per_page);
   writeTestVolumeChapter(volume, geometry, chapter, pages);
 
-  struct volume_page volume_page;
-  UDS_ASSERT_SUCCESS(initialize_volume_page(geometry->bytes_per_page,
-                                            &volume_page));
+  struct dm_buffer *volume_page;
   int physicalPage = map_to_physical_page(geometry, chapter, 0);
   for (i = 0; i < geometry->index_pages_per_chapter; i++) {
-    UDS_ASSERT_SUCCESS(read_volume_page(&volume->volume_store,
-                                        physicalPage + i,
-                                        &volume_page));
-    UDS_ASSERT_EQUAL_BYTES(get_page_data(&volume_page), pages[i],
+    UDS_ASSERT_KERNEL_SUCCESS(dm_bufio_read(volume->client, physicalPage + i,
+                                            &volume_page));
+    UDS_ASSERT_EQUAL_BYTES(dm_bufio_get_block_data(volume_page), pages[i],
                            geometry->bytes_per_page);
+    dm_bufio_release(volume_page);
   }
-  destroy_volume_page(&volume_page);
 
   freePageArray(pages, geometry->pages_per_chapter);
   // cppcheck-suppress resourceLeak

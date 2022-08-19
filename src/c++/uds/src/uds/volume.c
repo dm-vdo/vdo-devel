@@ -41,119 +41,6 @@ void set_request_restarter(request_restarter_t restarter)
 }
 
 #endif /* TEST_INTERNAL */
-void close_volume_store(struct volume_store *volume_store)
-{
-	if (volume_store->vs_client != NULL) {
-		dm_bufio_client_destroy(volume_store->vs_client);
-		volume_store->vs_client = NULL;
-	}
-}
-
-void destroy_volume_page(struct volume_page *volume_page)
-{
-	release_volume_page(volume_page);
-}
-
-/* FIXME: initializing is unnecessary in the dm_bufio idiom. */
-int initialize_volume_page(size_t page_size __always_unused, struct volume_page *volume_page)
-{
-	volume_page->vp_buffer = NULL;
-	return UDS_SUCCESS;
-}
-
-
-int open_volume_store(struct volume_store *volume_store,
-		      struct index_layout *layout,
-		      unsigned int reserved_buffers,
-		      size_t bytes_per_page)
-{
-	return open_uds_volume_bufio(layout, bytes_per_page, reserved_buffers,
-				     &volume_store->vs_client);
-}
-
-void prefetch_volume_pages(const struct volume_store *vs __maybe_unused,
-			   unsigned int physical_page __maybe_unused,
-			   unsigned int page_count __maybe_unused)
-{
-	dm_bufio_prefetch(vs->vs_client, physical_page, page_count);
-}
-
-int prepare_to_write_volume_page(const struct volume_store *volume_store,
-				 unsigned int physical_page,
-				 struct volume_page *volume_page)
-{
-	struct dm_buffer *buffer = NULL;
-	byte *data;
-
-	release_volume_page(volume_page);
-	data = dm_bufio_new(volume_store->vs_client, physical_page, &buffer);
-	if (IS_ERR(data)) {
-		return -PTR_ERR(data);
-	}
-
-	volume_page->vp_buffer = buffer;
-	return UDS_SUCCESS;
-}
-
-int read_volume_page(const struct volume_store *volume_store,
-		     unsigned int physical_page,
-		     struct volume_page *volume_page)
-{
-	byte *data;
-
-	release_volume_page(volume_page);
-	data = dm_bufio_read(volume_store->vs_client, physical_page,
-			     &volume_page->vp_buffer);
-	if (IS_ERR(data)) {
-		return uds_log_warning_strerror(-PTR_ERR(data),
-						"error reading physical page %u",
-						physical_page);
-	}
-
-	return UDS_SUCCESS;
-}
-
-void release_volume_page(struct volume_page *volume_page __maybe_unused)
-{
-	if (volume_page->vp_buffer != NULL) {
-		dm_bufio_release(volume_page->vp_buffer);
-		volume_page->vp_buffer = NULL;
-	}
-}
-
-void swap_volume_pages(struct volume_page *volume_page1,
-		       struct volume_page *volume_page2)
-{
-	struct volume_page temp = *volume_page1;
-	*volume_page1 = *volume_page2;
-	*volume_page2 = temp;
-}
-
-int sync_volume_store(const struct volume_store *volume_store)
-{
-	int result = -dm_bufio_write_dirty_buffers(volume_store->vs_client);
-
-	if (result != UDS_SUCCESS) {
-		return uds_log_error_strerror(result,
-					      "cannot sync chapter to volume");
-	}
-	return UDS_SUCCESS;
-}
-
-int write_volume_page(const struct volume_store *volume_store __always_unused,
-		      unsigned int physical_page __always_unused,
-		      struct volume_page *volume_page)
-{
-#ifdef TEST_INTERNAL
-	if (get_dory_forgetful()) {
-		return -EROFS;
-	}
-
-#endif /* TEST_INTERNAL */
-	dm_bufio_mark_buffer_dirty(volume_page->vp_buffer);
-	return UDS_SUCCESS;
-}
-
 static INLINE unsigned int map_to_page_number(struct geometry *geometry,
 					      unsigned int physical_page)
 {
@@ -335,7 +222,7 @@ static int initialize_index_page(const struct volume *volume,
 		map_to_page_number(volume->geometry, physical_page);
 	int result =
 		init_chapter_index_page(volume,
-					get_page_data(&page->cp_page_data),
+					dm_bufio_get_block_data(page->buffer),
 					chapter,
 					index_page_number,
 					&page->cp_index_page);
@@ -386,7 +273,7 @@ static int search_page(struct cached_page *page,
 	int record_page_number;
 
 	if (record_page) {
-		if (search_record_page(get_page_data(&page->cp_page_data),
+		if (search_record_page(dm_bufio_get_block_data(page->buffer),
 				       &request->chunk_name,
 				       volume->geometry,
 				       &request->old_metadata)) {
@@ -420,6 +307,7 @@ static int search_page(struct cached_page *page,
 static void read_thread_function(void *arg)
 {
 	struct volume *volume = arg;
+	byte *page_data;
 	unsigned int queue_pos;
 	struct uds_request *request_list;
 	unsigned int physical_page;
@@ -454,13 +342,15 @@ static void read_thread_function(void *arg)
 							&page);
 			if (result == UDS_SUCCESS) {
 				uds_unlock_mutex(&volume->read_threads_mutex);
-				result =
-					read_volume_page(&volume->volume_store,
-							 physical_page,
-							 &page->cp_page_data);
-				if (result != UDS_SUCCESS) {
-					uds_log_warning("Error reading page %u from volume",
-							physical_page);
+
+				page_data = dm_bufio_read(volume->client,
+							  physical_page,
+							  &page->buffer);
+				if (IS_ERR(page_data)) {
+					result = -PTR_ERR(page_data);
+					uds_log_warning_strerror(result,
+								 "error reading physical page %u from volume",
+								 physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
 							     page);
@@ -491,7 +381,7 @@ static void read_thread_function(void *arg)
 									   page);
 						if (result != UDS_SUCCESS) {
 							uds_log_warning("Error putting page %u in cache",
-								    physical_page);
+									physical_page);
 							cancel_page_in_cache(volume->page_cache,
 									     physical_page,
 									     page);
@@ -499,7 +389,7 @@ static void read_thread_function(void *arg)
 					}
 				} else {
 					uds_log_warning("Page %u invalidated after read",
-						    physical_page);
+							physical_page);
 					cancel_page_in_cache(volume->page_cache,
 							     physical_page,
 							     page);
@@ -567,6 +457,7 @@ static int read_page_locked(struct volume *volume,
 	int result = UDS_SUCCESS;
 	struct cached_page *page = NULL;
 	bool sync_read = ((request == NULL) || (request->session == NULL));
+	byte *page_data;
 
 	if (sync_read) {
 		/* Find a place to put the page. */
@@ -575,12 +466,14 @@ static int read_page_locked(struct volume *volume,
 			uds_log_warning("Error selecting cache victim for page read");
 			return result;
 		}
-		result = read_volume_page(&volume->volume_store,
+		page_data = dm_bufio_read(volume->client,
 					  physical_page,
-					  &page->cp_page_data);
-		if (result != UDS_SUCCESS) {
-			uds_log_warning("Error reading page %u from volume",
-				    physical_page);
+					  &page->buffer);
+		if (IS_ERR(page_data)) {
+			result = -PTR_ERR(page_data);
+			uds_log_warning_strerror(result,
+						 "error reading physical page %u from volume",
+						 physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
 			return result;
@@ -592,7 +485,7 @@ static int read_page_locked(struct volume *volume,
 				if (volume->lookup_mode !=
 				    LOOKUP_FOR_REBUILD) {
 					uds_log_warning("Corrupt index page %u",
-						    physical_page);
+							physical_page);
 				}
 				cancel_page_in_cache(volume->page_cache,
 						     physical_page,
@@ -604,7 +497,7 @@ static int read_page_locked(struct volume *volume,
 					   page);
 		if (result != UDS_SUCCESS) {
 			uds_log_warning("Error putting page %u in cache",
-				    physical_page);
+					physical_page);
 			cancel_page_in_cache(volume->page_cache, physical_page,
 					     page);
 			return result;
@@ -775,9 +668,9 @@ int get_volume_page(struct volume *volume,
 	uds_unlock_mutex(&volume->read_threads_mutex);
 
 	if (data_ptr != NULL) {
-		*data_ptr = (page != NULL) ?
-				    get_page_data(&page->cp_page_data) :
-				    NULL;
+		*data_ptr = ((page != NULL) ?
+			     dm_bufio_get_block_data(page->buffer) :
+			     NULL);
 	}
 	if (index_page_ptr != NULL) {
 		*index_page_ptr = (page != NULL) ? &page->cp_index_page : NULL;
@@ -902,7 +795,7 @@ int search_cached_record_page(struct volume *volume,
 		return result;
 	}
 
-	if (search_record_page(get_page_data(&record_page->cp_page_data),
+	if (search_record_page(dm_bufio_get_block_data(record_page->buffer),
 			       name,
 			       geometry,
 			       duplicate)) {
@@ -914,43 +807,42 @@ int search_cached_record_page(struct volume *volume,
 
 int read_chapter_index_from_volume(const struct volume *volume,
 				   uint64_t virtual_chapter,
-				   struct volume_page volume_pages[],
+				   struct dm_buffer *volume_buffers[],
 				   struct delta_index_page index_pages[])
 {
 	int result;
-	struct volume_page volume_page;
 	unsigned int i;
 	const struct geometry *geometry = volume->geometry;
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, virtual_chapter);
 	int physical_page =
 		map_to_physical_page(geometry, physical_chapter, 0);
-	prefetch_volume_pages(&volume->volume_store,
-			      physical_page,
-			      geometry->index_pages_per_chapter);
 
-	result = initialize_volume_page(geometry->bytes_per_page,
-					&volume_page);
+	dm_bufio_prefetch(volume->client,
+			  physical_page,
+			  geometry->index_pages_per_chapter);
 	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
 		byte *index_page;
-		int result = read_volume_page(&volume->volume_store,
-					      physical_page + i,
-					      &volume_pages[i]);
-		if (result != UDS_SUCCESS) {
-			break;
+		index_page = dm_bufio_read(volume->client,
+					   physical_page + i,
+					   &volume_buffers[i]);
+		if (IS_ERR(index_page)) {
+			result = -PTR_ERR(index_page);
+			uds_log_warning_strerror(result,
+						 "error reading physical page %u",
+						 physical_page);
+			return result;
 		}
-		index_page = get_page_data(&volume_pages[i]);
 		result = init_chapter_index_page(volume,
 						 index_page,
 						 physical_chapter,
 						 i,
 						 &index_pages[i]);
 		if (result != UDS_SUCCESS) {
-			break;
+			return result;
 		}
 	}
-	destroy_volume_page(&volume_page);
-	return result;
+	return UDS_SUCCESS;
 }
 
 int search_volume_page_cache(struct volume *volume,
@@ -1017,12 +909,12 @@ int forget_chapter(struct volume *volume, uint64_t virtual_chapter)
  * @param volume             the volume
  * @param physical_chapter   the physical chapter number of the index page
  * @param index_page_number  the chapter page number of the index page
- * @param scratch_page       the index page data
+ * @param page_buffer        the index page buffer
  **/
 static int donate_index_page_locked(struct volume *volume,
 				    unsigned int physical_chapter,
 				    unsigned int index_page_number,
-				    struct volume_page *scratch_page)
+				    struct dm_buffer *page_buffer)
 {
 	unsigned int physical_page = map_to_physical_page(volume->geometry,
 							  physical_chapter,
@@ -1033,14 +925,13 @@ static int donate_index_page_locked(struct volume *volume,
 	int result = select_victim_in_cache(volume->page_cache, &page);
 
 	if (result != UDS_SUCCESS) {
+		dm_bufio_release(page_buffer);
 		return result;
 	}
 
-	/* Exchange the scratch page with the cache page */
-	swap_volume_pages(&page->cp_page_data, scratch_page);
-
+	page->buffer = page_buffer;
 	result = init_chapter_index_page(volume,
-					 get_page_data(&page->cp_page_data),
+					 dm_bufio_get_block_data(page_buffer),
 					 physical_chapter,
 					 index_page_number,
 					 &page->cp_index_page);
@@ -1066,25 +957,26 @@ int write_index_pages(struct volume *volume,
 		      byte **pages)
 {
 	struct geometry *geometry = volume->geometry;
+	struct dm_buffer *page_buffer;
 	unsigned int physical_chapter_number =
 		map_to_physical_chapter(geometry,
 					chapter_index->virtual_chapter_number);
 	unsigned int delta_list_number = 0;
-
 	unsigned int index_page_number;
 
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
+		byte *page_data;
 		unsigned int lists_packed;
 		bool last_page;
-		int result =
-			prepare_to_write_volume_page(&volume->volume_store,
-						     physical_page +
-							index_page_number,
-						     &volume->scratch_page);
-		if (result != UDS_SUCCESS) {
-			return uds_log_warning_strerror(result,
+                int result;
+
+		page_data = dm_bufio_new(volume->client,
+					 physical_page + index_page_number,
+					 &page_buffer);
+		if (IS_ERR(page_data)) {
+			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare index page");
 		}
 
@@ -1092,26 +984,29 @@ int write_index_pages(struct volume *volume,
 		last_page = ((index_page_number + 1) ==
 			     geometry->index_pages_per_chapter);
 		result = pack_open_chapter_index_page(chapter_index,
-						      get_page_data(&volume->scratch_page),
+						      page_data,
 						      delta_list_number,
 						      last_page,
 						      &lists_packed);
 		if (result != UDS_SUCCESS) {
+			dm_bufio_release(page_buffer);
 			return uds_log_warning_strerror(result,
 							"failed to pack index page");
 		}
 
-		result = write_volume_page(&volume->volume_store,
-					   physical_page + index_page_number,
-					   &volume->scratch_page);
-		if (result != UDS_SUCCESS) {
-			return uds_log_warning_strerror(result,
+#ifdef TEST_INTERNAL
+		if (get_dory_forgetful()) {
+			dm_bufio_release(page_buffer);
+			return uds_log_warning_strerror(-EROFS,
 							"failed to write chapter index page");
 		}
 
+#endif /* TEST_INTERNAL */
+		dm_bufio_mark_buffer_dirty(page_buffer);
+
 		if (pages != NULL) {
 			memcpy(pages[index_page_number],
-			       get_page_data(&volume->scratch_page),
+			       page_data,
 			       geometry->bytes_per_page);
 		}
 
@@ -1138,9 +1033,10 @@ int write_index_pages(struct volume *volume,
 		result = donate_index_page_locked(volume,
 						  physical_chapter_number,
 						  index_page_number,
-						  &volume->scratch_page);
+						  page_buffer);
 		uds_unlock_mutex(&volume->read_threads_mutex);
 		if (result != UDS_SUCCESS) {
+			dm_bufio_release(page_buffer);
 			return result;
 		}
 	}
@@ -1225,6 +1121,7 @@ int write_record_pages(struct volume *volume,
 {
 	unsigned int record_page_number;
 	struct geometry *geometry = volume->geometry;
+	struct dm_buffer *page_buffer;
 	const struct uds_chunk_record *next_record = records;
 	/* Skip over the index pages, which come before the record pages */
 	physical_page += geometry->index_pages_per_chapter;
@@ -1232,13 +1129,14 @@ int write_record_pages(struct volume *volume,
 	for (record_page_number = 0;
 	     record_page_number < geometry->record_pages_per_chapter;
 	     record_page_number++) {
-		int result =
-			prepare_to_write_volume_page(&volume->volume_store,
-						     physical_page +
-							record_page_number,
-						     &volume->scratch_page);
-		if (result != UDS_SUCCESS) {
-			return uds_log_warning_strerror(result,
+		byte *page_data;
+                int result;
+
+		page_data = dm_bufio_new(volume->client,
+					 physical_page + record_page_number,
+					 &page_buffer);
+		if (IS_ERR(page_data)) {
+			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare record page");
 		}
 
@@ -1246,28 +1144,31 @@ int write_record_pages(struct volume *volume,
 		 * Sort the next page of records and copy them to the record
 		 * page as a binary tree stored in heap order.
 		 */
-		result = encode_record_page(volume, next_record,
-					    get_page_data(&volume->scratch_page));
+		result = encode_record_page(volume, next_record, page_data);
 		if (result != UDS_SUCCESS) {
+			dm_bufio_release(page_buffer);
 			return uds_log_warning_strerror(result,
 							"failed to encode record page %u",
 							record_page_number);
 		}
 		next_record += geometry->records_per_page;
 
-		result = write_volume_page(&volume->volume_store,
-					   physical_page + record_page_number,
-					   &volume->scratch_page);
-		if (result != UDS_SUCCESS) {
-			return uds_log_warning_strerror(result,
+#ifdef TEST_INTERNAL
+		if (get_dory_forgetful()) {
+			dm_bufio_release(page_buffer);
+			return uds_log_warning_strerror(-EROFS,
 							"failed to write chapter record page");
 		}
 
+#endif /* TEST_INTERNAL */
+		dm_bufio_mark_buffer_dirty(page_buffer);
 		if (pages != NULL) {
 			memcpy(pages[record_page_number],
-			       get_page_data(&volume->scratch_page),
+			       page_data,
 			       geometry->bytes_per_page);
 		}
+
+		dm_bufio_release(page_buffer);
 	}
 	return UDS_SUCCESS;
 }
@@ -1295,9 +1196,14 @@ int write_chapter(struct volume *volume,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	release_volume_page(&volume->scratch_page);
 	/* Flush the data to permanent storage. */
-	return sync_volume_store(&volume->volume_store);
+	result = -dm_bufio_write_dirty_buffers(volume->client);
+	if (result != UDS_SUCCESS) {
+		uds_log_error_strerror(result,
+				       "cannot sync chapter to volume");
+	}
+
+	return result;
 }
 
 size_t get_cache_size(struct volume *volume)
@@ -1319,9 +1225,9 @@ static int probe_chapter(struct volume *volume,
 	unsigned int i;
 	uint64_t vcn, last_vcn = UINT64_MAX;
 
-	prefetch_volume_pages(&volume->volume_store,
-			      map_to_physical_page(geometry, chapter_number, 0),
-			      geometry->index_pages_per_chapter);
+	dm_bufio_prefetch(volume->client,
+			  map_to_physical_page(geometry, chapter_number, 0),
+			  geometry->index_pages_per_chapter);
 
 	for (i = 0; i < geometry->index_pages_per_chapter; ++i) {
 		struct delta_index_page *page;
@@ -1649,16 +1555,10 @@ static int __must_check allocate_volume(const struct configuration *config,
 				     geometry->index_pages_per_chapter);
 	}
 	volume->reserved_buffers = reserved_buffers;
-	result = open_volume_store(&volume->volume_store,
-				   layout,
-				   volume->reserved_buffers,
-				   geometry->bytes_per_page);
-	if (result != UDS_SUCCESS) {
-		free_volume(volume);
-		return result;
-	}
-	result = initialize_volume_page(geometry->bytes_per_page,
-					&volume->scratch_page);
+	result = open_uds_volume_bufio(layout,
+				       geometry->bytes_per_page,
+				       volume->reserved_buffers,
+				       &volume->client);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1720,15 +1620,16 @@ int __must_check replace_volume_storage(struct volume *volume,
 	}
 
 	/* Release all outstanding dm_bufio objects */
-	release_volume_page(&volume->scratch_page);
 	invalidate_page_cache(volume->page_cache);
 	invalidate_sparse_cache(volume->sparse_cache);
-	close_volume_store(&volume->volume_store);
+	if (volume->client != NULL) {
+		dm_bufio_client_destroy(UDS_FORGET(volume->client));
+	}
 
-	return open_volume_store(&volume->volume_store,
-				 layout,
-				 volume->reserved_buffers,
-				 volume->geometry->bytes_per_page);
+	return open_uds_volume_bufio(layout,
+				     volume->geometry->bytes_per_page,
+				     volume->reserved_buffers,
+				     &volume->client);
 }
 
 int make_volume(const struct configuration *config,
@@ -1815,14 +1716,12 @@ void free_volume(struct volume *volume)
 		volume->reader_threads = NULL;
 	}
 
-	/*
-	 * Must close the volume store AFTER freeing the scratch page and the
-	 * caches
-	 */
-	destroy_volume_page(&volume->scratch_page);
+	/* Must destroy the client AFTER freeing the caches. */
 	free_page_cache(volume->page_cache);
 	free_sparse_cache(volume->sparse_cache);
-	close_volume_store(&volume->volume_store);
+	if (volume->client != NULL) {
+		dm_bufio_client_destroy(UDS_FORGET(volume->client));
+	}
 
 	uds_destroy_cond(&volume->read_threads_cond);
 	uds_destroy_cond(&volume->read_threads_read_done_cond);

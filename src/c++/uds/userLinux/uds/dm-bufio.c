@@ -82,6 +82,7 @@ void dm_bufio_client_destroy(struct dm_bufio_client *client)
                 UDS_FREE(buffer);
 	}
 
+	uds_destroy_mutex(&client->buffer_mutex);
 	UDS_FREE(client);
 }
 

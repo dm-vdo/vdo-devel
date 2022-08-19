@@ -1154,7 +1154,6 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 	unsigned int j;
 	const struct geometry *geometry;
 	unsigned int physical_chapter;
-	unsigned int first_page;
 #ifdef TEST_INTERNAL
 
 	/*
@@ -1173,10 +1172,9 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 
 	geometry = index->volume->geometry;
 	physical_chapter = map_to_physical_chapter(geometry, virtual);
-	first_page = map_to_physical_page(geometry, physical_chapter, 0);
-	prefetch_volume_pages(&index->volume->volume_store,
-			      first_page,
-			      geometry->pages_per_chapter);
+	dm_bufio_prefetch(index->volume->client,
+			  map_to_physical_page(geometry, physical_chapter, 0),
+			  geometry->pages_per_chapter);
 	set_volume_index_open_chapter(index->volume_index, virtual);
 
 	result = rebuild_index_page_map(index, virtual);

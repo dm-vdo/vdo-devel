@@ -37,6 +37,13 @@ int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)
 		      "page is at expected location in cache");
 }
 
+static void release_page_buffer(struct cached_page *page)
+{
+	if (page->buffer != NULL) {
+		dm_bufio_release(UDS_FORGET(page->buffer));
+	}
+}
+
 /**
  * Clear a cache page.  Note: this does not clear read_pending - a read could
  * still be pending and the read thread needs to be able to proceed and restart
@@ -53,6 +60,7 @@ int assert_page_in_cache(struct page_cache *cache, struct cached_page *page)
 static void clear_cache_page(struct page_cache *cache,
 			     struct cached_page *page)
 {
+	release_page_buffer(page);
 	page->cp_physical_page = cache->num_index_entries;
 	WRITE_ONCE(page->cp_last_used, 0);
 }
@@ -300,14 +308,7 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	}
 
 	for (i = 0; i < cache->num_cache_entries; i++) {
-		struct cached_page *page = &cache->cache[i];
-
-		result = initialize_volume_page(geometry->bytes_per_page,
-						&page->cp_page_data);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-		clear_cache_page(cache, page);
+		clear_cache_page(cache, &cache->cache[i]);
 	}
 
 	return UDS_SUCCESS;
@@ -358,7 +359,7 @@ void free_page_cache(struct page_cache *cache)
 		unsigned int i;
 
 		for (i = 0; i < cache->num_cache_entries; i++) {
-			destroy_volume_page(&cache->cache[i].cp_page_data);
+			release_page_buffer(&cache->cache[i]);
 		}
 	}
 	UDS_FREE(cache->index);
@@ -377,10 +378,7 @@ void invalidate_page_cache(struct page_cache *cache)
 	}
 
 	for (i = 0; i < cache->num_cache_entries; i++) {
-		struct cached_page *page = &cache->cache[i];
-
-		release_volume_page(&page->cp_page_data);
-		clear_cache_page(cache, page);
+		clear_cache_page(cache, &cache->cache[i]);
 	}
 }
 
@@ -634,6 +632,7 @@ int select_victim_in_cache(struct page_cache *cache,
 
 	page->cp_read_pending = true;
 
+	clear_cache_page(cache, page);
 	*page_ptr = page;
 
 	return UDS_SUCCESS;
@@ -662,8 +661,6 @@ int put_page_in_cache(struct page_cache *cache,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-
-	clear_cache_page(cache, page);
 
 	page->cp_physical_page = physical_page;
 

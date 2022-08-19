@@ -6,6 +6,8 @@
  * $Id$
  */
 
+#include <linux/dm-bufio.h>
+
 #include "config.h"
 #include "errors.h"
 #include "geometry.h"
@@ -32,23 +34,17 @@ static int __must_check move_chapter(struct volume *volume,
 				     uint64_t new_physical)
 {
 	struct geometry *geometry = volume->geometry;
-	struct volume_store vs;
-	struct volume_page read_page;
-	struct volume_page write_page;
+	struct dm_bufio_client *client;
+	struct dm_buffer *read_buffer;
+	struct dm_buffer *write_buffer;
+	byte *data;
 	int result = UDS_SUCCESS;
 	unsigned int page;
 
-	result = open_volume_store(&vs, layout, 0, geometry->bytes_per_page);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	result = initialize_volume_page(geometry->bytes_per_page,
-					&read_page);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-	result = initialize_volume_page(geometry->bytes_per_page,
-					&write_page);
+	result = open_uds_volume_bufio(layout,
+				       geometry->bytes_per_page,
+				       0,
+				       &client);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -56,27 +52,29 @@ static int __must_check move_chapter(struct volume *volume,
 		unsigned int physical_page =
 			map_to_physical_page(geometry, 0, page);
 
-		result = read_volume_page(&vs, physical_page, &read_page);
-		if (result != UDS_SUCCESS) {
-			return result;
+		data = dm_bufio_read(client, physical_page, &read_buffer);
+		if (IS_ERR(data)) {
+			return uds_log_warning_strerror(-PTR_ERR(data),
+							"error reading physical page %u",
+							physical_page);
 		}
 		physical_page =
 			map_to_physical_page(geometry, new_physical, page);
-		result = prepare_to_write_volume_page(&vs, physical_page,
-						      &write_page);
-		if (result != UDS_SUCCESS) {
-			return result;
+		data = dm_bufio_new(client, physical_page, &write_buffer);
+		if (IS_ERR(data)) {
+			dm_bufio_release(read_buffer);
+			return -PTR_ERR(data);
 		}
-		memcpy(get_page_data(&write_page), get_page_data(&read_page),
+
+		memcpy(dm_bufio_get_block_data(write_buffer),
+                       dm_bufio_get_block_data(read_buffer),
 		       geometry->bytes_per_page);
-		result = write_volume_page(&vs, physical_page, &write_page);
-		if (result != UDS_SUCCESS) {
-			return result;
-		}
-		destroy_volume_page(&read_page);
-		destroy_volume_page(&write_page);
+		dm_bufio_mark_buffer_dirty(write_buffer);
+		dm_bufio_release(read_buffer);
+		dm_bufio_release(write_buffer);
 	}
-	close_volume_store(&vs);
+	result = -dm_bufio_write_dirty_buffers(client);
+	dm_bufio_client_destroy(client);
 	return UDS_SUCCESS;
 }
 

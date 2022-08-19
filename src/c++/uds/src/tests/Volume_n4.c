@@ -46,8 +46,8 @@ static void verifyPageData(uint32_t            physPage,
                            struct cached_page *cp,
                            size_t              length)
 {
-  const byte *expected = pages[physPage];
-  UDS_ASSERT_EQUAL_BYTES(expected, get_page_data(&cp->cp_page_data), length);
+  UDS_ASSERT_EQUAL_BYTES(pages[physPage], dm_bufio_get_block_data(cp->buffer),
+                         length);
 }
 
 /**********************************************************************/
