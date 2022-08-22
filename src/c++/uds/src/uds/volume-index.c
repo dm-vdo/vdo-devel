@@ -83,6 +83,46 @@ struct split_config {
 	struct geometry non_hook_geometry;
 };
 
+struct volume_index {
+	void (*abort_restoring_volume_index)(struct volume_index *volume_index);
+	int (*finish_restoring_volume_index)(struct volume_index *volume_index,
+					     struct buffered_reader **buffered_readers,
+					     unsigned int num_readers);
+	int (*finish_saving_volume_index)(const struct volume_index *volume_index,
+					  unsigned int zone_number);
+	void (*free_volume_index)(struct volume_index *volume_index);
+#ifdef TEST_INTERNAL
+	size_t (*get_volume_index_memory_used)(const struct volume_index *volume_index);
+#endif /* TEST_INTERNAL */
+	int (*get_volume_index_record)(struct volume_index *volume_index,
+				       const struct uds_chunk_name *name,
+				       struct volume_index_record *record);
+	void (*get_volume_index_stats)(const struct volume_index *volume_index,
+				       struct volume_index_stats *dense,
+				       struct volume_index_stats *sparse);
+	unsigned int (*get_volume_index_zone)(const struct volume_index *volume_index,
+					      const struct uds_chunk_name *name);
+	bool (*is_volume_index_sample)(const struct volume_index *volume_index,
+				       const struct uds_chunk_name *name);
+	uint64_t (*lookup_volume_index_name)(const struct volume_index *volume_index,
+					     const struct uds_chunk_name *name);
+	uint64_t (*lookup_volume_index_sampled_name)(const struct volume_index *volume_index,
+						     const struct uds_chunk_name *name);
+	void (*set_volume_index_open_chapter)(struct volume_index *volume_index,
+					      uint64_t virtual_chapter);
+	void (*set_volume_index_tag)(struct volume_index *volume_index,
+				     byte tag);
+	void (*set_volume_index_zone_open_chapter)(struct volume_index *volume_index,
+						   unsigned int zone_number,
+						   uint64_t virtual_chapter);
+	int (*start_restoring_volume_index)(struct volume_index *volume_index,
+					    struct buffered_reader **buffered_readers,
+					    unsigned int num_readers);
+	int (*start_saving_volume_index)(const struct volume_index *volume_index,
+					 unsigned int zone_number,
+					 struct buffered_writer *buffered_writer);
+};
+
 struct volume_index_zone5 {
 	uint64_t virtual_chapter_low;   /* The lowest virtual chapter indexed */
 	uint64_t virtual_chapter_high;  /* The highest virtual chapter indexed */
@@ -163,6 +203,7 @@ struct vi006_data {
 static const byte volume_index_record_magic = 0xAA;
 static const byte bad_magic = 0;
 
+#ifdef TEST_INTERNAL
 /*
  * In production, the default value for min_volume_index_delta_lists will be
  * replaced by MAX_ZONES*MAX_ZONES.  Some unit tests will replace
@@ -171,6 +212,7 @@ static const byte bad_magic = 0;
  */
 unsigned int min_volume_index_delta_lists;
 
+#endif /* TEST_INTERNAL */
 /**
  * Extract the address from a block name.
  *
@@ -306,6 +348,12 @@ is_volume_index_sample_006(const struct volume_index *volume_index,
 	return (extract_sampling_bytes(name) % vi6->sparse_sample_rate) == 0;
 }
 
+bool is_volume_index_sample(const struct volume_index *volume_index,
+			    const struct uds_chunk_name *name)
+{
+	return volume_index->is_volume_index_sample(volume_index, name);
+}
+
 /**
  * Get the subindex for the given chunk name
  *
@@ -359,6 +407,12 @@ get_volume_index_zone_006(const struct volume_index *volume_index,
 	return get_volume_index_zone(get_sub_index(volume_index, name), name);
 }
 
+unsigned int get_volume_index_zone(const struct volume_index *volume_index,
+				   const struct uds_chunk_name *name)
+{
+	return volume_index->get_volume_index_zone(volume_index, name);
+}
+
 static INLINE bool uses_sparse(const struct configuration *config)
 {
 	return is_sparse_geometry(config->geometry);
@@ -386,13 +440,15 @@ compute_volume_index_parameters005(const struct configuration *config,
 	 * invariant across restart, we must use the largest number of zones to
 	 * compute this minimum.
 	 */
-	unsigned long min_delta_lists =
-		(min_volume_index_delta_lists ? min_volume_index_delta_lists :
-						MAX_ZONES * MAX_ZONES);
-
+	unsigned long min_delta_lists = MAX_ZONES * MAX_ZONES;
 	struct geometry *geometry = config->geometry;
 	unsigned long records_per_chapter = geometry->records_per_chapter;
 
+#ifdef TEST_INTERNAL
+	if (min_volume_index_delta_lists > 0) {
+		min_delta_lists = min_volume_index_delta_lists;
+	}
+#endif /* TEST_INTERNAL */
 	params->num_chapters = geometry->chapters_per_volume;
 	/*
 	 * Make sure that the number of delta list records in the
@@ -537,8 +593,27 @@ static void free_volume_index_006(struct volume_index *volume_index)
 	}
 }
 
-int compute_volume_index_save_bytes005(const struct configuration *config,
-				       size_t *num_bytes)
+void free_volume_index(struct volume_index *volume_index)
+{
+	if (volume_index == NULL) {
+		return;
+	}
+
+	volume_index->free_volume_index(volume_index);
+}
+
+/**
+ * Compute the number of bytes required to save a volume index of a given
+ * configuration.
+ *
+ * @param config     The configuration of the volume index
+ * @param num_bytes  The number of bytes required to save the volume index
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+static int
+compute_volume_index_save_bytes005(const struct configuration *config,
+				   size_t *num_bytes)
 {
 	struct parameters005 params = { .address_bits = 0 };
 	int result = compute_volume_index_parameters005(config, &params);
@@ -599,8 +674,18 @@ static int split_configuration006(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-int compute_volume_index_save_bytes006(const struct configuration *config,
-				       size_t *num_bytes)
+/**
+ * Compute the number of bytes required to save a volume index of a given
+ * configuration.
+ *
+ * @param config     The configuration of the volume index
+ * @param num_bytes  The number of bytes required to save the volume index
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+static int
+compute_volume_index_save_bytes006(const struct configuration *config,
+				   size_t *num_bytes)
 {
 	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
@@ -677,6 +762,11 @@ get_volume_index_memory_used_006(const struct volume_index *volume_index)
 		const_container_of(volume_index, struct volume_index6, common);
 	return (get_volume_index_memory_used(vi6->vi_non_hook) +
 		get_volume_index_memory_used(vi6->vi_hook));
+}
+
+size_t get_volume_index_memory_used(const struct volume_index *volume_index)
+{
+	return volume_index->get_volume_index_memory_used(volume_index);
 }
 
 #endif /* TEST_INTERNAL */
@@ -956,6 +1046,14 @@ static int get_volume_index_record_006(struct volume_index *volume_index,
 						 record);
 	}
 	return result;
+}
+
+int get_volume_index_record(struct volume_index *volume_index,
+			    const struct uds_chunk_name *name,
+			    struct volume_index_record *record)
+{
+	return volume_index->get_volume_index_record(volume_index, name,
+						     record);
 }
 
 /**
@@ -1256,6 +1354,15 @@ set_volume_index_zone_open_chapter_006(struct volume_index *volume_index,
 	uds_unlock_mutex(mutex);
 }
 
+void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
+					unsigned int zone_number,
+					uint64_t virtual_chapter)
+{
+	volume_index->set_volume_index_zone_open_chapter(volume_index,
+							 zone_number,
+							 virtual_chapter);
+}
+
 /**
  * Set the open chapter number.  The volume index will be modified to index
  * the proper number of chapters ending with the new open chapter.
@@ -1319,6 +1426,13 @@ set_volume_index_open_chapter_006(struct volume_index *volume_index,
 	}
 }
 
+void set_volume_index_open_chapter(struct volume_index *volume_index,
+				   uint64_t virtual_chapter)
+{
+	volume_index->set_volume_index_open_chapter(volume_index,
+						    virtual_chapter);
+}
+
 int set_volume_index_record_chapter(struct volume_index_record *record,
 				    uint64_t virtual_chapter)
 {
@@ -1379,6 +1493,17 @@ static void set_volume_index_tag_006(struct volume_index *volume_index
 				     __always_unused,
 				     byte tag __always_unused)
 {
+}
+
+/**
+ * Set the tag value used when saving and/or restoring a volume index.
+ *
+ * @param volume_index  The volume index
+ * @param tag           The tag value
+ **/
+static void set_volume_index_tag(struct volume_index *volume_index, byte tag)
+{
+	volume_index->set_volume_index_tag(volume_index, tag);
 }
 
 /**
@@ -1452,6 +1577,23 @@ lookup_volume_index_sampled_name_006(const struct volume_index *volume_index
 }
 
 /**
+ * Do a quick read-only lookup of the sampled chunk name and return
+ * information needed by the index code to process the chunk name.
+ *
+ * @param volume_index     The volume index
+ * @param name             The chunk name
+ *
+ * @return The sparse virtual chapter, or UINT64_MAX if none
+ **/
+static uint64_t
+lookup_volume_index_sampled_name(const struct volume_index *volume_index,
+				 const struct uds_chunk_name *name)
+{
+	return volume_index->lookup_volume_index_sampled_name(volume_index,
+							      name);
+}
+
+/**
  * Do a quick read-only lookup of the chunk name and return information
  * needed by the index code to process the chunk name.
  *
@@ -1500,6 +1642,12 @@ lookup_volume_index_name_006(const struct volume_index *volume_index,
         return virtual_chapter;
 }
 
+uint64_t lookup_volume_index_name(const struct volume_index *volume_index,
+				  const struct uds_chunk_name *name)
+{
+	return volume_index->lookup_volume_index_name(volume_index, name);
+}
+
 /**
  * Abort restoring a volume index from an input stream.
  *
@@ -1523,6 +1671,11 @@ static void abort_restoring_volume_index_006(struct volume_index *volume_index)
 		container_of(volume_index, struct volume_index6, common);
 	abort_restoring_volume_index(vi6->vi_non_hook);
 	abort_restoring_volume_index(vi6->vi_hook);
+}
+
+void abort_restoring_volume_index(struct volume_index *volume_index)
+{
+	volume_index->abort_restoring_volume_index(volume_index);
 }
 
 static int __must_check decode_volume_index_header_005(struct buffer *buffer,
@@ -1803,6 +1956,15 @@ start_restoring_volume_index_006(struct volume_index *volume_index,
 					    num_readers);
 }
 
+int start_restoring_volume_index(struct volume_index *volume_index,
+				 struct buffered_reader **buffered_readers,
+				 unsigned int num_readers)
+{
+	return volume_index->start_restoring_volume_index(volume_index,
+							  buffered_readers,
+							  num_readers);
+}
+
 /**
  * Finish restoring a volume index from an input stream.
  *
@@ -1848,6 +2010,15 @@ finish_restoring_volume_index_006(struct volume_index *volume_index,
 	return finish_restoring_volume_index(vi6->vi_hook,
 					     buffered_readers,
 					     num_readers);
+}
+
+int finish_restoring_volume_index(struct volume_index *volume_index,
+				  struct buffered_reader **buffered_readers,
+				  unsigned int num_readers)
+{
+	return volume_index->finish_restoring_volume_index(volume_index,
+							   buffered_readers,
+							   num_readers);
 }
 
 int load_volume_index(struct volume_index *volume_index,
@@ -2071,6 +2242,15 @@ start_saving_volume_index_006(const struct volume_index *volume_index,
 	return UDS_SUCCESS;
 }
 
+int start_saving_volume_index(const struct volume_index *volume_index,
+			      unsigned int zone_number,
+			      struct buffered_writer *buffered_writer)
+{
+	return volume_index->start_saving_volume_index(volume_index,
+						       zone_number,
+						       buffered_writer);
+}
+
 /**
  * Finish saving a volume index to an output stream.  Force the writing of
  * all of the remaining data.  If an error occurred asynchronously during
@@ -2112,6 +2292,13 @@ finish_saving_volume_index_006(const struct volume_index *volume_index,
 		result = finish_saving_volume_index(vi6->vi_hook, zone_number);
 	}
 	return result;
+}
+
+int finish_saving_volume_index(const struct volume_index *volume_index,
+			       unsigned int zone_number)
+{
+	return volume_index->finish_saving_volume_index(volume_index,
+							zone_number);
 }
 
 int save_volume_index(struct volume_index *volume_index,
@@ -2206,6 +2393,14 @@ static void get_volume_index_stats_006(const struct volume_index *volume_index,
 	get_volume_index_stats(vi6->vi_hook, sparse, &dummy_stats);
 }
 
+void get_volume_index_stats(const struct volume_index *volume_index,
+			    struct volume_index_stats *dense,
+			    struct volume_index_stats *sparse)
+{
+	volume_index->get_volume_index_stats(volume_index, dense, sparse);
+}
+
+#ifdef TEST_INTERNAL
 void get_volume_index_combined_stats(const struct volume_index *volume_index,
 				     struct volume_index_stats *stats)
 {
@@ -2226,9 +2421,19 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 	stats->early_flushes = dense.early_flushes + sparse.early_flushes;
 }
 
-int make_volume_index005(const struct configuration *config,
-			 uint64_t volume_nonce,
-			 struct volume_index **volume_index)
+#endif /* TEST_INTERNAL */
+/**
+ * Make a new volume index.
+ *
+ * @param config        The configuration of the volume index
+ * @param volume_nonce  The nonce used to authenticate the index
+ * @param volume_index  Location to hold new volume index ptr
+ *
+ * @return error code or UDS_SUCCESS
+ **/
+static int make_volume_index005(const struct configuration *config,
+				uint64_t volume_nonce,
+				struct volume_index **volume_index)
 {
 	struct volume_index5 *vi5;
 	struct parameters005 params = { .address_bits = 0 };
@@ -2325,9 +2530,18 @@ int make_volume_index005(const struct configuration *config,
 	return result;
 }
 
-int make_volume_index006(const struct configuration *config,
-			 uint64_t volume_nonce,
-			 struct volume_index **volume_index)
+/**
+ * Make a new volume index.
+ *
+ * @param config        The configuration of the volume index
+ * @param volume_nonce  The nonce used to authenticate the index
+ * @param volume_index  Location to hold new volume index ptr
+ *
+ * @return error code or UDS_SUCCESS
+ **/
+static int make_volume_index006(const struct configuration *config,
+				uint64_t volume_nonce,
+				struct volume_index **volume_index)
 {
 	struct split_config split;
 	unsigned int zone;
