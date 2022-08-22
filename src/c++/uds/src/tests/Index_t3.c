@@ -7,7 +7,6 @@
 #include "assertions.h"
 #include "index.h"
 #include "logger.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
 

@@ -7,6 +7,7 @@
 #include "assertions.h"
 #include "hash-utils.h"
 #include "memory-alloc.h"
+#include "random.h"
 #include "testPrototypes.h"
 
 static struct configuration *config;
@@ -53,7 +54,7 @@ static void fillChapter(struct index_page_map *map,
 
   unsigned int listNumber, page;
   for (page = 0, listNumber = 0; page < lastIndexPageNumber; page++) {
-    listNumber += mean + random_in_range(0, mean / 5) - (mean / 10);
+    listNumber += mean + (random() % ((mean / 5) + 1)) - (mean / 10);
     if (listNumber >= geometry->delta_lists_per_chapter) {
       listNumber = geometry->delta_lists_per_chapter - 1;
     }

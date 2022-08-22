@@ -6,11 +6,12 @@
  * $Id$
  */
 
+#include <linux/prandom.h>
+#include <string.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "data-vio.h"
-#include "random.h"
-#include <string.h>
 
 /**********************************************************************/
 static void isZeroTest(void)
@@ -18,7 +19,7 @@ static void isZeroTest(void)
   static char testBlock[VDO_BLOCK_SIZE];
   static char dataBlock[VDO_BLOCK_SIZE];
 
-  fill_randomly(dataBlock, sizeof(dataBlock));
+  prandom_bytes(dataBlock, sizeof(dataBlock));
   // The tests below assume leading/trailing bytes are nonzero.
   if (dataBlock[0] == 0) {
     dataBlock[0] = 1;

@@ -10,7 +10,6 @@
 #include "index.h"
 #include "memory-alloc.h"
 #include "open-chapter.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
 

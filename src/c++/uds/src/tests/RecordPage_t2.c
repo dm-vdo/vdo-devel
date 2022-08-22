@@ -3,10 +3,11 @@
  * Copyright Red Hat
  */
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "volume.h"
 
@@ -48,7 +49,7 @@ static void recordPageTest(int numRecords)
 
   int repetition;
   for (repetition = 0; repetition < REPETITIONS; repetition++) {
-    fill_randomly((byte *) records, bytesPerPage);
+    prandom_bytes((byte *) records, bytesPerPage);
     ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
     UDS_ASSERT_SUCCESS(encode_record_page(volume, records, recordPage));
     encodeTime += ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);

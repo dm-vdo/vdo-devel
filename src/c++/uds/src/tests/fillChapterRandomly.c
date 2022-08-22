@@ -4,7 +4,6 @@
  */
 
 #include "assertions.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
 

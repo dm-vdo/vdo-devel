@@ -8,7 +8,6 @@
 #include "config.h"
 #include "hash-utils.h"
 #include "index.h"
-#include "random.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "testRequests.h"

@@ -8,6 +8,8 @@
  * large enough to force chapters to be read back in from volume storage.
  **/
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
@@ -15,7 +17,6 @@
 #include "index.h"
 #include "index-session.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "testPrototypes.h"
 
 typedef struct {
@@ -117,7 +118,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
   setExpectations(testIndex->indexSession, &expect);
   uint64_t counter = group->startCounter;
   struct uds_chunk_data metadata;
-  fill_randomly(&metadata, sizeof(metadata));
+  prandom_bytes(&metadata, sizeof(metadata));
   group->type        = type;
   group->newMetadata = metadata;
   GroupRequest *groupRequests;

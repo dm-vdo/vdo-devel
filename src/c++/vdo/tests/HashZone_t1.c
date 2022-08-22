@@ -8,8 +8,9 @@
 
 #include "albtest.h"
 
+#include <linux/prandom.h>
+
 #include "numeric.h"
-#include "random.h"
 
 #include "dedupe.h"
 #include "thread-config.h"
@@ -27,7 +28,7 @@
  **/
 static void createRandomBlockName(struct uds_chunk_name *name)
 {
-  fill_randomly(name->name, UDS_CHUNK_NAME_SIZE);
+  prandom_bytes(name->name, UDS_CHUNK_NAME_SIZE);
 }
 
 /**

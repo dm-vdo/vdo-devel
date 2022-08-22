@@ -3,11 +3,12 @@
  * Copyright Red Hat
  */
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "io-factory.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "testPrototypes.h"
 
 enum { DATA_BLOCKS = 8 };
@@ -20,7 +21,7 @@ static struct io_factory *factory;
 static void createAndWriteData(void)
 {
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, byte, __func__, &data));
-  fill_randomly(data, DATA_SIZE);
+  prandom_bytes(data, DATA_SIZE);
 
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   struct dm_bufio_client *client = NULL;

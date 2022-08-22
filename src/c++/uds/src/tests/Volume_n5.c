@@ -7,7 +7,6 @@
 #include "assertions.h"
 #include "index-session.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "request-queue.h"
 #include "testPrototypes.h"
 

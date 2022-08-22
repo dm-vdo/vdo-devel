@@ -28,7 +28,6 @@
 #include "hash-utils.h"
 #include "logger.h"
 #include "oldInterfaces.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
 

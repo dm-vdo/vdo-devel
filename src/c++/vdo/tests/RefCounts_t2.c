@@ -8,10 +8,11 @@
 
 #include "albtest.h"
 
+#include <stdlib.h>
+
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "num-utils.h"
-#include "random.h"
 #include "syscalls.h"
 #include "time-utils.h"
 

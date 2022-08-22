@@ -8,11 +8,11 @@
 
 #include "albtest.h"
 
+#include <linux/prandom.h>
 #include <stdlib.h>
 
 #include "memory-alloc.h"
 #include "permassert.h"
-#include "random.h"
 #include "syscalls.h"
 
 #include "block-allocator.h"
@@ -173,7 +173,7 @@ static void packingTest(void)
                   vdo_unpack_block_map_entry(&maxPBN).pbn);
 
   physical_block_number_t pbn[ARRAY_SIZE];
-  fill_randomly(pbn, sizeof(pbn));
+  prandom_bytes(pbn, sizeof(pbn));
 
   char buffer[VDO_BLOCK_SIZE];
   struct block_map_page *page

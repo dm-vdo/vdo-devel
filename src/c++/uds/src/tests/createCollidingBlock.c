@@ -4,7 +4,6 @@
  */
 
 #include "hash-utils.h"
-#include "random.h"
 #include "testPrototypes.h"
 
 /**********************************************************************/

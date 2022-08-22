@@ -44,7 +44,6 @@ UDS_COMMON_SOURCES =						\
 					page-cache.c		\
 					permassert.c		\
 					radix-sort.c		\
-					random.c		\
 					sparse-cache.c		\
 					string-utils.c		\
 					time-utils.c		\

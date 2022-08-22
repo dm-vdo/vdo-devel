@@ -10,7 +10,6 @@
 #include "index-layout.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "request-queue.h"
 #include "testPrototypes.h"
 

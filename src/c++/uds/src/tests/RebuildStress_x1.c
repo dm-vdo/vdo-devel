@@ -69,7 +69,8 @@ static void fullRebuildTest(void)
   int loopCount = 0;
   do {
     albPrint("===== RebuildStress_x1 ===== Pass %d =====", ++loopCount);
-    unsigned int numBlocks = random_in_range(1 << 20, numBlocksPerIndex / 4);
+    unsigned int numBlocks
+      = (1 << 20) + random() % ((numBlocksPerIndex / 4) - (1 << 20) + 1);
     albPrint("Add %d chunks to the index", numBlocks);
     albFlush();
     unsigned int i;

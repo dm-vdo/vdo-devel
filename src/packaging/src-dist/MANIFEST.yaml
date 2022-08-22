@@ -166,7 +166,6 @@ tarballs:
             page-cache.[hc]
             permassert.[hc]
             radix-sort.[hc]
-            random.[hc]
             request-queue.h
             sparse-cache.[hc]
             string-utils.[hc]
@@ -194,6 +193,7 @@ tarballs:
             logger.c
             memoryAlloc.c
             minisyslog.[hc]
+            random.[hc]
             requestQueue.c
             syscalls.[hc]
             threadCondVar.c
@@ -208,6 +208,7 @@ tarballs:
             blkdev.h
             dm-bufio.h
             log2.h
+            prandom.h
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/userLinux/uds/asm:
           dest: utils/uds/asm
@@ -451,8 +452,6 @@ tarballs:
             permassert.h
             radix-sort.c
             radix-sort.h
-            random.c
-            random.h
             request-queue.h
             sparse-cache.c
             sparse-cache.h

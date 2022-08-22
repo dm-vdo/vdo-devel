@@ -9,7 +9,6 @@
 #include "delta-index.h"
 #include "hash-utils.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "testPrototypes.h"
 
 enum { SAMPLE_CHAPTER_NUMBER = 0x65537 };

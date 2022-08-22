@@ -3,11 +3,12 @@
  * Copyright Red Hat
  */
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "radix-sort.h"
-#include "random.h"
 #include "string-utils.h"
 
 /**********************************************************************/
@@ -280,7 +281,7 @@ static void testRandom(void)
   for (i = 0; i < SIZE; i++) {
     keys[i] = (byte *) &data[i];
   }
-  fill_randomly(data, SIZE * sizeof(data[0]));
+  prandom_bytes(data, SIZE * sizeof(data[0]));
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, keys, SIZE, sizeof(data[0])));
   assertSorted(keys, SIZE, sizeof(data[0]));
   free_radix_sorter(radixSorter);

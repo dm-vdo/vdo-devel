@@ -76,7 +76,7 @@ static void testAllocateCacheAligned(void)
   };
   char *buffers[ITERATIONS];
   for (unsigned int i = 0; i < ITERATIONS; i++) {
-    size_t size = random_in_range(1, 1 + (i * 1000));
+    size_t size = 1 + random() % (i * 1000 + 1);
     UDS_ASSERT_SUCCESS(uds_allocate_cache_aligned(size, "test", &buffers[i]));
     CU_ASSERT_EQUAL(0, (uintptr_t) buffers[i] & LINE_MASK);
   }

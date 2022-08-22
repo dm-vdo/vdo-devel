@@ -11,7 +11,6 @@
 #include <stdarg.h>
 
 #include "memory-alloc.h"
-#include "random.h"
 
 #include "pbn-lock-pool.h"
 

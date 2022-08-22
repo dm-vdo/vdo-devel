@@ -19,10 +19,11 @@
 
 #include "albtest.h"
 
+#include <linux/prandom.h>
+
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
-#include "random.h"
 #include "uds-threads.h"
 
 #include "admin-state.h"
@@ -454,7 +455,7 @@ static void testEntryPacking(void)
   // The block map entry encoding is tested for correctness elsewhere,
   // so just spot-check that it's used with a random encoding.
   struct packed_recovery_journal_entry packed;
-  fill_randomly((byte *) &packed, sizeof(packed));
+  prandom_bytes((byte *) &packed, sizeof(packed));
   entry = vdo_unpack_recovery_journal_entry(&packed);
   checkEntryPacking(&entry, (byte *) &packed);
 }

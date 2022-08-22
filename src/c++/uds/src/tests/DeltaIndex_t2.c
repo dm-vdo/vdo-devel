@@ -6,7 +6,6 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "delta-index.h"
-#include "random.h"
 
 /*
  * This test ensures the portability of delta indices across platforms.  It is

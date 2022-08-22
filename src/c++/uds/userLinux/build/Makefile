@@ -34,6 +34,7 @@ UDS_OBJECTS =	$(notdir $(UDS_COMMON_SOURCES:%.c=%.o))	\
 		logger.o		\
 		memoryAlloc.o		\
 		minisyslog.o		\
+		random.o		\
 		requestQueue.o		\
 		syscalls.o		\
 		threadCondVar.o		\

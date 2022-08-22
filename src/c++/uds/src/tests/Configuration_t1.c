@@ -18,7 +18,6 @@
 #include "chapter-index.h"
 #include "hash-utils.h"
 #include "logger.h"
-#include "random.h"
 #include "testPrototypes.h"
 
 /**********************************************************************/

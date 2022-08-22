@@ -130,7 +130,6 @@ EXPORT_SYMBOL_GPL(zero_bytes);
 #include "index-session.h"
 #include "io-factory.h"
 #include "open-chapter.h"
-#include "random.h"
 #include "request-queue.h"
 #include "volume.h"
 
@@ -231,7 +230,6 @@ EXPORT_SYMBOL_GPL(put_page_in_cache);
 EXPORT_SYMBOL_GPL(put_uds_io_factory);
 EXPORT_SYMBOL_GPL(put_volume_index_record);
 EXPORT_SYMBOL_GPL(radix_sort);
-EXPORT_SYMBOL_GPL(random_in_range);
 EXPORT_SYMBOL_GPL(read_from_buffered_reader);
 EXPORT_SYMBOL_GPL(read_index_page_map);
 EXPORT_SYMBOL_GPL(rel_time_to_string);

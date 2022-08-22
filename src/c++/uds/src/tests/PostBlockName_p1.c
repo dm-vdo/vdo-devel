@@ -11,6 +11,8 @@
  * no deduplication, and steady-state operation with 30-70% deduplication.
  **/
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
@@ -57,7 +59,7 @@ static uint64_t halfDedupe(FillState *state)
   }
   if (dupeCounters[index] >= state->nameCounter) {
     uint64_t random64;
-    fill_randomly(&random64, sizeof(random64));
+    prandom_bytes(&random64, sizeof(random64));
     dupeCounters[index] = random64 % state->nameCounter;
   }
   return dupeCounters[index];

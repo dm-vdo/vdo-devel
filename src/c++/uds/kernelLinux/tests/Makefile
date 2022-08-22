@@ -66,7 +66,7 @@ ZUB_DKMS_SOURCES =	albtest.c		\
 					volumeUtils.c)
 
 
-ZUB_DKMS_HEADERS = $(wildcard $(TEST_DIR)/*.h)
+ZUB_DKMS_HEADERS = $(wildcard $(TEST_DIR)/*.h) $(wildcard ./*.h)
 
 # These are extra EXTRA_CFLAGS for the zubenelgenubi module build.
 ZUB_EXTRA = 	$(ZUB_CFLAGS) -DTEST_INTERNAL		\
@@ -89,7 +89,8 @@ $(ZUB_PACKAGE): $(UDS_TGZ) $(ZUB_DKMS_SOURCES) $(ZUB_DKMS_HEADERS) \
 		sed -e s/initializeModule/initializeModule_$$B/g \
 		<$$T >$(ZUB_SUBDIR)/$$B.c; done
 	$(call DKMS_MAKEFILE, $(ZUB_NAME), $(ZUB_DKMS_OBJECTS), \
-		$(ZUB_EXTRA) -I'$$(src)/../uds') >$(ZUB_SUBDIR)/Makefile
+		$(ZUB_EXTRA) -I'$$(src)/../uds' -I'$$(src)/../tests') \
+		>$(ZUB_SUBDIR)/Makefile
 	echo OBJECT_FILES_NON_STANDARD = y >>$(ZUB_SUBDIR)/Makefile
 	echo obj-m += $(ZUB_NAME)/ >>$(ZUB_DIR)/Makefile
 	$(call DKMS_CONF, $(ZUB_NAME), $(ZUB_VERSION), $(UDS_NAME), \

@@ -3,6 +3,8 @@
  * Copyright Red Hat
  */
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "memory-alloc.h"
@@ -100,7 +102,7 @@ static void testWriteChapter(void)
                                   struct uds_chunk_record, __func__,
                                   &records));
 
-  fill_randomly((byte *) records,
+  prandom_bytes((byte *) records,
                 BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter

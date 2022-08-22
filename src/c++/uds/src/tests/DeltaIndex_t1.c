@@ -770,8 +770,8 @@ static void saveRestoreTest(void)
                                   &names));
   unsigned int i;
   for (i = 0; i < NUM_KEYS; i++) {
-    keys[i] = random_in_range(0, MAX_KEY - 1);
-    lists[i] = random_in_range(0, NUM_LISTS - 1);
+    keys[i] = random() % MAX_KEY;
+    lists[i] = random() % NUM_LISTS;
     createBlockName(&names[i]);
     UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, lists[i], keys[i],
                                              names[i].name, &entry));

@@ -12,7 +12,6 @@
 #include "blockTestUtils.h"
 #include "hash-utils.h"
 #include "oldInterfaces.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "uds.h"
 

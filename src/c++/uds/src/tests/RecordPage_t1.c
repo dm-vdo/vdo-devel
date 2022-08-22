@@ -3,10 +3,11 @@
  * Copyright Red Hat
  */
 
+#include <linux/prandom.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "testPrototypes.h"
 #include "volume.h"
 
@@ -30,7 +31,7 @@ static void testSearchRecordPage(void)
                                    sizeof(struct uds_chunk_record)),
                                   struct uds_chunk_record, __func__,
                                   &records));
-  fill_randomly((byte *) records, bytesPerPage);
+  prandom_bytes((byte *) records, bytesPerPage);
 
   struct volume *volume;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));

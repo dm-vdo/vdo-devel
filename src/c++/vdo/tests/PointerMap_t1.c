@@ -8,11 +8,11 @@
 
 #include "albtest.h"
 
+#include <linux/prandom.h>
 #include <stdlib.h>
 
 #include "assertions.h"
 #include "memory-alloc.h"
-#include "random.h"
 #include "string-utils.h"
 #include "syscalls.h"
 
@@ -159,7 +159,7 @@ static void testSingletonMap(void)
 
   // Add one entry with a randomly-selected key.
   char key[10] = { 0, };
-  fill_randomly(key, sizeof(key) - 1);
+  prandom_bytes(key, sizeof(key) - 1);
   void *value = &key;
   void *oldValue = &value;
   UDS_ASSERT_SUCCESS(pointer_map_put(map, key, value, true, &oldValue));
@@ -187,7 +187,7 @@ static void testSingletonMap(void)
   // this will frequently (1/N chance) have the same hash as the existing key.
   char bogusKey[10] = { 0, };
   do {
-    fill_randomly(bogusKey, sizeof(bogusKey) - 1);
+    prandom_bytes(bogusKey, sizeof(bogusKey) - 1);
   } while (strcmp(key, bogusKey) == 0);
   CU_ASSERT_PTR_NULL(pointer_map_remove(map, bogusKey));
   verifySingletonMap(map, key, value);

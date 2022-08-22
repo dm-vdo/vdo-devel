@@ -7,6 +7,7 @@
 #define TEST_PROTOTYPES_H
 
 #include <linux/murmurhash3.h>
+#include <linux/prandom.h>
 
 #include "compiler.h"
 #include "config.h"
@@ -17,7 +18,6 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
-#include "random.h"
 #include "type-defs.h"
 #include "uds.h"
 
@@ -73,7 +73,7 @@ struct configuration *createConfigForAlbtest(int argc, const char **argv)
 
 static INLINE void createRandomBlockName(struct uds_chunk_name *name)
 {
-  fill_randomly(name->name, UDS_CHUNK_NAME_SIZE);
+  prandom_bytes(name->name, UDS_CHUNK_NAME_SIZE);
 }
 
 /**
@@ -95,7 +95,7 @@ void createRandomBlockNameInZone(const struct uds_index *index,
  **/
 static INLINE void createRandomMetadata(struct uds_chunk_data *data)
 {
-  fill_randomly(data->data, UDS_METADATA_SIZE);
+  prandom_bytes(data->data, UDS_METADATA_SIZE);
 }
 
 /**
@@ -235,7 +235,7 @@ static INLINE struct uds_chunk_name murmurGenerator(const void *data,
  **/
 static INLINE void randomizeUdsNonce(struct uds_parameters *params)
 {
-  fill_randomly(&params->nonce, sizeof(params->nonce));
+  prandom_bytes(&params->nonce, sizeof(params->nonce));
 }
 
 /**

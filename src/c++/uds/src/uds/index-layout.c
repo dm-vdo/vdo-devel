@@ -6,6 +6,7 @@
 #include "index-layout.h"
 
 #include <linux/murmurhash3.h>
+#include <linux/prandom.h>
 
 #include "buffer.h"
 #include "compiler.h"
@@ -14,7 +15,6 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "open-chapter.h"
-#include "random.h"
 #include "time-utils.h"
 #include "volume-index.h"
 
@@ -301,9 +301,10 @@ int uds_compute_index_size(const struct uds_parameters *parameters,
 static void create_unique_nonce_data(byte *buffer)
 {
 	ktime_t now = current_time_ns(CLOCK_REALTIME);
-	uint32_t rand = random_in_range(1, (1 << 30) - 1);
+	uint32_t rand;
 	size_t offset = 0;
 
+	prandom_bytes(&rand, sizeof(uint32_t));
 	memcpy(buffer + offset, &now, sizeof(now));
 	offset += sizeof(now);
 	memcpy(buffer + offset, &rand, sizeof(rand));
