@@ -4,7 +4,7 @@
  */
 
 /**
- * BlockName_n2 tests the uds_start_chunk_operation interface, using datasets
+ * BlockName_n2 tests the uds_launch_request interface, using datasets
  * large enough to force chapters to be read back in from volume storage.
  **/
 
@@ -135,7 +135,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
     gr->request.new_metadata = group->newMetadata;
     gr->request.type         = type;
     counter++;
-    UDS_ASSERT_SUCCESS(uds_start_chunk_operation(&gr->request));
+    UDS_ASSERT_SUCCESS(uds_launch_request(&gr->request));
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(testIndex->indexSession));
   UDS_FREE(groupRequests);

@@ -423,7 +423,7 @@ static uint64_t vdo_dedupe_index_timeout_jiffies;
 static uint64_t vdo_dedupe_index_min_timer_jiffies;
 
 #ifdef INTERNAL
-uds_request_hook *uds_chunk_operation_hook = NULL;
+uds_request_hook *uds_launch_request_hook = NULL;
 
 #endif /* INTERNAL */
 static inline struct hash_zone *
@@ -3687,10 +3687,10 @@ static void prepare_uds_request(struct uds_request *request,
 }
 
 #ifdef INTERNAL
-static int test_start_chunk_operation(struct uds_request *request)
+static int test_launch_request(struct uds_request *request)
 {
-	if (uds_chunk_operation_hook != NULL) {
-		int result = uds_chunk_operation_hook(request);
+	if (uds_launch_request_hook != NULL) {
+		int result = uds_launch_request_hook(request);
 		if (result == UDS_ERROR_CODE_LAST) {
 			return UDS_SUCCESS;
 		}
@@ -3700,7 +3700,7 @@ static int test_start_chunk_operation(struct uds_request *request)
 		}
 	}
 
-	return uds_start_chunk_operation(request);
+	return uds_launch_request(request);
 }
 
 #endif /* INTERNAL */
@@ -3741,9 +3741,9 @@ query_index(struct data_vio *data_vio, enum uds_request_type operation)
 	list_add_tail(&context->list_entry, &zone->pending);
 	start_expiration_timer(context);
 #ifdef INTERNAL
-	result = test_start_chunk_operation(&context->request);
+	result = test_launch_request(&context->request);
 #else /* not INTERNAL */
-	result = uds_start_chunk_operation(&context->request);
+	result = uds_launch_request(&context->request);
 #endif /* INTERNAL */
 	if (result != UDS_SUCCESS) {
 		context->request.status = result;
@@ -3863,7 +3863,7 @@ static int process_fill_message(struct hash_zones *zones)
 				*((struct uds_chunk_data *) &name);
 			request->type = UDS_POST;
 
-			result = uds_start_chunk_operation(request);
+			result = uds_launch_request(request);
 			if (result != UDS_SUCCESS) {
 				uds_log_error_strerror(result,
 						       "Error starting POST operation");

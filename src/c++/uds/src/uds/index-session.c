@@ -110,7 +110,7 @@ static int get_index_session(struct uds_index_session *index_session)
 	return result;
 }
 
-int uds_start_chunk_operation(struct uds_request *request)
+int uds_launch_request(struct uds_request *request)
 {
 	size_t internal_size;
 	int result;

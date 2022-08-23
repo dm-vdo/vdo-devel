@@ -72,7 +72,7 @@ int oldPostBlockNameResult(struct uds_index_session    *session,
   or->request.session      = session;
   or->request.new_metadata = *blockAddress;
   or->request.type         = UDS_POST;
-  int result = uds_start_chunk_operation(&or->request);
+  int result = uds_launch_request(&or->request);
   if (result != UDS_SUCCESS) {
     UDS_FREE(or);
     uds_release_semaphore(&requestSemaphore);
@@ -97,5 +97,5 @@ void oldUpdateBlockMapping(struct uds_index_session    *session,
   or->request.session      = session;
   or->request.new_metadata = *blockAddress;
   or->request.type         = UDS_UPDATE;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(&or->request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(&or->request));
 }

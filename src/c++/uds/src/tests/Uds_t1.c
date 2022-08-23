@@ -36,7 +36,7 @@ static void basicsTest(void)
 {
   struct uds_request *request;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, __func__, &request));
-  UDS_ASSERT_ERROR(-EINVAL, uds_start_chunk_operation(request));
+  UDS_ASSERT_ERROR(-EINVAL, uds_launch_request(request));
   request->callback = callback;
 
   struct uds_chunk_data meta1, meta2, meta3;
@@ -52,7 +52,7 @@ static void basicsTest(void)
   request->new_metadata = meta1;
   request->old_metadata = meta3;
   createRandomBlockName(&request->chunk_name);
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_FALSE(request->found);
 
@@ -61,7 +61,7 @@ static void basicsTest(void)
   request->found = false;
   request->new_metadata = meta2;
   request->old_metadata = meta3;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_TRUE(request->found);
   UDS_ASSERT_BLOCKDATA_EQUAL(&request->old_metadata, &meta1);
@@ -72,7 +72,7 @@ static void basicsTest(void)
   request->found = false;
   request->new_metadata = meta3;
   request->old_metadata = meta3;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_TRUE(request->found);
   UDS_ASSERT_BLOCKDATA_EQUAL(&request->old_metadata, &meta1);
@@ -82,7 +82,7 @@ static void basicsTest(void)
   request->found = false;
   request->new_metadata = meta2;
   request->old_metadata = meta3;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_TRUE(request->found);
   UDS_ASSERT_BLOCKDATA_EQUAL(&request->old_metadata, &meta1);
@@ -93,7 +93,7 @@ static void basicsTest(void)
   request->found = false;
   request->new_metadata = meta3;
   request->old_metadata = meta3;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_TRUE(request->found);
   UDS_ASSERT_BLOCKDATA_EQUAL(&request->old_metadata, &meta2);
@@ -101,7 +101,7 @@ static void basicsTest(void)
   // delete - delete existing entry
   request->type = UDS_DELETE;
   request->found = false;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_TRUE(request->found);
 
@@ -110,14 +110,14 @@ static void basicsTest(void)
   request->found = false;
   request->new_metadata = meta3;
   request->old_metadata = meta3;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_FALSE(request->found);
 
   // delete - delete nonexisting entry
   request->type = UDS_DELETE;
   request->found = true;
-  UDS_ASSERT_SUCCESS(uds_start_chunk_operation(request));
+  UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_FALSE(request->found);
 

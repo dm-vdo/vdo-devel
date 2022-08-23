@@ -83,7 +83,7 @@ static void fullRebuildTest(void)
       udsRequest->callback   = finishChunk;
       udsRequest->session    = indexSession;
       udsRequest->type       = UDS_POST;
-      UDS_ASSERT_SUCCESS(uds_start_chunk_operation(udsRequest));
+      UDS_ASSERT_SUCCESS(uds_launch_request(udsRequest));
       counter++;
     }
     // Report the index size

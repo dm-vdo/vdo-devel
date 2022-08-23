@@ -266,7 +266,7 @@ struct uds_request;
 
 /**
  * Callback function invoked to inform the Application Software that an
- * operation started by #uds_start_chunk_operation has completed.
+ * operation started by #uds_launch_request has completed.
  *
  * @param [in] request  The operation that finished.  When the callback
  *                      function is called, this uds_request structure can be
@@ -275,7 +275,7 @@ struct uds_request;
 typedef void uds_chunk_callback_t(struct uds_request *request);
 
 /**
- * Request structure passed to #uds_start_chunk_operation to begin an
+ * Request structure passed to #uds_launch_request to begin an
  * operation, and returned to the Application Software when the callback
  * function is invoked.
  **/
@@ -535,7 +535,7 @@ int __must_check uds_get_index_stats(struct uds_index_session *session,
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-int __must_check uds_start_chunk_operation(struct uds_request *request);
+int __must_check uds_launch_request(struct uds_request *request);
 /** @} */
 
 #endif /* UDS_H */

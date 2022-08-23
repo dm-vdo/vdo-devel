@@ -56,7 +56,7 @@ static bool blockDedupeRequestLocked(void *context)
 {
   blockedRequests[blockedCount++] = context;
   if (blockedCount == TOTAL_COUNT) {
-    uds_chunk_operation_hook = NULL;
+    uds_launch_request_hook = NULL;
   }
 
   return true;
@@ -123,7 +123,7 @@ static void testDedupeTimeouts(void)
 
   // Write duplicates, but block all their dedupe requests
   blockedCount = 0;
-  uds_chunk_operation_hook = blockDedupeRequest;
+  uds_launch_request_hook = blockDedupeRequest;
   IORequest *request = launchIndexedWrite(TOTAL_COUNT, TOTAL_COUNT, 0);
   waitForCondition(allRequestsBlocked, NULL);
 
@@ -144,7 +144,7 @@ static void testDedupeTimeouts(void)
     }
     querying = context->requestor;
     setCompletionEnqueueHook(signalQueryComplete);
-    VDO_ASSERT_SUCCESS(uds_start_chunk_operation(blockedRequests[i]));
+    VDO_ASSERT_SUCCESS(uds_launch_request(blockedRequests[i]));
     waitForStateAndClear(&queryDone);
     completeIndex++;
   }
@@ -164,7 +164,7 @@ static void testDedupeTimeouts(void)
       continue;
     }
 
-    VDO_ASSERT_SUCCESS(uds_start_chunk_operation(blockedRequests[i]));
+    VDO_ASSERT_SUCCESS(uds_launch_request(blockedRequests[i]));
   }
 }
 

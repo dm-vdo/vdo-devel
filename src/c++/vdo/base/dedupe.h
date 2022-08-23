@@ -89,6 +89,6 @@ void vdo_set_dedupe_index_min_timer_interval(unsigned int value);
 
 #ifdef INTERNAL
 typedef int uds_request_hook(struct uds_request *request);
-extern uds_request_hook *uds_chunk_operation_hook;
+extern uds_request_hook *uds_launch_request_hook;
 #endif /* INTERNAL */
 #endif /* DEDUPE_H */
