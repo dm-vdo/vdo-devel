@@ -28,28 +28,31 @@ dm_bufio_client_create(struct block_device *bdev,
 		       void (*write_callback)(struct dm_buffer *),
 		       unsigned int flags);
 
-void dm_bufio_client_destroy(struct dm_bufio_client *c);
+void dm_bufio_client_destroy(struct dm_bufio_client *client);
 
-void dm_bufio_set_sector_offset(struct dm_bufio_client *c, sector_t start);
+void dm_bufio_set_sector_offset(struct dm_bufio_client *client,
+				sector_t start);
 
-void *dm_bufio_new(struct dm_bufio_client *c,
+void *dm_bufio_new(struct dm_bufio_client *client,
 		   sector_t block,
-		   struct dm_buffer **bp);
+		   struct dm_buffer **buffer_ptr);
 
-void *dm_bufio_read(struct dm_bufio_client *c,
+void *dm_bufio_read(struct dm_bufio_client *client,
 		    sector_t block,
-		    struct dm_buffer **bp);
+		    struct dm_buffer **buffer_ptr);
 
-void dm_bufio_prefetch(struct dm_bufio_client *c,
+void dm_bufio_prefetch(struct dm_bufio_client *client,
 		       sector_t block,
-		       unsigned n_blocks);
+		       unsigned block_count);
 
-void dm_bufio_release(struct dm_buffer *b);
+void dm_bufio_release(struct dm_buffer *buffer);
 
-void dm_bufio_mark_buffer_dirty(struct dm_buffer *b);
+void dm_bufio_release_move(struct dm_buffer *buffer, sector_t new_block);
 
-int dm_bufio_write_dirty_buffers(struct dm_bufio_client *c);
+void dm_bufio_mark_buffer_dirty(struct dm_buffer *buffer);
 
-void *dm_bufio_get_block_data(struct dm_buffer *b);
+int dm_bufio_write_dirty_buffers(struct dm_bufio_client *client);
+
+void *dm_bufio_get_block_data(struct dm_buffer *buffer);
 
 #endif /* LINUX_DM_BUFIO_H */

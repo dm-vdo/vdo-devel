@@ -35,8 +35,7 @@ static int __must_check move_chapter(struct volume *volume,
 {
 	struct geometry *geometry = volume->geometry;
 	struct dm_bufio_client *client;
-	struct dm_buffer *read_buffer;
-	struct dm_buffer *write_buffer;
+	struct dm_buffer *buffer;
 	byte *data;
 	int result = UDS_SUCCESS;
 	unsigned int page;
@@ -52,7 +51,7 @@ static int __must_check move_chapter(struct volume *volume,
 		unsigned int physical_page =
 			map_to_physical_page(geometry, 0, page);
 
-		data = dm_bufio_read(client, physical_page, &read_buffer);
+		data = dm_bufio_read(client, physical_page, &buffer);
 		if (IS_ERR(data)) {
 			return uds_log_warning_strerror(-PTR_ERR(data),
 							"error reading physical page %u",
@@ -60,18 +59,10 @@ static int __must_check move_chapter(struct volume *volume,
 		}
 		physical_page =
 			map_to_physical_page(geometry, new_physical, page);
-		data = dm_bufio_new(client, physical_page, &write_buffer);
-		if (IS_ERR(data)) {
-			dm_bufio_release(read_buffer);
-			return -PTR_ERR(data);
-		}
+		dm_bufio_release_move(buffer, physical_page);
 
-		memcpy(dm_bufio_get_block_data(write_buffer),
-                       dm_bufio_get_block_data(read_buffer),
-		       geometry->bytes_per_page);
-		dm_bufio_mark_buffer_dirty(write_buffer);
-		dm_bufio_release(read_buffer);
-		dm_bufio_release(write_buffer);
+		dm_bufio_mark_buffer_dirty(buffer);
+		dm_bufio_release(buffer);
 	}
 	result = -dm_bufio_write_dirty_buffers(client);
 	dm_bufio_client_destroy(client);

@@ -172,7 +172,7 @@ void *dm_bufio_read(struct dm_bufio_client *client,
 
 void dm_bufio_prefetch(struct dm_bufio_client *client __always_unused,
 		       sector_t block __always_unused,
-		       unsigned n_blocks __always_unused)
+		       unsigned block_count __always_unused)
 {
 	/* Prefetching is meaningless when dealing with files. */
 }
@@ -185,6 +185,19 @@ void dm_bufio_release(struct dm_buffer *buffer)
 	buffer->next = client->buffer_list;
 	client->buffer_list = buffer;
 	uds_unlock_mutex(&client->buffer_mutex);
+}
+
+/*
+ * This moves the buffer from its current location to a new one without
+ * changing the buffer contents. dm_bufio_mark_buffer_dirty() is required to
+ * write the buffer contents to the new location.
+ */
+void dm_bufio_release_move(struct dm_buffer *buffer, sector_t new_block)
+{
+	struct dm_bufio_client *client = buffer->client;
+	off_t block_offset = new_block * client->bytes_per_page;
+
+	buffer->offset = client->start_offset + block_offset;
 }
 
 /* Write the buffer immediately rather than have to track dirty buffers. */
