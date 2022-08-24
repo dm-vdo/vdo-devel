@@ -338,7 +338,7 @@ struct uds_request {
 	/** The number of the zone which will handle this */
 	unsigned int zone_number;
 	/** A link for adding a request to a lock-free queue */
-	struct funnel_queue_entry request_queue_link;
+	struct funnel_queue_entry queue_link;
 	/** A link for adding a request to a standard linked list */
 	struct uds_request *next_request;
 	/** A pointer to the index handling this request */
