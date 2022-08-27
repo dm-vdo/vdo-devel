@@ -270,6 +270,7 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 			       struct uds_request *request)
 {
 	struct funnel_queue *sub_queue;
+	bool unbatched = request->unbatched;
 
 	sub_queue = request->requeued ? queue->retry_queue : queue->main_queue;
 	funnel_queue_put(sub_queue, &request->queue_link);
@@ -278,7 +279,7 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 	 * We must wake the worker thread when it is dormant. A read fence
 	 * isn't needed here since we know the queue operation acts as one.
 	 */
-	if (atomic_read(&queue->dormant) || request->unbatched) {
+	if (atomic_read(&queue->dormant) || unbatched) {
 		wake_up_worker(queue);
 	}
 }
