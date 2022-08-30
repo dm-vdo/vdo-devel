@@ -340,6 +340,7 @@ struct dedupe_context {
 	struct hash_zone *zone;
 	struct uds_request request;
 	struct list_head list_entry;
+	struct funnel_queue_entry queue_entry;
 	uint64_t submission_jiffies;
 	struct data_vio *requestor;
 	atomic_t state;
@@ -373,7 +374,7 @@ struct hash_zone {
 	/* These fields are used to manage the dedupe contexts */
 	struct list_head available;
 	struct list_head pending;
-	struct list_head timed_out;
+	struct funnel_queue *timed_out_complete;
 	struct timer_list timer;
 	struct vdo_completion completion;
 	unsigned int active;
@@ -2892,6 +2893,9 @@ static void finish_index_operation(struct uds_request *request)
 				"uds request was timed out (state %d)",
 				atomic_read(&context->state));
 	}
+
+	funnel_queue_put(context->zone->timed_out_complete,
+			 &context->queue_entry);
 }
 
 /**
@@ -2900,30 +2904,9 @@ static void finish_index_operation(struct uds_request *request)
  */
 static void check_for_drain_complete(struct hash_zone *zone)
 {
-	struct dedupe_context *context, *tmp;
 	vio_count_t recycled = 0;
 
 	if (!vdo_is_state_draining(&zone->state)) {
-		return;
-	}
-
-	list_for_each_entry_safe(context,
-				 tmp,
-				 &zone->timed_out,
-				 list_entry) {
-		if (change_context_state(context,
-					 DEDUPE_CONTEXT_TIMED_OUT_COMPLETE,
-					 DEDUPE_CONTEXT_IDLE)) {
-			list_move(&context->list_entry, &zone->available);
-			recycled++;
-		}
-	}
-
-	if (recycled > 0) {
-		WRITE_ONCE(zone->active, zone->active - recycled);
-	}
-
-	if (READ_ONCE(zone->active) != 0) {
 		return;
 	}
 
@@ -2932,8 +2915,34 @@ static void check_for_drain_complete(struct hash_zone *zone)
 			       DEDUPE_QUERY_TIMER_RUNNING,
 			       DEDUPE_QUERY_TIMER_IDLE)) {
 		del_timer_sync(&zone->timer);
-		vdo_finish_draining(&zone->state);
+	} else {
+		// There is an in flight time-out, which must get processed
+		// before we can continue.
+		return;
 	}
+
+	for (;;) {
+		struct dedupe_context *context;
+		struct funnel_queue_entry *entry;
+
+		entry = funnel_queue_poll(zone->timed_out_complete);
+		if (entry == NULL) {
+			break;
+		}
+
+		context = container_of(entry,
+				       struct dedupe_context,
+				       queue_entry);
+		atomic_set(&context->state, DEDUPE_CONTEXT_IDLE);
+		list_add(&context->list_entry, &zone->available);
+		recycled++;
+	}
+
+	if (recycled > 0) {
+		WRITE_ONCE(zone->active, zone->active - recycled);
+	}
+	ASSERT_LOG_ONLY(READ_ONCE(zone->active) == 0, "all contexts inactive");
+	vdo_finish_draining(&zone->state);
 }
 
 static void
@@ -2973,12 +2982,12 @@ timeout_index_operations_callback(struct vdo_completion *completion)
 		}
 
 		/*
-		 * Move this context to the timed out list so we won't look at
-		 * it again on a subsequent timeout. Once the index completes
-		 * it, it will be reused. Meanwhile, send its requestor on its
-		 * way.
+		 * Remove this context from the pending list so we won't look
+		 * at it again on a subsequent timeout. Once the index
+		 * completes it, it will be reused. Meanwhile, send its
+		 * requestor on its way.
 		 */
-		list_move(&context->list_entry, &zone->timed_out);
+		list_del_init(&context->list_entry);
 		continue_data_vio(context->requestor, VDO_SUCCESS);
 		timed_out++;
 	}
@@ -3044,7 +3053,7 @@ static int __must_check initialize_zone(struct vdo *vdo,
 
 	INIT_LIST_HEAD(&zone->available);
 	INIT_LIST_HEAD(&zone->pending);
-	INIT_LIST_HEAD(&zone->timed_out);
+	result = make_funnel_queue(&zone->timed_out_complete);
 	timer_setup(&zone->timer, timeout_index_operations, 0);
 
 	for (i = 0; i < MAXIMUM_VDO_USER_VIOS; i++) {
@@ -3156,9 +3165,10 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 
 	for (i = 0; i < zones->zone_count; i++) {
 		struct hash_zone *zone = &zones->zones[i];
-
+		free_funnel_queue(UDS_FORGET(zone->timed_out_complete));
 		free_pointer_map(UDS_FORGET(zone->hash_lock_map));
 		UDS_FREE(UDS_FORGET(zone->lock_array));
+
 	}
 
 	if (zones->index_session != NULL) {
@@ -3621,8 +3631,8 @@ void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 static struct dedupe_context * __must_check
 acquire_context(struct hash_zone *zone)
 {
-	struct dedupe_context *context, *tmp, *timed_out;
-	vio_count_t recycled = 0;
+	struct dedupe_context *context;
+	struct funnel_queue_entry *entry;
 
 	assert_in_hash_zone(zone, __func__);
 
@@ -3631,40 +3641,15 @@ acquire_context(struct hash_zone *zone)
 		context = list_first_entry(&zone->available,
 					   struct dedupe_context,
 					   list_entry);
-		list_del(&context->list_entry);
+		list_del_init(&context->list_entry);
 		return context;
 	}
 
-	/*
-         * Walk the entire timed out list. Any timed out context which has
-	 * subsequently completed its query, is ready for reuse. The first such
-	 * we find will be used, the rest will be returned to the active list
-	 * to avoid repeated searches over incomplete entries.
-	 */
-	context = NULL;
-	list_for_each_entry_safe(timed_out,
-				 tmp,
-				 &zone->timed_out,
-				 list_entry) {
-		if (change_context_state(timed_out,
-					 DEDUPE_CONTEXT_TIMED_OUT_COMPLETE,
-					 DEDUPE_CONTEXT_IDLE)) {
-			if (timed_out == NULL) {
-				list_del(&timed_out->list_entry);
-				context = timed_out;
-			} else {
-				list_move(&timed_out->list_entry,
-					  &zone->available);
-				recycled++;
-			}
-		}
-	}
 
-	if (recycled > 0) {
-		WRITE_ONCE(zone->active, zone->active - recycled);
-	}
-
-	return context;
+	entry = funnel_queue_poll(zone->timed_out_complete);
+	return ((entry == NULL) ?
+		NULL :
+		container_of(entry, struct dedupe_context, queue_entry));
 }
 
 static void prepare_uds_request(struct uds_request *request,
