@@ -26,6 +26,9 @@ struct volume_index_stats {
 	long early_flushes;         /* Number of early flushes */
 };
 
+struct volume_index;
+struct volume_sub_index;
+
 /*
  * The volume_index_record structure is used for normal index read-write
  * processing of a chunk name.  The first call must be to
@@ -45,7 +48,7 @@ struct volume_index_record {
 	unsigned char magic;                   /* The magic number for valid */
 					       /* records */
 	unsigned int zone_number;              /* Zone that contains this block */
-	struct volume_index *volume_index;     /* The volume index */
+	struct volume_sub_index *sub_index;    /* The volume index */
 	struct mutex *mutex;                   /* Mutex that must be held while */
 					       /* accessing this delta index */
 					       /* entry; used only for a */
@@ -56,8 +59,6 @@ struct volume_index_record {
 	struct delta_index_entry delta_entry;  /* The delta index entry for */
 					       /* this record */
 };
-
-struct volume_index;
 
 /**
  * Make a new volume index.
