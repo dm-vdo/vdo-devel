@@ -7,9 +7,9 @@
 #include "assertions.h"
 #include "config.h"
 #include "memory-alloc.h"
-#include "page-cache.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
+#include "volume.h"
 
 typedef struct {
   unsigned long counter;        // only used in testMixed

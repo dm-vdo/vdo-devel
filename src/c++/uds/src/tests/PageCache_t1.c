@@ -7,8 +7,8 @@
 #include "assertions.h"
 #include "config.h"
 #include "numeric.h"
-#include "page-cache.h"
 #include "testPrototypes.h"
+#include "volume.h"
 
 static struct configuration *config;
 static struct page_cache *cache;

@@ -163,7 +163,6 @@ tarballs:
             memory-alloc.h
             numeric.h
             open-chapter.[hc]
-            page-cache.[hc]
             permassert.[hc]
             radix-sort.[hc]
             request-queue.h
@@ -446,8 +445,6 @@ tarballs:
             numeric.h
             open-chapter.c
             open-chapter.h
-            page-cache.c
-            page-cache.h
             permassert.c
             permassert.h
             radix-sort.c

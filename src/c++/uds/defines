@@ -41,7 +41,6 @@ UDS_COMMON_SOURCES =						\
 					index-session.c		\
 					io-factory.c		\
 					open-chapter.c		\
-					page-cache.c		\
 					permassert.c		\
 					radix-sort.c		\
 					sparse-cache.c		\
