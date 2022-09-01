@@ -59,11 +59,11 @@
  * lock. Inside it, the thread for zone zero holds an exclusive lock. No other
  * threads may access or modify the cache entries.
  *
- * Cache statistics must only be modified by a single thread, which is also the
- * zone zero thread. All fields that might be frequently updated by that thread
- * are kept in separate cache-aligned structures so they will not cause cache
- * contention via "false sharing" with the fields that are frequently accessed
- * by all of the zone threads.
+ * Chapter statistics must only be modified by a single thread, which is also
+ * the zone zero thread. All fields that might be frequently updated by that
+ * thread are kept in separate cache-aligned structures so they will not cause
+ * cache contention via "false sharing" with the fields that are frequently
+ * accessed by all of the zone threads.
  *
  * The LRU order is managed independently by each zone thread, and each zone
  * uses its own list for searching and cache membership queries. The zone zero
@@ -175,21 +175,6 @@ struct search_list_iterator {
 	struct cached_chapter_index *chapters;
 };
 
-/*
- * These counter values are essentially fields of the sparse_cache, but are
- * segregated into this structure because they are frequently modified. We
- * group them and align them to keep them on different cache lines from the
- * cache fields that are accessed far more often than they are updated.
- */
-struct sparse_cache_counters {
-	uint64_t chapter_hits;
-	uint64_t chapter_misses;
-	uint64_t search_hits;
-	uint64_t search_misses;
-	uint64_t invalidations;
-	uint64_t evictions;
-} __attribute__((aligned(CACHE_LINE_BYTES)));
-
 struct sparse_cache {
 	unsigned int capacity;
 	unsigned int zone_count;
@@ -201,7 +186,6 @@ struct sparse_cache {
 	struct barrier begin_cache_update;
 	struct barrier end_cache_update;
 
-	struct sparse_cache_counters counters;
 	struct cached_chapter_index chapters[];
 };
 
@@ -358,36 +342,13 @@ static INLINE void set_skip_search(struct cached_chapter_index *chapter,
 	}
 }
 
-static void score_chapter_hit(struct sparse_cache *cache,
-			      struct cached_chapter_index *chapter)
+static void score_chapter_hit(struct cached_chapter_index *chapter)
 {
-	cache->counters.chapter_hits += 1;
 	set_skip_search(chapter, false);
 }
 
-static void score_chapter_miss(struct sparse_cache *cache)
+static void score_search_hit(struct cached_chapter_index *chapter)
 {
-	cache->counters.chapter_misses += 1;
-}
-
-static void score_eviction(struct index_zone *zone,
-			   struct sparse_cache *cache,
-			   struct cached_chapter_index *chapter)
-{
-	if (chapter->virtual_chapter == UINT64_MAX) {
-		return;
-	}
-	if (chapter->virtual_chapter < zone->oldest_virtual_chapter) {
-		cache->counters.invalidations += 1;
-	} else {
-		cache->counters.evictions += 1;
-	}
-}
-
-static void score_search_hit(struct sparse_cache *cache,
-			     struct cached_chapter_index *chapter)
-{
-	cache->counters.search_hits += 1;
 	chapter->counters.search_hits += 1;
 	chapter->counters.consecutive_misses = 0;
 	set_skip_search(chapter, false);
@@ -396,7 +357,6 @@ static void score_search_hit(struct sparse_cache *cache,
 static void score_search_miss(struct sparse_cache *cache,
 			      struct cached_chapter_index *chapter)
 {
-	cache->counters.search_misses += 1;
 	chapter->counters.search_misses += 1;
 	chapter->counters.consecutive_misses += 1;
 	if (chapter->counters.consecutive_misses >
@@ -448,26 +408,6 @@ void free_sparse_cache(struct sparse_cache *cache)
 	uds_destroy_barrier(&cache->end_cache_update);
 	UDS_FREE(cache);
 }
-
-#ifdef TEST_INTERNAL
-struct cache_counters
-get_sparse_cache_counters(const struct sparse_cache *cache)
-{
-	struct cache_counters counters = {
-		.sparse_chapters = {
-			.hits      = cache->counters.chapter_hits,
-			.misses    = cache->counters.chapter_misses,
-		},
-		.sparse_searches = {
-			.hits      = cache->counters.search_hits,
-			.misses    = cache->counters.search_misses,
-		},
-		.evictions   = cache->counters.evictions,
-		.expirations = cache->counters.invalidations,
-	};
-	return counters;
-}
-#endif /* TEST_INTERNAL */
 
 static INLINE struct search_list_iterator
 iterate_search_list(struct search_list *list,
@@ -541,7 +481,7 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 			get_next_chapter(&iterator);
 		if (virtual_chapter == chapter->virtual_chapter) {
 			if (zone_number == ZONE_ZERO) {
-				score_chapter_hit(cache, chapter);
+				score_chapter_hit(chapter);
 			}
 
 			rotate_search_list(iterator.list, iterator.next_entry);
@@ -549,10 +489,6 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 		}
 	}
 
-	/* The specified virtual chapter isn't cached. */
-	if (zone_number == ZONE_ZERO) {
-		score_chapter_miss(cache);
-	}
 	return false;
 }
 
@@ -681,7 +617,6 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 				&cache->chapters[rotate_search_list(zone_zero_list,
 								    cache->capacity)];
 
-			score_eviction(zone, cache, victim);
 			result = cache_chapter_index(victim, virtual_chapter,
 						     index->volume);
 		}
@@ -785,7 +720,7 @@ int search_sparse_cache(struct index_zone *zone,
 
 		if (*record_page_ptr != NO_CHAPTER_INDEX_ENTRY) {
 			if (zone_number == ZONE_ZERO) {
-				score_search_hit(cache, chapter);
+				score_search_hit(chapter);
 			}
 
 			rotate_search_list(iterator.list, iterator.next_entry);

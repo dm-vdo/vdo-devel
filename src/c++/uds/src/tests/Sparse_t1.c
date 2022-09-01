@@ -13,15 +13,18 @@
 #include "request-queue.h"
 #include "testPrototypes.h"
 
-static unsigned int CHAPTERS_PER_VOLUME;
-static unsigned int SPARSE_CHAPTERS_PER_VOLUME;
-static unsigned int IDEAL_NUM_HASHES_IN_CHAPTER;
-static unsigned int NUM_HASHES_IN_CHAPTER;
-static unsigned int NUM_HASHES;
+static unsigned int CHAPTERS_PER_VOLUME        = 10;
+static unsigned int SPARSE_CHAPTERS_PER_VOLUME = 5;
+static unsigned int MAX_RECORDS_PER_CHAPTER    = 128;
+static unsigned int RECORDS_PER_PAGE           = 128;
+static unsigned int SPARSE_SAMPLE_RATE         = 2;
 
 // for readability
 static const bool DO_UPDATE   = true;
 static const bool DONT_UPDATE = false;
+
+static unsigned int recordsPerChapter;
+static unsigned int totalRecords;
 
 static struct uds_chunk_name *hashes;
 static struct uds_chunk_data *metas;
@@ -92,19 +95,59 @@ static void cleanupIndex(void)
   theIndex = NULL;
 }
 
+/**********************************************************************/
+static struct volume_index_record
+getTheVolumeIndexRecord(unsigned int hashIndex)
+{
+  struct volume_index_record record;
+  UDS_ASSERT_SUCCESS(get_volume_index_record(theIndex->volume_index,
+                                             &hashes[hashIndex],
+                                             &record));
+  return record;
+}
+
+/**********************************************************************/
+static void assertFoundInVolumeIndex(unsigned int hashIndex)
+{
+  CU_ASSERT_TRUE(getTheVolumeIndexRecord(hashIndex).is_found);
+}
+
+/**********************************************************************/
+static void assertNotFoundInVolumeIndex(unsigned int hashIndex)
+{
+  CU_ASSERT_FALSE(getTheVolumeIndexRecord(hashIndex).is_found);
+}
+
+/**********************************************************************/
+static bool isHook(unsigned int hashIndex)
+{
+  return is_volume_index_sample(theIndex->volume_index, &hashes[hashIndex]);
+}
+
+/**********************************************************************/
+static void assertIsHook(unsigned int hashIndex)
+{
+  CU_ASSERT_TRUE(isHook(hashIndex));
+}
+
 /**
- * Check whether the most recently generated chunk name might be a chapter
- * index collision with all the previously generated chunk names.
+ * Check whether the most recently generated chunk name might be a volume index
+ * collision or a chapter index collision with all the previously generated
+ * chunk names.
  *
  * @param lastHash  The index of the most recently generated chunk name
  *
  * @return <code>true</code> if the most recent name may be a collision
  **/
-static bool searchForChapterIndexCollision(unsigned int lastHash)
+static bool searchForCollisions(unsigned int lastHash)
 {
   struct geometry *geometry = theIndex->volume->geometry;
   unsigned int i;
   for (i = 0; i < lastHash; i++) {
+    if (getTheVolumeIndexRecord(i).is_found) {
+      return true;
+    }
+
     if (hash_to_chapter_delta_address(&hashes[lastHash], geometry)
         == hash_to_chapter_delta_address(&hashes[i], geometry)) {
       return true;
@@ -127,44 +170,46 @@ static void sparseInitSuite(const char *name)
   };
   UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
 
-  unsigned int zoneCount        = config->zone_count;
-  unsigned int RECORDS_PER_PAGE = 128;
-  CHAPTERS_PER_VOLUME         = 10;
-  SPARSE_CHAPTERS_PER_VOLUME  = 5;
-  IDEAL_NUM_HASHES_IN_CHAPTER = 128;
-  NUM_HASHES_IN_CHAPTER       = (IDEAL_NUM_HASHES_IN_CHAPTER
-                                 - IDEAL_NUM_HASHES_IN_CHAPTER % zoneCount
-                                 - zoneCount + 1);
-  NUM_HASHES                  = NUM_HASHES_IN_CHAPTER * CHAPTERS_PER_VOLUME;
-  resizeSparseConfiguration(config, RECORDS_PER_PAGE * BYTES_PER_RECORD,
-                            IDEAL_NUM_HASHES_IN_CHAPTER / RECORDS_PER_PAGE,
-                            CHAPTERS_PER_VOLUME, SPARSE_CHAPTERS_PER_VOLUME,
-                            2);
+  unsigned int zoneCount = config->zone_count;
+  recordsPerChapter = (MAX_RECORDS_PER_CHAPTER
+                       - (MAX_RECORDS_PER_CHAPTER % zoneCount)
+                       - zoneCount + 1);
+  totalRecords = recordsPerChapter * CHAPTERS_PER_VOLUME;
 
+  resizeSparseConfiguration(config, RECORDS_PER_PAGE * BYTES_PER_RECORD,
+                            MAX_RECORDS_PER_CHAPTER / RECORDS_PER_PAGE,
+                            CHAPTERS_PER_VOLUME, SPARSE_CHAPTERS_PER_VOLUME,
+                            SPARSE_SAMPLE_RATE);
   createIndex(UDS_CREATE);
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_HASHES, struct uds_chunk_name, "hashes",
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_chunk_name, "hashes",
                                   &hashes));
 
   unsigned int i, j;
-  for (i = 0; i < NUM_HASHES; i++) {
+  for (i = 0; i < totalRecords; i++) {
     /*
      * Keep picking random chunk names until we find one that isn't a chapter
      * index collision. This prevents us from hitting the very rare case of
      * one non-hook colliding with another in the chapter index, which leads
      * to one of them not being found in cacheHitTest() since UDS doesn't
      * retry the sparse search after a false chapter index hit.
+     *
+     * Also ensure that the new name is not a volume index collision since that
+     * can cause the sparse cache to fill up sooner than we expect.
+     *
+     * Finally, tweak the hashes so that even-numbered indexes are hooks, and
+     * odd ones are not hooks.
      */
     do {
       createRandomBlockNameInZone(theIndex, i % theIndex->zone_count,
                                   &hashes[i]);
-      set_sampling_bytes(&hashes[i], i % 2);
-    } while (searchForChapterIndexCollision(i));
+      set_sampling_bytes(&hashes[i], i % SPARSE_SAMPLE_RATE);
+    } while (searchForCollisions(i));
   }
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_HASHES, struct uds_chunk_data, "metas",
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_chunk_data, "metas",
                                   &metas));
-  for (i = 0; i < NUM_HASHES; i++) {
+  for (i = 0; i < totalRecords; i++) {
     for (j = 0; j < UDS_METADATA_SIZE; j++) {
       metas[i].data[j] = i;
     }
@@ -245,7 +290,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
   }
 
   static unsigned int zone = 0;
-  for (; numAdded < NUM_HASHES_IN_CHAPTER; ++numAdded) {
+  for (; numAdded < recordsPerChapter; ++numAdded) {
     struct uds_request request = { .type = UDS_POST };
     createRandomBlockNameInZone(theIndex, zone, &request.chunk_name);
     createRandomMetadata(&request.new_metadata);
@@ -258,250 +303,158 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
 }
 
 /**********************************************************************/
-static struct volume_index_record
-getTheVolumeIndexRecord(unsigned int hashIndex)
-{
-  struct volume_index_record record;
-  int result = get_volume_index_record(theIndex->volume_index,
-                                       &hashes[hashIndex],
-                                       &record);
-  UDS_ASSERT_SUCCESS(result);
-  return record;
-}
-
-/**********************************************************************/
-static void assertFoundInMI(unsigned int hashIndex)
-{
-  CU_ASSERT_TRUE(getTheVolumeIndexRecord(hashIndex).is_found);
-}
-
-/**********************************************************************/
-static void assertNotFoundInMI(unsigned int hashIndex)
-{
-  CU_ASSERT_FALSE(getTheVolumeIndexRecord(hashIndex).is_found);
-}
-
-/**********************************************************************/
-static void assertIsHook(unsigned int hashIndex)
-{
-  assertFoundInMI(hashIndex);
-  CU_ASSERT_TRUE((extract_sampling_bytes(&hashes[hashIndex])
-                  % config->sparse_sample_rate) == 0);
-}
-
-/**********************************************************************/
-static bool isHook(unsigned int hashIndex)
-{
-  return is_volume_index_sample(theIndex->volume_index, &hashes[hashIndex]);
-}
-
-/**********************************************************************/
-static void assertLocation(unsigned int          hashIndex,
-                           enum uds_index_region location,
-                           unsigned int          chapterHits,
-                           unsigned int          chapterMisses,
-                           unsigned int          searchHits)
-{
-  struct cache_counters before
-    = get_sparse_cache_counters(theIndex->volume->sparse_cache);
-  assertLookup(hashIndex, location, DONT_UPDATE);
-  struct cache_counters after
-    = get_sparse_cache_counters(theIndex->volume->sparse_cache);
-
-  if (theIndex->zone_count > 1) {
-    // TODO: Understand why the following assertions fail when there is
-    //       more than 1 zone.
-    return;
-  }
-
-  CU_ASSERT_EQUAL(chapterHits,
-                  after.sparse_chapters.hits - before.sparse_chapters.hits);
-  CU_ASSERT_EQUAL(chapterMisses,
-                  after.sparse_chapters.misses - before.sparse_chapters.misses);
-  CU_ASSERT_EQUAL(searchHits,
-                  after.sparse_searches.hits - before.sparse_searches.hits);
-}
-
-/** Tests **/
-
-/**********************************************************************/
 static void sparseIndexTest(void)
 {
+  // Records 2 and 4 are hooks; records 1 and 3 are not hooks.
   CU_ASSERT_EQUAL(0, theIndex->newest_virtual_chapter);
+  assertIsHook(2);
+  assertIsHook(4);
+
+  // Add all four records to chapter 0, the open chapter.
   indexAdd(1);
-  assertLocation(1, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
+  assertLookup(1, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
   indexAdd(2);
   indexAdd(3);
   indexAdd(4);
   assertLookup(1, UDS_LOCATION_IN_OPEN_CHAPTER, DO_UPDATE);
   assertLookup(4, UDS_LOCATION_IN_OPEN_CHAPTER, DO_UPDATE);
-  assertLocation(1, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
-  assertLocation(2, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
-  assertLocation(3, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
-  assertLocation(4, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
+  assertLookup(1, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
+  assertLookup(2, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
+  assertLookup(3, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
+  assertLookup(4, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
 
+  // Advance the open chapter to chapter 1, and put records 1 and 2 in
+  // the new open chpater.
   fillOpenChapter(0, 4);
-  assertLocation(1, UDS_LOCATION_IN_DENSE, 0, 0, 0);
-  assertLocation(2, UDS_LOCATION_IN_DENSE, 0, 0, 0);
   assertLookup(1, UDS_LOCATION_IN_DENSE, DO_UPDATE);
   assertLookup(2, UDS_LOCATION_IN_DENSE, DO_UPDATE);
-  assertLocation(1, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
-  assertLocation(2, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
-  assertLocation(3, UDS_LOCATION_IN_DENSE, 0, 0, 0);
-  assertLocation(4, UDS_LOCATION_IN_DENSE, 0, 0, 0);
+  assertLookup(1, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
+  assertLookup(2, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
+  assertLookup(3, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertLookup(4, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
 
+  // Advance the open chapter to chapter 2.
   fillOpenChapter(1, 2);
-  assertLocation(1, UDS_LOCATION_IN_DENSE, 0, 0, 0);
-  assertLocation(2, UDS_LOCATION_IN_DENSE, 0, 0, 0);
+  assertLookup(1, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertLookup(2, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
 
-  // Should sparsify first chapter (0) and make 3 disappear.
+  // Fill enough chapters to sparsify chapter 0 and make record 3
+  // disappear.
   unsigned int i;
-  for (i = 2; i < 5; i++) {
+  for (i = 2; i < SPARSE_CHAPTERS_PER_VOLUME; i++) {
     fillOpenChapter(i, 0);
   }
-  assertFoundInMI(1);
-  assertFoundInMI(2);
-  assertNotFoundInMI(3);
-  assertIsHook(4);
-
-  fillOpenChapter(5, 0);
-  assertNotFoundInMI(1);
-  assertIsHook(2);
-  // barrier miss, cache update, hook hit (+1/+1)
-  assertLocation(2, UDS_LOCATION_IN_SPARSE, 1, 1, 1);
-  assertNotFoundInMI(3);
-  // not in sparse cache yet
+  assertFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(3);
   assertLookup(3, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
-  assertIsHook(4);
-  // barrier miss, cache update, hook hit (+1/+1)
-  assertLocation(4, UDS_LOCATION_IN_SPARSE, 1, 1, 1);
-  // search hit (+0/+1)
-  assertLocation(3, UDS_LOCATION_IN_SPARSE, 0, 0, 1);
+  assertFoundInVolumeIndex(4);
 
+  // Advance one more chapter to sparsify chapter 1 and make record 1
+  // disappear.
+  fillOpenChapter(SPARSE_CHAPTERS_PER_VOLUME, 0);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
+
+  // Looking up record 2 will pull chapter 1 in to the sparse cache,
+  // allowing us to find record 1 again.
+  assertFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(3);
+  assertLookup(3, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
+  assertFoundInVolumeIndex(4);
+
+  // Looking up record 4 will pull chapter 0 into the sparse cache,
+  // allowing us to find record 3 again. Move record 3 into the
+  // current open chapter (5) so it's in the dense region.
+  assertLookup(4, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(3);
   assertLookup(3, UDS_LOCATION_IN_SPARSE, DO_UPDATE);
-  assertLocation(3, UDS_LOCATION_IN_OPEN_CHAPTER, 0, 0, 0);
+  assertLookup(3, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
 
-  fillOpenChapter(6, 1);
-  assertNotFoundInMI(1);
-  assertIsHook(2);
-  // barrier hit (+1/0), hook hit (+1/+1)
-  assertLocation(2, UDS_LOCATION_IN_SPARSE, 2, 0, 1);
-  assertFoundInMI(3);
-  assertLocation(3, UDS_LOCATION_IN_DENSE, 0, 0, 0);
-  assertIsHook(4);
-  // barrier hit (+1/0), hook hit (+1/+1)
-  assertLocation(4, UDS_LOCATION_IN_SPARSE, 2, 0, 1);
+  // Advance the open chapter again.
+  fillOpenChapter(SPARSE_CHAPTERS_PER_VOLUME + 1, 1);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(3);
+  assertLookup(3, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(4);
+  assertLookup(4, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
 
-  // Test wrap-around, sparsifying.
-  for (i = 7; i < 9; i++) {
+  // Advance to the end of the volume.
+  for (i = SPARSE_CHAPTERS_PER_VOLUME + 2;
+       i < CHAPTERS_PER_VOLUME - 1;
+       i++) {
     fillOpenChapter(i, 0);
   }
-  assertNotFoundInMI(1);
-  assertIsHook(2);
-  // barrier hit (+1/0), hook hit (+1/+1)
-  assertLocation(2, UDS_LOCATION_IN_SPARSE, 2, 0, 1);
-  assertFoundInMI(3);
-  assertLocation(3, UDS_LOCATION_IN_DENSE, 0, 0, 0);
-  assertIsHook(4);
-  // barrier hit (+1/0), hook hit (+1/+1)
-  assertLocation(4, UDS_LOCATION_IN_SPARSE, 2, 0, 1);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(3);
+  assertLookup(3, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(4);
+  assertLookup(4, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
 
-  fillOpenChapter(9, 0);
-  assertNotFoundInMI(1);
-  assertIsHook(2);
-  assertFoundInMI(3);
-  assertNotFoundInMI(4);
+  // Advance again, invalidating chapter 0. This removes it from the
+  // volume index and from the sparse cache, and invalidates record 4.
+  fillOpenChapter(CHAPTERS_PER_VOLUME - 1, 0);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
+  assertFoundInVolumeIndex(3);
+  assertLookup(3, UDS_LOCATION_IN_DENSE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(4);
+  assertLookup(4, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
 
-  fillOpenChapter(10, 0);
-  assertNotFoundInMI(1);
-  assertNotFoundInMI(2);
-  assertNotFoundInMI(3);
-  assertNotFoundInMI(4);
+  // Advance again, invalidating chapter 1. This invalidates records 1
+  // and 2. Record 3 is still in a valid chapter, but that chapter has
+  // just been sparsified so we can't find record 3 any more, either.
+  fillOpenChapter(CHAPTERS_PER_VOLUME, 0);
+  assertNotFoundInVolumeIndex(1);
+  assertLookup(1, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(2);
+  assertLookup(2, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(3);
+  assertLookup(3, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
+  assertNotFoundInVolumeIndex(4);
+  assertLookup(4, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
 }
 
 /**********************************************************************/
 static void cacheHitTest(void)
 {
   unsigned int i;
-  for (i = 0; i < NUM_HASHES - 1; i++) {
-    struct volume_index_record record = getTheVolumeIndexRecord(i);
-    if (record.is_found) {
-      /*
-       * We're about to create a volume index collision, which may break the
-       * logic in the rest of this test since it can cause the sparse cache to
-       * be filled prematurely. This is a rare occurence (an collision in
-       * 60-odd names), so just bail on this test case this time.
-       */
-      uds_log_info("cacheHitTest bypassed because of volume index collision");
-      return;
-    }
-
+  for (i = 0; i < totalRecords - 1; i++) {
     indexAdd(i);
   }
 
   // Cache is empty. Will not find any non hook entries in sparse chapters.
-  for (i = 0; i < NUM_HASHES / 2; ++i) {
+  for (i = 0; i < (SPARSE_CHAPTERS_PER_VOLUME * recordsPerChapter); ++i) {
     if (!isHook(i)) {
       assertLookup(i, UDS_LOCATION_UNAVAILABLE, DONT_UPDATE);
     }
   }
 
   // cache will be filled here by finding hook entries in sparse chapters.
-  unsigned int chapter;
-  for (chapter = 0; chapter < SPARSE_CHAPTERS_PER_VOLUME; ++chapter) {
-    for (i = chapter * NUM_HASHES_IN_CHAPTER;
-         i < (chapter + 1) * NUM_HASHES_IN_CHAPTER; ++i) {
-      if (isHook(i)) {
-        assertLookup(i, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
-      }
+  for (i = 0; i < (SPARSE_CHAPTERS_PER_VOLUME * recordsPerChapter); ++i) {
+    if (isHook(i)) {
+      assertLookup(i, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
     }
   }
 
   // Cache will be hit here, so we should find all entries in sparse chapters
-  for (chapter = 0; chapter < SPARSE_CHAPTERS_PER_VOLUME; ++chapter) {
-    for (i = chapter * NUM_HASHES_IN_CHAPTER;
-         i < (chapter + 1) * NUM_HASHES_IN_CHAPTER; ++i) {
-      if (!isHook(i)) {
-        assertLookup(i, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
-      }
+  for (i = 0; i < (SPARSE_CHAPTERS_PER_VOLUME * recordsPerChapter); ++i) {
+    if (!isHook(i)) {
+      assertLookup(i, UDS_LOCATION_IN_SPARSE, DONT_UPDATE);
     }
-  }
-}
-
-/**********************************************************************/
-static void saveLoadTest(void)
-{
-  uint64_t newestVirtualChapter = theIndex->newest_virtual_chapter;
-  uint64_t oldestVirtualChapter = theIndex->oldest_virtual_chapter;
-
-  // Have to add so few entries that they fit in a single chapter,
-  // to test saving and loading of the open chapter.
-  unsigned int hashesToAdd = NUM_HASHES_IN_CHAPTER / 4 * 3;
-  unsigned int i;
-  for (i = 0; i < hashesToAdd; i++) {
-    indexAdd(i);
-  }
-  UDS_ASSERT_SUCCESS(save_index(theIndex));
-
-  cleanupIndex();
-  createIndex(UDS_NO_REBUILD);
-
-  // Change the metadata of the hashes in the open chapter
-  // and verify we get the right old metadata anyhow.
-  for (i = 0; i < hashesToAdd; i++) {
-    indexAddAndCheck(i, 0, UDS_LOCATION_IN_OPEN_CHAPTER, i);
-  }
-  CU_ASSERT_EQUAL(newestVirtualChapter, theIndex->newest_virtual_chapter);
-  CU_ASSERT_EQUAL(oldestVirtualChapter, theIndex->oldest_virtual_chapter);
-  CU_ASSERT_EQUAL(SPARSE_CHAPTERS_PER_VOLUME,
-                  theIndex->volume->geometry->sparse_chapters_per_volume);
-
-  cleanupIndex();
-  createIndex(UDS_CREATE);
-
-  // Verify that the old hashes got blown away
-  for (i = 0; i < hashesToAdd; i++) {
-    indexAdd(i);
   }
 }
 
@@ -509,11 +462,9 @@ static void saveLoadTest(void)
 static void sparseRebuildTest(void)
 {
   unsigned int chapter, i;
-  for (chapter = 0;
-       chapter < theIndex->volume->geometry->chapters_per_volume - 1;
-       chapter++) {
-    for (i = 0; i < NUM_HASHES_IN_CHAPTER; i++) {
-      indexAdd((chapter * NUM_HASHES_IN_CHAPTER) + i);
+  for (chapter = 0; chapter < CHAPTERS_PER_VOLUME - 1; chapter++) {
+    for (i = 0; i < recordsPerChapter; i++) {
+      indexAdd((chapter * recordsPerChapter) + i);
     }
   }
 
@@ -532,15 +483,16 @@ static void sparseRebuildTest(void)
   createIndex(UDS_LOAD);
 
   // Verify all the dense data is still there
-  enum uds_index_region loc = UDS_LOCATION_IN_DENSE;
+  enum uds_index_region location = UDS_LOCATION_IN_DENSE;
   for (chapter = SPARSE_CHAPTERS_PER_VOLUME;
-       chapter < theIndex->volume->geometry->chapters_per_volume - 1;
+       chapter < CHAPTERS_PER_VOLUME - 1;
        chapter++) {
 
-    for (i = 0; i < NUM_HASHES_IN_CHAPTER; i++) {
-      indexAddAndCheck((chapter * NUM_HASHES_IN_CHAPTER) + i,
-                       (chapter * NUM_HASHES_IN_CHAPTER) + i, loc,
-                       (chapter * NUM_HASHES_IN_CHAPTER) + i);
+    for (i = 0; i < recordsPerChapter; i++) {
+      indexAddAndCheck((chapter * recordsPerChapter) + i,
+                       (chapter * recordsPerChapter) + i,
+                       location,
+                       (chapter * recordsPerChapter) + i);
     }
   }
 }
@@ -549,7 +501,6 @@ static void sparseRebuildTest(void)
 static const CU_TestInfo sparseTests[] = {
   { "Sparse Index",   sparseIndexTest   },
   { "Cache Hit",      cacheHitTest      },
-  { "Save Load",      saveLoadTest      },
   { "Sparse Rebuild", sparseRebuildTest },
   CU_TEST_INFO_NULL,
 };
