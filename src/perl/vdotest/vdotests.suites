@@ -880,6 +880,8 @@ $suiteNames{beakerExcludedTests}
      "CorruptionBase",      # Base class
      "Create01",            # This mostly just tests VDOTest infrastructure
      "Create02",            # This mostly just tests VDOTest infrastructure
+     "DefaultLogicalSize",  # May fail until lvm is consistent about rounding
+                            # [VDO-5457].
      "DoryBase",            # Base class
      "FullBase",            # Base class
      "GrowFailure01",       # Manual test

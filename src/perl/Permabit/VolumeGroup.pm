@@ -242,10 +242,15 @@ sub createVDOVolume {
   # We're using a name of _pool vs -pool here because the /dev/mapper name
   # would end up adding an extra - because it adds the volume group to the
   # name. Example: vdo0-pool would end up being /dev/mapper/<vg>-vdo0--pool.
-  $machine->runSystemCmd("sudo lvcreate --name $name --vdopool $pool"
-                         . " --size ${physicalKB}K"
-                         . " --virtualsize ${logicalKB}K"
-                         . " --yes -ay $config"
+  my %args = (name => $name,
+              vdopool => $pool,
+              size => "${physicalKB}K");
+  if ($logicalKB > 0) {
+    $args{virtualsize} = "${logicalKB}K";
+  }
+
+  my $args = join(' ', map { "--$_ $args{$_}" } keys(%args));
+  $machine->runSystemCmd("sudo lvcreate $args --yes -ay $config"
                          . " $self->{volumeGroup} </dev/null");
 
   # Make sure to wait for the udev event recording the new event has

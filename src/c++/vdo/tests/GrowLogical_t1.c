@@ -191,6 +191,24 @@ static void testGrowLogicalFailureNotEmpty(void)
 }
 
 /**********************************************************************/
+static void testAutoGrow(void)
+{
+  block_count_t startingLogicalSize = getTestConfig().config.logical_blocks;
+
+  // Writing to an out-of-bounds location doesn't work.
+  writeData(startingLogicalSize, 1, 1, VDO_OUT_OF_RANGE);
+
+  // Write some data.
+  writeData(0, 1, 1, VDO_SUCCESS);
+
+  struct device_config deviceConfig = getTestConfig().deviceConfig;
+  deviceConfig.logical_blocks *= 2;
+  reloadVDO(deviceConfig);
+
+  writeData(startingLogicalSize, 1, 1, VDO_SUCCESS);
+}
+
+/**********************************************************************/
 
 static CU_TestInfo tests[] = {
   { "grow logical succeeds, empty VDO",               testGrowLogical                },
@@ -198,6 +216,7 @@ static CU_TestInfo tests[] = {
   { "grow logical fails, empty VDO",                  testGrowLogicalFailure         },
   { "grow logical fails, non-empty VDO",              testGrowLogicalFailureNotEmpty },
   { "grow logical with save succeeds, non-empty VDO", testGrowLogicalWithSave        },
+  { "auto grow succeeds",                             testAutoGrow                   },
   CU_TEST_INFO_NULL,
 };
 

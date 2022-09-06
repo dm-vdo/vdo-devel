@@ -287,7 +287,6 @@ static struct device_config *makeDeviceConfig(TestConfiguration configuration)
   }
 
   deviceConfig->physical_blocks = configuration.config.physical_blocks;
-  deviceConfig->logical_blocks = configuration.config.logical_blocks;
   return deviceConfig;
 }
 

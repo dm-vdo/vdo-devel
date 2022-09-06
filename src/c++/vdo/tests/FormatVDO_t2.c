@@ -26,6 +26,7 @@ enum {
 static TestConfiguration zeroLogicalBlocks(TestConfiguration config)
 {
   config.config.logical_blocks = 0;
+  config.deviceConfig.logical_blocks = 0;
   return config;
 }
 

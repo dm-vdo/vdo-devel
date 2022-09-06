@@ -908,12 +908,6 @@ int vdo_validate_new_device_config(struct device_config *to_validate,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	if (!may_grow
-	    && (to_validate->logical_blocks > config->logical_blocks)) {
-		*error_ptr = "VDO logical size may not grow in current state";
-		return VDO_NOT_IMPLEMENTED;
-	}
-
 	if (to_validate->cache_size != config->cache_size) {
 		*error_ptr = "Block map cache size cannot change";
 		return VDO_PARAMETER_MISMATCH;

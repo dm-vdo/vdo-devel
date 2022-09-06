@@ -462,6 +462,18 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 
 	vdo_set_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
+
+	/*
+	 * If the device config specifies a larger logical size than was
+	 * recorded in the super block, just accept it.
+	 */
+	if (vdo->states.vdo.config.logical_blocks < config->logical_blocks) {
+		uds_log_warning("Growing logical size: a logical size of %llu blocks was specified, but that differs from the %llu blocks configured in the vdo super block",
+				(unsigned long long) config->logical_blocks,
+				(unsigned long long) vdo->states.vdo.config.logical_blocks);
+		vdo->states.vdo.config.logical_blocks = config->logical_blocks;
+	}
+
 	result = vdo_validate_component_states(&vdo->states,
 					       vdo->geometry.nonce,
 					       config->physical_blocks,

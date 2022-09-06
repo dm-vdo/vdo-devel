@@ -258,6 +258,7 @@ void reloadVDO(struct device_config deviceConfig)
 {
   stopVDO();
   configuration.deviceConfig = deviceConfig;
+  configuration.config.logical_blocks = deviceConfig.logical_blocks;
   startVDO(VDO_CLEAN);
 }
 
@@ -583,6 +584,7 @@ static int modifyVDO(block_count_t logicalSize,
   UDS_FREE((result == VDO_INVALID_ADMIN_STATE) ? config : old_config);
   if (result == VDO_SUCCESS) {
     configuration.config = vdo->states.vdo.config;
+    configuration.deviceConfig.logical_blocks = logicalSize;
   }
 
   return result;
