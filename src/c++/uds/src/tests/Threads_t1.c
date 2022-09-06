@@ -108,30 +108,16 @@ enum {
 
 static struct barrier  barrier1;
 static struct barrier  barrier2;
-static pid_t winners[BARRIER_THREAD_ITERATIONS];
 
 /**
  * Worker thread driver function for testBarrier().
  **/
 static void barrierWorker(void *arg __attribute__((unused)))
 {
-  pid_t self = uds_get_thread_id();
-
   int i;
   for (i = 0; i < BARRIER_THREAD_ITERATIONS; i++) {
-    // Enter the first barrier, and note which thread got the unique token.
-    bool winner;
-    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier1, &winner));
-    if (winner) {
-      winners[i] = self;
-    }
-
-    // A winner must have been picked by the first barrier. The second
-    // barrier ensures that everyone should see that someone won.
-    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier2, NULL));
-
-    // Verify that exactly one thread believes itself to be the unique winner.
-    CU_ASSERT_EQUAL(winner, (winners[i] == self));
+    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier1));
+    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier2));
   }
 }
 
@@ -146,7 +132,7 @@ static void testBarriers(void)
   UDS_ASSERT_SUCCESS(uds_initialize_barrier(&barrier1, BARRIER_THREAD_COUNT));
   UDS_ASSERT_SUCCESS(uds_initialize_barrier(&barrier2, BARRIER_THREAD_COUNT));
 
-  // Fork and join a worker threads to exercise the barriers.
+  // Fork and join worker threads to exercise the barriers.
   struct thread *threads[BARRIER_THREAD_COUNT];
   int i;
   for (i = 0; i < BARRIER_THREAD_COUNT; i++) {

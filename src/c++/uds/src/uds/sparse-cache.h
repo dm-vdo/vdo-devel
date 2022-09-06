@@ -8,6 +8,7 @@
 
 #include "geometry.h"
 #include "type-defs.h"
+#include "uds.h"
 
 struct index_zone;
 struct sparse_cache;

@@ -177,16 +177,13 @@ int uds_destroy_barrier(struct barrier *barrier);
 
 /**
  * Enter a thread synchronization barrier, waiting for the configured number
- * of threads to have entered before exiting the barrier. Exactly one thread
- * will be arbitrarily selected to be flagged as the "winner" of a barrier.
+ * of threads to have entered before exiting the barrier.
  *
  * @param barrier   the barrier to enter
- * @param winner    if non-NULL, a pointer to the flag indicating whether the
- *                  calling thread was the unique winner
  *
  * @return UDS_SUCCESS or an error code
  **/
-int uds_enter_barrier(struct barrier *barrier, bool *winner);
+int uds_enter_barrier(struct barrier *barrier);
 
 /**
  * Initialize a condition variable with default attributes.

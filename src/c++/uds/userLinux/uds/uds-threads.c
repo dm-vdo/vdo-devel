@@ -188,22 +188,13 @@ int uds_destroy_barrier(struct barrier *barrier)
 }
 
 /**********************************************************************/
-int uds_enter_barrier(struct barrier *barrier, bool *winner)
+int uds_enter_barrier(struct barrier *barrier)
 {
 	int result = pthread_barrier_wait(&barrier->barrier);
-
-	// Check if this thread is the arbitrary winner and pass that result
-	// back as an optional flag instead of overloading the return value.
 	if (result == PTHREAD_BARRIER_SERIAL_THREAD) {
-		if (winner != NULL) {
-			*winner = true;
-		}
 		return UDS_SUCCESS;
 	}
 
-	if (winner != NULL) {
-		*winner = false;
-	}
 	ASSERT_LOG_ONLY((result == 0),  "pthread_barrier_wait error");
 	return result;
 }

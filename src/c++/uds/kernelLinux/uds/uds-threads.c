@@ -214,7 +214,7 @@ int uds_destroy_barrier(struct barrier *barrier)
 	return uds_destroy_semaphore(&barrier->wait);
 }
 
-int uds_enter_barrier(struct barrier *barrier, bool *winner)
+int uds_enter_barrier(struct barrier *barrier)
 {
 	bool last_thread;
 
@@ -234,9 +234,6 @@ int uds_enter_barrier(struct barrier *barrier, bool *winner)
 		/* This is NOT the last thread to arrive, so just wait */
 		uds_release_semaphore(&barrier->mutex);
 		uds_acquire_semaphore(&barrier->wait);
-	}
-	if (winner != NULL) {
-		*winner = last_thread;
 	}
 	return UDS_SUCCESS;
 }

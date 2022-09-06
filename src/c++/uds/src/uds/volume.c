@@ -2331,7 +2331,10 @@ int __must_check replace_volume_storage(struct volume *volume,
 
 	/* Release all outstanding dm_bufio objects */
 	invalidate_page_cache(volume->page_cache);
-	invalidate_sparse_cache(volume->sparse_cache);
+	if (volume->sparse_cache != NULL) {
+		invalidate_sparse_cache(volume->sparse_cache);
+	}
+
 	if (volume->client != NULL) {
 		dm_bufio_client_destroy(UDS_FORGET(volume->client));
 	}
