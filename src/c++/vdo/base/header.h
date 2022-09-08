@@ -115,12 +115,12 @@ int __must_check vdo_decode_header(struct buffer *buffer,
 int __must_check vdo_decode_version_number(struct buffer *buffer,
 					   struct version_number *version);
 
-/*
- * Convert a version_number to its packed on-disk representation.
+/**
+ * vdo_pack_version_number() - Convert a version_number to its packed
+ *                             on-disk representation.
+ * @version: The version number to convert.
  *
- * @param version  The version number to convert
- *
- * @return the platform-independent representation of the version
+ * Return: the platform-independent representation of the version
  */
 static inline struct packed_version_number
 vdo_pack_version_number(struct version_number version)

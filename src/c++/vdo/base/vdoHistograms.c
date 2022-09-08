@@ -12,12 +12,13 @@
 #include "histogram.h"
 
 /**
- * Make the set of internal histograms for a vdo. Since these are only used for
- * internal testing, allocation errors constructing them will be ignored.
+ * vdo_initialize_histograms() - Make the set of internal histograms for a vdo.
+ * @parent: The parent kobject of the histograms.
+ * @histograms: The histograms to initialize.
  *
- * @param parent      The parent kobject of the histograms
- * @param histograms  The histograms to initialize
- **/
+ * Since these are only used for internal testing, allocation errors
+ * constructing them will be ignored.
+ */
 void vdo_initialize_histograms(struct kobject *parent,
 			       struct vdo_histograms *histograms)
 {
@@ -116,10 +117,9 @@ void vdo_initialize_histograms(struct kobject *parent,
 }
 
 /**
- * Free the internal histograms of a vdo.
- *
- * @param histograms  The histograms to free
- **/
+ * vdo_destroy_histograms() - Free the internal histograms of a vdo.
+ * @histograms: The histograms to free.
+ */
 void vdo_destroy_histograms(struct vdo_histograms *histograms)
 {
 	free_histogram(UDS_FORGET(histograms->discard_ack_histogram));

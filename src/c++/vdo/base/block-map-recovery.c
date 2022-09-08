@@ -215,7 +215,7 @@ static void flush_block_map(struct vdo_completion *completion)
 			    completion);
 }
 
-/* @return true if recovery is done.  */
+/* Return: true if recovery is done.  */
 static bool finish_if_done(struct block_map_recovery_completion *recovery)
 {
 	/* Pages are still being launched or there is still work to do */
@@ -259,14 +259,14 @@ static void abort_recovery(struct block_map_recovery_completion *recovery,
 	finish_if_done(recovery);
 }
 
-/*
- * Find the first journal entry after a given entry which is not on the same
- * block map page.
+/**
+ * find_entry_starting_next_page() - Find the first journal entry
+ *                                   after a given entry which is not
+ *                                   on the same block map page.
+ * @current_entry: The entry to search from.
+ * @needs_sort: Whether sorting is needed to proceed.
  *
- * @current_entry: the entry to search from
- * @needs_sort: Whether sorting is needed to proceed
- *
- * @return Pointer to the first later journal entry on a different block map
+ * Return: Pointer to the first later journal entry on a different block map
  *         page, or a pointer to just before the journal entries if no
  *         subsequent entry is on a different block map page.
  */

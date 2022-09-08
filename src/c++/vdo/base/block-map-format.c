@@ -143,12 +143,13 @@ page_count_t vdo_compute_block_map_page_count(block_count_t entries)
 	return DIV_ROUND_UP(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
-/*
- * Compute the number of pages which must be allocated at each level in order
- * to grow the forest to a new number of entries.
- * @entries: The new number of entries the block map must address
+/**
+ * vdo_compute_new_forest_pages() - Compute the number of pages which must be
+ *                                  allocated at each level in order to grow
+ *                                  the forest to a new number of entries.
+ * @entries: The new number of entries the block map must address.
  *
- * @return: The total number of non-leaf pages required
+ * Return: The total number of non-leaf pages required.
  */
 block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 					   struct boundary *old_sizes,

@@ -681,35 +681,34 @@ static struct histogram *make_histogram(struct kobject *parent,
 }
 
 /**
- * Allocate and initialize a histogram that uses linearly sized buckets.
+ * make_linear_histogram() - Allocate and initialize a histogram that uses
+ *                           linearly sized buckets.
+ * @parent: The parent kobject.
+ * @name: The short name of the histogram. This label is used for the sysfs
+ *        node.
+ * @init_label: The label for the sampled data. This label is used when we plot
+ *              the data.
+ * @counted_items: A name (plural) for the things being counted.
+ * @metric: The measure being used to divide samples into buckets.
+ * @sample_units: The unit (plural) for the metric, or NULL if it's a simple
+ *                counter.
+ * @size: The number of buckets. There are buckets for every value from 0 up to
+ *        size (but not including) size. There is an extra bucket for larger
+ *        samples.
  *
- * The histogram label reported via /sys is constructed from several
- * of the values passed here; it will be something like "Init Label
- * Histogram - number of counted_items grouped by metric
- * (sample_units)", e.g., "Flush Forwarding Histogram - number of
- * flushes grouped by latency (milliseconds)". Thus counted_items and
- * sample_units should be plural.
+ * The histogram label reported via /sys is constructed from several of the
+ * values passed here; it will be something like "Init Label Histogram -
+ * number of counted_items grouped by metric (sample_units)", e.g., "Flush
+ * Forwarding Histogram - number of flushes grouped by latency
+ * (milliseconds)". Thus counted_items and sample_units should be plural.
  *
- * The sample_units string will also be reported separately via another
- * /sys entry to aid in programmatic processing of the results, so the
- * strings used should be consistent (e.g., always "milliseconds" and
- * not "ms" for milliseconds).
+ * The sample_units string will also be reported separately via another /sys
+ * entry to aid in programmatic processing of the results, so the strings used
+ * should be consistent (e.g., always "milliseconds" and not "ms" for
+ * milliseconds).
  *
- * @param parent         The parent kobject.
- * @param name           The short name of the histogram.  This label is used
- *                       for the sysfs node.
- * @param init_label     The label for the sampled data.  This label is used
- *                       when we plot the data.
- * @param counted_items  A name (plural) for the things being counted.
- * @param metric         The measure being used to divide samples into buckets.
- * @param sample_units   The unit (plural) for the metric, or NULL if it's a
- *                       simple counter.
- * @param size           The number of buckets.  There are buckets for every
- *                       value from 0 up to size (but not including) size.
- *                       There is an extra bucket for larger samples.
- *
- * @return the histogram
- **/
+ * Return: The histogram.
+ */
 struct histogram *make_linear_histogram(struct kobject *parent,
 					const char *name,
 					const char *init_label,
@@ -730,28 +729,28 @@ struct histogram *make_linear_histogram(struct kobject *parent,
 }
 
 /**
- * Intermediate routine for creating logarithmic histograms.
+ * make_logarithmic_histogram_with_conversion_factor() - Intermediate routine
+ *                                                       for creating
+ *                                                       logarithmic
+ *                                                       histograms.
+ * @parent: The parent kobject.
+ * @name: The short name of the histogram. This label is used for the sysfs
+ *        node.
+ * @init_label: The label for the sampled data. This label is used when we plot
+ *              the data.
+ * @counted_items: A name (plural) for the things being counted.
+ * @metric: The measure being used to divide samples into buckets.
+ * @sample_units: The units (plural) for the metric, or NULL if it's a simple
+ *                counter.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up
+ *            to 10^log_size, and an extra bucket for larger samples.
+ * @conversion_factor: Unit conversion factor for reporting.
  *
  * Limits the histogram size, and computes the bucket count from the
  * orders-of-magnitude count.
  *
- * @param parent             The parent kobject.
- * @param name               The short name of the histogram.  This label is
- *                           used for the sysfs node.
- * @param init_label         The label for the sampled data.  This label is
- *                           used when we plot the data.
- * @param counted_items      A name (plural) for the things being counted.
- * @param metric             The measure being used to divide samples into
- *                           buckets.
- * @param sample_units       The units (plural) for the metric, or NULL if it's
- *                           a simple counter.
- * @param log_size           The number of buckets.  There are buckets for a
- *                           range of sizes up to 10^log_size, and an extra
- *                           bucket for larger samples.
- * @param conversion_factor  Unit conversion factor for reporting.
- *
- * @return the histogram
- **/
+ * Return: The histogram.
+ */
 static struct histogram *
 make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
 						  const char *name,
@@ -777,24 +776,22 @@ make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
 }
 
 /**
- * Allocate and initialize a histogram that uses logarithmically sized
- * buckets.
+ * make_logarithmic_histogram() - Allocate and initialize a histogram that
+ *                                uses logarithmically sized buckets.
+ * @parent: The parent kobject.
+ * @name: The short name of the histogram. This label is used for the sysfs
+ *        node.
+ * @init_label: The label for the sampled data. This label is used when we plot
+ *              the data.
+ * @counted_items: A name (plural) for the things being counted.
+ * @metric: The measure being used to divide samples into buckets.
+ * @sample_units: The unit (plural) for the metric, or NULL if it's a simple
+ *                counter.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up
+ *            to 10^log_size, and an extra bucket for larger samples.
  *
- * @param parent         The parent kobject.
- * @param name           The short name of the histogram.  This label is used
- *                       for the sysfs node.
- * @param init_label     The label for the sampled data.  This label is used
- *                       when we plot the data.
- * @param counted_items  A name (plural) for the things being counted.
- * @param metric         The measure being used to divide samples into buckets.
- * @param sample_units   The unit (plural) for the metric, or NULL if it's a
- *                       simple counter.
- * @param log_size       The number of buckets.  There are buckets for a range
- *                       of sizes up to 10^log_size, and an extra bucket for
- *                       larger samples.
- *
- * @return the histogram
- **/
+ * Return: The histogram.
+ */
 struct histogram *make_logarithmic_histogram(struct kobject *parent,
 					     const char *name,
 					     const char *init_label,
@@ -814,23 +811,24 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent,
 }
 
 /**
- * Allocate and initialize a histogram that uses logarithmically sized
- * buckets. Values are entered that count in jiffies, and they are
- * reported in milliseconds.
+ * make_logarithmic_jiffies_histogram() - Allocate and initialize a histogram
+ *                                        that uses logarithmically sized
+ *                                        buckets.
+ * @parent: The parent kobject.
+ * @name: The short name of the histogram. This label is used for the sysfs
+ *        node.
+ * @init_label: The label for the sampled data. This label is used when we plot
+ *              the data.
+ * @counted_items: A name (plural) for the things being counted.
+ * @metric: The measure being used to divide samples into buckets.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up
+ *            to 10^log_size, and an extra bucket for larger samples.
  *
- * @param parent         The parent kobject.
- * @param name           The short name of the histogram.  This label is used
- *                       for the sysfs node.
- * @param init_label     The label for the sampled data.  This label is used
- *                       when we plot the data.
- * @param counted_items  A name (plural) for the things being counted.
- * @param metric         The measure being used to divide samples into buckets.
- * @param log_size       The number of buckets.  There are buckets for a range
- *                       of sizes up to 10^log_size, and an extra bucket for
- *                       larger samples.
+ * Values are entered that count in jiffies, and they are reported in
+ * milliseconds.
  *
- * @return the histogram
- **/
+ * Return: The histogram.
+ */
 struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 						     const char *name,
 						     const char *init_label,
@@ -856,11 +854,10 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 }
 
 /**
- * Enter a sample into a histogram.
- *
- * @param h       The histogram (may be NULL)
- * @param sample  The sample
- **/
+ * enter_histogram_sample() - Enter a sample into a histogram.
+ * @h: The histogram (may be NULL).
+ * @sample: The sample.
+ */
 void enter_histogram_sample(struct histogram *h, uint64_t sample)
 {
 	uint64_t old_minimum, old_maximum;
@@ -923,10 +920,9 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 }
 
 /**
- * Free a histogram.
- *
- * @param histogram  The histogram to free
- **/
+ * free_histogram() - Free a histogram.
+ * @histogram: The histogram to free.
+ */
 void free_histogram(struct histogram *histogram)
 {
 	if (histogram != NULL) {

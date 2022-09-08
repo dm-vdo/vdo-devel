@@ -104,11 +104,11 @@ static bool handle_page_write(void *raw_page,
 	return false;
 }
 
-/*
- * Initialize the per-zone portions of the block map.
- *
+/**
+ * initialize_block_map_zone() - Initialize the per-zone portions of the block
+ *                               map.
  * @maximum_age: The number of journal blocks before a dirtied page is
- *		 considered old and must be written out
+ *		 considered old and must be written out.
  */
 static int __must_check
 initialize_block_map_zone(struct block_map *map,
@@ -361,10 +361,11 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 	return (tree_lock->root_index % map->zone_count);
 }
 
-/*
- * Compute the block map slot in which the block map entry for a data_vio
- * resides and cache that in the data_vio.
- * @thread_id: The thread on which to run the callback
+/**
+ * vdo_find_block_map_slot() - Compute the block map slot in which the block
+ *                             map entry for a data_vio resides and cache that
+ *                             in the data_vio.
+ * @thread_id: The thread on which to run the callback.
  */
 void vdo_find_block_map_slot(struct data_vio *data_vio,
 			     vdo_action *callback,
@@ -564,11 +565,11 @@ fetch_mapping_page(struct data_vio *data_vio, bool modifiable,
 	vdo_get_page(&data_vio->page_completion.completion);
 }
 
-/*
- * Decode and validate a block map entry, and set the mapped location of
- * a data_vio.
+/**
+ * set_mapped_location() - Decode and validate a block map entry, and set the
+ *                         mapped location of a data_vio.
  *
- * @return VDO_SUCCESS or VDO_BAD_MAPPING if the map entry is invalid
+ * Return: VDO_SUCCESS or VDO_BAD_MAPPING if the map entry is invalid
  *         or an error code for any other failure
  */
 static int __must_check

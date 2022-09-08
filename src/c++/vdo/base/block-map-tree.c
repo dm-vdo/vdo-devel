@@ -164,9 +164,9 @@ get_tree_page(const struct block_map_tree_zone *zone,
 					  lock->tree_slots[lock->height].page_index);
 }
 
-/*
- * Validate and copy a buffer to a page.
- * @pbn: the expected PBN
+/**
+ * vdo_copy_valid_page() - Validate and copy a buffer to a page.
+ * @pbn: The expected PBN.
  */
 bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 			 physical_block_number_t pbn,
@@ -213,16 +213,18 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone,
 	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
-/*
- * Check whether the given value is between the lower and upper bounds,
- * within a cyclic range of values from 0 to (modulus - 1). The value
- * and both bounds must be smaller than the modulus.
+/**
+ * in_cyclic_range() - Check whether the given value is between the lower and
+ *                     upper bounds, within a cyclic range of values from 0 to
+ *                     (modulus - 1).
+ * @lower: The lowest value to accept.
+ * @value: The value to check.
+ * @upper: The highest value to accept.
+ * @modulus: The size of the cyclic space, no more than 2^15.
  *
- * @lower: The lowest value to accept
- * @value: The value to check
- * @upper: The highest value to accept
- * @modulus: The size of the cyclic space, no more than 2^15
- * @return whether the value is in range
+ * The value and both bounds must be smaller than the modulus.
+ *
+ * Return: true if the value is in range.
  */
 EXTERNAL_STATIC bool in_cyclic_range(uint16_t lower, uint16_t value,
 				     uint16_t upper, uint16_t modulus)
@@ -236,16 +238,16 @@ EXTERNAL_STATIC bool in_cyclic_range(uint16_t lower, uint16_t value,
 	return (value <= upper);
 }
 
-/*
- * Check whether a generation is strictly older than some other generation in
- * the context of a zone's current generation range.
+/**
+ * is_not_older() - Check whether a generation is strictly older than some
+ *                  other generation in the context of a zone's current
+ *                  generation range.
+ * @zone: The zone in which to do the comparison.
+ * @a: The generation in question.
+ * @b: The generation to compare to.
  *
- * @zone: The zone in which to do the comparison
- * @a: The generation in question
- * @b: The generation to compare to
- *
- * @return if generation @a is not strictly older than generation @b in the
- *	   context of @zone
+ * Return: true if generation @a is not strictly older than generation @b in
+ *	   the context of @zone
  */
 static bool __must_check
 is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
@@ -334,7 +336,7 @@ static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 }
 
 /*
- * @return true if all possible generations were not already active
+ * Return: true if all possible generations were not already active
  */
 static bool attempt_increment(struct block_map_tree_zone *zone)
 {

@@ -330,9 +330,10 @@ void vdo_queue_slab(struct vdo_slab *slab)
 	prioritize_slab(slab);
 }
 
-/*
- * Adjust the free block count and (if needed) reprioritize the slab.
- * @increment should be true if the free block count went up.
+/**
+ * vdo_adjust_free_block_count() - Adjust the free block count and (if
+ *                                 needed) reprioritize the slab.
+ * @increment: should be true if the free block count went up.
  */
 void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 {
@@ -442,23 +443,23 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 	}
 }
 
-/*
- * This is a heap_comparator function that orders slab_status
- * structures using the 'is_clean' field as the primary key and the
- * 'emptiness' field as the secondary key.
+/**
+ * compare_slab_statuses() - This is a heap_comparator function that orders
+ *                           slab_status structures using the 'is_clean' field
+ *                           as the primary key and the 'emptiness' field as
+ *                           the secondary key.
+ * @item1: The first item to compare.
+ * @item2: The second item to compare.
  *
- * Slabs need to be pushed onto the rings in the same order they are
- * to be popped off. Popping should always get the most empty first,
- * so pushing should be from most empty to least empty. Thus, the
- * comparator order is the usual sense since the heap structure
- * returns larger elements before smaller ones.
+ * Slabs need to be pushed onto the rings in the same order they are to be
+ * popped off. Popping should always get the most empty first, so pushing
+ * should be from most empty to least empty. Thus, the comparator order is the
+ * usual sense since the heap structure returns larger elements before smaller
+ * ones.
  *
- * @param item1  The first item to compare
- * @param item2  The second item to compare
- *
- * @return  1 if the first item is cleaner or emptier than the second;
+ * Return:  1 if the first item is cleaner or emptier than the second;
  *          0 if the two items are equally clean and empty;
-	   -1 otherwise
+ *	   -1 otherwise
  */
 static int compare_slab_statuses(const void *item1, const void *item2)
 {
