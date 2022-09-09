@@ -1190,22 +1190,5 @@ void continue_write_with_block_map_slot(struct vdo_completion *completion)
  */
 void cleanup_write_data_vio(struct data_vio *data_vio)
 {
-	struct vdo_completion *completion = data_vio_as_completion(data_vio);
-
-	if ((completion->result != VDO_SUCCESS) &&
-	    ((completion->result == VDO_READ_ONLY) ||
-	     (data_vio->user_bio == NULL))
-	    && !vdo_is_read_only(completion->vdo->read_only_notifier)) {
-		uds_log_error_strerror(completion->result,
-				       "Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
-				       (unsigned long long) data_vio->logical.lbn,
-				       (unsigned long long) data_vio->new_mapped.pbn,
-				       (unsigned long long) data_vio->mapped.pbn,
-				       (unsigned long long) get_data_vio_allocation(data_vio),
-				       get_data_vio_operation_name(data_vio));
-		vdo_enter_read_only_mode(completion->vdo->read_only_notifier,
-					 completion->result);
-	}
-
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_START);
 }
