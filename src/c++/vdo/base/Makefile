@@ -57,8 +57,6 @@ $(OBJECTS): $(GENERATED_FILES)
 $(GENERATED_FILES): $(VDO_STATS_DEPS)
 	$(MAKE) -C $(VDO_STATS_DIR)
 
-vdoInit.o: CFLAGS := $(CFLAGS) -Wno-format-security -Wno-format-nonliteral
-
 vdo-layout.o: CFLAGS += -DTEST_INTERNAL
 
 %-user.o: %.c
