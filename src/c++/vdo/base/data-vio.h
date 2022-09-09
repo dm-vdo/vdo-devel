@@ -68,6 +68,25 @@ enum async_operation_number {
 } __packed;
 
 /*
+ * The type of request a data_vio is performing
+ */
+enum data_vio_operation_bits {
+	__DATA_VIO_READ,
+	__DATA_VIO_WRITE,
+	__DATA_VIO_FUA,
+};
+
+enum data_vio_operation {
+	DATA_VIO_UNSPECIFIED_OPERATION,
+	DATA_VIO_READ = (1 << __DATA_VIO_READ),
+	DATA_VIO_WRITE = (1 << __DATA_VIO_WRITE),
+	DATA_VIO_FUA = (1 << __DATA_VIO_FUA),
+} __packed;
+
+#define DATA_VIO_READ_MODIFY_WRITE (DATA_VIO_READ | DATA_VIO_WRITE)
+#define DATA_VIO_READ_WRITE_MASK DATA_VIO_READ_MODIFY_WRITE
+
+/*
  * An LBN lock.
  */
 struct lbn_lock {
