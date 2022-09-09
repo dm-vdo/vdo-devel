@@ -30,6 +30,8 @@
 #include "vdo-page-cache.h"
 #include "vio.h"
 #include "vio-pool.h"
+#include "vio-read.h"
+#include "vio-write.h"
 
 enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,
@@ -629,10 +631,12 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 	zone = get_block_map_tree_zone(data_vio);
 	--zone->active_lookups;
 
-	vdo_set_completion_result(completion, result);
-	vdo_launch_completion_callback(completion,
-				       data_vio->tree_lock.callback,
-				       data_vio->tree_lock.thread_id);
+	set_data_vio_logical_callback(data_vio,
+				      (is_write_data_vio(data_vio) ?
+				       continue_write_with_block_map_slot :
+				       continue_read_with_block_map_slot));
+	completion->error_handler = complete_data_vio;
+	vdo_continue_completion(completion, result);
 }
 
 static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
@@ -876,16 +880,8 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 	}
 }
 
-static void set_post_allocation_callback(struct data_vio *data_vio)
-{
-	vdo_set_completion_callback(data_vio_as_completion(data_vio),
-				    data_vio->tree_lock.callback,
-				    data_vio->tree_lock.thread_id);
-}
-
 static void abort_allocation(struct data_vio *data_vio, int result)
 {
-	set_post_allocation_callback(data_vio);
 	abort_lookup(data_vio, result, "allocation");
 }
 
@@ -899,7 +895,6 @@ static void allocation_failure(struct vdo_completion *completion)
 		return;
 	}
 
-	completion->error_handler = NULL;
 	abort_allocation(data_vio, completion->result);
 }
 
@@ -939,10 +934,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 
 	assert_data_vio_in_logical_zone(data_vio);
 
-	completion->error_handler = NULL;
-
 	tree_page = get_tree_page(zone, tree_lock);
-
 	pbn = tree_lock->tree_slots[height - 1].block_map_slot.pbn;
 
 	/* Record the allocation. */
@@ -1014,7 +1006,6 @@ static void
 set_block_map_page_reference_count(struct vdo_completion *completion)
 {
 	physical_block_number_t pbn;
-
 	struct data_vio *data_vio = as_data_vio(completion);
 	struct tree_lock *lock = &data_vio->tree_lock;
 
@@ -1035,7 +1026,7 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 
 	set_data_vio_allocated_zone_callback(data_vio,
 					     set_block_map_page_reference_count);
-	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal,
+	vdo_add_recovery_journal_entry(completion->vdo->recovery_journal,
 				       data_vio);
 }
 
@@ -1092,12 +1083,15 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 				     allocation_failure);
 }
 
-/*
- * Look up the PBN of the block map page containing the mapping for a
- * data_vio's LBN. All ancestors in the tree will be allocated or loaded, as
- * needed.
+/**
+ * vdo_find_block_map_slot(): Find the block map slot in which the block map
+ *                            entry for a data_vio resides and cache that
+ *                            result in the data_vio.
+ * @data_vio: The data_vio
+ *
+ * All ancestors in the tree will be allocated or loaded, as needed.
  */
-void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
+void vdo_find_block_map_slot(struct data_vio *data_vio)
 {
 	page_number_t page_index;
 	struct block_map_tree_slot tree_slot;
@@ -1113,6 +1107,8 @@ void vdo_lookup_block_map_pbn(struct data_vio *data_vio)
 		return;
 	}
 
+	lock->tree_slots[0].block_map_slot.slot =
+		data_vio->logical.lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 	page_index = (lock->tree_slots[0].page_index /
 		      zone->map_zone->block_map->root_count);
 	tree_slot = (struct block_map_tree_slot) {

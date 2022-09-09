@@ -8,7 +8,7 @@
 
 #include "kernel-types.h"
 
-void launch_write_data_vio(struct data_vio *data_vio);
+void continue_write_with_block_map_slot(struct vdo_completion *completion);
 
 void cleanup_write_data_vio(struct data_vio *data_vio);
 

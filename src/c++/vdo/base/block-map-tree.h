@@ -82,12 +82,13 @@ void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone,
 
 void vdo_drain_zone_trees(struct block_map_tree_zone *zone);
 
-void vdo_lookup_block_map_pbn(struct data_vio *data_vio);
+void vdo_find_block_map_slot(struct data_vio *data_vio);
 
-physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
-						    page_number_t page_number);
+physical_block_number_t
+vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number);
 
-void vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
+void
+vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 
 #ifdef INTERNAL
 bool in_cyclic_range(uint16_t lower, uint16_t value,

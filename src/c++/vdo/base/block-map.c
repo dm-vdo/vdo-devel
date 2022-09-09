@@ -366,30 +366,6 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
  *                             map entry for a data_vio resides and cache that
  *                             in the data_vio.
  * @thread_id: The thread on which to run the callback.
- */
-void vdo_find_block_map_slot(struct data_vio *data_vio,
-			     vdo_action *callback,
-			     thread_id_t thread_id)
-{
-	struct block_map *map = vdo_from_data_vio(data_vio)->block_map;
-	struct tree_lock *tree_lock = &data_vio->tree_lock;
-	struct block_map_tree_slot *slot = &tree_lock->tree_slots[0];
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
-
-	if (data_vio->logical.lbn >= map->entry_count) {
-		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
-		return;
-	}
-
-	slot->block_map_slot.slot
-		= data_vio->logical.lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
-	tree_lock->callback = callback;
-	tree_lock->thread_id = thread_id;
-	vdo_lookup_block_map_pbn(data_vio);
-}
-
-/*
  * Update the block map era information for a newly finished journal block.
  * This method must be called from the journal zone thread.
  */

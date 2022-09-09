@@ -328,7 +328,7 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 		return result;
 	}
 
-	data_vio->mapped = (struct zoned_pbn){
+	data_vio->mapped = (struct zoned_pbn) {
 		.pbn = pbn,
 		.state = state,
 		.zone = zone,
@@ -343,12 +343,17 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 static void launch_locked_request(struct data_vio *data_vio)
 {
 	data_vio->logical.locked = true;
+	if (!is_read_data_vio(data_vio)) {
+		struct vdo *vdo = vdo_from_data_vio(data_vio);
 
-	if (is_write_data_vio(data_vio)) {
-		launch_write_data_vio(data_vio);
-	} else {
-		launch_read_data_vio(data_vio);
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
+			finish_data_vio(data_vio, VDO_READ_ONLY);
+			return;
+		}
 	}
+
+	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+	vdo_find_block_map_slot(data_vio);
 }
 
 /**

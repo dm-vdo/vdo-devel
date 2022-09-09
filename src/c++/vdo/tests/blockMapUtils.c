@@ -14,6 +14,8 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio.h"
+#include "vio-read.h"
+#include "vio-write.h"
 
 #include "asyncLayer.h"
 #include "asyncVIO.h"
@@ -58,7 +60,19 @@ static void compareMapping(struct vdo_completion *completion);
 static void getMapping(struct vdo_completion *completion)
 {
   completion->callback = compareMapping;
+  completion->error_handler = compareMapping;
   vdo_get_mapped_block(as_data_vio(completion));
+}
+
+/**********************************************************************/
+static bool replaceCallbackWithGetMapping(struct vdo_completion *completion)
+{
+  if (completion->callback == continue_read_with_block_map_slot) {
+    completion->callback = getMapping;
+    removeCompletionEnqueueHook(replaceCallbackWithGetMapping);
+  }
+
+  return true;
 }
 
 /**********************************************************************/
@@ -69,9 +83,8 @@ static void lookupMapping(struct vdo_completion *completion)
   dataVIO->logical.zone
     = &vdo->logical_zones->zones[vdo_compute_logical_zone(dataVIO)];
   completion->requeue = true;
-  vdo_find_block_map_slot(dataVIO,
-                          getMapping,
-                          dataVIO->logical.zone->thread_id);
+  addCompletionEnqueueHook(replaceCallbackWithGetMapping);
+  vdo_find_block_map_slot(dataVIO);
 }
 
 /**
@@ -115,9 +128,11 @@ static void saveToBlockMap(struct vdo_completion *completion)
 /**********************************************************************/
 static void findBlockMapSlotAndSave(struct vdo_completion *completion)
 {
-  vdo_find_block_map_slot(as_data_vio(completion),
-                          saveToBlockMap,
-                          vdo_get_callback_thread_id());
+  struct data_vio *dataVIO = as_data_vio(completion);
+
+  dataVIO->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+  completion->requeue = true;
+  vdo_find_block_map_slot(as_data_vio(completion));
 }
 
 /**
@@ -131,8 +146,11 @@ static bool populateBlockMapCallback(struct vdo_completion *completion)
     // As noted below, we can't launch this as a write, but it needs to be a
     // write in order to update the block map. So we switch the operation here.
     as_data_vio(completion)->io_operation = DATA_VIO_WRITE;
+  } else if (completion->callback == continue_write_with_block_map_slot) {
+    completion->callback = saveToBlockMap;
   }
 
+  completion->requeue = true;
   return true;
 }
 
@@ -143,6 +161,7 @@ void populateBlockMap(logical_block_number_t start,
 {
   populateConfigurator = configurator;
   addCompletionEnqueueHook(populateBlockMapCallback);
+
   /*
    * This can't be a write because the attempt to copy the data from the bio
    * blows up on the NULL buffer, and making a real buffer here is expensive
@@ -176,9 +195,8 @@ static void lookupCallback(struct vdo_completion *completion)
 
   switch (dataVIO->last_async_operation) {
   case VIO_ASYNC_OP_LAUNCH:
-    vdo_find_block_map_slot(dataVIO,
-                            lookupCallback,
-                            completion->callback_thread_id);
+    dataVIO->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+    vdo_find_block_map_slot(dataVIO);
     return;
 
   case VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT:
@@ -200,6 +218,8 @@ static void lookupCallback(struct vdo_completion *completion)
 static bool lookupLBNHook(struct vdo_completion *completion)
 {
   if (lastAsyncOperationIs(completion, VIO_ASYNC_OP_LAUNCH)) {
+    completion->callback = lookupCallback;
+  } else if (completion->callback == continue_read_with_block_map_slot) {
     completion->callback = lookupCallback;
     removeCompletionEnqueueHook(lookupLBNHook);
   }

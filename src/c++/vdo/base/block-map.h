@@ -114,10 +114,6 @@ void vdo_initialize_block_map_from_journal(struct block_map *map,
 
 zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio);
 
-void vdo_find_block_map_slot(struct data_vio *data_vio,
-			     vdo_action *callback,
-			     thread_id_t thread_id);
-
 void vdo_advance_block_map_era(struct block_map *map,
 			       sequence_number_t recovery_block_number);
 

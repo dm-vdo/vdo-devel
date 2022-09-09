@@ -1128,8 +1128,7 @@ static void handle_allocation_error(struct vdo_completion *completion)
  *
  * This callback is registered in launch_write_data_vio().
  */
-static void
-continue_write_with_block_map_slot(struct vdo_completion *completion)
+void continue_write_with_block_map_slot(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
@@ -1137,6 +1136,8 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
+
+	vdo_acquire_flush_generation_lock(data_vio);
 
 	if (data_vio->tree_lock.tree_slots[0].block_map_slot.pbn ==
 	    VDO_ZERO_BLOCK) {
@@ -1183,40 +1184,28 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 }
 
 /**
- * launch_write_data_vio() - Start the asynchronous processing of a data_vio
- *                           for a write request which has acquired a lock on
- *                           its logical block by joining the current flush
- *                           generation and then attempting to allocate a
- *                           physical block.
- * @data_vio: The data_vio doing the write.
- */
-void launch_write_data_vio(struct data_vio *data_vio)
-{
-	int result;
-
-	if (vdo_is_read_only(vdo_from_data_vio(data_vio)->read_only_notifier)) {
-		finish_data_vio(data_vio, VDO_READ_ONLY);
-		return;
-	}
-
-	/* Write requests join the current flush generation. */
-	result = vdo_acquire_flush_generation_lock(data_vio);
-	if (abort_on_error(result, data_vio, NOT_READ_ONLY)) {
-		return;
-	}
-
-	/* Go find the block map slot for the LBN mapping. */
-	vdo_find_block_map_slot(data_vio,
-				continue_write_with_block_map_slot,
-				data_vio->logical.zone->thread_id);
-}
-
-/**
  * cleanup_write_data_vio() - Clean up a data_vio which has finished
  *                            processing a write.
  * @data_vio: The data_vio to clean up.
  */
 void cleanup_write_data_vio(struct data_vio *data_vio)
 {
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+
+	if ((completion->result != VDO_SUCCESS) &&
+	    ((completion->result == VDO_READ_ONLY) ||
+	     (data_vio->user_bio == NULL))
+	    && !vdo_is_read_only(completion->vdo->read_only_notifier)) {
+		uds_log_error_strerror(completion->result,
+				       "Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
+				       (unsigned long long) data_vio->logical.lbn,
+				       (unsigned long long) data_vio->new_mapped.pbn,
+				       (unsigned long long) data_vio->mapped.pbn,
+				       (unsigned long long) get_data_vio_allocation(data_vio),
+				       get_data_vio_operation_name(data_vio));
+		vdo_enter_read_only_mode(completion->vdo->read_only_notifier,
+					 completion->result);
+	}
+
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_START);
 }

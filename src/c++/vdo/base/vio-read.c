@@ -55,15 +55,6 @@
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
-static void continue_partial_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_logical_zone(data_vio);
-
-	launch_write_data_vio(data_vio);
-}
-
 /**
  * modify_for_partial_write() - Do the modify-write part of a
  *                              read-modify-write cycle.
@@ -94,7 +85,8 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 		(DATA_VIO_WRITE |
 		 (data_vio->io_operation & ~DATA_VIO_READ_WRITE_MASK));
 	completion->error_handler = NULL;
-	launch_data_vio_logical_callback(data_vio, continue_partial_write);
+	launch_data_vio_logical_callback(data_vio,
+					 continue_write_with_block_map_slot);
 }
 
 static void complete_read(struct vdo_completion *completion)
@@ -245,12 +237,13 @@ static void read_block(struct vdo_completion *completion)
 }
 
 /**
- * read_block_mapping() - Read the data_vio's mapping from the block map.
+ * continue_read_with_block_map_slot() - Read the data_vio's mapping from the
+ *                                       block map.
  * @completion: The data_vio to be read.
  *
  * This callback is registered in launch_read_data_vio().
  */
-static void read_block_mapping(struct vdo_completion *completion)
+void continue_read_with_block_map_slot(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
@@ -263,24 +256,6 @@ static void read_block_mapping(struct vdo_completion *completion)
 	set_data_vio_logical_callback(data_vio, read_block);
 	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ;
 	vdo_get_mapped_block(data_vio);
-}
-
-/**
- * launch_read_data_vio() - Start the asynchronous processing of a read vio.
- * @data_vio: The data_vio doing the read.
- *
- * Starts the asynchronous processing of the data_vio for a read or
- * read-modify-write request which has acquired a lock on its logical block.
- * The first step is to perform a block map lookup.
- */
-void launch_read_data_vio(struct data_vio *data_vio)
-{
-	assert_data_vio_in_logical_zone(data_vio);
-
-	/* Go find the block map slot for the LBN mapping. */
-	vdo_find_block_map_slot(data_vio,
-				read_block_mapping,
-				data_vio->logical.zone->thread_id);
 }
 
 /**

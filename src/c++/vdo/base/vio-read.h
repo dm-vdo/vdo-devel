@@ -8,8 +8,7 @@
 
 #include "kernel-types.h"
 
-void launch_read_data_vio(struct data_vio *data_vio);
-
+void continue_read_with_block_map_slot(struct vdo_completion *completion);
 void cleanup_read_data_vio(struct data_vio *data_vio);
 
 #endif /* VIO_READ_H */

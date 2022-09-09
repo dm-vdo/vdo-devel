@@ -301,23 +301,19 @@ vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
  * vdo_acquire_flush_generation_lock() - Acquire the shared lock on a flush
  *                                       generation by a write data_vio.
  * @data_vio: The data_vio.
- *
- * Return: VDO_SUCCESS or an error code.
  */
-int vdo_acquire_flush_generation_lock(struct data_vio *data_vio)
+void vdo_acquire_flush_generation_lock(struct data_vio *data_vio)
 {
 	struct logical_zone *zone = data_vio->logical.zone;
 
 	assert_on_zone_thread(zone, __func__);
-	if (!vdo_is_state_normal(&zone->state)) {
-		return VDO_INVALID_ADMIN_STATE;
-	}
+	ASSERT_LOG_ONLY(vdo_is_state_normal(&zone->state),
+			"vdo state is normal");
 
 	data_vio->flush_generation = zone->flush_generation;
 	list_move_tail(&data_vio->write_entry, &zone->write_vios);
 	data_vio->has_flush_generation_lock = true;
 	zone->ios_in_flush_generation++;
-	return VDO_SUCCESS;
 }
 
 static void

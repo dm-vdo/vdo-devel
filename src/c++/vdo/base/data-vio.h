@@ -99,10 +99,6 @@ struct tree_lock {
 	root_count_t root_index;
 	/* Whether we hold a page lock */
 	bool locked;
-	/* The thread on which to run the callback */
-	thread_id_t thread_id;
-	/* The function to call after looking up a block map slot */
-	vdo_action *callback;
 	/* The key for the lock map */
 	uint64_t key;
 	/*

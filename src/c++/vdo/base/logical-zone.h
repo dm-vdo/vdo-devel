@@ -75,7 +75,7 @@ void
 vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
 					    sequence_number_t expected_generation);
 
-int __must_check vdo_acquire_flush_generation_lock(struct data_vio *data_vio);
+void vdo_acquire_flush_generation_lock(struct data_vio *data_vio);
 
 void vdo_release_flush_generation_lock(struct data_vio *data_vio);
 
