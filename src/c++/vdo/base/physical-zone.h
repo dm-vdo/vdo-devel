@@ -8,6 +8,7 @@
 
 #include "kernel-types.h"
 #include "pbn-lock.h"
+#include "thread-config.h"
 #include "types.h"
 
 struct physical_zone {

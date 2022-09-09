@@ -8,6 +8,7 @@
 
 #include "admin-state.h"
 #include "completion.h"
+#include "thread-config.h"
 #include "types.h"
 
 /*
@@ -76,7 +77,8 @@ typedef bool vdo_action_scheduler(void *context);
  * @context: The action context
  * @zone_number: The number of the zone for which the thread ID is desired
  */
-typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_number);
+typedef thread_id_t
+vdo_zone_thread_getter(void *context, zone_count_t zone_number);
 
 int __must_check
 vdo_make_action_manager(zone_count_t zones,

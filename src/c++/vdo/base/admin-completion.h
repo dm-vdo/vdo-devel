@@ -12,6 +12,7 @@
 #include "uds-threads.h"
 
 #include "completion.h"
+#include "thread-config.h"
 #include "types.h"
 
 enum admin_operation_type {

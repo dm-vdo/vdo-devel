@@ -8,8 +8,25 @@
 
 #include "permassert.h"
 
-#include "kernel-types.h"
 #include "types.h"
+
+/**
+ * typedef thread_count_t - A thread counter.
+ */
+typedef uint8_t thread_count_t;
+
+/**
+ * typedef thread_id_t - A thread ID.
+ *
+ * Base-code threads are numbered sequentially starting from 0.
+ */
+typedef uint8_t thread_id_t;
+
+/*
+ * The thread ID returned when the current base code thread ID cannot be found
+ * or is otherwise undefined.
+ */
+static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
 
 struct thread_config {
 	zone_count_t logical_zone_count;
@@ -28,6 +45,8 @@ struct thread_config {
 	thread_id_t *hash_zone_threads;
 	thread_id_t *bio_threads;
 };
+
+struct thread_count_config;
 
 int __must_check
 vdo_make_thread_config(struct thread_count_config counts,

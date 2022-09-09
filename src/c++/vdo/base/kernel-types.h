@@ -21,24 +21,6 @@
 typedef uint8_t compressed_fragment_count_t;
 
 /**
- * typedef thread_count_t - A thread counter.
- */
-typedef uint8_t thread_count_t;
-
-/**
- * typedef thread_id_t - A thread ID.
- *
- * Base-code threads are numbered sequentially starting from 0.
- */
-typedef uint8_t thread_id_t;
-
-/*
- * The thread ID returned when the current base code thread ID cannot be found
- * or is otherwise undefined.
- */
-static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
-
-/**
  * typedef vio_count_t - A number of vios.
  */
 typedef uint16_t vio_count_t;
@@ -189,7 +171,6 @@ struct slab_scrubber;
 struct slab_summary;
 struct slab_summary_zone;
 struct thread_config;
-struct thread_count_config;
 struct vdo;
 struct vdo_completion;
 struct vdo_flush;

@@ -13,6 +13,7 @@
 #include "admin-state.h"
 #include "block-mapping-state.h"
 #include "statistics.h"
+#include "thread-config.h"
 #include "types.h"
 #include "wait-queue.h"
 
