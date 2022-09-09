@@ -21,13 +21,6 @@
 typedef uint8_t compressed_fragment_count_t;
 
 /**
- * typedef page_size_t - The size of a page.
- *
- * Must be evenly divisible by block size.
- */
-typedef uint32_t page_size_t;
-
-/**
  * typedef thread_count_t - A thread counter.
  */
 typedef uint8_t thread_count_t;
