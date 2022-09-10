@@ -176,7 +176,8 @@ struct sparse_cache {
 	struct search_list *search_lists[MAX_ZONES];
 	struct cached_chapter_index **scratch_entries;
 
-	struct barrier update_barrier;
+	struct barrier begin_update_barrier;
+	struct barrier end_update_barrier;
 
 	struct cached_chapter_index chapters[];
 };
@@ -257,7 +258,15 @@ int make_sparse_cache(const struct geometry *geometry,
 	 */
 	cache->skip_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	result = uds_initialize_barrier(&cache->update_barrier, zone_count);
+	result = uds_initialize_barrier(&cache->begin_update_barrier,
+					zone_count);
+	if (result != UDS_SUCCESS) {
+		free_sparse_cache(cache);
+		return result;
+	}
+
+	result = uds_initialize_barrier(&cache->end_update_barrier,
+					zone_count);
 	if (result != UDS_SUCCESS) {
 		free_sparse_cache(cache);
 		return result;
@@ -368,7 +377,8 @@ void free_sparse_cache(struct sparse_cache *cache)
 		UDS_FREE(cache->chapters[i].page_buffers);
 	}
 
-	uds_destroy_barrier(&cache->update_barrier);
+	uds_destroy_barrier(&cache->begin_update_barrier);
+	uds_destroy_barrier(&cache->end_update_barrier);
 	UDS_FREE(cache);
 }
 
@@ -523,14 +533,14 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	 * request and invoke this function before starting to modify the
 	 * cache.
 	 */
-	uds_enter_barrier(&cache->update_barrier);
+	uds_enter_barrier(&cache->begin_update_barrier);
 
 	/*
 	 * This is the start of the critical section: the zone zero thread is
 	 * captain, effectively holding an exclusive lock on the sparse cache.
 	 * All the other zone threads must do nothing between the two barriers.
-	 * They will wait at the update_barrier again for the captain to finish
-	 * the update.
+	 * They will wait at the end_update_barrier again for the captain to
+	 * finish the update.
 	 */
 
 	if (zone->id == ZONE_ZERO) {
@@ -555,7 +565,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	 * This is the end of the critical section. All cache invariants must
 	 * have been restored.
 	 */
-	uds_enter_barrier(&cache->update_barrier);
+	uds_enter_barrier(&cache->end_update_barrier);
 	return result;
 }
 
