@@ -212,7 +212,17 @@ static void testDedupeVsPostPackingVIO(void)
 
   // Set the number of slots in a compressed block to 2 so that we don't
   // need to explicitly flush the packer.
+  /*
+   * XXX: This is the only use of this function. Eliminating it allows some
+   *      simplifications of types and the packer itself. If this test is
+   *      ever resurrected, we should be able to replace the use of this
+   *      function by either pre-writing 12 other blocks so that the two
+   *      in the test will fill a packer bin, or by generating data in the
+   *      two blocks we care about which compress to fill a bin.
+   */
+#ifdef DISABLED
   vdo_reset_packer_slot_count(vdo->packer, 2);
+#endif // DISABLED
 
   // Set up to record the new_mapped fields of each data_vio as it completes.
   // Every other completion enqueue hook used by this test will also call this

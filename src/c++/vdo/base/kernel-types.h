@@ -16,11 +16,6 @@
 #endif /* not __KERNEL__ */
 
 /**
- * typedef compressed_fragment_count_t - A count of compressed fragments.
- */
-typedef uint8_t compressed_fragment_count_t;
-
-/**
  * typedef vio_count_t - A number of vios.
  */
 typedef uint16_t vio_count_t;

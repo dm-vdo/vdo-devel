@@ -61,8 +61,6 @@ struct packer {
 	block_count_t size;
 	/* The block size minus header size */
 	size_t bin_data_size;
-	/* The number of compression slots */
-	size_t max_slots;
 	/* A list of all packer_bins, kept sorted by free_space */
 	struct list_head bins;
 	/*
@@ -116,9 +114,6 @@ struct packer_bin *vdo_get_packer_fullest_bin(const struct packer *packer);
 
 struct packer_bin *vdo_next_packer_bin(const struct packer *packer,
 				       struct packer_bin *bin);
-
-void vdo_reset_packer_slot_count(struct packer *packer,
-				 compressed_fragment_count_t slots);
 
 #endif /* INTERNAL */
 #endif /* PACKER_H */

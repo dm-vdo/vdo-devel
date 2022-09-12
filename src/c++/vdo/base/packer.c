@@ -137,7 +137,6 @@ int vdo_make_packer(struct vdo *vdo,
 	packer->bin_data_size = (VDO_BLOCK_SIZE
 				 - sizeof(struct compressed_block_header));
 	packer->size = bin_count;
-	packer->max_slots = VDO_MAX_COMPRESSION_SLOTS;
 	INIT_LIST_HEAD(&packer->bins);
 	vdo_set_admin_state_code(&packer->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
@@ -530,7 +529,8 @@ static void add_data_vio_to_packer_bin(struct packer *packer,
 	bin->free_space -= data_vio->compression.size;
 
 	/* If we happen to exactly fill the bin, start a new batch. */
-	if ((bin->slots_used == packer->max_slots) || (bin->free_space == 0)) {
+	if ((bin->slots_used ==	VDO_MAX_COMPRESSION_SLOTS) ||
+	    (bin->free_space == 0)) {
 		write_bin(packer, bin);
 	}
 
@@ -792,30 +792,6 @@ void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent)
 	assert_on_packer_thread(packer, __func__);
 	vdo_finish_completion(parent, vdo_resume_if_quiescent(&packer->state));
 }
-
-#ifdef INTERNAL
-/**
- * vdo_reset_packer_slot_count() - Change the maxiumum number of compression
- *                                 slots the packer will use.
- * @packer: The packer.
- * @slots: The new number of slots.
- *
- * The new number of slots must be less than or equal to
- * VDO_MAX_COMPRESSION_SLOTS. Bins which already have fragments will not be
- * resized until they are next written out.
- *
- * This function is only used in unit tests.
- */
-void vdo_reset_packer_slot_count(struct packer *packer,
-				 compressed_fragment_count_t slots)
-{
-	if (slots > VDO_MAX_COMPRESSION_SLOTS) {
-		return;
-	}
-
-	packer->max_slots = slots;
-}
-#endif /* INTERNAL */
 
 static void dump_packer_bin(const struct packer_bin *bin, bool canceled)
 {
