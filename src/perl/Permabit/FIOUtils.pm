@@ -244,7 +244,10 @@ sub _parseFIOResults {
     $results{'disk stats'} = _getFIODiskStats([@ret[121..$#ret]]);
   }
 
-  $log->debug(Data::Dumper->Dump([\%results]));
+  my $dumper = Data::Dumper->new([\%results]);
+  $dumper->Purity(0)->Indent(2)->Sortkeys(1);
+  $log->debug($dumper->Dump());
+
   return \%results;
 }
 
