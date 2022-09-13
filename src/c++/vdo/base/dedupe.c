@@ -862,7 +862,6 @@ static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 
 	set_agent(lock, NULL);
 	agent->is_duplicate = false;
-	data_vio_as_completion(agent)->error_handler = complete_data_vio;
 	launch_compress_data_vio(agent);
 }
 
