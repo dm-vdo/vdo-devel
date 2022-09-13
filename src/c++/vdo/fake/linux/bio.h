@@ -420,7 +420,19 @@ struct bio *bio_kmalloc(gfp_t gfp_mask, unsigned short nr_iovecs);
 extern void bio_put(struct bio *);
 #endif // __KERNEL__
 
+#ifdef RHEL_RELEASE_CODE
+#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
+#else /* not RHEL_RELEASE_CODE */
+#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
+#endif /* RHEL_RELEASE_CODE */
+
+#if USE_ALTERNATE
 extern void __bio_clone_fast(struct bio *, struct bio *);
+#else /* not ALTERNATE */
+int bio_init_clone(struct block_device *bdev, struct bio *bio,
+                   struct bio *bio_src, gfp_t gfp);
+#endif /* ALTERNATE */
+
 #ifdef __KERNEL__
 extern struct bio *bio_clone_fast(struct bio *, gfp_t, struct bio_set *);
 
@@ -473,7 +485,12 @@ extern void bio_advance(struct bio *, unsigned);
 extern void bio_init(struct bio *bio, struct bio_vec *table,
 		     unsigned short max_vecs);
 extern void bio_uninit(struct bio *);
+
+#if USE_ALTERNATE
 extern void bio_reset(struct bio *);
+#else  /* not USE_ALTERNATE */
+void bio_reset(struct bio *bio, struct block_device *bdev, unsigned int opf);
+#endif /* ALTERNATE */
 void bio_chain(struct bio *, struct bio *);
 
 extern int bio_add_page(struct bio *, struct page *, unsigned int,unsigned int);

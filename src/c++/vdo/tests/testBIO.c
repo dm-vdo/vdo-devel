@@ -17,6 +17,7 @@
 
 #include "bio.h"
 #include "completion.h"
+#include "types.h"
 #include "vio.h"
 
 #include "asyncLayer.h"
@@ -27,6 +28,15 @@
 // Mocks of bio related functions in vdo/kernel/bio.c as well as the kernel
 // itself.
 
+#ifdef RHEL_RELEASE_CODE
+#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
+#else
+#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
+#endif
+
+#if (!USE_ALTERNATE)
+static
+#endif // not USE_ALTERNATE
 /**********************************************************************/
 void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
 {
@@ -35,6 +45,17 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
   bio->bi_iter   = bio_src->bi_iter;
   bio->bi_io_vec = bio_src->bi_io_vec;
 }
+
+#if (!USE_ALTERNATE)
+int bio_init_clone(struct block_device *bdev __attribute__((unused)),
+                   struct bio *bio,
+                   struct bio *bio_src,
+                   gfp_t gfp __attribute__((unused)))
+{
+  __bio_clone_fast(bio, bio_src);
+  return 1;
+}
+#endif // not USE_ALTERNATE
 
 /**********************************************************************/
 int bio_add_page(struct bio *bio,
@@ -66,6 +87,7 @@ void zero_fill_bio(struct bio *bio)
   memset(bvec->bv_page, 0, bvec->bv_len);
 }
 
+#if USE_ALTERNATE
 /**********************************************************************/
 void bio_reset(struct bio *bio)
 {
@@ -73,6 +95,17 @@ void bio_reset(struct bio *bio)
   memset(bio, 0, sizeof(struct bio));
   bio->unitTestContext = context;
 }
+#else // not USE_ALTERNATE
+/**********************************************************************/
+void bio_reset(struct bio *bio, struct block_device *bdev, unsigned int opf)
+{
+  void *context = bio->unitTestContext;
+  memset(bio, 0, sizeof(struct bio));
+  bio->unitTestContext = context;
+  bio->bi_bdev = bdev;
+  bio->bi_opf  = opf;
+}
+#endif // USE_ALTERNATE
 
 /**********************************************************************/
 void bio_uninit(struct bio *bio __attribute__((unused)))

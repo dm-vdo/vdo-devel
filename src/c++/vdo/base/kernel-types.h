@@ -8,13 +8,6 @@
 
 #include "types.h"
 
-#ifdef __KERNEL__
-#include <linux/version.h>
-#else
-#define KERNEL_VERSION(x, y, z) ((x << 16) + (y << 8) + z)
-#define LINUX_VERSION_CODE KERNEL_VERSION(5,17,0)
-#endif /* not __KERNEL__ */
-
 /**
  * typedef vio_count_t - A number of vios.
  */
