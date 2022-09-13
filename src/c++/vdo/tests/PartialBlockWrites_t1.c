@@ -25,7 +25,6 @@ enum {
 };
 
 static struct thread *oddThread;
-static block_count_t  blocks;
 static block_count_t  sectors;
 static char          *data;
 
@@ -40,13 +39,6 @@ static void initializePartialBlockWriteT1(void)
   };
 
   initializeVDOTest(&parameters);
-  populateBlockMapTree();
-  blocks = getPhysicalBlocksFree() / 2;
-  /*
-   * The total number of sectors available for concurrent writing. This is half
-   * the total number of free sectors in order to avoid allocation issues.
-   */
-  sectors = blocks * VDO_SECTORS_PER_BLOCK;
 }
 
 /**
@@ -108,6 +100,13 @@ static void doOddWrites(void *arg __attribute__((unused)))
  **/
 static void testPartialWrites(void)
 {
+  populateBlockMapTree();
+  block_count_t blocks = getPhysicalBlocksFree() / 2;
+  /*
+   * The total number of sectors available for concurrent writing. This is half
+   * the total number of free sectors in order to avoid allocation issues.
+   */
+  sectors = blocks * VDO_SECTORS_PER_BLOCK;
   generateData(blocks);
   VDO_ASSERT_SUCCESS(uds_create_thread(doOddWrites,
                                        NULL,

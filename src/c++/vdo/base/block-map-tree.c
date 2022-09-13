@@ -1058,10 +1058,10 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 {
 	int result;
 
-	if (!is_write_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
+	if (is_read_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
 		/*
-		 * This is a pure read, the read phase of a read-modify-write,
-		 * or a trim, so there's nothing left to do here.
+		 * This is a pure read or a trim, so there's nothing left to do
+		 * here.
 		 */
 		finish_lookup(data_vio, VDO_SUCCESS);
 		return;
