@@ -68,6 +68,9 @@ our %COMMANDSTRING_PROPERTIES
      ioEngine               => "libaio",
      # ioscheduler (fio default is <system conf>)
      ioScheduler            => undef,
+     # the amount of data to write (if defaulting to the logical size
+     # is not desired)
+     ioSize                 => undef,
      # IO pattern (read, write, randread, randwrite, rw, or randrw)
      ioType                 => "randrw",
      # modifies IO pattern offset generation
@@ -290,6 +293,7 @@ sub getArguments {
                           "--iodepth_batch_submit");
     $self->addValueOption(\@args,  "ioEngine",         "--ioengine");
     $self->addValueOption(\@args,  "ioScheduler",      "--ioscheduler");
+    $self->addValueOption(\@args,  "ioSize",           "--io_size");
     $self->addValueOption(\@args,  "loops",            "--loops");
     $self->addValueOption(\@args,  "lockMem",          "--lockmem");
     $self->addValueOption(\@args,  "scrambleBuffers",  "--scramble_buffers");

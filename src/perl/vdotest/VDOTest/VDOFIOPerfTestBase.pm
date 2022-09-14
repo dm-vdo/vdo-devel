@@ -54,6 +54,9 @@ our %FIO_TEST_PROPERTIES
      ioDepthBatchSubmit   => undef,
      # @ple the "way" that fio writes/reads its blocks.
      ioEngine             => "libaio",
+     # @ple the amount of data to write (if defaulting to the logical size
+     #       is not desired)
+     ioSize               => undef,
      # @ple fio IO pattern (read,write,randread,randwrite); Default is
      #      randwrite.
      ioType               => "randrw",
@@ -78,7 +81,7 @@ our %FIO_TEST_PROPERTIES
      #      unrealistically fast. Tests involving writes are faster when
      #      the VDO starts out empty; steady state performance is better
      #      reflected when the volume is prewritten. Truthy values cause
-     #      prewriting, undef and false values don't. 
+     #      prewriting, undef and false values don't.
      preWriteData         => undef,
      # @ple Use repeatable random sequence in test I/O
      randrepeat           => 1,
@@ -120,7 +123,7 @@ sub set_up {
   my ($self) = assertNumArgs(1, @_);
 
   # Translate user input into bytes
-  foreach my $param (qw(fioBlockSize writePerJob mlock)) {
+  foreach my $param (qw(fioBlockSize writePerJob mlock ioSize)) {
     if (defined($self->{$param})) {
       $self->{$param} = parseBytes($self->{$param});
     }
@@ -177,7 +180,7 @@ sub set_up {
 # files before executing the testing phase. For pure write tests, we currently
 # only do empty-VDO write tests. And for non-VDO tests, prewriting shouldn't
 # have much effect.
-# 
+#
 # @return true iff the parameters indicate prewriting should be performed.
 ##
 sub _shouldPrewrite {
@@ -187,7 +190,7 @@ sub _shouldPrewrite {
       || !$self->getDevice()->isa("Permabit::BlockDevice::VDO")) {
     return 0;
   }
-  
+
   # If the ioType only makes sense if we prewrite, do so.
   if (($self->{ioType} eq 'read')
       || ($self->{ioType} eq 'randread')
@@ -195,7 +198,7 @@ sub _shouldPrewrite {
       || ($self->{ioType} eq 'randrw')) {
     return 1;
   }
- 
+
   # For pure write tests, prewrite iff preWriteData is true.
   return $self->{preWriteData};
 }
@@ -244,7 +247,7 @@ sub preWriteData {
     softrandommap => undef,
     useOsRand     => undef,
   };
-    
+
   my $fioOptions = $self->extractFioBenchmarkOptions($preWriteFixedOptions);
 
   my $fioCommand = Permabit::CommandString::FIO->new($self, $fioOptions);
@@ -278,17 +281,18 @@ sub extractFioBenchmarkOptions {
      directIo             => $testOptions->{directIo},
      endFsync             => 1,
      fsync                => $testOptions->{fioFsync},
-     ioEngine             => $testOptions->{ioEngine},
-     ioType               => $testOptions->{ioType},
      ioDepth              => $testOptions->{ioDepth},
      ioDepthBatchComplete => $testOptions->{ioDepthBatchComplete},
      ioDepthBatchSubmit   => $testOptions->{ioDepthBatchSubmit},
+     ioEngine             => $testOptions->{ioEngine},
+     ioSize               => $testOptions->{ioSize},
+     ioType               => $testOptions->{ioType},
+     jobs                 => $testOptions->{jobCt},
      latency              => $testOptions->{latencyTracking},
      loops                => $testOptions->{loops},
-     jobs                 => $testOptions->{jobCt},
+     norandommap          => $testOptions->{norandommap},
      offset               => $testOptions->{offset},
      offsetIncrement      => $testOptions->{offsetIncrement},
-     norandommap          => $testOptions->{norandommap},
      randrepeat           => $testOptions->{randrepeat},
      rate                 => $testOptions->{rate},
      runTime              => $testOptions->{runTime},
@@ -341,7 +345,7 @@ sub extractFioBenchmarkOptions {
     if ($benchOpts{lockMem} < 0) {
       croak($machine->getName()
             . " doesn't have enough memory to reserve requested "
-	    . $testOptions->{mlock} . " bytes out of $totalMem bytes total");
+            . $testOptions->{mlock} . " bytes out of $totalMem bytes total");
     }
   }
 

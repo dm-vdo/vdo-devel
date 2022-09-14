@@ -12,6 +12,7 @@ use English qw(-no_match_vars);
 use Carp qw(confess);
 use Data::Dumper;
 use List::MoreUtils;
+use List::Util qw(min);
 use Permabit::Assertions qw(
   assertEqualNumeric
   assertLENumeric
@@ -131,12 +132,16 @@ sub _assertFIOSucceeded {
     my $runtimeCheckError = $EVAL_ERROR;
 
     my $nLoops = $fioCommand->{loops} // 1;
+    my $expectedIO
+      = $fioCommand->{writePerJob} * $fioCommand->{jobs} * $nLoops;
+    if (defined($fioCommand->{ioSize})) {
+      $expectedIO = min($expectedIO, $fioCommand->{ioSize});
+    }
+
     eval {
-      assertNear(
-        ($fioCommand->{writePerJob} * $fioCommand->{jobs} * $nLoops),
-        ($results->{read}->{bytes} + $results->{write}->{bytes}),
-        "2%", "data r/w bytes does not coincide with requested"
-      );
+      assertNear($expectedIO,
+                 ($results->{read}->{bytes} + $results->{write}->{bytes}),
+                 "2%", "data r/w bytes does not coincide with requested");
     };
     my $totalDataCheckError = $EVAL_ERROR;
 

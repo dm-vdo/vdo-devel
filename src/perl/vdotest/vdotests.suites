@@ -654,7 +654,7 @@ $suiteNames{fusionFioDedupeCompressMinimal}
 # A test which has cache around half the size of the working set
 ##
 _makeOtherFioTest("CacheThrashingPerf", "210G", 1, "libaio",
-                  "randwrite", "--blockMapCacheSize=128M");
+                  "randwrite", "--blockMapCacheSize=128M", "--ioSize=40G");
 
 ###########################################################################
 # FIO performance tests of 100% dedupe of a single unique non-zero data block,
