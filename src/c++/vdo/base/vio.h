@@ -16,7 +16,6 @@
 #include "bio.h"
 #include "completion.h"
 #include "constants.h"
-#include "kernel-types.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
@@ -24,6 +23,34 @@
 enum {
 	MAX_BLOCKS_PER_VIO = (BIO_MAX_VECS << PAGE_SHIFT) / VDO_BLOCK_SIZE,
 };
+
+/*
+ * vio types for statistics and instrumentation.
+ */
+enum vio_type {
+	VIO_TYPE_UNINITIALIZED = 0,
+	VIO_TYPE_DATA,
+	VIO_TYPE_BLOCK_ALLOCATOR,
+	VIO_TYPE_BLOCK_MAP,
+	VIO_TYPE_BLOCK_MAP_INTERIOR,
+	VIO_TYPE_PARTITION_COPY,
+	VIO_TYPE_RECOVERY_JOURNAL,
+	VIO_TYPE_SLAB_JOURNAL,
+	VIO_TYPE_SLAB_SUMMARY,
+	VIO_TYPE_SUPER_BLOCK,
+	VIO_TYPE_TEST,
+} __packed;
+
+/*
+ * Priority levels for asynchronous I/O operations performed on a vio.
+ */
+enum vio_priority {
+	VIO_PRIORITY_LOW = 0,
+	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
+	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
+	VIO_PRIORITY_METADATA,
+	VIO_PRIORITY_HIGH,
+} __packed;
 
 /*
  * A representation of a single block which may be passed between the VDO base
@@ -215,16 +242,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
  */
 static inline bool is_data_vio(struct vio *vio)
 {
-	return vdo_is_data_vio_type(vio->type);
-}
-
-/**
- * is_metadata_vio() - Check whether a vio is for metadata
- * @vio: The vio to check.
- */
-static inline bool is_metadata_vio(struct vio *vio)
-{
-	return vdo_is_metadata_vio_type(vio->type);
+	return (vio->type == VIO_TYPE_DATA);
 }
 
 /**

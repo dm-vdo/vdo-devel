@@ -68,7 +68,7 @@ static inline bool isMetadataRead(struct vdo_completion *completion)
   }
 
   struct vio *vio = as_vio(completion);
-  return (is_metadata_vio(vio) && (bio_op(vio->bio) == REQ_OP_READ));
+  return (!is_data_vio(vio) && (bio_op(vio->bio) == REQ_OP_READ));
 }
 
 /**
@@ -85,7 +85,7 @@ static inline bool isMetadataWrite(struct vdo_completion *completion)
   }
 
   struct vio *vio = as_vio(completion);
-  return (is_metadata_vio(vio)
+  return (!is_data_vio(vio)
           && (bio_op(vio->bio) == REQ_OP_WRITE)
           && (vio->bio->bi_vcnt > 0));
 }

@@ -56,7 +56,8 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 		return result;
 	}
 
-	result = ASSERT(vdo_is_metadata_vio_type(vio_type),
+	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED)
+			 && (vio_type != VIO_TYPE_DATA)),
 			"%d is a metadata type",
 			vio_type);
 	if (result != VDO_SUCCESS) {

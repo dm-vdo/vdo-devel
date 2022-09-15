@@ -135,7 +135,7 @@ static bool persistMetadataWrites(struct bio *bio)
 {
   if ((bio_op(bio) == REQ_OP_WRITE)
       && (bio->bi_vcnt > 0)
-      && is_metadata_vio(bio->bi_private)) {
+      && !is_data_vio(bio->bi_private)) {
     bio->bi_opf |= REQ_FUA;
   }
 

@@ -13,43 +13,6 @@
  */
 typedef uint16_t vio_count_t;
 
-/*
- * vio types for statistics and instrumentation.
- */
-enum vio_type {
-	VIO_TYPE_UNINITIALIZED = 0,
-	VIO_TYPE_DATA,
-	VIO_TYPE_BLOCK_ALLOCATOR,
-	VIO_TYPE_BLOCK_MAP,
-	VIO_TYPE_BLOCK_MAP_INTERIOR,
-	VIO_TYPE_PARTITION_COPY,
-	VIO_TYPE_RECOVERY_JOURNAL,
-	VIO_TYPE_SLAB_JOURNAL,
-	VIO_TYPE_SLAB_SUMMARY,
-	VIO_TYPE_SUPER_BLOCK,
-	VIO_TYPE_TEST,
-} __packed;
-
-/**
- * vdo_is_data_vio_type() - Check whether a vio_type is for servicing an
- *                          external data request.
- * @type: The vio_type to check.
- */
-static inline bool vdo_is_data_vio_type(enum vio_type type)
-{
-	return (type == VIO_TYPE_DATA);
-}
-
-/**
- * vdo_is_metadata_vio_type() - Check whether a vio_type is for metadata.
- * @type: The vio_type to check.
- */
-static inline bool vdo_is_metadata_vio_type(enum vio_type type)
-{
-	return ((type != VIO_TYPE_UNINITIALIZED) &&
-		!vdo_is_data_vio_type(type));
-}
-
 enum vdo_completion_priority {
 	BIO_ACK_Q_ACK_PRIORITY = 0,
 	BIO_ACK_Q_MAX_PRIORITY = 0,
@@ -79,17 +42,6 @@ enum vdo_completion_priority {
 	/* A value which must be out of range for a valid priority */
 	VDO_WORK_Q_DEFAULT_PRIORITY = VDO_WORK_Q_MAX_PRIORITY + 1,
 };
-
-/*
- * Priority levels for asynchronous I/O operations performed on a vio.
- */
-enum vio_priority {
-	VIO_PRIORITY_LOW = 0,
-	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
-	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
-	VIO_PRIORITY_METADATA,
-	VIO_PRIORITY_HIGH,
-} __packed;
 
 enum vdo_zone_type {
 	VDO_ZONE_TYPE_ADMIN,
