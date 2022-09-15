@@ -64,7 +64,7 @@ static void fillCacheWithPages(void)
 static void report(ktime_t elapsedTime, int numProbes)
 {
   char *elapsed;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsed, elapsedTime, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsed, elapsedTime));
   albPrint("elapsed time %s for %d probes", elapsed, numProbes);
   UDS_FREE(elapsed);
 }
