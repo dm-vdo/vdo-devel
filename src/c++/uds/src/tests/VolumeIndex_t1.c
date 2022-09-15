@@ -470,32 +470,6 @@ static void invalidateChapterTest(void)
                                   testChapters, lowChapter, highChapter,
                                   &openChapter);
 
-  // Rollback three chapters, as is done for restoring and replaying during
-  // a restart
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
-  long expectedDiscards = volumeStats.discard_count + 4;
-  highChapter -= 3;
-  set_volume_index_open_chapter(volumeIndex, highChapter);
-  openChapter = highChapter;
-  checkForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
-                                 testChapters, lowChapter, highChapter - 1);
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
-  CU_ASSERT_EQUAL(volumeStats.record_count, CHAPTER_COUNT - 4);
-  CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
-
-  // Rollback to chapter 0, as is done for a rebuild
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
-  expectedDiscards = volumeStats.discard_count + volumeStats.record_count;
-  set_volume_index_open_chapter(volumeIndex, 0);
-  lowChapter = 0;
-  highChapter = 0;
-  openChapter = 0;
-  checkForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
-                                 testChapters, lowChapter, highChapter);
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
-  CU_ASSERT_EQUAL(volumeStats.record_count, 0);
-  CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
-
   free_volume_index(volumeIndex);
   free_configuration(config);
 }

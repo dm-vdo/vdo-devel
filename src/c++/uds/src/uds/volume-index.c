@@ -1026,65 +1026,6 @@ int remove_volume_index_record(struct volume_index_record *record)
 	return result;
 }
 
-static void remove_newest_chapters(struct volume_sub_index *sub_index,
-				   unsigned int zone_number,
-				   uint64_t virtual_chapter)
-{
-	/* Get the range of delta lists belonging to this zone */
-	unsigned int first_list =
-		get_delta_zone_first_list(&sub_index->delta_index, zone_number);
-	unsigned int num_lists =
-		get_delta_zone_list_count(&sub_index->delta_index, zone_number);
-	unsigned int last_list = first_list + num_lists - 1;
-
-	if (virtual_chapter > sub_index->chapter_mask) {
-		unsigned int i;
-		/*
-		 * The virtual chapter number is large enough so that we can
-		 * use the normal LRU mechanism without an unsigned underflow.
-		 */
-		virtual_chapter -= sub_index->chapter_mask + 1;
-		/*
-		 * Eliminate the newest chapters by renumbering them to become
-		 * the oldest chapters
-		 */
-		for (i = first_list; i <= last_list; i++) {
-			if (virtual_chapter < sub_index->flush_chapters[i]) {
-				sub_index->flush_chapters[i] = virtual_chapter;
-			}
-		}
-	} else {
-		/*
-		 * Underflow will prevent the fast path.  Do it the slow and
-		 * painful way.
-		 */
-		struct volume_sub_index_zone *volume_index_zone =
-			&sub_index->zones[zone_number];
-		unsigned int i;
-		struct uds_chunk_name name;
-		struct volume_index_record record =
-			(struct volume_index_record){
-				.magic = volume_index_record_magic,
-				.sub_index = sub_index,
-				.name = &name,
-				.zone_number = zone_number,
-			};
-		struct chapter_range range;
-
-		range.chapter_start =
-			convert_virtual_to_index(sub_index, virtual_chapter);
-		range.chapter_count =
-			(sub_index->chapter_mask + 1 -
-			 (virtual_chapter - volume_index_zone->virtual_chapter_low));
-		memset(&name, 0, sizeof(name));
-		for (i = first_list; i <= last_list; i++) {
-			struct chapter_range temp_range = range;
-
-			get_volume_index_entry(&record, i, 0, &temp_range);
-		}
-	}
-}
-
 /**
  * Set the open chapter number on a zone.  The volume index zone will be
  * modified to index the proper number of chapters ending with the new open
@@ -1099,93 +1040,54 @@ set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_index,
 				       unsigned int zone_number,
 				       uint64_t virtual_chapter)
 {
+	uint64_t used_bits;
 	struct volume_sub_index_zone *zone = &sub_index->zones[zone_number];
-	/*
-	 * Take care here to avoid underflow of an unsigned value.  Note that
-	 * this is the smallest valid virtual low.  We may or may not actually
-	 * use this value.
-	 */
-	uint64_t new_virtual_low =
-		(virtual_chapter >= sub_index->num_chapters ?
-			 virtual_chapter - sub_index->num_chapters + 1 :
-			 0);
 
-	if (virtual_chapter <= zone->virtual_chapter_low) {
-		/*
-		 * Moving backwards and the new range is totally before the old
-		 * range. Note that moving to the lowest virtual chapter counts
-		 * as totally before the old range, as we need to remove the
-		 * entries in the open chapter.
-		 */
-		empty_delta_zone(&sub_index->delta_index, zone_number);
-		zone->virtual_chapter_low = virtual_chapter;
-		zone->virtual_chapter_high = virtual_chapter;
-	} else if (virtual_chapter <= zone->virtual_chapter_high) {
-		/*
-		 * Moving backwards and the new range overlaps the old range.
-		 * Note that moving to the same open chapter counts as
-		 * backwards, as we need to remove the entries in the open
-		 * chapter.
-		 */
-		remove_newest_chapters(sub_index, zone_number, virtual_chapter);
-		zone->virtual_chapter_high = virtual_chapter;
-	} else if (new_virtual_low < zone->virtual_chapter_low) {
-		/* Moving forwards and we can keep all the old chapters */
-		zone->virtual_chapter_high = virtual_chapter;
-	} else if (new_virtual_low <= zone->virtual_chapter_high) {
-		/* Moving forwards and we can keep some old chapters */
-		zone->virtual_chapter_low = new_virtual_low;
-		zone->virtual_chapter_high = virtual_chapter;
-	} else {
-		/*
-		 * Moving forwards and the new range is totally after the old
-		 * range
-		 */
-		zone->virtual_chapter_low = virtual_chapter;
-		zone->virtual_chapter_high = virtual_chapter;
-	}
+	/* Take care here to avoid underflow of an unsigned value. */
+	zone->virtual_chapter_low =
+		(virtual_chapter >= sub_index->num_chapters ?
+		 virtual_chapter - sub_index->num_chapters + 1 :
+		 0);
+	zone->virtual_chapter_high = virtual_chapter;
+
 	/* Check to see if the zone data has grown to be too large */
-	if (zone->virtual_chapter_low <
-	    zone->virtual_chapter_high) {
-		uint64_t used_bits =
-			get_delta_zone_bits_used(&sub_index->delta_index,
-						 zone_number);
-		if (used_bits > sub_index->max_zone_bits) {
-			/* Expire enough chapters to free the desired space */
-			uint64_t expire_count =
-				1 + (used_bits - sub_index->max_zone_bits) /
-					    sub_index->chapter_zone_bits;
-			if (expire_count == 1) {
-				uds_log_ratelimit(uds_log_info,
-						  "zone %u:  At chapter %llu, expiring chapter %llu early",
-						  zone_number,
-						  (unsigned long long) virtual_chapter,
-						  (unsigned long long) zone->virtual_chapter_low);
-				zone->num_early_flushes++;
-				zone->virtual_chapter_low++;
+	used_bits = get_delta_zone_bits_used(&sub_index->delta_index,
+					     zone_number);
+	if (used_bits > sub_index->max_zone_bits) {
+		/* Expire enough chapters to free the desired space */
+		uint64_t expire_count =
+			1 + (used_bits - sub_index->max_zone_bits) /
+				    sub_index->chapter_zone_bits;
+		if (expire_count == 1) {
+			uds_log_ratelimit(uds_log_info,
+					  "zone %u:  At chapter %llu, expiring chapter %llu early",
+					  zone_number,
+					  (unsigned long long) virtual_chapter,
+					  (unsigned long long) zone->virtual_chapter_low);
+			zone->num_early_flushes++;
+			zone->virtual_chapter_low++;
+		} else {
+			uint64_t first_expired =
+				zone->virtual_chapter_low;
+			if (first_expired + expire_count <
+			    zone->virtual_chapter_high) {
+				zone->num_early_flushes +=
+					expire_count;
+				zone->virtual_chapter_low +=
+					expire_count;
 			} else {
-				uint64_t first_expired =
+				zone->num_early_flushes +=
+					zone->virtual_chapter_high -
 					zone->virtual_chapter_low;
-				if (first_expired + expire_count <
-				    zone->virtual_chapter_high) {
-					zone->num_early_flushes +=
-						expire_count;
-					zone->virtual_chapter_low +=
-						expire_count;
-				} else {
-					zone->num_early_flushes +=
-						zone->virtual_chapter_high -
-						zone->virtual_chapter_low;
-					zone->virtual_chapter_low =
-						zone->virtual_chapter_high;
-				}
-				uds_log_ratelimit(uds_log_info,
-						  "zone %u:  At chapter %llu, expiring chapters %llu to %llu early",
-						  zone_number,
-						  (unsigned long long) virtual_chapter,
-						  (unsigned long long) first_expired,
-						  (unsigned long long) zone->virtual_chapter_low - 1);
+				zone->virtual_chapter_low =
+					zone->virtual_chapter_high;
 			}
+			uds_log_ratelimit(uds_log_info,
+					  "zone %u:  At chapter %llu, expiring chapters %llu to %llu early",
+					  zone_number,
+					  (unsigned long long) virtual_chapter,
+					  (unsigned long long) first_expired,
+					  (unsigned long long) zone->virtual_chapter_low - 1);
 		}
 	}
 }
@@ -1220,56 +1122,10 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
  * @param volume_index     The volume index
  * @param virtual_chapter  The new open chapter number
  **/
-static void
-set_volume_sub_index_open_chapter(struct volume_sub_index *sub_index,
-				  uint64_t virtual_chapter)
-{
-	unsigned int z;
-
-	for (z = 0; z < sub_index->num_zones; z++) {
-		/*
-		 * In normal operation, we advance forward one chapter at a
-		 * time. Log all abnormal changes.
-		 */
-		struct volume_sub_index_zone *volume_index_zone = &sub_index->zones[z];
-		bool log_move = virtual_chapter !=
-				volume_index_zone->virtual_chapter_high + 1;
-		if (log_move) {
-			uds_log_debug("zone %u: The range of indexed chapters is moving from [%llu, %llu] ...",
-				      z,
-				      (unsigned long long) volume_index_zone->virtual_chapter_low,
-				      (unsigned long long) volume_index_zone->virtual_chapter_high);
-		}
-
-		set_volume_sub_index_zone_open_chapter(sub_index, z,
-						       virtual_chapter);
-
-		if (log_move) {
-			uds_log_debug("zone %u: ... and moving to [%llu, %llu]",
-				      z,
-				      (unsigned long long) volume_index_zone->virtual_chapter_low,
-				      (unsigned long long) volume_index_zone->virtual_chapter_high);
-		}
-	}
-}
-
-/**
- * Set the open chapter number.  The volume index will be modified to index
- * the proper number of chapters ending with the new open chapter.
- *
- * @param volume_index     The volume index
- * @param virtual_chapter  The new open chapter number
- **/
 void set_volume_index_open_chapter(struct volume_index *volume_index,
 				   uint64_t virtual_chapter)
 {
 	unsigned int zone;
-
-	if (!has_sparse(volume_index)) {
-		set_volume_sub_index_open_chapter(&volume_index->vi_non_hook,
-						  virtual_chapter);
-		return;
-	}
 
 	for (zone = 0; zone < volume_index->num_zones; zone++) {
 		set_volume_index_zone_open_chapter(volume_index,
@@ -2206,6 +2062,8 @@ int make_volume_index(const struct configuration *config,
 		return result;
 	}
 
+	volume_index->num_zones = config->zone_count;
+
 	if (!uses_sparse(config)) {
 		result = initialize_volume_sub_index(config,
 						     volume_nonce,
@@ -2219,14 +2077,12 @@ int make_volume_index(const struct configuration *config,
 		return UDS_SUCCESS;
 	}
 
-
 	result = split_configuration(config, &split);
 	if (result != UDS_SUCCESS) {
 		free_volume_index(volume_index);
 		return result;
 	}
 
-	volume_index->num_zones = config->zone_count;
 	volume_index->sparse_sample_rate = config->sparse_sample_rate;
 
 	result = UDS_ALLOCATE(config->zone_count,

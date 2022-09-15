@@ -236,9 +236,6 @@ void uninitialize_delta_index(struct delta_index *delta_index);
 
 void empty_delta_index(const struct delta_index *delta_index);
 
-void empty_delta_zone(const struct delta_index *delta_index,
-		      unsigned int zone_number);
-
 int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       uint64_t header_nonce,
 				       byte *memory,

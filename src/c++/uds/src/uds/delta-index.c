@@ -400,12 +400,6 @@ void empty_delta_index(const struct delta_index *delta_index)
 	}
 }
 
-void empty_delta_zone(const struct delta_index *delta_index,
-		      unsigned int zone_number)
-{
-	empty_delta_lists(&delta_index->delta_zones[zone_number]);
-}
-
 /* Compute the Huffman coding parameters for the given mean delta. */
 static void compute_coding_constants(unsigned int mean_delta,
 				     unsigned short *min_bits,

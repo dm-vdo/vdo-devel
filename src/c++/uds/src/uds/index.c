@@ -239,13 +239,6 @@ static int swap_open_chapter(struct index_zone *zone)
 	return UDS_SUCCESS;
 }
 
-static void reap_oldest_chapter(struct index_zone *zone)
-{
-	set_volume_index_zone_open_chapter(zone->index->volume_index,
-					   zone->id,
-					   zone->newest_virtual_chapter);
-}
-
 /*
  * Inform the chapter writer that this zone is done with this chapter. The
  * chapter won't start writing until all zones have closed it.
@@ -310,7 +303,9 @@ static int open_next_chapter(struct index_zone *zone)
 	}
 
 	closed_chapter = zone->newest_virtual_chapter++;
-	reap_oldest_chapter(zone);
+	set_volume_index_zone_open_chapter(zone->index->volume_index,
+					   zone->id,
+					   zone->newest_virtual_chapter);
 	reset_open_chapter(zone->open_chapter);
 
 	finished_zones = start_closing_chapter(zone->index,
@@ -1288,22 +1283,11 @@ static int rebuild_index(struct uds_index *index)
 					      "cannot rebuild index: unknown volume chapter boundaries");
 	}
 
-	if (lowest > highest) {
-		uds_log_fatal("cannot rebuild index: no valid chapters exist");
-		return UDS_CORRUPT_DATA;
-	}
-
 	if (is_empty) {
 		index->newest_virtual_chapter = 0;
 		index->oldest_virtual_chapter = 0;
-		set_volume_index_open_chapter(index->volume_index, 0);
 		index->volume->lookup_mode = LOOKUP_NORMAL;
 		return UDS_SUCCESS;
-	}
-
-	if ((highest - lowest) >= chapters_per_volume) {
-		return uds_log_fatal_strerror(UDS_CORRUPT_DATA,
-					      "cannot rebuild index: volume chapter boundaries too large");
 	}
 
 	index->newest_virtual_chapter = highest + 1;
