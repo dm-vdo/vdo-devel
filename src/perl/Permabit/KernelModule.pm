@@ -30,8 +30,6 @@ my %useCounts;
 # @paramList{new}
 my %PROPERTIES
   = (
-     # @ple whether the initrd/initramfs should be updated
-     initrd         => 0,
      # @ple host that needs the kernel module (a Permabit::RemoteMachine)
      machine        => undef,
      # @ple directory where the DKMS module is found
@@ -183,24 +181,6 @@ sub loadFromSourceRPM {
 }
 
 ###############################################################################
-# Check whether DKMS on the test system can update the initrd images.
-#
-# @return true iff initrd rebuilding is supported
-##
-sub _dkmsSupportsInitrd {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->{machine};
-  $machine->runSystemCmd("dkms --version");
-  my $versionString = $machine->getStdout();
-  chomp($versionString);
-  $versionString =~ s/^dkms[:-]//;
-  my $dkmsVersion = Permabit::VersionNumber->new($versionString);
-  # DKMS version 2.8.7 dropped support for initrd regeneration,
-  # including even recognizing the command line options.
-  return $dkmsVersion->compare(Permabit::VersionNumber->new("2.8.7")) < 0;
-}
-
-###############################################################################
 # Load the module from a local tarball using dkms.
 #
 # @param filename  The name of the local tarball to load from
@@ -209,8 +189,6 @@ sub loadFromTar {
   my ($self, $filename) = assertNumArgs(2, @_);
   my $modName = $self->{modName};
   my $modVer  = $self->{modVersion};
-  my $initrd  = (($self->{initrd} || !$self->_dkmsSupportsInitrd())
-                 ? "" : "--no-initrd");
   my $machine = $self->{machine};
 
   my $unpack = sub {
@@ -222,33 +200,11 @@ sub loadFromTar {
   $self->_step(command => $unpack,
                cleaner => "sudo rm -fr /usr/src/$modName-$modVer");
 
-  $self->_step(command => "sudo dkms add -m $modName -v $modVer",
-               cleaner => ("sudo dkms remove -m $modName -v $modVer --all"
-                           . " $initrd && sync"));
+  $self->_step(command => "sudo dkms add $modName/$modVer",
+               cleaner => ("sudo dkms remove $modName/$modVer --all"
+                           . " && sync"));
 
-  my $buildCommand = "sudo dkms build -m $modName -v $modVer";
-  # Sequence borrowed from RemoteMachine::dropCaches.
-  my $dropCachesCommand
-    = "(sync; sleep 4; sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches')";
-  # If this isn't enough, we may have to try rebooting, which obviously we
-  # can't do with one command.
-  my $retryBuildCommand
-    = "$buildCommand || ($dropCachesCommand && $buildCommand)";
-  my $makeLog = "/var/lib/dkms/$modName/$modVer/build/make.log";
-  $self->_step(command    => $retryBuildCommand,
-               diagnostic => "cat $makeLog");
-
-  $self->_step(command => ("sudo dkms install -m $modName -v $modVer"
-                             . " $initrd"));
-  # The dkms install will succeed with status 0 if there are multiple modules
-  # with a cycle of references, and the upcoming modprobe will fail.  But
-  # there will be a warning message left in stderr.  If we see such a
-  # message, run a depmod -v and log both stdout and stderr, which contain
-  # the info needed to diagnose the modprobe failure.
-  my $stderr = $machine->getStderr();
-  if ($stderr =~ m/WARNING: Loop detected:/) {
-    $machine->assertExecuteCommand("sudo depmod -v");
-  }
+  $self->_step(command => ("sudo dkms install $modName/$modVer"));
 
   # Try to flush the contents of the modules files out to disk in case of a
   # crash.

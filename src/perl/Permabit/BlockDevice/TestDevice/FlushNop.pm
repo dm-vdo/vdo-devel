@@ -16,15 +16,6 @@ use base qw(Permabit::BlockDevice::TestDevice);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
-######################################################################
-# @inherit
-##
-sub getModuleParameters {
-  my ($self) = assertNumArgs(1, @_);
-  return (initrd => 0,
-          $self->SUPER::getModuleParameters());
-}
-
 ########################################################################
 # Get the current state of the flush freeze
 ##

@@ -12,7 +12,6 @@ use English qw(-no_match_vars);
 use Log::Log4perl;
 
 use Permabit::Assertions qw(assertNumArgs);
-use Permabit::PlatformUtils qw(isSqueeze);
 use Permabit::SystemUtils qw(assertSystem);
 use Permabit::Utils qw(makeFullPath);
 
@@ -45,13 +44,11 @@ sub suite {
       # Load the test module
       my $udsDir = "src/c++/uds";
       my $modDir = makeFullPath($options->{topDir}, $udsDir,
-				"kernelLinux", "tests");
-      my $initrd = isSqueeze($machine->getName()) ? 1 : 0;
-      $module = Permabit::KernelModule->new(initrd     => $initrd,
-					    machine    => $machine,
-					    modDir     => $modDir,
-					    modName    => "zubenelgenubi",
-					    modVersion => 1,);
+                                "kernelLinux", "tests");
+      $module = Permabit::KernelModule->ne(machine    => $machine,
+                                           modDir     => $modDir,
+                                           modName    => "zubenelgenubi",
+                                           modVersion => 1,);
       $module->load();
       # Now fetch the test names;
       my $moduleDir = "/sys/zubenelgenubi";

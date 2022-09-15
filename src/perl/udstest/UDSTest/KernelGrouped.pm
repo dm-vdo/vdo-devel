@@ -18,7 +18,6 @@ use Permabit::Assertions qw(
 );
 use Permabit::KernelModule;
 use Permabit::LabUtils qw(getTestBlockDeviceName);
-use Permabit::PlatformUtils qw(isSqueeze);
 use Permabit::Utils qw(makeFullPath);
 
 use base qw(UDSTest);
@@ -70,11 +69,8 @@ sub testRunner {
   $self->_setupMachineForTest();
   my $udsDir = "src/c++/uds";
   my $modDir = makeFullPath($self->{topDir}, $udsDir, "kernelLinux/tests");
-  # Don't waste time on initrd on machines that have the option not to
-  my $initrd = isSqueeze($machine->getName()) ? 1 : 0;
   $self->{_module}
-    = Permabit::KernelModule->new(initrd     => $initrd,
-                                  machine    => $machine,
+    = Permabit::KernelModule->new(machine    => $machine,
                                   modDir     => $modDir,
                                   modName    => "zubenelgenubi",
                                   modVersion => 1,);

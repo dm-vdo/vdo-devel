@@ -549,7 +549,6 @@ sub installModule {
   $log->info("Installing module $moduleName on $machineName");
   my $module
     = Permabit::KernelModule->new(
-                                  initrd     => 0,
                                   machine    => $self->getMachine(),
                                   modDir     => $self->getModuleSourceDir(),
                                   modName    => $moduleName,
@@ -666,12 +665,12 @@ sub waitForIndex {
   $timeout //= $self->supportsPerformanceMeasurement() ? 30 : 4 * $MINUTE;
   retryUntilTimeout(sub {
                       my $status = $self->getStatus();
-		      my $state = ($status =~ m/^(?:\S+\s){6}(\w+)/);
-		      if ($state) {
-			$log->debug("Index status is $1");
-			return $statusMap{$1};
-		      }
-		      return 0;
+                      my $state = ($status =~ m/^(?:\S+\s){6}(\w+)/);
+                      if ($state) {
+                        $log->debug("Index status is $1");
+                        return $statusMap{$1};
+                      }
+                      return 0;
                     },
                     "Index service not ready", $timeout);
 }
@@ -1053,13 +1052,13 @@ sub runVDOStatsCommand {
 # operations in progress.
 #
 # @oparam class  The statistics class to instantiate, defaults to
-#		 C<Permabit::Statistics::VDO>.
+#                C<Permabit::Statistics::VDO>.
 #
 # @return the VDO statistics
 ##
 sub getCurrentVDOStats {
   my ($self, $class) = assertMinMaxArgs(['Permabit::Statistics::VDO'],
-					1, 2, @_);
+                                        1, 2, @_);
 
   my $rawStats = $self->runVDOStatsCommand({ all => 1 });
   my $stats = yamlStringToHash($rawStats)->{$self->{vdoSymbolicPath}};
@@ -1356,7 +1355,7 @@ sub getVDODeviceResolvedName {
 sub getSysModulePath {
   my ($self, $name) = assertNumArgs(2, @_);
   return makeFullPath("/sys/module", $self->getModuleName(), "parameters",
-		      $name);
+                      $name);
 }
 
 ########################################################################
