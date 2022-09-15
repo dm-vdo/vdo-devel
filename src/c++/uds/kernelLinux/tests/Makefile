@@ -62,6 +62,7 @@ ZUB_DKMS_SOURCES =	albtest.c		\
 					makeDenseConfiguration.c	\
 					oldInterfaces.c			\
 					testRequests.c			\
+					timeUtils.c			\
 					validateDeltaLists.c		\
 					volumeUtils.c)
 

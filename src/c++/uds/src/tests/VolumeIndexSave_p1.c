@@ -36,7 +36,7 @@ static void insertRandomlyNamedBlock(struct volume_index *volumeIndex,
 static void reportIOTime(const char *title, ktime_t elapsed)
 {
   char *elapsedTime;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsedTime, elapsed, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsedTime, elapsed));
   albPrint("%s elapsed time %s", title, elapsedTime);
   UDS_FREE(elapsedTime);
 }
@@ -45,8 +45,8 @@ static void reportIOTime(const char *title, ktime_t elapsed)
 static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
 {
   char *elapsedTime, *perRecord;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsedTime, elapsed, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed, numBlocks));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsedTime, elapsed));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %ld blocks took %s, average = %s/record",
            title, numBlocks, elapsedTime, perRecord);
   UDS_FREE(elapsedTime);

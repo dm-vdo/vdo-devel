@@ -120,7 +120,7 @@ static int sprintElapsed(char *buf, unsigned int indent, TestResult tr)
 {
   int written = 0;
   char *elapsed;
-  if (rel_time_to_string(&elapsed, tr.elapsed, 0) == UDS_SUCCESS) {
+  if (rel_time_to_string(&elapsed, tr.elapsed) == UDS_SUCCESS) {
     written += sprintf(buf, "%*s%s %s\n", indent, "", tr.name, elapsed);
     UDS_FREE(elapsed);
   }

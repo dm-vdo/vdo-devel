@@ -40,6 +40,7 @@ UDS_OBJECTS =	$(notdir $(UDS_COMMON_SOURCES:%.c=%.o))	\
 		threadCondVar.o		\
 		threadMutex.o		\
 		threadSemaphore.o	\
+		time-utils.o		\
 		uds-threads.o
 
 .PHONY: all

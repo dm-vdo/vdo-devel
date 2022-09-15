@@ -48,8 +48,8 @@ static void insertRandomlyNamedBlock(struct volume_index *volumeIndex,
 static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
 {
   char *total, *perRecord;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed, numBlocks));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %ld blocks took %s, average = %s/record",
            title, numBlocks, total, perRecord);
   UDS_FREE(total);
@@ -64,7 +64,7 @@ static void reportRebalances(int *rebalanceCount, const char *label,
     *rebalanceCount = mis->rebalance_count;
     char *rebalanceTime;
     UDS_ASSERT_SUCCESS(rel_time_to_string(&rebalanceTime,
-                                          mis->rebalance_time, 0));
+                                          mis->rebalance_time));
     albPrint("%s: %d rebalances in %s", label, mis->rebalance_count,
              rebalanceTime);
     UDS_FREE(rebalanceTime);

@@ -15,7 +15,7 @@
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "uds-threads.h"
-#include "time-utils.h"
+#include "testPrototypes.h"
 
 enum {
   ITERATIONS = 200 * 1000

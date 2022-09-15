@@ -17,6 +17,7 @@
 #include "fileAssertions.h"
 #include "fileUtils.h"
 #include "processManager.h"
+#include "testPrototypes.h"
 #include "testUtils.h"
 #include "time-utils.h"
 

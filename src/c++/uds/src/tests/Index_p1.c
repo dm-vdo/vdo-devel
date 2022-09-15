@@ -29,7 +29,7 @@ static void reportDuration(const char *label, ktime_t start, ktime_t stop)
 {
   ktime_t duration = ktime_sub(stop, start);
   char *timeString;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, duration, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, duration));
   albPrint("%s in %s", label, timeString);
   UDS_FREE(timeString);
   albFlush();

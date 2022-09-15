@@ -18,6 +18,7 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
+#include "time-utils.h"
 #include "type-defs.h"
 #include "uds.h"
 
@@ -238,6 +239,12 @@ static INLINE void randomizeUdsNonce(struct uds_parameters *params)
   prandom_bytes(&params->nonce, sizeof(params->nonce));
 }
 
+/*
+ * Format the supplied time as a string. Upon a success, the caller must
+ * UDS_FREE the returned string.
+ */
+int __must_check rel_time_to_string(char **strp, ktime_t reltime);
+
 /**
  * Recompute a configuration with different parameters. Any parameter set to
  * zero will be unchanged from the previous value.
@@ -325,6 +332,18 @@ static INLINE void set_volume_index_bytes(struct uds_chunk_name *name,
 					  uint64_t val)
 {
 	put_unaligned_be64(val, &name->name[VOLUME_INDEX_BYTES_OFFSET]);
+}
+
+void sleep_for(ktime_t reltime);
+
+static INLINE ktime_t seconds_to_ktime(int64_t seconds)
+{
+	return (ktime_t) seconds * NSEC_PER_SEC;
+}
+
+static INLINE ktime_t us_to_ktime(int64_t microseconds)
+{
+	return (ktime_t) microseconds * NSEC_PER_USEC;
 }
 
 /**

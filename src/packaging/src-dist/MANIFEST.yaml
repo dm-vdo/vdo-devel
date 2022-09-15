@@ -168,7 +168,7 @@ tarballs:
             request-queue.h
             sparse-cache.[hc]
             string-utils.[hc]
-            time-utils.[hc]
+            time-utils.h
             type-defs.h
             uds.h
             uds-threads.h
@@ -195,6 +195,7 @@ tarballs:
             random.[hc]
             requestQueue.c
             syscalls.[hc]
+            time-utils.c
             threadCondVar.c
             threadSemaphore.c
             threadMutex.c
@@ -454,7 +455,6 @@ tarballs:
             sparse-cache.h
             string-utils.c
             string-utils.h
-            time-utils.c
             time-utils.h
             type-defs.h
             uds.h

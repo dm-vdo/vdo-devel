@@ -104,7 +104,7 @@ static void fullRebuildTest(void)
     ktime_t rebuildTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC),
                                     startRebuild);
     char *timeString;
-    UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, rebuildTime, 0));
+    UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, rebuildTime));
     albPrint("Index rebuilt in %s", timeString);
     UDS_FREE(timeString);
     reportIndexSize(indexSession, &indexStats);

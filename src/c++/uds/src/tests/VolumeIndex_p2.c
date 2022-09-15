@@ -68,7 +68,7 @@ static void reportRebalances(const char *label,
 {
   char *rebalanceTime;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&rebalanceTime,
-                                        mis->rebalance_time, 0));
+                                        mis->rebalance_time));
   albPrint("%d %s rebalances in %s", mis->rebalance_count, label,
            rebalanceTime);
   UDS_FREE(rebalanceTime);
@@ -103,8 +103,8 @@ static void reportTimes(const char *title, unsigned int numZones,
                         unsigned long numBlocks, ktime_t elapsed)
 {
   char *total, *perRecord;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed, numBlocks));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %u zones %lu blocks took %s, average = %s/record",
            title, numZones, numBlocks, total, perRecord);
   UDS_FREE(total);
@@ -236,7 +236,7 @@ static void save(unsigned int numZones)
 
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   char *total;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
   albPrint("Saved %u zones in %s", numZones, total);
   UDS_FREE(total);
 }
@@ -260,7 +260,7 @@ static void restore(unsigned int oldZones, unsigned int newZones)
   }
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   char *total;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
   albPrint("Restored %u zones in %s", oldZones, total);
   UDS_FREE(total);
 }

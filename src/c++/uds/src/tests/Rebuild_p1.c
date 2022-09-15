@@ -58,7 +58,7 @@ static void runTest(bool sparse)
   ktime_t loadElapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
   ThreadStatistics *postThreadStats = getThreadStatistics();
   char *elapsed;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsed, loadElapsed, 0));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsed, loadElapsed));
   albPrint("Rebuild %s index in %s", sparse ? "sparse" : "dense", elapsed);
   UDS_FREE(elapsed);
   printThreadStatistics(preThreadStats, postThreadStats);

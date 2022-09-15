@@ -61,12 +61,12 @@ void fill(const char               *label,
       printResourceUsage(&prevResUsage, &curResUsage, loopElapsed);
       prevResUsage = curResUsage;
       char *loopAll, *loopEach, *totalAll, *totalEach;
-      UDS_ASSERT_SUCCESS(rel_time_to_string(&loopAll, loopElapsed, 0));
-      UDS_ASSERT_SUCCESS(rel_time_to_string(&loopEach, loopElapsed,
-                                            innerCount));
-      UDS_ASSERT_SUCCESS(rel_time_to_string(&totalAll, totalElapsed, 0));
-      UDS_ASSERT_SUCCESS(rel_time_to_string(&totalEach, totalElapsed,
-                                            totalBlocks));
+      UDS_ASSERT_SUCCESS(rel_time_to_string(&loopAll, loopElapsed));
+      UDS_ASSERT_SUCCESS(rel_time_to_string(&loopEach,
+                                            loopElapsed /innerCount));
+      UDS_ASSERT_SUCCESS(rel_time_to_string(&totalAll, totalElapsed));
+      UDS_ASSERT_SUCCESS(rel_time_to_string(&totalEach,
+                                            totalElapsed / totalBlocks));
       albPrint("%s Last:  %10d blocks took %s at %s/block",
                label, innerCount, loopAll, loopEach);
       albPrint("%s Total: %10ld blocks took %s at %s/block",

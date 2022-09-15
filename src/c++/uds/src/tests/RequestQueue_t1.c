@@ -8,6 +8,7 @@
 #include "common.h"
 #include "memory-alloc.h"
 #include "request-queue.h"
+#include "testPrototypes.h"
 #include "uds-threads.h"
 
 static unsigned int        count;

@@ -68,15 +68,17 @@ static void recordPageTest(int numRecords)
   }
 
   char *encodeTotal, *encodeEach, *searchTotal, *searchEach;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&encodeTotal, encodeTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&encodeEach, encodeTime, REPETITIONS));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&searchTotal, searchTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&searchEach, searchTime,
-                                        g->records_per_page * REPETITIONS));
+  int totalRecords = g->records_per_page * REPETITIONS;
+
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&encodeTotal, encodeTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&encodeEach,
+                                        encodeTime / REPETITIONS));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&searchTotal, searchTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&searchEach,
+                                        searchTime / totalRecords));
   albPrint("Encoded %d pages in %s", REPETITIONS, encodeTotal);
   albPrint("Each page encoded in %s", encodeEach);
-  albPrint("Searched %d entries in %s", g->records_per_page * REPETITIONS,
-           searchTotal);
+  albPrint("Searched %d entries in %s", totalRecords, searchTotal);
   albPrint("Each entry searched in %s", searchEach);
   UDS_FREE(encodeTotal);
   UDS_FREE(encodeEach);

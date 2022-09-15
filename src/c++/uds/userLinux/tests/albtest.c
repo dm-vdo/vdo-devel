@@ -280,7 +280,7 @@ TestResult runTest(const CU_SuiteInfo *suite, const CU_TestInfo *test)
 static void printElapsedTimes(unsigned int indent, TestResult tr)
 {
   char *elapsed;
-  if (rel_time_to_string(&elapsed, tr.elapsed, 0) == UDS_SUCCESS) {
+  if (rel_time_to_string(&elapsed, tr.elapsed) == UDS_SUCCESS) {
     printf("%*s%s %-20s\n", indent, "", tr.name, elapsed);
     free(elapsed);
   }
@@ -294,7 +294,7 @@ static void printTestElapsed(FILE *fp, ktime_t elapsed)
 {
   char *elapsedTime;
   if ((elapsed > 0)
-      && (rel_time_to_string(&elapsedTime, elapsed, 0) == UDS_SUCCESS)) {
+      && (rel_time_to_string(&elapsedTime, elapsed) == UDS_SUCCESS)) {
     fprintf(fp, " time=\"%s\"", elapsedTime);
     UDS_FREE(elapsedTime);
   }

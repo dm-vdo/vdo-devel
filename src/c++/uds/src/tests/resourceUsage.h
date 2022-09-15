@@ -55,12 +55,12 @@ ThreadStatistics *getThreadStatistics(void);
  * Print stats on resource usage over some interval.
  *
  * Usage:
- *   ktime_t then = current_time_ns(CT_REALTIME);
+ *   ktime_t then = current_time_ns(CLOCK_REALTIME);
  *   ResourceUsage thenUsage;
  *   getResourceUsage(&thenUsage);
  *
  *   // do some stuff
- *   ktime_t elapsed = ktime_sub(current_time_ns(CT_REALTIME), then);
+ *   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_REALTIME), then);
  *   ResourceUsage nowUsage;
  *   getResourceUsage(&nowUsage);
  *

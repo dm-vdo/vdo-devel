@@ -77,7 +77,8 @@ ALL_COMMON =	assertions.o			\
 		oldInterfaces.o			\
 		processManager.o		\
 		testRequests.o			\
-		testUtils.o
+		testUtils.o			\
+		timeUtils.o
 
 TEST_COMMON =	$(ALL_COMMON)			\
 		convertToLVM.o			\

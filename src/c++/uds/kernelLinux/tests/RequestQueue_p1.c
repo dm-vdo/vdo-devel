@@ -17,6 +17,7 @@
 #include "assertions.h"
 #include "funnel-queue.h"
 #include "memory-alloc.h"
+#include "testPrototypes.h"
 #include "uds-threads.h"
 
 /*
@@ -442,7 +443,7 @@ static void reportTime(const char *label,
                        long        count)
 {
   char *printTime;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&printTime, time, count));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&printTime, time / count));
   albPrint("    %-10s %s/%s", label, printTime, type);
   UDS_FREE(printTime);
 }

@@ -23,9 +23,9 @@ static void reportZoneTime(uint64_t records, ktime_t openTime,
                            ktime_t putTime)
 {
   char *openString, *putString, *putPerRecord;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&openString, openTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&putString, putTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&putPerRecord, putTime, records));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&openString, openTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&putString, putTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&putPerRecord, putTime / records));
   albPrint("reset_open_chapter:  %s", openString);
   albPrint("put_open_chapter:   %s (%s per record) for %llu records",
            putString, putPerRecord, (unsigned long long) records);
@@ -38,8 +38,8 @@ static void reportZoneTime(uint64_t records, ktime_t openTime,
 static void reportCloseTime(uint64_t records, ktime_t closeTime)
 {
   char *closeString, *closePerRecord;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&closeString, closeTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&closePerRecord, closeTime, records));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&closeString, closeTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&closePerRecord, closeTime / records));
   albPrint("closeOpenChapter: %s (%s per record)", closeString, closePerRecord);
   UDS_FREE(closeString);
   UDS_FREE(closePerRecord);

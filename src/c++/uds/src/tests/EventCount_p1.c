@@ -26,6 +26,7 @@
 #include "event-count.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"
+#include "testPrototypes.h"
 #include "time-utils.h"
 
 /** Shared variables for event count test */
@@ -108,8 +109,8 @@ static void testEventCount(int messageCount)
   uds_join_threads(adderThread);
 
   char *ecTotal, *ecPer;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&ecTotal, ecTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&ecPer, ecTime, messageCount));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&ecTotal, ecTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&ecPer, ecTime / messageCount));
   albPrint("    event count %s, %s/increment", ecTotal, ecPer);
   UDS_FREE(ecTotal);
   UDS_FREE(ecPer);
@@ -182,8 +183,8 @@ static void testMutex(int messageCount)
   uds_join_threads(adderThread);
 
   char *mutexTotal, *mutexPer;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexTotal, mutexTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexPer, mutexTime, messageCount));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexTotal, mutexTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexPer, mutexTime / messageCount));
   albPrint("    mutex %s, %s/increment", mutexTotal, mutexPer);
   UDS_FREE(mutexTotal);
   UDS_FREE(mutexPer);
@@ -250,8 +251,8 @@ static void testSpinLoop(int messageCount)
   uds_join_threads(adderThread);
 
   char *spinTotal, *spinPer;
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&spinTotal, spinTime, 0));
-  UDS_ASSERT_SUCCESS(rel_time_to_string(&spinPer, spinTime, messageCount));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&spinTotal, spinTime));
+  UDS_ASSERT_SUCCESS(rel_time_to_string(&spinPer, spinTime /messageCount));
   albPrint("    spin loop %s, %s/increment", spinTotal, spinPer);
   UDS_FREE(spinTotal);
   UDS_FREE(spinPer);
