@@ -17,18 +17,25 @@
 #define UDS_SYSFS_NAME "uds"
 
 static struct {
-	struct kobject kobj; /* /sys/uds */
+	/** /sys/uds */
+	struct kobject kobj;
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
-	struct kobject memory_kobj; /* /sys/uds/memory */
+	/** /sys/uds/memory */
+	struct kobject memory_kobj;
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	struct kobject parameter_kobj; /* /sys/uds/parameter */
+	/** /sys/uds/parameter */
+	struct kobject parameter_kobj;
 
-	/* These flags are used to ensure a clean shutdown */
-	bool flag; /* /sys/uds */
+	/** These flags are used to ensure a clean shutdown */
+
+	/** /sys/uds flag */
+	bool flag;
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
-	bool memory_flag; /* /sys/uds/memory */
+	/** /sys/uds/memory flag */
+	bool memory_flag;
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	bool parameter_flag; /* /sys/uds/parameter */
+	/** /sys/uds/parameter flag */
+	bool parameter_flag;
 } object_root;
 
 static char *buffer_to_string(const char *buf, size_t length)
@@ -38,22 +45,23 @@ static char *buffer_to_string(const char *buf, size_t length)
 	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
 		return NULL;
 	}
+
 	memcpy(string, buf, length);
 	string[length] = '\0';
 	if (string[length - 1] == '\n') {
 		string[length - 1] = '\0';
 	}
+
 	return string;
 }
 
 /*
- * This is the code for a directory in the /sys/<module_name> tree that
+ * This is the code for any directory in the /sys/<module_name> tree that
  * contains no regular files (only subdirectories).
  */
 
 static void empty_release(struct kobject *kobj)
 {
-	/* Many of our sysfs share this release function that does nothing. */
 }
 
 static ssize_t
@@ -100,7 +108,6 @@ static struct kobj_type empty_object_type = {
  * <dir>/track_allocations
  */
 
-
 struct memory_attribute {
 	struct attribute attr;
 	long (*show_long)(void);
@@ -111,8 +118,9 @@ struct memory_attribute {
 static ssize_t
 memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	struct memory_attribute *ma =
-		container_of(attr, struct memory_attribute, attr);
+	struct memory_attribute *ma;
+
+	ma = container_of(attr, struct memory_attribute, attr);
 	if (ma->show_long != NULL) {
 		return sprintf(buf, "%ld\n", ma->show_long());
 	} else {
@@ -125,8 +133,9 @@ static ssize_t memory_store(struct kobject *kobj,
 			    const char *buf,
 			    size_t length)
 {
-	struct memory_attribute *ma =
-		container_of(attr, struct memory_attribute, attr);
+	struct memory_attribute *ma;
+
+	ma = container_of(attr, struct memory_attribute, attr);
 	if (ma->store != NULL) {
 		ma->store();
 	} else if (ma->store_long != NULL) {
@@ -139,6 +148,7 @@ static ssize_t memory_store(struct kobject *kobj,
 	} else {
 		return -EINVAL;
 	}
+
 	return length;
 }
 
@@ -149,7 +159,8 @@ static long memory_show_allocation_counter(void)
 
 static long memory_show_bytes_used(void)
 {
-	uint64_t bytes_used, peak_bytes_used;
+	uint64_t bytes_used;
+	uint64_t peak_bytes_used;
 
 	get_uds_memory_stats(&bytes_used, &peak_bytes_used);
 	return bytes_used;
@@ -254,8 +265,9 @@ struct parameter_attribute {
 static ssize_t
 parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	struct parameter_attribute *pa =
-		container_of(attr, struct parameter_attribute, attr);
+	struct parameter_attribute *pa;
+
+	pa = container_of(attr, struct parameter_attribute, attr);
 	if (pa->show_string != NULL) {
 		return sprintf(buf, "%s\n", pa->show_string());
 	} else {
@@ -269,8 +281,9 @@ static ssize_t parameter_store(struct kobject *kobj,
 			       size_t length)
 {
 	char *string;
-	struct parameter_attribute *pa =
-		container_of(attr, struct parameter_attribute, attr);
+	struct parameter_attribute *pa;
+
+	pa = container_of(attr, struct parameter_attribute, attr);
 	if (pa->store_string == NULL) {
 		return -EINVAL;
 	}
@@ -278,6 +291,7 @@ static ssize_t parameter_store(struct kobject *kobj,
 	if (string == NULL) {
 		return -ENOMEM;
 	}
+
 	pa->store_string(string);
 	UDS_FREE(string);
 	return length;
@@ -337,6 +351,7 @@ int uds_init_sysfs(void)
 			object_root.parameter_flag = true;
 		}
 	}
+
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (result == 0) {
 		kobject_init(&object_root.memory_kobj, &memory_object_type);
@@ -346,10 +361,12 @@ int uds_init_sysfs(void)
 			object_root.memory_flag = true;
 		}
 	}
+
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 	if (result != 0) {
 		uds_put_sysfs();
 	}
+
 	return result;
 }
 
@@ -359,10 +376,12 @@ void uds_put_sysfs(void)
 	if (object_root.memory_flag) {
 		kobject_put(&object_root.memory_kobj);
 	}
+
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 	if (object_root.parameter_flag) {
 		kobject_put(&object_root.parameter_kobj);
 	}
+
 	if (object_root.flag) {
 		kobject_put(&object_root.kobj);
 	}
