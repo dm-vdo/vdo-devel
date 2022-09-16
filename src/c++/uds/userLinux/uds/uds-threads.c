@@ -26,14 +26,16 @@ enum {
 unsigned int uds_get_num_cores(void)
 {
 	cpu_set_t cpu_set;
+	unsigned int n_cpus = 0;
+	unsigned int i;
+
 	if (sched_getaffinity(0, sizeof(cpu_set), &cpu_set) != 0) {
 		uds_log_warning_strerror(errno,
 					 "sched_getaffinity() failed, using 1 as number of cores.");
 		return 1;
 	}
 
-	unsigned int n_cpus = 0;
-	for (unsigned int i = 0; i < CPU_SETSIZE; ++i) {
+	for (i = 0; i < CPU_SETSIZE; ++i) {
 		n_cpus += CPU_ISSET(i, &cpu_set);
 	}
 	return n_cpus;
@@ -51,14 +53,9 @@ pid_t uds_get_thread_id(void)
 	return syscall(SYS_gettid);
 }
 
-/**********************************************************************/
-struct thread_start_info {
-	void (*thread_func)(void *);
-	void *thread_data;
-	const char *name;
-};
-
-/**********************************************************************/
+/*
+ * Run the given function once only, and record that fact in the atomic value.
+ */
 void perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
@@ -78,12 +75,19 @@ void perform_once(atomic_t *once, void (*function)(void))
 	}
 }
 
+struct thread_start_info {
+	void (*thread_func)(void *);
+	void *thread_data;
+	const char *name;
+};
+
 /**********************************************************************/
 static void *thread_starter(void *arg)
 {
 	struct thread_start_info *tsi = arg;
 	void (*thread_func)(void *) = tsi->thread_func;
 	void *thread_data = tsi->thread_data;
+
 	/*
 	 * The name is just advisory for humans examining it, so we don't
 	 * care much if this fails.
@@ -100,8 +104,11 @@ int uds_create_thread(void (*thread_func)(void *),
 		      const char *name,
 		      struct thread **new_thread)
 {
+	int result;
 	struct thread_start_info *tsi;
-	int result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &tsi);
+	struct thread *thread;
+
+	result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &tsi);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -109,7 +116,6 @@ int uds_create_thread(void (*thread_func)(void *),
 	tsi->thread_data = thread_data;
 	tsi->name = name;
 
-	struct thread *thread;
 	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
@@ -126,6 +132,7 @@ int uds_create_thread(void (*thread_func)(void *),
 		UDS_FREE(tsi);
 		return result;
 	}
+
 	*new_thread = thread;
 	return UDS_SUCCESS;
 }
@@ -133,48 +140,22 @@ int uds_create_thread(void (*thread_func)(void *),
 /**********************************************************************/
 int uds_join_threads(struct thread *th)
 {
-	int result = pthread_join(th->thread, NULL);
-	pthread_t pthread = th->thread;
+	int result;
+	pthread_t pthread;
+
+	result = pthread_join(th->thread, NULL);
+	pthread = th->thread;
 	UDS_FREE(th);
 	ASSERT_LOG_ONLY((result == 0), "th: %p", (void *)pthread);
 	return result;
 }
 
 /**********************************************************************/
-int uds_create_thread_key(pthread_key_t *key, void (*destr_function)(void *))
-{
-	int result = pthread_key_create(key, destr_function);
-	ASSERT_LOG_ONLY((result == 0), "pthread_key_create error");
-	return result;
-}
-
-/**********************************************************************/
-int uds_delete_thread_key(pthread_key_t key)
-{
-	int result = pthread_key_delete(key);
-	ASSERT_LOG_ONLY((result == 0), "pthread_key_delete error");
-	return result;
-}
-
-/**********************************************************************/
-int uds_set_thread_specific(pthread_key_t key, const void *pointer)
-{
-	int result = pthread_setspecific(key, pointer);
-	ASSERT_LOG_ONLY((result == 0), "pthread_setspecific error");
-	return result;
-}
-
-/**********************************************************************/
-void *uds_get_thread_specific(pthread_key_t key)
-{
-	return pthread_getspecific(key);
-}
-
-/**********************************************************************/
 int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
-	int result =
-		pthread_barrier_init(&barrier->barrier, NULL, thread_count);
+	int result;
+
+        result = pthread_barrier_init(&barrier->barrier, NULL, thread_count);
 	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
 	return result;
 }
@@ -182,7 +163,9 @@ int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 /**********************************************************************/
 int uds_destroy_barrier(struct barrier *barrier)
 {
-	int result = pthread_barrier_destroy(&barrier->barrier);
+	int result;
+
+	result = pthread_barrier_destroy(&barrier->barrier);
 	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_destroy error");
 	return result;
 }
@@ -190,7 +173,9 @@ int uds_destroy_barrier(struct barrier *barrier)
 /**********************************************************************/
 int uds_enter_barrier(struct barrier *barrier)
 {
-	int result = pthread_barrier_wait(&barrier->barrier);
+	int result;
+
+	result = pthread_barrier_wait(&barrier->barrier);
 	if (result == PTHREAD_BARRIER_SERIAL_THREAD) {
 		return UDS_SUCCESS;
 	}

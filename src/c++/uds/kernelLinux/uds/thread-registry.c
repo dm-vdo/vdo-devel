@@ -36,10 +36,7 @@ void uds_register_thread(struct thread_registry *registry,
 	spin_lock(&registry->lock);
 	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
-			/*
-			 * This should not have been there.
-			 * We'll complain after releasing the lock.
-			 */
+			/* There shoud be no existing entry. */
 			list_del_rcu(&thread->links);
 			found_it = true;
 			break;

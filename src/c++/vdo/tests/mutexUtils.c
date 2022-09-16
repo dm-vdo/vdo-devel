@@ -58,7 +58,7 @@ static void freeTask(void *task)
 /**********************************************************************/
 static void tearDownMutexUtils(void)
 {
-  uds_delete_thread_key(taskKey);
+  pthread_key_delete(taskKey);
   uds_destroy_cond(&condition);
   uds_destroy_mutex(&mutex);
 }
@@ -77,7 +77,7 @@ void initializeMutexUtils(void)
   UDS_ASSERT_SUCCESS(pthread_mutex_init(&mutex.mutex, &attr));
   UDS_ASSERT_SUCCESS(pthread_mutexattr_destroy(&attr));
   UDS_ASSERT_SUCCESS(uds_init_cond(&condition));
-  UDS_ASSERT_SUCCESS(uds_create_thread_key(&taskKey, freeTask));
+  UDS_ASSERT_SUCCESS(pthread_key_create(&taskKey, freeTask));
   registerTearDownAction(tearDownMutexUtils);
 }
 
@@ -548,10 +548,10 @@ void finish_wait(wait_queue_head_t *queue, struct wait_queue_entry *entry)
 /**********************************************************************/
 struct task_struct *getCurrentTaskStruct(void)
 {
-  struct task_struct *task = uds_get_thread_specific(taskKey);
+  struct task_struct *task = pthread_getspecific(taskKey);
   if (task == NULL) {
     VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct task_struct, __func__, &task));
-    uds_set_thread_specific(taskKey, task);
+    VDO_ASSERT_SUCCESS(pthread_setspecific(taskKey, task));
     task->state = TASK_RUNNING;
     task->id = pthread_self();
   }
