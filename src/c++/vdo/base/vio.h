@@ -83,13 +83,6 @@ struct vio {
 	/* The VDO-owned bio to use for all IO for this vio */
 	struct bio *bio;
 
-#ifdef VDO_INTERNAL
-	/* For timing I/Os */
-	uint64_t bio_submission_jiffies;
-	/* A slot for an arbitrary bit of data, for use by systemtap. */
-	long debug_slot;
-
-#endif /* VDO_INTERNAL */
 	/*
 	 * A list of enqueued bios with consecutive block numbers, stored by
 	 * vdo_submit_bio() under the first-enqueued vio. The other vios are
@@ -97,11 +90,12 @@ struct vio {
 	 * the work queue as separate completions.
 	 */
 	struct bio_list bios_merged;
-#ifdef INTERNAL
-	/* Per-vio state used/owned exclusively by tests */
-	/* The non-base action which this vio should run next.  */
-	vdo_action *action;
-#endif /* INTERNAL */
+#ifdef VDO_INTERNAL
+	/* For timing I/Os */
+	uint64_t bio_submission_jiffies;
+	/* A slot for an arbitrary bit of data, for use by systemtap. */
+	long debug_slot;
+#endif /* VDO_INTERNAL */
 };
 
 /**
