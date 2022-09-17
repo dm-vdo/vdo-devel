@@ -379,7 +379,7 @@ static void finish_traversal_load(struct vdo_completion *completion)
 		(struct block_map_page *) tree_page->page_buffer;
 	vdo_copy_valid_page(entry->buffer,
 			    cursor->parent->map->nonce,
-			    entry->vio->physical,
+			    pbn_from_vio_bio(entry->vio->bio),
 			    page);
 	traverse(cursor);
 }

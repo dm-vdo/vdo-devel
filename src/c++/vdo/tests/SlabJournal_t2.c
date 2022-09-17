@@ -199,8 +199,10 @@ isRefCountsWrite(struct vdo_completion *completion,
   physical_block_number_t origin = slabJournal->slab->ref_counts_origin;
   physical_block_number_t bound
     = origin + vdo->depot->slab_config.reference_count_blocks;
+  physical_block_number_t pbn = pbnFromVIO(vio);
   return ((bio_op(vio->bio) == REQ_OP_WRITE)
-          && (vio->physical >= origin) && (vio->physical < bound));
+          && (pbn >= origin)
+          && (pbn < bound));
 }
 
 /**

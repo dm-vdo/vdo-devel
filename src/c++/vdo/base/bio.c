@@ -15,6 +15,17 @@
 #include "vdo.h"
 #include "vio.h"
 
+physical_block_number_t pbn_from_vio_bio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	physical_block_number_t pbn =
+		bio->bi_iter.bi_sector / VDO_SECTORS_PER_BLOCK;
+
+	return ((pbn == VDO_GEOMETRY_BLOCK_LOCATION) ?
+		pbn :
+		pbn + vdo_from_vio(vio)->geometry.bio_offset);
+}
+
 /*
  * Copy bio data to a buffer
  */
@@ -164,8 +175,12 @@ void vdo_set_bio_properties(struct bio *bio,
 	bio->bi_end_io = callback;
 	bio->bi_opf = bi_opf;
 	if ((vio != NULL) && (pbn != VDO_GEOMETRY_BLOCK_LOCATION)) {
-		pbn -= vdo_from_vio(vio)->geometry.bio_offset;
+		struct vdo *vdo = vdo_from_vio(vio);
+
+		vio->bio_zone = vdo_get_bio_zone(vdo, pbn);
+		pbn -= vdo->geometry.bio_offset;
 	}
+
 	bio->bi_iter.bi_sector = pbn * VDO_SECTORS_PER_BLOCK;
 }
 

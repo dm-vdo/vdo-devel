@@ -1159,11 +1159,12 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 
-	set_vio_physical(vio, pbn);
-	return prepare_vio_for_io(vio,
-				  data,
-				  callback,
-				  bi_opf);
+	return vdo_reset_bio_with_buffer(vio->bio,
+					 data,
+					 vio,
+					 callback,
+					 bi_opf,
+					 pbn);
 }
 
 bool is_zero_block(char *block);

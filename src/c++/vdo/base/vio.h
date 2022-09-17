@@ -60,11 +60,6 @@ struct vio {
 	/* The completion for this vio */
 	struct vdo_completion completion;
 
-	/*
-	 * The address on the underlying device of the block to be read/written
-	 */
-	physical_block_number_t physical;
-
 	/* The bio zone in which I/O should be processed */
 	zone_count_t bio_zone;
 
@@ -133,20 +128,6 @@ static inline struct vdo *vdo_from_vio(struct vio *vio)
 }
 
 /**
- * set_vio_physical() - Set the physical field of a vio.
- * @vio: The vio.
- * @pbn: The pbn to set as the vio's physical address.
- *
- * Also computes the bio zone for doing I/O to that address.
- */
-static inline void
-set_vio_physical(struct vio *vio, physical_block_number_t pbn)
-{
-	vio->physical = pbn;
-	vio->bio_zone = vdo_get_bio_zone(vdo_from_vio(vio), pbn);
-}
-
-/**
  * get_vio_bio_zone_thread_id() - Get the thread id of the bio zone in which a
  *                                vio should submit its I/O.
  * @vio: The vio.
@@ -172,7 +153,7 @@ assert_vio_in_bio_zone(struct vio *vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"vio I/O for physical block %llu on thread %u, should be on bio zone thread %u",
-			(unsigned long long) vio->physical,
+			(unsigned long long) pbn_from_vio_bio(vio->bio),
 			thread_id,
 			expected);
 }
@@ -250,32 +231,6 @@ get_metadata_priority(struct vio *vio)
 {
 	return ((vio->priority == VIO_PRIORITY_HIGH)
 		? BIO_Q_HIGH_PRIORITY : BIO_Q_METADATA_PRIORITY);
-}
-
-/**
- * prepare_vio_for_io() - Reset a vio's bio to prepare for issuing I/O.
- * @vio: The vio preparing to issue I/O.
- * @data: The buffer the bio should wrap.
- * @callback: The callback the bio should call when IO finishes.
- * @bi_opf: The operation and flags for the bio.
- *
- * The pbn to which the I/O will be directed is taken from the 'physical'
- * field of the vio.
- *
- * Return: VDO_SUCCESS or an error.
- */
-static inline int __must_check
-prepare_vio_for_io(struct vio *vio,
-		   char *data,
-		   bio_end_io_t callback,
-		   unsigned int bi_opf)
-{
-	return vdo_reset_bio_with_buffer(vio->bio,
-					 data,
-					 vio,
-					 callback,
-					 bi_opf,
-					 vio->physical);
 }
 
 /**

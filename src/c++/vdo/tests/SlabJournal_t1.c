@@ -136,8 +136,12 @@ static inline bool isSlabJournalWriteCondition(void *context)
   }
 
   // We're about to do the write, so record what we're updating.
-  VDO_ASSERT_SUCCESS(intIntMapPut(expectedHeads, vio->physical,
-                                  journal->head, true, NULL, NULL));
+  VDO_ASSERT_SUCCESS(intIntMapPut(expectedHeads,
+                                  pbnFromVIO(vio),
+                                  journal->head,
+                                  true,
+                                  NULL,
+                                  NULL));
   return false;
 }
 

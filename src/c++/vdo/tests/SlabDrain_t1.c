@@ -95,7 +95,7 @@ static bool trapSlabWrites(struct vdo_completion *completion)
   }
 
   struct vio *vio = as_vio(completion);
-  if (vio->physical >= slab->journal_origin) {
+  if (pbnFromVIO(vio) >= slab->journal_origin) {
     if (slabJournalWrite != NULL) {
       return true;
     }

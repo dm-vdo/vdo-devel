@@ -310,7 +310,7 @@ static void testInvalidFragment(void)
 {
   setupCompressBlockWriteAndWait();
   struct vio              *compressedWriteVIO = getBlockedVIO();
-  physical_block_number_t  compressedPhysical = compressedWriteVIO->physical;
+  physical_block_number_t  compressedPhysical = pbnFromVIO(compressedWriteVIO);
   CU_ASSERT_NOT_EQUAL(0, compressedPhysical);
   reallyEnqueueBIO(compressedWriteVIO->bio);
 

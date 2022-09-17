@@ -477,7 +477,7 @@ static bool wrapIfRefCountsBlockWrite(struct vdo_completion *completion)
   if (vioTypeIs(completion, VIO_TYPE_SLAB_JOURNAL)
       && isMetadataWrite(completion)
       && onBIOThread()
-      && as_vio(completion)->physical < (slab->ref_counts_origin + 2)) {
+      && (pbnFromVIO(as_vio(completion)) < (slab->ref_counts_origin + 2))) {
     wrapCompletionCallback(completion, countFinishedWrites);
   }
 
@@ -599,7 +599,8 @@ static bool
 shouldBlockVIO(struct vdo_completion *completion,
                void                  *context __attribute__((unused)))
 {
-  return (is_vio(completion) && (as_vio(completion)->physical == pbnToBlock));
+  return (is_vio(completion)
+          && (pbnFromVIO(as_vio(completion)) == pbnToBlock));
 }
 
 /**

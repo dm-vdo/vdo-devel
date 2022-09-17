@@ -62,7 +62,9 @@ static void tearVIO(struct vio *vio, uint8_t corruptRegions)
   char *currentDiskData;
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
                                   &currentDiskData));
-  VDO_ASSERT_SUCCESS(layer->reader(layer, vio->physical, 1,
+  VDO_ASSERT_SUCCESS(layer->reader(layer,
+                                   pbnFromVIO(vio),
+                                   1,
                                    currentDiskData));
   for (off_t chunkOffset = 0; chunkOffset < 8; chunkOffset++) {
     if ((1 << chunkOffset) & corruptRegions) {

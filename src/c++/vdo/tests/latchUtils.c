@@ -49,7 +49,7 @@ static bool latchVIO(void *context)
     latchAttemptHook(vio);
   }
 
-  physical_block_number_t  pbn     = vio->physical;
+  physical_block_number_t  pbn     = pbnFromVIO(vio);
   VIOLatch                *latched = int_map_get(latchedVIOs, pbn);
   if (latched == NULL) {
     return false;

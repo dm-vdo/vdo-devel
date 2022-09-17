@@ -485,7 +485,7 @@ static void testBasic(void)
 static bool failMetaWritesHook(struct bio *bio)
 {
   struct vio *vio = bio->bi_private;
-  if ((bio_op(bio) != REQ_OP_WRITE) || (vio->physical != 0)) {
+  if ((bio_op(bio) != REQ_OP_WRITE) || (pbnFromVIO(vio) != 0)) {
     return true;
   }
 

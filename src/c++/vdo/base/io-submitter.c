@@ -430,14 +430,12 @@ void vdo_submit_metadata_io(struct vio *vio,
 
 	vdo_reset_completion(completion);
 	completion->error_handler = error_handler;
-
-	set_vio_physical(vio, physical);
 	result = vdo_reset_bio_with_buffer(vio->bio,
 					   data,
 					   vio,
 					   callback,
 					   operation | REQ_META,
-					   vio->physical);
+					   physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;

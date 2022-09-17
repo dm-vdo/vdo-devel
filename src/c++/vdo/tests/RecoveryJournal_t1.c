@@ -148,7 +148,7 @@ static bool recordRecoveryJournalHead(void *context)
   }
 
   if (onBIOThread()) {
-    if ((injectWriteError) && (vio->physical % 2) == 1) {
+    if ((injectWriteError) && (pbnFromVIO(vio) % 2) == 1) {
       setVIOResult(vio, WRITE_ERROR);
     }
 
@@ -158,7 +158,7 @@ static bool recordRecoveryJournalHead(void *context)
 
   // We're about to do the write, so record what we're updating
   VDO_ASSERT_SUCCESS(intIntMapPut(expectedHeads,
-                                  vio->physical,
+                                  pbnFromVIO(vio),
                                   journal->block_map_head,
                                   true,
                                   NULL,

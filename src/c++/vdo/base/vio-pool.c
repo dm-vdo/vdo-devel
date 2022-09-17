@@ -128,11 +128,14 @@ void free_vio_pool(struct vio_pool *pool)
 
 	/* Make sure every vio_pool_entry has been removed. */
 	for (i = 0; i < pool->size; i++) {
+		struct bio *bio;
+
 		entry = &pool->entries[i];
+		bio = entry->vio->bio;
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
 				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
-				(unsigned long long) entry->vio->physical,
-				entry->vio->bio->bi_opf);
+				(unsigned long long) pbn_from_vio_bio(bio),
+				bio->bi_opf);
 	}
 
 	UDS_FREE(UDS_FORGET(pool->buffer));

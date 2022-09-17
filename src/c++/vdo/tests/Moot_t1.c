@@ -218,7 +218,7 @@ static bool assertCanceled(struct vdo_completion *completion)
 static bool checkPBN(struct vdo_completion *completion)
 {
   if (lastAsyncOperationIs(completion, VIO_ASYNC_OP_CLEANUP)) {
-    CU_ASSERT_EQUAL(zpbn.pbn, as_vio(completion)->physical);
+    CU_ASSERT_EQUAL(zpbn.pbn, pbnFromVIO(as_vio(completion)));
     clearCompletionEnqueueHooks();
   }
 

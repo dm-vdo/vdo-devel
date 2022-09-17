@@ -14,6 +14,8 @@
 void vdo_bio_copy_data_in(struct bio *bio, char *data_ptr);
 void vdo_bio_copy_data_out(struct bio *bio, char *data_ptr);
 
+physical_block_number_t __must_check pbn_from_vio_bio(struct bio *bio);
+
 static inline int vdo_get_bio_result(struct bio *bio)
 {
 	return blk_status_to_errno(bio->bi_status);

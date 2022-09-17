@@ -347,18 +347,19 @@ static int processBIO(struct bio *bio)
     }
   }
 
-  struct vio *vio = bio->bi_private;
-  assertNotInIndexRegion(vio->physical);
+  physical_block_number_t pbn = pbn_from_vio_bio(bio);
+  assertNotInIndexRegion(pbn);
 
   int result;
+  struct vio *vio = bio->bi_private;
   if (bio_data_dir(bio) == WRITE) {
     result = ramLayer->writer(ramLayer,
-                              vio->physical,
+                              pbn,
                               vio->block_count,
                               (char *) bio->bi_io_vec->bv_page);
   } else {
     result = ramLayer->reader(ramLayer,
-                              vio->physical,
+                              pbn,
                               vio->block_count,
                               (char *) bio->bi_io_vec->bv_page);
   }
@@ -368,7 +369,7 @@ static int processBIO(struct bio *bio)
   }
 
   if ((bio->bi_opf & REQ_FUA) == REQ_FUA) {
-    persistSingleBlockInRAMLayer(ramLayer, vio->physical);
+    persistSingleBlockInRAMLayer(ramLayer, pbn);
   }
 
   return result;

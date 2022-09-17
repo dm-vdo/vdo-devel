@@ -106,7 +106,7 @@ static bool latchReferenceBlockIO(struct vdo_completion *completion)
   }
 
   struct vio *vio = as_vio(completion);
-  physical_block_number_t pbn = vio->physical;
+  physical_block_number_t pbn = pbnFromVIO(vio);
   slab_count_t slabNumber;
   VDO_ASSERT_SUCCESS(vdo_get_slab_number(vdo->depot, pbn, &slabNumber));
   uds_lock_mutex(&mutex);

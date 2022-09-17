@@ -91,6 +91,18 @@ static inline bool isMetadataWrite(struct vdo_completion *completion)
 }
 
 /**
+ * Get the PBN to which a vio is doing I/O.
+ *
+ * @param vio  The vio to check
+ *
+ * @return The pbn corresponding to the sector of the vio's bio
+ **/
+static inline physical_block_number_t pbnFromVIO(struct vio *vio)
+{
+  return pbn_from_vio_bio(vio->bio);
+}
+
+/**
  * Check whether the lastAsyncOperation of a data_vio matches a given type.
  *
  * @param completion      The completion to check

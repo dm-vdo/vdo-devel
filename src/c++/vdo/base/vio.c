@@ -157,6 +157,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 void record_metadata_io_error(struct vio *vio)
 {
 	const char *description;
+	physical_block_number_t pbn = pbn_from_vio_bio(vio->bio);
 
 	if (bio_op(vio->bio) == REQ_OP_READ) {
 		description = "read";
@@ -174,5 +175,5 @@ void record_metadata_io_error(struct vio *vio)
 			       "Completing %s vio of type %u for physical block %llu with error",
 			       description,
 			       vio->type,
-			       (unsigned long long) vio->physical);
+			       (unsigned long long) pbn);
 }

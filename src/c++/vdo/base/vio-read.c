@@ -206,8 +206,6 @@ static void read_block(struct vdo_completion *completion)
 			 * A full 4k read. Use the incoming bio to avoid having
 			 * to copy the data
 			 */
-			set_vio_physical(vio, data_vio->mapped.pbn);
-
 #ifdef RHEL_RELEASE_CODE
 #define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
 #else
