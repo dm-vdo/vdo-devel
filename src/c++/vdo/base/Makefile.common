@@ -36,7 +36,6 @@ BASE_OBJS :=     			\
 	instance-number.o		\
 	int-map.o			\
 	io-submitter.o			\
-	lock-counter.o			\
 	logical-zone.o			\
 	packer.o			\
 	pbn-lock.o			\
