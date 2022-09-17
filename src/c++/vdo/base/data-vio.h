@@ -283,11 +283,6 @@ struct data_vio {
 	/* The list of vios in user initiated write requests */
 	struct list_head write_entry;
 
-	/*
-	 * A flag indicating that a data write vio has a flush generation lock
-	 */
-	bool has_flush_generation_lock;
-
 	/* The generation number of the VDO that this vio belongs to */
 	sequence_number_t flush_generation;
 
@@ -477,6 +472,12 @@ static inline bool is_trim_data_vio(struct data_vio *data_vio)
 static inline bool data_vio_requires_fua(const struct data_vio *data_vio)
 {
 	return ((data_vio->io_operation & DATA_VIO_FUA) == DATA_VIO_FUA);
+}
+
+static inline bool
+data_vio_has_flush_generation_lock(struct data_vio *data_vio)
+{
+	return !list_empty(&data_vio->write_entry);
 }
 
 /**

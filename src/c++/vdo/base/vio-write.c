@@ -1049,7 +1049,7 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
 			 || (vdo_get_callback_thread_id() ==
 			     vdo->thread_config->bio_ack_thread)),
 			"acknowledge_write_callback() called on bio ack queue");
-	ASSERT_LOG_ONLY(data_vio->has_flush_generation_lock,
+	ASSERT_LOG_ONLY(data_vio_has_flush_generation_lock(data_vio),
 			"write VIO to be acknowledged has a flush generation lock");
 	acknowledge_data_vio(data_vio);
 	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {

@@ -311,8 +311,7 @@ void vdo_acquire_flush_generation_lock(struct data_vio *data_vio)
 			"vdo state is normal");
 
 	data_vio->flush_generation = zone->flush_generation;
-	list_move_tail(&data_vio->write_entry, &zone->write_vios);
-	data_vio->has_flush_generation_lock = true;
+	list_add_tail(&data_vio->write_entry, &zone->write_vios);
 	zone->ios_in_flush_generation++;
 }
 
@@ -374,20 +373,14 @@ void vdo_release_flush_generation_lock(struct data_vio *data_vio)
 	struct logical_zone *zone = data_vio->logical.zone;
 
 	assert_on_zone_thread(zone, __func__);
-	if (list_empty(&data_vio->write_entry)) {
-		/*
-		 * This VIO never got a lock, either because it is a read, or
-		 * because we are in read-only mode.
-		 */
-		ASSERT_LOG_ONLY(!data_vio->has_flush_generation_lock,
-				"has_flush_generation_lock false for VIO not on active list");
+
+	if (!data_vio_has_flush_generation_lock(data_vio)) {
 		return;
 	}
 
 	list_del_init(&data_vio->write_entry);
-	data_vio->has_flush_generation_lock = false;
-	ASSERT_LOG_ONLY(zone->oldest_active_generation
-				<= data_vio->flush_generation,
+	ASSERT_LOG_ONLY((zone->oldest_active_generation <=
+			 data_vio->flush_generation),
 			"data_vio releasing lock on generation %llu is not older than oldest active generation %llu",
 			(unsigned long long) data_vio->flush_generation,
 			(unsigned long long) zone->oldest_active_generation);
