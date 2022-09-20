@@ -62,7 +62,6 @@ static const struct error_info error_list[] = {
 	{ "UDS_BAD_STATE", "UDS data structures are in an invalid state" },
 	{ "UDS_DUPLICATE_NAME",
 	  "Attempt to enter the same name into a delta index twice" },
-	{ "UDS_UNEXPECTED_RESULT", "Unexpected result from internal routine" },
 	{ "UDS_ASSERTION_FAILED", "Assertion failed" },
 	{ "UDS_QUEUED", "Request queued" },
 	{ "UDS_BUFFER_ERROR", "Buffer error" },

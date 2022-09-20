@@ -513,8 +513,7 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   int result = UDS_SUCCESS;
   for (i = 0; i < numAsyncIndexThreads; i++) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(NULL, nameBuf, sizeof(nameBuf),
-                                         UDS_INVALID_ARGUMENT,
+    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                          "asyncIndex%d", i));
     result = uds_create_thread(indexThreadAsync, &args[i], nameBuf,
                                &threads[i]);

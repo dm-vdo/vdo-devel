@@ -48,8 +48,7 @@ static struct uds_index *createTestIndex(unsigned int loadFlags)
 static void createMyMetadata(struct uds_chunk_data *data, const char *type)
 {
   memset(data, 0, sizeof(*data));
-  UDS_ASSERT_SUCCESS(uds_fixed_sprintf(__func__, (char *) data->data,
-                                       sizeof(*data), UDS_INVALID_ARGUMENT,
+  UDS_ASSERT_SUCCESS(uds_fixed_sprintf((char *) data->data, sizeof(*data),
                                        "%s", type));
 }
 

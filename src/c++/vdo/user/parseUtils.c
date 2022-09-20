@@ -11,8 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "string-utils.h"
-
 #include "status-codes.h"
 
 /**********************************************************************/
@@ -33,6 +31,41 @@ int parseUInt(const char   *arg,
     *numPtr = n;
   }
   return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int parseInt(const char *arg, int *numPtr)
+{
+  char *endPtr;
+  errno = 0;
+  long n = strtol(arg, &endPtr, 0);
+  if ((errno == ERANGE) || (errno == EINVAL)
+      || (endPtr == arg) || (*endPtr != '\0')) {
+    return VDO_OUT_OF_RANGE;
+  }
+  if (numPtr != NULL) {
+    *numPtr = n;
+  }
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int __must_check parseUInt64(const char *arg, uint64_t *numPtr)
+{
+  char *endPtr;
+  errno = 0;
+  unsigned long long temp = strtoull(arg, &endPtr, 10);
+  if ((errno == ERANGE) || (errno == EINVAL) || (*endPtr != '\0')) {
+    return VDO_OUT_OF_RANGE;
+  }
+  uint64_t n = temp;
+
+  if (temp != (unsigned long long) n) {
+    return VDO_OUT_OF_RANGE;
+  }
+
+  *numPtr = n;
+  return UDS_SUCCESS;
 }
 
 /**
@@ -102,7 +135,7 @@ static int parseMem(char *string, uint32_t *sizePtr)
     mem = UDS_MEMORY_CONFIG_768MB;
   } else {
     int number;
-    if (uds_string_to_signed_int(string, &number) != UDS_SUCCESS) {
+    if (parseInt(string, &number) != UDS_SUCCESS) {
       return -EINVAL;
     }
     mem = number;

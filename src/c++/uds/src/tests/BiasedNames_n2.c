@@ -58,13 +58,14 @@ static void cb(enum uds_request_type type __attribute__((unused)),
 __printf(2, 3)
 static void createMyMetadata(struct uds_chunk_data *data, const char *fmt, ...)
 {
-  memset(data, 0, sizeof(*data));
+  int bytes;
   va_list args;
+
   va_start(args, fmt);
-  UDS_ASSERT_SUCCESS(uds_wrap_vsnprintf(__func__, (char *) data->data,
-                                        sizeof(*data), UDS_INVALID_ARGUMENT,
-                                        fmt, args, NULL));
+  memset(data, 0, sizeof(*data));
+  bytes = vsnprintf((char *) data->data, sizeof(*data), fmt, args);
   va_end(args);
+  CU_ASSERT_TRUE((bytes >= 0) && ((size_t) bytes < sizeof(*data)));
 }
 
 /**********************************************************************/

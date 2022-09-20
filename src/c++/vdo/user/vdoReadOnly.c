@@ -7,6 +7,7 @@
 #include <err.h>
 #include <getopt.h>
 #include <linux/fs.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 
 #include "errors.h"

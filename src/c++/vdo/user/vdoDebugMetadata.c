@@ -12,7 +12,6 @@
 #include "errors.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "string-utils.h"
 #include "syscalls.h"
 
 #include "block-map-format.h"
@@ -28,6 +27,7 @@
 #include "volume-geometry.h"
 
 #include "fileLayer.h"
+#include "parseUtils.h"
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
 
@@ -143,7 +143,7 @@ static int processArgs(int argc, char *argv[], char **filename)
         errx(1, "Cannot specify more than %u PBNs", MAX_PBNS);
       }
 
-      int result = uds_parse_uint64(optarg, &pbns[pbnCount++]);
+      int result = parseUInt64(optarg, &pbns[pbnCount++]);
       if (result != VDO_SUCCESS) {
         warnx("Cannot parse PBN as a number");
         usage(argv[0], usageString);
@@ -156,7 +156,7 @@ static int processArgs(int argc, char *argv[], char **filename)
         errx(1, "Cannot specify more than %u search LBNs", MAX_SEARCH_LBNS);
       }
 
-      int result = uds_parse_uint64(optarg, &searchLBNs[searchLBNCount++]);
+      int result = parseUInt64(optarg, &searchLBNs[searchLBNCount++]);
       if (result != VDO_SUCCESS) {
         warnx("Cannot parse search LBN as a number");
         usage(argv[0], usageString);

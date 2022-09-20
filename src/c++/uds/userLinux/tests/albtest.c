@@ -10,6 +10,7 @@
 #include <dlfcn.h>
 #include <err.h>
 #include <getopt.h>
+#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -123,6 +124,40 @@ static int parseDirectory(const char *arg, const char **testDir)
     }
   }
   return UDS_NO_DIRECTORY;
+}
+
+/**********************************************************************/
+static int parseRepetitions(const char *arg, int *repeats)
+{
+  char *endPtr;
+  long value;
+
+  errno = 0;
+  value = strtol(arg, &endPtr, 0);
+  if ((errno == ERANGE) || (errno == EINVAL) || (*endPtr != '\0')
+      || (value <= 0) || (value > INT_MAX)) {
+    return UDS_OUT_OF_RANGE;
+  }
+
+  *repeats = value;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static int parseSeed(const char *arg, unsigned int *seed)
+{
+  char *endPtr;
+  unsigned long value;
+
+  errno = 0;
+  value = strtoul(arg, &endPtr, 0);
+  if ((errno == ERANGE) || (errno == EINVAL) || (*endPtr != '\0')
+      || (value > UINT_MAX)) {
+    return UDS_OUT_OF_RANGE;
+  }
+
+  *seed = value;
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -411,17 +446,18 @@ int main(int argc, char **argv)
       break;
     case 'r':
       if (optarg != NULL) {
-        if ((uds_string_to_signed_int(optarg, &repCount) != UDS_SUCCESS)
-            || (repCount <= 0))
+        if (parseRepetitions(optarg, &repCount) != UDS_SUCCESS) {
           errx(1, "The argument to --repeat, if present,"
                " must be a positive integer ");
+        }
       } else {
         repCount = -1;          /* -1 means repeat indefinitely */
       }
       break;
     case 's':
-      if (uds_string_to_unsigned_int(optarg, &specifiedSeed) != UDS_SUCCESS)
+      if (parseSeed(optarg, &specifiedSeed) != UDS_SUCCESS) {
         errx(1, "The argument to --seed must be an unsigned integer");
+      }
       break;
     case 'x':
       xml = optarg;

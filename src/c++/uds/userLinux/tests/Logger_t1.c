@@ -7,6 +7,7 @@
  */
 
 #include <dirent.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "albtest.h"

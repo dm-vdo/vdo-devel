@@ -8,8 +8,10 @@
 
 #ifdef __KERNEL__
 #include <linux/io.h> /* for PAGE_SIZE */
-
+#else
+#include <stdlib.h>
 #endif
+
 #include "compiler.h"
 #include "cpu.h"
 #include "permassert.h"

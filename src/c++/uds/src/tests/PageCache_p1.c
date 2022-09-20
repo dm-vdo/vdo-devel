@@ -115,8 +115,8 @@ static void testOptimalMT(unsigned int numThreads)
   unsigned int i;
   for (i = 0; i < numThreads; ++i) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(NULL, nameBuf, sizeof(nameBuf),
-                                         UDS_INVALID_ARGUMENT, "tester%d", i));
+    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+                                         "tester%d", i));
     args[i].counter = 0;
     args[i].threadNum = i;
     args[i].totalThreads = numThreads;
@@ -185,8 +185,8 @@ static void testLRUOnlyMT(unsigned int numThreads)
   unsigned int i;
   for (i = 0; i < numThreads; ++i) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(NULL, nameBuf, sizeof(nameBuf),
-                                         UDS_INVALID_ARGUMENT, "tester%d", i));
+    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+                                         "tester%d", i));
     args[i].counter = 0;
     args[i].threadNum = i;
     args[i].totalThreads = numThreads;
@@ -271,8 +271,8 @@ static void testMixedMT(unsigned int numThreads, int percentageHits)
   unsigned int i;
   for (i = 0; i < numThreads; ++i) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(NULL, nameBuf, sizeof(nameBuf),
-                                         UDS_INVALID_ARGUMENT, "tester%d", i));
+    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+                                         "tester%d", i));
     args[i].counter = globalCounter;
     args[i].threadNum = i;
     args[i].totalThreads = numThreads;

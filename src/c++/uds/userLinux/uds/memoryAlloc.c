@@ -5,10 +5,10 @@
  */
 
 #include <errno.h>
+#include <string.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
-#include "string-utils.h"
 
 enum { DEFAULT_MALLOC_ALIGNMENT = 2 * sizeof(size_t) }; // glibc malloc
 

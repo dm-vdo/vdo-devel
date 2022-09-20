@@ -437,6 +437,8 @@ sub generateHeader {
   $self->blankLine();
 
   my $headerText = <<"EOH";
+#include <stdlib.h>
+
 #include "math.h"
 #include "statistics.h"
 #include "status-codes.h"

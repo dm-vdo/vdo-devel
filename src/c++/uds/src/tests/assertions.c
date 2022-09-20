@@ -7,33 +7,32 @@
 #include "string-utils.h"
 
 /**********************************************************************/
-__printf(5, 6)
-static char *addMore(char       *buf,
-                     char       *pos,
-                     char       *end,
-                     const char *sep,
-                     const char *fmt,
-                     ...)
+static char *addRange(char       *buf,
+                      char       *pos,
+                      char       *end,
+                      int first,
+                      int last)
 {
-  const char *s = ((sep != NULL) && (pos > buf)) ? sep : "";
+  const char *sep = (pos > buf) ? ", " : "";
   if (pos < end) {
-    va_list ap;
-    va_start(ap, fmt);
-    if (*s) {
-      pos = uds_append_to_buffer(pos, end, "%s", s);
+    if (first < last) {
+      pos = uds_append_to_buffer(pos, end, "%s%d-%d", sep, first, last);
+    } else {
+      pos = uds_append_to_buffer(pos, end, "%s%d", sep, first);
     }
-    pos = uds_v_append_to_buffer(pos, end, fmt, ap);
-    va_end(ap);
+
     if (pos == end) {
-      while (*s && (pos > buf) &&
-             (*pos != *s ||
-              ((size_t) (end - pos) < strlen(s) + sizeof("...")))) {
+      while ((pos > buf) &&
+             (*pos != *sep ||
+              ((size_t) (end - pos) < strlen(sep) + sizeof("...")))) {
         --pos;
       }
-      uds_append_to_buffer(pos, end, "%s%s", s,  "...");
+
+      uds_append_to_buffer(pos, end, "%s%s", sep,  "...");
       pos = end;
     }
   }
+
   return pos;
 }
 
@@ -54,11 +53,7 @@ const char *displayByteDifferences(char       *buf,
       if (x == -1) {
         x = i;
       } else {
-        if (i > x+1) {
-          bp = addMore(buf, bp, be, ", ", "%d-%d", x, i - 1);
-        } else {
-          bp = addMore(buf, bp, be, ", ", "%d", x);
-        }
+        bp = addRange(buf, bp, be, x, i - 1);
         x = -1;
       }
     }

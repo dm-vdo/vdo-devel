@@ -6,6 +6,7 @@
 
 #include <err.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 #include "errors.h"
 #include "syscalls.h"

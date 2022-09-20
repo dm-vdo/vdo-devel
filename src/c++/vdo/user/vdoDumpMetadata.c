@@ -10,7 +10,6 @@
 #include "errors.h"
 #include "fileUtils.h"
 #include "memory-alloc.h"
-#include "string-utils.h"
 #include "syscalls.h"
 
 #include "block-map-format.h"
@@ -24,6 +23,7 @@
 
 #include "blockMapUtils.h"
 #include "fileLayer.h"
+#include "parseUtils.h"
 #include "physicalLayer.h"
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
@@ -131,7 +131,7 @@ static void processArgs(int argc, char *argv[])
       }
 
       noBlockMap = true;
-      int result = uds_parse_uint64(optarg, &lbns[lbnCount++]);
+      int result = parseUInt64(optarg, &lbns[lbnCount++]);
       if (result != VDO_SUCCESS) {
         warnx("Cannot parse LBN as a number");
         usage(argv[0]);
