@@ -36,15 +36,15 @@ static void volumeIndexCleanup(void)
 }
 
 /**********************************************************************/
-static void fillInAddress(struct uds_chunk_name *name, unsigned int addr)
+static void fillInAddress(struct uds_record_name *name, unsigned int addr)
 {
   set_volume_index_bytes(name, addr);
 }
 
 /**********************************************************************/
-static void insertRandomlyNamedBlock(struct volume_index   *volumeIndex,
-                                     struct uds_chunk_name *name,
-                                     uint64_t               chapter)
+static void insertRandomlyNamedBlock(struct volume_index    *volumeIndex,
+                                     struct uds_record_name *name,
+                                     uint64_t                chapter)
 {
   createRandomBlockName(name);
   struct volume_index_record record;
@@ -105,8 +105,8 @@ static void basicTest(void)
   CU_ASSERT_EQUAL(volumeStats->discard_count, 0);
   CU_ASSERT_EQUAL(volumeStats->num_lists, 1);
 
-  // Make chunk names that use keys 0, 1 and 2
-  struct uds_chunk_name name0, name1, name2;
+  // Make record names that use keys 0, 1 and 2
+  struct uds_record_name name0, name1, name2;
   createRandomBlockName(&name0);
   fillInAddress(&name0, 0);
   createRandomBlockName(&name1);
@@ -184,7 +184,7 @@ static void setChapterTest(void)
   uint64_t chapter2 = MAX_CHAPTER;
 
   // Insert 2 randomly named blocks
-  struct uds_chunk_name name1, name2;
+  struct uds_record_name name1, name2;
   insertRandomlyNamedBlock(volumeIndex, &name1, chapter1);
   insertRandomlyNamedBlock(volumeIndex, &name2, chapter2);
 
@@ -241,7 +241,7 @@ static void testInvalidateTrio(unsigned int addr1, unsigned int addr2,
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
 
   // Initialize the names
-  struct uds_chunk_name name1, name2, name3;
+  struct uds_record_name name1, name2, name3;
   createRandomBlockName(&name1);
   fillInAddress(&name1, addr1);
   createRandomBlockName(&name2);
@@ -348,7 +348,7 @@ static void advanceForInvalidateChaptersTest(struct volume_index *volumeIndex,
 /**********************************************************************/
 static void insertForInvalidateChaptersTest(struct volume_index *volumeIndex,
                                             unsigned int numChapters,
-                                            struct uds_chunk_name *testNames,
+                                            struct uds_record_name *testNames,
                                             uint64_t *testChapters,
                                             uint64_t lowChapter,
                                             uint64_t highChapter,
@@ -364,12 +364,13 @@ static void insertForInvalidateChaptersTest(struct volume_index *volumeIndex,
 }
 
 /**********************************************************************/
-static void checkForInvalidateChaptersTest(struct volume_index *volumeIndex,
-                                           unsigned int numChapters,
-                                           const struct uds_chunk_name *testNames,
-                                           const uint64_t *testChapters,
-                                           uint64_t lowChapter,
-                                           uint64_t highChapter)
+static void
+checkForInvalidateChaptersTest(struct volume_index *volumeIndex,
+                               unsigned int numChapters,
+                               const struct uds_record_name *testNames,
+                               const uint64_t *testChapters,
+                               uint64_t lowChapter,
+                               uint64_t highChapter)
 {
   struct volume_index_record record;
   unsigned int i;
@@ -389,7 +390,7 @@ static void checkForInvalidateChaptersTest(struct volume_index *volumeIndex,
 /**********************************************************************/
 static void rotateForInvalidateChaptersTest(struct volume_index *volumeIndex,
                                             long numChapters,
-                                            struct uds_chunk_name *testNames,
+                                            struct uds_record_name *testNames,
                                             uint64_t *testChapters,
                                             uint64_t lowChapter,
                                             uint64_t highChapter,
@@ -420,7 +421,7 @@ static void invalidateChapterTest(void)
   struct volume_index *volumeIndex;
   struct volume_index_stats volumeStats;
   enum { CHAPTER_COUNT = SINGLE_CHAPTERS };
-  struct uds_chunk_name testNames[CHAPTER_COUNT];
+  struct uds_record_name testNames[CHAPTER_COUNT];
   uint64_t testChapters[CHAPTER_COUNT];
 
   // Set up the volume index to use a single delta list.
@@ -483,8 +484,8 @@ static void invalidateChapterCollisionTest(void)
   struct volume_index_record record;
   struct volume_index_stats volumeStats;
 
-  // Make chunk names that use the same key
-  struct uds_chunk_name name0, name1;
+  // Make record names that use the same key
+  struct uds_record_name name0, name1;
   createRandomBlockName(&name0);
   fillInAddress(&name0, 0);
   createRandomBlockName(&name1);
@@ -533,9 +534,9 @@ static void rollingChaptersTest(void)
   struct volume_index_stats volumeStats;
   const unsigned int numChapters = SINGLE_CHAPTERS;
 
-  struct uds_chunk_name *testNames;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numChapters, struct uds_chunk_name, __func__,
-                                  &testNames));
+  struct uds_record_name *testNames;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numChapters, struct uds_record_name,
+                                  __func__, &testNames));
 
   struct configuration *config = makeTestConfig(numChapters);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
@@ -609,7 +610,7 @@ static void invalidateChapterEmptyTest(void)
   for (loop = 0; loop < 3; loop++) {
 
     // Insert 1 block into chapter 0 (or 5 or 10)
-    struct uds_chunk_name name1;
+    struct uds_record_name name1;
     uint64_t chapter1 = chapter;
     set_volume_index_open_chapter(volumeIndex, chapter);
     insertRandomlyNamedBlock(volumeIndex, &name1, chapter1);

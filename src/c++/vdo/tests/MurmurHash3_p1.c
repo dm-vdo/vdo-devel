@@ -3,7 +3,7 @@
  *
  * %LICENSE%
  *
- * Performance testing of Murmur3 chunk name calculation.
+ * Performance testing of Murmur3 calculation.
  *
  * $Id$
  */
@@ -38,7 +38,7 @@ static uint64_t cpuTime(void)
 
 static void doMurmurHash(const void *buffer, size_t length)
 {
-  struct uds_chunk_name chunkName;
+  struct uds_record_name chunkName;
   murmurhash3_128(buffer, length, 0x62ea60be, &chunkName);
 }
 

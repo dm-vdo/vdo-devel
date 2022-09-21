@@ -53,7 +53,7 @@ void vdo_get_dedupe_statistics(struct hash_zones *zones,
 
 struct hash_zone * __must_check
 vdo_select_hash_zone(struct hash_zones *zones,
-		     const struct uds_chunk_name *name);
+		     const struct uds_record_name *name);
 
 void vdo_dump_hash_zones(struct hash_zones *zones);
 

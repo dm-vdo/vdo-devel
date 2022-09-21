@@ -36,9 +36,9 @@ static void testHash128(void)
 }
 
 /**********************************************************************/
-static void checkChunkName(const char *input, struct uds_chunk_name expected)
+static void checkChunkName(const char *input, struct uds_record_name expected)
 {
-  struct uds_chunk_name name = murmurHashChunkName(input, strlen(input), 0);
+  struct uds_record_name name = murmurHashChunkName(input, strlen(input), 0);
   UDS_ASSERT_BLOCKNAME_EQUAL(expected.name, name.name);
 }
 
@@ -52,8 +52,8 @@ static void testChunkName(void)
     0xf2, 0x0a, 0xd3, 0x4d, 0x84, 0x5b, 0x70, 0x82,
     0x8f, 0x91, 0x81, 0x45, 0xa0, 0xb6, 0x6d, 0xda,
   };
-  struct uds_chunk_name result;
-  memcpy(result.name, hash1, UDS_CHUNK_NAME_SIZE);
+  struct uds_record_name result;
+  memcpy(result.name, hash1, UDS_RECORD_NAME_SIZE);
   checkChunkName(input1, result);
 
   const char *input2 = "The quick brown fox jumps over the lazy cog";
@@ -63,7 +63,7 @@ static void testChunkName(void)
       0xc9, 0xc9, 0x8a, 0x6f, 0xac, 0xeb, 0x78, 0x82,
       0xac, 0x86, 0xaa, 0x52, 0x99, 0x0b, 0x9c, 0x19,
   };
-  memcpy(result.name, hash2, UDS_CHUNK_NAME_SIZE);
+  memcpy(result.name, hash2, UDS_RECORD_NAME_SIZE);
   checkChunkName(input2, result);
 }
 

@@ -932,7 +932,7 @@ static int initialize_index_page(const struct volume *volume,
 }
 
 EXTERNAL_STATIC bool search_record_page(const byte record_page[],
-					const struct uds_chunk_name *name,
+					const struct uds_record_name *name,
 					const struct geometry *geometry,
 					struct uds_chunk_data *metadata)
 {
@@ -948,7 +948,7 @@ EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 
 	while (node < geometry->records_per_page) {
 		const struct uds_chunk_record *record = &records[node];
-		int result = memcmp(name, &record->name, UDS_CHUNK_NAME_SIZE);
+		int result = memcmp(name, &record->name, UDS_RECORD_NAME_SIZE);
 
 		if (result == 0) {
 			if (metadata != NULL) {
@@ -976,7 +976,7 @@ static int search_page(struct cached_page *page,
 
 	if (record_page) {
 		if (search_record_page(dm_bufio_get_block_data(page->buffer),
-				       &request->chunk_name,
+				       &request->record_name,
 				       volume->geometry,
 				       &request->old_metadata)) {
 			location = UDS_LOCATION_RECORD_PAGE_LOOKUP;
@@ -986,7 +986,7 @@ static int search_page(struct cached_page *page,
 	} else {
 		result = search_chapter_index_page(&page->cp_index_page,
 						   volume->geometry,
-						   &request->chunk_name,
+						   &request->record_name,
 						   &record_page_number);
 		if (result != UDS_SUCCESS) {
 			return result;
@@ -1381,13 +1381,13 @@ int get_volume_page(struct volume *volume,
 }
 
 /**
- * Search for a chunk name in a cached index page or chapter index, returning
+ * Search for a record name in a cached index page or chapter index, returning
  * the record page number from a chapter index match.
  *
  * @param volume              the volume containing the index page to search
  * @param request             the request originating the search (may be NULL
  *                            for a direct query from volume replay)
- * @param name                the name of the block or chunk
+ * @param name                the record name to search for
  * @param chapter             the chapter to search
  * @param index_page_number   the index page number of the page to search
  * @param record_page_number  pointer to return the chapter record page number
@@ -1398,7 +1398,7 @@ int get_volume_page(struct volume *volume,
  **/
 static int search_cached_index_page(struct volume *volume,
 				    struct uds_request *request,
-				    const struct uds_chunk_name *name,
+				    const struct uds_record_name *name,
 				    unsigned int chapter,
 				    unsigned int index_page_number,
 				    int *record_page_number)
@@ -1445,7 +1445,7 @@ static int search_cached_index_page(struct volume *volume,
 
 int search_cached_record_page(struct volume *volume,
 			      struct uds_request *request,
-			      const struct uds_chunk_name *name,
+			      const struct uds_record_name *name,
 			      unsigned int chapter,
 			      int record_page_number,
 			      struct uds_chunk_data *duplicate,
@@ -1549,7 +1549,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 
 int search_volume_page_cache(struct volume *volume,
 			     struct uds_request *request,
-			     const struct uds_chunk_name *name,
+			     const struct uds_record_name *name,
 			     uint64_t virtual_chapter,
 			     struct uds_chunk_data *metadata,
 			     bool *found)
@@ -1803,7 +1803,7 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 	result = radix_sort(volume->radix_sorter,
 				(const byte **) record_pointers,
 				records_per_page,
-				UDS_CHUNK_NAME_SIZE);
+				UDS_RECORD_NAME_SIZE);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}

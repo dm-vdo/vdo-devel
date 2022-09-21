@@ -46,7 +46,7 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 
 int __must_check
 put_open_chapter_index_record(struct open_chapter_index *chapter_index,
-			      const struct uds_chunk_name *name,
+			      const struct uds_record_name *name,
 			      unsigned int page_number);
 
 int __must_check
@@ -69,7 +69,7 @@ validate_chapter_index_page(const struct delta_index_page *index_page,
 int __must_check
 search_chapter_index_page(struct delta_index_page *index_page,
 			  const struct geometry *geometry,
-			  const struct uds_chunk_name *name,
+			  const struct uds_record_name *name,
 			  int *record_page_ptr);
 
 #endif /* CHAPTER_INDEX_H */

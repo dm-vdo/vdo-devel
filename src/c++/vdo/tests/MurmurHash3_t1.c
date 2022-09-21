@@ -38,9 +38,9 @@ static void testHash128(void)
 }
 
 /**********************************************************************/
-static void checkChunkName(const char *input, struct uds_chunk_name expected)
+static void checkChunkName(const char *input, struct uds_record_name expected)
 {
-  struct uds_chunk_name chunkName;
+  struct uds_record_name chunkName;
   // Hash with the seed used by VDO.
   murmurhash3_128(input, strlen(input), 0x62ea60be, &chunkName.name);
   UDS_ASSERT_BLOCKNAME_EQUAL(expected.name, chunkName.name);
@@ -49,7 +49,7 @@ static void checkChunkName(const char *input, struct uds_chunk_name expected)
 /**********************************************************************/
 static void testChunkName(void)
 {
-  struct uds_chunk_name result1 = {
+  struct uds_record_name result1 = {
     {
       0x43, 0x79, 0x6d, 0x74, 0xe3, 0x93, 0x86, 0x45,
       0xc3, 0x89, 0x39, 0x7e, 0x23, 0xfc, 0xfd, 0x54,
@@ -57,7 +57,7 @@ static void testChunkName(void)
   };
   checkChunkName(input1, result1);
 
-  struct uds_chunk_name result2 = {
+  struct uds_record_name result2 = {
     {
       0x2d, 0x32, 0x3c, 0x15, 0x21, 0x6c, 0x39, 0xfb,
       0x36, 0x79, 0xfc, 0x8d, 0x07, 0x3c, 0xcd, 0xa6,

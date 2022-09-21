@@ -26,10 +26,10 @@ static const bool DONT_UPDATE = false;
 static unsigned int recordsPerChapter;
 static unsigned int totalRecords;
 
-static struct uds_chunk_name *hashes;
-static struct uds_chunk_data *metas;
-static struct configuration  *config;
-static struct uds_index      *theIndex;
+static struct uds_record_name *hashes;
+static struct uds_chunk_data  *metas;
+static struct configuration   *config;
+static struct uds_index       *theIndex;
 
 static struct cond_var       callbackCond;
 static struct mutex          callbackMutex;
@@ -131,11 +131,11 @@ static void assertIsHook(unsigned int hashIndex)
 }
 
 /**
- * Check whether the most recently generated chunk name might be a volume index
- * collision or a chapter index collision with all the previously generated
- * chunk names.
+ * Check whether the most recently generated record name might be a
+ * volume index collision or a chapter index collision with all the
+ * previously generated record names.
  *
- * @param lastHash  The index of the most recently generated chunk name
+ * @param lastHash  The index of the most recently generated record name
  *
  * @return <code>true</code> if the most recent name may be a collision
  **/
@@ -182,13 +182,15 @@ static void sparseInitSuite(const char *name)
                             SPARSE_SAMPLE_RATE);
   createIndex(UDS_CREATE);
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_chunk_name, "hashes",
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords,
+                                  struct uds_record_name,
+                                  "hashes",
                                   &hashes));
 
   unsigned int i, j;
   for (i = 0; i < totalRecords; i++) {
     /*
-     * Keep picking random chunk names until we find one that isn't a chapter
+     * Keep picking random record names until we find one that isn't a chapter
      * index collision. This prevents us from hitting the very rare case of
      * one non-hook colliding with another in the chapter index, which leads
      * to one of them not being found in cacheHitTest() since UDS doesn't
@@ -255,7 +257,7 @@ static noinline void indexAddAndCheck(unsigned int          hashIndex,
   // This routine is forced to NOT be inlined, because otherwise the
   // request variable makes the caller's stack frame too large.
   struct uds_request request = {
-    .chunk_name   = hashes[hashIndex],
+    .record_name  = hashes[hashIndex],
     .new_metadata = metas[metaInIndex],
     .type         = UDS_POST,
   };
@@ -276,8 +278,8 @@ static noinline void assertLookup(unsigned int          index,
   // This routine is forced to NOT be inlined, because otherwise the
   // request variable makes the caller's stack frame too large.
   struct uds_request request = {
-    .chunk_name = hashes[index],
-    .type       = (update == DO_UPDATE) ? UDS_QUERY : UDS_QUERY_NO_UPDATE,
+    .record_name = hashes[index],
+    .type        = (update == DO_UPDATE) ? UDS_QUERY : UDS_QUERY_NO_UPDATE,
   };
   dispatchRequest(&request, expectedLocation, &metas[index]);
 }
@@ -292,7 +294,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
   static unsigned int zone = 0;
   for (; numAdded < recordsPerChapter; ++numAdded) {
     struct uds_request request = { .type = UDS_POST };
-    createRandomBlockNameInZone(theIndex, zone, &request.chunk_name);
+    createRandomBlockNameInZone(theIndex, zone, &request.record_name);
     createRandomMetadata(&request.new_metadata);
     dispatchRequest(&request, UDS_LOCATION_UNAVAILABLE, NULL);
     zone = (zone + 1) % theIndex->zone_count;

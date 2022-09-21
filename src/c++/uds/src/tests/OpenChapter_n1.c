@@ -49,9 +49,11 @@ static void reportCloseTime(uint64_t records, ktime_t closeTime)
 static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
 {
   // We do not want to time the generation of the random names
-  struct uds_chunk_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(openChapter->capacity, struct uds_chunk_name,
-                                  "chunk names for chapter test", &names));
+  struct uds_record_name *names;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(openChapter->capacity,
+				  struct uds_record_name,
+                                  "record names for chapter test",
+				  &names));
   unsigned int i;
   for (i = 0; i < openChapter->capacity; i++) {
     createRandomBlockName(&names[i]);

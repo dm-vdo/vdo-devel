@@ -25,7 +25,7 @@
  * chapter number.  The volume index adds 2 basic functions to the delta
  * index:
  *
- *  (1) How to get the delta list number and address out of the chunk name.
+ *  (1) How to get the delta list number and address out of the record name.
  *
  *  (2) Dealing with chapter numbers, and especially the lazy flushing of
  *      chapters from the index.
@@ -60,7 +60,7 @@
  * The only multithreaded operation supported by the sparse volume index is
  * the lookup_volume_index_name() method.  It is called by the thread that
  * assigns an index request to the proper zone, and needs to do a volume
- * index query for sampled chunk names.  The zone mutexes are used to make
+ * index query for sampled record names.  The zone mutexes are used to make
  * this lookup operation safe.
  */
 
@@ -180,7 +180,7 @@ unsigned int min_volume_index_delta_lists;
  * @return the address
  **/
 static INLINE unsigned int extract_address(const struct volume_sub_index *sub_index,
-					   const struct uds_chunk_name *name)
+					   const struct uds_record_name *name)
 {
 	return extract_volume_index_bytes(name) & sub_index->address_mask;
 }
@@ -193,8 +193,9 @@ static INLINE unsigned int extract_address(const struct volume_sub_index *sub_in
  *
  * @return the delta list number
  **/
-static INLINE unsigned int extract_dlist_num(const struct volume_sub_index *sub_index,
-					     const struct uds_chunk_name *name)
+static INLINE unsigned int
+extract_dlist_num(const struct volume_sub_index *sub_index,
+		  const struct uds_record_name *name)
 {
 	uint64_t bits = extract_volume_index_bytes(name);
 
@@ -273,7 +274,7 @@ static INLINE bool has_sparse(const struct volume_index *volume_index)
 }
 
 /**
- * Determine whether a given chunk name is a hook.
+ * Determine whether a given record name is a hook.
  *
  * @param volume_index   The volume index
  * @param name           The block name
@@ -281,7 +282,7 @@ static INLINE bool has_sparse(const struct volume_index *volume_index)
  * @return whether to use as sample
  **/
 bool is_volume_index_sample(const struct volume_index *volume_index,
-			    const struct uds_chunk_name *name)
+			    const struct uds_record_name *name)
 {
 	if (!has_sparse(volume_index))  {
 		return false;
@@ -291,7 +292,7 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 }
 
 /**
- * Get the subindex for the given chunk name
+ * Get the subindex for the given record name
  *
  * @param volume_index   The volume index
  * @param name           The block name
@@ -300,7 +301,7 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
  **/
 static INLINE const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index,
-	      const struct uds_chunk_name *name)
+	      const struct uds_record_name *name)
 {
 	return (is_volume_index_sample(volume_index, name) ?
 			&volume_index->vi_hook :
@@ -308,16 +309,16 @@ get_sub_index(const struct volume_index *volume_index,
 }
 
 /**
- * Find the volume index zone associated with a chunk name
+ * Find the volume index zone associated with a record name
  *
  * @param volume_index The volume index
- * @param name         The chunk name
+ * @param name         The record name
  *
- * @return the zone that the chunk name belongs to
+ * @return the zone that the record name belongs to
  **/
 static unsigned int
 get_volume_sub_index_zone(const struct volume_sub_index *sub_index,
-			  const struct uds_chunk_name *name)
+			  const struct uds_record_name *name)
 {
 	unsigned int delta_list_number = extract_dlist_num(sub_index, name);
 
@@ -325,7 +326,7 @@ get_volume_sub_index_zone(const struct volume_sub_index *sub_index,
 }
 
 unsigned int get_volume_index_zone(const struct volume_index *volume_index,
-				   const struct uds_chunk_name *name)
+				   const struct uds_record_name *name)
 {
 	return get_volume_sub_index_zone(get_sub_index(volume_index, name), name);
 }
@@ -745,7 +746,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	if (!other_record.delta_entry.at_end &&
 	    (key == other_record.delta_entry.key)) {
 		for (;;) {
-			byte collision_name[UDS_CHUNK_NAME_SIZE];
+			byte collision_name[UDS_RECORD_NAME_SIZE];
 
 			result = flush_invalid_entries(&other_record,
 						       flush_range,
@@ -764,7 +765,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 			}
 			if (memcmp(collision_name,
 				   record->name,
-				   UDS_CHUNK_NAME_SIZE) == 0) {
+				   UDS_RECORD_NAME_SIZE) == 0) {
 				/*
 				 * This collision record is the one we are
 				 * looking for
@@ -810,13 +811,13 @@ static int get_volume_index_entry(struct volume_index_record *record,
  * entry.
  *
  * @param sub_index     The volume subindex to search
- * @param name          The chunk name
+ * @param name          The record name
  * @param record        Set to the info about the record searched for
  *
  * @return UDS_SUCCESS or an error code
  **/
 static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
-				       const struct uds_chunk_name *name,
+				       const struct uds_record_name *name,
 				       struct volume_index_record *record)
 {
 	int result;
@@ -893,13 +894,13 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
  * entry.
  *
  * @param volume_index  The volume index to search
- * @param name          The chunk name
+ * @param name          The record name
  * @param record        Set to the info about the record searched for
  *
  * @return UDS_SUCCESS or an error code
  **/
 int get_volume_index_record(struct volume_index *volume_index,
-			    const struct uds_chunk_name *name,
+			    const struct uds_record_name *name,
 			    struct volume_index_record *record)
 {
 	int result;
@@ -1180,17 +1181,17 @@ static void set_volume_index_tag(struct volume_sub_index *sub_index, byte tag)
 }
 
 /**
- * Do a quick read-only lookup of the sampled chunk name and return
- * information needed by the index code to process the chunk name.
+ * Do a quick read-only lookup of the sampled record name and return
+ * information needed by the index code to process the record name.
  *
  * @param sub_index        The volume subindex
- * @param name             The chunk name
+ * @param name             The record name
  *
  * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
 static uint64_t
 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index,
-			     const struct uds_chunk_name *name)
+			     const struct uds_record_name *name)
 {
 	int result;
 	unsigned int address = extract_address(sub_index, name);
@@ -1229,16 +1230,16 @@ lookup_volume_sub_index_name(const struct volume_sub_index *sub_index,
 }
 
 /**
- * Do a quick read-only lookup of the chunk name and return information
- * needed by the index code to process the chunk name.
+ * Do a quick read-only lookup of the record name and return information
+ * needed by the index code to process the record name.
  *
  * @param volume_index  The volume index
- * @param name          The chunk name
+ * @param name          The record name
  *
  * @return The sparse virtual chapter, or UINT64_MAX if none
  **/
 uint64_t lookup_volume_index_name(const struct volume_index *volume_index,
-				  const struct uds_chunk_name *name)
+				  const struct uds_record_name *name)
 {
 	unsigned int zone_number = get_volume_index_zone(volume_index, name);
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;

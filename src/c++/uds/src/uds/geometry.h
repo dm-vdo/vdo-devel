@@ -60,7 +60,7 @@ struct geometry {
 
 enum {
 	/* The number of bytes in a record (name + metadata) */
-	BYTES_PER_RECORD = (UDS_CHUNK_NAME_SIZE + UDS_METADATA_SIZE),
+	BYTES_PER_RECORD = (UDS_RECORD_NAME_SIZE + UDS_METADATA_SIZE),
 
 	/* The default length of a page in a chapter, in bytes */
 	DEFAULT_BYTES_PER_PAGE = 1024 * BYTES_PER_RECORD,

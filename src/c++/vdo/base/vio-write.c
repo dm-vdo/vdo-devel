@@ -739,7 +739,7 @@ void launch_deduplicate_data_vio(struct data_vio *data_vio)
 
 /**
  * lock_hash_in_zone() - Route the data_vio to the hash_zone responsible for
- *                       the chunk name to acquire a hash lock on that name,
+ *                       the record name to acquire a hash lock on that name,
  *                       or join with a existing hash lock managing concurrent
  *                       dedupe for that name.
  * @completion: The data_vio to lock.
@@ -777,7 +777,7 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
 
 /**
  * hash_data_vio() - Hash the data in a data_vio and set the hash zone (which
- *                   also flags the chunk name as set).
+ *                   also flags the record name as set).
  * @completion: The data_vio to hash.
 
  * This callback is registered in prepare_for_dedupe().
@@ -793,11 +793,11 @@ static void hash_data_vio(struct vdo_completion *completion)
 	murmurhash3_128(data_vio->data_block,
 			VDO_BLOCK_SIZE,
 			0x62ea60be,
-			&data_vio->chunk_name);
+			&data_vio->record_name);
 
 	data_vio->hash_zone =
 		vdo_select_hash_zone(vdo_from_data_vio(data_vio)->hash_zones,
-				     &data_vio->chunk_name);
+				     &data_vio->record_name);
 	data_vio->last_async_operation = VIO_ASYNC_OP_ACQUIRE_VDO_HASH_LOCK;
 	launch_data_vio_hash_zone_callback(data_vio,
 					   lock_hash_in_zone);
@@ -821,7 +821,7 @@ static void prepare_for_dedupe(struct data_vio *data_vio)
 			"must not prepare to dedupe zero blocks");
 
 	/*
-	 * Before we can dedupe, we need to know the chunk name, so the first
+	 * Before we can dedupe, we need to know the record name, so the first
 	 * step is to hash the block data.
 	 */
 	data_vio->last_async_operation = VIO_ASYNC_OP_HASH_DATA_VIO;

@@ -109,9 +109,9 @@ static INLINE bool was_entry_found(const struct delta_index_entry *entry,
 	return (!entry->at_end && (entry->key == address));
 }
 
-/* Associate a chunk name with the record page containing its metadata. */
+/* Associate a record name with the record page containing its metadata. */
 int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
-				  const struct uds_chunk_name *name,
+				  const struct uds_record_name *name,
 				  unsigned int page_number)
 {
 	int result;
@@ -339,12 +339,12 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 }
 
 /*
- * Search a chapter index page for a chunk name, returning the record page
+ * Search a chapter index page for a record name, returning the record page
  * number that may contain the name.
  */
 int search_chapter_index_page(struct delta_index_page *index_page,
 			      const struct geometry *geometry,
-			      const struct uds_chunk_name *name,
+			      const struct uds_record_name *name,
 			      int *record_page_ptr)
 {
 	int result;

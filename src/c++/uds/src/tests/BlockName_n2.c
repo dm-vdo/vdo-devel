@@ -127,9 +127,10 @@ static void doGroup(TestIndex *testIndex, Group *group,
   int n;
   for (n = 0; n < group->numChunks; n++) {
     GroupRequest *gr = &groupRequests[n];
-    gr->group = group;
+    gr->group                = group;
     gr->request.callback     = callback;
-    gr->request.chunk_name   = murmurHashChunkName(&counter, sizeof(counter),
+    gr->request.record_name  = murmurHashChunkName(&counter,
+                                                   sizeof(counter),
                                                    0);
     gr->request.session      = testIndex->indexSession;
     gr->request.new_metadata = group->newMetadata;
@@ -353,7 +354,7 @@ static void runMultiTest(int testDivisor)
 static void oneChapterTest(void)
 {
   // Run the test with the size of a group at 1/32 of a chapter.  Since we
-  // write 23 groups, all the chunk names will fit in the open chapter.
+  // write 23 groups, all the record names will fit in the open chapter.
   divisor = 32;
   runTest(&globalTestIndex);
 }
@@ -362,7 +363,7 @@ static void oneChapterTest(void)
 static void manyChapterTest(void)
 {
   // Run the test with the size of a group at 1/2 of a chapter.  We will
-  // use 10+ chapters of chunk names, and will cycle through many chapters.
+  // use 10+ chapters of record names, and will cycle through many chapters.
   divisor = 2;
   runTest(&globalTestIndex);
 }
@@ -371,7 +372,7 @@ static void manyChapterTest(void)
 static void multiIndexOneChapterTest(void)
 {
   // Run the test with the size of a group at 1/32 of a chapter.  Since we
-  // write 23 groups, all the chunk names will fit in the open chapter.
+  // write 23 groups, all the record names will fit in the open chapter.
   runMultiTest(32);
 }
 
@@ -379,7 +380,7 @@ static void multiIndexOneChapterTest(void)
 static void multiIndexManyChapterTest(void)
 {
   // Run the test with the size of a group at 1/2 of a chapter.  We will
-  // use 10+ chapters of chunk names, and will cycle through many chapters.
+  // use 10+ chapters of record names, and will cycle through many chapters.
   runMultiTest(2);
 }
 

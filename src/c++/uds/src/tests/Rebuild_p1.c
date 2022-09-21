@@ -33,7 +33,7 @@ static void runTest(bool sparse)
   unsigned long numRecords = getBlocksPerIndex(indexSession);
   unsigned long i;
   for (i = 0; i < numRecords; i++) {
-    struct uds_chunk_name chunkName = murmurHashChunkName(&i, sizeof(i), 0);
+    struct uds_record_name chunkName = murmurHashChunkName(&i, sizeof(i), 0);
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);
   }

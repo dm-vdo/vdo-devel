@@ -598,7 +598,7 @@ static int __must_check
 search_cached_chapter_index(struct cached_chapter_index *chapter,
 			    const struct geometry *geometry,
 			    const struct index_page_map *index_page_map,
-			    const struct uds_chunk_name *name,
+			    const struct uds_record_name *name,
 			    int *record_page_ptr)
 {
 	unsigned int physical_chapter =
@@ -615,7 +615,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 }
 
 int search_sparse_cache(struct index_zone *zone,
-			const struct uds_chunk_name *name,
+			const struct uds_record_name *name,
 			uint64_t *virtual_chapter_ptr,
 			int *record_page_ptr)
 {

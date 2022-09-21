@@ -51,7 +51,7 @@ static void basicsTest(void)
   request->found = true;
   request->new_metadata = meta1;
   request->old_metadata = meta3;
-  createRandomBlockName(&request->chunk_name);
+  createRandomBlockName(&request->record_name);
   UDS_ASSERT_SUCCESS(uds_launch_request(request));
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
   CU_ASSERT_FALSE(request->found);

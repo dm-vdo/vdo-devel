@@ -14,7 +14,7 @@ void fillChapterRandomly(struct uds_index *index)
 
   while (index->zones[0]->newest_virtual_chapter == chapterToFill) {
     struct uds_request request = { .type = UDS_POST };
-    createRandomBlockNameInZone(index, 0, &request.chunk_name);
+    createRandomBlockNameInZone(index, 0, &request.record_name);
     createRandomMetadata(&request.new_metadata);
     verify_test_request(index, &request, false, NULL);
   }

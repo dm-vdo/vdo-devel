@@ -26,13 +26,13 @@
  * Callback that gets invoked by UDS library on to report an asynchronous
  * result in block mode.  It asserts that the status returned UDS_SUCCESS.
  **/
-void cbStatus(enum uds_request_type type,
-              int status,
-              OldCookie cookie,
-              struct uds_chunk_data *duplicateAddress,
-              struct uds_chunk_data *canonicalAddress,
-              struct uds_chunk_name *blockName,
-              void *data);
+void cbStatus(enum uds_request_type   type,
+              int                     status,
+              OldCookie               cookie,
+              struct uds_chunk_data  *duplicateAddress,
+              struct uds_chunk_data  *canonicalAddress,
+              struct uds_record_name *blockName,
+              void                   *data);
 
 /**
  * Copy the first n bytes of one device to another device.
@@ -51,8 +51,8 @@ int copyDevice(const char *source, const char *destination, off_t bytes);
  * @param [in] orig             the original block name
  * @param [out] collision       the colliding block name
  **/
-void createCollidingBlock(const struct uds_chunk_name *orig,
-                          struct uds_chunk_name *collision);
+void createCollidingBlock(const struct uds_record_name *orig,
+                          struct uds_record_name       *collision);
 
 /**
  * Create a configuration for an albtest.  Takes as arguments the argc and
@@ -72,9 +72,9 @@ struct configuration *createConfigForAlbtest(int argc, const char **argv)
  * @param [out] name    the resulting random block name
  **/
 
-static INLINE void createRandomBlockName(struct uds_chunk_name *name)
+static INLINE void createRandomBlockName(struct uds_record_name *name)
 {
-  prandom_bytes(name->name, UDS_CHUNK_NAME_SIZE);
+  prandom_bytes(name->name, UDS_RECORD_NAME_SIZE);
 }
 
 /**
@@ -87,7 +87,7 @@ static INLINE void createRandomBlockName(struct uds_chunk_name *name)
  **/
 void createRandomBlockNameInZone(const struct uds_index *index,
                                  unsigned int            zone,
-                                 struct uds_chunk_name  *name);
+                                 struct uds_record_name *name);
 
 /**
  * Create random block metadata.
@@ -201,15 +201,15 @@ struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
  * @param [in] size  The size of the data, in bytes
  * @param [in] seed  A seed value for the hash calculation
  *
- * @return The calculated chunk name
+ * @return The calculated record name
  **/
-static INLINE struct uds_chunk_name murmurHashChunkName(const void *data,
-                                                        size_t      size,
-                                                        uint32_t    seed)
+static INLINE struct uds_record_name murmurHashChunkName(const void *data,
+                                                        size_t       size,
+                                                        uint32_t     seed)
 {
   // A pair of randomly-generated seed values for the two hash computations.
   enum { SEED1 = 0x62ea60be };
-  struct uds_chunk_name name;
+  struct uds_record_name name;
   murmurhash3_128(data, size, SEED1 ^ seed, &name.name[0]);
   return name;
 }
@@ -221,10 +221,10 @@ static INLINE struct uds_chunk_name murmurHashChunkName(const void *data,
  * @param [in] data  A pointer to the opaque data
  * @param [in] size  The size of the data, in bytes
  *
- * @return The calculated chunk name
+ * @return The calculated record name
  **/
-static INLINE struct uds_chunk_name murmurGenerator(const void *data,
-                                                    size_t size)
+static INLINE struct uds_record_name murmurGenerator(const void *data,
+                                                    size_t       size)
 {
   return murmurHashChunkName(data, size, 0);
 }
@@ -283,14 +283,14 @@ void resizeSparseConfiguration(struct configuration *config,
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
-					   uint64_t value)
+static INLINE void set_chapter_index_bytes(struct uds_record_name *name,
+                                           uint64_t                value)
 {
-	/* Store the high order bytes, then the low-order bytes */
-	put_unaligned_be16((uint16_t)(value >> 32),
-			   &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
-	put_unaligned_be32((uint32_t) value,
-			   &name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
+        /* Store the high order bytes, then the low-order bytes */
+        put_unaligned_be16((uint16_t)(value >> 32),
+                           &name->name[CHAPTER_INDEX_BYTES_OFFSET]);
+        put_unaligned_be32((uint32_t) value,
+                           &name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
 }
 
 /**
@@ -300,14 +300,14 @@ static INLINE void set_chapter_index_bytes(struct uds_chunk_name *name,
  * @param geometry The geometry to use
  * @param value    The value to store
  **/
-static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
-					       const struct geometry *geometry,
-					       uint64_t value)
+static INLINE void set_chapter_delta_list_bits(struct uds_record_name *name,
+                                               const struct geometry *geometry,
+                                               uint64_t value)
 {
-	uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
+        uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
 
-	delta_address |= value << geometry->chapter_address_bits;
-	set_chapter_index_bytes(name, delta_address);
+        delta_address |= value << geometry->chapter_address_bits;
+        set_chapter_index_bytes(name, delta_address);
 }
 
 /**
@@ -316,10 +316,10 @@ static INLINE void set_chapter_delta_list_bits(struct uds_chunk_name *name,
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void set_sampling_bytes(struct uds_chunk_name *name,
-				      uint32_t value)
+static INLINE void set_sampling_bytes(struct uds_record_name *name,
+                                      uint32_t                value)
 {
-	put_unaligned_be16((uint16_t) value, &name->name[SAMPLE_BYTES_OFFSET]);
+        put_unaligned_be16((uint16_t) value, &name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**
@@ -328,22 +328,22 @@ static INLINE void set_sampling_bytes(struct uds_chunk_name *name,
  * @param name  The block name
  * @param val   The value to store
  **/
-static INLINE void set_volume_index_bytes(struct uds_chunk_name *name,
-					  uint64_t val)
+static INLINE void set_volume_index_bytes(struct uds_record_name *name,
+                                          uint64_t                val)
 {
-	put_unaligned_be64(val, &name->name[VOLUME_INDEX_BYTES_OFFSET]);
+        put_unaligned_be64(val, &name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
 void sleep_for(ktime_t reltime);
 
 static INLINE ktime_t seconds_to_ktime(int64_t seconds)
 {
-	return (ktime_t) seconds * NSEC_PER_SEC;
+        return (ktime_t) seconds * NSEC_PER_SEC;
 }
 
 static INLINE ktime_t us_to_ktime(int64_t microseconds)
 {
-	return (ktime_t) microseconds * NSEC_PER_USEC;
+        return (ktime_t) microseconds * NSEC_PER_USEC;
 }
 
 /**

@@ -33,7 +33,7 @@ static void cbDedupe(enum uds_request_type type __attribute__((unused)),
                      OldCookie cookie __attribute__((unused)),
                      struct uds_chunk_data *duplicateAddress __attribute__((unused)),
                      struct uds_chunk_data *canonicalAddress,
-                     struct uds_chunk_name *blockName __attribute__((unused)),
+                     struct uds_record_name *blockName __attribute__((unused)),
                      void *data __attribute__((unused)))
 {
   CU_ASSERT_PTR_NOT_NULL(canonicalAddress);

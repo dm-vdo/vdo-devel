@@ -141,9 +141,9 @@ static void testWriteChapter(void)
     UDS_ASSERT_SUCCESS(make_open_chapter(geometry, zoneCount, &chapters[i]));
   }
 
-  struct uds_chunk_name *hashes;
+  struct uds_record_name *hashes;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
-                                  struct uds_chunk_name, "names", &hashes));
+                                  struct uds_record_name, "names", &hashes));
   struct uds_chunk_data *metadata;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
                                   struct uds_chunk_data, "records",

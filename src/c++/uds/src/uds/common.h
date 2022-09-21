@@ -19,7 +19,7 @@ enum {
 struct uds_chunk_data;
 
 struct uds_chunk_record {
-	struct uds_chunk_name name;
+	struct uds_record_name name;
 	struct uds_chunk_data data;
 };
 

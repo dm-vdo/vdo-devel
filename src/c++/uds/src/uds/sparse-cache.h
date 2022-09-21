@@ -32,7 +32,7 @@ int __must_check update_sparse_cache(struct index_zone *zone,
 void invalidate_sparse_cache(struct sparse_cache *cache);
 
 int __must_check search_sparse_cache(struct index_zone *zone,
-				     const struct uds_chunk_name *name,
+				     const struct uds_record_name *name,
 				     uint64_t *virtual_chapter_ptr,
 				     int *record_page_ptr);
 

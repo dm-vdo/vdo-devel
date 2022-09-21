@@ -41,12 +41,12 @@ static void createIndex(unsigned int zone_count)
 }
 
 /**********************************************************************/
-static void requestIndex(struct uds_chunk_name *name,
-                         struct uds_chunk_data *data)
+static void requestIndex(struct uds_record_name *name,
+                         struct uds_chunk_data  *data)
 {
   unsigned int zone = get_volume_index_zone(theIndex->volume_index, name);
   struct uds_request request = {
-    .chunk_name   = *name,
+    .record_name  = *name,
     .new_metadata = *data,
     .zone_number  = zone,
     .type         = UDS_POST,
@@ -57,8 +57,8 @@ static void requestIndex(struct uds_chunk_name *name,
 /**********************************************************************/
 static void stressZonesTest(void)
 {
-  struct uds_chunk_name orig;
-  struct uds_chunk_name name;
+  struct uds_record_name orig;
+  struct uds_record_name name;
   struct uds_chunk_data data;
 
   createIndex(2);
@@ -80,8 +80,8 @@ static void stressZonesTest(void)
 /**********************************************************************/
 static void stressChapterIndexBytesTest(void)
 {
-  struct uds_chunk_name orig;
-  struct uds_chunk_name name;
+  struct uds_record_name orig;
+  struct uds_record_name name;
   struct uds_chunk_data data;
   unsigned int zone;
   createIndex(0);
@@ -105,7 +105,7 @@ static void stressChapterIndexBytesTest(void)
 /**********************************************************************/
 static void stressVolumeIndexBytesTest(void)
 {
-  struct uds_chunk_name orig, name;
+  struct uds_record_name orig, name;
   struct uds_chunk_data data;
   struct volume_index_stats denseStats, sparseStats;
 

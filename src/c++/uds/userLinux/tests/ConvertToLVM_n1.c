@@ -42,7 +42,7 @@ static uint64_t fillIndex(struct uds_index_session *session,
   unsigned long i;
 
   for (i = 0; i < record_count; i++) {
-    struct uds_chunk_name chunkName
+    struct uds_record_name chunkName
       = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
 
     nameCounter++;
@@ -64,13 +64,13 @@ static void verifyData(struct uds_index_session *session,
   unsigned long i;
 
   for (i = 0; i < record_count; i++) {
-    request.chunk_name = murmurHashChunkName(&nameSeed, sizeof(nameSeed), 0);
+    request.record_name = murmurHashChunkName(&nameSeed, sizeof(nameSeed), 0);
     nameSeed++;
 
     if (sparse) {
       // just verify the hooks for simplicity
       bool hook = is_volume_index_sample(index->volume_index,
-                                         &request.chunk_name);
+                                         &request.record_name);
       if (!hook) {
         continue;
       }

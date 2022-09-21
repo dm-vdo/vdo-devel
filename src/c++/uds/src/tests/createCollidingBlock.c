@@ -7,8 +7,8 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-void createCollidingBlock(const struct uds_chunk_name *orig,
-                          struct uds_chunk_name *collision)
+void createCollidingBlock(const struct uds_record_name *orig,
+                          struct uds_record_name *collision)
 {
   createRandomBlockName(collision);
   uint64_t addrField = extract_volume_index_bytes(orig);

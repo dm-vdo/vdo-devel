@@ -42,9 +42,9 @@ static void finishTest(void)
 }
 
 /**********************************************************************/
-static void openChapterSearch(struct uds_chunk_name *name,
-                              struct uds_chunk_data *data,
-                              bool                   expectFound)
+static void openChapterSearch(struct uds_record_name *name,
+                              struct uds_chunk_data  *data,
+                              bool                    expectFound)
 {
   bool found;
   search_open_chapter(openChapter, name, data, &found);
@@ -54,8 +54,8 @@ static void openChapterSearch(struct uds_chunk_name *name,
 /**********************************************************************/
 static void testEmpty(void)
 {
-  struct uds_chunk_name name;
-  struct uds_chunk_name zero;
+  struct uds_record_name name;
+  struct uds_record_name zero;
   struct uds_chunk_data meta;
 
   createRandomBlockName(&name);
@@ -74,7 +74,7 @@ static void testEmpty(void)
 }
 
 /**********************************************************************/
-static void put(struct uds_chunk_name *name, struct uds_chunk_data *data,
+static void put(struct uds_record_name *name, struct uds_chunk_data *data,
                 bool expectFull)
 {
   unsigned int remaining = put_open_chapter(openChapter, name, data);
@@ -83,8 +83,8 @@ static void put(struct uds_chunk_name *name, struct uds_chunk_data *data,
 }
 
 /**********************************************************************/
-static void putNotFull(struct uds_chunk_name *name,
-                       struct uds_chunk_data *data)
+static void putNotFull(struct uds_record_name *name,
+                       struct uds_chunk_data  *data)
 {
   put(name, data, false);
 }
@@ -92,9 +92,9 @@ static void putNotFull(struct uds_chunk_name *name,
 /**********************************************************************/
 static void testSingleton(void)
 {
-  struct uds_chunk_name name1;
+  struct uds_record_name name1;
   struct uds_chunk_data meta1;
-  struct uds_chunk_name name2;
+  struct uds_record_name name2;
   struct uds_chunk_data meta2;
   struct uds_chunk_data metaOut;
 
@@ -130,7 +130,7 @@ static void testSingleton(void)
 /**********************************************************************/
 static void testFilling(void)
 {
-  struct uds_chunk_name name;
+  struct uds_record_name name;
   struct uds_chunk_data meta;
 
   // Almost fill the chapter with randomly-generated data.
@@ -179,11 +179,11 @@ static void testQuadraticProbing(void)
 
   unsigned int i;
   for (i = 0; i < recordsPerZone; ++i) {
-    struct uds_chunk_name name;
+    struct uds_record_name name;
     struct uds_chunk_data data;
     do {
       createRandomBlockName(&name);
-      memcpy(&data.data, &name.name, UDS_CHUNK_NAME_SIZE);
+      memcpy(&data.data, &name.name, UDS_RECORD_NAME_SIZE);
     } while (name_to_hash_slot(&name, theChapter->slot_count) != 0);
     CU_ASSERT_EQUAL(recordsPerZone - i - 1,
                     put_open_chapter(theChapter, &name, &data));

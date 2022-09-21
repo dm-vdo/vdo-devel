@@ -16,12 +16,13 @@ const uint64_t volumeNonce = 0x0123456789ABCDEF;
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static struct uds_chunk_name *generateRandomBlockNames(struct geometry *g)
+static struct uds_record_name *generateRandomBlockNames(struct geometry *g)
 {
-  struct uds_chunk_name *names;
+  struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_chapter,
-                                  struct uds_chunk_name,
-                                  "chunk names for chapter test", &names));
+                                  struct uds_record_name,
+                                  "record names for chapter test",
+                                  &names));
   unsigned int i;
   for (i = 0; i < g->records_per_chapter; i++) {
     createRandomBlockName(&names[i]);
@@ -37,10 +38,10 @@ static unsigned int generatePageNumber(struct geometry *g, unsigned int index)
 }
 
 /**********************************************************************/
-__attribute__((warn_unused_result))
-static struct open_chapter_index *fillOpenChapter(struct uds_chunk_name *names,
-                                                  struct geometry *g,
-                                                  bool overflowFlag)
+__attribute__((warn_unused_result)) static
+struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
+                                           struct geometry *g,
+                                           bool overflowFlag)
 {
   struct open_chapter_index *oci;
   int overflowCount = 0;
@@ -170,7 +171,7 @@ static void basicChapterTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
   struct geometry *g = config->geometry;
-  struct uds_chunk_name *names = generateRandomBlockNames(g);
+  struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
   byte *indexPages
     = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
@@ -213,7 +214,7 @@ static void listOverflowTest(void)
   struct configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
   struct geometry *g = config->geometry;
-  struct uds_chunk_name *names = generateRandomBlockNames(g);
+  struct uds_record_name *names = generateRandomBlockNames(g);
 
   // Force all the names onto the same chapter delta list.  We are testing that
   // the open_chapter_index can deal with too many block names on the same
@@ -245,7 +246,7 @@ static void pageOverflowTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
   struct geometry *g = config->geometry;
-  struct uds_chunk_name *names = generateRandomBlockNames(g);
+  struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
 
   // Pack the entire open_chapter_index into a single page.  It won't fit, but
@@ -267,7 +268,7 @@ static void bigEndianTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
   struct geometry *g = config->geometry;
-  struct uds_chunk_name *names = generateRandomBlockNames(g);
+  struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
   byte *indexPages
     = packOpenChapter(oci, g, g->index_pages_per_chapter, false);

@@ -244,10 +244,11 @@ static INLINE void cuDie(void)
   CU_ASSERT_FALSE(memcmp((first), (second), (length)) == 0)
 
 #define UDS_ASSERT_BLOCKNAME_EQUAL(first, second) \
-  UDS_ASSERT_EQUAL_BYTES((first), (second), sizeof(struct uds_chunk_name));
+  UDS_ASSERT_EQUAL_BYTES((first), (second), sizeof(struct uds_record_name));
 
 #define UDS_ASSERT_BLOCKNAME_NOT_EQUAL(first, second) \
-  UDS_ASSERT_NOT_EQUAL_BYTES((first), (second), sizeof(struct uds_chunk_name));
+  UDS_ASSERT_NOT_EQUAL_BYTES((first), (second), \
+                             sizeof(struct uds_record_name));
 
 #define UDS_ASSERT_BLOCKDATA_EQUAL(first, second) \
   UDS_ASSERT_EQUAL_BYTES((first), (second), sizeof(struct uds_chunk_data));

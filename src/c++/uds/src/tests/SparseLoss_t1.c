@@ -129,7 +129,7 @@ static void dispatchRequest(struct uds_request *request)
 /**********************************************************************/
 static void nextBlockNameInZone(const struct uds_index *index,
                                 unsigned int            zone,
-                                struct uds_chunk_name  *name)
+                                struct uds_record_name *name)
 {
   unsigned int nameZone = MAX_ZONES;
   while (nameZone != zone) {
@@ -148,7 +148,7 @@ static void indexOneChapter(void)
     struct uds_request *request;
     UDS_ALLOCATE(1, struct uds_request, "req", &request);
     request->type = UDS_POST;
-    nextBlockNameInZone(theIndex, zone, &request->chunk_name);
+    nextBlockNameInZone(theIndex, zone, &request->record_name);
     dispatchRequest(request);
   }
   waitForCallbacks();
@@ -160,7 +160,7 @@ static void skipOneChapter(void)
   unsigned int numAdded;
   for (numAdded = 0; numAdded < numHashesInChapter; ++numAdded) {
     unsigned int zone = numAdded % theIndex->zone_count;
-    struct uds_chunk_name name;
+    struct uds_record_name name;
     nextBlockNameInZone(theIndex, zone, &name);
   }
 }

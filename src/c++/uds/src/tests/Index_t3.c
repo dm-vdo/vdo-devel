@@ -50,46 +50,46 @@ static void cleanSuite(void)
 }
 
 /**********************************************************************/
-static noinline void deleteChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name,
-                                 bool                         exists)
+static noinline void deleteChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name,
+                                 bool                          exists)
 {
   struct uds_request request = {
-    .chunk_name = *name,
-    .type       = UDS_DELETE,
+    .record_name = *name,
+    .type        = UDS_DELETE,
   };
   verify_test_request(index, &request, exists, NULL);
 }
 
 /**********************************************************************/
-static noinline void expectChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name,
-                                 const struct uds_chunk_data *cdExpected,
-                                 enum uds_index_region        expectedLocation)
+static noinline void expectChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name,
+                                 const struct uds_chunk_data  *cdExpected,
+                                 enum uds_index_region         expectedLocation)
 {
   struct uds_request request = {
-    .chunk_name = *name,
-    .type       = UDS_QUERY_NO_UPDATE,
+    .record_name = *name,
+    .type        = UDS_QUERY_NO_UPDATE,
   };
   verify_test_request(index, &request, true, cdExpected);
   CU_ASSERT_EQUAL(request.location, expectedLocation);
 }
 
 /**********************************************************************/
-static noinline void expectMissingChunk(struct uds_index            *index,
-                                        const struct uds_chunk_name *name)
+static noinline void expectMissingChunk(struct uds_index             *index,
+                                        const struct uds_record_name *name)
 {
   struct uds_request request = {
-    .chunk_name = *name,
-    .type       = UDS_QUERY_NO_UPDATE,
+    .record_name = *name,
+    .type        = UDS_QUERY_NO_UPDATE,
   };
   verify_test_request(index, &request, false, NULL);
 }
 
 /**********************************************************************/
-static void expectSurvivingChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name,
-                                 const struct uds_chunk_data *cdExpected)
+static void expectSurvivingChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name,
+                                 const struct uds_chunk_data  *cdExpected)
 {
   /*
    * This is a chunk that has been deleted. Because of a rebuild or a
@@ -101,12 +101,12 @@ static void expectSurvivingChunk(struct uds_index            *index,
 }
 
 /**********************************************************************/
-static noinline void insertChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name,
-                                 const struct uds_chunk_data *cd)
+static noinline void insertChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name,
+                                 const struct uds_chunk_data  *cd)
 {
   struct uds_request request = {
-    .chunk_name   = *name,
+    .record_name  = *name,
     .new_metadata = *cd,
     .type         = UDS_UPDATE,
   };
@@ -115,7 +115,7 @@ static noinline void insertChunk(struct uds_index            *index,
 
 /**********************************************************************/
 static void insertRandomChunk(struct uds_index            *index,
-                              struct uds_chunk_name       *name,
+                              struct uds_record_name      *name,
                               const struct uds_chunk_data *cd)
 {
   createRandomBlockName(name);
@@ -123,23 +123,23 @@ static void insertRandomChunk(struct uds_index            *index,
 }
 
 /**********************************************************************/
-static void insertCollidingChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name1,
-                                 struct uds_chunk_name       *name2,
-                                 const struct uds_chunk_data *cd)
+static void insertCollidingChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name1,
+                                 struct uds_record_name       *name2,
+                                 const struct uds_chunk_data  *cd)
 {
   createCollidingBlock(name1, name2);
   insertChunk(index, name2, cd);
 }
 
 /**********************************************************************/
-static noinline void updateChunk(struct uds_index            *index,
-                                 const struct uds_chunk_name *name,
-                                 const struct uds_chunk_data *cdOld,
-                                 const struct uds_chunk_data *cdNew)
+static noinline void updateChunk(struct uds_index             *index,
+                                 const struct uds_record_name *name,
+                                 const struct uds_chunk_data  *cdOld,
+                                 const struct uds_chunk_data  *cdNew)
 {
   struct uds_request request = {
-    .chunk_name   = *name,
+    .record_name  = *name,
     .new_metadata = *cdNew,
     .type         = UDS_UPDATE,
   };
@@ -162,7 +162,7 @@ static struct uds_index *rebuildIndex(struct uds_index *index)
 static void simpleOpenTest(void)
 {
   // Insert two chunks
-  struct uds_chunk_name name1, name2;
+  struct uds_record_name name1, name2;
   insertRandomChunk(testIndex, &name1, &cd1);
   insertRandomChunk(testIndex, &name2, &cd2);
   expectChunk(testIndex, &name1, &cd1, UDS_LOCATION_IN_OPEN_CHAPTER);
@@ -183,7 +183,7 @@ static void simpleOpenTest(void)
 static void threeDeletesTest(void)
 {
   // Insert 3 chunks into the open chapter and delete them
-  struct uds_chunk_name name1, name2, name3;
+  struct uds_record_name name1, name2, name3;
   insertRandomChunk(testIndex, &name1, &cd1);
   insertRandomChunk(testIndex, &name2, &cd1);
   insertRandomChunk(testIndex, &name3, &cd1);
@@ -213,7 +213,7 @@ static void threeDeletesTest(void)
 static void simpleClosedTest(void)
 {
   // Insert a chunk into the open chapter, and then fill the chapter
-  struct uds_chunk_name name1;
+  struct uds_record_name name1;
   insertRandomChunk(testIndex, &name1, &cd1);
   fillChapterRandomly(testIndex);
   expectChunk(testIndex, &name1, &cd1, UDS_LOCATION_IN_DENSE);
@@ -232,7 +232,7 @@ static void collisionClosedTest(void)
 {
   // Insert two colliding chunks into the open chapter, and then fill the
   // chapter
-  struct uds_chunk_name name1, name2;
+  struct uds_record_name name1, name2;
   insertRandomChunk(testIndex, &name1, &cd1);
   insertCollidingChunk(testIndex, &name1, &name2, &cd1);
   fillChapterRandomly(testIndex);
@@ -264,7 +264,7 @@ static void lazarusTest(void)
 {
   // Insert two colliding chunks into the open chapter, and then fill the
   // chapter.
-  struct uds_chunk_name name1, name2, name3;
+  struct uds_record_name name1, name2, name3;
   insertRandomChunk(testIndex, &name1, &cd1);
   insertCollidingChunk(testIndex, &name1, &name2, &cd1);
   fillChapterRandomly(testIndex); // close chapter 0 -- with chunks 1 and 2

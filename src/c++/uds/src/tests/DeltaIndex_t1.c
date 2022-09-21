@@ -19,10 +19,10 @@ enum { ONE_ZONE = 1 };  // We generally test with one zone
  *
  * @param [out] name  the new block name.
  **/
-static void createBlockName(struct uds_chunk_name *name)
+static void createBlockName(struct uds_record_name *name)
 {
   static uint64_t counter = 0;
-  memset(name, 0, UDS_CHUNK_NAME_SIZE);
+  memset(name, 0, UDS_RECORD_NAME_SIZE);
   put_unaligned_le64(counter, name->name);
   counter++;
 }
@@ -123,14 +123,14 @@ static void basicTest(void)
                                             2 * MEGABYTE));
 
   // Should not find a record with key 0 in an empty list
-  struct uds_chunk_name name0;
+  struct uds_record_name name0;
   createBlockName(&name0);
   UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name0.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
 
   // Insert a record with key 1
-  struct uds_chunk_name name1;
+  struct uds_record_name name1;
   createBlockName(&name1);
   UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 1, name1.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
@@ -161,7 +161,7 @@ static void basicTest(void)
   CU_ASSERT_EQUAL(get_delta_entry_value(&entry), 42);
 
   // Should not find a record with key 2
-  struct uds_chunk_name name2;
+  struct uds_record_name name2;
   createBlockName(&name2);
   UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, name2.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
@@ -233,7 +233,7 @@ static void recordSizeTest(void)
       struct delta_index_stats stats;
 
       // Build the block name, and make up a key/payload to use
-      struct uds_chunk_name name;
+      struct uds_record_name name;
       createBlockName(&name);
       unsigned int key = table[i].delta;
       unsigned int payload = i & ((1 << PAYLOAD_BITS) - 1);
@@ -304,9 +304,9 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   CU_ASSERT_EQUAL(stats.record_count, 0);
 
   struct delta_index_entry entry;
-  struct uds_chunk_name *names;
+  struct uds_record_name *names;
   bool *collides;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, struct uds_chunk_name, __func__,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, struct uds_record_name, __func__,
                                   &names));
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, bool, __func__, &collides));
 
@@ -455,7 +455,7 @@ static void overflowTest(void)
   CU_ASSERT_EQUAL(stats.overflow_count, 0);
 
   // Insert a record with key 0
-  struct uds_chunk_name name;
+  struct uds_record_name name;
   createBlockName(&name);
   UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
@@ -543,8 +543,9 @@ static void lookupTest(void)
   struct delta_index_entry entry, readOnlyEntry;
   enum { PAYLOAD_BITS = 8 };
 
-  struct uds_chunk_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(8, struct uds_chunk_name, __func__, &names));
+  struct uds_record_name *names;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(8, struct uds_record_name,
+                                  __func__, &names));
 
   // Create index with 1 delta list.  Ensure that the saved offset is valid.
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, 1, 256,
@@ -573,7 +574,7 @@ static void lookupTest(void)
 
   // Make 2 collision names, and insert them with key 3.
   // Ensure that the saved offset is correct after every call.
-  struct uds_chunk_name collisions[2];
+  struct uds_record_name collisions[2];
   unsigned int i;
   for (i = 0; i < 2; i++) {
     createBlockName(&collisions[i]);
@@ -731,7 +732,7 @@ static void restoreIndex(struct delta_index *di,
  **/
 static void verifyAllKeys(struct delta_index *di, unsigned int numKeys,
                           unsigned int *keys, unsigned int *lists,
-                          struct uds_chunk_name *names)
+                          struct uds_record_name *names)
 {
   struct delta_index_entry entry;
   unsigned int i;
@@ -763,10 +764,10 @@ static void saveRestoreTest(void)
   // Create the keys+names and put them all into different lists using
   // chapter 0
   unsigned int *keys, *lists;
-  struct uds_chunk_name *names;
+  struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, unsigned int, __func__, &keys));
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, unsigned int, __func__, &lists));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, struct uds_chunk_name, __func__,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, struct uds_record_name, __func__,
                                   &names));
   unsigned int i;
   for (i = 0; i < NUM_KEYS; i++) {

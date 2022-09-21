@@ -10,7 +10,7 @@
 /**********************************************************************/
 void createRandomBlockNameInZone(const struct uds_index *index,
                                  unsigned int            zone,
-                                 struct uds_chunk_name  *name)
+                                 struct uds_record_name *name)
 {
   unsigned int nameZone = MAX_ZONES;
   while (nameZone != zone) {

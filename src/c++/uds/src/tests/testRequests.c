@@ -44,7 +44,7 @@ void submit_test_request(struct uds_index *index,
   index_callback_t old_callback = index->callback;
 
   request->zone_number = get_volume_index_zone(index->volume_index,
-                                               &request->chunk_name);
+                                               &request->record_name);
   index->callback = &success_callback;
   request->index = index;
   request->unbatched = true;

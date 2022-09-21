@@ -26,7 +26,7 @@ static struct volume_index  *volumeIndex;
 static size_t                zoneSize;
 
 /**
- * This counter is hashed to generate a fixed sequence of chunk names, which
+ * This counter is hashed to generate a fixed sequence of record names, which
  * produces the exact same number of collisions for each test run.
  **/
 static uint64_t nameCounter = 0;
@@ -128,7 +128,7 @@ static void threadAdd(void *arg)
     if (counter % geometry->records_per_chapter == 0) {
       set_volume_index_zone_open_chapter(volumeIndex, ta->zone, chapter);
     }
-    struct uds_chunk_name name
+    struct uds_record_name name
       = murmurHashChunkName(&counter, sizeof(counter), 0);
     if (get_volume_index_zone(volumeIndex, &name) == ta->zone) {
       struct volume_index_record record;

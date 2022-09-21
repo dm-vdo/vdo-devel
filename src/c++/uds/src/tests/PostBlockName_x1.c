@@ -31,7 +31,7 @@ static void pbnPerfTest(void)
   unsigned long numBlocksPerIndex = getBlocksPerIndex(indexSession);
   unsigned long n;
   for (n = 0; n < numBlocksPerIndex; n++) {
-    struct uds_chunk_name chunkName
+    struct uds_record_name chunkName
       = murmurGenerator(&newCounter, sizeof(newCounter));
     newCounter += 1;
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
@@ -55,7 +55,7 @@ static void pbnPerfTest(void)
     for (i = 0; i < numBlocksPerLevel; i++) {
       unsigned long *counter
         = (i % NUM_LEVELS < level) ? &dupCounter : &newCounter;
-      struct uds_chunk_name chunkName
+      struct uds_record_name chunkName
         = murmurGenerator(counter, sizeof(*counter));
       *counter += 1;
       oldPostBlockName(indexSession, NULL,

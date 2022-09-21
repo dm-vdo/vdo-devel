@@ -34,7 +34,7 @@ static void postChunks(struct uds_index_session *indexSession, int count)
   static int base = 0;
   long index;
   for (index = base; index < base + count; index++) {
-    struct uds_chunk_name chunkName = murmurGenerator(&index, sizeof(index));
+    struct uds_record_name chunkName = murmurGenerator(&index, sizeof(index));
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);
   }

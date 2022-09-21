@@ -146,7 +146,7 @@ static uint64_t triage_index_request(struct uds_index *index,
 	struct index_zone *zone;
 
 	virtual_chapter = lookup_volume_index_name(index->volume_index,
-						   &request->chunk_name);
+						   &request->record_name);
 	if (virtual_chapter == UINT64_MAX) {
 		return UINT64_MAX;
 	}
@@ -396,7 +396,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	unsigned int chapter;
 
 	result = search_sparse_cache(zone,
-				     &request->chunk_name,
+				     &request->record_name,
 				     &virtual_chapter,
 				     &record_page_number);
 	if ((result != UDS_SUCCESS) || (virtual_chapter == UINT64_MAX)) {
@@ -408,7 +408,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
 	return search_cached_record_page(volume,
 					 request,
-					 &request->chunk_name,
+					 &request->record_name,
 					 chapter,
 					 record_page_number,
 					 &request->old_metadata,
@@ -431,7 +431,7 @@ static int get_record_from_zone(struct index_zone *zone,
 
 	if (request->virtual_chapter == zone->newest_virtual_chapter) {
 		search_open_chapter(zone->open_chapter,
-				    &request->chunk_name,
+				    &request->record_name,
 				    &request->old_metadata,
 				    found);
 		return UDS_SUCCESS;
@@ -441,7 +441,7 @@ static int get_record_from_zone(struct index_zone *zone,
 	    (request->virtual_chapter == (zone->newest_virtual_chapter - 1)) &&
 	    (zone->writing_chapter->size > 0)) {
 		search_open_chapter(zone->writing_chapter,
-				    &request->chunk_name,
+				    &request->record_name,
 				    &request->old_metadata,
 				    found);
 		return UDS_SUCCESS;
@@ -460,7 +460,7 @@ static int get_record_from_zone(struct index_zone *zone,
 
 	return search_volume_page_cache(volume,
 					request,
-					&request->chunk_name,
+					&request->record_name,
 					request->virtual_chapter,
 					&request->old_metadata,
 					found);
@@ -473,7 +473,7 @@ static int put_record_in_zone(struct index_zone *zone,
 	unsigned int remaining;
 
 	remaining = put_open_chapter(zone->open_chapter,
-				     &request->chunk_name,
+				     &request->record_name,
 				     metadata);
 	if (remaining == 0) {
 		return open_next_chapter(zone);
@@ -492,7 +492,7 @@ static int search_index_zone(struct index_zone *zone,
 	uint64_t chapter;
 
 	result = get_volume_index_record(zone->index->volume_index,
-					 &request->chunk_name,
+					 &request->record_name,
 					 &record);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -554,7 +554,7 @@ static int search_index_zone(struct index_zone *zone,
 			found = false;
 		} else if (is_sparse_geometry(zone->index->volume->geometry) &&
 			   !is_volume_index_sample(zone->index->volume_index,
-						   &request->chunk_name)) {
+						   &request->record_name)) {
 			result = search_sparse_cache_in_zone(zone,
 							     request,
 							     UINT64_MAX,
@@ -613,7 +613,7 @@ static int remove_from_index_zone(struct index_zone *zone,
 	struct volume_index_record record;
 
 	result = get_volume_index_record(zone->index->volume_index,
-					 &request->chunk_name,
+					 &request->record_name,
 					 &record);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -672,7 +672,7 @@ static int remove_from_index_zone(struct index_zone *zone,
 	 */
 	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
 		remove_from_open_chapter(zone->open_chapter,
-					 &request->chunk_name);
+					 &request->record_name);
 	}
 
 	return UDS_SUCCESS;
@@ -1019,7 +1019,7 @@ static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 }
 
 static int replay_record(struct uds_index *index,
-			 const struct uds_chunk_name *name,
+			 const struct uds_record_name *name,
 			 uint64_t virtual_chapter,
 			 bool will_be_sparse_chapter)
 {
@@ -1197,10 +1197,10 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 
 		for (j = 0; j < geometry->records_per_page; j++) {
 			const byte *name_bytes;
-			struct uds_chunk_name name;
+			struct uds_record_name name;
 
 			name_bytes = record_page + (j * BYTES_PER_RECORD);
-			memcpy(&name.name, name_bytes, UDS_CHUNK_NAME_SIZE);
+			memcpy(&name.name, name_bytes, UDS_RECORD_NAME_SIZE);
 			result = replay_record(index, &name, virtual, sparse);
 			if (result != UDS_SUCCESS) {
 				return result;
@@ -1600,7 +1600,7 @@ void enqueue_request(struct uds_request *request, enum request_stage stage)
 	case STAGE_INDEX:
 		request->zone_number =
 			get_volume_index_zone(index->volume_index,
-					      &request->chunk_name);
+					      &request->record_name);
 		fallthrough;
 
 	case STAGE_MESSAGE:

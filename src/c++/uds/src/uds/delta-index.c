@@ -205,7 +205,7 @@ enum {
 
 /* The number of extra bytes and bits needed to store a collision entry */
 enum {
-	COLLISION_BYTES = UDS_CHUNK_NAME_SIZE,
+	COLLISION_BYTES = UDS_RECORD_NAME_SIZE,
 	COLLISION_BITS = COLLISION_BYTES * CHAR_BIT
 };
 

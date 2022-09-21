@@ -12,7 +12,7 @@
 #include "numeric.h"
 #include "uds.h"
 
-/* How various portions of a chunk name are apportioned. */
+/* How various portions of a record name are apportioned. */
 enum {
 	VOLUME_INDEX_BYTES_OFFSET = 0,
 	VOLUME_INDEX_BYTES_COUNT = 8,
@@ -23,7 +23,7 @@ enum {
 };
 
 static INLINE uint64_t
-extract_chapter_index_bytes(const struct uds_chunk_name *name)
+extract_chapter_index_bytes(const struct  uds_record_name *name)
 {
 	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
 	uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
@@ -33,20 +33,20 @@ extract_chapter_index_bytes(const struct uds_chunk_name *name)
 }
 
 static INLINE uint64_t
-extract_volume_index_bytes(const struct uds_chunk_name *name)
+extract_volume_index_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be64(&name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
 static INLINE uint32_t
-extract_sampling_bytes(const struct uds_chunk_name *name)
+extract_sampling_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /* Compute the chapter delta list for a given name. */
 static INLINE unsigned int
-hash_to_chapter_delta_list(const struct uds_chunk_name *name,
+hash_to_chapter_delta_list(const struct uds_record_name *name,
 			   const struct geometry *geometry)
 {
 	return (unsigned int) ((extract_chapter_index_bytes(name) >>
@@ -56,15 +56,16 @@ hash_to_chapter_delta_list(const struct uds_chunk_name *name,
 
 /* Compute the chapter delta address for a given name. */
 static INLINE unsigned int
-hash_to_chapter_delta_address(const struct uds_chunk_name *name,
+hash_to_chapter_delta_address(const struct uds_record_name *name,
 			      const struct geometry *geometry)
 {
 	return (unsigned int) (extract_chapter_index_bytes(name) &
 			       ((1 << geometry->chapter_address_bits) - 1));
 }
 
-static INLINE unsigned int name_to_hash_slot(const struct uds_chunk_name *name,
-					     unsigned int slot_count)
+static INLINE unsigned int
+name_to_hash_slot(const struct uds_record_name *name,
+		  unsigned int slot_count)
 {
 	return (unsigned int) (extract_chapter_index_bytes(name) % slot_count);
 }

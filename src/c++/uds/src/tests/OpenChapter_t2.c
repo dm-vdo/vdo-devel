@@ -71,11 +71,11 @@ static struct buffered_writer *openBufferedWriterForChapter(void)
 }
 
 /**********************************************************************/
-static void requestIndex(struct uds_chunk_name *hash,
-                         struct uds_chunk_data *newMetadata)
+static void requestIndex(struct uds_record_name *hash,
+                         struct uds_chunk_data  *newMetadata)
 {
   struct uds_request request = {
-    .chunk_name   = *hash,
+    .record_name  = *hash,
     .new_metadata = *newMetadata,
     .type         = UDS_POST,
   };

@@ -19,7 +19,7 @@
  * The open chapter tracks the newest records in memory. Although it is
  * notionally a single collection, each index zone has a dedicated open chapter
  * zone structure and an equal share of the available record space. Records are
- * assigned to zones based on their chunk name.
+ * assigned to zones based on their record name.
  *
  * Within each zone, records are stored in an array in the order they arrive.
  * Additionally, a reference to each record is stored in a hash table to help
@@ -31,7 +31,7 @@
  * Deleted records are marked with a flag rather than actually removed to
  * simplify hash table management. The array of deleted flags overlays the
  * array of hash slots, but the flags are indexed by record number instead of
- * by chunk name. The number of hash slots will always be a power of two that
+ * by record name. The number of hash slots will always be a power of two that
  * is greater than the number of records to be indexed, guaranteeing that hash
  * insertion cannot fail, and that there are sufficient flags for all records.
  *
@@ -40,7 +40,7 @@
  * temporal locality and assigned to record pages. Empty or deleted records
  * are replaced by copies of a valid record so that the record pages only
  * contain valid records. The chapter then constructs a delta index which maps
- * each chunk name to the record page on which that record can be found, which
+ * each record name to the record page on which that record can be found, which
  * is split into index pages. These structures are then passed to the volume to
  * be recorded on storage.
  *
@@ -48,7 +48,7 @@
  * array, once again interleaved to attempt to preserve temporal locality. When
  * the index is reloaded, there may be a different number of zones than
  * previously, so the records must be parcelled out to their new zones. In
- * addition, depending on the distribution of chunk names, a new zone may have
+ * addition, depending on the distribution of record names, a new zone may have
  * more records than it has space. In this case, the latest records for that
  * zone will be discarded.
  */
@@ -115,7 +115,7 @@ void reset_open_chapter(struct open_chapter_zone *open_chapter)
 }
 
 static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
-					const struct uds_chunk_name *name)
+					const struct uds_record_name *name)
 {
 	struct uds_chunk_record *record;
 	unsigned int slot_count = open_chapter->slot_count;
@@ -139,7 +139,7 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 		 * has not been deleted, then we've found the requested name.
 		 */
 		record = &open_chapter->records[record_number];
-		if ((memcmp(&record->name, name, UDS_CHUNK_NAME_SIZE) == 0) &&
+		if ((memcmp(&record->name, name, UDS_RECORD_NAME_SIZE) == 0) &&
 		    !open_chapter->slots[record_number].deleted) {
 			return slot;
 		}
@@ -154,7 +154,7 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 }
 
 void search_open_chapter(struct open_chapter_zone *open_chapter,
-			 const struct uds_chunk_name *name,
+			 const struct uds_record_name *name,
 			 struct uds_chunk_data *metadata,
 			 bool *found)
 {
@@ -173,7 +173,7 @@ void search_open_chapter(struct open_chapter_zone *open_chapter,
 
 /* Add a record to the open chapter zone and return the remaining space. */
 int put_open_chapter(struct open_chapter_zone *open_chapter,
-		     const struct uds_chunk_name *name,
+		     const struct uds_record_name *name,
 		     const struct uds_chunk_data *metadata)
 {
 	unsigned int slot;
@@ -200,7 +200,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 }
 
 void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
-			      const struct uds_chunk_name *name)
+			      const struct uds_record_name *name)
 {
 	unsigned int slot;
 	unsigned int record_number;
@@ -222,7 +222,10 @@ void free_open_chapter(struct open_chapter_zone *open_chapter)
 	}
 }
 
-/* Map each record name to its record page number in the delta chapter index. */
+/*
+ * Map each record name to its record page number in the delta chapter
+ * index.
+ */
 static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 				    unsigned int zone_count,
 				    struct open_chapter_index *index,

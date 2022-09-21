@@ -76,9 +76,9 @@ static void savedTest(void)
   uint64_t counter;
   uint64_t recordCount = 16 * config->geometry->records_per_chapter;
   for (counter = 0; counter < recordCount; counter++) {
-    struct uds_chunk_name chunkName = murmurHashChunkName(&counter,
-                                                          sizeof(counter),
-                                                          0);
+    struct uds_record_name chunkName = murmurHashChunkName(&counter,
+							   sizeof(counter),
+							   0);
     oldPostBlockName(indexSession, NULL,
                      (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);
@@ -102,7 +102,7 @@ static void savedTest(void)
   // Verify data
   struct uds_request request = { .type = UDS_QUERY_NO_UPDATE };
   for (counter = 0; counter < recordCount; counter++) {
-    request.chunk_name = murmurHashChunkName(&counter, sizeof(counter), 0);
+    request.record_name = murmurHashChunkName(&counter, sizeof(counter), 0);
     counter++;
     verify_test_request(indexSession->index, &request, true, NULL);
   }
@@ -198,9 +198,9 @@ static void testRun(TestConfig *tc)
     for (chapter = 0; chapter < numChapters; chapter++) {
       unsigned int n;
       for (n = 0; n < config->geometry->records_per_chapter; n++) {
-        struct uds_chunk_name chunkName = murmurHashChunkName(&counter,
-                                                              sizeof(counter),
-                                                              0);
+        struct uds_record_name chunkName = murmurHashChunkName(&counter,
+							       sizeof(counter),
+							       0);
         oldPostBlockName(indexSession, NULL,
                          (struct uds_chunk_data *) &chunkName,
                          &chunkName, cbStatus);

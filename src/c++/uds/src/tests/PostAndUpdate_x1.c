@@ -90,8 +90,8 @@ static void throttle(void)
 }
 
 /**********************************************************************/
-static void hashChunkCounter(struct uds_chunk_name *name,
-                             unsigned long counter)
+static void hashChunkCounter(struct uds_record_name *name,
+                             unsigned long           counter)
 {
   *name = murmurHashChunkName(&counter, sizeof(counter), 0);
 }
@@ -102,7 +102,7 @@ static void cb(enum uds_request_type type,
                OldCookie cookie,
                struct uds_chunk_data *duplicateAddress __attribute__((unused)),
                struct uds_chunk_data *canonicalAddress __attribute__((unused)),
-               struct uds_chunk_name *blockName __attribute__((unused)),
+               struct uds_record_name *blockName __attribute__((unused)),
                void *data __attribute__((unused)))
 {
   UDS_ASSERT_SUCCESS(status);
@@ -129,7 +129,7 @@ static void updateBlockNames(void *argument)
       event_count_wait(testEvent, token, NULL);
     }
     TestBlockCounter *tbc = container_of(fqe, TestBlockCounter, queueEntry);
-    struct uds_chunk_name chunkName;
+    struct uds_record_name chunkName;
     hashChunkCounter(&chunkName, tbc->chunkCounter);
     UDS_FREE(tbc);
     oldUpdateBlockMapping(indexSession, NULL, &chunkName,
@@ -149,7 +149,7 @@ static void postBlockNames(struct uds_index_session *indexSession)
     TestBlockCounter *tbc;
     UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, TestBlockCounter, __func__, &tbc));
     tbc->chunkCounter = postCounter++;
-    struct uds_chunk_name chunkName;
+    struct uds_record_name chunkName;
     hashChunkCounter(&chunkName, tbc->chunkCounter);
     oldPostBlockName(indexSession, tbc, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cb);

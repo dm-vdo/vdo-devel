@@ -509,7 +509,7 @@ reporting purposes;
       comment UDS index statistics;
 
       counter64 entriesIndexed {
-        comment Number of chunk names stored in the index;
+        comment Number of records stored in the index;
       }
 
       counter64 postsFound {

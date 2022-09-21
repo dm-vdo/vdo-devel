@@ -4,7 +4,7 @@
  */
 
 /**
- * BiasedNames_n2 indexes chunk names that are not uniformly distributed
+ * BiasedNames_n2 indexes record names that are not uniformly distributed
  * using the UDS interfaces.  Non-uniform distributions violate our API
  * contract and can cause very poor performance, but they should not lead
  * to a crash.
@@ -16,12 +16,12 @@
  * rebuilding code paths.
  *
  * Each "collisions" test sets a different range of the bytes in 40,000
- * randomly-generated chunk names, ensuring that they are all either volume
+ * randomly-generated record names, ensuring that they are all either volume
  * index collisions, or chapter index collisions, or sub-index collisions,
  * etc.
  *
  * Each "copy" test copies a small random value multiple times to make
- * highly redundant chunk names, ensuring that each sub-field of the chunk
+ * highly redundant record names, ensuring that each sub-field of the chunk
  * name shares the same randomness.
  **/
 
@@ -43,7 +43,7 @@ static void cb(enum uds_request_type type __attribute__((unused)),
                OldCookie cookie,
                struct uds_chunk_data *duplicateAddress __attribute__((unused)),
                struct uds_chunk_data *canonicalAddress,
-               struct uds_chunk_name *blockName __attribute__((unused)),
+               struct uds_record_name *blockName __attribute__((unused)),
                void *data __attribute__((unused)))
 {
   UDS_ASSERT_SUCCESS(status);
@@ -69,7 +69,7 @@ static void createMyMetadata(struct uds_chunk_data *data, const char *fmt, ...)
 }
 
 /**********************************************************************/
-static void createCopy32Names(int numChunks, struct uds_chunk_name *names)
+static void createCopy32Names(int numChunks, struct uds_record_name *names)
 {
   int i, j, k;
   for (i = 0; i < numChunks; i++) {
@@ -80,18 +80,18 @@ static void createCopy32Names(int numChunks, struct uds_chunk_name *names)
         goto try_again;
       }
     }
-    for (k = 4; k < UDS_CHUNK_NAME_SIZE; k += 4) {
+    for (k = 4; k < UDS_RECORD_NAME_SIZE; k += 4) {
       memcpy(&names[i].name[k], &names[i].name[0], 4);
     }
   }
 }
 
 /**********************************************************************/
-static void createCollisionNames(int                    numChunks,
-                                 struct uds_chunk_name *names,
-                                 int                    offset,
-                                 int                    count,
-                                 byte                   filler)
+static void createCollisionNames(int                     numChunks,
+                                 struct uds_record_name *names,
+                                 int                     offset,
+                                 int                     count,
+                                 byte                    filler)
 {
   int i;
   for (i = 0; i < numChunks; i++) {
@@ -103,7 +103,7 @@ static void createCollisionNames(int                    numChunks,
 /**********************************************************************/
 static void testWithChunks(struct uds_index_session *indexSession,
                            int                       numChunks,
-                           struct uds_chunk_name    *names,
+                           struct uds_record_name   *names,
                            const char               *type)
 {
   struct uds_chunk_data data1, data2, dataFill;
@@ -118,7 +118,7 @@ static void testWithChunks(struct uds_index_session *indexSession,
   // Age the chunks in the index
   int ageCount = 2 * getBlocksPerChapter(indexSession);
   for (i = 0; i < ageCount; i++) {
-    struct uds_chunk_name name;
+    struct uds_record_name name;
     createRandomBlockName(&name);
     oldPostBlockName(indexSession, NULL, &dataFill, &name, cb);
   }
@@ -135,8 +135,8 @@ static void testWithChunks(struct uds_index_session *indexSession,
 static void runTest(void)
 {
   enum { NUM_CHUNKS = 40000 };
-  struct uds_chunk_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_chunk_name, "names",
+  struct uds_record_name *names;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_record_name, "names",
                                   &names));
   initializeOldInterfaces(2000);
 

@@ -17,7 +17,7 @@ enum {
   NUM_HASHES = 8
 };
 
-static struct uds_chunk_name hashes[NUM_HASHES];
+static struct uds_record_name hashes[NUM_HASHES];
 static struct uds_chunk_data metas[NUM_HASHES];
 
 static struct configuration *config;
@@ -80,7 +80,7 @@ static void indexAddAndCheck(unsigned int hashIndex,
                              unsigned int expectedMetaIndex)
 {
   struct uds_request request = {
-    .chunk_name   = hashes[hashIndex],
+    .record_name  = hashes[hashIndex],
     .new_metadata = metas[metaInIndex],
     .type         = UDS_POST,
   };
@@ -97,8 +97,8 @@ static void indexAdd(unsigned int hashIndex, unsigned int metaInIndex)
 static void indexDelete(unsigned int hashIndex, bool expected)
 {
   struct uds_request request = {
-    .chunk_name = hashes[hashIndex],
-    .type       = UDS_DELETE,
+    .record_name = hashes[hashIndex],
+    .type        = UDS_DELETE,
   };
   verify_test_request(theIndex, &request, expected, NULL);
 }
@@ -109,8 +109,8 @@ static void indexLookup(unsigned int hashIndex,
                         unsigned int expectedMetaIndex)
 {
   struct uds_request request = {
-    .chunk_name = hashes[hashIndex],
-    .type       = UDS_QUERY,
+    .record_name = hashes[hashIndex],
+    .type        = UDS_QUERY,
   };
   verify_test_request(theIndex, &request, expected, &metas[expectedMetaIndex]);
 }
@@ -122,7 +122,7 @@ static void indexUpdate(unsigned int hashIndex,
                         unsigned int expectedMetaIndex)
 {
   struct uds_request request = {
-    .chunk_name   = hashes[hashIndex],
+    .record_name  = hashes[hashIndex],
     .new_metadata = metas[metaInIndex],
     .type         = UDS_UPDATE,
   };

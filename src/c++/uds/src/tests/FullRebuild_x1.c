@@ -51,8 +51,9 @@ static uint64_t fillIndex(struct uds_index *index, unsigned long numRecords)
   struct uds_request request = { .type = UDS_UPDATE };
   unsigned long i;
   for (i = 0; i < numRecords; i++) {
-    request.chunk_name = murmurHashChunkName(&nameCounter, sizeof(nameCounter),
-                                             0),
+    request.record_name = murmurHashChunkName(&nameCounter,
+                                              sizeof(nameCounter),
+                                              0);
     nameCounter++;
     verify_test_request(index, &request, false, NULL);
   }
@@ -68,13 +69,13 @@ static void verifyData(struct uds_index *index,
   struct uds_request request = { .type = UDS_QUERY_NO_UPDATE };
   unsigned long i;
   for (i = 0; i < numRecords; i++) {
-    request.chunk_name = murmurHashChunkName(&nameSeed, sizeof(nameSeed), 0);
+    request.record_name = murmurHashChunkName(&nameSeed, sizeof(nameSeed), 0);
     nameSeed++;
 
     if (sparse) {
       // just verify the hooks for simplicity
       bool hook = is_volume_index_sample(index->volume_index,
-                                         &request.chunk_name);
+                                         &request.record_name);
       if (!hook) {
         continue;
       }

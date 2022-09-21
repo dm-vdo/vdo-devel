@@ -57,7 +57,7 @@ static void recordPageTest(int numRecords)
     startTime = current_time_ns(CLOCK_MONOTONIC);
     size_t i;
     for (i = 0; i < g->records_per_page; ++i) {
-      struct uds_chunk_name name = records[i].name;
+      struct uds_record_name name = records[i].name;
       struct uds_chunk_data metadata;
 
       bool found = search_record_page(recordPage, &name, g, &metadata);

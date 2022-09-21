@@ -46,11 +46,11 @@ static void postBlockTest(void)
   memset(&expect, 0, sizeof(expect));
   initializeOldInterfaces(1000);
 
-  // Post some chunk names, and see that the stats are reported correctly
+  // Post some record names, and see that the stats are reported correctly
   // This is the Basic01 test rewritten to use udsPostBlockName.
   unsigned long counter;
   for (counter = 0; counter < NEW_CHUNK_COUNT; counter++) {
-    struct uds_chunk_name chunkName
+    struct uds_record_name chunkName
       = murmurHashChunkName(&counter, sizeof(counter), 0);
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);
@@ -63,7 +63,7 @@ static void postBlockTest(void)
   // correctly.  This is the Basic02 test rewritten to use
   // udsPostBlockName.
   for (counter = 0; counter < REPEAT_CHUNK_COUNT; counter++) {
-    struct uds_chunk_name chunkName
+    struct uds_record_name chunkName
       = murmurHashChunkName(&counter, sizeof(counter), 0);
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);

@@ -34,9 +34,9 @@
 enum uds_request_type {
 	/**
 	 * Request type for operations that post mappings to the UDS
-	 * index.  When the chunk-hash being added already exists, the
+	 * index.  When the name being added already exists, the
 	 * existing metadata is not overwritten. Regardless, the
-	 * recency of the chunk is updated.
+	 * recency of the name is updated.
 	 **/
 	UDS_POST,
 
@@ -44,7 +44,7 @@ enum uds_request_type {
 	 * Request type for operations that update mappings in the UDS
 	 * index. If the indicated entry does not have any mapping in the
 	 * index, one is created. In either case, the recency of
-	 * the chunk is updated.
+	 * the name is updated.
 	 **/
 	UDS_UPDATE,
 
@@ -89,8 +89,8 @@ enum uds_open_index_type {
 
 /** General UDS constants. */
 enum {
-	/** The chunk name size in bytes (128 bits = 16 bytes). */
-	UDS_CHUNK_NAME_SIZE = 16,
+	/** The record name size in bytes (128 bits = 16 bytes). */
+	UDS_RECORD_NAME_SIZE = 16,
 	/** The maximum metadata size in bytes. */
 	UDS_METADATA_SIZE = 16,
 };
@@ -121,14 +121,12 @@ enum {
 #endif /* TEST_INTERNAL */
 };
 
-/** The name (hash) of a chunk. */
-struct uds_chunk_name {
-	/** The name (hash) of a chunk. */
-	unsigned char name[UDS_CHUNK_NAME_SIZE];
+struct uds_record_name {
+	unsigned char name[UDS_RECORD_NAME_SIZE];
 };
 
 /**
- * Metadata to associate with a chunk name.
+ * Metadata to associate with a record name.
  **/
 struct uds_chunk_data {
 	unsigned char data[UDS_METADATA_SIZE];
@@ -168,7 +166,7 @@ struct uds_parameters {
  * resource usage and requests processed since initialization.
  **/
 struct uds_index_stats {
-	/** The total number of chunk names stored in the index. */
+	/** The total number of records stored in the index. */
 	uint64_t entries_indexed;
 	/** An estimate of the index's memory usage. */
 	uint64_t memory_used;
@@ -241,7 +239,6 @@ enum uds_index_region {
 	/* the block was found in the sparse part of the index */
 	UDS_LOCATION_IN_SPARSE
 } __packed;
-
 /**
  * enum uds_zone_message_type indicates what kind of zone message (if any)
  * is contained in this request.
@@ -285,7 +282,7 @@ struct uds_request {
 	 * Set before starting an operation.
 	 * Unchanged at time of callback.
 	 */
-	struct uds_chunk_name chunk_name;
+	struct uds_record_name record_name;
 	/*
 	 * The metadata found in the index that was associated with the block
 	 * (sometimes called the canonical address).
@@ -351,7 +348,7 @@ struct uds_request {
 	bool requeued;
 	/** The virtual chapter containing the record */
 	uint64_t virtual_chapter;
-	/** The location of this chunk name in the index */
+	/** The location of this record name in the index */
 	enum uds_index_region location;
 };
 
@@ -488,7 +485,7 @@ int __must_check uds_get_index_stats(struct uds_index_session *session,
 /** @name Deduplication */
 
 /**
- * Start a UDS index chunk operation. The request <code>type</code> field must
+ * Start a UDS index operation. The request <code>type</code> field must
  * be set to the type of operation. This is an asynchronous interface to the
  * block-oriented UDS API. The callback is invoked upon completion.
  *
@@ -526,7 +523,7 @@ int __must_check uds_get_index_stats(struct uds_index_session *session,
  *       canonical block address via the callback.
  *
  * @param [in] request  The operation.  The <code>type</code>,
- *                      <code>chunk_name</code>, <code>new_metadata</code>,
+ *                      <code>record_name</code>, <code>new_metadata</code>,
  *                      <code>context</code>, <code>callback</code>, and
  *                      <code>update</code> fields must be set.  At callback
  *                      time, the <code>old_metadata</code>,

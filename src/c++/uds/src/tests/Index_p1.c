@@ -9,7 +9,7 @@
  * Index_p1 measures the time to start and stop the index.
  *
  * While it also measures the time to fill the index, the performance of
- * indexing chunk names is not the focus of this test.  If this is what
+ * indexing record names is not the focus of this test.  If this is what
  * you are looking for, you should be looking at PostBlockName_p1.
  **/
 
@@ -67,7 +67,7 @@ static void testRunner(struct uds_parameters *params)
   WRITE_ONCE(startTime, current_time_ns(CLOCK_MONOTONIC));
   uint64_t counter;
   for (counter = 0; counter < numBlocksToWrite; counter++) {
-    struct uds_chunk_name chunkName
+    struct uds_record_name chunkName
       = murmurHashChunkName(&counter, sizeof(counter), 0);
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);

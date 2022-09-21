@@ -46,16 +46,16 @@ make_open_chapter(const struct geometry *geometry,
 void reset_open_chapter(struct open_chapter_zone *open_chapter);
 
 void search_open_chapter(struct open_chapter_zone *open_chapter,
-			 const struct uds_chunk_name *name,
+			 const struct uds_record_name *name,
 			 struct uds_chunk_data *metadata,
 			 bool *found);
 
 int __must_check put_open_chapter(struct open_chapter_zone *open_chapter,
-				  const struct uds_chunk_name *name,
+				  const struct uds_record_name *name,
 				  const struct uds_chunk_data *metadata);
 
 void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
-			      const struct uds_chunk_name *name);
+			      const struct uds_record_name *name);
 
 void free_open_chapter(struct open_chapter_zone *open_chapter);
 

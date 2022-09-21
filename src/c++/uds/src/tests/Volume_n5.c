@@ -134,7 +134,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
        ++numAdded)
   {
     struct uds_request request = { .type = UDS_POST };
-    createRandomBlockNameInZone(theIndex, zone, &request.chunk_name);
+    createRandomBlockNameInZone(theIndex, zone, &request.record_name);
     createRandomMetadata(&request.new_metadata);
     dispatchRequest(&request, UDS_LOCATION_UNAVAILABLE, NULL);
     zone = (zone + 1) % theIndex->zone_count;
@@ -161,7 +161,7 @@ static void testInvalidateChapter(void)
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, __func__, &request));
   request->type = UDS_POST;
-  createRandomBlockNameInZone(theIndex, 0, &request->chunk_name);
+  createRandomBlockNameInZone(theIndex, 0, &request->record_name);
   createRandomMetadata(&request->new_metadata);
   dispatchRequest(request, UDS_LOCATION_UNAVAILABLE, NULL);
 
@@ -189,7 +189,7 @@ static void testInvalidateChapter(void)
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, __func__, &request2));
   request2->type = UDS_POST;
-  createRandomBlockNameInZone(theIndex, 0, &request2->chunk_name);
+  createRandomBlockNameInZone(theIndex, 0, &request2->record_name);
   createRandomMetadata(&request2->new_metadata);
   dispatchRequest(request2, UDS_LOCATION_UNAVAILABLE, NULL);
 

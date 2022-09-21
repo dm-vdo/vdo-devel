@@ -28,7 +28,7 @@ static void insertRandomlyNamedBlock(struct volume_index *volumeIndex,
                                      uint64_t virtualChapter)
 {
   static uint64_t nameCounter = 0;
-  struct uds_chunk_name name
+  struct uds_record_name name
     = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
   nameCounter += 1;
 

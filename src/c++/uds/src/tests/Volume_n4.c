@@ -116,12 +116,12 @@ static void deinit(void)
 }
 
 /**********************************************************************/
-static void computeNameOnPage(struct uds_chunk_name *name, uint32_t physPage)
+static void computeNameOnPage(struct uds_record_name *name, uint32_t physPage)
 {
   struct delta_index_page indexPage;
   uint32_t pageInChapter = physPage % geometry->pages_per_chapter;
   if (pageInChapter >= geometry->index_pages_per_chapter) {
-    /* This is a record page so it doesn't matter what chunk name we use. */
+    /* This is a record page so it doesn't matter what record name we use. */
     return;
   }
 
@@ -146,7 +146,7 @@ static struct uds_request *newReadRequest(uint32_t physPage)
   readRequest->request.session = session;
   readRequest->physPage = physPage;
   readRequest->request.unbatched = true;
-  computeNameOnPage(&readRequest->request.chunk_name, physPage);
+  computeNameOnPage(&readRequest->request.record_name, physPage);
   return &readRequest->request;
 }
 

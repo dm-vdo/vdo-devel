@@ -91,7 +91,7 @@ void update_index_page_map(struct index_page_map *map,
 }
 
 unsigned int find_index_page_number(const struct index_page_map *map,
-				    const struct uds_chunk_name *name,
+				    const struct uds_record_name *name,
 				    unsigned int chapter_number)
 {
 	unsigned int delta_list_number =

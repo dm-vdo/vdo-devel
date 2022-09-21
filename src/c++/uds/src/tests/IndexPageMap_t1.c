@@ -85,9 +85,8 @@ static void verifyChapter(struct index_page_map *map,
   unsigned int list, page;
   for (page = 0; page < geometry->index_pages_per_chapter; page++) {
     for (list = firstList; list <= listNumbers[page]; list++) {
-
-      // Stuff the list number into a chunk name so it maps to the list number.
-      struct uds_chunk_name name;
+      // Put the list number into a record name so it maps to the list number.
+      struct uds_record_name name;
       memset(&name, 0, sizeof(name));
       set_chapter_delta_list_bits(&name, geometry, list);
       CU_ASSERT_EQUAL(list, hash_to_chapter_delta_list(&name, geometry));

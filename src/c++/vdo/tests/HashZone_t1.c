@@ -26,13 +26,13 @@
  *
  * @param name  the resulting random block name
  **/
-static void createRandomBlockName(struct uds_chunk_name *name)
+static void createRandomBlockName(struct uds_record_name *name)
 {
-  prandom_bytes(name->name, UDS_CHUNK_NAME_SIZE);
+  prandom_bytes(name->name, UDS_RECORD_NAME_SIZE);
 }
 
 /**
- * Verify that vdo_select_hash_zone evenly distributes chunk names among all
+ * Verify that vdo_select_hash_zone evenly distributes record names among all
  * the hash zones.
  *
  * @param vdo       The vdo containing the hash zones
@@ -43,7 +43,7 @@ static void verifySelectHashZone(struct vdo *vdo, thread_count_t hashZones)
   unsigned int histogram[hashZones];
   memset(histogram, 0, sizeof(histogram));
 
-  struct uds_chunk_name name;
+  struct uds_record_name name;
   createRandomBlockName(&name);
 
   // Since we only use the first byte to select hash zone, we can easily

@@ -16,7 +16,7 @@ static void fillChapter(struct volume_index *miptr, uint64_t chapter,
   set_volume_index_open_chapter(miptr, chapter);
   int i;
   for (i = 0; i < numRecords; i++) {
-    struct uds_chunk_name name
+    struct uds_record_name name
       = murmurHashChunkName(&counter, sizeof(counter), 0);
     counter++;
     struct volume_index_record record;

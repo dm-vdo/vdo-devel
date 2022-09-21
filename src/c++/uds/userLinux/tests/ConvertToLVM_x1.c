@@ -122,14 +122,14 @@ static void recalculate_stats(void)
 }
 
 /**
- * Alter a chunk name in place so that the volume zone used will be
+ * Alter a record name in place so that the volume zone used will be
  * zone 0, regardless of the number of zones configured.
  *
  * @param index  The volume index
- * @param name   The chunk name to be altered
+ * @param name   The record name to be altered
  **/
 static void adjust_list_number_for_zone_0(struct volume_index   *index,
-                                          struct uds_chunk_name *name)
+                                          struct uds_record_name *name)
 {
   unsigned int zone = get_volume_index_zone(index, name);
   if (zone == 0) {
@@ -157,10 +157,10 @@ static void fillIndex(unsigned int chapter_count)
   unsigned long i;
   unsigned long record_count = records_per_chapter * chapter_count;
   for (i = 0; i < record_count; i++) {
-    request.chunk_name
+    request.record_name
       = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
     nameCounter++;
-    adjust_list_number_for_zone_0(index->volume_index, &request.chunk_name);
+    adjust_list_number_for_zone_0(index->volume_index, &request.record_name);
     verify_test_request(index, &request, false, NULL);
   }
   index->need_to_save |= (record_count > 0);
@@ -182,14 +182,14 @@ static void verifyData(bool sparse)
 
   for (i = 0; i < record_count; i++) {
     uint64_t recordNumber = first_record + i;
-    request.chunk_name = murmurHashChunkName(&recordNumber,
-					     sizeof(recordNumber), 0);
-    adjust_list_number_for_zone_0(index->volume_index, &request.chunk_name);
+    request.record_name = murmurHashChunkName(&recordNumber,
+                                              sizeof(recordNumber), 0);
+    adjust_list_number_for_zone_0(index->volume_index, &request.record_name);
 
     if (sparse) {
       // just verify the hooks for simplicity
       bool hook = is_volume_index_sample(index->volume_index,
-                                         &request.chunk_name);
+                                         &request.record_name);
       if (!hook) {
         continue;
       }

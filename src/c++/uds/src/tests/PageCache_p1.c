@@ -215,7 +215,7 @@ static void testMixedGuts(void *arg)
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
     union {
-      struct uds_chunk_name name;
+      struct uds_record_name name;
       unsigned int val;
     } rand;
     rand.name = murmurHashChunkName(&a->counter, sizeof(a->counter),

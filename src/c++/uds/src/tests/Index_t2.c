@@ -14,11 +14,11 @@
 #include "testRequests.h"
 
 typedef struct indexTestData {
-  struct uds_index      *index;
-  struct uds_chunk_name *hashes;
-  struct uds_chunk_data *metas;
-  unsigned int           totalRecords;
-  unsigned int           recordsPerChapter;
+  struct uds_index       *index;
+  struct uds_record_name *hashes;
+  struct uds_chunk_data  *metas;
+  unsigned int            totalRecords;
+  unsigned int            recordsPerChapter;
 } IndexTestData;
 
 static const char *indexName;
@@ -86,7 +86,8 @@ static void initTestData(unsigned int numChapters, unsigned int collisionFreq)
   testData.recordsPerChapter
     = testData.index->volume->geometry->records_per_chapter;
   testData.totalRecords = testData.recordsPerChapter * numChapters;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords, struct uds_chunk_name,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords,
+                                  struct uds_record_name,
                                   __func__, &testData.hashes));
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords, struct uds_chunk_data,
                                   __func__, &testData.metas));
@@ -126,7 +127,7 @@ static void addData(bool shouldExist)
 
     memcpy(&testData.metas[i].data, &chapter, sizeof(chapter));
     struct uds_request request = {
-      .chunk_name   = testData.hashes[i],
+      .record_name  = testData.hashes[i],
       .new_metadata = testData.metas[i],
       .zone_number  = zoneNumber,
       .type         = UDS_UPDATE,
@@ -153,12 +154,12 @@ static void addData(bool shouldExist)
 }
 
 /**********************************************************************/
-static void queryDataAndCheck(const struct uds_chunk_name *hashData,
-                              const struct uds_chunk_data *expectedMetaData)
+static void queryDataAndCheck(const struct uds_record_name *hashData,
+                              const struct uds_chunk_data  *expectedMetaData)
 {
   struct uds_request request = {
-    .chunk_name = *hashData,
-    .type       = UDS_QUERY_NO_UPDATE,
+    .record_name = *hashData,
+    .type        = UDS_QUERY_NO_UPDATE,
   };
   verify_test_request(testData.index, &request, true, expectedMetaData);
 }

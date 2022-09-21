@@ -84,7 +84,7 @@ static void addBlocksToZone(unsigned int zone, unsigned int count)
     request->index        = theIndex;
     request->type         = UDS_POST;
     request->unbatched    = true;
-    createRandomBlockNameInZone(theIndex, zone, &request->chunk_name);
+    createRandomBlockNameInZone(theIndex, zone, &request->record_name);
     enqueue_request(request, STAGE_INDEX);
   }
 }
@@ -153,7 +153,7 @@ static void laggingZonesTest(void)
   CU_ASSERT_EQUAL(newestChapter, theIndex->newest_virtual_chapter);
 
   // Add a half chapter worth of blocks across all zones.
-  struct uds_chunk_name name;
+  struct uds_record_name name;
   struct uds_chunk_data metadata;
   createRandomMetadata(&metadata);
   unsigned int i;
@@ -162,7 +162,7 @@ static void laggingZonesTest(void)
     struct uds_request *request;
     UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, "request",
                                     &request));
-    request->chunk_name   = name;
+    request->record_name  = name;
     request->new_metadata = metadata;
     request->index        = theIndex;
     request->type         = UDS_POST;

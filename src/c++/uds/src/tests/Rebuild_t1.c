@@ -31,7 +31,7 @@ static void postChunks(struct uds_index_session *indexSession,
 {
   long index;
   for (index = base; index < base + count; index++) {
-    struct uds_chunk_name chunkName = murmurGenerator(&index, sizeof(index));
+    struct uds_record_name chunkName = murmurGenerator(&index, sizeof(index));
     oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
                      &chunkName, cbStatus);
   }
@@ -65,7 +65,7 @@ static void fullRebuildTest(void)
   /*
    * At this point we have a saved volume and index page map that are empty,
    * because we have yet to write a full chapter.  The saved volume index
-   * contains 1000 chunk names that are in chapter 0.  Chapter 0 was saved as
+   * contains 1000 record names that are in chapter 0.  Chapter 0 was saved as
    * the open chapter.
    */
 

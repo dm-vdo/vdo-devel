@@ -136,7 +136,7 @@ static void assertJoined(const char *strings, const byte **keys,
 static void testEmpty(void)
 {
   const byte *keys[] = { NULL };
-  sort(keys, 0, UDS_CHUNK_NAME_SIZE);
+  sort(keys, 0, UDS_RECORD_NAME_SIZE);
 }
 
 /**********************************************************************/
@@ -144,7 +144,7 @@ static void testSingleton(void)
 {
   const byte name[3] = "foo";
   const byte *keys[1] = { name };
-  sort(keys, 0, UDS_CHUNK_NAME_SIZE);
+  sort(keys, 0, UDS_RECORD_NAME_SIZE);
   CU_ASSERT_PTR_EQUAL(name, keys[0]);
 }
 

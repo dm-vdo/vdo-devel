@@ -215,7 +215,7 @@ struct data_vio {
 	struct zoned_pbn mapped;
 
 	/* The hash of this vio (if not zero) */
-	struct uds_chunk_name chunk_name;
+	struct uds_record_name record_name;
 
 	/* Used for logging and debugging */
 	enum async_operation_number last_async_operation;
@@ -248,7 +248,7 @@ struct data_vio {
 	struct zoned_pbn new_mapped;
 
 	/*
-	 * The hash zone responsible for the chunk name (NULL if is_zero_block)
+	 * The hash zone responsible for the name (NULL if is_zero_block)
 	 */
 	struct hash_zone *hash_zone;
 
@@ -599,7 +599,7 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 	thread_id_t expected = vdo_get_hash_zone_thread_id(data_vio->hash_zone);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 	/*
-	 * It's odd to use the LBN, but converting the chunk name to hex is a
+	 * It's odd to use the LBN, but converting the record name to hex is a
 	 * bit clunky for an inline, and the LBN better than nothing as an
 	 * identifier.
 	 */

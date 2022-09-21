@@ -183,7 +183,7 @@ void launch_data_vio(struct data_vio *data_vio,
 
 	data_vio->is_duplicate = false;
 
-	memset(&data_vio->chunk_name, 0, sizeof(data_vio->chunk_name));
+	memset(&data_vio->record_name, 0, sizeof(data_vio->record_name));
 	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
 
 	data_vio->io_operation = operation;

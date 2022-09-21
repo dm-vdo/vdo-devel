@@ -220,7 +220,7 @@ int encode_record_page(const struct volume *volume,
  * @return <code>true</code> if the record was found
  **/
 bool search_record_page(const byte record_page[],
-			const struct uds_chunk_name *name,
+			const struct uds_record_name *name,
 			const struct geometry *geometry,
 			struct uds_chunk_data *metadata);
 
@@ -649,14 +649,14 @@ int __must_check find_volume_chapter_boundaries(struct volume *volume,
  **/
 int __must_check search_volume_page_cache(struct volume *volume,
 					  struct uds_request *request,
-					  const struct uds_chunk_name *name,
+					  const struct uds_record_name *name,
 					  uint64_t virtual_chapter,
 					  struct uds_chunk_data *metadata,
 					  bool *found);
 
 /**
  * Fetch a record page from the cache or read it from the volume and search it
- * for a chunk name.
+ * for a record name.
  *
  * If a match is found, optionally returns the metadata from the stored
  * record. If the requested record page is not cached, the page fetch may be
@@ -679,7 +679,7 @@ int __must_check search_volume_page_cache(struct volume *volume,
  **/
 int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_request *request,
-					   const struct uds_chunk_name *name,
+					   const struct uds_record_name *name,
 					   unsigned int chapter,
 					   int record_page_number,
 					   struct uds_chunk_data *duplicate,

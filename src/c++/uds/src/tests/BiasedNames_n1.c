@@ -11,11 +11,11 @@
  * lead to a crash.
  *
  * Each "collisions" test zeros out a different range of the bytes in
- * 40,000 randomly-generated chunk names, ensuring that they are all either
+ * 40,000 randomly-generated record names, ensuring that they are all either
  * volume index collisions, or chapter index collisions, etc.
  *
  * Each "copy" test copies a small random value multiple times to make
- * highly redundant chunk names, ensuring that each sub-field of the chunk
+ * highly redundant record names, ensuring that each sub-field of the chunk
  * name shares the same randomness.
  **/
 
@@ -53,12 +53,12 @@ static void createMyMetadata(struct uds_chunk_data *data, const char *type)
 }
 
 /**********************************************************************/
-static void insertChunk(struct uds_index            *index,
-                        const struct uds_chunk_name *name,
-                        const struct uds_chunk_data *data)
+static void insertChunk(struct uds_index             *index,
+                        const struct uds_record_name *name,
+                        const struct uds_chunk_data  *data)
 {
   struct uds_request request = {
-    .chunk_name   = *name,
+    .record_name  = *name,
     .new_metadata = *data,
     .type         = UDS_UPDATE,
   };
@@ -66,13 +66,13 @@ static void insertChunk(struct uds_index            *index,
 }
 
 /**********************************************************************/
-static void updateChunk(struct uds_index            *index,
-                        const struct uds_chunk_name *name,
-                        const struct uds_chunk_data *oldData,
-                        const struct uds_chunk_data *newData)
+static void updateChunk(struct uds_index             *index,
+                        const struct uds_record_name *name,
+                        const struct uds_chunk_data  *oldData,
+                        const struct uds_chunk_data  *newData)
 {
   struct uds_request request = {
-    .chunk_name   = *name,
+    .record_name  = *name,
     .new_metadata = *newData,
     .type         = UDS_UPDATE,
     .zone_number  = get_volume_index_zone(index->volume_index, name),
@@ -94,11 +94,11 @@ static struct uds_index *rebuildIndex(struct uds_index *index)
 }
 
 /**********************************************************************/
-static void doLotsaChunks(struct uds_index      *index,
-                          int                    numChunks,
-                          struct uds_chunk_name *names,
-                          struct uds_chunk_data *oldData,
-                          struct uds_chunk_data *newData)
+static void doLotsaChunks(struct uds_index       *index,
+                          int                     numChunks,
+                          struct uds_record_name *names,
+                          struct uds_chunk_data  *oldData,
+                          struct uds_chunk_data  *newData)
 {
   int i;
   for (i = 0; i < numChunks; i++) {
@@ -111,7 +111,7 @@ static void doLotsaChunks(struct uds_index      *index,
 }
 
 /**********************************************************************/
-static void testWithNames(int numChunks, struct uds_chunk_name *names)
+static void testWithNames(int numChunks, struct uds_record_name *names)
 {
   struct uds_chunk_data data1, data2, data3;
   createMyMetadata(&data1, "First Data");
@@ -133,8 +133,8 @@ static void testWithNames(int numChunks, struct uds_chunk_name *names)
 static void testWithCollisions(int offset, int count)
 {
   enum { NUM_CHUNKS = 40000 };
-  struct uds_chunk_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_chunk_name, "names",
+  struct uds_record_name *names;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_record_name, "names",
                                   &names));
   int i;
   for (i = 0; i < NUM_CHUNKS; i++) {
@@ -167,8 +167,8 @@ static void volumeIndexTest(void)
 static void copy32Test(void)
 {
   enum { NUM_CHUNKS = 40000 };
-  struct uds_chunk_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_chunk_name, "names",
+  struct uds_record_name *names;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_record_name, "names",
                                   &names));
   int i, j, k;
   for (i = 0; i < NUM_CHUNKS; i++) {
@@ -179,7 +179,7 @@ static void copy32Test(void)
         goto try_again;
       }
     }
-    for (k = 4; k < UDS_CHUNK_NAME_SIZE; k += 4) {
+    for (k = 4; k < UDS_RECORD_NAME_SIZE; k += 4) {
       memcpy(&names[i].name[k], &names[i].name[0], 4);
     }
   }

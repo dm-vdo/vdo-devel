@@ -55,13 +55,13 @@ void uninitializeOldInterfaces(void);
  * @param callbackArgument  The callbackArgument given when registering the
  *                          callback, which is always NULL.
  **/
-typedef void (*OldDedupeBlockCallback)(enum uds_request_type  type,
-                                       int                    status,
-                                       OldCookie              cookie,
-                                       struct uds_chunk_data *duplicateAddress,
-                                       struct uds_chunk_data *canonicalAddress,
-                                       struct uds_chunk_name *blockName,
-                                       void                  *callbackArgument);
+typedef void (*OldDedupeBlockCallback)(enum uds_request_type   type,
+                                       int                     status,
+                                       OldCookie               cookie,
+                                       struct uds_chunk_data  *duplicateAddress,
+                                       struct uds_chunk_data  *canonicalAddress,
+                                       struct uds_record_name *blockName,
+                                       void                   *callbackArgument);
 
 /**
  * Indexes a block name and asynchronously associates it with a particular
@@ -79,11 +79,11 @@ typedef void (*OldDedupeBlockCallback)(enum uds_request_type  type,
  * @param [in] chunkName    The name of the block
  * @param [in] callback     The callback method
  **/
-void oldPostBlockName(struct uds_index_session    *session,
-                      OldCookie                    cookie,
-                      struct uds_chunk_data       *blockAddress,
-                      const struct uds_chunk_name *chunkName,
-                      OldDedupeBlockCallback       callback);
+void oldPostBlockName(struct uds_index_session     *session,
+                      OldCookie                     cookie,
+                      struct uds_chunk_data        *blockAddress,
+                      const struct uds_record_name *chunkName,
+                      OldDedupeBlockCallback        callback);
 
 /**
  * Indexes a block name and asynchronously associates it with a particular
@@ -104,11 +104,11 @@ void oldPostBlockName(struct uds_index_session    *session,
  *
  * @return  The success or failure of the operation
  **/
-int oldPostBlockNameResult(struct uds_index_session    *session,
-                           OldCookie                    cookie,
-                           struct uds_chunk_data       *blockAddress,
-                           const struct uds_chunk_name *chunkName,
-                           OldDedupeBlockCallback       callback);
+int oldPostBlockNameResult(struct uds_index_session     *session,
+                           OldCookie                     cookie,
+                           struct uds_chunk_data        *blockAddress,
+                           const struct uds_record_name *chunkName,
+                           OldDedupeBlockCallback        callback);
 
 /**
  * Updates the mapping for a particular block.  This operation occurs
@@ -120,10 +120,10 @@ int oldPostBlockNameResult(struct uds_index_session    *session,
  * @param [in] blockAddress The new canonical mapping for this blockName
  * @param [in] callback     The callback method
  **/
-void oldUpdateBlockMapping(struct uds_index_session    *session,
-                           OldCookie                    cookie,
-                           const struct uds_chunk_name *blockName,
-                           struct uds_chunk_data       *blockAddress,
-                           OldDedupeBlockCallback       callback);
+void oldUpdateBlockMapping(struct uds_index_session     *session,
+                           OldCookie                     cookie,
+                           const struct uds_record_name *blockName,
+                           struct uds_chunk_data        *blockAddress,
+                           OldDedupeBlockCallback        callback);
 
 #endif /* OLD_INTERFACES_H */

@@ -271,7 +271,7 @@ static const char *LOCK_STATE_NAMES[] = {
 
 struct hash_lock {
 	/* The block hash covered by this lock */
-	struct uds_chunk_name hash;
+	struct uds_record_name hash;
 
 	/*
 	 * When the lock is unused, this list entry allows the lock to be
@@ -281,7 +281,7 @@ struct hash_lock {
 
 	/*
 	 * A list containing the data VIOs sharing this lock, all having the
-	 * same chunk name and data block contents, linked by their
+	 * same record name and data block contents, linked by their
 	 * hash_lock_node fields.
 	 */
 	struct list_head duplicate_ring;
@@ -356,7 +356,7 @@ struct hash_zone {
 	/* The thread ID for this zone */
 	thread_id_t thread_id;
 
-	/* Mapping from chunk_name fields to hash_locks */
+	/* Mapping from record name fields to hash_locks */
 	struct pointer_map *hash_lock_map;
 
 	/* List containing all unused hash_locks */
@@ -1178,14 +1178,14 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
- * acquire_lock() - Get the lock for a chunk name.
+ * acquire_lock() - Get the lock for a record name.
  * @zone: The zone responsible for the hash.
  * @hash: The hash to lock.
  * @replace_lock:  If non-NULL, the lock already registered for the
  *                 hash which should be replaced by the new lock.
  * @lock_ptr: A pointer to receive the hash lock.
  *
- * Gets the lock for the hash (chunk name) of the data in a data_vio, or if
+ * Gets the lock for the hash (record name) of the data in a data_vio, or if
  * one does not exist (or if we are explicitly rolling over), initialize a new
  * lock for the hash and register it in the zone. This must only be called in
  * the correct thread for the zone.
@@ -1193,7 +1193,7 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
  * Return: VDO_SUCCESS or an error code.
  */
 static int __must_check acquire_lock(struct hash_zone *zone,
-				     const struct uds_chunk_name *hash,
+				     const struct uds_record_name *hash,
 				     struct hash_lock *replace_lock,
 				     struct hash_lock **lock_ptr)
 {
@@ -1288,7 +1288,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 {
 	struct hash_lock *new_lock;
 	int result = acquire_lock(new_agent->hash_zone,
-				  &new_agent->chunk_name,
+				  &new_agent->record_name,
 				  old_lock,
 				  &new_lock);
 
@@ -2221,7 +2221,7 @@ static void report_bogus_lock_state(struct hash_lock *lock,
 /**
  * vdo_enter_hash_lock() - Asynchronously process a data_vio that has just
  *                         acquired its reference to a hash lock.
- * @data_vio: The data_vio that has just acquired a lock on its chunk name.
+ * @data_vio: The data_vio that has just acquired a lock on its record name.
  *
  * This may place the data_vio on a wait queue, or it may use the data_vio to
  * perform operations on the lock's behalf.
@@ -2392,10 +2392,10 @@ assert_hash_lock_preconditions(const struct data_vio *data_vio)
 }
 
 /**
- * vdo_acquire_hash_lock() - Acquire or share a lock on a chunk name.
- * @data_vio: The data_vio acquiring a lock on its chunk name.
+ * vdo_acquire_hash_lock() - Acquire or share a lock on a record name.
+ * @data_vio: The data_vio acquiring a lock on its record name.
  *
- * Acquire or share a lock on the hash (chunk name) of the data in a data_vio,
+ * Acquire or share a lock on the hash (record name) of the data in a data_vio,
  * updating the data_vio to reference the lock. This must only be called in the
  * correct thread for the zone. In the unlikely case of a hash collision, this
  * function will succeed, but the data_vio will not get a lock reference.
@@ -2410,7 +2410,7 @@ int vdo_acquire_hash_lock(struct data_vio *data_vio)
 	}
 
 	result = acquire_lock(data_vio->hash_zone,
-			      &data_vio->chunk_name,
+			      &data_vio->record_name,
 			      NULL,
 			      &lock);
 	if (result != VDO_SUCCESS) {
@@ -2567,7 +2567,8 @@ void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 static bool compare_keys(const void *this_key, const void *that_key)
 {
 	/* Null keys are not supported. */
-	return (memcmp(this_key, that_key, sizeof(struct uds_chunk_name)) == 0);
+	return (0 == memcmp(this_key, that_key,
+			    sizeof(struct uds_record_name)));
 }
 
 /**
@@ -2575,12 +2576,13 @@ static bool compare_keys(const void *this_key, const void *that_key)
  */
 static uint32_t hash_key(const void *key)
 {
-	const struct uds_chunk_name *name = key;
+	const struct uds_record_name *name = key;
 	/*
-	 * Use a fragment of the chunk name as a hash code. It must not overlap
-	 * with fragments used elsewhere to ensure uniform distributions.
+	 * Use a fragment of the record name as a hash code. It must
+	 * not overlap with fragments used elsewhere to ensure uniform
+	 * distributions.
 	 */
-	/* XXX pick an offset in the chunk name that isn't used elsewhere */
+	/* XXX pick an offset in the record name that isn't used elsewhere */
 	return get_unaligned_le32(&name->name[4]);
 }
 
@@ -3455,17 +3457,17 @@ void vdo_get_dedupe_statistics(struct hash_zones *zones,
 
 /**
  * vdo_select_hash_zone() - Select the hash zone responsible for locking a
- *                          given chunk name.
+ *                          given record name.
  * @zones: The hash_zones from which to select.
- * @name: The chunk name.
+ * @name: The record name.
  *
- * Return: The hash zone responsible for the chunk name.
+ * Return: The hash zone responsible for the record name.
  */
 struct hash_zone *vdo_select_hash_zone(struct hash_zones *zones,
-				       const struct uds_chunk_name *name)
+				       const struct uds_record_name *name)
 {
 	/*
-	 * Use a fragment of the chunk name as a hash code. To ensure uniform
+	 * Use a fragment of the record name as a hash code. To ensure uniform
 	 * distributions, it must not overlap with fragments used elsewhere.
 	 * Eight bits of hash should suffice since the number of hash zones is
 	 * small.
@@ -3657,7 +3659,7 @@ static void prepare_uds_request(struct uds_request *request,
 				struct data_vio *data_vio,
 				enum uds_request_type operation)
 {
-	request->chunk_name = data_vio->chunk_name;
+	request->record_name = data_vio->record_name;
 	request->type = operation;
 	if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
 		size_t offset = 0;
@@ -3691,7 +3693,7 @@ static int test_launch_request(struct uds_request *request)
 
 #endif /* INTERNAL */
 /*
- * The index operation will inquire about data_vio.chunk_name, providing (if
+ * The index operation will inquire about data_vio.record_name, providing (if
  * the operation is appropriate) advice from the data_vio's new_mapped
  * fields. The advice found in the index (or NULL if none) will be returned via
  * receive_data_vio_dedupe_advice(). dedupe_context.status is set to the return
@@ -3824,7 +3826,7 @@ static int process_fill_message(struct hash_zones *zones)
 		/* Add some entries */
 
 		for (i = 0; i < 1000; i++) {
-			struct uds_chunk_name name;
+			struct uds_record_name name;
 			struct uds_request *request;
 
 			result = UDS_ALLOCATE(1,
@@ -3843,7 +3845,7 @@ static int process_fill_message(struct hash_zones *zones)
 			seed += 1;
 
 			request->callback = fill_callback;
-			request->chunk_name = name;
+			request->record_name = name;
 			request->session = zones->index_session;
 			request->new_metadata =
 				*((struct uds_chunk_data *) &name);

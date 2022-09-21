@@ -47,7 +47,7 @@ static void testSearchRecordPage(void)
   UDS_ASSERT_SUCCESS(encode_record_page(volume, records, recordPage));
   size_t i;
   for (i = 0; i < g->records_per_page; ++i) {
-    const struct uds_chunk_name *name = &records[i].name;
+    const struct uds_record_name *name = &records[i].name;
     struct uds_chunk_data metadata;
 
     bool found = search_record_page(recordPage, name, g, &metadata);
@@ -55,7 +55,7 @@ static void testSearchRecordPage(void)
     UDS_ASSERT_BLOCKDATA_EQUAL(&metadata, &records[i].data);
   }
 
-  struct uds_chunk_name zero;
+  struct uds_record_name zero;
   memset(&zero, 0, sizeof(zero));
   bool found = search_record_page(recordPage, &zero, g, NULL);
   CU_ASSERT_FALSE(found);
