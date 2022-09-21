@@ -83,7 +83,7 @@ static void release_index_session(struct uds_index_session *index_session)
  * Acquire a reference to the index session for an asynchronous index request.
  * The reference must eventually be released with a corresponding call to
  * release_index_session().
- **/
+ */
 static int get_index_session(struct uds_index_session *index_session)
 {
 	unsigned int state;

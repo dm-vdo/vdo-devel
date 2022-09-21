@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-/**
+/*
  * An event count is a lock-free equivalent of a condition variable.
  *
  * Using an event count, a lock-free producer/consumer can wait for a state
@@ -101,7 +101,7 @@
  * shared state. The state field and semaphore should fit on a single cache
  * line. The instrumentation counters increase the size of the structure so it
  * rounds up to use two (64-byte x86) cache lines.
- **/
+ */
 
 #include "event-count.h"
 

@@ -17,24 +17,24 @@
 #define UDS_SYSFS_NAME "uds"
 
 static struct {
-	/** /sys/uds */
+	/* /sys/uds */
 	struct kobject kobj;
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
-	/** /sys/uds/memory */
+	/* /sys/uds/memory */
 	struct kobject memory_kobj;
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	/** /sys/uds/parameter */
+	/* /sys/uds/parameter */
 	struct kobject parameter_kobj;
 
-	/** These flags are used to ensure a clean shutdown */
+	/* These flags are used to ensure a clean shutdown */
 
-	/** /sys/uds flag */
+	/* /sys/uds flag */
 	bool flag;
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
-	/** /sys/uds/memory flag */
+	/* /sys/uds/memory flag */
 	bool memory_flag;
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	/** /sys/uds/parameter flag */
+	/* /sys/uds/parameter flag */
 	bool parameter_flag;
 } object_root;
 

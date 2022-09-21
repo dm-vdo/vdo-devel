@@ -17,7 +17,7 @@
 /*
  * The geometry records parameters that define the layout of a UDS index
  * volume, and the size and shape of various index structures.
-*
+ *
  * An index volume is divided into a fixed number of fixed-size chapters, each
  * consisting of a fixed number of fixed-size pages. The volume layout is
  * defined by two constants and four parameters. The constants are that index
@@ -59,7 +59,7 @@
  * chapter 0 may be remapped to another physical chapter. This remapping is
  * expressed by storing which virtual chapter was remapped, and which physical
  * chapter it was moved to.
- **/
+ */
 
 int make_geometry(size_t bytes_per_page,
 		  unsigned int record_pages_per_chapter,

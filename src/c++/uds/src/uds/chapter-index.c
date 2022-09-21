@@ -168,7 +168,7 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  *                       and all the remaining lists must be packed onto this
  *                       page
  * @param num_lists      The number of delta lists that were copied
- **/
+ */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				 byte *memory,
 				 unsigned int first_list,

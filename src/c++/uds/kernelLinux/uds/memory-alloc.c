@@ -373,7 +373,7 @@ void log_uds_memory_allocations(void)
  * additional 6374 vmalloc calls, which is much less efficient for tracking.
  *
  * @param size  How many bytes to allocate
- **/
+ */
 static INLINE bool use_kmalloc(size_t size)
 {
 	return size <= PAGE_SIZE;

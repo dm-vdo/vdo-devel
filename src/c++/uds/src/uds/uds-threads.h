@@ -31,13 +31,13 @@ struct cond_var {
 struct thread;
 
 struct barrier {
-	/** Mutex for this barrier object */
+	/* Mutex for this barrier object */
 	struct semaphore mutex;
-	/** Semaphore for threads waiting at the barrier */
+	/* Semaphore for threads waiting at the barrier */
 	struct semaphore wait;
-	/** Number of threads which have arrived */
+	/* Number of threads which have arrived */
 	int arrived;
-	/** Total number of threads using this barrier */
+	/* Total number of threads using this barrier */
 	int thread_count;
 };
 #else

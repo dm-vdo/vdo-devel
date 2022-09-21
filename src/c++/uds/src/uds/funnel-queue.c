@@ -9,7 +9,7 @@
 #include "permassert.h"
 #include "uds.h"
 
-/**
+/*
  * A funnel queue is a simple (almost) lock-free queue that accepts entries
  * from multiple threads (multi-producer) and delivers them to a single thread
  * (single-consumer). "Funnel" is an attempt to evoke the image of requests
@@ -44,7 +44,7 @@
  * The consumer function, funnel_queue_poll(), will return NULL when the queue
  * is empty. To wait for data to consume, spin (if safe) or combine the queue
  * with a struct event_count to signal the presence of new entries.
- **/
+ */
 
 int make_funnel_queue(struct funnel_queue **queue_ptr)
 {
