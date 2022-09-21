@@ -131,6 +131,10 @@ void free_vio_pool(struct vio_pool *pool)
 		struct bio *bio;
 
 		entry = &pool->entries[i];
+		if (list_empty(&entry->available_entry)) {
+			continue;
+		}
+
 		bio = entry->vio->bio;
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
 				"VIO Pool entry still in use: VIO is in use for physical block %llu for operation %u",
