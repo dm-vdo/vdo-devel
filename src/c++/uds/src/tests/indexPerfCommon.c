@@ -42,7 +42,7 @@ void fill(const char               *label,
       struct uds_record_name chunkName
         = murmurHashChunkName(&counter, sizeof(counter), 0);
       oldPostBlockName(indexSession, NULL,
-                       (struct uds_chunk_data *) &chunkName,
+                       (struct uds_record_data *) &chunkName,
                        &chunkName, callback);
     }
 

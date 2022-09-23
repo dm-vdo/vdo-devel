@@ -46,7 +46,7 @@ static uint64_t fillIndex(struct uds_index_session *session,
       = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
 
     nameCounter++;
-    oldPostBlockName(session, NULL, (struct uds_chunk_data *) &chunkName,
+    oldPostBlockName(session, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(session));

@@ -27,7 +27,7 @@ static unsigned int recordsPerChapter;
 static unsigned int totalRecords;
 
 static struct uds_record_name *hashes;
-static struct uds_chunk_data  *metas;
+static struct uds_record_data *metas;
 static struct configuration   *config;
 static struct uds_index       *theIndex;
 
@@ -209,10 +209,10 @@ static void sparseInitSuite(const char *name)
     } while (searchForCollisions(i));
   }
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_chunk_data, "metas",
-                                  &metas));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_record_data,
+                                  "metas", &metas));
   for (i = 0; i < totalRecords; i++) {
-    for (j = 0; j < UDS_METADATA_SIZE; j++) {
+    for (j = 0; j < UDS_RECORD_DATA_SIZE; j++) {
       metas[i].data[j] = i;
     }
   }
@@ -232,9 +232,9 @@ static void sparseCleanSuite(void)
 }
 
 /**********************************************************************/
-static void dispatchRequest(struct uds_request          *request,
-                            enum uds_index_region        expectedLocation,
-                            const struct uds_chunk_data *expectedMetaData)
+static void dispatchRequest(struct uds_request           *request,
+                            enum uds_index_region         expectedLocation,
+                            const struct uds_record_data *expectedMetaData)
 {
   request->index = theIndex;
   incrementCallbackCount();

@@ -18,7 +18,7 @@ enum {
 };
 
 static struct uds_record_name hashes[NUM_HASHES];
-static struct uds_chunk_data metas[NUM_HASHES];
+static struct uds_record_data metas[NUM_HASHES];
 
 static struct configuration *config;
 static struct configuration *smallConfig;
@@ -36,7 +36,7 @@ static void indexInitSuite(const char *name)
   }
 
   for (i = 0; i < NUM_HASHES; i++) {
-    for (j = 0; j < UDS_METADATA_SIZE; j++) {
+    for (j = 0; j < UDS_RECORD_DATA_SIZE; j++) {
       metas[i].data[j] = i;
     }
   }

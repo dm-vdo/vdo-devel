@@ -934,7 +934,7 @@ static int initialize_index_page(const struct volume *volume,
 EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 					const struct uds_record_name *name,
 					const struct geometry *geometry,
-					struct uds_chunk_data *metadata)
+					struct uds_record_data *metadata)
 {
 	/* The record page is just an array of chunk records. */
 	const struct uds_chunk_record *records =
@@ -1448,7 +1448,7 @@ int search_cached_record_page(struct volume *volume,
 			      const struct uds_record_name *name,
 			      unsigned int chapter,
 			      int record_page_number,
-			      struct uds_chunk_data *duplicate,
+			      struct uds_record_data *duplicate,
 			      bool *found)
 {
 	struct cached_page *record_page;
@@ -1551,7 +1551,7 @@ int search_volume_page_cache(struct volume *volume,
 			     struct uds_request *request,
 			     const struct uds_record_name *name,
 			     uint64_t virtual_chapter,
-			     struct uds_chunk_data *metadata,
+			     struct uds_record_data *metadata,
 			     bool *found)
 {
 	int result;

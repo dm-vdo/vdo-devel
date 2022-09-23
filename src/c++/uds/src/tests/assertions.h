@@ -251,7 +251,7 @@ static INLINE void cuDie(void)
                              sizeof(struct uds_record_name));
 
 #define UDS_ASSERT_BLOCKDATA_EQUAL(first, second) \
-  UDS_ASSERT_EQUAL_BYTES((first), (second), sizeof(struct uds_chunk_data));
+  UDS_ASSERT_EQUAL_BYTES((first), (second), sizeof(struct uds_record_data));
 
 #define CU_ASSERT_PTR_NOT_NULL(ptr)          \
   do {                                       \

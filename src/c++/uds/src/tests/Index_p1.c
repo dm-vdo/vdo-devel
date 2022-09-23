@@ -69,7 +69,7 @@ static void testRunner(struct uds_parameters *params)
   for (counter = 0; counter < numBlocksToWrite; counter++) {
     struct uds_record_name chunkName
       = murmurHashChunkName(&counter, sizeof(counter), 0);
-    oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
+    oldPostBlockName(indexSession, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));

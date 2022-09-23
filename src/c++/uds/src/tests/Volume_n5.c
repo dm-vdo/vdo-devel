@@ -97,9 +97,9 @@ static void deinit(void)
 }
 
 /**********************************************************************/
-static void dispatchRequest(struct uds_request          *request,
-                            enum uds_index_region        expectedLocation,
-                            const struct uds_chunk_data *expectedMetaData)
+static void dispatchRequest(struct uds_request           *request,
+                            enum uds_index_region         expectedLocation,
+                            const struct uds_record_data *expectedMetaData)
 {
   request->index = theIndex;
   incrementCallbackCount();

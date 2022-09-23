@@ -29,8 +29,8 @@
 void cbStatus(enum uds_request_type   type,
               int                     status,
               OldCookie               cookie,
-              struct uds_chunk_data  *duplicateAddress,
-              struct uds_chunk_data  *canonicalAddress,
+              struct uds_record_data *duplicateAddress,
+              struct uds_record_data *canonicalAddress,
               struct uds_record_name *blockName,
               void                   *data);
 
@@ -94,9 +94,9 @@ void createRandomBlockNameInZone(const struct uds_index *index,
  *
  * @param [out] data    the result random metadata
  **/
-static INLINE void createRandomMetadata(struct uds_chunk_data *data)
+static INLINE void createRandomMetadata(struct uds_record_data *data)
 {
-  prandom_bytes(data->data, UDS_METADATA_SIZE);
+  prandom_bytes(data->data, UDS_RECORD_DATA_SIZE);
 }
 
 /**

@@ -34,7 +34,7 @@ static void pbnPerfTest(void)
     struct uds_record_name chunkName
       = murmurGenerator(&newCounter, sizeof(newCounter));
     newCounter += 1;
-    oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
+    oldPostBlockName(indexSession, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
@@ -59,7 +59,7 @@ static void pbnPerfTest(void)
         = murmurGenerator(counter, sizeof(*counter));
       *counter += 1;
       oldPostBlockName(indexSession, NULL,
-                       (struct uds_chunk_data *) &chunkName,
+                       (struct uds_record_data *) &chunkName,
                        &chunkName, cbStatus);
     }
     UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));

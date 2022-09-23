@@ -2067,7 +2067,7 @@ static bool decode_uds_advice(struct dedupe_context *context)
 	const struct uds_request *request = &context->request;
 	struct data_vio *data_vio = context->requestor;
 	size_t offset = 0;
-	const struct uds_chunk_data *encoding = &request->old_metadata;
+	const struct uds_record_data *encoding = &request->old_metadata;
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct zoned_pbn *advice = &data_vio->duplicate;
 	byte version;
@@ -3663,7 +3663,7 @@ static void prepare_uds_request(struct uds_request *request,
 	request->type = operation;
 	if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
 		size_t offset = 0;
-		struct uds_chunk_data *encoding = &request->new_metadata;
+		struct uds_record_data *encoding = &request->new_metadata;
 
 		encoding->data[offset++] = UDS_ADVICE_VERSION;
 		encoding->data[offset++] = data_vio->new_mapped.state;
@@ -3848,7 +3848,7 @@ static int process_fill_message(struct hash_zones *zones)
 			request->record_name = name;
 			request->session = zones->index_session;
 			request->new_metadata =
-				*((struct uds_chunk_data *) &name);
+				*((struct uds_record_data *) &name);
 			request->type = UDS_POST;
 
 			result = uds_launch_request(request);

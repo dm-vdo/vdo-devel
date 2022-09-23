@@ -41,8 +41,8 @@ static struct uds_index_session *indexSession;
 static void cb(enum uds_request_type type __attribute__((unused)),
                int status,
                OldCookie cookie,
-               struct uds_chunk_data *duplicateAddress __attribute__((unused)),
-               struct uds_chunk_data *canonicalAddress,
+               struct uds_record_data *duplicateAddress __attribute__((unused)),
+               struct uds_record_data *canonicalAddress,
                struct uds_record_name *blockName __attribute__((unused)),
                void *data __attribute__((unused)))
 {
@@ -50,13 +50,13 @@ static void cb(enum uds_request_type type __attribute__((unused)),
   if (canonicalAddress != NULL) {
     CU_ASSERT_PTR_NOT_NULL(cookie);
     UDS_ASSERT_EQUAL_BYTES(cookie, canonicalAddress,
-                           sizeof(struct uds_chunk_data));
+                           sizeof(struct uds_record_data));
   }
 }
 
 /**********************************************************************/
-__printf(2, 3)
-static void createMyMetadata(struct uds_chunk_data *data, const char *fmt, ...)
+__printf(2, 3) static
+void createMyMetadata(struct uds_record_data *data, const char *fmt, ...)
 {
   int bytes;
   va_list args;
@@ -106,7 +106,7 @@ static void testWithChunks(struct uds_index_session *indexSession,
                            struct uds_record_name   *names,
                            const char               *type)
 {
-  struct uds_chunk_data data1, data2, dataFill;
+  struct uds_record_data data1, data2, dataFill;
   createMyMetadata(&data1, "1st %s", type);
   createMyMetadata(&data2, "2nd %s", type);
   createMyMetadata(&dataFill, "Fill %s", type);

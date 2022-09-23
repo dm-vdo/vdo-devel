@@ -468,7 +468,7 @@ static int get_record_from_zone(struct index_zone *zone,
 
 static int put_record_in_zone(struct index_zone *zone,
 			      struct uds_request *request,
-			      const struct uds_chunk_data *metadata)
+			      const struct uds_record_data *metadata)
 {
 	unsigned int remaining;
 
@@ -488,7 +488,7 @@ static int search_index_zone(struct index_zone *zone,
 	int result;
 	struct volume_index_record record;
 	bool overflow_record, found = false;
-	struct uds_chunk_data *metadata;
+	struct uds_record_data *metadata;
 	uint64_t chapter;
 
 	result = get_volume_index_record(zone->index->volume_index,

@@ -13,7 +13,7 @@
 static const char *indexName;
 
 // The metadata we will use in this suite
-static struct uds_chunk_data cd1, cd2;
+static struct uds_record_data cd1, cd2;
 static struct uds_index *testIndex;
 
 /**********************************************************************/
@@ -62,10 +62,11 @@ static noinline void deleteChunk(struct uds_index             *index,
 }
 
 /**********************************************************************/
-static noinline void expectChunk(struct uds_index             *index,
-                                 const struct uds_record_name *name,
-                                 const struct uds_chunk_data  *cdExpected,
-                                 enum uds_index_region         expectedLocation)
+static noinline
+void expectChunk(struct uds_index             *index,
+                 const struct uds_record_name *name,
+                 const struct uds_record_data *cdExpected,
+                 enum uds_index_region         expectedLocation)
 {
   struct uds_request request = {
     .record_name = *name,
@@ -89,7 +90,7 @@ static noinline void expectMissingChunk(struct uds_index             *index,
 /**********************************************************************/
 static void expectSurvivingChunk(struct uds_index             *index,
                                  const struct uds_record_name *name,
-                                 const struct uds_chunk_data  *cdExpected)
+                                 const struct uds_record_data *cdExpected)
 {
   /*
    * This is a chunk that has been deleted. Because of a rebuild or a
@@ -103,7 +104,7 @@ static void expectSurvivingChunk(struct uds_index             *index,
 /**********************************************************************/
 static noinline void insertChunk(struct uds_index             *index,
                                  const struct uds_record_name *name,
-                                 const struct uds_chunk_data  *cd)
+                                 const struct uds_record_data *cd)
 {
   struct uds_request request = {
     .record_name  = *name,
@@ -114,9 +115,9 @@ static noinline void insertChunk(struct uds_index             *index,
 }
 
 /**********************************************************************/
-static void insertRandomChunk(struct uds_index            *index,
-                              struct uds_record_name      *name,
-                              const struct uds_chunk_data *cd)
+static void insertRandomChunk(struct uds_index             *index,
+                              struct uds_record_name       *name,
+                              const struct uds_record_data *cd)
 {
   createRandomBlockName(name);
   insertChunk(index, name, cd);
@@ -126,7 +127,7 @@ static void insertRandomChunk(struct uds_index            *index,
 static void insertCollidingChunk(struct uds_index             *index,
                                  const struct uds_record_name *name1,
                                  struct uds_record_name       *name2,
-                                 const struct uds_chunk_data  *cd)
+                                 const struct uds_record_data *cd)
 {
   createCollidingBlock(name1, name2);
   insertChunk(index, name2, cd);
@@ -135,8 +136,8 @@ static void insertCollidingChunk(struct uds_index             *index,
 /**********************************************************************/
 static noinline void updateChunk(struct uds_index             *index,
                                  const struct uds_record_name *name,
-                                 const struct uds_chunk_data  *cdOld,
-                                 const struct uds_chunk_data  *cdNew)
+                                 const struct uds_record_data *cdOld,
+                                 const struct uds_record_data *cdNew)
 {
   struct uds_request request = {
     .record_name  = *name,

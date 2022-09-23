@@ -194,9 +194,9 @@ static bool falsifyAdvice(struct vdo_completion *completion)
   struct data_vio *dataVIO = as_data_vio(completion);
   CU_ASSERT_FALSE(dataVIO->is_duplicate);
 
-  struct uds_request    *request  = &dataVIO->dedupe_context->request;
-  struct uds_chunk_data *encoding = &request->old_metadata;
-  size_t                 offset   = 0;
+  struct uds_request     *request  = &dataVIO->dedupe_context->request;
+  struct uds_record_data *encoding = &request->old_metadata;
+  size_t                  offset   = 0;
   encoding->data[offset++] = 2; // UDS_ADVICE_VERSION
   encoding->data[offset++] = VDO_MAPPING_STATE_UNCOMPRESSED;
   put_unaligned_le64(pbn2, &encoding->data[offset]);

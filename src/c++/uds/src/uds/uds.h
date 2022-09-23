@@ -92,7 +92,7 @@ enum {
 	/** The record name size in bytes (128 bits = 16 bytes). */
 	UDS_RECORD_NAME_SIZE = 16,
 	/** The maximum metadata size in bytes. */
-	UDS_METADATA_SIZE = 16,
+	UDS_RECORD_DATA_SIZE = 16,
 };
 
 /**
@@ -128,8 +128,8 @@ struct uds_record_name {
 /**
  * Metadata to associate with a record name.
  **/
-struct uds_chunk_data {
-	unsigned char data[UDS_METADATA_SIZE];
+struct uds_record_data {
+	unsigned char data[UDS_RECORD_DATA_SIZE];
 };
 
 /**
@@ -288,13 +288,13 @@ struct uds_request {
 	 * (sometimes called the canonical address).
 	 * Set before the callback.
 	 */
-	struct uds_chunk_data old_metadata;
+	struct uds_record_data old_metadata;
 	/*
 	 * The new metadata to associate with the name of the block (sometimes
 	 * called the duplicate address). Set before starting a #UDS_POST or
 	 * #UDS_UPDATE operation. Unchanged at time of callback.
 	 */
-	struct uds_chunk_data new_metadata;
+	struct uds_record_data new_metadata;
 	/*
 	 * The callback method to be invoked when the operation finishes.
 	 * Set before starting an operation.

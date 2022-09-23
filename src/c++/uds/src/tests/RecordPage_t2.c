@@ -58,7 +58,7 @@ static void recordPageTest(int numRecords)
     size_t i;
     for (i = 0; i < g->records_per_page; ++i) {
       struct uds_record_name name = records[i].name;
-      struct uds_chunk_data metadata;
+      struct uds_record_data metadata;
 
       bool found = search_record_page(recordPage, &name, g, &metadata);
       CU_ASSERT_TRUE(found);

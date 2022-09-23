@@ -144,9 +144,9 @@ static void testWriteChapter(void)
   struct uds_record_name *hashes;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
                                   struct uds_record_name, "names", &hashes));
-  struct uds_chunk_data *metadata;
+  struct uds_record_data *metadata;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
-                                  struct uds_chunk_data, "records",
+                                  struct uds_record_data, "records",
                                   &metadata));
 
   // Thanks to zoning, the chapter on disk might not be completely full.
@@ -205,7 +205,7 @@ static void testWriteChapter(void)
                                        &pageData, NULL));
 
     for (j = 0; j < geometry->records_per_page; ++j) {
-      struct uds_chunk_data retMetadata;
+      struct uds_record_data retMetadata;
       bool found = search_record_page(pageData,
                                     &hashes[recordNumber], geometry,
                                     &retMetadata);
@@ -220,7 +220,7 @@ static void testWriteChapter(void)
 
   // Test reading records through the index pages.
   for (i = 0; i < highestRecord; ++i) {
-    struct uds_chunk_data retMetadata;
+    struct uds_record_data retMetadata;
     bool found;
 
     UDS_ASSERT_SUCCESS(search_volume_page_cache(volume, NULL, &hashes[i],

@@ -80,7 +80,7 @@ static void savedTest(void)
 							   sizeof(counter),
 							   0);
     oldPostBlockName(indexSession, NULL,
-                     (struct uds_chunk_data *) &chunkName,
+                     (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
@@ -202,7 +202,7 @@ static void testRun(TestConfig *tc)
 							       sizeof(counter),
 							       0);
         oldPostBlockName(indexSession, NULL,
-                         (struct uds_chunk_data *) &chunkName,
+                         (struct uds_record_data *) &chunkName,
                          &chunkName, cbStatus);
         counter++;
       }

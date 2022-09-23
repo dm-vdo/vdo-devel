@@ -42,7 +42,7 @@ static void createIndex(unsigned int zone_count)
 
 /**********************************************************************/
 static void requestIndex(struct uds_record_name *name,
-                         struct uds_chunk_data  *data)
+                         struct uds_record_data *data)
 {
   unsigned int zone = get_volume_index_zone(theIndex->volume_index, name);
   struct uds_request request = {
@@ -59,7 +59,7 @@ static void stressZonesTest(void)
 {
   struct uds_record_name orig;
   struct uds_record_name name;
-  struct uds_chunk_data data;
+  struct uds_record_data data;
 
   createIndex(2);
   CU_ASSERT_EQUAL(theIndex->newest_virtual_chapter, 0);
@@ -82,7 +82,7 @@ static void stressChapterIndexBytesTest(void)
 {
   struct uds_record_name orig;
   struct uds_record_name name;
-  struct uds_chunk_data data;
+  struct uds_record_data data;
   unsigned int zone;
   createIndex(0);
 
@@ -106,7 +106,7 @@ static void stressChapterIndexBytesTest(void)
 static void stressVolumeIndexBytesTest(void)
 {
   struct uds_record_name orig, name;
-  struct uds_chunk_data data;
+  struct uds_record_data data;
   struct volume_index_stats denseStats, sparseStats;
 
   createIndex(0);

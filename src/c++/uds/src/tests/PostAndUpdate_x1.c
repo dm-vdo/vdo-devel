@@ -100,8 +100,8 @@ static void hashChunkCounter(struct uds_record_name *name,
 static void cb(enum uds_request_type type,
                int status,
                OldCookie cookie,
-               struct uds_chunk_data *duplicateAddress __attribute__((unused)),
-               struct uds_chunk_data *canonicalAddress __attribute__((unused)),
+               struct uds_record_data *duplicateAddress __attribute__((unused)),
+               struct uds_record_data *canonicalAddress __attribute__((unused)),
                struct uds_record_name *blockName __attribute__((unused)),
                void *data __attribute__((unused)))
 {
@@ -133,7 +133,7 @@ static void updateBlockNames(void *argument)
     hashChunkCounter(&chunkName, tbc->chunkCounter);
     UDS_FREE(tbc);
     oldUpdateBlockMapping(indexSession, NULL, &chunkName,
-                          (struct uds_chunk_data *) &chunkName, cb);
+                          (struct uds_record_data *) &chunkName, cb);
     counter++;
     if ((counter & ((1 << 23) - 1)) == 0) {
       report("oldUpdateBlockMapping", counter);
@@ -151,7 +151,7 @@ static void postBlockNames(struct uds_index_session *indexSession)
     tbc->chunkCounter = postCounter++;
     struct uds_record_name chunkName;
     hashChunkCounter(&chunkName, tbc->chunkCounter);
-    oldPostBlockName(indexSession, tbc, (struct uds_chunk_data *) &chunkName,
+    oldPostBlockName(indexSession, tbc, (struct uds_record_data *) &chunkName,
                      &chunkName, cb);
     counter++;
     if ((counter & ((1 << 23) - 1)) == 0) {

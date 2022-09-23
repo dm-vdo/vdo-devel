@@ -66,7 +66,7 @@ void submit_test_request(struct uds_index *index,
 void verify_test_request(struct uds_index *index,
                          struct uds_request *request,
                          bool expectFound,
-                         const struct uds_chunk_data *expectedMetaData)
+                         const struct uds_record_data *expectedMetaData)
 {
   submit_test_request(index, request);
   CU_ASSERT_EQUAL(expectFound, request->found);

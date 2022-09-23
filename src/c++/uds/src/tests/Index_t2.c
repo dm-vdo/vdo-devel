@@ -16,7 +16,7 @@
 typedef struct indexTestData {
   struct uds_index       *index;
   struct uds_record_name *hashes;
-  struct uds_chunk_data  *metas;
+  struct uds_record_data *metas;
   unsigned int            totalRecords;
   unsigned int            recordsPerChapter;
 } IndexTestData;
@@ -89,7 +89,8 @@ static void initTestData(unsigned int numChapters, unsigned int collisionFreq)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords,
                                   struct uds_record_name,
                                   __func__, &testData.hashes));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords, struct uds_chunk_data,
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(testData.totalRecords,
+                                  struct uds_record_data,
                                   __func__, &testData.metas));
   uint64_t i;
   for (i = 0; i < testData.totalRecords; i++) {
@@ -155,7 +156,7 @@ static void addData(bool shouldExist)
 
 /**********************************************************************/
 static void queryDataAndCheck(const struct uds_record_name *hashData,
-                              const struct uds_chunk_data  *expectedMetaData)
+                              const struct uds_record_data *expectedMetaData)
 {
   struct uds_request request = {
     .record_name = *hashData,

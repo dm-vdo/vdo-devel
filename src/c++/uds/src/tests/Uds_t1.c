@@ -39,7 +39,7 @@ static void basicsTest(void)
   UDS_ASSERT_ERROR(-EINVAL, uds_launch_request(request));
   request->callback = callback;
 
-  struct uds_chunk_data meta1, meta2, meta3;
+  struct uds_record_data meta1, meta2, meta3;
   createRandomMetadata(&meta1);
   createRandomMetadata(&meta2);
   createRandomMetadata(&meta3);

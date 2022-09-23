@@ -34,7 +34,7 @@ static void runTest(bool sparse)
   unsigned long i;
   for (i = 0; i < numRecords; i++) {
     struct uds_record_name chunkName = murmurHashChunkName(&i, sizeof(i), 0);
-    oldPostBlockName(indexSession, NULL, (struct uds_chunk_data *) &chunkName,
+    oldPostBlockName(indexSession, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));

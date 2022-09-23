@@ -16,11 +16,11 @@ enum {
 	GIGABYTE = KILOBYTE * MEGABYTE
 };
 
-struct uds_chunk_data;
+struct uds_record_data;
 
 struct uds_chunk_record {
 	struct uds_record_name name;
-	struct uds_chunk_data data;
+	struct uds_record_data data;
 };
 
 #endif /* COMMON_H */

@@ -47,7 +47,7 @@ static void newCallback(struct uds_request *request)
 /**********************************************************************/
 void oldPostBlockName(struct uds_index_session     *session,
                       OldCookie                     cookie,
-                      struct uds_chunk_data        *blockAddress,
+                      struct uds_record_data       *blockAddress,
                       const struct uds_record_name *chunkName,
                       OldDedupeBlockCallback        callback)
 {
@@ -58,7 +58,7 @@ void oldPostBlockName(struct uds_index_session     *session,
 /**********************************************************************/
 int oldPostBlockNameResult(struct uds_index_session     *session,
                            OldCookie                     cookie,
-                           struct uds_chunk_data        *blockAddress,
+                           struct uds_record_data       *blockAddress,
                            const struct uds_record_name *chunkName,
                            OldDedupeBlockCallback        callback)
 {
@@ -84,7 +84,7 @@ int oldPostBlockNameResult(struct uds_index_session     *session,
 void oldUpdateBlockMapping(struct uds_index_session     *session,
                            OldCookie                     cookie,
                            const struct uds_record_name *blockName,
-                           struct uds_chunk_data        *blockAddress,
+                           struct uds_record_data       *blockAddress,
                            OldDedupeBlockCallback        callback)
 {
   uds_acquire_semaphore(&requestSemaphore);

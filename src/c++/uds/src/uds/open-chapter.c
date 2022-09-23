@@ -155,7 +155,7 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 
 void search_open_chapter(struct open_chapter_zone *open_chapter,
 			 const struct uds_record_name *name,
-			 struct uds_chunk_data *metadata,
+			 struct uds_record_data *metadata,
 			 bool *found)
 {
 	unsigned int slot;
@@ -174,7 +174,7 @@ void search_open_chapter(struct open_chapter_zone *open_chapter,
 /* Add a record to the open chapter zone and return the remaining space. */
 int put_open_chapter(struct open_chapter_zone *open_chapter,
 		     const struct uds_record_name *name,
-		     const struct uds_chunk_data *metadata)
+		     const struct uds_record_data *metadata)
 {
 	unsigned int slot;
 	unsigned int record_number;

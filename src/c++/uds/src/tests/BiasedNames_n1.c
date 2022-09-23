@@ -45,7 +45,7 @@ static struct uds_index *createTestIndex(unsigned int loadFlags)
 }
 
 /**********************************************************************/
-static void createMyMetadata(struct uds_chunk_data *data, const char *type)
+static void createMyMetadata(struct uds_record_data *data, const char *type)
 {
   memset(data, 0, sizeof(*data));
   UDS_ASSERT_SUCCESS(uds_fixed_sprintf((char *) data->data, sizeof(*data),
@@ -55,7 +55,7 @@ static void createMyMetadata(struct uds_chunk_data *data, const char *type)
 /**********************************************************************/
 static void insertChunk(struct uds_index             *index,
                         const struct uds_record_name *name,
-                        const struct uds_chunk_data  *data)
+                        const struct uds_record_data *data)
 {
   struct uds_request request = {
     .record_name  = *name,
@@ -68,8 +68,8 @@ static void insertChunk(struct uds_index             *index,
 /**********************************************************************/
 static void updateChunk(struct uds_index             *index,
                         const struct uds_record_name *name,
-                        const struct uds_chunk_data  *oldData,
-                        const struct uds_chunk_data  *newData)
+                        const struct uds_record_data *oldData,
+                        const struct uds_record_data *newData)
 {
   struct uds_request request = {
     .record_name  = *name,
@@ -97,8 +97,8 @@ static struct uds_index *rebuildIndex(struct uds_index *index)
 static void doLotsaChunks(struct uds_index       *index,
                           int                     numChunks,
                           struct uds_record_name *names,
-                          struct uds_chunk_data  *oldData,
-                          struct uds_chunk_data  *newData)
+                          struct uds_record_data *oldData,
+                          struct uds_record_data *newData)
 {
   int i;
   for (i = 0; i < numChunks; i++) {
@@ -113,7 +113,7 @@ static void doLotsaChunks(struct uds_index       *index,
 /**********************************************************************/
 static void testWithNames(int numChunks, struct uds_record_name *names)
 {
-  struct uds_chunk_data data1, data2, data3;
+  struct uds_record_data data1, data2, data3;
   createMyMetadata(&data1, "First Data");
   createMyMetadata(&data2, "Second Data");
   createMyMetadata(&data3, "Third Data");

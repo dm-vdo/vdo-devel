@@ -73,7 +73,7 @@ static void waitForCallbacks(unsigned int expectedCount)
 /**********************************************************************/
 static void addBlocksToZone(unsigned int zone, unsigned int count)
 {
-  struct uds_chunk_data metadata;
+  struct uds_record_data metadata;
   createRandomMetadata(&metadata);
   unsigned int i;
   for (i = 0; i < count; i++) {
@@ -154,7 +154,7 @@ static void laggingZonesTest(void)
 
   // Add a half chapter worth of blocks across all zones.
   struct uds_record_name name;
-  struct uds_chunk_data metadata;
+  struct uds_record_data metadata;
   createRandomMetadata(&metadata);
   unsigned int i;
   for (i = 0; i < (recordsPerChapter / 2); i++) {

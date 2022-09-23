@@ -28,8 +28,8 @@ typedef struct {
   int startCounter;
   int numChunks;
   enum uds_request_type type;
-  struct uds_chunk_data newMetadata;
-  struct uds_chunk_data oldMetadata;
+  struct uds_record_data newMetadata;
+  struct uds_record_data oldMetadata;
   bool isIndexed;
   bool isSparse;
 } Group;
@@ -61,12 +61,12 @@ static void callback(struct uds_request *request)
   UDS_ASSERT_SUCCESS(request->status);
   CU_ASSERT_EQUAL(request->type, group->type);
   UDS_ASSERT_EQUAL_BYTES(&request->new_metadata, &group->newMetadata,
-                         sizeof(struct uds_chunk_data));
+                         sizeof(struct uds_record_data));
   if (!group->isSparse) {
     if (group->isIndexed) {
       CU_ASSERT_TRUE(request->found);
       UDS_ASSERT_EQUAL_BYTES(&request->old_metadata, &group->oldMetadata,
-                             sizeof(struct uds_chunk_data));
+                             sizeof(struct uds_record_data));
     } else {
       CU_ASSERT_FALSE(request->found);
     }
@@ -117,7 +117,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
   ExpectStats expect;
   setExpectations(testIndex->indexSession, &expect);
   uint64_t counter = group->startCounter;
-  struct uds_chunk_data metadata;
+  struct uds_record_data metadata;
   prandom_bytes(&metadata, sizeof(metadata));
   group->type        = type;
   group->newMetadata = metadata;

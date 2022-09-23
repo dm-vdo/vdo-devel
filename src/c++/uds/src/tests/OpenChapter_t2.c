@@ -72,7 +72,7 @@ static struct buffered_writer *openBufferedWriterForChapter(void)
 
 /**********************************************************************/
 static void requestIndex(struct uds_record_name *hash,
-                         struct uds_chunk_data  *newMetadata)
+                         struct uds_record_data *newMetadata)
 {
   struct uds_request request = {
     .record_name  = *hash,
@@ -130,7 +130,7 @@ static void testSaveLoadWithData(void)
   for (i = 0; i < totalRecords; i++) {
     unsigned int zone = get_volume_index_zone(theIndex->volume_index,
                                               &records[i].name);
-    struct uds_chunk_data metadata;
+    struct uds_record_data metadata;
     bool found = false;
 
     search_open_chapter(theIndex->zones[zone]->open_chapter, &records[i].name,
@@ -189,7 +189,7 @@ static void testSaveLoadWithDiscard(void)
     unsigned int zone = get_volume_index_zone(theIndex->volume_index,
                                               &records[i].name);
     recordsPerZone[zone]++;
-    struct uds_chunk_data metadata;
+    struct uds_record_data metadata;
     bool found = false;
     struct open_chapter_zone *openChapter
       = theIndex->zones[zone]->open_chapter;

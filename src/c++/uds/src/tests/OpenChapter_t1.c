@@ -43,7 +43,7 @@ static void finishTest(void)
 
 /**********************************************************************/
 static void openChapterSearch(struct uds_record_name *name,
-                              struct uds_chunk_data  *data,
+                              struct uds_record_data *data,
                               bool                    expectFound)
 {
   bool found;
@@ -56,7 +56,7 @@ static void testEmpty(void)
 {
   struct uds_record_name name;
   struct uds_record_name zero;
-  struct uds_chunk_data meta;
+  struct uds_record_data meta;
 
   createRandomBlockName(&name);
   memset(&zero, 0, sizeof(zero));
@@ -74,7 +74,7 @@ static void testEmpty(void)
 }
 
 /**********************************************************************/
-static void put(struct uds_record_name *name, struct uds_chunk_data *data,
+static void put(struct uds_record_name *name, struct uds_record_data *data,
                 bool expectFull)
 {
   unsigned int remaining = put_open_chapter(openChapter, name, data);
@@ -84,7 +84,7 @@ static void put(struct uds_record_name *name, struct uds_chunk_data *data,
 
 /**********************************************************************/
 static void putNotFull(struct uds_record_name *name,
-                       struct uds_chunk_data  *data)
+                       struct uds_record_data *data)
 {
   put(name, data, false);
 }
@@ -93,10 +93,10 @@ static void putNotFull(struct uds_record_name *name,
 static void testSingleton(void)
 {
   struct uds_record_name name1;
-  struct uds_chunk_data meta1;
+  struct uds_record_data meta1;
   struct uds_record_name name2;
-  struct uds_chunk_data meta2;
-  struct uds_chunk_data metaOut;
+  struct uds_record_data meta2;
+  struct uds_record_data metaOut;
 
   createRandomBlockName(&name1);
   createRandomMetadata(&meta1);
@@ -131,7 +131,7 @@ static void testSingleton(void)
 static void testFilling(void)
 {
   struct uds_record_name name;
-  struct uds_chunk_data meta;
+  struct uds_record_data meta;
 
   // Almost fill the chapter with randomly-generated data.
   unsigned int fullLessOne = openChapter->capacity - 1;
@@ -180,7 +180,7 @@ static void testQuadraticProbing(void)
   unsigned int i;
   for (i = 0; i < recordsPerZone; ++i) {
     struct uds_record_name name;
-    struct uds_chunk_data data;
+    struct uds_record_data data;
     do {
       createRandomBlockName(&name);
       memcpy(&data.data, &name.name, UDS_RECORD_NAME_SIZE);

@@ -47,12 +47,12 @@ void reset_open_chapter(struct open_chapter_zone *open_chapter);
 
 void search_open_chapter(struct open_chapter_zone *open_chapter,
 			 const struct uds_record_name *name,
-			 struct uds_chunk_data *metadata,
+			 struct uds_record_data *metadata,
 			 bool *found);
 
 int __must_check put_open_chapter(struct open_chapter_zone *open_chapter,
 				  const struct uds_record_name *name,
-				  const struct uds_chunk_data *metadata);
+				  const struct uds_record_data *metadata);
 
 void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 			      const struct uds_record_name *name);
