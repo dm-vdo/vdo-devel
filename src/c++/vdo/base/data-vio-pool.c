@@ -21,9 +21,7 @@
 #include "permassert.h"
 
 #include "data-vio.h"
-#ifdef __KERNEL__
 #include "dump.h"
-#endif /* __KERNEL__ */
 #include "vdo.h"
 #include "types.h"
 
@@ -781,9 +779,7 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 				continue;
 			}
 
-#ifdef __KERNEL__
 			dump_data_vio(data_vio);
-#endif // __KERNEL
 			if (++dumped >= ELEMENTS_PER_BATCH) {
 				spin_unlock(&pool->lock);
 				dumped = 0;

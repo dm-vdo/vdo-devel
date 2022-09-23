@@ -287,3 +287,34 @@ bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
 {
   return (queue->type == type);
 }
+
+/**********************************************************************/
+void dump_completion_to_buffer(struct vdo_completion *completion,
+			       char *buffer,
+			       size_t length)
+{
+  size_t current_length = snprintf(buffer,
+                                   length,
+                                   "%.*s/",
+                                   TASK_COMM_LEN,
+                                   (completion->my_queue == NULL ?
+                                    "-" :
+                                    completion->my_queue->name));
+  if (current_length < length) {
+    if (completion->callback == NULL) {
+      strncpy(buffer + current_length, "-", length - current_length);
+    } else {
+      snprintf(buffer + current_length,
+               length - current_length,
+               "%lu",
+               (uintptr_t) completion->callback);
+    }
+  }
+}
+
+void dump_work_queue(struct vdo_work_queue *queue)
+{
+  uds_log_info("workQ %s %s",
+               queue->name,
+               (READ_ONCE(queue->running) ? "running" : "idle"));
+}

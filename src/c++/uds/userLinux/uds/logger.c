@@ -314,6 +314,10 @@ int __uds_log_strerror(int priority,
 	return errnum;
 }
 
+#if defined(TEST_INTERNAL) || defined(INTERNAL)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-format-attribute"
+#endif
 /**********************************************************************/
 void uds_log_message(int priority, const char *format, ...)
 {
@@ -323,6 +327,9 @@ void uds_log_message(int priority, const char *format, ...)
 	uds_log_embedded_message(priority, NULL, NULL, format, args, "%s", "");
 	va_end(args);
 }
+#if defined(TEST_INTERNAL) || defined(INTERNAL)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Log the contents of /proc/self/maps so that we can decode the addresses

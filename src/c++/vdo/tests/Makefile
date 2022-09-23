@@ -63,6 +63,7 @@ TEST_COMMON  = adminUtils.o              \
                callbackWrappingUtils.o   \
                completionUtils.o         \
                dataBlocks.o              \
+               dump.o                    \
                dm-kcopyd.o               \
                intIntMap.o               \
                ioRequest.o               \
@@ -86,6 +87,8 @@ TEST_COMMON  = adminUtils.o              \
 
 STRUCT_HEADERS = dedupeContext.h hashZone.h
 
+GENERATED_FILES = $(STRUCT_HEADERS) dump.c
+
 LOGDIR ?= $(CURDIR)
 
 .PHONY: all
@@ -101,7 +104,7 @@ doc:
 .PHONY: clean
 clean:
 	rm -f $(PROGS) $(PERF_PROGS) $(VDOTEST) *.so *.o vdo-checkin.xml core*
-	rm -fr $(DEPDIR) tmpdir $(STRUCT_HEADERS)
+	rm -fr $(DEPDIR) tmpdir $(GENERATED_FILES)
 
 checkin: all
 ifeq ($(SAVELOGS),1)
@@ -144,6 +147,9 @@ endef
 
 $(eval $(call struct_header,dedupeContext.h,$(VDO_BASE_DIR)/dedupe.c,dedupe_context))
 $(eval $(call struct_header,hashZone.h,$(VDO_BASE_DIR)/dedupe.c,hash_zone))
+
+dump.c: $(VDO_BASE_DIR)/dump.c dump.h Makefile
+	sed -e 's/%llu/%lu/g' < $< > $@
 
 .PHONY: FORCE
 FORCE:

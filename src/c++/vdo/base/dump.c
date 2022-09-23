@@ -18,6 +18,7 @@
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
+#include "work-queue.h"
 
 enum dump_options {
 	/* Work queues */
@@ -112,10 +113,10 @@ static int parse_dump_options(unsigned int argc,
 	};
 
 	bool options_okay = true;
-	int i;
+	unsigned int i;
 
 	for (i = 1; i < argc; i++) {
-		int j;
+		unsigned int j;
 
 		for (j = 0; j < ARRAY_SIZE(option_names); j++) {
 			if (is_arg_string(argv[i], option_names[j].name)) {
@@ -251,11 +252,12 @@ void dump_data_vio(void *data)
 	 * Another static buffer...
 	 * log10(256) = 2.408+, round up:
 	 */
-	enum { DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };
+	enum { DIGITS_PER_UINT64_T = 1 + sizeof(uint64_t) * 2409 / 1000 };
+
 	static char vio_block_number_dump_buffer[sizeof("P L D")
 						 + 3 * DIGITS_PER_UINT64_T];
 	static char vio_flush_generation_buffer[sizeof(" FG")
-						+ DIGITS_PER_UINT64_T] = "";
+						+ DIGITS_PER_UINT64_T];
 	static char flags_dump_buffer[8];
 
 	/*

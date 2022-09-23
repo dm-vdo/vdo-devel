@@ -13,6 +13,7 @@
 #include <dlfcn.h>
 #include <err.h>
 #include <getopt.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -36,6 +37,9 @@
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "testUtils.h"
+
+#include "dump.h"
+#include "vdoTestBase.h"
 
 enum {
   SINGLE_SUITE_MODULE = 1,
@@ -405,10 +409,29 @@ static void runTestDirCleanup(CU_TestDirInfo *testDirInfo,
 }
 
 /**********************************************************************/
+static void alarm_handler(int signum __attribute__((unused)))
+{
+  vdo_dump_all(vdo, "timeout");
+  CU_FAIL("Timedout");
+}
+
+/**********************************************************************/
 static int testSub(CU_TestDirInfo *testDirInfo,
                    CU_SuiteInfo   *suite,
                    CU_TestInfo    *test)
 {
+  sigset_t emptySet, savedSet;
+  struct sigaction oldaction;
+  UDS_ASSERT_SYSTEM_CALL(sigemptyset(&emptySet));
+  UDS_ASSERT_SYSTEM_CALL(pthread_sigmask(SIG_BLOCK, &emptySet, &savedSet));
+  if (timeout > 0) {
+    struct sigaction action;
+    action.sa_handler = alarm_handler;
+    action.sa_mask    = emptySet;
+    action.sa_flags   = 0;
+    sigaction(SIGALRM, &action, &oldaction);
+  }
+
   runTestDirInit(testDirInfo, suite->name, test->name);
   alarm(timeout);
   if (suite->initializerWithArguments != NULL) {
@@ -437,6 +460,10 @@ static int testSub(CU_TestDirInfo *testDirInfo,
   runTestDirCleanup(testDirInfo, suite->name, test->name);
   alarm(0);
   killChildren();
+  if (timeout > 0) {
+    sigaction(SIGALRM, &oldaction, NULL);
+  }
+  UDS_ASSERT_SYSTEM_CALL(sigprocmask(SIG_SETMASK, &savedSet, NULL));
   return 0;
 }
 
@@ -495,11 +522,7 @@ static TestResult runTest(CU_TestDirInfo *testDirInfo,
       }
     }
   } else {
-    sigset_t emptySet, savedSet;
-    UDS_ASSERT_SYSTEM_CALL(sigemptyset(&emptySet));
-    UDS_ASSERT_SYSTEM_CALL(sigprocmask(SIG_BLOCK, &emptySet, &savedSet));
     result.failures = testSub(NULL, suite, test);
-    UDS_ASSERT_SYSTEM_CALL(sigprocmask(SIG_SETMASK, &savedSet, NULL));
   }
 
   struct timeval tv1;

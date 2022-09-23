@@ -128,9 +128,13 @@ void __uds_log_message(int priority,
 		       const char *format,
 		       ...)
 	__printf(3, 4);
-#else
+#else /* not __KERNEL__ */
+#if defined(TEST_INTERNAL) || defined(INTERNAL)
+void uds_log_message(int priority, const char *format, ...);
+#else /* neither TEST_INTERNAL nor INTERNAL */
 void uds_log_message(int priority, const char *format, ...)
 	__printf(2, 3);
+#endif /* TEST_INTERNAL */
 #endif /* __KERNEL__ */
 
 #define uds_log_debug(...) uds_log_message(UDS_LOG_DEBUG, __VA_ARGS__)

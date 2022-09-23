@@ -17,9 +17,7 @@
 #include "block-map.h"
 #include "compressed-block.h"
 #include "compression-state.h"
-#ifdef __KERNEL__
 #include "dump.h"
-#endif /* __KERNEL__ */
 #include "int-map.h"
 #include "logical-zone.h"
 #include "packer.h"
