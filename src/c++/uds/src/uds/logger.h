@@ -102,22 +102,22 @@ int uds_vlog_strerror(int priority,
 
 /* Log an error prefixed with the string associated with the errnum. */
 #define uds_log_error_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_ERR, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_ERR, errnum, __VA_ARGS__)
 
 #define uds_log_debug_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_DEBUG, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_DEBUG, errnum, __VA_ARGS__)
 
 #define uds_log_info_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_INFO, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_INFO, errnum, __VA_ARGS__)
 
 #define uds_log_notice_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_NOTICE, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_NOTICE, errnum, __VA_ARGS__)
 
 #define uds_log_warning_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_WARNING, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_WARNING, errnum, __VA_ARGS__)
 
 #define uds_log_fatal_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_CRIT, errnum, __VA_ARGS__);
+	uds_log_strerror(UDS_LOG_CRIT, errnum, __VA_ARGS__)
 
 #ifdef __KERNEL__
 #define uds_log_message(priority, ...) \
