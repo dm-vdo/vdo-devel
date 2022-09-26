@@ -23,7 +23,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 # These constants were observed, if anything changes, they should be updated.
 my $EXPECTED_PHYSICAL_SIZE_SCALING = 0.00025559775531292;
-my $EXPECTED_CACHE_SCALING = 1.121157646;
+my $EXPECTED_CACHE_SCALING = 1.105532169;
 
 ########################################################################
 # @paramList{getProperties}
