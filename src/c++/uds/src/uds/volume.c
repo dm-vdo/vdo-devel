@@ -25,6 +25,51 @@
 #include "string-utils.h"
 #include "uds-threads.h"
 
+/*
+ * The volume manages deduplication records on permanant storage.
+ * 
+ * The first block of the volume layout is reserved for the volume header,
+ * which is no longer used. The remainder of the volume is divided into
+ * chapters consisting of several pages of records, and several pages of static
+ * index to use to find those records. The index pages are recorded first,
+ * followed by the record pages. The chapters are written in order as they are
+ * filled, so the volume storage acts as a circular log of the most recent
+ * chapters, with each new chapter overwriting the oldest saved one.
+ *
+ * When a new chapter is filled and closed, the records from that chapter are
+ * sorted and interleaved in approximate temporal order, and assigned to record
+ * pages. Then a static delta index is generated to store which record page
+ * contains each record. The in-memory index page map is also updated to
+ * indicate which delta lists fall on each chapter index page. This means that
+ * when a record is read, the volume only has to load a single index page and a
+ * single record page, rather than search the entire chapter. These index and
+ * record pages are written to storage, and the index pages are transferred to
+ * the page cache under the theory that the most recently written chapter is
+ * likely to be accessed again soon.
+ *
+ * When reading a record, the volume index will indicate which chapter should
+ * contain it. The volume uses the index page map to determine which chapter
+ * index page needs to be loaded, and then reads the relevant record page
+ * number from the chapter index. Both index and record pages are stored in a
+ * page cache when read for the common case that subsequent records need the
+ * same pages. The page cache evicts the least recently accessed entries when
+ * caching new pages. In addition, the volume uses dm-bufio to manage access to
+ * the storage, which may allow for additional caching depending on available
+ * system resources.
+ *
+ * Record requests are handled from cached pages when possible. If a page needs
+ * to be read, it is placed on a queue along with the request that wants to
+ * read it. Any requests for the same page that arrive while the read is
+ * pending are added to the queue entry. A separate reader thread handles the
+ * queued reads, adding the page to the cache and updating any requests queued
+ * with it so they can continue processing. This allows the index zone threads
+ * to continue processing new requests rather than wait for the storage reads.
+ * 
+ * When an index rebuild is necessary, the volume reads each stored chapter to
+ * determine which range of chapters contain valid records, so that those
+ * records can be used to reconstruct the in-memory volume index.
+ */
+
 enum {
 	MAX_BAD_CHAPTERS = 100,  /* max number of contiguous bad chapters */
 };
@@ -101,38 +146,15 @@ static void release_page_buffer(struct cached_page *page)
 	}
 }
 
-/**
- * Clear a cache page. Note: this does not clear read_pending - a read could
- * still be pending and the read thread needs to be able to proceed and restart
- * the requests regardless. This page will still be marked invalid, but it
- * won't get reused (see get_least_recent_page()) until the read_pending flag
- * is cleared. This is a valid case, e.g. the chapter gets forgotten and
- * replaced with a new one in LRU. Restarting the requests will lead them to
- * not find the records in the MI.
- *
- * @param cache   the cache
- * @param page    the cached page to clear
- *
- **/
 static void clear_cache_page(struct page_cache *cache,
 			     struct cached_page *page)
 {
+	/* Do not clear read_pending because the read queue relies on it. */
 	release_page_buffer(page);
 	page->cp_physical_page = cache->num_index_entries;
 	WRITE_ONCE(page->cp_last_used, 0);
 }
 
-/**
- * Get a page from the cache, but with no stats
- *
- * @param cache         the cache
- * @param physical_page the physical page to get
- * @param queue_index   the index of the page in the read queue if
- *                      queued, -1 otherwise
- * @param page_ptr      a pointer to hold the page
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check get_page_and_index(struct page_cache *cache,
 					   unsigned int physical_page,
 					   int *queue_index,
@@ -144,7 +166,7 @@ static int __must_check get_page_and_index(struct page_cache *cache,
 	/*
 	 * ASSERTION: We are either a zone thread holding a
 	 * search_pending_counter, or we are any thread holding the
-	 * readThreadsMutex.
+	 * read_threads_mutex.
 	 *
 	 * Holding only a search_pending_counter is the most frequent case.
 	 */
@@ -170,9 +192,9 @@ static int __must_check get_page_and_index(struct page_cache *cache,
 		*page_ptr = &cache->cache[index];
 		/*
 		 * We have acquired access to the cached page, but
-		 * unless we hold the readThreadsMutex, we need a read
+		 * unless we hold the read_threads_mutex, we need a read
 		 * memory barrier now. The corresponding write memory
-		 * barrier is in put_page_in_cache.
+		 * barrier is in put_page_in_cache().
 		 */
 		smp_rmb();
 	} else {
@@ -183,23 +205,17 @@ static int __must_check get_page_and_index(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-/**
- * Wait for all pending searches on a page in the cache to complete
- *
- * @param cache          the page cache
- * @param physical_page  the page to check searches on
- **/
 static void wait_for_pending_searches(struct page_cache *cache,
 				      unsigned int physical_page)
 {
 	invalidate_counter_t initial_counters[MAX_ZONES];
 	unsigned int i;
 	/*
-	 * We hold the readThreadsMutex. We are waiting for threads
-	 * that do not hold the readThreadsMutex. Those threads have
+	 * We hold the read_threads_mutex. We are waiting for threads
+	 * that do not hold the read_threads_mutex. Those threads have
 	 * "locked" their targeted page by setting the
 	 * search_pending_counter. The corresponding write memory
-	 * barrier is in begin_pending_search.
+	 * barrier is in begin_pending_search().
 	 */
 	smp_mb();
 
@@ -213,6 +229,7 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			/*
 			 * There is an active search using the physical page.
 			 * We need to wait for the search to finish.
+			 *
 			 * FIXME: Investigate using wait_event() to
 			 * wait for the search to finish.
 			 */
@@ -224,20 +241,12 @@ static void wait_for_pending_searches(struct page_cache *cache,
 	}
 }
 
-/**
- * Invalidate a cache page
- *
- * @param cache  the cache
- * @param page   the cached page
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check invalidate_page_in_cache(struct page_cache *cache,
 						 struct cached_page *page)
 {
 	int result;
 
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	if (page == NULL) {
 		return UDS_SUCCESS;
 	}
@@ -268,7 +277,7 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 	int queue_index = -1;
 	int result;
 
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	if (cache == NULL) {
 		return UDS_SUCCESS;
 	}
@@ -291,7 +300,6 @@ int find_invalidate_and_make_least_recent(struct page_cache *cache,
 		return UDS_SUCCESS;
 	}
 
-	/* Invalidate the page and unmap it from the cache. */
 	result = invalidate_page_in_cache(cache, page);
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -447,7 +455,7 @@ int invalidate_page_cache_for_chapter(struct page_cache *cache,
 {
 	int result;
 	unsigned int i;
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	if ((cache == NULL) || (cache->cache == NULL)) {
 		return UDS_SUCCESS;
 	}
@@ -471,33 +479,19 @@ void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 	/*
 	 * ASSERTION: We are either a zone thread holding a
 	 * search_pending_counter, or we are any thread holding the
+	 * read_threads_mutex.
 	 */
-	/* readThreadsMutex. */
 	if (atomic64_read(&cache->clock) != READ_ONCE(page->cp_last_used)) {
 		WRITE_ONCE(page->cp_last_used,
 			   atomic64_inc_return(&cache->clock));
 	}
 }
 
-/**
- * Get the least recent valid page from the cache.
- *
- * @param cache    the cache
- * @param page_ptr  a pointer to hold the new page (will be set to NULL
- *                 if the page was not found)
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check get_least_recent_page(struct page_cache *cache,
 					      struct cached_page **page_ptr)
 {
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	int oldest_index = 0;
-	/*
-	 * Our first candidate is any page that does have a pending read. We
-	 * ensure above that there are more entries than read threads, so there
-	 * must be one.
-	 */
 	unsigned int i;
 
 	for (i = 0;; i++) {
@@ -505,15 +499,13 @@ static int __must_check get_least_recent_page(struct page_cache *cache,
 			/* This should never happen. */
 			return ASSERT(false, "oldest page is not NULL");
 		}
+		/* A page with a pending read must not be replaced. */
 		if (!cache->cache[i].cp_read_pending) {
 			oldest_index = i;
 			break;
 		}
 	}
-	/*
-	 * Now find the least recently used page that does not have a pending
-	 * read.
-	 */
+
 	for (i = 0; i < cache->num_cache_entries; i++) {
 		if (!cache->cache[i].cp_read_pending &&
 		    (READ_ONCE(cache->cache[i].cp_last_used) <=
@@ -532,19 +524,21 @@ int get_page_from_cache(struct page_cache *cache,
 	/*
 	 * ASSERTION: We are in a zone thread.
 	 * ASSERTION: We holding a search_pending_counter or the
-	 * readThreadsMutex.
+	 * read_threads_mutex.
 	 */
 	int queue_index = -1;
 
 	return get_page_and_index(cache, physical_page, &queue_index, page);
 }
 
+/* Select a page to remove from the cache to make space for a new entry. */
 int select_victim_in_cache(struct page_cache *cache,
 			   struct cached_page **page_ptr)
 {
 	struct cached_page *page = NULL;
 	int result;
-	/* We hold the readThreadsMutex. */
+
+	/* We hold the read_threads_mutex. */
 	if (cache == NULL) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cannot put page in NULL cache");
@@ -560,10 +554,6 @@ int select_victim_in_cache(struct page_cache *cache,
 		return result;
 	}
 
-	/*
-	 * If the page is currently being pointed to by the page map, clear
-	 * it from the page map.
-	 */
 	if (page->cp_physical_page != cache->num_index_entries) {
 		WRITE_ONCE(cache->index[page->cp_physical_page],
 			   cache->num_cache_entries);
@@ -578,6 +568,7 @@ int select_victim_in_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
+/* Make a newly filled cache entry available to other threads. */
 int put_page_in_cache(struct page_cache *cache,
 		      unsigned int physical_page,
 		      struct cached_page *page)
@@ -585,7 +576,7 @@ int put_page_in_cache(struct page_cache *cache,
 	uint16_t value;
 	int result;
 
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	if (cache == NULL) {
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cannot complete page in NULL cache");
@@ -604,7 +595,6 @@ int put_page_in_cache(struct page_cache *cache,
 
 	page->cp_physical_page = physical_page;
 
-	/* Figure out the index into the cache array using pointer arithmetic */
 	value = page - cache->cache;
 	result = ASSERT((value < cache->num_cache_entries),
 			"cache index is valid");
@@ -617,14 +607,14 @@ int put_page_in_cache(struct page_cache *cache,
 	page->cp_read_pending = false;
 
 	/*
-	 * We hold the readThreadsMutex, but we must have a write memory
+	 * We hold the read_threads_mutex, but we must have a write memory
 	 * barrier before making the cached_page available to the readers
 	 * that do not hold the mutex. The corresponding read memory
 	 * barrier is in get_page_and_index().
 	 */
 	smp_wmb();
 
-	/* Point the page map to the new page. Will clear queued flag */
+	/* This assignment also clears the queued flag. */
 	WRITE_ONCE(cache->index[physical_page], value);
 
 	return UDS_SUCCESS;
@@ -635,7 +625,7 @@ void cancel_page_in_cache(struct page_cache *cache,
 			  struct cached_page *page)
 {
 	int result;
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	if (cache == NULL) {
 		uds_log_warning("cannot cancel page in NULL cache");
 		return;
@@ -655,7 +645,7 @@ void cancel_page_in_cache(struct page_cache *cache,
 	clear_cache_page(cache, page);
 	page->cp_read_pending = false;
 
-	/* Clear the page map for the new page. Will clear queued flag */
+	/* Clear the mapping and the queued flag for the new page. */
 	WRITE_ONCE(cache->index[physical_page], cache->num_cache_entries);
 }
 
@@ -665,33 +655,32 @@ int enqueue_read(struct page_cache *cache,
 {
 	int result;
 
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	uint16_t first = cache->read_queue_first;
 	uint16_t last = cache->read_queue_last;
 	uint16_t next = next_read_queue_position(last);
 	uint16_t read_queue_pos;
 
 	if ((cache->index[physical_page] & VOLUME_CACHE_QUEUED_FLAG) == 0) {
-		/* Not seen before, add this to the read queue and mark it as
-		 * queued */
+		/* This page has no existing entry in the queue. */
 		if (next == first) {
-			/* queue is full */
+			/* The queue is full. */
 			return UDS_SUCCESS;
 		}
-		/* fill the read queue entry */
+		/* Fill in the read queue entry. */
 		cache->read_queue[last].physical_page = physical_page;
 		cache->read_queue[last].invalid = false;
 
-		/* point the cache index to it */
+		/* Point the cache index to the read queue entry. */
 		read_queue_pos = last;
 		WRITE_ONCE(cache->index[physical_page],
 			   read_queue_pos | VOLUME_CACHE_QUEUED_FLAG);
 		cache->read_queue[read_queue_pos].request_list.first = NULL;
 		cache->read_queue[read_queue_pos].request_list.last = NULL;
-		/* bump the last pointer */
+		/* Advance the last pointer. */
 		cache->read_queue_last = next;
 	} else {
-		/* It's already queued, just add on to it */
+		/* It's already queued, so add to the existing entry. */
 		read_queue_pos =
 			cache->index[physical_page] & ~VOLUME_CACHE_QUEUED_FLAG;
 	}
@@ -721,7 +710,7 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 
 	if (search_pending(invalidate_counter)) {
 		/*
-		 * Increment the invalidate counter to avoid deadlock where the
+		 * Release any search_pending lock to avoid deadlock where the
 		 * reader threads cannot make progress because they are waiting
 		 * on the counter and the index thread cannot because the read
 		 * queue is full.
@@ -737,7 +726,7 @@ static void wait_for_read_queue_not_full(struct volume *volume,
 	}
 
 	if (search_pending(invalidate_counter)) {
-		/* Increment again so we get back to an odd value. */
+		/* Reacquire the search_pending lock released earlier. */
 		begin_pending_search(volume->page_cache,
 				     page_being_searched(invalidate_counter),
 				     zone_number);
@@ -749,10 +738,8 @@ int enqueue_page_read(struct volume *volume,
 		      int physical_page)
 {
 	int result;
-	/*
-	 * Don't allow new requests if we are shutting down, but make sure
-	 * to process any requests that are still in the pipeline.
-	 */
+
+	/* Don't allow new requests if we are shutting down. */
 	if ((volume->reader_state & READER_STATE_EXIT) != 0) {
 		uds_log_info("failed to queue read while shutting down");
 		return -EBUSY;
@@ -761,7 +748,7 @@ int enqueue_page_read(struct volume *volume,
 	/*
 	 * Mark the page as queued in the volume cache, for chapter
 	 * invalidation to be able to cancel a read. If we are unable to do
-	 * this because the queues are full, flush them first
+	 * this because the queues are full, flush them first.
 	 */
 	while ((result = enqueue_read(volume->page_cache,
 				      request,
@@ -771,20 +758,23 @@ int enqueue_page_read(struct volume *volume,
 	}
 
 	if (result == UDS_QUEUED) {
-		/* signal a read thread */
 		uds_signal_cond(&volume->read_threads_cond);
 	}
 
 	return result;
 }
 
+/*
+ * Claim the next read queue entry for processing, but do not actually remove
+ * it from the queue. Must be followed by release_read_queue_entry().
+ */
 bool reserve_read_queue_entry(struct page_cache *cache,
 			      unsigned int *queue_pos,
 			      struct uds_request **first_request,
 			      unsigned int *physical_page,
 			      bool *invalid)
 {
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	uint16_t last_read = cache->read_queue_last_read;
 	unsigned int page_no;
 	uint16_t index_value;
@@ -801,18 +791,14 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	index_value = cache->index[page_no];
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 
-	/*
-	 * ALB-1429 ... need to check to see if its still queued before
-	 * resetting
-	 */
+	/* Check to see if it's still queued before resetting. */
 	if (is_invalid && queued) {
-		/* invalidate cache index slot */
 		WRITE_ONCE(cache->index[page_no], cache->num_cache_entries);
 	}
 
 	/*
-	 * If a sync read has taken this page, set invalid to true so we don't
-	 * overwrite, we simply just requeue requests.
+	 * If a synchronous read has taken this page, set invalid to true so it
+	 * doesn't get overwritten. Requests will just be requeued.
 	 */
 	if (!queued) {
 		is_invalid = true;
@@ -829,14 +815,15 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 	return true;
 }
 
+/* Release a reserved read queue entry so it can be reused. */
 void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 {
-	/* We hold the readThreadsMutex. */
+	/* We hold the read_threads_mutex. */
 	uint16_t last_read = cache->read_queue_last_read;
 
 	cache->read_queue[queue_pos].reserved = false;
 
-	/* Move the read_queue_first pointer along when we can */
+	/* Move the read_queue_first pointer as far as we can. */
 	while ((cache->read_queue_first != last_read) &&
 	       (!cache->read_queue[cache->read_queue_first].reserved)) {
 		cache->read_queue_first =
@@ -936,7 +923,6 @@ EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 					const struct geometry *geometry,
 					struct uds_record_data *metadata)
 {
-	/* The record page is just an array of chunk records. */
 	const struct uds_chunk_record *records =
 		(const struct uds_chunk_record *) record_page;
 
@@ -956,10 +942,8 @@ EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 			}
 			return true;
 		}
-		/*
-		 * The children of node N are in the heap at indexes 2N+1 and
-		 * 2N+2.
-		 */
+
+		/* The children of node N are at indexes 2N+1 and 2N+2. */
 		node = ((2 * node) + ((result < 0) ? 1 : 2));
 	}
 	return false;
@@ -1036,10 +1020,6 @@ static void read_thread_function(void *arg)
 		record_page = is_record_page(volume->geometry, physical_page);
 
 		if (!invalid) {
-			/*
-			 * Find a place to put the read queue page we reserved
-			 * above.
-			 */
 			result = select_victim_in_cache(volume->page_cache,
 							&page);
 			if (result == UDS_SUCCESS) {
@@ -1115,7 +1095,7 @@ static void read_thread_function(void *arg)
 			/*
 			 * If we've read in a record page, we're going to do an
 			 * immediate search, to speed up processing by avoiding
-			 * get_record_from_zone, and to ensure that requests
+			 * get_record_from_zone(), and to ensure that requests
 			 * make progress even when queued. If we've read in an
 			 * index page, we save the record page number so we
 			 * don't have to resolve the index page again. We use
@@ -1130,7 +1110,6 @@ static void read_thread_function(void *arg)
 						     record_page);
 			}
 
-			/* reflect any read failures in the request status */
 			request->status = result;
 			request->requeued = true;
 #ifdef TEST_INTERNAL
@@ -1162,7 +1141,6 @@ static int read_page_locked(struct volume *volume,
 	byte *page_data;
 
 	if (sync_read) {
-		/* Find a place to put the page. */
 		result = select_victim_in_cache(volume->page_cache, &page);
 		if (result != UDS_SUCCESS) {
 			uds_log_warning("Error selecting cache victim for page read");
@@ -1216,6 +1194,7 @@ static int read_page_locked(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
+/* Retrieve a page from the cache while holding the read threads mutex. */
 int get_volume_page_locked(struct volume *volume,
 			   unsigned int physical_page,
 			   struct cached_page **page_ptr)
@@ -1240,6 +1219,7 @@ int get_volume_page_locked(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
+/* Retrieve a page from the cache while holding a search_pending lock. */
 int get_volume_page_protected(struct volume *volume,
 			      struct uds_request *request,
 			      unsigned int physical_page,
@@ -1256,21 +1236,18 @@ int get_volume_page_protected(struct volume *volume,
 	}
 
 	zone_number = get_zone_number(request);
-	/*
-	 * If we didn't find a page we need to enqueue a read for it, in which
-	 * case we need to grab the mutex.
-	 */
+	/* Grab the mutex so we can enqueue a read for the page. */
 	if (page == NULL) {
 		end_pending_search(volume->page_cache, zone_number);
 		uds_lock_mutex(&volume->read_threads_mutex);
 
 		/*
 		 * Do the lookup again while holding the read mutex (no longer
-		 * the fast case so this should be ok to repeat). We need to do
-		 * this because an page may have been added to the page map by
-		 * the reader thread between the time searched above and the
+		 * the fast case so this should be fine to repeat). We need to
+		 * do this because a page may have been added to the cache by a
+		 * reader thread between the time we searched above and the
 		 * time we went to actually try to enqueue it below. This could
-		 * result in us enqueuing another read for an page which is
+		 * result in us enqueuing another read for a page which is
 		 * already in the cache, which would mean we end up with two
 		 * entries in the cache for the same page.
 		 */
@@ -1285,15 +1262,15 @@ int get_volume_page_protected(struct volume *volume,
 			 * can't continue the search, and we don't need to
 			 * prevent other threads from messing with the cache.
 			 *
-			 * However, we do need to set the "search pending" flag
+			 * However, we do need to get the "search pending" lock
 			 * because the callers expect it to always be set on
 			 * return, even if they can't actually do the search.
 			 *
 			 * Doing the calls in this order ought to be faster,
 			 * since we let other threads have the reader thread
-			 * mutex (which can require a syscall) ASAP, and set
-			 * the "search pending" state that can block the reader
-			 * thread as the last thing.
+			 * mutex (which can require a syscall) immediately, and
+			 * set the "search pending" state that can block the
+			 * reader thread as the last thing.
 			 */
 			uds_unlock_mutex(&volume->read_threads_mutex);
 			begin_pending_search(volume->page_cache,
@@ -1302,18 +1279,13 @@ int get_volume_page_protected(struct volume *volume,
 			return result;
 		}
 
-		/*
-		 * If we found the page now, we can release the mutex and
-		 * proceed as if this were the fast case.
-		 */
 		if (page != NULL) {
 			/*
-			 * If we found a page (*page_ptr != NULL and return
-			 * UDS_SUCCESS), then we're telling the caller where to
-			 * look for the cache page, and need to switch to
-			 * "reader thread unlocked" and "search pending" state
-			 * in careful order so no other thread can mess with
-			 * the data before our caller gets to look at it.
+			 * If we found a page, then we're telling the caller
+			 * where to look for the cache page, and need to switch
+			 * to "reader thread unlocked" and "search pending"
+			 * state in careful order so no other thread can mess
+			 * with the data before our caller gets to look at it.
 			 */
 			begin_pending_search(volume->page_cache,
 					     physical_page,
@@ -1345,7 +1317,7 @@ int get_volume_page_protected(struct volume *volume,
 		uds_unlock_mutex(&volume->read_threads_mutex);
 	} else {
 		if (get_zone_number(request) == 0) {
-			/* Only 1 zone is responsible for updating LRU */
+			/* Only one zone is allowed to update the LRU. */
 			make_page_most_recent(volume->page_cache, page);
 		}
 	}
@@ -1380,22 +1352,10 @@ int get_volume_page(struct volume *volume,
 	return result;
 }
 
-/**
- * Search for a record name in a cached index page or chapter index, returning
- * the record page number from a chapter index match.
- *
- * @param volume              the volume containing the index page to search
- * @param request             the request originating the search (may be NULL
- *                            for a direct query from volume replay)
- * @param name                the record name to search for
- * @param chapter             the chapter to search
- * @param index_page_number   the index page number of the page to search
- * @param record_page_number  pointer to return the chapter record page number
- *                            (value will be NO_CHAPTER_INDEX_ENTRY if the name
- *                            was not found)
- *
- * @return UDS_SUCCESS or an error code
- **/
+/*
+ * Find the record page associated with a name in a given index page. This will
+ * return UDS_QUEUED if the page in question must be read from storage.
+ */
 static int search_cached_index_page(struct volume *volume,
 				    struct uds_request *request,
 				    const struct uds_record_name *name,
@@ -1412,9 +1372,9 @@ static int search_cached_index_page(struct volume *volume,
 
 	/*
 	 * Make sure the invalidate counter is updated before we try and read
-	 * from the page map.  This prevents this thread from reading a page in
-	 * the page map which has already been marked for invalidation by the
-	 * reader thread, before the reader thread has noticed that the
+	 * the mapping. This prevents this thread from reading a page in the
+	 * cache which has already been marked for invalidation by the reader
+	 * thread, before the reader thread has noticed that the
 	 * invalidate_counter has been incremented.
 	 */
 	begin_pending_search(volume->page_cache, physical_page, zone_number);
@@ -1443,6 +1403,10 @@ static int search_cached_index_page(struct volume *volume,
 	return result;
 }
 
+/*
+ * Find the metadata associated with a name in a given record page. This will
+ * return UDS_QUEUED if the page in question must be read from storage.
+ */
 int search_cached_record_page(struct volume *volume,
 			      struct uds_request *request,
 			      const struct uds_record_name *name,
@@ -1459,7 +1423,6 @@ int search_cached_record_page(struct volume *volume,
 	*found = false;
 
 	if (record_page_number == NO_CHAPTER_INDEX_ENTRY) {
-		/* No record for that name can exist in the chapter. */
 		return UDS_SUCCESS;
 	}
 
@@ -1481,9 +1444,9 @@ int search_cached_record_page(struct volume *volume,
 
 	/*
 	 * Make sure the invalidate counter is updated before we try and read
-	 * from the page map. This prevents this thread from reading a page in
-	 * the page map which has already been marked for invalidation by the
-	 * reader thread, before the reader thread has noticed that the
+	 * the mapping. This prevents this thread from reading a page in the
+	 * cache which has already been marked for invalidation by the reader
+	 * thread, before the reader thread has noticed that the
 	 * invalidate_counter has been incremented.
 	 */
 	begin_pending_search(volume->page_cache, physical_page, zone_number);
@@ -1603,16 +1566,11 @@ int forget_chapter(struct volume *volume, uint64_t virtual_chapter)
 	return result;
 }
 
-/**
- * Donate index page data to the page cache for an index page that was just
- * written to the volume.  The caller must already hold the reader thread
- * mutex.
- *
- * @param volume             the volume
- * @param physical_chapter   the physical chapter number of the index page
- * @param index_page_number  the chapter page number of the index page
- * @param page_buffer        the index page buffer
- **/
+/*
+ * Donate an index pages from a newly written chapter to the page cache since
+ * it is likely to be used again soon. The caller must already hold the
+ * reader thread mutex.
+ */
 static int donate_index_page_locked(struct volume *volume,
 				    unsigned int physical_chapter,
 				    unsigned int index_page_number,
@@ -1622,7 +1580,6 @@ static int donate_index_page_locked(struct volume *volume,
 							  physical_chapter,
 							  index_page_number);
 
-	/* Find a place to put the page. */
 	struct cached_page *page = NULL;
 	int result = select_victim_in_cache(volume->page_cache, &page);
 
@@ -1682,7 +1639,6 @@ int write_index_pages(struct volume *volume,
 							"failed to prepare index page");
 		}
 
-		/* Pack as many delta lists into the index page as will fit. */
 		last_page = ((index_page_number + 1) ==
 			     geometry->index_pages_per_chapter);
 		result = pack_open_chapter_index_page(chapter_index,
@@ -1712,10 +1668,6 @@ int write_index_pages(struct volume *volume,
 			       geometry->bytes_per_page);
 		}
 
-		/*
-		 * Tell the index page map the list number of the last delta
-		 * list that was packed into the index page.
-		 */
 		if (lists_packed == 0) {
 			uds_log_debug("no delta lists packed on chapter %u page %u",
 				      physical_chapter_number,
@@ -1730,7 +1682,6 @@ int write_index_pages(struct volume *volume,
 				      index_page_number,
 				      delta_list_number - 1);
 
-		/* Donate the page data for the index page to the page cache. */
 		uds_lock_mutex(&volume->read_threads_mutex);
 		result = donate_index_page_locked(volume,
 						  physical_chapter_number,
@@ -1784,21 +1735,19 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 				       byte record_page[])
 {
 	int result;
+	unsigned int i;
 	unsigned int records_per_page = volume->geometry->records_per_page;
 	const struct uds_chunk_record **record_pointers =
 		volume->record_pointers;
-
-	/*
-	 * Build an array of record pointers. We'll sort the pointers by the
-	 * block names in the records, which is less work than sorting the
-	 * record values.
-	 */
-	unsigned int i;
 
 	for (i = 0; i < records_per_page; i++) {
 		record_pointers[i] = &records[i];
 	}
 
+	/*
+	 * Sort the record pointers by using just the names in the records,
+	 * which is less work than sorting the entire record values.
+	 */
 	STATIC_ASSERT(offsetof(struct uds_chunk_record, name) == 0);
 	result = radix_sort(volume->radix_sorter,
 				(const byte **) record_pointers,
@@ -1808,10 +1757,6 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 		return result;
 	}
 
-	/*
-	 * Use the sorted pointers to copy the records from the chapter to the
-	 * record page in tree order.
-	 */
 	encode_tree(record_page, record_pointers, 0, 0, records_per_page);
 	return UDS_SUCCESS;
 }
@@ -1825,7 +1770,7 @@ int write_record_pages(struct volume *volume,
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
 	const struct uds_chunk_record *next_record = records;
-	/* Skip over the index pages, which come before the record pages */
+	/* Skip over the index pages, which have already been written. */
 	physical_page += geometry->index_pages_per_chapter;
 
 	for (record_page_number = 0;
@@ -1842,10 +1787,6 @@ int write_record_pages(struct volume *volume,
 							"failed to prepare record page");
 		}
 
-		/*
-		 * Sort the next page of records and copy them to the record
-		 * page as a binary tree stored in heap order.
-		 */
 		result = encode_record_page(volume, next_record, page_data);
 		if (result != UDS_SUCCESS) {
 			dm_bufio_release(page_buffer);
@@ -1879,7 +1820,6 @@ int write_chapter(struct volume *volume,
 		  struct open_chapter_index *chapter_index,
 		  const struct uds_chunk_record *records)
 {
-	/* Determine the position of the virtual chapter in the volume file. */
 	struct geometry *geometry = volume->geometry;
 	unsigned int physical_chapter_number =
 		map_to_physical_chapter(geometry,
@@ -1887,18 +1827,17 @@ int write_chapter(struct volume *volume,
 	int physical_page =
 		map_to_physical_page(geometry, physical_chapter_number, 0);
 
-	/* Pack and write the delta chapter index pages to the volume. */
 	int result =
 		write_index_pages(volume, physical_page, chapter_index, NULL);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	/* Sort and write the record pages to the volume. */
+
 	result = write_record_pages(volume, physical_page, records, NULL);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	/* Flush the data to permanent storage. */
+
 	result = -dm_bufio_write_dirty_buffers(volume->client);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result,
@@ -2006,16 +1945,11 @@ static int probe_wrapper(void *aux,
 	return result;
 }
 
+/* Find the last valid physical chapter in the volume. */
 static int find_real_end_of_volume(struct volume *volume,
 				   unsigned int limit,
 				   unsigned int *limit_ptr)
 {
-	/*
-	 * Start checking from the end of the volume. As long as we hit corrupt
-	 * data, start skipping larger and larger amounts until we find real
-	 * data. If we find real data, reduce the span and try again until we
-	 * find the exact boundary.
-	 */
 	unsigned int span = 1;
 	unsigned int tries = 0;
 
@@ -2047,6 +1981,10 @@ static int find_real_end_of_volume(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
+/*
+ * Find the highest and lowest contiguous chapters present in the volume and
+ * determine their virtual chapter numbers. This is used by rebuild.
+ */
 int find_volume_chapter_boundaries(struct volume *volume,
 				   uint64_t *lowest_vcn,
 				   uint64_t *highest_vcn,
@@ -2196,9 +2134,8 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	}
 
 	/*
-	 * We now circularly scan backwards, moving over any bad chapters until
-	 * we find the chapter with the highest vcn (the first good chapter we
-	 * encounter).
+	 * Circularly scan backwards, moving over any bad chapters until
+	 * encountering a good one, which is the chapter with the highest vcn.
 	 */
 
 	while (highest == UINT64_MAX) {
@@ -2223,15 +2160,6 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	return UDS_SUCCESS;
 }
 
-/**
- * Allocate a volume.
- *
- * @param config      The configuration to use
- * @param layout      The index layout
- * @param new_volume  A pointer to hold the new volume
- *
- * @return UDS_SUCCESS or an error code
- **/
 static int __must_check allocate_volume(const struct configuration *config,
 					struct index_layout *layout,
 					struct volume **new_volume)
@@ -2254,12 +2182,13 @@ static int __must_check allocate_volume(const struct configuration *config,
 	}
 	geometry = volume->geometry;
 
-	/* Need a buffer for each entry in the page cache */
+	/*
+	 * Reserve a buffer for each entry in the page cache, one for the
+	 * chapter writer, and one for each entry in the sparse cache.
+	 */
 	reserved_buffers =
 		config->cache_chapters * geometry->record_pages_per_chapter;
-	/* And a buffer for the chapter writer */
 	reserved_buffers += 1;
-	/* And a buffer for each entry in the sparse cache */
 	if (is_sparse_geometry(geometry)) {
 		reserved_buffers += (config->cache_chapters *
 				     geometry->index_pages_per_chapter);
@@ -2373,10 +2302,6 @@ int make_volume(const struct configuration *config,
 		return result;
 	}
 
-	/*
-	 * Start the reader threads.  If this allocation succeeds, free_volume
-	 * knows that it needs to try and stop those threads.
-	 */
 	result = UDS_ALLOCATE(config->read_threads,
 			      struct thread *,
 			      "reader threads",
@@ -2394,7 +2319,7 @@ int make_volume(const struct configuration *config,
 			free_volume(volume);
 			return result;
 		}
-		/* We only stop as many threads as actually got started. */
+
 		volume->num_read_threads = i + 1;
 	}
 
@@ -2408,16 +2333,10 @@ void free_volume(struct volume *volume)
 		return;
 	}
 
-	/*
-	 * If reader_threads is NULL, then we haven't set up the reader
-	 * threads.
-	 */
 	if (volume->reader_threads != NULL) {
 		unsigned int i;
-		/*
-		 * Stop the reader threads.  It is ok if there aren't any of
-		 * them.
-		 */
+
+		/* This works even if some threads weren't started. */
 		uds_lock_mutex(&volume->read_threads_mutex);
 		volume->reader_state |= READER_STATE_EXIT;
 		uds_broadcast_cond(&volume->read_threads_cond);
