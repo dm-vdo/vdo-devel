@@ -31,7 +31,7 @@ ARCHIVE     = $(SRC_DIR)/packaging/github
 LOGBASE     = $(CURDIR)/../logs
 
 # Number of concurrent jobs to run
-NUM_JOBS := $(shell expr $$(fgrep -c processor /proc/cpuinfo) + 1)
+NUM_JOBS := $(shell expr $$(grep -F -c processor /proc/cpuinfo) + 1)
 
 # Create a unique test index name based on the current directory's name,
 # for the jenkins target.

@@ -35,7 +35,7 @@ PERL_MODULE_CHECK_INCLUDE_PATH = -I${ROOT}/lib \
 DESTDIR:= .
 
 NAKEDSCRIPTS:= $(shell find . -maxdepth 1 \! -name '*~' \! -name '*.pl' \
-                       | xargs file | fgrep /usr/bin/perl | cut -f1 -d:)
+                       | xargs file | grep -F /usr/bin/perl | cut -f1 -d:)
 OTHERSCRIPTS:= $(addsuffix .pl, $(filter-out ${NO_CHECK}, \
                                              $(notdir ${NAKEDSCRIPTS})))
 SCRIPTS     := $(sort ${OTHERSCRIPTS} $(wildcard *.pl))
