@@ -3057,6 +3057,10 @@ static int __must_check initialize_zone(struct vdo *vdo,
 	INIT_LIST_HEAD(&zone->available);
 	INIT_LIST_HEAD(&zone->pending);
 	result = make_funnel_queue(&zone->timed_out_complete);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
 	timer_setup(&zone->timer, timeout_index_operations, 0);
 
 	for (i = 0; i < MAXIMUM_VDO_USER_VIOS; i++) {
