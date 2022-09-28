@@ -58,9 +58,9 @@ class Test_Command(unittest.TestCase):
                       ['date', '|', 'grep', t], shell=True, retries=2)
 
   def test_shell(self):
-    self.assertEqual(runCommand(['ls', '/etc', '|', 'grep', 'rc4.d'],
+    self.assertEqual(runCommand(['ls', '/etc', '|', 'grep', 'permabit'],
                                 shell=True, strip=True),
-                     'rc4.d', "shell pipeline")
+                     'permabit', "shell pipeline")
 
   def test_tryCommandsUntilSuccess(self):
     self.assertEqual(tryCommandsUntilSuccess([['./nonexistentCommand'],
