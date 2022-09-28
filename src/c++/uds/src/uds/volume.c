@@ -27,7 +27,7 @@
 
 /*
  * The volume manages deduplication records on permanant storage.
- * 
+ *
  * The first block of the volume layout is reserved for the volume header,
  * which is no longer used. The remainder of the volume is divided into
  * chapters consisting of several pages of records, and several pages of static
@@ -64,7 +64,7 @@
  * queued reads, adding the page to the cache and updating any requests queued
  * with it so they can continue processing. This allows the index zone threads
  * to continue processing new requests rather than wait for the storage reads.
- * 
+ *
  * When an index rebuild is necessary, the volume reads each stored chapter to
  * determine which range of chapters contain valid records, so that those
  * records can be used to reconstruct the in-memory volume index.
@@ -1488,6 +1488,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 			  geometry->index_pages_per_chapter);
 	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
 		byte *index_page;
+
 		index_page = dm_bufio_read(volume->client,
 					   physical_page + i,
 					   &volume_buffers[i]);
@@ -1581,8 +1582,9 @@ static int donate_index_page_locked(struct volume *volume,
 							  index_page_number);
 
 	struct cached_page *page = NULL;
-	int result = select_victim_in_cache(volume->page_cache, &page);
+	int result;
 
+	result = select_victim_in_cache(volume->page_cache, &page);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_release(page_buffer);
 		return result;
@@ -1629,7 +1631,7 @@ int write_index_pages(struct volume *volume,
 		byte *page_data;
 		unsigned int lists_packed;
 		bool last_page;
-                int result;
+		int result;
 
 		page_data = dm_bufio_new(volume->client,
 					 physical_page + index_page_number,
@@ -1777,7 +1779,7 @@ int write_record_pages(struct volume *volume,
 	     record_page_number < geometry->record_pages_per_chapter;
 	     record_page_number++) {
 		byte *page_data;
-                int result;
+		int result;
 
 		page_data = dm_bufio_new(volume->client,
 					 physical_page + record_page_number,
@@ -1826,9 +1828,9 @@ int write_chapter(struct volume *volume,
 					chapter_index->virtual_chapter_number);
 	int physical_page =
 		map_to_physical_page(geometry, physical_chapter_number, 0);
+	int result;
 
-	int result =
-		write_index_pages(volume, physical_page, chapter_index, NULL);
+	result = write_index_pages(volume, physical_page, chapter_index, NULL);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -1880,11 +1882,13 @@ static int probe_chapter(struct volume *volume,
 
 	for (i = 0; i < geometry->index_pages_per_chapter; ++i) {
 		struct delta_index_page *page;
-		int result = get_volume_page(volume,
-					     chapter_number,
-					     i,
-					     NULL,
-					     &page);
+		int result;
+
+		result = get_volume_page(volume,
+					 chapter_number,
+					 i,
+					 NULL,
+					 &page);
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
@@ -1936,8 +1940,9 @@ static int probe_wrapper(void *aux,
 			 uint64_t *virtual_chapter_number)
 {
 	struct volume *volume = aux;
-	int result =
-		probe_chapter(volume, chapter_number, virtual_chapter_number);
+	int result;
+
+	result = probe_chapter(volume, chapter_number, virtual_chapter_number);
 	if (result == UDS_CORRUPT_DATA) {
 		*virtual_chapter_number = UINT64_MAX;
 		return UDS_SUCCESS;
@@ -1991,9 +1996,11 @@ int find_volume_chapter_boundaries(struct volume *volume,
 				   bool *is_empty)
 {
 	unsigned int chapter_limit = volume->geometry->chapters_per_volume;
+	int result;
 
-	int result =
-		find_real_end_of_volume(volume, chapter_limit, &chapter_limit);
+	result = find_real_end_of_volume(volume,
+					 chapter_limit,
+					 &chapter_limit);
 	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot find end of volume");

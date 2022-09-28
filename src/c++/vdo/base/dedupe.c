@@ -3172,6 +3172,7 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 
 	for (i = 0; i < zones->zone_count; i++) {
 		struct hash_zone *zone = &zones->zones[i];
+
 		free_funnel_queue(UDS_FORGET(zone->timed_out_complete));
 		free_pointer_map(UDS_FORGET(zone->hash_lock_map));
 		UDS_FREE(UDS_FORGET(zone->lock_array));
@@ -3681,8 +3682,10 @@ static void prepare_uds_request(struct uds_request *request,
 #ifdef INTERNAL
 static int test_launch_request(struct uds_request *request)
 {
+	int result;
+
 	if (uds_launch_request_hook != NULL) {
-		int result = uds_launch_request_hook(request);
+		result = uds_launch_request_hook(request);
 		if (result == UDS_ERROR_CODE_LAST) {
 			return UDS_SUCCESS;
 		}

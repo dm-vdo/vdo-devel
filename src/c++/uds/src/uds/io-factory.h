@@ -18,7 +18,7 @@ struct io_factory;
 enum {
 	UDS_BLOCK_SIZE = 4096,
 	SECTORS_PER_BLOCK = UDS_BLOCK_SIZE >> SECTOR_SHIFT,
- };
+};
 
 int __must_check make_uds_io_factory(const char *path,
 				     struct io_factory **factory_ptr);

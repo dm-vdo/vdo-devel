@@ -30,7 +30,7 @@
  * however there is only ever one sub-index and therefore one instance. The
  * RL_KIND_VOLUME_INDEX uses instances to record which zone is being saved.
  *
- * Every region header has a type and version. 
+ * Every region header has a type and version.
  *
  *     +-+-+---------+--------+--------+-+
  *     | | |   I N D E X  0   101, 0   | |
@@ -118,7 +118,7 @@ static const byte LAYOUT_MAGIC[MAGIC_SIZE] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
 static const uint64_t REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
 
 struct region_header {
-	uint64_t magic; 
+	uint64_t magic;
 	uint64_t region_blocks;
 	uint16_t type;
 	/* Currently always version 1 */
@@ -2068,7 +2068,7 @@ static int __must_check reconstruct_index_save(struct index_save_layout *isl,
 
 	last_region = &table->regions[table->header.region_count - 1];
 	if (last_region->kind == RL_KIND_EMPTY) {
-		isl->free_space = *last_region; 
+		isl->free_space = *last_region;
 		isl->zone_count--;
 	} else {
 		isl->free_space = (struct layout_region) {

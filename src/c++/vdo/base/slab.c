@@ -27,7 +27,7 @@
  * @slab_origin: The physical block number within the block allocator
  *               partition of the first block in the slab.
  * @allocator: The block allocator to which the slab belongs.
- * @translation: The translation from the depot's partition to the 
+ * @translation: The translation from the depot's partition to the
  *               physical storage.
  * @recovery_journal: The recovery journal of the VDO.
  * @slab_number: The slab number of the slab.

@@ -1670,7 +1670,7 @@ void *vdo_dereference_writable_page(struct vdo_completion *completion)
  *                                     page in a page completion whose
  *                                     callback has been invoked.
  * @completion: A vdo page completion whose callback has been invoked.
- * 
+ *
  * Should only be called after dereferencing the page completion to validate
  * the page.
  *
@@ -1705,7 +1705,7 @@ void vdo_drain_page_cache(struct vdo_page_cache *cache)
 /**
  * vdo_invalidate_page_cache() - Invalidate all entries in the VDO page cache.
  * @cache: The cache to invalidate.
- * 
+ *
  * There must not be any dirty pages in the cache.
  *
  * Return: A success or error code.

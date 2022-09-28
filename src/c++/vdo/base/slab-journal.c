@@ -1348,6 +1348,7 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 void vdo_resume_slab_journal(struct slab_journal *journal)
 {
 	struct vdo *vdo = journal->slab->allocator->depot->vdo;
+
 	if ((vdo->suspend_type == VDO_ADMIN_STATE_SAVING) &&
 	    !is_vdo_read_only(journal)) {
 		vdo_reopen_slab_journal(journal);
@@ -1407,7 +1408,7 @@ static void finish_decoding_journal(struct vdo_completion *completion)
  * set_decoded_state() - Set up the in-memory journal state to the state which
  *                       was written to disk.
  * @completion: The vio which was used to read the journal tail.
- * 
+ *
  * This is the callback registered in read_slab_journal_tail().
  */
 static void set_decoded_state(struct vdo_completion *completion)

@@ -40,7 +40,7 @@ atomic_t chapters_written;
  * will then close the chapter immediately, regardless of how full it is, in
  * order to minimize skew between zones. Once every zone has closed the
  * chapter, the chapter writer will commit that chapter to storage.
- * 
+ *
  * The last zone to close the chapter also removes the oldest chapter from the
  * volume index. Although that chapter is invalid for zones that have moved on,
  * the existence of the open chapter means that those zones will never ask the
@@ -202,7 +202,7 @@ static void triage_request(struct uds_request *request)
 }
 
 static int finish_previous_chapter(struct uds_index *index,
-       				   uint64_t current_chapter_number)
+				   uint64_t current_chapter_number)
 {
 	int result;
 	struct chapter_writer *writer = index->chapter_writer;

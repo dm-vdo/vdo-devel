@@ -962,7 +962,7 @@ block_count_t vdo_get_slab_depot_new_size(const struct slab_depot *depot)
  *                                    the same reference counter).
  * @depot_a: The first depot to compare.
  * @depot_b: The second depot to compare.
- * 
+ *
  * This method is used for unit testing.
  *
  * Return: true if the two depots are equivalent.

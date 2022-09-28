@@ -573,8 +573,8 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 static thread_id_t select_bio_queue(struct flusher *flusher)
 {
 	struct vdo *vdo = flusher->vdo;
-	zone_count_t bio_threads
-		= flusher->vdo->thread_config->bio_thread_count;
+	zone_count_t bio_threads =
+		flusher->vdo->thread_config->bio_thread_count;
 	int interval;
 
 	if (bio_threads == 1) {

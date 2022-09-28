@@ -712,10 +712,10 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 	uint64_t first_list;
 	uint64_t list_count;
 	struct delta_page_header *header = (struct delta_page_header *) memory;
-        const byte *nonce_addr = (const byte *) &header->nonce;
-        const byte *vcn_addr = (const byte *) &header->virtual_chapter_number;
-        const byte *first_list_addr = (const byte *) &header->first_list;
-        const byte *list_count_addr = (const byte *) &header->list_count;
+	const byte *nonce_addr = (const byte *) &header->nonce;
+	const byte *vcn_addr = (const byte *) &header->virtual_chapter_number;
+	const byte *first_list_addr = (const byte *) &header->first_list;
+	const byte *list_count_addr = (const byte *) &header->list_count;
 
 	/* First assume that the header is little endian. */
 	nonce = get_unaligned_le64(nonce_addr);
@@ -1031,10 +1031,10 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 void swap_delta_index_page_endianness(byte *memory)
 {
 	struct delta_page_header *header = (struct delta_page_header *) memory;
-        const byte *nonce_addr = (const byte *) &header->nonce;
-        const byte *vcn_addr = (const byte *) &header->virtual_chapter_number;
-        const byte *first_list_addr = (const byte *) &header->first_list;
-        const byte *list_count_addr = (const byte *) &header->list_count;
+	const byte *nonce_addr = (const byte *) &header->nonce;
+	const byte *vcn_addr = (const byte *) &header->virtual_chapter_number;
+	const byte *first_list_addr = (const byte *) &header->first_list;
+	const byte *list_count_addr = (const byte *) &header->list_count;
 	uint64_t nonce = get_unaligned_le64(nonce_addr);
 	uint64_t vcn = get_unaligned_le64(vcn_addr);
 	uint16_t first_list = get_unaligned_le16(first_list_addr);
@@ -1661,7 +1661,7 @@ int finish_saving_delta_index(const struct delta_index *delta_index,
 	struct delta_zone *delta_zone;
 	struct delta_list *delta_list;
 
-        delta_zone = &delta_index->delta_zones[zone_number];
+	delta_zone = &delta_index->delta_zones[zone_number];
 	for (i = 0; i < delta_zone->list_count;i++) {
 		delta_list = &delta_zone->delta_lists[i + 1];
 		if (delta_list->size > 0) {

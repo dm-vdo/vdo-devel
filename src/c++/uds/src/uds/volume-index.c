@@ -235,7 +235,7 @@ static INLINE bool has_sparse(const struct volume_index *volume_index)
 bool is_volume_index_sample(const struct volume_index *volume_index,
 			    const struct uds_record_name *name)
 {
-	if (!has_sparse(volume_index))  {
+	if (!has_sparse(volume_index)) {
 		return false;
 	}
 
@@ -1002,7 +1002,7 @@ uint64_t lookup_volume_index_name(const struct volume_index *volume_index,
 	virtual_chapter = lookup_volume_sub_index_name(&volume_index->vi_hook, name);
 	uds_unlock_mutex(mutex);
 
-        return virtual_chapter;
+	return virtual_chapter;
 }
 
 static void abort_restoring_volume_sub_index(struct volume_sub_index *sub_index)
@@ -1702,7 +1702,7 @@ int make_volume_index(const struct configuration *config,
 		if (result != UDS_SUCCESS) {
 			free_volume_index(volume_index);
 			return result;
-                }
+		}
 
 		*volume_index_ptr = volume_index;
 		return UDS_SUCCESS;

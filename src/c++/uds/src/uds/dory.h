@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright Red Hat
- *
- * $Id$
  */
 
 #ifndef DORY_H

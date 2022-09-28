@@ -16,7 +16,7 @@ extern unsigned int min_volume_index_delta_lists;
 #endif /* TEST_INTERNAL */
 struct volume_index_stats {
 	/* Number of bytes allocated */
-	size_t memory_allocated; 
+	size_t memory_allocated;
 	/* Nanoseconds spent rebalancing */
 	ktime_t rebalance_time;
 	/* Number of memory rebalances */

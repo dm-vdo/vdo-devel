@@ -9,7 +9,7 @@
 #ifdef __KERNEL__
 #include <asm/rwonce.h>
 #include <linux/compiler.h>
-#else 
+#else
 #include "type-defs.h"
 #endif
 

@@ -242,8 +242,9 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 			     struct block_allocator **allocator_ptr)
 {
 	struct block_allocator *allocator;
-	int result = UDS_ALLOCATE(1, struct block_allocator, __func__, &allocator);
+	int result;
 
+	result = UDS_ALLOCATE(1, struct block_allocator, __func__, &allocator);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -368,8 +369,9 @@ static int allocate_slab_block(struct vdo_slab *slab,
 			       physical_block_number_t *block_number_ptr)
 {
 	physical_block_number_t pbn;
-	int result =
-		vdo_allocate_unreferenced_block(slab->reference_counts, &pbn);
+	int result;
+
+	result = vdo_allocate_unreferenced_block(slab->reference_counts, &pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -388,10 +390,12 @@ static int allocate_slab_block(struct vdo_slab *slab,
 int vdo_allocate_block(struct block_allocator *allocator,
 		       physical_block_number_t *block_number_ptr)
 {
+	int result;
+
 	if (allocator->open_slab != NULL) {
 		/* Try to allocate the next block in the currently open slab. */
-		int result =
-			allocate_slab_block(allocator->open_slab, block_number_ptr);
+		result = allocate_slab_block(allocator->open_slab,
+					     block_number_ptr);
 		if ((result == VDO_SUCCESS) || (result != VDO_NO_SPACE)) {
 			return result;
 		}
@@ -467,7 +471,7 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	const struct slab_status *info2 = (const struct slab_status *) item2;
 
 	if (info1->is_clean != info2->is_clean) {
-		return (info1->is_clean ? 1 : -1);
+		return info1->is_clean ? 1 : -1;
 	}
 	if (info1->emptiness != info2->emptiness) {
 		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
@@ -699,9 +703,10 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 	struct slab_status *slab_statuses;
 	struct slab_depot *depot = allocator->depot;
 	slab_count_t slab_count = depot->slab_count;
+	block_count_t allocated_count;
 
-	block_count_t allocated_count
-		= (allocator->slab_count * depot->slab_config.data_blocks);
+	allocated_count =
+		allocator->slab_count * depot->slab_config.data_blocks;
 	WRITE_ONCE(allocator->allocated_blocks, allocated_count);
 
 	result = UDS_ALLOCATE(slab_count, struct slab_status, __func__,
@@ -760,8 +765,9 @@ void vdo_prepare_block_allocator_to_allocate(void *context,
 {
 	struct block_allocator *allocator =
 		vdo_get_block_allocator_for_zone(context, zone_number);
-	int result = vdo_prepare_slabs_for_allocation(allocator);
+	int result;
 
+	result = vdo_prepare_slabs_for_allocation(allocator);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;

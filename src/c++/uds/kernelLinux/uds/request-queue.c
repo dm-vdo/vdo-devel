@@ -24,7 +24,7 @@
  * instead of reacting immediately to each new request. The wait time between
  * batches is dynamically adjusted up or down to try to balance responsiveness
  * against wasted thread run time.
- * 
+ *
  * If the wait time becomes long enough, the queue will become dormant and must
  * be explicitly awoken when a new request is enqueued. The enqueue operation
  * updates "newest" in the funnel queue via xchg (which is a memory barrier),

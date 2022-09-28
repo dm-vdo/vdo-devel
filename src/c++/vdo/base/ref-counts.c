@@ -139,7 +139,7 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts)
  * advance_search_cursor() - Advance the search cursor to the start of the
  *                           next reference block.
  * @ref_counts: The ref_counts object containing the search cursor.
- * 
+ *
  * Wraps around to the first reference block if the current block is the last
  * reference block.
  *

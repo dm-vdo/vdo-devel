@@ -1540,7 +1540,7 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
  * @vdo: The vdo to recover.
  * @parent: The completion to notify when the offline portion of the recovery
  *          is complete.
- * 
+ *
  * Applies all valid journal block entries to all vdo structures. This
  * function performs the offline portion of recovering a vdo from a crash.
  */

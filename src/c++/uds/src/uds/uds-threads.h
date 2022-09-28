@@ -211,6 +211,7 @@ __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 		return down_trylock(semaphore) == 0;
 	} else {
 		unsigned int jiffies = nsecs_to_jiffies(timeout);
+
 		return down_timeout(semaphore, jiffies) == 0;
 	}
 }

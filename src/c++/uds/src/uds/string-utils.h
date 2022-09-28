@@ -20,7 +20,7 @@
 
 static INLINE const char *uds_bool_to_string(bool value)
 {
-	return (value ? "true" : "false");
+	return value ? "true" : "false";
 }
 
 #if !defined(__KERNEL__) || defined(TEST_INTERNAL)

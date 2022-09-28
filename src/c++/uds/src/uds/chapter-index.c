@@ -76,6 +76,7 @@ void free_open_chapter_index(struct open_chapter_index *chapter_index)
 
 #ifdef TEST_INTERNAL
 	struct delta_index_stats delta_index_stats;
+
 	get_delta_index_stats(&chapter_index->delta_index, &delta_index_stats);
 	chapter_index_discard_count = delta_index_stats.discard_count;
 	chapter_index_overflow_count = delta_index_stats.overflow_count;
@@ -91,6 +92,7 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 {
 #ifdef TEST_INTERNAL
 	struct delta_index_stats delta_index_stats;
+
 	get_delta_index_stats(&chapter_index->delta_index, &delta_index_stats);
 	long before_discard_count = delta_index_stats.discard_count;
 #endif /* TEST_INTERNAL */
@@ -297,6 +299,7 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 	/* We walk every delta list from start to finish. */
 	for (list_number = first; list_number <= last; list_number++) {
 		struct delta_index_entry entry;
+
 		result = start_delta_index_search(delta_index,
 						  list_number - first,
 					          0,
