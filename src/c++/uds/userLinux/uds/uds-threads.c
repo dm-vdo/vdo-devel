@@ -53,9 +53,7 @@ pid_t uds_get_thread_id(void)
 	return syscall(SYS_gettid);
 }
 
-/*
- * Run the given function once only, and record that fact in the atomic value.
- */
+/* Run a function once only, and record that fact in the atomic value. */
 void perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
@@ -76,7 +74,7 @@ void perform_once(atomic_t *once, void (*function)(void))
 }
 
 struct thread_start_info {
-	void (*thread_func)(void *);
+	void (*thread_function)(void *);
 	void *thread_data;
 	const char *name;
 };
@@ -84,52 +82,52 @@ struct thread_start_info {
 /**********************************************************************/
 static void *thread_starter(void *arg)
 {
-	struct thread_start_info *tsi = arg;
-	void (*thread_func)(void *) = tsi->thread_func;
-	void *thread_data = tsi->thread_data;
+	struct thread_start_info *info = arg;
+	void (*thread_function)(void *) = info->thread_function;
+	void *thread_data = info->thread_data;
 
 	/*
 	 * The name is just advisory for humans examining it, so we don't
 	 * care much if this fails.
 	 */
-	process_control(PR_SET_NAME, (unsigned long) tsi->name, 0, 0, 0);
-	UDS_FREE(tsi);
-	thread_func(thread_data);
+	process_control(PR_SET_NAME, (unsigned long) info->name, 0, 0, 0);
+	UDS_FREE(info);
+	thread_function(thread_data);
 	return NULL;
 }
 
 /**********************************************************************/
-int uds_create_thread(void (*thread_func)(void *),
+int uds_create_thread(void (*thread_function)(void *),
 		      void *thread_data,
 		      const char *name,
 		      struct thread **new_thread)
 {
 	int result;
-	struct thread_start_info *tsi;
+	struct thread_start_info *info;
 	struct thread *thread;
 
-	result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &tsi);
+	result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &info);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	tsi->thread_func = thread_func;
-	tsi->thread_data = thread_data;
-	tsi->name = name;
+	info->thread_function = thread_function;
+	info->thread_data = thread_data;
+	info->name = name;
 
 	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
-		UDS_FREE(tsi);
+		UDS_FREE(info);
 		return result;
 	}
 
-	result = pthread_create(&thread->thread, NULL, thread_starter, tsi);
+	result = pthread_create(&thread->thread, NULL, thread_starter, info);
 	if (result != 0) {
 		result = -errno;
 		uds_log_error_strerror(result, "could not create %s thread",
 				       name);
 		UDS_FREE(thread);
-		UDS_FREE(tsi);
+		UDS_FREE(info);
 		return result;
 	}
 
@@ -138,15 +136,15 @@ int uds_create_thread(void (*thread_func)(void *),
 }
 
 /**********************************************************************/
-int uds_join_threads(struct thread *th)
+int uds_join_threads(struct thread *thread)
 {
 	int result;
 	pthread_t pthread;
 
-	result = pthread_join(th->thread, NULL);
-	pthread = th->thread;
-	UDS_FREE(th);
-	ASSERT_LOG_ONLY((result == 0), "th: %p", (void *)pthread);
+	result = pthread_join(thread->thread, NULL);
+	pthread = thread->thread;
+	UDS_FREE(thread);
+	ASSERT_LOG_ONLY((result == 0), "thread: %p", (void *) pthread);
 	return result;
 }
 

@@ -19,7 +19,7 @@ static struct mutex thread_mutex;
 static atomic_t thread_once = ATOMIC_INIT(0);
 
 struct thread {
-	void (*thread_func)(void *thread_data);
+	void (*thread_function)(void *thread_data);
 	void *thread_data;
 	struct hlist_node thread_links;
 	struct task_struct *thread_task;
@@ -32,9 +32,7 @@ enum {
 	ONCE_COMPLETE = 2,
 };
 
-/*
- * Run the given function once only, and record that fact in the atomic value.
- */
+/* Run a function once only, and record that fact in the atomic value. */
 void perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
@@ -62,40 +60,40 @@ static void thread_init(void)
 static int thread_starter(void *arg)
 {
 	struct registered_thread allocating_thread;
-	struct thread *kt = arg;
+	struct thread *thread = arg;
 
-	kt->thread_task = current;
+	thread->thread_task = current;
 	perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
-	hlist_add_head(&kt->thread_links, &thread_list);
+	hlist_add_head(&thread->thread_links, &thread_list);
 	mutex_unlock(&thread_mutex);
 	uds_register_allocating_thread(&allocating_thread, NULL);
-	kt->thread_func(kt->thread_data);
+	thread->thread_function(thread->thread_data);
 	uds_unregister_allocating_thread();
-	complete(&kt->thread_done);
+	complete(&thread->thread_done);
 	return 0;
 }
 
-int uds_create_thread(void (*thread_func)(void *),
+int uds_create_thread(void (*thread_function)(void *),
 		      void *thread_data,
 		      const char *name,
 		      struct thread **new_thread)
 {
 	char *name_colon = strchr(name, ':');
 	char *my_name_colon = strchr(current->comm, ':');
-	struct task_struct *thread;
-	struct thread *kt;
+	struct task_struct *task;
+	struct thread *thread;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct thread, __func__, &kt);
+	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;
 	}
 
-	kt->thread_func = thread_func;
-	kt->thread_data = thread_data;
-	init_completion(&kt->thread_done);
+	thread->thread_function = thread_function;
+	thread->thread_data = thread_data;
+	init_completion(&thread->thread_done);
 	/*
 	 * Start the thread, with an appropriate thread name.
 	 *
@@ -113,61 +111,61 @@ int uds_create_thread(void (*thread_func)(void *),
 	 * occurrence.
 	 */
 	if ((name_colon == NULL) && (my_name_colon != NULL)) {
-		thread = kthread_run(thread_starter,
-				     kt,
-				     "%.*s:%s",
-				     (int) (my_name_colon - current->comm),
-				     current->comm,
-				     name);
+		task = kthread_run(thread_starter,
+				   thread,
+				   "%.*s:%s",
+				   (int) (my_name_colon - current->comm),
+				   current->comm,
+				   name);
 	} else {
-		thread = kthread_run(thread_starter, kt, "%s", name);
+		task = kthread_run(thread_starter, thread, "%s", name);
 	}
 
-	if (IS_ERR(thread)) {
-		UDS_FREE(kt);
-		return PTR_ERR(thread);
+	if (IS_ERR(task)) {
+		UDS_FREE(thread);
+		return PTR_ERR(task);
 	}
 
-	*new_thread = kt;
+	*new_thread = thread;
 	return UDS_SUCCESS;
 }
 
-int uds_join_threads(struct thread *kt)
+int uds_join_threads(struct thread *thread)
 {
-	while (wait_for_completion_interruptible(&kt->thread_done) != 0) {
+	while (wait_for_completion_interruptible(&thread->thread_done) != 0) {
 	}
 
 	mutex_lock(&thread_mutex);
-	hlist_del(&kt->thread_links);
+	hlist_del(&thread->thread_links);
 	mutex_unlock(&thread_mutex);
-	UDS_FREE(kt);
+	UDS_FREE(thread);
 	return UDS_SUCCESS;
 }
 
 #ifdef TEST_INTERNAL
-void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument)
 {
-	struct thread *kt;
+	struct thread *thread;
 
 	perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
-	hlist_for_each_entry(kt, &thread_list, thread_links) {
-		apply_func(argument, kt->thread_task);
+	hlist_for_each_entry(thread, &thread_list, thread_links) {
+		apply_function(argument, thread->thread_task);
 	}
 	mutex_unlock(&thread_mutex);
 }
 
 void uds_thread_exit(void)
 {
-	struct thread *kt;
+	struct thread *thread;
 	struct completion *completion = NULL;
 
 	perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
-	hlist_for_each_entry(kt, &thread_list, thread_links) {
-		if (kt->thread_task == current) {
-			completion = &kt->thread_done;
+	hlist_for_each_entry(thread, &thread_list, thread_links) {
+		if (thread->thread_task == current) {
+			completion = &thread->thread_done;
 			break;
 		}
 	}

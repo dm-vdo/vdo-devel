@@ -73,7 +73,7 @@ extern const bool UDS_DO_ASSERTIONS;
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 /* Apply a function to every thread that we have created. */
-void uds_apply_to_threads(void apply_func(void *, struct task_struct *),
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument);
 
 /* This is a unit-test alternative to using BUG() or BUG_ON(). */
@@ -81,7 +81,7 @@ __attribute__((noreturn)) void uds_thread_exit(void);
 
 #endif  /* TEST_INTERNAL */
 #endif  /* __KERNEL__ */
-int __must_check uds_create_thread(void (*thread_func)(void *),
+int __must_check uds_create_thread(void (*thread_function)(void *),
 				   void *thread_data,
 				   const char *name,
 				   struct thread **new_thread);
@@ -102,9 +102,9 @@ static inline void cond_resched(void)
 }
 
 #endif  /* ! __KERNEL__ */
-void perform_once(atomic_t *once_state, void (*init_function) (void));
+void perform_once(atomic_t *once_state, void (*function) (void));
 
-int uds_join_threads(struct thread *th);
+int uds_join_threads(struct thread *thread);
 
 int __must_check uds_initialize_barrier(struct barrier *barrier,
 					unsigned int thread_count);
