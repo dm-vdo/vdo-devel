@@ -45,10 +45,10 @@ sub suite {
       my $udsDir = "src/c++/uds";
       my $modDir = makeFullPath($options->{topDir}, $udsDir,
                                 "kernelLinux", "tests");
-      $module = Permabit::KernelModule->ne(machine    => $machine,
-                                           modDir     => $modDir,
-                                           modName    => "zubenelgenubi",
-                                           modVersion => 1,);
+      $module = Permabit::KernelModule->new(machine    => $machine,
+                                            modDir     => $modDir,
+                                            modName    => "zubenelgenubi",
+                                            modVersion => 1,);
       $module->load();
       # Now fetch the test names;
       my $moduleDir = "/sys/zubenelgenubi";
