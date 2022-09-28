@@ -93,6 +93,13 @@
  * be woken the next time a journal block is reaped.
  */
 
+enum vdo_zone_type {
+	VDO_ZONE_TYPE_ADMIN,
+	VDO_ZONE_TYPE_JOURNAL,
+	VDO_ZONE_TYPE_LOGICAL,
+	VDO_ZONE_TYPE_PHYSICAL,
+};
+
 struct lock_counter {
 	/** The completion for notifying the owner of a lock release */
 	struct vdo_completion completion;

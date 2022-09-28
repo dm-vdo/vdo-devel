@@ -8,13 +8,6 @@
 
 #include "types.h"
 
-enum vdo_zone_type {
-	VDO_ZONE_TYPE_ADMIN,
-	VDO_ZONE_TYPE_JOURNAL,
-	VDO_ZONE_TYPE_LOGICAL,
-	VDO_ZONE_TYPE_PHYSICAL,
-};
-
 /*
  * Forward declarations of abstract types
  */
