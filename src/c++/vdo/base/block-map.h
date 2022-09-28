@@ -28,7 +28,7 @@ struct block_map_tree_zone {
 	struct block_map_zone *map_zone;
 	/* Dirty tree pages, by era*/
 	struct dirty_lists *dirty_lists;
-	vio_count_t active_lookups;
+	data_vio_count_t active_lookups;
 	struct int_map *loading_pages;
 	struct vio_pool *vio_pool;
 	/* The tree page which has issued or will be issuing a flush */

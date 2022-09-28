@@ -92,15 +92,15 @@ struct limiter {
 	/* The data_vio_pool to which this limiter belongs */
 	struct data_vio_pool *pool;
 	/* The maximum number of data_vios available */
-	vio_count_t limit;
+	data_vio_count_t limit;
 	/* The number of resources in use */
-	vio_count_t busy;
+	data_vio_count_t busy;
 	/* The maximum number of resources ever simultaneously in use */
-	vio_count_t max_busy;
+	data_vio_count_t max_busy;
 	/* The number of resources to release */
-	vio_count_t release_count;
+	data_vio_count_t release_count;
 	/* The number of waiters to wake */
-	vio_count_t wake_count;
+	data_vio_count_t wake_count;
 	/*
 	 * The list of waiting bios which are known to
 	 * process_release_callback()
@@ -325,7 +325,7 @@ static void assign_data_vio_to_waiter(struct limiter *limiter)
 static void update_limiter(struct limiter *limiter)
 {
 	struct bio_list *waiters = &limiter->waiters;
-	vio_count_t available = limiter->limit - limiter->busy;
+	data_vio_count_t available = limiter->limit - limiter->busy;
 
 	ASSERT_LOG_ONLY((limiter->release_count <= limiter->busy),
 			"Release count %u is not more than busy count %u",
@@ -407,9 +407,9 @@ static void process_release_callback(struct vdo_completion *completion)
 	struct data_vio_pool *pool = as_data_vio_pool(completion);
 	bool reschedule;
 	bool drained;
-	vio_count_t processed;
-	vio_count_t to_wake;
-	vio_count_t discards_to_wake;
+	data_vio_count_t processed;
+	data_vio_count_t to_wake;
+	data_vio_count_t discards_to_wake;
 	LIST_HEAD(returned);
 
 	spin_lock(&pool->lock);
@@ -486,7 +486,7 @@ static void process_release_callback(struct vdo_completion *completion)
 static void initialize_limiter(struct limiter *limiter,
 			       struct data_vio_pool *pool,
 			       assigner *assigner,
-			       vio_count_t limit)
+			       data_vio_count_t limit)
 {
 	limiter->pool = pool;
 	limiter->assigner = assigner;
@@ -504,13 +504,13 @@ static void initialize_limiter(struct limiter *limiter,
  * @pool: A pointer to hold the newly allocated pool.
  */
 int make_data_vio_pool(struct vdo *vdo,
-		       vio_count_t pool_size,
-		       vio_count_t discard_limit,
+		       data_vio_count_t pool_size,
+		       data_vio_count_t discard_limit,
 		       struct data_vio_pool **pool_ptr)
 {
 	int result;
 	struct data_vio_pool *pool;
-	vio_count_t i;
+	data_vio_count_t i;
 
 	result = UDS_ALLOCATE_EXTENDED(struct data_vio_pool,
 				       pool_size,
@@ -792,23 +792,23 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 	spin_unlock(&pool->lock);
 }
 
-vio_count_t get_data_vio_pool_active_discards(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_active_discards(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->discard_limiter.busy);
 }
 
-vio_count_t get_data_vio_pool_discard_limit(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_discard_limit(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->discard_limiter.limit);
 }
 
-vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->discard_limiter.max_busy);
 }
 
 int set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
-				    vio_count_t limit)
+				    data_vio_count_t limit)
 {
 	if (get_data_vio_pool_request_limit(pool) < limit) {
 		// The discard limit may not be higher than the data_vio limit.
@@ -822,17 +822,17 @@ int set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
 	return VDO_SUCCESS;
 }
 
-vio_count_t get_data_vio_pool_active_requests(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_active_requests(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->limiter.busy);
 }
 
-vio_count_t get_data_vio_pool_request_limit(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_request_limit(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->limiter.limit);
 }
 
-vio_count_t get_data_vio_pool_maximum_requests(struct data_vio_pool *pool)
+data_vio_count_t get_data_vio_pool_maximum_requests(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->limiter.max_busy);
 }

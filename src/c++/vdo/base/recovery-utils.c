@@ -28,14 +28,14 @@ struct journal_loader {
 	struct vdo_completion *parent;
 	thread_id_t thread_id;
 	physical_block_number_t pbn;
-	vio_count_t count;
-	vio_count_t complete;
+	data_vio_count_t count;
+	data_vio_count_t complete;
 	struct vio *vios[];
 };
 
 static void free_journal_loader(struct journal_loader *loader)
 {
-	vio_count_t v;
+	data_vio_count_t v;
 
 	if (loader == NULL) {
 		return;
@@ -93,8 +93,8 @@ void vdo_load_recovery_journal(struct recovery_journal *journal,
 	struct journal_loader *loader;
 	physical_block_number_t pbn =
 		vdo_get_fixed_layout_partition_offset(journal->partition);
-	vio_count_t vio_count = DIV_ROUND_UP(journal->size,
-					     MAX_BLOCKS_PER_VIO);
+	data_vio_count_t vio_count = DIV_ROUND_UP(journal->size,
+						  MAX_BLOCKS_PER_VIO);
 	block_count_t remaining = journal->size;
 	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE,
 				  char,

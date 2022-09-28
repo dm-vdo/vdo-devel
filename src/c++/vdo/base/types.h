@@ -19,6 +19,9 @@ typedef uint64_t block_count_t;
 /* The size of a block. */
 typedef uint16_t block_size_t;
 
+/* A counter for data_vios */
+typedef uint16_t data_vio_count_t;
+
 /* A height within a tree. */
 typedef uint8_t height_t;
 

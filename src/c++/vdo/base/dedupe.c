@@ -287,10 +287,10 @@ struct hash_lock {
 	struct list_head duplicate_ring;
 
 	/* The number of data_vios sharing this lock instance */
-	vio_count_t reference_count;
+	data_vio_count_t reference_count;
 
 	/* The maximum value of reference_count in the lifetime of this lock */
-	vio_count_t max_references;
+	data_vio_count_t max_references;
 
 	/* The current state of this lock */
 	enum hash_lock_state state;
@@ -2907,7 +2907,7 @@ static void finish_index_operation(struct uds_request *request)
  */
 static void check_for_drain_complete(struct hash_zone *zone)
 {
-	vio_count_t recycled = 0;
+	data_vio_count_t recycled = 0;
 
 	if (!vdo_is_state_draining(&zone->state)) {
 		return;
@@ -3018,7 +3018,7 @@ static int __must_check initialize_zone(struct vdo *vdo,
 					zone_count_t zone_number)
 {
 	int result;
-	vio_count_t i;
+	data_vio_count_t i;
 	struct hash_zone *zone = &zones->zones[zone_number];
 
 	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY,
@@ -3546,7 +3546,7 @@ static const char *index_state_to_string(struct hash_zones *zones,
  */
 static void dump_hash_zone(const struct hash_zone *zone)
 {
-	vio_count_t i;
+	data_vio_count_t i;
 
 	if (zone->hash_lock_map == NULL) {
 		uds_log_info("struct hash_zone %u: NULL map",

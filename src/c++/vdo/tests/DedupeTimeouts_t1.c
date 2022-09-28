@@ -28,7 +28,7 @@ enum {
 };
 
 static struct uds_request *blockedRequests[TOTAL_COUNT];
-static vio_count_t         blockedCount;
+static data_vio_count_t    blockedCount;
 static struct data_vio    *querying;
 static bool                queryDone;
 static bool                timeoutsProcessed;
@@ -130,7 +130,7 @@ static void testDedupeTimeouts(void)
   timeoutsProcessed = false;
   queryDone = false;
   uint8_t completeIndex = 0;
-  for (vio_count_t i = 0; i < TOTAL_COUNT; i++) {
+  for (data_vio_count_t i = 0; i < TOTAL_COUNT; i++) {
     if (ALLOW_TO_DEDUPE[completeIndex] != i) {
       continue;
     }
@@ -158,7 +158,7 @@ static void testDedupeTimeouts(void)
   CU_ASSERT_EQUAL(stats.hash_lock.curr_dedupe_queries, TIMEOUT_COUNT);
 
   completeIndex = 0;
-  for (vio_count_t i = 0; i < TOTAL_COUNT; i++) {
+  for (data_vio_count_t i = 0; i < TOTAL_COUNT; i++) {
     if (ALLOW_TO_DEDUPE[completeIndex] == i) {
       completeIndex++;
       continue;

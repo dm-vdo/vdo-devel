@@ -30,7 +30,7 @@ struct pbn_lock {
 	const struct pbn_lock_implementation *implementation;
 
 	/* The number of VIOs holding or sharing this lock */
-	vio_count_t holder_count;
+	data_vio_count_t holder_count;
 	/*
 	 * The number of compressed block writers holding a share of this lock
 	 * while they are acquiring a reference to the PBN.

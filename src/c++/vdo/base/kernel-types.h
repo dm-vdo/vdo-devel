@@ -8,11 +8,6 @@
 
 #include "types.h"
 
-/**
- * typedef vio_count_t - A number of vios.
- */
-typedef uint16_t vio_count_t;
-
 enum vdo_zone_type {
 	VDO_ZONE_TYPE_ADMIN,
 	VDO_ZONE_TYPE_JOURNAL,

@@ -108,7 +108,7 @@ struct recovery_journal {
 	/* The number of free entries in the journal */
 	uint64_t available_space;
 	/* The number of decrement entries which need to be made */
-	vio_count_t pending_decrement_count;
+	data_vio_count_t pending_decrement_count;
 	/*
 	 * Whether the journal is adding entries from the increment or
 	 * decrement waiters queues
