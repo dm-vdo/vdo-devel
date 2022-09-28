@@ -72,10 +72,4 @@ struct vdo_thread;
 struct vio;
 struct vio_pool;
 
-struct zoned_pbn {
-	physical_block_number_t pbn;
-	enum block_mapping_state state;
-	struct physical_zone *zone;
-};
-
 #endif /* KERNEL_TYPES_H */

@@ -128,6 +128,12 @@ struct tree_lock {
 	struct block_map_tree_slot tree_slots[VDO_BLOCK_MAP_TREE_HEIGHT + 1];
 };
 
+struct zoned_pbn {
+	physical_block_number_t pbn;
+	enum block_mapping_state state;
+	struct physical_zone *zone;
+};
+
 struct compression_state {
 	/*
 	 * The current compression state of this vio. This field contains a
