@@ -11,7 +11,8 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "lock-counter.h"
+#include "recovery-journal.h"
+#include "recovery-journal-block.h"
 
 #include "asyncLayer.h"
 #include "mutexUtils.h"
@@ -25,20 +26,20 @@ enum {
   LOGICAL_THREAD_COUNT   = LOGICAL_ZONES,
   PHYSICAL_THREAD_COUNT  = PHYSICAL_ZONES,
   HASH_ZONE_THREAD_COUNT = HASH_ZONES,
-  LOCKS                  = 3,
+  LOCKS                  = 4,
   BATCH_SIZE             = 10,
+  LOCK_NUMBER            = 1,
 };
 
 typedef struct {
   struct vdo_completion completion;
-  block_count_t         lockNumber;
   enum vdo_zone_type    zoneType;
   zone_count_t          zoneID;
   int32_t               adjustment;
 } LockClient;
 
-static struct lock_counter *lockCounter       = NULL;
-static int                  notificationCount = 0;
+static int         notificationCount = 0;
+static vdo_action *counterCallback;
 
 /**
  * Implements LockedMethod.
@@ -56,7 +57,7 @@ static bool signalNotification(void *context __attribute__((unused)))
 static void
 countNotification(struct vdo_completion *completion __attribute__((unused)))
 {
-  vdo_acknowledge_lock_unlock(lockCounter);
+  counterCallback(completion);
   runLocked(signalNotification, NULL);
 }
 
@@ -86,26 +87,13 @@ static void initializeLockCounter_t1(void)
     .logicalThreadCount  = LOGICAL_THREAD_COUNT,
     .physicalThreadCount = PHYSICAL_THREAD_COUNT,
     .hashZoneThreadCount = HASH_ZONE_THREAD_COUNT,
+    .journalBlocks       = LOCKS,
   };
-  initializeBasicTest(&parameters);
-  VDO_ASSERT_SUCCESS(vdo_make_lock_counter(vdo,
-                                           NULL,
-                                           countNotification,
-                                           0,
-                                           LOGICAL_ZONES,
-                                           PHYSICAL_ZONES,
-                                           LOCKS,
-                                           &lockCounter));
-  notificationCount = 0;
-}
 
-/**
- * Test specific tear down.
- **/
-static void tearDownLockCounter_t1(void)
-{
-  vdo_free_lock_counter(UDS_FORGET(lockCounter));
-  tearDownVDOTest();
+  initializeVDOTest(&parameters);
+  notificationCount = 0;
+  counterCallback = vdo->recovery_journal->lock_counter.completion.callback;
+  vdo->recovery_journal->lock_counter.completion.callback = countNotification;
 }
 
 /**
@@ -123,31 +111,32 @@ static LockClient *completionAsClient(struct vdo_completion *completion)
 static void doAdjustment(struct vdo_completion *completion)
 {
   LockClient *client = completionAsClient(completion);
-  if (client->zoneType == VDO_ZONE_TYPE_JOURNAL) {
-    if (client->adjustment > 0) {
-      vdo_initialize_lock_count(lockCounter, client->lockNumber,
-                                client->adjustment);
-    } else {
-      CU_ASSERT_EQUAL(client->adjustment, -1);
-      vdo_release_journal_zone_reference(lockCounter, client->lockNumber);
-    }
+  struct recovery_journal *journal = vdo->recovery_journal;
+  if (client->adjustment == -1) {
+    vdo_release_recovery_journal_block_reference(journal,
+                                                 LOCK_NUMBER,
+                                                 client->zoneType,
+                                                 client->zoneID);
+  } else if (client->zoneType == VDO_ZONE_TYPE_JOURNAL) {
+    struct lock_counter *counter = &journal->lock_counter;
+    counter->journal_counters[LOCK_NUMBER] = client->adjustment;
+    atomic_set(&(counter->journal_decrement_counts[LOCK_NUMBER]), 0);
   } else if (client->adjustment == 1) {
-    vdo_acquire_lock_count_reference(lockCounter, client->lockNumber,
-                                     client->zoneType, client->zoneID);
-  } else if (client->adjustment == -1) {
-    vdo_release_lock_count_reference(lockCounter, client->lockNumber,
-                                     client->zoneType, client->zoneID);
+    vdo_acquire_recovery_journal_block_reference(journal,
+                                                 LOCK_NUMBER,
+                                                 client->zoneType,
+                                                 client->zoneID);
   } else {
     CU_FAIL("Non-journal zone adjustment is not of magnitude 1");
   }
+
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
 /**
  * Launch a VDOAction that adjusts the reference count.
  **/
-static struct vdo_completion *launchAdjustment(block_count_t      lockNumber,
-                                               enum vdo_zone_type zoneType,
+static struct vdo_completion *launchAdjustment(enum vdo_zone_type zoneType,
                                                zone_count_t       zoneID,
                                                int32_t            adjustment)
 {
@@ -155,7 +144,6 @@ static struct vdo_completion *launchAdjustment(block_count_t      lockNumber,
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, LockClient, __func__, &client));
   vdo_initialize_completion(&client->completion, vdo, VDO_TEST_COMPLETION);
   client->completion.callback_thread_id = zoneID; // Use zone ID as thread ID.
-  client->lockNumber                    = lockNumber;
   client->zoneType                      = zoneType;
   client->zoneID                        = zoneID;
   client->adjustment                    = adjustment;
@@ -176,13 +164,11 @@ static void waitForAdjustmentFinished(struct vdo_completion *completion)
 /**
  * Perform a reference count adjustment.
  **/
-static void performAdjustment(block_count_t      lockNumber,
-                              enum vdo_zone_type zoneType,
+static void performAdjustment(enum vdo_zone_type zoneType,
                               zone_count_t       zoneID,
                               int32_t            adjustment)
 {
-  waitForAdjustmentFinished(launchAdjustment(lockNumber, zoneType, zoneID,
-                                             adjustment));
+  waitForAdjustmentFinished(launchAdjustment(zoneType, zoneID, adjustment));
 }
 
 /**
@@ -191,12 +177,14 @@ static void performAdjustment(block_count_t      lockNumber,
  **/
 static void sameZoneTypeTest(void)
 {
+  struct recovery_journal *journal = vdo->recovery_journal;
+
   for (int iteration = 1; iteration <= 3; iteration++) {
     struct vdo_completion *zone0[BATCH_SIZE];
     struct vdo_completion *zone1[BATCH_SIZE];
     for (int i = 0; i < BATCH_SIZE; i++) {
-      zone0[i] = launchAdjustment(1, VDO_ZONE_TYPE_LOGICAL, 0, 1);
-      zone1[i] = launchAdjustment(1, VDO_ZONE_TYPE_LOGICAL, 1, 1);
+      zone0[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, 1);
+      zone1[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 1, 1);
     }
 
     for (int i = 0; i < BATCH_SIZE; i++) {
@@ -204,13 +192,16 @@ static void sameZoneTypeTest(void)
       waitForAdjustmentFinished(zone1[i]);
     }
 
-    CU_ASSERT_TRUE(vdo_is_lock_locked(lockCounter, 1, VDO_ZONE_TYPE_LOGICAL));
-    CU_ASSERT_FALSE(vdo_is_lock_locked(lockCounter, 1,
-                                       VDO_ZONE_TYPE_PHYSICAL));
+    CU_ASSERT_TRUE(is_lock_locked(journal,
+                                  LOCK_NUMBER,
+                                  VDO_ZONE_TYPE_LOGICAL));
+    CU_ASSERT_FALSE(is_lock_locked(journal,
+                                   LOCK_NUMBER,
+                                   VDO_ZONE_TYPE_PHYSICAL));
 
     for (int i = 0; i < BATCH_SIZE; i++) {
-      zone0[i] = launchAdjustment(1, VDO_ZONE_TYPE_LOGICAL, 0, -1);
-      zone1[i] = launchAdjustment(1, VDO_ZONE_TYPE_LOGICAL, 1, -1);
+      zone0[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, -1);
+      zone1[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 1, -1);
     }
 
     for (int i = 0; i < BATCH_SIZE; i++) {
@@ -219,7 +210,9 @@ static void sameZoneTypeTest(void)
     }
 
     waitForCondition(checkNotificationCount, &iteration);
-    CU_ASSERT_FALSE(vdo_is_lock_locked(lockCounter, 1, VDO_ZONE_TYPE_LOGICAL));
+    CU_ASSERT_FALSE(is_lock_locked(journal,
+                                   LOCK_NUMBER,
+                                   VDO_ZONE_TYPE_LOGICAL));
   }
 }
 
@@ -229,25 +222,31 @@ static void sameZoneTypeTest(void)
  **/
 static void differentZoneTypeTest(void)
 {
+  struct recovery_journal *journal = vdo->recovery_journal;
+
   for (int iteration = 1; iteration <= 3; iteration++) {
     // Initialize the locks in the journal zone
-    performAdjustment(0, VDO_ZONE_TYPE_JOURNAL, 0, BATCH_SIZE * 2);
+    performAdjustment(VDO_ZONE_TYPE_JOURNAL, 0, BATCH_SIZE * 2);
 
     // Journal zone already locks a block number so the ordering between
     // logical and physical zone adjustment don't matter.
     struct vdo_completion *logical[BATCH_SIZE * 2];
     struct vdo_completion *physical[BATCH_SIZE * 2];
     for (int i = 0; i < BATCH_SIZE; i++) {
-      logical[i] = launchAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 0, 1);
-      physical[i] = launchAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 0, 1);
+      logical[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, 1);
+      physical[i] = launchAdjustment(VDO_ZONE_TYPE_PHYSICAL, 0, 1);
     }
 
-    CU_ASSERT_TRUE(vdo_is_lock_locked(lockCounter, 0, VDO_ZONE_TYPE_LOGICAL));
-    CU_ASSERT_TRUE(vdo_is_lock_locked(lockCounter, 0, VDO_ZONE_TYPE_PHYSICAL));
+    CU_ASSERT_TRUE(is_lock_locked(journal,
+                                  LOCK_NUMBER,
+                                  VDO_ZONE_TYPE_LOGICAL));
+    CU_ASSERT_TRUE(is_lock_locked(journal,
+                                  LOCK_NUMBER,
+                                  VDO_ZONE_TYPE_PHYSICAL));
 
     for (int i = BATCH_SIZE; i < BATCH_SIZE * 2; i++) {
-      logical[i] = launchAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 0, -1);
-      physical[i] = launchAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 0, -1);
+      logical[i] = launchAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, -1);
+      physical[i] = launchAdjustment(VDO_ZONE_TYPE_PHYSICAL, 0, -1);
     }
 
     for (int i = 0; i < BATCH_SIZE * 2; i++) {
@@ -255,20 +254,23 @@ static void differentZoneTypeTest(void)
       waitForAdjustmentFinished(physical[i]);
     }
 
-    struct vdo_completion *journal[BATCH_SIZE];
+    struct vdo_completion *journalCompletions[BATCH_SIZE];
     for (int i = 0; i < BATCH_SIZE; i++) {
-      vdo_release_journal_zone_reference_from_other_zone(lockCounter, 0);
-      journal[i] = launchAdjustment(0, VDO_ZONE_TYPE_JOURNAL, 0, -1);
+      vdo_release_journal_entry_lock(journal, LOCK_NUMBER);
+      journalCompletions[i] = launchAdjustment(VDO_ZONE_TYPE_JOURNAL, 0, -1);
     }
 
     for (int i = 0; i < BATCH_SIZE; i++) {
-      waitForAdjustmentFinished(journal[i]);
+      waitForAdjustmentFinished(journalCompletions[i]);
     }
 
     waitForCondition(checkNotificationCount, &iteration);
-    CU_ASSERT_FALSE(vdo_is_lock_locked(lockCounter, 0, VDO_ZONE_TYPE_LOGICAL));
-    CU_ASSERT_FALSE(vdo_is_lock_locked(lockCounter, 0,
-                                       VDO_ZONE_TYPE_PHYSICAL));
+    CU_ASSERT_FALSE(is_lock_locked(journal,
+                                   LOCK_NUMBER,
+                                   VDO_ZONE_TYPE_LOGICAL));
+    CU_ASSERT_FALSE(is_lock_locked(journal,
+                                   LOCK_NUMBER,
+                                   VDO_ZONE_TYPE_PHYSICAL));
   }
 }
 
@@ -277,26 +279,26 @@ static void differentZoneTypeTest(void)
  **/
 static void testNotification(void)
 {
-  performAdjustment(0, VDO_ZONE_TYPE_JOURNAL, 0, 2);
-  performAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 0, 1);
-  performAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 1, 1);
-  performAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 0, 1);
-  performAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 1, 1);
+  performAdjustment(VDO_ZONE_TYPE_JOURNAL, 0, 2);
+  performAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, 1);
+  performAdjustment(VDO_ZONE_TYPE_LOGICAL, 1, 1);
+  performAdjustment(VDO_ZONE_TYPE_PHYSICAL, 0, 1);
+  performAdjustment(VDO_ZONE_TYPE_PHYSICAL, 1, 1);
 
-  performAdjustment(0, VDO_ZONE_TYPE_JOURNAL, 0, -1);
-  performAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 0, -1);
-  performAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 0, -1);
+  performAdjustment(VDO_ZONE_TYPE_JOURNAL, 0, -1);
+  performAdjustment(VDO_ZONE_TYPE_LOGICAL, 0, -1);
+  performAdjustment(VDO_ZONE_TYPE_PHYSICAL, 0, -1);
 
   int expectedCount = 1;
-  performAdjustment(0, VDO_ZONE_TYPE_JOURNAL, 0, -1);
+  performAdjustment(VDO_ZONE_TYPE_JOURNAL, 0, -1);
   waitForCondition(checkExactNotificationCount, &expectedCount);
 
   expectedCount++;
-  performAdjustment(0, VDO_ZONE_TYPE_LOGICAL, 1, -1);
+  performAdjustment(VDO_ZONE_TYPE_LOGICAL, 1, -1);
   waitForCondition(checkExactNotificationCount, &expectedCount);
 
   expectedCount++;
-  performAdjustment(0, VDO_ZONE_TYPE_PHYSICAL, 1, -1);
+  performAdjustment(VDO_ZONE_TYPE_PHYSICAL, 1, -1);
   waitForCondition(checkExactNotificationCount, &expectedCount);
 }
 
@@ -312,7 +314,7 @@ static CU_SuiteInfo lockCounterSuite = {
   .name                     = "Lock counters (LockCounter_t1)",
   .initializerWithArguments = NULL,
   .initializer              = initializeLockCounter_t1,
-  .cleaner                  = tearDownLockCounter_t1,
+  .cleaner                  = tearDownVDOTest,
   .tests                    = lockCounterTests
 };
 

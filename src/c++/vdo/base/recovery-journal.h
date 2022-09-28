@@ -14,7 +14,6 @@
 #include "completion.h"
 #include "flush.h"
 #include "journal-point.h"
-#include "lock-counter.h"
 #include "read-only-notifier.h"
 #include "recovery-journal.h"
 #include "recovery-journal-format.h"
@@ -93,6 +92,31 @@
  * to add an entry, the VIO will be attached to the 'reap_completion', and will
  * be woken the next time a journal block is reaped.
  */
+
+struct lock_counter {
+	/** The completion for notifying the owner of a lock release */
+	struct vdo_completion completion;
+	/** The number of logical zones which may hold locks */
+	zone_count_t logical_zones;
+	/** The number of physical zones which may hold locks */
+	zone_count_t physical_zones;
+	/** The number of locks */
+	block_count_t locks;
+	/** Whether the lock release notification is in flight */
+	atomic_t state;
+	/** The number of logical zones which hold each lock */
+	atomic_t *logical_zone_counts;
+	/** The number of physical zones which hold each lock */
+	atomic_t *physical_zone_counts;
+	/** The per-zone, per-lock counts for the journal zone */
+	uint16_t *journal_counters;
+	/** The per-zone, per-lock decrement counts for the journal zone */
+	atomic_t *journal_decrement_counts;
+	/** The per-zone, per-lock reference counts for logical zones */
+	uint16_t *logical_counters;
+	/** The per-zone, per-lock reference counts for physical zones */
+	uint16_t *physical_counters;
+};
 
 struct recovery_journal {
 	/* The thread ID of the journal zone */
@@ -178,7 +202,7 @@ struct recovery_journal {
 	 */
 	struct recovery_journal_statistics events;
 	/* The locks for each on-disk block */
-	struct lock_counter *lock_counter;
+	struct lock_counter lock_counter;
 };
 
 /**
@@ -292,8 +316,8 @@ void vdo_release_recovery_journal_block_reference(struct recovery_journal *journ
 						  enum vdo_zone_type zone_type,
 						  zone_count_t zone_id);
 
-void vdo_release_journal_per_entry_lock_from_other_zone(struct recovery_journal *journal,
-							sequence_number_t sequence_number);
+void vdo_release_journal_entry_lock(struct recovery_journal *journal,
+				    sequence_number_t sequence_number);
 
 void vdo_drain_recovery_journal(struct recovery_journal *journal,
 				const struct admin_state_code *operation,
@@ -310,4 +334,9 @@ vdo_get_recovery_journal_statistics(const struct recovery_journal *journal);
 
 void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal);
 
+#ifdef INTERNAL
+bool is_lock_locked(struct recovery_journal *journal,
+		    block_count_t lock_number,
+		    enum vdo_zone_type zone_type);
+#endif /* INTERNAL */
 #endif /* RECOVERY_JOURNAL_H */

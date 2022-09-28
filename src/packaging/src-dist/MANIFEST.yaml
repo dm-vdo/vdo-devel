@@ -297,7 +297,6 @@ tarballs:
             io-submitter.h
             journal-point.h
             kernel-types.h
-            lock-counter.h
             logical-zone.c
             logical-zone.h
             message-stats.c

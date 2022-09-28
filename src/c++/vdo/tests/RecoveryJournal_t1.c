@@ -1176,7 +1176,7 @@ static void simulateUpdatesForBlock(sequence_number_t blockNumber,
   for (int i = 0; i < journal->entries_per_block; i++) {
     // Making a block map entry releases a lock on increment.
     if (isIncrementEntry(blockNumber, i)) {
-      vdo_release_journal_per_entry_lock_from_other_zone(journal, blockNumber);
+      vdo_release_journal_entry_lock(journal, blockNumber);
     }
   }
 
@@ -1327,7 +1327,7 @@ static void testJournal(void)
     // Remove the per-entry reference for the block map entry if this is
     // an increment.
     if (isIncrementEntry(1, i)) {
-      vdo_release_journal_per_entry_lock_from_other_zone(journal, 1);
+      vdo_release_journal_entry_lock(journal, 1);
     }
     // Remove the reference for committing the slab journal block.
     CU_ASSERT_EQUAL(1, journal->slab_journal_head);
@@ -1455,9 +1455,9 @@ static void waitForAppendPointForEntry(EntryNumber entry)
 static void unlockJournalBlock(struct vdo_completion *completion)
 {
   // This method depends on the single thread config.
-  if (!vdo_is_lock_locked(journal->lock_counter,
-                          recoverySequenceNumber % journal->size,
-                          VDO_ZONE_TYPE_LOGICAL)) {
+  if (!is_lock_locked(journal,
+                      recoverySequenceNumber % journal->size,
+                      VDO_ZONE_TYPE_LOGICAL)) {
     vdo_finish_completion(completion, VDO_SUCCESS);
     return;
   }
@@ -1470,11 +1470,10 @@ static void unlockJournalBlock(struct vdo_completion *completion)
   vdo_acquire_recovery_journal_block_reference(journal, recoverySequenceNumber,
                                                VDO_ZONE_TYPE_LOGICAL, 0);
 
-  while (vdo_is_lock_locked(journal->lock_counter,
-                            recoverySequenceNumber % journal->size,
-                            VDO_ZONE_TYPE_PHYSICAL)) {
-    vdo_release_journal_per_entry_lock_from_other_zone(journal,
-                                                       recoverySequenceNumber);
+  while (is_lock_locked(journal,
+                        recoverySequenceNumber % journal->size,
+                        VDO_ZONE_TYPE_PHYSICAL)) {
+    vdo_release_journal_entry_lock(journal, recoverySequenceNumber);
   }
 
   vdo_release_recovery_journal_block_reference(journal, recoverySequenceNumber,

@@ -665,7 +665,7 @@ void vdo_update_block_map_page(struct block_map_page *page,
 	 * FIXME: explain this more
 	 * Release the transferred lock from the data_vio.
 	 */
-	vdo_release_journal_per_entry_lock_from_other_zone(journal, new_locked);
+	vdo_release_journal_entry_lock(journal, new_locked);
 	data_vio->recovery_sequence_number = 0;
 }
 
