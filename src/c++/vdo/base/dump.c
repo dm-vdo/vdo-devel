@@ -206,6 +206,9 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
  * R => vio completion result not VDO_SUCCESS
  * W => vio is on a wait queue
  * D => vio is a duplicate
+ * p => vio is a partial block operation
+ * z => vio is a zero block
+ * d => vio is a discard
  *
  * The common case of no flags set will result in an empty, null-terminated
  * buffer. If any flags are encoded, the first character in the string will be
@@ -223,6 +226,15 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	}
 	if (data_vio->is_duplicate) {
 		*p_flag++ = 'D';
+	}
+	if (data_vio->is_partial) {
+		*p_flag++ = 'p';
+	}
+	if (data_vio->is_zero_block) {
+		*p_flag++ = 'z';
+	}
+	if (data_vio->remaining_discard > 0) {
+		*p_flag++ = 'd';
 	}
 	if (p_flag == &buffer[1]) {
 		/* No flags, so remove the blank space. */
@@ -291,6 +303,8 @@ void dump_data_vio(void *data)
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer), " FG%llu",
 			 data_vio->flush_generation);
+	} else {
+		vio_flush_generation_buffer[0] = 0;
 	}
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
