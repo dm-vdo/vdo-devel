@@ -73,9 +73,8 @@ enum index_session_flag {
 static void release_index_session(struct uds_index_session *index_session)
 {
 	uds_lock_mutex(&index_session->request_mutex);
-	if (--index_session->request_count == 0) {
+	if (--index_session->request_count == 0)
 		uds_broadcast_cond(&index_session->request_cond);
-	}
 	uds_unlock_mutex(&index_session->request_mutex);
 }
 
@@ -140,9 +139,8 @@ int uds_launch_request(struct uds_request *request)
 	       0, internal_size);
 
 	result = get_index_session(request->session);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	request->found = false;
 	request->unbatched = false;
@@ -177,44 +175,39 @@ static void update_session_stats(struct uds_request *request)
 
 	switch (request->type) {
 	case UDS_POST:
-		if (request->found) {
+		if (request->found)
 			count_once(&session_stats->posts_found);
-		} else {
+		else
 			count_once(&session_stats->posts_not_found);
-		}
 
-		if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
+		if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER)
 			count_once(&session_stats->posts_found_open_chapter);
-		} else if (request->location == UDS_LOCATION_IN_DENSE) {
+		else if (request->location == UDS_LOCATION_IN_DENSE)
 			count_once(&session_stats->posts_found_dense);
-		} else if (request->location == UDS_LOCATION_IN_SPARSE) {
+		else if (request->location == UDS_LOCATION_IN_SPARSE)
 			count_once(&session_stats->posts_found_sparse);
-		}
 		break;
 
 	case UDS_UPDATE:
-		if (request->found) {
+		if (request->found)
 			count_once(&session_stats->updates_found);
-		} else {
+		else
 			count_once(&session_stats->updates_not_found);
-		}
 		break;
 
 	case UDS_DELETE:
-		if (request->found) {
+		if (request->found)
 			count_once(&session_stats->deletions_found);
-		} else {
+		else
 			count_once(&session_stats->deletions_not_found);
-		}
 		break;
 
 	case UDS_QUERY:
 	case UDS_QUERY_NO_UPDATE:
-		if (request->found) {
+		if (request->found)
 			count_once(&session_stats->queries_found);
-		} else {
+		else
 			count_once(&session_stats->queries_not_found);
-		}
 		break;
 
 	default:
@@ -228,9 +221,8 @@ static void handle_callbacks(struct uds_request *request)
 {
 	struct uds_index_session *index_session = request->session;
 
-	if (request->status == UDS_SUCCESS) {
+	if (request->status == UDS_SUCCESS)
 		update_session_stats(request);
-	}
 
 	request->status = uds_map_to_system_error(request->status);
 	request->callback(request);
@@ -244,9 +236,8 @@ make_empty_index_session(struct uds_index_session **index_session_ptr)
 	struct uds_index_session *session;
 
 	result = UDS_ALLOCATE(1, struct uds_index_session, __func__, &session);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = uds_init_mutex(&session->request_mutex);
 	if (result != UDS_SUCCESS) {
@@ -330,9 +321,8 @@ finish_loading_index_session(struct uds_index_session *index_session,
 {
 	uds_lock_mutex(&index_session->request_mutex);
 	index_session->state &= ~IS_FLAG_LOADING;
-	if (result == UDS_SUCCESS) {
+	if (result == UDS_SUCCESS)
 		index_session->state |= IS_FLAG_LOADED;
-	}
 
 	uds_broadcast_cond(&index_session->request_cond);
 	uds_unlock_mutex(&index_session->request_mutex);
@@ -356,11 +346,10 @@ static int initialize_index_session(struct uds_index_session *index_session,
 			    &index_session->load_context,
 			    enter_callback_stage,
 			    &index_session->index);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		uds_log_error_strerror(result, "Failed to make index");
-	} else {
+	else
 		log_uds_configuration(config);
-	}
 
 	free_configuration(config);
 	return result;
@@ -404,9 +393,8 @@ int uds_open_index(enum uds_open_index_type open_type,
 	}
 
 	result = start_loading_index_session(session);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_map_to_system_error(result);
-	}
 
 	if ((session->parameters.name == NULL) ||
 	    (strcmp(parameters->name, session->parameters.name) != 0)) {
@@ -434,11 +422,10 @@ int uds_open_index(enum uds_open_index_type open_type,
 		       get_open_type_string(open_type),
 		       parameters->name);
 	result = initialize_index_session(session, open_type);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		uds_log_error_strerror(result,
 				       "Failed %s",
 				       get_open_type_string(open_type));
-	}
 
 	finish_loading_index_session(session, result);
 	return uds_map_to_system_error(result);
@@ -448,10 +435,9 @@ static void
 wait_for_no_requests_in_progress(struct uds_index_session *index_session)
 {
 	uds_lock_mutex(&index_session->request_mutex);
-	while (index_session->request_count > 0) {
+	while (index_session->request_count > 0)
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
-	}
 	uds_unlock_mutex(&index_session->request_mutex);
 }
 
@@ -470,10 +456,9 @@ static void suspend_rebuild(struct uds_index_session *session)
 
 		/* Wait until the index indicates that it is not replaying. */
 		while ((session->load_context.status != INDEX_SUSPENDED) &&
-		       (session->load_context.status != INDEX_READY)) {
+		       (session->load_context.status != INDEX_READY))
 			uds_wait_cond(&session->load_context.cond,
 				      &session->load_context.mutex);
-		}
 		break;
 
 	case INDEX_READY:
@@ -506,9 +491,8 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 
 	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&session->request_mutex);
-	while (session->state & IS_FLAG_CLOSING) {
+	while (session->state & IS_FLAG_CLOSING)
 		uds_wait_cond(&session->request_cond, &session->request_mutex);
-	}
 
 	if ((session->state & IS_FLAG_WAITING) ||
 	    (session->state & IS_FLAG_DESTROYING)) {
@@ -529,17 +513,15 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	}
 	uds_unlock_mutex(&session->request_mutex);
 
-	if (no_work) {
+	if (no_work)
 		return uds_map_to_system_error(result);
-	}
 
-	if (rebuilding) {
+	if (rebuilding)
 		suspend_rebuild(session);
-	} else if (save) {
+	else if (save)
 		result = uds_save_index(session);
-	} else {
+	else
 		result = uds_flush_index_session(session);
-	}
 
 	uds_lock_mutex(&session->request_mutex);
 	session->state &= ~IS_FLAG_WAITING;
@@ -556,9 +538,8 @@ static int replace_device(struct uds_index_session *session,
 	char *new_name;
 
 	result = uds_duplicate_string(name, "device name", &new_name);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = replace_index_storage(session->index, name);
 	if (result != UDS_SUCCESS) {
@@ -594,15 +575,13 @@ int uds_resume_index_session(struct uds_index_session *session,
 		result = UDS_SUCCESS;
 	} else {
 		session->state |= IS_FLAG_WAITING;
-		if (session->state & IS_FLAG_LOADING) {
+		if (session->state & IS_FLAG_LOADING)
 			resume_replay = true;
-		}
 	}
 	uds_unlock_mutex(&session->request_mutex);
 
-	if (no_work) {
+	if (no_work)
 		return result;
-	}
 
 	if ((name != NULL) && (session->index != NULL) &&
 	    (strcmp(name, session->parameters.name) != 0)) {
@@ -656,9 +635,8 @@ static int save_and_free_index(struct uds_index_session *index_session)
 	bool suspended;
 	struct uds_index *index = index_session->index;
 
-	if (index == NULL) {
+	if (index == NULL)
 		return UDS_SUCCESS;
-	}
 
 	uds_lock_mutex(&index_session->request_mutex);
 	suspended = (index_session->state & IS_FLAG_SUSPENDED);
@@ -666,10 +644,9 @@ static int save_and_free_index(struct uds_index_session *index_session)
 
 	if (!suspended) {
 		result = save_index(index);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			uds_log_warning_strerror(result,
 						 "ignoring error from save_index");
-		}
 	}
 	free_index(index);
 	index_session->index = NULL;
@@ -698,10 +675,9 @@ int uds_close_index(struct uds_index_session *index_session)
 	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
-	       (index_session->state & IS_FLAG_CLOSING)) {
+	       (index_session->state & IS_FLAG_CLOSING))
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
-	}
 
 	if (index_session->state & IS_FLAG_SUSPENDED) {
 		uds_log_info("Index session is suspended");
@@ -717,9 +693,8 @@ int uds_close_index(struct uds_index_session *index_session)
 		index_session->state |= IS_FLAG_CLOSING;
 	}
 	uds_unlock_mutex(&index_session->request_mutex);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_map_to_system_error(result);
-	}
 
 	uds_log_debug("Closing index");
 	wait_for_no_requests_in_progress(index_session);
@@ -744,10 +719,9 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
-	       (index_session->state & IS_FLAG_CLOSING)) {
+	       (index_session->state & IS_FLAG_CLOSING))
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
-	}
 
 	if (index_session->state & IS_FLAG_DESTROYING) {
 		uds_unlock_mutex(&index_session->request_mutex);
@@ -771,10 +745,9 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 		/* Wait until the load exits before proceeding. */
 		uds_lock_mutex(&index_session->request_mutex);
-		while (index_session->state & IS_FLAG_LOADING) {
+		while (index_session->state & IS_FLAG_LOADING)
 			uds_wait_cond(&index_session->request_cond,
 				      &index_session->request_mutex);
-		}
 		uds_unlock_mutex(&index_session->request_mutex);
 	}
 
@@ -825,9 +798,8 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 					       char,
 					       __func__,
 					       &copy);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return uds_map_to_system_error(result);
-		}
 
 		*copy = index_session->parameters;
 		name_copy = (char *) copy + sizeof(struct uds_parameters);
@@ -838,9 +810,8 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 	}
 
 	result = UDS_ALLOCATE(1, struct uds_parameters, __func__, parameters);
-	if (result == UDS_SUCCESS) {
+	if (result == UDS_SUCCESS)
 		**parameters = index_session->parameters;
-	}
 
 	return uds_map_to_system_error(result);
 }

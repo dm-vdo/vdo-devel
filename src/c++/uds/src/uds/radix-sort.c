@@ -13,7 +13,7 @@
 /*
  * Radix sort is implemented using an American Flag sort, an unstable, in-place
  * 8-bit radix exchange sort. This is adapted from the algorithm in the paper
- * by by Peter M. McIlroy, Keith Bostic, and M. Douglas McIlroy, "Engineering
+ * by Peter M. McIlroy, Keith Bostic, and M. Douglas McIlroy, "Engineering
  * Radix Sort".
  *
  * http://www.usenix.org/publications/compsystems/1993/win_mcilroy.pdf
@@ -90,9 +90,8 @@ static INLINE void insert_key(const struct task task, sort_key_t *next)
 	 * ones that are larger.
 	 */
 	while ((--next >= task.first_key) &&
-	       (compare(unsorted, next[0], task.offset, task.length) < 0)) {
+	       (compare(unsorted, next[0], task.offset, task.length) < 0))
 		next[1] = next[0];
-	}
 
 	/* Insert the key into the last slot that was cleared, sorting it. */
 	next[1] = unsorted;
@@ -107,9 +106,8 @@ static INLINE void insertion_sort(const struct task task)
 {
 	sort_key_t *next;
 
-	for (next = task.first_key + 1; next <= task.last_key; next++) {
+	for (next = task.first_key + 1; next <= task.last_key; next++)
 		insert_key(task, next);
-	}
 }
 
 /* Push a sorting task onto a task stack. */
@@ -163,13 +161,11 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
 		/* Track non-empty bins. */
 		if (size == 1) {
 			bins->used += 1;
-			if (bin < bins->first) {
+			if (bin < bins->first)
 				bins->first = bin;
-			}
 
-			if (bin > bins->last) {
+			if (bin > bins->last)
 				bins->last = bin;
-			}
 		}
 	}
 }
@@ -182,7 +178,7 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
  *
  * After the keys are moved to the appropriate pile, we'll need to sort each of
  * the piles by the next radix position. A new task is put on the stack for
- * each pile containing lots of keys, or a new task is is put on the list for
+ * each pile containing lots of keys, or a new task is put on the list for
  * each pile containing few keys.
  *
  * @param stack         pointer the top of the stack
@@ -212,36 +208,32 @@ static INLINE int push_bins(struct task **stack,
 		uint32_t size = bins->size[bin];
 
 		/* Skip empty piles. */
-		if (size == 0) {
+		if (size == 0)
 			continue;
-		}
 
 		/* There's no need to sort empty keys. */
 		if (length > 0) {
 			if (size > INSERTION_SORT_THRESHOLD) {
-				if (*stack >= end_of_stack) {
+				if (*stack >= end_of_stack)
 					return UDS_BAD_STATE;
-				}
 
 				push_task(stack,
 					  pile_start,
 					  size,
 					  offset,
 					  length);
-			} else if (size > 1) {
+			} else if (size > 1)
 				push_task(list,
 					  pile_start,
 					  size,
 					  offset,
 					  length);
-			}
 		}
 
 		pile_start += size;
 		pile[bin] = pile_start;
-		if (--bins->used == 0) {
+		if (--bins->used == 0)
 			break;
-		}
 	}
 
 	return UDS_SUCCESS;
@@ -258,9 +250,8 @@ int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 				       struct task,
 				       __func__,
 				       &radix_sorter);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	radix_sorter->count = count;
 	radix_sorter->end_of_stack = radix_sorter->stack + stack_size;
@@ -289,9 +280,8 @@ int radix_sort(struct radix_sorter *sorter,
 	struct task *task_stack = sorter->stack;
 
 	/* All zero-length keys are identical and therefore already sorted. */
-	if ((count == 0) || (length == 0)) {
+	if ((count == 0) || (length == 0))
 		return UDS_SUCCESS;
-	}
 
 	/* The initial task is to sort the entire length of all the keys. */
 	start = (struct task) {
@@ -306,9 +296,8 @@ int radix_sort(struct radix_sorter *sorter,
 		return UDS_SUCCESS;
 	}
 
-	if (count > sorter->count) {
+	if (count > sorter->count)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	/*
 	 * Repeatedly consume a sorting task from the stack and process it,
@@ -362,9 +351,8 @@ int radix_sort(struct radix_sorter *sorter,
 			 * belongs in. Swap it for an unprocessed item just
 			 * below that pile, and repeat.
 			 */
-			while (--pile[bin = key[task.offset]] > fence) {
+			while (--pile[bin = key[task.offset]] > fence)
 				swap_keys(pile[bin], &key);
-			}
 
 			/*
 			 * The pile reached the fence. Put the key at the bottom
@@ -383,9 +371,8 @@ int radix_sort(struct radix_sorter *sorter,
 		 * faster to use an insertion sort than to keep subdividing into
 		 * tiny piles.
 		 */
-		while (--insertion_task_list >= sorter->insertion_list) {
+		while (--insertion_task_list >= sorter->insertion_list)
 			insertion_sort(*insertion_task_list);
-		}
 	}
 
 	return UDS_SUCCESS;

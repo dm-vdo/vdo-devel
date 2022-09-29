@@ -46,9 +46,8 @@ int make_index_page_map(const struct geometry *geometry,
 	struct index_page_map *map;
 
 	result = UDS_ALLOCATE(1, struct index_page_map, "page map", &map);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	map->geometry = geometry;
 	map->entries_per_chapter = geometry->index_pages_per_chapter - 1;
@@ -82,9 +81,8 @@ void update_index_page_map(struct index_page_map *map,
 	size_t slot;
 
 	map->last_update = virtual_chapter_number;
-	if (index_page_number == map->entries_per_chapter) {
+	if (index_page_number == map->entries_per_chapter)
 		return;
-	}
 
 	slot = (chapter_number * map->entries_per_chapter) + index_page_number;
 	map->entries[slot] = delta_list_number;
@@ -100,9 +98,8 @@ unsigned int find_index_page_number(const struct index_page_map *map,
 	unsigned int page;
 
 	for (page = 0; page < map->entries_per_chapter; page++) {
-		if (delta_list_number <= map->entries[slot + page]) {
+		if (delta_list_number <= map->entries[slot + page])
 			break;
-		}
 	}
 
 	return page;
@@ -138,9 +135,8 @@ int write_index_page_map(struct index_page_map *map,
 
 	result = make_buffer(compute_index_page_map_save_size(map->geometry),
 			     &buffer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_bytes(buffer, PAGE_MAP_MAGIC_LENGTH, PAGE_MAP_MAGIC);
 	if (result != UDS_SUCCESS) {
@@ -166,9 +162,8 @@ int write_index_page_map(struct index_page_map *map,
 					  get_buffer_contents(buffer),
 					  content_length(buffer));
 	free_buffer(UDS_FORGET(buffer));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return flush_buffered_writer(writer);
 }
@@ -182,9 +177,8 @@ int read_index_page_map(struct index_page_map *map,
 
 	result = make_buffer(compute_index_page_map_save_size(map->geometry),
 			     &buffer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = read_from_buffered_reader(reader,
 					   get_buffer_contents(buffer),
@@ -221,9 +215,8 @@ int read_index_page_map(struct index_page_map *map,
 					    get_entry_count(map->geometry),
 					    map->entries);
 	free_buffer(UDS_FORGET(buffer));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	uds_log_debug("read index page map, last update %llu",
 		      (unsigned long long) map->last_update);

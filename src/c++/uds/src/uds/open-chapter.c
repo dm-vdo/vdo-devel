@@ -87,9 +87,8 @@ int make_open_chapter(const struct geometry *geometry,
 				       struct open_chapter_zone_slot,
 				       "open chapter",
 				       &open_chapter);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	open_chapter->slot_count = slot_count;
 	open_chapter->capacity = capacity;
@@ -130,9 +129,8 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 		 * If the hash slot is empty, we've reached the end of a chain
 		 * without finding the record and should terminate the search.
 		 */
-		if (record_number == 0) {
+		if (record_number == 0)
 			return slot;
-		}
 
 		/*
 		 * If the name of the record referenced by the slot matches and
@@ -140,9 +138,8 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 		 */
 		record = &open_chapter->records[record_number];
 		if ((memcmp(&record->name, name, UDS_RECORD_NAME_SIZE) == 0) &&
-		    !open_chapter->slots[record_number].deleted) {
+		    !open_chapter->slots[record_number].deleted)
 			return slot;
-		}
 
 		/*
 		 * Quadratic probing: advance the probe by 1, 2, 3, etc. and
@@ -180,9 +177,8 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 	unsigned int record_number;
 	struct uds_chunk_record *record;
 
-	if (open_chapter->size >= open_chapter->capacity) {
+	if (open_chapter->size >= open_chapter->capacity)
 		return 0;
-	}
 
 	slot = probe_chapter_slots(open_chapter, name);
 	record_number = open_chapter->slots[slot].record_number;
@@ -292,10 +288,9 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		}
 	}
 
-	if (overflow_count > 0) {
+	if (overflow_count > 0)
 		uds_log_warning("Failed to add %d entries to chapter index",
 				overflow_count);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -314,9 +309,8 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 					  zone_count,
 					  chapter_index,
 					  collated_records);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return write_chapter(volume, chapter_index, collated_records);
 }
@@ -334,16 +328,14 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	result = write_to_buffered_writer(writer,
 					  OPEN_CHAPTER_MAGIC,
 					  OPEN_CHAPTER_MAGIC_LENGTH);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = write_to_buffered_writer(writer,
 					  OPEN_CHAPTER_VERSION,
 					  OPEN_CHAPTER_VERSION_LENGTH);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	for (z = 0; z < index->zone_count; z++) {
 		open_chapter = index->zones[z]->open_chapter;
@@ -354,29 +346,25 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	result = write_to_buffered_writer(writer,
 					  record_count_data,
 					  sizeof(record_count_data));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	record_index = 1;
 	while (record_count > 0) {
 		for (z = 0; z < index->zone_count; z++) {
 			open_chapter = index->zones[z]->open_chapter;
-			if (record_index > open_chapter->size) {
+			if (record_index > open_chapter->size)
 				continue;
-			}
 
-			if (open_chapter->slots[record_index].deleted) {
+			if (open_chapter->slots[record_index].deleted)
 				continue;
-			}
 
 			record = &open_chapter->records[record_index];
 			result = write_to_buffered_writer(writer,
 							  (byte *) record,
 							  sizeof(*record));
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 
 			record_count--;
 		}
@@ -415,9 +403,8 @@ static int load_version20(struct uds_index *index,
 	result = read_from_buffered_reader(reader,
 					   (byte *) &record_count_data,
 					   sizeof(record_count_data));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	record_count = get_unaligned_le32(record_count_data);
 	while (record_count-- > 0) {
@@ -426,14 +413,12 @@ static int load_version20(struct uds_index *index,
 		result = read_from_buffered_reader(reader,
 						   (byte *) &record,
 						   sizeof(record));
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
-		if (index->zone_count > 1) {
+		if (index->zone_count > 1)
 			zone = get_volume_index_zone(index->volume_index,
 						     &record.name);
-		}
 
 		if (!full_flags[zone]) {
 			struct open_chapter_zone *open_chapter;
@@ -457,21 +442,18 @@ int load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
 	int result = verify_buffered_data(reader,
 					  OPEN_CHAPTER_MAGIC,
 					  OPEN_CHAPTER_MAGIC_LENGTH);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = read_from_buffered_reader(reader, version, sizeof(version));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
-	if (memcmp(OPEN_CHAPTER_VERSION, version, sizeof(version)) != 0) {
+	if (memcmp(OPEN_CHAPTER_VERSION, version, sizeof(version)) != 0)
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "Invalid open chapter version: %.*s",
 					      (int) sizeof(version),
 					      version);
-	}
 
 	return load_version20(index, reader);
 }

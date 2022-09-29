@@ -40,11 +40,10 @@ static void initialize(void)
 	uds_initialize_mutex(&mutex, !UDS_DO_ASSERTIONS);
 	char *exit_on_assertion_failure_string =
 		getenv(EXIT_ON_ASSERTION_FAILURE_VARIABLE);
-	if (exit_on_assertion_failure_string != NULL) {
+	if (exit_on_assertion_failure_string != NULL)
 		exit_on_assertion_failure =
 			(strcasecmp(exit_on_assertion_failure_string,
 				    "true") == 0);
-	}
 }
 
 bool set_exit_on_assertion_failure(bool should_exit)
@@ -85,12 +84,11 @@ int uds_assertion_failed(const char *expression_string,
 #ifndef __KERNEL__
 	perform_once(&init_once, initialize);
 	uds_lock_mutex(&mutex);
-	if (exit_on_assertion_failure) {
+	if (exit_on_assertion_failure)
 		__assert_fail(expression_string,
 			      file_name,
 			      line_number,
 			      __ASSERT_FUNCTION);
-	}
 	uds_unlock_mutex(&mutex);
 #endif /* not __KERNEL__ */
 

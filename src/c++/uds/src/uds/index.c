@@ -104,9 +104,8 @@ static int launch_zone_message(struct uds_zone_message message,
 	struct uds_request *request;
 
 	result = UDS_ALLOCATE(1, struct uds_request, __func__, &request);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	request->index = index;
 	request->unbatched = true;
@@ -147,14 +146,12 @@ static uint64_t triage_index_request(struct uds_index *index,
 
 	virtual_chapter = lookup_volume_index_name(index->volume_index,
 						   &request->record_name);
-	if (virtual_chapter == UINT64_MAX) {
+	if (virtual_chapter == UINT64_MAX)
 		return UINT64_MAX;
-	}
 
 	zone = index->zones[request->zone_number];
-	if (!is_zone_chapter_sparse(zone, virtual_chapter)) {
+	if (!is_zone_chapter_sparse(zone, virtual_chapter))
 		return UINT64_MAX;
-	}
 
 	/*
 	 * FIXME: Optimize for a common case by remembering the chapter from
@@ -176,14 +173,12 @@ static int simulate_index_zone_barrier_message(struct index_zone *zone,
 	uint64_t sparse_virtual_chapter;
 
 	if ((zone->index->zone_count > 1) ||
-	    !is_sparse_geometry(zone->index->volume->geometry)) {
+	    !is_sparse_geometry(zone->index->volume->geometry))
 		return UDS_SUCCESS;
-	}
 
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
-	if (sparse_virtual_chapter == UINT64_MAX) {
+	if (sparse_virtual_chapter == UINT64_MAX)
 		return UDS_SUCCESS;
-	}
 
 	return update_sparse_cache(zone, sparse_virtual_chapter);
 }
@@ -194,9 +189,8 @@ static void triage_request(struct uds_request *request)
 	struct uds_index *index = request->index;
 	uint64_t sparse_virtual_chapter = triage_index_request(index, request);
 
-	if (sparse_virtual_chapter != UINT64_MAX) {
+	if (sparse_virtual_chapter != UINT64_MAX)
 		enqueue_barrier_messages(index, sparse_virtual_chapter);
-	}
 
 	enqueue_request(request, STAGE_INDEX);
 }
@@ -208,16 +202,14 @@ static int finish_previous_chapter(struct uds_index *index,
 	struct chapter_writer *writer = index->chapter_writer;
 
 	uds_lock_mutex(&writer->mutex);
-	while (index->newest_virtual_chapter < current_chapter_number) {
+	while (index->newest_virtual_chapter < current_chapter_number)
 		uds_wait_cond(&writer->cond, &writer->mutex);
-	}
 	result = writer->result;
 	uds_unlock_mutex(&writer->mutex);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "Writing of previous open chapter failed");
-	}
 
 	return UDS_SUCCESS;
 }
@@ -229,9 +221,8 @@ static int swap_open_chapter(struct index_zone *zone)
 
 	result = finish_previous_chapter(zone->index,
 					 zone->newest_virtual_chapter);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	temporary_chapter = zone->open_chapter;
 	zone->open_chapter = zone->writing_chapter;
@@ -270,14 +261,12 @@ static int announce_chapter_closed(struct index_zone *zone,
 	};
 
 	for (i = 0; i < zone->index->zone_count; i++) {
-		if (zone->id == i) {
+		if (zone->id == i)
 			continue;
-		}
 
 		result = launch_zone_message(zone_message, i, zone->index);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	return UDS_SUCCESS;
@@ -298,9 +287,8 @@ static int open_next_chapter(struct index_zone *zone)
 		      zone->open_chapter->capacity - zone->open_chapter->size);
 
 	result = swap_open_chapter(zone);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	closed_chapter = zone->newest_virtual_chapter++;
 	set_volume_index_zone_open_chapter(zone->index->volume_index,
@@ -313,9 +301,8 @@ static int open_next_chapter(struct index_zone *zone)
 					       zone->writing_chapter);
 	if ((finished_zones == 1) && (zone->index->zone_count > 1)) {
 		result = announce_chapter_closed(zone, closed_chapter);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	expiring = zone->oldest_virtual_chapter;
@@ -323,13 +310,11 @@ static int open_next_chapter(struct index_zone *zone)
 					     zone->newest_virtual_chapter);
 	zone->oldest_virtual_chapter += expire_chapters;
 
-	if (finished_zones < zone->index->zone_count) {
+	if (finished_zones < zone->index->zone_count)
 		return UDS_SUCCESS;
-	}
 
-	while ((expire_chapters-- > 0) && (result == UDS_SUCCESS)) {
+	while ((expire_chapters-- > 0) && (result == UDS_SUCCESS))
 		result = forget_chapter(zone->index->volume, expiring++);
-	}
 
 	return result;
 }
@@ -337,9 +322,8 @@ static int open_next_chapter(struct index_zone *zone)
 static int handle_chapter_closed(struct index_zone *zone,
 				 uint64_t virtual_chapter)
 {
-	if (zone->newest_virtual_chapter == virtual_chapter) {
+	if (zone->newest_virtual_chapter == virtual_chapter)
 		return open_next_chapter(zone);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -376,13 +360,12 @@ static void set_chapter_location(struct uds_request *request,
 				 uint64_t virtual_chapter)
 {
 	request->found = true;
-	if (virtual_chapter == zone->newest_virtual_chapter) {
+	if (virtual_chapter == zone->newest_virtual_chapter)
 		request->location = UDS_LOCATION_IN_OPEN_CHAPTER;
-	} else if (is_zone_chapter_sparse(zone, virtual_chapter)) {
+	else if (is_zone_chapter_sparse(zone, virtual_chapter))
 		request->location = UDS_LOCATION_IN_SPARSE;
-	} else {
+	else
 		request->location = UDS_LOCATION_IN_DENSE;
-	}
 }
 
 static int search_sparse_cache_in_zone(struct index_zone *zone,
@@ -399,9 +382,8 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 				     &request->record_name,
 				     &virtual_chapter,
 				     &record_page_number);
-	if ((result != UDS_SUCCESS) || (virtual_chapter == UINT64_MAX)) {
+	if ((result != UDS_SUCCESS) || (virtual_chapter == UINT64_MAX))
 		return result;
-	}
 
 	request->virtual_chapter = virtual_chapter;
 	volume = zone->index->volume;
@@ -451,12 +433,11 @@ static int get_record_from_zone(struct index_zone *zone,
 	if (is_zone_chapter_sparse(zone, request->virtual_chapter) &&
 	    sparse_cache_contains(volume->sparse_cache,
 				  request->virtual_chapter,
-				  request->zone_number)) {
+				  request->zone_number))
 		return search_sparse_cache_in_zone(zone,
 						   request,
 						   request->virtual_chapter,
 						   found);
-	}
 
 	return search_volume_page_cache(volume,
 					request,
@@ -475,9 +456,8 @@ static int put_record_in_zone(struct index_zone *zone,
 	remaining = put_open_chapter(zone->open_chapter,
 				     &request->record_name,
 				     metadata);
-	if (remaining == 0) {
+	if (remaining == 0)
 		return open_next_chapter(zone);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -494,26 +474,22 @@ static int search_index_zone(struct index_zone *zone,
 	result = get_volume_index_record(zone->index->volume_index,
 					 &request->record_name,
 					 &record);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	if (record.is_found) {
 		if (request->requeued &&
-		    request->virtual_chapter != record.virtual_chapter) {
+		    request->virtual_chapter != record.virtual_chapter)
 			set_request_location(request, UDS_LOCATION_UNKNOWN);
-		}
 
 		request->virtual_chapter = record.virtual_chapter;
 		result = get_record_from_zone(zone, request, &found);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
-	if (found) {
+	if (found)
 		set_chapter_location(request, zone, record.virtual_chapter);
-	}
 
 	/*
 	 * If a record has overflowed a chapter index in more than one chapter
@@ -525,12 +501,11 @@ static int search_index_zone(struct index_zone *zone,
 	chapter = zone->newest_virtual_chapter;
 	if (found || overflow_record) {
 		if ((request->type == UDS_QUERY_NO_UPDATE) ||
-		    ((request->type == UDS_QUERY) && overflow_record)) {
+		    ((request->type == UDS_QUERY) && overflow_record))
 			/* There is nothing left to do. */
 			return UDS_SUCCESS;
-		}
 
-		if (record.virtual_chapter != chapter) {
+		if (record.virtual_chapter != chapter)
 			/*
 			 * Update the volume index to reference the new chapter
 			 * for the block. If the record had been deleted or
@@ -538,10 +513,9 @@ static int search_index_zone(struct index_zone *zone,
 			 */
 			result = set_volume_index_record_chapter(&record,
 								 chapter);
-		} else if (request->type != UDS_UPDATE) {
+		else if (request->type != UDS_UPDATE)
 			/* The record is already in the open chapter. */
 			return UDS_SUCCESS;
-		}
 	} else {
 		/*
 		 * The record wasn't in the volume index, so check whether the
@@ -559,20 +533,17 @@ static int search_index_zone(struct index_zone *zone,
 							     request,
 							     UINT64_MAX,
 							     &found);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 		}
 
-		if (found) {
+		if (found)
 			set_request_location(request, UDS_LOCATION_IN_SPARSE);
-		}
 
 		if ((request->type == UDS_QUERY_NO_UPDATE) ||
-		    ((request->type == UDS_QUERY) && !found)) {
+		    ((request->type == UDS_QUERY) && !found))
 			/* There is nothing left to do. */
 			return UDS_SUCCESS;
-		}
 
 		/*
 		 * Add a new entry to the volume index referencing the open
@@ -582,26 +553,23 @@ static int search_index_zone(struct index_zone *zone,
 		result = put_volume_index_record(&record, chapter);
 	}
 
-	if (result == UDS_OVERFLOW) {
+	if (result == UDS_OVERFLOW)
 		/*
 		 * The volume index encountered a delta list overflow.	The
 		 * condition was already logged. We will go on without adding
 		 * the chunk to the open chapter.
 		 */
 		return UDS_SUCCESS;
-	}
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
-	if (!found || (request->type == UDS_UPDATE)) {
+	if (!found || (request->type == UDS_UPDATE))
 		/* This is a new record or we're updating an existing record. */
 		metadata = &request->new_metadata;
-	} else {
+	else
 		/* Move the existing record to the open chapter. */
 		metadata = &request->old_metadata;
-	}
 
 	return put_record_in_zone(zone, request, metadata);
 }
@@ -615,13 +583,11 @@ static int remove_from_index_zone(struct index_zone *zone,
 	result = get_volume_index_record(zone->index->volume_index,
 					 &request->record_name,
 					 &record);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
-	if (!record.is_found) {
+	if (!record.is_found)
 		return UDS_SUCCESS;
-	}
 
 	/*
 	 * If the request was requeued, check whether the saved state is still
@@ -638,20 +604,17 @@ static int remove_from_index_zone(struct index_zone *zone,
 		bool found;
 
 		if (request->requeued &&
-		    request->virtual_chapter != record.virtual_chapter) {
+		    request->virtual_chapter != record.virtual_chapter)
 			set_request_location(request, UDS_LOCATION_UNKNOWN);
-		}
 
 		request->virtual_chapter = record.virtual_chapter;
 		result = get_record_from_zone(zone, request, &found);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
-		if (!found) {
+		if (!found)
 			/* There is no record to remove. */
 			return UDS_SUCCESS;
-		}
 	}
 
 	set_chapter_location(request, zone, record.virtual_chapter);
@@ -662,18 +625,16 @@ static int remove_from_index_zone(struct index_zone *zone,
 	 * name in the same chapter, but it's a very rare case (1 in 2^21).
 	 */
 	result = remove_volume_index_record(&record);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * If the record is in the open chapter, we must remove it or mark it
 	 * deleted to avoid trouble if the record is added again later.
 	 */
-	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER) {
+	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER)
 		remove_from_open_chapter(zone->open_chapter,
 					 &request->record_name);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -686,9 +647,8 @@ static int dispatch_index_request(struct uds_index *index,
 
 	if (!request->requeued) {
 		result = simulate_index_zone_barrier_message(zone, request);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	switch (request->type) {
@@ -721,11 +681,10 @@ static void execute_zone_request(struct uds_request *request)
 
 	if (request->zone_message.type != UDS_MESSAGE_NONE) {
 		result = dispatch_index_zone_control_request(request);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			uds_log_error_strerror(result,
 					       "error executing message: %d",
 					       request->zone_message.type);
-		}
 
 		/* Once the message is processed it can be freed. */
 		UDS_FREE(UDS_FORGET(request));
@@ -740,14 +699,12 @@ static void execute_zone_request(struct uds_request *request)
 	}
 
 	result = dispatch_index_request(index, request);
-	if (result == UDS_QUEUED) {
+	if (result == UDS_QUEUED)
 		/* The request has been requeued so don't let it complete. */
 		return;
-	}
 
-	if (!request->found) {
+	if (!request->found)
 		set_request_location(request, UDS_LOCATION_UNAVAILABLE);
-	}
 
 	request->status = result;
 	index->callback(request);
@@ -763,9 +720,8 @@ static int initialize_index_queues(struct uds_index *index,
 		result = make_uds_request_queue("indexW",
 						&execute_zone_request,
 						&index->zone_queues[i]);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	/* The triage queue is only needed for sparse multi-zone indexes. */
@@ -773,9 +729,8 @@ static int initialize_index_queues(struct uds_index *index,
 		result = make_uds_request_queue("triageW",
 						&triage_request,
 						&index->triage_queue);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	return UDS_SUCCESS;
@@ -823,9 +778,8 @@ static void close_chapters(void *arg)
 			 */
 			index->has_saved_open_chapter = false;
 			result = discard_open_chapter(index->layout);
-			if (result == UDS_SUCCESS) {
+			if (result == UDS_SUCCESS)
 				uds_log_debug("Discarding saved open chapter");
-			}
 		}
 
 		result = close_open_chapter(writer->chapters,
@@ -868,16 +822,14 @@ static void stop_chapter_writer(struct chapter_writer *writer)
 	}
 	uds_unlock_mutex(&writer->mutex);
 
-	if (writer_thread != 0) {
+	if (writer_thread != 0)
 		uds_join_threads(writer_thread);
-	}
 }
 
 static void free_chapter_writer(struct chapter_writer *writer)
 {
-	if (writer == NULL) {
+	if (writer == NULL)
 		return;
-	}
 
 	stop_chapter_writer(writer);
 	uds_destroy_mutex(&writer->mutex);
@@ -901,9 +853,8 @@ static int make_chapter_writer(struct uds_index *index,
 				       struct open_chapter_zone *,
 				       "Chapter Writer",
 				       &writer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	writer->index = index;
 	result = uds_init_mutex(&writer->mutex);
@@ -958,9 +909,8 @@ static int load_index(struct uds_index *index)
 	uint64_t last_save_chapter;
 
 	result = load_index_state(index->layout, index);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return UDS_INDEX_NOT_SAVED_CLEANLY;
-	}
 
 	last_save_chapter =
 		((index->last_save != NO_LAST_SAVE) ? index->last_save : 0);
@@ -991,21 +941,19 @@ static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 					 index_page_number,
 					 NULL,
 					 &chapter_index_page);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "failed to read index page %u in chapter %u",
 						      index_page_number,
 						      chapter);
-		}
 
 		lowest_delta_list = chapter_index_page->lowest_list_number;
 		highest_delta_list = chapter_index_page->highest_list_number;
-		if (lowest_delta_list != expected_list_number) {
+		if (lowest_delta_list != expected_list_number)
 			return uds_log_error_strerror(UDS_CORRUPT_DATA,
 						      "chapter %u index page %u is corrupt",
 						      chapter,
 						      index_page_number);
-		}
 
 		update_index_page_map(index->volume->index_page_map,
 				      vcn,
@@ -1028,25 +976,22 @@ static int replay_record(struct uds_index *index,
 	bool update_record;
 
 	if (will_be_sparse_chapter &&
-	    !is_volume_index_sample(index->volume_index, name)) {
+	    !is_volume_index_sample(index->volume_index, name))
 		/*
 		 * This entry will be in a sparse chapter after the rebuild
 		 * completes, and it is not a sample, so just skip over it.
 		 */
 		return UDS_SUCCESS;
-	}
 
 	result = get_volume_index_record(index->volume_index, name, &record);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	if (record.is_found) {
 		if (record.is_collision) {
-			if (record.virtual_chapter == virtual_chapter) {
+			if (record.virtual_chapter == virtual_chapter)
 				/* The record is already correct. */
 				return UDS_SUCCESS;
-			}
 
 			update_record = true;
 		} else if (record.virtual_chapter == virtual_chapter) {
@@ -1077,15 +1022,14 @@ static int replay_record(struct uds_index *index,
 							  record.virtual_chapter,
 							  NULL,
 							  &update_record);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
 			}
-		}
 	} else {
 		update_record = false;
 	}
 
-	if (update_record) {
+	if (update_record)
 		/*
 		 * Update the volume index to reference the new chapter for the
 		 * block. If the record had been deleted or dropped from the
@@ -1093,7 +1037,7 @@ static int replay_record(struct uds_index *index,
 		 */
 		result = set_volume_index_record_chapter(&record,
 							 virtual_chapter);
-	} else {
+	else
 		/*
 		 * Add a new entry to the volume index referencing the open
 		 * chapter. This should be done regardless of whether we are a
@@ -1102,12 +1046,10 @@ static int replay_record(struct uds_index *index,
 		 * record, we would want to un-sparsify if it did exist.
 		 */
 		result = put_volume_index_record(&record, virtual_chapter);
-	}
 
-	if ((result == UDS_DUPLICATE_NAME) || (result == UDS_OVERFLOW)) {
+	if ((result == UDS_DUPLICATE_NAME) || (result == UDS_OVERFLOW))
 		/* The rebuilt index will lose these records. */
 		return UDS_SUCCESS;
-	}
 
 	return result;
 }
@@ -1116,9 +1058,8 @@ static bool check_for_suspend(struct uds_index *index)
 {
 	bool closing;
 
-	if (index->load_context == NULL) {
+	if (index->load_context == NULL)
 		return false;
-	}
 
 	uds_lock_mutex(&index->load_context->mutex);
 	if (index->load_context->status != INDEX_SUSPENDING) {
@@ -1131,10 +1072,9 @@ static bool check_for_suspend(struct uds_index *index)
 	uds_broadcast_cond(&index->load_context->cond);
 
 	while ((index->load_context->status != INDEX_OPENING) &&
-	       (index->load_context->status != INDEX_FREEING)) {
+	       (index->load_context->status != INDEX_FREEING))
 		uds_wait_cond(&index->load_context->cond,
 			      &index->load_context->mutex);
-	}
 
 	closing = (index->load_context->status == INDEX_FREEING);
 	uds_unlock_mutex(&index->load_context->mutex);
@@ -1173,11 +1113,10 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 	set_volume_index_open_chapter(index->volume_index, virtual);
 
 	result = rebuild_index_page_map(index, virtual);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "could not rebuild index page map for chapter %u",
 					      physical_chapter);
-	}
 
 	for (i = 0; i < geometry->record_pages_per_chapter; i++) {
 		byte *record_page;
@@ -1189,11 +1128,10 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 					 record_page_number,
 					 &record_page,
 					 NULL);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "could not get page %d",
 						      record_page_number);
-		}
 
 		for (j = 0; j < geometry->records_per_page; j++) {
 			const byte *name_bytes;
@@ -1202,9 +1140,8 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 			name_bytes = record_page + (j * BYTES_PER_RECORD);
 			memcpy(&name.name, name_bytes, UDS_RECORD_NAME_SIZE);
 			result = replay_record(index, &name, virtual, sparse);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 		}
 	}
 
@@ -1246,20 +1183,18 @@ static int replay_volume(struct uds_index *index)
 						   upto_virtual,
 						   virtual);
 		result = replay_chapter(index, virtual, will_be_sparse);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	/* Also reap the chapter being replaced by the open chapter. */
 	set_volume_index_open_chapter(index->volume_index, upto_virtual);
 
 	new_map_update = index->volume->index_page_map->last_update;
-	if (new_map_update != old_map_update) {
+	if (new_map_update != old_map_update)
 		uds_log_info("replay changed index page map update from %llu to %llu",
 			     (unsigned long long) old_map_update,
 			     (unsigned long long) new_map_update);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -1278,10 +1213,9 @@ static int rebuild_index(struct uds_index *index)
 						&lowest,
 						&highest,
 						&is_empty);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_log_fatal_strerror(result,
 					      "cannot rebuild index: unknown volume chapter boundaries");
-	}
 
 	if (is_empty) {
 		index->newest_virtual_chapter = 0;
@@ -1293,15 +1227,13 @@ static int rebuild_index(struct uds_index *index)
 	index->newest_virtual_chapter = highest + 1;
 	index->oldest_virtual_chapter = lowest;
 	if (index->newest_virtual_chapter ==
-	    (index->oldest_virtual_chapter + chapters_per_volume)) {
+	    (index->oldest_virtual_chapter + chapters_per_volume))
 		/* Skip the chapter shadowed by the open chapter. */
 		index->oldest_virtual_chapter++;
-	}
 
 	result = replay_volume(index);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	index->volume->lookup_mode = LOOKUP_NORMAL;
 	return UDS_SUCCESS;
@@ -1309,9 +1241,8 @@ static int rebuild_index(struct uds_index *index)
 
 static void free_index_zone(struct index_zone *zone)
 {
-	if (zone == NULL) {
+	if (zone == NULL)
 		return;
-	}
 
 	free_open_chapter(zone->open_chapter);
 	free_open_chapter(zone->writing_chapter);
@@ -1324,9 +1255,8 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 	struct index_zone *zone;
 
 	result = UDS_ALLOCATE(1, struct index_zone, "index zone", &zone);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = make_open_chapter(index->volume->geometry,
 				   index->zone_count,
@@ -1370,9 +1300,8 @@ int make_index(struct configuration *config,
 				       struct uds_request_queue *,
 				       "index",
 				       &index);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	index->zone_count = config->zone_count;
 
@@ -1446,10 +1375,9 @@ int make_index(struct configuration *config,
 					       "index could not be loaded");
 			if (open_type == UDS_LOAD) {
 				result = rebuild_index(index);
-				if (result != UDS_SUCCESS) {
+				if (result != UDS_SUCCESS)
 					uds_log_error_strerror(result,
 							       "index could not be rebuilt");
-				}
 			}
 			break;
 		}
@@ -1488,22 +1416,19 @@ void free_index(struct uds_index *index)
 {
 	unsigned int i;
 
-	if (index == NULL) {
+	if (index == NULL)
 		return;
-	}
 
 	uds_request_queue_finish(index->triage_queue);
-	for (i = 0; i < index->zone_count; i++) {
+	for (i = 0; i < index->zone_count; i++)
 		uds_request_queue_finish(index->zone_queues[i]);
-	}
 
 	free_chapter_writer(index->chapter_writer);
 
 	free_volume_index(index->volume_index);
 	if (index->zones != NULL) {
-		for (i = 0; i < index->zone_count; i++) {
+		for (i = 0; i < index->zone_count; i++)
 			free_index_zone(index->zones[i]);
-		}
 		UDS_FREE(index->zones);
 	}
 
@@ -1518,9 +1443,8 @@ void wait_for_idle_index(struct uds_index *index)
 	struct chapter_writer *writer = index->chapter_writer;
 
 	uds_lock_mutex(&writer->mutex);
-	while (writer->zones_to_write > 0) {
+	while (writer->zones_to_write > 0)
 		uds_wait_cond(&writer->cond, &writer->mutex);
-	}
 	uds_unlock_mutex(&writer->mutex);
 }
 
@@ -1529,9 +1453,8 @@ int save_index(struct uds_index *index)
 {
 	int result;
 
-	if (!index->need_to_save) {
+	if (!index->need_to_save)
 		return UDS_SUCCESS;
-	}
 
 	wait_for_idle_index(index);
 	index->prev_save = index->last_save;
