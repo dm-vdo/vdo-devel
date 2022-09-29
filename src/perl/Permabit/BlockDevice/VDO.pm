@@ -279,6 +279,45 @@ sub start {
 }
 
 ########################################################################
+# Get the VDO configuration as a hash
+##
+sub dumpConfig {
+  my ($self) = assertNumArgs(1, @_);
+
+  my $path = $self->getVDOStoragePath();
+  my $cmd = $self->findBinary("vdoDumpConfig");
+  my $output = $self->runOnHost("sudo $cmd $path");
+  return yamlStringToHash($output);
+}
+
+########################################################################
+# Fill the index with synthetic records for steady state testing
+##
+sub fillIndex {
+  my ($self) = assertNumArgs(1, @_);
+
+  my $config = $self->dumpConfig();
+  my $nonce = $config->{Nonce};
+  my $offset = $config->{IndexRegion} * 4096;
+  my $sparse = $config->{IndexConfig}->{sparse};
+  my $path = $self->getVDOStoragePath();
+
+  my $cmd = join(" ", $self->findBinary("vdoFillIndex"),
+		 "--nonce=$nonce", "--offset=$offset",
+		 (($sparse eq "true") ? "--sparse" : ()));
+  if (defined($self->{memorySize})) {
+    $cmd .= " --memory-size=$self->{memorySize}";
+  }
+
+  $self->stop();
+  $self->enableWritableStorage();
+  my $output = $self->runOnHost("sudo $cmd $path");
+  $log->debug($output);
+  $self->disableWritableStorage();
+  $self->start();
+}
+
+########################################################################
 # @inherit
 ##
 sub activate {
@@ -301,8 +340,8 @@ sub postActivate {
 
   if (!$self->{disableAlbireo} && $self->{albFill}) {
     $self->waitForIndex();
-    $self->sendMessage("index-fill");
     $self->{albFill} = 0;
+    $self->fillIndex();
   }
 
   # In testing, we can try out different queue priorities

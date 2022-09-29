@@ -176,6 +176,7 @@ my @SHARED_FILES
      "src/c++/vdo/bin/checkerboardWrite",
      "src/c++/vdo/bin/corruptPBNRef",
      "src/c++/vdo/bin/corruptpbnref",
+     "src/c++/vdo/bin/vdoFillIndex",
      "src/c++/vdo/bin/udsCalculateSize",
      "src/c++/vdo/bin/vdoAudit",
      "src/c++/vdo/bin/vdoaudit",

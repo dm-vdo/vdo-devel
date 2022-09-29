@@ -38,6 +38,7 @@ PROGS = corruptPBNRef          \
         udsCalculateSize       \
         vdoDMEventd            \
         vdoDumpConfig          \
+	vdoFillIndex           \
         vdoForceRebuild        \
         vdoFormat              \
         vdoInitializeBlockMap  \
@@ -73,8 +74,11 @@ all: $(STATS_HEADER) $(BIN_PROGS) $(DMEVENT_LIB)
 $(STATS_HEADER) $(STATS_FILES): $(VDO_STATS_DEPS)
 	$(MAKE) -C $(VDO_STATS_DIR)
 
-$(LIBUDS): $(UDS_USER_FILES)
+$(LIBUDS):
 	$(MAKE) -C $(UDS_USER_DIR)
+
+$(LIBVDO):
+	$(MAKE) -C $(VDO_BASE_DIR) libvdouser.a
 
 .PHONY: doc
 doc:
