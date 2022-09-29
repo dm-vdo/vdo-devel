@@ -77,7 +77,7 @@ static INLINE int uds_do_allocation(size_t count,
 {
 	size_t total_size = count * size + extra;
 	/* Overflow check: */
-	if ((size > 0) && (count > ((SIZE_MAX - extra) / size))) {
+	if ((size > 0) && (count > ((SIZE_MAX - extra) / size)))
 		/*
 		 * This is kind of a hack: We rely on the fact that SIZE_MAX
 		 * would cover the entire address space (minus one byte) and
@@ -86,7 +86,6 @@ static INLINE int uds_do_allocation(size_t count,
 		 * memory" by asking for "merely" SIZE_MAX bytes.
 		 */
 		total_size = SIZE_MAX;
-	}
 
 	return uds_allocate_memory(total_size, align, what, ptr);
 }

@@ -38,9 +38,8 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 			      struct open_chapter_index,
 			      "open chapter index",
 			      &index);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * The delta index will rebalance delta lists when memory gets tight,
@@ -51,11 +50,11 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 	index->geometry = geometry;
 	index->volume_nonce = volume_nonce;
 	result = initialize_delta_index(&index->delta_index,
-				        1,
-				        geometry->delta_lists_per_chapter,
-				        geometry->chapter_mean_delta,
-				        geometry->chapter_payload_bits,
-				        memory_size);
+					1,
+					geometry->delta_lists_per_chapter,
+					geometry->chapter_mean_delta,
+					geometry->chapter_payload_bits,
+					memory_size);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(index);
 		return result;
@@ -70,9 +69,8 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 
 void free_open_chapter_index(struct open_chapter_index *chapter_index)
 {
-	if (chapter_index == NULL) {
+	if (chapter_index == NULL)
 		return;
-	}
 
 #ifdef TEST_INTERNAL
 	struct delta_index_stats delta_index_stats;
@@ -130,9 +128,8 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 			"Page number within chapter (%u) exceeds the maximum value %u",
 			page_number,
 			record_pages);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	address = hash_to_chapter_delta_address(name, geometry);
 	list_number = hash_to_chapter_delta_list(name, geometry);
@@ -141,17 +138,15 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 				       address,
 				       name->name,
 				       &entry);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	found = was_entry_found(&entry, address);
 	result = ASSERT(!(found && entry.is_collision),
 			"Chunk appears more than once in chapter %llu",
 			(unsigned long long) chapter_number);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return UDS_BAD_STATE;
-	}
 
 	found_name = (found ? name->name : NULL);
 	return put_delta_index_entry(&entry, address, page_number, found_name);
@@ -163,13 +158,13 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  * from the open chapter index into a memory page. The number of lists
  * copied onto the page is returned to the caller on success.
  *
- * @param chapter_index  The open chapter index
- * @param memory         The memory page to use
- * @param first_list     The first delta list number to be copied
- * @param last_page      If true, this is the last page of the chapter index
- *                       and all the remaining lists must be packed onto this
- *                       page
- * @param num_lists      The number of delta lists that were copied
+ * @param chapter_index	 The open chapter index
+ * @param memory	 The memory page to use
+ * @param first_list	 The first delta list number to be copied
+ * @param last_page	 If true, this is the last page of the chapter index
+ *			 and all the remaining lists must be packed onto this
+ *			 page
+ * @param num_lists	 The number of delta lists that were copied
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				 byte *memory,
@@ -197,13 +192,12 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 					       chapter_number,
 					       first_list,
 					       num_lists);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
-		if ((first_list + *num_lists) == list_count) {
+		if ((first_list + *num_lists) == list_count)
 			/* All lists are packed. */
 			break;
-		} else if (*num_lists == 0) {
+		else if (*num_lists == 0) {
 			/*
 			 * The next delta list does not fit on a page. This
 			 * delta list will be removed.
@@ -232,39 +226,34 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 
 		list_number = *num_lists;
 		do {
-			if (list_number < 0) {
+			if (list_number < 0)
 				return UDS_OVERFLOW;
-			}
 
 			next_list = first_list + list_number--,
 			result = start_delta_index_search(delta_index,
 							  next_list,
-						          0,
-						          &entry);
-			if (result != UDS_SUCCESS) {
+							  0,
+							  &entry);
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 
 			result = next_delta_index_entry(&entry);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 		} while (entry.at_end);
 
 		do {
 			result = remove_delta_index_entry(&entry);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				return result;
-			}
 			removals++;
 		} while (!entry.at_end);
 	}
 
-	if (removals > 0) {
+	if (removals > 0)
 		uds_log_warning("To avoid chapter index page overflow in chapter %llu, %u entries were removed from the chapter index",
 				(unsigned long long) chapter_number,
 				removals);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -302,40 +291,36 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 
 		result = start_delta_index_search(delta_index,
 						  list_number - first,
-					          0,
+						  0,
 						  &entry);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
 		for (;;) {
 			result = next_delta_index_entry(&entry);
-			if (result != UDS_SUCCESS) {
+			if (result != UDS_SUCCESS)
 				/*
 				 * A random bit stream is highly likely
 				 * to arrive here when we go past the
 				 * end of the delta list.
 				 */
 				return result;
-			}
 
-			if (entry.at_end) {
+			if (entry.at_end)
 				break;
-			}
 
 			/*
 			 * Also make sure that the record page field contains a
 			 * plausible value.
 			 */
 			if (get_delta_entry_value(&entry) >=
-			    geometry->record_pages_per_chapter) {
+			    geometry->record_pages_per_chapter)
 				/*
 				 * Do not log this as an error. It happens in
 				 * normal operation when we are doing a rebuild
 				 * but haven't written the entire volume once.
 				 */
 				return UDS_CORRUPT_DATA;
-			}
 		}
 	}
 	return UDS_SUCCESS;
@@ -364,15 +349,13 @@ int search_chapter_index_page(struct delta_index_page *index_page,
 				       address,
 				       name->name,
 				       &entry);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
-	if (was_entry_found(&entry, address)) {
+	if (was_entry_found(&entry, address))
 		*record_page_ptr = get_delta_entry_value(&entry);
-	} else {
+	else
 		*record_page_ptr = NO_CHAPTER_INDEX_ENTRY;
-	}
 
 	return UDS_SUCCESS;
 }

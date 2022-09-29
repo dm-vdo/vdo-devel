@@ -73,9 +73,8 @@ int make_geometry(size_t bytes_per_page,
 	struct geometry *geometry;
 
 	result = UDS_ALLOCATE(1, struct geometry, "geometry", &geometry);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	geometry->bytes_per_page = bytes_per_page;
 	geometry->record_pages_per_chapter = record_pages_per_chapter;
@@ -152,27 +151,23 @@ map_to_physical_chapter(const struct geometry *geometry,
 {
 	uint64_t delta;
 
-	if (!is_reduced_geometry(geometry)) {
+	if (!is_reduced_geometry(geometry))
 		return virtual_chapter % geometry->chapters_per_volume;
-	}
 
 	if (likely(virtual_chapter > geometry->remapped_virtual)) {
 		delta = virtual_chapter - geometry->remapped_virtual;
-		if (likely(delta > geometry->remapped_physical)) {
+		if (likely(delta > geometry->remapped_physical))
 			return delta % geometry->chapters_per_volume;
-		} else {
+		else
 			return delta - 1;
-		}
 	}
 
-	if (virtual_chapter == geometry->remapped_virtual) {
+	if (virtual_chapter == geometry->remapped_virtual)
 		return geometry->remapped_physical;
-	}
 
 	delta = geometry->remapped_virtual - virtual_chapter;
-	if (delta < geometry->chapters_per_volume) {
+	if (delta < geometry->chapters_per_volume)
 		return geometry->chapters_per_volume - delta;
-	}
 
 	/* This chapter is so old the answer doesn't matter. */
 	return 0;
@@ -206,9 +201,8 @@ unsigned int chapters_to_expire(const struct geometry *geometry,
 				uint64_t newest_chapter)
 {
 	/* If the index isn't full yet, don't expire anything. */
-	if (newest_chapter < geometry->chapters_per_volume) {
+	if (newest_chapter < geometry->chapters_per_volume)
 		return 0;
-	}
 
 	/* If a chapter is out of order... */
 	if (geometry->remapped_physical > 0) {
@@ -219,18 +213,16 @@ unsigned int chapters_to_expire(const struct geometry *geometry,
 		 * ... expire an extra chapter when expiring the moved chapter
 		 * to free physical space for the new chapter ...
 		 */
-		if (oldest_chapter == geometry->remapped_virtual) {
+		if (oldest_chapter == geometry->remapped_virtual)
 			return 2;
-		}
 
 		/*
 		 * ... but don't expire anything when the new chapter will use
 		 * the physical chapter freed by expiring the moved chapter.
 		 */
 		if (oldest_chapter == (geometry->remapped_virtual +
-				       geometry->remapped_physical)) {
+				       geometry->remapped_physical))
 			return 0;
-		}
 	}
 
 	/* Normally, just expire one. */

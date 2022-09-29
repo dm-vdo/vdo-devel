@@ -150,16 +150,14 @@ static const char *system_string_error(int errnum, char *buf, size_t buflen)
 	size_t len;
 	const char *error_string = NULL;
 
-	if ((errnum > 0) && (errnum < ARRAY_SIZE(message_table))) {
+	if ((errnum > 0) && (errnum < ARRAY_SIZE(message_table)))
 		error_string = message_table[errnum];
-	}
 
 	len = ((error_string == NULL) ?
 		 snprintf(buf, buflen, "Unknown error %d", errnum) :
 		 snprintf(buf, buflen, "%s", error_string));
-	if (len < buflen) {
+	if (len < buflen)
 		return buf;
-	}
 
 	buf[0] = '\0';
 	return "System error";
@@ -180,29 +178,26 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 	const struct error_info *info = NULL;
 	const char *block_name;
 
-	if (buf == NULL) {
+	if (buf == NULL)
 		return NULL;
-	}
 
-	if (errnum < 0) {
+	if (errnum < 0)
 		errnum = -errnum;
-	}
 
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
-		if (info != NULL) {
+		if (info != NULL)
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s: %s",
 						      block_name,
 						      info->message);
-		} else {
+		else
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "Unknown %s %d",
 						      block_name,
 						      errnum);
-		}
 	} else if (info != NULL) {
 		buffer = uds_append_to_buffer(buffer,
 					      buf_end,
@@ -211,14 +206,13 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 	} else {
 		const char *tmp =
 			system_string_error(errnum, buffer, buf_end - buffer);
-		if (tmp != buffer) {
+		if (tmp != buffer)
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s",
 						      tmp);
-		} else {
+		else
 			buffer += strlen(tmp);
-		}
 	}
 	return buf;
 }
@@ -231,24 +225,22 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 	const struct error_info *info = NULL;
 	const char *block_name;
 
-	if (errnum < 0) {
+	if (errnum < 0)
 		errnum = -errnum;
-	}
 
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
-		if (info != NULL) {
+		if (info != NULL)
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s",
 						      info->name);
-		} else {
+		else
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s %d",
 						      block_name,
 						      errnum);
-		}
 	} else if (info != NULL) {
 		buffer = uds_append_to_buffer(buffer,
 					      buf_end,
@@ -258,14 +250,13 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 		const char *tmp;
 
 		tmp = system_string_error(errnum, buffer, buf_end - buffer);
-		if (tmp != buffer) {
+		if (tmp != buffer)
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s",
 						      tmp);
-		} else {
+		else
 			buffer += strlen(tmp);
-		}
 	}
 	return buf;
 }
@@ -281,14 +272,12 @@ int uds_map_to_system_error(int error)
 	char error_message[UDS_MAX_ERROR_MESSAGE_SIZE];
 
 	/* 0 is success, and negative values are already system error codes. */
-	if (likely(error <= 0)) {
+	if (likely(error <= 0))
 		return error;
-	}
 
-	if (error < 1024) {
+	if (error < 1024)
 		/* This is probably an errno from userspace. */
 		return -error;
-	}
 
 	/* Internal UDS errors */
 	switch (error) {
@@ -351,27 +340,23 @@ int register_error_block(const char *block_name,
 
 	result = ASSERT(first_error < next_free_error,
 			"well-defined error block range");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
-	if (registered_errors.count == registered_errors.allocated) {
+	if (registered_errors.count == registered_errors.allocated)
 		/* This should never happen. */
 		return UDS_OVERFLOW;
-	}
 
 	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;
 	     ++block) {
-		if (strcmp(block_name, block->name) == 0) {
+		if (strcmp(block_name, block->name) == 0)
 			return UDS_DUPLICATE_NAME;
-		}
 
 		/* Ensure error ranges do not overlap. */
 		if ((first_error < block->max) &&
-		    (next_free_error > block->base)) {
+		    (next_free_error > block->base))
 			return UDS_ALREADY_REGISTERED;
-		}
 	}
 
 	registered_errors.blocks[registered_errors.count++] = new_block;

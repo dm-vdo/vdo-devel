@@ -18,9 +18,8 @@
  *
  *   for (;;) {
  *     // Fast path--no additional cost to consumer.
- *     if (lockfree_dequeue(&item)) {
+ *     if (lockfree_dequeue(&item))
  *       return item;
- *     }
  *     // Two-step wait: get current token and poll state, either cancelling
  *     // the wait or waiting for the token to be signalled.
  *     event_token_t token = event_count_prepare(event_count);
@@ -177,18 +176,17 @@ void event_count_broadcast(struct event_count *count)
 		event_token_t new_state;
 
 		/*
-		 * Check if there are any tokens that have not yet been been
+		 * Check if there are any tokens that have not yet been
 		 * transferred to the semaphore. This is the fast no-waiters
 		 * path.
 		 */
 		waiters = (state & WAITERS_MASK);
-		if (waiters == 0) {
+		if (waiters == 0)
 			/*
 			 * Fast path first time through -- no need to signal or
 			 * post if there are no observers.
 			 */
 			return;
-		}
 
 		/*
 		 * Attempt to atomically claim all the wait tokens and bump the
@@ -213,9 +211,8 @@ void event_count_broadcast(struct event_count *count)
 	 * transfers the wait tokens to the semaphore. There's sadly no bulk
 	 * post for posix semaphores, so we've got to loop to do them all.
 	 */
-	while (waiters-- > 0) {
+	while (waiters-- > 0)
 		uds_release_semaphore(&count->semaphore);
-	}
 }
 
 /*
@@ -237,9 +234,8 @@ static INLINE bool fast_cancel(struct event_count *count, event_token_t token)
 		new_token = atomic64_cmpxchg(&count->state,
 					     current_token,
 					     current_token - 1);
-		if (new_token == current_token) {
+		if (new_token == current_token)
 			return true;
-		}
 
 		current_token = new_token;
 	}
@@ -255,22 +251,24 @@ static bool consume_wait_token(struct event_count *count,
 			       const ktime_t *timeout)
 {
 	/* Try to grab a token without waiting. */
-	if (uds_attempt_semaphore(&count->semaphore, 0)) {
+	if (uds_attempt_semaphore(&count->semaphore, 0))
 		return true;
-	}
 
 #if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
 	atomic64_inc(&count->sleeps);
 
 #endif /* defined(TEST_INTERNAL) && defined(INSTRUMENTED) */
-	if (timeout == NULL) {
+	if (timeout == NULL)
 		uds_acquire_semaphore(&count->semaphore);
-	} else if (!uds_attempt_semaphore(&count->semaphore, *timeout)) {
+	else if (!uds_attempt_semaphore(&count->semaphore, *timeout))
 #if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
+	{
 		atomic64_inc(&count->timeouts);
 #endif /* defined(TEST_INTERNAL) && defined(INSTRUMENTED) */
 		return false;
+#if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
 	}
+#endif /* defined(TEST_INTERNAL) && defined(INSTRUMENTED) */
 
 	return true;
 }
@@ -285,9 +283,8 @@ int make_event_count(struct event_count **count_ptr)
 	struct event_count *count = NULL;
 
 	result = UDS_ALLOCATE(1, struct event_count, "event count", &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	atomic64_set(&count->state, 0);
 	result = uds_initialize_semaphore(&count->semaphore, 0);
@@ -303,9 +300,8 @@ int make_event_count(struct event_count **count_ptr)
 /* Free a struct event_count. It must no longer be in use. */
 void free_event_count(struct event_count *count)
 {
-	if (count == NULL) {
+	if (count == NULL)
 		return;
-	}
 
 	uds_destroy_semaphore(&count->semaphore);
 	UDS_FREE(count);
@@ -329,9 +325,8 @@ event_token_t event_count_prepare(struct event_count *count)
 void event_count_cancel(struct event_count *count, event_token_t token)
 {
 	/* Decrement the waiter count if the event hasn't been signalled. */
-	if (fast_cancel(count, token)) {
+	if (fast_cancel(count, token))
 		return;
-	}
 
 	/*
 	 * A signaller has already transferred (or promised to transfer) our
@@ -367,9 +362,8 @@ bool event_count_wait(struct event_count *count,
 			 * instead. Try to decrement the waiter count if the
 			 * event hasn't been signalled.
 			 */
-			if (fast_cancel(count, token)) {
+			if (fast_cancel(count, token))
 				return false;
-			}
 			/*
 			 * We timed out, but a signaller came in before we
 			 * could cancel the wait. We have no choice but to wait
@@ -389,9 +383,8 @@ bool event_count_wait(struct event_count *count,
 		 * Stop waiting if the count has changed since the token was
 		 * acquired.
 		 */
-		if (!same_event(token, atomic64_read(&count->state))) {
+		if (!same_event(token, atomic64_read(&count->state)))
 			return true;
-		}
 
 		/*
 		 * We consumed someone else's wait token. Put it back in the

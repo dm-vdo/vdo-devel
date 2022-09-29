@@ -44,9 +44,8 @@ int wrap_buffer(byte *bytes,
 			content_length);
 
 	result = UDS_ALLOCATE(1, struct buffer, "buffer", &buffer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	buffer->data = bytes;
 	buffer->start = 0;
@@ -73,9 +72,8 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 	struct buffer *buffer;
 
 	result = UDS_ALLOCATE(size, byte, "buffer data", &data);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = wrap_buffer(data, size, 0, &buffer);
 	if (result != UDS_SUCCESS) {
@@ -90,13 +88,11 @@ int make_buffer(size_t size, struct buffer **new_buffer)
 
 void free_buffer(struct buffer *buffer)
 {
-	if (buffer == NULL) {
+	if (buffer == NULL)
 		return;
-	}
 
-	if (!buffer->wrapped) {
+	if (!buffer->wrapped)
 		UDS_FREE(UDS_FORGET(buffer->data));
-	}
 
 	UDS_FREE(buffer);
 }
@@ -136,9 +132,8 @@ size_t buffer_used(struct buffer *buffer)
  */
 bool ensure_available_space(struct buffer *buffer, size_t bytes)
 {
-	if (available_space(buffer) >= bytes) {
+	if (available_space(buffer) >= bytes)
 		return true;
-	}
 
 	compact_buffer(buffer);
 	return (available_space(buffer) >= bytes);
@@ -160,9 +155,8 @@ void compact_buffer(struct buffer *buffer)
 {
 	size_t bytes_to_move;
 
-	if ((buffer->start == 0) || (buffer->end == 0)) {
+	if ((buffer->start == 0) || (buffer->end == 0))
 		return;
-	}
 
 	bytes_to_move = buffer->end - buffer->start;
 	memmove(buffer->data, buffer->data + buffer->start, bytes_to_move);
@@ -173,14 +167,12 @@ void compact_buffer(struct buffer *buffer)
 /* Reset the end of buffer to a different position. */
 int reset_buffer_end(struct buffer *buffer, size_t end)
 {
-	if (end > buffer->length) {
+	if (end > buffer->length)
 		return UDS_BUFFER_ERROR;
-	}
 
 	buffer->end = end;
-	if (buffer->start > buffer->end) {
+	if (buffer->start > buffer->end)
 		buffer->start = buffer->end;
-	}
 
 	return UDS_SUCCESS;
 }
@@ -188,9 +180,8 @@ int reset_buffer_end(struct buffer *buffer, size_t end)
 /* Advance the start pointer by the specified number of bytes. */
 int skip_forward(struct buffer *buffer, size_t bytes_to_skip)
 {
-	if (content_length(buffer) < bytes_to_skip) {
+	if (content_length(buffer) < bytes_to_skip)
 		return UDS_BUFFER_ERROR;
-	}
 
 	buffer->start += bytes_to_skip;
 	return UDS_SUCCESS;
@@ -199,9 +190,8 @@ int skip_forward(struct buffer *buffer, size_t bytes_to_skip)
 /* Rewind the start pointer by the specified number of bytes. */
 int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
 {
-	if (buffer->start < bytes_to_rewind) {
+	if (buffer->start < bytes_to_rewind)
 		return UDS_BUFFER_ERROR;
-	}
 
 	buffer->start -= bytes_to_rewind;
 	return UDS_SUCCESS;
@@ -227,9 +217,8 @@ bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2)
 
 int get_byte(struct buffer *buffer, byte *byte_ptr)
 {
-	if (content_length(buffer) < sizeof(byte)) {
+	if (content_length(buffer) < sizeof(byte))
 		return UDS_BUFFER_ERROR;
-	}
 
 	*byte_ptr = buffer->data[buffer->start++];
 	return UDS_SUCCESS;
@@ -237,9 +226,8 @@ int get_byte(struct buffer *buffer, byte *byte_ptr)
 
 int put_byte(struct buffer *buffer, byte b)
 {
-	if (!ensure_available_space(buffer, sizeof(byte))) {
+	if (!ensure_available_space(buffer, sizeof(byte)))
 		return UDS_BUFFER_ERROR;
-	}
 
 	buffer->data[buffer->end++] = b;
 	return UDS_SUCCESS;
@@ -248,9 +236,8 @@ int put_byte(struct buffer *buffer, byte b)
 int get_bytes_from_buffer(struct buffer *buffer, size_t length,
 			  void *destination)
 {
-	if (content_length(buffer) < length) {
+	if (content_length(buffer) < length)
 		return UDS_BUFFER_ERROR;
-	}
 
 	memcpy(destination, buffer->data + buffer->start, length);
 	buffer->start += length;
@@ -281,25 +268,22 @@ int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
 			      byte,
 			      "copy_bytes() buffer",
 			      &destination);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_bytes_from_buffer(buffer, length, destination);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		UDS_FREE(destination);
-	} else {
+	else
 		*destination_ptr = destination;
-	}
 
 	return result;
 }
 
 int put_bytes(struct buffer *buffer, size_t length, const void *source)
 {
-	if (!ensure_available_space(buffer, length)) {
+	if (!ensure_available_space(buffer, length))
 		return UDS_BUFFER_ERROR;
-	}
 
 	memcpy(buffer->data + buffer->end, source, length);
 	buffer->end += length;
@@ -315,14 +299,12 @@ int put_buffer(struct buffer *target, struct buffer *source, size_t length)
 {
 	int result;
 
-	if (content_length(source) < length) {
+	if (content_length(source) < length)
 		return UDS_BUFFER_ERROR;
-	}
 
 	result = put_bytes(target, length, get_buffer_contents(source));
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	source->start += length;
 	return UDS_SUCCESS;
@@ -331,9 +313,8 @@ int put_buffer(struct buffer *target, struct buffer *source, size_t length)
 /* Put the specified number of zero bytes in the buffer. */
 int zero_bytes(struct buffer *buffer, size_t length)
 {
-	if (!ensure_available_space(buffer, length)) {
+	if (!ensure_available_space(buffer, length))
 		return UDS_BUFFER_ERROR;
-	}
 
 	memset(buffer->data + buffer->end, 0, length);
 	buffer->end += length;
@@ -346,9 +327,8 @@ int get_boolean(struct buffer *buffer, bool *b)
 	byte value;
 
 	result = get_byte(buffer, &value);
-	if (result == UDS_SUCCESS) {
+	if (result == UDS_SUCCESS)
 		*b = (value == 1);
-	}
 
 	return result;
 }
@@ -360,9 +340,8 @@ int put_boolean(struct buffer *buffer, bool b)
 
 int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
 {
-	if (content_length(buffer) < sizeof(uint16_t)) {
+	if (content_length(buffer) < sizeof(uint16_t))
 		return UDS_BUFFER_ERROR;
-	}
 
 	decode_uint16_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
@@ -370,9 +349,8 @@ int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
 
 int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
 {
-	if (!ensure_available_space(buffer, sizeof(uint16_t))) {
+	if (!ensure_available_space(buffer, sizeof(uint16_t)))
 		return UDS_BUFFER_ERROR;
-	}
 
 	encode_uint16_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
@@ -383,13 +361,11 @@ int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
 {
 	unsigned int i;
 
-	if (content_length(buffer) < (sizeof(uint16_t) * count)) {
+	if (content_length(buffer) < (sizeof(uint16_t) * count))
 		return UDS_BUFFER_ERROR;
-	}
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		decode_uint16_le(buffer->data, &buffer->start, ui + i);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -400,22 +376,19 @@ int put_uint16_les_into_buffer(struct buffer *buffer,
 {
 	unsigned int i;
 
-	if (!ensure_available_space(buffer, sizeof(uint16_t) * count)) {
+	if (!ensure_available_space(buffer, sizeof(uint16_t) * count))
 		return UDS_BUFFER_ERROR;
-	}
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		encode_uint16_le(buffer->data, &buffer->end, ui[i]);
-	}
 
 	return UDS_SUCCESS;
 }
 
 int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
 {
-	if (content_length(buffer) < sizeof(int32_t)) {
+	if (content_length(buffer) < sizeof(int32_t))
 		return UDS_BUFFER_ERROR;
-	}
 
 	decode_int32_le(buffer->data, &buffer->start, i);
 	return UDS_SUCCESS;
@@ -423,9 +396,8 @@ int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
 
 int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
 {
-	if (content_length(buffer) < sizeof(uint32_t)) {
+	if (content_length(buffer) < sizeof(uint32_t))
 		return UDS_BUFFER_ERROR;
-	}
 
 	decode_uint32_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
@@ -433,9 +405,8 @@ int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
 
 int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
 {
-	if (!ensure_available_space(buffer, sizeof(uint32_t))) {
+	if (!ensure_available_space(buffer, sizeof(uint32_t)))
 		return UDS_BUFFER_ERROR;
-	}
 
 	encode_uint32_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
@@ -443,9 +414,8 @@ int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
 
 int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
 {
-	if (!ensure_available_space(buffer, sizeof(int64_t))) {
+	if (!ensure_available_space(buffer, sizeof(int64_t)))
 		return UDS_BUFFER_ERROR;
-	}
 
 	encode_int64_le(buffer->data, &buffer->end, i);
 	return UDS_SUCCESS;
@@ -453,9 +423,8 @@ int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
 
 int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
 {
-	if (content_length(buffer) < sizeof(uint64_t)) {
+	if (content_length(buffer) < sizeof(uint64_t))
 		return UDS_BUFFER_ERROR;
-	}
 
 	decode_uint64_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
@@ -463,9 +432,8 @@ int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
 
 int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
 {
-	if (!ensure_available_space(buffer, sizeof(uint64_t))) {
+	if (!ensure_available_space(buffer, sizeof(uint64_t)))
 		return UDS_BUFFER_ERROR;
-	}
 
 	encode_uint64_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
@@ -476,13 +444,11 @@ int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
 {
 	unsigned int i;
 
-	if (content_length(buffer) < (sizeof(uint64_t) * count)) {
+	if (content_length(buffer) < (sizeof(uint64_t) * count))
 		return UDS_BUFFER_ERROR;
-	}
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		decode_uint64_le(buffer->data, &buffer->start, ui + i);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -493,13 +459,11 @@ int put_uint64_les_into_buffer(struct buffer *buffer,
 {
 	unsigned int i;
 
-	if (!ensure_available_space(buffer, sizeof(uint64_t) * count)) {
+	if (!ensure_available_space(buffer, sizeof(uint64_t) * count))
 		return UDS_BUFFER_ERROR;
-	}
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		encode_uint64_le(buffer->data, &buffer->end, ui[i]);
-	}
 
 	return UDS_SUCCESS;
 }

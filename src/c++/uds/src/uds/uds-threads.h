@@ -184,7 +184,7 @@ static INLINE void uds_acquire_semaphore(struct semaphore *semaphore)
 	 * Do not use down(semaphore). Instead use down_interruptible so that
 	 * we do not get 120 second stall messages in kern.log.
 	 */
-	while (down_interruptible(semaphore) != 0) {
+	while (down_interruptible(semaphore) != 0)
 		/*
 		 * If we're called from a user-mode process (e.g., "dmsetup
 		 * remove") while waiting for an operation that may take a
@@ -196,7 +196,6 @@ static INLINE void uds_acquire_semaphore(struct semaphore *semaphore)
 		 * trying to do computational work. [VDO-4980]
 		 */
 		fsleep(1000);
-	}
 }
 #else
 void uds_acquire_semaphore(struct semaphore *semaphore);

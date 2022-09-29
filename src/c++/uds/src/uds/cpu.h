@@ -44,11 +44,10 @@ static INLINE void prefetch_address(const void *address, bool for_write)
 	 * at least currently on llvm 12.
 	 */
 	if (__builtin_constant_p(for_write)) {
-		if (for_write) {
+		if (for_write)
 			__builtin_prefetch(address, true);
-		} else {
+		else
 			__builtin_prefetch(address, false);
-		}
 	}
 }
 

@@ -52,9 +52,8 @@ int make_funnel_queue(struct funnel_queue **queue_ptr)
 	struct funnel_queue *queue;
 
 	result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue", &queue);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * Initialize the stub entry and put it in the queue, establishing the
@@ -89,9 +88,8 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 		 * When the oldest entry is the stub and it has no successor,
 		 * the queue is logically empty.
 		 */
-		if (next == NULL) {
+		if (next == NULL)
 			return NULL;
-		}
 		/*
 		 * The stub entry has a successor, so the stub can be dequeued
 		 * and ignored without breaking the queue invariants.
@@ -113,14 +111,13 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	if (next == NULL) {
 		struct funnel_queue_entry *newest = queue->newest;
 
-		if (oldest != newest) {
+		if (oldest != newest)
 			/*
 			 * Another thread has already swung queue->newest
 			 * atomically, but not yet assigned previous->next. The
 			 * queue is really still empty.
 			 */
 			return NULL;
-		}
 
 		/*
 		 * Put the stub entry back on the queue, ensuring a successor
@@ -130,14 +127,13 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 
 		/* Check again for a successor. */
 		next = oldest->next;
-		if (next == NULL) {
+		if (next == NULL)
 			/*
 			 * We lost a race with a producer who swapped
 			 * queue->newest before we did, but who hasn't yet
 			 * updated previous->next. Try again later.
 			 */
 			return NULL;
-		}
 	}
 
 	return oldest;
@@ -151,9 +147,8 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 {
 	struct funnel_queue_entry *oldest = get_oldest(queue);
 
-	if (oldest == NULL) {
+	if (oldest == NULL)
 		return oldest;
-	}
 
 	/*
 	 * Dequeue the oldest entry and return it. Only one consumer thread may
@@ -202,9 +197,8 @@ bool is_funnel_queue_idle(struct funnel_queue *queue)
 	 * Oldest is not the stub, so there's another entry, though if next is
 	 * NULL we can't retrieve it yet.
 	 */
-	if (queue->oldest != &queue->stub) {
+	if (queue->oldest != &queue->stub)
 		return false;
-	}
 
 	/*
 	 * Oldest is the stub, but newest has been updated by _put(); either
@@ -217,9 +211,8 @@ bool is_funnel_queue_idle(struct funnel_queue *queue)
 	 * care. And due to memory ordering in _put(), the update to newest
 	 * would be visible to us at the same time or sooner.
 	 */
-	if (queue->newest != &queue->stub) {
+	if (queue->newest != &queue->stub)
 		return false;
-	}
 
 	return true;
 }
