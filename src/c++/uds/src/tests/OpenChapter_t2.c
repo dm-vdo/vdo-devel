@@ -105,9 +105,9 @@ static void testSaveLoadWithData(void)
 {
   // Create some random records to put in the open chapter.
   int totalRecords = theIndex->volume->geometry->records_per_chapter / 2;
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords,
-                                  struct uds_chunk_record, "test records",
+                                  struct uds_volume_record, "test records",
                                   &records));
 
   int i;
@@ -151,9 +151,9 @@ static void testSaveLoadWithDiscard(void)
 
   // Fill a one-zone open chapter as full as possible.
   int totalRecords = theIndex->volume->geometry->records_per_chapter - 1;
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords,
-                                  struct uds_chunk_record, "test records",
+                                  struct uds_volume_record, "test records",
                                   &records));
 
   int i;

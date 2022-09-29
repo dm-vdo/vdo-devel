@@ -129,7 +129,7 @@ struct volume {
 	uint64_t nonce;
 
 	/* A single page worth of records, for sorting */
-	const struct uds_chunk_record **record_pointers;
+	const struct uds_volume_record **record_pointers;
 	/* Sorter for sorting records within each page */
 	struct radix_sorter *radix_sorter;
 
@@ -155,7 +155,7 @@ typedef void (*request_restarter_t)(struct uds_request *);
 void set_request_restarter(request_restarter_t restarter);
 
 int encode_record_page(const struct volume *volume,
-		       const struct uds_chunk_record records[],
+		       const struct uds_volume_record records[],
 		       byte record_page[]);
 
 bool search_record_page(const byte record_page[],
@@ -341,12 +341,12 @@ int __must_check write_index_pages(struct volume *volume,
 
 int __must_check write_record_pages(struct volume *volume,
 				    int physical_page,
-				    const struct uds_chunk_record *records,
+				    const struct uds_volume_record *records,
 				    byte **pages);
 
 int __must_check write_chapter(struct volume *volume,
 			       struct open_chapter_index *chapter_index,
-			       const struct uds_chunk_record records[]);
+			       const struct uds_volume_record records[]);
 
 int __must_check
 read_chapter_index_from_volume(const struct volume *volume,

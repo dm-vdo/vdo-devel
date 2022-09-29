@@ -64,8 +64,8 @@ enum {
 
 static INLINE size_t records_size(const struct open_chapter_zone *open_chapter)
 {
-	return (sizeof(struct uds_chunk_record) *
-		(1 + open_chapter->capacity));
+	return sizeof(struct uds_volume_record) *
+		(1 + open_chapter->capacity);
 }
 
 static INLINE size_t slots_size(size_t slot_count)
@@ -116,7 +116,7 @@ void reset_open_chapter(struct open_chapter_zone *open_chapter)
 static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 					const struct uds_record_name *name)
 {
-	struct uds_chunk_record *record;
+	struct uds_volume_record *record;
 	unsigned int slot_count = open_chapter->slot_count;
 	unsigned int slot = name_to_hash_slot(name, slot_count);
 	unsigned int record_number;
@@ -175,7 +175,7 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 {
 	unsigned int slot;
 	unsigned int record_number;
-	struct uds_chunk_record *record;
+	struct uds_volume_record *record;
 
 	if (open_chapter->size >= open_chapter->capacity)
 		return 0;
@@ -225,7 +225,7 @@ void free_open_chapter(struct open_chapter_zone *open_chapter)
 static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 				    unsigned int zone_count,
 				    struct open_chapter_index *index,
-				    struct uds_chunk_record *collated_records)
+				    struct uds_volume_record *collated_records)
 {
 	int result;
 	unsigned int records_per_chapter;
@@ -235,7 +235,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 	unsigned int page_number;
 	unsigned int z;
 	int overflow_count = 0;
-	struct uds_chunk_record *fill_record = NULL;
+	struct uds_volume_record *fill_record = NULL;
 
 	/*
 	 * The record pages should not have any empty space, so find a record
@@ -256,7 +256,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 	records_per_page = index->geometry->records_per_page;
 
 	for (records = 0; records < records_per_chapter; records++) {
-		struct uds_chunk_record *record = &collated_records[records];
+		struct uds_volume_record *record = &collated_records[records];
 		struct open_chapter_zone *open_chapter;
 
 		/* The record arrays in the zones are 1-based. */
@@ -299,7 +299,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 		       unsigned int zone_count,
 		       struct volume *volume,
 		       struct open_chapter_index *chapter_index,
-		       struct uds_chunk_record *collated_records,
+		       struct uds_volume_record *collated_records,
 		       uint64_t virtual_chapter_number)
 {
 	int result;
@@ -319,7 +319,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 {
 	int result;
 	struct open_chapter_zone *open_chapter;
-	struct uds_chunk_record *record;
+	struct uds_volume_record *record;
 	byte record_count_data[sizeof(uint32_t)];
 	uint32_t record_count = 0;
 	unsigned int record_index;
@@ -377,9 +377,11 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 
 uint64_t compute_saved_open_chapter_size(struct geometry *geometry)
 {
+	unsigned int records_per_chapter = geometry->records_per_chapter;
+
 	return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH +
-	       sizeof(uint32_t) +
-	       geometry->records_per_chapter * sizeof(struct uds_chunk_record);
+		sizeof(uint32_t) +
+		records_per_chapter * sizeof(struct uds_volume_record);
 }
 
 static int load_version20(struct uds_index *index,
@@ -388,7 +390,7 @@ static int load_version20(struct uds_index *index,
 	int result;
 	uint32_t record_count;
 	byte record_count_data[sizeof(uint32_t)];
-	struct uds_chunk_record record;
+	struct uds_volume_record record;
 
 	/*
 	 * Track which zones cannot accept any more records. If the open

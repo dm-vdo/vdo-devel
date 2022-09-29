@@ -31,7 +31,7 @@ struct open_chapter_zone {
 	/* The number of deleted records */
 	unsigned int deletions;
 	/* Array of chunk records, 1-based */
-	struct uds_chunk_record *records;
+	struct uds_volume_record *records;
 	/* The number of slots in the hash table */
 	unsigned int slot_count;
 	/* The hash table slots, referencing virtual record numbers */
@@ -63,7 +63,7 @@ int __must_check close_open_chapter(struct open_chapter_zone **chapter_zones,
 				    unsigned int zone_count,
 				    struct volume *volume,
 				    struct open_chapter_index *chapter_index,
-				    struct uds_chunk_record *collated_records,
+				    struct uds_volume_record *collated_records,
 				    uint64_t virtual_chapter_number);
 
 int __must_check save_open_chapter(struct uds_index *index,

@@ -51,9 +51,9 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   // We do not want to time the generation of the random names
   struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(openChapter->capacity,
-				  struct uds_record_name,
+                                  struct uds_record_name,
                                   "record names for chapter test",
-				  &names));
+                                  &names));
   unsigned int i;
   for (i = 0; i < openChapter->capacity; i++) {
     createRandomBlockName(&names[i]);
@@ -95,9 +95,9 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
   }
 
   size_t collatedRecordsSize
-    = (sizeof(struct uds_chunk_record)
+    = (sizeof(struct uds_volume_record)
         * (1 + volume->geometry->records_per_chapter));
-  struct uds_chunk_record *collatedRecords;
+  struct uds_volume_record *collatedRecords;
   UDS_ASSERT_SUCCESS(uds_allocate_cache_aligned(collatedRecordsSize,
                                                 "collated records",
                                                 &collatedRecords));

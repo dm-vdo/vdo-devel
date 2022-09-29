@@ -866,8 +866,8 @@ EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 					const struct geometry *geometry,
 					struct uds_record_data *metadata)
 {
-	const struct uds_chunk_record *records =
-		(const struct uds_chunk_record *) record_page;
+	const struct uds_volume_record *records =
+		(const struct uds_volume_record *) record_page;
 
 	/*
 	 * The array of records is sorted by name and stored as a binary tree
@@ -876,7 +876,7 @@ EXTERNAL_STATIC bool search_record_page(const byte record_page[],
 	unsigned int node = 0;
 
 	while (node < geometry->records_per_page) {
-		const struct uds_chunk_record *record = &records[node];
+		const struct uds_volume_record *record = &records[node];
 		int result = memcmp(name, &record->name, UDS_RECORD_NAME_SIZE);
 
 		if (result == 0) {
@@ -1619,7 +1619,7 @@ int write_index_pages(struct volume *volume,
 
 static unsigned int
 encode_tree(byte record_page[],
-	    const struct uds_chunk_record *sorted_pointers[],
+	    const struct uds_volume_record *sorted_pointers[],
 	    unsigned int next_record,
 	    unsigned int node,
 	    unsigned int node_count)
@@ -1652,13 +1652,13 @@ encode_tree(byte record_page[],
 }
 
 EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
-				       const struct uds_chunk_record records[],
+				       const struct uds_volume_record records[],
 				       byte record_page[])
 {
 	int result;
 	unsigned int i;
 	unsigned int records_per_page = volume->geometry->records_per_page;
-	const struct uds_chunk_record **record_pointers =
+	const struct uds_volume_record **record_pointers =
 		volume->record_pointers;
 
 	for (i = 0; i < records_per_page; i++)
@@ -1668,7 +1668,7 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 	 * Sort the record pointers by using just the names in the records,
 	 * which is less work than sorting the entire record values.
 	 */
-	STATIC_ASSERT(offsetof(struct uds_chunk_record, name) == 0);
+	STATIC_ASSERT(offsetof(struct uds_volume_record, name) == 0);
 	result = radix_sort(volume->radix_sorter,
 				(const byte **) record_pointers,
 				records_per_page,
@@ -1682,13 +1682,13 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 
 int write_record_pages(struct volume *volume,
 		       int physical_page,
-		       const struct uds_chunk_record *records,
+		       const struct uds_volume_record *records,
 		       byte **pages)
 {
 	unsigned int record_page_number;
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
-	const struct uds_chunk_record *next_record = records;
+	const struct uds_volume_record *next_record = records;
 	/* Skip over the index pages, which have already been written. */
 	physical_page += geometry->index_pages_per_chapter;
 
@@ -1735,7 +1735,7 @@ int write_record_pages(struct volume *volume,
 
 int write_chapter(struct volume *volume,
 		  struct open_chapter_index *chapter_index,
-		  const struct uds_chunk_record *records)
+		  const struct uds_volume_record *records)
 {
 	struct geometry *geometry = volume->geometry;
 	unsigned int physical_chapter_number =
@@ -2108,7 +2108,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 	}
 
 	result = UDS_ALLOCATE(geometry->records_per_page,
-			      const struct uds_chunk_record *,
+			      const struct uds_volume_record *,
 			      "record pointers",
 			      &volume->record_pointers);
 	if (result != UDS_SUCCESS) {

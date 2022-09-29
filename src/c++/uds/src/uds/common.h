@@ -16,9 +16,7 @@ enum {
 	GIGABYTE = KILOBYTE * MEGABYTE
 };
 
-struct uds_record_data;
-
-struct uds_chunk_record {
+struct uds_volume_record {
 	struct uds_record_name name;
 	struct uds_record_data data;
 };

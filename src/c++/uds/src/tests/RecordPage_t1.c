@@ -26,10 +26,10 @@ static void testSearchRecordPage(void)
 
   byte *recordPage;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, byte, __func__, &recordPage));
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE((bytesPerPage /
-                                   sizeof(struct uds_chunk_record)),
-                                  struct uds_chunk_record, __func__,
+                                   sizeof(struct uds_volume_record)),
+                                  struct uds_volume_record, __func__,
                                   &records));
   prandom_bytes((byte *) records, bytesPerPage);
 
@@ -39,7 +39,7 @@ static void testSearchRecordPage(void)
   volume->geometry = g;
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
-                                  const struct uds_chunk_record *,
+                                  const struct uds_volume_record *,
                                   __func__, &volume->record_pointers));
   UDS_ASSERT_SUCCESS(make_radix_sorter(g->records_per_page,
                                        &volume->radix_sorter));

@@ -82,7 +82,7 @@ struct chapter_writer {
 	/* Open chapter index used by close_open_chapter() */
 	struct open_chapter_index *open_chapter_index;
 	/* Collated records used by close_open_chapter() */
-	struct uds_chunk_record *collated_records;
+	struct uds_volume_record *collated_records;
 	/* The chapters to write (one per zone) */
 	struct open_chapter_zone *chapters[];
 };
@@ -557,7 +557,7 @@ static int search_index_zone(struct index_zone *zone,
 		/*
 		 * The volume index encountered a delta list overflow.	The
 		 * condition was already logged. We will go on without adding
-		 * the chunk to the open chapter.
+		 * the record to the open chapter.
 		 */
 		return UDS_SUCCESS;
 
@@ -845,7 +845,7 @@ static int make_chapter_writer(struct uds_index *index,
 	int result;
 	struct chapter_writer *writer;
 	size_t collated_records_size =
-		(sizeof(struct uds_chunk_record) *
+		(sizeof(struct uds_volume_record) *
 		 index->volume->geometry->records_per_chapter);
 
 	result = UDS_ALLOCATE_EXTENDED(struct chapter_writer,

@@ -84,7 +84,7 @@ static void testStumblingGet(void)
     unsigned int action = random() % 4;
     if (action == 0) {
       if (page > 0) {
-	--page;
+        --page;
       }
     } else if (action != 1) {
       ++page;
@@ -97,9 +97,9 @@ static void testWriteChapter(void)
 {
   // This test only exercises the write code, and does nothing to check
   // that the chapter is constructed correctly.
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
-                                  struct uds_chunk_record, __func__,
+                                  struct uds_volume_record, __func__,
                                   &records));
 
   prandom_bytes((byte *) records,

@@ -57,7 +57,7 @@ void freePageArray(byte **pages, unsigned int numPages)
  * @param geometry      The geometry to use
  */
 static void fillOpenChapter(struct open_chapter_index *oci,
-                            struct uds_chunk_record *records,
+                            struct uds_volume_record *records,
                             struct geometry *geometry)
 {
   struct delta_index_stats stats;
@@ -88,9 +88,9 @@ static void fillOpenChapter(struct open_chapter_index *oci,
  */
 void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
                             unsigned int chapter, byte **pages) {
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
-                                  struct uds_chunk_record, __func__,
+                                  struct uds_volume_record, __func__,
                                   &records));
   prandom_bytes((byte *) records,
                 BYTES_PER_RECORD * (1 + geometry->records_per_chapter));

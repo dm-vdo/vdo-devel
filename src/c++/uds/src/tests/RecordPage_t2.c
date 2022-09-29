@@ -24,14 +24,14 @@ static void recordPageTest(int numRecords)
 
   byte *recordPage;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, byte, __func__, &recordPage));
-  const struct uds_chunk_record **recordPointers;
+  const struct uds_volume_record **recordPointers;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
-                                  const struct uds_chunk_record *,
+                                  const struct uds_volume_record *,
                                   __func__, &recordPointers));
-  struct uds_chunk_record *records;
+  struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE((bytesPerPage /
-                                   sizeof(struct uds_chunk_record)),
-                                  struct uds_chunk_record, __func__,
+                                   sizeof(struct uds_volume_record)),
+                                  struct uds_volume_record, __func__,
                                   &records));
 
   // A fake volume but good enough for the encode_record_page interface

@@ -170,15 +170,15 @@ static void testWriteChapter(void)
   }
 
   size_t collatedRecordsSize
-    = (sizeof(struct uds_chunk_record)
-        * (1 + volume->geometry->records_per_chapter));
-  struct uds_chunk_record *collatedRecords;
+    = (sizeof(struct uds_volume_record)
+       * (1 + volume->geometry->records_per_chapter));
+  struct uds_volume_record *collatedRecords;
   UDS_ASSERT_SUCCESS(uds_allocate_cache_aligned(collatedRecordsSize,
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
   UDS_ASSERT_SUCCESS(make_open_chapter_index(&openChapterIndex,
-  					     volume->geometry,
+                                             volume->geometry,
                                              volume->nonce));
   empty_open_chapter_index(openChapterIndex, 0);
   UDS_ASSERT_SUCCESS(close_open_chapter(chapters, zoneCount, volume,
