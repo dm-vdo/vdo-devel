@@ -22,9 +22,8 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	int result;
 	int count;
 
-	if (strp == NULL) {
+	if (strp == NULL)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	va_start(args, fmt);
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
@@ -36,9 +35,8 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 		va_end(args);
 	}
 
-	if ((result != UDS_SUCCESS) && (what != NULL)) {
+	if ((result != UDS_SUCCESS) && (what != NULL))
 		uds_log_error("cannot allocate %s", what);
-	}
 
 	return result;
 }
@@ -54,25 +52,22 @@ int uds_fixed_sprintf(char *buf,
 	va_list args;
 	int n;
 
-	if (buf == NULL) {
+	if (buf == NULL)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	va_start(args, fmt);
 	n = vsnprintf(buf, buf_size, fmt, args);
 	va_end(args);
 
-	if (n < 0) {
+	if (n < 0)
 		return uds_log_error_strerror(UDS_UNKNOWN_ERROR,
 					      "%s: vsnprintf failed",
 					      __func__);
-	}
 
-	if ((size_t) n >= buf_size) {
+	if ((size_t) n >= buf_size)
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 					      "%s: string too long",
 					      __func__);
-	}
 
 	return UDS_SUCCESS;
 }
@@ -86,11 +81,10 @@ char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 
 	va_start(args, fmt);
 	n = vsnprintf(buffer, buf_end - buffer, fmt, args);
-	if (n >= (size_t) (buf_end - buffer)) {
+	if (n >= (size_t) (buf_end - buffer))
 		buffer = buf_end;
-	} else {
+	else
 		buffer += n;
-	}
 	va_end(args);
 
 	return buffer;

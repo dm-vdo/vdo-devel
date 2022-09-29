@@ -195,9 +195,8 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 			      struct delta_index_page,
 			      __func__,
 			      &chapter->index_pages);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return UDS_ALLOCATE(chapter->index_pages_count,
 			    struct dm_buffer *,
@@ -216,16 +215,14 @@ static int __must_check make_search_list(struct sparse_cache *cache,
 	bytes = (sizeof(struct search_list) +
 		 (cache->capacity * sizeof(struct cached_chapter_index *)));
 	result = uds_allocate_cache_aligned(bytes, "search list", &list);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	list->capacity = cache->capacity;
 	list->first_dead_entry = 0;
 
-	for (i = 0; i < list->capacity; i++) {
+	for (i = 0; i < list->capacity; i++)
 		list->entries[i] = &cache->chapters[i];
-	}
 
 	*list_ptr = list;
 	return UDS_SUCCESS;
@@ -244,9 +241,8 @@ int make_sparse_cache(const struct geometry *geometry,
 	bytes = (sizeof(struct sparse_cache) +
 		 (capacity * sizeof(struct cached_chapter_index)));
 	result = uds_allocate_cache_aligned(bytes, "sparse cache", &cache);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	cache->geometry = geometry;
 	cache->capacity = capacity;
@@ -321,9 +317,8 @@ static INLINE void set_skip_search(struct cached_chapter_index *chapter,
 				   bool skip_search)
 {
 	/* Check before setting to reduce cache line contention. */
-	if (READ_ONCE(chapter->skip_search) != skip_search) {
+	if (READ_ONCE(chapter->skip_search) != skip_search)
 		WRITE_ONCE(chapter->skip_search, skip_search);
-	}
 }
 
 static void score_search_hit(struct cached_chapter_index *chapter)
@@ -336,9 +331,8 @@ static void score_search_miss(struct sparse_cache *cache,
 			      struct cached_chapter_index *chapter)
 {
 	chapter->counters.consecutive_misses++;
-	if (chapter->counters.consecutive_misses > cache->skip_threshold) {
+	if (chapter->counters.consecutive_misses > cache->skip_threshold)
 		set_skip_search(chapter, true);
-	}
 }
 
 static void release_cached_chapter_index(struct cached_chapter_index *chapter)
@@ -346,30 +340,25 @@ static void release_cached_chapter_index(struct cached_chapter_index *chapter)
 	unsigned int i;
 
 	chapter->virtual_chapter = UINT64_MAX;
-	if (chapter->page_buffers == NULL) {
+	if (chapter->page_buffers == NULL)
 		return;
-	}
 
-	for (i = 0; i < chapter->index_pages_count; i++) {
-		if (chapter->page_buffers[i] != NULL) {
+	for (i = 0; i < chapter->index_pages_count; i++)
+		if (chapter->page_buffers[i] != NULL)
 			dm_bufio_release(UDS_FORGET(chapter->page_buffers[i]));
-		}
-	}
 }
 
 void free_sparse_cache(struct sparse_cache *cache)
 {
 	unsigned int i;
 
-	if (cache == NULL) {
+	if (cache == NULL)
 		return;
-	}
 
 	UDS_FREE(cache->scratch_entries);
 
-	for (i = 0; i < cache->zone_count; i++) {
+	for (i = 0; i < cache->zone_count; i++)
 		UDS_FREE(cache->search_lists[i]);
-	}
 
 	for (i = 0; i < cache->capacity; i++) {
 		release_cached_chapter_index(&cache->chapters[i]);
@@ -403,9 +392,8 @@ static INLINE void set_newest_entry(struct search_list *search_list,
 	 * This function may have moved a dead chapter to the front of the list
 	 * for reuse, in which case the set of dead chapters becomes smaller.
 	 */
-	if (search_list->first_dead_entry <= index) {
+	if (search_list->first_dead_entry <= index)
 		search_list->first_dead_entry++;
-	}
 }
 
 bool sparse_cache_contains(struct sparse_cache *cache,
@@ -429,9 +417,8 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 		chapter = search_list->entries[i];
 
 		if (virtual_chapter == chapter->virtual_chapter) {
-			if (zone_number == ZONE_ZERO) {
+			if (zone_number == ZONE_ZERO)
 				score_search_hit(chapter);
-			}
 
 			set_newest_entry(search_list, i);
 			return true;
@@ -466,13 +453,12 @@ static void purge_search_list(struct search_list *search_list,
 	for (i = 0; i < search_list->first_dead_entry; i++) {
 		chapter = search_list->entries[i];
 		if ((chapter->virtual_chapter < oldest_virtual_chapter) ||
-		    (chapter->virtual_chapter == UINT64_MAX)) {
+		    (chapter->virtual_chapter == UINT64_MAX))
 			dead[next_dead++] = chapter;
-		} else if (chapter->skip_search) {
+		else if (chapter->skip_search)
 			skipped[next_skipped++] = chapter;
-		} else {
+		else
 			entries[next_alive++] = chapter;
-		}
 	}
 
 	memcpy(&entries[next_alive], skipped, next_skipped);
@@ -493,9 +479,8 @@ cache_chapter_index(struct cached_chapter_index *chapter,
 						virtual_chapter,
 						chapter->page_buffers,
 						chapter->index_pages);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	chapter->counters.consecutive_misses = 0;
 	chapter->virtual_chapter = virtual_chapter;
@@ -524,9 +509,8 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	const struct uds_index *index = zone->index;
 	struct sparse_cache *cache = index->volume->sparse_cache;
 
-	if (sparse_cache_contains(cache, virtual_chapter, zone->id)) {
+	if (sparse_cache_contains(cache, virtual_chapter, zone->id))
 		return UDS_SUCCESS;
-	}
 
 	/*
 	 * Wait for every zone thread to reach its corresponding barrier
@@ -556,9 +540,8 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 						     index->volume);
 		}
 
-		for (z = 1; z < cache->zone_count; z++) {
+		for (z = 1; z < cache->zone_count; z++)
 			copy_search_list(list, cache->search_lists[z]);
-		}
 	}
 
 	/*
@@ -573,9 +556,8 @@ void invalidate_sparse_cache(struct sparse_cache *cache)
 {
 	unsigned int i;
 
-	for (i = 0; i < cache->capacity; i++) {
+	for (i = 0; i < cache->capacity; i++)
 		release_cached_chapter_index(&cache->chapters[i]);
-	}
 }
 
 static INLINE bool should_skip_chapter(struct cached_chapter_index *chapter,
@@ -583,15 +565,13 @@ static INLINE bool should_skip_chapter(struct cached_chapter_index *chapter,
 				       uint64_t requested_chapter)
 {
 	if ((chapter->virtual_chapter == UINT64_MAX) ||
-	    (chapter->virtual_chapter < oldest_chapter)) {
+	    (chapter->virtual_chapter < oldest_chapter))
 		return true;
-	}
 
-	if (requested_chapter != UINT64_MAX) {
+	if (requested_chapter != UINT64_MAX)
 		return (requested_chapter != chapter->virtual_chapter);
-	} else {
+	else
 		return READ_ONCE(chapter->skip_search);
-	}
 }
 
 static int __must_check
@@ -635,18 +615,16 @@ int search_sparse_cache(struct index_zone *zone,
 
 		if (should_skip_chapter(chapter,
 					zone->oldest_virtual_chapter,
-					*virtual_chapter_ptr)) {
+					*virtual_chapter_ptr))
 			continue;
-		}
 
 		result = search_cached_chapter_index(chapter,
 						     cache->geometry,
 						     volume->index_page_map,
 						     name,
 						     record_page_ptr);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
 		if (*record_page_ptr != NO_CHAPTER_INDEX_ENTRY) {
 			/*
@@ -655,21 +633,18 @@ int search_sparse_cache(struct index_zone *zone,
 			 * rare case and not worth the extra search complexity.
 			 */
 			set_newest_entry(search_list, i);
-			if (zone->id == ZONE_ZERO) {
+			if (zone->id == ZONE_ZERO)
 				score_search_hit(chapter);
-			}
 
 			*virtual_chapter_ptr = chapter->virtual_chapter;
 			return UDS_SUCCESS;
 		}
 
-		if (zone->id == ZONE_ZERO) {
+		if (zone->id == ZONE_ZERO)
 			score_search_miss(cache, chapter);
-		}
 
-		if (search_one) {
+		if (search_one)
 			break;
-		}
 	}
 
 	return UDS_SUCCESS;
