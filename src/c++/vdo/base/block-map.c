@@ -64,16 +64,14 @@ static int validate_page_on_read(void *buffer,
 
 	enum block_map_page_validity validity =
 		vdo_validate_block_map_page(page, nonce, pbn);
-	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
+	if (validity == VDO_BLOCK_MAP_PAGE_BAD)
 		return uds_log_error_strerror(VDO_BAD_PAGE,
 					      "Expected page %llu but got page %llu instead",
 					      (unsigned long long) pbn,
 					      (unsigned long long) vdo_get_block_map_page_pbn(page));
-	}
 
-	if (validity == VDO_BLOCK_MAP_PAGE_INVALID) {
+	if (validity == VDO_BLOCK_MAP_PAGE_INVALID)
 		vdo_format_block_map_page(page, nonce, pbn, false);
-	}
 
 	context->recovery_lock = 0;
 	return VDO_SUCCESS;
@@ -91,10 +89,9 @@ static bool handle_page_write(void *raw_page,
 	struct block_map_page *page = raw_page;
 	struct block_map_page_context *context = page_context;
 
-	if (vdo_mark_block_map_page_initialized(page, true)) {
+	if (vdo_mark_block_map_page_initialized(page, true))
 		/* Make the page be re-written for torn write protection. */
 		return true;
-	}
 
 	vdo_release_recovery_journal_block_reference(zone->block_map->journal,
 						     context->recovery_lock,
@@ -129,9 +126,8 @@ initialize_block_map_zone(struct block_map *map,
 	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
 	result = vdo_initialize_tree_zone(zone, vdo, maximum_age);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
@@ -191,9 +187,8 @@ static bool schedule_era_advance(void *context)
 {
 	struct block_map *map = context;
 
-	if (map->current_era_point == map->pending_era_point) {
+	if (map->current_era_point == map->pending_era_point)
 		return false;
-	}
 
 	return vdo_schedule_action(map->action_manager,
 				   prepare_for_era_advance,
@@ -212,13 +207,11 @@ void vdo_free_block_map(struct block_map *map)
 {
 	zone_count_t zone;
 
-	if (map == NULL) {
+	if (map == NULL)
 		return;
-	}
 
-	for (zone = 0; zone < map->zone_count; zone++) {
+	for (zone = 0; zone < map->zone_count; zone++)
 		uninitialize_block_map_zone(&map->zones[zone]);
-	}
 
 	vdo_abandon_block_map_growth(map);
 	vdo_free_forest(UDS_FORGET(map->forest));
@@ -250,18 +243,16 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 		       sizeof(struct block_map_entry)));
 	result = ASSERT(cache_size > 0,
 			"block map cache size is specified");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = UDS_ALLOCATE_EXTENDED(struct block_map,
 				       thread_config->logical_zone_count,
 				       struct block_map_zone,
 				       __func__,
 				       &map);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	map->root_origin = state.root_origin;
 	map->root_count = state.root_count;
@@ -291,7 +282,6 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 			return result;
 		}
 	}
-
 
 	result = vdo_make_action_manager(map->zone_count,
 					 get_block_map_zone_thread_id,
@@ -354,8 +344,8 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 	struct block_map *map = vdo_from_data_vio(data_vio)->block_map;
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 
-	page_number_t page_number
-		= data_vio->logical.lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+	page_number_t page_number =
+		data_vio->logical.lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 	tree_lock->tree_slots[0].page_index = page_number;
 	tree_lock->root_index = page_number % map->root_count;
 	return (tree_lock->root_index % map->zone_count);
@@ -372,9 +362,8 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 void vdo_advance_block_map_era(struct block_map *map,
 			       sequence_number_t recovery_block_number)
 {
-	if (map == NULL) {
+	if (map == NULL)
 		return;
-	}
 
 	map->pending_era_point = recovery_block_number;
 	vdo_schedule_default_action(map->action_manager);
@@ -384,11 +373,10 @@ void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (vdo_is_state_draining(&zone->state) &&
 	    !vdo_is_tree_zone_active(&zone->tree_zone) &&
-	    !vdo_is_page_cache_active(zone->page_cache)) {
+	    !vdo_is_page_cache_active(zone->page_cache))
 		vdo_finish_draining_with_result(&zone->state,
 						(vdo_is_read_only(zone->read_only_notifier) ?
 							VDO_READ_ONLY : VDO_SUCCESS));
-	}
 }
 
 /*
@@ -456,13 +444,11 @@ void vdo_resume_block_map(struct block_map *map, struct vdo_completion *parent)
 int vdo_prepare_to_grow_block_map(struct block_map *map,
 				  block_count_t new_logical_blocks)
 {
-	if (map->next_entry_count == new_logical_blocks) {
+	if (map->next_entry_count == new_logical_blocks)
 		return VDO_SUCCESS;
-	}
 
-	if (map->next_entry_count > 0) {
+	if (map->next_entry_count > 0)
 		vdo_abandon_block_map_growth(map);
-	}
 
 	if (new_logical_blocks < map->entry_count) {
 		map->next_entry_count = map->entry_count;
@@ -564,9 +550,8 @@ set_mapped_location(struct data_vio *data_vio,
 		 * redundant; it is intentional.
 		 */
 		if ((result == VDO_SUCCESS) || ((result != VDO_OUT_OF_RANGE) &&
-						(result != VDO_BAD_MAPPING))) {
+						(result != VDO_BAD_MAPPING)))
 			return result;
-		}
 	}
 
 	/*
@@ -582,9 +567,8 @@ set_mapped_location(struct data_vio *data_vio,
 	 * A read VIO has no option but to report the bad mapping--reading
 	 * zeros would be hiding known data loss.
 	 */
-	if (is_read_data_vio(data_vio)) {
+	if (is_read_data_vio(data_vio))
 		return VDO_BAD_MAPPING;
-	}
 
 	/*
 	 * A write VIO only reads this mapping to decref the old block. Treat
@@ -651,12 +635,11 @@ void vdo_update_block_map_page(struct block_map_page *page,
 							     VDO_ZONE_TYPE_LOGICAL,
 							     zone->zone_number);
 
-		if (old_locked > 0) {
+		if (old_locked > 0)
 			vdo_release_recovery_journal_block_reference(journal,
 								     old_locked,
 								     VDO_ZONE_TYPE_LOGICAL,
 								     zone->zone_number);
-		}
 
 		*recovery_lock = new_locked;
 	}

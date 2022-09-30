@@ -122,9 +122,8 @@ int vdo_make_action_manager(zone_count_t zones,
 	struct action_manager *manager;
 	int result = UDS_ALLOCATE(1, struct action_manager, __func__, &manager);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	*manager = (struct action_manager) {
 		.zones = zones,
@@ -196,17 +195,16 @@ static void apply_to_zone(struct vdo_completion *completion)
 			"apply_to_zone() called on acting zones's thread");
 
 	zone = manager->acting_zone++;
-	if (manager->acting_zone == manager->zones) {
+	if (manager->acting_zone == manager->zones)
 		/*
 		 * We are about to apply to the last zone. Once that is
 		 * finished, we're done, so go back to the initiator thread and
 		 * finish up.
 		 */
 		prepare_for_conclusion(manager);
-	} else {
+	else
 		/* Prepare to come back on the next zone */
 		prepare_for_next_zone(manager);
-	}
 
 	manager->current_action->zone_action(manager->context, zone, completion);
 }
@@ -224,9 +222,8 @@ static void launch_current_action(struct action_manager *manager)
 	int result = vdo_start_operation(&manager->state, action->operation);
 
 	if (result != VDO_SUCCESS) {
-		if (action->parent != NULL) {
+		if (action->parent != NULL)
 			vdo_set_completion_result(action->parent, result);
-		}
 
 		/*
 		 * We aren't going to run the preamble, so don't run the
@@ -265,10 +262,10 @@ bool vdo_schedule_default_action(struct action_manager *manager)
 	 * Don't schedule a default action if we are operating or not in normal
 	 * operation.
 	 */
-	const struct admin_state_code *code
-		= vdo_get_current_manager_operation(manager);
-	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION)
-		&& manager->scheduler(manager->context));
+	const struct admin_state_code *code =
+		vdo_get_current_manager_operation(manager);
+	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION) &&
+		manager->scheduler(manager->context));
 }
 
 static void finish_action_callback(struct vdo_completion *completion)
@@ -286,17 +283,15 @@ static void finish_action_callback(struct vdo_completion *completion)
 	 * the conclusion or notifying the parent results in the manager being
 	 * freed.
 	 */
-	has_next_action = (manager->current_action->in_use
-			   || vdo_schedule_default_action(manager));
+	has_next_action = (manager->current_action->in_use ||
+			   vdo_schedule_default_action(manager));
 	result = action.conclusion(manager->context);
 	vdo_finish_operation(&manager->state, VDO_SUCCESS);
-	if (action.parent != NULL) {
+	if (action.parent != NULL)
 		vdo_finish_completion(action.parent, result);
-	}
 
-	if (has_next_action) {
+	if (has_next_action)
 		launch_current_action(manager);
-	}
 }
 
 /**
@@ -411,9 +406,8 @@ vdo_schedule_operation_with_context(struct action_manager *manager,
 	} else if (!manager->current_action->next->in_use) {
 		current_action = manager->current_action->next;
 	} else {
-		if (parent != NULL) {
+		if (parent != NULL)
 			vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
-		}
 
 		return false;
 	}
@@ -429,9 +423,8 @@ vdo_schedule_operation_with_context(struct action_manager *manager,
 		.next = current_action->next,
 	};
 
-	if (current_action == manager->current_action) {
+	if (current_action == manager->current_action)
 		launch_current_action(manager);
-	}
 
 	return true;
 }

@@ -83,19 +83,16 @@ static int compare_mappings(const void *item1, const void *item2)
 	const struct numbered_block_mapping *mapping2 =
 		(const struct numbered_block_mapping *) item2;
 
-	if (mapping1->block_map_slot.pbn != mapping2->block_map_slot.pbn) {
+	if (mapping1->block_map_slot.pbn != mapping2->block_map_slot.pbn)
 		return ((mapping1->block_map_slot.pbn <
 			 mapping2->block_map_slot.pbn) ? 1 : -1);
-	}
 
-	if (mapping1->block_map_slot.slot != mapping2->block_map_slot.slot) {
+	if (mapping1->block_map_slot.slot != mapping2->block_map_slot.slot)
 		return ((mapping1->block_map_slot.slot <
 			 mapping2->block_map_slot.slot) ? 1 : -1);
-	}
 
-	if (mapping1->number != mapping2->number) {
+	if (mapping1->number != mapping2->number)
 		return ((mapping1->number < mapping2->number) ? 1 : -1);
-	}
 
 	return 0;
 }
@@ -148,9 +145,8 @@ vdo_make_recovery_completion(struct vdo *vdo,
 					   struct vdo_page_completion,
 					   __func__,
 					   &recovery);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	vdo_initialize_completion(&recovery->completion, vdo,
 				  VDO_BLOCK_MAP_RECOVERY_COMPLETION);
@@ -221,9 +217,8 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 	/* Pages are still being launched or there is still work to do */
 	if (recovery->launching || (recovery->outstanding > 0) ||
 	    (!recovery->aborted &&
-	     (recovery->current_entry >= recovery->journal_entries))) {
+	     (recovery->current_entry >= recovery->journal_entries)))
 		return false;
-	}
 
 	if (recovery->aborted) {
 		/*
@@ -236,9 +231,8 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 		for (i = 0; i < recovery->page_count; i++) {
 			struct vdo_page_completion *page_completion =
 				&recovery->page_completions[i];
-			if (recovery->page_completions[i].ready) {
+			if (recovery->page_completions[i].ready)
 				vdo_release_page_completion(&page_completion->completion);
-			}
 		}
 		vdo_complete_completion(&recovery->completion);
 	} else {
@@ -277,9 +271,8 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 {
 	size_t current_page;
 	/* If current_entry is invalid, return immediately. */
-	if (current_entry < recovery->journal_entries) {
+	if (current_entry < recovery->journal_entries)
 		return current_entry;
-	}
 	current_page = current_entry->block_map_slot.pbn;
 
 	/*
@@ -325,9 +318,8 @@ static void page_loaded(struct vdo_completion *completion)
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion->parent);
 	recovery->outstanding--;
-	if (!recovery->launching) {
+	if (!recovery->launching)
 		recover_ready_pages(recovery, completion);
-	}
 }
 
 static void handle_page_load_error(struct vdo_completion *completion)
@@ -343,10 +335,9 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 {
 	physical_block_number_t new_pbn;
 
-	if (recovery->current_unfetched_entry < recovery->journal_entries) {
+	if (recovery->current_unfetched_entry < recovery->journal_entries)
 		/* Nothing left to fetch. */
 		return;
-	}
 
 	/* Fetch the next page we haven't yet requested. */
 	new_pbn = recovery->current_unfetched_entry->block_map_slot.pbn;
@@ -370,9 +361,8 @@ get_next_page_completion(struct block_map_recovery_completion *recovery,
 			 struct vdo_page_completion *completion)
 {
 	completion++;
-	if (completion == (&recovery->page_completions[recovery->page_count])) {
+	if (completion == (&recovery->page_completions[recovery->page_count]))
 		completion = &recovery->page_completions[0];
-	}
 	return completion;
 }
 
@@ -382,13 +372,11 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 	struct vdo_page_completion *page_completion =
 		(struct vdo_page_completion *) completion;
 
-	if (finish_if_done(recovery)) {
+	if (finish_if_done(recovery))
 		return;
-	}
 
-	if (recovery->pbn != page_completion->pbn) {
+	if (recovery->pbn != page_completion->pbn)
 		return;
-	}
 
 	while (page_completion->ready) {
 		struct numbered_block_mapping *start_of_next_page;
@@ -412,9 +400,8 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 		vdo_request_page_write(completion);
 		vdo_release_page_completion(completion);
 
-		if (finish_if_done(recovery)) {
+		if (finish_if_done(recovery))
 			return;
-		}
 
 		recovery->pbn = recovery->current_entry->block_map_slot.pbn;
 		fetch_page(recovery, completion);
@@ -462,9 +449,8 @@ void vdo_recover_block_map(struct vdo *vdo,
 	recovery->current_unfetched_entry = recovery->current_entry;
 	for (i = 0; i < recovery->page_count; i++) {
 		if (recovery->current_unfetched_entry <
-		    recovery->journal_entries) {
+		    recovery->journal_entries)
 			break;
-		}
 
 		fetch_page(recovery, &recovery->page_completions[i].completion);
 	}

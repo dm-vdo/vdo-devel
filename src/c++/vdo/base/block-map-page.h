@@ -53,9 +53,8 @@ static inline bool
 vdo_mark_block_map_page_initialized(struct block_map_page *page,
 				    bool initialized)
 {
-	if (initialized == page->header.initialized) {
+	if (initialized == page->header.initialized)
 		return false;
-	}
 
 	page->header.initialized = initialized;
 	return true;
@@ -74,7 +73,7 @@ struct block_map_page *vdo_format_block_map_page(void *buffer,
 
 enum block_map_page_validity __must_check
 vdo_validate_block_map_page(struct block_map_page *page,
-			     nonce_t nonce,
-			     physical_block_number_t pbn);
+			    nonce_t nonce,
+			    physical_block_number_t pbn);
 
 #endif /* BLOCK_MAP_PAGE_H */

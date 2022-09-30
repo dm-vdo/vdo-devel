@@ -77,13 +77,11 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 	 * the range and is skipped by the logarithmic mapping.
 	 */
 
-	if (free_blocks == 0) {
+	if (free_blocks == 0)
 		return 0;
-	}
 
-	if (vdo_is_slab_journal_blank(slab->journal)) {
+	if (vdo_is_slab_journal_blank(slab->journal))
 		return unopened_slab_priority;
-	}
 
 	priority = (1 + ilog2(free_blocks));
 	return ((priority < unopened_slab_priority) ? priority : priority + 1);
@@ -168,9 +166,8 @@ static int allocate_components(struct block_allocator *allocator,
 						 allocator,
 						 notify_block_allocator_of_read_only_mode,
 						 allocator->thread_id);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_initialize_completion(&allocator->completion, vdo,
 				  VDO_BLOCK_ALLOCATOR_COMPLETION);
@@ -184,23 +181,20 @@ static int allocate_components(struct block_allocator *allocator,
 			       vdo_make_block_allocator_pool_vios,
 			       NULL,
 			       &allocator->vio_pool);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_make_slab_scrubber(vdo,
 					slab_journal_size,
 					allocator->read_only_notifier,
 					&allocator->slab_scrubber);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = make_priority_table(max_priority,
 				     &allocator->prioritized_slabs);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * Performing well atop thin provisioned storage requires either that
@@ -245,9 +239,8 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 	int result;
 
 	result = UDS_ALLOCATE(1, struct block_allocator, __func__, &allocator);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	allocator->depot = depot;
 	allocator->zone_number = zone_number;
@@ -270,13 +263,11 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 
 void vdo_free_block_allocator(struct block_allocator *allocator)
 {
-	if (allocator == NULL) {
+	if (allocator == NULL)
 		return;
-	}
 
-	if (allocator->eraser != NULL) {
+	if (allocator->eraser != NULL)
 		dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
-	}
 
 	vdo_free_slab_scrubber(UDS_FORGET(allocator->slab_scrubber));
 	free_vio_pool(UDS_FORGET(allocator->vio_pool));
@@ -321,10 +312,9 @@ void vdo_queue_slab(struct vdo_slab *slab)
 		 */
 		WRITE_ONCE(allocator->allocated_blocks,
 			   allocator->allocated_blocks - free_blocks);
-		if (!vdo_is_slab_journal_blank(slab->journal)) {
+		if (!vdo_is_slab_journal_blank(slab->journal))
 			WRITE_ONCE(allocator->statistics.slabs_opened,
 				   allocator->statistics.slabs_opened + 1);
-		}
 	}
 
 	vdo_resume_slab_journal(slab->journal);
@@ -344,16 +334,14 @@ void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 		   allocator->allocated_blocks + (increment ? -1 : 1));
 
 	/* The open slab doesn't need to be reprioritized until it is closed. */
-	if (slab == allocator->open_slab) {
+	if (slab == allocator->open_slab)
 		return;
-	}
 
 	/*
 	 * Don't bother adjusting the priority table if unneeded.
 	 */
-	if (slab->priority == calculate_slab_priority(slab)) {
+	if (slab->priority == calculate_slab_priority(slab))
 		return;
-	}
 
 	/*
 	 * Reprioritize the slab to reflect the new free block count by
@@ -372,9 +360,8 @@ static int allocate_slab_block(struct vdo_slab *slab,
 	int result;
 
 	result = vdo_allocate_unreferenced_block(slab->reference_counts, &pbn);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_adjust_free_block_count(slab, false);
 
@@ -396,9 +383,8 @@ int vdo_allocate_block(struct block_allocator *allocator,
 		/* Try to allocate the next block in the currently open slab. */
 		result = allocate_slab_block(allocator->open_slab,
 					     block_number_ptr);
-		if ((result == VDO_SUCCESS) || (result != VDO_NO_SPACE)) {
+		if ((result == VDO_SUCCESS) || (result != VDO_NO_SPACE))
 			return result;
-		}
 
 		/* Put the exhausted open slab back into the priority table. */
 		prioritize_slab(allocator->open_slab);
@@ -433,18 +419,16 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 		.pbn = pbn,
 	};
 
-	if (pbn == VDO_ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK)
 		return;
-	}
 
 	slab = vdo_get_slab(allocator->depot, pbn);
 	result = vdo_modify_slab_reference_count(slab, NULL, operation);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		uds_log_error_strerror(result,
 				       "Failed to release reference to %s physical block %llu",
 				       why,
 				       (unsigned long long) pbn);
-	}
 }
 
 /**
@@ -470,12 +454,10 @@ static int compare_slab_statuses(const void *item1, const void *item2)
 	const struct slab_status *info1 = (const struct slab_status *) item1;
 	const struct slab_status *info2 = (const struct slab_status *) item2;
 
-	if (info1->is_clean != info2->is_clean) {
+	if (info1->is_clean != info2->is_clean)
 		return info1->is_clean ? 1 : -1;
-	}
-	if (info1->emptiness != info2->emptiness) {
+	if (info1->emptiness != info2->emptiness)
 		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
-	}
 	return (info1->slab_number < info2->slab_number) ? 1 : -1;
 }
 
@@ -574,9 +556,8 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	const struct admin_state_code *operation =
 		vdo_get_admin_state_code(&allocator->state);
 
-	if (allocator->eraser != NULL) {
+	if (allocator->eraser != NULL)
 		dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
-	}
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
@@ -711,9 +692,8 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 
 	result = UDS_ALLOCATE(slab_count, struct slab_status, __func__,
 			      &slab_statuses);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_get_summarized_slab_statuses(allocator->summary, slab_count,
 					 slab_statuses);
@@ -731,9 +711,8 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		bool high_priority;
 		struct vdo_slab *slab =
 			depot->slabs[current_slab_status.slab_number];
-		if (slab->allocator != allocator) {
+		if (slab->allocator != allocator)
 			continue;
-		}
 
 		if ((depot->load_type == VDO_SLAB_DEPOT_REBUILD_LOAD) ||
 		    (!vdo_must_load_ref_counts(allocator->summary,
@@ -795,9 +774,8 @@ void vdo_register_new_slabs_for_allocator(void *context,
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
 		struct vdo_slab *slab = depot->new_slabs[i];
 
-		if (slab->allocator == allocator) {
+		if (slab->allocator == allocator)
 			vdo_register_slab_with_allocator(allocator, slab);
-		}
 	}
 	vdo_complete_completion(parent);
 }
@@ -944,12 +922,10 @@ void vdo_release_tail_block_locks(void *context,
 		vdo_get_block_allocator_for_zone(context, zone_number);
 	struct list_head *list = &allocator->dirty_slab_journals;
 
-	while (!list_empty(list)) {
+	while (!list_empty(list))
 		if (!vdo_release_recovery_journal_lock(vdo_slab_journal_from_dirty_entry(list->next),
-						       allocator->depot->active_release_request)) {
+						       allocator->depot->active_release_request))
 			break;
-		}
-	}
 	vdo_complete_completion(parent);
 }
 

@@ -279,9 +279,8 @@ bool vdo_finish_operation(struct admin_state *state, int result);
 static inline void vdo_set_operation_result(struct admin_state *state,
 					    int result)
 {
-	if (state->waiter != NULL) {
+	if (state->waiter != NULL)
 		vdo_set_completion_result(state->waiter, result);
-	}
 }
 
 #endif /* ADMIN_STATE_H */

@@ -62,11 +62,10 @@ static inline bool vdo_is_mapped_location(const struct data_location *location)
 
 static inline bool vdo_is_valid_location(const struct data_location *location)
 {
-	if (location->pbn == VDO_ZERO_BLOCK) {
+	if (location->pbn == VDO_ZERO_BLOCK)
 		return !vdo_is_state_compressed(location->state);
-	} else {
+	else
 		return vdo_is_mapped_location(location);
-	}
 }
 
 /* FIXME: maybe this should be vdo_pack_block_map_entry() */

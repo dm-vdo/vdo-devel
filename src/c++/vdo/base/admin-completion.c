@@ -141,11 +141,10 @@ vdo_perform_admin_operation(struct vdo *vdo,
 	int result;
 	struct admin_completion *admin_completion = &vdo->admin_completion;
 
-	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0) {
+	if (atomic_cmpxchg(&admin_completion->busy, 0, 1) != 0)
 		return uds_log_error_strerror(VDO_COMPONENT_BUSY,
 					      "Can't start admin operation of type %u, another operation is already in progress",
 					      type);
-	}
 
 	vdo_prepare_completion(&admin_completion->completion,
 			       admin_operation_callback,
@@ -163,13 +162,12 @@ vdo_perform_admin_operation(struct vdo *vdo,
 	 * Using the "interruptible" interface means that Linux will not log a
 	 * message when we wait for more than 120 seconds.
 	 */
-	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0) {
+	while (wait_for_completion_interruptible(&admin_completion->callback_sync) != 0)
 		/*
 		 * However, if we get a signal in a user-mode process, we could
 		 * spin...
 		 */
 		fsleep(1000);
-	}
 
 	result = admin_completion->completion.result;
 	smp_wmb();

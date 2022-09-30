@@ -30,9 +30,8 @@ int vdo_make_allocation_selector(zone_count_t physical_zone_count,
 				  struct allocation_selector,
 				  __func__,
 				  &selector);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	*selector = (struct allocation_selector) {
 		.next_allocation_zone = thread_id % physical_zone_count,
@@ -58,11 +57,10 @@ zone_count_t vdo_get_next_allocation_zone(struct allocation_selector *selector)
 		} else {
 			selector->allocation_count = 1;
 			if (selector->next_allocation_zone <
-			    selector->last_physical_zone) {
+			    selector->last_physical_zone)
 				selector->next_allocation_zone++;
-			} else {
+			else
 				selector->next_allocation_zone = 0;
-			}
 		}
 	}
 

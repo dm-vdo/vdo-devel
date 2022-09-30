@@ -196,43 +196,37 @@ static const struct admin_state_code *
 get_next_state(const struct admin_state *state,
 	       const struct admin_state_code *operation)
 {
-	const struct admin_state_code *code
-		= vdo_get_admin_state_code(state);
+	const struct admin_state_code *code =
+		vdo_get_admin_state_code(state);
 
-	if (code->operating) {
+	if (code->operating)
 		return NULL;
-	}
 
-	if (operation == VDO_ADMIN_STATE_SAVING) {
+	if (operation == VDO_ADMIN_STATE_SAVING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_SAVED
 			: NULL);
-	}
 
-	if (operation == VDO_ADMIN_STATE_SUSPENDING) {
+	if (operation == VDO_ADMIN_STATE_SUSPENDING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_SUSPENDED
 			: NULL);
-	}
 
-	if (operation == VDO_ADMIN_STATE_STOPPING) {
+	if (operation == VDO_ADMIN_STATE_STOPPING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_STOPPED
 			: NULL);
-	}
 
-	if (operation == VDO_ADMIN_STATE_PRE_LOADING) {
+	if (operation == VDO_ADMIN_STATE_PRE_LOADING)
 		return (code == VDO_ADMIN_STATE_INITIALIZED
 			? VDO_ADMIN_STATE_PRE_LOADED
 			: NULL);
-	}
 
-	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION) {
-		return (((code == VDO_ADMIN_STATE_SUSPENDED)
-			 || (code == VDO_ADMIN_STATE_SAVED))
+	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION)
+		return (((code == VDO_ADMIN_STATE_SUSPENDED) ||
+			 (code == VDO_ADMIN_STATE_SAVED))
 			? code
 			: NULL);
-	}
 
 	return VDO_ADMIN_STATE_NORMAL_OPERATION;
 }
@@ -251,20 +245,17 @@ get_next_state(const struct admin_state *state,
  */
 bool vdo_finish_operation(struct admin_state *state, int result)
 {
-	if (!is_vdo_state_operating(state)) {
+	if (!is_vdo_state_operating(state))
 		return false;
-	}
 
 	state->complete = state->starting;
-	if (state->waiter != NULL) {
+	if (state->waiter != NULL)
 		vdo_set_completion_result(state->waiter, result);
-	}
 
 	if (!state->starting) {
 		vdo_set_admin_state_code(state, state->next_state);
-		if (state->waiter != NULL) {
+		if (state->waiter != NULL)
 			vdo_complete_completion(UDS_FORGET(state->waiter));
-		}
 	}
 
 	return true;
@@ -310,17 +301,15 @@ begin_operation(struct admin_state *state,
 			state->starting = true;
 			initiator(state);
 			state->starting = false;
-			if (state->complete) {
+			if (state->complete)
 				vdo_finish_operation(state, VDO_SUCCESS);
-			}
 		}
 
 		return VDO_SUCCESS;
 	}
 
-	if (waiter != NULL) {
+	if (waiter != NULL)
 		vdo_finish_completion(waiter, result);
-	}
 
 	return result;
 }
@@ -365,15 +354,13 @@ static bool check_code(bool valid,
 {
 	int result;
 
-	if (valid) {
+	if (valid)
 		return true;
-	}
 
 	result = uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 					"%s is not a %s", code->name, what);
-	if (waiter != NULL) {
+	if (waiter != NULL)
 		vdo_finish_completion(waiter, result);
-	}
 
 	return false;
 }
@@ -415,9 +402,8 @@ bool vdo_start_draining(struct admin_state *state,
 {
 	const struct admin_state_code *code = vdo_get_admin_state_code(state);
 
-	if (!assert_vdo_drain_operation(operation, waiter)) {
+	if (!assert_vdo_drain_operation(operation, waiter))
 		return false;
-	}
 
 	if (code->quiescent) {
 		vdo_complete_completion(waiter);
@@ -457,8 +443,8 @@ bool vdo_finish_draining(struct admin_state *state)
  */
 bool vdo_finish_draining_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_draining(state)
-		&& vdo_finish_operation(state, result));
+	return (vdo_is_state_draining(state) &&
+		vdo_finish_operation(state, result));
 }
 
 /**
@@ -519,8 +505,8 @@ bool vdo_finish_loading(struct admin_state *state)
  */
 bool vdo_finish_loading_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_loading(state)
-		&& vdo_finish_operation(state, result));
+	return (vdo_is_state_loading(state) &&
+		vdo_finish_operation(state, result));
 }
 
 /**
@@ -584,8 +570,8 @@ bool vdo_finish_resuming(struct admin_state *state)
  */
 bool vdo_finish_resuming_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_resuming(state)
-		&& vdo_finish_operation(state, result));
+	return (vdo_is_state_resuming(state) &&
+		vdo_finish_operation(state, result));
 }
 
 /**
@@ -597,9 +583,8 @@ bool vdo_finish_resuming_with_result(struct admin_state *state, int result)
  */
 int vdo_resume_if_quiescent(struct admin_state *state)
 {
-	if (!vdo_is_state_quiescent(state)) {
+	if (!vdo_is_state_quiescent(state))
 		return VDO_INVALID_ADMIN_STATE;
-	}
 
 	vdo_set_admin_state_code(state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 	return VDO_SUCCESS;
