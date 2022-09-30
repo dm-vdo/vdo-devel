@@ -79,14 +79,12 @@ static INLINE struct uds_request *poll_queues(struct uds_request_queue *queue)
 	struct funnel_queue_entry *entry;
 
 	entry = funnel_queue_poll(queue->retry_queue);
-	if (entry != NULL) {
+	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
-	}
 
 	entry = funnel_queue_poll(queue->main_queue);
-	if (entry != NULL) {
+	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
-	}
 
 	return NULL;
 }
@@ -195,9 +193,8 @@ static void request_queue_worker(void *arg)
 				 * decrease the wait time.
 				 */
 				time_batch -= time_batch / 4;
-				if (time_batch < MINIMUM_WAIT_TIME) {
+				if (time_batch < MINIMUM_WAIT_TIME)
 					time_batch = MINIMUM_WAIT_TIME;
-				}
 			}
 			current_batch = 0;
 		}
@@ -209,9 +206,8 @@ static void request_queue_worker(void *arg)
 	 * uds_request_queue_finish().
 	 */
 	smp_rmb();
-	while ((request = poll_queues(queue)) != NULL) {
+	while ((request = poll_queues(queue)) != NULL)
 		queue->processor(request);
-	}
 }
 
 int make_uds_request_queue(const char *queue_name,
@@ -222,9 +218,8 @@ int make_uds_request_queue(const char *queue_name,
 	struct uds_request_queue *queue;
 
 	result = UDS_ALLOCATE(1, struct uds_request_queue, __func__, &queue);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	queue->processor = processor;
 	queue->running = true;
@@ -261,9 +256,8 @@ int make_uds_request_queue(const char *queue_name,
 static INLINE void wake_up_worker(struct uds_request_queue *queue)
 {
 	smp_mb();
-	if (waitqueue_active(&queue->wait_head)) {
+	if (waitqueue_active(&queue->wait_head))
 		wake_up(&queue->wait_head);
-	}
 }
 
 void uds_request_queue_enqueue(struct uds_request_queue *queue,
@@ -279,18 +273,16 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 	 * We must wake the worker thread when it is dormant. A read fence
 	 * isn't needed here since we know the queue operation acts as one.
 	 */
-	if (atomic_read(&queue->dormant) || unbatched) {
+	if (atomic_read(&queue->dormant) || unbatched)
 		wake_up_worker(queue);
-	}
 }
 
 void uds_request_queue_finish(struct uds_request_queue *queue)
 {
 	int result;
 
-	if (queue == NULL) {
+	if (queue == NULL)
 		return;
-	}
 
 	/*
 	 * This memory barrier ensures that any requests we queued will be
@@ -305,10 +297,9 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 	if (queue->started) {
 		wake_up_worker(queue);
 		result = uds_join_threads(queue->thread);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			uds_log_warning_strerror(result,
 						 "Failed to join worker thread");
-		}
 	}
 
 	free_funnel_queue(queue->main_queue);

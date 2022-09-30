@@ -42,15 +42,13 @@ static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
 
-	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS)
 		return NULL;
-	}
 
 	memcpy(string, buf, length);
 	string[length] = '\0';
-	if (string[length - 1] == '\n') {
+	if (string[length - 1] == '\n')
 		string[length - 1] = '\0';
-	}
 
 	return string;
 }
@@ -121,11 +119,10 @@ memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
 	struct memory_attribute *ma;
 
 	ma = container_of(attr, struct memory_attribute, attr);
-	if (ma->show_long != NULL) {
+	if (ma->show_long != NULL)
 		return sprintf(buf, "%ld\n", ma->show_long());
-	} else {
+	else
 		return -EINVAL;
-	}
 }
 
 static ssize_t memory_store(struct kobject *kobj,
@@ -141,9 +138,8 @@ static ssize_t memory_store(struct kobject *kobj,
 	} else if (ma->store_long != NULL) {
 		long value;
 
-		if (sscanf(buf, "%ld", &value) != 1) {
+		if (sscanf(buf, "%ld", &value) != 1)
 			return -EINVAL;
-		}
 		ma->store_long(value);
 	} else {
 		return -EINVAL;
@@ -268,11 +264,10 @@ parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
 	struct parameter_attribute *pa;
 
 	pa = container_of(attr, struct parameter_attribute, attr);
-	if (pa->show_string != NULL) {
+	if (pa->show_string != NULL)
 		return sprintf(buf, "%s\n", pa->show_string());
-	} else {
+	else
 		return -EINVAL;
-	}
 }
 
 static ssize_t parameter_store(struct kobject *kobj,
@@ -284,13 +279,11 @@ static ssize_t parameter_store(struct kobject *kobj,
 	struct parameter_attribute *pa;
 
 	pa = container_of(attr, struct parameter_attribute, attr);
-	if (pa->store_string == NULL) {
+	if (pa->store_string == NULL)
 		return -EINVAL;
-	}
 	string = buffer_to_string(buf, length);
-	if (string == NULL) {
+	if (string == NULL)
 		return -ENOMEM;
-	}
 
 	pa->store_string(string);
 	UDS_FREE(string);
@@ -347,9 +340,8 @@ int uds_init_sysfs(void)
 		result = kobject_add(&object_root.parameter_kobj,
 				     &object_root.kobj,
 				     "parameter");
-		if (result == 0) {
+		if (result == 0)
 			object_root.parameter_flag = true;
-		}
 	}
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
@@ -357,15 +349,13 @@ int uds_init_sysfs(void)
 		kobject_init(&object_root.memory_kobj, &memory_object_type);
 		result = kobject_add(&object_root.memory_kobj,
 				     &object_root.kobj, "memory");
-		if (result == 0) {
+		if (result == 0)
 			object_root.memory_flag = true;
-		}
 	}
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	if (result != 0) {
+	if (result != 0)
 		uds_put_sysfs();
-	}
 
 	return result;
 }
@@ -373,16 +363,13 @@ int uds_init_sysfs(void)
 void uds_put_sysfs(void)
 {
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
-	if (object_root.memory_flag) {
+	if (object_root.memory_flag)
 		kobject_put(&object_root.memory_kobj);
-	}
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	if (object_root.parameter_flag) {
+	if (object_root.parameter_flag)
 		kobject_put(&object_root.parameter_kobj);
-	}
 
-	if (object_root.flag) {
+	if (object_root.flag)
 		kobject_put(&object_root.kobj);
-	}
 }

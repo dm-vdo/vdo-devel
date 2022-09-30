@@ -105,9 +105,8 @@ static void update_peak_usage(void)
 {
 	size_t total_bytes =
 		memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
-	if (total_bytes > memory_stats.peak_bytes) {
+	if (total_bytes > memory_stats.peak_bytes)
 		memory_stats.peak_bytes = total_bytes;
-	}
 }
 
 static void add_kmalloc_block(size_t size)
@@ -163,9 +162,9 @@ static void remove_vmalloc_block(void *ptr)
 	}
 
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
-	if (block != NULL) {
+	if (block != NULL)
 		UDS_FREE(block);
-	} else {
+	else
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 		uds_log_info("attempting to remove ptr %px not found in vmalloc list",
 			     ptr);
@@ -173,7 +172,6 @@ static void remove_vmalloc_block(void *ptr)
 		uds_log_info("attempting to remove ptr %pK not found in vmalloc list",
 			     ptr);
 #endif
-	}
 }
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
@@ -246,17 +244,14 @@ static void add_tracking_block(void *ptr, size_t size, const char *what)
 {
 	struct track_memory_info *info;
 
-	if (atomic_read(&track_enabled) == 0) {
+	if (atomic_read(&track_enabled) == 0)
 		return;
-	}
 
 	mutex_lock(&track_mutex);
 	/* Find a page with an available slot. */
-	for (info = track_info; info != NULL; info = info->next) {
-		if (info->count < NUM_TRACK_BLOCKS) {
+	for (info = track_info; info != NULL; info = info->next)
+		if (info->count < NUM_TRACK_BLOCKS)
 			break;
-		}
-	}
 
 	if (info == NULL) {
 		/* All pages are full, so allocate a new one. */
@@ -289,9 +284,8 @@ static void remove_tracking_block(void *ptr)
 	struct track_memory_info *info;
 	int i;
 
-	if (atomic_read(&track_enabled) == 0) {
+	if (atomic_read(&track_enabled) == 0)
 		return;
-	}
 
 	mutex_lock(&track_mutex);
 	for (info = track_info; info != NULL; info = info->next) {
@@ -316,9 +310,8 @@ void log_uds_memory_allocations(void)
 	int i;
 	struct track_memory_info *info;
 
-	if (atomic_read(&track_enabled) == 0) {
+	if (atomic_read(&track_enabled) == 0)
 		return;
-	}
 
 	mutex_lock(&track_mutex);
 	for (info = track_info; info != NULL; info = info->next) {
@@ -413,9 +406,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	unsigned long start_time;
 	void *p = NULL;
 
-	if (ptr == NULL) {
+	if (ptr == NULL)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	if (size == 0) {
 		*((void **) ptr) = NULL;
@@ -433,9 +425,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	}
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	if (allocations_restricted) {
+	if (allocations_restricted)
 		noio_flags = memalloc_noio_save();
-	}
 
 	start_time = jiffies;
 	if (use_kmalloc(size) && (align < PAGE_SIZE)) {
@@ -480,20 +471,18 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
 				if ((p != NULL) ||
 				    (jiffies_to_msecs(jiffies - start_time) >
-				     1000)) {
+				     1000))
 					break;
-				}
 
 				fsleep(1000);
 			}
 
-			if (p == NULL) {
+			if (p == NULL)
 				/*
 				 * Try one more time, logging a failure for
 				 * this call.
 				 */
 				p = __vmalloc(size, gfp_flags);
-			}
 
 			if (p == NULL) {
 				UDS_FREE(block);
@@ -508,9 +497,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		}
 	}
 
-	if (allocations_restricted) {
+	if (allocations_restricted)
 		memalloc_noio_restore(noio_flags);
-	}
 
 	if (p == NULL) {
 		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
@@ -601,14 +589,12 @@ int uds_reallocate_memory(void *ptr,
 	}
 
 	result = UDS_ALLOCATE(size, char, what, new_ptr);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	if (ptr != NULL) {
-		if (old_size < size) {
+		if (old_size < size)
 			size = old_size;
-		}
 
 		memcpy(*((void **) new_ptr), ptr, size);
 		UDS_FREE(ptr);
@@ -625,9 +611,8 @@ int uds_duplicate_string(const char *string,
 	byte *dup;
 
 	result = UDS_ALLOCATE(strlen(string) + 1, byte, what, &dup);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	memcpy(dup, string, strlen(string) + 1);
 	*new_string = dup;

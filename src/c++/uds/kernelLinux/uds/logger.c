@@ -62,20 +62,17 @@ int uds_log_string_to_priority(const char *string)
 {
 	int i;
 
-	for (i = 0; PRIORITIES[i].name != NULL; i++) {
-		if (strcasecmp(string, PRIORITIES[i].name) == 0) {
+	for (i = 0; PRIORITIES[i].name != NULL; i++)
+		if (strcasecmp(string, PRIORITIES[i].name) == 0)
 			return PRIORITIES[i].priority;
-		}
-	}
 	return UDS_LOG_INFO;
 }
 
 const char *uds_log_priority_to_string(int priority)
 {
 	if ((priority < 0) ||
-	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS))) {
+	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS)))
 		return "unknown";
-	}
 	return PRIORITY_STRINGS[priority];
 }
 
@@ -103,15 +100,12 @@ static const char *priority_to_log_level(int priority)
 
 static const char *get_current_interrupt_type(void)
 {
-	if (in_nmi()) {
+	if (in_nmi())
 		return "NMI";
-	}
-	if (in_irq()) {
+	if (in_irq())
 		return "HI";
-	}
-	if (in_softirq()) {
+	if (in_softirq())
 		return "SI";
-	}
 	return "INTR";
 }
 
@@ -209,17 +203,14 @@ void uds_log_embedded_message(int priority,
 
 	va_start(args2, fmt2);
 
-	if (priority > get_uds_log_level()) {
+	if (priority > get_uds_log_level())
 		return;
-	}
 
 	level = priority_to_log_level(priority);
-	if (module == NULL) {
+	if (module == NULL)
 		module = UDS_LOGGING_MODULE_NAME;
-	}
-	if (prefix == NULL) {
+	if (prefix == NULL)
 		prefix = "";
-	}
 
 	/*
 	 * It is implementation dependent whether va_list is defined as an
@@ -277,9 +268,8 @@ int __uds_log_strerror(int priority,
 
 void uds_log_backtrace(int priority)
 {
-	if (priority > get_uds_log_level()) {
+	if (priority > get_uds_log_level())
 		return;
-	}
 	dump_stack();
 }
 

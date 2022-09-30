@@ -110,16 +110,15 @@ int uds_create_thread(void (*thread_function)(void *),
 	 * Otherwise just use the name supplied. This should be a rare
 	 * occurrence.
 	 */
-	if ((name_colon == NULL) && (my_name_colon != NULL)) {
+	if ((name_colon == NULL) && (my_name_colon != NULL))
 		task = kthread_run(thread_starter,
 				   thread,
 				   "%.*s:%s",
 				   (int) (my_name_colon - current->comm),
 				   current->comm,
 				   name);
-	} else {
+	else
 		task = kthread_run(thread_starter, thread, "%s", name);
-	}
 
 	if (IS_ERR(task)) {
 		UDS_FREE(thread);
@@ -132,8 +131,9 @@ int uds_create_thread(void (*thread_function)(void *),
 
 int uds_join_threads(struct thread *thread)
 {
-	while (wait_for_completion_interruptible(&thread->thread_done) != 0) {
-	}
+	while (wait_for_completion_interruptible(&thread->thread_done) != 0)
+		/* empty loop */
+		;
 
 	mutex_lock(&thread_mutex);
 	hlist_del(&thread->thread_links);
@@ -150,9 +150,8 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 
 	perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
-	hlist_for_each_entry(thread, &thread_list, thread_links) {
+	hlist_for_each_entry(thread, &thread_list, thread_links)
 		apply_function(argument, thread->thread_task);
-	}
 	mutex_unlock(&thread_mutex);
 }
 
@@ -202,9 +201,8 @@ int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 	int result;
 
 	result = uds_initialize_semaphore(&barrier->mutex, 1);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	barrier->arrived = 0;
 	barrier->thread_count = thread_count;
@@ -216,9 +214,8 @@ int uds_destroy_barrier(struct barrier *barrier)
 	int result;
 
 	result = uds_destroy_semaphore(&barrier->mutex);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	return uds_destroy_semaphore(&barrier->wait);
 }
 
@@ -231,9 +228,8 @@ int uds_enter_barrier(struct barrier *barrier)
 	if (last_thread) {
 		int i;
 
-		for (i = 1; i < barrier->thread_count; i++) {
+		for (i = 1; i < barrier->thread_count; i++)
 			uds_release_semaphore(&barrier->wait);
-		}
 
 		barrier->arrived = 0;
 		uds_release_semaphore(&barrier->mutex);
