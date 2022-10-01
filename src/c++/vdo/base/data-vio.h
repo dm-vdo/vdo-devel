@@ -1176,4 +1176,6 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 
 bool is_zero_block(char *block);
 
+void continue_data_vio_with_block_map_slot(struct vdo_completion *completion);
+
 #endif /* DATA_VIO_H */

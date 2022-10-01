@@ -114,7 +114,6 @@
 #include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
-#include "vio-read.h"
 
 /*
  * The steps taken cleaning up a VIO, in the order they are performed.

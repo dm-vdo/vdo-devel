@@ -14,7 +14,6 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio.h"
-#include "vio-read.h"
 #include "vio-write.h"
 
 #include "asyncLayer.h"
@@ -67,7 +66,7 @@ static void getMapping(struct vdo_completion *completion)
 /**********************************************************************/
 static bool replaceCallbackWithGetMapping(struct vdo_completion *completion)
 {
-  if (completion->callback == continue_read_with_block_map_slot) {
+  if (completion->callback == continue_data_vio_with_block_map_slot) {
     completion->callback = getMapping;
     removeCompletionEnqueueHook(replaceCallbackWithGetMapping);
   }
@@ -146,7 +145,7 @@ static bool populateBlockMapCallback(struct vdo_completion *completion)
     // As noted below, we can't launch this as a write, but it needs to be a
     // write in order to update the block map. So we switch the operation here.
     as_data_vio(completion)->io_operation = DATA_VIO_WRITE;
-  } else if (completion->callback == continue_write_with_block_map_slot) {
+  } else if (completion->callback == continue_data_vio_with_block_map_slot) {
     completion->callback = saveToBlockMap;
   }
 
@@ -219,7 +218,7 @@ static bool lookupLBNHook(struct vdo_completion *completion)
 {
   if (lastAsyncOperationIs(completion, VIO_ASYNC_OP_LAUNCH)) {
     completion->callback = lookupCallback;
-  } else if (completion->callback == continue_read_with_block_map_slot) {
+  } else if (completion->callback == continue_data_vio_with_block_map_slot) {
     completion->callback = lookupCallback;
     removeCompletionEnqueueHook(lookupLBNHook);
   }

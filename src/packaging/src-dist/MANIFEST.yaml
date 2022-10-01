@@ -393,8 +393,6 @@ tarballs:
             vio.h
             vio-pool.c
             vio-pool.h
-            vio-read.c
-            vio-read.h
             vio-write.c
             vio-write.h
             volume-geometry.c

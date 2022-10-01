@@ -30,7 +30,6 @@
 #include "vdo-page-cache.h"
 #include "vio.h"
 #include "vio-pool.h"
-#include "vio-read.h"
 #include "vio-write.h"
 
 enum {
@@ -616,9 +615,7 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 	--zone->active_lookups;
 
 	set_data_vio_logical_callback(data_vio,
-				      (is_write_data_vio(data_vio) ?
-				       continue_write_with_block_map_slot :
-				       continue_read_with_block_map_slot));
+				      continue_data_vio_with_block_map_slot);
 	completion->error_handler = complete_data_vio;
 	vdo_continue_completion(completion, result);
 }
