@@ -13,7 +13,6 @@
  */
 struct action_manager;
 struct allocation_selector;
-struct atomic_bio_stats;
 #ifdef INTERNAL
 struct bio;
 #endif /* INTERNAL */

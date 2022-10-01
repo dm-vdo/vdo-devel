@@ -20,7 +20,7 @@
 
 #include "admin-completion.h"
 #include "admin-state.h"
-#include "atomic-stats.h"
+#include "bio.h"
 #include "data-vio-pool.h"
 #include "device-config.h"
 #include "header.h"
@@ -47,6 +47,31 @@ struct vdo_thread {
 #ifdef __KERNEL__
 	struct registered_thread allocating_thread;
 #endif /* __KERNEL__ */
+};
+
+/*
+ * Counters are atomic since updates can arrive concurrently from arbitrary
+ * threads.
+ */
+struct atomic_statistics {
+	atomic64_t bios_submitted;
+	atomic64_t bios_completed;
+	atomic64_t flush_out;
+	atomic64_t invalid_advice_pbn_count;
+	atomic64_t no_space_error_count;
+	atomic64_t read_only_error_count;
+	struct atomic_bio_stats bios_in;
+	struct atomic_bio_stats bios_in_partial;
+	struct atomic_bio_stats bios_out;
+	struct atomic_bio_stats bios_out_completed;
+	struct atomic_bio_stats bios_acknowledged;
+	struct atomic_bio_stats bios_acknowledged_partial;
+	struct atomic_bio_stats bios_meta;
+	struct atomic_bio_stats bios_meta_completed;
+	struct atomic_bio_stats bios_journal;
+	struct atomic_bio_stats bios_journal_completed;
+	struct atomic_bio_stats bios_page_cache;
+	struct atomic_bio_stats bios_page_cache_completed;
 };
 
 struct vdo {

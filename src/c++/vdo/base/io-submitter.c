@@ -13,7 +13,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "atomic-stats.h"
 #include "bio.h"
 #include "data-vio.h"
 #include "logger.h"

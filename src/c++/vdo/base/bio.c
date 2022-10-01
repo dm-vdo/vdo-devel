@@ -10,7 +10,6 @@
 #include "numeric.h"
 #include "permassert.h"
 
-#include "atomic-stats.h"
 #include "kernel-types.h"
 #include "vdo.h"
 #include "vio.h"
