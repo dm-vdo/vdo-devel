@@ -126,9 +126,8 @@ static void resume_callback(struct vdo_completion *completion)
 		if (vdo_start_resuming(&vdo->admin_state,
 				       VDO_ADMIN_STATE_RESUMING,
 				       &admin_completion->completion,
-				       NULL)) {
+				       NULL))
 			write_super_block(vdo, completion);
-		}
 		return;
 
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
@@ -165,9 +164,8 @@ static void resume_callback(struct vdo_completion *completion)
 		bool was_enabled = vdo_get_compressing(vdo);
 		bool enable = vdo->device_config->compression;
 
-		if (enable != was_enabled) {
+		if (enable != was_enabled)
 			WRITE_ONCE(vdo->compressing, enable);
-		}
 		uds_log_info("compression is %s",
 			     (enable ? "enabled" : "disabled"));
 
@@ -199,10 +197,10 @@ static void resume_callback(struct vdo_completion *completion)
 
 /**
  * apply_new_vdo_configuration() - Attempt to make any configuration changes
- *                                 from the table being resumed.
+ *				   from the table being resumed.
  * @vdo: The vdo being resumed.
  * @config: The new device configuration derived from the table with which
- *          the vdo is being resumed.
+ *	    the vdo is being resumed.
  *
  * Return: VDO_SUCCESS or an error.
  */
@@ -219,19 +217,18 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 	}
 
 	result = vdo_perform_grow_physical(vdo, config->physical_blocks);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		uds_log_error("resize operation failed, result = %d", result);
-	}
 
 	return result;
 }
 
 /**
  * vdo_preresume_internal() - Resume a suspended vdo (technically preresume
- *                            because resume can't fail).
+ *			      because resume can't fail).
  * @vdo: The vdo being resumed.
  * @config: The device config derived from the table with which the vdo is
- *          being resumed.
+ *	    being resumed.
  * @device_name: The vdo device name (for logging).
  *
  * Return: VDO_SUCCESS or an error.
@@ -243,7 +240,7 @@ int vdo_preresume_internal(struct vdo *vdo,
 	int result;
 
 	/*
-         * If this fails, the VDO was not in a state to be resumed. This should
+	 * If this fails, the VDO was not in a state to be resumed. This should
 	 * never happen.
 	 */
 	result = apply_new_vdo_configuration(vdo, config);
@@ -268,10 +265,9 @@ int vdo_preresume_internal(struct vdo *vdo,
 		return result;
 	}
 
-	if (vdo_get_admin_state(vdo)->normal) {
+	if (vdo_get_admin_state(vdo)->normal)
 		/* The VDO was just started, so we don't need to resume it. */
 		return VDO_SUCCESS;
-	}
 
 	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_RESUME,
@@ -279,16 +275,14 @@ int vdo_preresume_internal(struct vdo *vdo,
 					     resume_callback,
 					     vdo_preserve_completion_error_and_continue);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
-	if (result == VDO_READ_ONLY) {
+	if (result == VDO_READ_ONLY)
 		/* Even if the vdo is read-only, it has still resumed. */
 		result = VDO_SUCCESS;
-	}
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		uds_log_error("resume of device '%s' failed with error: %d",
 			      device_name,
 			      result);
-	}
 
 	return result;
 }

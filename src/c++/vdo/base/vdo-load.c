@@ -175,13 +175,11 @@ static bool __must_check requires_rebuild(const struct vdo *vdo)
  */
 static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
-	if (requires_read_only_rebuild(vdo)) {
+	if (requires_read_only_rebuild(vdo))
 		return VDO_SLAB_DEPOT_REBUILD_LOAD;
-	}
 
-	if (requires_recovery(vdo)) {
+	if (requires_recovery(vdo))
 		return VDO_SLAB_DEPOT_RECOVERY_LOAD;
-	}
 
 	return VDO_SLAB_DEPOT_NORMAL_LOAD;
 }
@@ -203,17 +201,15 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 	result = kobject_add(&vdo->vdo_directory,
 			     &disk_to_dev(dm_disk(md))->kobj,
 			     "vdo");
-	if (result != 0) {
+	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
-	}
 
 #ifdef VDO_INTERNAL
 	vdo_initialize_histograms(&vdo->vdo_directory, &vdo->histograms);
 #endif /* VDO_INTERNAL */
 	result = vdo_add_dedupe_index_sysfs(vdo->hash_zones);
-	if (result != 0) {
+	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
-	}
 
 	return vdo_add_sysfs_stats_dir(vdo);
 }
@@ -237,9 +233,8 @@ static void load_callback(struct vdo_completion *completion)
 		if (!vdo_start_operation_with_waiter(&vdo->admin_state,
 						     VDO_ADMIN_STATE_LOADING,
 						     &admin_completion->completion,
-						     NULL)) {
+						     NULL))
 			return;
-		}
 
 		/* Prepare the recovery journal for new entries. */
 		vdo_open_recovery_journal(vdo->recovery_journal,
@@ -299,9 +294,8 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
-		if (requires_recovery(vdo)) {
+		if (requires_recovery(vdo))
 			vdo_enter_recovery_mode(vdo);
-		}
 
 		vdo_scrub_all_unrecovered_slabs(vdo->depot,
 						vdo_reset_admin_sub_task(completion));
@@ -309,14 +303,13 @@ static void load_callback(struct vdo_completion *completion)
 
 	case LOAD_PHASE_DATA_REDUCTION:
 		WRITE_ONCE(vdo->compressing, vdo->device_config->compression);
-		if (vdo->device_config->deduplication) {
+		if (vdo->device_config->deduplication)
 			/*
 			 * Don't try to load or rebuild the index first (and
 			 * log scary error messages) if this is known to be a
 			 * newly-formatted volume.
 			 */
 			vdo_start_dedupe_index(vdo->hash_zones, was_new(vdo));
-		}
 
 		vdo->allocations_allowed = false;
 		fallthrough;
@@ -361,8 +354,8 @@ static void handle_load_error(struct vdo_completion *completion)
 	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
-	if (requires_read_only_rebuild(vdo)
-	    && (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
+	if (requires_read_only_rebuild(vdo) &&
+	    (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 
 		/* Preserve the error. */
@@ -451,14 +444,13 @@ vdo_from_pre_load_sub_task(struct vdo_completion *completion)
 static int __must_check decode_from_super_block(struct vdo *vdo)
 {
 	const struct device_config *config = vdo->device_config;
-	struct super_block_codec *codec
-		= vdo_get_super_block_codec(vdo->super_block);
+	struct super_block_codec *codec =
+		vdo_get_super_block_codec(vdo->super_block);
 	int result = vdo_decode_component_states(codec->component_buffer,
 						 vdo->geometry.release_version,
 						 &vdo->states);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_set_state(vdo, vdo->states.vdo.state);
 	vdo->load_state = vdo->states.vdo.state;
@@ -478,9 +470,8 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 					       vdo->geometry.nonce,
 					       config->physical_blocks,
 					       config->logical_blocks);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return vdo_decode_layout(vdo->states.layout, &vdo->layout);
 }
@@ -511,22 +502,19 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	maximum_age = vdo->device_config->block_map_maximum_age;
 	journal_length =
 		vdo_get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
-	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
+	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1))
 		return VDO_BAD_CONFIGURATION;
-	}
 
 	result = vdo_make_read_only_notifier(vdo_in_read_only_mode(vdo),
 					     thread_config,
 					     vdo,
 					     &vdo->read_only_notifier);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_enable_read_only_entry(vdo);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_decode_recovery_journal(vdo->states.recovery_journal,
 					     vdo->states.vdo.nonce,
@@ -539,18 +527,16 @@ static int __must_check decode_vdo(struct vdo *vdo)
 					     vdo->read_only_notifier,
 					     thread_config,
 					     &vdo->recovery_journal);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_decode_slab_depot(vdo->states.slab_depot,
 				       vdo,
 				       vdo_get_partition(vdo->layout,
 							 VDO_SLAB_SUMMARY_PARTITION),
 				       &vdo->depot);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_decode_block_map(vdo->states.block_map,
 				      vdo->states.vdo.config.logical_blocks,
@@ -562,19 +548,16 @@ static int __must_check decode_vdo(struct vdo *vdo)
 				      vdo->device_config->cache_size,
 				      maximum_age,
 				      &vdo->block_map);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_make_logical_zones(vdo, &vdo->logical_zones);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_make_physical_zones(vdo, &vdo->physical_zones);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return vdo_make_hash_zones(vdo, &vdo->hash_zones);
 }
@@ -621,9 +604,8 @@ static void pre_load_callback(struct vdo_completion *completion)
 	if (!vdo_start_operation_with_waiter(&vdo->admin_state,
 					     VDO_ADMIN_STATE_PRE_LOADING,
 					     &admin_completion->completion,
-					     NULL)) {
+					     NULL))
 		return;
-	}
 
 	vdo_prepare_admin_sub_task(vdo,
 				   vdo_load_components,

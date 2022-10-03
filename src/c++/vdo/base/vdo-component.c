@@ -52,7 +52,7 @@ struct packed_vdo_component_41_0 {
 
 /**
  * vdo_get_component_encoded_size() - Get the size of the encoded state of the
- *                                    vdo itself.
+ *				      vdo itself.
  *
  * Return: The encoded size of the vdo's state.
  */
@@ -64,7 +64,7 @@ size_t vdo_get_component_encoded_size(void)
 
 /**
  * pack_vdo_config() - Convert a vdo_config to its packed on-disk
- *                     representation.
+ *		       representation.
  * @config: The vdo config to convert.
  *
  * Return: The platform-independent representation of the config.
@@ -85,7 +85,7 @@ pack_vdo_config(struct vdo_config config)
 
 /**
  * pack_vdo_component() - Convert a vdo_component to its packed on-disk
- *                        representation.
+ *			  representation.
  * @component: The VDO component data to convert.
  *
  * Return: The platform-independent representation of the component.
@@ -117,9 +117,8 @@ int vdo_encode_component(struct vdo_component component, struct buffer *buffer)
 	struct packed_vdo_component_41_0 packed;
 
 	result = vdo_encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	packed = pack_vdo_component(component);
 	return put_bytes(buffer, sizeof(packed), &packed);
@@ -127,7 +126,7 @@ int vdo_encode_component(struct vdo_component component, struct buffer *buffer)
 
 /**
  * unpack_vdo_config() - Convert a packed_vdo_config to its native in-memory
- *                       representation.
+ *			 representation.
  * @config: The packed vdo config to convert.
  *
  * Return: The native in-memory representation of the vdo config.
@@ -148,7 +147,7 @@ unpack_vdo_config(struct packed_vdo_config config)
 
 /**
  * unpack_vdo_component_41_0() - Convert a packed_vdo_component_41_0 to its
- *                               native in-memory representation.
+ *				 native in-memory representation.
  * @component: The packed vdo component data to convert.
  *
  * Return: The native in-memory representation of the component.
@@ -169,7 +168,7 @@ unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
 
 /**
  * vdo_decode_component_41_0() - Decode the version 41.0 component data for
- *                               the vdo itself from a buffer.
+ *				 the vdo itself from a buffer.
  * @buffer: A buffer positioned at the start of the encoding.
  * @component: The component structure to receive the decoded values.
  *
@@ -182,9 +181,8 @@ vdo_decode_component_41_0(struct buffer *buffer,
 	struct packed_vdo_component_41_0 packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	*component = unpack_vdo_component_41_0(packed);
 	return VDO_SUCCESS;
@@ -192,10 +190,10 @@ vdo_decode_component_41_0(struct buffer *buffer,
 
 /**
  * vdo_decode_component() - Decode the component data for the vdo itself from
- *                          the component data buffer in the super block.
+ *			    the component data buffer in the super block.
  * @buffer: The buffer being decoded.
  * @component: The component structure in which to store the result of a
- *             successful decode.
+ *	       successful decode.
  *
  * Return: VDO_SUCCESS or an error.
  */
@@ -205,15 +203,13 @@ int vdo_decode_component(struct buffer *buffer,
 	struct version_number version;
 	int result = vdo_decode_version_number(buffer, &version);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_validate_version(version, VDO_COMPONENT_DATA_41_0,
 				      "VDO component data");
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return vdo_decode_component_41_0(buffer, component);
 }
@@ -223,7 +219,7 @@ int vdo_decode_component(struct buffer *buffer,
  * @config: The VDO config.
  * @physical_block_count: The minimum block count of the underlying storage.
  * @logical_block_count: The expected logical size of the VDO, or 0 if the
- *                       logical size may be unspecified.
+ *			 logical size may be unspecified.
  *
  * Return: A success or error code.
  */
@@ -234,61 +230,52 @@ int vdo_validate_config(const struct vdo_config *config,
 	struct slab_config slab_config;
 	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(is_power_of_2(config->slab_size),
 			"slab size must be a power of two");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->slab_size <= (1 << MAX_VDO_SLAB_BITS),
 			"slab size must be less than or equal to 2^%d",
 			MAX_VDO_SLAB_BITS);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->slab_journal_blocks >= MINIMUM_VDO_SLAB_JOURNAL_BLOCKS,
-		       "slab journal size meets minimum size");
-	if (result != UDS_SUCCESS) {
+			"slab journal size meets minimum size");
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->slab_journal_blocks <= config->slab_size,
 			"slab journal size is within expected bound");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = vdo_configure_slab(config->slab_size,
 				    config->slab_journal_blocks,
 				    &slab_config);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT((slab_config.data_blocks >= 1),
 			"slab must be able to hold at least one block");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->physical_blocks > 0,
 			"physical blocks unspecified");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->physical_blocks <= MAXIMUM_VDO_PHYSICAL_BLOCKS,
 			"physical block count %llu exceeds maximum %llu",
 			(unsigned long long) config->physical_blocks,
 			(unsigned long long) MAXIMUM_VDO_PHYSICAL_BLOCKS);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return VDO_OUT_OF_RANGE;
-	}
 
 #ifdef __KERNEL__
 	if (physical_block_count != config->physical_blocks) {
@@ -313,35 +300,31 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (logical_block_count > 0) {
 		result = ASSERT((config->logical_blocks > 0),
 				"logical blocks unspecified");
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
 		if (logical_block_count != config->logical_blocks) {
 			uds_log_error("A logical size of %llu blocks was specified, but that differs from the %llu blocks configured in the vdo super block",
-			      (unsigned long long) logical_block_count,
-			      (unsigned long long) config->logical_blocks);
+				      (unsigned long long) logical_block_count,
+				      (unsigned long long) config->logical_blocks);
 			return VDO_PARAMETER_MISMATCH;
 		}
 	}
 
 	result = ASSERT(config->logical_blocks <= MAXIMUM_VDO_LOGICAL_BLOCKS,
 			"logical blocks too large");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(config->recovery_journal_size > 0,
 			"recovery journal size unspecified");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = ASSERT(is_power_of_2(config->recovery_journal_size),
 			"recovery journal size must be a power of two");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return result;
 }

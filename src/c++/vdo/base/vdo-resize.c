@@ -75,12 +75,11 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		if (vdo_start_operation_with_waiter(&vdo->admin_state,
 						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
-						    NULL)) {
+						    NULL))
 			/* Copy the journal into the new layout. */
 			vdo_copy_layout_partition(vdo->layout,
 						  VDO_RECOVERY_JOURNAL_PARTITION,
 						  vdo_reset_admin_sub_task(completion));
-		}
 		return;
 
 	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
@@ -154,9 +153,8 @@ int vdo_perform_grow_physical(struct vdo *vdo,
 		vdo->states.vdo.config.physical_blocks;
 
 	/* Skip any noop grows. */
-	if (old_physical_blocks == new_physical_blocks) {
+	if (old_physical_blocks == new_physical_blocks)
 		return VDO_SUCCESS;
-	}
 
 	if (new_physical_blocks != vdo_get_next_layout_size(vdo->layout)) {
 		/*
@@ -174,18 +172,16 @@ int vdo_perform_grow_physical(struct vdo *vdo,
 	new_depot_size =
 		vdo_get_next_block_allocator_partition_size(vdo->layout);
 	prepared_depot_size = vdo_get_slab_depot_new_size(vdo->depot);
-	if (prepared_depot_size != new_depot_size) {
+	if (prepared_depot_size != new_depot_size)
 		return VDO_PARAMETER_MISMATCH;
-	}
 
 	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_GROW_PHYSICAL,
 					     get_thread_id_for_phase,
 					     grow_physical_callback,
 					     handle_growth_error);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	uds_log_info("Physical block count was %llu, now %llu",
 		     (unsigned long long) old_physical_blocks,
@@ -250,16 +246,14 @@ int vdo_prepare_to_grow_physical(struct vdo *vdo,
 					     get_thread_id_for_phase,
 					     check_may_grow_physical,
 					     vdo_finish_completion_parent_callback);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = prepare_to_vdo_grow_layout(vdo->layout,
 					    current_physical_blocks,
 					    new_physical_blocks);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	new_depot_size =
 		vdo_get_next_block_allocator_partition_size(vdo->layout);

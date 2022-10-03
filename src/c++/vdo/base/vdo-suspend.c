@@ -131,9 +131,8 @@ static void suspend_callback(struct vdo_completion *completion)
 		if (vdo_start_draining(admin_state,
 				       vdo->suspend_type,
 				       &admin_completion->completion,
-				       NULL)) {
+				       NULL))
 			vdo_complete_completion(vdo_reset_admin_sub_task(completion));
-		}
 		return;
 
 	case SUSPEND_PHASE_PACKER:
@@ -144,10 +143,9 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * result of this suspend will be VDO_READ_ONLY and not
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
-		if (vdo_in_read_only_mode(vdo)) {
+		if (vdo_in_read_only_mode(vdo))
 			vdo_set_completion_result(&admin_completion->completion,
 						  VDO_READ_ONLY);
-		}
 
 		vdo_drain_packer(vdo->packer,
 				 vdo_reset_admin_sub_task(completion));
@@ -177,10 +175,9 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * hasn't been flushed yet.
 		 */
 		result = vdo_synchronous_flush(vdo);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			vdo_enter_read_only_mode(vdo->read_only_notifier,
 						 result);
-		}
 
 #endif /* __KERNEL__ */
 		vdo_drain_logical_zones(vdo->logical_zones,
@@ -213,13 +210,12 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
 		if (vdo_is_state_suspending(admin_state) ||
-		    (admin_completion->completion.result != VDO_SUCCESS)) {
+		    (admin_completion->completion.result != VDO_SUCCESS))
 			/*
 			 * If we didn't save the VDO or there was an error,
 			 * we're done.
 			 */
 			break;
-		}
 
 		write_super_block(vdo, vdo_reset_admin_sub_task(completion));
 		return;

@@ -69,8 +69,8 @@ static void grow_logical_callback(struct vdo_completion *completion)
 						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
 						    &admin_completion->completion,
 						    NULL)) {
-			vdo->states.vdo.config.logical_blocks
-				= vdo->block_map->next_entry_count;
+			vdo->states.vdo.config.logical_blocks =
+				vdo->block_map->next_entry_count;
 			vdo_save_components(vdo,
 					    vdo_reset_admin_sub_task(completion));
 		}
@@ -113,8 +113,8 @@ static void handle_growth_error(struct vdo_completion *completion)
 		 */
 		struct vdo *vdo = admin_completion->vdo;
 
-		vdo->states.vdo.config.logical_blocks
-			= vdo->block_map->entry_count;
+		vdo->states.vdo.config.logical_blocks =
+			vdo->block_map->entry_count;
 		vdo_abandon_block_map_growth(vdo->block_map);
 	}
 
@@ -148,18 +148,16 @@ int vdo_perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
 	uds_log_info("Resizing logical to %llu",
 		     (unsigned long long) new_logical_blocks);
 
-	if (vdo->block_map->next_entry_count != new_logical_blocks) {
+	if (vdo->block_map->next_entry_count != new_logical_blocks)
 		return VDO_PARAMETER_MISMATCH;
-	}
 
 	result = vdo_perform_admin_operation(vdo,
 					     VDO_ADMIN_OPERATION_GROW_LOGICAL,
 					     get_thread_id_for_phase,
 					     grow_logical_callback,
 					     handle_growth_error);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	uds_log_info("Logical blocks now %llu",
 		     (unsigned long long) new_logical_blocks);
@@ -187,9 +185,8 @@ int vdo_prepare_to_grow_logical(struct vdo *vdo,
 			"New logical size is larger than current size");
 	result = vdo_prepare_to_grow_block_map(vdo->block_map,
 					       new_logical_blocks);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	uds_log_info("Done preparing to resize logical");
 	return VDO_SUCCESS;

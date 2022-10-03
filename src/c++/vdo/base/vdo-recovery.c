@@ -220,15 +220,13 @@ make_missing_decref(struct recovery_completion *recovery,
 	struct missing_decref *decref;
 	int result = UDS_ALLOCATE(1, struct missing_decref, __func__, &decref);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	decref->recovery = recovery;
 	result = enqueue_missing_decref(&recovery->missing_decrefs[0], decref);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * Each synthsized decref needs a unique journal point. Otherwise, in
@@ -319,17 +317,14 @@ static bool __must_check
 before_recovery_point(const struct recovery_point *first,
 		      const struct recovery_point *second)
 {
-	if (first->sequence_number < second->sequence_number) {
+	if (first->sequence_number < second->sequence_number)
 		return true;
-	}
 
-	if (first->sequence_number > second->sequence_number) {
+	if (first->sequence_number > second->sequence_number)
 		return false;
-	}
 
-	if (first->sector_count < second->sector_count) {
+	if (first->sector_count < second->sector_count)
 		return true;
-	}
 
 	return ((first->sector_count == second->sector_count) &&
 		(first->entry_count < second->entry_count));
@@ -398,16 +393,14 @@ static void free_vdo_recovery_completion(struct recovery_completion *recovery)
 {
 	zone_count_t zone, zone_count;
 
-	if (recovery == NULL) {
+	if (recovery == NULL)
 		return;
-	}
 
 	free_int_map(UDS_FORGET(recovery->slot_entry_map));
 	zone_count = recovery->vdo->thread_config->physical_zone_count;
-	for (zone = 0; zone < zone_count; zone++) {
+	for (zone = 0; zone < zone_count; zone++)
 		notify_all_waiters(&recovery->missing_decrefs[zone],
 				   free_missing_decref, NULL);
-	}
 
 	UDS_FREE(UDS_FORGET(recovery->journal_data));
 	UDS_FREE(UDS_FORGET(recovery->entries));
@@ -434,14 +427,12 @@ vdo_make_recovery_completion(struct vdo *vdo,
 					   struct list_head,
 					   __func__,
 					   &recovery);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	recovery->vdo = vdo;
-	for (zone = 0; zone < zone_count; zone++) {
+	for (zone = 0; zone < zone_count; zone++)
 		initialize_wait_queue(&recovery->missing_decrefs[zone]);
-	}
 
 	vdo_initialize_completion(&recovery->completion, vdo,
 				  VDO_RECOVERY_COMPLETION);
@@ -511,9 +502,8 @@ static void abort_recovery(struct vdo_completion *completion)
 static bool __must_check
 abort_recovery_on_error(int result, struct recovery_completion *recovery)
 {
-	if (result == VDO_SUCCESS) {
+	if (result == VDO_SUCCESS)
 		return false;
-	}
 
 	vdo_finish_completion(&recovery->completion, result);
 	return true;
@@ -566,9 +556,8 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 				  struct numbered_block_mapping,
 				  __func__,
 				  &recovery->entries);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	while (before_recovery_point(&recovery_point,
 				     &recovery->tail_recovery_point)) {
@@ -599,10 +588,9 @@ static int extract_journal_entries(struct recovery_completion *recovery)
 
 	result = ASSERT((recovery->entry_count <= recovery->incref_count),
 			"approximate incref count is an upper bound");
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
 					 result);
-	}
 
 	return result;
 }
@@ -625,9 +613,8 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 
 	/* Extract the journal entries for the block map recovery. */
 	result = extract_journal_entries(recovery);
-	if (abort_recovery_on_error(result, recovery)) {
+	if (abort_recovery_on_error(result, recovery))
 		return;
-	}
 
 	vdo_prepare_completion_to_finish_parent(completion, &recovery->completion);
 	vdo_recover_block_map(vdo, recovery->entry_count, recovery->entries,
@@ -738,9 +725,8 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 							  decref->penultimate_mapping.pbn,
 							  VDO_JOURNAL_DATA_DECREMENT,
 							  &decref->journal_point,
-							  completion)) {
+							  completion))
 			return;
-		}
 
 		dequeue_next_waiter(missing_decrefs);
 		UDS_FREE(decref);
@@ -870,22 +856,19 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			return;
 		}
 
-		if (entry.mapping.pbn == VDO_ZERO_BLOCK) {
+		if (entry.mapping.pbn == VDO_ZERO_BLOCK)
 			continue;
-		}
 
 		slab = vdo_get_slab(vdo->depot, entry.mapping.pbn);
-		if (slab->allocator != recovery->allocator) {
+		if (slab->allocator != recovery->allocator)
 			continue;
-		}
 
 		if (!vdo_attempt_replay_into_slab_journal(slab->journal,
 							 entry.mapping.pbn,
 							 entry.operation,
 							 &recovery->next_journal_point,
-							 completion)) {
+							 completion))
 			return;
-		}
 
 		recovery->entries_added_to_slab_journals++;
 	}
@@ -950,9 +933,8 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 	struct missing_decref *decref = as_missing_decref(waiter);
 	struct data_location mapping = decref->penultimate_mapping;
 
-	if (vdo_is_mapped_location(&mapping)) {
+	if (vdo_is_mapped_location(&mapping))
 		decref->recovery->logical_blocks_used--;
-	}
 
 	if (mapping.pbn == VDO_ZERO_BLOCK) {
 		/* Decrefs of zero are not applied to slab journals. */
@@ -964,7 +946,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 		vdo_get_slab_journal((struct slab_depot *) context, mapping.pbn);
 	zone_number = decref->slab_journal->slab->allocator->zone_number;
 	enqueue_missing_decref(&decref->recovery->missing_decrefs[zone_number],
-			     decref);
+			       decref);
 }
 
 /**
@@ -988,9 +970,8 @@ static void apply_to_depot(struct vdo_completion *completion)
 
 	notify_all_waiters(&recovery->missing_decrefs[0],
 			   queue_on_physical_zone, depot);
-	if (abort_recovery_on_error(recovery->completion.result, recovery)) {
+	if (abort_recovery_on_error(recovery->completion.result, recovery))
 		return;
-	}
 
 	vdo_load_slab_depot(depot, VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 			    completion, recovery);
@@ -1100,9 +1081,8 @@ find_missing_decrefs(struct recovery_completion *recovery)
 					     &found_decref,
 					     false,
 					     NULL);
-			if (result != VDO_SUCCESS) {
+			if (result != VDO_SUCCESS)
 				return result;
-			}
 
 			continue;
 		}
@@ -1112,12 +1092,11 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		decref = int_map_remove(slot_entry_map,
 					slot_as_number(entry.slot));
 		if (entry.operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
-			if (decref != NULL) {
+			if (decref != NULL)
 				return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 							      "decref found for block map block %llu with state %u",
 							      (unsigned long long) entry.mapping.pbn,
 							      entry.mapping.state);
-			}
 
 			/*
 			 * There are no decrefs for block map pages, so they
@@ -1126,13 +1105,12 @@ find_missing_decrefs(struct recovery_completion *recovery)
 			continue;
 		}
 
-		if (decref == &found_decref) {
+		if (decref == &found_decref)
 			/*
 			 * This incref already had a decref in the intmap, so
 			 * we know it is not missing its decref.
 			 */
 			continue;
-		}
 
 		if (decref == NULL) {
 			/*
@@ -1140,18 +1118,16 @@ find_missing_decrefs(struct recovery_completion *recovery)
 			 * decref object.
 			 */
 			result = make_missing_decref(recovery, entry, &decref);
-			if (result != VDO_SUCCESS) {
+			if (result != VDO_SUCCESS)
 				return result;
-			}
 
 			result = int_map_put(slot_entry_map,
 					     slot_as_number(entry.slot),
 					     decref,
 					     false,
 					     NULL);
-			if (result != VDO_SUCCESS) {
+			if (result != VDO_SUCCESS)
 				return result;
-			}
 
 			continue;
 		}
@@ -1164,9 +1140,8 @@ find_missing_decrefs(struct recovery_completion *recovery)
 		 */
 		result = record_missing_decref(decref, entry.mapping,
 					       VDO_CORRUPT_JOURNAL);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	return VDO_SUCCESS;
@@ -1193,9 +1168,8 @@ static void process_fetched_page(struct vdo_completion *completion)
 		vdo_unpack_block_map_entry(&page->entries[current_decref->slot.slot]);
 	vdo_release_page_completion(completion);
 	record_missing_decref(current_decref, location, VDO_BAD_MAPPING);
-	if (recovery->incomplete_decref_count == 0) {
+	if (recovery->incomplete_decref_count == 0)
 		vdo_complete_completion(&recovery->sub_task_completion);
-	}
 }
 
 /**
@@ -1221,9 +1195,8 @@ static void handle_fetch_error(struct vdo_completion *completion)
 				       VDO_CORRUPT_JOURNAL :
 				       completion->result));
 	vdo_release_page_completion(completion);
-	if (--recovery->incomplete_decref_count == 0) {
+	if (--recovery->incomplete_decref_count == 0)
 		vdo_complete_completion(&recovery->sub_task_completion);
-	}
 }
 
 /**
@@ -1239,17 +1212,15 @@ static void launch_fetch(struct waiter *waiter, void *context)
 	struct block_map_zone *zone = context;
 
 	if (enqueue_missing_decref(&recovery->missing_decrefs[0], decref) !=
-	    VDO_SUCCESS) {
+	    VDO_SUCCESS)
 		return;
-	}
 
-	if (decref->complete) {
+	if (decref->complete)
 		/*
 		 * We've already found the mapping for this decref, no fetch
 		 * needed.
 		 */
 		return;
-	}
 
 	vdo_init_page_completion(&decref->page_completion,
 				 zone->page_cache,
@@ -1280,9 +1251,8 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 	 */
 	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 	result = find_missing_decrefs(recovery);
-	if (abort_recovery_on_error(result, recovery)) {
+	if (abort_recovery_on_error(result, recovery))
 		return;
-	}
 
 	prepare_sub_task(recovery,
 			 apply_to_depot,
@@ -1294,7 +1264,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 	 * can't complete the sub-task while we are still processing the queue
 	 * of missing decrefs.
 	 */
-	if (recovery->incomplete_decref_count++ > 0) {
+	if (recovery->incomplete_decref_count++ > 0)
 		/*
 		 * Fetch block map pages to fill in the incomplete missing
 		 * decrefs.
@@ -1302,11 +1272,9 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 		notify_all_waiters(&recovery->missing_decrefs[0],
 				   launch_fetch,
 				   &vdo->block_map->zones[0]);
-	}
 
-	if (--recovery->incomplete_decref_count == 0) {
+	if (--recovery->incomplete_decref_count == 0)
 		vdo_complete_completion(completion);
-	}
 }
 
 /**
@@ -1344,13 +1312,12 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		vdo_unpack_recovery_block_header(packed_header, &header);
 
 		if (!vdo_is_exact_recovery_journal_block(journal, &header, i) ||
-		    (header.entry_count > journal->entries_per_block)) {
+		    (header.entry_count > journal->entries_per_block))
 			/*
 			 * A bad block header was found so this must be the end
 			 * of the journal.
 			 */
 			break;
-		}
 
 		block_entries = header.entry_count;
 		/*
@@ -1366,9 +1333,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 
 			/* A bad sector means that this block was torn. */
 			if (!vdo_is_valid_recovery_journal_sector(&header,
-								  sector)) {
+								  sector))
 				break;
-			}
 
 			if (sector_entries > 0) {
 				found_entries = true;
@@ -1384,9 +1350,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			 */
 			if ((sector_entries <
 			     RECOVERY_JOURNAL_ENTRIES_PER_SECTOR) ||
-			    (block_entries == 0)) {
+			    (block_entries == 0))
 				break;
-			}
 		}
 
 		/*
@@ -1394,16 +1359,14 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		 * can matter.
 		 */
 		if ((header.entry_count != journal->entries_per_block) ||
-		    (block_entries > 0)) {
+		    (block_entries > 0))
 			break;
-		}
 	}
 
 	/* Set the tail to the last valid tail block, if there is one. */
 	if (found_entries &&
-	    (recovery->tail_recovery_point.sector_count == 0)) {
+	    (recovery->tail_recovery_point.sector_count == 0))
 		recovery->tail--;
-	}
 
 	return found_entries;
 }
@@ -1432,9 +1395,8 @@ static int count_increment_entries(struct recovery_completion *recovery)
 						 result);
 			return result;
 		}
-		if (vdo_is_journal_increment_operation(entry.operation)) {
+		if (vdo_is_journal_increment_operation(entry.operation))
 			recovery->incref_count++;
-		}
 		increment_recovery_point(&recovery_point);
 	}
 
@@ -1463,9 +1425,8 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 							&recovery->highest_tail,
 							&recovery->block_map_head,
 							&recovery->slab_journal_head);
-	if (found_entries) {
+	if (found_entries)
 		found_entries = find_contiguous_range(recovery);
-	}
 
 	/* Both reap heads must be behind the tail. */
 	if ((recovery->block_map_head > recovery->tail) ||
@@ -1524,9 +1485,8 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	result = compute_usages(recovery);
-	if (abort_recovery_on_error(result, recovery)) {
+	if (abort_recovery_on_error(result, recovery))
 		return;
-	}
 
 	prepare_sub_task(recovery,
 			 find_slab_journal_entries,

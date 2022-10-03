@@ -28,9 +28,8 @@ static int allocate_thread_config(zone_count_t logical_zone_count,
 	struct thread_config *config;
 	int result =
 		UDS_ALLOCATE(1, struct thread_config, "thread config", &config);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = UDS_ALLOCATE(logical_zone_count,
 			      thread_id_t,
@@ -83,9 +82,8 @@ static void assign_thread_ids(struct thread_config *config,
 {
 	zone_count_t zone;
 
-	for (zone = 0; zone < count; zone++) {
+	for (zone = 0; zone < count; zone++)
 		thread_ids[zone] = config->thread_count++;
-	}
 }
 
 /**
@@ -115,9 +113,8 @@ int vdo_make_thread_config(struct thread_count_config counts,
 						1,
 						counts.bio_threads,
 						&config);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 
 		config->logical_threads[0] = config->thread_count;
 		config->physical_threads[0] = config->thread_count;
@@ -128,9 +125,8 @@ int vdo_make_thread_config(struct thread_count_config counts,
 						counts.hash_zones,
 						counts.bio_threads,
 						&config);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 
 		config->admin_thread = config->thread_count;
 		config->journal_thread = config->thread_count++;
@@ -163,9 +159,8 @@ int vdo_make_thread_config(struct thread_count_config counts,
  */
 void vdo_free_thread_config(struct thread_config *config)
 {
-	if (config == NULL) {
+	if (config == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(config->logical_threads));
 	UDS_FREE(UDS_FORGET(config->physical_threads));
@@ -194,7 +189,7 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
 
 /**
  * vdo_get_thread_name() - Format the name of the worker thread
- *                         desired to support a given work queue.
+ *			   desired to support a given work queue.
  * @thread_config: The thread configuration.
  * @thread_id: The thread id.
  * @buffer: Where to put the formatted name.
@@ -212,9 +207,9 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 		if (thread_config->packer_thread == thread_id) {
 			/*
 			 * This is the "single thread" config where one thread
-                         * is used for the journal, packer, logical, physical,
-                         * and hash zones. In that case, it is known as the
-                         * "request queue."
+			 * is used for the journal, packer, logical, physical,
+			 * and hash zones. In that case, it is known as the
+			 * "request queue."
 			 */
 			snprintf(buffer, buffer_length, "reqQ");
 			return;
@@ -248,36 +243,32 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 				 thread_id,
 				 "logQ",
 				 buffer,
-				 buffer_length)) {
+				 buffer_length))
 		return;
-	}
 
 	if (get_zone_thread_name(thread_config->physical_threads,
 				 thread_config->physical_zone_count,
 				 thread_id,
 				 "physQ",
 				 buffer,
-				 buffer_length)) {
+				 buffer_length))
 		return;
-	}
 
 	if (get_zone_thread_name(thread_config->hash_zone_threads,
 				 thread_config->hash_zone_count,
 				 thread_id,
 				 "hashQ",
 				 buffer,
-				 buffer_length)) {
+				 buffer_length))
 		return;
-	}
 
 	if (get_zone_thread_name(thread_config->bio_threads,
 				 thread_config->bio_thread_count,
 				 thread_id,
 				 "bioQ",
 				 buffer,
-				 buffer_length)) {
+				 buffer_length))
 		return;
-	}
 
 	/* Some sort of misconfiguration? */
 	snprintf(buffer, buffer_length, "reqQ%d", thread_id);
