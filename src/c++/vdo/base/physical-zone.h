@@ -56,5 +56,4 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 
 void vdo_dump_physical_zone(const struct physical_zone *zone);
 
-
 #endif /* PHYSICAL_ZONE_H */

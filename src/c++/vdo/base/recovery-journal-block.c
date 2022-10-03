@@ -45,9 +45,8 @@ int vdo_make_recovery_block(struct vdo *vdo,
 			  sizeof(struct packed_recovery_journal_entry)));
 
 	result = UDS_ALLOCATE(1, struct recovery_journal_block, __func__, &block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * Allocate a full block for the journal block even though not all of
@@ -85,9 +84,8 @@ int vdo_make_recovery_block(struct vdo *vdo,
  */
 void vdo_free_recovery_block(struct recovery_journal_block *block)
 {
-	if (block == NULL) {
+	if (block == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(block->block));
 	free_vio(UDS_FORGET(block->vio));
@@ -182,17 +180,15 @@ int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 	/* Enqueue the data_vio to wait for its entry to commit. */
 	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	block->entry_count++;
 	block->uncommitted_entry_count++;
 
 	/* Update stats to reflect the journal entry we're going to write. */
-	if (new_batch) {
+	if (new_batch)
 		block->journal->events.blocks.started++;
-	}
 	block->journal->events.entries.started++;
 
 	return VDO_SUCCESS;
@@ -229,7 +225,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		struct recovery_journal_entry new_entry;
 		int result;
 
-		if (data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT) {
+		if (data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT)
 			/*
 			 * In order to not lose an acknowledged write with the
 			 * FUA flag, we must also set the FUA flag on the
@@ -238,7 +234,6 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			block->has_fua_entry =
 				(block->has_fua_entry ||
 				 data_vio_requires_fua(data_vio));
-		}
 
 		/* Compose and encode the entry. */
 		packed_entry =
@@ -253,10 +248,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		};
 		*packed_entry = vdo_pack_recovery_journal_entry(&new_entry);
 
-		if (vdo_is_journal_increment_operation(data_vio->operation.type)) {
+		if (vdo_is_journal_increment_operation(data_vio->operation.type))
 			data_vio->recovery_sequence_number =
 				block->sequence_number;
-		}
 
 		/* Enqueue the data_vio to wait for its entry to commit. */
 		result = enqueue_data_vio(&block->commit_waiters, data_vio);
@@ -265,10 +259,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			return result;
 		}
 
-		if (is_sector_full(block)) {
+		if (is_sector_full(block))
 			set_active_sector(block, (char *) block->sector
 						       + VDO_SECTOR_SIZE);
-		}
 	}
 
 	return VDO_SUCCESS;
@@ -282,11 +275,10 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 	int result = vdo_translate_to_pbn(journal->partition,
 					  block->block_number,
 					  pbn_ptr);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		uds_log_error_strerror(result,
 				       "Error translating recovery journal block number %llu",
 				       (unsigned long long) block->block_number);
-	}
 	return result;
 }
 
@@ -303,10 +295,10 @@ bool vdo_can_commit_recovery_block(struct recovery_journal_block *block)
 	 * Cannot commit in read-only mode, if already committing the block,
 	 * or if there are no entries to commit.
 	 */
-	return ((block != NULL)
-		&& !block->committing
-		&& has_waiters(&block->entry_waiters)
-		&& !vdo_is_read_only(block->journal->read_only_notifier));
+	return ((block != NULL) &&
+		!block->committing &&
+		has_waiters(&block->entry_waiters) &&
+		!vdo_is_read_only(block->journal->read_only_notifier));
 }
 
 /**
@@ -334,20 +326,17 @@ int vdo_commit_recovery_block(struct recovery_journal_block *block,
 	result = ASSERT(vdo_can_commit_recovery_block(block),
 			"block can commit in %s",
 			__func__);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = get_recovery_block_pbn(block, &block_pbn);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	block->entries_in_commit = count_waiters(&block->entry_waiters);
 	result = add_queued_recovery_entries(block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/* Update stats to reflect the block and entries we're about to write. */
 	journal->pending_write_count += 1;

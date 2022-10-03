@@ -98,7 +98,7 @@ void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
 
 /**
  * vdo_downgrade_pbn_write_lock() - Downgrade a PBN write lock to a
- *                                  PBN read lock.
+ *				    PBN read lock.
  * @lock: The PBN write lock to downgrade.
  *
  * The lock holder count is cleared and the caller is responsible for
@@ -116,7 +116,7 @@ void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write)
 	/*
 	 * data_vio write locks are downgraded in place--the writer
 	 * retains the hold on the lock. If this was a compressed write, the
-         * holder has not yet journaled its own inc ref, otherwise, it has.
+	 * holder has not yet journaled its own inc ref, otherwise, it has.
 	 */
 	lock->increment_limit = (compressed_write ?
 				 MAXIMUM_REFERENCE_COUNT :
@@ -126,14 +126,14 @@ void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write)
 
 /**
  * vdo_claim_pbn_lock_increment() - Try to claim one of the available
- *                                  reference count increments on a read lock.
+ *				    reference count increments on a read lock.
  * @lock: The PBN read lock from which to claim an increment.
  *
  * Claims may be attempted from any thread. A claim is only valid
  * until the PBN lock is released.
  *
  * Return: true if the claim succeeded, guaranteeing one increment can
- *         be made without overflowing the PBN's reference count.
+ *	   be made without overflowing the PBN's reference count.
  */
 bool vdo_claim_pbn_lock_increment(struct pbn_lock *lock)
 {
@@ -152,8 +152,8 @@ bool vdo_claim_pbn_lock_increment(struct pbn_lock *lock)
 
 /**
  * vdo_assign_pbn_lock_provisional_reference() - Inform a PBN lock that it is
- *                                               responsible for a provisional
- *                                               reference.
+ *						 responsible for a provisional
+ *						 reference.
  * @lock: The PBN lock.
  */
 void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock)
@@ -165,9 +165,9 @@ void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock)
 
 /**
  * vdo_unassign_pbn_lock_provisional_reference() - Inform a PBN lock that it
- *                                                 is no longer responsible
- *                                                 for a provisional
- *                                                 reference.
+ *						   is no longer responsible
+ *						   for a provisional
+ *						   reference.
  * @lock: The PBN lock.
  */
 void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock)
@@ -177,8 +177,8 @@ void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock)
 
 /**
  * vdo_release_pbn_lock_provisional_reference() - If the lock is responsible
- *                                                for a provisional reference,
- *                                                release that reference.
+ *						  for a provisional reference,
+ *						  release that reference.
  * @lock: The lock.
  * @locked_pbn: The PBN covered by the lock.
  * @allocator: The block allocator from which to release the reference.
@@ -231,7 +231,7 @@ struct pbn_lock_pool {
 
 /**
  * vdo_make_pbn_lock_pool() - Create a new PBN lock pool and all the lock
- *                            instances it can loan out.
+ *			      instances it can loan out.
  * @capacity: The number of PBN locks to allocate for the pool.
  * @pool_ptr: A pointer to receive the new pool.
  *
@@ -243,17 +243,15 @@ int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	struct pbn_lock_pool *pool;
 	int result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
 					   idle_pbn_lock, __func__, &pool);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	pool->capacity = capacity;
 	pool->borrowed = capacity;
 	INIT_LIST_HEAD(&pool->idle_list);
 
-	for (i = 0; i < capacity; i++) {
+	for (i = 0; i < capacity; i++)
 		vdo_return_pbn_lock_to_pool(pool, &pool->locks[i].lock);
-	}
 
 	*pool_ptr = pool;
 	return VDO_SUCCESS;
@@ -268,9 +266,8 @@ int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
  */
 void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 {
-	if (pool == NULL) {
+	if (pool == NULL)
 		return;
-	}
 
 	ASSERT_LOG_ONLY(pool->borrowed == 0,
 			"All PBN locks must be returned to the pool before it is freed, but %zu locks are still on loan",
@@ -280,7 +277,7 @@ void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 
 /**
  * vdo_borrow_pbn_lock_from_pool() - Borrow a PBN lock from the pool and
- *                                   initialize it with the provided type.
+ *				     initialize it with the provided type.
  * @pool: The pool from which to borrow.
  * @type: The type with which to initialize the lock.
  * @lock_ptr:  A pointer to receive the borrowed lock.
@@ -307,9 +304,8 @@ int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 
 	result = ASSERT(!list_empty(&pool->idle_list),
 			"idle list should not be empty if pool not at capacity");
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	idle_entry = pool->idle_list.prev;
 	list_del(idle_entry);
@@ -324,7 +320,7 @@ int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 
 /**
  * vdo_return_pbn_lock_to_pool() - Return to the pool a lock that was borrowed
- *                                 from it.
+ *				   from it.
  * @pool: The pool from which the lock was borrowed.
  * @lock: The last reference to the lock being returned.
  *
@@ -363,9 +359,8 @@ static int initialize_zone(struct vdo *vdo,
 	struct physical_zone *zone = &zones->zones[zone_number];
 
 	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
@@ -400,18 +395,16 @@ int vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr)
 	int result;
 	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
 
-	if (zone_count == 0) {
+	if (zone_count == 0)
 		return VDO_SUCCESS;
-	}
 
 	result = UDS_ALLOCATE_EXTENDED(struct physical_zones,
 				       zone_count,
 				       struct physical_zone,
 				       __func__,
 				       &zones);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	for (zones->zone_count = 0;
 	     zones->zone_count < zone_count;
@@ -435,9 +428,8 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 {
 	zone_count_t index;
 
-	if (zones == NULL) {
+	if (zones == NULL)
 		return;
-	}
 
 	for (index = 0; index < zones->zone_count; index++) {
 		struct physical_zone *zone = &zones->zones[index];
@@ -464,7 +456,7 @@ struct pbn_lock *vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
 
 /**
  * vdo_attempt_physical_zone_pbn_lock() - Attempt to lock a physical block in
- *                                        the zone responsible for it.
+ *					  the zone responsible for it.
  * @zone: The physical zone responsible for the PBN.
  * @pbn: The physical block number to lock.
  * @type: The type with which to initialize a new lock.
@@ -510,9 +502,8 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
 				(unsigned long long) pbn);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 		*lock_ptr = lock;
 	} else {
 		*lock_ptr = new_lock;
@@ -538,25 +529,22 @@ static int allocate_and_lock_block(struct allocation *allocation)
 
 	result = vdo_allocate_block(allocation->zone->allocator,
 				    &allocation->pbn);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_attempt_physical_zone_pbn_lock(allocation->zone,
 						    allocation->pbn,
 						    allocation->write_lock_type,
 						    &lock);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (lock->holder_count > 0) {
+	if (lock->holder_count > 0)
 		/* This block is already locked, which should be impossible. */
 		return uds_log_error_strerror(VDO_LOCK_ERROR,
 					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
 					      (unsigned long long) allocation->pbn,
 					      lock->holder_count);
-	}
 
 	/* We've successfully acquired a new lock, so mark it as ours. */
 	lock->holder_count += 1;
@@ -567,7 +555,7 @@ static int allocate_and_lock_block(struct allocation *allocation)
 
 /**
  * retry_allocation() - Retry allocating a block now that we're done waiting
- *                      for scrubbing.
+ *			for scrubbing.
  * @waiter: The allocating_vio that was waiting to allocate.
  * @context: The context (unused).
  */
@@ -585,8 +573,8 @@ static void retry_allocation(struct waiter *waiter,
 
 /**
  * continue_allocating() - Continue searching for an allocation by enqueuing
- *                         to wait for scrubbing or switching to the next
- *                         zone.
+ *			   to wait for scrubbing or switching to the next
+ *			   zone.
  * @data_vio: The data_vio attempting to get an allocation.
  *
  * This method should only be called from the error handler set in
@@ -618,16 +606,15 @@ static bool continue_allocating(struct data_vio *data_vio)
 
 	if (allocation->wait_for_clean_slab) {
 		struct waiter *waiter = data_vio_as_waiter(data_vio);
-		struct slab_scrubber *scrubber
-			= zone->allocator->slab_scrubber;
+		struct slab_scrubber *scrubber =
+			zone->allocator->slab_scrubber;
 
 		waiter->callback = retry_allocation;
 		result = vdo_enqueue_clean_slab_waiter(scrubber, waiter);
 
-		if (result == VDO_SUCCESS) {
+		if (result == VDO_SUCCESS)
 			/* We've enqueued to wait for a slab to be scrubbed. */
 			return true;
-		}
 
 		if ((result != VDO_NO_SPACE) || (was_waiting && tried_all)) {
 			vdo_set_completion_result(completion, result);
@@ -643,32 +630,30 @@ static bool continue_allocating(struct data_vio *data_vio)
 
 /**
  * vdo_allocate_block_in_zone() - Attempt to allocate a block in the current
- *                                physical zone, and if that fails try the
- *                                next if possible.
+ *				  physical zone, and if that fails try the
+ *				  next if possible.
  * @data_vio: The data_vio needing an allocation.
  *
  * Return: true if a block was allocated, if not the data_vio will have been
- *         dispatched so the caller must not touch it.
+ *	   dispatched so the caller must not touch it.
  */
 bool vdo_allocate_block_in_zone(struct data_vio *data_vio)
 {
 	int result = allocate_and_lock_block(&data_vio->allocation);
 
-	if (result == VDO_SUCCESS) {
+	if (result == VDO_SUCCESS)
 		return true;
-	}
 
-	if ((result != VDO_NO_SPACE) || !continue_allocating(data_vio)) {
+	if ((result != VDO_NO_SPACE) || !continue_allocating(data_vio))
 		continue_data_vio(data_vio, result);
-	}
 
 	return false;
 }
 
 /**
  * vdo_release_physical_zone_pbn_lock() - Release a physical block lock if it
- *                                        is held and return it to the lock
- *                                        pool.
+ *					  is held and return it to the lock
+ *					  pool.
  * @zone: The physical zone in which the lock was obtained.
  * @locked_pbn: The physical block number to unlock.
  * @lock: The lock being released.
@@ -682,21 +667,19 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 {
 	struct pbn_lock *holder;
 
-	if (lock == NULL) {
+	if (lock == NULL)
 		return;
-	}
 
 	ASSERT_LOG_ONLY(lock->holder_count > 0,
 			"should not be releasing a lock that is not held");
 
 	lock->holder_count -= 1;
-	if (lock->holder_count > 0) {
+	if (lock->holder_count > 0)
 		/*
 		 * The lock was shared and is still referenced, so don't
 		 * release it yet.
 		 */
 		return;
-	}
 
 	holder = int_map_remove(zone->pbn_operations, locked_pbn);
 	ASSERT_LOG_ONLY((lock == holder),
@@ -710,7 +693,7 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 
 /**
  * vdo_dump_physical_zone() - Dump information about a physical zone to the
- *                            log for debugging.
+ *			      log for debugging.
  * @zone: The zone to dump.
  */
 void vdo_dump_physical_zone(const struct physical_zone *zone)

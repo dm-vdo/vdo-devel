@@ -37,13 +37,11 @@ static void free_journal_loader(struct journal_loader *loader)
 {
 	data_vio_count_t v;
 
-	if (loader == NULL) {
+	if (loader == NULL)
 		return;
-	}
 
-	for (v = 0; v < loader->count; v++) {
+	for (v = 0; v < loader->count; v++)
 		free_vio(UDS_FORGET(loader->vios[v]));
-	}
 
 	UDS_FREE(loader);
 }
@@ -142,13 +140,12 @@ void vdo_load_recovery_journal(struct recovery_journal *journal,
 
 	for (vio_count = 0;
 	     vio_count < loader->count;
-	     vio_count++, pbn += MAX_BLOCKS_PER_VIO) {
+	     vio_count++, pbn += MAX_BLOCKS_PER_VIO)
 		submit_metadata_vio(loader->vios[vio_count],
 				    pbn,
 				    read_journal_endio,
 				    handle_journal_load_error,
 				    REQ_OP_READ);
-	}
 }
 
 /**
@@ -172,8 +169,8 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 	physical_block_number_t expected_offset =
 		vdo_get_recovery_journal_block_number(journal,
 						      header->sequence_number);
-	return ((expected_offset == offset)
-		&& vdo_is_valid_recovery_journal_block(journal, header));
+	return ((expected_offset == offset) &&
+		vdo_is_valid_recovery_journal_block(journal, header));
 }
 
 /**
@@ -213,35 +210,30 @@ bool vdo_find_recovery_journal_head_and_tail(struct recovery_journal *journal,
 
 		vdo_unpack_recovery_block_header(packed_header, &header);
 
-		if (!is_congruent_recovery_journal_block(journal, &header, i)) {
+		if (!is_congruent_recovery_journal_block(journal, &header, i))
 			/*
 			 * This block is old, unformatted, or doesn't belong at
 			 * this location.
 			 */
 			continue;
-		}
 
 		if (header.sequence_number >= highest_tail) {
 			found_entries = true;
 			highest_tail = header.sequence_number;
 		}
-		if (header.block_map_head > block_map_head_max) {
+		if (header.block_map_head > block_map_head_max)
 			block_map_head_max = header.block_map_head;
-		}
-		if (header.slab_journal_head > slab_journal_head_max) {
+		if (header.slab_journal_head > slab_journal_head_max)
 			slab_journal_head_max = header.slab_journal_head;
-		}
 	}
 
 	*tail_ptr = highest_tail;
-	if (!found_entries) {
+	if (!found_entries)
 		return false;
-	}
 
 	*block_map_head_ptr = block_map_head_max;
-	if (slab_journal_head_ptr != NULL) {
+	if (slab_journal_head_ptr != NULL)
 		*slab_journal_head_ptr = slab_journal_head_max;
-	}
 	return true;
 }
 
@@ -259,25 +251,23 @@ vdo_validate_recovery_journal_entry(const struct vdo *vdo,
 	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||
 	    (entry->slot.slot >= VDO_BLOCK_MAP_ENTRIES_PER_PAGE) ||
 	    !vdo_is_valid_location(&entry->mapping) ||
-	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
+	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn))
 		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 					      "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
 					      (unsigned long long) entry->slot.pbn,
 					      entry->slot.slot,
 					      (unsigned long long) entry->mapping.pbn,
 					      vdo_get_journal_operation_name(entry->operation));
-	}
 
 	if ((entry->operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) &&
 	    (vdo_is_state_compressed(entry->mapping.state) ||
-	    (entry->mapping.pbn == VDO_ZERO_BLOCK))) {
+	    (entry->mapping.pbn == VDO_ZERO_BLOCK)))
 		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 					      "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",
 					      (unsigned long long) entry->slot.pbn,
 					      entry->slot.slot,
 					      (unsigned long long) entry->mapping.pbn,
 					      vdo_get_journal_operation_name(entry->operation));
-	}
 
 	return VDO_SUCCESS;
 }

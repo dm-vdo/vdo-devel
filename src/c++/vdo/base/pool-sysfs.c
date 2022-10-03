@@ -26,9 +26,8 @@ static ssize_t vdo_pool_attr_show(struct kobject *directory,
 							attr);
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
-	if (pool_attr->show == NULL) {
+	if (pool_attr->show == NULL)
 		return -EINVAL;
-	}
 	return pool_attr->show(vdo, buf);
 }
 
@@ -42,9 +41,8 @@ static ssize_t vdo_pool_attr_store(struct kobject *directory,
 							attr);
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
-	if (pool_attr->store == NULL) {
+	if (pool_attr->store == NULL)
 		return -EINVAL;
-	}
 	return pool_attr->store(vdo, buf, length);
 }
 
@@ -80,14 +78,12 @@ static ssize_t pool_discards_limit_store(struct vdo *vdo,
 	unsigned int value;
 	int result;
 
-	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
+	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1))
 		return -EINVAL;
-	}
 
 	result = set_data_vio_pool_discard_limit(vdo->data_vio_pool, value);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return -EINVAL;
-	}
 
 	return length;
 }

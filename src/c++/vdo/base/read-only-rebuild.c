@@ -76,9 +76,8 @@ as_read_only_rebuild_completion(struct vdo_completion *completion)
 static void
 free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
 {
-	if (rebuild == NULL) {
+	if (rebuild == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(rebuild->journal_data));
 	UDS_FREE(UDS_FORGET(rebuild->entries));
@@ -100,9 +99,8 @@ make_rebuild_completion(struct vdo *vdo,
 	struct read_only_rebuild_completion *rebuild;
 	int result = UDS_ALLOCATE(1, struct read_only_rebuild_completion,
 				  __func__, &rebuild);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	vdo_initialize_completion(&rebuild->completion, vdo,
 				  VDO_READ_ONLY_REBUILD_COMPLETION);
@@ -175,9 +173,8 @@ static bool __must_check
 abort_rebuild_on_error(int result,
 		       struct read_only_rebuild_completion *rebuild)
 {
-	if (result == VDO_SUCCESS) {
+	if (result == VDO_SUCCESS)
 		return false;
-	}
 
 	vdo_finish_completion(&rebuild->completion, result);
 	return true;
@@ -196,10 +193,9 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 
 	vdo_assert_on_admin_thread(vdo, __func__);
-	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
+	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE)
 		/* A "rebuild" for upgrade should not increment this count. */
 		vdo->states.vdo.complete_recoveries++;
-	}
 
 	uds_log_info("Saving rebuilt state");
 	vdo_prepare_completion_to_finish_parent(completion, &rebuild->completion);
@@ -222,9 +218,8 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 	/* We must allocate ref_counts before we can rebuild them. */
 	int result = vdo_allocate_slab_ref_counts(vdo->depot);
 
-	if (abort_rebuild_on_error(result, rebuild)) {
+	if (abort_rebuild_on_error(result, rebuild))
 		return;
-	}
 
 	vdo_prepare_completion(completion,
 			       finish_reference_count_rebuild,
@@ -257,13 +252,12 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 			vdo_unpack_recovery_journal_entry(&sector->entries[i]);
 		int result = vdo_validate_recovery_journal_entry(rebuild->vdo,
 								 &entry);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			/*
 			 * When recovering from read-only mode, ignore damaged
 			 * entries.
 			 */
 			continue;
-		}
 
 		if (vdo_is_journal_increment_operation(entry.operation)) {
 			rebuild->entries[rebuild->entry_count] =
@@ -307,9 +301,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 				  struct numbered_block_mapping,
 				  __func__,
 				  &rebuild->entries);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	for (i = first; i <= last; i++) {
 		struct packed_journal_header *packed_header =
@@ -322,10 +315,9 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 		vdo_unpack_recovery_block_header(packed_header, &header);
 
-		if (!vdo_is_exact_recovery_journal_block(journal, &header, i)) {
+		if (!vdo_is_exact_recovery_journal_block(journal, &header, i))
 			/* This block is invalid, so skip it. */
 			continue;
-		}
 
 		/*
 		 * Don't extract more than the expected maximum entries per
@@ -342,9 +334,8 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			 * Stop when all entries counted in the header are
 			 * applied or skipped.
 			 */
-			if (block_entries == 0) {
+			if (block_entries == 0)
 				break;
-			}
 
 			if (!vdo_is_valid_recovery_journal_sector(&header, sector)) {
 				block_entries -=
@@ -405,9 +396,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
 
-		if (abort_rebuild_on_error(result, rebuild)) {
+		if (abort_rebuild_on_error(result, rebuild))
 			return;
-		}
 	}
 
 	/* Suppress block map errors. */

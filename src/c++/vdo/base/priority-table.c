@@ -60,15 +60,13 @@ int make_priority_table(unsigned int max_priority,
 	int result;
 	unsigned int priority;
 
-	if (max_priority > MAX_PRIORITY) {
+	if (max_priority > MAX_PRIORITY)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	result = UDS_ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
 				       struct bucket, __func__, &table);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	for (priority = 0; priority <= max_priority; priority++) {
 		struct bucket *bucket = &table->buckets[priority];
@@ -93,9 +91,8 @@ int make_priority_table(unsigned int max_priority,
  */
 void free_priority_table(struct priority_table *table)
 {
-	if (table == NULL) {
+	if (table == NULL)
 		return;
-	}
 
 	/*
 	 * Unlink the buckets from any entries still in the table so the entries
@@ -119,9 +116,8 @@ void reset_priority_table(struct priority_table *table)
 	unsigned int priority;
 
 	table->search_vector = 0;
-	for (priority = 0; priority <= table->max_priority; priority++) {
+	for (priority = 0; priority <= table->max_priority; priority++)
 		list_del_init(&table->buckets[priority].queue);
-	}
 }
 
 /**
@@ -168,10 +164,9 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 	struct list_head *entry;
 	int top_priority;
 
-	if (table->search_vector == 0) {
+	if (table->search_vector == 0)
 		/* All buckets are empty. */
 		return NULL;
-	}
 
 	/*
 	 * Find the highest priority non-empty bucket by finding the
@@ -185,9 +180,8 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 	list_del_init(entry);
 
 	/* Clear the bit in the search vector if the bucket has been emptied. */
-	if (list_empty(&bucket->queue)) {
+	if (list_empty(&bucket->queue))
 		mark_bucket_empty(table, bucket);
-	}
 
 	return entry;
 }
@@ -207,9 +201,8 @@ void priority_table_remove(struct priority_table *table,
 	 * different table, but it's easy to deal with an entry not in any table
 	 * or list.
 	 */
-	if (list_empty(entry)) {
+	if (list_empty(entry))
 		return;
-	}
 
 	/*
 	 * Remove the entry from the bucket list, remembering a pointer to
@@ -222,10 +215,9 @@ void priority_table_remove(struct priority_table *table,
 	 * If the rest of the list is now empty, the next node must be the list
 	 * head in the bucket and we can use it to update the search vector.
 	 */
-	if (list_empty(next_entry)) {
+	if (list_empty(next_entry))
 		mark_bucket_empty(table, list_entry(next_entry,
 						    struct bucket, queue));
-	}
 }
 
 /**

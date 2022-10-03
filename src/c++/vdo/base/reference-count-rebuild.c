@@ -118,9 +118,8 @@ static int make_rebuild_completion(struct vdo *vdo,
 					   struct vdo_page_completion,
 					   __func__,
 					   &rebuild);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	vdo_initialize_completion(&rebuild->completion, vdo,
 				  VDO_REFERENCE_COUNT_REBUILD_COMPLETION);
@@ -164,8 +163,8 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 	uds_log_info("Flushing block map changes");
 	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
 	vdo_drain_block_map(as_rebuild_completion(completion->parent)->block_map,
-						  VDO_ADMIN_STATE_RECOVERING,
-						  completion);
+			    VDO_ADMIN_STATE_RECOVERING,
+			    completion);
 }
 
 /**
@@ -178,18 +177,16 @@ static void flush_block_map_updates(struct vdo_completion *completion)
  */
 static bool finish_if_done(struct rebuild_completion *rebuild)
 {
-	if (rebuild->launching || (rebuild->outstanding > 0)) {
+	if (rebuild->launching || (rebuild->outstanding > 0))
 		return false;
-	}
 
 	if (rebuild->aborted) {
 		vdo_complete_completion(&rebuild->completion);
 		return true;
 	}
 
-	if (rebuild->page_to_fetch < rebuild->leaf_pages) {
+	if (rebuild->page_to_fetch < rebuild->leaf_pages)
 		return false;
-	}
 
 	vdo_prepare_completion(&rebuild->sub_task_completion,
 			       flush_block_map_updates,
@@ -241,13 +238,11 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	struct block_map_page *page = vdo_dereference_writable_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (!vdo_is_block_map_page_initialized(page)) {
+	if (!vdo_is_block_map_page_initialized(page))
 		return VDO_SUCCESS;
-	}
 
 	/*
 	 * Remove any bogus entries which exist beyond the end of the logical
@@ -283,14 +278,12 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		if (!vdo_is_mapped_location(&mapping)) {
+		if (!vdo_is_mapped_location(&mapping))
 			continue;
-		}
 
 		(*rebuild->logical_blocks_used)++;
-		if (mapping.pbn == VDO_ZERO_BLOCK) {
+		if (mapping.pbn == VDO_ZERO_BLOCK)
 			continue;
-		}
 
 		if (!vdo_is_physical_data_block(rebuild->depot, mapping.pbn)) {
 			/*
@@ -339,14 +332,12 @@ static void page_loaded(struct vdo_completion *completion)
 	rebuild->outstanding--;
 
 	result = rebuild_reference_counts_from_page(rebuild, completion);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		abort_rebuild(rebuild, result);
-	}
 
 	vdo_release_page_completion(completion);
-	if (finish_if_done(rebuild)) {
+	if (finish_if_done(rebuild))
 		return;
-	}
 
 	/*
 	 * Advance progress to the next page, and fetch the next page we
@@ -367,15 +358,13 @@ static void fetch_page(struct rebuild_completion *rebuild,
 		physical_block_number_t pbn =
 			vdo_find_block_map_page_pbn(rebuild->block_map,
 						    rebuild->page_to_fetch++);
-		if (pbn == VDO_ZERO_BLOCK) {
+		if (pbn == VDO_ZERO_BLOCK)
 			continue;
-		}
 
 		if (!vdo_is_physical_data_block(rebuild->depot, pbn)) {
 			abort_rebuild(rebuild, VDO_BAD_MAPPING);
-			if (finish_if_done(rebuild)) {
+			if (finish_if_done(rebuild))
 				return;
-			}
 			continue;
 		}
 
@@ -423,9 +412,8 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	 * launched.
 	 */
 	rebuild->launching = true;
-	for (i = 0; i < rebuild->page_count; i++) {
+	for (i = 0; i < rebuild->page_count; i++)
 		fetch_page(rebuild, &rebuild->page_completions[i].completion);
-	}
 	rebuild->launching = false;
 	finish_if_done(rebuild);
 }
@@ -440,29 +428,27 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
  * Return: VDO_SUCCESS or an error.
  */
 static int process_entry(physical_block_number_t pbn,
-			struct vdo_completion *completion)
+			 struct vdo_completion *completion)
 {
 	struct rebuild_completion *rebuild =
 		as_rebuild_completion(completion->parent);
 	struct vdo_slab *slab;
 	int result;
 
-	if ((pbn == VDO_ZERO_BLOCK)
-	    || !vdo_is_physical_data_block(rebuild->depot, pbn)) {
+	if ((pbn == VDO_ZERO_BLOCK) ||
+	    !vdo_is_physical_data_block(rebuild->depot, pbn))
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "PBN %llu out of range",
 					      (unsigned long long) pbn);
-	}
 
 	slab = vdo_get_slab(rebuild->depot, pbn);
 	result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
 							pbn,
 							VDO_JOURNAL_BLOCK_MAP_INCREMENT);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "Could not adjust reference count for block map tree PBN %llu",
 					      (unsigned long long) pbn);
-	}
 
 	(*rebuild->block_map_data_blocks)++;
 	return VDO_SUCCESS;

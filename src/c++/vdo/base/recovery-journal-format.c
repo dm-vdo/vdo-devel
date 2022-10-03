@@ -47,27 +47,23 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 
 	int result = vdo_encode_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	initial_length = content_length(buffer);
 
 	result = put_uint64_le_into_buffer(buffer, state.journal_start);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, state.logical_blocks_used);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer,
 					   state.block_map_data_blocks);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
@@ -79,7 +75,7 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
  *                                           journal saved in a buffer.
  * @buffer: The buffer containing the saved state.
  * @state: A pointer to a recovery journal state to hold the result of a
- *         succesful decode.
+ *         successful decode.
  *
  * Return: VDO_SUCCESS or an error code.
  */
@@ -94,39 +90,33 @@ vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 	block_count_t logical_blocks_used, block_map_data_blocks;
 
 	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
 				     true, __func__);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	initial_length = content_length(buffer);
 
 	result = get_uint64_le_from_buffer(buffer, &journal_start);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	decoded_size = initial_length - content_length(buffer);
 	result = ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
 			"decoded recovery journal component size must match header size");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	*state = (struct recovery_journal_state_7_0) {
 		.journal_start = journal_start,
