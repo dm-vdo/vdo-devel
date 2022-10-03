@@ -65,8 +65,8 @@ enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 #ifdef __KERNEL__
 static void start_vdo_request_queue(void *ptr)
 {
-	struct vdo_thread *thread
-		= get_work_queue_owner(get_current_work_queue());
+	struct vdo_thread *thread =
+		get_work_queue_owner(get_current_work_queue());
 
 	uds_register_allocating_thread(&thread->allocating_thread,
 				       &thread->vdo->allocations_allowed);
@@ -135,15 +135,13 @@ int vdo_make_thread(struct vdo *vdo,
 	struct vdo_thread *thread = &vdo->threads[thread_id];
 	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
 
-	if (type == NULL) {
+	if (type == NULL)
 		type = &default_queue_type;
-	}
 
-	if (thread->queue != NULL) {
+	if (thread->queue != NULL)
 		return ASSERT(vdo_work_queue_type_is(thread->queue, type),
 			      "already constructed vdo thread %u is of the correct type",
 			      thread_id);
-	}
 
 	thread->vdo = vdo;
 	thread->thread_id = thread_id;
@@ -366,16 +364,14 @@ static void finish_vdo(struct vdo *vdo)
 {
 	int i;
 
-	if (vdo->threads == NULL) {
+	if (vdo->threads == NULL)
 		return;
-	}
 
 	vdo_cleanup_io_submitter(vdo->io_submitter);
 	vdo_finish_dedupe_index(vdo->hash_zones);
 
-	for (i = 0; i < vdo->thread_config->thread_count; i++) {
+	for (i = 0; i < vdo->thread_config->thread_count; i++)
 		finish_work_queue(vdo->threads[i].queue);
-	}
 }
 
 /**
@@ -386,9 +382,8 @@ void vdo_destroy(struct vdo *vdo)
 {
 	int i;
 
-	if (vdo == NULL) {
+	if (vdo == NULL)
 		return;
-	}
 
 	/* A running VDO should never be destroyed without suspending first. */
 	BUG_ON(vdo_get_admin_state(vdo)->normal);
@@ -422,9 +417,8 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 
 	if (vdo->threads != NULL) {
-		for (i = 0; i < vdo->thread_config->thread_count; i++) {
+		for (i = 0; i < vdo->thread_config->thread_count; i++)
 			free_work_queue(UDS_FORGET(vdo->threads[i].queue));
-		}
 		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
 
@@ -433,9 +427,8 @@ void vdo_destroy(struct vdo *vdo)
 	if (vdo->compression_context != NULL) {
 		for (i = 0;
 		     i < vdo->device_config->thread_counts.cpu_threads;
-		     i++) {
+		     i++)
 			UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
-		}
 
 		UDS_FREE(UDS_FORGET(vdo->compression_context));
 	}
@@ -450,11 +443,10 @@ void vdo_destroy(struct vdo *vdo)
 #ifdef VDO_INTERNAL
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
-	if (!vdo->sysfs_added) {
+	if (!vdo->sysfs_added)
 		UDS_FREE(vdo);
-	} else {
+	else
 		kobject_put(&vdo->vdo_directory);
-	}
 }
 
 /**
@@ -490,9 +482,8 @@ int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 	result = kobject_add(&vdo->stats_directory,
 			     &vdo->vdo_directory,
 			     "statistics");
-	if (result != 0) {
+	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
-	}
 
 	return VDO_SUCCESS;
 }
@@ -519,9 +510,8 @@ int vdo_prepare_to_modify(struct vdo *vdo,
 						    vdo->device_config,
 						    may_grow,
 						    error_ptr);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return -EINVAL;
-	}
 
 	if (config->logical_blocks > vdo->device_config->logical_blocks) {
 		result = vdo_prepare_to_grow_logical(vdo,
@@ -536,28 +526,26 @@ int vdo_prepare_to_modify(struct vdo *vdo,
 		result = vdo_prepare_to_grow_physical(vdo,
 						      config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			if (result == VDO_PARAMETER_MISMATCH) {
+			if (result == VDO_PARAMETER_MISMATCH)
 				/*
 				 * If we don't trap this case,
 				 * vdo_map_to_system_error() will remap it to
 				 * -EIO, which is misleading and ahistorical.
 				 */
 				result = -EINVAL;
-			}
 
-			if (result == VDO_TOO_MANY_SLABS) {
+			if (result == VDO_TOO_MANY_SLABS)
 				*error_ptr = "Device vdo_prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
-			} else {
+			else
 				*error_ptr = "Device vdo_prepare_to_grow_physical failed";
-			}
 			return result;
 		}
 	}
 
 	if (strcmp(config->parent_device_name,
 		   vdo->device_config->parent_device_name) != 0) {
-		const char *device_name
-			= vdo_get_device_name(config->owning_target);
+		const char *device_name =
+			vdo_get_device_name(config->owning_target);
 		uds_log_info("Updating backing device of %s from %s to %s",
 			     device_name,
 			     vdo->device_config->parent_device_name,
@@ -697,8 +685,8 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	int result;
 
-	struct buffer *buffer
-		= vdo_get_super_block_codec(vdo->super_block)->component_buffer;
+	struct buffer *buffer =
+		vdo_get_super_block_codec(vdo->super_block)->component_buffer;
 	record_vdo(vdo);
 	result = vdo_encode_component_states(buffer, &vdo->states);
 	if (result != VDO_SUCCESS) {
@@ -721,13 +709,12 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
  * Implements vdo_read_only_notification.
  */
 static void notify_vdo_of_read_only_mode(void *listener,
-				    struct vdo_completion *parent)
+				         struct vdo_completion *parent)
 {
 	struct vdo *vdo = listener;
 
-	if (vdo_in_read_only_mode(vdo)) {
+	if (vdo_in_read_only_mode(vdo))
 		vdo_complete_completion(parent);
-	}
 
 	vdo_set_state(vdo, VDO_READ_ONLY_MODE);
 	vdo_save_components(vdo, parent);
@@ -778,9 +765,8 @@ void vdo_enter_recovery_mode(struct vdo *vdo)
 {
 	vdo_assert_on_admin_thread(vdo, __func__);
 
-	if (vdo_in_read_only_mode(vdo)) {
+	if (vdo_in_read_only_mode(vdo))
 		return;
-	}
 
 	uds_log_info("Entering recovery mode");
 	vdo_set_state(vdo, VDO_RECOVERING);
@@ -798,13 +784,12 @@ static void set_compression_callback(struct vdo_completion *completion)
 
 	if (*enable != was_enabled) {
 		WRITE_ONCE(vdo->compressing, *enable);
-		if (was_enabled) {
+		if (was_enabled)
 			/*
 			 * Signal the packer to flush since compression has
 			 * been disabled.
 			 */
 			vdo_flush_packer(vdo->packer);
-		}
 	}
 
 	uds_log_info("compression is %s", (*enable ? "enabled" : "disabled"));
@@ -1062,9 +1047,8 @@ thread_id_t vdo_get_callback_thread_id(void)
 	struct vdo_thread *thread;
 	thread_id_t thread_id;
 
-	if (queue == NULL) {
+	if (queue == NULL)
 		return VDO_INVALID_THREAD_ID;
-	}
 
 	thread = get_work_queue_owner(queue);
 	thread_id = thread->thread_id;
@@ -1094,13 +1078,11 @@ void vdo_dump_status(const struct vdo *vdo)
 	vdo_dump_packer(vdo->packer);
 	vdo_dump_slab_depot(vdo->depot);
 
-	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
+	for (zone = 0; zone < thread_config->logical_zone_count; zone++)
 		vdo_dump_logical_zone(&vdo->logical_zones->zones[zone]);
-	}
 
-	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
+	for (zone = 0; zone < thread_config->physical_zone_count; zone++)
 		vdo_dump_physical_zone(&vdo->physical_zones->zones[zone]);
-	}
 
 	vdo_dump_hash_zones(vdo->hash_zones);
 }
@@ -1199,9 +1181,8 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 	 * vdo_get_slab(), and done first because it won't trigger read-only
 	 * mode on an invalid PBN.
 	 */
-	if (!vdo_is_physical_data_block(vdo->depot, pbn)) {
+	if (!vdo_is_physical_data_block(vdo->depot, pbn))
 		return VDO_OUT_OF_RANGE;
-	}
 
 	/*
 	 * With the PBN already checked, we should always succeed in finding a
@@ -1210,9 +1191,8 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 	slab = vdo_get_slab(vdo->depot, pbn);
 	result =
 		ASSERT(slab != NULL, "vdo_get_slab must succeed on all valid PBNs");
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	*zone_ptr =
 		&vdo->physical_zones->zones[vdo_get_slab_zone_number(slab)];

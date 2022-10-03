@@ -61,9 +61,8 @@ int make_vio_pool(struct vdo *vdo,
 	int result = UDS_ALLOCATE_EXTENDED(struct vio_pool, pool_size,
 					   struct vio_pool_entry, __func__,
 					   &pool);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	pool->thread_id = thread_id;
 	INIT_LIST_HEAD(&pool->available);
@@ -107,9 +106,8 @@ void free_vio_pool(struct vio_pool *pool)
 	struct vio_pool_entry *entry;
 	size_t i;
 
-	if (pool == NULL) {
+	if (pool == NULL)
 		return;
-	}
 
 	/* Remove all available entries from the object pool. */
 	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
@@ -131,9 +129,8 @@ void free_vio_pool(struct vio_pool *pool)
 		struct bio *bio;
 
 		entry = &pool->entries[i];
-		if (list_empty(&entry->available_entry)) {
+		if (list_empty(&entry->available_entry))
 			continue;
-		}
 
 		bio = entry->vio->bio;
 		ASSERT_LOG_ONLY(list_empty(&entry->available_entry),
@@ -171,9 +168,8 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"acquire from active vio_pool called from correct thread");
 
-	if (list_empty(&pool->available)) {
+	if (list_empty(&pool->available))
 		return enqueue_waiter(&pool->waiting, waiter);
-	}
 
 	pool->busy_count++;
 	entry = pool->available.next;

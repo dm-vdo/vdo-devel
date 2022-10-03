@@ -243,9 +243,8 @@ static inline void continue_vio(struct vio *vio, int result)
 {
 	struct vdo_completion *completion = vio_as_completion(vio);
 
-	if (unlikely(result != VDO_SUCCESS)) {
+	if (unlikely(result != VDO_SUCCESS))
 		vdo_set_completion_result(vio_as_completion(vio), result);
-	}
 
 	vdo_enqueue_completion(completion);
 }

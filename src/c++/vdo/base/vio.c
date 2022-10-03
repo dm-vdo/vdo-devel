@@ -52,17 +52,15 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 			"block count %u does not exceed maximum %u",
 			block_count,
 			MAX_BLOCKS_PER_VIO);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED)
-			 && (vio_type != VIO_TYPE_DATA)),
+	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED) &&
+			 (vio_type != VIO_TYPE_DATA)),
 			"%d is a metadata type",
 			vio_type);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * Metadata vios should use direct allocation and not use the buffer
@@ -98,9 +96,8 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
  */
 void free_vio(struct vio *vio)
 {
-	if (vio == NULL) {
+	if (vio == NULL)
 		return;
-	}
 
 	BUG_ON(is_data_vio(vio));
 	vdo_free_bio(UDS_FORGET(vio->bio));
@@ -140,9 +137,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	}
 
 #ifdef __KERNEL__
-	if (!__ratelimit(&error_limiter)) {
+	if (!__ratelimit(&error_limiter))
 		return;
-	}
 #endif
 
 	va_start(args, format);
@@ -159,17 +155,16 @@ void record_metadata_io_error(struct vio *vio)
 	const char *description;
 	physical_block_number_t pbn = pbn_from_vio_bio(vio->bio);
 
-	if (bio_op(vio->bio) == REQ_OP_READ) {
+	if (bio_op(vio->bio) == REQ_OP_READ)
 		description = "read";
-	} else if ((vio->bio->bi_opf & REQ_PREFLUSH) == REQ_PREFLUSH) {
+	else if ((vio->bio->bi_opf & REQ_PREFLUSH) == REQ_PREFLUSH)
 		description = (((vio->bio->bi_opf & REQ_FUA) == REQ_FUA) ?
 			       "write+preflush+fua" :
 			       "write+preflush");
-	} else if ((vio->bio->bi_opf & REQ_FUA) == REQ_FUA) {
+	else if ((vio->bio->bi_opf & REQ_FUA) == REQ_FUA)
 		description = "write+fua";
-	} else {
+	else
 		description = "write";
-	}
 
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",

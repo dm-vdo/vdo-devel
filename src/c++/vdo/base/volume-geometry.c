@@ -86,15 +86,12 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 {
 	unsigned int i;
 
-	if (version == VDO_CURRENT_RELEASE_VERSION_NUMBER) {
+	if (version == VDO_CURRENT_RELEASE_VERSION_NUMBER)
 		return true;
-	}
 
-	for (i = 0; i < ARRAY_SIZE(COMPATIBLE_RELEASE_VERSIONS); i++) {
-		if (version == COMPATIBLE_RELEASE_VERSIONS[i]) {
+	for (i = 0; i < ARRAY_SIZE(COMPATIBLE_RELEASE_VERSIONS); i++)
+		if (version == COMPATIBLE_RELEASE_VERSIONS[i])
 			return true;
-		}
-	}
 
 	return false;
 }
@@ -114,19 +111,16 @@ static int decode_index_config(struct buffer *buffer,
 	bool sparse;
 	int result = get_uint32_le_from_buffer(buffer, &mem);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = skip_forward(buffer, sizeof(uint32_t));
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = get_boolean(buffer, &sparse);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	*config = (struct index_config) {
 		.mem = mem,
@@ -149,14 +143,12 @@ static int encode_index_config(const struct index_config *config,
 {
 	int result = put_uint32_le_into_buffer(buffer, config->mem);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = zero_bytes(buffer, sizeof(uint32_t));
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return put_boolean(buffer, config->sparse);
 }
@@ -177,14 +169,12 @@ static int decode_volume_region(struct buffer *buffer,
 	enum volume_region_id id;
 	int result = get_uint32_le_from_buffer(buffer, &id);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &start_block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	*region = (struct volume_region) {
 		.id = id,
@@ -207,9 +197,8 @@ static int encode_volume_region(const struct volume_region *region,
 {
 	int result = put_uint32_le_into_buffer(buffer, region->id);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return put_uint64_le_into_buffer(buffer, region->start_block);
 }
@@ -234,38 +223,33 @@ static int decode_volume_geometry(struct buffer *buffer,
 	block_count_t bio_offset;
 	int result = get_uint32_le_from_buffer(buffer, &release_version);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &nonce);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	geometry->release_version = release_version;
 	geometry->nonce = nonce;
 
 	result = get_bytes_from_buffer(buffer, sizeof(uuid_t),
 				       (unsigned char *) &geometry->uuid);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	bio_offset = 0;
 	if (version > 4) {
 		result = get_uint64_le_from_buffer(buffer, &bio_offset);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 	geometry->bio_offset = bio_offset;
 
 	for (id = 0; id < VDO_VOLUME_REGION_COUNT; id++) {
 		result = decode_volume_region(buffer, &geometry->regions[id]);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	return decode_index_config(buffer, &geometry->index_config);
@@ -288,35 +272,29 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 	enum volume_region_id id;
 	int result = put_uint32_le_into_buffer(buffer, geometry->release_version);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, geometry->nonce);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = put_bytes(buffer, sizeof(uuid_t),
 			   (unsigned char *) &geometry->uuid);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
-
 
 	if (version >= 5) {
 		result = put_uint64_le_into_buffer(buffer,
 						   geometry->bio_offset);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	for (id = 0; id < VDO_VOLUME_REGION_COUNT; id++) {
 		result = encode_volume_region(&geometry->regions[id], buffer);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	return encode_index_config(&geometry->index_config, buffer);
@@ -338,36 +316,30 @@ static int decode_geometry_block(struct buffer *buffer,
 	int result;
 	struct header header;
 
-	if (!has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
+	if (!has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE))
 		return VDO_BAD_MAGIC;
-	}
 
 	result = skip_forward(buffer, MAGIC_NUMBER_SIZE);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (header.version.major_version <= 4) {
+	if (header.version.major_version <= 4)
 		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0,
 					     &header, true, __func__);
-	} else {
+	else
 		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0,
 					     &header, true, __func__);
-	}
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = decode_volume_geometry(buffer, geometry,
 					header.version.major_version);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/* Leave the CRC for the caller to decode and verify. */
 	return ASSERT(header.size == (uncompacted_amount(buffer) +
@@ -388,9 +360,8 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 	int result;
 
 	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
@@ -409,11 +380,10 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 	/* Finished all decoding. Everything that follows is validation code. */
 	free_buffer(UDS_FORGET(buffer));
 
-	if (!is_loadable_release_version(geometry->release_version)) {
+	if (!is_loadable_release_version(geometry->release_version))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "release version %d cannot be loaded",
 					      geometry->release_version);
-	}
 
 	return ((checksum == saved_checksum) ? VDO_SUCCESS :
 					      VDO_CHECKSUM_MISMATCH);
@@ -435,9 +405,8 @@ int vdo_read_geometry_block(struct block_device *bdev,
 	byte *block;
 	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS) {
@@ -467,7 +436,6 @@ int vdo_read_geometry_block(struct block_device *bdev,
 		return -EIO;
 	}
 
-
 	result = vdo_parse_geometry_block(block, geometry);
 	UDS_FREE(block);
 	return result;
@@ -491,21 +459,18 @@ static int encode_geometry_block(const struct volume_geometry *geometry,
 
 	int result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	header = ((version <= 4) ? &GEOMETRY_BLOCK_HEADER_4_0
 				 : &GEOMETRY_BLOCK_HEADER_5_0);
 	result = vdo_encode_header(header, buffer);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = encode_volume_geometry(geometry, buffer, version);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/* Leave the CRC for the caller to compute and encode. */
 	return ASSERT(header->size ==
@@ -524,9 +489,8 @@ int vdo_load_volume_geometry(PhysicalLayer *layer,
 	char *block;
 	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
 					     "geometry block", &block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = layer->reader(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
 	if (result != VDO_SUCCESS) {
@@ -561,17 +525,15 @@ int vdo_compute_index_blocks(const struct index_config *index_config,
 	};
 
 	result = uds_compute_index_size(&uds_parameters, &index_bytes);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "error computing index size");
-	}
 
 	index_blocks = index_bytes / VDO_BLOCK_SIZE;
-	if ((((uint64_t) index_blocks) * VDO_BLOCK_SIZE) != index_bytes) {
+	if ((((uint64_t) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
 		return uds_log_error_strerror(VDO_PARAMETER_MISMATCH,
 					      "index size must be a multiple of block size %d",
 					      VDO_BLOCK_SIZE);
-	}
 
 	*index_blocks_ptr = index_blocks;
 	return VDO_SUCCESS;
@@ -596,9 +558,8 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 	if (index_config != NULL) {
 		int result = vdo_compute_index_blocks(index_config, &index_size);
 
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	*geometry = (struct volume_geometry) {
@@ -621,11 +582,10 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 #else
 	uuid_copy(geometry->uuid, *uuid);
 #endif /* __KERNEL__ */
-	if (index_size > 0) {
+	if (index_size > 0)
 		memcpy(&geometry->index_config,
 		       index_config,
 		       sizeof(struct index_config));
-	}
 
 	return VDO_SUCCESS;
 }
@@ -641,9 +601,8 @@ int vdo_clear_volume_geometry(PhysicalLayer *layer)
 	char *block;
 	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
 					     "geometry block", &block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
 	UDS_FREE(block);
@@ -684,9 +643,8 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 
 	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
 					     "geometry block", &block);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = wrap_buffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
 	if (result != VDO_SUCCESS) {
