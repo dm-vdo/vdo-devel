@@ -38,8 +38,6 @@ BASE_OBJS :=     			\
 	io-submitter.o			\
 	logical-zone.o			\
 	packer.o			\
-	pbn-lock.o			\
-	pbn-lock-pool.o			\
 	physical-zone.o			\
 	pointer-map.o			\
 	pool-sysfs.o			\
