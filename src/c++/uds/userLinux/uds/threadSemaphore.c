@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <errno.h>
@@ -52,9 +51,8 @@ bool uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 		struct timespec ts = future_time(timeout);
 
 		do {
-			if (sem_timedwait(&semaphore->semaphore, &ts) == 0) {
+			if (sem_timedwait(&semaphore->semaphore, &ts) == 0)
 				return true;
-			}
 		} while (errno == EINTR);
 #ifndef NDEBUG
 
@@ -64,9 +62,8 @@ bool uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 #endif
 	} else {
 		do {
-			if (sem_trywait(&semaphore->semaphore) == 0) {
+			if (sem_trywait(&semaphore->semaphore) == 0)
 				return true;
-			}
 		} while (errno == EINTR);
 #ifndef NDEBUG
 

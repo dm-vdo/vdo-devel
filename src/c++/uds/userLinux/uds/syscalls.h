@@ -1,7 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #ifndef SYSCALLS_H
@@ -142,12 +141,10 @@ static INLINE int check_io_errors(ssize_t bytes,
 				  const char *context,
 				  ssize_t *bytes_ptr)
 {
-	if (bytes_ptr != NULL) {
+	if (bytes_ptr != NULL)
 		*bytes_ptr = bytes;
-	}
-	if (bytes < 0) {
+	if (bytes < 0)
 		return log_system_call_errno(function, context);
-	}
 	return UDS_SUCCESS;
 }
 

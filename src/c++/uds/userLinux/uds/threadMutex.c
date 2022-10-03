@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <errno.h>
@@ -28,27 +27,26 @@ static void initialize_mutex_kind(void)
 	/*
 	 * Enabling error checking on mutexes enables a great performance loss,
 	 * so we only enable it in certain circumstances.
-         */
+	 */
 	hidden_mutex_kind = fast_adaptive;
 #endif
 	if (mutex_kind_string != NULL) {
-		if (strcmp(mutex_kind_string, "error-checking") == 0) {
+		if (strcmp(mutex_kind_string, "error-checking") == 0)
 			hidden_mutex_kind = error_checking;
-		} else if (strcmp(mutex_kind_string, "fast-adaptive") == 0) {
+		else if (strcmp(mutex_kind_string, "fast-adaptive") == 0)
 			hidden_mutex_kind = fast_adaptive;
-		} else {
+		else
 			ASSERT_LOG_ONLY(false,
 					"environment variable %s had unexpected value '%s'",
 					UDS_MUTEX_KIND_ENV,
 					mutex_kind_string);
-		}
 	}
 }
 
 /**********************************************************************/
 static enum mutex_kind get_mutex_kind(void)
 {
-        static atomic_t once_state = ATOMIC_INIT(0);
+	static atomic_t once_state = ATOMIC_INIT(0);
 
 	perform_once(&once_state, initialize_mutex_kind);
 	return hidden_mutex_kind;
@@ -70,22 +68,19 @@ int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error)
 		return result;
 	}
 
-	if (get_mutex_kind() == error_checking) {
+	if (get_mutex_kind() == error_checking)
 		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-	}
 
 	result = pthread_mutex_init(&mutex->mutex, &attr);
-	if ((result != 0) && assert_on_error) {
+	if ((result != 0) && assert_on_error)
 		ASSERT_LOG_ONLY((result == 0), "pthread_mutex_init error");
-	}
 
 	result2 = pthread_mutexattr_destroy(&attr);
 	if (result2 != 0) {
 		ASSERT_LOG_ONLY((result2 == 0),
 				"pthread_mutexattr_destroy error");
-		if (result == UDS_SUCCESS) {
+		if (result == UDS_SUCCESS)
 			result = result2;
-		}
 	}
 
 	return result;

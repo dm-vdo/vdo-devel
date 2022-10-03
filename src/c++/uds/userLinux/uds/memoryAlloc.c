@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <errno.h>
@@ -28,9 +27,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	int result;
 	void *p;
 
-	if (ptr == NULL) {
+	if (ptr == NULL)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	if (size == 0) {
 		// We can skip the malloc call altogether.
@@ -41,12 +39,11 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	if (align > DEFAULT_MALLOC_ALIGNMENT) {
 		result = posix_memalign(&p, align, size);
 		if (result != 0) {
-			if (what != NULL) {
+			if (what != NULL)
 				uds_log_error_strerror(result,
 						       "failed to posix_memalign %s (%zu bytes)",
 						       what,
 						       size);
-			}
 
 			return -result;
 		}
@@ -54,12 +51,11 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		p = malloc(size);
 		if (p == NULL) {
 			result = errno;
-			if (what != NULL) {
+			if (what != NULL)
 				uds_log_error_strerror(result,
 						       "failed to allocate %s (%zu bytes)",
 						       what,
 						       size);
-			}
 
 			return -result;
 		}
@@ -80,7 +76,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
  * @return pointer to the allocated memory, or NULL if the required space is
  *         not available.
  */
-void *uds_allocate_memory_nowait(size_t size, const char *what) {
+void *uds_allocate_memory_nowait(size_t size, const char *what)
+{
 	void *p = NULL;
 
 	UDS_ALLOCATE(size, char *, what, &p);
@@ -114,16 +111,14 @@ int uds_reallocate_memory(void *ptr,
 {
 	char *new = realloc(ptr, size);
 
-	if ((new == NULL) && (size != 0)) {
+	if ((new == NULL) && (size != 0))
 		return uds_log_error_strerror(-errno,
 					      "failed to reallocate %s (%zu bytes)",
 					      what,
 					      size);
-	}
 
-	if (size > old_size) {
+	if (size > old_size)
 		memset(new + old_size, 0, size - old_size);
-	}
 
 	*((void **) new_ptr) = new;
 	return UDS_SUCCESS;
@@ -138,9 +133,8 @@ int uds_duplicate_string(const char *string,
 	byte *dup = NULL;
 
 	result = UDS_ALLOCATE(strlen(string) + 1, byte, what, &dup);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	memcpy(dup, string, strlen(string) + 1);
 	*new_string = (char *) dup;

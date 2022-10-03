@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include "logger.h"
@@ -80,11 +79,9 @@ void set_uds_log_level(int new_log_level)
 int uds_log_string_to_priority(const char *string)
 {
 	int i;
-	for (i = 0; PRIORITIES[i].name != NULL; i++) {
-		if (strcasecmp(string, PRIORITIES[i].name) == 0) {
+	for (i = 0; PRIORITIES[i].name != NULL; i++)
+		if (strcasecmp(string, PRIORITIES[i].name) == 0)
 			return PRIORITIES[i].priority;
-		}
-	}
 	return UDS_LOG_INFO;
 }
 
@@ -92,9 +89,8 @@ int uds_log_string_to_priority(const char *string)
 const char *uds_log_priority_to_string(int priority)
 {
 	if ((priority < 0) ||
-	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS))) {
+	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS)))
 		return "unknown";
-	}
 	return PRIORITY_STRINGS[priority];
 }
 
@@ -102,21 +98,18 @@ const char *uds_log_priority_to_string(int priority)
 static void init_logger(void)
 {
 	const char *uds_log_level = getenv("UDS_LOG_LEVEL");
-	if (uds_log_level != NULL) {
+	if (uds_log_level != NULL)
 		set_uds_log_level(uds_log_string_to_priority(uds_log_level));
-	} else {
+	else
 		set_uds_log_level(UDS_LOG_INFO);
-	}
 
 	char *timestamps_string = getenv(TIMESTAMPS_ENVIRONMENT_VARIABLE);
-	if (timestamps_string != NULL && strcmp(timestamps_string, "0") == 0) {
+	if (timestamps_string != NULL && strcmp(timestamps_string, "0") == 0)
 		timestamps = false;
-	}
 
 	char *ids_string = getenv(IDS_ENVIRONMENT_VARIABLE);
-	if (ids_string != NULL && strcmp(ids_string, "0") == 0) {
+	if (ids_string != NULL && strcmp(ids_string, "0") == 0)
 		ids = false;
-	}
 
 	int error = 0;
 	char *log_file = getenv("UDS_LOGFILE");
@@ -127,9 +120,8 @@ static void init_logger(void)
 		errno = 0;
 		fp = fopen(log_file, "a");
 		if (fp != NULL) {
-			if (is_abs_path) {
+			if (is_abs_path)
 				UDS_FREE(log_file);
-			}
 			opened = 1;
 			return;
 		}
@@ -148,14 +140,12 @@ static void init_logger(void)
 		uds_log_error("Could not include program name in log");
 	}
 
-	if (error != 0) {
+	if (error != 0)
 		uds_log_error_strerror(error, "Couldn't open log file %s",
 				       log_file);
-	}
 
-	if (is_abs_path) {
+	if (is_abs_path)
 		UDS_FREE(log_file);
-	}
 	opened = 1;
 }
 
@@ -181,9 +171,8 @@ static void format_current_time(char *buffer, size_t buffer_size)
 	ktime_t now = current_time_ns(CLOCK_REALTIME);
 	struct tm tmp;
 	const time_t seconds = now / NSEC_PER_SEC;
-	if (localtime_r(&seconds, &tmp) == NULL) {
+	if (localtime_r(&seconds, &tmp) == NULL)
 		return;
-	}
 
 	if (strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", &tmp) == 0) {
 		*buffer = 0;
@@ -191,11 +180,10 @@ static void format_current_time(char *buffer, size_t buffer_size)
 	}
 
 	size_t current_length = strlen(buffer);
-	if (current_length > (buffer_size - 5)) {
+	if (current_length > (buffer_size - 5))
 		// Not enough room to add milliseconds but we do have a time
 		// string.
 		return;
-	}
 	snprintf(buffer + current_length,
 		 buffer_size - current_length,
 		 ".%03d",
@@ -205,12 +193,12 @@ static void format_current_time(char *buffer, size_t buffer_size)
 /**
  * Log a message embedded within another message.
  *
- * @param priority      the priority at which to log the message
- * @param module        the name of the module doing the logging
- * @param prefix        optional string prefix to message, may be NULL
- * @param fmt1          format of message first part (required)
- * @param args1         arguments for message first part (required)
- * @param fmt2          format of message second part
+ * @param priority	the priority at which to log the message
+ * @param module	the name of the module doing the logging
+ * @param prefix	optional string prefix to message, may be NULL
+ * @param fmt1		format of message first part (required)
+ * @param args1		arguments for message first part (required)
+ * @param fmt2		format of message second part
  **/
 void uds_log_embedded_message(int priority,
 			      const char *module __always_unused,
@@ -223,9 +211,8 @@ void uds_log_embedded_message(int priority,
 	va_list args2;
 
 	open_uds_logger();
-	if (priority > get_uds_log_level()) {
+	if (priority > get_uds_log_level())
 		return;
-	}
 
 	va_start(args2, fmt2);
 	// Preserve errno since the caller cares more about their own error
@@ -247,28 +234,23 @@ void uds_log_embedded_message(int priority,
 
 		fputs(program_invocation_short_name, fp);
 
-		if (ids) {
+		if (ids)
 			fprintf(fp, "[%u]", getpid());
-		}
 
 		fprintf(fp, ": %-6s (%s", uds_log_priority_to_string(priority),
 			tname);
 
-		if (ids) {
+		if (ids)
 			fprintf(fp, "/%d", uds_get_thread_id());
-		}
 
 		fputs(") ", fp);
 
-		if (prefix != NULL) {
+		if (prefix != NULL)
 			fputs(prefix, fp);
-		}
-		if (fmt1 != NULL) {
+		if (fmt1 != NULL)
 			vfprintf(fp, fmt1, args1);
-		}
-		if (fmt2 != NULL) {
+		if (fmt2 != NULL)
 			vfprintf(fp, fmt2, args2);
-		}
 		fputs("\n", fp);
 		fflush(fp);
 		funlockfile(fp);
@@ -287,7 +269,7 @@ int uds_vlog_strerror(int priority,
 		      va_list args)
 {
 	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
-        const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
+	const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
 	uds_log_embedded_message(priority,
 				 module,
 				 NULL,
@@ -340,18 +322,16 @@ void uds_log_message(int priority, const char *format, ...)
 static void log_proc_maps(int priority)
 {
 	FILE *maps_file = fopen("/proc/self/maps", "r");
-	if (maps_file == NULL) {
+	if (maps_file == NULL)
 		return;
-	}
 
 	uds_log_message(priority, "maps file");
 	char buffer[1024];
 	char *map_line;
 	while ((map_line = fgets(buffer, 1024, maps_file)) != NULL) {
 		char *newline = strchr(map_line, '\n');
-		if (newline != NULL) {
+		if (newline != NULL)
 			*newline = '\0';
-		}
 		uds_log_message(priority, "  %s", map_line);
 	}
 	uds_log_message(priority, "end of maps file");
@@ -371,9 +351,8 @@ void uds_log_backtrace(int priority)
 	if (messages == NULL) {
 		uds_log_message(priority, "backtrace failed");
 	} else {
-		for (int i = 0; i < trace_size; ++i) {
+		for (int i = 0; i < trace_size; ++i)
 			uds_log_message(priority, "  %s", messages[i]);
-		}
 		// "messages" is malloc'ed indirectly by backtrace_symbols
 		free(messages);
 		log_proc_maps(priority);

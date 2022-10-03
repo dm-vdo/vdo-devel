@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include "request-queue.h"
@@ -26,7 +25,7 @@
  * instead of reacting immediately to each new request. The wait time between
  * batches is dynamically adjusted up or down to try to balance responsiveness
  * against wasted thread run time.
- * 
+ *
  * If the wait time becomes long enough, the queue will become dormant and must
  * be explicitly awoken when a new request is enqueued. The enqueue operation
  * updates "newest" in the funnel queue via xchg (which is a memory barrier),
@@ -96,11 +95,10 @@ static void adjust_wait_time(struct uds_request_queue *queue)
 {
 	uint64_t delta = queue->wait_nanoseconds / 4;
 
-	if (queue->current_batch < MINIMUM_BATCH) {
+	if (queue->current_batch < MINIMUM_BATCH)
 		queue->wait_nanoseconds += delta;
-	} else if (queue->current_batch > MAXIMUM_BATCH) {
+	else if (queue->current_batch > MAXIMUM_BATCH)
 		queue->wait_nanoseconds -= delta;
-	}
 }
 
 /**
@@ -145,14 +143,12 @@ static struct uds_request *poll_queues(struct uds_request_queue *queue)
 	struct funnel_queue_entry *entry;
 
 	entry = funnel_queue_poll(queue->retry_queue);
-	if (entry != NULL) {
+	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
-	}
 
 	entry = funnel_queue_poll(queue->main_queue);
-	if (entry != NULL) {
+	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
-	}
 
 	return NULL;
 }
@@ -171,22 +167,20 @@ static struct uds_request *dequeue_request(struct uds_request_queue *queue)
 
 		queue->current_batch++;
 		request = poll_queues(queue);
-		if (request != NULL) {
+		if (request != NULL)
 			return request;
-		}
 
 		/* Prepare to wait for more work to arrive. */
 		wait_token = event_count_prepare(queue->work_event);
 
 		shutting_down = !READ_ONCE(queue->running);
-		if (shutting_down) {
+		if (shutting_down)
 			/*
 			 * Ensure that we see any remaining requests that were
 			 * enqueued before shutting down. The corresponding
 			 * write barrier is in uds_request_queue_finish().
 			 */
 			smp_rmb();
-		}
 
 		/*
 		 * Poll again in case a request was enqueued just before we got
@@ -224,9 +218,8 @@ static void request_queue_worker(void *arg)
 	struct uds_request *request;
 
 	uds_log_debug("%s queue starting", queue->name);
-	while ((request = dequeue_request(queue)) != NULL) {
+	while ((request = dequeue_request(queue)) != NULL)
 		queue->processor(request);
-	}
 	uds_log_debug("%s queue done", queue->name);
 }
 
@@ -239,9 +232,8 @@ int make_uds_request_queue(const char *queue_name,
 	struct uds_request_queue *queue;
 
 	result = UDS_ALLOCATE(1, struct uds_request_queue, __func__, &queue);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	queue->name = queue_name;
 	queue->processor = processor;
@@ -302,9 +294,8 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 	 * We must wake the worker thread when it is dormant. A read fence
 	 * isn't needed here since we know the queue operation acts as one.
 	 */
-	if (atomic_read(&queue->dormant) || unbatched) {
+	if (atomic_read(&queue->dormant) || unbatched)
 		wake_up_worker(queue);
-	}
 }
 
 /**********************************************************************/
@@ -312,9 +303,8 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 {
 	int result;
 
-	if (queue == NULL) {
+	if (queue == NULL)
 		return;
-	}
 
 	/*
 	 * This memory barrier ensures that any requests we queued will be
@@ -329,10 +319,9 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 	if (queue->started) {
 		wake_up_worker(queue);
 		result = uds_join_threads(queue->thread);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			uds_log_warning_strerror(result,
 						 "Failed to join worker thread");
-		}
 	}
 
 	free_event_count(queue->work_event);

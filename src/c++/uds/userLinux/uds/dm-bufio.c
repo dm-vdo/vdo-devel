@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <linux/dm-bufio.h>
@@ -55,9 +54,8 @@ dm_bufio_client_create(struct block_device *bdev,
 	struct dm_bufio_client *client;
 
 	result = UDS_ALLOCATE(1, struct dm_bufio_client, __func__, &client);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return ERR_PTR(-ENOMEM);
-	}
 
 
 	result = uds_init_mutex(&client->buffer_mutex);
@@ -78,8 +76,8 @@ void dm_bufio_client_destroy(struct dm_bufio_client *client)
 	while (client->buffer_list != NULL) {
 		buffer = client->buffer_list;
 		client->buffer_list = buffer->next;
-                UDS_FREE(buffer->data);
-                UDS_FREE(buffer);
+		UDS_FREE(buffer->data);
+		UDS_FREE(buffer);
 	}
 
 	uds_destroy_mutex(&client->buffer_mutex);
@@ -88,7 +86,7 @@ void dm_bufio_client_destroy(struct dm_bufio_client *client)
 
 void dm_bufio_set_sector_offset(struct dm_bufio_client *client, sector_t start)
 {
-	client->start_offset = start * SECTOR_SIZE; 
+	client->start_offset = start * SECTOR_SIZE;
 }
 
 void *dm_bufio_new(struct dm_bufio_client *client,
@@ -108,9 +106,8 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 
 	if (buffer == NULL) {
 		result = UDS_ALLOCATE(1, struct dm_buffer, __func__, &buffer);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return ERR_PTR(-ENOMEM);
-		}
 
 		result = UDS_ALLOCATE(client->bytes_per_page,
 				      byte,
@@ -153,18 +150,17 @@ void *dm_bufio_read(struct dm_bufio_client *client,
 				     client->bytes_per_page,
 				     &read_length);
 	if (result != UDS_SUCCESS) {
-		dm_bufio_release(buffer);		
+		dm_bufio_release(buffer);
 		uds_log_warning_strerror(result,
 					 "error reading physical page %lu",
 					 block);
 		return ERR_PTR(-EIO);
 	}
 
-	if (read_length < client->bytes_per_page) {
+	if (read_length < client->bytes_per_page)
 		memset(&buffer->data[read_length],
 		       0,
 		       client->bytes_per_page - read_length);
-	}
 
 	*buffer_ptr = buffer;
 	return buffer->data;
@@ -210,17 +206,15 @@ void dm_bufio_mark_buffer_dirty(struct dm_buffer *buffer)
 					buffer->offset,
 					buffer->data,
 					client->bytes_per_page);
-	if (client->status == UDS_SUCCESS) {
+	if (client->status == UDS_SUCCESS)
 		client->status = result;
-	}
 }
 
 /* Since we already wrote all the dirty buffers, just sync the file. */
 int dm_bufio_write_dirty_buffers(struct dm_bufio_client *client)
 {
-	if (client->status != UDS_SUCCESS) {
+	if (client->status != UDS_SUCCESS)
 		return -client->status;
-	}
 
 	return -logging_fsync(client->bdev->fd, "cannot sync file contents");
 }

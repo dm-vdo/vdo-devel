@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <linux/blkdev.h>
@@ -18,14 +17,12 @@ struct block_device *blkdev_get_by_path(const char *path,
 	int fd;
 	struct block_device *device;
 
-	if (mode != (FMODE_READ | FMODE_WRITE)) {
+	if (mode != (FMODE_READ | FMODE_WRITE))
 		return (struct block_device *) -EACCES;
-        }
 
 	result = open_file(path, FU_READ_WRITE, &fd);
-	if (result != UDS_SUCCESS) {
-          return (struct block_device *) (int64_t) -result;
-	}
+	if (result != UDS_SUCCESS)
+		return (struct block_device *) (int64_t) -result;
 
 	result = UDS_ALLOCATE(1, struct block_device, __func__, &device);
 	if (result != UDS_SUCCESS) {

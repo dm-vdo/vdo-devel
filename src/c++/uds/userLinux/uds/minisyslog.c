@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include <fcntl.h>
@@ -40,9 +39,8 @@ static void close_locked(void)
 /**********************************************************************/
 static void open_socket_locked(void)
 {
-	if (log_socket != -1) {
+	if (log_socket != -1)
 		return;
-	}
 
 	struct sockaddr_un sun;
 	memset(&sun, 0, sizeof(sun));
@@ -54,14 +52,12 @@ static void open_socket_locked(void)
 	 * loggingSocket(), loggingConnect(), or tryCloseFile().
 	 */
 	log_socket = socket(PF_UNIX, SOCK_DGRAM, 0);
-	if (log_socket < 0) {
+	if (log_socket < 0)
 		return;
-	}
 
 	if (connect(log_socket, (const struct sockaddr *) &sun, sizeof(sun)) !=
-	    0) {
+	    0)
 		close_locked();
-	}
 }
 
 /**********************************************************************/
@@ -70,15 +66,13 @@ void mini_openlog(const char *ident, int option, int facility)
 	uds_lock_mutex(&mutex);
 	close_locked();
 	UDS_FREE(log_ident);
-	if (uds_duplicate_string(ident, NULL, &log_ident) != UDS_SUCCESS) {
+	if (uds_duplicate_string(ident, NULL, &log_ident) != UDS_SUCCESS)
 		// on failure, NULL is okay
 		log_ident = NULL;
-	}
 	log_option = option;
 	default_facility = facility;
-	if (log_option & LOG_NDELAY) {
+	if (log_option & LOG_NDELAY)
 		open_socket_locked();
-	}
 	uds_unlock_mutex(&mutex);
 }
 
@@ -105,10 +99,10 @@ static bool __must_check write_msg(int fd, const char *msg)
 
 /**********************************************************************/
 __printf(3, 0)
-#ifdef __clang__ 
+#ifdef __clang__
 // Clang insists on annotating both printf style format strings, but
 // gcc doesn't understand the second.
-__printf(5, 0) 
+__printf(5, 0)
 #endif //__clang__
 static void log_it(int priority,
 		   const char *prefix,
@@ -125,17 +119,14 @@ static void log_it(int priority,
 	struct tm tm;
 	char timestamp[64];
 	timestamp[0] = '\0';
-	if (localtime_r(&t, &tm) != NULL) {
+	if (localtime_r(&t, &tm) != NULL)
 		if (strftime(timestamp,
 			     sizeof(timestamp),
 			     "%b %e %H:%M:%S",
-			     &tm) == 0) {
+			     &tm) == 0)
 			timestamp[0] = '\0';
-		}
-	}
-	if (LOG_FAC(priority) == 0) {
+	if (LOG_FAC(priority) == 0)
 		priority |= default_facility;
-	}
 
 	bufp = uds_append_to_buffer(bufp, buf_end, "<%d>%s", priority,
 				    timestamp);
@@ -156,35 +147,29 @@ static void log_it(int priority,
 	} else {
 		bufp = uds_append_to_buffer(bufp, buf_end, ": ");
 	}
-	if ((bufp + sizeof("...")) >= buf_end) {
+	if ((bufp + sizeof("...")) >= buf_end)
 		return;
-	}
-	if (prefix != NULL) {
+	if (prefix != NULL)
 		bufp = uds_append_to_buffer(bufp, buf_end, "%s", prefix);
-	}
 	if (format1 != NULL) {
 		int ret = vsnprintf(bufp, buf_end - bufp, format1, args1);
-		if (ret < (buf_end - bufp)) {
+		if (ret < (buf_end - bufp))
 			bufp += ret;
-		} else {
+		else
 			bufp = buf_end;
 		}
-	}
 	if (format2 != NULL) {
 		int ret = vsnprintf(bufp, buf_end - bufp, format2, args2);
-		if (ret < (buf_end - bufp)) {
+		if (ret < (buf_end - bufp))
 			bufp += ret;
-		} else {
+		else
 			bufp = buf_end;
 		}
-	}
-	if (bufp == buf_end) {
+	if (bufp == buf_end)
 		strcpy(buf_end - sizeof("..."), "...");
-	}
 	bool failure = false;
-	if (log_option & LOG_PERROR) {
+	if (log_option & LOG_PERROR)
 		failure |= write_msg(STDERR_FILENO, stderr_msg);
-	}
 	open_socket_locked();
 	failure |= (log_socket == -1);
 	if (log_socket != -1) {
@@ -196,9 +181,8 @@ static void log_it(int priority,
 	if (failure && (log_option & LOG_CONS)) {
 		int console = open(_PATH_CONSOLE, O_WRONLY);
 		failure |= (console == -1) || write_msg(console, stderr_msg);
-		if (console != -1) {
+		if (console != -1)
 			failure |= (close(console) != 0);
-		}
 	}
 }
 

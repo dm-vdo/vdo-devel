@@ -1,9 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
- *
- * $Id$
+ * Copyright Red Hat
  */
 
 #include "directoryReader.h"
@@ -25,9 +22,8 @@ int read_directory(const char *path,
 	DIR *directory;
 	int result =
 		open_directory(path, directory_type, __func__, &directory);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	for (;;) {
 		struct dirent *entry;
@@ -38,13 +34,11 @@ int read_directory(const char *path,
 			break;
 		}
 		if ((strcmp(entry->d_name, ".") == 0) ||
-		    (strcmp(entry->d_name, "..") == 0)) {
+		    (strcmp(entry->d_name, "..") == 0))
 			continue;
-		}
 		if (((*entry_processor)(entry, path, context, &result)) ||
-		    (result != UDS_SUCCESS)) {
+		    (result != UDS_SUCCESS))
 			break;
-		}
 	}
 
 	close_directory(directory, __func__);

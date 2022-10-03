@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
+ * Copyright Red Hat
  */
 
 #include "uds-threads.h"
@@ -35,9 +34,8 @@ unsigned int uds_get_num_cores(void)
 		return 1;
 	}
 
-	for (i = 0; i < CPU_SETSIZE; ++i) {
+	for (i = 0; i < CPU_SETSIZE; ++i)
 		n_cpus += CPU_ISSET(i, &cpu_set);
-	}
 	return n_cpus;
 }
 
@@ -107,9 +105,8 @@ int uds_create_thread(void (*thread_function)(void *),
 	struct thread *thread;
 
 	result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &info);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	info->thread_function = thread_function;
 	info->thread_data = thread_data;
 	info->name = name;
@@ -153,7 +150,7 @@ int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
 	int result;
 
-        result = pthread_barrier_init(&barrier->barrier, NULL, thread_count);
+	result = pthread_barrier_init(&barrier->barrier, NULL, thread_count);
 	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
 	return result;
 }
@@ -174,10 +171,9 @@ int uds_enter_barrier(struct barrier *barrier)
 	int result;
 
 	result = pthread_barrier_wait(&barrier->barrier);
-	if (result == PTHREAD_BARRIER_SERIAL_THREAD) {
+	if (result == PTHREAD_BARRIER_SERIAL_THREAD)
 		return UDS_SUCCESS;
-	}
 
-	ASSERT_LOG_ONLY((result == 0),  "pthread_barrier_wait error");
+	ASSERT_LOG_ONLY((result == 0),	"pthread_barrier_wait error");
 	return result;
 }

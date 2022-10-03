@@ -1,9 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
- *
- * %LICENSE%
- *
- * $Id$
+ * Copyright Red Hat
  */
 
 #include "directoryUtils.h"
@@ -29,9 +26,8 @@ int is_directory(const char *path, bool *directory)
 {
 	struct stat stat_buf;
 	int result = logging_stat_missing_ok(path, &stat_buf, __func__);
-	if (result == UDS_SUCCESS) {
+	if (result == UDS_SUCCESS)
 		*directory = (bool) S_ISDIR(stat_buf.st_mode);
-	}
 	return result;
 }
 
@@ -42,14 +38,13 @@ int open_directory(const char *name,
 		   DIR **directory_ptr)
 {
 	DIR *directory = opendir(name);
-	if (directory == NULL) {
+	if (directory == NULL)
 		return uds_log_error_strerror(errno,
 					      "%s failed in %s on %s directory %s",
 					      __func__,
 					      context,
 					      directory_type,
 					      name);
-	}
 
 	*directory_ptr = directory;
 	return UDS_SUCCESS;
