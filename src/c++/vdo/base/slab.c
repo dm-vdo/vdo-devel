@@ -50,9 +50,8 @@ int vdo_make_slab(physical_block_number_t slab_origin,
 	struct vdo_slab *slab;
 	int result = UDS_ALLOCATE(1, struct vdo_slab, __func__, &slab);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	slab->allocator = allocator;
 	slab->start = slab_origin;
@@ -99,15 +98,14 @@ int vdo_make_slab(physical_block_number_t slab_origin,
 int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
-	const struct slab_config *slab_config
-		= vdo_get_slab_config(allocator->depot);
+	const struct slab_config *slab_config =
+		vdo_get_slab_config(allocator->depot);
 
 	int result = ASSERT(slab->reference_counts == NULL,
 			    "vdo_slab %u doesn't allocate refcounts twice",
 			    slab->slab_number);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return vdo_make_ref_counts(slab_config->data_blocks,
 				   slab,
@@ -122,9 +120,8 @@ int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
  */
 void vdo_free_slab(struct vdo_slab *slab)
 {
-	if (slab == NULL) {
+	if (slab == NULL)
 		return;
-	}
 
 	list_del(&slab->allocq_entry);
 	vdo_free_slab_journal(UDS_FORGET(slab->journal));
@@ -150,9 +147,8 @@ zone_count_t vdo_get_slab_zone_number(struct vdo_slab *slab)
  */
 void vdo_mark_slab_replaying(struct vdo_slab *slab)
 {
-	if (slab->status == VDO_SLAB_REBUILT) {
+	if (slab->status == VDO_SLAB_REBUILT)
 		slab->status = VDO_SLAB_REPLAYING;
-	}
 }
 
 /**
@@ -194,9 +190,8 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 	bool free_status_changed;
 	int result;
 
-	if (slab == NULL) {
+	if (slab == NULL)
 		return VDO_SUCCESS;
-	}
 
 	/*
 	 * If the slab is unrecovered, preserve the refCount state and let
@@ -215,14 +210,12 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 	result = vdo_adjust_reference_count(slab->reference_counts, operation,
 					    journal_point,
 					    &free_status_changed);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (free_status_changed) {
+	if (free_status_changed)
 		vdo_adjust_free_block_count(slab,
 					    !vdo_is_journal_increment_operation(operation.type));
-	}
 
 	return VDO_SUCCESS;
 }
@@ -261,19 +254,16 @@ int vdo_acquire_provisional_reference(struct vdo_slab *slab,
 {
 	int result;
 
-	if (vdo_pbn_lock_has_provisional_reference(lock)) {
+	if (vdo_pbn_lock_has_provisional_reference(lock))
 		return VDO_SUCCESS;
-	}
 
 	result = vdo_provisionally_reference_block(slab->reference_counts,
 						   pbn, lock);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (vdo_pbn_lock_has_provisional_reference(lock)) {
+	if (vdo_pbn_lock_has_provisional_reference(lock))
 		vdo_adjust_free_block_count(slab, false);
-	}
 
 	return VDO_SUCCESS;
 }
@@ -293,15 +283,13 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 {
 	uint64_t slab_block_number;
 
-	if (physical_block_number < slab->start) {
+	if (physical_block_number < slab->start)
 		return VDO_OUT_OF_RANGE;
-	}
 
 	slab_block_number = physical_block_number - slab->start;
 	if (slab_block_number
-	    >= vdo_get_slab_config(slab->allocator->depot)->data_blocks) {
+	    >= vdo_get_slab_config(slab->allocator->depot)->data_blocks)
 		return VDO_OUT_OF_RANGE;
-	}
 
 	*slab_block_number_ptr = slab_block_number;
 	return VDO_SUCCESS;
@@ -324,9 +312,9 @@ bool vdo_should_save_fully_built_slab(const struct vdo_slab *slab)
 	block_count_t data_blocks =
 		vdo_get_slab_config(slab->allocator->depot)->data_blocks;
 	return (vdo_must_load_ref_counts(slab->allocator->summary,
-					 slab->slab_number)
-		|| (get_slab_free_block_count(slab) != data_blocks)
-		|| !vdo_is_slab_journal_blank(slab->journal));
+					 slab->slab_number) ||
+		(get_slab_free_block_count(slab) != data_blocks) ||
+		!vdo_is_slab_journal_blank(slab->journal));
 }
 
 /**
@@ -341,15 +329,13 @@ static void initiate_slab_action(struct admin_state *state)
 	if (vdo_is_state_draining(state)) {
 		const struct admin_state_code *operation =
 			vdo_get_admin_state_code(state);
-		if (operation == VDO_ADMIN_STATE_SCRUBBING) {
+		if (operation == VDO_ADMIN_STATE_SCRUBBING)
 			slab->status = VDO_SLAB_REBUILDING;
-		}
 
 		vdo_drain_slab_journal(slab->journal);
 
-		if (slab->reference_counts != NULL) {
+		if (slab->reference_counts != NULL)
 			vdo_drain_ref_counts(slab->reference_counts);
-		}
 
 		vdo_check_if_slab_drained(slab);
 		return;
@@ -391,14 +377,13 @@ void vdo_start_slab_action(struct vdo_slab *slab,
  */
 void vdo_notify_slab_journal_is_loaded(struct vdo_slab *slab, int result)
 {
-	if ((result == VDO_SUCCESS) && vdo_is_state_clean_load(&slab->state)) {
+	if ((result == VDO_SUCCESS) && vdo_is_state_clean_load(&slab->state))
 		/*
 		 * Since this is a normal or new load, we don't need the memory
 		 * to read and process the recovery journal, so we can allocate
 		 * reference counts now.
 		 */
 		result = vdo_allocate_ref_counts_for_slab(slab);
-	}
 
 	vdo_finish_loading_with_result(&slab->state, result);
 }
@@ -506,7 +491,7 @@ static const char *status_to_string(enum slab_rebuild_status status)
  */
 void vdo_dump_slab(const struct vdo_slab *slab)
 {
-	if (slab->reference_counts != NULL) {
+	if (slab->reference_counts != NULL)
 		/*
 		 * Terse because there are a lot of slabs to dump and syslog is
 		 * lossy.
@@ -515,16 +500,14 @@ void vdo_dump_slab(const struct vdo_slab *slab)
 			     slab->slab_number,
 			     slab->priority,
 			     (unsigned long long) get_slab_free_block_count(slab));
-	} else {
+	else
 		uds_log_info("slab %u: status %s", slab->slab_number,
 			     status_to_string(slab->status));
-	}
 
 	vdo_dump_slab_journal(slab->journal);
 
-	if (slab->reference_counts != NULL) {
+	if (slab->reference_counts != NULL)
 		vdo_dump_ref_counts(slab->reference_counts);
-	} else {
+	else
 		uds_log_info("refCounts is null");
-	}
 }

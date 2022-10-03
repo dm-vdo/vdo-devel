@@ -33,9 +33,8 @@
  */
 struct slab_journal *vdo_slab_journal_from_dirty_entry(struct list_head *entry)
 {
-	if (entry == NULL) {
+	if (entry == NULL)
 		return NULL;
-	}
 	return list_entry(entry, struct slab_journal, dirty_entry);
 }
 
@@ -190,9 +189,8 @@ int vdo_make_slab_journal(struct block_allocator *allocator,
 					   struct journal_lock,
 					   __func__,
 					   &journal);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	journal->slab = slab;
 	journal->size = slab_config->slab_journal_blocks;
@@ -215,9 +213,8 @@ int vdo_make_slab_journal(struct block_allocator *allocator,
 	 * Set there to be some time between the deadline and the blocking
 	 * threshold, so that hopefully all are done before blocking.
 	 */
-	if ((journal->blocking_threshold - journal->flushing_threshold) > 5) {
+	if ((journal->blocking_threshold - journal->flushing_threshold) > 5)
 		journal->flushing_deadline = journal->blocking_threshold - 5;
-	}
 
 	journal->slab_summary_waiter.callback = release_journal_locks;
 
@@ -247,9 +244,8 @@ int vdo_make_slab_journal(struct block_allocator *allocator,
  */
 void vdo_free_slab_journal(struct slab_journal *journal)
 {
-	if (journal == NULL) {
+	if (journal == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(journal->block));
 	UDS_FREE(journal);
@@ -301,9 +297,8 @@ static void mark_slab_journal_dirty(struct slab_journal *journal,
 	list_for_each_prev(entry, dirty_list) {
 		struct slab_journal *dirty_journal =
 			vdo_slab_journal_from_dirty_entry(entry);
-		if (dirty_journal->recovery_lock <= journal->recovery_lock) {
+		if (dirty_journal->recovery_lock <= journal->recovery_lock)
 			break;
-		}
 	}
 
 	list_move_tail(&journal->dirty_entry, entry->next);
@@ -439,20 +434,18 @@ static void reap_slab_journal(struct slab_journal *journal)
 	bool reaped = false;
 	int result;
 
-	if (is_reaping(journal)) {
+	if (is_reaping(journal))
 		/* We already have a reap in progress so wait for it to finish. */
 		return;
-	}
 
 	if (vdo_is_unrecovered_slab(journal->slab) ||
 	    !vdo_is_state_normal(&journal->slab->state) ||
-	    is_vdo_read_only(journal)) {
+	    is_vdo_read_only(journal))
 		/*
 		 * We must not reap in the first two cases, and there's no
 		 * point in read-only mode.
 		 */
 		return;
-	}
 
 	/*
 	 * Start reclaiming blocks only when the journal head has no
@@ -465,14 +458,12 @@ static void reap_slab_journal(struct slab_journal *journal)
 		reaped = true;
 		journal->unreapable++;
 		journal->reap_lock++;
-		if (journal->reap_lock == &journal->locks[journal->size]) {
+		if (journal->reap_lock == &journal->locks[journal->size])
 			journal->reap_lock = &journal->locks[0];
-		}
 	}
 
-	if (!reaped) {
+	if (!reaped)
 		return;
-	}
 
 	/*
 	 * It is never safe to reap a slab journal block without first issuing
@@ -514,7 +505,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 	int result = *((int *)context);
 
 	if (result != VDO_SUCCESS) {
-		if (result != VDO_READ_ONLY) {
+		if (result != VDO_READ_ONLY)
 			/*
 			 * Don't bother logging what might be lots of errors if
 			 * we are already in read-only mode.
@@ -522,7 +513,6 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 			uds_log_error_strerror(result,
 					       "failed slab summary update %llu",
 					       (unsigned long long) journal->summarized);
-		}
 
 		journal->updating_slab_summary = false;
 		enter_journal_read_only_mode(journal, result);
@@ -583,13 +573,12 @@ static void update_tail_block_location(struct slab_journal *journal)
 		return;
 	}
 
-	if (vdo_is_unrecovered_slab(journal->slab)) {
+	if (vdo_is_unrecovered_slab(journal->slab))
 		free_block_count =
 			vdo_get_summarized_free_block_count(journal->summary,
 							    journal->slab->slab_number);
-	} else {
+	else
 		free_block_count = get_slab_free_block_count(journal->slab);
-	}
 
 	journal->summarized = journal->next_commit;
 	journal->updating_slab_summary = true;
@@ -627,11 +616,10 @@ void vdo_reopen_slab_journal(struct slab_journal *journal)
 	initialize_journal_state(journal);
 
 	/* Ensure no locks are spuriously held on an empty journal. */
-	for (block = 1; block <= journal->size; block++) {
+	for (block = 1; block <= journal->size; block++)
 		ASSERT_LOG_ONLY((get_lock(journal, block)->count == 0),
 				"Scrubbed journal's block %llu is not locked",
 				(unsigned long long) block);
-	}
 
 	add_entries(journal);
 }
@@ -782,23 +770,21 @@ static void commit_tail(struct slab_journal *journal)
 	int result;
 
 	if ((journal->tail_header.entry_count == 0) &&
-	    must_make_entries_to_flush(journal)) {
+	    must_make_entries_to_flush(journal))
 		/*
 		 * There are no entries at the moment, but there are some
 		 * waiters, so defer initiating the flush until those entries
 		 * are ready to write.
 		 */
 		return;
-	}
 
 	if (is_vdo_read_only(journal) || journal->waiting_to_commit ||
-	    (journal->tail_header.entry_count == 0)) {
+	    (journal->tail_header.entry_count == 0))
 		/*
 		 * There is nothing to do since the tail block is empty, or
 		 * writing, or the journal is in read-only mode.
 		 */
 		return;
-	}
 
 	/*
 	 * Since we are about to commit the tail block, this journal no longer
@@ -849,8 +835,8 @@ vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 	}
 
 	vdo_pack_slab_journal_entry(&payload->entries[entry_number],
-				sbn,
-				vdo_is_journal_increment_operation(operation));
+				    sbn,
+				    vdo_is_journal_increment_operation(operation));
 }
 
 /**
@@ -894,13 +880,12 @@ static void add_entry(struct slab_journal *journal,
 	}
 
 	vdo_encode_slab_journal_entry(&journal->tail_header,
-				  &block->payload,
-				  pbn - journal->slab->start,
-				  operation);
+				      &block->payload,
+				      pbn - journal->slab->start,
+				      operation);
 	journal->tail_header.recovery_point = *recovery_point;
-	if (block_is_full(journal)) {
+	if (block_is_full(journal))
 		commit_tail(journal);
-	}
 }
 
 /**
@@ -925,19 +910,17 @@ bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 
 	/* Only accept entries after the current recovery point. */
 	if (!vdo_before_journal_point(&journal->tail_header.recovery_point,
-				      recovery_point)) {
+				      recovery_point))
 		return true;
-	}
 
 	if ((header->entry_count >= journal->full_entries_per_block) &&
 	    (header->has_block_map_increments ||
-	     (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT))) {
+	     (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT)))
 		/*
 		 * The tail block does not have room for the entry we are
 		 * attempting to add so commit the tail block now.
 		 */
 		commit_tail(journal);
-	}
 
 	if (journal->waiting_to_commit) {
 		vdo_start_operation_with_waiter(&journal->slab->state,
@@ -1056,10 +1039,9 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 
 			WRITE_ONCE(journal->events->flush_count,
 				   journal->events->flush_count + 1);
-			if (journal_length <= journal->flushing_deadline) {
+			if (journal_length <= journal->flushing_deadline)
 				blocks_to_deadline = journal->flushing_deadline -
 						   journal_length;
-			}
 			vdo_save_several_reference_blocks(journal->slab->reference_counts,
 							  blocks_to_deadline + 1);
 		}
@@ -1106,23 +1088,21 @@ is_next_entry_a_block_map_increment(struct slab_journal *journal)
  */
 static void add_entries(struct slab_journal *journal)
 {
-	if (journal->adding_entries) {
+	if (journal->adding_entries)
 		/* Protect against re-entrancy. */
 		return;
-	}
 
 	journal->adding_entries = true;
 	while (has_waiters(&journal->entry_waiters)) {
 		struct slab_journal_block_header *header = &journal->tail_header;
 
 		if (journal->partial_write_in_progress ||
-		    vdo_is_slab_rebuilding(journal->slab)) {
+		    vdo_is_slab_rebuilding(journal->slab))
 			/*
 			 * Don't add entries while rebuilding or while a
 			 * partial write is outstanding (VDO-2399).
 			 */
 			break;
-		}
 
 		if (journal->waiting_to_commit) {
 			/*
@@ -1198,7 +1178,7 @@ static void add_entries(struct slab_journal *journal)
 			 */
 			lock->count = journal->entries_per_block + 1;
 
-			if (header->sequence_number == 1) {
+			if (header->sequence_number == 1)
 				/*
 				 * This is the first entry in this slab journal,
 				 * ever. Dirty all of the reference count
@@ -1210,7 +1190,6 @@ static void add_entries(struct slab_journal *journal)
 				 * reference blocks the ref_counts has.
 				 */
 				vdo_acquire_dirty_block_locks(journal->slab->reference_counts);
-			}
 		}
 
 		notify_next_waiter(&journal->entry_waiters,
@@ -1226,9 +1205,8 @@ static void add_entries(struct slab_journal *journal)
 	 */
 	if (vdo_is_slab_draining(journal->slab) &&
 	    !vdo_is_state_suspending(&journal->slab->state) &&
-	    !has_waiters(&journal->entry_waiters)) {
+	    !has_waiters(&journal->entry_waiters))
 		commit_tail(journal);
-	}
 }
 
 /**
@@ -1259,8 +1237,8 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 	}
 
 	if (vdo_is_unrecovered_slab(slab) && requires_reaping(journal)) {
-		struct slab_scrubber *scrubber
-			= slab->allocator->slab_scrubber;
+		struct slab_scrubber *scrubber =
+			slab->allocator->slab_scrubber;
 		vdo_register_slab_for_scrubbing(scrubber, slab, true);
 	}
 
@@ -1282,28 +1260,24 @@ void vdo_adjust_slab_journal_block_reference(struct slab_journal *journal,
 {
 	struct journal_lock *lock;
 
-	if (sequence_number == 0) {
+	if (sequence_number == 0)
 		return;
-	}
 
-	if (vdo_is_replaying_slab(journal->slab)) {
+	if (vdo_is_replaying_slab(journal->slab))
 		/* Locks should not be used during offline replay. */
 		return;
-	}
 
 	ASSERT_LOG_ONLY((adjustment != 0), "adjustment must be non-zero");
 	lock = get_lock(journal, sequence_number);
-	if (adjustment < 0) {
+	if (adjustment < 0)
 		ASSERT_LOG_ONLY((-adjustment <= lock->count),
 				"adjustment %d of lock count %u for slab journal block %llu must not underflow",
 				adjustment, lock->count,
 				(unsigned long long) sequence_number);
-	}
 
 	lock->count += adjustment;
-	if (lock->count == 0) {
+	if (lock->count == 0)
 		reap_slab_journal(journal);
-	}
 }
 
 /**
@@ -1328,9 +1302,8 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
 	}
 
 	if ((recovery_lock < journal->recovery_lock) ||
-	    is_vdo_read_only(journal)) {
+	    is_vdo_read_only(journal))
 		return false;
-	}
 
 	/* All locks are held by the block which is in progress; write it. */
 	commit_tail(journal);
@@ -1350,9 +1323,8 @@ void vdo_resume_slab_journal(struct slab_journal *journal)
 	struct vdo *vdo = journal->slab->allocator->depot->vdo;
 
 	if ((vdo->suspend_type == VDO_ADMIN_STATE_SAVING) &&
-	    !is_vdo_read_only(journal)) {
+	    !is_vdo_read_only(journal))
 		vdo_reopen_slab_journal(journal);
-	}
 }
 
 /**
@@ -1364,13 +1336,13 @@ void vdo_resume_slab_journal(struct slab_journal *journal)
  */
 void vdo_drain_slab_journal(struct slab_journal *journal)
 {
-	const struct admin_state_code *code
-		= vdo_get_admin_state_code(&journal->slab->state);
+	const struct admin_state_code *code =
+		vdo_get_admin_state_code(&journal->slab->state);
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
 			"vdo_drain_slab_journal() called on correct thread");
-	if (code->quiescing) {
+	if (code->quiescing)
 		/*
 		 * XXX: we should revisit this assertion since it is no longer
 		 * clear what it is for.
@@ -1378,13 +1350,11 @@ void vdo_drain_slab_journal(struct slab_journal *journal)
 		ASSERT_LOG_ONLY((!(vdo_is_slab_rebuilding(journal->slab) &&
 				   has_waiters(&journal->entry_waiters))),
 				"slab is recovered or has no waiters");
-	}
 
-	if ((code == VDO_ADMIN_STATE_REBUILDING)
-	    || (code == VDO_ADMIN_STATE_SUSPENDING)
-	    || (code == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING)) {
+	if ((code == VDO_ADMIN_STATE_REBUILDING) ||
+	    (code == VDO_ADMIN_STATE_SUSPENDING) ||
+	    (code == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING))
 		return;
-	}
 
 	commit_tail(journal);
 }
@@ -1434,11 +1404,10 @@ static void set_decoded_state(struct vdo_completion *completion)
 	 * advance the head appropriately.
 	 */
 	if (vdo_get_summarized_cleanliness(journal->summary,
-					   journal->slab->slab_number)) {
+					   journal->slab->slab_number))
 		journal->head = journal->tail;
-	} else {
+	else
 		journal->head = header.head;
-	}
 
 	journal->tail_header = header;
 	initialize_journal_state(journal);
@@ -1533,9 +1502,8 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 	journal->resource_waiter.callback = read_slab_journal_tail;
 	result = vdo_acquire_block_allocator_vio(slab->allocator,
 						 &journal->resource_waiter);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		vdo_notify_slab_journal_is_loaded(slab, result);
-	}
 }
 
 /**

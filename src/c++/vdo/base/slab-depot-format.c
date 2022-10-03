@@ -67,36 +67,30 @@ static int encode_slab_config(const struct slab_config *config,
 {
 	int result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, config->data_blocks);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, config->reference_count_blocks);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer,
 					   config->slab_journal_flushing_threshold);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer,
 					   config->slab_journal_blocking_threshold);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return put_uint64_le_into_buffer(buffer,
 					 config->slab_journal_scrubbing_threshold);
@@ -117,31 +111,26 @@ int vdo_encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state,
 
 	int result = vdo_encode_header(&VDO_SLAB_DEPOT_HEADER_2_0, buffer);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	initial_length = content_length(buffer);
 
 	result = encode_slab_config(&state.slab_config, buffer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, state.first_block);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_uint64_le_into_buffer(buffer, state.last_block);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = put_byte(buffer, state.zone_count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	encoded_size = content_length(buffer) - initial_length;
 	return ASSERT(VDO_SLAB_DEPOT_HEADER_2_0.size == encoded_size,
@@ -161,45 +150,38 @@ static int decode_slab_config(struct buffer *buffer,
 	block_count_t count;
 	int result = get_uint64_le_from_buffer(buffer, &count);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->slab_blocks = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->data_blocks = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->reference_count_blocks = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->slab_journal_blocks = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->slab_journal_flushing_threshold = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->slab_journal_blocking_threshold = count;
 
 	result = get_uint64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	config->slab_journal_scrubbing_threshold = count;
 
 	return UDS_SUCCESS;
@@ -224,44 +206,37 @@ int vdo_decode_slab_depot_state_2_0(struct buffer *buffer,
 	zone_count_t zone_count;
 
 	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = vdo_validate_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true,
 				     __func__);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	initial_length = content_length(buffer);
 
 	result = decode_slab_config(buffer, &slab_config);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &first_block);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &last_block);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_byte(buffer, &zone_count);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	decoded_size = initial_length - content_length(buffer);
 	result = ASSERT(VDO_SLAB_DEPOT_HEADER_2_0.size == decoded_size,
 			"decoded slab depot component size must match header size");
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	*state = (struct slab_depot_state_2_0) {
 		.slab_config = slab_config,
@@ -306,13 +281,11 @@ int vdo_configure_slab_depot(block_count_t block_count,
 
 	/* We do not allow runt slabs, so we waste up to a slab's worth. */
 	slab_count = (block_count / slab_size);
-	if (slab_count == 0) {
+	if (slab_count == 0)
 		return VDO_NO_SPACE;
-	}
 
-	if (slab_count > MAX_VDO_SLABS) {
+	if (slab_count > MAX_VDO_SLABS)
 		return VDO_TOO_MANY_SLABS;
-	}
 
 	total_slab_blocks = slab_count * slab_config.slab_blocks;
 	total_data_blocks = slab_count * slab_config.data_blocks;
@@ -351,9 +324,8 @@ int vdo_configure_slab(block_count_t slab_size,
 	block_count_t flushing_threshold, remaining, blocking_threshold;
 	block_count_t minimal_extra_space, scrubbing_threshold;
 
-	if (slab_journal_blocks >= slab_size) {
+	if (slab_journal_blocks >= slab_size)
 		return VDO_BAD_CONFIGURATION;
-	}
 
 	/*
 	 * This calculation should technically be a recurrence, but the total
@@ -366,9 +338,8 @@ int vdo_configure_slab(block_count_t slab_size,
 	meta_blocks = (ref_blocks + slab_journal_blocks);
 
 	/* Make sure test code hasn't configured slabs to be too small. */
-	if (meta_blocks >= slab_size) {
+	if (meta_blocks >= slab_size)
 		return VDO_BAD_CONFIGURATION;
-	}
 
 	/*
 	 * If the slab size is very small, assume this must be a unit test and
@@ -384,9 +355,8 @@ int vdo_configure_slab(block_count_t slab_size,
 	 * unit tests every time the metadata size changes by one block.
 	 */
 	data_blocks = slab_size - meta_blocks;
-	if ((slab_size < 1024) && !is_power_of_2(data_blocks)) {
+	if ((slab_size < 1024) && !is_power_of_2(data_blocks))
 		data_blocks = ((block_count_t) 1 << ilog2(data_blocks));
-	}
 
 	/*
 	 * Configure the slab journal thresholds. The flush threshold is 168 of
@@ -409,12 +379,10 @@ int vdo_configure_slab(block_count_t slab_size,
 	minimal_extra_space =
 		1 + (MAXIMUM_VDO_USER_VIOS / VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK);
 	scrubbing_threshold = blocking_threshold;
-	if (slab_journal_blocks > minimal_extra_space) {
+	if (slab_journal_blocks > minimal_extra_space)
 		scrubbing_threshold = slab_journal_blocks - minimal_extra_space;
-	}
-	if (blocking_threshold > scrubbing_threshold) {
+	if (blocking_threshold > scrubbing_threshold)
 		blocking_threshold = scrubbing_threshold;
-	}
 
 	*slab_config = (struct slab_config) {
 		.slab_blocks = slab_size,

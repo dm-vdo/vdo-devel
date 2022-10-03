@@ -47,15 +47,13 @@ allocate_super_block(struct vdo *vdo,
 	char *buffer;
 	int result = UDS_ALLOCATE(1, struct vdo_super_block, __func__,
 				  super_block_ptr);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	super_block = *super_block_ptr;
 	result = vdo_initialize_super_block_codec(&super_block->codec);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	buffer = (char *) super_block->codec.encoded_super_block;
 	return create_metadata_vio(vdo,
@@ -96,9 +94,8 @@ int vdo_make_super_block(struct vdo *vdo,
  */
 void vdo_free_super_block(struct vdo_super_block *super_block)
 {
-	if (super_block == NULL) {
+	if (super_block == NULL)
 		return;
-	}
 
 	free_vio(UDS_FORGET(super_block->vio));
 	vdo_destroy_super_block_codec(&super_block->codec);

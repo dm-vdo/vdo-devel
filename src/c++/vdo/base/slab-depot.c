@@ -78,9 +78,8 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 				  struct vdo_slab *,
 				  "slab pointer array",
 				  &depot->new_slabs);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	if (depot->slabs != NULL) {
 		memcpy(depot->new_slabs,
@@ -108,9 +107,8 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 				       depot->new_slab_count,
 				       resizing,
 				       slab_ptr);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 		/*
 		 * Increment here to ensure that vdo_abandon_new_slabs will
 		 * clean up correctly.
@@ -132,13 +130,11 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 {
 	slab_count_t i;
 
-	if (depot->new_slabs == NULL) {
+	if (depot->new_slabs == NULL)
 		return;
-	}
 
-	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
+	for (i = depot->slab_count; i < depot->new_slab_count; i++)
 		vdo_free_slab(UDS_FORGET(depot->new_slabs[i]));
-	}
 	depot->new_slab_count = 0;
 	depot->new_size = 0;
 	UDS_FREE(UDS_FORGET(depot->new_slabs));
@@ -184,9 +180,8 @@ static bool schedule_tail_block_commit(void *context)
 {
 	struct slab_depot *depot = context;
 
-	if (depot->new_release_request == depot->active_release_request) {
+	if (depot->new_release_request == depot->active_release_request)
 		return false;
-	}
 
 	return vdo_schedule_action(depot->action_manager,
 				   prepare_for_tail_block_commit,
@@ -216,9 +211,8 @@ static int allocate_components(struct slab_depot *depot,
 					     schedule_tail_block_commit,
 					     depot->vdo,
 					     &depot->action_manager);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	depot->origin = depot->first_block;
 
@@ -229,17 +223,15 @@ static int allocate_components(struct slab_depot *depot,
 				       depot->slab_config.data_blocks,
 				       depot->vdo->read_only_notifier,
 				       &depot->slab_summary);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	slab_count = vdo_calculate_slab_count(depot);
-	if (thread_config->physical_zone_count > slab_count) {
+	if (thread_config->physical_zone_count > slab_count)
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "%u physical zones exceeds slab count %u",
 					      thread_config->physical_zone_count,
 					      slab_count);
-	}
 
 	/* Allocate the block allocators. */
 	for (zone = 0; zone < depot->zone_count; zone++) {
@@ -253,16 +245,14 @@ static int allocate_components(struct slab_depot *depot,
 						  depot->vdo,
 						  depot->vdo->read_only_notifier,
 						  &depot->allocators[zone]);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	/* Allocate slabs. */
 	result = allocate_slabs(depot, slab_count);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/* Use the new slabs. */
 	for (i = depot->slab_count; i < depot->new_slab_count; i++) {
@@ -304,10 +294,9 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 	 */
 	block_count_t slab_size = state.slab_config.slab_blocks;
 
-	if (!is_power_of_2(slab_size)) {
+	if (!is_power_of_2(slab_size))
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 					      "slab size must be a power of two");
-	}
 	slab_size_shift = ilog2(slab_size);
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
@@ -315,9 +304,8 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 				       struct block_allocator *,
 				       __func__,
 				       &depot);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	depot->vdo = vdo;
 	depot->old_zone_count = state.zone_count;
@@ -345,22 +333,19 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 {
 	zone_count_t zone = 0;
 
-	if (depot == NULL) {
+	if (depot == NULL)
 		return;
-	}
 
 	vdo_abandon_new_slabs(depot);
 
-	for (zone = 0; zone < depot->zone_count; zone++) {
+	for (zone = 0; zone < depot->zone_count; zone++)
 		vdo_free_block_allocator(UDS_FORGET(depot->allocators[zone]));
-	}
 
 	if (depot->slabs != NULL) {
 		slab_count_t i;
 
-		for (i = 0; i < depot->slab_count; i++) {
+		for (i = 0; i < depot->slab_count; i++)
 			vdo_free_slab(UDS_FORGET(depot->slabs[i]));
-		}
 	}
 
 	UDS_FREE(UDS_FORGET(depot->slabs));
@@ -388,9 +373,8 @@ struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot
 	struct slab_depot_state_2_0 state;
 	zone_count_t zones_to_record = depot->zone_count;
 
-	if (depot->zone_count == 0) {
+	if (depot->zone_count == 0)
 		zones_to_record = depot->old_zone_count;
-	}
 
 	state = (struct slab_depot_state_2_0) {
 		.slab_config = depot->slab_config,
@@ -419,9 +403,8 @@ int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 	while (vdo_has_next_slab(&iterator)) {
 		int result =
 			vdo_allocate_ref_counts_for_slab(vdo_next_slab(&iterator));
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			return result;
-		}
 	}
 
 	return VDO_SUCCESS;
@@ -443,14 +426,12 @@ int vdo_get_slab_number(const struct slab_depot *depot,
 {
 	slab_count_t slab_number;
 
-	if (pbn < depot->first_block) {
+	if (pbn < depot->first_block)
 		return VDO_OUT_OF_RANGE;
-	}
 
 	slab_number = (pbn - depot->first_block) >> depot->slab_size_shift;
-	if (slab_number >= depot->slab_count) {
+	if (slab_number >= depot->slab_count)
 		return VDO_OUT_OF_RANGE;
-	}
 
 	*slab_number_ptr = slab_number;
 	return VDO_SUCCESS;
@@ -474,9 +455,8 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot,
 	slab_count_t slab_number;
 	int result;
 
-	if (pbn == VDO_ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK)
 		return NULL;
-	}
 
 	result = vdo_get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
@@ -521,9 +501,8 @@ uint8_t vdo_get_increment_limit(struct slab_depot *depot,
 {
 	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
 
-	if ((slab == NULL) || vdo_is_unrecovered_slab(slab)) {
+	if ((slab == NULL) || vdo_is_unrecovered_slab(slab))
 		return 0;
-	}
 
 	return vdo_get_available_references(slab->reference_counts, pbn);
 }
@@ -543,13 +522,11 @@ bool vdo_is_physical_data_block(const struct slab_depot *depot,
 	slab_block_number sbn;
 	int result;
 
-	if (pbn == VDO_ZERO_BLOCK) {
+	if (pbn == VDO_ZERO_BLOCK)
 		return true;
-	}
 
-	if (vdo_get_slab_number(depot, pbn, &slab_number) != VDO_SUCCESS) {
+	if (vdo_get_slab_number(depot, pbn, &slab_number) != VDO_SUCCESS)
 		return false;
-	}
 
 	result = vdo_slab_block_number_from_pbn(depot->slabs[slab_number],
 						pbn, &sbn);
@@ -573,10 +550,9 @@ block_count_t vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot
 	block_count_t total = 0;
 	zone_count_t zone;
 
-	for (zone = 0; zone < depot->zone_count; zone++) {
+	for (zone = 0; zone < depot->zone_count; zone++)
 		/* The allocators are responsible for thread safety. */
 		total += READ_ONCE(depot->allocators[zone]->allocated_blocks);
-	}
 	return total;
 }
 
@@ -652,7 +628,7 @@ void vdo_load_slab_depot(struct slab_depot *depot,
 			 struct vdo_completion *parent,
 			 void *context)
 {
-	if (vdo_assert_load_operation(operation, parent)) {
+	if (vdo_assert_load_operation(operation, parent))
 		vdo_schedule_operation_with_context(depot->action_manager,
 						    operation,
 						    start_depot_load,
@@ -660,7 +636,6 @@ void vdo_load_slab_depot(struct slab_depot *depot,
 						    NULL,
 						    context,
 						    parent);
-	}
 }
 
 /**
@@ -712,9 +687,8 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 	int result;
 	slab_count_t new_slab_count;
 
-	if ((new_size >> depot->slab_size_shift) <= depot->slab_count) {
+	if ((new_size >> depot->slab_size_shift) <= depot->slab_count)
 		return VDO_INCREMENT_TOO_SMALL;
-	}
 
 	/* Generate the depot configuration for the new block count. */
 	result = vdo_configure_slab_depot(new_size,
@@ -722,21 +696,18 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 					  depot->slab_config,
 					  depot->zone_count,
 					  &new_state);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	new_slab_count = vdo_compute_slab_count(depot->first_block,
 						new_state.last_block,
 						depot->slab_size_shift);
-	if (new_slab_count <= depot->slab_count) {
+	if (new_slab_count <= depot->slab_count)
 		return uds_log_error_strerror(VDO_INCREMENT_TOO_SMALL,
 					      "Depot can only grow");
-	}
-	if (new_slab_count == depot->new_slab_count) {
+	if (new_slab_count == depot->new_slab_count)
 		/* Check it out, we've already got all the new slabs allocated! */
 		return VDO_SUCCESS;
-	}
 
 	vdo_abandon_new_slabs(depot);
 	result = allocate_slabs(depot, new_slab_count);
@@ -841,9 +812,8 @@ void
 vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 					   sequence_number_t recovery_block_number)
 {
-	if (depot == NULL) {
+	if (depot == NULL)
 		return;
-	}
 
 	depot->new_release_request = recovery_block_number;
 	vdo_schedule_default_action(depot->action_manager);
@@ -904,9 +874,8 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 
 	struct slab_depot *depot = completion->parent;
 
-	if (atomic_add_return(-1, &depot->zones_to_scrub) > 0) {
+	if (atomic_add_return(-1, &depot->zones_to_scrub) > 0)
 		return;
-	}
 
 	/* We're the last! */
 	prior_state = atomic_cmpxchg(&depot->vdo->state,
@@ -923,11 +892,10 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 	 * failed due to a read-only entry which our own thread does not
 	 * yet know about.
 	 */
-	if (prior_state == VDO_DIRTY) {
+	if (prior_state == VDO_DIRTY)
 		uds_log_info("VDO commencing normal operation");
-	} else if (prior_state == VDO_RECOVERING) {
+	else if (prior_state == VDO_RECOVERING)
 		uds_log_info("Exiting recovery mode");
-	}
 }
 
 /**
@@ -965,9 +933,8 @@ bool vdo_are_equivalent_slab_depots(struct slab_depot *depot_a,
 	    (depot_a->slab_count != depot_b->slab_count) ||
 	    (depot_a->slab_size_shift != depot_b->slab_size_shift) ||
 	    (vdo_get_slab_depot_allocated_blocks(depot_a) !=
-	     vdo_get_slab_depot_allocated_blocks(depot_b))) {
+	     vdo_get_slab_depot_allocated_blocks(depot_b)))
 		return false;
-	}
 
 	for (i = 0; i < depot_a->slab_count; i++) {
 		struct vdo_slab *slab_a = depot_a->slabs[i];
@@ -976,9 +943,8 @@ bool vdo_are_equivalent_slab_depots(struct slab_depot *depot_a,
 		if ((slab_a->start != slab_b->start) ||
 		    (slab_a->end != slab_b->end) ||
 		    !vdo_are_equivalent_ref_counts(slab_a->reference_counts,
-						   slab_b->reference_counts)) {
+						   slab_b->reference_counts))
 			return false;
-		}
 	}
 
 	return true;

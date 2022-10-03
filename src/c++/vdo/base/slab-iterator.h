@@ -68,13 +68,12 @@ static inline struct vdo_slab *vdo_next_slab(struct slab_iterator *iterator)
 {
 	struct vdo_slab *slab = iterator->next;
 
-	if ((slab == NULL)
-	    || (slab->slab_number < iterator->end + iterator->stride)) {
+	if ((slab == NULL) ||
+	    (slab->slab_number < iterator->end + iterator->stride))
 		iterator->next = NULL;
-	} else {
+	else
 		iterator->next =
 			iterator->slabs[slab->slab_number - iterator->stride];
-	}
 	return slab;
 }
 

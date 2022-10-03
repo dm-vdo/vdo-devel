@@ -80,9 +80,8 @@ static void do_status_code_registration(void)
 	 *  once each, resulting in multiple calls to register_error_block
 	 *  which is shared in libuds).
 	 */
-	if (result == UDS_DUPLICATE_NAME) {
+	if (result == UDS_DUPLICATE_NAME)
 		result = UDS_SUCCESS;
-	}
 
 	status_code_registration_result =
 		(result == UDS_SUCCESS) ? VDO_SUCCESS : result;
@@ -90,7 +89,7 @@ static void do_status_code_registration(void)
 
 /**
  * vdo_register_status_codes() - Register the VDO status codes if
- *                               needed.
+ *				 needed.
  * Return: A success or error code.
  */
 int vdo_register_status_codes(void)
@@ -101,7 +100,7 @@ int vdo_register_status_codes(void)
 
 /**
  * vdo_map_to_system_error() - Given an error code, return a value we
- *                             can return to the OS.
+ *			       can return to the OS.
  * @error: The error code to convert.
  *
  * The input error code may be a system-generated value (such as
@@ -118,17 +117,16 @@ int vdo_map_to_system_error(int error)
 	char error_message[UDS_MAX_ERROR_MESSAGE_SIZE];
 
 	/* 0 is success, negative a system error code */
-	if (likely(error <= 0)) {
+	if (likely(error <= 0))
 		return error;
-	}
-	if (error < 1024) {
-		/* errno macro used without negating - may be a minor bug */
 #ifdef VDO_INTERNAL
+	if (error < 1024)
+		/* errno macro used without negating - may be a minor bug */
 		uds_log_info("%s: mapping errno value %d used without negation",
 			     __func__, error);
 #endif /* VDO_INTERNAL */
+	if (error < 1024)
 		return -error;
-	}
 
 	/* VDO or UDS error */
 	switch (error) {

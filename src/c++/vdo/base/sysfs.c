@@ -24,15 +24,13 @@ static int vdo_log_level_store(const char *buf,
 
 	int n = strlen(buf);
 
-	if (n > 10) {
+	if (n > 10)
 		return -EINVAL;
-	}
 
 	memset(internal_buf, '\000', sizeof(internal_buf));
 	memcpy(internal_buf, buf, n);
-	if (internal_buf[n - 1] == '\n') {
+	if (internal_buf[n - 1] == '\n')
 		internal_buf[n - 1] = '\000';
-	}
 	set_uds_log_level(uds_log_string_to_priority(internal_buf));
 	return 0;
 }
@@ -44,17 +42,15 @@ static int vdo_max_req_active_store(const char *buf,
 	int result = param_set_int(buf, kp);
 	unsigned int value;
 
-	if (result != 0) {
+	if (result != 0)
 		return result;
-	}
 
 	value = *(int *)kp->arg;
 
-	if (value < 1) {
+	if (value < 1)
 		value = 1;
-	} else if (value > MAXIMUM_VDO_USER_VIOS) {
+	else if (value > MAXIMUM_VDO_USER_VIOS)
 		value = MAXIMUM_VDO_USER_VIOS;
-	}
 	*(int *)kp->arg = value;
 	return 0;
 }
@@ -65,9 +61,8 @@ static int vdo_dedupe_timeout_interval_store(const char *buf,
 {
 	int result = param_set_uint(buf, kp);
 
-	if (result != 0) {
+	if (result != 0)
 		return result;
-	}
 	vdo_set_dedupe_index_timeout_interval(*(uint *)kp->arg);
 	return 0;
 }
@@ -77,9 +72,8 @@ static int vdo_min_dedupe_timer_interval_store(const char *buf,
 {
 	int result = param_set_uint(buf, kp);
 
-	if (result != 0) {
+	if (result != 0)
 		return result;
-	}
 	vdo_set_dedupe_index_min_timer_interval(*(uint *)kp->arg);
 	return 0;
 }

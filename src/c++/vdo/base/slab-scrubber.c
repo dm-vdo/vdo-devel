@@ -40,9 +40,8 @@ allocate_vio_and_buffer(struct slab_scrubber *scrubber,
 	size_t buffer_size = VDO_BLOCK_SIZE * slab_journal_size;
 	int result = UDS_ALLOCATE(buffer_size, char, __func__,
 				  &scrubber->journal_data);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return create_multi_block_metadata_vio(vdo,
 					       VIO_TYPE_SLAB_JOURNAL,
@@ -70,9 +69,8 @@ int vdo_make_slab_scrubber(struct vdo *vdo,
 	struct slab_scrubber *scrubber;
 	int result = UDS_ALLOCATE(1, struct slab_scrubber, __func__, &scrubber);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	result = allocate_vio_and_buffer(scrubber, vdo, slab_journal_size);
 	if (result != VDO_SUCCESS) {
@@ -108,9 +106,8 @@ static void free_vio_and_buffer(struct slab_scrubber *scrubber)
  */
 void vdo_free_slab_scrubber(struct slab_scrubber *scrubber)
 {
-	if (scrubber == NULL) {
+	if (scrubber == NULL)
 		return;
-	}
 
 	free_vio_and_buffer(scrubber);
 	UDS_FREE(scrubber);
@@ -124,13 +121,11 @@ void vdo_free_slab_scrubber(struct slab_scrubber *scrubber)
  */
 static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 {
-	if (!list_empty(&scrubber->high_priority_slabs)) {
+	if (!list_empty(&scrubber->high_priority_slabs))
 		return vdo_slab_from_list_entry(scrubber->high_priority_slabs.next);
-	}
 
-	if (!list_empty(&scrubber->slabs)) {
+	if (!list_empty(&scrubber->slabs))
 		return vdo_slab_from_list_entry(scrubber->slabs.next);
-	}
 
 	return NULL;
 }
@@ -171,9 +166,8 @@ void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
 	ASSERT_LOG_ONLY((slab->status != VDO_SLAB_REBUILT),
 			"slab to be scrubbed is unrecovered");
 
-	if (slab->status != VDO_SLAB_REQUIRES_SCRUBBING) {
+	if (slab->status != VDO_SLAB_REQUIRES_SCRUBBING)
 		return;
-	}
 
 	list_del_init(&slab->allocq_entry);
 	if (!slab->was_queued_for_scrubbing) {
@@ -200,9 +194,8 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 {
 	bool notify;
 
-	if (!has_slabs_to_scrub(scrubber)) {
+	if (!has_slabs_to_scrub(scrubber))
 		free_vio_and_buffer(scrubber);
-	}
 
 	/* Inform whoever is waiting that scrubbing has completed. */
 	vdo_complete_completion(&scrubber->completion);
@@ -213,19 +206,17 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	 * Note that the scrubber has stopped, and inform anyone who might be
 	 * waiting for that to happen.
 	 */
-	if (!vdo_finish_draining(&scrubber->admin_state)) {
+	if (!vdo_finish_draining(&scrubber->admin_state))
 		WRITE_ONCE(scrubber->admin_state.current_state,
 			   VDO_ADMIN_STATE_SUSPENDED);
-	}
 
 	/*
 	 * We can't notify waiters until after we've finished draining or
 	 * they'll just requeue. Fortunately if there were waiters, we can't
 	 * have been freed yet.
 	 */
-	if (notify) {
+	if (notify)
 		notify_all_waiters(&scrubber->waiters, NULL, NULL);
-	}
 }
 
 static void scrub_next_slab(struct slab_scrubber *scrubber);
@@ -294,7 +285,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 		struct slab_journal_entry entry =
 			vdo_decode_slab_journal_entry(block,
 						      entry_point.entry_count);
-		if (entry.sbn > max_sbn) {
+		if (entry.sbn > max_sbn)
 			/* This entry is out of bounds. */
 			return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 						      "vdo_slab journal entry (%llu, %u) had invalid offset %u in slab (size %u blocks)",
@@ -302,7 +293,6 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 						      entry_point.entry_count,
 						      entry.sbn,
 						      max_sbn);
-		}
 
 		result = vdo_replay_reference_count_change(slab->reference_counts,
 							   &entry_point, entry);
@@ -387,9 +377,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		last_entry_applied.sequence_number = sequence;
 		last_entry_applied.entry_count = header.entry_count - 1;
 		index++;
-		if (index == journal->size) {
+		if (index == journal->size)
 			index = 0;
-		}
 	}
 
 	/*
@@ -477,9 +466,8 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 		return;
 	}
 
-	if (vdo_finish_draining(&scrubber->admin_state)) {
+	if (vdo_finish_draining(&scrubber->admin_state))
 		return;
-	}
 
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
@@ -542,9 +530,8 @@ void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 	if (scrub_at_least_one && list_empty(&scrubber->high_priority_slabs)) {
 		struct vdo_slab *slab = get_next_slab(scrubber);
 
-		if (slab != NULL) {
+		if (slab != NULL)
 			vdo_register_slab_for_scrubbing(scrubber, slab, true);
-		}
 	}
 	scrubber->high_priority_only = true;
 	vdo_scrub_slabs(scrubber, parent, callback, error_handler);
@@ -559,14 +546,13 @@ void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber,
 			     struct vdo_completion *parent)
 {
-	if (vdo_is_state_quiescent(&scrubber->admin_state)) {
+	if (vdo_is_state_quiescent(&scrubber->admin_state))
 		vdo_complete_completion(parent);
-	} else {
+	else
 		vdo_start_draining(&scrubber->admin_state,
 				   VDO_ADMIN_STATE_SUSPENDING,
 				   parent,
 				   NULL);
-	}
 }
 
 /**
@@ -606,13 +592,11 @@ void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber,
 int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 				  struct waiter *waiter)
 {
-	if (vdo_is_read_only(scrubber->read_only_notifier)) {
+	if (vdo_is_read_only(scrubber->read_only_notifier))
 		return VDO_READ_ONLY;
-	}
 
-	if (vdo_is_state_quiescent(&scrubber->admin_state)) {
+	if (vdo_is_state_quiescent(&scrubber->admin_state))
 		return VDO_NO_SPACE;
-	}
 
 	return enqueue_waiter(&scrubber->waiters, waiter);
 }
