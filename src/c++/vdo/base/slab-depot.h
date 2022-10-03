@@ -92,10 +92,6 @@ vdo_record_slab_depot(const struct slab_depot *depot);
 
 int __must_check vdo_allocate_slab_ref_counts(struct slab_depot *depot);
 
-struct block_allocator * __must_check
-vdo_get_block_allocator_for_zone(struct slab_depot *depot,
-				 zone_count_t zone_number);
-
 struct vdo_slab * __must_check
 vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
 

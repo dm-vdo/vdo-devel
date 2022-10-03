@@ -150,8 +150,7 @@ static void testDirtySlabOrdering(void)
   performAddEntry(0);
   performAddEntry(1);
 
-  struct block_allocator *allocator
-    = vdo_get_block_allocator_for_zone(vdo->depot, 0);
+  struct block_allocator *allocator = vdo->depot->allocators[0];
   for (slab_count_t i = 0; i < 4; i++) {
     struct list_head *entry = allocator->dirty_slab_journals.next;
     list_del_init(entry);

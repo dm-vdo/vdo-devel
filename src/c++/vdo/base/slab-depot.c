@@ -153,7 +153,9 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 static thread_id_t get_allocator_thread_id(void *context,
 					   zone_count_t zone_number)
 {
-	return vdo_get_block_allocator_for_zone(context, zone_number)->thread_id;
+	struct slab_depot *depot = context;
+
+	return depot->allocators[zone_number]->thread_id;
 }
 
 /**
@@ -423,20 +425,6 @@ int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 	}
 
 	return VDO_SUCCESS;
-}
-
-/**
- * vdo_get_block_allocator_for_zone() - Get the block allocator for a
- *                                      specified physical zone from a depot.
- * @depot: The depot.
- * @zone_number: The physical zone.
- *
- * Return: The block allocator for the specified zone.
- */
-struct block_allocator *vdo_get_block_allocator_for_zone(struct slab_depot *depot,
-							 zone_count_t zone_number)
-{
-	return depot->allocators[zone_number];
 }
 
 /**
