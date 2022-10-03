@@ -39,8 +39,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 #endif /* VDO_INTERNAL */
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_work_queue *current_work_queue;
-	const struct admin_state_code *code
-		= vdo_get_admin_state_code(&vdo->admin_state);
+	const struct admin_state_code *code =
+		vdo_get_admin_state_code(&vdo->admin_state);
 
 	ASSERT_LOG_ONLY(code->normal,
 			"vdo should not receive bios while in state %s",
@@ -52,9 +52,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 #ifdef VDO_INTERNAL
 	/* Check for invalid bios. This is too expensive to do except in debug. */
 	result = check_bio_validity(bio);
-	if (result != 0) {
+	if (result != 0)
 		return result;
-	}
 #endif /* VDO_INTERNAL */
 
 	/* Handle empty bios.  Empty flush bios are not associated with a vio. */
@@ -66,8 +65,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 
 	/* This could deadlock, */
 	current_work_queue = get_current_work_queue();
-	BUG_ON((current_work_queue != NULL)
-	       && (vdo == get_work_queue_owner(current_work_queue)->vdo));
+	BUG_ON((current_work_queue != NULL) &&
+	       (vdo == get_work_queue_owner(current_work_queue)->vdo));
 	vdo_launch_bio(vdo->data_vio_pool, bio);
 	return DM_MAPIO_SUBMITTED;
 }
@@ -230,9 +229,8 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 	 */
 
 	/* Dump messages should always be processed */
-	if (strcasecmp(argv[0], "dump") == 0) {
+	if (strcasecmp(argv[0], "dump") == 0)
 		return vdo_dump(vdo, argc, argv, "dmsetup message");
-	}
 
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
@@ -247,15 +245,13 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 #ifdef VDO_INTERNAL
 		    (strcasecmp(argv[0], "index-fill") == 0) ||
 #endif /* VDO_INTERNAL */
-		    (strcasecmp(argv[0], "index-enable") == 0)) {
+		    (strcasecmp(argv[0], "index-enable") == 0))
 			return vdo_message_dedupe_index(vdo->hash_zones,
 							argv[0]);
-		}
 	}
 
-	if (atomic_cmpxchg(&vdo->processing_message, 0, 1) != 0) {
+	if (atomic_cmpxchg(&vdo->processing_message, 0, 1) != 0)
 		return -EBUSY;
-	}
 
 	result = process_vdo_message_locked(vdo, argc, argv);
 
@@ -352,7 +348,6 @@ static int vdo_initialize(struct dm_target *ti,
 	uds_log_debug("Compression            = %s",
 		      (config->compression ? "on" : "off"));
 
-
 	vdo = vdo_find_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
 		uds_log_error("Existing vdo already uses device %s",
@@ -429,9 +424,8 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	if (result != VDO_SUCCESS) {
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
-		if (old_vdo == NULL) {
+		if (old_vdo == NULL)
 			vdo_release_instance(instance);
-		}
 		return -EINVAL;
 	}
 
@@ -488,9 +482,8 @@ static void vdo_dtr(struct dm_target *ti)
 
 		device_name = vdo_get_device_name(ti);
 		uds_log_info("stopping device '%s'", device_name);
-		if (vdo->dump_on_shutdown) {
+		if (vdo->dump_on_shutdown)
 			vdo_dump_all(vdo, "device shutdown");
-		}
 
 		vdo_destroy(UDS_FORGET(vdo));
 		uds_log_info("device '%s' stopped", device_name);
@@ -511,10 +504,10 @@ static void vdo_dtr(struct dm_target *ti)
 
 static void vdo_presuspend(struct dm_target *ti)
 {
-	get_vdo_for_target(ti)->suspend_type
-		= (dm_noflush_suspending(ti)
-		   ? VDO_ADMIN_STATE_SUSPENDING
-		   : VDO_ADMIN_STATE_SAVING);
+	get_vdo_for_target(ti)->suspend_type =
+		(dm_noflush_suspending(ti)
+		  ? VDO_ADMIN_STATE_SUSPENDING
+		  : VDO_ADMIN_STATE_SAVING);
 }
 
 static void vdo_postsuspend(struct dm_target *ti)
@@ -556,15 +549,13 @@ static int vdo_preresume(struct dm_target *ti)
 			uds_unregister_thread_device_id();
 			return vdo_map_to_system_error(result);
 		}
-
 	}
 
 	uds_log_info("resuming device '%s'", device_name);
 	result = vdo_preresume_internal(vdo, config, device_name);
-	if ((result == VDO_PARAMETER_MISMATCH)
-	    || (result == VDO_INVALID_ADMIN_STATE)) {
+	if ((result == VDO_PARAMETER_MISMATCH) ||
+	    (result == VDO_INVALID_ADMIN_STATE))
 		result = -EINVAL;
-	}
 
 	uds_unregister_thread_device_id();
 	return vdo_map_to_system_error(result);
@@ -610,9 +601,8 @@ static void vdo_module_destroy(void)
 {
 	uds_log_debug("in %s", __func__);
 
-	if (dm_registered) {
+	if (dm_registered)
 		dm_unregister_target(&vdo_target_bio);
-	}
 
 	vdo_clean_up_instance_number_tracking();
 

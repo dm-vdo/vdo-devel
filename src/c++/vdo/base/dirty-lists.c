@@ -50,18 +50,16 @@ int vdo_make_dirty_lists(block_count_t maximum_age,
 	int result = UDS_ALLOCATE_EXTENDED(struct dirty_lists, maximum_age,
 					   struct list_head, __func__,
 					   &dirty_lists);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	dirty_lists->maximum_age = maximum_age;
 	dirty_lists->callback = callback;
 	dirty_lists->context = context;
 
 	INIT_LIST_HEAD(&dirty_lists->expired);
-	for (i = 0; i < maximum_age; i++) {
+	for (i = 0; i < maximum_age; i++)
 		INIT_LIST_HEAD(&dirty_lists->lists[i]);
-	}
 
 	*dirty_lists_ptr = dirty_lists;
 	return VDO_SUCCESS;
@@ -98,9 +96,8 @@ static void expire_oldest_list(struct dirty_lists *dirty_lists)
 		INIT_LIST_HEAD(dirty_list);
 	}
 
-	if (dirty_lists->offset == dirty_lists->maximum_age) {
+	if (dirty_lists->offset == dirty_lists->maximum_age)
 		dirty_lists->offset = 0;
-	}
 }
 
 /**
@@ -113,9 +110,8 @@ static void update_period(struct dirty_lists *dirty_lists,
 {
 	while (dirty_lists->next_period <= period) {
 		if ((dirty_lists->next_period - dirty_lists->oldest_period)
-		    == dirty_lists->maximum_age) {
+		    == dirty_lists->maximum_age)
 			expire_oldest_list(dirty_lists);
-		}
 		dirty_lists->next_period++;
 	}
 }
@@ -126,9 +122,8 @@ static void update_period(struct dirty_lists *dirty_lists,
  */
 static void write_expired_elements(struct dirty_lists *dirty_lists)
 {
-	if (list_empty(&dirty_lists->expired)) {
+	if (list_empty(&dirty_lists->expired))
 		return;
-	}
 
 	dirty_lists->callback(&dirty_lists->expired, dirty_lists->context);
 	ASSERT_LOG_ONLY(list_empty(&dirty_lists->expired),
@@ -150,9 +145,8 @@ void vdo_add_to_dirty_lists(struct dirty_lists *dirty_lists,
 			    sequence_number_t new_period)
 {
 	if ((old_period == new_period)
-	    || ((old_period != 0) && (old_period < new_period))) {
+	    || ((old_period != 0) && (old_period < new_period)))
 		return;
-	}
 
 	if (new_period < dirty_lists->oldest_period) {
 		list_move_tail(entry, &dirty_lists->expired);
@@ -189,8 +183,7 @@ void vdo_advance_dirty_lists_period(struct dirty_lists *dirty_lists,
  */
 void vdo_flush_dirty_lists(struct dirty_lists *dirty_lists)
 {
-	while (dirty_lists->oldest_period < dirty_lists->next_period) {
+	while (dirty_lists->oldest_period < dirty_lists->next_period)
 		expire_oldest_list(dirty_lists);
-	}
 	write_expired_elements(dirty_lists);
 }

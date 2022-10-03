@@ -64,11 +64,9 @@ filter_vdos_locked(vdo_filter_t *filter, void *context)
 {
 	struct vdo *vdo;
 
-	list_for_each_entry(vdo, &registry.links, registration) {
-		if (filter(vdo, context)) {
+	list_for_each_entry(vdo, &registry.links, registration)
+		if (filter(vdo, context))
 			return vdo;
-		}
-	}
 
 	return NULL;
 }
@@ -102,9 +100,8 @@ int vdo_register(struct vdo *vdo)
 void vdo_unregister(struct vdo *vdo)
 {
 	write_lock(&registry.lock);
-	if (filter_vdos_locked(vdo_is_equal, vdo) == vdo) {
+	if (filter_vdos_locked(vdo_is_equal, vdo) == vdo)
 		list_del_init(&vdo->registration);
-	}
 
 	write_unlock(&registry.lock);
 }

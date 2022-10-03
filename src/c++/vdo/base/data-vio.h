@@ -170,8 +170,8 @@ struct compression_state {
 
 	/*
 	 * The compressed block used to hold the compressed form of this block
-         * and that of any other blocks for which this data_vio is the
-         * compressed write agent.
+	 * and that of any other blocks for which this data_vio is the
+	 * compressed write agent.
 	 */
 	struct compressed_block *block;
 };
@@ -303,11 +303,11 @@ struct data_vio {
 	bool is_partial;
 
 	/*
-         * The number of bytes to be discarded. For discards, this field will
-         * always be positive, whereas for non-discards it will always be 0.
-         * Hence it can be used to determine whether a data_vio is processing
-         * a discard, even after the user_bio has been acknowledged.
-         */
+	 * The number of bytes to be discarded. For discards, this field will
+	 * always be positive, whereas for non-discards it will always be 0.
+	 * Hence it can be used to determine whether a data_vio is processing
+	 * a discard, even after the user_bio has been acknowledged.
+	 */
 	uint32_t remaining_discard;
 
 	struct dedupe_context *dedupe_context;
@@ -409,16 +409,15 @@ static inline struct waiter *data_vio_as_waiter(struct data_vio *data_vio)
 
 /**
  * waiter_as_data_vio() - Convert a data_vio's generic wait queue entry back
- *                        to the data_vio.
+ *			  to the data_vio.
  * @waiter: The wait queue entry to convert.
  *
  * Return: The wait queue entry as a data_vio.
  */
 static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 {
-	if (waiter == NULL) {
+	if (waiter == NULL)
 		return NULL;
-	}
 
 	return container_of(waiter, struct data_vio, waiter);
 }
@@ -445,7 +444,7 @@ static inline bool is_write_data_vio(const struct data_vio *data_vio)
 
 /**
  * is_read_modify_write_data_vio() - Check whether a data_vio is a
- *                                   read-modify-write.
+ *				     read-modify-write.
  * @data_vio: The data_vio.
  *
  * Return: true if the vio is a read-modify-write.
@@ -470,7 +469,7 @@ static inline bool is_trim_data_vio(struct data_vio *data_vio)
 
 /**
  * data_vio_requires_fua() - Check whether a data_vio requires a FUA after
- *                           doing its I/O.
+ *			     doing its I/O.
  * @data_vio: The data_vio.
  *
  * Return: true if the data_vio requires a FUA.
@@ -488,8 +487,8 @@ data_vio_has_flush_generation_lock(struct data_vio *data_vio)
 
 /**
  * get_data_vio_new_advice() - Get the location that should be passed to UDS
- *                             as the new advice for to find the data written
- *                             by this data_vio.
+ *			       as the new advice for to find the data written
+ *			       by this data_vio.
  * @data_vio: The write data_vio that is ready to update UDS.
  *
  * Return: a data_location containing the advice to store in UDS.
@@ -497,7 +496,7 @@ data_vio_has_flush_generation_lock(struct data_vio *data_vio)
 static inline struct data_location
 get_data_vio_new_advice(const struct data_vio *data_vio)
 {
-	return (struct data_location){
+	return (struct data_location) {
 		.pbn = data_vio->new_mapped.pbn,
 		.state = data_vio->new_mapped.state,
 	};
@@ -516,7 +515,7 @@ static inline struct vdo *vdo_from_data_vio(struct data_vio *data_vio)
 
 /**
  * get_thread_config_from_data_vio() - Get the struct thread_config from a
- *                                     data_vio.
+ *				       data_vio.
  * @data_vio: The data_vio from which to get the struct thread_config.
  *
  * Return: The struct thread_config of the vdo to which a data_vio belongs.
@@ -564,8 +563,8 @@ void finish_data_vio(struct data_vio *data_vio, int result);
 
 /**
  * continue_data_vio() - Continue processing a data_vio that has been waiting
- *                       for an event, setting the result from the event and
- *                       calling the current callback.
+ *			 for an event, setting the result from the event and
+ *			 calling the current callback.
  * @data_vio: The data_vio to continue.
  *
  * Return: The current result (will not mask older errors).
@@ -597,7 +596,7 @@ enqueue_data_vio(struct wait_queue *queue,
 
 /**
  * assert_data_vio_in_hash_zone() - Check that a data_vio is running on the
- *                                  correct thread for its hash zone.
+ *				    correct thread for its hash zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
@@ -618,7 +617,7 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_hash_zone_callback() - Set a callback as a hash zone
- *                                     operation.
+ *				       operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  *
@@ -636,7 +635,7 @@ set_data_vio_hash_zone_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_hash_zone_callback() - Set a callback as a hash zone
- *                                        operation and invoke it immediately.
+ *					  operation and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -650,7 +649,7 @@ launch_data_vio_hash_zone_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_logical_zone() - Check that a data_vio is running on the
- *                                     correct thread for its logical zone.
+ *				       correct thread for its logical zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
@@ -667,7 +666,7 @@ static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_logical_callback() - Set a callback as a logical block
- *                                   operation.
+ *				     operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  *
@@ -685,7 +684,7 @@ set_data_vio_logical_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_logical_callback() - Set a callback as a logical block
- *                                      operation and invoke it immediately.
+ *					operation and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -699,8 +698,8 @@ launch_data_vio_logical_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_allocated_zone() - Check that a data_vio is running on
- *                                       the correct thread for its allocated
- *                                       zone.
+ *					 the correct thread for its allocated
+ *					 zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
@@ -717,8 +716,8 @@ static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_allocated_zone_callback() - Set a callback as a physical block
- *                                          operation in a data_vio's
- *                                          allocated zone.
+ *					    operation in a data_vio's
+ *					    allocated zone.
  * @data_vio: The data_vio.
  * @callback: The callback to set.
  */
@@ -733,10 +732,10 @@ set_data_vio_allocated_zone_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_allocated_zone_callback() - Set a callback as a physical
- *                                             block operation in a data_vio's
- *                                             allocated zone and queue the
- *                                             data_vio and invoke it
- *                                             immediately.
+ *					       block operation in a data_vio's
+ *					       allocated zone and queue the
+ *					       data_vio and invoke it
+ *					       immediately.
  * @data_vio: The data_vio.
  * @callback: The callback to invoke.
  */
@@ -750,8 +749,8 @@ launch_data_vio_allocated_zone_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_duplicate_zone() - Check that a data_vio is running on
- *                                       the correct thread for its duplicate
- *                                       zone.
+ *					 the correct thread for its duplicate
+ *					 zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
@@ -768,8 +767,8 @@ static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_duplicate_zone_callback() - Set a callback as a physical block
- *                                          operation in a data_vio's
- *                                          duplicate zone.
+ *					    operation in a data_vio's
+ *					    duplicate zone.
  * @data_vio: The data_vio.
  * @callback: The callback to set.
  */
@@ -784,10 +783,10 @@ set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_duplicate_zone_callback() - Set a callback as a physical
- *                                             block operation in a data_vio's
- *                                             duplicate zone and queue the
- *                                             data_vio and invoke it
- *                                             immediately.
+ *					       block operation in a data_vio's
+ *					       duplicate zone and queue the
+ *					       data_vio and invoke it
+ *					       immediately.
  * @data_vio: The data_vio.
  * @callback: The callback to invoke.
  */
@@ -801,7 +800,7 @@ launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_mapped_zone() - Check that a data_vio is running on the
- *                                    correct thread for its mapped zone.
+ *				      correct thread for its mapped zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
@@ -818,8 +817,8 @@ static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_mapped_zone_callback() - Set a callback as a physical block
- *                                       operation in a data_vio's mapped
- *                                       zone.
+ *					 operation in a data_vio's mapped
+ *					 zone.
  * @data_vio: The data_vio.
  * @callback: The callback to set.
  */
@@ -834,8 +833,8 @@ set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_new_mapped_zone() - Check that a data_vio is running on
- *                                        the correct thread for its
- *                                        new_mapped zone.
+ *					  the correct thread for its
+ *					  new_mapped zone.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
@@ -852,8 +851,8 @@ static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
 
 /**
  * set_data_vio_new_mapped_zone_callback() - Set a callback as a physical
- *                                           block operation in a data_vio's
- *                                           new_mapped zone.
+ *					     block operation in a data_vio's
+ *					     new_mapped zone.
  * @data_vio: The data_vio.
  * @callback: The callback to set.
  */
@@ -868,7 +867,7 @@ set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_journal_zone() - Check that a data_vio is running on the
- *                                     journal thread.
+ *				       journal thread.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
@@ -902,7 +901,7 @@ set_data_vio_journal_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_journal_callback() - Set a callback as a journal operation
- *                                      and invoke it immediately.
+ *					and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -916,7 +915,7 @@ launch_data_vio_journal_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_in_packer_zone() - Check that a data_vio is running on the
- *                                    packer thread.
+ *				      packer thread.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
@@ -950,7 +949,7 @@ set_data_vio_packer_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_packer_callback() - Set a callback as a packer operation
- *                                     and invoke it immediately.
+ *				       and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -964,7 +963,7 @@ launch_data_vio_packer_callback(struct data_vio *data_vio,
 
 /**
  * assert_data_vio_on_cpu_thread() - Check that a data_vio is running on the
- *                                   packer thread.
+ *				     packer thread.
  * @data_vio: The data_vio in question.
  */
 static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
@@ -982,7 +981,7 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 
 /**
  * set_data_vio_dedupe_callback() - Set a callback as a dedupe queue
- *                                  operation.
+ *				    operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -999,7 +998,7 @@ set_data_vio_dedupe_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_dedupe_callback() - Set a callback to run on the dedupe
- *                                     queue and invoke it immediately.
+ *				       queue and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -1031,7 +1030,7 @@ set_data_vio_cpu_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_cpu_callback() - Set a callback to run on the CPU queues
- *                                  and invoke it immediately.
+ *				    and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  * @priority: The priority with which to run the callback.
@@ -1068,7 +1067,7 @@ set_data_vio_bio_zone_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_bio_zone_callback() - Set a callback as a bio zone
- *                                       operation and invoke it immediately.
+ *					 operation and invoke it immediately.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -1085,9 +1084,9 @@ launch_data_vio_bio_zone_callback(struct data_vio *data_vio,
 
 /**
  * launch_data_vio_on_bio_ack_queue() - If the vdo uses a bio_ack queue, set a
- *                                      callback to run on it and invoke it
- *                                      immediately, otherwise, just run the
- *                                      callback on the current thread.
+ *					callback to run on it and invoke it
+ *					immediately, otherwise, just run the
+ *					callback on the current thread.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
  */
@@ -1128,10 +1127,10 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 
 /**
  * release_data_vio_allocation_lock() - Release the PBN lock on a data_vio's
- *                                      allocated block.
+ *					allocated block.
  * @data_vio: The lock holder.
  * @reset: If true, the allocation will be reset (i.e. any allocated pbn will
- *         be forgotten).
+ *	   be forgotten).
  *
  * If the reference to the locked block is still provisional, it will be
  * released as well.

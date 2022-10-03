@@ -107,9 +107,8 @@ static inline void assert_incomplete(struct vdo_completion *completion)
 void vdo_set_completion_result(struct vdo_completion *completion, int result)
 {
 	assert_incomplete(completion);
-	if (completion->result == VDO_SUCCESS) {
+	if (completion->result == VDO_SUCCESS)
 		completion->result = result;
-	}
 }
 
 /**
@@ -161,9 +160,8 @@ void vdo_complete_completion(struct vdo_completion *completion)
 {
 	assert_incomplete(completion);
 	completion->complete = true;
-	if (completion->callback != NULL) {
+	if (completion->callback != NULL)
 		vdo_invoke_completion_callback(completion);
-	}
 }
 
 /**
@@ -189,9 +187,8 @@ void vdo_finish_completion_parent_callback(struct vdo_completion *completion)
 void
 vdo_preserve_completion_error_and_continue(struct vdo_completion *completion)
 {
-	if (completion->parent != NULL) {
+	if (completion->parent != NULL)
 		vdo_set_completion_result(completion->parent, completion->result);
-	}
 
 	vdo_reset_completion(completion);
 	vdo_invoke_completion_callback(completion);
@@ -276,9 +273,8 @@ void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 		   "thread_id %u (completion type %d) is less than thread count %u",
 		   thread_id,
 		   completion->type,
-		   vdo->thread_config->thread_count) != UDS_SUCCESS) {
+		   vdo->thread_config->thread_count) != UDS_SUCCESS)
 		BUG();
-	}
 
 	completion->requeue = false;
 	completion->priority = priority;

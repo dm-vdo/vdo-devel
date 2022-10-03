@@ -62,12 +62,11 @@ static inline void
 vdo_clear_unused_compression_slots(struct compressed_block *block,
 				   slot_number_t first_unused)
 {
-	if (first_unused < VDO_MAX_COMPRESSION_SLOTS) {
+	if (first_unused < VDO_MAX_COMPRESSION_SLOTS)
 		memset(&block->header.sizes[first_unused],
 		       0,
 		       ((VDO_MAX_COMPRESSION_SLOTS - first_unused) *
 			sizeof(__le16)));
-	}
 }
 
 void vdo_put_compressed_block_fragment(struct compressed_block *block,

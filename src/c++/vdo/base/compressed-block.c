@@ -73,31 +73,26 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	byte slot;
 	struct version_number version;
 
-	if (!vdo_is_state_compressed(mapping_state)) {
+	if (!vdo_is_state_compressed(mapping_state))
 		return VDO_INVALID_FRAGMENT;
-	}
 
 	version = vdo_unpack_version_number(block->header.version);
-	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0)) {
+	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0))
 		return VDO_INVALID_FRAGMENT;
-	}
 
 	slot = vdo_get_slot_from_state(mapping_state);
-	if (slot >= VDO_MAX_COMPRESSION_SLOTS) {
+	if (slot >= VDO_MAX_COMPRESSION_SLOTS)
 		return VDO_INVALID_FRAGMENT;
-	}
 
 	compressed_size = get_compressed_fragment_size(&block->header, slot);
 	for (i = 0; i < slot; i++) {
 		offset += get_compressed_fragment_size(&block->header, i);
-		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE) {
+		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE)
 			return VDO_INVALID_FRAGMENT;
-		}
 	}
 
-	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE) {
+	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE)
 		return VDO_INVALID_FRAGMENT;
-	}
 
 	*fragment_offset = offset;
 	*fragment_size = compressed_size;

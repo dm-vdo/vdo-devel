@@ -73,21 +73,19 @@ static void do_dump(struct vdo *vdo,
 		     maximum,
 		     outstanding,
 		     vdo_get_device_name(vdo->device_config->owning_target));
-	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0)
-	    && (vdo->threads != NULL)) {
+	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0) &&
+	    (vdo->threads != NULL)) {
 		thread_id_t id;
 
-		for (id = 0; id < vdo->thread_config->thread_count; id++) {
+		for (id = 0; id < vdo->thread_config->thread_count; id++)
 			dump_work_queue(vdo->threads[id].queue);
-		}
 	}
 
 	vdo_dump_hash_zones(vdo->hash_zones);
 	dump_data_vio_pool(vdo->data_vio_pool,
 			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
-	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
+	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0)
 		vdo_dump_status(vdo);
-	}
 
 	report_uds_memory_usage();
 	uds_log_info("end of %s dump", UDS_LOGGING_MODULE_NAME);
@@ -131,12 +129,10 @@ static int parse_dump_options(unsigned int argc,
 			options_okay = false;
 		}
 	}
-	if (!options_okay) {
+	if (!options_okay)
 		return -EINVAL;
-	}
-	if ((dump_options_requested & FLAG_SKIP_DEFAULT) == 0) {
+	if ((dump_options_requested & FLAG_SKIP_DEFAULT) == 0)
 		dump_options_requested |= DEFAULT_DUMP_FLAGS;
-	}
 	*dump_options_requested_ptr = dump_options_requested;
 	return 0;
 }
@@ -152,9 +148,8 @@ int vdo_dump(struct vdo *vdo,
 	unsigned int dump_options_requested = 0;
 	int result = parse_dump_options(argc, argv, &dump_options_requested);
 
-	if (result != 0) {
+	if (result != 0)
 		return result;
-	}
 
 	do_dump(vdo, dump_options_requested, why);
 	return 0;
@@ -177,9 +172,8 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	struct waiter *waiter, *first = get_first_waiter(queue);
 	struct data_vio *data_vio;
 
-	if (first == NULL) {
+	if (first == NULL)
 		return;
-	}
 
 	data_vio = waiter_as_data_vio(first);
 
@@ -187,7 +181,6 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 		     wait_on, data_vio, get_data_vio_allocation(data_vio),
 		     data_vio->logical.lbn, data_vio->duplicate.pbn,
 		     get_data_vio_operation_name(data_vio));
-
 
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
@@ -218,28 +211,21 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 {
 	char *p_flag = buffer;
 	*p_flag++ = ' ';
-	if (data_vio_as_completion(data_vio)->result != VDO_SUCCESS) {
+	if (data_vio_as_completion(data_vio)->result != VDO_SUCCESS)
 		*p_flag++ = 'R';
-	}
-	if (data_vio->waiter.next_waiter != NULL) {
+	if (data_vio->waiter.next_waiter != NULL)
 		*p_flag++ = 'W';
-	}
-	if (data_vio->is_duplicate) {
+	if (data_vio->is_duplicate)
 		*p_flag++ = 'D';
-	}
-	if (data_vio->is_partial) {
+	if (data_vio->is_partial)
 		*p_flag++ = 'p';
-	}
-	if (data_vio->is_zero_block) {
+	if (data_vio->is_zero_block)
 		*p_flag++ = 'z';
-	}
-	if (data_vio->remaining_discard > 0) {
+	if (data_vio->remaining_discard > 0)
 		*p_flag++ = 'd';
-	}
-	if (p_flag == &buffer[1]) {
+	if (p_flag == &buffer[1])
 		/* No flags, so remove the blank space. */
 		p_flag = buffer;
-	}
 	*p_flag = '\0';
 }
 
@@ -280,32 +266,30 @@ void dump_data_vio(void *data)
 	dump_completion_to_buffer(data_vio_as_completion(data_vio),
 				  vio_completion_dump_buffer,
 				  sizeof(vio_completion_dump_buffer));
-	if (data_vio->is_duplicate) {
+	if (data_vio->is_duplicate)
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu D%llu",
 			 get_data_vio_allocation(data_vio),
 			 data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
-	} else if (data_vio_has_allocation(data_vio)) {
+	else if (data_vio_has_allocation(data_vio))
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu",
 			 get_data_vio_allocation(data_vio),
 			 data_vio->logical.lbn);
-	} else {
+	else
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer), "L%llu",
 			 data_vio->logical.lbn);
-	}
 
-	if (data_vio->flush_generation != 0) {
+	if (data_vio->flush_generation != 0)
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer), " FG%llu",
 			 data_vio->flush_generation);
-	} else {
+	else
 		vio_flush_generation_buffer[0] = 0;
-	}
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 

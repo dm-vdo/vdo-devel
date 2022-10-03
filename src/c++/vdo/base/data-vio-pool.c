@@ -66,13 +66,13 @@
  * (currently at most 32) from the pool's funnel queue. For each data_vio, it
  * first checks whether that data_vio was processing a discard. If so, and
  * there is a blocked bio waiting for a discard permit, that permit is
- * notionally transfered to the eldest discard waiter, and that waiter is moved
- * to the end of the list of discard bios waiting for a data_vio. If there are
- * no discard waiters, the discard permit is returned to the pool. Next, the
- * data_vio is assigned to the oldest blocked bio which either has a discard
- * permit, or doesn't need one and relaunched. If neither of these exist, the
- * data_vio is returned to the pool. Finally, if any waiting bios were
- * launched, the threads which blocked trying to submit them are awakened.
+ * notionally transferred to the eldest discard waiter, and that waiter is
+ * moved to the end of the list of discard bios waiting for a data_vio. If
+ * there are no discard waiters, the discard permit is returned to the pool.
+ * Next, the data_vio is assigned to the oldest blocked bio which either has a
+ * discard permit, or doesn't need one and relaunched. If neither of these
+ * exist, the data_vio is returned to the pool. Finally, if any waiting bios
+ * were launched, the threads which blocked trying to submit them are awakened.
  */
 
 enum {
@@ -174,24 +174,23 @@ static inline uint64_t get_arrival_time(struct bio *bio)
 
 /**
  * check_for_drain_complete_locked() - Check whether a data_vio_pool
- *                                     has no outstanding data_vios or
- *                                     waiters while holding the
- *                                     pool's lock.
+ *				       has no outstanding data_vios or
+ *				       waiters while holding the
+ *				       pool's lock.
  * @pool: The pool to check.
  *
  * Return: true if the pool has no busy data_vios or waiters.
  */
 static bool check_for_drain_complete_locked(struct data_vio_pool *pool)
 {
-	if (pool->limiter.busy > 0) {
+	if (pool->limiter.busy > 0)
 		return false;
-	}
 
 	ASSERT_LOG_ONLY((pool->discard_limiter.busy == 0),
 			"no outstanding discard permits");
 
-	return (bio_list_empty(&pool->limiter.new_waiters)
-		&& bio_list_empty(&pool->discard_limiter.new_waiters));
+	return (bio_list_empty(&pool->limiter.new_waiters) &&
+		bio_list_empty(&pool->discard_limiter.new_waiters));
 }
 
 /*
@@ -232,10 +231,9 @@ static void launch_bio(struct vdo *vdo,
 	uint64_t startup_jiffies = jiffies - arrival;
 
 	data_vio->arrival_jiffies = arrival;
-	if (unlikely(startup_jiffies > 1)) {
+	if (unlikely(startup_jiffies > 1))
 		enter_histogram_sample(vdo->histograms.start_request_histogram,
 				       startup_jiffies);
-	}
 #endif /* VDO_INTERNAL */
 	reset_data_vio(data_vio, vdo);
 	data_vio->user_bio = bio;
@@ -270,9 +268,8 @@ static void launch_bio(struct vdo *vdo,
 		data_vio->is_zero_block = is_zero_block(data_vio->data_block);
 	}
 
-	if (data_vio->user_bio->bi_opf & REQ_FUA) {
+	if (data_vio->user_bio->bi_opf & REQ_FUA)
 		operation |= DATA_VIO_FUA;
-	}
 
 	lbn = ((bio->bi_iter.bi_sector - vdo->starting_sector_offset)
 	       / VDO_SECTORS_PER_BLOCK);
@@ -294,9 +291,8 @@ static void assign_discard_permit(struct limiter *limiter)
 {
 	struct bio *bio = bio_list_pop(&limiter->waiters);
 
-	if (limiter->arrival == UINT64_MAX) {
+	if (limiter->arrival == UINT64_MAX)
 		limiter->arrival = get_arrival_time(bio);
-	}
 
 	bio_list_add(limiter->permitted_waiters, bio);
 }
@@ -334,9 +330,8 @@ static void update_limiter(struct limiter *limiter)
 
 	get_waiters(limiter);
 	for (; (limiter->release_count > 0) && !bio_list_empty(waiters);
-	     limiter->release_count--) {
+	     limiter->release_count--)
 		limiter->assigner(limiter);
-	}
 
 	if (limiter->release_count > 0) {
 		WRITE_ONCE(limiter->busy,
@@ -345,14 +340,12 @@ static void update_limiter(struct limiter *limiter)
 		return;
 	}
 
-	for (; (available > 0) && !bio_list_empty(waiters); available--) {
+	for (; (available > 0) && !bio_list_empty(waiters); available--)
 		limiter->assigner(limiter);
-	}
 
 	WRITE_ONCE(limiter->busy, limiter->limit - available);
-	if (limiter->max_busy < limiter->busy) {
+	if (limiter->max_busy < limiter->busy)
 		WRITE_ONCE(limiter->max_busy, limiter->busy);
-	}
 }
 
 /**
@@ -366,9 +359,8 @@ static void schedule_releases(struct data_vio_pool *pool)
 {
 	/* Pairs with the barrier in process_release_callback(). */
 	smp_mb__before_atomic();
-	if (atomic_cmpxchg(&pool->processing, false, true)) {
+	if (atomic_cmpxchg(&pool->processing, false, true))
 		return;
-	}
 
 	pool->completion.requeue = true;
 	vdo_invoke_completion_callback_with_priority(&pool->completion,
@@ -380,12 +372,11 @@ static void reuse_or_release_resources(struct data_vio_pool *pool,
 				       struct list_head *returned)
 {
 	if (data_vio->remaining_discard > 0) {
-		if (bio_list_empty(&pool->discard_limiter.waiters)) {
+		if (bio_list_empty(&pool->discard_limiter.waiters))
 			/* Return the data_vio's discard permit. */
 			pool->discard_limiter.release_count++;
-		} else {
+		else
 			assign_discard_permit(&pool->discard_limiter);
-		}
 	}
 
 	if (pool->limiter.arrival < pool->discard_limiter.arrival) {
@@ -420,21 +411,19 @@ static void process_release_callback(struct vdo_completion *completion)
 	if (pool->limiter.arrival == UINT64_MAX) {
 		struct bio *bio = bio_list_peek(&pool->limiter.waiters);
 
-		if (bio != NULL) {
+		if (bio != NULL)
 			pool->limiter.arrival = get_arrival_time(bio);
-		}
 	}
 
 	for (processed = 0;
 	     processed < DATA_VIO_RELEASE_BATCH_SIZE;
 	     processed++) {
 		struct data_vio *data_vio;
-		struct funnel_queue_entry *entry
-			= funnel_queue_poll(pool->queue);
+		struct funnel_queue_entry *entry =
+			funnel_queue_poll(pool->queue);
 
-		if (entry == NULL) {
+		if (entry == NULL)
 			break;
-		}
 
 		data_vio = data_vio_from_funnel_queue_entry(entry);
 		acknowledge_data_vio(data_vio);
@@ -462,25 +451,22 @@ static void process_release_callback(struct vdo_completion *completion)
 	smp_mb();
 
 	reschedule = !is_funnel_queue_empty(pool->queue);
-	drained = (!reschedule
-		   && vdo_is_state_draining(&pool->state)
-		   && check_for_drain_complete_locked(pool));
+	drained = (!reschedule &&
+		   vdo_is_state_draining(&pool->state) &&
+		   check_for_drain_complete_locked(pool));
 	spin_unlock(&pool->lock);
 
-	if (to_wake > 0) {
+	if (to_wake > 0)
 		wake_up_nr(&pool->limiter.blocked_threads, to_wake);
-	}
 
-	if (discards_to_wake > 0) {
+	if (discards_to_wake > 0)
 		wake_up_nr(&pool->discard_limiter.blocked_threads,
 			   discards_to_wake);
-	}
 
-	if (reschedule) {
+	if (reschedule)
 		schedule_releases(pool);
-	} else if (drained) {
+	else if (drained)
 		vdo_finish_draining(&pool->state);
-	}
 }
 
 static void initialize_limiter(struct limiter *limiter,
@@ -500,7 +486,7 @@ static void initialize_limiter(struct limiter *limiter,
  * @vdo: The vdo to which the pool will belong.
  * @pool_size: The number of data_vios in the pool.
  * @discard_limit: The maximum number of data_vios which may be used for
- *                 discards.
+ *		   discards.
  * @pool: A pointer to hold the newly allocated pool.
  */
 int make_data_vio_pool(struct vdo *vdo,
@@ -517,9 +503,8 @@ int make_data_vio_pool(struct vdo *vdo,
 				       struct data_vio,
 				       __func__,
 				       &pool);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	ASSERT_LOG_ONLY((discard_limit <= pool_size),
 			"discard limit does not exceed pool size");
@@ -576,9 +561,8 @@ int make_data_vio_pool(struct vdo *vdo,
  */
 void free_data_vio_pool(struct data_vio_pool *pool)
 {
-	if (pool == NULL) {
+	if (pool == NULL)
 		return;
-	}
 
 	/*
 	 * Pairs with the barrier in process_release_callback(). Possibly not
@@ -591,11 +575,11 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 	ASSERT_LOG_ONLY((pool->limiter.busy == 0),
 			"data_vio pool must not have %u busy entries when being freed",
 			pool->limiter.busy);
-	ASSERT_LOG_ONLY((bio_list_empty(&pool->limiter.waiters)
-			 && bio_list_empty(&pool->limiter.new_waiters)),
+	ASSERT_LOG_ONLY((bio_list_empty(&pool->limiter.waiters) &&
+			 bio_list_empty(&pool->limiter.new_waiters)),
 			"data_vio pool must not have threads waiting to read or write when being freed");
-	ASSERT_LOG_ONLY((bio_list_empty(&pool->discard_limiter.waiters)
-			 && bio_list_empty(&pool->discard_limiter.new_waiters)),
+	ASSERT_LOG_ONLY((bio_list_empty(&pool->discard_limiter.waiters) &&
+			 bio_list_empty(&pool->discard_limiter.new_waiters)),
 			"data_vio pool must not have threads waiting to discard when being freed");
 	spin_unlock(&pool->lock);
 
@@ -628,16 +612,15 @@ static bool acquire_permit(struct limiter *limiter, struct bio *bio)
 	}
 
 	WRITE_ONCE(limiter->busy, limiter->busy + 1);
-	if (limiter->max_busy < limiter->busy) {
+	if (limiter->max_busy < limiter->busy)
 		WRITE_ONCE(limiter->max_busy, limiter->busy);
-	}
 
 	return true;
 }
 
 /**
  * vdo_launch_bio() - Acquire a data_vio from the pool, assign the bio to it,
- *                    and send it on its way.
+ *		      and send it on its way.
  * @pool: The pool from which to acquire a data_vio.
  * @bio: The bio to launch.
  *
@@ -653,13 +636,11 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 	bio->bi_private = (void *) jiffies;
 	spin_lock(&pool->lock);
 	if ((bio_op(bio) == REQ_OP_DISCARD) &&
-	    !acquire_permit(&pool->discard_limiter, bio)) {
+	    !acquire_permit(&pool->discard_limiter, bio))
 		return;
-	}
 
-	if (!acquire_permit(&pool->limiter, bio)) {
+	if (!acquire_permit(&pool->limiter, bio))
 		return;
-	}
 
 	data_vio = get_available_data_vio(pool);
 	spin_unlock(&pool->lock);
@@ -699,14 +680,13 @@ static void initiate_drain(struct admin_state *state)
 	drained = check_for_drain_complete_locked(pool);
 	spin_unlock(&pool->lock);
 
-	if (drained) {
+	if (drained)
 		vdo_finish_draining(state);
-	}
 }
 
 /**
  * drain_data_vio_pool() - Wait asynchronously for all data_vios to be
- *                         returned to the pool.
+ *			   returned to the pool.
  * @pool: The data_vio_pool to drain.
  * @completion: The completion to notify when the pool has drained.
  */
@@ -740,10 +720,10 @@ static void dump_limiter(const char *name, struct limiter *limiter)
 		     limiter->busy,
 		     limiter->limit,
 		     limiter->max_busy,
-		     ((bio_list_empty(&limiter->waiters)
-		       && bio_list_empty(&limiter->new_waiters))
-		      ? "no waiters"
-		      : "has waiters"));
+		     ((bio_list_empty(&limiter->waiters) &&
+		       bio_list_empty(&limiter->new_waiters))
+			? "no waiters"
+			: "has waiters"));
 }
 
 /**
@@ -761,9 +741,8 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 	enum { ELEMENTS_PER_BATCH = 35 };
 	enum { SLEEP_FOR_SYSLOG = 4000 };
 
-	if (pool == NULL) {
+	if (pool == NULL)
 		return;
-	}
 
 	spin_lock(&pool->lock);
 	dump_limiter("data_vios", &pool->limiter);
@@ -775,9 +754,8 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 		for (i = 0; i < pool->limiter.limit; i++) {
 			struct data_vio *data_vio = &pool->data_vios[i];
 
-			if (!list_empty(&data_vio->pool_entry)) {
+			if (!list_empty(&data_vio->pool_entry))
 				continue;
-			}
 
 			dump_data_vio(data_vio);
 			if (++dumped >= ELEMENTS_PER_BATCH) {
@@ -810,10 +788,9 @@ data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
 int set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
 				    data_vio_count_t limit)
 {
-	if (get_data_vio_pool_request_limit(pool) < limit) {
+	if (get_data_vio_pool_request_limit(pool) < limit)
 		// The discard limit may not be higher than the data_vio limit.
 		return -EINVAL;
-	}
 
 	spin_lock(&pool->lock);
 	pool->discard_limiter.limit = limit;

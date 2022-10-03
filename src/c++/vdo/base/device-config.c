@@ -86,9 +86,8 @@ static void free_string_array(char **string_array)
 {
 	unsigned int offset;
 
-	for (offset = 0; string_array[offset] != NULL; offset++) {
+	for (offset = 0; string_array[offset] != NULL; offset++)
 		UDS_FREE(string_array[offset]);
-	}
 	UDS_FREE(string_array);
 }
 
@@ -117,19 +116,16 @@ static int split_string(const char *string,
 	int result;
 	ptrdiff_t length;
 
-	for (s = string; *s != 0; s++) {
-		if (*s == separator) {
+	for (s = string; *s != 0; s++)
+		if (*s == separator)
 			substring_count++;
-		}
-	}
 
 	result = UDS_ALLOCATE(substring_count + 1,
 			      char *,
 			      "string-splitting array",
 			      &substrings);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
@@ -148,11 +144,10 @@ static int split_string(const char *string,
 			 * deal with the zero or more non-NUL bytes in the
 			 * string.
 			 */
-			if (length > 0) {
+			if (length > 0)
 				memcpy(substrings[current_substring],
 				       string,
 				       length);
-			}
 			string = s + 1;
 			current_substring++;
 			BUG_ON(current_substring >= substring_count);
@@ -184,22 +179,20 @@ static int split_string(const char *string,
  * substring_array, in case it is not NULL-terminated.
  */
 static int join_strings(char **substring_array, size_t array_length,
-		        char separator, char **string_ptr)
+			char separator, char **string_ptr)
 {
 	size_t string_length = 0;
 	size_t i;
 	int result;
 	char *output, *current_position;
 
-	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
+	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++)
 		string_length += strlen(substring_array[i]) + 1;
-	}
 
 	result = UDS_ALLOCATE(string_length, char, __func__, &output);
 
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	current_position = &output[0];
 
@@ -213,9 +206,8 @@ static int join_strings(char **substring_array, size_t array_length,
 	}
 
 	/* We output one too many separators; replace the last with a zero byte. */
-	if (current_position != output) {
+	if (current_position != output)
 		*(current_position - 1) = '\0';
-	}
 
 	*string_ptr = output;
 	return UDS_SUCCESS;
@@ -229,7 +221,7 @@ static int join_strings(char **substring_array, size_t array_length,
  * @bool_ptr: A pointer to return the bool value in.
  *
  * Return: VDO_SUCCESS or an error if bool_str is neither true_str
- *         nor false_str.
+ *	   nor false_str.
  */
 static inline int __must_check
 parse_bool(const char *bool_str,
@@ -239,13 +231,12 @@ parse_bool(const char *bool_str,
 {
 	bool value = false;
 
-	if (strcmp(bool_str, true_str) == 0) {
+	if (strcmp(bool_str, true_str) == 0)
 		value = true;
-	} else if (strcmp(bool_str, false_str) == 0) {
+	else if (strcmp(bool_str, false_str) == 0)
 		value = false;
-	} else {
+	else
 		return VDO_BAD_CONFIGURATION;
-	}
 
 	*bool_ptr = value;
 	return VDO_SUCCESS;
@@ -253,9 +244,9 @@ parse_bool(const char *bool_str,
 
 /**
  * process_one_thread_config_spec() - Process one component of a
- *                                    thread parameter configuration
- *                                    string and update the
- *                                    configuration data structure.
+ *				      thread parameter configuration
+ *				      string and update the
+ *				      configuration data structure.
  * @thread_param_type: The type of thread specified.
  * @count: The thread count requested.
  * @config: The configuration data structure to update.
@@ -341,9 +332,9 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 
 /**
  * parse_one_thread_config_spec() - Parse one component of a thread
- *                                  parameter configuration string and
- *                                  update the configuration data
- *                                  structure.
+ *				    parameter configuration string and
+ *				    update the configuration data
+ *				    structure.
  * @spec: The thread parameter specification string.
  * @config: The configuration data to be updated.
  */
@@ -354,9 +345,8 @@ static int parse_one_thread_config_spec(const char *spec,
 	char **fields;
 	int result = split_string(spec, '=', &fields);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
 		uds_log_error("thread config string error: expected thread parameter assignment, saw \"%s\"",
 			      spec);
@@ -379,10 +369,10 @@ static int parse_one_thread_config_spec(const char *spec,
 
 /**
  * parse_thread_config_string() - Parse the configuration string
- *                                passed and update the specified
- *                                counts and other parameters of
- *                                various types of threads to be
- *                                created.
+ *				  passed and update the specified
+ *				  counts and other parameters of
+ *				  various types of threads to be
+ *				  created.
  * @string: Thread parameter configuration string.
  * @config: The thread configuration data to update.
  *
@@ -411,15 +401,13 @@ static int parse_thread_config_string(const char *string,
 		unsigned int i;
 
 		result = split_string(string, ',', &specs);
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
 		for (i = 0; specs[i] != NULL; i++) {
 			result = parse_one_thread_config_spec(specs[i], config);
-			if (result != VDO_SUCCESS) {
+			if (result != VDO_SUCCESS)
 				break;
-			}
 		}
 		free_string_array(specs);
 	}
@@ -428,8 +416,8 @@ static int parse_thread_config_string(const char *string,
 
 /**
  * process_one_key_value_pair() - Process one component of an optional
- *                                parameter string and update the
- *                                configuration data structure.
+ *				  parameter string and update the
+ *				  configuration data structure.
  * @key: The optional parameter key name.
  * @value: The optional parameter value.
  * @config: The configuration data structure to update.
@@ -452,7 +440,7 @@ static int process_one_key_value_pair(const char *key,
 		}
 		/* Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9 */
 		if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
-			uds_log_error("optional parameter error: at most %d max discard  blocks are allowed",
+			uds_log_error("optional parameter error: at most %d max discard	 blocks are allowed",
 				      UINT_MAX / VDO_BLOCK_SIZE);
 			return -EINVAL;
 		}
@@ -466,7 +454,7 @@ static int process_one_key_value_pair(const char *key,
 
 /**
  * parse_one_key_value_pair() - Parse one key/value pair and update
- *                              the configuration data structure.
+ *				the configuration data structure.
  * @key: The optional key name.
  * @value: The optional value.
  * @config: The configuration data to be updated.
@@ -480,13 +468,11 @@ static int parse_one_key_value_pair(const char *key,
 	unsigned int count;
 	int result;
 
-	if (strcmp(key, "deduplication") == 0) {
+	if (strcmp(key, "deduplication") == 0)
 		return parse_bool(value, "on", "off", &config->deduplication);
-	}
 
-	if (strcmp(key, "compression") == 0) {
+	if (strcmp(key, "compression") == 0)
 		return parse_bool(value, "on", "off", &config->compression);
-	}
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -500,7 +486,7 @@ static int parse_one_key_value_pair(const char *key,
 
 /**
  * parse_key_value_pairs() - Parse all key/value pairs from a list of
- *                           arguments.
+ *			     arguments.
  * @argc: The total number of arguments in list.
  * @argv: The list of key/value pairs.
  * @config: The device configuration data to update.
@@ -523,9 +509,8 @@ static int parse_key_value_pairs(int argc,
 
 	while (argc) {
 		result = parse_one_key_value_pair(argv[0], argv[1], config);
-		if (result != VDO_SUCCESS) {
+		if (result != VDO_SUCCESS)
 			break;
-		}
 
 		argc -= 2;
 		argv += 2;
@@ -536,7 +521,7 @@ static int parse_key_value_pairs(int argc,
 
 /**
  * parse_optional_arguments() - Parse the configuration string passed
- *                              in for optional arguments.
+ *				in for optional arguments.
  * @arg_set: The structure holding the arguments to parse.
  * @error_ptr: Pointer to a buffer to hold the error string.
  * @config: Pointer to device configuration data to update.
@@ -598,7 +583,7 @@ static void handle_parse_error(struct device_config *config,
 
 /**
  * vdo_parse_device_config() - Convert the dmsetup table into a struct
- *                             device_config.
+ *			       device_config.
  * @argc: The number of table values.
  * @argv: The array of table values.
  * @ti: The target structure for this table.
@@ -617,7 +602,6 @@ int vdo_parse_device_config(int argc,
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
 	int result;
-
 
 	if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
 		handle_parse_error(config,
@@ -684,9 +668,8 @@ int vdo_parse_device_config(int argc,
 		return result;
 	}
 	/* Move the arg pointer forward only if the argument was there. */
-	if (config->version >= 1) {
+	if (config->version >= 1)
 		dm_shift_arg(&arg_set);
-	}
 
 	result = uds_duplicate_string(dm_shift_arg(&arg_set),
 				      "parent device name",
@@ -725,9 +708,8 @@ int vdo_parse_device_config(int argc,
 	config->logical_block_size = (enable_512e ? 512 : 4096);
 
 	/* Skip past the two no longer used read cache options. */
-	if (config->version <= 1) {
+	if (config->version <= 1)
 		dm_consume_args(&arg_set, 2);
-	}
 
 	/* Get the page cache size. */
 	result = kstrtouint(dm_shift_arg(&arg_set), 10, &config->cache_size);
@@ -749,14 +731,12 @@ int vdo_parse_device_config(int argc,
 	}
 
 	/* Skip past the no longer used MD RAID5 optimization mode */
-	if (config->version <= 2) {
+	if (config->version <= 2)
 		dm_consume_args(&arg_set, 1);
-	}
 
 	/* Skip past the no longer used write policy setting */
-	if (config->version <= 3) {
+	if (config->version <= 3)
 		dm_consume_args(&arg_set, 1);
-	}
 
 	/* Skip past the no longer used pool name for older table lines */
 	if (config->version <= 2) {
@@ -833,24 +813,22 @@ int vdo_parse_device_config(int argc,
 #endif /* __KERNEL__ */
 /**
  * vdo_free_device_config() - Free a device config created by
- *                            vdo_parse_device_config().
+ *			      vdo_parse_device_config().
  * @config: The config to free.
  */
 void vdo_free_device_config(struct device_config *config)
 {
-	if (config == NULL) {
+	if (config == NULL)
 		return;
-	}
 
-	if (config->owned_device != NULL) {
+	if (config->owned_device != NULL)
 		dm_put_device(config->owning_target, config->owned_device);
-	}
 
 	UDS_FREE(config->parent_device_name);
 	UDS_FREE(config->original_string);
 
 	/*
-         * Reduce the chance a use-after-free (as in BZ 1669960) happens to
+	 * Reduce the chance a use-after-free (as in BZ 1669960) happens to
 	 * work.
 	 */
 	memset(config, 0, sizeof(*config));
@@ -859,30 +837,28 @@ void vdo_free_device_config(struct device_config *config)
 
 /**
  * vdo_set_device_config() - Acquire or release a reference from the
- *                           config to a vdo.
+ *			     config to a vdo.
  * @config: The config in question.
  * @vdo: The vdo in question.
  */
 void vdo_set_device_config(struct device_config *config, struct vdo *vdo)
 {
 	list_del_init(&config->config_list);
-	if (vdo != NULL) {
+	if (vdo != NULL)
 		list_add_tail(&config->config_list, &vdo->device_config_list);
-
-	}
 
 	config->vdo = vdo;
 }
 
 /**
  * vdo_validate_new_device_config() - Check whether a new device
- *                                    config represents a valid
- *                                    modification to an existing
- *                                    config.
+ *				      config represents a valid
+ *				      modification to an existing
+ *				      config.
  * @to_validate: The new config to valudate.
  * @config: The existing config.
  * @may_grow: Set to true if growing the logical and physical size of
- *            the vdo is currently permitted.
+ *	      the vdo is currently permitted.
  * @error_ptr: A pointer to hold the reason for any error.
  *
  * Return: VDO_SUCCESS or an error.
@@ -930,8 +906,8 @@ int vdo_validate_new_device_config(struct device_config *to_validate,
 		return VDO_NOT_IMPLEMENTED;
 	}
 
-	if (!may_grow
-	    && (to_validate->physical_blocks > config->physical_blocks)) {
+	if (!may_grow &&
+	    (to_validate->physical_blocks > config->physical_blocks)) {
 		*error_ptr = "VDO physical size may not grow in current state";
 		return VDO_NOT_IMPLEMENTED;
 	}

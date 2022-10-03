@@ -62,9 +62,8 @@ struct device_config {
  */
 static inline struct device_config *vdo_as_device_config(struct list_head *entry)
 {
-	if (entry == NULL) {
+	if (entry == NULL)
 		return NULL;
-	}
 	return list_entry(entry, struct device_config, config_list);
 }
 
