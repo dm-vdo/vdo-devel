@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
- /*
+/*
  * Copyright Red Hat
  */
 
@@ -92,11 +92,10 @@ static void count_all_bios(struct vio *vio, struct bio *bio)
 	}
 
 	vdo_count_bios(&stats->bios_meta, bio);
-	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
+	if (vio->type == VIO_TYPE_RECOVERY_JOURNAL)
 		vdo_count_bios(&stats->bios_journal, bio);
-	} else if (vio->type == VIO_TYPE_BLOCK_MAP) {
+	else if (vio->type == VIO_TYPE_BLOCK_MAP)
 		vdo_count_bios(&stats->bios_page_cache, bio);
-	}
 }
 
 /**
@@ -229,35 +228,29 @@ static struct vio *get_mergeable_locked(struct int_map *map,
 	sector_t merge_sector = get_bio_sector(bio);
 	struct vio *vio_merge;
 
-	if (back_merge) {
+	if (back_merge)
 		merge_sector -= VDO_SECTORS_PER_BLOCK;
-	} else {
+	else
 		merge_sector += VDO_SECTORS_PER_BLOCK;
-	}
 
 	vio_merge = int_map_get(map, merge_sector);
 
-	if (vio_merge == NULL) {
+	if (vio_merge == NULL)
 		return NULL;
-	}
 
-	if (vio_as_completion(vio)->priority
-	    != vio_as_completion(vio_merge)->priority) {
+	if (vio_as_completion(vio)->priority !=
+	    vio_as_completion(vio_merge)->priority)
 		return NULL;
-	}
 
-	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio)) {
+	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio))
 		return NULL;
-	}
 
-	if (bio_list_empty(&vio_merge->bios_merged)) {
+	if (bio_list_empty(&vio_merge->bios_merged))
 		return NULL;
-	}
 
-	if (back_merge) {
+	if (back_merge)
 		return ((get_bio_sector(vio_merge->bios_merged.tail) ==
 			 merge_sector) ? vio_merge : NULL);
-	}
 
 	return ((get_bio_sector(vio_merge->bios_merged.head) ==
 		 merge_sector) ? vio_merge : NULL);
@@ -318,8 +311,8 @@ static bool try_bio_map_merge(struct vio *vio)
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
 	struct vdo *vdo = vdo_from_vio(vio);
-	struct bio_queue_data *bio_queue_data
-		= &vdo->io_submitter->bio_queue_data[vio->bio_zone];
+	struct bio_queue_data *bio_queue_data =
+		&vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);
@@ -328,9 +321,8 @@ static bool try_bio_map_merge(struct vio *vio)
 	mutex_lock(&bio_queue_data->lock);
 	prev_vio = get_mergeable_locked(bio_queue_data->map, vio, true);
 	next_vio = get_mergeable_locked(bio_queue_data->map, vio, false);
-	if (prev_vio == next_vio) {
+	if (prev_vio == next_vio)
 		next_vio = NULL;
-	}
 
 	if ((prev_vio == NULL) && (next_vio == NULL)) {
 		/* no merge. just add to bio_queue */
@@ -368,9 +360,8 @@ void submit_data_vio_io(struct data_vio *data_vio)
 #ifdef VDO_INTERNAL
 	data_vio_as_vio(data_vio)->bio_submission_jiffies = jiffies;
 #endif
-	if (try_bio_map_merge(data_vio_as_vio(data_vio))) {
+	if (try_bio_map_merge(data_vio_as_vio(data_vio)))
 		return;
-	}
 
 	launch_data_vio_bio_zone_callback(data_vio,
 					  process_data_vio_io);
@@ -472,10 +463,8 @@ int vdo_make_io_submitter(unsigned int thread_count,
 					   struct bio_queue_data,
 					   "bio submission data",
 					   &io_submitter);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
-
 
 	io_submitter->bio_queue_rotation_interval = rotation_interval;
 
@@ -529,8 +518,8 @@ int vdo_make_io_submitter(unsigned int thread_count,
 			return result;
 		}
 
-		bio_queue_data->queue
-			= vdo->threads[vdo->thread_config->bio_threads[i]].queue;
+		bio_queue_data->queue =
+			vdo->threads[vdo->thread_config->bio_threads[i]].queue;
 		io_submitter->num_bio_queues_used++;
 	}
 
@@ -548,13 +537,11 @@ void vdo_cleanup_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
-	if (io_submitter == NULL) {
+	if (io_submitter == NULL)
 		return;
-	}
 
-	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
+	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--)
 		finish_work_queue(io_submitter->bio_queue_data[i].queue);
-	}
 }
 
 /**
@@ -570,9 +557,8 @@ void vdo_free_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
 
-	if (io_submitter == NULL) {
+	if (io_submitter == NULL)
 		return;
-	}
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;

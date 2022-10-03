@@ -26,7 +26,7 @@ int vdo_validate_version(struct version_number expected_version,
 			 struct version_number actual_version,
 			 const char *component_name)
 {
-	if (!vdo_are_same_version(expected_version, actual_version)) {
+	if (!vdo_are_same_version(expected_version, actual_version))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s version mismatch, expected %d.%d, got %d.%d",
 					      component_name,
@@ -34,7 +34,6 @@ int vdo_validate_version(struct version_number expected_version,
 					      expected_version.minor_version,
 					      actual_version.major_version,
 					      actual_version.minor_version);
-	}
 	return VDO_SUCCESS;
 }
 
@@ -61,28 +60,25 @@ int vdo_validate_header(const struct header *expected_header,
 {
 	int result;
 
-	if (expected_header->id != actual_header->id) {
+	if (expected_header->id != actual_header->id)
 		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
 					      component_name,
 					      expected_header->id,
 					      actual_header->id);
-	}
 
 	result = vdo_validate_version(expected_header->version,
 				      actual_header->version, component_name);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if ((expected_header->size > actual_header->size)
-	    || (exact_size && (expected_header->size < actual_header->size))) {
+	if ((expected_header->size > actual_header->size) ||
+	    (exact_size && (expected_header->size < actual_header->size)))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s size mismatch, expected %zu, got %zu",
 					      component_name,
 					      expected_header->size,
 					      actual_header->size);
-	}
 
 	return VDO_SUCCESS;
 }
@@ -98,19 +94,16 @@ int vdo_encode_header(const struct header *header, struct buffer *buffer)
 {
 	int result;
 
-	if (!ensure_available_space(buffer, VDO_ENCODED_HEADER_SIZE)) {
+	if (!ensure_available_space(buffer, VDO_ENCODED_HEADER_SIZE))
 		return UDS_BUFFER_ERROR;
-	}
 
 	result = put_uint32_le_into_buffer(buffer, header->id);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = vdo_encode_version_number(header->version, buffer);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	return put_uint64_le_into_buffer(buffer, header->size);
 }
@@ -145,19 +138,16 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
 
 	int result = get_uint32_le_from_buffer(buffer, &id);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = vdo_decode_version_number(buffer, &version);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = get_uint64_le_from_buffer(buffer, &size);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	*header = (struct header) {
 		.id = id,
@@ -180,9 +170,8 @@ int vdo_decode_version_number(struct buffer *buffer,
 	struct packed_version_number packed;
 	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
 
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	*version = vdo_unpack_version_number(packed);
 	return UDS_SUCCESS;

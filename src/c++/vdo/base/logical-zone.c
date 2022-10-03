@@ -59,13 +59,11 @@ static int initialize_zone(struct logical_zones *zones,
 		vdo->thread_config->physical_zone_count;
 
 	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->lbn_operations);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	if (zone_number < vdo->thread_config->logical_zone_count - 1) {
+	if (zone_number < vdo->thread_config->logical_zone_count - 1)
 		zone->next = &zones->zones[zone_number + 1];
-	}
 
 	vdo_initialize_completion(&zone->completion, vdo,
 				  VDO_GENERATION_FLUSHED_COMPLETION);
@@ -81,9 +79,8 @@ static int initialize_zone(struct logical_zones *zones,
 	result = vdo_make_allocation_selector(physical_zone_count,
 					      zone->thread_id,
 					      &zone->selector);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	return vdo_make_default_thread(vdo, zone->thread_id);
 }
@@ -102,15 +99,13 @@ int vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	zone_count_t zone;
 	zone_count_t zone_count = vdo->thread_config->logical_zone_count;
 
-	if (zone_count == 0) {
+	if (zone_count == 0)
 		return VDO_SUCCESS;
-	}
 
 	result = UDS_ALLOCATE_EXTENDED(struct logical_zones, zone_count,
 				       struct logical_zone, __func__, &zones);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	zones->vdo = vdo;
 	zones->zone_count = zone_count;
@@ -146,9 +141,8 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 {
 	zone_count_t index;
 
-	if (zones == NULL) {
+	if (zones == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(zones->manager));
 
@@ -175,10 +169,9 @@ static inline void assert_on_zone_thread(struct logical_zone *zone,
  */
 static void check_for_drain_complete(struct logical_zone *zone)
 {
-	if (!vdo_is_state_draining(&zone->state) || zone->notifying
-	    || !list_empty(&zone->write_vios)) {
+	if (!vdo_is_state_draining(&zone->state) || zone->notifying ||
+	    !list_empty(&zone->write_vios))
 		return;
-	}
 
 	vdo_finish_draining(&zone->state);
 }
@@ -266,9 +259,8 @@ static bool update_oldest_active_generation(struct logical_zone *zone)
 		oldest = data_vio->flush_generation;
 	}
 
-	if (oldest == zone->oldest_active_generation) {
+	if (oldest == zone->oldest_active_generation)
 		return false;
-	}
 
 	WRITE_ONCE(zone->oldest_active_generation, oldest);
 	return true;
@@ -374,9 +366,8 @@ void vdo_release_flush_generation_lock(struct data_vio *data_vio)
 
 	assert_on_zone_thread(zone, __func__);
 
-	if (!data_vio_has_flush_generation_lock(data_vio)) {
+	if (!data_vio_has_flush_generation_lock(data_vio))
 		return;
-	}
 
 	list_del_init(&data_vio->write_entry);
 	ASSERT_LOG_ONLY((zone->oldest_active_generation <=
@@ -385,9 +376,8 @@ void vdo_release_flush_generation_lock(struct data_vio *data_vio)
 			(unsigned long long) data_vio->flush_generation,
 			(unsigned long long) zone->oldest_active_generation);
 
-	if (!update_oldest_active_generation(zone) || zone->notifying) {
+	if (!update_oldest_active_generation(zone) || zone->notifying)
 		return;
-	}
 
 	attempt_generation_complete_notification(&zone->completion);
 }

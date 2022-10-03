@@ -201,17 +201,14 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load,
 	size_t capacity;
 
 	/* Use the default initial load if the caller did not specify one. */
-	if (initial_load == 0) {
+	if (initial_load == 0)
 		initial_load = DEFAULT_LOAD;
-	}
-	if (initial_load > 100) {
+	if (initial_load > 100)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	result = UDS_ALLOCATE(1, struct int_map, "struct int_map", &map);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	/* Use the default capacity if the caller did not specify one. */
 	capacity = (initial_capacity > 0) ? initial_capacity : DEFAULT_CAPACITY;
@@ -241,9 +238,8 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load,
  */
 void free_int_map(struct int_map *map)
 {
-	if (map == NULL) {
+	if (map == NULL)
 		return;
-	}
 
 	UDS_FREE(UDS_FORGET(map->buckets));
 	UDS_FREE(UDS_FORGET(map));
@@ -272,9 +268,8 @@ size_t int_map_size(const struct int_map *map)
 static struct bucket *dereference_hop(struct bucket *neighborhood,
 				      unsigned int hop_offset)
 {
-	if (hop_offset == NULL_HOP_OFFSET) {
+	if (hop_offset == NULL_HOP_OFFSET)
 		return NULL;
-	}
 
 	STATIC_ASSERT(NULL_HOP_OFFSET == 0);
 	return &neighborhood[hop_offset - 1];
@@ -374,9 +369,8 @@ search_hop_list(struct int_map *map __attribute__((unused)),
 		struct bucket *entry = dereference_hop(bucket, next_hop);
 
 		if ((key == entry->key) && (entry->value != NULL)) {
-			if (previous_ptr != NULL) {
+			if (previous_ptr != NULL)
 				*previous_ptr = previous;
-			}
 			return entry;
 		}
 		next_hop = entry->next_hop;
@@ -433,9 +427,8 @@ static int resize_buckets(struct int_map *map)
 	for (i = 0; i < old_map.bucket_count; i++) {
 		struct bucket *entry = &old_map.buckets[i];
 
-		if (entry->value == NULL) {
+		if (entry->value == NULL)
 			continue;
-		}
 
 		result = int_map_put(map, entry->key, entry->value, true, NULL);
 		if (result != UDS_SUCCESS) {
@@ -480,11 +473,9 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 
 	struct bucket *entry;
 
-	for (entry = bucket; entry < sentinel; entry++) {
-		if (entry->value == NULL) {
+	for (entry = bucket; entry < sentinel; entry++)
+		if (entry->value == NULL)
 			return entry;
-		}
-	}
 	return NULL;
 }
 
@@ -523,22 +514,20 @@ move_empty_bucket(struct int_map *map __attribute__((unused)),
 		 */
 		struct bucket *new_hole =
 			dereference_hop(bucket, bucket->first_hop);
-		if (new_hole == NULL) {
+		if (new_hole == NULL)
 			/*
 			 * There are no buckets in this neighborhood that are in
 			 * use by this one (they must all be owned by
 			 * overlapping neighborhoods).
 			 */
 			continue;
-		}
 
 		/*
 		 * Skip this bucket if its first entry is actually further away
 		 * than the hole that we're already trying to fill.
 		 */
-		if (hole < new_hole) {
+		if (hole < new_hole)
 			continue;
-		}
 
 		/*
 		 * We've found an entry in this neighborhood that we can "hop"
@@ -593,21 +582,18 @@ static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
 
-	if (bucket == NULL) {
+	if (bucket == NULL)
 		/* There is no bucket containing the key in the neighborhood. */
 		return false;
-	}
 
 	/*
 	 * Return the value of the current mapping (if desired) and update the
 	 * mapping with the new value (if desired).
 	 */
-	if (old_value_ptr != NULL) {
+	if (old_value_ptr != NULL)
 		*old_value_ptr = bucket->value;
-	}
-	if (update) {
+	if (update)
 		bucket->value = new_value;
-	}
 	return true;
 }
 
@@ -639,14 +625,13 @@ static struct bucket *find_or_make_vacancy(struct int_map *map,
 	while (hole != NULL) {
 		int distance = hole - neighborhood;
 
-		if (distance < NEIGHBORHOOD) {
+		if (distance < NEIGHBORHOOD)
 			/*
 			 * We've found or relocated an empty bucket close enough
 			 * to the initial hash bucket to be referenced by its
 			 * hop vector.
 			 */
 			return hole;
-		}
 
 		/*
 		 * The nearest empty bucket isn't within the neighborhood that
@@ -683,9 +668,8 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 {
 	struct bucket *neighborhood, *bucket;
 
-	if (new_value == NULL) {
+	if (new_value == NULL)
 		return UDS_INVALID_ARGUMENT;
-	}
 
 	/*
 	 * Select the bucket at the start of the neighborhood that must contain
@@ -698,9 +682,8 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 	 * in which case we optionally update it, returning the old value.
 	 */
 	if (update_mapping(map, neighborhood, key, new_value, update,
-			  old_value_ptr)) {
+			   old_value_ptr))
 		return UDS_SUCCESS;
-	}
 
 	/*
 	 * Find an empty bucket in the desired neighborhood for the new entry or
@@ -718,9 +701,8 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 		 */
 		int result = resize_buckets(map);
 
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 
 		/*
 		 * Resizing the map invalidates all pointers to buckets, so
@@ -739,9 +721,8 @@ int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
 	 * There was no existing entry, so there was no old value to be
 	 * returned.
 	 */
-	if (old_value_ptr != NULL) {
+	if (old_value_ptr != NULL)
 		*old_value_ptr = NULL;
-	}
 	return UDS_SUCCESS;
 }
 
@@ -762,10 +743,9 @@ void *int_map_remove(struct int_map *map, uint64_t key)
 	struct bucket *previous;
 	struct bucket *victim = search_hop_list(map, bucket, key, &previous);
 
-	if (victim == NULL) {
+	if (victim == NULL)
 		/* There is no matching entry to remove. */
 		return NULL;
-	}
 
 	/*
 	 * We found an entry to remove. Save the mapped value to return later
@@ -780,12 +760,11 @@ void *int_map_remove(struct int_map *map, uint64_t key)
 	 * The victim bucket is now empty, but it still needs to be spliced out
 	 * of the hop list.
 	 */
-	if (previous == NULL) {
+	if (previous == NULL)
 		/* The victim is the head of the list, so swing first_hop. */
 		bucket->first_hop = victim->next_hop;
-	} else {
+	else
 		previous->next_hop = victim->next_hop;
-	}
 	victim->next_hop = NULL_HOP_OFFSET;
 
 	return value;

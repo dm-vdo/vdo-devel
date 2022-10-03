@@ -38,13 +38,12 @@ void initialize_heap(struct heap *heap, heap_comparator *comparator,
 		.capacity = capacity,
 		.element_size = element_size,
 	};
-	if (array != NULL) {
+	if (array != NULL)
 		/*
 		 * Calculating child indexes is simplified by pretending the
 		 * element array is 1-based.
 		 */
 		heap->array = ((byte *) array - element_size);
-	}
 }
 
 static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
@@ -64,9 +63,8 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 
 			if (heap->comparator(&heap->array[left_child],
 					     &heap->array[right_child])
-			    < 0) {
+			    < 0)
 				swap_node = right_child;
-			}
 		}
 
 		/*
@@ -75,9 +73,8 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 		 * previous swap.
 		 */
 		if (heap->comparator(&heap->array[top_node],
-				     &heap->array[swap_node]) >= 0) {
+				     &heap->array[swap_node]) >= 0)
 			return;
-		}
 
 		/*
 		 * Swap the element we've been sifting down with the larger
@@ -115,9 +112,8 @@ void build_heap(struct heap *heap, size_t count)
 
 	heap->count = min(count, heap->capacity);
 
-	if ((heap->count < 2) || (heap->element_size == 0)) {
+	if ((heap->count < 2) || (heap->element_size == 0))
 		return;
-	}
 
 	/*
 	 * All the leaf nodes are trivially valid sub-heaps. Starting with the
@@ -140,9 +136,8 @@ void build_heap(struct heap *heap, size_t count)
 	size = heap->element_size;
 	last_parent = size * (heap->count / 2);
 	last_node = size * heap->count;
-	for (top_node = last_parent; top_node > 0; top_node -= size) {
+	for (top_node = last_parent; top_node > 0; top_node -= size)
 		sift_heap_down(heap, top_node, last_node);
-	}
 }
 
 /**
@@ -161,9 +156,8 @@ bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 {
 	size_t root_node, last_node;
 
-	if (heap->count == 0) {
+	if (heap->count == 0)
 		return false;
-	}
 
 	root_node = (heap->element_size * 1);
 	last_node = (heap->element_size * heap->count);
@@ -172,18 +166,16 @@ bool pop_max_heap_element(struct heap *heap, void *element_ptr)
 	 * Return the maximum element (the root of the heap) if the caller
 	 * wanted it.
 	 */
-	if (element_ptr != NULL) {
+	if (element_ptr != NULL)
 		memcpy(element_ptr, &heap->array[root_node], heap->element_size);
-	}
 
 	/*
 	 * Move the right-most leaf node to the vacated root node, reducing the
 	 * number of elements by one and violating the heap invariant.
 	 */
-	if (root_node != last_node) {
+	if (root_node != last_node)
 		memcpy(&heap->array[root_node], &heap->array[last_node],
 		       heap->element_size);
-	}
 	heap->count -= 1;
 	last_node -= heap->element_size;
 
@@ -242,9 +234,8 @@ size_t sort_heap(struct heap *heap)
 	 * All zero-length records are identical and therefore already sorted,
 	 * as are empty or singleton arrays.
 	 */
-	if ((heap->count < 2) || (heap->element_size == 0)) {
+	if ((heap->count < 2) || (heap->element_size == 0))
 		return heap->count;
-	}
 
 	/*
 	 * Get the byte array offset of the root node, and the right-most leaf
@@ -253,9 +244,8 @@ size_t sort_heap(struct heap *heap)
 	root_node = (heap->element_size * 1);
 	last_node = (heap->element_size * heap->count);
 
-	while (last_node > root_node) {
+	while (last_node > root_node)
 		last_node = sift_and_sort(heap, root_node, last_node);
-	}
 
 	count = heap->count;
 	heap->count = 0;
@@ -273,9 +263,8 @@ void *sort_next_heap_element(struct heap *heap)
 {
 	size_t root_node, last_node;
 
-	if ((heap->count == 0) || (heap->element_size == 0)) {
+	if ((heap->count == 0) || (heap->element_size == 0))
 		return NULL;
-	}
 
 	/*
 	 * Get the byte array offset of the root node, and the right-most leaf
@@ -283,9 +272,8 @@ void *sort_next_heap_element(struct heap *heap)
 	 */
 	root_node = (heap->element_size * 1);
 	last_node = (heap->element_size * heap->count);
-	if (heap->count > 1) {
+	if (heap->count > 1)
 		sift_and_sort(heap, root_node, last_node);
-	}
 	heap->count--;
 
 	return &heap->array[last_node];

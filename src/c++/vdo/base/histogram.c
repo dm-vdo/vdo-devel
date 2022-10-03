@@ -233,9 +233,8 @@ static int max_bucket(struct histogram *h)
 {
 	int max = h->num_buckets;
 
-	while ((max >= 0) && (atomic64_read(&h->counters[max]) == 0)) {
+	while ((max >= 0) && (atomic64_read(&h->counters[max]) == 0))
 		max--;
-	}
 	/* max == -1 means that there were no samples */
 	return max;
 }
@@ -262,9 +261,8 @@ static ssize_t histogram_show(struct kobject *kobj,
 		container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
-	if (ha->show == NULL) {
+	if (ha->show == NULL)
 		return -EINVAL;
-	}
 
 	return ha->show(h, buf);
 }
@@ -278,9 +276,8 @@ static ssize_t histogram_store(struct kobject *kobj,
 		container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
-	if (ha->show == NULL) {
+	if (ha->show == NULL)
 		return -EINVAL;
-	}
 
 	return ha->store(h, buf, length);
 }
@@ -315,9 +312,8 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	memset(bar + 1, '=', BAR_SIZE);
 	bar[BAR_SIZE + 1] = '\0';
 
-	for (i = 0; i <= max; i++) {
+	for (i = 0; i <= max; i++)
 		total += atomic64_read(&h->counters[i]);
-	}
 
 	length += scnprintf(buffer,
 			    buffer_size,
@@ -325,22 +321,19 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 			    h->label,
 			    h->counted_items,
 			    h->metric);
-	if (length >= (buffer_size - 1)) {
+	if (length >= (buffer_size - 1))
 		return buffer_size - 1;
-	}
 	if (h->sample_units != NULL) {
 		length += scnprintf(buffer + length,
 				    buffer_size - length,
 				    " (%s)",
 				    h->sample_units);
-		if (length >= (buffer_size - 1)) {
+		if (length >= (buffer_size - 1))
 			return buffer_size - 1;
-		}
 	}
 	length += scnprintf(buffer + length, buffer_size - length, "\n");
-	if (length >= (buffer_size - 1)) {
+	if (length >= (buffer_size - 1))
 		return buffer_size - 1;
-	}
 	for (i = 0; i <= max; i++) {
 		uint64_t value = atomic64_read(&h->counters[i]);
 
@@ -351,10 +344,9 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 			bar_length = (divide_rounding_to_nearest(
 					      value * BAR_SIZE, total) +
 				      1);
-			if (bar_length == 1) {
+			if (bar_length == 1)
 				/* Don't bother printing just the initial space. */
 				bar_length = 0;
-			}
 		} else {
 			/* 0 means skip the space and the bar */
 			bar_length = 0;
@@ -380,30 +372,27 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 						    upper);
 			}
 		} else {
-			if (i == h->num_buckets) {
+			if (i == h->num_buckets)
 				length += scnprintf(buffer + length,
 						    buffer_size - length,
 						    "%6s",
 						    "Bigger");
-			} else {
+			else
 				length += scnprintf(buffer + length,
 						    buffer_size - length,
 						    "%6d",
 						    i);
-			}
 		}
-		if (length >= (buffer_size - 1)) {
+		if (length >= (buffer_size - 1))
 			return buffer_size - 1;
-		}
 		length += scnprintf(buffer + length,
 				    buffer_size - length,
 				    " : %12llu%.*s\n",
 				    value,
 				    bar_length,
 				    bar);
-		if (length >= (buffer_size - 1)) {
+		if (length >= (buffer_size - 1))
 			return buffer_size - 1;
-		}
 	}
 
 	length += scnprintf(buffer + length,
@@ -444,9 +433,8 @@ static ssize_t histogram_store_limit(struct histogram *h,
 {
 	unsigned int value;
 
-	if ((length > 12) || (sscanf(buf, "%u", &value) != 1)) {
+	if ((length > 12) || (sscanf(buf, "%u", &value) != 1))
 		return -EINVAL;
-	}
 	/*
 	 * Convert input from reporting units (e.g., milliseconds) to internal
 	 * recording units (e.g., jiffies).
@@ -462,9 +450,8 @@ static ssize_t histogram_show_mean(struct histogram *h, char *buf)
 	unsigned int mean_times1000;
 	uint64_t count = atomic64_read(&h->count);
 
-	if (count == 0) {
+	if (count == 0)
 		return sprintf(buf, "0/0\n");
-	}
 	/* Compute mean, scaled up by 1000, in reporting units */
 	sum_times1000_in_reporting_units =
 		h->conversion_factor * atomic64_read(&h->sum) * 1000;
@@ -636,22 +623,19 @@ static struct histogram *make_histogram(struct kobject *parent,
 {
 	struct histogram *h;
 
-	if (UDS_ALLOCATE(1, struct histogram, "histogram", &h) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
 		return NULL;
-	}
 
-	if (NO_BUCKETS) {
-		num_buckets = 0; /* plus 1 for "bigger" bucket */
-	}
+	if (NO_BUCKETS)
+		num_buckets = 0;
 
-	if (num_buckets <= 10) {
+	if (num_buckets <= 10)
 		/*
 		 * The first buckets in a "logarithmic" histogram are still
 		 * linear, but the bucket-search mechanism is a wee bit slower
 		 * than for linear, so change the type.
 		 */
 		log_flag = false;
-	}
 
 	h->label = label;
 	h->counted_items = counted_items;
@@ -761,9 +745,8 @@ make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
 						  int log_size,
 						  uint64_t conversion_factor)
 {
-	if (log_size > MAX_LOG_SIZE) {
+	if (log_size > MAX_LOG_SIZE)
 		log_size = MAX_LOG_SIZE;
-	}
 	return make_histogram(parent,
 			      name,
 			      init_label,
@@ -863,9 +846,8 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	uint64_t old_minimum, old_maximum;
 	int bucket;
 
-	if (h == NULL) {
+	if (h == NULL)
 		return;
-	}
 
 	if (h->log_flag) {
 		int lo = 0;
@@ -874,11 +856,10 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 		while (lo < hi) {
 			int middle = (lo + hi) / 2;
 
-			if (sample < bottom_value[middle + 1]) {
+			if (sample < bottom_value[middle + 1])
 				hi = middle;
-			} else {
+			else
 				lo = middle + 1;
-			}
 		}
 		bucket = lo;
 	} else {
@@ -887,9 +868,8 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	atomic64_inc(&h->counters[bucket]);
 	atomic64_inc(&h->count);
 	atomic64_add(sample, &h->sum);
-	if ((h->limit > 0) && (sample > h->limit)) {
+	if ((h->limit > 0) && (sample > h->limit))
 		atomic64_inc(&h->unacceptable);
-	}
 
 	/*
 	 * Theoretically this could loop a lot; in practice it should rarely
@@ -901,9 +881,8 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	while (old_maximum < sample) {
 		uint64_t read_value =
 			atomic64_cmpxchg(&h->maximum, old_maximum, sample);
-		if (read_value == old_maximum) {
+		if (read_value == old_maximum)
 			break;
-		}
 		old_maximum = read_value;
 	}
 
@@ -912,9 +891,8 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	while (old_minimum > sample) {
 		uint64_t read_value =
 			atomic64_cmpxchg(&h->minimum, old_minimum, sample);
-		if (read_value == old_minimum) {
+		if (read_value == old_minimum)
 			break;
-		}
 		old_minimum = read_value;
 	}
 }
@@ -925,7 +903,6 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
  */
 void free_histogram(struct histogram *histogram)
 {
-	if (histogram != NULL) {
+	if (histogram != NULL)
 		kobject_put(&histogram->kobj);
-	}
 }

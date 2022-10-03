@@ -73,9 +73,8 @@ static int grow_bit_array(void)
 					   get_bit_array_size(new_count),
 					   "instance number bit array",
 					   &new_words);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	bit_count = new_count;
 	words = new_words;
@@ -89,9 +88,8 @@ static int vdo_allocate_instance_locked(unsigned int *instance_ptr)
 	if (instance_count >= bit_count) {
 		int result = grow_bit_array();
 
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	/*
@@ -108,9 +106,8 @@ static int vdo_allocate_instance_locked(unsigned int *instance_ptr)
 		instance = find_first_zero_bit(words, bit_count);
 		result = ASSERT(instance < bit_count,
 				"impossibly, no zero bit found");
-		if (result != UDS_SUCCESS) {
+		if (result != UDS_SUCCESS)
 			return result;
-		}
 	}
 
 	__set_bit(instance, words);
