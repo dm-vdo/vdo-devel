@@ -22,9 +22,8 @@ int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 {
 	int result = ASSERT((waiter->next_waiter == NULL),
 			    "new waiter must not already be in a waiter queue");
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	if (queue->last_waiter == NULL) {
 		/*
@@ -56,9 +55,8 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 			  struct wait_queue *to_queue)
 {
 	/* If the source queue is empty, there's nothing to do. */
-	if (!has_waiters(from_queue)) {
+	if (!has_waiters(from_queue))
 		return;
-	}
 
 	if (has_waiters(to_queue)) {
 		/*
@@ -121,10 +119,9 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
 {
 	struct waiter *last_waiter = queue->last_waiter;
 
-	if (last_waiter == NULL) {
+	if (last_waiter == NULL)
 		/* There are no waiters, so we're done. */
 		return NULL;
-	}
 
 	/*
 	 * The queue is circular, so the last entry links to the head of the
@@ -159,11 +156,10 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 		struct waiter *waiter = dequeue_next_waiter(&iteration_queue);
 		int result = VDO_SUCCESS;
 
-		if (!match_method(waiter, match_context)) {
+		if (!match_method(waiter, match_context))
 			result = enqueue_waiter(queue, waiter);
-		} else {
+		else
 			result = enqueue_waiter(&matched_waiters, waiter);
-		}
 		if (result != VDO_SUCCESS) {
 			transfer_all_waiters(&matched_waiters, queue);
 			transfer_all_waiters(&iteration_queue, queue);
@@ -191,23 +187,21 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 	struct waiter *first_waiter = get_first_waiter(queue);
 	struct waiter *last_waiter = queue->last_waiter;
 
-	if (first_waiter == NULL) {
+	if (first_waiter == NULL)
 		return NULL;
-	}
 
-	if (first_waiter == last_waiter) {
+	if (first_waiter == last_waiter)
 		/*
 		 * The queue has a single entry, so just empty it out by nulling
 		 * the tail.
 		 */
 		queue->last_waiter = NULL;
-	} else {
+	else
 		/*
 		 * The queue has more than one entry, so splice the first waiter
 		 * out of the circular queue.
 		 */
 		last_waiter->next_waiter = first_waiter->next_waiter;
-	}
 
 	/* The waiter is no longer in a wait queue. */
 	first_waiter->next_waiter = NULL;
@@ -232,13 +226,11 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
 {
 	struct waiter *waiter = dequeue_next_waiter(queue);
 
-	if (waiter == NULL) {
+	if (waiter == NULL)
 		return false;
-	}
 
-	if (callback == NULL) {
+	if (callback == NULL)
 		callback = waiter->callback;
-	}
 	(*callback)(waiter, context);
 	return true;
 }
@@ -255,9 +247,8 @@ const struct waiter *get_next_waiter(const struct wait_queue *queue,
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
 
-	if (waiter == NULL) {
+	if (waiter == NULL)
 		return first_waiter;
-	}
 	return ((waiter->next_waiter != first_waiter) ? waiter->next_waiter
 						    : NULL);
 }

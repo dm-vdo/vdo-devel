@@ -168,14 +168,12 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 			completion->callback,
 			queue,
 			completion->my_queue);
-	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY) {
+	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY)
 		completion->priority = queue->common.type->default_priority;
-	}
 
 	if (ASSERT(completion->priority < queue->num_priority_lists,
-		   "priority is in range for queue") != VDO_SUCCESS) {
+		   "priority is in range for queue") != VDO_SUCCESS)
 		completion->priority = 0;
-	}
 
 	completion->my_queue = &queue->common;
 
@@ -205,9 +203,8 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 	 */
 	smp_mb();
 	if ((atomic_read(&queue->idle) != 1) ||
-	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1)) {
+	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1))
 		return;
-	}
 
 	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
 
@@ -217,16 +214,14 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 
 static void run_start_hook(struct simple_work_queue *queue)
 {
-	if (queue->common.type->start != NULL) {
+	if (queue->common.type->start != NULL)
 		queue->common.type->start(queue->private);
-	}
 }
 
 static void run_finish_hook(struct simple_work_queue *queue)
 {
-	if (queue->common.type->finish != NULL) {
+	if (queue->common.type->finish != NULL)
 		queue->common.type->finish(queue->private);
-	}
 }
 
 /*
@@ -263,9 +258,8 @@ wait_for_next_completion(struct simple_work_queue *queue)
 		smp_mb(); /* store-load barrier between "idle" and funnel queue */
 
 		completion = poll_for_completion(queue);
-		if (completion != NULL) {
+		if (completion != NULL)
 			break;
-		}
 
 		/*
 		 * We need to check for thread-stop after setting
@@ -273,9 +267,8 @@ wait_for_next_completion(struct simple_work_queue *queue)
 		 * will put the thread to sleep and might miss a wakeup from
 		 * kthread_stop() call in finish_work_queue().
 		 */
-		if (kthread_should_stop()) {
+		if (kthread_should_stop())
 			break;
-		}
 
 		schedule();
 
@@ -284,9 +277,8 @@ wait_for_next_completion(struct simple_work_queue *queue)
 		 * stats. If it was a spurious wakeup, continue looping.
 		 */
 		completion = poll_for_completion(queue);
-		if (completion != NULL) {
+		if (completion != NULL)
 			break;
-		}
 	}
 
 	finish_wait(&queue->waiting_worker_threads, &wait);
@@ -302,9 +294,8 @@ static void process_completion(struct simple_work_queue *queue,
 		   "completion %px from queue %px marked as being in this queue (%px)",
 		   completion,
 		   queue,
-		   completion->my_queue) == UDS_SUCCESS) {
+		   completion->my_queue) == UDS_SUCCESS)
 		completion->my_queue = NULL;
-	}
 
 	vdo_run_completion_callback(completion);
 }
@@ -322,17 +313,15 @@ static void service_work_queue(struct simple_work_queue *queue)
 	while (true) {
 		struct vdo_completion *completion = poll_for_completion(queue);
 
-		if (completion == NULL) {
+		if (completion == NULL)
 			completion = wait_for_next_completion(queue);
-		}
 
-		if (completion == NULL) {
+		if (completion == NULL)
 			/*
 			 * No completions but kthread_should_stop() was
 			 * triggered.
 			 */
 			break;
-		}
 
 		process_completion(queue, completion);
 
@@ -341,9 +330,8 @@ static void service_work_queue(struct simple_work_queue *queue)
 		 * kernel has told us to. This speeds up some performance
 		 * tests; that "other work" might include other VDO threads.
 		 */
-		if (need_resched()) {
+		if (need_resched())
 			yield_to_scheduler(queue);
-		}
 	}
 
 	run_finish_hook(queue);
@@ -372,9 +360,8 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 {
 	unsigned int i;
 
-	for (i = 0; i <= VDO_WORK_Q_MAX_PRIORITY; i++) {
+	for (i = 0; i <= VDO_WORK_Q_MAX_PRIORITY; i++)
 		free_funnel_queue(queue->priority_lists[i]);
-	}
 	UDS_FREE(queue->common.name);
 	UDS_FREE(queue);
 }
@@ -387,9 +374,8 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 
 	queue->service_queues = NULL;
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		free_simple_work_queue(queue_table[i]);
-	}
 	UDS_FREE(queue_table);
 	UDS_FREE(queue->common.name);
 	UDS_FREE(queue);
@@ -397,17 +383,15 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 
 void free_work_queue(struct vdo_work_queue *queue)
 {
-	if (queue == NULL) {
+	if (queue == NULL)
 		return;
-	}
 
 	finish_work_queue(queue);
 
-	if (queue->round_robin_mode) {
+	if (queue->round_robin_mode)
 		free_round_robin_work_queue(as_round_robin_work_queue(queue));
-	} else {
+	else
 		free_simple_work_queue(as_simple_work_queue(queue));
-	}
 }
 
 static bool queue_started(struct simple_work_queue *queue)
@@ -443,9 +427,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			      struct simple_work_queue,
 			      "simple work queue",
 			      &queue);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	queue->private = private;
 	queue->common.type = type;
@@ -531,17 +514,15 @@ int make_work_queue(const char *thread_name_prefix,
 						context,
 						type,
 						&simple_queue);
-		if (result == VDO_SUCCESS) {
+		if (result == VDO_SUCCESS)
 			*queue_ptr = &simple_queue->common;
-		}
 		return result;
 	}
 
 	result = UDS_ALLOCATE(1, struct round_robin_work_queue,
 			      "round-robin work queue", &queue);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	result = UDS_ALLOCATE(thread_count,
 			      struct simple_work_queue *,
@@ -590,9 +571,8 @@ int make_work_queue(const char *thread_name_prefix,
 
 static void finish_simple_work_queue(struct simple_work_queue *queue)
 {
-	if (queue->thread == NULL) {
+	if (queue->thread == NULL)
 		return;
-	}
 
 	/*
 	 * Reduces (but does not eliminate) the chance of the sysfs support
@@ -611,9 +591,8 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 	unsigned int count = queue->num_service_queues;
 	unsigned int i;
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
 		finish_simple_work_queue(queue_table[i]);
-	}
 }
 
 /*
@@ -621,9 +600,8 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
  */
 void finish_work_queue(struct vdo_work_queue *queue)
 {
-	if (queue == NULL) {
+	if (queue == NULL)
 		return;
-	}
 
 	if (queue->round_robin_mode) {
 		struct round_robin_work_queue *rrqueue
@@ -671,9 +649,8 @@ void dump_work_queue(struct vdo_work_queue *queue)
 		unsigned int i;
 
 		for (i = 0;
-		     i < round_robin_queue->num_service_queues; i++) {
+		     i < round_robin_queue->num_service_queues; i++)
 			dump_simple_work_queue(round_robin_queue->service_queues[i]);
-		}
 	} else {
 		dump_simple_work_queue(as_simple_work_queue(queue));
 	}
@@ -708,9 +685,8 @@ static void get_function_name(void *pointer,
 
 		space = strchr(buffer, ' ');
 
-		if (space != NULL) {
+		if (space != NULL)
 			*space = '\0';
-		}
 	}
 }
 
@@ -726,11 +702,10 @@ void dump_completion_to_buffer(struct vdo_completion *completion,
 			  (completion->my_queue == NULL ?
 			   "-" :
 			   completion->my_queue->name));
-	if (current_length < length) {
+	if (current_length < length)
 		get_function_name((void *) completion->callback,
 				  buffer + current_length,
 				  length - current_length);
-	}
 }
 
 /* Completion submission */
@@ -787,9 +762,8 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 * processing a completion, in which case starting to process another
 	 * would violate our concurrency assumptions.
 	 */
-	if (in_interrupt()) {
+	if (in_interrupt())
 		return NULL;
-	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
 	/*
@@ -820,15 +794,13 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 * should be okay with this #if check; backports to pre-5.13 will need
 	 * further protection.
 	 */
-	if (current->set_child_tid == NULL) {
+	if (current->set_child_tid == NULL)
 		return NULL;
-	}
 #endif
 
-	if (kthread_func(current) != work_queue_runner) {
+	if (kthread_func(current) != work_queue_runner)
 		/* Not a VDO work queue thread. */
 		return NULL;
-	}
 	return kthread_data(current);
 }
 
@@ -856,6 +828,7 @@ void *get_work_queue_private_data(void)
 }
 
 bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
-			    const struct vdo_work_queue_type *type) {
+			    const struct vdo_work_queue_type *type)
+{
 	return (queue->type == type);
 }
