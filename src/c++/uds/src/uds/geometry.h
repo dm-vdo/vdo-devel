@@ -28,7 +28,7 @@ struct geometry {
 
 	/*
 	 * The following properties are derived from the ones above, but they
-         * are computed and recorded as fields for convenience.
+	 * are computed and recorded as fields for convenience.
 	 */
 	/* Total number of pages in a volume, excluding the header */
 	unsigned int pages_per_volume;

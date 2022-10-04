@@ -35,11 +35,11 @@ static INLINE int __must_check uds_must_use(int value)
 #define ASSERT_LOG_ONLY(expr, ...) \
 	__UDS_ASSERT(expr, __VA_ARGS__)
 
-#define __UDS_ASSERT(expr, ...)                               \
-	(likely(expr) ? UDS_SUCCESS                           \
+#define __UDS_ASSERT(expr, ...)				      \
+	(likely(expr) ? UDS_SUCCESS			      \
 		      : uds_assertion_failed(STRINGIFY(expr), \
-					     __FILE__,        \
-					     __LINE__,        \
+					     __FILE__,	      \
+					     __LINE__,	      \
 					     __VA_ARGS__))
 
 /* Log an assertion failure message. */
@@ -50,15 +50,18 @@ int uds_assertion_failed(const char *expression_string,
 			 ...)
 	__printf(4, 5);
 
-#define STATIC_ASSERT(expr)          \
-	do {                         \
-		switch (0) {         \
-		case 0:;             \
+#define STATIC_ASSERT(expr)	     \
+	do {			     \
+		switch (0) {	     \
+		case 0:		     \
+			;	     \
 			fallthrough; \
-		case expr:;	     \
+		case expr:	     \
+			;	     \
 			fallthrough; \
-		default:;            \
-		}                    \
+		default:	     \
+			break;	     \
+		}		     \
 	} while (0)
 
 #define STATIC_ASSERT_SIZEOF(type, expected_size) \

@@ -166,7 +166,7 @@ struct volume_index_data {
 };
 
 static const byte volume_index_record_magic = 0xAA;
-static const byte bad_magic = 0;
+static const byte bad_magic;
 
 #ifdef TEST_INTERNAL
 /*

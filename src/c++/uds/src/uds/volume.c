@@ -79,7 +79,7 @@ enum {
  * This function pointer allows unit test code to intercept the slow-lane
  * requeuing of a request.
  */
-static request_restarter_t request_restarter = NULL;
+static request_restarter_t request_restarter;
 
 void set_request_restarter(request_restarter_t restarter)
 {

@@ -24,7 +24,7 @@
 #include "uds-threads.h"
 
 #ifdef DEBUGGING_OFF
-static bool exit_on_assertion_failure = false;
+static bool exit_on_assertion_failure;
 #else /* not DEBUGGING_OFF */
 static bool exit_on_assertion_failure = true;
 #endif /* DEBUGGING_OFF */

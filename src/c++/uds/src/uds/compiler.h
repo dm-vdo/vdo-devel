@@ -19,21 +19,21 @@
  * errors. (See http://stackoverflow.com/a/1598827 for an explanation.)
  */
 #define ARRAY_SIZE(x)					\
-	((sizeof(x) / sizeof(0 [x])) /			\
-	 ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
+	((sizeof(x) / sizeof(0[x])) /			\
+	 ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
 #define container_of(ptr, type, member)                              \
 	__extension__({                                              \
-		__typeof__(((type *) 0)->member) *__mptr = (ptr);    \
+		__typeof__(((type *) 0)->member) * __mptr = (ptr);   \
 		(type *) ((char *) __mptr - offsetof(type, member)); \
 	})
 #endif
 
-#define const_container_of(ptr, type, member)                           \
-	__extension__({                                                 \
-		const __typeof__(((type *) 0)->member) *__mptr = (ptr); \
-		(const type *) ((const char *) __mptr -                 \
-				offsetof(type, member));                \
+#define const_container_of(ptr, type, member)                            \
+	__extension__({                                                  \
+		const __typeof__(((type *) 0)->member) * __mptr = (ptr); \
+		(const type *) ((const char *) __mptr -                  \
+				offsetof(type, member));                 \
 	})
 
 /*
