@@ -391,8 +391,6 @@ tarballs:
             vio.h
             vio-pool.c
             vio-pool.h
-            vio-write.c
-            vio-write.h
             volume-geometry.c
             volume-geometry.h
             wait-queue.c

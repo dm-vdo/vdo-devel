@@ -27,7 +27,6 @@
 #include "thread-config.h"
 #include "vdo.h"
 #include "vio.h"
-#include "vio-write.h"
 
 /**
  * assert_on_packer_thread() - Check that we are on the packer thread.

@@ -14,7 +14,6 @@
 #include "block-map.h"
 #include "completion.h"
 #include "data-vio.h"
-#include "vio-write.h"
 
 #include "asyncLayer.h"
 #include "asyncVIO.h"

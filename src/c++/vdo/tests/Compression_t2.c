@@ -10,9 +10,9 @@
 
 #include "memory-alloc.h"
 
+#include "data-vio.h"
 #include "packer.h"
 #include "vdo.h"
-#include "vio-write.h"
 
 #include "asyncLayer.h"
 #include "blockMapUtils.h"

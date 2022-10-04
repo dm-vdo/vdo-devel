@@ -173,7 +173,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vio-write.h"
 #include "wait-queue.h"
 
 struct uds_attribute {
