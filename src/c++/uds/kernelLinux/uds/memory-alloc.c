@@ -194,7 +194,7 @@ static void remove_vmalloc_block(void *ptr)
  * enough that wraparound is not a problem.
  */
 atomic_long_t uds_allocate_memory_counter = ATOMIC_LONG_INIT(0);
-long uds_allocation_error_injection = 0;
+long uds_allocation_error_injection;
 
 /*
  * We use these variables and methods to track the exact blocks that are
@@ -221,9 +221,9 @@ enum { NUM_TRACK_BLOCKS = ((PAGE_SIZE - sizeof(struct track_memory_info)) /
 			   sizeof(struct track_block_info)) };
 
 static struct mutex track_mutex;
-static struct track_memory_info *track_info = NULL;
+static struct track_memory_info *track_info;
 static atomic_t track_enabled = ATOMIC_INIT(0);
-static bool track_always = false;
+static bool track_always;
 
 int track_uds_memory_allocations(bool track_flag)
 {
