@@ -7,6 +7,7 @@
 #define FOREST_H
 
 #include "block-map-tree.h"
+#include "completion.h"
 #include "types.h"
 
 /**
@@ -19,6 +20,8 @@
  */
 typedef int vdo_entry_callback(physical_block_number_t pbn,
 			       struct vdo_completion *completion);
+
+struct forest;
 
 struct tree_page * __must_check
 vdo_get_tree_page_by_index(struct forest *forest,

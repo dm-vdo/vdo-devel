@@ -13,6 +13,7 @@
 #endif
 
 #include "admin-state.h"
+#include "block-map-tree.h"
 #include "completion.h"
 #include "dirty-lists.h"
 #include "int-map.h"

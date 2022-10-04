@@ -6,6 +6,7 @@
 #ifndef REFERENCE_COUNT_REBUILD_H
 #define REFERENCE_COUNT_REBUILD_H
 
+#include "completion.h"
 #include "kernel-types.h"
 #include "types.h"
 

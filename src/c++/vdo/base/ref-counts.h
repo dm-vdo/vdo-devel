@@ -10,6 +10,7 @@
 #include "journal-point.h"
 #include "packed-reference-block.h"
 #include "slab.h"
+#include "slab-journal-format.h"
 #include "types.h"
 #include "wait-queue.h"
 

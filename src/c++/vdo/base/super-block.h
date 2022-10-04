@@ -6,6 +6,7 @@
 #ifndef SUPER_BLOCK_H
 #define SUPER_BLOCK_H
 
+#include "completion.h"
 #include "kernel-types.h"
 #include "types.h"
 

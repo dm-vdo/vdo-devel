@@ -31,6 +31,8 @@ struct vdo_flush {
 	sequence_number_t flush_generation;
 };
 
+struct flusher;
+
 int __must_check vdo_make_flusher(struct vdo *vdo);
 
 void vdo_free_flusher(struct flusher *flusher);

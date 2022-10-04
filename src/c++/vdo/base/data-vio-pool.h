@@ -9,8 +9,10 @@
 
 #include <linux/bio.h>
 
-#include "kernel-types.h"
+#include "completion.h"
 #include "types.h"
+
+struct data_vio_pool;
 
 int make_data_vio_pool(struct vdo *vdo,
 		       data_vio_count_t pool_size,

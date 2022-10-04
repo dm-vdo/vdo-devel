@@ -25,6 +25,7 @@
 #include "device-config.h"
 #include "header.h"
 #include "packer.h"
+#include "physical-zone.h"
 #include "statistics.h"
 #include "super-block.h"
 #include "read-only-notifier.h"

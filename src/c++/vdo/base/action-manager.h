@@ -80,6 +80,8 @@ typedef bool vdo_action_scheduler(void *context);
 typedef thread_id_t
 vdo_zone_thread_getter(void *context, zone_count_t zone_number);
 
+struct action_manager;
+
 int __must_check
 vdo_make_action_manager(zone_count_t zones,
 			vdo_zone_thread_getter *get_zone_thread_id,

@@ -6,6 +6,7 @@
 #ifndef VIO_WRITE_H
 #define VIO_WRITE_H
 
+#include "completion.h"
 #include "kernel-types.h"
 
 void continue_write_with_block_map_slot(struct vdo_completion *completion);

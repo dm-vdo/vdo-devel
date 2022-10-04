@@ -6,7 +6,7 @@
 #ifndef VDO_RESUME_H
 #define VDO_RESUME_H
 
-#include "kernel-types.h"
+#include "device-config.h"
 #include "types.h"
 
 int vdo_preresume_internal(struct vdo *vdo,

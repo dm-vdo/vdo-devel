@@ -6,7 +6,7 @@
 #ifndef REFERENCE_OPERATION_H
 #define REFERENCE_OPERATION_H
 
-#include "kernel-types.h"
+#include "physical-zone.h"
 #include "types.h"
 
 struct reference_operation;

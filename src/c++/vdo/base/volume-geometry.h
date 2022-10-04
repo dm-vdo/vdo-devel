@@ -11,6 +11,9 @@
 #include <linux/blk_types.h>
 #include <linux/uuid.h>
 #else
+#ifndef VDO_USER
+struct block_device;
+#endif /* not VDO_USER */
 #include <uuid/uuid.h>
 #endif /* __KERNEL__ */
 

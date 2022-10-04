@@ -28,6 +28,8 @@
 typedef void vdo_read_only_notification(void *listener,
 					struct vdo_completion *parent);
 
+struct read_only_notifier;
+
 int __must_check
 vdo_make_read_only_notifier(bool is_read_only,
 			    const struct thread_config *thread_config,

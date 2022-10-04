@@ -17,6 +17,7 @@
 #include "types.h"
 #include "wait-queue.h"
 
+struct dedupe_context;
 struct hash_lock;
 struct hash_zone;
 struct hash_zones;

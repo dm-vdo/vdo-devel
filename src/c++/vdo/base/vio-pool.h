@@ -42,6 +42,8 @@ typedef int vio_constructor(struct vdo *vdo,
 			    void *buffer,
 			    struct vio **vio_ptr);
 
+struct vio_pool;
+
 int __must_check make_vio_pool(struct vdo *vdo,
 			       size_t pool_size,
 			       thread_id_t thread_id,

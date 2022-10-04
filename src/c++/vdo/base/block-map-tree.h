@@ -50,6 +50,10 @@ struct tree_page {
 	char page_buffer[VDO_BLOCK_SIZE];
 };
 
+struct block_map;
+struct block_map_tree_zone;
+struct block_map_zone;
+
 /*
  * Used to indicate that the page holding the location of a tree root has been
  * "loaded".

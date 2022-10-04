@@ -12,6 +12,7 @@
 
 #include "admin-state.h"
 #include "journal-point.h"
+#include "recovery-journal.h"
 #include "reference-operation.h"
 #include "types.h"
 

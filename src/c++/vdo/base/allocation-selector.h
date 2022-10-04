@@ -17,6 +17,8 @@
  * zone before switching to the next.
  */
 
+struct allocation_selector;
+
 /**
  * struct allocation_selector: Structure used to select which physical zone to
  *                             allocate from.
