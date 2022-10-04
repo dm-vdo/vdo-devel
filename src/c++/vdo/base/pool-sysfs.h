@@ -12,7 +12,7 @@
 extern struct kobj_type vdo_directory_type;
 
 /* The sysfs_ops used for the "statistics" subdirectory. */
-extern struct sysfs_ops vdo_pool_stats_sysfs_ops;
+extern const struct sysfs_ops vdo_pool_stats_sysfs_ops;
 /* The attribute used for the "statistics" subdirectory. */
 extern struct attribute *vdo_pool_stats_attrs[];
 

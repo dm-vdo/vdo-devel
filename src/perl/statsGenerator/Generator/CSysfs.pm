@@ -86,9 +86,8 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 		container_of(attr, struct pool_stats_attribute, attr);
 	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
 
-	if (pool_stats_attr->print == NULL) {
+	if (pool_stats_attr->print == NULL)
 		return -EINVAL;
-	}
 
 	mutex_lock(&vdo->stats_mutex);
 	vdo_fetch_statistics(vdo, &vdo->stats_buffer);
@@ -98,7 +97,7 @@ static ssize_t pool_stats_attr_show(struct kobject *directory,
 	return size;
 }
 
-struct sysfs_ops vdo_pool_stats_sysfs_ops = {
+const struct sysfs_ops vdo_pool_stats_sysfs_ops = {
 	.show = pool_stats_attr_show,
 	.store = NULL,
 };

@@ -118,11 +118,10 @@ sub emitField {
   $self->emit("buf,");
   $self->emit("maxlen);");
   $self->undent();
-  $self->emit("if (result != VDO_SUCCESS) {");
+  $self->emit("if (result != VDO_SUCCESS)");
   $self->indent();
   $self->emit("return result;");
   $self->undent();
-  $self->emit("}");
 }
 
 ######################################################################
@@ -145,23 +144,23 @@ sub emitStruct {
   $self->undent();
   $self->emit("{");
   $self->indent();
-  $self->emit("int result = write_string(prefix, \"{ \", NULL, buf, maxlen);");
-  $self->emit("if (result != VDO_SUCCESS) {");
+  $self->emit("int result;");
+  $self->blankLine();
+  $self->emit("result = write_string(prefix, \"{ \", NULL, buf, maxlen);");
+  $self->emit("if (result != VDO_SUCCESS)");
   $self->indent();
   $self->emit("return result;");
   $self->undent();
-  $self->emit("}");
 
   foreach my $field ($struct->getChildren()) {
     $self->generate($field);
   }
 
   $self->emit("result = write_string(NULL, \"}\", suffix, buf, maxlen);");
-  $self->emit("if (result != VDO_SUCCESS) {");
+  $self->emit("if (result != VDO_SUCCESS)");
   $self->indent();
   $self->emit("return result;");
   $self->undent();
-  $self->emit("}");
   $self->emit("return VDO_SUCCESS;");
   $self->undent();
   $self->emit("}");
@@ -200,11 +199,10 @@ sub emitType {
   $self->undent();
   $self->emit("*buf += count;");
   $self->emit("*maxlen -= count;");
-  $self->emit("if (count >= *maxlen) {");
+  $self->emit("if (count >= *maxlen)");
   $self->indent();
   $self->emit("return VDO_UNEXPECTED_EOF;");
   $self->undent();
-  $self->emit("}");
   $self->emit("return VDO_SUCCESS;");
   $self->undent();
   $self->emit("}");
@@ -288,14 +286,14 @@ sub generateStruct {
     $self->indent();
     my $name = $self->camelcaseToKernelStyle($struct);
     $self->replaceAndEmit("struct STRUCT *stats;", "STRUCT", $name);
-    $self->replaceAndEmit("int result = UDS_ALLOCATE(1, struct STRUCT,"
-                          . " __func__, &stats);",
-                          "STRUCT", $name);
-    $self->emit("if (result != VDO_SUCCESS) {");
+    $self->emit("int result;");
+    $self->blankLine();
+    $self->replaceAndEmit("result = UDS_ALLOCATE(1, struct STRUCT,"
+                          . " __func__, &stats);", "STRUCT", $name);
+    $self->emit("if (result != VDO_SUCCESS)");
     $self->indent();
     $self->emit("return result;");
     $self->undent();
-    $self->emit("}");
     $self->blankLine();
     $self->emit("vdo_fetch_statistics(vdo, stats);");
     $self->replaceAndEmit("result = write_STRUCT(NULL, stats, NULL, &buf,"
