@@ -42,7 +42,7 @@ static inline bool is_power_of_2(uint64_t n)
  */
 static inline int ilog2(uint64_t n)
 {
-	ASSERT_LOG_ONLY (n != 0, "ilog2() may not be passed 0");
+	ASSERT_LOG_ONLY(n != 0, "ilog2() may not be passed 0");
 	/*
 	 * Many CPUs, including x86, directly support this calculation, so use
 	 * the GCC function for counting the number of leading high-order zero

@@ -102,9 +102,9 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 	transfer_all_waiters(queue, &waiters);
 
 	/* Drain the copied queue, invoking the callback on every entry. */
-	while (notify_next_waiter(&waiters, callback, context)) {
+	while (notify_next_waiter(&waiters, callback, context))
 		/* All the work is done by the loop condition. */
-	}
+		;
 }
 
 /**

@@ -14,9 +14,9 @@
 
 enum {
 	/**
-         * The maximum number of contiguous PBNs which will go to a single
-         * bio submission queue, assuming there is more than one queue.
-         **/
+	 * The maximum number of contiguous PBNs which will go to a single
+	 * bio submission queue, assuming there is more than one queue.
+	 **/
 	VDO_BIO_ROTATION_INTERVAL_LIMIT = 1024,
 
 	/** The number of entries on a block map page */
@@ -36,7 +36,7 @@ enum {
 	DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT = 4,
 
 	/**
-         * The number of contiguous PBNs to be submitted to a single bio queue.
+	 * The number of contiguous PBNs to be submitted to a single bio queue.
 	 **/
 	DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL = 64,
 
@@ -76,8 +76,8 @@ enum {
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
 
 	/**
-         * The maximum number of total threads in a VDO thread configuration.
-         **/
+	 * The maximum number of total threads in a VDO thread configuration.
+	 **/
 	MAXIMUM_VDO_THREADS = 100,
 
 	/** The maximum number of VIOs in the system at once */

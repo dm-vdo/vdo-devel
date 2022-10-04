@@ -743,8 +743,8 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 			    REQ_OP_WRITE);
 
 	/*
-         * Since the write is submitted, the tail block structure can be
-         * reused.
+	 * Since the write is submitted, the tail block structure can be
+	 * reused.
 	 */
 	journal->tail++;
 	initialize_tail_block(journal);

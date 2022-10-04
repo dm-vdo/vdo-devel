@@ -661,19 +661,19 @@ static void get_function_name(void *pointer,
 			      size_t buffer_length)
 {
 	if (pointer == NULL) {
-                /*
-                 * Format "%ps" logs a null pointer as "(null)" with a bunch of
-                 * leading spaces. We sometimes use this when logging lots of
-                 * data; don't be so verbose.
-                 */
+		/*
+		 * Format "%ps" logs a null pointer as "(null)" with a bunch of
+		 * leading spaces. We sometimes use this when logging lots of
+		 * data; don't be so verbose.
+		 */
 		strncpy(buffer, "-", buffer_length);
 	} else {
-                /*
-                 * Use a non-const array instead of a string literal below to
-                 * defeat gcc's format checking, which doesn't understand that
-                 * "%ps" actually does support a precision spec in Linux kernel
-                 * code.
-                 */
+		/*
+		 * Use a non-const array instead of a string literal below to
+		 * defeat gcc's format checking, which doesn't understand that
+		 * "%ps" actually does support a precision spec in Linux kernel
+		 * code.
+		 */
 		static char truncated_function_name_format_string[] = "%.*ps";
 		char *space;
 

@@ -709,7 +709,7 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
  * Implements vdo_read_only_notification.
  */
 static void notify_vdo_of_read_only_mode(void *listener,
-				         struct vdo_completion *parent)
+					 struct vdo_completion *parent)
 {
 	struct vdo *vdo = listener;
 
