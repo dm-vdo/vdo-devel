@@ -278,6 +278,36 @@ static void assertSameStates(struct slab_depot_state_2_0 a,
   CU_ASSERT_EQUAL(a.zone_count, b.zone_count);
 }
 
+/**********************************************************************/
+static bool are_equivalent_slab_depots(struct slab_depot *depot_a,
+                                       struct slab_depot *depot_b)
+{
+	size_t i;
+
+	if ((depot_a->first_block != depot_b->first_block) ||
+	    (depot_a->last_block != depot_b->last_block) ||
+	    (depot_a->slab_count != depot_b->slab_count) ||
+	    (depot_a->slab_size_shift != depot_b->slab_size_shift) ||
+	    (vdo_get_slab_depot_allocated_blocks(depot_a) !=
+	     vdo_get_slab_depot_allocated_blocks(depot_b))) {
+		return false;
+	}
+
+	for (i = 0; i < depot_a->slab_count; i++) {
+		struct vdo_slab *slab_a = depot_a->slabs[i];
+		struct vdo_slab *slab_b = depot_b->slabs[i];
+
+		if ((slab_a->start != slab_b->start) ||
+		    (slab_a->end != slab_b->end) ||
+		    !vdo_are_equivalent_ref_counts(slab_a->reference_counts,
+						   slab_b->reference_counts)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /**
  * Check that encoding and decoding a slab depot works correctly.
  **/
@@ -303,7 +333,7 @@ static void verifyCoding(void)
                                            &decodedDepot));
   performSuccessfulDepotActionOnDepot(decodedDepot, VDO_ADMIN_STATE_LOADING);
   performSuccessfulAction(prepareDepotAction);
-  CU_ASSERT_TRUE(vdo_are_equivalent_slab_depots(depot, decodedDepot));
+  CU_ASSERT_TRUE(are_equivalent_slab_depots(depot, decodedDepot));
 
   vdo_free_slab_depot(UDS_FORGET(decodedDepot));
   performSuccessfulDepotActionOnDepot(depot, VDO_ADMIN_STATE_RESUMING);

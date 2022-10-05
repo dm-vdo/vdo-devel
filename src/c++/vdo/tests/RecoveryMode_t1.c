@@ -805,9 +805,8 @@ static void testPostRecoveryMode(void)
   slabToLatch = 2;
   startAndWaitForVDOInRecovery(false, VDO_DIRTY);
   // There should be precisely slabCount - 2 slabs on the scrubber.
-  struct slab_depot *depot = vdo->depot;
-  CU_ASSERT_EQUAL(totalSlabs - 2,
-                  vdo_get_slab_depot_unrecovered_slab_count(depot));
+  struct slab_scrubber *scrubber = vdo->depot->allocators[0]->slab_scrubber;
+  CU_ASSERT_EQUAL(totalSlabs - 2, vdo_get_scrubber_slab_count(scrubber));
 
   // Launch a trim for everything for the slab which is scrubbing.
   IORequest *request = launchTrim(slabToLatch * dataPerSlab, dataPerSlab);

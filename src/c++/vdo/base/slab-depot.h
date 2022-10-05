@@ -157,17 +157,4 @@ void vdo_dump_slab_depot(const struct slab_depot *depot);
 
 void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
-#ifdef INTERNAL
-slab_count_t __must_check vdo_calculate_slab_count(struct slab_depot *depot);
-
-int __must_check vdo_get_slab_number(const struct slab_depot *depot,
-				     physical_block_number_t pbn,
-				     slab_count_t *slab_number_ptr);
-
-slab_count_t __must_check
-vdo_get_slab_depot_unrecovered_slab_count(const struct slab_depot *depot);
-
-bool __must_check
-vdo_are_equivalent_slab_depots(struct slab_depot *depot_a, struct slab_depot *depot_b);
-#endif /* INTERNAL */
 #endif /* SLAB_DEPOT_H */

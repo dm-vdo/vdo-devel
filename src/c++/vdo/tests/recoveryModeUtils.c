@@ -105,12 +105,13 @@ static bool latchReferenceBlockIO(struct vdo_completion *completion)
     return true;
   }
 
-  struct vio *vio = as_vio(completion);
-  physical_block_number_t pbn = pbnFromVIO(vio);
-  slab_count_t slabNumber;
-  VDO_ASSERT_SUCCESS(vdo_get_slab_number(vdo->depot, pbn, &slabNumber));
+  struct vio              *vio   = as_vio(completion);
+  physical_block_number_t  pbn   = pbnFromVIO(vio);
+  struct slab_depot       *depot = vdo->depot;
+  slab_count_t             slab_number
+    = ((pbn - depot->first_block) >> depot->slab_size_shift);
   uds_lock_mutex(&mutex);
-  bool result = latchSlab(vio, slabNumber, pbn);
+  bool result = latchSlab(vio, slab_number, pbn);
   uds_unlock_mutex(&mutex);
   return result;
 }

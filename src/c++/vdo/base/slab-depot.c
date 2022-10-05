@@ -32,20 +32,6 @@
 #include "vdo.h"
 
 /**
- * vdo_calculate_slab_count() - Calculate the number of slabs a depot
- *                              would have.
- * @depot: The depot.
- *
- * Return: The number of slabs.
- */
-EXTERNAL_STATIC
-slab_count_t vdo_calculate_slab_count(struct slab_depot *depot)
-{
-	return vdo_compute_slab_count(depot->first_block, depot->last_block,
-				      depot->slab_size_shift);
-}
-
-/**
  * get_slab_iterator() - Get an iterator over all the slabs in the depot.
  * @depot: The depot.
  *
@@ -226,7 +212,9 @@ static int allocate_components(struct slab_depot *depot,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	slab_count = vdo_calculate_slab_count(depot);
+	slab_count = vdo_compute_slab_count(depot->first_block,
+					    depot->last_block,
+					    depot->slab_size_shift);
 	if (thread_config->physical_zone_count > slab_count)
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "%u physical zones exceeds slab count %u",
@@ -411,18 +399,18 @@ int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 }
 
 /**
- * vdo_get_slab_number() - Get the number of the slab that contains a
- *                         specified block.
+ * get_slab_number() - Get the number of the slab that contains a specified
+ *                     block.
+ *
  * @depot: The slab depot.
  * @pbn: The physical block number.
  * @slab_number_ptr: A pointer to hold the slab number.
  *
  * Return: VDO_SUCCESS or an error.
  */
-EXTERNAL_STATIC
-int vdo_get_slab_number(const struct slab_depot *depot,
-			physical_block_number_t pbn,
-			slab_count_t *slab_number_ptr)
+static int __must_check get_slab_number(const struct slab_depot *depot,
+					physical_block_number_t pbn,
+					slab_count_t *slab_number_ptr)
 {
 	slab_count_t slab_number;
 
@@ -458,9 +446,10 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot,
 	if (pbn == VDO_ZERO_BLOCK)
 		return NULL;
 
-	result = vdo_get_slab_number(depot, pbn, &slab_number);
+	result = get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(depot->vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(depot->vdo->read_only_notifier,
+					 result);
 		return NULL;
 	}
 
@@ -520,17 +509,12 @@ bool vdo_is_physical_data_block(const struct slab_depot *depot,
 {
 	slab_count_t slab_number;
 	slab_block_number sbn;
-	int result;
 
-	if (pbn == VDO_ZERO_BLOCK)
-		return true;
-
-	if (vdo_get_slab_number(depot, pbn, &slab_number) != VDO_SUCCESS)
-		return false;
-
-	result = vdo_slab_block_number_from_pbn(depot->slabs[slab_number],
-						pbn, &sbn);
-	return (result == VDO_SUCCESS);
+	return ((pbn == VDO_ZERO_BLOCK) ||
+		((get_slab_number(depot, pbn, &slab_number) == VDO_SUCCESS) &&
+		 (vdo_slab_block_number_from_pbn(depot->slabs[slab_number],
+						 pbn,
+						 &sbn) == VDO_SUCCESS)));
 }
 
 /**
@@ -568,32 +552,6 @@ block_count_t vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot
 block_count_t vdo_get_slab_depot_data_blocks(const struct slab_depot *depot)
 {
 	return (READ_ONCE(depot->slab_count) * depot->slab_config.data_blocks);
-}
-
-/**
- * vdo_get_slab_depot_unrecovered_slab_count() - Get the total number of
- *                                               unrecovered slabs in the
- *                                               depot.
- * @depot: The slab depot.
- *
- * This is the total number of unrecovered slabs from all zones.
- *
- * Context: This may be called from any thread.
- *
- * Return: The total number of slabs that are unrecovered.
- */
-EXTERNAL_STATIC
-slab_count_t vdo_get_slab_depot_unrecovered_slab_count(const struct slab_depot *depot)
-{
-	slab_count_t total = 0;
-	zone_count_t zone;
-
-	for (zone = 0; zone < depot->zone_count; zone++) {
-		struct block_allocator *allocator = depot->allocators[zone];
-		/* The allocators are responsible for thread safety. */
-		total += vdo_get_scrubber_slab_count(allocator->slab_scrubber);
-	}
-	return total;
 }
 
 /**
@@ -911,46 +869,6 @@ block_count_t vdo_get_slab_depot_new_size(const struct slab_depot *depot)
 	return (depot->new_slabs == NULL) ? 0 : depot->new_size;
 }
 
-#ifdef INTERNAL
-/**
- * vdo_are_equivalent_slab_depots() - Check whether two depots are equivalent
- *                                    (i.e. represent the same state and have
- *                                    the same reference counter).
- * @depot_a: The first depot to compare.
- * @depot_b: The second depot to compare.
- *
- * This method is used for unit testing.
- *
- * Return: true if the two depots are equivalent.
- */
-bool vdo_are_equivalent_slab_depots(struct slab_depot *depot_a,
-				    struct slab_depot *depot_b)
-{
-	size_t i;
-
-	if ((depot_a->first_block != depot_b->first_block) ||
-	    (depot_a->last_block != depot_b->last_block) ||
-	    (depot_a->slab_count != depot_b->slab_count) ||
-	    (depot_a->slab_size_shift != depot_b->slab_size_shift) ||
-	    (vdo_get_slab_depot_allocated_blocks(depot_a) !=
-	     vdo_get_slab_depot_allocated_blocks(depot_b)))
-		return false;
-
-	for (i = 0; i < depot_a->slab_count; i++) {
-		struct vdo_slab *slab_a = depot_a->slabs[i];
-		struct vdo_slab *slab_b = depot_b->slabs[i];
-
-		if ((slab_a->start != slab_b->start) ||
-		    (slab_a->end != slab_b->end) ||
-		    !vdo_are_equivalent_ref_counts(slab_a->reference_counts,
-						   slab_b->reference_counts))
-			return false;
-	}
-
-	return true;
-}
-#endif /* INTERNAL */
-
 /**
  * get_depot_block_allocator_statistics() - Get the total of the statistics
  *                                          from all the block allocators in
@@ -1043,8 +961,15 @@ void vdo_get_slab_depot_statistics(const struct slab_depot *depot,
 				   struct vdo_statistics *stats)
 {
 	slab_count_t slab_count = READ_ONCE(depot->slab_count);
-	slab_count_t unrecovered =
-		vdo_get_slab_depot_unrecovered_slab_count(depot);
+	slab_count_t unrecovered = 0;
+	zone_count_t zone;
+
+	for (zone = 0; zone < depot->zone_count; zone++) {
+		struct block_allocator *allocator = depot->allocators[zone];
+		/* The allocators are responsible for thread safety. */
+		unrecovered +=
+			vdo_get_scrubber_slab_count(allocator->slab_scrubber);
+	}
 
 	stats->recovery_percentage =
 		(slab_count - unrecovered) * 100 / slab_count;
