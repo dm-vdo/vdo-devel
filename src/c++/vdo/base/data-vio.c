@@ -1054,9 +1054,9 @@ static void read_block(struct vdo_completion *completion)
 			 * to copy the data
 			 */
 #ifdef RHEL_RELEASE_CODE
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
+#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
 #else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
+#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
 #endif
 
 #if USE_ALTERNATE
