@@ -1645,7 +1645,8 @@ void vdo_drain_page_cache(struct vdo_page_cache *cache)
 {
 	assert_on_cache_thread(cache, __func__);
 	ASSERT_LOG_ONLY(vdo_is_state_draining(&cache->zone->state),
-			"vdo_drain_page_cache() called during block map drain");
+			"%s() called during block map drain",
+			__func__);
 
 	if (!vdo_is_state_suspending(&cache->zone->state)) {
 		vdo_flush_dirty_lists(cache->dirty_lists);

@@ -273,7 +273,8 @@ int vdo_configure_slab_depot(block_count_t block_count,
 	physical_block_number_t last_block;
 	block_count_t slab_size = slab_config.slab_blocks;
 
-	uds_log_debug("slabDepot vdo_configure_slab_depot(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
+	uds_log_debug("slabDepot %s(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
+		      __func__,
 		      (unsigned long long) block_count,
 		      (unsigned long long) first_block,
 		      (unsigned long long) slab_size,

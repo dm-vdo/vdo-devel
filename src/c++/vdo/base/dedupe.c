@@ -176,7 +176,7 @@
 
 struct uds_attribute {
 	struct attribute attr;
-	const char *(*show_string)(struct hash_zones *);
+	const char *(*show_string)(struct hash_zones *hash_zones);
 };
 
 enum timer_state {
@@ -883,9 +883,9 @@ static void abort_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 			 * should be DEDUPING), so just kick this one out of
 			 * the lock to report its error.
 			 */
-			ASSERT_LOG_ONLY(
-				lock->agent == NULL,
-				"only active agent should call abort_hash_lock");
+			ASSERT_LOG_ONLY(lock->agent == NULL,
+					"only active agent should call %s()",
+					__func__);
 			exit_hash_lock(data_vio);
 			return;
 		}

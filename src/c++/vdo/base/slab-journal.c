@@ -331,7 +331,8 @@ void vdo_abort_slab_journal_waiters(struct slab_journal *journal)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
-			"vdo_abort_slab_journal_waiters() called on correct thread");
+			"%s() called on correct thread",
+			__func__);
 	notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
 	vdo_check_if_slab_drained(journal->slab);
 }
@@ -1343,7 +1344,8 @@ void vdo_drain_slab_journal(struct slab_journal *journal)
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
-			"vdo_drain_slab_journal() called on correct thread");
+			"%s() called on correct thread",
+			__func__);
 	if (code->quiescing)
 		/*
 		 * XXX: we should revisit this assertion since it is no longer
@@ -1482,7 +1484,8 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
-			"vdo_decode_slab_journal() called on correct thread");
+			"%s() called on correct thread",
+			__func__);
 	last_commit_point =
 		vdo_get_summarized_tail_block_offset(journal->summary,
 						     slab->slab_number);

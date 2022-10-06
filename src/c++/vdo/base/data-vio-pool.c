@@ -235,6 +235,7 @@ static void launch_bio(struct vdo *vdo,
 		enter_histogram_sample(vdo->histograms.start_request_histogram,
 				       startup_jiffies);
 #endif /* VDO_INTERNAL */
+
 	reset_data_vio(data_vio, vdo);
 	data_vio->user_bio = bio;
 	data_vio->offset = to_bytes(bio->bi_iter.bi_sector

@@ -574,7 +574,8 @@ void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone,
 void vdo_drain_zone_trees(struct block_map_tree_zone *zone)
 {
 	ASSERT_LOG_ONLY((zone->active_lookups == 0),
-			"vdo_drain_zone_trees() called with no active lookups");
+			"%s() called with no active lookups",
+			__func__);
 	if (!vdo_is_state_suspending(&zone->map_zone->state))
 		vdo_flush_dirty_lists(zone->dirty_lists);
 }

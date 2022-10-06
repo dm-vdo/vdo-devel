@@ -654,7 +654,6 @@ static void release_lock(struct data_vio *data_vio)
 			"logical block lock mismatch for block %llu",
 			(unsigned long long) lock->lbn);
 	lock->locked = false;
-	return;
 }
 
 /**
@@ -1836,7 +1835,8 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY((!vdo_uses_bio_ack_queue(vdo) ||
 			 (vdo_get_callback_thread_id() ==
 			     vdo->thread_config->bio_ack_thread)),
-			"acknowledge_write_callback() called on bio ack queue");
+			"%s() called on bio ack queue",
+			__func__);
 	ASSERT_LOG_ONLY(data_vio_has_flush_generation_lock(data_vio),
 			"write VIO to be acknowledged has a flush generation lock");
 	acknowledge_data_vio(data_vio);

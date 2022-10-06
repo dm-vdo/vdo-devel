@@ -192,7 +192,8 @@ static void apply_to_zone(struct vdo_completion *completion)
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 get_acting_zone_thread_id(manager)),
-			"apply_to_zone() called on acting zones's thread");
+			"%s() called on acting zones's thread",
+			__func__);
 
 	zone = manager->acting_zone++;
 	if (manager->acting_zone == manager->zones)

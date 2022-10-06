@@ -203,7 +203,8 @@ static void flush_block_map(struct vdo_completion *completion)
 	uds_log_info("Flushing block map changes");
 	ASSERT_LOG_ONLY((completion->callback_thread_id ==
 			 recovery->admin_thread),
-			"flush_block_map() called on admin thread");
+			"%s() called on admin thread",
+			__func__);
 
 	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
 	vdo_drain_block_map(recovery->block_map,

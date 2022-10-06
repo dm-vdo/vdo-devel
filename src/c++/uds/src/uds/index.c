@@ -1386,7 +1386,8 @@ int make_index(struct configuration *config,
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return uds_log_error_strerror(result,
-					      "fatal error in make_index");
+					      "fatal error in %s()",
+					      __func__);
 	}
 
 	for (z = 0; z < index->zone_count; z++) {
