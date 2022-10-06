@@ -164,7 +164,6 @@
 #include "io-submitter.h"
 #include "kernel-types.h"
 #include "packer.h"
-#include "pbn-lock.h"
 #include "physical-zone.h"
 #include "pointer-map.h"
 #include "slab-depot.h"

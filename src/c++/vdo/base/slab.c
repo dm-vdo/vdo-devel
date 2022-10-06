@@ -14,7 +14,7 @@
 #include "completion.h"
 #include "constants.h"
 #include "num-utils.h"
-#include "pbn-lock.h"
+#include "physical-zone.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab-depot.h"

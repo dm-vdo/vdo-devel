@@ -305,8 +305,6 @@ tarballs:
             packed-reference-block.h
             packer.c
             packer.h
-            pbn-lock.h
-            pbn-lock-pool.h
             physical-zone.c
             physical-zone.h
             pointer-map.c

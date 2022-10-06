@@ -20,7 +20,7 @@
 #include "journal-point.h"
 #include "num-utils.h"
 #include "packed-reference-block.h"
-#include "pbn-lock.h"
+#include "physical-zone.h"
 #include "read-only-notifier.h"
 #include "reference-operation.h"
 #include "slab.h"

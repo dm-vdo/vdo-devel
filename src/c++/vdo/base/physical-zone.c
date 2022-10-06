@@ -23,8 +23,6 @@
 #include "flush.h"
 #include "int-map.h"
 #include "packed-reference-block.h"
-#include "pbn-lock.h"
-#include "pbn-lock-pool.h"
 #include "slab-depot.h"
 #include "slab-scrubber.h"
 #include "status-codes.h"
@@ -83,17 +81,6 @@ static inline void set_pbn_lock_type(struct pbn_lock *lock,
 				     enum pbn_lock_type type)
 {
 	lock->implementation = &LOCK_IMPLEMENTATIONS[type];
-}
-
-/**
- * vdo_initialize_pbn_lock() - Initialize a pbn_lock.
- * @lock: The lock to initialize.
- * @type: The type of the lock.
- */
-void vdo_initialize_pbn_lock(struct pbn_lock *lock, enum pbn_lock_type type)
-{
-	lock->holder_count = 0;
-	set_pbn_lock_type(lock, type);
 }
 
 /**
@@ -176,19 +163,19 @@ void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock)
 }
 
 /**
- * vdo_release_pbn_lock_provisional_reference() - If the lock is responsible
- *						  for a provisional reference,
- *						  release that reference.
+ * release_pbn_lock_provisional_reference() - If the lock is responsible for a
+ *                                            provisional reference, release
+ *                                            that reference.
  * @lock: The lock.
  * @locked_pbn: The PBN covered by the lock.
  * @allocator: The block allocator from which to release the reference.
  *
  * This method is called when the lock is released.
  */
-void
-vdo_release_pbn_lock_provisional_reference(struct pbn_lock *lock,
-					   physical_block_number_t locked_pbn,
-					   struct block_allocator *allocator)
+static void
+release_pbn_lock_provisional_reference(struct pbn_lock *lock,
+				       physical_block_number_t locked_pbn,
+				       struct block_allocator *allocator)
 {
 	if (vdo_pbn_lock_has_provisional_reference(lock)) {
 		vdo_release_block_reference(allocator,
@@ -230,14 +217,42 @@ struct pbn_lock_pool {
 };
 
 /**
- * vdo_make_pbn_lock_pool() - Create a new PBN lock pool and all the lock
- *			      instances it can loan out.
+ * return_pbn_lock_to_pool() - Return a pbn lock to its pool.
+ * @pool: The pool from which the lock was borrowed.
+ * @lock: The last reference to the lock being returned.
+ *
+ * It must be the last live reference, as if the memory were being freed (the
+ * lock memory will re-initialized or zeroed).
+ */
+static void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+				    struct pbn_lock *lock)
+{
+	idle_pbn_lock *idle;
+
+	/*
+	 * A bit expensive, but will promptly catch some use-after-free errors.
+         */
+	memset(lock, 0, sizeof(*lock));
+
+	idle = container_of(lock, idle_pbn_lock, lock);
+	INIT_LIST_HEAD(&idle->entry);
+	list_add_tail(&idle->entry, &pool->idle_list);
+
+	ASSERT_LOG_ONLY(pool->borrowed > 0,
+			"shouldn't return more than borrowed");
+	pool->borrowed -= 1;
+}
+
+/**
+ * make_pbn_lock_pool() - Create a new PBN lock pool and all the lock instances
+ *                        it can loan out.
+ *
  * @capacity: The number of PBN locks to allocate for the pool.
  * @pool_ptr: A pointer to receive the new pool.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
+static int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 {
 	size_t i;
 	struct pbn_lock_pool *pool;
@@ -251,7 +266,7 @@ int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	INIT_LIST_HEAD(&pool->idle_list);
 
 	for (i = 0; i < capacity; i++)
-		vdo_return_pbn_lock_to_pool(pool, &pool->locks[i].lock);
+		return_pbn_lock_to_pool(pool, &pool->locks[i].lock);
 
 	*pool_ptr = pool;
 	return VDO_SUCCESS;
@@ -264,7 +279,7 @@ int vdo_make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
  * This also frees all the PBN locks it allocated, so the caller must ensure
  * that all locks have been returned to the pool.
  */
-void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
+static void free_pbn_lock_pool(struct pbn_lock_pool *pool)
 {
 	if (pool == NULL)
 		return;
@@ -276,7 +291,7 @@ void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
 }
 
 /**
- * vdo_borrow_pbn_lock_from_pool() - Borrow a PBN lock from the pool and
+ * borrow_pbn_lock_from_pool() - Borrow a PBN lock from the pool and
  *				     initialize it with the provided type.
  * @pool: The pool from which to borrow.
  * @type: The type with which to initialize the lock.
@@ -288,9 +303,10 @@ void vdo_free_pbn_lock_pool(struct pbn_lock_pool *pool)
  *
  * Return: VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty.
  */
-int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-				  enum pbn_lock_type type,
-				  struct pbn_lock **lock_ptr)
+static int __must_check
+borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+			  enum pbn_lock_type type,
+			  struct pbn_lock **lock_ptr)
 {
 	int result;
 	struct list_head *idle_entry;
@@ -312,36 +328,11 @@ int vdo_borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	memset(idle_entry, 0, sizeof(*idle_entry));
 
 	idle = list_entry(idle_entry, idle_pbn_lock, entry);
-	vdo_initialize_pbn_lock(&idle->lock, type);
+	idle->lock.holder_count = 0;
+	set_pbn_lock_type(&idle->lock, type);
 
 	*lock_ptr = &idle->lock;
 	return VDO_SUCCESS;
-}
-
-/**
- * vdo_return_pbn_lock_to_pool() - Return to the pool a lock that was borrowed
- *				   from it.
- * @pool: The pool from which the lock was borrowed.
- * @lock: The last reference to the lock being returned.
- *
- * It must be the last live reference, as if the memory were being freed (the
- * lock memory will re-initialized or zeroed).
- */
-void vdo_return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
-				 struct pbn_lock *lock)
-{
-	idle_pbn_lock *idle;
-
-	/* A bit expensive, but will promptly catch some use-after-free errors. */
-	memset(lock, 0, sizeof(*lock));
-
-	idle = container_of(lock, idle_pbn_lock, lock);
-	INIT_LIST_HEAD(&idle->entry);
-	list_add_tail(&idle->entry, &pool->idle_list);
-
-	ASSERT_LOG_ONLY(pool->borrowed > 0,
-			"shouldn't return more than borrowed");
-	pool->borrowed -= 1;
 }
 
 /**
@@ -362,7 +353,7 @@ static int initialize_zone(struct vdo *vdo,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
+	result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
 		free_int_map(zone->pbn_operations);
 		return result;
@@ -375,7 +366,7 @@ static int initialize_zone(struct vdo *vdo,
 				   vdo->thread_config->physical_zone_count];
 	result = vdo_make_default_thread(vdo, zone->thread_id);
 	if (result != VDO_SUCCESS) {
-		vdo_free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
+		free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
 		free_int_map(zone->pbn_operations);
 		return result;
 	}
@@ -434,7 +425,7 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 	for (index = 0; index < zones->zone_count; index++) {
 		struct physical_zone *zone = &zones->zones[index];
 
-		vdo_free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
+		free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
 		free_int_map(UDS_FORGET(zone->pbn_operations));
 	}
 
@@ -479,9 +470,10 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 	 * Borrow and prepare a lock from the pool so we don't have to do two
 	 * int_map accesses in the common case of no lock contention.
 	 */
-	struct pbn_lock *lock, *new_lock;
-	int result = vdo_borrow_pbn_lock_from_pool(zone->lock_pool, type,
-						   &new_lock);
+	struct pbn_lock *lock, *new_lock = NULL;
+	int result =
+		borrow_pbn_lock_from_pool(zone->lock_pool, type, &new_lock);
+
 	if (result != VDO_SUCCESS) {
 		ASSERT_LOG_ONLY(false,
 				"must always be able to borrow a PBN lock");
@@ -491,14 +483,15 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
 			     (void **) &lock);
 	if (result != VDO_SUCCESS) {
-		vdo_return_pbn_lock_to_pool(zone->lock_pool, new_lock);
+		return_pbn_lock_to_pool(zone->lock_pool, new_lock);
 		return result;
 	}
 
 	if (lock != NULL) {
-		/* The lock is already held, so we don't need the borrowed one. */
-		vdo_return_pbn_lock_to_pool(zone->lock_pool,
-					    UDS_FORGET(new_lock));
+		/*
+		 * The lock is already held, so we don't need the borrowed one.
+		 */
+		return_pbn_lock_to_pool(zone->lock_pool, UDS_FORGET(new_lock));
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
 				(unsigned long long) pbn);
@@ -686,9 +679,10 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 			"physical block lock mismatch for block %llu",
 			(unsigned long long) locked_pbn);
 
-	vdo_release_pbn_lock_provisional_reference(lock, locked_pbn,
-						   zone->allocator);
-	vdo_return_pbn_lock_to_pool(zone->lock_pool, lock);
+	release_pbn_lock_provisional_reference(lock,
+					       locked_pbn,
+					       zone->allocator);
+	return_pbn_lock_to_pool(zone->lock_pool, lock);
 }
 
 /**

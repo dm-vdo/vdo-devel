@@ -8,14 +8,21 @@
 
 #include "albtest.h"
 
-#include <stdarg.h>
-
 #include "memory-alloc.h"
 
-#include "pbn-lock-pool.h"
+#include "physical-zone.h"
+#include "types.h"
+#include "vdo.h"
 
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
+
+static bool                   readOnMatch;
+static data_vio_count_t       count;
+static struct pbn_lock      **locks;
+static struct pbn_lock        saved;
+static struct physical_zone  *zone;
+
 
 /**
  * Assert that a pbn_lock is not null and consistent with an initialized lock
@@ -40,46 +47,63 @@ static void assertLockInitialized(const struct pbn_lock *lock,
  * then corrupt every byte of it. The returned lock pointer must only be used
  * to return the lock to the pool.
  *
- * @param pool  The pool from which to borrow
- * @param type  The lock type to use for initialization
- *
- * @return the borrowed lock, overwritten with all 0xff bytes
+ * Implements vdo_action
  **/
-static struct pbn_lock *borrow(struct pbn_lock_pool *pool,
-                               enum pbn_lock_type type)
+static void borrow(struct vdo_completion *completion)
 {
-  struct pbn_lock *lock;
-  VDO_ASSERT_SUCCESS(vdo_borrow_pbn_lock_from_pool(pool, type, &lock));
-  assertLockInitialized(lock, type);
+  enum pbn_lock_type type
+    = ((((count % 2) == 0) == readOnMatch) ? VIO_READ_LOCK : VIO_WRITE_LOCK);
+
+  VDO_ASSERT_SUCCESS(vdo_attempt_physical_zone_pbn_lock(zone,
+                                                        count,
+                                                        type,
+                                                        &locks[count]));
+  assertLockInitialized(locks[count], type);
+
+  if (count == 0) {
+    memcpy(&saved, locks[count], sizeof(struct pbn_lock));
+  }
 
   // Overwrite the lock structure completely to ensure the pool doesn't
   // use any of it while it's on loan.
-  memset(lock, 0xff, sizeof(*lock));
-
-  return lock;
+  memset(locks[count], 0xff, sizeof(struct pbn_lock));
+  vdo_complete_completion(completion);
 }
 
 /**
  * Attempt to borrow a lock from the pool, asserting that it fails
  * with a lock error.
+ *
+ * Implements vdo_action
  **/
-static void failBorrow(struct pbn_lock_pool *pool)
+static void failBorrow(struct vdo_completion *completion)
 {
   struct pbn_lock *lock = NULL;
-  CU_ASSERT_EQUAL(VDO_LOCK_ERROR, vdo_borrow_pbn_lock_from_pool(pool,
-                                                                VIO_READ_LOCK,
-                                                                &lock));
+  set_exit_on_assertion_failure(false);
+  int result = vdo_attempt_physical_zone_pbn_lock(zone,
+                                                  count,
+                                                  VIO_READ_LOCK,
+                                                  &lock);
+  set_exit_on_assertion_failure(true);
+  CU_ASSERT_EQUAL(VDO_LOCK_ERROR, result);
   CU_ASSERT_PTR_NULL(lock);
+  vdo_complete_completion(completion);
 }
 
 /**
  * Return a lock to the pool, first initializing it so error checks in the
  * pool code won't fail because of the memory smashing in borrow().
+ *
+ * Implements vdo_action
  **/
-static void returnLock(struct pbn_lock_pool *pool, struct pbn_lock *lock)
+static void returnLock(struct vdo_completion *completion)
 {
-  vdo_initialize_pbn_lock(lock, VIO_READ_LOCK);
-  vdo_return_pbn_lock_to_pool(pool, lock);
+  struct pbn_lock *lock = UDS_FORGET(locks[count]);
+
+  memcpy(lock, &saved, sizeof(struct pbn_lock));
+  lock->holder_count = 1;
+  vdo_release_physical_zone_pbn_lock(zone, count, lock);
+  vdo_complete_completion(completion);
 }
 
 /**
@@ -87,29 +111,37 @@ static void returnLock(struct pbn_lock_pool *pool, struct pbn_lock *lock)
  **/
 static void testPBNLockPool(void)
 {
-  // Make a pool with two locks.
-  struct pbn_lock_pool *pool;
-  VDO_ASSERT_SUCCESS(vdo_make_pbn_lock_pool(2, &pool));
+  zone = &vdo->physical_zones->zones[0];
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(MAXIMUM_VDO_USER_VIOS * 2,
+                                  struct pbn_lock *,
+                                  __func__,
+                                  &locks));
 
-  // Borrow them both.
-  struct pbn_lock *lock1 = borrow(pool, VIO_READ_LOCK);
-  struct pbn_lock *lock2 = borrow(pool, VIO_WRITE_LOCK);
+  // Borrow all the locks.
+  readOnMatch = true;
+  for (count = 0; count < MAXIMUM_VDO_USER_VIOS * 2; count++) {
+    performSuccessfulActionOnThread(borrow, zone->thread_id);
+  }
 
   // Make sure we can't borrow more (twice to catch '==' errors).
-  failBorrow(pool);
-  failBorrow(pool);
+  performSuccessfulActionOnThread(failBorrow, zone->thread_id);
+  performSuccessfulActionOnThread(failBorrow, zone->thread_id);
 
   // Put one back, then we should be able to get it again.
-  returnLock(pool, UDS_FORGET(lock1));
-  lock1 = borrow(pool, VIO_WRITE_LOCK);
+  count = 0;
+  readOnMatch = false;
+  performSuccessfulActionOnThread(returnLock, zone->thread_id);
+  performSuccessfulActionOnThread(borrow, zone->thread_id);
 
   // Pool should be empty again.
-  failBorrow(pool);
+  performSuccessfulActionOnThread(failBorrow, zone->thread_id);
 
-  // Return both locks and free the pool.
-  returnLock(pool, UDS_FORGET(lock1));
-  returnLock(pool, UDS_FORGET(lock2));
-  vdo_free_pbn_lock_pool(pool);
+  // Return all locks.
+  for (count = 0; count < MAXIMUM_VDO_USER_VIOS * 2; count++) {
+    performSuccessfulActionOnThread(returnLock, zone->thread_id);
+  }
+
+  UDS_FREE(locks);
 }
 
 /**********************************************************************/
@@ -121,8 +153,8 @@ static CU_TestInfo tests[] = {
 
 static CU_SuiteInfo suite = {
   .name        = "PBNLockPool_t1",
-  .initializer = NULL,
-  .cleaner     = NULL,
+  .initializer = initializeDefaultVDOTest,
+  .cleaner     = tearDownVDOTest,
   .tests       = tests,
 };
 

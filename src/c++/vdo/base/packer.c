@@ -21,7 +21,7 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "io-submitter.h"
-#include "pbn-lock.h"
+#include "physical-zone.h"
 #include "read-only-notifier.h"
 #include "status-codes.h"
 #include "thread-config.h"
