@@ -610,7 +610,7 @@ static void continue_data_vio_in(struct data_vio *data_vio,
 				 vdo_action *callback)
 {
 	data_vio_as_completion(data_vio)->callback = callback;
-	continue_data_vio(data_vio, result);
+	continue_data_vio_with_error(data_vio, result);
 }
 
 /**
@@ -1576,7 +1576,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 					 agent->duplicate.pbn);
 	if (result != VDO_SUCCESS) {
 		set_data_vio_hash_zone_callback(agent, finish_verifying);
-		continue_data_vio(agent, result);
+		continue_data_vio_with_error(agent, result);
 		return;
 	}
 
@@ -1702,14 +1702,14 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * XXX clearDuplicateLocation()?
 		 */
 		agent->is_duplicate = false;
-		continue_data_vio(agent, VDO_SUCCESS);
+		continue_data_vio(agent);
 		return;
 	}
 
 	result = vdo_attempt_physical_zone_pbn_lock(zone, agent->duplicate.pbn,
 						    VIO_READ_LOCK, &lock);
 	if (result != VDO_SUCCESS) {
-		continue_data_vio(agent, result);
+		continue_data_vio_with_error(agent, result);
 		return;
 	}
 
@@ -1760,7 +1760,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * XXX clearDuplicateLocation()?
 		 */
 		agent->is_duplicate = false;
-		continue_data_vio(agent, VDO_SUCCESS);
+		continue_data_vio(agent);
 		return;
 	}
 
@@ -1777,7 +1777,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 			agent->is_duplicate = false;
 			vdo_release_physical_zone_pbn_lock(
 				zone, agent->duplicate.pbn, UDS_FORGET(lock));
-			continue_data_vio(agent, result);
+			continue_data_vio_with_error(agent, result);
 			return;
 		}
 
@@ -1802,7 +1802,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	 * thread. Here we could directly launch the block verify, then switch
 	 * to a hash thread.
 	 */
-	continue_data_vio(agent, VDO_SUCCESS);
+	continue_data_vio(agent);
 }
 
 /**
@@ -2842,7 +2842,7 @@ static void finish_index_operation(struct uds_request *request)
 		 * This query has not timed out, so send its data_vio back to
 		 * its hash zone to process the results.
 		 */
-		continue_data_vio(context->requestor, VDO_SUCCESS);
+		continue_data_vio(context->requestor);
 		return;
 	}
 
@@ -2946,7 +2946,7 @@ timeout_index_operations_callback(struct vdo_completion *completion)
 		 * requestor on its way.
 		 */
 		list_del_init(&context->list_entry);
-		continue_data_vio(context->requestor, VDO_SUCCESS);
+		continue_data_vio(context->requestor);
 		timed_out++;
 	}
 
@@ -3643,14 +3643,14 @@ query_index(struct data_vio *data_vio, enum uds_request_type operation)
 	assert_data_vio_in_hash_zone(data_vio);
 
 	if (!READ_ONCE(vdo->hash_zones->dedupe_flag)) {
-		continue_data_vio(data_vio, VDO_SUCCESS);
+		continue_data_vio(data_vio);
 		return;
 	}
 
 	context = acquire_context(zone);
 	if (context == NULL) {
 		atomic64_inc(&vdo->hash_zones->dedupe_context_busy);
-		continue_data_vio(data_vio, VDO_SUCCESS);
+		continue_data_vio(data_vio);
 		return;
 	}
 

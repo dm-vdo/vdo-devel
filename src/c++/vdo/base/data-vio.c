@@ -975,7 +975,7 @@ static void read_endio(struct bio *bio)
 
 	vdo_count_completed_bios(bio);
 	if (result != VDO_SUCCESS) {
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 		return;
 	}
 
@@ -1080,7 +1080,7 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	if (result != VDO_SUCCESS) {
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 		return;
 	}
 

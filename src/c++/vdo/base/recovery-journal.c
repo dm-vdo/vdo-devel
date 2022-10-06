@@ -255,10 +255,8 @@ static void assert_on_journal_thread(struct recovery_journal *journal,
  */
 static void continue_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	int wait_result = *((int *)context);
-
-	continue_data_vio(data_vio, wait_result);
+	continue_data_vio_with_error(waiter_as_data_vio(waiter),
+				     *((int *) context));
 }
 
 /**
@@ -1164,7 +1162,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		uds_log_error("Invalid journal operation %u",
 			      data_vio->operation.type);
 		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
-		continue_data_vio(data_vio, VDO_NOT_IMPLEMENTED);
+		continue_data_vio_with_error(data_vio, VDO_NOT_IMPLEMENTED);
 		return;
 	}
 
@@ -1172,7 +1170,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	result = vdo_enqueue_recovery_block_entry(block, data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 	}
 
 	if (vdo_is_recovery_block_full(block))
@@ -1482,12 +1480,13 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal,
 
 	assert_on_journal_thread(journal, __func__);
 	if (!vdo_is_state_normal(&journal->state)) {
-		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
+		continue_data_vio_with_error(data_vio,
+					     VDO_INVALID_ADMIN_STATE);
 		return;
 	}
 
 	if (vdo_is_read_only(journal->read_only_notifier)) {
-		continue_data_vio(data_vio, VDO_READ_ONLY);
+		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1504,7 +1503,7 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal,
 				  data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 		return;
 	}
 

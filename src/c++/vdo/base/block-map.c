@@ -696,7 +696,7 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 		 * allocated, so the block must be unmapped.
 		 */
 		clear_data_vio_mapped_location(data_vio);
-		continue_data_vio(data_vio, VDO_SUCCESS);
+		continue_data_vio(data_vio);
 		return;
 	}
 

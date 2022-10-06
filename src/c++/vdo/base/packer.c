@@ -417,7 +417,7 @@ static void compressed_write_end_io(struct bio *bio)
 	vdo_count_completed_bios(bio);
 	set_data_vio_allocated_zone_callback(data_vio,
 					     finish_compressed_write);
-	continue_data_vio(data_vio, vdo_get_bio_result(bio));
+	continue_data_vio_with_error(data_vio, vdo_get_bio_result(bio));
 }
 
 /**
@@ -468,7 +468,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		handle_compressed_write_error;
 	vdo = vdo_from_data_vio(agent);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		continue_data_vio(agent, VDO_READ_ONLY);
+		continue_data_vio_with_error(agent, VDO_READ_ONLY);
 		return;
 	}
 
@@ -478,7 +478,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 					 REQ_OP_WRITE,
 					 agent->allocation.pbn);
 	if (result != VDO_SUCCESS) {
-		continue_data_vio(agent, result);
+		continue_data_vio_with_error(agent, result);
 		return;
 	}
 

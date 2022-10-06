@@ -561,7 +561,7 @@ static void retry_allocation(struct waiter *waiter,
 	data_vio->allocation.wait_for_clean_slab = false;
 	data_vio->allocation.first_allocation_zone =
 		data_vio->allocation.zone->zone_number;
-	continue_data_vio(data_vio, VDO_SUCCESS);
+	continue_data_vio(data_vio);
 }
 
 /**
@@ -638,7 +638,7 @@ bool vdo_allocate_block_in_zone(struct data_vio *data_vio)
 		return true;
 
 	if ((result != VDO_NO_SPACE) || !continue_allocating(data_vio))
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 
 	return false;
 }

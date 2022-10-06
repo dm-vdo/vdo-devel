@@ -561,15 +561,23 @@ void complete_data_vio(struct vdo_completion *completion);
 
 void finish_data_vio(struct data_vio *data_vio, int result);
 
+static inline void continue_data_vio(struct data_vio *data_vio)
+{
+	vdo_invoke_completion_callback(data_vio_as_completion(data_vio));
+}
+
 /**
- * continue_data_vio() - Continue processing a data_vio that has been waiting
- *			 for an event, setting the result from the event and
- *			 calling the current callback.
- * @data_vio: The data_vio to continue.
- *
- * Return: The current result (will not mask older errors).
+ * continue_data_vio_with_error() - Set an error code and then continue
+ *			            processing a data_vio. This will not mask
+ *			            older errors. This function can be called
+ *			            with a success code, but it is more
+ *			            efficient to call continue_data_vio() if
+ *			            the caller knows the result was a success.
+ * @data_vio: The data_vio to continue
+ * @result: The result code to set
  */
-static inline void continue_data_vio(struct data_vio *data_vio, int result)
+static inline void
+continue_data_vio_with_error(struct data_vio *data_vio, int result)
 {
 	vdo_continue_completion(data_vio_as_completion(data_vio), result);
 }

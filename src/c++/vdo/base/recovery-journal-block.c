@@ -255,7 +255,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		/* Enqueue the data_vio to wait for its entry to commit. */
 		result = enqueue_data_vio(&block->commit_waiters, data_vio);
 		if (result != VDO_SUCCESS) {
-			continue_data_vio(data_vio, result);
+			continue_data_vio_with_error(data_vio, result);
 			return result;
 		}
 

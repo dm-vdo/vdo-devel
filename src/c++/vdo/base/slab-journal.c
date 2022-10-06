@@ -318,7 +318,8 @@ static void mark_slab_journal_clean(struct slab_journal *journal)
  */
 static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
-	continue_data_vio(waiter_as_data_vio(waiter), VDO_READ_ONLY);
+	continue_data_vio_with_error(waiter_as_data_vio(waiter),
+				     VDO_READ_ONLY);
 }
 
 /**
@@ -1059,7 +1060,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	result = vdo_modify_slab_reference_count(journal->slab,
 						 &slab_journal_point,
 						 data_vio->operation);
-	continue_data_vio(data_vio, result);
+	continue_data_vio_with_error(data_vio, result);
 }
 
 /**
@@ -1221,18 +1222,19 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 	int result;
 
 	if (!vdo_is_slab_open(slab)) {
-		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
+		continue_data_vio_with_error(data_vio,
+					     VDO_INVALID_ADMIN_STATE);
 		return;
 	}
 
 	if (is_vdo_read_only(journal)) {
-		continue_data_vio(data_vio, VDO_READ_ONLY);
+		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
 		return;
 	}
 
 	result = enqueue_data_vio(&journal->entry_waiters, data_vio);
 	if (result != VDO_SUCCESS) {
-		continue_data_vio(data_vio, result);
+		continue_data_vio_with_error(data_vio, result);
 		return;
 	}
 
