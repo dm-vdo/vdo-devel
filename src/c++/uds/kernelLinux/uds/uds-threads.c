@@ -8,7 +8,6 @@
 #include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
-#include <linux/version.h>
 
 #include "errors.h"
 #include "logger.h"
