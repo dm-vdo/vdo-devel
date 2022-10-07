@@ -62,13 +62,13 @@ enum {
 	LOAD_RATIO = 2,
 };
 
-static INLINE size_t records_size(const struct open_chapter_zone *open_chapter)
+static inline size_t records_size(const struct open_chapter_zone *open_chapter)
 {
 	return sizeof(struct uds_volume_record) *
 		(1 + open_chapter->capacity);
 }
 
-static INLINE size_t slots_size(size_t slot_count)
+static inline size_t slots_size(size_t slot_count)
 {
 	return (sizeof(struct open_chapter_zone_slot) * slot_count);
 }

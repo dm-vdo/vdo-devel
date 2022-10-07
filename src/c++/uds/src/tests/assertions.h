@@ -46,7 +46,7 @@
 #ifdef __KERNEL__
 void cuErrorMessage(const char *string, int value);
 #else
-static INLINE void cuErrorMessage(const char *string, int value)
+static inline void cuErrorMessage(const char *string, int value)
 {
   char buf[UDS_MAX_ERROR_MESSAGE_SIZE];
   const char *errmsg = uds_string_error_name(value, buf, sizeof(buf));
@@ -58,7 +58,7 @@ static INLINE void cuErrorMessage(const char *string, int value)
  * An assertion has triggered, so try to die cleanly
  **/
 __attribute__((noreturn))
-static INLINE void cuDie(void)
+static inline void cuDie(void)
 {
 #ifdef __KERNEL__
   uds_thread_exit();
@@ -295,7 +295,7 @@ const char *displayByteDifferences(char       *buf,
                                    size_t      size);
 
 /**********************************************************************/
-static INLINE void assertCacheAligned(const volatile void *address)
+static inline void assertCacheAligned(const volatile void *address)
 {
   CU_ASSERT_EQUAL(0, (uintptr_t) address & (CACHE_LINE_BYTES - 1));
 }

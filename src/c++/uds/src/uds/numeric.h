@@ -18,7 +18,7 @@
  * buffer and then advance the offset pointer to the next field in the buffer.
  */
 
-static INLINE void decode_int64_le(const uint8_t *buffer,
+static inline void decode_int64_le(const uint8_t *buffer,
 				   size_t *offset,
 				   int64_t *decoded)
 {
@@ -26,7 +26,7 @@ static INLINE void decode_int64_le(const uint8_t *buffer,
 	*offset += sizeof(int64_t);
 }
 
-static INLINE void encode_int64_le(uint8_t *data,
+static inline void encode_int64_le(uint8_t *data,
 				   size_t *offset,
 				   int64_t to_encode)
 {
@@ -34,7 +34,7 @@ static INLINE void encode_int64_le(uint8_t *data,
 	*offset += sizeof(int64_t);
 }
 
-static INLINE void decode_uint64_le(const uint8_t *buffer,
+static inline void decode_uint64_le(const uint8_t *buffer,
 				    size_t *offset,
 				    uint64_t *decoded)
 {
@@ -42,7 +42,7 @@ static INLINE void decode_uint64_le(const uint8_t *buffer,
 	*offset += sizeof(uint64_t);
 }
 
-static INLINE void encode_uint64_le(uint8_t *data,
+static inline void encode_uint64_le(uint8_t *data,
 				    size_t *offset,
 				    uint64_t to_encode)
 {
@@ -50,7 +50,7 @@ static INLINE void encode_uint64_le(uint8_t *data,
 	*offset += sizeof(uint64_t);
 }
 
-static INLINE void decode_int32_le(const uint8_t *buffer,
+static inline void decode_int32_le(const uint8_t *buffer,
 				   size_t *offset,
 				   int32_t *decoded)
 {
@@ -58,7 +58,7 @@ static INLINE void decode_int32_le(const uint8_t *buffer,
 	*offset += sizeof(int32_t);
 }
 
-static INLINE void encode_int32_le(uint8_t *data,
+static inline void encode_int32_le(uint8_t *data,
 				   size_t *offset,
 				   int32_t to_encode)
 {
@@ -66,7 +66,7 @@ static INLINE void encode_int32_le(uint8_t *data,
 	*offset += sizeof(int32_t);
 }
 
-static INLINE void decode_uint32_le(const uint8_t *buffer,
+static inline void decode_uint32_le(const uint8_t *buffer,
 				    size_t *offset,
 				    uint32_t *decoded)
 {
@@ -74,7 +74,7 @@ static INLINE void decode_uint32_le(const uint8_t *buffer,
 	*offset += sizeof(uint32_t);
 }
 
-static INLINE void encode_uint32_le(uint8_t *data,
+static inline void encode_uint32_le(uint8_t *data,
 				    size_t *offset,
 				    uint32_t to_encode)
 {
@@ -82,7 +82,7 @@ static INLINE void encode_uint32_le(uint8_t *data,
 	*offset += sizeof(uint32_t);
 }
 
-static INLINE void decode_uint16_le(const uint8_t *buffer,
+static inline void decode_uint16_le(const uint8_t *buffer,
 				    size_t *offset,
 				    uint16_t *decoded)
 {
@@ -90,7 +90,7 @@ static INLINE void decode_uint16_le(const uint8_t *buffer,
 	*offset += sizeof(uint16_t);
 }
 
-static INLINE void encode_uint16_le(uint8_t *data,
+static inline void encode_uint16_le(uint8_t *data,
 				    size_t *offset,
 				    uint16_t to_encode)
 {

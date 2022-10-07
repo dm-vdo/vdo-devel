@@ -33,7 +33,7 @@ enum {
 	PAGE_MAP_MAGIC_LENGTH = sizeof(PAGE_MAP_MAGIC) - 1,
 };
 
-static INLINE size_t get_entry_count(const struct geometry *geometry)
+static inline size_t get_entry_count(const struct geometry *geometry)
 {
 	return (geometry->chapters_per_volume *
 		(geometry->index_pages_per_chapter - 1));

@@ -163,7 +163,7 @@ static const char *system_string_error(int errnum, char *buf, size_t buflen)
 	return "System error";
 }
 #else
-static INLINE const char *
+static inline const char *
 system_string_error(int errnum, char *buf, size_t buflen)
 {
 	return strerror_r(errnum, buf, buflen);

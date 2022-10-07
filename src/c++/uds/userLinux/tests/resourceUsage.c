@@ -41,7 +41,7 @@ static void printProcLine(const char *path, const char *info)
 }
 
 /**********************************************************************/
-static INLINE double tv2sec(struct timeval tv)
+static inline double tv2sec(struct timeval tv)
 {
   return (double) tv.tv_sec + (double) tv.tv_usec / 1000000.0;
 }

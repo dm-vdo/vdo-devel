@@ -72,7 +72,7 @@ struct configuration *createConfigForAlbtest(int argc, const char **argv)
  * @param [out] name    the resulting random block name
  **/
 
-static INLINE void createRandomBlockName(struct uds_record_name *name)
+static inline void createRandomBlockName(struct uds_record_name *name)
 {
   prandom_bytes(name->name, UDS_RECORD_NAME_SIZE);
 }
@@ -94,7 +94,7 @@ void createRandomBlockNameInZone(const struct uds_index *index,
  *
  * @param [out] data    the result random metadata
  **/
-static INLINE void createRandomMetadata(struct uds_record_data *data)
+static inline void createRandomMetadata(struct uds_record_data *data)
 {
   prandom_bytes(data->data, UDS_RECORD_DATA_SIZE);
 }
@@ -142,7 +142,7 @@ void fillChapterRandomly(struct uds_index *index);
 size_t getMemTotalInGB(void) __attribute__((warn_unused_result));
 
 /**********************************************************************/
-static INLINE void freeRequest(struct uds_request *request)
+static inline void freeRequest(struct uds_request *request)
 {
   if (request != NULL) {
     UDS_FREE(request);
@@ -168,7 +168,7 @@ const char *const *getTestIndexNames(void) __attribute__((warn_unused_result));
  * @return The primary test index name
  **/
 __attribute__((warn_unused_result))
-static INLINE const char *getTestIndexName(void)
+static inline const char *getTestIndexName(void)
 {
   return *getTestIndexNames();
 }
@@ -203,7 +203,7 @@ struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
  *
  * @return The calculated record name
  **/
-static INLINE struct uds_record_name murmurHashChunkName(const void *data,
+static inline struct uds_record_name murmurHashChunkName(const void *data,
                                                         size_t       size,
                                                         uint32_t     seed)
 {
@@ -223,7 +223,7 @@ static INLINE struct uds_record_name murmurHashChunkName(const void *data,
  *
  * @return The calculated record name
  **/
-static INLINE struct uds_record_name murmurGenerator(const void *data,
+static inline struct uds_record_name murmurGenerator(const void *data,
                                                     size_t       size)
 {
   return murmurHashChunkName(data, size, 0);
@@ -234,7 +234,7 @@ static INLINE struct uds_record_name murmurGenerator(const void *data,
  *
  * @param params  The index parameters
  **/
-static INLINE void randomizeUdsNonce(struct uds_parameters *params)
+static inline void randomizeUdsNonce(struct uds_parameters *params)
 {
   prandom_bytes(&params->nonce, sizeof(params->nonce));
 }
@@ -283,7 +283,7 @@ void resizeSparseConfiguration(struct configuration *config,
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void set_chapter_index_bytes(struct uds_record_name *name,
+static inline void set_chapter_index_bytes(struct uds_record_name *name,
                                            uint64_t                value)
 {
         /* Store the high order bytes, then the low-order bytes */
@@ -300,7 +300,7 @@ static INLINE void set_chapter_index_bytes(struct uds_record_name *name,
  * @param geometry The geometry to use
  * @param value    The value to store
  **/
-static INLINE void set_chapter_delta_list_bits(struct uds_record_name *name,
+static inline void set_chapter_delta_list_bits(struct uds_record_name *name,
                                                const struct geometry *geometry,
                                                uint64_t value)
 {
@@ -316,7 +316,7 @@ static INLINE void set_chapter_delta_list_bits(struct uds_record_name *name,
  * @param name   The block name
  * @param value  The value to store
  **/
-static INLINE void set_sampling_bytes(struct uds_record_name *name,
+static inline void set_sampling_bytes(struct uds_record_name *name,
                                       uint32_t                value)
 {
         put_unaligned_be16((uint16_t) value, &name->name[SAMPLE_BYTES_OFFSET]);
@@ -328,7 +328,7 @@ static INLINE void set_sampling_bytes(struct uds_record_name *name,
  * @param name  The block name
  * @param val   The value to store
  **/
-static INLINE void set_volume_index_bytes(struct uds_record_name *name,
+static inline void set_volume_index_bytes(struct uds_record_name *name,
                                           uint64_t                val)
 {
         put_unaligned_be64(val, &name->name[VOLUME_INDEX_BYTES_OFFSET]);
@@ -336,12 +336,12 @@ static INLINE void set_volume_index_bytes(struct uds_record_name *name,
 
 void sleep_for(ktime_t reltime);
 
-static INLINE ktime_t seconds_to_ktime(int64_t seconds)
+static inline ktime_t seconds_to_ktime(int64_t seconds)
 {
         return (ktime_t) seconds * NSEC_PER_SEC;
 }
 
-static INLINE ktime_t us_to_ktime(int64_t microseconds)
+static inline ktime_t us_to_ktime(int64_t microseconds)
 {
         return (ktime_t) microseconds * NSEC_PER_USEC;
 }

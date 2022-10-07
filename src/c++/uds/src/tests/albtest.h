@@ -52,12 +52,12 @@ typedef struct cu_SuiteInfo {
 
 extern bool albtestSkipFlag;
 
-static INLINE void skipThisTest(void)
+static inline void skipThisTest(void)
 {
   albtestSkipFlag = true;
 }
 
-static INLINE bool wasTestSkipped(void)
+static inline bool wasTestSkipped(void)
 {
   return albtestSkipFlag;
 }

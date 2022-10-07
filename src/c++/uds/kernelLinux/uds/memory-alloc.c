@@ -367,7 +367,7 @@ void log_uds_memory_allocations(void)
  *
  * @param size  How many bytes to allocate
  */
-static INLINE bool use_kmalloc(size_t size)
+static inline bool use_kmalloc(size_t size)
 {
 	return size <= PAGE_SIZE;
 }

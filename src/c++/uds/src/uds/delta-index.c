@@ -253,13 +253,13 @@ struct delta_page_header {
 	uint16_t list_count;
 } __packed;
 
-static INLINE uint64_t
+static inline uint64_t
 get_delta_list_byte_start(const struct delta_list *delta_list)
 {
 	return delta_list->start / CHAR_BIT;
 }
 
-static INLINE uint16_t
+static inline uint16_t
 get_delta_list_byte_size(const struct delta_list *delta_list)
 {
 	unsigned int bit_offset = delta_list->start % CHAR_BIT;
@@ -315,7 +315,7 @@ static void rebalance_delta_zone(const struct delta_zone *delta_zone,
 }
 
 /* Move the start of the delta list bit stream without moving the end. */
-static INLINE void move_delta_list_start(struct delta_list *delta_list,
+static inline void move_delta_list_start(struct delta_list *delta_list,
 					 int increment)
 {
 	delta_list->start += increment;
@@ -323,13 +323,13 @@ static INLINE void move_delta_list_start(struct delta_list *delta_list,
 }
 
 /* Move the end of the delta list bit stream without moving the start. */
-static INLINE void move_delta_list_end(struct delta_list *delta_list,
+static inline void move_delta_list_end(struct delta_list *delta_list,
 				       int increment)
 {
 	delta_list->size += increment;
 }
 
-static INLINE size_t get_zone_memory_size(unsigned int zone_count,
+static inline size_t get_zone_memory_size(unsigned int zone_count,
 					  size_t memory_size)
 {
 	size_t zone_size = memory_size / zone_count;
@@ -554,7 +554,7 @@ int initialize_delta_index(struct delta_index *delta_index,
 }
 
 /* Read a bit field from an arbitrary bit boundary. */
-static INLINE unsigned int
+static inline unsigned int
 get_field(const byte *memory, uint64_t offset, int size)
 {
 	const void *addr = memory + offset / CHAR_BIT;
@@ -564,7 +564,7 @@ get_field(const byte *memory, uint64_t offset, int size)
 }
 
 /* Write a bit field to an arbitrary bit boundary. */
-static INLINE void
+static inline void
 set_field(unsigned int value, byte *memory, uint64_t offset, int size)
 {
 	void *addr = memory + offset / CHAR_BIT;
@@ -577,14 +577,14 @@ set_field(unsigned int value, byte *memory, uint64_t offset, int size)
 }
 
 /* Get the bit offset to the immutable delta list header. */
-static INLINE unsigned int get_immutable_header_offset(unsigned int list_number)
+static inline unsigned int get_immutable_header_offset(unsigned int list_number)
 {
 	return (sizeof(struct delta_page_header) * CHAR_BIT +
 		list_number * IMMUTABLE_HEADER_SIZE);
 }
 
 /* Get the bit offset to the start of the immutable delta list bit stream. */
-static INLINE unsigned int get_immutable_start(const byte *memory,
+static inline unsigned int get_immutable_start(const byte *memory,
 					       unsigned int list_number)
 {
 	return get_field(memory,
@@ -593,7 +593,7 @@ static INLINE unsigned int get_immutable_start(const byte *memory,
 }
 
 /* Set the bit offset to the start of the immutable delta list bit stream. */
-static INLINE void set_immutable_start(byte *memory,
+static inline void set_immutable_start(byte *memory,
 				       unsigned int list_number,
 				       unsigned int start)
 {
@@ -754,7 +754,7 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 }
 
 /* Read a large bit field from an arbitrary bit boundary. */
-static INLINE uint64_t get_big_field(const byte *memory,
+static inline uint64_t get_big_field(const byte *memory,
 				     uint64_t offset,
 				     int size)
 {
@@ -765,7 +765,7 @@ static INLINE uint64_t get_big_field(const byte *memory,
 }
 
 /* Write a large bit field to an arbitrary bit boundary. */
-static INLINE void
+static inline void
 set_big_field(uint64_t value, byte *memory, uint64_t offset, int size)
 {
 	void *addr = memory + offset / CHAR_BIT;
@@ -778,7 +778,7 @@ set_big_field(uint64_t value, byte *memory, uint64_t offset, int size)
 }
 
 /* Set a sequence of bits to all zeros. */
-static INLINE void set_zero(byte *memory, uint64_t offset, int size)
+static inline void set_zero(byte *memory, uint64_t offset, int size)
 {
 	if (size > 0) {
 		byte *addr = memory + offset / CHAR_BIT;
@@ -1735,7 +1735,7 @@ int start_delta_index_search(const struct delta_index *delta_index,
 	return UDS_SUCCESS;
 }
 
-static INLINE uint64_t
+static inline uint64_t
 get_delta_entry_offset(const struct delta_index_entry *delta_entry)
 {
 	return delta_entry->delta_list->start + delta_entry->offset;
@@ -1747,7 +1747,7 @@ get_delta_entry_offset(const struct delta_index_entry *delta_entry)
  * point to the subsequent entry. We decode the bit stream and update the
  * delta_list_entry to describe the entry.
  */
-static INLINE void decode_delta(struct delta_index_entry *delta_entry)
+static inline void decode_delta(struct delta_index_entry *delta_entry)
 {
 	int key_bits;
 	unsigned int delta;
@@ -1864,7 +1864,7 @@ static void set_collision(struct delta_index_entry *delta_entry)
 }
 
 /* Get the bit offset of the collision field of an entry. */
-static INLINE uint64_t
+static inline uint64_t
 get_collision_offset(const struct delta_index_entry *entry)
 {
 	return (get_delta_entry_offset(entry) + entry->entry_bits -

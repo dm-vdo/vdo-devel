@@ -36,12 +36,6 @@
 				offsetof(type, member));                 \
 	})
 
-/*
- * The "inline" keyword alone takes effect only when the optimization level
- * is high enough.  Define INLINE to force the gcc to "always inline".
- */
-#define INLINE __attribute__((always_inline)) inline
-
 #ifndef __KERNEL__
 #define __always_unused __attribute__((unused))
 #define __maybe_unused  __attribute__((unused))

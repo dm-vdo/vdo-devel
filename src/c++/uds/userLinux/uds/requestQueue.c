@@ -275,7 +275,7 @@ int make_uds_request_queue(const char *queue_name,
 }
 
 /**********************************************************************/
-static INLINE void wake_up_worker(struct uds_request_queue *queue)
+static inline void wake_up_worker(struct uds_request_queue *queue)
 {
 	event_count_broadcast(queue->work_event);
 }

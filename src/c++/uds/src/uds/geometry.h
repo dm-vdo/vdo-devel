@@ -111,13 +111,13 @@ map_to_physical_chapter(const struct geometry *geometry,
  * Check whether this geometry is reduced by a chapter. This will only be true
  * if the volume was converted from a non-lvm volume to an lvm volume.
  */
-static INLINE bool __must_check
+static inline bool __must_check
 is_reduced_geometry(const struct geometry *geometry)
 {
 	return !!(geometry->chapters_per_volume & 1);
 }
 
-static INLINE bool __must_check
+static inline bool __must_check
 is_sparse_geometry(const struct geometry *geometry)
 {
 	return (geometry->sparse_chapters_per_volume > 0);

@@ -18,7 +18,7 @@
 #include "compiler.h"
 #include "type-defs.h"
 
-static INLINE const char *uds_bool_to_string(bool value)
+static inline const char *uds_bool_to_string(bool value)
 {
 	return value ? "true" : "false";
 }

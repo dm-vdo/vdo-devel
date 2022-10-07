@@ -313,7 +313,7 @@ size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
 	return (cache->capacity * chapter_size);
 }
 
-static INLINE void set_skip_search(struct cached_chapter_index *chapter,
+static inline void set_skip_search(struct cached_chapter_index *chapter,
 				   bool skip_search)
 {
 	/* Check before setting to reduce cache line contention. */
@@ -375,7 +375,7 @@ void free_sparse_cache(struct sparse_cache *cache)
  * Take the indicated element of the search list and move it to the start,
  * pushing the pointers previously before it back down the list.
  */
-static INLINE void set_newest_entry(struct search_list *search_list,
+static inline void set_newest_entry(struct search_list *search_list,
 				    uint8_t index)
 {
 	struct cached_chapter_index *newest;
@@ -489,7 +489,7 @@ cache_chapter_index(struct cached_chapter_index *chapter,
 	return UDS_SUCCESS;
 }
 
-static INLINE void copy_search_list(const struct search_list *source,
+static inline void copy_search_list(const struct search_list *source,
 				    struct search_list *target)
 {
 	*target = *source;
@@ -560,7 +560,7 @@ void invalidate_sparse_cache(struct sparse_cache *cache)
 		release_cached_chapter_index(&cache->chapters[i]);
 }
 
-static INLINE bool should_skip_chapter(struct cached_chapter_index *chapter,
+static inline bool should_skip_chapter(struct cached_chapter_index *chapter,
 				       uint64_t oldest_chapter,
 				       uint64_t requested_chapter)
 {

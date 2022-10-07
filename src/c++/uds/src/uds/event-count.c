@@ -152,7 +152,7 @@ struct event_count {
 	/* Declare alignment so we don't share a cache line. */
 } __attribute__((aligned(CACHE_LINE_BYTES)));
 
-static INLINE bool same_event(event_token_t token1, event_token_t token2)
+static inline bool same_event(event_token_t token1, event_token_t token2)
 {
 	return (token1 & EVENTS_MASK) == (token2 & EVENTS_MASK);
 }
@@ -221,7 +221,7 @@ void event_count_broadcast(struct event_count *count)
  * count hasn't been incremented. Returns true if the wait was successfully
  * cancelled.
  */
-static INLINE bool fast_cancel(struct event_count *count, event_token_t token)
+static inline bool fast_cancel(struct event_count *count, event_token_t token)
 {
 	event_token_t current_token = atomic64_read(&count->state);
 	event_token_t new_token;

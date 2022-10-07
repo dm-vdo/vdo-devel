@@ -177,13 +177,13 @@ static const byte bad_magic;
 unsigned int min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
-static INLINE unsigned int extract_address(const struct volume_sub_index *sub_index,
+static inline unsigned int extract_address(const struct volume_sub_index *sub_index,
 					   const struct uds_record_name *name)
 {
 	return extract_volume_index_bytes(name) & sub_index->address_mask;
 }
 
-static INLINE unsigned int
+static inline unsigned int
 extract_dlist_num(const struct volume_sub_index *sub_index,
 		  const struct uds_record_name *name)
 {
@@ -192,13 +192,13 @@ extract_dlist_num(const struct volume_sub_index *sub_index,
 	return (bits >> sub_index->address_bits) % sub_index->num_delta_lists;
 }
 
-static INLINE const struct volume_sub_index_zone *
+static inline const struct volume_sub_index_zone *
 get_zone_for_record(const struct volume_index_record *record)
 {
 	return &record->sub_index->zones[record->zone_number];
 }
 
-static INLINE uint64_t
+static inline uint64_t
 convert_index_to_virtual(const struct volume_index_record *record,
 			 unsigned int index_chapter)
 {
@@ -210,14 +210,14 @@ convert_index_to_virtual(const struct volume_index_record *record,
 	return volume_index_zone->virtual_chapter_low + rolling_chapter;
 }
 
-static INLINE unsigned int
+static inline unsigned int
 convert_virtual_to_index(const struct volume_sub_index *sub_index,
 			 uint64_t virtual_chapter)
 {
 	return virtual_chapter & sub_index->chapter_mask;
 }
 
-static INLINE bool
+static inline bool
 is_virtual_chapter_indexed(const struct volume_index_record *record,
 			   uint64_t virtual_chapter)
 {
@@ -227,7 +227,7 @@ is_virtual_chapter_indexed(const struct volume_index_record *record,
 		(virtual_chapter <= volume_index_zone->virtual_chapter_high));
 }
 
-static INLINE bool has_sparse(const struct volume_index *volume_index)
+static inline bool has_sparse(const struct volume_index *volume_index)
 {
 	return volume_index->sparse_sample_rate > 0;
 }
@@ -241,7 +241,7 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 	return (extract_sampling_bytes(name) % volume_index->sparse_sample_rate) == 0;
 }
 
-static INLINE const struct volume_sub_index *
+static inline const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index,
 	      const struct uds_record_name *name)
 {
@@ -265,7 +265,7 @@ unsigned int get_volume_index_zone(const struct volume_index *volume_index,
 	return get_volume_sub_index_zone(get_sub_index(volume_index, name), name);
 }
 
-static INLINE bool uses_sparse(const struct configuration *config)
+static inline bool uses_sparse(const struct configuration *config)
 {
 	return is_sparse_geometry(config->geometry);
 }
@@ -521,7 +521,7 @@ size_t get_volume_index_memory_used(const struct volume_index *volume_index)
 
 #endif /* TEST_INTERNAL */
 /* Flush invalid entries while walking the delta list. */
-static INLINE int
+static inline int
 flush_invalid_entries(struct volume_index_record *record,
 		      struct chapter_range *flush_range,
 		      unsigned int *next_chapter_to_invalidate)
@@ -748,7 +748,7 @@ int put_volume_index_record(struct volume_index_record *record,
 	return result;
 }
 
-static INLINE int validate_record(struct volume_index_record *record)
+static inline int validate_record(struct volume_index_record *record)
 {
 	if (record->magic != volume_index_record_magic)
 		return uds_log_warning_strerror(UDS_BAD_STATE,

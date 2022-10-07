@@ -28,7 +28,7 @@ typedef struct threadStatistics ThreadStatistics;
  *
  * @return UDS_SUCCESS or a system error code
  **/
-static INLINE int getResourceUsage(ResourceUsage *ru)
+static inline int getResourceUsage(ResourceUsage *ru)
 {
 #ifdef __KERNEL__
   return UDS_SUCCESS;
@@ -72,7 +72,7 @@ ThreadStatistics *getThreadStatistics(void);
  * @param elapsed Length of interval
  */
 #ifdef __KERNEL__
-static INLINE void printResourceUsage(ResourceUsage *prev,
+static inline void printResourceUsage(ResourceUsage *prev,
                                       ResourceUsage *cur,
                                       ktime_t        elapsed)
 {
@@ -106,7 +106,7 @@ void printThreadStatistics(ThreadStatistics *prev, ThreadStatistics *cur);
  * Report VM stuff of interest, to stdout.
  **/
 #ifdef __KERNEL__
-static INLINE void printVmStuff(void)
+static inline void printVmStuff(void)
 {
 }
 #else

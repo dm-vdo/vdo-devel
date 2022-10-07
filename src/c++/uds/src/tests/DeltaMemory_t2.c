@@ -17,7 +17,7 @@ static const unsigned int MEAN_DELTA = 4096;
 static const unsigned int NUM_PAYLOAD_BITS = 10;
 
 /* Read a bit field from an arbitrary bit boundary. */
-static INLINE unsigned int
+static inline unsigned int
 getField(const byte *memory, uint64_t offset, int size)
 {
 	const void *addr = memory + offset / CHAR_BIT;

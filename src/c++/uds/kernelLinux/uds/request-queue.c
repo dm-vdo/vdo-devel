@@ -74,7 +74,7 @@ struct uds_request_queue {
 	atomic_t dormant;
 };
 
-static INLINE struct uds_request *poll_queues(struct uds_request_queue *queue)
+static inline struct uds_request *poll_queues(struct uds_request_queue *queue)
 {
 	struct funnel_queue_entry *entry;
 
@@ -89,7 +89,7 @@ static INLINE struct uds_request *poll_queues(struct uds_request_queue *queue)
 	return NULL;
 }
 
-static INLINE bool are_queues_idle(struct uds_request_queue *queue)
+static inline bool are_queues_idle(struct uds_request_queue *queue)
 {
 	return (is_funnel_queue_idle(queue->retry_queue) &&
 		is_funnel_queue_idle(queue->main_queue));
@@ -101,7 +101,7 @@ static INLINE bool are_queues_idle(struct uds_request_queue *queue)
  * the use of wait_event() macros) and whether the thread did sleep before
  * returning a new request.
  */
-static INLINE bool dequeue_request(struct uds_request_queue *queue,
+static inline bool dequeue_request(struct uds_request_queue *queue,
 				   struct uds_request **request_ptr,
 				   bool *waited_ptr)
 {
@@ -253,7 +253,7 @@ int make_uds_request_queue(const char *queue_name,
 	return UDS_SUCCESS;
 }
 
-static INLINE void wake_up_worker(struct uds_request_queue *queue)
+static inline void wake_up_worker(struct uds_request_queue *queue)
 {
 	smp_mb();
 	if (waitqueue_active(&queue->wait_head))

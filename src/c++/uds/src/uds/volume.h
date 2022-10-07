@@ -217,12 +217,12 @@ bool reserve_read_queue_entry(struct page_cache *cache,
 void release_read_queue_entry(struct page_cache *cache,
 			      unsigned int queue_pos);
 
-static INLINE uint16_t next_read_queue_position(uint16_t position)
+static inline uint16_t next_read_queue_position(uint16_t position)
 {
 	return (position + 1) % VOLUME_CACHE_MAX_QUEUED_READS;
 }
 
-static INLINE bool read_queue_is_full(struct page_cache *cache)
+static inline bool read_queue_is_full(struct page_cache *cache)
 {
 	return (cache->read_queue_first ==
 		next_read_queue_position(cache->read_queue_last));
@@ -241,13 +241,13 @@ void cancel_page_in_cache(struct page_cache *cache,
 
 size_t __must_check get_page_cache_size(struct page_cache *cache);
 
-static INLINE invalidate_counter_t
+static inline invalidate_counter_t
 get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
 	return atomic64_read(&cache->search_pending_counters[zone_number].atomic_value);
 }
 
-static INLINE void set_invalidate_counter(struct page_cache *cache,
+static inline void set_invalidate_counter(struct page_cache *cache,
 					  unsigned int zone_number,
 					  invalidate_counter_t invalidate_counter)
 {
@@ -255,18 +255,18 @@ static INLINE void set_invalidate_counter(struct page_cache *cache,
 		     invalidate_counter);
 }
 
-static INLINE unsigned int page_being_searched(invalidate_counter_t counter)
+static inline unsigned int page_being_searched(invalidate_counter_t counter)
 {
 	return counter & PAGE_FIELD;
 }
 
-static INLINE bool search_pending(invalidate_counter_t invalidate_counter)
+static inline bool search_pending(invalidate_counter_t invalidate_counter)
 {
 	return (invalidate_counter & COUNTER_LSB) != 0;
 }
 
 /* Lock the cache for a zone in order to search for a page. */
-static INLINE void begin_pending_search(struct page_cache *cache,
+static inline void begin_pending_search(struct page_cache *cache,
 					unsigned int physical_page,
 					unsigned int zone_number)
 {
@@ -289,7 +289,7 @@ static INLINE void begin_pending_search(struct page_cache *cache,
 }
 
 /* Unlock the cache for a zone by clearing its invalidate counter. */
-static INLINE void end_pending_search(struct page_cache *cache,
+static inline void end_pending_search(struct page_cache *cache,
 				      unsigned int zone_number)
 {
 	invalidate_counter_t invalidate_counter;

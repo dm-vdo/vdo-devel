@@ -22,7 +22,7 @@ enum {
 	SAMPLE_BYTES_COUNT = 2,
 };
 
-static INLINE uint64_t
+static inline uint64_t
 extract_chapter_index_bytes(const struct  uds_record_name *name)
 {
 	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
@@ -32,20 +32,20 @@ extract_chapter_index_bytes(const struct  uds_record_name *name)
 	return bytes;
 }
 
-static INLINE uint64_t
+static inline uint64_t
 extract_volume_index_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be64(&name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
-static INLINE uint32_t
+static inline uint32_t
 extract_sampling_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /* Compute the chapter delta list for a given name. */
-static INLINE unsigned int
+static inline unsigned int
 hash_to_chapter_delta_list(const struct uds_record_name *name,
 			   const struct geometry *geometry)
 {
@@ -55,7 +55,7 @@ hash_to_chapter_delta_list(const struct uds_record_name *name,
 }
 
 /* Compute the chapter delta address for a given name. */
-static INLINE unsigned int
+static inline unsigned int
 hash_to_chapter_delta_address(const struct uds_record_name *name,
 			      const struct geometry *geometry)
 {
@@ -63,7 +63,7 @@ hash_to_chapter_delta_address(const struct uds_record_name *name,
 			       ((1 << geometry->chapter_address_bits) - 1));
 }
 
-static INLINE unsigned int
+static inline unsigned int
 name_to_hash_slot(const struct uds_record_name *name,
 		  unsigned int slot_count)
 {

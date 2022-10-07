@@ -32,7 +32,7 @@ char *makeTempFileName(const char *what);
  *
  * @return   the exit status of the child process
  **/
-static INLINE int extractExitStatus(int waitResult)
+static inline int extractExitStatus(int waitResult)
 {
   return WEXITSTATUS(waitResult);
 }

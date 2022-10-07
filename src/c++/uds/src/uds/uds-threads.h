@@ -124,7 +124,7 @@ int uds_destroy_cond(struct cond_var *cond);
 int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error);
 #endif
 #ifdef __KERNEL__
-static INLINE int __must_check uds_init_mutex(struct mutex *mutex)
+static inline int __must_check uds_init_mutex(struct mutex *mutex)
 {
 	mutex_init(mutex);
 	return UDS_SUCCESS;
@@ -133,7 +133,7 @@ static INLINE int __must_check uds_init_mutex(struct mutex *mutex)
 int __must_check uds_init_mutex(struct mutex *mutex);
 #endif
 #ifdef __KERNEL__
-static INLINE int uds_destroy_mutex(struct mutex *mutex)
+static inline int uds_destroy_mutex(struct mutex *mutex)
 {
 	return UDS_SUCCESS;
 }
@@ -141,7 +141,7 @@ static INLINE int uds_destroy_mutex(struct mutex *mutex)
 int uds_destroy_mutex(struct mutex *mutex);
 #endif
 #ifdef __KERNEL__
-static INLINE void uds_lock_mutex(struct mutex *mutex)
+static inline void uds_lock_mutex(struct mutex *mutex)
 {
 	mutex_lock(mutex);
 }
@@ -149,7 +149,7 @@ static INLINE void uds_lock_mutex(struct mutex *mutex)
 void uds_lock_mutex(struct mutex *mutex);
 #endif
 #ifdef __KERNEL__
-static INLINE void uds_unlock_mutex(struct mutex *mutex)
+static inline void uds_unlock_mutex(struct mutex *mutex)
 {
 	mutex_unlock(mutex);
 }
@@ -158,7 +158,7 @@ void uds_unlock_mutex(struct mutex *mutex);
 #endif
 
 #ifdef __KERNEL__
-static INLINE int __must_check
+static inline int __must_check
 uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
 {
 	sema_init(semaphore, value);
@@ -170,7 +170,7 @@ int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 #endif
 
 #ifdef __KERNEL__
-static INLINE int uds_destroy_semaphore(struct semaphore *semaphore)
+static inline int uds_destroy_semaphore(struct semaphore *semaphore)
 {
 	return UDS_SUCCESS;
 }
@@ -178,7 +178,7 @@ static INLINE int uds_destroy_semaphore(struct semaphore *semaphore)
 int uds_destroy_semaphore(struct semaphore *semaphore);
 #endif
 #ifdef __KERNEL__
-static INLINE void uds_acquire_semaphore(struct semaphore *semaphore)
+static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 {
 	/*
 	 * Do not use down(semaphore). Instead use down_interruptible so that
@@ -202,7 +202,7 @@ void uds_acquire_semaphore(struct semaphore *semaphore);
 #endif
 
 #ifdef __KERNEL__
-static INLINE bool
+static inline bool
 __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 				   ktime_t timeout)
 {
@@ -220,7 +220,7 @@ bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 #endif
 
 #ifdef __KERNEL__
-static INLINE void uds_release_semaphore(struct semaphore *semaphore)
+static inline void uds_release_semaphore(struct semaphore *semaphore)
 {
 	up(semaphore);
 }

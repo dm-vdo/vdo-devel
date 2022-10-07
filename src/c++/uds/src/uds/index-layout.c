@@ -228,7 +228,7 @@ struct save_layout_sizes {
 	size_t total_size;
 };
 
-static INLINE bool is_converted_super_block(struct super_block_data *super)
+static inline bool is_converted_super_block(struct super_block_data *super)
 {
 	return (super->version == 7);
 }

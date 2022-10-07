@@ -34,7 +34,7 @@
  * @param for_write  must be constant at compile time--false if
  *                   for reading, true if for writing
  **/
-static INLINE void prefetch_address(const void *address, bool for_write)
+static inline void prefetch_address(const void *address, bool for_write)
 {
 	/*
 	 * for_write won't be a constant if we are compiled with optimization
@@ -60,7 +60,7 @@ static INLINE void prefetch_address(const void *address, bool for_write)
  * @param for_write  must be constant at compile time--false if
  *                   for reading, true if for writing
  **/
-static INLINE void
+static inline void
 prefetch_range(const void *start, unsigned int size, bool for_write)
 {
 	/*

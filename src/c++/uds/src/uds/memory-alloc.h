@@ -30,7 +30,7 @@ void uds_free_memory(void *ptr);
 /* Free memory allocated with UDS_ALLOCATE(). */
 #define UDS_FREE(PTR) uds_free_memory(PTR)
 
-static INLINE void *uds_forget(void **ptr_ptr)
+static inline void *uds_forget(void **ptr_ptr)
 {
 	void *ptr = *ptr_ptr;
 
@@ -68,7 +68,7 @@ static INLINE void *uds_forget(void **ptr_ptr)
  *
  * @return UDS_SUCCESS or an error code
  */
-static INLINE int uds_do_allocation(size_t count,
+static inline int uds_do_allocation(size_t count,
 				    size_t size,
 				    size_t extra,
 				    size_t align,
@@ -149,7 +149,7 @@ int __must_check uds_reallocate_memory(void *ptr,
  *
  * @return UDS_SUCCESS or an error code
  */
-static INLINE int __must_check uds_allocate_cache_aligned(size_t size,
+static inline int __must_check uds_allocate_cache_aligned(size_t size,
 							  const char *what,
 							  void *ptr)
 {
@@ -175,7 +175,7 @@ int __must_check uds_duplicate_string(const char *string,
 				      char **new_string);
 
 /* Wrapper which permits freeing a const pointer. */
-static INLINE void uds_free_const(const void *pointer)
+static inline void uds_free_const(const void *pointer)
 {
 	union {
 		const void *const_p;
@@ -212,14 +212,14 @@ extern long uds_allocation_error_injection;
  *
  * @return true if there is a memory allocation failure scheduled to happen
  */
-static INLINE bool uds_allocation_failure_scheduled(void)
+static inline bool uds_allocation_failure_scheduled(void)
 {
 	return atomic_long_read(&uds_allocate_memory_counter) <
 	       uds_allocation_error_injection;
 }
 
 /* Cancel any future memory allocation failure. */
-static INLINE void cancel_uds_memory_allocation_failure(void)
+static inline void cancel_uds_memory_allocation_failure(void)
 {
 	uds_allocation_error_injection = 0;
 }
@@ -230,7 +230,7 @@ static INLINE void cancel_uds_memory_allocation_failure(void)
  *
  * @param count  The number of the allocation that will fail
  */
-static INLINE void schedule_uds_memory_allocation_failure(long count)
+static inline void schedule_uds_memory_allocation_failure(long count)
 {
 	uds_allocation_error_injection =
 		atomic_long_read(&uds_allocate_memory_counter) + count;

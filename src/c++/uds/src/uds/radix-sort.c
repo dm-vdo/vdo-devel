@@ -71,7 +71,7 @@ struct radix_sorter {
 };
 
 /* Compare a segment of two fixed-length keys starting at an offset. */
-static INLINE int compare(sort_key_t key1,
+static inline int compare(sort_key_t key1,
 			  sort_key_t key2,
 			  uint16_t offset,
 			  uint16_t length)
@@ -80,7 +80,7 @@ static INLINE int compare(sort_key_t key1,
 }
 
 /* Insert the next unsorted key into an array of sorted keys. */
-static INLINE void insert_key(const struct task task, sort_key_t *next)
+static inline void insert_key(const struct task task, sort_key_t *next)
 {
 	/* Pull the unsorted key out, freeing up the array slot. */
 	sort_key_t unsorted = *next;
@@ -102,7 +102,7 @@ static INLINE void insert_key(const struct task task, sort_key_t *next)
  * faster than the 256-way radix sort when the number of keys to sort is
  * small.
  */
-static INLINE void insertion_sort(const struct task task)
+static inline void insertion_sort(const struct task task)
 {
 	sort_key_t *next;
 
@@ -111,7 +111,7 @@ static INLINE void insertion_sort(const struct task task)
 }
 
 /* Push a sorting task onto a task stack. */
-static INLINE void push_task(struct task **stack_pointer,
+static inline void push_task(struct task **stack_pointer,
 			     sort_key_t *first_key,
 			     uint32_t count,
 			     uint16_t offset,
@@ -125,7 +125,7 @@ static INLINE void push_task(struct task **stack_pointer,
 	task->length = length;
 }
 
-static INLINE void swap_keys(sort_key_t *a, sort_key_t *b)
+static inline void swap_keys(sort_key_t *a, sort_key_t *b)
 {
 	sort_key_t c = *a;
 	*a = *b;
@@ -137,7 +137,7 @@ static INLINE void swap_keys(sort_key_t *a, sort_key_t *b)
  * to sort at the current offset, keeping track of the number of non-empty
  * bins, and the index of the first and last non-empty bin.
  */
-static INLINE void measure_bins(const struct task task, struct histogram *bins)
+static inline void measure_bins(const struct task task, struct histogram *bins)
 {
 	sort_key_t *key_ptr;
 
@@ -192,7 +192,7 @@ static INLINE void measure_bins(const struct task task, struct histogram *bins)
  *
  * @return UDS_SUCCESS or an error code
  */
-static INLINE int push_bins(struct task **stack,
+static inline int push_bins(struct task **stack,
 			    struct task *end_of_stack,
 			    struct task **list,
 			    sort_key_t *pile[],

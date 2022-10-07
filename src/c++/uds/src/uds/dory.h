@@ -26,7 +26,7 @@ extern atomic_t dory_forgetful;
  *
  * @return true to if writing is disabled, or false do normal I/O.
  **/
-static INLINE bool get_dory_forgetful(void)
+static inline bool get_dory_forgetful(void)
 {
 	return atomic_read(&dory_forgetful);
 }
@@ -37,7 +37,7 @@ static INLINE bool get_dory_forgetful(void)
  *
  * @param setting  True to disable writing, or False do normal I/O.
  **/
-static INLINE void set_dory_forgetful(bool setting)
+static inline void set_dory_forgetful(bool setting)
 {
 	atomic_set(&dory_forgetful, setting);
 }

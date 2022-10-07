@@ -87,26 +87,26 @@ void set_request_restarter(request_restarter_t restarter)
 }
 
 #endif /* TEST_INTERNAL */
-static INLINE unsigned int map_to_page_number(struct geometry *geometry,
+static inline unsigned int map_to_page_number(struct geometry *geometry,
 					      unsigned int physical_page)
 {
 	return ((physical_page - 1) % geometry->pages_per_chapter);
 }
 
-static INLINE unsigned int map_to_chapter_number(struct geometry *geometry,
+static inline unsigned int map_to_chapter_number(struct geometry *geometry,
 						 unsigned int physical_page)
 {
 	return ((physical_page - 1) / geometry->pages_per_chapter);
 }
 
-static INLINE bool is_record_page(struct geometry *geometry,
+static inline bool is_record_page(struct geometry *geometry,
 				  unsigned int physical_page)
 {
 	return (((physical_page - 1) % geometry->pages_per_chapter) >=
 		geometry->index_pages_per_chapter);
 }
 
-static INLINE unsigned int get_zone_number(struct uds_request *request)
+static inline unsigned int get_zone_number(struct uds_request *request)
 {
 	return (request == NULL) ? 0 : request->zone_number;
 }
@@ -778,7 +778,7 @@ void release_read_queue_entry(struct page_cache *cache, unsigned int queue_pos)
 			next_read_queue_position(cache->read_queue_first);
 }
 
-static INLINE void
+static inline void
 wait_to_reserve_read_queue_entry(struct volume *volume,
 				 unsigned int *queue_pos,
 				 struct uds_request **request_list,

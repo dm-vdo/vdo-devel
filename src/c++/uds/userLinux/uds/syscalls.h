@@ -116,7 +116,7 @@ int process_control(int option,
 		    unsigned long arg5);
 
 /**********************************************************************/
-static INLINE int log_system_call_errno(const char *function,
+static inline int log_system_call_errno(const char *function,
 					const char *context)
 {
 	return uds_log_strerror(((errno == EINTR) ? UDS_LOG_DEBUG
@@ -128,7 +128,7 @@ static INLINE int log_system_call_errno(const char *function,
 }
 
 /**********************************************************************/
-static INLINE int
+static inline int
 check_system_call(int result, const char *function, const char *context)
 {
 	return ((result == 0) ? UDS_SUCCESS :
@@ -136,7 +136,7 @@ check_system_call(int result, const char *function, const char *context)
 }
 
 /**********************************************************************/
-static INLINE int check_io_errors(ssize_t bytes,
+static inline int check_io_errors(ssize_t bytes,
 				  const char *function,
 				  const char *context,
 				  ssize_t *bytes_ptr)

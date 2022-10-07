@@ -32,7 +32,7 @@ typedef struct {
  * Stop GCC from moving memory operations across a point in the instruction
  * stream.  This is how the kernel uses this method.
  **/
-static INLINE void barrier(void)
+static inline void barrier(void)
 {
   /*
    * asm volatile cannot be removed, and the memory clobber tells the
@@ -65,7 +65,7 @@ static INLINE void barrier(void)
  * extra barriers, until such time as we have more time to investigate and
  * gain confidence in the current state of GCC barriers.
  **/
-static INLINE void smp_mb(void)
+static inline void smp_mb(void)
 {
 #if defined __x86_64__
   /*
@@ -96,7 +96,7 @@ static INLINE void smp_mb(void)
  * fields of a structure are not re-ordered so they actually take effect before
  * a pointer to the structure is resolved.
  **/
-static INLINE void smp_rmb(void)
+static inline void smp_rmb(void)
 {
 #if defined __x86_64__
   // The implementation on x86 is more aggressive than necessary.
@@ -121,7 +121,7 @@ static INLINE void smp_rmb(void)
  * the fields of a structure are not re-ordered so they actually take effect
  * after a pointer to the structure is published.
  **/
-static INLINE void smp_wmb(void)
+static inline void smp_wmb(void)
 {
 #if defined __x86_64__
   // The implementation on x86 is more aggressive than necessary.
@@ -141,7 +141,7 @@ static INLINE void smp_wmb(void)
  * Provide a memory barrier before an atomic read-modify-write operation
  * that does not imply one.
  **/
-static INLINE void smp_mb__before_atomic(void)
+static inline void smp_mb__before_atomic(void)
 {
 #if defined(__x86_64__) || defined(__s390__)
   // Atomic operations are already serializing on x86 and s390
@@ -155,7 +155,7 @@ static INLINE void smp_mb__before_atomic(void)
  * Provide a memory barrier after an atomic read-modify-write operation
  * that does not imply one.
  **/
-static INLINE void smp_mb__after_atomic(void)
+static inline void smp_mb__after_atomic(void)
 {
 #if defined(__x86_64__) || defined(__s390__)
   // Atomic operations are already serializing on x86 and s390
@@ -212,7 +212,7 @@ static INLINE void smp_mb__after_atomic(void)
     __u.__val;                                      \
   })
 
-static INLINE void read_once_size(const volatile void *p, void *res, int size)
+static inline void read_once_size(const volatile void *p, void *res, int size)
 {
   switch (size) {
   case 1: *(byte *)res     = *(const volatile byte *)p;     break;
@@ -233,7 +233,7 @@ static INLINE void read_once_size(const volatile void *p, void *res, int size)
    */
 }
 
-static INLINE void write_once_size(volatile void *p, void *res, int size)
+static inline void write_once_size(volatile void *p, void *res, int size)
 {
   switch (size) {
   case 1: *(volatile byte *)p     = *(byte *)res;     break;
@@ -275,7 +275,7 @@ static INLINE void write_once_size(volatile void *p, void *res, int size)
  * @param delta  the value to be added to (or subtracted from) the variable
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE void atomic_add(int delta, atomic_t *atom)
+static inline void atomic_add(int delta, atomic_t *atom)
 {
   /*
    * According to the kernel documentation, the addition is atomic, but there
@@ -295,7 +295,7 @@ static INLINE void atomic_add(int delta, atomic_t *atom)
  *
  * @return the new value of the atom after the add operation
  **/
-static INLINE int atomic_add_return(int delta, atomic_t *atom)
+static inline int atomic_add_return(int delta, atomic_t *atom)
 {
   smp_mb();
   int result = __sync_add_and_fetch(&atom->value, delta);
@@ -313,7 +313,7 @@ static INLINE int atomic_add_return(int delta, atomic_t *atom)
  *
  * @return the old value
  **/
-static INLINE int atomic_cmpxchg(atomic_t *atom, int old, int new)
+static inline int atomic_cmpxchg(atomic_t *atom, int old, int new)
 {
   smp_mb();
   int result = __sync_val_compare_and_swap(&atom->value, old, new);
@@ -326,7 +326,7 @@ static INLINE int atomic_cmpxchg(atomic_t *atom, int old, int new)
  *
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE void atomic_inc(atomic_t *atom)
+static inline void atomic_inc(atomic_t *atom)
 {
   /*
    * According to the kernel documentation, the addition is atomic, but there
@@ -345,7 +345,7 @@ static INLINE void atomic_inc(atomic_t *atom)
  *
  * @return the new value of the atom after the increment
  **/
-static INLINE long atomic_inc_return(atomic_t *atom)
+static inline long atomic_inc_return(atomic_t *atom)
 {
   return atomic_add_return(1, atom);
 }
@@ -356,7 +356,7 @@ static INLINE long atomic_inc_return(atomic_t *atom)
  *
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE void atomic_dec(atomic_t *atom)
+static inline void atomic_dec(atomic_t *atom)
 {
   /*
    * According to the kernel documentation, the subtraction is atomic, but
@@ -372,7 +372,7 @@ static INLINE void atomic_dec(atomic_t *atom)
  *
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE int atomic_read(const atomic_t *atom)
+static inline int atomic_read(const atomic_t *atom)
 {
   return READ_ONCE(atom->value);
 }
@@ -382,7 +382,7 @@ static INLINE int atomic_read(const atomic_t *atom)
  *
  * @param atom  a pointer to the atomic variable
  **/
-static INLINE int atomic_read_acquire(const atomic_t *atom)
+static inline int atomic_read_acquire(const atomic_t *atom)
 {
   int value = READ_ONCE(atom->value);
   smp_mb();
@@ -395,7 +395,7 @@ static INLINE int atomic_read_acquire(const atomic_t *atom)
  * @param atom   a pointer to the atomic variable
  * @param value  the value to set it to
  **/
-static INLINE void atomic_set(atomic_t *atom, int value)
+static inline void atomic_set(atomic_t *atom, int value)
 {
   atom->value = value;
 }
@@ -406,7 +406,7 @@ static INLINE void atomic_set(atomic_t *atom, int value)
  * @param atom   a pointer to the atomic variable
  * @param value  the value to set it to
 **/
-static INLINE void atomic_set_release(atomic_t *atom, int value)
+static inline void atomic_set_release(atomic_t *atom, int value)
 {
   smp_mb();
   atomic_set(atom, value);
@@ -423,7 +423,7 @@ static INLINE void atomic_set_release(atomic_t *atom, int value)
  * @param delta  the value to be added to (or subtracted from) the variable
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE void atomic64_add(long delta, atomic64_t *atom)
+static inline void atomic64_add(long delta, atomic64_t *atom)
 {
   /*
    * According to the kernel documentation, the addition is atomic, but there
@@ -443,7 +443,7 @@ static INLINE void atomic64_add(long delta, atomic64_t *atom)
  *
  * @return the new value of the atom after the add operation
  **/
-static INLINE long atomic64_add_return(long delta, atomic64_t *atom)
+static inline long atomic64_add_return(long delta, atomic64_t *atom)
 {
   smp_mb();
   long result = __sync_add_and_fetch(&atom->value, delta);
@@ -461,7 +461,7 @@ static INLINE long atomic64_add_return(long delta, atomic64_t *atom)
  *
  * @return the old value
  **/
-static INLINE long atomic64_cmpxchg(atomic64_t *atom, long old, long new)
+static inline long atomic64_cmpxchg(atomic64_t *atom, long old, long new)
 {
   smp_mb();
   long result = __sync_val_compare_and_swap(&atom->value, old, new);
@@ -474,7 +474,7 @@ static INLINE long atomic64_cmpxchg(atomic64_t *atom, long old, long new)
  *
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE void atomic64_inc(atomic64_t *atom)
+static inline void atomic64_inc(atomic64_t *atom)
 {
   /*
    * According to the kernel documentation, the addition is atomic, but there
@@ -493,7 +493,7 @@ static INLINE void atomic64_inc(atomic64_t *atom)
  *
  * @return the new value of the atom after the increment
  **/
-static INLINE long atomic64_inc_return(atomic64_t *atom)
+static inline long atomic64_inc_return(atomic64_t *atom)
 {
   return atomic64_add_return(1, atom);
 }
@@ -503,7 +503,7 @@ static INLINE long atomic64_inc_return(atomic64_t *atom)
  *
  * @param atom   a pointer to the atomic variable
  **/
-static INLINE long atomic64_read(const atomic64_t *atom)
+static inline long atomic64_read(const atomic64_t *atom)
 {
   return READ_ONCE(atom->value);
 }
@@ -513,7 +513,7 @@ static INLINE long atomic64_read(const atomic64_t *atom)
  *
  * @param atom  a pointer to the atomic variable
  **/
-static INLINE long atomic64_read_acquire(const atomic64_t *atom)
+static inline long atomic64_read_acquire(const atomic64_t *atom)
 {
   long value = READ_ONCE(atom->value);
   smp_mb();
@@ -526,7 +526,7 @@ static INLINE long atomic64_read_acquire(const atomic64_t *atom)
  * @param atom   a pointer to the atomic variable
  * @param value  the value to set it to
  **/
-static INLINE void atomic64_set(atomic64_t *atom, long value)
+static inline void atomic64_set(atomic64_t *atom, long value)
 {
   atom->value = value;
 }
@@ -537,7 +537,7 @@ static INLINE void atomic64_set(atomic64_t *atom, long value)
  * @param atom   a pointer to the atomic variable
  * @param value  the value to set it to
 **/
-static INLINE void atomic64_set_release(atomic64_t *atom, long value)
+static inline void atomic64_set_release(atomic64_t *atom, long value)
 {
   smp_mb();
   atomic64_set(atom, value);

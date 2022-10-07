@@ -22,7 +22,7 @@
  * instructions, but the warn_unused_result attribute still applies to
  * the code calling it.
  */
-static INLINE int __must_check uds_must_use(int value)
+static inline int __must_check uds_must_use(int value)
 {
 	return value;
 }

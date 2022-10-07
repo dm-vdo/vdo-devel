@@ -12,7 +12,7 @@
 
 #define RAND_MAX 2147483647
 
-static INLINE long random(void)
+static inline long random(void)
 {
 	long value;
 	prandom_bytes(&value, sizeof(value));

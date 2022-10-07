@@ -10,7 +10,7 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-static INLINE uint32_t numberFromBuffer(const byte *buffer)
+static inline uint32_t numberFromBuffer(const byte *buffer)
 {
   return buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
 }

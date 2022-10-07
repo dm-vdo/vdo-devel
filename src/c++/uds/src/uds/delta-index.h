@@ -313,7 +313,7 @@ int __must_check put_delta_index_entry(struct delta_index_entry *delta_entry,
 int __must_check
 remove_delta_index_entry(struct delta_index_entry *delta_entry);
 
-static INLINE unsigned int
+static inline unsigned int
 get_delta_zone_number(const struct delta_index *delta_index,
 		      unsigned int list_number)
 {

@@ -103,7 +103,7 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 #endif /* TEST_INTERNAL */
 }
 
-static INLINE bool was_entry_found(const struct delta_index_entry *entry,
+static inline bool was_entry_found(const struct delta_index_entry *entry,
 				   unsigned int address)
 {
 	return (!entry->at_end && (entry->key == address));

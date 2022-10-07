@@ -54,7 +54,7 @@ struct hlist_node {
  * @param n new entry to be added
  * @param h hlist head to add it after
  */
-static INLINE void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
+static inline void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
 {
 	struct hlist_node *first = h->first;
 	WRITE_ONCE(n->next, first);
@@ -68,7 +68,7 @@ static INLINE void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
  * Delete the specified hlist_node from its list
  * @param n Node to delete.
  */
-static INLINE void hlist_del(struct hlist_node *n)
+static inline void hlist_del(struct hlist_node *n)
 {
 	struct hlist_node *next = n->next;
 	struct hlist_node **pprev = n->pprev;
@@ -82,7 +82,7 @@ static INLINE void hlist_del(struct hlist_node *n)
  * Is the specified hlist_head structure an empty hlist?
  * @param h Structure to check.
  */
-static INLINE int hlist_empty(const struct hlist_head *h)
+static inline int hlist_empty(const struct hlist_head *h)
 {
 	return !READ_ONCE(h->first);
 }

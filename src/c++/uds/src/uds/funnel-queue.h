@@ -55,7 +55,7 @@ void free_funnel_queue(struct funnel_queue *queue);
  * every entry in the queue must have the struct funnel_queue_entry at the same
  * offset within the client's structure.
  */
-static INLINE void funnel_queue_put(struct funnel_queue *queue,
+static inline void funnel_queue_put(struct funnel_queue *queue,
 				    struct funnel_queue_entry *entry)
 {
 	struct funnel_queue_entry *previous;
