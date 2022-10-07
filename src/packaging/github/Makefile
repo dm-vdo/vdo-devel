@@ -22,6 +22,7 @@ VDO_ROOT ?= $(realpath ../../..)
 
 SRC_DIR = ../..
 include ../defines
+include $(SRC_DIR)/defines
 
 ifdef AUTHOR
   AUTHOR_FLAG = --author=$(AUTHOR)
@@ -135,6 +136,15 @@ rpms: clean prepare
 	$(MAKE) vdo-rpm
 	$(MAKE) kvdo-rpm
 
+# Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
+CHECKPATCH_IGNORE = NEW_TYPEDEFS
+CHECKPATCH_ARGS := --no-tree --file --terse --color=never
+CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE) 
+
+# For now, ignore checkpatch errors so that this is purely advisory.
+.PHONY: check-style
+check-style: prepare
+	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(WORK_DIR)/kvdo-*/vdo/*.[hc]
 
 # This remains as a synonym of rpms to make the transition easier on
 # developers.

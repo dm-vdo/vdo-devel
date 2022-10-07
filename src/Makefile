@@ -89,6 +89,10 @@ check:
 		$(MAKE) -C $$i check;		\
 	done
 
+.PHONY: check-style
+check-style:
+	$(MAKE) -C packaging/github $@ 
+
 .PHONY: udstests
 udstests:
 	mkdir -p $(LOGBASE)/$@
@@ -133,6 +137,7 @@ jenkins-parallel: clean
 	@echo "Using index name of $$VDO_TESTINDEX"
 	$(MAKE) cunittests udstests vdotests check #XXX vdotests-release
 	$(MAKE) archive
+	$(MAKE) check-style
 	$(MAKE) test-vdo-distribution
 
 .PHONY: archive
