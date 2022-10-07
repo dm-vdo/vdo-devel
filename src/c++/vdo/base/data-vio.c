@@ -605,13 +605,9 @@ void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
-	result = enqueue_data_vio(&lock_holder->logical.waiters,
-				  data_vio);
-	if (result != VDO_SUCCESS) {
-		finish_data_vio(data_vio, result);
-		return;
-	}
+	data_vio->last_async_operation =
+		VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
+	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
 
 	/*
 	 * Prevent writes and read-modify-writes from blocking indefinitely on

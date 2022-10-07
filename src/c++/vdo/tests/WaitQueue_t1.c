@@ -67,14 +67,14 @@ static void basicTest(void)
   CU_ASSERT_FALSE(has_waiters(&queue));
   CU_ASSERT_EQUAL(0, count_waiters(&queue));
 
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[0]));
+  enqueue_waiter(&queue, &waiters[0]);
   CU_ASSERT_TRUE(has_waiters(&queue));
   CU_ASSERT_EQUAL(1, count_waiters(&queue));
 
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[2]));
+  enqueue_waiter(&queue, &waiters[2]);
   CU_ASSERT_EQUAL(2, count_waiters(&queue));
 
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[3]));
+  enqueue_waiter(&queue, &waiters[3]);
   CU_ASSERT_EQUAL(3, count_waiters(&queue));
 
   unsigned int tracks[ARRAY_SIZE(waiters)];
@@ -114,14 +114,14 @@ static void basicTest(void)
   CU_ASSERT_EQUAL(0, count_waiters(&queue2));
 
   // transfer single->empty
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[0]));
+  enqueue_waiter(&queue, &waiters[0]);
   transfer_all_waiters(&queue, &queue2);
   CU_ASSERT_EQUAL(0, count_waiters(&queue));
   CU_ASSERT_EQUAL(1, count_waiters(&queue2));
 
   // transfer double->single
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[1]));
-  UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, &waiters[2]));
+  enqueue_waiter(&queue, &waiters[1]);
+  enqueue_waiter(&queue, &waiters[2]);
   transfer_all_waiters(&queue, &queue2);
   CU_ASSERT_EQUAL(0, count_waiters(&queue));
   CU_ASSERT_EQUAL(3, count_waiters(&queue2));
@@ -158,7 +158,7 @@ static void iterationTest(void)
   CU_ASSERT_EQUAL(wp - order, ARRAY_SIZE(order));
 
   for (wp = order; wp < &order[ARRAY_SIZE(order)]; ++wp) {
-    UDS_ASSERT_SUCCESS(enqueue_waiter(&queue, *wp));
+    enqueue_waiter(&queue, *wp);
   }
 
   wp = order;

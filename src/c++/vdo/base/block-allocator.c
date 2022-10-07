@@ -942,10 +942,10 @@ void vdo_release_tail_block_locks(void *context,
 	vdo_complete_completion(parent);
 }
 
-int vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
-				    struct waiter *waiter)
+void vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
+				     struct waiter *waiter)
 {
-	return acquire_vio_from_pool(allocator->vio_pool, waiter);
+	acquire_vio_from_pool(allocator->vio_pool, waiter);
 }
 
 void vdo_return_block_allocator_vio(struct block_allocator *allocator,

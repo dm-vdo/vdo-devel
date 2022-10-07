@@ -213,7 +213,7 @@ static void signalWhenJournalReadCallbackDone(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = slabJournal->slab->allocator;
   testWaiter.callback = acquiredVIO;
-  VDO_ASSERT_SUCCESS(vdo_acquire_block_allocator_vio(allocator, &testWaiter));
+  vdo_acquire_block_allocator_vio(allocator, &testWaiter);
   signalState(&readsComplete);
   runSavedCallback(completion);
 }

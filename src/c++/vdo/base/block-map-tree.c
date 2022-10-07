@@ -317,12 +317,8 @@ static void write_page_callback(struct waiter *waiter, void *context)
 
 static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
-	int result;
-
 	waiter->callback = write_page_callback;
-	result = acquire_vio_from_pool(zone->vio_pool, waiter);
-	if (result != VDO_SUCCESS)
-		enter_zone_read_only_mode(zone, result);
+	acquire_vio_from_pool(zone->vio_pool, waiter);
 }
 
 /*
@@ -345,17 +341,13 @@ static bool attempt_increment(struct block_map_tree_zone *zone)
 static void enqueue_page(struct tree_page *page,
 			 struct block_map_tree_zone *zone)
 {
-	int result;
-
 	if ((zone->flusher == NULL) && attempt_increment(zone)) {
 		zone->flusher = page;
 		acquire_vio(&page->waiter, zone);
 		return;
 	}
 
-	result = enqueue_waiter(&zone->flush_waiters, &page->waiter);
-	if (result != VDO_SUCCESS)
-		enter_zone_read_only_mode(zone, result);
+	enqueue_waiter(&zone->flush_waiters, &page->waiter);
 }
 
 static void write_page_if_not_dirtied(struct waiter *waiter, void *context)
@@ -827,7 +819,8 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	}
 
 	/* Someone else is loading or allocating the page we need */
-	return enqueue_data_vio(&lock_holder->waiters, data_vio);
+	enqueue_data_vio(&lock_holder->waiters, data_vio);
+	return VDO_SUCCESS;
 }
 
 /*
@@ -848,9 +841,7 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 		struct waiter *waiter = data_vio_as_waiter(data_vio);
 
 		waiter->callback = load_page;
-		result = acquire_vio_from_pool(zone->vio_pool, waiter);
-		if (result != VDO_SUCCESS)
-			abort_load(data_vio, result);
+		acquire_vio_from_pool(zone->vio_pool, waiter);
 	}
 }
 

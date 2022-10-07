@@ -1189,15 +1189,10 @@ static void discard_a_page(struct vdo_page_cache *cache)
 static void
 discard_page_for_completion(struct vdo_page_completion *vdo_page_comp)
 {
-	int result;
 	struct vdo_page_cache *cache = vdo_page_comp->cache;
 
 	++cache->waiter_count;
-
-	result = enqueue_waiter(&cache->free_waiters, &vdo_page_comp->waiter);
-	if (result != VDO_SUCCESS)
-		set_persistent_error(cache, "cannot enqueue waiter", result);
-
+	enqueue_waiter(&cache->free_waiters, &vdo_page_comp->waiter);
 	discard_a_page(cache);
 }
 
@@ -1448,13 +1443,9 @@ void vdo_release_page_completion(struct vdo_completion *completion)
 static void load_page_for_completion(struct page_info *info,
 				     struct vdo_page_completion *vdo_page_comp)
 {
-	int result = enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
+	int result;
 
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(&vdo_page_comp->completion, result);
-		return;
-	}
-
+	enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
 	result = launch_page_load(info, vdo_page_comp->pbn);
 	if (result != VDO_SUCCESS)
 		distribute_error_over_queue(result, &info->waiting);
@@ -1498,15 +1489,9 @@ void vdo_get_page(struct vdo_completion *completion)
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
 		    is_incoming(info) ||
 		    (is_outgoing(info) && vdo_page_comp->writable)) {
-			int result;
 			/* The page is unusable until it has finished I/O. */
 			ADD_ONCE(cache->stats.wait_for_page, 1);
-			result = enqueue_waiter(&info->waiting,
-						&vdo_page_comp->waiter);
-			if (result != VDO_SUCCESS)
-				vdo_finish_completion(&vdo_page_comp->completion,
-						      result);
-
+			enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
 			return;
 		}
 

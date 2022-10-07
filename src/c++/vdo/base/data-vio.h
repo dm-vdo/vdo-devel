@@ -592,14 +592,11 @@ get_data_vio_operation_name(struct data_vio *data_vio);
  *
  * The data_vio must not already be waiting in a queue. A trace record is also
  * generated for the data_vio.
- *
- * Return: VDO_SUCCESS or an error code.
  */
-static inline int __must_check
-enqueue_data_vio(struct wait_queue *queue,
-		 struct data_vio *waiter)
+static inline void
+enqueue_data_vio(struct wait_queue *queue, struct data_vio *waiter)
 {
-	return enqueue_waiter(queue, data_vio_as_waiter(waiter));
+	enqueue_waiter(queue, data_vio_as_waiter(waiter));
 }
 
 /**

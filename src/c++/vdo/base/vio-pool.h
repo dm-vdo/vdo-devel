@@ -55,7 +55,7 @@ void free_vio_pool(struct vio_pool *pool);
 
 bool __must_check is_vio_pool_busy(struct vio_pool *pool);
 
-int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
+void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
 
 void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
 

@@ -158,24 +158,23 @@ bool is_vio_pool_busy(struct vio_pool *pool)
  *                           (asynchronous).
  * @pool: The vio pool.
  * @waiter: Object that is requesting a vio.
- *
- * Return: VDO_SUCCESS or an error.
  */
-int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
+void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 {
 	struct list_head *entry;
 
 	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"acquire from active vio_pool called from correct thread");
 
-	if (list_empty(&pool->available))
-		return enqueue_waiter(&pool->waiting, waiter);
+	if (list_empty(&pool->available)) {
+		enqueue_waiter(&pool->waiting, waiter);
+		return;
+	}
 
 	pool->busy_count++;
 	entry = pool->available.next;
 	list_move_tail(entry, &pool->busy);
 	(*waiter->callback)(waiter, as_vio_pool_entry(entry));
-	return VDO_SUCCESS;
 }
 
 /**

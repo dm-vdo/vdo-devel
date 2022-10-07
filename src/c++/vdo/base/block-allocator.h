@@ -169,9 +169,9 @@ void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent);
 
-int __must_check
-vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
-				struct waiter *waiter);
+
+void vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
+				     struct waiter *waiter);
 
 void vdo_return_block_allocator_vio(struct block_allocator *allocator,
 				    struct vio_pool_entry *entry);

@@ -736,7 +736,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
-
 	/*
 	 * XXX: this is a hack until we make initial resume of a VDO a real
 	 * resume
@@ -1083,16 +1082,8 @@ static void write_blocks(struct recovery_journal *journal);
 static void schedule_block_write(struct recovery_journal *journal,
 				 struct recovery_journal_block *block)
 {
-	int result;
-
-	if (block->committing)
-		return;
-
-	result = enqueue_waiter(&journal->pending_writes,
-				&block->write_waiter);
-	if (result != VDO_SUCCESS)
-		enter_journal_read_only_mode(journal, result);
-
+	if (!block->committing)
+		enqueue_waiter(&journal->pending_writes, &block->write_waiter);
 	/*
 	 * At the end of adding entries, or discovering this partial
 	 * block is now full and ready to rewrite, we will call
@@ -1476,7 +1467,6 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal,
 				    struct data_vio *data_vio)
 {
 	bool increment;
-	int result;
 
 	assert_on_journal_thread(journal, __func__);
 	if (!vdo_is_state_normal(&journal->state)) {
@@ -1498,15 +1488,10 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal,
 
 	vdo_advance_journal_point(&journal->append_point,
 				  journal->entries_per_block);
-	result = enqueue_data_vio((increment ? &journal->increment_waiters
-				  : &journal->decrement_waiters),
-				  data_vio);
-	if (result != VDO_SUCCESS) {
-		enter_journal_read_only_mode(journal, result);
-		continue_data_vio_with_error(data_vio, result);
-		return;
-	}
-
+	enqueue_data_vio((increment
+			  ? &journal->increment_waiters
+			  : &journal->decrement_waiters),
+			 data_vio);
 	assign_entries(journal);
 }
 

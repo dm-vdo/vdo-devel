@@ -45,8 +45,7 @@ static void grabVIOs(struct vdo_completion *completion)
 
   for (size_t i = 0; i < viosToReserve; i++) {
     gotVIO = false;
-    VDO_ASSERT_SUCCESS(vdo_acquire_block_allocator_vio(poolAllocator,
-						       &waiter));
+    vdo_acquire_block_allocator_vio(poolAllocator, &waiter);
     // Make sure that the waiter got a VIO synchronously.
     CU_ASSERT_TRUE(gotVIO);
   }

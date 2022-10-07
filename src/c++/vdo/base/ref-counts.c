@@ -291,19 +291,6 @@ static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 }
 
 /**
- * enqueue_dirty_block() - Enqueue a block on the dirty queue.
- * @block: The block to enqueue.
- */
-static void enqueue_dirty_block(struct reference_block *block)
-{
-	int result = enqueue_waiter(&block->ref_counts->dirty_blocks,
-				    &block->waiter);
-	if (result != VDO_SUCCESS)
-		/* This should never happen. */
-		enter_ref_counts_read_only_mode(block->ref_counts, result);
-}
-
-/**
  * dirty_block() - Mark a reference count block as dirty, potentially adding
  *                 it to the dirty queue if it wasn't already dirty.
  * @block: The reference block to mark as dirty.
@@ -314,14 +301,9 @@ static void dirty_block(struct reference_block *block)
 		return;
 
 	block->is_dirty = true;
-	if (block->is_writing)
-		/*
-		 * The conclusion of the current write will enqueue the block
-		 * again.
-		 */
-		return;
-
-	enqueue_dirty_block(block);
+	if (!block->is_writing)
+			enqueue_waiter(&block->ref_counts->dirty_blocks,
+				       &block->waiter);
 }
 
 /**
@@ -1305,7 +1287,8 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 
 	/* Re-queue the block if it was re-dirtied while it was writing. */
 	if (block->is_dirty) {
-		enqueue_dirty_block(block);
+		enqueue_waiter(&block->ref_counts->dirty_blocks,
+			       &block->waiter);
 		if (vdo_is_slab_draining(ref_counts->slab))
 			/*
 			 * We must be saving, and this block will otherwise not
@@ -1435,7 +1418,6 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 					 void *context)
 {
 	struct reference_block *block;
-	int result;
 	struct ref_counts *ref_counts = context;
 
 	if (vdo_is_read_only(ref_counts->read_only_notifier))
@@ -1445,13 +1427,8 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 	block = waiter_as_reference_block(block_waiter);
 	block->is_writing = true;
 	block_waiter->callback = write_reference_block;
-	result = vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
-						 block_waiter);
-	if (result != VDO_SUCCESS) {
-		/* This should never happen. */
-		ref_counts->active_count--;
-		enter_ref_counts_read_only_mode(ref_counts, result);
-	}
+	vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
+					block_waiter);
 }
 
 /**
@@ -1650,19 +1627,11 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 	ref_counts->free_blocks = ref_counts->block_count;
 	ref_counts->active_count = ref_counts->reference_block_count;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		int result;
 		struct waiter *block_waiter = &ref_counts->blocks[i].waiter;
 
 		block_waiter->callback = load_reference_block;
-		result = vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
-							 block_waiter);
-		if (result != VDO_SUCCESS) {
-			/* This should never happen. */
-			ref_counts->active_count -=
-				(ref_counts->reference_block_count - i);
-			enter_ref_counts_read_only_mode(ref_counts, result);
-			return;
-		}
+		vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
+						block_waiter);
 	}
 }
 

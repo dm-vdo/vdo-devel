@@ -434,7 +434,6 @@ static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 static void reap_slab_journal(struct slab_journal *journal)
 {
 	bool reaped = false;
-	int result;
 
 	if (is_reaping(journal))
 		/* We already have a reap in progress so wait for it to finish. */
@@ -481,12 +480,8 @@ static void reap_slab_journal(struct slab_journal *journal)
 	 * (VDO-2912).
 	 */
 	journal->flush_waiter.callback = flush_for_reaping;
-	result = vdo_acquire_block_allocator_vio(journal->slab->allocator,
-						 &journal->flush_waiter);
-	if (result != VDO_SUCCESS) {
-		enter_journal_read_only_mode(journal, result);
-		return;
-	}
+	vdo_acquire_block_allocator_vio(journal->slab->allocator,
+					&journal->flush_waiter);
 }
 
 /**
@@ -769,8 +764,6 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
  */
 static void commit_tail(struct slab_journal *journal)
 {
-	int result;
-
 	if ((journal->tail_header.entry_count == 0) &&
 	    must_make_entries_to_flush(journal))
 		/*
@@ -798,13 +791,8 @@ static void commit_tail(struct slab_journal *journal)
 	journal->waiting_to_commit = true;
 
 	journal->resource_waiter.callback = write_slab_journal_block;
-	result = vdo_acquire_block_allocator_vio(journal->slab->allocator,
-						 &journal->resource_waiter);
-	if (result != VDO_SUCCESS) {
-		journal->waiting_to_commit = false;
-		enter_journal_read_only_mode(journal, result);
-		return;
-	}
+	vdo_acquire_block_allocator_vio(journal->slab->allocator,
+					&journal->resource_waiter);
 }
 
 /**
@@ -1220,7 +1208,6 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 				struct data_vio *data_vio)
 {
 	struct vdo_slab *slab = journal->slab;
-	int result;
 
 	if (!vdo_is_slab_open(slab)) {
 		continue_data_vio_with_error(data_vio,
@@ -1233,15 +1220,10 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 		return;
 	}
 
-	result = enqueue_data_vio(&journal->entry_waiters, data_vio);
-	if (result != VDO_SUCCESS) {
-		continue_data_vio_with_error(data_vio, result);
-		return;
-	}
-
+	enqueue_data_vio(&journal->entry_waiters, data_vio);
 	if (vdo_is_unrecovered_slab(slab) && requires_reaping(journal)) {
-		struct slab_scrubber *scrubber =
-			slab->allocator->slab_scrubber;
+		struct slab_scrubber *scrubber = slab->allocator->slab_scrubber;
+
 		vdo_register_slab_for_scrubbing(scrubber, slab, true);
 	}
 
@@ -1480,7 +1462,6 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 {
 	struct vdo_slab *slab = journal->slab;
 	tail_block_offset_t last_commit_point;
-	int result;
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
 			 journal->slab->allocator->thread_id),
@@ -1505,10 +1486,8 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 	}
 
 	journal->resource_waiter.callback = read_slab_journal_tail;
-	result = vdo_acquire_block_allocator_vio(slab->allocator,
-						 &journal->resource_waiter);
-	if (result != VDO_SUCCESS)
-		vdo_notify_slab_journal_is_loaded(slab, result);
+	vdo_acquire_block_allocator_vio(slab->allocator,
+					&journal->resource_waiter);
 }
 
 /**

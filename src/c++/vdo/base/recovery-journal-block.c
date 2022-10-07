@@ -178,11 +178,7 @@ int vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	/* Enqueue the data_vio to wait for its entry to commit. */
-	int result = enqueue_data_vio(&block->entry_waiters, data_vio);
-
-	if (result != VDO_SUCCESS)
-		return result;
-
+	enqueue_data_vio(&block->entry_waiters, data_vio);
 	block->entry_count++;
 	block->uncommitted_entry_count++;
 
@@ -223,7 +219,6 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		struct tree_lock *lock = &data_vio->tree_lock;
 		struct packed_recovery_journal_entry *packed_entry;
 		struct recovery_journal_entry new_entry;
-		int result;
 
 		if (data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT)
 			/*
@@ -253,12 +248,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 				block->sequence_number;
 
 		/* Enqueue the data_vio to wait for its entry to commit. */
-		result = enqueue_data_vio(&block->commit_waiters, data_vio);
-		if (result != VDO_SUCCESS) {
-			continue_data_vio_with_error(data_vio, result);
-			return result;
-		}
-
+		enqueue_data_vio(&block->commit_waiters, data_vio);
 		if (is_sector_full(block))
 			set_active_sector(block, (char *) block->sector
 						       + VDO_SECTOR_SIZE);

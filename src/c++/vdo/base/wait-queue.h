@@ -101,8 +101,7 @@ static inline bool __must_check has_waiters(const struct wait_queue *queue)
 	return (queue->last_waiter != NULL);
 }
 
-int __must_check
-enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
+void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
 
 void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 			void *context);
@@ -115,10 +114,10 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 
 struct waiter *get_first_waiter(const struct wait_queue *queue);
 
-int dequeue_matching_waiters(struct wait_queue *queue,
-			     waiter_match *match_method,
-			     void *match_context,
-			     struct wait_queue *matched_queue);
+void dequeue_matching_waiters(struct wait_queue *queue,
+			      waiter_match *match_method,
+			      void *match_context,
+			      struct wait_queue *matched_queue);
 
 struct waiter *dequeue_next_waiter(struct wait_queue *queue);
 

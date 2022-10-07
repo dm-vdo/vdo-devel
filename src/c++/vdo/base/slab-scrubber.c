@@ -598,7 +598,8 @@ int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 	if (vdo_is_state_quiescent(&scrubber->admin_state))
 		return VDO_NO_SPACE;
 
-	return enqueue_waiter(&scrubber->waiters, waiter);
+	enqueue_waiter(&scrubber->waiters, waiter);
+	return VDO_SUCCESS;
 }
 
 /**

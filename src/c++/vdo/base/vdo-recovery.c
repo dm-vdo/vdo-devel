@@ -142,30 +142,6 @@ as_missing_decref(struct waiter *waiter)
 }
 
 /**
- * enqueue_missing_decref() - Enqueue a missing_decref.
- * @queue: The queue on which to enqueue the decref.
- * @decref: The missing_decref to enqueue.
- *
- * If the enqueue fails, enter read-only mode.
- *
- * Return: VDO_SUCCESS or an error.
- */
-static int enqueue_missing_decref(struct wait_queue *queue,
-				  struct missing_decref *decref)
-{
-	int result = enqueue_waiter(queue, &decref->waiter);
-
-	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(decref->recovery->vdo->read_only_notifier,
-					 result);
-		vdo_set_completion_result(&decref->recovery->completion, result);
-		UDS_FREE(decref);
-	}
-
-	return result;
-}
-
-/**
  * as_vdo_recovery_completion() - Convert a generic completion to a
  *                                recovery_completion.
  * @completion: The completion to convert.
@@ -224,9 +200,7 @@ make_missing_decref(struct recovery_completion *recovery,
 		return result;
 
 	decref->recovery = recovery;
-	result = enqueue_missing_decref(&recovery->missing_decrefs[0], decref);
-	if (result != VDO_SUCCESS)
-		return result;
+	enqueue_waiter(&recovery->missing_decrefs[0], &decref->waiter);
 
 	/*
 	 * Each synthsized decref needs a unique journal point. Otherwise, in
@@ -943,10 +917,11 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 	}
 
 	decref->slab_journal =
-		vdo_get_slab_journal((struct slab_depot *) context, mapping.pbn);
+		vdo_get_slab_journal((struct slab_depot *) context,
+				     mapping.pbn);
 	zone_number = decref->slab_journal->slab->allocator->zone_number;
-	enqueue_missing_decref(&decref->recovery->missing_decrefs[zone_number],
-			       decref);
+	enqueue_waiter(&decref->recovery->missing_decrefs[zone_number],
+		       &decref->waiter);
 }
 
 /**
@@ -1211,10 +1186,7 @@ static void launch_fetch(struct waiter *waiter, void *context)
 	struct recovery_completion *recovery = decref->recovery;
 	struct block_map_zone *zone = context;
 
-	if (enqueue_missing_decref(&recovery->missing_decrefs[0], decref) !=
-	    VDO_SUCCESS)
-		return;
-
+	enqueue_waiter(&recovery->missing_decrefs[0], &decref->waiter);
 	if (decref->complete)
 		/*
 		 * We've already found the mapping for this decref, no fetch

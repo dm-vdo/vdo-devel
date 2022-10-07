@@ -743,17 +743,7 @@ static void compress_data_callback(struct vdo_completion *completion)
 static void wait_on_hash_lock(struct hash_lock *lock,
 			      struct data_vio *data_vio)
 {
-	int result = enqueue_data_vio(&lock->waiters, data_vio);
-
-	if (result != VDO_SUCCESS) {
-		/*
-		 * This should be impossible, but if it somehow happens, give
-		 * up on trying to dedupe the data.
-		 */
-		set_hash_lock(data_vio, NULL);
-		continue_data_vio_in(data_vio, result, compress_data_callback);
-		return;
-	}
+	enqueue_data_vio(&lock->waiters, data_vio);
 
 	/*
 	 * Make sure the agent doesn't block indefinitely in the packer since
@@ -1921,20 +1911,9 @@ static void finish_writing(struct hash_lock *lock, struct data_vio *agent)
 static struct data_vio *select_writing_agent(struct hash_lock *lock)
 {
 	struct wait_queue temp_queue;
-	int result;
 	struct data_vio *data_vio;
 
 	initialize_wait_queue(&temp_queue);
-
-	/*
-	 * This should-be-impossible condition is the only cause for
-	 * enqueue_data_vio() to fail later on, where it would be a pain to
-	 * handle.
-	 */
-	result = ASSERT(!is_waiting(data_vio_as_waiter(lock->agent)),
-			"agent must not be waiting");
-	if (result != VDO_SUCCESS)
-		return lock->agent;
 
 	/*
 	 * Move waiters to the temp queue one-by-one until we find an
@@ -1947,15 +1926,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 		 * Use the lower-level enqueue since we're just moving waiters
 		 * around.
 		 */
-		result = enqueue_waiter(&temp_queue,
-					data_vio_as_waiter(data_vio));
-		/*
-		 * The only error is the data_vio already being on a wait
-		 * queue. Since we just dequeued it, that could only happen
-		 * due to a memory smash or concurrent use of that data_vio.
-		 */
-		ASSERT_LOG_ONLY(result == VDO_SUCCESS,
-				"impossible enqueue_waiter error");
+		enqueue_data_vio(&temp_queue, data_vio);
 	}
 
 	if (data_vio != NULL) {
@@ -1970,9 +1941,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 		 * dedupe; make it the first waiter since it was the first to
 		 * reach the lock.
 		 */
-		result = enqueue_data_vio(&lock->waiters, lock->agent);
-		ASSERT_LOG_ONLY(result == VDO_SUCCESS,
-				"impossible enqueue_data_vio error after is_waiting checked");
+		enqueue_data_vio(&lock->waiters, lock->agent);
 		set_agent(lock, data_vio);
 	} else {
 		/* No one has an allocation, so keep the current agent. */

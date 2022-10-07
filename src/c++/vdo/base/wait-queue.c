@@ -5,6 +5,12 @@
 
 #include "wait-queue.h"
 
+#ifdef __KERNEL__
+#include <linux/device-mapper.h>
+#else /* not __KERNEL__ */
+#include <linux/kernel.h>
+#endif /* __KERNEL__ */
+
 #include "permassert.h"
 
 #include "status-codes.h"
@@ -18,12 +24,9 @@
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
+void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 {
-	int result = ASSERT((waiter->next_waiter == NULL),
-			    "new waiter must not already be in a waiter queue");
-	if (result != VDO_SUCCESS)
-		return result;
+	BUG_ON(waiter->next_waiter != NULL);
 
 	if (queue->last_waiter == NULL) {
 		/*
@@ -36,13 +39,13 @@ int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 		waiter->next_waiter = queue->last_waiter->next_waiter;
 		queue->last_waiter->next_waiter = waiter;
 	}
+
 	/*
 	 * In both cases, the waiter we added to the ring becomes the last
 	 * waiter.
 	 */
 	queue->last_waiter = waiter;
 	queue->queue_length += 1;
-	return VDO_SUCCESS;
 }
 
 /**
@@ -138,13 +141,11 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
  * @match_method: The method to determine matching.
  * @match_context: Contextual info for the match method.
  * @matched_queue: A wait_queue to store matches.
- *
- * Return: VDO_SUCCESS or an error code.
  */
-int dequeue_matching_waiters(struct wait_queue *queue,
-			     waiter_match *match_method,
-			     void *match_context,
-			     struct wait_queue *matched_queue)
+void dequeue_matching_waiters(struct wait_queue *queue,
+			      waiter_match *match_method,
+			      void *match_context,
+			      struct wait_queue *matched_queue)
 {
 	struct wait_queue matched_waiters, iteration_queue;
 
@@ -154,21 +155,13 @@ int dequeue_matching_waiters(struct wait_queue *queue,
 	transfer_all_waiters(queue, &iteration_queue);
 	while (has_waiters(&iteration_queue)) {
 		struct waiter *waiter = dequeue_next_waiter(&iteration_queue);
-		int result = VDO_SUCCESS;
 
-		if (!match_method(waiter, match_context))
-			result = enqueue_waiter(queue, waiter);
-		else
-			result = enqueue_waiter(&matched_waiters, waiter);
-		if (result != VDO_SUCCESS) {
-			transfer_all_waiters(&matched_waiters, queue);
-			transfer_all_waiters(&iteration_queue, queue);
-			return result;
-		}
+		enqueue_waiter((match_method(waiter, match_context)
+				? &matched_waiters
+				: queue), waiter);
 	}
 
 	transfer_all_waiters(&matched_waiters, matched_queue);
-	return VDO_SUCCESS;
 }
 
 /**

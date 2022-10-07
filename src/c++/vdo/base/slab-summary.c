@@ -508,40 +508,41 @@ get_summary_block_for_slab(struct slab_summary_zone *summary_zone,
  * @free_blocks: The number of free blocks.
  */
 void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
-				   struct waiter *waiter, slab_count_t slab_number,
+				   struct waiter *waiter,
+				   slab_count_t slab_number,
 				   tail_block_offset_t tail_block_offset,
-				   bool load_ref_counts, bool is_clean,
+				   bool load_ref_counts,
+				   bool is_clean,
 				   block_count_t free_blocks)
 {
 	struct slab_summary_block *block =
 		get_summary_block_for_slab(summary_zone, slab_number);
 	int result;
+	uint8_t hint;
+	struct slab_summary_entry *entry;
 
 	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
 		result = VDO_READ_ONLY;
-	} else if (vdo_is_state_draining(&summary_zone->state) ||
-		   vdo_is_state_quiescent(&summary_zone->state)) {
-		result = VDO_INVALID_ADMIN_STATE;
-	} else {
-		uint8_t hint = compute_fullness_hint(summary_zone->summary,
-						     free_blocks);
-		struct slab_summary_entry *entry =
-			&summary_zone->entries[slab_number];
-		*entry = (struct slab_summary_entry) {
-			.tail_block_offset = tail_block_offset,
-			.load_ref_counts =
-				(entry->load_ref_counts || load_ref_counts),
-			.is_dirty = !is_clean,
-			.fullness_hint = hint,
-		};
-		result = enqueue_waiter(&block->next_update_waiters, waiter);
-	}
-
-	if (result != VDO_SUCCESS) {
 		waiter->callback(waiter, &result);
 		return;
 	}
 
+	if (vdo_is_state_draining(&summary_zone->state) ||
+	    vdo_is_state_quiescent(&summary_zone->state)) {
+		result = VDO_INVALID_ADMIN_STATE;
+		waiter->callback(waiter, &result);
+		return;
+	}
+
+	hint = compute_fullness_hint(summary_zone->summary, free_blocks);
+	entry = &summary_zone->entries[slab_number];
+	*entry = (struct slab_summary_entry) {
+		.tail_block_offset = tail_block_offset,
+		.load_ref_counts = (entry->load_ref_counts || load_ref_counts),
+		.is_dirty = !is_clean,
+		.fullness_hint = hint,
+	};
+	enqueue_waiter(&block->next_update_waiters, waiter);
 	launch_write(block);
 }
 

@@ -177,23 +177,12 @@ static void vdo_complete_flush(struct vdo_flush *flush);
  */
 static void finish_notification(struct vdo_completion *completion)
 {
-	struct waiter *waiter;
-	int result;
 	struct flusher *flusher = as_flusher(completion);
 
 	assert_on_flusher_thread(flusher, __func__);
 
-	waiter = dequeue_next_waiter(&flusher->notifiers);
-	result = enqueue_waiter(&flusher->pending_flushes, waiter);
-	if (result != VDO_SUCCESS) {
-		struct vdo_flush *flush = waiter_as_flush(waiter);
-
-		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
-					 result);
-		vdo_complete_flush(flush);
-		return;
-	}
-
+	enqueue_waiter(&flusher->pending_flushes,
+		       dequeue_next_waiter(&flusher->notifiers));
 	vdo_complete_flushes(flusher);
 	if (has_waiters(&flusher->notifiers))
 		notify_flush(flusher);
@@ -287,15 +276,7 @@ static void flush_vdo(struct vdo_completion *completion)
 
 	flush->flush_generation = flusher->flush_generation++;
 	may_notify = !has_waiters(&flusher->notifiers);
-
-	result = enqueue_waiter(&flusher->notifiers, &flush->waiter);
-	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(flusher->vdo->read_only_notifier,
-					 result);
-		vdo_complete_flush(flush);
-		return;
-	}
-
+	enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (may_notify)
 		notify_flush(flusher);
 }
