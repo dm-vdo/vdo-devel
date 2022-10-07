@@ -6,8 +6,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <linux/version.h>
-
 #include "compiler.h"
 #include "type-defs.h"
 

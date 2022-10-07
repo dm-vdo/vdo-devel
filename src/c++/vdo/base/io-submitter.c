@@ -8,7 +8,6 @@
 #include <linux/bio.h>
 #include <linux/kernel.h>
 #include <linux/mutex.h>
-#include <linux/version.h>
 
 #include "memory-alloc.h"
 #include "permassert.h"

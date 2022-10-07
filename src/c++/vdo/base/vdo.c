@@ -15,6 +15,9 @@
 #include <linux/lz4.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#ifdef __KERNEL__
+#include <linux/version.h>
+#endif /* __KERNEL__ */
 
 #include "logger.h"
 #include "memory-alloc.h"

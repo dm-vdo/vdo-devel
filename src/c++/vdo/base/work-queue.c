@@ -8,6 +8,9 @@
 #include <linux/atomic.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
+#ifdef __KERNEL__
+#include <linux/version.h>
+#endif /* __KERNEL__ */
 
 #include "logger.h"
 #include "memory-alloc.h"

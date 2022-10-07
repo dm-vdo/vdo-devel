@@ -11,6 +11,9 @@
 #include <linux/minmax.h>
 #endif /* INTERNAL */
 #include <linux/murmurhash3.h>
+#ifdef __KERNEL__
+#include <linux/version.h>
+#endif /* __KERNEL__ */
 
 #include "logger.h"
 #include "memory-alloc.h"

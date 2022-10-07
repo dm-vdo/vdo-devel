@@ -5,6 +5,9 @@
 
 #include "bio.h"
 
+#ifdef __KERNEL__
+#include <linux/version.h>
+#endif /* __KERNEL__ */
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
