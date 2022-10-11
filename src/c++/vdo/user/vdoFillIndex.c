@@ -34,10 +34,10 @@ static pthread_cond_t  list_cond;
 LIST_HEAD(query_list, query);
 static struct query_list queries = LIST_HEAD_INITIALIZER(query);
 
-#define DEFAULT_HIGH 2000
-#define DEFAULT_LOW  2000
-static unsigned int high = DEFAULT_HIGH;
-static unsigned int low =  DEFAULT_LOW;
+#define DEFAULT_REQUEST_LIMIT 2000
+
+static unsigned int request_limit = DEFAULT_REQUEST_LIMIT;
+
 static unsigned int concurrent_requests = 0;
 static unsigned int peak_requests = 0;
 
@@ -62,8 +62,7 @@ static struct query *get_query(void)
       LIST_REMOVE(query, query_list);
       break;
     }
-    // If one was not immediately available, try to allocate one.
-    if (concurrent_requests < high) {
+    if (concurrent_requests < request_limit) {
       query = malloc(sizeof(*query));
       if (query) {
         concurrent_requests++;
@@ -84,22 +83,14 @@ static struct query *get_query(void)
   return query;
 }
 
-/*
- * Puts a query on the lookaside list, or frees it if above the low
- * water mark.
- */
+/* Puts a query on the lookaside list. */
 static void put_query(struct query *query)
 {
   if (pthread_mutex_lock(&list_mutex)) {
     err(2, "Unable to lock the mutex");
   }
-  if (concurrent_requests > low) {
-    free(query);
-    --concurrent_requests;
-  } else {
-    LIST_INSERT_HEAD(&queries, query, query_list);
-    pthread_cond_signal(&list_cond);
-  }
+  LIST_INSERT_HEAD(&queries, query, query_list);
+  pthread_cond_signal(&list_cond);
   if (pthread_mutex_unlock(&list_mutex)) {
     err(2, "Unable to unlock the mutex");
   }
