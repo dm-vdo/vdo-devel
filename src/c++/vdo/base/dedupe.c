@@ -543,16 +543,6 @@ static void assert_hash_lock_agent(struct data_vio *data_vio,
 }
 
 /**
- * set_agent() - Set or clear the lock agent.
- * @lock: The hash lock to update.
- * @new_agent: The new lock agent (may be NULL to clear the agent).
- */
-static void set_agent(struct hash_lock *lock, struct data_vio *new_agent)
-{
-	lock->agent = new_agent;
-}
-
-/**
  * set_duplicate_lock() - Set the duplicate lock held by a hash lock.
  *                        May only be called in the physical zone of
  *                        the PBN lock.
@@ -714,7 +704,7 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
 	struct data_vio *old_agent = lock->agent;
 	struct data_vio *new_agent = dequeue_lock_waiter(lock);
 
-	set_agent(lock, new_agent);
+	lock->agent = new_agent;
 	exit_hash_lock(old_agent);
 	if (new_agent != NULL)
 		set_data_vio_duplicate_location(new_agent, lock->duplicate);
@@ -841,7 +831,7 @@ static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 	if (agent == NULL)
 		return;
 
-	set_agent(lock, NULL);
+	lock->agent = NULL;
 	agent->is_duplicate = false;
 	launch_compress_data_vio(agent);
 }
@@ -883,7 +873,7 @@ static void abort_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 		 * Make the lone data_vio the lock agent so it can abort and
 		 * clean up.
 		 */
-		set_agent(lock, data_vio);
+		lock->agent = data_vio;
 	}
 
 	start_bypassing(lock, data_vio);
@@ -1133,8 +1123,7 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 	}
 
 	/* The hash lock must have an agent for all other lock states. */
-	set_agent(lock, agent);
-
+	lock->agent = agent;
 	if (lock->update_advice)
 		/*
 		 * DEDUPING -> UPDATING transition: The location of the
@@ -1282,7 +1271,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 	new_lock->update_advice = true;
 
 	set_hash_lock(new_agent, new_lock);
-	set_agent(new_lock, new_agent);
+	new_lock->agent = new_agent;
 
 	notify_all_waiters(&old_lock->waiters, enter_forked_lock, new_lock);
 
@@ -1356,7 +1345,7 @@ static void start_deduping(struct hash_lock *lock,
 	 * designated agent--the agent transitioning to this state and all the
 	 * waiters will be launched to deduplicate in parallel.
 	 */
-	set_agent(lock, NULL);
+	lock->agent = NULL;
 
 	/*
 	 * Launch the agent (if not already deduplicated) and as many lock
@@ -1942,7 +1931,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 		 * reach the lock.
 		 */
 		enqueue_data_vio(&lock->waiters, lock->agent);
-		set_agent(lock, data_vio);
+		lock->agent = data_vio;
 	} else {
 		/* No one has an allocation, so keep the current agent. */
 		data_vio = lock->agent;
@@ -2138,7 +2127,7 @@ static void finish_querying(struct vdo_completion *completion)
  */
 static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 {
-	set_agent(lock, data_vio);
+	lock->agent = data_vio;
 	set_hash_lock_state(lock, VDO_HASH_LOCK_QUERYING);
 	data_vio->last_async_operation = VIO_ASYNC_OP_CHECK_FOR_DUPLICATION;
 	set_data_vio_hash_zone_callback(data_vio, finish_querying);
