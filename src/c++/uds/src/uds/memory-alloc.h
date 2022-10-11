@@ -7,6 +7,7 @@
 #define MEMORY_ALLOC_H 1
 
 #ifdef __KERNEL__
+#include <linux/cache.h>
 #include <linux/io.h> /* for PAGE_SIZE */
 #else
 #include <stdlib.h>
@@ -153,7 +154,7 @@ static inline int __must_check uds_allocate_cache_aligned(size_t size,
 							  const char *what,
 							  void *ptr)
 {
-	return uds_allocate_memory(size, CACHE_LINE_BYTES, what, ptr);
+	return uds_allocate_memory(size, L1_CACHE_BYTES, what, ptr);
 }
 
 void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);

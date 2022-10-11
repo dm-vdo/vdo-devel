@@ -5,6 +5,7 @@
 
 #include "sparse-cache.h"
 
+#include <linux/cache.h>
 #include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
@@ -110,11 +111,11 @@ enum {
  * They are grouped and aligned to keep them on different cache lines from the
  * chapter fields that are accessed far more often than they are updated.
  */
-struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_index_counters {
+struct __aligned(L1_CACHE_BYTES) cached_index_counters {
 	uint64_t consecutive_misses;
 };
 
-struct __attribute__((aligned(CACHE_LINE_BYTES))) cached_chapter_index {
+struct __aligned(L1_CACHE_BYTES) cached_chapter_index {
 	/*
 	 * The virtual chapter number of the cached chapter index. UINT64_MAX
 	 * means this cache entry is unused. This field must only be modified

@@ -294,10 +294,4 @@ const char *displayByteDifferences(char       *buf,
                                    const byte *b,
                                    size_t      size);
 
-/**********************************************************************/
-static inline void assertCacheAligned(const volatile void *address)
-{
-  CU_ASSERT_EQUAL(0, (uintptr_t) address & (CACHE_LINE_BYTES - 1));
-}
-
 #endif /* ASSERTIONS_H */

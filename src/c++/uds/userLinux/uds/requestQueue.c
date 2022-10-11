@@ -6,6 +6,7 @@
 #include "request-queue.h"
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 
 #include "compiler.h"
 #include "event-count.h"
@@ -83,7 +84,7 @@ struct uds_request_queue {
 	 */
 
 	/* Requests processed since last wait */
-	uint64_t current_batch __attribute__((aligned(CACHE_LINE_BYTES)));
+	uint64_t current_batch __aligned(L1_CACHE_BYTES);
 	/* The amount of time to wait to accumulate a batch of requests */
 	uint64_t wait_nanoseconds;
 	/* The relative time at which to wake when waiting with a timeout */

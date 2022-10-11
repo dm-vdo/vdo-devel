@@ -206,6 +206,8 @@ tarballs:
           sources: |
             atomic.h
             blkdev.h
+            cache.h
+            compiler_attributes.h
             dm-bufio.h
             log2.h
             random.h

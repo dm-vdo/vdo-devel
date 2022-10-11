@@ -105,6 +105,7 @@
 #include "event-count.h"
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -150,7 +151,7 @@ struct event_count {
 #endif /* defined(TEST_INTERNAL) && defined(INSTRUMENTED) */
 
 	/* Declare alignment so we don't share a cache line. */
-} __attribute__((aligned(CACHE_LINE_BYTES)));
+} __aligned(L1_CACHE_BYTES);
 
 static inline bool same_event(event_token_t token1, event_token_t token2)
 {

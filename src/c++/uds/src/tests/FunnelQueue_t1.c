@@ -9,6 +9,8 @@
  * possible multi-threaded interactions.
  **/
 
+#include <linux/cache.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "funnel-queue.h"
@@ -25,6 +27,12 @@ typedef struct {
   struct funnel_queue_entry link;
   uint64_t         value;
 } Entry;
+
+/**********************************************************************/
+static inline void assertCacheAligned(const volatile void *address)
+{
+  CU_ASSERT_EQUAL(0, (uintptr_t) address & (L1_CACHE_BYTES - 1));
+}
 
 /**********************************************************************/
 static void testFieldAligment(void)

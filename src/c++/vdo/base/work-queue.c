@@ -6,6 +6,7 @@
 #include "work-queue.h"
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 #ifdef __KERNEL__
@@ -57,7 +58,7 @@ struct simple_work_queue {
 	/* In a subordinate work queue, a link back to the round-robin parent */
 	struct vdo_work_queue *parent_queue;
 	/* Padding for cache line separation */
-	char pad[CACHE_LINE_BYTES - sizeof(struct vdo_work_queue *)];
+	char pad[L1_CACHE_BYTES - sizeof(struct vdo_work_queue *)];
 	/* Lock protecting priority_map, num_priority_lists, started */
 	spinlock_t lock;
 	/* Any (0 or 1) worker threads waiting for new work to do */
@@ -104,7 +105,7 @@ struct simple_work_queue {
 	 */
 	atomic64_t first_wakeup;
 	/* More padding for cache line separation */
-	char pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
+	char pad2[L1_CACHE_BYTES - sizeof(atomic64_t)];
 	/* Last wakeup, in ns. */
 	uint64_t most_recent_wakeup;
 };

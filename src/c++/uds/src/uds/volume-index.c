@@ -4,6 +4,7 @@
  */
 #include "volume-index.h"
 
+#include <linux/cache.h>
 #include <linux/log2.h>
 
 #include "buffer.h"
@@ -97,7 +98,7 @@ struct volume_sub_index_zone {
 	uint64_t virtual_chapter_low;
 	uint64_t virtual_chapter_high;
 	long num_early_flushes;
-} __attribute__((aligned(CACHE_LINE_BYTES)));
+} __aligned(L1_CACHE_BYTES);
 
 struct volume_sub_index {
 	/* The delta index */
@@ -131,7 +132,7 @@ struct volume_sub_index {
 struct volume_index_zone {
 	/* Protects the sampled index in this zone */
 	struct mutex hook_mutex;
-} __attribute__((aligned(CACHE_LINE_BYTES)));
+} __aligned(L1_CACHE_BYTES);
 
 struct volume_index {
 	unsigned int sparse_sample_rate;

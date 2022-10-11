@@ -7,6 +7,7 @@
 #define FUNNEL_QUEUE_H
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 
 #include "compiler.h"
 #include "cpu.h"
@@ -24,7 +25,7 @@ struct funnel_queue_entry {
  * on separate cache lines. This should be consider opaque but it is exposed
  * here so funnel_queue_put() can be inlined.
  */
-struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
+struct __aligned(L1_CACHE_BYTES) funnel_queue {
 	/*
 	 * The producers' end of the queue, an atomically exchanged pointer
 	 * that will never be NULL.
@@ -35,8 +36,7 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) funnel_queue {
 	 * The consumer's end of the queue, which is owned by the consumer and
 	 * never NULL.
 	 */
-	struct funnel_queue_entry *oldest
-		__attribute__((aligned(CACHE_LINE_BYTES)));
+	struct funnel_queue_entry *oldest __aligned(L1_CACHE_BYTES);
 
 	/* A dummy entry used to provide the non-NULL invariants above. */
 	struct funnel_queue_entry stub;

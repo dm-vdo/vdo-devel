@@ -7,6 +7,7 @@
 #define VOLUME_H
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 #include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
@@ -68,7 +69,7 @@ typedef int64_t invalidate_counter_t;
 /* The mask for the LSB of the counter field */
 #define COUNTER_LSB (PAGE_FIELD + 1L)
 
-struct __attribute__((aligned(CACHE_LINE_BYTES))) search_pending_counter {
+struct __aligned(L1_CACHE_BYTES) search_pending_counter {
 	atomic64_t atomic_value;
 };
 

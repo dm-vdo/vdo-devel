@@ -9,6 +9,7 @@
  * consumer thread, putting 5 million things on the queue.
  */
 
+#include <linux/cache.h>
 #include <linux/completion.h>
 #include <linux/sched.h>
 #include <linux/wait.h>
@@ -26,7 +27,7 @@
  * cache line with another request queue entry.
  */
 typedef struct queueable {
-  long              stream __attribute__((aligned(CACHE_LINE_BYTES)));
+  long              stream __aligned(L1_CACHE_BYTES);
   long              number;
   struct funnel_queue_entry funnel;
   struct list_head  list;

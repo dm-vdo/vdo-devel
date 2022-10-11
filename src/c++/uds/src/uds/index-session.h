@@ -7,13 +7,14 @@
 #define INDEX_SESSION_H
 
 #include <linux/atomic.h>
+#include <linux/cache.h>
 
 #include "config.h"
 #include "cpu.h"
 #include "uds-threads.h"
 #include "uds.h"
 
-struct __attribute__((aligned(CACHE_LINE_BYTES))) session_stats {
+struct __aligned(L1_CACHE_BYTES) session_stats {
 	/* Post requests that found an entry */
 	uint64_t posts_found;
 	/* Post requests found in the open chapter */

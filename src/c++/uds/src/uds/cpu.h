@@ -6,25 +6,10 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include <linux/cache.h>
+
 #include "compiler.h"
 #include "type-defs.h"
-
-/**
- * The number of bytes in a CPU cache line. In the future, we'll probably need
- * to move this to a processor-specific file or discover it at compilation
- * time (or runtime, if sufficiently heterogeneous), but this will do for now.
- * (Must be a \#define since enums are not proper compile-time constants.)
- **/
-#ifdef __PPC__
-/* N.B.: Some PPC processors have smaller cache lines. */
-#define CACHE_LINE_BYTES 128
-#elif defined(__s390x__)
-#define CACHE_LINE_BYTES 256
-#elif defined(__x86_64__) || defined(__aarch64__)
-#define CACHE_LINE_BYTES 64
-#else
-#error "unknown cache line size"
-#endif
 
 /**
  * Minimize cache-miss latency by moving data into a CPU cache before it is
@@ -68,12 +53,12 @@ prefetch_range(const void *start, unsigned int size, bool for_write)
 	 * range to span an extra cache line boundary due to address alignment.
 	 */
 	const char *address = (const char *) start;
-	unsigned int offset = ((uintptr_t) address % CACHE_LINE_BYTES);
-	unsigned int cache_lines = (1 + ((size + offset) / CACHE_LINE_BYTES));
+	unsigned int offset = ((uintptr_t) address % L1_CACHE_BYTES);
+	unsigned int cache_lines = (1 + ((size + offset) / L1_CACHE_BYTES));
 
 	while (cache_lines-- > 0) {
 		prefetch_address(address, for_write);
-		address += CACHE_LINE_BYTES;
+		address += L1_CACHE_BYTES;
 	}
 }
 

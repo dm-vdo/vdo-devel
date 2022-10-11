@@ -3,6 +3,8 @@
  * Copyright Red Hat
  */
 
+#include <linux/cache.h>
+
 #include "albtest.h"
 #include "assertions.h"
 #include "delta-index.h"
@@ -20,7 +22,7 @@
  **/
 static void unalignedTest(void)
 {
-  enum { MEM_SIZE = sizeof(uint32_t) + CACHE_LINE_BYTES };
+  enum { MEM_SIZE = sizeof(uint32_t) + L1_CACHE_BYTES};
   byte memory[MEM_SIZE];
   int i;
   for (i = 0; i < MEM_SIZE; i++) {

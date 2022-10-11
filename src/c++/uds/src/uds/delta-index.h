@@ -6,6 +6,8 @@
 #ifndef DELTAINDEX_H
 #define DELTAINDEX_H 1
 
+#include <linux/cache.h>
+
 #include "compiler.h"
 #include "config.h"
 #include "cpu.h"
@@ -62,7 +64,7 @@ struct delta_zone {
 	unsigned int list_count;
 	/* Tag belonging to this delta index */
 	byte tag;
-} __attribute__((aligned(CACHE_LINE_BYTES)));
+} __aligned(L1_CACHE_BYTES);
 
 struct delta_list_save_info {
 	/* Tag identifying which delta index this list is in */
