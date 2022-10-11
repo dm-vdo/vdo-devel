@@ -3678,90 +3678,6 @@ const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones)
 	return state;
 }
 
-#ifdef VDO_INTERNAL
-static void fill_callback(struct uds_request *request)
-{
-	if (request->status != UDS_SUCCESS)
-		uds_log_error_strerror(request->status,
-				       "Error on POST operation");
-	UDS_FREE(request);
-}
-
-static int process_fill_message(struct hash_zones *zones)
-{
-	unsigned long seed;
-	bool can_fill;
-
-	/* Check that the fill can actually happen. */
-	spin_lock(&zones->lock);
-	can_fill = (vdo_is_state_normal(&zones->state) &&
-		    (zones->index_state == IS_OPENED));
-	spin_unlock(&zones->lock);
-	if (!can_fill)
-		return -EINVAL;
-
-	/*
-	 * If the index is ever closed, one of the UDS calls will fail and get
-	 * us out of this loop.
-	 */
-	seed = __builtin_bswap64(jiffies);
-
-	for (;;) {
-		/* When the index has ever discarded an entry, then it is full. */
-		struct uds_index_stats index_stats;
-		int i;
-		int result = uds_get_index_stats(zones->index_session,
-						 &index_stats);
-		if (result != UDS_SUCCESS) {
-			uds_log_error_strerror(result,
-					       "Error reading index stats");
-			return -EIO;
-		}
-		if (index_stats.entries_discarded > 0)
-			return 0;
-		/* Add some entries */
-
-		for (i = 0; i < 1000; i++) {
-			struct uds_record_name name;
-			struct uds_request *request;
-
-			result = UDS_ALLOCATE(1,
-					      struct uds_request,
-					      "UDS request",
-					      &request);
-			if (result != UDS_SUCCESS)
-				return -ENOMEM;
-
-			murmurhash3_128(&seed,
-					sizeof(seed),
-					0x3eeb36cd,
-					&name);
-			seed += 1;
-
-			request->callback = fill_callback;
-			request->record_name = name;
-			request->session = zones->index_session;
-			request->new_metadata =
-				*((struct uds_record_data *) &name);
-			request->type = UDS_POST;
-
-			result = uds_launch_request(request);
-			if (result != UDS_SUCCESS) {
-				uds_log_error_strerror(result,
-						       "Error starting POST operation");
-				UDS_FREE(request);
-				return -EIO;
-			}
-		}
-		result = uds_flush_index_session(zones->index_session);
-		if (result != UDS_SUCCESS)
-			uds_log_error_strerror(result,
-					       "Error flushing dedupe index");
-	}
-	return -EINVAL;
-}
-#endif /* VDO_INTERNAL */
-
 /*
  * Handle a dmsetup message relevant to the index.
  */
@@ -3779,10 +3695,6 @@ int vdo_message_dedupe_index(struct hash_zones *zones, const char *name)
 	} else if (strcasecmp(name, "index-enable") == 0) {
 		set_target_state(zones, IS_OPENED, true, true, false);
 		return 0;
-#ifdef VDO_INTERNAL
-	} else if (strcasecmp(name, "index-fill") == 0) {
-		return process_fill_message(zones);
-#endif /* VDO_INTERNAL */
 	}
 	return -EINVAL;
 }

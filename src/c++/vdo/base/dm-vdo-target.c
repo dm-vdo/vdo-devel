@@ -242,9 +242,6 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		if ((strcasecmp(argv[0], "index-close") == 0) ||
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
-#ifdef VDO_INTERNAL
-		    (strcasecmp(argv[0], "index-fill") == 0) ||
-#endif /* VDO_INTERNAL */
 		    (strcasecmp(argv[0], "index-enable") == 0))
 			return vdo_message_dedupe_index(vdo->hash_zones,
 							argv[0]);
