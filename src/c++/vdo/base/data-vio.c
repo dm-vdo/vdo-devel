@@ -212,7 +212,106 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 	lock->zone = &vdo->logical_zones->zones[zone_number];
 }
 
-void attempt_logical_block_lock(struct vdo_completion *completion);
+/**
+ * launch_locked_request() - Launch a request which has acquired an LBN lock.
+ * @data_vio: The data_vio which has just acquired a lock.
+ */
+static void launch_locked_request(struct data_vio *data_vio)
+{
+	data_vio->logical.locked = true;
+	if (!is_read_data_vio(data_vio)) {
+		struct vdo *vdo = vdo_from_data_vio(data_vio);
+
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
+			finish_data_vio(data_vio, VDO_READ_ONLY);
+			return;
+		}
+	}
+
+	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+	vdo_find_block_map_slot(data_vio);
+}
+
+/**
+ * attempt_logical_block_lock() - Attempt to acquire the lock on a logical
+ *				  block.
+ * @completion: The data_vio for an external data request as a completion.
+ *
+ * This is the start of the path for all external requests. It is registered
+ * in launch_data_vio().
+ */
+static void attempt_logical_block_lock(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+	struct lbn_lock *lock = &data_vio->logical;
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	struct data_vio *lock_holder;
+	int result;
+
+	assert_data_vio_in_logical_zone(data_vio);
+
+	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
+		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
+		return;
+	}
+
+	result = int_map_put(lock->zone->lbn_operations,
+			     lock->lbn,
+			     data_vio,
+			     false,
+			     (void **) &lock_holder);
+	if (result != VDO_SUCCESS) {
+		finish_data_vio(data_vio, result);
+		return;
+	}
+
+	if (lock_holder == NULL) {
+		/* We got the lock */
+		launch_locked_request(data_vio);
+		return;
+	}
+
+	result = ASSERT(lock_holder->logical.locked,
+			"logical block lock held");
+	if (result != VDO_SUCCESS) {
+		finish_data_vio(data_vio, result);
+		return;
+	}
+
+	/*
+	 * If the new request is a pure read request (not read-modify-write)
+	 * and the lock_holder is writing and has received an allocation
+	 * (VDO-2683), service the read request immediately by copying data
+	 * from the lock_holder to avoid having to flush the write out of the
+	 * packer just to prevent the read from waiting indefinitely. If the
+	 * lock_holder does not yet have an allocation, prevent it from
+	 * blocking in the packer and wait on it.
+	 */
+	if (is_read_data_vio(data_vio) &&
+	    READ_ONCE(lock_holder->allocation_succeeded)) {
+		vdo_bio_copy_data_out(data_vio->user_bio,
+				      (lock_holder->data_block +
+				       data_vio->offset));
+		acknowledge_data_vio(data_vio);
+		complete_data_vio(completion);
+		return;
+	}
+
+	data_vio->last_async_operation =
+		VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
+	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
+
+	/*
+	 * Prevent writes and read-modify-writes from blocking indefinitely on
+	 * lock holders in the packer.
+	 */
+	if (!is_read_data_vio(lock_holder) &&
+	    cancel_vio_compression(lock_holder)) {
+		data_vio->compression.lock_holder = lock_holder;
+		launch_data_vio_packer_callback(data_vio,
+						vdo_remove_lock_holder_from_packer);
+	}
+}
 
 /**
  * launch_data_vio() - (Re)initialize a data_vio to have a new logical
@@ -521,107 +620,6 @@ int set_data_vio_mapped_location(struct data_vio *data_vio,
 		.zone = zone,
 	};
 	return VDO_SUCCESS;
-}
-
-/**
- * launch_locked_request() - Launch a request which has acquired an LBN lock.
- * @data_vio: The data_vio which has just acquired a lock.
- */
-static void launch_locked_request(struct data_vio *data_vio)
-{
-	data_vio->logical.locked = true;
-	if (!is_read_data_vio(data_vio)) {
-		struct vdo *vdo = vdo_from_data_vio(data_vio);
-
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
-			finish_data_vio(data_vio, VDO_READ_ONLY);
-			return;
-		}
-	}
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
-	vdo_find_block_map_slot(data_vio);
-}
-
-/**
- * attempt_logical_block_lock() - Attempt to acquire the lock on a logical
- *				  block.
- * @completion: The data_vio for an external data request as a completion.
- *
- * This is the start of the path for all external requests. It is registered
- * in launch_data_vio().
- */
-void attempt_logical_block_lock(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-	struct lbn_lock *lock = &data_vio->logical;
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
-	struct data_vio *lock_holder;
-	int result;
-
-	assert_data_vio_in_logical_zone(data_vio);
-
-	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
-		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
-		return;
-	}
-
-	result = int_map_put(lock->zone->lbn_operations,
-			     lock->lbn,
-			     data_vio,
-			     false,
-			     (void **) &lock_holder);
-	if (result != VDO_SUCCESS) {
-		finish_data_vio(data_vio, result);
-		return;
-	}
-
-	if (lock_holder == NULL) {
-		/* We got the lock */
-		launch_locked_request(data_vio);
-		return;
-	}
-
-	result = ASSERT(lock_holder->logical.locked,
-			"logical block lock held");
-	if (result != VDO_SUCCESS) {
-		finish_data_vio(data_vio, result);
-		return;
-	}
-
-	/*
-	 * If the new request is a pure read request (not read-modify-write)
-	 * and the lock_holder is writing and has received an allocation
-	 * (VDO-2683), service the read request immediately by copying data
-	 * from the lock_holder to avoid having to flush the write out of the
-	 * packer just to prevent the read from waiting indefinitely. If the
-	 * lock_holder does not yet have an allocation, prevent it from
-	 * blocking in the packer and wait on it.
-	 */
-	if (is_read_data_vio(data_vio) &&
-	    READ_ONCE(lock_holder->allocation_succeeded)) {
-		vdo_bio_copy_data_out(data_vio->user_bio,
-				      (lock_holder->data_block +
-				       data_vio->offset));
-		acknowledge_data_vio(data_vio);
-		complete_data_vio(completion);
-		return;
-	}
-
-	data_vio->last_async_operation =
-		VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
-	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
-
-	/*
-	 * Prevent writes and read-modify-writes from blocking indefinitely on
-	 * lock holders in the packer.
-	 */
-	if (!is_read_data_vio(lock_holder) &&
-	    cancel_vio_compression(lock_holder)) {
-		data_vio->compression.lock_holder = lock_holder;
-		launch_data_vio_packer_callback(data_vio,
-						vdo_remove_lock_holder_from_packer);
-	}
 }
 
 /**
