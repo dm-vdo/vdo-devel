@@ -464,8 +464,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	}
 
 	vdo_clear_unused_compression_slots(block, slot);
-	data_vio_as_completion(agent)->error_handler =
-		handle_compressed_write_error;
+	set_data_vio_error_handler(agent, handle_compressed_write_error);
 	vdo = vdo_from_data_vio(agent);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
 		continue_data_vio_with_error(agent, VDO_READ_ONLY);

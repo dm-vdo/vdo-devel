@@ -741,7 +741,7 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 	allocation->zone =
 		&vdo->physical_zones->zones[allocation->first_allocation_zone];
 
-	data_vio_as_completion(data_vio)->error_handler = error_handler;
+	set_data_vio_error_handler(data_vio, error_handler);
 	launch_data_vio_allocated_zone_callback(data_vio, callback);
 }
 
@@ -1026,7 +1026,7 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_READ_DATA_VIO;
-	completion->error_handler = complete_data_vio;
+	set_data_vio_error_handler(data_vio, complete_data_vio);
 	if (vdo_is_state_compressed(data_vio->mapped.state)) {
 		result = prepare_data_vio_for_io(data_vio,
 						 (char *) data_vio->compression.block,
