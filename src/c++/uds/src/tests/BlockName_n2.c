@@ -8,7 +8,7 @@
  * large enough to force chapters to be read back in from volume storage.
  **/
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "albtest.h"
 #include "assertions.h"
@@ -118,7 +118,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
   setExpectations(testIndex->indexSession, &expect);
   uint64_t counter = group->startCounter;
   struct uds_record_data metadata;
-  prandom_bytes(&metadata, sizeof(metadata));
+  get_random_bytes(&metadata, sizeof(metadata));
   group->type        = type;
   group->newMetadata = metadata;
   GroupRequest *groupRequests;

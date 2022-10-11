@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "albtest.h"
 #include "assertions.h"
@@ -102,8 +102,8 @@ static void testWriteChapter(void)
                                   struct uds_volume_record, __func__,
                                   &records));
 
-  prandom_bytes((byte *) records,
-                BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
+  get_random_bytes((byte *) records,
+                   BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter
   // write code doesn't really care if it's populated or not.

@@ -6,7 +6,7 @@
  * $Id$
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 #include <string.h>
 
 #include "albtest.h"
@@ -19,7 +19,7 @@ static void isZeroTest(void)
   static char testBlock[VDO_BLOCK_SIZE];
   static char dataBlock[VDO_BLOCK_SIZE];
 
-  prandom_bytes(dataBlock, sizeof(dataBlock));
+  get_random_bytes(dataBlock, sizeof(dataBlock));
   // The tests below assume leading/trailing bytes are nonzero.
   if (dataBlock[0] == 0) {
     dataBlock[0] = 1;

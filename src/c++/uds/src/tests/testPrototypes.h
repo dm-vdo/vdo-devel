@@ -7,7 +7,7 @@
 #define TEST_PROTOTYPES_H
 
 #include <linux/murmurhash3.h>
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "compiler.h"
 #include "config.h"
@@ -74,7 +74,7 @@ struct configuration *createConfigForAlbtest(int argc, const char **argv)
 
 static inline void createRandomBlockName(struct uds_record_name *name)
 {
-  prandom_bytes(name->name, UDS_RECORD_NAME_SIZE);
+  get_random_bytes(name->name, UDS_RECORD_NAME_SIZE);
 }
 
 /**
@@ -96,7 +96,7 @@ void createRandomBlockNameInZone(const struct uds_index *index,
  **/
 static inline void createRandomMetadata(struct uds_record_data *data)
 {
-  prandom_bytes(data->data, UDS_RECORD_DATA_SIZE);
+  get_random_bytes(data->data, UDS_RECORD_DATA_SIZE);
 }
 
 /**
@@ -236,7 +236,7 @@ static inline struct uds_record_name murmurGenerator(const void *data,
  **/
 static inline void randomizeUdsNonce(struct uds_parameters *params)
 {
-  prandom_bytes(&params->nonce, sizeof(params->nonce));
+  get_random_bytes(&params->nonce, sizeof(params->nonce));
 }
 
 /*

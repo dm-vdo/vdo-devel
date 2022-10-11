@@ -8,7 +8,7 @@
 
 #include "albtest.h"
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "numeric.h"
 
@@ -28,7 +28,7 @@
  **/
 static void createRandomBlockName(struct uds_record_name *name)
 {
-  prandom_bytes(name->name, UDS_RECORD_NAME_SIZE);
+  get_random_bytes(name->name, UDS_RECORD_NAME_SIZE);
 }
 
 /**

@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "albtest.h"
 #include "assertions.h"
@@ -31,7 +31,7 @@ static void testSearchRecordPage(void)
                                    sizeof(struct uds_volume_record)),
                                   struct uds_volume_record, __func__,
                                   &records));
-  prandom_bytes((byte *) records, bytesPerPage);
+  get_random_bytes((byte *) records, bytesPerPage);
 
   struct volume *volume;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));

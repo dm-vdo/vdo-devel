@@ -4,7 +4,7 @@
  */
 
 #include <linux/dm-bufio.h>
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "assertions.h"
 #include "memory-alloc.h"
@@ -92,8 +92,8 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
                                   struct uds_volume_record, __func__,
                                   &records));
-  prandom_bytes((byte *) records,
-                BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
+  get_random_bytes((byte *) records,
+                   BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter
   // write code doesn't really care if it's populated or not.

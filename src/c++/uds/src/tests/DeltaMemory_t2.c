@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "albtest.h"
 #include "assertions.h"
@@ -85,7 +85,7 @@ static void moveBitsTest(void)
   for (size = 1; size <= NUM_LENGTHS; size++) {
     for (offset1 = 10; offset1 < 10 + NUM_OFFSETS; offset1++) {
       for (offset2 = 10; offset2 < 10 + NUM_OFFSETS; offset2++) {
-        prandom_bytes(data, sizeof(data));
+        get_random_bytes(data, sizeof(data));
         memcpy(memory, data, sizeof(memory));
         move_bits(memory, offset1, memory, offset2, size);
         CU_ASSERT_TRUE(sameBits(data, offset1, memory, offset2, size));
@@ -126,7 +126,7 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &random));
   UDS_ASSERT_SUCCESS(initialize_delta_zone(random, initSize, 0, numLists,
                                            MEAN_DELTA, NUM_PAYLOAD_BITS));
-  prandom_bytes(random->memory, random->size);
+  get_random_bytes(random->memory, random->size);
 
   // Get the delta memory corresponding to the delta lists
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &dm));

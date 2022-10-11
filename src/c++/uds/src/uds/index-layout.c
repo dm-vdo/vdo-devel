@@ -6,7 +6,7 @@
 #include "index-layout.h"
 
 #include <linux/murmurhash3.h>
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "buffer.h"
 #include "compiler.h"
@@ -302,7 +302,7 @@ static void create_unique_nonce_data(byte *buffer)
 	uint32_t rand;
 	size_t offset = 0;
 
-	prandom_bytes(&rand, sizeof(uint32_t));
+	get_random_bytes(&rand, sizeof(uint32_t));
 	memcpy(buffer + offset, &now, sizeof(now));
 	offset += sizeof(now);
 	memcpy(buffer + offset, &rand, sizeof(rand));

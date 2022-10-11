@@ -208,7 +208,7 @@ tarballs:
             blkdev.h
             dm-bufio.h
             log2.h
-            prandom.h
+            random.h
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/userLinux/uds/asm:
           dest: utils/uds/asm

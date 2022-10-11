@@ -8,7 +8,7 @@
 
 #include "albtest.h"
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 #include <stdlib.h>
 
 #include "memory-alloc.h"
@@ -173,7 +173,7 @@ static void packingTest(void)
                   vdo_unpack_block_map_entry(&maxPBN).pbn);
 
   physical_block_number_t pbn[ARRAY_SIZE];
-  prandom_bytes(pbn, sizeof(pbn));
+  get_random_bytes(pbn, sizeof(pbn));
 
   char buffer[VDO_BLOCK_SIZE];
   struct block_map_page *page

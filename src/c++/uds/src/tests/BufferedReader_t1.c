@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "albtest.h"
 #include "assertions.h"
@@ -21,7 +21,7 @@ static struct io_factory *factory;
 static void createAndWriteData(void)
 {
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, byte, __func__, &data));
-  prandom_bytes(data, DATA_SIZE);
+  get_random_bytes(data, DATA_SIZE);
 
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   struct dm_bufio_client *client = NULL;

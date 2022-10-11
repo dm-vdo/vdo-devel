@@ -6,7 +6,7 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "compiler.h"
 
@@ -15,7 +15,7 @@
 static inline long random(void)
 {
 	long value;
-	prandom_bytes(&value, sizeof(value));
+	get_random_bytes(&value, sizeof(value));
 	return value & RAND_MAX;
 }
 

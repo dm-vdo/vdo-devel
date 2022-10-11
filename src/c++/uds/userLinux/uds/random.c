@@ -3,13 +3,13 @@
  * Copyright Red Hat
  */
 
-#include <linux/prandom.h>
+#include <linux/random.h>
 
 #include "random.h"
 
 #include "type-defs.h"
 
-void prandom_bytes(void *buffer, size_t byte_count)
+void get_random_bytes(void *buffer, size_t byte_count)
 {
 	uint64_t rand_num = 0;
 	uint64_t rand_mask = 0;
