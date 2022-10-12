@@ -266,7 +266,7 @@ int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
 
 	result = UDS_ALLOCATE(length,
 			      byte,
-			      "copy_bytes() buffer",
+			      __func__,
 			      &destination);
 	if (result != UDS_SUCCESS)
 		return result;

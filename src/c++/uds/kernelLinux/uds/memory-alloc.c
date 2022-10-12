@@ -417,7 +417,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (atomic_long_inc_return(&uds_allocate_memory_counter) ==
 	    uds_allocation_error_injection) {
-		uds_log_warning("Injecting uds_allocate_memory error on %zu bytes for %s",
+		uds_log_warning("Injecting %s error on %zu bytes for %s",
+				__func__,
 				size,
 				what);
 		uds_log_backtrace(UDS_LOG_WARNING);
