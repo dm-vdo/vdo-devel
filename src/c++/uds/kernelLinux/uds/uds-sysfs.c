@@ -76,7 +76,7 @@ static ssize_t empty_store(struct kobject *kobj,
 	return length;
 }
 
-static struct sysfs_ops empty_ops = {
+static const struct sysfs_ops empty_ops = {
 	.show = empty_show,
 	.store = empty_store,
 };
@@ -235,7 +235,7 @@ static struct attribute *memory_attrs[] = {
 };
 ATTRIBUTE_GROUPS(memory);
 
-static struct sysfs_ops memory_ops = {
+static const struct sysfs_ops memory_ops = {
 	.show = memory_show,
 	.store = memory_store,
 };
@@ -315,7 +315,7 @@ static struct attribute *parameter_attrs[] = {
 };
 ATTRIBUTE_GROUPS(parameter);
 
-static struct sysfs_ops parameter_ops = {
+static const struct sysfs_ops parameter_ops = {
 	.show = parameter_show,
 	.store = parameter_store,
 };
