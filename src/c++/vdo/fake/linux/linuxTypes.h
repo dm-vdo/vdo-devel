@@ -15,5 +15,6 @@ typedef uint64_t sector_t;
 
 typedef unsigned int gfp_t;
 #define GFP_KERNEL 1
+#define GFP_NOWAIT 2
 
 #endif // LINUX_TYPES_H

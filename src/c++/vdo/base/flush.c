@@ -5,6 +5,7 @@
 
 #include "flush.h"
 
+#include <linux/mempool.h>
 #include <linux/spinlock.h>
 
 #include "logger.h"
@@ -44,11 +45,11 @@ struct flusher {
 	struct logical_zone *logical_zone_to_notify;
 	/** The ID of the thread on which flush requests should be made */
 	thread_id_t thread_id;
-	/** A flush request to ensure we always have at least one */
-	struct vdo_flush *spare_flush;
+	/** The pool of flush requests */
+	mempool_t *flush_pool;
 	/** Bios waiting for a flush request to become available */
 	struct bio_list waiting_flush_bios;
-	/** The lock to protect the previous two fields */
+	/** The lock to protect the previous fields */
 	spinlock_t lock;
 #ifdef VDO_INTERNAL
 	/** When the longest waiting flush bio arrived */
@@ -112,6 +113,37 @@ static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 	return container_of(waiter, struct vdo_flush, waiter);
 }
 
+static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
+{
+	struct vdo_flush *flush;
+
+	if ((gfp_mask & GFP_NOWAIT) == GFP_NOWAIT) {
+		flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+	} else {
+		int result =
+			UDS_ALLOCATE(1, struct vdo_flush, __func__, &flush);
+
+		if (result != VDO_SUCCESS)
+			uds_log_error_strerror(result,
+					       "failed to allocate spare flush");
+	}
+
+	if (flush != NULL) {
+		struct flusher *flusher = pool_data;
+
+		vdo_initialize_completion(&flush->completion,
+					  flusher->vdo,
+					  VDO_FLUSH_COMPLETION);
+	}
+
+	return flush;
+}
+
+static void free_flush(void *element, void *pool_data __always_unused)
+{
+	UDS_FREE(element);
+}
+
 /**
  * vdo_make_flusher() - Make a flusher for a vdo.
  * @vdo: The vdo which owns the flusher.
@@ -134,8 +166,11 @@ int vdo_make_flusher(struct vdo *vdo)
 
 	spin_lock_init(&vdo->flusher->lock);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
-	return UDS_ALLOCATE(1, struct vdo_flush, __func__,
-			    &vdo->flusher->spare_flush);
+	vdo->flusher->flush_pool = mempool_create(1,
+						  allocate_flush,
+						  free_flush,
+						  vdo->flusher);
+	return ((vdo->flusher->flush_pool == NULL) ? -ENOMEM : VDO_SUCCESS);
 }
 
 /**
@@ -147,7 +182,8 @@ void vdo_free_flusher(struct flusher *flusher)
 	if (flusher == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(flusher->spare_flush));
+	if (flusher->flush_pool != NULL)
+		mempool_destroy(UDS_FORGET(flusher->flush_pool));
 	UDS_FREE(flusher);
 }
 
@@ -365,9 +401,6 @@ void vdo_dump_flusher(const struct flusher *flusher)
  */
 static void initialize_flush(struct vdo_flush *flush, struct vdo *vdo)
 {
-	vdo_initialize_completion(&flush->completion,
-				  vdo,
-				  VDO_FLUSH_COMPLETION);
 	bio_list_init(&flush->bios);
 	bio_list_merge(&flush->bios, &vdo->flusher->waiting_flush_bios);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
@@ -403,8 +436,8 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 	 * Try to allocate a vdo_flush to represent the flush request. If the
 	 * allocation fails, we'll deal with it later.
 	 */
-	struct vdo_flush *flush =
-		UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+	struct vdo_flush *flush = mempool_alloc(vdo->flusher->flush_pool,
+						GFP_NOWAIT);
 	struct flusher *flusher = vdo->flusher;
 	const struct admin_state_code *code =
 		vdo_get_admin_state_code(&flusher->state);
@@ -425,28 +458,12 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 	bio_list_add(&flusher->waiting_flush_bios, bio);
 
 	if (flush == NULL) {
-		/*
-		 * The vdo_flush allocation failed. Try to use the spare
-		 * vdo_flush structure.
-		 */
-		if (flusher->spare_flush == NULL) {
-			/*
-			 * The spare is already in use. This bio is on
-			 * waiting_flush_bios and it will be handled by a flush
-			 * completion or by a bio that can allocate.
-			 */
-			spin_unlock(&flusher->lock);
-			return;
-		}
-
-		/* Take and use the spare flush request. */
-		flush = flusher->spare_flush;
-		flusher->spare_flush = NULL;
+		spin_unlock(&flusher->lock);
+		return;
 	}
 
 	/* We have flushes to start. Capture them in the vdo_flush structure. */
 	initialize_flush(flush, vdo);
-
 	spin_unlock(&flusher->lock);
 
 	/* Finish launching the flushes. */
@@ -465,21 +482,12 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
  */
 static void release_flush(struct vdo_flush *flush)
 {
-	bool relaunch_flush = false;
+	bool relaunch_flush;
 	struct flusher *flusher = flush->completion.vdo->flusher;
 
 	spin_lock(&flusher->lock);
 	if (bio_list_empty(&flusher->waiting_flush_bios)) {
-		/* Nothing needs to be started.  Save one spare flush request. */
-		if (flusher->spare_flush == NULL) {
-			/*
-			 * Make the new spare all zero, just like a newly
-			 * allocated one.
-			 */
-			memset(flush, 0, sizeof(*flush));
-			flusher->spare_flush = flush;
-			flush = NULL;
-		}
+		relaunch_flush = false;
 	} else {
 		/* We have flushes to start. Capture them in a flush request. */
 		initialize_flush(flush, flusher->vdo);
@@ -493,8 +501,7 @@ static void release_flush(struct vdo_flush *flush)
 		return;
 	}
 
-	if (flush != NULL)
-		UDS_FREE(flush);
+	mempool_free(flush, flusher->flush_pool);
 }
 
 /**

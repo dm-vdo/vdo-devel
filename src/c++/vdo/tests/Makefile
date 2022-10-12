@@ -71,6 +71,7 @@ TEST_COMMON  = adminUtils.o              \
                latchedCloseUtils.o       \
                latchUtils.o              \
 	       lz4.o			 \
+	       mempool.o		 \
                mutexUtils.o              \
                packerUtils.o             \
                processManager.o          \
