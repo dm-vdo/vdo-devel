@@ -22,6 +22,13 @@
 #include "uds.h"
 #include "uds-threads.h"
 
+/*
+ * The volume manages deduplication records on permanent storage. The term
+ * "volume" can also refer to the region of permanent storage where the records
+ * (and the chapters containing them) are stored. The volume handles all I/O to
+ * this region by reading, caching, and writing chapter pages as necessary.
+ */
+
 enum reader_state {
 	READER_STATE_RUN = 1,
 	READER_STATE_EXIT = 2,
@@ -29,9 +36,9 @@ enum reader_state {
 };
 
 enum index_lookup_mode {
-	/* Always do lookups in all chapters normally.  */
+	/* Always do lookups in all chapters normally */
 	LOOKUP_NORMAL,
-	/* Only do a subset of lookups needed when rebuilding an index. */
+	/* Only do a subset of lookups needed when rebuilding an index */
 	LOOKUP_FOR_REBUILD,
 };
 

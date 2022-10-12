@@ -26,8 +26,6 @@
 #include "uds-threads.h"
 
 /*
- * The volume manages deduplication records on permanant storage.
- *
  * The first block of the volume layout is reserved for the volume header,
  * which is no longer used. The remainder of the volume is divided into
  * chapters consisting of several pages of records, and several pages of static
@@ -71,7 +69,8 @@
  */
 
 enum {
-	MAX_BAD_CHAPTERS = 100,	 /* max number of contiguous bad chapters */
+	/* The maximum allowable number of contiguous bad chapters */
+	MAX_BAD_CHAPTERS = 100,
 };
 
 #ifdef TEST_INTERNAL
