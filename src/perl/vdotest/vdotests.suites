@@ -116,7 +116,7 @@ $suiteNames{filesystem}
   my @smallStress = (
                      "RebuildStress01",
                      "RebuildStress02",
-                     # "RebuildStress03", # VDO-5416
+                     "RebuildStress03",
                      "Stress01",
                      "Stress02",
                     );
@@ -130,7 +130,7 @@ $suiteNames{filesystem}
   my @largeStress = (
                      "RebuildStress01",
                      "RebuildStress02",
-                     # "RebuildStress03", # VDO-5416
+                     "RebuildStress03",
                      "Stress01",
                      "Stress02",
                     );
@@ -846,7 +846,6 @@ $suiteNames{beakerExcludedTests}
      "DirtyUpgrade",               # Requires explicit upgrade step
      "Downgrade",                  # Requires explicit upgrade step
      "LargeUpgrade",               # VDO-5257
-     "RebuildStress03",            # VDO-5416
      "Upgrade",                    # VDO-5257
      "UpgradeCompressDedupe",      # VDO-5257
      "UpgradeLatest",              # VDO-5257
