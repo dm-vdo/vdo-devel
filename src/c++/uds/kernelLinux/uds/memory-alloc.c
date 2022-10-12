@@ -443,12 +443,12 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			p = kmalloc(size, gfp_flags);
 		}
 
-		if (p != NULL) {
+		if (p != NULL)
 			add_kmalloc_block(ksize(p));
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
+		if (p != NULL)
 			add_tracking_block(p, ksize(p), what);
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-		}
 	} else {
 		struct vmalloc_block_info *block;
 
@@ -470,20 +470,22 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			 */
 			for (;;) {
 				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
-				if ((p != NULL) ||
-				    (jiffies_to_msecs(jiffies - start_time) >
-				     1000))
+
+				if (p != NULL)
 					break;
+
+				if (jiffies_to_msecs(jiffies - start_time) >
+				    1000) {
+					/*
+					 * Try one more time, logging a failure
+					 * for this call.
+					 */
+					p = __vmalloc(size, gfp_flags);
+					break;
+				}
 
 				fsleep(1000);
 			}
-
-			if (p == NULL)
-				/*
-				 * Try one more time, logging a failure for
-				 * this call.
-				 */
-				p = __vmalloc(size, gfp_flags);
 
 			if (p == NULL) {
 				UDS_FREE(block);
@@ -530,9 +532,10 @@ void *uds_allocate_memory_nowait(size_t size,
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
 
-	if (p != NULL) {
+	if (p != NULL)
 		add_kmalloc_block(ksize(p));
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
+	if (p != NULL)
 		/*
 		 * This call may possibly do an allocation without
 		 * GFP_NOWAIT. Since this code path is only used for memory
@@ -541,7 +544,6 @@ void *uds_allocate_memory_nowait(size_t size,
 		 */
 		add_tracking_block(p, ksize(p), what);
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	}
 
 	return p;
 }

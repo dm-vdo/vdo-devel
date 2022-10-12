@@ -77,6 +77,7 @@ static inline int uds_do_allocation(size_t count,
 				    void *ptr)
 {
 	size_t total_size = count * size + extra;
+
 	/* Overflow check: */
 	if ((size > 0) && (count > ((SIZE_MAX - extra) / size)))
 		/*
