@@ -63,51 +63,11 @@ struct simple_work_queue {
 	spinlock_t lock;
 	/* Any (0 or 1) worker threads waiting for new work to do */
 	wait_queue_head_t waiting_worker_threads;
-	/*
-	 * Hack to reduce wakeup calls if the worker thread is running. See
-	 * comments in workQueue.c.
-	 *
-	 * FIXME: There is a lot of redundancy with "first_wakeup", though, and
-	 * the pair should be re-examined.
-	 */
+	/* Hack to reduce wakeup calls if the worker thread is running */
 	atomic_t idle;
 	/* Wait list for synchronization during worker thread startup */
 	wait_queue_head_t start_waiters;
 	bool started;
-
-	/*
-	 * Timestamp (ns) from the submitting thread that decided to wake us
-	 * up; also used as a flag to indicate whether a wakeup is needed.
-	 *
-	 * Written by submitting threads with atomic64_cmpxchg, and by the
-	 * worker thread setting to 0.
-	 *
-	 * If the value is 0, the worker is probably asleep; the submitting
-	 * thread stores a non-zero value and becomes responsible for calling
-	 * wake_up on the worker thread. If the value is non-zero, either the
-	 * worker is running or another thread has the responsibility for
-	 * issuing the wakeup.
-	 *
-	 * The "sleep" mode has periodic wakeups and the worker thread may
-	 * happen to wake up while a completion is being enqueued. If that
-	 * happens, the wakeup may be unneeded but will be attempted anyway.
-	 *
-	 * So the return value from cmpxchg(first_wakeup,0,nonzero) can always
-	 * be done, and will tell the submitting thread whether to issue the
-	 * wakeup or not; cmpxchg is atomic, so no other synchronization is
-	 * needed.
-	 *
-	 * A timestamp is used rather than, say, 1, so that the worker thread
-	 * could record stats on how long it takes to actually get the worker
-	 * thread running.
-	 *
-	 * There is some redundancy between this and "idle" above.
-	 */
-	atomic64_t first_wakeup;
-	/* More padding for cache line separation */
-	char pad2[L1_CACHE_BYTES - sizeof(atomic64_t)];
-	/* Last wakeup, in ns. */
-	uint64_t most_recent_wakeup;
 };
 
 struct round_robin_work_queue {
@@ -210,8 +170,6 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1))
 		return;
 
-	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
-
 	/* There's a maximum of one thread in this list. */
 	wake_up(&queue->waiting_worker_threads);
 }
@@ -244,7 +202,6 @@ wait_for_next_completion(struct simple_work_queue *queue)
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
 				TASK_INTERRUPTIBLE);
@@ -277,8 +234,8 @@ wait_for_next_completion(struct simple_work_queue *queue)
 		schedule();
 
 		/*
-		 * Check again before resetting first_wakeup for more accurate
-		 * stats. If it was a spurious wakeup, continue looping.
+		 * Most of the time when we wake, it should be because there's
+		 * work to do. If it was a spurious wakeup, continue looping.
 		 */
 		completion = poll_for_completion(queue);
 		if (completion != NULL)
@@ -302,12 +259,6 @@ static void process_completion(struct simple_work_queue *queue,
 		completion->my_queue = NULL;
 
 	vdo_run_completion_callback(completion);
-}
-
-static void yield_to_scheduler(struct simple_work_queue *queue)
-{
-	cond_resched();
-	queue->most_recent_wakeup = ktime_get_ns();
 }
 
 static void service_work_queue(struct simple_work_queue *queue)
@@ -335,7 +286,7 @@ static void service_work_queue(struct simple_work_queue *queue)
 		 * tests; that "other work" might include other VDO threads.
 		 */
 		if (need_resched())
-			yield_to_scheduler(queue);
+			cond_resched();
 	}
 
 	run_finish_hook(queue);
@@ -345,8 +296,6 @@ static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
 	unsigned long flags;
-
-	queue->most_recent_wakeup = ktime_get_ns();
 
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
