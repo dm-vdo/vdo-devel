@@ -27,7 +27,6 @@
 #include "vdo.h"
 #include "vdo-recovery.h"
 #include "vio.h"
-#include "vio-pool.h"
 
 struct slab_journal_eraser {
 	struct vdo_completion *parent;

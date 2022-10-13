@@ -31,7 +31,6 @@
 #include "string-utils.h"
 #include "vdo.h"
 #include "vio.h"
-#include "vio-pool.h"
 #include "wait-queue.h"
 
 static const uint64_t BYTES_PER_WORD = sizeof(uint64_t);

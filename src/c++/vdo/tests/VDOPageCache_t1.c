@@ -19,7 +19,7 @@
 #include "num-utils.h"
 #include "status-codes.h"
 #include "vdo-page-cache.h"
-#include "vio-pool.h"
+#include "vio.h"
 #include "wait-queue.h"
 
 #include "asyncLayer.h"

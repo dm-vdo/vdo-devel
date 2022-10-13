@@ -19,7 +19,7 @@
 #include "types.h"
 #include "vdo-layout.h"
 #include "vdo-page-cache.h"
-#include "vio-pool.h"
+#include "vio.h"
 
 /*
  * The per-zone fields used by the block map tree.

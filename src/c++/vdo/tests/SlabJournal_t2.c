@@ -17,7 +17,7 @@
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "vio-pool.h"
+#include "vio.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

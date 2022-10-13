@@ -12,7 +12,7 @@
 
 #include "permassert.h"
 
-#include "vio-pool.h"
+#include "vio.h"
 
 #include "asyncLayer.h"
 #include "vdoAsserts.h"

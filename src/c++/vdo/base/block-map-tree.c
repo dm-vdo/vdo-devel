@@ -29,7 +29,6 @@
 #include "vdo.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
-#include "vio-pool.h"
 
 enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,

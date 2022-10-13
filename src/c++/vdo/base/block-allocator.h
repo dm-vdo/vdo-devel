@@ -14,7 +14,7 @@
 #include "slab-iterator.h"
 #include "statistics.h"
 #include "types.h"
-#include "vio-pool.h"
+#include "vio.h"
 #include "wait-queue.h"
 
 enum {

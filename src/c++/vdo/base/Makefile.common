@@ -76,7 +76,6 @@ BASE_OBJS :=     			\
 	vdo-resume.o			\
 	vdo-suspend.o           	\
 	vio.o				\
-	vio-pool.o			\
 	volume-geometry.o		\
 	wait-queue.o
 

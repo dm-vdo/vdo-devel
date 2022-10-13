@@ -12,7 +12,7 @@
 #include "block-map-page.h"
 #include "block-map-tree.h"
 #include "recovery-journal.h"
-#include "vio-pool.h"
+#include "vio.h"
 
 #include "asyncLayer.h"
 #include "asyncVIO.h"

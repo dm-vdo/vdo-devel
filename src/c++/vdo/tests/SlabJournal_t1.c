@@ -23,7 +23,7 @@
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "vdo.h"
-#include "vio-pool.h"
+#include "vio.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"
