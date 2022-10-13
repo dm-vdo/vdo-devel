@@ -25,10 +25,6 @@
 #include "vdo.h"
 #include "vio.h"
 
-enum {
-	BLOCK_MAP_VIO_POOL_SIZE = 64,
-};
-
 struct block_map_tree_segment {
 	struct tree_page *levels[VDO_BLOCK_MAP_TREE_HEIGHT];
 };

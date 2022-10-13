@@ -30,10 +30,6 @@
 #include "vdo-page-cache.h"
 #include "vio.h"
 
-enum {
-	BLOCK_MAP_VIO_POOL_SIZE = 64,
-};
-
 struct page_descriptor {
 	root_count_t root_index;
 	height_t height;

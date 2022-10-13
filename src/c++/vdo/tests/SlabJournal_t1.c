@@ -202,8 +202,9 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
     refCounts->free_blocks--;
   }
 
-  if (vioPoolSize != VIO_POOL_SIZE) {
-    reserveVIOsFromPool(depot->allocators[0], VIO_POOL_SIZE - vioPoolSize);
+  if (vioPoolSize != BLOCK_ALLOCATOR_VIO_POOL_SIZE) {
+    reserveVIOsFromPool(depot->allocators[0],
+                        BLOCK_ALLOCATOR_VIO_POOL_SIZE - vioPoolSize);
   }
 
   lastEntry       = 0;
@@ -220,7 +221,7 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
  **/
 static void defaultSlabJournalTestInitialization(void)
 {
-  slabJournalTestInitialization(VIO_POOL_SIZE);
+  slabJournalTestInitialization(BLOCK_ALLOCATOR_VIO_POOL_SIZE);
 }
 
 /**

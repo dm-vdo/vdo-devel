@@ -151,8 +151,7 @@ vdo_make_block_allocator_pool_vios(struct vdo *vdo,
 }
 
 static int allocate_components(struct block_allocator *allocator,
-			       struct vdo *vdo,
-			       block_count_t vio_pool_size)
+			       struct vdo *vdo)
 {
 	struct slab_depot *depot = allocator->depot;
 	block_count_t slab_journal_size =
@@ -175,7 +174,7 @@ static int allocate_components(struct block_allocator *allocator,
 					      allocator->zone_number);
 
 	result = make_vio_pool(vdo,
-			       vio_pool_size,
+			       BLOCK_ALLOCATOR_VIO_POOL_SIZE,
 			       allocator->thread_id,
 			       vdo_make_block_allocator_pool_vios,
 			       NULL,
@@ -229,7 +228,6 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 			     zone_count_t zone_number,
 			     thread_id_t thread_id,
 			     nonce_t nonce,
-			     block_count_t vio_pool_size,
 			     struct vdo *vdo,
 			     struct read_only_notifier *read_only_notifier,
 			     struct block_allocator **allocator_ptr)
@@ -250,7 +248,7 @@ int vdo_make_block_allocator(struct slab_depot *depot,
 	vdo_set_admin_state_code(&allocator->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	result = allocate_components(allocator, vdo, vio_pool_size);
+	result = allocate_components(allocator, vdo);
 	if (result != VDO_SUCCESS) {
 		vdo_free_block_allocator(allocator);
 		return result;

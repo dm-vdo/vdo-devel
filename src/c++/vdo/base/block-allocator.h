@@ -22,7 +22,7 @@ enum {
 	 * The number of vios in the vio pool is proportional to the throughput
 	 * of the VDO.
 	 */
-	VIO_POOL_SIZE = 128,
+	BLOCK_ALLOCATOR_VIO_POOL_SIZE = 128,
 };
 
 enum block_allocator_drain_step {
@@ -121,7 +121,6 @@ vdo_make_block_allocator(struct slab_depot *depot,
 			 zone_count_t zone_number,
 			 thread_id_t thread_id,
 			 nonce_t nonce,
-			 block_count_t vio_pool_size,
 			 struct vdo *vdo,
 			 struct read_only_notifier *read_only_notifier,
 			 struct block_allocator **allocator_ptr);

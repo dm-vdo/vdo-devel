@@ -369,7 +369,7 @@ static void testWaitForSlabJournalSpace(void)
   // Use a single-VIO pool so it's easy to keep the slab journal from having
   // a VIO to write with.
 
-  reserveVIOsFromPool(allocator, VIO_POOL_SIZE - 1);
+  reserveVIOsFromPool(allocator, BLOCK_ALLOCATOR_VIO_POOL_SIZE - 1);
 
   /*
    * Set up a hook to notice when each slab journal read finishes.  When the

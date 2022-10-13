@@ -21,6 +21,10 @@
 #include "vdo-page-cache.h"
 #include "vio.h"
 
+enum {
+	BLOCK_MAP_VIO_POOL_SIZE = 64,
+};
+
 /*
  * The per-zone fields used by the block map tree.
  */

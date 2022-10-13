@@ -229,7 +229,6 @@ static int allocate_components(struct slab_depot *depot,
 						  zone,
 						  thread_id,
 						  depot->vdo->states.vdo.nonce,
-						  VIO_POOL_SIZE,
 						  depot->vdo,
 						  depot->vdo->read_only_notifier,
 						  &depot->allocators[zone]);

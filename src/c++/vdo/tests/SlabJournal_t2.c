@@ -140,7 +140,8 @@ static bool wrapIfInJournalZone(struct vdo_completion *completion)
  **/
 static IORequest *setUpBlockedJournal(void)
 {
-  reserveVIOsFromPool(slabJournal->slab->allocator, VIO_POOL_SIZE);
+  reserveVIOsFromPool(slabJournal->slab->allocator,
+                      BLOCK_ALLOCATOR_VIO_POOL_SIZE);
 
   // Fill the first slab journal block by writing new data which will go to
   // slab 1.
