@@ -1162,6 +1162,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		continue_data_vio_with_error(data_vio, result);
+		return;
 	}
 
 	if (vdo_is_recovery_block_full(block))
