@@ -254,7 +254,7 @@ enum hash_lock_state {
 	VDO_HASH_LOCK_DESTROYING,
 };
 
-static const char *LOCK_STATE_NAMES[] = {
+static const char * const LOCK_STATE_NAMES[] = {
 	[VDO_HASH_LOCK_BYPASSING] = "BYPASSING",
 	[VDO_HASH_LOCK_DEDUPING] = "DEDUPING",
 	[VDO_HASH_LOCK_DESTROYING] = "DESTROYING",
@@ -2543,7 +2543,7 @@ static ssize_t dedupe_status_store(struct kobject *kobj __always_unused,
 
 /*----------------------------------------------------------------------*/
 
-static struct sysfs_ops dedupe_sysfs_ops = {
+static const struct sysfs_ops dedupe_sysfs_ops = {
 	.show = dedupe_status_show,
 	.store = dedupe_status_store,
 };

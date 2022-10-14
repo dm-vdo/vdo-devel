@@ -54,7 +54,7 @@ vdo_admin_completion_from_sub_task(struct vdo_completion *completion);
 
 void vdo_assert_admin_phase_thread(struct admin_completion *admin_completion,
 				   const char *what,
-				   const char *phase_names[]);
+				   const char * const phase_names[]);
 
 struct vdo * __must_check
 vdo_from_admin_sub_task(struct vdo_completion *completion,

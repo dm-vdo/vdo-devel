@@ -37,7 +37,7 @@ enum {
 	SUSPEND_PHASE_END,
 };
 
-static const char *SUSPEND_PHASE_NAMES[] = {
+static const char * const SUSPEND_PHASE_NAMES[] = {
 	"SUSPEND_PHASE_START",
 	"SUSPEND_PHASE_PACKER",
 	"SUSPEND_PHASE_DATA_VIOS",

@@ -42,7 +42,7 @@ vdo_admin_completion_from_sub_task(struct vdo_completion *completion)
  */
 void vdo_assert_admin_phase_thread(struct admin_completion *admin_completion,
 				   const char *what,
-				   const char *phase_names[])
+				   const char * const phase_names[])
 {
 	thread_id_t expected =
 		admin_completion->get_thread_id(admin_completion);

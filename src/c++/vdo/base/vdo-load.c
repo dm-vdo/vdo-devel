@@ -46,7 +46,7 @@ enum {
 	LOAD_PHASE_WAIT_FOR_READ_ONLY,
 };
 
-static const char *LOAD_PHASE_NAMES[] = {
+static const char * const LOAD_PHASE_NAMES[] = {
 	"LOAD_PHASE_START",
 	"LOAD_PHASE_STATS",
 	"LOAD_PHASE_LOAD_DEPOT",

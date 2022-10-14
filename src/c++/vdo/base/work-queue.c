@@ -622,19 +622,20 @@ static void get_function_name(void *pointer,
 		strncpy(buffer, "-", buffer_length);
 	} else {
 		/*
-		 * Use a non-const array instead of a string literal below to
-		 * defeat gcc's format checking, which doesn't understand that
-		 * "%ps" actually does support a precision spec in Linux kernel
-		 * code.
+		 * Use a pragma to defeat gcc's format checking, which doesn't
+		 # understand that "%ps" actually does support a precision spec
+		 * in Linux kernel code.
 		 */
-		static char truncated_function_name_format_string[] = "%.*ps";
 		char *space;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat="
 		snprintf(buffer,
 			 buffer_length,
-			 truncated_function_name_format_string,
+			 "%.*ps",
 			 buffer_length - 1,
 			 pointer);
+#pragma GCC diagnostic pop
 
 		space = strchr(buffer, ' ');
 

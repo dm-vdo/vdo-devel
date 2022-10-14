@@ -75,7 +75,7 @@
 static unsigned int PASSTHROUGH_FLAGS =
 	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
-static const char *ASYNC_OPERATION_NAMES[] = {
+static const char * const ASYNC_OPERATION_NAMES[] = {
 	"launch",
 	"acknowledge_write",
 	"acquire_hash_lock",
@@ -361,7 +361,7 @@ void launch_data_vio(struct data_vio *data_vio,
 
 static void update_data_vio_error_stats(struct data_vio *data_vio)
 {
-	static const char *operations[] = {
+	static const char * const operations[] = {
 		[DATA_VIO_UNSPECIFIED_OPERATION] = "empty",
 		[DATA_VIO_READ] = "read",
 		[DATA_VIO_WRITE] = "write",

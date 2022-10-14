@@ -20,7 +20,7 @@
 #include "vio.h"
 #include "vdo.h"
 
-static const char *VDO_COMPLETION_TYPE_NAMES[] = {
+static const char * const VDO_COMPLETION_TYPE_NAMES[] = {
 	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
 	"VDO_UNSET_COMPLETION_TYPE",
 

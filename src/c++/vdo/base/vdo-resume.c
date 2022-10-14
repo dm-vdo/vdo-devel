@@ -39,7 +39,7 @@ enum {
 	RESUME_PHASE_END,
 };
 
-static const char *RESUME_PHASE_NAMES[] = {
+static const char * const RESUME_PHASE_NAMES[] = {
 	"RESUME_PHASE_START",
 	"RESUME_PHASE_ALLOW_READ_ONLY_MODE",
 	"RESUME_PHASE_DEDUPE",

@@ -46,7 +46,7 @@ static ssize_t vdo_pool_attr_store(struct kobject *directory,
 	return pool_attr->store(vdo, buf, length);
 }
 
-static struct sysfs_ops vdo_pool_sysfs_ops = {
+static const struct sysfs_ops vdo_pool_sysfs_ops = {
 	.show = vdo_pool_attr_show,
 	.store = vdo_pool_attr_store,
 };
