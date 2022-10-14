@@ -8,6 +8,9 @@
 
 #include "albtest.h"
 
+#include <linux/bio.h>
+#include <linux/kernel.h>
+
 #include "logger.h"
 #include "memory-alloc.h"
 
@@ -50,6 +53,8 @@ static size_t       readLaunched = 0;
 
 static struct vdo_slab *slabToSave;
 static bool             outputBinsIdle = false;
+
+static atomic64_t ioCount;
 
 /**
  * Test-specific initialization.
@@ -140,7 +145,7 @@ static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 /**
  * Test vdo with a mix of read and write.
  **/
-static void testReadWriteMix(void)
+static void doReadWriteMix(bool success)
 {
   size_t writeOffset     = 1;
   size_t overwriteOffset = 0;
@@ -184,7 +189,11 @@ static void testReadWriteMix(void)
   // Wait for all reads to complete.
   for (size_t waiting = 0; waiting < readRequestCount; waiting++) {
     if (readRequests[waiting].request != NULL) {
-      awaitAndFreeSuccessfulRequest(UDS_FORGET(readRequests[waiting].request));
+      int result
+        = awaitAndFreeRequest(UDS_FORGET(readRequests[waiting].request));
+      if (success) {
+        CU_ASSERT_EQUAL(result, VDO_SUCCESS);
+      }
     }
   }
 
@@ -194,9 +203,22 @@ static void testReadWriteMix(void)
   // Wait for all writes to complete.
   for (size_t waiting = 0; waiting < writeRequestCount; waiting++) {
     if (writeRequests[waiting] != NULL) {
-      awaitAndFreeSuccessfulRequest(UDS_FORGET(writeRequests[waiting]));
+      int result
+        = awaitAndFreeRequest(UDS_FORGET(writeRequests[waiting]));
+      if (success) {
+        CU_ASSERT_EQUAL(result, VDO_SUCCESS);
+      }
     }
   }
+}
+
+
+
+/**
+ * Test vdo with a mix of read and write.
+ **/
+static void testReadWriteMix(void) {
+  doReadWriteMix(true);
 
   struct packer_statistics stats = vdo_get_packer_statistics(vdo->packer);
   CU_ASSERT_EQUAL(0, stats.compressed_fragments_in_packer);
@@ -229,9 +251,46 @@ static void testReadWriteMix(void)
 }
 
 /**********************************************************************/
+static bool injectIOErrors(struct bio *bio)
+{
+  if (bio_data_dir(bio) == READ) {
+    return true;
+  }
+
+  struct vio *vio = bio->bi_private;
+  if ((vio != NULL) && (vio->type == VIO_TYPE_SUPER_BLOCK)) {
+    return true;
+  }
+
+  if (atomic64_read(&ioCount) > 512) {
+    bio->bi_status = -1;
+    bio->bi_end_io(bio);
+    return false;
+  }
+
+  atomic64_add(1, &ioCount);
+  return true;
+}
+
+/**
+ * Do a mix of reads and writes, with injected I/O errors partway through.
+ **/
+static void testReadWriteMixWithErrors(void)
+{
+  atomic64_set(&ioCount, 0);
+  setBIOSubmitHook(injectIOErrors);
+  doReadWriteMix(false);
+  clearBIOSubmitHook();
+  setStartStopExpectation(VDO_READ_ONLY);
+  stopVDO();
+  startVDO(VDO_READ_ONLY_MODE);
+}
+
+/**********************************************************************/
 
 static CU_TestInfo vdoTests[] = {
-  { "Mixed compressible and dedupe data",  testReadWriteMix  },
+  { "Mixed compressible and dedupe data",         testReadWriteMix           },
+  { "Injected I/O errors during mixed workload",  testReadWriteMixWithErrors },
   CU_TEST_INFO_NULL
 };
 

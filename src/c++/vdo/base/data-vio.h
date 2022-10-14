@@ -558,8 +558,7 @@ void launch_data_vio(struct data_vio *data_vio,
 		     enum data_vio_operation operation);
 
 void complete_data_vio(struct vdo_completion *completion);
-
-void finish_data_vio(struct data_vio *data_vio, int result);
+void handle_data_vio_error(struct vdo_completion *completion);
 
 static inline void continue_data_vio(struct data_vio *data_vio)
 {

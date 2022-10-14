@@ -25,16 +25,10 @@ struct hash_zones;
 struct pbn_lock * __must_check
 vdo_get_duplicate_lock(struct data_vio *data_vio);
 
-int __must_check vdo_acquire_hash_lock(struct data_vio *data_vio);
-
-void vdo_enter_hash_lock(struct data_vio *data_vio);
-
-void vdo_continue_hash_lock(struct data_vio *data_vio);
-
-void vdo_continue_hash_lock_on_error(struct data_vio *data_vio);
-
+void vdo_acquire_hash_lock(struct vdo_completion *completion);
+void vdo_continue_hash_lock(struct vdo_completion *completion);
 void vdo_release_hash_lock(struct data_vio *data_vio);
-
+void vdo_clean_failed_hash_lock(struct data_vio *data_vio);
 void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 				     struct pbn_lock *pbn_lock);
 

@@ -594,7 +594,6 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 static void finish_lookup(struct data_vio *data_vio, int result)
 {
 	struct block_map_tree_zone *zone;
-	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 
 	data_vio->tree_lock.height = 0;
 
@@ -603,8 +602,8 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 
 	set_data_vio_logical_callback(data_vio,
 				      continue_data_vio_with_block_map_slot);
-	completion->error_handler = complete_data_vio;
-	vdo_continue_completion(completion, result);
+	set_data_vio_error_handler(data_vio, handle_data_vio_error);
+	continue_data_vio_with_error(data_vio, result);
 }
 
 static void abort_lookup_for_waiter(struct waiter *waiter, void *context)

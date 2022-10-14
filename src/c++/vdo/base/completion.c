@@ -14,6 +14,9 @@
 #include "logger.h"
 #include "permassert.h"
 
+#if defined(INTERNAL) || defined(VDO_INTERNAL)
+#include "data-vio.h"
+#endif /* INTERNAL or VDO_INTERNAL */
 #include "kernel-types.h"
 #include "status-codes.h"
 #include "thread-config.h"
@@ -276,6 +279,14 @@ void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 		   vdo->thread_config->thread_count) != UDS_SUCCESS)
 		BUG();
 
+#if defined(INTERNAL) || defined(VDO_INTERNAL)
+	if ((completion->type == VIO_COMPLETION) &&
+	    is_data_vio(as_vio(completion)))
+		ASSERT_LOG_ONLY(((completion->error_handler != NULL) ||
+				 (as_data_vio(completion)->last_async_operation == VIO_ASYNC_OP_CLEANUP)),
+				"active data_vio has error handler");
+
+#endif /* INTERNAL or VDO_INTERNAL */
 	completion->requeue = false;
 	completion->priority = priority;
 	completion->my_queue = NULL;

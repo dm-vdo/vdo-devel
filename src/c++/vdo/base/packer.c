@@ -298,7 +298,7 @@ static void finish_compressed_write(struct vdo_completion *completion)
 		release_compressed_write_waiter(client, &agent->allocation);
 	}
 
-	completion->error_handler = NULL;
+	completion->error_handler = handle_data_vio_error;
 	release_compressed_write_waiter(agent, &agent->allocation);
 }
 
@@ -330,7 +330,7 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 	 * and continue on.
 	 */
 	vdo_reset_completion(completion);
-	completion->error_handler = NULL;
+	completion->error_handler = handle_data_vio_error;
 	continue_write_after_compression(agent);
 }
 

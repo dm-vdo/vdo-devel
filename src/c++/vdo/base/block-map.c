@@ -506,14 +506,14 @@ static void handle_page_error(struct vdo_completion *completion)
  * Fetch the mapping page for a block map update, and call the
  * provided handler when fetched.
  */
-static void
-fetch_mapping_page(struct data_vio *data_vio, bool modifiable,
-		   vdo_action *action)
+static void fetch_mapping_page(struct data_vio *data_vio,
+			       bool modifiable,
+			       vdo_action *action)
 {
 	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 
 	if (vdo_is_state_draining(&zone->state)) {
-		finish_data_vio(data_vio, VDO_SHUTTING_DOWN);
+		continue_data_vio_with_error(data_vio, VDO_SHUTTING_DOWN);
 		return;
 	}
 
