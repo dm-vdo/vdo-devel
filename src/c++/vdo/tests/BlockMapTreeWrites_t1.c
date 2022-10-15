@@ -8,6 +8,8 @@
 
 #include "albtest.h"
 
+#include "memory-alloc.h"
+
 #include "block-map.h"
 #include "block-map-page.h"
 #include "block-map-tree.h"
@@ -76,8 +78,7 @@ static inline struct tree_page *findParentTreePage(struct vio *vio)
     return NULL;
   }
 
-  struct vio_pool_entry *entry = vio_as_completion(vio)->parent;
-  return (struct tree_page *) entry->parent;
+  return (struct tree_page *) vio_as_completion(vio)->parent;
 }
 
 /**
@@ -416,15 +417,6 @@ static void testBlockMapTreeGenerationRollOver(void)
 }
 
 /**
- * Implements VDOAction.
- **/
-static void replaceVIOPool(struct vdo_completion *completion)
-{
-  VDO_ASSERT_SUCCESS(vdo_replace_tree_zone_vio_pool(zone, vdo, 1));
-  vdo_finish_completion(completion, VDO_SUCCESS);
-}
-
-/**
  * Implements BlockCondition.
  **/
 static bool
@@ -475,7 +467,16 @@ static bool checkFinalWrites(struct vdo_completion *completion)
 static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
 {
   initialize(8);
-  performSuccessfulActionOnThread(replaceVIOPool, zone->map_zone->thread_id);
+
+  /* Replace the zone's vio pool with one which only has 1 vio */
+  free_vio_pool(UDS_FORGET(zone->vio_pool));
+  VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
+                                   1,
+                                   zone->map_zone->thread_id,
+                                   VIO_TYPE_BLOCK_MAP_INTERIOR,
+                                   VIO_PRIORITY_METADATA,
+                                   zone,
+                                   &zone->vio_pool));
 
   /*
    * Make some dirty tree pages and advance one journal block so that the

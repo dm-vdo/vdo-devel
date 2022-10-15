@@ -11,7 +11,7 @@
 #include <linux/list.h>
 
 #include "block-allocator.h"
-#include "kernel-types.h"
+#include "types.h"
 
 #include "vdoTestBase.h"
 #include "vdoAsserts.h"
@@ -28,8 +28,8 @@ static bool                     gotVIO;
 static void saveVIOPoolEntry(struct waiter *waiter __attribute__((unused)),
                              void          *context)
 {
-  struct vio_pool_entry *entry = context;
-  list_move_tail(&entry->available_entry, &reservedVIOPoolEntries);
+  struct pooled_vio *pooled = context;
+  list_add_tail(&pooled->list_entry, &reservedVIOPoolEntries);
   gotVIO = true;
 }
 
@@ -45,7 +45,7 @@ static void grabVIOs(struct vdo_completion *completion)
 
   for (size_t i = 0; i < viosToReserve; i++) {
     gotVIO = false;
-    vdo_acquire_block_allocator_vio(poolAllocator, &waiter);
+    acquire_vio_from_pool(poolAllocator->vio_pool, &waiter);
     // Make sure that the waiter got a VIO synchronously.
     CU_ASSERT_TRUE(gotVIO);
   }
@@ -72,8 +72,8 @@ static void returnVIOPoolEntries(struct vdo_completion *completion)
   while (!list_empty(&reservedVIOPoolEntries)) {
     struct list_head *entry = reservedVIOPoolEntries.prev;
     list_del_init(entry);
-    vdo_return_block_allocator_vio(poolAllocator,
-                                   as_vio_pool_entry(entry));
+    return_vio_to_pool(poolAllocator->vio_pool,
+                       container_of(entry, struct pooled_vio, list_entry));
   }
 
   vdo_finish_completion(completion, VDO_SUCCESS);

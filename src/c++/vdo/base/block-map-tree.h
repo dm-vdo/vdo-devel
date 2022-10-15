@@ -97,10 +97,5 @@ vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 #ifdef INTERNAL
 bool in_cyclic_range(uint16_t lower, uint16_t value,
 		     uint16_t upper, uint16_t modulus);
-
-int __must_check
-vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-			       struct vdo *vdo,
-			       size_t pool_size);
 #endif /* INTERNAL */
 #endif /* BLOCK_MAP_TREE_H */
