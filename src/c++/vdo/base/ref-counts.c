@@ -1242,13 +1242,12 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 static void handle_io_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
-	struct vio *vio = as_vio(completion);
+	struct vio_pool_entry *entry = completion->parent;
 	struct ref_counts *ref_counts =
-		((struct reference_block *) completion->parent)->ref_counts;
+		((struct reference_block *) entry->parent)->ref_counts;
 
-	record_metadata_io_error(vio);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(vio));
+	record_metadata_io_error(as_vio(completion));
+	vdo_return_block_allocator_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	enter_ref_counts_read_only_mode(ref_counts, result);
 }
@@ -1261,9 +1260,8 @@ static void handle_io_error(struct vdo_completion *completion)
  */
 static void finish_reference_block_write(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
-	struct reference_block *block = completion->parent;
+	struct vio_pool_entry *entry = completion->parent;
+	struct reference_block *block = entry->parent;
 	struct ref_counts *ref_counts = block->ref_counts;
 
 	ref_counts->active_count--;
@@ -1272,7 +1270,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	vdo_adjust_slab_journal_block_reference(ref_counts->slab->journal,
 						block->slab_journal_lock_to_release,
 						-1);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool, pooled);
+	vdo_return_block_allocator_vio(ref_counts->slab->allocator, entry);
 
 	/*
 	 * We can't clear the is_writing flag earlier as releasing the slab
@@ -1352,7 +1350,8 @@ vdo_pack_reference_block(struct reference_block *block, void *buffer)
 static void write_reference_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct reference_block *block = vio_as_completion(vio)->parent;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct reference_block *block = entry->parent;
 	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
 
 	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
@@ -1362,22 +1361,24 @@ static void write_reference_block_endio(struct bio *bio)
  * write_reference_block() - After a dirty block waiter has gotten a VIO from
  *                           the VIO pool, copy its counters and associated
  *                           data into the VIO, and launch the write.
- * @waiter: The waiter of the dirty block.
- * @context: The VIO returned by the pool.
+ * @block_waiter: The waiter of the dirty block.
+ * @vio_context: The VIO returned by the pool.
  */
-static void write_reference_block(struct waiter *waiter, void *context)
+static void write_reference_block(struct waiter *block_waiter,
+				  void *vio_context)
 {
 	size_t block_offset;
 	physical_block_number_t pbn;
-	struct pooled_vio *pooled = context;
-	struct vdo_completion *completion = vio_as_completion(&pooled->vio);
-	struct reference_block *block = waiter_as_reference_block(waiter);
 
-	vdo_pack_reference_block(block, pooled->vio.data);
+	struct vio_pool_entry *entry = vio_context;
+	struct reference_block *block = waiter_as_reference_block(block_waiter);
+
+	vdo_pack_reference_block(block, entry->buffer);
+
 	block_offset = (block - block->ref_counts->blocks);
 	pbn = (block->ref_counts->origin + block_offset);
 	block->slab_journal_lock_to_release = block->slab_journal_lock;
-	completion->parent = block;
+	entry->parent = block;
 
 	/*
 	 * Mark the block as clean, since we won't be committing any updates
@@ -1393,10 +1394,9 @@ static void write_reference_block(struct waiter *waiter, void *context)
 	 */
 	WRITE_ONCE(block->ref_counts->statistics->blocks_written,
 		   block->ref_counts->statistics->blocks_written + 1);
-
-	completion->callback_thread_id =
-		((struct block_allocator *) pooled->context)->thread_id;
-	submit_metadata_vio(&pooled->vio,
+	entry->vio->completion.callback_thread_id =
+		block->ref_counts->slab->allocator->thread_id;
+	submit_metadata_vio(entry->vio,
 			    pbn,
 			    write_reference_block_endio,
 			    handle_io_error,
@@ -1407,13 +1407,14 @@ static void write_reference_block(struct waiter *waiter, void *context)
  * launch_reference_block_write() - Launch the write of a dirty reference
  *                                  block by first acquiring a VIO for it from
  *                                  the pool.
- * @waiter: The waiter of the block which is starting to write.
+ * @block_waiter: The waiter of the block which is starting to write.
  * @context: The parent ref_counts of the block.
  *
  * This can be asynchronous since the writer will have to wait if all VIOs in
  * the pool are currently in use.
  */
-static void launch_reference_block_write(struct waiter *waiter, void *context)
+static void launch_reference_block_write(struct waiter *block_waiter,
+					 void *context)
 {
 	struct reference_block *block;
 	struct ref_counts *ref_counts = context;
@@ -1422,10 +1423,11 @@ static void launch_reference_block_write(struct waiter *waiter, void *context)
 		return;
 
 	ref_counts->active_count++;
-	block = waiter_as_reference_block(waiter);
+	block = waiter_as_reference_block(block_waiter);
 	block->is_writing = true;
-	waiter->callback = write_reference_block;
-	acquire_vio_from_pool(ref_counts->slab->allocator->vio_pool, waiter);
+	block_waiter->callback = write_reference_block;
+	vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
+					block_waiter);
 }
 
 /**
@@ -1567,14 +1569,14 @@ static void unpack_reference_block(struct packed_reference_block *packed,
  */
 static void finish_reference_block_load(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
-	struct reference_block *block = completion->parent;
+	struct vio_pool_entry *entry = completion->parent;
+	struct reference_block *block = entry->parent;
 	struct ref_counts *ref_counts = block->ref_counts;
 
-	unpack_reference_block((struct packed_reference_block *) vio->data,
+	unpack_reference_block((struct packed_reference_block *)entry->buffer,
 			       block);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool, pooled);
+
+	vdo_return_block_allocator_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	clear_provisional_references(block);
 
@@ -1585,28 +1587,27 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 static void load_reference_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct reference_block *block = vio_as_completion(vio)->parent;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct reference_block *block = entry->parent;
+	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
 
-	continue_vio_after_io(vio,
-			      finish_reference_block_load,
-			      block->ref_counts->slab->allocator->thread_id);
+	continue_vio_after_io(vio, finish_reference_block_load, thread_id);
 }
 
 /**
  * load_reference_block() - After a block waiter has gotten a VIO from the VIO
  *                          pool, load the block.
- * @waiter: The waiter of the block to load.
- * @context: The VIO returned by the pool.
+ * @block_waiter: The waiter of the block to load.
+ * @vio_context: The VIO returned by the pool.
  */
-static void load_reference_block(struct waiter *waiter, void *context)
+static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 {
-	struct pooled_vio *pooled = context;
-	struct vio *vio = &pooled->vio;
-	struct reference_block *block = waiter_as_reference_block(waiter);
+	struct vio_pool_entry *entry = vio_context;
+	struct reference_block *block = waiter_as_reference_block(block_waiter);
 	size_t block_offset = (block - block->ref_counts->blocks);
 
-	vio_as_completion(vio)->parent = block;
-	submit_metadata_vio(vio,
+	entry->parent = block;
+	submit_metadata_vio(entry->vio,
 			    block->ref_counts->origin + block_offset,
 			    load_reference_block_endio,
 			    handle_io_error,
@@ -1625,11 +1626,11 @@ static void load_reference_blocks(struct ref_counts *ref_counts)
 	ref_counts->free_blocks = ref_counts->block_count;
 	ref_counts->active_count = ref_counts->reference_block_count;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		struct waiter *waiter = &ref_counts->blocks[i].waiter;
+		struct waiter *block_waiter = &ref_counts->blocks[i].waiter;
 
-		waiter->callback = load_reference_block;
-		acquire_vio_from_pool(ref_counts->slab->allocator->vio_pool,
-				      waiter);
+		block_waiter->callback = load_reference_block;
+		vdo_acquire_block_allocator_vio(ref_counts->slab->allocator,
+						block_waiter);
 	}
 }
 

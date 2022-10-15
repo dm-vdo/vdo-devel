@@ -205,8 +205,7 @@ static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    0,
                                    0,
-                                   VIO_TYPE_TEST,
-                                   VIO_PRIORITY_METADATA,
+                                   NULL,
                                    &zone.tree_zone,
                                    &zone.tree_zone.vio_pool));
   VDO_ASSERT_SUCCESS(vdo_make_page_cache(vdo,

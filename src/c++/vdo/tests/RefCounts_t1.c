@@ -134,9 +134,8 @@ static void initializeRefCountsT1(void)
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    TEST_VIO_POOL_SIZE,
                                    allocator.thread_id,
-                                   VIO_TYPE_SLAB_JOURNAL,
-                                   VIO_PRIORITY_METADATA,
-                                   &allocator,
+                                   vdo_make_block_allocator_pool_vios,
+                                   NULL,
                                    &allocator.vio_pool));
   VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, &allocator, 1, NULL, 0, false,
                                    &slab));

@@ -376,10 +376,10 @@ static void reap_slab_journal(struct slab_journal *journal);
  */
 static void complete_reaping(struct vdo_completion *completion)
 {
-	struct slab_journal *journal = completion->parent;
+	struct vio_pool_entry *entry = completion->parent;
+	struct slab_journal *journal = entry->parent;
 
-	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(as_vio(UDS_FORGET(completion))));
+	vdo_return_block_allocator_vio(journal->slab->allocator, entry);
 	finish_reaping(journal);
 	reap_slab_journal(journal);
 }
@@ -390,7 +390,8 @@ static void complete_reaping(struct vdo_completion *completion)
  */
 static void handle_flush_error(struct vdo_completion *completion)
 {
-	struct slab_journal *journal = completion->parent;
+	struct slab_journal *journal =
+		((struct vio_pool_entry *)completion->parent)->parent;
 
 	record_metadata_io_error(as_vio(completion));
 	enter_journal_read_only_mode(journal, completion->result);
@@ -400,7 +401,8 @@ static void handle_flush_error(struct vdo_completion *completion)
 static void flush_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct slab_journal *journal = vio_as_completion(vio)->parent;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct slab_journal *journal = entry->parent;
 
 	continue_vio_after_io(vio,
 			      complete_reaping,
@@ -411,16 +413,16 @@ static void flush_endio(struct bio *bio)
  * flush_for_reaping() - A waiter callback for getting a vio with which to
  *                       flush the lower layer prior to reaping.
  * @waiter: The journal as a flush waiter.
- * @context: The newly acquired flush vio.
+ * @vio_context: The newly acquired flush vio.
  */
-static void flush_for_reaping(struct waiter *waiter, void *context)
+static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 {
 	struct slab_journal *journal =
 		container_of(waiter, struct slab_journal, flush_waiter);
-	struct pooled_vio *pooled = context;
-	struct vio *vio = &pooled->vio;
+	struct vio_pool_entry *entry = vio_context;
+	struct vio *vio = entry->vio;
 
-	vio_as_completion(vio)->parent = journal;
+	entry->parent = journal;
 	submit_flush_vio(vio, flush_endio, handle_flush_error);
 }
 
@@ -478,8 +480,8 @@ static void reap_slab_journal(struct slab_journal *journal)
 	 * (VDO-2912).
 	 */
 	journal->flush_waiter.callback = flush_for_reaping;
-	acquire_vio_from_pool(journal->slab->allocator->vio_pool,
-			      &journal->flush_waiter);
+	vdo_acquire_block_allocator_vio(journal->slab->allocator,
+					&journal->flush_waiter);
 }
 
 /**
@@ -620,10 +622,9 @@ void vdo_reopen_slab_journal(struct slab_journal *journal)
 }
 
 static sequence_number_t
-get_committing_sequence_number(const struct pooled_vio *vio)
+get_committing_sequence_number(const struct vio_pool_entry *entry)
 {
-	const struct packed_slab_journal_block *block =
-		(const struct packed_slab_journal_block *) vio->vio.data;
+	const struct packed_slab_journal_block *block = entry->buffer;
 
 	return __le64_to_cpu(block->header.sequence_number);
 }
@@ -637,13 +638,12 @@ get_committing_sequence_number(const struct pooled_vio *vio)
 static void complete_write(struct vdo_completion *completion)
 {
 	int write_result = completion->result;
-	struct pooled_vio *pooled = vio_as_pooled_vio(as_vio(completion));
-	struct slab_journal *journal = completion->parent;
-	sequence_number_t committed = get_committing_sequence_number(pooled);
+	struct vio_pool_entry *entry = completion->parent;
+	struct slab_journal *journal = entry->parent;
+	sequence_number_t committed = get_committing_sequence_number(entry);
 
-	list_del_init(&pooled->list_entry);
-	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   UDS_FORGET(pooled));
+	list_del_init(&entry->available_entry);
+	vdo_return_block_allocator_vio(journal->slab->allocator, entry);
 
 	if (write_result != VDO_SUCCESS) {
 		record_metadata_io_error(as_vio(completion));
@@ -668,10 +668,9 @@ static void complete_write(struct vdo_completion *completion)
 		 * The commit point is always the beginning of the oldest
 		 * incomplete block.
 		 */
-		pooled = container_of(journal->uncommitted_blocks.next,
-				      struct pooled_vio,
-				      list_entry);
-		journal->next_commit = get_committing_sequence_number(pooled);
+		struct vio_pool_entry *oldest =
+			as_vio_pool_entry(journal->uncommitted_blocks.next);
+		journal->next_commit = get_committing_sequence_number(oldest);
 	}
 
 	update_tail_block_location(journal);
@@ -680,7 +679,8 @@ static void complete_write(struct vdo_completion *completion)
 static void write_slab_journal_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct slab_journal *journal = vio_as_completion(vio)->parent;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct slab_journal *journal = entry->parent;
 
 	continue_vio_after_io(vio,
 			      complete_write,
@@ -690,27 +690,27 @@ static void write_slab_journal_endio(struct bio *bio)
 /**
  * write_slab_journal_block() - Write a slab journal block.
  * @waiter: The vio pool waiter which was just notified.
- * @context: The vio pool entry for the write.
+ * @vio_context: The vio pool entry for the write.
  *
- * Callback from acquire_vio_from_pool() registered in commit_tail().
+ * Callback from vdo_acquire_block_allocator_vio() registered in
+ * commit_tail().
  */
-static void write_slab_journal_block(struct waiter *waiter, void *context)
+static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 {
-	struct pooled_vio *pooled = context;
-	struct vio *vio = &pooled->vio;
 	struct slab_journal *journal =
 		container_of(waiter, struct slab_journal, resource_waiter);
+	struct vio_pool_entry *entry = vio_context;
 	struct slab_journal_block_header *header = &journal->tail_header;
 	int unused_entries = journal->entries_per_block - header->entry_count;
 	physical_block_number_t block_number;
 	const struct admin_state_code *operation;
 
 	header->head = journal->head;
-	list_add_tail(&pooled->list_entry, &journal->uncommitted_blocks);
+	list_move_tail(&entry->available_entry, &journal->uncommitted_blocks);
 	vdo_pack_slab_journal_block_header(header, &journal->block->header);
 
 	/* Copy the tail block into the vio. */
-	memcpy(pooled->vio.data, journal->block, VDO_BLOCK_SIZE);
+	memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);
 
 	ASSERT_LOG_ONLY(unused_entries >= 0,
 			"vdo_slab journal block is not overfull");
@@ -726,14 +726,14 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 	}
 
 	block_number = get_block_number(journal, header->sequence_number);
-	vio_as_completion(vio)->parent = journal;
+	entry->parent = journal;
 
 	/*
 	 * This block won't be read in recovery until the slab summary is
 	 * updated to refer to it. The slab summary update does a flush which
 	 * is sufficient to protect us from VDO-2331.
 	 */
-	submit_metadata_vio(UDS_FORGET(vio),
+	submit_metadata_vio(entry->vio,
 			    block_number,
 			    write_slab_journal_endio,
 			    complete_write,
@@ -791,8 +791,8 @@ static void commit_tail(struct slab_journal *journal)
 	journal->waiting_to_commit = true;
 
 	journal->resource_waiter.callback = write_slab_journal_block;
-	acquire_vio_from_pool(journal->slab->allocator->vio_pool,
-			      &journal->resource_waiter);
+	vdo_acquire_block_allocator_vio(journal->slab->allocator,
+					&journal->resource_waiter);
 }
 
 /**
@@ -1353,10 +1353,10 @@ void vdo_drain_slab_journal(struct slab_journal *journal)
 static void finish_decoding_journal(struct vdo_completion *completion)
 {
 	int result = completion->result;
-	struct slab_journal *journal = completion->parent;
+	struct vio_pool_entry *entry = completion->parent;
+	struct slab_journal *journal = entry->parent;
 
-	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(as_vio(completion)));
+	vdo_return_block_allocator_vio(journal->slab->allocator, entry);
 	vdo_notify_slab_journal_is_loaded(journal->slab, result);
 }
 
@@ -1369,10 +1369,10 @@ static void finish_decoding_journal(struct vdo_completion *completion)
  */
 static void set_decoded_state(struct vdo_completion *completion)
 {
-	struct vio *vio = as_vio(completion);
-	struct slab_journal *journal = completion->parent;
-	struct packed_slab_journal_block *block =
-		(struct packed_slab_journal_block *) vio->data;
+	struct vio_pool_entry *entry = completion->parent;
+	struct slab_journal *journal = entry->parent;
+	struct packed_slab_journal_block *block = entry->buffer;
+
 	struct slab_journal_block_header header;
 
 	vdo_unpack_slab_journal_block_header(&block->header, &header);
@@ -1403,7 +1403,8 @@ static void set_decoded_state(struct vdo_completion *completion)
 static void read_slab_journal_tail_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct slab_journal *journal = vio_as_completion(vio)->parent;
+	struct vio_pool_entry *entry = vio->completion.parent;
+	struct slab_journal *journal = entry->parent;
 
 	continue_vio_after_io(vio,
 			      set_decoded_state,
@@ -1420,19 +1421,17 @@ static void handle_decode_error(struct vdo_completion *completion)
  * read_slab_journal_tail() - Read the slab journal tail block by using a vio
  *                            acquired from the vio pool.
  * @waiter: The vio pool waiter which has just been notified.
- * @context: The vio pool entry given to the waiter.
+ * @vio_context: The vio pool entry given to the waiter.
  *
- * This is the success callback from acquire_vio_from_pool() when decoding the
- * slab journal.
+ * This is the success callback from vdo_acquire_block_allocator_vio() when
+ * decoding the slab journal.
  */
-static void read_slab_journal_tail(struct waiter *waiter, void *context)
+static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 {
 	struct slab_journal *journal =
 		container_of(waiter, struct slab_journal, resource_waiter);
 	struct vdo_slab *slab = journal->slab;
-	struct pooled_vio *pooled = context;
-	struct vio *vio = &pooled->vio;
-	struct vdo_completion *completion = vio_as_completion(vio);
+	struct vio_pool_entry *entry = vio_context;
 	tail_block_offset_t last_commit_point =
 		vdo_get_summarized_tail_block_offset(journal->summary,
 						     slab->slab_number);
@@ -1445,9 +1444,10 @@ static void read_slab_journal_tail(struct waiter *waiter, void *context)
 		((last_commit_point == 0) ? (tail_block_offset_t)(journal->size - 1) :
 		 (last_commit_point - 1));
 
-	completion->parent = journal;
-	completion->callback_thread_id = slab->allocator->thread_id;
-	submit_metadata_vio(vio,
+	entry->parent = journal;
+
+	entry->vio->completion.callback_thread_id = slab->allocator->thread_id;
+	submit_metadata_vio(entry->vio,
 			    slab->journal_origin + tail_block,
 			    read_slab_journal_tail_endio,
 			    handle_decode_error,
@@ -1486,8 +1486,8 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 	}
 
 	journal->resource_waiter.callback = read_slab_journal_tail;
-	acquire_vio_from_pool(slab->allocator->vio_pool,
-			      &journal->resource_waiter);
+	vdo_acquire_block_allocator_vio(slab->allocator,
+					&journal->resource_waiter);
 }
 
 /**

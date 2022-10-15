@@ -28,7 +28,7 @@ enum {
 typedef struct poolCustomer {
   struct waiter          waiter;
   struct vdo_completion *wrapper;
-  struct pooled_vio     *entries[MAX_PER_CUST + 1];
+  struct vio_pool_entry *entries[MAX_PER_CUST + 1];
   size_t                 using;
 } PoolCustomer;
 
@@ -36,7 +36,7 @@ typedef struct {
   struct vdo_completion  completion;
   struct vio_pool       *pool;
   PoolCustomer           customer;
-  struct pooled_vio     *entry;
+  struct vio_pool_entry *entry;
 } CustomerWrapper;
 
 /**********************************************************************/
@@ -50,7 +50,7 @@ static CustomerWrapper *asWrapper(struct vdo_completion *wrapperCompletion)
 static void didAcquireVIO(struct waiter *element, void *context)
 {
   PoolCustomer *customer = container_of(element, PoolCustomer, waiter);
-  customer->entries[customer->using++] = context;
+  customer->entries[customer->using++] = (struct vio_pool_entry *) context;
 }
 
 /**********************************************************************/
@@ -77,7 +77,7 @@ static void doReturnVIO(struct vdo_completion *wrapperCompletion)
 }
 
 /**********************************************************************/
-static void returnVIO(struct vio_pool *pool, struct pooled_vio *entry)
+static void returnVIO(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
   CustomerWrapper wrapper;
   wrapper.pool  = pool;
@@ -96,6 +96,20 @@ static void initWrapper(struct vio_pool *pool, CustomerWrapper *wrapper)
 }
 
 /**********************************************************************/
+static int makePoolVIOs(struct vdo  *vdo,
+                        void        *parent,
+                        void        *buffer,
+                        struct vio **vioPtr)
+{
+  return create_metadata_vio(vdo,
+                             VIO_TYPE_TEST,
+                             VIO_PRIORITY_METADATA,
+                             parent,
+                             buffer,
+                             vioPtr);
+}
+
+/**********************************************************************/
 static void testVIOPool(void)
 {
   struct vio_pool *pool;
@@ -103,8 +117,7 @@ static void testVIOPool(void)
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    poolSize,
                                    0,
-                                   VIO_TYPE_TEST,
-                                   VIO_PRIORITY_METADATA,
+                                   makePoolVIOs,
                                    NULL,
                                    &pool));
   CU_ASSERT_PTR_NOT_NULL(pool);
@@ -224,8 +237,7 @@ static void testReuseCompletions(void)
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    POOL_SIZE,
                                    0,
-                                   VIO_TYPE_TEST,
-                                   VIO_PRIORITY_METADATA,
+                                   makePoolVIOs,
                                    NULL,
                                    &pool));
 
