@@ -8,7 +8,7 @@
 # $Id$
 #
 
-SUBDIRS = github rpm
+SUBDIRS = github
 
 .PHONY: clean
 clean:
