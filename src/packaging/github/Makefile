@@ -45,8 +45,9 @@ BUILD_DIR ?= $(realpath .)/build
 SOURCES    = $(BUILD_DIR)/SOURCES
 SPECS      = $(BUILD_DIR)/SPECS
 
-CLEAN_FILES = $(WORK_DIR)           \
-              $(BUILD_DIR)          \
+CLEAN_FILES = $(WORK_DIR)                 \
+              $(BUILD_DIR)                \
+              prepareGitHubCheckpatch.out \
               prepareGitHubDist.out
 
 ifdef CHANGELOG_FLAGS
@@ -77,6 +78,16 @@ prepareGitHubDist.out: $(WORK_DIR)
 .PHONY: prepare
 prepare: FLAGS=--test --manifest=$(MANIFEST) $(VDO_ROOT)
 prepare: prepareGitHubDist.out
+
+# Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
+CHECKPATCH_IGNORE = NEW_TYPEDEFS
+CHECKPATCH_ARGS := --no-tree --file --terse --show-types --color=never
+CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE)
+
+prepareGitHubCheckpatch.out: prepare
+# For now, ignore checkpatch errors so that this is purely advisory.
+	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(WORK_DIR)/kvdo-*/vdo/*.[hc] \
+	  | tee $@
 
 .PHONY: install
 install:
@@ -136,15 +147,15 @@ rpms: clean prepare
 	$(MAKE) vdo-rpm
 	$(MAKE) kvdo-rpm
 
-# Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
-CHECKPATCH_IGNORE = NEW_TYPEDEFS
-CHECKPATCH_ARGS := --no-tree --file --terse --color=never
-CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE) 
-
-# For now, ignore checkpatch errors so that this is purely advisory.
+# Generate the advisory checkpatch.pl output and then process it to check
+# that no ERROR-level problems were found and that already addressed issues
+# are not re-introduced.
 .PHONY: check-style
-check-style: prepare
-	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(WORK_DIR)/kvdo-*/vdo/*.[hc]
+check-style: prepareGitHubCheckpatch.out
+	@ ! grep ERROR prepareGitHubCheckpatch.out
+	@ ! grep BRACES prepareGitHubCheckpatch.out
+	@ ! grep CODE_INDENT prepareGitHubCheckpatch.out
+	@ ! grep CONST_STRUCT prepareGitHubCheckpatch.out
 
 # This remains as a synonym of rpms to make the transition easier on
 # developers.

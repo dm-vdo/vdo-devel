@@ -301,8 +301,8 @@ static void dirty_block(struct reference_block *block)
 
 	block->is_dirty = true;
 	if (!block->is_writing)
-			enqueue_waiter(&block->ref_counts->dirty_blocks,
-				       &block->waiter);
+		enqueue_waiter(&block->ref_counts->dirty_blocks,
+			       &block->waiter);
 }
 
 /**

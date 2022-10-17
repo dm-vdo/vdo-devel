@@ -231,7 +231,7 @@ static void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 
 	/*
 	 * A bit expensive, but will promptly catch some use-after-free errors.
-         */
+	 */
 	memset(lock, 0, sizeof(*lock));
 
 	idle = container_of(lock, idle_pbn_lock, lock);

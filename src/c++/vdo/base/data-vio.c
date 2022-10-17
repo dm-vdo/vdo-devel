@@ -530,9 +530,8 @@ static void enter_read_only_mode(struct vdo_completion *completion)
 	struct read_only_notifier *notifier =
 		completion->vdo->read_only_notifier;
 
-	if (vdo_is_read_only(notifier)) {
+	if (vdo_is_read_only(notifier))
 		return;
-	}
 
 	if (completion->result != VDO_READ_ONLY) {
 		struct data_vio *data_vio = as_data_vio(completion);
@@ -1769,9 +1768,9 @@ static void handle_allocation_error(struct vdo_completion *completion)
 	}
 
 	/*
-         * We got a "real" error, not just a failure to allocate, so fail the
-         * request.
-         */
+	 * We got a "real" error, not just a failure to allocate, so fail the
+	 * request.
+	 */
 	handle_data_vio_error(completion);
 }
 

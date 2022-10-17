@@ -719,7 +719,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	if (in_interrupt())
 		return NULL;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	/*
 	 * The kthreadd process has the PF_KTHREAD flag set but a null "struct
 	 * kthread" pointer, which breaks the (initial) implementation of

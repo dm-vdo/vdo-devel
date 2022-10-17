@@ -1653,9 +1653,8 @@ static bool acquire_provisional_reference(struct data_vio *agent,
 						       agent->duplicate.pbn,
 						       lock);
 
-	if (result == VDO_SUCCESS) {
+	if (result == VDO_SUCCESS)
 		return true;
-	}
 
 	uds_log_warning_strerror(result,
 				 "Error acquiring provisional reference for dedupe candidate; aborting dedupe");
