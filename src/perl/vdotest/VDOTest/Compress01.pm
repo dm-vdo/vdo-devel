@@ -60,7 +60,7 @@ sub testBasic {
   $stats = $device->getVDOStats();
   my $blocksUsed = $stats->{"data blocks used"};
   assertNear($self->{blockCount} / 3, $blocksUsed, 1,
-             "Data blocks should be compressed");
+             "Number of data blocks that should be compressed are");
   assertEqualNumeric(0, $stats->{"dedupe advice valid"},
                      "Dedupe advice valid should be zero");
   assertEqualNumeric(0, $stats->{"dedupe advice stale"},
