@@ -41,7 +41,7 @@ enum vdo_completion_priority {
 	VDO_DEFAULT_Q_VIO_CALLBACK_PRIORITY = 1,
 	VDO_DEFAULT_Q_MAX_PRIORITY = 2,
 	/* The maximum allowable priority */
-	VDO_WORK_Q_MAX_PRIORITY = 3,
+	VDO_WORK_Q_MAX_PRIORITY = 2,
 	/* A value which must be out of range for a valid priority */
 	VDO_WORK_Q_DEFAULT_PRIORITY = VDO_WORK_Q_MAX_PRIORITY + 1,
 };

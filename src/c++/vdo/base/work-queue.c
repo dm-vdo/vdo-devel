@@ -44,30 +44,32 @@ struct vdo_work_queue {
 
 struct simple_work_queue {
 	struct vdo_work_queue common;
-	/* A copy of .thread->pid, for safety in the sysfs support */
-	pid_t thread_pid;
 	/*
 	 * Number of priorities actually used, so we don't keep re-checking
 	 * unused funnel queues.
 	 */
 	unsigned int num_priority_lists;
+	/* Has the worker thread started up yet? */
+	bool started;
+	/* Lock protecting "started" */
+	spinlock_t lock;
+	/* Wait list for synchronization during worker thread startup */
+	wait_queue_head_t start_waiters;
 
 	struct funnel_queue *priority_lists[VDO_WORK_Q_MAX_PRIORITY + 1];
 	struct task_struct *thread;
 	void *private;
-	/* In a subordinate work queue, a link back to the round-robin parent */
-	struct vdo_work_queue *parent_queue;
-	/* Padding for cache line separation */
-	char pad[L1_CACHE_BYTES - sizeof(struct vdo_work_queue *)];
-	/* Lock protecting priority_map, num_priority_lists, started */
-	spinlock_t lock;
+
+	/*
+	 * The fields above are unchanged after setup and are good candidates
+	 * for caching. The fields below are often modified as we sleep and
+	 * wake, so use a new cache line for performance.
+	 */
+
 	/* Any (0 or 1) worker threads waiting for new work to do */
-	wait_queue_head_t waiting_worker_threads;
+	wait_queue_head_t waiting_worker_threads ____cacheline_aligned;
 	/* Hack to reduce wakeup calls if the worker thread is running */
 	atomic_t idle;
-	/* Wait list for synchronization during worker thread startup */
-	wait_queue_head_t start_waiters;
-	bool started;
 };
 
 struct round_robin_work_queue {
@@ -418,7 +420,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	}
 
 	queue->thread = thread;
-	WRITE_ONCE(queue->thread_pid, thread->pid);
 
 	/*
 	 * If we don't wait to ensure the thread is running VDO code, a
@@ -516,7 +517,6 @@ int make_work_queue(const char *thread_name_prefix,
 			free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
-		queue->service_queues[i]->parent_queue = *queue_ptr;
 	}
 
 	return VDO_SUCCESS;
@@ -526,12 +526,6 @@ static void finish_simple_work_queue(struct simple_work_queue *queue)
 {
 	if (queue->thread == NULL)
 		return;
-
-	/*
-	 * Reduces (but does not eliminate) the chance of the sysfs support
-	 * reporting the pid even after the thread is gone.
-	 */
-	WRITE_ONCE(queue->thread_pid, 0);
 
 	/* Tells the worker thread to shut down and waits for it to exit. */
 	kthread_stop(queue->thread);
