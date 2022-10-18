@@ -37,6 +37,8 @@ void limiterReleaseMany(Limiter *limiter, uint32_t count)
   spin_lock(&limiter->lock);
   limiter->active -= count;
   spin_unlock(&limiter->lock);
+  // Upgrade to the full memory barrier waitqueue_active needs.
+  smp_mb__after_spinlock();
   if (waitqueue_active(&limiter->waiterQueue)) {
     wake_up_nr(&limiter->waiterQueue, count);
   }

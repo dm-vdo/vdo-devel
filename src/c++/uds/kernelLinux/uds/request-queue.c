@@ -248,15 +248,13 @@ int make_uds_request_queue(const char *queue_name,
 	}
 
 	queue->started = true;
-	smp_mb();
 	*queue_ptr = queue;
 	return UDS_SUCCESS;
 }
 
 static inline void wake_up_worker(struct uds_request_queue *queue)
 {
-	smp_mb();
-	if (waitqueue_active(&queue->wait_head))
+	if (wq_has_sleeper(&queue->wait_head))
 		wake_up(&queue->wait_head);
 }
 

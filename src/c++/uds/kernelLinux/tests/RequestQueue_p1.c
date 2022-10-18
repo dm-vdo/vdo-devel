@@ -352,8 +352,7 @@ static void funnelWaitqueueProduce(QueueableBatch *qb,
     qb->q[i].stream = qb->stream;
     qb->q[i].number = i;
     funnel_queue_put(qb->funnel, &qb->q[i].funnel);
-    smp_mb();
-    if (waitqueue_active(&qb->wqhead)) {
+    if (wq_has_sleeper(&qb->wqhead)) {
       wake_up(&qb->wqhead);
     }
   }
