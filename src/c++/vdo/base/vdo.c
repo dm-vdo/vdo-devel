@@ -633,6 +633,7 @@ enum vdo_state vdo_get_state(const struct vdo *vdo)
 {
 	enum vdo_state state = atomic_read(&vdo->state);
 
+	/* pairs with barriers where state field is changed */
 	smp_rmb();
 	return state;
 }
@@ -646,6 +647,7 @@ enum vdo_state vdo_get_state(const struct vdo *vdo)
  */
 void vdo_set_state(struct vdo *vdo, enum vdo_state state)
 {
+	/* pairs with barrier in vdo_get_state */
 	smp_wmb();
 	atomic_set(&vdo->state, state);
 }

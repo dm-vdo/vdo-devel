@@ -27,6 +27,7 @@ struct vio_compression_state get_vio_compression_state(struct data_vio *data_vio
 {
 	uint32_t packed = atomic_read(&data_vio->compression.state);
 
+	/* pairs with cmpxchg in set_vio_compression_state */
 	smp_rmb();
 	return (struct vio_compression_state) {
 		.status = packed & STATUS_MASK,
@@ -73,6 +74,7 @@ set_vio_compression_state(struct data_vio *data_vio,
 	smp_mb__before_atomic();
 	actual = atomic_cmpxchg(&data_vio->compression.state,
 				expected, replacement);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 	return (expected == actual);
 }

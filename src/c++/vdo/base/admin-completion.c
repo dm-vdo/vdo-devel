@@ -170,6 +170,7 @@ vdo_perform_admin_operation(struct vdo *vdo,
 		fsleep(1000);
 
 	result = admin_completion->completion.result;
+	/* pairs with implicit barrier in cmpxchg above */
 	smp_wmb();
 	atomic_set(&admin_completion->busy, 0);
 	return result;
