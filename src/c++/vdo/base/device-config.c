@@ -273,7 +273,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		}
 		config->bio_rotation_interval = count;
 		return VDO_SUCCESS;
-	} else if (strcmp(thread_param_type, "logical") == 0) {
+	}
+	if (strcmp(thread_param_type, "logical") == 0) {
 		if (count > MAX_VDO_LOGICAL_ZONES) {
 			uds_log_error("thread config string error: at most %d 'logical' threads are allowed",
 				      MAX_VDO_LOGICAL_ZONES);
@@ -281,7 +282,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		}
 		config->logical_zones = count;
 		return VDO_SUCCESS;
-	} else if (strcmp(thread_param_type, "physical") == 0) {
+	}
+	if (strcmp(thread_param_type, "physical") == 0) {
 		if (count > MAX_VDO_PHYSICAL_ZONES) {
 			uds_log_error("thread config string error: at most %d 'physical' threads are allowed",
 				      MAX_VDO_PHYSICAL_ZONES);
@@ -289,36 +291,37 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 		}
 		config->physical_zones = count;
 		return VDO_SUCCESS;
-	} else {
-		/* Handle other thread count parameters */
-		if (count > MAXIMUM_VDO_THREADS) {
-			uds_log_error("thread config string error: at most %d '%s' threads are allowed",
-				      MAXIMUM_VDO_THREADS,
-				      thread_param_type);
+	}
+	/* Handle other thread count parameters */
+	if (count > MAXIMUM_VDO_THREADS) {
+		uds_log_error("thread config string error: at most %d '%s' threads are allowed",
+			      MAXIMUM_VDO_THREADS,
+			      thread_param_type);
+		return -EINVAL;
+	}
+	if (strcmp(thread_param_type, "hash") == 0) {
+		config->hash_zones = count;
+		return VDO_SUCCESS;
+	}
+	if (strcmp(thread_param_type, "cpu") == 0) {
+		if (count == 0) {
+			uds_log_error("thread config string error: at least one 'cpu' thread required");
 			return -EINVAL;
 		}
-
-		if (strcmp(thread_param_type, "hash") == 0) {
-			config->hash_zones = count;
-			return VDO_SUCCESS;
-		} else if (strcmp(thread_param_type, "cpu") == 0) {
-			if (count == 0) {
-				uds_log_error("thread config string error: at least one 'cpu' thread required");
-				return -EINVAL;
-			}
-			config->cpu_threads = count;
-			return VDO_SUCCESS;
-		} else if (strcmp(thread_param_type, "ack") == 0) {
-			config->bio_ack_threads = count;
-			return VDO_SUCCESS;
-		} else if (strcmp(thread_param_type, "bio") == 0) {
-			if (count == 0) {
-				uds_log_error("thread config string error: at least one 'bio' thread required");
-				return -EINVAL;
-			}
-			config->bio_threads = count;
-			return VDO_SUCCESS;
+		config->cpu_threads = count;
+		return VDO_SUCCESS;
+	}
+	if (strcmp(thread_param_type, "ack") == 0) {
+		config->bio_ack_threads = count;
+		return VDO_SUCCESS;
+	}
+	if (strcmp(thread_param_type, "bio") == 0) {
+		if (count == 0) {
+			uds_log_error("thread config string error: at least one 'bio' thread required");
+			return -EINVAL;
 		}
+		config->bio_threads = count;
+		return VDO_SUCCESS;
 	}
 
 	/*

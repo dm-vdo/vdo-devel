@@ -206,13 +206,13 @@ static inline bool
 __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 				   ktime_t timeout)
 {
-	if (timeout <= 0) {
-		return down_trylock(semaphore) == 0;
-	} else {
-		unsigned int jiffies = nsecs_to_jiffies(timeout);
+	unsigned int jiffies;
 
-		return down_timeout(semaphore, jiffies) == 0;
-	}
+	if (timeout <= 0)
+		return down_trylock(semaphore) == 0;
+
+	jiffies = nsecs_to_jiffies(timeout);
+	return down_timeout(semaphore, jiffies) == 0;
 }
 #else
 bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,

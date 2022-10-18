@@ -313,8 +313,7 @@ int vdo_make_fixed_layout_partition(struct fixed_layout *layout,
 	if (block_count == VDO_ALL_FREE_BLOCKS) {
 		if (free_blocks == 0)
 			return VDO_NO_SPACE;
-		else
-			block_count = free_blocks;
+		block_count = free_blocks;
 	} else if (block_count > free_blocks) {
 		return VDO_NO_SPACE;
 	}

@@ -156,6 +156,7 @@ check-style: prepareGitHubCheckpatch.out
 	@ ! grep BRACES prepareGitHubCheckpatch.out
 	@ ! grep CODE_INDENT prepareGitHubCheckpatch.out
 	@ ! grep CONST_STRUCT prepareGitHubCheckpatch.out
+	@ ! grep UNNECESSARY_ELSE prepareGitHubCheckpatch.out
 
 # This remains as a synonym of rpms to make the transition easier on
 # developers.

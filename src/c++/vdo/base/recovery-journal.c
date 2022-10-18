@@ -170,12 +170,15 @@ vdo_release_recovery_journal_block_reference(struct recovery_journal *journal,
 	if (zone_type == VDO_ZONE_TYPE_JOURNAL) {
 		if (is_journal_zone_locked(journal, lock_number))
 			return;
-	} else if (*current_value != 0) {
-		return;
 	} else {
-		atomic_t *zone_count = get_zone_count_ptr(journal,
-							  lock_number,
-							  zone_type);
+		atomic_t *zone_count;
+
+		if (*current_value != 0)
+			return;
+
+		zone_count = get_zone_count_ptr(journal,
+						lock_number,
+						zone_type);
 
 		if (atomic_add_return(-1, zone_count) > 0)
 			return;
