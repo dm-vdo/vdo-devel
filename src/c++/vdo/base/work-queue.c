@@ -51,8 +51,6 @@ struct simple_work_queue {
 	unsigned int num_priority_lists;
 	/* Has the worker thread started up yet? */
 	bool started;
-	/* Lock protecting "started" */
-	spinlock_t lock;
 	/* Wait list for synchronization during worker thread startup */
 	wait_queue_head_t start_waiters;
 
@@ -297,12 +295,8 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
-	unsigned long flags;
 
-	spin_lock_irqsave(&queue->lock, flags);
-	queue->started = true;
-	spin_unlock_irqrestore(&queue->lock, flags);
-
+	WRITE_ONCE(queue->started, true);
 	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
 
@@ -349,18 +343,6 @@ void free_work_queue(struct vdo_work_queue *queue)
 		free_simple_work_queue(as_simple_work_queue(queue));
 }
 
-static bool queue_started(struct simple_work_queue *queue)
-{
-	unsigned long flags;
-	bool started;
-
-	spin_lock_irqsave(&queue->lock, flags);
-	started = queue->started;
-	spin_unlock_irqrestore(&queue->lock, flags);
-
-	return started;
-}
-
 static int make_simple_work_queue(const char *thread_name_prefix,
 				  const char *name,
 				  struct vdo_thread *owner,
@@ -397,7 +379,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	init_waitqueue_head(&queue->waiting_worker_threads);
 	init_waitqueue_head(&queue->start_waiters);
-	spin_lock_init(&queue->lock);
 
 	queue->num_priority_lists = type->max_priority + 1;
 	for (i = 0; i < queue->num_priority_lists; i++) {
@@ -429,7 +410,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	 * Eventually we should just make that path safe too, and then we
 	 * won't need this synchronization.
 	 */
-	wait_event(queue->start_waiters, queue_started(queue) == true);
+	wait_event(queue->start_waiters, READ_ONCE(queue->started));
 
 	*queue_ptr = queue;
 	return UDS_SUCCESS;
@@ -577,10 +558,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		     thread_status,
 		     task_state_report);
 
-	/*
-	 * ->lock spin lock status?
-	 * ->waiting_worker_threads wait queue status? anyone waiting?
-	 */
+	/* ->waiting_worker_threads wait queue status? anyone waiting? */
 }
 
 /**
