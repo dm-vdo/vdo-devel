@@ -11,9 +11,9 @@
 #include <linux/minmax.h>
 #endif /* INTERNAL */
 #include <linux/murmurhash3.h>
-#ifdef __KERNEL__
+#ifndef VDO_UPSTREAM
 #include <linux/version.h>
-#endif /* __KERNEL__ */
+#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -1060,13 +1060,19 @@ static void read_block(struct vdo_completion *completion)
 			 * A full 4k read. Use the incoming bio to avoid having
 			 * to copy the data
 			 */
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
+#define VDO_USE_ALTERNATE
 #endif
-
-#if USE_ALTERNATE
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 			bio_reset(vio->bio);
 			__bio_clone_fast(vio->bio, data_vio->user_bio);
 #else

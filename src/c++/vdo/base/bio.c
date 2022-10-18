@@ -5,9 +5,9 @@
 
 #include "bio.h"
 
-#ifdef __KERNEL__
+#ifndef VDO_UPSTREAM
 #include <linux/version.h>
-#endif /* __KERNEL__ */
+#endif /* VDO_UPSTREAM */
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
@@ -211,13 +211,19 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		blocks = vio->block_count;
 	}
 
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
+#define VDO_USE_ALTERNATE
 #endif
-
-#if USE_ALTERNATE
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 	bio_reset(bio);
 #else
 	bio_reset(bio, bio->bi_bdev, bi_opf);

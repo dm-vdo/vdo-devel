@@ -9,9 +9,9 @@
 #include <linux/cache.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
-#ifdef __KERNEL__
+#ifndef VDO_UPSTREAM
 #include <linux/version.h>
-#endif /* __KERNEL__ */
+#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -690,7 +690,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 */
 	if (in_interrupt())
 		return NULL;
-
+#ifndef VDO_UPSTREAM
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	/*
 	 * The kthreadd process has the PF_KTHREAD flag set but a null "struct
@@ -723,7 +723,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	if (current->set_child_tid == NULL)
 		return NULL;
 #endif
-
+#endif /* VDO_UPSTREAM */
 	if (kthread_func(current) != work_queue_runner)
 		/* Not a VDO work queue thread. */
 		return NULL;

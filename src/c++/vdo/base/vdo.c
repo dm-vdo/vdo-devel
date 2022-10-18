@@ -15,9 +15,9 @@
 #include <linux/lz4.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
-#ifdef __KERNEL__
+#ifndef VDO_UPSTREAM
 #include <linux/version.h>
-#endif /* __KERNEL__ */
+#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -593,13 +593,19 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	int result;
 	struct bio bio;
 
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
+#define VDO_USE_ALTERNATE
 #endif
-
-#if USE_ALTERNATE
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 	bio_init(&bio, 0, 0);
 	bio_set_dev(&bio, vdo_get_backing_device(vdo));
 	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
