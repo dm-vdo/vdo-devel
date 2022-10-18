@@ -237,6 +237,7 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state,
 			       MAY_NOTIFY, MAY_NOT_NOTIFY);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	if ((state == MAY_NOT_NOTIFY) || (state == NOTIFIED)) {
@@ -379,6 +380,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state,
 			       MAY_NOT_NOTIFY, MAY_NOTIFY);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	if (state != MAY_NOT_NOTIFY) {
@@ -402,6 +404,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 	 */
 	smp_mb__before_atomic();
 	state = atomic_cmpxchg(&notifier->state, MAY_NOTIFY, NOTIFYING);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	if (state != MAY_NOTIFY) {
@@ -453,6 +456,7 @@ void vdo_enter_read_only_mode(struct read_only_notifier *notifier,
 	state = atomic_cmpxchg(&notifier->read_only_error,
 			       VDO_SUCCESS,
 			       error_code);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	if (state != VDO_SUCCESS)

@@ -192,6 +192,7 @@ vdo_release_recovery_journal_block_reference(struct recovery_journal *journal,
 	prior_state = atomic_cmpxchg(&journal->lock_counter.state,
 				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
 				     LOCK_COUNTER_STATE_NOTIFYING);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	if (prior_state != LOCK_COUNTER_STATE_NOT_NOTIFYING)
@@ -308,6 +309,7 @@ static bool suspend_lock_counter(struct lock_counter *counter)
 	prior_state = atomic_cmpxchg(&counter->state,
 				     LOCK_COUNTER_STATE_NOT_NOTIFYING,
 				     LOCK_COUNTER_STATE_SUSPENDED);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	return ((prior_state == LOCK_COUNTER_STATE_SUSPENDED) ||
@@ -1625,6 +1627,7 @@ vdo_acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 		atomic_inc(get_zone_count_ptr(journal,
 					      lock_number,
 					      zone_type));
+		/* same as before_atomic */
 		smp_mb__after_atomic();
 	}
 	*current_value += 1;
@@ -1654,6 +1657,7 @@ vdo_release_journal_entry_lock(struct recovery_journal *journal,
 	 */
 	smp_mb__before_atomic();
 	atomic_inc(get_decrement_counter(journal, lock_number));
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 }
 
@@ -1704,6 +1708,7 @@ static bool resume_lock_counter(struct lock_counter *counter)
 	prior_state = atomic_cmpxchg(&counter->state,
 				     LOCK_COUNTER_STATE_SUSPENDED,
 				     LOCK_COUNTER_STATE_NOT_NOTIFYING);
+	/* same as before_atomic */
 	smp_mb__after_atomic();
 
 	return (prior_state == LOCK_COUNTER_STATE_SUSPENDED);
