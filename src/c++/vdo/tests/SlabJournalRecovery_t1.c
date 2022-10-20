@@ -46,7 +46,7 @@ enum {
 static struct recovery_journal *journal = NULL;
 static struct vdo_completion    subTaskCompletion;
 static struct waiter            testWaiter;
-static struct vio_pool_entry   *vioPoolEntry;
+static struct pooled_vio       *pooled;
 static struct slab_journal     *slabJournal;
 static bool                     readsComplete;
 static bool                     recoveryBlocked;
@@ -199,8 +199,8 @@ static void testRebuildSynthesizedDecrefs(void)
 static void acquiredVIO(struct waiter *waiter __attribute__((unused)),
                         void          *vioContext)
 {
-  CU_ASSERT_PTR_NULL(vioPoolEntry);
-  vioPoolEntry = (struct vio_pool_entry *) vioContext;
+  CU_ASSERT_PTR_NULL(pooled);
+  pooled = (struct pooled_vio *) vioContext;
   broadcast();
 }
 
@@ -213,7 +213,7 @@ static void signalWhenJournalReadCallbackDone(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = slabJournal->slab->allocator;
   testWaiter.callback = acquiredVIO;
-  vdo_acquire_block_allocator_vio(allocator, &testWaiter);
+  acquire_vio_from_pool(allocator->vio_pool, &testWaiter);
   signalState(&readsComplete);
   runSavedCallback(completion);
 }
@@ -249,8 +249,8 @@ isSlabJournalWrite(struct vdo_completion *completion,
  **/
 static void releaseVIOPoolEntryAction(struct vdo_completion *completion)
 {
-  vdo_return_block_allocator_vio(slabJournal->slab->allocator, vioPoolEntry);
-  vioPoolEntry = NULL;
+  return_vio_to_pool(slabJournal->slab->allocator->vio_pool, pooled);
+  pooled = NULL;
   vdo_complete_completion(completion);
 }
 

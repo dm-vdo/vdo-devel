@@ -55,7 +55,7 @@ struct cursor {
 	struct cursors *parent;
 	struct boundary boundary;
 	struct cursor_level levels[VDO_BLOCK_MAP_TREE_HEIGHT];
-	struct vio_pool_entry *vio_pool_entry;
+	struct pooled_vio *vio;
 };
 
 struct cursors {
@@ -318,7 +318,7 @@ static void finish_cursor(struct cursor *cursor)
 	struct cursors *cursors = cursor->parent;
 	struct vdo_completion *parent = cursors->parent;
 
-	return_vio_to_pool(cursors->pool, cursor->vio_pool_entry);
+	return_vio_to_pool(cursors->pool, UDS_FORGET(cursor->vio));
 	if (--cursors->active_roots > 0)
 		return;
 
@@ -335,11 +335,8 @@ static void traverse(struct cursor *cursor);
  */
 static void continue_traversal(struct vdo_completion *completion)
 {
-	struct vio_pool_entry *pool_entry = completion->parent;
-	struct cursor *cursor = pool_entry->parent;
-
 	record_metadata_io_error(as_vio(completion));
-	traverse(cursor);
+	traverse(completion->parent);
 }
 
 /**
@@ -349,8 +346,7 @@ static void continue_traversal(struct vdo_completion *completion)
  */
 static void finish_traversal_load(struct vdo_completion *completion)
 {
-	struct vio_pool_entry *entry = completion->parent;
-	struct cursor *cursor = entry->parent;
+	struct cursor *cursor = completion->parent;
 	height_t height = cursor->height;
 	struct cursor_level *level = &cursor->levels[height];
 
@@ -358,9 +354,9 @@ static void finish_traversal_load(struct vdo_completion *completion)
 		&(cursor->tree->segments[0].levels[height][level->page_index]);
 	struct block_map_page *page =
 		(struct block_map_page *) tree_page->page_buffer;
-	vdo_copy_valid_page(entry->buffer,
+	vdo_copy_valid_page(cursor->vio->vio.data,
 			    cursor->parent->map->nonce,
-			    pbn_from_vio_bio(entry->vio->bio),
+			    pbn_from_vio_bio(cursor->vio->vio.bio),
 			    page);
 	traverse(cursor);
 }
@@ -368,8 +364,7 @@ static void finish_traversal_load(struct vdo_completion *completion)
 static void traversal_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct vio_pool_entry *entry = vio->completion.parent;
-	struct cursor *cursor = entry->parent;
+	struct cursor *cursor = vio_as_completion(vio)->parent;
 
 	continue_vio_after_io(vio,
 			      finish_traversal_load,
@@ -455,7 +450,7 @@ static void traverse(struct cursor *cursor)
 			next_level->page_index = entry_index;
 			next_level->slot = 0;
 			level->slot++;
-			submit_metadata_vio(cursor->vio_pool_entry->vio,
+			submit_metadata_vio(&cursor->vio->vio,
 					    location.pbn,
 					    traversal_endio,
 					    continue_traversal,
@@ -471,17 +466,19 @@ static void traverse(struct cursor *cursor)
  * launch_cursor() - Start traversing a single block map tree now that the
  *                   cursor has a VIO with which to load pages.
  * @waiter: The cursor.
- * @context: The vio_pool_entry just acquired.
+ * @context: The pooled_vio just acquired.
  *
  * Implements waiter_callback.
  */
 static void launch_cursor(struct waiter *waiter, void *context)
 {
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
+	struct vdo_completion *completion;
 
-	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
-	cursor->vio_pool_entry->parent = cursor;
-	vio_as_completion(cursor->vio_pool_entry->vio)->callback_thread_id =
+	cursor->vio = context;
+	completion = vio_as_completion(&cursor->vio->vio);
+	completion->parent = cursor;
+	completion->callback_thread_id =
 		cursor->parent->zone->map_zone->thread_id;
 	traverse(cursor);
 }

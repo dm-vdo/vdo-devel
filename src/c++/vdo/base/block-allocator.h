@@ -168,13 +168,6 @@ void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent);
 
-
-void vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
-				     struct waiter *waiter);
-
-void vdo_return_block_allocator_vio(struct block_allocator *allocator,
-				    struct vio_pool_entry *entry);
-
 void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent);
@@ -191,12 +184,6 @@ vdo_get_ref_counts_statistics(const struct block_allocator *allocator);
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
 #ifdef INTERNAL
-int __must_check
-vdo_make_block_allocator_pool_vios(struct vdo *vdo,
-				   void *parent,
-				   void *buffer,
-				   struct vio **vio_ptr);
-
 int __must_check
 vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
 

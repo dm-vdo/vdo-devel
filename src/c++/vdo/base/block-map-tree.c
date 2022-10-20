@@ -62,23 +62,6 @@ tree_page_from_list_entry(struct list_head *entry)
 static void write_dirty_pages_callback(struct list_head *expired,
 				       void *context);
 
-/*
- * Implements vio_constructor.
- */
-static int __must_check
-make_block_map_vios(struct vdo *vdo,
-		    void *parent,
-		    void *buffer,
-		    struct vio **vio_ptr)
-{
-	return create_metadata_vio(vdo,
-				   VIO_TYPE_BLOCK_MAP_INTERIOR,
-				   VIO_PRIORITY_METADATA,
-				   parent,
-				   buffer,
-				   vio_ptr);
-}
-
 int vdo_initialize_tree_zone(struct block_map_zone *zone,
 			     struct vdo *vdo,
 			     block_count_t era_length)
@@ -103,28 +86,11 @@ int vdo_initialize_tree_zone(struct block_map_zone *zone,
 	return make_vio_pool(vdo,
 			     BLOCK_MAP_VIO_POOL_SIZE,
 			     zone->thread_id,
-			     make_block_map_vios,
+			     VIO_TYPE_BLOCK_MAP_INTERIOR,
+			     VIO_PRIORITY_METADATA,
 			     tree_zone,
 			     &tree_zone->vio_pool);
 }
-
-#ifdef INTERNAL
-/*
- * This method is used by unit tests.
- */
-int vdo_replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
-				   struct vdo *vdo,
-				   size_t pool_size)
-{
-	free_vio_pool(UDS_FORGET(zone->vio_pool));
-	return make_vio_pool(vdo,
-			     pool_size,
-			     zone->map_zone->thread_id,
-			     make_block_map_vios,
-			     zone,
-			     &zone->vio_pool);
-}
-#endif /* INTERNAL */
 
 void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone)
 {
@@ -298,8 +264,7 @@ static void set_generation(struct block_map_tree_zone *zone,
 		release_generation(zone, old_generation);
 }
 
-static void write_page(struct tree_page *tree_page,
-		       struct vio_pool_entry *entry);
+static void write_page(struct tree_page *tree_page, struct pooled_vio *vio);
 
 /*
  * Implements waiter_callback
@@ -307,10 +272,11 @@ static void write_page(struct tree_page *tree_page,
 static void write_page_callback(struct waiter *waiter, void *context)
 {
 	write_page(container_of(waiter, struct tree_page, waiter),
-		   (struct vio_pool_entry *) context);
+		   (struct pooled_vio *) context);
 }
 
-static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
+static void acquire_vio(struct waiter *waiter,
+			struct block_map_tree_zone *zone)
 {
 	waiter->callback = write_page_callback;
 	acquire_vio_from_pool(zone->vio_pool, waiter);
@@ -359,9 +325,9 @@ static void write_page_if_not_dirtied(struct waiter *waiter, void *context)
 }
 
 static void return_to_pool(struct block_map_tree_zone *zone,
-			   struct vio_pool_entry *entry)
+			   struct pooled_vio *vio)
 {
-	return_vio_to_pool(zone->vio_pool, entry);
+	return_vio_to_pool(zone->vio_pool, vio);
 	vdo_block_map_check_for_drain_complete(zone->map_zone);
 }
 
@@ -372,9 +338,10 @@ static void finish_page_write(struct vdo_completion *completion)
 {
 	bool dirty;
 
-	struct vio_pool_entry *entry = completion->parent;
-	struct tree_page *page = entry->parent;
-	struct block_map_tree_zone *zone = entry->context;
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = container_of(vio, struct pooled_vio, vio);
+	struct tree_page *page = completion->parent;
+	struct block_map_tree_zone *zone = pooled->context;
 
 	vdo_release_recovery_journal_block_reference(zone->map_zone->block_map->journal,
 						     page->writing_recovery_lock,
@@ -394,7 +361,7 @@ static void finish_page_write(struct vdo_completion *completion)
 				   write_page_if_not_dirtied,
 				   &context);
 		if (dirty && attempt_increment(zone)) {
-			write_page(page, entry);
+			write_page(page, pooled);
 			return;
 		}
 
@@ -409,33 +376,34 @@ static void finish_page_write(struct vdo_completion *completion)
 		zone->flusher =
 			container_of(dequeue_next_waiter(&zone->flush_waiters),
 				     struct tree_page, waiter);
-		write_page(zone->flusher, entry);
+		write_page(zone->flusher, pooled);
 		return;
 	}
 
-	return_to_pool(zone, entry);
+	return_to_pool(zone, pooled);
 }
 
 static void handle_write_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
-	struct vio_pool_entry *entry = completion->parent;
-	struct block_map_tree_zone *zone = entry->context;
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = container_of(vio, struct pooled_vio, vio);
+	struct block_map_tree_zone *zone = pooled->context;
 
-	record_metadata_io_error(as_vio(completion));
+	record_metadata_io_error(vio);
 	enter_zone_read_only_mode(zone, result);
-	return_to_pool(zone, entry);
+	return_to_pool(zone, pooled);
 }
 
 static void write_page_endio(struct bio *bio);
 
 static void write_initialized_page(struct vdo_completion *completion)
 {
-	struct vio_pool_entry *entry = completion->parent;
-	struct block_map_tree_zone *zone =
-		(struct block_map_tree_zone *) entry->context;
-	struct tree_page *tree_page = (struct tree_page *) entry->parent;
-	struct block_map_page *page = (struct block_map_page *) entry->buffer;
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = container_of(vio, struct pooled_vio, vio);
+	struct block_map_tree_zone *zone = pooled->context;
+	struct tree_page *tree_page = completion->parent;
+	struct block_map_page *page = (struct block_map_page *) vio->data;
 	unsigned int operation = REQ_OP_WRITE | REQ_PRIO;
 
 	/*
@@ -447,7 +415,7 @@ static void write_initialized_page(struct vdo_completion *completion)
 	if (zone->flusher == tree_page)
 		operation |= REQ_PREFLUSH;
 
-	submit_metadata_vio(entry->vio,
+	submit_metadata_vio(vio,
 			    vdo_get_block_map_page_pbn(page),
 			    write_page_endio,
 			    handle_write_error,
@@ -456,24 +424,21 @@ static void write_initialized_page(struct vdo_completion *completion)
 
 static void write_page_endio(struct bio *bio)
 {
-	struct vio *vio = bio->bi_private;
-	struct vio_pool_entry *entry = vio->completion.parent;
-	struct block_map_tree_zone *zone = entry->context;
-	struct block_map_page *page = (struct block_map_page *) entry->buffer;
+	struct pooled_vio *vio = bio->bi_private;
+	struct block_map_tree_zone *zone = vio->context;
+	struct block_map_page *page = (struct block_map_page *) vio->vio.data;
 
-	continue_vio_after_io(vio,
+	continue_vio_after_io(&vio->vio,
 			      (vdo_is_block_map_page_initialized(page)
 			       ? finish_page_write
 			       : write_initialized_page),
 			      zone->map_zone->thread_id);
 }
 
-static void write_page(struct tree_page *tree_page,
-		       struct vio_pool_entry *entry)
+static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
 {
-	struct block_map_tree_zone *zone =
-		(struct block_map_tree_zone *) entry->context;
-	struct vdo_completion *completion = vio_as_completion(entry->vio);
+	struct vdo_completion *completion = vio_as_completion(&vio->vio);
+	struct block_map_tree_zone *zone = vio->context;
 	struct block_map_page *page = vdo_as_block_map_page(tree_page);
 
 	if ((zone->flusher != tree_page) &&
@@ -483,13 +448,12 @@ static void write_page(struct tree_page *tree_page,
 		 * hence we need to do another flush.
 		 */
 		enqueue_page(tree_page, zone);
-		return_to_pool(zone, entry);
+		return_to_pool(zone, vio);
 		return;
 	}
 
-	entry->parent = tree_page;
-	memcpy(entry->buffer, tree_page->page_buffer, VDO_BLOCK_SIZE);
-
+	completion->parent = tree_page;
+	memcpy(vio->vio.data, tree_page->page_buffer, VDO_BLOCK_SIZE);
 	completion->callback_thread_id = zone->map_zone->thread_id;
 
 	tree_page->writing = true;
@@ -511,7 +475,7 @@ static void write_page(struct tree_page *tree_page,
 		return;
 	}
 
-	submit_metadata_vio(entry->vio,
+	submit_metadata_vio(&vio->vio,
 			    vdo_get_block_map_page_pbn(page),
 			    write_page_endio,
 			    handle_write_error,
@@ -716,10 +680,10 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	struct block_map_page *page;
 	nonce_t nonce;
 
-	struct vio_pool_entry *entry = completion->parent;
-	struct data_vio *data_vio = entry->parent;
-	struct block_map_tree_zone *zone =
-		(struct block_map_tree_zone *) entry->context;
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
+	struct data_vio *data_vio = completion->parent;
+	struct block_map_tree_zone *zone = pooled->context;
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 
 	tree_lock->height--;
@@ -728,34 +692,35 @@ static void finish_block_map_page_load(struct vdo_completion *completion)
 	page = (struct block_map_page *) tree_page->page_buffer;
 	nonce = zone->map_zone->block_map->nonce;
 
-	if (!vdo_copy_valid_page(entry->buffer, nonce, pbn, page))
+	if (!vdo_copy_valid_page(vio->data, nonce, pbn, page))
 		vdo_format_block_map_page(page, nonce, pbn, false);
-	return_vio_to_pool(zone->vio_pool, entry);
+	return_vio_to_pool(zone->vio_pool, pooled);
 
 	/* Release our claim to the load and wake any waiters */
 	release_page_lock(data_vio, "load");
-	notify_all_waiters(&tree_lock->waiters, continue_load_for_waiter, page);
+	notify_all_waiters(&tree_lock->waiters,
+			   continue_load_for_waiter,
+			   page);
 	continue_with_loaded_page(data_vio, page);
 }
 
 static void handle_io_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
-	struct vio_pool_entry *entry = completion->parent;
-	struct data_vio *data_vio = entry->parent;
-	struct block_map_tree_zone *zone =
-		(struct block_map_tree_zone *) entry->context;
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = container_of(vio, struct pooled_vio, vio);
+	struct data_vio *data_vio = completion->parent;
+	struct block_map_tree_zone *zone = pooled->context;
 
-	record_metadata_io_error(as_vio(completion));
-	return_vio_to_pool(zone->vio_pool, entry);
+	record_metadata_io_error(vio);
+	return_vio_to_pool(zone->vio_pool, pooled);
 	abort_load(data_vio, result);
 }
 
 static void load_page_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct vio_pool_entry *entry = vio->completion.parent;
-	struct data_vio *data_vio = entry->parent;
+	struct data_vio *data_vio = vio_as_completion(vio)->parent;
 
 	continue_vio_after_io(vio,
 			      finish_block_map_page_load,
@@ -764,14 +729,14 @@ static void load_page_endio(struct bio *bio)
 
 static void load_page(struct waiter *waiter, void *context)
 {
-	struct vio_pool_entry *entry = context;
+	struct pooled_vio *pooled = context;
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct tree_lock *lock = &data_vio->tree_lock;
 	physical_block_number_t pbn =
 		lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 
-	entry->parent = data_vio;
-	submit_metadata_vio(entry->vio,
+	vio_as_completion(&pooled->vio)->parent = data_vio;
+	submit_metadata_vio(&pooled->vio,
 			    pbn,
 			    load_page_endio,
 			    handle_io_error,

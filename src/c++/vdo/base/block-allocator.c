@@ -133,23 +133,6 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	vdo_complete_completion(parent);
 }
 
-/*
- * Implements vio_constructor
- */
-EXTERNAL_STATIC int __must_check
-vdo_make_block_allocator_pool_vios(struct vdo *vdo,
-				   void *parent,
-				   void *buffer,
-				   struct vio **vio_ptr)
-{
-	return create_metadata_vio(vdo,
-				   VIO_TYPE_SLAB_JOURNAL,
-				   VIO_PRIORITY_METADATA,
-				   parent,
-				   buffer,
-				   vio_ptr);
-}
-
 static int allocate_components(struct block_allocator *allocator,
 			       struct vdo *vdo)
 {
@@ -176,8 +159,9 @@ static int allocate_components(struct block_allocator *allocator,
 	result = make_vio_pool(vdo,
 			       BLOCK_ALLOCATOR_VIO_POOL_SIZE,
 			       allocator->thread_id,
-			       vdo_make_block_allocator_pool_vios,
-			       NULL,
+			       VIO_TYPE_SLAB_JOURNAL,
+			       VIO_PRIORITY_METADATA,
+			       allocator,
 			       &allocator->vio_pool);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -937,18 +921,6 @@ void vdo_release_tail_block_locks(void *context,
 	}
 
 	vdo_complete_completion(parent);
-}
-
-void vdo_acquire_block_allocator_vio(struct block_allocator *allocator,
-				     struct waiter *waiter)
-{
-	acquire_vio_from_pool(allocator->vio_pool, waiter);
-}
-
-void vdo_return_block_allocator_vio(struct block_allocator *allocator,
-				    struct vio_pool_entry *entry)
-{
-	return_vio_to_pool(allocator->vio_pool, entry);
 }
 
 /*
