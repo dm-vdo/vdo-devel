@@ -66,9 +66,8 @@ static int allocate_vio_components(struct vdo *vdo,
 		return result;
 
 	result = vdo_create_multi_block_bio(block_count, &bio);
-	if (result != VDO_SUCCESS) {
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	initialize_vio(vio,
 		       bio,
