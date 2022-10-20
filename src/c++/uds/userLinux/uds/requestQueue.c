@@ -17,12 +17,7 @@
 #include "time-utils.h"
 
 /*
- * This queue will handle requests in the order in which they are received, and
- * it will attempt to handle requeued requests before the main queue. However,
- * the nature of funnel queues means that it cannot guarantee this ordering.
- * This prioritization is merely a hint.
- *
- * The queue will also attempt to handle requests in reasonably sized batches
+ * This queue will attempt to handle requests in reasonably sized batches
  * instead of reacting immediately to each new request. The wait time between
  * batches is dynamically adjusted up or down to try to balance responsiveness
  * against wasted thread run time.
