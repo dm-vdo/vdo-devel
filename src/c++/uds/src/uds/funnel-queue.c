@@ -9,43 +9,6 @@
 #include "permassert.h"
 #include "uds.h"
 
-/*
- * A funnel queue is a simple (almost) lock-free queue that accepts entries
- * from multiple threads (multi-producer) and delivers them to a single thread
- * (single-consumer). "Funnel" is an attempt to evoke the image of requests
- * from more than one producer being "funneled down" to a single consumer.
- *
- * This is an unsynchronized but thread-safe data structure when used as
- * intended. There is no mechanism to ensure that only one thread is consuming
- * from the queue. If more than one thread attempts to comsume from the queue,
- * the resulting behavior is undefined. Clients must not directly access or
- * manipulate the internals of the queue, which are only exposed for the
- * purpose of allowing the very simple enqueue operation to be inlined.
- *
- * The implementation requires that a funnel_queue_entry structure (a link
- * pointer) is embedded in the queue entries, and pointers to those structures
- * are used exclusively by the queue. No macros are defined to template the
- * queue, so the offset of the funnel_queue_entry in the records placed in the
- * queue must all be the same so the client can derive their structure pointer
- * from the entry pointer returned by funnel_queue_poll().
- *
- * Callers are wholly responsible for allocating and freeing the entries.
- * Entries may be freed as soon as they are returned since this queue is not
- * susceptible to the "ABA problem" present in many lock-free data structures.
- * The queue is dynamically allocated to ensure cache-line alignment, but no
- * other dynamic allocation is used.
- *
- * The algorithm is not actually 100% lock-free. There is a single point in
- * funnel_queue_put() at which a preempted producer will prevent the consumers
- * from seeing items added to the queue by later producers, and only if the
- * queue is short enough or the consumer fast enough for it to reach what was
- * the end of the queue at the time of the preemption.
- *
- * The consumer function, funnel_queue_poll(), will return NULL when the queue
- * is empty. To wait for data to consume, spin (if safe) or combine the queue
- * with a struct event_count to signal the presence of new entries.
- */
-
 int make_funnel_queue(struct funnel_queue **queue_ptr)
 {
 	int result;
