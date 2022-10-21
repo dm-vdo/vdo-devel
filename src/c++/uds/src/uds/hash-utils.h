@@ -12,6 +12,8 @@
 #include "numeric.h"
 #include "uds.h"
 
+/* Utilities for extracting portions of a request name for various uses. */
+
 /* How various portions of a record name are apportioned. */
 enum {
 	VOLUME_INDEX_BYTES_OFFSET = 0,

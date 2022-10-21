@@ -21,6 +21,8 @@
 #endif
 #include "type-defs.h"
 
+/* Custom memory allocation functions for UDS that track memory usage */
+
 int __must_check uds_allocate_memory(size_t size,
 				     size_t align,
 				     const char *what,

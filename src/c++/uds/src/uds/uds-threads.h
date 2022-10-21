@@ -24,6 +24,8 @@
 #include "errors.h"
 #include "time-utils.h"
 
+/* Thread and synchronization utilities for UDS */
+
 #ifdef __KERNEL__
 struct cond_var {
 	struct event_count *event_count;

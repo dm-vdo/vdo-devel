@@ -9,6 +9,8 @@
 #include "compiler.h"
 #include "type-defs.h"
 
+/* Custom error codes and error-related utilities for UDS */
+
 #ifdef TEST_INTERNAL
 /*
  * If you add a value to this enum be sure to add a corresponding

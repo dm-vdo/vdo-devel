@@ -9,6 +9,8 @@
 #include "compiler.h"
 #include "errors.h"
 
+/* Utilities for asserting that certain conditions are met */
+
 #define STRINGIFY(X) #X
 #define STRINGIFY_VALUE(X) STRINGIFY(X)
 

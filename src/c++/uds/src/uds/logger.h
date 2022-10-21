@@ -14,6 +14,8 @@
 #include "minisyslog.h"
 #endif
 
+/* Custom logging utilities for UDS */
+
 #ifdef __KERNEL__
 #define UDS_LOG_EMERG 0
 #define UDS_LOG_ALERT 1

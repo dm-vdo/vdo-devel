@@ -12,10 +12,6 @@
 #include "uds.h"
 
 #if !defined(__KERNEL__) || defined(TEST_INTERNAL)
-/*
- * Allocate memory to contain a formatted string. The caller is responsible for
- * freeing the allcated memory.
- */
 int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 {
 	va_list args;
@@ -43,7 +39,6 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 
 #endif /* (not __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
-/* Format a string into a fixed-size buffer, similar to snprintf. */
 int uds_fixed_sprintf(char *buf,
 		      size_t buf_size,
 		      const char *fmt,
@@ -73,7 +68,6 @@ int uds_fixed_sprintf(char *buf,
 }
 
 #endif /* TEST_INTERNAL */
-/* Append a formatted string to the end of a buffer. */
 char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 {
 	va_list args;
