@@ -25,7 +25,7 @@
 
 #include "bio.h"
 #include "block-map.h"
-#include "data-vio-pool.h"
+#include "data-vio.h"
 #include "dedupe.h"
 #include "device-registry.h"
 #include "header.h"

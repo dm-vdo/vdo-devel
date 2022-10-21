@@ -12,7 +12,7 @@
 #include "admin-completion.h"
 #include "block-map.h"
 #include "completion.h"
-#include "data-vio-pool.h"
+#include "data-vio.h"
 #include "dedupe.h"
 #include "kernel-types.h"
 #include "logical-zone.h"

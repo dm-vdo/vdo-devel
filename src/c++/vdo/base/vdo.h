@@ -21,7 +21,6 @@
 #include "admin-completion.h"
 #include "admin-state.h"
 #include "bio.h"
-#include "data-vio-pool.h"
 #include "device-config.h"
 #include "header.h"
 #include "packer.h"
@@ -74,6 +73,8 @@ struct atomic_statistics {
 	struct atomic_bio_stats bios_page_cache;
 	struct atomic_bio_stats bios_page_cache_completed;
 };
+
+struct data_vio_pool;
 
 struct vdo {
 	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];

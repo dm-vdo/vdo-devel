@@ -269,8 +269,6 @@ tarballs:
             constants.h
             data-vio.c
             data-vio.h
-            data-vio-pool.c
-            data-vio-pool.h
             dedupe.c
             dedupe.h
             device-config.c

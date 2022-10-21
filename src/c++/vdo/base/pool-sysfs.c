@@ -7,7 +7,7 @@
 
 #include "memory-alloc.h"
 
-#include "data-vio-pool.h"
+#include "data-vio.h"
 #include "dedupe.h"
 #include "vdo.h"
 

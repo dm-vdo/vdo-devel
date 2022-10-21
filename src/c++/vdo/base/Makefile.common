@@ -24,7 +24,6 @@ BASE_OBJS :=     			\
 	compression-state.o		\
 	constants.o			\
 	data-vio.o			\
-	data-vio-pool.o                 \
         dedupe.o                        \
 	device-config.o			\
         device-registry.o		\

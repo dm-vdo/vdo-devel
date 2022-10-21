@@ -7,7 +7,7 @@
 
 #include "bio.h"
 #include "constants.h"
-#include "data-vio-pool.h"
+#include "data-vio.h"
 #include "dedupe.h"
 #include "device-registry.h"
 #include "dump.h"
