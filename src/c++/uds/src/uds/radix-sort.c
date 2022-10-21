@@ -11,13 +11,6 @@
 #include "type-defs.h"
 
 /*
- * Radix sort is implemented using an American Flag sort, an unstable, in-place
- * 8-bit radix exchange sort. This is adapted from the algorithm in the paper
- * by Peter M. McIlroy, Keith Bostic, and M. Douglas McIlroy, "Engineering
- * Radix Sort".
- *
- * http://www.usenix.org/publications/compsystems/1993/win_mcilroy.pdf
- *
  * This implementation allocates one large object to do the sorting, which can
  * be reused as many times as desired. The amount of memory required is
  * logarithmically proportional to the number of keys to be sorted.
