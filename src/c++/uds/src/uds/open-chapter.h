@@ -12,6 +12,12 @@
 #include "index.h"
 #include "volume.h"
 
+/*
+ * The open chapter tracks the newest records in memory. Like the index as a
+ * whole, each open chapter is divided into a number of independent zones which
+ * are interleaved when the chapter is committed to the volume.
+ */
+
 enum {
 	OPEN_CHAPTER_RECORD_NUMBER_BITS = 23,
 };

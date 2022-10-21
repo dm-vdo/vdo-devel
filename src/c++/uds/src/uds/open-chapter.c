@@ -16,17 +16,14 @@
 #include "permassert.h"
 
 /*
- * The open chapter tracks the newest records in memory. Although it is
- * notionally a single collection, each index zone has a dedicated open chapter
- * zone structure and an equal share of the available record space. Records are
- * assigned to zones based on their record name.
- *
- * Within each zone, records are stored in an array in the order they arrive.
- * Additionally, a reference to each record is stored in a hash table to help
- * determine if a new record duplicates an existing one. If new metadata for an
- * existing name arrives, the record is altered in place. The array of records
- * is 1-based so that record number 0 can be used to indicate an unused hash
- * slot.
+ * Each index zone has a dedicated open chapter zone structure which gets an
+ * equal share of the open chapter space. Records are assigned to zones based
+ * on their record name. Within each zone, records are stored in an array in
+ * the order they arrive.  Additionally, a reference to each record is stored
+ * in a hash table to help determine if a new record duplicates an existing
+ * one. If new metadata for an existing name arrives, the record is altered in
+ * place. The array of records is 1-based so that record number 0 can be used
+ * to indicate an unused hash slot.
  *
  * Deleted records are marked with a flag rather than actually removed to
  * simplify hash table management. The array of deleted flags overlays the
