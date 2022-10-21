@@ -48,7 +48,6 @@ BASE_OBJS :=     			\
 	recovery-journal.o		\
 	recovery-journal-block.o	\
 	recovery-journal-format.o	\
-	recovery-utils.o		\
 	ref-counts.o			\
 	reference-count-rebuild.o	\
 	reference-operation.o		\

@@ -14,7 +14,6 @@
 #include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal.h"
-#include "recovery-utils.h"
 #include "reference-count-rebuild.h"
 #include "slab-depot.h"
 #include "thread-config.h"

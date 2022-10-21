@@ -19,7 +19,6 @@
 #include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal.h"
-#include "recovery-utils.h"
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"

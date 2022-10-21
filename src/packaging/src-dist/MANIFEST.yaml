@@ -327,8 +327,6 @@ tarballs:
             recovery-journal-entry.h
             recovery-journal-format.c
             recovery-journal-format.h
-            recovery-utils.c
-            recovery-utils.h
             ref-counts.c
             ref-counts.h
             reference-count-rebuild.c
