@@ -14,6 +14,13 @@
 #include "config.h"
 #include "io-factory.h"
 #include "uds.h"
+
+/*
+ * The index layout describes the format of the index on the underlying
+ * storage, and is responsible for creating those structures when the index is
+ * first created. It also validates the index data when loading a saved index,
+ * and updates it when saving the index.
+ */
 #ifdef TEST_INTERNAL
 
 extern atomic_t saves_begun;
