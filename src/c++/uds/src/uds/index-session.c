@@ -15,9 +15,7 @@
 #include "time-utils.h"
 
 /*
- * The index session mediates all interactions with a UDS index. Once the
- * session is created, it can be used to open, close, suspend, or recreate an
- * index. The session contains a lock (the request_mutex) which ensures that
+ * The index session contains a lock (the request_mutex) which ensures that
  * only one thread can change the state of its index at a time. The state field
  * indicates the current state of the index through a set of descriptive
  * flags. The request_mutex must be notified whenever a non-transient state
@@ -34,11 +32,6 @@
  * abandoned and the rebuild will start from the beginning the next time the
  * index is loaded. The mutex and status fields in the index_load_context are
  * used to record the state of any interrupted rebuild.
- *
- * If any deduplication request fails due to an internal error, the index is
- * marked disabled. It will not accept any further requests and can only be
- * closed. Closing the index will clear the disabled flag, and the index can
- * then be reopened and recovered.
  */
 
 enum index_session_flag_bit {
