@@ -11,7 +11,6 @@
 /*
  * Forward declarations of abstract types
  */
-struct block_allocator;
 struct data_vio;
 struct vdo;
 struct vio;

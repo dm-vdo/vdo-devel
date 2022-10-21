@@ -9,7 +9,9 @@
 #ifndef BLOCK_ALLOCATOR_UTILS_H
 #define BLOCK_ALLOCATOR_UTILS_H
 
-#include "kernel-types.h"
+#include "types.h"
+
+struct block_allocator;
 
 /**
  * Reserve a specified number of VIOs from an allocator's vio pool.
