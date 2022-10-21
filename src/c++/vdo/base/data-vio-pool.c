@@ -193,33 +193,6 @@ static bool check_for_drain_complete_locked(struct data_vio_pool *pool)
 		bio_list_empty(&pool->discard_limiter.new_waiters));
 }
 
-/*
- * Reset a data_vio which has just been acquired from the pool.
- */
-static void reset_data_vio(struct data_vio *data_vio, struct vdo *vdo)
-{
-	struct vio *vio = data_vio_as_vio(data_vio);
-	/*
-	 * FIXME: We save the bio out of the vio so that we don't forget it.
-	 * Maybe we should just not zero that field somehow.
-	 */
-	struct bio *bio = vio->bio;
-
-	/*
-	 * Zero out the fields which don't need to be preserved (i.e. which
-	 * are not pointers to separately allocated objects).
-	 */
-	memset(data_vio, 0, offsetof(struct data_vio, compression));
-	memset(&data_vio->compression, 0, offsetof(struct compression_state,
-						   block));
-	initialize_vio(vio,
-		       bio,
-		       1,
-		       VIO_TYPE_DATA,
-		       VIO_PRIORITY_DATA,
-		       vdo);
-}
-
 static void launch_bio(struct vdo *vdo,
 		       struct data_vio *data_vio,
 		       struct bio *bio)
@@ -235,8 +208,14 @@ static void launch_bio(struct vdo *vdo,
 		enter_histogram_sample(vdo->histograms.start_request_histogram,
 				       startup_jiffies);
 #endif /* VDO_INTERNAL */
+	/*
+	 * Zero out the fields which don't need to be preserved (i.e. which
+	 * are not pointers to separately allocated objects).
+	 */
+	memset(data_vio, 0, offsetof(struct data_vio, vio));
+	memset(&data_vio->compression, 0, offsetof(struct compression_state,
+						   block));
 
-	reset_data_vio(data_vio, vdo);
 	data_vio->user_bio = bio;
 	data_vio->offset = to_bytes(bio->bi_iter.bi_sector
 				    & VDO_SECTORS_PER_BLOCK_MASK);
@@ -261,12 +240,14 @@ static void launch_bio(struct vdo *vdo,
 	} else if (bio_data_dir(bio) == READ) {
 		operation = DATA_VIO_READ;
 	} else {
+		struct vio *vio = data_vio_as_vio(data_vio);
+
 		/*
 		 * Copy the bio data to a char array so that we can continue to
 		 * use the data after we acknowledge the bio.
 		 */
-		vdo_bio_copy_data_in(bio, data_vio->data_block);
-		data_vio->is_zero_block = is_zero_block(data_vio->data_block);
+		vdo_bio_copy_data_in(bio, vio->data);
+		data_vio->is_zero_block = is_zero_block(vio->data);
 	}
 
 	if (data_vio->user_bio->bi_opf & REQ_FUA)
@@ -541,8 +522,9 @@ int make_data_vio_pool(struct vdo *vdo,
 	for (i = 0; i < pool_size; i++) {
 		struct data_vio *data_vio = &pool->data_vios[i];
 
-		result = initialize_data_vio(data_vio);
+		result = initialize_data_vio(data_vio, vdo);
 		if (result != VDO_SUCCESS) {
+			destroy_data_vio(data_vio);
 			free_data_vio_pool(pool);
 			return result;
 		}

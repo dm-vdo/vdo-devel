@@ -1488,7 +1488,7 @@ static void verify_callback(struct vdo_completion *completion)
 {
 	struct data_vio *agent = as_data_vio(completion);
 
-	agent->is_duplicate = blocks_equal(agent->data_block,
+	agent->is_duplicate = blocks_equal(data_vio_as_vio(agent)->data,
 					   agent->scratch_block);
 	launch_data_vio_hash_zone_callback(agent, finish_verifying);
 }
@@ -2243,8 +2243,8 @@ static bool is_hash_collision(struct hash_lock *lock,
 
 	lock_holder = data_vio_from_lock_entry(lock->duplicate_ring.next);
 	zone = candidate->hash_zone;
-	collides = !blocks_equal(lock_holder->data_block,
-				 candidate->data_block);
+	collides = !blocks_equal(data_vio_as_vio(lock_holder)->data,
+				 data_vio_as_vio(candidate)->data);
 	if (collides)
 		increment_stat(&zone->statistics.concurrent_hash_collisions);
 	else

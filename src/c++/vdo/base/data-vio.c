@@ -122,35 +122,43 @@ enum data_vio_cleanup_stage {
 
 void destroy_data_vio(struct data_vio *data_vio)
 {
+	struct vio *vio;
+
 	if (data_vio == NULL)
 		return;
 
-	vdo_free_bio(UDS_FORGET(data_vio_as_vio(data_vio)->bio));
+	vio = data_vio_as_vio(data_vio);
+	vdo_free_bio(UDS_FORGET(vio->bio));
+	UDS_FREE(UDS_FORGET(vio->data));
 	UDS_FREE(UDS_FORGET(data_vio->compression.block));
-	UDS_FREE(UDS_FORGET(data_vio->data_block));
 	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
 }
 
 /**
- * allocate_data_vio_components() - Allocate the components of a data_vio.
+ * initialize_data_vio() - Allocate the components of a data_vio.
  * @data_vio: The data_vio being constructed.
+ * @vdo: The vdo on which the data_vio will operate
+ *
+ * The caller is responsible for cleaning up the data_vio on error.
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check allocate_data_vio_components(struct data_vio *data_vio)
+int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 {
-	struct vio *vio;
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct bio *bio;
 	int result;
 
 	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
-	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio data",
-				     &data_vio->data_block);
+	result = uds_allocate_memory(VDO_BLOCK_SIZE,
+				     0,
+				     "data_vio data",
+				     &vio->data);
 	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "data_vio data allocation failure");
 
-	vio = data_vio_as_vio(data_vio);
-	result = vdo_create_bio(&vio->bio);
+	result = vdo_create_bio(&bio);
 	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "data_vio data bio allocation failure");
@@ -169,17 +177,8 @@ static int __must_check allocate_data_vio_components(struct data_vio *data_vio)
 		return uds_log_error_strerror(result,
 					      "data_vio scratch allocation failure");
 
+	initialize_vio(vio, bio, 1, VIO_TYPE_DATA, VIO_PRIORITY_DATA, vdo);
 	return VDO_SUCCESS;
-}
-
-int initialize_data_vio(struct data_vio *data_vio)
-{
-	int result = allocate_data_vio_components(data_vio);
-
-	if (result != VDO_SUCCESS)
-		destroy_data_vio(data_vio);
-
-	return result;
 }
 
 /**
@@ -281,9 +280,10 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 	 */
 	if (is_read_data_vio(data_vio) &&
 	    READ_ONCE(lock_holder->allocation_succeeded)) {
+		struct vio *vio = data_vio_as_vio(lock_holder);
+
 		vdo_bio_copy_data_out(data_vio->user_bio,
-				      (lock_holder->data_block +
-				       data_vio->offset));
+				      (vio->data + data_vio->offset));
 		acknowledge_data_vio(data_vio);
 		complete_data_vio(completion);
 		return;
@@ -848,7 +848,7 @@ void compress_data_vio(struct data_vio *data_vio)
 	 * block data field, we won't need to copy it if this data_vio
 	 * becomes a compressed write agent.
 	 */
-	size = LZ4_compress_default(data_vio->data_block,
+	size = LZ4_compress_default(data_vio_as_vio(data_vio)->data,
 				    data_vio->compression.block->data,
 				    VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
@@ -928,22 +928,22 @@ bool is_zero_block(char *block)
 static void modify_for_partial_write(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	char *data = data_vio_as_vio(data_vio)->data;
 	struct bio *bio = data_vio->user_bio;
 
 	assert_data_vio_on_cpu_thread(data_vio);
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		memset(data_vio->data_block + data_vio->offset,
+		memset(data + data_vio->offset,
 		       '\0',
 		       min_t(uint32_t,
 			     data_vio->remaining_discard,
 			     VDO_BLOCK_SIZE - data_vio->offset));
 	} else {
-		vdo_bio_copy_data_in(bio,
-				     data_vio->data_block + data_vio->offset);
+		vdo_bio_copy_data_in(bio, data + data_vio->offset);
 	}
 
-	data_vio->is_zero_block = is_zero_block(data_vio->data_block);
+	data_vio->is_zero_block = is_zero_block(data);
 	data_vio->io_operation =
 		(DATA_VIO_WRITE |
 		 (data_vio->io_operation & ~DATA_VIO_READ_WRITE_MASK));
@@ -954,6 +954,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 static void complete_read(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	char *data = data_vio_as_vio(data_vio)->data;
 	bool compressed = vdo_is_state_compressed(data_vio->mapped.state);
 
 	assert_data_vio_on_cpu_thread(data_vio);
@@ -961,7 +962,7 @@ static void complete_read(struct vdo_completion *completion)
 	if (compressed) {
 		int result = uncompress_data_vio(data_vio,
 						 data_vio->mapped.state,
-						 data_vio->data_block);
+						 data);
 
 		if (result != VDO_SUCCESS) {
 			continue_data_vio_with_error(data_vio, result);
@@ -976,7 +977,7 @@ static void complete_read(struct vdo_completion *completion)
 
 	if (compressed || data_vio->is_partial) {
 		vdo_bio_copy_data_out(data_vio->user_bio,
-				      data_vio->data_block + data_vio->offset);
+				      data + data_vio->offset);
 	}
 
 	acknowledge_data_vio(data_vio);
@@ -1006,7 +1007,7 @@ static void complete_zero_read(struct vdo_completion *completion)
 	assert_data_vio_on_cpu_thread(data_vio);
 
 	if (data_vio->is_partial) {
-		memset(data_vio->data_block, 0, VDO_BLOCK_SIZE);
+		memset(data_vio_as_vio(data_vio)->data, 0, VDO_BLOCK_SIZE);
 		if (!is_read_data_vio(data_vio)) {
 			modify_for_partial_write(completion);
 			return;
@@ -1051,7 +1052,7 @@ static void read_block(struct vdo_completion *completion)
 		if (is_read_modify_write_data_vio(data_vio) ||
 		    (data_vio->is_partial)) {
 			result = prepare_data_vio_for_io(data_vio,
-							 data_vio->data_block,
+							 vio->data,
 							 read_endio,
 							 opf,
 							 data_vio->mapped.pbn);
@@ -1475,7 +1476,7 @@ static void hash_data_vio(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY(!data_vio->is_zero_block,
 			"zero blocks should not be hashed");
 
-	murmurhash3_128(data_vio->data_block,
+	murmurhash3_128(data_vio_as_vio(data_vio)->data,
 			VDO_BLOCK_SIZE,
 			0x62ea60be,
 			&data_vio->record_name);
@@ -1680,7 +1681,7 @@ static void write_block(struct data_vio *data_vio)
 
 	/* Write the data from the data block buffer. */
 	result = prepare_data_vio_for_io(data_vio,
-					 data_vio->data_block,
+					 data_vio_as_vio(data_vio)->data,
 					 write_bio_finished,
 					 REQ_OP_WRITE,
 					 data_vio->allocation.pbn);

@@ -96,7 +96,7 @@ static bool isRequestComplete(void *context)
 static bool dataVIOReleased(void *context)
 {
   struct vdo_completion *completion = context;
-  IORequest *request = ((BIO *) completion->parent)->request;
+  IORequest *request = ((BIO *) UDS_FORGET(completion->parent))->request;
   if (request->result == VDO_SUCCESS) {
     request->result = completion->result;
   }

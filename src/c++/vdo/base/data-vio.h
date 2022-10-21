@@ -205,9 +205,6 @@ struct allocation {
  * A vio for processing user data requests.
  */
 struct data_vio {
-	/* The underlying struct vio */
-	struct vio vio;
-
 	/* The wait_queue entry structure */
 	struct waiter waiter;
 
@@ -317,18 +314,11 @@ struct data_vio {
 	 * is reused.
 	 */
 
+	/* The underlying struct vio */
+	struct vio vio;
+
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
-
-	/*
-	 * A copy of user data written, so we can do additional processing
-	 * (dedupe, compression) after acknowledging the I/O operation and
-	 * thus losing access to the original data.
-	 *
-	 * Also used as buffer space for read-modify-write cycles when
-	 * emulating smaller-than-blockSize I/O operations.
-	 */
-	char *data_block;
 
 	/* A block used as output during compression or uncompression */
 	char *scratch_block;
@@ -551,7 +541,8 @@ static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 
 void destroy_data_vio(struct data_vio *data_vio);
 
-int __must_check initialize_data_vio(struct data_vio *data_vio);
+int __must_check
+initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo);
 
 void launch_data_vio(struct data_vio *data_vio,
 		     logical_block_number_t lbn,
