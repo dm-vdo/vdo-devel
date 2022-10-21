@@ -7,6 +7,7 @@
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
+#include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 #ifndef VDO_UPSTREAM
@@ -44,30 +45,29 @@ struct vdo_work_queue {
 
 struct simple_work_queue {
 	struct vdo_work_queue common;
-	/*
-	 * Number of priorities actually used, so we don't keep re-checking
-	 * unused funnel queues.
-	 */
-	unsigned int num_priority_lists;
-	/* Has the worker thread started up yet? */
-	bool started;
-	/* Wait list for synchronization during worker thread startup */
-	wait_queue_head_t start_waiters;
-
 	struct funnel_queue *priority_lists[VDO_WORK_Q_MAX_PRIORITY + 1];
-	struct task_struct *thread;
 	void *private;
 
 	/*
-	 * The fields above are unchanged after setup and are good candidates
-	 * for caching. The fields below are often modified as we sleep and
-	 * wake, so use a new cache line for performance.
+	 * The fields above are unchanged after setup but often read, and are
+	 * good candidates for caching -- and if the max priority is 2, just
+	 * fit in one x86-64 cache line if aligned. The fields below are often
+	 * modified as we sleep and wake, so we want a separate cache line for
+	 * performance.
 	 */
 
 	/* Any (0 or 1) worker threads waiting for new work to do */
 	wait_queue_head_t waiting_worker_threads ____cacheline_aligned;
 	/* Hack to reduce wakeup calls if the worker thread is running */
 	atomic_t idle;
+
+	/*
+	 * These are infrequently used so in terms of performance we don't care
+	 * where they land.
+	 */
+	struct task_struct *thread;
+	/* Notify creator once worker has initialized */
+	struct completion *started;
 };
 
 struct round_robin_work_queue {
@@ -109,7 +109,7 @@ poll_for_completion(struct simple_work_queue *queue)
 	struct vdo_completion *completion = NULL;
 	int i;
 
-	for (i = queue->num_priority_lists - 1; i >= 0; i--) {
+	for (i = queue->common.type->max_priority; i >= 0; i--) {
 		struct funnel_queue_entry *link =
 			funnel_queue_poll(queue->priority_lists[i]);
 		if (link != NULL) {
@@ -135,7 +135,7 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY)
 		completion->priority = queue->common.type->default_priority;
 
-	if (ASSERT(completion->priority < queue->num_priority_lists,
+	if (ASSERT(completion->priority <= queue->common.type->max_priority,
 		   "priority is in range for queue") != VDO_SUCCESS)
 		completion->priority = 0;
 
@@ -295,11 +295,8 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
-
-	WRITE_ONCE(queue->started, true);
-	wake_up(&queue->start_waiters);
+	complete(queue->started);
 	service_work_queue(queue);
-
 	return 0;
 }
 
@@ -350,6 +347,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
 {
+	DECLARE_COMPLETION_ONSTACK(started);
 	struct simple_work_queue *queue;
 	int i;
 	struct task_struct *thread = NULL;
@@ -368,8 +366,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return result;
 
 	queue->private = private;
+	queue->started = &started;
 	queue->common.type = type;
 	queue->common.owner = owner;
+	init_waitqueue_head(&queue->waiting_worker_threads);
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
@@ -377,11 +377,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return -ENOMEM;
 	}
 
-	init_waitqueue_head(&queue->waiting_worker_threads);
-	init_waitqueue_head(&queue->start_waiters);
-
-	queue->num_priority_lists = type->max_priority + 1;
-	for (i = 0; i < queue->num_priority_lists; i++) {
+	for (i = 0; i <= type->max_priority; i++) {
 		result = make_funnel_queue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
@@ -389,7 +385,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	queue->started = false;
 	thread = kthread_run(work_queue_runner,
 			     queue,
 			     "%s:%s",
@@ -410,7 +405,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	 * Eventually we should just make that path safe too, and then we
 	 * won't need this synchronization.
 	 */
-	wait_event(queue->start_waiters, READ_ONCE(queue->started));
+	wait_for_completion(&started);
 
 	*queue_ptr = queue;
 	return UDS_SUCCESS;
