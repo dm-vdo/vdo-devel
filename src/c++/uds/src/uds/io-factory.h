@@ -10,6 +10,13 @@
 
 #include "type-defs.h"
 
+/*
+ * The I/O factory manages all low-level I/O operations to the underlying
+ * storage device. Its main clients are the index layout and the volume. The
+ * buffered reader and buffered writer interfaces are helpers for accessing
+ * data in a contiguous range of storage blocks.
+ */
+
 struct buffered_reader;
 struct buffered_writer;
 
