@@ -17,14 +17,11 @@
 #include "uds.h"
 
 /*
- *  Each volume maintains an index page map which records how the chapter delta
- *  lists are distributed among the index pages for that chapter.
- *
- *  The map is conceptually a two-dimensional array indexed by chapter number
- *  and index page number within the chapter. Each entry contains the number
- *  of the last delta list on that index page. In order to save memory, the
- *  information for the last page in each chapter is not recorded, as it is
- *  known from the geometry.
+ * The index page map is conceptually a two-dimensional array indexed by
+ * chapter number and index page number within the chapter. Each entry
+ * contains the number of the last delta list on that index page. In order to
+ * save memory, the information for the last page in each chapter is not
+ * recorded, as it is known from the geometry.
  */
 
 static const byte PAGE_MAP_MAGIC[] = "ALBIPM02";
