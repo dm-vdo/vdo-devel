@@ -12,7 +12,20 @@
 #include "volume.h"
 #include "volume-index.h"
 
+/*
+ * The index is a high-level structure which represents the totality
+ * of the UDS index. It manages the queues for incoming requests and
+ * dispatches them to the appropriate sub-components like the volume
+ * or the volume index. It also manages administrative tasks such as
+ * saving and loading the index.
+ *
+ * The index is divided into a number of independent zones and assigns
+ * each request to a zone based on its name. Most sub-components are
+ * similarly divided into zones as well so that requests in each zone
+ * usually operate without interference or coordination between zones.
+ */
 #ifdef TEST_INTERNAL
+
 extern atomic_t chapters_replayed;
 extern atomic_t chapters_written;
 #endif /* TEST_INTERNAL */
