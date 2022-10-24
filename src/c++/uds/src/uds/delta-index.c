@@ -20,17 +20,11 @@
 #include "uds.h"
 
 /*
- * A delta index is a key-value store, where each entry maps an address (the
- * key) to a payload (the value). The entries are sorted by address, and only
- * the delta between successive addresses is stored in the entry. The
- * addresses are assumed to be uniformly distributed, and the deltas are
- * therefore exponentially distributed.
- *
- * The entries could be stored in a single delta list, but for efficiency we
- * use multiple delta lists. These lists are stored in a single chunk of
- * memory managed by the delta_zone structure. The delta_zone can move the
- * data around within its memory, so we never keep any byte pointers into the
- * memory. We only keep offsets into the memory.
+ * The entries in a delta index could be stored in a single delta list, but for
+ * efficiency it uses multiple delta lists. These lists are stored in a single
+ * chunk of memory managed by the delta_zone structure. The delta_zone can move
+ * the data around within its memory, so it never keeps any reference pointers,
+ * only bit offsets into the memory.
  *
  * The delta lists are stored as bit streams. These bit streams are stored in
  * little endian order, and all offsets into delta_memory are bit offsets.
@@ -50,23 +44,21 @@
  *
  * The Huffman code is driven by 3 parameters:
  *
- *  MINBITS   This is the number of bits in the smallest code
+ *  MINBITS   The number of bits in the smallest code
+ *  BASE      The number of values coded using a code of length MINBITS
+ *  INCR      The number of values coded by using one additional bit
  *
- *  BASE      This is the number of values coded using a code of length MINBITS
- *
- *  INCR      This is the number of values coded by using one additional bit
- *
- * These parameters are related by:
+ * These parameters are related by this equation:
  *
  *	BASE + INCR == 1 << MINBITS
  *
- * When we create an index, we need to know the mean delta. From the mean
- * delta, we compute these three parameters. The math for the Huffman code of
- * an exponential distribution says that we compute
+ * When an index is created, it needs to know the mean delta. From the mean
+ * delta, these three parameters can be computed. The math for the Huffman code
+ * of an exponential distribution says that
  *
  *	INCR = log(2) * MEAN_DELTA
  *
- * Then we find the smallest MINBITS so that
+ * Then use the smallest MINBITS value so that
  *
  *	(1 << MINBITS) > INCR
  *
@@ -74,7 +66,7 @@
  *
  *	BASE = (1 << MINBITS) - INCR
  *
- * Now we need a code such that
+ * Now the index can generate a code such that
  *
  * - The first BASE values code using MINBITS bits.
  * - The next INCR values code using MINBITS+1 bits.
@@ -105,49 +97,38 @@
  *	 DELTA = T2 * INCR + T1;
  *   }
  *
- * The bit field utilities that we use on the delta lists assume that it is
- * possible to read a few bytes beyond the end of the bit field, so we make
- * sure to allocate some extra bytes at the end of memory containing the delta
- * lists. Consult the bit utilities documentation for more details.
+ * Within the delta list encoding, bits and bytes are numbered in little endian
+ * order. Within a byte, bit 0 is the least significant bit (0x1), and bit 7 is
+ * the most significant bit (0x80). Within a bit stream, bit 7 is the most
+ * signficant bit of byte 0, and bit 8 is the least significant bit of byte 1.
+ * Within a byte array, a byte's number corresponds to its index in the array.
  *
- * Note that the decode bit stream code includes a step that skips over 0 bits
- * until the first 1 bit is found. A corrupted delta list could cause this
- * step to run off the end of the delta list memory. As an extra protection
- * against this happening, the guard bytes at the end should be set to all
- * ones.
- */
-
-/*
  * The delta_zone structure manages the memory that stores delta lists.
  * Because the volume index can contain a million delta lists or more, we
  * want to be efficient with the delta list header size.
  *
  * The delta list information is encoded into 16 bytes per list. The volume
- * index delta list memory can easily exceed 4 gigabits, so we must use a
- * uint64_t to address the memory. The volume index delta lists average around
- * 6 kilobits, so we can represent the size of a delta list with a uint16_t.
+ * index delta list memory can easily exceed 4 gigabits, so a 64 bit value is
+ * needed to address the memory. The volume index delta lists average around
+ * 6 kilobits, so the size of a delta list can be stored in a 16-bit value.
  *
- * The delta memory contains N delta lists, which are guarded by two
- * empty delta lists. The valid delta lists are numbered 1 to N, and the
+ * The bit field utilities used on the delta lists assume that it is possible
+ * to read a few bytes beyond the end of the bit field, so a delta_zone memory
+ * allocation is guarded by two invalid delta lists to prevent reading outside
+ * the delta_zone memory. The valid delta lists are numbered 1 to N, and the
  * guard lists are numbered 0 and N+1.
  *
- * The delta_zone supports two different forms. The mutable form is created
- * by initialize_delta_zone(), and is used for the volume index and for open
- * chapter indexes. The immutable form is created by
- * initialize_delta_zone_page(), and is used for cached chapter index
- * pages. The immutable form does not allocate delta list headers or temporary
- * offsets, and thus is somewhat more memory efficient.
- */
-
-/*
- * These bit stream and bit field utility routines are used for the delta
- * indexes, which are not byte-aligned.
+ * The functions to decode the bit streams include a step that skips over bits
+ * set to 0 until the first 1 bit is found. A corrupted delta list could cause
+ * this step to run off the end of the delta_zone memory. As extra protection
+ * against this happening, the guard list at the end is set to all ones.
  *
- * Bits and bytes are numbered in little endian order. Within a byte, bit 0
- * is the least significant bit (0x1), and bit 7 is the most significant bit
- * (0x80). Within a bit stream, bit 7 is the most signficant bit of byte 0,
- * and bit 8 is the least significant bit of byte 1. Within a byte array, a
- * byte's number corresponds to its index in the array.
+ * The delta_zone supports two different forms. The mutable form is created by
+ * initialize_delta_zone(), and is used for the volume index and for open
+ * chapter indexes. The immutable form is created by
+ * initialize_delta_zone_page(), and is used for closed (and cached) chapter
+ * index pages. The immutable form does not allocate delta list headers or
+ * temporary offsets, and thus is somewhat more memory efficient.
  *
  * This implementation assumes that the native machine is little endian, and
  * that performance is very important.

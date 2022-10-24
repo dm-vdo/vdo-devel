@@ -16,6 +16,21 @@
 #include "time-utils.h"
 #include "type-defs.h"
 
+/*
+ * A delta index is a key-value store, where each entry maps an address (the
+ * key) to a payload (the value). The entries are sorted by address, and only
+ * the delta between successive addresses is stored in the entry. The addresses
+ * are assumed to be uniformly distributed, and the deltas are therefore
+ * exponentially distributed.
+ *
+ * A delta_index can either be mutable or immutable depending on its expected
+ * use. The immutable form of a delta index is used for the indexes of closed
+ * chapters committed to the volume. The mutable form of a delta index is used
+ * by the volume index, and also by the chapter index in an open chapter. Like
+ * the index as a whole, each mutable delta index is divided into a number of
+ * independent zones.
+ */
+
 struct delta_list {
 	/* The offset of the delta list start, in bits */
 	uint64_t start;
