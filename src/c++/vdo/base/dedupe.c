@@ -688,6 +688,21 @@ static void exit_hash_lock(struct data_vio *data_vio)
 }
 
 /**
+ * set_duplicate_location() - Set the location of the duplicate block for
+ *                            data_vio, updating the is_duplicate and duplicate
+ *                            fields from a zoned_pbn.
+ *
+ * @data_vio: The data_vio to modify.
+ * @source: The location of the duplicate.
+ */
+static void set_duplicate_location(struct data_vio *data_vio,
+				   const struct zoned_pbn source)
+{
+	data_vio->is_duplicate = (source.pbn != VDO_ZERO_BLOCK);
+	data_vio->duplicate = source;
+}
+
+/**
  * retire_lock_agent() - Retire the active lock agent, replacing it with the
  *                       first lock waiter, and make the retired agent exit
  *                       the hash lock.
@@ -703,7 +718,7 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
 	lock->agent = new_agent;
 	exit_hash_lock(old_agent);
 	if (new_agent != NULL)
-		set_data_vio_duplicate_location(new_agent, lock->duplicate);
+		set_duplicate_location(new_agent, lock->duplicate);
 	return new_agent;
 }
 
@@ -1320,7 +1335,7 @@ static void launch_dedupe(struct hash_lock *lock,
 	}
 
 	/* Deduplicate against the lock's verified location. */
-	set_data_vio_duplicate_location(data_vio, lock->duplicate);
+	set_duplicate_location(data_vio, lock->duplicate);
 	launch_deduplicate_data_vio(data_vio);
 }
 
@@ -1887,7 +1902,7 @@ static void finish_writing(struct hash_lock *lock, struct data_vio *agent)
 		 * update needed, but the compressed write gave us a shared
 		 * duplicate lock that we must release.
 		 */
-		set_data_vio_duplicate_location(agent, lock->duplicate);
+		set_duplicate_location(agent, lock->duplicate);
 		start_unlocking(lock, agent);
 	} else {
 		/*

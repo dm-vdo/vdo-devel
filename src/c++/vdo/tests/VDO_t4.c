@@ -115,8 +115,8 @@ static bool releaseBlockedVIOAfterAllocation(struct vdo_completion *completion)
   bool hasReference
     = vdo_pbn_lock_has_provisional_reference(vdo_get_duplicate_lock(dataVIO));
   CU_ASSERT_TRUE(hasReference);
-  CU_ASSERT_NOT_EQUAL(get_data_vio_allocation(dataVIO),
-                      get_data_vio_allocation(as_data_vio(completion)));
+  CU_ASSERT_NOT_EQUAL(dataVIO->allocation.pbn,
+                      as_data_vio(completion)->allocation.pbn);
   reallyEnqueueVIO(blocked);
   return true;
 }

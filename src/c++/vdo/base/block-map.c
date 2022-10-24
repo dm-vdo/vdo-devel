@@ -528,6 +528,21 @@ static void fetch_mapping_page(struct data_vio *data_vio,
 }
 
 /**
+ * clear_mapped_location() - Clear a data_vio's mapped block location, setting
+ *                           it to be unmapped.
+ * @data_vio: The data_vio whose mapped block location is to be reset.
+ *
+ * This indicates the block map entry for the logical block is either unmapped
+ * or corrupted.
+ */
+static void clear_mapped_location(struct data_vio *data_vio)
+{
+	data_vio->mapped = (struct zoned_pbn) {
+		.state = VDO_MAPPING_STATE_UNMAPPED,
+	};
+}
+
+/**
  * set_mapped_location() - Decode and validate a block map entry, and set the
  *                         mapped location of a data_vio.
  *
@@ -542,15 +557,22 @@ set_mapped_location(struct data_vio *data_vio,
 	struct data_location mapped = vdo_unpack_block_map_entry(entry);
 
 	if (vdo_is_valid_location(&mapped)) {
-		int result = set_data_vio_mapped_location(data_vio, mapped.pbn,
-							  mapped.state);
+		int result = vdo_get_physical_zone(vdo_from_data_vio(data_vio),
+						   mapped.pbn,
+						   &data_vio->mapped.zone);
+
+		if (result == VDO_SUCCESS) {
+			data_vio->mapped.pbn = mapped.pbn;
+			data_vio->mapped.state = mapped.state;
+			return VDO_SUCCESS;
+		}
+
 		/*
-		 * Return success and all errors not specifically known to be
-		 * errors from validating the location. Yes, this expression is
-		 * redundant; it is intentional.
+		 * Return all errors not specifically known to be errors from
+		 * validating the location.
 		 */
-		if ((result == VDO_SUCCESS) || ((result != VDO_OUT_OF_RANGE) &&
-						(result != VDO_BAD_MAPPING)))
+		if ((result != VDO_OUT_OF_RANGE) &&
+		    (result != VDO_BAD_MAPPING))
 			return result;
 	}
 
@@ -574,7 +596,7 @@ set_mapped_location(struct data_vio *data_vio,
 	 * A write VIO only reads this mapping to decref the old block. Treat
 	 * this as an unmapped entry rather than fail the write.
 	 */
-	clear_data_vio_mapped_location(data_vio);
+	clear_mapped_location(data_vio);
 	return VDO_SUCCESS;
 }
 
@@ -695,7 +717,7 @@ void vdo_get_mapped_block(struct data_vio *data_vio)
 		 * We know that the block map page for this LBN has not been
 		 * allocated, so the block must be unmapped.
 		 */
-		clear_data_vio_mapped_location(data_vio);
+		clear_mapped_location(data_vio);
 		continue_data_vio(data_vio);
 		return;
 	}

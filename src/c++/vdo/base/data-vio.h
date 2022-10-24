@@ -378,14 +378,6 @@ data_vio_as_completion(struct data_vio *data_vio)
 	return vio_as_completion(data_vio_as_vio(data_vio));
 }
 
-static inline struct data_vio *
-data_vio_from_funnel_queue_entry(struct funnel_queue_entry *entry)
-{
-	return as_data_vio(container_of(entry,
-					struct vdo_completion,
-					work_queue_entry_link));
-}
-
 /**
  * data_vio_as_waiter() - Convert a data_vio to a generic wait queue entry.
  * @data_vio: The data_vio to convert.
@@ -476,23 +468,6 @@ data_vio_has_flush_generation_lock(struct data_vio *data_vio)
 }
 
 /**
- * get_data_vio_new_advice() - Get the location that should be passed to UDS
- *			       as the new advice for to find the data written
- *			       by this data_vio.
- * @data_vio: The write data_vio that is ready to update UDS.
- *
- * Return: a data_location containing the advice to store in UDS.
- */
-static inline struct data_location
-get_data_vio_new_advice(const struct data_vio *data_vio)
-{
-	return (struct data_location) {
-		.pbn = data_vio->new_mapped.pbn,
-		.state = data_vio->new_mapped.state,
-	};
-}
-
-/**
  * vdo_from_data_vio() - Get the vdo from a data_vio.
  * @data_vio: The data_vio from which to get the vdo.
  *
@@ -517,18 +492,6 @@ get_thread_config_from_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * get_data_vio_allocation() - Get the allocation of a data_vio.
- * @data_vio: The data_vio.
- *
- * Return: The allocation of the data_vio.
- */
-static inline
-physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
-{
-	return data_vio->allocation.pbn;
-}
-
-/**
  * data_vio_has_allocation() - Check whether a data_vio has an allocation.
  * @data_vio: The data_vio to check.
  *
@@ -536,13 +499,8 @@ physical_block_number_t get_data_vio_allocation(struct data_vio *data_vio)
  */
 static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 {
-	return (get_data_vio_allocation(data_vio) != VDO_ZERO_BLOCK);
+	return (data_vio->allocation.pbn != VDO_ZERO_BLOCK);
 }
-
-void destroy_data_vio(struct data_vio *data_vio);
-
-int __must_check
-initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo);
 
 struct data_vio_pool;
 
@@ -550,24 +508,17 @@ int make_data_vio_pool(struct vdo *vdo,
 		       data_vio_count_t pool_size,
 		       data_vio_count_t discard_limit,
 		       struct data_vio_pool **pool_ptr);
-
 void free_data_vio_pool(struct data_vio_pool *pool);
-
 void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio);
-
-void release_data_vio(struct data_vio *data_vio);
-
 #ifdef INTERNAL
 void release_data_vio_hook(struct data_vio *data_vio);
 #endif // INTERNAL
 void drain_data_vio_pool(struct data_vio_pool *pool,
 			 struct vdo_completion *completion);
-
 void resume_data_vio_pool(struct data_vio_pool *pool,
 			  struct vdo_completion *completion);
 
 void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios);
-
 data_vio_count_t get_data_vio_pool_active_discards(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_discard_limit(struct data_vio_pool *pool);
 data_vio_count_t
@@ -578,10 +529,6 @@ data_vio_count_t get_data_vio_pool_active_requests(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_request_limit(struct data_vio_pool *pool);
 data_vio_count_t
 get_data_vio_pool_maximum_requests(struct data_vio_pool *pool);
-
-void launch_data_vio(struct data_vio *data_vio,
-		     logical_block_number_t lbn,
-		     enum data_vio_operation operation);
 
 void complete_data_vio(struct vdo_completion *completion);
 void handle_data_vio_error(struct vdo_completion *completion);
@@ -1145,17 +1092,6 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
 						     BIO_ACK_Q_ACK_PRIORITY);
 }
 
-void set_data_vio_duplicate_location(struct data_vio *data_vio,
-				     const struct zoned_pbn source);
-
-void clear_data_vio_mapped_location(struct data_vio *data_vio);
-
-int __must_check set_data_vio_mapped_location(struct data_vio *data_vio,
-					      physical_block_number_t pbn,
-					      enum block_mapping_state state);
-
-void vdo_release_logical_block_lock(struct data_vio *data_vio);
-
 void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  enum pbn_lock_type write_lock_type,
 				  vdo_action *callback,
@@ -1172,10 +1108,6 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
  * released as well.
  */
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
-
-void acknowledge_data_vio(struct data_vio *data_vio);
-
-void compress_data_vio(struct data_vio *data_vio);
 
 int __must_check uncompress_data_vio(struct data_vio *data_vio,
 				     enum block_mapping_state mapping_state,
@@ -1209,7 +1141,9 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 					 pbn);
 }
 
+#ifdef INTERNAL
 bool is_zero_block(char *block);
+#endif /* INTERNAL */
 void continue_write_after_compression(struct data_vio *data_vio);
 void launch_compress_data_vio(struct data_vio *data_vio);
 void launch_deduplicate_data_vio(struct data_vio *data_vio);

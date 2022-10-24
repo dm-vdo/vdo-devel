@@ -254,67 +254,6 @@ enum data_vio_cleanup_stage {
 	VIO_CLEANUP_DONE
 };
 
-void destroy_data_vio(struct data_vio *data_vio)
-{
-	struct vio *vio;
-
-	if (data_vio == NULL)
-		return;
-
-	vio = data_vio_as_vio(data_vio);
-	vdo_free_bio(UDS_FORGET(vio->bio));
-	UDS_FREE(UDS_FORGET(vio->data));
-	UDS_FREE(UDS_FORGET(data_vio->compression.block));
-	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
-}
-
-/**
- * initialize_data_vio() - Allocate the components of a data_vio.
- * @data_vio: The data_vio being constructed.
- * @vdo: The vdo on which the data_vio will operate
- *
- * The caller is responsible for cleaning up the data_vio on error.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
-{
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct bio *bio;
-	int result;
-
-	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
-	result = uds_allocate_memory(VDO_BLOCK_SIZE,
-				     0,
-				     "data_vio data",
-				     &vio->data);
-	if (result != VDO_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "data_vio data allocation failure");
-
-	result = vdo_create_bio(&bio);
-	if (result != VDO_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "data_vio data bio allocation failure");
-
-	result = uds_allocate_memory(VDO_BLOCK_SIZE,
-				     0,
-				     "compressed block",
-				     &data_vio->compression.block);
-	if (result != VDO_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "data_vio compressed block allocation failure");
-
-	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch",
-				     &data_vio->scratch_block);
-	if (result != VDO_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "data_vio scratch allocation failure");
-
-	initialize_vio(vio, bio, 1, VIO_TYPE_DATA, VIO_PRIORITY_DATA, vdo);
-	return VDO_SUCCESS;
-}
-
 /**
  * as_data_vio_pool() - Convert a vdo_completion to a data_vio_pool.
  * @completion: The completion to convert.
@@ -355,6 +294,246 @@ static bool check_for_drain_complete_locked(struct data_vio_pool *pool)
 
 	return (bio_list_empty(&pool->limiter.new_waiters) &&
 		bio_list_empty(&pool->discard_limiter.new_waiters));
+}
+
+/**
+ * initialize_lbn_lock() - Initialize the LBN lock of a data_vio.
+ * @data_vio: The data_vio to initialize.
+ * @lbn: The lbn on which the data_vio will operate.
+ *
+ * In addition to recording the LBN on which the data_vio will operate, it
+ * will also find the logical zone associated with the LBN.
+ */
+static void initialize_lbn_lock(struct data_vio *data_vio,
+				logical_block_number_t lbn)
+{
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	zone_count_t zone_number;
+	struct lbn_lock *lock = &data_vio->logical;
+
+	lock->lbn = lbn;
+	lock->locked = false;
+	initialize_wait_queue(&lock->waiters);
+	zone_number = vdo_compute_logical_zone(data_vio);
+	lock->zone = &vdo->logical_zones->zones[zone_number];
+}
+
+/**
+ * launch_locked_request() - Launch a request which has acquired an LBN lock.
+ * @data_vio: The data_vio which has just acquired a lock.
+ */
+static void launch_locked_request(struct data_vio *data_vio)
+{
+	data_vio->logical.locked = true;
+	if (!is_read_data_vio(data_vio)) {
+		struct vdo *vdo = vdo_from_data_vio(data_vio);
+
+		if (vdo_is_read_only(vdo->read_only_notifier)) {
+			continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
+			return;
+		}
+	}
+
+	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
+	vdo_find_block_map_slot(data_vio);
+}
+
+static void acknowledge_data_vio(struct data_vio *data_vio)
+{
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	struct bio *bio = data_vio->user_bio;
+	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
+#ifdef VDO_INTERNAL
+	uint64_t latency_jiffies;
+	unsigned int ack_msecs;
+	struct vdo_histograms *histograms = &vdo->histograms;
+#endif /* VDO_INTERNAL */
+
+	if (bio == NULL)
+		return;
+
+	ASSERT_LOG_ONLY((data_vio->remaining_discard <=
+			 (uint32_t) (VDO_BLOCK_SIZE - data_vio->offset)),
+			"data_vio to acknowledge is not an incomplete discard");
+
+	data_vio->user_bio = NULL;
+	vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
+	if (data_vio->is_partial)
+		vdo_count_bios(&vdo->stats.bios_acknowledged_partial, bio);
+
+#ifdef VDO_INTERNAL
+	latency_jiffies = jiffies - data_vio->arrival_jiffies;
+	ack_msecs = jiffies_to_msecs(latency_jiffies);
+	if (bio_data_dir(bio) != WRITE)
+		enter_histogram_sample(histograms->read_ack_histogram,
+				       latency_jiffies);
+	else if (bio_op(bio) == REQ_OP_DISCARD)
+		enter_histogram_sample(histograms->discard_ack_histogram,
+				       latency_jiffies);
+	else
+		enter_histogram_sample(histograms->write_ack_histogram,
+				       latency_jiffies);
+
+	if (ack_msecs > 30000) {
+		static DEFINE_RATELIMIT_STATE(latency_limiter,
+					      DEFAULT_RATELIMIT_INTERVAL,
+					      DEFAULT_RATELIMIT_BURST);
+
+		if (__ratelimit(&latency_limiter)) {
+			uds_log_info("Acknowledgement Latency Violation: %u msecs, error %d",
+				     ack_msecs, -error);
+			dump_data_vio(data_vio);
+		}
+	}
+
+#endif
+	vdo_complete_bio(bio, error);
+}
+
+/**
+ * attempt_logical_block_lock() - Attempt to acquire the lock on a logical
+ *				  block.
+ * @completion: The data_vio for an external data request as a completion.
+ *
+ * This is the start of the path for all external requests. It is registered
+ * in launch_data_vio().
+ */
+static void attempt_logical_block_lock(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+	struct lbn_lock *lock = &data_vio->logical;
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+	struct data_vio *lock_holder;
+	int result;
+
+	assert_data_vio_in_logical_zone(data_vio);
+
+	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
+		continue_data_vio_with_error(data_vio, VDO_OUT_OF_RANGE);
+		return;
+	}
+
+	result = int_map_put(lock->zone->lbn_operations,
+			     lock->lbn,
+			     data_vio,
+			     false,
+			     (void **) &lock_holder);
+	if (result != VDO_SUCCESS) {
+		continue_data_vio_with_error(data_vio, result);
+		return;
+	}
+
+	if (lock_holder == NULL) {
+		/* We got the lock */
+		launch_locked_request(data_vio);
+		return;
+	}
+
+	result = ASSERT(lock_holder->logical.locked,
+			"logical block lock held");
+	if (result != VDO_SUCCESS) {
+		continue_data_vio_with_error(data_vio, result);
+		return;
+	}
+
+	/*
+	 * If the new request is a pure read request (not read-modify-write)
+	 * and the lock_holder is writing and has received an allocation
+	 * (VDO-2683), service the read request immediately by copying data
+	 * from the lock_holder to avoid having to flush the write out of the
+	 * packer just to prevent the read from waiting indefinitely. If the
+	 * lock_holder does not yet have an allocation, prevent it from
+	 * blocking in the packer and wait on it.
+	 */
+	if (is_read_data_vio(data_vio) &&
+	    READ_ONCE(lock_holder->allocation_succeeded)) {
+		struct vio *vio = data_vio_as_vio(lock_holder);
+
+		vdo_bio_copy_data_out(data_vio->user_bio,
+				      (vio->data + data_vio->offset));
+		acknowledge_data_vio(data_vio);
+		complete_data_vio(completion);
+		return;
+	}
+
+	data_vio->last_async_operation =
+		VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
+	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
+
+	/*
+	 * Prevent writes and read-modify-writes from blocking indefinitely on
+	 * lock holders in the packer.
+	 */
+	if (!is_read_data_vio(lock_holder) &&
+	    cancel_vio_compression(lock_holder)) {
+		data_vio->compression.lock_holder = lock_holder;
+		launch_data_vio_packer_callback(data_vio,
+						vdo_remove_lock_holder_from_packer);
+	}
+}
+
+/**
+ * launch_data_vio() - (Re)initialize a data_vio to have a new logical
+ *		       block number, keeping the same parent and other
+ *		       state and send it on its way.
+ * @data_vio: The data_vio to initialize.
+ * @lbn: The logical block number of the data_vio.
+ * @operation: The operation this data_vio will perform.
+ */
+static void launch_data_vio(struct data_vio *data_vio,
+			    logical_block_number_t lbn,
+			    enum data_vio_operation operation)
+{
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct vdo_completion *completion = vio_as_completion(vio);
+
+	/*
+	 * Clearing the tree lock must happen before initializing the LBN lock,
+	 * which also adds information to the tree lock.
+	 */
+	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
+	initialize_lbn_lock(data_vio, lbn);
+	INIT_LIST_HEAD(&data_vio->hash_lock_entry);
+	INIT_LIST_HEAD(&data_vio->write_entry);
+
+	memset(&data_vio->allocation, 0, sizeof(data_vio->allocation));
+
+	data_vio->is_duplicate = false;
+
+	memset(&data_vio->record_name, 0, sizeof(data_vio->record_name));
+	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
+
+	data_vio->io_operation = operation;
+	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+	if (data_vio->is_partial || (data_vio->remaining_discard == 0))
+		/* This is either a write or a partial block discard */
+		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+	else
+		/* This is a full block discard */
+		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNMAPPED;
+
+	vdo_reset_completion(completion);
+	completion->error_handler = handle_data_vio_error;
+	set_data_vio_logical_callback(data_vio, attempt_logical_block_lock);
+	vdo_invoke_completion_callback_with_priority(completion,
+						     VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
+}
+
+/* Return true if a data block contains all zeros. */
+EXTERNAL_STATIC bool is_zero_block(char *block)
+{
+	int i;
+
+#ifdef INTERNAL
+	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
+	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(uint64_t) == 0,
+			"Data blocks are expected to be aligned");
+
+#endif	/* INTERNAL */
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(uint64_t))
+		if (*((uint64_t *) &block[i]))
+			return false;
+	return true;
 }
 
 static void launch_bio(struct vdo *vdo,
@@ -571,7 +750,9 @@ static void process_release_callback(struct vdo_completion *completion)
 		if (entry == NULL)
 			break;
 
-		data_vio = data_vio_from_funnel_queue_entry(entry);
+		data_vio = as_data_vio(container_of(entry,
+						    struct vdo_completion,
+						    work_queue_entry_link));
 		acknowledge_data_vio(data_vio);
 		reuse_or_release_resources(pool, data_vio, &returned);
 	}
@@ -625,6 +806,67 @@ static void initialize_limiter(struct limiter *limiter,
 	limiter->limit = limit;
 	limiter->arrival = UINT64_MAX;
 	init_waitqueue_head(&limiter->blocked_threads);
+}
+
+/**
+ * initialize_data_vio() - Allocate the components of a data_vio.
+ * @data_vio: The data_vio being constructed.
+ * @vdo: The vdo on which the data_vio will operate
+ *
+ * The caller is responsible for cleaning up the data_vio on error.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
+{
+	struct vio *vio = data_vio_as_vio(data_vio);
+	struct bio *bio;
+	int result;
+
+	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
+	result = uds_allocate_memory(VDO_BLOCK_SIZE,
+				     0,
+				     "data_vio data",
+				     &vio->data);
+	if (result != VDO_SUCCESS)
+		return uds_log_error_strerror(result,
+					      "data_vio data allocation failure");
+
+	result = vdo_create_bio(&bio);
+	if (result != VDO_SUCCESS)
+		return uds_log_error_strerror(result,
+					      "data_vio data bio allocation failure");
+
+	result = uds_allocate_memory(VDO_BLOCK_SIZE,
+				     0,
+				     "compressed block",
+				     &data_vio->compression.block);
+	if (result != VDO_SUCCESS)
+		return uds_log_error_strerror(result,
+					      "data_vio compressed block allocation failure");
+
+	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch",
+				     &data_vio->scratch_block);
+	if (result != VDO_SUCCESS)
+		return uds_log_error_strerror(result,
+					      "data_vio scratch allocation failure");
+
+	initialize_vio(vio, bio, 1, VIO_TYPE_DATA, VIO_PRIORITY_DATA, vdo);
+	return VDO_SUCCESS;
+}
+
+static void destroy_data_vio(struct data_vio *data_vio)
+{
+	struct vio *vio;
+
+	if (data_vio == NULL)
+		return;
+
+	vio = data_vio_as_vio(data_vio);
+	vdo_free_bio(UDS_FORGET(vio->bio));
+	UDS_FREE(UDS_FORGET(vio->data));
+	UDS_FREE(UDS_FORGET(data_vio->compression.block));
+	UDS_FREE(UDS_FORGET(data_vio->scratch_block));
 }
 
 /**
@@ -795,23 +1037,6 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 }
 
 /**
- * release_data_vio() - Return a data_vio to the pool.
- * @data_vio: The data_vio to return.
- */
-void release_data_vio(struct data_vio *data_vio)
-{
-	struct data_vio_pool *pool =
-		vdo_from_data_vio(data_vio)->data_vio_pool;
-
-#ifdef INTERNAL
-	release_data_vio_hook(data_vio);
-#endif /* INTERNAL */
-	funnel_queue_put(pool->queue,
-			 &(data_vio_as_completion(data_vio)->work_queue_entry_link));
-	schedule_releases(pool);
-}
-
-/**
  * initiate_drain() - Initiate a drain.
  *
  * Implements vdo_admin_initiator.
@@ -961,177 +1186,6 @@ data_vio_count_t get_data_vio_pool_maximum_requests(struct data_vio_pool *pool)
 	return READ_ONCE(pool->limiter.max_busy);
 }
 
-/**
- * initialize_lbn_lock() - Initialize the LBN lock of a data_vio.
- * @data_vio: The data_vio to initialize.
- * @lbn: The lbn on which the data_vio will operate.
- *
- * In addition to recording the LBN on which the data_vio will operate, it
- * will also find the logical zone associated with the LBN.
- */
-static void initialize_lbn_lock(struct data_vio *data_vio,
-				logical_block_number_t lbn)
-{
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
-	zone_count_t zone_number;
-	struct lbn_lock *lock = &data_vio->logical;
-
-	lock->lbn = lbn;
-	lock->locked = false;
-	initialize_wait_queue(&lock->waiters);
-	zone_number = vdo_compute_logical_zone(data_vio);
-	lock->zone = &vdo->logical_zones->zones[zone_number];
-}
-
-/**
- * launch_locked_request() - Launch a request which has acquired an LBN lock.
- * @data_vio: The data_vio which has just acquired a lock.
- */
-static void launch_locked_request(struct data_vio *data_vio)
-{
-	data_vio->logical.locked = true;
-	if (!is_read_data_vio(data_vio)) {
-		struct vdo *vdo = vdo_from_data_vio(data_vio);
-
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
-			continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
-			return;
-		}
-	}
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT;
-	vdo_find_block_map_slot(data_vio);
-}
-
-/**
- * attempt_logical_block_lock() - Attempt to acquire the lock on a logical
- *				  block.
- * @completion: The data_vio for an external data request as a completion.
- *
- * This is the start of the path for all external requests. It is registered
- * in launch_data_vio().
- */
-static void attempt_logical_block_lock(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-	struct lbn_lock *lock = &data_vio->logical;
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
-	struct data_vio *lock_holder;
-	int result;
-
-	assert_data_vio_in_logical_zone(data_vio);
-
-	if (data_vio->logical.lbn >= vdo->states.vdo.config.logical_blocks) {
-		continue_data_vio_with_error(data_vio, VDO_OUT_OF_RANGE);
-		return;
-	}
-
-	result = int_map_put(lock->zone->lbn_operations,
-			     lock->lbn,
-			     data_vio,
-			     false,
-			     (void **) &lock_holder);
-	if (result != VDO_SUCCESS) {
-		continue_data_vio_with_error(data_vio, result);
-		return;
-	}
-
-	if (lock_holder == NULL) {
-		/* We got the lock */
-		launch_locked_request(data_vio);
-		return;
-	}
-
-	result = ASSERT(lock_holder->logical.locked,
-			"logical block lock held");
-	if (result != VDO_SUCCESS) {
-		continue_data_vio_with_error(data_vio, result);
-		return;
-	}
-
-	/*
-	 * If the new request is a pure read request (not read-modify-write)
-	 * and the lock_holder is writing and has received an allocation
-	 * (VDO-2683), service the read request immediately by copying data
-	 * from the lock_holder to avoid having to flush the write out of the
-	 * packer just to prevent the read from waiting indefinitely. If the
-	 * lock_holder does not yet have an allocation, prevent it from
-	 * blocking in the packer and wait on it.
-	 */
-	if (is_read_data_vio(data_vio) &&
-	    READ_ONCE(lock_holder->allocation_succeeded)) {
-		struct vio *vio = data_vio_as_vio(lock_holder);
-
-		vdo_bio_copy_data_out(data_vio->user_bio,
-				      (vio->data + data_vio->offset));
-		acknowledge_data_vio(data_vio);
-		complete_data_vio(completion);
-		return;
-	}
-
-	data_vio->last_async_operation =
-		VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
-	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
-
-	/*
-	 * Prevent writes and read-modify-writes from blocking indefinitely on
-	 * lock holders in the packer.
-	 */
-	if (!is_read_data_vio(lock_holder) &&
-	    cancel_vio_compression(lock_holder)) {
-		data_vio->compression.lock_holder = lock_holder;
-		launch_data_vio_packer_callback(data_vio,
-						vdo_remove_lock_holder_from_packer);
-	}
-}
-
-/**
- * launch_data_vio() - (Re)initialize a data_vio to have a new logical
- *		       block number, keeping the same parent and other
- *		       state and send it on its way.
- * @data_vio: The data_vio to initialize.
- * @lbn: The logical block number of the data_vio.
- * @operation: The operation this data_vio will perform.
- */
-void launch_data_vio(struct data_vio *data_vio,
-		     logical_block_number_t lbn,
-		     enum data_vio_operation operation)
-{
-	struct vio *vio = data_vio_as_vio(data_vio);
-	struct vdo_completion *completion = vio_as_completion(vio);
-
-	/*
-	 * Clearing the tree lock must happen before initializing the LBN lock,
-	 * which also adds information to the tree lock.
-	 */
-	memset(&data_vio->tree_lock, 0, sizeof(data_vio->tree_lock));
-	initialize_lbn_lock(data_vio, lbn);
-	INIT_LIST_HEAD(&data_vio->hash_lock_entry);
-	INIT_LIST_HEAD(&data_vio->write_entry);
-
-	memset(&data_vio->allocation, 0, sizeof(data_vio->allocation));
-
-	data_vio->is_duplicate = false;
-
-	memset(&data_vio->record_name, 0, sizeof(data_vio->record_name));
-	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
-
-	data_vio->io_operation = operation;
-	data_vio->mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
-	if (data_vio->is_partial || (data_vio->remaining_discard == 0))
-		/* This is either a write or a partial block discard */
-		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
-	else
-		/* This is a full block discard */
-		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNMAPPED;
-
-	vdo_reset_completion(completion);
-	completion->error_handler = handle_data_vio_error;
-	set_data_vio_logical_callback(data_vio, attempt_logical_block_lock);
-	vdo_invoke_completion_callback_with_priority(completion,
-						     VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
-}
-
 static void update_data_vio_error_stats(struct data_vio *data_vio)
 {
 	static const char * const operations[] = {
@@ -1171,6 +1225,91 @@ static void release_allocated_lock(struct vdo_completion *completion)
 }
 
 /**
+ * release_lock() - Release an uncontended LBN lock.
+ * @data_vio: The data_vio holding the lock.
+ * @lock: The lock to release
+ */
+static void release_lock(struct data_vio *data_vio, struct lbn_lock *lock)
+{
+	struct int_map *lock_map = lock->zone->lbn_operations;
+	struct data_vio *lock_holder;
+
+	if (!lock->locked) {
+		/*
+		 * The lock is not locked, so it had better not be registered
+		 * in the lock map.
+		 */
+		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
+
+		ASSERT_LOG_ONLY((data_vio != lock_holder),
+				"no logical block lock held for block %llu",
+				(unsigned long long) lock->lbn);
+		return;
+	}
+
+	/* Release the lock by removing the lock from the map. */
+	lock_holder = int_map_remove(lock_map, lock->lbn);
+	ASSERT_LOG_ONLY((data_vio == lock_holder),
+			"logical block lock mismatch for block %llu",
+			(unsigned long long) lock->lbn);
+	lock->locked = false;
+}
+
+/**
+ * transfer_lock() - Transfer a contended LBN lock to the eldest waiter.
+ * @data_vio: The data_vio holding the lock
+ * @lock: The lock to transfer
+ */
+static void transfer_lock(struct data_vio *data_vio, struct lbn_lock *lock)
+{
+	struct data_vio *lock_holder, *next_lock_holder;
+	int result;
+
+	ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
+
+	/*
+	 * Another data_vio is waiting for the lock, so just transfer it in a
+	 * single lock map operation
+	 */
+	next_lock_holder =
+		waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
+
+	/* Transfer the remaining lock waiters to the next lock holder. */
+	transfer_all_waiters(&lock->waiters,
+			     &next_lock_holder->logical.waiters);
+
+	result = int_map_put(lock->zone->lbn_operations,
+			     lock->lbn,
+			     next_lock_holder,
+			     true,
+			     (void **) &lock_holder);
+	if (result != VDO_SUCCESS) {
+		continue_data_vio_with_error(next_lock_holder, result);
+		return;
+	}
+
+	ASSERT_LOG_ONLY((lock_holder == data_vio),
+			"logical block lock mismatch for block %llu",
+			(unsigned long long) lock->lbn);
+	lock->locked = false;
+
+	/*
+	 * If there are still waiters, other data_vios must be trying to get
+	 * the lock we just transferred. We must ensure that the new lock
+	 * holder doesn't block in the packer.
+	 */
+	if (has_waiters(&next_lock_holder->logical.waiters))
+		cancel_vio_compression(next_lock_holder);
+
+	/*
+	 * Avoid stack overflow on lock transfer.
+	 * XXX: this is only an issue in the 1 thread config.
+	 */
+	data_vio_as_completion(next_lock_holder)->requeue = true;
+	launch_locked_request(next_lock_holder);
+}
+
+/**
  * release_logical_lock() - Release the logical block lock and flush
  *			    generation lock at the end of processing a
  *			    data_vio.
@@ -1179,9 +1318,15 @@ static void release_allocated_lock(struct vdo_completion *completion)
 static void release_logical_lock(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	struct lbn_lock *lock = &data_vio->logical;
 
 	assert_data_vio_in_logical_zone(data_vio);
-	vdo_release_logical_block_lock(data_vio);
+
+	if (has_waiters(&lock->waiters))
+		transfer_lock(data_vio, lock);
+	else
+		release_lock(data_vio, lock);
+
 	vdo_release_flush_generation_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_DONE);
 }
@@ -1224,7 +1369,14 @@ static void finish_cleanup(struct data_vio *data_vio)
 			"complete data_vio has no hash lock");
 	if ((data_vio->remaining_discard <= VDO_BLOCK_SIZE) ||
 	    (completion->result != VDO_SUCCESS)) {
-		release_data_vio(data_vio);
+		struct data_vio_pool *pool = completion->vdo->data_vio_pool;
+
+#ifdef INTERNAL
+		release_data_vio_hook(data_vio);
+#endif /* INTERNAL */
+		funnel_queue_put(pool->queue,
+				 &completion->work_queue_entry_link);
+		schedule_releases(pool);
 		return;
 	}
 
@@ -1321,7 +1473,7 @@ static void enter_read_only_mode(struct vdo_completion *completion)
 				       (unsigned long long) data_vio->logical.lbn,
 				       (unsigned long long) data_vio->new_mapped.pbn,
 				       (unsigned long long) data_vio->mapped.pbn,
-				       (unsigned long long) get_data_vio_allocation(data_vio),
+				       (unsigned long long) data_vio->allocation.pbn,
 				       get_data_vio_operation_name(data_vio));
 	}
 
@@ -1362,156 +1514,6 @@ const char *get_data_vio_operation_name(struct data_vio *data_vio)
 		 MAX_VIO_ASYNC_OPERATION_NUMBER) ?
 			ASYNC_OPERATION_NAMES[data_vio->last_async_operation] :
 			"unknown async operation");
-}
-
-/**
- * set_data_vio_duplicate_location() - Set the location of the duplicate block
- *				       for a data_vio, updating the
- *				       is_duplicate and duplicate fields from
- *				       a zoned_pbn.
- * @data_vio: The data_vio to modify.
- * @source: The location of the duplicate.
- */
-void set_data_vio_duplicate_location(struct data_vio *data_vio,
-				     const struct zoned_pbn source)
-{
-	data_vio->is_duplicate = (source.pbn != VDO_ZERO_BLOCK);
-	data_vio->duplicate = source;
-}
-
-/**
- * clear_data_vio_mapped_location() - Clear a data_vio's mapped block
- *				      location, setting it to be unmapped.
- * @data_vio: The data_vio whose mapped block location is to be reset.
- *
- * This indicates the block map entry for the logical block is either unmapped
- * or corrupted.
- */
-void clear_data_vio_mapped_location(struct data_vio *data_vio)
-{
-	data_vio->mapped = (struct zoned_pbn) {
-		.state = VDO_MAPPING_STATE_UNMAPPED,
-	};
-}
-
-/**
- * set_data_vio_mapped_location() - Set a data_vio's mapped field to the
- *				    physical location recorded in the block
- *				    map for the logical block in the vio.
- * @data_vio: The data_vio whose field is to be set.
- * @pbn: The physical block number to set.
- * @state: The mapping state to set.
- *
- * Return: VDO_SUCCESS or an error code if the mapping is unusable.
- */
-int set_data_vio_mapped_location(struct data_vio *data_vio,
-				 physical_block_number_t pbn,
-				 enum block_mapping_state state)
-{
-	struct physical_zone *zone;
-	int result = vdo_get_physical_zone(vdo_from_data_vio(data_vio),
-					   pbn, &zone);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	data_vio->mapped = (struct zoned_pbn) {
-		.pbn = pbn,
-		.state = state,
-		.zone = zone,
-	};
-	return VDO_SUCCESS;
-}
-
-/**
- * release_lock() - Release an uncontended LBN lock.
- * @data_vio: The data_vio holding the lock.
- */
-static void release_lock(struct data_vio *data_vio)
-{
-	struct lbn_lock *lock = &data_vio->logical;
-	struct int_map *lock_map = lock->zone->lbn_operations;
-	struct data_vio *lock_holder;
-
-	if (!lock->locked) {
-		/*
-		 * The lock is not locked, so it had better not be registered
-		 * in the lock map.
-		 */
-		struct data_vio *lock_holder = int_map_get(lock_map, lock->lbn);
-
-		ASSERT_LOG_ONLY((data_vio != lock_holder),
-				"no logical block lock held for block %llu",
-				(unsigned long long) lock->lbn);
-		return;
-	}
-
-	/* Remove the lock from the logical block lock map, releasing the lock. */
-	lock_holder = int_map_remove(lock_map, lock->lbn);
-	ASSERT_LOG_ONLY((data_vio == lock_holder),
-			"logical block lock mismatch for block %llu",
-			(unsigned long long) lock->lbn);
-	lock->locked = false;
-}
-
-/**
- * vdo_release_logical_block_lock() - Release the lock on the logical block,
- *				      if any, that a data_vio has acquired.
- * @data_vio: The data_vio releasing its logical block lock.
- */
-void vdo_release_logical_block_lock(struct data_vio *data_vio)
-{
-	struct data_vio *lock_holder, *next_lock_holder;
-	struct lbn_lock *lock = &data_vio->logical;
-	int result;
-
-	assert_data_vio_in_logical_zone(data_vio);
-	if (!has_waiters(&data_vio->logical.waiters)) {
-		release_lock(data_vio);
-		return;
-	}
-
-	ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
-
-	/*
-	 * Another data_vio is waiting for the lock, so just transfer it in a
-	 * single lock map operation
-	 */
-	next_lock_holder =
-		waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
-
-	/* Transfer the remaining lock waiters to the next lock holder. */
-	transfer_all_waiters(&lock->waiters,
-			     &next_lock_holder->logical.waiters);
-
-	result = int_map_put(lock->zone->lbn_operations,
-			     lock->lbn,
-			     next_lock_holder,
-			     true,
-			     (void **) &lock_holder);
-	if (result != VDO_SUCCESS) {
-		continue_data_vio_with_error(next_lock_holder, result);
-		return;
-	}
-
-	ASSERT_LOG_ONLY((lock_holder == data_vio),
-			"logical block lock mismatch for block %llu",
-			(unsigned long long) lock->lbn);
-	lock->locked = false;
-
-	/*
-	 * If there are still waiters, other data_vios must be trying to get
-	 * the lock we just transferred. We must ensure that the new lock
-	 * holder doesn't block in the packer.
-	 */
-	if (has_waiters(&next_lock_holder->logical.waiters))
-		cancel_vio_compression(next_lock_holder);
-
-	/*
-	 * Avoid stack overflow on lock transfer.
-	 * XXX: this is only an issue in the 1 thread config.
-	 */
-	data_vio_as_completion(next_lock_holder)->requeue = true;
-	launch_locked_request(next_lock_holder);
 }
 
 /**
@@ -1561,88 +1563,6 @@ void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset)
 					   UDS_FORGET(allocation->lock));
 }
 
-void acknowledge_data_vio(struct data_vio *data_vio)
-{
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
-	struct bio *bio = data_vio->user_bio;
-	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
-#ifdef VDO_INTERNAL
-	uint64_t latency_jiffies;
-	unsigned int ack_msecs;
-	struct vdo_histograms *histograms = &vdo->histograms;
-#endif /* VDO_INTERNAL */
-
-	if (bio == NULL)
-		return;
-
-	ASSERT_LOG_ONLY((data_vio->remaining_discard <=
-			 (uint32_t) (VDO_BLOCK_SIZE - data_vio->offset)),
-			"data_vio to acknowledge is not an incomplete discard");
-
-	data_vio->user_bio = NULL;
-	vdo_count_bios(&vdo->stats.bios_acknowledged, bio);
-	if (data_vio->is_partial)
-		vdo_count_bios(&vdo->stats.bios_acknowledged_partial, bio);
-
-#ifdef VDO_INTERNAL
-	latency_jiffies = jiffies - data_vio->arrival_jiffies;
-	ack_msecs = jiffies_to_msecs(latency_jiffies);
-	if (bio_data_dir(bio) != WRITE)
-		enter_histogram_sample(histograms->read_ack_histogram,
-				       latency_jiffies);
-	else if (bio_op(bio) == REQ_OP_DISCARD)
-		enter_histogram_sample(histograms->discard_ack_histogram,
-				       latency_jiffies);
-	else
-		enter_histogram_sample(histograms->write_ack_histogram,
-				       latency_jiffies);
-
-	if (ack_msecs > 30000) {
-		static DEFINE_RATELIMIT_STATE(latency_limiter,
-					      DEFAULT_RATELIMIT_INTERVAL,
-					      DEFAULT_RATELIMIT_BURST);
-
-		if (__ratelimit(&latency_limiter)) {
-			uds_log_info("Acknowledgement Latency Violation: %u msecs, error %d",
-				     ack_msecs, -error);
-			dump_data_vio(data_vio);
-		}
-	}
-
-#endif
-
-	vdo_complete_bio(bio, error);
-}
-
-/**
- * compress_data_vio() - A function to compress the data in a data_vio.
- * @data_vio: The data_vio to compress.
- */
-void compress_data_vio(struct data_vio *data_vio)
-{
-	int size;
-	char *context = get_work_queue_private_data();
-
-	/*
-	 * By putting the compressed data at the start of the compressed
-	 * block data field, we won't need to copy it if this data_vio
-	 * becomes a compressed write agent.
-	 */
-	size = LZ4_compress_default(data_vio_as_vio(data_vio)->data,
-				    data_vio->compression.block->data,
-				    VDO_BLOCK_SIZE,
-				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				    context);
-	if (size > 0)
-		data_vio->compression.size = size;
-	else
-		/*
-		 * Use block size plus one as an indicator for uncompressible
-		 * data.
-		 */
-		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
-}
-
 /**
  * uncompress_data_vio() - A function to uncompress the data a data_vio has
  *			   just read.
@@ -1679,23 +1599,6 @@ int uncompress_data_vio(struct data_vio *data_vio,
 	}
 
 	return VDO_SUCCESS;
-}
-
-/* Return true if a data block contains all zeros. */
-bool is_zero_block(char *block)
-{
-	int i;
-
-#ifdef INTERNAL
-	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
-	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(uint64_t) == 0,
-			"Data blocks are expected to be aligned");
-#endif	/* INTERNAL */
-
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(uint64_t))
-		if (*((uint64_t *) &block[i]))
-			return false;
-	return true;
 }
 
 /**
@@ -2132,33 +2035,48 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
+	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_PACKING;
+	vdo_attempt_packing(data_vio);
+}
+
+/**
+ * compress_data_vio() - Do the actual work of compressing the data on a CPU
+ *                       queue.
+ * @completion: The completion of the write in progress.
+ *
+ * This callback is registered in launch_compress_data_vio().
+ */
+static void compress_data_vio(struct vdo_completion *completion)
+{
+	struct data_vio *data_vio = as_data_vio(completion);
+	int size;
+
+	assert_data_vio_on_cpu_thread(data_vio);
+
 	/*
-	 * XXX this is a callback, so there should probably be an error check
-	 * here even if we think compression can't currently return one.
+	 * By putting the compressed data at the start of the compressed
+	 * block data field, we won't need to copy it if this data_vio
+	 * becomes a compressed write agent.
 	 */
+	size = LZ4_compress_default(data_vio_as_vio(data_vio)->data,
+				    data_vio->compression.block->data,
+				    VDO_BLOCK_SIZE,
+				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
+				    (char *) get_work_queue_private_data());
+	if (size > 0)
+		data_vio->compression.size = size;
+	else
+		/*
+		 * Use block size plus one as an indicator for uncompressible
+		 * data.
+		 */
+		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
 
 	if (!may_pack_data_vio(data_vio)) {
 		abort_deduplication(data_vio);
 		return;
 	}
 
-	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_PACKING;
-	vdo_attempt_packing(data_vio);
-}
-
-/**
- * compress_data_vio_callback() - Do the actual work of compressing the data
- *				  on a CPU queue.
- * @completion: The completion of the write in progress.
- *
- * This callback is registered in launch_compress_data_vio().
- */
-static void compress_data_vio_callback(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_on_cpu_thread(data_vio);
-	compress_data_vio(data_vio);
 	launch_data_vio_packer_callback(data_vio,
 					pack_compressed_data);
 }
@@ -2181,7 +2099,7 @@ void launch_compress_data_vio(struct data_vio *data_vio)
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_COMPRESS_DATA_VIO;
 	launch_data_vio_cpu_callback(data_vio,
-				     compress_data_vio_callback,
+				     compress_data_vio,
 				     CPU_Q_COMPRESS_BLOCK_PRIORITY);
 }
 

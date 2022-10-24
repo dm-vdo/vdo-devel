@@ -178,16 +178,21 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	data_vio = waiter_as_data_vio(first);
 
 	uds_log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-		     wait_on, data_vio, get_data_vio_allocation(data_vio),
-		     data_vio->logical.lbn, data_vio->duplicate.pbn,
+		     wait_on,
+		     data_vio,
+		     data_vio->allocation.pbn,
+		     data_vio->logical.lbn,
+		     data_vio->duplicate.pbn,
 		     get_data_vio_operation_name(data_vio));
 
 	for (waiter = first->next_waiter; waiter != first;
 	     waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
 		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-			     data_vio, get_data_vio_allocation(data_vio),
-			     data_vio->logical.lbn, data_vio->duplicate.pbn,
+			     data_vio,
+			     data_vio->allocation.pbn,
+			     data_vio->logical.lbn,
+			     data_vio->duplicate.pbn,
 			     get_data_vio_operation_name(data_vio));
 	}
 }
@@ -270,14 +275,14 @@ void dump_data_vio(void *data)
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu D%llu",
-			 get_data_vio_allocation(data_vio),
+			 data_vio->allocation.pbn,
 			 data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
 	else if (data_vio_has_allocation(data_vio))
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu",
-			 get_data_vio_allocation(data_vio),
+			 data_vio->allocation.pbn,
 			 data_vio->logical.lbn);
 	else
 		snprintf(vio_block_number_dump_buffer,

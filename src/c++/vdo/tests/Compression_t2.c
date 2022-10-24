@@ -144,7 +144,9 @@ static void giveVIO7StaleAdvice(struct vdo_completion *completion)
   VDO_ASSERT_SUCCESS(vdo_get_physical_zone(vdo,
                                            vio6Physical,
                                            &staleAdvice.zone));
-  set_data_vio_duplicate_location(as_data_vio(completion), staleAdvice);
+  struct data_vio *dataVIO = as_data_vio(completion);
+  dataVIO->is_duplicate = true;
+  dataVIO->duplicate = staleAdvice;
   // XXX this is the pre-VDOSTORY-190 dedupe entry point
   // verifyAdvice(completion);
 }
