@@ -9,6 +9,14 @@
 #include "delta-index.h"
 #include "geometry.h"
 
+/*
+ * A chapter index for an open chapter is a mutable structure that tracks all
+ * the records that have been added to the chapter. A chapter index for a
+ * closed chapter is similar except that it is immutable because the contents
+ * of a closed chapter can never change, and the immutable structure is more
+ * efficient. Both types of chapter index are implemented with a delta index.
+ */
+
 enum {
 	/*
 	 * The value returned as the record page number when an entry is not
