@@ -12,15 +12,6 @@
 #include "type-defs.h"
 
 /*
- * This is an implementation of a rolling buffer for marshalling data to and
- * from storage. The put methods add data to the end of the buffer and advance
- * the end pointer past the new data. The get methods return data from the
- * start of the buffer and advance the start pointer past anything
- * returned. Data is not actually removed until the buffer is cleared or
- * compacted, so the same data can be read multiple times if desired.
- */
-
-/*
  * Create a buffer which wraps an existing byte array.
  *
  * @param bytes           The bytes to wrap
