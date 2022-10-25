@@ -15,9 +15,6 @@
 #include "uds.h"
 
 /*
- * The geometry records parameters that define the layout of a UDS index
- * volume, and the size and shape of various index structures.
- *
  * An index volume is divided into a fixed number of fixed-size chapters, each
  * consisting of a fixed number of fixed-size pages. The volume layout is
  * defined by two constants and four parameters. The constants are that index

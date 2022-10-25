@@ -10,6 +10,12 @@
 #include "type-defs.h"
 #include "uds.h"
 
+/*
+ * The geometry records parameters that define the layout of a UDS index
+ * volume, and the size and shape of various index structures. It is created
+ * when the index is created, and is referenced by many index sub-components.
+ */
+
 struct geometry {
 	/* Size of a chapter page, in bytes */
 	size_t bytes_per_page;

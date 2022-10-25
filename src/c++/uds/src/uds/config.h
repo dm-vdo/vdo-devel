@@ -10,6 +10,13 @@
 #include "io-factory.h"
 #include "uds.h"
 
+/*
+ * The configuration records a variety of parameters used to configure a new
+ * UDS index. Some parameters are provided by the client, while others are
+ * fixed or derived from user-supplied values. It is created when an index is
+ * created, and it is recorded in the index metadata.
+ */
+
 enum {
 	DEFAULT_VOLUME_INDEX_MEAN_DELTA = 4096,
 	DEFAULT_CACHE_CHAPTERS = 7,
