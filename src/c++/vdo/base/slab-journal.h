@@ -166,9 +166,6 @@ vdo_unpack_slab_journal_block_header(
 				 &header->recovery_point);
 }
 
-struct slab_journal * __must_check
-vdo_slab_journal_from_dirty_entry(struct list_head *entry);
-
 int __must_check vdo_make_slab_journal(struct block_allocator *allocator,
 				       struct vdo_slab *slab,
 				       struct recovery_journal *recovery_journal,

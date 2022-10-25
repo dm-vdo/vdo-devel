@@ -155,7 +155,7 @@ static void testDirtySlabOrdering(void)
     struct list_head *entry = allocator->dirty_slab_journals.next;
     list_del_init(entry);
     slab_count_t slabNumber
-      = vdo_slab_journal_from_dirty_entry(entry)->slab->slab_number;
+      = list_entry(entry, struct slab_journal, dirty_entry)->slab->slab_number;
     CU_ASSERT_EQUAL(i, slabNumber);
   }
 

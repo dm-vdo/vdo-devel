@@ -911,7 +911,9 @@ void vdo_release_tail_block_locks(void *context,
 
 	while (!list_empty(list)) {
 		struct slab_journal *journal =
-			vdo_slab_journal_from_dirty_entry(list->next);
+			list_first_entry(list,
+					 struct slab_journal,
+					 dirty_entry);
 		sequence_number_t release_request =
 			depot->active_release_request;
 

@@ -24,37 +24,6 @@
 #include "vio.h"
 
 /**
- * vdo_slab_journal_from_dirty_entry() - Obtain a pointer to a slab_journal
- *                                       structure from a pointer to the dirty
- *                                       list entry field within it.
- * @entry: The list entry to convert.
- *
- * Return: The entry as a slab_journal.
- */
-struct slab_journal *vdo_slab_journal_from_dirty_entry(struct list_head *entry)
-{
-	if (entry == NULL)
-		return NULL;
-	return list_entry(entry, struct slab_journal, dirty_entry);
-}
-
-/**
- * get_block_number() - Get the physical block number for a given sequence
- *                      number.
- * @journal: The journal.
- * @sequence: The sequence number of the desired block.
- *
- * Return: The block number corresponding to the sequence number.
- */
-static inline physical_block_number_t __must_check
-get_block_number(struct slab_journal *journal, sequence_number_t sequence)
-{
-	tail_block_offset_t offset = vdo_get_slab_journal_block_offset(journal,
-							       sequence);
-	return (journal->slab->journal_origin + offset);
-}
-
-/**
  * get_lock() - Get the lock object for a slab journal block by sequence
  *              number.
  * @journal: vdo_slab journal to retrieve from.
@@ -67,6 +36,7 @@ get_lock(struct slab_journal *journal, sequence_number_t sequence_number)
 {
 	tail_block_offset_t offset =
 		vdo_get_slab_journal_block_offset(journal, sequence_number);
+
 	return &journal->locks[offset];
 }
 
@@ -287,21 +257,19 @@ vdo_is_slab_journal_dirty(const struct slab_journal *journal)
 static void mark_slab_journal_dirty(struct slab_journal *journal,
 				    sequence_number_t lock)
 {
-	struct list_head *entry;
+	struct slab_journal *dirty_journal;
 	struct list_head *dirty_list =
 		&journal->slab->allocator->dirty_slab_journals;
 	ASSERT_LOG_ONLY(!vdo_is_slab_journal_dirty(journal),
 			"slab journal was clean");
 
 	journal->recovery_lock = lock;
-	list_for_each_prev(entry, dirty_list) {
-		struct slab_journal *dirty_journal =
-			vdo_slab_journal_from_dirty_entry(entry);
+	list_for_each_entry_reverse(dirty_journal, dirty_list, dirty_entry) {
 		if (dirty_journal->recovery_lock <= journal->recovery_lock)
 			break;
 	}
 
-	list_move_tail(&journal->dirty_entry, entry->next);
+	list_move_tail(&journal->dirty_entry, dirty_journal->dirty_entry.next);
 }
 
 static void mark_slab_journal_clean(struct slab_journal *journal)
@@ -725,7 +693,10 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 		journal->partial_write_in_progress = !block_is_full(journal);
 	}
 
-	block_number = get_block_number(journal, header->sequence_number);
+	block_number =
+		(journal->slab->journal_origin +
+		 vdo_get_slab_journal_block_offset(journal,
+						   header->sequence_number));
 	vio_as_completion(vio)->parent = journal;
 
 	/*
