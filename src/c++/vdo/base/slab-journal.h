@@ -8,19 +8,16 @@
 
 #include <linux/list.h>
 
-#include "numeric.h"
-
-#include "completion.h"
-#include "journal-point.h"
-#include "types.h"
-
 #include "block-allocator.h"
 #include "block-map-entry.h"
+#include "completion.h"
 #include "journal-point.h"
-#include "slab.h"
+#include "numeric.h"
 #include "slab-journal-format.h"
 #include "slab-summary.h"
+#include "slab.h"
 #include "statistics.h"
+#include "types.h"
 #include "wait-queue.h"
 
 struct journal_lock {

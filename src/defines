@@ -31,6 +31,8 @@ VDO_STATS_DEPS = $(STATS_GENERATOR_DEPS) \
 
 PERL_LIB = $(PERL_DIR)/lib
 
+CHECKINCLUDES := $(KERNEL_SOURCE_DIR)/scripts/checkincludes.pl
+
 CHECKPATCH_TYPES := CVS_KEYWORD, \
                     LEADING_SPACE, \
                     LINE_SPACING, \
