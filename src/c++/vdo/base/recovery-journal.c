@@ -215,40 +215,73 @@ vdo_release_recovery_journal_block_reference(struct recovery_journal *journal,
 	vdo_invoke_completion_callback(&journal->lock_counter.completion);
 }
 
+static inline struct recovery_journal_block * __must_check
+get_journal_block(struct list_head *list)
+{
+	return list_first_entry_or_null(list,
+					struct recovery_journal_block,
+					list_node);
+}
+
 /**
  * pop_free_list() - Get a block from the end of the free list.
  * @journal: The journal.
  *
  * Return: The block or NULL if the list is empty.
  */
-static struct recovery_journal_block *
+static struct recovery_journal_block * __must_check
 pop_free_list(struct recovery_journal *journal)
 {
-	struct list_head *entry;
+	struct recovery_journal_block *block;
 
 	if (list_empty(&journal->free_tail_blocks))
 		return NULL;
-	entry = journal->free_tail_blocks.prev;
-	list_del_init(entry);
-	return vdo_recovery_block_from_list_entry(entry);
+
+	block = list_last_entry(&journal->free_tail_blocks,
+				struct recovery_journal_block,
+				list_node);
+	list_del_init(&block->list_node);
+	return block;
 }
 
 /**
- * pop_active_list() - Get a block from the end of the active list.
- * @journal: The journal.
+ * is_block_dirty() - Check whether a recovery block is dirty.
+ * @block: The block to check.
  *
- * Return: The block or NULL if the list is empty.
- */
-static struct recovery_journal_block *
-pop_active_list(struct recovery_journal *journal)
+ * Indicates it has any uncommitted entries, which includes both entries not
+ * written and entries written but not yet acknowledged.
+ *
+ * Return: true if the block has any uncommitted entries.
+ **/
+static inline bool __must_check
+is_block_dirty(const struct recovery_journal_block *block)
 {
-	struct list_head *entry;
+	return (block->uncommitted_entry_count > 0);
+}
 
-	if (list_empty(&journal->active_tail_blocks))
-		return NULL;
-	entry = journal->active_tail_blocks.prev;
-	list_del_init(entry);
-	return vdo_recovery_block_from_list_entry(entry);
+/**
+ * is_block_empty() - Check whether a journal block is empty.
+ * @block: The block to check.
+ *
+ * Return: true if the block has no entries.
+ **/
+static inline bool __must_check
+is_block_empty(const struct recovery_journal_block *block)
+{
+	return (block->entry_count == 0);
+}
+
+/**
+ * is_block_full() - Check whether a journal block is full.
+ * @block: The block to check.
+ *
+ * Return: true if the block is full.
+ **/
+static inline bool __must_check
+is_block_full(const struct recovery_journal_block *block)
+{
+	return ((block == NULL) ||
+		(block->journal->entries_per_block == block->entry_count));
 }
 
 /**
@@ -286,18 +319,16 @@ static void continue_waiter(struct waiter *waiter, void *context)
  */
 static inline bool has_block_waiters(struct recovery_journal *journal)
 {
-	struct recovery_journal_block *block;
+	struct recovery_journal_block *block =
+		get_journal_block(&journal->active_tail_blocks);
 
 	/*
 	 * Either the first active tail block (if it exists) has waiters,
 	 * or no active tail block has waiters.
 	 */
-	if (list_empty(&journal->active_tail_blocks))
-		return false;
-
-	block = vdo_recovery_block_from_list_entry(journal->active_tail_blocks.next);
-	return (has_waiters(&block->entry_waiters) ||
-		has_waiters(&block->commit_waiters));
+	return ((block != NULL) &&
+		(has_waiters(&block->entry_waiters) ||
+		 has_waiters(&block->commit_waiters)));
 }
 
 static void recycle_journal_blocks(struct recovery_journal *journal);
@@ -344,7 +375,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		 * Clean up any full active blocks which were not written due
 		 * to being in read-only mode.
 		 *
-		 * XXX: This would probably be better as a short-circuit in
+		 * FIXME: This would probably be better as a short-circuit in
 		 * write_block().
 		 */
 		notify_commit_waiters(journal);
@@ -368,7 +399,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 	if (vdo_is_state_saving(&journal->state)) {
 		if (journal->active_block != NULL) {
 			ASSERT_LOG_ONLY(((result == VDO_READ_ONLY) ||
-					!vdo_is_recovery_block_dirty(journal->active_block)),
+					 !is_block_dirty(journal->active_block)),
 					"journal being saved has clean active block");
 			recycle_journal_block(journal->active_block);
 		}
@@ -840,9 +871,7 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 		 !list_empty(&journal->active_tail_blocks))
 		uds_log_warning("journal being freed has uncommitted entries");
 
-	while ((block = pop_active_list(journal)) != NULL)
-		vdo_free_recovery_block(block);
-
+	list_splice(&journal->active_tail_blocks, &journal->free_tail_blocks);
 	while ((block = pop_free_list(journal)) != NULL)
 		vdo_free_recovery_block(block);
 
@@ -1062,11 +1091,10 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 		return false;
 	}
 
-	if (vdo_is_recovery_block_full(journal->active_block) &&
-	    !advance_tail(journal))
+	if (is_block_full(journal->active_block) && !advance_tail(journal))
 		return false;
 
-	if (!vdo_is_recovery_block_empty(journal->active_block))
+	if (!is_block_empty(journal->active_block))
 		return true;
 
 	if ((journal->tail - get_recovery_journal_head(journal)) >
@@ -1184,7 +1212,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		return;
 	}
 
-	if (vdo_is_recovery_block_full(block))
+	if (is_block_full(block))
 		/*
 		 * The block is full, so we can write it anytime henceforth. If
 		 * it is already committing, we'll queue it for writing when it
@@ -1287,15 +1315,9 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
  */
 static void notify_commit_waiters(struct recovery_journal *journal)
 {
-	struct list_head *entry;
+	struct recovery_journal_block *block;
 
-	if (list_empty(&journal->active_tail_blocks))
-		return;
-
-	list_for_each(entry, &journal->active_tail_blocks) {
-		struct recovery_journal_block *block =
-			vdo_recovery_block_from_list_entry(entry);
-
+	list_for_each_entry(block, &journal->active_tail_blocks, list_node) {
 		if (block->committing)
 			return;
 
@@ -1306,8 +1328,7 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 			notify_all_waiters(&block->entry_waiters,
 					   continue_committed_waiter,
 					   journal);
-		else if (vdo_is_recovery_block_dirty(block) ||
-			 !vdo_is_recovery_block_full(block))
+		else if (is_block_dirty(block) || !is_block_full(block))
 			/*
 			 * Stop at partially-committed or partially-filled
 			 * blocks.
@@ -1323,22 +1344,24 @@ static void notify_commit_waiters(struct recovery_journal *journal)
  */
 static void recycle_journal_blocks(struct recovery_journal *journal)
 {
-	while (!list_empty(&journal->active_tail_blocks)) {
-		struct recovery_journal_block *block =
-			vdo_recovery_block_from_list_entry(journal->active_tail_blocks.next);
+	struct recovery_journal_block *block, *tmp;
 
+	list_for_each_entry_safe(block,
+				 tmp,
+				 &journal->active_tail_blocks,
+				 list_node) {
 		if (block->committing)
 			/* Don't recycle committing blocks. */
 			return;
 
 		if (!vdo_is_read_only(journal->read_only_notifier) &&
-		    (vdo_is_recovery_block_dirty(block) ||
-		     !vdo_is_recovery_block_full(block)))
+		    (is_block_dirty(block) || !is_block_full(block)))
 			/*
 			 * Don't recycle partially written or partially full
 			 * blocks, except in read-only mode.
 			 */
 			return;
+
 		recycle_journal_block(block);
 	}
 }
@@ -1373,8 +1396,7 @@ static void complete_write(struct vdo_completion *completion)
 	if (block->sequence_number > journal->last_write_acknowledged)
 		journal->last_write_acknowledged = block->sequence_number;
 
-	last_active_block =
-		vdo_recovery_block_from_list_entry(journal->active_tail_blocks.next);
+	last_active_block = get_journal_block(&journal->active_tail_blocks);
 	ASSERT_LOG_ONLY((block->sequence_number >=
 			 last_active_block->sequence_number),
 			"completed journal write is still active");
@@ -1385,7 +1407,7 @@ static void complete_write(struct vdo_completion *completion)
 	 * Is this block now full? Reaping, and adding entries, might have
 	 * already sent it off for rewriting; else, queue it for rewrite.
 	 */
-	if (vdo_is_recovery_block_dirty(block) && vdo_is_recovery_block_full(block))
+	if (is_block_dirty(block) && is_block_full(block))
 		schedule_block_write(journal, block);
 
 	recycle_journal_blocks(journal);
@@ -2028,13 +2050,13 @@ vdo_validate_recovery_journal_entry(const struct vdo *vdo,
  *					    journal.
  * @journal: The recovery journal to dump.
  */
-void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal)
+void
+vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal)
 {
-	const struct list_head *head;
-	struct list_head *entry;
-
+	const struct recovery_journal_block *block;
 	struct recovery_journal_statistics stats =
 		vdo_get_recovery_journal_statistics(journal);
+
 	uds_log_info("Recovery Journal");
 	uds_log_info("	block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
 		     (unsigned long long) journal->block_map_head,
@@ -2057,7 +2079,6 @@ void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal
 		     (unsigned long long) stats.blocks.committed);
 
 	uds_log_info("	active blocks:");
-	head = &journal->active_tail_blocks;
-	list_for_each(entry, head)
-		vdo_dump_recovery_block(vdo_recovery_block_from_list_entry(entry));
+	list_for_each_entry(block, &journal->active_tail_blocks, list_node)
+		vdo_dump_recovery_block(block);
 }

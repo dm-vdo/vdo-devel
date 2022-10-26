@@ -50,59 +50,6 @@ struct recovery_journal_block {
 	struct wait_queue commit_waiters;
 };
 
-/**
- * vdo_recovery_block_from_list_entry() - Return the block associated with a
- *                                        list entry.
- * @entry: The list entry to recast as a block.
- *
- * Return: The block.
- **/
-static inline struct recovery_journal_block *
-vdo_recovery_block_from_list_entry(struct list_head *entry)
-{
-	return list_entry(entry, struct recovery_journal_block, list_node);
-}
-
-/**
- * vdo_is_recovery_block_dirty() - Check whether a recovery block is dirty.
- * @block: The block to check.
- *
- * Indicates it has any uncommitted entries, which includes both entries not
- * written and entries written but not yet acknowledged.
- *
- * Return: true if the block has any uncommitted entries.
- **/
-static inline bool __must_check
-vdo_is_recovery_block_dirty(const struct recovery_journal_block *block)
-{
-	return (block->uncommitted_entry_count > 0);
-}
-
-/**
- * vdo_is_recovery_block_empty() - Check whether a journal block is empty.
- * @block: The block to check.
- *
- * Return: true if the block has no entries.
- **/
-static inline bool __must_check
-vdo_is_recovery_block_empty(const struct recovery_journal_block *block)
-{
-	return (block->entry_count == 0);
-}
-
-/**
- * vdo_is_recovery_block_full() - Check whether a journal block is full.
- * @block: The block to check.
- *
- * Return: true if the block is full.
- **/
-static inline bool __must_check
-vdo_is_recovery_block_full(const struct recovery_journal_block *block)
-{
-	return ((block == NULL)
-		|| (block->journal->entries_per_block == block->entry_count));
-}
-
 int __must_check
 vdo_make_recovery_block(struct vdo *vdo,
 			struct recovery_journal *journal,
