@@ -8,7 +8,6 @@
 
 #include "permassert.h"
 
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "thread-config.h"
 #include "types.h"

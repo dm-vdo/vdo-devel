@@ -10,7 +10,6 @@
 #include "admin-completion.h"
 #include "block-map.h"
 #include "completion.h"
-#include "kernel-types.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"

@@ -16,7 +16,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "io-submitter.h"
-#include "kernel-types.h"
 #include "logical-zone.h"
 #include "num-utils.h"
 #include "read-only-notifier.h"

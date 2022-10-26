@@ -8,7 +8,6 @@
 
 #include <linux/atomic.h>
 
-#include "kernel-types.h"
 #include "thread-config.h"
 #include "types.h"
 

@@ -14,7 +14,6 @@
 #include "memory-alloc.h"
 #include "uds-threads.h"
 
-#include "kernel-types.h"
 #include "types.h"
 
 #include "asyncVIO.h"

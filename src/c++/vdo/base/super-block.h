@@ -7,7 +7,6 @@
 #define SUPER_BLOCK_H
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "types.h"
 
 struct vdo_super_block;

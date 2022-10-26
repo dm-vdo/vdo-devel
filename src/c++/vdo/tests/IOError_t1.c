@@ -10,8 +10,6 @@
 
 #include <linux/bio.h>
 
-#include "kernel-types.h"
-
 #include "asyncLayer.h"
 #include "ioRequest.h"
 #include "ramLayer.h"

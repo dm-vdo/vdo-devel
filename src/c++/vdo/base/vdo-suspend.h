@@ -6,7 +6,7 @@
 #ifndef VDO_SUSPEND_H
 #define VDO_SUSPEND_H
 
-#include "kernel-types.h"
+#include "types.h"
 
 int vdo_suspend(struct vdo *vdo);
 

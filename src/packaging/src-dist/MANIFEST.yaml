@@ -293,7 +293,6 @@ tarballs:
             io-submitter.c
             io-submitter.h
             journal-point.h
-            kernel-types.h
             logical-zone.c
             logical-zone.h
             message-stats.c

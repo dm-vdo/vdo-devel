@@ -8,7 +8,6 @@
 #include <linux/atomic.h>
 
 #include "data-vio.h"
-#include "kernel-types.h"
 #include "packer.h"
 #include "types.h"
 #include "vdo.h"

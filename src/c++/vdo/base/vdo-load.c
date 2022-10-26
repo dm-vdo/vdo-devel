@@ -15,7 +15,6 @@
 #include "dedupe.h"
 #include "device-config.h"
 #include "header.h"
-#include "kernel-types.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
 #ifdef __KERNEL__

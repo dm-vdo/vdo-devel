@@ -13,7 +13,6 @@
 
 #include "completion.h"
 #include "io-submitter.h"
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "super-block-codec.h"
 #include "types.h"

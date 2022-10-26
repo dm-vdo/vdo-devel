@@ -11,7 +11,6 @@
 #include "block-map-format.h"
 #include "block-map-page.h"
 #include "constants.h"
-#include "kernel-types.h"
 #include "types.h"
 #include "wait-queue.h"
 

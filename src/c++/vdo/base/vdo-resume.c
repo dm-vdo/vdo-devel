@@ -14,7 +14,6 @@
 #include "completion.h"
 #include "data-vio.h"
 #include "dedupe.h"
-#include "kernel-types.h"
 #include "logical-zone.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"

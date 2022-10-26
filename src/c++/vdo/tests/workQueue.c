@@ -21,7 +21,6 @@
 #include "uds-threads.h"
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "vdo.h"
 

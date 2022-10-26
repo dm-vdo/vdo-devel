@@ -19,9 +19,6 @@ struct block_device;
 
 #include "uds.h"
 
-#if defined(__KERNEL__) || defined(INTERNAL)
-#include "kernel-types.h"
-#endif /* __KERNEL__ or INTERNAL */
 #ifndef __KERNEL__
 #include "physicalLayer.h"
 #endif /* not __KERNEL__ */

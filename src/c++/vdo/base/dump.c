@@ -14,7 +14,6 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "io-submitter.h"
-#include "kernel-types.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"

@@ -6,7 +6,7 @@
 #ifndef DUMP_H
 #define DUMP_H
 
-#include "kernel-types.h"
+#include "types.h"
 
 int vdo_dump(struct vdo *vdo,
 	     unsigned int argc,

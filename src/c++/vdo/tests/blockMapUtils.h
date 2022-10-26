@@ -9,7 +9,6 @@
 #ifndef BLOCK_MAP_UTILS_H
 #define BLOCK_MAP_UTILS_H
 
-#include "kernel-types.h"
 #include "types.h"
 
 typedef void PopulateBlockMapConfigurator(struct data_vio *dataVIO);

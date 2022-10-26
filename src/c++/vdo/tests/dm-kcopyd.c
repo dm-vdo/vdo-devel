@@ -10,7 +10,6 @@
 #include "permassert.h"
 
 #include "constants.h"
-#include "kernel-types.h"
 #include "types.h"
 
 #include "physicalLayer.h"

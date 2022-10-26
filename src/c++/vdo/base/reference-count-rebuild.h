@@ -7,7 +7,6 @@
 #define REFERENCE_COUNT_REBUILD_H
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "types.h"
 
 void vdo_rebuild_reference_counts(struct vdo *vdo,

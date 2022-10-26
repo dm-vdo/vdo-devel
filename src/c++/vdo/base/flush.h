@@ -7,7 +7,6 @@
 #define FLUSH_H
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "types.h"
 #include "vio.h"
 #include "wait-queue.h"

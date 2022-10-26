@@ -9,7 +9,6 @@
 #include <linux/bio.h>
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "vio.h"
 
 int vdo_make_io_submitter(unsigned int thread_count,

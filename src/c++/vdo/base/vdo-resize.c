@@ -9,7 +9,6 @@
 
 #include "admin-completion.h"
 #include "completion.h"
-#include "kernel-types.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab-summary.h"

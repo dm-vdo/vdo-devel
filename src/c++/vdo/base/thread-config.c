@@ -15,7 +15,6 @@
 #include "permassert.h"
 
 #include "device-config.h"
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "types.h"
 

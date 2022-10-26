@@ -10,8 +10,6 @@
 
 #include "types.h"
 
-#include "kernel-types.h"
-
 /*
  * This structure is memcmp'd for equality. Keep it packed and don't add any
  * fields that are not properly set in both extant and parsed configs.

@@ -165,6 +165,13 @@ struct slab_config {
 	block_count_t slab_journal_scrubbing_threshold;
 } __packed;
 
+#if defined(__KERNEL__) || defined(INTERNAL)
+struct data_vio;
+struct vdo;
+#endif /* __KERNEL__ or INTERNAL */
 struct vdo_config;
+#if defined(__KERNEL__) || defined(INTERNAL)
+struct vio;
+#endif /* __KERNEL__ or INTERNAL */
 
 #endif /* TYPES_H */

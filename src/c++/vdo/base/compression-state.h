@@ -6,7 +6,6 @@
 #ifndef COMPRESSION_STATE_H
 #define COMPRESSION_STATE_H
 
-#include "kernel-types.h"
 #include "types.h"
 
 /*

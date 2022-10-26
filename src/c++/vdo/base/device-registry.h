@@ -6,7 +6,6 @@
 #ifndef DEVICE_REGISTRY_H
 #define DEVICE_REGISTRY_H
 
-#include "kernel-types.h"
 #include "types.h"
 
 /**

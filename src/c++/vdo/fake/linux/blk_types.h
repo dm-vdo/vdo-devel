@@ -11,7 +11,7 @@
 
 #include <linux/bvec.h>
 
-#include "kernel-types.h"
+#include "types.h"
 
 struct bio;
 typedef unsigned int blk_qc_t;

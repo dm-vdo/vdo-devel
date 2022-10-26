@@ -18,7 +18,6 @@
 #include "dirty-lists.h"
 #include "forest.h"
 #include "io-submitter.h"
-#include "kernel-types.h"
 #include "num-utils.h"
 #include "physical-zone.h"
 #include "recovery-journal.h"

@@ -162,7 +162,6 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "io-submitter.h"
-#include "kernel-types.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "pointer-map.h"

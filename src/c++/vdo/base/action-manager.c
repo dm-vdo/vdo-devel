@@ -10,7 +10,6 @@
 
 #include "admin-state.h"
 #include "completion.h"
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"

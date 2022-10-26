@@ -17,7 +17,6 @@
 #if defined(INTERNAL) || defined(VDO_INTERNAL)
 #include "data-vio.h"
 #endif /* INTERNAL or VDO_INTERNAL */
-#include "kernel-types.h"
 #include "status-codes.h"
 #include "thread-config.h"
 #include "vio.h"

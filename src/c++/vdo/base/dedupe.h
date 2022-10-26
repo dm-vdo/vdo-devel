@@ -12,7 +12,6 @@
 #include "uds.h"
 
 #include "completion.h"
-#include "kernel-types.h"
 #include "statistics.h"
 #include "types.h"
 #include "wait-queue.h"
