@@ -145,7 +145,7 @@ struct __aligned(L1_CACHE_BYTES) cached_chapter_index {
  * avoiding the need to even iterate over them to search, and ensuring that
  * dead entries are replaced before any live entries are evicted.
  *
- * The search list is instantated for each zone thread, avoiding any need for
+ * The search list is instantiated for each zone thread, avoiding any need for
  * synchronization. The structure is allocated on a cache boundary to avoid
  * false sharing of memory cache lines between zone threads.
  */
@@ -432,7 +432,7 @@ static void purge_search_list(struct search_list *search_list,
 	unsigned int next_alive = 0;
 	unsigned int next_skipped = 0;
 	unsigned int next_dead = 0;
-	uint8_t i;
+	unsigned int i;
 
 	entries = &search_list->entries[0];
 	skipped = &cache->scratch_entries[0];
@@ -449,8 +449,12 @@ static void purge_search_list(struct search_list *search_list,
 			entries[next_alive++] = chapter;
 	}
 
-	memcpy(&entries[next_alive], skipped, next_skipped);
-	memcpy(&entries[next_alive + next_skipped], dead, next_dead);
+	memcpy(&entries[next_alive],
+	       skipped,
+	       next_skipped * sizeof(struct cached_chapter_index *));
+	memcpy(&entries[next_alive + next_skipped],
+	       dead,
+	       next_dead * sizeof(struct cached_chapter_index *));
 	search_list->first_dead_entry = next_alive + next_skipped;
 }
 
