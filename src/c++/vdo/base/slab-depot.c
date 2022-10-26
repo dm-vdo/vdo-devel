@@ -7,23 +7,24 @@
 
 #include <linux/atomic.h>
 
+#include "logger.h"
+#include "memory-alloc.h"
+#include "permassert.h"
+
 #include "action-manager.h"
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
 #include "header.h"
-#include "logger.h"
-#include "memory-alloc.h"
 #include "num-utils.h"
-#include "permassert.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"
+#include "slab.h"
 #include "slab-depot-format.h"
 #include "slab-iterator.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
-#include "slab.h"
 #include "status-codes.h"
 #include "thread-config.h"
 #include "types.h"
