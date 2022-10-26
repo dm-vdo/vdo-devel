@@ -27,7 +27,6 @@
 #include "permassert.h"
 
 #include "allocation-selector.h"
-#include "bio.h"
 #include "block-allocator.h"
 #include "block-map.h"
 #include "compressed-block.h"
@@ -45,6 +44,7 @@
 #include "vdo.h"
 #include "vdo-component.h"
 #include "vdo-component-states.h"
+#include "vio.h"
 
 /**
  * DOC: Bio flags.
@@ -387,7 +387,20 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 	}
 
 #endif
-	vdo_complete_bio(bio, error);
+
+	bio->bi_status = errno_to_blk_status(error);
+	bio_endio(bio);
+}
+
+static void copy_to_bio(struct bio *bio, char *data_ptr)
+{
+	struct bio_vec biovec;
+	struct bvec_iter iter;
+
+	bio_for_each_segment(biovec, bio, iter) {
+		memcpy_to_bvec(&biovec, data_ptr);
+		data_ptr += biovec.bv_len;
+	}
 }
 
 /**
@@ -449,8 +462,8 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 	    READ_ONCE(lock_holder->allocation_succeeded)) {
 		struct vio *vio = data_vio_as_vio(lock_holder);
 
-		vdo_bio_copy_data_out(data_vio->user_bio,
-				      (vio->data + data_vio->offset));
+		copy_to_bio(data_vio->user_bio,
+			    (vio->data + data_vio->offset));
 		acknowledge_data_vio(data_vio);
 		complete_data_vio(completion);
 		return;
@@ -536,6 +549,17 @@ EXTERNAL_STATIC bool is_zero_block(char *block)
 	return true;
 }
 
+static void copy_from_bio(struct bio *bio, char *data_ptr)
+{
+	struct bio_vec biovec;
+	struct bvec_iter iter;
+
+	bio_for_each_segment(biovec, bio, iter) {
+		memcpy_from_bvec(data_ptr, &biovec);
+		data_ptr += biovec.bv_len;
+	}
+}
+
 static void launch_bio(struct vdo *vdo,
 		       struct data_vio *data_vio,
 		       struct bio *bio)
@@ -589,7 +613,7 @@ static void launch_bio(struct vdo *vdo,
 		 * Copy the bio data to a char array so that we can continue to
 		 * use the data after we acknowledge the bio.
 		 */
-		vdo_bio_copy_data_in(bio, vio->data);
+		copy_from_bio(bio, vio->data);
 		data_vio->is_zero_block = is_zero_block(vio->data);
 	}
 
@@ -1623,7 +1647,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 			     data_vio->remaining_discard,
 			     VDO_BLOCK_SIZE - data_vio->offset));
 	} else {
-		vdo_bio_copy_data_in(bio, data + data_vio->offset);
+		copy_from_bio(bio, data + data_vio->offset);
 	}
 
 	data_vio->is_zero_block = is_zero_block(data);
@@ -1658,10 +1682,8 @@ static void complete_read(struct vdo_completion *completion)
 		return;
 	}
 
-	if (compressed || data_vio->is_partial) {
-		vdo_bio_copy_data_out(data_vio->user_bio,
-				      data + data_vio->offset);
-	}
+	if (compressed || data_vio->is_partial)
+		copy_to_bio(data_vio->user_bio, data + data_vio->offset);
 
 	acknowledge_data_vio(data_vio);
 	complete_data_vio(completion);

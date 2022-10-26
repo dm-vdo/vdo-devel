@@ -5,7 +5,6 @@
 
 #include <linux/module.h>
 
-#include "bio.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
@@ -26,11 +25,75 @@
 #include "vdo-load.h"
 #include "vdo-resume.h"
 #include "vdo-suspend.h"
+#include "vio.h"
 
 static struct vdo *get_vdo_for_target(struct dm_target *ti)
 {
 	return ((struct device_config *) ti->private)->vdo;
 }
+
+#ifdef VDO_INTERNAL
+static int check_bio_validity(struct bio *bio)
+{
+	/* We should never get any other types of bio. */
+	bool is_known_type = ((bio_op(bio) == REQ_OP_READ)  ||
+			      (bio_op(bio) == REQ_OP_WRITE) ||
+			      (bio_op(bio) == REQ_OP_FLUSH) ||
+			      (bio_op(bio) == REQ_OP_DISCARD));
+	unsigned int known_flags = (REQ_SYNC | REQ_META | REQ_PRIO |
+				    REQ_NOMERGE | REQ_IDLE | REQ_FUA |
+				    REQ_RAHEAD | REQ_BACKGROUND);
+	unsigned int bio_flags = (bio->bi_opf & ~REQ_OP_MASK);
+	bool is_empty = (bio->bi_iter.bi_size == 0);
+	int result;
+
+	if (!is_known_type) {
+		/* XXX Why shouldn't this be assert like the other branches? */
+		uds_log_error("Received unexpected bio of type %d",
+			      bio_op(bio));
+		return -EINVAL;
+	}
+
+	/* Is this a flush? It must be empty. */
+	if ((bio_op(bio) == REQ_OP_FLUSH) ||
+	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+		result = ASSERT(is_empty, "flush bios must be empty");
+		if (result != UDS_SUCCESS)
+			result = -EINVAL;
+
+		return result;
+	}
+
+	/* Is this anything else? It must not be empty. */
+	result = ASSERT(!is_empty, "data bios must not be empty");
+	if (result != UDS_SUCCESS)
+		return -EINVAL;
+
+	/* Is this something other than a discard? Must have size <= 4k. */
+	if (bio_op(bio) != REQ_OP_DISCARD) {
+		result = ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
+				"data bios must not be more than %d bytes",
+				VDO_BLOCK_SIZE);
+		if (result != UDS_SUCCESS)
+			return -EINVAL;
+	}
+
+	/*
+	 * Does this have unexpected flags? We expect to never get failfast,
+	 * integrity, nowait, cgroup_punt, nounmap, hipri, drv, or swap flags.
+	 */
+	if ((bio_flags & known_flags) != bio_flags) {
+		static DEFINE_RATELIMIT_STATE(unknown_flags_limiter,
+					      DEFAULT_RATELIMIT_INTERVAL,
+					      DEFAULT_RATELIMIT_BURST);
+		if (__ratelimit(&unknown_flags_limiter))
+			uds_log_warning("Bio received with unexpected flags 0x%x (can handle 0x%x)",
+					bio_flags, known_flags);
+	}
+
+	return 0;
+}
+#endif /* VDO_INTERNAL */
 
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {

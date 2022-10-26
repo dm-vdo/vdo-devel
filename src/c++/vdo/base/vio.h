@@ -7,10 +7,10 @@
 #define VIO_H
 
 #include <linux/bio.h>
+#include <linux/blkdev.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 
-#include "bio.h"
 #include "completion.h"
 #include "constants.h"
 #include "thread-config.h"
@@ -148,6 +148,8 @@ get_vio_bio_zone_thread_id(struct vio *vio)
 	return vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
 }
 
+physical_block_number_t __must_check pbn_from_vio_bio(struct bio *bio);
+
 /**
  * assert_vio_in_bio_zone() - Check that a vio is running on the correct
  *                            thread for its bio zone.
@@ -166,6 +168,13 @@ assert_vio_in_bio_zone(struct vio *vio)
 			expected);
 }
 
+static inline int vdo_get_bio_result(struct bio *bio)
+{
+	return blk_status_to_errno(bio->bi_status);
+}
+
+int vdo_create_bio(struct bio **bio_ptr);
+void vdo_free_bio(struct bio *bio);
 int __must_check create_multi_block_metadata_vio(struct vdo *vdo,
 						 enum vio_type vio_type,
 						 enum vio_priority priority,
@@ -216,6 +225,19 @@ static inline void initialize_vio(struct vio *vio,
 	vdo_initialize_completion(vio_as_completion(vio), vdo, VIO_COMPLETION);
 }
 
+void vdo_set_bio_properties(struct bio *bio,
+			    struct vio *vio,
+			    bio_end_io_t callback,
+			    unsigned int bi_opf,
+			    physical_block_number_t pbn);
+
+int vdo_reset_bio_with_buffer(struct bio *bio,
+			      char *data,
+			      struct vio *vio,
+			      bio_end_io_t callback,
+			      unsigned int bi_opf,
+			      physical_block_number_t pbn);
+
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
@@ -256,6 +278,9 @@ static inline void continue_vio(struct vio *vio, int result)
 
 	vdo_enqueue_completion(completion);
 }
+
+void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
+void vdo_count_completed_bios(struct bio *bio);
 
 /**
  * continue_vio_after_io() - Continue a vio now that its I/O has returned.

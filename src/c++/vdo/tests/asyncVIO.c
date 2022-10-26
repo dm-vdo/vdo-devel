@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "bio.h"
 #include "completion.h"
 
 #include "vdoAsserts.h"

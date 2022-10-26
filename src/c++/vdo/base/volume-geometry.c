@@ -11,9 +11,6 @@
 #include "numeric.h"
 #include "permassert.h"
 
-#ifdef __KERNEL__
-#include "bio.h"
-#endif /* __KERNEL__ */
 #ifndef __KERNEL__
 #include "checksum.h"
 #endif /* !__KERNEL__ */
@@ -27,6 +24,7 @@
 #include "types.h"
 #ifdef __KERNEL__
 #include "vdo.h"
+#include "vio.h"
 #endif /* __KERNEL__ */
 
 enum {

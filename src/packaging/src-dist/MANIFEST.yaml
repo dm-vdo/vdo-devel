@@ -243,8 +243,6 @@ tarballs:
             admin-state.h
             allocation-selector.c
             allocation-selector.h
-            bio.c
-            bio.h
             block-allocator.c
             block-allocator.h
             block-map.c

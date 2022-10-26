@@ -23,7 +23,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "bio.h"
 #include "block-map.h"
 #include "data-vio.h"
 #include "dedupe.h"
@@ -51,6 +50,7 @@
 #include "vdo-layout.h"
 #include "vdo-resize.h"
 #include "vdo-resize-logical.h"
+#include "vio.h"
 #include "work-queue.h"
 
 #ifdef __KERNEL__

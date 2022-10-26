@@ -12,7 +12,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "bio.h"
 #include "data-vio.h"
 #include "logger.h"
 #include "types.h"

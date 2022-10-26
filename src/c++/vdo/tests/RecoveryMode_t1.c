@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "bio.h"
 #include "block-allocator.h"
 #include "num-utils.h"
 #include "recovery-journal.h"
@@ -21,6 +20,7 @@
 #include "slab-scrubber.h"
 #include "status-codes.h"
 #include "vdo.h"
+#include "vio.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

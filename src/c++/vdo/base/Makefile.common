@@ -12,7 +12,6 @@ BASE_OBJS :=     			\
 	admin-completion.o		\
 	admin-state.o			\
 	allocation-selector.o		\
-	bio.o                           \
 	block-allocator.o		\
 	block-map.o			\
 	block-map-format.o		\

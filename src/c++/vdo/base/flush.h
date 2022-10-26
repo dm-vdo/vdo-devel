@@ -6,10 +6,10 @@
 #ifndef FLUSH_H
 #define FLUSH_H
 
-#include "bio.h"
 #include "completion.h"
 #include "kernel-types.h"
 #include "types.h"
+#include "vio.h"
 #include "wait-queue.h"
 #include "work-queue.h"
 
