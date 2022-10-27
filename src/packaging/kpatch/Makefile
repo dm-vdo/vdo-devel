@@ -22,10 +22,8 @@
 # make prepare:
 #
 #   This prepares UDS and VDO sources for adding to the linux sources.
-#   It uses the tools and MANIFEST files in ../github, to reduce
-#   duplication and avoid having to update yet another manifest when
-#   changing souce files. This will leave massaged source files in
-#   ../github/work/kvdo-$(VDO_MARKETING_VERSION)/vdo.
+#   This will leave massaged source files in
+#   work/kvdo-$(VDO_MARKETING_VERSION)/vdo.
 #
 # make overlay:
 #
@@ -48,6 +46,9 @@
 #   
 
 VDO_ROOT ?= $(realpath ../../..)
+SRC_DIR = ../..
+include ../defines
+include $(SRC_DIR)/defines
 
 CURRENT_VERSION_FILE := $(VDO_ROOT)/src/tools/installers/CURRENT_VERSION
 include $(CURRENT_VERSION_FILE)
@@ -72,8 +73,13 @@ endif
 GIT=git
 GITARGS=
 
-GITHUB_PACKAGING_DIR=$(realpath ..)/github
-GITHUB_WORK_DIR=$(GITHUB_PACKAGING_DIR)/work/kvdo-$(VDO_VERSION)
+WORK_DIR ?= $(realpath .)/work
+PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)/vdo
+MANIFEST ?= src/packaging/kpatch/MANIFEST.yaml
+PREPARE_GITHUB_DIST ?= $(SRC_DIR)/perl/bin/prepareGitHubDist.pl
+CHECKPATCH_TYPES := ERROR BRACES CODE_INDENT CONST_STRUCT UNNECESSARY_ELSE
+CHECKPATCH_TYPES += TRAILING_WHITESPACE
+CHECKPATCH_REGRESSIONS = $(shell echo '$(CHECKPATCH_TYPES)' | tr ' ' '|')
 
 #
 # Location of the Linux distribution and subdirectories of interest
@@ -83,25 +89,50 @@ LINUX_DOC_SRC=$(LINUX_SRC)/Documentation/admin-guide/device-mapper
 LINUX_MD_SRC=$(LINUX_SRC)/drivers/md
 LINUX_VDO_SRC=$(LINUX_MD_SRC)/dm-vdo
 
+CLEAN_FILES = prepare.out checkpatch.out $(WORK_DIR)
+
 .PHONY: all
-all:;
+all:
+	@echo To generate a kernel patch, do make prepare, make check-style,
+	@echo make overlay, and make kpatch in that order.
 
 .PHONY: clean
-clean:;
+clean:
+	$(RM) -r $(CLEAN_FILES)
 
-.PHONY: prepare
-prepare:
+prepare: prepare.out
+
+prepare.out: $(WORK_DIR)
 	[ "$(KERNEL_VERSION)" != "NONE" ] || exit 1; \
-	$(MAKE) -C $(GITHUB_PACKAGING_DIR) clean;  \
-	$(MAKE) -C $(GITHUB_PACKAGING_DIR) prepare \
-		EXTRA_FLAGS="--kernel=$(KERNEL_VERSION)"
+	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) \
+	  --manifest=$(MANIFEST) --kernel=$(KERNEL_VERSION) $(VDO_ROOT) \
+	  | tee $@
+
+$(WORK_DIR):
+	mkdir -p $(WORK_DIR)
 
 SPDX := \# SPDX-License-Identifier: GPL-2.0-only
+
+# Check that no ERROR-level problems or fixed WARNING level problems
+# are re-introduced.
+check-style: checkpatch.out
+	! grep -q -E '$(CHECKPATCH_REGRESSIONS)' checkpatch.out
+
+# Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
+CHECKPATCH_IGNORE = NEW_TYPEDEFS
+CHECKPATCH_ARGS := --no-tree --file --terse --show-types --color=never
+CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE)
+
+checkpatch.out: prepare.out
+	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(PREPARED_DIR)/*.[hc] \
+	  | tee $@
+
+
 
 .PHONY: overlay overlay_vdo
 overlay overlay_vdo:
 	mkdir -p $(LINUX_VDO_SRC)
-	cp -r $(GITHUB_WORK_DIR)/vdo/* $(LINUX_VDO_SRC)
+	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
 	cd  $(LINUX_VDO_SRC) \
 		&& echo '$(SPDX)' >Makefile \
 		&& echo >>Makefile \

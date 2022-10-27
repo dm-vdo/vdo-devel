@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# This file is used to configure kernel patch generation for VDO. It
+# is intended to be read by the prepareSourceDist.pl and
+# prepareGitHubDist.pl utilities. See
+# //eng/main/src/perl/Permabit/DistFramework.pm for a description of
+# the syntax of this file.
+#
+# Copyright Red Hat
+#
+
+# FIXME: Fix VDO_USE_ALTERNATE and DM_BUFIO_CLIENT_NO_SLEEP properly.
+# Forcing them here generates correct code for kernel version 6.0 and
+# later, but to be able to generate source for other kernels will
+# require a better method of resolving this kind of thing. One
+# possibility is using the EXTRAVERSION from the kernel Makefile.
+
+manifest: ../src-dist/MANIFEST.yaml
+
+tarballs:
+  kvdo:
+    sources:
+      vdo:
+        src/c++/vdo/base:
+          +undefines: INTERNAL,TEST_INTERNAL,VDO_INTERNAL,VDO_USER,RHEL_RELEASE_CODE,VDO_USE_ALTERNATE
+          +defines: __KERNEL__,VDO_UPSTREAM
+          +postProcessor: ../github/removeInternal.sh
+        src/c++/uds/src/uds:
+          +defines: __KERNEL__,DM_BUFIO_CLIENT_NO_SLEEP
+          +postProcessor: ../github/removeInternal.sh
+        src/c++/uds/kernelLinux/uds:
+          +postProcessor: ../github/removeInternal.sh
