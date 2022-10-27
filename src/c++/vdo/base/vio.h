@@ -175,6 +175,13 @@ static inline int vdo_get_bio_result(struct bio *bio)
 
 int vdo_create_bio(struct bio **bio_ptr);
 void vdo_free_bio(struct bio *bio);
+int allocate_vio_components(struct vdo *vdo,
+			    enum vio_type vio_type,
+			    enum vio_priority priority,
+			    void *parent,
+			    unsigned int block_count,
+			    char *data,
+			    struct vio *vio);
 int __must_check create_multi_block_metadata_vio(struct vdo *vdo,
 						 enum vio_type vio_type,
 						 enum vio_priority priority,
@@ -200,6 +207,7 @@ create_metadata_vio(struct vdo *vdo,
 					       vio_ptr);
 }
 
+void free_vio_components(struct vio *vio);
 void free_vio(struct vio *vio);
 
 /**

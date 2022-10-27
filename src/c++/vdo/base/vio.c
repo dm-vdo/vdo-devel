@@ -85,13 +85,13 @@ void vdo_free_bio(struct bio *bio)
 	UDS_FREE(UDS_FORGET(bio));
 }
 
-static int allocate_vio_components(struct vdo *vdo,
-				   enum vio_type vio_type,
-				   enum vio_priority priority,
-				   void *parent,
-				   unsigned int block_count,
-				   char *data,
-				   struct vio *vio)
+int allocate_vio_components(struct vdo *vdo,
+			    enum vio_type vio_type,
+			    enum vio_priority priority,
+			    void *parent,
+			    unsigned int block_count,
+			    char *data,
+			    struct vio *vio)
 {
 	struct bio *bio;
 	int result;
@@ -181,16 +181,26 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 }
 
 /**
- * free_vio() - Destroy a vio.
- * @vio: The vio to destroy.
- */
-void free_vio(struct vio *vio)
+ * free_vio_components(): Free the components of a vio embedded in a larger
+ *                        structure.
+ * @vio: The vio to destroy
+ **/
+void free_vio_components(struct vio *vio)
 {
 	if (vio == NULL)
 		return;
 
 	BUG_ON(is_data_vio(vio));
 	vdo_free_bio(UDS_FORGET(vio->bio));
+}
+
+/**
+ * free_vio() - Destroy a vio.
+ * @vio: The vio to destroy.
+ */
+void free_vio(struct vio *vio)
+{
+	free_vio_components(vio);
 	UDS_FREE(vio);
 }
 
@@ -468,7 +478,7 @@ void free_vio_pool(struct vio_pool *pool)
 							     pool_entry);
 
 		list_del(&pooled->pool_entry);
-		vdo_free_bio(pooled->vio.bio);
+		free_vio_components(&pooled->vio);
 		pool->size--;
 	}
 

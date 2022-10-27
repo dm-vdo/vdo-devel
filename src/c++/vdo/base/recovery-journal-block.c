@@ -33,6 +33,7 @@ int vdo_make_recovery_block(struct vdo *vdo,
 			    struct recovery_journal_block **block_ptr)
 {
 	struct recovery_journal_block *block;
+	char *data;
 	int result;
 
 	/*
@@ -44,7 +45,10 @@ int vdo_make_recovery_block(struct vdo *vdo,
 			   sizeof(struct packed_journal_header)) /
 			  sizeof(struct packed_recovery_journal_entry)));
 
-	result = UDS_ALLOCATE(1, struct recovery_journal_block, __func__, &block);
+	result = UDS_ALLOCATE(1,
+			      struct recovery_journal_block,
+			      __func__,
+			      &block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -52,25 +56,28 @@ int vdo_make_recovery_block(struct vdo *vdo,
 	 * Allocate a full block for the journal block even though not all of
 	 * the space is used since the VIO needs to write a full disk block.
 	 */
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, "PackedJournalBlock",
-			      &block->block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
+			      char,
+			      "PackedJournalBlock",
+			      &data);
 	if (result != VDO_SUCCESS) {
 		vdo_free_recovery_block(block);
 		return result;
 	}
 
-	result = create_metadata_vio(vdo,
-				     VIO_TYPE_RECOVERY_JOURNAL,
-				     VIO_PRIORITY_HIGH,
-				     block,
-				     block->block,
-				     &block->vio);
+	result = allocate_vio_components(vdo,
+					 VIO_TYPE_RECOVERY_JOURNAL,
+					 VIO_PRIORITY_HIGH,
+					 block,
+					 1,
+					 data,
+					 &block->vio);
 	if (result != VDO_SUCCESS) {
+		UDS_FREE(data);
 		vdo_free_recovery_block(block);
 		return result;
 	}
 
-	block->vio->completion.callback_thread_id = journal->thread_id;
 	INIT_LIST_HEAD(&block->list_node);
 	block->journal = journal;
 
@@ -87,8 +94,8 @@ void vdo_free_recovery_block(struct recovery_journal_block *block)
 	if (block == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(block->block));
-	free_vio(UDS_FORGET(block->vio));
+	UDS_FREE(UDS_FORGET(block->vio.data));
+	free_vio_components(&block->vio);
 	UDS_FREE(block);
 }
 
@@ -102,7 +109,7 @@ void vdo_free_recovery_block(struct recovery_journal_block *block)
 static inline struct packed_journal_header *
 get_block_header(const struct recovery_journal_block *block)
 {
-	return (struct packed_journal_header *) block->block;
+	return (struct packed_journal_header *) block->vio.data;
 }
 
 /**
@@ -140,7 +147,7 @@ void vdo_initialize_recovery_block(struct recovery_journal_block *block)
 	};
 	struct packed_journal_header *header = get_block_header(block);
 
-	memset(block->block, 0x0, VDO_BLOCK_SIZE);
+	memset(block->vio.data, 0x0, VDO_BLOCK_SIZE);
 	block->sequence_number = journal->tail;
 	block->entry_count = 0;
 	block->uncommitted_entry_count = 0;
@@ -351,7 +358,8 @@ int vdo_commit_recovery_block(struct recovery_journal_block *block,
 		block->has_fua_entry = false;
 		operation |= REQ_FUA;
 	}
-	submit_metadata_vio(block->vio,
+
+	submit_metadata_vio(&block->vio,
 			    block_pbn,
 			    callback,
 			    error_handler,

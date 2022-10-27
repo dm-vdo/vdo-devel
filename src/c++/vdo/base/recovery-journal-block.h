@@ -22,12 +22,10 @@ struct recovery_journal_block {
 	struct waiter write_waiter;
 	/* The journal to which this block belongs */
 	struct recovery_journal *journal;
-	/* A pointer to a block-sized buffer holding the packed block data */
-	char *block;
 	/* A pointer to the current sector in the packed block buffer */
 	struct packed_journal_sector *sector;
 	/* The vio for writing this block */
-	struct vio *vio;
+	struct vio vio;
 	/* The sequence number for this block */
 	sequence_number_t sequence_number;
 	/* The location of this block in the on-disk journal */
