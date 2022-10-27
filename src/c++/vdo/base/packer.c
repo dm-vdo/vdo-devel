@@ -13,7 +13,6 @@
 #include "string-utils.h"
 
 #include "admin-state.h"
-#include "allocation-selector.h"
 #include "completion.h"
 #include "constants.h"
 #include "compressed-block.h"

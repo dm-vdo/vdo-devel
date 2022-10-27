@@ -241,8 +241,6 @@ tarballs:
             admin-completion.h
             admin-state.c
             admin-state.h
-            allocation-selector.c
-            allocation-selector.h
             block-allocator.c
             block-allocator.h
             block-map.c

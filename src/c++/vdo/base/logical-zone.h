@@ -12,6 +12,8 @@
 #include "int-map.h"
 #include "types.h"
 
+struct physical_zone;
+
 struct logical_zone {
 	/* The completion for flush notifications */
 	struct vdo_completion completion;
@@ -42,8 +44,10 @@ struct logical_zone {
 	struct list_head write_vios;
 	/* The administrative state of the zone */
 	struct admin_state state;
-	/* The selector for determining which physical zone to allocate from */
-	struct allocation_selector *selector;
+	/* The physical zone from which to allocate */
+	struct physical_zone *allocation_zone;
+	/* The number of allocations done from the current allocation_zone */
+	block_count_t allocation_count;
 	/* The next zone */
 	struct logical_zone *next;
 };
@@ -78,6 +82,9 @@ vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
 void vdo_acquire_flush_generation_lock(struct data_vio *data_vio);
 
 void vdo_release_flush_generation_lock(struct data_vio *data_vio);
+
+struct physical_zone * __must_check
+vdo_get_next_allocation_zone(struct logical_zone *zone);
 
 void vdo_dump_logical_zone(const struct logical_zone *zone);
 

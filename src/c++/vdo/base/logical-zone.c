@@ -11,14 +11,18 @@
 
 #include "action-manager.h"
 #include "admin-state.h"
-#include "allocation-selector.h"
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "flush.h"
 #include "int-map.h"
+#include "physical-zone.h"
 #include "vdo.h"
+
+enum {
+	ALLOCATIONS_PER_ZONE = 128,
+};
 
 /**
  * as_logical_zone() - Convert a generic vdo_completion to a logical_zone.
@@ -55,8 +59,7 @@ static int initialize_zone(struct logical_zones *zones,
 	int result;
 	struct vdo *vdo = zones->vdo;
 	struct logical_zone *zone = &zones->zones[zone_number];
-	zone_count_t physical_zone_count =
-		vdo->thread_config->physical_zone_count;
+	zone_count_t allocation_zone_number;
 
 	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->lbn_operations);
 	if (result != VDO_SUCCESS)
@@ -76,11 +79,10 @@ static int initialize_zone(struct logical_zones *zones,
 	vdo_set_admin_state_code(&zone->state,
 				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	result = vdo_make_allocation_selector(physical_zone_count,
-					      zone->thread_id,
-					      &zone->selector);
-	if (result != VDO_SUCCESS)
-		return result;
+	allocation_zone_number =
+		zone->thread_id % vdo->thread_config->physical_zone_count;
+	zone->allocation_zone =
+		&vdo->physical_zones->zones[allocation_zone_number];
 
 	return vdo_make_default_thread(vdo, zone->thread_id);
 }
@@ -146,12 +148,8 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 
 	UDS_FREE(UDS_FORGET(zones->manager));
 
-	for (index = 0; index < zones->zone_count; index++) {
-		struct logical_zone *zone = &zones->zones[index];
-
-		UDS_FREE(UDS_FORGET(zone->selector));
-		free_int_map(UDS_FORGET(zone->lbn_operations));
-	}
+	for (index = 0; index < zones->zone_count; index++)
+		free_int_map(UDS_FORGET(zones->zones[index].lbn_operations));
 
 	UDS_FREE(zones);
 }
@@ -380,6 +378,17 @@ void vdo_release_flush_generation_lock(struct data_vio *data_vio)
 		return;
 
 	attempt_generation_complete_notification(&zone->completion);
+}
+
+struct physical_zone *vdo_get_next_allocation_zone(struct logical_zone *zone)
+{
+	if (zone->allocation_count == ALLOCATIONS_PER_ZONE) {
+		zone->allocation_count = 0;
+		zone->allocation_zone = zone->allocation_zone->next;
+	}
+
+	zone->allocation_count++;
+	return zone->allocation_zone;
 }
 
 /**

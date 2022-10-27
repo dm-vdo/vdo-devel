@@ -550,11 +550,12 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_make_logical_zones(vdo, &vdo->logical_zones);
+	result = vdo_make_physical_zones(vdo, &vdo->physical_zones);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_make_physical_zones(vdo, &vdo->physical_zones);
+	/* The logical zones depend on the physical zones already existing. */
+	result = vdo_make_logical_zones(vdo, &vdo->logical_zones);
 	if (result != VDO_SUCCESS)
 		return result;
 

@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "allocation-selector.h"
 #include "physical-zone.h"
 #include "slab.h"
 #include "slab-depot.h"
@@ -101,8 +100,8 @@ static void setNextAllocationZone(zone_count_t targetSlabZone)
 {
   // Only one logical thread in this test.
   struct logical_zone *zone = &vdo->logical_zones->zones[0];
-  zone->selector->next_allocation_zone = targetSlabZone;
-  zone->selector->allocation_count     = 0;
+  zone->allocation_zone  = &vdo->physical_zones->zones[targetSlabZone];
+  zone->allocation_count = 0;
 }
 
 /**

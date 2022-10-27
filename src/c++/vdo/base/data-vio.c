@@ -26,7 +26,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "allocation-selector.h"
 #include "block-allocator.h"
 #include "block-map.h"
 #include "compressed-block.h"
@@ -1554,18 +1553,14 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  vdo_action *callback,
 				  vdo_action *error_handler)
 {
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct allocation *allocation = &data_vio->allocation;
-	struct allocation_selector *selector =
-		data_vio->logical.zone->selector;
 
 	ASSERT_LOG_ONLY((allocation->pbn == VDO_ZERO_BLOCK),
 			"data_vio does not have an allocation");
 	allocation->write_lock_type = write_lock_type;
-	allocation->first_allocation_zone =
-		vdo_get_next_allocation_zone(selector);
 	allocation->zone =
-		&vdo->physical_zones->zones[allocation->first_allocation_zone];
+		vdo_get_next_allocation_zone(data_vio->logical.zone);
+	allocation->first_allocation_zone = allocation->zone->zone_number;
 
 	set_data_vio_error_handler(data_vio, error_handler);
 	launch_data_vio_allocated_zone_callback(data_vio, callback);
