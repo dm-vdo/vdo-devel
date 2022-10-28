@@ -2525,7 +2525,12 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!data_vio->is_zero && !data_vio->is_trim) {
+	/*
+	 * We need an allocation if this is neither a full-block trim nor a
+	 * full-block zero write.
+	 */
+	if (!data_vio->is_zero &&
+	    (!data_vio->is_trim || data_vio->is_partial)) {
 		data_vio_allocate_data_block(data_vio,
 					     VIO_WRITE_LOCK,
 					     allocate_block,
