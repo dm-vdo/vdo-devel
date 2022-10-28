@@ -2039,6 +2039,11 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
+	if (!may_pack_data_vio(data_vio)) {
+		abort_deduplication(data_vio);
+		return;
+	}
+
 	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_PACKING;
 	vdo_attempt_packing(data_vio);
 }
@@ -2075,11 +2080,6 @@ static void compress_data_vio(struct vdo_completion *completion)
 		 * data.
 		 */
 		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
-
-	if (!may_pack_data_vio(data_vio)) {
-		abort_deduplication(data_vio);
-		return;
-	}
 
 	launch_data_vio_packer_callback(data_vio,
 					pack_compressed_data);
