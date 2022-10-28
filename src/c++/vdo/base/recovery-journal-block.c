@@ -227,15 +227,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		struct packed_recovery_journal_entry *packed_entry;
 		struct recovery_journal_entry new_entry;
 
-		if (data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT)
-			/*
-			 * In order to not lose an acknowledged write with the
-			 * FUA flag, we must also set the FUA flag on the
-			 * journal entry write.
-			 */
-			block->has_fua_entry =
-				(block->has_fua_entry ||
-				 data_vio_requires_fua(data_vio));
+		if ((data_vio->operation.type == VDO_JOURNAL_DATA_INCREMENT)
+		    && data_vio->fua)
+			block->has_fua_entry = true;
 
 		/* Compose and encode the entry. */
 		packed_entry =

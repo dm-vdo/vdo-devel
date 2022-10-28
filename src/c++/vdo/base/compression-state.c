@@ -125,7 +125,7 @@ static enum vio_compression_status advance_status(struct data_vio *data_vio)
 bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio) ||
-	    data_vio_requires_fua(data_vio) ||
+	    data_vio->fua ||
 	    !vdo_get_compressing(vdo_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write

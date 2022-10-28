@@ -589,7 +589,7 @@ set_mapped_location(struct data_vio *data_vio,
 	 * A read VIO has no option but to report the bad mapping--reading
 	 * zeros would be hiding known data loss.
 	 */
-	if (is_read_data_vio(data_vio))
+	if (!data_vio->write)
 		return VDO_BAD_MAPPING;
 
 	/*

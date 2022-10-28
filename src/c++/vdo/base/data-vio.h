@@ -68,25 +68,6 @@ enum async_operation_number {
 } __packed;
 
 /*
- * The type of request a data_vio is performing
- */
-enum data_vio_operation_bits {
-	__DATA_VIO_READ,
-	__DATA_VIO_WRITE,
-	__DATA_VIO_FUA,
-};
-
-enum data_vio_operation {
-	DATA_VIO_UNSPECIFIED_OPERATION,
-	DATA_VIO_READ = (1 << __DATA_VIO_READ),
-	DATA_VIO_WRITE = (1 << __DATA_VIO_WRITE),
-	DATA_VIO_FUA = (1 << __DATA_VIO_FUA),
-} __packed;
-
-#define DATA_VIO_READ_MODIFY_WRITE (DATA_VIO_READ | DATA_VIO_WRITE)
-#define DATA_VIO_READ_WRITE_MASK DATA_VIO_READ_MODIFY_WRITE
-
-/*
  * An LBN lock.
  */
 struct lbn_lock {
@@ -226,14 +207,14 @@ struct data_vio {
 	/* The operation to record in the recovery and slab journals */
 	struct reference_operation operation;
 
-	/* The type of request this data_vio is servicing */
-	enum data_vio_operation io_operation;
-
-	/* Whether this vio contains all zeros */
-	bool is_zero_block;
-
-	/* Whether this vio write is a duplicate */
-	bool is_duplicate;
+	/* data_vio flags */
+	byte read : 1;
+	byte write : 1;
+	byte fua : 1;
+	byte is_zero : 1;
+	byte is_trim : 1;
+	byte is_partial : 1;
+	byte is_duplicate : 1;
 
 	/* Data block allocation */
 	struct allocation allocation;
@@ -297,7 +278,6 @@ struct data_vio {
 
 	/* partial block support */
 	block_size_t offset;
-	bool is_partial;
 
 	/*
 	 * The number of bytes to be discarded. For discards, this field will
@@ -402,63 +382,6 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 		return NULL;
 
 	return container_of(waiter, struct data_vio, waiter);
-}
-
-/**
- * is_read_data_vio() - Check whether a data_vio is a read.
- * @data_vio: The data_vio to check.
- */
-static inline bool is_read_data_vio(const struct data_vio *data_vio)
-{
-	return ((data_vio->io_operation & DATA_VIO_READ_WRITE_MASK) ==
-		DATA_VIO_READ);
-}
-
-/**
- * is_write_data_vio() - Check whether a data_vio is a write.
- * @data_vio: The data_vio to check.
- */
-static inline bool is_write_data_vio(const struct data_vio *data_vio)
-{
-	return ((data_vio->io_operation & DATA_VIO_READ_WRITE_MASK) ==
-		DATA_VIO_WRITE);
-}
-
-/**
- * is_read_modify_write_data_vio() - Check whether a data_vio is a
- *				     read-modify-write.
- * @data_vio: The data_vio.
- *
- * Return: true if the vio is a read-modify-write.
- */
-static inline bool
-is_read_modify_write_data_vio(const struct data_vio *data_vio)
-{
-	return ((data_vio->io_operation & DATA_VIO_READ_WRITE_MASK) ==
-		DATA_VIO_READ_MODIFY_WRITE);
-}
-
-/**
- * is_trim_data_vio() - Check whether a data_vio is a trim.
- * @data_vio: The data_vio to check.
- *
- * Return: true if the data_vio is a trim.
- */
-static inline bool is_trim_data_vio(struct data_vio *data_vio)
-{
-	return (data_vio->new_mapped.state == VDO_MAPPING_STATE_UNMAPPED);
-}
-
-/**
- * data_vio_requires_fua() - Check whether a data_vio requires a FUA after
- *			     doing its I/O.
- * @data_vio: The data_vio.
- *
- * Return: true if the data_vio requires a FUA.
- */
-static inline bool data_vio_requires_fua(const struct data_vio *data_vio)
-{
-	return ((data_vio->io_operation & DATA_VIO_FUA) == DATA_VIO_FUA);
 }
 
 static inline bool

@@ -223,7 +223,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 		*p_flag++ = 'D';
 	if (data_vio->is_partial)
 		*p_flag++ = 'p';
-	if (data_vio->is_zero_block)
+	if (data_vio->is_zero)
 		*p_flag++ = 'z';
 	if (data_vio->remaining_discard > 0)
 		*p_flag++ = 'd';

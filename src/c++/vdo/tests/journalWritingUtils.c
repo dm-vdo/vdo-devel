@@ -116,6 +116,7 @@ void makeJournalEntry(struct packed_recovery_journal_entry *packed,
 static void putBlocksInMapConfigurator(struct data_vio *dataVIO)
 {
   dataVIO->new_mapped.pbn = computePBNFromLBN(dataVIO->logical.lbn, 0);
+  dataVIO->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
   dataVIO->recovery_sequence_number = (dataVIO->new_mapped.pbn
                                        / RECOVERY_JOURNAL_ENTRIES_PER_BLOCK);
   setBlockMapping(dataVIO->logical.lbn,

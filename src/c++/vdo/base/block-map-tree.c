@@ -574,7 +574,7 @@ static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	int result = *((int *) context);
 
-	if (is_read_data_vio(data_vio)) {
+	if (!data_vio->write) {
 		if (result == VDO_NO_SPACE)
 			result = VDO_SUCCESS;
 	} else if (result != VDO_NO_SPACE) {
@@ -978,7 +978,7 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 {
 	int result;
 
-	if (is_read_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
+	if (!data_vio->write || data_vio->is_trim) {
 		/*
 		 * This is a pure read or a trim, so there's nothing left to do
 		 * here.
