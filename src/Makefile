@@ -1,8 +1,7 @@
-# %COPYRIGHT%
+# SPDX-License-Identifier: GPL-2.0-only
 #
-# %LICENSE%
+# Copyright Red Hat
 #
-# $Id$
 
 SRC_DIR   = .
 CURR_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))

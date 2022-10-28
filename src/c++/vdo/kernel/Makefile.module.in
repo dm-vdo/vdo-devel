@@ -1,12 +1,10 @@
+# -*-makefile-*-
 # SPDX-License-Identifier: GPL-2.0-only
-## -*-makefile-*-
+#
+# Copyright Red Hat
+#
 # Makefile for building VDO with DKMS
 #
-# %COPYRIGHT%
-#
-# %LICENSE%
-#
-# $Id$
 
 MODNAME=@MODNAME@
 VDO_VERSION=@CURRENT_VERSION@

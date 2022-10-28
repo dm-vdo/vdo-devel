@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# %COPYRIGHT%
 #
-# %LICENSE%
+# Copyright Red Hat
 #
-# $Id$
-
 # This Makefile assumes that the kernel sources are installed in the
 # default place.
+#
 
 SRC_DIR      = ../../..
 VDO_TOP      = ..

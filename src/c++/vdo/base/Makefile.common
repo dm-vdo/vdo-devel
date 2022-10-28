@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: GPL-2.0-only
-## -*-makefile-*-
+# -*-makefile-*-
 # vim:filetype=make
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright Red Hat
 #
 # Define variables used for vdo/base and vdo/kernel.
-##
+#
 
 BASE_OBJS :=     			\
 	action-manager.o     		\

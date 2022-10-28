@@ -1,10 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # VDO C top level Makefile
 #
-# %COPYRIGHT%
-#
-# %LICENSE%
-#
-# $Id$
+# Copyright Red Hat
 #
 
 SRC_DIR = ../..

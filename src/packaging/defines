@@ -1,12 +1,12 @@
-## -*-makefile-*-
+# -*-makefile-*-
 # vim:filetype=make
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright Red Hat
 #
 # Define variables used by packaging Makefiles.
-#
 # Users of this file (or any file which includes it) must define SRC_DIR
 #
-# $Id: //eng/vdo/src/defines#9 $
-##
 
 TEST_ROOT = $(realpath $(SRC_DIR)/..)
 

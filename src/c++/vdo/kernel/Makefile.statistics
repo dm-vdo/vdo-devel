@@ -1,16 +1,13 @@
-# SPDX-License-Identifier: GPL-2.0-only
 # -*-makefile-*-
 # vim:filetype=make
+# SPDX-License-Identifier: GPL-2.0-only
 #
-# %COPYRIGHT%
-#
-# %LICENSE%
+# Copyright Red Hat
 #
 # This makefile is used to generate the kernel stats header. It is not part of
 # the main makefile so that it can be free to include definitions from up the
 # tree.
 #
-# $Id$
 
 SRC_DIR = ../../..
 include $(SRC_DIR)/defines

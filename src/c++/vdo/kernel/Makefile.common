@@ -1,14 +1,11 @@
-# SPDX-License-Identifier: GPL-2.0-only
-## -*-makefile-*-
+# -*-makefile-*-
 # vim:filetype=make
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright Red Hat
+#
 # Auxiliary Makefile for building VDO
 #
-# %COPYRIGHT%
-#
-# %LICENSE%
-#
-# $Id$
-##
 
 VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))

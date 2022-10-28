@@ -1,10 +1,11 @@
-## -*-makefile-*-
+# -*-makefile-*-
 # vim:filetype=make
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright Red Hat
 #
 # Define variables used for all makefiles.
 #
-# $Id$
-##
 
 include $(SRC_DIR)/c++/defines
 include $(CURRENT_VERSION_FILE)

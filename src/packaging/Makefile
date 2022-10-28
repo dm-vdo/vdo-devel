@@ -1,11 +1,8 @@
-#
-# %COPYRIGHT%
-#
-# %LICENSE%
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Packaging top level Makefile
 #
-# $Id$
+# Copyright Red Hat
 #
 
 SUBDIRS = github
