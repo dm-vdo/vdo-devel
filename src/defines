@@ -9,11 +9,14 @@
 # Users of this file (or any file which includes it) must define SRC_DIR
 
 # Source trees
-C_DIR      = $(SRC_DIR)/c++
-PERL_DIR   = $(SRC_DIR)/perl
-PYTHON_DIR = $(SRC_DIR)/python
-STATS_DIR  = $(SRC_DIR)/stats
-TOOLS_DIR  = $(SRC_DIR)/tools
+C_DIR         = $(SRC_DIR)/c++
+PERL_DIR      = $(SRC_DIR)/perl
+PYTHON_DIR    = $(SRC_DIR)/python
+STATS_DIR     = $(SRC_DIR)/stats
+TOOLS_DIR     = $(SRC_DIR)/tools
+PACKAGING_DIR = $(SRC_DIR)/packaging
+KPATCH_DIR    = $(PACKAGING_DIR)/kpatch
+
 KERNEL_SOURCE_DIR ?= /lib/modules/$(shell uname -r)/build
 
 # Current version file
@@ -49,3 +52,11 @@ CHECKPATCH_ARGS := --no-tree --summary-file --types='$(CHECKPATCH_TYPES)' \
 	--file
 
 CHECKPATCH_FILES = *.EXPERIMENTAL-checkpatch-fixes
+
+ifeq ($(CHECK_PATH_KERNEL_VERSION),)
+  ifeq ($(KERNEL_VERSION),)
+    CHECK_PATCH_KERNEL_VERSION := $(shell uname -r)
+  else
+    CHECK_PATCH_KERNEL_VERSION = $(KERNEL_VERSION)
+  endif
+endif

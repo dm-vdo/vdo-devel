@@ -88,17 +88,9 @@ check:
 		$(MAKE) -C $$i check;		\
 	done
 
-.PHONY: check-checkincludes
-check-checkincludes:
-	$(MAKE) -C packaging/github $@
-
-.PHONY: check-checkpatch
-check-checkpatch:
-	$(MAKE) -C packaging/github $@
-
 .PHONY: check-style
 check-style:
-	$(MAKE) -C packaging/github $@
+	$(MAKE) -C $(KPATCH_DIR) KERNEL_VERSION=$(CHECK_PATCH_KERNEL_VERSION) $@
 
 .PHONY: udstests
 udstests:
