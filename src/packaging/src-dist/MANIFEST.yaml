@@ -315,8 +315,6 @@ tarballs:
             read-only-rebuild.h
             recovery-journal.c
             recovery-journal.h
-            recovery-journal-block.c
-            recovery-journal-block.h
             recovery-journal-entry.h
             recovery-journal-format.c
             recovery-journal-format.h

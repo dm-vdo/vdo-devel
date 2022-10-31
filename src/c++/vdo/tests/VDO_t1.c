@@ -10,7 +10,6 @@
 
 #include "block-map.h"
 #include "block-map-tree.h"
-#include "recovery-journal-block.h"
 #include "recovery-journal.h"
 #include "vdo.h"
 

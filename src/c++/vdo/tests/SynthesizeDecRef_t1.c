@@ -16,7 +16,6 @@
 #include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "packed-reference-block.h"
-#include "recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"

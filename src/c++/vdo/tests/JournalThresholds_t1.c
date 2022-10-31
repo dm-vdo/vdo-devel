@@ -13,7 +13,6 @@
 #include "block-allocator.h"
 #include "block-map-entry.h"
 #include "packed-recovery-journal-block.h"
-#include "recovery-journal-block.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab.h"

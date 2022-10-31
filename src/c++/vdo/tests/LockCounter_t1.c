@@ -12,7 +12,6 @@
 #include "syscalls.h"
 
 #include "recovery-journal.h"
-#include "recovery-journal-block.h"
 
 #include "asyncLayer.h"
 #include "mutexUtils.h"

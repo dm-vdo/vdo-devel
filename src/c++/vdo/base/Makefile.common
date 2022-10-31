@@ -43,7 +43,6 @@ BASE_OBJS :=     			\
 	read-only-notifier.o		\
 	read-only-rebuild.o		\
 	recovery-journal.o		\
-	recovery-journal-block.o	\
 	recovery-journal-format.o	\
 	ref-counts.o			\
 	reference-count-rebuild.o	\
