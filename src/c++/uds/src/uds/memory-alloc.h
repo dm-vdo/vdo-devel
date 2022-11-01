@@ -62,14 +62,14 @@ static inline void *uds_forget(void **ptr_ptr)
  * run-time selection between allocation functions always can. In many cases,
  * it'll boil down to just a function call with a constant size.
  *
- * @param count   The number of objects to allocate
- * @param size    The size of an object
- * @param extra   The number of additional bytes to allocate
- * @param align   The required alignment
- * @param what    What is being allocated (for error logging)
- * @param ptr     A pointer to hold the allocated memory
+ * @count: The number of objects to allocate
+ * @size: The size of an object
+ * @extra: The number of additional bytes to allocate
+ * @align: The required alignment
+ * @what: What is being allocated (for error logging)
+ * @ptr: A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 static inline int uds_do_allocation(size_t count,
 				    size_t size,
@@ -104,13 +104,13 @@ int __must_check uds_reallocate_memory(void *ptr,
  * Allocate one or more elements of the indicated type, logging an
  * error if the allocation fails. The memory will be zeroed.
  *
- * @param COUNT  The number of objects to allocate
- * @param TYPE   The type of objects to allocate. This type determines the
- *               alignment of the allocated memory.
- * @param WHAT   What is being allocated (for error logging)
- * @param PTR    A pointer to hold the allocated memory
+ * @COUNT: The number of objects to allocate
+ * @TYPE: The type of objects to allocate. This type determines the
+ *        alignment of the allocated memory.
+ * @WHAT: What is being allocated (for error logging)
+ * @PTR: A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 #define UDS_ALLOCATE(COUNT, TYPE, WHAT, PTR) \
 	uds_do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
@@ -120,14 +120,14 @@ int __must_check uds_reallocate_memory(void *ptr,
  * elements of a second type, logging an error if the allocation
  * fails. The memory will be zeroed.
  *
- * @param TYPE1  The type of the primary object to allocate. This type
- *               determines the alignment of the allocated memory.
- * @param COUNT  The number of objects to allocate
- * @param TYPE2  The type of array objects to allocate
- * @param WHAT   What is being allocated (for error logging)
- * @param PTR    A pointer to hold the allocated memory
+ * @TYPE1: The type of the primary object to allocate. This type
+ *         determines the alignment of the allocated memory.
+ * @COUNT: The number of objects to allocate
+ * @TYPE2: The type of array objects to allocate
+ * @WHAT: What is being allocated (for error logging)
+ * @PTR: A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 #define UDS_ALLOCATE_EXTENDED(TYPE1, COUNT, TYPE2, WHAT, PTR)            \
 	__extension__({                                                  \
@@ -147,11 +147,11 @@ int __must_check uds_reallocate_memory(void *ptr,
  * Allocate memory starting on a cache line boundary, logging an error if the
  * allocation fails. The memory will be zeroed.
  *
- * @param size  The number of bytes to allocate
- * @param what  What is being allocated (for error logging)
- * @param ptr   A pointer to hold the allocated memory
+ * @size: The number of bytes to allocate
+ * @what: What is being allocated (for error logging)
+ * @ptr: A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 static inline int __must_check uds_allocate_cache_aligned(size_t size,
 							  const char *what,
@@ -166,10 +166,10 @@ void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
  * Allocate one element of the indicated type immediately, failing if the
  * required memory is not immediately available.
  *
- * @param TYPE   The type of objects to allocate
- * @param WHAT   What is being allocated (for error logging)
+ * @TYPE: The type of objects to allocate
+ * @WHAT: What is being allocated (for error logging)
  *
- * @return pointer to the memory, or NULL if the memory is not available.
+ * Return: pointer to the memory, or NULL if the memory is not available.
  */
 #define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) \
 	uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
@@ -214,7 +214,7 @@ extern long uds_allocation_error_injection;
 /*
  * Determine where a future memory allocation failure is scheduled.
  *
- * @return true if there is a memory allocation failure scheduled to happen
+ * Return: true if there is a memory allocation failure scheduled to happen
  */
 static inline bool uds_allocation_failure_scheduled(void)
 {
@@ -232,7 +232,7 @@ static inline void cancel_uds_memory_allocation_failure(void)
  * Set up a future memory allocation failure. The first (count-1) allocations
  * will succeed, and the next one will fail with an -ENOMEM.
  *
- * @param count  The number of the allocation that will fail
+ * @count: The number of the allocation that will fail
  */
 static inline void schedule_uds_memory_allocation_failure(long count)
 {
@@ -244,7 +244,7 @@ static inline void schedule_uds_memory_allocation_failure(long count)
  * Control the recording of data tracking all memory allocations. If any
  * such tracking is already in progress, stop it so we can start afresh.
  *
- * @param track_flag  True to begin tracking, or false to terminate tracking
+ * @track_flag: True to begin tracking, or false to terminate tracking
  */
 int track_uds_memory_allocations(bool track_flag);
 

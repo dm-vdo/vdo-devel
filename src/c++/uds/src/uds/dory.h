@@ -24,7 +24,7 @@ extern atomic_t dory_forgetful;
  * Get the setting of the flag that determines whether UDS will write data (or
  * not).
  *
- * @return true to if writing is disabled, or false do normal I/O.
+ * Return: true to if writing is disabled, or false do normal I/O.
  **/
 static inline bool get_dory_forgetful(void)
 {
@@ -35,7 +35,7 @@ static inline bool get_dory_forgetful(void)
  * Change the setting of the flag that determines whether UDS will write data
  * (or not).
  *
- * @param setting  True to disable writing, or False do normal I/O.
+ * @setting: True to disable writing, or False do normal I/O.
  **/
 static inline void set_dory_forgetful(bool setting)
 {

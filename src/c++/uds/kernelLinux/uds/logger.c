@@ -120,11 +120,11 @@ static const char *get_current_interrupt_type(void)
  *
  * Fields: module name, interrupt level, process name, device ID.
  *
- * @param level   A string describing the logging level
- * @param module  The name of the module doing the logging
- * @param prefix  The prefix of the log message
- * @param vaf1    The first message format descriptor
- * @param vaf2    The second message format descriptor
+ * @level: A string describing the logging level
+ * @module: The name of the module doing the logging
+ * @prefix: The prefix of the log message
+ * @vaf1: The first message format descriptor
+ * @vaf2: The second message format descriptor
  */
 static void emit_log_message(const char *level,
 			     const char *module,

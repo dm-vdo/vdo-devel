@@ -2264,10 +2264,10 @@ uint64_t get_uds_volume_nonce(struct index_layout *layout)
 /*
  * Write a reduced layout and a configuration during conversion to lvm.
  *
- * @param layout      The index_layout to be reconfigured
- * @param config      The configuration to be written with the layout
- * @param lvm_offset  The adjustment for lvm space, in bytes
- * @param offset      The offset in bytes to move the index
+ * @layout: The index_layout to be reconfigured
+ * @config: The configuration to be written with the layout
+ * @lvm_offset: The adjustment for lvm space, in bytes
+ * @offset: The offset in bytes to move the index
  */
 int update_uds_layout(struct index_layout *layout,
 		      struct configuration *config,

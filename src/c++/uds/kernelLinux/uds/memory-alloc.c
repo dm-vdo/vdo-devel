@@ -47,8 +47,8 @@ static bool allocations_allowed(void)
  * If no flag is supplied, the thread is always allowed to allocate storage
  * without complaint.
  *
- * @param new_thread  registered_thread structure to use for the current thread
- * @param flag_ptr    Location of the allocation-allowed flag
+ * @new_thread: registered_thread structure to use for the current thread
+ * @flag_ptr: Location of the allocation-allowed flag
  */
 void uds_register_allocating_thread(struct registered_thread *new_thread,
 				    const bool *flag_ptr)
@@ -365,7 +365,7 @@ void log_uds_memory_allocations(void)
  * vmalloc calls. Using vmalloc for requests of exactly 4KB results in an
  * additional 6374 vmalloc calls, which is much less efficient for tracking.
  *
- * @param size  How many bytes to allocate
+ * @size: How many bytes to allocate
  */
 static inline bool use_kmalloc(size_t size)
 {
@@ -376,12 +376,12 @@ static inline bool use_kmalloc(size_t size)
  * Allocate storage based on memory size and alignment, logging an error if
  * the allocation fails. The memory will be zeroed.
  *
- * @param size   The size of an object
- * @param align  The required alignment
- * @param what   What is being allocated (for error logging)
- * @param ptr    A pointer to hold the allocated memory
+ * @size: The size of an object
+ * @align: The required alignment
+ * @what: What is being allocated (for error logging)
+ * @ptr: A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
@@ -521,10 +521,10 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
  * Allocate storage based on memory size, failing immediately if the required
  * memory is not available. The memory will be zeroed.
  *
- * @param size  The size of an object.
- * @param what  What is being allocated (for error logging)
+ * @size: The size of an object.
+ * @what: What is being allocated (for error logging)
  *
- * @return pointer to the allocated memory, or NULL if the required space is
+ * Return: pointer to the allocated memory, or NULL if the required space is
  *         not available.
  */
 void *uds_allocate_memory_nowait(size_t size,
@@ -569,13 +569,13 @@ void uds_free_memory(void *ptr)
  * for the reallocated memory. If the new memory is larger than the old memory,
  * the new space will be zeroed.
  *
- * @param ptr       The memory to reallocate.
- * @param old_size  The old size of the memory
- * @param size      The new size to allocate
- * @param what      What is being allocated (for error logging)
- * @param new_ptr   A pointer to hold the reallocated pointer
+ * @ptr: The memory to reallocate.
+ * @old_size: The old size of the memory
+ * @size: The new size to allocate
+ * @what: What is being allocated (for error logging)
+ * @new_ptr: A pointer to hold the reallocated pointer
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 int uds_reallocate_memory(void *ptr,
 			  size_t old_size,

@@ -174,16 +174,16 @@ static inline void measure_bins(const struct task task, struct histogram *bins)
  * each pile containing lots of keys, or a new task is put on the list for
  * each pile containing few keys.
  *
- * @param stack         pointer the top of the stack
- * @param end_of_stack  the end of the stack
- * @param list          pointer the head of the list
- * @param pile          array for pointers to the end of each pile
- * @param bins          the histogram of the sizes of each pile
- * @param first_key     the first key of the stack
- * @param offset        the next radix position to sort by
- * @param length        the number of bytes remaining in the sort keys
+ * @stack: pointer the top of the stack
+ * @end_of_stack: the end of the stack
+ * @list: pointer the head of the list
+ * @pile: array for pointers to the end of each pile
+ * @bins: the histogram of the sizes of each pile
+ * @first_key: the first key of the stack
+ * @offset: the next radix position to sort by
+ * @length: the number of bytes remaining in the sort keys
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 static inline int push_bins(struct task **stack,
 			    struct task *end_of_stack,

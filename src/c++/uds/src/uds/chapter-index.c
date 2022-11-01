@@ -158,13 +158,12 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  * from the open chapter index into a memory page. The number of lists
  * copied onto the page is returned to the caller on success.
  *
- * @param chapter_index	 The open chapter index
- * @param memory	 The memory page to use
- * @param first_list	 The first delta list number to be copied
- * @param last_page	 If true, this is the last page of the chapter index
- *			 and all the remaining lists must be packed onto this
- *			 page
- * @param num_lists	 The number of delta lists that were copied
+ * @chapter_index: The open chapter index
+ * @memory: The memory page to use
+ * @first_list: The first delta list number to be copied
+ * @last_page: If true, this is the last page of the chapter index
+ *             and all the remaining lists must be packed onto this page
+ * @num_lists: The number of delta lists that were copied
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				 byte *memory,

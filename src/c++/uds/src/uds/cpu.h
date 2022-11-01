@@ -15,9 +15,9 @@
  * Minimize cache-miss latency by moving data into a CPU cache before it is
  * accessed.
  *
- * @param address    the address to fetch (may be invalid)
- * @param for_write  must be constant at compile time--false if
- *                   for reading, true if for writing
+ * @address: the address to fetch (may be invalid)
+ * @for_write: must be constant at compile time--false if
+ *             for reading, true if for writing
  **/
 static inline void prefetch_address(const void *address, bool for_write)
 {
@@ -40,10 +40,10 @@ static inline void prefetch_address(const void *address, bool for_write)
  * Minimize cache-miss latency by moving a range of addresses into a
  * CPU cache before they are accessed.
  *
- * @param start      the starting address to fetch (may be invalid)
- * @param size       the number of bytes in the address range
- * @param for_write  must be constant at compile time--false if
- *                   for reading, true if for writing
+ * @start: the starting address to fetch (may be invalid)
+ * @size: the number of bytes in the address range
+ * @for_write: must be constant at compile time--false if
+ *             for reading, true if for writing
  **/
 static inline void
 prefetch_range(const void *start, unsigned int size, bool for_write)

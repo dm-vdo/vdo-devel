@@ -14,12 +14,12 @@
 /*
  * Create a buffer which wraps an existing byte array.
  *
- * @param bytes           The bytes to wrap
- * @param length          The length of the buffer
- * @param content_length  The length of the current contents of the buffer
- * @param buffer_ptr      A pointer to hold the buffer
+ * @bytes: The bytes to wrap
+ * @length: The length of the buffer
+ * @content_length: The length of the current contents of the buffer
+ * @buffer_ptr: A pointer to hold the buffer
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 int wrap_buffer(byte *bytes,
 		size_t length,
@@ -51,10 +51,10 @@ int wrap_buffer(byte *bytes,
 /*
  * Create a new buffer and allocate its memory.
  *
- * @param length      The length of the buffer
- * @param buffer_ptr  A pointer to hold the buffer
+ * @size: The length of the buffer
+ * @new_buffer: A pointer to hold the buffer
  *
- * @return UDS_SUCCESS or an error code
+ * Return: UDS_SUCCESS or an error code
  */
 int make_buffer(size_t size, struct buffer **new_buffer)
 {

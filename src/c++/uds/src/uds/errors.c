@@ -316,11 +316,11 @@ int uds_map_to_system_error(int error)
 /*
  * Register a block of error codes.
  *
- * @param block_name       the name of the block of error codes
- * @param first_error      the first error code in the block
- * @param next_free_error  one past the highest possible error in the block
- * @param infos            a pointer to the error info array for the block
- * @param info_size        the size of the error info array
+ * @block_name: the name of the block of error codes
+ * @first_error: the first error code in the block
+ * @next_free_error: one past the highest possible error in the block
+ * @infos: a pointer to the error info array for the block
+ * @info_size: the size of the error info array
  */
 int register_error_block(const char *block_name,
 			 int first_error,
