@@ -522,7 +522,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 							       VDO_RECOVERY_JOURNAL_PARTITION),
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
-					     VDO_RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
 					     vdo->read_only_notifier,
 					     thread_config,
 					     &vdo->recovery_journal);

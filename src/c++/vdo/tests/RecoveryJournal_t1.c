@@ -45,7 +45,6 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-static const block_count_t     TEST_JOURNAL_TAIL_SIZE   = 8;
 static const sequence_number_t SEQUENCE_NUMBER          = 30;
 static const nonce_t           TEST_NONCE               = 0x1;
 static const block_count_t     TEST_LOGICAL_BLOCKS_USED = 0x123;
@@ -203,7 +202,6 @@ static void createLayerAndJournal(void)
                                                  NULL,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 TEST_JOURNAL_TAIL_SIZE,
                                                  readOnlyNotifier,
                                                  threadConfig,
                                                  &journal));
@@ -325,7 +323,6 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
                                                  NULL,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 TEST_JOURNAL_TAIL_SIZE,
                                                  readOnlyNotifier,
                                                  threadConfig,
                                                  &journal));

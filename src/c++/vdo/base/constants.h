@@ -83,14 +83,6 @@ enum {
 	/** The maximum number of VIOs in the system at once */
 	MAXIMUM_VDO_USER_VIOS = 2048,
 
-	/**
-	 * The number of in-memory recovery journal blocks is determined by:
-	 * -- 311 journal entries in a 4k block
-	 * -- maximum of 2048 VIOs making entries at once
-	 * so we need at least 2048 / 312 = 7 journal blocks.
-	 **/
-	VDO_RECOVERY_JOURNAL_TAIL_BUFFER_SIZE = 64,
-
 	/** The only physical block size supported by VDO */
 	VDO_BLOCK_SIZE = 4096,
 

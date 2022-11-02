@@ -144,10 +144,6 @@ struct recovery_journal_block {
 	physical_block_number_t block_number;
 	/* Whether this block is being committed */
 	bool committing;
-	/*
-	 * Whether this block has an uncommitted increment for a write with FUA
-	 */
-	bool has_fua_entry;
 	/* The total number of entries in this block */
 	journal_entry_count_t entry_count;
 	/* The total number of uncommitted entries (queued or committing) */
@@ -245,29 +241,9 @@ struct recovery_journal {
 	struct recovery_journal_statistics events;
 	/* The locks for each on-disk block */
 	struct lock_counter lock_counter;
+	/* The tail blocks */
+	struct recovery_journal_block blocks[];
 };
-
-int __must_check
-vdo_make_recovery_block(struct vdo *vdo,
-			struct recovery_journal *journal,
-			struct recovery_journal_block **block_ptr);
-
-void vdo_free_recovery_block(struct recovery_journal_block *block);
-
-void vdo_initialize_recovery_block(struct recovery_journal_block *block);
-
-int __must_check
-vdo_enqueue_recovery_block_entry(struct recovery_journal_block *block,
-				 struct data_vio *data_vio);
-
-int __must_check vdo_commit_recovery_block(struct recovery_journal_block *block,
-					   bio_end_io_t callback,
-					   vdo_action *error_handler);
-
-void vdo_dump_recovery_block(const struct recovery_journal_block *block);
-
-bool __must_check
-vdo_can_commit_recovery_block(struct recovery_journal_block *block);
 
 /**
  * vdo_get_recovery_journal_block_number() - Get the physical block number for
@@ -326,7 +302,6 @@ vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 			    struct partition *partition,
 			    uint64_t recovery_count,
 			    block_count_t journal_size,
-			    block_count_t tail_buffer_size,
 			    struct read_only_notifier *read_only_notifier,
 			    const struct thread_config *thread_config,
 			    struct recovery_journal **journal_ptr);
