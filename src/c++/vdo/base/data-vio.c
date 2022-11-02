@@ -845,11 +845,6 @@ static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 		return uds_log_error_strerror(result,
 					      "data_vio data allocation failure");
 
-	result = vdo_create_bio(&bio);
-	if (result != VDO_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "data_vio data bio allocation failure");
-
 	result = uds_allocate_memory(VDO_BLOCK_SIZE,
 				     0,
 				     "compressed block",
@@ -863,6 +858,11 @@ static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "data_vio scratch allocation failure");
+
+	result = vdo_create_bio(&bio);
+	if (result != VDO_SUCCESS)
+		return uds_log_error_strerror(result,
+					      "data_vio data bio allocation failure");
 
 	initialize_vio(vio, bio, 1, VIO_TYPE_DATA, VIO_PRIORITY_DATA, vdo);
 	return VDO_SUCCESS;
