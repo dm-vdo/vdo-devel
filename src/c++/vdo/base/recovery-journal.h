@@ -188,10 +188,12 @@ struct recovery_journal {
 	 */
 	sequence_number_t block_map_head;
 	/* The oldest active block in the journal on disk for slab journal
-	 * replay */
+	 * replay
+	 */
 	sequence_number_t slab_journal_head;
 	/* The newest block in the journal on disk to which a write has
-	 * finished */
+	 * finished
+	 */
 	sequence_number_t last_write_acknowledged;
 	/* The end of the half-open interval of the active journal */
 	sequence_number_t tail;

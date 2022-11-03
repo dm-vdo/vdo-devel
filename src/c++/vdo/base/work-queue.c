@@ -295,6 +295,7 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
+
 	complete(queue->started);
 	service_work_queue(queue);
 	return 0;
