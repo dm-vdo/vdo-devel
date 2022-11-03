@@ -659,7 +659,7 @@ static bool dm_registered;
 
 static void vdo_module_destroy(void)
 {
-	uds_log_debug("in %s", __func__);
+	uds_log_debug("unloading");
 
 	if (dm_registered)
 		dm_unregister_target(&vdo_target_bio);
