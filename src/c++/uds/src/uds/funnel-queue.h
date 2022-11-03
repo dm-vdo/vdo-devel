@@ -53,7 +53,7 @@
 /* This queue link structure must be embedded in client entries. */
 struct funnel_queue_entry {
 	/* The next (newer) entry in the queue. */
-	struct funnel_queue_entry *volatile next;
+	struct funnel_queue_entry *next;
 };
 
 /*
@@ -67,7 +67,7 @@ struct __aligned(L1_CACHE_BYTES) funnel_queue {
 	 * The producers' end of the queue, an atomically exchanged pointer
 	 * that will never be NULL.
 	 */
-	struct funnel_queue_entry *volatile newest;
+	struct funnel_queue_entry *newest;
 
 	/*
 	 * The consumer's end of the queue, which is owned by the consumer and
@@ -107,24 +107,14 @@ static inline void funnel_queue_put(struct funnel_queue *queue,
 	 *
 	 * xchg implements a full barrier.
 	 */
-	entry->next = NULL;
-	/*
-	 * The xchg macro in the PPC kernel calls a function that takes a void*
-	 * argument, triggering a warning about dropping the volatile
-	 * qualifier.
-	 */
-#pragma GCC diagnostic push
-#if __GNUC__ >= 5
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-#endif
+	WRITE_ONCE(entry->next, NULL);
 	previous = xchg(&queue->newest, entry);
-#pragma GCC diagnostic pop
 	/*
 	 * Preemptions between these two statements hide the rest of the queue
 	 * from the consumer, preventing consumption until the following
 	 * assignment runs.
 	 */
-	previous->next = entry;
+	WRITE_ONCE(previous->next, entry);
 }
 
 struct funnel_queue_entry *__must_check

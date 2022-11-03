@@ -44,7 +44,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	 * caller setting up the entry and making it visible.
 	 */
 	struct funnel_queue_entry *oldest = queue->oldest;
-	struct funnel_queue_entry *next = oldest->next;
+	struct funnel_queue_entry *next = READ_ONCE(oldest->next);
 
 	if (oldest == &queue->stub) {
 		/*
@@ -59,12 +59,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 		 */
 		oldest = next;
 		queue->oldest = oldest;
-		/*
-		 * FIXME: Some platforms such as Alpha may require an
-		 * additional barrier here.  See
-		 * https://lkml.org/lkml/2019/11/8/1021
-		 */
-		next = oldest->next;
+		next = READ_ONCE(oldest->next);
 	}
 
 	/*
@@ -72,7 +67,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	 * we'll need to put the stub entry back on the queue first.
 	 */
 	if (next == NULL) {
-		struct funnel_queue_entry *newest = queue->newest;
+		struct funnel_queue_entry *newest = READ_ONCE(queue->newest);
 
 		if (oldest != newest)
 			/*
@@ -89,7 +84,7 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 		funnel_queue_put(queue, &queue->stub);
 
 		/* Check again for a successor. */
-		next = oldest->next;
+		next = READ_ONCE(oldest->next);
 		if (next == NULL)
 			/*
 			 * We lost a race with a producer who swapped
@@ -120,7 +115,7 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 	 * never used by a producer thread after it is swung from NULL to
 	 * non-NULL.
 	 */
-	queue->oldest = oldest->next;
+	queue->oldest = READ_ONCE(oldest->next);
 	/*
 	 * Make sure the caller sees the proper stored data for this entry.
 	 * Since we've already fetched the entry pointer we stored in
@@ -133,7 +128,7 @@ struct funnel_queue_entry *funnel_queue_poll(struct funnel_queue *queue)
 	 * for the next one very soon, so prefetch it now.
 	 */
 	prefetch_address(queue->oldest, true);
-	oldest->next = NULL;
+	WRITE_ONCE(oldest->next, NULL);
 	return oldest;
 }
 
@@ -174,7 +169,7 @@ bool is_funnel_queue_idle(struct funnel_queue *queue)
 	 * care. And due to memory ordering in _put(), the update to newest
 	 * would be visible to us at the same time or sooner.
 	 */
-	if (queue->newest != &queue->stub)
+	if (READ_ONCE(queue->newest) != &queue->stub)
 		return false;
 
 	return true;
