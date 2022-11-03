@@ -311,8 +311,6 @@ tarballs:
             priority-table.h
             read-only-notifier.c
             read-only-notifier.h
-            read-only-rebuild.c
-            read-only-rebuild.h
             recovery-journal.c
             recovery-journal.h
             recovery-journal-entry.h

@@ -20,7 +20,6 @@
 #ifdef __KERNEL__
 #include "pool-sysfs.h"
 #endif /* __KERNEL__ */
-#include "read-only-rebuild.h"
 #include "recovery-journal.h"
 #include "release-versions.h"
 #include "slab-depot.h"

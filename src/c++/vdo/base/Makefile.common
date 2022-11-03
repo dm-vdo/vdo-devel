@@ -41,7 +41,6 @@ BASE_OBJS :=     			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
 	read-only-notifier.o		\
-	read-only-rebuild.o		\
 	recovery-journal.o		\
 	recovery-journal-format.o	\
 	ref-counts.o			\

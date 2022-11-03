@@ -13,7 +13,6 @@
 #include "block-allocator.h"
 #include "block-map.h"
 #include "num-utils.h"
-#include "read-only-rebuild.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
