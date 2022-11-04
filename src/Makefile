@@ -90,7 +90,8 @@ check:
 
 .PHONY: check-style
 check-style:
-	$(MAKE) -C $(KPATCH_DIR) KERNEL_VERSION=$(CHECK_PATCH_KERNEL_VERSION) $@
+	$(MAKE) -C $(KPATCH_DIR) KERNEL_VERSION=$(CHECK_PATCH_KERNEL_VERSION) \
+	  clean $@
 
 .PHONY: udstests
 udstests:
