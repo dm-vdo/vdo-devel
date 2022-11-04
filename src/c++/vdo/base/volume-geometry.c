@@ -350,7 +350,8 @@ static int decode_geometry_block(struct buffer *buffer,
  * @geometry: The structure to receive the decoded fields.
  */
 int __must_check
-vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
+vdo_parse_geometry_block(unsigned char *block,
+			 struct volume_geometry *geometry)
 {
 	uint32_t checksum, saved_checksum;
 	struct buffer *buffer;

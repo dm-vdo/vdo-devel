@@ -120,7 +120,8 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 }
 
 int __must_check
-vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry);
+vdo_parse_geometry_block(unsigned char *block,
+			 struct volume_geometry *geometry);
 
 #ifndef __KERNEL__
 int __must_check
