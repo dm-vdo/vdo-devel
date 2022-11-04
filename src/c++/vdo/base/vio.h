@@ -30,12 +30,15 @@ enum vio_type {
 	VIO_TYPE_BLOCK_ALLOCATOR,
 	VIO_TYPE_BLOCK_MAP,
 	VIO_TYPE_BLOCK_MAP_INTERIOR,
+	VIO_TYPE_GEOMETRY,
 	VIO_TYPE_PARTITION_COPY,
 	VIO_TYPE_RECOVERY_JOURNAL,
 	VIO_TYPE_SLAB_JOURNAL,
 	VIO_TYPE_SLAB_SUMMARY,
 	VIO_TYPE_SUPER_BLOCK,
+#ifdef INTERNAL
 	VIO_TYPE_TEST,
+#endif /* INTERNAL */
 } __packed;
 
 /*
@@ -226,6 +229,9 @@ static inline void initialize_vio(struct vio *vio,
 		    enum vio_priority priority,
 		    struct vdo *vdo)
 {
+	/* data_vio's may not span multiple blocks */
+	BUG_ON((vio_type == VIO_TYPE_DATA) && (block_count != 1));
+
 	vio->bio = bio;
 	vio->block_count = block_count;
 	vio->type = vio_type;

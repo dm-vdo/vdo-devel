@@ -309,9 +309,6 @@ int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);
 
-zone_count_t __must_check
-vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn);
-
 void vdo_dump_status(const struct vdo *vdo);
 
 #ifdef INTERNAL

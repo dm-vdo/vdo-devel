@@ -119,11 +119,9 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 		vdo_get_index_region_start(geometry);
 }
 
-#ifndef VDO_USER
 int __must_check
-vdo_read_geometry_block(struct block_device *bdev,
-			struct volume_geometry *geometry);
-#endif /* not VDO_USER */
+vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry);
+
 #ifndef __KERNEL__
 int __must_check
 vdo_load_volume_geometry(PhysicalLayer *layer,

@@ -804,6 +804,8 @@ static inline int bio_integrity_add_page(struct bio *bio, struct page *page,
 	return 0;
 }
 
+int submit_bio_wait(struct bio *bio);
+
 #endif /* CONFIG_BLK_DEV_INTEGRITY */
 
 /*

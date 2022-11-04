@@ -205,8 +205,7 @@ void free_vio(struct vio *vio)
 }
 
 /*
- * Set bio properties for a VDO read or write. The vio associated with the bio
- * may be NULL.
+ * Set bio properties for a VDO read or write.
  */
 void vdo_set_bio_properties(struct bio *bio,
 			    struct vio *vio,
@@ -214,16 +213,17 @@ void vdo_set_bio_properties(struct bio *bio,
 			    unsigned int bi_opf,
 			    physical_block_number_t pbn)
 {
+	struct vdo *vdo = vdo_from_vio(vio);
+	struct device_config *config = vdo->device_config;
+
+	pbn -= vdo->geometry.bio_offset;
+	vio->bio_zone =
+		((pbn / config->thread_counts.bio_rotation_interval)
+		 % config->thread_counts.bio_threads);
+
 	bio->bi_private = vio;
 	bio->bi_end_io = callback;
 	bio->bi_opf = bi_opf;
-	if ((vio != NULL) && (pbn != VDO_GEOMETRY_BLOCK_LOCATION)) {
-		struct vdo *vdo = vdo_from_vio(vio);
-
-		vio->bio_zone = vdo_get_bio_zone(vdo, pbn);
-		pbn -= vdo->geometry.bio_offset;
-	}
-
 	bio->bi_iter.bi_sector = pbn * VDO_SECTORS_PER_BLOCK;
 }
 
@@ -240,21 +240,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      unsigned int bi_opf,
 			      physical_block_number_t pbn)
 {
-	int bvec_count, result, offset, len, i;
-	unsigned short blocks;
-
-	if (vio == NULL) {
-		blocks = 1;
-	} else if (vio->type == VIO_TYPE_DATA) {
-		result = ASSERT((vio->block_count == 1),
-				"Data vios may not span multiple blocks");
-		if (result != VDO_SUCCESS)
-			return result;
-
-		blocks = 1;
-	} else {
-		blocks = vio->block_count;
-	}
+	int bvec_count, offset, len, i;
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
@@ -278,8 +264,8 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		return VDO_SUCCESS;
 
 	bio->bi_io_vec = bio->bi_inline_vecs;
-	bio->bi_max_vecs = blocks + 1;
-	len = VDO_BLOCK_SIZE * blocks;
+	bio->bi_max_vecs = vio->block_count + 1;
+	len = VDO_BLOCK_SIZE * vio->block_count;
 	offset = offset_in_page(data);
 	bvec_count = DIV_ROUND_UP(offset + len, PAGE_SIZE);
 

@@ -121,6 +121,18 @@ blk_qc_t submit_bio_noacct(struct bio *bio)
   return 0;
 }
 
+/**********************************************************************/
+int submit_bio_wait(struct bio *bio)
+{
+  CU_ASSERT_EQUAL(bio_data_dir(bio), READ);
+  struct vio *vio = bio->bi_private;
+  bio->bi_status = layer->reader(layer,
+                                 pbn_from_vio_bio(bio),
+                                 vio->block_count,
+                                 (char *) bio->bi_io_vec->bv_page);
+  return bio->bi_status;
+}
+
 // Unit test only methods follow.
 
 /**

@@ -113,6 +113,67 @@ static const struct vdo_work_queue_type cpu_q_type = {
 };
 
 /**
+ * vdo_read_geometry_block() - Synchronously read the geometry block from a
+ *                             vdo's underlying block device.
+ * @vdo: The vdo whose geometry is to be read.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static int __must_check read_geometry_block(struct vdo *vdo)
+{
+	struct vio *vio;
+	char *block;
+	int result;
+
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = create_metadata_vio(vdo,
+				     VIO_TYPE_GEOMETRY,
+				     VIO_PRIORITY_HIGH,
+				     NULL,
+				     block,
+				     &vio);
+	if (result != VDO_SUCCESS) {
+		UDS_FREE(block);
+		return result;
+	}
+
+	/*
+         * This is only safe because, having not already loaded the geometry,
+	 * the vdo's geometry's bio_offset field is 0, so the fact that
+	 * vdo_reset_bio_with_buffer() will substract that offset from the
+	 * supplied pbn is not a problem.
+	 */
+	result = vdo_reset_bio_with_buffer(vio->bio,
+					   block,
+					   vio,
+					   NULL,
+					   REQ_OP_READ,
+					   VDO_GEOMETRY_BLOCK_LOCATION);
+	if (result != VDO_SUCCESS) {
+		free_vio(UDS_FORGET(vio));
+		UDS_FREE(block);
+		return result;
+	}
+
+	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
+	submit_bio_wait(vio->bio);
+	result = blk_status_to_errno(vio->bio->bi_status);
+	free_vio(UDS_FORGET(vio));
+	if (result != 0) {
+		uds_log_error_strerror(result, "synchronous read failed");
+		UDS_FREE(block);
+		return -EIO;
+	}
+
+	result = vdo_parse_geometry_block((byte *) block, &vdo->geometry);
+	UDS_FREE(block);
+	return result;
+}
+
+/**
  * vdo_make_thread() - Construct a single vdo work_queue and its associated
  *                     thread (or threads for round-robin queues).
  * @vdo: The vdo which owns the thread.
@@ -185,8 +246,7 @@ static int initialize_vdo(struct vdo *vdo,
 	INIT_LIST_HEAD(&vdo->device_config_list);
 	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
 	mutex_init(&vdo->stats_mutex);
-	result = vdo_read_geometry_block(vdo_get_backing_device(vdo),
-					 &vdo->geometry);
+	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
 		return result;
@@ -1208,20 +1268,4 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 	*zone_ptr =
 		&vdo->physical_zones->zones[vdo_get_slab_zone_number(slab)];
 	return VDO_SUCCESS;
-}
-
-/**
- * vdo_get_bio_zone() - Get the bio queue zone for submitting I/O to a given
- *                      physical block number.
- * @vdo: The vdo to query.
- * @pbn: The physical block number of the I/O to be sent.
- *
- * Return: The bio queue zone number for submitting I/O to the specified pbn.
- */
-zone_count_t
-vdo_get_bio_zone(const struct vdo *vdo, physical_block_number_t pbn)
-{
-	return ((pbn
-		 / vdo->device_config->thread_counts.bio_rotation_interval)
-		% vdo->thread_config->bio_thread_count);
 }

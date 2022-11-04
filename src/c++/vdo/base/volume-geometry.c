@@ -13,7 +13,7 @@
 
 #ifndef __KERNEL__
 #include "checksum.h"
-#endif /* !__KERNEL__ */
+#endif /* not __KERNEL__ */
 #include "constants.h"
 #include "header.h"
 #ifndef __KERNEL__
@@ -24,7 +24,6 @@
 #include "types.h"
 #ifdef __KERNEL__
 #include "vdo.h"
-#include "vio.h"
 #endif /* __KERNEL__ */
 
 enum {
@@ -350,7 +349,7 @@ static int decode_geometry_block(struct buffer *buffer,
  * @block: The encoded geometry block.
  * @geometry: The structure to receive the decoded fields.
  */
-static int __must_check
+int __must_check
 vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 {
 	uint32_t checksum, saved_checksum;
@@ -387,58 +386,7 @@ vdo_parse_geometry_block(byte *block, struct volume_geometry *geometry)
 					      VDO_CHECKSUM_MISMATCH);
 }
 
-#ifdef __KERNEL__
-/**
- * vdo_read_geometry_block() - Synchronously read a geometry block from a
- *                             block device.
- * @bdev: The block device containing the block to read.
- * @geometry: A volume_geometry to read into.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_read_geometry_block(struct block_device *bdev,
-			    struct volume_geometry *geometry)
-{
-	struct bio *bio;
-	byte *block;
-	int result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
-
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = vdo_create_bio(&bio);
-	if (result != VDO_SUCCESS) {
-		UDS_FREE(block);
-		return result;
-	}
-
-	result = vdo_reset_bio_with_buffer(bio,
-					   block,
-					   NULL,
-					   NULL,
-					   REQ_OP_READ,
-					   VDO_GEOMETRY_BLOCK_LOCATION);
-	if (result != VDO_SUCCESS) {
-		vdo_free_bio(bio);
-		UDS_FREE(block);
-		return result;
-	}
-
-	bio_set_dev(bio, bdev);
-	submit_bio_wait(bio);
-	result = blk_status_to_errno(bio->bi_status);
-	vdo_free_bio(bio);
-	if (result != 0) {
-		uds_log_error_strerror(result, "synchronous read failed");
-		UDS_FREE(block);
-		return -EIO;
-	}
-
-	result = vdo_parse_geometry_block(block, geometry);
-	UDS_FREE(block);
-	return result;
-}
-#else /* VDO_USER || INTERNAL */
+#ifndef __KERNEL__
 /**
  * encode_geometry_block() - Encode the on-disk representation of a geometry
  *                           block, up to but not including the checksum, into
@@ -500,9 +448,7 @@ int vdo_load_volume_geometry(PhysicalLayer *layer,
 	UDS_FREE(block);
 	return result;
 }
-#endif /* VDO_USER */
 
-#if (defined(VDO_USER) || defined(INTERNAL))
 /**
  * vdo_compute_index_blocks() - Compute the index size in blocks from the
  *                              index_config.
@@ -575,11 +521,8 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 			}
 		}
 	};
-#ifdef __KERNEL__
-	uuid_copy(&geometry->uuid, uuid);
-#else
+
 	uuid_copy(geometry->uuid, *uuid);
-#endif /* __KERNEL__ */
 	if (index_size > 0)
 		memcpy(&geometry->index_config,
 		       index_config,
@@ -672,4 +615,4 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	UDS_FREE(block);
 	return result;
 }
-#endif /* VDO_USER || INTERNAL */
+#endif /* not __KERNEL__ */

@@ -164,14 +164,6 @@ static void flushSyncLayer(void)
 }
 
 /**********************************************************************/
-int
-vdo_read_geometry_block(struct block_device    *bdev __attribute__((unused)),
-			struct volume_geometry *geometry)
-{
-  return vdo_load_volume_geometry(layer, geometry);
-}
-
-/**********************************************************************/
 void destroyAsyncLayer(void)
 {
   if (layer == NULL) {
