@@ -44,7 +44,6 @@ BASE_OBJS :=     			\
 	recovery-journal.o		\
 	recovery-journal-format.o	\
 	ref-counts.o			\
-	reference-count-rebuild.o	\
 	reference-operation.o		\
 	slab.o				\
 	slab-depot.o			\

@@ -318,8 +318,6 @@ tarballs:
             recovery-journal-format.h
             ref-counts.c
             ref-counts.h
-            reference-count-rebuild.c
-            reference-count-rebuild.h
             reference-operation.c
             reference-operation.h
             release-versions.h
