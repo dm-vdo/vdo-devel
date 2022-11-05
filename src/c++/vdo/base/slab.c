@@ -130,17 +130,6 @@ void vdo_free_slab(struct vdo_slab *slab)
 }
 
 /**
- * vdo_get_slab_zone_number() - Get the physical zone number of a slab.
- * @slab: The slab.
- *
- * Return: The number of the slab's physical zone.
- */
-zone_count_t vdo_get_slab_zone_number(struct vdo_slab *slab)
-{
-	return slab->allocator->zone_number;
-}
-
-/**
  * vdo_mark_slab_replaying() - Mark a slab as replaying, during offline
  *                             recovery.
  * @slab: The slab to mark.
@@ -198,7 +187,7 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 	 * scrubbing correct the refCount. Note that the slab journal has
 	 * already captured all refCount updates.
 	 */
-	if (vdo_is_unrecovered_slab(slab)) {
+	if (slab->status != VDO_SLAB_REBUILT) {
 		sequence_number_t entry_lock = journal_point->sequence_number;
 
 		vdo_adjust_slab_journal_block_reference(slab->journal,

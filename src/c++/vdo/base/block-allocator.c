@@ -279,7 +279,7 @@ void vdo_queue_slab(struct vdo_slab *slab)
 		return;
 	}
 
-	if (vdo_is_unrecovered_slab(slab)) {
+	if (slab->status != VDO_SLAB_REBUILT) {
 		vdo_register_slab_for_scrubbing(allocator->slab_scrubber,
 						slab, false);
 		return;

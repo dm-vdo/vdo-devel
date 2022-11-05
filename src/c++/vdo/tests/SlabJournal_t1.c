@@ -963,7 +963,7 @@ static void testJournalRebuild(void)
   }
 
   // Adding entries during rebuild should have marked the slab as replaying.
-  CU_ASSERT_TRUE(vdo_is_replaying_slab(journal->slab));
+  CU_ASSERT_EQUAL(VDO_SLAB_REPLAYING, journal->slab->status);
 
   // Flush it.
   performSuccessfulSlabAction(journal->slab, VDO_ADMIN_STATE_RECOVERING);
@@ -984,12 +984,12 @@ static void testJournalRebuild(void)
   // Check that the journal is as expected.
   CU_ASSERT_EQUAL(journal->head, head);
   verifyRebuiltJournal();
-  CU_ASSERT_FALSE(vdo_is_replaying_slab(journal->slab));
+  CU_ASSERT_NOT_EQUAL(journal->slab->status, VDO_SLAB_REPLAYING);
 
   // Carefully assert that adding one more entry advances the head.
   addRebuildEntry(lastEntry);
   CU_ASSERT_EQUAL(journal->head, head + 1);
-  CU_ASSERT_TRUE(vdo_is_replaying_slab(journal->slab));
+  CU_ASSERT_EQUAL(journal->slab->status, VDO_SLAB_REPLAYING);
 }
 
 /**

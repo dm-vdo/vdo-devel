@@ -1674,7 +1674,7 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 			save = true;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVING) {
-		save = !vdo_is_unrecovered_slab(slab);
+		save = (slab->status == VDO_SLAB_REBUILT);
 	} else {
 		vdo_notify_slab_ref_counts_are_drained(slab, VDO_SUCCESS);
 		return;

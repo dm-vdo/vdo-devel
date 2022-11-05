@@ -23,6 +23,7 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
+#include "block-allocator.h"
 #include "block-map.h"
 #include "data-vio.h"
 #include "dedupe.h"
@@ -1265,7 +1266,6 @@ int vdo_get_physical_zone(const struct vdo *vdo,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	*zone_ptr =
-		&vdo->physical_zones->zones[vdo_get_slab_zone_number(slab)];
+	*zone_ptr = &vdo->physical_zones->zones[slab->allocator->zone_number];
 	return VDO_SUCCESS;
 }

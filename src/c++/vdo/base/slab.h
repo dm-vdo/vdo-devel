@@ -91,41 +91,6 @@ int __must_check vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab);
 
 void vdo_free_slab(struct vdo_slab *slab);
 
-zone_count_t __must_check vdo_get_slab_zone_number(struct vdo_slab *slab);
-
-/**
- * vdo_is_unrecovered_slab() - Check whether a slab is unrecovered.
- * @slab: The slab to check.
- *
- * Return: true if the slab is unrecovered.
- */
-static inline bool vdo_is_unrecovered_slab(const struct vdo_slab *slab)
-{
-	return (slab->status != VDO_SLAB_REBUILT);
-}
-
-/**
- * vdo_is_replaying_slab() - Check whether a slab is being replayed into.
- * @slab: The slab to check.
- *
- * Return: true if the slab is replaying.
- */
-static inline bool vdo_is_replaying_slab(const struct vdo_slab *slab)
-{
-	return (slab->status == VDO_SLAB_REPLAYING);
-}
-
-/**
- * vdo_is_slab_rebuilding() - Check whether a slab is being rebuilt.
- * @slab: The slab to check.
- *
- * Return: true if the slab is being rebuilt.
- */
-static inline bool vdo_is_slab_rebuilding(const struct vdo_slab *slab)
-{
-	return (slab->status == VDO_SLAB_REBUILDING);
-}
-
 void vdo_mark_slab_replaying(struct vdo_slab *slab);
 
 void vdo_mark_slab_unrecovered(struct vdo_slab *slab);

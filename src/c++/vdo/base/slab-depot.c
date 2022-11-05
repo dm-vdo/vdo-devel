@@ -488,7 +488,7 @@ uint8_t vdo_get_increment_limit(struct slab_depot *depot,
 {
 	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
 
-	if ((slab == NULL) || vdo_is_unrecovered_slab(slab))
+	if ((slab == NULL) || (slab->status != VDO_SLAB_REBUILT))
 		return 0;
 
 	return vdo_get_available_references(slab->reference_counts, pbn);

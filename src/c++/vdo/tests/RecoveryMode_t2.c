@@ -10,6 +10,7 @@
 
 #include "memory-alloc.h"
 
+#include "block-allocator.h"
 #include "physical-zone.h"
 #include "slab.h"
 #include "slab-depot.h"
@@ -199,7 +200,7 @@ static void testMultipleZoneSomeSpaceRecovery(void)
     dataOffset = getDataOffsetStartForSlab(i, dataBlocksPerSlab);
     VDO_ASSERT_SUCCESS(performIndexedWrite(nextLBN, 1, dataOffset));
     newSlab = vdo_get_slab(vdo->depot, lookupLBN(nextLBN).pbn);
-    slabZones[i] = vdo_get_slab_zone_number(newSlab);
+    slabZones[i] = newSlab->allocator->zone_number;
     // We require the slabs are handed out, two from each zone, before moving
     // to a new zone.
     CU_ASSERT_EQUAL(slabZones[i], i / 2);
@@ -243,7 +244,7 @@ static void testMultipleZoneSomeSpaceRecovery(void)
     // Confirm that the new block is not in the target zone, but spilled
     // over to a zone with space.
     newSlab = vdo_get_slab(vdo->depot, lookupLBN(nextLBN).pbn);
-    CU_ASSERT_EQUAL(vdo_get_slab_zone_number(newSlab), slabZones[i]);
+    CU_ASSERT_EQUAL(newSlab->allocator->zone_number, slabZones[i]);
     nextLBN++;
     dataOffset++;
   }
@@ -259,7 +260,7 @@ static void testMultipleZoneSomeSpaceRecovery(void)
     releaseSlabLatch(slabToUse);
     awaitAndFreeSuccessfulRequest(request);
     newSlab = vdo_get_slab(vdo->depot, lookupLBN(nextLBN).pbn);
-    CU_ASSERT_EQUAL(vdo_get_slab_zone_number(newSlab),
+    CU_ASSERT_EQUAL(newSlab->allocator->zone_number,
                     expectedScrubberWaitingZone);
     nextLBN++;
     dataOffset++;
