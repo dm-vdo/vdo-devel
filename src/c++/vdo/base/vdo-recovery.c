@@ -1671,6 +1671,158 @@ make_refcount_rebuild_completion(struct vdo *vdo,
 	return VDO_SUCCESS;
 }
 
+/*--------------------------------------------------------------------*/
+
+/**
+ * as_read_only_rebuild_completion() - Convert a generic completion to
+ *                                     a read_only_rebuild_completion.
+ * @completion: The completion to convert.
+ *
+ * Return: The journal rebuild completion.
+ */
+static inline struct read_only_rebuild_completion * __must_check
+as_read_only_rebuild_completion(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type,
+				   VDO_READ_ONLY_REBUILD_COMPLETION);
+	return container_of(completion, struct read_only_rebuild_completion,
+			    completion);
+}
+
+/**
+ * free_rebuild_completion() - Free a rebuild completion and all underlying
+ *                             structures.
+ * @rebuild: The rebuild completion to free.
+ */
+static void
+free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
+{
+	if (rebuild == NULL)
+		return;
+
+	UDS_FREE(UDS_FORGET(rebuild->journal_data));
+	UDS_FREE(UDS_FORGET(rebuild->entries));
+	UDS_FREE(rebuild);
+}
+
+/**
+ * make_rebuild_completion() - Allocate and initialize a read only rebuild
+ *                             completion.
+ * @vdo: The vdo in question.
+ * @rebuild_ptr: A pointer to return the created rebuild completion.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static int
+make_rebuild_completion(struct vdo *vdo,
+			struct read_only_rebuild_completion **rebuild_ptr)
+{
+	struct read_only_rebuild_completion *rebuild;
+	int result = UDS_ALLOCATE(1, struct read_only_rebuild_completion,
+				  __func__, &rebuild);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	vdo_initialize_completion(&rebuild->completion, vdo,
+				  VDO_READ_ONLY_REBUILD_COMPLETION);
+	vdo_initialize_completion(&rebuild->sub_task_completion, vdo,
+				  VDO_SUB_TASK_COMPLETION);
+
+	rebuild->vdo = vdo;
+	*rebuild_ptr = rebuild;
+	return VDO_SUCCESS;
+}
+
+/**
+ * complete_rebuild() - Clean up the rebuild process.
+ * @completion: The rebuild completion.
+ *
+ * Cleans up the rebuild process, whether or not it succeeded, by freeing the
+ * rebuild completion and notifying the parent of the outcome.
+ */
+static void complete_rebuild(struct vdo_completion *completion)
+{
+	struct vdo_completion *parent = completion->parent;
+	int result = completion->result;
+	struct read_only_rebuild_completion *rebuild =
+		as_read_only_rebuild_completion(UDS_FORGET(completion));
+	struct block_map *block_map = rebuild->vdo->block_map;
+
+	vdo_set_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
+	free_rebuild_completion(UDS_FORGET(rebuild));
+	vdo_finish_completion(parent, result);
+}
+
+/**
+ * finish_read_only_rebuild() - Finish rebuilding, free the rebuild completion
+ *                              and notify the parent.
+ * @completion: The rebuild completion.
+ */
+static void finish_read_only_rebuild(struct vdo_completion *completion)
+{
+	struct read_only_rebuild_completion *rebuild =
+		as_read_only_rebuild_completion(completion);
+	struct vdo *vdo = rebuild->vdo;
+
+	vdo_initialize_recovery_journal_post_rebuild(vdo->recovery_journal,
+						     vdo->states.vdo.complete_recoveries,
+						     rebuild->tail,
+						     rebuild->logical_blocks_used,
+						     rebuild->block_map_data_blocks);
+	uds_log_info("Read-only rebuild complete");
+	complete_rebuild(completion);
+}
+
+/**
+ * abort_rebuild() - Handle a rebuild error.
+ * @completion: The rebuild completion.
+ */
+static void abort_read_only_rebuild(struct vdo_completion *completion)
+{
+	uds_log_info("Read-only rebuild aborted");
+	complete_rebuild(completion);
+}
+
+/**
+ * abort_rebuild_on_error() - Abort a rebuild if there is an error.
+ * @result: The result to check.
+ * @rebuild: The journal rebuild completion.
+ *
+ * Return: true if the result was an error.
+ */
+static bool __must_check
+abort_rebuild_on_error(int result,
+		       struct read_only_rebuild_completion *rebuild)
+{
+	if (result == VDO_SUCCESS)
+		return false;
+
+	vdo_finish_completion(&rebuild->completion, result);
+	return true;
+}
+
+/**
+ * finish_reference_count_rebuild() - Clean up after finishing the reference
+ *                                    count rebuild.
+ * @completion: The sub-task completion.
+ *
+ * This callback is registered in launch_reference_count_rebuild().
+ */
+static void finish_reference_count_rebuild(struct vdo_completion *completion)
+{
+	struct read_only_rebuild_completion *rebuild = completion->parent;
+	struct vdo *vdo = rebuild->vdo;
+
+	vdo_assert_on_admin_thread(vdo, __func__);
+	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE)
+		/* A "rebuild" for upgrade should not increment this count. */
+		vdo->states.vdo.complete_recoveries++;
+
+	uds_log_info("Saving rebuilt state");
+	vdo_prepare_completion_to_finish_parent(completion, &rebuild->completion);
+	vdo_drain_slab_depot(vdo->depot, VDO_ADMIN_STATE_REBUILDING, completion);
+}
+
 /**
  * flush_block_map_updates() - Flush the block map now that all the reference
  *                             counts are rebuilt.
@@ -2022,158 +2174,6 @@ static void rebuild_reference_counts(struct vdo *vdo,
 	vdo_traverse_forest(rebuild->block_map, process_entry, completion);
 }
 
-/*--------------------------------------------------------------------*/
-
-/**
- * as_read_only_rebuild_completion() - Convert a generic completion to
- *                                     a read_only_rebuild_completion.
- * @completion: The completion to convert.
- *
- * Return: The journal rebuild completion.
- */
-static inline struct read_only_rebuild_completion * __must_check
-as_read_only_rebuild_completion(struct vdo_completion *completion)
-{
-	vdo_assert_completion_type(completion->type,
-				   VDO_READ_ONLY_REBUILD_COMPLETION);
-	return container_of(completion, struct read_only_rebuild_completion,
-			    completion);
-}
-
-/**
- * free_rebuild_completion() - Free a rebuild completion and all underlying
- *                             structures.
- * @rebuild: The rebuild completion to free.
- */
-static void
-free_rebuild_completion(struct read_only_rebuild_completion *rebuild)
-{
-	if (rebuild == NULL)
-		return;
-
-	UDS_FREE(UDS_FORGET(rebuild->journal_data));
-	UDS_FREE(UDS_FORGET(rebuild->entries));
-	UDS_FREE(rebuild);
-}
-
-/**
- * make_rebuild_completion() - Allocate and initialize a read only rebuild
- *                             completion.
- * @vdo: The vdo in question.
- * @rebuild_ptr: A pointer to return the created rebuild completion.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-static int
-make_rebuild_completion(struct vdo *vdo,
-			struct read_only_rebuild_completion **rebuild_ptr)
-{
-	struct read_only_rebuild_completion *rebuild;
-	int result = UDS_ALLOCATE(1, struct read_only_rebuild_completion,
-				  __func__, &rebuild);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	vdo_initialize_completion(&rebuild->completion, vdo,
-				  VDO_READ_ONLY_REBUILD_COMPLETION);
-	vdo_initialize_completion(&rebuild->sub_task_completion, vdo,
-				  VDO_SUB_TASK_COMPLETION);
-
-	rebuild->vdo = vdo;
-	*rebuild_ptr = rebuild;
-	return VDO_SUCCESS;
-}
-
-/**
- * complete_rebuild() - Clean up the rebuild process.
- * @completion: The rebuild completion.
- *
- * Cleans up the rebuild process, whether or not it succeeded, by freeing the
- * rebuild completion and notifying the parent of the outcome.
- */
-static void complete_rebuild(struct vdo_completion *completion)
-{
-	struct vdo_completion *parent = completion->parent;
-	int result = completion->result;
-	struct read_only_rebuild_completion *rebuild =
-		as_read_only_rebuild_completion(UDS_FORGET(completion));
-	struct block_map *block_map = rebuild->vdo->block_map;
-
-	vdo_set_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
-	free_rebuild_completion(UDS_FORGET(rebuild));
-	vdo_finish_completion(parent, result);
-}
-
-/**
- * finish_read_only_rebuild() - Finish rebuilding, free the rebuild completion
- *                              and notify the parent.
- * @completion: The rebuild completion.
- */
-static void finish_read_only_rebuild(struct vdo_completion *completion)
-{
-	struct read_only_rebuild_completion *rebuild =
-		as_read_only_rebuild_completion(completion);
-	struct vdo *vdo = rebuild->vdo;
-
-	vdo_initialize_recovery_journal_post_rebuild(vdo->recovery_journal,
-						     vdo->states.vdo.complete_recoveries,
-						     rebuild->tail,
-						     rebuild->logical_blocks_used,
-						     rebuild->block_map_data_blocks);
-	uds_log_info("Read-only rebuild complete");
-	complete_rebuild(completion);
-}
-
-/**
- * abort_rebuild() - Handle a rebuild error.
- * @completion: The rebuild completion.
- */
-static void abort_read_only_rebuild(struct vdo_completion *completion)
-{
-	uds_log_info("Read-only rebuild aborted");
-	complete_rebuild(completion);
-}
-
-/**
- * abort_rebuild_on_error() - Abort a rebuild if there is an error.
- * @result: The result to check.
- * @rebuild: The journal rebuild completion.
- *
- * Return: true if the result was an error.
- */
-static bool __must_check
-abort_rebuild_on_error(int result,
-		       struct read_only_rebuild_completion *rebuild)
-{
-	if (result == VDO_SUCCESS)
-		return false;
-
-	vdo_finish_completion(&rebuild->completion, result);
-	return true;
-}
-
-/**
- * finish_reference_count_rebuild() - Clean up after finishing the reference
- *                                    count rebuild.
- * @completion: The sub-task completion.
- *
- * This callback is registered in launch_reference_count_rebuild().
- */
-static void finish_reference_count_rebuild(struct vdo_completion *completion)
-{
-	struct read_only_rebuild_completion *rebuild = completion->parent;
-	struct vdo *vdo = rebuild->vdo;
-
-	vdo_assert_on_admin_thread(vdo, __func__);
-	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE)
-		/* A "rebuild" for upgrade should not increment this count. */
-		vdo->states.vdo.complete_recoveries++;
-
-	uds_log_info("Saving rebuilt state");
-	vdo_prepare_completion_to_finish_parent(completion, &rebuild->completion);
-	vdo_drain_slab_depot(vdo->depot, VDO_ADMIN_STATE_REBUILDING, completion);
-}
-
 /**
  * launch_reference_count_rebuild() - Rebuild the reference counts from the
  *                                    block map now that all journal entries
@@ -2423,7 +2423,10 @@ void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 	struct vdo_completion *completion, *sub_task_completion;
 	int result;
 
-	/* Note: These messages must be recognizable by Permabit::VDODeviceBase. */
+	/*
+	 * Note: These messages must be recognizable by
+	 * Permabit::VDODeviceBase.
+	 */
 	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
 		uds_log_warning("Rebuilding reference counts for upgrade");
 	} else {
