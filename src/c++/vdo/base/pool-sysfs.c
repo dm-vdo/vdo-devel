@@ -5,6 +5,8 @@
 
 #include "pool-sysfs.h"
 
+#include <linux/kstrtox.h>
+
 #include "memory-alloc.h"
 
 #include "data-vio.h"
@@ -78,7 +80,7 @@ static ssize_t pool_discards_limit_store(struct vdo *vdo,
 	unsigned int value;
 	int result;
 
-	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1))
+	if ((length > 12) || (kstrtouint(buf, 10, &value) < 0) || (value < 1))
 		return -EINVAL;
 
 	result = set_data_vio_pool_discard_limit(vdo->data_vio_pool, value);
