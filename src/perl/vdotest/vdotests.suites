@@ -83,9 +83,8 @@ $suiteNames{fuaGenData}
 $suiteNames{lowMemNfs} = [ map { "LowMemNfs$_" } @{$suiteNames{genData}} ];
 
 # VDO stress tests using NFS filesystem (derived from genData).
-# NfsGenData03 excluded due to VDO-2249.
 $suiteNames{nfsGenData}
-  = [ map { "Nfs$_" } grep { !m/GenData03/ } @{$suiteNames{genData}} ];
+  = [ map { "Nfs$_" } @{$suiteNames{genData}}];
 
 # VDO rebuild tests that use a filesystem.
 $suiteNames{filesystemRebuild}
@@ -357,7 +356,6 @@ $suiteNames{localTests}
   = [
      @{$suiteNames{localFull}},    # Needs more I/O bandwidth
      @{$suiteNames{discardPerf}},  # Needs bigger machine
-     @{$suiteNames{nfsGenData}},   # Needs local network
      "Dual01",                     # Needs bigger machine
      "GrowPhysical02",             # Needs sync storage
      "MemoryMeasurement",          # Needs bigger machine
@@ -827,6 +825,7 @@ $suiteNames{rawhideTests}
 
 $suiteNames{beakerExcludedTests}
   = [
+     @{$suiteNames{nfsGenData}},
      ISCSIDevice01,
      ISCSIDevice02,
      LowMemGenData01,
@@ -927,8 +926,7 @@ $aliasPrefixes{Xfs}      = "--fsType=xfs";
 
 $aliasPrefixes{Kmemleak}
   = "--kmemleak=1 --stallDetection=0 --clientClass=ALBIREO-PMI";
-$aliasPrefixes{Nfs}
-  = "--fsType=nfs-ext3 --clientClass=ALBIREO-PMI";
+$aliasPrefixes{Nfs}      = "--fsType=nfs-xfs";
 
 ############################################################################
 # Aliased tests to run in the default set of tests
@@ -937,6 +935,7 @@ push(@addToDefaultTests,
      @{$suiteNames{ext3}},
      @{$suiteNames{ext4}},
      @{$suiteNames{lowMem}},
+     @{$suiteNames{nfsGenData}},
      @{$suiteNames{tornWrites}},
     );
 

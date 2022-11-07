@@ -31,8 +31,6 @@ our %PROPERTIES
      dataSize       => 100 * $MB,
      # @ple Use a VDO device
      deviceType     => "lvmvdo",
-     # @ple Run the test on real hardware (not virtual).  See VDO-2249.
-     nfsclientClass => "ALBIREO-PMI",
      # @ple Number of tasks to launch
      numTasks       => 4,
      # @ple This test requires a filesystem
