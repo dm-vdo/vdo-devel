@@ -6,6 +6,7 @@
 #include "ref-counts.h"
 
 #include <linux/bio.h>
+#include <linux/minmax.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -88,7 +89,7 @@ static uint64_t pbn_to_index(const struct ref_counts *ref_counts,
 	if (pbn < ref_counts->slab->start)
 		return 0;
 	index = (pbn - ref_counts->slab->start);
-	return min(index, (uint64_t) ref_counts->block_count);
+	return min_t(uint64_t, index, ref_counts->block_count);
 }
 #endif /* INTERNAL */
 
@@ -127,8 +128,9 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 	 * Unit tests have slabs with only one reference block (and it's a
 	 * runt).
 	 */
-	cursor->end_index = min((uint32_t) COUNTS_PER_BLOCK,
-				ref_counts->block_count);
+	cursor->end_index = min_t(uint32_t,
+				  COUNTS_PER_BLOCK,
+				  ref_counts->block_count);
 }
 
 /**

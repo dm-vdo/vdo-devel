@@ -804,7 +804,7 @@ static void finish_bypassing(struct vdo_completion *completion)
  *
  * Stops using the hash lock. The agent and any data_vios waiting on the lock
  * will continue to the non-deduplicating write path. The lock will be put into
- * a state where where data_vios entering the lock will continue to the
+ * a state where data_vios entering the lock will continue to the
  * non-deduplicating write path.
  */
 static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
@@ -2495,8 +2495,8 @@ void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 static bool compare_keys(const void *this_key, const void *that_key)
 {
 	/* Null keys are not supported. */
-	return (0 == memcmp(this_key, that_key,
-			    sizeof(struct uds_record_name)));
+	return (memcmp(this_key, that_key,
+		       sizeof(struct uds_record_name)) == 0);
 }
 
 /**

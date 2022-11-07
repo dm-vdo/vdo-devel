@@ -255,7 +255,7 @@ static struct kobj_type memory_object_type = {
 struct parameter_attribute {
 	struct attribute attr;
 	const char *(*show_string)(void);
-	void (*store_string)(const char *);
+	void (*store_string)(const char *string);
 };
 
 static ssize_t

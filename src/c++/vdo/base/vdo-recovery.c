@@ -794,8 +794,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
  *
  * Return: VDO_SUCCESS or an error.
  */
-__attribute__((__noinline__))
-static int compute_usages(struct recovery_completion *recovery)
+static noinline int compute_usages(struct recovery_completion *recovery)
 {
 	/*
 	 * XXX VDO-5182: function is declared noinline to avoid what is likely

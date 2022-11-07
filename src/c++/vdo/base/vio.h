@@ -253,7 +253,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 			      physical_block_number_t pbn);
 
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+	__printf(2, 3);
 
 /**
  * is_data_vio() - Check whether a vio is servicing an external data request.

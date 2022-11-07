@@ -47,8 +47,8 @@ enum vdo_completion_priority {
 };
 
 struct vdo_work_queue_type {
-	void (*start)(void *);
-	void (*finish)(void *);
+	void (*start)(void *context);
+	void (*finish)(void *context);
 	enum vdo_completion_priority max_priority;
 	enum vdo_completion_priority default_priority;
 };

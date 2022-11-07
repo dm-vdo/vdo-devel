@@ -463,7 +463,7 @@ static struct bucket *find_empty_bucket(struct pointer_map *map,
  *         hole, or NULL if no entry could be moved.
  */
 static struct bucket *move_empty_bucket(struct pointer_map *map
-					__attribute__((unused)),
+					__always_unused,
 					struct bucket *hole)
 {
 	/*

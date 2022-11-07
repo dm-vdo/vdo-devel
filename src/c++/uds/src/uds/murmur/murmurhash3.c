@@ -177,9 +177,9 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 	putblock64((uint64_t *)out, 0, h1);
 	putblock64((uint64_t *)out, 1, h2);
 }
-
 #ifdef __KERNEL__
 EXPORT_SYMBOL(murmurhash3_128);
+
 #ifndef UDS_MURMURHASH3
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MurmurHash3");

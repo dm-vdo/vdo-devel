@@ -354,7 +354,7 @@ static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
  * Return: An entry that matches the key, or NULL if not found.
  */
 static struct bucket *
-search_hop_list(struct int_map *map __attribute__((unused)),
+search_hop_list(struct int_map *map __always_unused,
 		struct bucket *bucket, uint64_t key,
 		struct bucket **previous_ptr)
 {
@@ -494,7 +494,7 @@ static struct bucket *find_empty_bucket(struct int_map *map,
  *         hole, or NULL if no entry could be moved.
  */
 static struct bucket *
-move_empty_bucket(struct int_map *map __attribute__((unused)),
+move_empty_bucket(struct int_map *map __always_unused,
 		  struct bucket *hole)
 {
 	/*
