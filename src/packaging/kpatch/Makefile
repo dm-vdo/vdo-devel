@@ -26,7 +26,7 @@
 #   linux_clone will clone the tree from GitHub into $(LINUX_SRC).
 #   linux_update will update the tree
 #   linux_clean will reset the tree to its pre-vdo state.
-#   
+#
 
 VDO_ROOT ?= $(realpath ../../..)
 SRC_DIR = ../..
@@ -60,9 +60,14 @@ WORK_DIR ?= $(realpath .)/work
 PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)/vdo
 MANIFEST ?= src/packaging/kpatch/MANIFEST.yaml
 PREPARE_GITHUB_DIST ?= $(SRC_DIR)/perl/bin/prepareGitHubDist.pl
-CHECKPATCH_TYPES := ERROR BRACES CODE_INDENT CONST_STRUCT UNNECESSARY_ELSE
-CHECKPATCH_TYPES += TRAILING_WHITESPACE
-CHECKPATCH_REGRESSIONS = $(shell echo '$(CHECKPATCH_TYPES)' | tr ' ' '|')
+CHECKPATCH_TYPES := ERROR \
+					BRACES \
+					CODE_INDENT \
+					CONST_STRUCT \
+					UNNECESSARY_ELSE \
+					TRAILING_WHITESPACE
+CHECKPATCH_REGRESSIONS = $(shell echo '$(strip $(CHECKPATCH_TYPES))' \
+							| tr ' ' '|')
 
 #
 # Location of the Linux distribution and subdirectories of interest
@@ -102,15 +107,16 @@ check-style: checkpatch.out
 	! grep -q -E '$(CHECKPATCH_REGRESSIONS)' checkpatch.out
 
 # Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
-CHECKPATCH_IGNORE = NEW_TYPEDEFS
+CHECKPATCH_IGNORE_TYPES = NEW_TYPEDEFS \
+						  VSPRINTF_SPECIFIER_PX
+CHECKPATCH_IGNORE = $(shell echo '$(strip $(CHECKPATCH_IGNORE_TYPES))' \
+						| tr ' ' ',')
 CHECKPATCH_ARGS := --no-tree --file --terse --show-types --color=never
 CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE)
 
 checkpatch.out: prepare.out
 	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(PREPARED_DIR)/*.[hc] \
 	  | tee $@
-
-
 
 .PHONY: overlay overlay_vdo
 overlay overlay_vdo:
