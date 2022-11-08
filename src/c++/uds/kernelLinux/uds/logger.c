@@ -8,6 +8,7 @@
 #include <linux/delay.h>
 #include <linux/hardirq.h>
 #include <linux/module.h>
+#include <linux/printk.h>
 #include <linux/sched.h>
 
 #include "thread-device.h"
@@ -76,28 +77,6 @@ const char *uds_log_priority_to_string(int priority)
 	return PRIORITY_STRINGS[priority];
 }
 
-static const char *priority_to_log_level(int priority)
-{
-	switch (priority) {
-	case UDS_LOG_EMERG:
-	case UDS_LOG_ALERT:
-	case UDS_LOG_CRIT:
-		return KERN_CRIT;
-	case UDS_LOG_ERR:
-		return KERN_ERR;
-	case UDS_LOG_WARNING:
-		return KERN_WARNING;
-	case UDS_LOG_NOTICE:
-		return KERN_NOTICE;
-	case UDS_LOG_INFO:
-		return KERN_INFO;
-	case UDS_LOG_DEBUG:
-		return KERN_DEBUG;
-	default:
-		return "";
-	}
-}
-
 static const char *get_current_interrupt_type(void)
 {
 	if (in_nmi())
@@ -107,6 +86,55 @@ static const char *get_current_interrupt_type(void)
 	if (in_softirq())
 		return "SI";
 	return "INTR";
+}
+
+/*
+ * Emit a log message to the kernel at the specified priority.
+ *
+ * @priority: The priority at which to log the message
+ * @fmt: The format string of the message
+ */
+static void emit_log_message_to_kernel(int priority,
+				       const char *fmt,
+				       ...)
+{
+	va_list args;
+	struct va_format vaf;
+
+	if (priority > get_uds_log_level())
+		return;
+
+	va_start(args, fmt);
+	vaf.fmt = fmt;
+	vaf.va = &args;
+
+	switch (priority) {
+	case UDS_LOG_EMERG:
+	case UDS_LOG_ALERT:
+	case UDS_LOG_CRIT:
+		printk(KERN_CRIT "%pV", &vaf);
+		break;
+	case UDS_LOG_ERR:
+		printk(KERN_ERR "%pV", &vaf);
+		break;
+	case UDS_LOG_WARNING:
+		printk(KERN_WARNING "%pV", &vaf);
+		break;
+	case UDS_LOG_NOTICE:
+		printk(KERN_NOTICE "%pV", &vaf);
+		break;
+	case UDS_LOG_INFO:
+		printk(KERN_INFO "%pV", &vaf);
+		break;
+	case UDS_LOG_DEBUG:
+		printk(KERN_DEBUG "%pV", &vaf);
+		break;
+	default:
+		printk(KERN_DEFAULT "%pV", &vaf);
+		break;
+	}
+
+	va_end(args);
 }
 
 /*
@@ -120,13 +148,13 @@ static const char *get_current_interrupt_type(void)
  *
  * Fields: module name, interrupt level, process name, device ID.
  *
- * @level: A string describing the logging level
+ * @priority: the priority at which to log the message
  * @module: The name of the module doing the logging
  * @prefix: The prefix of the log message
  * @vaf1: The first message format descriptor
  * @vaf2: The second message format descriptor
  */
-static void emit_log_message(const char *level,
+static void emit_log_message(int priority,
 			     const char *module,
 			     const char *prefix,
 			     const struct va_format *vaf1,
@@ -141,8 +169,9 @@ static void emit_log_message(const char *level,
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
 
-		printk("%s%s[%s]: %s%pV%pV\n",
-		       level, module, type, prefix, vaf1, vaf2);
+		emit_log_message_to_kernel(priority,
+					   "%s[%s]: %s%pV%pV\n",
+					   module, type, prefix, vaf1, vaf2);
 		return;
 	}
 
@@ -152,14 +181,10 @@ static void emit_log_message(const char *level,
 	 */
 	device_instance = uds_get_thread_device_id();
 	if (device_instance >= 0) {
-		printk("%s%s%u:%s: %s%pV%pV\n",
-		       level,
-		       module,
-		       device_instance,
-		       current->comm,
-		       prefix,
-		       vaf1,
-		       vaf2);
+		emit_log_message_to_kernel(priority,
+					   "%s%u:%s: %s%pV%pV\n",
+					   module, device_instance,
+					   current->comm, prefix, vaf1, vaf2);
 		return;
 	}
 
@@ -169,14 +194,16 @@ static void emit_log_message(const char *level,
 	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
 	    (strncmp(module, current->comm, strlen(module)) == 0)) {
-		printk("%s%s: %s%pV%pV\n",
-		       level, current->comm, prefix, vaf1, vaf2);
+		emit_log_message_to_kernel(priority,
+					   "%s: %s%pV%pV\n",
+					   current->comm, prefix, vaf1, vaf2);
 		return;
 	}
 
 	/* Identify the module and the process. */
-	printk("%s%s: %s: %s%pV%pV\n",
-	       level, module, current->comm, prefix, vaf1, vaf2);
+	emit_log_message_to_kernel(priority,
+				   "%s: %s: %s%pV%pV\n",
+				   module, current->comm, prefix, vaf1, vaf2);
 }
 
 /*
@@ -196,17 +223,12 @@ void uds_log_embedded_message(int priority,
 			      const char *fmt2,
 			      ...)
 {
-	const char *level;
 	va_list args1_copy;
 	va_list args2;
 	struct va_format vaf1, vaf2;
 
 	va_start(args2, fmt2);
 
-	if (priority > get_uds_log_level())
-		return;
-
-	level = priority_to_log_level(priority);
 	if (module == NULL)
 		module = UDS_LOGGING_MODULE_NAME;
 	if (prefix == NULL)
@@ -226,7 +248,7 @@ void uds_log_embedded_message(int priority,
 	vaf2.fmt = fmt2;
 	vaf2.va = &args2;
 
-	emit_log_message(level, module, prefix, &vaf1, &vaf2);
+	emit_log_message(priority, module, prefix, &vaf1, &vaf2);
 
 	va_end(args1_copy);
 	va_end(args2);

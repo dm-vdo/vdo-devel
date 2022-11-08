@@ -64,6 +64,7 @@ CHECKPATCH_TYPES := ERROR \
 					BRACES \
 					CODE_INDENT \
 					CONST_STRUCT \
+					PRINTK_WITHOUT_KERN_LEVEL \
 					UNNECESSARY_ELSE \
 					TRAILING_WHITESPACE
 CHECKPATCH_REGRESSIONS = $(shell echo '$(strip $(CHECKPATCH_TYPES))' \
@@ -108,6 +109,7 @@ check-style: checkpatch.out
 
 # Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
 CHECKPATCH_IGNORE_TYPES = NEW_TYPEDEFS \
+						  PREFER_PR_LEVEL \
 						  VSPRINTF_SPECIFIER_PX
 CHECKPATCH_IGNORE = $(shell echo '$(strip $(CHECKPATCH_IGNORE_TYPES))' \
 						| tr ' ' ',')
