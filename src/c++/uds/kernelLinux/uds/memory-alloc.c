@@ -165,13 +165,8 @@ static void remove_vmalloc_block(void *ptr)
 	if (block != NULL)
 		UDS_FREE(block);
 	else
-#if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 		uds_log_info("attempting to remove ptr %px not found in vmalloc list",
 			     ptr);
-#else
-		uds_log_info("attempting to remove ptr %pK not found in vmalloc list",
-			     ptr);
-#endif
 }
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
