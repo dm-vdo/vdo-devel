@@ -139,10 +139,6 @@ struct rebuild_completion {
 	thread_id_t logical_thread_id;
 	/** the admin thread */
 	thread_id_t admin_thread_id;
-	/* whether this recovery has been aborted */
-	bool aborted;
-	/* whether we are currently launching the initial round of requests */
-	bool launching;
 	/* the next page to fetch */
 	page_count_t page_to_fetch;
 	/* the number of leaf pages in the block map */
@@ -1634,10 +1630,10 @@ static void finish_read_only_rebuild(struct vdo_completion *completion)
 }
 
 /**
- * abort_read_only_rebuild() - Handle a rebuild error.
+ * abort_rebuild() - Handle a rebuild error.
  * @completion: The rebuild_completion.
  */
-static void abort_read_only_rebuild(struct vdo_completion *completion)
+static void abort_rebuild(struct vdo_completion *completion)
 {
 	uds_log_info("Read-only rebuild aborted");
 	complete_rebuild(completion);
@@ -1712,45 +1708,8 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 			    completion);
 }
 
-/**
- * finish_if_done() - Check whether the rebuild is done.
- * @rebuild: The rebuild_completion.
- *
- * If it succeeded, continues by flushing the block map.
- *
- * Return: true if the rebuild is complete.
- */
-static bool finish_if_done(struct rebuild_completion *rebuild)
-{
-	struct vdo_completion *completion = &rebuild->completion;
-
-	if (rebuild->launching || (rebuild->outstanding > 0))
-		return false;
-
-	if (rebuild->aborted) {
-		vdo_complete_completion(completion);
-		return true;
-	}
-
-	if (rebuild->page_to_fetch < rebuild->leaf_pages)
-		return false;
-
-	vdo_launch_completion_callback(completion,
-				       flush_block_map_updates,
-				       rebuild->admin_thread_id);
-	return true;
-}
-
-/**
- * abort_rebuild() - Record that there has been an error during the rebuild.
- * @rebuild: The rebuild_completion.
- * @result: The error result to use, if one is not already saved.
- */
-static void abort_rebuild(struct rebuild_completion *rebuild, int result)
-{
-	rebuild->aborted = true;
-	vdo_set_completion_result(&rebuild->completion, result);
-}
+static bool fetch_page(struct rebuild_completion *rebuild,
+		       struct vdo_completion *completion);
 
 /**
  * handle_page_load_error() - Handle an error loading a page.
@@ -1761,9 +1720,9 @@ static void handle_page_load_error(struct vdo_completion *completion)
 	struct rebuild_completion *rebuild = completion->parent;
 
 	rebuild->outstanding--;
-	abort_rebuild(rebuild, completion->result);
+	vdo_set_completion_result(&rebuild->completion, completion->result);
 	vdo_release_page_completion(completion);
-	finish_if_done(rebuild);
+	fetch_page(rebuild, completion);
 }
 
 /**
@@ -1895,9 +1854,6 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	}
 }
 
-static void fetch_page(struct rebuild_completion *rebuild,
-		       struct vdo_completion *completion);
-
 /**
  * page_loaded() - Process a page which has just been loaded.
  * @completion: The vdo_page_completion for the fetched page.
@@ -1911,8 +1867,6 @@ static void page_loaded(struct vdo_completion *completion)
 	rebuild->outstanding--;
 	rebuild_reference_counts_from_page(rebuild, completion);
 	vdo_release_page_completion(completion);
-	if (finish_if_done(rebuild))
-		return;
 
 	/*
 	 * Advance progress to the next page, and fetch the next page we
@@ -1921,34 +1875,44 @@ static void page_loaded(struct vdo_completion *completion)
 	fetch_page(rebuild, completion);
 }
 
+static physical_block_number_t
+get_pbn_to_fetch(struct rebuild_completion *rebuild,
+		 struct block_map *block_map)
+{
+	physical_block_number_t pbn = VDO_ZERO_BLOCK;
+
+	if (rebuild->completion.result != VDO_SUCCESS) {
+		return VDO_ZERO_BLOCK;
+	}
+
+	while ((pbn == VDO_ZERO_BLOCK) &&
+	       (rebuild->page_to_fetch < rebuild->leaf_pages))
+		pbn = vdo_find_block_map_page_pbn(block_map,
+						  rebuild->page_to_fetch++);
+
+	if (vdo_is_physical_data_block(rebuild->completion.vdo->depot, pbn))
+		return pbn;
+
+	vdo_set_completion_result(&rebuild->completion, VDO_BAD_MAPPING);
+	return VDO_ZERO_BLOCK;
+}
+
 /**
  * fetch_page() - Fetch a page from the block map.
  * @rebuild: The rebuild_completion.
  * @completion: The page completion to use.
+ *
+ * Return true if the rebuild is complete
  */
-static void fetch_page(struct rebuild_completion *rebuild,
+static bool fetch_page(struct rebuild_completion *rebuild,
 		       struct vdo_completion *completion)
 {
 	struct vdo_page_completion *page_completion =
 		(struct vdo_page_completion *) completion;
 	struct block_map *block_map = rebuild->completion.vdo->block_map;
-	struct slab_depot *depot = rebuild->completion.vdo->depot;
+	physical_block_number_t pbn = get_pbn_to_fetch(rebuild, block_map);
 
-	while (rebuild->page_to_fetch < rebuild->leaf_pages) {
-		physical_block_number_t pbn =
-			vdo_find_block_map_page_pbn(block_map,
-						    rebuild->page_to_fetch++);
-
-		if (pbn == VDO_ZERO_BLOCK)
-			continue;
-
-		if (!vdo_is_physical_data_block(depot, pbn)) {
-			abort_rebuild(rebuild, VDO_BAD_MAPPING);
-			if (finish_if_done(rebuild))
-				return;
-			continue;
-		}
-
+	if (pbn != VDO_ZERO_BLOCK) {
 		vdo_init_page_completion(page_completion,
 					 block_map->zones[0].page_cache,
 					 pbn,
@@ -1957,9 +1921,23 @@ static void fetch_page(struct rebuild_completion *rebuild,
 					 page_loaded,
 					 handle_page_load_error);
 		rebuild->outstanding++;
+		/*
+		 * Ensure that we don't blow the stack or race with ourselves
+		 * in the event that all the pages we request are already in
+		 * the cache.
+		 */
+		completion->requeue = true;
 		vdo_get_page(completion);
-		return;
 	}
+
+	if (rebuild->outstanding > 0) {
+		return false;
+	}
+
+	vdo_launch_completion_callback(&rebuild->completion,
+				       flush_block_map_updates,
+				       rebuild->admin_thread_id);
+	return true;
 }
 
 /**
@@ -1990,16 +1968,15 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 						   rebuild->leaf_pages - 1),
 	};
 
-	/*
-	 * Prevent any page from being processed until all pages have been
-	 * launched.
-	 */
-	rebuild->launching = true;
-	for (i = 0; i < rebuild->page_count; i++)
-		fetch_page(rebuild, &rebuild->page_completions[i].completion);
-
-	rebuild->launching = false;
-	finish_if_done(rebuild);
+	for (i = 0; i < rebuild->page_count; i++) {
+		if (fetch_page(rebuild,
+			       &rebuild->page_completions[i].completion))
+			/*
+			 * The rebuild has already moved on, so it isn't safe
+			 * nor is there a need to launch any more fetches.
+			 */
+			return;
+	}
 }
 
 /**
@@ -2304,7 +2281,7 @@ make_rebuild_completion(struct vdo *vdo,
 				  vdo,
 				  VDO_READ_ONLY_REBUILD_COMPLETION);
 	rebuild->completion.parent = parent;
-	rebuild->completion.error_handler = abort_read_only_rebuild;
+	rebuild->completion.error_handler = abort_rebuild;
 	rebuild->page_count = page_count;
 	rebuild->leaf_pages =
 		vdo_compute_block_map_page_count(vdo->block_map->entry_count);
