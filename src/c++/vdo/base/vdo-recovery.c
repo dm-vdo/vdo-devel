@@ -1881,9 +1881,8 @@ get_pbn_to_fetch(struct rebuild_completion *rebuild,
 {
 	physical_block_number_t pbn = VDO_ZERO_BLOCK;
 
-	if (rebuild->completion.result != VDO_SUCCESS) {
+	if (rebuild->completion.result != VDO_SUCCESS)
 		return VDO_ZERO_BLOCK;
-	}
 
 	while ((pbn == VDO_ZERO_BLOCK) &&
 	       (rebuild->page_to_fetch < rebuild->leaf_pages))
@@ -1930,9 +1929,8 @@ static bool fetch_page(struct rebuild_completion *rebuild,
 		vdo_get_page(completion);
 	}
 
-	if (rebuild->outstanding > 0) {
+	if (rebuild->outstanding > 0)
 		return false;
-	}
 
 	vdo_launch_completion_callback(&rebuild->completion,
 				       flush_block_map_updates,
