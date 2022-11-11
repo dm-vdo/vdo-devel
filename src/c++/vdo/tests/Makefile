@@ -27,6 +27,9 @@ LDFLAGS   = $(GLOBAL_LDFLAGS)
 LDSHFLAGS = -shared
 LDPRFLAGS = -ldl -lm -lz -pthread
 
+# N.B. We need explicit rules below to make sure each one of these is up to
+# date; we can't use one rule for the VDO_DEPLIBS variable so long as there are
+# objects shared between the libraries.
 VDO_DEPLIBS = $(VDO_USER_DIR)/libuser.a    \
               $(VDO_BASE_DIR)/libvdo.a     \
               $(VDO_BASE_DIR)/libvdouser.a \
@@ -96,8 +99,18 @@ LOGDIR ?= $(CURDIR)
 all: $(PROGS) $(TESTS) $(PERF_PROGS) $(EXTRAS) $(VDOTEST)
 	for T in $(OLDTESTS); do rm $$T; done
 
-$(VDO_DEPLIBS): %: FORCE
-	$(MAKE) -C $(@D) $(@F)
+# This can cause competing command runs under parallel builds.
+#$(VDO_DEPLIBS): %: FORCE
+#	$(MAKE) -C $(@D) $(@F)
+# Instead:
+$(VDO_USER_DIR)/libuser.a: FORCE
+	$(MAKE) -C $(VDO_USER_DIR) libuser.a
+$(VDO_FAKE_DIR)/libvdofake.a: FORCE
+	$(MAKE) -C $(VDO_FAKE_DIR) libvdofake.a
+# These share some object files, so we must build them in one make invocation
+# or force serialization.
+$(VDO_BASE_DIR)/libvdo.a $(VDO_BASE_DIR)/libvdouser.a:
+	$(MAKE) -C $(VDO_BASE_DIR) libvdo.a libvdouser.a
 
 .PHONY: doc
 doc:
