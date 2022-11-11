@@ -32,8 +32,6 @@ SPECS      = $(BUILD_DIR)/SPECS
 
 CLEAN_FILES = $(WORK_DIR)                    \
               $(BUILD_DIR)                   \
-              prepareGitHubCheckincludes.out \
-              prepareGitHubCheckpatch.out    \
               prepareGitHubDist.out
 
 ifdef CHANGELOG_FLAGS
@@ -64,20 +62,6 @@ prepareGitHubDist.out: $(WORK_DIR)
 .PHONY: prepare
 prepare: FLAGS=--test --manifest=$(MANIFEST) $(VDO_ROOT)
 prepare: prepareGitHubDist.out
-
-prepareGitHubCheckincludes.out: prepare
-# For now, ignore checkincludes errors so that this is purely advisory.
-	-$(CHECKINCLUDES) $(WORK_DIR)/kvdo-*/vdo/*.[hc] | tee $@
-
-# Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
-CHECKPATCH_IGNORE = NEW_TYPEDEFS
-CHECKPATCH_ARGS := --no-tree --file --terse --show-types --color=never
-CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE)
-
-prepareGitHubCheckpatch.out: prepare
-# For now, ignore checkpatch errors so that this is purely advisory.
-	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(WORK_DIR)/kvdo-*/vdo/*.[hc] \
-	  | tee $@
 
 .PHONY: install
 install:
@@ -136,27 +120,6 @@ rpms: clean prepare
 	$(MAKE) kvdo-test
 	$(MAKE) vdo-rpm
 	$(MAKE) kvdo-rpm
-
-# Generate the advisory checkpatch output (ignoring errors) and process it
-# checking for regressions on issues previously resolved.
-.PHONY: check-checkpatch
-check-checkpatch: prepareGitHubCheckpatch.out
-	@ ! grep ERROR prepareGitHubCheckpatch.out
-	@ ! grep BRACES prepareGitHubCheckpatch.out
-	@ ! grep CODE_INDENT prepareGitHubCheckpatch.out
-	@ ! grep CONST_STRUCT prepareGitHubCheckpatch.out
-	@ ! grep UNNECESSARY_ELSE prepareGitHubCheckpatch.out
-
-# Generate the advisory checkincludes output (ignoring errors) and process it
-# checking for regressions on issues previously resolved.
-.PHONY: check-checkincludes
-check-checkincludes: prepareGitHubCheckincludes.out
-	@ ! grep "included more than once" prepareGitHubCheckincludes.out
-
-# Generate the advisory output for upstreaming (ignoring errors) and process
-# it checking for regressions on issues previously resolved.
-.PHONY: check-style
-check-style: check-checkincludes check-checkpatch
 
 # This remains as a synonym of rpms to make the transition easier on
 # developers.

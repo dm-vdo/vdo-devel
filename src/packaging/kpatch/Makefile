@@ -60,15 +60,32 @@ WORK_DIR ?= $(realpath .)/work
 PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)/vdo
 MANIFEST ?= src/packaging/kpatch/MANIFEST.yaml
 PREPARE_GITHUB_DIST ?= $(SRC_DIR)/perl/bin/prepareGitHubDist.pl
-CHECKPATCH_TYPES := ERROR \
-					BRACES \
-					CODE_INDENT \
-					CONST_STRUCT \
-					PRINTK_WITHOUT_KERN_LEVEL \
-					UNNECESSARY_ELSE \
-					TRAILING_WHITESPACE
-CHECKPATCH_REGRESSIONS = $(shell echo '$(strip $(CHECKPATCH_TYPES))' \
-							| tr ' ' '|')
+
+CHECKPATCH_FIXED := \
+ERROR \
+BLOCK_COMMENT_STYLE \
+BRACES \
+CODE_INDENT \
+CONST_STRUCT \
+CONSTANT_COMPARISON \
+CVS_KEYWORD, \
+FUNCTION_ARGUMENTS \
+LEADING_SPACE \
+LINE_SPACING \
+MINMAX \
+PREFER_DEFINED_ATTRIBUTE_MACRO \
+PRINTK_WITHOUT_KERN_LEVEL \
+REPEATED_WORD \
+RETURN_PARENTHESES \
+SSCANF_TO_KSTRTO \
+SPACE_BEFORE_TAB \
+SPDX_LICENSE_TAG \
+TRAILING_WHITESPACE \
+UNNECESSARY_ELSE \
+WHITESPACE_AFTER_LINE_CONTINUATION \
+YIELD
+
+CHECKPATCH_REGRESSIONS = $(shell echo '$(CHECKPATCH_FIXED)' | tr ' ' '|')
 
 #
 # Location of the Linux distribution and subdirectories of interest
@@ -104,9 +121,13 @@ SPDX := \# SPDX-License-Identifier: GPL-2.0-only
 
 # Check that no ERROR-level problems or fixed WARNING level problems
 # are re-introduced.
-check-style: checkpatch.out
-	! grep -q -E '$(CHECKPATCH_REGRESSIONS)' checkpatch.out
+.PHONY: check-style
+check-style: checkpatch checkincludes
 
+checkpatch: checkpatch.out
+	! grep -E '$(CHECKPATCH_REGRESSIONS)' checkpatch.out
+
+# CHECKPATCH_IGNORE contains types we have no immediate intention of fixing.
 # Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
 CHECKPATCH_IGNORE_TYPES = NEW_TYPEDEFS \
 						  PREFER_PR_LEVEL \
@@ -119,6 +140,12 @@ CHECKPATCH_ARGS += --ignore $(CHECKPATCH_IGNORE)
 checkpatch.out: prepare.out
 	-$(CHECKPATCH) $(CHECKPATCH_ARGS) $(PREPARED_DIR)/*.[hc] \
 	  | tee $@
+
+checkincludes.out: prepare.out
+	$(CHECKINCLUDES) $(PREPARED_DIR)/*.[hc] | tee checkincludes.out
+
+checkincludes: checkincludes.out
+	@grep "No duplicate includes found" $<
 
 .PHONY: overlay overlay_vdo
 overlay overlay_vdo:

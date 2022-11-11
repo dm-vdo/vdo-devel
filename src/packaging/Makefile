@@ -5,7 +5,7 @@
 # Copyright Red Hat
 #
 
-SUBDIRS = github
+SUBDIRS = github kpatch
 
 .PHONY: clean
 clean:

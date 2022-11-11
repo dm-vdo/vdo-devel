@@ -98,14 +98,6 @@ $(DKMS_TGZ): $(UDS_DKMS_TGZ) $(DKMS_FILES) \
 build-against-latest-kernel:
 	$(MAKE) $(DKMS_TGZ) KERNEL_SOURCE_DIR=/permabit/not-backed-up/kernels/mainline/
 
-.PHONY: check-kernel-style
-check-kernel-style:
-	$(CHECKPATCH) $(CHECKPATCH_ARGS) *.[hc]
-
-.PHONY: fix-kernel-style
-fix-kernel-style:
-	-$(CHECKPATCH) --fix $(CHECKPATCH_ARGS) *.[hc]
-
 .PHONY: check-kernel-doc
 check-kernel-doc:
 	$(KERNEL_SOURCE_DIR)/scripts/kernel-doc -none -v $(KERNEL_SOURCES)
@@ -123,7 +115,6 @@ check-clang-format:
 .PHONY: clean clean-dkms-dirs
 clean: clean-dkms-dirs
 	rm -f *.log *.tar *.tgz $(STATS_FILES)
-	rm -f $(CHECKPATCH_FILES)
 
 clean-dkms-dirs:
 	if [ -e $(DKMS_DIR) ]; then chmod -fR +w $(DKMS_DIR); fi

@@ -12,21 +12,9 @@ include $(PLATFORM_DIR)/defines
 .PHONY:	all
 all:	$(UDS_PACKAGE)
 
-.PHONY: check-kernel-style
-check-kernel-style:
-	$(CHECKPATCH) $(CHECKPATCH_ARGS) $(UDS_DKMS_SOURCES) \
-		$(UDS_DKMS_HEADERS)
-
-.PHONY: fix-kernel-style
-fix-kernel-style:
-	-$(CHECKPATCH) --fix $(CHECKPATCH_ARGS) $(UDS_DKMS_SOURCES) \
-		$(UDS_DKMS_HEADERS)
-
 .PHONY:	clean
 clean:
 	rm -fr $(UDS_DIR) *.tgz
-	rm -f $(CHECKPATCH_FILES)
-
 ###############################################################################
 # Build rules for the uds DKMS tarball object
 

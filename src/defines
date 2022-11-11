@@ -35,23 +35,7 @@ VDO_STATS_DEPS = $(STATS_GENERATOR_DEPS) \
 PERL_LIB = $(PERL_DIR)/lib
 
 CHECKINCLUDES := $(KERNEL_SOURCE_DIR)/scripts/checkincludes.pl
-
-CHECKPATCH_TYPES := CVS_KEYWORD, \
-                    LEADING_SPACE, \
-                    LINE_SPACING, \
-                    NEW_TYPEDEFS, \
-                    RETURN_PARENTHESES, \
-                    SPACE_BEFORE_TAB, \
-                    SPDX_LICENSE_TAG, \
-                    TRAILING_WHITESPACE, \
-                    WHITESPACE_AFTER_LINE_CONTINUATION, \
-		    YIELD
-
 CHECKPATCH := $(KERNEL_SOURCE_DIR)/scripts/checkpatch.pl
-CHECKPATCH_ARGS := --no-tree --summary-file --types='$(CHECKPATCH_TYPES)' \
-	--file
-
-CHECKPATCH_FILES = *.EXPERIMENTAL-checkpatch-fixes
 
 ifeq ($(CHECK_PATH_KERNEL_VERSION),)
   ifeq ($(KERNEL_VERSION),)

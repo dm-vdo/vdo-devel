@@ -26,19 +26,10 @@ all: libvdo.a libvdouser.a
 .PHONY: checkin
 checkin: all
 
-.PHONY: check-kernel-style
-check-kernel-style:
-	$(CHECKPATCH) $(CHECKPATCH_ARGS) *.[hc]
-
-.PHONY: fix-kernel-style
-fix-kernel-style:
-	-$(CHECKPATCH) --fix $(CHECKPATCH_ARGS) *.[hc]
-
 .PHONY: clean
 clean:
 	rm -f *.o *.a *.so $(GENERATED_FILES) doc
 	rm -rf $(DOXYGEN_DIR) $(DEPDIR) $(DOXYGEN_WARN_LOG) $(DOXYGEN_FILE)
-	rm -f $(CHECKPATCH_FILES)
 
 .PHONY: doc
 doc:
