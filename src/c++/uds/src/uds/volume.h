@@ -48,16 +48,12 @@ enum {
 	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
 };
 
-struct request_list {
-	struct uds_request *first;
-	struct uds_request *last;
-};
-
 struct queued_read {
 	bool invalid;
 	bool reserved;
 	unsigned int physical_page;
-	struct request_list request_list;
+	struct uds_request *first_request;
+	struct uds_request *last_request;
 };
 
 /*
@@ -150,7 +146,6 @@ struct volume {
 	struct cond_var read_threads_read_done_cond;
 	struct thread **reader_threads;
 	unsigned int num_read_threads;
-	unsigned int busy_reader_threads;
 	enum reader_state reader_state;
 
 	enum index_lookup_mode lookup_mode;
@@ -216,26 +211,6 @@ int __must_check enqueue_read(struct page_cache *cache,
 			      struct uds_request *request,
 			      unsigned int physical_page);
 
-bool reserve_read_queue_entry(struct page_cache *cache,
-			      unsigned int *queue_pos,
-			      struct uds_request **first_requests,
-			      unsigned int *physical_page,
-			      bool *invalid);
-
-void release_read_queue_entry(struct page_cache *cache,
-			      unsigned int queue_pos);
-
-static inline uint16_t next_read_queue_position(uint16_t position)
-{
-	return (position + 1) % VOLUME_CACHE_MAX_QUEUED_READS;
-}
-
-static inline bool read_queue_is_full(struct page_cache *cache)
-{
-	return (cache->read_queue_first ==
-		next_read_queue_position(cache->read_queue_last));
-}
-
 int __must_check select_victim_in_cache(struct page_cache *cache,
 					struct cached_page **page_ptr);
 
@@ -263,7 +238,7 @@ static inline void set_invalidate_counter(struct page_cache *cache,
 		     invalidate_counter);
 }
 
-static inline unsigned int page_being_searched(invalidate_counter_t counter)
+static inline unsigned int searched_page(invalidate_counter_t counter)
 {
 	return counter & PAGE_FIELD;
 }
