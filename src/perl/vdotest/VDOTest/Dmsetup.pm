@@ -498,6 +498,31 @@ sub testBackingDeviceSizeMismatch {
   # The test will take care of tearing down the device.
 }
 
+###############################################################################
+# Test that dmsetup doesn't crash when passed in an empty set of parameters.
+##
+sub testEmptyTable {
+  my ($self) = assertNumArgs(1, @_);
+  my $device = $self->getDevice();
+  my $machine = $device->getMachine();
+  my $deviceName = $device->getDeviceName();
+  my $myString = $device->makeConfigString();
+
+  # Remove everything after the vdo target name.
+  $myString =~ s/(\d+ \d+ vdo).*/$1/;
+
+  my $commands = ["sudo dmsetup reload $deviceName --table \""  . $myString . '"',
+                  "sudo dmsetup resume $deviceName"];
+
+  my $preresumeCursor = $machine->getKernelJournalCursor();
+  eval {
+    $device->runOnHost($commands);
+  };
+  assertEvalErrorMatches(qr| reload ioctl on .* failed: Invalid argument|);
+  assertTrue($machine->searchKernelJournalSince($preresumeCursor,
+						 "Incorrect number of arguments"));
+}
+
 #############################################################################
 # Properties for device change test.
 ##
