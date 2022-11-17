@@ -613,12 +613,12 @@ int vdo_parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-  	if (argc == 0) {
-	   	handle_parse_error(config,
+	if (argc == 0) {
+		handle_parse_error(config,
 				   error_ptr,
 				   "Incorrect number of arguments");
-	   	return VDO_BAD_CONFIGURATION;
-  	}
+		return VDO_BAD_CONFIGURATION;
+	}
 
 	result = UDS_ALLOCATE(1,
 			      struct device_config,
