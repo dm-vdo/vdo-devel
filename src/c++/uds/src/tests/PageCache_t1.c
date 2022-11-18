@@ -14,29 +14,33 @@ static struct configuration *config;
 static struct page_cache *cache;
 
 /**********************************************************************/
-static int getMostRecentPageFromCache(struct page_cache   *cache,
-                                      struct cached_page **pagePtr)
+static void assertPageInCache(struct page_cache *cache,
+                              struct cached_page *page)
 {
-  if (cache == NULL) {
-    return UDS_BAD_STATE;
-  }
+  uint16_t page_index = cache->index[page->cp_physical_page];
 
-  uint16_t mostRecentIndex = 0;
+  CU_ASSERT_TRUE(page->cp_physical_page < cache->num_index_entries);
+  CU_ASSERT_TRUE(page_index < cache->num_cache_entries);
+  CU_ASSERT_TRUE(&cache->cache[page_index] == page);
+}
+
+/**********************************************************************/
+static void getMostRecentPageFromCache(struct page_cache   *cache,
+                                       struct cached_page **pagePtr)
+{
+  CU_ASSERT_PTR_NOT_NULL(cache);
+
   unsigned int i;
+  struct cached_page *mostRecent = &cache->cache[0];
   for (i = 0; i < cache->num_cache_entries; i++) {
-    if (cache->cache[i].cp_last_used
-        >= cache->cache[mostRecentIndex].cp_last_used) {
-      mostRecentIndex = i;
+    if (cache->cache[i].cp_last_used >= mostRecent->cp_last_used) {
+      mostRecent = &cache->cache[i];
     }
   }
 
-  struct cached_page *page = &cache->cache[mostRecentIndex];
-  *pagePtr = (((page != NULL)
-               && (page->cp_physical_page == cache->num_index_entries))
-              ? NULL
-              : page);
-
-  return UDS_SUCCESS;
+  *pagePtr = ((mostRecent->cp_physical_page < cache->num_index_entries)
+              ? mostRecent
+              : NULL);
 }
 
 /**********************************************************************/
@@ -44,14 +48,8 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
                                           struct cached_page  *currentPage,
                                           struct cached_page **pagePtr)
 {
-  if (cache == NULL) {
-    return UDS_BAD_STATE;
-  }
-
-  int result = assert_page_in_cache(cache, currentPage);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+  CU_ASSERT_PTR_NOT_NULL(cache);
+  assertPageInCache(cache, currentPage);
 
   bool foundNextMostRecentPage = false;
   uint16_t currentIndex = currentPage - cache->cache;
@@ -133,7 +131,7 @@ static void testAddPages(void)
 
   // Make sure its the most recent entry after adding
   struct cached_page *entry = NULL;
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+  getMostRecentPageFromCache(cache, &entry);
   CU_ASSERT_PTR_NOT_NULL(entry);
 
   CU_ASSERT_TRUE(0 == entry->cp_physical_page);
@@ -152,11 +150,11 @@ static void testAddPages(void)
   unsigned int cacheAccessCount = 0;
 
   entry = NULL;
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+  getMostRecentPageFromCache(cache, &entry);
   while (entry != NULL) {
     CU_ASSERT_TRUE((unsigned int)physicalPage == entry->cp_physical_page);
     page = NULL;
-    UDS_ASSERT_SUCCESS(get_page_from_cache(cache, physicalPage, &page));
+    get_page_from_cache(cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
     physicalPage--;
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(cache, entry, &entry));
@@ -174,11 +172,11 @@ static void testAddPages(void)
   physicalPage = cache->num_cache_entries;
 
   entry = NULL;
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+  getMostRecentPageFromCache(cache, &entry);
   while (entry != NULL) {
     CU_ASSERT_TRUE((unsigned int)physicalPage == entry->cp_physical_page);
     page = NULL;
-    UDS_ASSERT_SUCCESS(get_page_from_cache(cache, physicalPage, &page));
+    get_page_from_cache(cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
     physicalPage--;
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(cache, entry, &entry));
@@ -195,12 +193,12 @@ static void testUpdatePages(void)
   // Update the least recent used entry (page 0), then check
   // that it is now the most recent used entry
   struct cached_page *entry = NULL;
-  UDS_ASSERT_SUCCESS(get_page_from_cache(cache, 0, &entry));
+  get_page_from_cache(cache, 0, &entry);
   CU_ASSERT_PTR_NOT_NULL(entry);
   make_page_most_recent(cache, entry);
 
   // Make sure its the most recent entry after adding
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+  getMostRecentPageFromCache(cache, &entry);
   CU_ASSERT_PTR_NOT_NULL(entry);
 
   CU_ASSERT_TRUE(0 == entry->cp_physical_page);
@@ -211,16 +209,16 @@ static void testInvalidatePages(void)
 {
   fillCache();
 
-  // Invalidate the most recent used entry, then make sure getFirstPage
-  // does not return it.
+  // Invalidate the most recent used entry, then make sure
+  // getMostRecentPageFromCache does not return it.
   int physicalPage = cache->num_cache_entries - 1;
-  UDS_ASSERT_SUCCESS(find_invalidate_and_make_least_recent(cache,
-                                                           physicalPage,
-                                                           true));
-
-  // Make sure its the most recent entry after adding
   struct cached_page *entry = NULL;
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+
+  get_page_from_cache(cache, physicalPage, &entry);
+  assertPageInCache(cache, entry);
+  invalidate_page(cache, physicalPage);
+
+  getMostRecentPageFromCache(cache, &entry);
   CU_ASSERT_PTR_NOT_NULL(entry);
 
   CU_ASSERT_TRUE((unsigned int)physicalPage != entry->cp_physical_page);
@@ -232,11 +230,11 @@ static void testInvalidateAll(void)
   fillCache();
 
   // Invalidate chapter 1, telling the cache there are 5 pages per chapter
-  UDS_ASSERT_SUCCESS(invalidate_page_cache_for_chapter(cache, 1, 5));
+  invalidate_page_cache_for_chapter(cache, 1, 5);
 
   // Make sure pages 6-10 are invalid
   struct cached_page *entry = NULL;
-  UDS_ASSERT_SUCCESS(getMostRecentPageFromCache(cache, &entry));
+  getMostRecentPageFromCache(cache, &entry);
   while (entry != NULL) {
     CU_ASSERT_FALSE((entry->cp_physical_page >= 6)
                     && (entry->cp_physical_page <= 10));

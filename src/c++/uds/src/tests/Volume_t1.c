@@ -57,7 +57,7 @@ static void verifyPage(unsigned int chapter, unsigned int page)
   const byte *expected = pages[physPage];
   byte *actual;
   // Make sure the page read is synchronous
-  UDS_ASSERT_SUCCESS(get_volume_page(volume, chapter, page, &actual, NULL));
+  UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &actual));
   UDS_ASSERT_EQUAL_BYTES(actual, expected, geometry->bytes_per_page);
 }
 

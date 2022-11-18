@@ -307,8 +307,8 @@ static void testInvalidateReadQueue(void)
   // Invalidate all of the reads, so that when they're dequeued, they don't
   // push the synchronized read out of the cache
   for (i = 0; i < geometry->chapters_per_volume; i++) {
-    UDS_ASSERT_SUCCESS(invalidate_page_cache_for_chapter(volume->page_cache, i,
-                                                         geometry->pages_per_chapter));
+    invalidate_page_cache_for_chapter(volume->page_cache, i,
+                                      geometry->pages_per_chapter);
   }
   struct cached_page *actual;
 
@@ -340,7 +340,7 @@ static void testInvalidateReadQueue(void)
 
   // Try to get page 5 from the map. It should be there from the sync read
   uds_lock_mutex(&volume->read_threads_mutex);
-  UDS_ASSERT_SUCCESS(get_page_from_cache(volume->page_cache, 5, &actual));
+  get_page_from_cache(volume->page_cache, 5, &actual);
   CU_ASSERT_PTR_NOT_NULL(actual);
   uds_unlock_mutex(&volume->read_threads_mutex);
 
@@ -396,10 +396,7 @@ static void invalidatePageThread(void *arg __attribute__((unused)))
     unsigned int physicalPage
       = chapter * geometry->pages_per_chapter + pageNumber;
 
-    int result = find_invalidate_and_make_least_recent(volume->page_cache,
-                                                       physicalPage,
-                                                       false);
-    UDS_ASSERT_SUCCESS(result);
+    invalidate_page(volume->page_cache, physicalPage);
     uds_unlock_mutex(&volume->read_threads_mutex);
     cond_resched();
 

@@ -30,9 +30,10 @@
  */
 
 enum reader_state {
-	READER_STATE_RUN = 1,
-	READER_STATE_EXIT = 2,
-	READER_STATE_STOP = 4
+	READER_STATE_EXIT = 1,
+#ifdef TEST_INTERNAL
+	READER_STATE_STOP = 4,
+#endif /* TEST_INTERNAL */
 };
 
 enum index_lookup_mode {
@@ -186,26 +187,19 @@ void free_page_cache(struct page_cache *cache);
 
 void invalidate_page_cache(struct page_cache *cache);
 
-int __must_check
-invalidate_page_cache_for_chapter(struct page_cache *cache,
-				  unsigned int chapter,
-				  unsigned int pages_per_chapter);
+void invalidate_page_cache_for_chapter(struct page_cache *cache,
+				       unsigned int chapter,
+				       unsigned int pages_per_chapter);
 
 #ifdef TEST_INTERNAL
-int find_invalidate_and_make_least_recent(struct page_cache *cache,
-					  unsigned int physical_page,
-					  bool must_find);
+void invalidate_page(struct page_cache *cache, unsigned int physical_page);
 
-#endif /* TEST_INTERNAL */
 void make_page_most_recent(struct page_cache *cache,
 			   struct cached_page *page_ptr);
 
-int __must_check assert_page_in_cache(struct page_cache *cache,
-				      struct cached_page *page);
-
-int __must_check get_page_from_cache(struct page_cache *cache,
-				     unsigned int physical_page,
-				     struct cached_page **page);
+void get_page_from_cache(struct page_cache *cache,
+			 unsigned int physical_page,
+			 struct cached_page **page);
 
 int __must_check enqueue_read(struct page_cache *cache,
 			      struct uds_request *request,
@@ -218,12 +212,7 @@ int __must_check put_page_in_cache(struct page_cache *cache,
 				   unsigned int physical_page,
 				   struct cached_page *page);
 
-void cancel_page_in_cache(struct page_cache *cache,
-			  unsigned int physical_page,
-			  struct cached_page *page);
-
-size_t __must_check get_page_cache_size(struct page_cache *cache);
-
+#endif /* TEST_INTERNAL */
 static inline invalidate_counter_t
 get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
@@ -315,7 +304,7 @@ int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_record_data *duplicate,
 					   bool *found);
 
-int __must_check forget_chapter(struct volume *volume, uint64_t chapter);
+void forget_chapter(struct volume *volume, uint64_t chapter);
 
 int __must_check write_index_pages(struct volume *volume,
 				   int physical_page,
@@ -337,6 +326,7 @@ read_chapter_index_from_volume(const struct volume *volume,
 			       struct dm_buffer *volume_buffers[],
 			       struct delta_index_page index_pages[]);
 
+#ifdef TEST_INTERNAL
 int __must_check get_volume_page_locked(struct volume *volume,
 					unsigned int physical_page,
 					struct cached_page **entry_ptr);
@@ -346,11 +336,16 @@ int __must_check get_volume_page_protected(struct volume *volume,
 					   unsigned int physical_page,
 					   struct cached_page **entry_ptr);
 
-int __must_check get_volume_page(struct volume *volume,
-				 unsigned int chapter,
-				 unsigned int page_number,
-				 byte **data_ptr,
-				 struct delta_index_page **index_page_ptr);
+#endif /* TEST_INTERNAL */
+int __must_check get_volume_record_page(struct volume *volume,
+					unsigned int chapter,
+					unsigned int page_number,
+					byte **data_ptr);
+
+int __must_check get_volume_index_page(struct volume *volume,
+				       unsigned int chapter,
+				       unsigned int page_number,
+				       struct delta_index_page **page_ptr);
 
 size_t __must_check get_cache_size(struct volume *volume);
 

@@ -131,7 +131,6 @@ EXPORT_SYMBOL_GPL(zero_bytes);
 #include "volume.h"
 #include "volume-index.h"
 
-EXPORT_SYMBOL_GPL(assert_page_in_cache);
 EXPORT_SYMBOL_GPL(chapter_index_discard_count);
 EXPORT_SYMBOL_GPL(chapter_index_empty_count);
 EXPORT_SYMBOL_GPL(chapter_index_overflow_count);
@@ -156,7 +155,6 @@ EXPORT_SYMBOL_GPL(event_count_prepare);
 EXPORT_SYMBOL_GPL(event_count_wait);
 EXPORT_SYMBOL_GPL(extend_delta_zone);
 EXPORT_SYMBOL_GPL(find_index_page_number);
-EXPORT_SYMBOL_GPL(find_invalidate_and_make_least_recent);
 EXPORT_SYMBOL_GPL(find_volume_chapter_boundaries_impl);
 EXPORT_SYMBOL_GPL(finish_restoring_delta_index);
 EXPORT_SYMBOL_GPL(finish_saving_delta_index);
@@ -187,14 +185,15 @@ EXPORT_SYMBOL_GPL(get_volume_index_memory_used);
 EXPORT_SYMBOL_GPL(get_volume_index_record);
 EXPORT_SYMBOL_GPL(get_volume_index_stats);
 EXPORT_SYMBOL_GPL(get_volume_index_zone);
-EXPORT_SYMBOL_GPL(get_volume_page);
 EXPORT_SYMBOL_GPL(get_volume_page_locked);
 EXPORT_SYMBOL_GPL(get_volume_page_protected);
+EXPORT_SYMBOL_GPL(get_volume_record_page);
 EXPORT_SYMBOL_GPL(has_sparse_chapters);
 EXPORT_SYMBOL_GPL(initialize_chapter_index_page);
 EXPORT_SYMBOL_GPL(initialize_delta_index);
 EXPORT_SYMBOL_GPL(initialize_delta_zone);
 EXPORT_SYMBOL_GPL(initialize_delta_zone_page);
+EXPORT_SYMBOL_GPL(invalidate_page);
 EXPORT_SYMBOL_GPL(invalidate_page_cache_for_chapter);
 EXPORT_SYMBOL_GPL(invalidate_sparse_cache);
 EXPORT_SYMBOL_GPL(is_chapter_sparse);

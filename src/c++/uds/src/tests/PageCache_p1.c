@@ -75,11 +75,9 @@ static void testOptimalGuts(void *arg)
   ThreadArg *a = (ThreadArg *) arg;
   struct cached_page *page = NULL;
   int physicalPage = cache->num_cache_entries - 1;
-  int ret;
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
-    ret = get_page_from_cache(cache, physicalPage, &page);
-    UDS_ASSERT_SUCCESS(ret);
+    get_page_from_cache(cache, physicalPage, &page);
   }
 }
 
@@ -140,12 +138,10 @@ static void testLRUOnlyGuts(void *arg)
   ThreadArg *a = (ThreadArg *) arg;
   int physicalPage = 1;
   struct cached_page *entry = NULL;
-  int ret;
 
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
-    ret = get_page_from_cache(cache, physicalPage, &entry);
-    UDS_ASSERT_SUCCESS(ret);
+    get_page_from_cache(cache, physicalPage, &entry);
 
     make_page_most_recent(cache, entry);
     if (++physicalPage >= cache->num_cache_entries) {
@@ -210,7 +206,6 @@ static void testMixedGuts(void *arg)
   int physicalPage = 1;
   unsigned int absentPage = cache->num_cache_entries + 1;
   struct cached_page *entry = NULL;
-  int ret;
 
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
@@ -223,11 +218,10 @@ static void testMixedGuts(void *arg)
     a->counter += 1;
 
     if (rand.val % 100 < a->percentageHits) {
-      ret = get_page_from_cache(cache, physicalPage, &entry);
-      UDS_ASSERT_SUCCESS(ret);
+      get_page_from_cache(cache, physicalPage, &entry);
       make_page_most_recent(cache, entry);
     } else {
-      ret = get_page_from_cache(cache, absentPage, &entry);
+      get_page_from_cache(cache, absentPage, &entry);
     }
     if (++physicalPage >= cache->num_cache_entries) {
       physicalPage = 1;

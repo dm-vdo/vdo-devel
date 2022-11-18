@@ -313,10 +313,10 @@ static int open_next_chapter(struct index_zone *zone)
 	if (finished_zones < zone->index->zone_count)
 		return UDS_SUCCESS;
 
-	while ((expire_chapters-- > 0) && (result == UDS_SUCCESS))
-		result = forget_chapter(zone->index->volume, expiring++);
+	while (expire_chapters-- > 0)
+		forget_chapter(zone->index->volume, expiring++);
 
-	return result;
+	return UDS_SUCCESS;
 }
 
 static int handle_chapter_closed(struct index_zone *zone,
@@ -936,11 +936,10 @@ static int rebuild_index_page_map(struct uds_index *index, uint64_t vcn)
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
-		result = get_volume_page(index->volume,
-					 chapter,
-					 index_page_number,
-					 NULL,
-					 &chapter_index_page);
+		result = get_volume_index_page(index->volume,
+					       chapter,
+					       index_page_number,
+					       &chapter_index_page);
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "failed to read index page %u in chapter %u",
@@ -1123,11 +1122,10 @@ replay_chapter(struct uds_index *index, uint64_t virtual, bool sparse)
 		unsigned int record_page_number;
 
 		record_page_number = geometry->index_pages_per_chapter + i;
-		result = get_volume_page(index->volume,
-					 physical_chapter,
-					 record_page_number,
-					 &record_page,
-					 NULL);
+		result = get_volume_record_page(index->volume,
+						physical_chapter,
+						record_page_number,
+						&record_page);
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "could not get page %d",

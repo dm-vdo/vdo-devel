@@ -71,7 +71,7 @@ static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
 
   byte *pageData;
   // Make sure the page read is synchronous
-  UDS_ASSERT_SUCCESS(get_volume_page(volume, chapter, page, &pageData, NULL));
+  UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &pageData));
   UDS_ASSERT_EQUAL_BYTES(pageData, pages[page], geometry->bytes_per_page);
 
   freePageArray(pages, geometry->pages_per_chapter);
@@ -130,7 +130,7 @@ static void testGetPage(void)
 static void testWriteChapter(void)
 {
   uint64_t chapterNumber = 0;
-  UDS_ASSERT_SUCCESS(forget_chapter(volume, chapterNumber));
+  forget_chapter(volume, chapterNumber);
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **chapters;
@@ -197,18 +197,16 @@ static void testWriteChapter(void)
   unsigned int recordNumber = 0;
   unsigned int j, page;
   for (page = 0; page < geometry->record_pages_per_chapter; ++page) {
+    unsigned int pageNumber = page + geometry->index_pages_per_chapter;
     byte *pageData;
     // Make sure the page read is synchronous
-    UDS_ASSERT_SUCCESS(get_volume_page(volume, physicalChapterNumber,
-                                       page
-                                         + geometry->index_pages_per_chapter,
-                                       &pageData, NULL));
+    UDS_ASSERT_SUCCESS(get_volume_record_page(volume, physicalChapterNumber,
+                                              pageNumber, &pageData));
 
     for (j = 0; j < geometry->records_per_page; ++j) {
       struct uds_record_data retMetadata;
-      bool found = search_record_page(pageData,
-                                    &hashes[recordNumber], geometry,
-                                    &retMetadata);
+      bool found = search_record_page(pageData, &hashes[recordNumber],
+                                      geometry, &retMetadata);
       CU_ASSERT_TRUE(found);
       UDS_ASSERT_BLOCKDATA_EQUAL(&retMetadata, &metadata[recordNumber]);
       ++recordNumber;
