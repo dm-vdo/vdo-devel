@@ -363,7 +363,6 @@ void submit_data_vio_io(struct data_vio *data_vio)
 
 	launch_data_vio_bio_zone_callback(data_vio,
 					  process_data_vio_io);
-
 }
 
 /**

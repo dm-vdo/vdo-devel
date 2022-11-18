@@ -909,9 +909,9 @@ void vdo_clean_failed_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	if (lock->agent == NULL)
+	if (lock->agent == NULL) {
 		lock->agent = data_vio;
-	else if (data_vio != lock->agent) {
+	} else if (data_vio != lock->agent) {
 		exit_hash_lock(data_vio);
 		return;
 	}
