@@ -74,11 +74,11 @@ static void do_status_code_registration(void)
 				      vdo_status_list,
 				      sizeof(vdo_status_list));
 	/*
-	 *  The following test handles cases where libvdo is statically linked
-	 *  against both the test modules and the test driver (because multiple
-	 *  instances of this module call their own copy of this function
-	 *  once each, resulting in multiple calls to register_error_block
-	 *  which is shared in libuds).
+	 * The following test handles cases where libvdo is statically linked
+	 * against both the test modules and the test driver (because multiple
+	 * instances of this module call their own copy of this function
+	 * once each, resulting in multiple calls to register_error_block
+	 * which is shared in libuds).
 	 */
 	if (result == UDS_DUPLICATE_NAME)
 		result = UDS_SUCCESS;

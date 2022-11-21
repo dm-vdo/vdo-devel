@@ -434,7 +434,7 @@ static void readMetadata(void)
 }
 
 /**
- *  Search slab journal for PBNs.
+ * Search slab journal for PBNs.
  **/
 static void findSlabJournalEntries(physical_block_number_t pbn)
 {
@@ -511,7 +511,7 @@ isSequenceNumberPossibleForOffset(const struct recovery_block_header *header,
 }
 
 /**
- *  Search recovery journal for PBNs belonging to the given LBN.
+ * Search recovery journal for PBNs belonging to the given LBN.
  **/
 static void findRecoveryJournalEntries(logical_block_number_t lbn)
 {

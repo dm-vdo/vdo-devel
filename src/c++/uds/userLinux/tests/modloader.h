@@ -19,8 +19,8 @@ struct module {
 };
 
 /**
- *  Signature of the meta-function used to call the init function,
- *  of which there can be more than one type.
+ * Signature of the meta-function used to call the init function,
+ * of which there can be more than one type.
  **/
 typedef const char *
 module_init_meta_func_t(void *handle, void **param, int *ptype);

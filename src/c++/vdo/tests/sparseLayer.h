@@ -28,7 +28,7 @@
  **/
 
 /**
- *  A description of a range of blocks to map to the underlying layer.
+ * A description of a range of blocks to map to the underlying layer.
  **/
 typedef struct {
   physical_block_number_t start;  // first block in the range

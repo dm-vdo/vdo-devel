@@ -17,7 +17,7 @@ enum {
 };
 
 /*
- *  VDO-specific status codes.
+ * VDO-specific status codes.
  */
 enum vdo_status_codes {
 	/* successful result */

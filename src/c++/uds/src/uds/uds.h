@@ -109,9 +109,9 @@ enum {
 };
 
 /*
- *  A type representing a UDS memory configuration which is either a positive
- *  integer number of gigabytes or one of the six special constants for
- *  configurations which are smaller than 1 gigabyte.
+ * A type representing a UDS memory configuration which is either a positive
+ * integer number of gigabytes or one of the six special constants for
+ * configurations which are smaller than 1 gigabyte.
  */
 typedef int uds_memory_config_size_t;
 

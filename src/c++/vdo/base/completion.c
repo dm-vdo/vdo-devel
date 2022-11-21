@@ -230,7 +230,7 @@ get_completion_type_name(enum vdo_completion_type completion_type)
  * vdo_noop_completion_callback() - A callback which does nothing.
  * @completion: The completion being called back.
  *
- *  This callback is intended to be set as an error handler in the
+ * This callback is intended to be set as an error handler in the
  * case where an error should do nothing.
  */
 void

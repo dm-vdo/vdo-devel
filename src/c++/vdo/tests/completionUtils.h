@@ -12,10 +12,10 @@
 #include "completion.h"
 
 /*
- *  These functions are analogous to the same functions without the "wrapped"
- *  adjective from asyncLayer.h.  The purpose of the wrapped versions is to
- *  permit this interface to work when the completions used would be
- *  re-used and therefore completed multiple times.
+ * These functions are analogous to the same functions without the "wrapped"
+ * adjective from asyncLayer.h.  The purpose of the wrapped versions is to
+ * permit this interface to work when the completions used would be
+ * re-used and therefore completed multiple times.
  */
 
 /**

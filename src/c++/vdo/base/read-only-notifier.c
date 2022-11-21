@@ -355,7 +355,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
  * @notifier: The notifier.
  * @parent: The object to notify once the operation is complete.
  *
- *  If some thread tried to put the VDO into read-only mode while
+ * If some thread tried to put the VDO into read-only mode while
  * notifications were disallowed, it will be done when this method is called.
  * If that happens, the parent will not be notified until the VDO has actually
  * entered read-only mode and attempted to save the super block.
