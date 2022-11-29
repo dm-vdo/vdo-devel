@@ -9,6 +9,7 @@
 #include <linux/dm-kcopyd.h>
 
 #include "admin-state.h"
+#include "completion.h"
 #include "priority-table.h"
 #include "slab-scrubber.h"
 #include "slab-iterator.h"
@@ -116,6 +117,14 @@ struct block_allocator {
 	struct slab_iterator slabs_to_erase;
 };
 
+static inline struct block_allocator *
+vdo_as_block_allocator(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type,
+				   VDO_BLOCK_ALLOCATOR_COMPLETION);
+	return container_of(completion, struct block_allocator, completion);
+}
+
 int __must_check
 vdo_make_block_allocator(struct slab_depot *depot,
 			 zone_count_t zone_number,
@@ -142,8 +151,7 @@ void vdo_load_block_allocator(void *context,
 			      zone_count_t zone_number,
 			      struct vdo_completion *parent);
 
-void vdo_notify_slab_journals_are_recovered(struct block_allocator *allocator,
-					    int result);
+void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
 
 void vdo_prepare_block_allocator_to_allocate(void *context,
 					     zone_count_t zone_number,

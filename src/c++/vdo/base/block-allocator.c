@@ -454,21 +454,13 @@ static void swap_slab_statuses(void *item1, void *item2)
 	*info2 = temp;
 }
 
-static struct block_allocator *
-as_block_allocator(struct vdo_completion *completion)
-{
-	vdo_assert_completion_type(completion->type,
-				   VDO_BLOCK_ALLOCATOR_COMPLETION);
-	return container_of(completion, struct block_allocator, completion);
-}
-
 /*
  * Inform the slab actor that a action has finished on some slab; used by
  * apply_to_slabs().
  */
 static void slab_action_callback(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator = as_block_allocator(completion);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 	struct slab_actor *actor = &allocator->slab_actor;
 
 	if (--actor->slab_action_count == 0) {
@@ -484,7 +476,7 @@ static void slab_action_callback(struct vdo_completion *completion)
  */
 static void handle_operation_error(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator = as_block_allocator(completion);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 
 	vdo_set_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
@@ -533,7 +525,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator = as_block_allocator(completion);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 	const struct admin_state_code *operation =
 		vdo_get_admin_state_code(&allocator->state);
 
@@ -543,7 +535,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			vdo_get_current_action_context(allocator->depot->action_manager);
-		vdo_replay_into_slab_journals(allocator, completion, context);
+		vdo_replay_into_slab_journals(allocator, context);
 		return;
 	}
 
@@ -643,13 +635,16 @@ void vdo_load_block_allocator(void *context,
 }
 
 /*
- * Inform a block allocator that its slab journals have been recovered from the
- * recovery journal.
+ * vdo_notify_slab_journals_are_recovered(): Inform a block allocator that its
+ *                                           slab journals have been recovered
+ *                                           from the recovery journal.
+ * @completion The allocator completion
  */
-void vdo_notify_slab_journals_are_recovered(struct block_allocator *allocator,
-					    int result)
+void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion)
 {
-	vdo_finish_loading_with_result(&allocator->state, result);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
+
+	vdo_finish_loading_with_result(&allocator->state, completion->result);
 }
 
 /*
@@ -764,7 +759,7 @@ void vdo_register_new_slabs_for_allocator(void *context,
 
 static void do_drain_step(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator = as_block_allocator(completion);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 
 	vdo_prepare_completion_for_requeue(&allocator->completion,
 					   do_drain_step,
@@ -835,7 +830,7 @@ void vdo_drain_block_allocator(void *context,
 
 static void do_resume_step(struct vdo_completion *completion)
 {
-	struct block_allocator *allocator = as_block_allocator(completion);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 
 	vdo_prepare_completion_for_requeue(&allocator->completion,
 					   do_resume_step,

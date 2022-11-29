@@ -50,8 +50,6 @@ struct recovery_completion {
 	struct vdo_completion sub_task_completion;
 	/* The struct vdo in question */
 	struct vdo *vdo;
-	/* The struct block_allocator whose journals are being recovered */
-	struct block_allocator *allocator;
 	/* A buffer to hold the data read off disk */
 	char *journal_data;
 	/* The number of increfs */
@@ -382,10 +380,6 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 		thread_id = vdo_get_logical_zone_thread(thread_config, 0);
 		break;
 
-	case VDO_ZONE_TYPE_PHYSICAL:
-		thread_id = recovery->allocator->thread_id;
-		break;
-
 	case VDO_ZONE_TYPE_ADMIN:
 	default:
 		thread_id = thread_config->admin_thread;
@@ -707,41 +701,23 @@ static void finish_recovering_depot(struct vdo_completion *completion)
 }
 
 /**
- * handle_add_slab_journal_entry_error() - The error handler for recovering
- *                                         slab journals.
- * @completion: The completion of the block allocator being recovered.
- *
- * Skips any remaining recovery on the current zone and propagates the error.
- * It is registered in add_slab_journal_entries() and
- * add_synthesized_entries().
- */
-static void
-handle_add_slab_journal_entry_error(struct vdo_completion *completion)
-{
-	struct recovery_completion *recovery =
-		as_vdo_recovery_completion(completion->parent);
-	vdo_notify_slab_journals_are_recovered(recovery->allocator,
-					       completion->result);
-}
-
-/**
  * add_synthesized_entries() - Add synthesized entries into slab journals,
  *                             waiting when necessary.
  * @completion: The allocator completion.
  */
 static void add_synthesized_entries(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery =
-		as_vdo_recovery_completion(completion->parent);
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
+	struct recovery_completion *recovery = completion->parent;
 	struct wait_queue *missing_decrefs =
-		&recovery->missing_decrefs[recovery->allocator->zone_number];
+		&recovery->missing_decrefs[allocator->zone_number];
 
 	/* Get ready in case we need to enqueue again */
 	vdo_prepare_completion(completion,
 			       add_synthesized_entries,
-			       handle_add_slab_journal_entry_error,
+			       vdo_notify_slab_journals_are_recovered,
 			       completion->callback_thread_id,
-			       &recovery->completion);
+			       recovery);
 	while (has_waiters(missing_decrefs)) {
 		struct missing_decref *decref =
 			as_missing_decref(get_first_waiter(missing_decrefs));
@@ -756,8 +732,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 		UDS_FREE(decref);
 	}
 
-	vdo_notify_slab_journals_are_recovered(recovery->allocator,
-					       VDO_SUCCESS);
+	vdo_notify_slab_journals_are_recovered(completion);
 }
 
 /**
@@ -852,17 +827,17 @@ static void advance_points(struct recovery_completion *recovery,
 static void add_slab_journal_entries(struct vdo_completion *completion)
 {
 	struct recovery_point *recovery_point;
-	struct recovery_completion *recovery =
-		as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = completion->parent;
+	struct vdo *vdo = completion->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
+	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 
 	/* Get ready in case we need to enqueue again. */
 	vdo_prepare_completion(completion,
 			       add_slab_journal_entries,
-			       handle_add_slab_journal_entry_error,
+			       vdo_notify_slab_journals_are_recovered,
 			       completion->callback_thread_id,
-			       &recovery->completion);
+			       recovery);
 	for (recovery_point = &recovery->next_recovery_point;
 	     before_recovery_point(recovery_point,
 				   &recovery->tail_recovery_point);
@@ -883,21 +858,21 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			continue;
 
 		slab = vdo_get_slab(vdo->depot, entry.mapping.pbn);
-		if (slab->allocator != recovery->allocator)
+		if (slab->allocator != allocator)
 			continue;
 
 		if (!vdo_attempt_replay_into_slab_journal(slab->journal,
-							 entry.mapping.pbn,
-							 entry.operation,
-							 &recovery->next_journal_point,
-							 completion))
+							  entry.mapping.pbn,
+							  entry.operation,
+							  &recovery->next_journal_point,
+							  completion))
 			return;
 
 		recovery->entries_added_to_slab_journals++;
 	}
 
 	uds_log_info("Recreating missing journal entries for zone %u",
-		     recovery->allocator->zone_number);
+		     allocator->zone_number);
 	add_synthesized_entries(completion);
 }
 
@@ -906,26 +881,25 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
  *                                   slab journals of slabs owned by a given
  *                                   block_allocator.
  * @allocator: The allocator whose slab journals are to be recovered.
- * @completion: The completion to use for waiting on slab journal space.
  * @context: The slab depot load context supplied by a recovery when it loads
  *           the depot.
  */
 void vdo_replay_into_slab_journals(struct block_allocator *allocator,
-				   struct vdo_completion *completion,
 				   void *context)
 {
+	struct vdo_completion *completion = &allocator->completion;
 	struct recovery_completion *recovery = context;
+	struct vdo *vdo = recovery->completion.vdo;
 
-	vdo_assert_on_physical_zone_thread(recovery->vdo,
+	vdo_assert_on_physical_zone_thread(vdo,
 					   allocator->zone_number,
 					   __func__);
-	if ((recovery->journal_data == NULL) || is_replaying(recovery->vdo)) {
+	if ((recovery->journal_data == NULL) || is_replaying(vdo)) {
 		/* there's nothing to replay */
-		vdo_notify_slab_journals_are_recovered(allocator, VDO_SUCCESS);
+		vdo_notify_slab_journals_are_recovered(completion);
 		return;
 	}
 
-	recovery->allocator = allocator;
 	recovery->next_recovery_point = (struct recovery_point) {
 		.sequence_number = recovery->slab_journal_head,
 		.sector_count = 1,
@@ -939,7 +913,7 @@ void vdo_replay_into_slab_journals(struct block_allocator *allocator,
 
 	uds_log_info("Replaying entries into slab journals for zone %u",
 		     allocator->zone_number);
-	completion->parent = &recovery->completion;
+	completion->parent = recovery;
 	add_slab_journal_entries(completion);
 }
 
