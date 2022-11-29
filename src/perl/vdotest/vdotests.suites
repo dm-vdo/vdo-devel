@@ -240,7 +240,7 @@ $suiteNames{checkin}
 # Tests to make sure we can install and start on any supported platform (on
 # a farm host).
 ##
-foreach my $class (qw(FEDORA35 FEDORA36 RHEL9)) {
+foreach my $class (qw(FEDORA36 RHEL9)) {
   my $alias = "Basic01_" . ucfirst(lc($class));
   $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
   push(@{$suiteNames{platformTests}}, $alias);

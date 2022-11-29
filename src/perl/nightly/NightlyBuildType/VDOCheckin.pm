@@ -45,7 +45,7 @@ my $SUITE_PROPERTIES = {
 ##
 sub getSuitesImplementation {
   my ($self) = assertNumArgs(1, @_);
-  return generateTestSuites($SUITE_PROPERTIES, ["FEDORA35"]);
+  return generateTestSuites($SUITE_PROPERTIES, ["FEDORA36"]);
 }
 
 1;

@@ -19,7 +19,7 @@ ifeq ($(USER),continuous)
   OPTIONAL_RSVP_HOST = PRSVP_HOST=jenkins
 endif
 
-JENKINS_CLIENT_CLASS = --clientClass=FARM\\,FEDORA35
+JENKINS_CLIENT_CLASS = --clientClass=FARM\\,FEDORA36
 
 # This is Make's form of a function -- it gets expanded every time it's used
 VDOTESTS_INVOCATION = $(OPTIONAL_RSVP_HOST) ./vdotests.pl $(TEST_ARGS) \
