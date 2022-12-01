@@ -279,6 +279,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 	if (listener == NULL) {
 		/* This is the first call on this thread */
 		struct thread_data *thread_data = &notifier->thread_data[thread_id];
+
 		thread_data->is_read_only = true;
 		listener = thread_data->listeners;
 		if (thread_id == 0)
