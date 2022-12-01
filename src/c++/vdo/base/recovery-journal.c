@@ -144,6 +144,7 @@ static bool is_journal_zone_locked(struct recovery_journal *journal,
 	uint32_t decrements = atomic_read(get_decrement_counter(journal,
 								lock_number));
 
+	/* Pairs with barrier in vdo_release_journal_entry_lock() */
 	smp_rmb();
 	ASSERT_LOG_ONLY((decrements <= journal_value),
 			"journal zone lock counter must not underflow");
@@ -1760,6 +1761,7 @@ EXTERNAL_STATIC bool is_lock_locked(struct recovery_journal *journal,
 
 	zone_count = get_zone_count_ptr(journal, lock_number, zone_type);
 	locked = (atomic_read(zone_count) != 0);
+	/* Pairs with implicit barrier in vdo_release_recovery_journal_block_reference() */
 	smp_rmb();
 	return locked;
 }
