@@ -117,9 +117,9 @@ struct lock_counter {
 	atomic_t *logical_zone_counts;
 	/** The number of physical zones which hold each lock */
 	atomic_t *physical_zone_counts;
-	/** The per-zone, per-lock counts for the journal zone */
+	/** The per-lock counts for the journal zone */
 	uint16_t *journal_counters;
-	/** The per-zone, per-lock decrement counts for the journal zone */
+	/** The per-lock decrement counts for the journal zone */
 	atomic_t *journal_decrement_counts;
 	/** The per-zone, per-lock reference counts for logical zones */
 	uint16_t *logical_counters;
