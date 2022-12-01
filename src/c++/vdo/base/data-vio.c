@@ -246,9 +246,9 @@ static const char * const ASYNC_OPERATION_NAMES[] = {
  */
 enum data_vio_cleanup_stage {
 	VIO_CLEANUP_START,
-	VIO_RELEASE_ALLOCATED = VIO_CLEANUP_START,
+	VIO_RELEASE_HASH_LOCK = VIO_CLEANUP_START,
+	VIO_RELEASE_ALLOCATED,
 	VIO_RELEASE_RECOVERY_LOCKS,
-	VIO_RELEASE_HASH_LOCK,
 	VIO_RELEASE_LOGICAL,
 	VIO_CLEANUP_DONE
 };
@@ -1421,6 +1421,14 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 				  enum data_vio_cleanup_stage stage)
 {
 	switch (stage) {
+	case VIO_RELEASE_HASH_LOCK:
+		if (data_vio->hash_lock != NULL) {
+			launch_data_vio_hash_zone_callback(data_vio,
+							   clean_hash_lock);
+			return;
+		}
+		fallthrough;
+
 	case VIO_RELEASE_ALLOCATED:
 		if (data_vio_has_allocation(data_vio)) {
 			launch_data_vio_allocated_zone_callback(data_vio,
@@ -1434,14 +1442,6 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 		    !vdo_is_or_will_be_read_only(vdo_from_data_vio(data_vio)->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY))
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
-		fallthrough;
-
-	case VIO_RELEASE_HASH_LOCK:
-		if (data_vio->hash_lock != NULL) {
-			launch_data_vio_hash_zone_callback(data_vio,
-							   clean_hash_lock);
-			return;
-		}
 		fallthrough;
 
 	case VIO_RELEASE_LOGICAL:
@@ -1791,10 +1791,10 @@ static void read_block(struct vdo_completion *completion)
 static void write_block(struct data_vio *data_vio);
 
 /**
- * abort_deduplication() - Abort the data optimization process.
+ * abort_data_vio_optimization() - Abort the data optimization process.
  * @data_vio: The data_vio which does not deduplicate or compress.
  */
-static void abort_deduplication(struct data_vio *data_vio)
+void abort_data_vio_optimization(struct data_vio *data_vio)
 {
 	if (!data_vio_has_allocation(data_vio)) {
 		/*
@@ -2018,7 +2018,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 void continue_write_after_compression(struct data_vio *data_vio)
 {
 	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
-		abort_deduplication(data_vio);
+		abort_data_vio_optimization(data_vio);
 		return;
 	}
 
@@ -2040,7 +2040,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 	assert_data_vio_in_packer_zone(data_vio);
 
 	if (!may_pack_data_vio(data_vio)) {
-		abort_deduplication(data_vio);
+		abort_data_vio_optimization(data_vio);
 		return;
 	}
 
@@ -2097,7 +2097,7 @@ void launch_compress_data_vio(struct data_vio *data_vio)
 	ASSERT_LOG_ONLY(!data_vio->is_duplicate,
 			"compressing a non-duplicate block");
 	if (!may_compress_data_vio(data_vio)) {
-		abort_deduplication(data_vio);
+		abort_data_vio_optimization(data_vio);
 		return;
 	}
 

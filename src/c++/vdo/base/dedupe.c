@@ -17,12 +17,12 @@
  * data_vio.
  *
  * A hash_lock acts like a state machine perhaps more than as a lock. Other
- * than the starting and ending states INITIALIZING and DESTROYING, every
- * state represents and is held for the duration of an asynchronous operation.
- * All state transitions are performed on the thread of the hash_zone
- * containing the lock. An asynchronous operation is almost always performed
- * upon entering a state, and the callback from that operation triggers
- * exiting the state and entering a new state.
+ * than the starting and ending states INITIALIZING and BYPASSING, every state
+ * represents and is held for the duration of an asynchronous operation. All
+ * state transitions are performed on the thread of the hash_zone containing
+ * the lock. An asynchronous operation is almost always performed upon entering
+ * a state, and the callback from that operation triggers exiting the state and
+ * entering a new state.
  *
  * In all states except DEDUPING, there is a single data_vio, called the lock
  * agent, performing the asynchronous operations on behalf of the lock. The
@@ -52,10 +52,10 @@
  * different from the initial index query (UPDATING, triggered by stale
  * advice, compression, and rollover), releasing the PBN lock on the duplicate
  * block (UNLOCKING), and releasing the hash_lock itself back to the hash zone
- * (DESTROYING).
+ * (BYPASSING).
  *
  * The shortest sequence of states is for non-concurrent writes of new data:
- *   INITIALIZING -> QUERYING -> WRITING -> DESTROYING
+ *   INITIALIZING -> QUERYING -> WRITING -> BYPASSING
  * This sequence is short because no PBN read lock or index update is needed.
  *
  * Non-concurrent, finding valid advice looks like this (endpoints elided):
@@ -239,24 +239,16 @@ enum hash_lock_state {
 	VDO_HASH_LOCK_UNLOCKING,
 
 	/*
-	 * XXX This is a temporary state denoting a lock which is sending VIOs
-	 * back to the old dedupe and vioWrite pathways. It won't be in the
-	 * final version of VDOSTORY-190.
-	 */
-	VDO_HASH_LOCK_BYPASSING,
-
-	/*
 	 * Terminal state for locks returning to the pool. Must be last both
 	 * because it's the final state, and also because it's used to count
 	 * the states.
 	 */
-	VDO_HASH_LOCK_DESTROYING,
+	VDO_HASH_LOCK_BYPASSING,
 };
 
 static const char * const LOCK_STATE_NAMES[] = {
 	[VDO_HASH_LOCK_BYPASSING] = "BYPASSING",
 	[VDO_HASH_LOCK_DEDUPING] = "DEDUPING",
-	[VDO_HASH_LOCK_DESTROYING] = "DESTROYING",
 	[VDO_HASH_LOCK_INITIALIZING] = "INITIALIZING",
 	[VDO_HASH_LOCK_LOCKING] = "LOCKING",
 	[VDO_HASH_LOCK_QUERYING] = "QUERYING",
@@ -503,7 +495,7 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 static const char *get_hash_lock_state_name(enum hash_lock_state state)
 {
 	/* Catch if a state has been added without updating the name array. */
-	STATIC_ASSERT((VDO_HASH_LOCK_DESTROYING + 1)
+	STATIC_ASSERT((VDO_HASH_LOCK_BYPASSING + 1)
 		      == ARRAY_SIZE(LOCK_STATE_NAMES));
 	return (state < ARRAY_SIZE(LOCK_STATE_NAMES)) ? LOCK_STATE_NAMES[state]
 						      : "INVALID";
@@ -583,19 +575,6 @@ data_vio_from_lock_entry(struct list_head *entry)
 static inline struct data_vio *dequeue_lock_waiter(struct hash_lock *lock)
 {
 	return waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
-}
-
-/**
- * continue_data_vio_in() - Set the callback for a data_vio and invoke it
- *                          immediately.
- * @data_vio: The data_vio to continue.
- * @callback: The function in which to continue processing.
- */
-static void continue_data_vio_in(struct data_vio *data_vio,
-				 vdo_action *callback)
-{
-	data_vio_as_completion(data_vio)->callback = callback;
-	continue_data_vio(data_vio);
 }
 
 /**
@@ -683,7 +662,9 @@ static void exit_hash_lock(struct data_vio *data_vio)
 	 * Complete the data_vio and start the clean-up path to release any
 	 * locks it still holds.
 	 */
-	continue_data_vio_in(data_vio, complete_data_vio);
+	data_vio_as_completion(data_vio)->callback = complete_data_vio;
+
+	continue_data_vio(data_vio);
 }
 
 /**
@@ -722,16 +703,6 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
 }
 
 /**
- * compress_data_callback() - Callback to call launch_compress_data_vio(),
- *                            putting a data_vio back on the write path.
- * @completion: The data_vio.
- */
-static void compress_data_callback(struct vdo_completion *completion)
-{
-	launch_compress_data_vio(as_data_vio(completion));
-}
-
-/**
  * wait_on_hash_lock() - Add a data_vio to the lock's queue of waiters.
  * @lock: The hash lock on which to wait.
  * @data_vio: The data_vio to add to the queue.
@@ -763,38 +734,14 @@ static void wait_on_hash_lock(struct hash_lock *lock,
 }
 
 /**
- * compress_waiter() - waiter_callback function that calls
- *                     launch_compress_data_vio on the data_vio waiter.
+ * abort_waiter() - waiter_callback function that calls abort_optimization on
+ *                  the data_vio waiter.
  * @waiter: The data_vio's waiter link.
  * @context: Not used.
  */
-static void compress_waiter(struct waiter *waiter,
-			    void *context __always_unused)
+static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
-	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-
-	data_vio->is_duplicate = false;
-	launch_compress_data_vio(data_vio);
-}
-
-/**
- * finish_bypassing() - Handle the result of the agent for the lock releasing
- *                      a read lock on duplicate candidate due to aborting the
- *                      hash lock.
- * @completion: The completion of the acting as the lock's agent.
- *
- * This continuation is registered in unlock_duplicate_pbn().
- */
-static void finish_bypassing(struct vdo_completion *completion)
-{
-	struct data_vio *agent = as_data_vio(completion);
-	struct hash_lock *lock = agent->hash_lock;
-
-	assert_hash_lock_agent(agent, __func__);
-
-	ASSERT_LOG_ONLY(lock->duplicate_lock == NULL,
-			"must have released the duplicate lock for the hash lock");
-	exit_hash_lock(agent);
+	abort_data_vio_optimization(waiter_as_data_vio(waiter));
 }
 
 /**
@@ -802,102 +749,13 @@ static void finish_bypassing(struct vdo_completion *completion)
  * @lock: The hash lock.
  * @agent: The data_vio acting as the agent for the lock.
  *
- * Stops using the hash lock. The agent and any data_vios waiting on the lock
- * will continue to the non-deduplicating write path. The lock will be put into
- * a state where data_vios entering the lock will continue to the
- * non-deduplicating write path.
+ * Stops using the hash lock. This is the final transition for hash locks which
+ * did not get an error.
  */
 static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, VDO_HASH_LOCK_BYPASSING);
-
-	/* Ensure we don't attempt to update advice when cleaning up. */
-	lock->update_advice = false;
-
-	ASSERT_LOG_ONLY(((agent != NULL) || !has_waiters(&lock->waiters)),
-			"should not have waiters without an agent");
-	notify_all_waiters(&lock->waiters, compress_waiter, NULL);
-
-	if (agent == NULL) {
-		ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
-				"agentless hash lock doesn't have a PBN lock");
-		return;
-	}
-
-	if (lock->duplicate_lock != NULL) {
-		/* The agent must reference the duplicate zone to launch it. */
-		agent->duplicate = lock->duplicate;
-		launch_data_vio_duplicate_zone_callback(agent,
-							unlock_duplicate_pbn);
-		return;
-	}
-
-	lock->agent = NULL;
-	agent->is_duplicate = false;
-	continue_data_vio_in(agent, compress_data_callback);
-}
-
-/**
- * abort_hash_lock() - Abort processing on this hash lock when noticing an
- *                     error.
- * @lock: The hash_lock.
- * @data_vio: The data_vio with the error.
- *
- * Currently, this moves the hash lock to the BYPASSING state, to release all
- * pending data_vios.
- */
-static void abort_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
-{
-	/*
-	 * If we've already aborted the lock, don't try to re-abort it; just
-	 * exit.
-	 */
-	if (lock->state == VDO_HASH_LOCK_BYPASSING) {
-		exit_hash_lock(data_vio);
-		return;
-	}
-
-	if (data_vio != lock->agent) {
-		if ((lock->agent != NULL) || (lock->reference_count > 1)) {
-			/*
-			 * Other data_vios are still sharing the lock (which
-			 * should be DEDUPING), so just kick this one out of
-			 * the lock to report its error.
-			 */
-			ASSERT_LOG_ONLY(lock->agent == NULL,
-					"only active agent should call %s()",
-					__func__);
-			exit_hash_lock(data_vio);
-			return;
-		}
-		/*
-		 * Make the lone data_vio the lock agent so it can abort and
-		 * clean up.
-		 */
-		lock->agent = data_vio;
-	}
-
-	start_bypassing(lock, data_vio);
-}
-
-/**
- * complete_or_unlock() - If a data_vio which is cleaning up its hash lock
- *                        after an error needs to unlock the duplicated lock,
- *                        let it proceed to do so, otherwise, just call
- *                        complete_data_vio() to resume the clean up path.
- * @completion: The data_vio in question
- */
-static void complete_or_unlock(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	completion->error_handler = NULL;
-	if (data_vio->hash_lock->duplicate_lock == NULL) {
-		complete_data_vio(completion);
-		return;
-	}
-
-	completion->callback(completion);
+	exit_hash_lock(agent);
 }
 
 void vdo_clean_failed_hash_lock(struct data_vio *data_vio)
@@ -916,8 +774,24 @@ void vdo_clean_failed_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	set_data_vio_error_handler(data_vio, complete_or_unlock);
-	abort_hash_lock(lock, data_vio);
+	set_hash_lock_state(lock, VDO_HASH_LOCK_BYPASSING);
+
+	/* Ensure we don't attempt to update advice when cleaning up. */
+	lock->update_advice = false;
+
+	notify_all_waiters(&lock->waiters, abort_waiter, NULL);
+
+	if (lock->duplicate_lock != NULL) {
+		/* The agent must reference the duplicate zone to launch it. */
+		data_vio->duplicate = lock->duplicate;
+		launch_data_vio_duplicate_zone_callback(data_vio,
+							unlock_duplicate_pbn);
+		return;
+	}
+
+	lock->agent = NULL;
+	data_vio->is_duplicate = false;
+	exit_hash_lock(data_vio);
 }
 
 /**
@@ -972,11 +846,11 @@ static void finish_unlocking(struct vdo_completion *completion)
 	}
 
 	/*
-	 * UNLOCKING -> DESTROYING transition: The agent is done with the lock
+	 * UNLOCKING -> BYPASSING transition: The agent is done with the lock
 	 * and no other data_vios reference it, so remove it from the lock map
 	 * and return it to the pool.
 	 */
-	exit_hash_lock(agent);
+	start_bypassing(lock, agent);
 }
 
 /**
@@ -993,19 +867,18 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 	struct hash_lock *lock = agent->hash_lock;
 
 	assert_data_vio_in_duplicate_zone(agent);
-
 	ASSERT_LOG_ONLY(lock->duplicate_lock != NULL,
 			"must have a duplicate lock to release");
 
 	vdo_release_physical_zone_pbn_lock(agent->duplicate.zone,
 					   agent->duplicate.pbn,
 					   UDS_FORGET(lock->duplicate_lock));
+	if (lock->state == VDO_HASH_LOCK_BYPASSING) {
+		complete_data_vio(completion);
+		return;
+	}
 
-	if (lock->state == VDO_HASH_LOCK_BYPASSING)
-		launch_data_vio_hash_zone_callback(agent,
-						   finish_bypassing);
-	else
-		launch_data_vio_hash_zone_callback(agent, finish_unlocking);
+	launch_data_vio_hash_zone_callback(agent, finish_unlocking);
 }
 
 /**
@@ -1017,7 +890,6 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
 static void start_unlocking(struct hash_lock *lock, struct data_vio *agent)
 {
 	set_hash_lock_state(lock, VDO_HASH_LOCK_UNLOCKING);
-
 	launch_data_vio_duplicate_zone_callback(agent, unlock_duplicate_pbn);
 }
 
@@ -1088,16 +960,14 @@ static void finish_updating(struct vdo_completion *completion)
 		 * dedupe, but we hold a duplicate PBN lock, so go release it.
 		 */
 		start_unlocking(lock, agent);
-	} else {
-		/*
-		 * UPDATING -> DESTROYING transition: No one is waiting to
-		 * dedupe and there's no lock to release.
-		 *
-		 * FIXME: startDestroying(lock, agent);
-		 */
-		start_bypassing(lock, NULL);
-		exit_hash_lock(agent);
+		return;
 	}
+
+	/*
+	 * UPDATING -> BYPASSING transition: No one is waiting to
+	 * dedupe and there's no lock to release.
+	 */
+	start_bypassing(lock, agent);
 }
 
 static void
@@ -1291,7 +1161,7 @@ static void fork_hash_lock(struct hash_lock *old_lock,
 				  &new_lock);
 
 	if (result != VDO_SUCCESS) {
-		abort_hash_lock(old_lock, new_agent);
+		continue_data_vio_with_error(new_agent, result);
 		return;
 	}
 
@@ -1905,14 +1775,12 @@ static void finish_writing(struct hash_lock *lock, struct data_vio *agent)
 		start_unlocking(lock, agent);
 	} else {
 		/*
-		 * WRITING -> DESTROYING transition: There's no waiter, no
+		 * WRITING -> BYPASSING transition: There's no waiter, no
 		 * update needed, and no duplicate lock held, so both the agent
 		 * and lock have no more work to do. The agent will release its
 		 * allocation lock in cleanup.
 		 */
-		/* XXX startDestroying(lock, agent); */
-		start_bypassing(lock, NULL);
-		exit_hash_lock(agent);
+		start_bypassing(lock, agent);
 	}
 }
 
@@ -2003,7 +1871,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 			 * remain in the map as everything is currently
 			 * spelled, even if the agent and all waiters release.
 			 */
-			start_bypassing(lock, agent);
+			continue_data_vio_with_error(agent, VDO_NO_SPACE);
 			return;
 		}
 	}
@@ -2211,8 +2079,7 @@ void vdo_continue_hash_lock(struct vdo_completion *completion)
 		 * This data_vio has finished the write path and the lock
 		 * doesn't need it.
 		 *
-		 * XXX This isn't going to be correct if DEDUPING ever uses
-		 * BYPASSING.
+		 * FIXME: Can this happen?
 		 */
 		continue_data_vio(data_vio);
 		break;
@@ -2223,7 +2090,6 @@ void vdo_continue_hash_lock(struct vdo_completion *completion)
 	case VDO_HASH_LOCK_LOCKING:
 	case VDO_HASH_LOCK_VERIFYING:
 	case VDO_HASH_LOCK_UNLOCKING:
-	case VDO_HASH_LOCK_DESTROYING:
 		/* A lock in this state should never be re-entered. */
 		report_bogus_lock_state(lock, data_vio);
 		break;
@@ -2321,12 +2187,13 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion)
 
 	if (is_hash_collision(lock, data_vio)) {
 		/*
-		 * Hash collisions are extremely unlikely, but the bogus
-		 * dedupe would be a data corruption. Bypass dedupe entirely
-		 * by leaving hash_lock unset.
-		 * XXX clear hash_zone too?
+		 * Hash collisions are extremely unlikely, but the bogus dedupe
+		 * would be a data corruption. Bypass optimization entirely.
+		 * (We can't compress a data_vio without a hash_lock as the
+		 * compressed write depends on the hash_lock to manage the
+		 * references for the compressed block.
 		 */
-		launch_compress_data_vio(data_vio);
+		abort_data_vio_optimization(data_vio);
 		return;
 	}
 
@@ -2347,15 +2214,15 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion)
 		return;
 
 	case VDO_HASH_LOCK_BYPASSING:
-		/* Bypass dedupe entirely. */
-		launch_compress_data_vio(data_vio);
+		/* We can't use this lock, so bypass optimization entirely. */
+		vdo_release_hash_lock(data_vio);
+		abort_data_vio_optimization(data_vio);
 		return;
 
 	case VDO_HASH_LOCK_DEDUPING:
 		launch_dedupe(lock, data_vio, false);
 		return;
 
-	case VDO_HASH_LOCK_DESTROYING:
 	default:
 		/* A lock in this state should not be acquired by new VIOs. */
 		report_bogus_lock_state(lock, data_vio);
@@ -2389,7 +2256,6 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 		/* The lock is still in use by other data_vios. */
 		return;
 
-	set_hash_lock_state(lock, VDO_HASH_LOCK_DESTROYING);
 	if (lock->registered) {
 		struct hash_lock *removed =
 			pointer_map_remove(zone->hash_lock_map, &lock->hash);
@@ -2405,7 +2271,7 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 			"hash lock returned to zone must have no waiters");
 	ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
 			"hash lock returned to zone must not reference a PBN lock");
-	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_DESTROYING),
+	ASSERT_LOG_ONLY((lock->state == VDO_HASH_LOCK_BYPASSING),
 			"returned hash lock must not be in use with state %s",
 			get_hash_lock_state_name(lock->state));
 	ASSERT_LOG_ONLY(list_empty(&lock->pool_node),

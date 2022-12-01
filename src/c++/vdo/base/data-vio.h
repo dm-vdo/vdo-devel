@@ -1067,6 +1067,7 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 #ifdef INTERNAL
 bool is_zero_block(char *block);
 #endif /* INTERNAL */
+void abort_data_vio_optimization(struct data_vio *data_vio);
 void continue_write_after_compression(struct data_vio *data_vio);
 void launch_compress_data_vio(struct data_vio *data_vio);
 void launch_deduplicate_data_vio(struct data_vio *data_vio);
