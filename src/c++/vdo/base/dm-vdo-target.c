@@ -315,6 +315,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 
 	result = process_vdo_message_locked(vdo, argc, argv);
 
+	/* Pairs with the implicit barrier in cmpxchg just above */
 	smp_wmb();
 	atomic_set(&vdo->processing_message, 0);
 	return result;
