@@ -456,70 +456,96 @@ static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
 	return (strcmp(device_name, (const char *) context) == 0);
 }
 
-static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
+static int construct_new_vdo_registered(struct dm_target *ti,
+					unsigned int argc,
+					char **argv,
+					unsigned int instance)
 {
-	int result = VDO_SUCCESS;
-	struct registered_thread allocating_thread, instance_thread;
-	const char *device_name;
-	struct vdo *old_vdo;
-	unsigned int instance;
-	struct device_config *config = NULL;
+	int result;
+	struct device_config *config;
 
-	uds_register_allocating_thread(&allocating_thread, NULL);
-
-	device_name = vdo_get_device_name(ti);
-	old_vdo = vdo_find_matching(vdo_is_named, (void *) device_name);
-	if (old_vdo == NULL) {
-		result = vdo_allocate_instance(&instance);
-		if (result != VDO_SUCCESS) {
-			uds_unregister_allocating_thread();
-			return -ENOMEM;
-		}
-	} else {
-		instance = old_vdo->instance;
-	}
-
-	uds_register_thread_device_id(&instance_thread, &instance);
 	result = vdo_parse_device_config(argc, argv, ti, &config);
-	if (result != VDO_SUCCESS) {
-		uds_unregister_thread_device_id();
-		uds_unregister_allocating_thread();
-		if (old_vdo == NULL)
-			vdo_release_instance(instance);
+	if (result != VDO_SUCCESS)
 		return -EINVAL;
-	}
-
-	/* Is there already a device of this name? */
-	if (old_vdo != NULL) {
-		bool may_grow = (vdo_get_admin_state(old_vdo)
-				 != VDO_ADMIN_STATE_PRE_LOADED);
-
-		uds_log_info("preparing to modify device '%s'", device_name);
-		result = vdo_prepare_to_modify(old_vdo,
-					       config,
-					       may_grow,
-					       &ti->error);
-		if (result != VDO_SUCCESS) {
-			result = vdo_map_to_system_error(result);
-			vdo_free_device_config(UDS_FORGET(config));
-		} else {
-			vdo_set_device_config(config, old_vdo);
-			ti->private = config;
-			configure_target_capabilities(ti);
-		}
-		uds_unregister_thread_device_id();
-		uds_unregister_allocating_thread();
-		return result;
-	}
 
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
-		/* vdo_initialize calls into various VDO routines, so map error */
-		result = vdo_map_to_system_error(result);
 		vdo_free_device_config(config);
+		return vdo_map_to_system_error(result);
 	}
 
+	return VDO_SUCCESS;
+}
+
+static int construct_new_vdo(struct dm_target *ti,
+			     unsigned int argc,
+			     char **argv)
+{
+	int result;
+	unsigned int instance;
+	struct registered_thread instance_thread;
+
+	result = vdo_allocate_instance(&instance);
+	if (result != VDO_SUCCESS)
+		return -ENOMEM;
+
+	uds_register_thread_device_id(&instance_thread, &instance);
+	result = construct_new_vdo_registered(ti, argc, argv, instance);
 	uds_unregister_thread_device_id();
+
+	if (result != VDO_SUCCESS)
+		vdo_release_instance(instance);
+
+	return result;
+}
+
+static int update_existing_vdo(const char *device_name,
+			       struct dm_target *ti,
+			       unsigned int argc,
+			       char **argv,
+			       struct vdo *vdo)
+{
+	int result;
+	struct device_config *config;
+	bool may_grow;
+
+	result = vdo_parse_device_config(argc, argv, ti, &config);
+	if (result != VDO_SUCCESS)
+		return -EINVAL;
+
+	uds_log_info("preparing to modify device '%s'", device_name);
+	may_grow = (vdo_get_admin_state(vdo) != VDO_ADMIN_STATE_PRE_LOADED);
+	result = vdo_prepare_to_modify(vdo, config, may_grow, &ti->error);
+	if (result != VDO_SUCCESS) {
+		vdo_free_device_config(config);
+		return vdo_map_to_system_error(result);
+	}
+
+	return VDO_SUCCESS;
+}
+
+static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
+{
+	int result;
+	struct registered_thread allocating_thread, instance_thread;
+	const char *device_name;
+	struct vdo *vdo;
+
+	uds_register_allocating_thread(&allocating_thread, NULL);
+	device_name = vdo_get_device_name(ti);
+	vdo = vdo_find_matching(vdo_is_named, (void *) device_name);
+	if (vdo == NULL) {
+		result = construct_new_vdo(ti, argc, argv);
+	} else {
+		uds_register_thread_device_id(&instance_thread, &vdo->instance);
+		result = update_existing_vdo(device_name,
+					     ti,
+					     argc,
+					     argv,
+					     vdo);
+		uds_unregister_thread_device_id();
+	}
+
 	uds_unregister_allocating_thread();
 	return result;
 }
