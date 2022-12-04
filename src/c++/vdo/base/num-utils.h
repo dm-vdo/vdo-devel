@@ -14,7 +14,6 @@
 
 #ifdef __KERNEL__
 #include <linux/log2.h>
-#include <linux/math.h>
 
 #else
 #include "permassert.h"
