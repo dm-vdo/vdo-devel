@@ -49,14 +49,12 @@ static int check_bio_validity(struct bio *bio)
 
 	if (!is_known_type) {
 		/* XXX Why shouldn't this be assert like the other branches? */
-		uds_log_error("Received unexpected bio of type %d",
-			      bio_op(bio));
+		uds_log_error("Received unexpected bio of type %d", bio_op(bio));
 		return -EINVAL;
 	}
 
 	/* Is this a flush? It must be empty. */
-	if ((bio_op(bio) == REQ_OP_FLUSH) ||
-	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+	if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
 		result = ASSERT(is_empty, "flush bios must be empty");
 		if (result != UDS_SUCCESS)
 			result = -EINVAL;
@@ -105,9 +103,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	const struct admin_state_code *code =
 		vdo_get_admin_state_code(&vdo->admin_state);
 
-	ASSERT_LOG_ONLY(code->normal,
-			"vdo should not receive bios while in state %s",
-			code->name);
+	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s", code->name);
 
 	/* Count all incoming bios. */
 	vdo_count_bios(&vdo->stats.bios_in, bio);
@@ -120,8 +116,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 #endif /* VDO_INTERNAL */
 
 	/* Handle empty bios.  Empty flush bios are not associated with a vio. */
-	if ((bio_op(bio) == REQ_OP_FLUSH) ||
-	    ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+	if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
 		vdo_launch_flush(vdo, bio);
 		return DM_MAPIO_SUBMITTED;
 	}
@@ -147,21 +142,19 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
 
 	/*
-	 * Sets the maximum discard size that will be passed into VDO. This
-	 * value comes from a table line value passed in during dmsetup create.
+	 * Sets the maximum discard size that will be passed into VDO. This value comes from a
+	 * table line value passed in during dmsetup create.
 	 *
-	 * The value 1024 is the largest usable value on HD systems.  A 2048
-	 * sector discard on a busy HD system takes 31 seconds.  We should use a
-	 * value no higher than 1024, which takes 15 to 16 seconds on a busy HD
-	 * system.
+	 * The value 1024 is the largest usable value on HD systems.  A 2048 sector discard on a
+	 * busy HD system takes 31 seconds.  We should use a value no higher than 1024, which takes
+	 * 15 to 16 seconds on a busy HD system.
 	 *
-	 * But using large values results in 120 second blocked task warnings in
-	 * /var/log/kern.log.  In order to avoid these warnings, we choose to
-	 * use the smallest reasonable value.  See VDO-3062 and VDO-3087.
+	 * But using large values results in 120 second blocked task warnings in /var/log/kern.log.
+	 * In order to avoid these warnings, we choose to use the smallest reasonable value.  See
+	 * VDO-3062 and VDO-3087.
 	 *
-	 * The value is displayed in sysfs, and also used by dm-thin to
-	 * determine whether to pass down discards. The block layer splits
-	 * large discards on this boundary when this is set.
+	 * The value is displayed in sysfs, and also used by dm-thin to determine whether to pass
+	 * down discards. The block layer splits large discards on this boundary when this is set.
 	 */
 	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
 				       * VDO_SECTORS_PER_BLOCK);
@@ -173,9 +166,7 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
-static int vdo_iterate_devices(struct dm_target *ti,
-			       iterate_devices_callout_fn fn,
-			       void *data)
+static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn fn, void *data)
 {
 	struct device_config *config = get_vdo_for_target(ti)->device_config;
 
@@ -201,10 +192,7 @@ static void vdo_status(struct dm_target *ti,
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
 	struct device_config *device_config;
-	/*
-	 * N.B.: The DMEMIT macro uses the variables named "sz", "result",
-	 * "maxlen".
-	 */
+	/* N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen". */
 	int sz = 0;
 
 	switch (status_type) {
@@ -230,11 +218,9 @@ static void vdo_status(struct dm_target *ti,
 		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
-	/*
-	 * FIXME: We ought to print more detailed output here, but this is what
-	 * thin does.
-	 */
+
 	case STATUSTYPE_IMA:
+		/* FIXME: We ought to be more detailed here, but this is what thin does. */
 		*result = '\0';
 		break;
 	}
@@ -243,14 +229,11 @@ static void vdo_status(struct dm_target *ti,
 static block_count_t __must_check
 get_underlying_device_block_count(const struct vdo *vdo)
 {
-	return (i_size_read(vdo_get_backing_device(vdo)->bd_inode)
-		/ VDO_BLOCK_SIZE);
+	return (i_size_read(vdo_get_backing_device(vdo)->bd_inode) / VDO_BLOCK_SIZE);
 }
 
 static int __must_check
-process_vdo_message_locked(struct vdo *vdo,
-			   unsigned int argc,
-			   char **argv)
+process_vdo_message_locked(struct vdo *vdo, unsigned int argc, char **argv)
 {
 	if (argc == 2) {
 		if (strcasecmp(argv[0], "compression") == 0) {
@@ -285,10 +268,9 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 	int result;
 
 	/*
-	 * All messages which may be processed in parallel with other messages
-	 * should be handled here before the atomic check below. Messages which
-	 * should be exclusive should be processed in
-	 * process_vdo_message_locked().
+	 * All messages which may be processed in parallel with other messages should be handled
+	 * here before the atomic check below. Messages which should be exclusive should be
+	 * processed in process_vdo_message_locked().
 	 */
 
 	/* Dump messages should always be processed */
@@ -306,8 +288,7 @@ process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0))
-			return vdo_message_dedupe_index(vdo->hash_zones,
-							argv[0]);
+			return vdo_message_dedupe_index(vdo->hash_zones, argv[0]);
 	}
 
 	if (atomic_cmpxchg(&vdo->processing_message, 0, 1) != 0)
@@ -341,17 +322,14 @@ static int vdo_message(struct dm_target *ti,
 	uds_register_thread_device_id(&instance_thread, &vdo->instance);
 
 	/*
-	 * Must be done here so we don't map return codes. The code in
-	 * dm-ioctl expects a 1 for a return code to look at the buffer
-	 * and see if it is full or not.
+	 * Must be done here so we don't map return codes. The code in dm-ioctl expects a 1 for a
+	 * return code to look at the buffer and see if it is full or not.
 	 */
 	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
 		vdo_write_stats(vdo, result_buffer, maxlen);
 		result = 1;
 	} else {
-		result = vdo_map_to_system_error(process_vdo_message(vdo,
-								     argc,
-								     argv));
+		result = vdo_map_to_system_error(process_vdo_message(vdo, argc, argv));
 	}
 
 	uds_unregister_thread_device_id();
@@ -380,8 +358,7 @@ static bool vdo_uses_device(struct vdo *vdo, void *context)
 {
 	struct device_config *config = context;
 
-	return (vdo_get_backing_device(vdo)->bd_dev
-		== config->owned_device->bdev->bd_dev);
+	return (vdo_get_backing_device(vdo)->bd_dev == config->owned_device->bdev->bd_dev);
 }
 
 static int vdo_initialize(struct dm_target *ti,
@@ -581,8 +558,7 @@ static void vdo_dtr(struct dm_target *ti)
 		 * The VDO still references this config. Give it a reference
 		 * to a config that isn't being destroyed.
 		 */
-		vdo->device_config =
-			vdo_as_device_config(vdo->device_config_list.next);
+		vdo->device_config = vdo_as_device_config(vdo->device_config_list.next);
 	}
 
 	vdo_free_device_config(config);
@@ -591,10 +567,9 @@ static void vdo_dtr(struct dm_target *ti)
 
 static void vdo_presuspend(struct dm_target *ti)
 {
-	get_vdo_for_target(ti)->suspend_type =
-		(dm_noflush_suspending(ti)
-		  ? VDO_ADMIN_STATE_SUSPENDING
-		  : VDO_ADMIN_STATE_SAVING);
+	get_vdo_for_target(ti)->suspend_type = (dm_noflush_suspending(ti)
+						? VDO_ADMIN_STATE_SUSPENDING
+						: VDO_ADMIN_STATE_SAVING);
 }
 
 static void vdo_postsuspend(struct dm_target *ti)
@@ -640,8 +615,7 @@ static int vdo_preresume(struct dm_target *ti)
 
 	uds_log_info("resuming device '%s'", device_name);
 	result = vdo_preresume_internal(vdo, config, device_name);
-	if ((result == VDO_PARAMETER_MISMATCH) ||
-	    (result == VDO_INVALID_ADMIN_STATE))
+	if ((result == VDO_PARAMETER_MISMATCH) || (result == VDO_INVALID_ADMIN_STATE))
 		result = -EINVAL;
 
 	uds_unregister_thread_device_id();
@@ -652,8 +626,7 @@ static void vdo_resume(struct dm_target *ti)
 {
 	struct registered_thread instance_thread;
 
-	uds_register_thread_device_id(&instance_thread,
-				      &get_vdo_for_target(ti)->instance);
+	uds_register_thread_device_id(&instance_thread, &get_vdo_for_target(ti)->instance);
 	uds_log_info("device '%s' resumed", vdo_get_device_name(ti));
 	uds_unregister_thread_device_id();
 }
@@ -701,8 +674,7 @@ static int __init vdo_init(void)
 	int result = 0;
 
 	/*
-	 * UDS module level initialization must be done first, as VDO
-	 * initialization depends on it
+	 * UDS module level initialization must be done first, as VDO initialization depends on it
 	 */
 	uds_initialize_thread_device_registry();
 	uds_memory_init();
@@ -736,8 +708,8 @@ static void __exit vdo_exit(void)
 {
 	vdo_module_destroy();
 	/*
-	 * UDS module level exit processing must be done after all VDO
-	 * module exit processing is complete.
+	 * UDS module level exit processing must be done after all VDO module exit processing is
+	 * complete.
 	 */
 	uds_put_sysfs();
 	uds_memory_exit();
