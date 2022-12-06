@@ -21,10 +21,7 @@
  *
  * Return: UDS_SUCCESS or an error code
  */
-int wrap_buffer(byte *bytes,
-		size_t length,
-		size_t content_length,
-		struct buffer **buffer_ptr)
+int wrap_buffer(byte *bytes, size_t length, size_t content_length, struct buffer **buffer_ptr)
 {
 	int result;
 	struct buffer *buffer;
@@ -118,8 +115,8 @@ size_t buffer_used(struct buffer *buffer)
 }
 
 /*
- * Ensure that a buffer has a given amount of space available, compacting the
- * buffer if necessary. Returns true if the space is available.
+ * Ensure that a buffer has a given amount of space available, compacting the buffer if necessary.
+ * Returns true if the space is available.
  */
 bool ensure_available_space(struct buffer *buffer, size_t bytes)
 {
@@ -137,10 +134,9 @@ void clear_buffer(struct buffer *buffer)
 }
 
 /*
- * Eliminate buffer contents which have been extracted. This function copies
- * any data between the start and end pointers to the beginning of the buffer,
- * moves the start pointer to the beginning, and the end pointer to the end of
- * the copied data.
+ * Eliminate buffer contents which have been extracted. This function copies any data between the
+ * start and end pointers to the beginning of the buffer, moves the start pointer to the beginning,
+ * and the end pointer to the end of the copied data.
  */
 void compact_buffer(struct buffer *buffer)
 {
@@ -188,10 +184,7 @@ int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
 	return UDS_SUCCESS;
 }
 
-/*
- * Check whether the start of the contents of a buffer matches a specified
- * array of bytes.
- */
+/* Check whether the start of the contents of a buffer matches a specified array of bytes. */
 bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
 {
 	return ((content_length(buffer) >= length) &&
@@ -201,9 +194,7 @@ bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
 /* Check whether two buffers have the same contents. */
 bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2)
 {
-	return has_same_bytes(buffer1,
-			      buffer2->data + buffer2->start,
-			      content_length(buffer2));
+	return has_same_bytes(buffer1, buffer2->data + buffer2->start, content_length(buffer2));
 }
 
 int get_byte(struct buffer *buffer, byte *byte_ptr)
@@ -224,8 +215,7 @@ int put_byte(struct buffer *buffer, byte b)
 	return UDS_SUCCESS;
 }
 
-int get_bytes_from_buffer(struct buffer *buffer, size_t length,
-			  void *destination)
+int get_bytes_from_buffer(struct buffer *buffer, size_t length, void *destination)
 {
 	if (content_length(buffer) < length)
 		return UDS_BUFFER_ERROR;
@@ -236,10 +226,9 @@ int get_bytes_from_buffer(struct buffer *buffer, size_t length,
 }
 
 /*
- * Get a pointer to the current contents of the buffer. This will be a pointer
- * to the actual memory managed by the buffer. It is the caller's
- * responsibility to ensure that the buffer is not modified while this pointer
- * is in use.
+ * Get a pointer to the current contents of the buffer. This will be a pointer to the actual memory
+ * managed by the buffer. It is the caller's responsibility to ensure that the buffer is not
+ * modified while this pointer is in use.
  */
 byte *get_buffer_contents(struct buffer *buffer)
 {
@@ -247,18 +236,15 @@ byte *get_buffer_contents(struct buffer *buffer)
 }
 
 /*
- * Copy bytes out of a buffer as per get_bytes_from_buffer(). Memory will be
- * allocated to hold the copy.
+ * Copy bytes out of a buffer as per get_bytes_from_buffer(). Memory will be allocated to hold the
+ * copy.
  */
 int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
 {
 	int result;
 	byte *destination;
 
-	result = UDS_ALLOCATE(length,
-			      byte,
-			      __func__,
-			      &destination);
+	result = UDS_ALLOCATE(length, byte, __func__, &destination);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -347,8 +333,7 @@ int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
 	return UDS_SUCCESS;
 }
 
-int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
-			       uint16_t *ui)
+int get_uint16_les_from_buffer(struct buffer *buffer, size_t count, uint16_t *ui)
 {
 	unsigned int i;
 
@@ -361,9 +346,7 @@ int get_uint16_les_from_buffer(struct buffer *buffer, size_t count,
 	return UDS_SUCCESS;
 }
 
-int put_uint16_les_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint16_t *ui)
+int put_uint16_les_into_buffer(struct buffer *buffer, size_t count, const uint16_t *ui)
 {
 	unsigned int i;
 
@@ -430,8 +413,7 @@ int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
 	return UDS_SUCCESS;
 }
 
-int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
-			       uint64_t *ui)
+int get_uint64_les_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui)
 {
 	unsigned int i;
 
@@ -444,9 +426,7 @@ int get_uint64_les_from_buffer(struct buffer *buffer, size_t count,
 	return UDS_SUCCESS;
 }
 
-int put_uint64_les_into_buffer(struct buffer *buffer,
-			       size_t count,
-			       const uint64_t *ui)
+int put_uint64_les_into_buffer(struct buffer *buffer, size_t count, const uint64_t *ui)
 {
 	unsigned int i;
 

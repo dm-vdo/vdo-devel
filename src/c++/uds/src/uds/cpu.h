@@ -12,20 +12,17 @@
 #include "type-defs.h"
 
 /**
- * Minimize cache-miss latency by moving data into a CPU cache before it is
- * accessed.
+ * Minimize cache-miss latency by moving data into a CPU cache before it is accessed.
  *
  * @address: the address to fetch (may be invalid)
- * @for_write: must be constant at compile time--false if
- *             for reading, true if for writing
+ * @for_write: must be constant at compile time--false if for reading, true if for writing
  **/
 static inline void prefetch_address(const void *address, bool for_write)
 {
 	/*
-	 * for_write won't be a constant if we are compiled with optimization
-	 * turned off, in which case prefetching really doesn't matter.
-	 * clang can't figure out that if for_write is a constant, it can be
-	 * passed as the second, mandatorily constant argument to prefetch(),
+	 * for_write won't be a constant if we are compiled with optimization turned off, in which
+	 * case prefetching really doesn't matter. clang can't figure out that if for_write is a
+	 * constant, it can be passed as the second, mandatorily constant argument to prefetch(),
 	 * at least currently on llvm 12.
 	 */
 	if (__builtin_constant_p(for_write)) {
@@ -37,20 +34,19 @@ static inline void prefetch_address(const void *address, bool for_write)
 }
 
 /**
- * Minimize cache-miss latency by moving a range of addresses into a
- * CPU cache before they are accessed.
+ * Minimize cache-miss latency by moving a range of addresses into a CPU cache before they are
+ * accessed.
  *
  * @start: the starting address to fetch (may be invalid)
  * @size: the number of bytes in the address range
- * @for_write: must be constant at compile time--false if
- *             for reading, true if for writing
+ * @for_write: must be constant at compile time--false if for reading, true if for writing
  **/
 static inline void
 prefetch_range(const void *start, unsigned int size, bool for_write)
 {
 	/*
-	 * Count the number of cache lines to fetch, allowing for the address
-	 * range to span an extra cache line boundary due to address alignment.
+	 * Count the number of cache lines to fetch, allowing for the address range to span an
+	 * extra cache line boundary due to address alignment.
 	 */
 	const char *address = (const char *) start;
 	unsigned int offset = ((uintptr_t) address % L1_CACHE_BYTES);

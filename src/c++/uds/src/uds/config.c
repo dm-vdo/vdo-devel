@@ -23,23 +23,19 @@ enum {
 };
 
 static int __must_check
-decode_index_config_06_02(struct buffer *buffer,
-			  struct uds_configuration_8_02 *config)
+decode_index_config_06_02(struct buffer *buffer, struct uds_configuration_8_02 *config)
 {
 	int result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->record_pages_per_chapter);
+	result = get_uint32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->chapters_per_volume);
+	result = get_uint32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->sparse_chapters_per_volume);
+	result = get_uint32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -51,8 +47,7 @@ decode_index_config_06_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->volume_index_mean_delta);
+	result = get_uint32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -60,8 +55,7 @@ decode_index_config_06_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->sparse_sample_rate);
+	result = get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -82,23 +76,19 @@ decode_index_config_06_02(struct buffer *buffer,
 }
 
 static int __must_check
-decode_index_config_08_02(struct buffer *buffer,
-			  struct uds_configuration_8_02 *config)
+decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *config)
 {
 	int result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->record_pages_per_chapter);
+	result = get_uint32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->chapters_per_volume);
+	result = get_uint32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->sparse_chapters_per_volume);
+	result = get_uint32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -110,8 +100,7 @@ decode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->volume_index_mean_delta);
+	result = get_uint32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -119,8 +108,7 @@ decode_index_config_08_02(struct buffer *buffer,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer,
-					   &config->sparse_sample_rate);
+	result = get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -150,23 +138,18 @@ static bool is_version(const byte *version, byte *buffer)
 	return (memcmp(version, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0);
 }
 
-static int read_version(struct buffered_reader *reader,
-			struct uds_configuration_8_02 *conf)
+static int read_version(struct buffered_reader *reader, struct uds_configuration_8_02 *conf)
 {
 	byte version_buffer[INDEX_CONFIG_VERSION_LENGTH];
 	struct buffer *buffer;
 	int result;
 
-	result = read_from_buffered_reader(reader,
-					   version_buffer,
-					   INDEX_CONFIG_VERSION_LENGTH);
+	result = read_from_buffered_reader(reader, version_buffer, INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "cannot read index config version");
+		return uds_log_error_strerror(result, "cannot read index config version");
 
 	if (is_version(INDEX_CONFIG_VERSION_6_02, version_buffer)) {
-		result = make_buffer(sizeof(struct uds_configuration_6_02),
-				     &buffer);
+		result = make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -175,16 +158,14 @@ static int read_version(struct buffered_reader *reader,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(UDS_FORGET(buffer));
-			return uds_log_error_strerror(result,
-						      "cannot read config data");
+			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
 		clear_buffer(buffer);
 		result = decode_index_config_06_02(buffer, conf);
 		free_buffer(UDS_FORGET(buffer));
 	} else if (is_version(INDEX_CONFIG_VERSION_8_02, version_buffer)) {
-		result = make_buffer(sizeof(struct uds_configuration_8_02),
-				     &buffer);
+		result = make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -193,8 +174,7 @@ static int read_version(struct buffered_reader *reader,
 						   buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
 			free_buffer(UDS_FORGET(buffer));
-			return uds_log_error_strerror(result,
-						      "cannot read config data");
+			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
 		clear_buffer(buffer);
@@ -217,8 +197,7 @@ static bool are_matching_configurations(struct uds_configuration_8_02 *saved,
 	struct geometry *geometry = user->geometry;
 	bool result = true;
 
-	if (saved->record_pages_per_chapter !=
-	    geometry->record_pages_per_chapter) {
+	if (saved->record_pages_per_chapter != geometry->record_pages_per_chapter) {
 		uds_log_error("Record pages per chapter (%u) does not match (%u)",
 			      saved->record_pages_per_chapter,
 			      geometry->record_pages_per_chapter);
@@ -232,8 +211,7 @@ static bool are_matching_configurations(struct uds_configuration_8_02 *saved,
 		result = false;
 	}
 
-	if (saved->sparse_chapters_per_volume !=
-	    geometry->sparse_chapters_per_volume) {
+	if (saved->sparse_chapters_per_volume != geometry->sparse_chapters_per_volume) {
 		uds_log_error("Sparse chapter count (%u) does not match (%u)",
 			      saved->sparse_chapters_per_volume,
 			      geometry->sparse_chapters_per_volume);
@@ -248,7 +226,7 @@ static bool are_matching_configurations(struct uds_configuration_8_02 *saved,
 	}
 
 	if (saved->volume_index_mean_delta != user->volume_index_mean_delta) {
-		uds_log_error("Volumee index mean delta (%u) does not match (%u)",
+		uds_log_error("Volume index mean delta (%u) does not match (%u)",
 			      saved->volume_index_mean_delta,
 			      user->volume_index_mean_delta);
 		result = false;
@@ -279,15 +257,12 @@ static bool are_matching_configurations(struct uds_configuration_8_02 *saved,
 }
 
 /* Read the configuration and validate it against the provided one. */
-int validate_config_contents(struct buffered_reader *reader,
-			     struct configuration *config)
+int validate_config_contents(struct buffered_reader *reader, struct configuration *config)
 {
 	int result;
 	struct uds_configuration_8_02 saved;
 
-	result = verify_buffered_data(reader,
-				      INDEX_CONFIG_MAGIC,
-				      INDEX_CONFIG_MAGIC_LENGTH);
+	result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -313,18 +288,15 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->record_pages_per_chapter);
+	result = put_uint32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->chapters_per_volume);
+	result = put_uint32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->sparse_chapters_per_volume);
+	result = put_uint32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -336,8 +308,7 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   config->volume_index_mean_delta);
+	result = put_uint32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -365,18 +336,15 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->record_pages_per_chapter);
+	result = put_uint32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->chapters_per_volume);
+	result = put_uint32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   geometry->sparse_chapters_per_volume);
+	result = put_uint32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -388,8 +356,7 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer,
-					   config->volume_index_mean_delta);
+	result = put_uint32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -409,8 +376,7 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer,
-					   geometry->remapped_physical);
+	result = put_uint64_le_into_buffer(buffer, geometry->remapped_physical);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -421,10 +387,9 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 }
 
 /*
- * Write the configuration to stable storage. If the superblock
- * version is < 4, write the 6.02 version; otherwise write the 8.02
- * version, indicating the configuration is for an index that has been
- * reduced by one chapter.
+ * Write the configuration to stable storage. If the superblock version is < 4, write the 6.02
+ * version; otherwise write the 8.02 version, indicating the configuration is for an index that has
+ * been reduced by one chapter.
  */
 int write_config_contents(struct buffered_writer *writer,
 			  struct configuration *config,
@@ -433,16 +398,13 @@ int write_config_contents(struct buffered_writer *writer,
 	int result;
 	struct buffer *buffer;
 
-	result = write_to_buffered_writer(writer,
-					  INDEX_CONFIG_MAGIC,
-					  INDEX_CONFIG_MAGIC_LENGTH);
+	result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	/*
-	 * If version is < 4, the index has not been reduced by a
-	 * chapter so it must be written out as version 6.02 so that
-	 * it is still compatible with older versions of UDS.
+	 * If version is < 4, the index has not been reduced by a chapter so it must be written out
+	 * as version 6.02 so that it is still compatible with older versions of UDS.
 	 */
 	if (version < 4) {
 		result = write_to_buffered_writer(writer,
@@ -451,8 +413,7 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_buffer(sizeof(struct uds_configuration_6_02),
-				     &buffer);
+		result = make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -468,8 +429,7 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_buffer(sizeof(struct uds_configuration_8_02),
-				     &buffer);
+		result = make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -581,8 +541,7 @@ static unsigned int __must_check normalize_read_threads(unsigned int requested)
 	return read_threads;
 }
 
-int make_configuration(const struct uds_parameters *params,
-		       struct configuration **config_ptr)
+int make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
 {
 	struct configuration *config;
 	unsigned int chapters_per_volume = 0;
@@ -618,10 +577,8 @@ int make_configuration(const struct uds_parameters *params,
 	config->read_threads = normalize_read_threads(params->read_threads);
 
 	config->cache_chapters = DEFAULT_CACHE_CHAPTERS;
-	config->volume_index_mean_delta =
-		DEFAULT_VOLUME_INDEX_MEAN_DELTA;
-	config->sparse_sample_rate =
-		(params->sparse ? DEFAULT_SPARSE_SAMPLE_RATE : 0);
+	config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
+	config->sparse_sample_rate = (params->sparse ? DEFAULT_SPARSE_SAMPLE_RATE : 0);
 	config->nonce = params->nonce;
 	config->name = params->name;
 	config->offset = params->offset;
@@ -641,21 +598,15 @@ void free_configuration(struct configuration *config)
 
 void log_uds_configuration(struct configuration *config)
 {
+	struct geometry *geometry = config->geometry;
+
 	uds_log_debug("Configuration:");
-	uds_log_debug("  Record pages per chapter:   %10u",
-		      config->geometry->record_pages_per_chapter);
-	uds_log_debug("  Chapters per volume:        %10u",
-		      config->geometry->chapters_per_volume);
-	uds_log_debug("  Sparse chapters per volume: %10u",
-		      config->geometry->sparse_chapters_per_volume);
-	uds_log_debug("  Cache size (chapters):      %10u",
-		      config->cache_chapters);
-	uds_log_debug("  Volume index mean delta:    %10u",
-		      config->volume_index_mean_delta);
-	uds_log_debug("  Bytes per page:             %10zu",
-		      config->geometry->bytes_per_page);
-	uds_log_debug("  Sparse sample rate:         %10u",
-		      config->sparse_sample_rate);
-	uds_log_debug("  Nonce:                      %llu",
-		      (unsigned long long) config->nonce);
+	uds_log_debug("  Record pages per chapter:   %10u", geometry->record_pages_per_chapter);
+	uds_log_debug("  Chapters per volume:        %10u", geometry->chapters_per_volume);
+	uds_log_debug("  Sparse chapters per volume: %10u", geometry->sparse_chapters_per_volume);
+	uds_log_debug("  Cache size (chapters):      %10u", config->cache_chapters);
+	uds_log_debug("  Volume index mean delta:    %10u", config->volume_index_mean_delta);
+	uds_log_debug("  Bytes per page:             %10zu", geometry->bytes_per_page);
+	uds_log_debug("  Sparse sample rate:         %10u", config->sparse_sample_rate);
+	uds_log_debug("  Nonce:                      %llu", (unsigned long long) config->nonce);
 }

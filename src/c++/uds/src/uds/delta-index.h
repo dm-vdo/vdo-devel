@@ -17,17 +17,15 @@
 #include "type-defs.h"
 
 /*
- * A delta index is a key-value store, where each entry maps an address (the
- * key) to a payload (the value). The entries are sorted by address, and only
- * the delta between successive addresses is stored in the entry. The addresses
- * are assumed to be uniformly distributed, and the deltas are therefore
- * exponentially distributed.
+ * A delta index is a key-value store, where each entry maps an address (the key) to a payload (the
+ * value). The entries are sorted by address, and only the delta between successive addresses is
+ * stored in the entry. The addresses are assumed to be uniformly distributed, and the deltas are
+ * therefore exponentially distributed.
  *
- * A delta_index can either be mutable or immutable depending on its expected
- * use. The immutable form of a delta index is used for the indexes of closed
- * chapters committed to the volume. The mutable form of a delta index is used
- * by the volume index, and also by the chapter index in an open chapter. Like
- * the index as a whole, each mutable delta index is divided into a number of
+ * A delta_index can either be mutable or immutable depending on its expected use. The immutable
+ * form of a delta index is used for the indexes of closed chapters committed to the volume. The
+ * mutable form of a delta index is used by the volume index, and also by the chapter index in an
+ * open chapter. Like the index as a whole, each mutable delta index is divided into a number of
  * independent zones.
  */
 
@@ -110,10 +108,9 @@ struct delta_index {
 };
 
 /*
- * A delta_index_page describes a single page of a chapter index. The
- * delta_index field allows the page to be treated as an immutable delta_index.
- * We use the delta_zone field to treat the chapter index page as a single
- * zone index, and without the need to do an additional memory allocation.
+ * A delta_index_page describes a single page of a chapter index. The delta_index field allows the
+ * page to be treated as an immutable delta_index. We use the delta_zone field to treat the chapter
+ * index page as a single zone index, and without the need to do an additional memory allocation.
  */
 struct delta_index_page {
 	struct delta_index delta_index;
@@ -128,32 +125,29 @@ struct delta_index_page {
 /*
  * Notes on the delta_index_entries:
  *
- * The fields documented as "public" can be read by any code that uses a
- * delta_index. The fields documented as "private" carry information between
- * delta_index method calls and should not be used outside the delta_index
- * module.
+ * The fields documented as "public" can be read by any code that uses a delta_index. The fields
+ * documented as "private" carry information between delta_index method calls and should not be
+ * used outside the delta_index module.
  *
- * (1) The delta_index_entry is used like an iterator when searching a delta
- *     list.
+ * (1) The delta_index_entry is used like an iterator when searching a delta list.
  *
- * (2) It is also the result of a successful search and can be used to refer
- *     to the element found by the search.
+ * (2) It is also the result of a successful search and can be used to refer to the element found
+ *     by the search.
  *
- * (3) It is also the result of an unsuccessful search and can be used to
- *     refer to the insertion point for a new record.
+ * (3) It is also the result of an unsuccessful search and can be used to refer to the insertion
+ *     point for a new record.
  *
- * (4) If at_end is true, the delta_list entry can only be used as the
- *     insertion point for a new record at the end of the list.
+ * (4) If at_end is true, the delta_list entry can only be used as the insertion point for a new
+ *     record at the end of the list.
  *
- * (5) If at_end is false and is_collision is true, the delta_list entry
- *     fields refer to a collision entry in the list, and the delta_list entry
- *     can be used a a reference to this entry.
+ * (5) If at_end is false and is_collision is true, the delta_list entry fields refer to a
+ *     collision entry in the list, and the delta_list entry can be used a a reference to this
+ *     entry.
  *
- * (6) If at_end is false and is_collision is false, the delta_list entry
- *     fields refer to a non-collision entry in the list.  Such delta_list
- *     entries can be used as a reference to a found entry, or an insertion
- *     point for a non-collision entry before this entry, or an insertion
- *     point for a collision entry that collides with this entry.
+ * (6) If at_end is false and is_collision is false, the delta_list entry fields refer to a
+ *     non-collision entry in the list. Such delta_list entries can be used as a reference to a
+ *     found entry, or an insertion point for a non-collision entry before this entry, or an
+ *     insertion point for a collision entry that collides with this entry.
  */
 struct delta_index_entry {
 	/* Public fields */
@@ -205,11 +199,7 @@ struct delta_index_stats {
 };
 
 #ifdef TEST_INTERNAL
-void move_bits(const byte *from,
-	       uint64_t from_offset,
-	       byte *to,
-	       uint64_t to_offset,
-	       int size);
+void move_bits(const byte *from, uint64_t from_offset, byte *to, uint64_t to_offset, int size);
 
 int __must_check extend_delta_zone(struct delta_zone *delta_zone,
 				   unsigned int growing_index,
@@ -241,13 +231,12 @@ int __must_check initialize_delta_index(struct delta_index *delta_index,
 					unsigned int payload_bits,
 					size_t memory_size);
 
-int __must_check
-initialize_delta_index_page(struct delta_index_page *delta_index_page,
-			    uint64_t expected_nonce,
-			    unsigned int mean_delta,
-			    unsigned int payload_bits,
-			    byte *memory,
-			    size_t memory_size);
+int __must_check initialize_delta_index_page(struct delta_index_page *delta_index_page,
+					     uint64_t expected_nonce,
+					     unsigned int mean_delta,
+					     unsigned int payload_bits,
+					     byte *memory,
+					     size_t memory_size);
 
 void uninitialize_delta_index(struct delta_index *delta_index);
 
@@ -263,42 +252,35 @@ int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 
 void set_delta_index_tag(struct delta_index *delta_index, byte tag);
 
-int __must_check
-start_restoring_delta_index(struct delta_index *delta_index,
-			    struct buffered_reader **buffered_readers,
-			    unsigned int reader_count);
+int __must_check start_restoring_delta_index(struct delta_index *delta_index,
+					     struct buffered_reader **buffered_readers,
+					     unsigned int reader_count);
 
-int __must_check
-finish_restoring_delta_index(struct delta_index *delta_index,
-			     struct buffered_reader **buffered_readers,
-			     unsigned int reader_count);
+int __must_check finish_restoring_delta_index(struct delta_index *delta_index,
+					      struct buffered_reader **buffered_readers,
+					      unsigned int reader_count);
 
 void abort_restoring_delta_index(const struct delta_index *delta_index);
 
 int __must_check
-check_guard_delta_lists(struct buffered_reader **buffered_readers,
-			unsigned int reader_count);
+check_guard_delta_lists(struct buffered_reader **buffered_readers, unsigned int reader_count);
+
+int __must_check start_saving_delta_index(const struct delta_index *delta_index,
+					  unsigned int zone_number,
+					  struct buffered_writer *buffered_writer);
 
 int __must_check
-start_saving_delta_index(const struct delta_index *delta_index,
-			 unsigned int zone_number,
-			 struct buffered_writer *buffered_writer);
-
-int __must_check
-finish_saving_delta_index(const struct delta_index *delta_index,
-			  unsigned int zone_number);
+finish_saving_delta_index(const struct delta_index *delta_index, unsigned int zone_number);
 
 int __must_check
 write_guard_delta_list(struct buffered_writer *buffered_writer);
 
-size_t __must_check compute_delta_index_save_bytes(unsigned int list_count,
-						   size_t memory_size);
+size_t __must_check compute_delta_index_save_bytes(unsigned int list_count, size_t memory_size);
 
-int __must_check
-start_delta_index_search(const struct delta_index *delta_index,
-			 unsigned int list_number,
-			 unsigned int key,
-			 struct delta_index_entry *iterator);
+int __must_check start_delta_index_search(const struct delta_index *delta_index,
+					  unsigned int list_number,
+					  unsigned int key,
+					  struct delta_index_entry *iterator);
 
 int __must_check next_delta_index_entry(struct delta_index_entry *delta_entry);
 
@@ -312,15 +294,12 @@ int __must_check get_delta_index_entry(const struct delta_index *delta_index,
 				       struct delta_index_entry *delta_entry);
 
 int __must_check
-get_delta_entry_collision(const struct delta_index_entry *delta_entry,
-			  byte *name);
+get_delta_entry_collision(const struct delta_index_entry *delta_entry, byte *name);
 
-unsigned int __must_check
-get_delta_entry_value(const struct delta_index_entry *delta_entry);
+unsigned int __must_check get_delta_entry_value(const struct delta_index_entry *delta_entry);
 
 int __must_check
-set_delta_entry_value(const struct delta_index_entry *delta_entry,
-		      unsigned int value);
+set_delta_entry_value(const struct delta_index_entry *delta_entry, unsigned int value);
 
 int __must_check put_delta_index_entry(struct delta_index_entry *delta_entry,
 				       unsigned int key,
@@ -331,34 +310,27 @@ int __must_check
 remove_delta_index_entry(struct delta_index_entry *delta_entry);
 
 static inline unsigned int
-get_delta_zone_number(const struct delta_index *delta_index,
-		      unsigned int list_number)
+get_delta_zone_number(const struct delta_index *delta_index, unsigned int list_number)
 {
 	return list_number / delta_index->lists_per_zone;
 }
 
 unsigned int
-get_delta_zone_first_list(const struct delta_index *delta_index,
-			  unsigned int zone_number);
+get_delta_zone_first_list(const struct delta_index *delta_index, unsigned int zone_number);
 
 unsigned int
-get_delta_zone_list_count(const struct delta_index *delta_index,
-			  unsigned int zone_number);
+get_delta_zone_list_count(const struct delta_index *delta_index, unsigned int zone_number);
 
 uint64_t __must_check
-get_delta_zone_bits_used(const struct delta_index *delta_index,
-			 unsigned int zone_number);
+get_delta_zone_bits_used(const struct delta_index *delta_index, unsigned int zone_number);
 
 #ifdef TEST_INTERNAL
-uint64_t __must_check
-get_delta_index_bits_used(const struct delta_index *delta_index);
+uint64_t __must_check get_delta_index_bits_used(const struct delta_index *delta_index);
 
 #endif /* TEST_INTERNAL */
-uint64_t __must_check
-get_delta_index_bits_allocated(const struct delta_index *delta_index);
+uint64_t __must_check get_delta_index_bits_allocated(const struct delta_index *delta_index);
 
-void get_delta_index_stats(const struct delta_index *delta_index,
-			   struct delta_index_stats *stats);
+void get_delta_index_stats(const struct delta_index *delta_index, struct delta_index_stats *stats);
 
 size_t __must_check compute_delta_index_size(unsigned long entry_count,
 					     unsigned int mean_delta,

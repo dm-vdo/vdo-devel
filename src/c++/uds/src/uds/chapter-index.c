@@ -34,10 +34,7 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 	chapter_index_overflow_count = 0;
 
 #endif /* TEST_INTERNAL */
-	result = UDS_ALLOCATE(1,
-			      struct open_chapter_index,
-			      "open chapter index",
-			      &index);
+	result = UDS_ALLOCATE(1, struct open_chapter_index, "open chapter index", &index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -45,8 +42,7 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 	 * The delta index will rebalance delta lists when memory gets tight,
 	 * so give the chapter index one extra page.
 	 */
-	memory_size = ((geometry->index_pages_per_chapter + 1) *
-		       geometry->bytes_per_page);
+	memory_size = ((geometry->index_pages_per_chapter + 1) * geometry->bytes_per_page);
 	index->geometry = geometry;
 	index->volume_nonce = volume_nonce;
 	result = initialize_delta_index(&index->delta_index,
@@ -61,8 +57,7 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 	}
 
 	get_delta_index_stats(&index->delta_index, &stats);
-	index->memory_allocated =
-		stats.memory_allocated + sizeof(struct open_chapter_index);
+	index->memory_allocated = stats.memory_allocated + sizeof(struct open_chapter_index);
 	*chapter_index = index;
 	return UDS_SUCCESS;
 }
@@ -98,13 +93,11 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 	chapter_index->virtual_chapter_number = virtual_chapter_number;
 #ifdef TEST_INTERNAL
 	get_delta_index_stats(&chapter_index->delta_index, &delta_index_stats);
-	chapter_index_empty_count +=
-		delta_index_stats.discard_count - before_discard_count;
+	chapter_index_empty_count += delta_index_stats.discard_count - before_discard_count;
 #endif /* TEST_INTERNAL */
 }
 
-static inline bool was_entry_found(const struct delta_index_entry *entry,
-				   unsigned int address)
+static inline bool was_entry_found(const struct delta_index_entry *entry, unsigned int address)
 {
 	return (!entry->at_end && (entry->key == address));
 }
@@ -153,16 +146,15 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 }
 
 /*
- * Pack a section of an open chapter index into a chapter index page. A
- * range of delta lists (starting with a specified list index) is copied
- * from the open chapter index into a memory page. The number of lists
- * copied onto the page is returned to the caller on success.
+ * Pack a section of an open chapter index into a chapter index page. A range of delta lists
+ * (starting with a specified list index) is copied from the open chapter index into a memory page.
+ * The number of lists copied onto the page is returned to the caller on success.
  *
  * @chapter_index: The open chapter index
  * @memory: The memory page to use
  * @first_list: The first delta list number to be copied
- * @last_page: If true, this is the last page of the chapter index
- *             and all the remaining lists must be packed onto this page
+ * @last_page: If true, this is the last page of the chapter index and all the remaining lists must
+ *             be packed onto this page
  * @num_lists: The number of delta lists that were copied
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
@@ -198,17 +190,16 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 			break;
 		else if (*num_lists == 0) {
 			/*
-			 * The next delta list does not fit on a page. This
-			 * delta list will be removed.
+			 * The next delta list does not fit on a page. This delta list will be
+			 * removed.
 			 */
 		} else if (last_page) {
 			/*
-			 * This is the last page and there are lists left
-			 * unpacked, but all of the remaining lists must fit on
-			 * the page. Find a list that contains entries and
-			 * remove the entire list. Try the first list that does
-			 * not fit. If it is empty, we will select the last list
-			 * that already fits and has any entries.
+			 * This is the last page and there are lists left unpacked, but all of the
+			 * remaining lists must fit on the page. Find a list that contains entries
+			 * and remove the entire list. Try the first list that does not fit. If it
+			 * is empty, we will select the last list that already fits and has any
+			 * entries.
 			 */
 		} else {
 			/* This page is done. */
@@ -229,10 +220,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				return UDS_OVERFLOW;
 
 			next_list = first_list + list_number--,
-			result = start_delta_index_search(delta_index,
-							  next_list,
-							  0,
-							  &entry);
+			result = start_delta_index_search(delta_index, next_list, 0, &entry);
 			if (result != UDS_SUCCESS)
 				return result;
 
@@ -257,10 +245,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 	return UDS_SUCCESS;
 }
 
-/*
- * Make a new chapter index page, initializing it with the data from the
- * given index_page buffer.
- */
+/* Make a new chapter index page, initializing it with the data from a given index_page buffer. */
 int initialize_chapter_index_page(struct delta_index_page *index_page,
 				  const struct geometry *geometry,
 				  byte *page_buffer,
@@ -288,10 +273,7 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 	for (list_number = first; list_number <= last; list_number++) {
 		struct delta_index_entry entry;
 
-		result = start_delta_index_search(delta_index,
-						  list_number - first,
-						  0,
-						  &entry);
+		result = start_delta_index_search(delta_index, list_number - first, 0, &entry);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -299,25 +281,20 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 			result = next_delta_index_entry(&entry);
 			if (result != UDS_SUCCESS)
 				/*
-				 * A random bit stream is highly likely
-				 * to arrive here when we go past the
-				 * end of the delta list.
+				 * A random bit stream is highly likely to arrive here when we go
+				 * past the end of the delta list.
 				 */
 				return result;
 
 			if (entry.at_end)
 				break;
 
-			/*
-			 * Also make sure that the record page field contains a
-			 * plausible value.
-			 */
-			if (get_delta_entry_value(&entry) >=
-			    geometry->record_pages_per_chapter)
+			/* Also make sure that the record page field contains a plausible value. */
+			if (get_delta_entry_value(&entry) >= geometry->record_pages_per_chapter)
 				/*
-				 * Do not log this as an error. It happens in
-				 * normal operation when we are doing a rebuild
-				 * but haven't written the entire volume once.
+				 * Do not log this as an error. It happens in normal operation when
+				 * we are doing a rebuild but haven't written the entire volume
+				 * once.
 				 */
 				return UDS_CORRUPT_DATA;
 		}
@@ -326,8 +303,8 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 }
 
 /*
- * Search a chapter index page for a record name, returning the record page
- * number that may contain the name.
+ * Search a chapter index page for a record name, returning the record page number that may contain
+ * the name.
  */
 int search_chapter_index_page(struct delta_index_page *index_page,
 			      const struct geometry *geometry,
@@ -337,17 +314,11 @@ int search_chapter_index_page(struct delta_index_page *index_page,
 	int result;
 	struct delta_index *delta_index = &index_page->delta_index;
 	unsigned int address = hash_to_chapter_delta_address(name, geometry);
-	unsigned int delta_list_number =
-		hash_to_chapter_delta_list(name, geometry);
-	unsigned int sub_list_number =
-		delta_list_number - index_page->lowest_list_number;
+	unsigned int delta_list_number = hash_to_chapter_delta_list(name, geometry);
+	unsigned int sub_list_number = delta_list_number - index_page->lowest_list_number;
 	struct delta_index_entry entry;
 
-	result = get_delta_index_entry(delta_index,
-				       sub_list_number,
-				       address,
-				       name->name,
-				       &entry);
+	result = get_delta_index_entry(delta_index, sub_list_number, address, name->name, &entry);
 	if (result != UDS_SUCCESS)
 		return result;
 
