@@ -49,10 +49,6 @@ struct recovery_point {
 struct recovery_completion {
 	/* The completion header */
 	struct vdo_completion completion;
-	/* The sub-task completion */
-	struct vdo_completion sub_task_completion;
-	/* The struct vdo in question */
-	struct vdo *vdo;
 	/* A buffer to hold the data read off disk */
 	char *journal_data;
 	/* The number of increfs */
@@ -184,7 +180,7 @@ static inline struct missing_decref * __must_check as_missing_decref(struct wait
  * Return: The recovery_completion.
  */
 static inline struct recovery_completion * __must_check
-as_vdo_recovery_completion(struct vdo_completion *completion)
+as_recovery_completion(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion->type, VDO_RECOVERY_COMPLETION);
 	return container_of(completion, struct recovery_completion, completion);
@@ -330,40 +326,20 @@ before_recovery_point(const struct recovery_point *first, const struct recovery_
 		(first->entry_count < second->entry_count));
 }
 
-/**
- * prepare_sub_task() - Prepare the sub-task completion.
- * @recovery: The recovery_completion whose sub-task completion is to be prepared.
- * @callback: The callback to register for the next sub-task.
- * @error_handler: The error handler for the next sub-task.
- * @zone_type: The type of zone on which the callback or error_handler should run.
- */
-static void prepare_sub_task(struct recovery_completion *recovery,
-			     vdo_action callback,
-			     vdo_action error_handler,
-			     enum vdo_zone_type zone_type)
+static void prepare_recovery_completion(struct recovery_completion *recovery,
+					vdo_action *callback,
+					enum vdo_zone_type zone_type)
 {
-	const struct thread_config *thread_config = recovery->vdo->thread_config;
+	struct vdo_completion *completion = &recovery->completion;
+	const struct thread_config *thread_config = completion->vdo->thread_config;
 	thread_id_t thread_id;
 
-	switch (zone_type) {
-	case VDO_ZONE_TYPE_LOGICAL:
-		/*
-		 * All blockmap access is done on single thread, so use logical
-		 * zone 0.
-		 */
-		thread_id = vdo_get_logical_zone_thread(thread_config, 0);
-		break;
-
-	case VDO_ZONE_TYPE_ADMIN:
-	default:
-		thread_id = thread_config->admin_thread;
-	}
-
-	vdo_prepare_completion(&recovery->sub_task_completion,
-			       callback,
-			       error_handler,
-			       thread_id,
-			       &recovery->completion);
+	/* All blockmap access is done on single thread, so use logical zone 0. */
+	thread_id = ((zone_type == VDO_ZONE_TYPE_LOGICAL)
+		     ? vdo_get_logical_zone_thread(thread_config, 0)
+		     : thread_config->admin_thread);
+	vdo_reset_completion(completion);
+	vdo_set_completion_callback(completion, callback, thread_id);
 }
 
 /**
@@ -371,8 +347,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
  *
  * Implements waiter_callback.
  */
-static void free_missing_decref(struct waiter *waiter,
-				void *context __always_unused)
+static void free_missing_decref(struct waiter *waiter, void *context __always_unused)
 {
 	UDS_FREE(as_missing_decref(waiter));
 }
@@ -389,7 +364,7 @@ static void free_vdo_recovery_completion(struct recovery_completion *recovery)
 		return;
 
 	free_int_map(UDS_FORGET(recovery->slot_entry_map));
-	zone_count = recovery->vdo->thread_config->physical_zone_count;
+	zone_count = recovery->completion.vdo->thread_config->physical_zone_count;
 	for (zone = 0; zone < zone_count; zone++)
 		notify_all_waiters(&recovery->missing_decrefs[zone], free_missing_decref, NULL);
 
@@ -399,53 +374,14 @@ static void free_vdo_recovery_completion(struct recovery_completion *recovery)
 }
 
 /**
- * vdo_make_recovery_completion() - Allocate and initialize a recovery_completion.
- * @vdo: The vdo in question.
- * @recovery_ptr: A pointer to hold the new recovery_completion.
- *
- * Return: VDO_SUCCESS or a status code.
- */
-static int __must_check
-vdo_make_recovery_completion(struct vdo *vdo, struct recovery_completion **recovery_ptr)
-{
-	struct recovery_completion *recovery;
-	zone_count_t zone;
-	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
-	int result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
-					   zone_count,
-					   struct list_head,
-					   __func__,
-					   &recovery);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	recovery->vdo = vdo;
-	for (zone = 0; zone < zone_count; zone++)
-		initialize_wait_queue(&recovery->missing_decrefs[zone]);
-
-	vdo_initialize_completion(&recovery->completion, vdo, VDO_RECOVERY_COMPLETION);
-	vdo_initialize_completion(&recovery->sub_task_completion, vdo, VDO_SUB_TASK_COMPLETION);
-
-	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
-	if (result != VDO_SUCCESS) {
-		free_vdo_recovery_completion(recovery);
-		return result;
-	}
-
-	*recovery_ptr = recovery;
-	return VDO_SUCCESS;
-}
-
-/**
  * finish_recovery() - Finish recovering, free the recovery completion and notify the parent.
  * @completion: The recovery completion.
  */
 static void finish_recovery(struct vdo_completion *completion)
 {
-	int result;
 	struct vdo_completion *parent = completion->parent;
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 	uint64_t recovery_count = ++vdo->states.vdo.complete_recoveries;
 
 	vdo_initialize_recovery_journal_post_recovery(vdo->recovery_journal,
@@ -458,8 +394,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	 * Now that we've freed the recovery completion and its vast array of journal entries, we
 	 * can allocate refcounts.
 	 */
-	result = vdo_allocate_slab_ref_counts(vdo->depot);
-	vdo_finish_completion(parent, result);
+	vdo_finish_completion(parent, vdo_allocate_slab_ref_counts(vdo->depot));
 }
 
 /**
@@ -470,7 +405,7 @@ static void abort_recovery(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
 	int result = completion->result;
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion);
+	struct recovery_completion *recovery = as_recovery_completion(completion);
 
 	free_vdo_recovery_completion(UDS_FORGET(recovery));
 	uds_log_warning("Recovery aborted");
@@ -503,7 +438,7 @@ static bool __must_check abort_recovery_on_error(int result, struct recovery_com
 static struct recovery_journal_entry
 get_entry(const struct recovery_completion *recovery, const struct recovery_point *point)
 {
-	struct recovery_journal *journal = recovery->vdo->recovery_journal;
+	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
 	physical_block_number_t block_number =
 		vdo_get_recovery_journal_block_number(journal, point->sequence_number);
 	off_t sector_offset = ((block_number * VDO_BLOCK_SIZE) +
@@ -524,6 +459,7 @@ get_entry(const struct recovery_completion *recovery, const struct recovery_poin
 static int extract_increment_entries(struct recovery_completion *recovery)
 {
 	int result;
+	struct vdo *vdo = recovery->completion.vdo;
 	struct recovery_point recovery_point = {
 		.sequence_number = recovery->block_map_head,
 		.sector_count = 1,
@@ -541,48 +477,48 @@ static int extract_increment_entries(struct recovery_completion *recovery)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
+	for (; before_recovery_point(&recovery_point, &recovery->tail_recovery_point);
+	     increment_recovery_point(&recovery_point)) {
 		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
 
-		result = vdo_validate_recovery_journal_entry(recovery->vdo, &entry);
+		result = vdo_validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier, result);
+			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 			return result;
 		}
 
-		if (vdo_is_journal_increment_operation(entry.operation)) {
-			recovery->entries[recovery->entry_count] =
-				(struct numbered_block_mapping) {
-					.block_map_slot = entry.slot,
-					.block_map_entry = vdo_pack_pbn(entry.mapping.pbn,
-									entry.mapping.state),
-					.number = recovery->entry_count,
-				};
-			recovery->entry_count++;
-		}
+		if (!vdo_is_journal_increment_operation(entry.operation))
+			continue;
 
-		increment_recovery_point(&recovery_point);
+
+		recovery->entries[recovery->entry_count] =
+			(struct numbered_block_mapping) {
+			.block_map_slot = entry.slot,
+			.block_map_entry = vdo_pack_pbn(entry.mapping.pbn, entry.mapping.state),
+			.number = recovery->entry_count,
+		};
+		recovery->entry_count++;
 	}
 
 	result = ASSERT((recovery->entry_count <= recovery->incref_count),
 			"approximate incref count is an upper bound");
 	if (result != VDO_SUCCESS)
-		vdo_enter_read_only_mode(recovery->vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 
 	return result;
 }
 
 /**
  * launch_block_map_recovery() - Extract journal entries and recover the block map.
- * @completion: The sub-task completion.
+ * @completion: The recovery completion
  *
  * This callback is registered in start_super_block_save().
  */
 static void launch_block_map_recovery(struct vdo_completion *completion)
 {
 	int result;
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 
 	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 
@@ -591,21 +527,21 @@ static void launch_block_map_recovery(struct vdo_completion *completion)
 	if (abort_recovery_on_error(result, recovery))
 		return;
 
-	vdo_prepare_completion_to_finish_parent(completion, &recovery->completion);
+	prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
 	vdo_recover_block_map(vdo, recovery->entry_count, recovery->entries, completion);
 }
 
 /**
  * start_super_block_save() - Finish flushing all slab journals and start a write of the super
  *                            block.
- * @completion: The sub-task completion.
+ * @completion: The recovery completion.
  *
  * This callback is registered in add_synthesized_entries().
  */
 static void start_super_block_save(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 
 	vdo_assert_on_admin_thread(vdo, __func__);
 
@@ -616,16 +552,13 @@ static void start_super_block_save(struct vdo_completion *completion)
 	 * The block map access which follows the super block save must be done
 	 * on a logical thread.
 	 */
-	prepare_sub_task(recovery,
-			 launch_block_map_recovery,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_LOGICAL);
+	prepare_recovery_completion(recovery, launch_block_map_recovery, VDO_ZONE_TYPE_LOGICAL);
 	vdo_save_components(vdo, completion);
 }
 
 /**
  * finish_recovering_depot() - The callback from loading the slab depot.
- * @completion: The sub-task completion.
+ * @completion: The recovery completion.
  *
  * Updates the logical blocks and block map data blocks counts in the recovery journal and then
  * drains the slab depot in order to commit the recovered slab journals. It is registered in
@@ -633,22 +566,19 @@ static void start_super_block_save(struct vdo_completion *completion)
  */
 static void finish_recovering_depot(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 
 	vdo_assert_on_admin_thread(vdo, __func__);
 
 	uds_log_info("Replayed %zu journal entries into slab journals",
 		     recovery->entries_added_to_slab_journals);
-	uds_log_info("Synthesized %zu missing journal entries",
-		     recovery->missing_decref_count);
+	uds_log_info("Synthesized %zu missing journal entries", recovery->missing_decref_count);
+
 	vdo->recovery_journal->logical_blocks_used = recovery->logical_blocks_used;
 	vdo->recovery_journal->block_map_data_blocks = recovery->block_map_data_blocks;
 
-	prepare_sub_task(recovery,
-			 start_super_block_save,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_ADMIN);
+	prepare_recovery_completion(recovery, start_super_block_save, VDO_ZONE_TYPE_ADMIN);
 	vdo_drain_slab_depot(vdo->depot, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
@@ -705,7 +635,7 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 		.sector_count = 1,
 		.entry_count = 0,
 	};
-	struct recovery_journal *journal = recovery->vdo->recovery_journal;
+	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
 	struct packed_journal_header *tail_header =
 		vdo_get_recovery_journal_block_header(journal,
 						      recovery->journal_data,
@@ -716,34 +646,34 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 	recovery->logical_blocks_used = unpacked.logical_blocks_used;
 	recovery->block_map_data_blocks = unpacked.block_map_data_blocks;
 
-	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
-		struct recovery_journal_entry entry =
-			get_entry(recovery, &recovery_point);
-		if (vdo_is_mapped_location(&entry.mapping)) {
-			switch (entry.operation) {
-			case VDO_JOURNAL_DATA_INCREMENT:
-				recovery->logical_blocks_used++;
-				break;
+	for (; before_recovery_point(&recovery_point, &recovery->tail_recovery_point);
+	     increment_recovery_point(&recovery_point)) {
+		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
 
-			case VDO_JOURNAL_DATA_DECREMENT:
-				recovery->logical_blocks_used--;
-				break;
+		if (!vdo_is_mapped_location(&entry.mapping))
+			continue;
 
-			case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
-				recovery->block_map_data_blocks++;
-				break;
+		switch (entry.operation) {
+		case VDO_JOURNAL_DATA_INCREMENT:
+			recovery->logical_blocks_used++;
+			break;
 
-			default:
-				return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
-							      "Recovery journal entry at sequence number %llu, sector %u, entry %u had invalid operation %u",
-							      (unsigned long long) recovery_point.sequence_number,
-							      recovery_point.sector_count,
-							      recovery_point.entry_count,
-							      entry.operation);
-			}
+		case VDO_JOURNAL_DATA_DECREMENT:
+			recovery->logical_blocks_used--;
+			break;
+
+		case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
+			recovery->block_map_data_blocks++;
+			break;
+
+		default:
+			return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
+						      "Recovery journal entry at sequence number %llu, sector %u, entry %u had invalid operation %u",
+						      (unsigned long long) recovery_point.sequence_number,
+						      recovery_point.sector_count,
+						      recovery_point.entry_count,
+						      entry.operation);
 		}
-
-		increment_recovery_point(&recovery_point);
 	}
 
 	return VDO_SUCCESS;
@@ -787,11 +717,11 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 	     advance_points(recovery, journal->entries_per_block)) {
 		struct vdo_slab *slab;
 		struct recovery_journal_entry entry = get_entry(recovery, recovery_point);
-		int result = vdo_validate_recovery_journal_entry(vdo, &entry);
+		int result;
 
+		result = vdo_validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(journal->read_only_notifier,
-						 result);
+			vdo_enter_read_only_mode(journal->read_only_notifier, result);
 			vdo_finish_completion(completion, result);
 			return;
 		}
@@ -827,7 +757,7 @@ void vdo_replay_into_slab_journals(struct block_allocator *allocator, void *cont
 {
 	struct vdo_completion *completion = &allocator->completion;
 	struct recovery_completion *recovery = context;
-	struct vdo *vdo = recovery->completion.vdo;
+	struct vdo *vdo = completion->vdo;
 
 	vdo_assert_on_physical_zone_thread(vdo, allocator->zone_number, __func__);
 	if ((recovery->journal_data == NULL) || is_replaying(vdo)) {
@@ -881,24 +811,20 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 /**
  * apply_to_depot() - Queue each missing decref on the slab journal to which it is to be applied
  *                    then load the slab depot.
- * @completion: The sub-task completion.
+ * @completion: The recovery completion.
  *
  * This callback is registered in find_slab_journal_entries().
  */
 static void apply_to_depot(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct slab_depot *depot = recovery->vdo->depot;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
+	struct slab_depot *depot = vdo->depot;
 
-	vdo_assert_on_admin_thread(recovery->vdo, __func__);
-
-	prepare_sub_task(recovery,
-			 finish_recovering_depot,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_ADMIN);
-
+	vdo_assert_on_admin_thread(vdo, __func__);
+	prepare_recovery_completion(recovery, finish_recovering_depot, VDO_ZONE_TYPE_ADMIN);
 	notify_all_waiters(&recovery->missing_decrefs[0], queue_on_physical_zone, depot);
-	if (abort_recovery_on_error(recovery->completion.result, recovery))
+	if (abort_recovery_on_error(completion->result, recovery))
 		return;
 
 	vdo_load_slab_depot(depot, VDO_ADMIN_STATE_LOADING_FOR_RECOVERY, completion, recovery);
@@ -917,17 +843,18 @@ static int
 record_missing_decref(struct missing_decref *decref, struct data_location location, int error_code)
 {
 	struct recovery_completion *recovery = decref->recovery;
+	struct vdo *vdo = recovery->completion.vdo;
 
 	recovery->incomplete_decref_count--;
 	if (vdo_is_valid_location(&location) &&
-	    vdo_is_physical_data_block(recovery->vdo->depot, location.pbn)) {
+	    vdo_is_physical_data_block(vdo->depot, location.pbn)) {
 		decref->penultimate_mapping = location;
 		decref->complete = true;
 		return VDO_SUCCESS;
 	}
 
 	/* The location was invalid */
-	vdo_enter_read_only_mode(recovery->vdo->read_only_notifier, error_code);
+	vdo_enter_read_only_mode(vdo->read_only_notifier, error_code);
 	vdo_set_completion_result(&recovery->completion, error_code);
 	uds_log_error_strerror(error_code,
 			       "Invalid mapping for pbn %llu with state %u",
@@ -967,8 +894,7 @@ static int __must_check find_missing_decrefs(struct recovery_completion *recover
 	 * A buffer is allocated based on the number of incref entries found, so use the earliest
 	 * head.
 	 */
-	sequence_number_t head = min(recovery->block_map_head,
-				     recovery->slab_journal_head);
+	sequence_number_t head = min(recovery->block_map_head, recovery->slab_journal_head);
 	struct recovery_point head_point = {
 		.sequence_number = head,
 		.sector_count = 1,
@@ -978,7 +904,7 @@ static int __must_check find_missing_decrefs(struct recovery_completion *recover
 	/* Set up for the first fake journal point that will be used for a synthesized entry. */
 	recovery->next_synthesized_journal_point = (struct journal_point) {
 		.sequence_number = recovery->tail,
-		.entry_count = recovery->vdo->recovery_journal->entries_per_block,
+		.entry_count = recovery->completion.vdo->recovery_journal->entries_per_block,
 	};
 
 	recovery_point = recovery->tail_recovery_point;
@@ -1066,14 +992,14 @@ static void process_fetched_page(struct vdo_completion *completion)
 	const struct block_map_page *page;
 	struct data_location location;
 
-	vdo_assert_on_logical_zone_thread(recovery->vdo, 0, __func__);
+	vdo_assert_on_logical_zone_thread(completion->vdo, 0, __func__);
 
 	page = vdo_dereference_readable_page(completion);
 	location = vdo_unpack_block_map_entry(&page->entries[current_decref->slot.slot]);
 	vdo_release_page_completion(completion);
 	record_missing_decref(current_decref, location, VDO_BAD_MAPPING);
 	if (recovery->incomplete_decref_count == 0)
-		vdo_complete_completion(&recovery->sub_task_completion);
+		vdo_invoke_completion_callback(&recovery->completion);
 }
 
 /**
@@ -1086,20 +1012,21 @@ static void handle_fetch_error(struct vdo_completion *completion)
 {
 	struct missing_decref *decref = completion->parent;
 	struct recovery_completion *recovery = decref->recovery;
+	int result = completion->result;
 
-	vdo_assert_on_logical_zone_thread(recovery->vdo, 0, __func__);
+	vdo_assert_on_logical_zone_thread(completion->vdo, 0, __func__);
 
 	/*
 	 * If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read
 	 * from the journal was bad, so convert the error code
 	 */
-	vdo_set_completion_result(&recovery->sub_task_completion,
-				  ((completion->result == VDO_OUT_OF_RANGE) ?
-				       VDO_CORRUPT_JOURNAL :
-				       completion->result));
+	if (result == VDO_OUT_OF_RANGE)
+		result = VDO_CORRUPT_JOURNAL;
+
+	vdo_set_completion_result(&recovery->completion, result);
 	vdo_release_page_completion(completion);
 	if (--recovery->incomplete_decref_count == 0)
-		vdo_complete_completion(&recovery->sub_task_completion);
+		vdo_invoke_completion_callback(&recovery->completion);
 }
 
 /**
@@ -1134,38 +1061,27 @@ static void launch_fetch(struct waiter *waiter, void *context)
 /**
  * find_slab_journal_entries() - Find all entries which need to be replayed into the slab journals.
  *
- * @completion: The sub-task completion.
+ * @completion: The recovery completion.
  */
 static void find_slab_journal_entries(struct vdo_completion *completion)
 {
-	int result;
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 
-	/*
-	 * We need to be on logical zone 0's thread since we are going to use
-	 * its page cache.
-	 */
+	/* We need to be on logical zone 0's thread since we are going to use its page cache. */
 	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
-	result = find_missing_decrefs(recovery);
-	if (abort_recovery_on_error(result, recovery))
+
+	if (abort_recovery_on_error(find_missing_decrefs(recovery), recovery))
 		return;
 
-	prepare_sub_task(recovery,
-			 apply_to_depot,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_ADMIN);
+	prepare_recovery_completion(recovery, apply_to_depot, VDO_ZONE_TYPE_ADMIN);
 
 	/*
-	 * Increment the incomplete_decref_count so that the fetch callback
-	 * can't complete the sub-task while we are still processing the queue
-	 * of missing decrefs.
+	 * Increment the incomplete_decref_count so that the fetch callback can't complete while we
+	 * are still processing the queue of missing decrefs.
 	 */
 	if (recovery->incomplete_decref_count++ > 0)
-		/*
-		 * Fetch block map pages to fill in the incomplete missing
-		 * decrefs.
-		 */
+		/* Fetch block map pages to fill in the incomplete missing decrefs. */
 		notify_all_waiters(&recovery->missing_decrefs[0],
 				   launch_fetch,
 				   &vdo->block_map->zones[0]);
@@ -1182,7 +1098,7 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
  */
 static bool find_contiguous_range(struct recovery_completion *recovery)
 {
-	struct recovery_journal *journal = recovery->vdo->recovery_journal;
+	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
 	sequence_number_t head = min(recovery->block_map_head, recovery->slab_journal_head);
 	bool found_entries = false;
 	sequence_number_t i;
@@ -1211,6 +1127,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			break;
 
 		block_entries = header.entry_count;
+
 		/* Examine each sector in turn to determine the last valid sector. */
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
@@ -1237,11 +1154,8 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 				break;
 		}
 
-		/*
-		 * If this block was not filled, or if it tore, no later block can matter.
-		 */
-		if ((header.entry_count != journal->entries_per_block) ||
-		    (block_entries > 0))
+		/* If this block was not filled, or if it tore, no later block can matter. */
+		if ((header.entry_count != journal->entries_per_block) || (block_entries > 0))
 			break;
 	}
 
@@ -1258,6 +1172,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
  */
 static int count_increment_entries(struct recovery_completion *recovery)
 {
+	struct vdo *vdo = recovery->completion.vdo;
 	struct recovery_point recovery_point = {
 		.sequence_number = recovery->block_map_head,
 		.sector_count = 1,
@@ -1266,16 +1181,17 @@ static int count_increment_entries(struct recovery_completion *recovery)
 
 	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
-		int result = vdo_validate_recovery_journal_entry(recovery->vdo, &entry);
+		int result;
 
+		result = vdo_validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(recovery->vdo->read_only_notifier,
-						 result);
+			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 			return result;
 		}
 
 		if (vdo_is_journal_increment_operation(entry.operation))
 			recovery->incref_count++;
+
 		increment_recovery_point(&recovery_point);
 	}
 
@@ -1285,14 +1201,14 @@ static int count_increment_entries(struct recovery_completion *recovery)
 /**
  * prepare_to_apply_journal_entries() - Determine the limits of the valid recovery journal and
  *                                      prepare to replay into the slab journals and block map.
- * @completion: The sub-task completion.
+ * @completion: The recovery completion.
  */
 static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 {
 	bool found_entries;
 	int result;
-	struct recovery_completion *recovery = as_vdo_recovery_completion(completion->parent);
-	struct vdo *vdo = recovery->vdo;
+	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo *vdo = completion->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 
 	uds_log_info("Finished reading recovery journal");
@@ -1312,20 +1228,16 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 						(unsigned long long) recovery->block_map_head,
 						(unsigned long long) recovery->slab_journal_head,
 						(unsigned long long) recovery->tail);
-		vdo_finish_completion(&recovery->completion, result);
+		vdo_finish_completion(completion, result);
 		return;
 	}
 
 	if (!found_entries) {
-		/* This message must be recognizable by VDOTest::RebuildBase. */
+		/* This message must be in sync with VDOTest::RebuildBase. */
 		uds_log_info("Replaying 0 recovery entries into block map");
 		/* We still need to load the slab_depot. */
-		UDS_FREE(recovery->journal_data);
-		recovery->journal_data = NULL;
-		prepare_sub_task(recovery,
-				 vdo_finish_completion_parent_callback,
-				 vdo_finish_completion_parent_callback,
-				 VDO_ZONE_TYPE_ADMIN);
+		UDS_FREE(UDS_FORGET(recovery->journal_data));
+		prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
 		vdo_load_slab_depot(vdo->depot,
 				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
@@ -1338,21 +1250,17 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 		     (unsigned long long) recovery->tail);
 
 	if (is_replaying(vdo)) {
-		/*
-		 * We need to know how many entries the block map rebuild
-		 * completion will need to hold.
-		 */
+		/* We need to know how many entries the block map rebuild completion will hold. */
 		result = count_increment_entries(recovery);
 		if (result != VDO_SUCCESS) {
-			vdo_finish_completion(&recovery->completion, result);
+			vdo_finish_completion(completion, result);
 			return;
 		}
 
 		/* We need to access the block map from a logical zone. */
-		prepare_sub_task(recovery,
-				 launch_block_map_recovery,
-				 vdo_finish_completion_parent_callback,
-				 VDO_ZONE_TYPE_LOGICAL);
+		prepare_recovery_completion(recovery,
+					    launch_block_map_recovery,
+					    VDO_ZONE_TYPE_LOGICAL);
 		vdo_load_slab_depot(vdo->depot,
 				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
 				    completion,
@@ -1364,11 +1272,48 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	if (abort_recovery_on_error(result, recovery))
 		return;
 
-	prepare_sub_task(recovery,
-			 find_slab_journal_entries,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_LOGICAL);
+	prepare_recovery_completion(recovery, find_slab_journal_entries, VDO_ZONE_TYPE_LOGICAL);
 	vdo_invoke_completion_callback(completion);
+}
+
+/**
+ * make_recovery_completion() - Allocate and initialize a recovery_completion.
+ *
+ * @vdo: The vdo in question.
+ * @recovery_ptr: A pointer to hold the new recovery_completion.
+ *
+ * Return: VDO_SUCCESS or a status code.
+ */
+static int __must_check
+make_recovery_completion(struct vdo *vdo, struct recovery_completion **recovery_ptr)
+{
+	struct recovery_completion *recovery;
+	zone_count_t zone;
+	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
+	int result;
+
+	result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
+				       zone_count,
+				       struct list_head,
+				       __func__,
+				       &recovery);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
+	if (result != VDO_SUCCESS) {
+		free_vdo_recovery_completion(recovery);
+		return result;
+	}
+
+	for (zone = 0; zone < zone_count; zone++)
+		initialize_wait_queue(&recovery->missing_decrefs[zone]);
+
+	vdo_initialize_completion(&recovery->completion, vdo, VDO_RECOVERY_COMPLETION);
+	recovery->completion.error_handler = abort_recovery;
+
+	*recovery_ptr = recovery;
+	return VDO_SUCCESS;
 }
 
 /**
@@ -1376,35 +1321,29 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
  * @vdo: The vdo to recover.
  * @parent: The completion to notify when the offline portion of the recovery is complete.
  *
- * Applies all valid journal block entries to all vdo structures. This function performs the offline
- * portion of recovering a vdo from a crash.
+ * Applies all valid journal block entries to all vdo structures. This function performs the
+ * offline portion of recovering a vdo from a crash.
  */
-
 void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct recovery_completion *recovery;
 	int result;
 
-	/* Note: This message must be recognizable by Permabit::VDODeviceBase. */
+	/* Note: This message must be in sync with  Permabit::VDODeviceBase. */
 	uds_log_warning("Device was dirty, rebuilding reference counts");
 
-	result = vdo_make_recovery_completion(vdo, &recovery);
+	result = make_recovery_completion(vdo, &recovery);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	vdo_prepare_completion(&recovery->completion,
-			       finish_recovery,
-			       abort_recovery,
-			       parent->callback_thread_id,
-			       parent);
-	prepare_sub_task(recovery,
-			 prepare_to_apply_journal_entries,
-			 vdo_finish_completion_parent_callback,
-			 VDO_ZONE_TYPE_ADMIN);
+	recovery->completion.parent = parent;
+	prepare_recovery_completion(recovery,
+				    prepare_to_apply_journal_entries,
+				    VDO_ZONE_TYPE_ADMIN);
 	vdo_load_recovery_journal(vdo->recovery_journal,
-				  &recovery->sub_task_completion,
+				  &recovery->completion,
 				  &recovery->journal_data);
 }
 

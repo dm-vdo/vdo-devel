@@ -2032,7 +2032,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 	struct journal_loader *loader = completion->parent;
 
 	if (++loader->complete == loader->count) {
-		vdo_finish_completion(loader->parent, result);
+		vdo_continue_completion(loader->parent, result);
 		free_journal_loader(loader);
 	}
 }
