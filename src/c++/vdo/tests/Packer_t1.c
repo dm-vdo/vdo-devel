@@ -32,7 +32,6 @@
 static block_count_t    expectedSlotsUsed;
 static block_count_t    packedItemCount;
 static block_count_t    targetItemCount;
-static block_size_t     binSize;
 static bool             packed;
 static bool             shouldQueue;
 static bool             allBinsFull;
@@ -56,7 +55,6 @@ static void initialize(void)
   // Populate the block map tree to make expectations of the number of blocks
   // consumed by the packer easier to determine.
   populateBlockMapTree();
-  binSize = vdo->packer->bin_data_size;
 }
 
 /**
@@ -144,7 +142,7 @@ static void bestFitTest(void)
   for (block_size_t i = 1; i <= DEFAULT_PACKER_BINS; i++) {
     // For the first batch, set the compressed size of each data_vio to nearly
     // fill a bin and be unique.
-    compressedSizes[i] = binSize - i;
+    compressedSizes[i] = VDO_PACKER_BIN_SIZE - i;
     requests[i] = launchIndexedWrite(i, 1, i);
   }
 
@@ -222,7 +220,7 @@ static bool wrapIfHeadingToPacker(struct vdo_completion *completion)
      * which don't fill the bin, but don't leave room for a third. This ensures
      * that all the bins will be full but that none will write out.
      */
-    as_data_vio(completion)->compression.size = (binSize - 10) / 2;
+    as_data_vio(completion)->compression.size = (VDO_PACKER_BIN_SIZE - 10) / 2;
     wrapCompletionCallback(completion, signalAllBinsFull);
   }
 
@@ -249,7 +247,7 @@ static void suspendAndResumePackerTest(void)
   for (struct packer_bin *bin = vdo_get_packer_fullest_bin(packer);
        bin != NULL;
        bin = vdo_next_packer_bin(packer, bin)) {
-    CU_ASSERT_EQUAL(bin->free_space, packer->bin_data_size);
+    CU_ASSERT_EQUAL(bin->free_space, VDO_PACKER_BIN_SIZE);
   }
 
   performSuccessfulPackerAction(VDO_ADMIN_STATE_RESUMING);

@@ -174,7 +174,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
  */
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
-	if (!vdo_data_is_sufficiently_compressible(data_vio) ||
+	if ((data_vio->compression.size >= VDO_PACKER_BIN_SIZE) ||
 	    !vdo_get_compressing(vdo_from_data_vio(data_vio)) ||
 	    get_vio_compression_state(data_vio).may_not_compress) {
 		/*

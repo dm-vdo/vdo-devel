@@ -101,7 +101,7 @@ static int __must_check make_bin(struct packer *packer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	bin->free_space = packer->bin_data_size;
+	bin->free_space = VDO_PACKER_BIN_SIZE;
 	INIT_LIST_HEAD(&bin->list);
 	list_add_tail(&bin->list, &packer->bins);
 	return VDO_SUCCESS;
@@ -129,8 +129,6 @@ int vdo_make_packer(struct vdo *vdo,
 		return result;
 
 	packer->thread_id = vdo->thread_config->packer_thread;
-	packer->bin_data_size = (VDO_BLOCK_SIZE
-				 - sizeof(struct compressed_block_header));
 	packer->size = bin_count;
 	INIT_LIST_HEAD(&packer->bins);
 	vdo_set_admin_state_code(&packer->state,
@@ -199,21 +197,6 @@ static inline struct packer *
 get_packer_from_data_vio(struct data_vio *data_vio)
 {
 	return vdo_from_data_vio(data_vio)->packer;
-}
-
-/**
- * vdo_data_is_sufficiently_compressible() - Check whether the compressed data
- *					     in a data_vio will fit in a
- *					     packer bin.
- * @data_vio: The data_vio.
- *
- * Return: true if the data_vio will fit in a bin.
- */
-bool vdo_data_is_sufficiently_compressible(struct data_vio *data_vio)
-{
-	struct packer *packer = get_packer_from_data_vio(data_vio);
-
-	return (data_vio->compression.size < packer->bin_data_size);
 }
 
 /**
@@ -370,7 +353,7 @@ static struct data_vio *remove_from_bin(struct packer *packer,
 	}
 
 	/* The bin is now empty. */
-	bin->free_space = packer->bin_data_size;
+	bin->free_space = VDO_PACKER_BIN_SIZE;
 	return NULL;
 }
 
@@ -563,7 +546,7 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 	 * least amount of free space.
 	 */
 	if (data_vio->compression.size >=
-	    (packer->bin_data_size - fullest_bin->free_space))
+	    (VDO_PACKER_BIN_SIZE - fullest_bin->free_space))
 		return NULL;
 
 	/*

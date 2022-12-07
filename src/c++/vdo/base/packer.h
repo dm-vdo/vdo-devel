@@ -12,6 +12,8 @@
 
 #include "admin-state.h"
 #include "block-mapping-state.h"
+#include "compressed-block.h"
+#include "constants.h"
 #include "statistics.h"
 #include "thread-config.h"
 #include "types.h"
@@ -19,6 +21,8 @@
 
 enum {
 	DEFAULT_PACKER_BINS = 16,
+	VDO_PACKER_BIN_SIZE = (VDO_BLOCK_SIZE -
+			       sizeof(struct compressed_block_header)),
 };
 
 /*
@@ -59,8 +63,6 @@ struct packer {
 	thread_id_t thread_id;
 	/* The number of bins */
 	block_count_t size;
-	/* The block size minus header size */
-	size_t bin_data_size;
 	/* A list of all packer_bins, kept sorted by free_space */
 	struct list_head bins;
 	/*
@@ -87,9 +89,6 @@ int __must_check vdo_make_packer(struct vdo *vdo,
 				 struct packer **packer_ptr);
 
 void vdo_free_packer(struct packer *packer);
-
-bool __must_check
-vdo_data_is_sufficiently_compressible(struct data_vio *data_vio);
 
 struct packer_statistics __must_check
 vdo_get_packer_statistics(const struct packer *packer);
