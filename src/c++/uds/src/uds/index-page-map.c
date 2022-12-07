@@ -17,10 +17,9 @@
 #include "uds.h"
 
 /*
- * The index page map is conceptually a two-dimensional array indexed by
- * chapter number and index page number within the chapter. Each entry
- * contains the number of the last delta list on that index page. In order to
- * save memory, the information for the last page in each chapter is not
+ * The index page map is conceptually a two-dimensional array indexed by chapter number and index
+ * page number within the chapter. Each entry contains the number of the last delta list on that
+ * index page. In order to save memory, the information for the last page in each chapter is not
  * recorded, as it is known from the geometry.
  */
 
@@ -32,12 +31,10 @@ enum {
 
 static inline size_t get_entry_count(const struct geometry *geometry)
 {
-	return (geometry->chapters_per_volume *
-		(geometry->index_pages_per_chapter - 1));
+	return (geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1));
 }
 
-int make_index_page_map(const struct geometry *geometry,
-			struct index_page_map **map_ptr)
+int make_index_page_map(const struct geometry *geometry, struct index_page_map **map_ptr)
 {
 	int result;
 	struct index_page_map *map;
@@ -89,8 +86,7 @@ unsigned int find_index_page_number(const struct index_page_map *map,
 				    const struct uds_record_name *name,
 				    unsigned int chapter_number)
 {
-	unsigned int delta_list_number =
-		hash_to_chapter_delta_list(name, map->geometry);
+	unsigned int delta_list_number = hash_to_chapter_delta_list(name, map->geometry);
 	unsigned int slot = chapter_number * map->entries_per_chapter;
 	unsigned int page;
 
@@ -124,14 +120,12 @@ uint64_t compute_index_page_map_save_size(const struct geometry *geometry)
 		sizeof(uint16_t) * get_entry_count(geometry));
 }
 
-int write_index_page_map(struct index_page_map *map,
-			 struct buffered_writer *writer)
+int write_index_page_map(struct index_page_map *map, struct buffered_writer *writer)
 {
 	int result;
 	struct buffer *buffer;
 
-	result = make_buffer(compute_index_page_map_save_size(map->geometry),
-			     &buffer);
+	result = make_buffer(compute_index_page_map_save_size(map->geometry), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -147,9 +141,7 @@ int write_index_page_map(struct index_page_map *map,
 		return result;
 	}
 
-	result = put_uint16_les_into_buffer(buffer,
-					    get_entry_count(map->geometry),
-					    map->entries);
+	result = put_uint16_les_into_buffer(buffer, get_entry_count(map->geometry), map->entries);
 	if (result != UDS_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
@@ -165,15 +157,13 @@ int write_index_page_map(struct index_page_map *map,
 	return flush_buffered_writer(writer);
 }
 
-int read_index_page_map(struct index_page_map *map,
-			struct buffered_reader *reader)
+int read_index_page_map(struct index_page_map *map, struct buffered_reader *reader)
 {
 	int result;
 	struct buffer *buffer;
 	byte magic[PAGE_MAP_MAGIC_LENGTH];
 
-	result = make_buffer(compute_index_page_map_save_size(map->geometry),
-			     &buffer);
+	result = make_buffer(compute_index_page_map_save_size(map->geometry), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -208,9 +198,7 @@ int read_index_page_map(struct index_page_map *map,
 		return result;
 	}
 
-	result = get_uint16_les_from_buffer(buffer,
-					    get_entry_count(map->geometry),
-					    map->entries);
+	result = get_uint16_les_from_buffer(buffer, get_entry_count(map->geometry), map->entries);
 	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return result;

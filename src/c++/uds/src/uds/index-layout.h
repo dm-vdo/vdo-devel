@@ -16,10 +16,9 @@
 #include "uds.h"
 
 /*
- * The index layout describes the format of the index on the underlying
- * storage, and is responsible for creating those structures when the index is
- * first created. It also validates the index data when loading a saved index,
- * and updates it when saving the index.
+ * The index layout describes the format of the index on the underlying storage, and is responsible
+ * for creating those structures when the index is first created. It also validates the index data
+ * when loading a saved index, and updates it when saving the index.
  */
 #ifdef TEST_INTERNAL
 
@@ -34,14 +33,11 @@ int __must_check make_uds_index_layout(struct configuration *config,
 
 void free_uds_index_layout(struct index_layout *layout);
 
-int __must_check replace_index_layout_storage(struct index_layout *layout,
-					      const char *name);
+int __must_check replace_index_layout_storage(struct index_layout *layout, const char *name);
 
-int __must_check load_index_state(struct index_layout *layout,
-				  struct uds_index *index);
+int __must_check load_index_state(struct index_layout *layout, struct uds_index *index);
 
-int __must_check save_index_state(struct index_layout *layout,
-				  struct uds_index *index);
+int __must_check save_index_state(struct index_layout *layout, struct uds_index *index);
 
 #ifdef TEST_INTERNAL
 int __must_check discard_index_state_data(struct index_layout *layout);

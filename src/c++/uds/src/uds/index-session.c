@@ -15,23 +15,19 @@
 #include "time-utils.h"
 
 /*
- * The index session contains a lock (the request_mutex) which ensures that
- * only one thread can change the state of its index at a time. The state field
- * indicates the current state of the index through a set of descriptive
- * flags. The request_mutex must be notified whenever a non-transient state
- * flag is cleared. The request_mutex is also used to count the number of
- * requests currently in progress so that they can be drained when suspending
- * or closing the index.
+ * The index session contains a lock (the request_mutex) which ensures that only one thread can
+ * change the state of its index at a time. The state field indicates the current state of the
+ * index through a set of descriptive flags. The request_mutex must be notified whenever a
+ * non-transient state flag is cleared. The request_mutex is also used to count the number of
+ * requests currently in progress so that they can be drained when suspending or closing the index.
  *
- * If the index session is suspended shortly after opening an index, it may
- * have to suspend during a rebuild. Depending on the size of the index, a
- * rebuild may take a significant amount of time, so UDS allows the rebuild to
- * be paused in order to suspend the session in a timely manner. When the index
- * session is resumed, the rebuild can continue from where it left off. If the
- * index session is shut down with a suspended rebuild, the rebuild progress is
- * abandoned and the rebuild will start from the beginning the next time the
- * index is loaded. The mutex and status fields in the index_load_context are
- * used to record the state of any interrupted rebuild.
+ * If the index session is suspended shortly after opening an index, it may have to suspend during
+ * a rebuild. Depending on the size of the index, a rebuild may take a significant amount of time,
+ * so UDS allows the rebuild to be paused in order to suspend the session in a timely manner. When
+ * the index session is resumed, the rebuild can continue from where it left off. If the index
+ * session is shut down with a suspended rebuild, the rebuild progress is abandoned and the rebuild
+ * will start from the beginning the next time the index is loaded. The mutex and status fields in
+ * the index_load_context are used to record the state of any interrupted rebuild.
  */
 
 enum index_session_flag_bit {
@@ -72,9 +68,8 @@ static void release_index_session(struct uds_index_session *index_session)
 }
 
 /*
- * Acquire a reference to the index session for an asynchronous index request.
- * The reference must eventually be released with a corresponding call to
- * release_index_session().
+ * Acquire a reference to the index session for an asynchronous index request. The reference must
+ * eventually be released with a corresponding call to release_index_session().
  */
 static int get_index_session(struct uds_index_session *index_session)
 {
@@ -125,11 +120,9 @@ int uds_launch_request(struct uds_request *request)
 	}
 
 	/* Reset all internal fields before processing. */
-	internal_size = sizeof(struct uds_request) -
-		offsetof(struct uds_request, zone_number);
+	internal_size = sizeof(struct uds_request) - offsetof(struct uds_request, zone_number);
 	// FIXME should be using struct_group for this instead
-	memset((char *) request + sizeof(*request) - internal_size,
-	       0, internal_size);
+	memset((char *) request + sizeof(*request) - internal_size, 0, internal_size);
 
 	result = get_index_session(request->session);
 	if (result != UDS_SUCCESS)
@@ -204,9 +197,7 @@ static void update_session_stats(struct uds_request *request)
 		break;
 
 	default:
-		request->status = ASSERT(false,
-					 "unknown request type: %d",
-					 request->type);
+		request->status = ASSERT(false, "unknown request type: %d", request->type);
 	}
 }
 
@@ -222,8 +213,7 @@ static void handle_callbacks(struct uds_request *request)
 	release_index_session(index_session);
 }
 
-static int __must_check
-make_empty_index_session(struct uds_index_session **index_session_ptr)
+static int __must_check make_empty_index_session(struct uds_index_session **index_session_ptr)
 {
 	int result;
 	struct uds_index_session *session;
@@ -262,9 +252,7 @@ make_empty_index_session(struct uds_index_session **index_session_ptr)
 		return result;
 	}
 
-	result = make_uds_request_queue("callbackW",
-					&handle_callbacks,
-					&session->callback_queue);
+	result = make_uds_request_queue("callbackW", &handle_callbacks, &session->callback_queue);
 	if (result != UDS_SUCCESS) {
 		uds_destroy_cond(&session->load_context.cond);
 		uds_destroy_mutex(&session->load_context.mutex);
@@ -288,8 +276,7 @@ int uds_create_index_session(struct uds_index_session **session)
 	return uds_map_to_system_error(make_empty_index_session(session));
 }
 
-static int __must_check
-start_loading_index_session(struct uds_index_session *index_session)
+static int __must_check start_loading_index_session(struct uds_index_session *index_session)
 {
 	int result;
 
@@ -308,9 +295,7 @@ start_loading_index_session(struct uds_index_session *index_session)
 	return result;
 }
 
-static void
-finish_loading_index_session(struct uds_index_session *index_session,
-			     int result)
+static void finish_loading_index_session(struct uds_index_session *index_session, int result)
 {
 	uds_lock_mutex(&index_session->request_mutex);
 	index_session->state &= ~IS_FLAG_LOADING;
@@ -393,9 +378,7 @@ int uds_open_index(enum uds_open_index_type open_type,
 	    (strcmp(parameters->name, session->parameters.name) != 0)) {
 		char *new_name;
 
-		result = uds_duplicate_string(parameters->name,
-					      "device name",
-					      &new_name);
+		result = uds_duplicate_string(parameters->name, "device name", &new_name);
 		if (result != UDS_SUCCESS) {
 			finish_loading_index_session(session, result);
 			return uds_map_to_system_error(result);
@@ -411,26 +394,20 @@ int uds_open_index(enum uds_open_index_type open_type,
 		session->parameters.name = old_name;
 	}
 
-	uds_log_notice("%s: %s",
-		       get_open_type_string(open_type),
-		       parameters->name);
+	uds_log_notice("%s: %s", get_open_type_string(open_type), parameters->name);
 	result = initialize_index_session(session, open_type);
 	if (result != UDS_SUCCESS)
-		uds_log_error_strerror(result,
-				       "Failed %s",
-				       get_open_type_string(open_type));
+		uds_log_error_strerror(result, "Failed %s", get_open_type_string(open_type));
 
 	finish_loading_index_session(session, result);
 	return uds_map_to_system_error(result);
 }
 
-static void
-wait_for_no_requests_in_progress(struct uds_index_session *index_session)
+static void wait_for_no_requests_in_progress(struct uds_index_session *index_session)
 {
 	uds_lock_mutex(&index_session->request_mutex);
 	while (index_session->request_count > 0)
-		uds_wait_cond(&index_session->request_cond,
-			      &index_session->request_mutex);
+		uds_wait_cond(&index_session->request_cond, &index_session->request_mutex);
 	uds_unlock_mutex(&index_session->request_mutex);
 }
 
@@ -463,18 +440,15 @@ static void suspend_rebuild(struct uds_index_session *session)
 	case INDEX_FREEING:
 	default:
 		/* These cases should not happen. */
-		ASSERT_LOG_ONLY(false,
-				"Bad load context state %u",
-				session->load_context.status);
+		ASSERT_LOG_ONLY(false, "Bad load context state %u", session->load_context.status);
 		break;
 	}
 	uds_unlock_mutex(&session->load_context.mutex);
 }
 
 /*
- * Suspend index operation, draining all current index requests and
- * preventing new index requests from starting. Optionally saves all index
- * data before returning.
+ * Suspend index operation, draining all current index requests and preventing new index requests
+ * from starting. Optionally saves all index data before returning.
  */
 int uds_suspend_index_session(struct uds_index_session *session, bool save)
 {
@@ -487,8 +461,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	while (session->state & IS_FLAG_CLOSING)
 		uds_wait_cond(&session->request_cond, &session->request_mutex);
 
-	if ((session->state & IS_FLAG_WAITING) ||
-	    (session->state & IS_FLAG_DESTROYING)) {
+	if ((session->state & IS_FLAG_WAITING) || (session->state & IS_FLAG_DESTROYING)) {
 		no_work = true;
 		uds_log_info("Index session is already changing state");
 		result = -EBUSY;
@@ -524,8 +497,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	return uds_map_to_system_error(result);
 }
 
-static int replace_device(struct uds_index_session *session,
-			  const char *name)
+static int replace_device(struct uds_index_session *session, const char *name)
 {
 	int result;
 	char *new_name;
@@ -546,12 +518,10 @@ static int replace_device(struct uds_index_session *session,
 }
 
 /*
- * Resume index operation after being suspended. If the index is suspended
- * and the supplied name is different from the current backing store, the
- * index will start using the new backing store.
+ * Resume index operation after being suspended. If the index is suspended and the supplied name is
+ * different from the current backing store, the index will start using the new backing store.
  */
-int uds_resume_index_session(struct uds_index_session *session,
-			     const char *name)
+int uds_resume_index_session(struct uds_index_session *session, const char *name)
 {
 	int result = UDS_SUCCESS;
 	bool no_work = false;
@@ -638,8 +608,7 @@ static int save_and_free_index(struct uds_index_session *index_session)
 	if (!suspended) {
 		result = save_index(index);
 		if (result != UDS_SUCCESS)
-			uds_log_warning_strerror(result,
-						 "ignoring error from save_index");
+			uds_log_warning_strerror(result, "ignoring error from save_index");
 	}
 	free_index(index);
 	index_session->index = NULL;
@@ -669,18 +638,14 @@ int uds_close_index(struct uds_index_session *index_session)
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING))
-		uds_wait_cond(&index_session->request_cond,
-			      &index_session->request_mutex);
+		uds_wait_cond(&index_session->request_cond, &index_session->request_mutex);
 
 	if (index_session->state & IS_FLAG_SUSPENDED) {
 		uds_log_info("Index session is suspended");
 		result = -EBUSY;
 	} else if ((index_session->state & IS_FLAG_DESTROYING) ||
 		   !(index_session->state & IS_FLAG_LOADED)) {
-		/*
-		 * The index doesn't exist, hasn't finished loading, or is
-		 * being destroyed.
-		 */
+		/* The index doesn't exist, hasn't finished loading, or is being destroyed. */
 		result = UDS_NO_INDEX;
 	} else {
 		index_session->state |= IS_FLAG_CLOSING;
@@ -713,8 +678,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
 	       (index_session->state & IS_FLAG_CLOSING))
-		uds_wait_cond(&index_session->request_cond,
-			      &index_session->request_mutex);
+		uds_wait_cond(&index_session->request_cond, &index_session->request_mutex);
 
 	if (index_session->state & IS_FLAG_DESTROYING) {
 		uds_unlock_mutex(&index_session->request_mutex);
@@ -739,8 +703,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 		/* Wait until the load exits before proceeding. */
 		uds_lock_mutex(&index_session->request_mutex);
 		while (index_session->state & IS_FLAG_LOADING)
-			uds_wait_cond(&index_session->request_cond,
-				      &index_session->request_mutex);
+			uds_wait_cond(&index_session->request_cond, &index_session->request_mutex);
 		uds_unlock_mutex(&index_session->request_mutex);
 	}
 
@@ -767,8 +730,8 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 }
 
 /*
- * Return the most recent parameters used to open an index. The caller is
- * responsible for freeing the returned structure.
+ * Return the most recent parameters used to open an index. The caller is responsible for freeing
+ * the returned structure.
  */
 int uds_get_index_parameters(struct uds_index_session *index_session,
 			     struct uds_parameters **parameters)
@@ -810,32 +773,27 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 }
 
 /* Statistics collection is intended to be thread-safe. */
-static void collect_stats(const struct uds_index_session *index_session,
-			  struct uds_index_stats *stats)
+static void
+collect_stats(const struct uds_index_session *index_session, struct uds_index_stats *stats)
 {
 	const struct session_stats *session_stats = &index_session->stats;
 
-	stats->current_time =
-		ktime_to_seconds(current_time_ns(CLOCK_REALTIME));
+	stats->current_time = ktime_to_seconds(current_time_ns(CLOCK_REALTIME));
 	stats->posts_found = READ_ONCE(session_stats->posts_found);
-	stats->in_memory_posts_found =
-		READ_ONCE(session_stats->posts_found_open_chapter);
+	stats->in_memory_posts_found = READ_ONCE(session_stats->posts_found_open_chapter);
 	stats->dense_posts_found = READ_ONCE(session_stats->posts_found_dense);
-	stats->sparse_posts_found =
-		READ_ONCE(session_stats->posts_found_sparse);
+	stats->sparse_posts_found = READ_ONCE(session_stats->posts_found_sparse);
 	stats->posts_not_found = READ_ONCE(session_stats->posts_not_found);
 	stats->updates_found = READ_ONCE(session_stats->updates_found);
 	stats->updates_not_found = READ_ONCE(session_stats->updates_not_found);
 	stats->deletions_found = READ_ONCE(session_stats->deletions_found);
-	stats->deletions_not_found =
-		READ_ONCE(session_stats->deletions_not_found);
+	stats->deletions_not_found = READ_ONCE(session_stats->deletions_not_found);
 	stats->queries_found = READ_ONCE(session_stats->queries_found);
 	stats->queries_not_found = READ_ONCE(session_stats->queries_not_found);
 	stats->requests = READ_ONCE(session_stats->requests);
 }
 
-int uds_get_index_stats(struct uds_index_session *index_session,
-			struct uds_index_stats *stats)
+int uds_get_index_stats(struct uds_index_session *index_session, struct uds_index_stats *stats)
 {
 	if (stats == NULL) {
 		uds_log_error("received a NULL index stats pointer");

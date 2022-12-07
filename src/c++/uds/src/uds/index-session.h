@@ -15,14 +15,13 @@
 #include "uds.h"
 
 /*
- * The index session mediates all interactions with a UDS index. Once the index
- * session is created, it can be used to open, close, suspend, or recreate an
- * index. It implements the majority of the functions in the top-level UDS API.
+ * The index session mediates all interactions with a UDS index. Once the index session is created,
+ * it can be used to open, close, suspend, or recreate an index. It implements the majority of the
+ * functions in the top-level UDS API.
  *
- * If any deduplication request fails due to an internal error, the index is
- * marked disabled. It will not accept any further requests and can only be
- * closed. Closing the index will clear the disabled flag, and the index can
- * then be reopened and recovered using the same index session.
+ * If any deduplication request fails due to an internal error, the index is marked disabled. It
+ * will not accept any further requests and can only be closed. Closing the index will clear the
+ * disabled flag, and the index can then be reopened and recovered using the same index session.
  */
 
 struct __aligned(L1_CACHE_BYTES) session_stats {
