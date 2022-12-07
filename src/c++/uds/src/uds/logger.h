@@ -82,17 +82,10 @@ void uds_log_backtrace(int priority);
 
 /* All log functions will preserve the caller's value of errno. */
 
-#define uds_log_strerror(priority, errnum, ...)     \
-	__uds_log_strerror(priority,                \
-			   errnum,                  \
-			   UDS_LOGGING_MODULE_NAME, \
-			   __VA_ARGS__)
+#define uds_log_strerror(priority, errnum, ...) \
+	__uds_log_strerror(priority, errnum, UDS_LOGGING_MODULE_NAME, __VA_ARGS__)
 
-int __uds_log_strerror(int priority,
-		       int errnum,
-		       const char *module,
-		       const char *format,
-		       ...)
+int __uds_log_strerror(int priority, int errnum, const char *module, const char *format, ...)
 	__printf(4, 5);
 
 int uds_vlog_strerror(int priority,
@@ -125,10 +118,7 @@ int uds_vlog_strerror(int priority,
 #define uds_log_message(priority, ...) \
 	__uds_log_message(priority, UDS_LOGGING_MODULE_NAME, __VA_ARGS__)
 
-void __uds_log_message(int priority,
-		       const char *module,
-		       const char *format,
-		       ...)
+void __uds_log_message(int priority, const char *module, const char *format, ...)
 	__printf(3, 4);
 #else /* not __KERNEL__ */
 #if defined(TEST_INTERNAL) || defined(INTERNAL)

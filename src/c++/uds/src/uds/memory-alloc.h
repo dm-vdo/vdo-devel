@@ -23,10 +23,7 @@
 
 /* Custom memory allocation functions for UDS that track memory usage */
 
-int __must_check uds_allocate_memory(size_t size,
-				     size_t align,
-				     const char *what,
-				     void *ptr);
+int __must_check uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr);
 
 void uds_free_memory(void *ptr);
 
@@ -42,25 +39,23 @@ static inline void *uds_forget(void **ptr_ptr)
 }
 
 /*
- * Null out a pointer and return a copy to it. This macro should be used when
- * passing a pointer to a function for which it is not safe to access the
- * pointer once the function returns.
+ * Null out a pointer and return a copy to it. This macro should be used when passing a pointer to
+ * a function for which it is not safe to access the pointer once the function returns.
  */
 #define UDS_FORGET(ptr) uds_forget((void **) &(ptr))
 
 /*
  * Allocate storage based on element counts, sizes, and alignment.
  *
- * This is a generalized form of our allocation use case: It allocates an array
- * of objects, optionally preceded by one object of another type (i.e., a
- * struct with trailing variable-length array), with the alignment indicated.
+ * This is a generalized form of our allocation use case: It allocates an array of objects,
+ * optionally preceded by one object of another type (i.e., a struct with trailing variable-length
+ * array), with the alignment indicated.
  *
- * Why is this inline? The sizes and alignment will always be constant, when
- * invoked through the macros below, and often the count will be a compile-time
- * constant 1 or the number of extra bytes will be a compile-time constant 0.
- * So at least some of the arithmetic can usually be optimized away, and the
- * run-time selection between allocation functions always can. In many cases,
- * it'll boil down to just a function call with a constant size.
+ * Why is this inline? The sizes and alignment will always be constant, when invoked through the
+ * macros below, and often the count will be a compile-time constant 1 or the number of extra bytes
+ * will be a compile-time constant 0. So at least some of the arithmetic can usually be optimized
+ * away, and the run-time selection between allocation functions always can. In many cases, it'll
+ * boil down to just a function call with a constant size.
  *
  * @count: The number of objects to allocate
  * @size: The size of an object
@@ -83,11 +78,10 @@ static inline int uds_do_allocation(size_t count,
 	/* Overflow check: */
 	if ((size > 0) && (count > ((SIZE_MAX - extra) / size)))
 		/*
-		 * This is kind of a hack: We rely on the fact that SIZE_MAX
-		 * would cover the entire address space (minus one byte) and
-		 * thus the system can never allocate that much and the call
-		 * will always fail. So we can report an overflow as "out of
-		 * memory" by asking for "merely" SIZE_MAX bytes.
+		 * This is kind of a hack: We rely on the fact that SIZE_MAX would cover the entire
+		 * address space (minus one byte) and thus the system can never allocate that much
+		 * and the call will always fail. So we can report an overflow as "out of memory"
+		 * by asking for "merely" SIZE_MAX bytes.
 		 */
 		total_size = SIZE_MAX;
 
@@ -101,12 +95,11 @@ int __must_check uds_reallocate_memory(void *ptr,
 				       void *new_ptr);
 
 /*
- * Allocate one or more elements of the indicated type, logging an
- * error if the allocation fails. The memory will be zeroed.
+ * Allocate one or more elements of the indicated type, logging an error if the allocation fails.
+ * The memory will be zeroed.
  *
  * @COUNT: The number of objects to allocate
- * @TYPE: The type of objects to allocate. This type determines the
- *        alignment of the allocated memory.
+ * @TYPE: The type of objects to allocate. This type determines the alignment of the allocation.
  * @WHAT: What is being allocated (for error logging)
  * @PTR: A pointer to hold the allocated memory
  *
@@ -116,12 +109,11 @@ int __must_check uds_reallocate_memory(void *ptr,
 	uds_do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
 
 /*
- * Allocate one object of an indicated type, followed by one or more
- * elements of a second type, logging an error if the allocation
- * fails. The memory will be zeroed.
+ * Allocate one object of an indicated type, followed by one or more elements of a second type,
+ * logging an error if the allocation fails. The memory will be zeroed.
  *
- * @TYPE1: The type of the primary object to allocate. This type
- *         determines the alignment of the allocated memory.
+ * @TYPE1: The type of the primary object to allocate. This type determines the alignment of the
+ *         allocated memory.
  * @COUNT: The number of objects to allocate
  * @TYPE2: The type of array objects to allocate
  * @WHAT: What is being allocated (for error logging)
@@ -144,8 +136,8 @@ int __must_check uds_reallocate_memory(void *ptr,
 	})
 
 /*
- * Allocate memory starting on a cache line boundary, logging an error if the
- * allocation fails. The memory will be zeroed.
+ * Allocate memory starting on a cache line boundary, logging an error if the allocation fails. The
+ * memory will be zeroed.
  *
  * @size: The number of bytes to allocate
  * @what: What is being allocated (for error logging)
@@ -153,9 +145,7 @@ int __must_check uds_reallocate_memory(void *ptr,
  *
  * Return: UDS_SUCCESS or an error code
  */
-static inline int __must_check uds_allocate_cache_aligned(size_t size,
-							  const char *what,
-							  void *ptr)
+static inline int __must_check uds_allocate_cache_aligned(size_t size, const char *what, void *ptr)
 {
 	return uds_allocate_memory(size, L1_CACHE_BYTES, what, ptr);
 }
@@ -163,20 +153,17 @@ static inline int __must_check uds_allocate_cache_aligned(size_t size,
 void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
 
 /*
- * Allocate one element of the indicated type immediately, failing if the
- * required memory is not immediately available.
+ * Allocate one element of the indicated type immediately, failing if the required memory is not
+ * immediately available.
  *
  * @TYPE: The type of objects to allocate
  * @WHAT: What is being allocated (for error logging)
  *
  * Return: pointer to the memory, or NULL if the memory is not available.
  */
-#define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) \
-	uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
+#define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
 
-int __must_check uds_duplicate_string(const char *string,
-				      const char *what,
-				      char **new_string);
+int __must_check uds_duplicate_string(const char *string, const char *what, char **new_string);
 
 /* Wrapper which permits freeing a const pointer. */
 static inline void uds_free_const(const void *pointer)
@@ -193,8 +180,7 @@ void uds_memory_exit(void);
 
 void uds_memory_init(void);
 
-void uds_register_allocating_thread(struct registered_thread *new_thread,
-				    const bool *flag_ptr);
+void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr);
 
 void uds_unregister_allocating_thread(void);
 
@@ -204,8 +190,8 @@ void report_uds_memory_usage(void);
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 /*
- * These are testing methods for injecting memory allocation errors. These
- * methods are used by the AllocFail UDSTests and by the MemoryFail VDOTests.
+ * These are testing methods for injecting memory allocation errors. These methods are used by the
+ * AllocFail UDSTests and by the MemoryFail VDOTests.
  */
 
 extern atomic_long_t uds_allocate_memory_counter;
@@ -218,8 +204,7 @@ extern long uds_allocation_error_injection;
  */
 static inline bool uds_allocation_failure_scheduled(void)
 {
-	return atomic_long_read(&uds_allocate_memory_counter) <
-	       uds_allocation_error_injection;
+	return atomic_long_read(&uds_allocate_memory_counter) < uds_allocation_error_injection;
 }
 
 /* Cancel any future memory allocation failure. */
@@ -229,28 +214,27 @@ static inline void cancel_uds_memory_allocation_failure(void)
 }
 
 /*
- * Set up a future memory allocation failure. The first (count-1) allocations
- * will succeed, and the next one will fail with an -ENOMEM.
+ * Set up a future memory allocation failure. The first (count-1) allocations will succeed, and the
+ * next one will fail with an -ENOMEM.
  *
  * @count: The number of the allocation that will fail
  */
 static inline void schedule_uds_memory_allocation_failure(long count)
 {
-	uds_allocation_error_injection =
-		atomic_long_read(&uds_allocate_memory_counter) + count;
+	uds_allocation_error_injection = atomic_long_read(&uds_allocate_memory_counter) + count;
 }
 
 /*
- * Control the recording of data tracking all memory allocations. If any
- * such tracking is already in progress, stop it so we can start afresh.
+ * Control the recording of data tracking all memory allocations. If any such tracking is already
+ * in progress, stop it so we can start afresh.
  *
  * @track_flag: True to begin tracking, or false to terminate tracking
  */
 int track_uds_memory_allocations(bool track_flag);
 
 /*
- * Log all the blocks that have been allocated but not freed since
- * track_uds_memory_allocations() was last called.
+ * Log all the blocks that have been allocated but not freed since track_uds_memory_allocations()
+ * was last called.
  */
 void log_uds_memory_allocations(void);
 

@@ -13,16 +13,14 @@
 #include "volume-index.h"
 
 /*
- * The index is a high-level structure which represents the totality
- * of the UDS index. It manages the queues for incoming requests and
- * dispatches them to the appropriate sub-components like the volume
- * or the volume index. It also manages administrative tasks such as
- * saving and loading the index.
+ * The index is a high-level structure which represents the totality of the UDS index. It manages
+ * the queues for incoming requests and dispatches them to the appropriate sub-components like the
+ * volume or the volume index. It also manages administrative tasks such as saving and loading the
+ * index.
  *
- * The index is divided into a number of independent zones and assigns
- * each request to a zone based on its name. Most sub-components are
- * similarly divided into zones as well so that requests in each zone
- * usually operate without interference or coordination between zones.
+ * The index is divided into a number of independent zones and assigns each request to a zone based
+ * on its name. Most sub-components are similarly divided into zones as well so that requests in
+ * each zone usually operate without interference or coordination between zones.
  */
 #ifdef TEST_INTERNAL
 
@@ -79,11 +77,9 @@ int __must_check save_index(struct uds_index *index);
 
 void free_index(struct uds_index *index);
 
-int __must_check replace_index_storage(struct uds_index *index,
-				       const char *path);
+int __must_check replace_index_storage(struct uds_index *index, const char *path);
 
-void get_index_stats(struct uds_index *index,
-		     struct uds_index_stats *counters);
+void get_index_stats(struct uds_index *index, struct uds_index_stats *counters);
 
 void enqueue_request(struct uds_request *request, enum request_stage stage);
 

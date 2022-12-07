@@ -21,22 +21,18 @@
 enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 
 /*
- * The I/O factory object manages access to index storage, which is a
- * contiguous range of blocks on a block device.
+ * The I/O factory object manages access to index storage, which is a contiguous range of blocks on
+ * a block device.
  *
- * The factory holds the open device and is responsible for closing
- * it. The factory has methods to make helper structures that can be
- * used to access sections of the index.
+ * The factory holds the open device and is responsible for closing it. The factory has methods to
+ * make helper structures that can be used to access sections of the index.
  */
 struct io_factory {
 	struct block_device *bdev;
 	atomic_t ref_count;
 };
 
-/*
- * The buffered reader allows efficient I/O by reading page-sized segments into
- * a buffer.
- */
+/* The buffered reader allows efficient I/O by reading page-sized segments into a buffer. */
 struct buffered_reader {
 	struct io_factory *factory;
 	struct dm_bufio_client *client;
@@ -50,8 +46,8 @@ struct buffered_reader {
 enum { MAX_READ_AHEAD_BLOCKS = 4 };
 
 /*
- * The buffered writer allows efficient I/O by buffering writes and committing
- * page-sized segments to storage.
+ * The buffered writer allows efficient I/O by buffering writes and committing page-sized segments
+ * to storage.
  */
 struct buffered_writer {
 	struct io_factory *factory;
@@ -69,8 +65,7 @@ static void get_uds_io_factory(struct io_factory *factory)
 	atomic_inc(&factory->ref_count);
 }
 
-static int get_block_device_from_name(const char *name,
-				      struct block_device **bdev)
+static int get_block_device_from_name(const char *name, struct block_device **bdev)
 {
 	dev_t device = name_to_dev_t(name);
 
@@ -79,9 +74,7 @@ static int get_block_device_from_name(const char *name,
 	else
 		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
 	if (IS_ERR(*bdev)) {
-		uds_log_error_strerror(-PTR_ERR(*bdev),
-				       "%s is not a block device",
-				       name);
+		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
 		return UDS_INVALID_ARGUMENT;
 	}
 
@@ -175,8 +168,8 @@ int make_uds_bufio(struct io_factory *factory,
 static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 {
 	if (block_number < reader->limit) {
-		sector_t read_ahead = min((sector_t) MAX_READ_AHEAD_BLOCKS,
-					  reader->limit - block_number);
+		sector_t read_ahead =
+			min((sector_t) MAX_READ_AHEAD_BLOCKS, reader->limit - block_number);
 
 		dm_bufio_prefetch(reader->client, block_number, read_ahead);
 	}
@@ -209,10 +202,7 @@ int make_buffered_reader(struct io_factory *factory,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1,
-			      struct buffered_reader,
-			      "buffered reader",
-			      &reader);
+	result = UDS_ALLOCATE(1, struct buffered_reader, "buffered reader", &reader);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;
@@ -234,9 +224,7 @@ int make_buffered_reader(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
-static int position_reader(struct buffered_reader *reader,
-			   sector_t block_number,
-			   off_t offset)
+static int position_reader(struct buffered_reader *reader, sector_t block_number, off_t offset)
 {
 	struct dm_buffer *buffer = NULL;
 	void *data;
@@ -265,9 +253,7 @@ static int position_reader(struct buffered_reader *reader,
 
 static size_t bytes_remaining_in_read_buffer(struct buffered_reader *reader)
 {
-	return (reader->end == NULL ?
-		0 :
-		reader->start + UDS_BLOCK_SIZE - reader->end);
+	return (reader->end == NULL ? 0 : reader->start + UDS_BLOCK_SIZE - reader->end);
 }
 
 static int reset_reader(struct buffered_reader *reader)
@@ -284,9 +270,7 @@ static int reset_reader(struct buffered_reader *reader)
 	return position_reader(reader, block_number, 0);
 }
 
-int read_from_buffered_reader(struct buffered_reader *reader,
-			      byte *data,
-			      size_t length)
+int read_from_buffered_reader(struct buffered_reader *reader, byte *data, size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -307,13 +291,10 @@ int read_from_buffered_reader(struct buffered_reader *reader,
 }
 
 /*
- * Verify that the next data on the reader matches the required value. If the
- * value matches, the matching contents are consumed. If the value does not
- * match, the reader state is unchanged.
+ * Verify that the next data on the reader matches the required value. If the value matches, the
+ * matching contents are consumed. If the value does not match, the reader state is unchanged.
  */
-int verify_buffered_data(struct buffered_reader *reader,
-			 const byte *value,
-			 size_t length)
+int verify_buffered_data(struct buffered_reader *reader, const byte *value, size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -358,10 +339,7 @@ int make_buffered_writer(struct io_factory *factory,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1,
-			      struct buffered_writer,
-			      "buffered writer",
-			      &writer);
+	result = UDS_ALLOCATE(1, struct buffered_writer, "buffered writer", &writer);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;
@@ -451,9 +429,7 @@ void free_buffered_writer(struct buffered_writer *writer)
 	flush_previous_buffer(writer);
 	result = -dm_bufio_write_dirty_buffers(writer->client);
 	if (result != UDS_SUCCESS)
-		uds_log_warning_strerror(result,
-					 "%s: failed to sync storage",
-					 __func__);
+		uds_log_warning_strerror(result, "%s: failed to sync storage", __func__);
 
 	dm_bufio_client_destroy(writer->client);
 	put_uds_io_factory(writer->factory);
@@ -461,13 +437,10 @@ void free_buffered_writer(struct buffered_writer *writer)
 }
 
 /*
- * Append data to the buffer, writing as needed. If no data is provided, zeros
- * are written instead. If a write error occurs, it is recorded and returned on
- * every subsequent write attempt.
+ * Append data to the buffer, writing as needed. If no data is provided, zeros are written instead.
+ * If a write error occurs, it is recorded and returned on every subsequent write attempt.
  */
-int write_to_buffered_writer(struct buffered_writer *writer,
-			     const byte *data,
-			     size_t length)
+int write_to_buffered_writer(struct buffered_writer *writer, const byte *data, size_t length)
 {
 	int result = writer->error;
 	size_t chunk_size;
