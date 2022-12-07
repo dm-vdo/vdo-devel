@@ -57,11 +57,9 @@ static const char *const message_table[] = {
 
 static const struct error_info error_list[] = {
 	{ "UDS_OVERFLOW", "Index overflow" },
-	{ "UDS_INVALID_ARGUMENT",
-	  "Invalid argument passed to internal routine" },
+	{ "UDS_INVALID_ARGUMENT", "Invalid argument passed to internal routine" },
 	{ "UDS_BAD_STATE", "UDS data structures are in an invalid state" },
-	{ "UDS_DUPLICATE_NAME",
-	  "Attempt to enter the same name into a delta index twice" },
+	{ "UDS_DUPLICATE_NAME", "Attempt to enter the same name into a delta index twice" },
 	{ "UDS_ASSERTION_FAILED", "Assertion failed" },
 	{ "UDS_QUEUED", "Request queued" },
 	{ "UDS_BUFFER_ERROR", "Buffer error" },
@@ -105,22 +103,14 @@ static struct {
 		  } },
 };
 
-/*
- * Get the error info for an error number. Also returns the name of the error
- * block, if known.
- */
-static const char *get_error_info(int errnum,
-				  const struct error_info **info_ptr)
+/* Get the error info for an error number. Also returns the name of the error block, if known. */
+static const char *get_error_info(int errnum, const struct error_info **info_ptr)
 {
 	struct error_block *block;
 
 #ifdef TEST_INTERNAL
-	/*
-	 * These assertions need to appear once (anywhere) in the compiled
-	 * code.
-	 */
-	STATIC_ASSERT((UDS_ERROR_CODE_LAST - UDS_ERROR_CODE_BASE) ==
-		      ARRAY_SIZE(error_list));
+	/* These assertions need to appear once (anywhere) in the compiled code. */
+	STATIC_ASSERT((UDS_ERROR_CODE_LAST - UDS_ERROR_CODE_BASE) == ARRAY_SIZE(error_list));
 
 #endif /* TEST_INTERNAL */
 	if (errnum == UDS_SUCCESS) {
@@ -199,18 +189,12 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 						      block_name,
 						      errnum);
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer,
-					      buf_end,
-					      "%s",
-					      info->message);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->message);
 	} else {
-		const char *tmp =
-			system_string_error(errnum, buffer, buf_end - buffer);
+		const char *tmp = system_string_error(errnum, buffer, buf_end - buffer);
+
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
-						      "%s",
-						      tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -231,10 +215,7 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL)
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
-						      "%s",
-						      info->name);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
 		else
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
@@ -242,19 +223,13 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 						      block_name,
 						      errnum);
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer,
-					      buf_end,
-					      "%s",
-					      info->name);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
 	} else {
 		const char *tmp;
 
 		tmp = system_string_error(errnum, buffer, buf_end - buffer);
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
-						      "%s",
-						      tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -262,9 +237,9 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 }
 
 /*
- * Translate an error code into a value acceptable to the kernel. The input
- * error code may be a system-generated value (such as -EIO), or an internal
- * UDS status code. The result will be a negative errno value.
+ * Translate an error code into a value acceptable to the kernel. The input error code may be a
+ * system-generated value (such as -EIO), or an internal UDS status code. The result will be a
+ * negative errno value.
  */
 int uds_map_to_system_error(int error)
 {
@@ -289,8 +264,8 @@ int uds_map_to_system_error(int error)
 	case UDS_INDEX_NOT_SAVED_CLEANLY:
 	case UDS_UNSUPPORTED_VERSION:
 		/*
-		 * The index exists, but can't be loaded. Tell the client it
-		 * exists so they don't destroy it inadvertently.
+		 * The index exists, but can't be loaded. Tell the client it exists so they don't
+		 * destroy it inadvertently.
 		 */
 		return -EEXIST;
 
@@ -303,12 +278,8 @@ int uds_map_to_system_error(int error)
 		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
 			     __func__,
 			     error,
-			     uds_string_error_name(error,
-						   error_name,
-						   sizeof(error_name)),
-			     uds_string_error(error,
-					      error_message,
-					      sizeof(error_message)));
+			     uds_string_error_name(error, error_name, sizeof(error_name)),
+			     uds_string_error(error, error_message, sizeof(error_message)));
 		return -EIO;
 	}
 }
@@ -338,8 +309,7 @@ int register_error_block(const char *block_name,
 		.infos = infos,
 	};
 
-	result = ASSERT(first_error < next_free_error,
-			"well-defined error block range");
+	result = ASSERT(first_error < next_free_error, "well-defined error block range");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -354,8 +324,7 @@ int register_error_block(const char *block_name,
 			return UDS_DUPLICATE_NAME;
 
 		/* Ensure error ranges do not overlap. */
-		if ((first_error < block->max) &&
-		    (next_free_error > block->base))
+		if ((first_error < block->max) && (next_free_error > block->base))
 			return UDS_ALREADY_REGISTERED;
 	}
 

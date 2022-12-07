@@ -12,10 +12,7 @@
 /* Custom error codes and error-related utilities for UDS */
 
 #ifdef TEST_INTERNAL
-/*
- * If you add a value to this enum be sure to add a corresponding
- * error description in errors.c!
- */
+/* If you add a value to this enum be sure to add a corresponding error description in errors.c! */
 
 #endif
 /* Valid status codes for internal UDS functions. */
@@ -75,9 +72,7 @@ struct error_info {
 	const char *message;
 };
 
-const char * __must_check uds_string_error(int errnum,
-					   char *buf,
-					   size_t buflen);
+const char * __must_check uds_string_error(int errnum, char *buf, size_t buflen);
 
 const char *uds_string_error_name(int errnum, char *buf, size_t buflen);
 

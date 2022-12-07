@@ -11,9 +11,9 @@
 #include "uds.h"
 
 /*
- * The geometry records parameters that define the layout of a UDS index
- * volume, and the size and shape of various index structures. It is created
- * when the index is created, and is referenced by many index sub-components.
+ * The geometry records parameters that define the layout of a UDS index volume, and the size and
+ * shape of various index structures. It is created when the index is created, and is referenced by
+ * many index sub-components.
  */
 
 struct geometry {
@@ -33,8 +33,8 @@ struct geometry {
 	uint64_t remapped_physical;
 
 	/*
-	 * The following properties are derived from the ones above, but they
-	 * are computed and recorded as fields for convenience.
+	 * The following properties are derived from the ones above, but they are computed and
+	 * recorded as fields for convenience.
 	 */
 	/* Total number of pages in a volume, excluding the header */
 	unsigned int pages_per_volume;
@@ -104,27 +104,23 @@ int __must_check make_geometry(size_t bytes_per_page,
 			       uint64_t remapped_physical,
 			       struct geometry **geometry_ptr);
 
-int __must_check copy_geometry(struct geometry *source,
-			       struct geometry **geometry_ptr);
+int __must_check copy_geometry(struct geometry *source, struct geometry **geometry_ptr);
 
 void free_geometry(struct geometry *geometry);
 
 unsigned int __must_check
-map_to_physical_chapter(const struct geometry *geometry,
-			uint64_t virtual_chapter);
+map_to_physical_chapter(const struct geometry *geometry, uint64_t virtual_chapter);
 
 /*
- * Check whether this geometry is reduced by a chapter. This will only be true
- * if the volume was converted from a non-lvm volume to an lvm volume.
+ * Check whether this geometry is reduced by a chapter. This will only be true if the volume was
+ * converted from a non-lvm volume to an lvm volume.
  */
-static inline bool __must_check
-is_reduced_geometry(const struct geometry *geometry)
+static inline bool __must_check is_reduced_geometry(const struct geometry *geometry)
 {
 	return !!(geometry->chapters_per_volume & 1);
 }
 
-static inline bool __must_check
-is_sparse_geometry(const struct geometry *geometry)
+static inline bool __must_check is_sparse_geometry(const struct geometry *geometry)
 {
 	return (geometry->sparse_chapters_per_volume > 0);
 }
@@ -138,7 +134,7 @@ bool __must_check is_chapter_sparse(const struct geometry *geometry,
 				    uint64_t newest_virtual_chapter,
 				    uint64_t virtual_chapter_number);
 
-unsigned int __must_check chapters_to_expire(const struct geometry *geometry,
-					     uint64_t newest_chapter);
+unsigned int __must_check
+chapters_to_expire(const struct geometry *geometry, uint64_t newest_chapter);
 
 #endif /* GEOMETRY_H */
