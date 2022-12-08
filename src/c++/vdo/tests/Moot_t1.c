@@ -128,8 +128,8 @@ static void testReadFulfillmentAndCompressorMooting(void)
   // Read the data from the VIO that is in the compressor.
   verifyData(1, 1, 1);
   toExamine = vio_as_data_vio(getBlockedVIO());
-  CU_ASSERT_EQUAL(get_vio_compression_state(toExamine).status,
-                  VIO_COMPRESSING);
+  CU_ASSERT_EQUAL(get_data_vio_compression_status(toExamine).stage,
+                  DATA_VIO_COMPRESSING);
 
   // Prevent any more VIOs from going to the packer.
   preventPacking();
@@ -176,7 +176,8 @@ static void assertPacking(struct vdo_completion *completion)
 {
   toExamine = as_data_vio(completion);
   runSavedCallbackAssertNoRequeue(completion);
-  CU_ASSERT_EQUAL(get_vio_compression_state(toExamine).status, VIO_PACKING);
+  CU_ASSERT_EQUAL(get_data_vio_compression_status(toExamine).stage,
+                  DATA_VIO_PACKING);
   signalState(&reachedPacker);
 }
 
@@ -203,7 +204,7 @@ static bool assertCanceled(struct vdo_completion *completion)
   if (completion == data_vio_as_completion(toExamine)) {
     struct data_vio *dataVIO = UDS_FORGET(toExamine);
     clearCompletionEnqueueHooks();
-    CU_ASSERT_TRUE(get_vio_compression_state(dataVIO).may_not_compress);
+    CU_ASSERT_TRUE(get_data_vio_compression_status(dataVIO).may_not_compress);
   }
 
   return true;

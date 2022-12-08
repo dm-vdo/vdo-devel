@@ -117,16 +117,16 @@ struct zoned_pbn {
 
 struct compression_state {
 	/*
-	 * The current compression state of this vio. This field contains a
-	 * value which consists of a vio_compression_state possibly ORed with a
-	 * flag indicating that a request has been made to cancel (or prevent)
-	 * compression for this vio.
+	 * The current compression status of this data_vio. This field contains
+	 * a value which consists of a data_vio_compression_stage and a flag
+	 * indicating whether a request has been made to cancel (or prevent)
+	 * compression for this data_vio.
 	 *
 	 * This field should be accessed through the
-	 * get_vio_compression_state() and set_vio_compression_state() methods.
+	 * get_data_vio_compression_status() and set_data_vio_compression_status() methods.
 	 * It should not be accessed directly.
 	 */
-	atomic_t state;
+	atomic_t status;
 
 	/* The compressed size of this block */
 	uint16_t size;

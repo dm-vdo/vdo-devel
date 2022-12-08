@@ -227,7 +227,7 @@ static void abort_packing(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 
-	set_vio_compression_done(data_vio);
+	set_data_vio_compression_done(data_vio);
 
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
@@ -566,15 +566,15 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 {
 	int result;
 	struct packer_bin *bin;
-	struct vio_compression_state state =
-		get_vio_compression_state(data_vio);
+	struct data_vio_compression_status status =
+		get_data_vio_compression_status(data_vio);
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 
 	assert_on_packer_thread(packer, __func__);
 
-	result = ASSERT((state.status == VIO_COMPRESSING),
-			"attempt to pack data_vio not ready for packing, state: %u",
-			state.status);
+	result = ASSERT((status.stage == DATA_VIO_COMPRESSING),
+			"attempt to pack data_vio not ready for packing, stage: %u",
+			status.stage);
 	if (result != VDO_SUCCESS)
 		return;
 
@@ -609,7 +609,7 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	 * calling may_vio_block_in_packer() (VDO-2826).
 	 */
 	bin = select_bin(packer, data_vio);
-	if ((bin == NULL) || !may_vio_block_in_packer(data_vio)) {
+	if ((bin == NULL) || !may_data_vio_block_in_packer(data_vio)) {
 		abort_packing(data_vio);
 		return;
 	}

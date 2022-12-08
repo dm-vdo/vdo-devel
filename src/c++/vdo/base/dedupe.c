@@ -717,7 +717,7 @@ static void wait_on_hash_lock(struct hash_lock *lock,
 	 * it now has at least one other data_vio waiting on it.
 	 */
 	if ((lock->state != VDO_HASH_LOCK_WRITING) ||
-	    !cancel_vio_compression(lock->agent))
+	    !cancel_data_vio_compression(lock->agent))
 		return;
 
 	/*
@@ -1881,7 +1881,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	 * which would be bad if there are any other data_vios waiting.
 	 */
 	if (has_waiters(&lock->waiters))
-		cancel_vio_compression(agent);
+		cancel_data_vio_compression(agent);
 
 	/*
 	 * Send the agent to the compress/pack/write path in vioWrite.  If it

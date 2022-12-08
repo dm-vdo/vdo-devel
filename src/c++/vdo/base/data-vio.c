@@ -434,7 +434,7 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 	 * Prevent writes and read-modify-writes from blocking indefinitely on
 	 * lock holders in the packer.
 	 */
-	if (lock_holder->write && cancel_vio_compression(lock_holder)) {
+	if (lock_holder->write && cancel_data_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
 		launch_data_vio_packer_callback(data_vio, vdo_remove_lock_holder_from_packer);
 	}
@@ -1236,7 +1236,7 @@ static void transfer_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 	 * transferred. We must ensure that the new lock holder doesn't block in the packer.
 	 */
 	if (has_waiters(&next_lock_holder->logical.waiters))
-		cancel_vio_compression(next_lock_holder);
+		cancel_data_vio_compression(next_lock_holder);
 
 	/*
 	 * Avoid stack overflow on lock transfer.
