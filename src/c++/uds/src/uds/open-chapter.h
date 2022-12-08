@@ -13,9 +13,9 @@
 #include "volume.h"
 
 /*
- * The open chapter tracks the newest records in memory. Like the index as a
- * whole, each open chapter is divided into a number of independent zones which
- * are interleaved when the chapter is committed to the volume.
+ * The open chapter tracks the newest records in memory. Like the index as a whole, each open
+ * chapter is divided into a number of independent zones which are interleaved when the chapter is
+ * committed to the volume.
  */
 
 enum {
@@ -44,10 +44,9 @@ struct open_chapter_zone {
 	struct open_chapter_zone_slot slots[];
 };
 
-int __must_check
-make_open_chapter(const struct geometry *geometry,
-		  unsigned int zone_count,
-		  struct open_chapter_zone **open_chapter_ptr);
+int __must_check make_open_chapter(const struct geometry *geometry,
+				   unsigned int zone_count,
+				   struct open_chapter_zone **open_chapter_ptr);
 
 void reset_open_chapter(struct open_chapter_zone *open_chapter);
 
@@ -72,11 +71,9 @@ int __must_check close_open_chapter(struct open_chapter_zone **chapter_zones,
 				    struct uds_volume_record *collated_records,
 				    uint64_t virtual_chapter_number);
 
-int __must_check save_open_chapter(struct uds_index *index,
-				   struct buffered_writer *writer);
+int __must_check save_open_chapter(struct uds_index *index, struct buffered_writer *writer);
 
-int __must_check load_open_chapter(struct uds_index *index,
-				   struct buffered_reader *reader);
+int __must_check load_open_chapter(struct uds_index *index, struct buffered_reader *reader);
 
 uint64_t compute_saved_open_chapter_size(struct geometry *geometry);
 

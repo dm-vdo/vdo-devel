@@ -29,8 +29,7 @@ static bool exit_on_assertion_failure;
 static bool exit_on_assertion_failure = true;
 #endif /* DEBUGGING_OFF */
 
-static const char *EXIT_ON_ASSERTION_FAILURE_VARIABLE =
-	"UDS_EXIT_ON_ASSERTION_FAILURE";
+static const char *EXIT_ON_ASSERTION_FAILURE_VARIABLE = "UDS_EXIT_ON_ASSERTION_FAILURE";
 
 static atomic_t init_once = ATOMIC_INIT(0);
 static struct mutex mutex = { .mutex = UDS_MUTEX_INITIALIZER };
@@ -38,12 +37,10 @@ static struct mutex mutex = { .mutex = UDS_MUTEX_INITIALIZER };
 static void initialize(void)
 {
 	uds_initialize_mutex(&mutex, !UDS_DO_ASSERTIONS);
-	char *exit_on_assertion_failure_string =
-		getenv(EXIT_ON_ASSERTION_FAILURE_VARIABLE);
+	char *exit_on_assertion_failure_string = getenv(EXIT_ON_ASSERTION_FAILURE_VARIABLE);
 	if (exit_on_assertion_failure_string != NULL)
 		exit_on_assertion_failure =
-			(strcasecmp(exit_on_assertion_failure_string,
-				    "true") == 0);
+			(strcasecmp(exit_on_assertion_failure_string, "true") == 0);
 }
 
 bool set_exit_on_assertion_failure(bool should_exit)
@@ -85,10 +82,7 @@ int uds_assertion_failed(const char *expression_string,
 	perform_once(&init_once, initialize);
 	uds_lock_mutex(&mutex);
 	if (exit_on_assertion_failure)
-		__assert_fail(expression_string,
-			      file_name,
-			      line_number,
-			      __ASSERT_FUNCTION);
+		__assert_fail(expression_string, file_name, line_number, __ASSERT_FUNCTION);
 	uds_unlock_mutex(&mutex);
 #endif /* not __KERNEL__ */
 

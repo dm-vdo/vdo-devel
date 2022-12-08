@@ -16,38 +16,31 @@
 #include "permassert.h"
 
 /*
- * Each index zone has a dedicated open chapter zone structure which gets an
- * equal share of the open chapter space. Records are assigned to zones based
- * on their record name. Within each zone, records are stored in an array in
- * the order they arrive.  Additionally, a reference to each record is stored
- * in a hash table to help determine if a new record duplicates an existing
- * one. If new metadata for an existing name arrives, the record is altered in
- * place. The array of records is 1-based so that record number 0 can be used
- * to indicate an unused hash slot.
+ * Each index zone has a dedicated open chapter zone structure which gets an equal share of the
+ * open chapter space. Records are assigned to zones based on their record name. Within each zone,
+ * records are stored in an array in the order they arrive. Additionally, a reference to each
+ * record is stored in a hash table to help determine if a new record duplicates an existing one.
+ * If new metadata for an existing name arrives, the record is altered in place. The array of
+ * records is 1-based so that record number 0 can be used to indicate an unused hash slot.
  *
- * Deleted records are marked with a flag rather than actually removed to
- * simplify hash table management. The array of deleted flags overlays the
- * array of hash slots, but the flags are indexed by record number instead of
- * by record name. The number of hash slots will always be a power of two that
- * is greater than the number of records to be indexed, guaranteeing that hash
+ * Deleted records are marked with a flag rather than actually removed to simplify hash table
+ * management. The array of deleted flags overlays the array of hash slots, but the flags are
+ * indexed by record number instead of by record name. The number of hash slots will always be a
+ * power of two that is greater than the number of records to be indexed, guaranteeing that hash
  * insertion cannot fail, and that there are sufficient flags for all records.
  *
- * Once any open chapter zone fills its available space, the chapter is
- * closed. The records from each zone are interleaved to attempt to preserve
- * temporal locality and assigned to record pages. Empty or deleted records
- * are replaced by copies of a valid record so that the record pages only
- * contain valid records. The chapter then constructs a delta index which maps
- * each record name to the record page on which that record can be found, which
- * is split into index pages. These structures are then passed to the volume to
- * be recorded on storage.
+ * Once any open chapter zone fills its available space, the chapter is closed. The records from
+ * each zone are interleaved to attempt to preserve temporal locality and assigned to record pages.
+ * Empty or deleted records are replaced by copies of a valid record so that the record pages only
+ * contain valid records. The chapter then constructs a delta index which maps each record name to
+ * the record page on which that record can be found, which is split into index pages. These
+ * structures are then passed to the volume to be recorded on storage.
  *
- * When the index is saved, the open chapter records are saved in a single
- * array, once again interleaved to attempt to preserve temporal locality. When
- * the index is reloaded, there may be a different number of zones than
- * previously, so the records must be parcelled out to their new zones. In
- * addition, depending on the distribution of record names, a new zone may have
- * more records than it has space. In this case, the latest records for that
- * zone will be discarded.
+ * When the index is saved, the open chapter records are saved in a single array, once again
+ * interleaved to attempt to preserve temporal locality. When the index is reloaded, there may be a
+ * different number of zones than previously, so the records must be parcelled out to their new
+ * zones. In addition, depending on the distribution of record names, a new zone may have more
+ * records than it has space. In this case, the latest records for that zone will be discarded.
  */
 
 static const byte OPEN_CHAPTER_MAGIC[] = "ALBOC";
@@ -61,8 +54,7 @@ enum {
 
 static inline size_t records_size(const struct open_chapter_zone *open_chapter)
 {
-	return sizeof(struct uds_volume_record) *
-		(1 + open_chapter->capacity);
+	return sizeof(struct uds_volume_record) * (1 + open_chapter->capacity);
 }
 
 static inline size_t slots_size(size_t slot_count)
@@ -110,8 +102,8 @@ void reset_open_chapter(struct open_chapter_zone *open_chapter)
 	memset(open_chapter->slots, 0, slots_size(open_chapter->slot_count));
 }
 
-static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
-					const struct uds_record_name *name)
+static unsigned int
+probe_chapter_slots(struct open_chapter_zone *open_chapter, const struct uds_record_name *name)
 {
 	struct uds_volume_record *record;
 	unsigned int slot_count = open_chapter->slot_count;
@@ -123,15 +115,15 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 		record_number = open_chapter->slots[slot].record_number;
 
 		/*
-		 * If the hash slot is empty, we've reached the end of a chain
-		 * without finding the record and should terminate the search.
+		 * If the hash slot is empty, we've reached the end of a chain without finding the
+		 * record and should terminate the search.
 		 */
 		if (record_number == 0)
 			return slot;
 
 		/*
-		 * If the name of the record referenced by the slot matches and
-		 * has not been deleted, then we've found the requested name.
+		 * If the name of the record referenced by the slot matches and has not been
+		 * deleted, then we've found the requested name.
 		 */
 		record = &open_chapter->records[record_number];
 		if ((memcmp(&record->name, name, UDS_RECORD_NAME_SIZE) == 0) &&
@@ -139,9 +131,8 @@ static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
 			return slot;
 
 		/*
-		 * Quadratic probing: advance the probe by 1, 2, 3, etc. and
-		 * try again. This performs better than linear probing and
-		 * works best for 2^N slots.
+		 * Quadratic probing: advance the probe by 1, 2, 3, etc. and try again. This
+		 * performs better than linear probing and works best for 2^N slots.
 		 */
 		slot = (slot + attempts++) % slot_count;
 	}
@@ -215,10 +206,7 @@ void free_open_chapter(struct open_chapter_zone *open_chapter)
 	}
 }
 
-/*
- * Map each record name to its record page number in the delta chapter
- * index.
- */
+/* Map each record name to its record page number in the delta chapter index. */
 static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 				    unsigned int zone_count,
 				    struct open_chapter_index *index,
@@ -235,10 +223,10 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 	struct uds_volume_record *fill_record = NULL;
 
 	/*
-	 * The record pages should not have any empty space, so find a record
-	 * with which to fill the chapter zone if it was closed early, and also
-	 * to replace any deleted records. The last record in any filled zone
-	 * is guaranteed to not have been deleted, so use one of those.
+	 * The record pages should not have any empty space, so find a record with which to fill
+	 * the chapter zone if it was closed early, and also to replace any deleted records. The
+	 * last record in any filled zone is guaranteed to not have been deleted, so use one of
+	 * those.
 	 */
 	for (z = 0; z < zone_count; z++) {
 		struct open_chapter_zone *zone = chapter_zones[z];
@@ -269,9 +257,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		}
 
 		*record = open_chapter->records[record_index];
-		result = put_open_chapter_index_record(index,
-						       &record->name,
-						       page_number);
+		result = put_open_chapter_index_record(index, &record->name, page_number);
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
@@ -279,15 +265,13 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 			overflow_count++;
 			break;
 		default:
-			uds_log_error_strerror(result,
-					       "failed to build open chapter index");
+			uds_log_error_strerror(result, "failed to build open chapter index");
 			return result;
 		}
 	}
 
 	if (overflow_count > 0)
-		uds_log_warning("Failed to add %d entries to chapter index",
-				overflow_count);
+		uds_log_warning("Failed to add %d entries to chapter index", overflow_count);
 
 	return UDS_SUCCESS;
 }
@@ -322,9 +306,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	unsigned int record_index;
 	unsigned int z;
 
-	result = write_to_buffered_writer(writer,
-					  OPEN_CHAPTER_MAGIC,
-					  OPEN_CHAPTER_MAGIC_LENGTH);
+	result = write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -340,9 +322,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	}
 
 	put_unaligned_le32(record_count, record_count_data);
-	result = write_to_buffered_writer(writer,
-					  record_count_data,
-					  sizeof(record_count_data));
+	result = write_to_buffered_writer(writer, record_count_data, sizeof(record_count_data));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -376,13 +356,11 @@ uint64_t compute_saved_open_chapter_size(struct geometry *geometry)
 {
 	unsigned int records_per_chapter = geometry->records_per_chapter;
 
-	return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH +
-		sizeof(uint32_t) +
+	return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH + sizeof(uint32_t) +
 		records_per_chapter * sizeof(struct uds_volume_record);
 }
 
-static int load_version20(struct uds_index *index,
-			  struct buffered_reader *reader)
+static int load_version20(struct uds_index *index, struct buffered_reader *reader)
 {
 	int result;
 	uint32_t record_count;
@@ -390,10 +368,9 @@ static int load_version20(struct uds_index *index,
 	struct uds_volume_record record;
 
 	/*
-	 * Track which zones cannot accept any more records. If the open
-	 * chapter had a different number of zones previously, some new zones
-	 * may have more records than they have space for. These overflow
-	 * records will be discarded.
+	 * Track which zones cannot accept any more records. If the open chapter had a different
+	 * number of zones previously, some new zones may have more records than they have space
+	 * for. These overflow records will be discarded.
 	 */
 	bool full_flags[MAX_ZONES] = {
 		false,
@@ -409,24 +386,19 @@ static int load_version20(struct uds_index *index,
 	while (record_count-- > 0) {
 		unsigned int zone = 0;
 
-		result = read_from_buffered_reader(reader,
-						   (byte *) &record,
-						   sizeof(record));
+		result = read_from_buffered_reader(reader, (byte *) &record, sizeof(record));
 		if (result != UDS_SUCCESS)
 			return result;
 
 		if (index->zone_count > 1)
-			zone = get_volume_index_zone(index->volume_index,
-						     &record.name);
+			zone = get_volume_index_zone(index->volume_index, &record.name);
 
 		if (!full_flags[zone]) {
 			struct open_chapter_zone *open_chapter;
 			unsigned int remaining;
 
 			open_chapter = index->zones[zone]->open_chapter;
-			remaining = put_open_chapter(open_chapter,
-						     &record.name,
-						     &record.data);
+			remaining = put_open_chapter(open_chapter, &record.name, &record.data);
 			/* Do not allow any zone to fill completely. */
 			full_flags[zone] = (remaining <= 1);
 		}
@@ -438,9 +410,9 @@ static int load_version20(struct uds_index *index,
 int load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
 {
 	byte version[OPEN_CHAPTER_VERSION_LENGTH];
-	int result = verify_buffered_data(reader,
-					  OPEN_CHAPTER_MAGIC,
-					  OPEN_CHAPTER_MAGIC_LENGTH);
+	int result;
+
+	result = verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 

@@ -17,12 +17,10 @@
 /*
  * A hack to apply the "warn if unused" attribute to an integral expression.
  *
- * Since GCC doesn't propagate the warn_unused_result attribute to
- * conditional expressions incorporating calls to functions with that
- * attribute, this function can be used to wrap such an expression.
- * With optimization enabled, this function contributes no additional
- * instructions, but the warn_unused_result attribute still applies to
- * the code calling it.
+ * Since GCC doesn't propagate the warn_unused_result attribute to conditional expressions
+ * incorporating calls to functions with that attribute, this function can be used to wrap such an
+ * expression. With optimization enabled, this function contributes no additional instructions, but
+ * the warn_unused_result attribute still applies to the code calling it.
  */
 static inline int __must_check uds_must_use(int value)
 {
@@ -30,19 +28,14 @@ static inline int __must_check uds_must_use(int value)
 }
 
 /* Assert that an expression is true and return an error if it is not. */
-#define ASSERT(expr, ...) \
-	uds_must_use(__UDS_ASSERT(expr, __VA_ARGS__))
+#define ASSERT(expr, ...) uds_must_use(__UDS_ASSERT(expr, __VA_ARGS__))
 
 /* Log a message if the expression is not true. */
-#define ASSERT_LOG_ONLY(expr, ...) \
-	__UDS_ASSERT(expr, __VA_ARGS__)
+#define ASSERT_LOG_ONLY(expr, ...) __UDS_ASSERT(expr, __VA_ARGS__)
 
 #define __UDS_ASSERT(expr, ...)				      \
 	(likely(expr) ? UDS_SUCCESS			      \
-		      : uds_assertion_failed(STRINGIFY(expr), \
-					     __FILE__,	      \
-					     __LINE__,	      \
-					     __VA_ARGS__))
+		      : uds_assertion_failed(STRINGIFY(expr), __FILE__, __LINE__, __VA_ARGS__))
 
 /* Log an assertion failure message. */
 int uds_assertion_failed(const char *expression_string,
@@ -66,8 +59,7 @@ int uds_assertion_failed(const char *expression_string,
 		}		     \
 	} while (0)
 
-#define STATIC_ASSERT_SIZEOF(type, expected_size) \
-	STATIC_ASSERT(sizeof(type) == (expected_size))
+#define STATIC_ASSERT_SIZEOF(type, expected_size) STATIC_ASSERT(sizeof(type) == (expected_size))
 
 /* Set whether or not to exit on an assertion failure, for tests. */
 bool set_exit_on_assertion_failure(bool should_exit);
