@@ -18,73 +18,63 @@
 #include "uds-threads.h"
 
 /*
- * Since the cache is small, it is implemented as a simple array of cache
- * entries. Searching for a specific virtual chapter is implemented as a linear
- * search. The cache replacement policy is least-recently-used (LRU). Again,
- * the small size of the cache allows the LRU order to be maintained by
- * shifting entries in an array list.
+ * Since the cache is small, it is implemented as a simple array of cache entries. Searching for a
+ * specific virtual chapter is implemented as a linear search. The cache replacement policy is
+ * least-recently-used (LRU). Again, the small size of the cache allows the LRU order to be
+ * maintained by shifting entries in an array list.
  *
- * Changing the contents of the cache requires the coordinated participation of
- * all zone threads via the careful use of barrier messages sent to all the
- * index zones by the triage queue worker thread. The critical invariant for
- * coordination is that the cache membership must not change between updates,
- * so that all calls to sparse_cache_contains() from the zone threads must all
- * receive the same results for every virtual chapter number. To ensure that
- * critical invariant, state changes such as "that virtual chapter is no longer
- * in the volume" and "skip searching that chapter because it has had too many
- * cache misses" are represented separately from the cache membership
- * information (the virtual chapter number).
+ * Changing the contents of the cache requires the coordinated participation of all zone threads
+ * via the careful use of barrier messages sent to all the index zones by the triage queue worker
+ * thread. The critical invariant for coordination is that the cache membership must not change
+ * between updates, so that all calls to sparse_cache_contains() from the zone threads must all
+ * receive the same results for every virtual chapter number. To ensure that critical invariant,
+ * state changes such as "that virtual chapter is no longer in the volume" and "skip searching that
+ * chapter because it has had too many cache misses" are represented separately from the cache
+ * membership information (the virtual chapter number).
  *
- * As a result of this invariant, we have the guarantee that every zone thread
- * will call update_sparse_cache() once and exactly once to request a chapter
- * that is not in the cache, and the serialization of the barrier requests from
- * the triage queue ensures they will all request the same chapter number. This
- * means the only synchronization we need can be provided by a pair of thread
- * barriers used only in the update_sparse_cache() call, providing a critical
- * section where a single zone thread can drive the cache update while all the
- * other zone threads are known to be blocked, waiting in the second barrier.
- * Outside that critical section, all the zone threads implicitly hold a shared
- * lock. Inside it, the thread for zone zero holds an exclusive lock. No other
- * threads may access or modify the cache entries.
+ * As a result of this invariant, we have the guarantee that every zone thread will call
+ * update_sparse_cache() once and exactly once to request a chapter that is not in the cache, and
+ * the serialization of the barrier requests from the triage queue ensures they will all request
+ * the same chapter number. This means the only synchronization we need can be provided by a pair
+ * of thread barriers used only in the update_sparse_cache() call, providing a critical section
+ * where a single zone thread can drive the cache update while all the other zone threads are known
+ * to be blocked, waiting in the second barrier. Outside that critical section, all the zone
+ * threads implicitly hold a shared lock. Inside it, the thread for zone zero holds an exclusive
+ * lock. No other threads may access or modify the cache entries.
  *
- * Chapter statistics must only be modified by a single thread, which is also
- * the zone zero thread. All fields that might be frequently updated by that
- * thread are kept in separate cache-aligned structures so they will not cause
- * cache contention via "false sharing" with the fields that are frequently
- * accessed by all of the zone threads.
+ * Chapter statistics must only be modified by a single thread, which is also the zone zero thread.
+ * All fields that might be frequently updated by that thread are kept in separate cache-aligned
+ * structures so they will not cause cache contention via "false sharing" with the fields that are
+ * frequently accessed by all of the zone threads.
  *
- * The LRU order is managed independently by each zone thread, and each zone
- * uses its own list for searching and cache membership queries. The zone zero
- * list is used to decide which chapter to evict when the cache is updated, and
- * its search list is copied to the other threads at that time.
+ * The LRU order is managed independently by each zone thread, and each zone uses its own list for
+ * searching and cache membership queries. The zone zero list is used to decide which chapter to
+ * evict when the cache is updated, and its search list is copied to the other threads at that
+ * time.
  *
- * The virtual chapter number field of the cache entry is the single field
- * indicating whether a chapter is a member of the cache or not. The value
- * UINT64_MAX is used to represent a null or undefined chapter number. When
- * present in the virtual chapter number field of a cached_chapter_index, it
- * indicates that the cache entry is dead, and all the other fields of that
- * entry (other than immutable pointers to cache memory) are undefined and
- * irrelevant. Any cache entry that is not marked as dead is fully defined and
- * a member of the cache, and sparse_cache_contains() will always return true
- * for any virtual chapter number that appears in any of the cache entries.
+ * The virtual chapter number field of the cache entry is the single field indicating whether a
+ * chapter is a member of the cache or not. The value UINT64_MAX is used to represent a null or
+ * undefined chapter number. When present in the virtual chapter number field of a
+ * cached_chapter_index, it indicates that the cache entry is dead, and all the other fields of
+ * that entry (other than immutable pointers to cache memory) are undefined and irrelevant. Any
+ * cache entry that is not marked as dead is fully defined and a member of the cache, and
+ * sparse_cache_contains() will always return true for any virtual chapter number that appears in
+ * any of the cache entries.
  *
- * A chapter index that is a member of the cache may be excluded from searches
- * between calls to update_sparse_cache() in two different ways. First, when a
- * chapter falls off the end of the volume, its virtual chapter number will be
- * less that the oldest virtual chapter number. Since that chapter is no longer
- * part of the volume, there's no point in continuing to search that chapter
- * index. Once invalidated, that virtual chapter will still be considered a
- * member of the cache, but it will no longer be searched for matching names.
+ * A chapter index that is a member of the cache may be excluded from searches between calls to
+ * update_sparse_cache() in two different ways. First, when a chapter falls off the end of the
+ * volume, its virtual chapter number will be less that the oldest virtual chapter number. Since
+ * that chapter is no longer part of the volume, there's no point in continuing to search that
+ * chapter index. Once invalidated, that virtual chapter will still be considered a member of the
+ * cache, but it will no longer be searched for matching names.
  *
- * The second mechanism is a heuristic based on keeping track of the number of
- * consecutive search misses in a given chapter index. Once that count exceeds
- * a threshold, the skip_search flag will be set to true, causing the chapter
- * to be skipped when searching the entire cache, but still allowing it to be
- * found when searching for a hook in that specific chapter. Finding a hook
- * will clear the skip_search flag, once again allowing the non-hook searches
- * to use that cache entry. Again, regardless of the state of the skip_search
- * flag, the virtual chapter must still considered to be a member of the cache
- * for sparse_cache_contains().
+ * The second mechanism is a heuristic based on keeping track of the number of consecutive search
+ * misses in a given chapter index. Once that count exceeds a threshold, the skip_search flag will
+ * be set to true, causing the chapter to be skipped when searching the entire cache, but still
+ * allowing it to be found when searching for a hook in that specific chapter. Finding a hook will
+ * clear the skip_search flag, once again allowing the non-hook searches to use that cache entry.
+ * Again, regardless of the state of the skip_search flag, the virtual chapter must still
+ * considered to be a member of the cache for sparse_cache_contains().
  */
 
 enum {
@@ -93,10 +83,10 @@ enum {
 };
 
 /*
- * These counters are essentially fields of the struct cached_chapter_index,
- * but are segregated into this structure because they are frequently modified.
- * They are grouped and aligned to keep them on different cache lines from the
- * chapter fields that are accessed far more often than they are updated.
+ * These counters are essentially fields of the struct cached_chapter_index, but are segregated
+ * into this structure because they are frequently modified. They are grouped and aligned to keep
+ * them on different cache lines from the chapter fields that are accessed far more often than they
+ * are updated.
  */
 struct __aligned(L1_CACHE_BYTES) cached_index_counters {
 	uint64_t consecutive_misses;
@@ -104,50 +94,47 @@ struct __aligned(L1_CACHE_BYTES) cached_index_counters {
 
 struct __aligned(L1_CACHE_BYTES) cached_chapter_index {
 	/*
-	 * The virtual chapter number of the cached chapter index. UINT64_MAX
-	 * means this cache entry is unused. This field must only be modified
-	 * in the critical section in update_sparse_cache().
+	 * The virtual chapter number of the cached chapter index. UINT64_MAX means this cache
+	 * entry is unused. This field must only be modified in the critical section in
+	 * update_sparse_cache().
 	 */
 	uint64_t virtual_chapter;
 
 	unsigned int index_pages_count;
 
 	/*
-	 * These pointers are immutable during the life of the cache. The
-	 * contents of the arrays change when the cache entry is replaced.
+	 * These pointers are immutable during the life of the cache. The contents of the arrays
+	 * change when the cache entry is replaced.
 	 */
 	struct delta_index_page *index_pages;
 	struct dm_buffer **page_buffers;
 
 	/*
-	 * If set, skip the chapter when searching the entire cache. This flag
-	 * is just a performance optimization. This flag is mutable between
-	 * cache updates, but it rarely changes and is frequently accessed, so
-	 * it groups with the immutable fields.
+	 * If set, skip the chapter when searching the entire cache. This flag is just a
+	 * performance optimization. This flag is mutable between cache updates, but it rarely
+	 * changes and is frequently accessed, so it groups with the immutable fields.
 	 */
 	bool skip_search;
 
 	/*
-	 * The cache-aligned counters change often and are placed at the end of
-	 * the structure to prevent false sharing with the more stable fields
-	 * above.
+	 * The cache-aligned counters change often and are placed at the end of the structure to
+	 * prevent false sharing with the more stable fields above.
 	 */
 	struct cached_index_counters counters;
 };
 
 /*
- * A search_list represents an ordering of the sparse chapter index cache entry
- * array, from most recently accessed to least recently accessed, which is the
- * order in which the indexes should be searched and the reverse order in which
- * they should be evicted from the cache.
+ * A search_list represents an ordering of the sparse chapter index cache entry array, from most
+ * recently accessed to least recently accessed, which is the order in which the indexes should be
+ * searched and the reverse order in which they should be evicted from the cache.
  *
- * Cache entries that are dead or empty are kept at the end of the list,
- * avoiding the need to even iterate over them to search, and ensuring that
- * dead entries are replaced before any live entries are evicted.
+ * Cache entries that are dead or empty are kept at the end of the list, avoiding the need to even
+ * iterate over them to search, and ensuring that dead entries are replaced before any live entries
+ * are evicted.
  *
- * The search list is instantiated for each zone thread, avoiding any need for
- * synchronization. The structure is allocated on a cache boundary to avoid
- * false sharing of memory cache lines between zone threads.
+ * The search list is instantiated for each zone thread, avoiding any need for synchronization. The
+ * structure is allocated on a cache boundary to avoid false sharing of memory cache lines between
+ * zone threads.
  */
 struct search_list {
 	uint8_t capacity;
@@ -192,8 +179,7 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 			    &chapter->page_buffers);
 }
 
-static int __must_check make_search_list(struct sparse_cache *cache,
-					 struct search_list **list_ptr)
+static int __must_check make_search_list(struct sparse_cache *cache, struct search_list **list_ptr)
 {
 	struct search_list *list;
 	unsigned int bytes;
@@ -226,8 +212,7 @@ int make_sparse_cache(const struct geometry *geometry,
 	struct sparse_cache *cache;
 	unsigned int bytes;
 
-	bytes = (sizeof(struct sparse_cache) +
-		 (capacity * sizeof(struct cached_chapter_index)));
+	bytes = (sizeof(struct sparse_cache) + (capacity * sizeof(struct cached_chapter_index)));
 	result = uds_allocate_cache_aligned(bytes, "sparse cache", &cache);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -237,28 +222,25 @@ int make_sparse_cache(const struct geometry *geometry,
 	cache->zone_count = zone_count;
 
 	/*
-	 * Scale down the skip threshold since the cache only counts cache
-	 * misses in zone zero, but requests are being handled in all zones.
+	 * Scale down the skip threshold since the cache only counts cache misses in zone zero, but
+	 * requests are being handled in all zones.
 	 */
 	cache->skip_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	result = uds_initialize_barrier(&cache->begin_update_barrier,
-					zone_count);
+	result = uds_initialize_barrier(&cache->begin_update_barrier, zone_count);
 	if (result != UDS_SUCCESS) {
 		free_sparse_cache(cache);
 		return result;
 	}
 
-	result = uds_initialize_barrier(&cache->end_update_barrier,
-					zone_count);
+	result = uds_initialize_barrier(&cache->end_update_barrier, zone_count);
 	if (result != UDS_SUCCESS) {
 		free_sparse_cache(cache);
 		return result;
 	}
 
 	for (i = 0; i < capacity; i++) {
-		result = initialize_cached_chapter_index(&cache->chapters[i],
-							 geometry);
+		result = initialize_cached_chapter_index(&cache->chapters[i], geometry);
 		if (result != UDS_SUCCESS) {
 			free_sparse_cache(cache);
 			return result;
@@ -289,20 +271,14 @@ int make_sparse_cache(const struct geometry *geometry,
 
 size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
 {
-	/*
-	 * Count the delta_index_page as cache memory, but ignore all other
-	 * overhead.
-	 */
-	size_t page_size = (sizeof(struct delta_index_page) +
-			    cache->geometry->bytes_per_page);
-	size_t chapter_size =
-		(page_size * cache->geometry->index_pages_per_chapter);
+	/* Count the delta_index_page as cache memory, but ignore all other overhead. */
+	size_t page_size = (sizeof(struct delta_index_page) + cache->geometry->bytes_per_page);
+	size_t chapter_size = (page_size * cache->geometry->index_pages_per_chapter);
 
 	return (cache->capacity * chapter_size);
 }
 
-static inline void set_skip_search(struct cached_chapter_index *chapter,
-				   bool skip_search)
+static inline void set_skip_search(struct cached_chapter_index *chapter, bool skip_search)
 {
 	/* Check before setting to reduce cache line contention. */
 	if (READ_ONCE(chapter->skip_search) != skip_search)
@@ -315,8 +291,7 @@ static void score_search_hit(struct cached_chapter_index *chapter)
 	set_skip_search(chapter, false);
 }
 
-static void score_search_miss(struct sparse_cache *cache,
-			      struct cached_chapter_index *chapter)
+static void score_search_miss(struct sparse_cache *cache, struct cached_chapter_index *chapter)
 {
 	chapter->counters.consecutive_misses++;
 	if (chapter->counters.consecutive_misses > cache->skip_threshold)
@@ -360,11 +335,10 @@ void free_sparse_cache(struct sparse_cache *cache)
 }
 
 /*
- * Take the indicated element of the search list and move it to the start,
- * pushing the pointers previously before it back down the list.
+ * Take the indicated element of the search list and move it to the start, pushing the pointers
+ * previously before it back down the list.
  */
-static inline void set_newest_entry(struct search_list *search_list,
-				    uint8_t index)
+static inline void set_newest_entry(struct search_list *search_list, uint8_t index)
 {
 	struct cached_chapter_index *newest;
 
@@ -377,8 +351,8 @@ static inline void set_newest_entry(struct search_list *search_list,
 	}
 
 	/*
-	 * This function may have moved a dead chapter to the front of the list
-	 * for reuse, in which case the set of dead chapters becomes smaller.
+	 * This function may have moved a dead chapter to the front of the list for reuse, in which
+	 * case the set of dead chapters becomes smaller.
 	 */
 	if (search_list->first_dead_entry <= index)
 		search_list->first_dead_entry++;
@@ -393,12 +367,11 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 	uint8_t i;
 
 	/*
-	 * The correctness of the barriers depends on the invariant that
-	 * between calls to update_sparse_cache(), the answers this function
-	 * returns must never vary: the result for a given chapter must be
-	 * identical across zones. That invariant must be maintained even if
-	 * the chapter falls off the end of the volume, or if searching it is
-	 * disabled because of too many search misses.
+	 * The correctness of the barriers depends on the invariant that between calls to
+	 * update_sparse_cache(), the answers this function returns must never vary: the result for
+	 * a given chapter must be identical across zones. That invariant must be maintained even
+	 * if the chapter falls off the end of the volume, or if searching it is disabled because
+	 * of too many search misses.
 	 */
 	search_list = cache->search_lists[zone_number];
 	for (i = 0; i < search_list->first_dead_entry; i++) {
@@ -417,9 +390,9 @@ bool sparse_cache_contains(struct sparse_cache *cache,
 }
 
 /*
- * Resort cache entries into three sets (active, skippable, and dead) while
- * maintaining the LRU ordering that already existed. This operation must only
- * be called during the critical section in update_sparse_cache().
+ * Re-sort cache entries into three sets (active, skippable, and dead) while maintaining the LRU
+ * ordering that already existed. This operation must only be called during the critical section in
+ * update_sparse_cache().
  */
 static void purge_search_list(struct search_list *search_list,
 			      struct sparse_cache *cache,
@@ -458,10 +431,9 @@ static void purge_search_list(struct search_list *search_list,
 	search_list->first_dead_entry = next_alive + next_skipped;
 }
 
-static int __must_check
-cache_chapter_index(struct cached_chapter_index *chapter,
-		    uint64_t virtual_chapter,
-		    const struct volume *volume)
+static int __must_check cache_chapter_index(struct cached_chapter_index *chapter,
+					    uint64_t virtual_chapter,
+					    const struct volume *volume)
 {
 	int result;
 
@@ -481,8 +453,7 @@ cache_chapter_index(struct cached_chapter_index *chapter,
 	return UDS_SUCCESS;
 }
 
-static inline void copy_search_list(const struct search_list *source,
-				    struct search_list *target)
+static inline void copy_search_list(const struct search_list *source, struct search_list *target)
 {
 	*target = *source;
 	memcpy(target->entries,
@@ -491,9 +462,9 @@ static inline void copy_search_list(const struct search_list *source,
 }
 
 /*
- * Update the sparse cache to contain a chapter index. This function must be
- * called by all the zone threads with the same chapter number to correctly
- * enter the thread barriers used to synchronize the cache updates.
+ * Update the sparse cache to contain a chapter index. This function must be called by all the zone
+ * threads with the same chapter number to correctly enter the thread barriers used to synchronize
+ * the cache updates.
  */
 int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 {
@@ -505,18 +476,16 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 		return UDS_SUCCESS;
 
 	/*
-	 * Wait for every zone thread to reach its corresponding barrier
-	 * request and invoke this function before starting to modify the
-	 * cache.
+	 * Wait for every zone thread to reach its corresponding barrier request and invoke this
+	 * function before starting to modify the cache.
 	 */
 	uds_enter_barrier(&cache->begin_update_barrier);
 
 	/*
-	 * This is the start of the critical section: the zone zero thread is
-	 * captain, effectively holding an exclusive lock on the sparse cache.
-	 * All the other zone threads must do nothing between the two barriers.
-	 * They will wait at the end_update_barrier again for the captain to
-	 * finish the update.
+	 * This is the start of the critical section: the zone zero thread is captain, effectively
+	 * holding an exclusive lock on the sparse cache. All the other zone threads must do
+	 * nothing between the two barriers. They will wait at the end_update_barrier again for the
+	 * captain to finish the update.
 	 */
 
 	if (zone->id == ZONE_ZERO) {
@@ -537,8 +506,7 @@ int update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter)
 	}
 
 	/*
-	 * This is the end of the critical section. All cache invariants must
-	 * have been restored.
+	 * This is the end of the critical section. All cache invariants must have been restored.
 	 */
 	uds_enter_barrier(&cache->end_update_barrier);
 	return result;
@@ -577,13 +545,9 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	unsigned int index_page_number =
 		find_index_page_number(index_page_map, name, physical_chapter);
-	struct delta_index_page *index_page =
-		&chapter->index_pages[index_page_number];
+	struct delta_index_page *index_page = &chapter->index_pages[index_page_number];
 
-	return search_chapter_index_page(index_page,
-					 geometry,
-					 name,
-					 record_page_ptr);
+	return search_chapter_index_page(index_page, geometry, name, record_page_ptr);
 }
 
 int search_sparse_cache(struct index_zone *zone,
@@ -620,9 +584,9 @@ int search_sparse_cache(struct index_zone *zone,
 
 		if (*record_page_ptr != NO_CHAPTER_INDEX_ENTRY) {
 			/*
-			 * In theory, this might be a false match while a true
-			 * match exists in another chapter, but that's a very
-			 * rare case and not worth the extra search complexity.
+			 * In theory, this might be a false match while a true match exists in
+			 * another chapter, but that's a very rare case and not worth the extra
+			 * search complexity.
 			 */
 			set_newest_entry(search_list, i);
 			if (zone->id == ZONE_ZERO)

@@ -75,8 +75,7 @@ extern const bool UDS_DO_ASSERTIONS;
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 /* Apply a function to every thread that we have created. */
-void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
-			  void *argument);
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument);
 
 /* This is a unit-test alternative to using BUG() or BUG_ON(). */
 __attribute__((noreturn)) void uds_thread_exit(void);
@@ -108,8 +107,7 @@ void perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
 
-int __must_check uds_initialize_barrier(struct barrier *barrier,
-					unsigned int thread_count);
+int __must_check uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count);
 int uds_destroy_barrier(struct barrier *barrier);
 int uds_enter_barrier(struct barrier *barrier);
 
@@ -117,9 +115,7 @@ int __must_check uds_init_cond(struct cond_var *cond);
 int uds_signal_cond(struct cond_var *cond);
 int uds_broadcast_cond(struct cond_var *cond);
 int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
-int uds_timed_wait_cond(struct cond_var *cond,
-			struct mutex *mutex,
-			ktime_t timeout);
+int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
 int uds_destroy_cond(struct cond_var *cond);
 
 #ifndef __KERNEL__
@@ -167,8 +163,7 @@ uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
 	return UDS_SUCCESS;
 }
 #else
-int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
-					  unsigned int value);
+int __must_check uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value);
 #endif
 
 #ifdef __KERNEL__
@@ -204,9 +199,7 @@ void uds_acquire_semaphore(struct semaphore *semaphore);
 #endif
 
 #ifdef __KERNEL__
-static inline bool
-__must_check uds_attempt_semaphore(struct semaphore *semaphore,
-				   ktime_t timeout)
+static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 {
 	unsigned int jiffies;
 
@@ -217,8 +210,7 @@ __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 	return down_timeout(semaphore, jiffies) == 0;
 }
 #else
-bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
-					ktime_t timeout);
+bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout);
 #endif
 
 #ifdef __KERNEL__

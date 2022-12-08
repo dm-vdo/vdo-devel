@@ -22,63 +22,54 @@
 /*
  * UDS public API
  *
- * The Universal Deduplication System (UDS) is an efficient name-value
- * store. When used for deduplicating storage, the names are generally hashes
- * of data blocks and the associated data is where that block is located on the
- * underlying storage medium. The stored names are expected to be randomly
- * distributed among the space of possible names. If this assumption is
- * violated, the UDS index will store fewer names than normal but will
- * otherwise continue to work. The data associated with each name can be any
- * 16-byte value.
+ * The Universal Deduplication System (UDS) is an efficient name-value store. When used for
+ * deduplicating storage, the names are generally hashes of data blocks and the associated data is
+ * where that block is located on the underlying storage medium. The stored names are expected to
+ * be randomly distributed among the space of possible names. If this assumption is violated, the
+ * UDS index will store fewer names than normal but will otherwise continue to work. The data
+ * associated with each name can be any 16-byte value.
  *
- * A client must first create an index session to interact with an index. Once
- * created, the session can be shared among multiple threads or users. When a
- * session is destroyed, it will also close and save any associated index.
+ * A client must first create an index session to interact with an index. Once created, the session
+ * can be shared among multiple threads or users. When a session is destroyed, it will also close
+ * and save any associated index.
  *
- * To make a request, a client must allocate a uds_request structure and set
- * the required fields before launching it. UDS will invoke the provided
- * callback to complete the request. After the callback has been called, the
- * uds_request structure can be freed or reused for a new request. There are
- * five types of requests:
+ * To make a request, a client must allocate a uds_request structure and set the required fields
+ * before launching it. UDS will invoke the provided callback to complete the request. After the
+ * callback has been called, the uds_request structure can be freed or reused for a new request.
+ * There are five types of requests:
  *
- * A UDS_UPDATE request will associate the provided name with the provided
- * data. Any previous data associated with that name will be discarded.
+ * A UDS_UPDATE request will associate the provided name with the provided data. Any previous data
+ * associated with that name will be discarded.
  *
- * A UDS_QUERY request will return the data associated with the provided name,
- * if any. The entry for the name will also be marked as most recent, as if the
- * data had been updated.
+ * A UDS_QUERY request will return the data associated with the provided name, if any. The entry
+ * for the name will also be marked as most recent, as if the data had been updated.
  *
- * A UDS_POST request is a combination of UDS_QUERY and UDS_UPDATE. If there is
- * already data associated with the provided name, that data is returned. If
- * there is no existing association, the name is associated with the newly
- * provided data. This request is equivalent to a UDS_QUERY request followed by
- * a UDS_UPDATE request if no data is found, but it is much more efficient.
+ * A UDS_POST request is a combination of UDS_QUERY and UDS_UPDATE. If there is already data
+ * associated with the provided name, that data is returned. If there is no existing association,
+ * the name is associated with the newly provided data. This request is equivalent to a UDS_QUERY
+ * request followed by a UDS_UPDATE request if no data is found, but it is much more efficient.
  *
- * A UDS_QUERY_NO_UPDATE request will return the data associated with the
- * provided name, but will not change the recency of the entry for the
- * name. This request is primarily useful for testing, to determine whether an
- * entry exists without changing the internal state of the index.
+ * A UDS_QUERY_NO_UPDATE request will return the data associated with the provided name, but will
+ * not change the recency of the entry for the name. This request is primarily useful for testing,
+ * to determine whether an entry exists without changing the internal state of the index.
  *
- * A UDS_DELETE request removes any data associated with the provided name.
- * This operation is generally not necessary, because the index will
- * automatically discard its oldest entries once it becomes full.
+ * A UDS_DELETE request removes any data associated with the provided name. This operation is
+ * generally not necessary, because the index will automatically discard its oldest entries once it
+ * becomes full.
  */
 
 /* General UDS constants and structures */
 
 enum uds_request_type {
-	/*
-	 * Create or update the mapping for a name, and make the name most
-	 * recent.
-	 */
+	/* Create or update the mapping for a name, and make the name most recent. */
 	UDS_UPDATE,
 
 	/* Return any mapped data for a name, and make the name most recent. */
 	UDS_QUERY,
 
 	/*
-	 * Return any mapped data for a name, or map the provided data to the
-	 * name if there is no current data, and make the name most recent.
+	 * Return any mapped data for a name, or map the provided data to the name if there is no
+	 * current data, and make the name most recent.
 	 */
 	UDS_POST,
 
@@ -109,9 +100,8 @@ enum {
 };
 
 /*
- * A type representing a UDS memory configuration which is either a positive
- * integer number of gigabytes or one of the six special constants for
- * configurations which are smaller than 1 gigabyte.
+ * A type representing a UDS memory configuration which is either a positive integer number of
+ * gigabytes or one of the six special constants for configurations smaller than one gigabyte.
  */
 typedef int uds_memory_config_size_t;
 
@@ -162,8 +152,8 @@ struct uds_parameters {
 };
 
 /*
- * These statistics capture characteristics of the current index, including
- * resource usage and requests processed since the index was opened.
+ * These statistics capture characteristics of the current index, including resource usage and
+ * requests processed since the index was opened.
  */
 struct uds_index_stats {
 	/* The total number of records stored in the index */
@@ -181,19 +171,16 @@ struct uds_index_stats {
 	/* The number of post calls that added an entry */
 	uint64_t posts_not_found;
 	/*
-	 * The number of post calls that found an existing entry that is
-	 * current enough to only exist in memory and not have been committed
-	 * to disk yet
+	 * The number of post calls that found an existing entry that is current enough to only
+	 * exist in memory and not have been committed to disk yet
 	 */
 	uint64_t in_memory_posts_found;
 	/*
-	 * The number of post calls that found an existing entry in the dense
-	 * portion of the index
+	 * The number of post calls that found an existing entry in the dense portion of the index
 	 */
 	uint64_t dense_posts_found;
 	/*
-	 * The number of post calls that found an existing entry in the sparse
-	 * portion of the index
+	 * The number of post calls that found an existing entry in the sparse portion of the index
 	 */
 	uint64_t sparse_posts_found;
 	/* The number of update calls that updated an existing entry */
@@ -250,10 +237,7 @@ struct uds_index_session;
 struct uds_index;
 struct uds_request;
 
-/*
- * Once this callback has been invoked, the uds_request structure can be reused
- * or freed.
- */
+/* Once this callback has been invoked, the uds_request structure can be reused or freed. */
 typedef void uds_request_callback_t(struct uds_request *request);
 
 struct uds_request {
@@ -280,9 +264,8 @@ struct uds_request {
 	bool found;
 
 	/*
-	 * The remaining fields are used internally and should not be altered
-	 * by clients. The index relies on zone_number being the first field in
-	 * this section.
+	 * The remaining fields are used internally and should not be altered by clients. The index
+	 * relies on zone_number being the first field in this section.
 	 */
 
 	/* The number of the zone which will process this request*/
@@ -306,8 +289,8 @@ struct uds_request {
 };
 
 /* Compute the number of bytes needed to store an index. */
-int __must_check uds_compute_index_size(const struct uds_parameters *parameters,
-					uint64_t *index_size);
+int __must_check
+uds_compute_index_size(const struct uds_parameters *parameters, uint64_t *index_size);
 
 /* A session is required for most index operations. */
 int __must_check uds_create_index_session(struct uds_index_session **session);
@@ -316,28 +299,26 @@ int __must_check uds_create_index_session(struct uds_index_session **session);
 int uds_destroy_index_session(struct uds_index_session *session);
 
 /*
- * Create or open an index with an existing session. This operation fails if
- * the index session is suspended, or if there is already an open index.
+ * Create or open an index with an existing session. This operation fails if the index session is
+ * suspended, or if there is already an open index.
  */
 int __must_check uds_open_index(enum uds_open_index_type open_type,
 				const struct uds_parameters *parameters,
 				struct uds_index_session *session);
 
 /*
- * Wait until all callbacks for index operations are complete, and prevent new
- * index operations from starting. New index operations will fail with EBUSY
- * until the session is resumed. Also optionally saves the index.
+ * Wait until all callbacks for index operations are complete, and prevent new index operations
+ * from starting. New index operations will fail with EBUSY until the session is resumed. Also
+ * optionally saves the index.
  */
-int __must_check uds_suspend_index_session(struct uds_index_session *session,
-					   bool save);
+int __must_check uds_suspend_index_session(struct uds_index_session *session, bool save);
 
 /*
- * Allow new index operations for an index, whether it was suspended or not.
- * If the index is suspended and the supplied name differs from the current
- * backing store, the index will start using the new backing store instead.
+ * Allow new index operations for an index, whether it was suspended or not. If the index is
+ * suspended and the supplied name differs from the current backing store, the index will start
+ * using the new backing store instead.
  */
-int __must_check uds_resume_index_session(struct uds_index_session *session,
-					  const char *name);
+int __must_check uds_resume_index_session(struct uds_index_session *session, const char *name);
 
 /* Wait until all outstanding index operations are complete. */
 int __must_check uds_flush_index_session(struct uds_index_session *session);
@@ -346,15 +327,15 @@ int __must_check uds_flush_index_session(struct uds_index_session *session);
 int __must_check uds_close_index(struct uds_index_session *session);
 
 /*
- * Return a copy of the parameters used to create the index. The caller is
- * responsible for freeing the returned structure.
+ * Return a copy of the parameters used to create the index. The caller is responsible for freeing
+ * the returned structure.
  */
-int __must_check uds_get_index_parameters(struct uds_index_session *session,
-					  struct uds_parameters **parameters);
+int __must_check
+uds_get_index_parameters(struct uds_index_session *session, struct uds_parameters **parameters);
 
 /* Get index statistics since the last time the index was opened. */
-int __must_check uds_get_index_stats(struct uds_index_session *session,
-				     struct uds_index_stats *stats);
+int __must_check
+uds_get_index_stats(struct uds_index_session *session, struct uds_index_stats *stats);
 
 /* This function will fail if any required field of the request is not set. */
 int __must_check uds_launch_request(struct uds_request *request);

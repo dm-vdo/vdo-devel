@@ -30,17 +30,13 @@ static inline const char *uds_bool_to_string(bool value)
  * Allocate memory to contain a formatted string. The caller is responsible for
  * freeing the allcated memory.
  */
-int __must_check uds_alloc_sprintf(const char *what,
-				   char **strp,
-				   const char *fmt, ...)
+int __must_check uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	__printf(3, 4);
 
 #endif /* (! __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
 /* Format a string into a fixed-size buffer, similar to snprintf. */
-int __must_check uds_fixed_sprintf(char *buf,
-				   size_t buf_size,
-				   const char *fmt, ...)
+int __must_check uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 	__printf(3, 4);
 
 #endif /* TEST_INTERNAL */

@@ -39,10 +39,7 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 
 #endif /* (not __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
-int uds_fixed_sprintf(char *buf,
-		      size_t buf_size,
-		      const char *fmt,
-		      ...)
+int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 {
 	va_list args;
 	int n;
@@ -55,9 +52,7 @@ int uds_fixed_sprintf(char *buf,
 	va_end(args);
 
 	if (n < 0)
-		return uds_log_error_strerror(UDS_UNKNOWN_ERROR,
-					      "%s: vsnprintf failed",
-					      __func__);
+		return uds_log_error_strerror(UDS_UNKNOWN_ERROR, "%s: vsnprintf failed", __func__);
 
 	if ((size_t) n >= buf_size)
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
