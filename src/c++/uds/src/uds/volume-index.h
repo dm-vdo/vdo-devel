@@ -11,18 +11,16 @@
 #include "uds.h"
 
 /*
- * The volume index is the primary top-level index for UDS. It comtains records
- * which map a record name to the chapter where a record with that name is
- * stored. This mapping can definitively say when no record exists. However,
- * because we only use a sebset of the name for this index, it cannot
- * definitively say that a record for the entry does exist. It can only say
- * that if a record exists, it will be in a particular chapter. The request
- * can then be dispatched to that chapter for further processing.
+ * The volume index is the primary top-level index for UDS. It comtains records which map a record
+ * name to the chapter where a record with that name is stored. This mapping can definitively say
+ * when no record exists. However, because we only use a sebset of the name for this index, it
+ * cannot definitively say that a record for the entry does exist. It can only say that if a record
+ * exists, it will be in a particular chapter. The request can then be dispatched to that chapter
+ * for further processing.
  *
- * If the volume_index_record does not actually match the record name, the
- * index can store a more specific collision record to disambiguate the new
- * entry from the existing one. Index entries are managed with
- * volume_index_record structures.
+ * If the volume_index_record does not actually match the record name, the index can store a more
+ * specific collision record to disambiguate the new entry from the existing one. Index entries are
+ * managed with volume_index_record structures.
  */
 
 #ifdef TEST_INTERNAL
@@ -54,21 +52,18 @@ struct volume_index;
 struct volume_sub_index;
 
 /*
- * The volume_index_record structure is used to facilitate processing of a
- * record name. A client first calls get_volume_index_record() to find the
- * volume index record for a record name. The fields of the record can then
- * be examined to determine the state of the record.
+ * The volume_index_record structure is used to facilitate processing of a record name. A client
+ * first calls get_volume_index_record() to find the volume index record for a record name. The
+ * fields of the record can then be examined to determine the state of the record.
  *
- * If is_found is false, then the index did not find an entry for the record
- * name. Calling put_volume_index_record() will insert a new entry for that
- * name at the proper place.
+ * If is_found is false, then the index did not find an entry for the record name. Calling
+ * put_volume_index_record() will insert a new entry for that name at the proper place.
  *
- * If is_found is true, then we did find an entry for the record name, and the
- * virtual_chapter and is_collision fields reflect the entry found.
- * Subsequently, a call to remove_volume_index_record() will remove the entry,
- * a call to set_volume_index_record_chapter() will update the existing entry,
- * and a call to put_volume_index_record() will insert a new collision record
- * after the existing entry.
+ * If is_found is true, then we did find an entry for the record name, and the virtual_chapter and
+ * is_collision fields reflect the entry found. Subsequently, a call to
+ * remove_volume_index_record() will remove the entry, a call to set_volume_index_record_chapter()
+ * will update the existing entry, and a call to put_volume_index_record() will insert a new
+ * collision record after the existing entry.
  */
 struct volume_index_record {
 	/* Public fields */
@@ -102,47 +97,40 @@ int __must_check make_volume_index(const struct configuration *config,
 
 void free_volume_index(struct volume_index *volume_index);
 
-int __must_check
-compute_volume_index_save_blocks(const struct configuration *config,
-				 size_t block_size,
-				 uint64_t *block_count);
+int __must_check compute_volume_index_save_blocks(const struct configuration *config,
+						  size_t block_size,
+						  uint64_t *block_count);
 
 #ifdef TEST_INTERNAL
 size_t get_volume_index_memory_used(const struct volume_index *volume_index);
 
 #endif /* TEST_INTERNAL */
 unsigned int __must_check
-get_volume_index_zone(const struct volume_index *volume_index,
-		      const struct uds_record_name *name);
+get_volume_index_zone(const struct volume_index *volume_index, const struct uds_record_name *name);
 
-bool __must_check
-is_volume_index_sample(const struct volume_index *volume_index,
-		       const struct uds_record_name *name);
+bool __must_check is_volume_index_sample(const struct volume_index *volume_index,
+					 const struct uds_record_name *name);
 
 /*
- * This function is only used to manage sparse cache membership. Most requests
- * should use get_volume_index_record() to look up index records instead.
+ * This function is only used to manage sparse cache membership. Most requests should use
+ * get_volume_index_record() to look up index records instead.
  */
-uint64_t __must_check
-lookup_volume_index_name(const struct volume_index *volume_index,
-			 const struct uds_record_name *name);
+uint64_t __must_check lookup_volume_index_name(const struct volume_index *volume_index,
+					       const struct uds_record_name *name);
 
 int __must_check get_volume_index_record(struct volume_index *volume_index,
 					 const struct uds_record_name *name,
 					 struct volume_index_record *record);
 
-int __must_check put_volume_index_record(struct volume_index_record *record,
-					 uint64_t virtual_chapter);
+int __must_check
+put_volume_index_record(struct volume_index_record *record, uint64_t virtual_chapter);
+
+int __must_check remove_volume_index_record(struct volume_index_record *record);
 
 int __must_check
-remove_volume_index_record(struct volume_index_record *record);
+set_volume_index_record_chapter(struct volume_index_record *record, uint64_t virtual_chapter);
 
-int __must_check
-set_volume_index_record_chapter(struct volume_index_record *record,
-				uint64_t virtual_chapter);
-
-void set_volume_index_open_chapter(struct volume_index *volume_index,
-				   uint64_t virtual_chapter);
+void set_volume_index_open_chapter(struct volume_index *volume_index, uint64_t virtual_chapter);
 
 void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					unsigned int zone_number,

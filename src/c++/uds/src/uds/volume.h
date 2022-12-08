@@ -23,10 +23,10 @@
 #include "uds-threads.h"
 
 /*
- * The volume manages deduplication records on permanent storage. The term
- * "volume" can also refer to the region of permanent storage where the records
- * (and the chapters containing them) are stored. The volume handles all I/O to
- * this region by reading, caching, and writing chapter pages as necessary.
+ * The volume manages deduplication records on permanent storage. The term "volume" can also refer
+ * to the region of permanent storage where the records (and the chapters containing them) are
+ * stored. The volume handles all I/O to this region by reading, caching, and writing chapter pages
+ * as necessary.
  */
 
 enum reader_state {
@@ -58,12 +58,11 @@ struct queued_read {
 };
 
 /*
- * The invalidate counter is two 32 bits fields stored together atomically. The
- * low order 32 bits are the physical page number of the cached page being
- * read. The high order 32 bits are a sequence number. This value is written
- * when the zone that owns it begins or completes a cache search. Any other
- * thread will only read the counter in wait_for_pending_searches() while
- * waiting to update the cache contents.
+ * The invalidate counter is two 32 bits fields stored together atomically. The low order 32 bits
+ * are the physical page number of the cached page being read. The high order 32 bits are a
+ * sequence number. This value is written when the zone that owns it begins or completes a cache
+ * search. Any other thread will only read the counter in wait_for_pending_searches() while waiting
+ * to update the cache contents.
  */
 typedef int64_t invalidate_counter_t;
 
@@ -111,15 +110,13 @@ struct page_cache {
 	/* All entries above this point are constant after initialization. */
 
 	/*
-	 * These values are all indexes into the array of read queue entries.
-	 * New entries in the read queue are enqueued at read_queue_last. To
-	 * dequeue entries, a reader thread gets the lock and then claims the
-	 * entry pointed to by read_queue_last_read and increments that value.
-	 * After the read is completed, the reader thread calls
-	 * release_read_queue_entry(), which increments read_queue_first until
-	 * it points to a pending read, or is equal to read_queue_last_read.
-	 * This means that if multiple reads are outstanding, read_queue_first
-	 * might not advance until the last of the reads finishes.
+	 * These values are all indexes into the array of read queue entries. New entries in the
+	 * read queue are enqueued at read_queue_last. To dequeue entries, a reader thread gets the
+	 * lock and then claims the entry pointed to by read_queue_last_read and increments that
+	 * value. After the read is completed, the reader thread calls release_read_queue_entry(),
+	 * which increments read_queue_first until it points to a pending read, or is equal to
+	 * read_queue_last_read. This means that if multiple reads are outstanding,
+	 * read_queue_first might not advance until the last of the reads finishes.
 	 */
 	uint16_t read_queue_first;
 	uint16_t read_queue_last_read;
@@ -194,23 +191,19 @@ void invalidate_page_cache_for_chapter(struct page_cache *cache,
 #ifdef TEST_INTERNAL
 void invalidate_page(struct page_cache *cache, unsigned int physical_page);
 
-void make_page_most_recent(struct page_cache *cache,
-			   struct cached_page *page_ptr);
+void make_page_most_recent(struct page_cache *cache, struct cached_page *page_ptr);
 
 void get_page_from_cache(struct page_cache *cache,
 			 unsigned int physical_page,
 			 struct cached_page **page);
 
-int __must_check enqueue_read(struct page_cache *cache,
-			      struct uds_request *request,
-			      unsigned int physical_page);
+int __must_check
+enqueue_read(struct page_cache *cache, struct uds_request *request, unsigned int physical_page);
 
-int __must_check select_victim_in_cache(struct page_cache *cache,
-					struct cached_page **page_ptr);
+int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr);
 
-int __must_check put_page_in_cache(struct page_cache *cache,
-				   unsigned int physical_page,
-				   struct cached_page *page);
+int __must_check
+put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct cached_page *page);
 
 #endif /* TEST_INTERNAL */
 static inline invalidate_counter_t
@@ -242,8 +235,8 @@ static inline void begin_pending_search(struct page_cache *cache,
 					unsigned int physical_page,
 					unsigned int zone_number)
 {
-	invalidate_counter_t invalidate_counter =
-		get_invalidate_counter(cache, zone_number);
+	invalidate_counter_t invalidate_counter = get_invalidate_counter(cache, zone_number);
+
 	invalidate_counter &= ~PAGE_FIELD;
 	invalidate_counter |= physical_page;
 	invalidate_counter += COUNTER_LSB;
@@ -252,19 +245,18 @@ static inline void begin_pending_search(struct page_cache *cache,
 			"Search is pending for zone %u",
 			zone_number);
 	/*
-	 * This memory barrier ensures that the write to the invalidate counter
-	 * is seen by other threads before this thread accesses the cached
-	 * page. The corresponding read memory barrier is in
-	 * wait_for_pending_searches().
+	 * This memory barrier ensures that the write to the invalidate counter is seen by other
+	 * threads before this thread accesses the cached page. The corresponding read memory
+	 * barrier is in wait_for_pending_searches().
 	 */
 	smp_mb();
 }
 
 /* Unlock the cache for a zone by clearing its invalidate counter. */
-static inline void end_pending_search(struct page_cache *cache,
-				      unsigned int zone_number)
+static inline void end_pending_search(struct page_cache *cache, unsigned int zone_number)
 {
 	invalidate_counter_t invalidate_counter;
+
 	/*
 	 * This memory barrier ensures that this thread completes reads of the
 	 * cached page before other threads see the write to the invalidate
@@ -280,9 +272,8 @@ static inline void end_pending_search(struct page_cache *cache,
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 }
 
-int __must_check enqueue_page_read(struct volume *volume,
-				   struct uds_request *request,
-				   int physical_page);
+int __must_check
+enqueue_page_read(struct volume *volume, struct uds_request *request, int physical_page);
 
 int __must_check find_volume_chapter_boundaries(struct volume *volume,
 						uint64_t *lowest_vcn,
@@ -360,8 +351,6 @@ find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 				    struct geometry *geometry,
 				    void *aux);
 
-int __must_check map_to_physical_page(const struct geometry *geometry,
-				      int chapter,
-				      int page);
+int __must_check map_to_physical_page(const struct geometry *geometry, int chapter, int page);
 
 #endif /* VOLUME_H */
