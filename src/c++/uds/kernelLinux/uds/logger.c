@@ -71,8 +71,7 @@ int uds_log_string_to_priority(const char *string)
 
 const char *uds_log_priority_to_string(int priority)
 {
-	if ((priority < 0) ||
-	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS)))
+	if ((priority < 0) || (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS)))
 		return "unknown";
 	return PRIORITY_STRINGS[priority];
 }
@@ -94,9 +93,7 @@ static const char *get_current_interrupt_type(void)
  * @priority: The priority at which to log the message
  * @fmt: The format string of the message
  */
-static void emit_log_message_to_kernel(int priority,
-				       const char *fmt,
-				       ...)
+static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
 {
 	va_list args;
 	struct va_format vaf;
@@ -138,8 +135,8 @@ static void emit_log_message_to_kernel(int priority,
 }
 
 /*
- * Emit a log message to the kernel log in a format suited to the current
- * thread context. Context info formats:
+ * Emit a log message to the kernel log in a format suited to the current thread context. Context
+ * info formats:
  *
  * interrupt:           uds[NMI]: blah
  * kvdo thread:         kvdo12:foobarQ: blah
@@ -163,8 +160,8 @@ static void emit_log_message(int priority,
 	int device_instance;
 
 	/*
-	 * In interrupt context, identify the interrupt type and module.
-	 * Ignore the process/thread since it could be anything.
+	 * In interrupt context, identify the interrupt type and module. Ignore the process/thread
+	 * since it could be anything.
 	 */
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
@@ -175,10 +172,7 @@ static void emit_log_message(int priority,
 		return;
 	}
 
-	/*
-	 * Not at interrupt level; we have a process we can look at, and
-	 * might have a device ID.
-	 */
+	/* Not at interrupt level; we have a process we can look at, and might have a device ID. */
 	device_instance = uds_get_thread_device_id();
 	if (device_instance >= 0) {
 		emit_log_message_to_kernel(priority,
@@ -189,8 +183,8 @@ static void emit_log_message(int priority,
 	}
 
 	/*
-	 * If it's a kernel thread and the module name is a prefix of its
-	 * name, assume it is ours and only identify the thread.
+	 * If it's a kernel thread and the module name is a prefix of its name, assume it is ours
+	 * and only identify the thread.
 	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
 	    (strncmp(module, current->comm, strlen(module)) == 0)) {
@@ -235,11 +229,9 @@ void uds_log_embedded_message(int priority,
 		prefix = "";
 
 	/*
-	 * It is implementation dependent whether va_list is defined as an
-	 * array type that decays to a pointer when passed as an
-	 * argument. Copy args1 and args2 with va_copy so that vaf1 and
-	 * vaf2 get proper va_list pointers irrespective of how va_list is
-	 * defined.
+	 * It is implementation dependent whether va_list is defined as an array type that decays
+	 * to a pointer when passed as an argument. Copy args1 and args2 with va_copy so that vaf1
+	 * and vaf2 get proper va_list pointers irrespective of how va_list is defined.
 	 */
 	va_copy(args1_copy, args1);
 	vaf1.fmt = fmt1;
@@ -274,11 +266,7 @@ int uds_vlog_strerror(int priority,
 	return errnum;
 }
 
-int __uds_log_strerror(int priority,
-		       int errnum,
-		       const char *module,
-		       const char *format,
-		       ...)
+int __uds_log_strerror(int priority, int errnum, const char *module, const char *format, ...)
 {
 	va_list args;
 
@@ -295,22 +283,18 @@ void uds_log_backtrace(int priority)
 	dump_stack();
 }
 
-void __uds_log_message(int priority,
-		       const char *module,
-		       const char *format,
-		       ...)
+void __uds_log_message(int priority, const char *module, const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
-	uds_log_embedded_message(priority, module, NULL,
-				 format, args, "%s", "");
+	uds_log_embedded_message(priority, module, NULL, format, args, "%s", "");
 	va_end(args);
 }
 
 /*
- * Sleep or delay a few milliseconds in an attempt allow the log buffers to be
- * flushed lest they be overrun.
+ * Sleep or delay a few milliseconds in an attempt to allow the log buffers to be flushed lest they
+ * be overrun.
  */
 void uds_pause_for_logger(void)
 {

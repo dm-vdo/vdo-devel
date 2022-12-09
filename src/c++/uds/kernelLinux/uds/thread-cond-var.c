@@ -35,9 +35,7 @@ int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 	return UDS_SUCCESS;
 }
 
-int uds_timed_wait_cond(struct cond_var *cv,
-			struct mutex *mutex,
-			ktime_t timeout)
+int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeout)
 {
 	bool happened;
 	event_token_t token = event_count_prepare(cv->event_count);

@@ -15,28 +15,24 @@
 #include "uds-threads.h"
 
 /*
- * This queue will attempt to handle requests in reasonably sized batches
- * instead of reacting immediately to each new request. The wait time between
- * batches is dynamically adjusted up or down to try to balance responsiveness
- * against wasted thread run time.
+ * This queue will attempt to handle requests in reasonably sized batches instead of reacting
+ * immediately to each new request. The wait time between batches is dynamically adjusted up or
+ * down to try to balance responsiveness against wasted thread run time.
  *
- * If the wait time becomes long enough, the queue will become dormant and must
- * be explicitly awoken when a new request is enqueued. The enqueue operation
- * updates "newest" in the funnel queue via xchg (which is a memory barrier),
- * and later checks "dormant" to decide whether to do a wakeup of the worker
- * thread.
+ * If the wait time becomes long enough, the queue will become dormant and must be explicitly
+ * awoken when a new request is enqueued. The enqueue operation updates "newest" in the funnel
+ * queue via xchg (which is a memory barrier), and later checks "dormant" to decide whether to do a
+ * wakeup of the worker thread.
  *
- * When deciding to go to sleep, the worker thread sets "dormant" and then
- * examines "newest" to decide if the funnel queue is idle. In dormant mode,
- * the last examination of "newest" before going to sleep is done inside the
- * wait_event_interruptible() macro, after a point where one or more memory
- * barriers have been issued. (Preparing to sleep uses spin locks.) Even if the
- * funnel queue's "next" field update isn't visible yet to make the entry
- * accessible, its existence will kick the worker thread out of dormant mode
- * and back into timer-based mode.
+ * When deciding to go to sleep, the worker thread sets "dormant" and then examines "newest" to
+ * decide if the funnel queue is idle. In dormant mode, the last examination of "newest" before
+ * going to sleep is done inside the wait_event_interruptible() macro, after a point where one or
+ * more memory barriers have been issued. (Preparing to sleep uses spin locks.) Even if the funnel
+ * queue's "next" field update isn't visible yet to make the entry accessible, its existence will
+ * kick the worker thread out of dormant mode and back into timer-based mode.
  *
- * Unbatched requests are used to communicate between different zone threads
- * and will also cause the queue to awaken immediately.
+ * Unbatched requests are used to communicate between different zone threads and will also cause
+ * the queue to awaken immediately.
  */
 
 enum {
@@ -91,10 +87,9 @@ static inline bool are_queues_idle(struct uds_request_queue *queue)
 }
 
 /*
- * Determine if there is a next request to process, and return it if there
- * is. Also return flags indicating whether the worker thread can sleep (for
- * the use of wait_event() macros) and whether the thread did sleep before
- * returning a new request.
+ * Determine if there is a next request to process, and return it if there is. Also return flags
+ * indicating whether the worker thread can sleep (for the use of wait_event() macros) and whether
+ * the thread did sleep before returning a new request.
  */
 static inline bool dequeue_request(struct uds_request_queue *queue,
 				   struct uds_request **request_ptr,
@@ -126,17 +121,13 @@ static void wait_for_request(struct uds_request_queue *queue,
 {
 	if (dormant) {
 		wait_event_interruptible(queue->wait_head,
-					 (dequeue_request(queue,
-							  request,
-							  waited) ||
+					 (dequeue_request(queue, request, waited) ||
 					  !are_queues_idle(queue)));
 		return;
 	}
 
 	wait_event_interruptible_hrtimeout(queue->wait_head,
-					   dequeue_request(queue,
-							   request,
-							   waited),
+					   dequeue_request(queue, request, waited),
 					   ns_to_ktime(timeout));
 }
 
@@ -160,22 +151,21 @@ static void request_queue_worker(void *arg)
 
 		if (dormant) {
 			/*
-			 * The queue has been roused from dormancy. Clear the
-			 * flag so enqueuers can stop broadcasting. No fence is
-			 * needed for this transition.
+			 * The queue has been roused from dormancy. Clear the flag so enqueuers can
+			 * stop broadcasting. No fence is needed for this transition.
 			 */
 			atomic_set(&queue->dormant, false);
 			dormant = false;
 			time_batch = DEFAULT_WAIT_TIME;
 		} else if (waited) {
 			/*
-			 * We waited for this request to show up. Adjust the
-			 * wait time to smooth out the batch size.
+			 * We waited for this request to show up. Adjust the wait time to smooth
+			 * out the batch size.
 			 */
 			if (current_batch < MINIMUM_BATCH) {
 				/*
-				 * If the last batch of requests was too small,
-				 * increase the wait time.
+				 * If the last batch of requests was too small, increase the wait
+				 * time.
 				 */
 				time_batch += time_batch / 4;
 				if (time_batch >= MAXIMUM_WAIT_TIME) {
@@ -184,8 +174,8 @@ static void request_queue_worker(void *arg)
 				}
 			} else if (current_batch > MAXIMUM_BATCH) {
 				/*
-				 * If the last batch of requests was too large,
-				 * decrease the wait time.
+				 * If the last batch of requests was too large, decrease the wait
+				 * time.
 				 */
 				time_batch -= time_batch / 4;
 				if (time_batch < MINIMUM_WAIT_TIME)
@@ -196,9 +186,8 @@ static void request_queue_worker(void *arg)
 	}
 
 	/*
-	 * Ensure that we process any remaining requests that were enqueued
-	 * before trying to shut down. The corresponding write barrier is in
-	 * uds_request_queue_finish().
+	 * Ensure that we process any remaining requests that were enqueued before trying to shut
+	 * down. The corresponding write barrier is in uds_request_queue_finish().
 	 */
 	smp_rmb();
 	while ((request = poll_queues(queue)) != NULL)
@@ -233,10 +222,7 @@ int make_uds_request_queue(const char *queue_name,
 		return result;
 	}
 
-	result = uds_create_thread(request_queue_worker,
-				   queue,
-				   queue_name,
-				   &queue->thread);
+	result = uds_create_thread(request_queue_worker, queue, queue_name, &queue->thread);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
@@ -253,8 +239,7 @@ static inline void wake_up_worker(struct uds_request_queue *queue)
 		wake_up(&queue->wait_head);
 }
 
-void uds_request_queue_enqueue(struct uds_request_queue *queue,
-			       struct uds_request *request)
+void uds_request_queue_enqueue(struct uds_request_queue *queue, struct uds_request *request)
 {
 	struct funnel_queue *sub_queue;
 	bool unbatched = request->unbatched;
@@ -263,8 +248,8 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 	funnel_queue_put(sub_queue, &request->queue_link);
 
 	/*
-	 * We must wake the worker thread when it is dormant. A read fence
-	 * isn't needed here since we know the queue operation acts as one.
+	 * We must wake the worker thread when it is dormant. A read fence isn't needed here since
+	 * we know the queue operation acts as one.
 	 */
 	if (atomic_read(&queue->dormant) || unbatched)
 		wake_up_worker(queue);
@@ -278,11 +263,10 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 		return;
 
 	/*
-	 * This memory barrier ensures that any requests we queued will be
-	 * seen. The point is that when dequeue_request() sees the following
-	 * update to the running flag, it will also be able to see any change
-	 * we made to a next field in the funnel queue entry. The corresponding
-	 * read barrier is in request_queue_worker().
+	 * This memory barrier ensures that any requests we queued will be seen. The point is that
+	 * when dequeue_request() sees the following update to the running flag, it will also be
+	 * able to see any change we made to a next field in the funnel queue entry. The
+	 * corresponding read barrier is in request_queue_worker().
 	 */
 	smp_wmb();
 	WRITE_ONCE(queue->running, false);
@@ -291,8 +275,7 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 		wake_up_worker(queue);
 		result = uds_join_threads(queue->thread);
 		if (result != UDS_SUCCESS)
-			uds_log_warning_strerror(result,
-						 "Failed to join worker thread");
+			uds_log_warning_strerror(result, "Failed to join worker thread");
 	}
 
 	free_funnel_queue(queue->main_queue);

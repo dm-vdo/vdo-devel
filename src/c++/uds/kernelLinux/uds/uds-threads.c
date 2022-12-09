@@ -96,18 +96,16 @@ int uds_create_thread(void (*thread_function)(void *),
 	/*
 	 * Start the thread, with an appropriate thread name.
 	 *
-	 * If the name supplied contains a colon character, use that name. This
-	 * causes uds module threads to have names like "uds:callbackW" and the
-	 * main test runner thread to be named "zub:runtest".
+	 * If the name supplied contains a colon character, use that name. This causes uds module
+	 * threads to have names like "uds:callbackW" and the main test runner thread to be named
+	 * "zub:runtest".
 	 *
-	 * Otherwise if the current thread has a name containing a colon
-	 * character, prefix the name supplied with the name of the current
-	 * thread up to (and including) the colon character. Thus when the
-	 * "kvdo0:dedupeQ" thread opens an index session, all the threads
-	 * associated with that index will have names like "kvdo0:foo".
+	 * Otherwise if the current thread has a name containing a colon character, prefix the name
+	 * supplied with the name of the current thread up to (and including) the colon character.
+	 * Thus when the "kvdo0:dedupeQ" thread opens an index session, all the threads associated
+	 * with that index will have names like "kvdo0:foo".
 	 *
-	 * Otherwise just use the name supplied. This should be a rare
-	 * occurrence.
+	 * Otherwise just use the name supplied. This should be a rare occurrence.
 	 */
 	if ((name_colon == NULL) && (my_name_colon != NULL))
 		task = kthread_run(thread_starter,
@@ -142,8 +140,7 @@ int uds_join_threads(struct thread *thread)
 }
 
 #ifdef TEST_INTERNAL
-void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
-			  void *argument)
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument)
 {
 	struct thread *thread;
 
@@ -171,11 +168,10 @@ void uds_thread_exit(void)
 	uds_unregister_allocating_thread();
 
 /*
- * Temporary workaround for LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0).
- * We have two kernels, both claiming to be version 5.17.0, that have
- * different APIs. The only way to distinguish the two is to check for
- * the definition of a macro that was added as part of the change that
- * implemented kthread_complete_and_exit.
+ * Temporary workaround for LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0). We have two kernels, both
+ * claiming to be version 5.17.0, that have different APIs. The only way to distinguish the two is
+ * to check for the definition of a macro that was added as part of the change that implemented
+ * kthread_complete_and_exit.
  */
 #ifndef module_put_and_kthread_exit
 	complete_and_exit(completion, 1);

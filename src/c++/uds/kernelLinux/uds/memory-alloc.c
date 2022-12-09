@@ -16,17 +16,16 @@
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 /*
- * This is more than just a wrapper around kmalloc and __vmalloc. Some of the
- * additional code is for testing and debugging only. This code is wrapped by
- * the TEST_INTERNAL and VDO_INTERNAL macros.
+ * This is more than just a wrapper around kmalloc and __vmalloc. Some of the additional code is
+ * for testing and debugging only. This code is wrapped by the TEST_INTERNAL and VDO_INTERNAL
+ * macros.
  */
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 /*
- * UDS and VDO keep track of which threads are allowed to allocate memory
- * freely, and which threads must be careful to not do a memory allocation that
- * does an I/O request. The allocating_threads threads_registry and its
- * associated methods implement this tracking.
+ * UDS and VDO keep track of which threads are allowed to allocate memory freely, and which threads
+ * must be careful to not do a memory allocation that does an I/O request. The allocating_threads
+ * threads_registry and its associated methods implement this tracking.
  */
 static struct thread_registry allocating_threads;
 
@@ -40,18 +39,16 @@ static bool allocations_allowed(void)
 /*
  * Register the current thread as an allocating thread.
  *
- * An optional flag location can be supplied indicating whether, at any given
- * point in time, the threads associated with that flag should be allocating
- * storage. If the flag is false, a message will be logged.
+ * An optional flag location can be supplied indicating whether, at any given point in time, the
+ * threads associated with that flag should be allocating storage. If the flag is false, a message
+ * will be logged.
  *
- * If no flag is supplied, the thread is always allowed to allocate storage
- * without complaint.
+ * If no flag is supplied, the thread is always allowed to allocate storage without complaint.
  *
  * @new_thread: registered_thread structure to use for the current thread
  * @flag_ptr: Location of the allocation-allowed flag
  */
-void uds_register_allocating_thread(struct registered_thread *new_thread,
-				    const bool *flag_ptr)
+void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
@@ -69,21 +66,19 @@ void uds_unregister_allocating_thread(void)
 }
 
 /*
- * We track how much memory has been allocated and freed. When we unload the
- * module, we log an error if we have not freed all the memory that we
- * allocated. Nearly all memory allocation and freeing is done using this
- * module.
+ * We track how much memory has been allocated and freed. When we unload the module, we log an
+ * error if we have not freed all the memory that we allocated. Nearly all memory allocation and
+ * freeing is done using this module.
  *
- * We do not use kernel functions like the kvasprintf() method, which allocate
- * memory indirectly using kmalloc.
+ * We do not use kernel functions like the kvasprintf() method, which allocate memory indirectly
+ * using kmalloc.
  *
- * These data structures and methods are used to track the amount of memory
- * used.
+ * These data structures and methods are used to track the amount of memory used.
  */
 
 /*
- * We allocate very few large objects, and allocation/deallocation isn't done
- * in a performance-critical stage for us, so a linked list should be fine.
+ * We allocate very few large objects, and allocation/deallocation isn't done in a
+ * performance-critical stage for us, so a linked list should be fine.
  */
 struct vmalloc_block_info {
 	void *ptr;
@@ -103,8 +98,8 @@ static struct {
 
 static void update_peak_usage(void)
 {
-	size_t total_bytes =
-		memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
+	size_t total_bytes = memory_stats.kmalloc_bytes + memory_stats.vmalloc_bytes;
+
 	if (total_bytes > memory_stats.peak_bytes)
 		memory_stats.peak_bytes = total_bytes;
 }
@@ -165,39 +160,34 @@ static void remove_vmalloc_block(void *ptr)
 	if (block != NULL)
 		UDS_FREE(block);
 	else
-		uds_log_info("attempting to remove ptr %px not found in vmalloc list",
-			     ptr);
+		uds_log_info("attempting to remove ptr %px not found in vmalloc list", ptr);
 }
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 /*
- * We use these global variables to control the insertion of memory allocation
- * faults during testing. The primary purpose here is to test error code paths.
+ * We use these global variables to control the insertion of memory allocation faults during
+ * testing. The primary purpose here is to test error code paths.
  *
- * UDS tests use schedule_uds_memory_allocation_failure() (and its related
- * methods) to directly control memory allocation faults.
+ * UDS tests use schedule_uds_memory_allocation_failure() (and its related methods) to directly
+ * control memory allocation faults.
  *
- * VDO tests use the sysfs node /sys/uds/memory/schedule_allocation_failure
- * (and its related nodes) from the perl testing code to control memory
- * allocation faults.
+ * VDO tests use the sysfs node /sys/uds/memory/schedule_allocation_failure (and its related nodes)
+ * from the perl testing code to control memory allocation faults.
  *
- * The atomic uds_allocate_memory_counter counts the number of
- * uds_allocate_memory() calls that have a non-zero size. When any memory
- * allocation increments the counter and it is equal to the value of
- * uds_allocation_error_injection, that allocation request will fail.
- * This facility is for testing only, and depends upon a "long" being large
- * enough that wraparound is not a problem.
+ * The atomic uds_allocate_memory_counter counts the number of uds_allocate_memory() calls that
+ * have a non-zero size. When any memory allocation increments the counter and it is equal to the
+ * value of uds_allocation_error_injection, that allocation request will fail. This facility is for
+ * testing only, and depends upon a "long" being large enough that wraparound is not a problem.
  */
 atomic_long_t uds_allocate_memory_counter = ATOMIC_LONG_INIT(0);
 long uds_allocation_error_injection;
 
 /*
- * We use these variables and methods to track the exact blocks that are
- * allocated.
+ * We use these variables and methods to track the exact blocks that are allocated.
  *
- * Tests can track memory by using track_uds_memory_allocations() and
- * log_uds_memory_allocations(). When a test tries to provoke a memory leak and
- * detects one, the test can log the blocks that are yet to be freed.
+ * Tests can track memory by using track_uds_memory_allocations() and log_uds_memory_allocations().
+ * When a test tries to provoke a memory leak and detects one, the test can log the blocks that are
+ * yet to be freed.
  */
 struct track_block_info {
 	void *ptr;
@@ -294,8 +284,7 @@ static void remove_tracking_block(void *ptr)
 	}
 
 	mutex_unlock(&track_mutex);
-	ASSERT_LOG_ONLY(!track_always,
-			"UDS_FREE called on block that UDS did not UDS_ALLOCATE");
+	ASSERT_LOG_ONLY(!track_always, "UDS_FREE called on block that UDS did not UDS_ALLOCATE");
 }
 
 void log_uds_memory_allocations(void)
@@ -319,9 +308,7 @@ void log_uds_memory_allocations(void)
 		for (i = 0; i < info->count; i++) {
 			struct track_block_info *block = &info->blocks[i];
 
-			uds_log_info("  %zu bytes for %s",
-				     block->size,
-				     block->what);
+			uds_log_info("  %zu bytes for %s", block->size, block->what);
 		}
 	}
 
@@ -330,34 +317,28 @@ void log_uds_memory_allocations(void)
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 /*
- * Determine whether allocating a memory block should use kmalloc or
- * __vmalloc.
+ * Determine whether allocating a memory block should use kmalloc or __vmalloc.
  *
  * vmalloc can allocate any integral number of pages.
  *
- * kmalloc can allocate any number of bytes up to a configured limit, which
- * defaults to 8 megabytes on some systems. kmalloc is especially good when
- * memory is being both allocated and freed, and it does this efficiently in a
- * multi CPU environment.
+ * kmalloc can allocate any number of bytes up to a configured limit, which defaults to 8 megabytes
+ * on some systems. kmalloc is especially good when memory is being both allocated and freed, and
+ * it does this efficiently in a multi CPU environment.
  *
- * kmalloc usually rounds the size of the block up to the next power of two,
- * so when the requested block is bigger than PAGE_SIZE / 2 bytes, kmalloc will
- * never give you less space than the corresponding vmalloc allocation.
- * Sometimes vmalloc will use less overhead than kmalloc.
+ * kmalloc usually rounds the size of the block up to the next power of two, so when the requested
+ * block is bigger than PAGE_SIZE / 2 bytes, kmalloc will never give you less space than the
+ * corresponding vmalloc allocation. Sometimes vmalloc will use less overhead than kmalloc.
  *
- * The advantages of kmalloc do not help out UDS or VDO, because we allocate
- * all our memory up front and do not free and reallocate it. Sometimes we
- * have problems using kmalloc, because the Linux memory page map can become so
- * fragmented that kmalloc will not give us a 32KB chunk. We have used vmalloc
- * as a backup to kmalloc in the past, and a follow-up vmalloc of 32KB will
- * work. But there is no strong case to be made for using kmalloc over vmalloc
- * for these size chunks.
+ * The advantages of kmalloc do not help out UDS or VDO, because we allocate all our memory up
+ * front and do not free and reallocate it. Sometimes we have problems using kmalloc, because the
+ * Linux memory page map can become so fragmented that kmalloc will not give us a 32KB chunk. We
+ * have used vmalloc as a backup to kmalloc in the past, and a follow-up vmalloc of 32KB will work.
+ * But there is no strong case to be made for using kmalloc over vmalloc for these size chunks.
  *
- * The kmalloc/vmalloc boundary is set at 4KB, and kmalloc gets the 4KB
- * requests. There is no strong reason for favoring either kmalloc or vmalloc
- * for 4KB requests, except that tracking vmalloc statistics uses a linked list
- * implementation. Using a simple test, this choice of boundary results in 132
- * vmalloc calls. Using vmalloc for requests of exactly 4KB results in an
+ * The kmalloc/vmalloc boundary is set at 4KB, and kmalloc gets the 4KB requests. There is no
+ * strong reason for favoring either kmalloc or vmalloc for 4KB requests, except that tracking
+ * vmalloc statistics uses a linked list implementation. Using a simple test, this choice of
+ * boundary results in 132 vmalloc calls. Using vmalloc for requests of exactly 4KB results in an
  * additional 6374 vmalloc calls, which is much less efficient for tracking.
  *
  * @size: How many bytes to allocate
@@ -368,8 +349,8 @@ static inline bool use_kmalloc(size_t size)
 }
 
 /*
- * Allocate storage based on memory size and alignment, logging an error if
- * the allocation fails. The memory will be zeroed.
+ * Allocate storage based on memory size and alignment, logging an error if the allocation fails.
+ * The memory will be zeroed.
  *
  * @size: The size of an object
  * @align: The required alignment
@@ -381,19 +362,16 @@ static inline bool use_kmalloc(size_t size)
 int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
 	/*
-	 * The __GFP_RETRY_MAYFAIL flag means the VM implementation will retry
-	 * memory reclaim procedures that have previously failed if there is
-	 * some indication that progress has been made elsewhere. It can wait
-	 * for other tasks to attempt high level approaches to freeing memory
-	 * such as compaction (which removes fragmentation) and page-out. There
-	 * is still a definite limit to the number of retries, but it is a
-	 * larger limit than with __GFP_NORETRY. Allocations with this flag may
-	 * fail, but only when there is genuinely little unused memory. While
-	 * these allocations do not directly trigger the OOM killer, their
-	 * failure indicates that the system is likely to need to use the OOM
-	 * killer soon. The caller must handle failure, but can reasonably do
-	 * so by failing a higher-level request, or completing it only in a
-	 * much less efficient manner.
+	 * The __GFP_RETRY_MAYFAIL flag means the VM implementation will retry memory reclaim
+	 * procedures that have previously failed if there is some indication that progress has
+	 * been made elsewhere. It can wait for other tasks to attempt high level approaches to
+	 * freeing memory such as compaction (which removes fragmentation) and page-out. There is
+	 * still a definite limit to the number of retries, but it is a larger limit than with
+	 * __GFP_NORETRY. Allocations with this flag may fail, but only when there is genuinely
+	 * little unused memory. While these allocations do not directly trigger the OOM killer,
+	 * their failure indicates that the system is likely to need to use the OOM killer soon.
+	 * The caller must handle failure, but can reasonably do so by failing a higher-level
+	 * request, or completing it only in a much less efficient manner.
 	 */
 	const gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
 	unsigned int noio_flags;
@@ -412,10 +390,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (atomic_long_inc_return(&uds_allocate_memory_counter) ==
 	    uds_allocation_error_injection) {
-		uds_log_warning("Injecting %s error on %zu bytes for %s",
-				__func__,
-				size,
-				what);
+		uds_log_warning("Injecting %s error on %zu bytes for %s", __func__, size, what);
 		uds_log_backtrace(UDS_LOG_WARNING);
 		return -ENOMEM;
 	}
@@ -429,9 +404,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		p = kmalloc(size, gfp_flags | __GFP_NOWARN);
 		if (p == NULL) {
 			/*
-			 * It is possible for kmalloc to fail to allocate
-			 * memory because there is no page available (see
-			 * VDO-3688). A short sleep may allow the page
+			 * It is possible for kmalloc to fail to allocate memory because there is
+			 * no page available (see VDO-3688). A short sleep may allow the page
 			 * reclaimer to free a page.
 			 */
 			fsleep(1000);
@@ -450,18 +424,14 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
 		    UDS_SUCCESS) {
 			/*
-			 * It is possible for __vmalloc to fail to allocate
-			 * memory because there are no pages available (see
-			 * VDO-3661). A short sleep may allow the page
-			 * reclaimer to free enough pages for a small
-			 * allocation.
+			 * It is possible for __vmalloc to fail to allocate memory because there
+			 * are no pages available (see VDO-3661). A short sleep may allow the page
+			 * reclaimer to free enough pages for a small allocation.
 			 *
-			 * For larger allocations, the page_alloc code is
-			 * racing against the page reclaimer. If the page
-			 * reclaimer can stay ahead of page_alloc, the
-			 * __vmalloc will succeed. But if page_alloc overtakes
-			 * the page reclaimer, the allocation fails. It is
-			 * possible that more retries will succeed.
+			 * For larger allocations, the page_alloc code is racing against the page
+			 * reclaimer. If the page reclaimer can stay ahead of page_alloc, the
+			 * __vmalloc will succeed. But if page_alloc overtakes the page reclaimer,
+			 * the allocation fails. It is possible that more retries will succeed.
 			 */
 			for (;;) {
 				p = __vmalloc(size, gfp_flags | __GFP_NOWARN);
@@ -469,12 +439,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 				if (p != NULL)
 					break;
 
-				if (jiffies_to_msecs(jiffies - start_time) >
-				    1000) {
-					/*
-					 * Try one more time, logging a failure
-					 * for this call.
-					 */
+				if (jiffies_to_msecs(jiffies - start_time) > 1000) {
+					/* Try one more time, logging a failure for this call. */
 					p = __vmalloc(size, gfp_flags);
 					break;
 				}
@@ -513,17 +479,15 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 }
 
 /*
- * Allocate storage based on memory size, failing immediately if the required
- * memory is not available. The memory will be zeroed.
+ * Allocate storage based on memory size, failing immediately if the required memory is not
+ * available. The memory will be zeroed.
  *
  * @size: The size of an object.
  * @what: What is being allocated (for error logging)
  *
- * Return: pointer to the allocated memory, or NULL if the required space is
- *         not available.
+ * Return: pointer to the allocated memory, or NULL if the required space is not available.
  */
-void *uds_allocate_memory_nowait(size_t size,
-				 const char *what __maybe_unused)
+void *uds_allocate_memory_nowait(size_t size, const char *what __maybe_unused)
 {
 	void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
 
@@ -532,9 +496,8 @@ void *uds_allocate_memory_nowait(size_t size,
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (p != NULL)
 		/*
-		 * This call may possibly do an allocation without
-		 * GFP_NOWAIT. Since this code path is only used for memory
-		 * allocation testing, we can live with the possibility of
+		 * This call may possibly do an allocation without GFP_NOWAIT. Since this code path
+		 * is only used for memory allocation testing, we can live with the possibility of
 		 * failure here.
 		 */
 		add_tracking_block(p, ksize(p), what);
@@ -560,9 +523,8 @@ void uds_free_memory(void *ptr)
 }
 
 /*
- * Reallocate dynamically allocated memory. There are no alignment guarantees
- * for the reallocated memory. If the new memory is larger than the old memory,
- * the new space will be zeroed.
+ * Reallocate dynamically allocated memory. There are no alignment guarantees for the reallocated
+ * memory. If the new memory is larger than the old memory, the new space will be zeroed.
  *
  * @ptr: The memory to reallocate.
  * @old_size: The old size of the memory
@@ -572,11 +534,7 @@ void uds_free_memory(void *ptr)
  *
  * Return: UDS_SUCCESS or an error code
  */
-int uds_reallocate_memory(void *ptr,
-			  size_t old_size,
-			  size_t size,
-			  const char *what,
-			  void *new_ptr)
+int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *what, void *new_ptr)
 {
 	int result;
 
@@ -601,9 +559,7 @@ int uds_reallocate_memory(void *ptr,
 	return UDS_SUCCESS;
 }
 
-int uds_duplicate_string(const char *string,
-			 const char *what,
-			 char **new_string)
+int uds_duplicate_string(const char *string, const char *what, char **new_string)
 {
 	int result;
 	byte *dup;
@@ -655,8 +611,8 @@ void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 }
 
 /*
- * Report stats on any allocated memory that we're tracking.
- * Not all allocation types are guaranteed to be tracked in bytes (e.g., bios).
+ * Report stats on any allocated memory that we're tracking. Not all allocation types are
+ * guaranteed to be tracked in bytes (e.g., bios).
  */
 void report_uds_memory_usage(void)
 {

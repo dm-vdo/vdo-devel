@@ -11,8 +11,7 @@
 static struct thread_registry device_id_thread_registry;
 
 /* Any registered thread must be unregistered. */
-void uds_register_thread_device_id(struct registered_thread *new_thread,
-				   unsigned int *id_ptr)
+void uds_register_thread_device_id(struct registered_thread *new_thread, unsigned int *id_ptr)
 {
 	uds_register_thread(&device_id_thread_registry, new_thread, id_ptr);
 }

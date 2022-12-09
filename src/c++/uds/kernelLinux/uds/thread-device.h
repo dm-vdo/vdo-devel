@@ -8,8 +8,7 @@
 
 #include "thread-registry.h"
 
-void uds_register_thread_device_id(struct registered_thread *new_thread,
-				   unsigned int *id_ptr);
+void uds_register_thread_device_id(struct registered_thread *new_thread, unsigned int *id_ptr);
 
 void uds_unregister_thread_device_id(void);
 

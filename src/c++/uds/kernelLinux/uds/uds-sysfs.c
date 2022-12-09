@@ -54,24 +54,21 @@ static char *buffer_to_string(const char *buf, size_t length)
 }
 
 /*
- * This is the code for any directory in the /sys/<module_name> tree that
- * contains no regular files (only subdirectories).
+ * This is the code for any directory in the /sys/<module_name> tree that contains no regular files
+ * (only subdirectories).
  */
 
 static void empty_release(struct kobject *kobj)
 {
 }
 
-static ssize_t
-empty_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t empty_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	return 0;
 }
 
-static ssize_t empty_store(struct kobject *kobj,
-			   struct attribute *attr,
-			   const char *buf,
-			   size_t length)
+static ssize_t
+empty_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
 {
 	return length;
 }
@@ -113,8 +110,7 @@ struct memory_attribute {
 	void (*store_long)(long);
 };
 
-static ssize_t
-memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	struct memory_attribute *ma;
 
@@ -125,10 +121,8 @@ memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
 		return -EINVAL;
 }
 
-static ssize_t memory_store(struct kobject *kobj,
-			    struct attribute *attr,
-			    const char *buf,
-			    size_t length)
+static ssize_t
+memory_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
 {
 	struct memory_attribute *ma;
 
@@ -186,7 +180,6 @@ static void memory_store_track_allocations(long value)
 {
 	track_uds_memory_allocations(value != 0);
 }
-
 
 static struct memory_attribute allocation_counter_attr = {
 	.attr = { .name = "allocation_counter", .mode = 0444 },
@@ -258,8 +251,7 @@ struct parameter_attribute {
 	void (*store_string)(const char *string);
 };
 
-static ssize_t
-parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	struct parameter_attribute *pa;
 
@@ -270,10 +262,8 @@ parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
 		return -EINVAL;
 }
 
-static ssize_t parameter_store(struct kobject *kobj,
-			       struct attribute *attr,
-			       const char *buf,
-			       size_t length)
+static ssize_t
+parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
 {
 	char *string;
 	struct parameter_attribute *pa;
@@ -290,18 +280,15 @@ static ssize_t parameter_store(struct kobject *kobj,
 	return length;
 }
 
-
 static const char *parameter_show_log_level(void)
 {
 	return uds_log_priority_to_string(get_uds_log_level());
 }
 
-
 static void parameter_store_log_level(const char *string)
 {
 	set_uds_log_level(uds_log_string_to_priority(string));
 }
-
 
 static struct parameter_attribute log_level_attr = {
 	.attr = { .name = "log_level", .mode = 0600 },
@@ -335,11 +322,8 @@ int uds_init_sysfs(void)
 	result = kobject_add(&object_root.kobj, NULL, UDS_SYSFS_NAME);
 	if (result == 0) {
 		object_root.flag = true;
-		kobject_init(&object_root.parameter_kobj,
-			     &parameter_object_type);
-		result = kobject_add(&object_root.parameter_kobj,
-				     &object_root.kobj,
-				     "parameter");
+		kobject_init(&object_root.parameter_kobj, &parameter_object_type);
+		result = kobject_add(&object_root.parameter_kobj, &object_root.kobj, "parameter");
 		if (result == 0)
 			object_root.parameter_flag = true;
 	}
@@ -347,8 +331,7 @@ int uds_init_sysfs(void)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (result == 0) {
 		kobject_init(&object_root.memory_kobj, &memory_object_type);
-		result = kobject_add(&object_root.memory_kobj,
-				     &object_root.kobj, "memory");
+		result = kobject_add(&object_root.memory_kobj, &object_root.kobj, "memory");
 		if (result == 0)
 			object_root.memory_flag = true;
 	}
