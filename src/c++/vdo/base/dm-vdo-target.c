@@ -361,6 +361,14 @@ static bool vdo_uses_device(struct vdo *vdo, void *context)
 	return vdo_get_backing_device(vdo)->bd_dev == config->owned_device->bdev->bd_dev;
 }
 
+static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
+{
+	vdo_set_device_config(config, vdo);
+	vdo->device_config = config;
+	ti->private = config;
+	configure_target_capabilities(ti);
+}
+
 static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
@@ -416,10 +424,7 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	vdo_set_device_config(config, vdo);
-	vdo->device_config = config;
-	ti->private = config;
-	configure_target_capabilities(ti);
+	set_device_config(ti, vdo, config);
 	return VDO_SUCCESS;
 }
 
@@ -499,6 +504,7 @@ static int update_existing_vdo(const char *device_name,
 		return vdo_map_to_system_error(result);
 	}
 
+	set_device_config(ti, vdo, config);
 	return VDO_SUCCESS;
 }
 
