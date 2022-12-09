@@ -135,7 +135,7 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 
 static bool is_version(const byte *version, byte *buffer)
 {
-	return (memcmp(version, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0);
+	return memcmp(version, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0;
 }
 
 static int read_version(struct buffered_reader *reader, struct uds_configuration_8_02 *conf)

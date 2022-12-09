@@ -210,8 +210,8 @@ is_virtual_chapter_indexed(const struct volume_index_record *record, uint64_t vi
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 
-	return ((virtual_chapter >= volume_index_zone->virtual_chapter_low) &&
-		(virtual_chapter <= volume_index_zone->virtual_chapter_high));
+	return (virtual_chapter >= volume_index_zone->virtual_chapter_low) &&
+	       (virtual_chapter <= volume_index_zone->virtual_chapter_high);
 }
 
 static inline bool has_sparse(const struct volume_index *volume_index)
@@ -231,9 +231,9 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 static inline const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
 {
-	return (is_volume_index_sample(volume_index, name) ?
-		&volume_index->vi_hook :
-		&volume_index->vi_non_hook);
+	return is_volume_index_sample(volume_index, name) ?
+			&volume_index->vi_hook :
+			&volume_index->vi_non_hook;
 }
 
 static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub_index,

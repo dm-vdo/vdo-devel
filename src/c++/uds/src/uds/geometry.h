@@ -122,7 +122,7 @@ static inline bool __must_check is_reduced_geometry(const struct geometry *geome
 
 static inline bool __must_check is_sparse_geometry(const struct geometry *geometry)
 {
-	return (geometry->sparse_chapters_per_volume > 0);
+	return geometry->sparse_chapters_per_volume > 0;
 }
 
 bool __must_check has_sparse_chapters(const struct geometry *geometry,

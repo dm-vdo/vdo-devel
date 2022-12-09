@@ -275,7 +275,7 @@ size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
 	size_t page_size = (sizeof(struct delta_index_page) + cache->geometry->bytes_per_page);
 	size_t chapter_size = (page_size * cache->geometry->index_pages_per_chapter);
 
-	return (cache->capacity * chapter_size);
+	return cache->capacity * chapter_size;
 }
 
 static inline void set_skip_search(struct cached_chapter_index *chapter, bool skip_search)
@@ -529,7 +529,7 @@ static inline bool should_skip_chapter(struct cached_chapter_index *chapter,
 		return true;
 
 	if (requested_chapter != UINT64_MAX)
-		return (requested_chapter != chapter->virtual_chapter);
+		return requested_chapter != chapter->virtual_chapter;
 	else
 		return READ_ONCE(chapter->skip_search);
 }

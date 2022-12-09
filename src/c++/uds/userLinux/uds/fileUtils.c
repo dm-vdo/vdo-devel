@@ -290,7 +290,7 @@ bool file_name_match(const char *pattern, const char *string, int flags)
 			      result,
 			      string,
 			      flags);
-	return (result == 0);
+	return result == 0;
 }
 
 /**********************************************************************/

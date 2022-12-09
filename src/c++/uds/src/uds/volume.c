@@ -80,19 +80,19 @@ void set_request_restarter(request_restarter_t restarter)
 static inline unsigned int
 map_to_page_number(struct geometry *geometry, unsigned int physical_page)
 {
-	return ((physical_page - 1) % geometry->pages_per_chapter);
+	return (physical_page - 1) % geometry->pages_per_chapter;
 }
 
 static inline unsigned int
 map_to_chapter_number(struct geometry *geometry, unsigned int physical_page)
 {
-	return ((physical_page - 1) / geometry->pages_per_chapter);
+	return (physical_page - 1) / geometry->pages_per_chapter;
 }
 
 static inline bool is_record_page(struct geometry *geometry, unsigned int physical_page)
 {
-	return (((physical_page - 1) % geometry->pages_per_chapter) >=
-		geometry->index_pages_per_chapter);
+	return ((physical_page - 1) % geometry->pages_per_chapter) >=
+	       geometry->index_pages_per_chapter;
 }
 
 static inline unsigned int get_zone_number(struct uds_request *request)
@@ -106,7 +106,7 @@ int map_to_physical_page(const struct geometry *geometry, int chapter, int page)
 	 * Page zero is the header page, so the first index page in the first chapter is physical
 	 * page one.
 	 */
-	return (1 + (geometry->pages_per_chapter * chapter) + page);
+	return 1 + (geometry->pages_per_chapter * chapter) + page;
 }
 
 static void release_page_buffer(struct cached_page *page)
@@ -474,7 +474,7 @@ static inline void advance_queue_position(uint16_t *position)
 
 static inline bool read_queue_is_full(struct page_cache *cache)
 {
-	return (cache->read_queue_first == next_queue_position(cache->read_queue_last));
+	return cache->read_queue_first == next_queue_position(cache->read_queue_last);
 }
 
 EXTERNAL_STATIC int

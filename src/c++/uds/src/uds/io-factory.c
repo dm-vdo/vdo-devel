@@ -253,7 +253,7 @@ static int position_reader(struct buffered_reader *reader, sector_t block_number
 
 static size_t bytes_remaining_in_read_buffer(struct buffered_reader *reader)
 {
-	return (reader->end == NULL ? 0 : reader->start + UDS_BLOCK_SIZE - reader->end);
+	return (reader->end == NULL) ? 0 : reader->start + UDS_BLOCK_SIZE - reader->end;
 }
 
 static int reset_reader(struct buffered_reader *reader)

@@ -131,8 +131,8 @@ static inline int log_system_call_errno(const char *function,
 static inline int
 check_system_call(int result, const char *function, const char *context)
 {
-	return ((result == 0) ? UDS_SUCCESS :
-				log_system_call_errno(function, context));
+	return (result == 0) ? UDS_SUCCESS :
+			       log_system_call_errno(function, context);
 }
 
 /**********************************************************************/

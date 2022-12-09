@@ -31,7 +31,7 @@ enum {
 
 static inline size_t get_entry_count(const struct geometry *geometry)
 {
-	return (geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1));
+	return geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1);
 }
 
 int make_index_page_map(const struct geometry *geometry, struct index_page_map **map_ptr)
@@ -116,8 +116,8 @@ void get_list_number_bounds(const struct index_page_map *map,
 
 uint64_t compute_index_page_map_save_size(const struct geometry *geometry)
 {
-	return (PAGE_MAP_MAGIC_LENGTH + sizeof(uint64_t) +
-		sizeof(uint16_t) * get_entry_count(geometry));
+	return PAGE_MAP_MAGIC_LENGTH + sizeof(uint64_t) +
+	       sizeof(uint16_t) * get_entry_count(geometry);
 }
 
 int write_index_page_map(struct index_page_map *map, struct buffered_writer *writer)

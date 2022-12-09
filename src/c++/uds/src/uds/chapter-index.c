@@ -99,7 +99,7 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 
 static inline bool was_entry_found(const struct delta_index_entry *entry, unsigned int address)
 {
-	return (!entry->at_end && (entry->key == address));
+	return (!entry->at_end) && (entry->key == address);
 }
 
 /* Associate a record name with the record page containing its metadata. */

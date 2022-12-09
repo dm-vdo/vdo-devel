@@ -159,9 +159,9 @@ bool has_sparse_chapters(const struct geometry *geometry,
 			 uint64_t oldest_virtual_chapter,
 			 uint64_t newest_virtual_chapter)
 {
-	return (is_sparse_geometry(geometry) &&
-		((newest_virtual_chapter - oldest_virtual_chapter + 1) >
-		 geometry->dense_chapters_per_volume));
+	return is_sparse_geometry(geometry) &&
+	       ((newest_virtual_chapter - oldest_virtual_chapter + 1) >
+		geometry->dense_chapters_per_volume);
 }
 
 bool is_chapter_sparse(const struct geometry *geometry,
@@ -169,11 +169,11 @@ bool is_chapter_sparse(const struct geometry *geometry,
 		       uint64_t newest_virtual_chapter,
 		       uint64_t virtual_chapter_number)
 {
-	return (has_sparse_chapters(geometry,
-				    oldest_virtual_chapter,
-				    newest_virtual_chapter) &&
-		((virtual_chapter_number + geometry->dense_chapters_per_volume) <=
-		 newest_virtual_chapter));
+	return has_sparse_chapters(geometry,
+				   oldest_virtual_chapter,
+				   newest_virtual_chapter) &&
+	       ((virtual_chapter_number + geometry->dense_chapters_per_volume) <=
+		newest_virtual_chapter);
 }
 
 /* Calculate how many chapters to expire after opening the newest chapter. */

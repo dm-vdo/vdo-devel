@@ -94,7 +94,7 @@ static bool __must_check write_msg(int fd, const char *msg)
 		bytes_to_write += 1;
 		bytes_written += write(fd, "\n", 1);
 	}
-	return (bytes_written != (ssize_t) bytes_to_write);
+	return bytes_written != (ssize_t) bytes_to_write;
 }
 
 /**********************************************************************/

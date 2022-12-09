@@ -516,7 +516,7 @@ static inline unsigned int get_field(const byte *memory, uint64_t offset, int si
 {
 	const void *addr = memory + offset / CHAR_BIT;
 
-	return ((get_unaligned_le32(addr) >> (offset % CHAR_BIT)) & ((1 << size) - 1));
+	return (get_unaligned_le32(addr) >> (offset % CHAR_BIT)) & ((1 << size) - 1);
 }
 
 /* Write a bit field to an arbitrary bit boundary. */
@@ -534,7 +534,7 @@ static inline void set_field(unsigned int value, byte *memory, uint64_t offset, 
 /* Get the bit offset to the immutable delta list header. */
 static inline unsigned int get_immutable_header_offset(unsigned int list_number)
 {
-	return (sizeof(struct delta_page_header) * CHAR_BIT + list_number * IMMUTABLE_HEADER_SIZE);
+	return sizeof(struct delta_page_header) * CHAR_BIT + list_number * IMMUTABLE_HEADER_SIZE;
 }
 
 /* Get the bit offset to the start of the immutable delta list bit stream. */
@@ -696,7 +696,7 @@ static inline uint64_t get_big_field(const byte *memory, uint64_t offset, int si
 {
 	const void *addr = memory + offset / CHAR_BIT;
 
-	return ((get_unaligned_le64(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1));
+	return (get_unaligned_le64(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
 }
 
 /* Write a large bit field to an arbitrary bit boundary. */
@@ -1518,9 +1518,9 @@ int write_guard_delta_list(struct buffered_writer *buffered_writer)
 size_t compute_delta_index_save_bytes(unsigned int list_count, size_t memory_size)
 {
 	/* One zone will use at least as much memory as other zone counts. */
-	return (sizeof(struct delta_index_header) +
-		list_count * (sizeof(struct delta_list_save_info) + 1) +
-		get_zone_memory_size(1, memory_size));
+	return sizeof(struct delta_index_header) +
+	       list_count * (sizeof(struct delta_list_save_info) + 1) +
+	       get_zone_memory_size(1, memory_size);
 }
 
 static int assert_not_at_end(const struct delta_index_entry *delta_entry)
@@ -1748,7 +1748,7 @@ static void set_collision(struct delta_index_entry *delta_entry)
 static inline uint64_t
 get_collision_offset(const struct delta_index_entry *entry)
 {
-	return (get_delta_entry_offset(entry) + entry->entry_bits - COLLISION_BITS);
+	return get_delta_entry_offset(entry) + entry->entry_bits - COLLISION_BITS;
 }
 
 static void get_collision_name(const struct delta_index_entry *entry, byte *name)
@@ -2299,9 +2299,9 @@ uint64_t get_delta_index_bits_allocated(const struct delta_index *delta_index)
 
 static size_t get_delta_zone_allocated(const struct delta_zone *delta_zone)
 {
-	return (delta_zone->size +
-		(delta_zone->list_count + 2) * sizeof(struct delta_list) +
-		(delta_zone->list_count + 2) * sizeof(uint64_t));
+	return delta_zone->size +
+	       (delta_zone->list_count + 2) * sizeof(struct delta_list) +
+	       (delta_zone->list_count + 2) * sizeof(uint64_t);
 }
 
 void get_delta_index_stats(const struct delta_index *delta_index, struct delta_index_stats *stats)
@@ -2334,7 +2334,7 @@ size_t compute_delta_index_size(unsigned long entry_count,
 
 	compute_coding_constants(mean_delta, &min_bits, &min_keys, &incr_keys);
 	/* On average, each delta is encoded into about min_bits + 1.5 bits. */
-	return (entry_count * (payload_bits + min_bits + 1) + entry_count / 2);
+	return entry_count * (payload_bits + min_bits + 1) + entry_count / 2;
 }
 
 unsigned int get_delta_index_page_count(unsigned int entry_count,

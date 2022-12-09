@@ -225,7 +225,7 @@ struct save_layout_sizes {
 
 static inline bool is_converted_super_block(struct super_block_data *super)
 {
-	return (super->version == 7);
+	return super->version == 7;
 }
 
 static int __must_check compute_sizes(const struct configuration *config,

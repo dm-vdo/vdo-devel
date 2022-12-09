@@ -124,7 +124,7 @@ bool ensure_available_space(struct buffer *buffer, size_t bytes)
 		return true;
 
 	compact_buffer(buffer);
-	return (available_space(buffer) >= bytes);
+	return available_space(buffer) >= bytes;
 }
 
 void clear_buffer(struct buffer *buffer)
@@ -187,8 +187,8 @@ int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
 /* Check whether the start of the contents of a buffer matches a specified array of bytes. */
 bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
 {
-	return ((content_length(buffer) >= length) &&
-		(memcmp(buffer->data + buffer->start, data, length) == 0));
+	return (content_length(buffer) >= length) &&
+	       (memcmp(buffer->data + buffer->start, data, length) == 0);
 }
 
 /* Check whether two buffers have the same contents. */

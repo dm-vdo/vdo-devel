@@ -86,8 +86,8 @@ static inline struct uds_request *poll_queues(struct uds_request_queue *queue)
 
 static inline bool are_queues_idle(struct uds_request_queue *queue)
 {
-	return (is_funnel_queue_idle(queue->retry_queue) &&
-		is_funnel_queue_idle(queue->main_queue));
+	return is_funnel_queue_idle(queue->retry_queue) &&
+	       is_funnel_queue_idle(queue->main_queue);
 }
 
 /*
