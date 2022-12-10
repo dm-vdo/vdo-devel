@@ -257,8 +257,6 @@ tarballs:
             block-mapping-state.h
             completion.c
             completion.h
-            compressed-block.c
-            compressed-block.h
             compression-state.c
             compression-state.h
             constants.c

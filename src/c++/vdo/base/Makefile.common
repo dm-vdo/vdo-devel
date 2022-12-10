@@ -18,7 +18,6 @@ BASE_OBJS :=     			\
 	block-map-recovery.o		\
 	block-map-tree.o		\
 	completion.o			\
-	compressed-block.o		\
 	compression-state.o		\
 	constants.o			\
 	data-vio.o			\

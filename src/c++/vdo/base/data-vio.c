@@ -28,7 +28,6 @@
 
 #include "block-allocator.h"
 #include "block-map.h"
-#include "compressed-block.h"
 #include "compression-state.h"
 #include "dump.h"
 #include "int-map.h"

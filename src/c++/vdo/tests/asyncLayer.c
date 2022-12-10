@@ -21,7 +21,6 @@
 #include "uds.h"
 #include "uds-threads.h"
 
-#include "compressed-block.h"
 #include "dedupe.h"
 #include "device-config.h"
 #include "instance-number.h"

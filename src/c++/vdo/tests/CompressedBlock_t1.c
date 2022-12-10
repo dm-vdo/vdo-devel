@@ -9,7 +9,8 @@
 #include "albtest.h"
 
 #include "constants.h"
-#include "compressed-block.h"
+#include "data-vio.h"
+#include "packer.h"
 
 #include "vdoAsserts.h"
 
@@ -58,7 +59,7 @@ static void testInvalidBlock(void)
 /**********************************************************************/
 static void testAbsurdBlock(void)
 {
-  vdo_initialize_compressed_block(&compressedBlock, 101);
+  initialize_compressed_block(&compressedBlock, 101);
   for (unsigned int i = 1; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     compressedBlock.header.sizes[i] = __cpu_to_le16(VDO_BLOCK_SIZE + i * 101);
   }
@@ -103,15 +104,24 @@ static void testValidFragments(void)
     if (i == 0) {
       /* The compressor will put the fragment 0 data in place already */
       memcpy(compressedBlock.data, originalData, offsets[1]);
-      vdo_initialize_compressed_block(&compressedBlock, offsets[1]);
+      initialize_compressed_block(&compressedBlock, offsets[1]);
       continue;
     }
 
-    vdo_put_compressed_block_fragment(&compressedBlock,
-                                      i,
-                                      offsets[i],
-                                      originalData + offsets[i],
-                                      offsets[i + 1] - offsets[i]);
+    struct compression_state compression;
+    struct data_vio dataVIO;
+    struct compressed_block fragment_block;
+    dataVIO.compression.block = &fragment_block;
+    dataVIO.compression.size = offsets[i + 1] - offsets[i];
+    memcpy(fragment_block.data,
+           originalData + offsets[i],
+           dataVIO.compression.size);
+    CU_ASSERT_EQUAL(offsets[i + 1],
+                    pack_fragment(&compression,
+                                  &dataVIO,
+                                  offsets[i],
+                                  i,
+                                  &compressedBlock));
   }
 
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {

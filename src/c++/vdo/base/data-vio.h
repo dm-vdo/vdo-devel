@@ -15,7 +15,6 @@
 
 #include "block-mapping-state.h"
 #include "completion.h"
-#include "compressed-block.h"
 #include "constants.h"
 #include "dedupe.h"
 #include "journal-point.h"

@@ -15,7 +15,6 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "constants.h"
-#include "compressed-block.h"
 #include "compression-state.h"
 #include "data-vio.h"
 #include "dedupe.h"
@@ -26,6 +25,63 @@
 #include "thread-config.h"
 #include "vdo.h"
 #include "vio.h"
+
+static const struct version_number COMPRESSED_BLOCK_1_0 = {
+	.major_version = 1,
+	.minor_version = 0,
+};
+
+enum {
+	COMPRESSED_BLOCK_1_0_SIZE = 4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS),
+};
+
+/**
+ * vdo_get_compressed_block_fragment() - Get a reference to a compressed
+ *                                       fragment from a compressed block.
+ * @mapping_state [in] The mapping state for the look up.
+ * @compressed_block [in] The compressed block that was read from disk.
+ * @fragment_offset [out] The offset of the fragment within a compressed block.
+ * @fragment_size [out] The size of the fragment.
+ *
+ * Return: If a valid compressed fragment is found, VDO_SUCCESS;
+ *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
+ */
+int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
+				      struct compressed_block *block,
+				      uint16_t *fragment_offset,
+				      uint16_t *fragment_size)
+{
+	uint16_t compressed_size;
+	uint16_t offset = 0;
+	unsigned int i;
+	byte slot;
+	struct version_number version;
+
+	if (!vdo_is_state_compressed(mapping_state))
+		return VDO_INVALID_FRAGMENT;
+
+	version = vdo_unpack_version_number(block->header.version);
+	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0))
+		return VDO_INVALID_FRAGMENT;
+
+	slot = vdo_get_slot_from_state(mapping_state);
+	if (slot >= VDO_MAX_COMPRESSION_SLOTS)
+		return VDO_INVALID_FRAGMENT;
+
+	compressed_size = __le16_to_cpu(block->header.sizes[slot]);
+	for (i = 0; i < slot; i++) {
+		offset += __le16_to_cpu(block->header.sizes[i]);
+		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE)
+			return VDO_INVALID_FRAGMENT;
+	}
+
+	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE)
+		return VDO_INVALID_FRAGMENT;
+
+	*fragment_offset = offset;
+	*fragment_size = compressed_size;
+	return VDO_SUCCESS;
+}
 
 /**
  * assert_on_packer_thread() - Check that we are on the packer thread.
@@ -101,7 +157,7 @@ static int __must_check make_bin(struct packer *packer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	bin->free_space = VDO_PACKER_BIN_SIZE;
+	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE;
 	INIT_LIST_HEAD(&bin->list);
 	list_add_tail(&bin->list, &packer->bins);
 	return VDO_SUCCESS;
@@ -353,8 +409,33 @@ static struct data_vio *remove_from_bin(struct packer *packer,
 	}
 
 	/* The bin is now empty. */
-	bin->free_space = VDO_PACKER_BIN_SIZE;
+	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE;
 	return NULL;
+}
+
+/**
+ * initialize_compressed_block() - Initialize a compressed block.
+ * @block: The compressed block to initialize.
+ * @size: The size of the agent's fragment.
+ *
+ * This method initializes the compressed block in the compressed
+ * write agent. Because the compressor already put the agent's
+ * compressed fragment at the start of the compressed block's data
+ * field, it needn't be copied. So all we need do is initialize the
+ * header and set the size of the agent's fragment.
+ */
+EXTERNAL_STATIC void
+initialize_compressed_block(struct compressed_block *block, uint16_t size)
+{
+	/*
+	 * Make sure the block layout isn't accidentally changed by changing
+	 * the length of the block header.
+	 */
+	STATIC_ASSERT_SIZEOF(struct compressed_block_header,
+			     COMPRESSED_BLOCK_1_0_SIZE);
+
+	block->header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
+	block->header.sizes[0] = __cpu_to_le16(size);
 }
 
 /**
@@ -368,11 +449,12 @@ static struct data_vio *remove_from_bin(struct packer *packer,
  *
  * Return: The new amount of space used.
  */
-static block_size_t pack_fragment(struct compression_state *compression,
-				  struct data_vio *data_vio,
-				  block_size_t offset,
-				  slot_number_t slot,
-				  struct compressed_block *block)
+EXTERNAL_STATIC block_size_t __must_check
+pack_fragment(struct compression_state *compression,
+	      struct data_vio *data_vio,
+	      block_size_t offset,
+	      slot_number_t slot,
+	      struct compressed_block *block)
 {
 	struct compression_state *to_pack = &data_vio->compression;
 	char *fragment = to_pack->block->data;
@@ -380,11 +462,8 @@ static block_size_t pack_fragment(struct compression_state *compression,
 	to_pack->next_in_batch = compression->next_in_batch;
 	compression->next_in_batch = data_vio;
 	to_pack->slot = slot;
-	vdo_put_compressed_block_fragment(block,
-					  slot,
-					  offset,
-					  fragment,
-					  to_pack->size);
+	block->header.sizes[slot] = __cpu_to_le16(to_pack->size);
+	memcpy(&block->data[offset], fragment, to_pack->size);
 	return (offset + to_pack->size);
 }
 
@@ -425,7 +504,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	compression = &agent->compression;
 	compression->slot = 0;
 	block = compression->block;
-	vdo_initialize_compressed_block(block, compression->size);
+	initialize_compressed_block(block, compression->size);
 	offset = compression->size;
 
 	while ((client = remove_from_bin(packer, bin)) != NULL)
@@ -445,7 +524,12 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		return;
 	}
 
-	vdo_clear_unused_compression_slots(block, slot);
+	if (slot < VDO_MAX_COMPRESSION_SLOTS)
+		/* Clear out the sizes of the unused slots */
+		memset(&block->header.sizes[slot],
+		       0,
+		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
+
 	set_data_vio_error_handler(agent, handle_compressed_write_error);
 	vdo = vdo_from_data_vio(agent);
 	if (vdo_is_read_only(vdo->read_only_notifier)) {
@@ -546,7 +630,7 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 	 * least amount of free space.
 	 */
 	if (data_vio->compression.size >=
-	    (VDO_PACKER_BIN_SIZE - fullest_bin->free_space))
+	    (VDO_COMPRESSED_BLOCK_DATA_SIZE - fullest_bin->free_space))
 		return NULL;
 
 	/*

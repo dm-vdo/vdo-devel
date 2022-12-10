@@ -142,7 +142,7 @@ static void bestFitTest(void)
   for (block_size_t i = 1; i <= DEFAULT_PACKER_BINS; i++) {
     // For the first batch, set the compressed size of each data_vio to nearly
     // fill a bin and be unique.
-    compressedSizes[i] = VDO_PACKER_BIN_SIZE - i;
+    compressedSizes[i] = VDO_COMPRESSED_BLOCK_DATA_SIZE - i;
     requests[i] = launchIndexedWrite(i, 1, i);
   }
 
@@ -220,7 +220,8 @@ static bool wrapIfHeadingToPacker(struct vdo_completion *completion)
      * which don't fill the bin, but don't leave room for a third. This ensures
      * that all the bins will be full but that none will write out.
      */
-    as_data_vio(completion)->compression.size = (VDO_PACKER_BIN_SIZE - 10) / 2;
+    as_data_vio(completion)->compression.size
+      = (VDO_COMPRESSED_BLOCK_DATA_SIZE - 10) / 2;
     wrapCompletionCallback(completion, signalAllBinsFull);
   }
 
@@ -247,7 +248,7 @@ static void suspendAndResumePackerTest(void)
   for (struct packer_bin *bin = vdo_get_packer_fullest_bin(packer);
        bin != NULL;
        bin = vdo_next_packer_bin(packer, bin)) {
-    CU_ASSERT_EQUAL(bin->free_space, VDO_PACKER_BIN_SIZE);
+    CU_ASSERT_EQUAL(bin->free_space, VDO_COMPRESSED_BLOCK_DATA_SIZE);
   }
 
   performSuccessfulPackerAction(VDO_ADMIN_STATE_RESUMING);
