@@ -45,15 +45,6 @@ enum {
 	FUA_WRITE_FLAGS = WRITE_FLAGS | REQ_FUA,
 };
 
-struct journal_loader {
-	struct vdo_completion *parent;
-	thread_id_t thread_id;
-	physical_block_number_t pbn;
-	data_vio_count_t count;
-	data_vio_count_t complete;
-	struct vio *vios[];
-};
-
 /**
  * DOC: Lock Counters.
  *
@@ -2006,121 +1997,6 @@ struct recovery_journal_statistics
 vdo_get_recovery_journal_statistics(const struct recovery_journal *journal)
 {
 	return journal->events;
-}
-
-static void free_journal_loader(struct journal_loader *loader)
-{
-	data_vio_count_t v;
-
-	if (loader == NULL)
-		return;
-
-	for (v = 0; v < loader->count; v++)
-		free_vio(UDS_FORGET(loader->vios[v]));
-
-	UDS_FREE(loader);
-}
-
-/**
- * finish_journal_load() - Handle the completion of a journal read, and if it
- *                         is the last one, finish the load by notifying the
- *                         parent.
- **/
-static void finish_journal_load(struct vdo_completion *completion)
-{
-	int result = completion->result;
-	struct journal_loader *loader = completion->parent;
-
-	if (++loader->complete == loader->count) {
-		vdo_continue_completion(loader->parent, result);
-		free_journal_loader(loader);
-	}
-}
-
-static void handle_journal_load_error(struct vdo_completion *completion)
-{
-	record_metadata_io_error(as_vio(completion));
-	completion->callback(completion);
-}
-
-static void read_journal_endio(struct bio *bio)
-{
-	struct vio *vio = bio->bi_private;
-	struct journal_loader *loader = vio->completion.parent;
-
-	continue_vio_after_io(vio, finish_journal_load, loader->thread_id);
-}
-
-/**
- * vdo_load_recovery_journal() - Load the journal data off the disk.
- * @journal: The recovery journal to load.
- * @parent: The completion to notify when the load is complete.
- * @journal_data_ptr: A pointer to the journal data buffer (it is the
- *                    caller's responsibility to free this buffer).
- */
-void vdo_load_recovery_journal(struct recovery_journal *journal,
-			       struct vdo_completion *parent,
-			       char **journal_data_ptr)
-{
-	char *ptr;
-	struct journal_loader *loader;
-	physical_block_number_t pbn =
-		vdo_get_fixed_layout_partition_offset(journal->partition);
-	data_vio_count_t vio_count = DIV_ROUND_UP(journal->size,
-						  MAX_BLOCKS_PER_VIO);
-	block_count_t remaining = journal->size;
-	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE,
-				  char,
-				  __func__,
-				  journal_data_ptr);
-
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
-		return;
-	}
-
-	result = UDS_ALLOCATE_EXTENDED(struct journal_loader,
-				       vio_count,
-				       struct vio *,
-				       __func__,
-				       &loader);
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
-		return;
-	}
-
-	loader->thread_id = vdo_get_callback_thread_id();
-	loader->parent = parent;
-	ptr = *journal_data_ptr;
-	for (loader->count = 0; loader->count < vio_count; loader->count++) {
-		unsigned short blocks =
-			min(remaining, (block_count_t) MAX_BLOCKS_PER_VIO);
-
-		result = create_multi_block_metadata_vio(parent->vdo,
-							 VIO_TYPE_RECOVERY_JOURNAL,
-							 VIO_PRIORITY_METADATA,
-							 loader,
-							 blocks,
-							 ptr,
-							 &loader->vios[loader->count]);
-		if (result != VDO_SUCCESS) {
-			free_journal_loader(UDS_FORGET(loader));
-			vdo_finish_completion(parent, result);
-			return;
-		}
-
-		ptr += (blocks * VDO_BLOCK_SIZE);
-		remaining -= blocks;
-	}
-
-	for (vio_count = 0;
-	     vio_count < loader->count;
-	     vio_count++, pbn += MAX_BLOCKS_PER_VIO)
-		submit_metadata_vio(loader->vios[vio_count],
-				    pbn,
-				    read_journal_endio,
-				    handle_journal_load_error,
-				    REQ_OP_READ);
 }
 
 /**
