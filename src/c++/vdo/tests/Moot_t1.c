@@ -11,7 +11,7 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "compression-state.h"
+#include "data-vio.h"
 #include "vdo.h"
 
 #include "asyncLayer.h"

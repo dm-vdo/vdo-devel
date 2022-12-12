@@ -28,7 +28,6 @@
 
 #include "block-allocator.h"
 #include "block-map.h"
-#include "compression-state.h"
 #include "dump.h"
 #include "int-map.h"
 #include "io-submitter.h"
@@ -125,6 +124,8 @@ enum {
 };
 
 static const unsigned int VDO_SECTORS_PER_BLOCK_MASK = VDO_SECTORS_PER_BLOCK - 1;
+static const uint32_t COMPRESSION_STATUS_MASK = 0xff;
+static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 struct limiter;
 typedef void assigner(struct limiter *limiter);
@@ -365,6 +366,144 @@ static void copy_to_bio(struct bio *bio, char *data_ptr)
 		memcpy_to_bvec(&biovec, data_ptr);
 		data_ptr += biovec.bv_len;
 	}
+}
+
+/**
+ * get_vio_compression_state() - Get the compression status of a data_vio.
+ * @data_vio: The data_vio.
+ *
+ * Return: The compression status.
+ */
+struct data_vio_compression_status
+get_data_vio_compression_status(struct data_vio *data_vio)
+{
+	uint32_t packed = atomic_read(&data_vio->compression.status);
+
+	/* pairs with cmpxchg in set_data_vio_compression_status */
+	smp_rmb();
+	return (struct data_vio_compression_status) {
+		.stage = packed & COMPRESSION_STATUS_MASK,
+		.may_not_compress = ((packed & MAY_NOT_COMPRESS_MASK) != 0),
+	};
+}
+
+/**
+ * pack_status() - Convert a data_vio_compression_status into a uint32_t which
+ *		   may be stored atomically.
+ * @status: The state to convert.
+ *
+ * Return: The compression state packed into a uint32_t.
+ */
+static uint32_t __must_check
+pack_status(struct data_vio_compression_status status)
+{
+	return status.stage | (status.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);
+}
+
+/**
+ * set_data_vio_compression_status() - Set the compression status of a
+ *                                     data_vio.
+ * @data_vio: The data_vio whose compression status is to be set.
+ * @state: The expected current status of the data_vio.
+ * @new_state: The status to set.
+ *
+ * Return: true if the new status was set, false if the data_vio's compression
+ *	   status did not match the expected state, and so was left unchanged.
+ */
+EXTERNAL_STATIC bool __must_check
+set_data_vio_compression_status(struct data_vio *data_vio,
+				struct data_vio_compression_status status,
+				struct data_vio_compression_status new_status)
+{
+	uint32_t actual;
+	uint32_t expected = pack_status(status);
+	uint32_t replacement = pack_status(new_status);
+
+	/*
+	 * Extra barriers because this was original developed using a CAS
+	 * operation that implicitly had them.
+	 */
+	smp_mb__before_atomic();
+	actual = atomic_cmpxchg(&data_vio->compression.status, expected, replacement);
+	/* same as before_atomic */
+	smp_mb__after_atomic();
+	return (expected == actual);
+}
+
+/**
+ * advance_data_vio_compression_status() - Advance to the next compression status along the
+ *		                           compression path.
+ * @data_vio: The data_vio to advance.
+ *
+ * Return: The new compression status of the data_vio.
+ */
+struct data_vio_compression_status
+advance_data_vio_compression_stage(struct data_vio *data_vio)
+{
+	for (;;) {
+		struct data_vio_compression_status status =
+			get_data_vio_compression_status(data_vio);
+		struct data_vio_compression_status new_status = status;
+
+		if (status.stage == DATA_VIO_POST_PACKER)
+			/* We're already in the last stage. */
+			return status;
+
+		if (status.may_not_compress)
+			/*
+			 * Compression has been dis-allowed for this VIO, so
+			 * skip the rest of the path and go to the end.
+			 */
+			new_status.stage = DATA_VIO_POST_PACKER;
+		else
+			/* Go to the next state. */
+			new_status.stage++;
+
+		if (set_data_vio_compression_status(data_vio,
+						    status,
+						    new_status))
+			return new_status;
+
+		/*
+		 * Another thread changed the status out from under us so try
+		 * again.
+		 */
+	}
+}
+
+/**
+ * cancel_data_vio_compression() - Prevent this data_vio from being compressed
+ *			           or packed.
+ * @data_vio: The data_vio to cancel.
+ *
+ * Return: true if the data_vio is in the packer and the caller was the first
+ *	   caller to cancel it.
+ */
+bool cancel_data_vio_compression(struct data_vio *data_vio)
+{
+	struct data_vio_compression_status status, new_status;
+
+	for (;;) {
+		status = get_data_vio_compression_status(data_vio);
+		if (status.may_not_compress ||
+		    (status.stage == DATA_VIO_POST_PACKER))
+			/*
+			 * This data_vio is already set up to not block in the
+			 * packer.
+			 */
+			break;
+
+		new_status.stage = status.stage;
+		new_status.may_not_compress = true;
+
+		if (set_data_vio_compression_status(data_vio,
+						    status,
+						    new_status))
+			break;
+	}
+
+	return ((status.stage == DATA_VIO_PACKING) &&
+		!status.may_not_compress);
 }
 
 /**
@@ -1679,6 +1818,8 @@ static void write_block(struct data_vio *data_vio);
  */
 void abort_data_vio_optimization(struct data_vio *data_vio)
 {
+	struct data_vio_compression_status status, new_status;
+
 	if (!data_vio_has_allocation(data_vio)) {
 		/*
 		 * There was no space to write this block and we failed to deduplicate or compress
@@ -1687,6 +1828,16 @@ void abort_data_vio_optimization(struct data_vio *data_vio)
 		continue_data_vio_with_error(data_vio, VDO_NO_SPACE);
 		return;
 	}
+
+	new_status = (struct data_vio_compression_status) {
+		.stage = DATA_VIO_POST_PACKER,
+		.may_not_compress = true,
+	};
+
+	do {
+		status = get_data_vio_compression_status(data_vio);
+	} while ((status.stage != DATA_VIO_POST_PACKER) &&
+		 !set_data_vio_compression_status(data_vio, status, new_status));
 
 	/*
 	 * We failed to deduplicate or compress so now we need to actually write the data.
@@ -1901,7 +2052,8 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
-	if (!may_pack_data_vio(data_vio)) {
+	if (!vdo_get_compressing(vdo_from_data_vio(data_vio))
+	    || get_data_vio_compression_status(data_vio).may_not_compress) {
 		abort_data_vio_optimization(data_vio);
 		return;
 	}
@@ -1932,16 +2084,13 @@ static void compress_data_vio(struct vdo_completion *completion)
 				    VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
 				    (char *) get_work_queue_private_data());
-	if (size > 0)
+	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
 		data_vio->compression.size = size;
-	else
-		/*
-		 * Use block size plus one as an indicator for uncompressible
-		 * data.
-		 */
-		data_vio->compression.size = VDO_BLOCK_SIZE + 1;
+		launch_data_vio_packer_callback(data_vio, pack_compressed_data);
+		return;
+	}
 
-	launch_data_vio_packer_callback(data_vio, pack_compressed_data);
+	abort_data_vio_optimization(data_vio);
 }
 
 /**
@@ -1953,7 +2102,29 @@ static void compress_data_vio(struct vdo_completion *completion)
 void launch_compress_data_vio(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!data_vio->is_duplicate, "compressing a non-duplicate block");
-	if (!may_compress_data_vio(data_vio)) {
+	ASSERT_LOG_ONLY(data_vio->hash_lock != NULL, "data_vio to compress has a hash_lock");
+	ASSERT_LOG_ONLY(data_vio_has_allocation(data_vio),
+			"data_vio to compress has an allocation");
+
+	/*
+	 * There are 4 reasons why a data_vio which has reached this point will not be eligible for
+	 * compression:
+	 *
+	 * 1) Since data_vios can block indefinitely in the packer, it would be bad to do so if the
+	 * write request also requests FUA.
+	 *
+	 * 2) A data_vio should not be compressed when compression is disabled for the vdo.
+	 *
+	 * 3) A data_vio could be doing a partial write on behalf of a larger discard which has not
+	 * yet been acknowledged and hence blocking in the packer would be bad.
+	 *
+	 * 4) Some other data_vio may be waiting on this data_vio in which case blocking in the
+	 * packer would also be bad.
+	 */
+	if (data_vio->fua ||
+	    !vdo_get_compressing(vdo_from_data_vio(data_vio)) ||
+	    ((data_vio->user_bio != NULL) && (bio_op(data_vio->user_bio) == REQ_OP_DISCARD)) ||
+	    (advance_data_vio_compression_stage(data_vio).stage != DATA_VIO_COMPRESSING)) {
 		abort_data_vio_optimization(data_vio);
 		return;
 	}

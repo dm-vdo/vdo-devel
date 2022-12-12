@@ -15,7 +15,6 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "constants.h"
-#include "compression-state.h"
 #include "data-vio.h"
 #include "dedupe.h"
 #include "io-submitter.h"
@@ -283,12 +282,10 @@ static void abort_packing(struct data_vio *data_vio)
 {
 	struct packer *packer = get_packer_from_data_vio(data_vio);
 
-	set_data_vio_compression_done(data_vio);
-
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
 
-	continue_write_after_compression(data_vio);
+	abort_data_vio_optimization(data_vio);
 }
 
 /**
@@ -400,7 +397,7 @@ static struct data_vio *remove_from_bin(struct packer *packer,
 	while (bin->slots_used > 0) {
 		struct data_vio *data_vio = bin->incoming[--bin->slots_used];
 
-		if (may_write_compressed_data_vio(data_vio)) {
+		if (!advance_data_vio_compression_stage(data_vio).may_not_compress) {
 			data_vio->compression.bin = NULL;
 			return data_vio;
 		}
@@ -693,7 +690,8 @@ void vdo_attempt_packing(struct data_vio *data_vio)
 	 * calling may_vio_block_in_packer() (VDO-2826).
 	 */
 	bin = select_bin(packer, data_vio);
-	if ((bin == NULL) || !may_data_vio_block_in_packer(data_vio)) {
+	if ((bin == NULL) ||
+	    (advance_data_vio_compression_stage(data_vio).stage != DATA_VIO_PACKING)) {
 		abort_packing(data_vio);
 		return;
 	}

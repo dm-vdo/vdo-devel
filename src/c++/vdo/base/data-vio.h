@@ -114,6 +114,28 @@ struct zoned_pbn {
 	struct physical_zone *zone;
 };
 
+/*
+ * Where a data_vio is on the compression path; advance_compression_stage() depends on the order of
+ * this enum.
+ */
+enum data_vio_compression_stage {
+	/* A data_vio which has not yet entered the compression path */
+	DATA_VIO_PRE_COMPRESSOR,
+	/* A data_vio which is in the compressor */
+	DATA_VIO_COMPRESSING,
+	/* A data_vio which is blocked in the packer */
+	DATA_VIO_PACKING,
+	/*
+	 * A data_vio which is no longer on the compression path (and never will be)
+	 */
+	DATA_VIO_POST_PACKER,
+};
+
+struct data_vio_compression_status {
+	enum data_vio_compression_stage stage;
+	bool may_not_compress;
+};
+
 struct compression_state {
 	/*
 	 * The current compression status of this data_vio. This field contains
@@ -423,6 +445,18 @@ static inline bool data_vio_has_allocation(struct data_vio *data_vio)
 {
 	return (data_vio->allocation.pbn != VDO_ZERO_BLOCK);
 }
+
+struct data_vio_compression_status __must_check
+advance_data_vio_compression_stage(struct data_vio *data_vio);
+struct data_vio_compression_status __must_check
+get_data_vio_compression_status(struct data_vio *data_vio);
+#ifdef INTERNAL
+bool __must_check
+set_data_vio_compression_status(struct data_vio *data_vio,
+				struct data_vio_compression_status status,
+				struct data_vio_compression_status new_status);
+#endif /* INTERNAL */
+bool cancel_data_vio_compression(struct data_vio *data_vio);
 
 struct data_vio_pool;
 

@@ -12,7 +12,7 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "compression-state.h"
+#include "data-vio.h"
 #include "dedupe.h"
 #include "packer.h"
 #include "thread-config.h"

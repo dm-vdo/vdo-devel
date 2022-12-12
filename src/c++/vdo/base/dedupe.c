@@ -158,7 +158,6 @@
 #include "action-manager.h"
 #include "admin-state.h"
 #include "completion.h"
-#include "compression-state.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "io-submitter.h"
