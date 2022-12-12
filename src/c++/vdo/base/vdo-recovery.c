@@ -210,6 +210,88 @@ static bool __must_check is_replaying(const struct vdo *vdo)
 }
 
 /**
+ * is_congruent_recovery_journal_block() - Determine whether the given header describes a valid
+ *                                         block for the given journal that could appear at the
+ *                                         given offset in the journal.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
+ * @offset: An offset indicating where the block was in the journal.
+ *
+ * Return: True if the header matches.
+ */
+static bool __must_check
+is_congruent_recovery_journal_block(struct recovery_journal *journal,
+				    const struct recovery_block_header *header,
+				    physical_block_number_t offset)
+{
+	physical_block_number_t expected_offset =
+		vdo_get_recovery_journal_block_number(journal, header->sequence_number);
+
+	return ((expected_offset == offset) &&
+		vdo_is_valid_recovery_journal_block(journal, header));
+}
+
+/**
+ * find_recovery_journal_head_and_tail() - Find the tail and head of the journal.
+ *
+ * @journal: The recovery journal.
+ * @journal_data: The journal data read from disk.
+ * @tail_ptr: A pointer to return the tail found, or if no higher block is found, the value
+ *            currently in the journal.
+ * @block_map_head_ptr: A pointer to return the block map head.
+ * @slab_journal_head_ptr: An optional pointer to return the slab journal head.
+ *
+ * Finds the tail and the head of the journal by searching for the highest sequence number in a
+ * block with a valid nonce, and the highest head value among the blocks with valid nonces.
+ *
+ * Return: True if there were valid journal blocks
+ */
+static bool find_recovery_journal_head_and_tail(struct recovery_journal *journal,
+						char *journal_data,
+						sequence_number_t *tail_ptr,
+						sequence_number_t *block_map_head_ptr,
+						sequence_number_t *slab_journal_head_ptr)
+{
+	sequence_number_t highest_tail = journal->tail;
+	sequence_number_t block_map_head_max = 0;
+	sequence_number_t slab_journal_head_max = 0;
+	bool found_entries = false;
+	physical_block_number_t i;
+
+	for (i = 0; i < journal->size; i++) {
+		struct packed_journal_header *packed_header =
+			vdo_get_recovery_journal_block_header(journal, journal_data, i);
+		struct recovery_block_header header;
+
+		vdo_unpack_recovery_block_header(packed_header, &header);
+		if (!is_congruent_recovery_journal_block(journal, &header, i))
+			/*
+			 * This block is old, unformatted, or doesn't belong at
+			 * this location.
+			 */
+			continue;
+
+		if (header.sequence_number >= highest_tail) {
+			found_entries = true;
+			highest_tail = header.sequence_number;
+		}
+		if (header.block_map_head > block_map_head_max)
+			block_map_head_max = header.block_map_head;
+		if (header.slab_journal_head > slab_journal_head_max)
+			slab_journal_head_max = header.slab_journal_head;
+	}
+
+	*tail_ptr = highest_tail;
+	if (!found_entries)
+		return false;
+
+	*block_map_head_ptr = block_map_head_max;
+	if (slab_journal_head_ptr != NULL)
+		*slab_journal_head_ptr = slab_journal_head_max;
+	return true;
+}
+
+/**
  * make_missing_decref() - Create a missing_decref and enqueue it to wait for a determination of its
  *                         penultimate mapping.
  * @recovery: The parent recovery completion.
@@ -1212,11 +1294,11 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 	struct recovery_journal *journal = vdo->recovery_journal;
 
 	uds_log_info("Finished reading recovery journal");
-	found_entries = vdo_find_recovery_journal_head_and_tail(journal,
-								recovery->journal_data,
-								&recovery->highest_tail,
-								&recovery->block_map_head,
-								&recovery->slab_journal_head);
+	found_entries = find_recovery_journal_head_and_tail(journal,
+							    recovery->journal_data,
+							    &recovery->highest_tail,
+							    &recovery->block_map_head,
+							    &recovery->slab_journal_head);
 	if (found_entries)
 		found_entries = find_contiguous_range(recovery);
 
@@ -1935,11 +2017,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	uds_log_info("Finished reading recovery journal");
 	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 
-	found_entries = vdo_find_recovery_journal_head_and_tail(vdo->recovery_journal,
-								rebuild->journal_data,
-								&rebuild->tail,
-								&rebuild->head,
-								NULL);
+	found_entries = find_recovery_journal_head_and_tail(vdo->recovery_journal,
+							    rebuild->journal_data,
+							    &rebuild->tail,
+							    &rebuild->head,
+							    NULL);
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
 
