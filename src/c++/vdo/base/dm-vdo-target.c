@@ -364,7 +364,6 @@ static bool vdo_uses_device(struct vdo *vdo, void *context)
 static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
 {
 	vdo_set_device_config(config, vdo);
-	vdo->device_config = config;
 	ti->private = config;
 	configure_target_capabilities(ti);
 }
@@ -425,6 +424,7 @@ static int vdo_initialize(struct dm_target *ti,
 	}
 
 	set_device_config(ti, vdo, config);
+	vdo->device_config = config;
 	return VDO_SUCCESS;
 }
 
