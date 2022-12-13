@@ -1262,14 +1262,18 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
  * count_increment_entries() - Count the number of increment entries in the journal.
  * @recovery: The recovery completion.
  */
-static int count_increment_entries(struct recovery_completion *recovery)
+static noinline int count_increment_entries(struct recovery_completion *recovery)
 {
-	struct vdo *vdo = recovery->completion.vdo;
+	/*
+	 * XXX VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
+	 * error about this structure being uninitialized.
+	 */
 	struct recovery_point recovery_point = {
 		.sequence_number = recovery->block_map_head,
 		.sector_count = 1,
 		.entry_count = 0,
 	};
+	struct vdo *vdo = recovery->completion.vdo;
 
 	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
 		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
