@@ -1810,41 +1810,6 @@ static void read_block(struct vdo_completion *completion)
 	submit_data_vio_io(data_vio);
 }
 
-static void write_block(struct data_vio *data_vio);
-
-/**
- * abort_data_vio_optimization() - Abort the data optimization process.
- * @data_vio: The data_vio which does not deduplicate or compress.
- */
-void abort_data_vio_optimization(struct data_vio *data_vio)
-{
-	struct data_vio_compression_status status, new_status;
-
-	if (!data_vio_has_allocation(data_vio)) {
-		/*
-		 * There was no space to write this block and we failed to deduplicate or compress
-		 * it.
-		 */
-		continue_data_vio_with_error(data_vio, VDO_NO_SPACE);
-		return;
-	}
-
-	new_status = (struct data_vio_compression_status) {
-		.stage = DATA_VIO_POST_PACKER,
-		.may_not_compress = true,
-	};
-
-	do {
-		status = get_data_vio_compression_status(data_vio);
-	} while ((status.stage != DATA_VIO_POST_PACKER) &&
-		 !set_data_vio_compression_status(data_vio, status, new_status));
-
-	/*
-	 * We failed to deduplicate or compress so now we need to actually write the data.
-	 */
-	write_block(data_vio);
-}
-
 /**
  * update_block_map_for_dedupe() - Update the block map now that we've added an entry in the
  * recovery journal for a block we have just shared.
@@ -2033,7 +1998,7 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 void continue_write_after_compression(struct data_vio *data_vio)
 {
 	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
-		abort_data_vio_optimization(data_vio);
+		write_data_vio(data_vio);
 		return;
 	}
 
@@ -2054,7 +2019,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	if (!vdo_get_compressing(vdo_from_data_vio(data_vio))
 	    || get_data_vio_compression_status(data_vio).may_not_compress) {
-		abort_data_vio_optimization(data_vio);
+		write_data_vio(data_vio);
 		return;
 	}
 
@@ -2090,7 +2055,7 @@ static void compress_data_vio(struct vdo_completion *completion)
 		return;
 	}
 
-	abort_data_vio_optimization(data_vio);
+	write_data_vio(data_vio);
 }
 
 /**
@@ -2125,7 +2090,7 @@ void launch_compress_data_vio(struct data_vio *data_vio)
 	    !vdo_get_compressing(vdo_from_data_vio(data_vio)) ||
 	    ((data_vio->user_bio != NULL) && (bio_op(data_vio->user_bio) == REQ_OP_DISCARD)) ||
 	    (advance_data_vio_compression_stage(data_vio).stage != DATA_VIO_COMPRESSING)) {
-		abort_data_vio_optimization(data_vio);
+		write_data_vio(data_vio);
 		return;
 	}
 
@@ -2370,12 +2335,32 @@ static void write_bio_finished(struct bio *bio)
 }
 
 /**
- * write_block() - Write data to the underlying storage.
+ * write_data_vio() - Write a data block to storage without compression.
  * @data_vio: The data_vio to write.
  */
-static void write_block(struct data_vio *data_vio)
+void write_data_vio(struct data_vio *data_vio)
 {
+	struct data_vio_compression_status status, new_status;
 	int result;
+
+	if (!data_vio_has_allocation(data_vio)) {
+		/*
+		 * There was no space to write this block and we failed to deduplicate or compress
+		 * it.
+		 */
+		continue_data_vio_with_error(data_vio, VDO_NO_SPACE);
+		return;
+	}
+
+	new_status = (struct data_vio_compression_status) {
+		.stage = DATA_VIO_POST_PACKER,
+		.may_not_compress = true,
+	};
+
+	do {
+		status = get_data_vio_compression_status(data_vio);
+	} while ((status.stage != DATA_VIO_POST_PACKER) &&
+		 !set_data_vio_compression_status(data_vio, status, new_status));
 
 	/* Write the data from the data block buffer. */
 	result = prepare_data_vio_for_io(data_vio,

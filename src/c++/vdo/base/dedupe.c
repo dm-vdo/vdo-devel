@@ -733,14 +733,14 @@ static void wait_on_hash_lock(struct hash_lock *lock,
 }
 
 /**
- * abort_waiter() - waiter_callback function that calls abort_optimization on
- *                  the data_vio waiter.
+ * abort_waiter() - waiter_callback function that shunts waiters to write their
+ *                  blocks without optimization.
  * @waiter: The data_vio's waiter link.
  * @context: Not used.
  */
 static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
-	abort_data_vio_optimization(waiter_as_data_vio(waiter));
+	write_data_vio(waiter_as_data_vio(waiter));
 }
 
 /**
@@ -2192,7 +2192,7 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion)
 		 * compressed write depends on the hash_lock to manage the
 		 * references for the compressed block.
 		 */
-		abort_data_vio_optimization(data_vio);
+		write_data_vio(data_vio);
 		return;
 	}
 
@@ -2215,7 +2215,7 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion)
 	case VDO_HASH_LOCK_BYPASSING:
 		/* We can't use this lock, so bypass optimization entirely. */
 		vdo_release_hash_lock(data_vio);
-		abort_data_vio_optimization(data_vio);
+		write_data_vio(data_vio);
 		return;
 
 	case VDO_HASH_LOCK_DEDUPING:

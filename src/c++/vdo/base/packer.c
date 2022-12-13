@@ -285,7 +285,7 @@ static void abort_packing(struct data_vio *data_vio)
 	WRITE_ONCE(packer->statistics.compressed_fragments_in_packer,
 		   packer->statistics.compressed_fragments_in_packer - 1);
 
-	abort_data_vio_optimization(data_vio);
+	write_data_vio(data_vio);
 }
 
 /**
