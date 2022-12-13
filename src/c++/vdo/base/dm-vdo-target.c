@@ -448,9 +448,12 @@ static int construct_new_vdo_registered(struct dm_target *ti,
 	struct device_config *config;
 
 	result = vdo_parse_device_config(argc, argv, ti, &config);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
+		vdo_release_instance(instance);
 		return -EINVAL;
+	}
 
+	/* Beyond this point, the instance number will be cleaned up for us if needed */
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
 		vdo_free_device_config(config);
@@ -475,10 +478,6 @@ static int construct_new_vdo(struct dm_target *ti,
 	uds_register_thread_device_id(&instance_thread, &instance);
 	result = construct_new_vdo_registered(ti, argc, argv, instance);
 	uds_unregister_thread_device_id();
-
-	if (result != VDO_SUCCESS)
-		vdo_release_instance(instance);
-
 	return result;
 }
 
