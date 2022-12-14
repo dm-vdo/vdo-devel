@@ -6,9 +6,8 @@
 #ifndef UDS_H
 #define UDS_H
 
-#ifdef __KERNEL__
 #include <linux/types.h>
-#else
+#ifndef __KERNEL__
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>

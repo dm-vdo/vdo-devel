@@ -10,6 +10,7 @@
 #ifdef __KERNEL__
 #include <linux/kernel.h>
 #endif
+#include <linux/types.h>
 
 #include "compiler.h"
 

@@ -8,7 +8,7 @@
 #define ASM_UNALIGNED_H 1
 
 #include <asm/byteorder.h>
-#include <stdint.h>
+#include <linux/types.h>
 
 /* Type safe comparison macros, similar to the ones in linux/kernel.h. */
 

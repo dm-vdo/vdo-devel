@@ -211,6 +211,7 @@ tarballs:
             dm-bufio.h
             log2.h
             random.h
+            types.h
           undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
         src/c++/uds/userLinux/uds/asm:
           dest: utils/uds/asm

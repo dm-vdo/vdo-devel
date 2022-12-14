@@ -7,10 +7,8 @@
 #ifndef _MURMURHASH3_H_
 #define _MURMURHASH3_H_
 
-#ifdef __KERNEL__
 #include <linux/types.h>
-#else
-#include <stdint.h>
+#ifndef __KERNEL__
 #include "compiler.h"
 #endif
 

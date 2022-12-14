@@ -9,17 +9,13 @@
 #ifndef LINUX_BLKDEV_H
 #define LINUX_BLKDEV_H
 
+#include <linux/types.h>
+
 #include "compiler.h"
 #include "type-defs.h"
 
 #define SECTOR_SHIFT 9
 #define SECTOR_SIZE 512
-
-/* Defined in linux/types.h */
-typedef unsigned int fmode_t;
-
-#define FMODE_READ (fmode_t) 0x1
-#define FMODE_WRITE (fmode_t) 0x2
 
 /* Defined in linux/fs.h */
 struct inode;

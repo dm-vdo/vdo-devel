@@ -12,7 +12,9 @@
 #ifdef __KERNEL__
 #include <linux/ktime.h>
 #include <linux/time.h>
-#else
+#endif
+#include <linux/types.h>
+#ifndef __KERNEL__
 #include <sys/time.h>
 #include <time.h>
 
