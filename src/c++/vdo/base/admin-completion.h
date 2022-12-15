@@ -33,8 +33,8 @@ vdo_thread_id_getter_for_phase(struct admin_completion *admin_completion);
 
 struct admin_completion {
 	/*
-	 * FIXME this field should be replaced by container_of() when
-	 * enqueuables go away and this becomes a field of struct vdo.
+	 * FIXME this field should be replaced by container_of() when enqueuables go away and this
+	 * becomes a field of struct vdo.
 	 */
 	struct vdo *vdo;
 	struct vdo_completion completion;
@@ -57,23 +57,18 @@ void vdo_assert_admin_phase_thread(struct admin_completion *admin_completion,
 				   const char * const phase_names[]);
 
 struct vdo * __must_check
-vdo_from_admin_sub_task(struct vdo_completion *completion,
-			enum admin_operation_type expected);
+vdo_from_admin_sub_task(struct vdo_completion *completion, enum admin_operation_type expected);
 
-void vdo_initialize_admin_completion(struct vdo *vdo,
-				     struct admin_completion *admin_completion);
+void vdo_initialize_admin_completion(struct vdo *vdo, struct admin_completion *admin_completion);
 
 struct vdo_completion *vdo_reset_admin_sub_task(struct vdo_completion *completion);
 
-void vdo_prepare_admin_sub_task(struct vdo *vdo,
-				vdo_action *callback,
-				vdo_action *error_handler);
+void vdo_prepare_admin_sub_task(struct vdo *vdo, vdo_action *callback, vdo_action *error_handler);
 
-int __must_check
-vdo_perform_admin_operation(struct vdo *vdo,
-			    enum admin_operation_type type,
-			    vdo_thread_id_getter_for_phase *thread_id_getter,
-			    vdo_action *action,
-			    vdo_action *error_handler);
+int __must_check vdo_perform_admin_operation(struct vdo *vdo,
+					     enum admin_operation_type type,
+					     vdo_thread_id_getter_for_phase *thread_id_getter,
+					     vdo_action *action,
+					     vdo_action *error_handler);
 
 #endif /* ADMIN_COMPLETION_H */

@@ -18,11 +18,9 @@
  * struct action - An action to be performed in each of a set of zones.
  * @in_use: Whether this structure is in use.
  * @operation: The admin operation associated with this action.
- * @preamble: The method to run on the initiator thread before the action is
- *            applied to each zone.
+ * @preamble: The method to run on the initiator thread before the action is applied to each zone.
  * @zone_action: The action to be performed in each zone.
- * @conclusion: The method to run on the initiator thread before the action is
- *              applied to each zone.
+ * @conclusion: The method to run on the initiator thread after the action is applied to each zone.
  * @parent: The object to notify when the action is complete.
  * @context: The action specific context.
  * @next: The action to perform after this one.
@@ -46,8 +44,8 @@ struct action {
  * @current_action: The current action slot.
  * @zones: The number of zones in which an action is to be applied.
  * @Scheduler: A function to schedule a default next action.
- * @get_zone_thread_id: A function to get the id of the thread on which
- *                      to apply an action to a zone.
+ * @get_zone_thread_id: A function to get the id of the thread on which to apply an action to a
+ *                      zone.
  * @initiator_thread_id: The ID of the thread on which actions may be initiated.
  * @context: Opaque data associated with this action manager.
  * @acting_zone: The zone currently being acted upon.
@@ -65,33 +63,26 @@ struct action_manager {
 	zone_count_t acting_zone;
 };
 
-static inline struct action_manager *
-as_action_manager(struct vdo_completion *completion)
+static inline struct action_manager *as_action_manager(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion->type, VDO_ACTION_COMPLETION);
 	return container_of(completion, struct action_manager, completion);
 }
 
-/*
- * Implements vdo_action_scheduler.
- */
+/* Implements vdo_action_scheduler. */
 static bool no_default_action(void *context __always_unused)
 {
 	return false;
 }
 
-/*
- * Implements vdo_action_preamble.
- */
+/* Implements vdo_action_preamble. */
 static void no_preamble(void *context __always_unused,
 			struct vdo_completion *completion)
 {
 	vdo_complete_completion(completion);
 }
 
-/*
- * Implements vdo_action_conclusion.
- */
+/* Implements vdo_action_conclusion. */
 static int no_conclusion(void *context __always_unused)
 {
 	return VDO_SUCCESS;
@@ -103,8 +94,8 @@ static int no_conclusion(void *context __always_unused)
  * @get_zone_thread_id: A function to get the thread id associated with a zone.
  * @initiator_thread_id: The thread on which actions may initiated.
  * @context: The object which holds the per-zone context for the action.
- * @scheduler: A function to schedule a next action after an action concludes
- *             if there is no pending action (may be NULL).
+ * @scheduler: A function to schedule a next action after an action concludes if there is no
+ *             pending action (may be NULL).
  * @vdo: The vdo used to initialize completions.
  * @manager_ptr: A pointer to hold the new action manager.
  *
@@ -144,17 +135,14 @@ int vdo_make_action_manager(zone_count_t zones,
 	return VDO_SUCCESS;
 }
 
-const struct admin_state_code *
-vdo_get_current_manager_operation(struct action_manager *manager)
+const struct admin_state_code *vdo_get_current_manager_operation(struct action_manager *manager)
 {
 	return vdo_get_admin_state_code(&manager->state);
 }
 
 void *vdo_get_current_action_context(struct action_manager *manager)
 {
-	return (manager->current_action->in_use ?
-		manager->current_action->context :
-		NULL);
+	return manager->current_action->in_use ? manager->current_action->context : NULL;
 }
 
 static void finish_action_callback(struct vdo_completion *completion);
@@ -162,8 +150,7 @@ static void apply_to_zone(struct vdo_completion *completion);
 
 static thread_id_t get_acting_zone_thread_id(struct action_manager *manager)
 {
-	return manager->get_zone_thread_id(manager->context,
-					   manager->acting_zone);
+	return manager->get_zone_thread_id(manager->context, manager->acting_zone);
 }
 
 static void prepare_for_next_zone(struct action_manager *manager)
@@ -189,17 +176,15 @@ static void apply_to_zone(struct vdo_completion *completion)
 	zone_count_t zone;
 	struct action_manager *manager = as_action_manager(completion);
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 get_acting_zone_thread_id(manager)),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == get_acting_zone_thread_id(manager)),
 			"%s() called on acting zones's thread",
 			__func__);
 
 	zone = manager->acting_zone++;
 	if (manager->acting_zone == manager->zones)
 		/*
-		 * We are about to apply to the last zone. Once that is
-		 * finished, we're done, so go back to the initiator thread and
-		 * finish up.
+		 * We are about to apply to the last zone. Once that is finished, we're done, so go
+		 * back to the initiator thread and finish up.
 		 */
 		prepare_for_conclusion(manager);
 	else
@@ -225,10 +210,7 @@ static void launch_current_action(struct action_manager *manager)
 		if (action->parent != NULL)
 			vdo_set_completion_result(action->parent, result);
 
-		/*
-		 * We aren't going to run the preamble, so don't run the
-		 * conclusion
-		 */
+		/* We aren't going to run the preamble, so don't run the conclusion */
 		action->conclusion = no_conclusion;
 		finish_action_callback(&manager->completion);
 		return;
@@ -258,12 +240,9 @@ static void launch_current_action(struct action_manager *manager)
  */
 bool vdo_schedule_default_action(struct action_manager *manager)
 {
-	/*
-	 * Don't schedule a default action if we are operating or not in normal
-	 * operation.
-	 */
-	const struct admin_state_code *code =
-		vdo_get_current_manager_operation(manager);
+	/* Don't schedule a default action if we are operating or not in normal operation. */
+	const struct admin_state_code *code = vdo_get_current_manager_operation(manager);
+
 	return ((code == VDO_ADMIN_STATE_NORMAL_OPERATION) &&
 		manager->scheduler(manager->context));
 }
@@ -279,12 +258,11 @@ static void finish_action_callback(struct vdo_completion *completion)
 	manager->current_action = manager->current_action->next;
 
 	/*
-	 * We need to check this now to avoid use-after-free issues if running
-	 * the conclusion or notifying the parent results in the manager being
-	 * freed.
+	 * We need to check this now to avoid use-after-free issues if running the conclusion or
+	 * notifying the parent results in the manager being freed.
 	 */
-	has_next_action = (manager->current_action->in_use ||
-			   vdo_schedule_default_action(manager));
+	has_next_action =
+		(manager->current_action->in_use || vdo_schedule_default_action(manager));
 	result = action.conclusion(manager->context);
 	vdo_finish_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL)
@@ -297,19 +275,18 @@ static void finish_action_callback(struct vdo_completion *completion)
 /**
  * vdo_schedule_action() - Schedule an action to be applied to all zones.
  * @manager: The action manager to schedule the action on.
- * @preamble: A method to be invoked on the initiator thread once this
- *            action is started but before applying to each zone; may be NULL.
+ * @preamble: A method to be invoked on the initiator thread once this action is started but before
+ *            applying to each zone; may be NULL.
  * @action: The action to apply to each zone; may be NULL.
- * @conclusion: A method to be invoked back on the initiator thread once
- *              the action has been applied to all zones; may be NULL.
- * @parent: The object to notify once the action is complete or if
- *          the action can not be scheduled; may be NULL.
+ * @conclusion: A method to be invoked back on the initiator thread once the action has been
+ *              applied to all zones; may be NULL.
+ * @parent: The object to notify once the action is complete or if the action can not be scheduled;
+ *          may be NULL.
  *
- * The action will be launched immediately if there is no current
- * action, or as soon as the current action completes. If there is
- * already a pending action, this action will not be scheduled, and,
- * if it has a parent, that parent will be notified. At least one of
- * the preamble, action, or conclusion must not be NULL.
+ * The action will be launched immediately if there is no current action, or as soon as the current
+ * action completes. If there is already a pending action, this action will not be scheduled, and,
+ * if it has a parent, that parent will be notified. At least one of the preamble, action, or
+ * conclusion must not be NULL.
  *
  * Return: true if the action was scheduled.
  */
@@ -331,20 +308,18 @@ bool vdo_schedule_action(struct action_manager *manager,
  * vdo_schedule_operation() - Schedule an operation to be applied to all zones.
  * @manager: The action manager to schedule the action on.
  * @operation: The operation this action will perform
- * @preamble: A method to be invoked on the initiator thread once this action
- *            is started but before applying to each zone; may be NULL.
+ * @preamble: A method to be invoked on the initiator thread once this action is started but before
+ *            applying to each zone; may be NULL.
  * @action: The action to apply to each zone; may be NULL.
- * @conclusion: A method to be invoked back on the initiator thread once the
- *              action has been applied to all zones; may be NULL.
- * @parent: The object to notify once the action is complete or if the action
- *          can not be scheduled; may be NULL.
+ * @conclusion: A method to be invoked back on the initiator thread once the action has been
+ *              applied to all zones; may be NULL.
+ * @parent: The object to notify once the action is complete or if the action can not be scheduled;
+ *          may be NULL.
  *
- * The operation's action will be launched immediately if there is no
- * current action, or as soon as the current action completes. If
- * there is already a pending action, this operation will not be
- * scheduled, and, if it has a parent, that parent will be notified.
- * At least one of the preamble, action, or conclusion must not be
- * NULL.
+ * The operation's action will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this operation will not be
+ * scheduled, and, if it has a parent, that parent will be notified. At least one of the preamble,
+ * action, or conclusion must not be NULL.
  *
  * Return: true if the action was scheduled.
  */
@@ -368,38 +343,34 @@ bool vdo_schedule_operation(struct action_manager *manager,
  * vdo_schedule_operation_with_context() - Schedule an operation on all zones.
  * @manager: The action manager to schedule the action on.
  * @operation: The operation this action will perform.
- * @preamble: A method to be invoked on the initiator thread once this action
- *            is started but before applying to each zone; may be NULL.
+ * @preamble: A method to be invoked on the initiator thread once this action is started but before
+ *            applying to each zone; may be NULL.
  * @action: The action to apply to each zone; may be NULL.
- * @conclusion: A method to be invoked back on the initiator thread once the
- *              action has been applied to all zones; may be NULL.
+ * @conclusion: A method to be invoked back on the initiator thread once the action has been
+ *              applied to all zones; may be NULL.
  * @context: An action-specific context which may be retrieved via
  *           vdo_get_current_action_context(); may be NULL.
- * @parent: The object to notify once the action is complete or if the action
- *          can not be scheduled; may be NULL.
+ * @parent: The object to notify once the action is complete or if the action can not be scheduled;
+ *          may be NULL.
  *
- * The operation's action will be launched immediately if there is no
- * current action, or as soon as the current action completes. If
- * there is already a pending action, this operation will not be
- * scheduled, and, if it has a parent, that parent will be notified.
- * At least one of the preamble, action, or conclusion must not be
- * NULL.
+ * The operation's action will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this operation will not be
+ * scheduled, and, if it has a parent, that parent will be notified. At least one of the preamble,
+ * action, or conclusion must not be NULL.
  *
  * Return: true if the action was scheduled
  */
-bool
-vdo_schedule_operation_with_context(struct action_manager *manager,
-				    const struct admin_state_code *operation,
-				    vdo_action_preamble *preamble,
-				    vdo_zone_action *action,
-				    vdo_action_conclusion *conclusion,
-				    void *context,
-				    struct vdo_completion *parent)
+bool vdo_schedule_operation_with_context(struct action_manager *manager,
+					 const struct admin_state_code *operation,
+					 vdo_action_preamble *preamble,
+					 vdo_zone_action *action,
+					 vdo_action_conclusion *conclusion,
+					 void *context,
+					 struct vdo_completion *parent)
 {
 	struct action *current_action;
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 manager->initiator_thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == manager->initiator_thread_id),
 			"action initiated from correct thread");
 	if (!manager->current_action->in_use) {
 		current_action = manager->current_action;

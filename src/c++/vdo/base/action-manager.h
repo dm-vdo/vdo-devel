@@ -12,25 +12,23 @@
 #include "types.h"
 
 /*
- * An action_manager provides a generic mechanism for applying actions to
- * multi-zone entities (such as the block map or slab depot). Each action
- * manager is tied to a specific context for which it manages actions. The
- * manager ensures that only one action is active on that context at a time,
- * and supports at most one pending action. Calls to schedule an action when
- * there is already a pending action will result in VDO_COMPONENT_BUSY errors.
- * Actions may only be submitted to the action manager from a single thread
- * (which thread is determined when the action manager is constructed).
+ * An action_manager provides a generic mechanism for applying actions to multi-zone entities (such
+ * as the block map or slab depot). Each action manager is tied to a specific context for which it
+ * manages actions. The manager ensures that only one action is active on that context at a time,
+ * and supports at most one pending action. Calls to schedule an action when there is already a
+ * pending action will result in VDO_COMPONENT_BUSY errors. Actions may only be submitted to the
+ * action manager from a single thread (which thread is determined when the action manager is
+ * constructed).
  *
  * A scheduled action consists of four components:
  *
  *   preamble
- *      an optional method to be run on the initator thread before applying
- *      the action to all zones
+ *      an optional method to be run on the initator thread before applying the action to all zones
  *   zone_action
  *      an optional method to be applied to each of the zones
  *   conclusion
- *      an optional method to be run on the initiator thread once the per-zone
- *      method has been applied to all zones
+ *      an optional method to be run on the initiator thread once the per-zone method has been
+ *      applied to all zones
  *   parent
  *     an optional completion to be finished once the conclusion is done
  *
@@ -48,16 +46,16 @@ typedef void vdo_zone_action(void *context,
 			     struct vdo_completion *parent);
 
 /*
- * A function which is to be applied asynchronously on an action manager's
- * initiator thread as the preamble of an action.
+ * A function which is to be applied asynchronously on an action manager's initiator thread as the
+ * preamble of an action.
  * @context: The object which holds the per-zone context for the action
  * @parent: The object to notify when the action is complete
  */
 typedef void vdo_action_preamble(void *context, struct vdo_completion *parent);
 
 /*
- * A function which will run on the action manager's initiator thread as the
- * conclusion of an action.
+ * A function which will run on the action manager's initiator thread as the conclusion of an
+ * action.
  * @context: The object which holds the per-zone context for the action
  *
  * Return: VDO_SUCCESS or an error
@@ -77,8 +75,7 @@ typedef bool vdo_action_scheduler(void *context);
  * @context: The action context
  * @zone_number: The number of the zone for which the thread ID is desired
  */
-typedef thread_id_t
-vdo_zone_thread_getter(void *context, zone_count_t zone_number);
+typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_number);
 
 struct action_manager;
 
