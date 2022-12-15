@@ -2077,10 +2077,8 @@ void vdo_continue_hash_lock(struct vdo_completion *completion)
 		/*
 		 * This data_vio has finished the write path and the lock
 		 * doesn't need it.
-		 *
-		 * FIXME: Can this happen?
 		 */
-		continue_data_vio(data_vio);
+		exit_hash_lock(data_vio);
 		break;
 
 	case VDO_HASH_LOCK_INITIALIZING:
