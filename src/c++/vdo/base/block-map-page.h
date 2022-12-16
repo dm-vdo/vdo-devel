@@ -50,8 +50,7 @@ vdo_is_block_map_page_initialized(const struct block_map_page *page)
 }
 
 static inline bool
-vdo_mark_block_map_page_initialized(struct block_map_page *page,
-				    bool initialized)
+vdo_mark_block_map_page_initialized(struct block_map_page *page, bool initialized)
 {
 	if (initialized == page->header.initialized)
 		return false;

@@ -26,14 +26,12 @@ struct boundary {
 extern const struct header VDO_BLOCK_MAP_HEADER_2_0;
 
 int __must_check
-vdo_decode_block_map_state_2_0(struct buffer *buffer,
-			       struct block_map_state_2_0 *state);
+vdo_decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state);
 
 size_t __must_check vdo_get_block_map_encoded_size(void);
 
 int __must_check
-vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state,
-			       struct buffer *buffer);
+vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buffer *buffer);
 
 page_count_t vdo_compute_block_map_page_count(block_count_t entries);
 

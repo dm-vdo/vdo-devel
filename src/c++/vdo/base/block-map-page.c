@@ -40,11 +40,9 @@ vdo_validate_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn)
 {
-	STATIC_ASSERT_SIZEOF(struct block_map_page_header,
-			     PAGE_HEADER_4_1_SIZE);
+	STATIC_ASSERT_SIZEOF(struct block_map_page_header, PAGE_HEADER_4_1_SIZE);
 
-	if (!vdo_are_same_version(BLOCK_MAP_4_1,
-				  vdo_unpack_version_number(page->version)) ||
+	if (!vdo_are_same_version(BLOCK_MAP_4_1, vdo_unpack_version_number(page->version)) ||
 	    !vdo_is_block_map_page_initialized(page) ||
 	    (nonce != __le64_to_cpu(page->header.nonce)))
 		return VDO_BLOCK_MAP_PAGE_INVALID;

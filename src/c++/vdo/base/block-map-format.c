@@ -23,20 +23,19 @@ const struct header VDO_BLOCK_MAP_HEADER_2_0 = {
 	.size = sizeof(struct block_map_state_2_0),
 };
 
-int vdo_decode_block_map_state_2_0(struct buffer *buffer,
-				   struct block_map_state_2_0 *state)
+int vdo_decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state)
 {
 	size_t initial_length, decoded_size;
 	block_count_t flat_page_count, root_count;
 	physical_block_number_t flat_page_origin, root_origin;
 	struct header header;
-	int result = vdo_decode_header(buffer, &header);
+	int result;
 
+	result = vdo_decode_header(buffer, &header);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_validate_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true,
-				     __func__);
+	result = vdo_validate_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -92,12 +91,12 @@ size_t vdo_get_block_map_encoded_size(void)
 	return VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
 }
 
-int vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state,
-				   struct buffer *buffer)
+int vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
-	int result = vdo_encode_header(&VDO_BLOCK_MAP_HEADER_2_0, buffer);
+	int result;
 
+	result = vdo_encode_header(&VDO_BLOCK_MAP_HEADER_2_0, buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -130,9 +129,8 @@ page_count_t vdo_compute_block_map_page_count(block_count_t entries)
 }
 
 /**
- * vdo_compute_new_forest_pages() - Compute the number of pages which must be
- *                                  allocated at each level in order to grow
- *                                  the forest to a new number of entries.
+ * vdo_compute_new_forest_pages() - Compute the number of pages which must be allocated at each
+ *                                  level in order to grow the forest to a new number of entries.
  * @entries: The new number of entries the block map must address.
  *
  * Return: The total number of non-leaf pages required.
@@ -142,8 +140,7 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 					   block_count_t entries,
 					   struct boundary *new_sizes)
 {
-	page_count_t leaf_pages =
-		max(vdo_compute_block_map_page_count(entries), 1U);
+	page_count_t leaf_pages = max(vdo_compute_block_map_page_count(entries), 1U);
 	page_count_t level_size = DIV_ROUND_UP(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
@@ -151,8 +148,7 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		block_count_t new_pages;
 
-		level_size = DIV_ROUND_UP(level_size,
-					  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_size = DIV_ROUND_UP(level_size, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;
 		new_pages = level_size;
 		if (old_sizes != NULL)
