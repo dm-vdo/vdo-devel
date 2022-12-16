@@ -121,7 +121,8 @@ static void recoverJournalAction(struct vdo_completion *completion)
                          vdo_finish_completion_parent_callback,
                          completion->callback_thread_id,
                          completion);
-  vdo_launch_recovery(vdo, &subTaskCompletion);
+  vdo->load_state = VDO_DIRTY;
+  vdo_repair(&subTaskCompletion);
 }
 
 /**********************************************************************/

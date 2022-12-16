@@ -346,13 +346,15 @@ static void tearDownRebuildTest(void)
 /**********************************************************************/
 static void rebuildJournalAction(struct vdo_completion *completion)
 {
-  vdo_launch_rebuild(vdo, completion);
+  vdo->load_state = VDO_FORCE_REBUILD;
+  vdo_repair(completion);
 }
 
 /**********************************************************************/
 static void recoverJournalAction(struct vdo_completion *completion)
 {
-  vdo_launch_recovery(vdo, completion);
+  vdo->load_state = VDO_DIRTY;
+  vdo_repair(completion);
 }
 
 /**********************************************************************/

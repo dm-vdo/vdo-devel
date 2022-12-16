@@ -36,10 +36,9 @@
 
 struct journal_loader {
 	struct vdo_completion *parent;
-	thread_id_t thread_id;
-	physical_block_number_t pbn;
 	data_vio_count_t count;
 	data_vio_count_t complete;
+	char *journal_data;
 	struct vio *vios[];
 };
 
@@ -1297,17 +1296,16 @@ static noinline int count_increment_entries(struct recovery_completion *recovery
 /**
  * prepare_to_apply_journal_entries() - Determine the limits of the valid recovery journal and
  *                                      prepare to replay into the slab journals and block map.
- * @completion: The recovery completion.
+ * @recovery: The recovery completion.
  */
-static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
+static void prepare_to_apply_journal_entries(struct recovery_completion *recovery)
 {
 	bool found_entries;
 	int result;
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct vdo_completion *completion = &recovery->completion;
 	struct vdo *vdo = completion->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 
-	uds_log_info("Finished reading recovery journal");
 	found_entries = find_recovery_journal_head_and_tail(journal,
 							    recovery->journal_data,
 							    &recovery->highest_tail,
@@ -1373,16 +1371,18 @@ static void prepare_to_apply_journal_entries(struct vdo_completion *completion)
 }
 
 /**
- * make_recovery_completion() - Allocate and initialize a recovery_completion.
+ * launch_recovery() - Construct a recovery completion and launch it.
+ * @parent: The completion to notify when the offline portion of the recovery is complete.
+ * @journal_data: The contents of the recovery journal
  *
- * @vdo: The vdo in question.
- * @recovery_ptr: A pointer to hold the new recovery_completion.
+ * Return: VDO_SUCCESS if the recovery was launched, other an error code
  *
- * Return: VDO_SUCCESS or a status code.
+ * Applies all valid journal block entries to all vdo structures. This function performs the
+ * offline portion of recovering a vdo from a crash.
  */
-static int __must_check
-make_recovery_completion(struct vdo *vdo, struct recovery_completion **recovery_ptr)
+static int launch_recovery(struct vdo_completion *parent, char *journal_data)
 {
+	struct vdo *vdo = parent->vdo;
 	struct recovery_completion *recovery;
 	zone_count_t zone;
 	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
@@ -1390,12 +1390,15 @@ make_recovery_completion(struct vdo *vdo, struct recovery_completion **recovery_
 
 	result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
 				       zone_count,
-				       struct list_head,
+				       struct wait_queue,
 				       __func__,
 				       &recovery);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
+		UDS_FREE(journal_data);
 		return result;
+	}
 
+	recovery->journal_data = journal_data;
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {
 		free_vdo_recovery_completion(recovery);
@@ -1407,155 +1410,9 @@ make_recovery_completion(struct vdo *vdo, struct recovery_completion **recovery_
 
 	vdo_initialize_completion(&recovery->completion, vdo, VDO_RECOVERY_COMPLETION);
 	recovery->completion.error_handler = abort_recovery;
-
-	*recovery_ptr = recovery;
-	return VDO_SUCCESS;
-}
-
-static void free_journal_loader(struct journal_loader *loader)
-{
-	data_vio_count_t v;
-
-	if (loader == NULL)
-		return;
-
-	for (v = 0; v < loader->count; v++)
-		free_vio(UDS_FORGET(loader->vios[v]));
-
-	UDS_FREE(loader);
-}
-
-/**
- * finish_journal_load() - Handle the completion of a journal read, and if it
- *                         is the last one, finish the load by notifying the
- *                         parent.
- **/
-static void finish_journal_load(struct vdo_completion *completion)
-{
-	int result = completion->result;
-	struct journal_loader *loader = completion->parent;
-
-	if (++loader->complete == loader->count) {
-		vdo_continue_completion(loader->parent, result);
-		free_journal_loader(loader);
-	}
-}
-
-static void handle_journal_load_error(struct vdo_completion *completion)
-{
-	record_metadata_io_error(as_vio(completion));
-	completion->callback(completion);
-}
-
-static void read_journal_endio(struct bio *bio)
-{
-	struct vio *vio = bio->bi_private;
-	struct journal_loader *loader = vio->completion.parent;
-
-	continue_vio_after_io(vio, finish_journal_load, loader->thread_id);
-}
-
-/**
- * vdo_load_recovery_journal() - Load the journal data off the disk.
- * @journal: The recovery journal to load.
- * @parent: The completion to notify when the load is complete.
- * @journal_data_ptr: A pointer to the journal data buffer (it is the
- *                    caller's responsibility to free this buffer).
- */
-void vdo_load_recovery_journal(struct recovery_journal *journal,
-			       struct vdo_completion *parent,
-			       char **journal_data_ptr)
-{
-	char *ptr;
-	struct journal_loader *loader;
-	physical_block_number_t pbn =
-		vdo_get_fixed_layout_partition_offset(journal->partition);
-	data_vio_count_t vio_count = DIV_ROUND_UP(journal->size,
-						  MAX_BLOCKS_PER_VIO);
-	block_count_t remaining = journal->size;
-	int result = UDS_ALLOCATE(journal->size * VDO_BLOCK_SIZE,
-				  char,
-				  __func__,
-				  journal_data_ptr);
-
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
-		return;
-	}
-
-	result = UDS_ALLOCATE_EXTENDED(struct journal_loader,
-				       vio_count,
-				       struct vio *,
-				       __func__,
-				       &loader);
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
-		return;
-	}
-
-	loader->thread_id = vdo_get_callback_thread_id();
-	loader->parent = parent;
-	ptr = *journal_data_ptr;
-	for (loader->count = 0; loader->count < vio_count; loader->count++) {
-		unsigned short blocks =
-			min(remaining, (block_count_t) MAX_BLOCKS_PER_VIO);
-
-		result = create_multi_block_metadata_vio(parent->vdo,
-							 VIO_TYPE_RECOVERY_JOURNAL,
-							 VIO_PRIORITY_METADATA,
-							 loader,
-							 blocks,
-							 ptr,
-							 &loader->vios[loader->count]);
-		if (result != VDO_SUCCESS) {
-			free_journal_loader(UDS_FORGET(loader));
-			vdo_finish_completion(parent, result);
-			return;
-		}
-
-		ptr += (blocks * VDO_BLOCK_SIZE);
-		remaining -= blocks;
-	}
-
-	for (vio_count = 0;
-	     vio_count < loader->count;
-	     vio_count++, pbn += MAX_BLOCKS_PER_VIO)
-		submit_metadata_vio(loader->vios[vio_count],
-				    pbn,
-				    read_journal_endio,
-				    handle_journal_load_error,
-				    REQ_OP_READ);
-}
-
-/**
- * vdo_launch_recovery() - Construct a recovery completion and launch it.
- * @vdo: The vdo to recover.
- * @parent: The completion to notify when the offline portion of the recovery is complete.
- *
- * Applies all valid journal block entries to all vdo structures. This function performs the
- * offline portion of recovering a vdo from a crash.
- */
-void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent)
-{
-	struct recovery_completion *recovery;
-	int result;
-
-	/* Note: This message must be in sync with  Permabit::VDODeviceBase. */
-	uds_log_warning("Device was dirty, rebuilding reference counts");
-
-	result = make_recovery_completion(vdo, &recovery);
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
-		return;
-	}
-
 	recovery->completion.parent = parent;
-	prepare_recovery_completion(recovery,
-				    prepare_to_apply_journal_entries,
-				    VDO_ZONE_TYPE_ADMIN);
-	vdo_load_recovery_journal(vdo->recovery_journal,
-				  &recovery->completion,
-				  &recovery->journal_data);
+	prepare_to_apply_journal_entries(recovery);
+	return VDO_SUCCESS;
 }
 
 /*--------------------------------------------------------------------*/
@@ -2143,7 +2000,6 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
 	struct vdo *vdo = completion->vdo;
 
-	uds_log_info("Finished reading recovery journal");
 	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	found_entries = find_recovery_journal_head_and_tail(vdo->recovery_journal,
@@ -2169,32 +2025,17 @@ static void apply_journal_entries(struct vdo_completion *completion)
 }
 
 /**
- * load_journal_callback() - Begin loading the journal.
- * @completion: The rebuild completion.
- */
-static void load_journal_callback(struct vdo_completion *completion)
-{
-	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
-	struct vdo *vdo = completion->vdo;
-
-	vdo_assert_on_logical_zone_thread(vdo, 0, __func__);
-
-	prepare_rebuild_completion(rebuild, apply_journal_entries, completion->callback_thread_id);
-	vdo_load_recovery_journal(vdo->recovery_journal, completion, &rebuild->journal_data);
-}
-
-/**
- * make_rebuild_completion() - Allocate and initialize a read only rebuild completion.
- * @vdo: The vdo in question.
- * @parent: The parent to notify when the rebuild is complete
- * @rebuild_ptr: A pointer to return the created rebuild completion.
+ * launch_rebuild() - Construct a rebuild_completion and launch it.
+ * @parent: The completion to notify when the rebuild is complete.
+ * @journal_data: The contents of the recovery journal
  *
- * Return: VDO_SUCCESS or an error code.
+ * Return: VDO_SUCCESS if the rebuild was launched, other an error code
+ *
+ * Apply all valid journal block entries to all vdo structures.
  */
-static int make_rebuild_completion(struct vdo *vdo,
-				   struct vdo_completion *parent,
-				   struct rebuild_completion **rebuild_ptr)
+static int launch_rebuild(struct vdo_completion *parent, char *journal_data)
 {
+	struct vdo *vdo = parent->vdo;
 	struct rebuild_completion *rebuild;
 	page_count_t page_count;
 	int result;
@@ -2207,8 +2048,10 @@ static int make_rebuild_completion(struct vdo *vdo,
 				       struct vdo_page_completion,
 				       __func__,
 				       &rebuild);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
+		UDS_FREE(journal_data);
 		return result;
+	}
 
 	vdo_initialize_completion(&rebuild->completion, vdo, VDO_READ_ONLY_REBUILD_COMPLETION);
 	rebuild->completion.parent = parent;
@@ -2217,42 +2060,151 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->leaf_pages = vdo_compute_block_map_page_count(vdo->block_map->entry_count);
 	rebuild->logical_thread_id = vdo_get_logical_zone_thread(vdo->thread_config, 0);
 	rebuild->admin_thread_id = vdo->thread_config->admin_thread;
+	rebuild->journal_data = journal_data;
 
-	*rebuild_ptr = rebuild;
+	prepare_rebuild_completion(rebuild, apply_journal_entries, rebuild->logical_thread_id);
+	vdo_load_slab_depot(vdo->depot,
+			    VDO_ADMIN_STATE_LOADING_FOR_REBUILD,
+			    &rebuild->completion,
+			    NULL);
 	return VDO_SUCCESS;
 }
 
-/**
- * vdo_launch_rebuild() - Construct a rebuild_completion and launch it.
- * @vdo: The vdo to rebuild.
- * @parent: The completion to notify when the rebuild is complete.
- *
- * Apply all valid journal block entries to all vdo structures.
- *
- * Context: Must be launched from logical zone 0.
- */
-void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
+static void free_journal_loader(struct journal_loader *loader)
 {
-	struct rebuild_completion *rebuild;
+	if (loader == NULL)
+		return;
+
+	while (loader->count-- > 0)
+		free_vio(UDS_FORGET(loader->vios[loader->count]));
+
+	UDS_FREE(loader);
+}
+
+/**
+ * finish_journal_load() - Handle the completion of a journal read, and if it
+ *                         is the last one, finish the load by notifying the
+ *                         parent.
+ **/
+static void finish_journal_load(struct vdo_completion *completion)
+{
+	struct journal_loader *loader = completion->parent;
+	struct vdo_completion *parent = loader->parent;
+	struct vdo *vdo = parent->vdo;
+	char *journal_data = loader->journal_data;
 	int result;
 
-	/* Note: These messages must be recognizable by Permabit::VDODeviceBase. */
-	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
-		uds_log_warning("Rebuilding reference counts for upgrade");
-	} else {
-		uds_log_warning("Rebuilding reference counts to clear read-only mode");
-		vdo->states.vdo.read_only_recoveries++;
+	if (++loader->complete != loader->count)
+		return;
+
+	uds_log_info("Finished reading recovery journal");
+	free_journal_loader(UDS_FORGET(loader));
+	if (parent->result != VDO_SUCCESS) {
+		UDS_FREE(journal_data);
+		vdo_complete_completion(parent);
+		return;
 	}
 
-	result = make_rebuild_completion(vdo, parent, &rebuild);
+	result = (vdo_state_requires_recovery(vdo->load_state)
+		  ? launch_recovery(parent, journal_data)
+		  : launch_rebuild(parent, journal_data));
+	if (result != VDO_SUCCESS)
+		vdo_finish_completion(parent, result);
+}
+
+static void handle_journal_load_error(struct vdo_completion *completion)
+{
+	struct journal_loader *loader = completion->parent;
+
+	/* Preserve the error */
+	vdo_set_completion_result(loader->parent, completion->result);
+	record_metadata_io_error(as_vio(completion));
+	completion->callback(completion);
+}
+
+static void read_journal_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+
+	continue_vio_after_io(vio,
+			      finish_journal_load,
+			      vdo_from_vio(vio)->thread_config->admin_thread);
+}
+
+/**
+ * vdo_repair(): Load the recovery journal and then recover or rebuild a vdo.
+ * @parent: The completion to notify when the operation is complete
+ */
+void vdo_repair(struct vdo_completion *parent)
+{
+	int result;
+	char *ptr;
+	struct journal_loader *loader;
+	struct vdo *vdo = parent->vdo;
+	struct recovery_journal *journal = vdo->recovery_journal;
+	physical_block_number_t pbn = vdo_get_fixed_layout_partition_offset(journal->partition);
+	block_count_t remaining = journal->size;
+	block_count_t vio_count = DIV_ROUND_UP(remaining, MAX_BLOCKS_PER_VIO);
+
+	vdo_assert_on_admin_thread(vdo, __func__);
+
+#ifdef VDO_INTERNAL
+	/* These messages must be in sync with Permabit::VDODeviceBase. */
+#endif /* VDO_INTERNAL */
+	if (vdo->load_state == VDO_FORCE_REBUILD) {
+		uds_log_warning("Rebuilding reference counts to clear read-only mode");
+		vdo->states.vdo.read_only_recoveries++;
+	} else if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
+		uds_log_warning("Rebuilding reference counts for upgrade");
+	} else {
+		uds_log_warning("Device was dirty, rebuilding reference counts");
+	}
+
+	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &ptr);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
 	}
 
-	prepare_rebuild_completion(rebuild, load_journal_callback, rebuild->logical_thread_id);
-	vdo_load_slab_depot(vdo->depot,
-			    VDO_ADMIN_STATE_LOADING_FOR_REBUILD,
-			    &rebuild->completion,
-			    NULL);
+	result = UDS_ALLOCATE_EXTENDED(struct journal_loader,
+				       vio_count,
+				       struct vio *,
+				       __func__,
+				       &loader);
+	if (result != VDO_SUCCESS) {
+		UDS_FREE(ptr);
+		vdo_finish_completion(parent, result);
+		return;
+	}
+
+	loader->parent = parent;
+	loader->journal_data = ptr;
+	for (loader->count = 0; loader->count < vio_count; loader->count++) {
+		block_count_t blocks = min_t(block_count_t, remaining, MAX_BLOCKS_PER_VIO);
+
+		result = create_multi_block_metadata_vio(parent->vdo,
+							 VIO_TYPE_RECOVERY_JOURNAL,
+							 VIO_PRIORITY_METADATA,
+							 loader,
+							 blocks,
+							 ptr,
+							 &loader->vios[loader->count]);
+		if (result != VDO_SUCCESS) {
+			free_journal_loader(UDS_FORGET(loader));
+			UDS_FREE(ptr);
+			vdo_finish_completion(parent, result);
+			return;
+		}
+
+		ptr += (blocks * VDO_BLOCK_SIZE);
+		remaining -= blocks;
+	}
+
+	for (vio_count = 0; vio_count < loader->count; vio_count++, pbn += MAX_BLOCKS_PER_VIO)
+		submit_metadata_vio(loader->vios[vio_count],
+				    pbn,
+				    read_journal_endio,
+				    handle_journal_load_error,
+				    REQ_OP_READ);
 }
+

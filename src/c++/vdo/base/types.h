@@ -91,6 +91,35 @@ enum vdo_state {
 	VDO_STATE_COUNT
 };
 
+/**
+ * vdo_state_requires_read_only_rebuild() - Check whether a vdo_state indicates
+ * that a read-only rebuild is required.
+ * @state: The vdo_state to check.
+ *
+ * Return: true if the state indicates a rebuild is required
+ */
+static inline bool __must_check
+vdo_state_requires_read_only_rebuild(enum vdo_state state)
+{
+	return ((state == VDO_FORCE_REBUILD) ||
+		(state == VDO_REBUILD_FOR_UPGRADE));
+}
+
+/**
+ * vdo_state_requires_recovery() - Check whether a vdo state indicates that
+ *                                 recovery is needed.
+ * @state: The state to check.
+ *
+ * Return: true if the state indicates a recovery is required
+ */
+static inline bool __must_check
+vdo_state_requires_recovery(enum vdo_state state)
+{
+	return ((state == VDO_DIRTY) ||
+		(state == VDO_REPLAYING) ||
+		(state == VDO_RECOVERING));
+}
+
 /*
  * The current operation on a physical block (from the point of view of the
  * recovery journal, slab journals, and reference counts.

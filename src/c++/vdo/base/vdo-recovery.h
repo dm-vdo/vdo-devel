@@ -9,9 +9,7 @@
 #include "completion.h"
 #include "vdo.h"
 
-void vdo_replay_into_slab_journals(struct block_allocator *allocator,
-				   void *context);
-void vdo_launch_recovery(struct vdo *vdo, struct vdo_completion *parent);
-void vdo_launch_rebuild(struct vdo *vdo, struct vdo_completion *parent);
+void vdo_replay_into_slab_journals(struct block_allocator *allocator, void *context);
+void vdo_repair(struct vdo_completion *parent);
 
 #endif /* VDO_RECOVERY_H */

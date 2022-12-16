@@ -120,38 +120,12 @@ static bool was_new(const struct vdo *vdo)
 }
 
 /**
- * requires_read_only_rebuild() - Check whether the vdo requires a read-only
- *                                mode rebuild.
+ * requires_repair() - Check whether a vdo requires recovery or rebuild.
  * @vdo: The vdo to query.
  *
- * Return: true if the vdo requires a read-only rebuild.
+ * Return: true if the vdo must be repaired.
  */
-static bool __must_check requires_read_only_rebuild(const struct vdo *vdo)
-{
-	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
-		(vdo->load_state == VDO_REBUILD_FOR_UPGRADE));
-}
-
-/**
- * requires_recovery() - Check whether a vdo should enter recovery mode.
- * @vdo: The vdo to query.
- *
- * Return: true if the vdo requires recovery.
- */
-static bool __must_check requires_recovery(const struct vdo *vdo)
-{
-	return ((vdo->load_state == VDO_DIRTY) ||
-		(vdo->load_state == VDO_REPLAYING) ||
-		(vdo->load_state == VDO_RECOVERING));
-}
-
-/**
- * requires_rebuild() - Check whether a vdo requires rebuilding.
- * @vdo: The vdo to query.
- *
- * Return: true if the vdo must be rebuilt.
- */
-static bool __must_check requires_rebuild(const struct vdo *vdo)
+static bool __must_check requires_repair(const struct vdo *vdo)
 {
 	switch (vdo_get_state(vdo)) {
 	case VDO_DIRTY:
@@ -173,10 +147,10 @@ static bool __must_check requires_rebuild(const struct vdo *vdo)
  */
 static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 {
-	if (requires_read_only_rebuild(vdo))
+	if (vdo_state_requires_read_only_rebuild(vdo->load_state))
 		return VDO_SLAB_DEPOT_REBUILD_LOAD;
 
-	if (requires_recovery(vdo))
+	if (vdo_state_requires_recovery(vdo->load_state))
 		return VDO_SLAB_DEPOT_RECOVERY_LOAD;
 
 	return VDO_SLAB_DEPOT_NORMAL_LOAD;
@@ -260,13 +234,8 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		vdo_reset_admin_sub_task(completion);
-		if (requires_read_only_rebuild(vdo)) {
-			vdo_launch_rebuild(vdo, completion);
-			return;
-		}
-
-		if (requires_rebuild(vdo)) {
-			vdo_launch_recovery(vdo, completion);
+		if (requires_repair(vdo)) {
+			vdo_repair(completion);
 			return;
 		}
 
@@ -292,7 +261,7 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
-		if (requires_recovery(vdo))
+		if (vdo_state_requires_recovery(vdo->load_state))
 			vdo_enter_recovery_mode(vdo);
 
 		vdo_scrub_all_unrecovered_slabs(vdo->depot,
@@ -352,7 +321,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	vdo_assert_admin_operation_type(admin_completion,
 					VDO_ADMIN_OPERATION_LOAD);
 
-	if (requires_read_only_rebuild(vdo) &&
+	if (vdo_state_requires_read_only_rebuild(vdo->load_state) &&
 	    (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 
