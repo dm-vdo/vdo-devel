@@ -82,17 +82,16 @@ struct block_map {
 	struct block_map_zone zones[];
 };
 
-int __must_check
-vdo_decode_block_map(struct block_map_state_2_0 state,
-		     block_count_t logical_blocks,
-		     const struct thread_config *thread_config,
-		     struct vdo *vdo,
-		     struct read_only_notifier *read_only_notifier,
-		     struct recovery_journal *journal,
-		     nonce_t nonce,
-		     page_count_t cache_size,
-		     block_count_t maximum_age,
-		     struct block_map **map_ptr);
+int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,
+				      block_count_t logical_blocks,
+				      const struct thread_config *thread_config,
+				      struct vdo *vdo,
+				      struct read_only_notifier *read_only_notifier,
+				      struct recovery_journal *journal,
+				      nonce_t nonce,
+				      page_count_t cache_size,
+				      block_count_t maximum_age,
+				      struct block_map **map_ptr);
 
 void vdo_drain_block_map(struct block_map *map,
 			 const struct admin_state_code *operation,
@@ -101,8 +100,7 @@ void vdo_drain_block_map(struct block_map *map,
 void vdo_resume_block_map(struct block_map *map, struct vdo_completion *parent);
 
 int __must_check
-vdo_prepare_to_grow_block_map(struct block_map *map,
-			      block_count_t new_logical_blocks);
+vdo_prepare_to_grow_block_map(struct block_map *map, block_count_t new_logical_blocks);
 
 void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent);
 
@@ -118,8 +116,7 @@ void vdo_initialize_block_map_from_journal(struct block_map *map,
 
 zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio);
 
-void vdo_advance_block_map_era(struct block_map *map,
-			       sequence_number_t recovery_block_number);
+void vdo_advance_block_map_era(struct block_map *map, sequence_number_t recovery_block_number);
 
 void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone);
 
@@ -133,7 +130,6 @@ void vdo_get_mapped_block(struct data_vio *data_vio);
 
 void vdo_put_mapped_block(struct data_vio *data_vio);
 
-struct block_map_statistics __must_check
-vdo_get_block_map_statistics(struct block_map *map);
+struct block_map_statistics __must_check vdo_get_block_map_statistics(struct block_map *map);
 
 #endif /* BLOCK_MAP_H */

@@ -19,10 +19,7 @@
 #include "wait-queue.h"
 
 enum {
-	/*
-	 * The number of vios in the vio pool is proportional to the throughput
-	 * of the VDO.
-	 */
+	/* The number of vios in the vio pool is proportional to the throughput of the VDO. */
 	BLOCK_ALLOCATOR_VIO_POOL_SIZE = 128,
 };
 
@@ -34,16 +31,11 @@ enum block_allocator_drain_step {
 	VDO_DRAIN_ALLOCATOR_STEP_FINISHED,
 };
 
-/*
- * A sub-structure for applying actions in parallel to all an allocator's
- * slabs.
- */
+/* A sub-structure for applying actions in parallel to all an allocator's slabs. */
 struct slab_actor {
 	/* The number of slabs performing a slab action */
 	slab_count_t slab_action_count;
-	/* The method to call when a slab action has been completed by all
-	 * slabs
-	 */
+	/* The method to call when a slab action has been completed by all slabs */
 	vdo_action *callback;
 };
 
@@ -82,13 +74,12 @@ struct block_allocator {
 	enum block_allocator_drain_step drain_step;
 
 	/*
-	 * These statistics are all mutated only by the physical zone thread,
-	 * but are read by other threads when gathering statistics for the
-	 * entire depot.
+	 * These statistics are all mutated only by the physical zone thread, but are read by other
+	 * threads when gathering statistics for the entire depot.
 	 */
 	/*
-	 * The count of allocated blocks in this zone. Not in
-	 * block_allocator_statistics for historical reasons.
+	 * The count of allocated blocks in this zone. Not in block_allocator_statistics for
+	 * historical reasons.
 	 */
 	uint64_t allocated_blocks;
 	/* Statistics for this block allocator */
@@ -99,13 +90,11 @@ struct block_allocator {
 	struct ref_counts_statistics ref_counts_statistics;
 
 	/*
-	 * This is the head of a queue of slab journals which have entries in
-	 * their tail blocks which have not yet started to commit. When the
-	 * recovery journal is under space pressure, slab journals which have
-	 * uncommitted entries holding a lock on the recovery journal head are
-	 * forced to commit their blocks early. This list is kept in order,
-	 * with the tail containing the slab journal holding the most recent
-	 * recovery journal lock.
+	 * This is the head of a queue of slab journals which have entries in their tail blocks
+	 * which have not yet started to commit. When the recovery journal is under space pressure,
+	 * slab journals which have uncommitted entries holding a lock on the recovery journal head
+	 * are forced to commit their blocks early. This list is kept in order, with the tail
+	 * containing the slab journal holding the most recent recovery journal lock.
 	 */
 	struct list_head dirty_slab_journals;
 
@@ -117,22 +106,19 @@ struct block_allocator {
 	struct slab_iterator slabs_to_erase;
 };
 
-static inline struct block_allocator *
-vdo_as_block_allocator(struct vdo_completion *completion)
+static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type,
-				   VDO_BLOCK_ALLOCATOR_COMPLETION);
+	vdo_assert_completion_type(completion->type, VDO_BLOCK_ALLOCATOR_COMPLETION);
 	return container_of(completion, struct block_allocator, completion);
 }
 
-int __must_check
-vdo_make_block_allocator(struct slab_depot *depot,
-			 zone_count_t zone_number,
-			 thread_id_t thread_id,
-			 nonce_t nonce,
-			 struct vdo *vdo,
-			 struct read_only_notifier *read_only_notifier,
-			 struct block_allocator **allocator_ptr);
+int __must_check vdo_make_block_allocator(struct slab_depot *depot,
+					  zone_count_t zone_number,
+					  thread_id_t thread_id,
+					  nonce_t nonce,
+					  struct vdo *vdo,
+					  struct read_only_notifier *read_only_notifier,
+					  struct block_allocator **allocator_ptr);
 
 void vdo_free_block_allocator(struct block_allocator *allocator);
 
@@ -140,8 +126,8 @@ void vdo_queue_slab(struct vdo_slab *slab);
 
 void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment);
 
-int __must_check vdo_allocate_block(struct block_allocator *allocator,
-				    physical_block_number_t *block_number_ptr);
+int __must_check
+vdo_allocate_block(struct block_allocator *allocator, physical_block_number_t *block_number_ptr);
 
 void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
@@ -157,8 +143,7 @@ void vdo_prepare_block_allocator_to_allocate(void *context,
 					     zone_count_t zone_number,
 					     struct vdo_completion *parent);
 
-void vdo_register_slab_with_allocator(struct block_allocator *allocator,
-				      struct vdo_slab *slab);
+void vdo_register_slab_with_allocator(struct block_allocator *allocator, struct vdo_slab *slab);
 
 void vdo_register_new_slabs_for_allocator(void *context,
 					  zone_count_t zone_number,
@@ -192,8 +177,7 @@ vdo_get_ref_counts_statistics(const struct block_allocator *allocator);
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
 #ifdef INTERNAL
-int __must_check
-vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
+int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
 
 void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);
 #endif /* INTERNAL */

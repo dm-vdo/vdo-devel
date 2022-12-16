@@ -14,20 +14,18 @@
 /**
  * DOC: Block map entries
  *
- * The entry for each logical block in the block map is encoded into five
- * bytes, which saves space in both the on-disk and in-memory layouts. It
- * consists of the 36 low-order bits of a physical_block_number_t
- * (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of a
- * block_mapping_state.
+ * The entry for each logical block in the block map is encoded into five bytes, which saves space
+ * in both the on-disk and in-memory layouts. It consists of the 36 low-order bits of a
+ * physical_block_number_t (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of
+ * a block_mapping_state.
  *
  * Of the 8 high bits of the 5-byte structure:
  *
- * Bits 7..4: The four highest bits of the 36-bit physical block
- * number
+ * Bits 7..4: The four highest bits of the 36-bit physical block number
  * Bits 3..0: The 4-bit block_mapping_state
  *
- * The following 4 bytes are the low order bytes of the physical block number,
- * in little-endian order.
+ * The following 4 bytes are the low order bytes of the physical block number, in little-endian
+ * order.
  *
  * Conversion functions to and from a data location are provided.
  */
@@ -43,8 +41,7 @@ struct block_map_entry {
 	__le32 pbn_low_word;
 } __packed;
 
-static inline struct data_location
-vdo_unpack_block_map_entry(const struct block_map_entry *entry)
+static inline struct data_location vdo_unpack_block_map_entry(const struct block_map_entry *entry)
 {
 	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
 	physical_block_number_t high4 = entry->pbn_high_nibble;
