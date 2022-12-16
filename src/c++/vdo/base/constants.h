@@ -14,8 +14,8 @@
 
 enum {
 	/**
-	 * The maximum number of contiguous PBNs which will go to a single
-	 * bio submission queue, assuming there is more than one queue.
+	 * The maximum number of contiguous PBNs which will go to a single bio submission queue,
+	 * assuming there is more than one queue.
 	 **/
 	VDO_BIO_ROTATION_INTERVAL_LIMIT = 1024,
 
@@ -26,18 +26,15 @@ enum {
 	VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN = 1,
 
 	/**
-	 * The height of a block map tree. Assuming a root count of 60 and 812
-	 * entries per page, this is big enough to represent almost 95 PB of
-	 * logical space.
+	 * The height of a block map tree. Assuming a root count of 60 and 812 entries per page,
+	 * this is big enough to represent almost 95 PB of logical space.
 	 **/
 	VDO_BLOCK_MAP_TREE_HEIGHT = 5,
 
 	/** The default number of bio submission queues. */
 	DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT = 4,
 
-	/**
-	 * The number of contiguous PBNs to be submitted to a single bio queue.
-	 **/
+	/** The number of contiguous PBNs to be submitted to a single bio queue. */
 	DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL = 64,
 
 	/** The number of trees in the arboreal block map */
@@ -50,10 +47,9 @@ enum {
 	DEFAULT_VDO_SLAB_JOURNAL_SIZE = 224,
 
 	/**
-	 * The initial size of lbn_operations and pbn_operations, which is
-	 * based upon the expected maximum number of outstanding VIOs. This
-	 * value was chosen to make it highly unlikely that the maps would
-	 * need to be resized.
+	 * The initial size of lbn_operations and pbn_operations, which is based upon the expected
+	 * maximum number of outstanding VIOs. This value was chosen to make it highly unlikely
+	 * that the maps would need to be resized.
 	 **/
 	VDO_LOCK_MAP_CAPACITY = 10000,
 
@@ -70,14 +66,11 @@ enum {
 	MAX_VDO_SLABS = 8192,
 
 	/**
-	 * The maximum number of block map pages to load simultaneously during
-	 * recovery or rebuild.
+	 * The maximum number of block map pages to load simultaneously during recovery or rebuild.
 	 **/
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
 
-	/**
-	 * The maximum number of total threads in a VDO thread configuration.
-	 **/
+	/** The maximum number of total threads in a VDO thread configuration. */
 	MAXIMUM_VDO_THREADS = 100,
 
 	/** The maximum number of VIOs in the system at once */

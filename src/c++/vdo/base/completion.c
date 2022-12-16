@@ -27,8 +27,8 @@ static const char * const VDO_COMPLETION_TYPE_NAMES[] = {
 	"VDO_UNSET_COMPLETION_TYPE",
 
 	/*
-	 * Keep this block in sorted order. If you add or remove an
-	 * entry, be sure to update the corresponding list in completion.h.
+	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
+	 * corresponding list in completion.h.
 	 */
 	"VDO_ACTION_COMPLETION",
 	"VDO_ADMIN_COMPLETION",
@@ -53,8 +53,8 @@ static const char * const VDO_COMPLETION_TYPE_NAMES[] = {
 
 #ifndef __KERNEL__
 	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be
-	 * sure to update the corresponding list in completion.h.
+	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
+	 * corresponding list in completion.h.
 	 */
 	"VDO_TEST_COMPLETION",
 	"VDO_WRAPPING_COMPLETION",
@@ -62,8 +62,7 @@ static const char * const VDO_COMPLETION_TYPE_NAMES[] = {
 };
 
 /**
- * vdo_initialize_completion() - Initialize a completion to a clean state,
- *                               for reused completions.
+ * vdo_initialize_completion() - Initialize a completion to a clean state, for reused completions.
  * @completion: The completion to initialize.
  * @vdo: The VDO instance.
  * @type: The type of the completion.
@@ -79,8 +78,8 @@ void vdo_initialize_completion(struct vdo_completion *completion,
 }
 
 /**
- * vdo_reset_completion() - Reset a completion to a clean state, while
- *                          keeping the type, vdo and parent information.
+ * vdo_reset_completion() - Reset a completion to a clean state, while keeping the type, vdo and
+ *                          parent information.
  * @completion: The completion to reset.
  */
 void vdo_reset_completion(struct vdo_completion *completion)
@@ -113,24 +112,20 @@ void vdo_set_completion_result(struct vdo_completion *completion, int result)
 }
 
 /**
- * vdo_invoke_completion_callback_with_priority() - Invoke the callback of
- *                                                  a completion.
+ * vdo_invoke_completion_callback_with_priority() - Invoke the callback of a completion.
  * @completion: The completion whose callback is to be invoked.
  * @priority: The priority at which to enqueue the completion.
  *
- * If called on the correct thread (i.e. the one specified in the
- * completion's callback_thread_id field), the completion will be run
- * immediately. Otherwise, the completion will be enqueued on the
- * correct callback thread.
+ * If called on the correct thread (i.e. the one specified in the completion's callback_thread_id
+ * field), the completion will be run immediately. Otherwise, the completion will be enqueued on
+ * the correct callback thread.
  */
-void
-vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
-					     enum vdo_completion_priority priority)
+void vdo_invoke_completion_callback_with_priority(struct vdo_completion *completion,
+						  enum vdo_completion_priority priority)
 {
 	thread_id_t callback_thread = completion->callback_thread_id;
 
-	if (completion->requeue ||
-	    (callback_thread != vdo_get_callback_thread_id())) {
+	if (completion->requeue || (callback_thread != vdo_get_callback_thread_id())) {
 		vdo_enqueue_completion_with_priority(completion, priority);
 		return;
 	}
@@ -166,27 +161,22 @@ void vdo_complete_completion(struct vdo_completion *completion)
 }
 
 /**
- * vdo_finish_completion_parent_callback() - A callback to finish the parent
- *                                           of a completion.
- * @completion: The completion which has finished and whose parent should
- *              be finished.
+ * vdo_finish_completion_parent_callback() - A callback to finish the parent of a completion.
+ * @completion: The completion which has finished and whose parent should be finished.
  */
 void vdo_finish_completion_parent_callback(struct vdo_completion *completion)
 {
-	vdo_finish_completion((struct vdo_completion *) completion->parent,
-			      completion->result);
+	vdo_finish_completion((struct vdo_completion *) completion->parent, completion->result);
 }
 
 /**
  * vdo_preserve_completion_error_and_continue() - Error handler.
  * @completion: The completion which failed.
  *
- * Error handler which preserves an error in the parent (if there is
- * one), and then resets the failing completion and calls its
- * non-error callback.
+ * Error handler which preserves an error in the parent (if there is one), and then resets the
+ * failing completion and calls its non-error callback.
  */
-void
-vdo_preserve_completion_error_and_continue(struct vdo_completion *completion)
+void vdo_preserve_completion_error_and_continue(struct vdo_completion *completion)
 {
 	if (completion->parent != NULL)
 		vdo_set_completion_result(completion->parent, completion->result);
@@ -199,27 +189,19 @@ vdo_preserve_completion_error_and_continue(struct vdo_completion *completion)
  * get_completion_type_name() - Return the name of a completion type.
  * @completion_type: The completion type.
  *
- * Return: a pointer to a static string; if the completion_type is unknown
- *         this is to a static buffer that may be overwritten.
+ * Return: a pointer to a static string; if the completion_type is unknown this is to a static
+ *         buffer that may be overwritten.
  */
-static const char *
-get_completion_type_name(enum vdo_completion_type completion_type)
+static const char *get_completion_type_name(enum vdo_completion_type completion_type)
 {
-	/*
-	 * Try to catch failures to update the array when the enum values
-	 * change.
-	 */
+	/* Try to catch failures to update the array when the enum values change. */
 	STATIC_ASSERT(ARRAY_SIZE(VDO_COMPLETION_TYPE_NAMES) ==
 		      (VDO_MAX_COMPLETION_TYPE - VDO_UNSET_COMPLETION_TYPE));
 
 	if (completion_type >= VDO_MAX_COMPLETION_TYPE) {
 		static char numeric[100];
 
-		snprintf(numeric,
-			 99,
-			 "%d (%#x)",
-			 completion_type,
-			 completion_type);
+		snprintf(numeric, 99, "%d (%#x)", completion_type, completion_type);
 		return numeric;
 	}
 
@@ -230,8 +212,8 @@ get_completion_type_name(enum vdo_completion_type completion_type)
  * vdo_noop_completion_callback() - A callback which does nothing.
  * @completion: The completion being called back.
  *
- * This callback is intended to be set as an error handler in the
- * case where an error should do nothing.
+ * This callback is intended to be set as an error handler in the case where an error should do
+ * nothing.
  */
 void
 vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
@@ -239,15 +221,13 @@ vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
 }
 
 /**
- * vdo_assert_completion_type() - Assert that a completion is of the correct
- *                                type.
+ * vdo_assert_completion_type() - Assert that a completion is of the correct type.
  * @actual: The actual completion type.
  * @expected: The expected completion type.
  *
  * Return: VDO_SUCCESS or VDO_PARAMETER_MISMATCH
  */
-int vdo_assert_completion_type(enum vdo_completion_type actual,
-			       enum vdo_completion_type expected)
+int vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_type expected)
 {
 	return ASSERT((expected == actual),
 		      "completion type is %s instead of %s",
@@ -260,9 +240,8 @@ int vdo_assert_completion_type(enum vdo_completion_type actual,
  * @completion: The completion to be enqueued.
  * @priority: The priority at which the work should be done.
  *
- * A function to enqueue a vdo_completion to run on the thread
- * specified by its callback_thread_id field at the specified
- * priority.
+ * A function to enqueue a vdo_completion to run on the thread specified by its callback_thread_id
+ * field at the specified priority.
  */
 void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 					  enum vdo_completion_priority priority)
@@ -278,10 +257,10 @@ void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 		BUG();
 
 #if defined(INTERNAL) || defined(VDO_INTERNAL)
-	if ((completion->type == VIO_COMPLETION) &&
-	    is_data_vio(as_vio(completion)))
+	if ((completion->type == VIO_COMPLETION) && is_data_vio(as_vio(completion)))
 		ASSERT_LOG_ONLY(((completion->error_handler != NULL) ||
-				 (as_data_vio(completion)->last_async_operation == VIO_ASYNC_OP_CLEANUP)),
+				 (as_data_vio(completion)->last_async_operation ==
+				  VIO_ASYNC_OP_CLEANUP)),
 				"active data_vio has error handler");
 
 #endif /* INTERNAL or VDO_INTERNAL */

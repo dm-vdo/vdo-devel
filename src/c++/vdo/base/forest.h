@@ -11,15 +11,14 @@
 #include "types.h"
 
 /**
- * typedef vdo_entry_callback - A function to be called for each allocated PBN
- *                              when traversing the forest.
+ * typedef vdo_entry_callback - A function to be called for each allocated PBN when traversing the
+ *                              forest.
  * @pbn: A PBN of a tree node.
  * @completion: The parent completion of the traversal.
  *
  * Return: VDO_SUCCESS or an error.
  */
-typedef int vdo_entry_callback(physical_block_number_t pbn,
-			       struct vdo_completion *completion);
+typedef int vdo_entry_callback(physical_block_number_t pbn, struct vdo_completion *completion);
 
 struct forest;
 
