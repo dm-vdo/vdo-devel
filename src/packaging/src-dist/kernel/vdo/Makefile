@@ -8,7 +8,7 @@ EXTRA_CFLAGS =	-std=gnu99					\
 		-fno-builtin-memset				\
 		-Werror						\
 		$(if $(CONFIG_KASAN),,-Wframe-larger-than=400)	\
-		-DCURRENT_VERSION=\"$(VDO_VERSION)\"		\
+		-DVDO_VERSION=\"$(VDO_VERSION)\"		\
 		$(INCLUDES)
 
 obj-m += kvdo.o

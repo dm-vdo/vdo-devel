@@ -40,9 +40,8 @@ VDO_DOC=$(VDO_ROOT)/doc/dm-vdo.rst
 
 CHANGE_LOG ?= Update $(VDO_VERSION)
 
-LINUX_SRC ?= /u1/GitHub/linux
-
 ifndef KERNEL_VERSION
+ifdef LINUX_SRC
 KERNEL_VERSION := $(shell \
 	perl -e 'while (<>) { \
 	  $$version = $$1 if (/^VERSION = (\d+)/m); \
@@ -51,6 +50,19 @@ KERNEL_VERSION := $(shell \
 	$$kernel_version = "$$version.$$patchlevel.$$sublevel"; \
 	$$kernel_version =~ /\d+\.\d+\.\d+/ or die; \
 	print $$kernel_version;' <$(LINUX_SRC)/Makefile || echo NONE)
+CHECKINCLUDES := $(LINUX_SRC)/scripts/checkincludes.pl
+CHECKPATCH := $(LINUX_SRC)/scripts/checkpatch.pl
+else
+KERNEL_VERSION = $(shell uname -r)
+endif
+endif
+
+# kpatch and overlay need a full kernel source tree, prepare and
+# check-style only need KERNEL_VERSION
+ifneq ($(filter overlay kpatch, $(MAKECMDGOALS)),)
+ifndef LINUX_SRC
+$(error The overlay and kpatch goals require LINUX_SRC to be the path to a kernel source tree)
+endif
 endif
 
 GIT=git
@@ -162,22 +174,15 @@ checkincludes: checkincludes.out
 overlay overlay_vdo:
 	mkdir -p $(LINUX_VDO_SRC)
 	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
-	cd  $(LINUX_VDO_SRC) \
-		&& echo '$(SPDX)' >Makefile \
-		&& echo >>Makefile \
-		&& echo 'obj-$$(CONFIG_DM_VDO) += dm-vdo.o' >>Makefile \
-		&& echo >>Makefile \
-		&& echo -n 'ccflags-y := -I$$(src)' >>Makefile \
-		&& echo ' -DCURRENT_VERSION=\"$(VDO_VERSION)\"' >>Makefile \
-		&& echo >>Makefile \
-		&& echo -n 'dm-vdo-objs := ' >>Makefile \
-		&& echo *.c | sed -e 's/\.c /.o \\\n\t/g' \
-				  -e 's/\.c/.o/' >>Makefile
-	cp dm-vdo_Kconfig $(LINUX_VDO_SRC)/Kconfig
+	sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "$(VDO_VERSION)"/' \
+		$(LINUX_VDO_SRC)/dm-vdo-target.c
+	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
+	mv $(LINUX_VDO_SRC)/linux/murmurhash3.h $(LINUX_SRC)/include/linux/
 	grep -q DM_VDO $(LINUX_MD_SRC)/Makefile || \
-		sed -i '/dm-verity\.o/ a obj-$$(CONFIG_DM_VDO)            += dm-vdo/' $(LINUX_MD_SRC)/Makefile
-	grep -q drivers.md.dm-vdo.Kconfig $(LINUX_MD_SRC)/Kconfig || \
-	  sed -i '/config DM_CACHE$$/ i source "drivers/md/dm-vdo/Kconfig"\n' $(LINUX_MD_SRC)/Kconfig
+		patch -p3 $(LINUX_MD_SRC)/Makefile <Makefile.patch
+
+	grep -q DM_VDO $(LINUX_MD_SRC)/Kconfig || \
+		patch -p3 $(LINUX_MD_SRC)/Kconfig <Kconfig.patch
 	cp -f $(VDO_DOC) $(LINUX_DOC_SRC)/
 
 #

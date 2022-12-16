@@ -87,6 +87,7 @@ $(DKMS_TGZ): $(UDS_DKMS_TGZ) $(DKMS_FILES) \
 	cat ../base/Makefile.common >>$(VDO_SUBDIR)/Makefile
 	echo UDS_OBJS=$(UDS_OBJS) >>$(VDO_SUBDIR)/Makefile
 	cp -p $(DKMS_FILES) $(VDO_SUBDIR)
+	cd $(VDO_SUBDIR) && ln -s . dm-vdo
 	tar cvfz $@ --owner=0 --group=0 --mode=a+rX-w $(DKMS_DIR)
 	$(MAKE) -C $(KERNEL_SOURCE_DIR) M=$(abspath $(DKMS_DIR)) modules \
 		$(if $(V),V=1,) $(if $(LLVM),$(LLVM_ARGS),)

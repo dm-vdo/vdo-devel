@@ -58,6 +58,7 @@ prepareGitHubDist.out: $(WORK_DIR)
 	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) \
           --repositoryPrefix=$(REPOSITORY_PREFIX) $(FLAGS) $(EXTRA_FLAGS) \
 	  | tee $@
+	cd $(WORK_DIR)/kvdo-*/vdo && ln -s . dm-vdo
 
 .PHONY: prepare
 prepare: FLAGS=--test --manifest=$(MANIFEST) $(VDO_ROOT)

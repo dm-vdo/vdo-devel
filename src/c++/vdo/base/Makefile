@@ -11,7 +11,7 @@ include Makefile.common
 
 INCLUDES = -I. $(UDS_INCLUDES) -I$(VDO_KERNEL_DIR) -isystem $(VDO_FAKE_DIR)
 CFLAGS   = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
-	   -DCURRENT_VERSION="\"$(VDO_VERSION)\"" -DINTERNAL \
+	   -DVDO_VERSION="\"$(VDO_VERSION)\"" -DINTERNAL \
            -DEXTERNAL_STATIC=
 LDFLAGS  = $(GLOBAL_LDFLAGS)
 
