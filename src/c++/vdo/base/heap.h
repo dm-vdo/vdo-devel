@@ -9,34 +9,29 @@
 #include "type-defs.h"
 
 /**
- * typedef heap_comparator - Prototype for functions which compare two array
- *                           elements.
+ * typedef heap_comparator - Prototype for functions which compare two array elements.
  * @item1: The first element to compare.
  * @item2: The second element to compare.
  *
- * All the time complexity claims in this module assume this operation has
- * O(1) time complexity.
+ * All the time complexity claims in this module assume this operation has O(1) time complexity.
  *
- * Return: An integer which is less than, equal to, or greater than 0
- *         depending on whether item1 is less than, equal to, or greater
- *         than item2, respectively
+ * Return: An integer which is less than, equal to, or greater than 0 depending on whether item1 is
+ *         less than, equal to, or greater than item2, respectively
  */
 typedef int heap_comparator(const void *item1, const void *item2);
 
 /**
- * typedef heap_swapper - Prototype for functions which swap two array
- *                        elements.
+ * typedef heap_swapper - Prototype for functions which swap two array elements.
  * @item1: The first element to swap.
  * @item2: The second element to swap.
  */
 typedef void heap_swapper(void *item1, void *item2);
 
 /*
- * A heap array can be any array of fixed-length elements in which the heap
- * invariant can be established. In a max-heap, every child of a node must be
- * at least as large as its children. Once that invariant is established in an
- * array by calling build_heap(), all the other heap operations may be used on
- * that array.
+ * A heap array can be any array of fixed-length elements in which the heap invariant can be
+ * established. In a max-heap, every child of a node must be at least as large as its children.
+ * Once that invariant is established in an array by calling build_heap(), all the other heap
+ * operations may be used on that array.
  */
 struct heap {
 	/* the 1-based array of heap elements (nodes) */
@@ -53,8 +48,11 @@ struct heap {
 	size_t count;
 };
 
-void initialize_heap(struct heap *heap, heap_comparator *comparator,
-		     heap_swapper *swapper, void *array, size_t capacity,
+void initialize_heap(struct heap *heap,
+		     heap_comparator *comparator,
+		     heap_swapper *swapper,
+		     void *array,
+		     size_t capacity,
 		     size_t element_size);
 
 void build_heap(struct heap *heap, size_t count);

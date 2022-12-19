@@ -10,12 +10,10 @@
 #include "status-codes.h"
 
 /**
- * vdo_validate_version() - Check whether a version matches an expected
- *                          version.
+ * vdo_validate_version() - Check whether a version matches an expected version.
  * @expected_version: The expected version.
  * @actual_version: The version being validated.
- * @component_name: The name of the component or the calling function
- *                  (for error logging).
+ * @component_name: The name of the component or the calling function (for error logging).
  *
  * Logs an error describing a mismatch.
  *
@@ -41,11 +39,9 @@ int vdo_validate_version(struct version_number expected_version,
  * vdo_validate_header() - Check whether a header matches expectations.
  * @expected_header: The expected header.
  * @actual_header: The header being validated.
- * @exact_size: If true, the size fields of the two headers must be the same,
- *              otherwise it is required that actual_header.size >=
- *              expected_header.size.
- * @component_name: The name of the component or the calling function
- *                  (for error logging).
+ * @exact_size: If true, the size fields of the two headers must be the same, otherwise it is
+ *              required that actual_header.size >= expected_header.size.
+ * @component_name: The name of the component or the calling function (for error logging).
  *
  * Logs an error describing the first mismatch found.
  *
@@ -115,8 +111,7 @@ int vdo_encode_header(const struct header *header, struct buffer *buffer)
  *
  * Return: UDS_SUCCESS or an error.
  */
-int vdo_encode_version_number(struct version_number version,
-			      struct buffer *buffer)
+int vdo_encode_version_number(struct version_number version, struct buffer *buffer)
 {
 	struct packed_version_number packed = vdo_pack_version_number(version);
 
@@ -135,9 +130,9 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
 	uint32_t id;
 	uint64_t size;
 	struct version_number version;
+	int result;
 
-	int result = get_uint32_le_from_buffer(buffer, &id);
-
+	result = get_uint32_le_from_buffer(buffer, &id);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -164,12 +159,12 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
  *
  * Return: UDS_SUCCESS or an error.
  */
-int vdo_decode_version_number(struct buffer *buffer,
-			      struct version_number *version)
+int vdo_decode_version_number(struct buffer *buffer, struct version_number *version)
 {
 	struct packed_version_number packed;
-	int result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
+	int result;
 
+	result = get_bytes_from_buffer(buffer, sizeof(packed), &packed);
 	if (result != UDS_SUCCESS)
 		return result;
 

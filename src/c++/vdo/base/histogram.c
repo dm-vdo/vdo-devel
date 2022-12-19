@@ -13,12 +13,10 @@
 #include "logger.h"
 
 /*
- * Set NO_BUCKETS to streamline the histogram code by reducing it to
- * tracking just minimum, maximum, mean, etc. Only one bucket counter
- * (the final one for "bigger" values) will be used, no range checking
- * is needed to find the right bucket, and no histogram will be
- * reported. With newer compilers, the histogram output code will be
- * optimized out.
+ * Set NO_BUCKETS to streamline the histogram code by reducing it to tracking just minimum,
+ * maximum, mean, etc. Only one bucket counter (the final one for "bigger" values) will be used, no
+ * range checking is needed to find the right bucket, and no histogram will be reported. With newer
+ * compilers, the histogram output code will be optimized out.
  */
 enum {
 #ifdef VDO_INTERNAL
@@ -31,36 +29,34 @@ enum {
 /*
  * Support histogramming in the VDO code.
  *
- * This is not a complete and general histogram package.  It follows the XP
- * practice of implementing the "customer" requirements, and no more.  We can
- * support other requirements after we know what they are.
+ * This is not a complete and general histogram package. It follows the XP practice of implementing
+ * the "customer" requirements, and no more. We can support other requirements after we know what
+ * they are.
  *
- * The code was originally borrowed from UDS, and includes both linear and
- * logarithmic histograms.  VDO only uses the logarithmic histograms.
+ * The code was originally borrowed from UDS, and includes both linear and logarithmic histograms.
+ * VDO only uses the logarithmic histograms.
  *
  * All samples are uint64_t values.
  *
- * A unit conversion option is supported internally to allow sample values to
- * be supplied in "jiffies" and results to be reported via /sys in
- * milliseconds. Depending on the system configuration, this could mean a
- * factor of four (a bucket for values of 1 jiffy is reported as 4-7
- * milliseconds). In theory it could be a non-integer ratio (including less
- * than one), but as the x86-64 platforms we've encountered appear to use 1 or
- * 4 milliseconds per jiffy, we don't support non-integer values yet.
+ * A unit conversion option is supported internally to allow sample values to be supplied in
+ * "jiffies" and results to be reported via /sys in milliseconds. Depending on the system
+ * configuration, this could mean a factor of four (a bucket for values of 1 jiffy is reported as
+ * 4-7 milliseconds). In theory it could be a non-integer ratio (including less than one), but as
+ * the x86-64 platforms we've encountered appear to use 1 or 4 milliseconds per jiffy, we don't
+ * support non-integer values yet.
  *
- * All internal processing uses the values as passed to enter_histogram_sample.
- * Conversions only affect the values seen or input through the /sys interface,
- * including possibly rounding a "limit" value entered.
+ * All internal processing uses the values as passed to enter_histogram_sample. Conversions only
+ * affect the values seen or input through the /sys interface, including possibly rounding a
+ * "limit" value entered.
  */
 
 struct histogram {
 	/*
-	 * These fields are ordered so that enter_histogram_sample touches
-	 * only the first cache line.
+	 * These fields are ordered so that enter_histogram_sample touches only the first cache
+	 * line.
 	 */
 	atomic64_t *counters; /* Counter for each bucket */
-	uint64_t limit; /* We want to know how many samples are */
-			/*   larger */
+	uint64_t limit; /* We want to know how many samples are larger */
 	atomic64_t sum; /* Sum of all the samples */
 	atomic64_t count; /* Number of samples */
 	atomic64_t minimum; /* Minimum value */
@@ -73,14 +69,13 @@ struct histogram {
 	const char *counted_items; /* Name for things being counted */
 	const char *metric; /* Term for value used to divide into buckets */
 	const char *sample_units; /* Unit for measuring metric; NULL for count */
-	unsigned int conversion_factor; /* Converts input units to reporting */
-					/* units */
+	unsigned int conversion_factor; /* Converts input units to reporting units */
 	struct kobject kobj;
 };
 
 /*
- * Fixed table defining the top value for each bucket of a logarithmic
- * histogram.  We arbitrarily limit the histogram to 12 orders of magnitude.
+ * Fixed table defining the top value for each bucket of a logarithmic histogram. We arbitrarily
+ * limit the histogram to 12 orders of magnitude.
  */
 enum { MAX_LOG_SIZE = 12 };
 static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
@@ -222,8 +217,7 @@ static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
 	1000000000000L,
 };
 
-static unsigned int divide_rounding_to_nearest(uint64_t number,
-					       uint64_t divisor)
+static unsigned int divide_rounding_to_nearest(uint64_t number, uint64_t divisor)
 {
 	number += divisor / 2;
 	return number / divisor;
@@ -253,12 +247,9 @@ static void histogram_kobj_release(struct kobject *kobj)
 	UDS_FREE(h);
 }
 
-static ssize_t histogram_show(struct kobject *kobj,
-			      struct attribute *attr,
-			      char *buf)
+static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	struct histogram_attribute *ha =
-		container_of(attr, struct histogram_attribute, attr);
+	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
 	if (ha->show == NULL)
@@ -272,8 +263,7 @@ static ssize_t histogram_store(struct kobject *kobj,
 			       const char *buf,
 			       size_t length)
 {
-	struct histogram_attribute *ha =
-		container_of(attr, struct histogram_attribute, attr);
+	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
 	if (ha->show == NULL)
@@ -292,9 +282,8 @@ static ssize_t histogram_show_count(struct histogram *h, char *buf)
 static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 {
 	/*
-	 * We're given one page in which to write. The caller logs a complaint
-	 * if we report that we've written too much, so we'll truncate to
-	 * PAGE_SIZE-1.
+	 * We're given one page in which to write. The caller logs a complaint if we report that
+	 * we've written too much, so we'll truncate to PAGE_SIZE-1.
 	 */
 	ssize_t buffer_size = PAGE_SIZE;
 	bool bars = true;
@@ -336,14 +325,11 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 		return buffer_size - 1;
 	for (i = 0; i <= max; i++) {
 		uint64_t value = atomic64_read(&h->counters[i]);
-
 		unsigned int bar_length;
 
 		if (bars && (total != 0)) {
 			/* +1 for the space at the beginning */
-			bar_length = (divide_rounding_to_nearest(
-					      value * BAR_SIZE, total) +
-				      1);
+			bar_length = (divide_rounding_to_nearest(value * BAR_SIZE, total) + 1);
 			if (bar_length == 1)
 				/* Don't bother printing just the initial space. */
 				bar_length = 0;
@@ -359,12 +345,8 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 						    "%-16s",
 						    "Bigger");
 			} else {
-				unsigned int lower =
-					h->conversion_factor * bottom_value[i];
-				unsigned int upper =
-					h->conversion_factor *
-						bottom_value[i + 1] -
-					1;
+				unsigned int lower = h->conversion_factor * bottom_value[i];
+				unsigned int upper = h->conversion_factor * bottom_value[i + 1] - 1;
 				length += scnprintf(buffer + length,
 						    buffer_size - length,
 						    "%6u - %7u",
@@ -395,10 +377,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 			return buffer_size - 1;
 	}
 
-	length += scnprintf(buffer + length,
-			    buffer_size - length,
-			    "total %llu\n",
-			    total);
+	length += scnprintf(buffer + length, buffer_size - length, "total %llu\n", total);
 	return min(buffer_size - 1, length);
 }
 
@@ -413,31 +392,26 @@ static ssize_t histogram_show_maximum(struct histogram *h, char *buf)
 static ssize_t histogram_show_minimum(struct histogram *h, char *buf)
 {
 	/* Minimum is initialized to -1. */
-	unsigned long value =
-		((atomic64_read(&h->count) > 0) ? atomic64_read(&h->minimum) :
-						  0);
+	unsigned long value = ((atomic64_read(&h->count) > 0) ? atomic64_read(&h->minimum) : 0);
+
 	return sprintf(buf, "%lu\n", h->conversion_factor * value);
 }
 
 static ssize_t histogram_show_limit(struct histogram *h, char *buf)
 {
 	/* Display the limit in the reporting units */
-	return sprintf(buf,
-		       "%u\n",
-		       (unsigned int) (h->conversion_factor * h->limit));
+	return sprintf(buf, "%u\n", (unsigned int) (h->conversion_factor * h->limit));
 }
 
-static ssize_t histogram_store_limit(struct histogram *h,
-				     const char *buf,
-				     size_t length)
+static ssize_t histogram_store_limit(struct histogram *h, const char *buf, size_t length)
 {
 	unsigned int value;
 
 	if ((length > 12) || (sscanf(buf, "%u", &value) != 1))
 		return -EINVAL;
 	/*
-	 * Convert input from reporting units (e.g., milliseconds) to internal
-	 * recording units (e.g., jiffies).
+	 * Convert input from reporting units (e.g., milliseconds) to internal recording units
+	 * (e.g., jiffies).
 	 */
 	h->limit = DIV_ROUND_UP(value, h->conversion_factor);
 	atomic64_set(&h->unacceptable, 0);
@@ -453,15 +427,10 @@ static ssize_t histogram_show_mean(struct histogram *h, char *buf)
 	if (count == 0)
 		return sprintf(buf, "0/0\n");
 	/* Compute mean, scaled up by 1000, in reporting units */
-	sum_times1000_in_reporting_units =
-		h->conversion_factor * atomic64_read(&h->sum) * 1000;
-	mean_times1000 = divide_rounding_to_nearest(
-		sum_times1000_in_reporting_units, count);
+	sum_times1000_in_reporting_units = h->conversion_factor * atomic64_read(&h->sum) * 1000;
+	mean_times1000 = divide_rounding_to_nearest(sum_times1000_in_reporting_units, count);
 	/* Print mean with fractional part */
-	return sprintf(buf,
-		       "%u.%03u\n",
-		       mean_times1000 / 1000,
-		       mean_times1000 % 1000);
+	return sprintf(buf, "%u.%03u\n", mean_times1000 / 1000, mean_times1000 % 1000);
 }
 
 static ssize_t histogram_show_unacceptable(struct histogram *h, char *buf)
@@ -587,11 +556,10 @@ static struct kobj_type histogram_kobj_type = {
 
 #ifdef VDO_INTERNAL
 /*
- * Same as above, just missing the "histogram", "limit", and
- * "unacceptable" entries.
+ * Same as above, just missing the "histogram", "limit", and "unacceptable" entries.
  *
- * We're overloading NO_BUCKETS here to also mean to strip out the
- * limit/unacceptable support added for debugging.
+ * We're overloading NO_BUCKETS here to also mean to strip out the limit/unacceptable support added
+ * for debugging.
  */
 #endif
 static struct attribute *bucketless_histogram_attrs[] = {
@@ -631,9 +599,8 @@ static struct histogram *make_histogram(struct kobject *parent,
 
 	if (num_buckets <= 10)
 		/*
-		 * The first buckets in a "logarithmic" histogram are still
-		 * linear, but the bucket-search mechanism is a wee bit slower
-		 * than for linear, so change the type.
+		 * The first buckets in a "logarithmic" histogram are still linear, but the
+		 * bucket-search mechanism is a wee bit slower than for linear, so change the type.
 		 */
 		log_flag = false;
 
@@ -646,17 +613,14 @@ static struct histogram *make_histogram(struct kobject *parent,
 	h->conversion_factor = conversion_factor;
 	atomic64_set(&h->minimum, -1UL);
 
-	if (UDS_ALLOCATE(h->num_buckets + 1,
-			 atomic64_t,
-			 "histogram counters",
-			 &h->counters) != UDS_SUCCESS) {
+	if (UDS_ALLOCATE(h->num_buckets + 1, atomic64_t, "histogram counters", &h->counters) !=
+	    UDS_SUCCESS) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;
 	}
 
 	kobject_init(&h->kobj,
-		     ((num_buckets > 0) ? &histogram_kobj_type :
-					  &bucketless_histogram_kobj_type));
+		     ((num_buckets > 0) ? &histogram_kobj_type : &bucketless_histogram_kobj_type));
 	if (kobject_add(&h->kobj, parent, name) != 0) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;
@@ -665,31 +629,24 @@ static struct histogram *make_histogram(struct kobject *parent,
 }
 
 /**
- * make_linear_histogram() - Allocate and initialize a histogram that uses
- *                           linearly sized buckets.
+ * make_linear_histogram() - Allocate and initialize a histogram that uses linearly sized buckets.
  * @parent: The parent kobject.
- * @name: The short name of the histogram. This label is used for the sysfs
- *        node.
- * @init_label: The label for the sampled data. This label is used when we plot
- *              the data.
+ * @name: The short name of the histogram. This label is used for the sysfs node.
+ * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
  * @metric: The measure being used to divide samples into buckets.
- * @sample_units: The unit (plural) for the metric, or NULL if it's a simple
- *                counter.
- * @size: The number of buckets. There are buckets for every value from 0 up to
- *        size (but not including) size. There is an extra bucket for larger
- *        samples.
+ * @sample_units: The unit (plural) for the metric, or NULL if it's a simple counter.
+ * @size: The number of buckets. There are buckets for every value from 0 up to size (but not
+ *        including) size. There is an extra bucket for larger samples.
  *
- * The histogram label reported via /sys is constructed from several of the
- * values passed here; it will be something like "Init Label Histogram -
- * number of counted_items grouped by metric (sample_units)", e.g., "Flush
- * Forwarding Histogram - number of flushes grouped by latency
+ * The histogram label reported via /sys is constructed from several of the values passed here; it
+ * will be something like "Init Label Histogram - number of counted_items grouped by metric
+ * (sample_units)", e.g., "Flush Forwarding Histogram - number of flushes grouped by latency
  * (milliseconds)". Thus counted_items and sample_units should be plural.
  *
- * The sample_units string will also be reported separately via another /sys
- * entry to aid in programmatic processing of the results, so the strings used
- * should be consistent (e.g., always "milliseconds" and not "ms" for
- * milliseconds).
+ * The sample_units string will also be reported separately via another /sys entry to aid in
+ * programmatic processing of the results, so the strings used should be consistent (e.g., always
+ * "milliseconds" and not "ms" for milliseconds).
  *
  * Return: The histogram.
  */
@@ -713,25 +670,19 @@ struct histogram *make_linear_histogram(struct kobject *parent,
 }
 
 /**
- * make_logarithmic_histogram_with_conversion_factor() - Intermediate routine
- *                                                       for creating
- *                                                       logarithmic
- *                                                       histograms.
+ * make_logarithmic_histogram_with_conversion_factor() - Intermediate routine for creating
+ *                                                       logarithmic histograms.
  * @parent: The parent kobject.
- * @name: The short name of the histogram. This label is used for the sysfs
- *        node.
- * @init_label: The label for the sampled data. This label is used when we plot
- *              the data.
+ * @name: The short name of the histogram. This label is used for the sysfs node.
+ * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
  * @metric: The measure being used to divide samples into buckets.
- * @sample_units: The units (plural) for the metric, or NULL if it's a simple
- *                counter.
- * @log_size: The number of buckets. There are buckets for a range of sizes up
- *            to 10^log_size, and an extra bucket for larger samples.
+ * @sample_units: The units (plural) for the metric, or NULL if it's a simple counter.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up to 10^log_size, and
+ *            an extra bucket for larger samples.
  * @conversion_factor: Unit conversion factor for reporting.
  *
- * Limits the histogram size, and computes the bucket count from the
- * orders-of-magnitude count.
+ * Limits the histogram size, and computes the bucket count from the orders-of-magnitude count.
  *
  * Return: The histogram.
  */
@@ -759,19 +710,16 @@ make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
 }
 
 /**
- * make_logarithmic_histogram() - Allocate and initialize a histogram that
- *                                uses logarithmically sized buckets.
+ * make_logarithmic_histogram() - Allocate and initialize a histogram that uses logarithmically
+ *                                sized buckets.
  * @parent: The parent kobject.
- * @name: The short name of the histogram. This label is used for the sysfs
- *        node.
- * @init_label: The label for the sampled data. This label is used when we plot
- *              the data.
+ * @name: The short name of the histogram. This label is used for the sysfs node.
+ * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
  * @metric: The measure being used to divide samples into buckets.
- * @sample_units: The unit (plural) for the metric, or NULL if it's a simple
- *                counter.
- * @log_size: The number of buckets. There are buckets for a range of sizes up
- *            to 10^log_size, and an extra bucket for larger samples.
+ * @sample_units: The unit (plural) for the metric, or NULL if it's a simple counter.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up to 10^log_size, and
+ *            an extra bucket for larger samples.
  *
  * Return: The histogram.
  */
@@ -794,21 +742,17 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent,
 }
 
 /**
- * make_logarithmic_jiffies_histogram() - Allocate and initialize a histogram
- *                                        that uses logarithmically sized
- *                                        buckets.
+ * make_logarithmic_jiffies_histogram() - Allocate and initialize a histogram that uses
+ *                                        logarithmically sized buckets.
  * @parent: The parent kobject.
- * @name: The short name of the histogram. This label is used for the sysfs
- *        node.
- * @init_label: The label for the sampled data. This label is used when we plot
- *              the data.
+ * @name: The short name of the histogram. This label is used for the sysfs node.
+ * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
  * @metric: The measure being used to divide samples into buckets.
- * @log_size: The number of buckets. There are buckets for a range of sizes up
- *            to 10^log_size, and an extra bucket for larger samples.
+ * @log_size: The number of buckets. There are buckets for a range of sizes up to 10^log_size, and
+ *            an extra bucket for larger samples.
  *
- * Values are entered that count in jiffies, and they are reported in
- * milliseconds.
+ * Values are entered that count in jiffies, and they are reported in milliseconds.
  *
  * Return: The histogram.
  */
@@ -820,20 +764,19 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 						     int log_size)
 {
 	/*
-	 * If these fail, we have a jiffy duration that is not an integral
-	 * number of milliseconds, and the unit conversion code needs updating.
+	 * If these fail, we have a jiffy duration that is not an integral number of milliseconds,
+	 * and the unit conversion code needs updating.
 	 */
 	STATIC_ASSERT(HZ <= MSEC_PER_SEC);
 	STATIC_ASSERT((MSEC_PER_SEC % HZ) == 0);
-	return make_logarithmic_histogram_with_conversion_factor(
-		parent,
-		name,
-		init_label,
-		counted_items,
-		metric,
-		"milliseconds",
-		log_size,
-		jiffies_to_msecs(1));
+	return make_logarithmic_histogram_with_conversion_factor(parent,
+								 name,
+								 init_label,
+								 counted_items,
+								 metric,
+								 "milliseconds",
+								 log_size,
+								 jiffies_to_msecs(1));
 }
 
 /**
@@ -872,15 +815,14 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 		atomic64_inc(&h->unacceptable);
 
 	/*
-	 * Theoretically this could loop a lot; in practice it should rarely
-	 * do more than a single read, with no memory barrier, from a cache
-	 * line we've already referenced above.
+	 * Theoretically this could loop a lot; in practice it should rarely do more than a single
+	 * read, with no memory barrier, from a cache line we've already referenced above.
 	 */
 	old_maximum = atomic64_read(&h->maximum);
 
 	while (old_maximum < sample) {
-		uint64_t read_value =
-			atomic64_cmpxchg(&h->maximum, old_maximum, sample);
+		uint64_t read_value = atomic64_cmpxchg(&h->maximum, old_maximum, sample);
+
 		if (read_value == old_maximum)
 			break;
 		old_maximum = read_value;
@@ -889,8 +831,8 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	old_minimum = atomic64_read(&h->minimum);
 
 	while (old_minimum > sample) {
-		uint64_t read_value =
-			atomic64_cmpxchg(&h->minimum, old_minimum, sample);
+		uint64_t read_value = atomic64_cmpxchg(&h->minimum, old_minimum, sample);
+
 		if (read_value == old_minimum)
 			break;
 		old_minimum = read_value;
