@@ -30,8 +30,8 @@ struct logical_zone {
 	/* The current flush generation */
 	sequence_number_t flush_generation;
 	/*
-	 * The oldest active generation in this zone. This is mutated only on
-	 * the logical zone thread but is queried from the flusher thread.
+	 * The oldest active generation in this zone. This is mutated only on the logical zone
+	 * thread but is queried from the flusher thread.
 	 */
 	sequence_number_t oldest_active_generation;
 	/* The number of IOs in the current flush generation */
@@ -63,8 +63,7 @@ struct logical_zones {
 	struct logical_zone zones[];
 };
 
-int __must_check
-vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
+int __must_check vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr);
 
 void vdo_free_logical_zones(struct logical_zones *zones);
 
@@ -72,19 +71,16 @@ void vdo_drain_logical_zones(struct logical_zones *zones,
 			     const struct admin_state_code *operation,
 			     struct vdo_completion *completion);
 
-void vdo_resume_logical_zones(struct logical_zones *zones,
-			      struct vdo_completion *parent);
+void vdo_resume_logical_zones(struct logical_zones *zones, struct vdo_completion *parent);
 
-void
-vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
-					    sequence_number_t expected_generation);
+void vdo_increment_logical_zone_flush_generation(struct logical_zone *zone,
+						 sequence_number_t expected_generation);
 
 void vdo_acquire_flush_generation_lock(struct data_vio *data_vio);
 
 void vdo_release_flush_generation_lock(struct data_vio *data_vio);
 
-struct physical_zone * __must_check
-vdo_get_next_allocation_zone(struct logical_zone *zone);
+struct physical_zone * __must_check vdo_get_next_allocation_zone(struct logical_zone *zone);
 
 void vdo_dump_logical_zone(const struct logical_zone *zone);
 
