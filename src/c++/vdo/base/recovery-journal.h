@@ -437,10 +437,6 @@ void vdo_load_recovery_journal(struct recovery_journal *journal,
 			       struct vdo_completion *parent,
 			       char **journal_data_ptr);
 
-int __must_check
-vdo_validate_recovery_journal_entry(const struct vdo *vdo,
-				    const struct recovery_journal_entry *entry);
-
 void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal);
 
 #ifdef INTERNAL

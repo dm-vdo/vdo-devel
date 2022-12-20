@@ -541,6 +541,40 @@ get_entry(const struct recovery_completion *recovery, const struct recovery_poin
 }
 
 /**
+ * validate_recovery_journal_entry() - Validate a recovery journal entry.
+ * @vdo: The vdo.
+ * @entry: The entry to validate.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+static int validate_recovery_journal_entry(const struct vdo *vdo,
+					   const struct recovery_journal_entry *entry)
+{
+	if ((entry->slot.pbn >= vdo->states.vdo.config.physical_blocks) ||
+	    (entry->slot.slot >= VDO_BLOCK_MAP_ENTRIES_PER_PAGE) ||
+	    !vdo_is_valid_location(&entry->mapping) ||
+	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn))
+		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
+					      "Invalid entry: (%llu, %u) to %llu (%s) is not within bounds",
+					      (unsigned long long) entry->slot.pbn,
+					      entry->slot.slot,
+					      (unsigned long long) entry->mapping.pbn,
+					      vdo_get_journal_operation_name(entry->operation));
+
+	if ((entry->operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) &&
+	    (vdo_is_state_compressed(entry->mapping.state) ||
+	    (entry->mapping.pbn == VDO_ZERO_BLOCK)))
+		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
+					      "Invalid entry: (%llu, %u) to %llu (%s) is not a valid tree mapping",
+					      (unsigned long long) entry->slot.pbn,
+					      entry->slot.slot,
+					      (unsigned long long) entry->mapping.pbn,
+					      vdo_get_journal_operation_name(entry->operation));
+
+	return VDO_SUCCESS;
+}
+
+/**
  * extract_increment() - Create an array of all valid increment entries, in order, and store it in
  *                       the recovery completion.
  * @recovery: The recovery completion.
@@ -572,7 +606,7 @@ static int extract_increment_entries(struct recovery_completion *recovery)
 	     increment_recovery_point(&recovery_point)) {
 		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
 
-		result = vdo_validate_recovery_journal_entry(vdo, &entry);
+		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 			return result;
@@ -810,7 +844,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		struct recovery_journal_entry entry = get_entry(recovery, recovery_point);
 		int result;
 
-		result = vdo_validate_recovery_journal_entry(vdo, &entry);
+		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(journal->read_only_notifier, result);
 			vdo_finish_completion(completion, result);
@@ -1278,7 +1312,7 @@ static noinline int count_increment_entries(struct recovery_completion *recovery
 		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
 		int result;
 
-		result = vdo_validate_recovery_journal_entry(vdo, &entry);
+		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
 			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 			return result;
@@ -1888,7 +1922,7 @@ static void append_sector_entries(struct rebuild_completion *rebuild,
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
 			vdo_unpack_recovery_journal_entry(&sector->entries[i]);
-		int result = vdo_validate_recovery_journal_entry(vdo, &entry);
+		int result = validate_recovery_journal_entry(vdo, &entry);
 
 		if (result != VDO_SUCCESS)
 			/* When recovering from read-only mode, ignore damaged entries. */
