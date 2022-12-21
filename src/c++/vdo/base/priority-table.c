@@ -5,9 +5,10 @@
 
 #include "priority-table.h"
 
+#include <linux/log2.h>
+
 #include "errors.h"
 #include "memory-alloc.h"
-#include "num-utils.h"
 #include "permassert.h"
 
 #include "status-codes.h"

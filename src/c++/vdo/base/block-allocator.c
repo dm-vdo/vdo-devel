@@ -5,6 +5,8 @@
 
 #include "block-allocator.h"
 
+#include <linux/log2.h>
+
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -14,7 +16,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "heap.h"
-#include "num-utils.h"
 #include "priority-table.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"

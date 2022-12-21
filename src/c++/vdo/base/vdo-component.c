@@ -5,13 +5,14 @@
 
 #include "vdo-component.h"
 
+#include <linux/log2.h>
+
 #include "buffer.h"
 #include "logger.h"
 #include "permassert.h"
 
 #include "constants.h"
 #include "header.h"
-#include "num-utils.h"
 #include "slab-depot-format.h"
 #include "status-codes.h"
 #include "types.h"

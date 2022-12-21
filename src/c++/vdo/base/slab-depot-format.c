@@ -5,13 +5,14 @@
 
 #include "slab-depot-format.h"
 
+#include <linux/log2.h>
+
 #include "buffer.h"
 #include "logger.h"
 #include "permassert.h"
 
 #include "constants.h"
 #include "header.h"
-#include "num-utils.h"
 #include "packed-reference-block.h"
 #include "slab-journal-format.h"
 #include "status-codes.h"

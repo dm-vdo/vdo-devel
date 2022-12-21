@@ -6,10 +6,16 @@
  * $Id$
  */
 
+/*
+ * This is nominally testing num-utils.h but that file no longer exists.
+ * The implementations now live in fake/linux/log2.h and block-map-tree.c.
+ */
+
 #include "albtest.h"
 
+#include <linux/log2.h>
+
 #include "block-map-tree.h"
-#include "num-utils.h"
 #include "vdoAsserts.h"
 
 /**********************************************************************/

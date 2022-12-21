@@ -54,7 +54,6 @@ tarballs:
             header.c
             header.h
             journal-point.h
-            num-utils.h
             packed-recovery-journal-block.h
             packed-reference-block.h
             recovery-journal-entry.h
@@ -292,7 +291,6 @@ tarballs:
             logical-zone.h
             message-stats.c
             message-stats.h
-            num-utils.h
             packed-recovery-journal-block.h
             packed-reference-block.h
             packer.c

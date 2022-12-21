@@ -8,9 +8,10 @@
 
 #include <err.h>
 
+#include <linux/log2.h>
+
 #include "memory-alloc.h"
 
-#include "num-utils.h"
 #include "status-codes.h"
 #include "types.h"
 #include "super-block-codec.h"

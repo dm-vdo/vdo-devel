@@ -6,6 +6,7 @@
 #include "slab-depot.h"
 
 #include <linux/atomic.h>
+#include <linux/log2.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -17,7 +18,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "header.h"
-#include "num-utils.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
