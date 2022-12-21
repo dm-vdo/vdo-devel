@@ -305,7 +305,7 @@ static void release_compressed_write_waiter(struct data_vio *data_vio,
 	};
 
 	vdo_share_compressed_write_lock(data_vio, allocation->lock);
-	continue_write_after_compression(data_vio);
+	launch_data_vio_journal_callback(data_vio, journal_optimized_data_vio_mapping);
 }
 
 /**
@@ -357,7 +357,7 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 	     client != NULL;
 	     client = next) {
 		next = client->compression.next_in_batch;
-		continue_write_after_compression(client);
+		write_data_vio(client);
 	}
 
 	/*
@@ -366,7 +366,7 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 	 */
 	vdo_reset_completion(completion);
 	completion->error_handler = handle_data_vio_error;
-	continue_write_after_compression(agent);
+	write_data_vio(agent);
 }
 
 /**

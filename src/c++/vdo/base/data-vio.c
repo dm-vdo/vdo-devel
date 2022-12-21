@@ -196,24 +196,17 @@ static const char * const ASYNC_OPERATION_NAMES[] = {
 	"check_for_duplication",
 	"cleanup",
 	"compress_data_vio",
+	"decrement_reference_count",
+	"increment_reference_count",
 	"find_block_map_slot",
-	"get_mapped_block/for_read",
-	"get_mapped_block/for_dedupe",
-	"get_mapped_block/for_write",
+	"get_mapped_block_for_read",
+	"get_mapped_block_for_write",
 	"hash_data_vio",
-	"journal_decrement_for_dedupe",
-	"journal_decrement_for_write",
-	"journal_increment_for_compression",
-	"journal_increment_for_dedupe",
-	"journal_increment_for_write",
-	"journal_mapping_for_compression",
-	"journal_mapping_for_dedupe",
+	"journal_mapping_for_optimization",
 	"journal_mapping_for_write",
-	"journal_unmapping_for_dedupe",
-	"journal_unmapping_for_write",
+	"journal_unmapping",
 	"vdo_attempt_packing",
-	"put_mapped_block/for_write",
-	"put_mapped_block/for_dedupe",
+	"put_mapped_block",
 	"read_data_vio",
 	"update_dedupe_index",
 	"verify_duplication",
@@ -1811,13 +1804,11 @@ static void read_block(struct vdo_completion *completion)
 }
 
 /**
- * update_block_map_for_dedupe() - Update the block map now that we've added an entry in the
- * recovery journal for a block we have just shared.
+ * update_block_map() - Update the block map now that we've added both entries to the recovery
+ *                      journal.
  * @completion: The completion of the write in progress.
- *
- * This is the callback registered in decrement_for_dedupe().
  */
-static void update_block_map_for_dedupe(struct vdo_completion *completion)
+static void update_block_map(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
@@ -1827,7 +1818,7 @@ static void update_block_map_for_dedupe(struct vdo_completion *completion)
 		set_data_vio_hash_zone_callback(data_vio, vdo_continue_hash_lock);
 	else
 		completion->callback = complete_data_vio;
-	data_vio->last_async_operation = VIO_ASYNC_OP_PUT_MAPPED_BLOCK_FOR_DEDUPE;
+	data_vio->last_async_operation = VIO_ASYNC_OP_PUT_MAPPED_BLOCK;
 	vdo_put_mapped_block(data_vio);
 }
 
@@ -1881,128 +1872,84 @@ static void update_reference_count(struct data_vio *data_vio)
 	vdo_add_slab_journal_entry(vdo_get_slab_journal(depot, pbn), data_vio);
 }
 
-/**
- * decrement_for_dedupe() - Do the decref after a successful dedupe or
- *			    compression.
- * @completion: The completion of the write in progress.
- *
- * This is the callback registered by journal_unmapping_for_dedupe().
- */
-static void decrement_for_dedupe(struct vdo_completion *completion)
+static void decrement_reference_count(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_mapped_zone(data_vio);
 
-	if (data_vio->allocation.pbn == data_vio->mapped.pbn)
-		/*
-		 * If we are about to release the reference on the allocated block, we must release
-		 * the PBN lock on it first so that the allocator will not allocate a write-locked
-		 * block.
-		 *
-		 * FIXME: now that we don't have sync mode, can this ever happen?
-		 */
-		release_data_vio_allocation_lock(data_vio, false);
-
-	set_data_vio_logical_callback(data_vio, update_block_map_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_DECREMENT_FOR_DEDUPE;
+	set_data_vio_logical_callback(data_vio, update_block_map);
+	data_vio->last_async_operation = VIO_ASYNC_OP_DECREMENT_REFERENCE_COUNT;
 	update_reference_count(data_vio);
 }
 
 /**
- * journal_unmapping_for_dedupe() - Write the appropriate journal entry for removing the mapping of
- *				    logical to mapped, for dedupe or compression.
+ * journal_unmapping() - Write the appropriate journal entry for removing the mapping of logical to
+ *                       mapped.
  * @completion: The completion of the write in progress.
- *
- * This is the callback registered in read_old_block_mapping_for_dedupe().
  */
-static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
+static void journal_unmapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_journal_zone(data_vio);
 
 	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
-		set_data_vio_logical_callback(data_vio, update_block_map_for_dedupe);
+		set_data_vio_logical_callback(data_vio, update_block_map);
 	else
-		set_data_vio_mapped_zone_callback(data_vio, decrement_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_UNMAPPING_FOR_DEDUPE;
+		set_data_vio_mapped_zone_callback(data_vio, decrement_reference_count);
+	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_UNMAPPING;
 	journal_decrement(data_vio);
 }
 
 /**
- * read_old_block_mapping_for_dedupe() - Get the prevoius PBN/LBN mapping.
+ * read_old_block_mapping() - Get the prevoius PBN/LBN mapping.
  * @completion: The completion of the write in progress.
  *
  * Gets the previous PBN mapped to this LBN from the block map, so as to make an appropriate
- * journal entry referencing the removal of this LBN->PBN mapping, for dedupe or compression. This
- * callback is registered in increment_for_dedupe().
+ * journal entry referencing the removal of this LBN->PBN mapping.
  */
-static void read_old_block_mapping_for_dedupe(struct vdo_completion *completion)
+static void read_old_block_mapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_logical_zone(data_vio);
 
-	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_DEDUPE;
-	set_data_vio_journal_callback(data_vio, journal_unmapping_for_dedupe);
+	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE;
+	set_data_vio_journal_callback(data_vio, journal_unmapping);
 	vdo_get_mapped_block(data_vio);
 }
 
 /**
- * increment_for_compression() - Do the incref after compression.
+ * increment_reference_count() - Increment the reference count now that the new mapping is
+ *                               journaled.
  * @completion: The completion of the write in progress.
- *
- * This is the callback registered by add_recovery_journal_entry_for_compression().
  */
-static void increment_for_compression(struct vdo_completion *completion)
+static void increment_reference_count(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_new_mapped_zone(data_vio);
-	ASSERT_LOG_ONLY(vdo_is_state_compressed(data_vio->new_mapped.state),
-			"Impossible attempt to update reference counts for a block which was not compressed (logical block %llu)",
-			(unsigned long long) data_vio->logical.lbn);
 
-	set_data_vio_logical_callback(data_vio, read_old_block_mapping_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_COMPRESSION;
+	set_data_vio_logical_callback(data_vio, read_old_block_mapping);
+	data_vio->last_async_operation = VIO_ASYNC_OP_INCREMENT_REFERENCE_COUNT;
 	update_reference_count(data_vio);
 }
 
 /**
- * add_recovery_journal_entry_for_compression() - Add a recovery journal entry for the increment
- *						  resulting from compression.
+ * journal_optimized_data_vio_mapping() - Add a recovery journal entry for the increment of a
+ *					  compressed or deduplicated block.
  * @completion: The data_vio which has been compressed.
- *
- * This callback is registered in continue_write_after_compression().
  */
-static void
-add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
+void journal_optimized_data_vio_mapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_journal_zone(data_vio);
 
-	set_data_vio_new_mapped_zone_callback(data_vio, increment_for_compression);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_COMPRESSION;
+	set_data_vio_new_mapped_zone_callback(data_vio, increment_reference_count);
+	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_OPTIMIZATION;
 	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
-}
-
-/**
- * continue_write_after_compression() - Continue a write after the data_vio has been released from
- *					the packer.
- * @data_vio: The data_vio which has returned from the packer.
- *
- * The write may or may not have been written as part of a compressed write.
- */
-void continue_write_after_compression(struct data_vio *data_vio)
-{
-	if (!vdo_is_state_compressed(data_vio->new_mapped.state)) {
-		write_data_vio(data_vio);
-		return;
-	}
-
-	launch_data_vio_journal_callback(data_vio, add_recovery_journal_entry_for_compression);
 }
 
 /**
@@ -2099,57 +2046,6 @@ void launch_compress_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * increment_for_dedupe() - Do the incref after deduplication.
- * @completion: The completion of the write in progress.
- *
- * This is the callback registered by add_recovery_journal_entry_for_dedupe().
- */
-static void increment_for_dedupe(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_new_mapped_zone(data_vio);
-
-	set_data_vio_logical_callback(data_vio, read_old_block_mapping_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_DEDUPE;
-	update_reference_count(data_vio);
-}
-
-/**
- * add_recovery_journal_entry_for_dedupe() - Add a recovery journal entry for the increment
- *					     resulting from deduplication.
- * @completion: The data_vio which has been deduplicated.
- *
- * This callback is registered in launch_deduplicate_data_vio().
- */
-static void
-add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_journal_zone(data_vio);
-
-	set_data_vio_new_mapped_zone_callback(data_vio, increment_for_dedupe);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_DEDUPE;
-	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
-}
-
-/**
- * launch_deduplicate_data_vio() - Continue a write by deduplicating a write data_vio against a
- *				   verified existing block containing the data.
- * @data_vio: The data_vio to be deduplicated.
- *
- * This is a re-entry point to vio_write used by hash locks.
- */
-void launch_deduplicate_data_vio(struct data_vio *data_vio)
-{
-	ASSERT_LOG_ONLY(data_vio->is_duplicate, "data_vio must have a duplicate location");
-
-	data_vio->new_mapped = data_vio->duplicate;
-	launch_data_vio_journal_callback(data_vio, add_recovery_journal_entry_for_dedupe);
-}
-
-/**
  * hash_data_vio() - Hash the data in a data_vio and set the hash zone (which also flags the record
  *		     name as set).
  * @completion: The data_vio to hash.
@@ -2192,89 +2088,6 @@ static void prepare_for_dedupe(struct data_vio *data_vio)
 }
 
 /**
- * update_block_map_for_write() - Update the block map after a data write (or directly for a
- *				  VDO_ZERO_BLOCK write or trim).
- * @completion: The completion of the write in progress.
- *
- * This callback is registered in decrement_for_write() and journal_unmapping_for_write().
- */
-static void update_block_map_for_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_logical_zone(data_vio);
-
-	if (data_vio->hash_lock != NULL)
-		/*
-		 * The write is finished, but must return to the hash lock to allow other data VIOs
-		 * with the same data to dedupe against the write.
-		 */
-		set_data_vio_hash_zone_callback(data_vio, vdo_continue_hash_lock);
-	else
-		completion->callback = complete_data_vio;
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_PUT_MAPPED_BLOCK_FOR_WRITE;
-	vdo_put_mapped_block(data_vio);
-}
-
-/**
- * decrement_for_write() - Do the decref after a successful block write.
- * @completion: The completion of the write in progress.
- *
- * This is the callback by journal_unmapping_for_write() if the old mapping was not the zero block.
- */
-static void decrement_for_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_mapped_zone(data_vio);
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_DECREMENT_FOR_WRITE;
-	set_data_vio_logical_callback(data_vio, update_block_map_for_write);
-	update_reference_count(data_vio);
-}
-
-/**
- * journal_unmapping_for_write() - Write the appropriate journal entry for unmapping logical to
- *				   mapped for a write.
- * @completion: The completion of the write in progress.
- *
- * This is the callback registered in read_old_block_mapping_for_write().
- */
-static void journal_unmapping_for_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_journal_zone(data_vio);
-
-	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
-		set_data_vio_logical_callback(data_vio, update_block_map_for_write);
-	else
-		set_data_vio_mapped_zone_callback(data_vio, decrement_for_write);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_UNMAPPING_FOR_WRITE;
-	journal_decrement(data_vio);
-}
-
-/**
- * read_old_block_mapping_for_write() - Get the previous PBN mapped to this LBN from the block map
- *					for a write, so as to make an appropriate journal entry
- *					referencing the removal of this LBN->PBN mapping.
- * @completion: The completion of the write in progress.
- *
- * This callback is registered in finish_block_write().
- */
-static void read_old_block_mapping_for_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_logical_zone(data_vio);
-
-	set_data_vio_journal_callback(data_vio, journal_unmapping_for_write);
-	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE;
-	vdo_get_mapped_block(data_vio);
-}
-
-/**
  * increment_for_write() - Do the incref after a successful block write.
  * @completion: The completion of the write in progress.
  *
@@ -2292,10 +2105,7 @@ static void increment_for_write(struct vdo_completion *completion)
 	 * lock.
 	 */
 	vdo_downgrade_pbn_write_lock(data_vio->allocation.lock, false);
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_INCREMENT_FOR_WRITE;
-	set_data_vio_logical_callback(data_vio, read_old_block_mapping_for_write);
-	update_reference_count(data_vio);
+	increment_reference_count(completion);
 }
 
 /**
@@ -2312,7 +2122,7 @@ static void finish_block_write(struct vdo_completion *completion)
 	assert_data_vio_in_journal_zone(data_vio);
 
 	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK)
-		set_data_vio_logical_callback(data_vio, read_old_block_mapping_for_write);
+		set_data_vio_logical_callback(data_vio, read_old_block_mapping);
 	else
 		set_data_vio_allocated_zone_callback(data_vio, increment_for_write);
 
