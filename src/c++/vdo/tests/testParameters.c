@@ -14,7 +14,6 @@
 #include "block-map.h"
 #include "constants.h"
 #include "device-config.h"
-#include "num-utils.h"
 #include "recovery-journal.h"
 #include "slab-depot-format.h"
 #include "slab-summary.h"

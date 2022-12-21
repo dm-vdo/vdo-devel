@@ -13,7 +13,6 @@
 #include "syscalls.h"
 
 #include "block-map-format.h"
-#include "num-utils.h"
 #include "slab-depot-format.h"
 #include "slab-summary-format.h"
 #include "status-codes.h"

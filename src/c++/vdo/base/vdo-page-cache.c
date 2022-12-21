@@ -17,7 +17,6 @@
 #include "block-map.h"
 #include "constants.h"
 #include "io-submitter.h"
-#include "num-utils.h"
 #include "read-only-notifier.h"
 #include "status-codes.h"
 #include "types.h"

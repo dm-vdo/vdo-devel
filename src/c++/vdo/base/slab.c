@@ -13,7 +13,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
-#include "num-utils.h"
 #include "physical-zone.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"

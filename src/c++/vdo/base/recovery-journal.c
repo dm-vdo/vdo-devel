@@ -18,7 +18,6 @@
 #include "data-vio.h"
 #include "header.h"
 #include "io-submitter.h"
-#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal-format.h"

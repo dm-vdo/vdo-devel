@@ -21,7 +21,6 @@
 #include "device-config.h"
 #include "device-registry.h"
 #include "instance-number.h"
-#include "num-utils.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab.h"

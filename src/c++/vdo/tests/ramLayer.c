@@ -12,12 +12,12 @@
 
 #include "fileUtils.h"
 #include "memory-alloc.h"
+#include "numeric.h"
 #include "permassert.h"
 #include "syscalls.h"
 #include "uds-threads.h"
 
 #include "constants.h"
-#include "num-utils.h"
 #include "status-codes.h"
 
 #include "vdoAsserts.h"

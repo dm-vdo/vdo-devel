@@ -17,7 +17,6 @@
 #include "completion.h"
 #include "io-submitter.h"
 #include "logical-zone.h"
-#include "num-utils.h"
 #include "read-only-notifier.h"
 #include "slab-depot.h"
 #include "thread-config.h"

@@ -11,7 +11,6 @@
 
 #include "block-map-format.h"
 #include "constants.h"
-#include "num-utils.h"
 #include "recovery-journal-format.h"
 #include "slab-depot-format.h"
 #include "status-codes.h"

@@ -19,7 +19,6 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "num-utils.h"
 #include "packed-reference-block.h"
 #include "recovery-journal-format.h"
 #include "slab-depot-format.h"

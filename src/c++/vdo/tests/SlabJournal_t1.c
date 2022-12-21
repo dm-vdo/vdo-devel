@@ -17,7 +17,6 @@
 #include "block-allocator.h"
 #include "int-map.h"
 #include "journal-point.h"
-#include "num-utils.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"

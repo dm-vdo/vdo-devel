@@ -13,7 +13,6 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "block-map.h"
-#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"

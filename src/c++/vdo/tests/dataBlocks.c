@@ -9,11 +9,11 @@
 #include "dataBlocks.h"
 
 #include "memory-alloc.h"
+#include "numeric.h"
 #include "syscalls.h"
 
 #include "constants.h"
 #include "int-map.h"
-#include "num-utils.h"
 
 #include "vdoAsserts.h"
 

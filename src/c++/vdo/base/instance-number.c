@@ -9,7 +9,7 @@
 #include <linux/mutex.h>
 
 #include "memory-alloc.h"
-#include "num-utils.h"
+#include "numeric.h"
 #include "permassert.h"
 
 /*

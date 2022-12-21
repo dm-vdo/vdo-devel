@@ -32,7 +32,6 @@
 #include "instance-number.h"
 #include "io-submitter.h"
 #include "logical-zone.h"
-#include "num-utils.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "pool-sysfs.h"

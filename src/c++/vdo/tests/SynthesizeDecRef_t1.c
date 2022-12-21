@@ -13,7 +13,6 @@
 #include "block-map.h"
 #include "constants.h"
 #include "int-map.h"
-#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "packed-reference-block.h"
 #include "recovery-journal-entry.h"

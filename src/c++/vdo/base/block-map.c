@@ -17,7 +17,6 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "forest.h"
-#include "num-utils.h"
 #include "recovery-journal.h"
 #include "status-codes.h"
 #include "types.h"

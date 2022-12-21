@@ -16,7 +16,6 @@
 #include "block-map.h"
 #include "completion.h"
 #include "int-map.h"
-#include "num-utils.h"
 #include "status-codes.h"
 #include "vdo-page-cache.h"
 #include "vio.h"

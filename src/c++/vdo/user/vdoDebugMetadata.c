@@ -15,7 +15,6 @@
 #include "syscalls.h"
 
 #include "block-map-format.h"
-#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "packed-reference-block.h"
 #include "recovery-journal-entry.h"

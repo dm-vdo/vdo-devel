@@ -12,7 +12,6 @@
 
 #include "block-allocator.h"
 #include "ref-counts.h"
-#include "num-utils.h"
 #include "recovery-journal.h"
 #include "slab.h"
 #include "slab-depot.h"

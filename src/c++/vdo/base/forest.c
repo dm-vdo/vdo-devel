@@ -16,7 +16,6 @@
 #include "constants.h"
 #include "dirty-lists.h"
 #include "io-submitter.h"
-#include "num-utils.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab-journal.h"

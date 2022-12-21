@@ -27,7 +27,6 @@
 #include "uds-threads.h"
 
 #include "admin-state.h"
-#include "num-utils.h"
 #include "packed-recovery-journal-block.h"
 #include "read-only-notifier.h"
 #include "recovery-journal-entry.h"
