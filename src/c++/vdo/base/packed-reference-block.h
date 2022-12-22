@@ -10,14 +10,10 @@
 #include "journal-point.h"
 #include "types.h"
 
-/*
- * A type representing a reference count of a block.
- */
+/* A type representing a reference count of a block. */
 typedef uint8_t vdo_refcount_t;
 
-/*
- * Special vdo_refcount_t values.
- */
+/* Special vdo_refcount_t values. */
 #define EMPTY_REFERENCE_COUNT 0
 enum {
 	MAXIMUM_REFERENCE_COUNT = 254,
@@ -26,14 +22,11 @@ enum {
 
 enum {
 	COUNTS_PER_SECTOR =
-		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point))
-		 / sizeof(vdo_refcount_t)),
+		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point)) / sizeof(vdo_refcount_t)),
 	COUNTS_PER_BLOCK = COUNTS_PER_SECTOR * VDO_SECTORS_PER_BLOCK,
 };
 
-/*
- * The format of each sector of a reference_block on disk.
- */
+/* The format of each sector of a reference_block on disk. */
 struct packed_reference_sector {
 	struct packed_journal_point commit_point;
 	vdo_refcount_t counts[COUNTS_PER_SECTOR];

@@ -26,8 +26,8 @@ struct recovery_block_header {
 };
 
 /*
- * The packed, on-disk representation of a recovery journal block header.
- * All fields are kept in little-endian byte order.
+ * The packed, on-disk representation of a recovery journal block header. All fields are kept in
+ * little-endian byte order.
  */
 struct packed_journal_header {
 	/* Block map head 64-bit sequence number */
@@ -42,25 +42,16 @@ struct packed_journal_header {
 	/* A given VDO instance's 64-bit nonce */
 	__le64 nonce;
 
-	/*
-	 * 8-bit metadata type (should always be one for the recovery
-	 * journal)
-	 */
+	/* 8-bit metadata type (should always be one for the recovery journal) */
 	uint8_t metadata_type;
 
 	/* 16-bit count of the entries encoded in the block */
 	__le16 entry_count;
 
-	/*
-	 * 64-bit count of the logical blocks used when this block was
-	 * opened
-	 */
+	/* 64-bit count of the logical blocks used when this block was opened */
 	__le64 logical_blocks_used;
 
-	/*
-	 * 64-bit count of the block map blocks used when this block
-	 * was opened
-	 */
+	/* 64-bit count of the block map blocks used when this block was opened */
 	__le64 block_map_data_blocks;
 
 	/* The protection check byte */
@@ -86,13 +77,11 @@ struct packed_journal_sector {
 
 enum {
 	/*
-	 * Allowing more than 311 entries in each block changes the math
-	 * concerning the amortization of metadata writes and recovery speed.
+	 * Allowing more than 311 entries in each block changes the math concerning the
+	 * amortization of metadata writes and recovery speed.
 	 */
 	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
-	/*
-	 * The number of entries in each sector (except the last) when filled
-	 */
+	/* The number of entries in each sector (except the last) when filled */
 	RECOVERY_JOURNAL_ENTRIES_PER_SECTOR =
 		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector)) /
 		 sizeof(struct packed_recovery_journal_entry)),
@@ -103,41 +92,37 @@ enum {
 };
 
 /**
- * vdo_get_journal_block_sector() - Find the recovery journal sector from the
- *                                  block header and sector number.
+ * vdo_get_journal_block_sector() - Find the recovery journal sector from the block header and
+ *                                  sector number.
  * @header: The header of the recovery journal block.
  * @sector_number: The index of the sector (1-based).
  *
  * Return: A packed recovery journal sector.
  */
 static inline struct packed_journal_sector * __must_check
-vdo_get_journal_block_sector(struct packed_journal_header *header,
-			     int sector_number)
+vdo_get_journal_block_sector(struct packed_journal_header *header, int sector_number)
 {
-	char *sector_data =
-		((char *) header) + (VDO_SECTOR_SIZE * sector_number);
+	char *sector_data = ((char *) header) + (VDO_SECTOR_SIZE * sector_number);
+
 	return (struct packed_journal_sector *) sector_data;
 }
 
 /**
- * vdo_pack_recovery_block_header() - Generate the packed representation of a
- *                                    recovery block header.
+ * vdo_pack_recovery_block_header() - Generate the packed representation of a recovery block
+ *                                    header.
  * @header: The header containing the values to encode.
  * @packed: The header into which to pack the values.
  */
-static inline void
-vdo_pack_recovery_block_header(const struct recovery_block_header *header,
-			       struct packed_journal_header *packed)
+static inline void vdo_pack_recovery_block_header(const struct recovery_block_header *header,
+						  struct packed_journal_header *packed)
 {
 	*packed = (struct packed_journal_header) {
 		.block_map_head = __cpu_to_le64(header->block_map_head),
 		.slab_journal_head = __cpu_to_le64(header->slab_journal_head),
 		.sequence_number = __cpu_to_le64(header->sequence_number),
 		.nonce = __cpu_to_le64(header->nonce),
-		.logical_blocks_used =
-			__cpu_to_le64(header->logical_blocks_used),
-		.block_map_data_blocks =
-			__cpu_to_le64(header->block_map_data_blocks),
+		.logical_blocks_used = __cpu_to_le64(header->logical_blocks_used),
+		.block_map_data_blocks = __cpu_to_le64(header->block_map_data_blocks),
 		.entry_count = __cpu_to_le16(header->entry_count),
 		.check_byte = header->check_byte,
 		.recovery_count = header->recovery_count,
@@ -146,24 +131,21 @@ vdo_pack_recovery_block_header(const struct recovery_block_header *header,
 }
 
 /**
- * vdo_unpack_recovery_block_header() - Decode the packed representation of a
- *                                      recovery block header.
+ * vdo_unpack_recovery_block_header() - Decode the packed representation of a recovery block
+ *                                      header.
  * @packed: The packed header to decode.
  * @header: The header into which to unpack the values.
  */
-static inline void
-vdo_unpack_recovery_block_header(const struct packed_journal_header *packed,
-				 struct recovery_block_header *header)
+static inline void vdo_unpack_recovery_block_header(const struct packed_journal_header *packed,
+						    struct recovery_block_header *header)
 {
 	*header = (struct recovery_block_header) {
 		.block_map_head = __le64_to_cpu(packed->block_map_head),
 		.slab_journal_head = __le64_to_cpu(packed->slab_journal_head),
 		.sequence_number = __le64_to_cpu(packed->sequence_number),
 		.nonce = __le64_to_cpu(packed->nonce),
-		.logical_blocks_used =
-			__le64_to_cpu(packed->logical_blocks_used),
-		.block_map_data_blocks =
-			__le64_to_cpu(packed->block_map_data_blocks),
+		.logical_blocks_used = __le64_to_cpu(packed->logical_blocks_used),
+		.block_map_data_blocks = __le64_to_cpu(packed->block_map_data_blocks),
 		.entry_count = __le16_to_cpu(packed->entry_count),
 		.check_byte = packed->check_byte,
 		.recovery_count = packed->recovery_count,

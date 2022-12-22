@@ -32,28 +32,24 @@ struct pbn_lock {
 	/* The number of VIOs holding or sharing this lock */
 	data_vio_count_t holder_count;
 	/*
-	 * The number of compressed block writers holding a share of this lock
-	 * while they are acquiring a reference to the PBN.
+	 * The number of compressed block writers holding a share of this lock while they are
+	 * acquiring a reference to the PBN.
 	 */
 	uint8_t fragment_locks;
 
-	/*
-	 * Whether the locked PBN has been provisionally referenced on behalf of
-	 * the lock holder.
-	 */
+	/* Whether the locked PBN has been provisionally referenced on behalf of the lock holder. */
 	bool has_provisional_reference;
 
 	/*
-	 * For read locks, the number of references that were known to be
-	 * available on the locked block at the time the lock was acquired.
+	 * For read locks, the number of references that were known to be available on the locked
+	 * block at the time the lock was acquired.
 	 */
 	uint8_t increment_limit;
 
 	/*
-	 * For read locks, the number of data_vios that have tried to claim one
-	 * of the available increments during the lifetime of the lock. Each
-	 * claim will first increment this counter, so it can exceed the
-	 * increment limit.
+	 * For read locks, the number of data_vios that have tried to claim one of the available
+	 * increments during the lifetime of the lock. Each claim will first increment this
+	 * counter, so it can exceed the increment limit.
 	 */
 	atomic_t increments_claimed;
 };
@@ -81,17 +77,14 @@ struct physical_zones {
 };
 
 bool __must_check vdo_is_pbn_read_lock(const struct pbn_lock *lock);
-void
-vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write);
+void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write);
 bool __must_check vdo_claim_pbn_lock_increment(struct pbn_lock *lock);
 
 /**
- * vdo_pbn_lock_has_provisional_reference() - Check whether a PBN lock
- *                                            has a provisional reference.
+ * vdo_pbn_lock_has_provisional_reference() - Check whether a PBN lock has a provisional reference.
  * @lock: The PBN lock.
  */
-static inline bool
-vdo_pbn_lock_has_provisional_reference(struct pbn_lock *lock)
+static inline bool vdo_pbn_lock_has_provisional_reference(struct pbn_lock *lock)
 {
 	return ((lock != NULL) && lock->has_provisional_reference);
 }
@@ -99,14 +92,12 @@ vdo_pbn_lock_has_provisional_reference(struct pbn_lock *lock)
 void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 
-int __must_check
-vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr);
+int __must_check vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr);
 
 void vdo_free_physical_zones(struct physical_zones *zones);
 
 struct pbn_lock * __must_check
-vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
-			       physical_block_number_t pbn);
+vdo_get_physical_zone_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn);
 
 int __must_check
 vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
