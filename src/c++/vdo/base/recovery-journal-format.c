@@ -22,8 +22,8 @@ const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0 = {
 };
 
 /**
- * vdo_get_recovery_journal_encoded_size() - Get the size of the encoded state
- *                                           of a recovery journal.
+ * vdo_get_recovery_journal_encoded_size() - Get the size of the encoded state of a recovery
+ *                                           journal.
  *
  * Return: the encoded size of the journal's state.
  */
@@ -33,8 +33,7 @@ size_t vdo_get_recovery_journal_encoded_size(void)
 }
 
 /**
- * vdo_encode_recovery_journal_state_7_0() - Encode the state of a recovery
- *                                           journal.
+ * vdo_encode_recovery_journal_state_7_0() - Encode the state of a recovery journal.
  * @state: The recovery journal state.
  * @buffer: The buffer to encode into.
  *
@@ -44,9 +43,9 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 					  struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
+	int result;
 
-	int result = vdo_encode_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
-
+	result = vdo_encode_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -60,8 +59,7 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer,
-					   state.block_map_data_blocks);
+	result = put_uint64_le_into_buffer(buffer, state.block_map_data_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -71,17 +69,15 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 }
 
 /**
- * vdo_decode_recovery_journal_state_7_0() - Decode the state of a recovery
- *                                           journal saved in a buffer.
+ * vdo_decode_recovery_journal_state_7_0() - Decode the state of a recovery journal saved in a
+ *                                           buffer.
  * @buffer: The buffer containing the saved state.
- * @state: A pointer to a recovery journal state to hold the result of a
- *         successful decode.
+ * @state: A pointer to a recovery journal state to hold the result of a successful decode.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int
-vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
-				      struct recovery_journal_state_7_0 *state)
+int vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
+					  struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
 	int result;
@@ -93,8 +89,7 @@ vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
-				     true, __func__);
+	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 

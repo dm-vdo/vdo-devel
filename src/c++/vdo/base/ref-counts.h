@@ -38,10 +38,7 @@ struct reference_block {
 	block_size_t allocated_count;
 	/* The slab journal block on which this block must hold a lock */
 	sequence_number_t slab_journal_lock;
-	/*
-	 * The slab journal block which should be released when this block
-	 * is committed
-	 */
+	/* The slab journal block which should be released when this block is committed */
 	sequence_number_t slab_journal_lock_to_release;
 	/* The point up to which each sector is accurate on disk */
 	struct journal_point commit_points[VDO_SECTORS_PER_BLOCK];
@@ -51,19 +48,13 @@ struct reference_block {
 	bool is_writing;
 };
 
-/*
- * The search_cursor represents the saved position of a free block search.
- */
+/* The search_cursor represents the saved position of a free block search. */
 struct search_cursor {
 	/* The reference block containing the current search index */
 	struct reference_block *block;
-	/*
-	 * The position at which to start searching for the next free counter
-	 */
+	/* The position at which to start searching for the next free counter */
 	slab_block_number index;
-	/*
-	 * The position just past the last valid counter in the current block
-	 */
+	/* The position just past the last valid counter in the current block */
 	slab_block_number end_index;
 
 	/* A pointer to the first reference block in the slab */
@@ -75,11 +66,9 @@ struct search_cursor {
 /*
  * ref_counts structure
  *
- * A reference count is maintained for each physical block number.  The vast
- * majority of blocks have a very small reference count (usually 0 or 1).
- * For references less than or equal to MAXIMUM_REFS (254) the reference count
- * is stored in counters[pbn].
- *
+ * A reference count is maintained for each physical block number. The vast majority of blocks have
+ * a very small reference count (usually 0 or 1). For references less than or equal to MAXIMUM_REFS
+ * (254) the reference count is stored in counters[pbn].
  */
 struct ref_counts {
 	/* The slab of this reference block */
@@ -92,9 +81,7 @@ struct ref_counts {
 	/* The array of reference counts */
 	vdo_refcount_t *counters; /* use UDS_ALLOCATE to align data ptr */
 
-	/*
-	 * The saved block pointer and array indexes for the free block search
-	 */
+	/* The saved block pointer and array indexes for the free block search */
 	struct search_cursor search_cursor;
 
 	/* A list of the dirty blocks waiting to be written out */
@@ -109,16 +96,11 @@ struct ref_counts {
 
 	/* The notifier for read-only mode */
 	struct read_only_notifier *read_only_notifier;
-	/*
-	 * The refcount statistics, shared by all refcounts in our physical
-	 * zone
-	 */
+	/* The refcount statistics, shared by all refcounts in our physical zone */
 	struct ref_counts_statistics *statistics;
 	/* The layer PBN for the first struct reference_block */
 	physical_block_number_t origin;
-	/*
-	 * The latest slab journal entry this ref_counts has been updated with
-	 */
+	/* The latest slab journal entry this ref_counts has been updated with */
 	struct journal_point slab_journal_point;
 
 	/* The number of reference count blocks */
@@ -140,12 +122,10 @@ bool __must_check vdo_are_ref_counts_active(struct ref_counts *ref_counts);
 
 void vdo_reset_search_cursor(struct ref_counts *ref_counts);
 
-block_count_t __must_check
-vdo_get_unreferenced_block_count(struct ref_counts *ref_counts);
+block_count_t __must_check vdo_get_unreferenced_block_count(struct ref_counts *ref_counts);
 
 uint8_t __must_check
-vdo_get_available_references(struct ref_counts *ref_counts,
-			     physical_block_number_t pbn);
+vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn);
 
 int __must_check
 vdo_adjust_reference_count(struct ref_counts *ref_counts,
@@ -192,14 +172,12 @@ void vdo_dump_ref_counts(const struct ref_counts *ref_counts);
 
 #ifdef INTERNAL
 bool __must_check
-vdo_are_equivalent_ref_counts(struct ref_counts *counter_a,
-			      struct ref_counts *counter_b);
+vdo_are_equivalent_ref_counts(struct ref_counts *counter_a, struct ref_counts *counter_b);
 
 struct reference_block * __must_check
 vdo_get_reference_block(struct ref_counts *ref_counts, slab_block_number index);
 
-vdo_refcount_t * __must_check
-vdo_get_reference_counters_for_block(struct reference_block *block);
+vdo_refcount_t * __must_check vdo_get_reference_counters_for_block(struct reference_block *block);
 
 void vdo_pack_reference_block(struct reference_block *block, void *buffer);
 
