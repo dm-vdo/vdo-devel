@@ -21,33 +21,27 @@ struct hash_lock;
 struct hash_zone;
 struct hash_zones;
 
-struct pbn_lock * __must_check
-vdo_get_duplicate_lock(struct data_vio *data_vio);
+struct pbn_lock * __must_check vdo_get_duplicate_lock(struct data_vio *data_vio);
 
 void vdo_acquire_hash_lock(struct vdo_completion *completion);
 void vdo_continue_hash_lock(struct vdo_completion *completion);
 void vdo_release_hash_lock(struct data_vio *data_vio);
 void vdo_clean_failed_hash_lock(struct data_vio *data_vio);
-void vdo_share_compressed_write_lock(struct data_vio *data_vio,
-				     struct pbn_lock *pbn_lock);
+void vdo_share_compressed_write_lock(struct data_vio *data_vio, struct pbn_lock *pbn_lock);
 
-int __must_check
-vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr);
+int __must_check vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr);
 
 void vdo_free_hash_zones(struct hash_zones *zones);
 
 thread_id_t __must_check
 vdo_get_hash_zone_thread_id(const struct hash_zone *zone);
 
-void vdo_drain_hash_zones(struct hash_zones *zones,
-			  struct vdo_completion *parent);
+void vdo_drain_hash_zones(struct hash_zones *zones, struct vdo_completion *parent);
 
-void vdo_get_dedupe_statistics(struct hash_zones *zones,
-			       struct vdo_statistics *stats);
+void vdo_get_dedupe_statistics(struct hash_zones *zones, struct vdo_statistics *stats);
 
 struct hash_zone * __must_check
-vdo_select_hash_zone(struct hash_zones *zones,
-		     const struct uds_record_name *name);
+vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *name);
 
 void vdo_dump_hash_zones(struct hash_zones *zones);
 
@@ -61,20 +55,16 @@ int vdo_add_dedupe_index_sysfs(struct hash_zones *zones);
 
 void vdo_start_dedupe_index(struct hash_zones *zones, bool create_flag);
 
-void vdo_resume_hash_zones(struct hash_zones *zones,
-			   struct vdo_completion *parent);
+void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *parent);
 
 void vdo_finish_dedupe_index(struct hash_zones *zones);
 
-/*
- * Interval (in milliseconds) from submission until switching to fast path and
- * skipping UDS.
- */
+/* Interval (in milliseconds) from submission until switching to fast path and skipping UDS. */
 extern unsigned int vdo_dedupe_index_timeout_interval;
 
 /*
- * Minimum time interval (in milliseconds) between timer invocations to
- * check for requests waiting for UDS that should now time out.
+ * Minimum time interval (in milliseconds) between timer invocations to check for requests waiting
+ * for UDS that should now time out.
  */
 extern unsigned int vdo_dedupe_index_min_timer_interval;
 

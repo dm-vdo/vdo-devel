@@ -73,8 +73,7 @@
  *   ASAP to service heavy load, which is the only place where REQ_BACKGROUND might aid in load
  *   prioritization.
  */
-static unsigned int PASSTHROUGH_FLAGS =
-	(REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
+static unsigned int PASSTHROUGH_FLAGS = (REQ_PRIO | REQ_META | REQ_SYNC | REQ_RAHEAD);
 
 /**
  * DOC:
@@ -381,27 +380,25 @@ get_data_vio_compression_status(struct data_vio *data_vio)
 }
 
 /**
- * pack_status() - Convert a data_vio_compression_status into a uint32_t which
- *		   may be stored atomically.
+ * pack_status() - Convert a data_vio_compression_status into a uint32_t which may be stored
+ *                 atomically.
  * @status: The state to convert.
  *
  * Return: The compression state packed into a uint32_t.
  */
-static uint32_t __must_check
-pack_status(struct data_vio_compression_status status)
+static uint32_t __must_check pack_status(struct data_vio_compression_status status)
 {
 	return status.stage | (status.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);
 }
 
 /**
- * set_data_vio_compression_status() - Set the compression status of a
- *                                     data_vio.
+ * set_data_vio_compression_status() - Set the compression status of a data_vio.
  * @data_vio: The data_vio whose compression status is to be set.
  * @state: The expected current status of the data_vio.
  * @new_state: The status to set.
  *
- * Return: true if the new status was set, false if the data_vio's compression
- *	   status did not match the expected state, and so was left unchanged.
+ * Return: true if the new status was set, false if the data_vio's compression status did not
+ *         match the expected state, and so was left unchanged.
  */
 EXTERNAL_STATIC bool __must_check
 set_data_vio_compression_status(struct data_vio *data_vio,
@@ -413,8 +410,8 @@ set_data_vio_compression_status(struct data_vio *data_vio,
 	uint32_t replacement = pack_status(new_status);
 
 	/*
-	 * Extra barriers because this was original developed using a CAS
-	 * operation that implicitly had them.
+	 * Extra barriers because this was original developed using a CAS operation that implicitly
+	 * had them.
 	 */
 	smp_mb__before_atomic();
 	actual = atomic_cmpxchg(&data_vio->compression.status, expected, replacement);
@@ -430,8 +427,7 @@ set_data_vio_compression_status(struct data_vio *data_vio,
  *
  * Return: The new compression status of the data_vio.
  */
-struct data_vio_compression_status
-advance_data_vio_compression_stage(struct data_vio *data_vio)
+struct data_vio_compression_status advance_data_vio_compression_stage(struct data_vio *data_vio)
 {
 	for (;;) {
 		struct data_vio_compression_status status =
@@ -444,33 +440,26 @@ advance_data_vio_compression_stage(struct data_vio *data_vio)
 
 		if (status.may_not_compress)
 			/*
-			 * Compression has been dis-allowed for this VIO, so
-			 * skip the rest of the path and go to the end.
+			 * Compression has been dis-allowed for this VIO, so skip the rest of the
+			 * path and go to the end.
 			 */
 			new_status.stage = DATA_VIO_POST_PACKER;
 		else
 			/* Go to the next state. */
 			new_status.stage++;
 
-		if (set_data_vio_compression_status(data_vio,
-						    status,
-						    new_status))
+		if (set_data_vio_compression_status(data_vio, status, new_status))
 			return new_status;
 
-		/*
-		 * Another thread changed the status out from under us so try
-		 * again.
-		 */
+		/* Another thread changed the status out from under us so try again. */
 	}
 }
 
 /**
- * cancel_data_vio_compression() - Prevent this data_vio from being compressed
- *			           or packed.
+ * cancel_data_vio_compression() - Prevent this data_vio from being compressed or packed.
  * @data_vio: The data_vio to cancel.
  *
- * Return: true if the data_vio is in the packer and the caller was the first
- *	   caller to cancel it.
+ * Return: true if the data_vio is in the packer and the caller was the first caller to cancel it.
  */
 bool cancel_data_vio_compression(struct data_vio *data_vio)
 {
@@ -478,25 +467,18 @@ bool cancel_data_vio_compression(struct data_vio *data_vio)
 
 	for (;;) {
 		status = get_data_vio_compression_status(data_vio);
-		if (status.may_not_compress ||
-		    (status.stage == DATA_VIO_POST_PACKER))
-			/*
-			 * This data_vio is already set up to not block in the
-			 * packer.
-			 */
+		if (status.may_not_compress || (status.stage == DATA_VIO_POST_PACKER))
+			/* This data_vio is already set up to not block in the packer. */
 			break;
 
 		new_status.stage = status.stage;
 		new_status.may_not_compress = true;
 
-		if (set_data_vio_compression_status(data_vio,
-						    status,
-						    new_status))
+		if (set_data_vio_compression_status(data_vio, status, new_status))
 			break;
 	}
 
-	return ((status.stage == DATA_VIO_PACKING) &&
-		!status.may_not_compress);
+	return ((status.stage == DATA_VIO_PACKING) && !status.may_not_compress);
 }
 
 /**
@@ -562,8 +544,8 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
 
 	/*
-	 * Prevent writes and read-modify-writes from blocking indefinitely on
-	 * lock holders in the packer.
+	 * Prevent writes and read-modify-writes from blocking indefinitely on lock holders in the
+	 * packer.
 	 */
 	if (lock_holder->write && cancel_data_vio_compression(lock_holder)) {
 		data_vio->compression.lock_holder = lock_holder;
@@ -578,8 +560,7 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
  * @lbn: The logical block number of the data_vio.
  * @operation: The operation this data_vio will perform.
  */
-static void launch_data_vio(struct data_vio *data_vio,
-			    logical_block_number_t lbn)
+static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lbn)
 {
 	struct vio *vio = data_vio_as_vio(data_vio);
 	struct vdo_completion *completion = vio_as_completion(vio);
@@ -633,9 +614,7 @@ static void copy_from_bio(struct bio *bio, char *data_ptr)
 	}
 }
 
-static void launch_bio(struct vdo *vdo,
-		       struct data_vio *data_vio,
-		       struct bio *bio)
+static void launch_bio(struct vdo *vdo, struct data_vio *data_vio, struct bio *bio)
 {
 	logical_block_number_t lbn;
 #ifdef VDO_INTERNAL
@@ -658,9 +637,9 @@ static void launch_bio(struct vdo *vdo,
 	data_vio->is_partial = (bio->bi_iter.bi_size < VDO_BLOCK_SIZE) || (data_vio->offset != 0);
 
 	/*
-	 * Discards behave very differently than other requests when coming in from
-	 * device-mapper. We have to be able to handle any size discards and various sector offsets
-	 * within a block.
+	 * Discards behave very differently than other requests when coming in from device-mapper.
+	 * We have to be able to handle any size discards and various sector offsets within a
+	 * block.
 	 */
 	if (bio_op(bio) == REQ_OP_DISCARD) {
 		data_vio->remaining_discard = bio->bi_iter.bi_size;
@@ -726,9 +705,8 @@ static void get_waiters(struct limiter *limiter)
 static inline
 struct data_vio *get_available_data_vio(struct data_vio_pool *pool)
 {
-	struct data_vio *data_vio = list_first_entry(&pool->available,
-						     struct data_vio,
-						     pool_entry);
+	struct data_vio *data_vio =
+		list_first_entry(&pool->available, struct data_vio, pool_entry);
 
 	list_del_init(&data_vio->pool_entry);
 	return data_vio;
@@ -750,13 +728,11 @@ static void update_limiter(struct limiter *limiter)
 			limiter->busy);
 
 	get_waiters(limiter);
-	for (; (limiter->release_count > 0) && !bio_list_empty(waiters);
-	     limiter->release_count--)
+	for (; (limiter->release_count > 0) && !bio_list_empty(waiters); limiter->release_count--)
 		limiter->assigner(limiter);
 
 	if (limiter->release_count > 0) {
-		WRITE_ONCE(limiter->busy,
-			   limiter->busy - limiter->release_count);
+		WRITE_ONCE(limiter->busy, limiter->busy - limiter->release_count);
 		limiter->release_count = 0;
 		return;
 	}
@@ -852,10 +828,9 @@ static void process_release_callback(struct vdo_completion *completion)
 
 	spin_lock(&pool->lock);
 	/*
-	 * There is a race where waiters could be added while we are in the
-	 * unlocked section above. Those waiters could not see the resources we
-	 * are now about to release, so we assign those resources now as we
-	 * have no guarantee of being rescheduled. This is handled in
+	 * There is a race where waiters could be added while we are in the unlocked section above.
+	 * Those waiters could not see the resources we are now about to release, so we assign
+	 * those resources now as we have no guarantee of being rescheduled. This is handled in
 	 * update_limiter().
 	 */
 	update_limiter(&pool->discard_limiter);
@@ -1029,8 +1004,8 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 		return;
 
 	/*
-	 * Pairs with the barrier in process_release_callback(). Possibly not
-	 * needed since it caters to an enqueue vs. free race.
+	 * Pairs with the barrier in process_release_callback(). Possibly not needed since it
+	 * caters to an enqueue vs. free race.
 	 */
 	smp_mb();
 	BUG_ON(atomic_read(&pool->processing));
@@ -1048,9 +1023,8 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 	spin_unlock(&pool->lock);
 
 	while (!list_empty(&pool->available)) {
-		struct data_vio *data_vio = list_first_entry(&pool->available,
-							     struct data_vio,
-							     pool_entry);
+		struct data_vio *data_vio =
+			list_first_entry(&pool->available, struct data_vio, pool_entry);
 
 		list_del_init(pool->available.next);
 		destroy_data_vio(data_vio);
@@ -1096,8 +1070,7 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 
 	bio->bi_private = (void *) jiffies;
 	spin_lock(&pool->lock);
-	if ((bio_op(bio) == REQ_OP_DISCARD) &&
-	    !acquire_permit(&pool->discard_limiter, bio))
+	if ((bio_op(bio) == REQ_OP_DISCARD) && !acquire_permit(&pool->discard_limiter, bio))
 		return;
 
 	if (!acquire_permit(&pool->limiter, bio))
@@ -1116,9 +1089,7 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 static void initiate_drain(struct admin_state *state)
 {
 	bool drained;
-	struct data_vio_pool *pool = container_of(state,
-						  struct data_vio_pool,
-						  state);
+	struct data_vio_pool *pool = container_of(state, struct data_vio_pool, state);
 
 	spin_lock(&pool->lock);
 	drained = check_for_drain_complete_locked(pool);
@@ -1136,10 +1107,7 @@ static void initiate_drain(struct admin_state *state)
 void drain_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *completion)
 {
 	assert_on_vdo_cpu_thread(completion->vdo, __func__);
-	vdo_start_draining(&pool->state,
-			   VDO_ADMIN_STATE_SUSPENDING,
-			   completion,
-			   initiate_drain);
+	vdo_start_draining(&pool->state, VDO_ADMIN_STATE_SUSPENDING, completion, initiate_drain);
 }
 
 /**
@@ -1147,8 +1115,7 @@ void drain_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *comp
  * @pool: The pool to resume.
  * @completion: The completion to notify when the pool has resumed.
  */
-void resume_data_vio_pool(struct data_vio_pool *pool,
-			  struct vdo_completion *completion)
+void resume_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *completion)
 {
 	assert_on_vdo_cpu_thread(completion->vdo, __func__);
 	vdo_finish_completion(completion, vdo_resume_if_quiescent(&pool->state));
@@ -1162,9 +1129,7 @@ static void dump_limiter(const char *name, struct limiter *limiter)
 		     limiter->limit,
 		     limiter->max_busy,
 		     ((bio_list_empty(&limiter->waiters) &&
-		       bio_list_empty(&limiter->new_waiters))
-			? "no waiters"
-			: "has waiters"));
+		       bio_list_empty(&limiter->new_waiters)) ? "no waiters" : "has waiters"));
 }
 
 /**
@@ -1225,8 +1190,7 @@ data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
 	return READ_ONCE(pool->discard_limiter.max_busy);
 }
 
-int set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
-				    data_vio_count_t limit)
+int set_data_vio_pool_discard_limit(struct data_vio_pool *pool, data_vio_count_t limit)
 {
 	if (get_data_vio_pool_request_limit(pool) < limit)
 		// The discard limit may not be higher than the data_vio limit.
@@ -1283,8 +1247,7 @@ static void update_data_vio_error_stats(struct data_vio *data_vio)
 			       get_data_vio_operation_name(data_vio));
 }
 
-static void perform_cleanup_stage(struct data_vio *data_vio,
-				  enum data_vio_cleanup_stage stage);
+static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_cleanup_stage stage);
 
 /**
  * release_allocated_lock() - Release the PBN lock and/or the reference on the allocated block at
@@ -1344,8 +1307,7 @@ static void transfer_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 	next_lock_holder = waiter_as_data_vio(dequeue_next_waiter(&lock->waiters));
 
 	/* Transfer the remaining lock waiters to the next lock holder. */
-	transfer_all_waiters(&lock->waiters,
-			     &next_lock_holder->logical.waiters);
+	transfer_all_waiters(&lock->waiters, &next_lock_holder->logical.waiters);
 
 	result = int_map_put(lock->zone->lbn_operations,
 			     lock->lbn,
@@ -1759,10 +1721,7 @@ static void read_block(struct vdo_completion *completion)
 							 opf,
 							 data_vio->mapped.pbn);
 		} else {
-			/*
-			 * A full 4k read. Use the incoming bio to avoid having
-			 * to copy the data
-			 */
+			/* A full 4k read. Use the incoming bio to avoid having to copy the data */
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
@@ -2100,9 +2059,8 @@ static void increment_for_write(struct vdo_completion *completion)
 	assert_data_vio_in_allocated_zone(data_vio);
 
 	/*
-	 * Now that the data has been written, it's safe to deduplicate against the
-	 * block. Downgrade the allocation lock to a read lock so it can be used later by the hash
-	 * lock.
+	 * Now that the data has been written, it's safe to deduplicate against the block.
+	 * Downgrade the allocation lock to a read lock so it can be used later by the hash lock.
 	 */
 	vdo_downgrade_pbn_write_lock(data_vio->allocation.lock, false);
 	increment_reference_count(completion);
@@ -2264,10 +2222,7 @@ static void handle_allocation_error(struct vdo_completion *completion)
 		return;
 	}
 
-	/*
-	 * We got a "real" error, not just a failure to allocate, so fail the
-	 * request.
-	 */
+	/* We got a "real" error, not just a failure to allocate, so fail the request. */
 	handle_data_vio_error(completion);
 }
 
@@ -2330,10 +2285,7 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 
 	if (data_vio->remaining_discard > VDO_BLOCK_SIZE) {
-		/*
-		 * This is not the final block of a discard so we can't
-		 * acknowledge it yet.
-		 */
+		/* This is not the final block of a discard so we can't acknowledge it yet. */
 		launch_data_vio_journal_callback(data_vio, finish_block_write);
 		return;
 	}
