@@ -204,6 +204,7 @@ tarballs:
           dest: utils/uds/linux
           sources: |
             atomic.h
+            bits.h
             blkdev.h
             cache.h
             compiler_attributes.h

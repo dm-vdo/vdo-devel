@@ -14,6 +14,7 @@
 #include <linux/stddef.h>
 #include <linux/kernel.h>
 #endif
+#include <linux/bits.h>
 #include <linux/limits.h>
 #include <linux/types.h>
 #ifndef __KERNEL__
@@ -25,11 +26,20 @@
 #include <sys/types.h>
 #endif /* !__KERNEL__ */
 
-typedef unsigned char byte;
+/*
+ * REMOVE: u8 resolves to unsigned char.  Changes to adhere to kernel types should convert
+ *         to u8.  Remove this typedef when the conversion is complete.
+ */
+typedef u8 byte;
 
+/*
+ * REMOVE: linux/bits.h provides BITS_PER_BYTE.  Changes to adhere to kernel types should convert
+ *         to BITS_PER_BYTE.  Remove CHAR_BIT when the conversion is complete.
+ */
 #ifdef __KERNEL__
-#define CHAR_BIT 8
-#else
+#define CHAR_BIT BITS_PER_BYTE
+#endif
+#ifndef __KERNEL__
 #define sector_t u64
 
 #define U8_MAX  ((u8)~0ul)
@@ -40,11 +50,11 @@ typedef unsigned char byte;
 #define S32_MAX ((s32)(U32_MAX >> 1))
 #define U64_MAX ((u64)~0ul)
 #define S64_MAX ((s64)(U64_MAX >> 1))
-#endif /* __KERNEL__ */
+#endif /* !__KERNEL__ */
 #ifdef __KERNEL__
 /*
- * Remove the surrounding #ifdef __KERNEL__, and everything between, when uds
- * and vdo have been converted to use the above *_MAX values.
+ * REMOVE: Remove the surrounding #ifdef __KERNEL__, and everything between, when uds and vdo
+ * have been converted to use the above *_MAX values.
  */
 #define INT8_MAX S8_MAX
 #define UINT8_MAX U8_MAX
