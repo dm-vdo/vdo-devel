@@ -1,4 +1,4 @@
-%define spec_release            3
+%define spec_release            4
 %define kmod_name		kvdo
 %define kmod_driver_version	@VERSION@
 %define kmod_rpm_release	%{spec_release}
@@ -31,13 +31,13 @@ BuildRequires:  kernel-abi-whitelists
 %endif
 BuildRequires:  libuuid-devel
 BuildRequires:  redhat-rpm-config
+ExclusiveArch:	aarch64
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
 ExcludeArch:    s390x
 ExcludeArch:    ppc
 ExcludeArch:    ppc64
 ExcludeArch:    ppc64le
-ExcludeArch:    aarch64
 ExcludeArch:    i686
 
 %description
@@ -94,6 +94,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
+* Wed Jan 04 2023 - Joe Shimkus <jshimkus@redhat.com> - 6.2.0.35-4
+- Enabled building on aarch64.
+
 * Tue Jun 19 2018 - Andy Walsh <awalsh@redhat.com> - 6.2.0.35-3
 - Fixed dependencies to Require kernel-devel at install time.
 - Removed BuildRequires dependencies
