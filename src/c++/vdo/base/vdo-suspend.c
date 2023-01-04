@@ -229,6 +229,10 @@ static void suspend_callback(struct vdo_completion *completion)
 	vdo_finish_draining_with_result(admin_state, completion->result);
 }
 
+#ifdef INTERNAL
+extern int suspend_result;
+
+#endif /* INTERNAL */
 /**
  * vdo_suspend() - Ensure that the vdo has no outstanding I/O and will issue
  *                 none until it is resumed.
@@ -254,6 +258,9 @@ int vdo_suspend(struct vdo *vdo)
 					     get_thread_id_for_phase,
 					     suspend_callback,
 					     vdo_preserve_completion_error_and_continue);
+#ifdef INTERNAL
+	suspend_result = result;
+#endif /* INTERNAL */
 
 	/*
 	 * Treat VDO_READ_ONLY as a success since a read-only suspension still

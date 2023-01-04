@@ -6,6 +6,12 @@
 #include "device-config.h"
 
 #include <linux/device-mapper.h>
+#ifdef INTERNAL
+#include "linux/blkdev.h"
+#include <linux/fs.h>
+#include <linux/kernel.h>
+#include <linux/kstrtox.h>
+#endif /* INTERNAL */
 
 #include "errors.h"
 #include "logger.h"
@@ -22,7 +28,6 @@ enum {
 	TABLE_VERSION = 4,
 };
 
-#ifdef __KERNEL__
 /* arrays for handling different table versions */
 static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
 /* pool name no longer used. only here for verification of older versions */
@@ -541,9 +546,9 @@ static int parse_key_value_pairs(int argc,
  *
  * Return: VDO_SUCCESS or error
  */
-int parse_optional_arguments(struct dm_arg_set *arg_set,
-			     char **error_ptr,
-			     struct device_config *config)
+static int parse_optional_arguments(struct dm_arg_set *arg_set,
+				    char **error_ptr,
+				    struct device_config *config)
 {
 	int result = VDO_SUCCESS;
 
@@ -643,6 +648,8 @@ int vdo_parse_device_config(int argc,
 				   "Could not populate string");
 		return VDO_BAD_CONFIGURATION;
 	}
+
+	uds_log_info("table line: %s", config->original_string);
 
 	/* Set defaults.
 	 *
@@ -787,6 +794,7 @@ int vdo_parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
+#ifdef __KERNEL__
 	if (config->cache_size <
 	    (2 * MAXIMUM_VDO_USER_VIOS * config->thread_counts.logical_zones)) {
 		handle_parse_error(config,
@@ -794,6 +802,7 @@ int vdo_parse_device_config(int argc,
 				   "Insufficient block map cache for logical zones");
 		return VDO_BAD_CONFIGURATION;
 	}
+#endif /* __KERNEL__ */
 
 	result = dm_get_device(ti,
 			       config->parent_device_name,
@@ -820,7 +829,6 @@ int vdo_parse_device_config(int argc,
 	return result;
 }
 
-#endif /* __KERNEL__ */
 /**
  * vdo_free_device_config() - Free a device config created by
  *			      vdo_parse_device_config().

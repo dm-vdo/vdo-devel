@@ -443,7 +443,7 @@ static void finish_vdo(struct vdo *vdo)
  */
 void vdo_destroy(struct vdo *vdo)
 {
-	int i;
+	unsigned int i;
 
 	if (vdo == NULL)
 		return;

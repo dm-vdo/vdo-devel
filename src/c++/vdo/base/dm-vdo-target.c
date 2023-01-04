@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 
+#ifdef __KERNEL__
 #include "dm-vdo/constants.h"
 #include "dm-vdo/data-vio.h"
 #include "dm-vdo/dedupe.h"
@@ -26,9 +27,53 @@
 #include "dm-vdo/vdo-resume.h"
 #include "dm-vdo/vdo-suspend.h"
 #include "dm-vdo/vio.h"
+#else /* not __KERNEL__ */
+#include "constants.h"
+#include "data-vio.h"
+#include "dedupe.h"
+#include "device-registry.h"
+#include "dump.h"
+#include "flush.h"
+#include "instance-number.h"
+#include "io-submitter.h"
+#include "logger.h"
+#include "memory-alloc.h"
+#include "message-stats.h"
+#include "string-utils.h"
+#include "thread-config.h"
+#include "vdo.h"
+#include "vdo-load.h"
+#include "vdo-resume.h"
+#include "vdo-suspend.h"
+#include "vio.h"
+#endif /* __KERNEL__ */
 
 #define	CURRENT_VERSION	VDO_VERSION
 
+#ifndef __KERNEL__
+struct registered_thread {
+	int dummy;
+};
+
+static void uds_register_allocating_thread(struct registered_thread *thread __always_unused,
+					   void *context __always_unused)
+{
+}
+
+static void uds_register_thread_device_id(struct registered_thread *thread __always_unused,
+					  unsigned int *instance __always_unused)
+{
+}
+
+static void uds_unregister_thread_device_id(void)
+{
+}
+
+static void uds_unregister_allocating_thread(void)
+{
+}
+
+#endif /* not __KERNEL__ */
 static struct vdo *get_vdo_for_target(struct dm_target *ti)
 {
 	return ((struct device_config *) ti->private)->vdo;
@@ -131,6 +176,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	return DM_MAPIO_SUBMITTED;
 }
 
+#ifdef __KERNEL__
 static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
@@ -228,6 +274,7 @@ static void vdo_status(struct dm_target *ti,
 	}
 }
 
+#endif /* __KERNEL__ */
 static block_count_t __must_check
 get_underlying_device_block_count(const struct vdo *vdo)
 {
@@ -328,7 +375,12 @@ static int vdo_message(struct dm_target *ti,
 	 * return code to look at the buffer and see if it is full or not.
 	 */
 	if ((argc == 1) && (strcasecmp(argv[0], "stats") == 0)) {
+#ifdef __KERNEL__
 		vdo_write_stats(vdo, result_buffer, maxlen);
+#else /* not __KERNEL__ */
+		if (maxlen > 0)
+			*result_buffer = '\0';
+#endif /* __KERNEL__ */
 		result = 1;
 	} else {
 		result = vdo_map_to_system_error(process_vdo_message(vdo, argc, argv));
@@ -339,6 +391,7 @@ static int vdo_message(struct dm_target *ti,
 	return result;
 }
 
+#ifdef __KERNEL__
 static void configure_target_capabilities(struct dm_target *ti)
 {
 	ti->discards_supported = 1;
@@ -353,12 +406,13 @@ static void configure_target_capabilities(struct dm_target *ti)
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 }
 
+#endif /* __KERNEL__ */
 /*
  * Implements vdo_filter_t.
  */
-static bool vdo_uses_device(struct vdo *vdo, void *context)
+static bool vdo_uses_device(struct vdo *vdo, const void *context)
 {
-	struct device_config *config = context;
+	const struct device_config *config = context;
 
 	return vdo_get_backing_device(vdo)->bd_dev == config->owned_device->bdev->bd_dev;
 }
@@ -367,7 +421,9 @@ static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct devi
 {
 	vdo_set_device_config(config, vdo);
 	ti->private = config;
+#ifdef __KERNEL__
 	configure_target_capabilities(ti);
+#endif /* __KERNEL__ */
 }
 
 static int vdo_initialize(struct dm_target *ti,
@@ -433,7 +489,7 @@ static int vdo_initialize(struct dm_target *ti,
 /*
  * Implements vdo_filter_t.
  */
-static bool __must_check vdo_is_named(struct vdo *vdo, void *context)
+static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
 {
 	struct dm_target *ti = vdo->device_config->owning_target;
 	const char *device_name = vdo_get_device_name(ti);
@@ -518,16 +574,12 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	uds_register_allocating_thread(&allocating_thread, NULL);
 	device_name = vdo_get_device_name(ti);
-	vdo = vdo_find_matching(vdo_is_named, (void *) device_name);
+	vdo = vdo_find_matching(vdo_is_named, (const void *) device_name);
 	if (vdo == NULL) {
 		result = construct_new_vdo(ti, argc, argv);
 	} else {
 		uds_register_thread_device_id(&instance_thread, &vdo->instance);
-		result = update_existing_vdo(device_name,
-					     ti,
-					     argc,
-					     argv,
-					     vdo);
+		result = update_existing_vdo(device_name, ti, argc, argv, vdo);
 		uds_unregister_thread_device_id();
 	}
 
@@ -648,14 +700,20 @@ static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
 	.version = { 8, 2, 0 },
+#ifdef __KERNEL__
 	.module = THIS_MODULE,
+#endif /* __KERNEL__ */
 	.ctr = vdo_ctr,
 	.dtr = vdo_dtr,
+#ifdef __KERNEL__
 	.io_hints = vdo_io_hints,
 	.iterate_devices = vdo_iterate_devices,
+#endif /* __KERNEL__ */
 	.map = vdo_map_bio,
 	.message = vdo_message,
+#ifdef __KERNEL__
 	.status = vdo_status,
+#endif /* __KERNEL__ */
 	.presuspend = vdo_presuspend,
 	.postsuspend = vdo_postsuspend,
 	.preresume = vdo_preresume,
@@ -680,12 +738,14 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
+#ifdef __KERNEL__
 	/*
 	 * UDS module level initialization must be done first, as VDO initialization depends on it
 	 */
 	uds_initialize_thread_device_registry();
 	uds_memory_init();
 	uds_init_sysfs();
+#endif /* __KERNEL__ */
 
 	vdo_initialize_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
@@ -718,14 +778,18 @@ static void __exit vdo_exit(void)
 	 * UDS module level exit processing must be done after all VDO module exit processing is
 	 * complete.
 	 */
+#ifdef __KERNEL__
 	uds_put_sysfs();
 	uds_memory_exit();
+#endif /* __KERNEL__ */
 }
 
 module_init(vdo_init);
 module_exit(vdo_exit);
 
+#ifdef __KERNEL__
 MODULE_DESCRIPTION(DM_NAME " target for transparent deduplication");
 MODULE_AUTHOR("Red Hat, Inc.");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(CURRENT_VERSION);
+#endif /* __KERNEL__ */

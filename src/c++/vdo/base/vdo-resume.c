@@ -222,6 +222,10 @@ apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
 	return result;
 }
 
+#ifdef INTERNAL
+extern int resume_result;
+
+#endif /* INTERNAL */
 /**
  * vdo_preresume_internal() - Resume a suspended vdo (technically preresume
  *			      because resume can't fail).
@@ -244,6 +248,9 @@ int vdo_preresume_internal(struct vdo *vdo,
 	 */
 	result = apply_new_vdo_configuration(vdo, config);
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
+#ifdef INTERNAL
+	resume_result = result;
+#endif /* INTERNAL */
 
 	/*
 	 * Now that we've tried to modify the vdo, the new config *is* the
@@ -273,6 +280,9 @@ int vdo_preresume_internal(struct vdo *vdo,
 					     get_thread_id_for_phase,
 					     resume_callback,
 					     vdo_preserve_completion_error_and_continue);
+#ifdef INTERNAL
+	resume_result = result;
+#endif /* INTERNAL */
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
 	if (result == VDO_READ_ONLY)
 		/* Even if the vdo is read-only, it has still resumed. */

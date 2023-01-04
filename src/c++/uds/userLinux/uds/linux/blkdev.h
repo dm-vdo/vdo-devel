@@ -17,8 +17,10 @@
 #define SECTOR_SHIFT 9
 #define SECTOR_SIZE 512
 
-/* Defined in linux/fs.h */
-struct inode;
+/* Defined in linux/fs.h but hacked for vdo unit testing */
+struct inode {
+  loff_t size;
+};
 
 /* Defined in linux/blk_types.h */
 typedef uint32_t blk_status_t;
@@ -28,6 +30,7 @@ struct bio;
 
 struct block_device {
 	int fd;
+	dev_t bd_dev;
 
 	/* This is only here for i_size_read(). */
 	struct inode *bd_inode;
@@ -68,9 +71,9 @@ struct block_device *blkdev_get_by_path(const char *path,
 void blkdev_put(struct block_device *bdev, fmode_t mode);
 
 /* Defined in linux/fs.h, but it's convenient to implement here. */
-static inline loff_t i_size_read(const struct inode *inode __always_unused)
+static inline loff_t i_size_read(const struct inode *inode)
 {
-	  return SIZE_MAX;
+        return (inode == NULL) ? (loff_t) SIZE_MAX : inode->size;
 }
 
 /*

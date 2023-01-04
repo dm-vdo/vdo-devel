@@ -10,7 +10,9 @@
 
 #include <stdlib.h>
 
+#include <linux/device-mapper.h>
 #include <linux/kobject.h>
+#include <linux/module.h>
 
 #include "memory-alloc.h"
 #include "syscalls.h"
@@ -20,7 +22,6 @@
 #include "completionUtils.h"
 #include "device-config.h"
 #include "device-registry.h"
-#include "instance-number.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab.h"
@@ -29,10 +30,6 @@
 #include "super-block.h"
 #include "vdo-component-states.h"
 #include "vdo-component.h"
-#include "vdo-resize-logical.h"
-#include "vdo-resize.h"
-#include "vdo-resume.h"
-#include "vdo-suspend.h"
 #include "vdo.h"
 #include "volume-geometry.h"
 
@@ -48,6 +45,7 @@
 #include "packerUtils.h"
 #include "ramLayer.h"
 #include "testBIO.h"
+#include "testDM.h"
 #include "testParameters.h"
 #include "testPrototypes.h"
 #include "testUtils.h"
@@ -59,15 +57,36 @@ struct tearDownItem {
   TearDownItem   *next;
 };
 
-static PhysicalLayer     *synchronousLayer;
-static bool               inRecovery;
-static TearDownItem      *tearDownItems = NULL;
-static TestConfiguration  configuration;
-static bool               flushDone;
-static struct bio        *flushBIO;
+static PhysicalLayer      *synchronousLayer;
+static bool                inRecovery;
+static TearDownItem       *tearDownItems = NULL;
+static TestConfiguration   configuration;
+static bool                flushDone;
+static struct bio         *flushBIO;
+static bool                noFlushSuspend;
 
-PhysicalLayer *layer;
-struct vdo    *vdo;
+PhysicalLayer      *layer;
+struct vdo         *vdo;
+struct target_type *vdoTargetType;
+int                 suspend_result;
+int                 resume_result;
+
+/**
+ * Fakes from linux/module.h.
+ **/
+/**********************************************************************/
+int dm_register_target(struct target_type *t)
+{
+  vdoTargetType = t;
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+void dm_unregister_target(struct target_type *t)
+{
+  CU_ASSERT_PTR_EQUAL(vdoTargetType, t);
+  UDS_FORGET(vdoTargetType);
+}
 
 /**********************************************************************/
 void registerTearDownAction(TearDownAction *action)
@@ -86,8 +105,9 @@ void initializeVDOTestBase(void)
   UDS_ASSERT_SUCCESS(vdo_register_status_codes());
   initializeMutexUtils();
   initializeCallbackWrapping();
-  vdo_initialize_instance_number_tracking();
-  registerTearDownAction(vdo_clean_up_instance_number_tracking);
+  initializeDM();
+  VDO_ASSERT_SUCCESS(vdo_module_initialize());
+  registerTearDownAction(vdo_module_exit);
   vdo = NULL;
 }
 
@@ -517,37 +537,174 @@ block_count_t populateBlockMapTree(void)
 }
 
 /**********************************************************************/
-int perform_vdo_suspend(bool save)
+static void addString(char **arg, const char *s)
 {
-  vdo->suspend_type = (save
-                       ? VDO_ADMIN_STATE_SAVING
-                       : VDO_ADMIN_STATE_SUSPENDING);
-  return vdo_suspend(vdo);
+  CU_ASSERT(asprintf(arg, "%s", s) != -1);
+}
+
+/**********************************************************************/
+static void addUInt32(char **arg, uint32_t u)
+{
+  CU_ASSERT(asprintf(arg, "%u", u) != -1);
+}
+
+/**********************************************************************/
+static void addUInt64(char **arg, uint64_t u)
+{
+  CU_ASSERT(asprintf(arg, "%" PRIu64, u) != -1);
+}
+
+/**********************************************************************/
+static TestConfiguration fixThreadCounts(TestConfiguration configuration)
+{
+  struct thread_count_config *threads = &configuration.deviceConfig.thread_counts;
+  if (threads->logical_zones + threads->physical_zones + threads->hash_zones > 0) {
+    if (threads->logical_zones == 0) {
+      threads->logical_zones = 1;
+    }
+
+    if (threads->physical_zones == 0) {
+      threads->physical_zones = 1;
+    }
+
+    if (threads->hash_zones == 0) {
+      threads->hash_zones = 1;
+    }
+  }
+
+  return configuration;
+}
+
+/**********************************************************************/
+static int makeTableLine(TestConfiguration configuration, char **argv)
+{
+  int argc = 0;
+
+  addString(&argv[argc++], "V4");
+  addString(&argv[argc++], getTestIndexName());
+  addUInt64(&argv[argc++], configuration.config.physical_blocks);
+  addUInt32(&argv[argc++], 512);
+  addUInt32(&argv[argc++], configuration.deviceConfig.cache_size);
+  addUInt64(&argv[argc++], configuration.deviceConfig.block_map_maximum_age);
+  addString(&argv[argc++], "ack");
+  addUInt32(&argv[argc++], 1);
+  addString(&argv[argc++], "bio");
+  addUInt32(&argv[argc++], DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT);
+  addString(&argv[argc++], "bioRotationInterval");
+  addUInt32(&argv[argc++], DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL);
+  addString(&argv[argc++], "cpu");
+  addUInt32(&argv[argc++], 1);
+  if (configuration.deviceConfig.thread_counts.hash_zones > 0) {
+    addString(&argv[argc++], "hash");
+    addUInt32(&argv[argc++],
+              configuration.deviceConfig.thread_counts.hash_zones);
+  }
+
+  if (configuration.deviceConfig.thread_counts.logical_zones > 0) {
+    addString(&argv[argc++], "logical");
+    addUInt32(&argv[argc++],
+              configuration.deviceConfig.thread_counts.logical_zones);
+  }
+
+  if (configuration.deviceConfig.thread_counts.physical_zones > 0) {
+    addString(&argv[argc++], "physical");
+    addUInt32(&argv[argc++],
+              configuration.deviceConfig.thread_counts.physical_zones);
+  }
+
+  addString(&argv[argc++], "maxDiscard");
+  addUInt32(&argv[argc++], 1500);
+
+  addString(&argv[argc++], "deduplication");
+  addString(&argv[argc++],
+            (configuration.deviceConfig.deduplication ? "on" : "off"));
+
+  addString(&argv[argc++], "compression");
+  addString(&argv[argc++],
+            (configuration.deviceConfig.compression ? "on" : "off"));
+
+  return argc;
+}
+
+/**********************************************************************/
+int loadTable(TestConfiguration configuration, struct dm_target *target)
+{
+  struct dm_dev *dm_dev;
+  dm_get_device(NULL, NULL, 0, &dm_dev);
+  dm_dev->bdev->bd_inode->size =
+    (configuration.config.physical_blocks * VDO_BLOCK_SIZE);
+
+  target->len = configuration.config.logical_blocks * VDO_SECTORS_PER_BLOCK;
+
+  char *argv[32];
+  int argc = makeTableLine(fixThreadCounts(configuration), argv);
+  int result = vdoTargetType->ctr(target, argc, argv);
+  while (argc-- > 0) {
+    UDS_FREE(argv[argc]);
+  }
+
+  return result;
+}
+
+/**
+ * This fake is called from vdo_presuspend to determine the suspend type.
+ **/
+int dm_noflush_suspending(struct dm_target *ti __attribute__((unused)))
+{
+  return noFlushSuspend;
+}
+
+/**********************************************************************/
+int suspendVDO(bool save)
+{
+  noFlushSuspend = !save;
+  vdoTargetType->presuspend(vdo->device_config->owning_target);
+  vdoTargetType->postsuspend(vdo->device_config->owning_target);
+  return suspend_result;
+}
+
+/**********************************************************************/
+int resumeVDO(struct dm_target *target)
+{
+  struct dm_target *old_target = vdo->device_config->owning_target;
+  int result = vdoTargetType->preresume(target);
+  if (result == VDO_SUCCESS) {
+    vdoTargetType->resume(target);
+  }
+
+  if (target != old_target) {
+    struct dm_target *toDestroy
+      = ((vdo->device_config->owning_target == target) ? old_target : target);
+      vdoTargetType->dtr(toDestroy);
+      UDS_FREE(toDestroy);
+  }
+
+  return resume_result;
 }
 
 /**********************************************************************/
 int modifyCompressDedupe(bool compress, bool dedupe)
 {
-  char *error;
-  struct device_config *old_config = vdo->device_config;
-  struct device_config *config;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct device_config, __func__, &config));
-  *config = *old_config;
-  config->compression = compress;
-  config->deduplication = dedupe;
+  TestConfiguration newConfiguration = configuration;
+  newConfiguration.deviceConfig.compression = compress;
+  newConfiguration.deviceConfig.deduplication = dedupe;
 
-  int result = vdo_prepare_to_modify(vdo, config, true, &error);
+  struct dm_target *target;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+
+  int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(config);
+    UDS_FREE(target);
     return result;
   }
 
-  VDO_ASSERT_SUCCESS(perform_vdo_suspend(false));
+  VDO_ASSERT_SUCCESS(suspendVDO(false));
 
-  result = vdo_preresume_internal(vdo, config, "test device");
-  UDS_FREE((result == VDO_INVALID_ADMIN_STATE) ? config : old_config);
+  result = resumeVDO(target);
   if (result == VDO_SUCCESS) {
     configuration.config = vdo->states.vdo.config;
+    configuration.deviceConfig.compression = compress;
+    configuration.deviceConfig.deduplication = dedupe;
   }
 
   return result;
@@ -558,32 +715,30 @@ static int modifyVDO(block_count_t logicalSize,
 		     block_count_t physicalSize,
 		     bool          save)
 {
-  char *error;
-  struct device_config *old_config = vdo->device_config;
-  struct device_config *config;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct device_config, __func__, &config));
-  *config = *old_config;
-  config->logical_blocks = logicalSize;
-  config->physical_blocks = physicalSize;
+  TestConfiguration newConfiguration = configuration;
+  newConfiguration.config.physical_blocks = physicalSize;
+  newConfiguration.config.logical_blocks = logicalSize;
 
-  int result = vdo_prepare_to_modify(vdo, config, true, &error);
+  struct dm_target *target;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+
+  int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(config);
+    UDS_FREE(target);
     return result;
   }
 
-  VDO_ASSERT_SUCCESS(perform_vdo_suspend(save));
-
+  VDO_ASSERT_SUCCESS(suspendVDO(save));
   block_count_t oldSize = synchronousLayer->getBlockCount(synchronousLayer);
   if (oldSize < physicalSize) {
     VDO_ASSERT_SUCCESS(resizeRAMLayer(synchronousLayer, physicalSize));
   }
 
-  result = vdo_preresume_internal(vdo, config, "test device");
-  UDS_FREE((result == VDO_INVALID_ADMIN_STATE) ? config : old_config);
+  result = resumeVDO(target);
   if (result == VDO_SUCCESS) {
     configuration.config = vdo->states.vdo.config;
     configuration.deviceConfig.logical_blocks = logicalSize;
+    configuration.deviceConfig.physical_blocks = physicalSize;
   }
 
   return result;
@@ -598,19 +753,11 @@ int growVDOLogical(block_count_t newSize, bool save)
 /**********************************************************************/
 void growVDOPhysical(block_count_t newSize, int expectedResult)
 {
-  bool readOnly = false;
   block_count_t oldSize = configuration.config.physical_blocks;
-
-  if (expectedResult == VDO_READ_ONLY) {
-    readOnly = true;
-    expectedResult = VDO_SUCCESS;
-  }
-
   CU_ASSERT_EQUAL(expectedResult,
                   modifyVDO(vdo->device_config->logical_blocks, newSize,
                             false));
-
-  if (readOnly) {
+  if (expectedResult == VDO_READ_ONLY) {
     verifyReadOnly();
     configuration.config.physical_blocks = oldSize;
   }
@@ -619,9 +766,8 @@ void growVDOPhysical(block_count_t newSize, int expectedResult)
 /**********************************************************************/
 void performSuccessfulSuspendAndResume(bool save)
 {
-  VDO_ASSERT_SUCCESS(perform_vdo_suspend(save));
-  VDO_ASSERT_SUCCESS(vdo_preresume_internal(vdo, vdo->device_config,
-					    "test name"));
+  VDO_ASSERT_SUCCESS(suspendVDO(save));
+  VDO_ASSERT_SUCCESS(resumeVDO(vdo->device_config->owning_target));
 }
 
 /**********************************************************************/

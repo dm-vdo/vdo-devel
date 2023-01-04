@@ -15,13 +15,13 @@
  * fields that are not properly set in both extant and parsed configs.
  */
 struct thread_count_config {
-	int bio_ack_threads;
-	int bio_threads;
-	int bio_rotation_interval;
-	int cpu_threads;
-	int logical_zones;
-	int physical_zones;
-	int hash_zones;
+	unsigned int bio_ack_threads;
+	unsigned int bio_threads;
+	unsigned int bio_rotation_interval;
+	unsigned int cpu_threads;
+	unsigned int logical_zones;
+	unsigned int physical_zones;
+	unsigned int hash_zones;
 } __packed;
 
 struct device_config {

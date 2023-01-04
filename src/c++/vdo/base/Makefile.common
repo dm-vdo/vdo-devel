@@ -24,6 +24,7 @@ BASE_OBJS :=     			\
 	device-config.o			\
         device-registry.o		\
 	dirty-lists.o			\
+        dm-vdo-target.o                 \
 	flush.o				\
 	forest.o			\
 	header.o			\
@@ -71,7 +72,6 @@ BASE_OBJS :=     			\
 	wait-queue.o
 
 KERNEL_OBJS:=                           \
-        dm-vdo-target.o                 \
         dump.o                          \
         histogram.o                     \
         message-stats.o                 \

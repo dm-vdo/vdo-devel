@@ -17,4 +17,12 @@ typedef unsigned int gfp_t;
 #define GFP_KERNEL 1
 #define GFP_NOWAIT 2
 
+#define pgoff_t unsigned long
+
+typedef struct {
+	uint64_t val;
+} pfn_t;
+
+typedef unsigned int fmode_t;
+
 #endif // LINUX_TYPES_H

@@ -31,7 +31,7 @@ static void testBadSuperBlockVersion(void)
   rawHeader->version.major_version += 3;
   rawHeader->version.minor_version += 29;
   VDO_ASSERT_SUCCESS(layer->writer(layer, superBlockLocation, 1, buffer));
-  startVDOExpectError(VDO_UNSUPPORTED_VERSION);
+  startVDOExpectError(vdo_map_to_system_error(VDO_UNSUPPORTED_VERSION));
 }
 
 /**********************************************************************/
@@ -44,7 +44,7 @@ static void testMismatchedNonce(void)
   VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(layer, &geometry));
   geometry.nonce++;
   VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
-  startVDOExpectError(VDO_BAD_NONCE);
+  startVDOExpectError(vdo_map_to_system_error(VDO_BAD_NONCE));
 }
 
 /**********************************************************************/
@@ -57,7 +57,7 @@ static void testMismatchedReleaseVersion(void)
   VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(layer, &geometry));
   geometry.release_version++;
   VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
-  startVDOExpectError(VDO_UNSUPPORTED_VERSION);
+  startVDOExpectError(vdo_map_to_system_error(VDO_UNSUPPORTED_VERSION));
 }
 
 /**********************************************************************/

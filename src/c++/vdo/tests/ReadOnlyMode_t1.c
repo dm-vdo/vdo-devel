@@ -70,7 +70,9 @@ static void verifyReadOnlyModePersistence(void)
 {
   verifyReadOnlyModePersistsOnce();
   verifyReadOnlyModePersistsOnce();
-  performSuccessfulSuspendAndResume(false);
+  CU_ASSERT_EQUAL(VDO_READ_ONLY, suspendVDO(false));
+  CU_ASSERT_EQUAL(VDO_READ_ONLY,
+                  resumeVDO(vdo->device_config->owning_target));
   verifyReadOnlyModePersistsOnce();
 }
 

@@ -1,4 +1,4 @@
-/*
+ /*
  * %COPYRIGHT%
  *
  * %LICENSE%
@@ -46,6 +46,7 @@
 typedef enum {
   LAYER_INITIALIZED,
   QUEUES_STARTED,
+  TABLE_LOADED,
   VDO_LOADED,
 } AsyncLayerState;
 
@@ -80,6 +81,7 @@ typedef struct {
   BIOSubmitHook            *bioHook;
   struct mutex              mutex;
   struct cond_var           condition;
+  bool                      noFlushSuspend;
   int                       startStopExpectation;
 } AsyncLayer;
 
@@ -172,6 +174,7 @@ void destroyAsyncLayer(void)
   AsyncLayer *asyncLayer = asAsyncLayer();
   switch (asyncLayer->state) {
   case VDO_LOADED:
+  case TABLE_LOADED:
   case QUEUES_STARTED:
     stopAsyncLayer();
     // fall through
@@ -223,64 +226,6 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
   layer->writer                 = asyncWriter;
 }
 
-/**
- * Make a device config for the VDO based on the config in the test
- * configuration.
- *
- * @param configuration  The test configuration
- * @param layer          The physical layer for the owning target
- *
- * @return A device_config
- **/
-static struct device_config *makeDeviceConfig(TestConfiguration configuration)
-{
-  struct device_config *deviceConfig;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1,
-                                  struct device_config,
-                                  __func__,
-                                  &deviceConfig));
-  *deviceConfig = configuration.deviceConfig;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1,
-                                  struct dm_target,
-                                  __func__,
-                                  &deviceConfig->owning_target));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1,
-                                  struct dm_dev,
-                                  __func__,
-                                  &deviceConfig->owned_device));
-
-  const char *indexName = getTestIndexName();
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(strlen(indexName) + 1,
-                                  char,
-                                  __func__,
-                                  &deviceConfig->parent_device_name));
-  strcpy(deviceConfig->parent_device_name, indexName);
-
-  if (deviceConfig->thread_counts.logical_zones == 0) {
-    if ((deviceConfig->thread_counts.physical_zones != 0)
-        || (deviceConfig->thread_counts.hash_zones != 0)) {
-      deviceConfig->thread_counts.logical_zones = 1;
-    }
-  }
-
-  if (deviceConfig->thread_counts.physical_zones == 0) {
-    if ((deviceConfig->thread_counts.logical_zones != 0)
-        || (deviceConfig->thread_counts.hash_zones != 0)) {
-      deviceConfig->thread_counts.physical_zones = 1;
-    }
-  }
-
-  if (deviceConfig->thread_counts.hash_zones == 0) {
-    if ((deviceConfig->thread_counts.logical_zones != 0)
-        || (deviceConfig->thread_counts.physical_zones != 0)) {
-      deviceConfig->thread_counts.hash_zones = 1;
-    }
-  }
-
-  deviceConfig->physical_blocks = configuration.config.physical_blocks;
-  return deviceConfig;
-}
-
 /**********************************************************************/
 static void wrapOpenIndex(struct vdo_completion *completion)
 {
@@ -307,7 +252,9 @@ static void assertStartStopExpectation(int result)
   int expectation = asAsyncLayer()->startStopExpectation;
 
   if (expectation == VDO_READ_ONLY) {
-    CU_ASSERT_EQUAL(result, VDO_SUCCESS);
+    if (result != VDO_SUCCESS) {
+      CU_ASSERT_EQUAL(result, VDO_READ_ONLY);
+    }
     verifyReadOnly();
   } else {
     CU_ASSERT_EQUAL(result, expectation);
@@ -417,30 +364,19 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   atomic64_set(&asyncLayer->requestCount, 0);
   asyncLayer->state = QUEUES_STARTED;
 
-  struct device_config *deviceConfig = makeDeviceConfig(configuration);
-  unsigned int instance;
-  VDO_ASSERT_SUCCESS(vdo_allocate_instance(&instance));
-
-  char *reason;
-  int result = vdo_make(instance,
-                        deviceConfig,
-                        &reason,
-                        &vdo);
+  struct dm_target *target;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+  int result = loadTable(configuration, target);
   if (result != VDO_SUCCESS) {
     assertStartStopExpectation(result);
     stopAsyncLayer();
-    vdo_free_device_config(UDS_FORGET(deviceConfig));
+    UDS_FREE(target);
     return;
   }
+
+  asyncLayer->state = TABLE_LOADED;
 
   if (!loadVDO) {
-    return;
-  }
-
-  result = vdo_prepare_to_load(vdo);
-  if (result != VDO_SUCCESS) {
-    assertStartStopExpectation(result);
-    stopAsyncLayer();
     return;
   }
 
@@ -451,11 +387,12 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
     addCompletionEnqueueHook(openIndexHook);
   }
 
-  result = vdo_load(vdo);
+  result = vdoTargetType->preresume(target);
   assertStartStopExpectation(result);
 
   if (result != VDO_SUCCESS) {
     stopAsyncLayer();
+    UDS_FREE(target);
     return;
   }
 
@@ -464,11 +401,13 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   }
 
   asyncLayer->state = VDO_LOADED;
+  vdoTargetType->resume(target);
 }
 
 /**********************************************************************/
 void stopAsyncLayer(void)
 {
+  struct dm_target *target;
   AsyncLayer *asyncLayer = asAsyncLayer();
   assertOnTestThread();
 
@@ -476,17 +415,20 @@ void stopAsyncLayer(void)
   case VDO_LOADED:
     CU_ASSERT_EQUAL(atomic64_read(&asyncLayer->requestCount), 0);
     if (!vdo_get_admin_state(vdo)->quiescent) {
-      assertStartStopExpectation(perform_vdo_suspend(true));
+      assertStartStopExpectation(suspendVDO(true));
     }
+
+    fallthrough;
+
+  case TABLE_LOADED:
+    target = vdo->device_config->owning_target;
+    vdoTargetType->dtr(target);
+    UDS_FREE(UDS_FORGET(target));
+
     fallthrough;
 
   case QUEUES_STARTED:
-    if (vdo != NULL) {
-      struct device_config *config = vdo->device_config;
-      vdo_destroy(UDS_FORGET(vdo));
-      vdo_free_device_config(UDS_FORGET(config));
-    }
-
+    UDS_FORGET(vdo);
     if (asyncLayer->bioThread != NULL) {
       uds_lock_mutex(&asyncLayer->mutex);
       asyncLayer->running = false;
@@ -502,16 +444,6 @@ void stopAsyncLayer(void)
   }
 
   asyncLayer->state = LAYER_INITIALIZED;
-}
-
-/**
- * This fake implementation will be called when stopAsyncLayer() calls
- * vdo_free_device_config().
- **/
-void dm_put_device(struct dm_target *ti, struct dm_dev *d)
-{
-  UDS_FREE(d);
-  UDS_FREE(ti);
 }
 
 /**********************************************************************/

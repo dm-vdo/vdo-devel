@@ -21,8 +21,9 @@
  **/
 typedef void TearDownAction(void);
 
-extern PhysicalLayer *layer;
-extern struct vdo    *vdo;
+extern PhysicalLayer      *layer;
+extern struct vdo         *vdo;
+extern struct target_type *vdoTargetType;
 
 /**
  * Register a tear down action. These actions will be run when a test tears
@@ -291,6 +292,18 @@ block_count_t fillPhysicalSpace(logical_block_number_t lbn,
 block_count_t populateBlockMapTree(void);
 
 /**
+ * Load a new table generated from the specified configuration.
+ *
+ * @param configuration  The TestConfiguration from which to derive the new
+ *                       table
+ * @param target         The target associated with the new table; on error, it
+ *                       is the caller's responsibility to free the target
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int loadTable(TestConfiguration configuration, struct dm_target *target);
+
+/**
  * Ensure that the vdo has no outstanding I/O and will issue none until it is
  * resumed.
  *
@@ -299,7 +312,9 @@ block_count_t populateBlockMapTree(void);
  *
  * @return VDO_SUCCESS or an error
  **/
-int perform_vdo_suspend(bool save);
+int suspendVDO(bool save);
+
+int resumeVDO(struct dm_target *target);
 
 /**
  * Modify the compress and dedupe states as if it was from the table line

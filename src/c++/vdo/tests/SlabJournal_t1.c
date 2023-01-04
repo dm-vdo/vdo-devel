@@ -233,7 +233,7 @@ static void checkStopExpectation(struct vdo_completion *completion)
   if (vdo_in_read_only_mode(vdo)) {
     result = VDO_READ_ONLY;
   } else if (vdo_is_state_quiescent(&journal->slab->state)) {
-    result = -EINVAL;
+    result = VDO_INVALID_ADMIN_STATE;
   } else {
     result = VDO_SUCCESS;
   }

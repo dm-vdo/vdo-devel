@@ -44,7 +44,7 @@ void vdo_initialize_device_registry_once(void)
 /**
  * vdo_is_equal() - Implements vdo_filter_t.
  */
-static bool vdo_is_equal(struct vdo *vdo, void *context)
+static bool vdo_is_equal(struct vdo *vdo, const void *context)
 {
 	return ((void *) vdo == context);
 }
@@ -59,7 +59,7 @@ static bool vdo_is_equal(struct vdo *vdo, void *context)
  * Return: the vdo object found, if any.
  */
 static struct vdo * __must_check
-filter_vdos_locked(vdo_filter_t *filter, void *context)
+filter_vdos_locked(vdo_filter_t *filter, const void *context)
 {
 	struct vdo *vdo;
 
@@ -111,7 +111,7 @@ void vdo_unregister(struct vdo *vdo)
  * @filter: The filter function to apply to vdos.
  * @context: A bit of context to provide the filter.
  */
-struct vdo *vdo_find_matching(vdo_filter_t *filter, void *context)
+struct vdo *vdo_find_matching(vdo_filter_t *filter, const void *context)
 {
 	struct vdo *vdo;
 

@@ -21,6 +21,7 @@
 #include "uds-threads.h"
 
 #include "completion.h"
+#include "device-registry.h"
 #include "status-codes.h"
 #include "vdo.h"
 
@@ -255,11 +256,23 @@ void *get_work_queue_private_data(void)
           : *(vdo->threads[thread].queue->context));
 }
 
+/*
+ * Implements vdo_filter_t.
+ */
+static bool all_vdos_match(struct vdo *vdo __attribute__((unused)),
+                           const void *context __attribute__((unused)))
+{
+  return true;
+}
+
 /**********************************************************************/
 struct vdo_work_queue *get_current_work_queue(void)
 {
   if (vdo == NULL) {
-    return NULL;
+    vdo = vdo_find_matching(all_vdos_match, NULL);
+    if (vdo == NULL) {
+      return NULL;
+    }
   }
 
   pthread_t currentThread = pthread_self();

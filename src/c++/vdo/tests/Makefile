@@ -83,6 +83,7 @@ TEST_COMMON  = adminUtils.o              \
                slabSummaryUtils.o        \
                sparseLayer.o             \
                testBIO.o                 \
+               testDM.o                  \
                testParameters.o          \
                testTimer.o               \
                testUtils.o               \
