@@ -641,17 +641,12 @@ static void vdo_postsuspend(struct dm_target *ti)
 	uds_unregister_thread_device_id();
 }
 
-static int vdo_preresume(struct dm_target *ti)
+static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 {
-	struct vdo *vdo = get_vdo_for_target(ti);
 	struct device_config *config = ti->private;
-	struct registered_thread instance_thread;
-	const char *device_name;
+	const char *device_name = vdo_get_device_name(ti);
 	block_count_t backing_blocks;
 	int result;
-
-	uds_register_thread_device_id(&instance_thread, &vdo->instance);
-	device_name = vdo_get_device_name(ti);
 
 	backing_blocks = get_underlying_device_block_count(vdo);
 	if (backing_blocks < config->physical_blocks) {
@@ -660,23 +655,31 @@ static int vdo_preresume(struct dm_target *ti)
 			      device_name,
 			      (unsigned long long) backing_blocks,
 			      (unsigned long long) config->physical_blocks);
-		uds_unregister_thread_device_id();
 		return -EINVAL;
 	}
 
 	if (vdo_get_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		result = vdo_load(vdo);
-		if (result != VDO_SUCCESS) {
-			uds_unregister_thread_device_id();
-			return vdo_map_to_system_error(result);
-		}
+		if (result != VDO_SUCCESS)
+			return result;
 	}
 
 	uds_log_info("resuming device '%s'", device_name);
 	result = vdo_preresume_internal(vdo, config, device_name);
 	if ((result == VDO_PARAMETER_MISMATCH) || (result == VDO_INVALID_ADMIN_STATE))
-		result = -EINVAL;
+		return -EINVAL;
 
+	return result;
+}
+
+static int vdo_preresume(struct dm_target *ti)
+{
+	struct registered_thread instance_thread;
+	struct vdo *vdo = get_vdo_for_target(ti);
+	int result;
+
+	uds_register_thread_device_id(&instance_thread, &vdo->instance);
+	result = vdo_preresume_registered(ti, vdo);
 	uds_unregister_thread_device_id();
 	return vdo_map_to_system_error(result);
 }
