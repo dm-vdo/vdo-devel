@@ -913,7 +913,8 @@ int vdo_validate_new_device_config(struct device_config *to_validate,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	if (memcmp(&config->thread_counts, &config->thread_counts,
+	if (memcmp(&to_validate->thread_counts,
+		   &config->thread_counts,
 		   sizeof(struct thread_count_config)) != 0) {
 		*error_ptr = "Thread configuration cannot change";
 		return VDO_PARAMETER_MISMATCH;
