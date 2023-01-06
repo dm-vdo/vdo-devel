@@ -17,14 +17,14 @@
 #include "vdo.h"
 
 /*
- * We don't expect this set to ever get really large, so a linked list
- * is adequate. We can use a pointer_map if we need to later.
+ * We don't expect this set to ever get really large, so a linked list is adequate. We can use a
+ * pointer_map if we need to later.
  */
 struct device_registry {
 	struct list_head links;
 	/*
-	 * XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of
-	 * RCU, please don't add more. Should we switch?
+	 * XXX: (Some) Kernel docs say rwlocks are being deprecated in favor of RCU, please don't
+	 * add more. Should we switch?
 	 */
 	rwlock_t lock;
 };
@@ -32,8 +32,8 @@ struct device_registry {
 static struct device_registry registry;
 
 /**
- * vdo_initialize_device_registry_once() - Initialize the necessary
- *                                         structures for the device registry.
+ * vdo_initialize_device_registry_once() - Initialize the necessary structures for the device
+ *                                         registry.
  */
 void vdo_initialize_device_registry_once(void)
 {
@@ -41,9 +41,7 @@ void vdo_initialize_device_registry_once(void)
 	rwlock_init(&registry.lock);
 }
 
-/**
- * vdo_is_equal() - Implements vdo_filter_t.
- */
+/** vdo_is_equal() - Implements vdo_filter_t. */
 static bool vdo_is_equal(struct vdo *vdo, const void *context)
 {
 	return ((void *) vdo == context);
@@ -58,8 +56,7 @@ static bool vdo_is_equal(struct vdo *vdo, const void *context)
  *
  * Return: the vdo object found, if any.
  */
-static struct vdo * __must_check
-filter_vdos_locked(vdo_filter_t *filter, const void *context)
+static struct vdo * __must_check filter_vdos_locked(vdo_filter_t *filter, const void *context)
 {
 	struct vdo *vdo;
 
@@ -106,8 +103,7 @@ void vdo_unregister(struct vdo *vdo)
 }
 
 /**
- * vdo_find_matching() - Find and return the first (if any) vdo matching a
- *                       given filter function.
+ * vdo_find_matching() - Find and return the first (if any) vdo matching a given filter function.
  * @filter: The filter function to apply to vdos.
  * @context: A bit of context to provide the filter.
  */

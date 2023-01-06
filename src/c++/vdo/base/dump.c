@@ -26,10 +26,7 @@ enum dump_options {
 	SHOW_VIO_POOL,
 	/* Others */
 	SHOW_VDO_STATUS,
-	/*
-	 * This one means an option overrides the "default" choices, instead
-	 * of altering them.
-	 */
+	/* This one means an option overrides the "default" choices, instead of altering them. */
 	SKIP_DEFAULT
 };
 
@@ -55,9 +52,7 @@ static inline bool is_arg_string(const char *arg, const char *this_option)
 	return strncasecmp(arg, this_option, strlen(this_option)) == 0;
 }
 
-static void do_dump(struct vdo *vdo,
-		    unsigned int dump_options_requested,
-		    const char *why)
+static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const char *why)
 {
 	uint32_t active, maximum;
 	int64_t outstanding;
@@ -72,8 +67,7 @@ static void do_dump(struct vdo *vdo,
 		     maximum,
 		     outstanding,
 		     vdo_get_device_name(vdo->device_config->owning_target));
-	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0) &&
-	    (vdo->threads != NULL)) {
+	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0) && (vdo->threads != NULL)) {
 		thread_id_t id;
 
 		for (id = 0; id < vdo->thread_config->thread_count; id++)
@@ -81,8 +75,7 @@ static void do_dump(struct vdo *vdo,
 	}
 
 	vdo_dump_hash_zones(vdo->hash_zones);
-	dump_data_vio_pool(vdo->data_vio_pool,
-			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
+	dump_data_vio_pool(vdo->data_vio_pool, (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0)
 		vdo_dump_status(vdo);
 
@@ -90,9 +83,8 @@ static void do_dump(struct vdo *vdo,
 	uds_log_info("end of %s dump", UDS_LOGGING_MODULE_NAME);
 }
 
-static int parse_dump_options(unsigned int argc,
-			      char *const *argv,
-			      unsigned int *dump_options_requested_ptr)
+static int
+parse_dump_options(unsigned int argc, char *const *argv, unsigned int *dump_options_requested_ptr)
 {
 	unsigned int dump_options_requested = 0;
 
@@ -117,14 +109,12 @@ static int parse_dump_options(unsigned int argc,
 
 		for (j = 0; j < ARRAY_SIZE(option_names); j++) {
 			if (is_arg_string(argv[i], option_names[j].name)) {
-				dump_options_requested |=
-					option_names[j].flags;
+				dump_options_requested |= option_names[j].flags;
 				break;
 			}
 		}
 		if (j == ARRAY_SIZE(option_names)) {
-			uds_log_warning("dump option name '%s' unknown",
-					argv[i]);
+			uds_log_warning("dump option name '%s' unknown", argv[i]);
 			options_okay = false;
 		}
 	}
@@ -136,13 +126,8 @@ static int parse_dump_options(unsigned int argc,
 	return 0;
 }
 
-/*
- * Dump as specified by zero or more string arguments.
- */
-int vdo_dump(struct vdo *vdo,
-	     unsigned int argc,
-	     char *const *argv,
-	     const char *why)
+/* Dump as specified by zero or more string arguments. */
+int vdo_dump(struct vdo *vdo, unsigned int argc, char *const *argv, const char *why)
 {
 	unsigned int dump_options_requested = 0;
 	int result = parse_dump_options(argc, argv, &dump_options_requested);
@@ -154,9 +139,7 @@ int vdo_dump(struct vdo *vdo,
 	return 0;
 }
 
-/*
- * Dump everything we know how to dump
- */
+/* Dump everything we know how to dump */
 void vdo_dump_all(struct vdo *vdo, const char *why)
 {
 	do_dump(vdo, ~0, why);
@@ -184,8 +167,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 		     data_vio->duplicate.pbn,
 		     get_data_vio_operation_name(data_vio));
 
-	for (waiter = first->next_waiter; waiter != first;
-	     waiter = waiter->next_waiter) {
+	for (waiter = first->next_waiter; waiter != first; waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
 		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
 			     data_vio,
@@ -197,8 +179,8 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 }
 
 /*
- * Encode various attributes of a data_vio as a string of one-character flags.
- * This encoding is for logging brevity:
+ * Encode various attributes of a data_vio as a string of one-character flags. This encoding is for
+ * logging brevity:
  *
  * R => vio completion result not VDO_SUCCESS
  * W => vio is on a wait queue
@@ -207,9 +189,8 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
  * z => vio is a zero block
  * d => vio is a discard
  *
- * The common case of no flags set will result in an empty, null-terminated
- * buffer. If any flags are encoded, the first character in the string will be
- * a space character.
+ * The common case of no flags set will result in an empty, null-terminated buffer. If any flags
+ * are encoded, the first character in the string will be a space character.
  */
 static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 {
@@ -233,39 +214,29 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	*p_flag = '\0';
 }
 
-/*
- * Implements buffer_dump_function.
- */
+/* Implements buffer_dump_function. */
 void dump_data_vio(void *data)
 {
 	struct data_vio *data_vio = (struct data_vio *) data;
 
 	/*
-	 * This just needs to be big enough to hold a queue (thread) name
-	 * and a function name (plus a separator character and NUL). The
-	 * latter is limited only by taste.
+	 * This just needs to be big enough to hold a queue (thread) name and a function name (plus
+	 * a separator character and NUL). The latter is limited only by taste.
 	 *
-	 * In making this static, we're assuming only one "dump" will run at
-	 * a time. If more than one does run, the log output will be garbled
-	 * anyway.
+	 * In making this static, we're assuming only one "dump" will run at a time. If more than
+	 * one does run, the log output will be garbled anyway.
 	 */
 	static char vio_completion_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
-	/*
-	 * Another static buffer...
-	 * log10(256) = 2.408+, round up:
-	 */
+	/* Another static buffer... log10(256) = 2.408+, round up: */
 	enum { DIGITS_PER_UINT64_T = 1 + sizeof(uint64_t) * 2409 / 1000 };
 
-	static char vio_block_number_dump_buffer[sizeof("P L D")
-						 + 3 * DIGITS_PER_UINT64_T];
-	static char vio_flush_generation_buffer[sizeof(" FG")
-						+ DIGITS_PER_UINT64_T];
+	static char vio_block_number_dump_buffer[sizeof("P L D") + 3 * DIGITS_PER_UINT64_T];
+	static char vio_flush_generation_buffer[sizeof(" FG") + DIGITS_PER_UINT64_T];
 	static char flags_dump_buffer[8];
 
 	/*
-	 * We're likely to be logging a couple thousand of these lines, and
-	 * in some circumstances syslogd may have trouble keeping up, so
-	 * keep it BRIEF rather than user-friendly.
+	 * We're likely to be logging a couple thousand of these lines, and in some circumstances
+	 * syslogd may have trouble keeping up, so keep it BRIEF rather than user-friendly.
 	 */
 	dump_completion_to_buffer(data_vio_as_completion(data_vio),
 				  vio_completion_dump_buffer,
@@ -285,20 +256,24 @@ void dump_data_vio(void *data)
 			 data_vio->logical.lbn);
 	else
 		snprintf(vio_block_number_dump_buffer,
-			 sizeof(vio_block_number_dump_buffer), "L%llu",
+			 sizeof(vio_block_number_dump_buffer),
+			 "L%llu",
 			 data_vio->logical.lbn);
 
 	if (data_vio->flush_generation != 0)
 		snprintf(vio_flush_generation_buffer,
-			 sizeof(vio_flush_generation_buffer), " FG%llu",
+			 sizeof(vio_flush_generation_buffer),
+			 " FG%llu",
 			 data_vio->flush_generation);
 	else
 		vio_flush_generation_buffer[0] = 0;
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
-	uds_log_info("  vio %px %s%s %s %s%s", data_vio,
-		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
+	uds_log_info("	vio %px %s%s %s %s%s",
+		     data_vio,
+		     vio_block_number_dump_buffer,
+		     vio_flush_generation_buffer,
 		     get_data_vio_operation_name(data_vio),
 		     vio_completion_dump_buffer,
 		     flags_dump_buffer);

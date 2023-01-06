@@ -11,8 +11,8 @@
 #include "types.h"
 
 /*
- * This structure is memcmp'd for equality. Keep it packed and don't add any
- * fields that are not properly set in both extant and parsed configs.
+ * This structure is memcmp'd for equality. Keep it packed and don't add any fields that are not
+ * properly set in both extant and parsed configs.
  */
 struct thread_count_config {
 	unsigned int bio_ack_threads;
@@ -35,9 +35,8 @@ struct device_config {
 	char *parent_device_name;
 	block_count_t physical_blocks;
 	/*
-	 * This is the number of logical blocks from VDO's internal point of
-	 * view. It is the number of 4K blocks regardles of the value of the
-	 * logical_block_size parameter below.
+	 * This is the number of logical blocks from VDO's internal point of view. It is the number
+	 * of 4K blocks regardles of the value of the logical_block_size parameter below.
 	 */
 	block_count_t logical_blocks;
 	unsigned int logical_block_size;
@@ -50,8 +49,7 @@ struct device_config {
 };
 
 /**
- * vdo_as_device_config() - Convert a list entry to the device_config that
- *                          contains it.
+ * vdo_as_device_config() - Convert a list entry to the device_config that contains it.
  * @entry: The list entry to convert.
  *
  * If non-NULL, the list must not be empty.
@@ -74,10 +72,9 @@ void vdo_free_device_config(struct device_config *config);
 
 void vdo_set_device_config(struct device_config *config, struct vdo *vdo);
 
-int __must_check
-vdo_validate_new_device_config(struct device_config *to_validate,
-			       struct device_config *config,
-			       bool may_grow,
-			       char **error_ptr);
+int __must_check vdo_validate_new_device_config(struct device_config *to_validate,
+						struct device_config *config,
+						bool may_grow,
+						char **error_ptr);
 
 #endif /* DEVICE_CONFIG_H */

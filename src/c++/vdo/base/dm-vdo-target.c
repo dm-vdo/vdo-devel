@@ -124,8 +124,8 @@ static int check_bio_validity(struct bio *bio)
 	}
 
 	/*
-	 * Does this have unexpected flags? We expect to never get failfast,
-	 * integrity, nowait, cgroup_punt, nounmap, hipri, drv, or swap flags.
+	 * Does this have unexpected flags? We expect to never get failfast, integrity, nowait,
+	 * cgroup_punt, nounmap, hipri, drv, or swap flags.
 	 */
 	if ((bio_flags & known_flags) != bio_flags) {
 		static DEFINE_RATELIMIT_STATE(unknown_flags_limiter,
@@ -147,8 +147,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 #endif /* VDO_INTERNAL */
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_work_queue *current_work_queue;
-	const struct admin_state_code *code =
-		vdo_get_admin_state_code(&vdo->admin_state);
+	const struct admin_state_code *code = vdo_get_admin_state_code(&vdo->admin_state);
 
 	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s", code->name);
 
@@ -204,12 +203,12 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * The value is displayed in sysfs, and also used by dm-thin to determine whether to pass
 	 * down discards. The block layer splits large discards on this boundary when this is set.
 	 */
-	limits->max_discard_sectors = (vdo->device_config->max_discard_blocks
-				       * VDO_SECTORS_PER_BLOCK);
+	limits->max_discard_sectors =
+		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
 
 	/*
-	 * Force discards to not begin or end with a partial block by stating
-	 * the granularity is 4k.
+	 * Force discards to not begin or end with a partial block by stating the granularity is
+	 * 4k.
 	 */
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
@@ -227,8 +226,8 @@ static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn 
 
 /*
  * Status line is:
- *    <device> <operating mode> <in recovery> <index state>
- *    <compression state> <used physical blocks> <total physical blocks>
+ *    <device> <operating mode> <in recovery> <index state> <compression state>
+ *    <used physical blocks> <total physical blocks>
  */
 
 static void vdo_status(struct dm_target *ti,
@@ -275,31 +274,26 @@ static void vdo_status(struct dm_target *ti,
 }
 
 #endif /* __KERNEL__ */
-static block_count_t __must_check
-get_underlying_device_block_count(const struct vdo *vdo)
+static block_count_t __must_check get_underlying_device_block_count(const struct vdo *vdo)
 {
 	return i_size_read(vdo_get_backing_device(vdo)->bd_inode) / VDO_BLOCK_SIZE;
 }
 
-static int __must_check
-process_vdo_message_locked(struct vdo *vdo, unsigned int argc, char **argv)
+static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int argc, char **argv)
 {
-	if (argc == 2) {
-		if (strcasecmp(argv[0], "compression") == 0) {
-			if (strcasecmp(argv[1], "on") == 0) {
-				vdo_set_compressing(vdo, true);
-				return 0;
-			}
-
-			if (strcasecmp(argv[1], "off") == 0) {
-				vdo_set_compressing(vdo, false);
-				return 0;
-			}
-
-			uds_log_warning("invalid argument '%s' to dmsetup compression message",
-					argv[1]);
-			return -EINVAL;
+	if ((argc == 2) && (strcasecmp(argv[0], "compression") == 0)) {
+		if (strcasecmp(argv[1], "on") == 0) {
+			vdo_set_compressing(vdo, true);
+			return 0;
 		}
+
+		if (strcasecmp(argv[1], "off") == 0) {
+			vdo_set_compressing(vdo, false);
+			return 0;
+		}
+
+		uds_log_warning("invalid argument '%s' to dmsetup compression message", argv[1]);
+		return -EINVAL;
 	}
 
 	uds_log_warning("unrecognized dmsetup message '%s' received", argv[0]);
@@ -307,12 +301,11 @@ process_vdo_message_locked(struct vdo *vdo, unsigned int argc, char **argv)
 }
 
 /*
- * If the message is a dump, just do it. Otherwise, check that no other message
- * is being processed, and only proceed if so.
+ * If the message is a dump, just do it. Otherwise, check that no other message is being processed,
+ * and only proceed if so.
  * Returns -EBUSY if another message is being processed
  */
-static int __must_check
-process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
+static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
 {
 	int result;
 
@@ -400,8 +393,8 @@ static void configure_target_capabilities(struct dm_target *ti)
 	ti->num_flush_bios = 1;
 
 	/*
-	 * If this value changes, please make sure to update the
-	 * value for max_discard_sectors accordingly.
+	 * If this value changes, please make sure to update the value for max_discard_sectors
+	 * accordingly.
 	 */
 	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 }
@@ -426,9 +419,8 @@ static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct devi
 #endif /* __KERNEL__ */
 }
 
-static int vdo_initialize(struct dm_target *ti,
-			  unsigned int instance,
-			  struct device_config *config)
+static int
+vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config *config)
 {
 	struct vdo *vdo;
 	int result;
@@ -438,18 +430,14 @@ static int vdo_initialize(struct dm_target *ti,
 	block_count_t logical_blocks = logical_size / block_size;
 
 	uds_log_info("loading device '%s'", vdo_get_device_name(ti));
-	uds_log_debug("Logical block size     = %llu",
-		      (uint64_t) config->logical_block_size);
+	uds_log_debug("Logical block size     = %llu", (uint64_t) config->logical_block_size);
 	uds_log_debug("Logical blocks         = %llu", logical_blocks);
 	uds_log_debug("Physical block size    = %llu", (uint64_t) block_size);
 	uds_log_debug("Physical blocks        = %llu", config->physical_blocks);
 	uds_log_debug("Block map cache blocks = %u", config->cache_size);
-	uds_log_debug("Block map maximum age  = %u",
-		      config->block_map_maximum_age);
-	uds_log_debug("Deduplication          = %s",
-		      (config->deduplication ? "on" : "off"));
-	uds_log_debug("Compression            = %s",
-		      (config->compression ? "on" : "off"));
+	uds_log_debug("Block map maximum age  = %u", config->block_map_maximum_age);
+	uds_log_debug("Deduplication          = %s", (config->deduplication ? "on" : "off"));
+	uds_log_debug("Compression            = %s", (config->compression ? "on" : "off"));
 
 	vdo = vdo_find_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
@@ -471,9 +459,9 @@ static int vdo_initialize(struct dm_target *ti,
 
 	result = vdo_prepare_to_load(vdo);
 	if (result != VDO_SUCCESS) {
-		ti->error = ((result == VDO_INVALID_ADMIN_STATE)
-			     ? "Pre-load is only valid immediately after initialization"
-			     : "Cannot load metadata from device");
+		ti->error = ((result == VDO_INVALID_ADMIN_STATE) ?
+			     "Pre-load is only valid immediately after initialization" :
+			     "Cannot load metadata from device");
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
 			      result,
 			      ti->error);
@@ -486,9 +474,7 @@ static int vdo_initialize(struct dm_target *ti,
 	return VDO_SUCCESS;
 }
 
-/*
- * Implements vdo_filter_t.
- */
+/* Implements vdo_filter_t. */
 static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
 {
 	struct dm_target *ti = vdo->device_config->owning_target;
@@ -521,9 +507,7 @@ static int construct_new_vdo_registered(struct dm_target *ti,
 	return VDO_SUCCESS;
 }
 
-static int construct_new_vdo(struct dm_target *ti,
-			     unsigned int argc,
-			     char **argv)
+static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **argv)
 {
 	int result;
 	unsigned int instance;
@@ -614,8 +598,8 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_unregister_allocating_thread();
 	} else if (config == vdo->device_config) {
 		/*
-		 * The VDO still references this config. Give it a reference
-		 * to a config that isn't being destroyed.
+		 * The VDO still references this config. Give it a reference to a config that isn't
+		 * being destroyed.
 		 */
 		vdo->device_config = vdo_as_device_config(vdo->device_config_list.next);
 	}
@@ -626,9 +610,8 @@ static void vdo_dtr(struct dm_target *ti)
 
 static void vdo_presuspend(struct dm_target *ti)
 {
-	get_vdo_for_target(ti)->suspend_type = (dm_noflush_suspending(ti)
-						? VDO_ADMIN_STATE_SUSPENDING
-						: VDO_ADMIN_STATE_SAVING);
+	get_vdo_for_target(ti)->suspend_type =
+		(dm_noflush_suspending(ti) ? VDO_ADMIN_STATE_SUSPENDING : VDO_ADMIN_STATE_SAVING);
 }
 
 static void vdo_postsuspend(struct dm_target *ti)
@@ -694,10 +677,9 @@ static void vdo_resume(struct dm_target *ti)
 }
 
 /*
- * If anything changes that affects how user tools will interact
- * with vdo, update the version number and make sure
- * documentation about the change is complete so tools can
- * properly update their management code.
+ * If anything changes that affects how user tools will interact with vdo, update the version
+ * number and make sure documentation about the change is complete so tools can properly update
+ * their management code.
  */
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
