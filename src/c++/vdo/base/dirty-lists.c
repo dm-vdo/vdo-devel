@@ -109,8 +109,8 @@ static void update_period(struct dirty_lists *dirty_lists,
 			  sequence_number_t period)
 {
 	while (dirty_lists->next_period <= period) {
-		if ((dirty_lists->next_period - dirty_lists->oldest_period)
-		    == dirty_lists->maximum_age)
+		if ((dirty_lists->next_period - dirty_lists->oldest_period) ==
+		    dirty_lists->maximum_age)
 			expire_oldest_list(dirty_lists);
 		dirty_lists->next_period++;
 	}
@@ -144,8 +144,7 @@ void vdo_add_to_dirty_lists(struct dirty_lists *dirty_lists,
 			    sequence_number_t old_period,
 			    sequence_number_t new_period)
 {
-	if ((old_period == new_period)
-	    || ((old_period != 0) && (old_period < new_period)))
+	if ((old_period == new_period) || ((old_period != 0) && (old_period < new_period)))
 		return;
 
 	if (new_period < dirty_lists->oldest_period) {

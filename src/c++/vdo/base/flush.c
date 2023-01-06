@@ -333,8 +333,8 @@ void vdo_complete_flushes(struct flusher *flusher)
 		if (flush->flush_generation >= oldest_active_generation)
 			return;
 
-		ASSERT_LOG_ONLY((flush->flush_generation
-				 == flusher->first_unacknowledged_generation),
+		ASSERT_LOG_ONLY((flush->flush_generation ==
+				 flusher->first_unacknowledged_generation),
 				"acknowledged next expected flush, %llu, was: %llu",
 				(unsigned long long) flusher->first_unacknowledged_generation,
 				(unsigned long long) flush->flush_generation);

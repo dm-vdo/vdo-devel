@@ -63,8 +63,8 @@ enum {
 static inline bool
 vdo_are_same_version(struct version_number version_a, struct version_number version_b)
 {
-	return ((version_a.major_version == version_b.major_version)
-		&& (version_a.minor_version == version_b.minor_version));
+	return ((version_a.major_version == version_b.major_version) &&
+		(version_a.minor_version == version_b.minor_version));
 }
 
 /**
@@ -81,8 +81,8 @@ vdo_are_same_version(struct version_number version_a, struct version_number vers
 static inline bool vdo_is_upgradable_version(struct version_number expected_version,
 					     struct version_number actual_version)
 {
-	return ((expected_version.major_version == actual_version.major_version)
-		&& (expected_version.minor_version > actual_version.minor_version));
+	return ((expected_version.major_version == actual_version.major_version) &&
+		(expected_version.minor_version > actual_version.minor_version));
 }
 
 int __must_check vdo_validate_version(struct version_number expected_version,

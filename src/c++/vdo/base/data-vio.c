@@ -1923,8 +1923,8 @@ static void pack_compressed_data(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
-	if (!vdo_get_compressing(vdo_from_data_vio(data_vio))
-	    || get_data_vio_compression_status(data_vio).may_not_compress) {
+	if (!vdo_get_compressing(vdo_from_data_vio(data_vio)) ||
+	    get_data_vio_compression_status(data_vio).may_not_compress) {
 		write_data_vio(data_vio);
 		return;
 	}

@@ -49,8 +49,8 @@ static inline bool __must_check
 vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 				     const struct packed_journal_sector *sector)
 {
-	return ((header->check_byte == sector->check_byte)
-		&& (header->recovery_count == sector->recovery_count));
+	return ((header->check_byte == sector->check_byte) &&
+		(header->recovery_count == sector->recovery_count));
 }
 
 /**

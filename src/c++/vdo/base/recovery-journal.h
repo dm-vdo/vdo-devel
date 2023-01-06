@@ -266,8 +266,8 @@ vdo_compute_recovery_journal_check_byte(const struct recovery_journal *journal,
  */
 static inline bool vdo_is_journal_increment_operation(enum journal_operation operation)
 {
-	return ((operation == VDO_JOURNAL_DATA_INCREMENT)
-		|| (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));
+	return ((operation == VDO_JOURNAL_DATA_INCREMENT) ||
+		(operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));
 }
 
 int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
@@ -375,9 +375,9 @@ static inline bool __must_check
 vdo_is_valid_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header)
 {
-	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL)
-		&& (header->nonce == journal->nonce)
-		&& (header->recovery_count == journal->recovery_count));
+	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL) &&
+		(header->nonce == journal->nonce) &&
+		(header->recovery_count == journal->recovery_count));
 }
 
 /**
@@ -394,8 +394,8 @@ vdo_is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				    const struct recovery_block_header *header,
 				    sequence_number_t sequence)
 {
-	return ((header->sequence_number == sequence)
-		&& vdo_is_valid_recovery_journal_block(journal, header));
+	return ((header->sequence_number == sequence) &&
+		vdo_is_valid_recovery_journal_block(journal, header));
 }
 
 void vdo_load_recovery_journal(struct recovery_journal *journal,
