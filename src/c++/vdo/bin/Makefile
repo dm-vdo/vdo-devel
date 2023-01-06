@@ -26,6 +26,4 @@ clean:
 		$(MAKE) -C $$d $@;		\
 	done
 
-doc:
-
-.PHONY: all clean doc
+.PHONY: all clean

@@ -9,15 +9,6 @@
 
 include $(SRC_DIR)/defines
 
-DOXYGEN		 = doxygen
-DOXYGEN_FLAGS	 =
-DOXYGEN_DIR	 = doxygen
-DOXYGEN_FILE_IN	 = Doxyfile.in
-DOXYGEN_FILE     = Doxyfile
-DOXYGEN_EDIT	 = sed -e 's/@MARKETING_VERSION@/$(VDO_VERSION)/'
-DOXYGEN_WARN_LOG = $(shell grep '^WARN_LOGFILE' $(DOXYGEN_FILE_IN) \
-			   | cut -f 2 -d=)
-
 ifdef IWYU
   LLVM = 1
 endif

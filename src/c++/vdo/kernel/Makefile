@@ -122,8 +122,6 @@ clean-dkms-dirs:
 	if [ -e $(UDS_DKMS_DIR) ]; then chmod -fR +w $(UDS_DKMS_DIR); fi
 	rm -fr $(DKMS_DIR) $(UDS_DKMS_DIR)
 
-doc:
-
 ###############################################################################
 # Create the contents of a DKMS conf file.
 #

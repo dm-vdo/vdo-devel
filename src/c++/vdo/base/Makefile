@@ -28,11 +28,8 @@ checkin: all
 
 .PHONY: clean
 clean:
-	rm -f *.o *.a *.so $(GENERATED_FILES) doc
-	rm -rf $(DOXYGEN_DIR) $(DEPDIR) $(DOXYGEN_WARN_LOG) $(DOXYGEN_FILE)
-
-.PHONY: doc
-doc:
+	rm -f *.o *.a *.so $(GENERATED_FILES)
+	rm -rf $(DEPDIR)
 
 libvdo.a: $(BASE_OBJS) Makefile.common
 	$(RM) $@

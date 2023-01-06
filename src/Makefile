@@ -6,14 +6,6 @@
 SRC_DIR   = .
 CURR_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-# XXX When we have RHEL9 machines, we should reenable doxygen builds there.
-ifeq (Fedora, $(findstring Fedora, $(shell lsb_release -i)))
-  JENKINS_DOC_BUILD_OR_WARN := $(MAKE) doc
-else
-  JENKINS_DOC_BUILD_OR_WARN := \
-  @echo -e "\033[1m Doxyfile is not compatible with RHEL: skipping doc!\033[0m"
-endif
-
 include $(SRC_DIR)/defines
 include $(CURRENT_VERSION_FILE)
 export VDO_VERSION
@@ -41,13 +33,6 @@ all::
 	set -e;					\
 	for i in $(SUBDIRS); do			\
 		$(MAKE) -C $$i all || exit 1;	\
-	done
-
-.PHONY: doc
-doc::
-	set -e;					\
-	for i in $(SUBDIRS); do			\
-		$(MAKE) -C $$i doc || exit 1;	\
 	done
 
 .PHONY: clean
@@ -133,7 +118,6 @@ jenkins:
 jenkins-parallel: export VDO_TESTINDEX=$(TEST_INDEX)
 jenkins-parallel: clean
 	$(MAKE) all
-	$(JENKINS_DOC_BUILD_OR_WARN)
 	@echo "Using index name of $$VDO_TESTINDEX"
 	$(MAKE) cunittests udstests vdotests check #XXX vdotests-release
 	$(MAKE) archive

@@ -28,9 +28,6 @@ LOGDIR ?= $(CURDIR)
 .PHONY: all
 all: $(BIN_PROGS)
 
-.PHONY: doc
-doc:
-
 .PHONY: clean
 clean:
 	rm -f  $(USERLIB) *.so *.o core*

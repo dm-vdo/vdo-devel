@@ -113,9 +113,6 @@ $(VDO_FAKE_DIR)/libvdofake.a: FORCE
 $(VDO_BASE_DIR)/libvdo.a $(VDO_BASE_DIR)/libvdouser.a:
 	$(MAKE) -C $(VDO_BASE_DIR) libvdo.a libvdouser.a
 
-.PHONY: doc
-doc:
-
 .PHONY: clean
 clean:
 	rm -f $(PROGS) $(PERF_PROGS) $(VDOTEST) *.so *.o vdo-checkin.xml core*

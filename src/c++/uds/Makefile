@@ -20,9 +20,6 @@ all clean: src-perl
 checkin: all src-perl
 	$(RUN_UDSTESTS) checkin;
 
-.PHONY: doc
-doc:
-
 .PHONY: cleanall
 cleanall: clean dist-clean
 	rm -f ID TAGS

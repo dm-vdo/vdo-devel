@@ -23,4 +23,4 @@ clean cleanall:
 	done
 	rm -f *.changes *.deb
 
-.PHONY: checkin doc
+.PHONY: checkin

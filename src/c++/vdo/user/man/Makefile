@@ -103,4 +103,4 @@ vdostatsmanfields.tmp: vdostats.cat
 	    -e '/^[a-z]*([0-9])/d' \
 	    -e p $< | $(SORT) > $@
 
-.PHONY: all doc clean check checkin man cat pdf html
+.PHONY: all clean check checkin man cat pdf html

@@ -79,9 +79,6 @@ $(LIBUDS):
 $(LIBVDO):
 	$(MAKE) -C $(VDO_BASE_DIR) libvdouser.a
 
-.PHONY: doc
-doc:
-
 .PHONY: checkin
 checkin:
 	$(MAKE) -C man checkin

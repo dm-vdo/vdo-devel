@@ -20,13 +20,6 @@ all:
 		$(MAKE) -C $$d $@;		\
 	done
 
-.PHONY: doc
-doc:
-	set -e;					\
-	for d in $(SUBDIRS); do			\
-		$(MAKE) -C $$d $@;		\
-	done
-
 .PHONY: checkin
 checkin: all
 	for d in $(CHECKIN_SUBDIRS); do		\

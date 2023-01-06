@@ -15,13 +15,6 @@ all:
 		$(MAKE) -C $$d $@;	\
 	done
 
-.PHONY: doc
-doc:
-	set -e;				\
-	for d in $(SUBDIRS); do		\
-		$(MAKE) -C $$d $@;	\
-	done
-
 .PHONY: uds-checkin
 uds-checkin: all
 	$(MAKE) -C uds checkin
@@ -41,4 +34,3 @@ clean:
 	for d in $(SUBDIRS); do 	\
 		$(MAKE) -C $$d $@;	\
 	done
-	rm -rf doxygen

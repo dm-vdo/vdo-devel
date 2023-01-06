@@ -17,9 +17,6 @@ SUBDIRS = linux
 .PHONY: all
 all: libvdofake.a
 
-.PHONY: doc
-doc:
-
 .PHONY: checkin
 checkin:
 

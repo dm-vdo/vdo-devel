@@ -18,8 +18,6 @@ clean:
 	rm -f $(PROGS) *.o
 	rm -rf $(DEPDIR)
 
-doc:
-
 fsync: fsync.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
@@ -45,4 +43,4 @@ endif
 
 ########################################################################
 
-.PHONY: all clean doc
+.PHONY: all clean

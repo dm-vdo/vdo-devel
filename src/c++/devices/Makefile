@@ -16,9 +16,6 @@ KERNEL_MODULES = pbitcorruptor-1.tgz pbitfua-1.tgz pbitdory-1.tgz \
 .PHONY: all
 all: $(KERNEL_MODULES)
 
-.PHONY: doc
-doc:
-
 .PHONY: clean
 clean:
 	rm -f  $(KERNEL_MODULES)
