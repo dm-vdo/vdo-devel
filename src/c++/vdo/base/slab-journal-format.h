@@ -13,11 +13,10 @@
 #include "types.h"
 
 /*
- * vdo_slab journal blocks may have one of two formats, depending upon whether
- * or not any of the entries in the block are block map increments. Since the
- * steady state for a VDO is that all of the necessary block map pages will be
- * allocated, most slab journal blocks will have only data entries. Such
- * blocks can hold more entries, hence the two formats.
+ * vdo_slab journal blocks may have one of two formats, depending upon whether or not any of the
+ * entries in the block are block map increments. Since the steady state for a VDO is that all of
+ * the necessary block map pages will be allocated, most slab journal blocks will have only data
+ * entries. Such blocks can hold more entries, hence the two formats.
  */
 
 /* A single slab journal entry */
@@ -59,8 +58,8 @@ struct slab_journal_block_header {
 };
 
 /*
- * The packed, on-disk representation of a slab journal block header.
- * All fields are kept in little-endian byte order.
+ * The packed, on-disk representation of a slab journal block header. All fields are kept in
+ * little-endian byte order.
  */
 struct packed_slab_journal_block_header {
 	/* 64-bit sequence number for head of journal */
@@ -82,8 +81,7 @@ struct packed_slab_journal_block_header {
 enum {
 	VDO_SLAB_JOURNAL_PAYLOAD_SIZE =
 		VDO_BLOCK_SIZE - sizeof(struct packed_slab_journal_block_header),
-	VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK =
-		(VDO_SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
+	VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK = (VDO_SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
 	VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE =
 		((VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1) / 8) + 1,
 	VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK =
@@ -113,9 +111,8 @@ struct packed_slab_journal_block {
 } __packed;
 
 /**
- * vdo_get_slab_journal_start_block() - Get the physical block number of the
- *                                      start of the slab journal relative to
- *                                      the start block allocator partition.
+ * vdo_get_slab_journal_start_block() - Get the physical block number of the start of the slab
+ *                                      journal relative to the start block allocator partition.
  * @slab_config: The slab configuration of the VDO.
  * @origin: The first block of the slab.
  */
@@ -123,13 +120,12 @@ static inline physical_block_number_t __must_check
 vdo_get_slab_journal_start_block(const struct slab_config *slab_config,
 				 physical_block_number_t origin)
 {
-	return origin + slab_config->data_blocks
-	       + slab_config->reference_count_blocks;
+	return origin + slab_config->data_blocks + slab_config->reference_count_blocks;
 }
 
 /**
- * vdo_pack_slab_journal_block_header() - Generate the packed representation
- *                                        of a slab block header.
+ * vdo_pack_slab_journal_block_header() - Generate the packed representation of a slab block
+ *                                        header.
  * @header: The header containing the values to encode.
  * @packed: The header into which to pack the values.
  */
@@ -144,13 +140,11 @@ vdo_pack_slab_journal_block_header(const struct slab_journal_block_header *heade
 	packed->metadata_type = header->metadata_type;
 	packed->has_block_map_increments = header->has_block_map_increments;
 
-	vdo_pack_journal_point(&header->recovery_point,
-			       &packed->recovery_point);
+	vdo_pack_journal_point(&header->recovery_point, &packed->recovery_point);
 }
 
 /**
- * vdo_unpack_slab_journal_entry() - Decode the packed representation of a
- *                                   slab journal entry.
+ * vdo_unpack_slab_journal_entry() - Decode the packed representation of a slab journal entry.
  * @packed: The packed entry to decode.
  *
  * Return: The decoded slab journal entry.
@@ -165,8 +159,8 @@ vdo_unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
 	entry.sbn |= packed->offset_mid8;
 	entry.sbn <<= 8;
 	entry.sbn |= packed->offset_low8;
-	entry.operation = (packed->increment ? VDO_JOURNAL_DATA_INCREMENT
-					     : VDO_JOURNAL_DATA_DECREMENT);
+	entry.operation =
+		(packed->increment ? VDO_JOURNAL_DATA_INCREMENT : VDO_JOURNAL_DATA_DECREMENT);
 	return entry;
 }
 

@@ -25,10 +25,9 @@ enum slab_rebuild_status {
 };
 
 /*
- * This is the type declaration for the vdo_slab type. A vdo_slab currently
- * consists of a run of 2^23 data blocks, but that will soon change to
- * dedicate a small number of those blocks for metadata storage for the
- * reference counts and slab journal for the slab.
+ * This is the type declaration for the vdo_slab type. A vdo_slab currently consists of a run of
+ * 2^23 data blocks, but that will soon change to dedicate a small number of those blocks for
+ * metadata storage for the reference counts and slab journal for the slab.
  */
 struct vdo_slab {
 	/* A list entry to queue this slab in a block_allocator list */
@@ -44,10 +43,7 @@ struct vdo_slab {
 
 	/* The slab number of this slab */
 	slab_count_t slab_number;
-	/*
-	 * The offset in the allocator partition of the first block in this
-	 * slab
-	 */
+	/* The offset in the allocator partition of the first block in this slab */
 	physical_block_number_t start;
 	/* The offset of the first block past the end of this slab */
 	physical_block_number_t end;
@@ -68,8 +64,7 @@ struct vdo_slab {
 };
 
 /**
- * vdo_slab_from_list_entry() - Convert a vdo_slab's list entry back to the
- *                              vdo_slab.
+ * vdo_slab_from_list_entry() - Convert a vdo_slab's list entry back to the vdo_slab.
  * @entry: The list entry to convert.
  *
  * Return: The list entry as a vdo_slab.
@@ -97,8 +92,7 @@ void vdo_mark_slab_unrecovered(struct vdo_slab *slab);
 
 void vdo_open_slab(struct vdo_slab *slab);
 
-block_count_t __must_check
-get_slab_free_block_count(const struct vdo_slab *slab);
+block_count_t __must_check get_slab_free_block_count(const struct vdo_slab *slab);
 
 int __must_check
 vdo_modify_slab_reference_count(struct vdo_slab *slab,

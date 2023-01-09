@@ -23,9 +23,8 @@ struct slab_scrubber {
 	struct wait_queue waiters;
 
 	/*
-	 * The number of slabs that are unrecovered or being scrubbed. This
-	 * field is modified by the physical zone thread, but is queried by
-	 * other threads.
+	 * The number of slabs that are unrecovered or being scrubbed. This field is modified by
+	 * the physical zone thread, but is queried by other threads.
 	 */
 	slab_count_t slab_count;
 
@@ -43,11 +42,10 @@ struct slab_scrubber {
 	char *journal_data;
 };
 
-int __must_check
-vdo_make_slab_scrubber(struct vdo *vdo,
-		       block_count_t slab_journal_size,
-		       struct read_only_notifier *read_only_notifier,
-		       struct slab_scrubber **scrubber_ptr);
+int __must_check vdo_make_slab_scrubber(struct vdo *vdo,
+					block_count_t slab_journal_size,
+					struct read_only_notifier *read_only_notifier,
+					struct slab_scrubber **scrubber_ptr);
 
 void vdo_free_slab_scrubber(struct slab_scrubber *scrubber);
 
@@ -66,17 +64,13 @@ void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 				   vdo_action *callback,
 				   vdo_action *error_handler);
 
-void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber,
-			     struct vdo_completion *parent);
+void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber, struct vdo_completion *parent);
 
-void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber,
-			       struct vdo_completion *parent);
+void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber, struct vdo_completion *parent);
 
-int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
-				  struct waiter *waiter);
+int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber, struct waiter *waiter);
 
-slab_count_t __must_check
-vdo_get_scrubber_slab_count(const struct slab_scrubber *scrubber);
+slab_count_t __must_check vdo_get_scrubber_slab_count(const struct slab_scrubber *scrubber);
 
 void vdo_dump_slab_scrubber(const struct slab_scrubber *scrubber);
 

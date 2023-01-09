@@ -18,30 +18,26 @@
 #include "wait-queue.h"
 
 /*
- * The slab_summary provides hints during load and recovery about the state
- * of the slabs in order to avoid the need to read the slab journals in their
- * entirety before a VDO can come online.
+ * The slab_summary provides hints during load and recovery about the state of the slabs in order
+ * to avoid the need to read the slab journals in their entirety before a VDO can come online.
  *
- * The information in the summary for each slab includes the rough number of
- * free blocks (which is used to prioritize scrubbing), the cleanliness of a
- * slab (so that clean slabs containing free space will be used on restart),
- * and the location of the tail block of the slab's journal.
+ * The information in the summary for each slab includes the rough number of free blocks (which is
+ * used to prioritize scrubbing), the cleanliness of a slab (so that clean slabs containing free
+ * space will be used on restart), and the location of the tail block of the slab's journal.
  *
- * The slab_summary has its own partition at the end of the volume which is
- * sized to allow for a complete copy of the summary for each of up to 16
- * physical zones.
+ * The slab_summary has its own partition at the end of the volume which is sized to allow for a
+ * complete copy of the summary for each of up to 16 physical zones.
  *
- * During resize, the slab_summary moves its backing partition and is saved
- * once moved; the slab_summary is not permitted to overwrite the previous
- * recovery journal space.
+ * During resize, the slab_summary moves its backing partition and is saved once moved; the
+ * slab_summary is not permitted to overwrite the previous recovery journal space.
  *
- * The slab_summary does not have its own version information, but relies on
- * the VDO volume version number.
+ * The slab_summary does not have its own version information, but relies on the VDO volume version
+ * number.
  */
 
 /*
- * A slab status is a very small structure for use in determining the ordering
- * of slabs in the scrubbing process.
+ * A slab status is a very small structure for use in determining the ordering of slabs in the
+ * scrubbing process.
  */
 struct slab_status {
 	slab_count_t slab_number;
@@ -69,9 +65,9 @@ struct slab_summary_block {
 };
 
 /*
- * The statistics for all the slab summary zones owned by this slab summary.
- * These fields are all mutated only by their physical zone threads, but are
- * read by other threads when gathering statistics for the entire depot.
+ * The statistics for all the slab summary zones owned by this slab summary. These fields are all
+ * mutated only by their physical zone threads, but are read by other threads when gathering
+ * statistics for the entire depot.
  */
 struct atomic_slab_summary_statistics {
 	/* Number of blocks written */
@@ -110,9 +106,7 @@ struct slab_summary {
 	slab_count_t entries_per_block;
 	/* The entries for all of the zones the partition can hold */
 	struct slab_summary_entry *entries;
-	/*
-	 * The number of zones which were active at the time of the last update
-	 */
+	/* The number of zones which were active at the time of the last update */
 	zone_count_t zones_to_combine;
 	/* The current number of active zones */
 	zone_count_t zone_count;
@@ -120,14 +114,13 @@ struct slab_summary {
 	struct slab_summary_zone *zones[];
 };
 
-int __must_check
-vdo_make_slab_summary(struct vdo *vdo,
-		      struct partition *partition,
-		      const struct thread_config *thread_config,
-		      unsigned int slab_size_shift,
-		      block_count_t maximum_free_blocks_per_slab,
-		      struct read_only_notifier *read_only_notifier,
-		      struct slab_summary **slab_summary_ptr);
+int __must_check vdo_make_slab_summary(struct vdo *vdo,
+				       struct partition *partition,
+				       const struct thread_config *thread_config,
+				       unsigned int slab_size_shift,
+				       block_count_t maximum_free_blocks_per_slab,
+				       struct read_only_notifier *read_only_notifier,
+				       struct slab_summary **slab_summary_ptr);
 
 void vdo_free_slab_summary(struct slab_summary *summary);
 
@@ -153,12 +146,11 @@ tail_block_offset_t __must_check
 vdo_get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
 				     slab_count_t slab_number);
 
-bool __must_check vdo_must_load_ref_counts(struct slab_summary_zone *summary_zone,
-					   slab_count_t slab_number);
+bool __must_check
+vdo_must_load_ref_counts(struct slab_summary_zone *summary_zone, slab_count_t slab_number);
 
 bool __must_check
-vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone,
-			       slab_count_t slab_number);
+vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone, slab_count_t slab_number);
 
 block_count_t __must_check
 vdo_get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
@@ -168,8 +160,7 @@ void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
 				      slab_count_t slab_count,
 				      struct slab_status *statuses);
 
-void vdo_set_slab_summary_origin(struct slab_summary *summary,
-				 struct partition *partition);
+void vdo_set_slab_summary_origin(struct slab_summary *summary, struct partition *partition);
 
 void vdo_load_slab_summary(struct slab_summary *summary,
 			   const struct admin_state_code *operation,
