@@ -34,8 +34,8 @@ struct index_zone {
 	struct uds_index *index;
 	struct open_chapter_zone *open_chapter;
 	struct open_chapter_zone *writing_chapter;
-	uint64_t oldest_virtual_chapter;
-	uint64_t newest_virtual_chapter;
+	u64 oldest_virtual_chapter;
+	u64 newest_virtual_chapter;
 	unsigned int id;
 };
 
@@ -49,11 +49,11 @@ struct uds_index {
 	unsigned int zone_count;
 	struct index_zone **zones;
 
-	uint64_t oldest_virtual_chapter;
-	uint64_t newest_virtual_chapter;
+	u64 oldest_virtual_chapter;
+	u64 newest_virtual_chapter;
 
-	uint64_t last_save;
-	uint64_t prev_save;
+	u64 last_save;
+	u64 prev_save;
 	struct chapter_writer *chapter_writer;
 
 	index_callback_t callback;

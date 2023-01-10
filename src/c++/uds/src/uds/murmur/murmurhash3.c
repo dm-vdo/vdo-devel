@@ -11,13 +11,13 @@
 #endif
 #include <linux/murmurhash3.h>
 
-static inline uint64_t rotl64(uint64_t x, int8_t r)
+static inline u64 rotl64(u64 x, s8 r)
 {
 	return (x << r) | (x >> (64 - r));
 }
 
 #define ROTL64(x, y) rotl64(x, y)
-static __always_inline uint64_t getblock64(const uint64_t *p, int i)
+static __always_inline u64 getblock64(const u64 *p, int i)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	return p[i];
@@ -28,7 +28,7 @@ static __always_inline uint64_t getblock64(const uint64_t *p, int i)
 #endif
 }
 
-static __always_inline void putblock64(uint64_t *p, int i, uint64_t value)
+static __always_inline void putblock64(u64 *p, int i, u64 value)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	p[i] = value;
@@ -41,7 +41,7 @@ static __always_inline void putblock64(uint64_t *p, int i, uint64_t value)
 
 /* Finalization mix - force all bits of a hash block to avalanche */
 
-static __always_inline uint64_t fmix64(uint64_t k)
+static __always_inline u64 fmix64(u64 k)
 {
 	k ^= k >> 33;
 	k *= 0xff51afd7ed558ccdLLU;
@@ -52,27 +52,26 @@ static __always_inline uint64_t fmix64(uint64_t k)
 	return k;
 }
 
-void murmurhash3_128(const void *key, const int len, const uint32_t seed,
-			  void *out)
+void murmurhash3_128(const void *key, const int len, const u32 seed, void *out)
 {
-	const uint8_t *data = (const uint8_t *)key;
+	const u8 *data = (const u8 *)key;
 	const int nblocks = len / 16;
 
-	uint64_t h1 = seed;
-	uint64_t h2 = seed;
+	u64 h1 = seed;
+	u64 h2 = seed;
 
-	const uint64_t c1 = 0x87c37b91114253d5LLU;
-	const uint64_t c2 = 0x4cf5ad432745937fLLU;
+	const u64 c1 = 0x87c37b91114253d5LLU;
+	const u64 c2 = 0x4cf5ad432745937fLLU;
 
 	/* body */
 
-	const uint64_t *blocks = (const uint64_t *)(data);
+	const u64 *blocks = (const u64 *)(data);
 
 	int i;
 
 	for (i = 0; i < nblocks; i++) {
-		uint64_t k1 = getblock64(blocks, i * 2 + 0);
-		uint64_t k2 = getblock64(blocks, i * 2 + 1);
+		u64 k1 = getblock64(blocks, i * 2 + 0);
+		u64 k2 = getblock64(blocks, i * 2 + 1);
 
 		k1 *= c1;
 		k1 = ROTL64(k1, 31);
@@ -96,32 +95,32 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 	/* tail */
 
 	{
-		const uint8_t *tail = (const uint8_t *)(data + nblocks * 16);
+		const u8 *tail = (const u8 *)(data + nblocks * 16);
 
-		uint64_t k1 = 0;
-		uint64_t k2 = 0;
+		u64 k1 = 0;
+		u64 k2 = 0;
 
 		switch (len & 15) {
 		case 15:
-			k2 ^= ((uint64_t)tail[14]) << 48;
+			k2 ^= ((u64)tail[14]) << 48;
 			fallthrough;
 		case 14:
-			k2 ^= ((uint64_t)tail[13]) << 40;
+			k2 ^= ((u64)tail[13]) << 40;
 			fallthrough;
 		case 13:
-			k2 ^= ((uint64_t)tail[12]) << 32;
+			k2 ^= ((u64)tail[12]) << 32;
 			fallthrough;
 		case 12:
-			k2 ^= ((uint64_t)tail[11]) << 24;
+			k2 ^= ((u64)tail[11]) << 24;
 			fallthrough;
 		case 11:
-			k2 ^= ((uint64_t)tail[10]) << 16;
+			k2 ^= ((u64)tail[10]) << 16;
 			fallthrough;
 		case 10:
-			k2 ^= ((uint64_t)tail[9]) << 8;
+			k2 ^= ((u64)tail[9]) << 8;
 			fallthrough;
 		case 9:
-			k2 ^= ((uint64_t)tail[8]) << 0;
+			k2 ^= ((u64)tail[8]) << 0;
 			k2 *= c2;
 			k2 = ROTL64(k2, 33);
 			k2 *= c1;
@@ -129,28 +128,28 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 			fallthrough;
 
 		case 8:
-			k1 ^= ((uint64_t)tail[7]) << 56;
+			k1 ^= ((u64)tail[7]) << 56;
 			fallthrough;
 		case 7:
-			k1 ^= ((uint64_t)tail[6]) << 48;
+			k1 ^= ((u64)tail[6]) << 48;
 			fallthrough;
 		case 6:
-			k1 ^= ((uint64_t)tail[5]) << 40;
+			k1 ^= ((u64)tail[5]) << 40;
 			fallthrough;
 		case 5:
-			k1 ^= ((uint64_t)tail[4]) << 32;
+			k1 ^= ((u64)tail[4]) << 32;
 			fallthrough;
 		case 4:
-			k1 ^= ((uint64_t)tail[3]) << 24;
+			k1 ^= ((u64)tail[3]) << 24;
 			fallthrough;
 		case 3:
-			k1 ^= ((uint64_t)tail[2]) << 16;
+			k1 ^= ((u64)tail[2]) << 16;
 			fallthrough;
 		case 2:
-			k1 ^= ((uint64_t)tail[1]) << 8;
+			k1 ^= ((u64)tail[1]) << 8;
 			fallthrough;
 		case 1:
-			k1 ^= ((uint64_t)tail[0]) << 0;
+			k1 ^= ((u64)tail[0]) << 0;
 			k1 *= c1;
 			k1 = ROTL64(k1, 31);
 			k1 *= c2;
@@ -174,8 +173,8 @@ void murmurhash3_128(const void *key, const int len, const uint32_t seed,
 	h1 += h2;
 	h2 += h1;
 
-	putblock64((uint64_t *)out, 0, h1);
-	putblock64((uint64_t *)out, 1, h2);
+	putblock64((u64 *)out, 0, h1);
+	putblock64((u64 *)out, 1, h2);
 }
 #ifdef __KERNEL__
 EXPORT_SYMBOL(murmurhash3_128);

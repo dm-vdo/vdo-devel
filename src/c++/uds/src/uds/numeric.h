@@ -22,61 +22,61 @@
 static inline void decode_int64_le(const uint8_t *buffer, size_t *offset, int64_t *decoded)
 {
 	*decoded = get_unaligned_le64(buffer + *offset);
-	*offset += sizeof(int64_t);
+	*offset += sizeof(s64);
 }
 
 static inline void encode_int64_le(uint8_t *data, size_t *offset, int64_t to_encode)
 {
 	put_unaligned_le64(to_encode, data + *offset);
-	*offset += sizeof(int64_t);
+	*offset += sizeof(s64);
 }
 
 static inline void decode_uint64_le(const uint8_t *buffer, size_t *offset, uint64_t *decoded)
 {
 	*decoded = get_unaligned_le64(buffer + *offset);
-	*offset += sizeof(uint64_t);
+	*offset += sizeof(u64);
 }
 
 static inline void encode_uint64_le(uint8_t *data, size_t *offset, uint64_t to_encode)
 {
 	put_unaligned_le64(to_encode, data + *offset);
-	*offset += sizeof(uint64_t);
+	*offset += sizeof(u64);
 }
 
 static inline void decode_int32_le(const uint8_t *buffer, size_t *offset, int32_t *decoded)
 {
 	*decoded = get_unaligned_le32(buffer + *offset);
-	*offset += sizeof(int32_t);
+	*offset += sizeof(s32);
 }
 
 static inline void encode_int32_le(uint8_t *data, size_t *offset, int32_t to_encode)
 {
 	put_unaligned_le32(to_encode, data + *offset);
-	*offset += sizeof(int32_t);
+	*offset += sizeof(s32);
 }
 
 static inline void decode_uint32_le(const uint8_t *buffer, size_t *offset, uint32_t *decoded)
 {
 	*decoded = get_unaligned_le32(buffer + *offset);
-	*offset += sizeof(uint32_t);
+	*offset += sizeof(u32);
 }
 
 static inline void encode_uint32_le(uint8_t *data, size_t *offset, uint32_t to_encode)
 {
 	put_unaligned_le32(to_encode, data + *offset);
-	*offset += sizeof(uint32_t);
+	*offset += sizeof(u32);
 }
 
 static inline void decode_uint16_le(const uint8_t *buffer, size_t *offset, uint16_t *decoded)
 {
 	*decoded = get_unaligned_le16(buffer + *offset);
-	*offset += sizeof(uint16_t);
+	*offset += sizeof(u16);
 }
 
 static inline void encode_uint16_le(uint8_t *data, size_t *offset, uint16_t to_encode)
 {
 	put_unaligned_le16(to_encode, data + *offset);
-	*offset += sizeof(uint16_t);
+	*offset += sizeof(u16);
 }
 
 #endif /* NUMERIC_H */

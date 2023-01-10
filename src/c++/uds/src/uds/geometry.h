@@ -28,9 +28,9 @@ struct geometry {
 	/* Number of bits used to determine delta list numbers */
 	unsigned int chapter_delta_list_bits;
 	/* Virtual chapter remapped from physical chapter 0 */
-	uint64_t remapped_virtual;
+	u64 remapped_virtual;
 	/* New physical chapter where the remapped chapter can be found */
-	uint64_t remapped_physical;
+	u64 remapped_physical;
 
 	/*
 	 * The following properties are derived from the ones above, but they are computed and
@@ -51,7 +51,7 @@ struct geometry {
 	/* Number of records that fit in a chapter */
 	unsigned int records_per_chapter;
 	/* Number of records that fit in a volume */
-	uint64_t records_per_volume;
+	u64 records_per_volume;
 	/* Number of delta lists per chapter index */
 	unsigned int delta_lists_per_chapter;
 	/* Mean delta for chapter indexes */
@@ -100,8 +100,8 @@ int __must_check make_geometry(size_t bytes_per_page,
 			       unsigned int record_pages_per_chapter,
 			       unsigned int chapters_per_volume,
 			       unsigned int sparse_chapters_per_volume,
-			       uint64_t remapped_virtual,
-			       uint64_t remapped_physical,
+			       u64 remapped_virtual,
+			       u64 remapped_physical,
 			       struct geometry **geometry_ptr);
 
 int __must_check copy_geometry(struct geometry *source, struct geometry **geometry_ptr);
@@ -109,7 +109,7 @@ int __must_check copy_geometry(struct geometry *source, struct geometry **geomet
 void free_geometry(struct geometry *geometry);
 
 unsigned int __must_check
-map_to_physical_chapter(const struct geometry *geometry, uint64_t virtual_chapter);
+map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
 
 /*
  * Check whether this geometry is reduced by a chapter. This will only be true if the volume was
@@ -126,15 +126,14 @@ static inline bool __must_check is_sparse_geometry(const struct geometry *geomet
 }
 
 bool __must_check has_sparse_chapters(const struct geometry *geometry,
-				      uint64_t oldest_virtual_chapter,
-				      uint64_t newest_virtual_chapter);
+				      u64 oldest_virtual_chapter,
+				      u64 newest_virtual_chapter);
 
 bool __must_check is_chapter_sparse(const struct geometry *geometry,
-				    uint64_t oldest_virtual_chapter,
-				    uint64_t newest_virtual_chapter,
-				    uint64_t virtual_chapter_number);
+				    u64 oldest_virtual_chapter,
+				    u64 newest_virtual_chapter,
+				    u64 virtual_chapter_number);
 
-unsigned int __must_check
-chapters_to_expire(const struct geometry *geometry, uint64_t newest_chapter);
+unsigned int __must_check chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
 
 #endif /* GEOMETRY_H */

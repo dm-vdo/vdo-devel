@@ -88,7 +88,7 @@ static noinline void assertSavedBefore(const struct delta_index_entry *entry)
 static void validateDeltaIndex(const struct delta_index *delta_index)
 {
   unsigned int z;
- 
+
  for (z = 0; z < delta_index->zone_count; z++) {
     validateDeltaLists(&delta_index->delta_zones[z]);
   }
@@ -467,7 +467,7 @@ static void overflowTest(void)
   // How big was that entry?  We expect that all subsequent entries have
   // the same size, and compute the expected number of entries accordingly.
   int entrySize = get_delta_index_bits_used(&di);
-  unsigned int entryCount = UINT16_MAX / entrySize;
+  unsigned int entryCount = U16_MAX / entrySize;
 
   // Fill the index with more records, each with a delta of 1
   unsigned int key;

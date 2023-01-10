@@ -143,7 +143,7 @@ struct uds_parameters {
 	/* Whether the index should include sparse chapters */
 	bool sparse;
 	/* A 64-bit nonce to validate the index */
-	uint64_t nonce;
+	u64 nonce;
 	/* The number of threads used to process index requests */
 	unsigned int zone_count;
 	/* The number of threads used to read volume pages */
@@ -156,46 +156,46 @@ struct uds_parameters {
  */
 struct uds_index_stats {
 	/* The total number of records stored in the index */
-	uint64_t entries_indexed;
+	u64 entries_indexed;
 	/* An estimate of the index's memory usage, in bytes */
-	uint64_t memory_used;
+	u64 memory_used;
 	/* The number of collisions recorded in the volume index */
-	uint64_t collisions;
+	u64 collisions;
 	/* The number of entries discarded from the index since startup */
-	uint64_t entries_discarded;
+	u64 entries_discarded;
 	/* The time at which these statistics were fetched */
-	int64_t current_time;
+	s64 current_time;
 	/* The number of post calls that found an existing entry */
-	uint64_t posts_found;
+	u64 posts_found;
 	/* The number of post calls that added an entry */
-	uint64_t posts_not_found;
+	u64 posts_not_found;
 	/*
 	 * The number of post calls that found an existing entry that is current enough to only
 	 * exist in memory and not have been committed to disk yet
 	 */
-	uint64_t in_memory_posts_found;
+	u64 in_memory_posts_found;
 	/*
 	 * The number of post calls that found an existing entry in the dense portion of the index
 	 */
-	uint64_t dense_posts_found;
+	u64 dense_posts_found;
 	/*
 	 * The number of post calls that found an existing entry in the sparse portion of the index
 	 */
-	uint64_t sparse_posts_found;
+	u64 sparse_posts_found;
 	/* The number of update calls that updated an existing entry */
-	uint64_t updates_found;
+	u64 updates_found;
 	/* The number of update calls that added a new entry */
-	uint64_t updates_not_found;
+	u64 updates_not_found;
 	/* The number of delete requests that deleted an existing entry */
-	uint64_t deletions_found;
+	u64 deletions_found;
 	/* The number of delete requests that did nothing */
-	uint64_t deletions_not_found;
+	u64 deletions_not_found;
 	/* The number of query calls that found existing entry */
-	uint64_t queries_found;
+	u64 queries_found;
 	/* The number of query calls that did not find an entry */
-	uint64_t queries_not_found;
+	u64 queries_not_found;
 	/* The total number of requests processed */
-	uint64_t requests;
+	u64 requests;
 };
 
 enum uds_index_region {
@@ -229,7 +229,7 @@ struct uds_zone_message {
 	/* The type of message, determining how it will be processed */
 	enum uds_zone_message_type type;
 	/* The virtual chapter number to which the message applies */
-	uint64_t virtual_chapter;
+	u64 virtual_chapter;
 };
 
 struct uds_index_session;
@@ -282,14 +282,13 @@ struct uds_request {
 	/* If true, continue this request before processing newer requests */
 	bool requeued;
 	/* The virtual chapter containing the record name, if known */
-	uint64_t virtual_chapter;
+	u64 virtual_chapter;
 	/* The region of the index containing the record name */
 	enum uds_index_region location;
 };
 
 /* Compute the number of bytes needed to store an index. */
-int __must_check
-uds_compute_index_size(const struct uds_parameters *parameters, uint64_t *index_size);
+int __must_check uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size);
 
 /* A session is required for most index operations. */
 int __must_check uds_create_index_session(struct uds_index_session **session);

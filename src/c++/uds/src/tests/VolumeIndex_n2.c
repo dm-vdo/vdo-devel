@@ -189,7 +189,7 @@ static void verifyVolumeIndex(TestMI *testmi)
     if (is_volume_index_sample(testmi->mi, &name)) {
       CU_ASSERT_EQUAL(virtual_chapter, chapter);
     } else {
-      CU_ASSERT_EQUAL(virtual_chapter, UINT64_MAX);
+      CU_ASSERT_EQUAL(virtual_chapter, U64_MAX);
     }
   }
 }
@@ -357,7 +357,7 @@ static void threadLookup(void *arg)
       struct uds_record_name name
         = murmurHashChunkName(&counter, sizeof(counter), 0);
       uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
-      if (virtual_chapter != UINT64_MAX) {
+      if (virtual_chapter != U64_MAX) {
         uint64_t chapter = counter / testmi->geometry.records_per_chapter;
         CU_ASSERT_EQUAL(virtual_chapter, chapter);
       }

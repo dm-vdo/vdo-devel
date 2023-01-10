@@ -87,8 +87,8 @@ struct split_config {
 };
 
 struct volume_sub_index_zone {
-	uint64_t virtual_chapter_low;
-	uint64_t virtual_chapter_high;
+	u64 virtual_chapter_low;
+	u64 virtual_chapter_high;
 	long num_early_flushes;
 } __aligned(L1_CACHE_BYTES);
 
@@ -96,15 +96,15 @@ struct volume_sub_index {
 	/* The delta index */
 	struct delta_index delta_index;
 	/* The first chapter to be flushed in each zone */
-	uint64_t *flush_chapters;
+	u64 *flush_chapters;
 	/* The zones */
 	struct volume_sub_index_zone *zones;
 	/* The volume nonce */
-	uint64_t volume_nonce;
+	u64 volume_nonce;
 	/* Expected size of a chapter (per zone) */
-	uint64_t chapter_zone_bits;
+	u64 chapter_zone_bits;
 	/* Maximum size of the index (per zone) */
-	uint64_t max_zone_bits;
+	u64 max_zone_bits;
 	/* The number of bits in address mask */
 	unsigned int address_bits;
 	/* Mask to get address within delta list */
@@ -144,9 +144,9 @@ static const char MAGIC_START_5[] = "MI5-0005";
 
 struct sub_index_data {
 	char magic[MAGIC_SIZE]; /* MAGIC_START_5 */
-	uint64_t volume_nonce;
-	uint64_t virtual_chapter_low;
-	uint64_t virtual_chapter_high;
+	u64 volume_nonce;
+	u64 virtual_chapter_low;
+	u64 virtual_chapter_high;
 	unsigned int first_list;
 	unsigned int num_lists;
 };
@@ -178,7 +178,7 @@ extract_address(const struct volume_sub_index *sub_index, const struct uds_recor
 static inline unsigned int
 extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
 {
-	uint64_t bits = extract_volume_index_bytes(name);
+	u64 bits = extract_volume_index_bytes(name);
 
 	return (bits >> sub_index->address_bits) % sub_index->num_delta_lists;
 }
@@ -189,7 +189,7 @@ get_zone_for_record(const struct volume_index_record *record)
 	return &record->sub_index->zones[record->zone_number];
 }
 
-static inline uint64_t
+static inline u64
 convert_index_to_virtual(const struct volume_index_record *record, unsigned int index_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
@@ -200,13 +200,13 @@ convert_index_to_virtual(const struct volume_index_record *record, unsigned int 
 }
 
 static inline unsigned int
-convert_virtual_to_index(const struct volume_sub_index *sub_index, uint64_t virtual_chapter)
+convert_virtual_to_index(const struct volume_sub_index *sub_index, u64 virtual_chapter)
 {
 	return virtual_chapter & sub_index->chapter_mask;
 }
 
 static inline bool
-is_virtual_chapter_indexed(const struct volume_index_record *record, uint64_t virtual_chapter)
+is_virtual_chapter_indexed(const struct volume_index_record *record, u64 virtual_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 
@@ -262,7 +262,7 @@ static int compute_volume_index_parameters(const struct configuration *config,
 	unsigned long rounded_chapters;
 	unsigned long delta_list_records;
 	unsigned int num_addresses;
-	uint64_t num_bits_per_index;
+	u64 num_bits_per_index;
 	size_t expected_index_size;
 	unsigned long min_delta_lists = MAX_ZONES * MAX_ZONES;
 	struct geometry *geometry = config->geometry;
@@ -330,7 +330,7 @@ static int compute_volume_index_parameters(const struct configuration *config,
 	chapters_in_volume_index = rounded_chapters + invalid_chapters;
 	entries_in_volume_index = records_per_chapter * chapters_in_volume_index;
 
-	address_span = (uint64_t) params->num_delta_lists << params->address_bits;
+	address_span = (u64) params->num_delta_lists << params->address_bits;
 	params->mean_delta = address_span / entries_in_volume_index;
 
 	/*
@@ -388,15 +388,15 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 		return result;
 
 	*num_bytes = (sizeof(struct sub_index_data) +
-		      params.num_delta_lists * sizeof(uint64_t) +
+		      params.num_delta_lists * sizeof(u64) +
 		      compute_delta_index_save_bytes(params.num_delta_lists, params.memory_size));
 	return UDS_SUCCESS;
 }
 
 static int split_configuration(const struct configuration *config, struct split_config *split)
 {
-	uint64_t sample_rate, num_chapters, num_sparse_chapters;
-	uint64_t num_dense_chapters, sample_records;
+	u64 sample_rate, num_chapters, num_sparse_chapters;
+	u64 num_dense_chapters, sample_records;
 	int result;
 
 	result = ASSERT(config->geometry->sparse_chapters_per_volume != 0,
@@ -456,7 +456,7 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 
 int compute_volume_index_save_blocks(const struct configuration *config,
 				     size_t block_size,
-				     uint64_t *block_count)
+				     u64 *block_count)
 {
 	size_t num_bytes;
 	int result;
@@ -587,7 +587,7 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 	const struct volume_sub_index_zone *volume_index_zone;
 	unsigned int address = extract_address(sub_index, name);
 	unsigned int delta_list_number = extract_dlist_num(sub_index, name);
-	uint64_t flush_chapter = sub_index->flush_chapters[delta_list_number];
+	u64 flush_chapter = sub_index->flush_chapters[delta_list_number];
 
 	record->magic = volume_index_record_magic;
 	record->sub_index = sub_index;
@@ -598,7 +598,7 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 
 	if (flush_chapter < volume_index_zone->virtual_chapter_low) {
 		struct chapter_range range;
-		uint64_t flush_count = volume_index_zone->virtual_chapter_low - flush_chapter;
+		u64 flush_count = volume_index_zone->virtual_chapter_low - flush_chapter;
 
 		range.chapter_start = convert_virtual_to_index(sub_index, flush_chapter);
 		range.chapter_count = (flush_count > sub_index->chapter_mask ?
@@ -654,7 +654,7 @@ int get_volume_index_record(struct volume_index *volume_index,
 	return result;
 }
 
-int put_volume_index_record(struct volume_index_record *record, uint64_t virtual_chapter)
+int put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter)
 {
 	int result;
 	unsigned int address;
@@ -728,9 +728,9 @@ int remove_volume_index_record(struct volume_index_record *record)
 
 static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_index,
 						   unsigned int zone_number,
-						   uint64_t virtual_chapter)
+						   u64 virtual_chapter)
 {
-	uint64_t used_bits;
+	u64 used_bits;
 	struct volume_sub_index_zone *zone = &sub_index->zones[zone_number];
 
 	zone->virtual_chapter_low = (virtual_chapter >= sub_index->num_chapters ?
@@ -742,7 +742,7 @@ static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_
 	used_bits = get_delta_zone_bits_used(&sub_index->delta_index, zone_number);
 	if (used_bits > sub_index->max_zone_bits) {
 		/* Expire enough chapters to free the desired space. */
-		uint64_t expire_count =
+		u64 expire_count =
 			1 + (used_bits - sub_index->max_zone_bits) / sub_index->chapter_zone_bits;
 
 		if (expire_count == 1) {
@@ -754,7 +754,7 @@ static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_
 			zone->num_early_flushes++;
 			zone->virtual_chapter_low++;
 		} else {
-			uint64_t first_expired = zone->virtual_chapter_low;
+			u64 first_expired = zone->virtual_chapter_low;
 
 			if (first_expired + expire_count < zone->virtual_chapter_high) {
 				zone->num_early_flushes += expire_count;
@@ -776,7 +776,7 @@ static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_
 
 void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					unsigned int zone_number,
-					uint64_t virtual_chapter)
+					u64 virtual_chapter)
 {
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
 
@@ -801,7 +801,7 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
  * Set the newest open chapter number for the index, while also advancing the oldest valid chapter
  * number.
  */
-void set_volume_index_open_chapter(struct volume_index *volume_index, uint64_t virtual_chapter)
+void set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter)
 {
 	unsigned int zone;
 
@@ -809,7 +809,7 @@ void set_volume_index_open_chapter(struct volume_index *volume_index, uint64_t v
 		set_volume_index_zone_open_chapter(volume_index, zone, virtual_chapter);
 }
 
-int set_volume_index_record_chapter(struct volume_index_record *record, uint64_t virtual_chapter)
+int set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter)
 {
 	const struct volume_sub_index *sub_index = record->sub_index;
 	int result;
@@ -843,15 +843,15 @@ static void set_volume_index_tag(struct volume_sub_index *sub_index, byte tag)
 	set_delta_index_tag(&sub_index->delta_index, tag);
 }
 
-static uint64_t lookup_volume_sub_index_name(const struct volume_sub_index *sub_index,
-					     const struct uds_record_name *name)
+static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index,
+					const struct uds_record_name *name)
 {
 	int result;
 	unsigned int address = extract_address(sub_index, name);
 	unsigned int delta_list_number = extract_dlist_num(sub_index, name);
 	unsigned int zone_number = get_volume_sub_index_zone(sub_index, name);
 	const struct volume_sub_index_zone *zone = &sub_index->zones[zone_number];
-	uint64_t virtual_chapter;
+	u64 virtual_chapter;
 	unsigned int index_chapter;
 	unsigned int rolling_chapter;
 	struct delta_index_entry delta_entry;
@@ -862,31 +862,31 @@ static uint64_t lookup_volume_sub_index_name(const struct volume_sub_index *sub_
 				       name->name,
 				       &delta_entry);
 	if (result != UDS_SUCCESS)
-		return UINT64_MAX;
+		return U64_MAX;
 
 	if (delta_entry.at_end || (delta_entry.key != address))
-		return UINT64_MAX;
+		return U64_MAX;
 
 	index_chapter = get_delta_entry_value(&delta_entry);
 	rolling_chapter = ((index_chapter - zone->virtual_chapter_low) & sub_index->chapter_mask);
 
 	virtual_chapter = zone->virtual_chapter_low + rolling_chapter;
 	if (virtual_chapter > zone->virtual_chapter_high)
-		return UINT64_MAX;
+		return U64_MAX;
 
 	return virtual_chapter;
 }
 
 /* Do a read-only lookup of the record name for sparse cache management. */
-uint64_t lookup_volume_index_name(const struct volume_index *volume_index,
-				  const struct uds_record_name *name)
+u64 lookup_volume_index_name(const struct volume_index *volume_index,
+			     const struct uds_record_name *name)
 {
 	unsigned int zone_number = get_volume_index_zone(volume_index, name);
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
-	uint64_t virtual_chapter;
+	u64 virtual_chapter;
 
 	if (!is_volume_index_sample(volume_index, name))
-		return UINT64_MAX;
+		return U64_MAX;
 
 	uds_lock_mutex(mutex);
 	virtual_chapter = lookup_volume_sub_index_name(&volume_index->vi_hook, name);
@@ -946,8 +946,8 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 {
 	unsigned int z;
 	int result;
-	uint64_t *first_flush_chapter;
-	uint64_t virtual_chapter_low = 0, virtual_chapter_high = 0;
+	u64 *first_flush_chapter;
+	u64 virtual_chapter_low = 0, virtual_chapter_high = 0;
 	unsigned int i;
 
 	if (sub_index == NULL)
@@ -1009,7 +1009,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		}
 
 		first_flush_chapter = &sub_index->flush_chapters[header.first_list];
-		result = make_buffer(header.num_lists * sizeof(uint64_t), &buffer);
+		result = make_buffer(header.num_lists * sizeof(u64), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1226,7 +1226,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 	unsigned int first_list = get_delta_zone_first_list(&sub_index->delta_index, zone_number);
 	unsigned int num_lists = get_delta_zone_list_count(&sub_index->delta_index, zone_number);
 	struct sub_index_data header;
-	uint64_t *first_flush_chapter;
+	u64 *first_flush_chapter;
 	struct buffer *buffer;
 
 	memset(&header, 0, sizeof(header));
@@ -1254,7 +1254,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write volume index header");
 
-	result = make_buffer(num_lists * sizeof(uint64_t), &buffer);
+	result = make_buffer(num_lists * sizeof(u64), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1389,7 +1389,7 @@ static void get_volume_sub_index_stats(const struct volume_sub_index *sub_index,
 
 	get_delta_index_stats(&sub_index->delta_index, &dis);
 	stats->memory_allocated = (dis.memory_allocated + sizeof(struct volume_sub_index) +
-				   sub_index->num_delta_lists * sizeof(uint64_t) +
+				   sub_index->num_delta_lists * sizeof(u64) +
 				   sub_index->num_zones * sizeof(struct volume_sub_index_zone));
 	stats->rebalance_time = dis.rebalance_time;
 	stats->rebalance_count = dis.rebalance_count;
@@ -1434,7 +1434,7 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 
 #endif /* TEST_INTERNAL */
 static int initialize_volume_sub_index(const struct configuration *config,
-				       uint64_t volume_nonce,
+				       u64 volume_nonce,
 				       struct volume_sub_index *sub_index)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
@@ -1469,7 +1469,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 
 	/* The following arrays are initialized to all zeros. */
 	result = UDS_ALLOCATE(params.num_delta_lists,
-			      uint64_t,
+			      u64,
 			      "first chapter to flush",
 			      &sub_index->flush_chapters);
 	if (result != UDS_SUCCESS)
@@ -1482,7 +1482,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 }
 
 int make_volume_index(const struct configuration *config,
-		      uint64_t volume_nonce,
+		      u64 volume_nonce,
 		      struct volume_index **volume_index_ptr)
 {
 	struct split_config split;

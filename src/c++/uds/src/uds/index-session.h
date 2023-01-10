@@ -26,29 +26,29 @@
 
 struct __aligned(L1_CACHE_BYTES) session_stats {
 	/* Post requests that found an entry */
-	uint64_t posts_found;
+	u64 posts_found;
 	/* Post requests found in the open chapter */
-	uint64_t posts_found_open_chapter;
+	u64 posts_found_open_chapter;
 	/* Post requests found in the dense index */
-	uint64_t posts_found_dense;
+	u64 posts_found_dense;
 	/* Post requests found in the sparse index */
-	uint64_t posts_found_sparse;
+	u64 posts_found_sparse;
 	/* Post requests that did not find an entry */
-	uint64_t posts_not_found;
+	u64 posts_not_found;
 	/* Update requests that found an entry */
-	uint64_t updates_found;
+	u64 updates_found;
 	/* Update requests that did not find an entry */
-	uint64_t updates_not_found;
+	u64 updates_not_found;
 	/* Delete requests that found an entry */
-	uint64_t deletions_found;
+	u64 deletions_found;
 	/* Delete requests that did not find an entry */
-	uint64_t deletions_not_found;
+	u64 deletions_not_found;
 	/* Query requests that found an entry */
-	uint64_t queries_found;
+	u64 queries_found;
 	/* Query requests that did not find an entry */
-	uint64_t queries_not_found;
+	u64 queries_not_found;
 	/* Total number of requests */
-	uint64_t requests;
+	u64 requests;
 };
 
 enum index_suspend_status {

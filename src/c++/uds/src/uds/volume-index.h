@@ -69,7 +69,7 @@ struct volume_index_record {
 	/* Public fields */
 
 	/* Chapter where the record info is found */
-	uint64_t virtual_chapter;
+	u64 virtual_chapter;
 	/* This record is a collision */
 	bool is_collision;
 	/* This record is the reequested record */
@@ -92,14 +92,14 @@ struct volume_index_record {
 };
 
 int __must_check make_volume_index(const struct configuration *config,
-				   uint64_t volume_nonce,
+				   u64 volume_nonce,
 				   struct volume_index **volume_index);
 
 void free_volume_index(struct volume_index *volume_index);
 
 int __must_check compute_volume_index_save_blocks(const struct configuration *config,
 						  size_t block_size,
-						  uint64_t *block_count);
+						  u64 *block_count);
 
 #ifdef TEST_INTERNAL
 size_t get_volume_index_memory_used(const struct volume_index *volume_index);
@@ -115,26 +115,25 @@ bool __must_check is_volume_index_sample(const struct volume_index *volume_index
  * This function is only used to manage sparse cache membership. Most requests should use
  * get_volume_index_record() to look up index records instead.
  */
-uint64_t __must_check lookup_volume_index_name(const struct volume_index *volume_index,
-					       const struct uds_record_name *name);
+u64 __must_check lookup_volume_index_name(const struct volume_index *volume_index,
+					  const struct uds_record_name *name);
 
 int __must_check get_volume_index_record(struct volume_index *volume_index,
 					 const struct uds_record_name *name,
 					 struct volume_index_record *record);
 
-int __must_check
-put_volume_index_record(struct volume_index_record *record, uint64_t virtual_chapter);
+int __must_check put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter);
 
 int __must_check remove_volume_index_record(struct volume_index_record *record);
 
 int __must_check
-set_volume_index_record_chapter(struct volume_index_record *record, uint64_t virtual_chapter);
+set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter);
 
-void set_volume_index_open_chapter(struct volume_index *volume_index, uint64_t virtual_chapter);
+void set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter);
 
 void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					unsigned int zone_number,
-					uint64_t virtual_chapter);
+					u64 virtual_chapter);
 
 int __must_check load_volume_index(struct volume_index *volume_index,
 				   struct buffered_reader **readers,

@@ -148,7 +148,7 @@ static void enter_callback_stage(struct uds_request *request)
 	uds_request_queue_enqueue(request->session->callback_queue, request);
 }
 
-static inline void count_once(uint64_t *count_ptr)
+static inline void count_once(u64 *count_ptr)
 {
 	WRITE_ONCE(*count_ptr, READ_ONCE(*count_ptr) + 1);
 }

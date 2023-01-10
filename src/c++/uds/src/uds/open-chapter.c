@@ -281,7 +281,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 		       struct volume *volume,
 		       struct open_chapter_index *chapter_index,
 		       struct uds_volume_record *collated_records,
-		       uint64_t virtual_chapter_number)
+		       u64 virtual_chapter_number)
 {
 	int result;
 
@@ -301,8 +301,8 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	int result;
 	struct open_chapter_zone *open_chapter;
 	struct uds_volume_record *record;
-	byte record_count_data[sizeof(uint32_t)];
-	uint32_t record_count = 0;
+	byte record_count_data[sizeof(u32)];
+	u32 record_count = 0;
 	unsigned int record_index;
 	unsigned int z;
 
@@ -352,19 +352,19 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	return flush_buffered_writer(writer);
 }
 
-uint64_t compute_saved_open_chapter_size(struct geometry *geometry)
+u64 compute_saved_open_chapter_size(struct geometry *geometry)
 {
 	unsigned int records_per_chapter = geometry->records_per_chapter;
 
-	return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH + sizeof(uint32_t) +
+	return OPEN_CHAPTER_MAGIC_LENGTH + OPEN_CHAPTER_VERSION_LENGTH + sizeof(u32) +
 		records_per_chapter * sizeof(struct uds_volume_record);
 }
 
 static int load_version20(struct uds_index *index, struct buffered_reader *reader)
 {
 	int result;
-	uint32_t record_count;
-	byte record_count_data[sizeof(uint32_t)];
+	u32 record_count;
+	byte record_count_data[sizeof(u32)];
 	struct uds_volume_record record;
 
 	/*

@@ -40,7 +40,7 @@ struct configuration {
 	struct geometry *geometry;
 
 	/* Index owner's nonce */
-	uint64_t nonce;
+	u64 nonce;
 
 	/* The number of threads used to process index requests */
 	unsigned int zone_count;
@@ -79,11 +79,11 @@ struct uds_configuration_8_02 {
 	/* Sampling rate for sparse indexing */
 	unsigned int sparse_sample_rate;
 	/* Index owner's nonce */
-	uint64_t nonce;
+	u64 nonce;
 	/* Virtual chapter remapped from physical chapter 0 */
-	uint64_t remapped_virtual;
+	u64 remapped_virtual;
 	/* New physical chapter which remapped chapter was moved to */
-	uint64_t remapped_physical;
+	u64 remapped_physical;
 };
 
 /* On-disk structure of data for a version 6.02 index. */
@@ -105,7 +105,7 @@ struct uds_configuration_6_02 {
 	/* Sampling rate for sparse indexing */
 	unsigned int sparse_sample_rate;
 	/* Index owner's nonce */
-	uint64_t nonce;
+	u64 nonce;
 };
 
 int __must_check make_configuration(const struct uds_parameters *params,
@@ -118,7 +118,7 @@ int __must_check validate_config_contents(struct buffered_reader *reader,
 
 int __must_check write_config_contents(struct buffered_writer *writer,
 				       struct configuration *config,
-				       uint32_t version);
+				       u32 version);
 
 void log_uds_configuration(struct configuration *config);
 

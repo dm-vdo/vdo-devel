@@ -44,7 +44,7 @@ enum index_lookup_mode {
 };
 
 enum {
-	VOLUME_CACHE_MAX_ENTRIES = (UINT16_MAX >> 1),
+	VOLUME_CACHE_MAX_ENTRIES = (U16_MAX >> 1),
 	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
 	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
 };
@@ -64,7 +64,7 @@ struct queued_read {
  * search. Any other thread will only read the counter in wait_for_pending_searches() while waiting
  * to update the cache contents.
  */
-typedef int64_t invalidate_counter_t;
+typedef s64 invalidate_counter_t;
 
 /* These masks select the fields of an invalidate_counter_t. */
 /* The mask for the page number field */
@@ -82,7 +82,7 @@ struct cached_page {
 	/* The physical page stored in this cache entry */
 	unsigned int cp_physical_page;
 	/* The value of the volume clock when this page was last used */
-	int64_t cp_last_used;
+	s64 cp_last_used;
 	/* The cached page buffer */
 	struct dm_buffer *buffer;
 	/* The chapter index page, meaningless for record pages */
@@ -97,9 +97,9 @@ struct page_cache {
 	/* The current number of cache entries */
 	unsigned int num_index_entries;
 	/* The maximum number of cached entries */
-	uint16_t num_cache_entries;
+	u16 num_cache_entries;
 	/* An index for each physical page noting where it is in the cache */
-	uint16_t *index;
+	u16 *index;
 	/* The array of cached pages */
 	struct cached_page *cache;
 	/* A counter for each zone tracking if a search is occurring there */
@@ -118,9 +118,9 @@ struct page_cache {
 	 * read_queue_last_read. This means that if multiple reads are outstanding,
 	 * read_queue_first might not advance until the last of the reads finishes.
 	 */
-	uint16_t read_queue_first;
-	uint16_t read_queue_last_read;
-	uint16_t read_queue_last;
+	u16 read_queue_first;
+	u16 read_queue_last_read;
+	u16 read_queue_last;
 
 	atomic64_t clock;
 };
@@ -128,7 +128,7 @@ struct page_cache {
 struct volume {
 	struct geometry *geometry;
 	struct dm_bufio_client *client;
-	uint64_t nonce;
+	u64 nonce;
 
 	/* A single page worth of records, for sorting */
 	const struct uds_volume_record **record_pointers;
@@ -276,14 +276,14 @@ int __must_check
 enqueue_page_read(struct volume *volume, struct uds_request *request, int physical_page);
 
 int __must_check find_volume_chapter_boundaries(struct volume *volume,
-						uint64_t *lowest_vcn,
-						uint64_t *highest_vcn,
+						u64 *lowest_vcn,
+						u64 *highest_vcn,
 						bool *is_empty);
 
 int __must_check search_volume_page_cache(struct volume *volume,
 					  struct uds_request *request,
 					  const struct uds_record_name *name,
-					  uint64_t virtual_chapter,
+					  u64 virtual_chapter,
 					  struct uds_record_data *metadata,
 					  bool *found);
 
@@ -295,7 +295,7 @@ int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_record_data *duplicate,
 					   bool *found);
 
-void forget_chapter(struct volume *volume, uint64_t chapter);
+void forget_chapter(struct volume *volume, u64 chapter);
 
 int __must_check write_index_pages(struct volume *volume,
 				   int physical_page,
@@ -313,7 +313,7 @@ int __must_check write_chapter(struct volume *volume,
 
 int __must_check
 read_chapter_index_from_volume(const struct volume *volume,
-			       uint64_t virtual_chapter,
+			       u64 virtual_chapter,
 			       struct dm_buffer *volume_buffers[],
 			       struct delta_index_page index_pages[]);
 
@@ -343,11 +343,11 @@ size_t __must_check get_cache_size(struct volume *volume);
 int __must_check
 find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 				    unsigned int max_bad_chapters,
-				    uint64_t *lowest_vcn,
-				    uint64_t *highest_vcn,
+				    u64 *lowest_vcn,
+				    u64 *highest_vcn,
 				    int (*probe_func)(void *aux,
 						      unsigned int chapter,
-						      uint64_t *vcn),
+						      u64 *vcn),
 				    struct geometry *geometry,
 				    void *aux);
 

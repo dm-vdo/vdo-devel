@@ -55,8 +55,8 @@ int make_geometry(size_t bytes_per_page,
 		  unsigned int record_pages_per_chapter,
 		  unsigned int chapters_per_volume,
 		  unsigned int sparse_chapters_per_volume,
-		  uint64_t remapped_virtual,
-		  uint64_t remapped_physical,
+		  u64 remapped_virtual,
+		  u64 remapped_physical,
 		  struct geometry **geometry_ptr)
 {
 	int result;
@@ -128,9 +128,9 @@ void free_geometry(struct geometry *geometry)
 }
 
 unsigned int __must_check
-map_to_physical_chapter(const struct geometry *geometry, uint64_t virtual_chapter)
+map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter)
 {
-	uint64_t delta;
+	u64 delta;
 
 	if (!is_reduced_geometry(geometry))
 		return virtual_chapter % geometry->chapters_per_volume;
@@ -156,8 +156,8 @@ map_to_physical_chapter(const struct geometry *geometry, uint64_t virtual_chapte
 
 /* Check whether any sparse chapters are in use. */
 bool has_sparse_chapters(const struct geometry *geometry,
-			 uint64_t oldest_virtual_chapter,
-			 uint64_t newest_virtual_chapter)
+			 u64 oldest_virtual_chapter,
+			 u64 newest_virtual_chapter)
 {
 	return is_sparse_geometry(geometry) &&
 	       ((newest_virtual_chapter - oldest_virtual_chapter + 1) >
@@ -165,9 +165,9 @@ bool has_sparse_chapters(const struct geometry *geometry,
 }
 
 bool is_chapter_sparse(const struct geometry *geometry,
-		       uint64_t oldest_virtual_chapter,
-		       uint64_t newest_virtual_chapter,
-		       uint64_t virtual_chapter_number)
+		       u64 oldest_virtual_chapter,
+		       u64 newest_virtual_chapter,
+		       u64 virtual_chapter_number)
 {
 	return has_sparse_chapters(geometry,
 				   oldest_virtual_chapter,
@@ -177,7 +177,7 @@ bool is_chapter_sparse(const struct geometry *geometry,
 }
 
 /* Calculate how many chapters to expire after opening the newest chapter. */
-unsigned int chapters_to_expire(const struct geometry *geometry, uint64_t newest_chapter)
+unsigned int chapters_to_expire(const struct geometry *geometry, u64 newest_chapter)
 {
 	/* If the index isn't full yet, don't expire anything. */
 	if (newest_chapter < geometry->chapters_per_volume)
@@ -185,7 +185,7 @@ unsigned int chapters_to_expire(const struct geometry *geometry, uint64_t newest
 
 	/* If a chapter is out of order... */
 	if (geometry->remapped_physical > 0) {
-		uint64_t oldest_chapter = newest_chapter - geometry->chapters_per_volume;
+		u64 oldest_chapter = newest_chapter - geometry->chapters_per_volume;
 
 		/*
 		 * ... expire an extra chapter when expiring the moved chapter to free physical

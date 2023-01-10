@@ -149,8 +149,8 @@ static long memory_show_allocation_counter(void)
 
 static long memory_show_bytes_used(void)
 {
-	uint64_t bytes_used;
-	uint64_t peak_bytes_used;
+	u64 bytes_used;
+	u64 peak_bytes_used;
 
 	get_uds_memory_stats(&bytes_used, &peak_bytes_used);
 	return bytes_used;

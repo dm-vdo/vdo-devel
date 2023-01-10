@@ -43,7 +43,7 @@ decode_index_config_06_02(struct buffer *buffer, struct uds_configuration_8_02 *
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(uint32_t));
+	result = skip_forward(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -96,7 +96,7 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(uint32_t));
+	result = skip_forward(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -304,7 +304,7 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(uint32_t));
+	result = zero_bytes(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -352,7 +352,7 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(uint32_t));
+	result = zero_bytes(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -393,7 +393,7 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
  */
 int write_config_contents(struct buffered_writer *writer,
 			  struct configuration *config,
-			  uint32_t version)
+			  u32 version)
 {
 	int result;
 	struct buffer *buffer;

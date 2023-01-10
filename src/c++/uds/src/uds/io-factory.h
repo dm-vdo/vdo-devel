@@ -42,7 +42,7 @@ int __must_check make_uds_bufio(struct io_factory *factory,
 
 int __must_check make_buffered_reader(struct io_factory *factory,
 				      off_t offset,
-				      uint64_t block_count,
+				      u64 block_count,
 				      struct buffered_reader **reader_ptr);
 
 void free_buffered_reader(struct buffered_reader *reader);
@@ -55,7 +55,7 @@ verify_buffered_data(struct buffered_reader *reader, const byte *value, size_t l
 
 int __must_check make_buffered_writer(struct io_factory *factory,
 				      off_t offset,
-				      uint64_t block_count,
+				      u64 block_count,
 				      struct buffered_writer **writer_ptr);
 
 void free_buffered_writer(struct buffered_writer *buffer);

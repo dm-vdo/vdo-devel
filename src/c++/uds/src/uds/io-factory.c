@@ -191,7 +191,7 @@ void free_buffered_reader(struct buffered_reader *reader)
 /* Create a buffered reader for an index region starting at offset. */
 int make_buffered_reader(struct io_factory *factory,
 			 off_t offset,
-			 uint64_t block_count,
+			 u64 block_count,
 			 struct buffered_reader **reader_ptr)
 {
 	int result;
@@ -328,7 +328,7 @@ int verify_buffered_data(struct buffered_reader *reader, const byte *value, size
 /* Create a buffered writer for an index region starting at offset. */
 int make_buffered_writer(struct io_factory *factory,
 			 off_t offset,
-			 uint64_t block_count,
+			 u64 block_count,
 			 struct buffered_writer **writer_ptr)
 {
 	int result;

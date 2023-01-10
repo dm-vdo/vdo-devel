@@ -24,24 +24,21 @@ enum {
 	SAMPLE_BYTES_COUNT = 2,
 };
 
-static inline uint64_t
-extract_chapter_index_bytes(const struct  uds_record_name *name)
+static inline u64 extract_chapter_index_bytes(const struct  uds_record_name *name)
 {
 	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
-	uint64_t bytes = (uint64_t) get_unaligned_be16(chapter_bits) << 32;
+	u64 bytes = (u64) get_unaligned_be16(chapter_bits) << 32;
 
 	bytes |= get_unaligned_be32(chapter_bits + 2);
 	return bytes;
 }
 
-static inline uint64_t
-extract_volume_index_bytes(const struct uds_record_name *name)
+static inline u64 extract_volume_index_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be64(&name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
-static inline uint32_t
-extract_sampling_bytes(const struct uds_record_name *name)
+static inline u32 extract_sampling_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }

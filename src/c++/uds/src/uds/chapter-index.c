@@ -21,7 +21,7 @@ long chapter_index_overflow_count;
 #endif /* TEST_INTERNAL */
 int make_open_chapter_index(struct open_chapter_index **chapter_index,
 			    const struct geometry *geometry,
-			    uint64_t volume_nonce)
+			    u64 volume_nonce)
 {
 	int result;
 	size_t memory_size;
@@ -80,8 +80,7 @@ void free_open_chapter_index(struct open_chapter_index *chapter_index)
 }
 
 /* Re-initialize an open chapter index for a new chapter. */
-void empty_open_chapter_index(struct open_chapter_index *chapter_index,
-			      uint64_t virtual_chapter_number)
+void empty_open_chapter_index(struct open_chapter_index *chapter_index, u64 virtual_chapter_number)
 {
 #ifdef TEST_INTERNAL
 	struct delta_index_stats delta_index_stats;
@@ -166,8 +165,8 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 	int result;
 	struct delta_index *delta_index = &chapter_index->delta_index;
 	struct delta_index_stats stats;
-	uint64_t nonce = chapter_index->volume_nonce;
-	uint64_t chapter_number = chapter_index->virtual_chapter_number;
+	u64 nonce = chapter_index->volume_nonce;
+	u64 chapter_number = chapter_index->virtual_chapter_number;
 	const struct geometry *geometry = chapter_index->geometry;
 	unsigned int list_count = geometry->delta_lists_per_chapter;
 	unsigned int removals = 0;
@@ -249,7 +248,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 int initialize_chapter_index_page(struct delta_index_page *index_page,
 				  const struct geometry *geometry,
 				  byte *page_buffer,
-				  uint64_t volume_nonce)
+				  u64 volume_nonce)
 {
 	return initialize_delta_index_page(index_page,
 					   volume_nonce,

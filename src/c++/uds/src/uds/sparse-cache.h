@@ -37,16 +37,16 @@ void free_sparse_cache(struct sparse_cache *cache);
 size_t get_sparse_cache_memory_size(const struct sparse_cache *cache);
 
 bool sparse_cache_contains(struct sparse_cache *cache,
-			   uint64_t virtual_chapter,
+			   u64 virtual_chapter,
 			   unsigned int zone_number);
 
-int __must_check update_sparse_cache(struct index_zone *zone, uint64_t virtual_chapter);
+int __must_check update_sparse_cache(struct index_zone *zone, u64 virtual_chapter);
 
 void invalidate_sparse_cache(struct sparse_cache *cache);
 
 int __must_check search_sparse_cache(struct index_zone *zone,
 				     const struct uds_record_name *name,
-				     uint64_t *virtual_chapter_ptr,
+				     u64 *virtual_chapter_ptr,
 				     int *record_page_ptr);
 
 #endif /* SPARSE_CACHE_H */

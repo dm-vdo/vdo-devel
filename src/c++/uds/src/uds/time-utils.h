@@ -23,10 +23,10 @@
 #define NSEC_PER_MSEC 1000000L
 #define NSEC_PER_USEC 1000L
 
-typedef int64_t ktime_t;
-#endif
+typedef s64 ktime_t;
+#endif /* !__KERNEL__ */
 
-static inline int64_t ktime_to_seconds(ktime_t reltime)
+static inline s64 ktime_to_seconds(ktime_t reltime)
 {
 	return reltime / NSEC_PER_SEC;
 }
@@ -54,17 +54,17 @@ static inline ktime_t ktime_sub(ktime_t a, ktime_t b)
 	return a - b;
 }
 
-static inline int64_t ktime_to_ms(ktime_t abstime)
+static inline s64 ktime_to_ms(ktime_t abstime)
 {
 	return abstime / NSEC_PER_MSEC;
 }
 
-static inline ktime_t ms_to_ktime(uint64_t milliseconds)
+static inline ktime_t ms_to_ktime(u64 milliseconds)
 {
 	return (ktime_t) milliseconds * NSEC_PER_MSEC;
 }
 
-static inline int64_t ktime_to_us(ktime_t reltime)
+static inline s64 ktime_to_us(ktime_t reltime)
 {
 	return reltime / NSEC_PER_USEC;
 }

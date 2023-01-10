@@ -12,6 +12,6 @@
 #include "compiler.h"
 #endif
 
-void murmurhash3_128(const void *key, int len, uint32_t seed, void *out);
+void murmurhash3_128(const void *key, int len, u32 seed, void *out);
 
 #endif /* _MURMURHASH3_H_ */

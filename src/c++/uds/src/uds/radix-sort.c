@@ -22,7 +22,7 @@ enum {
 };
 
 /* Sort keys are pointers to immutable fixed-length arrays of bytes. */
-typedef const uint8_t *sort_key_t;
+typedef const u8 *sort_key_t;
 
 /*
  * The keys are separated into piles based on the byte in each keys at the current offset, so the
@@ -30,13 +30,13 @@ typedef const uint8_t *sort_key_t;
  */
 struct histogram {
 	/* The number of non-empty bins */
-	uint16_t used;
+	u16 used;
 	/* The index (key byte) of the first non-empty bin */
-	uint16_t first;
+	u16 first;
 	/* The index (key byte) of the last non-empty bin */
-	uint16_t last;
+	u16 last;
 	/* The number of occurrences of each specific byte */
-	uint32_t size[256];
+	u32 size[256];
 };
 
 /*
@@ -49,9 +49,9 @@ struct task {
 	/* Pointer to the last key to sort. */
 	sort_key_t *last_key;
 	/* The offset into the key at which to continue sorting. */
-	uint16_t offset;
+	u16 offset;
 	/* The number of bytes remaining in the sort keys. */
-	uint16_t length;
+	u16 length;
 };
 
 struct radix_sorter {
@@ -64,7 +64,7 @@ struct radix_sorter {
 };
 
 /* Compare a segment of two fixed-length keys starting at an offset. */
-static inline int compare(sort_key_t key1, sort_key_t key2, uint16_t offset, uint16_t length)
+static inline int compare(sort_key_t key1, sort_key_t key2, u16 offset, u16 length)
 {
 	return memcmp(&key1[offset], &key2[offset], length);
 }
@@ -99,9 +99,9 @@ static inline void insertion_sort(const struct task task)
 /* Push a sorting task onto a task stack. */
 static inline void push_task(struct task **stack_pointer,
 			     sort_key_t *first_key,
-			     uint32_t count,
-			     uint16_t offset,
-			     uint16_t length)
+			     u32 count,
+			     u16 offset,
+			     u16 length)
 {
 	struct task *task = (*stack_pointer)++;
 
@@ -132,13 +132,13 @@ static inline void measure_bins(const struct task task, struct histogram *bins)
 	 * it all out as it goes. Even though this structure is re-used, we don't need to pay to
 	 * zero it before starting a new tally.
 	 */
-	bins->first = UINT8_MAX;
+	bins->first = U8_MAX;
 	bins->last = 0;
 
 	for (key_ptr = task.first_key; key_ptr <= task.last_key; key_ptr++) {
 		/* Increment the count for the byte in the key at the current offset. */
-		uint8_t bin = (*key_ptr)[task.offset];
-		uint32_t size = ++bins->size[bin];
+		u8 bin = (*key_ptr)[task.offset];
+		u32 size = ++bins->size[bin];
 
 		/* Track non-empty bins. */
 		if (size == 1) {
@@ -179,14 +179,14 @@ static inline int push_bins(struct task **stack,
 			    sort_key_t *pile[],
 			    struct histogram *bins,
 			    sort_key_t *first_key,
-			    uint16_t offset,
-			    uint16_t length)
+			    u16 offset,
+			    u16 length)
 {
 	sort_key_t *pile_start = first_key;
 	int bin;
 
 	for (bin = bins->first; ; bin++) {
-		uint32_t size = bins->size[bin];
+		u32 size = bins->size[bin];
 
 		/* Skip empty piles. */
 		if (size == 0)
@@ -315,7 +315,7 @@ int radix_sort(struct radix_sorter *sorter,
 		bins->size[bins->last] = 0;
 
 		for (fence = task.first_key; fence <= end; ) {
-			uint8_t bin;
+			u8 bin;
 			sort_key_t key = *fence;
 
 			/*

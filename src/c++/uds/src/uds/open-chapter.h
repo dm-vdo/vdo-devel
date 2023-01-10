@@ -69,12 +69,12 @@ int __must_check close_open_chapter(struct open_chapter_zone **chapter_zones,
 				    struct volume *volume,
 				    struct open_chapter_index *chapter_index,
 				    struct uds_volume_record *collated_records,
-				    uint64_t virtual_chapter_number);
+				    u64 virtual_chapter_number);
 
 int __must_check save_open_chapter(struct uds_index *index, struct buffered_writer *writer);
 
 int __must_check load_open_chapter(struct uds_index *index, struct buffered_reader *reader);
 
-uint64_t compute_saved_open_chapter_size(struct geometry *geometry);
+u64 compute_saved_open_chapter_size(struct geometry *geometry);
 
 #endif /* OPENCHAPTER_H */

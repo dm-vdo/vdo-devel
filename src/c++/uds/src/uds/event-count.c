@@ -121,9 +121,9 @@ static inline bool same_event(event_token_t token1, event_token_t token2)
 /* Wake all threads that are waiting for the next event. */
 void event_count_broadcast(struct event_count *count)
 {
-	uint64_t waiters;
-	uint64_t state;
-	uint64_t old_state;
+	u64 waiters;
+	u64 state;
+	u64 old_state;
 
 #if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
 	atomic64_inc(&count->signals);

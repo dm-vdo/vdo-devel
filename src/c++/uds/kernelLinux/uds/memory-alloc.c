@@ -600,7 +600,7 @@ void uds_memory_exit(void)
 	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
-void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
+void get_uds_memory_stats(u64 *bytes_used, u64 *peak_bytes_used)
 {
 	unsigned long flags;
 
@@ -617,12 +617,12 @@ void get_uds_memory_stats(uint64_t *bytes_used, uint64_t *peak_bytes_used)
 void report_uds_memory_usage(void)
 {
 	unsigned long flags;
-	uint64_t kmalloc_blocks;
-	uint64_t kmalloc_bytes;
-	uint64_t vmalloc_blocks;
-	uint64_t vmalloc_bytes;
-	uint64_t peak_usage;
-	uint64_t total_bytes;
+	u64 kmalloc_blocks;
+	u64 kmalloc_bytes;
+	u64 vmalloc_blocks;
+	u64 vmalloc_bytes;
+	u64 peak_usage;
+	u64 total_bytes;
 
 	spin_lock_irqsave(&memory_stats.lock, flags);
 	kmalloc_blocks = memory_stats.kmalloc_blocks;

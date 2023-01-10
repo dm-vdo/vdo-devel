@@ -128,8 +128,8 @@ static void get_page_and_index(struct page_cache *cache,
 			       int *queue_index,
 			       struct cached_page **page_ptr)
 {
-	uint16_t index_value;
-	uint16_t index;
+	u16 index_value;
+	u16 index;
 	bool queued;
 
 	/*
@@ -242,10 +242,7 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(cache->num_index_entries,
-			      uint16_t,
-			      "page cache index",
-			      &cache->index);
+	result = UDS_ALLOCATE(cache->num_index_entries, u16, "page cache index", &cache->index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -414,7 +411,7 @@ select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr)
 EXTERNAL_STATIC int
 put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct cached_page *page)
 {
-	uint16_t value;
+	u16 value;
 	int result;
 
 	/* We hold the read_threads_mutex. */
@@ -462,12 +459,12 @@ static void cancel_page_in_cache(struct page_cache *cache,
 	WRITE_ONCE(cache->index[physical_page], cache->num_cache_entries);
 }
 
-static inline uint16_t next_queue_position(uint16_t position)
+static inline u16 next_queue_position(u16 position)
 {
 	return (position + 1) % VOLUME_CACHE_MAX_QUEUED_READS;
 }
 
-static inline void advance_queue_position(uint16_t *position)
+static inline void advance_queue_position(u16 *position)
 {
 	*position = next_queue_position(*position);
 }
@@ -482,8 +479,8 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, unsigned int
 {
 	int result;
 	struct queued_read *queue_entry;
-	uint16_t last = cache->read_queue_last;
-	uint16_t read_queue_index;
+	u16 last = cache->read_queue_last;
+	u16 read_queue_index;
 
 	/* We hold the read_threads_mutex. */
 	if ((cache->index[physical_page] & VOLUME_CACHE_QUEUED_FLAG) == 0) {
@@ -587,7 +584,7 @@ static struct queued_read *reserve_read_queue_entry(struct page_cache *cache)
 {
 	/* We hold the read_threads_mutex. */
 	struct queued_read *entry;
-	uint16_t index_value;
+	u16 index_value;
 	bool queued;
 
 	/* No items to dequeue */
@@ -641,7 +638,7 @@ static int init_chapter_index_page(const struct volume *volume,
 				   unsigned int index_page_number,
 				   struct delta_index_page *chapter_index_page)
 {
-	uint64_t ci_virtual;
+	u64 ci_virtual;
 	unsigned int ci_chapter;
 	unsigned int lowest_list;
 	unsigned int highest_list;
@@ -841,7 +838,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 static void release_queued_requests(struct volume *volume, struct queued_read *entry, int result)
 {
 	struct page_cache *cache = volume->page_cache;
-	uint16_t last_read = cache->read_queue_last_read;
+	u16 last_read = cache->read_queue_last_read;
 	struct uds_request *request;
 	struct uds_request *next;
 
@@ -1166,7 +1163,7 @@ int search_cached_record_page(struct volume *volume,
 }
 
 int read_chapter_index_from_volume(const struct volume *volume,
-				   uint64_t virtual_chapter,
+				   u64 virtual_chapter,
 				   struct dm_buffer *volume_buffers[],
 				   struct delta_index_page index_pages[])
 {
@@ -1204,7 +1201,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 int search_volume_page_cache(struct volume *volume,
 			     struct uds_request *request,
 			     const struct uds_record_name *name,
-			     uint64_t virtual_chapter,
+			     u64 virtual_chapter,
 			     struct uds_record_data *metadata,
 			     bool *found)
 {
@@ -1237,7 +1234,7 @@ int search_volume_page_cache(struct volume *volume,
 					 found);
 }
 
-void forget_chapter(struct volume *volume, uint64_t virtual_chapter)
+void forget_chapter(struct volume *volume, u64 virtual_chapter)
 {
 	unsigned int physical_chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
 
@@ -1520,12 +1517,12 @@ size_t get_cache_size(struct volume *volume)
 
 static int probe_chapter(struct volume *volume,
 			 unsigned int chapter_number,
-			 uint64_t *virtual_chapter_number)
+			 u64 *virtual_chapter_number)
 {
 	const struct geometry *geometry = volume->geometry;
 	unsigned int expected_list_number = 0;
 	unsigned int i;
-	uint64_t vcn, last_vcn = UINT64_MAX;
+	u64 vcn, last_vcn = U64_MAX;
 
 	dm_bufio_prefetch(volume->client,
 			  map_to_physical_page(geometry, chapter_number, 0),
@@ -1540,7 +1537,7 @@ static int probe_chapter(struct volume *volume,
 			return result;
 
 		vcn = page->virtual_chapter_number;
-		if (last_vcn == UINT64_MAX) {
+		if (last_vcn == U64_MAX) {
 			last_vcn = vcn;
 		} else if (vcn != last_vcn) {
 			uds_log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
@@ -1566,7 +1563,7 @@ static int probe_chapter(struct volume *volume,
 			return result;
 	}
 
-	if (last_vcn == UINT64_MAX) {
+	if (last_vcn == U64_MAX) {
 		uds_log_error("no chapter %u virtual chapter number determined", chapter_number);
 		return UDS_CORRUPT_DATA;
 	}
@@ -1583,14 +1580,14 @@ static int probe_chapter(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
-static int probe_wrapper(void *aux, unsigned int chapter_number, uint64_t *virtual_chapter_number)
+static int probe_wrapper(void *aux, unsigned int chapter_number, u64 *virtual_chapter_number)
 {
 	struct volume *volume = aux;
 	int result;
 
 	result = probe_chapter(volume, chapter_number, virtual_chapter_number);
 	if (result == UDS_CORRUPT_DATA) {
-		*virtual_chapter_number = UINT64_MAX;
+		*virtual_chapter_number = U64_MAX;
 		return UDS_SUCCESS;
 	}
 
@@ -1607,7 +1604,7 @@ find_real_end_of_volume(struct volume *volume, unsigned int limit, unsigned int 
 	while (limit > 0) {
 		int result;
 		unsigned int chapter = (span > limit) ? 0 : limit - span;
-		uint64_t vcn = 0;
+		u64 vcn = 0;
 
 		result = probe_chapter(volume, chapter, &vcn);
 		if (result == UDS_SUCCESS) {
@@ -1633,8 +1630,8 @@ find_real_end_of_volume(struct volume *volume, unsigned int limit, unsigned int 
  * virtual chapter numbers. This is used by rebuild.
  */
 int find_volume_chapter_boundaries(struct volume *volume,
-				   uint64_t *lowest_vcn,
-				   uint64_t *highest_vcn,
+				   u64 *lowest_vcn,
+				   u64 *highest_vcn,
 				   bool *is_empty)
 {
 	unsigned int chapter_limit = volume->geometry->chapters_per_volume;
@@ -1663,18 +1660,18 @@ int find_volume_chapter_boundaries(struct volume *volume,
 
 int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 					unsigned int max_bad_chapters,
-					uint64_t *lowest_vcn,
-					uint64_t *highest_vcn,
+					u64 *lowest_vcn,
+					u64 *highest_vcn,
 					int (*probe_func)(void *aux,
 							  unsigned int chapter,
-							  uint64_t *vcn),
+							  u64 *vcn),
 					struct geometry *geometry,
 					void *aux)
 {
-	uint64_t zero_vcn;
-	uint64_t lowest = UINT64_MAX;
-	uint64_t highest = UINT64_MAX;
-	uint64_t moved_chapter = UINT64_MAX;
+	u64 zero_vcn;
+	u64 lowest = U64_MAX;
+	u64 highest = U64_MAX;
+	u64 moved_chapter = U64_MAX;
 	unsigned int left_chapter = 0;
 	unsigned int right_chapter = 0;
 	unsigned int bad_chapters = 0;
@@ -1694,14 +1691,14 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	 * preceeds the lowest one.
 	 */
 
-	/* It doesn't matter if this results in a bad spot (UINT64_MAX). */
+	/* It doesn't matter if this results in a bad spot (U64_MAX). */
 	result = (*probe_func)(aux, 0, &zero_vcn);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	/*
 	 * Binary search for end of the discontinuity in the monotonically increasing virtual
-	 * chapter numbers; bad spots are treated as a span of UINT64_MAX values. In effect we're
+	 * chapter numbers; bad spots are treated as a span of U64_MAX values. In effect we're
 	 * searching for the index of the smallest value less than zero_vcn. In the case we go off
 	 * the end it means that chapter 0 has the lowest vcn.
 	 *
@@ -1710,7 +1707,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	 * necessary.
 	 */
 	if (geometry->remapped_physical > 0) {
-		uint64_t remapped_vcn;
+		u64 remapped_vcn;
 
 		result = (*probe_func)(aux, geometry->remapped_physical, &remapped_vcn);
 		if (result != UDS_SUCCESS)
@@ -1724,7 +1721,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	right_chapter = chapter_limit;
 
 	while (left_chapter < right_chapter) {
-		uint64_t probe_vcn;
+		u64 probe_vcn;
 		unsigned int chapter = (left_chapter + right_chapter) / 2;
 
 		if (chapter == moved_chapter)
@@ -1756,10 +1753,10 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 		return result;
 
 	/* The moved chapter might be the lowest in the range. */
-	if ((moved_chapter != UINT64_MAX) && (lowest == geometry->remapped_virtual + 1))
+	if ((moved_chapter != U64_MAX) && (lowest == geometry->remapped_virtual + 1))
 		lowest = geometry->remapped_virtual;
 
-	result = ASSERT((lowest != UINT64_MAX), "invalid lowest chapter");
+	result = ASSERT((lowest != U64_MAX), "invalid lowest chapter");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1768,7 +1765,7 @@ int find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 	 * which is the chapter with the highest vcn.
 	 */
 
-	while (highest == UINT64_MAX) {
+	while (highest == U64_MAX) {
 		right_chapter = (right_chapter + chapter_limit - 1) % chapter_limit;
 		if (right_chapter == moved_chapter)
 			continue;

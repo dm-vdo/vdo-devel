@@ -46,7 +46,7 @@ int make_index_page_map(const struct geometry *geometry, struct index_page_map *
 	map->geometry = geometry;
 	map->entries_per_chapter = geometry->index_pages_per_chapter - 1;
 	result = UDS_ALLOCATE(get_entry_count(geometry),
-			      uint16_t,
+			      u16,
 			      "Index Page Map Entries",
 			      &map->entries);
 	if (result != UDS_SUCCESS) {
@@ -67,7 +67,7 @@ void free_index_page_map(struct index_page_map *map)
 }
 
 void update_index_page_map(struct index_page_map *map,
-			   uint64_t virtual_chapter_number,
+			   u64 virtual_chapter_number,
 			   unsigned int chapter_number,
 			   unsigned int index_page_number,
 			   unsigned int delta_list_number)
@@ -114,10 +114,9 @@ void get_list_number_bounds(const struct index_page_map *map,
 			 map->geometry->delta_lists_per_chapter - 1);
 }
 
-uint64_t compute_index_page_map_save_size(const struct geometry *geometry)
+u64 compute_index_page_map_save_size(const struct geometry *geometry)
 {
-	return PAGE_MAP_MAGIC_LENGTH + sizeof(uint64_t) +
-	       sizeof(uint16_t) * get_entry_count(geometry);
+	return PAGE_MAP_MAGIC_LENGTH + sizeof(u64) + sizeof(u16) * get_entry_count(geometry);
 }
 
 int write_index_page_map(struct index_page_map *map, struct buffered_writer *writer)
