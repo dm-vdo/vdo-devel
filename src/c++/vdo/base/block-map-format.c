@@ -40,7 +40,7 @@ int vdo_decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state
 
 	initial_length = content_length(buffer);
 
-	result = get_uint64_le_from_buffer(buffer, &flat_page_origin);
+	result = get_u64_le_from_buffer(buffer, &flat_page_origin);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -51,7 +51,7 @@ int vdo_decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &flat_page_count);
+	result = get_u64_le_from_buffer(buffer, &flat_page_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -61,11 +61,11 @@ int vdo_decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &root_origin);
+	result = get_u64_le_from_buffer(buffer, &root_origin);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &root_count);
+	result = get_u64_le_from_buffer(buffer, &root_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -101,19 +101,19 @@ int vdo_encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buff
 
 	initial_length = content_length(buffer);
 
-	result = put_uint64_le_into_buffer(buffer, state.flat_page_origin);
+	result = put_u64_le_into_buffer(buffer, state.flat_page_origin);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.flat_page_count);
+	result = put_u64_le_into_buffer(buffer, state.flat_page_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.root_origin);
+	result = put_u64_le_into_buffer(buffer, state.root_origin);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.root_count);
+	result = put_u64_le_into_buffer(buffer, state.root_count);
 	if (result != UDS_SUCCESS)
 		return result;
 

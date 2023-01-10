@@ -955,27 +955,27 @@ decode_delta_index_header(struct buffer *buffer, struct delta_index_header *head
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &header->zone_number);
+	result = get_u32_le_from_buffer(buffer, &header->zone_number);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &header->zone_count);
+	result = get_u32_le_from_buffer(buffer, &header->zone_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &header->first_list);
+	result = get_u32_le_from_buffer(buffer, &header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &header->list_count);
+	result = get_u32_le_from_buffer(buffer, &header->list_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &header->record_count);
+	result = get_u64_le_from_buffer(buffer, &header->record_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &header->collision_count);
+	result = get_u64_le_from_buffer(buffer, &header->collision_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1343,27 +1343,27 @@ encode_delta_index_header(struct buffer *buffer, struct delta_index_header *head
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, header->zone_number);
+	result = put_u32_le_into_buffer(buffer, header->zone_number);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, header->zone_count);
+	result = put_u32_le_into_buffer(buffer, header->zone_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, header->first_list);
+	result = put_u32_le_into_buffer(buffer, header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, header->list_count);
+	result = put_u32_le_into_buffer(buffer, header->list_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, header->record_count);
+	result = put_u64_le_into_buffer(buffer, header->record_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, header->collision_count);
+	result = put_u64_le_into_buffer(buffer, header->collision_count);
 	if (result != UDS_SUCCESS)
 		return result;
 

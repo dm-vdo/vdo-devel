@@ -27,19 +27,19 @@ decode_index_config_06_02(struct buffer *buffer, struct uds_configuration_8_02 *
 {
 	int result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->record_pages_per_chapter);
+	result = get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->chapters_per_volume);
+	result = get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
+	result = get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->cache_chapters);
+	result = get_u32_le_from_buffer(buffer, &config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -47,19 +47,19 @@ decode_index_config_06_02(struct buffer *buffer, struct uds_configuration_8_02 *
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->volume_index_mean_delta);
+	result = get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->bytes_per_page);
+	result = get_u32_le_from_buffer(buffer, &config->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
+	result = get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &config->nonce);
+	result = get_u64_le_from_buffer(buffer, &config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -80,19 +80,19 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 {
 	int result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->record_pages_per_chapter);
+	result = get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->chapters_per_volume);
+	result = get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
+	result = get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->cache_chapters);
+	result = get_u32_le_from_buffer(buffer, &config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -100,27 +100,27 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->volume_index_mean_delta);
+	result = get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->bytes_per_page);
+	result = get_u32_le_from_buffer(buffer, &config->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &config->sparse_sample_rate);
+	result = get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &config->nonce);
+	result = get_u64_le_from_buffer(buffer, &config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &config->remapped_virtual);
+	result = get_u64_le_from_buffer(buffer, &config->remapped_virtual);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &config->remapped_physical);
+	result = get_u64_le_from_buffer(buffer, &config->remapped_physical);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -288,19 +288,19 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
+	result = put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->chapters_per_volume);
+	result = put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
+	result = put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->cache_chapters);
+	result = put_u32_le_into_buffer(buffer, config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -308,19 +308,19 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->volume_index_mean_delta);
+	result = put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->bytes_per_page);
+	result = put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->sparse_sample_rate);
+	result = put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->nonce);
+	result = put_u64_le_into_buffer(buffer, config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -336,19 +336,19 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
+	result = put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->chapters_per_volume);
+	result = put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
+	result = put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->cache_chapters);
+	result = put_u32_le_into_buffer(buffer, config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -356,27 +356,27 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->volume_index_mean_delta);
+	result = put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, geometry->bytes_per_page);
+	result = put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, config->sparse_sample_rate);
+	result = put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->nonce);
+	result = put_u64_le_into_buffer(buffer, config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, geometry->remapped_virtual);
+	result = put_u64_le_into_buffer(buffer, geometry->remapped_virtual);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, geometry->remapped_physical);
+	result = put_u64_le_into_buffer(buffer, geometry->remapped_physical);
 	if (result != UDS_SUCCESS)
 		return result;
 

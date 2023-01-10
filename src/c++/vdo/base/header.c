@@ -93,7 +93,7 @@ int vdo_encode_header(const struct header *header, struct buffer *buffer)
 	if (!ensure_available_space(buffer, VDO_ENCODED_HEADER_SIZE))
 		return UDS_BUFFER_ERROR;
 
-	result = put_uint32_le_into_buffer(buffer, header->id);
+	result = put_u32_le_into_buffer(buffer, header->id);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -101,7 +101,7 @@ int vdo_encode_header(const struct header *header, struct buffer *buffer)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return put_uint64_le_into_buffer(buffer, header->size);
+	return put_u64_le_into_buffer(buffer, header->size);
 }
 
 /**
@@ -132,7 +132,8 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
 	struct version_number version;
 	int result;
 
-	result = get_uint32_le_from_buffer(buffer, &id);
+	result = get_u32_le_from_buffer(buffer, &id);
+
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -140,7 +141,7 @@ int vdo_decode_header(struct buffer *buffer, struct header *header)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &size);
+	result = get_u64_le_from_buffer(buffer, &size);
 	if (result != UDS_SUCCESS)
 		return result;
 

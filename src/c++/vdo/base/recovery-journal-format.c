@@ -51,15 +51,15 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 
 	initial_length = content_length(buffer);
 
-	result = put_uint64_le_into_buffer(buffer, state.journal_start);
+	result = put_u64_le_into_buffer(buffer, state.journal_start);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.logical_blocks_used);
+	result = put_u64_le_into_buffer(buffer, state.logical_blocks_used);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.block_map_data_blocks);
+	result = put_u64_le_into_buffer(buffer, state.block_map_data_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -95,15 +95,15 @@ int vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
 
 	initial_length = content_length(buffer);
 
-	result = get_uint64_le_from_buffer(buffer, &journal_start);
+	result = get_u64_le_from_buffer(buffer, &journal_start);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &logical_blocks_used);
+	result = get_u64_le_from_buffer(buffer, &logical_blocks_used);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &block_map_data_blocks);
+	result = get_u64_le_from_buffer(buffer, &block_map_data_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 

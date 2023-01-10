@@ -393,8 +393,8 @@ static void define_sub_index_nonce(struct index_layout *layout)
 	byte buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
 	size_t offset = 0;
 
-	encode_uint64_le(buffer, &offset, sil->sub_index.start_block);
-	encode_uint16_le(buffer, &offset, 0);
+	encode_u64_le(buffer, &offset, sil->sub_index.start_block);
+	encode_u16_le(buffer, &offset, 0);
 	sil->nonce = generate_secondary_nonce(primary_nonce, buffer, sizeof(buffer));
 	if (sil->nonce == 0)
 		sil->nonce = generate_secondary_nonce(~primary_nonce + 1, buffer, sizeof(buffer));
@@ -472,38 +472,38 @@ static int __must_check encode_region_header(struct buffer *buffer, struct regio
 {
 	int result;
 
-	result = put_uint64_le_into_buffer(buffer, REGION_MAGIC);
+	result = put_u64_le_into_buffer(buffer, REGION_MAGIC);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, header->region_blocks);
+	result = put_u64_le_into_buffer(buffer, header->region_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, header->type);
+	result = put_u16_le_into_buffer(buffer, header->type);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, header->version);
+	result = put_u16_le_into_buffer(buffer, header->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, header->region_count);
+	result = put_u16_le_into_buffer(buffer, header->region_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return put_uint16_le_into_buffer(buffer, header->payload);
+	return put_u16_le_into_buffer(buffer, header->payload);
 }
 
 static int __must_check encode_layout_region(struct buffer *buffer, struct layout_region *region)
 {
 	int result;
 
-	result = put_uint64_le_into_buffer(buffer, region->start_block);
+	result = put_u64_le_into_buffer(buffer, region->start_block);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, region->block_count);
+	result = put_u64_le_into_buffer(buffer, region->block_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -511,11 +511,11 @@ static int __must_check encode_layout_region(struct buffer *buffer, struct layou
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, region->kind);
+	result = put_u16_le_into_buffer(buffer, region->kind);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return put_uint16_le_into_buffer(buffer, region->instance);
+	return put_u16_le_into_buffer(buffer, region->instance);
 }
 
 static int __must_check
@@ -523,15 +523,15 @@ encode_index_save_data(struct buffer *buffer, struct index_save_data *save_data)
 {
 	int result;
 
-	result = put_uint64_le_into_buffer(buffer, save_data->timestamp);
+	result = put_u64_le_into_buffer(buffer, save_data->timestamp);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, save_data->nonce);
+	result = put_u64_le_into_buffer(buffer, save_data->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, save_data->version);
+	result = put_u32_le_into_buffer(buffer, save_data->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -543,23 +543,23 @@ encode_index_state_data(struct buffer *buffer, struct index_state_data301 *state
 {
 	int result;
 
-	result = put_uint32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.signature);
+	result = put_u32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.signature);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.version_id);
+	result = put_u32_le_into_buffer(buffer, INDEX_STATE_VERSION_301.version_id);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state_data->newest_chapter);
+	result = put_u64_le_into_buffer(buffer, state_data->newest_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state_data->oldest_chapter);
+	result = put_u64_le_into_buffer(buffer, state_data->oldest_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state_data->last_save);
+	result = put_u64_le_into_buffer(buffer, state_data->last_save);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -780,23 +780,23 @@ encode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, super->nonce);
+	result = put_u64_le_into_buffer(buffer, super->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, super->version);
+	result = put_u32_le_into_buffer(buffer, super->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, super->block_size);
+	result = put_u32_le_into_buffer(buffer, super->block_size);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, super->index_count);
+	result = put_u16_le_into_buffer(buffer, super->index_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint16_le_into_buffer(buffer, super->max_saves);
+	result = put_u16_le_into_buffer(buffer, super->max_saves);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -804,20 +804,20 @@ encode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, super->open_chapter_blocks);
+	result = put_u64_le_into_buffer(buffer, super->open_chapter_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, super->page_map_blocks);
+	result = put_u64_le_into_buffer(buffer, super->page_map_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	if (is_converted_super_block(super)) {
-		result = put_uint64_le_into_buffer(buffer, super->volume_offset);
+		result = put_u64_le_into_buffer(buffer, super->volume_offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_uint64_le_into_buffer(buffer, super->start_offset);
+		result = put_u64_le_into_buffer(buffer, super->start_offset);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -1007,11 +1007,11 @@ static u64 generate_index_save_nonce(u64 volume_nonce, struct index_save_layout 
 	byte buffer[sizeof(nonce_data)];
 	size_t offset = 0;
 
-	encode_uint64_le(buffer, &offset, isl->save_data.timestamp);
-	encode_uint64_le(buffer, &offset, 0);
-	encode_uint32_le(buffer, &offset, isl->save_data.version);
-	encode_uint32_le(buffer, &offset, 0U);
-	encode_uint64_le(buffer, &offset, isl->index_save.start_block);
+	encode_u64_le(buffer, &offset, isl->save_data.timestamp);
+	encode_u64_le(buffer, &offset, 0);
+	encode_u32_le(buffer, &offset, isl->save_data.version);
+	encode_u32_le(buffer, &offset, 0U);
+	encode_u64_le(buffer, &offset, isl->index_save.start_block);
 	ASSERT_LOG_ONLY(offset == sizeof(nonce_data),
 			"%zu bytes encoded of %zu expected",
 			offset,
@@ -1324,38 +1324,38 @@ static int __must_check decode_region_header(struct buffer *buffer, struct regio
 {
 	int result;
 
-	result = get_uint64_le_from_buffer(buffer, &header->magic);
+	result = get_u64_le_from_buffer(buffer, &header->magic);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &header->region_blocks);
+	result = get_u64_le_from_buffer(buffer, &header->region_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &header->type);
+	result = get_u16_le_from_buffer(buffer, &header->type);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &header->version);
+	result = get_u16_le_from_buffer(buffer, &header->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &header->region_count);
+	result = get_u16_le_from_buffer(buffer, &header->region_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return get_uint16_le_from_buffer(buffer, &header->payload);
+	return get_u16_le_from_buffer(buffer, &header->payload);
 }
 
 static int __must_check decode_layout_region(struct buffer *buffer, struct layout_region *region)
 {
 	int result;
 
-	result = get_uint64_le_from_buffer(buffer, &region->start_block);
+	result = get_u64_le_from_buffer(buffer, &region->start_block);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &region->block_count);
+	result = get_u64_le_from_buffer(buffer, &region->block_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1363,11 +1363,11 @@ static int __must_check decode_layout_region(struct buffer *buffer, struct layou
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &region->kind);
+	result = get_u16_le_from_buffer(buffer, &region->kind);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return get_uint16_le_from_buffer(buffer, &region->instance);
+	return get_u16_le_from_buffer(buffer, &region->instance);
 }
 
 static int __must_check
@@ -1469,23 +1469,23 @@ decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &super->nonce);
+	result = get_u64_le_from_buffer(buffer, &super->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &super->version);
+	result = get_u32_le_from_buffer(buffer, &super->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &super->block_size);
+	result = get_u32_le_from_buffer(buffer, &super->block_size);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &super->index_count);
+	result = get_u16_le_from_buffer(buffer, &super->index_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint16_le_from_buffer(buffer, &super->max_saves);
+	result = get_u16_le_from_buffer(buffer, &super->max_saves);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1493,20 +1493,20 @@ decode_super_block_data(struct buffer *buffer, struct super_block_data *super)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &super->open_chapter_blocks);
+	result = get_u64_le_from_buffer(buffer, &super->open_chapter_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &super->page_map_blocks);
+	result = get_u64_le_from_buffer(buffer, &super->page_map_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	if (is_converted_super_block(super)) {
-		result = get_uint64_le_from_buffer(buffer, &super->volume_offset);
+		result = get_u64_le_from_buffer(buffer, &super->volume_offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_uint64_le_from_buffer(buffer, &super->start_offset);
+		result = get_u64_le_from_buffer(buffer, &super->start_offset);
 		if (result != UDS_SUCCESS)
 			return result;
 	} else {
@@ -1725,15 +1725,15 @@ decode_index_save_data(struct buffer *buffer, struct index_save_data *save_data)
 {
 	int result;
 
-	result = get_uint64_le_from_buffer(buffer, &save_data->timestamp);
+	result = get_u64_le_from_buffer(buffer, &save_data->timestamp);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &save_data->nonce);
+	result = get_u64_le_from_buffer(buffer, &save_data->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint32_le_from_buffer(buffer, &save_data->version);
+	result = get_u32_le_from_buffer(buffer, &save_data->version);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1745,11 +1745,11 @@ static int decode_index_state_data(struct buffer *buffer, struct index_state_dat
 	int result;
 	struct index_state_version file_version;
 
-	result = get_int32_le_from_buffer(buffer, &file_version.signature);
+	result = get_s32_le_from_buffer(buffer, &file_version.signature);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_int32_le_from_buffer(buffer, &file_version.version_id);
+	result = get_s32_le_from_buffer(buffer, &file_version.version_id);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1760,15 +1760,15 @@ static int decode_index_state_data(struct buffer *buffer, struct index_state_dat
 					      file_version.signature,
 					      file_version.version_id);
 
-	result = get_uint64_le_from_buffer(buffer, &state_data->newest_chapter);
+	result = get_u64_le_from_buffer(buffer, &state_data->newest_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &state_data->oldest_chapter);
+	result = get_u64_le_from_buffer(buffer, &state_data->oldest_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &state_data->last_save);
+	result = get_u64_le_from_buffer(buffer, &state_data->last_save);
 	if (result != UDS_SUCCESS)
 		return result;
 

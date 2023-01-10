@@ -315,25 +315,25 @@ int put_boolean(struct buffer *buffer, bool b)
 	return put_byte(buffer, (byte) (b ? 1 : 0));
 }
 
-int get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui)
+int get_u16_le_from_buffer(struct buffer *buffer, u16 *ui)
 {
 	if (content_length(buffer) < sizeof(u16))
 		return UDS_BUFFER_ERROR;
 
-	decode_uint16_le(buffer->data, &buffer->start, ui);
+	decode_u16_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
-int put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui)
+int put_u16_le_into_buffer(struct buffer *buffer, u16 ui)
 {
 	if (!ensure_available_space(buffer, sizeof(u16)))
 		return UDS_BUFFER_ERROR;
 
-	encode_uint16_le(buffer->data, &buffer->end, ui);
+	encode_u16_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
-int get_uint16_les_from_buffer(struct buffer *buffer, size_t count, uint16_t *ui)
+int get_u16_les_from_buffer(struct buffer *buffer, size_t count, u16 *ui)
 {
 	unsigned int i;
 
@@ -341,12 +341,12 @@ int get_uint16_les_from_buffer(struct buffer *buffer, size_t count, uint16_t *ui
 		return UDS_BUFFER_ERROR;
 
 	for (i = 0; i < count; i++)
-		decode_uint16_le(buffer->data, &buffer->start, ui + i);
+		decode_u16_le(buffer->data, &buffer->start, ui + i);
 
 	return UDS_SUCCESS;
 }
 
-int put_uint16_les_into_buffer(struct buffer *buffer, size_t count, const uint16_t *ui)
+int put_u16_les_into_buffer(struct buffer *buffer, size_t count, const u16 *ui)
 {
 	unsigned int i;
 
@@ -354,66 +354,66 @@ int put_uint16_les_into_buffer(struct buffer *buffer, size_t count, const uint16
 		return UDS_BUFFER_ERROR;
 
 	for (i = 0; i < count; i++)
-		encode_uint16_le(buffer->data, &buffer->end, ui[i]);
+		encode_u16_le(buffer->data, &buffer->end, ui[i]);
 
 	return UDS_SUCCESS;
 }
 
-int get_int32_le_from_buffer(struct buffer *buffer, int32_t *i)
+int get_s32_le_from_buffer(struct buffer *buffer, s32 *i)
 {
 	if (content_length(buffer) < sizeof(s32))
 		return UDS_BUFFER_ERROR;
 
-	decode_int32_le(buffer->data, &buffer->start, i);
+	decode_s32_le(buffer->data, &buffer->start, i);
 	return UDS_SUCCESS;
 }
 
-int get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui)
+int get_u32_le_from_buffer(struct buffer *buffer, u32 *ui)
 {
 	if (content_length(buffer) < sizeof(u32))
 		return UDS_BUFFER_ERROR;
 
-	decode_uint32_le(buffer->data, &buffer->start, ui);
+	decode_u32_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
-int put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui)
+int put_u32_le_into_buffer(struct buffer *buffer, u32 ui)
 {
 	if (!ensure_available_space(buffer, sizeof(u32)))
 		return UDS_BUFFER_ERROR;
 
-	encode_uint32_le(buffer->data, &buffer->end, ui);
+	encode_u32_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
-int put_int64_le_into_buffer(struct buffer *buffer, int64_t i)
+int put_s64_le_into_buffer(struct buffer *buffer, s64 i)
 {
 	if (!ensure_available_space(buffer, sizeof(s64)))
 		return UDS_BUFFER_ERROR;
 
-	encode_int64_le(buffer->data, &buffer->end, i);
+	encode_s64_le(buffer->data, &buffer->end, i);
 	return UDS_SUCCESS;
 }
 
-int get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui)
+int get_u64_le_from_buffer(struct buffer *buffer, u64 *ui)
 {
 	if (content_length(buffer) < sizeof(u64))
 		return UDS_BUFFER_ERROR;
 
-	decode_uint64_le(buffer->data, &buffer->start, ui);
+	decode_u64_le(buffer->data, &buffer->start, ui);
 	return UDS_SUCCESS;
 }
 
-int put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui)
+int put_u64_le_into_buffer(struct buffer *buffer, u64 ui)
 {
 	if (!ensure_available_space(buffer, sizeof(u64)))
 		return UDS_BUFFER_ERROR;
 
-	encode_uint64_le(buffer->data, &buffer->end, ui);
+	encode_u64_le(buffer->data, &buffer->end, ui);
 	return UDS_SUCCESS;
 }
 
-int get_uint64_les_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui)
+int get_u64_les_from_buffer(struct buffer *buffer, size_t count, u64 *ui)
 {
 	unsigned int i;
 
@@ -421,12 +421,12 @@ int get_uint64_les_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui
 		return UDS_BUFFER_ERROR;
 
 	for (i = 0; i < count; i++)
-		decode_uint64_le(buffer->data, &buffer->start, ui + i);
+		decode_u64_le(buffer->data, &buffer->start, ui + i);
 
 	return UDS_SUCCESS;
 }
 
-int put_uint64_les_into_buffer(struct buffer *buffer, size_t count, const uint64_t *ui)
+int put_u64_les_into_buffer(struct buffer *buffer, size_t count, const u64 *ui)
 {
 	unsigned int i;
 
@@ -434,7 +434,7 @@ int put_uint64_les_into_buffer(struct buffer *buffer, size_t count, const uint64
 		return UDS_BUFFER_ERROR;
 
 	for (i = 0; i < count; i++)
-		encode_uint64_le(buffer->data, &buffer->end, ui[i]);
+		encode_u64_le(buffer->data, &buffer->end, ui[i]);
 
 	return UDS_SUCCESS;
 }

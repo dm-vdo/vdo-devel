@@ -915,19 +915,19 @@ decode_volume_sub_index_header(struct buffer *buffer, struct sub_index_data *hea
 	result = get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint64_le_from_buffer(buffer, &header->volume_nonce);
+	result = get_u64_le_from_buffer(buffer, &header->volume_nonce);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint64_le_from_buffer(buffer, &header->virtual_chapter_low);
+	result = get_u64_le_from_buffer(buffer, &header->virtual_chapter_low);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint64_le_from_buffer(buffer, &header->virtual_chapter_high);
+	result = get_u64_le_from_buffer(buffer, &header->virtual_chapter_high);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint32_le_from_buffer(buffer, &header->first_list);
+	result = get_u32_le_from_buffer(buffer, &header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint32_le_from_buffer(buffer, &header->num_lists);
+	result = get_u32_le_from_buffer(buffer, &header->num_lists);
 	if (result != UDS_SUCCESS)
 		return result;
 	result = ASSERT(content_length(buffer) == 0,
@@ -1028,7 +1028,8 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 			return result;
 		}
 
-		result = get_uint64_les_from_buffer(buffer, header.num_lists, first_flush_chapter);
+		result = get_u64_les_from_buffer(buffer, header.num_lists,
+						 first_flush_chapter);
 		free_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
@@ -1056,7 +1057,7 @@ decode_volume_index_header(struct buffer *buffer, struct volume_index_data *head
 	result = get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_uint32_le_from_buffer(buffer, &header->sparse_sample_rate);
+	result = get_u32_le_from_buffer(buffer, &header->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 	result = ASSERT(content_length(buffer) == 0,
@@ -1195,20 +1196,20 @@ encode_volume_sub_index_header(struct buffer *buffer, struct sub_index_data *hea
 	result = put_bytes(buffer, MAGIC_SIZE, MAGIC_START_5);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_uint64_le_into_buffer(buffer, header->volume_nonce);
+	result = put_u64_le_into_buffer(buffer, header->volume_nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 	result =
-		put_uint64_le_into_buffer(buffer, header->virtual_chapter_low);
+		put_u64_le_into_buffer(buffer, header->virtual_chapter_low);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_uint64_le_into_buffer(buffer, header->virtual_chapter_high);
+	result = put_u64_le_into_buffer(buffer, header->virtual_chapter_high);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_uint32_le_into_buffer(buffer, header->first_list);
+	result = put_u32_le_into_buffer(buffer, header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_uint32_le_into_buffer(buffer, header->num_lists);
+	result = put_u32_le_into_buffer(buffer, header->num_lists);
 	if (result != UDS_SUCCESS)
 		return result;
 	return ASSERT(content_length(buffer) == sizeof(struct sub_index_data),
@@ -1259,7 +1260,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 		return result;
 
 	first_flush_chapter = &sub_index->flush_chapters[first_list];
-	result = put_uint64_les_into_buffer(buffer, num_lists, first_flush_chapter);
+	result = put_u64_les_into_buffer(buffer, num_lists, first_flush_chapter);
 	if (result != UDS_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
@@ -1284,7 +1285,7 @@ encode_volume_index_header(struct buffer *buffer, struct volume_index_data *head
 	result = put_bytes(buffer, MAGIC_SIZE, MAGIC_START_6);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_uint32_le_into_buffer(buffer, header->sparse_sample_rate);
+	result = put_u32_le_into_buffer(buffer, header->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 	return ASSERT(content_length(buffer) == sizeof(struct volume_index_data),

@@ -64,31 +64,31 @@ static int encode_slab_config(const struct slab_config *config, struct buffer *b
 {
 	int result;
 
-	result = put_uint64_le_into_buffer(buffer, config->slab_blocks);
+	result = put_u64_le_into_buffer(buffer, config->slab_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->data_blocks);
+	result = put_u64_le_into_buffer(buffer, config->data_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->reference_count_blocks);
+	result = put_u64_le_into_buffer(buffer, config->reference_count_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->slab_journal_blocks);
+	result = put_u64_le_into_buffer(buffer, config->slab_journal_blocks);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->slab_journal_flushing_threshold);
+	result = put_u64_le_into_buffer(buffer, config->slab_journal_flushing_threshold);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, config->slab_journal_blocking_threshold);
+	result = put_u64_le_into_buffer(buffer, config->slab_journal_blocking_threshold);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return put_uint64_le_into_buffer(buffer, config->slab_journal_scrubbing_threshold);
+	return put_u64_le_into_buffer(buffer, config->slab_journal_scrubbing_threshold);
 }
 
 /**
@@ -113,11 +113,11 @@ int vdo_encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state, struct bu
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.first_block);
+	result = put_u64_le_into_buffer(buffer, state.first_block);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, state.last_block);
+	result = put_u64_le_into_buffer(buffer, state.last_block);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -142,37 +142,37 @@ static int decode_slab_config(struct buffer *buffer, struct slab_config *config)
 	block_count_t count;
 	int result;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->slab_blocks = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->data_blocks = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->reference_count_blocks = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->slab_journal_blocks = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->slab_journal_flushing_threshold = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->slab_journal_blocking_threshold = count;
 
-	result = get_uint64_le_from_buffer(buffer, &count);
+	result = get_u64_le_from_buffer(buffer, &count);
 	if (result != UDS_SUCCESS)
 		return result;
 	config->slab_journal_scrubbing_threshold = count;
@@ -210,11 +210,11 @@ int vdo_decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_sta
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &first_block);
+	result = get_u64_le_from_buffer(buffer, &first_block);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &last_block);
+	result = get_u64_le_from_buffer(buffer, &last_block);
 	if (result != UDS_SUCCESS)
 		return result;
 

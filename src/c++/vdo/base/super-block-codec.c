@@ -111,7 +111,7 @@ int vdo_encode_super_block(struct super_block_codec *codec)
 	/* Compute and encode the checksum. */
 	checksum = vdo_crc32(codec->encoded_super_block,
 			     content_length(buffer));
-	result = put_uint32_le_into_buffer(buffer, checksum);
+	result = put_u32_le_into_buffer(buffer, checksum);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -178,7 +178,7 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 			     uncompacted_amount(buffer));
 
 	/* Decode and verify the saved checksum. */
-	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
+	result = get_u32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS)
 		return result;
 

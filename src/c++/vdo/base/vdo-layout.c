@@ -418,15 +418,15 @@ static int encode_partitions_3_0(const struct fixed_layout *layout,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_uint64_le_into_buffer(buffer, partition->offset);
+		result = put_u64_le_into_buffer(buffer, partition->offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_uint64_le_into_buffer(buffer, partition->base);
+		result = put_u64_le_into_buffer(buffer, partition->base);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_uint64_le_into_buffer(buffer, partition->count);
+		result = put_u64_le_into_buffer(buffer, partition->count);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -450,11 +450,11 @@ static int encode_layout_3_0(const struct fixed_layout *layout,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, layout->first_free);
+	result = put_u64_le_into_buffer(buffer, layout->first_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, layout->last_free);
+	result = put_u64_le_into_buffer(buffer, layout->last_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -527,15 +527,15 @@ static int decode_partitions_3_0(struct buffer *buffer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_uint64_le_from_buffer(buffer, &offset);
+		result = get_u64_le_from_buffer(buffer, &offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_uint64_le_from_buffer(buffer, &base);
+		result = get_u64_le_from_buffer(buffer, &base);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_uint64_le_from_buffer(buffer, &count);
+		result = get_u64_le_from_buffer(buffer, &count);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -561,12 +561,12 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 	physical_block_number_t first_free, last_free;
 	byte partition_count;
 
-	int result = get_uint64_le_from_buffer(buffer, &first_free);
+	int result = get_u64_le_from_buffer(buffer, &first_free);
 
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &last_free);
+	result = get_u64_le_from_buffer(buffer, &last_free);
 	if (result != UDS_SUCCESS)
 		return result;
 

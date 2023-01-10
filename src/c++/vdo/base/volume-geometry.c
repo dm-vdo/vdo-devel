@@ -106,7 +106,7 @@ static int decode_index_config(struct buffer *buffer,
 {
 	uint32_t mem;
 	bool sparse;
-	int result = get_uint32_le_from_buffer(buffer, &mem);
+	int result = get_u32_le_from_buffer(buffer, &mem);
 
 	if (result != VDO_SUCCESS)
 		return result;
@@ -138,7 +138,7 @@ static int decode_index_config(struct buffer *buffer,
 static int encode_index_config(const struct index_config *config,
 			       struct buffer *buffer)
 {
-	int result = put_uint32_le_into_buffer(buffer, config->mem);
+	int result = put_u32_le_into_buffer(buffer, config->mem);
 
 	if (result != VDO_SUCCESS)
 		return result;
@@ -164,12 +164,12 @@ static int decode_volume_region(struct buffer *buffer,
 {
 	physical_block_number_t start_block;
 	enum volume_region_id id;
-	int result = get_uint32_le_from_buffer(buffer, &id);
+	int result = get_u32_le_from_buffer(buffer, &id);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &start_block);
+	result = get_u64_le_from_buffer(buffer, &start_block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -189,15 +189,14 @@ static int decode_volume_region(struct buffer *buffer,
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int encode_volume_region(const struct volume_region *region,
-				struct buffer *buffer)
+static int encode_volume_region(const struct volume_region *region, struct buffer *buffer)
 {
-	int result = put_uint32_le_into_buffer(buffer, region->id);
+	int result = put_u32_le_into_buffer(buffer, region->id);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return put_uint64_le_into_buffer(buffer, region->start_block);
+	return put_u64_le_into_buffer(buffer, region->start_block);
 }
 #endif /* VDO_USER */
 
@@ -218,12 +217,12 @@ static int decode_volume_geometry(struct buffer *buffer,
 	enum volume_region_id id;
 	nonce_t nonce;
 	block_count_t bio_offset;
-	int result = get_uint32_le_from_buffer(buffer, &release_version);
+	int result = get_u32_le_from_buffer(buffer, &release_version);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = get_uint64_le_from_buffer(buffer, &nonce);
+	result = get_u64_le_from_buffer(buffer, &nonce);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -237,7 +236,7 @@ static int decode_volume_geometry(struct buffer *buffer,
 
 	bio_offset = 0;
 	if (version > 4) {
-		result = get_uint64_le_from_buffer(buffer, &bio_offset);
+		result = get_u64_le_from_buffer(buffer, &bio_offset);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -267,12 +266,12 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 				  uint32_t version)
 {
 	enum volume_region_id id;
-	int result = put_uint32_le_into_buffer(buffer, geometry->release_version);
+	int result = put_u32_le_into_buffer(buffer, geometry->release_version);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = put_uint64_le_into_buffer(buffer, geometry->nonce);
+	result = put_u64_le_into_buffer(buffer, geometry->nonce);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -282,8 +281,7 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 		return result;
 
 	if (version >= 5) {
-		result = put_uint64_le_into_buffer(buffer,
-						   geometry->bio_offset);
+		result = put_u64_le_into_buffer(buffer, geometry->bio_offset);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -369,7 +367,7 @@ vdo_parse_geometry_block(unsigned char *block,
 
 	/* Checksum everything decoded so far. */
 	checksum = vdo_crc32(block, uncompacted_amount(buffer));
-	result = get_uint32_le_from_buffer(buffer, &saved_checksum);
+	result = get_u32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
@@ -603,7 +601,7 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 
 	/* Checksum everything encoded so far and then encode the checksum. */
 	checksum = vdo_crc32((byte *) block, content_length(buffer));
-	result = put_uint32_le_into_buffer(buffer, checksum);
+	result = put_u32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		UDS_FREE(block);

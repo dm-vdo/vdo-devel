@@ -86,9 +86,10 @@ int vdo_decode_component_states(struct buffer *buffer,
 				release_version_number_t expected_release_version,
 				struct vdo_component_states *states)
 {
-	/* Check the release version against the one from the geometry. */
-	int result = get_uint32_le_from_buffer(buffer,
-					       &states->release_version);
+	int result;
+
+	/* Get and check the release version against the one from the geometry. */
+	result = get_u32_le_from_buffer(buffer, &states->release_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -177,7 +178,7 @@ int vdo_encode_component_states(struct buffer *buffer,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_uint32_le_into_buffer(buffer, states->release_version);
+	result = put_u32_le_into_buffer(buffer, states->release_version);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -193,8 +194,7 @@ int vdo_encode_component_states(struct buffer *buffer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_encode_recovery_journal_state_7_0(states->recovery_journal,
-						       buffer);
+	result = vdo_encode_recovery_journal_state_7_0(states->recovery_journal, buffer);
 	if (result != VDO_SUCCESS)
 		return result;
 

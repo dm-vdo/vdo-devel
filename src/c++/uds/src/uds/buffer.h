@@ -64,25 +64,21 @@ int __must_check zero_bytes(struct buffer *buffer, size_t length);
 int __must_check get_boolean(struct buffer *buffer, bool *b);
 int __must_check put_boolean(struct buffer *buffer, bool b);
 
-int __must_check get_uint16_le_from_buffer(struct buffer *buffer, uint16_t *ui);
-int __must_check put_uint16_le_into_buffer(struct buffer *buffer, uint16_t ui);
+int __must_check get_u16_le_from_buffer(struct buffer *buffer, u16 *ui);
+int __must_check put_u16_le_into_buffer(struct buffer *buffer, u16 ui);
 
-int __must_check get_uint16_les_from_buffer(struct buffer *buffer, size_t count, uint16_t *ui);
-int __must_check put_uint16_les_into_buffer(struct buffer *buffer,
-					    size_t count,
-					    const uint16_t *ui);
+int __must_check get_u16_les_from_buffer(struct buffer *buffer, size_t count, u16 *ui);
+int __must_check put_u16_les_into_buffer(struct buffer *buffer, size_t count, const u16 *ui);
 
-int __must_check get_int32_le_from_buffer(struct buffer *buffer, int32_t *i);
-int __must_check get_uint32_le_from_buffer(struct buffer *buffer, uint32_t *ui);
-int __must_check put_uint32_le_into_buffer(struct buffer *buffer, uint32_t ui);
+int __must_check get_s32_le_from_buffer(struct buffer *buffer, s32 *i);
+int __must_check get_u32_le_from_buffer(struct buffer *buffer, u32 *ui);
+int __must_check put_u32_le_into_buffer(struct buffer *buffer, u32 ui);
 
-int __must_check get_uint64_le_from_buffer(struct buffer *buffer, uint64_t *ui);
-int __must_check put_int64_le_into_buffer(struct buffer *buffer, int64_t i);
-int __must_check put_uint64_le_into_buffer(struct buffer *buffer, uint64_t ui);
+int __must_check get_u64_le_from_buffer(struct buffer *buffer, u64 *ui);
+int __must_check put_s64_le_into_buffer(struct buffer *buffer, s64 i);
+int __must_check put_u64_le_into_buffer(struct buffer *buffer, u64 ui);
 
-int __must_check get_uint64_les_from_buffer(struct buffer *buffer, size_t count, uint64_t *ui);
-int __must_check put_uint64_les_into_buffer(struct buffer *buffer,
-					    size_t count,
-					    const uint64_t *ui);
+int __must_check get_u64_les_from_buffer(struct buffer *buffer, size_t count, u64 *ui);
+int __must_check put_u64_les_into_buffer(struct buffer *buffer, size_t count, const u64 *ui);
 
 #endif /* BUFFER_H */

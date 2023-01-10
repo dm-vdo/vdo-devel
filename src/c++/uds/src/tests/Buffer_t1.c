@@ -148,19 +148,19 @@ static void checkContents(struct buffer *buffer)
   UDS_ASSERT_EQUAL_BYTES(bytes, BYTES, 4);
 
   uint16_t uint16t;
-  UDS_ASSERT_SUCCESS(get_uint16_le_from_buffer(buffer, &uint16t));
+  UDS_ASSERT_SUCCESS(get_u16_le_from_buffer(buffer, &uint16t));
   expectedSize -= 2;
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
   CU_ASSERT_EQUAL(uint16t, UINT16T);
 
   uint32_t uint32t;
-  UDS_ASSERT_SUCCESS(get_uint32_le_from_buffer(buffer, &uint32t));
+  UDS_ASSERT_SUCCESS(get_u32_le_from_buffer(buffer, &uint32t));
   expectedSize -= 4;
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
   CU_ASSERT_EQUAL(uint32t, UINT32T);
 
   uint64_t numbers[2];
-  UDS_ASSERT_SUCCESS(get_uint64_les_from_buffer(buffer, 2, numbers));
+  UDS_ASSERT_SUCCESS(get_u64_les_from_buffer(buffer, 2, numbers));
   expectedSize -= (8 * 2);
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
   CU_ASSERT_EQUAL(numbers[0], NUMBERS[0]);
@@ -184,13 +184,13 @@ static void testBufferDataTypes(void)
   UDS_ASSERT_SUCCESS(put_bytes(buffer, 4, BYTES));
   CU_ASSERT_EQUAL(6, content_length(buffer));
 
-  UDS_ASSERT_SUCCESS(put_uint16_le_into_buffer(buffer, UINT16T));
+  UDS_ASSERT_SUCCESS(put_u16_le_into_buffer(buffer, UINT16T));
   CU_ASSERT_EQUAL(8, content_length(buffer));
 
-  UDS_ASSERT_SUCCESS(put_uint32_le_into_buffer(buffer, UINT32T));
+  UDS_ASSERT_SUCCESS(put_u32_le_into_buffer(buffer, UINT32T));
   CU_ASSERT_EQUAL(12, content_length(buffer));
 
-  UDS_ASSERT_SUCCESS(put_uint64_les_into_buffer(buffer, 2, NUMBERS));
+  UDS_ASSERT_SUCCESS(put_u64_les_into_buffer(buffer, 2, NUMBERS));
   CU_ASSERT_EQUAL(28, content_length(buffer));
 
   CU_ASSERT_EQUAL(0, available_space(buffer));

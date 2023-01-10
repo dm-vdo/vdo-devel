@@ -134,13 +134,13 @@ int write_index_page_map(struct index_page_map *map, struct buffered_writer *wri
 		return result;
 	}
 
-	result = put_uint64_le_into_buffer(buffer, map->last_update);
+	result = put_u64_le_into_buffer(buffer, map->last_update);
 	if (result != UDS_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
-	result = put_uint16_les_into_buffer(buffer, get_entry_count(map->geometry), map->entries);
+	result = put_u16_les_into_buffer(buffer, get_entry_count(map->geometry), map->entries);
 	if (result != UDS_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
@@ -191,13 +191,13 @@ int read_index_page_map(struct index_page_map *map, struct buffered_reader *read
 		return UDS_CORRUPT_DATA;
 	}
 
-	result = get_uint64_le_from_buffer(buffer, &map->last_update);
+	result = get_u64_le_from_buffer(buffer, &map->last_update);
 	if (result != UDS_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
-	result = get_uint16_les_from_buffer(buffer, get_entry_count(map->geometry), map->entries);
+	result = get_u16_les_from_buffer(buffer, get_entry_count(map->geometry), map->entries);
 	free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return result;
