@@ -21,11 +21,11 @@ static void initEvenly(const struct delta_zone *pdm)
 {
   struct delta_list *pdl = pdm->delta_lists;
   memset(pdl, 0, (pdm->list_count + 1) * sizeof(struct delta_list));
-  size_t usableBytes = pdl[pdm->list_count + 1].start / CHAR_BIT;
+  size_t usableBytes = pdl[pdm->list_count + 1].start / BITS_PER_BYTE;
   size_t spacing = usableBytes / (pdm->list_count + 1);
   unsigned int i;
   for (i = 0; i <= pdm->list_count; i++) {
-    pdl[i].start = i * spacing * CHAR_BIT;
+    pdl[i].start = i * spacing * BITS_PER_BYTE;
     pdl[i].size = 0;
   }
   validateDeltaLists(pdm);
@@ -39,8 +39,8 @@ static void initFully(const struct delta_zone *pdm)
   struct delta_list *pdl = pdm->delta_lists;
   unsigned int list_count = pdm->list_count;
   memset(pdl, 0, (pdm->list_count + 1) * sizeof(struct delta_list));
-  size_t usableBytes = pdl[list_count + 1].start / CHAR_BIT;
-  size_t spacing = usableBytes / pdm->list_count * CHAR_BIT;
+  size_t usableBytes = pdl[list_count + 1].start / BITS_PER_BYTE;
+  size_t spacing = usableBytes / pdm->list_count * BITS_PER_BYTE;
   pdl[0].start = 0;
   pdl[0].size = 0;
   unsigned int i;
@@ -48,7 +48,8 @@ static void initFully(const struct delta_zone *pdm)
     pdl[i].start = pdl[i - 1].start + pdl[i - 1].size;
     pdl[i].size = spacing;
   }
-  pdl[pdm->list_count].size = (pdm->size * CHAR_BIT - pdl[pdm->list_count].start);
+  pdl[pdm->list_count].size = (pdm->size * BITS_PER_BYTE
+                               - pdl[pdm->list_count].start);
   pdl[pdm->list_count].size = (pdl[pdm->list_count + 1].start
                              - pdl[pdm->list_count].start);
   validateDeltaLists(pdm);
@@ -63,8 +64,8 @@ static void allocateRandomly(const struct delta_zone *pdm)
   unsigned int i;
   for (i = 1; i <= pdm->list_count; i++) {
     int j = ((unsigned int) random()
-             % ((pdl[i + 1].start - pdl[i].start) / CHAR_BIT));
-    pdl[i].size = j * CHAR_BIT;
+             % ((pdl[i + 1].start - pdl[i].start) / BITS_PER_BYTE));
+    pdl[i].size = j * BITS_PER_BYTE;
     CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
   validateDeltaLists(pdm);
@@ -78,7 +79,7 @@ static void allocateTriangularly(const struct delta_zone *pdm)
   struct delta_list *pdl = pdm->delta_lists;
   unsigned int i;
   for (i = 1; i <= pdm->list_count; i++) {
-    pdl[i].size = i * CHAR_BIT;
+    pdl[i].size = i * BITS_PER_BYTE;
     CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
   validateDeltaLists(pdm);
@@ -94,7 +95,7 @@ static void allocateReverseTriangularly(const struct delta_zone *pdm)
   unsigned int i;
   for (i = 1; i <= pdm->list_count; i++) {
     int j = pdm->list_count + 1 - i;
-    pdl[i].size = j * CHAR_BIT;
+    pdl[i].size = j * BITS_PER_BYTE;
 
     CU_ASSERT_TRUE(pdl[i].start + pdl[i].size <= pdl[i + 1].start);
   }
@@ -109,8 +110,8 @@ static void storeData(const struct delta_zone *pdm)
   const struct delta_list *pdl = pdm->delta_lists;
   unsigned int i, j;
   for (i = 1; i <= pdm->list_count; i++) {
-    uint64_t offset = pdl[i].start / CHAR_BIT;
-    for (j = 0; j < pdl[i].size / CHAR_BIT; j++) {
+    uint64_t offset = pdl[i].start / BITS_PER_BYTE;
+    for (j = 0; j < pdl[i].size / BITS_PER_BYTE; j++) {
       pdm->memory[offset + j] = (byte)(i + j);
     }
   }
@@ -124,8 +125,8 @@ static void verifyData(const struct delta_zone *pdm)
   const struct delta_list *pdl = pdm->delta_lists;
   unsigned int i, j;
   for (i = 1; i <= pdm->list_count; i++) {
-    uint64_t offset = pdl[i].start / CHAR_BIT;
-    for (j = 0; j < pdl[i].size / CHAR_BIT; j++) {
+    uint64_t offset = pdl[i].start / BITS_PER_BYTE;
+    for (j = 0; j < pdl[i].size / BITS_PER_BYTE; j++) {
       CU_ASSERT_EQUAL(pdm->memory[offset + j], (byte)(i + j));
     }
   }
@@ -141,9 +142,9 @@ static void verifyEvenSpacing(const struct delta_zone *pdm,
   size_t expectedGap = 0, firstGap = 0;
   unsigned int i;
   for (i = 1; i <= pdm->list_count + 1; i++) {
-    size_t gap
-      = (pdl[i].start / CHAR_BIT
-         - (pdl[i - 1].start / CHAR_BIT + pdl[i - 1].size / CHAR_BIT));
+    size_t gap = pdl[i].start / BITS_PER_BYTE
+                  - (pdl[i - 1].start / BITS_PER_BYTE
+                     + pdl[i - 1].size / BITS_PER_BYTE);
     // There must be space between lists
     CU_ASSERT_TRUE((int) gap > 0);
     if (i == growingIndex) {

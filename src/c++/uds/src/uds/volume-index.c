@@ -342,7 +342,7 @@ static int compute_volume_index_parameters(const struct configuration *config,
 								params->mean_delta,
 								params->chapter_bits);
 	num_bits_per_index = params->num_bits_per_chapter * chapters_in_volume_index;
-	expected_index_size = num_bits_per_index / CHAR_BIT;
+	expected_index_size = num_bits_per_index / BITS_PER_BYTE;
 	params->memory_size = expected_index_size * 106 / 100;
 
 	params->target_free_size = expected_index_size / 20;
@@ -475,7 +475,7 @@ int compute_volume_index_save_blocks(const struct configuration *config,
 static size_t
 get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 {
-	return DIV_ROUND_UP(get_delta_index_bits_used(&sub_index->delta_index), CHAR_BIT);
+	return DIV_ROUND_UP(get_delta_index_bits_used(&sub_index->delta_index), BITS_PER_BYTE);
 }
 
 size_t get_volume_index_memory_used(const struct volume_index *volume_index)
@@ -1466,7 +1466,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 		return result;
 
 	sub_index->max_zone_bits = ((get_delta_index_bits_allocated(&sub_index->delta_index) -
-				     params.target_free_size * CHAR_BIT) / num_zones);
+				     params.target_free_size * BITS_PER_BYTE) / num_zones);
 
 	/* The following arrays are initialized to all zeros. */
 	result = UDS_ALLOCATE(params.num_delta_lists,

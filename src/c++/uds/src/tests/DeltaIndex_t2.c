@@ -30,9 +30,9 @@ static void unalignedTest(void)
   }
   for (i = 0; i + sizeof(uint32_t) < MEM_SIZE; i++) {
     uint32_t expect = (memory[i]
-                       | (memory[i + 1] << CHAR_BIT)
-                       | (memory[i + 2] << (2 * CHAR_BIT))
-                       | (memory[i + 3] << (3 * CHAR_BIT)));
+                       | (memory[i + 1] << BITS_PER_BYTE)
+                       | (memory[i + 2] << (2 * BITS_PER_BYTE))
+                       | (memory[i + 3] << (3 * BITS_PER_BYTE)));
     CU_ASSERT_EQUAL(expect, get_unaligned_le32(memory + i));
   }
 }
@@ -44,9 +44,9 @@ static void unalignedTest(void)
 static void ffsTest(void)
 {
   unsigned int i, j;
-  for (i = 1; i < (1 << CHAR_BIT); i++) {
+  for (i = 1; i < (1 << BITS_PER_BYTE); i++) {
     for (j = 0; j < sizeof(uint32_t); j++) {
-      uint32_t data = i << (j * CHAR_BIT);
+      uint32_t data = i << (j * BITS_PER_BYTE);
       int first = ffs(data);
       uint32_t firstBit = 1u << (first - 1);
       CU_ASSERT_EQUAL(firstBit, firstBit & data);

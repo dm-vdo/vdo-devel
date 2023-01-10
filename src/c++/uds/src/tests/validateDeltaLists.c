@@ -13,7 +13,7 @@ void validateDeltaLists(const struct delta_zone *delta_zone)
   struct delta_list *delta_lists = delta_zone->delta_lists;
   unsigned int i;
 
-  enum { GUARD_BITS = (sizeof(uint64_t) -1 ) * CHAR_BIT };
+  enum { GUARD_BITS = (sizeof(uint64_t) -1 ) * BITS_PER_BYTE };
 
   /* Validate the delta index fields set by restoring a delta index. */
 
@@ -28,7 +28,7 @@ void validateDeltaLists(const struct delta_zone *delta_zone)
   /* The tail guard list ends at the end of the memory. */
   struct delta_list *tail_list = &delta_lists[delta_zone->list_count + 1];
   uint64_t num_bits = tail_list->start + tail_list->size;;
-  CU_ASSERT_TRUE(num_bits == delta_zone->size * CHAR_BIT);
+  CU_ASSERT_TRUE(num_bits == delta_zone->size * BITS_PER_BYTE);
 
   /* The tail guard list contains sufficient guard bits. */
   CU_ASSERT_TRUE(tail_list->size == GUARD_BITS);

@@ -31,14 +31,6 @@
  *         to u8.  Remove this typedef when the conversion is complete.
  */
 typedef u8 byte;
-
-/*
- * REMOVE: linux/bits.h provides BITS_PER_BYTE.  Changes to adhere to kernel types should convert
- *         to BITS_PER_BYTE.  Remove CHAR_BIT when the conversion is complete.
- */
-#ifdef __KERNEL__
-#define CHAR_BIT BITS_PER_BYTE
-#endif
 #ifndef __KERNEL__
 #define sector_t u64
 

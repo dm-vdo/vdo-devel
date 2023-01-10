@@ -20,9 +20,9 @@ static const unsigned int NUM_PAYLOAD_BITS = 10;
 static inline unsigned int
 getField(const byte *memory, uint64_t offset, int size)
 {
-	const void *addr = memory + offset / CHAR_BIT;
+	const void *addr = memory + offset / BITS_PER_BYTE;
 
-	return ((get_unaligned_le32(addr) >> (offset % CHAR_BIT)) &
+	return ((get_unaligned_le32(addr) >> (offset % BITS_PER_BYTE)) &
 		((1 << size) - 1));
 }
 
@@ -72,10 +72,12 @@ static bool sameBits(const byte *mem1, uint64_t offset1, const byte *mem2,
  **/
 static void moveBitsTest(void)
 {
-  enum { NUM_LENGTHS = 2 * (sizeof(uint64_t) + sizeof(uint32_t)) * CHAR_BIT };
-  enum { NUM_OFFSETS = sizeof(uint32_t) * CHAR_BIT };
-  enum { MEM_SIZE = (NUM_LENGTHS + 6 * CHAR_BIT - 1) / CHAR_BIT };
-  enum { MEM_BITS = MEM_SIZE * CHAR_BIT };
+  enum {
+    NUM_LENGTHS  = 2 * (sizeof(uint64_t) + sizeof(uint32_t)) * BITS_PER_BYTE
+  };
+  enum { NUM_OFFSETS = sizeof(uint32_t) * BITS_PER_BYTE };
+  enum { MEM_SIZE = (NUM_LENGTHS + 6 * BITS_PER_BYTE - 1) / BITS_PER_BYTE };
+  enum { MEM_BITS = MEM_SIZE * BITS_PER_BYTE };
   enum { POST_FIELD_GUARD_BYTES = sizeof(uint64_t) - 1 };
   byte memory[MEM_SIZE + POST_FIELD_GUARD_BYTES];
   byte data[MEM_SIZE + POST_FIELD_GUARD_BYTES];
@@ -119,7 +121,8 @@ static void setupDeltaList(struct delta_list *pdl, int index,
 static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
 {
   struct delta_zone *dm, *random;
-  int initSize = (pdl[numLists + 1].start + pdl[numLists + 1].size) / CHAR_BIT;
+  int initSize
+    = (pdl[numLists + 1].start + pdl[numLists + 1].size) / BITS_PER_BYTE;
   size_t pdlSize = (numLists + 2) * sizeof(struct delta_list);
 
   // Get some random bits
@@ -176,15 +179,15 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
 static void guardAndTest(struct delta_list *pdl, int numLists,
                          unsigned int gapSize)
 {
-  enum { GUARD_BITS = (sizeof(uint64_t) - 1) * CHAR_BIT };
+  enum { GUARD_BITS = (sizeof(uint64_t) - 1) * BITS_PER_BYTE };
   struct delta_list *deltaListsCopy;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numLists + 2, struct delta_list, __func__,
                                   &deltaListsCopy));
 
   // Set the tail guard list, which starts and ends on a byte boundary
   pdl[numLists + 1].start
-    = ((pdl[numLists].start + pdl[numLists].size + gapSize + CHAR_BIT - 1)
-       & (-CHAR_BIT));
+    = ((pdl[numLists].start + pdl[numLists].size + gapSize + BITS_PER_BYTE - 1)
+       & (-BITS_PER_BYTE));
   pdl[numLists + 1].size = GUARD_BITS;
 
   memcpy(deltaListsCopy, pdl, (numLists + 2) * sizeof(struct delta_list));
@@ -211,8 +214,8 @@ static void diffBlocks(bool increasing)
                                   &deltaLists));
 
   unsigned int gapSize, i, offset;
-  for (gapSize = 0; gapSize < 2 * CHAR_BIT; gapSize++) {
-    for (offset = 0; offset < CHAR_BIT; offset++) {
+  for (gapSize = 0; gapSize < 2 * BITS_PER_BYTE; gapSize++) {
+    for (offset = 0; offset < BITS_PER_BYTE; offset++) {
       // Zero the first (guard) delta list
       memset(deltaLists, 0, sizeof(struct delta_list));
       // Set the size of the head guard delta list.  This artifice will let
@@ -259,12 +262,12 @@ static void randomTest(void)
   unsigned int i;
   for (i = 1; i <= LIST_COUNT; i++) {
     setupDeltaList(deltaLists, i,
-                   random() % (sizeof(uint16_t) * CHAR_BIT + 1),
+                   random() % (sizeof(uint16_t) * BITS_PER_BYTE + 1),
                    random() % (8 * 1024 + 1));
   }
 
   guardAndTest(deltaLists, LIST_COUNT,
-               random() % (sizeof(uint16_t) * CHAR_BIT + 1));
+               random() % (sizeof(uint16_t) * BITS_PER_BYTE + 1));
   UDS_FREE(deltaLists);
 }
 
