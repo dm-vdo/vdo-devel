@@ -47,7 +47,7 @@ void vdo_dump_hash_zones(struct hash_zones *zones);
 
 const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones);
 
-uint64_t vdo_get_dedupe_index_timeout_count(struct hash_zones *zones);
+u64 vdo_get_dedupe_index_timeout_count(struct hash_zones *zones);
 
 int vdo_message_dedupe_index(struct hash_zones *zones, const char *name);
 

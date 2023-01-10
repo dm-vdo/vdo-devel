@@ -88,7 +88,7 @@ struct tree_lock {
 	/* Whether we hold a page lock */
 	bool locked;
 	/* The key for the lock map */
-	uint64_t key;
+	u64 key;
 	/* The queue of waiters for the page this vio is allocating or loading */
 	struct wait_queue waiters;
 	/* The block map tree slots for this LBN */
@@ -133,7 +133,7 @@ struct compression_state {
 	atomic_t status;
 
 	/* The compressed size of this block */
-	uint16_t size;
+	u16 size;
 
 	/* The packer input or output bin slot which holds the enclosing data_vio */
 	slot_number_t slot;
@@ -265,7 +265,7 @@ struct data_vio {
 	 * whereas for non-discards it will always be 0. Hence it can be used to determine whether
 	 * a data_vio is processing a discard, even after the user_bio has been acknowledged.
 	 */
-	uint32_t remaining_discard;
+	u32 remaining_discard;
 
 	struct dedupe_context *dedupe_context;
 
@@ -285,7 +285,7 @@ struct data_vio {
 #ifdef VDO_INTERNAL
 
 	/* When the user bio arrived */
-	uint64_t arrival_jiffies;
+	u64 arrival_jiffies;
 #endif /* VDO_INTERNAL */
 };
 

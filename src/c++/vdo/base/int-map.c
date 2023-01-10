@@ -76,11 +76,11 @@ struct __packed bucket {
 	 * @first_hop: The biased offset of the first entry in the hop list of the neighborhood
 	 *             that hashes to this bucket.
 	 */
-	uint8_t first_hop;
+	u8 first_hop;
 	/** @next_hop: The biased offset of the next bucket in the hop list. */
-	uint8_t next_hop;
+	u8 next_hop;
 	/** @key: The key stored in this bucket. */
-	uint64_t key;
+	u64 key;
 	/** @value: The value stored in this bucket (NULL if empty). */
 	void *value;
 };
@@ -110,10 +110,10 @@ struct int_map {
  *
  * Return: A hash of the two inputs.
  */
-static uint64_t mix(uint64_t input1, uint64_t input2)
+static u64 mix(u64 input1, u64 input2)
 {
-	static const uint64_t CITY_MULTIPLIER = 0x9ddfea08eb382d69ULL;
-	uint64_t hash = (input1 ^ input2);
+	static const u64 CITY_MULTIPLIER = 0x9ddfea08eb382d69ULL;
+	u64 hash = (input1 ^ input2);
 
 	hash *= CITY_MULTIPLIER;
 	hash ^= (hash >> 47);
@@ -134,18 +134,18 @@ static uint64_t mix(uint64_t input1, uint64_t input2)
  *
  * Return: The hash of the mapping key.
  */
-static uint64_t hash_key(uint64_t key)
+static u64 hash_key(u64 key)
 {
 	/*
 	 * Aliasing restrictions forbid us from casting pointer types, so use a union to convert a
-	 * single uint64_t to two uint32_t values.
+	 * single u64 to two u32 values.
 	 */
 	union {
-		uint64_t u64;
-		uint32_t u32[2];
+		u64 u64;
+		u32 u32[2];
 	} pun = {.u64 = key};
 
-	return mix(sizeof(key) + (((uint64_t) pun.u32[0]) << 3), pun.u32[1]);
+	return mix(sizeof(key) + (((u64) pun.u32[0]) << 3), pun.u32[1]);
 }
 
 /**
@@ -299,13 +299,13 @@ static void insert_in_hop_list(struct bucket *neighborhood, struct bucket *new_b
  * @map: The map to search.
  * @key: The mapping key.
  */
-static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
+static struct bucket *select_bucket(const struct int_map *map, u64 key)
 {
 	/*
 	 * Calculate a good hash value for the provided key. We want exactly 32 bits, so mask the
 	 * result.
 	 */
-	uint64_t hash = hash_key(key) & 0xFFFFFFFF;
+	u64 hash = hash_key(key) & 0xFFFFFFFF;
 
 	/*
 	 * Scale the 32-bit hash to a bucket index by treating it as a binary fraction and
@@ -332,7 +332,7 @@ static struct bucket *select_bucket(const struct int_map *map, uint64_t key)
  */
 static struct bucket *search_hop_list(struct int_map *map __always_unused,
 				      struct bucket *bucket,
-				      uint64_t key,
+				      u64 key,
 				      struct bucket **previous_ptr)
 {
 	struct bucket *previous = NULL;
@@ -363,7 +363,7 @@ static struct bucket *search_hop_list(struct int_map *map __always_unused,
  *
  * Return: The value associated with the given key, or NULL if the key is not mapped to any value.
  */
-void *int_map_get(struct int_map *map, uint64_t key)
+void *int_map_get(struct int_map *map, u64 key)
 {
 	struct bucket *match = search_hop_list(map, select_bucket(map, key), key, NULL);
 
@@ -531,7 +531,7 @@ static struct bucket *move_empty_bucket(struct int_map *map __always_unused, str
  */
 static bool update_mapping(struct int_map *map,
 			   struct bucket *neighborhood,
-			   uint64_t key,
+			   u64 key,
 			   void *new_value,
 			   bool update,
 			   void **old_value_ptr)
@@ -612,11 +612,7 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int int_map_put(struct int_map *map,
-		uint64_t key,
-		void *new_value,
-		bool update,
-		void **old_value_ptr)
+int int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
@@ -680,7 +676,7 @@ int int_map_put(struct int_map *map,
  *
  * Return: the value that was associated with the key, or NULL if it was not mapped.
  */
-void *int_map_remove(struct int_map *map, uint64_t key)
+void *int_map_remove(struct int_map *map, u64 key)
 {
 	void *value;
 

@@ -98,8 +98,7 @@ vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
 struct slab_journal * __must_check
 vdo_get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn);
 
-uint8_t __must_check
-vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
+u8 __must_check vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
 
 bool __must_check
 vdo_is_physical_data_block(const struct slab_depot *depot,

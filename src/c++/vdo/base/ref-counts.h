@@ -75,9 +75,9 @@ struct ref_counts {
 	struct vdo_slab *slab;
 
 	/* The size of the counters array */
-	uint32_t block_count;
+	u32 block_count;
 	/* The number of free blocks */
-	uint32_t free_blocks;
+	u32 free_blocks;
 	/* The array of reference counts */
 	vdo_refcount_t *counters; /* use UDS_ALLOCATE to align data ptr */
 
@@ -104,7 +104,7 @@ struct ref_counts {
 	struct journal_point slab_journal_point;
 
 	/* The number of reference count blocks */
-	uint32_t reference_block_count;
+	u32 reference_block_count;
 	/* reference count block array */
 	struct reference_block blocks[];
 };
@@ -124,7 +124,7 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts);
 
 block_count_t __must_check vdo_get_unreferenced_block_count(struct ref_counts *ref_counts);
 
-uint8_t __must_check
+u8 __must_check
 vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn);
 
 int __must_check

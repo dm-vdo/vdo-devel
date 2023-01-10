@@ -127,8 +127,8 @@ int vdo_encode_version_number(struct version_number version, struct buffer *buff
  */
 int vdo_decode_header(struct buffer *buffer, struct header *header)
 {
-	uint32_t id;
-	uint64_t size;
+	u32 id;
+	u64 size;
 	struct version_number version;
 	int result;
 

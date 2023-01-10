@@ -22,7 +22,7 @@
 #include "wait-queue.h"
 
 struct journal_lock {
-	uint16_t count;
+	u16 count;
 	sequence_number_t recovery_start;
 };
 

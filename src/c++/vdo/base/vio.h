@@ -87,7 +87,7 @@ struct vio {
 	struct bio_list bios_merged;
 #ifdef VDO_INTERNAL
 	/* For timing I/Os */
-	uint64_t bio_submission_jiffies;
+	u64 bio_submission_jiffies;
 	/* A slot for an arbitrary bit of data, for use by systemtap. */
 	long debug_slot;
 #endif /* VDO_INTERNAL */

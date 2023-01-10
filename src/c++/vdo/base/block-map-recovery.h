@@ -19,7 +19,7 @@ struct numbered_block_mapping {
 	struct block_map_slot block_map_slot;
 	struct block_map_entry block_map_entry;
 	/* A serial number to use during replay */
-	uint32_t number;
+	u32 number;
 } __packed;
 
 void vdo_recover_block_map(struct vdo *vdo,

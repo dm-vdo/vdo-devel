@@ -99,8 +99,8 @@ struct packer {
 
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
-				      uint16_t *fragment_offset,
-				      uint16_t *fragment_size);
+				      u16 *fragment_offset,
+				      u16 *fragment_size);
 
 int __must_check
 vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **packer_ptr);
@@ -124,7 +124,7 @@ void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 void vdo_dump_packer(const struct packer *packer);
 
 #ifdef INTERNAL
-void initialize_compressed_block(struct compressed_block *block, uint16_t size);
+void initialize_compressed_block(struct compressed_block *block, u16 size);
 
 struct compression_state;
 block_size_t __must_check pack_fragment(struct compression_state *compression,

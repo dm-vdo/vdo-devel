@@ -24,7 +24,7 @@
 /*
  * Generation counter for page references.
  */
-typedef uint32_t vdo_page_generation;
+typedef u32 vdo_page_generation;
 
 /**
  * typedef vdo_page_read_function - Signature for a function to call when a
@@ -118,7 +118,7 @@ struct vdo_page_cache {
 	 */
 	struct block_map_statistics stats;
 	/* counter for pressure reports */
-	uint32_t pressure_report;
+	u32 pressure_report;
 	/* the block map zone to which this cache belongs */
 	struct block_map_zone *zone;
 };
@@ -170,7 +170,7 @@ struct page_info {
 	/* the pbn of the page */
 	physical_block_number_t pbn;
 	/* page is busy (temporarily locked) */
-	uint16_t busy;
+	u16 busy;
 	/* the write status the page */
 	enum vdo_page_write_status write_status;
 	/* page state */

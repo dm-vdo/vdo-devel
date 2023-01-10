@@ -123,8 +123,8 @@ enum {
 };
 
 static const unsigned int VDO_SECTORS_PER_BLOCK_MASK = VDO_SECTORS_PER_BLOCK - 1;
-static const uint32_t COMPRESSION_STATUS_MASK = 0xff;
-static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
+static const u32 COMPRESSION_STATUS_MASK = 0xff;
+static const u32 MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 struct limiter;
 typedef void assigner(struct limiter *limiter);
@@ -156,7 +156,7 @@ struct limiter {
 	/* The queue of blocked threads */
 	wait_queue_head_t blocked_threads;
 	/* The arrival time of the eldest waiter */
-	uint64_t arrival;
+	u64 arrival;
 };
 
 /*
@@ -235,9 +235,9 @@ as_data_vio_pool(struct vdo_completion *completion)
 	return container_of(completion, struct data_vio_pool, completion);
 }
 
-static inline uint64_t get_arrival_time(struct bio *bio)
+static inline u64 get_arrival_time(struct bio *bio)
 {
-	return (uint64_t) bio->bi_private;
+	return (u64) bio->bi_private;
 }
 
 /**
@@ -305,7 +305,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 	struct bio *bio = data_vio->user_bio;
 	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
 #ifdef VDO_INTERNAL
-	uint64_t latency_jiffies;
+	u64 latency_jiffies;
 	unsigned int ack_msecs;
 	struct vdo_histograms *histograms = &vdo->histograms;
 #endif /* VDO_INTERNAL */
@@ -314,7 +314,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 		return;
 
 	ASSERT_LOG_ONLY((data_vio->remaining_discard <=
-			 (uint32_t) (VDO_BLOCK_SIZE - data_vio->offset)),
+			 (u32) (VDO_BLOCK_SIZE - data_vio->offset)),
 			"data_vio to acknowledge is not an incomplete discard");
 
 	data_vio->user_bio = NULL;
@@ -369,7 +369,7 @@ static void copy_to_bio(struct bio *bio, char *data_ptr)
 struct data_vio_compression_status
 get_data_vio_compression_status(struct data_vio *data_vio)
 {
-	uint32_t packed = atomic_read(&data_vio->compression.status);
+	u32 packed = atomic_read(&data_vio->compression.status);
 
 	/* pairs with cmpxchg in set_data_vio_compression_status */
 	smp_rmb();
@@ -380,13 +380,13 @@ get_data_vio_compression_status(struct data_vio *data_vio)
 }
 
 /**
- * pack_status() - Convert a data_vio_compression_status into a uint32_t which may be stored
+ * pack_status() - Convert a data_vio_compression_status into a u32 which may be stored
  *                 atomically.
  * @status: The state to convert.
  *
- * Return: The compression state packed into a uint32_t.
+ * Return: The compression state packed into a u32.
  */
-static uint32_t __must_check pack_status(struct data_vio_compression_status status)
+static u32 __must_check pack_status(struct data_vio_compression_status status)
 {
 	return status.stage | (status.may_not_compress ? MAY_NOT_COMPRESS_MASK : 0);
 }
@@ -405,9 +405,9 @@ set_data_vio_compression_status(struct data_vio *data_vio,
 				struct data_vio_compression_status status,
 				struct data_vio_compression_status new_status)
 {
-	uint32_t actual;
-	uint32_t expected = pack_status(status);
-	uint32_t replacement = pack_status(new_status);
+	u32 actual;
+	u32 expected = pack_status(status);
+	u32 replacement = pack_status(new_status);
 
 	/*
 	 * Extra barriers because this was original developed using a CAS operation that implicitly
@@ -592,13 +592,13 @@ EXTERNAL_STATIC bool is_zero_block(char *block)
 	int i;
 
 #ifdef INTERNAL
-	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
-	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(uint64_t) == 0,
+	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(u64) == 0);
+	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(u64) == 0,
 			"Data blocks are expected to be aligned");
 
 #endif	/* INTERNAL */
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(uint64_t))
-		if (*((uint64_t *) &block[i]))
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64))
+		if (*((u64 *) &block[i]))
 			return false;
 	return true;
 }
@@ -618,8 +618,8 @@ static void launch_bio(struct vdo *vdo, struct data_vio *data_vio, struct bio *b
 {
 	logical_block_number_t lbn;
 #ifdef VDO_INTERNAL
-	uint64_t arrival = get_arrival_time(bio);
-	uint64_t startup_jiffies = jiffies - arrival;
+	u64 arrival = get_arrival_time(bio);
+	u64 startup_jiffies = jiffies - arrival;
 
 	data_vio->arrival_jiffies = arrival;
 	if (unlikely(startup_jiffies > 1))
@@ -1404,7 +1404,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 		return;
 	}
 
-	data_vio->remaining_discard -= min_t(uint32_t,
+	data_vio->remaining_discard -= min_t(u32,
 					     data_vio->remaining_discard,
 					     VDO_BLOCK_SIZE - data_vio->offset);
 	data_vio->is_partial = (data_vio->remaining_discard < VDO_BLOCK_SIZE);
@@ -1572,7 +1572,7 @@ int uncompress_data_vio(struct data_vio *data_vio,
 			char *buffer)
 {
 	int size;
-	uint16_t fragment_offset, fragment_size;
+	u16 fragment_offset, fragment_size;
 	struct compressed_block *block = data_vio->compression.block;
 	int result = vdo_get_compressed_block_fragment(mapping_state,
 						       block,
@@ -1611,7 +1611,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 	assert_data_vio_on_cpu_thread(data_vio);
 
 	if (bio_op(bio) == REQ_OP_DISCARD) {
-		memset(data + data_vio->offset, '\0', min_t(uint32_t,
+		memset(data + data_vio->offset, '\0', min_t(u32,
 							    data_vio->remaining_discard,
 							    VDO_BLOCK_SIZE - data_vio->offset));
 	} else {

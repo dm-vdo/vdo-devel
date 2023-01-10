@@ -33,7 +33,7 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-static const uint64_t BYTES_PER_WORD = sizeof(uint64_t);
+static const u64 BYTES_PER_WORD = sizeof(u64);
 static const bool NORMAL_OPERATION = true;
 
 /**
@@ -59,7 +59,7 @@ static inline struct ref_counts * __must_check ref_counts_from_waiter(struct wai
  *
  * Return: The physical block number corresponding to the index.
  */
-static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts, uint64_t index)
+static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts, u64 index)
 {
 	return (ref_counts->slab->start + index);
 }
@@ -74,14 +74,14 @@ static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts,
  *
  * Return: The index corresponding to the physical block number.
  */
-static uint64_t pbn_to_index(const struct ref_counts *ref_counts, physical_block_number_t pbn)
+static u64 pbn_to_index(const struct ref_counts *ref_counts, physical_block_number_t pbn)
 {
-	uint64_t index;
+	u64 index;
 
 	if (pbn < ref_counts->slab->start)
 		return 0;
 	index = (pbn - ref_counts->slab->start);
-	return min_t(uint64_t, index, ref_counts->block_count);
+	return min_t(u64, index, ref_counts->block_count);
 }
 #endif /* INTERNAL */
 
@@ -115,7 +115,7 @@ void vdo_reset_search_cursor(struct ref_counts *ref_counts)
 	cursor->block = cursor->first_block;
 	cursor->index = 0;
 	/* Unit tests have slabs with only one reference block (and it's a runt). */
-	cursor->end_index = min_t(uint32_t, COUNTS_PER_BLOCK, ref_counts->block_count);
+	cursor->end_index = min_t(u32, COUNTS_PER_BLOCK, ref_counts->block_count);
 }
 
 /**
@@ -331,7 +331,7 @@ static int get_reference_counter(struct ref_counts *ref_counts,
  *
  * Return: The number of increments that can be performed.
  */
-uint8_t vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn)
+u8 vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn)
 {
 	vdo_refcount_t *counter_ptr = NULL;
 	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
@@ -821,7 +821,7 @@ find_zero_byte_in_word(const byte *word_ptr,
 		       slab_block_number start_index,
 		       slab_block_number fail_index)
 {
-	uint64_t word = get_unaligned_le64(word_ptr);
+	u64 word = get_unaligned_le64(word_ptr);
 
 	/* This looks like a loop, but GCC will unroll the eight iterations for us. */
 	unsigned int offset;

@@ -593,7 +593,7 @@ void vdo_count_completed_bios(struct bio *bio)
 {
 	struct vio *vio = (struct vio *) bio->bi_private;
 #ifdef VDO_INTERNAL
-	uint64_t bio_jiffies = jiffies - vio->bio_submission_jiffies;
+	u64 bio_jiffies = jiffies - vio->bio_submission_jiffies;
 	unsigned int bio_msecs = jiffies_to_msecs(bio_jiffies);
 	struct vdo *vdo = vdo_from_vio(vio);
 

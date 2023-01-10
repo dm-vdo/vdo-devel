@@ -99,7 +99,7 @@ struct vdo_completion {
 	struct funnel_queue_entry work_queue_entry_link;
 	enum vdo_completion_priority priority;
 	struct vdo_work_queue *my_queue;
-	uint64_t enqueue_time;
+	u64 enqueue_time;
 };
 
 /**

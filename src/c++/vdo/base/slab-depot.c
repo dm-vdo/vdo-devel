@@ -462,7 +462,7 @@ vdo_get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn
  *
  * Return: The number of available references.
  */
-uint8_t vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn)
+u8 vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn)
 {
 	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
 

@@ -21,8 +21,8 @@
  * set the minor version to 0.
  */
 struct version_number {
-	uint32_t major_version;
-	uint32_t minor_version;
+	u32 major_version;
+	u32 minor_version;
 } __packed;
 
 /*
@@ -44,7 +44,7 @@ struct packed_version_number {
 
 /* The header for versioned data stored on disk. */
 struct header {
-	uint32_t id; /* The component this is a header for */
+	u32 id; /* The component this is a header for */
 	struct version_number version; /* The version of the data format */
 	size_t size; /* The size of the data following this header */
 } __packed;

@@ -29,9 +29,9 @@ enum {
 };
 
 /* arrays for handling different table versions */
-static const uint8_t REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
+static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
 /* pool name no longer used. only here for verification of older versions */
-static const uint8_t POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
+static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
 /**
  * get_version_number() - Decide the version number from argv.
@@ -730,7 +730,7 @@ int vdo_parse_device_config(int argc,
 	}
 
 	if (config->version == 0) {
-		uint64_t device_size = i_size_read(config->owned_device->bdev->bd_inode);
+		u64 device_size = i_size_read(config->owned_device->bdev->bd_inode);
 
 		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
 	}

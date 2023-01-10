@@ -189,7 +189,7 @@ struct vdo {
 	struct list_head registration;
 
 	/* Underlying block device info. */
-	uint64_t starting_sector_offset;
+	u64 starting_sector_offset;
 	struct volume_geometry geometry;
 
 	/* For sysfs */

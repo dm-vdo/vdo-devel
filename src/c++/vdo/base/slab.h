@@ -60,7 +60,7 @@ struct vdo_slab {
 	bool was_queued_for_scrubbing;
 
 	/* The priority at which this slab has been queued for allocation */
-	uint8_t priority;
+	u8 priority;
 };
 
 /**

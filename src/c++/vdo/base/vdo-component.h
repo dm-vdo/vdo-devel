@@ -27,19 +27,17 @@ struct vdo_config {
  */
 struct vdo_component {
 	enum vdo_state state;
-	uint64_t complete_recoveries;
-	uint64_t read_only_recoveries;
+	u64 complete_recoveries;
+	u64 read_only_recoveries;
 	struct vdo_config config;
 	nonce_t nonce;
 };
 
 size_t __must_check vdo_get_component_encoded_size(void);
 
-int __must_check
-vdo_encode_component(struct vdo_component component, struct buffer *buffer);
+int __must_check vdo_encode_component(struct vdo_component component, struct buffer *buffer);
 
-int __must_check
-vdo_decode_component(struct buffer *buffer, struct vdo_component *component);
+int __must_check vdo_decode_component(struct buffer *buffer, struct vdo_component *component);
 
 int vdo_validate_config(const struct vdo_config *config,
 			block_count_t physical_block_count,

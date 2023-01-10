@@ -12,34 +12,34 @@
 #include "block-mapping-state.h"
 
 /* A size type in blocks. */
-typedef uint64_t block_count_t;
+typedef u64 block_count_t;
 
 /* The size of a block. */
-typedef uint16_t block_size_t;
+typedef u16 block_size_t;
 
 /* A counter for data_vios */
-typedef uint16_t data_vio_count_t;
+typedef u16 data_vio_count_t;
 
 /* A height within a tree. */
-typedef uint8_t height_t;
+typedef u8 height_t;
 
 /* The logical block number as used by the consumer. */
-typedef uint64_t logical_block_number_t;
+typedef u64 logical_block_number_t;
 
 /* The type of the nonce used to identify instances of VDO. */
-typedef uint64_t nonce_t;
+typedef u64 nonce_t;
 
 /* A size in pages. */
-typedef uint32_t page_count_t;
+typedef u32 page_count_t;
 
 /* A page number. */
-typedef uint32_t page_number_t;
+typedef u32 page_number_t;
 
 /*
  * The physical (well, less logical) block number at which the block is found on the underlying
  * device.
  */
-typedef uint64_t physical_block_number_t;
+typedef u64 physical_block_number_t;
 
 /*
  * A release version number. These numbers are used to make the numbering space for component
@@ -48,28 +48,28 @@ typedef uint64_t physical_block_number_t;
  * Really an enum, but we have to specify the size for encoding; see release_versions.h for the
  * enumeration values.
  */
-typedef uint32_t release_version_number_t;
+typedef u32 release_version_number_t;
 
 /* A count of tree roots. */
-typedef uint8_t root_count_t;
+typedef u8 root_count_t;
 
 /* A number of sectors. */
-typedef uint8_t sector_count_t;
+typedef u8 sector_count_t;
 
 /* A sequence number. */
-typedef uint64_t sequence_number_t;
+typedef u64 sequence_number_t;
 
 /* The offset of a block within a slab. */
-typedef uint32_t slab_block_number;
+typedef u32 slab_block_number;
 
 /* A size type in slabs. */
-typedef uint16_t slab_count_t;
+typedef u16 slab_count_t;
 
 /* A slot in a bin or block map page. */
-typedef uint16_t slot_number_t;
+typedef u16 slot_number_t;
 
 /* A zone counter */
-typedef uint8_t zone_count_t;
+typedef u8 zone_count_t;
 
 /* The following enums are persisted on storage, so the values must be preserved. */
 

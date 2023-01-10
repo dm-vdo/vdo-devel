@@ -106,13 +106,13 @@ struct lock_counter {
 	/** The number of physical zones which hold each lock */
 	atomic_t *physical_zone_counts;
 	/** The per-lock counts for the journal zone */
-	uint16_t *journal_counters;
+	u16 *journal_counters;
 	/** The per-lock decrement counts for the journal zone */
 	atomic_t *journal_decrement_counts;
 	/** The per-zone, per-lock reference counts for logical zones */
-	uint16_t *logical_counters;
+	u16 *logical_counters;
 	/** The per-zone, per-lock reference counts for physical zones */
-	uint16_t *physical_counters;
+	u16 *physical_counters;
 };
 
 struct recovery_journal_block {
@@ -156,7 +156,7 @@ struct recovery_journal {
 	/* The queue of vios waiting to make decrement entries */
 	struct wait_queue decrement_waiters;
 	/* The number of free entries in the journal */
-	uint64_t available_space;
+	u64 available_space;
 	/* The number of decrement entries which need to be made */
 	data_vio_count_t pending_decrement_count;
 	/* Whether the journal is adding entries from the increment or decrement waiters queues */
@@ -184,7 +184,7 @@ struct recovery_journal {
 	/* The nonce of the VDO */
 	nonce_t nonce;
 	/* The number of recoveries completed by the VDO */
-	uint8_t recovery_count;
+	u8 recovery_count;
 	/* The number of entries which fit in a single block */
 	journal_entry_count_t entries_per_block;
 	/* Unused in-memory journal blocks */
@@ -249,7 +249,7 @@ vdo_get_recovery_journal_block_number(const struct recovery_journal *journal,
  *
  * Return: The check byte corresponding to the sequence number.
  */
-static inline uint8_t __must_check
+static inline u8 __must_check
 vdo_compute_recovery_journal_check_byte(const struct recovery_journal *journal,
 					sequence_number_t sequence)
 {
@@ -274,7 +274,7 @@ int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 s
 					     nonce_t nonce,
 					     struct vdo *vdo,
 					     struct partition *partition,
-					     uint64_t recovery_count,
+					     u64 recovery_count,
 					     block_count_t journal_size,
 					     struct read_only_notifier *read_only_notifier,
 					     const struct thread_config *thread_config,
@@ -286,11 +286,11 @@ void vdo_set_recovery_journal_partition(struct recovery_journal *journal,
 					struct partition *partition);
 
 void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
-						   uint64_t recovery_count,
+						   u64 recovery_count,
 						   sequence_number_t tail);
 
 void vdo_initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
-						  uint64_t recovery_count,
+						  u64 recovery_count,
 						  sequence_number_t tail,
 						  block_count_t logical_blocks_used,
 						  block_count_t block_map_data_blocks);

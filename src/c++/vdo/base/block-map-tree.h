@@ -21,13 +21,13 @@ struct tree_page {
 	struct list_head entry;
 
 	/* If dirty, the tree zone flush generation in which it was last dirtied. */
-	uint8_t generation;
+	u8 generation;
 
 	/* Whether this page is an interior tree page being written out. */
 	bool writing;
 
 	/* If writing, the tree zone flush generation of the copy being written. */
-	uint8_t writing_generation;
+	u8 writing_generation;
 
 	/*
 	 * Sequence number of the earliest recovery journal block containing uncommitted updates to
@@ -80,6 +80,6 @@ vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number);
 void vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 
 #ifdef INTERNAL
-bool in_cyclic_range(uint16_t lower, uint16_t value, uint16_t upper, uint16_t modulus);
+bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
 #endif /* INTERNAL */
 #endif /* BLOCK_MAP_TREE_H */

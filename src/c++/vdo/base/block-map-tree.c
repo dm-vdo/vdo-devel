@@ -37,12 +37,12 @@ struct page_descriptor {
 
 union page_key {
 	struct page_descriptor descriptor;
-	uint64_t key;
+	u64 key;
 };
 
 struct write_if_not_dirtied_context {
 	struct block_map_tree_zone *zone;
-	uint8_t generation;
+	u8 generation;
 };
 
 /* Used to indicate that the page holding the location of a tree root has been "loaded". */
@@ -62,7 +62,7 @@ int vdo_initialize_tree_zone(struct block_map_zone *zone,
 	int result;
 	struct block_map_tree_zone *tree_zone = &zone->tree_zone;
 
-	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
+	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(u64));
 	tree_zone->map_zone = zone;
 
 	result = vdo_make_dirty_lists(era_length, write_dirty_pages_callback,
@@ -170,8 +170,7 @@ static void enter_zone_read_only_mode(struct block_map_tree_zone *zone, int resu
  *
  * Return: true if the value is in range.
  */
-EXTERNAL_STATIC bool
-in_cyclic_range(uint16_t lower, uint16_t value, uint16_t upper, uint16_t modulus)
+EXTERNAL_STATIC bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus)
 {
 	if (value < lower)
 		value += modulus;
@@ -189,7 +188,7 @@ in_cyclic_range(uint16_t lower, uint16_t value, uint16_t upper, uint16_t modulus
  *
  * Return: true if generation @a is not strictly older than generation @b in the context of @zone
  */
-static bool __must_check is_not_older(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
+static bool __must_check is_not_older(struct block_map_tree_zone *zone, u8 a, u8 b)
 {
 	int result;
 
@@ -205,7 +204,7 @@ static bool __must_check is_not_older(struct block_map_tree_zone *zone, uint8_t 
 	return in_cyclic_range(b, a, zone->generation, 1 << 8);
 }
 
-static void release_generation(struct block_map_tree_zone *zone, uint8_t generation)
+static void release_generation(struct block_map_tree_zone *zone, u8 generation)
 {
 	int result;
 
@@ -224,12 +223,12 @@ static void release_generation(struct block_map_tree_zone *zone, uint8_t generat
 }
 
 static void
-set_generation(struct block_map_tree_zone *zone, struct tree_page *page, uint8_t new_generation)
+set_generation(struct block_map_tree_zone *zone, struct tree_page *page, u8 new_generation)
 {
-	uint32_t new_count;
+	u32 new_count;
 	int result;
 	bool decrement_old = is_waiting(&page->waiter);
-	uint8_t old_generation = page->generation;
+	u8 old_generation = page->generation;
 
 	if (decrement_old && (old_generation == new_generation))
 		return;
@@ -265,7 +264,7 @@ static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 /* Return: true if all possible generations were not already active */
 static bool attempt_increment(struct block_map_tree_zone *zone)
 {
-	uint8_t generation = zone->generation + 1;
+	u8 generation = zone->generation + 1;
 
 	if (zone->oldest_generation == generation)
 		return false;
@@ -459,7 +458,7 @@ static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
 static void write_dirty_pages_callback(struct list_head *expired, void *context)
 {
 	struct block_map_tree_zone *zone = (struct block_map_tree_zone *) context;
-	uint8_t generation = zone->generation;
+	u8 generation = zone->generation;
 
 	while (!list_empty(expired)) {
 		int result;

@@ -47,11 +47,11 @@ enum {
  */
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
-				      uint16_t *fragment_offset,
-				      uint16_t *fragment_size)
+				      u16 *fragment_offset,
+				      u16 *fragment_size)
 {
-	uint16_t compressed_size;
-	uint16_t offset = 0;
+	u16 compressed_size;
+	u16 offset = 0;
 	unsigned int i;
 	byte slot;
 	struct version_number version;
@@ -398,7 +398,7 @@ static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin
  * data field, it needn't be copied. So all we need do is initialize the header and set the size of
  * the agent's fragment.
  */
-EXTERNAL_STATIC void initialize_compressed_block(struct compressed_block *block, uint16_t size)
+EXTERNAL_STATIC void initialize_compressed_block(struct compressed_block *block, u16 size)
 {
 	/*
 	 * Make sure the block layout isn't accidentally changed by changing the length of the

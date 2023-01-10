@@ -10,7 +10,7 @@
 #include "types.h"
 
 /* typedef tail_block_offset_t - The offset of a slab journal tail block. */
-typedef uint8_t tail_block_offset_t;
+typedef u8 tail_block_offset_t;
 
 enum {
 	VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
@@ -71,7 +71,7 @@ static inline block_count_t __must_check vdo_get_slab_summary_size(block_size_t 
  *
  * Return: The hint shift.
  */
-static inline uint8_t __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_size_shift)
+static inline u8 __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_size_shift)
 {
 	return ((slab_size_shift > VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) ?
 		(slab_size_shift - VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) :

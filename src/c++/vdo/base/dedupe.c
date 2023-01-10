@@ -187,7 +187,7 @@ static const char *UNKNOWN = "unknown";
 enum {
 	UDS_ADVICE_VERSION = 2,
 	/* version byte + state byte + 64-bit little-endian PBN */
-	UDS_ADVICE_SIZE = 1 + 1 + sizeof(uint64_t),
+	UDS_ADVICE_SIZE = 1 + 1 + sizeof(u64),
 };
 
 enum hash_lock_state {
@@ -287,7 +287,7 @@ struct dedupe_context {
 	struct uds_request request;
 	struct list_head list_entry;
 	struct funnel_queue_entry queue_entry;
-	uint64_t submission_jiffies;
+	u64 submission_jiffies;
 	struct data_vio *requestor;
 	atomic_t state;
 };
@@ -351,7 +351,7 @@ struct hash_zones {
 	bool create_flag;
 	bool dedupe_flag;
 	bool error_flag;
-	uint64_t reported_timeouts;
+	u64 reported_timeouts;
 
 	/* The number of zones */
 	zone_count_t zone_count;
@@ -363,8 +363,8 @@ struct hash_zones {
 unsigned int vdo_dedupe_index_timeout_interval = 5000;
 unsigned int vdo_dedupe_index_min_timer_interval = 100;
 /* Same two variables, in jiffies for easier consumption. */
-static uint64_t vdo_dedupe_index_timeout_jiffies;
-static uint64_t vdo_dedupe_index_min_timer_jiffies;
+static u64 vdo_dedupe_index_timeout_jiffies;
+static u64 vdo_dedupe_index_min_timer_jiffies;
 
 #ifdef INTERNAL
 uds_request_hook *uds_launch_request_hook = NULL;
@@ -1135,7 +1135,7 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent, bool 
  * increment_stat() - Increment a statistic counter in a non-atomic yet thread-safe manner.
  * @stat: The statistic field to increment.
  */
-static void increment_stat(uint64_t *stat)
+static void increment_stat(u64 *stat)
 {
 	/*
 	 * Must only be mutated on the hash zone thread. Prevents any compiler shenanigans from
@@ -1205,15 +1205,15 @@ static bool blocks_equal(char *block1, char *block2)
 	int i;
 
 #ifdef INTERNAL
-	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
-	ASSERT_LOG_ONLY((uintptr_t) block1 % sizeof(uint64_t) == 0,
+	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(u64) == 0);
+	ASSERT_LOG_ONLY((uintptr_t) block1 % sizeof(u64) == 0,
 			"Data blocks are expected to be aligned");
-	ASSERT_LOG_ONLY((uintptr_t) block2 % sizeof(uint64_t) == 0,
+	ASSERT_LOG_ONLY((uintptr_t) block2 % sizeof(u64) == 0,
 			"Data blocks are expected to be aligned");
 #endif  /* INTERNAL */
 
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(uint64_t))
-		if (*((uint64_t *) &block1[i]) != *((uint64_t *) &block2[i]))
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64))
+		if (*((u64 *) &block1[i]) != *((u64 *) &block2[i]))
 			return false;
 
 	return true;
@@ -1711,7 +1711,7 @@ static bool decode_uds_advice(struct dedupe_context *context)
 
 	advice->state = encoding->data[offset++];
 	advice->pbn = get_unaligned_le64(&encoding->data[offset]);
-	offset += sizeof(uint64_t);
+	offset += sizeof(u64);
 	BUG_ON(offset != UDS_ADVICE_SIZE);
 
 	/* Don't use advice that's clearly meaningless. */
@@ -2121,7 +2121,7 @@ static bool compare_keys(const void *this_key, const void *that_key)
 }
 
 /** hash_key() - Implements pointer_key_comparator. */
-static uint32_t hash_key(const void *key)
+static u32 hash_key(const void *key)
 {
 	const struct uds_record_name *name = key;
 
@@ -2296,8 +2296,8 @@ static void change_dedupe_state(struct vdo_completion *completion)
 
 static void start_expiration_timer(struct dedupe_context *context)
 {
-	uint64_t start_time = context->submission_jiffies;
-	uint64_t end_time;
+	u64 start_time = context->submission_jiffies;
+	u64 end_time;
 
 	if (!change_timer_state(context->zone,
 				DEDUPE_QUERY_TIMER_IDLE,
@@ -2320,7 +2320,7 @@ static void report_dedupe_timeouts(struct hash_zones *zones, unsigned int timeou
 	atomic64_add(timeouts, &zones->timeouts);
 	spin_lock(&zones->lock);
 	if (__ratelimit(&zones->ratelimiter)) {
-		uint64_t unreported = atomic64_read(&zones->timeouts);
+		u64 unreported = atomic64_read(&zones->timeouts);
 
 		unreported -= zones->reported_timeouts;
 		uds_log_debug("UDS index timeout on %llu requests",
@@ -2361,7 +2361,7 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 		.size = (vdo_get_index_region_size(geometry) * VDO_BLOCK_SIZE),
 		.memory_size = geometry.index_config.mem,
 		.sparse = geometry.index_config.sparse,
-		.nonce = (uint64_t) geometry.nonce,
+		.nonce = (u64) geometry.nonce,
 	};
 
 	result = uds_create_index_session(&zones->index_session);
@@ -2458,7 +2458,7 @@ static void timeout_index_operations_callback(struct vdo_completion *completion)
 {
 	struct dedupe_context *context, *tmp;
 	struct hash_zone *zone = as_hash_zone(completion);
-	uint64_t timeout_jiffies = msecs_to_jiffies(vdo_dedupe_index_timeout_interval);
+	u64 timeout_jiffies = msecs_to_jiffies(vdo_dedupe_index_timeout_interval);
 	unsigned long cutoff = jiffies - timeout_jiffies;
 	unsigned int timed_out = 0;
 
@@ -2919,7 +2919,7 @@ vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *nam
 	 * XXX Make a central repository for these offsets ala hashUtils.
 	 * XXX Verify that the first byte is independent enough.
 	 */
-	uint32_t hash = name->name[0];
+	u32 hash = name->name[0];
 
 	/*
 	 * Scale the 8-bit hash fragment to a zone index by treating it as a binary fraction and
@@ -3017,7 +3017,7 @@ void vdo_dump_hash_zones(struct hash_zones *zones)
 
 void vdo_set_dedupe_index_timeout_interval(unsigned int value)
 {
-	uint64_t alb_jiffies;
+	u64 alb_jiffies;
 
 	/* Arbitrary maximum value is two minutes */
 	if (value > 120000)
@@ -3035,7 +3035,7 @@ void vdo_set_dedupe_index_timeout_interval(unsigned int value)
 
 void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 {
-	uint64_t min_jiffies;
+	u64 min_jiffies;
 
 	/* Arbitrary maximum value is one second */
 	if (value > 1000)
@@ -3090,7 +3090,7 @@ static void prepare_uds_request(struct uds_request *request,
 		encoding->data[offset++] = UDS_ADVICE_VERSION;
 		encoding->data[offset++] = data_vio->new_mapped.state;
 		put_unaligned_le64(data_vio->new_mapped.pbn, &encoding->data[offset]);
-		offset += sizeof(uint64_t);
+		offset += sizeof(u64);
 		BUG_ON(offset != UDS_ADVICE_SIZE);
 	}
 }

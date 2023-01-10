@@ -54,8 +54,8 @@ static inline bool is_arg_string(const char *arg, const char *this_option)
 
 static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const char *why)
 {
-	uint32_t active, maximum;
-	int64_t outstanding;
+	u32 active, maximum;
+	s64 outstanding;
 
 	uds_log_info("%s dump triggered via %s", UDS_LOGGING_MODULE_NAME, why);
 	active = get_data_vio_pool_active_requests(vdo->data_vio_pool);
@@ -228,10 +228,10 @@ void dump_data_vio(void *data)
 	 */
 	static char vio_completion_dump_buffer[100 + MAX_VDO_WORK_QUEUE_NAME_LEN];
 	/* Another static buffer... log10(256) = 2.408+, round up: */
-	enum { DIGITS_PER_UINT64_T = 1 + sizeof(uint64_t) * 2409 / 1000 };
+	enum { DIGITS_PER_U64 = 1 + sizeof(u64) * 2409 / 1000 };
 
-	static char vio_block_number_dump_buffer[sizeof("P L D") + 3 * DIGITS_PER_UINT64_T];
-	static char vio_flush_generation_buffer[sizeof(" FG") + DIGITS_PER_UINT64_T];
+	static char vio_block_number_dump_buffer[sizeof("P L D") + 3 * DIGITS_PER_U64];
+	static char vio_flush_generation_buffer[sizeof(" FG") + DIGITS_PER_U64];
 	static char flags_dump_buffer[8];
 
 	/*

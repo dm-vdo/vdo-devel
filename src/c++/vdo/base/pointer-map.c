@@ -77,9 +77,9 @@ struct __packed bucket {
 	 * @first_hop: The biased offset of the first entry in the hop list of the neighborhood
 	 * that hashes to this bucket.
 	 */
-	uint8_t first_hop;
+	u8 first_hop;
 	/** @next_hop: the biased offset of the next bucket in the hop list. */
-	uint8_t next_hop;
+	u8 next_hop;
 	/** @key: The key stored in this bucket. */
 	const void *key;
 	/** @value: The value stored in this bucket (NULL if empty). */
@@ -277,7 +277,7 @@ static struct bucket *select_bucket(const struct pointer_map *map, const void *k
 	 * 2^32-1], then (hash * capacity / 2^32) should be uniformly distributed over [0 ..
 	 * capacity-1]. The multiply and shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	uint64_t hash = map->hasher(key);
+	u64 hash = map->hasher(key);
 
 	return &map->buckets[(hash * map->capacity) >> 32];
 }

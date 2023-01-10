@@ -49,14 +49,14 @@ typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
  *                              associated with the referent of pointer key.
  * @key: The pointer key to hash.
  *
- * The hash code must be uniformly distributed over all uint32_t values. The hash code associated
+ * The hash code must be uniformly distributed over all u32 values. The hash code associated
  * with a given key must not change while the key is in the map. If the comparator function says
  * two keys are equal, then this function must return the same hash code for both keys. This
  * function may be called many times for a key while an entry is stored for it in the map.
  *
  * Return: The hash code for the key.
  */
-typedef uint32_t pointer_key_hasher(const void *key);
+typedef u32 pointer_key_hasher(const void *key);
 
 int __must_check make_pointer_map(size_t initial_capacity,
 				  unsigned int initial_load,

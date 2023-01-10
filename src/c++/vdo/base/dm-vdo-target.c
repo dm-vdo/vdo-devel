@@ -425,14 +425,14 @@ vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config
 	struct vdo *vdo;
 	int result;
 
-	uint64_t block_size = VDO_BLOCK_SIZE;
-	uint64_t logical_size = to_bytes(ti->len);
+	u64 block_size = VDO_BLOCK_SIZE;
+	u64 logical_size = to_bytes(ti->len);
 	block_count_t logical_blocks = logical_size / block_size;
 
 	uds_log_info("loading device '%s'", vdo_get_device_name(ti));
-	uds_log_debug("Logical block size     = %llu", (uint64_t) config->logical_block_size);
+	uds_log_debug("Logical block size     = %llu", (u64) config->logical_block_size);
 	uds_log_debug("Logical blocks         = %llu", logical_blocks);
-	uds_log_debug("Physical block size    = %llu", (uint64_t) block_size);
+	uds_log_debug("Physical block size    = %llu", (u64) block_size);
 	uds_log_debug("Physical blocks        = %llu", config->physical_blocks);
 	uds_log_debug("Block map cache blocks = %u", config->cache_size);
 	uds_log_debug("Block map maximum age  = %u", config->block_map_maximum_age);

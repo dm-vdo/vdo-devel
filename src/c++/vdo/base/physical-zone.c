@@ -123,7 +123,7 @@ bool vdo_claim_pbn_lock_increment(struct pbn_lock *lock)
 	 * in a sane time-frame, we won't overflow a 32-bit claim counter, allowing a simple add
 	 * instead of a compare-and-swap.
 	 */
-	uint32_t claim_number = (uint32_t) atomic_add_return(1, &lock->increments_claimed);
+	u32 claim_number = (u32) atomic_add_return(1, &lock->increments_claimed);
 
 	return (claim_number <= lock->increment_limit);
 }

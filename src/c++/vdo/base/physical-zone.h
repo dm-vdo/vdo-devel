@@ -35,7 +35,7 @@ struct pbn_lock {
 	 * The number of compressed block writers holding a share of this lock while they are
 	 * acquiring a reference to the PBN.
 	 */
-	uint8_t fragment_locks;
+	u8 fragment_locks;
 
 	/* Whether the locked PBN has been provisionally referenced on behalf of the lock holder. */
 	bool has_provisional_reference;
@@ -44,7 +44,7 @@ struct pbn_lock {
 	 * For read locks, the number of references that were known to be available on the locked
 	 * block at the time the lock was acquired.
 	 */
-	uint8_t increment_limit;
+	u8 increment_limit;
 
 	/*
 	 * For read locks, the number of data_vios that have tried to claim one of the available

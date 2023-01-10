@@ -35,7 +35,7 @@ dm_kcopyd_client_destroy(struct dm_kcopyd_client *kc __always_unused)
 #include "vdo.h"
 #endif // KERNEL || TEST_INTERNAL
 
-const block_count_t VDO_ALL_FREE_BLOCKS = (uint64_t) -1;
+const block_count_t VDO_ALL_FREE_BLOCKS = (u64) -1;
 
 struct fixed_layout {
 	physical_block_number_t first_free;
@@ -521,7 +521,7 @@ static int decode_partitions_3_0(struct buffer *buffer,
 
 	for (i = 0; i < layout->num_partitions; i++) {
 		byte id;
-		uint64_t offset, base, count;
+		u64 offset, base, count;
 		int result = get_byte(buffer, &id);
 
 		if (result != UDS_SUCCESS)
@@ -726,7 +726,7 @@ static const enum partition_id REQUIRED_PARTITIONS[] = {
 	VDO_SLAB_SUMMARY_PARTITION,
 };
 
-static const uint8_t REQUIRED_PARTITION_COUNT = 4;
+static const u8 REQUIRED_PARTITION_COUNT = 4;
 
 /**
  * get_partition_offset() - Get the offset of a given partition.
@@ -756,7 +756,7 @@ int vdo_decode_layout(struct fixed_layout *layout,
 	/* Check that all the expected partitions exist */
 	struct vdo_layout *vdo_layout;
 	struct partition *partition;
-	uint8_t i;
+	u8 i;
 	int result;
 
 	for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {

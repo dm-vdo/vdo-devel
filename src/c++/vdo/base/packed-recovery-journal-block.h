@@ -20,8 +20,8 @@ struct recovery_block_header {
 	block_count_t logical_blocks_used; /* Logical blocks in use */
 	block_count_t block_map_data_blocks; /* Allocated block map pages */
 	journal_entry_count_t entry_count; /* Number of entries written */
-	uint8_t check_byte; /* The protection check byte */
-	uint8_t recovery_count; /* Number of recoveries completed */
+	u8 check_byte; /* The protection check byte */
+	u8 recovery_count; /* Number of recoveries completed */
 	enum vdo_metadata_type metadata_type; /* Metadata type */
 };
 
@@ -43,7 +43,7 @@ struct packed_journal_header {
 	__le64 nonce;
 
 	/* 8-bit metadata type (should always be one for the recovery journal) */
-	uint8_t metadata_type;
+	u8 metadata_type;
 
 	/* 16-bit count of the entries encoded in the block */
 	__le16 entry_count;
@@ -55,21 +55,21 @@ struct packed_journal_header {
 	__le64 block_map_data_blocks;
 
 	/* The protection check byte */
-	uint8_t check_byte;
+	u8 check_byte;
 
 	/* The number of recoveries completed */
-	uint8_t recovery_count;
+	u8 recovery_count;
 } __packed;
 
 struct packed_journal_sector {
 	/* The protection check byte */
-	uint8_t check_byte;
+	u8 check_byte;
 
 	/* The number of recoveries completed */
-	uint8_t recovery_count;
+	u8 recovery_count;
 
 	/* The number of entries in this sector */
-	uint8_t entry_count;
+	u8 entry_count;
 
 	/* Journal entries for this sector */
 	struct packed_recovery_journal_entry entries[];

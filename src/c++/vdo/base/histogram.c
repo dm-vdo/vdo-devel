@@ -36,7 +36,7 @@ enum {
  * The code was originally borrowed from UDS, and includes both linear and logarithmic histograms.
  * VDO only uses the logarithmic histograms.
  *
- * All samples are uint64_t values.
+ * All samples are u64 values.
  *
  * A unit conversion option is supported internally to allow sample values to be supplied in
  * "jiffies" and results to be reported via /sys in milliseconds. Depending on the system
@@ -56,7 +56,7 @@ struct histogram {
 	 * line.
 	 */
 	atomic64_t *counters; /* Counter for each bucket */
-	uint64_t limit; /* We want to know how many samples are larger */
+	u64 limit; /* We want to know how many samples are larger */
 	atomic64_t sum; /* Sum of all the samples */
 	atomic64_t count; /* Number of samples */
 	atomic64_t minimum; /* Minimum value */
@@ -78,7 +78,7 @@ struct histogram {
  * limit the histogram to 12 orders of magnitude.
  */
 enum { MAX_LOG_SIZE = 12 };
-static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
+static const u64 bottom_value[1 + 10 * MAX_LOG_SIZE] = {
 	/* 0 to 10 - The first 10 buckets are linear */
 	0,
 	1,
@@ -217,7 +217,7 @@ static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
 	1000000000000L,
 };
 
-static unsigned int divide_rounding_to_nearest(uint64_t number, uint64_t divisor)
+static unsigned int divide_rounding_to_nearest(u64 number, u64 divisor)
 {
 	number += divisor / 2;
 	return number / divisor;
@@ -274,7 +274,7 @@ static ssize_t histogram_store(struct kobject *kobj,
 
 static ssize_t histogram_show_count(struct histogram *h, char *buf)
 {
-	int64_t count = atomic64_read(&h->count);
+	s64 count = atomic64_read(&h->count);
 
 	return sprintf(buf, "%lld\n", count);
 }
@@ -289,7 +289,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	bool bars = true;
 	ssize_t length = 0;
 	int max = max_bucket(h);
-	uint64_t total = 0;
+	u64 total = 0;
 	int i;
 
 	/* If max is -1, we'll fall through to reporting the total of zero. */
@@ -324,7 +324,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	if (length >= (buffer_size - 1))
 		return buffer_size - 1;
 	for (i = 0; i <= max; i++) {
-		uint64_t value = atomic64_read(&h->counters[i]);
+		u64 value = atomic64_read(&h->counters[i]);
 		unsigned int bar_length;
 
 		if (bars && (total != 0)) {
@@ -422,7 +422,7 @@ static ssize_t histogram_show_mean(struct histogram *h, char *buf)
 {
 	unsigned long sum_times1000_in_reporting_units;
 	unsigned int mean_times1000;
-	uint64_t count = atomic64_read(&h->count);
+	u64 count = atomic64_read(&h->count);
 
 	if (count == 0)
 		return sprintf(buf, "0/0\n");
@@ -435,7 +435,7 @@ static ssize_t histogram_show_mean(struct histogram *h, char *buf)
 
 static ssize_t histogram_show_unacceptable(struct histogram *h, char *buf)
 {
-	int64_t count = atomic64_read(&h->unacceptable);
+	s64 count = atomic64_read(&h->unacceptable);
 
 	return sprintf(buf, "%lld\n", count);
 }
@@ -694,7 +694,7 @@ make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
 						  const char *metric,
 						  const char *sample_units,
 						  int log_size,
-						  uint64_t conversion_factor)
+						  u64 conversion_factor)
 {
 	if (log_size > MAX_LOG_SIZE)
 		log_size = MAX_LOG_SIZE;
@@ -784,9 +784,9 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
  * @h: The histogram (may be NULL).
  * @sample: The sample.
  */
-void enter_histogram_sample(struct histogram *h, uint64_t sample)
+void enter_histogram_sample(struct histogram *h, u64 sample)
 {
-	uint64_t old_minimum, old_maximum;
+	u64 old_minimum, old_maximum;
 	int bucket;
 
 	if (h == NULL)
@@ -821,7 +821,7 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	old_maximum = atomic64_read(&h->maximum);
 
 	while (old_maximum < sample) {
-		uint64_t read_value = atomic64_cmpxchg(&h->maximum, old_maximum, sample);
+		u64 read_value = atomic64_cmpxchg(&h->maximum, old_maximum, sample);
 
 		if (read_value == old_maximum)
 			break;
@@ -831,7 +831,7 @@ void enter_histogram_sample(struct histogram *h, uint64_t sample)
 	old_minimum = atomic64_read(&h->minimum);
 
 	while (old_minimum > sample) {
-		uint64_t read_value = atomic64_cmpxchg(&h->minimum, old_minimum, sample);
+		u64 read_value = atomic64_cmpxchg(&h->minimum, old_minimum, sample);
 
 		if (read_value == old_minimum)
 			break;

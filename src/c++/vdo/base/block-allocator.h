@@ -81,7 +81,7 @@ struct block_allocator {
 	 * The count of allocated blocks in this zone. Not in block_allocator_statistics for
 	 * historical reasons.
 	 */
-	uint64_t allocated_blocks;
+	u64 allocated_blocks;
 	/* Statistics for this block allocator */
 	struct block_allocator_statistics statistics;
 	/* Cumulative statistics for the slab journals in this zone */

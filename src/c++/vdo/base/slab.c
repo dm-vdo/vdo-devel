@@ -253,7 +253,7 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 				   physical_block_number_t physical_block_number,
 				   slab_block_number *slab_block_number_ptr)
 {
-	uint64_t slab_block_number;
+	u64 slab_block_number;
 
 	if (physical_block_number < slab->start)
 		return VDO_OUT_OF_RANGE;

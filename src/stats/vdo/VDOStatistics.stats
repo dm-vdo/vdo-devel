@@ -8,8 +8,8 @@
 # the language appears at the end of the file.
 #
 # Note: the C printf formats specified here should work for any
-# platform on which uint64_t is the same as "unsigned long int". In
-# the unlikely event that uint64_t is defined in some other way, it
+# platform on which u64 is the same as "unsigned long int". In
+# the unlikely event that u64 is defined in some other way, it
 # will be necessary to do some platform specific preprocessing.
 
 # $Id$
@@ -27,17 +27,17 @@ type bool {
 }
 
 type constant32 {
-  C      uint32_t;
+  C      u32;
   Perl   constant;
   kernel %u;
-  user   %u;  
+  user   %u;
 }
 
 type constant64 {
-  C      uint64_t;
+  C      u64;
   Perl   constant;
   kernel %llu;
-  user   %lu;  
+  user   %lu;
 }
 
 type constantString {
@@ -51,14 +51,14 @@ type constantBlockCount {
   C      block_count_t;
   Perl   constant;
   kernel %llu;
-  user   %lu;  
+  user   %lu;
 }
 
 type counter64 {
-  C      uint64_t;
+  C      u64;
   Perl   counter;
   kernel %llu;
-  user   %lu;  
+  user   %lu;
 }
 
 type float {
@@ -69,49 +69,49 @@ type float {
 }
 
 type maximum32 {
-  C      uint32_t;
+  C      u32;
   Perl   maximum;
-  kernel %u;    
-  user   %u;  
+  kernel %u;
+  user   %u;
 }
 
 type maximum64 {
-  C      uint64_t;
+  C      u64;
   Perl   maximum;
   kernel %llu;
   user   %lu;
 }
 
 type releaseVersionNumber {
-  C      uint32_t;
+  C      u32;
   Perl   constant;
   kernel %u;
   user   %u;
 }
 
 type snapshot32 {
-  C      uint32_t;
+  C      u32;
   Perl   snapshot;
   kernel %u;
   user   %u;
 }
 
 type snapshot64 {
-  C      uint64_t;
+  C      u64;
   Perl   snapshot;
   kernel %llu;
   user   %lu;
 }
 
 type signed {
-  C      int32_t;
+  C      s32;
   Perl   state;
   kernel %d;
   user   %d;
 }
 
 type state8 {
-  C      uint8_t;
+  C      u8;
   Perl   state;
   kernel %u;
   user   %hhu;
@@ -125,7 +125,7 @@ type stateString {
 }
 
 type versionNumber {
-  C      uint32_t;
+  C      u32;
   Perl   constant;
   kernel %u;
   user   %u;
@@ -187,7 +187,7 @@ reporting purposes;
       snapshot64 batching {
         unit     Count;
         no       C, CMessage, CMessageReader, CSysfs;
-        cderived $started - $written;        
+        cderived $started - $written;
       }
 
       counter64 started {
@@ -198,7 +198,7 @@ reporting purposes;
       snapshot64 writing {
         unit     Count;
         no       C, CMessage, CMessageReader, CSysfs;
-        cderived $written - $committed;              
+        cderived $written - $committed;
       }
 
       counter64 written {
@@ -576,7 +576,7 @@ reporting purposes;
         label    1K-blocks;
         no       C, CMessage, CMessageReader, CSysfs;
         unit     Blocks;
-        cderived $physicalBlocks * $blockSize / 1024;        
+        cderived $physicalBlocks * $blockSize / 1024;
       }
 
       snapshot64 oneKBlocksUsed {
@@ -584,28 +584,28 @@ reporting purposes;
         no         C, CMessage, CMessageReader, CSysfs;
         unit       Blocks;
         cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
-        cderived   ($dataBlocksUsed + $overheadBlocksUsed) * $blockSize / 1024; 
+        cderived   ($dataBlocksUsed + $overheadBlocksUsed) * $blockSize / 1024;
       }
 
       snapshot64 oneKBlocksAvailable {
         label      1K-blocks available;
         no         C, CMessage, CMessageReader, CSysfs;
         unit       Blocks;
-        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));        
-        cderived   ($physicalBlocks - $dataBlocksUsed - $overheadBlocksUsed) * $blockSize / 1024;        
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
+        cderived   ($physicalBlocks - $dataBlocksUsed - $overheadBlocksUsed) * $blockSize / 1024;
       }
 
       state8 usedPercent {
         no         C, CMessage, CMessageReader, CSysfs;
         cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
-        cderived   (int) (100 * ($dataBlocksUsed + $overheadBlocksUsed) / $physicalBlocks) + 0.5;        
+        cderived   (int) (100 * ($dataBlocksUsed + $overheadBlocksUsed) / $physicalBlocks) + 0.5;
       }
 
       signed savings {
         display    False;
         no         C, CMessage, CMessageReader, CSysfs;
-        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));        
-        cderived   ($logicalBlocksUsed > 0) ? (int) (100 * (int64_t) ($logicalBlocksUsed - $dataBlocksUsed) / (uint64_t) $logicalBlocksUsed) : -1;
+        cavailable (!$inRecoveryMode) && (strcmp("read-only", $mode));
+        cderived   ($logicalBlocksUsed > 0) ? (int) (100 * (s64) ($logicalBlocksUsed - $dataBlocksUsed) / (u64) $logicalBlocksUsed) : -1;
       }
 
       state8 savingPercent {
@@ -695,7 +695,7 @@ reporting purposes;
       stateString fiveTwelveByteEmulation[4] {
         label    512 byte emulation;
         no       C, CMessage, CMessageReader, CSysfs;
-        cderived ($logicalBlockSize == 512) ? "on" : "off";        
+        cderived ($logicalBlockSize == 512) ? "on" : "off";
       }
 
       snapshot32 currentVIOsInProgress {
@@ -729,7 +729,7 @@ reporting purposes;
 
       float writeAmplificationRatio {
         no       C, CMessage, CMessageReader, CSysfs;
-        cderived ($biosIn.write > 0) ? roundf(($biosMeta.write + $biosOut.write) / ($biosIn.write)) : 0.00;        
+        cderived ($biosIn.write > 0) ? roundf(($biosMeta.write + $biosOut.write) / ($biosIn.write)) : 0.00;
       }
 
       BioStats biosIn {

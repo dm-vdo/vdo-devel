@@ -42,7 +42,7 @@
 struct slab_status {
 	slab_count_t slab_number;
 	bool is_clean;
-	uint8_t emptiness;
+	u8 emptiness;
 };
 
 struct slab_summary_block {

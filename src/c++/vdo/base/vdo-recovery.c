@@ -49,7 +49,7 @@ struct recovery_point {
 	/* Block sequence number */
 	sequence_number_t sequence_number;
 	/* Sector number */
-	uint8_t sector_count;
+	u8 sector_count;
 	/* Entry number */
 	journal_entry_count_t entry_count;
 };
@@ -195,14 +195,14 @@ as_recovery_completion(struct vdo_completion *completion)
 }
 
 /**
- * slot_as_number() - Convert a block_map_slot into a unique uint64_t.
+ * slot_as_number() - Convert a block_map_slot into a unique u64.
  * @slot: The block map slot to convert.
  *
- * Return: A one-to-one mappable uint64_t.
+ * Return: A one-to-one mappable u64.
  */
-static uint64_t slot_as_number(struct block_map_slot slot)
+static u64 slot_as_number(struct block_map_slot slot)
 {
-	return (((uint64_t) slot.pbn << 10) + slot.slot);
+	return (((u64) slot.pbn << 10) + slot.slot);
 }
 
 /**
@@ -472,7 +472,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 	struct recovery_completion *recovery = as_recovery_completion(completion);
 	struct vdo *vdo = completion->vdo;
-	uint64_t recovery_count = ++vdo->states.vdo.complete_recoveries;
+	u64 recovery_count = ++vdo->states.vdo.complete_recoveries;
 
 	vdo_initialize_recovery_journal_post_recovery(vdo->recovery_journal,
 						      recovery_count,
@@ -1231,7 +1231,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		struct packed_journal_header *packed_header;
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
-		uint8_t j;
+		u8 j;
 
 		recovery->tail = i;
 		recovery->tail_recovery_point = (struct recovery_point) {
@@ -1974,7 +1974,7 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 			vdo_get_recovery_journal_block_header(journal, rebuild->journal_data, i);
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
-		uint8_t j;
+		u8 j;
 
 		vdo_unpack_recovery_block_header(packed_header, &header);
 		if (!vdo_is_exact_recovery_journal_block(journal, &header, i))
@@ -2000,7 +2000,7 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 			}
 
 			/* Don't extract more than the expected maximum entries per sector. */
-			sector_entries = min_t(uint8_t,
+			sector_entries = min_t(u8,
 					       sector->entry_count,
 					       RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 

@@ -30,7 +30,7 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-static const uint64_t RECOVERY_COUNT_MASK = 0xff;
+static const u64 RECOVERY_COUNT_MASK = 0xff;
 
 enum {
 	/*
@@ -92,10 +92,10 @@ static inline atomic_t *get_zone_count_ptr(struct recovery_journal *journal,
  *
  * Return: The counter for the given lock and zone.
  */
-static inline uint16_t *get_counter(struct recovery_journal *journal,
-				    block_count_t lock_number,
-				    enum vdo_zone_type zone_type,
-				    zone_count_t zone_id)
+static inline u16 *get_counter(struct recovery_journal *journal,
+			       block_count_t lock_number,
+			       enum vdo_zone_type zone_type,
+			       zone_count_t zone_id)
 {
 	struct lock_counter *counter = &journal->lock_counter;
 	block_count_t zone_counter = (counter->locks * zone_id) + lock_number;
@@ -123,8 +123,8 @@ static atomic_t *get_decrement_counter(struct recovery_journal *journal, block_c
  */
 static bool is_journal_zone_locked(struct recovery_journal *journal, block_count_t lock_number)
 {
-	uint16_t journal_value = *(get_counter(journal, lock_number, VDO_ZONE_TYPE_JOURNAL, 0));
-	uint32_t decrements = atomic_read(get_decrement_counter(journal, lock_number));
+	u16 journal_value = *(get_counter(journal, lock_number, VDO_ZONE_TYPE_JOURNAL, 0));
+	u32 decrements = atomic_read(get_decrement_counter(journal, lock_number));
 
 	/* Pairs with barrier in vdo_release_journal_entry_lock() */
 	smp_rmb();
@@ -149,7 +149,7 @@ void vdo_release_recovery_journal_block_reference(struct recovery_journal *journ
 						  enum vdo_zone_type zone_type,
 						  zone_count_t zone_id)
 {
-	uint16_t *current_value;
+	u16 *current_value;
 	block_count_t lock_number;
 	int prior_state;
 
@@ -436,9 +436,9 @@ static inline sequence_number_t get_recovery_journal_head(const struct recovery_
  *
  * Return: The byte corresponding to the recovery count.
  */
-static inline uint8_t __must_check compute_recovery_count_byte(uint64_t recovery_count)
+static inline u8 __must_check compute_recovery_count_byte(u64 recovery_count)
 {
-	return (uint8_t)(recovery_count & RECOVERY_COUNT_MASK);
+	return (u8)(recovery_count & RECOVERY_COUNT_MASK);
 }
 
 /**
@@ -596,7 +596,7 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
 	struct thread_config *config = vdo->thread_config;
 	struct lock_counter *counter = &journal->lock_counter;
 
-	result = UDS_ALLOCATE(journal->size, uint16_t, __func__, &counter->journal_counters);
+	result = UDS_ALLOCATE(journal->size, u16, __func__, &counter->journal_counters);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -608,7 +608,7 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
 		return result;
 
 	result = UDS_ALLOCATE(journal->size * config->logical_zone_count,
-			      uint16_t,
+			      u16,
 			      __func__,
 			      &counter->logical_counters);
 	if (result != VDO_SUCCESS)
@@ -619,7 +619,7 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
 		return result;
 
 	result = UDS_ALLOCATE(journal->size * config->physical_zone_count,
-			      uint16_t,
+			      u16,
 			      __func__,
 			      &counter->physical_counters);
 	if (result != VDO_SUCCESS)
@@ -721,7 +721,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 				nonce_t nonce,
 				struct vdo *vdo,
 				struct partition *partition,
-				uint64_t recovery_count,
+				u64 recovery_count,
 				block_count_t journal_size,
 				struct read_only_notifier *read_only_notifier,
 				const struct thread_config *thread_config,
@@ -865,7 +865,7 @@ void vdo_set_recovery_journal_partition(struct recovery_journal *journal,
  * @tail: The new tail block sequence number.
  */
 void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
-						   uint64_t recovery_count,
+						   u64 recovery_count,
 						   sequence_number_t tail)
 {
 	set_journal_tail(journal, tail + 1);
@@ -882,7 +882,7 @@ void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *jour
  * @block_map_data_blocks: The new number of block map data blocks.
  */
 void vdo_initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
-						  uint64_t recovery_count,
+						  u64 recovery_count,
 						  sequence_number_t tail,
 						  block_count_t logical_blocks_used,
 						  block_count_t block_map_data_blocks)
@@ -1052,7 +1052,7 @@ static bool check_for_entry_space(struct recovery_journal *journal, bool increme
  */
 static void initialize_lock_count(struct recovery_journal *journal)
 {
-	uint16_t *journal_value;
+	u16 *journal_value;
 	block_count_t lock_number = journal->active_block->block_number;
 	atomic_t *decrement_counter = get_decrement_counter(journal, lock_number);
 
@@ -1669,7 +1669,7 @@ void vdo_acquire_recovery_journal_block_reference(struct recovery_journal *journ
 						  zone_count_t zone_id)
 {
 	block_count_t lock_number;
-	uint16_t *current_value;
+	u16 *current_value;
 
 	if (sequence_number == 0)
 		return;

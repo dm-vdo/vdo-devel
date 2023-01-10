@@ -34,7 +34,7 @@ enum {
 struct geometry_block {
 	char magic_number[MAGIC_NUMBER_SIZE];
 	struct header header;
-	uint32_t checksum;
+	u32 checksum;
 } __packed;
 
 static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
@@ -104,14 +104,14 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 static int decode_index_config(struct buffer *buffer,
 			       struct index_config *config)
 {
-	uint32_t mem;
+	u32 mem;
 	bool sparse;
 	int result = get_u32_le_from_buffer(buffer, &mem);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(uint32_t));
+	result = skip_forward(buffer, sizeof(u32));
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -143,7 +143,7 @@ static int encode_index_config(const struct index_config *config,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(uint32_t));
+	result = zero_bytes(buffer, sizeof(u32));
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -211,7 +211,7 @@ static int encode_volume_region(const struct volume_region *region, struct buffe
  */
 static int decode_volume_geometry(struct buffer *buffer,
 				  struct volume_geometry *geometry,
-				  uint32_t version)
+				  u32 version)
 {
 	release_version_number_t release_version;
 	enum volume_region_id id;
@@ -263,7 +263,7 @@ static int decode_volume_geometry(struct buffer *buffer,
  */
 static int encode_volume_geometry(const struct volume_geometry *geometry,
 				  struct buffer *buffer,
-				  uint32_t version)
+				  u32 version)
 {
 	enum volume_region_id id;
 	int result = put_u32_le_into_buffer(buffer, geometry->release_version);
@@ -337,8 +337,7 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 
 	/* Leave the CRC for the caller to decode and verify. */
-	return ASSERT(header.size == (uncompacted_amount(buffer) +
-				      sizeof(uint32_t)),
+	return ASSERT(header.size == (uncompacted_amount(buffer) + sizeof(u32)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -351,7 +350,7 @@ int __must_check
 vdo_parse_geometry_block(unsigned char *block,
 			 struct volume_geometry *geometry)
 {
-	uint32_t checksum, saved_checksum;
+	u32 checksum, saved_checksum;
 	struct buffer *buffer;
 	int result;
 
@@ -398,7 +397,7 @@ vdo_parse_geometry_block(unsigned char *block,
  */
 static int encode_geometry_block(const struct volume_geometry *geometry,
 				 struct buffer *buffer,
-				 uint32_t version)
+				 u32 version)
 {
 	const struct header *header;
 
@@ -418,8 +417,7 @@ static int encode_geometry_block(const struct volume_geometry *geometry,
 		return result;
 
 	/* Leave the CRC for the caller to compute and encode. */
-	return ASSERT(header->size ==
-		      (content_length(buffer) + sizeof(uint32_t)),
+	return ASSERT(header->size == (content_length(buffer) + sizeof(u32)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -460,7 +458,7 @@ int vdo_compute_index_blocks(const struct index_config *index_config,
 			     block_count_t *index_blocks_ptr)
 {
 	int result;
-	uint64_t index_bytes;
+	u64 index_bytes;
 	block_count_t index_blocks;
 	struct uds_parameters uds_parameters = {
 		.memory_size = index_config->mem,
@@ -473,7 +471,7 @@ int vdo_compute_index_blocks(const struct index_config *index_config,
 					      "error computing index size");
 
 	index_blocks = index_bytes / VDO_BLOCK_SIZE;
-	if ((((uint64_t) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
+	if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
 		return uds_log_error_strerror(VDO_PARAMETER_MISMATCH,
 					      "index size must be a multiple of block size %d",
 					      VDO_BLOCK_SIZE);
@@ -575,11 +573,11 @@ int vdo_write_volume_geometry(PhysicalLayer *layer,
 int __must_check
 vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 				       struct volume_geometry *geometry,
-				       uint32_t version)
+				       u32 version)
 {
 	char *block;
 	struct buffer *buffer;
-	uint32_t checksum;
+	u32 checksum;
 
 	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
 					     "geometry block", &block);

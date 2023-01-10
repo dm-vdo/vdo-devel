@@ -39,10 +39,10 @@ struct block_map_tree_zone {
 	struct tree_page *flusher;
 	struct wait_queue flush_waiters;
 	/* The generation after the most recent flush */
-	uint8_t generation;
-	uint8_t oldest_generation;
+	u8 generation;
+	u8 oldest_generation;
 	/* The counts of dirty pages in each generation */
-	uint32_t dirty_page_counts[256];
+	u32 dirty_page_counts[256];
 };
 
 struct block_map_zone {

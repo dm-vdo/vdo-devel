@@ -11,14 +11,14 @@
 #include "types.h"
 
 /* typedef thread_count_t - A thread counter. */
-typedef uint8_t thread_count_t;
+typedef u8 thread_count_t;
 
 /**
  * typedef thread_id_t - A thread ID.
  *
  * Base-code threads are numbered sequentially starting from 0.
  */
-typedef uint8_t thread_id_t;
+typedef u8 thread_id_t;
 
 /*
  * The thread ID returned when the current base code thread ID cannot be found or is otherwise

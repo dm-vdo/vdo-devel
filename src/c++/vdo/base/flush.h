@@ -20,7 +20,7 @@ struct vdo_flush {
 	struct bio_list bios;
 #ifdef VDO_INTERNAL
 	/* Time when the earlier bio arrived */
-	uint64_t arrival_jiffies;
+	u64 arrival_jiffies;
 #endif /* VDO_INTERNAL */
 	/* The wait queue entry for this flush */
 	struct waiter waiter;

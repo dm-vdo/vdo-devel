@@ -51,7 +51,7 @@ struct flusher {
 	spinlock_t lock;
 #ifdef VDO_INTERNAL
 	/** When the longest waiting flush bio arrived */
-	uint64_t flush_arrival_jiffies;
+	u64 flush_arrival_jiffies;
 #endif /* VDO_INTERNAL */
 	/** The rotor for selecting the bio queue for submitting flush bios */
 	zone_count_t bio_queue_rotor;

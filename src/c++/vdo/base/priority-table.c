@@ -41,7 +41,7 @@ struct priority_table {
 	/* The maximum priority of entries that may be stored in this table */
 	unsigned int max_priority;
 	/* A bit vector flagging all buckets that are currently non-empty */
-	uint64_t search_vector;
+	u64 search_vector;
 	/* The array of all buckets, indexed by priority */
 	struct bucket buckets[];
 };

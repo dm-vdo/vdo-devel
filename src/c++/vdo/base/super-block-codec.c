@@ -21,7 +21,7 @@
 #endif /* __KERNEL__ */
 
 enum {
-	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(uint32_t),
+	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(u32),
 	MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - SUPER_BLOCK_FIXED_SIZE,
 };
 
@@ -84,7 +84,7 @@ void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 int vdo_encode_super_block(struct super_block_codec *codec)
 {
 	size_t component_data_size;
-	uint32_t checksum;
+	u32 checksum;
 	struct header header = SUPER_BLOCK_HEADER_12_0;
 	struct buffer *buffer = codec->block_buffer;
 	int result;
@@ -128,7 +128,7 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 	struct header header;
 	int result;
 	size_t component_data_size;
-	uint32_t checksum, saved_checksum;
+	u32 checksum, saved_checksum;
 
 	/* Reset the block buffer to start decoding the entire first sector. */
 	struct buffer *buffer = codec->block_buffer;
@@ -159,7 +159,7 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 		return result;
 
 	/* The component data is all the rest, except for the checksum. */
-	component_data_size = content_length(buffer) - sizeof(uint32_t);
+	component_data_size = content_length(buffer) - sizeof(u32);
 	result = put_buffer(codec->component_buffer, buffer, component_data_size);
 	if (result != VDO_SUCCESS)
 		return result;

@@ -27,8 +27,8 @@ struct slab_journal_entry {
 
 /* A single slab journal entry in its on-disk form */
 typedef struct {
-	uint8_t offset_low8;
-	uint8_t offset_mid8;
+	u8 offset_low8;
+	u8 offset_mid8;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	unsigned offset_high7 : 7;
@@ -71,7 +71,7 @@ struct packed_slab_journal_block_header {
 	/* The 64-bit nonce for a given VDO instance */
 	__le64 nonce;
 	/* 8-bit metadata type (should always be two, for the slab journal) */
-	uint8_t metadata_type;
+	u8 metadata_type;
 	/* Whether this block contains block map increments */
 	bool has_block_map_increments;
 	/* 16-bit count of the entries encoded in the block */

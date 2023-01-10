@@ -42,7 +42,7 @@ struct admin_completion {
 	atomic_t busy;
 	enum admin_operation_type type;
 	vdo_thread_id_getter_for_phase *get_thread_id;
-	uint32_t phase;
+	u32 phase;
 	struct completion callback_sync;
 };
 

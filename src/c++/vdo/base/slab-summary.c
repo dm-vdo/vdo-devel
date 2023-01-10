@@ -38,7 +38,7 @@
  *
  * Return: A fullness hint, which can be stored in 7 bits.
  */
-static uint8_t __must_check
+static u8 __must_check
 compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
 {
 	block_count_t hint;
@@ -63,7 +63,7 @@ compute_fullness_hint(struct slab_summary *summary, block_count_t free_blocks)
  * Return: An approximation to the free block count.
  */
 static block_count_t __must_check
-get_approximate_free_blocks(struct slab_summary *summary, uint8_t free_block_hint)
+get_approximate_free_blocks(struct slab_summary *summary, u8 free_block_hint)
 {
 	return ((block_count_t) free_block_hint) << summary->hint_shift;
 }
@@ -184,7 +184,7 @@ int vdo_make_slab_summary(struct vdo *vdo,
 {
 	struct slab_summary *summary;
 	size_t total_entries, i;
-	uint8_t hint;
+	u8 hint;
 	zone_count_t zone;
 	block_count_t blocks_per_zone = vdo_get_slab_summary_zone_size(VDO_BLOCK_SIZE);
 	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
@@ -497,7 +497,7 @@ void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 {
 	struct slab_summary_block *block = get_summary_block_for_slab(summary_zone, slab_number);
 	int result;
-	uint8_t hint;
+	u8 hint;
 	struct slab_summary_entry *entry;
 
 	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {

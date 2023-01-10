@@ -11,7 +11,7 @@
 #include "types.h"
 
 /* A type representing a reference count of a block. */
-typedef uint8_t vdo_refcount_t;
+typedef u8 vdo_refcount_t;
 
 /* Special vdo_refcount_t values. */
 #define EMPTY_REFERENCE_COUNT 0

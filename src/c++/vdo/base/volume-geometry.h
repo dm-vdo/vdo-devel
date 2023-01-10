@@ -29,8 +29,8 @@ enum {
 };
 
 struct index_config {
-	uint32_t mem;
-	uint32_t unused;
+	u32 mem;
+	u32 unused;
 	bool sparse;
 } __packed;
 
@@ -143,7 +143,7 @@ vdo_write_volume_geometry(PhysicalLayer *layer,
 int __must_check
 vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 				       struct volume_geometry *geometry,
-				       uint32_t version);
+				       u32 version);
 #endif /* VDO_USER */
 
 #if (defined(VDO_USER) || defined(INTERNAL))

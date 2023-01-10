@@ -120,7 +120,7 @@ page_completion_from_waiter(struct waiter *waiter)
  */
 static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
-	uint64_t size = cache->page_count * (uint64_t) VDO_BLOCK_SIZE;
+	u64 size = cache->page_count * (u64) VDO_BLOCK_SIZE;
 
 	int result = UDS_ALLOCATE(cache->page_count,
 				  struct page_info,
@@ -377,7 +377,7 @@ get_page_state_name(enum vdo_page_buffer_state state)
  * @info: The page info to count.
  * @delta: The delta to apply to the counter.
  */
-static void update_counter(struct page_info *info, int32_t delta)
+static void update_counter(struct page_info *info, s32 delta)
 {
 	struct block_map_statistics *stats = &info->cache->stats;
 
@@ -1294,7 +1294,7 @@ static void write_page_endio(struct bio *bio)
 static void page_is_written_out(struct vdo_completion *completion)
 {
 	bool was_discard, reclaimed;
-	uint32_t reclamations;
+	u32 reclamations;
 
 	struct page_info *info = completion->parent;
 	struct vdo_page_cache *cache = info->cache;

@@ -9,7 +9,7 @@
 #include "numeric.h"
 #include "types.h"
 
-typedef uint16_t journal_entry_count_t;
+typedef u16 journal_entry_count_t;
 
 /* The absolute position of an entry in a recovery journal or slab journal. */
 struct journal_point {
@@ -107,7 +107,7 @@ vdo_pack_journal_point(const struct journal_point *unpacked, struct packed_journ
 static inline void
 vdo_unpack_journal_point(const struct packed_journal_point *packed, struct journal_point *unpacked)
 {
-	uint64_t native = __le64_to_cpu(packed->encoded_point);
+	u64 native = __le64_to_cpu(packed->encoded_point);
 
 	unpacked->sequence_number = (native >> 16);
 	unpacked->entry_count = (native & 0xffff);

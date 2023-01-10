@@ -31,7 +31,7 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 						     const char *metric,
 						     int log_size);
 
-void enter_histogram_sample(struct histogram *h, uint64_t sample);
+void enter_histogram_sample(struct histogram *h, u64 sample);
 
 void free_histogram(struct histogram *histogram);
 
