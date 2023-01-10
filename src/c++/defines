@@ -56,7 +56,8 @@ endif
 # casting from a void * to a bigger structure...
 GCC_ONLY_WARNS   = -Wlogical-op			\
 		   -Wcast-align			\
-		   -Wcast-qual
+		   -Wcast-qual			\
+		   -Wformat=2			\
 
 # Ignore additional warnings for clang
 CLANG_ONLY_WARNS = -Wno-language-extension-token \
@@ -85,7 +86,6 @@ WARNS           +=				\
 C_WARNS          =				\
 		   -Wbad-function-cast		\
 		   -Wfloat-equal		\
-		   -Wformat=2			\
 		   -Wmissing-declarations	\
 		   -Wmissing-format-attribute	\
 		   -Wmissing-prototypes		\

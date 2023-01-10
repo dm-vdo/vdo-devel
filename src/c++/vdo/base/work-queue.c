@@ -597,7 +597,7 @@ static void get_function_name(void *pointer,
 		char *space;
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat="
+#pragma GCC diagnostic ignored "-Wformat"
 		snprintf(buffer,
 			 buffer_length,
 			 "%.*ps",
