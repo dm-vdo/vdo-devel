@@ -39,13 +39,13 @@ struct vdo_super_block {
  * Return: VDO_SUCCESS or an error.
  */
 static int __must_check
-allocate_super_block(struct vdo *vdo,
-		     struct vdo_super_block **super_block_ptr)
+allocate_super_block(struct vdo *vdo, struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
 	char *buffer;
-	int result = UDS_ALLOCATE(1, struct vdo_super_block, __func__,
-				  super_block_ptr);
+	int result;
+
+	result = UDS_ALLOCATE(1, struct vdo_super_block, __func__, super_block_ptr);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -71,12 +71,12 @@ allocate_super_block(struct vdo *vdo,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_make_super_block(struct vdo *vdo,
-			 struct vdo_super_block **super_block_ptr)
+int vdo_make_super_block(struct vdo *vdo, struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block;
-	int result = allocate_super_block(vdo, &super_block);
+	int result;
 
+	result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
 		vdo_free_super_block(super_block);
 		return result;
@@ -102,12 +102,10 @@ void vdo_free_super_block(struct vdo_super_block *super_block)
 }
 
 /**
- * finish_super_block_parent() - Finish the parent of a super block
- *                               load or save operation.
+ * finish_super_block_parent() - Finish the parent of a super block load or save operation.
  * @completion: The super block vio.
  *
- * This callback is registered in vdo_save_super_block() and
- * vdo_load_super_block().
+ * This callback is registered in vdo_save_super_block() and vdo_load_super_block().
  */
 static void finish_super_block_parent(struct vdo_completion *completion)
 {
@@ -131,13 +129,12 @@ static void handle_save_error(struct vdo_completion *completion)
 	record_metadata_io_error(as_vio(completion));
 	uds_log_error_strerror(completion->result, "super block save failed");
 	/*
-	 * Mark the super block as unwritable so that we won't attempt to write
-	 * it again. This avoids the case where a growth attempt fails writing
-	 * the super block with the new size, but the subsequent attempt to
-	 * write out the read-only state succeeds. In this case, writes which
-	 * happened just before the suspend would not be visible if the VDO is
-	 * restarted without rebuilding, but, after a read-only rebuild, the
-	 * effects of those writes would reappear.
+	 * Mark the super block as unwritable so that we won't attempt to write it again. This
+	 * avoids the case where a growth attempt fails writing the super block with the new size,
+	 * but the subsequent attempt to write out the read-only state succeeds. In this case,
+	 * writes which happened just before the suspend would not be visible if the VDO is
+	 * restarted without rebuilding, but, after a read-only rebuild, the effects of those
+	 * writes would reappear.
 	 */
 	super_block->unwriteable = true;
 	completion->callback(completion);
@@ -149,9 +146,7 @@ static void super_block_write_endio(struct bio *bio)
 	struct vdo_super_block *super_block = vio_as_completion(vio)->parent;
 	struct vdo_completion *parent = super_block->parent;
 
-	continue_vio_after_io(vio,
-			      finish_super_block_parent,
-			      parent->callback_thread_id);
+	continue_vio_after_io(vio, finish_super_block_parent, parent->callback_thread_id);
 }
 
 /**
@@ -183,8 +178,7 @@ void vdo_save_super_block(struct vdo_super_block *super_block,
 	}
 
 	super_block->parent = parent;
-	super_block->vio->completion.callback_thread_id =
-		parent->callback_thread_id;
+	super_block->vio->completion.callback_thread_id = parent->callback_thread_id;
 	submit_metadata_vio(super_block->vio,
 			    super_block_offset,
 			    super_block_write_endio,
@@ -204,8 +198,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_completion *parent = super_block->parent;
 
 	super_block->parent = NULL;
-	vdo_finish_completion(parent,
-			      vdo_decode_super_block(&super_block->codec));
+	vdo_finish_completion(parent, vdo_decode_super_block(&super_block->codec));
 }
 
 /**
@@ -226,21 +219,18 @@ static void read_super_block_endio(struct bio *bio)
 	struct vdo_super_block *super_block = vio_as_completion(vio)->parent;
 	struct vdo_completion *parent = super_block->parent;
 
-	continue_vio_after_io(vio,
-			      finish_reading_super_block,
-			      parent->callback_thread_id);
+	continue_vio_after_io(vio, finish_reading_super_block, parent->callback_thread_id);
 }
 
 /**
- * vdo_load_super_block() - Allocate a super block and read its contents from
- *                          storage.
+ * vdo_load_super_block() - Allocate a super block and read its contents from storage.
  * @vdo: The vdo containing the super block on disk.
  * @parent: The completion to finish after loading the super block.
  * @super_block_offset: The location from which to read the super block.
  * @super_block_ptr: A pointer to hold the super block.
  *
- * If a load error occurs before the super block's own completion can be
- * allocated, the parent will be finished with the error.
+ * If a load error occurs before the super block's own completion can be allocated, the parent will
+ * be finished with the error.
  */
 void vdo_load_super_block(struct vdo *vdo,
 			  struct vdo_completion *parent,
@@ -248,8 +238,9 @@ void vdo_load_super_block(struct vdo *vdo,
 			  struct vdo_super_block **super_block_ptr)
 {
 	struct vdo_super_block *super_block = NULL;
-	int result = allocate_super_block(vdo, &super_block);
+	int result;
 
+	result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
 		vdo_free_super_block(super_block);
 		vdo_finish_completion(parent, result);
@@ -272,8 +263,7 @@ void vdo_load_super_block(struct vdo *vdo,
  *
  * Return: The codec.
  */
-struct super_block_codec *
-vdo_get_super_block_codec(struct vdo_super_block *super_block)
+struct super_block_codec *vdo_get_super_block_codec(struct vdo_super_block *super_block)
 {
 	return &super_block->codec;
 }

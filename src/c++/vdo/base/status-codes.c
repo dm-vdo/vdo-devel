@@ -30,11 +30,9 @@ const struct error_info vdo_status_list[] = {
 	{ "VDO_PARAMETER_MISMATCH", "Parameters have conflicting values" },
 	{ "VDO_BLOCK_SIZE_TOO_SMALL", "The block size is too small" },
 	{ "VDO_UNKNOWN_PARTITION", "No partition exists with a given id" },
-	{ "VDO_PARTITION_EXISTS",
-	  "A partition already exists with a given id" },
+	{ "VDO_PARTITION_EXISTS", "A partition already exists with a given id" },
 	{ "VDO_NOT_READ_ONLY", "The device is not in read-only mode" },
-	{ "VDO_INCREMENT_TOO_SMALL",
-	  "Physical block growth of too few blocks" },
+	{ "VDO_INCREMENT_TOO_SMALL", "Physical block growth of too few blocks" },
 	{ "VDO_CHECKSUM_MISMATCH", "Incorrect checksum" },
 	{ "VDO_RECOVERY_JOURNAL_FULL", "The recovery journal is full" },
 	{ "VDO_LOCK_ERROR", "A lock is held incorrectly" },
@@ -43,8 +41,7 @@ const struct error_info vdo_status_list[] = {
 	{ "VDO_CORRUPT_JOURNAL", "Recovery journal entries corrupted" },
 	{ "VDO_TOO_MANY_SLABS", "Exceeds maximum number of slabs supported" },
 	{ "VDO_INVALID_FRAGMENT", "Compressed block fragment is invalid" },
-	{ "VDO_RETRY_AFTER_REBUILD",
-	  "Retry operation after rebuilding finishes" },
+	{ "VDO_RETRY_AFTER_REBUILD", "Retry operation after rebuilding finishes" },
 	{ "VDO_UNKNOWN_COMMAND", "The extended command is not known" },
 	{ "VDO_COMMAND_ERROR", "Bad extended command parameters" },
 	{ "VDO_CANNOT_DETERMINE_SIZE", "Cannot determine config sizes to fit" },
@@ -74,22 +71,19 @@ static void do_status_code_registration(void)
 				      vdo_status_list,
 				      sizeof(vdo_status_list));
 	/*
-	 * The following test handles cases where libvdo is statically linked
-	 * against both the test modules and the test driver (because multiple
-	 * instances of this module call their own copy of this function
-	 * once each, resulting in multiple calls to register_error_block
+	 * The following test handles cases where libvdo is statically linked against both the test
+	 * modules and the test driver (because multiple instances of this module call their own
+	 * copy of this function once each, resulting in multiple calls to register_error_block
 	 * which is shared in libuds).
 	 */
 	if (result == UDS_DUPLICATE_NAME)
 		result = UDS_SUCCESS;
 
-	status_code_registration_result =
-		(result == UDS_SUCCESS) ? VDO_SUCCESS : result;
+	status_code_registration_result = (result == UDS_SUCCESS) ? VDO_SUCCESS : result;
 }
 
 /**
- * vdo_register_status_codes() - Register the VDO status codes if
- *				 needed.
+ * vdo_register_status_codes() - Register the VDO status codes if needed.
  * Return: A success or error code.
  */
 int vdo_register_status_codes(void)
@@ -99,15 +93,12 @@ int vdo_register_status_codes(void)
 }
 
 /**
- * vdo_map_to_system_error() - Given an error code, return a value we
- *			       can return to the OS.
+ * vdo_map_to_system_error() - Given an error code, return a value we can return to the OS.
  * @error: The error code to convert.
  *
- * The input error code may be a system-generated value (such as
- * -EIO), an errno macro used in our code (such as EIO), or a UDS or
- * VDO status code; the result must be something the rest of the OS
- * can consume (negative errno values such as -EIO, in the case of the
- * kernel).
+ * The input error code may be a system-generated value (such as -EIO), an errno macro used in our
+ * code (such as EIO), or a UDS or VDO status code; the result must be something the rest of the OS
+ * can consume (negative errno values such as -EIO, in the case of the kernel).
  *
  * Return: A system error code value.
  */
@@ -122,8 +113,7 @@ int vdo_map_to_system_error(int error)
 #ifdef VDO_INTERNAL
 	if (error < 1024)
 		/* errno macro used without negating - may be a minor bug */
-		uds_log_info("%s: mapping errno value %d used without negation",
-			     __func__, error);
+		uds_log_info("%s: mapping errno value %d used without negation", __func__, error);
 #endif /* VDO_INTERNAL */
 	if (error < 1024)
 		return -error;
@@ -138,12 +128,8 @@ int vdo_map_to_system_error(int error)
 		uds_log_info("%s: mapping internal status code %d (%s: %s) to EIO",
 			     __func__,
 			     error,
-			     uds_string_error_name(error,
-						   error_name,
-						   sizeof(error_name)),
-			     uds_string_error(error,
-					      error_message,
-					      sizeof(error_message)));
+			     uds_string_error_name(error, error_name, sizeof(error_name)),
+			     uds_string_error(error, error_message, sizeof(error_message)));
 		return -EIO;
 	}
 }

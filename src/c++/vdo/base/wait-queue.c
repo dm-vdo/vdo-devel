@@ -30,8 +30,8 @@ void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 
 	if (queue->last_waiter == NULL) {
 		/*
-		 * The queue is empty, so form the initial circular list by
-		 * self-linking the initial waiter.
+		 * The queue is empty, so form the initial circular list by self-linking the
+		 * initial waiter.
 		 */
 		waiter->next_waiter = waiter;
 	} else {
@@ -40,22 +40,18 @@ void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 		queue->last_waiter->next_waiter = waiter;
 	}
 
-	/*
-	 * In both cases, the waiter we added to the ring becomes the last
-	 * waiter.
-	 */
+	/* In both cases, the waiter we added to the ring becomes the last waiter. */
 	queue->last_waiter = waiter;
 	queue->queue_length += 1;
 }
 
 /**
- * transfer_all_waiters() - Transfer all waiters from one wait queue to a
- *                          second queue, emptying the first queue.
+ * transfer_all_waiters() - Transfer all waiters from one wait queue to a second queue, emptying
+ *                          the first queue.
  * @from_queue: The queue containing the waiters to move.
  * @to_queue: The queue that will receive the waiters from the first queue.
  */
-void transfer_all_waiters(struct wait_queue *from_queue,
-			  struct wait_queue *to_queue)
+void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue)
 {
 	/* If the source queue is empty, there's nothing to do. */
 	if (!has_waiters(from_queue))
@@ -63,9 +59,8 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 
 	if (has_waiters(to_queue)) {
 		/*
-		 * Both queues are non-empty. Splice the two circular lists
-		 * together by swapping the next (head) pointers in the list
-		 * tails.
+		 * Both queues are non-empty. Splice the two circular lists together by swapping
+		 * the next (head) pointers in the list tails.
 		 */
 		struct waiter *from_head = from_queue->last_waiter->next_waiter;
 		struct waiter *to_head = to_queue->last_waiter->next_waiter;
@@ -82,22 +77,19 @@ void transfer_all_waiters(struct wait_queue *from_queue,
 /**
  * notify_all_waiters() - Notify all the entries waiting in a queue.
  * @queue: The wait queue containing the waiters to notify.
- * @callback: The function to call to notify each waiter, or NULL to invoke
- *            the callback field registered in each waiter.
+ * @callback: The function to call to notify each waiter, or NULL to invoke the callback field
+ *            registered in each waiter.
  * @context: The context to pass to the callback function.
  *
- * Notifies all the entries waiting in a queue to continue execution by
- * invoking a callback function on each of them in turn. The queue is copied
- * and emptied before invoking any callbacks, and only the waiters that were
- * in the queue at the start of the call will be notified.
+ * Notifies all the entries waiting in a queue to continue execution by invoking a callback
+ * function on each of them in turn. The queue is copied and emptied before invoking any callbacks,
+ * and only the waiters that were in the queue at the start of the call will be notified.
  */
-void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
-			void *context)
+void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context)
 {
 	/*
-	 * Copy and empty the queue first, avoiding the possibility of an
-	 * infinite loop if entries are returned to the queue by the callback
-	 * function.
+	 * Copy and empty the queue first, avoiding the possibility of an infinite loop if entries
+	 * are returned to the queue by the callback function.
 	 */
 	struct wait_queue waiters;
 
@@ -111,12 +103,10 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 }
 
 /**
- * get_first_waiter() - Return the waiter that is at the head end of a wait
- *                      queue.
+ * get_first_waiter() - Return the waiter that is at the head end of a wait queue.
  * @queue: The queue from which to get the first waiter.
  *
- * Return: The first (oldest) waiter in the queue, or NULL if the queue is
- *         empty.
+ * Return: The first (oldest) waiter in the queue, or NULL if the queue is empty.
  */
 struct waiter *get_first_waiter(const struct wait_queue *queue)
 {
@@ -126,17 +116,13 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
 		/* There are no waiters, so we're done. */
 		return NULL;
 
-	/*
-	 * The queue is circular, so the last entry links to the head of the
-	 * queue.
-	 */
+	/* The queue is circular, so the last entry links to the head of the queue. */
 	return last_waiter->next_waiter;
 }
 
 /**
- * dequeue_matching_waiters() - Remove all waiters that match based on the
- *                              specified matching method and append them to a
- *                              wait_queue.
+ * dequeue_matching_waiters() - Remove all waiters that match based on the specified matching
+ *                              method and append them to a wait_queue.
  * @queue: The wait queue to process.
  * @match_method: The method to determine matching.
  * @match_context: Contextual info for the match method.
@@ -156,24 +142,21 @@ void dequeue_matching_waiters(struct wait_queue *queue,
 	while (has_waiters(&iteration_queue)) {
 		struct waiter *waiter = dequeue_next_waiter(&iteration_queue);
 
-		enqueue_waiter((match_method(waiter, match_context)
-				? &matched_waiters
-				: queue), waiter);
+		enqueue_waiter((match_method(waiter, match_context) ? &matched_waiters : queue),
+			       waiter);
 	}
 
 	transfer_all_waiters(&matched_waiters, matched_queue);
 }
 
 /**
- * dequeue_next_waiter() - Remove the first waiter from the head end of a wait
- *                         queue.
+ * dequeue_next_waiter() - Remove the first waiter from the head end of a wait queue.
  * @queue: The wait queue from which to remove the first entry.
  *
- * The caller will be responsible for waking the waiter by invoking the
- * correct callback function to resume its execution.
+ * The caller will be responsible for waking the waiter by invoking the correct callback function
+ * to resume its execution.
  *
- * Return: The first (oldest) waiter in the queue, or NULL if the queue is
- *         empty.
+ * Return: The first (oldest) waiter in the queue, or NULL if the queue is empty.
  */
 struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 {
@@ -184,15 +167,12 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 		return NULL;
 
 	if (first_waiter == last_waiter)
-		/*
-		 * The queue has a single entry, so just empty it out by nulling
-		 * the tail.
-		 */
+		/* The queue has a single entry, so just empty it out by nulling the tail. */
 		queue->last_waiter = NULL;
 	else
 		/*
-		 * The queue has more than one entry, so splice the first waiter
-		 * out of the circular queue.
+		 * The queue has more than one entry, so splice the first waiter out of the
+		 * circular queue.
 		 */
 		last_waiter->next_waiter = first_waiter->next_waiter;
 
@@ -205,17 +185,16 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 /**
  * notify_next_waiter() - Notify the next entry waiting in a queue.
  * @queue: The wait queue containing the waiter to notify.
- * @callback: The function to call to notify the waiter, or NULL to invoke the
- *            callback field registered in the waiter.
+ * @callback: The function to call to notify the waiter, or NULL to invoke the callback field
+ *            registered in the waiter.
  * @context: The context to pass to the callback function.
  *
- * Notifies the next entry waiting in a queue to continue execution by
- * invoking a callback function on it after removing it from the queue.
+ * Notifies the next entry waiting in a queue to continue execution by invoking a callback function
+ * on it after removing it from the queue.
  *
  * Return: true if there was a waiter in the queue.
  */
-bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
-			void *context)
+bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context)
 {
 	struct waiter *waiter = dequeue_next_waiter(queue);
 
@@ -235,13 +214,11 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
  *
  * Return: The next waiter, or NULL.
  */
-const struct waiter *get_next_waiter(const struct wait_queue *queue,
-				     const struct waiter *waiter)
+const struct waiter *get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
 {
 	struct waiter *first_waiter = get_first_waiter(queue);
 
 	if (waiter == NULL)
 		return first_waiter;
-	return ((waiter->next_waiter != first_waiter) ? waiter->next_waiter
-						    : NULL);
+	return ((waiter->next_waiter != first_waiter) ? waiter->next_waiter : NULL);
 }

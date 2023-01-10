@@ -12,11 +12,10 @@
 /**
  * DOC: Wait queues.
  *
- * A wait queue is a circular list of entries waiting to be notified of a
- * change in a condition. Keeping a circular list allows the queue structure
- * to simply be a pointer to the tail (newest) entry in the queue, supporting
- * constant-time enqueue and dequeue operations. A null pointer is an empty
- * queue.
+ * A wait queue is a circular list of entries waiting to be notified of a change in a condition.
+ * Keeping a circular list allows the queue structure to simply be a pointer to the tail (newest)
+ * entry in the queue, supporting constant-time enqueue and dequeue operations. A null pointer is
+ * an empty queue.
  *
  *   An empty queue:
  *     queue0.last_waiter -> NULL
@@ -38,9 +37,8 @@ struct wait_queue {
 };
 
 /**
- * typedef waiter_callback - Callback type for functions which will be called
- *                           to resume processing of a waiter after it has
- *                           been removed from its wait queue.
+ * typedef waiter_callback - Callback type for functions which will be called to resume processing
+ *                           of a waiter after it has been removed from its wait queue.
  */
 typedef void waiter_callback(struct waiter *waiter, void *context);
 
@@ -51,19 +49,15 @@ typedef void waiter_callback(struct waiter *waiter, void *context);
  */
 typedef bool waiter_match(struct waiter *waiter, void *context);
 
-/*
- * The queue entry structure for entries in a wait_queue.
- */
+/* The queue entry structure for entries in a wait_queue. */
 struct waiter {
 	/*
-	 * The next waiter in the queue. If this entry is the last waiter, then
-	 * this is actually a pointer back to the head of the queue.
+	 * The next waiter in the queue. If this entry is the last waiter, then this is actually a
+	 * pointer back to the head of the queue.
 	 */
 	struct waiter *next_waiter;
 
-	/*
-	 * Optional waiter-specific callback to invoke when waking this waiter.
-	 */
+	/* Optional waiter-specific callback to invoke when waking this waiter. */
 	waiter_callback *callback;
 };
 
@@ -103,14 +97,11 @@ static inline bool __must_check has_waiters(const struct wait_queue *queue)
 
 void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
 
-void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
-			void *context);
+void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context);
 
-bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
-			void *context);
+bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context);
 
-void transfer_all_waiters(struct wait_queue *from_queue,
-			  struct wait_queue *to_queue);
+void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue);
 
 struct waiter *get_first_waiter(const struct wait_queue *queue);
 

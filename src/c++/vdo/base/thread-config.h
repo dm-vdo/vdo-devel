@@ -10,9 +10,7 @@
 
 #include "types.h"
 
-/**
- * typedef thread_count_t - A thread counter.
- */
+/* typedef thread_count_t - A thread counter. */
 typedef uint8_t thread_count_t;
 
 /**
@@ -23,8 +21,8 @@ typedef uint8_t thread_count_t;
 typedef uint8_t thread_id_t;
 
 /*
- * The thread ID returned when the current base code thread ID cannot be found
- * or is otherwise undefined.
+ * The thread ID returned when the current base code thread ID cannot be found or is otherwise
+ * undefined.
  */
 static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
 
@@ -49,8 +47,7 @@ struct thread_config {
 struct thread_count_config;
 
 int __must_check
-vdo_make_thread_config(struct thread_count_config counts,
-		       struct thread_config **config_ptr);
+vdo_make_thread_config(struct thread_count_config counts, struct thread_config **config_ptr);
 
 void vdo_free_thread_config(struct thread_config *config);
 
@@ -62,25 +59,21 @@ void vdo_free_thread_config(struct thread_config *config);
  * Return: The thread id for the given zone.
  */
 static inline thread_id_t __must_check
-vdo_get_logical_zone_thread(const struct thread_config *thread_config,
-			    zone_count_t logical_zone)
+vdo_get_logical_zone_thread(const struct thread_config *thread_config, zone_count_t logical_zone)
 {
-	ASSERT_LOG_ONLY((logical_zone <= thread_config->logical_zone_count),
-			"logical zone valid");
+	ASSERT_LOG_ONLY((logical_zone <= thread_config->logical_zone_count), "logical zone valid");
 	return thread_config->logical_threads[logical_zone];
 }
 
 /**
- * vdo_get_physical_zone_thread() - Get the thread id for a given physical
- *                                  zone.
+ * vdo_get_physical_zone_thread() - Get the thread id for a given physical zone.
  * @thread_config: The thread config.
  * @physical_zone: The number of the physical zone.
  *
  * Return: The thread id for the given zone.
  */
 static inline thread_id_t __must_check
-vdo_get_physical_zone_thread(const struct thread_config *thread_config,
-			     zone_count_t physical_zone)
+vdo_get_physical_zone_thread(const struct thread_config *thread_config, zone_count_t physical_zone)
 {
 	ASSERT_LOG_ONLY((physical_zone <= thread_config->physical_zone_count),
 			"physical zone valid");
@@ -95,11 +88,9 @@ vdo_get_physical_zone_thread(const struct thread_config *thread_config,
  * Return: The thread id for the given zone.
  */
 static inline thread_id_t __must_check
-vdo_get_hash_zone_thread(const struct thread_config *thread_config,
-			 zone_count_t hash_zone)
+vdo_get_hash_zone_thread(const struct thread_config *thread_config, zone_count_t hash_zone)
 {
-	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count),
-			"hash zone valid");
+	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count), "hash zone valid");
 	return thread_config->hash_zone_threads[hash_zone];
 }
 

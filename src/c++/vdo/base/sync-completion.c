@@ -25,14 +25,12 @@ static inline struct sync_completion * __must_check
 as_sync_completion(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion->type, VDO_SYNC_COMPLETION);
-	return container_of(completion,
-			    struct sync_completion,
-			    vdo_completion);
+	return container_of(completion, struct sync_completion, vdo_completion);
 }
 
 /**
- * complete_synchronous_action() - A vdo_action to signal the waiting thread
- *                                 that a synchronous action is complete.
+ * complete_synchronous_action() - A vdo_action to signal the waiting thread that a synchronous
+ *                                 action is complete.
  * @completion: The sync completion.
  *
  * This callback is registered in run_synchrnous_action().
@@ -43,8 +41,8 @@ static void complete_synchronous_action(struct vdo_completion *completion)
 }
 
 /**
- * run_synchronous_action() - A vdo_action to perform a synchronous action
- *                            registered in vdo_perform_synchronous_action().
+ * run_synchronous_action() - A vdo_action to perform a synchronous action registered in
+ *                            vdo_perform_synchronous_action().
  * @completion: The sync completion.
  */
 static void run_synchronous_action(struct vdo_completion *completion)
@@ -54,8 +52,7 @@ static void run_synchronous_action(struct vdo_completion *completion)
 }
 
 /**
- * vdo_perform_synchronous_action() - Launch an action on a VDO thread and
- *                                    wait for it to complete.
+ * vdo_perform_synchronous_action() - Launch an action on a VDO thread and wait for it to complete.
  * @vdo: The vdo.
  * @action: The callback to launch.
  * @thread_id: The thread on which to run the action.

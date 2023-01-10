@@ -36,17 +36,17 @@ typedef uint32_t page_count_t;
 typedef uint32_t page_number_t;
 
 /*
- * The physical (well, less logical) block number at which the block is found
- * on the underlying device.
+ * The physical (well, less logical) block number at which the block is found on the underlying
+ * device.
  */
 typedef uint64_t physical_block_number_t;
 
 /*
- * A release version number. These numbers are used to make the numbering
- * space for component versions independent across release branches.
+ * A release version number. These numbers are used to make the numbering space for component
+ * versions independent across release branches.
  *
- * Really an enum, but we have to specify the size for encoding; see
- * release_versions.h for the enumeration values.
+ * Really an enum, but we have to specify the size for encoding; see release_versions.h for the
+ * enumeration values.
  */
 typedef uint32_t release_version_number_t;
 
@@ -71,10 +71,7 @@ typedef uint16_t slot_number_t;
 /* A zone counter */
 typedef uint8_t zone_count_t;
 
-/*
- * The following enums are persisted on storage, so the values must be
- * preserved.
- */
+/* The following enums are persisted on storage, so the values must be preserved. */
 
 /* The current operating mode of the VDO. */
 enum vdo_state {
@@ -98,31 +95,25 @@ enum vdo_state {
  *
  * Return: true if the state indicates a rebuild is required
  */
-static inline bool __must_check
-vdo_state_requires_read_only_rebuild(enum vdo_state state)
+static inline bool __must_check vdo_state_requires_read_only_rebuild(enum vdo_state state)
 {
-	return ((state == VDO_FORCE_REBUILD) ||
-		(state == VDO_REBUILD_FOR_UPGRADE));
+	return ((state == VDO_FORCE_REBUILD) || (state == VDO_REBUILD_FOR_UPGRADE));
 }
 
 /**
- * vdo_state_requires_recovery() - Check whether a vdo state indicates that
- *                                 recovery is needed.
+ * vdo_state_requires_recovery() - Check whether a vdo state indicates that recovery is needed.
  * @state: The state to check.
  *
  * Return: true if the state indicates a recovery is required
  */
-static inline bool __must_check
-vdo_state_requires_recovery(enum vdo_state state)
+static inline bool __must_check vdo_state_requires_recovery(enum vdo_state state)
 {
-	return ((state == VDO_DIRTY) ||
-		(state == VDO_REPLAYING) ||
-		(state == VDO_RECOVERING));
+	return ((state == VDO_DIRTY) || (state == VDO_REPLAYING) || (state == VDO_RECOVERING));
 }
 
 /*
- * The current operation on a physical block (from the point of view of the
- * recovery journal, slab journals, and reference counts.
+ * The current operation on a physical block (from the point of view of the recovery journal, slab
+ * journals, and reference counts.
  */
 enum journal_operation {
 	VDO_JOURNAL_DATA_DECREMENT = 0,
@@ -164,10 +155,7 @@ struct data_location {
 	enum block_mapping_state state;
 };
 
-/*
- * The configuration of a single slab derived from the configured block size
- * and slab size.
- */
+/* The configuration of a single slab derived from the configured block size and slab size. */
 struct slab_config {
 	/* total number of blocks in the slab */
 	block_count_t slab_blocks;
@@ -178,19 +166,16 @@ struct slab_config {
 	/* number of blocks for the slab journal */
 	block_count_t slab_journal_blocks;
 	/*
-	 * Number of blocks after which the slab journal starts pushing out a
-	 * reference_block for each new entry it receives.
+	 * Number of blocks after which the slab journal starts pushing out a reference_block for
+	 * each new entry it receives.
 	 */
 	block_count_t slab_journal_flushing_threshold;
 	/*
-	 * Number of blocks after which the slab journal pushes out all
-	 * reference_blocks and makes all vios wait.
+	 * Number of blocks after which the slab journal pushes out all reference_blocks and makes
+	 * all vios wait.
 	 */
 	block_count_t slab_journal_blocking_threshold;
-	/*
-	 * Number of blocks after which the slab must be scrubbed before coming
-	 * online.
-	 */
+	/* Number of blocks after which the slab must be scrubbed before coming online. */
 	block_count_t slab_journal_scrubbing_threshold;
 } __packed;
 

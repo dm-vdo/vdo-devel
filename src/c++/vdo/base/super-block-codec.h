@@ -11,16 +11,13 @@
 #include "header.h"
 #include "types.h"
 
-/*
- * The machinery for encoding and decoding super blocks.
- */
+/* The machinery for encoding and decoding super blocks. */
 struct super_block_codec {
 	/* The buffer for encoding and decoding component data */
 	struct buffer *component_buffer;
 	/*
-	 * A sector-sized buffer wrapping the first sector of
-	 * encoded_super_block, for encoding and decoding the entire super
-	 * block.
+	 * A sector-sized buffer wrapping the first sector of encoded_super_block, for encoding and
+	 * decoding the entire super block.
 	 */
 	struct buffer *block_buffer;
 	/* A 1-block buffer holding the encoded on-disk super block */

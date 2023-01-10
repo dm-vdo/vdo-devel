@@ -16,9 +16,7 @@ enum {
 	PRP_BLOCK_END = PRP_BLOCK_START + UDS_BLOCK_SIZE,
 };
 
-/*
- * VDO-specific status codes.
- */
+/* VDO-specific status codes. */
 enum vdo_status_codes {
 	/* successful result */
 	VDO_SUCCESS,

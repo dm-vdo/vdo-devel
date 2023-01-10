@@ -26,7 +26,6 @@ struct super_block_codec * __must_check
 vdo_get_super_block_codec(struct vdo_super_block *super_block);
 
 #ifdef INTERNAL
-int __must_check vdo_make_super_block(struct vdo *vdo,
-				      struct vdo_super_block **super_block_ptr);
+int __must_check vdo_make_super_block(struct vdo *vdo, struct vdo_super_block **super_block_ptr);
 #endif /* INTERNAL */
 #endif /* SUPER_BLOCK_H */
