@@ -445,7 +445,7 @@ static int encode_partitions_3_0(const struct fixed_layout *layout,
 static int encode_layout_3_0(const struct fixed_layout *layout,
 			     struct buffer *buffer)
 {
-	int result = ASSERT(layout->num_partitions <= UINT8_MAX,
+	int result = ASSERT(layout->num_partitions <= U8_MAX,
 			    "fixed layout partition count must fit in a byte");
 	if (result != UDS_SUCCESS)
 		return result;

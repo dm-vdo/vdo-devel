@@ -112,16 +112,16 @@ static void testSingletonMap(void)
 static void test16BitMap(void)
 {
   struct int_map *map;
-  UDS_ASSERT_SUCCESS(make_int_map(UINT16_MAX + 1, 0, &map));
+  UDS_ASSERT_SUCCESS(make_int_map(U16_MAX + 1, 0, &map));
 
   uint16_t *values;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(65536, uint16_t, "16-bit values", &values));
-  for (int i = 0; i <= UINT16_MAX; i++) {
+  for (int i = 0; i <= U16_MAX; i++) {
     values[i] = i;
   }
 
   // Create an identity map of [0..65535] -> [0..65535].
-  for (int key = 0; key <= UINT16_MAX; key++) {
+  for (int key = 0; key <= U16_MAX; key++) {
     CU_ASSERT_EQUAL(key, int_map_size(map));
     CU_ASSERT_PTR_NULL(int_map_get(map, key));
     UDS_ASSERT_SUCCESS(int_map_put(map, key, &values[key], true, NULL));
@@ -130,35 +130,35 @@ static void test16BitMap(void)
   CU_ASSERT_EQUAL(1 << 16, int_map_size(map));
 
   // Remove the odd-numbered keys.
-  for (int key = 1; key <= UINT16_MAX; key += 2) {
+  for (int key = 1; key <= U16_MAX; key += 2) {
     CU_ASSERT_PTR_EQUAL(&values[key], int_map_remove(map, key));
     CU_ASSERT_PTR_NULL(int_map_get(map, key));
   }
   CU_ASSERT_EQUAL(1 << 15, int_map_size(map));
 
   // Re-map everything to its complement: 0->65535, 1->65534, etc.
-  for (int key = 0; key <= UINT16_MAX; key++) {
+  for (int key = 0; key <= U16_MAX; key++) {
     void *value = int_map_get(map, key);
     if ((key % 2) == 0) {
       CU_ASSERT_PTR_EQUAL(&values[key], value);
     } else {
       CU_ASSERT_PTR_NULL(value);
     }
-    void *newValue = &values[UINT16_MAX - key];
+    void *newValue = &values[U16_MAX - key];
     UDS_ASSERT_SUCCESS(int_map_put(map, key, newValue, true, NULL));
   }
 
   // Verify the mapping.
   CU_ASSERT_EQUAL(1 << 16, int_map_size(map));
-  for (int key = 0; key <= UINT16_MAX; key++) {
-    CU_ASSERT_PTR_EQUAL(&values[UINT16_MAX - key], int_map_get(map, key));
+  for (int key = 0; key <= U16_MAX; key++) {
+    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], int_map_get(map, key));
   }
 
   // Remove everything.
-  for (int key = 0; key <= UINT16_MAX; key++) {
-    CU_ASSERT_PTR_EQUAL(&values[UINT16_MAX - key], int_map_remove(map, key));
+  for (int key = 0; key <= U16_MAX; key++) {
+    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], int_map_remove(map, key));
     CU_ASSERT_PTR_NULL(int_map_get(map, key));
-    CU_ASSERT_EQUAL(UINT16_MAX - key, int_map_size(map));
+    CU_ASSERT_EQUAL(U16_MAX - key, int_map_size(map));
   }
   CU_ASSERT_EQUAL(0, int_map_size(map));
 

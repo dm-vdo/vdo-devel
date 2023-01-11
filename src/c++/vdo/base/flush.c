@@ -317,7 +317,7 @@ static void check_for_drain_complete(struct flusher *flusher)
  */
 void vdo_complete_flushes(struct flusher *flusher)
 {
-	sequence_number_t oldest_active_generation = UINT64_MAX;
+	sequence_number_t oldest_active_generation = U64_MAX;
 	struct logical_zone *zone;
 
 	assert_on_flusher_thread(flusher, __func__);

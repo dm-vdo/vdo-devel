@@ -167,13 +167,13 @@ static void verifyGetPhysicalZone(thread_count_t zoneCount)
   assertInvalidPBN(vdo, config.physical_blocks);
   assertInvalidPBN(vdo, config.physical_blocks + 1);
   assertInvalidPBN(vdo, (physical_block_number_t) -1);
-  assertInvalidPBN(vdo, (physical_block_number_t) UINT64_MAX);
-  assertInvalidPBN(vdo, (physical_block_number_t) INT64_MAX);
-  assertInvalidPBN(vdo, (physical_block_number_t) INT64_MAX + 1);
-  assertInvalidPBN(vdo, (physical_block_number_t) UINT32_MAX);
-  assertInvalidPBN(vdo, (physical_block_number_t) UINT32_MAX + 1);
-  assertInvalidPBN(vdo, (physical_block_number_t) INT32_MAX);
-  assertInvalidPBN(vdo, (physical_block_number_t) INT32_MAX + 1);
+  assertInvalidPBN(vdo, (physical_block_number_t) U64_MAX);
+  assertInvalidPBN(vdo, (physical_block_number_t) S64_MAX);
+  assertInvalidPBN(vdo, (physical_block_number_t) S64_MAX + 1);
+  assertInvalidPBN(vdo, (physical_block_number_t) U32_MAX);
+  assertInvalidPBN(vdo, (physical_block_number_t) U32_MAX + 1);
+  assertInvalidPBN(vdo, (physical_block_number_t) S32_MAX);
+  assertInvalidPBN(vdo, (physical_block_number_t) S32_MAX + 1);
 }
 
 /**

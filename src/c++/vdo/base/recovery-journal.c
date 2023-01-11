@@ -1679,7 +1679,7 @@ void vdo_acquire_recovery_journal_block_reference(struct recovery_journal *journ
 
 	lock_number = vdo_get_recovery_journal_block_number(journal, sequence_number);
 	current_value = get_counter(journal, lock_number, zone_type, zone_id);
-	ASSERT_LOG_ONLY(*current_value < UINT16_MAX,
+	ASSERT_LOG_ONLY(*current_value < U16_MAX,
 			"increment of lock counter must not overflow");
 
 	if (*current_value == 0) {

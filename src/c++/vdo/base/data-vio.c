@@ -683,14 +683,14 @@ static void assign_data_vio(struct limiter *limiter, struct data_vio *data_vio)
 	limiter->wake_count++;
 
 	bio = bio_list_peek(limiter->permitted_waiters);
-	limiter->arrival = ((bio == NULL) ? UINT64_MAX : get_arrival_time(bio));
+	limiter->arrival = ((bio == NULL) ? U64_MAX : get_arrival_time(bio));
 }
 
 static void assign_discard_permit(struct limiter *limiter)
 {
 	struct bio *bio = bio_list_pop(&limiter->waiters);
 
-	if (limiter->arrival == UINT64_MAX)
+	if (limiter->arrival == U64_MAX)
 		limiter->arrival = get_arrival_time(bio);
 
 	bio_list_add(limiter->permitted_waiters, bio);
@@ -778,7 +778,7 @@ static void reuse_or_release_resources(struct data_vio_pool *pool,
 
 	if (pool->limiter.arrival < pool->discard_limiter.arrival) {
 		assign_data_vio(&pool->limiter, data_vio);
-	} else if (pool->discard_limiter.arrival < UINT64_MAX) {
+	} else if (pool->discard_limiter.arrival < U64_MAX) {
 		assign_data_vio(&pool->discard_limiter, data_vio);
 	} else {
 		list_add(&data_vio->pool_entry, returned);
@@ -805,7 +805,7 @@ static void process_release_callback(struct vdo_completion *completion)
 	get_waiters(&pool->limiter);
 	spin_unlock(&pool->lock);
 
-	if (pool->limiter.arrival == UINT64_MAX) {
+	if (pool->limiter.arrival == U64_MAX) {
 		struct bio *bio = bio_list_peek(&pool->limiter.waiters);
 
 		if (bio != NULL)
@@ -872,7 +872,7 @@ static void initialize_limiter(struct limiter *limiter,
 	limiter->pool = pool;
 	limiter->assigner = assigner;
 	limiter->limit = limit;
-	limiter->arrival = UINT64_MAX;
+	limiter->arrival = U64_MAX;
 	init_waitqueue_head(&limiter->blocked_threads);
 }
 

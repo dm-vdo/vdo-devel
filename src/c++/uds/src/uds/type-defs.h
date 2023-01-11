@@ -35,19 +35,5 @@
 #define S32_MAX ((s32)(U32_MAX >> 1))
 #define U64_MAX ((u64)~0ul)
 #define S64_MAX ((s64)(U64_MAX >> 1))
-#endif /* !__KERNEL__ */
-#ifdef __KERNEL__
-/*
- * REMOVE: Remove the surrounding #ifdef __KERNEL__, and everything between, when uds and vdo
- * have been converted to use the above *_MAX values.
- */
-#define INT8_MAX S8_MAX
-#define UINT8_MAX U8_MAX
-#define INT16_MAX S16_MAX
-#define UINT16_MAX U16_MAX
-#define INT32_MAX S32_MAX
-#define UINT32_MAX U32_MAX
-#define INT64_MAX S64_MAX
-#define UINT64_MAX U64_MAX
-#endif
+#endif /* __KERNEL__ */
 #endif /* TYPE_DEFS_H */
