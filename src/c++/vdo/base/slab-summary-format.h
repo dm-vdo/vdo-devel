@@ -37,18 +37,15 @@ struct slab_summary_entry {
 #endif
 } __packed;
 
-/* XXX: These methods shouldn't take a block_size parameter. */
-
 /**
  * vdo_get_slab_summary_zone_size() - Returns the size on disk of a single zone of the
  *                                    slab_summary.
- * @block_size: The block size of the physical layer.
  *
  * Return: the number of blocks required to store a single zone of the slab_summary on disk.
  */
-static inline block_count_t __must_check vdo_get_slab_summary_zone_size(block_size_t block_size)
+static inline block_count_t __must_check vdo_get_slab_summary_zone_size(void)
 {
-	slab_count_t entries_per_block = block_size / sizeof(struct slab_summary_entry);
+	slab_count_t entries_per_block = VDO_BLOCK_SIZE / sizeof(struct slab_summary_entry);
 	block_count_t blocks_needed = MAX_VDO_SLABS / entries_per_block;
 
 	return blocks_needed;
@@ -56,13 +53,12 @@ static inline block_count_t __must_check vdo_get_slab_summary_zone_size(block_si
 
 /**
  * vdo_get_slab_summary_size() - Return the size on disk of the slab_summary structure.
- * @block_size: The block size of the physical layer.
  *
  * Return: The blocks required to store the slab_summary on disk.
  */
-static inline block_count_t __must_check vdo_get_slab_summary_size(block_size_t block_size)
+static inline block_count_t __must_check vdo_get_slab_summary_size(void)
 {
-	return vdo_get_slab_summary_zone_size(block_size) * MAX_VDO_PHYSICAL_ZONES;
+	return vdo_get_slab_summary_zone_size() * MAX_VDO_PHYSICAL_ZONES;
 }
 
 /**

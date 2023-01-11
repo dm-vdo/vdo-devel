@@ -41,7 +41,7 @@ int makeFixedLayoutFromConfig(const struct vdo_config  *config,
                                            startingOffset,
                                            DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
                                            config->recovery_journal_size,
-                                           vdo_get_slab_summary_size(VDO_BLOCK_SIZE),
+                                           vdo_get_slab_summary_size(),
                                            layoutPtr);
 }
 
@@ -189,7 +189,7 @@ int calculateMinimumVDOFromConfig(const struct vdo_config   *config,
 
   block_count_t blockMapBlocks = DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT;
   block_count_t journalBlocks  = config->recovery_journal_size;
-  block_count_t summaryBlocks  = vdo_get_slab_summary_size(VDO_BLOCK_SIZE);
+  block_count_t summaryBlocks  = vdo_get_slab_summary_size();
   block_count_t slabBlocks     = config->slab_size;
 
   // The +2 takes into account the super block and geometry block.

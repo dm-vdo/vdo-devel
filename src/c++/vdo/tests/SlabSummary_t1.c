@@ -138,8 +138,7 @@ static void initializeSlabSummary(void)
 
   VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(BLOCK_COUNT, 0, &layout));
 
-  block_count_t slabSummaryPartitionSize
-    = vdo_get_slab_summary_size(VDO_BLOCK_SIZE);
+  block_count_t slabSummaryPartitionSize = vdo_get_slab_summary_size();
   int result = vdo_make_fixed_layout_partition(layout,
                                                VDO_SLAB_SUMMARY_PARTITION,
                                                slabSummaryPartitionSize,

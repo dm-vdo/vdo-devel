@@ -44,7 +44,7 @@ static struct vdo_completion     *updateCompletion;
  **/
 static void initializeSlabSummaryT2(void)
 {
-  block_count_t blockCount = vdo_get_slab_summary_size(VDO_BLOCK_SIZE);
+  block_count_t blockCount = vdo_get_slab_summary_size();
   TestParameters testParameters = {
     .mappableBlocks      = blockCount,
     .logicalThreadCount  = 1,

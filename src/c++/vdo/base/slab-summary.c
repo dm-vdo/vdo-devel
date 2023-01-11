@@ -186,7 +186,7 @@ int vdo_make_slab_summary(struct vdo *vdo,
 	size_t total_entries, i;
 	u8 hint;
 	zone_count_t zone;
-	block_count_t blocks_per_zone = vdo_get_slab_summary_zone_size(VDO_BLOCK_SIZE);
+	block_count_t blocks_per_zone = vdo_get_slab_summary_zone_size();
 	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
 	int result;
 

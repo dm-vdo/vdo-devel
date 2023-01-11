@@ -95,7 +95,7 @@ static void makeAndCheckLayout(void)
 /**********************************************************************/
 static void creationTest(void)
 {
-  summarySize = vdo_get_slab_summary_size(VDO_BLOCK_SIZE);
+  summarySize = vdo_get_slab_summary_size();
   struct vdo_config config = {
     .logical_blocks        = slabSize - 256 - 9,
     .physical_blocks       = physicalSize,

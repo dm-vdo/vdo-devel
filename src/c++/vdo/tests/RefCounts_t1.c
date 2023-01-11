@@ -103,8 +103,7 @@ static void initializeRefCountsT1(void)
   viosFinishedCount          = 0;
   refCountsCompletionWaiting = false;
 
-  block_count_t slabSummaryPartitionSize
-    = vdo_get_slab_summary_size(VDO_BLOCK_SIZE);
+  block_count_t slabSummaryPartitionSize = vdo_get_slab_summary_size();
   VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(layer->getBlockCount(layer), 0,
                                            &layout));
 

@@ -167,7 +167,7 @@ static void computePhysicalBlocks(TestParameters *parameters)
   parameters->physicalBlocks = ((parameters->slabCount * parameters->slabSize)
                                 + VDO_LAYOUT_START + parameters->journalBlocks
                                 + DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT
-                                + vdo_get_slab_summary_size(VDO_BLOCK_SIZE));
+                                + vdo_get_slab_summary_size());
 }
 
 /**
@@ -249,7 +249,7 @@ static TestParameters computeParameters(const TestParameters *parameters)
     // This is like production: the total physical capacity is specified.
     // Measure the size of the block map and derive the mappable size.
     block_count_t overhead = (VDO_LAYOUT_START + params.journalBlocks
-                              + vdo_get_slab_summary_size(VDO_BLOCK_SIZE)
+                              + vdo_get_slab_summary_size()
                               + DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
     if ((overhead + params.slabSize) <= params.physicalBlocks) {
       params.slabCount = DIV_ROUND_UP(params.physicalBlocks - overhead,
