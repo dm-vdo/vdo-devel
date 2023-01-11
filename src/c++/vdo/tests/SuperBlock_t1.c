@@ -27,11 +27,11 @@ enum {
   DATA2_SIZE           = 20,
 };
 
-static const byte DATA1[] = {
+static const u8 DATA1[] = {
   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
 };
 
-static const byte DATA2[] = {
+static const u8 DATA2[] = {
   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
   0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
 };
@@ -41,7 +41,7 @@ static const byte DATA2[] = {
  * payload data above. This is used by testEncoding() to check that the
  * encoding format hasn't changed and is platform-independent.
  */
-static byte EXPECTED_SUPERBLOCK_12_0_ENCODING[] =
+static u8 EXPECTED_SUPERBLOCK_12_0_ENCODING[] =
   {
                                                     // header
     0x00, 0x00, 0x00, 0x00,                         //   .id = VDO_SUPER_BLOCK

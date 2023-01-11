@@ -35,7 +35,7 @@ typedef void heap_swapper(void *item1, void *item2);
  */
 struct heap {
 	/* the 1-based array of heap elements (nodes) */
-	byte *array;
+	u8 *array;
 	/* the function to use to compare two elements */
 	heap_comparator *comparator;
 	/* the function to use to swap two elements */

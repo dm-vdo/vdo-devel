@@ -41,7 +41,7 @@ static void fillWithLittleEndianIndex(char *block, block_count_t index)
   for (size_t offset = 0;
        offset < VDO_BLOCK_SIZE;
        offset += sizeof(uint64_t)) {
-         put_unaligned_le64(index, (byte *) &block[offset]);
+         put_unaligned_le64(index, (u8 *) &block[offset]);
   }
 }
 

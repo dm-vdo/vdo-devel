@@ -110,7 +110,7 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 	struct delta_index_entry entry;
 	unsigned int address;
 	unsigned int list_number;
-	const byte *found_name;
+	const u8 *found_name;
 	bool found;
 	const struct geometry *geometry = chapter_index->geometry;
 	unsigned int chapter_number = chapter_index->virtual_chapter_number;
@@ -157,7 +157,7 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  * @num_lists: The number of delta lists that were copied
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-				 byte *memory,
+				 u8 *memory,
 				 unsigned int first_list,
 				 bool last_page,
 				 unsigned int *num_lists)
@@ -247,7 +247,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 /* Make a new chapter index page, initializing it with the data from a given index_page buffer. */
 int initialize_chapter_index_page(struct delta_index_page *index_page,
 				  const struct geometry *geometry,
-				  byte *page_buffer,
+				  u8 *page_buffer,
 				  u64 volume_nonce)
 {
 	return initialize_delta_index_page(index_page,

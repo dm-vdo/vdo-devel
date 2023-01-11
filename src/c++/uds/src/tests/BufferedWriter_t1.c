@@ -9,7 +9,7 @@
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 
-static const byte BOSTON[] =
+static const u8 BOSTON[] =
   "I come from the city of Boston,\n"
   "The home of the bean and the cod,\n"
   "Where Cabots speak only to Lowells,\n"
@@ -47,7 +47,7 @@ static void bufferTest(void)
   // check file contents, using a buffered reader
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, REGION_BLOCKS, &reader));
-  byte inputArray[BOSTON_LEN];
+  u8 inputArray[BOSTON_LEN];
   unsigned int i;
   for (i = 0; i < count; ++i) {
     memset(inputArray, i, BOSTON_LEN);
@@ -69,9 +69,9 @@ static void largeWriteTest(void)
 
   size_t bufSize = UDS_BLOCK_SIZE;
   size_t buflen = 4 * bufSize;
-  byte *bigbuf, *verbuf;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, byte, __func__, &bigbuf));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, byte, __func__, &verbuf));
+  u8 *bigbuf, *verbuf;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, u8, __func__, &bigbuf));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, u8, __func__, &verbuf));
 
   fillBufferFromSeed(0, bigbuf, buflen);
   UDS_ASSERT_SUCCESS(write_to_buffered_writer(writer, bigbuf, buflen));
@@ -118,7 +118,7 @@ static void largeWriteTest(void)
 /**********************************************************************/
 static void zeroTest(void)
 {
-  byte zeros[ZERO_LEN];
+  u8 zeros[ZERO_LEN];
   memset(zeros, 0, ZERO_LEN);
   struct io_factory *factory;
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
@@ -145,8 +145,8 @@ static void zeroTest(void)
 static void verifyTest(void)
 {
   int i;
-  static const byte X1[] = "xxxxxx1";
-  static const byte X2[] = "xxxxxx2";
+  static const u8 X1[] = "xxxxxx1";
+  static const u8 X2[] = "xxxxxx2";
   enum { X1_LEN = sizeof(X1) - 1 };
   enum { X2_LEN = sizeof(X2) - 1 };
   enum { COUNT = UDS_BLOCK_SIZE / X1_LEN };

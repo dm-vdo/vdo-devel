@@ -129,7 +129,7 @@ int __must_check read_data_at_offset(int fd,
  * @return UDS_SUCCESS or an error code
  **/
 int __must_check read_and_verify(int fd,
-				 const byte *required_value,
+				 const u8 *required_value,
 				 unsigned int length);
 #endif /* TEST_INTERNAL */
 

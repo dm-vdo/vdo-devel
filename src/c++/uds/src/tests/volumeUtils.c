@@ -19,13 +19,13 @@
  *
  * @return pointer to page array to store page data into
  */
-byte **makePageArray(unsigned int numPages, size_t pageSize)
+u8 **makePageArray(unsigned int numPages, size_t pageSize)
 {
-  byte **pages;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numPages, byte *, __func__, &pages));
+  u8 **pages;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numPages, u8 *, __func__, &pages));
   unsigned int i;
   for (i = 0; i < numPages; ++i) {
-    UDS_ASSERT_SUCCESS(UDS_ALLOCATE(pageSize, byte, __func__, &pages[i]));
+    UDS_ASSERT_SUCCESS(UDS_ALLOCATE(pageSize, u8, __func__, &pages[i]));
   }
   return pages;
 }
@@ -37,7 +37,7 @@ byte **makePageArray(unsigned int numPages, size_t pageSize)
  * @param numPages the number of pages in the array
  *
  */
-void freePageArray(byte **pages, unsigned int numPages)
+void freePageArray(u8 **pages, unsigned int numPages)
 {
   if (pages != NULL) {
     unsigned int i;
@@ -87,12 +87,12 @@ static void fillOpenChapter(struct open_chapter_index *oci,
  *                  the page data that is written to the disk
  */
 void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
-                            unsigned int chapter, byte **pages) {
+                            unsigned int chapter, u8 **pages) {
   struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
                                   struct uds_volume_record, __func__,
                                   &records));
-  get_random_bytes((byte *) records,
+  get_random_bytes((u8 *) records,
                    BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter
@@ -131,7 +131,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
  *                 the page data that is written to the disk
  */
 void writeTestVolumeData(struct volume *volume, struct geometry *geometry,
-                         byte **pages)
+                         u8 **pages)
 {
   unsigned int i;
   for (i = 0; i < geometry->chapters_per_volume; ++i) {

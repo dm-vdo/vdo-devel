@@ -56,7 +56,7 @@ static void deinit(void)
 /**********************************************************************/
 static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
 {
-  byte **pages
+  u8 **pages
     = makePageArray(geometry->pages_per_chapter, geometry->bytes_per_page);
   unsigned int physPage = 1 + (chapter * geometry->pages_per_chapter) + page;
 
@@ -69,7 +69,7 @@ static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
                          geometry->bytes_per_page);
   dm_bufio_release(volume_page);
 
-  byte *pageData;
+  u8 *pageData;
   // Make sure the page read is synchronous
   UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &pageData));
   UDS_ASSERT_EQUAL_BYTES(pageData, pages[page], geometry->bytes_per_page);
@@ -81,7 +81,7 @@ static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
 static void writeAndVerifyChapterIndex(unsigned int chapter)
 {
   unsigned int i;
-  byte **pages
+  u8 **pages
     = makePageArray(geometry->pages_per_chapter, geometry->bytes_per_page);
   writeTestVolumeChapter(volume, geometry, chapter, pages);
 
@@ -198,7 +198,7 @@ static void testWriteChapter(void)
   unsigned int j, page;
   for (page = 0; page < geometry->record_pages_per_chapter; ++page) {
     unsigned int pageNumber = page + geometry->index_pages_per_chapter;
-    byte *pageData;
+    u8 *pageData;
     // Make sure the page read is synchronous
     UDS_ASSERT_SUCCESS(get_volume_record_page(volume, physicalChapterNumber,
                                               pageNumber, &pageData));

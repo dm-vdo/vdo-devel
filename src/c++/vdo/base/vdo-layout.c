@@ -58,7 +58,7 @@ struct partition {
 struct layout_3_0 {
 	physical_block_number_t first_free;
 	physical_block_number_t last_free;
-	byte partition_count;
+	u8 partition_count;
 } __packed;
 
 struct partition_3_0 {
@@ -262,7 +262,7 @@ vdo_get_fixed_layout_blocks_available(const struct fixed_layout *layout)
  * Return: VDO_SUCCESS or an error.
  */
 static int allocate_partition(struct fixed_layout *layout,
-			      byte id,
+			      u8 id,
 			      physical_block_number_t offset,
 			      physical_block_number_t base,
 			      block_count_t block_count)
@@ -413,7 +413,7 @@ static int encode_partitions_3_0(const struct fixed_layout *layout,
 	     partition = partition->next) {
 		int result;
 
-		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(byte));
+		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
 		result = put_byte(buffer, partition->id);
 		if (result != UDS_SUCCESS)
 			return result;
@@ -520,7 +520,7 @@ static int decode_partitions_3_0(struct buffer *buffer,
 	size_t i;
 
 	for (i = 0; i < layout->num_partitions; i++) {
-		byte id;
+		u8 id;
 		u64 offset, base, count;
 		int result = get_byte(buffer, &id);
 
@@ -559,7 +559,7 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 {
 	size_t decoded_size, initial_length = content_length(buffer);
 	physical_block_number_t first_free, last_free;
-	byte partition_count;
+	u8 partition_count;
 
 	int result = get_u64_le_from_buffer(buffer, &first_free);
 

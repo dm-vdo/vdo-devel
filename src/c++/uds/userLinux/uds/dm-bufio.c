@@ -36,7 +36,7 @@ struct dm_buffer {
 	struct dm_bufio_client *client;
 	struct dm_buffer *next;
 	sector_t offset;
-	byte *data;
+	u8 *data;
 };
 
 struct dm_bufio_client *
@@ -110,7 +110,7 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 			return ERR_PTR(-ENOMEM);
 
 		result = UDS_ALLOCATE(client->bytes_per_page,
-				      byte,
+				      u8,
 				      __func__,
 				      &buffer->data);
 		if (result != UDS_SUCCESS) {
@@ -134,7 +134,7 @@ void *dm_bufio_read(struct dm_bufio_client *client,
 	int result;
 	size_t read_length = 0;
 	struct dm_buffer *buffer;
-	byte *data;
+	u8 *data;
 
 	data = dm_bufio_new(client, block, &buffer);
 	if (IS_ERR(data)) {

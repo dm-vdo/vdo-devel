@@ -100,7 +100,7 @@ static void bufferTest(void)
 
   UDS_ASSERT_SUCCESS(write_buffer(fd, BOSTON, strlen(BOSTON)));
   UDS_ASSERT_SYSTEM_CALL(lseek(fd, 0, SEEK_SET));
-  UDS_ASSERT_SUCCESS(read_and_verify(fd, (const byte *) BOSTON,
+  UDS_ASSERT_SUCCESS(read_and_verify(fd, (const u8 *) BOSTON,
                                      strlen(BOSTON)));
   UDS_ASSERT_SUCCESS(sync_and_close_file(fd, path));
 }
@@ -122,7 +122,7 @@ static void pipeBufferTest(void)
   }
 
   UDS_ASSERT_SYSTEM_CALL(close(wfd));
-  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const byte *) CROCODILE,
+  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const u8 *) CROCODILE,
                                      strlen(CROCODILE)));
   UDS_ASSERT_SYSTEM_CALL(close(rfd));
 
@@ -151,7 +151,7 @@ static void eintrBufferTest(void)
   }
 
   UDS_ASSERT_SYSTEM_CALL(close(wfd));
-  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const byte *) BOSTON,
+  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const u8 *) BOSTON,
                                      strlen(BOSTON)));
   UDS_ASSERT_SYSTEM_CALL(close(rfd));
 
@@ -185,7 +185,7 @@ static void shortBufferTest(void)
   }
 
   UDS_ASSERT_SYSTEM_CALL(close(wfd));
-  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const byte *) CROCODILE,
+  UDS_ASSERT_SUCCESS(read_and_verify(rfd, (const u8 *) CROCODILE,
                                      strlen(CROCODILE)));
   UDS_ASSERT_SYSTEM_CALL(close(rfd));
 
@@ -211,7 +211,7 @@ static void verifyTest(void)
 
   UDS_ASSERT_SYSTEM_CALL(close(wfd));
   UDS_ASSERT_ERROR(UDS_CORRUPT_DATA,
-                   read_and_verify(rfd, (const byte *) BOSTON,
+                   read_and_verify(rfd, (const u8 *) BOSTON,
                    strlen(BOSTON)));
   UDS_ASSERT_SYSTEM_CALL(close(rfd));
 

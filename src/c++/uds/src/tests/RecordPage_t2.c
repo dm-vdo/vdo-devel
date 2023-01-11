@@ -22,8 +22,8 @@ static void recordPageTest(int numRecords)
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
   struct geometry *g = conf->geometry;
 
-  byte *recordPage;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, byte, __func__, &recordPage));
+  u8 *recordPage;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, u8, __func__, &recordPage));
   const struct uds_volume_record **recordPointers;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
                                   const struct uds_volume_record *,
@@ -49,7 +49,7 @@ static void recordPageTest(int numRecords)
 
   int repetition;
   for (repetition = 0; repetition < REPETITIONS; repetition++) {
-    get_random_bytes((byte *) records, bytesPerPage);
+    get_random_bytes((u8 *) records, bytesPerPage);
     ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
     UDS_ASSERT_SUCCESS(encode_record_page(volume, records, recordPage));
     encodeTime += ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);

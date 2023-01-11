@@ -217,8 +217,8 @@ static void modifyOpenChapter(off_t offset, const char *data)
   UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   free_buffered_writer(writer);
 
-  byte *block;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(UDS_BLOCK_SIZE, byte, __func__, &block));
+  u8 *block;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(UDS_BLOCK_SIZE, u8, __func__, &block));
   struct buffered_reader *reader = openBufferedReaderForChapter();
   UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, block, UDS_BLOCK_SIZE));
   free_buffered_reader(reader);

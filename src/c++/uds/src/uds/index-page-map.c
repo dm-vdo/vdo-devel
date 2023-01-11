@@ -23,7 +23,7 @@
  * recorded, as it is known from the geometry.
  */
 
-static const byte PAGE_MAP_MAGIC[] = "ALBIPM02";
+static const u8 PAGE_MAP_MAGIC[] = "ALBIPM02";
 
 enum {
 	PAGE_MAP_MAGIC_LENGTH = sizeof(PAGE_MAP_MAGIC) - 1,
@@ -160,7 +160,7 @@ int read_index_page_map(struct index_page_map *map, struct buffered_reader *read
 {
 	int result;
 	struct buffer *buffer;
-	byte magic[PAGE_MAP_MAGIC_LENGTH];
+	u8 magic[PAGE_MAP_MAGIC_LENGTH];
 
 	result = make_buffer(compute_index_page_map_save_size(map->geometry), &buffer);
 	if (result != UDS_SUCCESS)

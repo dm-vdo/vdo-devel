@@ -39,8 +39,8 @@ struct buffered_reader {
 	struct dm_buffer *buffer;
 	sector_t limit;
 	sector_t block_number;
-	byte *start;
-	byte *end;
+	u8 *start;
+	u8 *end;
 };
 
 enum { MAX_READ_AHEAD_BLOCKS = 4 };
@@ -55,8 +55,8 @@ struct buffered_writer {
 	struct dm_buffer *buffer;
 	sector_t limit;
 	sector_t block_number;
-	byte *start;
-	byte *end;
+	u8 *start;
+	u8 *end;
 	int error;
 };
 
@@ -270,7 +270,7 @@ static int reset_reader(struct buffered_reader *reader)
 	return position_reader(reader, block_number, 0);
 }
 
-int read_from_buffered_reader(struct buffered_reader *reader, byte *data, size_t length)
+int read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -294,7 +294,7 @@ int read_from_buffered_reader(struct buffered_reader *reader, byte *data, size_t
  * Verify that the next data on the reader matches the required value. If the value matches, the
  * matching contents are consumed. If the value does not match, the reader state is unchanged.
  */
-int verify_buffered_data(struct buffered_reader *reader, const byte *value, size_t length)
+int verify_buffered_data(struct buffered_reader *reader, const u8 *value, size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -440,7 +440,7 @@ void free_buffered_writer(struct buffered_writer *writer)
  * Append data to the buffer, writing as needed. If no data is provided, zeros are written instead.
  * If a write error occurs, it is recorded and returned on every subsequent write attempt.
  */
-int write_to_buffered_writer(struct buffered_writer *writer, const byte *data, size_t length)
+int write_to_buffered_writer(struct buffered_writer *writer, const u8 *data, size_t length)
 {
 	int result = writer->error;
 	size_t chunk_size;

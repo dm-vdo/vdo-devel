@@ -21,7 +21,7 @@
  *
  * Return: UDS_SUCCESS or an error code
  */
-int wrap_buffer(byte *bytes, size_t length, size_t content_length, struct buffer **buffer_ptr)
+int wrap_buffer(u8 *bytes, size_t length, size_t content_length, struct buffer **buffer_ptr)
 {
 	int result;
 	struct buffer *buffer;
@@ -56,10 +56,10 @@ int wrap_buffer(byte *bytes, size_t length, size_t content_length, struct buffer
 int make_buffer(size_t size, struct buffer **new_buffer)
 {
 	int result;
-	byte *data;
+	u8 *data;
 	struct buffer *buffer;
 
-	result = UDS_ALLOCATE(size, byte, "buffer data", &data);
+	result = UDS_ALLOCATE(size, u8, "buffer data", &data);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -185,7 +185,7 @@ int rewind_buffer(struct buffer *buffer, size_t bytes_to_rewind)
 }
 
 /* Check whether the start of the contents of a buffer matches a specified array of bytes. */
-bool has_same_bytes(struct buffer *buffer, const byte *data, size_t length)
+bool has_same_bytes(struct buffer *buffer, const u8 *data, size_t length)
 {
 	return (content_length(buffer) >= length) &&
 	       (memcmp(buffer->data + buffer->start, data, length) == 0);
@@ -197,18 +197,18 @@ bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2)
 	return has_same_bytes(buffer1, buffer2->data + buffer2->start, content_length(buffer2));
 }
 
-int get_byte(struct buffer *buffer, byte *byte_ptr)
+int get_byte(struct buffer *buffer, u8 *byte_ptr)
 {
-	if (content_length(buffer) < sizeof(byte))
+	if (content_length(buffer) < sizeof(u8))
 		return UDS_BUFFER_ERROR;
 
 	*byte_ptr = buffer->data[buffer->start++];
 	return UDS_SUCCESS;
 }
 
-int put_byte(struct buffer *buffer, byte b)
+int put_byte(struct buffer *buffer, u8 b)
 {
-	if (!ensure_available_space(buffer, sizeof(byte)))
+	if (!ensure_available_space(buffer, sizeof(u8)))
 		return UDS_BUFFER_ERROR;
 
 	buffer->data[buffer->end++] = b;
@@ -230,7 +230,7 @@ int get_bytes_from_buffer(struct buffer *buffer, size_t length, void *destinatio
  * managed by the buffer. It is the caller's responsibility to ensure that the buffer is not
  * modified while this pointer is in use.
  */
-byte *get_buffer_contents(struct buffer *buffer)
+u8 *get_buffer_contents(struct buffer *buffer)
 {
 	return buffer->data + buffer->start;
 }
@@ -239,12 +239,12 @@ byte *get_buffer_contents(struct buffer *buffer)
  * Copy bytes out of a buffer as per get_bytes_from_buffer(). Memory will be allocated to hold the
  * copy.
  */
-int copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr)
+int copy_bytes(struct buffer *buffer, size_t length, u8 **destination_ptr)
 {
 	int result;
-	byte *destination;
+	u8 *destination;
 
-	result = UDS_ALLOCATE(length, byte, __func__, &destination);
+	result = UDS_ALLOCATE(length, u8, __func__, &destination);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -301,7 +301,7 @@ int zero_bytes(struct buffer *buffer, size_t length)
 int get_boolean(struct buffer *buffer, bool *b)
 {
 	int result;
-	byte value;
+	u8 value;
 
 	result = get_byte(buffer, &value);
 	if (result == UDS_SUCCESS)
@@ -312,7 +312,7 @@ int get_boolean(struct buffer *buffer, bool *b)
 
 int put_boolean(struct buffer *buffer, bool b)
 {
-	return put_byte(buffer, (byte) (b ? 1 : 0));
+	return put_byte(buffer, (u8) (b ? 1 : 0));
 }
 
 int get_u16_le_from_buffer(struct buffer *buffer, u16 *ui)

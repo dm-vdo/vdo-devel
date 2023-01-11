@@ -93,7 +93,7 @@ struct full_slab_journal_entries {
 	/* The entries themselves */
 	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
 	/* The bit map indicating which entries are block map increments */
-	byte entry_types[VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE];
+	u8 entry_types[VDO_SLAB_JOURNAL_ENTRY_TYPES_SIZE];
 } __packed;
 
 typedef union {
@@ -102,7 +102,7 @@ typedef union {
 	/* Entries which are only data updates */
 	packed_slab_journal_entry entries[VDO_SLAB_JOURNAL_ENTRIES_PER_BLOCK];
 	/* Ensure the payload fills to the end of the block */
-	byte space[VDO_SLAB_JOURNAL_PAYLOAD_SIZE];
+	u8 space[VDO_SLAB_JOURNAL_PAYLOAD_SIZE];
 } __packed slab_journal_payload;
 
 struct packed_slab_journal_block {

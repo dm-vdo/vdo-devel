@@ -132,7 +132,7 @@ void try_sync_and_close_file(int fd)
 /**********************************************************************/
 int read_buffer(int fd, void *buffer, unsigned int length)
 {
-	byte *ptr = buffer;
+	u8 *ptr = buffer;
 	size_t bytes_to_read = length;
 
 	while (bytes_to_read > 0) {
@@ -160,7 +160,7 @@ int read_data_at_offset(int fd,
 			size_t size,
 			size_t *length)
 {
-	byte *ptr = buffer;
+	u8 *ptr = buffer;
 	size_t bytes_to_read = size;
 	off_t current_offset = offset;
 
@@ -182,15 +182,15 @@ int read_data_at_offset(int fd,
 		current_offset += bytes_read;
 	}
 
-	*length = ptr - (byte *) buffer;
+	*length = ptr - (u8 *) buffer;
 	return UDS_SUCCESS;
 }
 
 #ifdef TEST_INTERNAL
 /**********************************************************************/
-int read_and_verify(int fd, const byte *required_value, unsigned int length)
+int read_and_verify(int fd, const u8 *required_value, unsigned int length)
 {
-	byte buffer[length];
+	u8 buffer[length];
 	int result = read_buffer(fd, buffer, length);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -206,7 +206,7 @@ int read_and_verify(int fd, const byte *required_value, unsigned int length)
 int write_buffer(int fd, const void *buffer, unsigned int length)
 {
 	size_t bytes_to_write = length;
-	const byte *ptr = buffer;
+	const u8 *ptr = buffer;
 	while (bytes_to_write > 0) {
 		ssize_t written;
 		int result = logging_write(fd, ptr, bytes_to_write, __func__,
@@ -232,7 +232,7 @@ int write_buffer_at_offset(int fd,
 			   size_t length)
 {
 	size_t bytes_to_write = length;
-	const byte *ptr = buffer;
+	const u8 *ptr = buffer;
 	off_t current_offset = offset;
 
 	while (bytes_to_write > 0) {

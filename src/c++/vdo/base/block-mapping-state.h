@@ -27,12 +27,12 @@ enum {
 		(VDO_MAPPING_STATE_COMPRESSED_MAX - VDO_MAPPING_STATE_COMPRESSED_BASE + 1),
 };
 
-static inline enum block_mapping_state vdo_get_state_for_slot(byte slot_number)
+static inline enum block_mapping_state vdo_get_state_for_slot(u8 slot_number)
 {
 	return (slot_number + VDO_MAPPING_STATE_COMPRESSED_BASE);
 }
 
-static inline byte vdo_get_slot_from_state(enum block_mapping_state mapping_state)
+static inline u8 vdo_get_slot_from_state(enum block_mapping_state mapping_state)
 {
 	return (mapping_state - VDO_MAPPING_STATE_COMPRESSED_BASE);
 }

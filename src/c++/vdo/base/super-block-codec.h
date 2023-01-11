@@ -21,7 +21,7 @@ struct super_block_codec {
 	 */
 	struct buffer *block_buffer;
 	/* A 1-block buffer holding the encoded on-disk super block */
-	byte *encoded_super_block;
+	u8 *encoded_super_block;
 };
 
 int __must_check vdo_initialize_super_block_codec(struct super_block_codec *codec);

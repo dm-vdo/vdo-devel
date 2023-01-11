@@ -204,13 +204,13 @@ struct data_vio {
 	struct reference_operation operation;
 
 	/* data_vio flags */
-	byte read : 1;
-	byte write : 1;
-	byte fua : 1;
-	byte is_zero : 1;
-	byte is_trim : 1;
-	byte is_partial : 1;
-	byte is_duplicate : 1;
+	u8 read : 1;
+	u8 write : 1;
+	u8 fua : 1;
+	u8 is_zero : 1;
+	u8 is_trim : 1;
+	u8 is_partial : 1;
+	u8 is_duplicate : 1;
 
 	/* Data block allocation */
 	struct allocation allocation;

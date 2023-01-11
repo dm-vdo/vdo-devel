@@ -36,7 +36,7 @@ static int __must_check move_chapter(struct volume *volume,
 	struct geometry *geometry = volume->geometry;
 	struct dm_bufio_client *client;
 	struct dm_buffer *buffer;
-	byte *data;
+	u8 *data;
 	int result = UDS_SUCCESS;
 	unsigned int page;
 

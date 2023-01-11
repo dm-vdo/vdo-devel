@@ -24,14 +24,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
-#endif /* !__KERNEL__ */
 
-/*
- * REMOVE: u8 resolves to unsigned char.  Changes to adhere to kernel types should convert
- *         to u8.  Remove this typedef when the conversion is complete.
- */
-typedef u8 byte;
-#ifndef __KERNEL__
 #define sector_t u64
 
 #define U8_MAX  ((u8)~0ul)

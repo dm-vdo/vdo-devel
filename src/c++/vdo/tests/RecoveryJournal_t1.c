@@ -99,7 +99,7 @@ enum fakeErrorCodes {
  * setupEncodeDecodeTest(false). This is used to check that the encoding
  * format hasn't changed and is platform-independent.
  */
-static byte EXPECTED_STATE_7_0_ENCODING[] =
+static u8 EXPECTED_STATE_7_0_ENCODING[] =
   {
     0x02, 0x00, 0x00, 0x00,                         // id: VDO_RECOVERY_JOURNAL
     0x07, 0x00, 0x00, 0x00,                         // majorVersion: 7
@@ -115,7 +115,7 @@ static byte EXPECTED_STATE_7_0_ENCODING[] =
  * testBlockHeaderPacking(). This is used to check that the encoding is
  * platform-independent.
  */
-static byte EXPECTED_BLOCK_HEADER_ENCODING[] =
+static u8 EXPECTED_BLOCK_HEADER_ENCODING[] =
   {
     0x8a, 0x7a, 0x6a, 0x5a, 0x4a, 0x3a, 0x2a, 0x1a, // block_map_head
     0x8b, 0x7b, 0x6b, 0x5b, 0x4b, 0x3b, 0x2b, 0x1b, // slab_journal_head
@@ -369,7 +369,7 @@ static void testEncodeDecode(void)
  * @param expected  The expected raw encoding of the packed entry
  **/
 static void checkEntryPacking(const struct recovery_journal_entry *entry,
-                              const byte                           expected[])
+                              const u8                             expected[])
 {
   STATIC_ASSERT_SIZEOF(struct packed_recovery_journal_entry, 11);
   struct packed_recovery_journal_entry packed
@@ -393,7 +393,7 @@ static void checkEntryPacking(const struct recovery_journal_entry *entry,
                   vdo_unpack_block_map_entry(&packed.block_map_entry).pbn);
 
   // Check that packing generates the specified encoding.
-  UDS_ASSERT_EQUAL_BYTES(expected, (byte *) &packed, sizeof(packed));
+  UDS_ASSERT_EQUAL_BYTES(expected, (u8 *) &packed, sizeof(packed));
 }
 
 /**
@@ -402,7 +402,7 @@ static void checkEntryPacking(const struct recovery_journal_entry *entry,
  **/
 static void testEntryPacking(void)
 {
-  byte expected[sizeof(struct packed_recovery_journal_entry)];
+  u8 expected[sizeof(struct packed_recovery_journal_entry)];
   memset(expected, 0, sizeof(expected));
   struct recovery_journal_entry entry;
 
@@ -432,7 +432,7 @@ static void testEntryPacking(void)
   entry = (struct recovery_journal_entry) {
     .slot = { .pbn = MAXIMUM_VDO_PHYSICAL_BLOCKS - 1 }
   };
-  byte highNibble = (entry.slot.pbn >> 32);
+  u8 highNibble = (entry.slot.pbn >> 32);
   expected[1] = (highNibble << 4);
   put_unaligned_le32(entry.slot.pbn & 0xFFFFFFFF, &expected[2]);
   checkEntryPacking(&entry, expected);
@@ -451,9 +451,9 @@ static void testEntryPacking(void)
   // The block map entry encoding is tested for correctness elsewhere,
   // so just spot-check that it's used with a random encoding.
   struct packed_recovery_journal_entry packed;
-  get_random_bytes((byte *) &packed, sizeof(packed));
+  get_random_bytes((u8 *) &packed, sizeof(packed));
   entry = vdo_unpack_recovery_journal_entry(&packed);
-  checkEntryPacking(&entry, (byte *) &packed);
+  checkEntryPacking(&entry, (u8 *) &packed);
 }
 
 /**

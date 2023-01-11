@@ -21,8 +21,8 @@
  * optimization opportunities with them, too.
  */
 
-static const byte buf[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-static byte output[16] __attribute__((aligned(16)));
+static const u8 buf[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+static u8 output[16] __attribute__((aligned(16)));
 
 static void getUInt64BETest(void)
 {

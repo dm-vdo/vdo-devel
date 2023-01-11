@@ -48,10 +48,10 @@ int __must_check make_buffered_reader(struct io_factory *factory,
 void free_buffered_reader(struct buffered_reader *reader);
 
 int __must_check
-read_from_buffered_reader(struct buffered_reader *reader, byte *data, size_t length);
+read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size_t length);
 
 int __must_check
-verify_buffered_data(struct buffered_reader *reader, const byte *value, size_t length);
+verify_buffered_data(struct buffered_reader *reader, const u8 *value, size_t length);
 
 int __must_check make_buffered_writer(struct io_factory *factory,
 				      off_t offset,
@@ -61,7 +61,7 @@ int __must_check make_buffered_writer(struct io_factory *factory,
 void free_buffered_writer(struct buffered_writer *buffer);
 
 int __must_check
-write_to_buffered_writer(struct buffered_writer *writer, const byte *data, size_t length);
+write_to_buffered_writer(struct buffered_writer *writer, const u8 *data, size_t length);
 
 int __must_check flush_buffered_writer(struct buffered_writer *writer);
 

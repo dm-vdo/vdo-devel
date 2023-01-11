@@ -216,7 +216,7 @@ static void slide_file(off_t bytes)
   off_t file_size;
   size_t length;
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(BUFFER_SIZE, byte, "buffer", &buf));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(BUFFER_SIZE, u8, "buffer", &buf));
   UDS_ASSERT_SUCCESS(open_file(indexName, FU_READ_WRITE, &fd));
 
   UDS_ASSERT_SUCCESS(get_open_file_size(fd, &file_size));

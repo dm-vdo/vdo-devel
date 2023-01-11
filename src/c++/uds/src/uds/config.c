@@ -11,9 +11,9 @@
 #include "string-utils.h"
 #include "uds-threads.h"
 
-static const byte INDEX_CONFIG_MAGIC[] = "ALBIC";
-static const byte INDEX_CONFIG_VERSION_6_02[] = "06.02";
-static const byte INDEX_CONFIG_VERSION_8_02[] = "08.02";
+static const u8 INDEX_CONFIG_MAGIC[] = "ALBIC";
+static const u8 INDEX_CONFIG_VERSION_6_02[] = "06.02";
+static const u8 INDEX_CONFIG_VERSION_8_02[] = "08.02";
 
 enum {
 	DEFAULT_VOLUME_READ_THREADS = 2,
@@ -133,14 +133,14 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 	return result;
 }
 
-static bool is_version(const byte *version, byte *buffer)
+static bool is_version(const u8 *version, u8 *buffer)
 {
 	return memcmp(version, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0;
 }
 
 static int read_version(struct buffered_reader *reader, struct uds_configuration_8_02 *conf)
 {
-	byte version_buffer[INDEX_CONFIG_VERSION_LENGTH];
+	u8 version_buffer[INDEX_CONFIG_VERSION_LENGTH];
 	struct buffer *buffer;
 	int result;
 

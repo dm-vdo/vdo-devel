@@ -633,7 +633,7 @@ static inline struct queued_read *wait_to_reserve_read_queue_entry(struct volume
 }
 
 static int init_chapter_index_page(const struct volume *volume,
-				   byte *index_page,
+				   u8 *index_page,
 				   unsigned int chapter,
 				   unsigned int index_page_number,
 				   struct delta_index_page *chapter_index_page)
@@ -698,7 +698,7 @@ static int initialize_index_page(const struct volume *volume,
 				       &page->cp_index_page);
 }
 
-EXTERNAL_STATIC bool search_record_page(const byte record_page[],
+EXTERNAL_STATIC bool search_record_page(const u8 record_page[],
 					const struct uds_record_name *name,
 					const struct geometry *geometry,
 					struct uds_record_data *metadata)
@@ -778,7 +778,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 	unsigned int page_number = entry->physical_page;
 	struct uds_request *request;
 	struct cached_page *page = NULL;
-	byte *page_data;
+	u8 *page_data;
 	int result;
 
 	if (entry->invalid) {
@@ -892,7 +892,7 @@ static int read_page_locked(struct volume *volume,
 {
 	int result = UDS_SUCCESS;
 	struct cached_page *page = NULL;
-	byte *page_data;
+	u8 *page_data;
 
 	if ((request != NULL) && (request->session != NULL))
 		return enqueue_page_read(volume, request, physical_page);
@@ -1034,7 +1034,7 @@ static int get_volume_page(struct volume *volume,
 int get_volume_record_page(struct volume *volume,
 			   unsigned int chapter,
 			   unsigned int page_number,
-			   byte **data_ptr)
+			   u8 **data_ptr)
 {
 	int result;
 	struct cached_page *page = NULL;
@@ -1175,7 +1175,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 
 	dm_bufio_prefetch(volume->client, physical_page, geometry->index_pages_per_chapter);
 	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
-		byte *index_page;
+		u8 *index_page;
 
 		index_page = dm_bufio_read(volume->client, physical_page + i, &volume_buffers[i]);
 		if (IS_ERR(index_page)) {
@@ -1291,7 +1291,7 @@ static int donate_index_page_locked(struct volume *volume,
 int write_index_pages(struct volume *volume,
 		      int physical_page,
 		      struct open_chapter_index *chapter_index,
-		      byte **pages)
+		      u8 **pages)
 {
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
@@ -1303,7 +1303,7 @@ int write_index_pages(struct volume *volume,
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
-		byte *page_data;
+		u8 *page_data;
 		unsigned int lists_packed;
 		bool last_page;
 		int result;
@@ -1367,7 +1367,7 @@ int write_index_pages(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
-static unsigned int encode_tree(byte record_page[],
+static unsigned int encode_tree(u8 record_page[],
 				const struct uds_volume_record *sorted_pointers[],
 				unsigned int next_record,
 				unsigned int node,
@@ -1402,7 +1402,7 @@ static unsigned int encode_tree(byte record_page[],
 
 EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 				       const struct uds_volume_record records[],
-				       byte record_page[])
+				       u8 record_page[])
 {
 	int result;
 	unsigned int i;
@@ -1418,7 +1418,7 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 	 */
 	STATIC_ASSERT(offsetof(struct uds_volume_record, name) == 0);
 	result = radix_sort(volume->radix_sorter,
-			    (const byte **) record_pointers,
+			    (const u8 **) record_pointers,
 			    records_per_page,
 			    UDS_RECORD_NAME_SIZE);
 	if (result != UDS_SUCCESS)
@@ -1431,7 +1431,7 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 int write_record_pages(struct volume *volume,
 		       int physical_page,
 		       const struct uds_volume_record *records,
-		       byte **pages)
+		       u8 **pages)
 {
 	unsigned int record_page_number;
 	struct geometry *geometry = volume->geometry;
@@ -1444,7 +1444,7 @@ int write_record_pages(struct volume *volume,
 	for (record_page_number = 0;
 	     record_page_number < geometry->record_pages_per_chapter;
 	     record_page_number++) {
-		byte *page_data;
+		u8 *page_data;
 		int result;
 
 		page_data = dm_bufio_new(volume->client,

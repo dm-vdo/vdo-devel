@@ -42,7 +42,7 @@ enum {
  * @param size    The expected size
  **/
 static void assertPartitionState(struct fixed_layout *layout,
-                                 byte                 id,
+                                 u8                   id,
                                  block_count_t        base,
                                  block_count_t        offset,
                                  block_count_t        size)

@@ -215,7 +215,7 @@ static inline void smp_mb__after_atomic(void)
 static inline void read_once_size(const volatile void *p, void *res, int size)
 {
   switch (size) {
-  case 1: *(byte *)res     = *(const volatile byte *)p;     break;
+  case 1: *(u8 *)res       = *(const volatile u8 *)p;       break;
   case 2: *(uint16_t *)res = *(const volatile uint16_t *)p; break;
   case 4: *(uint32_t *)res = *(const volatile uint32_t *)p; break;
   case 8: *(uint64_t *)res = *(const volatile uint64_t *)p; break;
@@ -236,7 +236,7 @@ static inline void read_once_size(const volatile void *p, void *res, int size)
 static inline void write_once_size(volatile void *p, void *res, int size)
 {
   switch (size) {
-  case 1: *(volatile byte *)p     = *(byte *)res;     break;
+  case 1: *(volatile u8 *)p       = *(u8 *)res;       break;
   case 2: *(volatile uint16_t *)p = *(uint16_t *)res; break;
   case 4: *(volatile uint32_t *)p = *(uint32_t *)res; break;
   case 8: *(volatile uint64_t *)p = *(uint64_t *)res; break;

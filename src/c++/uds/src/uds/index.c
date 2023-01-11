@@ -1046,7 +1046,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 					      physical_chapter);
 
 	for (i = 0; i < geometry->record_pages_per_chapter; i++) {
-		byte *record_page;
+		u8 *record_page;
 		unsigned int record_page_number;
 
 		record_page_number = geometry->index_pages_per_chapter + i;
@@ -1060,7 +1060,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 						      record_page_number);
 
 		for (j = 0; j < geometry->records_per_page; j++) {
-			const byte *name_bytes;
+			const u8 *name_bytes;
 			struct uds_record_name name;
 
 			name_bytes = record_page + (j * BYTES_PER_RECORD);

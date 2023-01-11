@@ -32,7 +32,7 @@ static uuid_t  TEST_UUID = "fake\0uuid hares";
  * encodingTest_4_0(). This is used to check that the encoding format hasn't
  * changed and is platform-independent.
  */
-static byte EXPECTED_GEOMETRY_4_0_ENCODING[] =
+static u8 EXPECTED_GEOMETRY_4_0_ENCODING[] =
   {
     0x64, 0x6d, 0x76, 0x64, 0x6f, 0x30, 0x30, 0x31, // magic = "dmvdo001"
     0x05, 0x00, 0x00, 0x00,                         // header.id = GEOMETRY
@@ -61,7 +61,7 @@ static byte EXPECTED_GEOMETRY_4_0_ENCODING[] =
  * encodingTest_5_0(). This is used to check that the encoding format hasn't
  * changed and is platform-independent.
  */
-static byte EXPECTED_GEOMETRY_5_0_ENCODING[] =
+static u8 EXPECTED_GEOMETRY_5_0_ENCODING[] =
   {
     0x64, 0x6d, 0x76, 0x64, 0x6f, 0x30, 0x30, 0x31, // magic = "dmvdo001"
     0x05, 0x00, 0x00, 0x00,                         // header.id = GEOMETRY
@@ -194,7 +194,7 @@ static void basicTest(void)
 
   // Decode the GeometryBlock header.
   struct buffer *headerBuffer;
-  VDO_ASSERT_SUCCESS(wrap_buffer((byte *) geometryBlock + MAGIC_NUMBER_SIZE,
+  VDO_ASSERT_SUCCESS(wrap_buffer((u8 *) geometryBlock + MAGIC_NUMBER_SIZE,
                                  VDO_ENCODED_HEADER_SIZE,
                                  VDO_ENCODED_HEADER_SIZE,
                                  &headerBuffer));

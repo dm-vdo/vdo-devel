@@ -14,7 +14,7 @@ void get_random_bytes(void *buffer, size_t byte_count)
 	uint64_t rand_num = 0;
 	uint64_t rand_mask = 0;
 	const uint64_t multiplier = (uint64_t) RAND_MAX + 1;
-	byte *data = buffer;
+	u8 *data = buffer;
 	size_t i;
 
 	for (i = 0; i < byte_count; ++i) {

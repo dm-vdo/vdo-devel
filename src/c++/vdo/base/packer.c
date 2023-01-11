@@ -53,7 +53,7 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	u16 compressed_size;
 	u16 offset = 0;
 	unsigned int i;
-	byte slot;
+	u8 slot;
 	struct version_number version;
 
 	if (!vdo_is_state_compressed(mapping_state))

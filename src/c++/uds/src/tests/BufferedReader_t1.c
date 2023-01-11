@@ -14,13 +14,13 @@
 enum { DATA_BLOCKS = 8 };
 enum { DATA_SIZE   = DATA_BLOCKS * UDS_BLOCK_SIZE };
 
-static byte              *data;
+static u8                *data;
 static struct io_factory *factory;
 
 /**********************************************************************/
 static void createAndWriteData(void)
 {
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, byte, __func__, &data));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, u8, __func__, &data));
   get_random_bytes(data, DATA_SIZE);
 
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
@@ -42,8 +42,8 @@ static void createAndWriteData(void)
 static void verifyData(int count)
 {
   int offset;
-  byte *buf;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, byte, __func__, &buf));
+  u8 *buf;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, u8, __func__, &buf));
 
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, DATA_BLOCKS, &reader));

@@ -20,11 +20,11 @@ struct buffer {
 	size_t start;
 	size_t end;
 	size_t length;
-	byte *data;
+	u8 *data;
 	bool wrapped;
 };
 
-int __must_check wrap_buffer(byte *bytes,
+int __must_check wrap_buffer(u8 *bytes,
 			     size_t length,
 			     size_t content_length,
 			     struct buffer **buffer_ptr);
@@ -47,15 +47,15 @@ size_t buffer_used(struct buffer *buffer);
 
 int __must_check reset_buffer_end(struct buffer *buffer, size_t end);
 
-bool __must_check has_same_bytes(struct buffer *buffer, const byte *data, size_t length);
+bool __must_check has_same_bytes(struct buffer *buffer, const u8 *data, size_t length);
 bool equal_buffers(struct buffer *buffer1, struct buffer *buffer2);
 
-int __must_check get_byte(struct buffer *buffer, byte *byte_ptr);
-int __must_check put_byte(struct buffer *buffer, byte b);
+int __must_check get_byte(struct buffer *buffer, u8 *byte_ptr);
+int __must_check put_byte(struct buffer *buffer, u8 b);
 
 int __must_check get_bytes_from_buffer(struct buffer *buffer, size_t length, void *destination);
-byte *get_buffer_contents(struct buffer *buffer);
-int __must_check copy_bytes(struct buffer *buffer, size_t length, byte **destination_ptr);
+u8 *get_buffer_contents(struct buffer *buffer);
+int __must_check copy_bytes(struct buffer *buffer, size_t length, u8 **destination_ptr);
 int __must_check put_bytes(struct buffer *buffer, size_t length, const void *source);
 int __must_check put_buffer(struct buffer *target, struct buffer *source, size_t length);
 

@@ -24,7 +24,7 @@ static struct header HEADER = {
   .size    = DATA_SIZE,
 };
 
-static byte DATA[] = {
+static u8 DATA[] = {
   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
 };
 
@@ -99,7 +99,7 @@ static void testDataCoding(void)
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
 
-  byte data[DATA_SIZE];
+  u8 data[DATA_SIZE];
   VDO_ASSERT_SUCCESS(get_bytes_from_buffer(buffer, header.size, data));
   free_buffer(UDS_FORGET(buffer));
 
@@ -122,7 +122,7 @@ static void testDataCodingTooShort(void)
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
 
-  byte data[DATA_SIZE];
+  u8 data[DATA_SIZE];
   CU_ASSERT_EQUAL(UDS_BUFFER_ERROR,
                   get_bytes_from_buffer(buffer, header.size, data));
   CU_ASSERT_EQUAL(DATA_SIZE - 1, content_length(buffer));

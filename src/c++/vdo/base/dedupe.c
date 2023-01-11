@@ -1697,7 +1697,7 @@ static bool decode_uds_advice(struct dedupe_context *context)
 	const struct uds_record_data *encoding = &request->old_metadata;
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct zoned_pbn *advice = &data_vio->duplicate;
-	byte version;
+	u8 version;
 	int result;
 
 	if ((request->status != UDS_SUCCESS) || !request->found)

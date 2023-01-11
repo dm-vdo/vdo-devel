@@ -18,7 +18,7 @@ static const unsigned int NUM_PAYLOAD_BITS = 10;
 
 /* Read a bit field from an arbitrary bit boundary. */
 static inline unsigned int
-getField(const byte *memory, uint64_t offset, int size)
+getField(const u8 *memory, uint64_t offset, int size)
 {
 	const void *addr = memory + offset / BITS_PER_BYTE;
 
@@ -37,7 +37,7 @@ getField(const byte *memory, uint64_t offset, int size)
  *
  * @return true if fields are the same, false if different
  */
-static bool sameBits(const byte *mem1, uint64_t offset1, const byte *mem2,
+static bool sameBits(const u8 *mem1, uint64_t offset1, const u8 *mem2,
                      uint64_t offset2, int size)
 {
   unsigned int field1;
@@ -79,8 +79,8 @@ static void moveBitsTest(void)
   enum { MEM_SIZE = (NUM_LENGTHS + 6 * BITS_PER_BYTE - 1) / BITS_PER_BYTE };
   enum { MEM_BITS = MEM_SIZE * BITS_PER_BYTE };
   enum { POST_FIELD_GUARD_BYTES = sizeof(uint64_t) - 1 };
-  byte memory[MEM_SIZE + POST_FIELD_GUARD_BYTES];
-  byte data[MEM_SIZE + POST_FIELD_GUARD_BYTES];
+  u8 memory[MEM_SIZE + POST_FIELD_GUARD_BYTES];
+  u8 data[MEM_SIZE + POST_FIELD_GUARD_BYTES];
   memset(memory, 0, sizeof(memory));
 
   int offset1, offset2, size;

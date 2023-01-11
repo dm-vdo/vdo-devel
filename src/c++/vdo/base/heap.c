@@ -45,7 +45,7 @@ void initialize_heap(struct heap *heap,
 		 * Calculating child indexes is simplified by pretending the element array is
 		 * 1-based.
 		 */
-		heap->array = ((byte *) array - element_size);
+		heap->array = ((u8 *) array - element_size);
 }
 
 static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)

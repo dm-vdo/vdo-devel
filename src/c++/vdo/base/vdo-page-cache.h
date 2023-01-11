@@ -182,7 +182,7 @@ struct page_info {
 	/* LRU entry */
 	struct list_head lru_entry;
 	/* Space for per-page client data */
-	byte context[MAX_PAGE_CONTEXT_SIZE];
+	u8 context[MAX_PAGE_CONTEXT_SIZE];
 };
 
 int __must_check vdo_make_page_cache(struct vdo *vdo,

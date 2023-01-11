@@ -17,7 +17,7 @@
 static struct index_layout  *layout;
 static struct configuration *config;
 static struct geometry      *geometry;
-static byte                **pages;
+static u8                  **pages;
 static struct volume        *volume;
 
 /**********************************************************************/
@@ -54,8 +54,8 @@ static void deinit(void)
 static void verifyPage(unsigned int chapter, unsigned int page)
 {
   uint32_t physPage = chapter * geometry->pages_per_chapter + page;
-  const byte *expected = pages[physPage];
-  byte *actual;
+  const u8 *expected = pages[physPage];
+  u8 *actual;
   // Make sure the page read is synchronous
   UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &actual));
   UDS_ASSERT_EQUAL_BYTES(actual, expected, geometry->bytes_per_page);
@@ -102,7 +102,7 @@ static void testWriteChapter(void)
                                   struct uds_volume_record, __func__,
                                   &records));
 
-  get_random_bytes((byte *) records,
+  get_random_bytes((u8 *) records,
                    BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter

@@ -26,7 +26,7 @@ enum {
 
 static inline u64 extract_chapter_index_bytes(const struct  uds_record_name *name)
 {
-	const byte *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
+	const u8 *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
 	u64 bytes = (u64) get_unaligned_be16(chapter_bits) << 32;
 
 	bytes |= get_unaligned_be32(chapter_bits + 2);

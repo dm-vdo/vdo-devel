@@ -157,9 +157,9 @@ void set_request_restarter(request_restarter_t restarter);
 
 int encode_record_page(const struct volume *volume,
 		       const struct uds_volume_record records[],
-		       byte record_page[]);
+		       u8 record_page[]);
 
-bool search_record_page(const byte record_page[],
+bool search_record_page(const u8 record_page[],
 			const struct uds_record_name *name,
 			const struct geometry *geometry,
 			struct uds_record_data *metadata);
@@ -300,12 +300,12 @@ void forget_chapter(struct volume *volume, u64 chapter);
 int __must_check write_index_pages(struct volume *volume,
 				   int physical_page,
 				   struct open_chapter_index *chapter_index,
-				   byte **pages);
+				   u8 **pages);
 
 int __must_check write_record_pages(struct volume *volume,
 				    int physical_page,
 				    const struct uds_volume_record *records,
-				    byte **pages);
+				    u8 **pages);
 
 int __must_check write_chapter(struct volume *volume,
 			       struct open_chapter_index *chapter_index,
@@ -331,7 +331,7 @@ int __must_check get_volume_page_protected(struct volume *volume,
 int __must_check get_volume_record_page(struct volume *volume,
 					unsigned int chapter,
 					unsigned int page_number,
-					byte **data_ptr);
+					u8 **data_ptr);
 
 int __must_check get_volume_index_page(struct volume *volume,
 				       unsigned int chapter,

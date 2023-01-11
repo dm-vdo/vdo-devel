@@ -17,17 +17,17 @@ struct block_map_page_header {
 	__le64 pbn;
 
 	/** May be non-zero on disk */
-	byte unused_long_word[8];
+	u8 unused_long_word[8];
 
 	/* Whether this page has been written twice to disk */
 	bool initialized;
 
 	/* Always zero on disk */
-	byte unused_byte1;
+	u8 unused_byte1;
 
 	/* May be non-zero on disk */
-	byte unused_byte2;
-	byte unused_byte3;
+	u8 unused_byte2;
+	u8 unused_byte3;
 } __packed;
 
 struct block_map_page {

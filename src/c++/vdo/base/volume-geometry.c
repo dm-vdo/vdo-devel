@@ -64,7 +64,7 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 		sizeof(struct volume_geometry_4_0),
 };
 
-static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
+static const u8 MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
 static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 	VDO_MAGNESIUM_RELEASE_VERSION_NUMBER,
@@ -441,7 +441,7 @@ int vdo_load_volume_geometry(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = vdo_parse_geometry_block((byte *) block, geometry);
+	result = vdo_parse_geometry_block((u8 *) block, geometry);
 	UDS_FREE(block);
 	return result;
 }
@@ -584,7 +584,7 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = wrap_buffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
+	result = wrap_buffer((u8 *) block, VDO_BLOCK_SIZE, 0, &buffer);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(block);
 		return result;
@@ -598,7 +598,7 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	}
 
 	/* Checksum everything encoded so far and then encode the checksum. */
-	checksum = vdo_crc32((byte *) block, content_length(buffer));
+	checksum = vdo_crc32((u8 *) block, content_length(buffer));
 	result = put_u32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
 		free_buffer(UDS_FORGET(buffer));

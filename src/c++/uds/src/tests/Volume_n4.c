@@ -24,7 +24,7 @@ typedef struct readRequest {
 static struct configuration      *config;
 static struct geometry           *geometry;
 static struct index_layout       *layout;
-static byte                     **pages;
+static u8                       **pages;
 static struct volume             *volume;
 static struct uds_index_session  *session;
 static unsigned int               numRequestsQueued = 0;

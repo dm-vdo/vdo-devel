@@ -23,10 +23,10 @@
 static void unalignedTest(void)
 {
   enum { MEM_SIZE = sizeof(uint32_t) + L1_CACHE_BYTES};
-  byte memory[MEM_SIZE];
+  u8 memory[MEM_SIZE];
   int i;
   for (i = 0; i < MEM_SIZE; i++) {
-    memory[i] = (byte) i;
+    memory[i] = (u8) i;
   }
   for (i = 0; i + sizeof(uint32_t) < MEM_SIZE; i++) {
     uint32_t expect = (memory[i]

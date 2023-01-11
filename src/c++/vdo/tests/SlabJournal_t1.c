@@ -83,7 +83,7 @@ static const TestParameters TEST_PARAMETERS = {
  * testHeaderEncoding(). This is used to check that the encoding is
  * platform-independent.
  */
-static byte EXPECTED_BLOCK_HEADER_ENCODING[] =
+static u8 EXPECTED_BLOCK_HEADER_ENCODING[] =
   {
     0x8a, 0x7a, 0x6a, 0x5a, 0x4a, 0x3a, 0x2a, 0x1a, // head
     0x8b, 0x7b, 0x6b, 0x5b, 0x4b, 0x3b, 0x2b, 0x1b, // sequenceNumber
@@ -751,7 +751,7 @@ static void checkPacking(slab_block_number sbn, bool increment)
   vdo_pack_slab_journal_entry(&packed, sbn, increment);
   CU_ASSERT_EQUAL(increment, packed.increment);
 
-  byte *raw = (byte *) &packed;
+  u8 *raw = (u8 *) &packed;
   CU_ASSERT_EQUAL(raw[0], packed.offset_low8);
   CU_ASSERT_EQUAL(raw[1], packed.offset_mid8);
   CU_ASSERT_EQUAL(raw[2], (packed.offset_high7 | (increment ? 0x80 : 0)));
@@ -826,7 +826,7 @@ static void testBlockHeaderPacking(void)
 
   // Make sure the encoding is in little-endian and hasn't changed accidently.
   UDS_ASSERT_EQUAL_BYTES(EXPECTED_BLOCK_HEADER_ENCODING,
-                         (byte *) &packed, sizeof(packed));
+                         (u8 *) &packed, sizeof(packed));
 
   // Don't need this, but teardown will fail otherwise.
   defaultSlabJournalTestInitialization();

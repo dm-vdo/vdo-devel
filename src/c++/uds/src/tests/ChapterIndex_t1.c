@@ -69,14 +69,14 @@ struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static byte *packOpenChapter(struct open_chapter_index *oci,
-                             struct geometry *g, unsigned int numPages,
-                             bool lastPage)
+static u8 *packOpenChapter(struct open_chapter_index *oci,
+                           struct geometry *g, unsigned int numPages,
+                           bool lastPage)
 {
-  byte *indexPages;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numPages * g->bytes_per_page, byte,
+  u8 *indexPages;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numPages * g->bytes_per_page, u8,
                                   "memory pages", &indexPages));
-  byte *pageOffset = indexPages;
+  u8 *pageOffset = indexPages;
   unsigned int firstList = 0;
   unsigned int page;
   for (page = 0; page < numPages; page++) {
@@ -92,7 +92,7 @@ static byte *packOpenChapter(struct open_chapter_index *oci,
 
 /**********************************************************************/
 __attribute__((warn_unused_result)) static struct delta_index_page *
-setupChapterIndexPages(struct geometry *g, byte *indexPages,
+setupChapterIndexPages(struct geometry *g, u8 *indexPages,
                        unsigned int numPages)
 {
   struct delta_index_page *cip;
@@ -100,7 +100,7 @@ setupChapterIndexPages(struct geometry *g, byte *indexPages,
                                   "chapter index pages", &cip));
   unsigned int page;
   for (page = 0; page < numPages; page++) {
-    byte *indexPage = &indexPages[g->bytes_per_page * page];
+    u8 *indexPage = &indexPages[g->bytes_per_page * page];
     UDS_ASSERT_SUCCESS(initialize_chapter_index_page(&cip[page], g, indexPage,
                                                      volumeNonce));
   }
@@ -155,8 +155,7 @@ static void emptyChapterTest(void)
 
   // Pack the index pages - this will test pages with empty lists, and will
   // test pages that have no lists at all
-  byte *indexPages
-    = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
+  u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
   struct delta_index_page *cip
     = setupChapterIndexPages(g, indexPages, g->index_pages_per_chapter);
 
@@ -173,8 +172,7 @@ static void basicChapterTest(void)
   struct geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
-  byte *indexPages
-    = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
+  u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
   struct delta_index_page *cip
     = setupChapterIndexPages(g, indexPages, g->index_pages_per_chapter);
   unsigned int page;
@@ -225,8 +223,7 @@ static void listOverflowTest(void)
   }
 
   struct open_chapter_index *oci = fillOpenChapter(names, g, true);
-  byte *indexPages
-    = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
+  u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
   struct delta_index_page *cip
     = setupChapterIndexPages(g, indexPages, g->index_pages_per_chapter);
   unsigned int page;
@@ -251,7 +248,7 @@ static void pageOverflowTest(void)
 
   // Pack the entire open_chapter_index into a single page.  It won't fit, but
   // we want to handle this gracefully.
-  byte *indexPages = packOpenChapter(oci, g, 1, true);
+  u8 *indexPages = packOpenChapter(oci, g, 1, true);
   struct delta_index_page *cip = setupChapterIndexPages(g, indexPages, 1);
 
   verifyChapterIndexPage(oci, cip);
@@ -270,14 +267,13 @@ static void bigEndianTest(void)
   struct geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
-  byte *indexPages
-    = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
+  u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
 
   // Change the index pages to have headers written in big endian byte order.
   // This makes them like pages written on big endian hosts on RHEL8.0.
   unsigned int page;
   for (page = 0; page < g->index_pages_per_chapter; page++) {
-    byte *indexPage = &indexPages[g->bytes_per_page * page];
+    u8 *indexPage = &indexPages[g->bytes_per_page * page];
     swap_delta_index_page_endianness(indexPage);
   }
 

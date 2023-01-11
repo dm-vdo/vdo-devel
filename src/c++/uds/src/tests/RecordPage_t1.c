@@ -24,14 +24,14 @@ static void testSearchRecordPage(void)
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
   struct geometry *g = conf->geometry;
 
-  byte *recordPage;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, byte, __func__, &recordPage));
+  u8 *recordPage;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, u8, __func__, &recordPage));
   struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE((bytesPerPage /
                                    sizeof(struct uds_volume_record)),
                                   struct uds_volume_record, __func__,
                                   &records));
-  get_random_bytes((byte *) records, bytesPerPage);
+  get_random_bytes((u8 *) records, bytesPerPage);
 
   struct volume *volume;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));

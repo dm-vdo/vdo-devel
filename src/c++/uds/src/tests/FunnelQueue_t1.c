@@ -172,8 +172,8 @@ static void testTenProducers(void)
 
   // Allocate an array to keep track of how many entries of each value have
   // been seen.
-  byte *seen;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(ITERATIONS, byte, __func__, &seen));
+  u8 *seen;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(ITERATIONS, u8, __func__, &seen));
 
   // Consume all the entries, accounting for the values seen.
   for (i = 0; i < ITERATIONS * PRODUCER_COUNT; i++) {

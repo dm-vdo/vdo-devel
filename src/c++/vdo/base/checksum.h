@@ -15,7 +15,7 @@
  *
  * Return: The checksum.
  */
-static inline u32 vdo_crc32(const byte *buffer, size_t length)
+static inline u32 vdo_crc32(const u8 *buffer, size_t length)
 {
 	/*
 	 * Different from the kernelspace wrapper in vdo.h, because the kernel implementation

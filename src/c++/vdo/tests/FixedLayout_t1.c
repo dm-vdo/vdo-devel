@@ -33,7 +33,7 @@ static int            lastBuffer;
 
 // A captured encoding of the layout created in persistenceTest(), used to
 // check that the encoding format hasn't changed and is platform-independent.
-static byte EXPECTED_LAYOUT_3_0_ENCODING[] =
+static u8 EXPECTED_LAYOUT_3_0_ENCODING[] =
   {
     0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x75, 0x00, 0x00, 0x00,
@@ -100,7 +100,7 @@ static void tearDownLayoutTest(void)
 
 /**********************************************************************/
 static void makeAndRetrievePartition(struct fixed_layout       *layout,
-                                     byte                       id,
+                                     u8                         id,
                                      block_count_t              size,
                                      enum partition_direction   direction,
                                      physical_block_number_t    base,
@@ -242,7 +242,7 @@ static void basicTest(void)
 
 /**********************************************************************/
 static void checkPartition(struct fixed_layout     *layout,
-                           byte                     id,
+                           u8                       id,
                            physical_block_number_t  expectedOffset,
                            block_count_t            expectedSize,
                            physical_block_number_t  expectedBase)

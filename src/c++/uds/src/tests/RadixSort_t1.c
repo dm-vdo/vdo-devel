@@ -12,7 +12,7 @@
 #include "string-utils.h"
 
 /**********************************************************************/
-static void assertSorted(const byte *keys[], int count, int length)
+static void assertSorted(const u8 *keys[], int count, int length)
 {
   int i;
   for (i = 1; i < count; i++) {
@@ -21,7 +21,7 @@ static void assertSorted(const byte *keys[], int count, int length)
 }
 
 /**********************************************************************/
-static void assertOneToOne(const byte *a1[], const byte *a2[], int count)
+static void assertOneToOne(const u8 *a1[], const u8 *a2[], int count)
 {
   int i1, i2;
   for (i2 = 0; i2 < count; i2++) {
@@ -40,21 +40,21 @@ static void assertOneToOne(const byte *a1[], const byte *a2[], int count)
 }
 
 /**********************************************************************/
-static const byte **sortAndVerify(const byte *keys[], unsigned int count,
-                                  unsigned int length)
+static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
+                                unsigned int length)
 {
   // Make a copy of the keys we're going to sort.
-  byte *bytes;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count * sizeof(keys[0]), byte, "keys",
+  u8 *bytes;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count * sizeof(keys[0]), u8, "keys",
                                   &bytes));
   memcpy(bytes, keys, count * sizeof(keys[0]));
-  const byte **copy = (const byte **) bytes;
+  const u8 **copy = (const u8 **) bytes;
 
   // Sort and check that the keys are sorted.
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(count, &radixSorter));
-  UDS_ASSERT_SUCCESS(radix_sort(radixSorter, (const byte **) keys, count,
-                               length));
+  UDS_ASSERT_SUCCESS(radix_sort(radixSorter, (const u8 **) keys, count,
+                                length));
   free_radix_sorter(radixSorter);
   assertSorted(keys, count, length);
 
@@ -67,9 +67,9 @@ static const byte **sortAndVerify(const byte *keys[], unsigned int count,
 }
 
 /**********************************************************************/
-static void sort(const byte *keys[], unsigned int count, unsigned int length)
+static void sort(const u8 *keys[], unsigned int count, unsigned int length)
 {
-  const byte **copy = sortAndVerify(keys, count, length);
+  const u8 **copy = sortAndVerify(keys, count, length);
 
   // Sort the sorted copy.
   UDS_FREE(sortAndVerify(copy, count, length));
@@ -78,7 +78,7 @@ static void sort(const byte *keys[], unsigned int count, unsigned int length)
   // and copy are identical.
 
   // Make copy into a reverse of keys.
-  const byte **reversed = copy;
+  const u8 **reversed = copy;
   unsigned int i;
   for (i = 0; i < count; i++) {
     reversed[i] = keys[count - 1 - i];
@@ -90,29 +90,29 @@ static void sort(const byte *keys[], unsigned int count, unsigned int length)
 }
 
 /**********************************************************************/
-static const byte **makeKeys(unsigned int count)
+static const u8 **makeKeys(unsigned int count)
 {
-  const byte **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, const byte *, "split", &keys));
+  const u8 **keys;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, const u8 *, "split", &keys));
   CU_ASSERT_PTR_NOT_NULL(keys);
   return keys;
 }
 
 /**********************************************************************/
-static const byte **split(const char *strings, unsigned int count,
-                          unsigned int length)
+static const u8 **split(const char *strings, unsigned int count,
+                        unsigned int length)
 {
   CU_ASSERT_EQUAL(strlen(strings), count * length);
-  const byte **keys = makeKeys(count);
+  const u8 **keys = makeKeys(count);
   unsigned int i;
   for (i = 0; i < count; i++) {
-    keys[i] = (const byte *) &strings[i * length];
+    keys[i] = (const u8 *) &strings[i * length];
   }
   return keys;
 }
 
 /**********************************************************************/
-static char *join(const byte **keys, int count, int length)
+static char *join(const u8 **keys, int count, int length)
 {
   char *strings;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count * length + 1, char, "join", &strings));
@@ -124,7 +124,7 @@ static char *join(const byte **keys, int count, int length)
 }
 
 /**********************************************************************/
-static void assertJoined(const char *strings, const byte **keys,
+static void assertJoined(const char *strings, const u8 **keys,
                          unsigned int count, unsigned int length)
 {
   char *joined = join(keys, count, length);
@@ -135,15 +135,15 @@ static void assertJoined(const char *strings, const byte **keys,
 /**********************************************************************/
 static void testEmpty(void)
 {
-  const byte *keys[] = { NULL };
+  const u8 *keys[] = { NULL };
   sort(keys, 0, UDS_RECORD_NAME_SIZE);
 }
 
 /**********************************************************************/
 static void testSingleton(void)
 {
-  const byte name[3] = "foo";
-  const byte *keys[1] = { name };
+  const u8 name[3] = "foo";
+  const u8 *keys[1] = { name };
   sort(keys, 0, UDS_RECORD_NAME_SIZE);
   CU_ASSERT_PTR_EQUAL(name, keys[0]);
 }
@@ -151,11 +151,11 @@ static void testSingleton(void)
 /**********************************************************************/
 static void testIdentical(void)
 {
-  const byte bart[] = "Science class should not end in tragedy";
+  const u8 bart[] = "Science class should not end in tragedy";
   const int length = sizeof(bart);
   const int count = 1000;
 
-  const byte **keys = makeKeys(count);
+  const u8 **keys = makeKeys(count);
   int i;
   for (i = 0; i < count; i++) {
     keys[i] = bart;
@@ -171,7 +171,7 @@ static void test(const char *strings, unsigned int length,
 {
   unsigned int count = strlen(strings) / length;
 
-  const byte **keys = split(strings, count, length);
+  const u8 **keys = split(strings, count, length);
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(count, &radixSorter));
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, keys, count, length));
@@ -204,7 +204,7 @@ static void testPairs(void)
 /**********************************************************************/
 static void testZeroLength(void)
 {
-  const byte **reversed = split("ZZXX", 2, 2);
+  const u8 **reversed = split("ZZXX", 2, 2);
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(2, &radixSorter));
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, reversed, 2, 0));
@@ -216,7 +216,7 @@ static void testZeroLength(void)
 /**********************************************************************/
 static void testZeroCount(void)
 {
-  const byte **reversed = split("ZZXX", 2, 2);
+  const u8 **reversed = split("ZZXX", 2, 2);
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(2, &radixSorter));
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, reversed, 0, 2));
@@ -239,20 +239,20 @@ static void testSize(int size)
 {
   unsigned short *data;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, unsigned short, __func__, &data));
-  const byte **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, const byte *, __func__, &keys));
+  const u8 **keys;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(size, &radixSorter));
   int i;
   for (i = 0; i < size; i++) {
     data[i] = i;
-    keys[i] = (byte *) &data[i];
+    keys[i] = (u8 *) &data[i];
   }
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, keys, size, sizeof(data[0])));
   assertSorted(keys, size, sizeof(data[0]));
   for (i = 0; i < size; i++) {
     data[i] = size - i - 1;
-    keys[i] = (byte *) &data[i];
+    keys[i] = (u8 *) &data[i];
   }
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, keys, size, sizeof(data[0])));
   assertSorted(keys, size, sizeof(data[0]));
@@ -273,13 +273,13 @@ static void testRandom(void)
   enum { SIZE = 0x10000 };
   unsigned long *data;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, unsigned long, __func__, &data));
-  const byte **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, const byte *, __func__, &keys));
+  const u8 **keys;
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(make_radix_sorter(SIZE, &radixSorter));
   int i;
   for (i = 0; i < SIZE; i++) {
-    keys[i] = (byte *) &data[i];
+    keys[i] = (u8 *) &data[i];
   }
   get_random_bytes(data, SIZE * sizeof(data[0]));
   UDS_ASSERT_SUCCESS(radix_sort(radixSorter, keys, SIZE, sizeof(data[0])));

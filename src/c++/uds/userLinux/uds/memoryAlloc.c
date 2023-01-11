@@ -130,9 +130,9 @@ int uds_duplicate_string(const char *string,
 			 char **new_string)
 {
 	int result;
-	byte *dup = NULL;
+	u8 *dup = NULL;
 
-	result = UDS_ALLOCATE(strlen(string) + 1, byte, what, &dup);
+	result = UDS_ALLOCATE(strlen(string) + 1, u8, what, &dup);
 	if (result != UDS_SUCCESS)
 		return result;
 

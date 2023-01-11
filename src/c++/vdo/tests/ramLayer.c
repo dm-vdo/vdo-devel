@@ -29,7 +29,7 @@ enum {
 
 typedef uint32_t RegionNumber;
 
-static byte INITIAL_RAMLAYER_PATTERN = 0xfe;
+static u8 INITIAL_RAMLAYER_PATTERN = 0xfe;
 
 typedef struct region Region;
 
@@ -50,7 +50,7 @@ struct ramLayer {
   Region        **regions;
   Region         *regionList;
   int             backing;
-  byte            pattern;
+  u8              pattern;
   struct mutex    mutex;
 };
 

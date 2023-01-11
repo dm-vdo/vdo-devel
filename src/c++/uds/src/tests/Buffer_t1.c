@@ -13,7 +13,7 @@ enum { SIZE = 28 };
 
 static const bool      BOOL1     = true;
 static const bool      BOOL2     = false;
-static const byte     *BYTES     = (byte *) "ABCD";
+static const u8       *BYTES     = (u8 *) "ABCD";
 static const uint16_t  UINT16T   = 27;
 static const uint32_t  UINT32T   = 7546;
 static const uint64_t  NUMBERS[] = { 0x0102030405060708, 0x1122334455667788 };
@@ -30,12 +30,12 @@ static void fillBufferWithBytes(struct buffer *buffer, size_t expectedSize)
   unsigned int i;
   for (i = 0; i < expectedSize; i++) {
     CU_ASSERT_EQUAL(available_space(buffer), expectedSize - i);
-    UDS_ASSERT_SUCCESS(put_byte(buffer, (byte) i));
+    UDS_ASSERT_SUCCESS(put_byte(buffer, (u8) i));
   }
 
   // Check that the buffer is full
   UDS_ASSERT_ERROR(UDS_BUFFER_ERROR,
-                   put_byte(buffer, (byte) (expectedSize + 1)));
+                   put_byte(buffer, (u8) (expectedSize + 1)));
   CU_ASSERT_EQUAL(available_space(buffer), 0);
   CU_ASSERT_FALSE(ensure_available_space(buffer, 1));
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
@@ -43,9 +43,9 @@ static void fillBufferWithBytes(struct buffer *buffer, size_t expectedSize)
 
   // Check that the contents are as expected
   for (i = 0; i < expectedSize; i++) {
-    byte b;
+    u8 b;
     UDS_ASSERT_SUCCESS(get_byte(buffer, &b));
-    CU_ASSERT_EQUAL(b, (byte) i);
+    CU_ASSERT_EQUAL(b, (u8) i);
   }
   // Reset the start of buffer
   UDS_ASSERT_SUCCESS(rewind_buffer(buffer, buffer_length(buffer)));
@@ -60,14 +60,14 @@ static void fillBufferWithBytes(struct buffer *buffer, size_t expectedSize)
  **/
 static void extractBytesFromBuffer(struct buffer *buffer,
                                    size_t  expectedSize,
-                                   byte    startByte)
+                                   u8      startByte)
 {
   unsigned int i;
   for (i = 0; i < expectedSize; i++) {
-    byte b;
+    u8 b;
     CU_ASSERT_EQUAL(content_length(buffer), expectedSize - i);
     UDS_ASSERT_SUCCESS(get_byte(buffer, &b));
-    CU_ASSERT_EQUAL(b, (byte) i + startByte);
+    CU_ASSERT_EQUAL(b, (u8) i + startByte);
   }
 }
 
@@ -141,7 +141,7 @@ static void checkContents(struct buffer *buffer)
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
   CU_ASSERT_EQUAL(b, BOOL2);
 
-  byte bytes[4];
+  u8 bytes[4];
   UDS_ASSERT_SUCCESS(get_bytes_from_buffer(buffer, 4, bytes));
   expectedSize -= 4;
   CU_ASSERT_EQUAL(content_length(buffer), expectedSize);
@@ -197,7 +197,7 @@ static void testBufferDataTypes(void)
   CU_ASSERT_FALSE(ensure_available_space(buffer, 1));
 
   // Copy the contents
-  byte copy[SIZE];
+  u8 copy[SIZE];
   memcpy(copy, get_buffer_contents(buffer), SIZE);
 
   checkContents(buffer);
@@ -222,7 +222,7 @@ static void testZeroBytes(void)
 
   unsigned int i;
   for (i = 0; i < SIZE / 2; i++) {
-    byte b;
+    u8 b;
     UDS_ASSERT_SUCCESS(get_byte(buffer, &b));
     CU_ASSERT_EQUAL(b, 0);
   }

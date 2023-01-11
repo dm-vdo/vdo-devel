@@ -15,7 +15,7 @@ int copyDevice(const char *source, const char *destination, off_t bytes)
 {
   int read_fd;
   int write_fd;
-  byte buffer[SECTOR_SIZE];
+  u8 buffer[SECTOR_SIZE];
   off_t offset;
   off_t file_size;
   size_t length;

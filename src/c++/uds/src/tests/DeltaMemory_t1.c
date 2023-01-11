@@ -112,7 +112,7 @@ static void storeData(const struct delta_zone *pdm)
   for (i = 1; i <= pdm->list_count; i++) {
     uint64_t offset = pdl[i].start / BITS_PER_BYTE;
     for (j = 0; j < pdl[i].size / BITS_PER_BYTE; j++) {
-      pdm->memory[offset + j] = (byte)(i + j);
+      pdm->memory[offset + j] = (u8)(i + j);
     }
   }
 }
@@ -127,7 +127,7 @@ static void verifyData(const struct delta_zone *pdm)
   for (i = 1; i <= pdm->list_count; i++) {
     uint64_t offset = pdl[i].start / BITS_PER_BYTE;
     for (j = 0; j < pdl[i].size / BITS_PER_BYTE; j++) {
-      CU_ASSERT_EQUAL(pdm->memory[offset + j], (byte)(i + j));
+      CU_ASSERT_EQUAL(pdm->memory[offset + j], (u8)(i + j));
     }
   }
 }

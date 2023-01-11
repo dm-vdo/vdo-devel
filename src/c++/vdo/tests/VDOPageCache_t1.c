@@ -66,7 +66,7 @@ enum {
 
 typedef struct {
   TestPageHeader header;
-  byte           buffer[PAGE_DATA_SIZE];
+  u8             buffer[PAGE_DATA_SIZE];
 } TestPage;
 
 typedef struct {
@@ -124,7 +124,7 @@ validatePage(void                    *rawPage,
     testPage->header.state       = PAGE_NEW;
     testPage->header.uid         = nextCacheEntryUID;
     *uidContext                  = nextCacheEntryUID++;
-    memset(testPage->buffer, (byte) pbn, PAGE_DATA_SIZE);
+    memset(testPage->buffer, (u8) pbn, PAGE_DATA_SIZE);
     return VDO_SUCCESS;
   }
 

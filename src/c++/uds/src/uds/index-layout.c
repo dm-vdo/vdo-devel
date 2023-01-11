@@ -109,7 +109,7 @@ enum {
 	SUPER_VERSION_MAXIMUM = 7,
 };
 
-static const byte LAYOUT_MAGIC[MAGIC_SIZE] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
+static const u8 LAYOUT_MAGIC[MAGIC_SIZE] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
 static const u64 REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
 
 struct region_header {
@@ -183,15 +183,15 @@ struct sub_index_layout {
 };
 
 struct super_block_data {
-	byte magic_label[MAGIC_SIZE];
-	byte nonce_info[NONCE_INFO_SIZE];
+	u8 magic_label[MAGIC_SIZE];
+	u8 nonce_info[NONCE_INFO_SIZE];
 	u64 nonce;
 	u32 version;
 	u32 block_size;
 	u16 index_count;
 	u16 max_saves;
 	/* Padding reflects a blank field on permanent storage */
-	byte padding[4];
+	u8 padding[4];
 	u64 open_chapter_blocks;
 	u64 page_map_blocks;
 	u64 volume_offset;
@@ -285,7 +285,7 @@ int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_s
 }
 
 /* Create unique data using the current time and a pseudorandom number. */
-static void create_unique_nonce_data(byte *buffer)
+static void create_unique_nonce_data(u8 *buffer)
 {
 	ktime_t now = current_time_ns(CLOCK_REALTIME);
 	u32 rand;
@@ -307,7 +307,7 @@ static void create_unique_nonce_data(byte *buffer)
 static u64 hash_stuff(u64 start, const void *data, size_t len)
 {
 	u32 seed = start ^ (start >> 27);
-	byte hash_buffer[16];
+	u8 hash_buffer[16];
 
 	murmurhash3_128(data, len, seed, hash_buffer);
 	return get_unaligned_le64(hash_buffer + 4);
@@ -390,7 +390,7 @@ static void define_sub_index_nonce(struct index_layout *layout)
 	};
 	struct sub_index_layout *sil = &layout->index;
 	u64 primary_nonce = layout->super.nonce;
-	byte buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
+	u8 buffer[sizeof(struct sub_index_nonce_data)] = { 0 };
 	size_t offset = 0;
 
 	encode_u64_le(buffer, &offset, sil->sub_index.start_block);
@@ -1004,7 +1004,7 @@ static u64 generate_index_save_nonce(u64 volume_nonce, struct index_save_layout 
 		struct index_save_data data;
 		u64 offset;
 	} nonce_data;
-	byte buffer[sizeof(nonce_data)];
+	u8 buffer[sizeof(nonce_data)];
 	size_t offset = 0;
 
 	encode_u64_le(buffer, &offset, isl->save_data.timestamp);

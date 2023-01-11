@@ -128,7 +128,7 @@ static void checkPageFormatting(void                    *buffer,
  **/
 static void pageHeaderTest(void)
 {
-  byte buffer[VDO_BLOCK_SIZE];
+  u8 buffer[VDO_BLOCK_SIZE];
 
   // Formatting must zero everything after the header, and with these
   // parameters, the entire header must be zero.
@@ -215,10 +215,10 @@ static void packingTest(void)
   // a known encoding of PBN and mapping state with distinct nibbles.
   physical_block_number_t distinctPBN = 0xABCDE6789;
   enum block_mapping_state distinctState = (enum block_mapping_state) 0xF;
-  byte expectedPacking[] = { 0xAF, 0x89, 0x67, 0xDE, 0xBC };
+  u8 expectedPacking[] = { 0xAF, 0x89, 0x67, 0xDE, 0xBC };
 
   struct block_map_entry packed = vdo_pack_pbn(distinctPBN, distinctState);
-  UDS_ASSERT_EQUAL_BYTES(expectedPacking, (byte *) &packed, sizeof(packed));
+  UDS_ASSERT_EQUAL_BYTES(expectedPacking, (u8 *) &packed, sizeof(packed));
 
   struct data_location unpacked = vdo_unpack_block_map_entry(&packed);
   CU_ASSERT_EQUAL(distinctPBN, unpacked.pbn);

@@ -817,7 +817,7 @@ bool vdo_are_equivalent_ref_counts(struct ref_counts *counter_a, struct ref_coun
  *         no zero byte was found.
  */
 static inline slab_block_number
-find_zero_byte_in_word(const byte *word_ptr,
+find_zero_byte_in_word(const u8 *word_ptr,
 		       slab_block_number start_index,
 		       slab_block_number fail_index)
 {
@@ -856,8 +856,8 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
 {
 	slab_block_number zero_index;
 	slab_block_number next_index = start_index;
-	byte *next_counter = &ref_counts->counters[next_index];
-	byte *end_counter = &ref_counts->counters[end_index];
+	u8 *next_counter = &ref_counts->counters[next_index];
+	u8 *end_counter = &ref_counts->counters[end_index];
 
 	/*
 	 * Search every byte of the first unaligned word. (Array is padded so reading past end is

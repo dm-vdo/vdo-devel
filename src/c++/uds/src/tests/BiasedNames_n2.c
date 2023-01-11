@@ -91,7 +91,7 @@ static void createCollisionNames(int                     numChunks,
                                  struct uds_record_name *names,
                                  int                     offset,
                                  int                     count,
-                                 byte                    filler)
+                                 u8                      filler)
 {
   int i;
   for (i = 0; i < numChunks; i++) {

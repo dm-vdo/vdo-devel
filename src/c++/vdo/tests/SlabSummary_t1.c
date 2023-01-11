@@ -200,7 +200,7 @@ static void testEntryEncoding(void)
 {
   union {
     struct slab_summary_entry fields;
-    byte raw[2];
+    u8 raw[2];
   } entry = {
     .raw = { 0, 0 }
   };

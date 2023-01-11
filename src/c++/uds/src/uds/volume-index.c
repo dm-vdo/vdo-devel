@@ -158,8 +158,8 @@ struct volume_index_data {
 	unsigned int sparse_sample_rate;
 };
 
-static const byte volume_index_record_magic = 0xAA;
-static const byte bad_magic;
+static const u8 volume_index_record_magic = 0xAA;
+static const u8 bad_magic;
 
 #ifdef TEST_INTERNAL
 /*
@@ -545,7 +545,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	other_record = *record;
 	if (!other_record.delta_entry.at_end && (key == other_record.delta_entry.key)) {
 		for (;;) {
-			byte collision_name[UDS_RECORD_NAME_SIZE];
+			u8 collision_name[UDS_RECORD_NAME_SIZE];
 
 			result = flush_invalid_entries(&other_record,
 						       flush_range,
@@ -838,7 +838,7 @@ int set_volume_index_record_chapter(struct volume_index_record *record, u64 virt
 	return UDS_SUCCESS;
 }
 
-static void set_volume_index_tag(struct volume_sub_index *sub_index, byte tag)
+static void set_volume_index_tag(struct volume_sub_index *sub_index, u8 tag)
 {
 	set_delta_index_tag(&sub_index->delta_index, tag);
 }

@@ -18,7 +18,7 @@
 
 typedef struct {
   uint16_t key;
-  byte     value;
+  u8     value;
 } __attribute__((packed)) HeapRecord;
 
 /**********************************************************************/
@@ -114,7 +114,7 @@ static void fillRecords(HeapRecord records[],
                         size_t     capacity,
                         uint64_t   sequence)
 {
-  for (byte i = 0; i < capacity; i++) {
+  for (u8 i = 0; i < capacity; i++) {
     unsigned int digit = sequence % capacity;
     sequence /= capacity;
     records[i] = (HeapRecord) {

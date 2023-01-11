@@ -739,7 +739,7 @@ vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 		}
 
 		payload->full_entries.entry_types[entry_number / 8] |=
-			((byte)1 << (entry_number % 8));
+			((u8)1 << (entry_number % 8));
 	}
 
 	vdo_pack_slab_journal_entry(&payload->entries[entry_number],

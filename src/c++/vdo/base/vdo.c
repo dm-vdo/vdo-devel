@@ -125,7 +125,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	char *block;
 	int result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, byte, __func__, &block);
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, u8, __func__, &block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -168,7 +168,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 		return -EIO;
 	}
 
-	result = vdo_parse_geometry_block((byte *) block, &vdo->geometry);
+	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
 	UDS_FREE(block);
 	return result;
 }

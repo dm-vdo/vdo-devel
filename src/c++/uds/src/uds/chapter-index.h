@@ -55,14 +55,14 @@ int __must_check put_open_chapter_index_record(struct open_chapter_index *chapte
 					       unsigned int page_number);
 
 int __must_check pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-					      byte *memory,
+					      u8 *memory,
 					      unsigned int first_list,
 					      bool last_page,
 					      unsigned int *num_lists);
 
 int __must_check initialize_chapter_index_page(struct delta_index_page *index_page,
 					       const struct geometry *geometry,
-					       byte *page_buffer,
+					       u8 *page_buffer,
 					       u64 volume_nonce);
 
 int __must_check validate_chapter_index_page(const struct delta_index_page *index_page,

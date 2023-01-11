@@ -1220,7 +1220,7 @@ data_vio_count_t get_data_vio_pool_maximum_requests(struct data_vio_pool *pool)
 
 static void update_data_vio_error_stats(struct data_vio *data_vio)
 {
-	byte index = 0;
+	u8 index = 0;
 	static const char * const operations[] = {
 		[0] = "empty",
 		[1] = "read",

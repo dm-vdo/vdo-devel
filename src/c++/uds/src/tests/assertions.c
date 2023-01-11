@@ -37,11 +37,11 @@ static char *addRange(char       *buf,
 }
 
 /**********************************************************************/
-const char *displayByteDifferences(char       *buf,
-                                   size_t      bufSize,
-                                   const byte *a,
-                                   const byte *b,
-                                   size_t      size)
+const char *displayByteDifferences(char     *buf,
+                                   size_t    bufSize,
+                                   const u8 *a,
+                                   const u8 *b,
+                                   size_t    size)
 {
   char *bp = buf, *be = buf + bufSize;
 

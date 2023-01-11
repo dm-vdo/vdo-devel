@@ -43,8 +43,8 @@
  * records than it has space. In this case, the latest records for that zone will be discarded.
  */
 
-static const byte OPEN_CHAPTER_MAGIC[] = "ALBOC";
-static const byte OPEN_CHAPTER_VERSION[] = "02.00";
+static const u8 OPEN_CHAPTER_MAGIC[] = "ALBOC";
+static const u8 OPEN_CHAPTER_VERSION[] = "02.00";
 
 enum {
 	OPEN_CHAPTER_MAGIC_LENGTH = sizeof(OPEN_CHAPTER_MAGIC) - 1,
@@ -301,7 +301,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	int result;
 	struct open_chapter_zone *open_chapter;
 	struct uds_volume_record *record;
-	byte record_count_data[sizeof(u32)];
+	u8 record_count_data[sizeof(u32)];
 	u32 record_count = 0;
 	unsigned int record_index;
 	unsigned int z;
@@ -338,7 +338,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 
 			record = &open_chapter->records[record_index];
 			result = write_to_buffered_writer(writer,
-							  (byte *) record,
+							  (u8 *) record,
 							  sizeof(*record));
 			if (result != UDS_SUCCESS)
 				return result;
@@ -364,7 +364,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 {
 	int result;
 	u32 record_count;
-	byte record_count_data[sizeof(u32)];
+	u8 record_count_data[sizeof(u32)];
 	struct uds_volume_record record;
 
 	/*
@@ -377,7 +377,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 	};
 
 	result = read_from_buffered_reader(reader,
-					   (byte *) &record_count_data,
+					   (u8 *) &record_count_data,
 					   sizeof(record_count_data));
 	if (result != UDS_SUCCESS)
 		return result;
@@ -386,7 +386,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 	while (record_count-- > 0) {
 		unsigned int zone = 0;
 
-		result = read_from_buffered_reader(reader, (byte *) &record, sizeof(record));
+		result = read_from_buffered_reader(reader, (u8 *) &record, sizeof(record));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -409,7 +409,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 
 int load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
 {
-	byte version[OPEN_CHAPTER_VERSION_LENGTH];
+	u8 version[OPEN_CHAPTER_VERSION_LENGTH];
 	int result;
 
 	result = verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);

@@ -42,7 +42,7 @@ struct delta_list {
 
 struct delta_zone {
 	/* The delta list memory */
-	byte *memory;
+	u8 *memory;
 	/* The delta list headers */
 	struct delta_list *delta_lists;
 	/* Temporary starts of delta lists */
@@ -76,7 +76,7 @@ struct delta_zone {
 	/* The number of delta lists */
 	unsigned int list_count;
 	/* Tag belonging to this delta index */
-	byte tag;
+	u8 tag;
 } __aligned(L1_CACHE_BYTES);
 
 struct delta_list_save_info {
@@ -104,7 +104,7 @@ struct delta_index {
 	/* True if this index is mutable */
 	bool mutable;
 	/* Tag belonging to this delta index */
-	byte tag;
+	u8 tag;
 };
 
 /*
@@ -199,13 +199,13 @@ struct delta_index_stats {
 };
 
 #ifdef TEST_INTERNAL
-void move_bits(const byte *from, u64 from_offset, byte *to, u64 to_offset, int size);
+void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, int size);
 
 int __must_check extend_delta_zone(struct delta_zone *delta_zone,
 				   unsigned int growing_index,
 				   size_t growing_size);
 
-void swap_delta_index_page_endianness(byte *memory);
+void swap_delta_index_page_endianness(u8 *memory);
 
 void uninitialize_delta_zone(struct delta_zone *delta_zone);
 
@@ -217,7 +217,7 @@ int __must_check initialize_delta_zone(struct delta_zone *delta_zone,
 				       unsigned int payload_bits);
 
 void initialize_delta_zone_page(struct delta_zone *delta_zone,
-				byte *memory,
+				u8 *memory,
 				size_t size,
 				unsigned int list_count,
 				unsigned int mean_delta,
@@ -235,7 +235,7 @@ int __must_check initialize_delta_index_page(struct delta_index_page *delta_inde
 					     u64 expected_nonce,
 					     unsigned int mean_delta,
 					     unsigned int payload_bits,
-					     byte *memory,
+					     u8 *memory,
 					     size_t memory_size);
 
 void uninitialize_delta_index(struct delta_index *delta_index);
@@ -244,13 +244,13 @@ void empty_delta_index(const struct delta_index *delta_index);
 
 int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       u64 header_nonce,
-				       byte *memory,
+				       u8 *memory,
 				       size_t memory_size,
 				       u64 virtual_chapter_number,
 				       unsigned int first_list,
 				       unsigned int *list_count);
 
-void set_delta_index_tag(struct delta_index *delta_index, byte tag);
+void set_delta_index_tag(struct delta_index *delta_index, u8 tag);
 
 int __must_check start_restoring_delta_index(struct delta_index *delta_index,
 					     struct buffered_reader **buffered_readers,
@@ -290,11 +290,11 @@ remember_delta_index_offset(const struct delta_index_entry *delta_entry);
 int __must_check get_delta_index_entry(const struct delta_index *delta_index,
 				       unsigned int list_number,
 				       unsigned int key,
-				       const byte *name,
+				       const u8 *name,
 				       struct delta_index_entry *delta_entry);
 
 int __must_check
-get_delta_entry_collision(const struct delta_index_entry *delta_entry, byte *name);
+get_delta_entry_collision(const struct delta_index_entry *delta_entry, u8 *name);
 
 unsigned int __must_check get_delta_entry_value(const struct delta_index_entry *delta_entry);
 
@@ -304,7 +304,7 @@ set_delta_entry_value(const struct delta_index_entry *delta_entry, unsigned int 
 int __must_check put_delta_index_entry(struct delta_index_entry *delta_entry,
 				       unsigned int key,
 				       unsigned int value,
-				       const byte *name);
+				       const u8 *name);
 
 int __must_check
 remove_delta_index_entry(struct delta_index_entry *delta_entry);
