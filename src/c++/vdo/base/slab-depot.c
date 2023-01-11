@@ -31,17 +31,6 @@
 #include "vdo.h"
 
 /**
- * get_slab_iterator() - Get an iterator over all the slabs in the depot.
- * @depot: The depot.
- *
- * Return: An iterator over the depot's slabs.
- */
-static struct slab_iterator get_slab_iterator(struct slab_depot *depot)
-{
-	return vdo_iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
-}
-
-/**
  * allocate_slabs() - Allocate a new slab pointer array.
  * @depot: The depot.
  * @slab_count: The number of slabs the depot should have in the new array.
@@ -73,7 +62,7 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 		resizing = true;
 	}
 
-	slab_size = vdo_get_slab_config(depot)->slab_blocks;
+	slab_size = depot->slab_config.slab_blocks;
 	slab_origin = depot->first_block + (depot->slab_count * slab_size);
 
 	/* The translation between allocator partition PBNs and layer PBNs. */
@@ -373,7 +362,8 @@ struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot
  */
 int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 {
-	struct slab_iterator iterator = get_slab_iterator(depot);
+	struct slab_iterator iterator =
+		vdo_iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
 
 	while (vdo_has_next_slab(&iterator)) {
 		int result = vdo_allocate_ref_counts_for_slab(vdo_next_slab(&iterator));
@@ -744,28 +734,6 @@ void vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 }
 
 /**
- * vdo_get_slab_config() - Get the slab_config of a depot.
- * @depot: The slab depot.
- *
- * Return: The slab configuration of the specified depot.
- */
-const struct slab_config *vdo_get_slab_config(const struct slab_depot *depot)
-{
-	return &depot->slab_config;
-}
-
-/**
- * vdo_get_slab_summary() - Get the slab summary.
- * @depot: The slab depot.
- *
- * Return: The slab summary.
- */
-struct slab_summary *vdo_get_slab_summary(const struct slab_depot *depot)
-{
-	return depot->slab_summary;
-}
-
-/**
  * vdo_scrub_all_unrecovered_slabs() - Scrub all unrecovered slabs.
  * @depot: The depot to scrub.
  * @parent: The object to notify when scrubbing has been launched for all zones.
@@ -813,18 +781,6 @@ void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion)
 		uds_log_info("VDO commencing normal operation");
 	else if (prior_state == VDO_RECOVERING)
 		uds_log_info("Exiting recovery mode");
-}
-
-/**
- * vdo_get_slab_depot_new_size() - Get the physical size to which this depot is prepared to grow.
- * @depot: The slab depot.
- *
- * Return: The new number of blocks the depot will be grown to, or 0 if the depot is not prepared
- *         to grow.
- */
-block_count_t vdo_get_slab_depot_new_size(const struct slab_depot *depot)
-{
-	return (depot->new_slabs == NULL) ? 0 : depot->new_size;
 }
 
 /**

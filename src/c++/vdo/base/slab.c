@@ -42,7 +42,7 @@ int vdo_make_slab(physical_block_number_t slab_origin,
 		  bool is_new,
 		  struct vdo_slab **slab_ptr)
 {
-	const struct slab_config *slab_config = vdo_get_slab_config(allocator->depot);
+	const struct slab_config *slab_config = &allocator->depot->slab_config;
 	struct vdo_slab *slab;
 	int result;
 
@@ -89,7 +89,7 @@ int vdo_make_slab(physical_block_number_t slab_origin,
  */
 int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
 {
-	const struct slab_config *slab_config = vdo_get_slab_config(slab->allocator->depot);
+	const struct slab_config *slab_config = &slab->allocator->depot->slab_config;
 	int result;
 
 	result = ASSERT(slab->reference_counts == NULL,
@@ -259,7 +259,7 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 		return VDO_OUT_OF_RANGE;
 
 	slab_block_number = physical_block_number - slab->start;
-	if (slab_block_number >= vdo_get_slab_config(slab->allocator->depot)->data_blocks)
+	if (slab_block_number >= slab->allocator->depot->slab_config.data_blocks)
 		return VDO_OUT_OF_RANGE;
 
 	*slab_block_number_ptr = slab_block_number;
@@ -279,7 +279,7 @@ bool vdo_should_save_fully_built_slab(const struct vdo_slab *slab)
 	 * Write out the ref_counts if the slab has written them before, or it has any non-zero
 	 * reference counts, or there are any slab journal blocks.
 	 */
-	block_count_t data_blocks = vdo_get_slab_config(slab->allocator->depot)->data_blocks;
+	block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
 
 	return (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number) ||
 		(get_slab_free_block_count(slab) != data_blocks) ||

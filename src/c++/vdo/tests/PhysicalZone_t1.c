@@ -70,8 +70,7 @@ static void verifyGetPhysicalZone(thread_count_t zoneCount)
   // we're currently finding blocks in as we interate over PBNs.
   struct vdo_slab      *currentSlab       = NULL;
   struct physical_zone *currentZone       = NULL;
-  block_count_t         dataBlocksPerSlab
-    = vdo_get_slab_config(vdo->depot)->data_blocks;
+  block_count_t         dataBlocksPerSlab = vdo->depot->slab_config.data_blocks;
 
   // Keep a count of the number of slebs associated with each zone so we can
   // check that they're as evenly distributed as possible.

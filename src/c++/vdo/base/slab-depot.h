@@ -141,16 +141,8 @@ void
 vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 					   sequence_number_t recovery_block_number);
 
-const struct slab_config * __must_check
-vdo_get_slab_config(const struct slab_depot *depot);
-
-struct slab_summary * __must_check
-vdo_get_slab_summary(const struct slab_depot *depot);
-
 void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
 				     struct vdo_completion *parent);
-
-block_count_t __must_check vdo_get_slab_depot_new_size(const struct slab_depot *depot);
 
 void vdo_dump_slab_depot(const struct slab_depot *depot);
 

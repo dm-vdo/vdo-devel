@@ -193,8 +193,7 @@ static void testAddStorage(void)
   size_t newSlabCount = slabCount + (GROWTH_AMOUNT / config.slab_size);
   CU_ASSERT_EQUAL(newSlabCount, vdo->depot->slab_count);
   block_count_t extraDataBlocks
-    = ((newSlabCount - slabCount)
-      * vdo_get_slab_config(vdo->depot)->data_blocks);
+    = ((newSlabCount - slabCount) * vdo->depot->slab_config.data_blocks);
   block_count_t newOverhead
     = expectedOverhead + (GROWTH_AMOUNT - extraDataBlocks);
   CU_ASSERT_EQUAL(newOverhead, vdo_get_physical_blocks_overhead(vdo));

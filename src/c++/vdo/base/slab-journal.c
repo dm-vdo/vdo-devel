@@ -145,7 +145,7 @@ int vdo_make_slab_journal(struct block_allocator *allocator,
 			  struct slab_journal **journal_ptr)
 {
 	struct slab_journal *journal;
-	const struct slab_config *slab_config = vdo_get_slab_config(allocator->depot);
+	const struct slab_config *slab_config = &allocator->depot->slab_config;
 	int result;
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_journal,

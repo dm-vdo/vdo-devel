@@ -1817,7 +1817,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
-		vdo_set_slab_summary_origin(vdo_get_slab_summary(vdo->depot),
+		vdo_set_slab_summary_origin(vdo->depot->slab_summary,
 					    vdo_get_partition(vdo->layout,
 							      VDO_SLAB_SUMMARY_PARTITION));
 		vdo_set_recovery_journal_partition(vdo->recovery_journal,
@@ -1884,7 +1884,7 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
 
 	/* Validate that we are prepared to grow appropriately. */
 	new_depot_size = vdo_get_next_block_allocator_partition_size(vdo->layout);
-	prepared_depot_size = vdo_get_slab_depot_new_size(vdo->depot);
+	prepared_depot_size = (vdo->depot->new_slabs == NULL) ? 0 : vdo->depot->new_size;
 	if (prepared_depot_size != new_depot_size)
 		return VDO_PARAMETER_MISMATCH;
 

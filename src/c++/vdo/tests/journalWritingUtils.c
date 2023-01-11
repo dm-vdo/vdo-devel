@@ -54,7 +54,7 @@ physical_block_number_t computePBNFromLBN(logical_block_number_t lbn,
                                           block_count_t          offset)
 {
   struct slab_depot        *depot       = vdo->depot;
-  const struct slab_config *slabConfig  = vdo_get_slab_config(depot);
+  const struct slab_config *slabConfig  = &depot->slab_config;
   physical_block_number_t   firstPBN    = depot->slabs[1]->start;
   slab_count_t              slabIndex   = ((lbn / slabConfig->data_blocks)
                                            % slabsToReference);

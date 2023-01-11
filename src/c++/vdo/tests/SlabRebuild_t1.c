@@ -494,10 +494,8 @@ static void testRebuild(void)
   // Setup hook to latch the first metadata write.
   setBlockVIOCompletionEnqueueHook(shouldBlockVIO, false);
 
-  block_count_t slabJournalSize
-    = vdo_get_slab_config(depot)->slab_journal_blocks;
   VDO_ASSERT_SUCCESS(vdo_make_slab_scrubber(vdo,
-                                            slabJournalSize,
+                                            depot->slab_config.slab_journal_blocks,
                                             vdo->read_only_notifier,
                                             &scrubber));
 
