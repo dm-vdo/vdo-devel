@@ -176,7 +176,7 @@ static void listSlabSummary(void)
     = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION,
                    "no slab summary partition");
   listBlocks("slab summary", vdo_get_fixed_layout_partition_offset(partition),
-             vdo_get_slab_summary_size());
+             VDO_SLAB_SUMMARY_BLOCKS);
 }
 
 /**********************************************************************/

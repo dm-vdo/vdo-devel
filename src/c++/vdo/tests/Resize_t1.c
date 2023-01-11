@@ -167,7 +167,7 @@ static void testAddStorage(void)
     = vdo_get_partition(vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
   block_count_t journalBlocks = config.recovery_journal_size;
   physical_block_number_t journalStart
-    = (physicalBlocks - journalBlocks - vdo_get_slab_summary_size());
+    = (physicalBlocks - journalBlocks - VDO_SLAB_SUMMARY_BLOCKS);
   CU_ASSERT_EQUAL(journalStart,
                   vdo_get_fixed_layout_partition_offset(partition));
   size_t journalSize = journalBlocks * VDO_BLOCK_SIZE;
@@ -253,7 +253,7 @@ static void testTooSmallGrowth(void)
   // should fail, since they would need to be copied atop each other.
   struct vdo_config config = getTestConfig().config;
   block_count_t metadataSize
-    = (config.recovery_journal_size + vdo_get_slab_summary_size());
+    = (config.recovery_journal_size + VDO_SLAB_SUMMARY_BLOCKS);
   CU_ASSERT_TRUE(config.slab_size < (metadataSize / 2));
 
   block_count_t newSize = config.physical_blocks + (metadataSize / 2);

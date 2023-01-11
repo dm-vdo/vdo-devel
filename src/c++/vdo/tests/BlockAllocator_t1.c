@@ -61,7 +61,7 @@ static void initializeAllocatorT1(block_count_t slabSize,
                                   block_count_t blockCount)
 {
   overhead = (VDO_LAYOUT_START + JOURNAL_BLOCKS
-              + vdo_get_slab_summary_size()
+              + VDO_SLAB_SUMMARY_BLOCKS
               + DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
 
   TestParameters parameters = {

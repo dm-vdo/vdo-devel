@@ -313,15 +313,15 @@ static int allocateMetadataSpace(void)
          (unsigned long long) config->recovery_journal_size);
   }
 
-  result = UDS_ALLOCATE(vdo_get_slab_summary_size(),
+  result = UDS_ALLOCATE(VDO_SLAB_SUMMARY_BLOCKS,
                         struct slab_summary_entry *,
                         __func__, &slabSummary);
   if (result != VDO_SUCCESS) {
-    errx(1, "Could not allocate %llu slab summary block pointers",
-         (unsigned long long) vdo_get_slab_summary_size());
+    errx(1, "Could not allocate %d slab summary block pointers",
+         VDO_SLAB_SUMMARY_BLOCKS);
   }
 
-  for (block_count_t i = 0; i < vdo_get_slab_summary_size(); i++) {
+  for (block_count_t i = 0; i < VDO_SLAB_SUMMARY_BLOCKS; i++) {
     char *buffer;
     result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
                                      "slab summary block", &buffer);
@@ -355,7 +355,7 @@ static void freeMetadataSpace(void)
   recoveryJournal = NULL;
 
   if (slabSummary != NULL) {
-    for (block_count_t i = 0; i < vdo_get_slab_summary_size(); i++) {
+    for (block_count_t i = 0; i < VDO_SLAB_SUMMARY_BLOCKS; i++) {
       UDS_FREE(slabSummary[i]);
       slabSummary[i] = NULL;
     }
@@ -383,7 +383,7 @@ static void readMetadata(void)
   block_count_t totalNonBlockMapMetadataBlocks
     = ((metadataBlocksPerSlab * slabCount)
        + config->recovery_journal_size
-       + vdo_get_slab_summary_size());
+       + VDO_SLAB_SUMMARY_BLOCKS);
 
   nextBlock
     = (vdo->layer->getBlockCount(vdo->layer) - totalNonBlockMapMetadataBlocks);
@@ -424,7 +424,7 @@ static void readMetadata(void)
     }
   }
 
-  for (block_count_t i = 0; i < vdo_get_slab_summary_size(); i++) {
+  for (block_count_t i = 0; i < VDO_SLAB_SUMMARY_BLOCKS; i++) {
     readBlocks(1, (char *) slabSummary[i]);
   }
 }

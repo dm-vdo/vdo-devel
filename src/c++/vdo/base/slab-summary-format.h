@@ -12,10 +12,6 @@
 /* typedef tail_block_offset_t - The offset of a slab journal tail block. */
 typedef u8 tail_block_offset_t;
 
-enum {
-	VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
-};
-
 struct slab_summary_entry {
 	/* Bits 7..0: The offset of the tail block within the slab journal */
 	tail_block_offset_t tail_block_offset;
@@ -37,29 +33,12 @@ struct slab_summary_entry {
 #endif
 } __packed;
 
-/**
- * vdo_get_slab_summary_zone_size() - Returns the size on disk of a single zone of the
- *                                    slab_summary.
- *
- * Return: the number of blocks required to store a single zone of the slab_summary on disk.
- */
-static inline block_count_t __must_check vdo_get_slab_summary_zone_size(void)
-{
-	slab_count_t entries_per_block = VDO_BLOCK_SIZE / sizeof(struct slab_summary_entry);
-	block_count_t blocks_needed = MAX_VDO_SLABS / entries_per_block;
-
-	return blocks_needed;
-}
-
-/**
- * vdo_get_slab_summary_size() - Return the size on disk of the slab_summary structure.
- *
- * Return: The blocks required to store the slab_summary on disk.
- */
-static inline block_count_t __must_check vdo_get_slab_summary_size(void)
-{
-	return vdo_get_slab_summary_zone_size() * MAX_VDO_PHYSICAL_ZONES;
-}
+enum {
+	VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
+	VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK = VDO_BLOCK_SIZE / sizeof(struct slab_summary_entry),
+	VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE = MAX_VDO_SLABS / VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK,
+	VDO_SLAB_SUMMARY_BLOCKS = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * MAX_VDO_PHYSICAL_ZONES,
+};
 
 /**
  * vdo_get_slab_summary_hint_shift() - Compute the shift for slab summary hints.

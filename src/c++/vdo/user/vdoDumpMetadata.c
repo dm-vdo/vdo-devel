@@ -322,7 +322,7 @@ static void dumpSlabSummary(void)
     = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION,
                    "Could not copy slab summary, no partition");
   int result = copyBlocks(vdo_get_fixed_layout_partition_offset(partition),
-                          vdo_get_slab_summary_size());
+                          VDO_SLAB_SUMMARY_BLOCKS);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not copy slab summary");
   }

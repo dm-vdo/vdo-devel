@@ -186,8 +186,9 @@ int vdo_make_slab_summary(struct vdo *vdo,
 	size_t total_entries, i;
 	u8 hint;
 	zone_count_t zone;
-	block_count_t blocks_per_zone = vdo_get_slab_summary_zone_size();
-	slab_count_t entries_per_block = MAX_VDO_SLABS / blocks_per_zone;
+	// FIXME replace the corresponding fields with these constants
+	block_count_t blocks_per_zone = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE;
+	slab_count_t entries_per_block = VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK;
 	int result;
 
 	result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,

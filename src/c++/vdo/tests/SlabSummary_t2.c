@@ -44,9 +44,8 @@ static struct vdo_completion     *updateCompletion;
  **/
 static void initializeSlabSummaryT2(void)
 {
-  block_count_t blockCount = vdo_get_slab_summary_size();
   TestParameters testParameters = {
-    .mappableBlocks      = blockCount,
+    .mappableBlocks      = VDO_SLAB_SUMMARY_BLOCKS,
     .logicalThreadCount  = 1,
     .physicalThreadCount = MAX_VDO_PHYSICAL_ZONES,
     .hashZoneThreadCount = 1,
@@ -59,12 +58,13 @@ static void initializeSlabSummaryT2(void)
                                                vdo->thread_config->physical_threads[z]));
   }
 
-  VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(blockCount, 0, &layout));
+  VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(VDO_SLAB_SUMMARY_BLOCKS, 0, &layout));
 
-  int result
-    = vdo_make_fixed_layout_partition(layout, VDO_SLAB_SUMMARY_PARTITION,
-                                      blockCount, VDO_PARTITION_FROM_BEGINNING,
-                                      0);
+  int result = vdo_make_fixed_layout_partition(layout,
+                                               VDO_SLAB_SUMMARY_PARTITION,
+                                               VDO_SLAB_SUMMARY_BLOCKS,
+                                               VDO_PARTITION_FROM_BEGINNING,
+                                               0);
   VDO_ASSERT_SUCCESS(result);
   VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(layout,
 						    VDO_SLAB_SUMMARY_PARTITION,

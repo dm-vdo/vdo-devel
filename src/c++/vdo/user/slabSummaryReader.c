@@ -28,7 +28,7 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
   }
 
   struct slab_summary_entry *entries;
-  block_count_t summary_blocks = vdo_get_slab_summary_zone_size();
+  block_count_t summary_blocks = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE;
   int result = vdo->layer->allocateIOBuffer(vdo->layer,
                                             summary_blocks * VDO_BLOCK_SIZE,
                                             "slab summary entries",
