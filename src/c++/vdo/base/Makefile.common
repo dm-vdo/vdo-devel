@@ -60,13 +60,8 @@ BASE_OBJS :=     			\
 	vdo-component.o         	\
 	vdo-component-states.o  	\
 	vdo-layout.o			\
-	vdo-load.o			\
 	vdo-page-cache.o		\
 	vdo-recovery.o			\
-	vdo-resize.o			\
-	vdo-resize-logical.o		\
-	vdo-resume.o			\
-	vdo-suspend.o           	\
 	vio.o				\
 	volume-geometry.o		\
 	wait-queue.o

@@ -12,7 +12,6 @@
 #include "block-map.h"
 #include "device-config.h"
 #include "vdo.h"
-#include "vdo-resize.h"
 
 #include "asyncLayer.h"
 #include "testParameters.h"

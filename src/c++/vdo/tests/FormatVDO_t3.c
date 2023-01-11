@@ -15,7 +15,6 @@
 #include "vdo.h"
 #include "vdoConfig.h"
 #include "vdo-layout.h"
-#include "vdo-load.h"
 
 #include "userVDO.h"
 

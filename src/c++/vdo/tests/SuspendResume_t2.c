@@ -10,9 +10,6 @@
 
 #include "logger.h"
 
-#include "vdo-resume.h"
-#include "vdo-suspend.h"
-
 #include "ioRequest.h"
 #include "vdoTestBase.h"
 

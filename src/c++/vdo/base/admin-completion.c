@@ -118,6 +118,7 @@ static void admin_operation_callback(struct vdo_completion *vdo_completion)
  */
 int vdo_perform_admin_operation(struct vdo *vdo,
 				enum admin_operation_type type,
+				uint32_t starting_phase,
 				vdo_thread_id_getter_for_phase *thread_id_getter,
 				vdo_action *action,
 				vdo_action *error_handler)
@@ -137,7 +138,7 @@ int vdo_perform_admin_operation(struct vdo *vdo,
 			       NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;
-	admin_completion->phase = 0;
+	admin_completion->phase = starting_phase;
 	vdo_prepare_admin_sub_task(vdo, action, error_handler);
 	reinit_completion(&admin_completion->callback_sync);
 	vdo_enqueue_completion(&admin_completion->sub_task_completion);

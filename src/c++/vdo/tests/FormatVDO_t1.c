@@ -12,12 +12,11 @@
 
 #include "constants.h"
 #include "vdo.h"
-#include "vdoConfig.h"
 #include "vdo-layout.h"
-#include "vdo-load.h"
 #include "vdo-layout.h"
 
 #include "userVDO.h"
+#include "vdoConfig.h"
 
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"

@@ -29,8 +29,6 @@
 #include "status-codes.h"
 #include "thread-config.h"
 #include "vdo.h"
-#include "vdo-load.h"
-#include "vdo-suspend.h"
 #include "volume-geometry.h"
 #include "work-queue.h"
 

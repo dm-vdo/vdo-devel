@@ -19,8 +19,8 @@
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+
 #include "vdoConfig.h"
-#include "vdo-resize.h"
 
 #include "asyncLayer.h"
 #include "callbackWrappingUtils.h"

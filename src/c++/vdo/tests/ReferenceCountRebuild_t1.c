@@ -12,8 +12,6 @@
 #include "packed-reference-block.h"
 #include "slab.h"
 #include "slab-depot.h"
-#include "vdo-resume.h"
-#include "vdo-suspend.h"
 
 #include "blockMapUtils.h"
 #include "ioRequest.h"

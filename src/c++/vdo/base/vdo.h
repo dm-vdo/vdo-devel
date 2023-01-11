@@ -244,12 +244,6 @@ void vdo_destroy(struct vdo *vdo);
 
 int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
 
-int __must_check
-vdo_prepare_to_modify(struct vdo *vdo,
-		      struct device_config *config,
-		      bool may_grow,
-		      char **error_ptr);
-
 struct block_device * __must_check
 vdo_get_backing_device(const struct vdo *vdo);
 

@@ -12,7 +12,6 @@
 #include "slab-summary.h"
 #include "thread-config.h"
 #include "vdo.h"
-#include "vdo-resize.h"
 
 #include "asyncLayer.h"
 #include "dataBlocks.h"

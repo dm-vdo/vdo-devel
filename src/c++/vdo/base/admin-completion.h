@@ -65,10 +65,11 @@ struct vdo_completion *vdo_reset_admin_sub_task(struct vdo_completion *completio
 
 void vdo_prepare_admin_sub_task(struct vdo *vdo, vdo_action *callback, vdo_action *error_handler);
 
-int __must_check vdo_perform_admin_operation(struct vdo *vdo,
-					     enum admin_operation_type type,
-					     vdo_thread_id_getter_for_phase *thread_id_getter,
-					     vdo_action *action,
-					     vdo_action *error_handler);
+int vdo_perform_admin_operation(struct vdo *vdo,
+				enum admin_operation_type type,
+				uint32_t starting_phase,
+				vdo_thread_id_getter_for_phase *thread_id_getter,
+				vdo_action *action,
+				vdo_action *error_handler);
 
 #endif /* ADMIN_COMPLETION_H */

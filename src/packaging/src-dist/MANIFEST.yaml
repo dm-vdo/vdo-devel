@@ -354,20 +354,10 @@ tarballs:
             vdo-component-states.h
             vdo-layout.c
             vdo-layout.h
-            vdo-load.c
-            vdo-load.h
             vdo-page-cache.c
             vdo-page-cache.h
             vdo-recovery.c
             vdo-recovery.h
-            vdo-resize.c
-            vdo-resize.h
-            vdo-resize-logical.c
-            vdo-resize-logical.h
-            vdo-resume.c
-            vdo-resume.h
-            vdo-suspend.c
-            vdo-suspend.h
             vio.c
             vio.h
             volume-geometry.c

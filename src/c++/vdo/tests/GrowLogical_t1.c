@@ -12,8 +12,6 @@
 
 #include "flush.h"
 #include "vdo.h"
-#include "vdo-resize-logical.h"
-#include "vdo-resume.h"
 
 #include "asyncLayer.h"
 #include "ioRequest.h"
@@ -110,9 +108,7 @@ static void testGrowLogical(void)
     verifyZeros(newRangeLBN, 1);
   } else {
     // The VDO failed to resume, so resume it again.
-    VDO_ASSERT_SUCCESS(vdo_preresume_internal(vdo,
-                                              vdo->device_config,
-                                              "test device"));
+    CU_ASSERT_EQUAL(VDO_READ_ONLY, resumeVDO(vdo->device_config->owning_target));
   }
 
   // Try writing to the new range.

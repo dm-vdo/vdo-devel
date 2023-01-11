@@ -48,8 +48,6 @@
 #include "thread-config.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
-#include "vdo-resize.h"
-#include "vdo-resize-logical.h"
 #include "vio.h"
 #include "work-queue.h"
 
@@ -547,73 +545,6 @@ int vdo_add_sysfs_stats_dir(struct vdo *vdo)
 			     "statistics");
 	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
-
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_prepare_to_modify() - Prepare to modify a vdo.
- * @vdo: The vdo being resumed.
- * @config: The new device configuration.
- * @may_grow: Set to true if growing the logical and physical size of
- *            the vdo is currently permitted.
- * @error_ptr: A pointer to store the reason for any failure.
- *
- * This method is called during preresume to prepare for modifications which
- * could result if the table has changed.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_prepare_to_modify(struct vdo *vdo,
-			  struct device_config *config,
-			  bool may_grow,
-			  char **error_ptr)
-{
-	int result = vdo_validate_new_device_config(config,
-						    vdo->device_config,
-						    may_grow,
-						    error_ptr);
-	if (result != VDO_SUCCESS)
-		return -EINVAL;
-
-	if (config->logical_blocks > vdo->device_config->logical_blocks) {
-		result = vdo_prepare_to_grow_logical(vdo,
-						     config->logical_blocks);
-		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device vdo_prepare_to_grow_logical failed";
-			return result;
-		}
-	}
-
-	if (config->physical_blocks > vdo->device_config->physical_blocks) {
-		result = vdo_prepare_to_grow_physical(vdo,
-						      config->physical_blocks);
-		if (result != VDO_SUCCESS) {
-			if (result == VDO_PARAMETER_MISMATCH)
-				/*
-				 * If we don't trap this case,
-				 * vdo_map_to_system_error() will remap it to
-				 * -EIO, which is misleading and ahistorical.
-				 */
-				result = -EINVAL;
-
-			if (result == VDO_TOO_MANY_SLABS)
-				*error_ptr = "Device vdo_prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
-			else
-				*error_ptr = "Device vdo_prepare_to_grow_physical failed";
-			return result;
-		}
-	}
-
-	if (strcmp(config->parent_device_name,
-		   vdo->device_config->parent_device_name) != 0) {
-		const char *device_name =
-			vdo_get_device_name(config->owning_target);
-		uds_log_info("Updating backing device of %s from %s to %s",
-			     device_name,
-			     vdo->device_config->parent_device_name,
-			     config->parent_device_name);
-	}
 
 	return VDO_SUCCESS;
 }
