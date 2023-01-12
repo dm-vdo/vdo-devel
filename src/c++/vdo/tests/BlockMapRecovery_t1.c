@@ -12,7 +12,6 @@
 
 #include "block-map.h"
 #include "block-map-recovery.h"
-#include "packed-recovery-journal-block.h"
 #include "recovery-journal.h"
 #include "slab.h"
 #include "slab-depot.h"

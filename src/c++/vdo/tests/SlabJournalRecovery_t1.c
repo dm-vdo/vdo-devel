@@ -13,7 +13,6 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "block-map.h"
-#include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
@@ -21,6 +20,7 @@
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-recovery.h"
 
 #include "asyncLayer.h"

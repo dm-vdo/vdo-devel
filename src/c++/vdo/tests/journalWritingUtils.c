@@ -10,12 +10,12 @@
 
 #include "block-map.h"
 #include "data-vio.h"
-#include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "slab.h"
 #include "slab-depot.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "vdoAsserts.h"

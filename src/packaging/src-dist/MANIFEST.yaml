@@ -54,11 +54,8 @@ tarballs:
             header.c
             header.h
             journal-point.h
-            packed-recovery-journal-block.h
             packed-reference-block.h
             recovery-journal-entry.h
-            recovery-journal-format.c
-            recovery-journal-format.h
             release-versions.h
             slab-depot-format.c
             slab-depot-format.h
@@ -292,7 +289,6 @@ tarballs:
             logical-zone.h
             message-stats.c
             message-stats.h
-            packed-recovery-journal-block.h
             packed-reference-block.h
             packer.c
             packer.h
@@ -310,8 +306,6 @@ tarballs:
             recovery-journal.c
             recovery-journal.h
             recovery-journal-entry.h
-            recovery-journal-format.c
-            recovery-journal-format.h
             ref-counts.c
             ref-counts.h
             reference-operation.c

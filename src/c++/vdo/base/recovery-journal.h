@@ -15,12 +15,11 @@
 #include "constants.h"
 #include "flush.h"
 #include "journal-point.h"
-#include "packed-recovery-journal-block.h"
 #include "read-only-notifier.h"
 #include "recovery-journal-entry.h"
-#include "recovery-journal-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "wait-queue.h"
 

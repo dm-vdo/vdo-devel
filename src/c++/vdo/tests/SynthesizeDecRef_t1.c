@@ -13,7 +13,6 @@
 #include "block-map.h"
 #include "constants.h"
 #include "int-map.h"
-#include "packed-recovery-journal-block.h"
 #include "packed-reference-block.h"
 #include "recovery-journal-entry.h"
 #include "recovery-journal.h"
@@ -22,6 +21,7 @@
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 

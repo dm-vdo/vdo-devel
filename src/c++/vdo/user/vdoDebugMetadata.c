@@ -15,11 +15,10 @@
 #include "syscalls.h"
 
 #include "block-map-format.h"
-#include "packed-recovery-journal-block.h"
 #include "packed-reference-block.h"
 #include "recovery-journal-entry.h"
-#include "recovery-journal-format.h"
 #include "slab-journal-format.h"
+#include "vdo-component-states.h"
 
 #include "status-codes.h"
 #include "types.h"

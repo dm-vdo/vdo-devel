@@ -19,7 +19,6 @@
 #include "int-map.h"
 #include "io-submitter.h"
 #include "journal-point.h"
-#include "packed-recovery-journal-block.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab-depot.h"

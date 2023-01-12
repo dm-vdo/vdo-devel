@@ -41,7 +41,6 @@ BASE_OBJS :=     			\
 	priority-table.o		\
 	read-only-notifier.o		\
 	recovery-journal.o		\
-	recovery-journal-format.o	\
 	ref-counts.o			\
 	reference-operation.o		\
 	slab.o				\
@@ -79,7 +78,6 @@ USER_OBJECTS:=                  	\
 	block-map-page.o		\
 	constants.o			\
 	header.o			\
-	recovery-journal-format.o	\
 	slab-depot-format.o		\
 	slab-journal-format.o		\
 	status-codes.o			\

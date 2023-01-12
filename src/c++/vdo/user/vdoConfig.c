@@ -15,7 +15,6 @@
 
 #include "block-map-format.h"
 #include "constants.h"
-#include "recovery-journal-format.h"
 #include "release-versions.h"
 #include "slab-depot-format.h"
 #include "slab-summary-format.h"

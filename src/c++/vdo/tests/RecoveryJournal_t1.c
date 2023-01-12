@@ -27,12 +27,11 @@
 #include "uds-threads.h"
 
 #include "admin-state.h"
-#include "packed-recovery-journal-block.h"
 #include "read-only-notifier.h"
 #include "recovery-journal-entry.h"
-#include "recovery-journal-format.h"
 #include "recovery-journal.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 #include "vdoConfig.h"
 

@@ -20,11 +20,11 @@
 #include "syscalls.h"
 
 #include "packed-reference-block.h"
-#include "recovery-journal-format.h"
 #include "slab-depot-format.h"
 #include "slab-summary-format.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "slabSummaryReader.h"

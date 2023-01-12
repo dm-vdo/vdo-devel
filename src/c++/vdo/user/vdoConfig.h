@@ -9,8 +9,8 @@
 
 #include "errors.h"
 
-#include "recovery-journal-format.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "volume-geometry.h"
 

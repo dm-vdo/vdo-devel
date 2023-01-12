@@ -9,9 +9,9 @@
 #ifndef JOURNAL_WRITING_UTILS_H
 #define JOURNAL_WRITING_UTILS_H
 
-#include "packed-recovery-journal-block.h"
 #include "recovery-journal-entry.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 enum {
   FULL_BLOCK     = -1, // Value indicating a full block of entries
