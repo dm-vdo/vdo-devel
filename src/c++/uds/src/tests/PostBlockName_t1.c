@@ -51,7 +51,7 @@ static void postBlockTest(void)
   unsigned long counter;
   for (counter = 0; counter < NEW_CHUNK_COUNT; counter++) {
     struct uds_record_name chunkName
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+      = hash_record_name(&counter, sizeof(counter));
     oldPostBlockName(indexSession, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }
@@ -64,7 +64,7 @@ static void postBlockTest(void)
   // udsPostBlockName.
   for (counter = 0; counter < REPEAT_CHUNK_COUNT; counter++) {
     struct uds_record_name chunkName
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+      = hash_record_name(&counter, sizeof(counter));
     oldPostBlockName(indexSession, NULL, (struct uds_record_data *) &chunkName,
                      &chunkName, cbStatus);
   }

@@ -158,7 +158,7 @@ static void fillIndex(unsigned int chapter_count)
   unsigned long record_count = records_per_chapter * chapter_count;
   for (i = 0; i < record_count; i++) {
     request.record_name
-      = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
+      = hash_record_name(&nameCounter, sizeof(nameCounter));
     nameCounter++;
     adjust_list_number_for_zone_0(index->volume_index, &request.record_name);
     verify_test_request(index, &request, false, NULL);
@@ -182,8 +182,8 @@ static void verifyData(bool sparse)
 
   for (i = 0; i < record_count; i++) {
     uint64_t recordNumber = first_record + i;
-    request.record_name = murmurHashChunkName(&recordNumber,
-                                              sizeof(recordNumber), 0);
+    request.record_name = hash_record_name(&recordNumber,
+                                           sizeof(recordNumber));
     adjust_list_number_for_zone_0(index->volume_index, &request.record_name);
 
     if (sparse) {

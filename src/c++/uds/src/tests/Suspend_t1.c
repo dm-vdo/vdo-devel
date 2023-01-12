@@ -28,7 +28,7 @@ static void postChunks(struct uds_index_session *indexSession,
 {
   long index;
   for (index = base; index < base + count; index++) {
-    struct uds_record_name chunkName = murmurGenerator(&index, sizeof(index));
+    struct uds_record_name chunkName = hash_record_name(&index, sizeof(index));
     UDS_ASSERT_ERROR(expectedResult,
                      oldPostBlockNameResult(indexSession, NULL,
                                         (struct uds_record_data *) &chunkName,

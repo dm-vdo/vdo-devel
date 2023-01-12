@@ -159,8 +159,7 @@ static void addToVolumeIndex(TestMI *testmi, int count)
     if (counter % testmi->geometry.records_per_chapter == 0) {
       set_volume_index_open_chapter(testmi->mi, chapter);
     }
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
     UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
     UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
@@ -179,8 +178,7 @@ static void verifyVolumeIndex(TestMI *testmi)
   for (i = 0; i < testmi->entryCounter; i++) {
     uint64_t counter = i;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
     UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
     CU_ASSERT_TRUE(record.is_found);
@@ -213,14 +211,13 @@ static void overflowVolumeIndex(TestMI *testmi)
         break;
       }
     }
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
     UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
     UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
     if (counter % 8 == 0) {
       counter = --extraCounter;
-      name = murmurHashChunkName(&counter, sizeof(counter), 0);
+      name = hash_record_name(&counter, sizeof(counter));
       UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
       UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
     }
@@ -247,8 +244,7 @@ static void threadAddToVolumeIndex(TestMI *testmi, unsigned int zoneNumber,
     if (counter % testmi->geometry.records_per_chapter == 0) {
       set_volume_index_zone_open_chapter(testmi->mi, zoneNumber, chapter);
     }
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     if (get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
       struct volume_index_record record;
       UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
@@ -265,8 +261,8 @@ static void threadVerifyVolumeIndex(TestMI *testmi, unsigned int zoneNumber,
   for (i = 0; i < entryCounter; i++) {
     uint64_t counter = i;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
+      
     if (get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
       struct volume_index_record record;
       UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
@@ -355,7 +351,7 @@ static void threadLookup(void *arg)
     for (i = 0; i < testmi->entryCounter; i++) {
       uint64_t counter = i;
       struct uds_record_name name
-        = murmurHashChunkName(&counter, sizeof(counter), 0);
+        = hash_record_name(&counter, sizeof(counter));
       uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
       if (virtual_chapter != U64_MAX) {
         uint64_t chapter = counter / testmi->geometry.records_per_chapter;

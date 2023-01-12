@@ -79,7 +79,7 @@ static void fullRebuildTest(void)
       UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, __func__,
                                       &udsRequest));
       uds_acquire_semaphore(&semaphore);
-      udsRequest->record_name = murmurGenerator(&counter, sizeof(counter));
+      udsRequest->record_name = hash_record_name(&counter, sizeof(counter));
       udsRequest->callback    = finishChunk;
       udsRequest->session     = indexSession;
       udsRequest->type        = UDS_POST;

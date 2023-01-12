@@ -43,7 +43,7 @@ static uint64_t fillIndex(struct uds_index_session *session,
 
   for (i = 0; i < record_count; i++) {
     struct uds_record_name chunkName
-      = murmurHashChunkName(&nameCounter, sizeof(nameCounter), 0);
+      = hash_record_name(&nameCounter, sizeof(nameCounter));
 
     nameCounter++;
     oldPostBlockName(session, NULL, (struct uds_record_data *) &chunkName,
@@ -64,7 +64,7 @@ static void verifyData(struct uds_index_session *session,
   unsigned long i;
 
   for (i = 0; i < record_count; i++) {
-    request.record_name = murmurHashChunkName(&nameSeed, sizeof(nameSeed), 0);
+    request.record_name = hash_record_name(&nameSeed, sizeof(nameSeed));
     nameSeed++;
 
     if (sparse) {

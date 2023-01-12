@@ -206,17 +206,16 @@ static void testMixedGuts(void *arg)
   int physicalPage = 1;
   unsigned int absentPage = cache->num_cache_entries + 1;
   struct cached_page *entry = NULL;
-
   unsigned int i;
+
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
     union {
-      struct uds_record_name name;
+      unsigned char hash[ 128 / 8 ];
       unsigned int val;
     } rand;
-    rand.name = murmurHashChunkName(&a->counter, sizeof(a->counter),
-                                    a->threadNum);
-    a->counter += 1;
 
+    murmurhash3_128(&a->counter, sizeof(a->counter), a->threadNum, &rand.hash);
+    a->counter += 1;
     if (rand.val % 100 < a->percentageHits) {
       get_page_from_cache(cache, physicalPage, &entry);
       make_page_most_recent(cache, entry);

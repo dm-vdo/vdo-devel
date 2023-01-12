@@ -194,38 +194,20 @@ struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
 
 /**
  * Quickly generate a non-cryptographic hash of a chunk of data using the
- * 128-bit MurmurHash3 algorithm.
+ * 128-bit MurmurHash3 algorithm with the seed that VDO uses.
  *
  * @param [in] data  A pointer to the opaque data
  * @param [in] size  The size of the data, in bytes
- * @param [in] seed  A seed value for the hash calculation
  *
  * @return The calculated record name
  **/
-static inline struct uds_record_name murmurHashChunkName(const void *data,
-                                                        size_t       size,
-                                                        uint32_t     seed)
+static inline struct uds_record_name hash_record_name(const void *data,
+                                                      size_t      size)
 {
-  // A pair of randomly-generated seed values for the two hash computations.
   enum { SEED1 = 0x62ea60be };
   struct uds_record_name name;
-  murmurhash3_128(data, size, SEED1 ^ seed, &name.name[0]);
+  murmurhash3_128(data, size, SEED1, &name.name[0]);
   return name;
-}
-
-/**
- * Quickly generate a non-cryptographic hash of a chunk of data using the
- * 128-bit MurmurHash3 algorithm with a default seed.
- *
- * @param [in] data  A pointer to the opaque data
- * @param [in] size  The size of the data, in bytes
- *
- * @return The calculated record name
- **/
-static inline struct uds_record_name murmurGenerator(const void *data,
-                                                    size_t       size)
-{
-  return murmurHashChunkName(data, size, 0);
 }
 
 /**

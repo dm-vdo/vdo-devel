@@ -128,8 +128,7 @@ static void threadAdd(void *arg)
     if (counter % geometry->records_per_chapter == 0) {
       set_volume_index_zone_open_chapter(volumeIndex, ta->zone, chapter);
     }
-    struct uds_record_name name
-      = murmurHashChunkName(&counter, sizeof(counter), 0);
+    struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     if (get_volume_index_zone(volumeIndex, &name) == ta->zone) {
       struct volume_index_record record;
       UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name, &record));

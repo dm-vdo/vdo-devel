@@ -9,10 +9,14 @@
 #include "assertions.h"
 #include "testPrototypes.h"
 
+static const char *input1 = "The quick brown fox jumps over the lazy dog";
+static const char *input2 = "The quick brown fox jumps over the lazy cog";
+
 /**********************************************************************/
-static void checkHash(const char *input, const uint8_t expected[])
+static void checkHash(const char *input, const unsigned char expected[])
 {
-  uint8_t hash[128 / 8];
+  unsigned char hash[128 / 8];
+  // Hash with the seed = 0.
   murmurhash3_128(input, (int) strlen(input), 0, hash);
   UDS_ASSERT_EQUAL_BYTES(expected, hash, sizeof(hash));
 }
@@ -20,58 +24,53 @@ static void checkHash(const char *input, const uint8_t expected[])
 /**********************************************************************/
 static void testHash128(void)
 {
-  const char *input1 = "The quick brown fox jumps over the lazy dog";
-  const uint8_t result1[] = {
-    0x6c, 0x1b, 0x07, 0xbc, 0x7b, 0xbc, 0x4b, 0xe3,
-    0x47, 0x93, 0x9a, 0xc4, 0xa9, 0x3c, 0x43, 0x7a,
-  };
+  const unsigned char result1[]
+    = { 0x6c, 0x1b, 0x07, 0xbc, 0x7b, 0xbc, 0x4b, 0xe3,
+        0x47, 0x93, 0x9a, 0xc4, 0xa9, 0x3c, 0x43, 0x7a, };
   checkHash(input1, result1);
 
-  const char *input2 = "The quick brown fox jumps over the lazy cog";
-  const uint8_t result2[] = {
-    0x9a, 0x26, 0x85, 0xff, 0x70, 0xa9, 0x8c, 0x65,
-    0x3e, 0x5c, 0x8e, 0xa6, 0xea, 0xe3, 0xfe, 0x43,
-  };
+  const unsigned char result2[]
+    = { 0x9a, 0x26, 0x85, 0xff, 0x70, 0xa9, 0x8c, 0x65,
+        0x3e, 0x5c, 0x8e, 0xa6, 0xea, 0xe3, 0xfe, 0x43, };
   checkHash(input2, result2);
 }
 
 /**********************************************************************/
-static void checkChunkName(const char *input, struct uds_record_name expected)
+static void checkRecordName(const char *input, struct uds_record_name expected)
 {
-  struct uds_record_name name = murmurHashChunkName(input, strlen(input), 0);
-  UDS_ASSERT_BLOCKNAME_EQUAL(expected.name, name.name);
+  struct uds_record_name recordName;
+  // Hash with the seed used by VDO.
+  murmurhash3_128(input, strlen(input), 0x62ea60be, &recordName.name);
+  UDS_ASSERT_BLOCKNAME_EQUAL(expected.name, recordName.name);
+  // Make sure hash_record_name produces the same result.
+  recordName = hash_record_name(input, strlen(input));
+  UDS_ASSERT_BLOCKNAME_EQUAL(expected.name, recordName.name);
 }
 
 /**********************************************************************/
-static void testChunkName(void)
+static void testHashRecordName(void)
 {
-  const char *input1 = "The quick brown fox jumps over the lazy dog";
-  static const unsigned char hash1[] = {
-    0x43, 0x79, 0x6d, 0x74, 0xe3, 0x93, 0x86, 0x45,
-    0xc3, 0x89, 0x39, 0x7e, 0x23, 0xfc, 0xfd, 0x54,
-    0xf2, 0x0a, 0xd3, 0x4d, 0x84, 0x5b, 0x70, 0x82,
-    0x8f, 0x91, 0x81, 0x45, 0xa0, 0xb6, 0x6d, 0xda,
+  struct uds_record_name result1 = {
+    {
+      0x43, 0x79, 0x6d, 0x74, 0xe3, 0x93, 0x86, 0x45,
+      0xc3, 0x89, 0x39, 0x7e, 0x23, 0xfc, 0xfd, 0x54,
+    }
   };
-  struct uds_record_name result;
-  memcpy(result.name, hash1, UDS_RECORD_NAME_SIZE);
-  checkChunkName(input1, result);
+  checkRecordName(input1, result1);
 
-  const char *input2 = "The quick brown fox jumps over the lazy cog";
-  static const unsigned char hash2[] = {
+  struct uds_record_name result2 = {
+    {
       0x2d, 0x32, 0x3c, 0x15, 0x21, 0x6c, 0x39, 0xfb,
       0x36, 0x79, 0xfc, 0x8d, 0x07, 0x3c, 0xcd, 0xa6,
-      0xc9, 0xc9, 0x8a, 0x6f, 0xac, 0xeb, 0x78, 0x82,
-      0xac, 0x86, 0xaa, 0x52, 0x99, 0x0b, 0x9c, 0x19,
+    }
   };
-  memcpy(result.name, hash2, UDS_RECORD_NAME_SIZE);
-  checkChunkName(input2, result);
+  checkRecordName(input2, result2);
 }
 
 /**********************************************************************/
-
-static const CU_TestInfo murmurTests[] = {
-  {"MurmurHash3_x64_128", testHash128 },
-  {"murmurHashChunkName", testChunkName },
+static CU_TestInfo murmurTests[] = {
+  {"murmurhash3_128",      testHash128 },
+  {"murmurHashRecordName", testHashRecordName },
   CU_TEST_INFO_NULL,
 };
 

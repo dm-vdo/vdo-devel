@@ -93,7 +93,7 @@ static void throttle(void)
 static void hashChunkCounter(struct uds_record_name *name,
                              unsigned long           counter)
 {
-  *name = murmurHashChunkName(&counter, sizeof(counter), 0);
+  *name = hash_record_name(&counter, sizeof(counter));
 }
 
 /**********************************************************************/

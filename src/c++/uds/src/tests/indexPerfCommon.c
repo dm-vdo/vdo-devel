@@ -40,7 +40,7 @@ void fill(const char               *label,
     for (innerIndex = 0; innerIndex < innerCount; innerIndex++) {
       uint64_t counter = nextBlock(state);
       struct uds_record_name chunkName
-        = murmurHashChunkName(&counter, sizeof(counter), 0);
+        = hash_record_name(&counter, sizeof(counter));
       oldPostBlockName(indexSession, NULL,
                        (struct uds_record_data *) &chunkName,
                        &chunkName, callback);

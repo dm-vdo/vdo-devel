@@ -129,9 +129,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
     GroupRequest *gr = &groupRequests[n];
     gr->group                = group;
     gr->request.callback     = callback;
-    gr->request.record_name  = murmurHashChunkName(&counter,
-                                                   sizeof(counter),
-                                                   0);
+    gr->request.record_name  = hash_record_name(&counter, sizeof(counter));
     gr->request.session      = testIndex->indexSession;
     gr->request.new_metadata = group->newMetadata;
     gr->request.type         = type;
