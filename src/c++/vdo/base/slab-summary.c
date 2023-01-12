@@ -133,7 +133,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	int result;
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_summary_zone,
-				       summary->blocks_per_zone,
+				       VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE,
 				       struct slab_summary_block,
 				       __func__,
 				       &summary->zones[zone_number]);
@@ -148,7 +148,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	vdo_set_admin_state_code(&summary_zone->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	/* Initialize each block. */
-	for (i = 0; i < summary->blocks_per_zone; i++) {
+	for (i = 0; i < VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE; i++) {
 		result = initialize_slab_summary_block(vdo,
 						       summary_zone,
 						       entries,
@@ -156,7 +156,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 						       &summary_zone->summary_blocks[i]);
 		if (result != VDO_SUCCESS)
 			return result;
-		entries += summary->entries_per_block;
+		entries += VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK;
 	}
 
 	return VDO_SUCCESS;
@@ -186,15 +186,10 @@ int vdo_make_slab_summary(struct vdo *vdo,
 	size_t total_entries, i;
 	u8 hint;
 	zone_count_t zone;
-	// FIXME replace the corresponding fields with these constants
-	block_count_t blocks_per_zone = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE;
-	slab_count_t entries_per_block = VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK;
 	int result;
 
-	result = ASSERT((entries_per_block * blocks_per_zone) == MAX_VDO_SLABS,
-			"block size must be a multiple of entry size");
-	if (result != VDO_SUCCESS)
-		return result;
+	/* block size must be a multiple of entry size */
+	STATIC_ASSERT((VDO_BLOCK_SIZE % sizeof(struct slab_summary_entry)) == 0);
 
 	if (partition == NULL)
 		/* Don't make a slab summary for the formatter since it doesn't need it. */
@@ -211,8 +206,6 @@ int vdo_make_slab_summary(struct vdo *vdo,
 	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
 	summary->hint_shift = vdo_get_slab_summary_hint_shift(slab_size_shift);
-	summary->blocks_per_zone = blocks_per_zone;
-	summary->entries_per_block = entries_per_block;
 
 	total_entries = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES;
 	result = UDS_ALLOCATE(total_entries,
@@ -267,7 +260,7 @@ static void free_summary_zone(struct slab_summary_zone *zone)
 	if (zone == NULL)
 		return;
 
-	for (i = 0; i < zone->summary->blocks_per_zone; i++) {
+	for (i = 0; i < VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE; i++) {
 		free_vio(UDS_FORGET(zone->summary_blocks[i].vio));
 		UDS_FREE(UDS_FORGET(zone->summary_blocks[i].outgoing_entries));
 	}
@@ -411,15 +404,15 @@ static void launch_write(struct slab_summary_block *block)
 		return;
 	}
 
-	memcpy(block->outgoing_entries,
-	       block->entries,
-	       sizeof(struct slab_summary_entry) * summary->entries_per_block);
+	memcpy(block->outgoing_entries, block->entries, VDO_BLOCK_SIZE);
 
 	/*
 	 * Flush before writing to ensure that the slab journal tail blocks and reference updates
 	 * covered by this summary update are stable (VDO-2332).
 	 */
-	pbn = summary->origin + (summary->blocks_per_zone * zone->zone_number) + block->index;
+	pbn = (summary->origin +
+	       (VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * zone->zone_number) +
+	       block->index);
 	submit_metadata_vio(block->vio,
 			    pbn,
 			    write_slab_summary_endio,
@@ -474,8 +467,7 @@ void vdo_resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 static struct slab_summary_block *
 get_summary_block_for_slab(struct slab_summary_zone *summary_zone, slab_count_t slab_number)
 {
-	return &summary_zone->summary_blocks[slab_number /
-					     summary_zone->summary->entries_per_block];
+	return &summary_zone->summary_blocks[slab_number / VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK];
 }
 
 /**
@@ -726,19 +718,17 @@ void vdo_load_slab_summary(struct slab_summary *summary,
 			   struct vdo_completion *parent)
 {
 	struct vio *vio;
-	block_count_t blocks;
 	int result;
 	struct slab_summary_zone *zone = summary->zones[0];
 
 	if (!vdo_start_loading(&zone->state, operation, parent, NULL))
 		return;
 
-	blocks = summary->blocks_per_zone * MAX_VDO_PHYSICAL_ZONES;
 	result = create_multi_block_metadata_vio(parent->vdo,
 						 VIO_TYPE_SLAB_SUMMARY,
 						 VIO_PRIORITY_METADATA,
 						 summary,
-						 blocks,
+						 VDO_SLAB_SUMMARY_BLOCKS,
 						 (char *) summary->entries,
 						 &vio);
 	if (result != VDO_SUCCESS) {

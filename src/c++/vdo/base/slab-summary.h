@@ -100,10 +100,6 @@ struct slab_summary {
 	physical_block_number_t origin;
 	/* The number of bits to shift to get a 7-bit fullness hint */
 	unsigned int hint_shift;
-	/* The number of blocks (calculated based on MAX_VDO_SLABS) */
-	block_count_t blocks_per_zone;
-	/* The number of slabs per block (calculated from block size) */
-	slab_count_t entries_per_block;
 	/* The entries for all of the zones the partition can hold */
 	struct slab_summary_entry *entries;
 	/* The number of zones which were active at the time of the last update */
