@@ -6,8 +6,9 @@
 #ifndef POINTER_MAP_H
 #define POINTER_MAP_H
 
+#include <linux/types.h>
+
 #include "compiler.h"
-#include "type-defs.h"
 
 /*
  * A pointer_map associates pointer values (<code>void *</code>) with the data referenced by

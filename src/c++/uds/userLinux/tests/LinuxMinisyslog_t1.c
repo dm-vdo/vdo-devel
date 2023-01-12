@@ -21,7 +21,6 @@
 #include "memory-alloc.h"
 #include "minisyslog.h"
 #include "processManager.h"
-#include "type-defs.h"
 
 static char timeBuffer[24];
 

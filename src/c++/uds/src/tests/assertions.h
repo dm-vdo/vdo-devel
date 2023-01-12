@@ -6,6 +6,8 @@
 #ifndef ASSERTIONS_H
 #define ASSERTIONS_H
 
+#include <linux/types.h>
+
 #include "compiler.h"
 #include "cpu.h"
 #include "errors.h"

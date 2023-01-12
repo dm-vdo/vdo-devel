@@ -7,7 +7,6 @@
 #define EVENT_COUNT_H
 
 #include "time-utils.h"
-#include "type-defs.h"
 
 /*
  * An event count is a lock-free equivalent of a condition variable.

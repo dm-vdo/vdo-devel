@@ -3,6 +3,7 @@
  * Copyright Red Hat
  */
 
+#include <linux/bits.h>
 #include <linux/random.h>
 
 #include "albtest.h"
@@ -11,7 +12,6 @@
 #include "memory-alloc.h"
 #include "random.h"
 #include "testPrototypes.h"
-#include "type-defs.h"
 
 static const unsigned int MEAN_DELTA = 4096;
 static const unsigned int NUM_PAYLOAD_BITS = 10;

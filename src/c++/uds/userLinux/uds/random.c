@@ -4,10 +4,9 @@
  */
 
 #include <linux/random.h>
+#include <linux/types.h>
 
 #include "random.h"
-
-#include "type-defs.h"
 
 void get_random_bytes(void *buffer, size_t byte_count)
 {

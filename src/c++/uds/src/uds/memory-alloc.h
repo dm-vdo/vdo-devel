@@ -19,7 +19,6 @@
 #ifdef __KERNEL__
 #include "thread-registry.h"
 #endif
-#include "type-defs.h"
 
 /* Custom memory allocation functions for UDS that track memory usage */
 

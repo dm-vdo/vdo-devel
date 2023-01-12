@@ -16,7 +16,6 @@
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"
-#include "type-defs.h"
 
 enum {
   READ         = 0,

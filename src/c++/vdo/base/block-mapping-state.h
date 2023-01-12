@@ -6,8 +6,6 @@
 #ifndef BLOCK_MAPPING_STATE_H
 #define BLOCK_MAPPING_STATE_H
 
-#include "type-defs.h"
-
 /*
  * Four bits of each five-byte block map entry contain a mapping state value used to distinguish
  * unmapped or trimmed logical blocks (which are treated as mapped to the zero block) from entries

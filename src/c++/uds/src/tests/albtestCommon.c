@@ -10,7 +10,6 @@
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
-#include "type-defs.h"
 
 int          testArgc;
 const char **testArgv;

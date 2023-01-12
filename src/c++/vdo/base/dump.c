@@ -8,7 +8,6 @@
 #include <linux/module.h>
 
 #include "memory-alloc.h"
-#include "type-defs.h"
 
 #include "constants.h"
 #include "data-vio.h"

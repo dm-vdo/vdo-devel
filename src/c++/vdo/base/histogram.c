@@ -6,7 +6,6 @@
 #include <linux/kobject.h>
 
 #include "memory-alloc.h"
-#include "type-defs.h"
 #include "permassert.h"
 
 #include "histogram.h"

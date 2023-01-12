@@ -7,7 +7,6 @@
 #define WAIT_QUEUE_H
 
 #include "compiler.h"
-#include "type-defs.h"
 
 /**
  * DOC: Wait queues.

@@ -14,7 +14,6 @@
 
 #include "common.h"
 #include "compiler.h"
-#include "type-defs.h"
 
 /**
  * Determine whether or not the given path is a directory

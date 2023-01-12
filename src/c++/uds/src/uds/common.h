@@ -7,7 +7,6 @@
 #define COMMON_H
 
 #include "string-utils.h"
-#include "type-defs.h"
 #include "uds.h"
 
 enum {

@@ -6,6 +6,8 @@
 #ifndef BLOCK_MAP_ENTRY_H
 #define BLOCK_MAP_ENTRY_H
 
+#include <linux/limits.h>
+
 #include "block-mapping-state.h"
 #include "constants.h"
 #include "numeric.h"

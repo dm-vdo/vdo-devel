@@ -16,7 +16,6 @@
 #endif
 
 #include "compiler.h"
-#include "type-defs.h"
 
 /* Utilities related to string manipuation */
 

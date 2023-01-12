@@ -7,7 +7,6 @@
 #define SPARSE_CACHE_H
 
 #include "geometry.h"
-#include "type-defs.h"
 #include "uds.h"
 
 /*

@@ -9,9 +9,8 @@
 #ifndef PROCESS_MANAGER_H
 #define PROCESS_MANAGER_H
 
+#include <linux/types.h>
 #include <stdio.h>
-
-#include "type-defs.h"
 
 /**
  * Fork a child process and add it to the list of managed processes.

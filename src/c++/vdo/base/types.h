@@ -6,8 +6,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <linux/types.h>
+
 #include "compiler.h"
-#include "type-defs.h"
 
 #include "block-mapping-state.h"
 

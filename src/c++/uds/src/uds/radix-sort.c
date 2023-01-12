@@ -5,10 +5,12 @@
 
 #include "radix-sort.h"
 
+#include <linux/limits.h>
+#include <linux/types.h>
+
 #include "compiler.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
-#include "type-defs.h"
 
 /*
  * This implementation allocates one large object to do the sorting, which can be reused as many

@@ -7,7 +7,6 @@
 #define REQUEST_QUEUE_H
 
 #include "compiler.h"
-#include "type-defs.h"
 #include "uds.h"
 
 /*

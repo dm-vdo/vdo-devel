@@ -8,7 +8,6 @@
 
 #include "albtest.h"
 #include "time-utils.h"
-#include "type-defs.h"
 
 typedef struct testResult {
   const char        *name;

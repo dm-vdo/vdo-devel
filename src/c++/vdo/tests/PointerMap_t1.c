@@ -8,6 +8,7 @@
 
 #include "albtest.h"
 
+#include <linux/limits.h>
 #include <linux/random.h>
 #include <stdlib.h>
 

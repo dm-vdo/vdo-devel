@@ -168,7 +168,6 @@ tarballs:
             sparse-cache.[hc]
             string-utils.[hc]
             time-utils.h
-            type-defs.h
             uds.h
             uds-threads.h
             volume.[hc]
@@ -209,6 +208,7 @@ tarballs:
             cache.h
             compiler_attributes.h
             dm-bufio.h
+            limits.h
             log2.h
             random.h
             types.h
@@ -416,7 +416,6 @@ tarballs:
             string-utils.c
             string-utils.h
             time-utils.h
-            type-defs.h
             uds.h
             uds-threads.h
             volume.c

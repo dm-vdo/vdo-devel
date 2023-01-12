@@ -10,9 +10,8 @@
 #ifdef __KERNEL__
 #include <asm/rwonce.h>
 #include <linux/compiler.h>
-#else
-#include "type-defs.h"
 #endif
+#include <linux/types.h>
 
 #ifndef __KERNEL__
 /*

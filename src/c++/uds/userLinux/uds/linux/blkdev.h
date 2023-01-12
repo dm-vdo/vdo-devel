@@ -12,7 +12,6 @@
 #include <linux/types.h>
 
 #include "compiler.h"
-#include "type-defs.h"
 
 #define SECTOR_SHIFT 9
 #define SECTOR_SIZE 512

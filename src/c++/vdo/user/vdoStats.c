@@ -4,6 +4,7 @@
  * %LICENSE%
  */
 
+#include <linux/limits.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -420,7 +421,7 @@ static void enumerate_devices(void)
   if (pathCount == 0) {
     errx(1, "Could not find any VDO devices");
   }
-  
+
   result = UDS_ALLOCATE(pathCount, struct vdoPath, __func__, &vdoPaths);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate vdo path structure");

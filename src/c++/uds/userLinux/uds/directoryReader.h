@@ -12,7 +12,6 @@
 #include <dirent.h>
 
 #include "common.h"
-#include "type-defs.h"
 
 /*
  * A function which processes directory entries. It's arguments are a

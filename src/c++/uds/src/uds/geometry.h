@@ -7,7 +7,6 @@
 #define GEOMETRY_H 1
 
 #include "compiler.h"
-#include "type-defs.h"
 #include "uds.h"
 
 /*

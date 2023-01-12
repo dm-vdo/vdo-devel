@@ -9,8 +9,6 @@
 #ifndef MODLOADER_H
 #define MODLOADER_H
 
-#include "type-defs.h"
-
 struct module {
 	void *handle;        // Module handle as returned from dlopen
 	void *params;        // Opaque structure returned from init

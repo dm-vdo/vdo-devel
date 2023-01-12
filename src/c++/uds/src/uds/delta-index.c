@@ -4,6 +4,8 @@
  */
 #include "delta-index.h"
 
+#include <linux/bits.h>
+#include <linux/limits.h>
 #include <linux/log2.h>
 
 #include "buffer.h"
@@ -16,7 +18,6 @@
 #include "permassert.h"
 #include "string-utils.h"
 #include "time-utils.h"
-#include "type-defs.h"
 #include "uds.h"
 
 /*

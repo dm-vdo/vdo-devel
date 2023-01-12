@@ -11,7 +11,6 @@
 #include "open-chapter.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
-#include "type-defs.h"
 
 static const unsigned            CHAPTER_COUNT = 16;
 static struct configuration     *conf;

@@ -9,7 +9,6 @@
 #include <linux/cache.h>
 
 #include "compiler.h"
-#include "type-defs.h"
 
 /**
  * Minimize cache-miss latency by moving data into a CPU cache before it is accessed.

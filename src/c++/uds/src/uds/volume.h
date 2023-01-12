@@ -9,6 +9,7 @@
 #include <linux/atomic.h>
 #include <linux/cache.h>
 #include <linux/dm-bufio.h>
+#include <linux/limits.h>
 
 #include "chapter-index.h"
 #include "common.h"

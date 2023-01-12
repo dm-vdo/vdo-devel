@@ -6,7 +6,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "type-defs.h"
+#include <linux/types.h>
 
 /**
  * typedef heap_comparator - Prototype for functions which compare two array elements.

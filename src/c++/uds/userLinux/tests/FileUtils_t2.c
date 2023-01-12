@@ -13,7 +13,6 @@
 #include "assertions.h"
 #include "fileUtils.h"
 #include "memory-alloc.h"
-#include "type-defs.h"
 
 /**********************************************************************/
 static void testAbsolutePath(void)

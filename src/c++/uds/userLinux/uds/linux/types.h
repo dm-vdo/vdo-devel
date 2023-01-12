@@ -10,7 +10,11 @@
  * General system type definitions.
  */
 
+#include <stddef.h>
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 typedef int8_t s8;
 typedef uint8_t u8;
@@ -41,5 +45,8 @@ typedef __u64 __bitwise __be64;
 typedef unsigned int fmode_t;
 #define FMODE_READ (fmode_t) 0x1
 #define FMODE_WRITE (fmode_t) 0x2
+
+typedef int pid_t;
+typedef u64 sector_t;
 
 #endif /* UDS_LINUX_TYPES_H */

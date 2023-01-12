@@ -3,6 +3,7 @@
  * Copyright Red Hat
  */
 
+#include <linux/types.h>
 #include <errno.h>
 #include <string.h>
 

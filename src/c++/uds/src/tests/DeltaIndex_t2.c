@@ -3,6 +3,7 @@
  * Copyright Red Hat
  */
 
+#include <linux/bits.h>
 #include <linux/cache.h>
 
 #include "albtest.h"

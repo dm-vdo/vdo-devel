@@ -7,7 +7,6 @@
 #define TIME_UTILS_H
 
 #include "compiler.h"
-#include "type-defs.h"
 
 #ifdef __KERNEL__
 #include <linux/ktime.h>

@@ -7,7 +7,6 @@
 #define ALBTEST_H
 
 #include "compiler.h"
-#include "type-defs.h"
 #include "uds.h"
 
 typedef struct {

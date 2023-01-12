@@ -4,8 +4,10 @@
  */
 #include "volume-index.h"
 
+#include <linux/bits.h>
 #include <linux/cache.h>
 #include <linux/log2.h>
+#include <linux/limits.h>
 
 #include "buffer.h"
 #include "compiler.h"

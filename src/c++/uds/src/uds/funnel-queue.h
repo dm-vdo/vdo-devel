@@ -11,7 +11,6 @@
 
 #include "compiler.h"
 #include "cpu.h"
-#include "type-defs.h"
 
 /*
  * A funnel queue is a simple (almost) lock-free queue that accepts entries from multiple threads

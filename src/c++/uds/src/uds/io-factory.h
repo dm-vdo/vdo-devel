@@ -8,8 +8,6 @@
 
 #include <linux/dm-bufio.h>
 
-#include "type-defs.h"
-
 /*
  * The I/O factory manages all low-level I/O operations to the underlying storage device. Its main
  * clients are the index layout and the volume. The buffered reader and buffered writer interfaces

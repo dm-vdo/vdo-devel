@@ -14,7 +14,6 @@
 #include "io-factory.h"
 #include "numeric.h"
 #include "time-utils.h"
-#include "type-defs.h"
 
 /*
  * A delta index is a key-value store, where each entry maps an address (the key) to a payload (the

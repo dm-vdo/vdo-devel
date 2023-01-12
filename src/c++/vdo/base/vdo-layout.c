@@ -21,6 +21,7 @@ dm_kcopyd_client_destroy(struct dm_kcopyd_client *kc __always_unused)
 {
 }
 #endif // KERNEL || TEST_INTERNAL
+#include <linux/limits.h>
 
 #include "logger.h"
 #include "memory-alloc.h"

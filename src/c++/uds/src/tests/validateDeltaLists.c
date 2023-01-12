@@ -3,6 +3,8 @@
  * Copyright Red Hat
  */
 
+#include <linux/bits.h>
+
 #include "assertions.h"
 #include "delta-index.h"
 #include "testPrototypes.h"
