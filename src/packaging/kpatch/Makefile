@@ -4,22 +4,26 @@
 #
 # make prepare:
 #
-#   This prepares UDS and VDO sources for adding to the linux sources.
-#   This will leave massaged source files in
+#   This prepares VDO and UDS sources for adding to the linux source
+#   tree.  This will leave massaged source files in
 #   work/kvdo-$(VDO_MARKETING_VERSION)/vdo.
+#
+# make check-style:
+#
+#   This checks the prepared sources against the kernel coding style
+#   using checkpatch.pl and checkincludes.pl from the kernel scripts
+#   directory.
 #
 # make overlay:
 #
-#   This will copy the massaged sources into the linux source tree and
-#   generate a VDO Makefile. A Kconfig file will be added and linked
-#   into drivers/md/Kconfig. Documentation files will be dropped into
-#   place. And the VDO directory will be added to
+#   This copies the massaged sources and the documentation into the
+#   linux source tree and updates drivers/md/Kconfig and
 #   drivers/md/Makefile. It does not attempt to clean the linux source
-#   tree before doing its work; the 'linuxclean' target will do that.
+#   tree before doing its work; the 'linux_clean' target will do that.
 #
 # make kpatch:
 #
-#   This will generate the patch itself.
+#   This generates the patch itself.
 #
 # Linux source tree maintenance targets:
 #
@@ -104,14 +108,18 @@ CHECKPATCH_REGRESSIONS = $(shell echo '$(strip $(CHECKPATCH_FIXED))' \
 							| tr ' ' '|')
 
 #
-# Location of the Linux distribution and subdirectories of interest
+# Location of the Linux source tree and subdirectories of interest
 #
 LINUX_GITHUB_URL=https://github.com/torvalds/linux
 LINUX_DOC_SRC=$(LINUX_SRC)/Documentation/admin-guide/device-mapper
 LINUX_MD_SRC=$(LINUX_SRC)/drivers/md
 LINUX_VDO_SRC=$(LINUX_MD_SRC)/dm-vdo
 
-CLEAN_FILES = prepare.out checkpatch.out $(WORK_DIR)
+ifdef LINUX_SRC
+LINUX_BRANCH = $(shell cd $(LINUX_SRC) && $(GIT) branch --show-current) 
+endif
+
+CLEAN_FILES = prepare.out checkpatch.out checkincludes.out $(WORK_DIR)
 
 .PHONY: all
 all:
@@ -120,7 +128,7 @@ all:
 
 .PHONY: clean
 clean:
-	$(RM) -r $(CLEAN_FILES)
+	$(RM) -rf $(CLEAN_FILES)
 
 prepare: prepare.out
 
@@ -146,8 +154,8 @@ checkpatch: checkpatch.out
 # CHECKPATCH_IGNORE contains types we have no immediate intention of fixing.
 # Ignore NEW_TYPEDEFS because some of our typedefs are justifiable
 CHECKPATCH_IGNORE_TYPES = NEW_TYPEDEFS \
-						  PREFER_PR_LEVEL \
-						  VSPRINTF_SPECIFIER_PX
+			  PREFER_PR_LEVEL \
+			  VSPRINTF_SPECIFIER_PX
 CHECKPATCH_IGNORE = $(shell echo '$(strip $(CHECKPATCH_IGNORE_TYPES))' \
 						| tr ' ' ',')
 CHECKPATCH_ARGS := --no-tree --file --terse --show-types --color=never
@@ -174,17 +182,26 @@ checkincludes: checkincludes.out
 
 .PHONY: overlay overlay_vdo
 overlay overlay_vdo:
+	rm -rf $(LINUX_VDO_SRC)
 	mkdir -p $(LINUX_VDO_SRC)
 	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
 	sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "$(VDO_VERSION)"/' \
 		$(LINUX_VDO_SRC)/dm-vdo-target.c
 	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
 	mv $(LINUX_VDO_SRC)/linux/murmurhash3.h $(LINUX_SRC)/include/linux/
+
+	# Update Kconfig and Makefile against the master branch, not
+	# a different branch such as the vdo-devel branch
+	cd $(LINUX_SRC) && \
+		git restore --source origin/master $(LINUX_MD_SRC)/Kconfig && \
+		git restore --source origin/master $(LINUX_MD_SRC)/Makefile
+
 	grep -q DM_VDO $(LINUX_MD_SRC)/Makefile || \
 		patch -p3 $(LINUX_MD_SRC)/Makefile <Makefile.patch
 
 	grep -q DM_VDO $(LINUX_MD_SRC)/Kconfig || \
 		patch -p3 $(LINUX_MD_SRC)/Kconfig <Kconfig.patch
+
 	cp -f $(VDO_DOC) $(LINUX_DOC_SRC)/
 
 #
@@ -199,10 +216,11 @@ linux_clone:
 linux_update:
 	cd $(LINUX_SRC) && $(GIT) $(GITARGS) pull
 
-.PHONY: linux_clean
-linux_clean:
-	cd $(LINUX_SRC) && $(GIT) $(GITARGS) reset --hard origin/master \
-	&& $(GIT) $(GITARGS) clean -f .
+.PHONY: linux-clean linux_clean
+linux-clean linux_clean:
+	cd $(LINUX_SRC) && \
+	  $(GIT) reset --hard origin/$(LINUX_BRANCH) && \
+	  $(GIT) clean -f .
 
 .PHONY: kpatch
 kpatch:
