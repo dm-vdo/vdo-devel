@@ -161,8 +161,7 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
 }
 
 /**
- * vdo_destroy_component_states() - Clean up any allocations in a
- *                                  vdo_component_states.
+ * vdo_destroy_component_states() - Clean up any allocations in a vdo_component_states.
  * @states: The component states to destroy.
  */
 void vdo_destroy_component_states(struct vdo_component_states *states)
@@ -174,8 +173,8 @@ void vdo_destroy_component_states(struct vdo_component_states *states)
 }
 
 /**
- * decode_components() - Decode the components now that we know the component
- *                       data is a version we understand.
+ * decode_components() - Decode the components now that we know the component data is a version we
+ *                       understand.
  * @buffer: The buffer being decoded.
  * @states: An object to hold the successfully decoded state.
  *
@@ -184,8 +183,9 @@ void vdo_destroy_component_states(struct vdo_component_states *states)
 static int __must_check
 decode_components(struct buffer *buffer, struct vdo_component_states *states)
 {
-	int result = vdo_decode_component(buffer, &states->vdo);
+	int result;
 
+	result = vdo_decode_component(buffer, &states->vdo);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -193,8 +193,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_decode_recovery_journal_state_7_0(buffer,
-						       &states->recovery_journal);
+	result = vdo_decode_recovery_journal_state_7_0(buffer, &states->recovery_journal);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -206,8 +205,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	ASSERT_LOG_ONLY((content_length(buffer) == 0),
-			"All decoded component data was used");
+	ASSERT_LOG_ONLY((content_length(buffer) == 0), "All decoded component data was used");
 	return VDO_SUCCESS;
 }
 
@@ -241,9 +239,7 @@ int vdo_decode_component_states(struct buffer *buffer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_validate_version(VDO_VOLUME_VERSION_67_0,
-				      states->volume_version,
-				      "volume");
+	result = vdo_validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version, "volume");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -257,13 +253,12 @@ int vdo_decode_component_states(struct buffer *buffer,
 }
 
 /**
- * vdo_validate_component_states() - Validate the decoded super block
- *                                   configuration.
+ * vdo_validate_component_states() - Validate the decoded super block configuration.
  * @states: The state decoded from the super block.
  * @geometry_nonce: The nonce from the geometry block.
  * @physical_size: The minimum block count of the underlying storage.
- * @logical_size: The expected logical size of the VDO, or 0 if the
- *                logical size may be unspecified.
+ * @logical_size: The expected logical size of the VDO, or 0 if the logical size may be
+ *                unspecified.
  *
  * Return: VDO_SUCCESS or an error if the configuration is invalid.
  */
@@ -278,9 +273,7 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 					      (unsigned long long) geometry_nonce,
 					      (unsigned long long) states->vdo.nonce);
 
-	return vdo_validate_config(&states->vdo.config,
-				   physical_size,
-				   logical_size);
+	return vdo_validate_config(&states->vdo.config, physical_size, logical_size);
 }
 
 /**
@@ -301,17 +294,17 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 }
 
 /**
- * vdo_encode_component_states() - Encode the state of all vdo components for
- *                                 writing in the super block.
+ * vdo_encode_component_states() - Encode the state of all vdo components for writing in the super
+ *                                 block.
  * @buffer: The buffer to encode into.
  * @states: The states to encode.
  */
-int vdo_encode_component_states(struct buffer *buffer,
-				const struct vdo_component_states *states)
+int vdo_encode_component_states(struct buffer *buffer, const struct vdo_component_states *states)
 {
 	size_t expected_size;
-	int result = reset_buffer_end(buffer, 0);
+	int result;
 
+	result = reset_buffer_end(buffer, 0);
 	if (result != UDS_SUCCESS)
 		return result;
 

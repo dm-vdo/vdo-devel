@@ -21,10 +21,7 @@ struct vdo_config {
 	block_count_t slab_journal_blocks; /* number of slab journal blocks */
 };
 
-/*
- * This is the structure that captures the vdo fields saved as a super block
- * component.
- */
+/* This is the structure that captures the vdo fields saved as a super block component. */
 struct vdo_component {
 	enum vdo_state state;
 	u64 complete_recoveries;

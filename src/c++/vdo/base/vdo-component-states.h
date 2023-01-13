@@ -108,18 +108,14 @@ enum {
 };
 
 /*
- * The version of the on-disk format of a VDO volume. This should be
- * incremented any time the on-disk representation of any VDO structure
- * changes. Changes which require only online upgrade steps should increment
- * the minor version. Changes which require an offline upgrade or which can not
- * be upgraded to at all should increment the major version and set the minor
- * version to 0.
+ * The version of the on-disk format of a VDO volume. This should be incremented any time the
+ * on-disk representation of any VDO structure changes. Changes which require only online upgrade
+ * steps should increment the minor version. Changes which require an offline upgrade or which can
+ * not be upgraded to at all should increment the major version and set the minor version to 0.
  */
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
 
-/*
- * The entirety of the component data encoded in the VDO super block.
- */
+/* The entirety of the component data encoded in the VDO super block. */
 struct vdo_component_states {
 	/* The release version */
 	release_version_number_t release_version;
@@ -262,15 +258,12 @@ vdo_validate_component_states(struct vdo_component_states *states,
 			      block_count_t logical_size);
 
 /**
- * vdo_encode() - Encode a VDO super block into a buffer for writing in the
- *                super block.
+ * vdo_encode() - Encode a VDO super block into a buffer for writing in the super block.
  * @buffer: The buffer to encode into.
  * @states: The states of the vdo to be encoded.
  */
-int __must_check
-vdo_encode(struct buffer *buffer, struct vdo_component_states *states);
+int __must_check vdo_encode(struct buffer *buffer, struct vdo_component_states *states);
 
-int vdo_encode_component_states(struct buffer *buffer,
-				const struct vdo_component_states *states);
+int vdo_encode_component_states(struct buffer *buffer, const struct vdo_component_states *states);
 
 #endif /* VDO_COMPONENT_STATES_H */
