@@ -339,68 +339,6 @@ vdo_get_recovery_journal_logical_blocks_used(const struct recovery_journal *jour
 struct recovery_journal_statistics __must_check
 vdo_get_recovery_journal_statistics(const struct recovery_journal *journal);
 
-/**
- * vdo_get_recovery_journal_block_header() - Get the block header for a block at a position in the
- *                                           journal data.
- * @journal: The recovery journal.
- * @journal_data: The recovery journal data.
- * @sequence: The sequence number.
- *
- * Return: A pointer to a packed recovery journal block header.
- */
-static inline struct packed_journal_header * __must_check
-vdo_get_recovery_journal_block_header(struct recovery_journal *journal,
-				      char *journal_data,
-				      sequence_number_t sequence)
-{
-	off_t block_offset =
-		(vdo_get_recovery_journal_block_number(journal, sequence) * VDO_BLOCK_SIZE);
-
-	return (struct packed_journal_header *) &journal_data[block_offset];
-}
-
-/**
- * vdo_is_valid_recovery_journal_block() - Determine whether the given header describes a valid
- *                                         block for the given journal.
- * @journal: The journal to use.
- * @header: The unpacked block header to check.
- *
- * A block is not valid if it is unformatted, or if it is older than the last successful recovery
- * or reformat.
- *
- * Return: True if the header is valid.
- */
-static inline bool __must_check
-vdo_is_valid_recovery_journal_block(const struct recovery_journal *journal,
-				    const struct recovery_block_header *header)
-{
-	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL) &&
-		(header->nonce == journal->nonce) &&
-		(header->recovery_count == journal->recovery_count));
-}
-
-/**
- * vdo_is_exact_recovery_journal_block() - Determine whether the given header describes the exact
- *                                         block indicated.
- * @journal: The journal to use.
- * @header: The unpacked block header to check.
- * @sequence: The expected sequence number.
- *
- * Return: True if the block matches.
- */
-static inline bool __must_check
-vdo_is_exact_recovery_journal_block(const struct recovery_journal *journal,
-				    const struct recovery_block_header *header,
-				    sequence_number_t sequence)
-{
-	return ((header->sequence_number == sequence) &&
-		vdo_is_valid_recovery_journal_block(journal, header));
-}
-
-void vdo_load_recovery_journal(struct recovery_journal *journal,
-			       struct vdo_completion *parent,
-			       char **journal_data_ptr);
-
 void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal);
 
 #ifdef INTERNAL

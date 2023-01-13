@@ -217,6 +217,63 @@ static bool __must_check is_replaying(const struct vdo *vdo)
 }
 
 /**
+ * get_recovery_journal_block_header() - Get the block header for a block at a position in the
+ *                                       journal data.
+ * @journal: The recovery journal.
+ * @journal_data: The recovery journal data.
+ * @sequence: The sequence number.
+ *
+ * Return: A pointer to a packed recovery journal block header.
+ */
+static struct packed_journal_header * __must_check
+get_recovery_journal_block_header(struct recovery_journal *journal,
+				  char *journal_data,
+				  sequence_number_t sequence)
+{
+	physical_block_number_t pbn = vdo_get_recovery_journal_block_number(journal, sequence);
+
+	return (struct packed_journal_header *) &journal_data[pbn * VDO_BLOCK_SIZE];
+}
+
+/**
+ * is_valid_recovery_journal_block() - Determine whether the given header describes a valid block
+ *                                     for the given journal.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
+ *
+ * A block is not valid if it is unformatted, or if it is older than the last successful recovery
+ * or reformat.
+ *
+ * Return: True if the header is valid.
+ */
+static inline bool __must_check
+is_valid_recovery_journal_block(const struct recovery_journal *journal,
+				const struct recovery_block_header *header)
+{
+	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL) &&
+		(header->nonce == journal->nonce) &&
+		(header->recovery_count == journal->recovery_count));
+}
+
+/**
+ * is_exact_recovery_journal_block() - Determine whether the given header describes the exact block
+ *                                     indicated.
+ * @journal: The journal to use.
+ * @header: The unpacked block header to check.
+ * @sequence: The expected sequence number.
+ *
+ * Return: True if the block matches.
+ */
+static inline bool __must_check
+is_exact_recovery_journal_block(const struct recovery_journal *journal,
+				const struct recovery_block_header *header,
+				sequence_number_t sequence)
+{
+	return ((header->sequence_number == sequence) &&
+		is_valid_recovery_journal_block(journal, header));
+}
+
+/**
  * is_congruent_recovery_journal_block() - Determine whether the given header describes a valid
  *                                         block for the given journal that could appear at the
  *                                         given offset in the journal.
@@ -234,8 +291,7 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 	physical_block_number_t expected_offset =
 		vdo_get_recovery_journal_block_number(journal, header->sequence_number);
 
-	return ((expected_offset == offset) &&
-		vdo_is_valid_recovery_journal_block(journal, header));
+	return ((expected_offset == offset) && is_valid_recovery_journal_block(journal, header));
 }
 
 /**
@@ -266,9 +322,9 @@ static bool find_recovery_journal_head_and_tail(struct recovery_journal *journal
 	physical_block_number_t i;
 
 	for (i = 0; i < journal->size; i++) {
-		struct packed_journal_header *packed_header =
-			vdo_get_recovery_journal_block_header(journal, journal_data, i);
 		struct recovery_block_header header;
+		struct packed_journal_header *packed_header =
+			get_recovery_journal_block_header(journal, journal_data, i);
 
 		vdo_unpack_recovery_block_header(packed_header, &header);
 		if (!is_congruent_recovery_journal_block(journal, &header, i))
@@ -750,7 +806,7 @@ static void add_synthesized_entries(struct vdo_completion *completion)
 static noinline int compute_usages(struct recovery_completion *recovery)
 {
 	/*
-	 * XXX VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
+	 * VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
 	 * error about this structure being uninitialized.
 	 */
 	struct recovery_point recovery_point = {
@@ -760,9 +816,7 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 	};
 	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
 	struct packed_journal_header *tail_header =
-		vdo_get_recovery_journal_block_header(journal,
-						      recovery->journal_data,
-						      recovery->tail);
+		get_recovery_journal_block_header(journal, recovery->journal_data, recovery->tail);
 	struct recovery_block_header unpacked;
 
 	vdo_unpack_recovery_block_header(tail_header, &unpacked);
@@ -1239,12 +1293,12 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			.entry_count = 0,
 		};
 
-		packed_header = vdo_get_recovery_journal_block_header(journal,
-								      recovery->journal_data,
-								      i);
+		packed_header = get_recovery_journal_block_header(journal,
+								  recovery->journal_data,
+								  i);
 		vdo_unpack_recovery_block_header(packed_header, &header);
 
-		if (!vdo_is_exact_recovery_journal_block(journal, &header, i) ||
+		if (!is_exact_recovery_journal_block(journal, &header, i) ||
 		    (header.entry_count > journal->entries_per_block))
 			/* A bad block header was found so this must be the end of the journal. */
 			break;
@@ -1970,13 +2024,13 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 
 	for (i = first; i <= last; i++) {
 		struct packed_journal_header *packed_header =
-			vdo_get_recovery_journal_block_header(journal, rebuild->journal_data, i);
+			get_recovery_journal_block_header(journal, rebuild->journal_data, i);
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		u8 j;
 
 		vdo_unpack_recovery_block_header(packed_header, &header);
-		if (!vdo_is_exact_recovery_journal_block(journal, &header, i))
+		if (!is_exact_recovery_journal_block(journal, &header, i))
 			/* This block is invalid, so skip it. */
 			continue;
 
