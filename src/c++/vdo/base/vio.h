@@ -21,9 +21,7 @@ enum {
 	MAX_BLOCKS_PER_VIO = (BIO_MAX_VECS << PAGE_SHIFT) / VDO_BLOCK_SIZE,
 };
 
-/*
- * vio types for statistics and instrumentation.
- */
+/* vio types for statistics and instrumentation. */
 enum vio_type {
 	VIO_TYPE_UNINITIALIZED = 0,
 	VIO_TYPE_DATA,
@@ -41,9 +39,7 @@ enum vio_type {
 #endif /* INTERNAL */
 } __packed;
 
-/*
- * Priority levels for asynchronous I/O operations performed on a vio.
- */
+/* Priority levels for asynchronous I/O operations performed on a vio. */
 enum vio_priority {
 	VIO_PRIORITY_LOW = 0,
 	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
@@ -53,8 +49,8 @@ enum vio_priority {
 } __packed;
 
 /*
- * A representation of a single block which may be passed between the VDO base
- * and the physical layer.
+ * A representation of a single block which may be passed between the VDO base and the physical
+ * layer.
  */
 struct vio {
 	/* The completion for this vio */
@@ -79,10 +75,9 @@ struct vio {
 	struct bio *bio;
 
 	/*
-	 * A list of enqueued bios with consecutive block numbers, stored by
-	 * vdo_submit_bio() under the first-enqueued vio. The other vios are
-	 * found via their bio entries in this list, and are not added to
-	 * the work queue as separate completions.
+	 * A list of enqueued bios with consecutive block numbers, stored by vdo_submit_bio() under
+	 * the first-enqueued vio. The other vios are found via their bio entries in this list, and
+	 * are not added to the work queue as separate completions.
 	 */
 	struct bio_list bios_merged;
 #ifdef VDO_INTERNAL
@@ -139,14 +134,13 @@ static inline struct vdo *vdo_from_vio(struct vio *vio)
 }
 
 /**
- * get_vio_bio_zone_thread_id() - Get the thread id of the bio zone in which a
- *                                vio should submit its I/O.
+ * get_vio_bio_zone_thread_id() - Get the thread id of the bio zone in which a vio should submit
+ *                                its I/O.
  * @vio: The vio.
  *
  * Return: The id of the bio zone thread the vio should use.
  */
-static inline thread_id_t __must_check
-get_vio_bio_zone_thread_id(struct vio *vio)
+static inline thread_id_t __must_check get_vio_bio_zone_thread_id(struct vio *vio)
 {
 	return vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
 }
@@ -154,12 +148,10 @@ get_vio_bio_zone_thread_id(struct vio *vio)
 physical_block_number_t __must_check pbn_from_vio_bio(struct bio *bio);
 
 /**
- * assert_vio_in_bio_zone() - Check that a vio is running on the correct
- *                            thread for its bio zone.
+ * assert_vio_in_bio_zone() - Check that a vio is running on the correct thread for its bio zone.
  * @vio: The vio to check.
  */
-static inline void
-assert_vio_in_bio_zone(struct vio *vio)
+static inline void assert_vio_in_bio_zone(struct vio *vio)
 {
 	thread_id_t expected = get_vio_bio_zone_thread_id(vio);
 	thread_id_t thread_id = vdo_get_callback_thread_id();
@@ -201,13 +193,7 @@ create_metadata_vio(struct vdo *vdo,
 		    char *data,
 		    struct vio **vio_ptr)
 {
-	return create_multi_block_metadata_vio(vdo,
-					       vio_type,
-					       priority,
-					       parent,
-					       1,
-					       data,
-					       vio_ptr);
+	return create_multi_block_metadata_vio(vdo, vio_type, priority, parent, 1, data, vio_ptr);
 }
 
 void free_vio_components(struct vio *vio);
@@ -223,11 +209,11 @@ void free_vio(struct vio *vio);
  * @vdo: The vdo for this vio.
  */
 static inline void initialize_vio(struct vio *vio,
-		    struct bio *bio,
-		    unsigned int block_count,
-		    enum vio_type vio_type,
-		    enum vio_priority priority,
-		    struct vdo *vdo)
+				  struct bio *bio,
+				  unsigned int block_count,
+				  enum vio_type vio_type,
+				  enum vio_priority priority,
+				  struct vdo *vdo)
 {
 	/* data_vio's may not span multiple blocks */
 	BUG_ON((vio_type == VIO_TYPE_DATA) && (block_count != 1));
@@ -270,11 +256,11 @@ static inline bool is_data_vio(struct vio *vio)
  *
  * Return: The priority with which to submit the vio's bio.
  */
-static inline enum vdo_completion_priority
-get_metadata_priority(struct vio *vio)
+static inline enum vdo_completion_priority get_metadata_priority(struct vio *vio)
 {
-	return ((vio->priority == VIO_PRIORITY_HIGH)
-		? BIO_Q_HIGH_PRIORITY : BIO_Q_METADATA_PRIORITY);
+	return ((vio->priority == VIO_PRIORITY_HIGH) ?
+		BIO_Q_HIGH_PRIORITY :
+		BIO_Q_METADATA_PRIORITY);
 }
 
 /**
@@ -299,9 +285,7 @@ void vdo_count_completed_bios(struct bio *bio);
 /**
  * continue_vio_after_io() - Continue a vio now that its I/O has returned.
  */
-static inline void continue_vio_after_io(struct vio *vio,
-					 vdo_action *callback,
-					 thread_id_t thread)
+static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback, thread_id_t thread)
 {
 	vdo_count_completed_bios(vio->bio);
 	vdo_set_completion_callback(vio_as_completion(vio), callback, thread);
@@ -310,10 +294,7 @@ static inline void continue_vio_after_io(struct vio *vio,
 
 void record_metadata_io_error(struct vio *vio);
 
-/*
- * A vio_pool is a collection of preallocated vios used to write arbitrary
- * metadata blocks.
- */
+/* A vio_pool is a collection of preallocated vios used to write arbitrary metadata blocks. */
 
 static inline struct pooled_vio *vio_as_pooled_vio(struct vio *vio)
 {

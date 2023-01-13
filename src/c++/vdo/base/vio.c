@@ -23,9 +23,7 @@
 #include "io-submitter.h"
 #include "vdo.h"
 
-/*
- * A vio_pool is a collection of preallocated vios.
- */
+/* A vio_pool is a collection of preallocated vios. */
 struct vio_pool {
 	/** The number of objects managed by the pool */
 	size_t size;
@@ -48,8 +46,7 @@ struct vio_pool {
 physical_block_number_t pbn_from_vio_bio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	physical_block_number_t pbn =
-		bio->bi_iter.bi_sector / VDO_SECTORS_PER_BLOCK;
+	physical_block_number_t pbn = bio->bi_iter.bi_sector / VDO_SECTORS_PER_BLOCK;
 
 	return ((pbn == VDO_GEOMETRY_BLOCK_LOCATION) ?
 		pbn :
@@ -59,11 +56,9 @@ physical_block_number_t pbn_from_vio_bio(struct bio *bio)
 static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 {
 	struct bio *bio = NULL;
-	int result = UDS_ALLOCATE_EXTENDED(struct bio,
-					   size + 1,
-					   struct bio_vec,
-					   "bio",
-					   &bio);
+	int result;
+
+	result = UDS_ALLOCATE_EXTENDED(struct bio, size + 1, struct bio_vec, "bio", &bio);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -103,8 +98,7 @@ int allocate_vio_components(struct vdo *vdo,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED) &&
-			 (vio_type != VIO_TYPE_DATA)),
+	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED) && (vio_type != VIO_TYPE_DATA)),
 			"%d is a metadata type",
 			vio_type);
 	if (result != VDO_SUCCESS)
@@ -114,12 +108,7 @@ int allocate_vio_components(struct vdo *vdo,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	initialize_vio(vio,
-		       bio,
-		       block_count,
-		       vio_type,
-		       priority,
-		       vdo);
+	initialize_vio(vio, bio, block_count, vio_type, priority, vdo);
 	vio->completion.parent = parent;
 	vio->data = data;
 	return VDO_SUCCESS;
@@ -148,15 +137,12 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 	struct vio *vio;
 	int result;
 
-	/*
-	 * If struct vio grows past 256 bytes, we'll lose benefits of
-	 * VDOSTORY-176.
-	 */
+	/* If struct vio grows past 256 bytes, we'll lose benefits of VDOSTORY-176. */
 	STATIC_ASSERT(sizeof(struct vio) <= 256);
 
 	/*
-	 * Metadata vios should use direct allocation and not use the buffer
-	 * pool, which is reserved for submissions from the linux block layer.
+	 * Metadata vios should use direct allocation and not use the buffer pool, which is
+	 * reserved for submissions from the linux block layer.
 	 */
 	result = UDS_ALLOCATE(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
@@ -164,13 +150,7 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 		return result;
 	}
 
-	result = allocate_vio_components(vdo,
-					 vio_type,
-					 priority,
-					 parent,
-					 block_count,
-					 data,
-					 vio);
+	result = allocate_vio_components(vdo, vio_type, priority, parent, block_count, data, vio);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(vio);
 		return result;
@@ -181,8 +161,7 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 }
 
 /**
- * free_vio_components(): Free the components of a vio embedded in a larger
- *                        structure.
+ * free_vio_components(): Free the components of a vio embedded in a larger structure.
  * @vio: The vio to destroy
  **/
 void free_vio_components(struct vio *vio)
@@ -204,9 +183,7 @@ void free_vio(struct vio *vio)
 	UDS_FREE(vio);
 }
 
-/*
- * Set bio properties for a VDO read or write.
- */
+/* Set bio properties for a VDO read or write. */
 void vdo_set_bio_properties(struct bio *bio,
 			    struct vio *vio,
 			    bio_end_io_t callback,
@@ -217,9 +194,8 @@ void vdo_set_bio_properties(struct bio *bio,
 	struct device_config *config = vdo->device_config;
 
 	pbn -= vdo->geometry.bio_offset;
-	vio->bio_zone =
-		((pbn / config->thread_counts.bio_rotation_interval)
-		 % config->thread_counts.bio_threads);
+	vio->bio_zone = ((pbn / config->thread_counts.bio_rotation_interval) %
+			 config->thread_counts.bio_threads);
 
 	bio->bi_private = vio;
 	bio->bi_end_io = callback;
@@ -228,10 +204,9 @@ void vdo_set_bio_properties(struct bio *bio,
 }
 
 /*
- * Prepares the bio to perform IO with the specified buffer.
- * May only be used on a VDO-allocated bio, as it assumes the bio
- * wraps a 4k buffer that is 4k aligned, but there does not have
- * to be a vio associated with the bio.
+ * Prepares the bio to perform IO with the specified buffer. May only be used on a VDO-allocated
+ * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned, but there does not have to be a
+ * vio associated with the bio.
  */
 int vdo_reset_bio_with_buffer(struct bio *bio,
 			      char *data,
@@ -270,10 +245,9 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 	bvec_count = DIV_ROUND_UP(offset + len, PAGE_SIZE);
 
 	/*
-	 * If we knew that data was always on one page, or contiguous pages,
-	 * we wouldn't need the loop. But if we're using vmalloc, it's not
-	 * impossible that the data is in different pages that can't be
-	 * merged in bio_add_page...
+	 * If we knew that data was always on one page, or contiguous pages, we wouldn't need the
+	 * loop. But if we're using vmalloc, it's not impossible that the data is in different
+	 * pages that can't be merged in bio_add_page...
 	 */
 	for (i = 0; (i < bvec_count) && (len > 0); i++) {
 		struct page *page;
@@ -283,8 +257,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 		if (bytes > len)
 			bytes = len;
 
-		page = is_vmalloc_addr(data) ? vmalloc_to_page(data)
-					     : virt_to_page(data);
+		page = is_vmalloc_addr(data) ? vmalloc_to_page(data) : virt_to_page(data);
 		bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes)
@@ -301,8 +274,7 @@ int vdo_reset_bio_with_buffer(struct bio *bio,
 }
 
 /**
- * update_vio_error_stats() - Update per-vio error stats and log the
- *                            error.
+ * update_vio_error_stats() - Update per-vio error stats and log the error.
  * @vio: The vio which got an error.
  * @format: The format of the message to log (a printf style format).
  */
@@ -313,7 +285,6 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 				      DEFAULT_RATELIMIT_INTERVAL,
 				      DEFAULT_RATELIMIT_BURST);
 #endif
-
 	va_list args;
 	int priority;
 	struct vdo_completion *completion = vio_as_completion(vio);
@@ -338,11 +309,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 
 	va_start(args, format);
-	uds_vlog_strerror(priority,
-			  completion->result,
-			  UDS_LOGGING_MODULE_NAME,
-			  format,
-			  args);
+	uds_vlog_strerror(priority, completion->result, UDS_LOGGING_MODULE_NAME, format, args);
 	va_end(args);
 }
 
@@ -405,19 +372,14 @@ int make_vio_pool(struct vdo *vdo,
 	INIT_LIST_HEAD(&pool->available);
 	INIT_LIST_HEAD(&pool->busy);
 
-	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE,
-			      char,
-			      "VIO pool buffer",
-			      &pool->buffer);
+	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer", &pool->buffer);
 	if (result != VDO_SUCCESS) {
 		free_vio_pool(pool);
 		return result;
 	}
 
 	ptr = pool->buffer;
-	for (pool->size = 0;
-	     pool->size < pool_size;
-	     pool->size++, ptr += VDO_BLOCK_SIZE) {
+	for (pool->size = 0; pool->size < pool_size; pool->size++, ptr += VDO_BLOCK_SIZE) {
 		struct pooled_vio *pooled = &pool->vios[pool->size];
 
 		result = allocate_vio_components(vdo,
@@ -459,9 +421,8 @@ void free_vio_pool(struct vio_pool *pool)
 			"VIO pool must not have busy entries when being freed");
 
 	while (!list_empty(&pool->available)) {
-		struct pooled_vio *pooled = list_first_entry(&pool->available,
-							     struct pooled_vio,
-							     pool_entry);
+		struct pooled_vio *pooled =
+			list_first_entry(&pool->available, struct pooled_vio, pool_entry);
 
 		list_del(&pooled->pool_entry);
 		free_vio_components(&pooled->vio);
@@ -486,8 +447,7 @@ bool is_vio_pool_busy(struct vio_pool *pool)
 }
 
 /**
- * acquire_vio_from_pool() - Acquire a vio and buffer from the pool
- *                           (asynchronous).
+ * acquire_vio_from_pool() - Acquire a vio and buffer from the pool (asynchronous).
  * @pool: The vio pool.
  * @waiter: Object that is requesting a vio.
  */
@@ -503,9 +463,7 @@ void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 		return;
 	}
 
-	pooled = list_first_entry(&pool->available,
-				  struct pooled_vio,
-				  pool_entry);
+	pooled = list_first_entry(&pool->available, struct pooled_vio, pool_entry);
 	pool->busy_count++;
 	list_move_tail(&pooled->pool_entry, &pool->busy);
 	(*waiter->callback)(waiter, pooled);
@@ -534,15 +492,13 @@ void return_vio_to_pool(struct vio_pool *pool, struct pooled_vio *vio)
 	--pool->busy_count;
 }
 
-/*----------------------------------------------------------------*/
 /*
  * Various counting functions for statistics.
  * These are used for bios coming into VDO, as well as bios generated by VDO.
  */
 void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 {
-	if (((bio->bi_opf & REQ_PREFLUSH) != 0) &&
-	    (bio->bi_iter.bi_size == 0)) {
+	if (((bio->bi_opf & REQ_PREFLUSH) != 0) && (bio->bi_iter.bi_size == 0)) {
 		atomic64_inc(&bio_stats->empty_flush);
 		atomic64_inc(&bio_stats->flush);
 		return;
@@ -559,8 +515,8 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 		atomic64_inc(&bio_stats->discard);
 		break;
 		/*
-		 * All other operations are filtered out in dmvdo.c, or
-		 * not created by VDO, so shouldn't exist.
+		 * All other operations are filtered out in dmvdo.c, or not created by VDO, so
+		 * shouldn't exist.
 		 */
 	default:
 		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
@@ -609,5 +565,3 @@ void vdo_count_completed_bios(struct bio *bio)
 	atomic64_inc(&vdo_from_vio(vio)->stats.bios_completed);
 	count_all_bios_completed(vio, bio);
 }
-
-/*----------------------------------------------------------------*/

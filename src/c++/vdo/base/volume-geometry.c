@@ -44,8 +44,8 @@ static const struct header GEOMETRY_BLOCK_HEADER_5_0 = {
 		.minor_version = 0,
 	},
 	/*
-	 * Note: this size isn't just the payload size following the header,
-	 * like it is everywhere else in VDO.
+	 * Note: this size isn't just the payload size following the header, like it is everywhere
+	 * else in VDO.
 	 */
 	.size = sizeof(struct geometry_block) + sizeof(struct volume_geometry),
 };
@@ -57,11 +57,10 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 		.minor_version = 0,
 	},
 	/*
-	 * Note: this size isn't just the payload size following the header,
-	 * like it is everywhere else in VDO.
+	 * Note: this size isn't just the payload size following the header, like it is everywhere
+	 * else in VDO.
 	 */
-	.size = sizeof(struct geometry_block) +
-		sizeof(struct volume_geometry_4_0),
+	.size = sizeof(struct geometry_block) + sizeof(struct volume_geometry_4_0),
 };
 
 static const u8 MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
@@ -72,8 +71,7 @@ static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
 };
 
 /**
- * is_loadable_release_version() - Determine whether the supplied
- *                                 release version can be understood
+ * is_loadable_release_version() - Determine whether the supplied release version can be understood
  *                                 by the VDO code.
  * @version: The release version number to check.
  *
@@ -94,20 +92,20 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 }
 
 /**
- * decode_index_config() - Decode the on-disk representation of an
- *                         index configuration from a buffer.
+ * decode_index_config() - Decode the on-disk representation of an index configuration from a
+ *                         buffer.
  * @buffer: A buffer positioned at the start of the encoding.
  * @config: The structure to receive the decoded fields.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int decode_index_config(struct buffer *buffer,
-			       struct index_config *config)
+static int decode_index_config(struct buffer *buffer, struct index_config *config)
 {
 	u32 mem;
 	bool sparse;
-	int result = get_u32_le_from_buffer(buffer, &mem);
+	int result;
 
+	result = get_u32_le_from_buffer(buffer, &mem);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -128,18 +126,18 @@ static int decode_index_config(struct buffer *buffer,
 
 #if (defined(VDO_USER) || defined(INTERNAL))
 /**
- * encode_index_config() - Encode the on-disk representation of an
- *                         index configuration into a buffer.
+ * encode_index_config() - Encode the on-disk representation of an index configuration into a
+ *                         buffer.
  * @config: The index configuration to encode.
  * @buffer: A buffer positioned at the start of the encoding.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int encode_index_config(const struct index_config *config,
-			       struct buffer *buffer)
+static int encode_index_config(const struct index_config *config, struct buffer *buffer)
 {
-	int result = put_u32_le_into_buffer(buffer, config->mem);
+	int result;
 
+	result = put_u32_le_into_buffer(buffer, config->mem);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -152,20 +150,19 @@ static int encode_index_config(const struct index_config *config,
 #endif /* VDO_USER */
 
 /**
- * decode_volume_region() - Decode the on-disk representation of a
- *                          volume region from a buffer.
+ * decode_volume_region() - Decode the on-disk representation of a volume region from a buffer.
  * @buffer: A buffer positioned at the start of the encoding.
  * @region: The structure to receive the decoded fields.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int decode_volume_region(struct buffer *buffer,
-				struct volume_region *region)
+static int decode_volume_region(struct buffer *buffer, struct volume_region *region)
 {
 	physical_block_number_t start_block;
 	enum volume_region_id id;
-	int result = get_u32_le_from_buffer(buffer, &id);
+	int result;
 
+	result = get_u32_le_from_buffer(buffer, &id);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -182,8 +179,7 @@ static int decode_volume_region(struct buffer *buffer,
 
 #if (defined(VDO_USER) || defined(INTERNAL))
 /**
- * encode_volume_region() - Encode the on-disk representation of a
- *                          volume region into a buffer.
+ * encode_volume_region() - Encode the on-disk representation of a volume region into a buffer.
  * @region: The region to encode.
  * @buffer: A buffer positioned at the start of the encoding.
  *
@@ -191,8 +187,9 @@ static int decode_volume_region(struct buffer *buffer,
  */
 static int encode_volume_region(const struct volume_region *region, struct buffer *buffer)
 {
-	int result = put_u32_le_into_buffer(buffer, region->id);
+	int result;
 
+	result = put_u32_le_into_buffer(buffer, region->id);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -201,24 +198,23 @@ static int encode_volume_region(const struct volume_region *region, struct buffe
 #endif /* VDO_USER */
 
 /**
- * decode_volume_geometry() - Decode the on-disk representation of a
- *                            volume geometry from a buffer.
+ * decode_volume_geometry() - Decode the on-disk representation of a volume geometry from a buffer.
  * @buffer: A buffer positioned at the start of the encoding.
  * @geometry: The structure to receive the decoded fields.
  * @version: The geometry block version to decode.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int decode_volume_geometry(struct buffer *buffer,
-				  struct volume_geometry *geometry,
-				  u32 version)
+static int
+decode_volume_geometry(struct buffer *buffer, struct volume_geometry *geometry, u32 version)
 {
 	release_version_number_t release_version;
 	enum volume_region_id id;
 	nonce_t nonce;
 	block_count_t bio_offset;
-	int result = get_u32_le_from_buffer(buffer, &release_version);
+	int result;
 
+	result = get_u32_le_from_buffer(buffer, &release_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -229,8 +225,7 @@ static int decode_volume_geometry(struct buffer *buffer,
 	geometry->release_version = release_version;
 	geometry->nonce = nonce;
 
-	result = get_bytes_from_buffer(buffer, sizeof(uuid_t),
-				       (unsigned char *) &geometry->uuid);
+	result = get_bytes_from_buffer(buffer, sizeof(uuid_t), (unsigned char *) &geometry->uuid);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -253,21 +248,20 @@ static int decode_volume_geometry(struct buffer *buffer,
 
 #if (defined(VDO_USER) || defined(INTERNAL))
 /**
- * encode_volume_geometry() - Encode the on-disk representation of a
- *                            volume geometry into a buffer.
+ * encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
  * @geometry: The geometry to encode.
  * @buffer: A buffer positioned at the start of the encoding.
  * @version: The geometry block version to encode.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int encode_volume_geometry(const struct volume_geometry *geometry,
-				  struct buffer *buffer,
-				  u32 version)
+static int
+encode_volume_geometry(const struct volume_geometry *geometry, struct buffer *buffer, u32 version)
 {
 	enum volume_region_id id;
-	int result = put_u32_le_into_buffer(buffer, geometry->release_version);
+	int result;
 
+	result = put_u32_le_into_buffer(buffer, geometry->release_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -275,8 +269,7 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = put_bytes(buffer, sizeof(uuid_t),
-			   (unsigned char *) &geometry->uuid);
+	result = put_bytes(buffer, sizeof(uuid_t), (unsigned char *) &geometry->uuid);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -297,16 +290,14 @@ static int encode_volume_geometry(const struct volume_geometry *geometry,
 #endif /* VDO_USER */
 
 /**
- * decode_geometry_block() - Decode the on-disk representation of a
- *                           geometry block, up to but not including
- *                           the checksum, from a buffer.
+ * decode_geometry_block() - Decode the on-disk representation of a geometry block, up to but not
+ *                           including the checksum, from a buffer.
  * @buffer: A buffer positioned at the start of the block.
  * @geometry: The structure to receive the decoded volume geometry fields.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int decode_geometry_block(struct buffer *buffer,
-				 struct volume_geometry *geometry)
+static int decode_geometry_block(struct buffer *buffer, struct volume_geometry *geometry)
 {
 	int result;
 	struct header header;
@@ -323,16 +314,13 @@ static int decode_geometry_block(struct buffer *buffer,
 		return result;
 
 	if (header.version.major_version <= 4)
-		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0,
-					     &header, true, __func__);
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
 	else
-		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0,
-					     &header, true, __func__);
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_volume_geometry(buffer, geometry,
-					header.version.major_version);
+	result = decode_volume_geometry(buffer, geometry, header.version.major_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -346,9 +334,7 @@ static int decode_geometry_block(struct buffer *buffer,
  * @block: The encoded geometry block.
  * @geometry: The structure to receive the decoded fields.
  */
-int __must_check
-vdo_parse_geometry_block(unsigned char *block,
-			 struct volume_geometry *geometry)
+int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_geometry *geometry)
 {
 	u32 checksum, saved_checksum;
 	struct buffer *buffer;
@@ -380,34 +366,30 @@ vdo_parse_geometry_block(unsigned char *block,
 					      "release version %d cannot be loaded",
 					      geometry->release_version);
 
-	return ((checksum == saved_checksum) ? VDO_SUCCESS :
-					      VDO_CHECKSUM_MISMATCH);
+	return ((checksum == saved_checksum) ? VDO_SUCCESS : VDO_CHECKSUM_MISMATCH);
 }
 
 #ifndef __KERNEL__
 /**
- * encode_geometry_block() - Encode the on-disk representation of a geometry
- *                           block, up to but not including the checksum, into
- *                           a buffer.
+ * encode_geometry_block() - Encode the on-disk representation of a geometry block, up to but not
+ *                           including the checksum, into a buffer.
  * @geometry: The volume geometry to encode into the block.
  * @buffer: A buffer positioned at the start of the block.
  * @version: The geometry block version to encode.
  *
  * Return: UDS_SUCCESS or an error.
  */
-static int encode_geometry_block(const struct volume_geometry *geometry,
-				 struct buffer *buffer,
-				 u32 version)
+static int
+encode_geometry_block(const struct volume_geometry *geometry, struct buffer *buffer, u32 version)
 {
 	const struct header *header;
+	int result;
 
-	int result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
-
+	result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	header = ((version <= 4) ? &GEOMETRY_BLOCK_HEADER_4_0
-				 : &GEOMETRY_BLOCK_HEADER_5_0);
+	header = ((version <= 4) ? &GEOMETRY_BLOCK_HEADER_4_0 : &GEOMETRY_BLOCK_HEADER_5_0);
 	result = vdo_encode_header(header, buffer);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -426,12 +408,12 @@ static int encode_geometry_block(const struct volume_geometry *geometry,
  * @layer: The layer to read and parse the geometry from.
  * @geometry: The structure to receive the decoded fields.
  */
-int vdo_load_volume_geometry(PhysicalLayer *layer,
-			     struct volume_geometry *geometry)
+int vdo_load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 {
 	char *block;
-	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
-					     "geometry block", &block);
+	int result;
+
+	result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block", &block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -447,8 +429,7 @@ int vdo_load_volume_geometry(PhysicalLayer *layer,
 }
 
 /**
- * vdo_compute_index_blocks() - Compute the index size in blocks from the
- *                              index_config.
+ * vdo_compute_index_blocks() - Compute the index size in blocks from the index_config.
  * @index_config: The index config.
  * @index_blocks_ptr: A pointer to return the index size in blocks.
  *
@@ -467,8 +448,7 @@ int vdo_compute_index_blocks(const struct index_config *index_config,
 
 	result = uds_compute_index_size(&uds_parameters, &index_bytes);
 	if (result != UDS_SUCCESS)
-		return uds_log_error_strerror(result,
-					      "error computing index size");
+		return uds_log_error_strerror(result, "error computing index size");
 
 	index_blocks = index_bytes / VDO_BLOCK_SIZE;
 	if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
@@ -494,11 +474,11 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 				   const struct index_config *index_config,
 				   struct volume_geometry *geometry)
 {
+	int result;
 	block_count_t index_size = 0;
 
 	if (index_config != NULL) {
-		int result = vdo_compute_index_blocks(index_config, &index_size);
-
+		result = vdo_compute_index_blocks(index_config, &index_size);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -521,9 +501,7 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 
 	uuid_copy(geometry->uuid, *uuid);
 	if (index_size > 0)
-		memcpy(&geometry->index_config,
-		       index_config,
-		       sizeof(struct index_config));
+		memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
 
 	return VDO_SUCCESS;
 }
@@ -537,8 +515,9 @@ int vdo_initialize_volume_geometry(nonce_t nonce,
 int vdo_clear_volume_geometry(PhysicalLayer *layer)
 {
 	char *block;
-	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
-					     "geometry block", &block);
+	int result;
+
+	result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block", &block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -554,16 +533,15 @@ int vdo_clear_volume_geometry(PhysicalLayer *layer)
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_write_volume_geometry(PhysicalLayer *layer,
-			      struct volume_geometry *geometry)
+int vdo_write_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 {
-	return vdo_write_volume_geometry_with_version(
-			layer, geometry, DEFAULT_GEOMETRY_BLOCK_VERSION);
+	return vdo_write_volume_geometry_with_version(layer,
+						      geometry,
+						      DEFAULT_GEOMETRY_BLOCK_VERSION);
 }
 
 /**
- * vdo_write_volume_geometry_with_version() - Write a specific version of
- *                                            geometry block for a VDO.
+ * vdo_write_volume_geometry_with_version() - Write a specific version of geometry block for a VDO.
  * @layer: The layer on which to write.
  * @geometry: The VolumeGeometry to be written.
  * @version: The version of VolumeGeometry to write.
@@ -578,9 +556,9 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	char *block;
 	struct buffer *buffer;
 	u32 checksum;
+	int result;
 
-	int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
-					     "geometry block", &block);
+	result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block", &block);
 	if (result != VDO_SUCCESS)
 		return result;
 

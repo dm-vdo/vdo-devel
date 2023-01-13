@@ -44,8 +44,8 @@ struct volume_region {
 	/* The ID of the region */
 	enum volume_region_id id;
 	/*
-	 * The absolute starting offset on the device. The region continues
-	 * until the next region begins.
+	 * The absolute starting offset on the device. The region continues until the next region
+	 * begins.
 	 */
 	physical_block_number_t start_block;
 } __packed;
@@ -80,8 +80,7 @@ struct volume_geometry_4_0 {
 } __packed;
 
 /**
- * vdo_get_index_region_start() - Get the start of the index region from a
- *                                geometry.
+ * vdo_get_index_region_start() - Get the start of the index region from a geometry.
  * @geometry: The geometry.
  *
  * Return: The start of the index region.
@@ -93,8 +92,7 @@ vdo_get_index_region_start(struct volume_geometry geometry)
 }
 
 /**
- * vdo_get_data_region_start() - Get the start of the data region from a
- *                               geometry.
+ * vdo_get_data_region_start() - Get the start of the data region from a geometry.
  * @geometry: The geometry.
  *
  * Return: The start of the data region.
@@ -106,8 +104,7 @@ vdo_get_data_region_start(struct volume_geometry geometry)
 }
 
 /**
- * vdo_get_index_region_size() - Get the size of the index region from a
- *                               geometry.
+ * vdo_get_index_region_size() - Get the size of the index region from a geometry.
  * @geometry: The geometry.
  *
  * Return: The size of the index region.
@@ -119,26 +116,19 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 		vdo_get_index_region_start(geometry);
 }
 
-int __must_check
-vdo_parse_geometry_block(unsigned char *block,
-			 struct volume_geometry *geometry);
+int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_geometry *geometry);
 
 #ifndef __KERNEL__
-int __must_check
-vdo_load_volume_geometry(PhysicalLayer *layer,
-			 struct volume_geometry *geometry);
+int __must_check vdo_load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry);
 
-int __must_check
-vdo_initialize_volume_geometry(nonce_t nonce,
-			       uuid_t *uuid,
-			       const struct index_config *index_config,
-			       struct volume_geometry *geometry);
+int __must_check vdo_initialize_volume_geometry(nonce_t nonce,
+						uuid_t *uuid,
+						const struct index_config *index_config,
+						struct volume_geometry *geometry);
 
 int __must_check vdo_clear_volume_geometry(PhysicalLayer *layer);
 
-int __must_check
-vdo_write_volume_geometry(PhysicalLayer *layer,
-			  struct volume_geometry *geometry);
+int __must_check vdo_write_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry);
 
 int __must_check
 vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
@@ -147,8 +137,8 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 #endif /* VDO_USER */
 
 #if (defined(VDO_USER) || defined(INTERNAL))
-int __must_check vdo_compute_index_blocks(const struct index_config *index_config,
-					  block_count_t *index_blocks_ptr);
+int __must_check
+vdo_compute_index_blocks(const struct index_config *index_config, block_count_t *index_blocks_ptr);
 
 #endif /* VDO_USER or INTERNAL */
 #endif /* VOLUME_GEOMETRY_H */
