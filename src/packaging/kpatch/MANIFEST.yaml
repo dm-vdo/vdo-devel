@@ -30,3 +30,5 @@ tarballs:
           +postProcessor: ../github/removeInternal.sh
         src/c++/uds/kernelLinux/uds:
           +postProcessor: ../github/removeInternal.sh
+        -src/packaging/src-dist/kernel:
+        -src/packaging/src-dist/kernel/vdo:
