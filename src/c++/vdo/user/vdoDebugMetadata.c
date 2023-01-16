@@ -16,7 +16,6 @@
 
 #include "block-map-format.h"
 #include "packed-reference-block.h"
-#include "recovery-journal-entry.h"
 #include "slab-journal-format.h"
 #include "vdo-component-states.h"
 

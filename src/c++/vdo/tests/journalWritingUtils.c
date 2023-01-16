@@ -10,7 +10,6 @@
 
 #include "block-map.h"
 #include "data-vio.h"
-#include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "slab.h"
 #include "slab-depot.h"

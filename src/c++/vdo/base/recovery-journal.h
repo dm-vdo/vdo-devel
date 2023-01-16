@@ -16,7 +16,6 @@
 #include "flush.h"
 #include "journal-point.h"
 #include "read-only-notifier.h"
-#include "recovery-journal-entry.h"
 #include "statistics.h"
 #include "types.h"
 #include "vdo-component-states.h"

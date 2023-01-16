@@ -28,7 +28,6 @@
 
 #include "admin-state.h"
 #include "read-only-notifier.h"
-#include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "vdo.h"
 #include "vdo-component-states.h"

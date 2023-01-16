@@ -18,7 +18,6 @@
 #include "data-vio.h"
 #include "header.h"
 #include "io-submitter.h"
-#include "recovery-journal-entry.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "types.h"

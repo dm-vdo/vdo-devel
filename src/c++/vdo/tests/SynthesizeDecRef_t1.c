@@ -14,7 +14,6 @@
 #include "constants.h"
 #include "int-map.h"
 #include "packed-reference-block.h"
-#include "recovery-journal-entry.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab.h"

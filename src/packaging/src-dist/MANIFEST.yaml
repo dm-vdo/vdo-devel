@@ -55,7 +55,6 @@ tarballs:
             header.h
             journal-point.h
             packed-reference-block.h
-            recovery-journal-entry.h
             release-versions.h
             slab-depot-format.c
             slab-depot-format.h
@@ -305,7 +304,6 @@ tarballs:
             read-only-notifier.h
             recovery-journal.c
             recovery-journal.h
-            recovery-journal-entry.h
             ref-counts.c
             ref-counts.h
             reference-operation.c

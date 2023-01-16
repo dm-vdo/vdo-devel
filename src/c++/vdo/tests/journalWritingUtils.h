@@ -9,7 +9,6 @@
 #ifndef JOURNAL_WRITING_UTILS_H
 #define JOURNAL_WRITING_UTILS_H
 
-#include "recovery-journal-entry.h"
 #include "types.h"
 #include "vdo-component-states.h"
 
