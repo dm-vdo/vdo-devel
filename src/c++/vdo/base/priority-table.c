@@ -173,7 +173,7 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 
 	/* Dequeue the first entry in the bucket. */
 	bucket = &table->buckets[top_priority];
-	entry = (bucket->queue.next);
+	entry = bucket->queue.next;
 	list_del_init(entry);
 
 	/* Clear the bit in the search vector if the bucket has been emptied. */
