@@ -1,7 +1,7 @@
 Definitions.pm
 VDOStatistics.stats
 ioctls
-messageStats.c
+message-stats.c
 messageStatsReader.c
 pool-sysfs-stats.c
 release-versions.h

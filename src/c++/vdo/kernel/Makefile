@@ -34,8 +34,6 @@ UDS_KERNEL_FILES =					\
 
 ALL_OBJS = $(BASE_OBJS) $(KERNEL_OBJS) $(UDS_OBJS)
 
-STATS_FILES = messageStats.c
-
 KERNEL_SOURCES = $(KERNEL_OBJS:.o=.c)
 
 # The arguments to pass to the kernel make scripts to build an out of tree
@@ -51,12 +49,6 @@ VDO_SUBDIR = $(DKMS_DIR)/$(VDO_MODNAME)
 
 .PHONY: all
 all: $(DKMS_TGZ)
-
-# This rule uses a separate Makefile so that we can include defines
-# without worrying about the care which this Makefile makes about
-# definitions (see comments above).
-$(STATS_FILES): $(VDO_STATS_DEPS)
-	$(MAKE) -f Makefile.statistics
 
 $(UDS_DKMS_TGZ): $(UDS_KERNEL_FILES)
 	$(MAKE) -C $(UDS_KERNEL_DIR)
@@ -115,7 +107,7 @@ check-clang-format:
 
 .PHONY: clean clean-dkms-dirs
 clean: clean-dkms-dirs
-	rm -f *.log *.tar *.tgz $(STATS_FILES)
+	rm -f *.log *.tar *.tgz
 
 clean-dkms-dirs:
 	if [ -e $(DKMS_DIR) ]; then chmod -fR +w $(DKMS_DIR); fi

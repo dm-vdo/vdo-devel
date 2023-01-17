@@ -6,6 +6,5 @@ doxygen
 kvdo-*.*.tgz
 kvdo.ko
 kvdo.mod.c
-messageStats.c
 modules.order
 vdobase.lo
