@@ -34,25 +34,14 @@ const struct version_number VDO_VOLUME_VERSION_67_0 = {
 };
 
 /**
- * vdo_get_recovery_journal_encoded_size() - Get the size of the encoded state of a recovery
- *                                           journal.
- *
- * Return: the encoded size of the journal's state.
- */
-size_t vdo_get_recovery_journal_encoded_size(void)
-{
-	return VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
-}
-
-/**
- * vdo_encode_recovery_journal_state_7_0() - Encode the state of a recovery journal.
+ * encode_recovery_journal_state_7_0() - Encode the state of a recovery journal.
  * @state: The recovery journal state.
  * @buffer: The buffer to encode into.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
-					  struct buffer *buffer)
+EXTERNAL_STATIC int __must_check
+encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state, struct buffer *buffer)
 {
 	size_t initial_length, encoded_size;
 	int result;
@@ -81,15 +70,14 @@ int vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 stat
 }
 
 /**
- * vdo_decode_recovery_journal_state_7_0() - Decode the state of a recovery journal saved in a
- *                                           buffer.
+ * decode_recovery_journal_state_7_0() - Decode the state of a recovery journal saved in a buffer.
  * @buffer: The buffer containing the saved state.
  * @state: A pointer to a recovery journal state to hold the result of a successful decode.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
-					  struct recovery_journal_state_7_0 *state)
+EXTERNAL_STATIC int __must_check
+decode_recovery_journal_state_7_0(struct buffer *buffer, struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
 	int result;
@@ -193,7 +181,7 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_decode_recovery_journal_state_7_0(buffer, &states->recovery_journal);
+	result = decode_recovery_journal_state_7_0(buffer, &states->recovery_journal);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -288,7 +276,7 @@ static size_t __must_check get_component_data_size(struct fixed_layout *layout)
 		sizeof(struct packed_version_number) +
 		vdo_get_component_encoded_size() +
 		vdo_get_fixed_layout_encoded_size(layout) +
-		vdo_get_recovery_journal_encoded_size() +
+		RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE +
 		vdo_get_slab_depot_encoded_size() +
 		vdo_get_block_map_encoded_size());
 }
@@ -324,7 +312,7 @@ int vdo_encode_component_states(struct buffer *buffer, const struct vdo_componen
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_encode_recovery_journal_state_7_0(states->recovery_journal, buffer);
+	result = encode_recovery_journal_state_7_0(states->recovery_journal, buffer);
 	if (result != VDO_SUCCESS)
 		return result;
 

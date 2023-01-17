@@ -152,6 +152,8 @@ enum {
 	RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR =
 		(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK %
 		 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR),
+	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
 };
 
 /*
@@ -179,8 +181,6 @@ struct vdo_component_states {
 	/* Our partitioning of the underlying storage */
 	struct fixed_layout *layout;
 };
-
-size_t __must_check vdo_get_recovery_journal_encoded_size(void);
 
 /**
  * vdo_pack_recovery_journal_entry() - Return the packed, on-disk representation of a recovery
@@ -226,14 +226,12 @@ vdo_unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *en
 	};
 }
 
+#ifdef INTERNAL
 int __must_check
-vdo_encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state,
-				      struct buffer *buffer);
-
+encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state, struct buffer *buffer);
 int __must_check
-vdo_decode_recovery_journal_state_7_0(struct buffer *buffer,
-				      struct recovery_journal_state_7_0 *state);
-
+decode_recovery_journal_state_7_0(struct buffer *buffer, struct recovery_journal_state_7_0 *state);
+#endif /* INTERNAL */
 const char * __must_check vdo_get_journal_operation_name(enum journal_operation operation);
 
 /**

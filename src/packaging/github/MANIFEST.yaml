@@ -21,6 +21,8 @@ tarballs:
           +postProcessor: removeInternal.sh
         src/c++/uds/userLinux/uds:
           +postProcessor: removeInternal.sh
+        src/c++/vdo/base:
+          +postProcessor: removeInternal.sh
   kvdo:
     sources:
       vdo:
