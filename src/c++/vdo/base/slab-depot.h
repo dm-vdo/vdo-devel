@@ -91,9 +91,6 @@ int __must_check vdo_allocate_slab_ref_counts(struct slab_depot *depot);
 struct vdo_slab * __must_check
 vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
 
-struct slab_journal * __must_check
-vdo_get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn);
-
 u8 __must_check vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
 
 bool __must_check

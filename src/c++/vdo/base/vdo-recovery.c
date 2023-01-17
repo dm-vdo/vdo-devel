@@ -980,7 +980,7 @@ static void queue_on_physical_zone(struct waiter *waiter, void *context)
 		return;
 	}
 
-	decref->slab_journal = vdo_get_slab_journal((struct slab_depot *) context, mapping.pbn);
+	decref->slab_journal = vdo_get_slab((struct slab_depot *) context, mapping.pbn)->journal;
 	zone_number = decref->slab_journal->slab->allocator->zone_number;
 	enqueue_waiter(&decref->recovery->missing_decrefs[zone_number], &decref->waiter);
 }

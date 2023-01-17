@@ -870,7 +870,7 @@ static void set_block_map_page_reference_count(struct vdo_completion *completion
 
 	pbn = lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 	completion->callback = release_block_map_write_lock;
-	vdo_add_slab_journal_entry(vdo_get_slab_journal(completion->vdo->depot, pbn), data_vio);
+	vdo_add_slab_journal_entry(vdo_get_slab(completion->vdo->depot, pbn)->journal, data_vio);
 }
 
 static void journal_block_map_allocation(struct vdo_completion *completion)

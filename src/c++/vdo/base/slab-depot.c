@@ -428,22 +428,6 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot, physical_block_num
 }
 
 /**
- * vdo_get_slab_journal() - Get the slab journal for the slab that contains a specified block.
- * @depot: The slab depot.
- * @pbn: The physical block number within the block depot partition of any block in the slab.
- *
- * Return: The slab journal of the slab containing the block, or NULL if the block number is for
- *         the zero block or otherwise out of range.
- */
-struct slab_journal *
-vdo_get_slab_journal(const struct slab_depot *depot, physical_block_number_t pbn)
-{
-	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
-
-	return ((slab != NULL) ? slab->journal : NULL);
-}
-
-/**
  * vdo_get_increment_limit() - Determine how many new references a block can acquire.
  * @depot: The slab depot.
  * @pbn: The physical block number that is being queried.

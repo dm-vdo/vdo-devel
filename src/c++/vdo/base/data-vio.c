@@ -1828,7 +1828,7 @@ static void update_reference_count(struct data_vio *data_vio)
 		return;
 	}
 
-	vdo_add_slab_journal_entry(vdo_get_slab_journal(depot, pbn), data_vio);
+	vdo_add_slab_journal_entry(vdo_get_slab(depot, pbn)->journal, data_vio);
 }
 
 static void decrement_reference_count(struct vdo_completion *completion)
