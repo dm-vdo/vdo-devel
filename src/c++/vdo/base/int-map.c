@@ -603,7 +603,7 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  * @update: Whether to overwrite an existing value.
  * @old_value_ptr: A pointer in which to store either the old value (if the key was already mapped)
  *                 or NULL if the map did not contain the key; NULL may be provided if the caller
- *                 does not need to * know the old value
+ *                 does not need to know the old value
  *
  * Try to associate a value (a pointer) with an integer in an int_map. If the map already contains
  * a mapping for the provided key, the old value is only replaced with the specified value if

@@ -96,7 +96,7 @@ static bool handle_page_write(void *raw_page, struct block_map_zone *zone, void 
 
 /**
  * initialize_block_map_zone() - Initialize the per-zone portions of the block map.
- * @maximum_age: The number of journal blocks before a dirtied page is * considered old and must be
+ * @maximum_age: The number of journal blocks before a dirtied page is considered old and must be
  *               written out.
  */
 static int __must_check initialize_block_map_zone(struct block_map *map,
