@@ -485,18 +485,6 @@ static void set_duplicate_lock(struct hash_lock *hash_lock, struct pbn_lock *pbn
 }
 
 /**
- * data_vio_from_lock_entry() - Convert a pointer to the hash_lock_entry field in a data_vio to the
- *                              enclosing data_vio.
- * @entry: The list entry to convert.
- *
- * Return: A pointer to the data_vio containing the list entry.
- */
-static inline struct data_vio *data_vio_from_lock_entry(struct list_head *entry)
-{
-	return list_entry(entry, struct data_vio, hash_lock_entry);
-}
-
-/**
  * dequeue_lock_waiter() - Remove the first data_vio from the lock's wait queue and return it.
  * @lock: The lock containing the wait queue.
  *
@@ -1895,7 +1883,7 @@ static bool is_hash_collision(struct hash_lock *lock, struct data_vio *candidate
 	if (list_empty(&lock->duplicate_ring))
 		return false;
 
-	lock_holder = data_vio_from_lock_entry(lock->duplicate_ring.next);
+	lock_holder = list_first_entry(&lock->duplicate_ring, struct data_vio, hash_lock_entry);
 	zone = candidate->hash_zone;
 	collides = !blocks_equal(data_vio_as_vio(lock_holder)->data,
 				 data_vio_as_vio(candidate)->data);

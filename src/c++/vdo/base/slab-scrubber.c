@@ -119,13 +119,15 @@ void vdo_free_slab_scrubber(struct slab_scrubber *scrubber)
  */
 static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 {
-	if (!list_empty(&scrubber->high_priority_slabs))
-		return vdo_slab_from_list_entry(scrubber->high_priority_slabs.next);
+	struct vdo_slab *slab;
 
-	if (!list_empty(&scrubber->slabs))
-		return vdo_slab_from_list_entry(scrubber->slabs.next);
+	slab = list_first_entry_or_null(&scrubber->high_priority_slabs,
+					struct vdo_slab,
+					allocq_entry);
+	if (slab != NULL)
+		return slab;
 
-	return NULL;
+	return list_first_entry_or_null(&scrubber->slabs, struct vdo_slab, allocq_entry);
 }
 
 /**

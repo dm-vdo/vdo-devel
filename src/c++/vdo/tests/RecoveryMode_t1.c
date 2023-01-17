@@ -612,7 +612,7 @@ static void testRequeueUnrecoveredSlab(void)
   struct block_allocator *allocator = vdo->depot->allocators[0];
   struct slab_scrubber   *scrubber  = allocator->slab_scrubber;
   struct vdo_slab        *slab
-    = vdo_slab_from_list_entry(scrubber->slabs.prev);
+    = list_last_entry(&scrubber->slabs, struct vdo_slab, allocq_entry);
   CU_ASSERT_NOT_EQUAL(slab->slab_number, slabToLatch);
 
   // Shorten the slab journal blocking threshold.

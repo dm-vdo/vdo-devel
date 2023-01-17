@@ -110,9 +110,8 @@ static bool wrapIfLeavingCompressor(struct vdo_completion *completion)
  **/
 static void checkBins(struct vdo_completion *completion)
 {
-  for (struct packer_bin *bin = vdo_get_packer_fullest_bin(vdo->packer);
-       bin != NULL;
-       bin = vdo_next_packer_bin(vdo->packer, bin)) {
+  struct packer_bin *bin;
+  list_for_each_entry(bin, &vdo->packer->bins, list) {
     CU_ASSERT_EQUAL(bin->slots_used, expectedSlotsUsed);
   }
 
@@ -244,10 +243,8 @@ static void suspendAndResumePackerTest(void)
   awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
 
   // Make sure all bins show all their block space free.
-  struct packer *packer = vdo->packer;
-  for (struct packer_bin *bin = vdo_get_packer_fullest_bin(packer);
-       bin != NULL;
-       bin = vdo_next_packer_bin(packer, bin)) {
+  struct packer_bin *bin;
+  list_for_each_entry(bin, &vdo->packer->bins, list) {
     CU_ASSERT_EQUAL(bin->free_space, VDO_COMPRESSED_BLOCK_DATA_SIZE);
   }
 
@@ -263,9 +260,8 @@ static void checkFullestBin(struct vdo_completion *completion)
 {
   size_t expected = VDO_MAX_COMPRESSION_SLOTS - 2;
 
-  for (struct packer_bin *bin = vdo_get_packer_fullest_bin(vdo->packer);
-       bin != NULL;
-       bin = vdo_next_packer_bin(vdo->packer, bin)) {
+  struct packer_bin *bin;
+  list_for_each_entry(bin, &vdo->packer->bins, list) {
     CU_ASSERT_EQUAL(bin->slots_used, expected);
     expected = 0;
   }

@@ -93,25 +93,6 @@ static inline void assert_on_packer_thread(struct packer *packer, const char *ca
 			"%s() called from packer thread", caller);
 }
 
-/** vdo_next_packer_bin() - Return the next bin in the free_space-sorted list. */
-EXTERNAL_STATIC struct packer_bin * __must_check
-vdo_next_packer_bin(const struct packer *packer, struct packer_bin *bin)
-{
-	if (bin->list.next == &packer->bins)
-		return NULL;
-	else
-		return list_entry(bin->list.next, struct packer_bin, list);
-}
-
-/** vdo_get_packer_fullest_bin() - Return the first bin in the free_space-sorted list. */
-EXTERNAL_STATIC struct packer_bin * __must_check
-vdo_get_packer_fullest_bin(const struct packer *packer)
-{
-	return (list_empty(&packer->bins) ?
-		NULL :
-		list_entry(packer->bins.next, struct packer_bin, list));
-}
-
 /**
  * insert_in_sorted_list() - Insert a bin to the list.
  * @packer: The packer.
@@ -124,14 +105,11 @@ static void insert_in_sorted_list(struct packer *packer, struct packer_bin *bin)
 {
 	struct packer_bin *active_bin;
 
-	for (active_bin = vdo_get_packer_fullest_bin(packer);
-	     active_bin != NULL;
-	     active_bin = vdo_next_packer_bin(packer, active_bin)) {
+	list_for_each_entry(active_bin, &packer->bins, list)
 		if (active_bin->free_space > bin->free_space) {
 			list_move_tail(&bin->list, &active_bin->list);
 			return;
 		}
-	}
 
 	list_move_tail(&bin->list, &packer->bins);
 }
@@ -221,12 +199,12 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
  */
 void vdo_free_packer(struct packer *packer)
 {
-	struct packer_bin *bin;
+	struct packer_bin *bin, *tmp;
 
 	if (packer == NULL)
 		return;
 
-	while ((bin = vdo_get_packer_fullest_bin(packer)) != NULL) {
+	list_for_each_entry_safe(bin, tmp, &packer->bins, list) {
 		list_del_init(&bin->list);
 		UDS_FREE(bin);
 	}
@@ -568,10 +546,9 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 	 * First best fit: select the bin with the least free space that has enough room for the
 	 * compressed data in the data_vio.
 	 */
-	struct packer_bin *fullest_bin = vdo_get_packer_fullest_bin(packer);
-	struct packer_bin *bin;
+	struct packer_bin *bin, *fullest_bin;
 
-	for (bin = fullest_bin; bin != NULL; bin = vdo_next_packer_bin(packer, bin))
+	list_for_each_entry(bin, &packer->bins, list)
 		if (bin->free_space >= data_vio->compression.size)
 			return bin;
 
@@ -583,6 +560,7 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 	 * size of the incoming block, it seems wrong to force that bin to write when giving up on
 	 * compressing the incoming data_vio would likewise "waste" the least amount of free space.
 	 */
+	fullest_bin = list_first_entry(&packer->bins, struct packer_bin, list);
 	if (data_vio->compression.size >=
 	    (VDO_COMPRESSED_BLOCK_DATA_SIZE - fullest_bin->free_space))
 		return NULL;
@@ -670,15 +648,12 @@ static void write_all_non_empty_bins(struct packer *packer)
 {
 	struct packer_bin *bin;
 
-	for (bin = vdo_get_packer_fullest_bin(packer);
-	     bin != NULL;
-	     bin = vdo_next_packer_bin(packer, bin)) {
+	list_for_each_entry(bin, &packer->bins, list)
 		write_bin(packer, bin);
 		/*
 		 * We don't need to re-sort the bin here since this loop will make every bin have
 		 * the same amount of free space, so every ordering is sorted.
 		 */
-	}
 
 	check_for_drain_complete(packer);
 }
@@ -816,9 +791,8 @@ void vdo_dump_packer(const struct packer *packer)
 		     (unsigned long long) packer->flush_generation,
 		     vdo_get_admin_state_code(&packer->state)->name,
 		     (unsigned long long) packer->size);
-	for (bin = vdo_get_packer_fullest_bin(packer);
-	     bin != NULL;
-	     bin = vdo_next_packer_bin(packer, bin))
+
+	list_for_each_entry(bin, &packer->bins, list)
 		dump_packer_bin(bin, false);
 
 	dump_packer_bin(packer->canceled_bin, true);

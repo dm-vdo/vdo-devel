@@ -132,10 +132,5 @@ block_size_t __must_check pack_fragment(struct compression_state *compression,
 					block_size_t offset,
 					slot_number_t slot,
 					struct compressed_block *block);
-
-struct packer_bin *vdo_get_packer_fullest_bin(const struct packer *packer);
-
-struct packer_bin *vdo_next_packer_bin(const struct packer *packer, struct packer_bin *bin);
-
 #endif /* INTERNAL */
 #endif /* PACKER_H */

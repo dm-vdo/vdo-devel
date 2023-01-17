@@ -228,16 +228,10 @@ void vdo_resume_logical_zones(struct logical_zones *zones, struct vdo_completion
  */
 static bool update_oldest_active_generation(struct logical_zone *zone)
 {
-	sequence_number_t oldest;
-
-	if (list_empty(&zone->write_vios)) {
-		oldest = zone->flush_generation;
-	} else {
-		struct data_vio *data_vio =
-			list_entry(zone->write_vios.next, struct data_vio, write_entry);
-
-		oldest = data_vio->flush_generation;
-	}
+	struct data_vio *data_vio =
+		list_first_entry_or_null(&zone->write_vios, struct data_vio, write_entry);
+	sequence_number_t oldest =
+		(data_vio == NULL) ? zone->flush_generation : data_vio->flush_generation;
 
 	if (oldest == zone->oldest_active_generation)
 		return false;

@@ -337,8 +337,9 @@ int vdo_allocate_block(struct block_allocator *allocator,
 	}
 
 	/* Remove the highest priority slab from the priority table and make it the open slab. */
-	allocator->open_slab =
-		vdo_slab_from_list_entry(priority_table_dequeue(allocator->prioritized_slabs));
+	allocator->open_slab = list_entry(priority_table_dequeue(allocator->prioritized_slabs),
+					  struct vdo_slab,
+					  allocq_entry);
 	vdo_open_slab(allocator->open_slab);
 
 	/*
@@ -806,13 +807,11 @@ void vdo_release_tail_block_locks(void *context,
 				  zone_count_t zone_number,
 				  struct vdo_completion *parent)
 {
+	struct slab_journal *journal, *tmp;
 	struct slab_depot *depot = context;
 	struct list_head *list = &depot->allocators[zone_number]->dirty_slab_journals;
 
-	while (!list_empty(list)) {
-		struct slab_journal *journal =
-			list_first_entry(list, struct slab_journal, dirty_entry);
-
+	list_for_each_entry_safe(journal, tmp, list, dirty_entry) {
 		if (!vdo_release_recovery_journal_lock(journal, depot->active_release_request))
 			break;
 	}

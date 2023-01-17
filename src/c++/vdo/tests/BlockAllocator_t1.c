@@ -512,13 +512,12 @@ static void setSlabSummaryEntry(slab_count_t slabNumber,
  **/
 static struct vdo_slab *chopSlab(struct list_head *list)
 {
-  if (list_empty(list)) {
-    return NULL;
-  } else {
-    struct list_head *entry = list->next;
-    list_del_init(entry);
-    return vdo_slab_from_list_entry(entry);
+  struct vdo_slab *slab
+    = list_first_entry_or_null(list, struct vdo_slab, allocq_entry);
+  if (slab != NULL) {
+    list_del_init(&slab->allocq_entry);
   }
+  return slab;
 }
 
 /**

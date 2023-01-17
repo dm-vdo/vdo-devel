@@ -408,6 +408,8 @@ int make_vio_pool(struct vdo *vdo,
  */
 void free_vio_pool(struct vio_pool *pool)
 {
+	struct pooled_vio *pooled, *tmp;
+
 	if (pool == NULL)
 		return;
 
@@ -420,10 +422,7 @@ void free_vio_pool(struct vio_pool *pool)
 	ASSERT_LOG_ONLY(list_empty(&pool->busy),
 			"VIO pool must not have busy entries when being freed");
 
-	while (!list_empty(&pool->available)) {
-		struct pooled_vio *pooled =
-			list_first_entry(&pool->available, struct pooled_vio, pool_entry);
-
+	list_for_each_entry_safe(pooled, tmp, &pool->available, pool_entry) {
 		list_del(&pooled->pool_entry);
 		free_vio_components(&pooled->vio);
 		pool->size--;

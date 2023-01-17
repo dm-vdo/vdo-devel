@@ -72,22 +72,6 @@ static char *get_page_buffer(struct page_info *info)
 	return &cache->pages[(info - cache->infos) * VDO_BLOCK_SIZE];
 }
 
-static inline struct page_info *
-page_info_from_state_entry(struct list_head *entry)
-{
-	if (entry == NULL)
-		return NULL;
-	return list_entry(entry, struct page_info, state_entry);
-}
-
-static inline struct page_info *
-page_info_from_lru_entry(struct list_head *entry)
-{
-	if (entry == NULL)
-		return NULL;
-	return list_entry(entry, struct page_info, lru_entry);
-}
-
 static inline struct vdo_page_completion *
 as_vdo_page_completion(struct vdo_completion *completion)
 {
@@ -515,12 +499,12 @@ static int reset_page_info(struct page_info *info)
 static struct page_info * __must_check
 find_free_page(struct vdo_page_cache *cache)
 {
-	struct page_info *info;
+	struct page_info *info = list_first_entry_or_null(&cache->free_list,
+							  struct page_info,
+							  state_entry);
 
-	if (cache->free_list.next == &cache->free_list)
-		return NULL;
-	info = page_info_from_state_entry(cache->free_list.next);
-	list_del_init(&info->state_entry);
+	if (info != NULL)
+		list_del_init(&info->state_entry);
 	return info;
 }
 
@@ -555,14 +539,11 @@ find_page(struct vdo_page_cache *cache, physical_block_number_t pbn)
 static struct page_info * __must_check
 select_lru_page(struct vdo_page_cache *cache)
 {
-	struct list_head *lru;
+	struct page_info *info;
 
-	list_for_each(lru, &cache->lru_list) {
-		struct page_info *info = page_info_from_lru_entry(lru);
-
+	list_for_each_entry(info, &cache->lru_list, lru_entry)
 		if ((info->busy == 0) && !is_in_flight(info))
 			return info;
-	}
 
 	return NULL;
 }
@@ -1027,7 +1008,10 @@ static void save_pages(struct vdo_page_cache *cache)
 
 	assert_io_allowed(cache);
 
-	info = page_info_from_state_entry(cache->outgoing_list.next);
+	info = list_first_entry(&cache->outgoing_list,
+				struct page_info,
+				state_entry);
+
 	cache->pages_in_flush = cache->pages_to_flush;
 	cache->pages_to_flush = 0;
 	ADD_ONCE(cache->stats.flush_count, 1);
@@ -1064,11 +1048,11 @@ static void schedule_page_save(struct page_info *info)
 static void write_dirty_pages_callback(struct list_head *expired,
 				       void *context)
 {
-	while (!list_empty(expired)) {
-		struct list_head *entry = expired->next;
+	struct page_info *info, *tmp;
 
-		list_del_init(entry);
-		schedule_page_save(page_info_from_state_entry(entry));
+	list_for_each_entry_safe(info, tmp, expired, state_entry) {
+		list_del_init(&info->state_entry);
+		schedule_page_save(info);
 	}
 
 	save_pages((struct vdo_page_cache *) context);
@@ -1358,10 +1342,12 @@ static void write_pages(struct vdo_completion *flush_completion)
 
 	cache->pages_in_flush = 0;
 	while (pages_in_flush-- > 0) {
-		struct list_head *entry = cache->outgoing_list.next;
-		struct page_info *info = page_info_from_state_entry(entry);
+		struct page_info *info =
+			list_first_entry(&cache->outgoing_list,
+					 struct page_info,
+					 state_entry);
 
-		list_del_init(entry);
+		list_del_init(&info->state_entry);
 		if (vdo_is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;

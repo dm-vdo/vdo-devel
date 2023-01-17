@@ -63,17 +63,6 @@ struct vdo_slab {
 	u8 priority;
 };
 
-/**
- * vdo_slab_from_list_entry() - Convert a vdo_slab's list entry back to the vdo_slab.
- * @entry: The list entry to convert.
- *
- * Return: The list entry as a vdo_slab.
- */
-static inline struct vdo_slab *vdo_slab_from_list_entry(struct list_head *entry)
-{
-	return list_entry(entry, struct vdo_slab, allocq_entry);
-}
-
 int __must_check vdo_make_slab(physical_block_number_t slab_origin,
 			       struct block_allocator *allocator,
 			       physical_block_number_t translation,
