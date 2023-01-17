@@ -70,7 +70,7 @@ KERNEL_OBJS:=                           \
         histogram.o                     \
         message-stats.o                 \
         sysfs.o                         \
-        vdoHistograms.o                 \
+        vdo-histograms.o                \
         work-queue.o
 
 USER_OBJECTS:=                  	\

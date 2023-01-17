@@ -36,7 +36,7 @@
 #include "volume-geometry.h"
 
 #ifdef VDO_INTERNAL
-#include "vdoHistograms.h"
+#include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
 
 struct vdo_thread {

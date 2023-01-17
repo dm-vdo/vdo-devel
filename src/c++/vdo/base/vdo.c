@@ -53,7 +53,7 @@
 
 #ifdef __KERNEL__
 #ifdef VDO_INTERNAL
-#include "vdoHistograms.h"
+#include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
 #endif /* __KERNEL__ */
 #if (defined(VDO_INTERNAL) || defined(INTERNAL))

@@ -7,7 +7,7 @@
 
 #include "memory-alloc.h"
 
-#include "vdoHistograms.h"
+#include "vdo-histograms.h"
 
 #include "histogram.h"
 
