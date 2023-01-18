@@ -578,7 +578,7 @@ void vdo_update_block_map_page(struct block_map_page *page,
 
 	/* Encode the new mapping. */
 	page->entries[tree_lock->tree_slots[tree_lock->height].block_map_slot.slot] =
-		vdo_pack_pbn(pbn, mapping_state);
+		vdo_pack_block_map_entry(pbn, mapping_state);
 
 	/* Adjust references on the recovery journal blocks. */
 	old_locked = *recovery_lock;

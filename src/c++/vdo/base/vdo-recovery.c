@@ -667,7 +667,7 @@ static int extract_increment_entries(struct recovery_completion *recovery)
 
 		recovery->entries[recovery->entry_count] = (struct numbered_block_mapping) {
 			.block_map_slot = entry.slot,
-			.block_map_entry = vdo_pack_pbn(entry.mapping.pbn, entry.mapping.state),
+			.block_map_entry = vdo_pack_block_map_entry(entry.mapping.pbn, entry.mapping.state),
 			.number = recovery->entry_count,
 		};
 		recovery->entry_count++;
@@ -1653,7 +1653,7 @@ static void handle_page_load_error(struct vdo_completion *completion)
 static void
 unmap_entry(struct block_map_page *page, struct vdo_completion *completion, slot_number_t slot)
 {
-	page->entries[slot] = vdo_pack_pbn(VDO_ZERO_BLOCK, VDO_MAPPING_STATE_UNMAPPED);
+	page->entries[slot] = vdo_pack_block_map_entry(VDO_ZERO_BLOCK, VDO_MAPPING_STATE_UNMAPPED);
 	vdo_request_page_write(completion);
 }
 
@@ -1962,8 +1962,8 @@ static void append_sector_entries(struct rebuild_completion *rebuild,
 		if (vdo_is_journal_increment_operation(entry.operation)) {
 			rebuild->entries[rebuild->entry_count] = (struct numbered_block_mapping) {
 				.block_map_slot = entry.slot,
-				.block_map_entry =
-					vdo_pack_pbn(entry.mapping.pbn, entry.mapping.state),
+				.block_map_entry = vdo_pack_block_map_entry(entry.mapping.pbn,
+									    entry.mapping.state),
 				.number = rebuild->entry_count,
 			};
 			rebuild->entry_count++;

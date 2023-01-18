@@ -247,7 +247,7 @@ void setBlockMapping(logical_block_number_t   lbn,
                      enum block_mapping_state state)
 {
   expectedMappings[lbn] = (MappingExpectation) {
-    .mapping = vdo_pack_pbn(pbn, state),
+    .mapping = vdo_pack_block_map_entry(pbn, state),
     .result  = VDO_SUCCESS,
   };
 }

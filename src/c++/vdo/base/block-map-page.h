@@ -8,9 +8,9 @@
 
 #include "numeric.h"
 
-#include "block-map-entry.h"
 #include "header.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 struct block_map_page_header {
 	__le64 nonce;

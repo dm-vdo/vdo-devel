@@ -64,7 +64,7 @@ static void corruptTreePageInForest(struct forest            *forest,
                                                                rootIndex,
                                                                2, 0);
   struct block_map_page *page     = vdo_as_block_map_page(treePage);
-  page->entries[slot]             = vdo_pack_pbn(pbn, state);
+  page->entries[slot]             = vdo_pack_block_map_entry(pbn, state);
   vdo_write_tree_page(treePage, zone);
 }
 

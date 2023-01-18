@@ -176,8 +176,9 @@ static int make_segment(struct forest *old_forest,
 								  forest->map->nonce,
 								  VDO_INVALID_PBN,
 								  true);
-				page->entries[0] = vdo_pack_pbn(forest->map->root_origin + root,
-								VDO_MAPPING_STATE_UNCOMPRESSED);
+				page->entries[0] =
+					vdo_pack_block_map_entry(forest->map->root_origin + root,
+								 VDO_MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
 		}
@@ -381,7 +382,8 @@ static void traverse(struct cursor *cursor)
 			if (!vdo_is_valid_location(&location)) {
 				/* This entry is invalid, so remove it from the page. */
 				page->entries[level->slot] =
-					vdo_pack_pbn(VDO_ZERO_BLOCK, VDO_MAPPING_STATE_UNMAPPED);
+					vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
+								 VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page, cursor->parent->zone);
 				continue;
 			}
@@ -392,7 +394,8 @@ static void traverse(struct cursor *cursor)
 			/* Erase mapped entries past the end of the logical space. */
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					vdo_pack_pbn(VDO_ZERO_BLOCK, VDO_MAPPING_STATE_UNMAPPED);
+					vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
+								 VDO_MAPPING_STATE_UNMAPPED);
 				vdo_write_tree_page(tree_page, cursor->parent->zone);
 				continue;
 			}
@@ -404,8 +407,8 @@ static void traverse(struct cursor *cursor)
 
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						vdo_pack_pbn(VDO_ZERO_BLOCK,
-							     VDO_MAPPING_STATE_UNMAPPED);
+						vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
+									 VDO_MAPPING_STATE_UNMAPPED);
 					vdo_write_tree_page(tree_page, cursor->parent->zone);
 					continue;
 				}

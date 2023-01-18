@@ -11,6 +11,7 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "packer.h"
+#include "vdo-component-states.h"
 
 #include "vdoAsserts.h"
 
@@ -19,6 +20,12 @@ enum {
 };
 
 struct compressed_block compressedBlock;
+
+/**********************************************************************/
+static inline enum block_mapping_state getStateForSlot(u8 slot_number)
+{
+	return (slot_number + VDO_MAPPING_STATE_COMPRESSED_BASE);
+}
 
 /**********************************************************************/
 static void initialize(void)
@@ -49,7 +56,7 @@ static void testInvalidBlock(void)
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     uint16_t fragmentOffset, fragmentSize;
     CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
-                    vdo_get_compressed_block_fragment(vdo_get_state_for_slot(i),
+                    vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentOffset,
                                                       &fragmentSize));
@@ -66,14 +73,14 @@ static void testAbsurdBlock(void)
 
   uint16_t fragmentOffset, fragmentSize;
   CU_ASSERT_EQUAL(VDO_SUCCESS,
-                  vdo_get_compressed_block_fragment(vdo_get_state_for_slot(0),
+                  vdo_get_compressed_block_fragment(getStateForSlot(0),
                                                     &compressedBlock,
                                                     &fragmentOffset,
                                                     &fragmentSize));
 
   for (unsigned int i = 1; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
-                    vdo_get_compressed_block_fragment(vdo_get_state_for_slot(i),
+                    vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentOffset,
                                                       &fragmentSize));
@@ -127,7 +134,7 @@ static void testValidFragments(void)
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     uint16_t fragmentOffset, fragmentSize;
     CU_ASSERT_EQUAL(VDO_SUCCESS,
-                    vdo_get_compressed_block_fragment(vdo_get_state_for_slot(i),
+                    vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentOffset,
                                                       &fragmentSize));

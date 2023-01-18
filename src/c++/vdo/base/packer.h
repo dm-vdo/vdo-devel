@@ -11,7 +11,6 @@
 #include "compiler.h"
 
 #include "admin-state.h"
-#include "block-mapping-state.h"
 #include "constants.h"
 #include "statistics.h"
 #include "thread-config.h"

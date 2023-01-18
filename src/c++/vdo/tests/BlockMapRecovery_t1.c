@@ -92,7 +92,7 @@ static void generateNumberedBlockMappings(block_count_t mappingCount)
 
     physical_block_number_t pbn = computePBNFromLBN(lbn, 1);
     mapping->block_map_entry
-      = vdo_pack_pbn(pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
+      = vdo_pack_block_map_entry(pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
     mapping->number = entry;
     setBlockMapping(lbn, pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
   }

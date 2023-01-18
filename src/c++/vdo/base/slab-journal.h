@@ -11,7 +11,6 @@
 #include "numeric.h"
 
 #include "block-allocator.h"
-#include "block-map-entry.h"
 #include "completion.h"
 #include "journal-point.h"
 #include "slab.h"
@@ -19,6 +18,7 @@
 #include "slab-summary.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "wait-queue.h"
 
 struct journal_lock {

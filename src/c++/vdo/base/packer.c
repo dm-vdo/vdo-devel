@@ -23,6 +23,7 @@
 #include "status-codes.h"
 #include "thread-config.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 static const struct version_number COMPRESSED_BLOCK_1_0 = {
@@ -63,7 +64,7 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0))
 		return VDO_INVALID_FRAGMENT;
 
-	slot = vdo_get_slot_from_state(mapping_state);
+	slot = mapping_state - VDO_MAPPING_STATE_COMPRESSED_BASE;
 	if (slot >= VDO_MAX_COMPRESSION_SLOTS)
 		return VDO_INVALID_FRAGMENT;
 
@@ -268,7 +269,7 @@ release_compressed_write_waiter(struct data_vio *data_vio, struct allocation *al
 	data_vio->new_mapped = (struct zoned_pbn) {
 		.pbn = allocation->pbn,
 		.zone = allocation->zone,
-		.state = vdo_get_state_for_slot(data_vio->compression.slot),
+		.state = data_vio->compression.slot + VDO_MAPPING_STATE_COMPRESSED_BASE,
 	};
 
 	vdo_share_compressed_write_lock(data_vio, allocation->lock);

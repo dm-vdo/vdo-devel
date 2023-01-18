@@ -11,12 +11,12 @@
 #include "memory-alloc.h"
 
 #include "block-allocator.h"
-#include "block-map-entry.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "types.h"
 #include "vdo.h"
 #include "vdo-component-states.h"
 

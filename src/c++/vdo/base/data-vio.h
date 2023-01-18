@@ -13,7 +13,6 @@
 #include "permassert.h"
 #include "uds.h"
 
-#include "block-mapping-state.h"
 #include "completion.h"
 #include "constants.h"
 #include "dedupe.h"
@@ -24,6 +23,7 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
 #include "wait-queue.h"

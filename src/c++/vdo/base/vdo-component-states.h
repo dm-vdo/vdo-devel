@@ -6,15 +6,46 @@
 #ifndef VDO_COMPONENT_STATES_H
 #define VDO_COMPONENT_STATES_H
 
+#include <linux/limits.h>
+
 #include "numeric.h"
 
-#include "block-map-entry.h"
 #include "constants.h"
 #include "journal-point.h"
 #include "slab-depot-format.h"
 #include "types.h"
 #include "vdo-component.h"
 #include "vdo-layout.h"
+
+/**
+ * DOC: Block map entries
+ *
+ * The entry for each logical block in the block map is encoded into five bytes, which saves space
+ * in both the on-disk and in-memory layouts. It consists of the 36 low-order bits of a
+ * physical_block_number_t (addressing 256 terabytes with a 4KB block size) and a 4-bit encoding of
+ * a block_mapping_state.
+ *
+ * Of the 8 high bits of the 5-byte structure:
+ *
+ * Bits 7..4: The four highest bits of the 36-bit physical block number
+ * Bits 3..0: The 4-bit block_mapping_state
+ *
+ * The following 4 bytes are the low order bytes of the physical block number, in little-endian
+ * order.
+ *
+ * Conversion functions to and from a data location are provided.
+ */
+struct block_map_entry {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	unsigned mapping_state : 4;
+	unsigned pbn_high_nibble : 4;
+#else
+	unsigned pbn_high_nibble : 4;
+	unsigned mapping_state : 4;
+#endif
+
+	__le32 pbn_low_word;
+} __packed;
 
 struct block_map_state_2_0 {
 	physical_block_number_t flat_page_origin;
@@ -196,6 +227,45 @@ struct vdo_component_states {
 	struct fixed_layout *layout;
 };
 
+static inline bool vdo_is_state_compressed(const enum block_mapping_state mapping_state)
+{
+	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
+}
+
+static inline struct block_map_entry
+vdo_pack_block_map_entry(physical_block_number_t pbn, enum block_mapping_state mapping_state)
+{
+	return (struct block_map_entry) {
+		.mapping_state = (mapping_state & 0x0F),
+		.pbn_high_nibble = ((pbn >> 32) & 0x0F),
+		.pbn_low_word = __cpu_to_le32(pbn & UINT_MAX),
+	};
+}
+
+static inline struct data_location vdo_unpack_block_map_entry(const struct block_map_entry *entry)
+{
+	physical_block_number_t low32 = __le32_to_cpu(entry->pbn_low_word);
+	physical_block_number_t high4 = entry->pbn_high_nibble;
+
+	return (struct data_location) {
+		.pbn = ((high4 << 32) | low32),
+		.state = entry->mapping_state,
+	};
+}
+
+static inline bool vdo_is_mapped_location(const struct data_location *location)
+{
+	return (location->state != VDO_MAPPING_STATE_UNMAPPED);
+}
+
+static inline bool vdo_is_valid_location(const struct data_location *location)
+{
+	if (location->pbn == VDO_ZERO_BLOCK)
+		return !vdo_is_state_compressed(location->state);
+	else
+		return vdo_is_mapped_location(location);
+}
+
 #ifdef INTERNAL
 int __must_check
 decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state);
@@ -229,8 +299,8 @@ vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
 		.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
 		.pbn_low_word = __cpu_to_le32(entry->slot.pbn & UINT_MAX),
-		.block_map_entry = vdo_pack_pbn(entry->mapping.pbn,
-						entry->mapping.state),
+		.block_map_entry = vdo_pack_block_map_entry(entry->mapping.pbn,
+							    entry->mapping.state),
 	};
 }
 

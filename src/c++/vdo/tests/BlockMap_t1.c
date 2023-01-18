@@ -164,9 +164,9 @@ static void packingTest(void)
   // Check that the endpoints of the range of legal PBNs can be represented by
   // the packed encoding.
   struct block_map_entry minPBN
-    = vdo_pack_pbn(0, VDO_MAPPING_STATE_UNCOMPRESSED);
+    = vdo_pack_block_map_entry(0, VDO_MAPPING_STATE_UNCOMPRESSED);
   struct block_map_entry maxPBN
-    = vdo_pack_pbn(MAXIMUM_VDO_PHYSICAL_BLOCKS - 1,
+    = vdo_pack_block_map_entry(MAXIMUM_VDO_PHYSICAL_BLOCKS - 1,
                    VDO_MAPPING_STATE_UNCOMPRESSED);
   CU_ASSERT_EQUAL(0, vdo_unpack_block_map_entry(&minPBN).pbn);
   CU_ASSERT_EQUAL(MAXIMUM_VDO_PHYSICAL_BLOCKS - 1,
@@ -181,7 +181,7 @@ static void packingTest(void)
 
   // Check uncompressed entries, packed by hand
   for (slot_number_t i = 0; i < ARRAY_SIZE; i++) {
-    page->entries[i] = vdo_pack_pbn(pbn[i], VDO_MAPPING_STATE_UNCOMPRESSED);
+    page->entries[i] = vdo_pack_block_map_entry(pbn[i], VDO_MAPPING_STATE_UNCOMPRESSED);
     struct data_location mapping
       = vdo_unpack_block_map_entry(&page->entries[i]);
     CU_ASSERT_EQUAL(VDO_MAPPING_STATE_UNCOMPRESSED, mapping.state);
@@ -191,7 +191,7 @@ static void packingTest(void)
   // Check uncompressed entries.
   vdo_format_block_map_page(page, 0xdeadbeef, 3, false);
   for (slot_number_t i = 0; i < ARRAY_SIZE; i++) {
-    page->entries[i] = vdo_pack_pbn(pbn[i], VDO_MAPPING_STATE_UNCOMPRESSED);
+    page->entries[i] = vdo_pack_block_map_entry(pbn[i], VDO_MAPPING_STATE_UNCOMPRESSED);
     struct data_location mapping
       = vdo_unpack_block_map_entry(&page->entries[i]);
     CU_ASSERT_EQUAL(VDO_MAPPING_STATE_UNCOMPRESSED, mapping.state);
@@ -204,7 +204,7 @@ static void packingTest(void)
     enum block_mapping_state state = ((i < VDO_MAX_COMPRESSION_SLOTS)
                                       ? VDO_MAPPING_STATE_COMPRESSED_BASE + i
                                       : VDO_MAPPING_STATE_UNCOMPRESSED);
-    page->entries[i] = vdo_pack_pbn(pbn[i], state);
+    page->entries[i] = vdo_pack_block_map_entry(pbn[i], state);
     struct data_location mapping
       = vdo_unpack_block_map_entry(&page->entries[i]);
     CU_ASSERT_EQUAL(state, mapping.state);
@@ -217,7 +217,7 @@ static void packingTest(void)
   enum block_mapping_state distinctState = (enum block_mapping_state) 0xF;
   u8 expectedPacking[] = { 0xAF, 0x89, 0x67, 0xDE, 0xBC };
 
-  struct block_map_entry packed = vdo_pack_pbn(distinctPBN, distinctState);
+  struct block_map_entry packed = vdo_pack_block_map_entry(distinctPBN, distinctState);
   UDS_ASSERT_EQUAL_BYTES(expectedPacking, (u8 *) &packed, sizeof(packed));
 
   struct data_location unpacked = vdo_unpack_block_map_entry(&packed);

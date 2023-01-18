@@ -123,7 +123,7 @@ static int dumpLBN(void)
 
   default:
     printf("compressed \t%llu slot %u\n",
-           (unsigned long long) pbn, vdo_get_slot_from_state(state));
+           (unsigned long long) pbn, state - VDO_MAPPING_STATE_COMPRESSED_BASE);
     break;
   }
 
