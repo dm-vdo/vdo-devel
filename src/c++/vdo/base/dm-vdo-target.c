@@ -1046,7 +1046,9 @@ static void vdo_dtr(struct dm_target *ti)
 		 * The VDO still references this config. Give it a reference to a config that isn't
 		 * being destroyed.
 		 */
-		vdo->device_config = vdo_as_device_config(vdo->device_config_list.next);
+		vdo->device_config = list_first_entry(&vdo->device_config_list,
+						      struct device_config,
+						      config_list);
 	}
 
 	vdo_free_device_config(config);

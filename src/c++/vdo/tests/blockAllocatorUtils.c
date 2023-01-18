@@ -73,7 +73,7 @@ static void returnVIOPoolEntries(struct vdo_completion *completion)
     struct list_head *entry = reservedVIOPoolEntries.prev;
     list_del_init(entry);
     return_vio_to_pool(poolAllocator->vio_pool,
-                       container_of(entry, struct pooled_vio, list_entry));
+                       list_entry(entry, struct pooled_vio, list_entry));
   }
 
   vdo_finish_completion(completion, VDO_SUCCESS);

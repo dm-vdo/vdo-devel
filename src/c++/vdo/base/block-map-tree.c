@@ -48,11 +48,6 @@ struct write_if_not_dirtied_context {
 /* Used to indicate that the page holding the location of a tree root has been "loaded". */
 const physical_block_number_t VDO_INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
-static inline struct tree_page *tree_page_from_list_entry(struct list_head *entry)
-{
-	return list_entry(entry, struct tree_page, entry);
-}
-
 static void write_dirty_pages_callback(struct list_head *expired, void *context);
 
 int vdo_initialize_tree_zone(struct block_map_zone *zone,
@@ -454,18 +449,17 @@ static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
  * Schedule a batch of dirty pages for writing.
  *
  * Implements vdo_dirty_callback.
- **/
+ */
 static void write_dirty_pages_callback(struct list_head *expired, void *context)
 {
+	struct tree_page *page, *tmp;
 	struct block_map_tree_zone *zone = (struct block_map_tree_zone *) context;
 	u8 generation = zone->generation;
 
-	while (!list_empty(expired)) {
+	list_for_each_entry_safe(page, tmp, expired, entry) {
 		int result;
-		struct list_head *entry = expired->next;
-		struct tree_page *page = tree_page_from_list_entry(entry);
 
-		list_del_init(entry);
+		list_del_init(&page->entry);
 
 		result = ASSERT(!is_waiting(&page->waiter),
 				"Newly expired page not already waiting to write");

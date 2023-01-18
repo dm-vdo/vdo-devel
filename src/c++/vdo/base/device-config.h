@@ -48,21 +48,6 @@ struct device_config {
 	block_count_t max_discard_blocks;
 };
 
-/**
- * vdo_as_device_config() - Convert a list entry to the device_config that contains it.
- * @entry: The list entry to convert.
- *
- * If non-NULL, the list must not be empty.
- *
- * Return: The device_config wrapping the list entry.
- */
-static inline struct device_config *vdo_as_device_config(struct list_head *entry)
-{
-	if (entry == NULL)
-		return NULL;
-	return list_entry(entry, struct device_config, config_list);
-}
-
 int __must_check vdo_parse_device_config(int argc,
 					 char **argv,
 					 struct dm_target *ti,

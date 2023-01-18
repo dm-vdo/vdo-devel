@@ -152,11 +152,12 @@ static void testDirtySlabOrdering(void)
 
   struct block_allocator *allocator = vdo->depot->allocators[0];
   for (slab_count_t i = 0; i < 4; i++) {
-    struct list_head *entry = allocator->dirty_slab_journals.next;
-    list_del_init(entry);
-    slab_count_t slabNumber
-      = list_entry(entry, struct slab_journal, dirty_entry)->slab->slab_number;
-    CU_ASSERT_EQUAL(i, slabNumber);
+    struct slab_journal *journal
+      = list_first_entry(&allocator->dirty_slab_journals,
+                         struct slab_journal,
+                         dirty_entry);
+    list_del_init(&journal->dirty_entry);
+    CU_ASSERT_EQUAL(i, journal->slab->slab_number);
   }
 
   CU_ASSERT_TRUE(list_empty(&allocator->dirty_slab_journals));
