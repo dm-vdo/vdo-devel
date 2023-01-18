@@ -13,7 +13,6 @@
 #include "permassert.h"
 #include "time-utils.h"
 
-#include "block-map-format.h"
 #include "constants.h"
 #include "release-versions.h"
 #include "slab-depot-format.h"

@@ -12,9 +12,9 @@
 #include "errors.h"
 #include "logger.h"
 
-#include "block-map-format.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "vdoVolumeUtils.h"

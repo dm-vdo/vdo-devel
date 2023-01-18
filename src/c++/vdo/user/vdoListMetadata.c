@@ -11,11 +11,11 @@
 #include "errors.h"
 #include "syscalls.h"
 
-#include "block-map-format.h"
 #include "slab-depot-format.h"
 #include "slab-journal-format.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 
 #include "userVDO.h"

@@ -8,7 +8,6 @@
 
 #include "admin-state.h"
 #include "block-map-entry.h"
-#include "block-map-format.h"
 #include "block-map-page.h"
 #include "block-map-tree.h"
 #include "completion.h"
@@ -18,6 +17,7 @@
 #include "statistics.h"
 #include "types.h"
 #include "vdo-layout.h"
+#include "vdo-component-states.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
 

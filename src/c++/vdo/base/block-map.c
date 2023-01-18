@@ -11,8 +11,6 @@
 
 #include "action-manager.h"
 #include "admin-state.h"
-#include "block-map-format.h"
-#include "block-map-page.h"
 #include "block-map-tree.h"
 #include "constants.h"
 #include "data-vio.h"
@@ -21,6 +19,7 @@
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-page-cache.h"
 
 /**

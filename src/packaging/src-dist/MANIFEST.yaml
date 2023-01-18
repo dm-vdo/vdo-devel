@@ -43,8 +43,6 @@ tarballs:
           dest: utils/vdo
           sources: |
             block-map-entry.h
-            block-map-format.c
-            block-map-format.h
             block-map-page.c
             block-map-page.h
             block-mapping-state.h
@@ -243,8 +241,6 @@ tarballs:
             block-map.c
             block-map.h
             block-map-entry.h
-            block-map-format.c
-            block-map-format.h
             block-map-page.c
             block-map-page.h
             block-map-recovery.c

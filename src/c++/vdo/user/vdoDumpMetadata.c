@@ -12,12 +12,12 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "block-map-format.h"
 #include "slab-depot-format.h"
 #include "slab-summary-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "volume-geometry.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 
 #include "blockMapUtils.h"

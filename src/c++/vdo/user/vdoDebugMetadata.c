@@ -14,7 +14,6 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "block-map-format.h"
 #include "packed-reference-block.h"
 #include "slab-journal-format.h"
 #include "vdo-component-states.h"

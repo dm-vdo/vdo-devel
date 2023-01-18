@@ -13,7 +13,6 @@ BASE_OBJS :=     			\
 	admin-state.o			\
 	block-allocator.o		\
 	block-map.o			\
-	block-map-format.o		\
 	block-map-page.o		\
 	block-map-recovery.o		\
 	block-map-tree.o		\
@@ -74,7 +73,6 @@ KERNEL_OBJS:=                           \
         work-queue.o
 
 USER_OBJECTS:=                  	\
-	block-map-format.o      	\
 	block-map-page.o		\
 	constants.o			\
 	header.o			\

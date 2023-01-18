@@ -8,10 +8,10 @@
 
 #include <linux/list.h>
 
-#include "block-map-format.h"
 #include "block-map-page.h"
 #include "constants.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "wait-queue.h"
 
 struct tree_page {

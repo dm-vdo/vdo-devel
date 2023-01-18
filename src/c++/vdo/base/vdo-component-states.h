@@ -9,13 +9,25 @@
 #include "numeric.h"
 
 #include "block-map-entry.h"
-#include "block-map-format.h"
 #include "constants.h"
 #include "journal-point.h"
 #include "slab-depot-format.h"
 #include "types.h"
 #include "vdo-component.h"
 #include "vdo-layout.h"
+
+struct block_map_state_2_0 {
+	physical_block_number_t flat_page_origin;
+	block_count_t flat_page_count;
+	physical_block_number_t root_origin;
+	block_count_t root_count;
+} __packed;
+
+struct boundary {
+	page_number_t levels[VDO_BLOCK_MAP_TREE_HEIGHT];
+};
+
+extern const struct header VDO_BLOCK_MAP_HEADER_2_0;
 
 /* The state of the recovery journal as encoded in the VDO super block. */
 struct recovery_journal_state_7_0 {
@@ -139,6 +151,8 @@ struct packed_journal_sector {
 } __packed;
 
 enum {
+	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
 	/*
 	 * Allowing more than 311 entries in each block changes the math concerning the
 	 * amortization of metadata writes and recovery speed.
@@ -181,6 +195,23 @@ struct vdo_component_states {
 	/* Our partitioning of the underlying storage */
 	struct fixed_layout *layout;
 };
+
+#ifdef INTERNAL
+int __must_check
+decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state);
+int __must_check
+encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buffer *buffer);
+#endif /* INTERNAL */
+static inline page_count_t vdo_compute_block_map_page_count(block_count_t entries)
+{
+	return DIV_ROUND_UP(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+}
+
+block_count_t __must_check
+vdo_compute_new_forest_pages(root_count_t root_count,
+			     struct boundary *old_sizes,
+			     block_count_t entries,
+			     struct boundary *new_sizes);
 
 /**
  * vdo_pack_recovery_journal_entry() - Return the packed, on-disk representation of a recovery

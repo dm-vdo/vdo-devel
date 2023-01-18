@@ -12,10 +12,10 @@
 #include "syscalls.h"
 #include "memory-alloc.h"
 
-#include "block-map-format.h"
 #include "block-map-page.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "physicalLayer.h"
 #include "userVDO.h"
