@@ -14,10 +14,6 @@ PWD ?= $(CURDIR)
 
 PDOC2POD:= pdoc2pod.pl
 POD2HTML:= pod2html
-ifeq (Maipo, $(shell lsb_release -s -c))
-  POD2HTML:= pod2html --quiet
-endif
-
 POD2MAN:= pod2man
 
 # find the Export.pm being used, to make sure we can create doc links to it
