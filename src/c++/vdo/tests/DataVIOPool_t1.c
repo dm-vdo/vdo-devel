@@ -131,7 +131,7 @@ static void releaseBlockedDataVIO(logical_block_number_t lbn)
 {
   struct data_vio *data_vio = UDS_FORGET(blocked[lbn]);
   CU_ASSERT_PTR_NOT_NULL(data_vio);
-  reallyEnqueueVIO(data_vio_as_vio(data_vio));
+  reallyEnqueueVIO(&data_vio->vio);
 }
 
 /**********************************************************************/

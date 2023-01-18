@@ -331,9 +331,9 @@ static bool try_bio_map_merge(struct vio *vio)
 void submit_data_vio_io(struct data_vio *data_vio)
 {
 #ifdef VDO_INTERNAL
-	data_vio_as_vio(data_vio)->bio_submission_jiffies = jiffies;
+	data_vio->vio.bio_submission_jiffies = jiffies;
 #endif
-	if (try_bio_map_merge(data_vio_as_vio(data_vio)))
+	if (try_bio_map_merge(&data_vio->vio))
 		return;
 
 	launch_data_vio_bio_zone_callback(data_vio, process_data_vio_io);

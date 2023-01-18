@@ -302,17 +302,6 @@ static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 }
 
 /**
- * data_vio_as_vio() - Convert a data_vio to a vio.
- * @data_vio: The data_vio to convert.
- *
- * Return: The data_vio as a vio.
- */
-static inline struct vio *data_vio_as_vio(struct data_vio *data_vio)
-{
-	return &data_vio->vio;
-}
-
-/**
  * as_data_vio() - Convert a generic vdo_completion to a data_vio.
  * @completion: The completion to convert.
  *
@@ -331,7 +320,7 @@ static inline struct data_vio *as_data_vio(struct vdo_completion *completion)
  */
 static inline struct vdo_completion *data_vio_as_completion(struct data_vio *data_vio)
 {
-	return vio_as_completion(data_vio_as_vio(data_vio));
+	return vio_as_completion(&data_vio->vio);
 }
 
 /**
@@ -882,11 +871,9 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
  */
 static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
-
-	vdo_set_completion_callback(vio_as_completion(vio),
+	vdo_set_completion_callback(vio_as_completion(&data_vio->vio),
 				    callback,
-				    get_vio_bio_zone_thread_id(vio));
+				    get_vio_bio_zone_thread_id(&data_vio->vio));
 }
 
 /**
@@ -962,7 +949,7 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 			unsigned int bi_opf,
 			physical_block_number_t pbn)
 {
-	struct vio *vio = data_vio_as_vio(data_vio);
+	struct vio *vio = &data_vio->vio;
 
 	return vdo_reset_bio_with_buffer(vio->bio, data, vio, callback, bi_opf, pbn);
 }

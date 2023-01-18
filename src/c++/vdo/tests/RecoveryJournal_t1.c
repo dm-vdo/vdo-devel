@@ -515,9 +515,9 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
   vdo_initialize_completion(data_vio_as_completion(&wrapper->dataVIO), vdo,
                             VIO_COMPLETION);
-  data_vio_as_vio(&wrapper->dataVIO)->type = VIO_TYPE_DATA;
-  wrapper->dataVIO.mapped.state         = VDO_MAPPING_STATE_UNCOMPRESSED;
-  wrapper->dataVIO.new_mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
+  wrapper->dataVIO.vio.type         = VIO_TYPE_DATA;
+  wrapper->dataVIO.mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
+  wrapper->dataVIO.new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 }
 
 /**
