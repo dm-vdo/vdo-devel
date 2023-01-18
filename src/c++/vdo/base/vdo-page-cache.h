@@ -27,8 +27,8 @@
 typedef u32 vdo_page_generation;
 
 /**
- * typedef vdo_page_read_function - Signature for a function to call when a
- *                                  page is read into the cache.
+ * typedef vdo_page_read_function - Signature for a function to call when a page is read into the
+ *                                  cache.
  * @raw_page: The raw memory of the freshly-fetched page.
  * @pbn: The absolute physical block number of the page.
  * @zone: The block map zone to which the cache belongs.
@@ -36,8 +36,7 @@ typedef u32 vdo_page_generation;
  *
  * If specified, this function is called when a page is fetched from disk.
  *
- * Return: VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
- *         formatted.
+ * Return: VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly formatted.
  */
 typedef int vdo_page_read_function(void *raw_page,
 				   physical_block_number_t pbn,
@@ -45,8 +44,8 @@ typedef int vdo_page_read_function(void *raw_page,
 				   void *page_context);
 
 /**
- * typedef vdo_page_write_function - Signature for a function to call when a
- *                                   page is written from the cache.
+ * typedef vdo_page_write_function - Signature for a function to call when a page is written from
+ *                                   the cache.
  * @raw_page: The raw memory of the freshly-written page.
  * @zone: The block map zone to which the cache belongs.
  * @page_context: A pointer to client-specific data for the new page.
@@ -65,9 +64,7 @@ enum {
 
 static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
-/*
- * The VDO Page Cache abstraction.
- */
+/* The VDO Page Cache abstraction. */
 struct vdo_page_cache {
 	/* the VDO which owns this cache */
 	struct vdo *vdo;
@@ -113,8 +110,8 @@ struct vdo_page_cache {
 	/* queue of waiters who want a free page */
 	struct wait_queue free_waiters;
 	/*
-	 * Statistics are only updated on the logical zone thread, but are
-	 * accessed from other threads.
+	 * Statistics are only updated on the logical zone thread, but are accessed from other
+	 * threads.
 	 */
 	struct block_map_statistics stats;
 	/* counter for pressure reports */
@@ -124,14 +121,12 @@ struct vdo_page_cache {
 };
 
 /*
- * The state of a page buffer. If the page buffer is free no particular page is
- * bound to it, otherwise the page buffer is bound to particular page whose
- * absolute pbn is in the pbn field. If the page is resident or dirty the page
- * data is stable and may be accessed. Otherwise the page is in flight
- * (incoming or outgoing) and its data should not be accessed.
+ * The state of a page buffer. If the page buffer is free no particular page is bound to it,
+ * otherwise the page buffer is bound to particular page whose absolute pbn is in the pbn field. If
+ * the page is resident or dirty the page data is stable and may be accessed. Otherwise the page is
+ * in flight (incoming or outgoing) and its data should not be accessed.
  *
- * @note Update the static data in get_page_state_name() if you change this
- * enumeration.
+ * @note Update the static data in get_page_state_name() if you change this enumeration.
  */
 enum vdo_page_buffer_state {
 	/* this page buffer is not being used */
@@ -159,9 +154,7 @@ enum vdo_page_write_status {
 	WRITE_STATUS_DEFERRED,
 } __packed;
 
-/*
- * Per-page-slot information.
- */
+/* Per-page-slot information. */
 struct page_info {
 	/* Preallocated page struct vio */
 	struct vio *vio;
@@ -196,22 +189,19 @@ int __must_check vdo_make_page_cache(struct vdo *vdo,
 
 void vdo_free_page_cache(struct vdo_page_cache *cache);
 
-void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache,
-				       sequence_number_t period);
+void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache, sequence_number_t period);
 
-void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache,
-				     bool rebuilding);
+void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache, bool rebuilding);
 
 bool __must_check vdo_is_page_cache_active(struct vdo_page_cache *cache);
 
-void vdo_advance_page_cache_period(struct vdo_page_cache *cache,
-				   sequence_number_t period);
+void vdo_advance_page_cache_period(struct vdo_page_cache *cache, sequence_number_t period);
 
 /* ASYNC */
 
 /*
- * A completion awaiting a specific page.  Also a live reference into the
- * page once completed, until freed.
+ * A completion awaiting a specific page. Also a live reference into the page once completed, until
+ * freed.
  */
 struct vdo_page_completion {
 	/* The generic completion */

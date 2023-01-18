@@ -16,19 +16,17 @@
  * @parent: The parent kobject of the histograms.
  * @histograms: The histograms to initialize.
  *
- * Since these are only used for internal testing, allocation errors
- * constructing them will be ignored.
+ * Since these are only used for internal testing, allocation errors constructing them will be
+ * ignored.
  */
-void vdo_initialize_histograms(struct kobject *parent,
-			       struct vdo_histograms *histograms)
+void vdo_initialize_histograms(struct kobject *parent, struct vdo_histograms *histograms)
 {
 	/*
-	 * The numeric argument to make_logarithmic_jiffies_histogram is the
-	 * number of orders of magnitude in the histogram. The smallest bucket
-	 * corresponds to 1 jiffy which is 1 msec. on RedHat or 4 msec. on
-	 * non-RedHat. Therefore the largest bucket for 4 is 10 seconds, for 5
-	 * is 100 seconds, and for 6 is 1000 seconds. Using a value that is too
-	 * large is not expensive.
+	 * The numeric argument to make_logarithmic_jiffies_histogram is the number of orders of
+	 * magnitude in the histogram. The smallest bucket corresponds to 1 jiffy which is 1 msec.
+	 * on RedHat or 4 msec. on non-RedHat. Therefore the largest bucket for 4 is 10 seconds,
+	 * for 5 is 100 seconds, and for 6 is 1000 seconds. Using a value that is too large is not
+	 * expensive.
 	 */
 	histograms->post_histogram =
 		make_logarithmic_jiffies_histogram(parent,

@@ -23,8 +23,7 @@ struct vdo_histograms {
 	struct histogram *write_queue_histogram;
 };
 
-void vdo_initialize_histograms(struct kobject *parent,
-			       struct vdo_histograms *histograms);
+void vdo_initialize_histograms(struct kobject *parent, struct vdo_histograms *histograms);
 
 void vdo_destroy_histograms(struct vdo_histograms *histograms);
 
