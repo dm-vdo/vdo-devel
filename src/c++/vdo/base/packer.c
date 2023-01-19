@@ -6,6 +6,7 @@
 #include "packer.h"
 
 #include <linux/atomic.h>
+#include <linux/blkdev.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -427,7 +428,7 @@ static void compressed_write_end_io(struct bio *bio)
 
 	vdo_count_completed_bios(bio);
 	set_data_vio_allocated_zone_callback(data_vio, finish_compressed_write);
-	continue_data_vio_with_error(data_vio, vdo_get_bio_result(bio));
+	continue_data_vio_with_error(data_vio, blk_status_to_errno(bio->bi_status));
 }
 
 /**

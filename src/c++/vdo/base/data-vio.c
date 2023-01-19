@@ -7,6 +7,7 @@
 
 #include <linux/atomic.h>
 #include <linux/bio.h>
+#include <linux/blkdev.h>
 #include <linux/delay.h>
 #include <linux/device-mapper.h>
 #include <linux/jiffies.h>
@@ -2090,7 +2091,7 @@ static void write_bio_finished(struct bio *bio)
 	struct data_vio *data_vio = vio_as_data_vio((struct vio *) bio->bi_private);
 
 	vdo_count_completed_bios(bio);
-	vdo_set_completion_result(&data_vio->vio.completion, vdo_get_bio_result(bio));
+	vdo_set_completion_result(&data_vio->vio.completion, blk_status_to_errno(bio->bi_status));
 	launch_data_vio_journal_callback(data_vio, finish_block_write);
 }
 

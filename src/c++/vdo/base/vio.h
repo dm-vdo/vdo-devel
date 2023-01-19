@@ -141,11 +141,6 @@ static inline void assert_vio_in_bio_zone(struct vio *vio)
 			expected);
 }
 
-static inline int vdo_get_bio_result(struct bio *bio)
-{
-	return blk_status_to_errno(bio->bi_status);
-}
-
 int vdo_create_bio(struct bio **bio_ptr);
 void vdo_free_bio(struct bio *bio);
 int allocate_vio_components(struct vdo *vdo,
@@ -265,7 +260,7 @@ static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback, 
 {
 	vdo_count_completed_bios(vio->bio);
 	vdo_set_completion_callback(&vio->completion, callback, thread);
-	continue_vio(vio, vdo_get_bio_result(vio->bio));
+	continue_vio(vio, blk_status_to_errno(vio->bio->bi_status));
 }
 
 void record_metadata_io_error(struct vio *vio);
