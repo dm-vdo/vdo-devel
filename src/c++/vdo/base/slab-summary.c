@@ -662,10 +662,9 @@ static void combine_zones(struct slab_summary *summary)
 static void write_summary_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
+	struct vdo *vdo = vio->completion.vdo;
 
-	continue_vio_after_io(vio,
-			      finish_combining_zones,
-			      vdo_from_vio(vio)->thread_config->admin_thread);
+	continue_vio_after_io(vio, finish_combining_zones, vdo->thread_config->admin_thread);
 }
 
 /**
@@ -694,10 +693,9 @@ static void finish_loading_summary(struct vdo_completion *completion)
 static void load_summary_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
+	struct vdo *vdo = vio->completion.vdo;
 
-	continue_vio_after_io(vio,
-			      finish_loading_summary,
-			      vdo_from_vio(vio)->thread_config->admin_thread);
+	continue_vio_after_io(vio, finish_loading_summary, vdo->thread_config->admin_thread);
 }
 
 /**

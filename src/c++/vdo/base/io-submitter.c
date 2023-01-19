@@ -79,7 +79,7 @@ static const struct vdo_work_queue_type bio_queue_type = {
  */
 static void count_all_bios(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &vdo_from_vio(vio)->stats;
+	struct atomic_statistics *stats = &vio->completion.vdo->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out, bio);
@@ -114,7 +114,7 @@ static void assert_in_bio_zone(struct vio *vio)
  */
 static void send_bio_to_device(struct vio *vio, struct bio *bio)
 {
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 #ifdef VDO_INTERNAL
 	struct vdo_histograms *histograms = &vdo->histograms;
 #endif
@@ -161,7 +161,7 @@ void process_vio_io(struct vdo_completion *completion)
 static struct bio *get_bio_list(struct vio *vio)
 {
 	struct bio *bio;
-	struct io_submitter *submitter = vdo_from_vio(vio)->io_submitter;
+	struct io_submitter *submitter = vio->completion.vdo->io_submitter;
 	struct bio_queue_data *bio_queue_data = &(submitter->bio_queue_data[vio->bio_zone]);
 
 	assert_in_bio_zone(vio);
@@ -289,7 +289,7 @@ static bool try_bio_map_merge(struct vio *vio)
 	bool merged = true;
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 	struct bio_queue_data *bio_queue_data = &vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
 	bio->bi_next = NULL;

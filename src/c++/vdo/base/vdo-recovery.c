@@ -2187,7 +2187,7 @@ static void handle_journal_load_error(struct vdo_completion *completion)
 static void read_journal_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 
 	continue_vio_after_io(vio, finish_journal_load, vdo->thread_config->admin_thread);
 }

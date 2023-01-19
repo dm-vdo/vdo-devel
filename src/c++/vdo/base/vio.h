@@ -112,17 +112,6 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
 }
 
 /**
- * vdo_from_vio() - Get the vdo from a vio.
- * @vio: The vio from which to get the vdo.
- *
- * Return: The vdo to which the vio belongs.
- */
-static inline struct vdo *vdo_from_vio(struct vio *vio)
-{
-	return vio->completion.vdo;
-}
-
-/**
  * get_vio_bio_zone_thread_id() - Get the thread id of the bio zone in which a vio should submit
  *                                its I/O.
  * @vio: The vio.
@@ -131,7 +120,7 @@ static inline struct vdo *vdo_from_vio(struct vio *vio)
  */
 static inline thread_id_t __must_check get_vio_bio_zone_thread_id(struct vio *vio)
 {
-	return vdo_from_vio(vio)->thread_config->bio_threads[vio->bio_zone];
+	return vio->completion.vdo->thread_config->bio_threads[vio->bio_zone];
 }
 
 physical_block_number_t __must_check pbn_from_vio_bio(struct bio *bio);

@@ -46,11 +46,10 @@ struct vio_pool {
 physical_block_number_t pbn_from_vio_bio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
+	struct vdo *vdo = vio->completion.vdo;
 	physical_block_number_t pbn = bio->bi_iter.bi_sector / VDO_SECTORS_PER_BLOCK;
 
-	return ((pbn == VDO_GEOMETRY_BLOCK_LOCATION) ?
-		pbn :
-		pbn + vdo_from_vio(vio)->geometry.bio_offset);
+	return ((pbn == VDO_GEOMETRY_BLOCK_LOCATION) ? pbn : pbn + vdo->geometry.bio_offset);
 }
 
 static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
@@ -190,7 +189,7 @@ void vdo_set_bio_properties(struct bio *bio,
 			    unsigned int bi_opf,
 			    physical_block_number_t pbn)
 {
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 	struct device_config *config = vdo->device_config;
 
 	pbn -= vdo->geometry.bio_offset;
@@ -287,7 +286,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 	va_list args;
 	int priority;
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 
 	switch (vio->completion.result) {
 	case VDO_READ_ONLY:
@@ -528,7 +527,7 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 
 static void count_all_bios_completed(struct vio *vio, struct bio *bio)
 {
-	struct atomic_statistics *stats = &vdo_from_vio(vio)->stats;
+	struct atomic_statistics *stats = &vio->completion.vdo->stats;
 
 	if (is_data_vio(vio)) {
 		vdo_count_bios(&stats->bios_out_completed, bio);
@@ -548,7 +547,7 @@ void vdo_count_completed_bios(struct bio *bio)
 #ifdef VDO_INTERNAL
 	u64 bio_jiffies = jiffies - vio->bio_submission_jiffies;
 	unsigned int bio_msecs = jiffies_to_msecs(bio_jiffies);
-	struct vdo *vdo = vdo_from_vio(vio);
+	struct vdo *vdo = vio->completion.vdo;
 
 	enter_histogram_sample(((bio_data_dir(bio) == WRITE) ?
 				vdo->histograms.write_bios_histogram :
@@ -559,6 +558,6 @@ void vdo_count_completed_bios(struct bio *bio)
 		uds_log_info("Bio Latency Violation: %u msecs", bio_msecs);
 #endif
 
-	atomic64_inc(&vdo_from_vio(vio)->stats.bios_completed);
+	atomic64_inc(&vio->completion.vdo->stats.bios_completed);
 	count_all_bios_completed(vio, bio);
 }
