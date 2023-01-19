@@ -107,7 +107,7 @@ static bool dataVIOReleased(void *context)
 /**********************************************************************/
 void release_data_vio_hook(struct data_vio *data_vio)
 {
-  runLocked(dataVIOReleased, data_vio_as_completion(data_vio));
+  runLocked(dataVIOReleased, &data_vio->vio.completion);
 }
 
 /**********************************************************************/

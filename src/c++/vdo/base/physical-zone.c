@@ -547,7 +547,7 @@ static bool continue_allocating(struct data_vio *data_vio)
 {
 	struct allocation *allocation = &data_vio->allocation;
 	struct physical_zone *zone = allocation->zone;
-	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+	struct vdo_completion *completion = &data_vio->vio.completion;
 	int result = VDO_SUCCESS;
 	bool was_waiting = allocation->wait_for_clean_slab;
 	bool tried_all = (allocation->first_allocation_zone == zone->next->zone_number);

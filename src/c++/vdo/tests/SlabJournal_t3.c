@@ -47,13 +47,12 @@ static void slabJournalTestInitialization(void)
  **/
 static void initializeWrapper(DataVIOWrapper *wrapper)
 {
+  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
-  struct vdo_completion *completion
-    = data_vio_as_completion(&wrapper->dataVIO);
-  vdo_initialize_completion(completion, vdo, VIO_COMPLETION);
-  as_vio(completion)->type          = VIO_TYPE_DATA;
-  wrapper->dataVIO.mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
-  wrapper->dataVIO.new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+  vdo_initialize_completion(&dataVIO->vio.completion, vdo, VIO_COMPLETION);
+  dataVIO->vio.type         = VIO_TYPE_DATA;
+  dataVIO->mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
+  dataVIO->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 }
 
 /**
@@ -64,23 +63,22 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
  **/
 static void resetWrapper(DataVIOWrapper *wrapper, slab_count_t slabNumber)
 {
+  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_reset_completion(&wrapper->completion);
-  struct vdo_completion *completion
-    = data_vio_as_completion(&wrapper->dataVIO);
-  vdo_reset_completion(completion);
-  completion->callback         = vdo_finish_completion_parent_callback;
-  completion->parent           = &wrapper->completion;
-  wrapper->dataVIO.logical.lbn = (logical_block_number_t) slabNumber;
+  vdo_reset_completion(&dataVIO->vio.completion);
+  dataVIO->vio.completion.callback = vdo_finish_completion_parent_callback;
+  dataVIO->vio.completion.parent   = &wrapper->completion;
+  dataVIO->logical.lbn             = (logical_block_number_t) slabNumber;
 
   struct vdo_slab *slab = vdo->depot->slabs[slabNumber];
   journal               = slab->journal;
 
-  wrapper->dataVIO.new_mapped.pbn = slab->start + 1;
-  wrapper->dataVIO.operation = (struct reference_operation) {
+  dataVIO->new_mapped.pbn = slab->start + 1;
+  dataVIO->operation = (struct reference_operation) {
     .type = VDO_JOURNAL_DATA_INCREMENT,
     .pbn  = slab->start + 1,
   };
-  wrapper->dataVIO.recovery_journal_point = (struct journal_point) {
+  dataVIO->recovery_journal_point = (struct journal_point) {
     .sequence_number = slabNumber + 1,
     .entry_count     = slabNumber,
   };

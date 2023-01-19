@@ -567,7 +567,7 @@ static void exit_hash_lock(struct data_vio *data_vio)
 	vdo_release_hash_lock(data_vio);
 
 	/* Complete the data_vio and start the clean-up path to release any locks it still holds. */
-	data_vio_as_completion(data_vio)->callback = complete_data_vio;
+	data_vio->vio.completion.callback = complete_data_vio;
 
 	continue_data_vio(data_vio);
 }
@@ -1286,7 +1286,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	}
 
 	set_data_vio_bio_zone_callback(agent, process_vio_io);
-	vdo_invoke_completion_callback_with_priority(data_vio_as_completion(agent),
+	vdo_invoke_completion_callback_with_priority(&agent->vio.completion,
 						     BIO_Q_VERIFY_PRIORITY);
 }
 

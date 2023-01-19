@@ -460,7 +460,7 @@ static void fetch_mapping_page(struct data_vio *data_vio, bool modifiable, vdo_a
 				 zone->page_cache,
 				 data_vio->tree_lock.tree_slots[0].block_map_slot.pbn,
 				 modifiable,
-				 data_vio_as_completion(data_vio),
+				 &data_vio->vio.completion,
 				 action,
 				 handle_page_error);
 	vdo_get_page(&data_vio->page_completion.completion);

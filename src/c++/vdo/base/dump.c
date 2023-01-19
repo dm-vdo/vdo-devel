@@ -195,7 +195,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 {
 	char *p_flag = buffer;
 	*p_flag++ = ' ';
-	if (data_vio_as_completion(data_vio)->result != VDO_SUCCESS)
+	if (data_vio->vio.completion.result != VDO_SUCCESS)
 		*p_flag++ = 'R';
 	if (data_vio->waiter.next_waiter != NULL)
 		*p_flag++ = 'W';
@@ -237,7 +237,7 @@ void dump_data_vio(void *data)
 	 * We're likely to be logging a couple thousand of these lines, and in some circumstances
 	 * syslogd may have trouble keeping up, so keep it BRIEF rather than user-friendly.
 	 */
-	dump_completion_to_buffer(data_vio_as_completion(data_vio),
+	dump_completion_to_buffer(&data_vio->vio.completion,
 				  vio_completion_dump_buffer,
 				  sizeof(vio_completion_dump_buffer));
 	if (data_vio->is_duplicate)

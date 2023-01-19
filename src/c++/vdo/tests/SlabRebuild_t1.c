@@ -424,17 +424,17 @@ static void makeWrappedVIO(DataVIOWrapper **wrapperPtr)
   vdo_initialize_completion(&wrapper->actionCompletion, vdo,
                             VDO_TEST_COMPLETION);
 
-  struct vdo_completion *completion
-    = data_vio_as_completion(&wrapper->dataVIO);
-  vdo_initialize_completion(completion, vdo, VIO_COMPLETION);
-  completion->callback                    = addEntryComplete;
-  completion->parent                      = &wrapper->completion;
-  as_vio(completion)->type                = VIO_TYPE_DATA;
-  wrapper->dataVIO.logical.lbn            = 1;
-  wrapper->dataVIO.mapped.pbn             = slab->start + COUNTS_PER_BLOCK;
-  wrapper->dataVIO.operation.type         = VDO_JOURNAL_DATA_DECREMENT;
-  wrapper->dataVIO.operation.pbn          = wrapper->dataVIO.mapped.pbn;
-  wrapper->dataVIO.recovery_journal_point = (struct journal_point) {
+  struct data_vio *dataVIO = &wrapper->dataVIO;
+  struct vio      *vio     = &dataVIO->vio;
+  vdo_initialize_completion(&vio->completion, vdo, VIO_COMPLETION);
+  vio->completion.callback        = addEntryComplete;
+  vio->completion.parent          = &wrapper->completion;
+  vio->type                       = VIO_TYPE_DATA;
+  dataVIO->logical.lbn            = 1;
+  dataVIO->mapped.pbn             = slab->start + COUNTS_PER_BLOCK;
+  dataVIO->operation.type         = VDO_JOURNAL_DATA_DECREMENT;
+  dataVIO->operation.pbn          = dataVIO->mapped.pbn;
+  dataVIO->recovery_journal_point = (struct journal_point) {
     .sequence_number = 1,
     .entry_count     = 1,
   };

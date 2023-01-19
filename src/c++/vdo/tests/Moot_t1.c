@@ -96,7 +96,8 @@ static void releaseLatchedVIO(struct vdo_completion *completion)
 {
   clearCompletionEnqueueHooks();
   runSavedCallback(completion);
-  reallyEnqueueCompletion(data_vio_as_completion(UDS_FORGET(toExamine)));
+  struct data_vio *dataVIO = UDS_FORGET(toExamine);
+  reallyEnqueueCompletion(&dataVIO->vio.completion);
 }
 
 /**
@@ -201,7 +202,7 @@ static bool wrapIfLeavingCompressor(struct vdo_completion *completion)
  **/
 static bool assertCanceled(struct vdo_completion *completion)
 {
-  if (completion == data_vio_as_completion(toExamine)) {
+  if (completion == &toExamine->vio.completion) {
     struct data_vio *dataVIO = UDS_FORGET(toExamine);
     clearCompletionEnqueueHooks();
     CU_ASSERT_TRUE(get_data_vio_compression_status(dataVIO).may_not_compress);

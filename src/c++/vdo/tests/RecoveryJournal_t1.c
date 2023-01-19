@@ -512,12 +512,12 @@ static void testBlockHeaderPacking(void)
  **/
 static void initializeWrapper(DataVIOWrapper *wrapper)
 {
+  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
-  vdo_initialize_completion(data_vio_as_completion(&wrapper->dataVIO), vdo,
-                            VIO_COMPLETION);
-  wrapper->dataVIO.vio.type         = VIO_TYPE_DATA;
-  wrapper->dataVIO.mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
-  wrapper->dataVIO.new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+  vdo_initialize_completion(&dataVIO->vio.completion, vdo, VIO_COMPLETION);
+  dataVIO->vio.type         = VIO_TYPE_DATA;
+  dataVIO->mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
+  dataVIO->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 }
 
 /**
@@ -553,15 +553,14 @@ static void journalEntryCallback(struct vdo_completion *completion)
  **/
 static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
 {
+  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_reset_completion(&wrapper->completion);
-  struct vdo_completion *completion
-    = data_vio_as_completion(&wrapper->dataVIO);
-  vdo_reset_completion(completion);
-  completion->callback            = journalEntryCallback;
-  completion->parent              = &wrapper->completion;
-  wrapper->entry                  = entry;
-  wrapper->dataVIO.new_mapped.pbn = (physical_block_number_t) entry;
-  wrapper->dataVIO.tree_lock.tree_slots[0].block_map_slot.pbn
+  vdo_reset_completion(&dataVIO->vio.completion);
+  dataVIO->vio.completion.callback = journalEntryCallback;
+  dataVIO->vio.completion.parent   = &wrapper->completion;
+  wrapper->entry                   = entry;
+  dataVIO->new_mapped.pbn          = (physical_block_number_t) entry;
+  dataVIO->tree_lock.tree_slots[0].block_map_slot.pbn
     = (physical_block_number_t) entry;
 }
 

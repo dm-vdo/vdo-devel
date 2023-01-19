@@ -152,10 +152,9 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
  **/
 static void performSlabJournalAction(struct data_vio *dataVIO)
 {
-  struct vdo_completion *completion = data_vio_as_completion(dataVIO);
-  vdo_initialize_completion(completion, vdo, VIO_COMPLETION);
+  vdo_initialize_completion(&dataVIO->vio.completion, vdo, VIO_COMPLETION);
   VDO_ASSERT_SUCCESS(performWrappedAction(addSlabJournalEntryAction,
-                                          completion));
+                                          &dataVIO->vio.completion));
 }
 
 /**

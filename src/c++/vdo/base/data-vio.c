@@ -303,7 +303,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct bio *bio = data_vio->user_bio;
-	int error = vdo_map_to_system_error(data_vio_as_completion(data_vio)->result);
+	int error = vdo_map_to_system_error(data_vio->vio.completion.result);
 #ifdef VDO_INTERNAL
 	u64 latency_jiffies;
 	unsigned int ack_msecs;
@@ -1326,7 +1326,7 @@ static void transfer_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 	 * Avoid stack overflow on lock transfer.
 	 * FIXME: this is only an issue in the 1 thread config.
 	 */
-	data_vio_as_completion(next_lock_holder)->requeue = true;
+	next_lock_holder->vio.completion.requeue = true;
 	launch_locked_request(next_lock_holder);
 }
 
@@ -1378,7 +1378,7 @@ static void clean_hash_lock(struct vdo_completion *completion)
  */
 static void finish_cleanup(struct data_vio *data_vio)
 {
-	struct vdo_completion *completion = data_vio_as_completion(data_vio);
+	struct vdo_completion *completion = &data_vio->vio.completion;
 
 	ASSERT_LOG_ONLY(data_vio->allocation.lock == NULL,
 			"complete data_vio has no allocation lock");
@@ -1430,7 +1430,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_clean
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
 		    !vdo_is_or_will_be_read_only(vdo_from_data_vio(data_vio)->read_only_notifier) &&
-		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY))
+		    (data_vio->vio.completion.result != VDO_READ_ONLY))
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		fallthrough;
 
@@ -2089,7 +2089,7 @@ static void write_bio_finished(struct bio *bio)
 	struct data_vio *data_vio = vio_as_data_vio((struct vio *) bio->bi_private);
 
 	vdo_count_completed_bios(bio);
-	vdo_set_completion_result(data_vio_as_completion(data_vio), vdo_get_bio_result(bio));
+	vdo_set_completion_result(&data_vio->vio.completion, vdo_get_bio_result(bio));
 	launch_data_vio_journal_callback(data_vio, finish_block_write);
 }
 
