@@ -610,7 +610,7 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
  */
 static void wait_on_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 {
-	enqueue_data_vio(&lock->waiters, data_vio);
+	enqueue_waiter(&lock->waiters, &data_vio->waiter);
 
 	/*
 	 * Make sure the agent doesn't block indefinitely in the packer since it now has at least
@@ -1600,7 +1600,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 	while (((data_vio = dequeue_lock_waiter(lock)) != NULL) &&
 	       !data_vio_has_allocation(data_vio)) {
 		/* Use the lower-level enqueue since we're just moving waiters around. */
-		enqueue_data_vio(&temp_queue, data_vio);
+		enqueue_waiter(&temp_queue, &data_vio->waiter);
 	}
 
 	if (data_vio != NULL) {
@@ -1614,7 +1614,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
 		 * The current agent is being replaced and will have to wait to dedupe; make it the
 		 * first waiter since it was the first to reach the lock.
 		 */
-		enqueue_data_vio(&lock->waiters, lock->agent);
+		enqueue_waiter(&lock->waiters, &lock->agent->waiter);
 		lock->agent = data_vio;
 	} else {
 		/* No one has an allocation, so keep the current agent. */

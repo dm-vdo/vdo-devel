@@ -27,6 +27,7 @@
 #include "vdo.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
+#include "wait-queue.h"
 
 struct page_descriptor {
 	root_count_t root_index;
@@ -714,7 +715,7 @@ static int attempt_page_lock(struct block_map_tree_zone *zone, struct data_vio *
 	}
 
 	/* Someone else is loading or allocating the page we need */
-	enqueue_data_vio(&lock_holder->waiters, data_vio);
+	enqueue_waiter(&lock_holder->waiters, &data_vio->waiter);
 	return VDO_SUCCESS;
 }
 

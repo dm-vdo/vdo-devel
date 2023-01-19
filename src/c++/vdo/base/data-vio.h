@@ -426,19 +426,6 @@ static inline void continue_data_vio_with_error(struct data_vio *data_vio, int r
 const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio);
 
 /**
- * enqueue_data_vio() - Add a data_vio to the tail end of a wait queue.
- * @queue: The queue to which to add the waiter.
- * @waiter: The data_vio to add to the queue.
- *
- * The data_vio must not already be waiting in a queue. A trace record is also generated for the
- * data_vio.
- */
-static inline void enqueue_data_vio(struct wait_queue *queue, struct data_vio *waiter)
-{
-	enqueue_waiter(queue, &waiter->waiter);
-}
-
-/**
  * assert_data_vio_in_hash_zone() - Check that a data_vio is running on the correct thread for
  *				    its hash zone.
  * @data_vio: The data_vio in question.

@@ -42,6 +42,7 @@
 #include "vdo-component.h"
 #include "vdo-component-states.h"
 #include "vio.h"
+#include "wait-queue.h"
 
 /**
  * DOC: Bio flags.
@@ -539,7 +540,7 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_ATTEMPT_LOGICAL_BLOCK_LOCK;
-	enqueue_data_vio(&lock_holder->logical.waiters, data_vio);
+	enqueue_waiter(&lock_holder->logical.waiters, &data_vio->waiter);
 
 	/*
 	 * Prevent writes and read-modify-writes from blocking indefinitely on lock holders in the

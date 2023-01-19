@@ -22,6 +22,7 @@
 #include "slab-summary.h"
 #include "vdo.h"
 #include "vio.h"
+#include "wait-queue.h"
 
 /**
  * get_lock() - Get the lock object for a slab journal block by sequence number.
@@ -1097,7 +1098,7 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal, struct data_vio *d
 		return;
 	}
 
-	enqueue_data_vio(&journal->entry_waiters, data_vio);
+	enqueue_waiter(&journal->entry_waiters, &data_vio->waiter);
 	if ((slab->status != VDO_SLAB_REBUILT) && requires_reaping(journal))
 		vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
 

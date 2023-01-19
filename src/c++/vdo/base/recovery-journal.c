@@ -1190,7 +1190,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	if (!has_waiters(&block->entry_waiters))
 		journal->events.blocks.started++;
 
-	enqueue_data_vio(&block->entry_waiters, data_vio);
+	enqueue_waiter(&block->entry_waiters, &data_vio->waiter);
 	block->entry_count++;
 	block->uncommitted_entry_count++;
 	journal->events.entries.started++;
@@ -1439,7 +1439,7 @@ static bool __must_check add_queued_recovery_entries(struct recovery_journal_blo
 			data_vio->recovery_sequence_number = block->sequence_number;
 
 		/* Enqueue the data_vio to wait for its entry to commit. */
-		enqueue_data_vio(&block->commit_waiters, data_vio);
+		enqueue_waiter(&block->commit_waiters, &data_vio->waiter);
 		if (block->sector->entry_count == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
 			set_active_sector(block, (char *) block->sector + VDO_SECTOR_SIZE);
 	}
@@ -1566,8 +1566,8 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct dat
 			"journal lock not held for increment");
 
 	vdo_advance_journal_point(&journal->append_point, journal->entries_per_block);
-	enqueue_data_vio((increment ? &journal->increment_waiters : &journal->decrement_waiters),
-			 data_vio);
+	enqueue_waiter((increment ? &journal->increment_waiters : &journal->decrement_waiters),
+		       &data_vio->waiter);
 	assign_entries(journal);
 }
 
