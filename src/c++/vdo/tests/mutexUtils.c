@@ -253,8 +253,7 @@ static bool attemptVIOBlock(struct vio     *vio,
                             BlockCondition *blockCondition,
                             void           *context)
 {
-  if ((blockCondition == NULL)
-      || blockCondition(vio_as_completion(vio), context)) {
+  if ((blockCondition == NULL) || blockCondition(&vio->completion, context)) {
     CU_ASSERT_PTR_NULL(blockedVIO);
     blockedVIO = vio;
     return true;

@@ -347,7 +347,7 @@ static void finish_traversal_load(struct vdo_completion *completion)
 static void traversal_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct cursor *cursor = vio_as_completion(vio)->parent;
+	struct cursor *cursor = vio->completion.parent;
 
 	continue_vio_after_io(vio,
 			      finish_traversal_load,
@@ -445,12 +445,11 @@ static void traverse(struct cursor *cursor)
 static void launch_cursor(struct waiter *waiter, void *context)
 {
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
-	struct vdo_completion *completion;
+	struct pooled_vio *pooled = context;
 
-	cursor->vio = context;
-	completion = vio_as_completion(&cursor->vio->vio);
-	completion->parent = cursor;
-	completion->callback_thread_id = cursor->parent->zone->map_zone->thread_id;
+	cursor->vio = pooled;
+	pooled->vio.completion.parent = cursor;
+	pooled->vio.completion.callback_thread_id = cursor->parent->zone->map_zone->thread_id;
 	traverse(cursor);
 }
 

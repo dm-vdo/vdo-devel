@@ -63,7 +63,7 @@ static void validateSuperBlock(void)
 /**********************************************************************/
 static bool injectSuperBlockWriteError(struct bio *bio) {
   struct vio *vio = bio->bi_private;
-  if (vioTypeIs(vio_as_completion(vio), VIO_TYPE_SUPER_BLOCK)) {
+  if (vioTypeIs(&vio->completion, VIO_TYPE_SUPER_BLOCK)) {
     setVIOResult(vio, -EROFS);
     clearBIOSubmitHook();
     bio->bi_end_io(bio);

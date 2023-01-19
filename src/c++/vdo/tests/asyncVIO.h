@@ -27,7 +27,7 @@
  **/
 static inline void wrapVIOCallback(struct vio *vio, vdo_action *callback)
 {
-  wrapCompletionCallback(vio_as_completion(vio), callback);
+  wrapCompletionCallback(&vio->completion, callback);
 }
 
 /**
@@ -171,7 +171,7 @@ static inline bool isDataWrite(struct vdo_completion *completion)
  **/
 static inline void setVIOResult(struct vio *vio, int result)
 {
-  vdo_set_completion_result(vio_as_completion(vio), result);
+  vdo_set_completion_result(&vio->completion, result);
 }
 
 /**

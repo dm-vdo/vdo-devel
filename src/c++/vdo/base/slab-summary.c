@@ -738,7 +738,7 @@ void vdo_load_slab_summary(struct slab_summary *summary,
 
 	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
 	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
-		finish_loading_summary(vio_as_completion(vio));
+		finish_loading_summary(&vio->completion);
 		return;
 	}
 

@@ -125,7 +125,7 @@ static int performDrain(struct slab_summary *summary)
     = vdo_get_slab_summary_for_zone(summary, 0);
   completion.parent = summaryZone;
   completion.callback_thread_id
-    = vio_as_completion(summaryZone->summary_blocks[0].vio)->callback_thread_id;
+    = summaryZone->summary_blocks[0].vio->completion.callback_thread_id;
   return performAction(drainSlabSummaryAction, &completion);
 }
 

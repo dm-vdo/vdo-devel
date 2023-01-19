@@ -78,7 +78,7 @@ static inline struct tree_page *findParentTreePage(struct vio *vio)
     return NULL;
   }
 
-  return (struct tree_page *) vio_as_completion(vio)->parent;
+  return (struct tree_page *) vio->completion.parent;
 }
 
 /**

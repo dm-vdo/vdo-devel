@@ -86,7 +86,7 @@ static void tearVIO(struct vio *vio, uint8_t corruptRegions)
 static bool isBlockMapWrite(struct vio *vio)
 {
   return ((vio->type == VIO_TYPE_BLOCK_MAP)
-          && isMetadataWrite(vio_as_completion(vio)));
+          && isMetadataWrite(&vio->completion));
 }
 
 /**

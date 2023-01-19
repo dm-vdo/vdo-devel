@@ -287,15 +287,15 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 	va_list args;
 	int priority;
-	struct vdo_completion *completion = vio_as_completion(vio);
+	struct vdo *vdo = vdo_from_vio(vio);
 
-	switch (completion->result) {
+	switch (vio->completion.result) {
 	case VDO_READ_ONLY:
-		atomic64_inc(&completion->vdo->stats.read_only_error_count);
+		atomic64_inc(&vdo->stats.read_only_error_count);
 		return;
 
 	case VDO_NO_SPACE:
-		atomic64_inc(&completion->vdo->stats.no_space_error_count);
+		atomic64_inc(&vdo->stats.no_space_error_count);
 		priority = UDS_LOG_DEBUG;
 		break;
 
@@ -309,7 +309,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, completion->result, UDS_LOGGING_MODULE_NAME, format, args);
+	uds_vlog_strerror(priority, vio->completion.result, UDS_LOGGING_MODULE_NAME, format, args);
 	va_end(args);
 }
 
@@ -475,13 +475,11 @@ void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
  */
 void return_vio_to_pool(struct vio_pool *pool, struct pooled_vio *vio)
 {
-	struct vdo_completion *completion = vio_as_completion(&vio->vio);
-
 	ASSERT_LOG_ONLY((pool->thread_id == vdo_get_callback_thread_id()),
 			"vio pool entry returned on same thread as it was acquired");
 
-	completion->error_handler = NULL;
-	completion->parent = NULL;
+	vio->vio.completion.error_handler = NULL;
+	vio->vio.completion.parent = NULL;
 	if (has_waiters(&pool->waiting)) {
 		notify_next_waiter(&pool->waiting, NULL, vio);
 		return;

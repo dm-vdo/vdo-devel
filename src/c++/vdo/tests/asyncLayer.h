@@ -122,7 +122,7 @@ void reallyEnqueueCompletion(struct vdo_completion *completion);
  **/
 static inline void reallyEnqueueVIO(struct vio *vio)
 {
-  reallyEnqueueCompletion(vio_as_completion(vio));
+  reallyEnqueueCompletion(&vio->completion);
 }
 
 /**

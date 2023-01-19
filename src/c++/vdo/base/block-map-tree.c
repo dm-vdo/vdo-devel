@@ -401,7 +401,7 @@ static void write_page_endio(struct bio *bio)
 
 static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
 {
-	struct vdo_completion *completion = vio_as_completion(&vio->vio);
+	struct vdo_completion *completion = &vio->vio.completion;
 	struct block_map_tree_zone *zone = vio->context;
 	struct block_map_page *page = vdo_as_block_map_page(tree_page);
 
@@ -662,7 +662,7 @@ static void handle_io_error(struct vdo_completion *completion)
 static void load_page_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct data_vio *data_vio = vio_as_completion(vio)->parent;
+	struct data_vio *data_vio = vio->completion.parent;
 
 	continue_vio_after_io(vio, finish_block_map_page_load, data_vio->logical.zone->thread_id);
 }
@@ -674,7 +674,7 @@ static void load_page(struct waiter *waiter, void *context)
 	struct tree_lock *lock = &data_vio->tree_lock;
 	physical_block_number_t pbn = lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 
-	vio_as_completion(&pooled->vio)->parent = data_vio;
+	pooled->vio.completion.parent = data_vio;
 	submit_metadata_vio(&pooled->vio,
 			    pbn,
 			    load_page_endio,

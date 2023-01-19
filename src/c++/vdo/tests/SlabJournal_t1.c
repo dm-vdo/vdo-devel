@@ -125,7 +125,7 @@ static slab_block_number        provisional;
 static inline bool isSlabJournalWriteCondition(void *context)
 {
   struct vio *vio = context;
-  if (!isMetadataWrite(vio_as_completion(vio))) {
+  if (!isMetadataWrite(&vio->completion)) {
     return false;
   }
 

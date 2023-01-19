@@ -44,8 +44,7 @@ static bool explodeOnVerification(struct bio *bio)
 {
   struct vio *vio = bio->bi_private;
 
-  if (lastAsyncOperationIs(vio_as_completion(vio),
-                           VIO_ASYNC_OP_VERIFY_DUPLICATION)) {
+  if (lastAsyncOperationIs(&vio->completion, VIO_ASYNC_OP_VERIFY_DUPLICATION)) {
     CU_FAIL("attempted to verify a block that rolls over");
   }
 

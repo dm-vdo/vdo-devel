@@ -112,17 +112,6 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
 }
 
 /**
- * vio_as_completion() - Convert a vio to a generic completion.
- * @vio: The vio to convert.
- *
- * Return: The vio as a completion.
- */
-static inline struct vdo_completion *vio_as_completion(struct vio *vio)
-{
-	return &vio->completion;
-}
-
-/**
  * vdo_from_vio() - Get the vdo from a vio.
  * @vio: The vio from which to get the vdo.
  *
@@ -130,7 +119,7 @@ static inline struct vdo_completion *vio_as_completion(struct vio *vio)
  */
 static inline struct vdo *vdo_from_vio(struct vio *vio)
 {
-	return vio_as_completion(vio)->vdo;
+	return vio->completion.vdo;
 }
 
 /**
@@ -222,7 +211,7 @@ static inline void initialize_vio(struct vio *vio,
 	vio->block_count = block_count;
 	vio->type = vio_type;
 	vio->priority = priority;
-	vdo_initialize_completion(vio_as_completion(vio), vdo, VIO_COMPLETION);
+	vdo_initialize_completion(&vio->completion, vdo, VIO_COMPLETION);
 }
 
 void vdo_set_bio_properties(struct bio *bio,
@@ -271,12 +260,10 @@ static inline enum vdo_completion_priority get_metadata_priority(struct vio *vio
  */
 static inline void continue_vio(struct vio *vio, int result)
 {
-	struct vdo_completion *completion = vio_as_completion(vio);
-
 	if (unlikely(result != VDO_SUCCESS))
-		vdo_set_completion_result(vio_as_completion(vio), result);
+		vdo_set_completion_result(&vio->completion, result);
 
-	vdo_enqueue_completion(completion);
+	vdo_enqueue_completion(&vio->completion);
 }
 
 void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
@@ -288,7 +275,7 @@ void vdo_count_completed_bios(struct bio *bio);
 static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback, thread_id_t thread)
 {
 	vdo_count_completed_bios(vio->bio);
-	vdo_set_completion_callback(vio_as_completion(vio), callback, thread);
+	vdo_set_completion_callback(&vio->completion, callback, thread);
 	continue_vio(vio, vdo_get_bio_result(vio->bio));
 }
 

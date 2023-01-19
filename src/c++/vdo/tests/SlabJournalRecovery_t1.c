@@ -435,7 +435,7 @@ static void testWaitForSlabJournalSpace(void)
    * draining the slab depot which expects the VIO pool to not be busy.
    */
   blockedVIO = getBlockedVIO();
-  vdo_set_completion_result(vio_as_completion(blockedVIO), INJECTED_ERROR);
+  vdo_set_completion_result(&blockedVIO->completion, INJECTED_ERROR);
   returnVIOsToPool();
   reallyEnqueueBIO(blockedVIO->bio);
 

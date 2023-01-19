@@ -83,12 +83,11 @@ static void checkBlockMapState(struct vdo_completion *completion)
  **/
 static bool wrapPreviouslyTrapped(struct vdo_completion *completion)
 {
-  if ((treePageWrite != NULL)
-      && (completion == vio_as_completion(treePageWrite))) {
+  if ((treePageWrite != NULL) && (completion == &treePageWrite->completion)) {
     treePageWrite = NULL;
     wrapVIOCallback(as_vio(completion), checkBlockMapState);
   } else if ((pageCacheWrite != NULL)
-      && (completion == vio_as_completion(pageCacheWrite))) {
+             && (completion == &pageCacheWrite->completion)) {
     pageCacheWrite = NULL;
     wrapVIOCallback(as_vio(completion), checkBlockMapState);
   }

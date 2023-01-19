@@ -560,7 +560,7 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
  */
 static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lbn)
 {
-	struct vdo_completion *completion = vio_as_completion(&data_vio->vio);
+	struct vdo_completion *completion = &data_vio->vio.completion;
 
 	/*
 	 * Clearing the tree lock must happen before initializing the LBN lock, which also adds

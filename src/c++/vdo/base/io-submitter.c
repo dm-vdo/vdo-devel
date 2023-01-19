@@ -223,7 +223,7 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio, bo
 	if (vio_merge == NULL)
 		return NULL;
 
-	if (vio_as_completion(vio)->priority != vio_as_completion(vio_merge)->priority)
+	if (vio->completion.priority != vio_merge->completion.priority)
 		return NULL;
 
 	if (bio_data_dir(bio) != bio_data_dir(vio_merge->bio))
@@ -364,7 +364,7 @@ void vdo_submit_metadata_io(struct vio *vio,
 			    unsigned int operation,
 			    char *data)
 {
-	struct vdo_completion *completion = vio_as_completion(vio);
+	struct vdo_completion *completion = &vio->completion;
 	int result;
 #ifdef __KERNEL__
 	const struct admin_state_code *code = vdo_get_admin_state(completion->vdo);

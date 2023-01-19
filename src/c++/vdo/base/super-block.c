@@ -143,7 +143,7 @@ static void handle_save_error(struct vdo_completion *completion)
 static void super_block_write_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct vdo_super_block *super_block = vio_as_completion(vio)->parent;
+	struct vdo_super_block *super_block = vio->completion.parent;
 	struct vdo_completion *parent = super_block->parent;
 
 	continue_vio_after_io(vio, continue_super_block_parent, parent->callback_thread_id);
@@ -216,7 +216,7 @@ static void handle_super_block_read_error(struct vdo_completion *completion)
 static void read_super_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct vdo_super_block *super_block = vio_as_completion(vio)->parent;
+	struct vdo_super_block *super_block = vio->completion.parent;
 	struct vdo_completion *parent = super_block->parent;
 
 	continue_vio_after_io(vio, finish_reading_super_block, parent->callback_thread_id);

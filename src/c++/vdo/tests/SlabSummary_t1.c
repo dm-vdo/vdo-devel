@@ -104,8 +104,8 @@ static bool injectWriteError(struct bio *bio)
 {
   struct vio *vio = bio->bi_private;
 
-  if ((vio != NULL) && isSlabSummaryWrite(vio_as_completion(vio), NULL)) {
-    vdo_set_completion_result(vio_as_completion(vio), WRITE_ERROR);
+  if ((vio != NULL) && isSlabSummaryWrite(&vio->completion, NULL)) {
+    vdo_set_completion_result(&vio->completion, WRITE_ERROR);
     clearBIOSubmitHook();
   }
 
@@ -121,7 +121,7 @@ static bool injectWriteError(struct bio *bio)
 static void releaseLatchedVIO(struct vio *vio, int statusCode)
 {
   CU_ASSERT_TRUE(vio != NULL);
-  vdo_set_completion_result(vio_as_completion(vio), statusCode);
+  vdo_set_completion_result(&vio->completion, statusCode);
   vio->bio->bi_end_io(vio->bio);
 }
 

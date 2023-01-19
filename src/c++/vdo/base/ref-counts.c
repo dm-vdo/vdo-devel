@@ -1257,7 +1257,7 @@ EXTERNAL_STATIC void vdo_pack_reference_block(struct reference_block *block, voi
 static void write_reference_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct reference_block *block = vio_as_completion(vio)->parent;
+	struct reference_block *block = vio->completion.parent;
 	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
 
 	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
@@ -1274,7 +1274,7 @@ static void write_reference_block(struct waiter *waiter, void *context)
 	size_t block_offset;
 	physical_block_number_t pbn;
 	struct pooled_vio *pooled = context;
-	struct vdo_completion *completion = vio_as_completion(&pooled->vio);
+	struct vdo_completion *completion = &pooled->vio.completion;
 	struct reference_block *block = waiter_as_reference_block(waiter);
 
 	vdo_pack_reference_block(block, pooled->vio.data);
@@ -1469,7 +1469,7 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 static void load_reference_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
-	struct reference_block *block = vio_as_completion(vio)->parent;
+	struct reference_block *block = vio->completion.parent;
 
 	continue_vio_after_io(vio,
 			      finish_reference_block_load,
@@ -1489,7 +1489,7 @@ static void load_reference_block(struct waiter *waiter, void *context)
 	struct reference_block *block = waiter_as_reference_block(waiter);
 	size_t block_offset = (block - block->ref_counts->blocks);
 
-	vio_as_completion(vio)->parent = block;
+	vio->completion.parent = block;
 	submit_metadata_vio(vio,
 			    block->ref_counts->origin + block_offset,
 			    load_reference_block_endio,

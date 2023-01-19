@@ -455,7 +455,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 
 	list_del_init(&slab->allocq_entry);
 	scrubber->slab = slab;
-	completion = vio_as_completion(scrubber->vio);
+	completion = &scrubber->vio->completion;
 	vdo_prepare_completion(completion,
 			       start_scrubbing,
 			       handle_scrubber_error,

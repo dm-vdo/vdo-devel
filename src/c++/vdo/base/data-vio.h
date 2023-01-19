@@ -320,7 +320,7 @@ static inline struct data_vio *as_data_vio(struct vdo_completion *completion)
  */
 static inline struct vdo_completion *data_vio_as_completion(struct data_vio *data_vio)
 {
-	return vio_as_completion(&data_vio->vio);
+	return &data_vio->vio.completion;
 }
 
 /**
@@ -860,7 +860,7 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
  */
 static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	vdo_set_completion_callback(vio_as_completion(&data_vio->vio),
+	vdo_set_completion_callback(&data_vio->vio.completion,
 				    callback,
 				    get_vio_bio_zone_thread_id(&data_vio->vio));
 }

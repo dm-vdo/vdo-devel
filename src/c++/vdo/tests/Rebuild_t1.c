@@ -482,8 +482,8 @@ static void testCrashBeforeBlockMapRebuild(void)
  **/
 static bool failBeforeSuperBlockWrite(struct bio *bio)
 {
-  struct vdo_completion *completion = vio_as_completion(bio->bi_private);
-  if (!isSuperBlockWrite(completion)) {
+  struct vio *vio = bio->bi_private;
+  if (!isSuperBlockWrite(&vio->completion)) {
     return true;
   }
 
@@ -491,7 +491,7 @@ static bool failBeforeSuperBlockWrite(struct bio *bio)
   clearBIOSubmitHook();
   flushRAMLayer(getSynchronousLayer());
   prepareToCrashRAMLayer(getSynchronousLayer());
-  vdo_set_completion_result(completion, LAYER_ERROR);
+  vdo_set_completion_result(&vio->completion, LAYER_ERROR);
   bio->bi_end_io(bio);
   return false;
 }
