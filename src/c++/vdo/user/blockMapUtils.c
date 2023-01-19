@@ -49,7 +49,7 @@ static int readAndExaminePage(UserVDO                 *vdo,
     return result;
   }
 
-  if (!vdo_is_block_map_page_initialized(page)) {
+  if (!page->header.initialized) {
     UDS_FREE(page);
     return VDO_SUCCESS;
   }
@@ -145,7 +145,7 @@ static int readSlotFromPage(UserVDO                  *vdo,
   }
 
   struct data_location mapped;
-  if (vdo_is_block_map_page_initialized(page)) {
+  if (page->header.initialized) {
     mapped = vdo_unpack_block_map_entry(&page->entries[slot]);
   } else {
     mapped = (struct data_location) {

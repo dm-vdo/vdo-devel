@@ -393,7 +393,7 @@ static void write_page_endio(struct bio *bio)
 	struct block_map_page *page = (struct block_map_page *) vio->vio.data;
 
 	continue_vio_after_io(&vio->vio,
-			      (vdo_is_block_map_page_initialized(page) ?
+			      (page->header.initialized ?
 			       finish_page_write :
 			       write_initialized_page),
 			      zone->map_zone->thread_id);
@@ -1021,7 +1021,7 @@ vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number)
 
 	tree_page = vdo_get_tree_page_by_index(map->forest, root_index, 1, page_index);
 	page = (struct block_map_page *) tree_page->page_buffer;
-	if (!vdo_is_block_map_page_initialized(page))
+	if (!page->header.initialized)
 		return VDO_ZERO_BLOCK;
 
 	mapping = vdo_unpack_block_map_entry(&page->entries[slot]);

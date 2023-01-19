@@ -1744,7 +1744,7 @@ static void rebuild_reference_counts_from_page(struct rebuild_completion *rebuil
 
 	ASSERT_LOG_ONLY(page != NULL, "page available");
 
-	if (!vdo_is_block_map_page_initialized(page))
+	if (!page->header.initialized)
 		return;
 
 	/* Remove any bogus entries which exist beyond the end of the logical space. */

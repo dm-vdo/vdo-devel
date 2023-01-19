@@ -114,7 +114,7 @@ static bool trapBlockMapWrites(struct bio *bio)
     }
 
     struct block_map_page *page = (struct block_map_page *) vio->data;
-    if (!vdo_is_block_map_page_initialized(page)) {
+    if (!page->header.initialized) {
       return true;
     }
 
@@ -125,7 +125,7 @@ static bool trapBlockMapWrites(struct bio *bio)
     }
 
     struct block_map_page *page = (struct block_map_page *) vio->data;
-    if (!vdo_is_block_map_page_initialized(page)) {
+    if (!page->header.initialized) {
       return true;
     }
 

@@ -95,18 +95,18 @@ static void checkPageFormatting(void                    *buffer,
   CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(page));
 
   CU_ASSERT_EQUAL(initialized, header->initialized);
-  CU_ASSERT_EQUAL(initialized, vdo_is_block_map_page_initialized(page));
+  CU_ASSERT_EQUAL(initialized, page->header.initialized);
 
   // While we're here, test all the ways to call
   // vdo_mark_block_map_page_initialized().
   CU_ASSERT_FALSE(vdo_mark_block_map_page_initialized(page, initialized));
-  CU_ASSERT_EQUAL(initialized, vdo_is_block_map_page_initialized(page));
+  CU_ASSERT_EQUAL(initialized, page->header.initialized);
 
   CU_ASSERT_TRUE(vdo_mark_block_map_page_initialized(page, !initialized));
-  CU_ASSERT_EQUAL(!initialized, vdo_is_block_map_page_initialized(page));
+  CU_ASSERT_EQUAL(!initialized, page->header.initialized);
 
   CU_ASSERT_FALSE(vdo_mark_block_map_page_initialized(page, !initialized));
-  CU_ASSERT_EQUAL(!initialized, vdo_is_block_map_page_initialized(page));
+  CU_ASSERT_EQUAL(!initialized, page->header.initialized);
 
   // The PBN and nonce do not change and have no setters other than format,
   // so there's nothing else that mutates the header that needs checking.

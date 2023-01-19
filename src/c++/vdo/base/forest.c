@@ -369,7 +369,7 @@ static void traverse(struct cursor *cursor)
 			&(cursor->tree->segments[0].levels[height][level->page_index]);
 		struct block_map_page *page = (struct block_map_page *) tree_page->page_buffer;
 
-		if (!vdo_is_block_map_page_initialized(page))
+		if (!page->header.initialized)
 			continue;
 
 		for (; level->slot < VDO_BLOCK_MAP_ENTRIES_PER_PAGE; level->slot++) {

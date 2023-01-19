@@ -105,9 +105,8 @@ static bool isInitializedInteriorPageWrite(struct vdo_completion *completion)
   }
 
   struct vio *vio = as_vio(completion);
-  struct block_map_page *blockMapPage = (struct block_map_page *) vio->data;
-  return ((bio_op(vio->bio) == REQ_OP_WRITE)
-          && vdo_is_block_map_page_initialized(blockMapPage));
+  struct block_map_page *page = (struct block_map_page *) vio->data;
+  return ((bio_op(vio->bio) == REQ_OP_WRITE) && page->header.initialized);
 }
 
 /**
@@ -451,7 +450,7 @@ static bool checkFinalWrites(struct vdo_completion *completion)
     writeGeneration++;
   }
 
-  if (vdo_is_block_map_page_initialized((struct block_map_page *) vio->data)) {
+  if (((struct block_map_page *) vio->data)->header.initialized) {
     struct tree_page *treePage = findParentTreePage(vio);
     CU_ASSERT_EQUAL(treePage->writing_generation, writeGeneration);
     wrapVIOCallback(vio, countWrite);
