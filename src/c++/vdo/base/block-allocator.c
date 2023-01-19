@@ -831,7 +831,7 @@ void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
 			depot,
 			vdo_notify_zone_finished_scrubbing,
 			vdo_noop_completion_callback);
-	vdo_complete_completion(parent);
+	vdo_invoke_completion_callback(parent);
 }
 
 #ifdef INTERNAL

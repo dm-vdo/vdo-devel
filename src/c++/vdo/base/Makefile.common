@@ -9,7 +9,6 @@
 
 BASE_OBJS :=     			\
 	action-manager.o     		\
-	admin-completion.o		\
 	admin-state.o			\
 	block-allocator.o		\
 	block-map.o			\

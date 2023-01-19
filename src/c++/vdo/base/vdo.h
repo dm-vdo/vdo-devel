@@ -7,18 +7,14 @@
 #define VDO_H
 
 #include <linux/atomic.h>
-#ifdef __KERNEL__
 #include <linux/blk_types.h>
+#include <linux/completion.h>
+#ifdef __KERNEL__
 #include <linux/crc32.h>
-#endif // __KERNEL__
+#endif /* __KERNEL__ */
 #include <linux/kobject.h>
 #include <linux/list.h>
 
-#ifdef __KERNEL__
-#include "thread-registry.h"
-#endif /* __KERNEL__ */
-
-#include "admin-completion.h"
 #include "admin-state.h"
 #include "device-config.h"
 #include "header.h"
@@ -28,6 +24,9 @@
 #include "super-block.h"
 #include "read-only-notifier.h"
 #include "thread-config.h"
+#ifdef __KERNEL__
+#include "thread-registry.h"
+#endif /* __KERNEL__ */
 #include "types.h"
 #include "uds.h"
 #include "vdo-component.h"
@@ -84,6 +83,14 @@ struct atomic_statistics {
 };
 
 struct data_vio_pool;
+
+struct vdo_administrator {
+	struct vdo_completion completion;
+	struct admin_state state;
+	atomic_t busy;
+	u32 phase;
+	struct completion callback_sync;
+};
 
 struct vdo {
 	char thread_name_prefix[MAX_VDO_WORK_QUEUE_NAME_LEN];
@@ -152,11 +159,8 @@ struct vdo {
 	/* The pool of data_vios for servicing incoming bios */
 	struct data_vio_pool *data_vio_pool;
 
-	/* The completion for administrative operations */
-	struct admin_completion admin_completion;
-
-	/* The administrative state of the vdo */
-	struct admin_state admin_state;
+	/* The manager for administrative operations */
+	struct vdo_administrator admin;
 
 	/* Flags controlling administrative operations */
 	const struct admin_state_code *suspend_type;

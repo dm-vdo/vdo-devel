@@ -535,7 +535,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	 * Now that we've freed the recovery completion and its vast array of journal entries, we
 	 * can allocate refcounts.
 	 */
-	vdo_finish_completion(parent, vdo_allocate_slab_ref_counts(vdo->depot));
+	vdo_continue_completion(parent, vdo_allocate_slab_ref_counts(vdo->depot));
 }
 
 /**
@@ -550,7 +550,7 @@ static void abort_recovery(struct vdo_completion *completion)
 
 	free_vdo_recovery_completion(UDS_FORGET(recovery));
 	uds_log_warning("Recovery aborted");
-	vdo_finish_completion(parent, result);
+	vdo_continue_completion(parent, result);
 }
 
 /**
@@ -1530,7 +1530,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 
 	vdo_set_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
 	free_rebuild_completion(UDS_FORGET(rebuild));
-	vdo_finish_completion(parent, result);
+	vdo_continue_completion(parent, result);
 }
 
 /**

@@ -758,7 +758,7 @@ void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	vdo_finish_completion(parent, vdo_resume_if_quiescent(&packer->state));
+	vdo_continue_completion(parent, vdo_resume_if_quiescent(&packer->state));
 }
 
 static void dump_packer_bin(const struct packer_bin *bin, bool canceled)

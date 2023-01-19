@@ -1731,7 +1731,7 @@ static void initiate_drain(struct admin_state *state)
  * vdo_drain_recovery_journal() - Drain recovery journal I/O.
  * @journal: The journal to drain.
  * @operation: The drain operation (suspend or save).
- * @parent: The completion to finish once the journal is drained.
+ * @parent: The completion to notify once the journal is drained.
  *
  * All uncommitted entries will be written out.
  */
@@ -1780,7 +1780,7 @@ void vdo_resume_recovery_journal(struct recovery_journal *journal, struct vdo_co
 	saved = vdo_is_state_saved(&journal->state);
 	vdo_set_completion_result(parent, vdo_resume_if_quiescent(&journal->state));
 	if (vdo_is_read_only(journal->read_only_notifier)) {
-		vdo_finish_completion(parent, VDO_READ_ONLY);
+		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1791,7 +1791,7 @@ void vdo_resume_recovery_journal(struct recovery_journal *journal, struct vdo_co
 		/* We might have missed a notification. */
 		reap_recovery_journal(journal);
 
-	vdo_complete_completion(parent);
+	vdo_invoke_completion_callback(parent);
 }
 
 /**

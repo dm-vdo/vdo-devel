@@ -219,7 +219,7 @@ bool vdo_finish_operation(struct admin_state *state, int result)
 	if (!state->starting) {
 		vdo_set_admin_state_code(state, state->next_state);
 		if (state->waiter != NULL)
-			vdo_complete_completion(UDS_FORGET(state->waiter));
+			vdo_invoke_completion_callback(UDS_FORGET(state->waiter));
 	}
 
 	return true;
@@ -267,7 +267,7 @@ static int __must_check begin_operation(struct admin_state *state,
 	}
 
 	if (waiter != NULL)
-		vdo_finish_completion(waiter, result);
+		vdo_continue_completion(waiter, result);
 
 	return result;
 }
@@ -313,7 +313,7 @@ static bool check_code(bool valid,
 	result = uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 					"%s is not a %s", code->name, what);
 	if (waiter != NULL)
-		vdo_finish_completion(waiter, result);
+		vdo_continue_completion(waiter, result);
 
 	return false;
 }
@@ -335,7 +335,7 @@ assert_vdo_drain_operation(const struct admin_state_code *operation, struct vdo_
  * vdo_start_draining() - Initiate a drain operation if the current state permits it.
  * @state The admin_state.
  * @operation The type of drain to initiate.
- * @waiter The completion to notify when the drain is complete (may be NULL).
+ * @waiter The completion to notify when the drain is complete.
  * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
  *
  * Return: true if the drain was initiated, if not the waiter will be notified.
@@ -351,7 +351,7 @@ bool vdo_start_draining(struct admin_state *state,
 		return false;
 
 	if (code->quiescent) {
-		vdo_complete_completion(waiter);
+		vdo_invoke_completion_callback(waiter);
 		return false;
 	}
 
@@ -360,7 +360,7 @@ bool vdo_start_draining(struct admin_state *state,
 				       "can't start %s from %s",
 				       operation->name,
 				       code->name);
-		vdo_finish_completion(waiter, VDO_INVALID_ADMIN_STATE);
+		vdo_continue_completion(waiter, VDO_INVALID_ADMIN_STATE);
 		return false;
 	}
 

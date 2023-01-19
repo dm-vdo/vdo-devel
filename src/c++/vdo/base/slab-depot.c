@@ -520,7 +520,7 @@ static void start_depot_load(void *context, struct vdo_completion *parent)
  *                         super_block component.
  * @depot: The depot to load.
  * @operation: The type of load to perform.
- * @parent: The completion to finish when the load is complete.
+ * @parent: The completion to notify when the load is complete.
  * @context: Additional context for the load operation; may be NULL.
  *
  * This method may be called only before entering normal operation from the load thread.
@@ -545,7 +545,7 @@ void vdo_load_slab_depot(struct slab_depot *depot,
  *                                        allocating blocks.
  * @depot: The depot to prepare.
  * @load_type: The load type.
- * @parent: The completion to finish when the operation is complete.
+ * @parent: The completion to notify when the operation is complete.
  *
  * This method may be called only before entering normal operation from the load thread. It must be
  * called before allocation may proceed.
@@ -686,7 +686,7 @@ void vdo_drain_slab_depot(struct slab_depot *depot,
 void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	if (vdo_is_read_only(depot->vdo->read_only_notifier)) {
-		vdo_finish_completion(parent, VDO_READ_ONLY);
+		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 

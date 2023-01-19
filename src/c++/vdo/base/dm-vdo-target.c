@@ -3,10 +3,15 @@
  * Copyright Red Hat
  */
 
+#include <linux/atomic.h>
+#include <linux/delay.h>
+#include <linux/completion.h>
 #include <linux/module.h>
 
 #ifdef __KERNEL__
+#include "dm-vdo/admin-state.h"
 #include "dm-vdo/block-map.h"
+#include "dm-vdo/completion.h"
 #include "dm-vdo/constants.h"
 #include "dm-vdo/data-vio.h"
 #include "dm-vdo/dedupe.h"
@@ -32,7 +37,9 @@
 #include "dm-vdo/vdo-recovery.h"
 #include "dm-vdo/vio.h"
 #else /* not __KERNEL__ */
+#include "admin-state.h"
 #include "block-map.h"
+#include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
@@ -78,7 +85,9 @@ enum {
 	LOAD_PHASE_FINISHED,
 	LOAD_PHASE_DRAIN_JOURNAL,
 	LOAD_PHASE_WAIT_FOR_READ_ONLY,
-	PRELOAD_PHASE_START,
+	PRE_LOAD_PHASE_START,
+	PRE_LOAD_PHASE_LOAD_COMPONENTS,
+	PRE_LOAD_PHASE_END,
 	PREPARE_GROW_PHYSICAL_PHASE_START,
 	RESUME_PHASE_START,
 	RESUME_PHASE_ALLOW_READ_ONLY_MODE,
@@ -126,7 +135,9 @@ static const char * const ADMIN_PHASE_NAMES[] = {
 	"LOAD_PHASE_FINISHED",
 	"LOAD_PHASE_DRAIN_JOURNAL",
 	"LOAD_PHASE_WAIT_FOR_READ_ONLY",
-	"PRELOAD_PHASE_START",
+	"PRE_LOAD_PHASE_START",
+	"PRE_LOAD_PHASE_LOAD_COMPONENTS",
+	"PRE_LOAD_PHASE_END",
 	"PREPARE_GROW_PHYSICAL_PHASE_START",
 	"RESUME_PHASE_START",
 	"RESUME_PHASE_ALLOW_READ_ONLY_MODE",
@@ -250,7 +261,7 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 #endif /* VDO_INTERNAL */
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_work_queue *current_work_queue;
-	const struct admin_state_code *code = vdo_get_admin_state_code(&vdo->admin_state);
+	const struct admin_state_code *code = vdo_get_admin_state_code(&vdo->admin.state);
 
 	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s", code->name);
 
@@ -514,16 +525,125 @@ static bool vdo_uses_device(struct vdo *vdo, const void *context)
 }
 
 /**
- * vdo_from_pre_load_sub_task() - Extract the vdo from an admin_completion,
- * @completion: The admin_completion's sub-task completion.
- *
- * Checks that the current operation is a pre-load.
- *
- * Return: The vdo.
+ * get_thread_id_for_phase() - Get the thread id for the current phase of the admin operation in
+ *                             progress.
  */
-static inline struct vdo *vdo_from_pre_load_sub_task(struct vdo_completion *completion)
+static thread_id_t __must_check
+get_thread_id_for_phase(struct vdo *vdo)
 {
-	return vdo_from_admin_sub_task(completion, VDO_ADMIN_OPERATION_PRE_LOAD);
+	const struct thread_config *thread_config = vdo->thread_config;
+
+	switch (vdo->admin.phase) {
+	case RESUME_PHASE_PACKER:
+	case RESUME_PHASE_FLUSHER:
+	case SUSPEND_PHASE_PACKER:
+	case SUSPEND_PHASE_FLUSHES:
+		return thread_config->packer_thread;
+
+	case RESUME_PHASE_DATA_VIOS:
+	case SUSPEND_PHASE_DATA_VIOS:
+		return thread_config->cpu_thread;
+
+	case LOAD_PHASE_DRAIN_JOURNAL:
+	case RESUME_PHASE_JOURNAL:
+	case SUSPEND_PHASE_JOURNAL:
+		return thread_config->journal_thread;
+
+	default:
+		return thread_config->admin_thread;
+	}
+}
+
+static struct vdo_completion *prepare_admin_completion(struct vdo *vdo,
+						       vdo_action *callback,
+						       vdo_action *error_handler)
+{
+	struct vdo_completion *completion = &vdo->admin.completion;
+
+	/*
+	 * We can't use vdo_prepare_completion_for_requeue() here because we don't want to reset
+	 * any error in the completion.
+	 */
+	completion->callback = callback;
+	completion->error_handler = error_handler;
+	completion->callback_thread_id = get_thread_id_for_phase(vdo);
+	completion->requeue = true;
+	return completion;
+}
+
+/**
+ * advance_phase(): Increment the phase of the current admin operation and prepare the admin
+ *                  completion to run on the thread for the next phase.
+ * @vdo: The on which an admin operation is being performed
+ *
+ * Return: The current phase
+ **/
+static u32 advance_phase(struct vdo *vdo)
+{
+	u32 phase = vdo->admin.phase++;
+
+	vdo->admin.completion.callback_thread_id = get_thread_id_for_phase(vdo);
+	vdo->admin.completion.requeue = true;
+	return phase;
+}
+
+/*
+ * Perform an administrative operation (load, suspend, grow logical, or grow physical). This method
+ * should not be called from vdo threads.
+ */
+static int perform_admin_operation(struct vdo *vdo,
+				   u32 starting_phase,
+				   vdo_action *callback,
+				   vdo_action *error_handler,
+				   const char *type)
+{
+	int result;
+	struct vdo_administrator *admin = &vdo->admin;
+
+	if (atomic_cmpxchg(&admin->busy, 0, 1) != 0)
+		return uds_log_error_strerror(VDO_COMPONENT_BUSY,
+					      "Can't start %s operation, another operation is already in progress",
+					      type);
+
+	admin->phase = starting_phase;
+	reinit_completion(&admin->callback_sync);
+	vdo_reset_completion(&admin->completion);
+	vdo_invoke_completion_callback(prepare_admin_completion(vdo, callback, error_handler));
+
+	/*
+	 * Using the "interruptible" interface means that Linux will not log a message when we wait
+	 * for more than 120 seconds.
+	 */
+	while (wait_for_completion_interruptible(&admin->callback_sync) != 0)
+		/* * However, if we get a signal in a user-mode process, we could spin... */
+		fsleep(1000);
+
+	result = admin->completion.result;
+	/* pairs with implicit barrier in cmpxchg above */
+	smp_wmb();
+	atomic_set(&admin->busy, 0);
+	return result;
+}
+
+/* Assert that we are operating on the correct thread for the current phase. */
+static void assert_admin_phase_thread(struct vdo *vdo, const char *what)
+{
+	ASSERT_LOG_ONLY(vdo_get_callback_thread_id() == get_thread_id_for_phase(vdo),
+			"%s on correct thread for %s",
+			what,
+			ADMIN_PHASE_NAMES[vdo->admin.phase]);
+}
+
+/**
+ * finish_operation_callback() - Callback to finish an admin operation.
+ * @completion: The admin_completion.
+ */
+static void finish_operation_callback(struct vdo_completion *completion)
+{
+	struct vdo_administrator *admin = &completion->vdo->admin;
+
+	vdo_finish_operation(&admin->state, completion->result);
+	complete(&admin->callback_sync);
 }
 
 /**
@@ -658,77 +778,42 @@ static int __must_check decode_vdo(struct vdo *vdo)
 }
 
 /**
- * finish_operation_callback() - Callback to finish the load operation.
- * @completion: The admin_completion's sub-task completion.
- */
-static void finish_operation_callback(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
-
-	vdo_finish_operation(&vdo->admin_state, completion->result);
-}
-
-/* get_thread_id_for_phase() - Implements vdo_thread_id_getter_for_phase. */
-static thread_id_t __must_check get_thread_id_for_phase(struct admin_completion *admin_completion)
-{
-	const struct thread_config *thread_config = admin_completion->vdo->thread_config;
-
-	switch (admin_completion->phase) {
-	case RESUME_PHASE_PACKER:
-	case RESUME_PHASE_FLUSHER:
-	case SUSPEND_PHASE_PACKER:
-	case SUSPEND_PHASE_FLUSHES:
-		return thread_config->packer_thread;
-
-	case RESUME_PHASE_DATA_VIOS:
-	case SUSPEND_PHASE_DATA_VIOS:
-		return thread_config->cpu_thread;
-
-	case LOAD_PHASE_DRAIN_JOURNAL:
-	case RESUME_PHASE_JOURNAL:
-	case SUSPEND_PHASE_JOURNAL:
-		return thread_config->journal_thread;
-
-	default:
-		return thread_config->admin_thread;
-	}
-}
-
-/**
- * vdo_load_components() - Load the components of a VDO.
- * @completion: The sub-task completion.
- *
- * This is the super block load callback set by pre_load_callback().
- */
-static void vdo_load_components(struct vdo_completion *completion)
-{
-	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
-
-	vdo_prepare_admin_sub_task(vdo, finish_operation_callback, finish_operation_callback);
-	vdo_finish_completion(completion, decode_vdo(vdo));
-}
-
-/**
  * pre_load_callback() - Callback to initiate a pre-load, registered in vdo_initialize().
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  */
 static void pre_load_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = vdo_from_pre_load_sub_task(completion);
+	struct vdo *vdo = completion->vdo;
+	int result;
 
-	vdo_assert_on_admin_thread(vdo, __func__);
-	if (!vdo_start_operation_with_waiter(&vdo->admin_state,
-					     VDO_ADMIN_STATE_PRE_LOADING,
-					     &admin_completion->completion,
-					     NULL))
+	assert_admin_phase_thread(vdo, __func__);
+
+	switch (advance_phase(vdo)) {
+	case PRE_LOAD_PHASE_START:
+		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_PRE_LOADING);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
+			return;
+		}
+
+		vdo_load_super_block(vdo,
+				     completion,
+				     vdo_get_data_region_start(vdo->geometry),
+				     &vdo->super_block);
 		return;
 
-	vdo_prepare_admin_sub_task(vdo, vdo_load_components, finish_operation_callback);
-	vdo_load_super_block(vdo,
-			     completion,
-			     vdo_get_data_region_start(vdo->geometry),
-			     &vdo->super_block);
+	case PRE_LOAD_PHASE_LOAD_COMPONENTS:
+		vdo_continue_completion(completion, decode_vdo(vdo));
+		return;
+
+	case PRE_LOAD_PHASE_END:
+		break;
+
+	default:
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
+	}
+
+	finish_operation_callback(completion);
 }
 
 static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
@@ -777,12 +862,11 @@ vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config
 		return result;
 	}
 
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_PRE_LOAD,
-					     PRELOAD_PHASE_START,
-					     get_thread_id_for_phase,
-					     pre_load_callback,
-					     pre_load_callback);
+	result = perform_admin_operation(vdo,
+					 PRE_LOAD_PHASE_START,
+					 pre_load_callback,
+					 finish_operation_callback,
+					 "pre-load");
 	if (result != VDO_SUCCESS) {
 		ti->error = ((result == VDO_INVALID_ADMIN_STATE) ?
 			     "Pre-load is only valid immediately after initialization" :
@@ -851,30 +935,22 @@ static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **arg
 /**
  * check_may_grow_physical() - Callback to check that we're not in recovery mode, used in
  *                             vdo_prepare_to_grow_physical().
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  */
 static void check_may_grow_physical(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = admin_completion->vdo;
+	struct vdo *vdo = completion->vdo;
 
-	vdo_assert_admin_operation_type(admin_completion,
-					VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
-	vdo_assert_on_admin_thread(vdo, __func__);
+	assert_admin_phase_thread(vdo, __func__);
 
-	/* This check can only be done from a base code thread. */
-	if (vdo_is_read_only(vdo->read_only_notifier)) {
-		vdo_finish_completion(completion->parent, VDO_READ_ONLY);
-		return;
-	}
+	/* These checks can only be done from a vdo thread. */
+	if (vdo_is_read_only(vdo->read_only_notifier))
+		vdo_set_completion_result(completion, VDO_READ_ONLY);
 
-	/* This check should only be done from a base code thread. */
-	if (vdo_in_recovery_mode(vdo)) {
-		vdo_finish_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
-		return;
-	}
+	if (vdo_in_recovery_mode(vdo))
+		vdo_set_completion_result(completion, VDO_RETRY_AFTER_REBUILD);
 
-	vdo_complete_completion(completion->parent);
+	finish_operation_callback(completion);
 }
 
 static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
@@ -887,12 +963,11 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
 		     (unsigned long long) new_physical_blocks);
 	ASSERT_LOG_ONLY((new_physical_blocks > current_physical_blocks),
 			"New physical size is larger than current physical size");
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-					     PREPARE_GROW_PHYSICAL_PHASE_START,
-					     get_thread_id_for_phase,
-					     check_may_grow_physical,
-					     vdo_finish_completion_parent_callback);
+	result = perform_admin_operation(vdo,
+					 PREPARE_GROW_PHYSICAL_PHASE_START,
+					 check_may_grow_physical,
+					 finish_operation_callback,
+					 "prepare grow-physical");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1063,11 +1138,12 @@ static void vdo_presuspend(struct dm_target *ti)
 
 /**
  * write_super_block_for_suspend() - Update the VDO state and save the super block.
- * @vdo: The vdo being suspended.
- * @completion: The admin_completion's sub-task completion.
+ * @completion: The admin completion
  */
-static void write_super_block_for_suspend(struct vdo *vdo, struct vdo_completion *completion)
+static void write_super_block_for_suspend(struct vdo_completion *completion)
 {
+	struct vdo *vdo = completion->vdo;
+
 	switch (vdo_get_state(vdo)) {
 	case VDO_DIRTY:
 	case VDO_NEW:
@@ -1083,7 +1159,7 @@ static void write_super_block_for_suspend(struct vdo *vdo, struct vdo_completion
 
 	case VDO_REPLAYING:
 	default:
-		vdo_finish_completion(completion, UDS_BAD_STATE);
+		vdo_continue_completion(completion, UDS_BAD_STATE);
 		return;
 	}
 
@@ -1096,23 +1172,22 @@ static void write_super_block_for_suspend(struct vdo *vdo, struct vdo_completion
  */
 static void suspend_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = admin_completion->vdo;
-	struct admin_state *admin_state = &vdo->admin_state;
+	struct vdo *vdo = completion->vdo;
+	struct admin_state *state = &vdo->admin.state;
+
 #ifdef __KERNEL__
 	int result;
 #endif /* __KERNEL__ */
 
-	vdo_assert_admin_operation_type(admin_completion, VDO_ADMIN_OPERATION_SUSPEND);
-	vdo_assert_admin_phase_thread(admin_completion, __func__, ADMIN_PHASE_NAMES);
+	assert_admin_phase_thread(vdo, __func__);
 
-	switch (admin_completion->phase++) {
+	switch (advance_phase(vdo)) {
 	case SUSPEND_PHASE_START:
-		if (vdo_start_draining(admin_state,
-				       vdo->suspend_type,
-				       &admin_completion->completion,
-				       NULL))
-			vdo_complete_completion(vdo_reset_admin_sub_task(completion));
+		if (vdo_get_admin_state_code(state)->quiescent)
+			/* Already suspended */
+			break;
+
+		vdo_continue_completion(completion, vdo_start_operation(state, vdo->suspend_type));
 		return;
 
 	case SUSPEND_PHASE_PACKER:
@@ -1123,21 +1198,21 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
 		if (vdo_in_read_only_mode(vdo))
-			vdo_set_completion_result(&admin_completion->completion, VDO_READ_ONLY);
+			vdo_set_completion_result(completion, VDO_READ_ONLY);
 
-		vdo_drain_packer(vdo->packer, vdo_reset_admin_sub_task(completion));
+		vdo_drain_packer(vdo->packer, completion);
 		return;
 
 	case SUSPEND_PHASE_DATA_VIOS:
-		drain_data_vio_pool(vdo->data_vio_pool, vdo_reset_admin_sub_task(completion));
+		drain_data_vio_pool(vdo->data_vio_pool, completion);
 		return;
 
 	case SUSPEND_PHASE_DEDUPE:
-		vdo_drain_hash_zones(vdo->hash_zones, vdo_reset_admin_sub_task(completion));
+		vdo_drain_hash_zones(vdo->hash_zones, completion);
 		return;
 
 	case SUSPEND_PHASE_FLUSHES:
-		vdo_drain_flusher(vdo->flusher, vdo_reset_admin_sub_task(completion));
+		vdo_drain_flusher(vdo->flusher, completion);
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
@@ -1153,40 +1228,38 @@ static void suspend_callback(struct vdo_completion *completion)
 
 #endif /* __KERNEL__ */
 		vdo_drain_logical_zones(vdo->logical_zones,
-					vdo_get_admin_state_code(admin_state),
-					vdo_reset_admin_sub_task(completion));
+					vdo_get_admin_state_code(state),
+					completion);
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
 		vdo_drain_block_map(vdo->block_map,
-				    vdo_get_admin_state_code(admin_state),
-				    vdo_reset_admin_sub_task(completion));
+				    vdo_get_admin_state_code(state),
+				    completion);
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
 		vdo_drain_recovery_journal(vdo->recovery_journal,
-					   vdo_get_admin_state_code(admin_state),
-					   vdo_reset_admin_sub_task(completion));
+					   vdo_get_admin_state_code(state),
+					   completion);
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
 		vdo_drain_slab_depot(vdo->depot,
-				     vdo_get_admin_state_code(admin_state),
-				     vdo_reset_admin_sub_task(completion));
+				     vdo_get_admin_state_code(state),
+				     completion);
 		return;
 
 	case SUSPEND_PHASE_READ_ONLY_WAIT:
-		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
-							   vdo_reset_admin_sub_task(completion));
+		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier, completion);
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (vdo_is_state_suspending(admin_state) ||
-		    (admin_completion->completion.result != VDO_SUCCESS))
+		if (vdo_is_state_suspending(state) || (completion->result != VDO_SUCCESS))
 			/* If we didn't save the VDO or there was an error, we're done. */
 			break;
 
-		write_super_block_for_suspend(vdo, vdo_reset_admin_sub_task(completion));
+		write_super_block_for_suspend(completion);
 		return;
 
 	case SUSPEND_PHASE_END:
@@ -1196,7 +1269,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	vdo_finish_draining_with_result(admin_state, completion->result);
+	finish_operation_callback(completion);
 }
 
 #ifdef INTERNAL
@@ -1217,12 +1290,11 @@ static void vdo_postsuspend(struct dm_target *ti)
 	 * It's important to note any error here does not actually stop device-mapper from
 	 * suspending the device. All this work is done post suspend.
 	 */
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_SUSPEND,
-					     SUSPEND_PHASE_START,
-					     get_thread_id_for_phase,
-					     suspend_callback,
-					     vdo_preserve_completion_error_and_continue);
+	result = perform_admin_operation(vdo,
+					 SUSPEND_PHASE_START,
+					 suspend_callback,
+					 suspend_callback,
+					 "suspend");
 #ifdef INTERNAL
 	suspend_result = result;
 #endif /* INTERNAL */
@@ -1264,18 +1336,6 @@ struct kobj_type vdo_directory_type = {
 };
 
 #endif /* not __KERNEL__ */
-/**
- * vdo_from_load_sub_task() - Extract the vdo from an admin_completion, checking that the current
- *                            operation is a load.
- * @completion: The admin_completion's sub-task completion.
- *
- * Return: The vdo.
- */
-static inline struct vdo *vdo_from_load_sub_task(struct vdo_completion *completion)
-{
-	return vdo_from_admin_sub_task(completion, VDO_ADMIN_OPERATION_LOAD);
-}
-
 /**
  * was_new() - Check whether the vdo was new when it was loaded.
  * @vdo: The vdo to query.
@@ -1358,28 +1418,26 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
  */
 static void load_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	struct vdo *vdo = completion->vdo;
+	int result;
 
-	vdo_assert_admin_phase_thread(admin_completion, __func__, ADMIN_PHASE_NAMES);
+	assert_admin_phase_thread(vdo, __func__);
 
-	switch (admin_completion->phase++) {
+	switch (advance_phase(vdo)) {
 	case LOAD_PHASE_START:
-		if (!vdo_start_operation_with_waiter(&vdo->admin_state,
-						     VDO_ADMIN_STATE_LOADING,
-						     &admin_completion->completion,
-						     NULL))
+		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_LOADING);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
 			return;
+		}
 
 		/* Prepare the recovery journal for new entries. */
 		vdo_open_recovery_journal(vdo->recovery_journal, vdo->depot, vdo->block_map);
-		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
-					       vdo_reset_admin_sub_task(completion));
+		vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
 		return;
 
 	case LOAD_PHASE_STATS:
-		vdo_finish_completion(vdo_reset_admin_sub_task(completion),
-				      vdo_initialize_kobjects(vdo));
+		vdo_continue_completion(completion, vdo_initialize_kobjects(vdo));
 		return;
 
 	case LOAD_PHASE_LOAD_DEPOT:
@@ -1388,11 +1446,10 @@ static void load_callback(struct vdo_completion *completion)
 			 * In read-only mode we don't use the allocator and it may not even be
 			 * readable, so don't bother trying to load it.
 			 */
-			vdo_set_operation_result(&vdo->admin_state, VDO_READ_ONLY);
+			vdo_set_completion_result(completion, VDO_READ_ONLY);
 			break;
 		}
 
-		vdo_reset_admin_sub_task(completion);
 		if (requires_repair(vdo)) {
 			vdo_repair(completion);
 			return;
@@ -1408,21 +1465,19 @@ static void load_callback(struct vdo_completion *completion)
 
 	case LOAD_PHASE_MAKE_DIRTY:
 		vdo_set_state(vdo, VDO_DIRTY);
-		vdo_save_components(vdo, vdo_reset_admin_sub_task(completion));
+		vdo_save_components(vdo, completion);
 		return;
 
 	case LOAD_PHASE_PREPARE_TO_ALLOCATE:
 		vdo_initialize_block_map_from_journal(vdo->block_map, vdo->recovery_journal);
-		vdo_prepare_slab_depot_to_allocate(vdo->depot,
-						   get_load_type(vdo),
-						   vdo_reset_admin_sub_task(completion));
+		vdo_prepare_slab_depot_to_allocate(vdo->depot, get_load_type(vdo), completion);
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
 		if (vdo_state_requires_recovery(vdo->load_state))
 			vdo_enter_recovery_mode(vdo);
 
-		vdo_scrub_all_unrecovered_slabs(vdo->depot, vdo_reset_admin_sub_task(completion));
+		vdo_scrub_all_unrecovered_slabs(vdo->depot, completion);
 		return;
 
 	case LOAD_PHASE_DATA_REDUCTION:
@@ -1443,61 +1498,63 @@ static void load_callback(struct vdo_completion *completion)
 	case LOAD_PHASE_DRAIN_JOURNAL:
 		vdo_drain_recovery_journal(vdo->recovery_journal,
 					   VDO_ADMIN_STATE_SAVING,
-					   vdo_reset_admin_sub_task(completion));
+					   completion);
 		return;
 
 	case LOAD_PHASE_WAIT_FOR_READ_ONLY:
-		admin_completion->phase = LOAD_PHASE_FINISHED;
-		vdo_reset_admin_sub_task(completion);
+		/* Avoid an infinite loop */
+		completion->error_handler = NULL;
+		vdo->admin.phase = LOAD_PHASE_FINISHED;
 		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier, completion);
 		return;
 
 	default:
-		vdo_set_completion_result(vdo_reset_admin_sub_task(completion), UDS_BAD_STATE);
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	vdo_finish_operation(&vdo->admin_state, completion->result);
+	finish_operation_callback(completion);
 }
 
 /**
  * handle_load_error() - Handle an error during the load operation.
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  *
  * If at all possible, brings the vdo online in read-only mode. This handler is registered in
  * vdo_preresume_registered().
  */
 static void handle_load_error(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = vdo_from_load_sub_task(completion);
+	struct vdo *vdo = completion->vdo;
 
-	vdo_assert_admin_operation_type(admin_completion, VDO_ADMIN_OPERATION_LOAD);
+	if (vdo_get_callback_thread_id() != vdo->thread_config->admin_thread) {
+		completion->callback_thread_id = vdo->thread_config->admin_thread;
+		vdo_invoke_completion_callback(completion);
+		return;
+	}
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state) &&
-	    (admin_completion->phase == LOAD_PHASE_MAKE_DIRTY)) {
+	    (vdo->admin.phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
-
-		/* Preserve the error. */
-		vdo_set_operation_result(&vdo->admin_state, completion->result);
-		admin_completion->phase = LOAD_PHASE_DRAIN_JOURNAL;
+		vdo->admin.phase = LOAD_PHASE_DRAIN_JOURNAL;
 		load_callback(UDS_FORGET(completion));
 		return;
 	}
 
 	uds_log_error_strerror(completion->result, "Entering read-only mode due to load error");
-	admin_completion->phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
+	vdo->admin.phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
 	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
-	vdo_set_operation_result(&vdo->admin_state, VDO_READ_ONLY);
+	completion->result = VDO_READ_ONLY;
 	load_callback(completion);
 }
 
 /**
  * write_super_block_for_resume() - Update the VDO state and save the super block.
- * @vdo: The vdo being resumed.
- * @completion: The admin_completion's sub-task completion.
+ * @completion: The admin completion
  */
-static void write_super_block_for_resume(struct vdo *vdo, struct vdo_completion *completion)
+static void write_super_block_for_resume(struct vdo_completion *completion)
 {
+	struct vdo *vdo = completion->vdo;
+
 	switch (vdo_get_state(vdo)) {
 	case VDO_CLEAN:
 	case VDO_NEW:
@@ -1511,60 +1568,59 @@ static void write_super_block_for_resume(struct vdo *vdo, struct vdo_completion 
 	case VDO_RECOVERING:
 	case VDO_REBUILD_FOR_UPGRADE:
 		/* No need to write the super block in these cases */
-		vdo_complete_completion(completion);
+		vdo_invoke_completion_callback(completion);
 		return;
 
 	case VDO_REPLAYING:
 	default:
-		vdo_finish_completion(completion, UDS_BAD_STATE);
+		vdo_continue_completion(completion, UDS_BAD_STATE);
 	}
 }
 
 /**
  * resume_callback() - Callback to resume a VDO.
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  */
 static void resume_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = admin_completion->vdo;
+	struct vdo *vdo = completion->vdo;
+	int result;
 
-	vdo_assert_admin_operation_type(admin_completion, VDO_ADMIN_OPERATION_RESUME);
-	vdo_assert_admin_phase_thread(admin_completion, __func__, ADMIN_PHASE_NAMES);
+	assert_admin_phase_thread(vdo, __func__);
 
-	switch (admin_completion->phase++) {
+	switch (advance_phase(vdo)) {
 	case RESUME_PHASE_START:
-		if (vdo_start_resuming(&vdo->admin_state,
-				       VDO_ADMIN_STATE_RESUMING,
-				       &admin_completion->completion,
-				       NULL))
-			write_super_block_for_resume(vdo, completion);
+		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_RESUMING);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
+			return;
+		}
+
+		write_super_block_for_resume(completion);
 		return;
 
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
-		vdo_allow_read_only_mode_entry(vdo->read_only_notifier,
-					       vdo_reset_admin_sub_task(completion));
+		vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
 		return;
 
 	case RESUME_PHASE_DEDUPE:
-		vdo_resume_hash_zones(vdo->hash_zones, vdo_reset_admin_sub_task(completion));
+		vdo_resume_hash_zones(vdo->hash_zones, completion);
 		return;
 
 	case RESUME_PHASE_DEPOT:
-		vdo_resume_slab_depot(vdo->depot, vdo_reset_admin_sub_task(completion));
+		vdo_resume_slab_depot(vdo->depot, completion);
 		return;
 
 	case RESUME_PHASE_JOURNAL:
-		vdo_resume_recovery_journal(vdo->recovery_journal,
-					    vdo_reset_admin_sub_task(completion));
+		vdo_resume_recovery_journal(vdo->recovery_journal, completion);
 		return;
 
 	case RESUME_PHASE_BLOCK_MAP:
-		vdo_resume_block_map(vdo->block_map, vdo_reset_admin_sub_task(completion));
+		vdo_resume_block_map(vdo->block_map, completion);
 		return;
 
 	case RESUME_PHASE_LOGICAL_ZONES:
-		vdo_resume_logical_zones(vdo->logical_zones, vdo_reset_admin_sub_task(completion));
+		vdo_resume_logical_zones(vdo->logical_zones, completion);
 		return;
 
 	case RESUME_PHASE_PACKER:
@@ -1576,63 +1632,63 @@ static void resume_callback(struct vdo_completion *completion)
 			WRITE_ONCE(vdo->compressing, enable);
 		uds_log_info("compression is %s", (enable ? "enabled" : "disabled"));
 
-		vdo_resume_packer(vdo->packer, vdo_reset_admin_sub_task(completion));
+		vdo_resume_packer(vdo->packer, completion);
 		return;
 	}
 
 	case RESUME_PHASE_FLUSHER:
-		vdo_resume_flusher(vdo->flusher, vdo_reset_admin_sub_task(completion));
+		vdo_resume_flusher(vdo->flusher, completion);
 		return;
 
 	case RESUME_PHASE_DATA_VIOS:
-		resume_data_vio_pool(vdo->data_vio_pool, vdo_reset_admin_sub_task(completion));
+		resume_data_vio_pool(vdo->data_vio_pool, completion);
 		return;
 
 	case RESUME_PHASE_END:
 		break;
 
 	default:
-		vdo_set_completion_result(vdo_reset_admin_sub_task(completion), UDS_BAD_STATE);
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	vdo_finish_resuming_with_result(&vdo->admin_state, completion->result);
+	finish_operation_callback(completion);
 }
 
 /**
  * grow_logical_callback() - Callback to initiate a grow logical.
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  *
  * Registered in perform_grow_logical().
  */
 static void grow_logical_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = admin_completion->vdo;
+	struct vdo *vdo = completion->vdo;
+	int result;
 
-	vdo_assert_admin_operation_type(admin_completion, VDO_ADMIN_OPERATION_GROW_LOGICAL);
-	vdo_assert_admin_phase_thread(admin_completion, __func__, ADMIN_PHASE_NAMES);
+	assert_admin_phase_thread(vdo, __func__);
 
-	switch (admin_completion->phase++) {
+	switch (advance_phase(vdo)) {
 	case GROW_LOGICAL_PHASE_START:
 		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow logical size of a read-only VDO");
-			vdo_finish_completion(vdo_reset_admin_sub_task(completion), VDO_READ_ONLY);
+			vdo_set_completion_result(completion, VDO_READ_ONLY);
+			break;
+		}
+
+		result = vdo_start_operation(&vdo->admin.state,
+					     VDO_ADMIN_STATE_SUSPENDED_OPERATION);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
 			return;
 		}
 
-		if (vdo_start_operation_with_waiter(&vdo->admin_state,
-						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
-						    &admin_completion->completion,
-						    NULL)) {
-			vdo->states.vdo.config.logical_blocks = vdo->block_map->next_entry_count;
-			vdo_save_components(vdo, vdo_reset_admin_sub_task(completion));
-		}
-
+		vdo->states.vdo.config.logical_blocks = vdo->block_map->next_entry_count;
+		vdo_save_components(vdo, completion);
 		return;
 
 	case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-		vdo_grow_block_map(vdo->block_map, vdo_reset_admin_sub_task(completion));
+		vdo_grow_block_map(vdo->block_map, completion);
 		return;
 
 	case GROW_LOGICAL_PHASE_END:
@@ -1643,32 +1699,30 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		vdo_set_completion_result(vdo_reset_admin_sub_task(completion), UDS_BAD_STATE);
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	vdo_finish_operation(&vdo->admin_state, completion->result);
+	finish_operation_callback(completion);
 }
 
 /**
  * handle_logical_growth_error() - Handle an error during the grow physical process.
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  */
 static void handle_logical_growth_error(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
+	struct vdo *vdo = completion->vdo;
 
-	if (admin_completion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
+	if (vdo->admin.phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
 		/*
 		 * We've failed to write the new size in the super block, so set our in memory
 		 * config back to the old size.
 		 */
-		struct vdo *vdo = admin_completion->vdo;
-
 		vdo->states.vdo.config.logical_blocks = vdo->block_map->entry_count;
 		vdo_abandon_block_map_growth(vdo->block_map);
 	}
 
-	admin_completion->phase = GROW_LOGICAL_PHASE_ERROR;
+	vdo->admin.phase = GROW_LOGICAL_PHASE_ERROR;
 	grow_logical_callback(completion);
 }
 
@@ -1699,12 +1753,11 @@ static int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_block
 	if (vdo->block_map->next_entry_count != new_logical_blocks)
 		return VDO_PARAMETER_MISMATCH;
 
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_GROW_LOGICAL,
-					     GROW_LOGICAL_PHASE_START,
-					     get_thread_id_for_phase,
-					     grow_logical_callback,
-					     handle_logical_growth_error);
+	result = perform_admin_operation(vdo,
+					 GROW_LOGICAL_PHASE_START,
+					 grow_logical_callback,
+					 handle_logical_growth_error,
+					 "grow logical");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1714,52 +1767,49 @@ static int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_block
 
 /**
  * grow_physical_callback() - Callback to initiate a grow physical.
- * @completion: The sub-task completion.
+ * @completion: The admin completion.
  *
  * Registered in perform_grow_physical().
  */
 static void grow_physical_callback(struct vdo_completion *completion)
 {
-	struct admin_completion *admin_completion = vdo_admin_completion_from_sub_task(completion);
-	struct vdo *vdo = admin_completion->vdo;
+	struct vdo *vdo = completion->vdo;
+	int result;
 
-	vdo_assert_admin_operation_type(admin_completion, VDO_ADMIN_OPERATION_GROW_PHYSICAL);
-	vdo_assert_admin_phase_thread(admin_completion, __func__, ADMIN_PHASE_NAMES);
+	assert_admin_phase_thread(vdo, __func__);
 
-	switch (admin_completion->phase++) {
+	switch (advance_phase(vdo)) {
 	case GROW_PHYSICAL_PHASE_START:
 		if (vdo_is_read_only(vdo->read_only_notifier)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow physical size of a read-only VDO");
-			vdo_set_completion_result(vdo_reset_admin_sub_task(completion),
-						  VDO_READ_ONLY);
+			vdo_set_completion_result(completion, VDO_READ_ONLY);
 			break;
 		}
 
-		if (vdo_start_operation_with_waiter(&vdo->admin_state,
-						    VDO_ADMIN_STATE_SUSPENDED_OPERATION,
-						    &admin_completion->completion,
-						    NULL))
-			/* Copy the journal into the new layout. */
-			vdo_copy_layout_partition(vdo->layout,
-						  VDO_RECOVERY_JOURNAL_PARTITION,
-						  vdo_reset_admin_sub_task(completion));
+		result = vdo_start_operation(&vdo->admin.state,
+					     VDO_ADMIN_STATE_SUSPENDED_OPERATION);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
+			return;
+		}
+
+		/* Copy the journal into the new layout. */
+		vdo_copy_layout_partition(vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
-		vdo_copy_layout_partition(vdo->layout,
-					  VDO_SLAB_SUMMARY_PARTITION,
-					  vdo_reset_admin_sub_task(completion));
+		vdo_copy_layout_partition(vdo->layout, VDO_SLAB_SUMMARY_PARTITION, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo->states.vdo.config.physical_blocks = vdo_grow_layout(vdo->layout);
 		vdo_update_slab_depot_size(vdo->depot);
-		vdo_save_components(vdo, vdo_reset_admin_sub_task(completion));
+		vdo_save_components(vdo, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
-		vdo_use_new_slabs(vdo->depot, vdo_reset_admin_sub_task(completion));
+		vdo_use_new_slabs(vdo->depot, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
@@ -1776,11 +1826,11 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		vdo_set_completion_result(vdo_reset_admin_sub_task(completion), UDS_BAD_STATE);
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
 	vdo_finish_layout_growth(vdo->layout);
-	vdo_finish_operation(&vdo->admin_state, completion->result);
+	finish_operation_callback(completion);
 }
 
 /**
@@ -1789,7 +1839,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
  */
 static void handle_physical_growth_error(struct vdo_completion *completion)
 {
-	vdo_admin_completion_from_sub_task(completion)->phase = GROW_PHYSICAL_PHASE_ERROR;
+	completion->vdo->admin.phase = GROW_PHYSICAL_PHASE_ERROR;
 	grow_physical_callback(completion);
 }
 
@@ -1830,12 +1880,11 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
 	if (prepared_depot_size != new_depot_size)
 		return VDO_PARAMETER_MISMATCH;
 
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_GROW_PHYSICAL,
-					     GROW_PHYSICAL_PHASE_START,
-					     get_thread_id_for_phase,
-					     grow_physical_callback,
-					     handle_physical_growth_error);
+	result = perform_admin_operation(vdo,
+					 GROW_PHYSICAL_PHASE_START,
+					 grow_physical_callback,
+					 handle_physical_growth_error,
+					 "grow physical");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1894,12 +1943,11 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 
 	if (vdo_get_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		uds_log_info("starting device '%s'", device_name);
-		result = vdo_perform_admin_operation(vdo,
-						     VDO_ADMIN_OPERATION_LOAD,
-						     LOAD_PHASE_START,
-						     get_thread_id_for_phase,
-						     load_callback,
-						     handle_load_error);
+		result = perform_admin_operation(vdo,
+						 LOAD_PHASE_START,
+						 load_callback,
+						 handle_load_error,
+						 "load");
 		if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 			/*
 			 * Something has gone very wrong. Make sure everything has drained and
@@ -1908,12 +1956,11 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 			uds_log_error_strerror(result,
 					       "Start failed, could not load VDO metadata");
 			vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;
-			vdo_perform_admin_operation(vdo,
-						    VDO_ADMIN_OPERATION_SUSPEND,
-						    SUSPEND_PHASE_START,
-						    get_thread_id_for_phase,
-						    suspend_callback,
-						    vdo_preserve_completion_error_and_continue);
+			perform_admin_operation(vdo,
+						SUSPEND_PHASE_START,
+						suspend_callback,
+						suspend_callback,
+						"suspend");
 			return result;
 		}
 
@@ -1953,12 +2000,11 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 		/* The VDO was just started, so we don't need to resume it. */
 		return VDO_SUCCESS;
 
-	result = vdo_perform_admin_operation(vdo,
-					     VDO_ADMIN_OPERATION_RESUME,
-					     RESUME_PHASE_START,
-					     get_thread_id_for_phase,
-					     resume_callback,
-					     vdo_preserve_completion_error_and_continue);
+	result = perform_admin_operation(vdo,
+					 RESUME_PHASE_START,
+					 resume_callback,
+					 resume_callback,
+					 "resume");
 #ifdef INTERNAL
 	resume_result = result;
 #endif /* INTERNAL */

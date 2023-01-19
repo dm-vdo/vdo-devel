@@ -207,13 +207,13 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 						struct vdo_completion *parent)
 {
 	if (notifier == NULL) {
-		vdo_finish_completion(parent, VDO_SUCCESS);
+		vdo_continue_completion(parent, VDO_SUCCESS);
 		return;
 	}
 
 	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
@@ -230,7 +230,7 @@ void vdo_wait_until_not_entering_read_only_mode(struct read_only_notifier *notif
 		 * A notification was not in progress, and now they are
 		 * disallowed.
 		 */
-		vdo_complete_completion(parent);
+		vdo_invoke_completion_callback(parent);
 		return;
 	}
 }
@@ -250,7 +250,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 	spin_unlock(&notifier->lock);
 
 	if (notifier->waiter != NULL)
-		vdo_finish_completion(UDS_FORGET(notifier->waiter), completion->result);
+		vdo_continue_completion(UDS_FORGET(notifier->waiter), completion->result);
 }
 
 /**
@@ -335,7 +335,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 {
 	assert_notifier_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
@@ -352,7 +352,7 @@ void vdo_allow_read_only_mode_entry(struct read_only_notifier *notifier,
 
 	if (notifier->waiter == NULL) {
 		/* We're done */
-		vdo_complete_completion(parent);
+		vdo_invoke_completion_callback(parent);
 		return;
 	}
 

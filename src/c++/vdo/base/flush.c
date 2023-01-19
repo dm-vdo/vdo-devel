@@ -577,5 +577,5 @@ void vdo_drain_flusher(struct flusher *flusher, struct vdo_completion *completio
 void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);
-	vdo_finish_completion(parent, vdo_resume_if_quiescent(&flusher->state));
+	vdo_continue_completion(parent, vdo_resume_if_quiescent(&flusher->state));
 }

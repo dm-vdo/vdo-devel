@@ -240,9 +240,10 @@ static int initialize_vdo(struct vdo *vdo,
 	vdo->starting_sector_offset = config->owning_target->begin;
 	vdo->instance = instance;
 	vdo->allocations_allowed = true;
-	vdo_set_admin_state_code(&vdo->admin_state, VDO_ADMIN_STATE_NEW);
+	vdo_set_admin_state_code(&vdo->admin.state, VDO_ADMIN_STATE_NEW);
 	INIT_LIST_HEAD(&vdo->device_config_list);
-	vdo_initialize_admin_completion(vdo, &vdo->admin_completion);
+	vdo_initialize_completion(&vdo->admin.completion, vdo, VDO_ADMIN_COMPLETION);
+	init_completion(&vdo->admin.callback_sync);
 	mutex_init(&vdo->stats_mutex);
 	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
@@ -290,8 +291,7 @@ static int initialize_vdo(struct vdo *vdo,
 		return result;
 	}
 
-	vdo_set_admin_state_code(&vdo->admin_state,
-				 VDO_ADMIN_STATE_INITIALIZED);
+	vdo_set_admin_state_code(&vdo->admin.state, VDO_ADMIN_STATE_INITIALIZED);
 	return result;
 }
 
@@ -657,7 +657,7 @@ void vdo_set_state(struct vdo *vdo, enum vdo_state state)
  */
 const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
 {
-	return vdo_get_admin_state_code(&vdo->admin_state);
+	return vdo_get_admin_state_code(&vdo->admin.state);
 }
 
 /**

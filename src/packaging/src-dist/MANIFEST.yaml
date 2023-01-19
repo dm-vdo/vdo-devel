@@ -230,8 +230,6 @@ tarballs:
           sources: |
             action-manager.c
             action-manager.h
-            admin-completion.c
-            admin-completion.h
             admin-state.c
             admin-state.h
             block-allocator.c

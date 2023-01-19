@@ -102,18 +102,18 @@ void vdo_free_super_block(struct vdo_super_block *super_block)
 }
 
 /**
- * finish_super_block_parent() - Finish the parent of a super block load or save operation.
+ * continue_super_block_parent() - Continue the parent of a super block load or save operation.
  * @completion: The super block vio.
  *
  * This callback is registered in vdo_save_super_block() and vdo_load_super_block().
  */
-static void finish_super_block_parent(struct vdo_completion *completion)
+static void continue_super_block_parent(struct vdo_completion *completion)
 {
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
 
 	super_block->parent = NULL;
-	vdo_finish_completion(parent, completion->result);
+	vdo_continue_completion(parent, completion->result);
 }
 
 /**
@@ -146,7 +146,7 @@ static void super_block_write_endio(struct bio *bio)
 	struct vdo_super_block *super_block = vio_as_completion(vio)->parent;
 	struct vdo_completion *parent = super_block->parent;
 
-	continue_vio_after_io(vio, finish_super_block_parent, parent->callback_thread_id);
+	continue_vio_after_io(vio, continue_super_block_parent, parent->callback_thread_id);
 }
 
 /**
@@ -162,18 +162,18 @@ void vdo_save_super_block(struct vdo_super_block *super_block,
 	int result;
 
 	if (super_block->unwriteable) {
-		vdo_finish_completion(parent, VDO_READ_ONLY);
+		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
 	if (super_block->parent != NULL) {
-		vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
 	result = vdo_encode_super_block(&super_block->codec);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_continue_completion(parent, result);
 		return;
 	}
 
@@ -198,7 +198,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_completion *parent = super_block->parent;
 
 	super_block->parent = NULL;
-	vdo_finish_completion(parent, vdo_decode_super_block(&super_block->codec));
+	vdo_continue_completion(parent, vdo_decode_super_block(&super_block->codec));
 }
 
 /**
@@ -225,12 +225,12 @@ static void read_super_block_endio(struct bio *bio)
 /**
  * vdo_load_super_block() - Allocate a super block and read its contents from storage.
  * @vdo: The vdo containing the super block on disk.
- * @parent: The completion to finish after loading the super block.
+ * @parent: The completion to notify after loading the super block.
  * @super_block_offset: The location from which to read the super block.
  * @super_block_ptr: A pointer to hold the super block.
  *
  * If a load error occurs before the super block's own completion can be allocated, the parent will
- * be finished with the error.
+ * be continued with the error.
  */
 void vdo_load_super_block(struct vdo *vdo,
 			  struct vdo_completion *parent,
@@ -243,7 +243,7 @@ void vdo_load_super_block(struct vdo *vdo,
 	result = allocate_super_block(vdo, &super_block);
 	if (result != VDO_SUCCESS) {
 		vdo_free_super_block(super_block);
-		vdo_finish_completion(parent, result);
+		vdo_continue_completion(parent, result);
 		return;
 	}
 

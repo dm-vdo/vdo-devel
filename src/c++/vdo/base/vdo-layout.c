@@ -981,9 +981,9 @@ void vdo_finish_layout_growth(struct vdo_layout *vdo_layout)
 static void copy_callback(int read_err, unsigned long write_err, void *context)
 {
 	struct vdo_completion *completion = context;
+	int result = (((read_err == 0) && (write_err == 0)) ? VDO_SUCCESS : -EIO);
 
-	vdo_finish_completion(completion,
-			      (((read_err == 0) && (write_err == 0)) ? VDO_SUCCESS : -EIO));
+	vdo_continue_completion(completion, result);
 }
 
 static int
@@ -1025,13 +1025,13 @@ void vdo_copy_layout_partition(struct vdo_layout *layout,
 
 	result = partition_to_region(from, vdo, &read_region);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_continue_completion(parent, result);
 		return;
 	}
 
 	result = partition_to_region(to, vdo, &write_regions[0]);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_continue_completion(parent, result);
 		return;
 	}
 

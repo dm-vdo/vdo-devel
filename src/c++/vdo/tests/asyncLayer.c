@@ -268,7 +268,7 @@ static void assertStartStopExpectation(int result)
  **/
 static int processBIO(struct bio *bio)
 {
-  CU_ASSERT_FALSE(vdo_is_state_quiescent(&vdo->admin_state));
+  CU_ASSERT_FALSE(vdo_is_state_quiescent(&vdo->admin.state));
   AsyncLayer *asyncLayer = asAsyncLayer();
   if ((asyncLayer->readOnly) && (bio_op(bio) != REQ_OP_READ)) {
     return -EROFS;

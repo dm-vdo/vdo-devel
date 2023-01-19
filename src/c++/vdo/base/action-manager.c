@@ -266,7 +266,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	result = action.conclusion(manager->context);
 	vdo_finish_operation(&manager->state, VDO_SUCCESS);
 	if (action.parent != NULL)
-		vdo_finish_completion(action.parent, result);
+		vdo_continue_completion(action.parent, result);
 
 	if (has_next_action)
 		launch_current_action(manager);
@@ -378,7 +378,7 @@ bool vdo_schedule_operation_with_context(struct action_manager *manager,
 		current_action = manager->current_action->next;
 	} else {
 		if (parent != NULL)
-			vdo_finish_completion(parent, VDO_COMPONENT_BUSY);
+			vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
 
 		return false;
 	}

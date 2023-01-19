@@ -1109,7 +1109,7 @@ void drain_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *comp
 void resume_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *completion)
 {
 	assert_on_vdo_cpu_thread(completion->vdo, __func__);
-	vdo_finish_completion(completion, vdo_resume_if_quiescent(&pool->state));
+	vdo_continue_completion(completion, vdo_resume_if_quiescent(&pool->state));
 }
 
 static void dump_limiter(const char *name, struct limiter *limiter)
