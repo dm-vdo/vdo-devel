@@ -885,6 +885,7 @@ $suiteNames{beakerExcludedTests}
      "GrowFailure01",       # Manual test
      "Manual01",            # Manual test
      "MemoryFailBase",      # Base class
+     "MigrationBase",       # Base class
      "Mongo",               # Manual test
      "MongoThreadConfigs",  # Manual test
      "RebuildBase",         # Base class
