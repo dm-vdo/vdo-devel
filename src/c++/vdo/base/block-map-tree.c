@@ -730,10 +730,8 @@ static void load_block_map_page(struct block_map_tree_zone *zone, struct data_vi
 	}
 
 	if (data_vio->tree_lock.locked) {
-		struct waiter *waiter = data_vio_as_waiter(data_vio);
-
-		waiter->callback = load_page;
-		acquire_vio_from_pool(zone->vio_pool, waiter);
+		data_vio->waiter.callback = load_page;
+		acquire_vio_from_pool(zone->vio_pool, &data_vio->waiter);
 	}
 }
 

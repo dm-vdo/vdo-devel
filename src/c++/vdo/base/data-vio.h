@@ -324,17 +324,6 @@ static inline struct vdo_completion *data_vio_as_completion(struct data_vio *dat
 }
 
 /**
- * data_vio_as_waiter() - Convert a data_vio to a generic wait queue entry.
- * @data_vio: The data_vio to convert.
- *
- * Return: The data_vio as a wait queue entry.
- */
-static inline struct waiter *data_vio_as_waiter(struct data_vio *data_vio)
-{
-	return &data_vio->waiter;
-}
-
-/**
  * waiter_as_data_vio() - Convert a data_vio's generic wait queue entry back to the data_vio.
  * @waiter: The wait queue entry to convert.
  *
@@ -457,7 +446,7 @@ const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio)
  */
 static inline void enqueue_data_vio(struct wait_queue *queue, struct data_vio *waiter)
 {
-	enqueue_waiter(queue, data_vio_as_waiter(waiter));
+	enqueue_waiter(queue, &waiter->waiter);
 }
 
 /**

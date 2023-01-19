@@ -141,7 +141,6 @@ static void ensureWaitingToScrub(struct vdo_completion *completion)
 
   struct data_vio *dataVIO = as_data_vio(completion);
   CU_ASSERT(dataVIO->allocation.wait_for_clean_slab);
-  CU_ASSERT_PTR_NOT_NULL(data_vio_as_waiter(dataVIO));
   runLocked(setWaitingZone, dataVIO->allocation.zone);
 }
 
