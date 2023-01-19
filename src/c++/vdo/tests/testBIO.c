@@ -34,6 +34,34 @@
 #endif
 
 #if (!USE_ALTERNATE)
+void bio_init(struct bio          *bio,
+              struct block_device *bdev,
+              struct bio_vec      *table,
+	      unsigned short       max_vecs,
+              blk_opf_t            opf)
+{
+	bio->bi_next = NULL;
+	bio->bi_bdev = bdev;
+	bio->bi_opf = opf;
+	bio->bi_flags = 0;
+	bio->bi_ioprio = 0;
+	bio->bi_status = 0;
+	bio->bi_iter.bi_sector = 0;
+	bio->bi_iter.bi_size = 0;
+	bio->bi_iter.bi_idx = 0;
+	bio->bi_iter.bi_bvec_done = 0;
+	bio->bi_end_io = NULL;
+	bio->bi_private = NULL;
+	bio->bi_vcnt = 0;
+
+	atomic_set(&bio->__bi_remaining, 1);
+	atomic_set(&bio->__bi_cnt, 1);
+
+	bio->bi_max_vecs = max_vecs;
+	bio->bi_io_vec = table;
+	bio->bi_pool = NULL;
+}
+
 static
 #endif // not USE_ALTERNATE
 /**********************************************************************/
@@ -122,14 +150,25 @@ blk_qc_t submit_bio_noacct(struct bio *bio)
 }
 
 /**********************************************************************/
+static void submit_bio_wait_endio(struct bio *bio)
+{
+  signalState(((struct vio *) bio->bi_private)->completion.parent);
+}
+
+/**********************************************************************/
 int submit_bio_wait(struct bio *bio)
 {
-  CU_ASSERT_EQUAL(bio_data_dir(bio), READ);
-  struct vio *vio = bio->bi_private;
-  bio->bi_status = layer->reader(layer,
-                                 pbn_from_vio_bio(bio),
-                                 vio->block_count,
-                                 (char *) bio->bi_io_vec->bv_page);
+  bool done = false;
+  struct vio vio;
+  if (bio->bi_private == NULL) {
+    bio->bi_private = &vio;
+  }
+
+  bio->bi_end_io = submit_bio_wait_endio;
+  bio->bi_flags = REQ_NOIDLE; /* Don't check the vdo admin state */
+  ((struct vio *) bio->bi_private)->completion.parent = &done;
+  enqueueBIO(bio);
+  waitForState(&done);
   return bio->bi_status;
 }
 

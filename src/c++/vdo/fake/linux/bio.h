@@ -483,9 +483,8 @@ struct request_queue;
 #endif // __KERNEL__
 extern int submit_bio_wait(struct bio *bio);
 extern void bio_advance(struct bio *, unsigned);
-
-extern void bio_init(struct bio *bio, struct bio_vec *table,
-		     unsigned short max_vecs);
+void bio_init(struct bio *bio, struct block_device *bdev, struct bio_vec *table,
+	      unsigned short max_vecs, blk_opf_t opf);
 extern void bio_uninit(struct bio *);
 
 #if USE_ALTERNATE

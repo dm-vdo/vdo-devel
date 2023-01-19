@@ -571,7 +571,6 @@ const char *vdo_get_device_name(const struct dm_target *target)
 	return dm_device_name(dm_table_get_md(target->table));
 }
 
-#ifdef __KERNEL__
 /**
  * vdo_synchronous_flush() - Issue a flush request and wait for it to
  *                           complete.
@@ -617,7 +616,6 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	return result;
 }
 
-#endif /* __KERNEL__ */
 /**
  * vdo_get_state() - Get the current state of the vdo.
  * @vdo: The vdo.

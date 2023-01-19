@@ -268,7 +268,15 @@ static void assertStartStopExpectation(int result)
  **/
 static int processBIO(struct bio *bio)
 {
-  CU_ASSERT_FALSE(vdo_is_state_quiescent(&vdo->admin.state));
+    /*
+     * Overload the REQ_NOIDLE flag to mean skip the check of the vdo admin
+     * state. This is used by submit_bio_wait() for the geometry block read and
+     * for synchronous flushes.
+     */
+  if ((bio->bi_flags & REQ_NOIDLE) != REQ_NOIDLE) {
+    CU_ASSERT_FALSE(vdo_is_state_quiescent(&vdo->admin.state));
+  }
+
   AsyncLayer *asyncLayer = asAsyncLayer();
   if ((asyncLayer->readOnly) && (bio_op(bio) != REQ_OP_READ)) {
     return -EROFS;

@@ -1174,10 +1174,7 @@ static void suspend_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 	struct admin_state *state = &vdo->admin.state;
-
-#ifdef __KERNEL__
 	int result;
-#endif /* __KERNEL__ */
 
 	assert_admin_phase_thread(vdo, __func__);
 
@@ -1216,7 +1213,6 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
-#ifdef __KERNEL__
 		/*
 		 * Attempt to flush all I/O before completing post suspend work. We believe a
 		 * suspended device is expected to have persisted all data written before the
@@ -1226,7 +1222,6 @@ static void suspend_callback(struct vdo_completion *completion)
 		if (result != VDO_SUCCESS)
 			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
 
-#endif /* __KERNEL__ */
 		vdo_drain_logical_zones(vdo->logical_zones,
 					vdo_get_admin_state_code(state),
 					completion);

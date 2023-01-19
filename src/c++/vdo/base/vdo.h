@@ -254,9 +254,7 @@ vdo_get_backing_device(const struct vdo *vdo);
 const char * __must_check
 vdo_get_device_name(const struct dm_target *target);
 
-#ifdef __KERNEL__
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
-#endif /* __KERNEL__ */
 
 const struct admin_state_code * __must_check
 vdo_get_admin_state(const struct vdo *vdo);

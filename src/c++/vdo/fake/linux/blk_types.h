@@ -14,6 +14,7 @@
 #include "types.h"
 
 struct bio;
+typedef u32 __bitwise blk_opf_t;
 typedef unsigned int blk_qc_t;
 typedef uint32_t blk_status_t;
 typedef void (bio_end_io_t) (struct bio *);
