@@ -1699,20 +1699,20 @@ static void read_block(struct vdo_completion *completion)
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_READ_DATA_VIO;
 	if (vdo_is_state_compressed(data_vio->mapped.state)) {
-		result = prepare_data_vio_for_io(data_vio,
-						 (char *) data_vio->compression.block,
-						 read_endio,
-						 REQ_OP_READ,
-						 data_vio->mapped.pbn);
+		result = vio_reset_bio(vio,
+				       (char *) data_vio->compression.block,
+				       read_endio,
+				       REQ_OP_READ,
+				       data_vio->mapped.pbn);
 	} else {
 		int opf = ((data_vio->user_bio->bi_opf & PASSTHROUGH_FLAGS) | REQ_OP_READ);
 
 		if (data_vio->is_partial) {
-			result = prepare_data_vio_for_io(data_vio,
-							 vio->data,
-							 read_endio,
-							 opf,
-							 data_vio->mapped.pbn);
+			result = vio_reset_bio(vio,
+					       vio->data,
+					       read_endio,
+					       opf,
+					       data_vio->mapped.pbn);
 		} else {
 			/* A full 4k read. Use the incoming bio to avoid having to copy the data */
 #ifndef VDO_UPSTREAM
@@ -2124,11 +2124,11 @@ void write_data_vio(struct data_vio *data_vio)
 		 !set_data_vio_compression_status(data_vio, status, new_status));
 
 	/* Write the data from the data block buffer. */
-	result = prepare_data_vio_for_io(data_vio,
-					 data_vio->vio.data,
-					 write_bio_finished,
-					 REQ_OP_WRITE,
-					 data_vio->allocation.pbn);
+	result = vio_reset_bio(&data_vio->vio,
+			       data_vio->vio.data,
+			       write_bio_finished,
+			       REQ_OP_WRITE,
+			       data_vio->allocation.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio_with_error(data_vio, result);
 		return;

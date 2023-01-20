@@ -1266,6 +1266,7 @@ static void verify_endio(struct bio *bio)
 static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 {
 	int result;
+	struct vio *vio = &agent->vio;
 	char *buffer = (vdo_is_state_compressed(agent->duplicate.state) ?
 			(char *) agent->compression.block :
 			agent->scratch_block);
@@ -1274,11 +1275,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	ASSERT_LOG_ONLY(!lock->verified, "hash lock only verifies advice once");
 
 	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
-	result = prepare_data_vio_for_io(agent,
-					 buffer,
-					 verify_endio,
-					 REQ_OP_READ,
-					 agent->duplicate.pbn);
+	result = vio_reset_bio(vio, buffer, verify_endio, REQ_OP_READ, agent->duplicate.pbn);
 	if (result != VDO_SUCCESS) {
 		set_data_vio_hash_zone_callback(agent, finish_verifying);
 		continue_data_vio_with_error(agent, result);
@@ -1286,8 +1283,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	}
 
 	set_data_vio_bio_zone_callback(agent, process_vio_io);
-	vdo_invoke_completion_callback_with_priority(&agent->vio.completion,
-						     BIO_Q_VERIFY_PRIORITY);
+	vdo_invoke_completion_callback_with_priority(&vio->completion, BIO_Q_VERIFY_PRIORITY);
 }
 
 /**

@@ -891,27 +891,6 @@ int __must_check uncompress_data_vio(struct data_vio *data_vio,
 				     enum block_mapping_state mapping_state,
 				     char *buffer);
 
-/**
- * Prepare a data_vio's vio and bio to submit I/O.
- *
- * @data_vio: The vio preparing to issue I/O
- * @data: The buffer to write from or read into
- * @callback: The callback the bio should call when the I/O finishes
- * @bi_opf: The operation and flags for the bio
- * @pbn: The pbn to which the I/O will be addressed
- *
- * Return: VDO_SUCCESS or an error
- */
-static inline int __must_check
-prepare_data_vio_for_io(struct data_vio *data_vio,
-			char *data,
-			bio_end_io_t callback,
-			unsigned int bi_opf,
-			physical_block_number_t pbn)
-{
-	return vio_reset_bio(&data_vio->vio, data, callback, bi_opf, pbn);
-}
-
 #ifdef INTERNAL
 bool is_zero_block(char *block);
 #endif /* INTERNAL */

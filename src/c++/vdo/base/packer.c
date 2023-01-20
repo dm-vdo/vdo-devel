@@ -482,11 +482,11 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		return;
 	}
 
-	result = prepare_data_vio_for_io(agent,
-					 (char *) block,
-					 compressed_write_end_io,
-					 REQ_OP_WRITE,
-					 agent->allocation.pbn);
+	result = vio_reset_bio(&agent->vio,
+			       (char *) block,
+			       compressed_write_end_io,
+			       REQ_OP_WRITE,
+			       agent->allocation.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio_with_error(agent, result);
 		return;
