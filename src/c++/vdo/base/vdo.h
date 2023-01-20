@@ -57,10 +57,7 @@ struct atomic_bio_stats {
 	atomic64_t fua; /* Number of REQ_FUA bios */
 };
 
-/*
- * Counters are atomic since updates can arrive concurrently from arbitrary
- * threads.
- */
+/* Counters are atomic since updates can arrive concurrently from arbitrary threads. */
 struct atomic_statistics {
 	atomic64_t bios_submitted;
 	atomic64_t bios_completed;
@@ -104,8 +101,8 @@ struct vdo {
 	/* The full state of all components */
 	struct vdo_component_states states;
 	/*
-	 * A counter value to attach to thread names and log messages to
-	 * identify the individual device.
+	 * A counter value to attach to thread names and log messages to identify the individual
+	 * device.
 	 */
 	unsigned int instance;
 	/* The read-only notifier */
@@ -150,10 +147,7 @@ struct vdo {
 	/* The hash lock zones of this vdo */
 	struct hash_zones *hash_zones;
 
-	/*
-	 * Bio submission manager used for sending bios to the storage
-	 * device.
-	 */
+	/* Bio submission manager used for sending bios to the storage device. */
 	struct io_submitter *io_submitter;
 
 	/* The pool of data_vios for servicing incoming bios */
@@ -209,14 +203,12 @@ extern int data_vio_count;
 #endif /* VDO_INTERNAL or INTERNAL */
 
 /**
- * vdo_uses_bio_ack_queue() - Indicate whether the vdo is configured to use a
- *                            separate work queue for acknowledging received
- *                            and processed bios.
+ * vdo_uses_bio_ack_queue() - Indicate whether the vdo is configured to use a separate work queue
+ *                            for acknowledging received and processed bios.
  * @vdo: The vdo.
  *
- * Note that this directly controls the handling of write operations, but the
- * compile-time flag VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read
- * operations.
+ * Note that this directly controls the handling of write operations, but the compile-time flag
+ * VDO_USE_BIO_ACK_QUEUE_FOR_READ is also checked for read operations.
  *
  * Return: Whether a bio-acknowledgement work queue is in use.
  */
@@ -225,39 +217,31 @@ static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
 
-int __must_check
-vdo_make_thread(struct vdo *vdo,
-		thread_id_t thread_id,
-		const struct vdo_work_queue_type *type,
-		unsigned int queue_count,
-		void *contexts[]);
+int __must_check vdo_make_thread(struct vdo *vdo,
+				 thread_id_t thread_id,
+				 const struct vdo_work_queue_type *type,
+				 unsigned int queue_count,
+				 void *contexts[]);
 
-static inline int __must_check
-vdo_make_default_thread(struct vdo *vdo, thread_id_t thread_id)
+static inline int __must_check vdo_make_default_thread(struct vdo *vdo, thread_id_t thread_id)
 {
 	return vdo_make_thread(vdo, thread_id, NULL, 1, NULL);
 }
 
 int __must_check
-vdo_make(unsigned int instance,
-	 struct device_config *config,
-	 char **reason,
-	 struct vdo **vdo_ptr);
+vdo_make(unsigned int instance, struct device_config *config, char **reason, struct vdo **vdo_ptr);
 
 void vdo_destroy(struct vdo *vdo);
 
 int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
 
-struct block_device * __must_check
-vdo_get_backing_device(const struct vdo *vdo);
+struct block_device * __must_check vdo_get_backing_device(const struct vdo *vdo);
 
-const char * __must_check
-vdo_get_device_name(const struct dm_target *target);
+const char * __must_check vdo_get_device_name(const struct dm_target *target);
 
 int __must_check vdo_synchronous_flush(struct vdo *vdo);
 
-const struct admin_state_code * __must_check
-vdo_get_admin_state(const struct vdo *vdo);
+const struct admin_state_code * __must_check vdo_get_admin_state(const struct vdo *vdo);
 
 bool vdo_set_compressing(struct vdo *vdo, bool enable);
 
@@ -291,10 +275,9 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name);
 
-static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo,
-					       const char *name) {
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo->thread_config->dedupe_thread),
+static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo, const char *name)
+{
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config->dedupe_thread),
 			"%s called on dedupe index thread",
 			name);
 }
@@ -308,18 +291,12 @@ int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 void vdo_dump_status(const struct vdo *vdo);
 
 #ifdef INTERNAL
-block_count_t __must_check
-vdo_get_physical_blocks_allocated(const struct vdo *vdo);
-
-block_count_t __must_check
-vdo_get_physical_blocks_overhead(const struct vdo *vdo);
+block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo);
+block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo);
 #endif /* INTERNAL */
 
 #ifdef __KERNEL__
-/*
- * We start with 0L and postcondition with ~0L to match our historical usage
- * in userspace.
- */
+/* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
 static inline u32 vdo_crc32(const void *buf, unsigned long len)
 {
 	return (crc32(0L, buf, len) ^ ~0L);
