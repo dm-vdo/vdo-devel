@@ -249,7 +249,7 @@ sub getPythonLibraryPath {
     $self->runSystemCmd("$pythonPath -c '$pythonCmd'");
     my $stdout = $self->getStdout();
     chomp($stdout);
-    my $re = 'python[0-9]\.[0-9]/site-packages$';
+    my $re = 'python[0-9]\.[0-9]*/site-packages$';
     assertRegexpMatches(qr/$re/, $stdout);
     $self->{_pythonLibraryPath} = $stdout;
   }
