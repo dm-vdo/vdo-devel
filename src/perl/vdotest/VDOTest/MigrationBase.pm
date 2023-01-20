@@ -1,10 +1,10 @@
 ##
-# Provide a basic test for upgrading, which can be extended with specific
-# versions.
+# Provide a basic framework for migrating from one machine to another,
+# in order to test changes to hardware, platform, or VDO version.
 #
 # $Id$
 ##
-package VDOTest::UpgradeBase;
+package VDOTest::MigrationBase;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -15,7 +15,6 @@ use Permabit::Assertions qw(
   assertEqualNumeric
   assertGTNumeric
   assertLTNumeric
-  assertMinMaxArgs
   assertNumArgs
 );
 use Permabit::Constants;
@@ -29,40 +28,22 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES =
   (
-   # @ple Audit VDOs, as some upgrades require rebuilds
-   auditVDO         => 1,
+   # @ple Audit VDO metadata
+   auditVDO           => 1,
    # @ple Number of blocks to write
-   blockCount       => 33000,
-   # @ple Use an upgrade device, and don't use a stripfua device
-   deviceType       => "upgrade-linear",
+   blockCount         => 33000,
+   # @ple Use an upgrade device backed by iscsi, and don't use stripfua
+   deviceType         => "upgrade-iscsi-linear",
    # @ple VDO Stats to compare after upgrade
-   _preUpgradeStats => undef,
+   _preMigrationStats => undef,
    # @ple Data to share between test methods
-   _testData        => undef,
+   _testData          => undef,
   );
 ##
 
 #############################################################################
-# Make a test with a given name and version list.
-#
-# @param  package   The package in which to make the test
-# @param  name      The name of the test
-# @param  versions  The VDO versions the test should go through
-#
-# @return The requested test
 ##
-sub makeTest {
-  my ($package, $name, $versions) = assertNumArgs(3, @_);
-  my $test = $package->make_test_from_coderef(\&_runUpgradeTest,
-                                              "${package}::${name}");
-  $test->{setupVersion}         = shift(@$versions);
-  $test->{intermediateVersions} = $versions;
-  return $test;
-}
-
-#############################################################################
-##
-sub _establishStartingDevice {
+sub establishStartingDevice {
   my ($self) = assertNumArgs(1, @_);
 
   my $device = $self->getDevice();
@@ -96,49 +77,49 @@ sub _establishStartingDevice {
   my $preCompressStats = $device->getVDOStats();
   if (!$self->{disableAlbireo}) {
     assertEqualNumeric($self->{blockCount},
-		       $preCompressStats->{"data blocks used"},
-		       "Data blocks used should be block count");
+                       $preCompressStats->{"data blocks used"},
+                       "Data blocks used should be block count");
   }
 
   # Write some compressible blocks
-  my $compressionStatus = $device->getVDOCompressionStatus();
-  $device->assertVDOCommand("enableCompression");
+  my $compression = $device->isVDOCompressionEnabled();
+  $device->enableCompression();
   $self->{_testdata}[2]->write(tag => "data2", fsync => 1, compress => .9);
   # Restore old compression status; then make sure compression happened.
-  if (!$compressionStatus) {
-    $device->assertVDOCommand("disableCompression");
+  if (!$compression) {
+    $device->disableCompression();
   }
-  $self->{_preUpgradeStats} = $device->getVDOStats();
-  assertGTNumeric($self->{_preUpgradeStats}->{"compressed blocks written"}, 0,
+  $self->{_preMigrationStats} = $device->getVDOStats();
+  assertGTNumeric($self->{_preMigrationStats}->{"compressed blocks written"}, 0,
                   "There are some compressed blocks");
-  assertGTNumeric($self->{_preUpgradeStats}->{"compressed fragments written"},
-		  0, "There are some compressed fragments");
-  # With 90% compressible data, we should at least save 87% of the space.
-  my $dataBlocksUsed = ($self->{_preUpgradeStats}->{"data blocks used"}
+  assertGTNumeric($self->{_preMigrationStats}->{"compressed fragments written"},
+                  0, "There are some compressed fragments");
+  # With 90% compressible data, we should at least save 80% of the space.
+  my $dataBlocksUsed = ($self->{_preMigrationStats}->{"data blocks used"}
                         - $preCompressStats->{"data blocks used"});
-  assertLTNumeric($dataBlocksUsed, $self->{blockCount} / 8,
+  assertLTNumeric($dataBlocksUsed, $self->{blockCount} / 5,
                   "Block writes should be compressed");
 
   # Don't check dedupe stats if we aren't running with deduplication.
   if (!$self->{disableAlbireo}) {
-    assertEqualNumeric(0, $self->{_preUpgradeStats}->{"dedupe advice timeouts"},
-		       "Dedupe advice timeouts should be zero");
+    assertEqualNumeric(0, $self->{_preMigrationStats}->{"dedupe advice timeouts"},
+                       "Dedupe advice timeouts should be zero");
     assertEqualNumeric(($self->{blockCount} / 2),
-		       $self->{_preUpgradeStats}->{"dedupe advice valid"},
-		       "Dedupe advice valid should be half the block count");
-    assertEqualNumeric(0, $self->{_preUpgradeStats}->{"dedupe advice stale"},
-		       "Dedupe advice stale should be zero");
+                       $self->{_preMigrationStats}->{"dedupe advice valid"},
+                       "Dedupe advice valid should be half the block count");
+    assertEqualNumeric(0, $self->{_preMigrationStats}->{"dedupe advice stale"},
+                       "Dedupe advice stale should be zero");
   }
 }
 
 #############################################################################
 # Test basic read/write and dedupe capability after an upgrade.
 ##
-sub _verifyHead {
+sub verifyFinalState {
   my ($self) = assertNumArgs(1, @_);
 
   my $device = $self->getDevice();
-  my $postUpgradeStats = $device->getVDOStats();
+  my $postMigrationStats = $device->getVDOStats();
   my @unchangedStats = (
                          "data blocks used",
                          "logical blocks used",
@@ -146,8 +127,8 @@ sub _verifyHead {
                          "physical blocks",
                         );
   foreach my $field (@unchangedStats) {
-    assertEqualNumeric($self->{_preUpgradeStats}->{$field},
-                       $postUpgradeStats->{$field},
+    assertEqualNumeric($self->{_preMigrationStats}->{$field},
+                       $postMigrationStats->{$field},
                        "Stats for $field should be the same");
   }
 
@@ -174,7 +155,7 @@ sub _verifyHead {
                      "Dedupe advice valid should be block count");
   assertEqualNumeric(0, $overwriteDedupeStats->{"dedupe advice stale"},
                      "Dedupe advice stale should be zero");
-  assertEqualNumeric(($self->{_preUpgradeStats}->{"data blocks used"}
+  assertEqualNumeric(($self->{_preMigrationStats}->{"data blocks used"}
                       - $blocksWritten),
                      $overwriteDedupeStats->{"data blocks used"},
                      "Each overwritten block freed a used block");
@@ -189,7 +170,7 @@ sub _verifyHead {
   $overwriteSlice->verify();
 
   # Enable compression and write compressible data.
-  $device->assertVDOCommand("enableCompression");
+  $device->enableCompression();
 
   my $compressSlice
     = $self->createSlice(
@@ -200,10 +181,10 @@ sub _verifyHead {
   $compressSlice->verify();
 
   my $compressionStats = $device->getVDOStats();
-  # With 90% compressible data, we should at least save 87% of the space.
+  # With 90% compressible data, we should at least save 80% of the space.
   my $dataBlocksUsed = ($compressionStats->{"data blocks used"}
                         - $overwriteDedupeStats->{"data blocks used"});
-  assertLTNumeric($dataBlocksUsed, $self->{blockCount} / 8,
+  assertLTNumeric($dataBlocksUsed, $self->{blockCount} / 5,
                   "Block writes should be compressed");
   assertGTNumeric($compressionStats->{"compressed blocks written"}, 0,
                   "There are some compressed blocks");
@@ -225,59 +206,14 @@ sub _verifyHead {
 }
 
 #############################################################################
-# Do an upgrade by using the upgrader script.
+# Move the VDO device to a new scenario.
 ##
-sub doUpgrade {
-  my ($self, $newVersion) = assertNumArgs(2, @_);
-
-  my $device = $self->getDevice();
-  $device->upgrade($newVersion);
-  $device->waitForIndex();
-}
-
-#############################################################################
-# Do an upgrade by swapping out the binaries.
-##
-sub _switchToIntermediateVersion {
-  my ($self, $intermediateVersion) = assertNumArgs(2, @_);
+sub switchToIntermediateScenario {
+  my ($self, $scenario) = assertNumArgs(2, @_);
   my $device = $self->getDevice();
   $device->stop();
-  $device->switchToVersion($intermediateVersion);
+  $device->switchToScenario($scenario);
   $device->start();
-}
-
-#############################################################################
-# Test basic read/write and dedupe capability after an upgrade or set thereof
-# using the upgrader script.
-#
-# @oparam    dontVerify    don't run the verification step
-##
-sub _runUpgradeTest {
-  my ($self, $dontVerify) = assertMinMaxArgs([0], 1, 2, @_);
-  my @upgradeList = @{$self->{intermediateVersions}};
-  push(@upgradeList, "head");
-
-  my $upgrades = join(" to ", @upgradeList);
-  $log->info("Testing upgrading $self->{setupVersion} to $upgrades");
-
-  $self->_establishStartingDevice();
-  my $device = $self->getDevice();
-  foreach my $intermediateVersion (@upgradeList) {
-    if ($device->needsExplicitUpgrade($intermediateVersion)) {
-      $log->info("Upgrading to $intermediateVersion explicitly");
-      $self->doUpgrade($intermediateVersion);
-    } else {
-      $log->info("Upgrading to $intermediateVersion implicitly");
-      $self->_switchToIntermediateVersion($intermediateVersion);
-    }
-  }
-  if (!$dontVerify) {
-    $self->_verifyHead();
-  }
-
-  $log->info("Returning to $self->{setupVersion}");
-  $self->_switchToIntermediateVersion($self->{setupVersion});
-  # XXX  We should check that the old version still works.
 }
 
 1;

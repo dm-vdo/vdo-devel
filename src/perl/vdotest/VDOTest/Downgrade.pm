@@ -29,8 +29,8 @@ our %PROPERTIES =
    deviceType       => "upgrade",
    # @ple VDO option that did not exist in Oxygen
    logfile          => undef,
-   # @ple version of VDO to setup
-   setupVersion     => "head",
+   # @ple The scenario to start with
+   initialScenario  => { version => "head" },
   );
 ##
 
@@ -71,7 +71,7 @@ sub testDowngrade {
 ##
 sub propertiesUpgradeDowngrade {
   my ($self) = assertNumArgs(1, @_);
-  return ( setupVersion => $PRIOR_VERSION );
+  return ( initialScenario  => { version => $PRIOR_VERSION } );
 }
 
 #############################################################################
@@ -92,7 +92,7 @@ sub testUpgradeDowngrade {
 # Test starting with a latest-prior VDO.
 ##
 sub propertiesUpgradeDeviceNotBinaries {
-  return ( setupVersion => $PRIOR_VERSION );
+  return ( initialScenario  => { version => $PRIOR_VERSION } );
 }
 
 #############################################################################

@@ -51,7 +51,7 @@ sub generateOneStepTest {
   # Remove dots and dashes from the testname, as those are invalid.
   $name =~ s/[.-]/_/g;
   my $test = $package->make_test_from_coderef(\&_runDirtyUpgradeTest, $name);
-  $test->{setupVersion}    = $startingBuild;
+  $test->{initialScenario} = { version => $startingBuild };
   $test->{_upgradeVersion} = $endingBuild;
   return $test;
 }
@@ -96,7 +96,7 @@ sub _runDirtyUpgradeTest {
                                                 "VDO_UNSUPPORTED_VERSION"));
 
   # Switch back to the initial version for test cleanup.
-  $device->switchToVersion($self->{setupVersion});
+  $device->switchToScenario($self->{initialScenario});
 
   # Manually start the VDO with the initial version to ensure it still works.
   $device->recover();

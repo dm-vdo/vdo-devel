@@ -580,18 +580,25 @@ sub installModule {
 
   my $machineName = $self->getMachineName();
   my $moduleName = $self->getModuleName();
+  my $version = $self->getModuleVersion();
   if ($self->{_modules}{$machineName}) {
-    $log->info("Module $moduleName already installed on $machineName");
-    return;
+    if ($self->{_modules}{$machineName}{modVersion} eq $version) {
+      $log->info("Module $moduleName $version already installed"
+                 . "on $machineName");
+      return;
+    } else {
+      # We need a different version of the module, so remove the existing one.
+      $self->uninstallModule($machineName);
+    }
   }
 
-  $log->info("Installing module $moduleName on $machineName");
+  $log->info("Installing module $moduleName $version on $machineName");
   my $module
     = Permabit::KernelModule->new(
                                   machine    => $self->getMachine(),
                                   modDir     => $self->getModuleSourceDir(),
                                   modName    => $moduleName,
-                                  modVersion => $self->getModuleVersion(),
+                                  modVersion => $version,
                                  );
   $module->load();
   $self->{_modules}{$machineName} = $module;
@@ -621,7 +628,7 @@ sub installModule {
 sub uninstallModule {
   my ($self, $machineName) = assertMinMaxArgs(1, 2, @_);
   $machineName //= $self->getMachineName();
-  $log->info("Uninstall module from $machineName");
+  $log->info("Uninstalling module from $machineName");
   if (defined($self->{_modules}{$machineName})) {
     # VDO-5320: Remove workaround symlink.
     if (defined($self->{_dmSymlink}{$machineName})) {

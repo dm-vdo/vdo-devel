@@ -48,8 +48,8 @@ our %BLOCKDEVICE_PROPERTIES
 #
 our %BLOCKDEVICE_INHERITED_PROPERTIES
   = (
-     # @ple version of VDO to setup.  Must be a key of SUPPORTED_VERSIONS.
-     setupVersion => undef,
+     # @ple initial VDO scenario
+     initialScenario => {},
     );
 ##
 
@@ -63,7 +63,6 @@ sub configure {
   # properties of a particular VDO version.
   $arguments->{metadataSize} //= 11 * $GB;
   $self->SUPER::configure($arguments);
-  assertDefined($self->{setupVersion});
 }
 
 ########################################################################
@@ -83,8 +82,12 @@ sub _setupVersionData {
 ##
 sub setup {
   my ($self) = assertNumArgs(1, @_);
-  $log->info("Using VDO version $self->{setupVersion}");
-  $self->switchToVersion($self->{setupVersion});
+  my $scenario = $self->{initialScenario};
+  $scenario->{machine} //= $self->getMachine();
+  $scenario->{version} //= "head";
+  $log->info("Setting up VDO $scenario->{version} on "
+             . $scenario->{machine}->getName());
+  $self->switchToScenario($scenario);
   $self->SUPER::setup();
   $self->verifyModuleVersion();
 }
@@ -129,20 +132,6 @@ sub installModule {
   $self->setModuleVersion($self->{_versionData}->{moduleVersion});
   $self->setModuleSourceDir($self->{_currentInstall});
   $self->SUPER::installModule();
-}
-
-########################################################################
-# @inherit
-##
-sub uninstallModule {
-  my ($self, $machineName) = assertMinMaxArgs(1, 2, @_);
-
-  # If the version has not been set yet, don't uninstall anything.
-  if (!defined($self->{_versionData})) {
-    return;
-  }
-
-  $self->SUPER::uninstallModule($machineName);
 }
 
 ########################################################################
@@ -274,14 +263,16 @@ sub verifyModuleVersion {
 # must be stopped, or uninstalling the old module will complain that it is
 # still in use.
 #
-# @param version  The VDO version to switch to
+# @param scenario  A hashref describing the new version and machine
 ##
-sub switchToVersion {
-  my ($self, $version) = assertNumArgs(2, @_);
-  $self->uninstallModule();
-  $log->debug("Switching to VDO version $version");
+sub switchToScenario {
+  my ($self, $scenario) = assertNumArgs(2, @_);
+  my $machine = $scenario->{machine} // $self->getMachine();
+  my $version = $scenario->{version} // "head";
 
+  $log->info("Switching to VDO $version on " . $machine->getName());
   $self->_setupVersionData($version);
+  $self->migrate($machine);
   $self->_installBinaries();
   $self->installModule();
   $self->verifyModuleVersion();

@@ -30,8 +30,8 @@ our %PROPERTIES =
    intermediateVersions => [],
    # @ple VDO physical size
    physicalSize         => 50 * $GB,
-   # @ple The version to start with
-   setupVersion         => "8.1.0-current",
+   # @ple The scenario to start with
+   initialScenario      => { version => "8.1.0-current" },
    # @ple VDO slab bit count
    slabBits             => $SLAB_BITS_TINY,
   );

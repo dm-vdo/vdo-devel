@@ -305,10 +305,17 @@ sub teardown {
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
-  $self->stop();
-
+  my $wasStarted = $self->{started};
   my $currentHost = $self->getMachineName();
   my $newHost = $newMachine->getName();
+  if ($currentHost eq $newHost) {
+    return;
+  }
+
+  if ($wasStarted) {
+    $self->stop();
+  }
+
   $log->info("Migrating VDO device from $currentHost to $newHost");
   $self->getStorageDevice()->migrate($newMachine);
   $self->installModule();
@@ -322,7 +329,9 @@ sub migrate {
     $self->assertVDOCommand("activate");
   }
 
-  $self->start();
+  if ($wasStarted) {
+    $self->start();
+  }
 }
 
 ########################################################################
