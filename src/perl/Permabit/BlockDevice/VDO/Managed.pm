@@ -277,8 +277,8 @@ sub startManagedVDO {
                   };
   if (defined($self->{_forceRebuild})) {
     $extraArgs->{forceRebuild} = 1;
-    delete $self->{_forceRebuild};
-  }
+delete $self->{_forceRebuild};
+}
   $self->assertVDOCommand("start", $extraArgs);
 }
 
@@ -305,33 +305,27 @@ sub teardown {
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
-  my $wasStarted = $self->{started};
   my $currentHost = $self->getMachineName();
   my $newHost = $newMachine->getName();
   if ($currentHost eq $newHost) {
     return;
   }
 
-  if ($wasStarted) {
-    $self->stop();
-  }
+  my $migrate = sub {
+    $log->info("Migrating VDO device from $currentHost to $newHost");
+    $self->SUPER::migrate($newMachine);
+    $self->installModule();
+    $self->registerFileCleanup();
 
-  $log->info("Migrating VDO device from $currentHost to $newHost");
-  $self->getStorageDevice()->migrate($newMachine);
-  $self->installModule();
-  $self->registerFileCleanup();
-
-  if ($newHost ne $self->getStorageHost()) {
-    # If we are building on an ISCSI device, we have to import the VDO every
-    # time. This means removing the confFile also.
-    $self->getMachine()->runSystemCmd("sudo rm -f $self->{confFile}");
-    $self->doImport(activate => 'disabled');
-    $self->assertVDOCommand("activate");
-  }
-
-  if ($wasStarted) {
-    $self->start();
-  }
+    if ($newHost ne $self->getStorageHost()) {
+      # If we are building on an ISCSI device, we have to import the VDO every
+      # time. This means removing the confFile also.
+      $self->getMachine()->runSystemCmd("sudo rm -f $self->{confFile}");
+      $self->doImport(activate => 'disabled');
+      $self->assertVDOCommand("activate");
+    }
+  };
+  $self->runWhileStopped($migrate);
 }
 
 ########################################################################

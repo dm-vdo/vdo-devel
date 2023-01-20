@@ -188,20 +188,20 @@ sub logout {
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
-  $self->stop();
+  my $migrate = sub {
+    my $currentHost = $self->getMachineName();
+    my $newHost = $newMachine->getName();
+    $log->info("Migrating ISCSI device from $currentHost to $newHost");
 
-  my $currentHost = $self->getMachineName();
-  my $newHost = $newMachine->getName();
-  $log->info("Migrating ISCSI device from $currentHost to $newHost");
-
-  if ($newHost ne $self->getStorageHost()) {
-    # We can't set the device name until we login from the initiator.
-    $self->{machine} = $newMachine;
-  } else {
-    $self->setDeviceName($self->getStorageDevice()->getDeviceName());
-    delete $self->{machine};
-  }
-  $self->start();
+    if ($newHost ne $self->getStorageHost()) {
+      # We can't set the device name until we login from the initiator.
+      $self->{machine} = $newMachine;
+    } else {
+      $self->setDeviceName($self->getStorageDevice()->getDeviceName());
+      delete $self->{machine};
+    }
+  };
+  $self->runWhileStopped($migrate);
 }
 
 ########################################################################

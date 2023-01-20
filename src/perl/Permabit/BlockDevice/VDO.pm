@@ -1025,20 +1025,15 @@ sub setReadOnlyMode {
   my ($self)     = assertNumArgs(1, @_);
   my $path       = $self->getVDOStoragePath();
   my $readonly   = $self->findBinary("vdoReadOnly");
-  my $wasStarted = $self->{started};
+  my $output;
 
-  if ($wasStarted) {
-    $self->stop();
-  }
-
-  $self->enableWritableStorage();
-  my $output = $self->runOnHost("sudo $readonly $path");
-  $self->{expectIndexer} = 0;
-  $self->disableWritableStorage();
-
-  if ($wasStarted) {
-    $self->start();
-  }
+  my $setReadOnly = sub {
+    $self->enableWritableStorage();
+    $output = $self->runOnHost("sudo $readonly $path");
+    $self->{expectIndexer} = 0;
+    $self->disableWritableStorage();
+  };
+  $self->runWhileStopped($setReadOnly);
 
   return $output;
 }

@@ -393,15 +393,34 @@ sub stop {
 }
 
 ######################################################################
-# Move this device from one host to another.
+# Run code while the device is stopped, while remembering whether the
+# device was started, and restarting it if so.
 #
-# @oparam newMachine  A RemoteMachine for the host to which to migrate.
+# @param code  The code to run while the device is stopped
+##
+sub runWhileStopped {
+  my ($self, $code) = assertNumArgs(2, @_);
+  my $wasStarted = $self->{started};
+  if ($wasStarted) {
+    $self->stop();
+  }
+  $code->();
+  if ($wasStarted) {
+    $self->start();
+  }
+}
+
+######################################################################
+# Move this device from one host to another, stopping it if necessary.
+#
+# @param newMachine  A RemoteMachine for the host to which to migrate.
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
-  $self->stop();
-  $self->getStorageDevice()->migrate($newMachine);
-  $self->start();
+  my $migrate = sub {
+    $self->getStorageDevice()->migrate($newMachine);
+  };
+  $self->runWhileStopped($migrate);
 }
 
 ########################################################################
