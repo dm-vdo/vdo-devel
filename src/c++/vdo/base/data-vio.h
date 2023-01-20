@@ -771,30 +771,6 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 }
 
 /**
- * set_data_vio_dedupe_callback() - Set a callback as a dedupe queue operation.
- * @data_vio: The data_vio for which to set the callback.
- * @callback: The callback to set.
- */
-static inline void set_data_vio_dedupe_callback(struct data_vio *data_vio, vdo_action *callback)
-{
-	thread_id_t dedupe_thread = get_thread_config_from_data_vio(data_vio)->dedupe_thread;
-
-	vdo_set_completion_callback(&data_vio->vio.completion, callback, dedupe_thread);
-}
-
-/**
- * launch_data_vio_dedupe_callback() - Set a callback to run on the dedupe queue and invoke it
- *				       immediately.
- * @data_vio: The data_vio for which to set the callback.
- * @callback: The callback to set.
- */
-static inline void launch_data_vio_dedupe_callback(struct data_vio *data_vio, vdo_action *callback)
-{
-	set_data_vio_dedupe_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
-}
-
-/**
  * set_data_vio_cpu_callback() - Set a callback as a CPU queue operation.
  * @data_vio: The data_vio for which to set the callback.
  * @callback: The callback to set.
