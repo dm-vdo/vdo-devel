@@ -144,10 +144,12 @@ tags: TAGS
 .PHONY: id
 id-exclusions: FORCE
 	-rm -f $@
-	test -d packaging/rpm && echo packaging/rpm >> $@
+	echo packaging >> $@
 	# exclude all third-party source directories
 	for d in $(SUBDIRS); do \
-	  test -d $$d/third && echo $$d/third >> $@; \
+	  if [ -d $$d/third ]; then \
+	    echo $$d/third >> $@; \
+	  fi \
 	done
 	# exclude everything but {VDO,...}Test subdirectories
 	find perl/vdotest -mindepth 1 -maxdepth 1 -type d \
