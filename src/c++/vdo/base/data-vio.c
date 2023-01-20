@@ -993,6 +993,8 @@ int make_data_vio_pool(struct vdo *vdo,
  */
 void free_data_vio_pool(struct data_vio_pool *pool)
 {
+	struct data_vio *data_vio, *tmp;
+
 	if (pool == NULL)
 		return;
 
@@ -1015,11 +1017,8 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 			"data_vio pool must not have threads waiting to discard when being freed");
 	spin_unlock(&pool->lock);
 
-	while (!list_empty(&pool->available)) {
-		struct data_vio *data_vio =
-			list_first_entry(&pool->available, struct data_vio, pool_entry);
-
-		list_del_init(pool->available.next);
+	list_for_each_entry_safe(data_vio, tmp, &pool->available, pool_entry) {
+		list_del_init(&data_vio->pool_entry);
 		destroy_data_vio(data_vio);
 	}
 
