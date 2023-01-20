@@ -909,9 +909,7 @@ prepare_data_vio_for_io(struct data_vio *data_vio,
 			unsigned int bi_opf,
 			physical_block_number_t pbn)
 {
-	struct vio *vio = &data_vio->vio;
-
-	return vdo_reset_bio_with_buffer(vio->bio, data, vio, callback, bi_opf, pbn);
+	return vio_reset_bio(&data_vio->vio, data, callback, bi_opf, pbn);
 }
 
 #ifdef INTERNAL

@@ -141,15 +141,10 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	/*
 	 * This is only safe because, having not already loaded the geometry,
 	 * the vdo's geometry's bio_offset field is 0, so the fact that
-	 * vdo_reset_bio_with_buffer() will substract that offset from the
-	 * supplied pbn is not a problem.
+	 * vio_reset_bio() will substract that offset from the supplied pbn
+	 * is not a problem.
 	 */
-	result = vdo_reset_bio_with_buffer(vio->bio,
-					   block,
-					   vio,
-					   NULL,
-					   REQ_OP_READ,
-					   VDO_GEOMETRY_BLOCK_LOCATION);
+	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ, VDO_GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
 		free_vio(UDS_FORGET(vio));
 		UDS_FREE(block);

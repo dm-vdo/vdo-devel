@@ -207,14 +207,14 @@ void vdo_set_bio_properties(struct bio *bio,
  * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned, but there does not have to be a
  * vio associated with the bio.
  */
-int vdo_reset_bio_with_buffer(struct bio *bio,
-			      char *data,
-			      struct vio *vio,
-			      bio_end_io_t callback,
-			      unsigned int bi_opf,
-			      physical_block_number_t pbn)
+int vio_reset_bio(struct vio *vio,
+		  char *data,
+		  bio_end_io_t callback,
+		  unsigned int bi_opf,
+		  physical_block_number_t pbn)
 {
 	int bvec_count, offset, len, i;
+	struct bio *bio = vio->bio;
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
