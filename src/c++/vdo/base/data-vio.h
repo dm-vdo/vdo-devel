@@ -343,18 +343,6 @@ static inline struct vdo *vdo_from_data_vio(struct data_vio *data_vio)
 }
 
 /**
- * get_thread_config_from_data_vio() - Get the struct thread_config from a data_vio.
- * @data_vio: The data_vio from which to get the struct thread_config.
- *
- * Return: The struct thread_config of the vdo to which a data_vio belongs.
- */
-static inline const struct thread_config *
-get_thread_config_from_data_vio(struct data_vio *data_vio)
-{
-	return vdo_from_data_vio(data_vio)->thread_config;
-}
-
-/**
  * data_vio_has_allocation() - Check whether a data_vio has an allocation.
  * @data_vio: The data_vio to check.
  *
@@ -679,7 +667,7 @@ set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio, vdo_action *cal
  */
 static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 {
-	thread_id_t journal_thread = get_thread_config_from_data_vio(data_vio)->journal_thread;
+	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config->journal_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((journal_thread == thread_id),
@@ -696,7 +684,7 @@ static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
  */
 static inline void set_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t journal_thread = get_thread_config_from_data_vio(data_vio)->journal_thread;
+	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config->journal_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, journal_thread);
 }
@@ -720,7 +708,7 @@ launch_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback
  */
 static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 {
-	thread_id_t packer_thread = get_thread_config_from_data_vio(data_vio)->packer_thread;
+	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config->packer_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((packer_thread == thread_id),
@@ -737,7 +725,7 @@ static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
  */
 static inline void set_data_vio_packer_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t packer_thread = get_thread_config_from_data_vio(data_vio)->packer_thread;
+	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config->packer_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, packer_thread);
 }
@@ -760,7 +748,7 @@ static inline void launch_data_vio_packer_callback(struct data_vio *data_vio, vd
  */
 static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 {
-	thread_id_t cpu_thread = get_thread_config_from_data_vio(data_vio)->cpu_thread;
+	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config->cpu_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((cpu_thread == thread_id),
@@ -777,7 +765,7 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
  */
 static inline void set_data_vio_cpu_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t cpu_thread = get_thread_config_from_data_vio(data_vio)->cpu_thread;
+	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config->cpu_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, cpu_thread);
 }
