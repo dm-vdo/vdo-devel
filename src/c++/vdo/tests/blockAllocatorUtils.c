@@ -69,11 +69,10 @@ void reserveVIOsFromPool(struct block_allocator *allocator, size_t count)
  **/
 static void returnVIOPoolEntries(struct vdo_completion *completion)
 {
-  while (!list_empty(&reservedVIOPoolEntries)) {
-    struct list_head *entry = reservedVIOPoolEntries.prev;
-    list_del_init(entry);
-    return_vio_to_pool(poolAllocator->vio_pool,
-                       list_entry(entry, struct pooled_vio, list_entry));
+  struct pooled_vio *entry, *tmp;
+  list_for_each_entry_safe_reverse(entry, tmp, &reservedVIOPoolEntries, list_entry) {
+    list_del_init(&entry->list_entry);
+    return_vio_to_pool(poolAllocator->vio_pool, entry);
   }
 
   vdo_finish_completion(completion, VDO_SUCCESS);

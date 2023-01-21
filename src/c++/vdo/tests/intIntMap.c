@@ -60,10 +60,11 @@ void freeIntIntMap(IntIntMap **mapPtr)
   }
 
   free_int_map(UDS_FORGET(intIntMap->map));
-  while (!list_empty(&intIntMap->holders)) {
-    struct list_head *entry = intIntMap->holders.prev;
-    list_del(entry);
-    UDS_FREE(entry);
+
+  IntHolder *holder, *tmp;
+  list_for_each_entry_safe_reverse(holder, tmp, &intIntMap->holders, node) {
+    list_del(&holder->node);
+    UDS_FREE(holder);
   }
 
   UDS_FREE(intIntMap);
