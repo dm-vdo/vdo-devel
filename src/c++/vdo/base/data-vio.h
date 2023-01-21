@@ -433,11 +433,6 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 			expected);
 }
 
-static inline void set_data_vio_error_handler(struct data_vio *data_vio, vdo_action *error_handler)
-{
-	data_vio->vio.completion.error_handler = error_handler;
-}
-
 /**
  * set_data_vio_hash_zone_callback() - Set a callback as a hash zone operation.
  * @data_vio: The data_vio for which to set the callback.

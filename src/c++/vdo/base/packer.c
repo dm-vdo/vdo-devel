@@ -446,7 +446,6 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	struct data_vio *agent = remove_from_bin(packer, bin);
 	struct data_vio *client;
 	struct packer_statistics *stats;
-	struct vdo *vdo;
 
 	if (agent == NULL)
 		return;
@@ -475,9 +474,8 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		       0,
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
 
-	set_data_vio_error_handler(agent, handle_compressed_write_error);
-	vdo = vdo_from_data_vio(agent);
-	if (vdo_is_read_only(vdo->read_only_notifier)) {
+	agent->vio.completion.error_handler = handle_compressed_write_error;
+	if (vdo_is_read_only(vdo_from_data_vio(agent)->read_only_notifier)) {
 		continue_data_vio_with_error(agent, VDO_READ_ONLY);
 		return;
 	}

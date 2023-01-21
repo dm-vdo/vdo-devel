@@ -522,7 +522,7 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 	--zone->active_lookups;
 
 	set_data_vio_logical_callback(data_vio, continue_data_vio_with_block_map_slot);
-	set_data_vio_error_handler(data_vio, handle_data_vio_error);
+	data_vio->vio.completion.error_handler = handle_data_vio_error;
 	continue_data_vio_with_error(data_vio, result);
 }
 

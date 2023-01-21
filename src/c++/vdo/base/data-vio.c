@@ -1534,7 +1534,7 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 	allocation->zone = vdo_get_next_allocation_zone(data_vio->logical.zone);
 	allocation->first_allocation_zone = allocation->zone->zone_number;
 
-	set_data_vio_error_handler(data_vio, error_handler);
+	data_vio->vio.completion.error_handler = error_handler;
 	launch_data_vio_allocated_zone_callback(data_vio, callback);
 }
 
