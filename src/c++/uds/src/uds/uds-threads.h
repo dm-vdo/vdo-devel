@@ -30,6 +30,7 @@
 struct cond_var {
 	struct event_count *event_count;
 };
+
 struct thread;
 
 struct barrier {
@@ -72,16 +73,6 @@ struct barrier {
 extern const bool UDS_DO_ASSERTIONS;
 #endif
 
-#ifdef __KERNEL__
-#ifdef TEST_INTERNAL
-/* Apply a function to every thread that we have created. */
-void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument);
-
-/* This is a unit-test alternative to using BUG() or BUG_ON(). */
-__attribute__((noreturn)) void uds_thread_exit(void);
-
-#endif  /* TEST_INTERNAL */
-#endif  /* __KERNEL__ */
 int __must_check uds_create_thread(void (*thread_function)(void *),
 				   void *thread_data,
 				   const char *name,
@@ -90,19 +81,6 @@ int __must_check uds_create_thread(void (*thread_function)(void *),
 unsigned int uds_get_num_cores(void);
 
 pid_t __must_check uds_get_thread_id(void);
-#ifndef __KERNEL__
-void uds_get_thread_name(char *name);
-
-static inline void cond_resched(void)
-{
-	/*
-	 * On Linux sched_yield always succeeds so the result can be
-	 * safely ignored.
-	 */
-	(void) sched_yield();
-}
-
-#endif  /* ! __KERNEL__ */
 void perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
@@ -118,63 +96,48 @@ int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
 int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
 int uds_destroy_cond(struct cond_var *cond);
 
-#ifndef __KERNEL__
-int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error);
-#endif
 #ifdef __KERNEL__
+#ifdef TEST_INTERNAL
+/* Apply a function to every thread that we have created. */
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument);
+
+/* This is a unit-test alternative to using BUG() or BUG_ON(). */
+__attribute__((noreturn)) void uds_thread_exit(void);
+
+#endif  /* TEST_INTERNAL */
 static inline int __must_check uds_init_mutex(struct mutex *mutex)
 {
 	mutex_init(mutex);
 	return UDS_SUCCESS;
 }
-#else
-int __must_check uds_init_mutex(struct mutex *mutex);
-#endif
-#ifdef __KERNEL__
+
 static inline int uds_destroy_mutex(struct mutex *mutex)
 {
 	return UDS_SUCCESS;
 }
-#else
-int uds_destroy_mutex(struct mutex *mutex);
-#endif
-#ifdef __KERNEL__
+
 static inline void uds_lock_mutex(struct mutex *mutex)
 {
 	mutex_lock(mutex);
 }
-#else
-void uds_lock_mutex(struct mutex *mutex);
-#endif
-#ifdef __KERNEL__
+
 static inline void uds_unlock_mutex(struct mutex *mutex)
 {
 	mutex_unlock(mutex);
 }
-#else
-void uds_unlock_mutex(struct mutex *mutex);
-#endif
 
-#ifdef __KERNEL__
 static inline int __must_check
 uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
 {
 	sema_init(semaphore, value);
 	return UDS_SUCCESS;
 }
-#else
-int __must_check uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value);
-#endif
 
-#ifdef __KERNEL__
 static inline int uds_destroy_semaphore(struct semaphore *semaphore)
 {
 	return UDS_SUCCESS;
 }
-#else
-int uds_destroy_semaphore(struct semaphore *semaphore);
-#endif
-#ifdef __KERNEL__
+
 static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 {
 	/*
@@ -194,11 +157,7 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 		 */
 		fsleep(1000);
 }
-#else
-void uds_acquire_semaphore(struct semaphore *semaphore);
-#endif
 
-#ifdef __KERNEL__
 static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 {
 	unsigned int jiffies;
@@ -209,17 +168,34 @@ static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphor
 	jiffies = nsecs_to_jiffies(timeout);
 	return down_timeout(semaphore, jiffies) == 0;
 }
-#else
-bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout);
-#endif
 
-#ifdef __KERNEL__
 static inline void uds_release_semaphore(struct semaphore *semaphore)
 {
 	up(semaphore);
 }
 #else
+void uds_get_thread_name(char *name);
+
+static inline void cond_resched(void)
+{
+	/*
+	 * On Linux sched_yield always succeeds so the result can be
+	 * safely ignored.
+	 */
+	(void) sched_yield();
+}
+
+int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error);
+int __must_check uds_init_mutex(struct mutex *mutex);
+int uds_destroy_mutex(struct mutex *mutex);
+void uds_lock_mutex(struct mutex *mutex);
+void uds_unlock_mutex(struct mutex *mutex);
+
+int __must_check uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value);
+int uds_destroy_semaphore(struct semaphore *semaphore);
+void uds_acquire_semaphore(struct semaphore *semaphore);
+bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout);
 void uds_release_semaphore(struct semaphore *semaphore);
-#endif
+#endif /* __KERNEL__ */
 
 #endif /* UDS_THREADS_H */

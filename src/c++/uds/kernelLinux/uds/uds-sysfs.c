@@ -238,8 +238,8 @@ static struct kobj_type memory_object_type = {
 	.sysfs_ops = &memory_ops,
 	.default_groups = memory_groups,
 };
-#endif /* TEST_INTERNAL or VDO_INTERNAL */
 
+#endif /* TEST_INTERNAL or VDO_INTERNAL */
 /*
  * This is the code for the /sys/<module_name>/parameter directory.
  * <dir>/log_level                 UDS_LOG_LEVEL

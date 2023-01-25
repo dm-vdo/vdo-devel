@@ -56,7 +56,6 @@ bool set_exit_on_assertion_failure(bool should_exit)
 }
 
 #endif /* not __KERNEL__ */
-
 int uds_assertion_failed(const char *expression_string,
 			 const char *file_name,
 			 int line_number,
@@ -84,8 +83,8 @@ int uds_assertion_failed(const char *expression_string,
 	if (exit_on_assertion_failure)
 		__assert_fail(expression_string, file_name, line_number, __ASSERT_FUNCTION);
 	uds_unlock_mutex(&mutex);
-#endif /* not __KERNEL__ */
 
+#endif /* not __KERNEL__ */
 	va_end(args);
 
 	return UDS_ASSERTION_FAILED;
