@@ -161,6 +161,10 @@ int submit_bio_wait(struct bio *bio)
   bool done = false;
   struct vio vio;
   if (bio->bi_private == NULL) {
+    CU_ASSERT_EQUAL(bio->bi_vcnt, 0);
+    memset(&vio, 0, sizeof(struct vio));
+    vio.bio = bio;
+    vdo_initialize_completion(&vio.completion, vdo, VDO_TEST_COMPLETION);
     bio->bi_private = &vio;
   }
 
