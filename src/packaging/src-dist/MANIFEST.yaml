@@ -12,9 +12,9 @@ licenseFile:
   file: src/packaging/src-dist/LICENSE.txt
 specFiles:
   tree: vdo
-  files: |
-    src/packaging/src-dist/vdo.spec
-    src/packaging/src-dist/kvdo.spec
+  files:
+    - src/packaging/src-dist/vdo.spec
+    - src/packaging/src-dist/kvdo.spec
 tarballs:
   vdo:
     versionFiles:
@@ -24,192 +24,222 @@ tarballs:
       vdo:
         src/packaging/src-dist/user:
           dest: .
-          sources: |
-            COPYING
-            Makefile
-            examples/Makefile
-            examples/monitor/Makefile
-            utils/Makefile
-            utils/uds/Makefile
-            utils/vdo/Makefile
-            utils/vdo/man/Makefile
+          sources:
+            - COPYING
+            - Makefile
+            - examples/Makefile
+            - examples/monitor/Makefile
+            - utils/Makefile
+            - utils/uds/Makefile
+            - utils/vdo/Makefile
+            - utils/vdo/man/Makefile
         src/tools/adaptLVM/man:
           dest: utils/vdo/man
-          sources: 'adaptlvm.8'
+          sources:
+            - adaptlvm.8
         src/tools/adaptLVM:
           dest: utils/vdo
-          sources: 'adaptLVMVDO.sh'
+          sources:
+            - adaptLVMVDO.sh
         src/c++/vdo/base:
           dest: utils/vdo
-          sources: |
-            block-map-page.c
-            block-map-page.h
-            checksum.h
-            constants.c
-            constants.h
-            header.c
-            header.h
-            journal-point.h
-            packed-reference-block.h
-            release-versions.h
-            slab-depot-format.c
-            slab-depot-format.h
-            slab-journal-format.c
-            slab-journal-format.h
-            slab-summary-format.h
-            statistics.h
-            status-codes.c
-            status-codes.h
-            super-block-codec.c
-            super-block-codec.h
-            types.h
-            vdo-component.c
-            vdo-component.h
-            vdo-component-states.c
-            vdo-component-states.h
-            vdo-layout.c
-            vdo-layout.h
-            volume-geometry.c
-            volume-geometry.h
-          undefines: INTERNAL,TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
-          defines: VDO_USER
+          sources:
+            - block-map-page.c
+            - block-map-page.h
+            - checksum.h
+            - constants.c
+            - constants.h
+            - header.c
+            - header.h
+            - journal-point.h
+            - packed-reference-block.h
+            - release-versions.h
+            - slab-depot-format.c
+            - slab-depot-format.h
+            - slab-journal-format.c
+            - slab-journal-format.h
+            - slab-summary-format.h
+            - statistics.h
+            - status-codes.c
+            - status-codes.h
+            - super-block-codec.c
+            - super-block-codec.h
+            - types.h
+            - vdo-component.c
+            - vdo-component.h
+            - vdo-component-states.c
+            - vdo-component-states.h
+            - vdo-layout.c
+            - vdo-layout.h
+            - volume-geometry.c
+            - volume-geometry.h
+          undefines:
+            - INTERNAL
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
+          defines:
+            - VDO_USER
         src/c++/vdo/user/man:
           dest: utils/vdo/man
-          sources: |
-            vdoaudit.8
-            vdodebugmetadata.8
-            vdodmeventd.8
-            vdodumpblockmap.8
-            vdodumpconfig.8
-            vdodumpmetadata.8
-            vdoforcerebuild.8
-            vdoformat.8
-            vdolistmetadata.8
-            vdoreadonly.8
-            vdoregenerategeometry.8
-            vdosetuuid.8
-            vdostats.8
+          sources:
+            - vdoaudit.8
+            - vdodebugmetadata.8
+            - vdodmeventd.8
+            - vdodumpblockmap.8
+            - vdodumpconfig.8
+            - vdodumpmetadata.8
+            - vdoforcerebuild.8
+            - vdoformat.8
+            - vdolistmetadata.8
+            - vdoreadonly.8
+            - vdoregenerategeometry.8
+            - vdosetuuid.8
+            - vdostats.8
         src/c++/vdo/user:
           dest: utils/vdo
-          sources: |
-            blockMapUtils.[hc]
-            fileLayer.[hc]
-            messageStatsReader.c
-            parseUtils.[hc]
-            physicalLayer.h
-            slabSummaryReader.[hc]
-            userVDO.[hc]
-            vdoAudit.c->vdoaudit.c
-            vdoConfig.[hc]
-            vdoDMEventd.c->vdodmeventd.c
-            vdoDebugMetadata.c->vdodebugmetadata.c
-            vdoDumpBlockMap.c->vdodumpblockmap.c
-            vdoDumpConfig.c->vdodumpconfig.c
-            vdoDumpMetadata.c->vdodumpmetadata.c
-            vdoForceRebuild.c->vdoforcerebuild.c
-            vdoFormat.c->vdoformat.c
-            vdoListMetadata.c->vdolistmetadata.c
-            vdoReadOnly.c->vdoreadonly.c
-            vdoRegenerateGeometry.c->vdoregenerategeometry.c
-            vdoSetUUID.c->vdosetuuid.c
-            vdoStats.c->vdostats.c
-            vdoStats.h
-            vdoStatsWriter.c
-            vdoVolumeUtils.[hc]
-            vdostats.bash
-          undefines: INTERNAL,TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          sources:
+            - blockMapUtils.[hc]
+            - fileLayer.[hc]
+            - messageStatsReader.c
+            - parseUtils.[hc]
+            - physicalLayer.h
+            - slabSummaryReader.[hc]
+            - userVDO.[hc]
+            - vdoAudit.c->vdoaudit.c
+            - vdoConfig.[hc]
+            - vdoDMEventd.c->vdodmeventd.c
+            - vdoDebugMetadata.c->vdodebugmetadata.c
+            - vdoDumpBlockMap.c->vdodumpblockmap.c
+            - vdoDumpConfig.c->vdodumpconfig.c
+            - vdoDumpMetadata.c->vdodumpmetadata.c
+            - vdoForceRebuild.c->vdoforcerebuild.c
+            - vdoFormat.c->vdoformat.c
+            - vdoListMetadata.c->vdolistmetadata.c
+            - vdoReadOnly.c->vdoreadonly.c
+            - vdoRegenerateGeometry.c->vdoregenerategeometry.c
+            - vdoSetUUID.c->vdosetuuid.c
+            - vdoStats.c->vdostats.c
+            - vdoStats.h
+            - vdoStatsWriter.c
+            - vdoVolumeUtils.[hc]
+            - vdostats.bash
+          undefines:
+            - INTERNAL
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
         src/tools/monitor:
           dest: examples/monitor
-          sources: |
-            monitor_check_vdostats_logicalSpace.pl
-            monitor_check_vdostats_physicalSpace.pl
-            monitor_check_vdostats_savingPercent.pl
+          sources:
+            - monitor_check_vdostats_logicalSpace.pl
+            - monitor_check_vdostats_physicalSpace.pl
+            - monitor_check_vdostats_savingPercent.pl
         src/tools/vdorecover/man:
           dest: utils/vdo/man
-          sources: 'vdorecover.8'
+          sources:
+            - vdorecover.8
         src/tools/vdorecover:
           dest: utils/vdo
-          sources: vdorecover
+          sources:
+            - vdorecover
         src/c++/uds/src/uds:
           dest: utils/uds
-          sources: |
-            buffer.[hc]
-            chapter-index.[hc]
-            common.h
-            compiler.h
-            config.[hc]
-            cpu.h
-            delta-index.[hc]
-            errors.[hc]
-            event-count.[hc]
-            funnel-queue.[hc]
-            geometry.[hc]
-            hash-utils.h
-            index.[hc]
-            index-layout.[hc]
-            index-page-map.[hc]
-            index-session.[hc]
-            io-factory.[hc]
-            logger.h
-            memory-alloc.h
-            numeric.h
-            open-chapter.[hc]
-            permassert.[hc]
-            radix-sort.[hc]
-            request-queue.h
-            sparse-cache.[hc]
-            string-utils.[hc]
-            time-utils.h
-            uds.h
-            uds-threads.h
-            volume.[hc]
-            volume-index.[hc]
-          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          sources:
+            - buffer.[hc]
+            - chapter-index.[hc]
+            - common.h
+            - compiler.h
+            - config.[hc]
+            - cpu.h
+            - delta-index.[hc]
+            - errors.[hc]
+            - event-count.[hc]
+            - funnel-queue.[hc]
+            - geometry.[hc]
+            - hash-utils.h
+            - index.[hc]
+            - index-layout.[hc]
+            - index-page-map.[hc]
+            - index-session.[hc]
+            - io-factory.[hc]
+            - logger.h
+            - memory-alloc.h
+            - numeric.h
+            - open-chapter.[hc]
+            - permassert.[hc]
+            - radix-sort.[hc]
+            - request-queue.h
+            - sparse-cache.[hc]
+            - string-utils.[hc]
+            - time-utils.h
+            - uds.h
+            - uds-threads.h
+            - volume.[hc]
+            - volume-index.[hc]
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
         src/c++/uds/src/uds/murmur:
           dest: utils/uds
-          sources: murmurhash3.c
-          defines: UDS_MURMURHASH3
-          undefines: __KERNEL__
+          sources:
+            - murmurhash3.c
+          defines:
+            - UDS_MURMURHASH3
+          undefines:
+            - __KERNEL__
         src/c++/uds/src/uds/linux:
           dest: utils/uds/linux
-          sources: murmurhash3.h
-          undefines: __KERNEL__
+          sources:
+            - murmurhash3.h
+          undefines:
+            - __KERNEL__
         src/c++/uds/userLinux/uds:
           dest: utils/uds
-          sources: |
-            fileUtils.[hc]
-            hlist.h
-            logger.c
-            memoryAlloc.c
-            minisyslog.[hc]
-            random.[hc]
-            requestQueue.c
-            syscalls.[hc]
-            time-utils.c
-            threadCondVar.c
-            threadSemaphore.c
-            threadMutex.c
-            uds-threads.c
-          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          sources:
+            - fileUtils.[hc]
+            - hlist.h
+            - logger.c
+            - memoryAlloc.c
+            - minisyslog.[hc]
+            - random.[hc]
+            - requestQueue.c
+            - syscalls.[hc]
+            - time-utils.c
+            - threadCondVar.c
+            - threadSemaphore.c
+            - threadMutex.c
+            - uds-threads.c
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
         src/c++/uds/userLinux/uds/linux:
           dest: utils/uds/linux
-          sources: |
-            atomic.h
-            bits.h
-            blkdev.h
-            cache.h
-            compiler_attributes.h
-            dm-bufio.h
-            limits.h
-            log2.h
-            random.h
-            types.h
-          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          sources:
+            - atomic.h
+            - bits.h
+            - blkdev.h
+            - cache.h
+            - compiler_attributes.h
+            - dm-bufio.h
+            - limits.h
+            - log2.h
+            - random.h
+            - types.h
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
         src/c++/uds/userLinux/uds/asm:
           dest: utils/uds/asm
-          sources: |
-            unaligned.h
-          undefines: TEST_INTERNAL,VDO_INTERNAL,__KERNEL__
+          sources:
+            - unaligned.h
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - __KERNEL__
   kvdo:
     versionFiles:
       vdo: src/tools/installers/CURRENT_VERSION
@@ -218,215 +248,235 @@ tarballs:
       vdo:
         doc:
           dest: .
-          sources: dm-vdo.rst
+          sources:
+            - dm-vdo.rst
         src/packaging/src-dist/kernel:
           dest: .
-          sources: COPYING,Makefile
+          sources:
+            - COPYING
+            - Makefile
         src/packaging/src-dist/kernel/vdo:
           dest: vdo
-          sources: Makefile
+          sources:
+            - Makefile
         src/c++/vdo/base:
           dest: vdo
-          sources: |
-            action-manager.c
-            action-manager.h
-            admin-state.c
-            admin-state.h
-            block-allocator.c
-            block-allocator.h
-            block-map.c
-            block-map.h
-            block-map-page.c
-            block-map-page.h
-            block-map-recovery.c
-            block-map-recovery.h
-            block-map-tree.c
-            block-map-tree.h
-            completion.c
-            completion.h
-            constants.c
-            constants.h
-            data-vio.c
-            data-vio.h
-            dedupe.c
-            dedupe.h
-            device-config.c
-            device-config.h
-            device-registry.c
-            device-registry.h
-            dirty-lists.c
-            dirty-lists.h
-            dm-vdo-target.c
-            dump.c
-            dump.h
-            flush.c
-            flush.h
-            forest.c
-            forest.h
-            header.c
-            header.h
-            heap.c
-            heap.h
-            instance-number.c
-            instance-number.h
-            int-map.c
-            int-map.h
-            io-submitter.c
-            io-submitter.h
-            journal-point.h
-            logical-zone.c
-            logical-zone.h
-            message-stats.c
-            message-stats.h
-            packed-reference-block.h
-            packer.c
-            packer.h
-            physical-zone.c
-            physical-zone.h
-            pointer-map.c
-            pointer-map.h
-            pool-sysfs.c
-            pool-sysfs.h
-            pool-sysfs-stats.c
-            priority-table.c
-            priority-table.h
-            read-only-notifier.c
-            read-only-notifier.h
-            recovery-journal.c
-            recovery-journal.h
-            ref-counts.c
-            ref-counts.h
-            reference-operation.c
-            reference-operation.h
-            release-versions.h
-            slab.c
-            slab.h
-            slab-depot.c
-            slab-depot.h
-            slab-depot-format.c
-            slab-depot-format.h
-            slab-iterator.h
-            slab-journal.c
-            slab-journal.h
-            slab-journal-format.c
-            slab-journal-format.h
-            slab-scrubber.c
-            slab-scrubber.h
-            slab-summary.c
-            slab-summary.h
-            slab-summary-format.h
-            statistics.h
-            status-codes.c
-            status-codes.h
-            super-block.c
-            super-block.h
-            super-block-codec.c
-            super-block-codec.h
-            sync-completion.c
-            sync-completion.h
-            sysfs.c
-            thread-config.c
-            thread-config.h
-            types.h
-            vdo.c
-            vdo.h
-            vdo-component.c
-            vdo-component.h
-            vdo-component-states.c
-            vdo-component-states.h
-            vdo-layout.c
-            vdo-layout.h
-            vdo-page-cache.c
-            vdo-page-cache.h
-            vdo-recovery.c
-            vdo-recovery.h
-            vio.c
-            vio.h
-            volume-geometry.c
-            volume-geometry.h
-            wait-queue.c
-            wait-queue.h
-            work-queue.c
-            work-queue.h
-          undefines: INTERNAL,TEST_INTERNAL,VDO_INTERNAL,VDO_USER
-          defines: __KERNEL__
+          sources:
+            - action-manager.c
+            - action-manager.h
+            - admin-state.c
+            - admin-state.h
+            - block-allocator.c
+            - block-allocator.h
+            - block-map.c
+            - block-map.h
+            - block-map-page.c
+            - block-map-page.h
+            - block-map-recovery.c
+            - block-map-recovery.h
+            - block-map-tree.c
+            - block-map-tree.h
+            - completion.c
+            - completion.h
+            - constants.c
+            - constants.h
+            - data-vio.c
+            - data-vio.h
+            - dedupe.c
+            - dedupe.h
+            - device-config.c
+            - device-config.h
+            - device-registry.c
+            - device-registry.h
+            - dirty-lists.c
+            - dirty-lists.h
+            - dm-vdo-target.c
+            - dump.c
+            - dump.h
+            - flush.c
+            - flush.h
+            - forest.c
+            - forest.h
+            - header.c
+            - header.h
+            - heap.c
+            - heap.h
+            - instance-number.c
+            - instance-number.h
+            - int-map.c
+            - int-map.h
+            - io-submitter.c
+            - io-submitter.h
+            - journal-point.h
+            - logical-zone.c
+            - logical-zone.h
+            - message-stats.c
+            - message-stats.h
+            - packed-reference-block.h
+            - packer.c
+            - packer.h
+            - physical-zone.c
+            - physical-zone.h
+            - pointer-map.c
+            - pointer-map.h
+            - pool-sysfs.c
+            - pool-sysfs.h
+            - pool-sysfs-stats.c
+            - priority-table.c
+            - priority-table.h
+            - read-only-notifier.c
+            - read-only-notifier.h
+            - recovery-journal.c
+            - recovery-journal.h
+            - ref-counts.c
+            - ref-counts.h
+            - reference-operation.c
+            - reference-operation.h
+            - release-versions.h
+            - slab.c
+            - slab.h
+            - slab-depot.c
+            - slab-depot.h
+            - slab-depot-format.c
+            - slab-depot-format.h
+            - slab-iterator.h
+            - slab-journal.c
+            - slab-journal.h
+            - slab-journal-format.c
+            - slab-journal-format.h
+            - slab-scrubber.c
+            - slab-scrubber.h
+            - slab-summary.c
+            - slab-summary.h
+            - slab-summary-format.h
+            - statistics.h
+            - status-codes.c
+            - status-codes.h
+            - super-block.c
+            - super-block.h
+            - super-block-codec.c
+            - super-block-codec.h
+            - sync-completion.c
+            - sync-completion.h
+            - sysfs.c
+            - thread-config.c
+            - thread-config.h
+            - types.h
+            - vdo.c
+            - vdo.h
+            - vdo-component.c
+            - vdo-component.h
+            - vdo-component-states.c
+            - vdo-component-states.h
+            - vdo-layout.c
+            - vdo-layout.h
+            - vdo-page-cache.c
+            - vdo-page-cache.h
+            - vdo-recovery.c
+            - vdo-recovery.h
+            - vio.c
+            - vio.h
+            - volume-geometry.c
+            - volume-geometry.h
+            - wait-queue.c
+            - wait-queue.h
+            - work-queue.c
+            - work-queue.h
+          undefines:
+            - INTERNAL
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - VDO_USER
+          defines:
+            - __KERNEL__
         src/c++/uds/src/uds:
           dest: vdo
-          sources: |
-            buffer.c
-            buffer.h
-            chapter-index.c
-            chapter-index.h
-            common.h
-            compiler.h
-            config.c
-            config.h
-            cpu.h
-            delta-index.c
-            delta-index.h
-            errors.c
-            errors.h
-            event-count.c
-            event-count.h
-            funnel-queue.c
-            funnel-queue.h
-            geometry.c
-            geometry.h
-            hash-utils.h
-            index.c
-            index.h
-            index-layout.c
-            index-layout.h
-            index-page-map.c
-            index-page-map.h
-            index-session.c
-            index-session.h
-            io-factory.c
-            io-factory.h
-            logger.h
-            memory-alloc.h
-            numeric.h
-            open-chapter.c
-            open-chapter.h
-            permassert.c
-            permassert.h
-            radix-sort.c
-            radix-sort.h
-            request-queue.h
-            sparse-cache.c
-            sparse-cache.h
-            string-utils.c
-            string-utils.h
-            time-utils.h
-            uds.h
-            uds-threads.h
-            volume.c
-            volume.h
-            volume-index.c
-            volume-index.h
-          undefines: TEST_INTERNAL,VDO_INTERNAL
-          defines: __KERNEL__
+          sources:
+            - buffer.c
+            - buffer.h
+            - chapter-index.c
+            - chapter-index.h
+            - common.h
+            - compiler.h
+            - config.c
+            - config.h
+            - cpu.h
+            - delta-index.c
+            - delta-index.h
+            - errors.c
+            - errors.h
+            - event-count.c
+            - event-count.h
+            - funnel-queue.c
+            - funnel-queue.h
+            - geometry.c
+            - geometry.h
+            - hash-utils.h
+            - index.c
+            - index.h
+            - index-layout.c
+            - index-layout.h
+            - index-page-map.c
+            - index-page-map.h
+            - index-session.c
+            - index-session.h
+            - io-factory.c
+            - io-factory.h
+            - logger.h
+            - memory-alloc.h
+            - numeric.h
+            - open-chapter.c
+            - open-chapter.h
+            - permassert.c
+            - permassert.h
+            - radix-sort.c
+            - radix-sort.h
+            - request-queue.h
+            - sparse-cache.c
+            - sparse-cache.h
+            - string-utils.c
+            - string-utils.h
+            - time-utils.h
+            - uds.h
+            - uds-threads.h
+            - volume.c
+            - volume.h
+            - volume-index.c
+            - volume-index.h
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+          defines:
+            - __KERNEL__
         src/c++/uds/src/uds/linux:
           dest: vdo/linux
-          sources: murmurhash3.h
-          defines: __KERNEL__
+          sources:
+            - murmurhash3.h
+          defines:
+            - __KERNEL__
         src/c++/uds/src/uds/murmur:
           dest: vdo
-          sources: murmurhash3.c
-          defines: __KERNEL__,UDS_MURMURHASH3
+          sources:
+            - murmurhash3.c
+          defines:
+            - __KERNEL__
+            - UDS_MURMURHASH3
         src/c++/uds/kernelLinux/uds:
           dest: vdo
-          sources: |
-            logger.c
-            memory-alloc.c
-            request-queue.c
-            thread-cond-var.c
-            thread-device.c
-            thread-device.h
-            thread-registry.c
-            thread-registry.h
-            uds-sysfs.c
-            uds-sysfs.h
-            uds-threads.c
-          undefines: TEST_INTERNAL,VDO_INTERNAL
-          defines: __KERNEL__
+          sources:
+            - logger.c
+            - memory-alloc.c
+            - request-queue.c
+            - thread-cond-var.c
+            - thread-device.c
+            - thread-device.h
+            - thread-registry.c
+            - thread-registry.h
+            - uds-sysfs.c
+            - uds-sysfs.h
+            - uds-threads.c
+          undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+          defines:
+            - __KERNEL__

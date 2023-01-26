@@ -13,10 +13,12 @@ tarballs:
       vdo:
         +src/packaging/github:
           dest: .
-          sources: CONTRIBUTORS.txt
+          sources:
+            - CONTRIBUTORS.txt
         +src/packaging/github/user:
           dest: .
-          sources: README.md
+          sources:
+            - README.md
         src/c++/uds/src/uds:
           +postProcessor: removeInternal.sh
         src/c++/uds/userLinux/uds:
@@ -28,11 +30,12 @@ tarballs:
       vdo:
         +src/packaging/github:
           dest: .
-          sources: CONTRIBUTORS.txt
+          sources:
+            - CONTRIBUTORS.txt
         +src/packaging/github/kernel:
           dest: .
-          sources: |
-            README.md
+          sources:
+            - README.md
         src/c++/vdo/base:
           +postProcessor: removeInternal.sh
         src/c++/uds/src/uds:

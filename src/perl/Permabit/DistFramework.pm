@@ -287,30 +287,46 @@ sub readManifest {
 
 ######################################################################
 # Modify a hash based on another hash. Examines each key of the modifier
-# hash. If that key starts with a '+', the value of that key will be merged
-# with the value in the original hash. If that key starts with a '-', the
-# values under that key will be removed from the original hash.
+# hash.  If that key starts with a '+' the key and its value will be added
+# to the original hash overwriting the original hash's key value if it exists.
+# If that key starts with a '-', the values under that key will be removed
+# from the original hash.
 #
 # @param hash      The hash to be modified
-# @param modifier  The has of modifications
+# @param modifier  The hash of modifications
 #
 # @return The modified hash
 ##
 sub modifyHash {
   my ($hash, $modifier) = assertNumArgs(2, @_);
   foreach my $key (keys(%{$modifier})) {
-    if ($key =~ /^\+(.*)$/) {
+    # Require the key name to abut the any prefix character and not be empty.
+
+    # Replace value?
+    if ($key =~ /^\+(\S.*)$/) {
       $hash->{$1} = $modifier->{$key};
       next;
     }
 
-    if ($key =~ /^\-(.*)/) {
+    # Delete value:
+    if ($key =~ /^\-(\S.*)/) {
       delete $hash->{$1};
       next;
     }
 
-    my $value = $hash->{$key} // {};
-    $hash->{$key} = modifyHash($hash->{$key}, $modifier->{$key});
+    # The modifier value must be a hash in order to recurse (recursing on
+    # arrays is not supported).  Additionally the target hash must not have a
+    # matching key or if it does the value must also be a hash.
+    if (ref($modifier->{$key}) ne "HASH") {
+      confess("can't recurse; modifier '$key' value not a hash: "
+              . ref($modifier->{$key}));
+    }
+    if (defined($hash->{$key}) && (ref($hash->{$key}) ne "HASH")) {
+      confess("can't recurse; target '$key' value not a hash: "
+              . ref($hash->{$key}));
+    }
+
+    $hash->{$key} = modifyHash($hash->{$key} , $modifier->{$key});
   }
 
   return $hash;
@@ -401,8 +417,12 @@ sub populate {
       my $opener = '';
       my $suffix = '';
       if ($item->{undefines} || $item->{defines}) {
-        my @undefines = map({ "-U$_" } yamlSplit($item->{undefines} // ''));
-        my @defines = map({ "-D$_" } yamlSplit($item->{defines} // ''));
+        my @undefines = map({ "-U$_" } (defined($item->{undefines})
+                                        ? @{$item->{undefines}}
+                                        : ()));
+        my @defines = map({ "-D$_" } (defined($item->{defines})
+                                        ? @{$item->{defines}}
+                                        : ()));
         if ($kernel and grep { $_ eq "-D__KERNEL__" } @defines) {
           # Replace KERNEL_VERSION(N, N, N) with its integer
           # equivalent and define LINUX_VERSION_CODE to generate
@@ -415,36 +435,25 @@ sub populate {
           $suffix   = ' |';
         }
       }
-      my $excludes = $item->{excludes} // '';
+      my @excludes = (defined($item->{excludes})
+                      ? @{$item->{excludes}}
+                      : ());
       my $postProcessor = (defined($item->{postProcessor})
                            ? makeFullPath($postProcessorDir,
                                           $item->{postProcessor})
                            : undef);
-      foreach my $source (yamlSplit($item->{sources})) {
+      foreach my $source (@{$item->{sources}}) {
         $self->copyFiles(makeFullPath($sourceDir, $sourcePath),
                          $source,
                          makeFullPath($destDir, dirname($source)),
                          $tarballType,
                          $opener,
                          $suffix,
-                         $excludes,
+                         \@excludes,
                          $postProcessor);
       }
     }
   }
-}
-
-######################################################################
-# Split a YAML (possibly multi-line) list (used for sources).
-#
-# @param text  The text to split
-#
-# @return The text split either on commas or newlines
-##
-sub yamlSplit {
-  my ($text) = assertNumArgs(1, @_);
-  $text =~ s/\s*\n\s*/,/gs;
-  return split(',', $text);
 }
 
 ######################################################################
@@ -479,9 +488,8 @@ sub copyFiles {
     $rename = $2;
   }
 
-  my @excludes = yamlSplit($excludes);
   my @files    = glob(makeFullPath($sourceDir, $files));
-  foreach my $exclude (@excludes) {
+  foreach my $exclude (@{$excludes}) {
     @files = grep { basename($_) ne $exclude } @files;
   }
 
@@ -558,7 +566,7 @@ sub makeSpecfiles {
   my $tree        = $self->get($specFiles->{tree});
   my $versionFile = $self->getSpecFileVersionFile($specFiles);
   my $version     = $versionFile->get('VERSION');
-  foreach my $file (yamlSplit($specFiles->{files})) {
+  foreach my $file (@{$specFiles->{files}}) {
     my $spec = $self->readSpecFile(makeFullPath($tree, $file));
     if ($spec !~ /\%define spec_release\s+(\d+)/) {
       die("spec file $file does not define spec_release\n");
@@ -645,13 +653,28 @@ sub getSpecFileOutputPath {
 #           in this one. If specified, the rest of this manifest will be
 #           interpreted as changes to the included manifest. Changes work as
 #           follows:
-#             The values under a key starting with a '+' will be added to the
-#             included manifest. A key starting with a '-' and everything
-#             under it will be deleted from the included manifest (sadly,
-#             to be valid YAML, the '-' key must have a value, but that value
-#             is ignored). Any other key is used to cause the modifier to
-#             recurse into the values for that key. So given a manifest m1.yaml
-#             containing:
+#             A key may be prefixed with a '+' or '-' without intervening
+#             whitespace.  The lack of whitespace provides consistency of
+#             specification as well as YAML format requirements; a '-' with
+#             whitespace after is interpreted as a list entry and the '-' is
+#             not preserved.  Also such a use of '-' is a YAML format error if
+#             at the same level as other keys.
+#
+#             Values under a key starting with a '+' will replace those (or be
+#             added if non-existent) in the included manifest.
+#
+#             A key starting with a '-' and everything under it will be deleted
+#             from the included manifest (sadly, to be valid YAML, the '-' key
+#             must have a value, but that value is ignored).
+#
+#             Any other key is used to cause the modifier to recurse into the
+#             values for that key if the key references a hash.  The target
+#             being modified must not have a matching key or if it does the
+#             value must also be a hash.
+#
+#             Recursion into arrays is not supported.
+#
+#             Given a manifest m1.yaml containing:
 #
 #               foo:
 #                 bar: 1
@@ -659,6 +682,9 @@ sub getSpecFileOutputPath {
 #                 bletch:
 #                   salt: pepper
 #                   waldo: quux
+#                 kindling:
+#                   - shadrach
+#                   - meshach
 #
 #              and another manifest containing:
 #
@@ -685,6 +711,7 @@ sub getSpecFileOutputPath {
 #                                     a => 1,
 #                                     b => 2,
 #                                   },
+#                         kindling => [ shadrach, meshach ],
 #                       },
 #              }
 #
