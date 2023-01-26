@@ -10,6 +10,8 @@
 
 #include "memory-alloc.h"
 
+#include "action-manager.h"
+#include "admin-state.h"
 #include "block-map.h"
 #include "block-map-page.h"
 #include "block-map-tree.h"
@@ -35,6 +37,7 @@ static struct vio                 *blockedWriter;
 static block_count_t               writeCount;
 static struct block_map_tree_zone *zone;
 static bool                        fourWaiters;
+static bool                        notOperating;
 static bool                        writeBlocked;
 static physical_block_number_t     pbn;
 static uint8_t                     flushGeneration;
@@ -370,6 +373,28 @@ static bool countFinalWriters(struct vdo_completion *completion)
   return true;
 }
 
+static void checkNotOperating(struct vdo_completion *completion)
+{
+  runSavedCallback(completion);
+  if (vdo_get_current_manager_operation(vdo->block_map->action_manager)
+      == VDO_ADMIN_STATE_NORMAL_OPERATION) {
+    signalState(&notOperating);
+  }
+}
+
+static bool wrapEraAdvance(struct vdo_completion *completion)
+{
+  if (completion->type != VDO_ACTION_COMPLETION) {
+    return true;
+  }
+
+  if (completion->callback_thread_id == vdo->thread_config->admin_thread) {
+    wrapCompletionCallback(completion, checkNotOperating);
+  }
+
+  return true;
+}
+
 /**
  * Verify that tree pages are properly flushed in async mode.
  **/
@@ -385,9 +410,17 @@ static void testBlockMapTreeGenerationRollOver(void)
               VDO_SUCCESS);
   }
 
-  // Advance the journal by two blocks so that the first batch of dirty pages
-  // is written. Block one of the non-flushers.
-  writeData(0, 0, (2 * WRITES_PER_BLOCK) + 1, VDO_SUCCESS);
+  /*
+   * Advance the journal by two blocks so that the first batch of dirty pages
+   * is written. Block one of the non-flushers. But do the writes incrementally so
+   * that we know the era will be advanced.
+   */
+  notOperating = false;
+  addCompletionEnqueueHook(wrapEraAdvance);
+  writeData(0, 0, 1, VDO_SUCCESS);
+  waitForState(&notOperating);
+  removeCompletionEnqueueHook(wrapEraAdvance);
+  writeData(0, 0, 2 * WRITES_PER_BLOCK, VDO_SUCCESS);
   blockedWriter = getBlockedVIO();
 
   block_count_t writeTarget = INTERIOR_HEIGHT - 1;
