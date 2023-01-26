@@ -30,11 +30,11 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-static struct slab_depot       *depot;
 static struct recovery_journal  sampledJournal;
 static block_count_t            slabSummaryWriteCount;
 static logical_block_number_t  *slabLBNs;
 static logical_block_number_t  *slabLBNs2;
+static bool                     reaping;
 
 // Ensure no dedupe by writing distinct data blocks in sequence.
 static physical_block_number_t  nextDataBlock;
@@ -46,7 +46,7 @@ static physical_block_number_t  nextDataBlock;
  **/
 static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 {
-  return depot->slabs[slabNumber]->journal;
+  return vdo->depot->slabs[slabNumber]->journal;
 }
 
 /**
@@ -63,7 +63,7 @@ static bool recordLBN(struct vdo_completion *completion)
   struct data_vio        *dataVIO = as_data_vio(completion);
   logical_block_number_t  lbn     = dataVIO->logical.lbn;
   slab_count_t slabNumber
-    = vdo_get_slab(depot, dataVIO->new_mapped.pbn)->slab_number;
+    = vdo_get_slab(vdo->depot, dataVIO->new_mapped.pbn)->slab_number;
   if (slabLBNs[slabNumber] == 0) {
     slabLBNs[slabNumber] = lbn;
   } else if (slabLBNs2[slabNumber] == 0) {
@@ -76,7 +76,7 @@ static bool recordLBN(struct vdo_completion *completion)
 /**
  * Action to interrogate the journal.
  **/
-static void interrogateJournal(struct vdo_completion *completion)
+static void sampleJournal(struct vdo_completion *completion)
 {
   sampledJournal = *(vdo->recovery_journal);
   vdo_complete_completion(completion);
@@ -87,9 +87,9 @@ static void interrogateJournal(struct vdo_completion *completion)
  **/
 static void interrogateJournalUntilNotReaping(void)
 {
-  performSuccessfulAction(interrogateJournal);
+  performSuccessfulAction(sampleJournal);
   while (sampledJournal.reaping) {
-    performSuccessfulAction(interrogateJournal);
+    performSuccessfulAction(sampleJournal);
   }
 }
 
@@ -99,59 +99,39 @@ static void interrogateJournalUntilNotReaping(void)
 static void initializeTest(bool useSmallRecoveryJournalSize)
 {
   const TestParameters parameters = {
-    .mappableBlocks    = 252,
-    .journalBlocks     = 16,
-    .slabJournalBlocks = 16,
+    .mappableBlocks      = 252,
+    .journalBlocks       = 16,
+    .slabJournalBlocks   = 16,
+    .physicalThreadCount = 1,
   };
   initializeRecoveryModeTest(&parameters);
 
-  depot = vdo->depot;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs2));
-
-  // Override recovery journal per-block capacity to an even number.
-  struct recovery_journal *recoveryJournal = vdo->recovery_journal;
-  if (useSmallRecoveryJournalSize) {
-    recoveryJournal->entries_per_block = 128;
-  }
-
-  /*
-   * Override slab journal per-block capacity to be the same as the recovery
-   * journal block size and set the blocking threshold to the scrubbing
-   * threshold.
-   */
-  for (slab_count_t slab = 0; slab < depot->slab_count; slab++) {
-    struct slab_journal *slabJournal    = depot->slabs[slab]->journal;
-    slabJournal->entries_per_block      = recoveryJournal->entries_per_block;
-    slabJournal->full_entries_per_block = recoveryJournal->entries_per_block;
-    slabJournal->blocking_threshold     = slabJournal->scrubbing_threshold;
-  }
-
-  slabSummaryWriteCount = 0;
-
-  // We need to create four more recovery journal entries since there are no
-  // decref entries for the four block map page increments
-  writeData(0, 0, 1, VDO_SUCCESS);
-  writeData(0, 0, 1, VDO_SUCCESS);
 
   setCompletionEnqueueHook(recordLBN);
   nextDataBlock = 1;
   nextDataBlock += fillPhysicalSpace(nextDataBlock, 1);
   clearCompletionEnqueueHooks();
 
-  // Flush block map and slab journals to release all recovery journal locks.
-  performSuccessfulBlockMapAction(VDO_ADMIN_STATE_RECOVERING);
-  performSuccessfulDepotAction(VDO_ADMIN_STATE_RECOVERING);
-
-  // Slab journals are flushed.
-  for (slab_count_t slab = 1; slab < depot->slab_count; slab++) {
-    struct slab_journal *slabJournal = getVDOSlabJournal(slab);
-    CU_ASSERT_EQUAL(slabJournal->last_summarized, 2);
+  restartVDO(false);
+  if (useSmallRecoveryJournalSize) {
+    vdo->recovery_journal->entries_per_block = 128;
   }
 
-  interrogateJournalUntilNotReaping();
+ /*
+   * Override slab journal per-block capacity to be the same as the recovery
+   * journal block size and set the blocking threshold to the scrubbing
+   * threshold.
+   */
+  for (slab_count_t slab = 0; slab < vdo->depot->slab_count; slab++) {
+    struct slab_journal *slabJournal    = vdo->depot->slabs[slab]->journal;
+    slabJournal->entries_per_block      = vdo->recovery_journal->entries_per_block;
+    slabJournal->full_entries_per_block = vdo->recovery_journal->entries_per_block;
+    slabJournal->blocking_threshold     = slabJournal->scrubbing_threshold;
+  }
 }
 
 /**********************************************************************/
@@ -254,6 +234,31 @@ static void waitForSlabSummaryBlockWrites(block_count_t writeCount)
   waitForCondition(checkSlabSummaryWriteCount, &writeCount);
 }
 
+/**********************************************************************/
+static bool failOnSlabJournalReap(struct vdo_completion *completion)
+{
+  struct recovery_journal *journal = vdo->recovery_journal;
+  if ((completion == &journal->flush_vio->completion)
+      && (vdo_get_callback_thread_id() == vdo->thread_config->journal_thread)) {
+    CU_ASSERT_EQUAL(journal->slab_journal_head, journal->slab_journal_reap_head);
+  }
+
+  return true;
+}
+
+/**********************************************************************/
+static bool notifySlabJournalReap(struct vdo_completion *completion)
+{
+  struct recovery_journal *journal = vdo->recovery_journal;
+  if ((completion == &journal->flush_vio->completion)
+      && (vdo_get_callback_thread_id() == vdo->thread_config->journal_thread)
+      && (journal->slab_journal_head < journal->slab_journal_reap_head)) {
+    signalState(&reaping);
+  }
+
+  return true;
+}
+
 /**
  * When the recovery journal threshold is reached, the oldest slab journal
  * tails are written out.
@@ -262,14 +267,13 @@ static void testRecoveryJournalThreshold(void)
 {
   initializeTest(true);
 
-  /*
-   * Recovery journal is reaped completely. The head is still at 4
-   * since we've never written block 5.
-   */
-  CU_ASSERT_EQUAL(sampledJournal.tail, 5);
+  // Check that the journal is completely reaped with respect to slabs.
+  performSuccessfulAction(sampleJournal);
   CU_ASSERT_PTR_NULL(sampledJournal.active_block);
-  CU_ASSERT_EQUAL(sampledJournal.slab_journal_head, 4);
+  CU_ASSERT_EQUAL(sampledJournal.tail, sampledJournal.slab_journal_head);
 
+  addCompletionEnqueueHook(failOnSlabJournalReap);
+  sequence_number_t expectedHead = sampledJournal.slab_journal_head;
   const size_t ONE_BLOCK = sampledJournal.entries_per_block;
   // Make slab journal 0 and 1 hold locks on the 1st recovery journal block.
   issueOverwriteAtSlab(0, ONE_BLOCK / 2);
@@ -285,31 +289,34 @@ static void testRecoveryJournalThreshold(void)
 
   // Verify that the recovery journal has not been reaped and the threshold
   // has not been crossed.
-  interrogateJournalUntilNotReaping();
-  CU_ASSERT_EQUAL(sampledJournal.slab_journal_head, 5);
+  performSuccessfulAction(sampleJournal);
+  CU_ASSERT_EQUAL(sampledJournal.slab_journal_head, expectedHead++);
   CU_ASSERT_EQUAL((sampledJournal.tail - sampledJournal.slab_journal_head),
                   sampledJournal.slab_journal_commit_threshold);
 
   // Verify the rest of the slab journals are empty and not committed.
-  for (slab_count_t slab = 4; slab < depot->slab_count; slab++) {
+  for (slab_count_t slab = 4; slab < vdo->depot->slab_count; slab++) {
     CU_ASSERT_EQUAL(getVDOSlabJournal(slab)->last_summarized, 2);
     CU_ASSERT_EQUAL(getVDOSlabJournal(slab)->tail_header.entry_count, 0);
   }
 
   // Issue another write at slab 3. Recovery journal will hit the threshold.
-  setCompletionEnqueueHook(wrapSlabSummaryWrite);
+  reaping = false;
+  setCompletionEnqueueHook(notifySlabJournalReap);
+  slabSummaryWriteCount = 0;
+  addCompletionEnqueueHook(wrapSlabSummaryWrite);
   discardData(slabLBNs[3], 1, VDO_SUCCESS);
   writeData(slabLBNs[3], nextDataBlock++, 1, VDO_SUCCESS);
 
   waitForSlabSummaryBlockWrites(2);
-  clearCompletionEnqueueHooks();
+  waitForState(&reaping);
 
   // Verify that slab journals 0 and 1 are committed and one recovery journal
   // block is reaped.
   interrogateJournalUntilNotReaping();
   CU_ASSERT_EQUAL(getVDOSlabJournal(0)->last_summarized, 3);
   CU_ASSERT_EQUAL(getVDOSlabJournal(1)->last_summarized, 3);
-  CU_ASSERT_EQUAL(sampledJournal.slab_journal_head, 6);
+  CU_ASSERT_EQUAL(sampledJournal.slab_journal_head, expectedHead);
   // Verify that slab journal 2 tail is not committed.
   CU_ASSERT_EQUAL(getVDOSlabJournal(2)->last_summarized, 2);
 }
@@ -355,7 +362,7 @@ static void testScrubSlabDuringRebuild(void)
   const size_t  ONE_BLOCK           = slabJournal->entries_per_block;
   block_count_t blockingThreshold   = slabJournal->blocking_threshold;
   block_count_t blocksUntilBlocking = blockingThreshold - alreadyWritten;
-  addEntriesToSlabJournal(slabNumber, (ONE_BLOCK * blocksUntilBlocking) - 1);
+  addEntriesToSlabJournal(slabNumber, (ONE_BLOCK * blocksUntilBlocking) - 2);
 
   // By now, we should have attempted to write several reference blocks.
   waitForSlabLatch(slabNumber);
@@ -364,10 +371,12 @@ static void testScrubSlabDuringRebuild(void)
   // current slab journal tail.
   setCompletionEnqueueHook(wrapSlabSummaryWrite);
 
-  // Use a trim to fill the last entry (which will cause a slab journal,
-  // and a slab summary, write).
+  // Use a trim and write to fill the last two entries (which will cause a slab
+  // journal, and a slab summary, write).
   logical_block_number_t trimBlock = slabLBNs2[slabNumber];
   discardData(trimBlock, 1, VDO_SUCCESS);
+  writeData(trimBlock, nextDataBlock++, 1, VDO_SUCCESS);
+
   waitForSlabSummaryBlockWrites(1);
   clearCompletionEnqueueHooks();
 
@@ -409,7 +418,6 @@ static void testScrubSlabDuringRebuild(void)
   setBlockBIO(checkRecoveryMode, true);
   startVDO(VDO_DIRTY);
   blockedVIO  = getBlockedVIO();
-  depot       = vdo->depot;
   slabJournal = getVDOSlabJournal(slabNumber);
   CU_ASSERT_EQUAL(slabJournal->head, slabJournal->tail);
   CU_ASSERT_EQUAL(slabJournal->tail_header.entry_count, 0);
