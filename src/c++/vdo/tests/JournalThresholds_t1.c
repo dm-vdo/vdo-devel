@@ -369,6 +369,7 @@ static void testScrubSlabDuringRebuild(void)
 
   // We should not take a snapshot until the slab summary reflects the
   // current slab journal tail.
+  slabSummaryWriteCount = 0;
   setCompletionEnqueueHook(wrapSlabSummaryWrite);
 
   // Use a trim and write to fill the last two entries (which will cause a slab
