@@ -8,7 +8,7 @@
 
 #include <linux/list.h>
 
-/**
+/*
  * A priority_table is a simple implementation of a priority queue for entries with priorities that
  * are small non-negative integer values. It implements the obvious priority queue operations of
  * enqueuing an entry and dequeuing an entry with the maximum priority. It also supports removing
@@ -24,7 +24,7 @@
  * a hint for which queues are non-empty. Steven Skiena calls a very similar structure a "bounded
  * height priority queue", but given the resemblance to a hash table, "priority table" seems both
  * shorter and more apt, if somewhat novel.
- **/
+ */
 
 struct priority_table;
 

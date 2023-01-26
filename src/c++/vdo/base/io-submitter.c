@@ -141,7 +141,7 @@ static sector_t get_bio_sector(struct bio *bio)
 /**
  * process_vio_io() - Submits a vio's bio to the underlying block device. May block if the device
  *                    is busy. This callback should be used by vios which did not attempt to merge.
- **/
+ */
 void process_vio_io(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
@@ -341,6 +341,12 @@ void submit_data_vio_io(struct data_vio *data_vio)
 
 /**
  * vdo_submit_metadata_io() - Submit I/O for a metadata vio.
+ * @vio: the vio for which to issue I/O
+ * @physical: the physical block number to read or write
+ * @callback: the bio endio function which will be called after the I/O completes
+ * @error_handler: the handler for submission or I/O errors (may be NULL)
+ * @operation: the type of I/O to perform
+ * @data: the buffer to read or write (may be NULL)
  *
  * The vio is enqueued on a vdo bio queue so that bio submission (which may block) does not block
  * other vdo threads.
@@ -349,14 +355,7 @@ void submit_data_vio_io(struct data_vio *data_vio)
  * this function, and the thread set in the endio callback are the same, as well as the fact that
  * no error can occur on the bio queue. Currently this is true for all callers, but additional care
  * will be needed if this ever changes.
-
- * @vio: the vio for which to issue I/O
- * @physical: the physical block number to read or write
- * @callback: the bio endio function which will be called after the I/O completes
- * @error_handler: the handler for submission or I/O errors (may be NULL)
- * @operation: the type of I/O to perform
- * @data: the buffer to read or write (may be NULL)
- **/
+ */
 void vdo_submit_metadata_io(struct vio *vio,
 			    physical_block_number_t physical,
 			    bio_end_io_t callback,
@@ -396,7 +395,6 @@ void vdo_submit_metadata_io(struct vio *vio,
 
 /**
  * vdo_make_io_submitter() - Create an io_submitter structure.
- *
  * @thread_count: Number of bio-submission threads to set up.
  * @rotation_interval: Interval to use when rotating between bio-submission threads when enqueuing
  *                     completions.

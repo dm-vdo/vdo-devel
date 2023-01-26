@@ -167,7 +167,7 @@ sub printComment {
   $self->indent(' * ');
   map { $self->emit($_) } @comment;
   $self->undent();
-  $self->emit(' **/');
+  $self->emit(' */');
 }
 
 ######################################################################

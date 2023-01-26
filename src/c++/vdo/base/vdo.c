@@ -210,7 +210,7 @@ int vdo_make_thread(struct vdo *vdo,
  * @config: The configuration of the vdo
  * @instance: The instance number of the vdo
  * @reason: The buffer to hold the failure reason on error
- **/
+ */
 static int
 initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int instance, char **reason)
 {

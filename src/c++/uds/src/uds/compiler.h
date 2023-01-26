@@ -34,10 +34,10 @@
 	})
 
 #ifndef __KERNEL__
-/**
+/*
  * CPU Branch-prediction hints, courtesy of GCC. Defining these as inline functions instead of
  * macros spoils their magic, sadly.
- **/
+ */
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
 #endif

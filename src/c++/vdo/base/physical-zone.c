@@ -360,7 +360,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
  * @zones_ptr: A pointer to hold the zones
  *
  * Return: VDO_SUCCESS or an error code.
- **/
+ */
 int vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr)
 {
 	struct physical_zones *zones;

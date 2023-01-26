@@ -91,7 +91,7 @@ int vdo_make_slab_scrubber(struct vdo *vdo,
 /**
  * free_vio_and_buffer() - Free the vio and buffer used for reading slab journals.
  * @scrubber: The scrubber.
- **/
+ */
 static void free_vio_and_buffer(struct slab_scrubber *scrubber)
 {
 	free_vio(UDS_FORGET(scrubber->vio));

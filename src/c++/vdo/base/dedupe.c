@@ -111,7 +111,7 @@
  * If a hash_lock needs a dedupe context, and the available list is empty, the timed_out list will
  * be searched for any contexts which are timed out and complete. One of these will be used
  * immediately, and the rest will be returned to the available list and marked idle.
- **/
+ */
 
 #include "dedupe.h"
 
@@ -419,7 +419,7 @@ static void return_hash_lock_to_pool(struct hash_zone *zone, struct hash_lock *l
  * @data_vio: The data_vio to query.
  *
  * Return: The PBN lock on the data_vio's duplicate location.
- **/
+ */
 struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 {
 	if (data_vio->hash_lock == NULL)
@@ -432,7 +432,7 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
  * @state: The hash lock state.
  *
  * Return: The short string representing the state
- **/
+ */
 static const char *get_hash_lock_state_name(enum hash_lock_state state)
 {
 	/* Catch if a state has been added without updating the name array. */

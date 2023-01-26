@@ -162,7 +162,7 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 /**
  * free_vio_components(): Free the components of a vio embedded in a larger structure.
  * @vio: The vio to destroy
- **/
+ */
 void free_vio_components(struct vio *vio)
 {
 	if (vio == NULL)

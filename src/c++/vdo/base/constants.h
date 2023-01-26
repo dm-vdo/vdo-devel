@@ -13,10 +13,10 @@
 #include "types.h"
 
 enum {
-	/**
+	/*
 	 * The maximum number of contiguous PBNs which will go to a single bio submission queue,
 	 * assuming there is more than one queue.
-	 **/
+	 */
 	VDO_BIO_ROTATION_INTERVAL_LIMIT = 1024,
 
 	/** The number of entries on a block map page */
@@ -25,10 +25,10 @@ enum {
 	/** The origin of the flat portion of the block map */
 	VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN = 1,
 
-	/**
+	/*
 	 * The height of a block map tree. Assuming a root count of 60 and 812 entries per page,
 	 * this is big enough to represent almost 95 PB of logical space.
-	 **/
+	 */
 	VDO_BLOCK_MAP_TREE_HEIGHT = 5,
 
 	/** The default number of bio submission queues. */
@@ -46,11 +46,11 @@ enum {
 	/** The default size of each slab journal, in blocks */
 	DEFAULT_VDO_SLAB_JOURNAL_SIZE = 224,
 
-	/**
+	/*
 	 * The initial size of lbn_operations and pbn_operations, which is based upon the expected
 	 * maximum number of outstanding VIOs. This value was chosen to make it highly unlikely
 	 * that the maps would need to be resized.
-	 **/
+	 */
 	VDO_LOCK_MAP_CAPACITY = 10000,
 
 	/** The maximum number of logical zones */
@@ -65,9 +65,9 @@ enum {
 	/** The maximum number of slabs the slab depot supports */
 	MAX_VDO_SLABS = 8192,
 
-	/**
+	/*
 	 * The maximum number of block map pages to load simultaneously during recovery or rebuild.
-	 **/
+	 */
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
 
 	/** The maximum number of total threads in a VDO thread configuration. */

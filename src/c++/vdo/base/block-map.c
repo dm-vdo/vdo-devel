@@ -416,7 +416,7 @@ static void grow_forest(void *context, struct vdo_completion *completion)
 	vdo_complete_completion(completion);
 }
 
-/* Requires vdo_prepare_to_grow_block_map() to have been previously called. **/
+/* Requires vdo_prepare_to_grow_block_map() to have been previously called. */
 void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent)
 {
 	vdo_schedule_operation(map->action_manager,

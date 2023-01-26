@@ -2147,7 +2147,7 @@ static void free_journal_loader(struct journal_loader *loader)
 /**
  * finish_journal_load() - Handle the completion of a journal read, and if it is the last one,
  *                         finish the load by notifying the parent.
- **/
+ */
 static void finish_journal_load(struct vdo_completion *completion)
 {
 	struct journal_loader *loader = completion->parent;

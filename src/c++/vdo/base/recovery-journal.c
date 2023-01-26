@@ -226,7 +226,7 @@ pop_free_list(struct recovery_journal *journal)
  * written but not yet acknowledged.
  *
  * Return: true if the block has any uncommitted entries.
- **/
+ */
 static inline bool __must_check is_block_dirty(const struct recovery_journal_block *block)
 {
 	return (block->uncommitted_entry_count > 0);
@@ -237,7 +237,7 @@ static inline bool __must_check is_block_dirty(const struct recovery_journal_blo
  * @block: The block to check.
  *
  * Return: true if the block has no entries.
- **/
+ */
 static inline bool __must_check is_block_empty(const struct recovery_journal_block *block)
 {
 	return (block->entry_count == 0);
@@ -248,7 +248,7 @@ static inline bool __must_check is_block_empty(const struct recovery_journal_blo
  * @block: The block to check.
  *
  * Return: true if the block is full.
- **/
+ */
 static inline bool __must_check is_block_full(const struct recovery_journal_block *block)
 {
 	return ((block == NULL) || (block->journal->entries_per_block == block->entry_count));

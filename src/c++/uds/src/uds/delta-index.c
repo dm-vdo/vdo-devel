@@ -835,12 +835,12 @@ EXTERNAL_STATIC void move_bits(const u8 *from,
 		move_bits_up(from, from_offset, to, to_offset, size);
 }
 
-/**
+/*
  * Pack delta lists from a mutable delta index into an immutable delta index page. A range of delta
  * lists (starting with a specified list index) is copied from the mutable delta index into a
  * memory page used in the immutable index. The number of lists copied onto the page is returned in
  * list_count.
- **/
+ */
 int pack_delta_index_page(const struct delta_index *delta_index,
 			  u64 header_nonce,
 			  u8 *memory,

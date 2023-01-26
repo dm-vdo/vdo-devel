@@ -169,7 +169,7 @@ sub emitComment {
   $self->indent(' * ');
   map { $self->emit($_) } @comment;
   $self->undent();
-  $self->emit(' **/');
+  $self->emit(' */');
 }
 
 ######################################################################
@@ -306,15 +306,6 @@ sub emitField {
 }
 
 ######################################################################
-# Emit a C separator.
-##
-sub emitSeparator {
-  my ($self) = assertNumArgs(1, @_);
-  $self->emit("/*******************************************************"
-              . "***************/");
-}
-
-######################################################################
 # Emits a function that will generate all the output for a given struct
 #
 # @param struct the structure to write out
@@ -325,7 +316,6 @@ sub emitStruct {
   my $name = $self->camelcaseToKernelStyle($struct);
 
   $self->blankLine();
-  $self->emitSeparator();
   $self->replaceAndEmit("static int write_STRUCT(char *prefix,",
                         "STRUCT", $name);
   $self->indentTo("static int write_${name}(");
@@ -364,7 +354,6 @@ sub emitType {
   my $cType = $type =~ "char" ? "char *" : $type . " ";
 
   $self->blankLine();
-  $self->emitSeparator();
   $self->replaceAndEmit("static int write_TYPE(char *label, CVALvalue)",
                         "TYPE", $funcType,
                         "CVAL", $cType);
@@ -497,7 +486,6 @@ sub generateStruct {
 sub generateTrailer {
   my ($self, $statistic) = assertNumArgs(2, @_);
   $self->blankLine();
-  $self->emitSeparator();
   $self->emit("int vdo_write_stats(struct vdo_statistics *stats)");
   $self->emit("{");
   $self->indent();

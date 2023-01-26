@@ -20,12 +20,12 @@
  */
 
 enum {
-	/**
+	/*
 	 * This minimum size for the bit array creates a numbering space of 0-999, which allows
 	 * successive starts of the same volume to have different instance numbers in any
 	 * reasonably-sized test. Changing instances on restart allows vdoMonReport to detect that
 	 * the ephemeral stats have reset to zero.
-	 **/
+	 */
 	BIT_COUNT_MINIMUM = 1000,
 	/** Grow the bit array by this many bits when needed */
 	BIT_COUNT_INCREMENT = 100,

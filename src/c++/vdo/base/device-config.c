@@ -42,7 +42,7 @@ static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
  * @version_ptr: A pointer to return the version.
  *
  * Return: VDO_SUCCESS or an error code.
- **/
+ */
 static int get_version_number(int argc, char **argv, char **error_ptr, unsigned int *version_ptr)
 {
 	/* version, if it exists, is in a form of V<n> */

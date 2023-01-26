@@ -609,7 +609,7 @@ void vdo_set_slab_summary_origin(struct slab_summary *summary, struct partition 
 /**
  * finish_combining_zones() - Clean up after saving out the combined slab summary.
  * @completion: The vio which was used to write the summary data.
- **/
+ */
 static void finish_combining_zones(struct vdo_completion *completion)
 {
 	struct slab_summary *summary = completion->parent;

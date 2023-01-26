@@ -88,7 +88,7 @@ sub emitComment {
   $self->indent(' * ');
   map { $self->emit($_) } @comment;
   $self->undent();
-  $self->emit(' **/');
+  $self->emit(' */');
 }
 
 ######################################################################
@@ -131,15 +131,6 @@ sub emitField {
 }
 
 ######################################################################
-# Emit a C separator.
-##
-sub emitSeparator {
-  my ($self) = assertNumArgs(1, @_);
-  $self->emit("/*******************************************************"
-              . "***************/");
-}
-
-######################################################################
 # Emits a function that will read a given structure from the input
 # buffer.
 #
@@ -149,7 +140,6 @@ sub emitStruct {
   my ($self, $struct) = assertNumArgs(2, @_);
 
   $self->blankLine();
-  $self->emitSeparator();
   my $name = $self->camelcaseToKernelStyle($struct);
   $self->replaceAndEmit("static int read_STRUCT(char **buf,",
                         "STRUCT", $name);
@@ -180,7 +170,6 @@ sub emitType {
   my ($self, $field) = assertNumArgs(2, @_);
 
   $self->blankLine();
-  $self->emitSeparator();
 
   my $type = $field->getType("C");
   my $funcType = $type =~ "char" ? "string" : $type;
@@ -254,7 +243,6 @@ sub generateHeader {
 #include "status-codes.h"
 #include "vdoStats.h"
 
-/*********************************************************************/
 static int skip_string(char **buf, char *skip)
 {
         char *tmp = NULL;
@@ -290,7 +278,6 @@ sub generateStruct {
 
   if ($struct->{name} eq "VDOStatistics") {
     $self->blankLine();
-    $self->emitSeparator();
     my $type = $struct->{parent}->{name};
     my $name = $self->camelcaseToKernelStyle($struct);
     $self->replaceAndEmit("int read_STAT_stats(char *buf,", "STAT",

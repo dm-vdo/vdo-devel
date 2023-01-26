@@ -1171,7 +1171,7 @@ bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
  *
  * After a successful save, any info about locks, journal blocks partially filled, etc., is out of
  * date and should be reset.
- **/
+ */
 void vdo_resume_slab_journal(struct slab_journal *journal)
 {
 	struct vdo *vdo = journal->slab->allocator->depot->vdo;

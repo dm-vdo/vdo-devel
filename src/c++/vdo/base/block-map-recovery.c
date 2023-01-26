@@ -24,7 +24,7 @@
  *
  * Note that the page completions kept in this structure are not immediately freed, so the
  * corresponding pages will be locked down in the page cache until the recovery frees them.
- **/
+ */
 struct block_map_recovery_completion {
 	struct vdo_completion completion;
 	/* for flushing the block map */

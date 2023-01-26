@@ -577,7 +577,7 @@ static struct vdo_completion *prepare_admin_completion(struct vdo *vdo,
  * @vdo: The on which an admin operation is being performed
  *
  * Return: The current phase
- **/
+ */
 static u32 advance_phase(struct vdo *vdo)
 {
 	u32 phase = vdo->admin.phase++;
