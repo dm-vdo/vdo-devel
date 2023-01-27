@@ -9,7 +9,6 @@
 #include <linux/types.h>
 
 #include "compiler.h"
-#include "cpu.h"
 #include "errors.h"
 #include "string-utils.h"
 #ifdef __KERNEL__

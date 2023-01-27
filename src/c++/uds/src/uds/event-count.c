@@ -69,7 +69,6 @@
 
 #include "common.h"
 #include "compiler.h"
-#include "cpu.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"

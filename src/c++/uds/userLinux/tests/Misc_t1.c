@@ -11,7 +11,6 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "cpu.h"
 #include "memory-alloc.h"
 #include "random.h"
 #include "string-utils.h"

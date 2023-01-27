@@ -10,7 +10,6 @@
 #include <linux/cache.h>
 
 #include "config.h"
-#include "cpu.h"
 #include "uds-threads.h"
 #include "uds.h"
 

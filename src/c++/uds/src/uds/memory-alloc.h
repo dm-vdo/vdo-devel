@@ -6,15 +6,14 @@
 #ifndef MEMORY_ALLOC_H
 #define MEMORY_ALLOC_H 1
 
-#ifdef __KERNEL__
 #include <linux/cache.h>
+#ifdef __KERNEL__
 #include <linux/io.h> /* for PAGE_SIZE */
 #else
 #include <stdlib.h>
 #endif
 
 #include "compiler.h"
-#include "cpu.h"
 #include "permassert.h"
 #ifdef __KERNEL__
 #include "thread-registry.h"

@@ -10,7 +10,6 @@
 
 #include "compiler.h"
 #include "config.h"
-#include "cpu.h"
 #include "io-factory.h"
 #include "numeric.h"
 #include "time-utils.h"

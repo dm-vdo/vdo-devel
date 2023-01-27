@@ -5,6 +5,7 @@
 
 #include "funnel-queue.h"
 
+#include "cpu.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 #include "uds.h"

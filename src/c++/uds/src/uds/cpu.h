@@ -11,11 +11,12 @@
 #include "compiler.h"
 
 /**
- * Minimize cache-miss latency by moving data into a CPU cache before it is accessed.
+ * prefetch_address() - Minimize cache-miss latency by attempting to move data into a CPU cache
+ *                      before it is accessed.
  *
  * @address: the address to fetch (may be invalid)
  * @for_write: must be constant at compile time--false if for reading, true if for writing
- **/
+ */
 static inline void prefetch_address(const void *address, bool for_write)
 {
 	/*
@@ -33,15 +34,14 @@ static inline void prefetch_address(const void *address, bool for_write)
 }
 
 /**
- * Minimize cache-miss latency by moving a range of addresses into a CPU cache before they are
- * accessed.
+ * prefetch_range() - Minimize cache-miss latency by attempting to move a range of addresses into a
+ *                    CPU cache before they are accessed.
  *
  * @start: the starting address to fetch (may be invalid)
  * @size: the number of bytes in the address range
  * @for_write: must be constant at compile time--false if for reading, true if for writing
- **/
-static inline void
-prefetch_range(const void *start, unsigned int size, bool for_write)
+ */
+static inline void prefetch_range(const void *start, unsigned int size, bool for_write)
 {
 	/*
 	 * Count the number of cache lines to fetch, allowing for the address range to span an

@@ -10,7 +10,6 @@
 #include <linux/cache.h>
 
 #include "compiler.h"
-#include "cpu.h"
 
 /*
  * A funnel queue is a simple (almost) lock-free queue that accepts entries from multiple threads
