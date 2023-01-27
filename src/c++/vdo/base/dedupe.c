@@ -441,21 +441,6 @@ static const char *get_hash_lock_state_name(enum hash_lock_state state)
 }
 
 /**
- * set_hash_lock_state() - Set the current state of a hash lock.
- * @lock: The lock to update.
- * @new_state: The new state.
- */
-static void set_hash_lock_state(struct hash_lock *lock, enum hash_lock_state new_state)
-{
-	if (false)
-		uds_log_warning("XXX %px %s -> %s",
-				(void *) lock,
-				get_hash_lock_state_name(lock->state),
-				get_hash_lock_state_name(new_state));
-	lock->state = new_state;
-}
-
-/**
  * assert_hash_lock_agent() - Assert that a data_vio is the agent of its hash lock, and that this
  *                            is being called in the hash zone.
  * @data_vio: The data_vio expected to be the lock agent.
@@ -651,7 +636,7 @@ static void abort_waiter(struct waiter *waiter, void *context __always_unused)
  */
 static void start_bypassing(struct hash_lock *lock, struct data_vio *agent)
 {
-	set_hash_lock_state(lock, VDO_HASH_LOCK_BYPASSING);
+	lock->state = VDO_HASH_LOCK_BYPASSING;
 	exit_hash_lock(agent);
 }
 
@@ -671,7 +656,7 @@ void vdo_clean_failed_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	set_hash_lock_state(lock, VDO_HASH_LOCK_BYPASSING);
+	lock->state = VDO_HASH_LOCK_BYPASSING;
 
 	/* Ensure we don't attempt to update advice when cleaning up. */
 	lock->update_advice = false;
@@ -780,7 +765,7 @@ static void unlock_duplicate_pbn(struct vdo_completion *completion)
  */
 static void start_unlocking(struct hash_lock *lock, struct data_vio *agent)
 {
-	set_hash_lock_state(lock, VDO_HASH_LOCK_UNLOCKING);
+	lock->state = VDO_HASH_LOCK_UNLOCKING;
 	launch_data_vio_duplicate_zone_callback(agent, unlock_duplicate_pbn);
 }
 
@@ -864,7 +849,7 @@ static void query_index(struct data_vio *data_vio, enum uds_request_type operati
  */
 static void start_updating(struct hash_lock *lock, struct data_vio *agent)
 {
-	set_hash_lock_state(lock, VDO_HASH_LOCK_UPDATING);
+	lock->state = VDO_HASH_LOCK_UPDATING;
 
 	ASSERT_LOG_ONLY(lock->verified, "new advice should have been verified");
 	ASSERT_LOG_ONLY(lock->update_advice, "should only update advice if needed");
@@ -1075,7 +1060,7 @@ static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio, boo
  */
 static void start_deduping(struct hash_lock *lock, struct data_vio *agent, bool agent_is_done)
 {
-	set_hash_lock_state(lock, VDO_HASH_LOCK_DEDUPING);
+	lock->state = VDO_HASH_LOCK_DEDUPING;
 
 	/*
 	 * We don't take the downgraded allocation lock from the agent unless we actually need to
@@ -1271,7 +1256,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 			(char *) agent->compression.block :
 			agent->scratch_block);
 
-	set_hash_lock_state(lock, VDO_HASH_LOCK_VERIFYING);
+	lock->state = VDO_HASH_LOCK_VERIFYING;
 	ASSERT_LOG_ONLY(!lock->verified, "hash lock only verifies advice once");
 
 	agent->last_async_operation = VIO_ASYNC_OP_VERIFY_DUPLICATION;
@@ -1493,7 +1478,7 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
 	ASSERT_LOG_ONLY(lock->duplicate_lock == NULL,
 			"must not acquire a duplicate lock when already holding it");
 
-	set_hash_lock_state(lock, VDO_HASH_LOCK_LOCKING);
+	lock->state = VDO_HASH_LOCK_LOCKING;
 
 	/*
 	 * XXX VDOSTORY-190 Optimization: If we arrange to continue on the duplicate zone thread
@@ -1633,7 +1618,7 @@ static struct data_vio *select_writing_agent(struct hash_lock *lock)
  */
 static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 {
-	set_hash_lock_state(lock, VDO_HASH_LOCK_WRITING);
+	lock->state = VDO_HASH_LOCK_WRITING;
 
 	/*
 	 * The agent might not have received an allocation and so can't be used for writing, but
@@ -1790,7 +1775,7 @@ static void finish_querying(struct vdo_completion *completion)
 static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	lock->agent = data_vio;
-	set_hash_lock_state(lock, VDO_HASH_LOCK_QUERYING);
+	lock->state = VDO_HASH_LOCK_QUERYING;
 	data_vio->last_async_operation = VIO_ASYNC_OP_CHECK_FOR_DUPLICATION;
 	set_data_vio_hash_zone_callback(data_vio, finish_querying);
 	query_index(data_vio, (data_vio_has_allocation(data_vio) ? UDS_POST : UDS_QUERY));
