@@ -375,7 +375,7 @@ static void write_initialized_page(struct vdo_completion *completion)
 	 * Now that we know the page has been written at least once, mark the copy we are writing
 	 * as initialized.
 	 */
-	vdo_mark_block_map_page_initialized(page, true);
+	page->header.initialized = true;
 
 	if (zone->flusher == tree_page)
 		operation |= REQ_PREFLUSH;
@@ -434,11 +434,12 @@ static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
 	 * safe to mark it as initialized in memory since if the write fails, the in memory state
 	 * will become irrelevant.
 	 */
-	if (!vdo_mark_block_map_page_initialized(page, true)) {
+	if (page->header.initialized) {
 		write_initialized_page(completion);
 		return;
 	}
 
+	page->header.initialized = true;
 	submit_metadata_vio(&vio->vio,
 			    vdo_get_block_map_page_pbn(page),
 			    write_page_endio,

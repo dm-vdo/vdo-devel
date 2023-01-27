@@ -43,16 +43,6 @@ enum block_map_page_validity {
 	VDO_BLOCK_MAP_PAGE_BAD,
 };
 
-static inline bool
-vdo_mark_block_map_page_initialized(struct block_map_page *page, bool initialized)
-{
-	if (initialized == page->header.initialized)
-		return false;
-
-	page->header.initialized = initialized;
-	return true;
-}
-
 static inline physical_block_number_t __must_check
 vdo_get_block_map_page_pbn(const struct block_map_page *page)
 {

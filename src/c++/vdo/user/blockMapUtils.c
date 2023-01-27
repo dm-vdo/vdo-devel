@@ -250,6 +250,6 @@ int readBlockMapPage(PhysicalLayer            *layer,
           (unsigned long long) vdo_get_block_map_page_pbn(page));
   }
 
-  vdo_mark_block_map_page_initialized(page, false);
+  page->header.initialized = false;
   return VDO_SUCCESS;
 }

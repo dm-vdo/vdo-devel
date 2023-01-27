@@ -81,9 +81,11 @@ static bool handle_page_write(void *raw_page, struct block_map_zone *zone, void 
 	struct block_map_page *page = raw_page;
 	struct block_map_page_context *context = page_context;
 
-	if (vdo_mark_block_map_page_initialized(page, true))
-		/* Make the page be re-written for torn write protection. */
+	if (!page->header.initialized) {
+		/* Re-write the page for torn write protection. */
+		page->header.initialized = true;
 		return true;
+	}
 
 	vdo_release_recovery_journal_block_reference(zone->block_map->journal,
 						     context->recovery_lock,
