@@ -16,7 +16,6 @@
 #include "constants.h"
 #include "release-versions.h"
 #include "slab-depot-format.h"
-#include "slab-summary-format.h"
 #include "status-codes.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"

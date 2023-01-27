@@ -15,9 +15,9 @@
 #include "constants.h"
 #include "io-submitter.h"
 #include "read-only-notifier.h"
-#include "slab-summary-format.h"
 #include "thread-config.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 /* FULLNESS HINT COMPUTATION */

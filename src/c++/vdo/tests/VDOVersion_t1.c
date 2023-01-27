@@ -19,7 +19,8 @@
 #include "string-utils.h"
 #include "syscalls.h"
 
-#include "slab-summary-format.h"
+#include "vdo-component-states.h"
+
 #include "vdoConfig.h"
 
 #include "asyncLayer.h"

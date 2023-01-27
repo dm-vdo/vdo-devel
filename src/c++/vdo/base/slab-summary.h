@@ -11,9 +11,9 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "slab.h"
-#include "slab-summary-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "wait-queue.h"
 

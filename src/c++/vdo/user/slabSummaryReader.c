@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "slab-depot-format.h"
-#include "slab-summary-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component-states.h"

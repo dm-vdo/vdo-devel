@@ -58,7 +58,6 @@ tarballs:
             - slab-depot-format.h
             - slab-journal-format.c
             - slab-journal-format.h
-            - slab-summary-format.h
             - statistics.h
             - status-codes.c
             - status-codes.h
@@ -348,7 +347,6 @@ tarballs:
             - slab-scrubber.h
             - slab-summary.c
             - slab-summary.h
-            - slab-summary-format.h
             - statistics.h
             - status-codes.c
             - status-codes.h

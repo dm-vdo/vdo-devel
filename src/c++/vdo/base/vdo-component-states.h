@@ -201,6 +201,37 @@ enum {
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
 };
 
+/* The offset of a slab journal tail block. */
+typedef u8 tail_block_offset_t;
+
+struct slab_summary_entry {
+	/* Bits 7..0: The offset of the tail block within the slab journal */
+	tail_block_offset_t tail_block_offset;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	/* Bits 13..8: A hint about the fullness of the slab */
+	unsigned int fullness_hint : 6;
+	/* Bit 14: Whether the ref_counts must be loaded from the layer */
+	unsigned int load_ref_counts : 1;
+	/* Bit 15: The believed cleanliness of this slab */
+	unsigned int is_dirty : 1;
+#else
+	/* Bit 15: The believed cleanliness of this slab */
+	unsigned int is_dirty : 1;
+	/* Bit 14: Whether the ref_counts must be loaded from the layer */
+	unsigned int load_ref_counts : 1;
+	/* Bits 13..8: A hint about the fullness of the slab */
+	unsigned int fullness_hint : 6;
+#endif
+} __packed;
+
+enum {
+	VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS = 6,
+	VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK = VDO_BLOCK_SIZE / sizeof(struct slab_summary_entry),
+	VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE = MAX_VDO_SLABS / VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK,
+	VDO_SLAB_SUMMARY_BLOCKS = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * MAX_VDO_PHYSICAL_ZONES,
+};
+
 /*
  * The version of the on-disk format of a VDO volume. This should be incremented any time the
  * on-disk representation of any VDO structure changes. Changes which require only online upgrade
@@ -432,6 +463,19 @@ static inline void vdo_unpack_recovery_block_header(const struct packed_journal_
 		.recovery_count = packed->recovery_count,
 		.metadata_type = packed->metadata_type,
 	};
+}
+
+/**
+ * vdo_get_slab_summary_hint_shift() - Compute the shift for slab summary hints.
+ * @slab_size_shift: Exponent for the number of blocks per slab.
+ *
+ * Return: The hint shift.
+ */
+static inline u8 __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_size_shift)
+{
+	return ((slab_size_shift > VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) ?
+		(slab_size_shift - VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) :
+		0);
 }
 
 void vdo_destroy_component_states(struct vdo_component_states *states);

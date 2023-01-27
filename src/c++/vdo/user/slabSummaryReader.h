@@ -7,8 +7,8 @@
 #ifndef SLAB_SUMMARY_READER_H
 #define SLAB_SUMMARY_READER_H
 
-#include "slab-summary-format.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "userVDO.h"
 
