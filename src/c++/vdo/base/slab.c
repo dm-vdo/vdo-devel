@@ -18,8 +18,8 @@
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab-journal-format.h"
 #include "slab-summary.h"
+#include "vdo-component-states.h"
 
 /**
  * vdo_make_slab() - Construct a new, empty slab.

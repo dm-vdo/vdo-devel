@@ -15,7 +15,6 @@
 #include "syscalls.h"
 
 #include "packed-reference-block.h"
-#include "slab-journal-format.h"
 #include "vdo-component-states.h"
 
 #include "status-codes.h"

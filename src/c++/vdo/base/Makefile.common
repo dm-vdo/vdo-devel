@@ -45,7 +45,6 @@ BASE_OBJS :=     			\
 	slab-depot.o			\
 	slab-depot-format.o		\
 	slab-journal.o			\
-	slab-journal-format.o		\
 	slab-scrubber.o			\
 	slab-summary.o			\
 	status-codes.o			\
@@ -76,7 +75,6 @@ USER_OBJECTS:=                  	\
 	constants.o			\
 	header.o			\
 	slab-depot-format.o		\
-	slab-journal-format.o		\
 	status-codes.o			\
 	super-block-codec.o		\
 	vdo-component.o			\

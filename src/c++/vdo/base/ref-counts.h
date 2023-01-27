@@ -10,8 +10,8 @@
 #include "journal-point.h"
 #include "packed-reference-block.h"
 #include "slab.h"
-#include "slab-journal-format.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "wait-queue.h"
 
 /*

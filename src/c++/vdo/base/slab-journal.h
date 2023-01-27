@@ -14,7 +14,6 @@
 #include "completion.h"
 #include "journal-point.h"
 #include "slab.h"
-#include "slab-journal-format.h"
 #include "slab-summary.h"
 #include "statistics.h"
 #include "types.h"

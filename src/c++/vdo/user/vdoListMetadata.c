@@ -12,7 +12,6 @@
 #include "syscalls.h"
 
 #include "slab-depot-format.h"
-#include "slab-journal-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component-states.h"

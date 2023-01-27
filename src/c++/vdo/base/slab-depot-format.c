@@ -14,9 +14,9 @@
 #include "constants.h"
 #include "header.h"
 #include "packed-reference-block.h"
-#include "slab-journal-format.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 const struct header VDO_SLAB_DEPOT_HEADER_2_0 = {
 	.id = VDO_SLAB_DEPOT,
