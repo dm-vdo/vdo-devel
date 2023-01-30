@@ -544,12 +544,13 @@ static inline void vdo_pack_recovery_block_header(const struct recovery_block_he
  * vdo_unpack_recovery_block_header() - Decode the packed representation of a recovery block
  *                                      header.
  * @packed: The packed header to decode.
- * @header: The header into which to unpack the values.
+ *
+ * Return: The unpacked header.
  */
-static inline void vdo_unpack_recovery_block_header(const struct packed_journal_header *packed,
-						    struct recovery_block_header *header)
+static inline struct recovery_block_header
+vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
 {
-	*header = (struct recovery_block_header) {
+	return (struct recovery_block_header) {
 		.block_map_head = __le64_to_cpu(packed->block_map_head),
 		.slab_journal_head = __le64_to_cpu(packed->slab_journal_head),
 		.sequence_number = __le64_to_cpu(packed->sequence_number),

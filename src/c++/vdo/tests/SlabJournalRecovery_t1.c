@@ -157,8 +157,7 @@ static void testRebuildSynthesizedDecrefs(void)
   struct packed_journal_sector *sector
     = vdo_get_journal_block_sector(packedHeader, 1);
 
-  struct recovery_block_header header;
-  vdo_unpack_recovery_block_header(packedHeader, &header);
+  struct recovery_block_header header = vdo_unpack_recovery_block_header(packedHeader);
   header.block_map_head    = 1;
   header.slab_journal_head = 1;
   header.sequence_number   = 1;

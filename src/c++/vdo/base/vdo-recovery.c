@@ -218,21 +218,22 @@ static bool __must_check is_replaying(const struct vdo *vdo)
 
 /**
  * get_recovery_journal_block_header() - Get the block header for a block at a position in the
- *                                       journal data.
+ *                                       journal data and unpack it.
  * @journal: The recovery journal.
- * @journal_data: The recovery journal data.
+ * @data: The recovery journal data.
  * @sequence: The sequence number.
  *
- * Return: A pointer to a packed recovery journal block header.
+ * Return: The unpacked header.
  */
-static struct packed_journal_header * __must_check
+static struct recovery_block_header __must_check
 get_recovery_journal_block_header(struct recovery_journal *journal,
-				  char *journal_data,
+				  char *data,
 				  sequence_number_t sequence)
 {
 	physical_block_number_t pbn = vdo_get_recovery_journal_block_number(journal, sequence);
+	char *header = &data[pbn * VDO_BLOCK_SIZE];
 
-	return (struct packed_journal_header *) &journal_data[pbn * VDO_BLOCK_SIZE];
+	return vdo_unpack_recovery_block_header((struct packed_journal_header *) header);
 }
 
 /**
@@ -321,11 +322,9 @@ static bool find_recovery_journal_head_and_tail(struct recovery_journal *journal
 	physical_block_number_t i;
 
 	for (i = 0; i < journal->size; i++) {
-		struct recovery_block_header header;
-		struct packed_journal_header *packed_header =
+		struct recovery_block_header header =
 			get_recovery_journal_block_header(journal, journal_data, i);
 
-		vdo_unpack_recovery_block_header(packed_header, &header);
 		if (!is_congruent_recovery_journal_block(journal, &header, i))
 			/* This block is old, unformatted, or doesn't belong at this location. */
 			continue;
@@ -569,6 +568,19 @@ static bool __must_check abort_recovery_on_error(int result, struct recovery_com
 	return true;
 }
 
+static struct packed_journal_sector * __must_check
+get_sector(struct recovery_journal *journal,
+	   char *journal_data,
+	   sequence_number_t sequence,
+	   u8 sector_number)
+{
+	off_t offset;
+
+	offset = ((vdo_get_recovery_journal_block_number(journal, sequence) * VDO_BLOCK_SIZE) +
+		  (VDO_SECTOR_SIZE * sector_number));
+	return (struct packed_journal_sector *) (journal_data + offset);
+}
+
 /**
  * get_entry() - Unpack the recovery journal entry associated with the given recovery point.
  * @recovery: The recovery completion.
@@ -579,14 +591,12 @@ static bool __must_check abort_recovery_on_error(int result, struct recovery_com
 static struct recovery_journal_entry
 get_entry(const struct recovery_completion *recovery, const struct recovery_point *point)
 {
-	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
-	physical_block_number_t block_number =
-		vdo_get_recovery_journal_block_number(journal, point->sequence_number);
-	off_t sector_offset =
-		((block_number * VDO_BLOCK_SIZE) + (point->sector_count * VDO_SECTOR_SIZE));
-	struct packed_journal_sector *sector =
-		(struct packed_journal_sector *) &recovery->journal_data[sector_offset];
+	struct packed_journal_sector *sector;
 
+	sector = get_sector(recovery->completion.vdo->recovery_journal,
+			    recovery->journal_data,
+			    point->sequence_number,
+			    point->sector_count);
 	return vdo_unpack_recovery_journal_entry(&sector->entries[point->entry_count]);
 }
 
@@ -809,13 +819,11 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 		.entry_count = 0,
 	};
 	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
-	struct packed_journal_header *tail_header =
+	struct recovery_block_header header =
 		get_recovery_journal_block_header(journal, recovery->journal_data, recovery->tail);
-	struct recovery_block_header unpacked;
 
-	vdo_unpack_recovery_block_header(tail_header, &unpacked);
-	recovery->logical_blocks_used = unpacked.logical_blocks_used;
-	recovery->block_map_data_blocks = unpacked.block_map_data_blocks;
+	recovery->logical_blocks_used = header.logical_blocks_used;
+	recovery->block_map_data_blocks = header.block_map_data_blocks;
 
 	for (; before_recovery_point(&recovery_point, &recovery->tail_recovery_point);
 	     increment_recovery_point(&recovery_point)) {
@@ -1273,7 +1281,6 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 	sequence_number_t i;
 
 	for (i = head; i <= recovery->highest_tail; i++) {
-		struct packed_journal_header *packed_header;
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		u8 j;
@@ -1285,10 +1292,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			.entry_count = 0,
 		};
 
-		packed_header =
-			get_recovery_journal_block_header(journal, recovery->journal_data, i);
-		vdo_unpack_recovery_block_header(packed_header, &header);
-
+		header = get_recovery_journal_block_header(journal, recovery->journal_data, i);
 		if (!is_exact_recovery_journal_block(journal, &header, i) ||
 		    (header.entry_count > journal->entries_per_block))
 			/* A bad block header was found so this must be the end of the journal. */
@@ -1299,7 +1303,7 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 		/* Examine each sector in turn to determine the last valid sector. */
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
-				vdo_get_journal_block_sector(packed_header, j);
+				get_sector(journal, recovery->journal_data, i, j);
 			journal_entry_count_t sector_entries =
 				min_t(journal_entry_count_t, sector->entry_count, block_entries);
 
@@ -2000,13 +2004,11 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 		return result;
 
 	for (i = first; i <= last; i++) {
-		struct packed_journal_header *packed_header =
-			get_recovery_journal_block_header(journal, rebuild->journal_data, i);
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		u8 j;
 
-		vdo_unpack_recovery_block_header(packed_header, &header);
+		header = get_recovery_journal_block_header(journal, rebuild->journal_data, i);
 		if (!is_exact_recovery_journal_block(journal, &header, i))
 			/* This block is invalid, so skip it. */
 			continue;
@@ -2016,7 +2018,7 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			journal_entry_count_t sector_entries;
 			struct packed_journal_sector *sector =
-				vdo_get_journal_block_sector(packed_header, j);
+				get_sector(journal, rebuild->journal_data, i, j);
 
 			/* Stop when all entries counted in the header are applied or skipped. */
 			if (block_entries == 0)

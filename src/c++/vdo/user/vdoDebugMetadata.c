@@ -413,7 +413,8 @@ static void readMetadata(void)
     UnpackedJournalBlock *block = &recoveryJournal[i];
     struct packed_journal_header *packedHeader
       = (struct packed_journal_header *) &rawJournalBytes[i * VDO_BLOCK_SIZE];
-    vdo_unpack_recovery_block_header(packedHeader, &block->header);
+
+    block->header = vdo_unpack_recovery_block_header(packedHeader);
     for (uint8_t sector = 1; sector < VDO_SECTORS_PER_BLOCK; sector++) {
       block->sectors[sector]
         = vdo_get_journal_block_sector(packedHeader, sector);

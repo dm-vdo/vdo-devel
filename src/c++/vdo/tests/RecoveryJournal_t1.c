@@ -485,8 +485,7 @@ static void testBlockHeaderPacking(void)
 
   // Packing and unpacking must preserve all field values.
   vdo_pack_recovery_block_header(&header, &packed);
-  struct recovery_block_header unpacked;
-  vdo_unpack_recovery_block_header(&packed, &unpacked);
+  struct recovery_block_header unpacked = vdo_unpack_recovery_block_header(&packed);
 
   CU_ASSERT_EQUAL(header.block_map_head, unpacked.block_map_head);
   CU_ASSERT_EQUAL(header.slab_journal_head, unpacked.slab_journal_head);
@@ -811,10 +810,8 @@ static void pollUntilNotReaping(void)
 static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
 {
   pollUntilNotReaping();
-  struct packed_journal_header *packedHeader
-    = getJournalBlockFromLayer(sequenceNumber);
-  struct recovery_block_header header;
-  vdo_unpack_recovery_block_header(packedHeader, &header);
+  struct packed_journal_header *packedHeader = getJournalBlockFromLayer(sequenceNumber);
+  struct recovery_block_header header        = vdo_unpack_recovery_block_header(packedHeader);
   CU_ASSERT_EQUAL(sequenceNumber, header.sequence_number);
   CU_ASSERT_EQUAL(journal->nonce, header.nonce);
   CU_ASSERT_EQUAL(entryCount, header.entry_count);

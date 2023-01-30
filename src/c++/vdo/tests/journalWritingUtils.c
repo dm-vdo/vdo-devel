@@ -133,9 +133,8 @@ void putBlocksInMap(logical_block_number_t start, block_count_t count)
 void setBlockHeader(struct packed_journal_header *header,
                     BlockPattern                 *blockPattern)
 {
-  struct recovery_journal *journal = vdo->recovery_journal;
-  struct recovery_block_header unpacked;
-  vdo_unpack_recovery_block_header(header, &unpacked);
+  struct recovery_journal      *journal  = vdo->recovery_journal;
+  struct recovery_block_header  unpacked = vdo_unpack_recovery_block_header(header);
 
   unpacked.block_map_head    = blockPattern->head;
   unpacked.slab_journal_head = blockPattern->head;
