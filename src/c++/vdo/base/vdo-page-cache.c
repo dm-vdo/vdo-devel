@@ -18,6 +18,7 @@
 #include "constants.h"
 #include "io-submitter.h"
 #include "read-only-notifier.h"
+#include "recovery-journal.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
@@ -69,12 +70,6 @@ static char *get_page_buffer(struct page_info *info)
 	struct vdo_page_cache *cache = info->cache;
 
 	return &cache->pages[(info - cache->infos) * VDO_BLOCK_SIZE];
-}
-
-static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_completion *completion)
-{
-	vdo_assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
-	return container_of(completion, struct vdo_page_completion, completion);
 }
 
 static inline struct vdo_page_completion *page_completion_from_waiter(struct waiter *waiter)
@@ -157,10 +152,6 @@ static void write_dirty_pages_callback(struct list_head *entry, void *context);
  * vdo_make_page_cache() - Construct a page cache.
  * @vdo: The vdo.
  * @page_count: The number of cache pages to hold.
- * @read_hook: The function to be called when a page is read into the cache.
- * @write_hook: The function to be called after a page is written from the cache.
- * @page_context_size: The size of the per-page context that will be passed to the read and write
- *                     hooks.
  * @maximum_age: The number of journal blocks before a dirtied page is considered old and must be
  *               written out.
  * @zone: The block map zone which owns this cache.
@@ -170,9 +161,6 @@ static void write_dirty_pages_callback(struct list_head *entry, void *context);
  */
 int vdo_make_page_cache(struct vdo *vdo,
 			page_count_t page_count,
-			vdo_page_read_function *read_hook,
-			vdo_page_write_function *write_hook,
-			size_t page_context_size,
 			block_count_t maximum_age,
 			struct block_map_zone *zone,
 			struct vdo_page_cache **cache_ptr)
@@ -180,21 +168,12 @@ int vdo_make_page_cache(struct vdo *vdo,
 	struct vdo_page_cache *cache;
 	int result;
 
-	result = ASSERT(page_context_size <= MAX_PAGE_CONTEXT_SIZE,
-			"page context size %zu cannot exceed %u bytes",
-			page_context_size,
-			MAX_PAGE_CONTEXT_SIZE);
-	if (result != VDO_SUCCESS)
-		return result;
-
 	result = UDS_ALLOCATE(1, struct vdo_page_cache, "page cache", &cache);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	cache->vdo = vdo;
 	cache->page_count = page_count;
-	cache->read_hook = read_hook;
-	cache->write_hook = write_hook;
 	cache->zone = zone;
 	cache->stats.free_pages = page_count;
 
@@ -766,28 +745,6 @@ bool vdo_is_page_cache_active(struct vdo_page_cache *cache)
 }
 
 /**
- * page_is_loaded() - Vio callback used when a page has been loaded.
- * @completion: A completion for the vio, the parent of which is a page_info.
- */
-static void page_is_loaded(struct vdo_completion *completion)
-{
-	struct page_info *info = completion->parent;
-	struct vdo_page_cache *cache = info->cache;
-
-	assert_on_cache_thread(cache, __func__);
-
-	set_info_state(info, PS_RESIDENT);
-	distribute_page_over_queue(info, &info->waiting);
-
-	/*
-	 * Don't decrement until right before calling vdo_block_map_check_for_drain_complete() to
-	 * ensure that the above work can't cause the page cache to be freed out from under us.
-	 */
-	cache->outstanding_reads--;
-	vdo_block_map_check_for_drain_complete(cache->zone);
-}
-
-/**
  * handle_load_error() - Handle page load errors.
  * @completion: The page read vio.
  */
@@ -814,23 +771,44 @@ static void handle_load_error(struct vdo_completion *completion)
 }
 
 /**
- * run_read_hook() - Run the read hook after a page is loaded.
- * @completion: The page load completion.
- *
- * This callback is registered in launch_page_load() when there is a read hook.
+ * page_is_loaded() - Callback used when a page has been loaded.
+ * @completion: The vio which has loaded the page. Its parent is the page_info.
  */
-static void run_read_hook(struct vdo_completion *completion)
+static void page_is_loaded(struct vdo_completion *completion)
 {
-	int result;
 	struct page_info *info = completion->parent;
+	struct vdo_page_cache *cache = info->cache;
+	nonce_t nonce = info->cache->zone->block_map->nonce;
+	struct block_map_page *page;
+	enum block_map_page_validity validity;
 
-	completion->callback = page_is_loaded;
-	vdo_reset_completion(completion);
-	result = info->cache->read_hook(get_page_buffer(info),
-					info->pbn,
-					info->cache->zone,
-					info->context);
-	vdo_continue_completion(completion, result);
+	assert_on_cache_thread(cache, __func__);
+
+	page = (struct block_map_page *) get_page_buffer(info);
+	validity = vdo_validate_block_map_page(page, nonce, info->pbn);
+	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
+		int result = uds_log_error_strerror(VDO_BAD_PAGE,
+						    "Expected page %llu but got page %llu instead",
+						    (unsigned long long) info->pbn,
+						    (unsigned long long) vdo_get_block_map_page_pbn(page));
+
+		vdo_continue_completion(completion, result);
+		return;
+	}
+
+	if (validity == VDO_BLOCK_MAP_PAGE_INVALID)
+		vdo_format_block_map_page(page, nonce, info->pbn, false);
+
+	info->recovery_lock = 0;
+	set_info_state(info, PS_RESIDENT);
+	distribute_page_over_queue(info, &info->waiting);
+
+	/*
+	 * Don't decrement until right before calling vdo_block_map_check_for_drain_complete() to
+	 * ensure that the above work can't cause the page cache to be freed out from under us.
+	 */
+	cache->outstanding_reads--;
+	vdo_block_map_check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -852,19 +830,15 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	vdo_reset_completion(completion);
-	if (cache->read_hook != NULL)
-		run_read_hook(completion);
-	else
-		page_is_loaded(completion);
+	page_is_loaded(completion);
 }
 
 static void load_page_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
 	struct page_info *info = vio->completion.parent;
-	vdo_action *callback = (info->cache->read_hook != NULL) ? run_read_hook : page_is_loaded;
 
-	continue_vio_after_io(vio, callback, info->cache->zone->thread_id);
+	continue_vio_after_io(vio, page_is_loaded, info->cache->zone->thread_id);
 }
 
 /**
@@ -1189,8 +1163,8 @@ static void write_page_endio(struct bio *bio)
 }
 
 /**
- * page_is_written_out() - Vio callback used when a page has been written out.
- * @completion: A completion for the vio, the parent of which is embedded in page_info.
+ * page_is_written_out() - Callback used when a page has been written out.
+ * @completion: The vio which wrote the page. Its parent is a page_info.
  */
 static void page_is_written_out(struct vdo_completion *completion)
 {
@@ -1198,21 +1172,24 @@ static void page_is_written_out(struct vdo_completion *completion)
 	u32 reclamations;
 	struct page_info *info = completion->parent;
 	struct vdo_page_cache *cache = info->cache;
+	struct block_map_page *page = (struct block_map_page *) get_page_buffer(info);
 
-	if (cache->write_hook != NULL) {
-		bool rewrite;
-
-		rewrite = cache->write_hook(get_page_buffer(info), cache->zone, info->context);
-		if (rewrite) {
-			submit_metadata_vio(info->vio,
-					    info->pbn,
-					    write_page_endio,
-					    handle_page_write_error,
-					    (REQ_OP_WRITE | REQ_PRIO | REQ_PREFLUSH));
-			return;
-		}
+	if (!page->header.initialized) {
+		page->header.initialized = true;
+		submit_metadata_vio(info->vio,
+				    info->pbn,
+				    write_page_endio,
+				    handle_page_write_error,
+				    (REQ_OP_WRITE | REQ_PRIO | REQ_PREFLUSH));
+		return;
 	}
 
+	/* Handle journal updates and torn write protection. */
+	vdo_release_recovery_journal_block_reference(cache->zone->block_map->journal,
+						     info->recovery_lock,
+						     VDO_ZONE_TYPE_LOGICAL,
+						     cache->zone->zone_number);
+	info->recovery_lock = 0;
 	was_discard = write_has_finished(info);
 	reclaimed = (!was_discard || (info->busy > 0) || has_waiters(&info->waiting));
 
@@ -1482,23 +1459,6 @@ const void *vdo_dereference_readable_page(struct vdo_completion *completion)
 void *vdo_dereference_writable_page(struct vdo_completion *completion)
 {
 	return dereference_page_completion(validate_completed_page(completion, true));
-}
-
-/**
- * vdo_get_page_completion_context() - Get the per-page client context for the page in a page
- *                                     completion whose callback has been invoked.
- * @completion: A vdo page completion whose callback has been invoked.
- *
- * Should only be called after dereferencing the page completion to validate the page.
- *
- * Return: A pointer to the per-page client context, or NULL if the page is not available.
- */
-void *vdo_get_page_completion_context(struct vdo_completion *completion)
-{
-	struct vdo_page_completion *page_completion = as_vdo_page_completion(completion);
-	struct page_info *info = ((page_completion != NULL) ? page_completion->info : NULL);
-
-	return (((info != NULL) && is_valid(info)) ? info->context : NULL);
 }
 
 /**

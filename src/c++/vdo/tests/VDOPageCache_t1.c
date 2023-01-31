@@ -16,6 +16,8 @@
 #include "block-map.h"
 #include "completion.h"
 #include "int-map.h"
+#include "slab.h"
+#include "slab-depot.h"
 #include "status-codes.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
@@ -26,13 +28,6 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-static const TestParameters defaultParameters = {
-  .logicalBlocks  = 4096,
-  .physicalBlocks = 1024,
-  .slabSize       =   64,
-  .noIndexRegion  = true,
-};
-
 typedef enum {
   WRITE_ERROR    = -5,
   PAGE_NEW       = 0,
@@ -40,34 +35,20 @@ typedef enum {
   PAGE_REWRITTEN = 2,
 } TestPageState;
 
-typedef uint64_t CacheEntryUID;
-
 static bool                     getRequested;
 static bool                     readOnly;
 static struct int_map          *pageMap;
 static physical_block_number_t  maxPBN;
-static struct thread_config    *threadConfig;
+static physical_block_number_t  firstPBN;
 static sequence_number_t        period;
 static struct vdo_page_cache   *cache;
-static CacheEntryUID            nextCacheEntryUID = 0x1020304000000001UL;
-static struct block_map_zone    zone;
-
-typedef struct {
-  sequence_number_t dirtyPeriod;
-  TestPageState     state;
-  uint64_t          uid;
-} TestPageHeader;
+static struct block_map_zone   *zone;
 
 enum {
   SMALL_CACHE_SIZE = 4,
   LARGE_CACHE_SIZE = 8,
-  PAGE_DATA_SIZE   = VDO_BLOCK_SIZE - sizeof(TestPageHeader),
+  PAGE_DATA_SIZE   = VDO_BLOCK_SIZE - sizeof(struct block_map_page),
 };
-
-typedef struct {
-  TestPageHeader header;
-  u8             buffer[PAGE_DATA_SIZE];
-} TestPage;
 
 typedef struct {
   struct vdo_completion       completion;
@@ -105,80 +86,77 @@ static void initializeTestCompletion(TestCompletion *testCompletion)
 }
 
 /**
- * Read hook to initialize new pages, and validate old ones.
+ * This hook will be called on reads when enqueueing from the endio callback.
  *
- * <p>Implements VDOPageReadFunction.
+ * Implements vdo_action
  **/
-static int
-validatePage(void                    *rawPage,
-             physical_block_number_t  pbn,
-             struct block_map_zone   *zone  __attribute__((unused)),
-             void                    *pageContext)
+static void validatePage(struct vdo_completion *completion)
 {
-  TestPage      *testPage   = rawPage;
-  CacheEntryUID *uidContext = pageContext;
+  struct vio              *vio = as_vio(completion);
+  physical_block_number_t  pbn = pbn_from_vio_bio(vio->bio);
 
-  if (int_map_get(pageMap, pbn) == NULL) {
-    // This page has not been written out, so initialize it
-    testPage->header.dirtyPeriod = 0;
-    testPage->header.state       = PAGE_NEW;
-    testPage->header.uid         = nextCacheEntryUID;
-    *uidContext                  = nextCacheEntryUID++;
-    memset(testPage->buffer, (u8) pbn, PAGE_DATA_SIZE);
-    return VDO_SUCCESS;
+  if (int_map_get(pageMap, pbn) != NULL) {
+    struct block_map_page *page = (struct block_map_page *) vio->data;
+    CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(page));
   }
 
-  return ((pbn == testPage->buffer[0]) ? VDO_SUCCESS : VDO_OUT_OF_RANGE);
+  runSavedCallback(completion);
 }
 
 /**
- * Write hook which confirms that pages are correctly written and that they
- * new pages get rewritten.
+ * This hook will be called on writes when enqueueing from the endio callback.
  *
- * <p>Implements VDOPageWriteFunction.
+ * Implements vdo_action
  **/
-static bool checkPageWritten(void                  *rawPage,
-                             struct block_map_zone *zone __attribute__((unused)),
-                             void                  *pageContext)
+static void checkPageWritten(struct vdo_completion *completion)
 {
-  TestPage                *testPage   = rawPage;
-  CacheEntryUID           *uidContext = pageContext;
-  physical_block_number_t  pbn        = testPage->buffer[0];
-  maxPBN                              = max(pbn, maxPBN);
+  struct vio              *vio  = as_vio(completion);
+  struct block_map_page   *page = (struct block_map_page *) vio->data;
+  physical_block_number_t  pbn  = vdo_get_block_map_page_pbn(page);
 
-  TestPage fromDisk;
-  VDO_ASSERT_SUCCESS(layer->reader(layer, pbn, 1, (char *) &fromDisk));
-  UDS_ASSERT_EQUAL_BYTES(testPage->buffer, fromDisk.buffer, PAGE_DATA_SIZE);
-  CU_ASSERT_EQUAL(*uidContext, testPage->header.uid);
-  testPage->header.dirtyPeriod = 0;
+  CU_ASSERT_EQUAL(pbn, pbn_from_vio_bio(vio->bio));
+  maxPBN = max(pbn, maxPBN);
 
-  void *marker;
-  switch (testPage->header.state) {
-  case PAGE_NEW:
-    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, pageMap, true, &marker));
-    CU_ASSERT_PTR_NULL(marker);
-    testPage->header.state = PAGE_WRITTEN;
-    return true;
-
-  case PAGE_WRITTEN:
-    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, cache, true, &marker));
-    CU_ASSERT_PTR_EQUAL(pageMap, marker);
-    testPage->header.state = PAGE_REWRITTEN;
-    return false;
-
-  case PAGE_REWRITTEN:
-    CU_ASSERT_PTR_EQUAL(cache, int_map_get(pageMap, pbn));
-    return false;
-
-  default:
-    CU_FAIL("Unknown page state: %d", testPage->header.state);
+  void *oldPage;
+  if (!page->header.initialized) {
+    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, pageMap, false, &oldPage));
+    CU_ASSERT_PTR_NULL(oldPage);
+  } else {
+    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, cache, true, &oldPage));
+    CU_ASSERT_PTR_NOT_NULL(oldPage);
   }
+
+  runSavedCallback(completion);
+}
+
+/**
+ * Callback enqueue hook which will check and/or format pages when enqueuing from the bio endio
+ * callback for page cache I/O.
+ **/
+static bool wrapPostEndioCallback(struct vdo_completion *completion)
+{
+  if (!onBIOThread() || (pbnFromVIO(as_vio(completion)) < firstPBN)) {
+    return true;
+  }
+
+  wrapCompletionCallback(completion,
+                         isMetadataWrite(completion) ? checkPageWritten : validatePage);
+  return true;
 }
 
 /**********************************************************************/
-static void allowEnteringAction(struct vdo_completion *completion)
+static void initializeJournalLocks(struct vdo_completion *completion)
 {
-  vdo_allow_read_only_mode_entry(zone.read_only_notifier, completion);
+  for (sequence_number_t s = 1; s < 12; s++) {
+    for (u8 i = 0; i < 20; i++) {
+      vdo_acquire_recovery_journal_block_reference(vdo->recovery_journal,
+                                                   s,
+                                                   VDO_ZONE_TYPE_LOGICAL,
+                                                   0);
+    }
+  }
+
+  vdo_complete_completion(completion);
 }
 
 /**
@@ -189,41 +167,27 @@ static void allowEnteringAction(struct vdo_completion *completion)
  **/
 static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
 {
-  initializeBasicTest(&defaultParameters);
-  VDO_ASSERT_SUCCESS(make_int_map(cacheSize, 0, &pageMap));
-  threadConfig = makeOneThreadConfig();
-  VDO_ASSERT_SUCCESS(vdo_make_read_only_notifier(false,
-                                                 threadConfig,
-                                                 vdo,
-                                                 &zone.read_only_notifier));
-  performSuccessfulAction(allowEnteringAction);
-  zone.state = (struct admin_state) {
-    .current_state = VDO_ADMIN_STATE_NORMAL_OPERATION,
-    .waiter = NULL,
+  TestParameters parameters = {
+    .logicalBlocks        = 4096,
+    .physicalBlocks       = 1024,
+    .journalBlocks        = 8,
+    .slabSize             = 64,
+    .cacheSize            = cacheSize,
+    .blockMapMaximumAge   = maximumAge,
+    .noIndexRegion        = true,
+    .disableDeduplication = true,
   };
-  VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
-                                   0,
-                                   0,
-                                   VIO_TYPE_TEST,
-                                   VIO_PRIORITY_METADATA,
-                                   &zone.tree_zone,
-                                   &zone.tree_zone.vio_pool));
-  VDO_ASSERT_SUCCESS(vdo_make_page_cache(vdo,
-                                         cacheSize,
-                                         validatePage,
-                                         checkPageWritten,
-                                         sizeof(CacheEntryUID),
-                                         maximumAge,
-                                         &zone,
-                                         &cache));
-  zone.page_cache         = cache;
-  zone.tree_zone.map_zone = &zone;
-  VDO_ASSERT_SUCCESS(vdo_make_dirty_lists(4, NULL, &zone.tree_zone,
-                                          &zone.tree_zone.dirty_lists));
 
-  vdo_set_page_cache_initial_period(cache, 1);
+  initializeVDOTest(&parameters);
+  VDO_ASSERT_SUCCESS(make_int_map(cacheSize, 0, &pageMap));
+  zone = &vdo->block_map->zones[0];
+  cache = zone->page_cache;
+
   period = 1;
   maxPBN = 0;
+  firstPBN = vdo->depot->slabs[0]->start;
+  setCompletionEnqueueHook(wrapPostEndioCallback);
+  performSuccessfulAction(initializeJournalLocks);
 }
 
 /**
@@ -244,11 +208,6 @@ static void finishVDOPageCacheT1(void)
     CU_ASSERT_FALSE(marker == pageMap);
   }
 
-  free_vio_pool(UDS_FORGET(zone.tree_zone.vio_pool));
-  UDS_FREE(UDS_FORGET(zone.tree_zone.dirty_lists));
-  vdo_free_page_cache(UDS_FORGET(cache));
-  vdo_free_read_only_notifier(UDS_FORGET(zone.read_only_notifier));
-  vdo_free_thread_config(UDS_FORGET(threadConfig));
   free_int_map(UDS_FORGET(pageMap));
   tearDownVDOTest();
 }
@@ -262,9 +221,8 @@ static void awaitSuccessfulCompletion(TestCompletion *testComp)
 /**********************************************************************/
 static void pageAction(struct vdo_completion *completion)
 {
-  TestCompletion *testCompletion = asTestCompletion(completion);
-  struct vdo_completion  *pageCompletion
-    = &testCompletion->pageCompletion.completion;
+  TestCompletion        *testCompletion = asTestCompletion(completion);
+  struct vdo_completion *pageCompletion = &testCompletion->pageCompletion.completion;
   testCompletion->action(pageCompletion);
   vdo_finish_completion(completion, pageCompletion->result);
 }
@@ -276,21 +234,18 @@ static void pageAction(struct vdo_completion *completion)
  **/
 static void markPageDirty(struct vdo_completion *completion)
 {
-  TestPage      *page       = vdo_dereference_writable_page(completion);
-  CacheEntryUID *uidContext = vdo_get_page_completion_context(completion);
-  CU_ASSERT_EQUAL(*uidContext, page->header.uid);
+  struct vdo_page_completion *pageCompletion = as_vdo_page_completion(completion);
 
-  sequence_number_t oldDirtyPeriod = page->header.dirtyPeriod;
-  page->header.dirtyPeriod = asTestCompletion(completion->parent)->dirtyPeriod;
-  vdo_mark_completed_page_dirty(completion, oldDirtyPeriod,
-                                page->header.dirtyPeriod);
+  sequence_number_t oldDirtyPeriod = pageCompletion->info->recovery_lock;
+  pageCompletion->info->recovery_lock = asTestCompletion(completion->parent)->dirtyPeriod;
+  vdo_mark_completed_page_dirty(completion, oldDirtyPeriod, pageCompletion->info->recovery_lock);
 }
 
 /**********************************************************************/
 static int performPageAction(TestCompletion *testCompletion,
                              vdo_action     *action)
 {
-  testCompletion->action    = action;
+  testCompletion->action = action;
   struct vdo_completion *completion = &testCompletion->completion;
   vdo_reset_completion(completion);
   return performAction(pageAction, completion);
@@ -307,14 +262,10 @@ static void fillPage(TestCompletion    *testCompletion,
                      char               mark,
                      sequence_number_t  dirtyPeriod)
 {
-  testCompletion->dirtyPeriod = dirtyPeriod;
-  struct vdo_completion *pageCompletion
-    = &testCompletion->pageCompletion.completion;
-  TestPage      *page         = vdo_dereference_writable_page(pageCompletion);
-  CacheEntryUID *uidContext   = vdo_get_page_completion_context(pageCompletion);
-  CU_ASSERT_EQUAL(*uidContext, page->header.uid);
-
-  memset(page->buffer, mark, PAGE_DATA_SIZE);
+  struct vdo_completion *pageCompletion = &testCompletion->pageCompletion.completion;
+  struct block_map_page *page           = vdo_dereference_writable_page(pageCompletion);
+  testCompletion->dirtyPeriod           = dirtyPeriod;
+  memset(page->entries, mark, PAGE_DATA_SIZE);
   performPageAction(testCompletion, markPageDirty);
 }
 
@@ -329,12 +280,23 @@ static void finishGettingPage(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
+static physical_block_number_t pageNumberToPBN(page_number_t pageNumber)
+{
+  return pageNumber + firstPBN;
+}
+
+/**********************************************************************/
 static void getVDOPageAction(struct vdo_completion *completion)
 {
   TestCompletion             *testCompletion = asTestCompletion(completion);
   struct vdo_page_completion *pageCompletion = &testCompletion->pageCompletion;
-  vdo_init_page_completion(pageCompletion, cache, testCompletion->pageNumber,
-                           testCompletion->writable, NULL, NULL, NULL);
+  vdo_init_page_completion(pageCompletion,
+                           cache,
+                           pageNumberToPBN(testCompletion->pageNumber),
+                           testCompletion->writable,
+                           NULL,
+                           NULL,
+                           NULL);
   vdo_set_completion_callback_with_parent(&pageCompletion->completion,
                                           finishGettingPage,
                                           completion->callback_thread_id,
@@ -380,7 +342,7 @@ static void getWritablePage(page_number_t   pageNumber,
 static void initiateDrain(struct admin_state *state __attribute__((unused)))
 {
   vdo_drain_page_cache(cache);
-  vdo_block_map_check_for_drain_complete(&zone);
+  vdo_block_map_check_for_drain_complete(zone);
 }
 
 /**
@@ -388,8 +350,7 @@ static void initiateDrain(struct admin_state *state __attribute__((unused)))
  **/
 static void flushCacheAction(struct vdo_completion *completion)
 {
-  vdo_start_draining(&zone.state, VDO_ADMIN_STATE_RECOVERING, completion,
-                     initiateDrain);
+  vdo_start_draining(&zone->state, VDO_ADMIN_STATE_RECOVERING, completion, initiateDrain);
 }
 
 /**********************************************************************/
@@ -478,14 +439,14 @@ static void testBasic(void)
 }
 
 /**
- * BIOSumbitHook which fails metadata writes to block 0.
+ * BIOSumbitHook which fails metadata writes to page 0.
  *
  * Implements BIOSubmitHook.
  **/
 static bool failMetaWritesHook(struct bio *bio)
 {
   struct vio *vio = bio->bi_private;
-  if ((bio_op(bio) != REQ_OP_WRITE) || (pbnFromVIO(vio) != 0)) {
+  if ((bio_op(bio) != REQ_OP_WRITE) || (pbnFromVIO(vio) != pageNumberToPBN(0))) {
     return true;
   }
 
@@ -497,7 +458,7 @@ static bool failMetaWritesHook(struct bio *bio)
 /**
  * Action to advance the dirty period.
  *
- * <p>Implements vdo_action.
+ * Implements vdo_action.
  **/
 static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 {
@@ -508,22 +469,24 @@ static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 /**
  * An action to suspend the page cache.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void suspendCacheAction(struct vdo_completion *completion)
 {
-  CU_ASSERT(vdo_start_draining(&zone.state, VDO_ADMIN_STATE_SUSPENDING,
-                               completion, initiateDrain));
+  CU_ASSERT(vdo_start_draining(&zone->state,
+                               VDO_ADMIN_STATE_SUSPENDING,
+                               completion,
+                               initiateDrain));
 }
 
 /**
  * An action to resume the page cache.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void resumeCacheAction(struct vdo_completion *completion)
 {
-  vdo_resume_if_quiescent(&zone.state);
+  vdo_resume_if_quiescent(&zone->state);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
@@ -563,8 +526,7 @@ static void readOnlyModeListener(void *listener __attribute__((unused)),
 /**********************************************************************/
 static void notEnteringAction(struct vdo_completion *completion)
 {
-  vdo_wait_until_not_entering_read_only_mode(zone.read_only_notifier,
-                                             completion);
+  vdo_wait_until_not_entering_read_only_mode(zone->read_only_notifier, completion);
 }
 
 /**********************************************************************/
@@ -580,8 +542,7 @@ static void testReadOnly(void)
   getWritablePage(0, &completions[0]);
   readOnly = false;
   setBIOSubmitHook(failMetaWritesHook);
-  vdo_register_read_only_listener(zone.read_only_notifier, NULL,
-                                  readOnlyModeListener, 0);
+  vdo_register_read_only_listener(zone->read_only_notifier, NULL, readOnlyModeListener, 0);
   fillPage(&completions[0], 2, 1);
   performPageAction(&completions[0], vdo_release_page_completion);
 
@@ -629,6 +590,7 @@ static void testReadOnly(void)
   CU_ASSERT_EQUAL(READ_ONCE(cache->stats.failed_reads), 0);
   // Page 0 failed to write twice.
   CU_ASSERT_EQUAL(READ_ONCE(cache->stats.failed_writes), 2);
+  setStartStopExpectation(VDO_READ_ONLY);
 }
 
 /**
@@ -711,7 +673,7 @@ shouldBlock(struct vdo_completion *completion,
  * An action to check that a page, the last one accessed in the cache,
  * is in the expected state.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void checkPageAction(struct vdo_completion *completion)
 {
@@ -729,18 +691,18 @@ static void checkPageAction(struct vdo_completion *completion)
  * Check the properties of a page which should be in the cache, and should
  * be the last found page in the cache.
  *
- * @param pbn          The pbn of the page
+ * @param pageNumber   The number of the page
  * @param busyCount    The expected busy count of the page
  * @param state        The expected buffer state of the page
  * @param writeStatus  The expected write status of the page
  **/
-static void checkPage(physical_block_number_t    pbn,
+static void checkPage(page_number_t              pageNumber,
                       uint16_t                   busyCount,
                       enum vdo_page_buffer_state state,
                       enum vdo_page_write_status writeStatus)
 {
   pageCheck = (PageCheck) {
-    .pbn         = pbn,
+    .pbn         = pageNumberToPBN(pageNumber),
     .busyCount   = busyCount,
     .state       = state,
     .writeStatus = writeStatus,
@@ -812,41 +774,36 @@ static void testBusyCachePage(void)
 /**
  * Action to get a page and dereference it for reading.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void accessReadablePage(struct vdo_completion *completion)
 {
-  const TestPage *page = vdo_dereference_readable_page(completion);
+  struct vdo_page_completion  *pageCompletion = as_vdo_page_completion(completion);
+  const struct block_map_page *page           = vdo_dereference_readable_page(completion);
   CU_ASSERT_PTR_NOT_NULL(page);
-  CacheEntryUID *uidContext = vdo_get_page_completion_context(completion);
-  CU_ASSERT_PTR_NOT_NULL(uidContext);
-  CU_ASSERT_EQUAL(*uidContext, page->header.uid);
+  CU_ASSERT_EQUAL(pageCompletion->pbn, vdo_get_block_map_page_pbn(page));
 }
 
 /**
  * Action to get a page and dereference it for writing.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void accessWritablePage(struct vdo_completion *completion)
 {
-  TestPage *page = vdo_dereference_writable_page(completion);
-  CU_ASSERT_PTR_NOT_NULL(page);
-  CacheEntryUID *uidContext = vdo_get_page_completion_context(completion);
-  CU_ASSERT_PTR_NOT_NULL(uidContext);
-  CU_ASSERT_EQUAL(*uidContext, page->header.uid);
+  CU_ASSERT_PTR_NOT_NULL(vdo_dereference_writable_page(completion));
+  accessReadablePage(completion);
 }
 
 /**
  * Action to confirm that getting a page and dereferencing it for writing
  * fails to return a page.
  *
- * <p>Implements vdo_action
+ * Implements vdo_action
  **/
 static void failAccessingWritablePage(struct vdo_completion *completion)
 {
-  char *data = vdo_dereference_writable_page(completion);
-  CU_ASSERT_PTR_NULL(data);
+  CU_ASSERT_PTR_NULL(vdo_dereference_writable_page(completion));
 }
 
 /**********************************************************************/

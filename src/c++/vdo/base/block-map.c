@@ -37,64 +37,6 @@
  * this era are issued for write. In all older eras, pages are issued for write immediately.
  */
 
-struct block_map_page_context {
-	/*
-	 * The earliest recovery journal block containing uncommitted updates to the block map page
-	 * associated with this context. A reference (lock) is held on that block to prevent it
-	 * from being reaped. When this value changes, the reference on the old value must be
-	 * released and a reference on the new value must be acquired.
-	 */
-	sequence_number_t recovery_lock;
-};
-
-/* Implements vdo_page_read_function */
-static int validate_page_on_read(void *buffer,
-				 physical_block_number_t pbn,
-				 struct block_map_zone *zone,
-				 void *page_context)
-{
-	struct block_map_page *page = buffer;
-	struct block_map_page_context *context = page_context;
-	nonce_t nonce = zone->block_map->nonce;
-	enum block_map_page_validity validity = vdo_validate_block_map_page(page, nonce, pbn);
-
-	if (validity == VDO_BLOCK_MAP_PAGE_BAD)
-		return uds_log_error_strerror(VDO_BAD_PAGE,
-					      "Expected page %llu but got page %llu instead",
-					      (unsigned long long) pbn,
-					      (unsigned long long) vdo_get_block_map_page_pbn(page));
-
-	if (validity == VDO_BLOCK_MAP_PAGE_INVALID)
-		vdo_format_block_map_page(page, nonce, pbn, false);
-
-	context->recovery_lock = 0;
-	return VDO_SUCCESS;
-}
-
-/*
- * Handle journal updates and torn write protection.
- *
- * Implements vdo_page_write_function.
- */
-static bool handle_page_write(void *raw_page, struct block_map_zone *zone, void *page_context)
-{
-	struct block_map_page *page = raw_page;
-	struct block_map_page_context *context = page_context;
-
-	if (!page->header.initialized) {
-		/* Re-write the page for torn write protection. */
-		page->header.initialized = true;
-		return true;
-	}
-
-	vdo_release_recovery_journal_block_reference(zone->block_map->journal,
-						     context->recovery_lock,
-						     VDO_ZONE_TYPE_LOGICAL,
-						     zone->zone_number);
-	context->recovery_lock = 0;
-	return false;
-}
-
 /**
  * initialize_block_map_zone() - Initialize the per-zone portions of the block map.
  * @maximum_age: The number of journal blocks before a dirtied page is considered old and must be
@@ -123,9 +65,6 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 
 	return vdo_make_page_cache(vdo,
 				   cache_size / map->zone_count,
-				   validate_page_on_read,
-				   handle_page_write,
-				   sizeof(struct block_map_page_context),
 				   maximum_age,
 				   zone,
 				   &zone->page_cache);
@@ -613,7 +552,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_page *page;
-	struct block_map_page_context *context;
+	sequence_number_t *recovery_lock;
 	sequence_number_t old_lock;
 	int result;
 
@@ -629,14 +568,14 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	context = vdo_get_page_completion_context(completion);
-	old_lock = context->recovery_lock;
+	recovery_lock = &(as_vdo_page_completion(completion)->info->recovery_lock);
+	old_lock = *recovery_lock;
 	vdo_update_block_map_page(page,
 				  data_vio,
 				  data_vio->new_mapped.pbn,
 				  data_vio->new_mapped.state,
-				  &context->recovery_lock);
-	vdo_mark_completed_page_dirty(completion, old_lock, context->recovery_lock);
+				  recovery_lock);
+	vdo_mark_completed_page_dirty(completion, old_lock, *recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }
 

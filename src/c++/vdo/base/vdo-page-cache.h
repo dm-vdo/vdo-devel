@@ -26,42 +26,6 @@
  */
 typedef u32 vdo_page_generation;
 
-/**
- * typedef vdo_page_read_function - Signature for a function to call when a page is read into the
- *                                  cache.
- * @raw_page: The raw memory of the freshly-fetched page.
- * @pbn: The absolute physical block number of the page.
- * @zone: The block map zone to which the cache belongs.
- * @page_context: A pointer to client-specific data for the new page.
- *
- * If specified, this function is called when a page is fetched from disk.
- *
- * Return: VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly formatted.
- */
-typedef int vdo_page_read_function(void *raw_page,
-				   physical_block_number_t pbn,
-				   struct block_map_zone *zone,
-				   void *page_context);
-
-/**
- * typedef vdo_page_write_function - Signature for a function to call when a page is written from
- *                                   the cache.
- * @raw_page: The raw memory of the freshly-written page.
- * @zone: The block map zone to which the cache belongs.
- * @page_context: A pointer to client-specific data for the new page.
- *
- * If specified, this function is called when a page is written to disk.
- *
- * Return: Whether the page needs to be rewritten.
- */
-typedef bool vdo_page_write_function(void *raw_page,
-				     struct block_map_zone *zone,
-				     void *page_context);
-
-enum {
-	MAX_PAGE_CONTEXT_SIZE = 8,
-};
-
 static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
 /* The VDO Page Cache abstraction. */
@@ -70,10 +34,6 @@ struct vdo_page_cache {
 	struct vdo *vdo;
 	/* number of pages in cache */
 	page_count_t page_count;
-	/* function to call on page read */
-	vdo_page_read_function *read_hook;
-	/* function to call on page write */
-	vdo_page_write_function *write_hook;
 	/* number of pages to write in the current batch */
 	page_count_t pages_in_batch;
 	/* Whether the VDO is doing a read-only rebuild */
@@ -174,15 +134,17 @@ struct page_info {
 	struct list_head state_entry;
 	/* LRU entry */
 	struct list_head lru_entry;
-	/* Space for per-page client data */
-	u8 context[MAX_PAGE_CONTEXT_SIZE];
+	/*
+	 * The earliest recovery journal block containing uncommitted updates to the block map page
+	 * associated with this page_info. A reference (lock) is held on that block to prevent it
+	 * from being reaped. When this value changes, the reference on the old value must be
+	 * released and a reference on the new value must be acquired.
+	 */
+	sequence_number_t recovery_lock;
 };
 
 int __must_check vdo_make_page_cache(struct vdo *vdo,
 				     page_count_t page_count,
-				     vdo_page_read_function *read_hook,
-				     vdo_page_write_function *write_hook,
-				     size_t page_context_size,
 				     block_count_t maximum_age,
 				     struct block_map_zone *zone,
 				     struct vdo_page_cache **cache_ptr);
@@ -228,6 +190,12 @@ void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 			      vdo_action *callback,
 			      vdo_action *error_handler);
 
+static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
+	return container_of(completion, struct vdo_page_completion, completion);
+}
+
 void vdo_release_page_completion(struct vdo_completion *completion);
 
 void vdo_get_page(struct vdo_completion *completion);
@@ -241,8 +209,6 @@ void vdo_request_page_write(struct vdo_completion *completion);
 const void *vdo_dereference_readable_page(struct vdo_completion *completion);
 
 void *vdo_dereference_writable_page(struct vdo_completion *completion);
-
-void *vdo_get_page_completion_context(struct vdo_completion *completion);
 
 void vdo_drain_page_cache(struct vdo_page_cache *cache);
 
