@@ -39,7 +39,7 @@ our %PROPERTIES =
 ##
 sub testUpgradeFromLatest {
   my ($self) = assertNumArgs(1, @_);
-  $self->_runUpgradeTest();
+  $self->_runTest();
 }
 
 1;

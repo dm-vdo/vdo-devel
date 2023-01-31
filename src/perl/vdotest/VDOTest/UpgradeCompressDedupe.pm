@@ -48,7 +48,7 @@ sub propertiesUpgradeNoCompress {
 sub testUpgradeNoCompress {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
-  $self->_runUpgradeTest(1);
+  $self->_runTest(1);
 
   my $compression = $device->isVDOCompressionEnabled();
   assertFalse($compression, "Compression should be off");
@@ -65,7 +65,7 @@ sub propertiesUpgradeWithCompress {
 sub testUpgradeWithCompress {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
-  $self->_runUpgradeTest(1);
+  $self->_runTest(1);
 
   my $compression = $device->isVDOCompressionEnabled();
   assertTrue($compression, "Compression should be on");
@@ -85,7 +85,7 @@ sub propertiesUpgradeNoDedupe {
 sub testUpgradeNoDedupe {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
-  $self->_runUpgradeTest(1);
+  $self->_runTest(1);
 
   my $deduplcation = $device->getVDODedupeEnabled();
   assertFalse($deduplcation, "Deduplication should be off");
@@ -102,7 +102,7 @@ sub propertiesUpgradeWithDedupe {
 sub testUpgradeWithDedupe {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
-  $self->_runUpgradeTest(1);
+  $self->_runTest(1);
 
   my $deduplcation = $device->getVDODedupeEnabled();
   assertTrue($deduplcation, "Deduplication should be on");

@@ -38,6 +38,22 @@ our %PROPERTIES =
 ##
 
 #############################################################################
+# Test basic read/write and dedupe capability before a migration.
+##
+sub setupDevice {
+  # XXX Placeholder for future change
+  return 1;
+}
+
+#############################################################################
+# Test basic read/write and dedupe capability after a migration.
+##
+sub verifyDevice {
+  # XXX Placeholder for future change
+  return 1;
+}
+
+#############################################################################
 # Move the VDO device to a new scenario.
 ##
 sub switchToIntermediateScenario {
@@ -53,7 +69,7 @@ sub switchToIntermediateScenario {
 #
 # @oparam  dontVerify  don't run the final verification step
 ##
-sub _runUpgradeTest {
+sub _runTest {
   my ($self, $dontVerify) = assertMinMaxArgs([0], 1, 2, @_);
   my @upgradeList = @{$self->{intermediateVersions}};
   push(@upgradeList, "head");
@@ -61,7 +77,7 @@ sub _runUpgradeTest {
   my $upgrades = join(" to ", @upgradeList);
   $log->info("Test upgrading $self->{initialScenario}{version} to $upgrades");
 
-  $self->establishStartingDevice();
+  $self->setupDevice();
   my $device = $self->getDevice();
   foreach my $intermediateVersion (@upgradeList) {
     if ($device->needsExplicitUpgrade($intermediateVersion)) {
@@ -73,7 +89,7 @@ sub _runUpgradeTest {
     }
   }
   if (!$dontVerify) {
-    $self->verifyFinalState();
+    $self->verifyDevice();
   }
 
   $log->info("Returning to $self->{initialScenario}{version}");

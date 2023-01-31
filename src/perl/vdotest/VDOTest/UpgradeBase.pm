@@ -31,7 +31,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %PROPERTIES =
   (
    # @ple VDO stats to compare after upgrade
-   _preMigrationStats => undef,
+   _preUpgradeStats => undef,
   );
 ##
 
@@ -47,7 +47,7 @@ our %PROPERTIES =
 sub makeTest {
   my ($package, $name, $versions) = assertNumArgs(3, @_);
   my $test = $package->make_test_from_coderef(
-    \&VDOTest::MigrationBase::_runUpgradeTest,
+    \&VDOTest::MigrationBase::_runTest,
     "${package}::${name}"
   );
   $test->{initialScenario}      = { version => shift(@$versions) };
@@ -80,7 +80,7 @@ sub _switchToIntermediateVersion {
 #############################################################################
 # Test basic read/write and dedupe capability before an upgrade.
 ##
-sub establishStartingDevice {
+sub setupDevice {
   my ($self) = assertNumArgs(1, @_);
 
   my $device = $self->getDevice();
@@ -126,25 +126,25 @@ sub establishStartingDevice {
   if (!$compression) {
     $device->disableCompression();
   }
-  $self->{_preMigrationStats} = $device->getVDOStats();
-  assertGTNumeric($self->{_preMigrationStats}->{"compressed blocks written"}, 0,
+  $self->{_preUpgradeStats} = $device->getVDOStats();
+  assertGTNumeric($self->{_preUpgradeStats}->{"compressed blocks written"}, 0,
                   "There are some compressed blocks");
-  assertGTNumeric($self->{_preMigrationStats}->{"compressed fragments written"},
+  assertGTNumeric($self->{_preUpgradeStats}->{"compressed fragments written"},
                   0, "There are some compressed fragments");
   # With 90% compressible data, we should at least save 80% of the space.
-  my $dataBlocksUsed = ($self->{_preMigrationStats}->{"data blocks used"}
+  my $dataBlocksUsed = ($self->{_preUpgradeStats}->{"data blocks used"}
                         - $preCompressStats->{"data blocks used"});
   assertLTNumeric($dataBlocksUsed, $self->{blockCount} / 5,
                   "Block writes should be compressed");
 
   # Don't check dedupe stats if we aren't running with deduplication.
   if (!$self->{disableAlbireo}) {
-    assertEqualNumeric(0, $self->{_preMigrationStats}->{"dedupe advice timeouts"},
+    assertEqualNumeric(0, $self->{_preUpgradeStats}->{"dedupe advice timeouts"},
                        "Dedupe advice timeouts should be zero");
     assertEqualNumeric(($self->{blockCount} / 2),
-                       $self->{_preMigrationStats}->{"dedupe advice valid"},
+                       $self->{_preUpgradeStats}->{"dedupe advice valid"},
                        "Dedupe advice valid should be half the block count");
-    assertEqualNumeric(0, $self->{_preMigrationStats}->{"dedupe advice stale"},
+    assertEqualNumeric(0, $self->{_preUpgradeStats}->{"dedupe advice stale"},
                        "Dedupe advice stale should be zero");
   }
 }
@@ -152,7 +152,7 @@ sub establishStartingDevice {
 #############################################################################
 # Test basic read/write and dedupe capability after an upgrade.
 ##
-sub verifyFinalState {
+sub verifyDevice {
   my ($self) = assertNumArgs(1, @_);
 
   my $device = $self->getDevice();
@@ -164,7 +164,7 @@ sub verifyFinalState {
                          "physical blocks",
                         );
   foreach my $field (@unchangedStats) {
-    assertEqualNumeric($self->{_preMigrationStats}->{$field},
+    assertEqualNumeric($self->{_preUpgradeStats}->{$field},
                        $postMigrationStats->{$field},
                        "Stats for $field should be the same");
   }
@@ -192,7 +192,7 @@ sub verifyFinalState {
                      "Dedupe advice valid should be block count");
   assertEqualNumeric(0, $overwriteDedupeStats->{"dedupe advice stale"},
                      "Dedupe advice stale should be zero");
-  assertEqualNumeric(($self->{_preMigrationStats}->{"data blocks used"}
+  assertEqualNumeric(($self->{_preUpgradeStats}->{"data blocks used"}
                       - $blocksWritten),
                      $overwriteDedupeStats->{"data blocks used"},
                      "Each overwritten block freed a used block");
