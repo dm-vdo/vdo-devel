@@ -11,7 +11,6 @@
 #include "errors.h"
 #include "syscalls.h"
 
-#include "slab-depot-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component-states.h"

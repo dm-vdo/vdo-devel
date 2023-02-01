@@ -52,8 +52,6 @@ tarballs:
             - journal-point.h
             - packed-reference-block.h
             - release-versions.h
-            - slab-depot-format.c
-            - slab-depot-format.h
             - statistics.h
             - status-codes.c
             - status-codes.h
@@ -330,8 +328,6 @@ tarballs:
             - slab.h
             - slab-depot.c
             - slab-depot.h
-            - slab-depot-format.c
-            - slab-depot-format.h
             - slab-iterator.h
             - slab-journal.c
             - slab-journal.h

@@ -12,7 +12,6 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "slab-depot-format.h"
 #include "status-codes.h"
 #include "types.h"
 #include "volume-geometry.h"

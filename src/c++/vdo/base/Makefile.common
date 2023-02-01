@@ -42,7 +42,6 @@ BASE_OBJS :=     			\
 	reference-operation.o		\
 	slab.o				\
 	slab-depot.o			\
-	slab-depot-format.o		\
 	slab-journal.o			\
 	slab-scrubber.o			\
 	slab-summary.o			\
@@ -72,7 +71,6 @@ KERNEL_OBJS:=                           \
 USER_OBJECTS:=                  	\
 	constants.o			\
 	header.o			\
-	slab-depot-format.o		\
 	status-codes.o			\
 	super-block-codec.o		\
 	vdo-component.o			\

@@ -7,10 +7,11 @@
 #define SLAB_DEPOT_H
 
 #include <linux/atomic.h>
+
 #include "admin-state.h"
-#include "slab-depot-format.h"
 #include "statistics.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 
 /*

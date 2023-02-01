@@ -21,7 +21,6 @@
 #include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
-#include "slab-depot-format.h"
 #include "slab-iterator.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
@@ -29,6 +28,7 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 /**
  * allocate_slabs() - Allocate a new slab pointer array.

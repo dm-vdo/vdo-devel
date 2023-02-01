@@ -13,9 +13,9 @@
 
 #include "constants.h"
 #include "header.h"
-#include "slab-depot-format.h"
 #include "status-codes.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 /*
  * The current version for the data encoded in the super block. This must be changed any time there

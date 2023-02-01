@@ -15,10 +15,10 @@
 #include "constants.h"
 #include "device-config.h"
 #include "recovery-journal.h"
-#include "slab-depot-format.h"
 #include "slab-summary.h"
 #include "thread-config.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "dataBlocks.h"

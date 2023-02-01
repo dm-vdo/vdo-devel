@@ -13,7 +13,7 @@
 #include "constants.h"
 #include "header.h"
 #include "journal-point.h"
-#include "slab-depot-format.h"
+#include "packed-reference-block.h"
 #include "types.h"
 #include "vdo-component.h"
 #include "vdo-layout.h"
@@ -213,6 +213,15 @@ struct packed_journal_sector {
 	struct packed_recovery_journal_entry entries[];
 } __packed;
 
+struct slab_depot_state_2_0 {
+	struct slab_config slab_config;
+	physical_block_number_t first_block;
+	physical_block_number_t last_block;
+	zone_count_t zone_count;
+} __packed;
+
+extern const struct header VDO_SLAB_DEPOT_HEADER_2_0;
+
 enum {
 	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
@@ -231,6 +240,8 @@ enum {
 		 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR),
 	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
+	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
 };
 
 /*
@@ -610,6 +621,53 @@ vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
 		.recovery_count = packed->recovery_count,
 		.metadata_type = packed->metadata_type,
 	};
+}
+
+/**
+ * vdo_compute_slab_count() - Compute the number of slabs a depot with given parameters would have.
+ * @first_block: PBN of the first data block.
+ * @last_block: PBN of the last data block.
+ * @slab_size_shift: Exponent for the number of blocks per slab.
+ *
+ * Return: The number of slabs.
+ */
+static inline slab_count_t
+vdo_compute_slab_count(physical_block_number_t first_block,
+		       physical_block_number_t last_block,
+		       unsigned int slab_size_shift)
+{
+	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
+}
+
+#ifdef INTERNAL
+int __must_check
+encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state, struct buffer *buffer);
+int __must_check
+decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *state);
+
+#endif /* INTERNAL */
+int __must_check vdo_configure_slab_depot(block_count_t block_count,
+					  physical_block_number_t first_block,
+					  struct slab_config slab_config,
+					  zone_count_t zone_count,
+					  struct slab_depot_state_2_0 *state);
+
+int __must_check vdo_configure_slab(block_count_t slab_size,
+				    block_count_t slab_journal_blocks,
+				    struct slab_config *slab_config);
+
+/**
+ * vdo_get_saved_reference_count_size() - Get the number of blocks required to save a reference
+ *                                        counts state covering the specified number of data
+ *                                        blocks.
+ * @block_count: The number of physical data blocks that can be referenced.
+ *
+ * Return: The number of blocks required to save reference counts with the given block count.
+ */
+static inline block_count_t
+vdo_get_saved_reference_count_size(block_count_t block_count)
+{
+	return DIV_ROUND_UP(block_count, COUNTS_PER_BLOCK);
 }
 
 /**

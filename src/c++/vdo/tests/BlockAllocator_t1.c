@@ -18,11 +18,11 @@
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"
-#include "slab-depot-format.h"
 #include "slab-journal.h"
 #include "slab-scrubber.h"
 #include "status-codes.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-layout.h"
 
 #include "adminUtils.h"
@@ -315,11 +315,11 @@ static void verifyCoding(void)
 
   struct slab_depot_state_2_0 state = vdo_record_slab_depot(depot);
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(vdo_get_slab_depot_encoded_size(), &buffer));
-  VDO_ASSERT_SUCCESS(vdo_encode_slab_depot_state_2_0(state, buffer));
+  VDO_ASSERT_SUCCESS(make_buffer(SLAB_DEPOT_COMPONENT_ENCODED_SIZE, &buffer));
+  VDO_ASSERT_SUCCESS(encode_slab_depot_state_2_0(state, buffer));
 
   struct slab_depot_state_2_0 decoded;
-  VDO_ASSERT_SUCCESS(vdo_decode_slab_depot_state_2_0(buffer, &decoded));
+  VDO_ASSERT_SUCCESS(decode_slab_depot_state_2_0(buffer, &decoded));
   free_buffer(UDS_FORGET(buffer));
 
   assertSameStates(state, decoded);

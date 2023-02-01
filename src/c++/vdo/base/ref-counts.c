@@ -24,12 +24,12 @@
 #include "read-only-notifier.h"
 #include "reference-operation.h"
 #include "slab.h"
-#include "slab-depot-format.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
 #include "status-codes.h"
 #include "string-utils.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 
