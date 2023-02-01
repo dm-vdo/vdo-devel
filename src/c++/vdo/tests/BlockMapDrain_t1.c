@@ -12,9 +12,9 @@
 
 #include "admin-state.h"
 #include "block-map.h"
-#include "block-map-page.h"
 #include "device-config.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

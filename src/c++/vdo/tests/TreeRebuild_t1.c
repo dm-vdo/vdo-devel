@@ -9,10 +9,11 @@
 #include "albtest.h"
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "block-map-tree.h"
 #include "forest.h"
 #include "slab-depot.h"
+#include "vdo-component-states.h"
+
 #include "vdoConfig.h"
 
 #include "adminUtils.h"

@@ -44,8 +44,6 @@ tarballs:
         src/c++/vdo/base:
           dest: utils/vdo
           sources:
-            - block-map-page.c
-            - block-map-page.h
             - checksum.h
             - constants.c
             - constants.h
@@ -267,8 +265,6 @@ tarballs:
             - block-allocator.h
             - block-map.c
             - block-map.h
-            - block-map-page.c
-            - block-map-page.h
             - block-map-recovery.c
             - block-map-recovery.h
             - block-map-tree.c

@@ -7,7 +7,6 @@
 #define BLOCK_MAP_H
 
 #include "admin-state.h"
-#include "block-map-page.h"
 #include "block-map-tree.h"
 #include "completion.h"
 #include "dirty-lists.h"

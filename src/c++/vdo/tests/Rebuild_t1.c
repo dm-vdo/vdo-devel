@@ -14,11 +14,11 @@
 
 #include "block-allocator.h"
 #include "block-map.h"
-#include "block-map-page.h"
 #include "heap.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "vdo-component-states.h"
 
 #include "vdoConfig.h"
 

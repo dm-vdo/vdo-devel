@@ -11,6 +11,7 @@
 #include "numeric.h"
 
 #include "constants.h"
+#include "header.h"
 #include "journal-point.h"
 #include "slab-depot-format.h"
 #include "types.h"
@@ -46,6 +47,37 @@ struct block_map_entry {
 
 	__le32 pbn_low_word;
 } __packed;
+
+struct block_map_page_header {
+	__le64 nonce;
+	__le64 pbn;
+
+	/** May be non-zero on disk */
+	u8 unused_long_word[8];
+
+	/* Whether this page has been written twice to disk */
+	bool initialized;
+
+	/* Always zero on disk */
+	u8 unused_byte1;
+
+	/* May be non-zero on disk */
+	u8 unused_byte2;
+	u8 unused_byte3;
+} __packed;
+
+struct block_map_page {
+	struct packed_version_number version;
+	struct block_map_page_header header;
+	struct block_map_entry entries[];
+} __packed;
+
+enum block_map_page_validity {
+	VDO_BLOCK_MAP_PAGE_VALID,
+	VDO_BLOCK_MAP_PAGE_INVALID,
+	/* Valid page found in the wrong location on disk */
+	VDO_BLOCK_MAP_PAGE_BAD,
+};
 
 struct block_map_state_2_0 {
 	physical_block_number_t flat_page_origin;
@@ -394,6 +426,22 @@ static inline bool vdo_is_valid_location(const struct data_location *location)
 	else
 		return vdo_is_mapped_location(location);
 }
+
+static inline physical_block_number_t __must_check
+vdo_get_block_map_page_pbn(const struct block_map_page *page)
+{
+	return __le64_to_cpu(page->header.pbn);
+}
+
+struct block_map_page *vdo_format_block_map_page(void *buffer,
+						 nonce_t nonce,
+						 physical_block_number_t pbn,
+						 bool initialized);
+
+enum block_map_page_validity __must_check
+vdo_validate_block_map_page(struct block_map_page *page,
+			    nonce_t nonce,
+			    physical_block_number_t pbn);
 
 #ifdef INTERNAL
 int __must_check

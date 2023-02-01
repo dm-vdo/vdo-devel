@@ -17,10 +17,10 @@
 
 #include "block-allocator.h"
 #include "block-map.h"
-#include "block-map-page.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "blockMapUtils.h"

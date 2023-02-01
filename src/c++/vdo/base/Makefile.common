@@ -12,7 +12,6 @@ BASE_OBJS :=     			\
 	admin-state.o			\
 	block-allocator.o		\
 	block-map.o			\
-	block-map-page.o		\
 	block-map-recovery.o		\
 	block-map-tree.o		\
 	completion.o			\
@@ -71,7 +70,6 @@ KERNEL_OBJS:=                           \
         work-queue.o
 
 USER_OBJECTS:=                  	\
-	block-map-page.o		\
 	constants.o			\
 	header.o			\
 	slab-depot-format.o		\

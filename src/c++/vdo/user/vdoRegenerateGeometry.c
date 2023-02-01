@@ -13,7 +13,6 @@
 #include "time-utils.h"
 
 #include "constants.h"
-#include "block-map-page.h"
 #include "status-codes.h"
 #include "vdo-component-states.h"
 #include "volume-geometry.h"

@@ -8,7 +8,6 @@
 
 #include <linux/list.h>
 
-#include "block-map-page.h"
 #include "constants.h"
 #include "types.h"
 #include "vdo-component-states.h"

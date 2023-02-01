@@ -12,7 +12,6 @@
 #include "permassert.h"
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "dirty-lists.h"
@@ -25,6 +24,7 @@
 #include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-page-cache.h"
 #include "vio.h"
 #include "wait-queue.h"

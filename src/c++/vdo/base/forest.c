@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "block-map-tree.h"
 #include "constants.h"
 #include "dirty-lists.h"
@@ -21,6 +20,7 @@
 #include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 struct block_map_tree_segment {

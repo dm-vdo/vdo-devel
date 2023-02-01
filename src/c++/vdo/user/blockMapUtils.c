@@ -12,7 +12,6 @@
 #include "syscalls.h"
 #include "memory-alloc.h"
 
-#include "block-map-page.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component-states.h"

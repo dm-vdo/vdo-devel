@@ -10,13 +10,13 @@
 #include "permassert.h"
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "heap.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vdo-page-cache.h"
 
 /*

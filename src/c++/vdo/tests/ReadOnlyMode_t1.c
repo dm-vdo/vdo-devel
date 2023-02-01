@@ -11,9 +11,9 @@
 #include <linux/bio.h>
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "read-only-notifier.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "ioRequest.h"

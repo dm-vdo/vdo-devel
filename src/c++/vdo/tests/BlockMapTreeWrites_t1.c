@@ -13,9 +13,9 @@
 #include "action-manager.h"
 #include "admin-state.h"
 #include "block-map.h"
-#include "block-map-page.h"
 #include "block-map-tree.h"
 #include "recovery-journal.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 #include "asyncLayer.h"

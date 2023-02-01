@@ -12,10 +12,11 @@
 #include "syscalls.h"
 
 #include "block-map.h"
-#include "block-map-page.h"
 #include "read-only-notifier.h"
-#include "vdoConfig.h"
+#include "vdo-component-states.h"
 #include "volume-geometry.h"
+
+#include "vdoConfig.h"
 
 #include "ioRequest.h"
 #include "mutexUtils.h"
