@@ -32,15 +32,15 @@ enum {
   NEW_TREE_WRITES_PER_BLOCK = (ENTRIES_PER_BLOCK - INTERIOR_HEIGHT) / 2,
 };
 
-static struct vio                 *blockedWriter;
-static block_count_t               writeCount;
-static struct block_map_tree_zone *zone;
-static bool                        fourWaiters;
-static bool                        notOperating;
-static bool                        writeBlocked;
-static physical_block_number_t     pbn;
-static uint8_t                     flushGeneration;
-static uint8_t                     writeGeneration;
+static struct vio              *blockedWriter;
+static block_count_t            writeCount;
+static struct block_map_zone   *zone;
+static bool                     fourWaiters;
+static bool                     notOperating;
+static bool                     writeBlocked;
+static physical_block_number_t  pbn;
+static uint8_t                  flushGeneration;
+static uint8_t                  writeGeneration;
 
 /**
  * Test-specific initialization.
@@ -63,7 +63,7 @@ static void initialize(block_count_t journalBlocks)
   initializeVDOTest(&parameters);
 
   vdo->recovery_journal->entries_per_block = ENTRIES_PER_BLOCK;
-  zone = &vdo->block_map->zones[0].tree_zone;
+  zone = &vdo->block_map->zones[0];
 }
 
 /**
@@ -285,8 +285,7 @@ static void testBlockMapTreeWrites(void)
 
   // Upon release of the flusher, the next waiter should immediately become
   // the next flusher.
-  performSuccessfulActionOnThread(recordFirstWaiterPBN,
-                                  zone->map_zone->thread_id);
+  performSuccessfulActionOnThread(recordFirstWaiterPBN, zone->thread_id);
   reallyEnqueueVIO(flusher);
   flusher = getBlockedVIO();
   blockMapPage = (struct block_map_page *) flusher->data;
@@ -342,7 +341,7 @@ static void skipGenerations(struct vdo_completion *completion)
  **/
 static void countTreeWaiters(void)
 {
-  if (vdo_get_callback_thread_id() == zone->map_zone->thread_id) {
+  if (vdo_get_callback_thread_id() == zone->thread_id) {
     size_t waiters = count_waiters(&zone->flush_waiters);
     CU_ASSERT_TRUE(waiters <= 4);
     if (waiters == 4) {
@@ -426,7 +425,7 @@ static void testBlockMapTreeGenerationRollOver(void)
   waitForWrites(writeTarget);
 
   // Skip generations so that the next batch will wrap the counter
-  performSuccessfulActionOnThread(skipGenerations, zone->map_zone->thread_id);
+  performSuccessfulActionOnThread(skipGenerations, zone->thread_id);
 
   // Advance the journal one more block which should write one more batch.
   writeTarget += INTERIOR_HEIGHT;
@@ -503,7 +502,7 @@ static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
   free_vio_pool(UDS_FORGET(zone->vio_pool));
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    1,
-                                   zone->map_zone->thread_id,
+                                   zone->thread_id,
                                    VIO_TYPE_BLOCK_MAP_INTERIOR,
                                    VIO_PRIORITY_METADATA,
                                    zone,

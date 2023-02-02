@@ -20,7 +20,7 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-static struct block_map_tree_zone *zone;
+static struct block_map_zone *zone;
 
 /**
  * Test-specific initialization.
@@ -38,7 +38,7 @@ static void initialize(void)
   };
 
   initializeVDOTest(&parameters);
-  zone = &vdo->block_map->zones[0].tree_zone;
+  zone = &vdo->block_map->zones[0];
 }
 
 /**

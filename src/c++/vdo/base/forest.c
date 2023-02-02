@@ -56,8 +56,7 @@ struct cursor {
 };
 
 struct cursors {
-	struct block_map *map;
-	struct block_map_tree_zone *zone;
+	struct block_map_zone *zone;
 	struct vio_pool *pool;
 	vdo_entry_callback *entry_callback;
 	struct vdo_completion *parent;
@@ -337,7 +336,7 @@ static void finish_traversal_load(struct vdo_completion *completion)
 	struct block_map_page *page = (struct block_map_page *) tree_page->page_buffer;
 
 	vdo_copy_valid_page(cursor->vio->vio.data,
-			    cursor->parent->map->nonce,
+			    cursor->parent->zone->block_map->nonce,
 			    pbn_from_vio_bio(cursor->vio->vio.bio),
 			    page);
 	traverse(cursor);
@@ -348,9 +347,7 @@ static void traversal_endio(struct bio *bio)
 	struct vio *vio = bio->bi_private;
 	struct cursor *cursor = vio->completion.parent;
 
-	continue_vio_after_io(vio,
-			      finish_traversal_load,
-			      cursor->parent->zone->map_zone->thread_id);
+	continue_vio_after_io(vio, finish_traversal_load, cursor->parent->zone->thread_id);
 }
 
 /**
@@ -448,7 +445,7 @@ static void launch_cursor(struct waiter *waiter, void *context)
 
 	cursor->vio = pooled;
 	pooled->vio.completion.parent = cursor;
-	pooled->vio.completion.callback_thread_id = cursor->parent->zone->map_zone->thread_id;
+	pooled->vio.completion.callback_thread_id = cursor->parent->zone->thread_id;
 	traverse(cursor);
 }
 
@@ -510,8 +507,7 @@ void vdo_traverse_forest(struct block_map *map,
 		return;
 	}
 
-	cursors->map = map;
-	cursors->zone = &map->zones[0].tree_zone;
+	cursors->zone = &map->zones[0];
 	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = callback;
 	cursors->parent = parent;
