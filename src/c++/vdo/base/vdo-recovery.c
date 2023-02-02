@@ -1267,18 +1267,81 @@ static void find_slab_journal_entries(struct vdo_completion *completion)
 }
 
 /**
- * find_contiguous_range() - Find the contiguous range of journal blocks.
+ * count_increment_entries() - Count the number of increment entries in the journal.
+ * @recovery: The recovery completion.
+ */
+static noinline int count_increment_entries(struct recovery_completion *recovery)
+{
+	/*
+	 * XXX VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
+	 * error about this structure being uninitialized.
+	 */
+	struct recovery_point recovery_point = {
+		.sequence_number = recovery->block_map_head,
+		.sector_count = 1,
+		.entry_count = 0,
+	};
+	struct vdo *vdo = recovery->completion.vdo;
+
+	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
+		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
+		int result;
+
+		result = validate_recovery_journal_entry(vdo, &entry);
+		if (result != VDO_SUCCESS) {
+			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+			return result;
+		}
+
+		if (vdo_is_journal_increment_operation(entry.operation))
+			recovery->incref_count++;
+
+		increment_recovery_point(&recovery_point);
+	}
+
+	return VDO_SUCCESS;
+}
+
+static bool validate_heads(struct recovery_completion *recovery)
+{
+	/* Both reap heads must be behind the tail. */
+	if ((recovery->block_map_head > recovery->tail) ||
+	    (recovery->slab_journal_head > recovery->tail)) {
+		int result = uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
+						    "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
+						    (unsigned long long) recovery->block_map_head,
+						    (unsigned long long) recovery->slab_journal_head,
+						    (unsigned long long) recovery->tail);
+		vdo_finish_completion(&recovery->completion, result);
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * prepare_to_apply_journal_entries() - Determine the limits of the valid recovery journal and
+ *                                      prepare to replay into the slab journals and block map.
  * @recovery: The recovery completion.
  *
- * Return: true if there were valid journal blocks.
+ * Return: true if there are journal entries to apply, if not, the caller is responsible for
+ *         continuing the process
  */
-static bool find_contiguous_range(struct recovery_completion *recovery)
+static bool prepare_to_apply_journal_entries(struct recovery_completion *recovery)
 {
-	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
-	sequence_number_t head = min(recovery->block_map_head, recovery->slab_journal_head);
+	sequence_number_t i, head;
 	bool found_entries = false;
-	sequence_number_t i;
+	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
 
+	if (!find_recovery_journal_head_and_tail(journal,
+						 recovery->journal_data,
+						 &recovery->highest_tail,
+						 &recovery->block_map_head,
+						 &recovery->slab_journal_head))
+		return false;
+
+
+	head = min(recovery->block_map_head, recovery->slab_journal_head);
 	for (i = head; i <= recovery->highest_tail; i++) {
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
@@ -1328,124 +1391,41 @@ static bool find_contiguous_range(struct recovery_completion *recovery)
 			break;
 	}
 
+	if (!found_entries)
+		return false;
+
 	/* Set the tail to the last valid tail block, if there is one. */
 	if (found_entries && (recovery->tail_recovery_point.sector_count == 0))
 		recovery->tail--;
 
-	return found_entries;
-}
-
-/**
- * count_increment_entries() - Count the number of increment entries in the journal.
- * @recovery: The recovery completion.
- */
-static noinline int count_increment_entries(struct recovery_completion *recovery)
-{
-	/*
-	 * XXX VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
-	 * error about this structure being uninitialized.
-	 */
-	struct recovery_point recovery_point = {
-		.sequence_number = recovery->block_map_head,
-		.sector_count = 1,
-		.entry_count = 0,
-	};
-	struct vdo *vdo = recovery->completion.vdo;
-
-	while (before_recovery_point(&recovery_point, &recovery->tail_recovery_point)) {
-		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
-		int result;
-
-		result = validate_recovery_journal_entry(vdo, &entry);
-		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
-			return result;
-		}
-
-		if (vdo_is_journal_increment_operation(entry.operation))
-			recovery->incref_count++;
-
-		increment_recovery_point(&recovery_point);
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**
- * prepare_to_apply_journal_entries() - Determine the limits of the valid recovery journal and
- *                                      prepare to replay into the slab journals and block map.
- * @recovery: The recovery completion.
- */
-static void prepare_to_apply_journal_entries(struct recovery_completion *recovery)
-{
-	bool found_entries;
-	int result;
-	struct vdo_completion *completion = &recovery->completion;
-	struct vdo *vdo = completion->vdo;
-	struct recovery_journal *journal = vdo->recovery_journal;
-
-	found_entries = find_recovery_journal_head_and_tail(journal,
-							    recovery->journal_data,
-							    &recovery->highest_tail,
-							    &recovery->block_map_head,
-							    &recovery->slab_journal_head);
-	if (found_entries)
-		found_entries = find_contiguous_range(recovery);
-
-	/* Both reap heads must be behind the tail. */
-	if ((recovery->block_map_head > recovery->tail) ||
-	    (recovery->slab_journal_head > recovery->tail)) {
-		result = uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
-						"Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
-						(unsigned long long) recovery->block_map_head,
-						(unsigned long long) recovery->slab_journal_head,
-						(unsigned long long) recovery->tail);
-		vdo_finish_completion(completion, result);
-		return;
-	}
-
-	if (!found_entries) {
-		/* This message must be in sync with VDOTest::RebuildBase. */
-		uds_log_info("Replaying 0 recovery entries into block map");
-		/* We still need to load the slab_depot. */
-		UDS_FREE(UDS_FORGET(recovery->journal_data));
-		prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
-		vdo_load_slab_depot(vdo->depot,
-				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
-				    completion,
-				    recovery);
-		return;
-	}
+	if (!validate_heads(recovery))
+		return true;
 
 	uds_log_info("Highest-numbered recovery journal block has sequence number %llu, and the highest-numbered usable block is %llu",
 		     (unsigned long long) recovery->highest_tail,
 		     (unsigned long long) recovery->tail);
 
-	if (is_replaying(vdo)) {
-		/* We need to know how many entries the block map rebuild completion will hold. */
-		result = count_increment_entries(recovery);
-		if (result != VDO_SUCCESS) {
-			vdo_finish_completion(completion, result);
-			return;
-		}
-
-		/* We need to access the block map from a logical zone. */
+	if (is_replaying(recovery->completion.vdo)) {
 		prepare_recovery_completion(recovery,
 					    launch_block_map_recovery,
 					    VDO_ZONE_TYPE_LOGICAL);
-		vdo_load_slab_depot(vdo->depot,
-				    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
-				    completion,
-				    recovery);
-		return;
+
+		/* We need to know how many entries the block map rebuild completion will hold. */
+		if (!abort_recovery_on_error(count_increment_entries(recovery), recovery))
+			vdo_load_slab_depot(recovery->completion.vdo->depot,
+					    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
+					    &recovery->completion,
+					    recovery);
+
+		return true;
 	}
 
-	result = compute_usages(recovery);
-	if (abort_recovery_on_error(result, recovery))
-		return;
+	if (abort_recovery_on_error(compute_usages(recovery), recovery))
+		return true;
 
 	prepare_recovery_completion(recovery, find_slab_journal_entries, VDO_ZONE_TYPE_LOGICAL);
-	vdo_invoke_completion_callback(completion);
+	vdo_invoke_completion_callback(&recovery->completion);
+	return true;
 }
 
 /**
@@ -1453,12 +1433,10 @@ static void prepare_to_apply_journal_entries(struct recovery_completion *recover
  * @parent: The completion to notify when the offline portion of the recovery is complete.
  * @journal_data: The contents of the recovery journal
  *
- * Return: VDO_SUCCESS if the recovery was launched, other an error code
- *
  * Applies all valid journal block entries to all vdo structures. This function performs the
  * offline portion of recovering a vdo from a crash.
  */
-static int launch_recovery(struct vdo_completion *parent, char *journal_data)
+static void launch_recovery(struct vdo_completion *parent, char *journal_data)
 {
 	struct vdo *vdo = parent->vdo;
 	struct recovery_completion *recovery;
@@ -1473,14 +1451,16 @@ static int launch_recovery(struct vdo_completion *parent, char *journal_data)
 				       &recovery);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(journal_data);
-		return result;
+		vdo_finish_completion(parent, result);
+		return;
 	}
 
 	recovery->journal_data = journal_data;
 	result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slot_entry_map);
 	if (result != VDO_SUCCESS) {
 		free_vdo_recovery_completion(recovery);
-		return result;
+		vdo_finish_completion(parent, result);
+		return;
 	}
 
 	for (zone = 0; zone < zone_count; zone++)
@@ -1489,8 +1469,19 @@ static int launch_recovery(struct vdo_completion *parent, char *journal_data)
 	vdo_initialize_completion(&recovery->completion, vdo, VDO_RECOVERY_COMPLETION);
 	recovery->completion.error_handler = abort_recovery;
 	recovery->completion.parent = parent;
-	prepare_to_apply_journal_entries(recovery);
-	return VDO_SUCCESS;
+	prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
+
+	if (prepare_to_apply_journal_entries(recovery) || !validate_heads(recovery))
+		return;
+
+	/* This message must be in sync with VDOTest::RebuildBase. */
+	uds_log_info("Replaying 0 recovery entries into block map");
+	/* We still need to load the slab_depot. */
+	UDS_FREE(UDS_FORGET(recovery->journal_data));
+	vdo_load_slab_depot(vdo->depot,
+			    VDO_ADMIN_STATE_LOADING_FOR_RECOVERY,
+			    &recovery->completion,
+			    recovery);
 }
 
 /*--------------------------------------------------------------------*/
@@ -2093,11 +2084,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
  * @parent: The completion to notify when the rebuild is complete.
  * @journal_data: The contents of the recovery journal
  *
- * Return: VDO_SUCCESS if the rebuild was launched, other an error code
- *
  * Apply all valid journal block entries to all vdo structures.
  */
-static int launch_rebuild(struct vdo_completion *parent, char *journal_data)
+static void launch_rebuild(struct vdo_completion *parent, char *journal_data)
 {
 	struct vdo *vdo = parent->vdo;
 	struct rebuild_completion *rebuild;
@@ -2114,7 +2103,8 @@ static int launch_rebuild(struct vdo_completion *parent, char *journal_data)
 				       &rebuild);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(journal_data);
-		return result;
+		vdo_finish_completion(parent, result);
+		return;
 	}
 
 	vdo_initialize_completion(&rebuild->completion, vdo, VDO_READ_ONLY_REBUILD_COMPLETION);
@@ -2131,7 +2121,6 @@ static int launch_rebuild(struct vdo_completion *parent, char *journal_data)
 			    VDO_ADMIN_STATE_LOADING_FOR_REBUILD,
 			    &rebuild->completion,
 			    NULL);
-	return VDO_SUCCESS;
 }
 
 static void free_journal_loader(struct journal_loader *loader)
@@ -2155,7 +2144,6 @@ static void finish_journal_load(struct vdo_completion *completion)
 	struct vdo_completion *parent = loader->parent;
 	struct vdo *vdo = parent->vdo;
 	char *journal_data = loader->journal_data;
-	int result;
 
 	if (++loader->complete != loader->count)
 		return;
@@ -2168,11 +2156,10 @@ static void finish_journal_load(struct vdo_completion *completion)
 		return;
 	}
 
-	result = (vdo_state_requires_recovery(vdo->load_state) ?
-		  launch_recovery(parent, journal_data) :
-		  launch_rebuild(parent, journal_data));
-	if (result != VDO_SUCCESS)
-		vdo_finish_completion(parent, result);
+	if (vdo_state_requires_recovery(vdo->load_state))
+		launch_recovery(parent, journal_data);
+	else
+		launch_rebuild(parent, journal_data);
 }
 
 static void handle_journal_load_error(struct vdo_completion *completion)
