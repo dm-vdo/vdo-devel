@@ -144,7 +144,8 @@ tags: TAGS
 .PHONY: id
 id-exclusions: FORCE
 	-rm -f $@
-	echo packaging >> $@
+	echo packaging > $@
+	echo c++/vdo/kernel >> $@
 	# exclude all third-party source directories
 	for d in $(SUBDIRS); do \
 	  if [ -d $$d/third ]; then \
