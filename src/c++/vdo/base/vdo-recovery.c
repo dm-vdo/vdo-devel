@@ -1855,6 +1855,9 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 		.slot = map->entry_count % VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
 		.pbn = vdo_find_block_map_page_pbn(map, rebuild->leaf_pages - 1),
 	};
+	if (rebuild->last_slot.slot == 0) {
+		rebuild->last_slot.slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+	}
 
 	for (i = 0; i < rebuild->page_count; i++) {
 		if (fetch_page(rebuild, &rebuild->page_completions[i].completion))
