@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "block-map.h"
-#include "block-map-tree.h"
 #include "constants.h"
 #include "dirty-lists.h"
 #include "io-submitter.h"

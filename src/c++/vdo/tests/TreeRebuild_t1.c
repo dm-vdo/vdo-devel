@@ -9,7 +9,6 @@
 #include "albtest.h"
 
 #include "block-map.h"
-#include "block-map-tree.h"
 #include "forest.h"
 #include "slab-depot.h"
 #include "vdo-component-states.h"

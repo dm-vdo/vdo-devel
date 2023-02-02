@@ -8,14 +8,14 @@
 
 /*
  * This is nominally testing num-utils.h but that file no longer exists.
- * The implementations now live in fake/linux/log2.h and block-map-tree.c.
+ * The implementations now live in fake/linux/log2.h and block-map.c.
  */
 
 #include "albtest.h"
 
 #include <linux/log2.h>
 
-#include "block-map-tree.h"
+#include "block-map.h"
 #include "vdoAsserts.h"
 
 /**********************************************************************/
@@ -51,7 +51,7 @@ static void testILog2(void)
 }
 
 /**
- * This is actually testing a function in block-map-tree.c...
+ * This is actually testing a function in block-map.c...
  **/
 static void testInCyclicRange(void)
 {

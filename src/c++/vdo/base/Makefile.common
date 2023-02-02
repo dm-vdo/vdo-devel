@@ -13,7 +13,6 @@ BASE_OBJS :=     			\
 	block-allocator.o		\
 	block-map.o			\
 	block-map-recovery.o		\
-	block-map-tree.o		\
 	completion.o			\
 	constants.o			\
 	data-vio.o			\

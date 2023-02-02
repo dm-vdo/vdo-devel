@@ -265,8 +265,6 @@ tarballs:
             - block-map.h
             - block-map-recovery.c
             - block-map-recovery.h
-            - block-map-tree.c
-            - block-map-tree.h
             - completion.c
             - completion.h
             - constants.c

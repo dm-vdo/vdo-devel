@@ -9,7 +9,6 @@
 #include "albtest.h"
 
 #include "block-map.h"
-#include "block-map-tree.h"
 #include "recovery-journal.h"
 #include "vdo.h"
 

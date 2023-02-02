@@ -6,7 +6,7 @@
 #ifndef FOREST_H
 #define FOREST_H
 
-#include "block-map-tree.h"
+#include "block-map.h"
 #include "completion.h"
 #include "types.h"
 

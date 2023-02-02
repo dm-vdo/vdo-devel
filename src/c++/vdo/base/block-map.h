@@ -7,7 +7,6 @@
 #define BLOCK_MAP_H
 
 #include "admin-state.h"
-#include "block-map-tree.h"
 #include "completion.h"
 #include "dirty-lists.h"
 #include "header.h"
@@ -21,6 +20,36 @@
 
 enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,
+};
+
+/* Used to indicate that the page holding the location of a tree root has been "loaded". */
+extern const physical_block_number_t VDO_INVALID_PBN;
+
+struct tree_page {
+	struct waiter waiter;
+
+	/* Dirty list entry */
+	struct list_head entry;
+
+	/* If dirty, the tree zone flush generation in which it was last dirtied. */
+	u8 generation;
+
+	/* Whether this page is an interior tree page being written out. */
+	bool writing;
+
+	/* If writing, the tree zone flush generation of the copy being written. */
+	u8 writing_generation;
+
+	/*
+	 * Sequence number of the earliest recovery journal block containing uncommitted updates to
+	 * this page
+	 */
+	sequence_number_t recovery_lock;
+
+	/* The value of recovery_lock when the this page last started writing */
+	sequence_number_t writing_recovery_lock;
+
+	char page_buffer[VDO_BLOCK_SIZE];
 };
 
 /*
@@ -79,6 +108,41 @@ struct block_map {
 	zone_count_t zone_count;
 	struct block_map_zone zones[];
 };
+
+static inline struct block_map_page * __must_check
+vdo_as_block_map_page(struct tree_page *tree_page)
+{
+	return (struct block_map_page *) tree_page->page_buffer;
+}
+
+bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
+			 physical_block_number_t pbn,
+			 struct block_map_page *page);
+
+int __must_check
+vdo_initialize_tree_zone(struct block_map_zone *zone, struct vdo *vdo, block_count_t maximum_age);
+
+void vdo_uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
+
+void vdo_set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
+				      sequence_number_t period);
+
+bool __must_check vdo_is_tree_zone_active(struct block_map_tree_zone *zone);
+
+void vdo_advance_zone_tree_period(struct block_map_tree_zone *zone, sequence_number_t period);
+
+void vdo_drain_zone_trees(struct block_map_tree_zone *zone);
+
+void vdo_find_block_map_slot(struct data_vio *data_vio);
+
+physical_block_number_t
+vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number);
+
+void vdo_write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
+
+#ifdef INTERNAL
+bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
+#endif /* INTERNAL */
 
 int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,
 				      block_count_t logical_blocks,
