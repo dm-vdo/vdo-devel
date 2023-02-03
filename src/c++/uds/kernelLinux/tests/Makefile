@@ -77,7 +77,10 @@ ZUB_EXTRA = 	$(ZUB_CFLAGS) -DTEST_INTERNAL		\
 		-DEXTERNAL_STATIC=			\
 		-Wno-declaration-after-statement
 
+# If VDO_PRESERVE_DKMS is defined then leave the intermediate products
+ifndef VDO_PRESERVE_DKMS
 .DELETE_ON_ERROR:
+endif
 $(ZUB_PACKAGE): $(UDS_TGZ) $(ZUB_DKMS_SOURCES) $(ZUB_DKMS_HEADERS) \
 		$(TEST_SOURCES)
 	rm -fr $(UDS_DIR) $(ZUB_DIR)

@@ -59,7 +59,13 @@ DKMS_FILES =	$(addprefix $(VDO_BASE_DIR)/,$(KERNEL_SOURCES))		\
 		$(filter-out $(VDO_BASE_DIR)/list.h,			\
 			$(wildcard $(VDO_BASE_DIR)/*.h))
 
-.DELETE_ON_ERROR:
+# The kernel Makefile treats V undefined the same as V equals 0 
+V ?= 0
+
+# If VDO_PRESERVE_DKMS is defined then leave the intermediate products
+ifndef VDO_PRESERVE_DKMS
+  .DELETE_ON_ERROR:
+endif
 $(DKMS_TGZ): $(UDS_DKMS_TGZ) $(DKMS_FILES) \
 		Makefile.module.in Makefile.common ../base/Makefile.common
 	$(MAKE) clean-dkms-dirs
@@ -81,11 +87,15 @@ $(DKMS_TGZ): $(UDS_DKMS_TGZ) $(DKMS_FILES) \
 	cp -p $(DKMS_FILES) $(VDO_SUBDIR)
 	cd $(VDO_SUBDIR) && ln -s . dm-vdo
 	tar cvfz $@ --owner=0 --group=0 --mode=a+rX-w $(DKMS_DIR)
-	$(MAKE) -C $(KERNEL_SOURCE_DIR) M=$(abspath $(DKMS_DIR)) modules \
-		$(if $(V),V=1,) $(if $(LLVM),$(LLVM_ARGS),)
-	$(if $(V), echo Report the greatest stack usage within our module.,)
-	$(if $(V), objdump -d $(VDO_SUBDIR)/kvdo.ko | $(KERNEL_SOURCE_DIR)/scripts/checkstack.pl,)
-	$(if $(V),:,$(MAKE) clean-dkms-dirs)
+	$(MAKE) -C $(KERNEL_SOURCE_DIR) M=$(abspath $(DKMS_DIR)) \
+		V=$(V) $(if $(LLVM),$(LLVM_ARGS),) modules 
+ifdef VDO_CHECK_STACK
+	  @echo The greatest stack usage within our module:
+	  objdump -d $(VDO_SUBDIR)/kvdo.ko | $(KERNEL_SOURCE_DIR)/scripts/checkstack.pl
+endif
+ifndef VDO_PRESERVE_DKMS
+	  $(MAKE) clean-dkms-dirs
+endif
 
 .PHONY: build-against-latest-kernel
 build-against-latest-kernel:

@@ -41,7 +41,10 @@ UDS_DKMS_HEADERS =						\
 	$(wildcard $(K_UDS_DIR)/*.h)				\
 	$(wildcard $(SRC_UDS_DIR)/*.h)
 
+# If VDO_PRESERVE_DKMS is defined then leave the intermediate products
+ifndef VDO_PRESERVE_DKMS
 .DELETE_ON_ERROR:
+endif
 $(UDS_PACKAGE): $(UDS_DKMS_SOURCES) $(UDS_DKMS_HEADERS)
 	rm -fr $(UDS_DIR) $@
 	mkdir -p $(UDS_SUBDIR)
