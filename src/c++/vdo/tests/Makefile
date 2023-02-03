@@ -44,7 +44,7 @@ $(UDS_DEPLIBS): $(UDS_USER_FILES)
 	$(MAKE) -C $(UDS_USER_DIR)
 
 # Tests that are not ready to run at this time
-TEST_EXCLUDES =
+TEST_EXCLUDES = OldRecoveryJournal_t1.c
 
 # Any source file matching the pattern <word>_[tvx]<digits>.c is a C unit test
 TEST_SOURCES     = $(filter-out ${TEST_EXCLUDES}, $(wildcard *_[tvx][0-9]*.c))

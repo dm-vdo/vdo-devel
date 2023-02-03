@@ -96,7 +96,7 @@ static void interrogateJournalUntilNotReaping(void)
 /**
  * Test-specific initialization.
  **/
-static void initializeTest(bool useSmallRecoveryJournalSize)
+static void initialize(bool useSmallRecoveryJournalSize)
 {
   const TestParameters parameters = {
     .mappableBlocks      = 252,
@@ -265,7 +265,7 @@ static bool notifySlabJournalReap(struct vdo_completion *completion)
  **/
 static void testRecoveryJournalThreshold(void)
 {
-  initializeTest(true);
+  initialize(true);
 
   // Check that the journal is completely reaped with respect to slabs.
   performSuccessfulAction(sampleJournal);
@@ -352,7 +352,7 @@ checkRecoveryMode(struct vdo_completion *completion,
  **/
 static void testScrubSlabDuringRebuild(void)
 {
-  initializeTest(false);
+  initialize(false);
   slab_count_t slabNumber = 1;
   setupSlabScrubbingLatch(slabNumber);
 

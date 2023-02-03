@@ -71,6 +71,8 @@ typedef struct testParameters {
   bool                      disableDeduplication;
   /** Whether physicalBlocks should include an index region */
   bool                      noIndexRegion;
+  /** The backing file from which to initially load the RAMLayer (if not NULL) */
+  const char               *backingFile;
 } TestParameters;
 
 /**
@@ -84,6 +86,7 @@ struct testConfiguration {
   physical_block_number_t  vdoRegionStart;
   bool                     synchronousStorage;
   DataFormatter           *dataFormatter;
+  const char              *backingFile;
 };
 
 /**

@@ -62,7 +62,7 @@ static bool isBlockMapRead(void *context)
 /**
  * Test-specific initialization.
  **/
-static void initializeTest(void)
+static void initialize(void)
 {
   const TestParameters parameters = {
     // Need at leat two block map pages worth of mappable blocks.
@@ -362,7 +362,7 @@ static CU_TestInfo vdoTests[] = {
 static CU_SuiteInfo vdoSuite = {
   .name  = "Synthesize decRef (SynthesizeDecRef_t1)",
   .initializerWithArguments = NULL,
-  .initializer              = initializeTest,
+  .initializer              = initialize,
   .cleaner                  = tearDownTest,
   .tests                    = vdoTests
 };

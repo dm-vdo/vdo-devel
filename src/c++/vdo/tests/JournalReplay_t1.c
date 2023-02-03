@@ -40,7 +40,7 @@ static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 /**
  * Test-specific initialization.
  **/
-static void initializeTest(void)
+static void initialize(void)
 {
   const TestParameters parameters = {
     .mappableBlocks    = 256,
@@ -137,7 +137,7 @@ static CU_TestInfo vdoTests[] = {
 static CU_SuiteInfo vdoSuite = {
   .name  = "journal replay (JournalReplay_t1)",
   .initializerWithArguments = NULL,
-  .initializer              = initializeTest,
+  .initializer              = initialize,
   .cleaner                  = tearDownVDOTest,
   .tests                    = vdoTests
 };

@@ -147,6 +147,15 @@ void restartVDO(bool format);
 void reloadVDO(struct device_config deviceConfig);
 
 /**
+ * The lowest level test initialization. This should only be used directly in
+ * cases where fine control of the initialization is required. This function is
+ * called from all of the other initializers.
+ *
+ * @param parameters  The test parameters
+ **/
+void initializeTest(const TestParameters *parameters);
+
+/**
  * Initialize the layer queues but no VDO.
  *
  * @param parameters  The test parameters (may be NULL)

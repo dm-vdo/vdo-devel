@@ -47,6 +47,7 @@ static const TestParameters DEFAULT_PARAMETERS = {
   .enableCompression    = false,
   .disableDeduplication = false,
   .noIndexRegion        = false,
+  .backingFile          = NULL,
 };
 
 static char *DEVICE_NAME = "test device name";
@@ -140,6 +141,11 @@ static TestParameters applyDefaults(const TestParameters *parameters)
     // will hang if it expects there to be an index when there won't be.
     applied.disableDeduplication = true;
   }
+
+  if (parameters->backingFile) {
+    applied.backingFile = parameters->backingFile;
+  }
+
   return applied;
 }
 
@@ -353,6 +359,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
     .vdoRegionStart      = indexBlocks + 1,
     .synchronousStorage  = params.synchronousStorage,
     .dataFormatter       = params.dataFormatter,
+    .backingFile         = params.backingFile,
   };
 
   if ((parameters == NULL) || (parameters->modifier == NULL)) {

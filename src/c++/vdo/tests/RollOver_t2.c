@@ -25,7 +25,7 @@ static block_count_t viosWaitingForHashLock;
 /**
  * Test-specific initialization.
  **/
-static void initializeTest(void)
+static void initialize(void)
 {
   const TestParameters parameters = {
     .mappableBlocks      = 2,
@@ -167,7 +167,7 @@ static CU_TestInfo vdoTests[] = {
 static CU_SuiteInfo vdoSuite = {
   .name                     = "Roll over of full VDO (RollOver_t2)",
   .initializerWithArguments = NULL,
-  .initializer              = initializeTest,
+  .initializer              = initialize,
   .cleaner                  = tearDownVDOTest,
   .tests                    = vdoTests
 };

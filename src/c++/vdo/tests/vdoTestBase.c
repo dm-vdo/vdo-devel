@@ -284,15 +284,21 @@ void reloadVDO(struct device_config deviceConfig)
 /**
  * Perform common test initialization.
  **/
-static void initializeTest(const TestParameters *parameters)
+void initializeTest(const TestParameters *parameters)
 {
   vdo_initialize_device_registry_once();
   initialize_kernel_kobject();
   restorePacking();
   configuration = makeTestConfiguration(parameters);
-  VDO_ASSERT_SUCCESS(makeRAMLayer(configuration.config.physical_blocks,
-                                  !configuration.synchronousStorage,
-                                  &synchronousLayer));
+  if (configuration.backingFile != NULL) {
+    makeRAMLayerFromFile(configuration.backingFile,
+                         !configuration.synchronousStorage,
+                         &synchronousLayer);
+  } else {
+    VDO_ASSERT_SUCCESS(makeRAMLayer(configuration.config.physical_blocks,
+                                    !configuration.synchronousStorage,
+                                    &synchronousLayer));
+  }
   initializeAsyncLayer(synchronousLayer);
   clearHooks();
   initializeDataBlocks(configuration.dataFormatter);
@@ -315,7 +321,7 @@ void initializeDefaultBasicTest(void)
 void initializeVDOTest(const TestParameters *parameters)
 {
   initializeTest(parameters);
-  restartVDO(true);
+  restartVDO((parameters == NULL) || (parameters->backingFile == NULL));
 }
 
 /**********************************************************************/
