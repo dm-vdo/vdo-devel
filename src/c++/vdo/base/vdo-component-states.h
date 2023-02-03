@@ -529,15 +529,23 @@ const char * __must_check vdo_get_journal_operation_name(enum journal_operation 
  *                                          header.
  * @header: The unpacked block header to compare against.
  * @sector: The packed sector to check.
+ * @sectorNumber: The number of the sector being checked.
  *
  * Return: true if the sector matches the block header.
  */
 static inline bool __must_check
 vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
-				     const struct packed_journal_sector *sector)
+				     const struct packed_journal_sector *sector,
+				     u8 sector_number)
 {
-	return ((header->check_byte == sector->check_byte) &&
-		(header->recovery_count == sector->recovery_count));
+	if ((header->check_byte != sector->check_byte) ||
+	    (header->recovery_count != sector->recovery_count))
+		return false;
+
+	if (sector_number == 7)
+		return sector->entry_count <= RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR;
+
+	return sector->entry_count <= RECOVERY_JOURNAL_ENTRIES_PER_SECTOR;
 }
 
 /**

@@ -530,7 +530,7 @@ static void findRecoveryJournalEntries(logical_block_number_t lbn)
           bool isSequenceNumberPossible
             = isSequenceNumberPossibleForOffset(&block.header, i);
           bool isSectorValid
-            = vdo_is_valid_recovery_journal_sector(&block.header, sector);
+            = vdo_is_valid_recovery_journal_sector(&block.header, sector, j);
 
           printf("found LBN %llu at offset %llu"
                  " (block %svalid, sequence number %llu %spossible), "

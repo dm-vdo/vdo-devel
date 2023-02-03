@@ -1370,7 +1370,7 @@ static bool prepare_to_apply_journal_entries(struct recovery_completion *recover
 				min_t(journal_entry_count_t, sector->entry_count, block_entries);
 
 			/* A bad sector means that this block was torn. */
-			if (!vdo_is_valid_recovery_journal_sector(&header, sector))
+			if (!vdo_is_valid_recovery_journal_sector(&header, sector, j))
 				break;
 
 			if (sector_entries > 0) {
@@ -2016,7 +2016,7 @@ static int extract_journal_entries(struct rebuild_completion *rebuild)
 			if (block_entries == 0)
 				break;
 
-			if (!vdo_is_valid_recovery_journal_sector(&header, sector)) {
+			if (!vdo_is_valid_recovery_journal_sector(&header, sector, j)) {
 				block_entries -= min_t(journal_entry_count_t,
 						       block_entries,
 						       RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
