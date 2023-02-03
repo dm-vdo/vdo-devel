@@ -101,6 +101,17 @@ struct block_map {
 	struct block_map_zone zones[];
 };
 
+/**
+ * typedef vdo_entry_callback - A function to be called for each allocated PBN when traversing the
+ *                              forest.
+ * @pbn: A PBN of a tree node.
+ * @completion: The parent completion of the traversal.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+typedef int vdo_entry_callback(physical_block_number_t pbn, struct vdo_completion *completion);
+
+
 static inline struct block_map_page * __must_check
 vdo_as_block_map_page(struct tree_page *tree_page)
 {
@@ -123,6 +134,26 @@ void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone);
 #ifdef INTERNAL
 bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
 #endif /* INTERNAL */
+
+struct forest;
+
+struct tree_page * __must_check
+vdo_get_tree_page_by_index(struct forest *forest,
+			   root_count_t root_index,
+			   height_t height,
+			   page_number_t page_index);
+
+int __must_check vdo_make_forest(struct block_map *map, block_count_t entries);
+
+void vdo_free_forest(struct forest *forest);
+
+void vdo_abandon_forest(struct block_map *map);
+
+void vdo_replace_forest(struct block_map *map);
+
+void vdo_traverse_forest(struct block_map *map,
+			 vdo_entry_callback *callback,
+			 struct vdo_completion *parent);
 
 int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,
 				      block_count_t logical_blocks,

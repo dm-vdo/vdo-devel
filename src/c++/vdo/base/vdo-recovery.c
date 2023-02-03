@@ -14,7 +14,6 @@
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
-#include "forest.h"
 #include "int-map.h"
 #include "io-submitter.h"
 #include "journal-point.h"

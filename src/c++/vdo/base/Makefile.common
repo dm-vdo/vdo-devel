@@ -22,7 +22,6 @@ BASE_OBJS :=     			\
 	dirty-lists.o			\
         dm-vdo-target.o                 \
 	flush.o				\
-	forest.o			\
 	header.o			\
 	heap.o				\
 	instance-number.o		\

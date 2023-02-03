@@ -284,8 +284,6 @@ tarballs:
             - dump.h
             - flush.c
             - flush.h
-            - forest.c
-            - forest.h
             - header.c
             - header.h
             - heap.c
