@@ -204,7 +204,9 @@ sub loadFromTar {
                cleaner => ("sudo dkms remove $modName/$modVer --all"
                            . " && sync"));
 
-  $self->_step(command => ("sudo dkms install $modName/$modVer"));
+  my $makeLog = "/var/lib/dkms/$modName/$modVer/build/make.log";
+  $self->_step(command    => "sudo dkms install $modName/$modVer",
+               diagnostic => "cat $makeLog");
 
   # Try to flush the contents of the modules files out to disk in case of a
   # crash.
