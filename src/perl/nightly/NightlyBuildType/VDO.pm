@@ -62,14 +62,13 @@ my $SUITE_PROPERTIES = {
     scale       => "VDO-PMI",
     extraArgs   => "--clientClass=VDO-PMI",
   },
-# VDO-5512
-#  vdoRawhideTests => {
-#    displayName  => "VDO_Latest_Kernel_Tests",
-#    suiteName    => "rawhideTests",
-#    scale        => "PFARM",
-#    extraArgs    => "--clientClass=PFARM",
-#    osClasses    => ["RAWHIDE"],
-#  },
+  vdoRawhideTests => {
+    displayName  => "VDO_Latest_Kernel_Tests",
+    suiteName    => "rawhideTests",
+    scale        => "PFARM",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["RAWHIDE"],
+  },
   vdoDebugKernelTests => {
     displayName  => "VDO_Debug_Kernel_Tests",
     suiteName    => "debugKernelTests",
