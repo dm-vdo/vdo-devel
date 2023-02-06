@@ -25,6 +25,8 @@ enum {
 /* Used to indicate that the page holding the location of a tree root has been "loaded". */
 extern const physical_block_number_t VDO_INVALID_PBN;
 
+struct forest;
+
 struct tree_page {
 	struct waiter waiter;
 
@@ -133,24 +135,12 @@ void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone);
 
 #ifdef INTERNAL
 bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
-#endif /* INTERNAL */
-
-struct forest;
-
 struct tree_page * __must_check
-vdo_get_tree_page_by_index(struct forest *forest,
-			   root_count_t root_index,
-			   height_t height,
-			   page_number_t page_index);
-
-int __must_check vdo_make_forest(struct block_map *map, block_count_t entries);
-
-void vdo_free_forest(struct forest *forest);
-
-void vdo_abandon_forest(struct block_map *map);
-
-void vdo_replace_forest(struct block_map *map);
-
+get_tree_page_by_index(struct forest *forest,
+		       root_count_t root_index,
+		       height_t height,
+		       page_number_t page_index);
+#endif /* INTERNAL */
 void vdo_traverse_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent);

@@ -100,14 +100,46 @@ get_block_map_zone(struct data_vio *data_vio)
 	return data_vio->logical.zone->block_map_zone;
 }
 
+/**
+ * get_tree_page_by_index() - Get the tree page for a given height and page index.
+ * @forest: The forest which holds the page.
+ * @root_index: The index of the tree that holds the page.
+ * @height: The height of the desired page.
+ * @page_index: The index of the desired page.
+ *
+ * Return: The requested page.
+ */
+EXTERNAL_STATIC struct tree_page * __must_check
+get_tree_page_by_index(struct forest *forest,
+		       root_count_t root_index,
+		       height_t height,
+		       page_number_t page_index)
+{
+	page_number_t offset = 0;
+	size_t segment;
+
+	for (segment = 0; segment < forest->segments; segment++) {
+		page_number_t border = forest->boundaries[segment].levels[height - 1];
+
+		if (page_index < border) {
+			struct block_map_tree *tree = &forest->trees[root_index];
+
+			return &(tree->segments[segment].levels[height - 1][page_index - offset]);
+		}
+		offset = border;
+	}
+
+	return NULL;
+}
+
 /* Get the page referred to by the lock's tree slot at its current height. */
 static inline struct tree_page *
 get_tree_page(const struct block_map_zone *zone, const struct tree_lock *lock)
 {
-	return vdo_get_tree_page_by_index(zone->block_map->forest,
-					  lock->root_index,
-					  lock->height,
-					  lock->tree_slots[lock->height].page_index);
+	return get_tree_page_by_index(zone->block_map->forest,
+				      lock->root_index,
+				      lock->height,
+				      lock->tree_slots[lock->height].page_index);
 }
 
 /**
@@ -1012,7 +1044,7 @@ vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number)
 
 	page_index /= VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
-	tree_page = vdo_get_tree_page_by_index(map->forest, root_index, 1, page_index);
+	tree_page = get_tree_page_by_index(map->forest, root_index, 1, page_index);
 	page = (struct block_map_page *) tree_page->page_buffer;
 	if (!page->header.initialized)
 		return VDO_ZERO_BLOCK;
@@ -1039,37 +1071,6 @@ void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone)
 		return;
 
 	enqueue_page(page, zone);
-}
-
-/**
- * vdo_get_tree_page_by_index() - Get the tree page for a given height and page index.
- * @forest: The forest which holds the page.
- * @root_index: The index of the tree that holds the page.
- * @height: The height of the desired page.
- * @page_index: The index of the desired page.
- *
- * Return: The requested page.
- */
-struct tree_page *vdo_get_tree_page_by_index(struct forest *forest,
-					     root_count_t root_index,
-					     height_t height,
-					     page_number_t page_index)
-{
-	page_number_t offset = 0;
-	size_t segment;
-
-	for (segment = 0; segment < forest->segments; segment++) {
-		page_number_t border = forest->boundaries[segment].levels[height - 1];
-
-		if (page_index < border) {
-			struct block_map_tree *tree = &forest->trees[root_index];
-
-			return &(tree->segments[segment].levels[height - 1][page_index - offset]);
-		}
-		offset = border;
-	}
-
-	return NULL;
 }
 
 static int make_segment(struct forest *old_forest,
@@ -1182,14 +1183,14 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 }
 
 /**
- * vdo_make_forest() - Make a collection of trees for a block_map, expanding the existing forest if
- *                     there is one.
+ * make_forest() - Make a collection of trees for a block_map, expanding the existing forest if
+ *                 there is one.
  * @map: The block map.
  * @entries: The number of entries the block map will hold.
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_make_forest(struct block_map *map, block_count_t entries)
+static int make_forest(struct block_map *map, block_count_t entries)
 {
 	struct forest *forest, *old_forest = map->forest;
 	struct boundary new_boundary, *old_boundary = NULL;
@@ -1225,43 +1226,15 @@ int vdo_make_forest(struct block_map *map, block_count_t entries)
 }
 
 /**
- * vdo_free_forest() - Free a forest and all of the segments it contains.
- * @forest: The forest to free.
- */
-void vdo_free_forest(struct forest *forest)
-{
-	if (forest == NULL)
-		return;
-
-	deforest(forest, 0);
-}
-
-/**
- * vdo_abandon_forest() - Abandon the unused next forest from a block_map.
+ * replace_forest() - Replace a block_map's forest with the already-prepared larger forest.
  * @map: The block map.
  */
-void vdo_abandon_forest(struct block_map *map)
-{
-	struct forest *forest = map->next_forest;
-
-	map->next_forest = NULL;
-	if (forest != NULL)
-		deforest(forest, forest->segments - 1);
-
-	map->next_entry_count = 0;
-}
-
-/**
- * vdo_replace_forest() - Replace a block_map's forest with the already-prepared larger forest.
- * @map: The block map.
- */
-void vdo_replace_forest(struct block_map *map)
+static void replace_forest(struct block_map *map)
 {
 	if (map->next_forest != NULL) {
 		if (map->forest != NULL)
 			deforest(map->forest, map->forest->segments);
-		map->forest = map->next_forest;
-		map->next_forest = NULL;
+		map->forest = UDS_FORGET(map->next_forest);
 	}
 
 	map->entry_count = map->next_entry_count;
@@ -1640,7 +1613,8 @@ void vdo_free_block_map(struct block_map *map)
 		uninitialize_block_map_zone(&map->zones[zone]);
 
 	vdo_abandon_block_map_growth(map);
-	vdo_free_forest(UDS_FORGET(map->forest));
+	if (map->forest != NULL)
+		deforest(UDS_FORGET(map->forest), 0);
 	UDS_FREE(UDS_FORGET(map->action_manager));
 	UDS_FREE(map);
 }
@@ -1682,13 +1656,13 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 	map->journal = journal;
 	map->nonce = nonce;
 
-	result = vdo_make_forest(map, map->entry_count);
+	result = make_forest(map, map->entry_count);
 	if (result != VDO_SUCCESS) {
 		vdo_free_block_map(map);
 		return result;
 	}
 
-	vdo_replace_forest(map);
+	replace_forest(map);
 
 	map->zone_count = thread_config->logical_zone_count;
 	for (zone = 0; zone < map->zone_count; zone++) {
@@ -1845,13 +1819,13 @@ int vdo_prepare_to_grow_block_map(struct block_map *map, block_count_t new_logic
 		return VDO_SUCCESS;
 	}
 
-	return vdo_make_forest(map, new_logical_blocks);
+	return make_forest(map, new_logical_blocks);
 }
 
 /* Implements vdo_action_preamble */
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
-	vdo_replace_forest(context);
+	replace_forest(context);
 	vdo_complete_completion(completion);
 }
 
@@ -1868,7 +1842,12 @@ void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent)
 
 void vdo_abandon_block_map_growth(struct block_map *map)
 {
-	vdo_abandon_forest(map);
+	struct forest *forest = UDS_FORGET(map->next_forest);
+
+	if (forest != NULL)
+		deforest(forest, forest->segments - 1);
+
+	map->next_entry_count = 0;
 }
 
 /* Release the page completion and then continue the requester. */

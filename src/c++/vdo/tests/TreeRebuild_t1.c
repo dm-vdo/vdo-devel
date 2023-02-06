@@ -46,8 +46,7 @@ static void initialize(void)
 static struct block_map_page *getTreePageFromForest(struct forest *forest,
                                                     root_count_t   rootIndex)
 {
-  return vdo_as_block_map_page(vdo_get_tree_page_by_index(forest, rootIndex, 2,
-                                                          0));
+  return vdo_as_block_map_page(get_tree_page_by_index(forest, rootIndex, 2, 0));
 }
 
 /**
@@ -59,9 +58,7 @@ static void corruptTreePageInForest(struct forest            *forest,
                                     enum block_mapping_state  state,
                                     physical_block_number_t   pbn)
 {
-  struct tree_page      *treePage = vdo_get_tree_page_by_index(forest,
-                                                               rootIndex,
-                                                               2, 0);
+  struct tree_page      *treePage = get_tree_page_by_index(forest, rootIndex, 2, 0);
   struct block_map_page *page     = vdo_as_block_map_page(treePage);
   page->entries[slot]             = vdo_pack_block_map_entry(pbn, state);
   vdo_write_tree_page(treePage, zone);
