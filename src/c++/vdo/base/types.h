@@ -6,9 +6,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <linux/compiler_attributes.h>
 #include <linux/types.h>
-
-#include "compiler.h"
 
 /* A size type in blocks. */
 typedef u64 block_count_t;

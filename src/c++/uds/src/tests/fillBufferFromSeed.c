@@ -5,7 +5,6 @@
 
 #include <linux/murmurhash3.h>
 
-#include "compiler.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 

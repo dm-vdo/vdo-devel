@@ -9,7 +9,6 @@
 #include <linux/murmurhash3.h>
 #include <linux/random.h>
 
-#include "compiler.h"
 #include "config.h"
 #include "delta-index.h"
 #include "hash-utils.h"

@@ -6,7 +6,6 @@
 #ifndef REQUEST_QUEUE_H
 #define REQUEST_QUEUE_H
 
-#include "compiler.h"
 #include "uds.h"
 
 /*

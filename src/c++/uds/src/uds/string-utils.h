@@ -10,12 +10,12 @@
 #include <linux/kernel.h>
 #include <linux/string.h>
 #else
+#include <linux/compiler.h>
+#include <linux/types.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #endif
-
-#include "compiler.h"
 
 /* Utilities related to string manipuation */
 

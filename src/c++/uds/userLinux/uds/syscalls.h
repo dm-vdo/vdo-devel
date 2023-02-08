@@ -6,9 +6,9 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H 1
 
+#include <linux/types.h>
 #include <errno.h>
 
-#include "compiler.h"
 #include "errors.h"
 #include "logger.h"
 

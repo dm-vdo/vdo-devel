@@ -9,7 +9,6 @@
 #include <linux/random.h>
 
 #include "buffer.h"
-#include "compiler.h"
 #include "config.h"
 #include "logger.h"
 #include "memory-alloc.h"

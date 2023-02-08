@@ -13,7 +13,6 @@
 #include <sys/stat.h>
 
 #include "common.h"
-#include "compiler.h"
 
 /**
  * Determine whether or not the given path is a directory

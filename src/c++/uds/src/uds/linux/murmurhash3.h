@@ -7,10 +7,8 @@
 #ifndef _MURMURHASH3_H_
 #define _MURMURHASH3_H_
 
+#include <linux/compiler.h>
 #include <linux/types.h>
-#ifndef __KERNEL__
-#include "compiler.h"
-#endif
 
 void murmurhash3_128(const void *key, int len, u32 seed, void *out);
 

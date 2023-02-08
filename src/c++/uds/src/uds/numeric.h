@@ -12,8 +12,6 @@
 #endif
 #include <linux/types.h>
 
-#include "compiler.h"
-
 /*
  * These utilities encode or decode a number from an offset in a larger data buffer and then
  * advance the offset pointer to the next field in the buffer.

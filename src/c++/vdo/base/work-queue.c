@@ -8,6 +8,7 @@
 #include <linux/atomic.h>
 #include <linux/cache.h>
 #include <linux/completion.h>
+#include <linux/err.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 #ifndef VDO_UPSTREAM

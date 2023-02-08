@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #endif
 
-#include "compiler.h"
 #include "permassert.h"
 #ifdef __KERNEL__
 #include "thread-registry.h"

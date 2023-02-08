@@ -6,7 +6,8 @@
 #ifndef PERMASSERT_H
 #define PERMASSERT_H
 
-#include "compiler.h"
+#include <linux/compiler.h>
+
 #include "errors.h"
 
 /* Utilities for asserting that certain conditions are met */

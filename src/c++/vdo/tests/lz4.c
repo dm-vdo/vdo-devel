@@ -6,8 +6,7 @@
  * $Id$
  */
 
-// Get likely(), unlikely().
-#include "compiler.h"
+#include <linux/compiler.h>
 
 /*
    LZ4 - Fast LZ compression algorithm

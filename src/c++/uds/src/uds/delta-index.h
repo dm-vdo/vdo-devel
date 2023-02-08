@@ -8,7 +8,6 @@
 
 #include <linux/cache.h>
 
-#include "compiler.h"
 #include "config.h"
 #include "io-factory.h"
 #include "numeric.h"

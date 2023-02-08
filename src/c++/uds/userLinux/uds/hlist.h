@@ -9,8 +9,6 @@
 
 #include <linux/atomic.h>
 
-#include "compiler.h"
-
 /*
  * An "hlist" is a doubly linked list with the listhead being a single pointer
  * to the head of the list.

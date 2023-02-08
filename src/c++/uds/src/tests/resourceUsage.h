@@ -6,7 +6,6 @@
 #ifndef RESOURCE_USAGE_H
 #define RESOURCE_USAGE_H 1
 
-#include "compiler.h"
 #include "time-utils.h"
 
 #ifndef __KERNEL__

@@ -11,7 +11,7 @@
 #ifndef _TOOLS_LINUX_BITOPS_H_
 #define _TOOLS_LINUX_BITOPS_H_
 
-#include "compiler.h"
+#include <linux/compiler.h> 
 
 #include "const.h"
 

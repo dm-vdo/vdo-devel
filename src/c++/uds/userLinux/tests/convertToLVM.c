@@ -7,6 +7,7 @@
  */
 
 #include <linux/dm-bufio.h>
+#include <linux/err.h>
 
 #include "config.h"
 #include "errors.h"

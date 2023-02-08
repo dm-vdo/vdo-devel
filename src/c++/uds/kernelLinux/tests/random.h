@@ -8,8 +8,6 @@
 
 #include <linux/random.h>
 
-#include "compiler.h"
-
 #define RAND_MAX 2147483647
 
 static inline long random(void)

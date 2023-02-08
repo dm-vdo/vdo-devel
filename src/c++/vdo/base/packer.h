@@ -8,8 +8,6 @@
 
 #include <linux/list.h>
 
-#include "compiler.h"
-
 #include "admin-state.h"
 #include "constants.h"
 #include "statistics.h"

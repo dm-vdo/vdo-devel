@@ -6,6 +6,7 @@
 #include "uds-threads.h"
 
 #include <linux/completion.h>
+#include <linux/err.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
 

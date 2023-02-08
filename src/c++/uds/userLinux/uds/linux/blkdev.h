@@ -9,9 +9,8 @@
 #ifndef LINUX_BLKDEV_H
 #define LINUX_BLKDEV_H
 
+#include <linux/compiler_attributes.h>
 #include <linux/types.h>
-
-#include "compiler.h"
 
 #define SECTOR_SHIFT 9
 #define SECTOR_SIZE 512
@@ -58,7 +57,7 @@ blkdev_get_by_dev(dev_t dev __always_unused,
 		  void *holder __always_unused)
 {
 	/* This function will not get called in userspace. */
-	return ERR_PTR(0);
+	return 0;
 }
 
 /**********************************************************************/

@@ -20,7 +20,6 @@
 #include <stdbool.h>
 #endif
 
-#include "compiler.h"
 #include "errors.h"
 #include "time-utils.h"
 

@@ -6,8 +6,10 @@
 #ifndef RADIX_SORT_H
 #define RADIX_SORT_H
 
-#include "compiler.h"
+#ifndef __KERNEL__
+#include <linux/compiler_attributes.h>
 
+#endif
 /*
  * Radix sort is implemented using an American Flag sort, an unstable, in-place 8-bit radix
  * exchange sort. This is adapted from the algorithm in the paper by Peter M. McIlroy, Keith

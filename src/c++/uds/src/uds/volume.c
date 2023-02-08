@@ -7,9 +7,9 @@
 
 #include <linux/atomic.h>
 #include <linux/dm-bufio.h>
+#include <linux/err.h>
 
 #include "chapter-index.h"
-#include "compiler.h"
 #include "config.h"
 #ifdef TEST_INTERNAL
 #include "dory.h"

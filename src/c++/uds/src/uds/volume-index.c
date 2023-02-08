@@ -6,11 +6,11 @@
 
 #include <linux/bits.h>
 #include <linux/cache.h>
+#include <linux/compiler.h>
 #include <linux/log2.h>
 #include <linux/limits.h>
 
 #include "buffer.h"
-#include "compiler.h"
 #include "config.h"
 #include "errors.h"
 #include "geometry.h"

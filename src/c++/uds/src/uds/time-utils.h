@@ -6,12 +6,12 @@
 #ifndef TIME_UTILS_H
 #define TIME_UTILS_H
 
-#include "compiler.h"
-
 #ifdef __KERNEL__
 #include <linux/ktime.h>
 #include <linux/time.h>
-#endif
+#else
+#include <linux/compiler.h>
+#endif /* __KERNEL__ */
 #include <linux/types.h>
 #ifndef __KERNEL__
 #include <sys/time.h>

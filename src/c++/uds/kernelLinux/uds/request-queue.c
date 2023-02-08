@@ -6,9 +6,9 @@
 #include "request-queue.h"
 
 #include <linux/atomic.h>
+#include <linux/compiler.h>
 #include <linux/wait.h>
 
-#include "compiler.h"
 #include "funnel-queue.h"
 #include "logger.h"
 #include "memory-alloc.h"

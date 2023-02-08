@@ -8,7 +8,6 @@
 #include <linux/atomic.h>
 #include <linux/cache.h>
 
-#include "compiler.h"
 #include "event-count.h"
 #include "funnel-queue.h"
 #include "logger.h"

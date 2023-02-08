@@ -6,7 +6,6 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H 1
 
-#include "compiler.h"
 #include "uds.h"
 
 /*

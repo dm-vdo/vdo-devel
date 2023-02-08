@@ -6,7 +6,8 @@
 #ifndef WAIT_QUEUE_H
 #define WAIT_QUEUE_H
 
-#include "compiler.h"
+#include <linux/compiler.h>
+#include <linux/types.h>
 
 /**
  * DOC: Wait queues.

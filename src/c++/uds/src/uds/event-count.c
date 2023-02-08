@@ -66,9 +66,9 @@
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
+#include <linux/compiler.h>
 
 #include "common.h"
-#include "compiler.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"

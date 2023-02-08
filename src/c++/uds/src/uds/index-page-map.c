@@ -6,7 +6,6 @@
 #include "index-page-map.h"
 
 #include "buffer.h"
-#include "compiler.h"
 #include "errors.h"
 #include "hash-utils.h"
 #include "logger.h"

@@ -6,7 +6,6 @@
 #ifndef ALBTEST_H
 #define ALBTEST_H
 
-#include "compiler.h"
 #include "uds.h"
 
 typedef struct {

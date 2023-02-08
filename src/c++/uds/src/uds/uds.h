@@ -15,7 +15,6 @@
 #include <time.h>
 #endif
 
-#include "compiler.h"
 #include "funnel-queue.h"
 
 /*

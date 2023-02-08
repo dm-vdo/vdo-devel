@@ -6,6 +6,7 @@
 #include <linux/dm-bufio.h>
 
 #include <linux/blkdev.h>
+#include <linux/err.h>
 
 #include "fileUtils.h"
 #include "logger.h"

@@ -7,10 +7,10 @@
 #ifndef MINISYSLOG_H
 #define MINISYSLOG_H 1
 
+#include <linux/compiler_attributes.h>
+
 #include <syslog.h>
 #include <stdarg.h>
-
-#include "compiler.h"
 
 /**
  * @file

@@ -9,8 +9,6 @@
 #include <linux/atomic.h>
 #include <linux/cache.h>
 
-#include "compiler.h"
-
 /*
  * A funnel queue is a simple (almost) lock-free queue that accepts entries from multiple threads
  * (multi-producer) and delivers them to a single thread (single-consumer). "Funnel" is an attempt

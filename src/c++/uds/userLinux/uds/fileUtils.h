@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 
 #include "common.h"
-#include "compiler.h"
 
 enum file_access {
 	FU_READ_ONLY = 0,                // open file with read-only access

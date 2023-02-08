@@ -140,7 +140,6 @@ tarballs:
             - buffer.[hc]
             - chapter-index.[hc]
             - common.h
-            - compiler.h
             - config.[hc]
             - cpu.h
             - delta-index.[hc]
@@ -213,8 +212,10 @@ tarballs:
             - bits.h
             - blkdev.h
             - cache.h
+            - compiler.h
             - compiler_attributes.h
             - dm-bufio.h
+            - err.h
             - limits.h
             - log2.h
             - random.h
@@ -375,7 +376,6 @@ tarballs:
             - chapter-index.c
             - chapter-index.h
             - common.h
-            - compiler.h
             - config.c
             - config.h
             - cpu.h

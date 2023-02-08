@@ -9,7 +9,6 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 
-#include "compiler.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"

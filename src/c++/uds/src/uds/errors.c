@@ -5,14 +5,15 @@
 
 #include "errors.h"
 
+#include <linux/compiler.h>
+#ifdef __KERNEL__
+#include <linux/errno.h>
+#endif
+
 #include "common.h"
 #include "logger.h"
 #include "permassert.h"
 #include "string-utils.h"
-
-#ifdef __KERNEL__
-#include <linux/errno.h>
-#endif
 
 static const struct error_info successful = { "UDS_SUCCESS", "Success" };
 

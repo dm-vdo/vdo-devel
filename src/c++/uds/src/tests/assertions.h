@@ -6,9 +6,9 @@
 #ifndef ASSERTIONS_H
 #define ASSERTIONS_H
 
+#include <linux/err.h>
 #include <linux/types.h>
 
-#include "compiler.h"
 #include "errors.h"
 #include "string-utils.h"
 #ifdef __KERNEL__
@@ -68,6 +68,8 @@ static inline void cuDie(void)
   assert(0);
 #endif
 }
+
+#define __STRING(x) #x
 
 #define CU_FAIL(...)         \
   do {                       \

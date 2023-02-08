@@ -8,8 +8,6 @@
 
 #include <linux/cache.h>
 
-#include "compiler.h"
-
 /**
  * prefetch_address() - Minimize cache-miss latency by attempting to move data into a CPU cache
  *                      before it is accessed.

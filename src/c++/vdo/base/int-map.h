@@ -6,9 +6,8 @@
 #ifndef INT_MAP_H
 #define INT_MAP_H
 
+#include <linux/compiler.h>
 #include <linux/types.h>
-
-#include "compiler.h"
 
 /**
  * DOC: int_map

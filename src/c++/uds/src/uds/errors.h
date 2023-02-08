@@ -6,7 +6,8 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
-#include "compiler.h"
+#include <linux/compiler.h>
+#include <linux/types.h>
 
 /* Custom error codes and error-related utilities for UDS */
 

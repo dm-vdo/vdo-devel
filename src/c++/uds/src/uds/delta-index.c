@@ -5,11 +5,11 @@
 #include "delta-index.h"
 
 #include <linux/bits.h>
+#include <linux/compiler.h>
 #include <linux/limits.h>
 #include <linux/log2.h>
 
 #include "buffer.h"
-#include "compiler.h"
 #include "config.h"
 #include "cpu.h"
 #include "errors.h"

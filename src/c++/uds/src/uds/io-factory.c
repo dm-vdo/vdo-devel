@@ -7,10 +7,10 @@
 
 #include <linux/atomic.h>
 #include <linux/blkdev.h>
+#include <linux/err.h>
 #include <linux/mount.h>
 
 #include "common.h"
-#include "compiler.h"
 #ifdef TEST_INTERNAL
 #include "dory.h"
 #endif /* TEST_INTERNAL */

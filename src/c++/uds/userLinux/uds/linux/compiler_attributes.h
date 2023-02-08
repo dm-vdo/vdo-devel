@@ -5,8 +5,8 @@
  *
  * Copyright Red Hat
  */
-#ifndef __LINUX_COMPILER_ATTRIBUTES_H
-#define __LINUX_COMPILER_ATTRIBUTES_H
+#ifndef LINUX_COMPILER_ATTRIBUTES_H
+#define LINUX_COMPILER_ATTRIBUTES_H
 
 #define __always_unused __attribute__((unused))
 #define __maybe_unused  __attribute__((unused))
@@ -16,4 +16,10 @@
 #define __printf(a, b)  __attribute__((__format__(printf, a, b)))
 #define __aligned(x)    __attribute__((__aligned__(x)))
 
-#endif /* __LINUX_COMPILER_ATTRIBUTES_H */
+#if __has_attribute(__fallthrough__)
+#define fallthrough	__attribute__((__fallthrough__))
+#else
+#define fallthrough	do {} while (0)  /* fallthrough */
+#endif
+
+#endif /* LINUX_COMPILER_ATTRIBUTES_H */

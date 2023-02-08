@@ -9,8 +9,6 @@
 #ifdef TEST_INTERNAL
 #include <linux/atomic.h>
 
-#include "compiler.h"
-
 /*
  * The Dory mechanism is used for tests that want to simulate a device that becomes read-only, i.e.
  * it will get an -EROFS on any attempt to write to it. This is a cheaper technique than actually

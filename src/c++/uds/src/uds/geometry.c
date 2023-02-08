@@ -5,6 +5,7 @@
 
 #include "geometry.h"
 
+#include <linux/compiler.h>
 #include <linux/log2.h>
 
 #include "delta-index.h"

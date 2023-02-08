@@ -7,7 +7,6 @@
 
 #include <linux/log2.h>
 
-#include "compiler.h"
 #include "config.h"
 #include "hash-utils.h"
 #include "logger.h"

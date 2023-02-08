@@ -29,7 +29,6 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
-#include "compiler.h"
 #include "event-count.h"
 #include "funnel-queue.h"
 #include "hash-utils.h"
