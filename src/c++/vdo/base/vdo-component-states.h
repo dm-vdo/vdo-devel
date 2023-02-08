@@ -15,7 +15,6 @@
 #include "journal-point.h"
 #include "packed-reference-block.h"
 #include "types.h"
-#include "vdo-component.h"
 #include "vdo-layout.h"
 
 /**
@@ -264,25 +263,12 @@ struct packed_journal_sector {
 	struct packed_recovery_journal_entry entries[];
 } __packed;
 
-struct slab_depot_state_2_0 {
-	struct slab_config slab_config;
-	physical_block_number_t first_block;
-	physical_block_number_t last_block;
-	zone_count_t zone_count;
-} __packed;
-
-extern const struct header VDO_SLAB_DEPOT_HEADER_2_0;
-
 enum {
-	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
-		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
 	/* The number of entries in each sector (except the last) when filled */
 	RECOVERY_JOURNAL_ENTRIES_PER_SECTOR =
 		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector)) /
 		 sizeof(struct packed_recovery_journal_entry)),
 	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = RECOVERY_JOURNAL_ENTRIES_PER_SECTOR * 7,
-	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
-		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
 	/* The number of entries in a v1 recovery journal block. */
 	RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK = 311,
 	/* The number of entries in each v1 sector (except the last) when filled */
@@ -292,9 +278,16 @@ enum {
 	/* The number of entries in the last sector when a block is full */
 	RECOVERY_JOURNAL_1_ENTRIES_IN_LAST_SECTOR =
 		(RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK % RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR),
-	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
-		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
 };
+
+struct slab_depot_state_2_0 {
+	struct slab_config slab_config;
+	physical_block_number_t first_block;
+	physical_block_number_t last_block;
+	zone_count_t zone_count;
+} __packed;
+
+extern const struct header VDO_SLAB_DEPOT_HEADER_2_0;
 
 /*
  * vdo_slab journal blocks may have one of two formats, depending upon whether or not any of the
@@ -427,12 +420,67 @@ enum {
 };
 
 /*
+ * The configuration of the VDO service.
+ */
+struct vdo_config {
+	block_count_t logical_blocks; /* number of logical blocks */
+	block_count_t physical_blocks; /* number of physical blocks */
+	block_count_t slab_size; /* number of blocks in a slab */
+	block_count_t recovery_journal_size; /* number of recovery journal blocks */
+	block_count_t slab_journal_blocks; /* number of slab journal blocks */
+};
+
+/* This is the structure that captures the vdo fields saved as a super block component. */
+struct vdo_component {
+	enum vdo_state state;
+	u64 complete_recoveries;
+	u64 read_only_recoveries;
+	struct vdo_config config;
+	nonce_t nonce;
+};
+
+/*
+ * A packed, machine-independent, on-disk representation of the vdo_config in the VDO component
+ * data in the super block.
+ */
+struct packed_vdo_config {
+	__le64 logical_blocks;
+	__le64 physical_blocks;
+	__le64 slab_size;
+	__le64 recovery_journal_size;
+	__le64 slab_journal_blocks;
+} __packed;
+
+/*
+ * A packed, machine-independent, on-disk representation of version 41.0 of the VDO component data
+ * in the super block.
+ */
+struct packed_vdo_component_41_0 {
+	__le32 state;
+	__le64 complete_recoveries;
+	__le64 read_only_recoveries;
+	struct packed_vdo_config config;
+	__le64 nonce;
+} __packed;
+
+/*
  * The version of the on-disk format of a VDO volume. This should be incremented any time the
  * on-disk representation of any VDO structure changes. Changes which require only online upgrade
  * steps should increment the minor version. Changes which require an offline upgrade or which can
  * not be upgraded to at all should increment the major version and set the minor version to 0.
  */
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
+
+enum {
+	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
+	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
+	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
+		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
+	VDO_COMPONENT_ENCODED_SIZE =
+		(sizeof(struct packed_version_number) + sizeof(struct packed_vdo_component_41_0)),
+};
 
 /* The entirety of the component data encoded in the VDO super block. */
 struct vdo_component_states {
@@ -806,6 +854,10 @@ static inline u8 __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_
 		(slab_size_shift - VDO_SLAB_SUMMARY_FULLNESS_HINT_BITS) :
 		0);
 }
+
+int vdo_validate_config(const struct vdo_config *config,
+			block_count_t physical_block_count,
+			block_count_t logical_block_count);
 
 void vdo_destroy_component_states(struct vdo_component_states *states);
 

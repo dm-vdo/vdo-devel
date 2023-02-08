@@ -25,7 +25,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo-component-states.h"
-#include "vdo-component.h"
 #include "vdo-page-cache.h"
 #include "vdo.h"
 #include "wait-queue.h"

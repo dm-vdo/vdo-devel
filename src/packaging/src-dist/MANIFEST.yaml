@@ -58,8 +58,6 @@ tarballs:
             - super-block-codec.c
             - super-block-codec.h
             - types.h
-            - vdo-component.c
-            - vdo-component.h
             - vdo-component-states.c
             - vdo-component-states.h
             - vdo-layout.c
@@ -346,8 +344,6 @@ tarballs:
             - types.h
             - vdo.c
             - vdo.h
-            - vdo-component.c
-            - vdo-component.h
             - vdo-component-states.c
             - vdo-component-states.h
             - vdo-layout.c

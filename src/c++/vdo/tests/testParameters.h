@@ -12,7 +12,7 @@
 #include "device-config.h"
 #include "thread-config.h"
 #include "types.h"
-#include "vdo-component.h"
+#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "dataBlocks.h"

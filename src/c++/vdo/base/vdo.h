@@ -29,7 +29,6 @@
 #endif /* __KERNEL__ */
 #include "types.h"
 #include "uds.h"
-#include "vdo-component.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "volume-geometry.h"

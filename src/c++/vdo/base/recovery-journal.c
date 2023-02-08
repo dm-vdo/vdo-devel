@@ -22,7 +22,6 @@
 #include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component.h"
 #include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"

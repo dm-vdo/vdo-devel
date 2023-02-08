@@ -29,7 +29,6 @@
 #include "status-codes.h"
 #include "super-block.h"
 #include "vdo-component-states.h"
-#include "vdo-component.h"
 #include "vdo.h"
 #include "volume-geometry.h"
 
