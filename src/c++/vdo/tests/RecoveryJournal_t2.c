@@ -45,7 +45,7 @@ const SectorPattern normalSectors[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
-  { NO_TEAR, LAST_SECTOR,  GOOD_COUNT, APPLY_ALL  },
+  { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
 };
 
 /** A full block with one sector containing an incorrect check byte */
@@ -57,7 +57,7 @@ const SectorPattern badCheckSector[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR,  FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR,  FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR,  FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
-  { NO_TEAR,  LAST_SECTOR,  GOOD_COUNT, APPLY_NONE },
+  { NO_TEAR,  FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
 };
 
 /** A full block with one sector containing an incorrect recovery count */
@@ -69,7 +69,7 @@ const SectorPattern badCountSector[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR, FULL_SECTOR,  BAD_COUNT,  APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
-  { NO_TEAR, LAST_SECTOR,  GOOD_COUNT, APPLY_NONE },
+  { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
 };
 
 /**
@@ -84,7 +84,7 @@ const SectorPattern shortSector[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
-  { NO_TEAR, LAST_SECTOR,  GOOD_COUNT, APPLY_NONE },
+  { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
 };
 
 /** A block where all sectors are full but the header's entry count is short */
@@ -96,7 +96,7 @@ const SectorPattern shortBlockSectors[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
-  { NO_TEAR, LAST_SECTOR,  GOOD_COUNT, APPLY_NONE },
+  { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_NONE },
 };
 
 /**
@@ -115,7 +115,7 @@ const SectorPattern noSectors[VDO_SECTORS_PER_BLOCK] = {
 };
 
 /**
- * A wrapped journal with a reap head at block6 and the tail at a partial
+ * A wrapped journal with a reap head at block 6 and the tail at a partial
  * block1. The reap head is 14 and the highest sequence number is 17.
  **/
 static BlockPattern shortBlockJournalTailPattern[JOURNAL_BLOCKS] = {
@@ -231,7 +231,7 @@ static BlockPattern emptyReadOnlyRebuildPattern[JOURNAL_BLOCKS] = {
 };
 
 /**
- * A entry-free journal for read-only rebuild. All but one block has
+ * An entry-free journal for read-only rebuild. All but one block has
  * a bad nonce, and the remaining block has no valid sectors.
  **/
 static BlockPattern noEntryReadOnlyRebuildPattern[JOURNAL_BLOCKS] = {

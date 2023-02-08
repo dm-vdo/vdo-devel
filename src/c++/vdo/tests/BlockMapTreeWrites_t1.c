@@ -27,9 +27,9 @@
 
 enum {
   ENTRIES_PER_BLOCK         = 16,
-  WRITES_PER_BLOCK          = ENTRIES_PER_BLOCK / 2,
+  WRITES_PER_BLOCK          = ENTRIES_PER_BLOCK,
   INTERIOR_HEIGHT           = VDO_BLOCK_MAP_TREE_HEIGHT - 1,
-  NEW_TREE_WRITES_PER_BLOCK = (ENTRIES_PER_BLOCK - INTERIOR_HEIGHT) / 2,
+  NEW_TREE_WRITES_PER_BLOCK = (ENTRIES_PER_BLOCK - INTERIOR_HEIGHT),
 };
 
 static struct vio              *blockedWriter;
@@ -123,8 +123,7 @@ static bool assertGeneration(struct vio *vio)
 {
   struct tree_page *treePage = findParentTreePage(vio);
   if (isPreFlush(vio)) {
-    CU_ASSERT_EQUAL(treePage->writing_generation,
-                    (uint8_t) (flushGeneration + 1));
+    CU_ASSERT_EQUAL(treePage->writing_generation, (uint8_t) (flushGeneration + 1));
     flushGeneration = treePage->writing_generation;
     return true;
   }
@@ -232,8 +231,7 @@ static void testBlockMapTreeWrites(void)
   root_count_t trees = 4;
   setCompletionEnqueueHook(countWriteHook);
   for (root_count_t i = 0; i < trees; i++) {
-    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0,
-              (ENTRIES_PER_BLOCK - 4) / 2, VDO_SUCCESS);
+    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0, (ENTRIES_PER_BLOCK - 4), VDO_SUCCESS);
   }
 
   block_count_t writeTarget = trees * INTERIOR_HEIGHT;
@@ -400,10 +398,11 @@ static void testBlockMapTreeGenerationRollOver(void)
 {
   initialize(16);
 
-  // Make three generations of dirty tree pages.
+  // Make 2 fewer than the era length dirty generations.
   clearState(&writeBlocked);
   setBlockVIOCompletionEnqueueHook(blockFirstNotFlusherCountAllWrites, false);
-  for (block_count_t i = 0; i < 3; i++) {
+  u32 eras = vdo_convert_maximum_age(vdo->device_config->block_map_maximum_age) - 2;
+  for (block_count_t i = 0; i < eras; i++) {
     writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE * i, 0, NEW_TREE_WRITES_PER_BLOCK,
               VDO_SUCCESS);
   }
@@ -418,7 +417,7 @@ static void testBlockMapTreeGenerationRollOver(void)
   writeData(0, 0, 1, VDO_SUCCESS);
   waitForState(&notOperating);
   removeCompletionEnqueueHook(wrapEraAdvance);
-  writeData(0, 0, 2 * WRITES_PER_BLOCK, VDO_SUCCESS);
+  writeData(0, 0, WRITES_PER_BLOCK, VDO_SUCCESS);
   blockedWriter = getBlockedVIO();
 
   block_count_t writeTarget = INTERIOR_HEIGHT - 1;
@@ -515,14 +514,21 @@ static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
    */
   writeBlocked = false;
   setBlockVIOCompletionEnqueueHook(blockNotFlusher, true);
-  writeData(0, 1, ENTRIES_PER_BLOCK, VDO_SUCCESS);
+  addCompletionEnqueueHook(wrapEraAdvance);
+  for (u8 i = 0; i < 3; i++) {
+    notOperating = false;
+    writeData(0, 1, (i == 0) ? NEW_TREE_WRITES_PER_BLOCK : ENTRIES_PER_BLOCK, VDO_SUCCESS);
+    waitForState(&notOperating);
+  }
+  removeCompletionEnqueueHook(wrapEraAdvance);
   struct vio *writer = getBlockedVIO();
 
   // Redirty one of the two waiting dirty pages
   setCompletionEnqueueHook(checkFinalWrites);
-  writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE
-              * DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT, 1,
-            ENTRIES_PER_BLOCK, VDO_SUCCESS);
+  writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE * DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+            1,
+            ENTRIES_PER_BLOCK,
+            VDO_SUCCESS);
   writeCount = 0;
   reallyEnqueueVIO(writer);
   waitForWrites(2);

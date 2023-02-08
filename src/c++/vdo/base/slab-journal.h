@@ -12,6 +12,7 @@
 
 #include "block-allocator.h"
 #include "completion.h"
+#include "data-vio.h"
 #include "journal-point.h"
 #include "slab.h"
 #include "slab-summary.h"
@@ -167,11 +168,13 @@ bool __must_check
 vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 				     physical_block_number_t pbn,
 				     enum journal_operation operation,
+				     bool increment,
 				     struct journal_point *recovery_point,
 				     struct vdo_completion *parent);
 
 void vdo_add_slab_journal_entry(struct slab_journal *journal,
-				struct data_vio *data_vio);
+				struct vdo_completion *completion,
+				struct reference_updater *updater);
 
 void vdo_adjust_slab_journal_block_reference(struct slab_journal *journal,
 					     sequence_number_t sequence_number,
@@ -206,10 +209,10 @@ void vdo_dump_slab_journal(const struct slab_journal *journal);
 
 #ifdef INTERNAL
 void vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
-				   slab_journal_payload * payload,
+				   slab_journal_payload *payload,
 				   slab_block_number sbn,
-				   enum journal_operation operation);
-
+				   enum journal_operation operation,
+				   bool increment);
 bool __must_check vdo_is_slab_journal_dirty(const struct slab_journal *journal);
 #endif
 #endif /* SLAB_JOURNAL_H */

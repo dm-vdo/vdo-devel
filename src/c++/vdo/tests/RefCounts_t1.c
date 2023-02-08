@@ -192,6 +192,7 @@ static void assertReferenceStatus(physical_block_number_t pbn,
  * @param slabJournalPoint           The journal point of the slab journal
  *                                   entry for this adjustment
  * @param operation                  The type of adjustment to perform
+ * @param increment                  True if the adjustment is an increment
  * @param expectedResult             The expected result of the adjustment
  * @param expectedFreeStatusChanged  Whether the free status should change
  **/
@@ -199,6 +200,7 @@ static void
 performAdjustment(physical_block_number_t     pbn,
                   const struct journal_point *slabJournalPoint,
                   enum journal_operation      operation,
+                  bool                        increment,
                   int                         expectedResult,
                   bool                        expectedFreeStatusChanged)
 {
@@ -206,10 +208,12 @@ performAdjustment(physical_block_number_t     pbn,
                             ? !expectedFreeStatusChanged
                             : expectedFreeStatusChanged);
   struct reference_operation referenceOperation = {
-    .pbn  = pbn,
-    .type = operation,
+    .pbn       = pbn,
+    .type      = operation,
+    .increment = increment,
   };
-  CU_ASSERT_EQUAL(vdo_adjust_reference_count(refs, referenceOperation,
+  CU_ASSERT_EQUAL(vdo_adjust_reference_count(refs,
+                                             referenceOperation,
                                              slabJournalPoint,
                                              &freeStatusChanged),
                   expectedResult);
@@ -222,12 +226,14 @@ performAdjustment(physical_block_number_t     pbn,
  * @param pbn               The physical block number to adjust
  * @param slabJournalPoint  The journal point of the slab journal entry for
  *                          this adjustment
+ * @param operation         The type of adjustment
  * @param increment         Whether the adjustment is an increment or a
  *                          decrement
  * @param expectedStatus    The expected reference status after the adjustment
  **/
 static void assertAdjustment(physical_block_number_t     pbn,
                              const struct journal_point *slabJournalPoint,
+                             enum journal_operation      operation,
                              bool                        increment,
                              enum reference_status       expectedStatus)
 {
@@ -241,7 +247,11 @@ static void assertAdjustment(physical_block_number_t     pbn,
   }
 
   block_count_t freeBefore = vdo_get_unreferenced_block_count(refs);
-  performAdjustment(pbn, slabJournalPoint, increment, VDO_SUCCESS,
+  performAdjustment(pbn,
+                    slabJournalPoint,
+                    operation,
+                    increment,
+                    VDO_SUCCESS,
                     expectedFreeStatusChanged);
   block_count_t freeAfter = vdo_get_unreferenced_block_count(refs);
 
@@ -268,7 +278,12 @@ static void assertFailedAdjustment(physical_block_number_t pbn,
 {
   enum reference_status oldStatus;
   VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &oldStatus));
-  performAdjustment(pbn, NULL, increment, expectedResult, false);
+  performAdjustment(pbn,
+                    NULL,
+                    VDO_JOURNAL_DATA_REMAPPING,
+                    increment,
+                    expectedResult,
+                    false);
   assertReferenceStatus(pbn, oldStatus);
 }
 
@@ -284,8 +299,9 @@ static void addManyReferences(physical_block_number_t pbn, uint8_t howMany)
   for (uint8_t i = 0; i < howMany; i++) {
     bool freeStatusChanged;
     struct reference_operation operation = {
-      .pbn  = pbn,
-      .type = VDO_JOURNAL_DATA_INCREMENT,
+      .pbn       = pbn,
+      .type      = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = true,
     };
     VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, operation, NULL,
                                                   &freeStatusChanged));
@@ -296,7 +312,11 @@ static void addManyReferences(physical_block_number_t pbn, uint8_t howMany)
 static void assertBlockMapIncrement(physical_block_number_t pbn)
 {
   block_count_t freeBefore = vdo_get_unreferenced_block_count(refs);
-  performAdjustment(pbn, NULL, VDO_JOURNAL_BLOCK_MAP_INCREMENT, VDO_SUCCESS,
+  performAdjustment(pbn,
+                    NULL,
+                    VDO_JOURNAL_BLOCK_MAP_REMAPPING,
+                    true,
+                    VDO_SUCCESS,
                     false);
   assertReferenceStatus(pbn, RS_SHARED);
   // The block was already counted as not free when it was provisionally
@@ -325,16 +345,16 @@ static void testBasic(void)
                   vdo_get_reference_status(refs, FIRST_BLOCK + dataBlocks,
                                            &refStatus));
 
-  assertAdjustment(1, NULL,  true, RS_SINGLE);
-  assertAdjustment(1, NULL,  true, RS_SHARED);
-  assertAdjustment(2, NULL,  true, RS_SINGLE);
-  assertAdjustment(2, NULL,  true, RS_SHARED);
-  assertAdjustment(2, NULL, false, RS_SINGLE);
-  assertAdjustment(2, NULL, false, RS_FREE);
-  assertAdjustment(1, NULL,  true, RS_SHARED);
-  assertAdjustment(1, NULL, false, RS_SHARED);
-  assertAdjustment(1, NULL, false, RS_SINGLE);
-  assertAdjustment(1, NULL, false, RS_FREE);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
+  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
+  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SHARED);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
+  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
 
   assertFailedDecrement(1);
 
@@ -343,21 +363,18 @@ static void testBasic(void)
                   vdo_get_unreferenced_block_count(refs));
   assertReferenceStatus(1, RS_PROVISIONAL);
 
-  assertAdjustment(3, NULL, true, RS_SINGLE);
-  CU_ASSERT_EQUAL(dataBlocks - 2,
-                  vdo_get_unreferenced_block_count(refs));
+  assertAdjustment(3, NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
+  CU_ASSERT_EQUAL(dataBlocks - 2, vdo_get_unreferenced_block_count(refs));
 
   assertAllocation(2);
-  CU_ASSERT_EQUAL(dataBlocks - 3,
-                  vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 3, vdo_get_unreferenced_block_count(refs));
   assertReferenceStatus(2, RS_PROVISIONAL);
 
   // Block #3 was manually incRef'ed, so it will be skipped and #4 allocated.
   assertAllocation(4);
-  CU_ASSERT_EQUAL(dataBlocks - 4,
-                  vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 4, vdo_get_unreferenced_block_count(refs));
   assertReferenceStatus(4, RS_PROVISIONAL);
-  assertAdjustment(4, NULL, false, RS_FREE);
+  assertAdjustment(4, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
   assertFailedDecrement(4);
 
   addManyReferences(5, 254);
@@ -369,14 +386,14 @@ static void testBasic(void)
   assertBlockMapIncrement(1);
 
   // Test block map increments fail for RS_FREE.
-  performAdjustment(4, NULL, VDO_JOURNAL_BLOCK_MAP_INCREMENT,
+  performAdjustment(4, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
                     VDO_REF_COUNT_INVALID, false);
   // Test block map increments fail for RS_SINGLE.
-  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_INCREMENT,
+  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
                     VDO_REF_COUNT_INVALID, false);
   // Test block map increments fail for RS_SHARED.
-  assertAdjustment(3, NULL, true, RS_SHARED);
-  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_INCREMENT,
+  assertAdjustment(3, NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SHARED);
+  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
                     VDO_REF_COUNT_INVALID, false);
 }
 
@@ -568,7 +585,7 @@ static void asyncSaveAndLoad(void)
     switch (refCount) {
     case 0:
       // Release the provisional reference.
-      assertAdjustment(pbn, NULL, false, RS_FREE);
+      assertAdjustment(pbn, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
       break;
     default:
       addManyReferences(pbn, refCount);
@@ -730,7 +747,11 @@ static void testProvisionalForDedupe(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
 
   // Unset the provisional reference.
-  assertAdjustment(FIRST_BLOCK + COUNTS_PER_BLOCK, NULL, false, RS_FREE);
+  assertAdjustment(FIRST_BLOCK + COUNTS_PER_BLOCK,
+                   NULL,
+                   VDO_JOURNAL_DATA_REMAPPING,
+                   false,
+                   RS_FREE);
   verifyRefCountsLoad();
 }
 
@@ -757,7 +778,11 @@ static void testClearProvisional(void)
 
   // Unset the provisional references.
   for (block_count_t i = 254; i < blockCount; i++) {
-    assertAdjustment(FIRST_BLOCK + i, NULL, false, RS_FREE);
+    assertAdjustment(FIRST_BLOCK + i,
+                     NULL,
+                     VDO_JOURNAL_DATA_REMAPPING,
+                     false,
+                     RS_FREE);
   }
 
   // Loading it again should automatically clear the provisional references,
@@ -781,8 +806,8 @@ static void assertReplay(slab_block_number           slabBlockNumber,
 {
   struct slab_journal_entry entry = {
     .sbn       = slabBlockNumber,
-    .operation = (increment ? VDO_JOURNAL_DATA_INCREMENT
-                            : VDO_JOURNAL_DATA_DECREMENT),
+    .increment = increment,
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
   };
   VDO_ASSERT_SUCCESS(vdo_replay_reference_count_change(loaded,
                                                        slabJournalPoint,
@@ -812,11 +837,11 @@ static void testReplay(void)
   physical_block_number_t pbn = FIRST_BLOCK + sbn;
 
   // Make the first incRef to the first block at the first point.
-  assertAdjustment(pbn, &point1, true, RS_SINGLE);
+  assertAdjustment(pbn, &point1, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
   CU_ASSERT_EQUAL(1, refs->counters[sbn]);
 
   // Make the second incRef to the first block at the second point.
-  assertAdjustment(pbn, &point2, true, RS_SHARED);
+  assertAdjustment(pbn, &point2, VDO_JOURNAL_DATA_REMAPPING, true, RS_SHARED);
 
   // Save and load the reference counts so the commit point is updated.
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);

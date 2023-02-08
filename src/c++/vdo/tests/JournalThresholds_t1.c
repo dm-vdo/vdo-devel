@@ -93,10 +93,21 @@ static void interrogateJournalUntilNotReaping(void)
   }
 }
 
+/**********************************************************************/
+static void setSlabJournalEntriesPerBlock(journal_entry_count_t entriesPerBlock)
+{
+  for (slab_count_t slab = 0; slab < vdo->depot->slab_count; slab++) {
+    struct slab_journal *slabJournal    = vdo->depot->slabs[slab]->journal;
+    slabJournal->entries_per_block      = entriesPerBlock;
+    slabJournal->full_entries_per_block = entriesPerBlock;
+    slabJournal->blocking_threshold     = slabJournal->scrubbing_threshold;
+  }
+}
+
 /**
  * Test-specific initialization.
  **/
-static void initialize(bool useSmallRecoveryJournalSize)
+static void initialize(void)
 {
   const TestParameters parameters = {
     .mappableBlocks      = 252,
@@ -115,22 +126,12 @@ static void initialize(bool useSmallRecoveryJournalSize)
   nextDataBlock = 1;
   nextDataBlock += fillPhysicalSpace(nextDataBlock, 1);
   clearCompletionEnqueueHooks();
-
   restartVDO(false);
-  if (useSmallRecoveryJournalSize) {
-    vdo->recovery_journal->entries_per_block = 128;
-  }
 
- /*
-   * Override slab journal per-block capacity to be the same as the recovery
-   * journal block size and set the blocking threshold to the scrubbing
-   * threshold.
-   */
-  for (slab_count_t slab = 0; slab < vdo->depot->slab_count; slab++) {
-    struct slab_journal *slabJournal    = vdo->depot->slabs[slab]->journal;
-    slabJournal->entries_per_block      = vdo->recovery_journal->entries_per_block;
-    slabJournal->full_entries_per_block = vdo->recovery_journal->entries_per_block;
-    slabJournal->blocking_threshold     = slabJournal->scrubbing_threshold;
+  // Slab journals are flushed.
+  for (slab_count_t slab = 1; slab < vdo->depot->slab_count; slab++) {
+    struct slab_journal *slabJournal = getVDOSlabJournal(slab);
+    CU_ASSERT_EQUAL(slabJournal->last_summarized, 2);
   }
 }
 
@@ -158,8 +159,8 @@ static void tearDownTest(void)
  **/
 static void issueOverwriteAtSlab(slab_count_t slabNumber, size_t numEntries)
 {
-  // This function can only add an even number of entries >= 4.
-  CU_ASSERT_TRUE((numEntries >= 4) && ((numEntries & 0x1) == 0x0));
+  // This function can only add an even number of entries.
+  CU_ASSERT_TRUE((numEntries & 0x1) == 0x0);
   CU_ASSERT_EQUAL(getPhysicalBlocksFree(), 0);
 
   // Trim a block in the slab to create room for an overwrite.
@@ -169,12 +170,12 @@ static void issueOverwriteAtSlab(slab_count_t slabNumber, size_t numEntries)
 
   // Issue overwrites to fill up the slab journal.
   logical_block_number_t overwriteBlock = slabLBNs2[slabNumber];
-  for (size_t remaining = numEntries - 2; remaining > 2; remaining -= 2) {
+  for (size_t remaining = numEntries - 1; remaining > 1; --remaining) {
     writeData(overwriteBlock, nextDataBlock++, 1, VDO_SUCCESS);
     CU_ASSERT_EQUAL(getPhysicalBlocksFree(), 1);
   }
 
-  // Write data to fill the empty block, which also creates two more entries.
+  // Write data to fill the empty block, which also creates one more entry.
   writeData(trimBlock, nextDataBlock++, 1, VDO_SUCCESS);
   CU_ASSERT_EQUAL(getPhysicalBlocksFree(), 0);
 }
@@ -265,7 +266,8 @@ static bool notifySlabJournalReap(struct vdo_completion *completion)
  **/
 static void testRecoveryJournalThreshold(void)
 {
-  initialize(true);
+  vdo->recovery_journal->entries_per_block = 32;
+  setSlabJournalEntriesPerBlock(32);
 
   // Check that the journal is completely reaped with respect to slabs.
   performSuccessfulAction(sampleJournal);
@@ -285,7 +287,7 @@ static void testRecoveryJournalThreshold(void)
   // Issue writes on slab 3 to fill the recovery journal to just before its
   // threshold.
   size_t remainingBlocks = sampledJournal.slab_journal_commit_threshold - 2;
-  issueOverwriteAtSlab(3, (ONE_BLOCK * remainingBlocks) - 2);
+  issueOverwriteAtSlab(3, (ONE_BLOCK * remainingBlocks));
 
   // Verify that the recovery journal has not been reaped and the threshold
   // has not been crossed.
@@ -352,7 +354,7 @@ checkRecoveryMode(struct vdo_completion *completion,
  **/
 static void testScrubSlabDuringRebuild(void)
 {
-  initialize(false);
+  setSlabJournalEntriesPerBlock(256);
   slab_count_t slabNumber = 1;
   setupSlabScrubbingLatch(slabNumber);
 
@@ -362,7 +364,7 @@ static void testScrubSlabDuringRebuild(void)
   const size_t  ONE_BLOCK           = slabJournal->entries_per_block;
   block_count_t blockingThreshold   = slabJournal->blocking_threshold;
   block_count_t blocksUntilBlocking = blockingThreshold - alreadyWritten;
-  addEntriesToSlabJournal(slabNumber, (ONE_BLOCK * blocksUntilBlocking) - 2);
+  addEntriesToSlabJournal(slabNumber, (ONE_BLOCK * blocksUntilBlocking / 2) - 2);
 
   // By now, we should have attempted to write several reference blocks.
   waitForSlabLatch(slabNumber);
@@ -372,17 +374,14 @@ static void testScrubSlabDuringRebuild(void)
   slabSummaryWriteCount = 0;
   setCompletionEnqueueHook(wrapSlabSummaryWrite);
 
-  // Use a trim and write to fill the last two entries (which will cause a slab
-  // journal, and a slab summary, write).
-  logical_block_number_t trimBlock = slabLBNs2[slabNumber];
-  discardData(trimBlock, 1, VDO_SUCCESS);
-  writeData(trimBlock, nextDataBlock++, 1, VDO_SUCCESS);
-
+  // Do one more overwrite to cause a slab journal and slab summary write.
+  issueOverwriteAtSlab(slabNumber, 2);
   waitForSlabSummaryBlockWrites(1);
   clearCompletionEnqueueHooks();
 
   // Launch a zero block write which will be blocked in the slab journal.
   setBlockVIOCompletionEnqueueHook(isRecoveryJournalBlockWrite, true);
+  logical_block_number_t trimBlock = slabLBNs2[slabNumber];
   IORequest *trim = launchIndexedWrite(trimBlock, 1, 0);
 
   // Wait until the recovery journal updates with the increment for this trim.
@@ -437,7 +436,7 @@ static CU_TestInfo vdoTests[] = {
 static CU_SuiteInfo vdoSuite = {
   .name  = "journal thresholds (JournalThresholds_t1)",
   .initializerWithArguments = NULL,
-  .initializer              = NULL,
+  .initializer              = initialize,
   .cleaner                  = tearDownTest,
   .tests                    = vdoTests
 };

@@ -71,6 +71,8 @@ static void verify(void)
 					      nonce,
 					      treeBlock));
 
+  waitForRecoveryDone();
+
   // There should be one block free since we filled, trimmed 5 blocks,
   // allocated 4 block map pages, and failed one data write.
   CU_ASSERT_EQUAL(getPhysicalBlocksFree(), 1);

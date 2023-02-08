@@ -58,11 +58,11 @@ const SectorPattern normalSectors[VDO_SECTORS_PER_BLOCK] = {
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
   { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
-  { NO_TEAR, LAST_SECTOR,  GOOD_COUNT, APPLY_ALL  },
+  { NO_TEAR, FULL_SECTOR,  GOOD_COUNT, APPLY_ALL  },
 };
 
 /**
- * A wrapped journal with head of 16 and tail of 21, used for the slab journal
+ * A wrapped journal with head of 16 and tail of 22, used for the slab journal
  * waiting test. No entries will be applied to the block map by construction.
  **/
 static BlockPattern slabJournalPattern[JOURNAL_BLOCKS] = {
@@ -72,7 +72,7 @@ static BlockPattern slabJournalPattern[JOURNAL_BLOCKS] = {
   {  16,  19, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
   {  16,  20, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
   {  16,  21, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
-  {  14,  14, GOOD_COUNT, BAD_NONCE, FULL_BLOCK, false, normalSectors },
+  {  16,  22, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
   {  14,  15, GOOD_COUNT, BAD_NONCE, FULL_BLOCK, false, normalSectors },
 };
 
@@ -121,73 +121,6 @@ static void recoverJournalAction(struct vdo_completion *completion)
                          completion);
   vdo->load_state = VDO_DIRTY;
   vdo_repair(&subTaskCompletion);
-}
-
-/**********************************************************************/
-static void testRebuildSynthesizedDecrefs(void)
-{
-  initializeJournalWritingUtils(JOURNAL_BLOCKS,
-                                getTestConfig().config.logical_blocks,
-                                vdo->depot->slab_count - 1);
-
-  /*
-   * This tests a very specific scenario from VDO-2310, with only 6 recovery
-   * journal entries as follows:
-   *
-   *   LBN    +/-     PBN
-   *     0     +      1
-   *  1000     +      2
-   *  2000     +      3
-   *  2000     -      0
-   *  2000     +      4
-   *  3000     +      5
-   *
-   * Hence this test writes a single recovery journal block manually.
-   */
-  physical_block_number_t journalStart;
-  VDO_ASSERT_SUCCESS(vdo_translate_to_pbn(journal->partition, 0,
-                                          &journalStart));
-
-  char           block[VDO_BLOCK_SIZE];
-  VDO_ASSERT_SUCCESS(layer->reader(layer, journalStart, 1, block));
-
-  physical_block_number_t   firstDataBlock = vdo->depot->slabs[1]->start;
-  struct packed_journal_header *packedHeader
-    = (struct packed_journal_header *) block;
-  struct packed_journal_sector *sector
-    = vdo_get_journal_block_sector(packedHeader, 1);
-
-  struct recovery_block_header header = vdo_unpack_recovery_block_header(packedHeader);
-  header.block_map_head    = 1;
-  header.slab_journal_head = 1;
-  header.sequence_number   = 1;
-  header.metadata_type     = VDO_METADATA_RECOVERY_JOURNAL;
-  header.nonce             = journal->nonce;
-  header.entry_count       = 6;
-  header.check_byte        = vdo_compute_recovery_journal_check_byte(journal, 1);
-  vdo_pack_recovery_block_header(&header, packedHeader);
-
-  sector->check_byte  = header.check_byte;
-  sector->entry_count = 6;
-
-  struct packed_recovery_journal_entry *entry = &sector->entries[0];
-  makeJournalEntry(entry++,    0,  true,  firstDataBlock + 1, CORRUPT_NOTHING);
-  makeJournalEntry(entry++, 1000,  true,  firstDataBlock + 2, CORRUPT_NOTHING);
-  makeJournalEntry(entry++, 2000,  true,  firstDataBlock + 3, CORRUPT_NOTHING);
-  makeJournalEntry(entry++, 2000, false,                   0, CORRUPT_NOTHING);
-  makeJournalEntry(entry++, 2000,  true,  firstDataBlock + 4, CORRUPT_NOTHING);
-  makeJournalEntry(entry++, 3000,  true,  firstDataBlock + 5, CORRUPT_NOTHING);
-
-  VDO_ASSERT_SUCCESS(layer->writer(layer, journalStart, 1, block));
-
-  journal->tail = 2;
-
-  // Do a rebuild.
-  reset_priority_table(vdo->depot->allocators[0]->prioritized_slabs);
-  for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {
-    vdo_free_ref_counts(UDS_FORGET(vdo->depot->slabs[i]->reference_counts));
-  }
-  performSuccessfulAction(recoverJournalAction);
 }
 
 /**
@@ -261,56 +194,44 @@ static void verifySlabJournalEntries(void)
   struct vdo_slab         *slab           = depot->slabs[1];
   physical_block_number_t  slabJournalPBN = slab->journal_origin + 1;
   sequence_number_t        sequenceNumber = 1;
-
-  journal_entry_count_t totalIncrements   = 6 * journal->entries_per_block;
-  journal_entry_count_t remainingEntries  = totalIncrements * 2;
+  journal_entry_count_t    totalEntries   = 7 * journal->entries_per_block * 2;
 
   // The pattern written uses 7 * 46 LBNs to write each block, although only
-  // 311 entries are actually useful.
+  // 217 entries are actually useful.
   logical_block_number_t lbnsPerRecoveryJournalBlock
     = (RECOVERY_JOURNAL_ENTRIES_PER_SECTOR * (VDO_SECTORS_PER_BLOCK - 1));
 
-  logical_block_number_t nextLBN           = 0;
-  bool                   expectedIncrement = true;
-
+  logical_block_number_t nextLBN = 0;
   char buffer[VDO_BLOCK_SIZE];
-  while (remainingEntries > 0) {
+  while (totalEntries > 0) {
     VDO_ASSERT_SUCCESS(layer->reader(layer, slabJournalPBN++, 1, buffer));
-    struct packed_slab_journal_block *block
-      = (struct packed_slab_journal_block *) buffer;
+    struct packed_slab_journal_block *block = (struct packed_slab_journal_block *) buffer;
     struct slab_journal_block_header header;
+
     vdo_unpack_slab_journal_block_header(&block->header, &header);
     CU_ASSERT_EQUAL(header.sequence_number, sequenceNumber++);
-    CU_ASSERT_EQUAL(header.entry_count,
-                    min(remainingEntries,
-                        slab->journal->entries_per_block));
+    CU_ASSERT_EQUAL(header.entry_count, min(totalEntries, slab->journal->entries_per_block));
     for (journal_entry_count_t i = 0; i < header.entry_count; i++) {
-      struct slab_journal_entry entry
-        = vdo_decode_slab_journal_entry(block, i);
+      struct slab_journal_entry entry = vdo_decode_slab_journal_entry(block, i);
+      bool increment = ((totalEntries % 2) == 0);
       slab_block_number expectedSBN
-        = (computePBNFromLBN(nextLBN, (expectedIncrement ? 1 : 0))
-           - slab->start);
+        = (computePBNFromLBN(nextLBN, (increment ? 1 : 0)) - slab->start);
 
-      CU_ASSERT_EQUAL((entry.operation == VDO_JOURNAL_DATA_INCREMENT),
-                      expectedIncrement);
+      CU_ASSERT_EQUAL(entry.operation, VDO_JOURNAL_DATA_REMAPPING);
+      CU_ASSERT_EQUAL(entry.increment, increment);
       CU_ASSERT_EQUAL(entry.sbn, expectedSBN);
 
-      expectedIncrement ? nextLBN++ : nextLBN--;
-      remainingEntries--;
-      if (remainingEntries == totalIncrements) {
-        nextLBN--;
-        expectedIncrement = false;
+      totalEntries--;
+      if (increment) {
+        continue;
       }
+
+      nextLBN++;
 
       // Skip the holes in the LBN space due to the writing process filling
       // every entry in every sector.
-      if ((nextLBN % lbnsPerRecoveryJournalBlock)
-          >= journal->entries_per_block) {
-        if (expectedIncrement) {
+      if ((nextLBN % lbnsPerRecoveryJournalBlock) >= journal->entries_per_block) {
           nextLBN += (lbnsPerRecoveryJournalBlock - journal->entries_per_block);
-        } else {
-          nextLBN -= (lbnsPerRecoveryJournalBlock - journal->entries_per_block);
-        }
       }
     }
   }
@@ -349,8 +270,7 @@ static void assertSlabJournalPoint(sequence_number_t     blockNumber,
 static void testWaitForSlabJournalSpace(void)
 {
   // For ease of testing, we use only one slab / slab journal.
-  initializeJournalWritingUtils(JOURNAL_BLOCKS,
-                                getTestConfig().config.logical_blocks, 1);
+  initializeJournalWritingUtils(JOURNAL_BLOCKS, getTestConfig().config.logical_blocks, 1);
 
   // Perform the standard setup for the recovery action.
   putBlocksInMap(0, BLOCK_COUNT);
@@ -366,7 +286,6 @@ static void testWaitForSlabJournalSpace(void)
 
   // Use a single-VIO pool so it's easy to keep the slab journal from having
   // a VIO to write with.
-
   reserveVIOsFromPool(allocator, BLOCK_ALLOCATOR_VIO_POOL_SIZE - 1);
 
   /*
@@ -395,11 +314,15 @@ static void testWaitForSlabJournalSpace(void)
    */
   waitForStateAndClear(&readsComplete);
   while (!checkState(&recoveryBlocked)) {
-    performSuccessfulActionOnThread(checkForRecoveryBlocked,
-                                    allocator->thread_id);
+    performSuccessfulActionOnThread(checkForRecoveryBlocked, allocator->thread_id);
   }
   clearState(&recoveryBlocked);
-  assertSlabJournalPoint(20, 108);
+  /* A full slab journal block holds 1353 entries = 3 full recovery journal
+   * blocks (217 increments and 217 decrements) + 26 increments and 25
+   * decrements, but the slab journal point for an increment is recovery
+   * journal entry count * 2, hence (16 + 3, (26 - 1) * 2).
+   */
+  assertSlabJournalPoint(19, 50);
 
   /*
    * Set up a hook to block the first slab journal write.
@@ -408,15 +331,13 @@ static void testWaitForSlabJournalSpace(void)
 
   // Let go of the VIO pool entry; it will be issued and then blocked.
   // Recovery will replay another blockful, then be out of space again.
-  performSuccessfulActionOnThread(releaseVIOPoolEntryAction,
-                                  allocator->thread_id);
+  performSuccessfulActionOnThread(releaseVIOPoolEntryAction, allocator->thread_id);
   while (!checkState(&recoveryBlocked)) {
-    performSuccessfulActionOnThread(checkForRecoveryBlocked,
-                                    allocator->thread_id);
+    performSuccessfulActionOnThread(checkForRecoveryBlocked, allocator->thread_id);
   }
   clearState(&recoveryBlocked);
   // Verify exactly one blockful was replayed.
-  assertSlabJournalPoint(21, 1150);
+  assertSlabJournalPoint(22, 101);
 
   // Release the first slab journal write. The block will be reused for
   // the second block, and replay will finish.
@@ -440,7 +361,7 @@ static void testWaitForSlabJournalSpace(void)
 
   // Make sure the recovery did exactly the expected amount of work.
   awaitCompletion(&completion);
-  assertSlabJournalPoint(21, 7 * journal->entries_per_block - 1);
+  assertSlabJournalPoint(22, (RECOVERY_JOURNAL_ENTRIES_PER_BLOCK * 2) - 1);
 
   // Make sure the slab journal got the expected entries.
   verifySlabJournalEntries();
@@ -454,7 +375,6 @@ static void testWaitForSlabJournalSpace(void)
 
 /**********************************************************************/
 static CU_TestInfo journalRebuildTests[] = {
-  { "rebuild with synthesized decrefs",     testRebuildSynthesizedDecrefs },
   { "rebuild with waiting during replay",   testWaitForSlabJournalSpace   },
   CU_TEST_INFO_NULL
 };

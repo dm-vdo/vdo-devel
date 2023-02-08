@@ -14,11 +14,10 @@
 
 enum {
   FULL_BLOCK     = -1, // Value indicating a full block of entries
-  SHORT_BLOCK    = 99, // Number of journal entries in a partially filled block
+  SHORT_BLOCK    = 69, // Number of journal entries in a partially filled block
   FULL_SECTOR    = -1, // Value indicating a full sector of entries
   EMPTY_SECTOR   =  0, // Number of journal entries in an empty sector
   SHORT_SECTOR   =  7, // Number of journal entries in a partial sector
-  LAST_SECTOR    = 35, // Number of journal entries in the last full sector
   APPLY_ALL      = -1, // All sector entries should be applied
   APPLY_NONE     = EMPTY_SECTOR, // No sector entries should be applied
   APPLY_PART     = SHORT_SECTOR, // Only some sector entries should be applied
@@ -89,21 +88,6 @@ void tearDownJournalWritingUtils(void);
  **/
 physical_block_number_t computePBNFromLBN(logical_block_number_t lbn,
                                           block_count_t          offset);
-
-/**
- * Make an entry in a journal block.
- *
- * @param entry       A pointer to the entry to encode
- * @param lbn         The lbn to make an entry for
- * @param isIncRef    Whether the entry is an incref
- * @param pbn         The pbn to make an entry for
- * @param corruption  The type of corruption to include
- **/
-void makeJournalEntry(struct packed_recovery_journal_entry *entry,
-                      logical_block_number_t                lbn,
-                      bool                                  isIncRef,
-                      physical_block_number_t               pbn,
-                      CorruptionType                        corruption);
 
 /**
  * Fill the block map with patterned data so the test can determine

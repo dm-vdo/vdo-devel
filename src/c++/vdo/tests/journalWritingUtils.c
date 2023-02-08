@@ -68,25 +68,25 @@ physical_block_number_t computePBNFromLBN(logical_block_number_t lbn,
 }
 
 /**********************************************************************/
-void makeJournalEntry(struct packed_recovery_journal_entry *packed,
-                      logical_block_number_t                lbn,
-                      bool                                  isIncRef,
-                      physical_block_number_t               pbn,
-                      CorruptionType                        corruption)
+static void makeJournalEntry(struct packed_recovery_journal_entry *packed,
+                             logical_block_number_t                lbn,
+                             physical_block_number_t               mapping,
+                             struct data_location                  unmapping,
+                             CorruptionType                        corruption)
 {
   page_count_t pageIndex = lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
   struct recovery_journal_entry entry = {
-    .operation = (isIncRef ? VDO_JOURNAL_DATA_INCREMENT
-                           : VDO_JOURNAL_DATA_DECREMENT),
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
     .slot = {
       .pbn  = vdo_find_block_map_page_pbn(blockMap, pageIndex),
       .slot = lbn % VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
     },
     .mapping = {
-      .pbn   = pbn,
+      .pbn   = mapping,
       .state = VDO_MAPPING_STATE_UNCOMPRESSED,
     },
+    .unmapping = unmapping,
   };
 
   switch (corruption) {
@@ -133,13 +133,13 @@ void putBlocksInMap(logical_block_number_t start, block_count_t count)
 void setBlockHeader(struct packed_journal_header *header,
                     BlockPattern                 *blockPattern)
 {
-  struct recovery_journal      *journal  = vdo->recovery_journal;
-  struct recovery_block_header  unpacked = vdo_unpack_recovery_block_header(header);
+  struct recovery_journal *journal = vdo->recovery_journal;
+  struct recovery_block_header unpacked = vdo_unpack_recovery_block_header(header);
 
   unpacked.block_map_head    = blockPattern->head;
   unpacked.slab_journal_head = blockPattern->head;
   unpacked.sequence_number   = blockPattern->sequenceNumber;
-  unpacked.metadata_type     = VDO_METADATA_RECOVERY_JOURNAL;
+  unpacked.metadata_type     = VDO_METADATA_RECOVERY_JOURNAL_2;
   unpacked.recovery_count    = blockPattern->recoveryCount;
   unpacked.check_byte
     = vdo_compute_recovery_journal_check_byte(journal, unpacked.sequence_number);
@@ -225,7 +225,7 @@ void writeJournalBlocks(CorruptionType  corruption,
 
         int entryCorruption
           = ((blockEntries == 1) ? corruption : CORRUPT_NOTHING);
-        makeJournalEntry(entry, lbn, true, pbn, entryCorruption);
+        makeJournalEntry(entry, lbn, pbn, getBlockMapping(lbn), entryCorruption);
 
         // Update the mapping array only if the journal entry will be applied.
         if (blockPattern->applicable && (k < sector->entry_count)

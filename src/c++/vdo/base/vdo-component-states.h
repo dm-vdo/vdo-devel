@@ -105,15 +105,16 @@ struct recovery_journal_state_7_0 {
 extern const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0;
 
 /*
- * A recovery journal entry stores two physical locations: a data location that is the value of a
- * single mapping in the block map tree, and the location of the block map page and slot that is
- * either acquiring or releasing a reference to the data location. The journal entry also stores an
- * operation code that says whether the reference is being acquired (an increment) or released (a
- * decrement), and whether the mapping is for a logical block or for the block map tree itself.
+ * A recovery journal entry stores three physical locations: a data location that is the value of a
+ * single mapping in the block map tree, and the two locations of the block map pages and slots
+ * that are acquiring and releasing a reference to the location. The journal entry also stores an
+ * operation code that says whether the mapping is for a logical block or for the block map tree
+ * itself.
  */
 struct recovery_journal_entry {
 	struct block_map_slot slot;
 	struct data_location mapping;
+	struct data_location unmapping;
 	enum journal_operation operation;
 };
 
@@ -122,8 +123,51 @@ struct packed_recovery_journal_entry {
 	/*
 	 * In little-endian bit order:
 	 * Bits 15..12: The four highest bits of the 36-bit physical block number of the block map
-	 * tree page Bits 11..2: The 10-bit block map page slot number Bits 1..0: The 2-bit
-	 * journal_operation of the entry
+	 * tree page
+	 * Bits 11..2: The 10-bit block map page slot number
+	 * Bit 1..0: The journal_operation of the entry (this actually only requires 1 bit, but
+	 *           it is convenient to keep the extra bit as part of this field.
+	 */
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	unsigned operation : 2;
+	unsigned slot_low : 6;
+	unsigned slot_high : 4;
+	unsigned pbn_high_nibble : 4;
+#else
+	unsigned slot_low : 6;
+	unsigned operation : 2;
+	unsigned pbn_high_nibble : 4;
+	unsigned slot_high : 4;
+#endif
+
+	/*
+	 * Bits 47..16: The 32 low-order bits of the block map page PBN, in little-endian byte
+	 * order
+	 */
+	__le32 pbn_low_word;
+
+	/*
+	 * Bits 87..48: The five-byte block map entry encoding the location that will be stored in
+	 * the block map page slot
+	 */
+	struct block_map_entry mapping;
+
+	/*
+	 * Bits 127..88: The five-byte block map entry encoding the location that was stored in the
+	 * block map page slot
+	 */
+	struct block_map_entry unmapping;
+} __packed;
+
+/* The packed, on-disk representation of an old format recovery journal entry. */
+struct packed_recovery_journal_entry_1 {
+	/*
+	 * In little-endian bit order:
+	 * Bits 15..12: The four highest bits of the 36-bit physical block number of the block map
+	 *              tree page
+	 * Bits 11..2: The 10-bit block map page slot number
+	 * Bits 1..0: The 2-bit journal_operation of the entry
+	 *
 	 */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	unsigned operation : 2;
@@ -148,6 +192,13 @@ struct packed_recovery_journal_entry {
 	 * stored in the block map page slot
 	 */
 	struct block_map_entry block_map_entry;
+} __packed;
+
+enum journal_operation_1 {
+	VDO_JOURNAL_DATA_DECREMENT = 0,
+	VDO_JOURNAL_DATA_INCREMENT = 1,
+	VDO_JOURNAL_BLOCK_MAP_DECREMENT = 2,
+	VDO_JOURNAL_BLOCK_MAP_INCREMENT = 3,
 } __packed;
 
 struct recovery_block_header {
@@ -225,21 +276,22 @@ extern const struct header VDO_SLAB_DEPOT_HEADER_2_0;
 enum {
 	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
-	/*
-	 * Allowing more than 311 entries in each block changes the math concerning the
-	 * amortization of metadata writes and recovery speed.
-	 */
-	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
 	/* The number of entries in each sector (except the last) when filled */
 	RECOVERY_JOURNAL_ENTRIES_PER_SECTOR =
 		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector)) /
 		 sizeof(struct packed_recovery_journal_entry)),
-	/* The number of entries in the last sector when a block is full */
-	RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR =
-		(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK %
-		 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR),
+	RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = RECOVERY_JOURNAL_ENTRIES_PER_SECTOR * 7,
 	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
+	/* The number of entries in a v1 recovery journal block. */
+	RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK = 311,
+	/* The number of entries in each v1 sector (except the last) when filled */
+	RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR =
+		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector)) /
+		 sizeof(struct packed_recovery_journal_entry_1)),
+	/* The number of entries in the last sector when a block is full */
+	RECOVERY_JOURNAL_1_ENTRIES_IN_LAST_SECTOR =
+		(RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK % RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR),
 	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
 };
@@ -255,6 +307,7 @@ enum {
 struct slab_journal_entry {
 	slab_block_number sbn;
 	enum journal_operation operation;
+	bool increment;
 };
 
 /* A single slab journal entry in its on-disk form */
@@ -487,8 +540,9 @@ vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
 		.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
 		.pbn_low_word = __cpu_to_le32(entry->slot.pbn & UINT_MAX),
-		.block_map_entry = vdo_pack_block_map_entry(entry->mapping.pbn,
-							    entry->mapping.state),
+		.mapping = vdo_pack_block_map_entry(entry->mapping.pbn, entry->mapping.state),
+		.unmapping = vdo_pack_block_map_entry(entry->unmapping.pbn,
+						      entry->unmapping.state),
 	};
 }
 
@@ -508,10 +562,11 @@ vdo_unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *en
 	return (struct recovery_journal_entry) {
 		.operation = entry->operation,
 		.slot = {
-				.pbn = ((high4 << 32) | low32),
-				.slot = (entry->slot_low | (entry->slot_high << 6)),
-			},
-		.mapping = vdo_unpack_block_map_entry(&entry->block_map_entry),
+			.pbn = ((high4 << 32) | low32),
+			.slot = (entry->slot_low | (entry->slot_high << 6)),
+		},
+		.mapping = vdo_unpack_block_map_entry(&entry->mapping),
+		.unmapping = vdo_unpack_block_map_entry(&entry->unmapping),
 	};
 }
 
@@ -529,7 +584,7 @@ const char * __must_check vdo_get_journal_operation_name(enum journal_operation 
  *                                          header.
  * @header: The unpacked block header to compare against.
  * @sector: The packed sector to check.
- * @sectorNumber: The number of the sector being checked.
+ * @sector_number: The number of the sector being checked.
  *
  * Return: true if the sector matches the block header.
  */
@@ -542,10 +597,13 @@ vdo_is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 	    (header->recovery_count != sector->recovery_count))
 		return false;
 
-	if (sector_number == 7)
-		return sector->entry_count <= RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR;
+	if (header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL_2)
+		return sector->entry_count <= RECOVERY_JOURNAL_ENTRIES_PER_SECTOR;
 
-	return sector->entry_count <= RECOVERY_JOURNAL_ENTRIES_PER_SECTOR;
+	if (sector_number == 7)
+		return sector->entry_count <= RECOVERY_JOURNAL_1_ENTRIES_IN_LAST_SECTOR;
+
+	return sector->entry_count <= RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR;
 }
 
 /**
@@ -727,8 +785,8 @@ vdo_unpack_slab_journal_entry(const packed_slab_journal_entry *packed)
 	entry.sbn |= packed->offset_mid8;
 	entry.sbn <<= 8;
 	entry.sbn |= packed->offset_low8;
-	entry.operation =
-		(packed->increment ? VDO_JOURNAL_DATA_INCREMENT : VDO_JOURNAL_DATA_DECREMENT);
+	entry.operation = VDO_JOURNAL_DATA_REMAPPING;
+	entry.increment = packed->increment;
 	return entry;
 }
 

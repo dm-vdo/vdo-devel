@@ -16,13 +16,15 @@ static struct pbn_lock *return_pbn_lock(struct reference_operation operation)
 /**
  * vdo_set_up_reference_operation_with_lock() - Set up a reference_operation for which we already
  *                                              have the lock.
- * @type: The type of operation.
+ * @type: The type of block (data or block map).
+ * @increment: True if this is an increment.
  * @pbn: The PBN of the block on which to operate.
  * @state: The mapping state of the block on which to operate.
  * @lock: The pbn_lock to associate with the operation.
  * @operation: The reference_operation to set up.
  */
 void vdo_set_up_reference_operation_with_lock(enum journal_operation type,
+					      bool increment,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state,
 					      struct pbn_lock *lock,
@@ -30,6 +32,7 @@ void vdo_set_up_reference_operation_with_lock(enum journal_operation type,
 {
 	*operation = (struct reference_operation) {
 		.type = type,
+		.increment = increment,
 		.pbn = pbn,
 		.state = state,
 		.lock_getter = return_pbn_lock,
@@ -47,13 +50,15 @@ static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 /**
  * vdo_set_up_reference_operation_with_zone() - Set up a reference_operation for which we will need
  *                                              to look up the lock later.
- * @type: The type of operation.
+ * @type: The type of block (data or block map).
+ * @increment: True if this is an increment.
  * @pbn: The PBN of the block on which to operate.
  * @state: The mapping state of the block on which to operate.
  * @zone: The physical_zone from which the pbn_lock can be retrieved when needed.
  * @operation: The reference_operation to set up.
  */
 void vdo_set_up_reference_operation_with_zone(enum journal_operation type,
+					      bool increment,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state,
 					      struct physical_zone *zone,
@@ -61,6 +66,7 @@ void vdo_set_up_reference_operation_with_zone(enum journal_operation type,
 {
 	*operation = (struct reference_operation) {
 		.type = type,
+		.increment = increment,
 		.pbn = pbn,
 		.state = state,
 		.lock_getter = look_up_pbn_lock,

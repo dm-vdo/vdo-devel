@@ -229,7 +229,8 @@ static void doAllocateBlock(struct vdo_completion *completion)
   VDO_ASSERT_SUCCESS(vdo_allocate_block(depot->allocators[0], &pbn));
   struct reference_operation operation = {
     .pbn  = pbn,
-    .type = VDO_JOURNAL_DATA_INCREMENT,
+    .type = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = true,
   };
   VDO_ASSERT_SUCCESS(vdo_modify_slab_reference_count(vdo_get_slab(depot, pbn),
                                                      NULL, operation));
@@ -242,7 +243,8 @@ static void doDecrementReferenceCount(struct vdo_completion *completion)
   struct slab_depot *depot = vdo->depot;
   struct reference_operation operation = {
     .pbn = pbn,
-    .type = VDO_JOURNAL_DATA_DECREMENT,
+    .type = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = false,
   };
   VDO_ASSERT_SUCCESS(vdo_modify_slab_reference_count(vdo_get_slab(depot, pbn),
                                                      NULL, operation));

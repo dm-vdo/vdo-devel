@@ -56,6 +56,15 @@ struct zoned_pbn lookupLBN(logical_block_number_t lbn)
 void verifyBlockMapping(logical_block_number_t start);
 
 /**
+ * Get the cached mapping of for an LBN.
+ *
+ * @param lbn    The lbn whose mapping is to be set
+ *
+ * @return The cached mapping
+ **/
+struct data_location __must_check getBlockMapping(logical_block_number_t lbn);
+
+/**
  * Set the cached mapping of for an LBN.
  *
  * @param lbn    The lbn whose mapping is to be set

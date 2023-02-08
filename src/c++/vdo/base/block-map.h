@@ -6,6 +6,8 @@
 #ifndef BLOCK_MAP_H
 #define BLOCK_MAP_H
 
+#include "numeric.h"
+
 #include "admin-state.h"
 #include "completion.h"
 #include "dirty-lists.h"
@@ -192,5 +194,25 @@ void vdo_get_mapped_block(struct data_vio *data_vio);
 void vdo_put_mapped_block(struct data_vio *data_vio);
 
 struct block_map_statistics __must_check vdo_get_block_map_statistics(struct block_map *map);
+
+/**
+ * convert_maximum_age(): Convert the maximum age to reflect the new recovery journal format
+ * @age: The configured maximum age
+ *
+ * Return: The converted age
+ *
+ * In the old recovery journal format, each journal block held 311 entries, and every write bio
+ * made two entries. The old maximum age was half the usable journal length. In the new format,
+ * each block holds only 217 entries, but each bio only makes one entry. We convert the configured
+ * age so that the number of writes in a block map era is the same in the old and new formats. This
+ * keeps the bound on the amount of work required to recover the block map from the recovery
+ * journal the same across the format change. It also keeps the amortization of block map page
+ * writes to write bios the same.
+ */
+static inline block_count_t vdo_convert_maximum_age(block_count_t age)
+{
+	return DIV_ROUND_UP(age * RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK,
+			    2 * RECOVERY_JOURNAL_ENTRIES_PER_BLOCK);
+}
 
 #endif /* BLOCK_MAP_H */

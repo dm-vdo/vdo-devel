@@ -544,18 +544,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	struct pbn_lock *lock = vdo_get_reference_operation_pbn_lock(operation);
 	int result;
 
-	switch (operation.type) {
-	case VDO_JOURNAL_DATA_INCREMENT:
-		result = increment_for_data(ref_counts,
-					    block,
-					    block_number,
-					    old_status,
-					    lock,
-					    counter_ptr,
-					    free_status_changed);
-		break;
-
-	case VDO_JOURNAL_DATA_DECREMENT:
+	if (!operation.increment) {
 		result = decrement_for_data(ref_counts,
 					    block,
 					    block_number,
@@ -568,9 +557,15 @@ update_reference_count(struct ref_counts *ref_counts,
 				*provisional_decrement_ptr = true;
 			return VDO_SUCCESS;
 		}
-		break;
-
-	case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
+	} else if (operation.type == VDO_JOURNAL_DATA_REMAPPING) {
+		result = increment_for_data(ref_counts,
+					    block,
+					    block_number,
+					    old_status,
+					    lock,
+					    counter_ptr,
+					    free_status_changed);
+	} else {
 		result = increment_for_block_map(ref_counts,
 						 block,
 						 block_number,
@@ -579,12 +574,6 @@ update_reference_count(struct ref_counts *ref_counts,
 						 normal_operation,
 						 counter_ptr,
 						 free_status_changed);
-		break;
-
-	default:
-		uds_log_error("Unknown reference count operation: %u", operation.type);
-		enter_ref_counts_read_only_mode(ref_counts, VDO_NOT_IMPLEMENTED);
-		result = VDO_NOT_IMPLEMENTED;
 	}
 
 	if (result != VDO_SUCCESS)
@@ -684,6 +673,7 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 	bool unused_free_status;
 	struct reference_operation physical_operation = {
 		.type = operation,
+		.increment = true,
 	};
 
 	result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &block_number);
@@ -725,7 +715,10 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 	int result;
 	struct reference_block *block = vdo_get_reference_block(ref_counts, entry.sbn);
 	sector_count_t sector = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
-	struct reference_operation operation = { .type = entry.operation };
+	struct reference_operation operation = {
+		.type = entry.operation,
+		.increment = entry.increment,
+	};
 
 	if (!vdo_before_journal_point(&block->commit_points[sector], entry_point))
 		/* This entry is already reflected in the existing counts, so do nothing. */

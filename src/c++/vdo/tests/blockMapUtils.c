@@ -242,6 +242,12 @@ void verifyBlockMapping(logical_block_number_t start)
 }
 
 /**********************************************************************/
+struct data_location getBlockMapping(logical_block_number_t lbn)
+{
+  return vdo_unpack_block_map_entry(&expectedMappings[lbn].mapping);
+}
+
+/**********************************************************************/
 void setBlockMapping(logical_block_number_t   lbn,
                      physical_block_number_t  pbn,
                      enum block_mapping_state state)

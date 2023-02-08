@@ -73,10 +73,13 @@ static void resetWrapper(DataVIOWrapper *wrapper, slab_count_t slabNumber)
   struct vdo_slab *slab = vdo->depot->slabs[slabNumber];
   journal               = slab->journal;
 
-  dataVIO->new_mapped.pbn = slab->start + 1;
-  dataVIO->operation = (struct reference_operation) {
-    .type = VDO_JOURNAL_DATA_INCREMENT,
-    .pbn  = slab->start + 1,
+  wrapper->dataVIO.new_mapped.pbn = slab->start + 1;
+  wrapper->dataVIO.increment_updater = (struct reference_updater) {
+    .operation = {
+      .type      = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = true,
+      .pbn       = slab->start + 1,
+    },
   };
   dataVIO->recovery_journal_point = (struct journal_point) {
     .sequence_number = slabNumber + 1,
@@ -121,7 +124,9 @@ dataVIOFromWrapper(struct vdo_completion *completion)
  **/
 static void addSlabJournalEntryAction(struct vdo_completion *completion)
 {
-  vdo_add_slab_journal_entry(journal, dataVIOFromWrapper(completion));
+  struct data_vio *dataVIO = dataVIOFromWrapper(completion);
+  vdo_add_slab_journal_entry(journal, &dataVIO->vio.completion, &dataVIO->increment_updater);
+
 }
 
 /**

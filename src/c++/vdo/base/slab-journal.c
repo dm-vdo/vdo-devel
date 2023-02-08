@@ -277,7 +277,15 @@ static void mark_slab_journal_clean(struct slab_journal *journal)
  */
 static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
-	continue_data_vio_with_error(waiter_as_data_vio(waiter), VDO_READ_ONLY);
+	struct reference_updater *updater = container_of(waiter, struct reference_updater, waiter);
+	struct data_vio *data_vio = data_vio_from_reference_updater(updater);
+
+	if (updater->operation.increment) {
+		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
+		return;
+	}
+
+	vdo_continue_completion(&data_vio->decrement_completion, VDO_READ_ONLY);
 }
 
 /**
@@ -720,6 +728,7 @@ static void commit_tail(struct slab_journal *journal)
  * @payload: The journal block payload to hold the entry.
  * @sbn: The slab block number of the entry to encode.
  * @operation: The type of the entry.
+ * @increment: True if this is an increment.
  *
  * Exposed for unit tests.
  */
@@ -727,11 +736,12 @@ EXTERNAL_STATIC void
 vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			      slab_journal_payload *payload,
 			      slab_block_number sbn,
-			      enum journal_operation operation)
+			      enum journal_operation operation,
+			      bool increment)
 {
 	journal_entry_count_t entry_number = tail_header->entry_count++;
 
-	if (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
+	if (operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
 		if (!tail_header->has_block_map_increments) {
 			memset(payload->full_entries.entry_types,
 			       0,
@@ -743,9 +753,31 @@ vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			((u8)1 << (entry_number % 8));
 	}
 
-	vdo_pack_slab_journal_entry(&payload->entries[entry_number],
-				    sbn,
-				    vdo_is_journal_increment_operation(operation));
+	vdo_pack_slab_journal_entry(&payload->entries[entry_number], sbn, increment);
+}
+
+/**
+ * expand_journal_point() - Convert a recovery journal journal_point which refers to both an
+ *                          increment and a decrement to a single point which refers to one or the
+ *                          other.
+ * @recovery_point: The journal point to convert.
+ * @increment: Whether the current entry is an increment.
+ *
+ * Return: The expanded journal point
+ *
+ * Because each data_vio has but a single recovery journal point, but may need to make both
+ * increment and decrement entries in the same slab journal. In order to distinguish the two
+ * entries, the entry count of the expanded journal point is twice the actual recovery journal
+ * entry count for increments, and one more than that for decrements.
+ */
+static struct journal_point
+expand_journal_point(struct journal_point recovery_point, bool increment)
+{
+	recovery_point.entry_count *= 2;
+	if (!increment)
+		recovery_point.entry_count++;
+
+	return recovery_point;
 }
 
 /**
@@ -754,31 +786,33 @@ vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
  * @journal: The slab journal to append to.
  * @pbn: The pbn being adjusted.
  * @operation: The type of entry to make.
- * @recovery_point: The recovery journal point for this entry.
+ * @increment: True if this is an increment.
+ * @recovery_point: The expanded recovery point.
  *
  * This function is synchronous.
  */
 static void add_entry(struct slab_journal *journal,
 		      physical_block_number_t pbn,
 		      enum journal_operation operation,
-		      const struct journal_point *recovery_point)
+		      bool increment,
+		      struct journal_point recovery_point)
 {
 	struct packed_slab_journal_block *block = journal->block;
 	int result;
 
 	result = ASSERT(vdo_before_journal_point(&journal->tail_header.recovery_point,
-						 recovery_point),
-		       "recovery journal point is monotonically increasing, recovery point: %llu.%u, block recovery point: %llu.%u",
-		       (unsigned long long) recovery_point->sequence_number,
-		       recovery_point->entry_count,
-		       (unsigned long long) journal->tail_header.recovery_point.sequence_number,
-		       journal->tail_header.recovery_point.entry_count);
+						 &recovery_point),
+			"recovery journal point is monotonically increasing, recovery point: %llu.%u, block recovery point: %llu.%u",
+			(unsigned long long) recovery_point.sequence_number,
+			recovery_point.entry_count,
+			(unsigned long long) journal->tail_header.recovery_point.sequence_number,
+			journal->tail_header.recovery_point.entry_count);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
 		return;
 	}
 
-	if (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT) {
+	if (operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
 		result = ASSERT((journal->tail_header.entry_count <
 				 journal->full_entries_per_block),
 				"block has room for full entries");
@@ -791,8 +825,9 @@ static void add_entry(struct slab_journal *journal,
 	vdo_encode_slab_journal_entry(&journal->tail_header,
 				      &block->payload,
 				      pbn - journal->slab->start,
-				      operation);
-	journal->tail_header.recovery_point = *recovery_point;
+				      operation,
+				      increment);
+	journal->tail_header.recovery_point = recovery_point;
 	if (block_is_full(journal))
 		commit_tail(journal);
 }
@@ -803,6 +838,7 @@ static void add_entry(struct slab_journal *journal,
  * @journal: The slab journal to use.
  * @pbn: The PBN for the entry.
  * @operation: The type of entry to add.
+ * @increment: True if this entry is an increment.
  * @recovery_point: The recovery journal point corresponding to this entry.
  * @parent: The completion to notify when there is space to add the entry if the entry could not be
  *          added immediately.
@@ -812,17 +848,19 @@ static void add_entry(struct slab_journal *journal,
 bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 					  physical_block_number_t pbn,
 					  enum journal_operation operation,
+					  bool increment,
 					  struct journal_point *recovery_point,
 					  struct vdo_completion *parent)
 {
 	struct slab_journal_block_header *header = &journal->tail_header;
+	struct journal_point expanded = expand_journal_point(*recovery_point, increment);
 
 	/* Only accept entries after the current recovery point. */
-	if (!vdo_before_journal_point(&journal->tail_header.recovery_point, recovery_point))
+	if (!vdo_before_journal_point(&journal->tail_header.recovery_point, &expanded))
 		return true;
 
 	if ((header->entry_count >= journal->full_entries_per_block) &&
-	    (header->has_block_map_increments || (operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT)))
+	    (header->has_block_map_increments || (operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING)))
 		/*
 		 * The tail block does not have room for the entry we are attempting to add so
 		 * commit the tail block now.
@@ -848,7 +886,7 @@ bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 	}
 
 	vdo_mark_slab_replaying(journal->slab);
-	add_entry(journal, pbn, operation, recovery_point);
+	add_entry(journal, pbn, operation, increment, expanded);
 	return true;
 }
 
@@ -902,8 +940,9 @@ bool vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal)
 static void add_entry_from_waiter(struct waiter *waiter, void *context)
 {
 	int result;
-	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct slab_journal *journal = (struct slab_journal *)context;
+	struct reference_updater *updater = container_of(waiter, struct reference_updater, waiter);
+	struct data_vio *data_vio = data_vio_from_reference_updater(updater);
+	struct slab_journal *journal = context;
 	struct slab_journal_block_header *header = &journal->tail_header;
 	struct journal_point slab_journal_point = {
 		.sequence_number = header->sequence_number,
@@ -925,6 +964,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 								     VDO_ZONE_TYPE_PHYSICAL,
 								     zone_number);
 		}
+
 		mark_slab_journal_dirty(journal, recovery_block);
 
 		/*
@@ -944,15 +984,20 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	}
 
 	add_entry(journal,
-		  data_vio->operation.pbn,
-		  data_vio->operation.type,
-		  &data_vio->recovery_journal_point);
+		  updater->operation.pbn,
+		  updater->operation.type,
+		  updater->operation.increment,
+		  expand_journal_point(data_vio->recovery_journal_point,
+				       updater->operation.increment));
 
 	/* Now that an entry has been made in the slab journal, update the reference counts. */
 	result = vdo_modify_slab_reference_count(journal->slab,
 						 &slab_journal_point,
-						 data_vio->operation);
-	continue_data_vio_with_error(data_vio, result);
+						 updater->operation);
+	if (updater->operation.increment)
+		continue_data_vio_with_error(data_vio, result);
+	else
+		vdo_continue_completion(&data_vio->decrement_completion, result);
 }
 
 /**
@@ -964,9 +1009,11 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
  */
 static inline bool is_next_entry_a_block_map_increment(struct slab_journal *journal)
 {
-	struct data_vio *data_vio = waiter_as_data_vio(get_first_waiter(&journal->entry_waiters));
+	struct reference_updater *updater = container_of(get_first_waiter(&journal->entry_waiters),
+							 struct reference_updater,
+							 waiter);
 
-	return (data_vio->operation.type == VDO_JOURNAL_BLOCK_MAP_INCREMENT);
+	return (updater->operation.type == VDO_JOURNAL_BLOCK_MAP_REMAPPING);
 }
 
 /**
@@ -1026,6 +1073,7 @@ static void add_entries(struct slab_journal *journal)
 
 		if (header->entry_count == 0) {
 			struct journal_lock *lock = get_lock(journal, header->sequence_number);
+
 			/*
 			 * Check if the on disk slab journal is full. Because of the blocking and
 			 * scrubbing thresholds, this should never happen.
@@ -1083,22 +1131,25 @@ static void add_entries(struct slab_journal *journal)
  * vdo_add_slab_journal_entry() - Add an entry to a slab journal.
  * @journal: The slab journal to use.
  * @data_vio: The data_vio for which to add the entry.
+ * @updater: Which of the data_vio's reference updaters is being submitted.
  */
-void vdo_add_slab_journal_entry(struct slab_journal *journal, struct data_vio *data_vio)
+void vdo_add_slab_journal_entry(struct slab_journal *journal,
+				struct vdo_completion *completion,
+				struct reference_updater *updater)
 {
 	struct vdo_slab *slab = journal->slab;
 
 	if (!vdo_is_slab_open(slab)) {
-		continue_data_vio_with_error(data_vio, VDO_INVALID_ADMIN_STATE);
+		vdo_continue_completion(completion, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
 
 	if (is_vdo_read_only(journal)) {
-		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
+		vdo_continue_completion(completion, VDO_READ_ONLY);
 		return;
 	}
 
-	enqueue_waiter(&journal->entry_waiters, &data_vio->waiter);
+	enqueue_waiter(&journal->entry_waiters, &updater->waiter);
 	if ((slab->status != VDO_SLAB_REBUILT) && requires_reaping(journal))
 		vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
 

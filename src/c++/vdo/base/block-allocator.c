@@ -357,7 +357,8 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 	struct vdo_slab *slab;
 	int result;
 	struct reference_operation operation = {
-		.type = VDO_JOURNAL_DATA_DECREMENT,
+		.type = VDO_JOURNAL_DATA_REMAPPING,
+		.increment = false,
 		.pbn = pbn,
 	};
 

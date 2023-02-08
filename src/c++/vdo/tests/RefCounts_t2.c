@@ -78,8 +78,9 @@ static void setReferenceCount(physical_block_number_t pbn, size_t value)
   enum reference_status      refStatus;
   bool                       wasFree;
   struct reference_operation operation = {
-    .pbn  = pbn,
-    .type = VDO_JOURNAL_DATA_DECREMENT,
+    .pbn       = pbn,
+    .type      = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = false,
   };
   VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &refStatus));
   while (refStatus == RS_SHARED) {
@@ -93,7 +94,7 @@ static void setReferenceCount(physical_block_number_t pbn, size_t value)
     VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &refStatus));
   }
   CU_ASSERT_EQUAL(refStatus, RS_FREE);
-  operation.type = VDO_JOURNAL_DATA_INCREMENT;
+  operation.increment = true;
   for (size_t i = 0; i < value; i++) {
     VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, operation, NULL,
                                                   &wasFree));
@@ -198,14 +199,16 @@ static void testAllFreeBlockPositions(block_count_t arrayLength)
   for (physical_block_number_t freePBN = 1; freePBN < arrayLength; freePBN++) {
     // Adjust the previously-free block to 1, and the new free one to 0.
     struct reference_operation operation = {
-      .pbn  = freePBN - 1,
-      .type = VDO_JOURNAL_DATA_INCREMENT,
+      .pbn       = freePBN - 1,
+      .type      = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = true,
     };
     VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, operation, NULL,
                                                   &wasFree));
     operation = (struct reference_operation) {
-      .pbn  = freePBN,
-      .type = VDO_JOURNAL_DATA_DECREMENT,
+      .pbn       = freePBN,
+      .type      = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = false,
     };
     VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, operation, NULL,
                                                   &wasFree));

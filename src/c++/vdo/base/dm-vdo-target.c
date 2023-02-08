@@ -715,11 +715,18 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 	}
 
-	maximum_age = vdo->device_config->block_map_maximum_age;
+	maximum_age = vdo_convert_maximum_age(vdo->device_config->block_map_maximum_age);
 	journal_length =
 		vdo_get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
-	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1))
-		return VDO_BAD_CONFIGURATION;
+	if (maximum_age > (journal_length / 2))
+		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "maximum age: %llu exceeds limit %llu",
+					      (unsigned long long) maximum_age,
+					      (unsigned long long) (journal_length / 2));
+
+	if (maximum_age == 0)
+		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "maximum age must be greater than 0");
 
 	result = vdo_make_read_only_notifier(vdo_in_read_only_mode(vdo),
 					     thread_config,
@@ -902,6 +909,7 @@ static int construct_new_vdo_registered(struct dm_target *ti,
 
 	result = vdo_parse_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
+		uds_log_error_strerror(result, "parsing failed: %s", ti->error);
 		vdo_release_instance(instance);
 		return -EINVAL;
 	}

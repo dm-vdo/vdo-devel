@@ -889,7 +889,9 @@ static void set_block_map_page_reference_count(struct vdo_completion *completion
 
 	pbn = lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 	completion->callback = release_block_map_write_lock;
-	vdo_add_slab_journal_entry(vdo_get_slab(completion->vdo->depot, pbn)->journal, data_vio);
+	vdo_add_slab_journal_entry(vdo_get_slab(completion->vdo->depot, pbn)->journal,
+				   completion,
+				   &data_vio->increment_updater);
 }
 
 static void journal_block_map_allocation(struct vdo_completion *completion)
@@ -915,11 +917,12 @@ static void allocate_block(struct vdo_completion *completion)
 
 	pbn = data_vio->allocation.pbn;
 	lock->tree_slots[lock->height - 1].block_map_slot.pbn = pbn;
-	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_BLOCK_MAP_INCREMENT,
+	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_BLOCK_MAP_REMAPPING,
+						 true,
 						 pbn,
 						 VDO_MAPPING_STATE_UNCOMPRESSED,
 						 data_vio->allocation.lock,
-						 &data_vio->operation);
+						 &data_vio->increment_updater.operation);
 	launch_data_vio_journal_callback(data_vio, journal_block_map_allocation);
 }
 

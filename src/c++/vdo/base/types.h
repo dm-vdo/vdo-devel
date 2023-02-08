@@ -115,10 +115,8 @@ static inline bool __must_check vdo_state_requires_recovery(enum vdo_state state
  * journals, and reference counts.
  */
 enum journal_operation {
-	VDO_JOURNAL_DATA_DECREMENT = 0,
-	VDO_JOURNAL_DATA_INCREMENT = 1,
-	VDO_JOURNAL_BLOCK_MAP_DECREMENT = 2,
-	VDO_JOURNAL_BLOCK_MAP_INCREMENT = 3,
+	VDO_JOURNAL_DATA_REMAPPING = 0,
+	VDO_JOURNAL_BLOCK_MAP_REMAPPING = 1,
 } __packed;
 
 /* Partition IDs encoded in the volume layout in the super block. */
@@ -140,7 +138,8 @@ enum partition_id {
 /* Metadata types for the vdo. */
 enum vdo_metadata_type {
 	VDO_METADATA_RECOVERY_JOURNAL = 1,
-	VDO_METADATA_SLAB_JOURNAL,
+	VDO_METADATA_SLAB_JOURNAL = 2,
+	VDO_METADATA_RECOVERY_JOURNAL_2 = 3,
 } __packed;
 
 /* A position in the block map where a block map entry is stored. */

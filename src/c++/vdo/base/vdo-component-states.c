@@ -319,17 +319,11 @@ decode_recovery_journal_state_7_0(struct buffer *buffer, struct recovery_journal
 const char *vdo_get_journal_operation_name(enum journal_operation operation)
 {
 	switch (operation) {
-	case VDO_JOURNAL_DATA_DECREMENT:
-		return "data decrement";
+	case VDO_JOURNAL_DATA_REMAPPING:
+		return "data remapping";
 
-	case VDO_JOURNAL_DATA_INCREMENT:
-		return "data increment";
-
-	case VDO_JOURNAL_BLOCK_MAP_DECREMENT:
-		return "block map decrement";
-
-	case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
-		return "block map increment";
+	case VDO_JOURNAL_BLOCK_MAP_REMAPPING:
+		return "block map remapping";
 
 	default:
 		return "unknown journal operation";
@@ -673,10 +667,12 @@ vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 {
 	struct slab_journal_entry entry =
 		vdo_unpack_slab_journal_entry(&block->payload.entries[entry_count]);
+
 	if (block->header.has_block_map_increments &&
 	    ((block->payload.full_entries.entry_types[entry_count / 8] &
 	      ((u8)1 << (entry_count % 8))) != 0))
-		entry.operation = VDO_JOURNAL_BLOCK_MAP_INCREMENT;
+		entry.operation = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
+
 	return entry;
 }
 

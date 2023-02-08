@@ -9,12 +9,12 @@
 /*
  * A note on the use of physical block numbers in this file.
  *
- * All of the tests which actually add entries to a recovery journal
- * use the convention that the physical and logical block numbers of
- * each entry are the same, and are the absolute 1-based number of the
- * entry in the journal. So the very first entry in the journal will
- * be (1,1), and the next entry will be (2,2). The entry numbers don't
- * wrap even though the journal does.
+ * All of the tests which actually add entries to a recovery journal use the
+ * convention that the physical and logical block numbers of the increment for
+ * each entry are the same, and are the absolute 1-based number of the entry in
+ * the journal. The decrement for each entry is the increment pbn + 1. So the
+ * very first entry in the journal will be (1,1,2), and the next entry will be
+ * (2,2,3). The entry numbers don't wrap even though the journal does.
  */
 
 #include "albtest.h"
@@ -48,18 +48,11 @@ static const block_count_t     TEST_LOGICAL_BLOCKS_USED = 0x123;
 static const uint8_t           TEST_RECOVERY_COUNT      = 0xb7;
 static const block_count_t     TEST_DATA_BLOCKS_USED    = 0x0001ABCD04030201;
 
-/**
- * A function to decide whether a given journal entry should be an increment
- * or a decrement.
- *
- * @return The selected journal_operation
- **/
-typedef enum journal_operation IncrementSelector(void);
-
 typedef size_t EntryNumber;
 
 static struct recovery_journal       *journal;
 static struct read_only_notifier     *readOnlyNotifier;
+static sequence_number_t              pending;
 static sequence_number_t              recoverySequenceNumber;
 static enum vdo_zone_type             zoneTypeToAdjust;
 static int                            adjustment;
@@ -68,8 +61,7 @@ static struct journal_point           lastCommittedVIOSeen;
 static bool                           noVIOsSeen;
 static EntryNumber                    lastEntry;
 static struct journal_point           lastAppendPoint;
-static enum journal_operation         previousOperation;
-static IncrementSelector             *shouldBeIncrement;
+static bool                           previousOperation;
 static struct thread_config          *threadConfig;
 static bool                           injectWriteError;
 static const struct admin_state_code *journalState;
@@ -163,17 +155,6 @@ static bool recordRecoveryJournalHead(void *context)
 }
 
 /**
- * An IncrementSelector which alternates increments and decrements.
- **/
-static enum journal_operation alternateIncrementsAndDecrements(void)
-{
-  previousOperation = ((previousOperation == VDO_JOURNAL_DATA_INCREMENT)
-                       ? VDO_JOURNAL_DATA_DECREMENT
-                       : VDO_JOURNAL_DATA_INCREMENT);
-  return previousOperation;
-}
-
-/**
  * Setup physical and asynchronous layer, then create a recovery journal to
  * use the asynchronous layer.
  **/
@@ -212,8 +193,7 @@ static void createLayerAndJournal(void)
   lastEntry                            = 0;
   lastAppendPoint.sequence_number      = 0;
   lastAppendPoint.entry_count          = 0;
-  previousOperation                    = VDO_JOURNAL_DATA_DECREMENT;
-  shouldBeIncrement                    = alternateIncrementsAndDecrements;
+  previousOperation                    = false;
   injectWriteError                     = false;
   initializeLatchUtils(journal->size, recordRecoveryJournalHead, NULL, NULL);
   setCallbackFinishedHook(broadcast);
@@ -368,26 +348,29 @@ static void testEncodeDecode(void)
 static void checkEntryPacking(const struct recovery_journal_entry *entry,
                               const u8                             expected[])
 {
-  STATIC_ASSERT_SIZEOF(struct packed_recovery_journal_entry, 11);
+  STATIC_ASSERT_SIZEOF(struct packed_recovery_journal_entry, 16);
   struct packed_recovery_journal_entry packed
     = vdo_pack_recovery_journal_entry(entry);
 
   // Check that packing and unpacking regenerates the original entry.
   struct recovery_journal_entry unpacked
     = vdo_unpack_recovery_journal_entry(&packed);
-  CU_ASSERT_EQUAL(entry->operation,     unpacked.operation);
-  CU_ASSERT_EQUAL(entry->mapping.pbn,   unpacked.mapping.pbn);
-  CU_ASSERT_EQUAL(entry->mapping.state, unpacked.mapping.state);
-  CU_ASSERT_EQUAL(entry->slot.pbn,      unpacked.slot.pbn);
-  CU_ASSERT_EQUAL(entry->slot.slot,     unpacked.slot.slot);
+  CU_ASSERT_EQUAL(entry->operation,       unpacked.operation);
+  CU_ASSERT_EQUAL(entry->mapping.pbn,     unpacked.mapping.pbn);
+  CU_ASSERT_EQUAL(entry->mapping.state,   unpacked.mapping.state);
+  CU_ASSERT_EQUAL(entry->unmapping.pbn,   unpacked.unmapping.pbn);
+  CU_ASSERT_EQUAL(entry->unmapping.state, unpacked.unmapping.state);
+  CU_ASSERT_EQUAL(entry->slot.pbn,        unpacked.slot.pbn);
+  CU_ASSERT_EQUAL(entry->slot.slot,       unpacked.slot.slot);
 
   // Spot-check that the packed and unpacked fields correspond, and that we're
   // not accidently swapping the mapping PBN with the slot PBN.
-  CU_ASSERT_EQUAL(entry->operation,    packed.operation);
-  CU_ASSERT_EQUAL(entry->slot.slot,    (packed.slot_low
-                                        | (packed.slot_high << 6)));
+  CU_ASSERT_EQUAL(entry->slot.slot,
+                  (packed.slot_low | (packed.slot_high << 6)));
   CU_ASSERT_EQUAL(entry->mapping.pbn,
-                  vdo_unpack_block_map_entry(&packed.block_map_entry).pbn);
+                  vdo_unpack_block_map_entry(&packed.mapping).pbn);
+  CU_ASSERT_EQUAL(entry->unmapping.pbn,
+                  vdo_unpack_block_map_entry(&packed.unmapping).pbn);
 
   // Check that packing generates the specified encoding.
   UDS_ASSERT_EQUAL_BYTES(expected, (u8 *) &packed, sizeof(packed));
@@ -404,7 +387,7 @@ static void testEntryPacking(void)
   struct recovery_journal_entry entry;
 
   // Check all operation encodings.
-  for (unsigned operation = 0; operation <= VDO_JOURNAL_BLOCK_MAP_INCREMENT;
+  for (unsigned operation = 0; operation <= VDO_JOURNAL_BLOCK_MAP_REMAPPING;
        operation++) {
     expected[0] = operation;
     entry = (struct recovery_journal_entry) { .operation = operation };
@@ -511,9 +494,11 @@ static void testBlockHeaderPacking(void)
  **/
 static void initializeWrapper(DataVIOWrapper *wrapper)
 {
-  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
+
+  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_initialize_completion(&dataVIO->vio.completion, vdo, VIO_COMPLETION);
+  vdo_initialize_completion(&dataVIO->decrement_completion, vdo, VDO_DECREMENT_COMPLETION);
   dataVIO->vio.type         = VIO_TYPE_DATA;
   dataVIO->mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
   dataVIO->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
@@ -527,19 +512,24 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
  **/
 static void journalEntryCallback(struct vdo_completion *completion)
 {
-  if (completion->result == VDO_SUCCESS) {
-    struct data_vio *dataVIO = as_data_vio(completion);
-    if (noVIOsSeen) {
-      noVIOsSeen = false;
-    } else {
-      bool before = vdo_before_journal_point(&lastCommittedVIOSeen,
-                                             &dataVIO->recovery_journal_point);
-      CU_ASSERT_TRUE(before);
-    }
-
-    lastCommittedVIOSeen = dataVIO->recovery_journal_point;
+  struct data_vio *dataVIO = ((completion->type == VIO_COMPLETION)
+                              ? as_data_vio(completion)
+                              : container_of(completion, struct data_vio, decrement_completion));
+  VDO_ASSERT_SUCCESS(completion->result);
+  if (!dataVIO->first_reference_operation_complete) {
+    dataVIO->first_reference_operation_complete = true;
+    return;
   }
 
+  if (noVIOsSeen) {
+    noVIOsSeen = false;
+  } else {
+    bool before = vdo_before_journal_point(&lastCommittedVIOSeen,
+                                           &dataVIO->recovery_journal_point);
+    CU_ASSERT_TRUE(before);
+  }
+
+  lastCommittedVIOSeen = dataVIO->recovery_journal_point;
   vdo_finish_completion_parent_callback(completion);
 }
 
@@ -552,15 +542,25 @@ static void journalEntryCallback(struct vdo_completion *completion)
  **/
 static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
 {
-  struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_reset_completion(&wrapper->completion);
-  vdo_reset_completion(&dataVIO->vio.completion);
-  dataVIO->vio.completion.callback = journalEntryCallback;
-  dataVIO->vio.completion.parent   = &wrapper->completion;
-  wrapper->entry                   = entry;
-  dataVIO->new_mapped.pbn          = (physical_block_number_t) entry;
-  dataVIO->tree_lock.tree_slots[0].block_map_slot.pbn
-    = (physical_block_number_t) entry;
+
+  struct data_vio *dataVIO = &wrapper->dataVIO;
+  vdo_prepare_completion(&dataVIO->vio.completion,
+                         journalEntryCallback,
+                         vdo_finish_completion_parent_callback,
+                         journal->thread_id,
+                         wrapper);
+  vdo_prepare_completion(&dataVIO->decrement_completion,
+                         journalEntryCallback,
+                         NULL,
+                         journal->thread_id,
+                         wrapper);
+  wrapper->entry                                      = entry;
+  dataVIO->mapped.pbn                                 = (physical_block_number_t) (entry + 1);
+  dataVIO->new_mapped.pbn                             = (physical_block_number_t) entry;
+  dataVIO->tree_lock.tree_slots[0].block_map_slot.pbn = (physical_block_number_t) entry;
+
+  dataVIO->first_reference_operation_complete = (dataVIO->new_mapped.pbn == VDO_ZERO_BLOCK);
 }
 
 /**
@@ -622,11 +622,18 @@ static bool recordAppendPoint(void *context __attribute__((unused)))
 static void addJournalEntry(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = dataVIOFromWrapper(completion);
-  vdo_set_up_reference_operation_with_lock(shouldBeIncrement(),
+  vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
+                                           true,
                                            dataVIO->new_mapped.pbn,
                                            dataVIO->new_mapped.state,
                                            NULL,
-                                           &dataVIO->operation);
+                                           &dataVIO->increment_updater.operation);
+  vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
+                                           false,
+                                           dataVIO->mapped.pbn,
+                                           dataVIO->mapped.state,
+                                           NULL,
+                                           &dataVIO->decrement_updater.operation);
   vdo_add_recovery_journal_entry(journal, dataVIO);
   runLocked(recordAppendPoint, NULL);
 }
@@ -745,20 +752,6 @@ static sequence_number_t sequenceNumberFromEntry(EntryNumber entry)
 }
 
 /**
- * Determine whether a given entry should be an increment.
- *
- * @param sequenceNumber  The sequence number of a journal block
- * @param entry           The entry offset into the block
- *
- * @return <code>true</code> if the entry should be an increment
- **/
-static bool isIncrementEntry(sequence_number_t sequenceNumber,
-                             EntryNumber entry)
-{
-  return (((sequenceNumber + entry) % 2) == 1);
-}
-
-/**
  * Copy a recovery journal block out of the RAM layer.
  *
  * @param sequenceNumber  The sequence number of the desired block
@@ -838,10 +831,9 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
       = i + ((sequenceNumber - 1) * journal->entries_per_block) + 1;
     struct recovery_journal_entry entry
       = vdo_unpack_recovery_journal_entry(&sector->entries[sectorEntryNumber]);
-    CU_ASSERT_EQUAL(isIncrementEntry(sequenceNumber, i),
-                    vdo_is_journal_increment_operation(entry.operation));
     CU_ASSERT_EQUAL(entryNumber, entry.slot.pbn);
     CU_ASSERT_EQUAL(entryNumber, entry.mapping.pbn);
+    CU_ASSERT_EQUAL(entryNumber + 1, entry.unmapping.pbn);
   }
   UDS_FREE(packedHeader);
 }
@@ -1164,9 +1156,7 @@ static void simulateUpdatesForBlock(sequence_number_t blockNumber,
   addReference(blockNumber, VDO_ZONE_TYPE_LOGICAL);
   for (int i = 0; i < journal->entries_per_block; i++) {
     // Making a block map entry releases a lock on increment.
-    if (isIncrementEntry(blockNumber, i)) {
-      vdo_release_journal_entry_lock(journal, blockNumber);
-    }
+    vdo_release_journal_entry_lock(journal, blockNumber);
   }
 
   // Now pretend to commit that block map page.
@@ -1203,27 +1193,48 @@ static void verifyJournalIsClosed(EntryNumber entry)
   performSuccessfulAction(checkJournalStateAction);
 }
 
+/**********************************************************************/
+static bool checkPendingBlock(struct waiter *waiter, void *context __attribute__((unused)))
+{
+  struct recovery_journal_block *block
+    = container_of(waiter, struct recovery_journal_block, write_waiter);
+  CU_ASSERT((block->sequence_number != pending) || !block->committing);
+  return false;
+}
+
+/**********************************************************************/
+static void checkPending(struct vdo_completion *completion)
+{
+  dequeue_matching_waiters(&journal->pending_writes, checkPendingBlock, NULL, NULL);
+  vdo_finish_completion(completion, VDO_SUCCESS);
+}
+
+/**********************************************************************/
+static void assertPendingBlock(sequence_number_t toCheck)
+{
+  pending = toCheck;
+  performSuccessfulAction(checkPending);
+}
+
 /**
  * Exercise the journal.
  **/
 static void testJournal(void)
 {
   // Write one entry at a time up to the first entry of block 2.
-  EntryNumber nextEntry
-    = commitEntries(1, RECOVERY_JOURNAL_ENTRIES_PER_BLOCK + 1);
+  EntryNumber nextEntry = commitEntries(1, RECOVERY_JOURNAL_ENTRIES_PER_BLOCK + 1);
 
   // Block the commit of block 2 and fill it.
   CompletionsWrapper block2Completions;
   EntryNumber block2Entry = nextEntry;
-  nextEntry
-    = launchAddWithBlockedCommit(nextEntry,
-                                 RECOVERY_JOURNAL_ENTRIES_PER_BLOCK - 1,
-                                 &block2Completions);
+  nextEntry = launchAddWithBlockedCommit(nextEntry,
+                                         RECOVERY_JOURNAL_ENTRIES_PER_BLOCK - 1,
+                                         &block2Completions);
   waitForAppendPoint(3, 0);
   assertLastVIOCommitted(2, 0);
 
-  // Fill block 3 and block the commit. Verify that it is written in
-  // disk but not committed.
+  // Fill block 3 and block the commit. Verify that it is written on disk but
+  // not committed.
   CompletionsWrapper block3Completions;
   EntryNumber block3Entry = nextEntry;
   nextEntry = launchAddWithBlockedCommit(nextEntry,
@@ -1242,13 +1253,14 @@ static void testJournal(void)
                                &block4Completions);
   waitForAppendPoint(4, RECOVERY_JOURNAL_ENTRIES_PER_BLOCK - 1);
   assertLastVIOCommitted(2, 0);
-
-  // Wait 0.05 seconds to make sure a write of block 4 wasn't issued.
-  usleep(50 * 1000);
+  // Make sure a write of block 4 wasn't issued. Since this runs on the journal thread, and
+  // we know all of the entries to be added to block 4 preceeded us, this check is valid.
+  assertPendingBlock(4);
   CU_ASSERT_FALSE(releaseIfLatched(pbnFromEntry(block4Entry)));
 
   // Let the commit of block 2 proceed and the commit point goes past block 2.
-  releaseAndWaitForCompletions(block2Completions.completions, block2Entry,
+  releaseAndWaitForCompletions(block2Completions.completions,
+                               block2Entry,
                                block2Completions.count);
   freeWrappedCompletions(&block2Completions);
   verifyFullBlocks(1, 2);
@@ -1257,7 +1269,7 @@ static void testJournal(void)
 
   // Since the block 3 write is still outstanding, a partial block 4
   // write should still not have been issued.
-  usleep(50 * 1000);
+  assertPendingBlock(4);
   CU_ASSERT_FALSE(releaseIfLatched(pbnFromEntry(block4Entry)));
 
   // Let the commit of block 3 proceed and the commit point goes past
@@ -1303,8 +1315,9 @@ static void testJournal(void)
    */
   verifyFullBlocks(1, 1);
   for (unsigned int i = 0; i < RECOVERY_JOURNAL_ENTRIES_PER_BLOCK; i++) {
-    // Add a reference for the uncommitted slab journal block.
+    // Add a reference for both uncommitted slab journal blocks.
     CU_ASSERT_EQUAL(1, journal->slab_journal_head);
+    addReference(1, VDO_ZONE_TYPE_PHYSICAL);
     addReference(1, VDO_ZONE_TYPE_PHYSICAL);
     // Add a reference for the uncommitted block map page.
     CU_ASSERT_EQUAL(1, journal->block_map_head);
@@ -1313,12 +1326,12 @@ static void testJournal(void)
 
   for (unsigned int i = 0; i < RECOVERY_JOURNAL_ENTRIES_PER_BLOCK; i++) {
     verifyFullBlocks(1, 1);
-    // Remove the per-entry reference for the block map entry if this is
-    // an increment.
-    if (isIncrementEntry(1, i)) {
-      vdo_release_journal_entry_lock(journal, 1);
-    }
-    // Remove the reference for committing the slab journal block.
+    // Remove the per-entry reference for the block map entry.
+    vdo_release_journal_entry_lock(journal, 1);
+
+    // Remove the reference for committing each of the slab journal blocks.
+    CU_ASSERT_EQUAL(1, journal->slab_journal_head);
+    removeReference(1, VDO_ZONE_TYPE_PHYSICAL);
     CU_ASSERT_EQUAL(1, journal->slab_journal_head);
     removeReference(1, VDO_ZONE_TYPE_PHYSICAL);
     // Remove the reference for committing the block map page.
@@ -1390,7 +1403,7 @@ static void testReadOnlyMode(void)
   nextEntry = launchAddEntries(nextEntry, entriesToAdd, &wrappedCompletions);
   waitForBlockedCommit(block5Entry);
   waitForBlockedCommit(block6Entry);
-  CU_ASSERT_TRUE(has_waiters(&journal->increment_waiters));
+  CU_ASSERT_TRUE(has_waiters(&journal->entry_waiters));
 
   releaseAllCommits();
 
@@ -1407,128 +1420,6 @@ static void testReadOnlyMode(void)
   verifyJournalIsClosed(nextEntry);
 }
 
-/**
- * An IncrementSelector which always increments.
- **/
-static enum journal_operation alwaysIncrement(void)
-{
-  return VDO_JOURNAL_DATA_INCREMENT;
-}
-
-/**
- * An IncrementSelector which always decrements.
- **/
-static enum journal_operation alwaysDecrement(void)
-{
-  return VDO_JOURNAL_DATA_DECREMENT;
-}
-
-/**
- * Wait for the append point to reach that of a given entry.
- *
- * @param entry  The entry whose append point should be waited on
- **/
-static void waitForAppendPointForEntry(EntryNumber entry)
-{
-  sequence_number_t sequenceNumber = sequenceNumberFromEntry(entry);
-  journal_entry_count_t entryCount
-    = entry - ((sequenceNumber - 1) * journal->entries_per_block);
-  waitForAppendPoint(sequenceNumber, entryCount);
-}
-
-/**
- * VDOAction to release all recovery journal locks on a given journal block.
- *
- * @param completion  The action completion
- **/
-static void unlockJournalBlock(struct vdo_completion *completion)
-{
-  // This method depends on the single thread config.
-  if (!is_lock_locked(journal,
-                      recoverySequenceNumber % journal->size,
-                      VDO_ZONE_TYPE_LOGICAL)) {
-    vdo_finish_completion(completion, VDO_SUCCESS);
-    return;
-  }
-
-  /*
-   * If the block is locked, acquire an extra logical zone reference which we
-   * can release after we've released all the journal locks in order to cause
-   * the journal to reap.
-   */
-  vdo_acquire_recovery_journal_block_reference(journal, recoverySequenceNumber,
-                                               VDO_ZONE_TYPE_LOGICAL, 0);
-
-  while (is_lock_locked(journal,
-                        recoverySequenceNumber % journal->size,
-                        VDO_ZONE_TYPE_PHYSICAL)) {
-    vdo_release_journal_entry_lock(journal, recoverySequenceNumber);
-  }
-
-  vdo_release_recovery_journal_block_reference(journal, recoverySequenceNumber,
-                                               VDO_ZONE_TYPE_LOGICAL, 0);
-
-  vdo_finish_completion(completion, VDO_SUCCESS);
-}
-
-/**
- * Test that decrements are given precedence over increments and that
- * increment entries are not made if there is not journal space for the
- * ensuing decrement entry.
- **/
-static void testIncrementDecrementPolicy(void)
-{
-  // Make all entries be increments.
-  shouldBeIncrement = alwaysIncrement;
-
-  // Write 1 more than the number of increments that will fit.
-  CompletionsWrapper incrementCompletions;
-  EntryNumber lastEntry
-    = launchAddEntries(0, (journal->available_space / 2) + 1,
-                       &incrementCompletions);
-  waitForAppendPointForEntry(lastEntry);
-  waitForCompletions(incrementCompletions.completions,
-                     incrementCompletions.count - 1);
-  CU_ASSERT_TRUE(has_waiters(&journal->increment_waiters));
-
-  // Write a decrement which should fit but the increment should still be
-  // blocked.
-  shouldBeIncrement = alwaysDecrement;
-  addOneEntry(lastEntry);
-  CU_ASSERT_TRUE(has_waiters(&journal->increment_waiters));
-
-  // Reap the head of the journal to free up available space which should
-  // allow the last increment to make its entry.
-  recoverySequenceNumber = 1;
-  performSuccessfulAction(unlockJournalBlock);
-
-  struct vdo_completion *completion
-    = incrementCompletions.completions[incrementCompletions.count - 1];
-  VDO_ASSERT_SUCCESS(awaitCompletion(completion));
-  freeWrappedCompletions(&incrementCompletions);
-
-  // Verify that the decrement entry precedes the last increment entry.
-  sequence_number_t lastBlock = sequenceNumberFromEntry(lastEntry);
-  struct packed_journal_header *header
-    = getJournalBlockFromLayer(lastBlock);
-  struct packed_journal_sector *sector
-    = vdo_get_journal_block_sector(header, 1);
-
-  EntryNumber entryNumber = sector->entry_count - 2;
-  struct recovery_journal_entry entry
-    = vdo_unpack_recovery_journal_entry(&sector->entries[entryNumber]);
-  CU_ASSERT_EQUAL(entry.slot.pbn, lastEntry);
-  CU_ASSERT_FALSE(vdo_is_journal_increment_operation(entry.operation));
-
-  entryNumber = sector->entry_count - 1;
-  entry
-    = vdo_unpack_recovery_journal_entry(&sector->entries[entryNumber]);
-  CU_ASSERT_EQUAL(entry.slot.pbn, lastEntry - 1);
-  CU_ASSERT_TRUE(vdo_is_journal_increment_operation(entry.operation));
-
-  UDS_FREE(header);
-}
-
 /**********************************************************************/
 static CU_TestInfo recoveryJournalTests[] = {
   { "encode/decode",             testEncodeDecode             },
@@ -1536,7 +1427,6 @@ static CU_TestInfo recoveryJournalTests[] = {
   { "block header pack/unpack",  testBlockHeaderPacking       },
   { "exercise journal",          testJournal                  },
   { "read-only mode",            testReadOnlyMode             },
-  { "decrement priority",        testIncrementDecrementPolicy },
   CU_TEST_INFO_NULL
 };
 

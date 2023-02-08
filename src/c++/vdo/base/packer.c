@@ -274,7 +274,7 @@ release_compressed_write_waiter(struct data_vio *data_vio, struct allocation *al
 	};
 
 	vdo_share_compressed_write_lock(data_vio, allocation->lock);
-	launch_data_vio_journal_callback(data_vio, journal_optimized_data_vio_mapping);
+	update_metadata_for_data_vio_write(data_vio, allocation->lock);
 }
 
 /**

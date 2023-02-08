@@ -149,10 +149,8 @@ struct recovery_journal {
 	struct slab_depot *depot;
 	/* The block map which can hold locks on this journal */
 	struct block_map *block_map;
-	/* The queue of vios waiting to make increment entries */
-	struct wait_queue increment_waiters;
-	/* The queue of vios waiting to make decrement entries */
-	struct wait_queue decrement_waiters;
+	/* The queue of vios waiting to make entries */
+	struct wait_queue entry_waiters;
 	/* The number of free entries in the journal */
 	u64 available_space;
 	/* The number of decrement entries which need to be made */
@@ -253,19 +251,6 @@ vdo_compute_recovery_journal_check_byte(const struct recovery_journal *journal,
 {
 	/* The check byte must change with each trip around the journal. */
 	return (((sequence / journal->size) & 0x7F) | 0x80);
-}
-
-/**
- * vdo_is_journal_increment_operation() - Return whether a given journal_operation is an increment
- *                                        type.
- * @operation: The operation in question.
- *
- * Return: true if the type is an increment type.
- */
-static inline bool vdo_is_journal_increment_operation(enum journal_operation operation)
-{
-	return ((operation == VDO_JOURNAL_DATA_INCREMENT) ||
-		(operation == VDO_JOURNAL_BLOCK_MAP_INCREMENT));
 }
 
 int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,

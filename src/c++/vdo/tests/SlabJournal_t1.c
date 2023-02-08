@@ -42,6 +42,7 @@ typedef size_t EntryNumber;
 typedef struct {
   struct vdo_completion completion;
   EntryNumber           entry;
+  bool                  increment;
   struct data_vio       dataVIO;
 } DataVIOWrapper;
 
@@ -94,24 +95,26 @@ static u8 EXPECTED_BLOCK_HEADER_ENCODING[] =
     0x92, 0x91,                                     // entryCount
   };
 
-static struct slab_depot       *depot;
-static struct slab_journal     *journal;
-static struct vdo_slab         *slab;
-static sequence_number_t        recoveryJournalLock;
-static bool                     commitExpected;
+static struct slab_depot                *depot;
+static struct slab_journal              *journal;
+static struct slab_journal_block_header  tailHeader;
+static struct vdo_slab                  *slab;
 
-static sequence_number_t        journalHead;
-static sequence_number_t        expectedJournalHead;
-static bool                     journalReaped;
-static bool                     releaseFinished;
-static IntIntMap               *expectedHeads;
+static sequence_number_t                 recoveryJournalLock;
+static bool                              commitExpected;
+static sequence_number_t                 journalHead;
+static sequence_number_t                 expectedJournalHead;
+static bool                              journalReaped;
+static bool                              releaseFinished;
+static IntIntMap                        *expectedHeads;
 
-static sequence_number_t        referenceSequenceNumber;
-static int                      referenceAdjustment;
-static EntryNumber              lastEntry;
-static physical_block_number_t  slabSummaryBlockPBN;
-static block_count_t            entriesAdded;
-static slab_block_number        provisional;
+static sequence_number_t                 referenceSequenceNumber;
+static int                               referenceAdjustment;
+static EntryNumber                       lastEntry;
+static bool                              lastEntryWasIncrement;
+static physical_block_number_t           slabSummaryBlockPBN;
+static block_count_t                     entriesAdded;
+static slab_block_number                 provisional;
 
 /**
  * A WaitCondition to check whether a vio is doing or has just done a slab
@@ -268,9 +271,10 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
   struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
   vdo_initialize_completion(&dataVIO->vio.completion, vdo, VIO_COMPLETION);
-  dataVIO->vio.type         = VIO_TYPE_DATA;
-  dataVIO->mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
-  dataVIO->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
+  dataVIO->vio.type                 = VIO_TYPE_DATA;
+  vdo_initialize_completion(&dataVIO->decrement_completion, vdo, VDO_DECREMENT_COMPLETION);
+  wrapper->dataVIO.mapped.state     = VDO_MAPPING_STATE_UNCOMPRESSED;
+  wrapper->dataVIO.new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 }
 
 /**
@@ -293,19 +297,27 @@ static void makeProvisionalReference(struct vdo_completion *completion)
  **/
 static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
 {
-  struct data_vio *dataVIO = &wrapper->dataVIO;
+  wrapper->entry       = entry;
   vdo_reset_completion(&wrapper->completion);
-  vdo_reset_completion(&dataVIO->vio.completion);
-  dataVIO->vio.completion.callback = vdo_finish_completion_parent_callback;
-  dataVIO->vio.completion.parent   = &wrapper->completion;
-  wrapper->entry                   = entry;
-  dataVIO->logical.lbn             = (logical_block_number_t) entry;
+
+  struct data_vio *dataVIO = &wrapper->dataVIO;
+  vdo_prepare_completion(&dataVIO->vio.completion,
+                         vdo_finish_completion_parent_callback,
+                         vdo_finish_completion_parent_callback,
+                         0,
+                         &wrapper->completion);
+  vdo_prepare_completion(&dataVIO->decrement_completion,
+                         vdo_finish_completion_parent_callback,
+                         vdo_finish_completion_parent_callback,
+                         0,
+                         &wrapper->completion);
 
   physical_block_number_t pbn = (physical_block_number_t) entry + slab->start;
   dataVIO->new_mapped.pbn     = pbn;
   dataVIO->mapped.pbn         = pbn;
-  dataVIO->operation.pbn      = pbn;
 
+  struct reference_updater *incrementer = &dataVIO->increment_updater;
+  struct reference_updater *decrementer = &dataVIO->decrement_updater;
   EntryNumber cycleEntry = entry % TOTAL_JOURNAL_ENTRIES;
   if ((cycleEntry % FULL_ENTRIES_PER_BLOCK)
       == (cycleEntry / FULL_ENTRIES_PER_BLOCK)) {
@@ -313,15 +325,25 @@ static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
     treeSlot->block_map_slot.pbn         = pbn;
     dataVIO->allocation.pbn              = pbn;
     provisional                          = entry;
-    dataVIO->operation.type              = VDO_JOURNAL_BLOCK_MAP_INCREMENT;
     dataVIO->tree_lock.height            = 1;
+    incrementer->operation.type          = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
+    incrementer->operation.pbn           = pbn;
+    incrementer->operation.increment     = true;
+    wrapper->increment                   = true;
     performSuccessfulActionOnThread(makeProvisionalReference,
                                     slab->allocator->thread_id);
+  } else if ((entry % 2) == 0) {
+    incrementer->operation.pbn       = pbn;
+    incrementer->operation.type      = VDO_JOURNAL_DATA_REMAPPING;
+    incrementer->operation.increment = true;
+    wrapper->increment               = true;
   } else {
-    dataVIO->operation.type = (((entry % 2) == 0)
-                               ? VDO_JOURNAL_DATA_INCREMENT
-                               : VDO_JOURNAL_DATA_DECREMENT);
+    decrementer->operation.pbn       = pbn;
+    decrementer->operation.type      = VDO_JOURNAL_DATA_REMAPPING;
+    decrementer->operation.increment = false;
+    wrapper->increment               = false;
   }
+
   dataVIO->recovery_journal_point = (struct journal_point) {
     .sequence_number = entry + 1,
     .entry_count     = entry % 35,
@@ -373,8 +395,18 @@ static bool signalEntryAdded(void *context __attribute__((unused)))
  **/
 static void addSlabJournalEntryAction(struct vdo_completion *completion)
 {
-  struct data_vio *dataVIO = dataVIOFromWrapper(completion);
-  vdo_add_slab_journal_entry(journal, dataVIO);
+  DataVIOWrapper *wrapper
+    = container_of(completion, DataVIOWrapper, completion);
+  struct data_vio *dataVIO = &wrapper->dataVIO;
+  lastEntryWasIncrement = wrapper->increment;
+  if (wrapper->increment) {
+    vdo_add_slab_journal_entry(journal, &dataVIO->vio.completion, &dataVIO->increment_updater);
+  } else {
+    vdo_add_slab_journal_entry(journal,
+                               &dataVIO->decrement_completion,
+                               &dataVIO->decrement_updater);
+  }
+
   runLocked(signalEntryAdded, NULL);
 }
 
@@ -386,10 +418,17 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
 static void
 addSlabJournalEntryForRebuildAction(struct vdo_completion *completion)
 {
-  struct data_vio *dataVIO = dataVIOFromWrapper(completion);
+  DataVIOWrapper *wrapper
+    = container_of(completion, DataVIOWrapper, completion);
+  struct data_vio *dataVIO = &wrapper->dataVIO;
+  struct reference_updater *updater = (wrapper->increment
+                                       ? &dataVIO->increment_updater
+                                       : &dataVIO->decrement_updater);
   bool added
-    = vdo_attempt_replay_into_slab_journal(journal, dataVIO->operation.pbn,
-                                           dataVIO->operation.type,
+    = vdo_attempt_replay_into_slab_journal(journal,
+                                           updater->operation.pbn,
+                                           updater->operation.type,
+                                           updater->operation.increment,
                                            &dataVIO->recovery_journal_point,
                                            NULL);
   CU_ASSERT(added);
@@ -626,6 +665,13 @@ static void launchCommitJournalTail(sequence_number_t recoveryLock,
   performSuccessfulAction(commitJournalTail);
 }
 
+/**********************************************************************/
+static void fetchTailHeader(struct vdo_completion *completion)
+{
+  tailHeader = journal->tail_header;
+  vdo_complete_completion(completion);
+}
+
 /**
  * Assert that the journal's append point matches the given parameters.
  *
@@ -635,8 +681,9 @@ static void launchCommitJournalTail(sequence_number_t recoveryLock,
 static void assertAppendPoint(sequence_number_t     blockNumber,
                               journal_entry_count_t entryCount)
 {
-  CU_ASSERT_EQUAL(blockNumber, journal->tail_header.sequence_number);
-  CU_ASSERT_EQUAL(entryCount, journal->tail_header.entry_count);
+  performSuccessfulAction(fetchTailHeader);
+  CU_ASSERT_EQUAL(blockNumber, tailHeader.sequence_number);
+  CU_ASSERT_EQUAL(entryCount, tailHeader.entry_count);
 }
 
 /**
@@ -649,9 +696,10 @@ static void assertAppendPoint(sequence_number_t     blockNumber,
 static void assertRecoveryJournalPoint(sequence_number_t     blockNumber,
                                        journal_entry_count_t entryCount)
 {
-  struct journal_point recoveryPoint = journal->tail_header.recovery_point;
+  performSuccessfulAction(fetchTailHeader);
+  struct journal_point recoveryPoint = tailHeader.recovery_point;
   CU_ASSERT_EQUAL(blockNumber, recoveryPoint.sequence_number);
-  CU_ASSERT_EQUAL(entryCount, recoveryPoint.entry_count);
+  CU_ASSERT_EQUAL(entryCount * 2 + (lastEntryWasIncrement ? 0 : 1), recoveryPoint.entry_count);
 }
 
 /**
@@ -695,12 +743,11 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
     EntryNumber expectedOffset = baseOffset + i;
     CU_ASSERT_EQUAL(expectedOffset, entry.sbn);
     if ((expectedOffset % FULL_ENTRIES_PER_BLOCK) == cycleOffset) {
-      CU_ASSERT_EQUAL(VDO_JOURNAL_BLOCK_MAP_INCREMENT, entry.operation);
+      CU_ASSERT_EQUAL(VDO_JOURNAL_BLOCK_MAP_REMAPPING, entry.operation);
+      CU_ASSERT(entry.increment);
     } else {
-      CU_ASSERT_EQUAL((((expectedOffset % 2) == 0)
-                       ? VDO_JOURNAL_DATA_INCREMENT
-                       : VDO_JOURNAL_DATA_DECREMENT),
-                      entry.operation);
+      CU_ASSERT_EQUAL(VDO_JOURNAL_DATA_REMAPPING, entry.operation);
+      CU_ASSERT_EQUAL(((expectedOffset % 2) == 0), entry.increment);
     }
   }
 }
@@ -754,7 +801,8 @@ static void checkPacking(slab_block_number sbn, bool increment)
   CU_ASSERT_EQUAL(raw[2], (packed.offset_high7 | (increment ? 0x80 : 0)));
 
   struct slab_journal_entry entry = vdo_unpack_slab_journal_entry(&packed);
-  CU_ASSERT_EQUAL(increment, (entry.operation == VDO_JOURNAL_DATA_INCREMENT));
+  CU_ASSERT_EQUAL(increment, entry.increment);
+  CU_ASSERT_EQUAL(VDO_JOURNAL_DATA_REMAPPING, entry.operation);
   CU_ASSERT_EQUAL(sbn, entry.sbn);
 }
 

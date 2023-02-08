@@ -189,8 +189,7 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 		return result;
 
 	if (free_status_changed)
-		vdo_adjust_free_block_count(slab,
-					    !vdo_is_journal_increment_operation(operation.type));
+		vdo_adjust_free_block_count(slab, !operation.increment);
 
 	return VDO_SUCCESS;
 }

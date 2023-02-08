@@ -1045,7 +1045,7 @@ static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio, boo
 	/* Deduplicate against the lock's verified location. */
 	set_duplicate_location(data_vio, lock->duplicate);
 	data_vio->new_mapped = data_vio->duplicate;
-	launch_data_vio_journal_callback(data_vio, journal_optimized_data_vio_mapping);
+	update_metadata_for_data_vio_write(data_vio, lock->duplicate_lock);
 }
 
 /**

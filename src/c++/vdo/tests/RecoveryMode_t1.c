@@ -846,6 +846,28 @@ static void testPostReadOnlyRebuild(void)
   fillJournals(totalFreeBlocks + 1);
 }
 
+/**
+ * Test that we recompute logical blocks used correctly.
+ **/
+static void testAccounting(void)
+{
+  block_count_t totalFreeBlocks = 64;
+  initializeRecoveryModeT1(totalFreeBlocks);
+
+  writeData(0, 1, totalFreeBlocks, VDO_SUCCESS);
+  performTrim(0, totalFreeBlocks / 2);
+  for (logical_block_number_t lbn = totalFreeBlocks / 2; lbn < totalFreeBlocks; lbn++) {
+    writeData(lbn, 0, 1, VDO_SUCCESS);
+  }
+  block_count_t allocated = getBlocksAllocated();
+
+  crashVDO();
+  startVDO(VDO_DIRTY);
+  waitForRecoveryDone();
+  verifyLogicalBlockUsed(totalFreeBlocks / 2);
+  CU_ASSERT_EQUAL(getBlocksAllocated(), allocated);
+}
+
 /**********************************************************************/
 static CU_TestInfo tests[] = {
   { "Write during recovery",                    testRecoveryModeNoCompress },
@@ -857,6 +879,7 @@ static CU_TestInfo tests[] = {
   { "Compress during recovery",                 testRecoveryCompress       },
   { "Fully operable after recovery",            testPostRecoveryMode       },
   { "Fully operable after read-only rebuild",   testPostReadOnlyRebuild    },
+  { "Logical block accounting",                 testAccounting             },
   CU_TEST_INFO_NULL,
 };
 

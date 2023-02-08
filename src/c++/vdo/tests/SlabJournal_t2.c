@@ -45,7 +45,7 @@ static void initializeSlabJournalT2(void)
     // The slab size must be bigger than the number of entries which fit in the
     // slab journal.
     .slabSize             = 256,
-    .logicalBlocks        = 256,
+    .logicalBlocks        = 512,
     .slabCount            = 1,
     .slabJournalBlocks    = 8,
     .journalBlocks        = 16,
@@ -111,8 +111,8 @@ static bool wrapIfInPhysicalZone(struct vdo_completion *completion)
 static void checkForRecoveryJournalBlocked(struct vdo_completion *completion)
 {
   runSavedCallback(completion);
-  if (has_waiters(&vdo->recovery_journal->increment_waiters)) {
-    clearCompletionEnqueueHooks();
+  if (has_waiters(&vdo->recovery_journal->entry_waiters)
+      && (vdo->recovery_journal->available_space == 0)) {
     signalState(&recoveryJournalBlocked);
   }
 }
@@ -168,13 +168,7 @@ static void testSlabJournalCommitDelay(void)
 
   struct recovery_journal *journal = vdo->recovery_journal;
   setCompletionEnqueueHook(wrapIfInJournalZone);
-  block_count_t zeroBlocks = ((journal->slab_journal_commit_threshold
-                               * journal->entries_per_block) / 2) + 1;
-
-  // The point of this trim is to flood the recovery journal, which
-  // (apparently) won't happen with a discard size larger than 1 block per bio.
-  IORequest *trim
-    = launchTrimWithMaxDiscardSize(blocksWritten + 1, zeroBlocks, 1);
+  IORequest *trim = launchTrim(blocksWritten + 1, journal->available_space + 1);
   waitForState(&recoveryJournalBlocked);
   returnVIOsToPool();
 

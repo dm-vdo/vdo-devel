@@ -35,6 +35,7 @@
 #include "logical-zone.h"
 #include "packer.h"
 #include "recovery-journal.h"
+#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "status-codes.h"
@@ -197,19 +198,16 @@ static const char * const ASYNC_OPERATION_NAMES[] = {
 	"check_for_duplication",
 	"cleanup",
 	"compress_data_vio",
-	"decrement_reference_count",
-	"increment_reference_count",
 	"find_block_map_slot",
 	"get_mapped_block_for_read",
 	"get_mapped_block_for_write",
 	"hash_data_vio",
-	"journal_mapping_for_optimization",
-	"journal_mapping_for_write",
-	"journal_unmapping",
+	"journal_remapping",
 	"vdo_attempt_packing",
 	"put_mapped_block",
 	"read_data_vio",
 	"update_dedupe_index",
+	"update_reference_counts",
 	"verify_duplication",
 	"write_data_vio",
 };
@@ -908,7 +906,9 @@ static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result, "data_vio data bio allocation failure");
 
+	vdo_initialize_completion(&data_vio->decrement_completion, vdo, VDO_DECREMENT_COMPLETION);
 	initialize_vio(&data_vio->vio, bio, 1, VIO_TYPE_DATA, VIO_PRIORITY_DATA, vdo);
+
 	return VDO_SUCCESS;
 }
 
@@ -1754,103 +1754,124 @@ static void read_block(struct vdo_completion *completion)
 	submit_data_vio_io(data_vio);
 }
 
+static inline struct data_vio *
+reference_count_update_completion_as_data_vio(struct vdo_completion *completion)
+{
+	if (completion->type == VIO_COMPLETION)
+		return as_data_vio(completion);
+
+	return container_of(completion, struct data_vio, decrement_completion);
+}
+
 /**
- * update_block_map() - Update the block map now that we've added both entries to the recovery
- *                      journal.
+ * update_block_map() - Rendezvous of the data_vio and decrement completions after each has
+ *                      made its reference updates. Handle any error from either, or proceed
+ *                      to updating the block map.
  * @completion: The completion of the write in progress.
  */
 static void update_block_map(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = as_data_vio(completion);
+	struct data_vio *data_vio = reference_count_update_completion_as_data_vio(completion);
 
 	assert_data_vio_in_logical_zone(data_vio);
 
+	if (!data_vio->first_reference_operation_complete) {
+		/* Rendezvous, we're first */
+		data_vio->first_reference_operation_complete = true;
+		return;
+	}
+
+	completion = &data_vio->vio.completion;
+	vdo_set_completion_result(completion, data_vio->decrement_completion.result);
+	if (completion->result != VDO_SUCCESS) {
+		handle_data_vio_error(completion);
+		return;
+	}
+
+	completion->error_handler = handle_data_vio_error;
 	if (data_vio->hash_lock != NULL)
 		set_data_vio_hash_zone_callback(data_vio, vdo_continue_hash_lock);
 	else
 		completion->callback = complete_data_vio;
+
 	data_vio->last_async_operation = VIO_ASYNC_OP_PUT_MAPPED_BLOCK;
 	vdo_put_mapped_block(data_vio);
 }
 
-/**
- * journal_increment() - Make a recovery journal increment.
- * @data_vio: The data_vio.
- * @lock: The pbn_lock on the block being incremented.
- */
-static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
-{
-	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_INCREMENT,
-						 data_vio->new_mapped.pbn,
-						 data_vio->new_mapped.state,
-						 lock,
-						 &data_vio->operation);
-	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal, data_vio);
-}
-
-/**
- * journal_decrement() - Make a recovery journal decrement entry.
- * @data_vio: The data_vio.
- */
-static void journal_decrement(struct data_vio *data_vio)
-{
-	vdo_set_up_reference_operation_with_zone(VDO_JOURNAL_DATA_DECREMENT,
-						 data_vio->mapped.pbn,
-						 data_vio->mapped.state,
-						 data_vio->mapped.zone,
-						 &data_vio->operation);
-	vdo_add_recovery_journal_entry(vdo_from_data_vio(data_vio)->recovery_journal, data_vio);
-}
-
-/**
- * update_reference_count() - Make a reference count change.
- * @data_vio: The data_vio.
- */
-static void update_reference_count(struct data_vio *data_vio)
-{
-	struct slab_depot *depot = vdo_from_data_vio(data_vio)->depot;
-	physical_block_number_t pbn = data_vio->operation.pbn;
-	int result = ASSERT(vdo_is_physical_data_block(depot, pbn),
-			    "Adding slab journal entry for impossible PBN %llu for LBN %llu",
-			    (unsigned long long) pbn,
-			    (unsigned long long) data_vio->logical.lbn);
-
-	if (result != VDO_SUCCESS) {
-		continue_data_vio_with_error(data_vio, result);
-		return;
-	}
-
-	vdo_add_slab_journal_entry(vdo_get_slab(depot, pbn)->journal, data_vio);
-}
-
 static void decrement_reference_count(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = as_data_vio(completion);
+	struct vdo_slab *slab;
+	struct data_vio *data_vio = container_of(completion,
+						 struct data_vio,
+						 decrement_completion);
 
 	assert_data_vio_in_mapped_zone(data_vio);
 
+	vdo_set_completion_callback(completion,
+				    update_block_map,
+				    data_vio->logical.zone->thread_id);
+	completion->error_handler = update_block_map;
+	slab = vdo_get_slab(completion->vdo->depot, data_vio->decrement_updater.operation.pbn);
+	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->decrement_updater);
+}
+
+static void increment_reference_count(struct vdo_completion *completion)
+{
+	struct vdo_slab *slab;
+	struct data_vio *data_vio = as_data_vio(completion);
+
+	assert_data_vio_in_new_mapped_zone(data_vio);
+
+	if (data_vio->downgrade_allocation_lock) {
+		/*
+		 * Now that the data has been written, it's safe to deduplicate against the
+		 * block. Downgrade the allocation lock to a read lock so it can be used later by
+		 * the hash lock. This is done here since it needs to happen sometime before we
+		 * return to the hash zone, and we are currently on the correct thread. For
+		 * compressed blocks, the downgrade will have already been done.
+		 */
+		vdo_downgrade_pbn_write_lock(data_vio->allocation.lock, false);
+	}
+
 	set_data_vio_logical_callback(data_vio, update_block_map);
-	data_vio->last_async_operation = VIO_ASYNC_OP_DECREMENT_REFERENCE_COUNT;
-	update_reference_count(data_vio);
+	completion->error_handler = update_block_map;
+	slab = vdo_get_slab(completion->vdo->depot, data_vio->increment_updater.operation.pbn);
+	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->increment_updater);
 }
 
 /**
- * journal_unmapping() - Write the appropriate journal entry for removing the mapping of logical to
- *                       mapped.
- * @completion: The completion of the write in progress.
+ * journal_remapping() - Add a recovery journal entry for a data remapping.
+ * @completion: The data_vio
  */
-static void journal_unmapping(struct vdo_completion *completion)
+static void journal_remapping(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_journal_zone(data_vio);
 
+	vdo_set_up_reference_operation_with_zone(VDO_JOURNAL_DATA_REMAPPING,
+						 false,
+						 data_vio->mapped.pbn,
+						 data_vio->mapped.state,
+						 data_vio->mapped.zone,
+						 &data_vio->decrement_updater.operation);
+	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {
+		data_vio->first_reference_operation_complete = true;
+		if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
+			set_data_vio_logical_callback(data_vio, update_block_map);
+	} else {
+		set_data_vio_new_mapped_zone_callback(data_vio, increment_reference_count);
+	}
+
 	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
-		set_data_vio_logical_callback(data_vio, update_block_map);
+		data_vio->first_reference_operation_complete = true;
 	else
-		set_data_vio_mapped_zone_callback(data_vio, decrement_reference_count);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_UNMAPPING;
-	journal_decrement(data_vio);
+		vdo_set_completion_callback(&data_vio->decrement_completion,
+					    decrement_reference_count,
+					    data_vio->mapped.zone->thread_id);
+
+	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_REMAPPING;
+	vdo_add_recovery_journal_entry(completion->vdo->recovery_journal, data_vio);
 }
 
 /**
@@ -1867,40 +1888,19 @@ static void read_old_block_mapping(struct vdo_completion *completion)
 	assert_data_vio_in_logical_zone(data_vio);
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE;
-	set_data_vio_journal_callback(data_vio, journal_unmapping);
+	set_data_vio_journal_callback(data_vio, journal_remapping);
 	vdo_get_mapped_block(data_vio);
 }
 
-/**
- * increment_reference_count() - Increment the reference count now that the new mapping is
- *                               journaled.
- * @completion: The completion of the write in progress.
- */
-static void increment_reference_count(struct vdo_completion *completion)
+void update_metadata_for_data_vio_write(struct data_vio *data_vio, struct pbn_lock *lock)
 {
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_new_mapped_zone(data_vio);
-
-	set_data_vio_logical_callback(data_vio, read_old_block_mapping);
-	data_vio->last_async_operation = VIO_ASYNC_OP_INCREMENT_REFERENCE_COUNT;
-	update_reference_count(data_vio);
-}
-
-/**
- * journal_optimized_data_vio_mapping() - Add a recovery journal entry for the increment of a
- *					  compressed or deduplicated block.
- * @completion: The data_vio which has been compressed.
- */
-void journal_optimized_data_vio_mapping(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_journal_zone(data_vio);
-
-	set_data_vio_new_mapped_zone_callback(data_vio, increment_reference_count);
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_OPTIMIZATION;
-	journal_increment(data_vio, vdo_get_duplicate_lock(data_vio));
+	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
+						 true,
+						 data_vio->new_mapped.pbn,
+						 data_vio->new_mapped.state,
+						 lock,
+						 &data_vio->increment_updater.operation);
+	launch_data_vio_logical_callback(data_vio, read_old_block_mapping);
 }
 
 /**
@@ -2039,50 +2039,8 @@ static void prepare_for_dedupe(struct data_vio *data_vio)
 }
 
 /**
- * increment_for_write() - Do the incref after a successful block write.
- * @completion: The completion of the write in progress.
- *
- * This is the callback registered by finish_block_write().
- */
-static void increment_for_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_allocated_zone(data_vio);
-
-	/*
-	 * Now that the data has been written, it's safe to deduplicate against the block.
-	 * Downgrade the allocation lock to a read lock so it can be used later by the hash lock.
-	 */
-	vdo_downgrade_pbn_write_lock(data_vio->allocation.lock, false);
-	increment_reference_count(completion);
-}
-
-/**
- * finish_block_write() - Add an entry in the recovery journal after a successful block write.
- * @completion: The completion of the write in progress.
- *
- * This is the callback registered by write_block(). It is also registered in
- * allocate_block_for_write().
- */
-static void finish_block_write(struct vdo_completion *completion)
-{
-	struct data_vio *data_vio = as_data_vio(completion);
-
-	assert_data_vio_in_journal_zone(data_vio);
-
-	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK)
-		set_data_vio_logical_callback(data_vio, read_old_block_mapping);
-	else
-		set_data_vio_allocated_zone_callback(data_vio, increment_for_write);
-
-	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_WRITE;
-	journal_increment(data_vio, data_vio->allocation.lock);
-}
-
-/**
- * write_bio_finished() - This is the bio_end_io functon registered in write_block() to be called
- *			  when a data_vio's write to he underlying storage has completed.
+ * write_bio_finished() - This is the bio_end_io function registered in write_block() to be called
+ *			  when a data_vio's write to the underlying storage has completed.
  * @bio: The bio which has just completed.
  */
 static void write_bio_finished(struct bio *bio)
@@ -2091,7 +2049,8 @@ static void write_bio_finished(struct bio *bio)
 
 	vdo_count_completed_bios(bio);
 	vdo_set_completion_result(&data_vio->vio.completion, blk_status_to_errno(bio->bi_status));
-	launch_data_vio_journal_callback(data_vio, finish_block_write);
+	data_vio->downgrade_allocation_lock = true;
+	update_metadata_for_data_vio_write(data_vio, data_vio->allocation.lock);
 }
 
 /**
@@ -2157,7 +2116,7 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
 	acknowledge_data_vio(data_vio);
 	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {
 		/* This is a zero write or discard */
-		launch_data_vio_journal_callback(data_vio, finish_block_write);
+		update_metadata_for_data_vio_write(data_vio, NULL);
 		return;
 	}
 
@@ -2226,7 +2185,7 @@ static int assert_is_trim(struct data_vio *data_vio)
 }
 
 /**
- * continue_read_with_block_map_slot() - Read the data_vio's mapping from the block map.
+ * continue_data_vio_with_block_map_slot() - Read the data_vio's mapping from the block map.
  * @completion: The data_vio to be read.
  *
  * This callback is registered in launch_read_data_vio().
@@ -2269,7 +2228,7 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 
 
 	/*
-	 * We don't need to writqe any data, so skip allocation and just update the block map and
+	 * We don't need to write any data, so skip allocation and just update the block map and
 	 * reference counts (via the journal).
 	 */
 	data_vio->new_mapped.pbn = VDO_ZERO_BLOCK;
@@ -2278,7 +2237,7 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 
 	if (data_vio->remaining_discard > VDO_BLOCK_SIZE) {
 		/* This is not the final block of a discard so we can't acknowledge it yet. */
-		launch_data_vio_journal_callback(data_vio, finish_block_write);
+		update_metadata_for_data_vio_write(data_vio, NULL);
 		return;
 	}
 

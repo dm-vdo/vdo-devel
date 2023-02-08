@@ -28,8 +28,7 @@
 
 enum {
   BATCH_SIZE = VDO_MAX_COMPRESSION_SLOTS * 2,
-  // 311 is the old recovery journal size.
-  BATCHES = (311 / BATCH_SIZE) + 1,
+  BATCHES = (RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK / BATCH_SIZE) + 1,
 };
 
 static TestParameters parameters = {
@@ -86,23 +85,24 @@ static void generate(void)
   setBIOSubmitHook(checkJournalFormat);
 
   // fill four recovery journal blocks, each batch would fill one compressed block.
-  u8 batchSize = VDO_MAX_COMPRESSION_SLOTS * 2;
-  u8 batches = (RECOVERY_JOURNAL_ENTRIES_PER_BLOCK / batchSize) + 1;
-  for (u8 i = 0; i < batches; i++) {
-    writeData(i * batchSize, 0, batchSize, VDO_SUCCESS);
+  for (u8 i = 0; i < BATCHES; i++) {
+    writeData(i * BATCH_SIZE, 0, BATCH_SIZE, VDO_SUCCESS);
   }
 
   // Overwrite one batch with zeros.
-  zeroData(0, batchSize, VDO_SUCCESS);
+  zeroData(0, BATCH_SIZE, VDO_SUCCESS);
 
   // fill two more journal blocks with duplicates of a compressed block.
   performSetVDOCompressing(true);
-  for (u8 i = 0; i < batches; i++) {
-    writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE + (i * batchSize), batchSize, batchSize, VDO_SUCCESS);
+  for (u8 i = 0; i < BATCHES; i++) {
+    writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE + (i * BATCH_SIZE),
+              BATCH_SIZE,
+              BATCH_SIZE,
+              VDO_SUCCESS);
   }
 
   // Discard one batch.
-  discardData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE, batchSize, VDO_SUCCESS);
+  discardData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE, BATCH_SIZE, VDO_SUCCESS);
 
   crashVDO();
   int fd;

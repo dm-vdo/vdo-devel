@@ -26,6 +26,8 @@ typedef struct pbn_lock *pbn_lock_getter(struct reference_operation operation);
 struct reference_operation {
 	/* The operation being performed */
 	enum journal_operation type;
+	/* The reference count change */
+	bool increment;
 	/* The PBN of the block being operated on */
 	physical_block_number_t pbn;
 	/* The mapping state of the block being operated on */
@@ -50,12 +52,14 @@ vdo_get_reference_operation_pbn_lock(struct reference_operation operation)
 }
 
 void vdo_set_up_reference_operation_with_lock(enum journal_operation type,
+					      bool increment,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state,
 					      struct pbn_lock *lock,
 					      struct reference_operation *operation);
 
 void vdo_set_up_reference_operation_with_zone(enum journal_operation type,
+					      bool increment,
 					      physical_block_number_t pbn,
 					      enum block_mapping_state state,
 					      struct physical_zone *zone,

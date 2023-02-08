@@ -33,12 +33,11 @@ enum {
 	/*
 	 * The number of reserved blocks must be large enough to prevent a new recovery journal
 	 * block write from overwriting a block which appears to still be a valid head block of the
-	 * journal. Currently, that means reserving enough space for all 2048 data_vios, or 8
-	 * blocks.
+	 * journal. Currently, that means reserving enough space for all 2048 data_vios.
 	 */
-	RECOVERY_JOURNAL_RESERVED_BLOCKS = 8,
-	WRITE_FLAGS = REQ_OP_WRITE | REQ_PRIO | REQ_PREFLUSH | REQ_SYNC,
-	FUA_WRITE_FLAGS = WRITE_FLAGS | REQ_FUA,
+	RECOVERY_JOURNAL_RESERVED_BLOCKS =
+		(MAXIMUM_VDO_USER_VIOS / RECOVERY_JOURNAL_ENTRIES_PER_BLOCK) + 2,
+	WRITE_FLAGS = REQ_OP_WRITE | REQ_PRIO | REQ_PREFLUSH | REQ_SYNC | REQ_FUA,
 };
 
 /**
@@ -334,8 +333,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 	if (vdo_is_read_only(journal->read_only_notifier)) {
 		result = VDO_READ_ONLY;
 		/*
-		 * Clean up any full active blocks which were not written due to being in read-only
-		 * mode.
+		 * Clean up any full active blocks which were not written due to read-only mode.
 		 *
 		 * FIXME: This would probably be better as a short-circuit in write_block().
 		 */
@@ -343,15 +341,13 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		recycle_journal_blocks(journal);
 
 		/* Release any data_vios waiting to be assigned entries. */
-		notify_all_waiters(&journal->decrement_waiters, continue_waiter, &result);
-		notify_all_waiters(&journal->increment_waiters, continue_waiter, &result);
+		notify_all_waiters(&journal->entry_waiters, continue_waiter, &result);
 	}
 
 	if (!vdo_is_state_draining(&journal->state) ||
 	    journal->reaping ||
 	    has_block_waiters(journal) ||
-	    has_waiters(&journal->increment_waiters) ||
-	    has_waiters(&journal->decrement_waiters) ||
+	    has_waiters(&journal->entry_waiters) ||
 	    !suspend_lock_counter(&journal->lock_counter))
 		return;
 
@@ -1003,7 +999,7 @@ static bool advance_tail(struct recovery_journal *journal)
 	list_move_tail(&block->list_node, &journal->active_tail_blocks);
 
 	unpacked = (struct recovery_block_header) {
-		.metadata_type = VDO_METADATA_RECOVERY_JOURNAL,
+		.metadata_type = VDO_METADATA_RECOVERY_JOURNAL_2,
 		.block_map_data_blocks = journal->block_map_data_blocks,
 		.logical_blocks_used = journal->logical_blocks_used,
 		.nonce = journal->nonce,
@@ -1027,21 +1023,6 @@ static bool advance_tail(struct recovery_journal *journal)
 }
 
 /**
- * check_for_entry_space() - Check whether there is space to make a given type of entry.
- * @journal: The journal to check.
- * @increment: Set to true if the desired entry is an increment.
- *
- * Return: true if there is space in the journal to make an entry of the specified type.
- */
-static bool check_for_entry_space(struct recovery_journal *journal, bool increment)
-{
-	if (increment)
-		return ((journal->available_space - journal->pending_decrement_count) > 1);
-
-	return (journal->available_space > 0);
-}
-
-/**
  * initialize_lock_count() - Initialize the value of the journal zone's counter for a given lock.
  * @journal: The recovery journal.
  *
@@ -1062,22 +1043,15 @@ static void initialize_lock_count(struct recovery_journal *journal)
 
 /**
  * prepare_to_assign_entry() - Prepare the currently active block to receive an entry and check
- *                             whether an entry of the given type may be assigned at this time.
+ *			       whether an entry of the given type may be assigned at this time.
  * @journal: The journal receiving an entry.
- * @increment: Set to true if the desired entry is an increment.
  *
  * Return: true if there is space in the journal to store an entry of the specified type.
  */
-static bool prepare_to_assign_entry(struct recovery_journal *journal, bool increment)
+static bool prepare_to_assign_entry(struct recovery_journal *journal)
 {
-	if (!check_for_entry_space(journal, increment)) {
-		if (!increment) {
-			/* There must always be room to make a decrement entry. */
-			uds_log_error("No space for decrement entry in recovery journal");
-			enter_journal_read_only_mode(journal, VDO_RECOVERY_JOURNAL_FULL);
-		}
+	if (journal->available_space == 0)
 		return false;
-	}
 
 	if (is_block_full(journal->active_block) && !advance_tail(journal))
 		return false;
@@ -1085,8 +1059,7 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal, bool incre
 	if (!is_block_empty(journal->active_block))
 		return true;
 
-	if ((journal->tail - get_recovery_journal_head(journal)) >
-	    journal->size) {
+	if ((journal->tail - get_recovery_journal_head(journal)) > journal->size) {
 		/* Cannot use this block since the journal is full. */
 		journal->events.disk_full++;
 		return false;
@@ -1136,6 +1109,20 @@ static void release_journal_block_reference(struct recovery_journal_block *block
 						     0);
 }
 
+static void update_usages(struct recovery_journal *journal, struct data_vio *data_vio)
+{
+	if (data_vio->increment_updater.operation.type == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
+		journal->block_map_data_blocks++;
+		return;
+	}
+
+	if (data_vio->new_mapped.state != VDO_MAPPING_STATE_UNMAPPED)
+		journal->logical_blocks_used++;
+
+	if (data_vio->mapped.state != VDO_MAPPING_STATE_UNMAPPED)
+		journal->logical_blocks_used--;
+}
+
 /**
  * assign_entry() - Assign an entry waiter to the active block.
  *
@@ -1144,7 +1131,7 @@ static void release_journal_block_reference(struct recovery_journal_block *block
 static void assign_entry(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct recovery_journal_block *block = (struct recovery_journal_block *)context;
+	struct recovery_journal_block *block = (struct recovery_journal_block *) context;
 	struct recovery_journal *journal = block->journal;
 
 	/* Record the point at which we will make the journal entry. */
@@ -1153,38 +1140,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		.entry_count = block->entry_count,
 	};
 
-	switch (data_vio->operation.type) {
-	case VDO_JOURNAL_DATA_INCREMENT:
-		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED)
-			journal->logical_blocks_used++;
-		journal->pending_decrement_count++;
-		break;
-
-	case VDO_JOURNAL_DATA_DECREMENT:
-		if (data_vio->operation.state != VDO_MAPPING_STATE_UNMAPPED)
-			journal->logical_blocks_used--;
-
-		/*
-		 * Per-entry locks need not be held for decrement entries since the lock held for
-		 * the incref entry will protect this entry as well.
-		 */
-		release_journal_block_reference(block);
-		ASSERT_LOG_ONLY((journal->pending_decrement_count != 0),
-				"decrement follows increment");
-		journal->pending_decrement_count--;
-		break;
-
-	case VDO_JOURNAL_BLOCK_MAP_INCREMENT:
-		journal->block_map_data_blocks++;
-		break;
-
-	default:
-		uds_log_error("Invalid journal operation %u", data_vio->operation.type);
-		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
-		continue_data_vio_with_error(data_vio, VDO_NOT_IMPLEMENTED);
-		return;
-	}
-
+	update_usages(journal, data_vio);
 	journal->available_space--;
 
 	if (!has_waiters(&block->entry_waiters))
@@ -1206,20 +1162,6 @@ static void assign_entry(struct waiter *waiter, void *context)
 	check_slab_journal_commit_threshold(journal);
 }
 
-static bool assign_entries_from_queue(struct recovery_journal *journal,
-				      struct wait_queue *queue,
-				      bool increment)
-{
-	while (has_waiters(queue)) {
-		if (!prepare_to_assign_entry(journal, increment))
-			return false;
-
-		notify_next_waiter(queue, assign_entry, journal->active_block);
-	}
-
-	return true;
-}
-
 static void assign_entries(struct recovery_journal *journal)
 {
 	if (journal->adding_entries)
@@ -1227,8 +1169,10 @@ static void assign_entries(struct recovery_journal *journal)
 		return;
 
 	journal->adding_entries = true;
-	if (assign_entries_from_queue(journal, &journal->decrement_waiters, false))
-		assign_entries_from_queue(journal, &journal->increment_waiters, true);
+	while (has_waiters(&journal->entry_waiters) && prepare_to_assign_entry(journal))
+		notify_next_waiter(&journal->entry_waiters,
+				   assign_entry,
+				   journal->active_block);
 
 	/* Now that we've finished with entries, see if we have a batch of blocks to write. */
 	write_blocks(journal);
@@ -1272,7 +1216,8 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
-	int result;
+	int result = (vdo_is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY : VDO_SUCCESS);
+	bool has_decrement;
 
 	result = (vdo_is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY : VDO_SUCCESS);
 	ASSERT_LOG_ONLY(vdo_before_journal_point(&journal->commit_point,
@@ -1282,9 +1227,24 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 			journal->commit_point.entry_count,
 			(unsigned long long) data_vio->recovery_journal_point.sequence_number,
 			data_vio->recovery_journal_point.entry_count);
-	journal->commit_point = data_vio->recovery_journal_point;
 
-	continue_waiter(waiter, &result);
+	journal->commit_point = data_vio->recovery_journal_point;
+	data_vio->last_async_operation = VIO_ASYNC_OP_UPDATE_REFERENCE_COUNTS;
+	if (result != VDO_SUCCESS) {
+		continue_data_vio_with_error(data_vio, result);
+		return;
+	}
+
+	/*
+	 * The increment must be launched first since it must come before the
+	 * decrement if they are in the same slab.
+	 */
+	has_decrement = (data_vio->decrement_updater.operation.pbn != VDO_ZERO_BLOCK);
+	if ((data_vio->increment_updater.operation.pbn != VDO_ZERO_BLOCK) || !has_decrement)
+		continue_data_vio(data_vio);
+
+	if (has_decrement)
+		vdo_invoke_completion_callback(&data_vio->decrement_completion);
 }
 
 /**
@@ -1405,46 +1365,41 @@ static void complete_write_endio(struct bio *bio)
 /**
  * add_queued_recovery_entries() - Actually add entries from the queue to the given block.
  * @block: The journal block.
- *
- * Return: true if at least one of the new entries requires FUA.
  */
-static bool __must_check add_queued_recovery_entries(struct recovery_journal_block *block)
+static void add_queued_recovery_entries(struct recovery_journal_block *block)
 {
-	bool fua = false;
-
 	while (has_waiters(&block->entry_waiters)) {
 		struct data_vio *data_vio =
 			waiter_as_data_vio(dequeue_next_waiter(&block->entry_waiters));
 		struct tree_lock *lock = &data_vio->tree_lock;
 		struct packed_recovery_journal_entry *packed_entry;
 		struct recovery_journal_entry new_entry;
-		struct reference_operation operation = data_vio->operation;
+		struct reference_operation increment = data_vio->increment_updater.operation;
+		struct reference_operation decrement = data_vio->decrement_updater.operation;
 
-		if ((operation.type == VDO_JOURNAL_DATA_INCREMENT) && data_vio->fua)
-			fua = true;
+		if (block->sector->entry_count == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
+			set_active_sector(block, (char *) block->sector + VDO_SECTOR_SIZE);
 
 		/* Compose and encode the entry. */
 		packed_entry = &block->sector->entries[block->sector->entry_count++];
 		new_entry = (struct recovery_journal_entry) {
 			.mapping = {
-					.pbn = operation.pbn,
-					.state = operation.state,
-				},
-			.operation = operation.type,
+				.pbn = increment.pbn,
+				.state = increment.state,
+			},
+			.unmapping = {
+				.pbn = decrement.pbn,
+				.state = decrement.state,
+			},
+			.operation = increment.type,
 			.slot = lock->tree_slots[lock->height].block_map_slot,
 		};
 		*packed_entry = vdo_pack_recovery_journal_entry(&new_entry);
-
-		if (vdo_is_journal_increment_operation(operation.type))
-			data_vio->recovery_sequence_number = block->sequence_number;
+		data_vio->recovery_sequence_number = block->sequence_number;
 
 		/* Enqueue the data_vio to wait for its entry to commit. */
 		enqueue_waiter(&block->commit_waiters, &data_vio->waiter);
-		if (block->sector->entry_count == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
-			set_active_sector(block, (char *) block->sector + VDO_SECTOR_SIZE);
 	}
-
-	return fua;
 }
 
 /**
@@ -1460,7 +1415,6 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t pbn;
-	bool fua;
 
 	if (block->committing ||
 	    !has_waiters(&block->entry_waiters) ||
@@ -1477,7 +1431,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	}
 
 	block->entries_in_commit = count_waiters(&block->entry_waiters);
-	fua = add_queued_recovery_entries(block);
+	add_queued_recovery_entries(block);
 
 	journal->pending_write_count += 1;
 	journal->events.blocks.written += 1;
@@ -1490,17 +1444,15 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	block->committing = true;
 
 	/*
-	 * We must issue a flush for every commit. For increments, it is necessary to ensure that
-	 * the data being referenced is stable. For decrements, it is necessary to ensure that the
-	 * preceding increment entry is stable before allowing overwrites of the lbn's previous
-	 * data. For writes which had the FUA flag set, we must also set the FUA flag on the
-	 * journal write.
+	 * We must issue a flush and a FUA for every commit. The flush is necessary to ensure that
+	 * the data being referenced is stable. The FUA is necessary to ensure that the journal
+	 * block itself is stable before allowing overwrites of the lbn's previous data.
 	 */
 	submit_metadata_vio(&block->vio,
 			    pbn,
 			    complete_write_endio,
 			    handle_write_error,
-			    (fua ? FUA_WRITE_FLAGS : WRITE_FLAGS));
+			    WRITE_FLAGS);
 }
 
 
@@ -1548,8 +1500,6 @@ static void write_blocks(struct recovery_journal *journal)
  */
 void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct data_vio *data_vio)
 {
-	bool increment;
-
 	assert_on_journal_thread(journal, __func__);
 	if (!vdo_is_state_normal(&journal->state)) {
 		continue_data_vio_with_error(data_vio, VDO_INVALID_ADMIN_STATE);
@@ -1561,13 +1511,11 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct dat
 		return;
 	}
 
-	increment = vdo_is_journal_increment_operation(data_vio->operation.type);
-	ASSERT_LOG_ONLY((!increment || (data_vio->recovery_sequence_number == 0)),
-			"journal lock not held for increment");
+	ASSERT_LOG_ONLY(data_vio->recovery_sequence_number == 0,
+			"journal lock not held for new entry");
 
 	vdo_advance_journal_point(&journal->append_point, journal->entries_per_block);
-	enqueue_waiter((increment ? &journal->increment_waiters : &journal->decrement_waiters),
-		       &data_vio->waiter);
+	enqueue_waiter(&journal->entry_waiters, &data_vio->waiter);
 	assign_entries(journal);
 }
 
@@ -1843,7 +1791,7 @@ void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal
 	struct recovery_journal_statistics stats = vdo_get_recovery_journal_statistics(journal);
 
 	uds_log_info("Recovery Journal");
-	uds_log_info("	block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu increment_waiters=%zu decrement_waiters=%zu",
+	uds_log_info("	block_map_head=%llu slab_journal_head=%llu last_write_acknowledged=%llu tail=%llu block_map_reap_head=%llu slab_journal_reap_head=%llu disk_full=%llu slab_journal_commits_requested=%llu entry_waiters=%zu",
 		     (unsigned long long) journal->block_map_head,
 		     (unsigned long long) journal->slab_journal_head,
 		     (unsigned long long) journal->last_write_acknowledged,
@@ -1852,8 +1800,7 @@ void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal
 		     (unsigned long long) journal->slab_journal_reap_head,
 		     (unsigned long long) stats.disk_full,
 		     (unsigned long long) stats.slab_journal_commits_requested,
-		     count_waiters(&journal->increment_waiters),
-		     count_waiters(&journal->decrement_waiters));
+		     count_waiters(&journal->entry_waiters));
 	uds_log_info("	entries: started=%llu written=%llu committed=%llu",
 		     (unsigned long long) stats.entries.started,
 		     (unsigned long long) stats.entries.written,

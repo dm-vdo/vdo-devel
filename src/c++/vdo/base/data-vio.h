@@ -41,19 +41,16 @@ enum async_operation_number {
 	VIO_ASYNC_OP_CHECK_FOR_DUPLICATION,
 	VIO_ASYNC_OP_CLEANUP,
 	VIO_ASYNC_OP_COMPRESS_DATA_VIO,
-	VIO_ASYNC_OP_DECREMENT_REFERENCE_COUNT,
-	VIO_ASYNC_OP_INCREMENT_REFERENCE_COUNT,
 	VIO_ASYNC_OP_FIND_BLOCK_MAP_SLOT,
 	VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_READ,
 	VIO_ASYNC_OP_GET_MAPPED_BLOCK_FOR_WRITE,
 	VIO_ASYNC_OP_HASH_DATA_VIO,
-	VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_OPTIMIZATION,
-	VIO_ASYNC_OP_JOURNAL_MAPPING_FOR_WRITE,
-	VIO_ASYNC_OP_JOURNAL_UNMAPPING,
+	VIO_ASYNC_OP_JOURNAL_REMAPPING,
 	VIO_ASYNC_OP_ATTEMPT_PACKING,
 	VIO_ASYNC_OP_PUT_MAPPED_BLOCK,
 	VIO_ASYNC_OP_READ_DATA_VIO,
 	VIO_ASYNC_OP_UPDATE_DEDUPE_INDEX,
+	VIO_ASYNC_OP_UPDATE_REFERENCE_COUNTS,
 	VIO_ASYNC_OP_VERIFY_DUPLICATION,
 	VIO_ASYNC_OP_WRITE_DATA_VIO,
 	MAX_VIO_ASYNC_OPERATION_NUMBER,
@@ -178,6 +175,11 @@ struct allocation {
 	bool wait_for_clean_slab;
 };
 
+struct reference_updater {
+	struct reference_operation operation;
+	struct waiter waiter;
+};
+
 /*
  * A vio for processing user data requests.
  */
@@ -200,17 +202,20 @@ struct data_vio {
 	/* Used for logging and debugging */
 	enum async_operation_number last_async_operation;
 
-	/* The operation to record in the recovery and slab journals */
-	struct reference_operation operation;
+	/* The operations to record in the recovery and slab journals */
+	struct reference_updater increment_updater;
+	struct reference_updater decrement_updater;
 
 	/* data_vio flags */
-	u8 read : 1;
-	u8 write : 1;
-	u8 fua : 1;
-	u8 is_zero : 1;
-	u8 is_trim : 1;
-	u8 is_partial : 1;
-	u8 is_duplicate : 1;
+	u16 read : 1;
+	u16 write : 1;
+	u16 fua : 1;
+	u16 is_zero : 1;
+	u16 is_trim : 1;
+	u16 is_partial : 1;
+	u16 is_duplicate : 1;
+	u16 first_reference_operation_complete : 1;
+	u16 downgrade_allocation_lock : 1;
 
 	/* Data block allocation */
 	struct allocation allocation;
@@ -274,6 +279,9 @@ struct data_vio {
 	/* The underlying struct vio */
 	struct vio vio;
 
+	/* The completion for making reference count decrements */
+	struct vdo_completion decrement_completion;
+
 	/* All of the fields necessary for the compression path */
 	struct compression_state compression;
 
@@ -324,6 +332,15 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 		return NULL;
 
 	return container_of(waiter, struct data_vio, waiter);
+}
+
+static inline struct data_vio *
+data_vio_from_reference_updater(struct reference_updater *updater)
+{
+	if (updater->operation.increment)
+		return container_of(updater, struct data_vio, increment_updater);
+
+	return container_of(updater, struct data_vio, decrement_updater);
 }
 
 static inline bool data_vio_has_flush_generation_lock(struct data_vio *data_vio)
@@ -853,8 +870,8 @@ int __must_check uncompress_data_vio(struct data_vio *data_vio,
 #ifdef INTERNAL
 bool is_zero_block(char *block);
 #endif /* INTERNAL */
+void update_metadata_for_data_vio_write(struct data_vio *data_vio, struct pbn_lock *lock);
 void write_data_vio(struct data_vio *data_vio);
-void journal_optimized_data_vio_mapping(struct vdo_completion *completion);
 void launch_compress_data_vio(struct data_vio *data_vio);
 void continue_data_vio_with_block_map_slot(struct vdo_completion *completion);
 
