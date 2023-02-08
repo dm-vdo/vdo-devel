@@ -11,8 +11,6 @@
 
 #include <sys/wait.h>
 
-#include "compiler.h"
-
 /**
  * Create a temporary file name not matching any existing file.
  *
