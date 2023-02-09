@@ -40,8 +40,8 @@
  *
  * Cleaning up consists of updating the index when the data location is different from the initial
  * index query (UPDATING, triggered by stale advice, compression, and rollover), releasing the PBN
- * lock on the duplicate block (UNLOCKING), and releasing the hash_lock itself back to the hash
- * zone (BYPASSING).
+ * lock on the duplicate block (UNLOCKING), and if the agent is the last data_vio referencing the
+ * lock, releasing the hash_lock itself back to the hash zone (BYPASSING).
  *
  * The shortest sequence of states is for non-concurrent writes of new data:
  *   INITIALIZING -> QUERYING -> WRITING -> BYPASSING
@@ -62,16 +62,13 @@
  * not change. QUERYING and WRITING are only performed once per lock lifetime. All other
  * non-endpoint states can be re-entered.
  *
- * XXX still need doc on BYPASSING
- *
  * The function names in this module follow a convention referencing the states and transitions in
- * the state machine diagram for VDOSTORY-190. [XXX link or repository path to it?]
- * For example, for the LOCKING state, there are start_locking() and finish_locking() functions.
- * start_locking() is invoked by the finish function of the state (or states) that transition to
- * LOCKING. It performs the actual lock state change and must be invoked on the hash zone thread.
- * finish_locking() is called by (or continued via callback from) the code actually obtaining the
- * lock. It does any bookkeeping or decision-making required and invokes the appropriate start
- * function of the state being transitioned to after LOCKING.
+ * the state machine. For example, for the LOCKING state, there are start_locking() and
+ * finish_locking() functions.  start_locking() is invoked by the finish function of the state (or
+ * states) that transition to LOCKING. It performs the actual lock state change and must be invoked
+ * on the hash zone thread.  finish_locking() is called by (or continued via callback from) the
+ * code actually obtaining the lock. It does any bookkeeping or decision-making required and
+ * invokes the appropriate start function of the state being transitioned to after LOCKING.
  *
  * ----------------------------------------------------------------------
  *
@@ -522,11 +519,6 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 		 */
 		list_move_tail(&data_vio->hash_lock_entry, &new_lock->duplicate_ring);
 		new_lock->reference_count += 1;
-
-		/*
-		 * XXX Not needed for VDOSTORY-190, but useful for checking whether a test is
-		 * getting concurrent dedupe, and how much.
-		 */
 		if (new_lock->max_references < new_lock->reference_count)
 			new_lock->max_references = new_lock->reference_count;
 
@@ -715,8 +707,8 @@ static void finish_unlocking(struct vdo_completion *completion)
 		 * agent was releasing the PBN lock. The current agent exits and the waiter has to
 		 * re-lock and re-verify the duplicate location.
 		 *
-		 * XXX VDOSTORY-190 If we used the current agent to re-acquire the PBN lock we
-		 * wouldn't need to re-verify.
+		 * TODO: If we used the current agent to re-acquire the PBN lock we wouldn't need
+		 * to re-verify.
 		 */
 		agent = retire_lock_agent(lock);
 		start_locking(lock, agent);
@@ -954,9 +946,9 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 	}
 
 	if (replace_lock != NULL) {
-		/* XXX on mismatch put the old lock back and return a severe error */
+		/* On mismatch put the old lock back and return a severe error */
 		ASSERT_LOG_ONLY(lock == replace_lock, "old lock must have been in the lock map");
-		/* XXX check earlier and bail out? */
+		/* TODO: Check earlier and bail out? */
 		ASSERT_LOG_ONLY(replace_lock->registered,
 				"old lock must have been marked registered");
 		replace_lock->registered = false;
@@ -1384,7 +1376,6 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		/*
 		 * We could deduplicate against it later if a reference happened to be released
 		 * during verification, but it's probably better to bail out now.
-		 * XXX clearDuplicateLocation()?
 		 */
 		agent->is_duplicate = false;
 		continue_data_vio(agent);
@@ -1415,7 +1406,7 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * only way we'd be getting lock contention is if we've written the same
 		 * representation coincidentally before, had it become unreferenced, and it just
 		 * happened to be packed together from compressed writes when we go to verify the
-		 * lucky advice. Giving up is a miniscule loss of potential dedupe.
+		 * lucky advice. Giving up is a minuscule loss of potential dedupe.
 		 *
 		 * 2b) If the advice is for a slot of a compressed block, it's about to get
 		 * smashed, and the write smashing it cannot contain our data--it would have to be
@@ -1435,7 +1426,6 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 		 * all stale advice cases almost certainly outweighs saving a UDS update and
 		 * trading a write for a read in a lucky case where advice would have been saved
 		 * from becoming stale.
-		 * XXX clearDuplicateLocation()?
 		 */
 		agent->is_duplicate = false;
 		continue_data_vio(agent);
@@ -1460,9 +1450,8 @@ static void lock_duplicate_pbn(struct vdo_completion *completion)
 	set_duplicate_lock(agent->hash_lock, lock);
 
 	/*
-	 * XXX VDOSTORY-190 Optimization: Same as start_locking() lazily changing state to save on
-	 * having to switch back to the hash zone thread. Here we could directly launch the block
-	 * verify, then switch to a hash thread.
+	 * TODO: Optimization: We could directly launch the block verify, then switch to a hash
+	 * thread.
 	 */
 	continue_data_vio(agent);
 }
@@ -1481,9 +1470,9 @@ static void start_locking(struct hash_lock *lock, struct data_vio *agent)
 	lock->state = VDO_HASH_LOCK_LOCKING;
 
 	/*
-	 * XXX VDOSTORY-190 Optimization: If we arrange to continue on the duplicate zone thread
-	 * when accepting the advice, and don't explicitly change lock states (or use an
-	 * agent-local state, or an atomic), we can avoid a thread transition here.
+	 * TODO: Optimization: If we arrange to continue on the duplicate zone thread when
+	 * accepting the advice, and don't explicitly change lock states (or use an agent-local
+	 * state, or an atomic), we can avoid a thread transition here.
 	 */
 	agent->last_async_operation = VIO_ASYNC_OP_LOCK_DUPLICATE_PBN;
 	launch_data_vio_duplicate_zone_callback(agent, lock_duplicate_pbn);
@@ -1629,11 +1618,11 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 		/* If none of the waiters had an allocation, the writes all have to fail. */
 		if (!data_vio_has_allocation(agent)) {
 			/*
-			 * XXX VDOSTORY-190 Should we keep a variant of BYPASSING that causes new
-			 * arrivals to fail immediately if they don't have an allocation? It might
-			 * be possible that on some path there would be non-waiters still
-			 * referencing the lock, so it would remain in the map as everything is
-			 * currently spelled, even if the agent and all waiters release.
+			 * TODO: Should we keep a variant of BYPASSING that causes new arrivals to
+			 * fail immediately if they don't have an allocation? It might be possible
+			 * that on some path there would be non-waiters still referencing the lock,
+			 * so it would remain in the map as everything is currently spelled, even
+			 * if the agent and all waiters release.
 			 */
 			continue_data_vio_with_error(agent, VDO_NO_SPACE);
 			return;
@@ -2093,11 +2082,7 @@ static u32 hash_key(const void *key)
 {
 	const struct uds_record_name *name = key;
 
-	/*
-	 * Use a fragment of the record name as a hash code. It must not overlap with fragments
-	 * used elsewhere to ensure uniform distributions.
-	 */
-	/* XXX pick an offset in the record name that isn't used elsewhere */
+	/* Use a fragment of the record name as a hash code. */
 	return get_unaligned_le32(&name->name[4]);
 }
 
@@ -2880,12 +2865,9 @@ struct hash_zone *
 vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *name)
 {
 	/*
-	 * Use a fragment of the record name as a hash code. To ensure uniform distributions, it
-	 * must not overlap with fragments used elsewhere. Eight bits of hash should suffice since
-	 * the number of hash zones is small.
-	 *
-	 * XXX Make a central repository for these offsets ala hashUtils.
-	 * XXX Verify that the first byte is independent enough.
+	 * Use a fragment of the record name as a hash code. Eight bits of hash should suffice
+	 * since the number of hash zones is small.
+	 * TODO: Verify that the first byte is independent enough.
 	 */
 	u32 hash = name->name[0];
 
