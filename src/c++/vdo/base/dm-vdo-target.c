@@ -209,7 +209,7 @@ static int check_bio_validity(struct bio *bio)
 	int result;
 
 	if (!is_known_type) {
-		/* XXX Why shouldn't this be assert like the other branches? */
+		/* TODO: Make this be assert like the other branches? */
 		uds_log_error("Received unexpected bio of type %d", bio_op(bio));
 		return -EINVAL;
 	}

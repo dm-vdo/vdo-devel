@@ -623,8 +623,8 @@ int vdo_configure_slab(block_count_t slab_size,
 	 * fall out since they use a power of two for the number of data blocks, the slab size was
 	 * a power of two, and every block in a slab was a data block.
 	 *
-	 * XXX Try to figure out some way of structuring testParameters and unit tests so this hack
-	 * isn't needed without having to edit several unit tests every time the metadata size
+	 * TODO: Try to figure out some way of structuring testParameters and unit tests so this
+	 * hack isn't needed without having to edit several unit tests every time the metadata size
 	 * changes by one block.
 	 */
 	data_blocks = slab_size - meta_blocks;

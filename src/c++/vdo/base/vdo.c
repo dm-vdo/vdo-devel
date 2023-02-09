@@ -848,8 +848,9 @@ EXTERNAL_STATIC block_count_t __must_check vdo_get_physical_blocks_allocated(con
 EXTERNAL_STATIC block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo)
 {
 	/*
-	 * XXX config.physical_blocks is actually mutated during resize and is in a packed
-	 * structure, but resize runs on admin thread so we're usually OK.
+	 * config.physical_blocks is mutated during resize and is in a packed structure,
+	 * but resize runs on admin thread.
+	 * TODO: Verify that this is always safe.
 	 */
 	return (vdo->states.vdo.config.physical_blocks -
 		vdo_get_slab_depot_data_blocks(vdo->depot) +
@@ -894,8 +895,9 @@ static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *sta
 	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
 	/*
-	 * XXX config.physical_blocks is actually mutated during resize and is in a packed
-	 * structure, but resize runs on the admin thread so we're usually OK.
+	 * config.physical_blocks is mutated during resize and is in a packed structure, but resize
+	 * runs on the admin thread.
+	 * TODO: verify that this is always safe
 	 */
 	stats->physical_blocks = vdo->states.vdo.config.physical_blocks;
 	stats->block_size = VDO_BLOCK_SIZE;

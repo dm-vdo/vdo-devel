@@ -747,7 +747,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
 	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
-	/* XXX: this is a hack until we make initial resume of a VDO a real resume */
+	/* TODO: this will have to change if we make initial resume of a VDO a real resume */
 	vdo_set_admin_state_code(&journal->state, VDO_ADMIN_STATE_SUSPENDED);
 
 	for (i = 0; i < RECOVERY_JOURNAL_RESERVED_BLOCKS; i++) {

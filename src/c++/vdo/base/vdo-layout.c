@@ -745,7 +745,7 @@ int vdo_decode_layout(struct fixed_layout *layout, struct vdo_layout **vdo_layou
 
 	vdo_layout->layout = layout;
 
-	/* XXX Assert this is the same as where we loaded the super block. */
+	/* TODO: Assert this is the same as where we loaded the super block. */
 	vdo_layout->starting_offset = get_partition_offset(vdo_layout, VDO_BLOCK_MAP_PARTITION);
 
 	*vdo_layout_ptr = vdo_layout;

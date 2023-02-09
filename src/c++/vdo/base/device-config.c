@@ -585,15 +585,6 @@ int vdo_parse_device_config(int argc,
 
 	uds_log_info("table line: %s", config->original_string);
 
-	/* Set defaults.
-	 *
-	 * XXX Defaults for bio_threads and bio_rotation_interval are currently defined using the
-	 * old configuration scheme of constants. These values are relied upon for performance
-	 * testing on MGH machines currently. This should be replaced with the normally used
-	 * testing defaults being defined in the file-based thread-configuration settings. The
-	 * values used as defaults internally should really be those needed for VDO in its default
-	 * shipped-product state.
-	 */
 	config->thread_counts = (struct thread_count_config) {
 		.bio_ack_threads = 1,
 		.bio_threads = DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT,
