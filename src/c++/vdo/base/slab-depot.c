@@ -17,7 +17,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
-#include "header.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"

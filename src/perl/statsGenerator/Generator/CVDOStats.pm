@@ -426,11 +426,14 @@ sub generateHeader {
   $self->blankLine();
 
   my $headerText = <<"EOH";
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "math.h"
 #include "statistics.h"
 #include "status-codes.h"
+#include "types.h"
 #include "vdoStats.h"
 
 EOH

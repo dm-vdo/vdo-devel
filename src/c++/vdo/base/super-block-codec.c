@@ -14,11 +14,11 @@
 #include "checksum.h"
 #endif /* !__KERNEL__ */
 #include "constants.h"
-#include "header.h"
 #include "status-codes.h"
 #ifdef __KERNEL__
 #include "vdo.h"
 #endif /* __KERNEL__ */
+#include "vdo-component-states.h"
 
 enum {
 	SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(u32),

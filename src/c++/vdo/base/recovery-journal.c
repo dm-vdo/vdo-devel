@@ -16,7 +16,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
-#include "header.h"
 #include "io-submitter.h"
 #include "slab-depot.h"
 #include "slab-journal.h"

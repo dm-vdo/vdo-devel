@@ -13,6 +13,7 @@
 #include "statistics.h"
 #include "thread-config.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "wait-queue.h"
 
 enum {

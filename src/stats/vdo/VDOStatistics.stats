@@ -158,7 +158,7 @@ stats {
   vdo {
     cHeader      statistics.h;
     cVersionEnum 1;
-    cIncludes    header.h, types.h;
+    cIncludes    types.h;
 
     struct BlockAllocatorStatistics {
       counter64 slabCount {

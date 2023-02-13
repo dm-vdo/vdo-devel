@@ -22,7 +22,6 @@ BASE_OBJS :=     			\
 	dirty-lists.o			\
         dm-vdo-target.o                 \
 	flush.o				\
-	header.o			\
 	heap.o				\
 	instance-number.o		\
 	int-map.o			\
@@ -66,7 +65,6 @@ KERNEL_OBJS:=                           \
 
 USER_OBJECTS:=                  	\
 	constants.o			\
-	header.o			\
 	status-codes.o			\
 	super-block-codec.o		\
 	vdo-component-states.o		\

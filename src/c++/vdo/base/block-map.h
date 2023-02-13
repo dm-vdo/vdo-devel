@@ -11,7 +11,6 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "dirty-lists.h"
-#include "header.h"
 #include "int-map.h"
 #include "statistics.h"
 #include "types.h"

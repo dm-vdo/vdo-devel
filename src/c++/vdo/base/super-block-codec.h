@@ -8,7 +8,6 @@
 
 #include "buffer.h"
 
-#include "header.h"
 #include "types.h"
 
 /* The machinery for encoding and decoding super blocks. */

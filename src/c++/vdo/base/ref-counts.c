@@ -16,7 +16,6 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "completion.h"
-#include "header.h"
 #include "io-submitter.h"
 #include "journal-point.h"
 #include "packed-reference-block.h"

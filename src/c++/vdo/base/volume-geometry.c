@@ -15,7 +15,6 @@
 #include "checksum.h"
 #endif /* not __KERNEL__ */
 #include "constants.h"
-#include "header.h"
 #ifndef __KERNEL__
 #include "physicalLayer.h"
 #endif /* not __KERNEL__ */
@@ -25,6 +24,7 @@
 #ifdef __KERNEL__
 #include "vdo.h"
 #endif /* __KERNEL__ */
+#include "vdo-component-states.h"
 
 enum {
 	MAGIC_NUMBER_SIZE = 8,

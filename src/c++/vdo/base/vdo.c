@@ -29,7 +29,6 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "device-registry.h"
-#include "header.h"
 #include "instance-number.h"
 #include "io-submitter.h"
 #include "logical-zone.h"

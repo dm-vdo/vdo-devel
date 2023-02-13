@@ -47,8 +47,6 @@ tarballs:
             - checksum.h
             - constants.c
             - constants.h
-            - header.c
-            - header.h
             - journal-point.h
             - packed-reference-block.h
             - release-versions.h
@@ -283,8 +281,6 @@ tarballs:
             - dump.h
             - flush.c
             - flush.h
-            - header.c
-            - header.h
             - heap.c
             - heap.h
             - instance-number.c

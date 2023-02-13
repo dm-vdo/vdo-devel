@@ -17,7 +17,6 @@
 
 #include "admin-state.h"
 #include "device-config.h"
-#include "header.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
