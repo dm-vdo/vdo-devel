@@ -10,7 +10,10 @@
 
 #include <linux/bio.h>
 
+#include "testUtils.h"
+
 #include "fileUtils.h"
+#include "memory-alloc.h"
 
 #include "constants.h"
 #include "packer.h"
@@ -106,13 +109,26 @@ static void generate(void)
 
   crashVDO();
   int fd;
-  VDO_ASSERT_SUCCESS(open_file(CRASHED, FU_CREATE_WRITE_ONLY, &fd));
+  char *fileName;
+  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
+                                       &fileName,
+                                       "%s/%s",
+                                       getTestDirectory(),
+                                       CRASHED));
+  VDO_ASSERT_SUCCESS(open_file(fileName, FU_CREATE_WRITE_ONLY, &fd));
+  UDS_FREE(fileName);
   dumpRAMLayerToFile(getSynchronousLayer(), fd);
   close(fd);
   startVDO(VDO_DIRTY);
   waitForRecoveryDone();
   stopVDO();
-  VDO_ASSERT_SUCCESS(open_file(RECOVERED, FU_CREATE_WRITE_ONLY, &fd));
+  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
+                                       &fileName,
+                                       "%s/%s",
+                                       getTestDirectory(),
+                                       RECOVERED));
+  VDO_ASSERT_SUCCESS(open_file(fileName, FU_CREATE_WRITE_ONLY, &fd));
+  UDS_FREE(fileName);
   dumpRAMLayerToFile(getSynchronousLayer(), fd);
   close(fd);
 }
