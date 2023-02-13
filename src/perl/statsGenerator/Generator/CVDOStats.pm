@@ -430,6 +430,8 @@ sub generateHeader {
 #include <stdlib.h>
 #include <string.h>
 
+#include "numeric.h"
+
 #include "math.h"
 #include "statistics.h"
 #include "status-codes.h"
