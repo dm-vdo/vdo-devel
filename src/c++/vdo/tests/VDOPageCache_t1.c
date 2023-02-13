@@ -19,7 +19,6 @@
 #include "slab.h"
 #include "slab-depot.h"
 #include "status-codes.h"
-#include "vdo-page-cache.h"
 #include "vio.h"
 #include "wait-queue.h"
 

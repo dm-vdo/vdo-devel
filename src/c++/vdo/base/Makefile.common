@@ -49,7 +49,6 @@ BASE_OBJS :=     			\
 	vdo.o				\
 	vdo-component-states.o  	\
 	vdo-layout.o			\
-	vdo-page-cache.o		\
 	vdo-recovery.o			\
 	vio.o				\
 	volume-geometry.o		\

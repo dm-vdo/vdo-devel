@@ -17,7 +17,6 @@
 #include "types.h"
 #include "vdo.h"
 #include "vdo-component-states.h"
-#include "vdo-page-cache.h"
 
 /*
  * A structure to manage recovering the block map from the recovery journal.
