@@ -46,7 +46,6 @@ BASE_OBJS :=     			\
 	status-codes.o			\
 	super-block.o			\
 	super-block-codec.o		\
-	sync-completion.o		\
 	thread-config.o			\
 	vdo.o				\
 	vdo-component-states.o  	\

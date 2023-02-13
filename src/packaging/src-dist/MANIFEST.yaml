@@ -337,8 +337,6 @@ tarballs:
             - super-block.h
             - super-block-codec.c
             - super-block-codec.h
-            - sync-completion.c
-            - sync-completion.h
             - sysfs.c
             - thread-config.c
             - thread-config.h

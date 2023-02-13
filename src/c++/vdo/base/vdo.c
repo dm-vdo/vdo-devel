@@ -10,6 +10,7 @@
 
 #include "vdo.h"
 
+#include <linux/completion.h>
 #include <linux/device-mapper.h>
 #include <linux/kernel.h>
 #include <linux/lz4.h>
@@ -44,7 +45,6 @@
 #include "status-codes.h"
 #include "super-block.h"
 #include "super-block-codec.h"
-#include "sync-completion.h"
 #include "thread-config.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
@@ -62,6 +62,11 @@ int data_vio_count = MAXIMUM_VDO_USER_VIOS;
 #endif /* VDO_INTERNAL or INTERNAL */
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
+
+struct sync_completion {
+	struct vdo_completion vdo_completion;
+	struct completion completion;
+};
 
 #ifdef __KERNEL__
 static void start_vdo_request_queue(void *ptr)
@@ -736,6 +741,40 @@ void vdo_enter_recovery_mode(struct vdo *vdo)
 }
 
 /**
+ * complete_synchronous_action() - Signal the waiting thread that a synchronous action is complete.
+ * @completion: The sync completion.
+ */
+static void complete_synchronous_action(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type, VDO_SYNC_COMPLETION);
+	complete(&(container_of(completion, struct sync_completion, vdo_completion)->completion));
+}
+
+/**
+ * perform_synchronous_action() - Launch an action on a VDO thread and wait for it to complete.
+ * @vdo: The vdo.
+ * @action: The callback to launch.
+ * @thread_id: The thread on which to run the action.
+ * @parent: The parent of the sync completion (may be NULL).
+ */
+static int perform_synchronous_action(struct vdo *vdo,
+				      vdo_action *action,
+				      thread_id_t thread_id,
+				      void *parent)
+{
+	struct sync_completion sync;
+
+	vdo_initialize_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
+	init_completion(&sync.completion);
+	vdo_launch_completion_callback_with_parent(&sync.vdo_completion,
+						   action,
+						   thread_id,
+						   parent);
+	wait_for_completion(&sync.completion);
+	return sync.vdo_completion.result;
+}
+
+/**
  * set_compression_callback() - Callback to turn compression on or off.
  * @completion: The completion.
  */
@@ -754,7 +793,7 @@ static void set_compression_callback(struct vdo_completion *completion)
 
 	uds_log_info("compression is %s", (*enable ? "enabled" : "disabled"));
 	*enable = was_enabled;
-	vdo_complete_completion(completion);
+	complete_synchronous_action(completion);
 }
 
 /**
@@ -766,10 +805,10 @@ static void set_compression_callback(struct vdo_completion *completion)
  */
 bool vdo_set_compressing(struct vdo *vdo, bool enable)
 {
-	vdo_perform_synchronous_action(vdo,
-				       set_compression_callback,
-				       vdo->thread_config->packer_thread,
-				       &enable);
+	perform_synchronous_action(vdo,
+				   set_compression_callback,
+				   vdo->thread_config->packer_thread,
+				   &enable);
 	return enable;
 }
 
@@ -953,7 +992,7 @@ static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *sta
 static void vdo_fetch_statistics_callback(struct vdo_completion *completion)
 {
 	get_vdo_statistics(completion->vdo, completion->parent);
-	vdo_complete_completion(completion);
+	complete_synchronous_action(completion);
 }
 
 /**
@@ -963,10 +1002,10 @@ static void vdo_fetch_statistics_callback(struct vdo_completion *completion)
  */
 void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
-	vdo_perform_synchronous_action(vdo,
-				       vdo_fetch_statistics_callback,
-				       vdo->thread_config->admin_thread,
-				       stats);
+	perform_synchronous_action(vdo,
+				   vdo_fetch_statistics_callback,
+				   vdo->thread_config->admin_thread,
+				   stats);
 }
 
 /**
