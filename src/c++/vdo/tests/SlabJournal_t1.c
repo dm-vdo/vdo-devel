@@ -367,19 +367,6 @@ static void makeWrappedVIO(EntryNumber             entry,
 }
 
 /**
- * Extract a data_vio from its wrapper.
- *
- * @param completion  The wrapper containing the vio
- *
- * @return The unwrapped vio
- **/
-static inline struct data_vio *
-dataVIOFromWrapper(struct vdo_completion *completion)
-{
-  return &(((DataVIOWrapper *) completion)->dataVIO);
-}
-
-/**
  * Implements LockedMethod.
  **/
 static bool signalEntryAdded(void *context __attribute__((unused)))
