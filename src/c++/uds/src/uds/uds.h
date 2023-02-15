@@ -8,7 +8,6 @@
 
 #include <linux/types.h>
 #ifndef __KERNEL__
-#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -128,6 +127,11 @@ struct uds_record_name {
 
 struct uds_record_data {
 	unsigned char data[UDS_RECORD_DATA_SIZE];
+};
+
+struct uds_volume_record {
+	struct uds_record_name name;
+	struct uds_record_data data;
 };
 
 struct uds_parameters {

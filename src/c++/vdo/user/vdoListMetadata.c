@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "errors.h"
+#include "string-utils.h"
 #include "syscalls.h"
 
 #include "status-codes.h"

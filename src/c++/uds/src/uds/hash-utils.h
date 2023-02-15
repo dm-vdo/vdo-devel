@@ -6,7 +6,6 @@
 #ifndef HASH_UTILS_H
 #define HASH_UTILS_H 1
 
-#include "common.h"
 #include "geometry.h"
 #include "numeric.h"
 #include "uds.h"

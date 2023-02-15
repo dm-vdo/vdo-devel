@@ -20,6 +20,12 @@
 #include "time-utils.h"
 #include "uds.h"
 
+enum {
+	KILOBYTE = 1024,
+	MEGABYTE = KILOBYTE * KILOBYTE,
+	GIGABYTE = KILOBYTE * MEGABYTE
+};
+
 /**
  * Callback that gets invoked by UDS library on to report an asynchronous
  * result in block mode.  It asserts that the status returned UDS_SUCCESS.

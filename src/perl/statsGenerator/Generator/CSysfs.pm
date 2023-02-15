@@ -66,6 +66,7 @@ sub generateHeader {
 #include <linux/mutex.h>
 
 #include "logger.h"
+#include "string-utils.h"
 
 #include "dedupe.h"
 #include "pool-sysfs.h"

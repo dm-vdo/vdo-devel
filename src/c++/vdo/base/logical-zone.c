@@ -8,6 +8,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
+#include "string-utils.h"
 
 #include "action-manager.h"
 #include "admin-state.h"

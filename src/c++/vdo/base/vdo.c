@@ -23,6 +23,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
+#include "string-utils.h"
 
 #include "block-allocator.h"
 #include "block-map.h"

@@ -10,7 +10,6 @@
 #include <linux/err.h>
 #include <linux/mount.h>
 
-#include "common.h"
 #ifdef TEST_INTERNAL
 #include "dory.h"
 #endif /* TEST_INTERNAL */

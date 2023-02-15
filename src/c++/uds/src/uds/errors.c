@@ -10,7 +10,6 @@
 #include <linux/errno.h>
 #endif
 
-#include "common.h"
 #include "logger.h"
 #include "permassert.h"
 #include "string-utils.h"

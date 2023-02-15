@@ -9,8 +9,9 @@
 #include <err.h>
 
 #include "errors.h"
-#include "syscalls.h"
 #include "memory-alloc.h"
+#include "string-utils.h"
+#include "syscalls.h"
 
 #include "status-codes.h"
 #include "types.h"

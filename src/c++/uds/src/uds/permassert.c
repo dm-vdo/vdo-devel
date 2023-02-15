@@ -19,7 +19,6 @@
 #include <strings.h>
 #include <syslog.h>
 
-#include "common.h"
 #include "string-utils.h"
 #include "uds-threads.h"
 

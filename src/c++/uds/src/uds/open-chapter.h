@@ -7,7 +7,6 @@
 #define OPENCHAPTER_H 1
 
 #include "chapter-index.h"
-#include "common.h"
 #include "geometry.h"
 #include "index.h"
 #include "volume.h"

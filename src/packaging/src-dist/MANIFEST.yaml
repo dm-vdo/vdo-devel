@@ -136,7 +136,6 @@ tarballs:
           sources:
             - buffer.[hc]
             - chapter-index.[hc]
-            - common.h
             - config.[hc]
             - cpu.h
             - delta-index.[hc]
@@ -363,7 +362,6 @@ tarballs:
             - buffer.h
             - chapter-index.c
             - chapter-index.h
-            - common.h
             - config.c
             - config.h
             - cpu.h

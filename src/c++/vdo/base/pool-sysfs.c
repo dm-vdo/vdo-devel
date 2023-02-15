@@ -8,6 +8,7 @@
 #include <linux/kstrtox.h>
 
 #include "memory-alloc.h"
+#include "string-utils.h"
 
 #include "data-vio.h"
 #include "dedupe.h"

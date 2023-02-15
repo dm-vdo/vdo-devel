@@ -6,7 +6,8 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include "common.h"
+#include <linux/compiler.h>
+#include <linux/types.h>
 
 /*
  * This is an implementation of a rolling buffer for marshalling data to and from storage. The put

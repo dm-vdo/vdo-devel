@@ -10,8 +10,7 @@
 #define DIRECTORY_READER_H
 
 #include <dirent.h>
-
-#include "common.h"
+#include <linux/compiler_attributes.h>
 
 /*
  * A function which processes directory entries. It's arguments are a

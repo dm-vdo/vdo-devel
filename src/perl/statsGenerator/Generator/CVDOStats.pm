@@ -431,6 +431,7 @@ sub generateHeader {
 #include <string.h>
 
 #include "numeric.h"
+#include "string-utils.h"
 
 #include "math.h"
 #include "statistics.h"

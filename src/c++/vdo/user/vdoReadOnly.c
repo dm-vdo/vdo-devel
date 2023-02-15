@@ -13,6 +13,7 @@
 #include "errors.h"
 #include "fileUtils.h"
 #include "logger.h"
+#include "string-utils.h"
 
 #include "constants.h"
 #include "status-codes.h"

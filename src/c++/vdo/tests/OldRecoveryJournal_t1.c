@@ -14,6 +14,7 @@
 
 #include "fileUtils.h"
 #include "memory-alloc.h"
+#include "string-utils.h"
 
 #include "constants.h"
 #include "packer.h"

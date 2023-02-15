@@ -10,6 +10,7 @@
 #include "funnel-queue.h"
 #include "logger.h"
 #include "memory-alloc.h"
+#include "string-utils.h"
 #include "thread-device.h"
 #include "time-utils.h"
 #include "uds.h"

@@ -6,7 +6,6 @@
 #ifndef INDEX_PAGE_MAP_H
 #define INDEX_PAGE_MAP_H 1
 
-#include "common.h"
 #include "geometry.h"
 #include "io-factory.h"
 

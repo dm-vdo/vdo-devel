@@ -8,6 +8,9 @@
 
 #include <linux/compiler.h>
 #include <linux/types.h>
+#ifndef __KERNEL__
+#include <errno.h>
+#endif /*  __KERNEL__ */
 
 /* Custom error codes and error-related utilities for UDS */
 

@@ -9,6 +9,7 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
+#include "string-utils.h"
 
 /*
  * Create a buffer which wraps an existing byte array.

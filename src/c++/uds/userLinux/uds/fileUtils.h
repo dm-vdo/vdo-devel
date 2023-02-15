@@ -7,9 +7,8 @@
 #ifndef FILE_UTILS_H
 #define FILE_UTILS_H 1
 
+#include <linux/compiler_attributes.h>
 #include <sys/stat.h>
-
-#include "common.h"
 
 enum file_access {
 	FU_READ_ONLY = 0,                // open file with read-only access

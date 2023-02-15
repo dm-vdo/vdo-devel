@@ -305,7 +305,7 @@ static inline size_t get_zone_memory_size(unsigned int zone_count,
 
 	/* Round up so that each zone is a multiple of 64K in size. */
 	enum {
-		ALLOC_BOUNDARY = 64 * KILOBYTE,
+		ALLOC_BOUNDARY = 64 * 1024,
 	};
 
 	return (zone_size + ALLOC_BOUNDARY - 1) & -ALLOC_BOUNDARY;

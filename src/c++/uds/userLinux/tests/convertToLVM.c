@@ -16,6 +16,7 @@
 #include "index-layout.h"
 #include "index-session.h"
 #include "logger.h"
+#include "memory-alloc.h"
 #include "uds.h"
 #include "volume.h"
 

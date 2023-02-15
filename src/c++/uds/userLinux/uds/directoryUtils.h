@@ -10,9 +10,8 @@
 #define DIRECTORY_UTILS_H 1
 
 #include <dirent.h>
+#include <linux/compiler_attributes.h>
 #include <sys/stat.h>
-
-#include "common.h"
 
 /**
  * Determine whether or not the given path is a directory

@@ -9,7 +9,6 @@
 #include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
-#include "common.h"
 #include "config.h"
 #include "index.h"
 #include "logger.h"

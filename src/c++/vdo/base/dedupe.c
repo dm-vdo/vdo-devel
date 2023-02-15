@@ -126,6 +126,7 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
+#include "string-utils.h"
 #include "uds.h"
 
 #include "action-manager.h"

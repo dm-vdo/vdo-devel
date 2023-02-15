@@ -10,6 +10,7 @@
 
 #include "errors.h"
 #include "memory-alloc.h"
+#include "string-utils.h"
 #include "time-utils.h"
 
 #include "constants.h"

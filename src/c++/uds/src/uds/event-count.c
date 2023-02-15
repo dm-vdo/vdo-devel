@@ -68,7 +68,6 @@
 #include <linux/cache.h>
 #include <linux/compiler.h>
 
-#include "common.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "uds-threads.h"

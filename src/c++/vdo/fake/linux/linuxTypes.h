@@ -7,7 +7,7 @@
 #ifndef LINUX_TYPES_H
 #define LINUX_TYPES_H
 
-#include "common.h"
+#include <stdint.h>
 
 typedef uint64_t sector_t;
 

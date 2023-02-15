@@ -12,7 +12,6 @@
 #include <linux/limits.h>
 
 #include "chapter-index.h"
-#include "common.h"
 #include "config.h"
 #include "geometry.h"
 #include "index-layout.h"

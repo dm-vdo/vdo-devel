@@ -10,6 +10,7 @@
 #include "errors.h"
 #include "fileUtils.h"
 #include "memory-alloc.h"
+#include "string-utils.h"
 #include "syscalls.h"
 
 #include "status-codes.h"

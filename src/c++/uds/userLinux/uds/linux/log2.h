@@ -6,8 +6,6 @@
 #ifndef _LINUX_LOG2_H
 #define _LINUX_LOG2_H
 
-#include <common.h>
-
 #include "permassert.h"
 
 /* Compute the number of bits to represent n */

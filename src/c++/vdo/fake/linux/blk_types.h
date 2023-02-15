@@ -9,6 +9,7 @@
 #ifndef LINUX_BLK_TYPES_H
 #define LINUX_BLK_TYPES_H
 
+#include <linux/atomic.h>
 #include <linux/bvec.h>
 
 #include "types.h"
