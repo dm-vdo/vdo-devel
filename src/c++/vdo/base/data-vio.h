@@ -20,7 +20,6 @@
 #include "journal-point.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
-#include "reference-operation.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
@@ -176,7 +175,10 @@ struct allocation {
 };
 
 struct reference_updater {
-	struct reference_operation operation;
+	enum journal_operation operation;
+	bool increment;
+	struct zoned_pbn zpbn;
+	struct pbn_lock *lock;
 	struct waiter waiter;
 };
 
@@ -337,7 +339,7 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 static inline struct data_vio *
 data_vio_from_reference_updater(struct reference_updater *updater)
 {
-	if (updater->operation.increment)
+	if (updater->increment)
 		return container_of(updater, struct data_vio, increment_updater);
 
 	return container_of(updater, struct data_vio, decrement_updater);

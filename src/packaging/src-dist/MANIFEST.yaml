@@ -310,8 +310,6 @@ tarballs:
             - recovery-journal.h
             - ref-counts.c
             - ref-counts.h
-            - reference-operation.c
-            - reference-operation.h
             - release-versions.h
             - slab.c
             - slab.h

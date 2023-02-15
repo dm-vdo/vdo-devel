@@ -128,7 +128,7 @@ vdo_get_available_references(struct ref_counts *ref_counts, physical_block_numbe
 
 int __must_check
 vdo_adjust_reference_count(struct ref_counts *ref_counts,
-			   struct reference_operation operation,
+			   struct reference_updater *updater,
 			   const struct journal_point *slab_journal_point,
 			   bool *free_status_changed);
 

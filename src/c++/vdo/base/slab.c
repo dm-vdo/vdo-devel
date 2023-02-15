@@ -13,6 +13,7 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
+#include "data-vio.h"
 #include "physical-zone.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
@@ -153,16 +154,15 @@ block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 /**
  * vdo_modify_slab_reference_count() - Increment or decrement the reference count of a block in a
  *                                     slab.
-
  * @slab: The slab containing the block (may be NULL when referencing the zero block).
  * @journal_point: The slab journal entry corresponding to this change.
- * @operation: The operation to perform on the reference count.
+ * @updater: The reference count updater.
  *
  * Return: VDO_SUCCESS or an error.
  */
 int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 				    const struct journal_point *journal_point,
-				    struct reference_operation operation)
+				    struct reference_updater *updater)
 {
 	bool free_status_changed;
 	int result;
@@ -182,14 +182,14 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 	}
 
 	result = vdo_adjust_reference_count(slab->reference_counts,
-					    operation,
+					    updater,
 					    journal_point,
 					    &free_status_changed);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	if (free_status_changed)
-		vdo_adjust_free_block_count(slab, !operation.increment);
+		vdo_adjust_free_block_count(slab, !updater->increment);
 
 	return VDO_SUCCESS;
 }

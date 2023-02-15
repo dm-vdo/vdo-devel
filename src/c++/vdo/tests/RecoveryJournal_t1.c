@@ -622,18 +622,16 @@ static bool recordAppendPoint(void *context __attribute__((unused)))
 static void addJournalEntry(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = dataVIOFromWrapper(completion);
-  vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
-                                           true,
-                                           dataVIO->new_mapped.pbn,
-                                           dataVIO->new_mapped.state,
-                                           NULL,
-                                           &dataVIO->increment_updater.operation);
-  vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
-                                           false,
-                                           dataVIO->mapped.pbn,
-                                           dataVIO->mapped.state,
-                                           NULL,
-                                           &dataVIO->decrement_updater.operation);
+  dataVIO->increment_updater = (struct reference_updater) {
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = true,
+    .zpbn      = dataVIO->new_mapped,
+  };
+  dataVIO->decrement_updater = (struct reference_updater) {
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = false,
+    .zpbn      = dataVIO->mapped,
+  };
   vdo_add_recovery_journal_entry(journal, dataVIO);
   runLocked(recordAppendPoint, NULL);
 }

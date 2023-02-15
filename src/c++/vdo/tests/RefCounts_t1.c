@@ -207,15 +207,14 @@ performAdjustment(physical_block_number_t     pbn,
   bool freeStatusChanged = ((expectedResult == VDO_SUCCESS)
                             ? !expectedFreeStatusChanged
                             : expectedFreeStatusChanged);
-  struct reference_operation referenceOperation = {
-    .pbn       = pbn,
-    .type      = operation,
+  struct reference_updater updater = {
+    .operation = operation,
     .increment = increment,
+    .zpbn = {
+      .pbn = pbn,
+    },
   };
-  CU_ASSERT_EQUAL(vdo_adjust_reference_count(refs,
-                                             referenceOperation,
-                                             slabJournalPoint,
-                                             &freeStatusChanged),
+  CU_ASSERT_EQUAL(vdo_adjust_reference_count(refs, &updater, slabJournalPoint, &freeStatusChanged),
                   expectedResult);
   CU_ASSERT_EQUAL(expectedFreeStatusChanged, freeStatusChanged);
 }
@@ -298,13 +297,14 @@ static void addManyReferences(physical_block_number_t pbn, uint8_t howMany)
 {
   for (uint8_t i = 0; i < howMany; i++) {
     bool freeStatusChanged;
-    struct reference_operation operation = {
-      .pbn       = pbn,
-      .type      = VDO_JOURNAL_DATA_REMAPPING,
+    struct reference_updater updater = {
+      .operation = VDO_JOURNAL_DATA_REMAPPING,
       .increment = true,
+      .zpbn      = {
+        .pbn = pbn,
+      },
     };
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, operation, NULL,
-                                                  &freeStatusChanged));
+    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &freeStatusChanged));
   }
 }
 

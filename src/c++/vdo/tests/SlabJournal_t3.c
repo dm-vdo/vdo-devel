@@ -75,10 +75,10 @@ static void resetWrapper(DataVIOWrapper *wrapper, slab_count_t slabNumber)
 
   wrapper->dataVIO.new_mapped.pbn = slab->start + 1;
   wrapper->dataVIO.increment_updater = (struct reference_updater) {
-    .operation = {
-      .type      = VDO_JOURNAL_DATA_REMAPPING,
-      .increment = true,
-      .pbn       = slab->start + 1,
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
+    .increment = true,
+    .zpbn = {
+      .pbn = slab->start + 1,
     },
   };
   dataVIO->recovery_journal_point = (struct journal_point) {

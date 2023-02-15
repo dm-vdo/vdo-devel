@@ -280,7 +280,7 @@ static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 	struct reference_updater *updater = container_of(waiter, struct reference_updater, waiter);
 	struct data_vio *data_vio = data_vio_from_reference_updater(updater);
 
-	if (updater->operation.increment) {
+	if (updater->increment) {
 		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
 		return;
 	}
@@ -984,17 +984,14 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	}
 
 	add_entry(journal,
-		  updater->operation.pbn,
-		  updater->operation.type,
-		  updater->operation.increment,
-		  expand_journal_point(data_vio->recovery_journal_point,
-				       updater->operation.increment));
+		  updater->zpbn.pbn,
+		  updater->operation,
+		  updater->increment,
+		  expand_journal_point(data_vio->recovery_journal_point, updater->increment));
 
 	/* Now that an entry has been made in the slab journal, update the reference counts. */
-	result = vdo_modify_slab_reference_count(journal->slab,
-						 &slab_journal_point,
-						 updater->operation);
-	if (updater->operation.increment)
+	result = vdo_modify_slab_reference_count(journal->slab, &slab_journal_point, updater);
+	if (updater->increment)
 		continue_data_vio_with_error(data_vio, result);
 	else
 		vdo_continue_completion(&data_vio->decrement_completion, result);
@@ -1013,7 +1010,7 @@ static inline bool is_next_entry_a_block_map_increment(struct slab_journal *jour
 							 struct reference_updater,
 							 waiter);
 
-	return (updater->operation.type == VDO_JOURNAL_BLOCK_MAP_REMAPPING);
+	return (updater->operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING);
 }
 
 /**

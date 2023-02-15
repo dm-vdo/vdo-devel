@@ -326,22 +326,22 @@ static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
     dataVIO->allocation.pbn              = pbn;
     provisional                          = entry;
     dataVIO->tree_lock.height            = 1;
-    incrementer->operation.type          = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
-    incrementer->operation.pbn           = pbn;
-    incrementer->operation.increment     = true;
+    incrementer->operation               = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
+    incrementer->zpbn.pbn                = pbn;
+    incrementer->increment               = true;
     wrapper->increment                   = true;
     performSuccessfulActionOnThread(makeProvisionalReference,
                                     slab->allocator->thread_id);
   } else if ((entry % 2) == 0) {
-    incrementer->operation.pbn       = pbn;
-    incrementer->operation.type      = VDO_JOURNAL_DATA_REMAPPING;
-    incrementer->operation.increment = true;
-    wrapper->increment               = true;
+    incrementer->zpbn.pbn  = pbn;
+    incrementer->operation = VDO_JOURNAL_DATA_REMAPPING;
+    incrementer->increment = true;
+    wrapper->increment     = true;
   } else {
-    decrementer->operation.pbn       = pbn;
-    decrementer->operation.type      = VDO_JOURNAL_DATA_REMAPPING;
-    decrementer->operation.increment = false;
-    wrapper->increment               = false;
+    decrementer->zpbn.pbn  = pbn;
+    decrementer->operation = VDO_JOURNAL_DATA_REMAPPING;
+    decrementer->increment = false;
+    wrapper->increment     = false;
   }
 
   dataVIO->recovery_journal_point = (struct journal_point) {
@@ -413,9 +413,9 @@ addSlabJournalEntryForRebuildAction(struct vdo_completion *completion)
                                        : &dataVIO->decrement_updater);
   bool added
     = vdo_attempt_replay_into_slab_journal(journal,
-                                           updater->operation.pbn,
-                                           updater->operation.type,
-                                           updater->operation.increment,
+                                           updater->zpbn.pbn,
+                                           updater->operation,
+                                           updater->increment,
                                            &dataVIO->recovery_journal_point,
                                            NULL);
   CU_ASSERT(added);

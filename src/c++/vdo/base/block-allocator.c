@@ -354,19 +354,23 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why)
 {
-	struct vdo_slab *slab;
 	int result;
-	struct reference_operation operation = {
-		.type = VDO_JOURNAL_DATA_REMAPPING,
-		.increment = false,
-		.pbn = pbn,
-	};
+	struct reference_updater updater;
 
 	if (pbn == VDO_ZERO_BLOCK)
 		return;
 
-	slab = vdo_get_slab(allocator->depot, pbn);
-	result = vdo_modify_slab_reference_count(slab, NULL, operation);
+	updater = (struct reference_updater) {
+		.operation = VDO_JOURNAL_DATA_REMAPPING,
+		.increment = false,
+		.zpbn = {
+			.pbn = pbn,
+		},
+	};
+
+	result = vdo_modify_slab_reference_count(vdo_get_slab(allocator->depot, pbn),
+						 NULL,
+						 &updater);
 	if (result != VDO_SUCCESS)
 		uds_log_error_strerror(result,
 				       "Failed to release reference to %s physical block %llu",

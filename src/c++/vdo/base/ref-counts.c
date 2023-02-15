@@ -20,7 +20,6 @@
 #include "journal-point.h"
 #include "physical-zone.h"
 #include "read-only-notifier.h"
-#include "reference-operation.h"
 #include "slab.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
@@ -399,6 +398,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @old_status: The reference status of the data block before this decrement.
+ * @updater: The reference updater doing this operation in case we need to look up the pbn lock.
  * @lock: The pbn_lock associated with the block being decremented (may be NULL).
  * @counter_ptr: A pointer to the count for the data block (in, out).
  * @free_status_changed: A pointer which will be set to true if this update changed the free status
@@ -410,7 +410,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 			      struct reference_block *block,
 			      slab_block_number block_number,
 			      enum reference_status old_status,
-			      struct pbn_lock *lock,
+			      struct reference_updater *updater,
 			      vdo_refcount_t *counter_ptr,
 			      bool *free_status_changed)
 {
@@ -423,20 +423,26 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 
 	case RS_PROVISIONAL:
 	case RS_SINGLE:
-		if (lock != NULL) {
-			/*
-			 * There is a read lock on this block, so the block must not become
-			 * unreferenced.
-			 */
-			*counter_ptr = PROVISIONAL_REFERENCE_COUNT;
-			*free_status_changed = false;
-			vdo_assign_pbn_lock_provisional_reference(lock);
-		} else {
-			*counter_ptr = EMPTY_REFERENCE_COUNT;
-			block->allocated_count--;
-			ref_counts->free_blocks++;
-			*free_status_changed = true;
+		if (updater->zpbn.zone != NULL) {
+			struct pbn_lock *lock = vdo_get_physical_zone_pbn_lock(updater->zpbn.zone,
+									       updater->zpbn.pbn);
+
+			if (lock != NULL) {
+				/*
+				 * There is a read lock on this block, so the block must not become
+				 * unreferenced.
+				 */
+				*counter_ptr = PROVISIONAL_REFERENCE_COUNT;
+				*free_status_changed = false;
+				vdo_assign_pbn_lock_provisional_reference(lock);
+				break;
+			}
 		}
+
+		*counter_ptr = EMPTY_REFERENCE_COUNT;
+		block->allocated_count--;
+		ref_counts->free_blocks++;
+		*free_status_changed = true;
 		break;
 
 	default:
@@ -518,7 +524,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @slab_journal_point: The slab journal point at which this update is journaled.
- * @operation: How to update the count.
+ * @updater: The reference updater.
  * @normal_operation: Whether we are in normal operation vs. recovery or rebuild.
  * @free_status_changed: A pointer which will be set to true if this update changed the free status
  *                       of the block.
@@ -532,22 +538,21 @@ update_reference_count(struct ref_counts *ref_counts,
 		       struct reference_block *block,
 		       slab_block_number block_number,
 		       const struct journal_point *slab_journal_point,
-		       struct reference_operation operation,
+		       struct reference_updater *updater,
 		       bool normal_operation,
 		       bool *free_status_changed,
 		       bool *provisional_decrement_ptr)
 {
 	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
 	enum reference_status old_status = vdo_reference_count_to_status(*counter_ptr);
-	struct pbn_lock *lock = vdo_get_reference_operation_pbn_lock(operation);
 	int result;
 
-	if (!operation.increment) {
+	if (!updater->increment) {
 		result = decrement_for_data(ref_counts,
 					    block,
 					    block_number,
 					    old_status,
-					    lock,
+					    updater,
 					    counter_ptr,
 					    free_status_changed);
 		if ((result == VDO_SUCCESS) && (old_status == RS_PROVISIONAL)) {
@@ -555,12 +560,12 @@ update_reference_count(struct ref_counts *ref_counts,
 				*provisional_decrement_ptr = true;
 			return VDO_SUCCESS;
 		}
-	} else if (operation.type == VDO_JOURNAL_DATA_REMAPPING) {
+	} else if (updater->operation == VDO_JOURNAL_DATA_REMAPPING) {
 		result = increment_for_data(ref_counts,
 					    block,
 					    block_number,
 					    old_status,
-					    lock,
+					    updater->lock,
 					    counter_ptr,
 					    free_status_changed);
 	} else {
@@ -568,7 +573,7 @@ update_reference_count(struct ref_counts *ref_counts,
 						 block,
 						 block_number,
 						 old_status,
-						 lock,
+						 updater->lock,
 						 normal_operation,
 						 counter_ptr,
 						 free_status_changed);
@@ -586,7 +591,7 @@ update_reference_count(struct ref_counts *ref_counts,
 /**
  * vdo_adjust_reference_count() - Adjust the reference count of a block.
  * @ref_counts: The refcounts object.
- * @operation: The operation to perform.
+ * @updater: The reference count updater.
  * @slab_journal_point: The slab journal entry for this adjustment.
  * @free_status_changed: A pointer which will be set to true if the free status of the block
  *                       changed.
@@ -595,7 +600,7 @@ update_reference_count(struct ref_counts *ref_counts,
  *         in a negative reference count, or an increment in a count greater than MAXIMUM_REFS
  */
 int vdo_adjust_reference_count(struct ref_counts *ref_counts,
-			       struct reference_operation operation,
+			       struct reference_updater *updater,
 			       const struct journal_point *slab_journal_point,
 			       bool *free_status_changed)
 {
@@ -607,7 +612,9 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 	if (!vdo_is_slab_open(ref_counts->slab))
 		return VDO_INVALID_ADMIN_STATE;
 
-	result = vdo_slab_block_number_from_pbn(ref_counts->slab, operation.pbn, &block_number);
+	result = vdo_slab_block_number_from_pbn(ref_counts->slab,
+						updater->zpbn.pbn,
+						&block_number);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -616,7 +623,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 					block,
 					block_number,
 					slab_journal_point,
-					operation,
+					updater,
 					NORMAL_OPERATION,
 					free_status_changed,
 					&provisional_decrement);
@@ -669,8 +676,8 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 	slab_block_number block_number;
 	struct reference_block *block;
 	bool unused_free_status;
-	struct reference_operation physical_operation = {
-		.type = operation,
+	struct reference_updater updater = {
+		.operation = operation,
 		.increment = true,
 	};
 
@@ -683,7 +690,7 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 					block,
 					block_number,
 					NULL,
-					physical_operation,
+					&updater,
 					!NORMAL_OPERATION,
 					&unused_free_status,
 					NULL);
@@ -713,8 +720,8 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 	int result;
 	struct reference_block *block = vdo_get_reference_block(ref_counts, entry.sbn);
 	sector_count_t sector = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
-	struct reference_operation operation = {
-		.type = entry.operation,
+	struct reference_updater updater = {
+		.operation = entry.operation,
 		.increment = entry.increment,
 	};
 
@@ -727,7 +734,7 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 					block,
 					entry.sbn,
 					entry_point,
-					operation,
+					&updater,
 					!NORMAL_OPERATION,
 					&unused_free_status,
 					NULL);

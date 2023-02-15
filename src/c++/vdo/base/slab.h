@@ -13,7 +13,6 @@
 #include "admin-state.h"
 #include "journal-point.h"
 #include "recovery-journal.h"
-#include "reference-operation.h"
 #include "types.h"
 
 enum slab_rebuild_status {
@@ -63,6 +62,8 @@ struct vdo_slab {
 	u8 priority;
 };
 
+struct reference_updater;
+
 int __must_check vdo_make_slab(physical_block_number_t slab_origin,
 			       struct block_allocator *allocator,
 			       physical_block_number_t translation,
@@ -86,7 +87,7 @@ block_count_t __must_check get_slab_free_block_count(const struct vdo_slab *slab
 int __must_check
 vdo_modify_slab_reference_count(struct vdo_slab *slab,
 				const struct journal_point *journal_point,
-				struct reference_operation operation);
+				struct reference_updater *updater);
 
 int __must_check
 vdo_acquire_provisional_reference(struct vdo_slab *slab,

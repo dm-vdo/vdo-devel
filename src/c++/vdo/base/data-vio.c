@@ -1810,7 +1810,7 @@ static void decrement_reference_count(struct vdo_completion *completion)
 				    update_block_map,
 				    data_vio->logical.zone->thread_id);
 	completion->error_handler = update_block_map;
-	slab = vdo_get_slab(completion->vdo->depot, data_vio->decrement_updater.operation.pbn);
+	slab = vdo_get_slab(completion->vdo->depot, data_vio->decrement_updater.zpbn.pbn);
 	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->decrement_updater);
 }
 
@@ -1834,7 +1834,7 @@ static void increment_reference_count(struct vdo_completion *completion)
 
 	set_data_vio_logical_callback(data_vio, update_block_map);
 	completion->error_handler = update_block_map;
-	slab = vdo_get_slab(completion->vdo->depot, data_vio->increment_updater.operation.pbn);
+	slab = vdo_get_slab(completion->vdo->depot, data_vio->increment_updater.zpbn.pbn);
 	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->increment_updater);
 }
 
@@ -1848,12 +1848,8 @@ static void journal_remapping(struct vdo_completion *completion)
 
 	assert_data_vio_in_journal_zone(data_vio);
 
-	vdo_set_up_reference_operation_with_zone(VDO_JOURNAL_DATA_REMAPPING,
-						 false,
-						 data_vio->mapped.pbn,
-						 data_vio->mapped.state,
-						 data_vio->mapped.zone,
-						 &data_vio->decrement_updater.operation);
+	data_vio->decrement_updater.operation = VDO_JOURNAL_DATA_REMAPPING;
+	data_vio->decrement_updater.zpbn = data_vio->mapped;
 	if (data_vio->new_mapped.pbn == VDO_ZERO_BLOCK) {
 		data_vio->first_reference_operation_complete = true;
 		if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
@@ -1893,12 +1889,13 @@ static void read_old_block_mapping(struct vdo_completion *completion)
 
 void update_metadata_for_data_vio_write(struct data_vio *data_vio, struct pbn_lock *lock)
 {
-	vdo_set_up_reference_operation_with_lock(VDO_JOURNAL_DATA_REMAPPING,
-						 true,
-						 data_vio->new_mapped.pbn,
-						 data_vio->new_mapped.state,
-						 lock,
-						 &data_vio->increment_updater.operation);
+	data_vio->increment_updater = (struct reference_updater) {
+		.operation = VDO_JOURNAL_DATA_REMAPPING,
+		.increment = true,
+		.zpbn = data_vio->new_mapped,
+		.lock = lock,
+	};
+
 	launch_data_vio_logical_callback(data_vio, read_old_block_mapping);
 }
 

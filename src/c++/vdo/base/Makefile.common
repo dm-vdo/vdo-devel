@@ -36,7 +36,6 @@ BASE_OBJS :=     			\
 	read-only-notifier.o		\
 	recovery-journal.o		\
 	ref-counts.o			\
-	reference-operation.o		\
 	slab.o				\
 	slab-depot.o			\
 	slab-journal.o			\

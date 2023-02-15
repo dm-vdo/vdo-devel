@@ -250,27 +250,29 @@ setHeader(struct slab_journal_block_header *header, uint16_t number)
  *
  * @param header  The journal block header
  *
- * @return The reference operation
+ * @return The reference updater
  **/
-static struct reference_operation
+static struct reference_updater
 selectOperationAndBlock(const struct slab_journal_block_header *header)
 {
-  struct reference_operation operation = {
-    .type      = VDO_JOURNAL_DATA_REMAPPING,
+  struct reference_updater updater = {
+    .operation = VDO_JOURNAL_DATA_REMAPPING,
     .increment = true,
-    .pbn       = (header->entry_count % (REFCOUNT_BLOCKS - 1)) + 1,
+    .zpbn = {
+      .pbn = (header->entry_count % (REFCOUNT_BLOCKS - 1)) + 1,
+    },
   };
   if ((header->entry_count % (2 * REFCOUNT_BLOCKS)) >= REFCOUNT_BLOCKS) {
-    operation.increment = false;
-    return operation;
+    updater.increment = false;
+    return updater;
   }
 
   if (header->has_block_map_increments && ((header->entry_count % 3) == 0)) {
-    operation.type = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
-    operation.pbn  = 0;
+    updater.operation = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
+    updater.zpbn.pbn  = 0;
   }
 
-  return operation;
+  return updater;
 }
 
 static unsigned int get_offset(enum journal_operation operation, bool increment)
@@ -318,16 +320,16 @@ static void writeSlabJournalBlocks(void)
                                      ? journal->full_entries_per_block
                                      : journal->entries_per_block);
     while (header.entry_count < entries) {
-      struct reference_operation operation = selectOperationAndBlock(&header);
-      slab_block_number sbn = (operation.pbn * COUNTS_PER_BLOCK);
-      sbn += offsets[get_offset(operation.type, operation.increment)];
+      struct reference_updater updater = selectOperationAndBlock(&header);
+      slab_block_number sbn = (updater.zpbn.pbn * COUNTS_PER_BLOCK);
+      sbn += offsets[get_offset(updater.operation, updater.increment)];
       /*
        * For data updates, increment the offset whenever we get to the end.
        * For block map updates, increment every time since any given block
        * map block can only be incremented once.
        */
-      if ((operation.pbn == 0) || (operation.pbn == (REFCOUNT_BLOCKS - 1))) {
-        offsets[get_offset(operation.type, operation.increment)]++;
+      if ((updater.zpbn.pbn == 0) || (updater.zpbn.pbn == (REFCOUNT_BLOCKS - 1))) {
+        offsets[get_offset(updater.operation, updater.increment)]++;
       }
 
       struct journal_point currentPoint = {
@@ -335,12 +337,12 @@ static void writeSlabJournalBlocks(void)
         .entry_count     = header.entry_count,
       };
       if (IS_VALID[i] && (header.entry_count < entryCount)
-          && vdo_before_journal_point(&blockLimits[operation.pbn], &currentPoint)) {
-        if (operation.type == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
+          && vdo_before_journal_point(&blockLimits[updater.zpbn.pbn], &currentPoint)) {
+        if (updater.operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
           CU_ASSERT_EQUAL(expectedReferences[sbn], 0);
           expectedReferences[sbn] = MAXIMUM_REFERENCE_COUNT;
           expectedBlocksFree--;
-        } else if (operation.increment) {
+        } else if (updater.increment) {
           CU_ASSERT_TRUE(expectedReferences[sbn] < MAXIMUM_REFERENCE_COUNT);
           expectedReferences[sbn]++;
         } else {
@@ -352,8 +354,8 @@ static void writeSlabJournalBlocks(void)
       vdo_encode_slab_journal_entry(&header,
                                     &block->payload,
                                     sbn,
-                                    operation.type,
-                                    operation.increment);
+                                    updater.operation,
+                                    updater.increment);
 
       // The header hasn't been packed yet, but decoding from the block
       // requires the hasBlockMapIncrements field from the header.
@@ -362,7 +364,8 @@ static void writeSlabJournalBlocks(void)
       struct slab_journal_entry decoded
         = vdo_decode_slab_journal_entry(block, header.entry_count - 1);
       CU_ASSERT_EQUAL(decoded.sbn, sbn);
-      CU_ASSERT_EQUAL(decoded.operation, operation.type);
+      CU_ASSERT_EQUAL(decoded.operation, updater.operation);
+      CU_ASSERT_EQUAL(decoded.increment, updater.increment);
     }
 
     header.entry_count = entryCount;
@@ -439,9 +442,9 @@ static void makeWrappedVIO(DataVIOWrapper **wrapperPtr)
   struct reference_updater *updater       = &wrapper->dataVIO.decrement_updater;
   wrapper->dataVIO.logical.lbn            = 1;
   wrapper->dataVIO.mapped.pbn             = slab->start + COUNTS_PER_BLOCK;
-  updater->operation.type                 = VDO_JOURNAL_DATA_REMAPPING;
-  updater->operation.increment            = false;
-  updater->operation.pbn                  = wrapper->dataVIO.mapped.pbn;
+  updater->operation                      = VDO_JOURNAL_DATA_REMAPPING;
+  updater->increment                      = false;
+  updater->zpbn.pbn                       = wrapper->dataVIO.mapped.pbn;
   wrapper->dataVIO.recovery_journal_point = (struct journal_point) {
     .sequence_number = 1,
     .entry_count     = 1,

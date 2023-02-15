@@ -149,7 +149,7 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
   // is no recovery journal in this test; they simply need to unique.
   recoveryJournalPoint.entry_count++;
   dataVIO->recovery_journal_point = recoveryJournalPoint;
-  vdo_add_slab_journal_entry(vdo_get_slab(depot, updater->operation.pbn)->journal,
+  vdo_add_slab_journal_entry(vdo_get_slab(depot, updater->zpbn.pbn)->journal,
                              completion,
                              updater);
 }
@@ -173,10 +173,10 @@ static physical_block_number_t useNextBlock(void)
       .pbn = allocatedBlock,
     },
     .increment_updater = {
-      .operation = {
-        .type = VDO_JOURNAL_DATA_REMAPPING,
-        .increment = true,
-        .pbn = allocatedBlock,
+      .operation = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = true,
+      .zpbn = {
+        .pbn   = allocatedBlock,
         .state = VDO_MAPPING_STATE_UNCOMPRESSED,
       },
     },
@@ -204,10 +204,10 @@ static void decRef(physical_block_number_t pbn)
       .pbn = pbn,
     },
     .decrement_updater = {
-      .operation = {
-        .type = VDO_JOURNAL_DATA_REMAPPING,
-        .increment = false,
-        .pbn  = pbn,
+      .operation = VDO_JOURNAL_DATA_REMAPPING,
+      .increment = false,
+      .zpbn = {
+        .pbn   = pbn,
         .state = VDO_MAPPING_STATE_UNCOMPRESSED,
       },
     },

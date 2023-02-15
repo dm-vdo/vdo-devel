@@ -1109,7 +1109,7 @@ static void release_journal_block_reference(struct recovery_journal_block *block
 
 static void update_usages(struct recovery_journal *journal, struct data_vio *data_vio)
 {
-	if (data_vio->increment_updater.operation.type == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
+	if (data_vio->increment_updater.operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
 		journal->block_map_data_blocks++;
 		return;
 	}
@@ -1237,8 +1237,8 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 	 * The increment must be launched first since it must come before the
 	 * decrement if they are in the same slab.
 	 */
-	has_decrement = (data_vio->decrement_updater.operation.pbn != VDO_ZERO_BLOCK);
-	if ((data_vio->increment_updater.operation.pbn != VDO_ZERO_BLOCK) || !has_decrement)
+	has_decrement = (data_vio->decrement_updater.zpbn.pbn != VDO_ZERO_BLOCK);
+	if ((data_vio->increment_updater.zpbn.pbn != VDO_ZERO_BLOCK) || !has_decrement)
 		continue_data_vio(data_vio);
 
 	if (has_decrement)
@@ -1372,8 +1372,6 @@ static void add_queued_recovery_entries(struct recovery_journal_block *block)
 		struct tree_lock *lock = &data_vio->tree_lock;
 		struct packed_recovery_journal_entry *packed_entry;
 		struct recovery_journal_entry new_entry;
-		struct reference_operation increment = data_vio->increment_updater.operation;
-		struct reference_operation decrement = data_vio->decrement_updater.operation;
 
 		if (block->sector->entry_count == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
 			set_active_sector(block, (char *) block->sector + VDO_SECTOR_SIZE);
@@ -1382,14 +1380,14 @@ static void add_queued_recovery_entries(struct recovery_journal_block *block)
 		packed_entry = &block->sector->entries[block->sector->entry_count++];
 		new_entry = (struct recovery_journal_entry) {
 			.mapping = {
-				.pbn = increment.pbn,
-				.state = increment.state,
+				.pbn = data_vio->increment_updater.zpbn.pbn,
+				.state = data_vio->increment_updater.zpbn.state,
 			},
 			.unmapping = {
-				.pbn = decrement.pbn,
-				.state = decrement.state,
+				.pbn = data_vio->decrement_updater.zpbn.pbn,
+				.state = data_vio->decrement_updater.zpbn.state,
 			},
-			.operation = increment.type,
+			.operation = data_vio->increment_updater.operation,
 			.slot = lock->tree_slots[lock->height].block_map_slot,
 		};
 		*packed_entry = vdo_pack_recovery_journal_entry(&new_entry);
