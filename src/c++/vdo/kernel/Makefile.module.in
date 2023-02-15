@@ -34,7 +34,7 @@ else
 EXTRA_ARCH_CFLAGS =
 endif
 EXTRA_CFLAGS =	-I$(KBUILD_EXTMOD)					\
-		-std=gnu89						\
+		-std=gnu11						\
 		-fno-builtin-memset					\
 		-fno-omit-frame-pointer					\
 		-fno-optimize-sibling-calls				\

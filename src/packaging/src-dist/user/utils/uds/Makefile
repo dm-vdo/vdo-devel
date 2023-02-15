@@ -43,7 +43,7 @@ GLOBAL_FLAGS   = $(RPM_OPT_FLAGS) -D_GNU_SOURCE -g $(OPT_FLAGS)		\
 		 $(WARNS) $(shell getconf LFS_CFLAGS) $(DEBUG_FLAGS)	\
 		 -DCURRENT_VERSION='"$(BUILD_VERSION)"'			\
 
-CFLAGS  = $(GLOBAL_FLAGS) -I. -std=gnu99 -pedantic $(C_WARNS) $(MY_CFLAGS)
+CFLAGS  = $(GLOBAL_FLAGS) -I. -std=gnu11 -pedantic $(C_WARNS) $(MY_CFLAGS)
 LDFLAGS = $(RPM_LD_FLAGS) $(MY_LDFLAGS)
 
 MY_FLAGS    =

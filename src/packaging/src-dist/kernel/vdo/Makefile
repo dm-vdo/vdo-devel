@@ -4,7 +4,7 @@ SOURCES  = $(notdir $(wildcard $(src)/*.c))
 OBJECTS = $(SOURCES:%.c=%.o)
 INCLUDES = -I$(src)
 
-EXTRA_CFLAGS =	-std=gnu99					\
+EXTRA_CFLAGS =	-std=gnu11					\
 		-fno-builtin-memset				\
 		-Werror						\
 		$(if $(CONFIG_KASAN),,-Wframe-larger-than=400)	\

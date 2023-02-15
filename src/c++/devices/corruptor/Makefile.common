@@ -17,7 +17,7 @@ INCLUDES += -I$(CORRUPTOR_DIR)
 
 VPATH += $(CORRUPTOR_DIR)
 
-EXTRA_CFLAGS =	-std=gnu99				\
+EXTRA_CFLAGS =	-std=gnu11				\
 		-fno-builtin-memset			\
 		-fno-stack-protector			\
 		-Werror					\

@@ -46,7 +46,7 @@ DEBUG_FLAGS      =
 RPM_OPT_FLAGS   ?= -fpic
 GLOBAL_FLAGS     = $(RPM_OPT_FLAGS) -D_GNU_SOURCE -g $(OPT_FLAGS) $(WARNS) \
 		   $(shell getconf LFS_CFLAGS) $(DEBUG_FLAGS)
-GLOBAL_CFLAGS	 = $(GLOBAL_FLAGS) -std=gnu99 -pedantic $(C_WARNS)	\
+GLOBAL_CFLAGS	 = $(GLOBAL_FLAGS) -std=gnu11 -pedantic $(C_WARNS)	\
 		   $(EXTRA_CFLAGS)
 EXTRA_FLAGS      =
 EXTRA_CFLAGS	 = $(EXTRA_FLAGS)
