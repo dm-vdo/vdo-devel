@@ -109,7 +109,7 @@ static bool trapSlabWrites(struct vdo_completion *completion)
 
   wrapVIOCallback(vio, checkSlabState);
   if ((slabJournalWrite != NULL) && (refCountsWrite != NULL)) {
-    clearBIOSubmitHook();
+    clearCompletionEnqueueHooks();
     signalState(&blocked);
   }
 
