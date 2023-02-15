@@ -48,7 +48,6 @@ tarballs:
             - constants.c
             - constants.h
             - journal-point.h
-            - packed-reference-block.h
             - release-versions.h
             - statistics.h
             - status-codes.c
@@ -294,7 +293,6 @@ tarballs:
             - logical-zone.h
             - message-stats.c
             - message-stats.h
-            - packed-reference-block.h
             - packer.c
             - packer.h
             - physical-zone.c

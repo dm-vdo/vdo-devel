@@ -18,7 +18,6 @@
 #include "completion.h"
 #include "io-submitter.h"
 #include "journal-point.h"
-#include "packed-reference-block.h"
 #include "physical-zone.h"
 #include "read-only-notifier.h"
 #include "reference-operation.h"

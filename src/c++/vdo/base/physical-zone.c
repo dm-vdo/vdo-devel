@@ -22,11 +22,11 @@
 #include "dedupe.h"
 #include "flush.h"
 #include "int-map.h"
-#include "packed-reference-block.h"
 #include "slab-depot.h"
 #include "slab-scrubber.h"
 #include "status-codes.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 
 enum {
 	/* Each user data_vio needs a PBN read lock and write lock. */

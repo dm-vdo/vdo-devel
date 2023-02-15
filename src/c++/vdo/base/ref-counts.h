@@ -8,7 +8,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "journal-point.h"
-#include "packed-reference-block.h"
 #include "slab.h"
 #include "types.h"
 #include "vdo-component-states.h"

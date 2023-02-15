@@ -19,7 +19,6 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "packed-reference-block.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo-component-states.h"

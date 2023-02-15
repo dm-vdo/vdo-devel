@@ -13,7 +13,6 @@
 
 #include "constants.h"
 #include "journal-point.h"
-#include "packed-reference-block.h"
 #include "types.h"
 #include "vdo-layout.h"
 
@@ -320,6 +319,32 @@ enum {
 	/* The number of entries in the last sector when a block is full */
 	RECOVERY_JOURNAL_1_ENTRIES_IN_LAST_SECTOR =
 		(RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK % RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR),
+};
+
+/* A type representing a reference count of a block. */
+typedef u8 vdo_refcount_t;
+
+/* Special vdo_refcount_t values. */
+#define EMPTY_REFERENCE_COUNT 0
+enum {
+	MAXIMUM_REFERENCE_COUNT = 254,
+	PROVISIONAL_REFERENCE_COUNT = 255,
+};
+
+enum {
+	COUNTS_PER_SECTOR =
+		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point)) / sizeof(vdo_refcount_t)),
+	COUNTS_PER_BLOCK = COUNTS_PER_SECTOR * VDO_SECTORS_PER_BLOCK,
+};
+
+/* The format of each sector of a reference_block on disk. */
+struct packed_reference_sector {
+	struct packed_journal_point commit_point;
+	vdo_refcount_t counts[COUNTS_PER_SECTOR];
+} __packed;
+
+struct packed_reference_block {
+	struct packed_reference_sector sectors[VDO_SECTORS_PER_BLOCK];
 };
 
 struct slab_depot_state_2_0 {
