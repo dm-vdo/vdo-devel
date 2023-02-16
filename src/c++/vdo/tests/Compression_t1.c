@@ -11,8 +11,8 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "block-allocator.h"
 #include "packer.h"
+#include "slab-depot.h"
 #include "vdo.h"
 
 #include "asyncLayer.h"

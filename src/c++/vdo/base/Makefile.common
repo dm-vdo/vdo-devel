@@ -10,7 +10,6 @@
 BASE_OBJS :=     			\
 	action-manager.o     		\
 	admin-state.o			\
-	block-allocator.o		\
 	block-map.o			\
 	block-map-recovery.o		\
 	completion.o			\

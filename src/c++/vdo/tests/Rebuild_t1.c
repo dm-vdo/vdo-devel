@@ -12,7 +12,6 @@
 
 #include "memory-alloc.h"
 
-#include "block-allocator.h"
 #include "block-map.h"
 #include "heap.h"
 #include "ref-counts.h"

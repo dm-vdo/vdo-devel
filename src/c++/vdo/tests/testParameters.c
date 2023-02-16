@@ -10,11 +10,11 @@
 
 #include "memory-alloc.h"
 
-#include "block-allocator.h"
 #include "block-map.h"
 #include "constants.h"
 #include "device-config.h"
 #include "recovery-journal.h"
+#include "slab-depot.h"
 #include "slab-summary.h"
 #include "thread-config.h"
 #include "types.h"

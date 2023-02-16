@@ -253,8 +253,6 @@ tarballs:
             - action-manager.h
             - admin-state.c
             - admin-state.h
-            - block-allocator.c
-            - block-allocator.h
             - block-map.c
             - block-map.h
             - block-map-recovery.c

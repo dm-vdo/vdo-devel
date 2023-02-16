@@ -26,7 +26,6 @@
 #include "syscalls.h"
 #include "testUtils.h"
 
-#include "block-allocator.h"
 #include "slab-depot.h"
 #include "vdo.h"
 #include "vdoConfig.h"

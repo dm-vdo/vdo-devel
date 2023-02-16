@@ -14,7 +14,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "block-allocator.h"
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"

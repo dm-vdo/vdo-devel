@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "block-allocator.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"

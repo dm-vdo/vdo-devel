@@ -25,7 +25,6 @@
 #include "permassert.h"
 #include "string-utils.h"
 
-#include "block-allocator.h"
 #include "block-map.h"
 #include "data-vio.h"
 #include "dedupe.h"

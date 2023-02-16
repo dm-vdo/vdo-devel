@@ -15,7 +15,6 @@
 #include "permassert.h"
 #include "syscalls.h"
 
-#include "block-allocator.h"
 #include "block-map.h"
 #include "slab-depot.h"
 #include "status-codes.h"

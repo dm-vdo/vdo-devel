@@ -10,7 +10,7 @@
 
 #include <linux/list.h>
 
-#include "block-allocator.h"
+#include "slab-depot.h"
 #include "types.h"
 
 #include "vdoTestBase.h"

@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "admin-state.h"
-#include "block-allocator.h"
 #include "block-map.h"
 #include "completion.h"
 #include "packer.h"

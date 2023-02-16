@@ -10,10 +10,10 @@
 
 #include "numeric.h"
 
-#include "block-allocator.h"
 #include "completion.h"
 #include "data-vio.h"
 #include "slab.h"
+#include "slab-depot.h"
 #include "slab-summary.h"
 #include "statistics.h"
 #include "types.h"

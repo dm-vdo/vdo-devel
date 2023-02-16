@@ -9,7 +9,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "block-allocator.h"
 #include "block-map-recovery.h"
 #include "block-map.h"
 #include "completion.h"

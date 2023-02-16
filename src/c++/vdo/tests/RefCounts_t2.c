@@ -15,7 +15,6 @@
 #include "syscalls.h"
 #include "time-utils.h"
 
-#include "block-allocator.h"
 #include "data-vio.h"
 #include "ref-counts.h"
 #include "slab.h"

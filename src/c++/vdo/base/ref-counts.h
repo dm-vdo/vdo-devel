@@ -5,7 +5,6 @@
 #ifndef REF_COUNTS_H
 #define REF_COUNTS_H
 
-#include "block-allocator.h"
 #include "completion.h"
 #include "slab.h"
 #include "types.h"

@@ -13,7 +13,6 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "block-allocator.h"
 #include "completion.h"
 #include "io-submitter.h"
 #include "logical-zone.h"

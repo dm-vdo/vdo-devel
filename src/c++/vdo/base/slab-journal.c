@@ -13,7 +13,6 @@
 #include "string-utils.h"
 
 #include "admin-state.h"
-#include "block-allocator.h"
 #include "data-vio.h"
 #include "io-submitter.h"
 #include "recovery-journal.h"

@@ -10,7 +10,6 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "block-allocator.h"
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"

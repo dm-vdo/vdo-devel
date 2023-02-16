@@ -12,7 +12,6 @@
 
 #include "memory-alloc.h"
 
-#include "block-allocator.h"
 #include "data-vio.h"
 #include "read-only-notifier.h"
 #include "ref-counts.h"

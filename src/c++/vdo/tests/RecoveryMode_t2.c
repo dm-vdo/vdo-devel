@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "block-allocator.h"
 #include "physical-zone.h"
 #include "slab.h"
 #include "slab-depot.h"

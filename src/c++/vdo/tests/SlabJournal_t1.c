@@ -14,7 +14,6 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "block-allocator.h"
 #include "int-map.h"
 #include "ref-counts.h"
 #include "slab.h"
