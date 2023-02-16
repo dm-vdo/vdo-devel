@@ -37,7 +37,7 @@ static void testNewCacheSize(void)
   deviceConfig.cache_size *= 2;
   reloadVDO(deviceConfig);
 
-  page_count_t cacheSize = vdo->block_map->zones[0].page_cache->page_count;
+  page_count_t cacheSize = vdo->block_map->zones[0].page_cache.page_count;
   CU_ASSERT_EQUAL(deviceConfig.cache_size, cacheSize);
 }
 

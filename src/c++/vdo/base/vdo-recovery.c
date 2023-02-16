@@ -994,7 +994,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 	struct block_map *block_map = completion->vdo->block_map;
 	struct rebuild_completion *rebuild = as_rebuild_completion(UDS_FORGET(completion));
 
-	vdo_set_page_cache_rebuild_mode(block_map->zones[0].page_cache, false);
+	block_map->zones[0].page_cache.rebuilding = false;
 	free_rebuild_completion(UDS_FORGET(rebuild));
 	vdo_continue_completion(parent, result);
 }
@@ -1206,9 +1206,14 @@ static void rebuild_reference_counts_from_page(struct rebuild_completion *rebuil
 					       struct vdo_completion *completion)
 {
 	slot_number_t slot, last_slot;
-	struct block_map_page *page = vdo_dereference_writable_page(completion);
+	struct block_map_page *page;
+	int result;
 
-	ASSERT_LOG_ONLY(page != NULL, "page available");
+	result = vdo_get_cached_page(completion, &page);
+	if (result != VDO_SUCCESS) {
+		vdo_set_completion_result(&rebuild->completion, result);
+		return;
+	}
 
 	if (!page->header.initialized)
 		return;
@@ -1279,7 +1284,7 @@ static bool fetch_page(struct rebuild_completion *rebuild, struct vdo_completion
 
 	if (pbn != VDO_ZERO_BLOCK) {
 		vdo_init_page_completion(page_completion,
-					 block_map->zones[0].page_cache,
+					 &block_map->zones[0].page_cache,
 					 pbn,
 					 true,
 					 rebuild,
@@ -1385,7 +1390,7 @@ static void rebuild_reference_counts(struct vdo_completion *completion)
 {
 	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
 	struct vdo *vdo = completion->vdo;
-	struct vdo_page_cache *cache = vdo->block_map->zones[0].page_cache;
+	struct vdo_page_cache *cache = &vdo->block_map->zones[0].page_cache;
 
 	/* We must allocate ref_counts before we can rebuild them. */
 	if (abort_rebuild_on_error(vdo_allocate_slab_ref_counts(vdo->depot), rebuild))
@@ -1600,7 +1605,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		return;
 
 	/* Suppress block map errors. */
-	vdo_set_page_cache_rebuild_mode(vdo->block_map->zones[0].page_cache, true);
+	vdo->block_map->zones[0].page_cache.rebuilding = true;
 
 	/* Play the recovery journal into the block map. */
 	prepare_rebuild_completion(rebuild,

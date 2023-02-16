@@ -209,7 +209,7 @@ struct block_map_zone {
 	struct admin_state state;
 	struct block_map *block_map;
 	struct read_only_notifier *read_only_notifier;
-	struct vdo_page_cache *page_cache;
+	struct vdo_page_cache page_cache;
 	/* Dirty tree pages, by era*/
 	struct dirty_lists *dirty_lists;
 	data_vio_count_t active_lookups;
@@ -262,23 +262,6 @@ struct block_map {
  */
 typedef int vdo_entry_callback(physical_block_number_t pbn, struct vdo_completion *completion);
 
-
-int __must_check vdo_make_page_cache(struct vdo *vdo,
-				     page_count_t page_count,
-				     block_count_t maximum_age,
-				     struct block_map_zone *zone,
-				     struct vdo_page_cache **cache_ptr);
-
-void vdo_free_page_cache(struct vdo_page_cache *cache);
-
-void vdo_set_page_cache_initial_period(struct vdo_page_cache *cache, sequence_number_t period);
-
-void vdo_set_page_cache_rebuild_mode(struct vdo_page_cache *cache, bool rebuilding);
-
-bool __must_check vdo_is_page_cache_active(struct vdo_page_cache *cache);
-
-void vdo_advance_page_cache_period(struct vdo_page_cache *cache, sequence_number_t period);
-
 void vdo_init_page_completion(struct vdo_page_completion *page_completion,
 			      struct vdo_page_cache *cache,
 			      physical_block_number_t pbn,
@@ -297,22 +280,12 @@ void vdo_release_page_completion(struct vdo_completion *completion);
 
 void vdo_get_page(struct vdo_completion *completion);
 
-void vdo_mark_completed_page_dirty(struct vdo_completion *completion,
-				   sequence_number_t old_dirty_period,
-				   sequence_number_t new_dirty_period);
-
 void vdo_request_page_write(struct vdo_completion *completion);
 
-const void *vdo_dereference_readable_page(struct vdo_completion *completion);
-
-void *vdo_dereference_writable_page(struct vdo_completion *completion);
-
-void vdo_drain_page_cache(struct vdo_page_cache *cache);
+int __must_check vdo_get_cached_page(struct vdo_completion *completion,
+				     struct block_map_page **page_ptr);
 
 int __must_check vdo_invalidate_page_cache(struct vdo_page_cache *cache);
-
-struct block_map_statistics __must_check
-vdo_get_page_cache_statistics(const struct vdo_page_cache *cache);
 
 static inline struct block_map_page * __must_check
 vdo_as_block_map_page(struct tree_page *tree_page)
@@ -324,8 +297,6 @@ bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
 			 physical_block_number_t pbn,
 			 struct block_map_page *page);
 
-void vdo_block_map_check_for_drain_complete(struct block_map_zone *zone);
-
 void vdo_find_block_map_slot(struct data_vio *data_vio);
 
 physical_block_number_t
@@ -334,6 +305,8 @@ vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number);
 void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone);
 
 #ifdef INTERNAL
+void set_info_state(struct page_info *info, enum vdo_page_buffer_state new_state);
+int __must_check validate_completed_page(struct vdo_page_completion *completion, bool writable);
 bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
 struct tree_page * __must_check
 get_tree_page_by_index(struct forest *forest,

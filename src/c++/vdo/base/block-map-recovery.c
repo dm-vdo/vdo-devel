@@ -319,7 +319,7 @@ fetch_page(struct block_map_recovery_completion *recovery, struct vdo_completion
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery, recovery->current_unfetched_entry, true);
 	vdo_init_page_completion(((struct vdo_page_completion *) completion),
-				 recovery->block_map->zones[0].page_cache,
+				 &recovery->block_map->zones[0].page_cache,
 				 new_pbn,
 				 true,
 				 &recovery->completion,
@@ -352,10 +352,10 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 
 	while (page_completion->ready) {
 		struct numbered_block_mapping *start_of_next_page;
-		struct block_map_page *page = vdo_dereference_writable_page(completion);
+		struct block_map_page *page;
 		int result;
 
-		result = ASSERT(page != NULL, "page available");
+		result = vdo_get_cached_page(completion, &page);
 		if (result != VDO_SUCCESS) {
 			abort_recovery(recovery, result);
 			return;

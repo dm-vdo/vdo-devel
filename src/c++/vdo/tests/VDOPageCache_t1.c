@@ -180,7 +180,7 @@ static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
   initializeVDOTest(&parameters);
   VDO_ASSERT_SUCCESS(make_int_map(cacheSize, 0, &pageMap));
   zone = &vdo->block_map->zones[0];
-  cache = zone->page_cache;
+  cache = &zone->page_cache;
 
   period = 1;
   maxPBN = 0;
@@ -234,10 +234,15 @@ static void pageAction(struct vdo_completion *completion)
 static void markPageDirty(struct vdo_completion *completion)
 {
   struct vdo_page_completion *pageCompletion = as_vdo_page_completion(completion);
+  struct page_info *info = pageCompletion->info;
 
   sequence_number_t oldDirtyPeriod = pageCompletion->info->recovery_lock;
   pageCompletion->info->recovery_lock = asTestCompletion(completion->parent)->dirtyPeriod;
-  vdo_mark_completed_page_dirty(completion, oldDirtyPeriod, pageCompletion->info->recovery_lock);
+  set_info_state(info, PS_DIRTY);
+  vdo_add_to_dirty_lists(info->cache->dirty_lists,
+                         &info->state_entry,
+                         oldDirtyPeriod,
+                         info->recovery_lock);
 }
 
 /**********************************************************************/
@@ -262,8 +267,10 @@ static void fillPage(TestCompletion    *testCompletion,
                      sequence_number_t  dirtyPeriod)
 {
   struct vdo_completion *pageCompletion = &testCompletion->pageCompletion.completion;
-  struct block_map_page *page           = vdo_dereference_writable_page(pageCompletion);
-  testCompletion->dirtyPeriod           = dirtyPeriod;
+  struct block_map_page *page;
+
+  VDO_ASSERT_SUCCESS(vdo_get_cached_page(pageCompletion, &page));
+  testCompletion->dirtyPeriod = dirtyPeriod;
   memset(page->entries, mark, PAGE_DATA_SIZE);
   performPageAction(testCompletion, markPageDirty);
 }
@@ -334,22 +341,11 @@ static void getWritablePage(page_number_t   pageNumber,
 }
 
 /**
- * Initiate a drain of the page cache.
- *
- * Implements vdo_admin_initiator
- **/
-static void initiateDrain(struct admin_state *state __attribute__((unused)))
-{
-  vdo_drain_page_cache(cache);
-  vdo_block_map_check_for_drain_complete(zone);
-}
-
-/**
  * An action wrapper for flushVDOPageCacheAsync().
  **/
 static void flushCacheAction(struct vdo_completion *completion)
 {
-  vdo_start_draining(&zone->state, VDO_ADMIN_STATE_RECOVERING, completion, initiateDrain);
+  vdo_drain_block_map(vdo->block_map, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
 /**********************************************************************/
@@ -461,7 +457,7 @@ static bool failMetaWritesHook(struct bio *bio)
  **/
 static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 {
-  vdo_advance_page_cache_period(cache, period);
+  vdo_advance_block_map_era(vdo->block_map, period);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
@@ -472,10 +468,7 @@ static void advanceDirtyPeriodAction(struct vdo_completion *completion)
  **/
 static void suspendCacheAction(struct vdo_completion *completion)
 {
-  CU_ASSERT(vdo_start_draining(&zone->state,
-                               VDO_ADMIN_STATE_SUSPENDING,
-                               completion,
-                               initiateDrain));
+  vdo_drain_block_map(vdo->block_map, VDO_ADMIN_STATE_SUSPENDING, completion);
 }
 
 /**
@@ -485,8 +478,7 @@ static void suspendCacheAction(struct vdo_completion *completion)
  **/
 static void resumeCacheAction(struct vdo_completion *completion)
 {
-  vdo_resume_if_quiescent(&zone->state);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_resume_block_map(vdo->block_map, completion);
 }
 
 /**
@@ -777,9 +769,11 @@ static void testBusyCachePage(void)
  **/
 static void accessReadablePage(struct vdo_completion *completion)
 {
-  struct vdo_page_completion  *pageCompletion = as_vdo_page_completion(completion);
-  const struct block_map_page *page           = vdo_dereference_readable_page(completion);
-  CU_ASSERT_PTR_NOT_NULL(page);
+  struct vdo_page_completion *pageCompletion = as_vdo_page_completion(completion);
+  VDO_ASSERT_SUCCESS(validate_completed_page(pageCompletion, false));
+
+  const struct block_map_page *page
+    = (const struct block_map_page *) pageCompletion->info->vio->data;
   CU_ASSERT_EQUAL(pageCompletion->pbn, vdo_get_block_map_page_pbn(page));
 }
 
@@ -790,7 +784,8 @@ static void accessReadablePage(struct vdo_completion *completion)
  **/
 static void accessWritablePage(struct vdo_completion *completion)
 {
-  CU_ASSERT_PTR_NOT_NULL(vdo_dereference_writable_page(completion));
+  struct block_map_page *page;
+  VDO_ASSERT_SUCCESS(vdo_get_cached_page(completion, &page));
   accessReadablePage(completion);
 }
 
@@ -802,7 +797,8 @@ static void accessWritablePage(struct vdo_completion *completion)
  **/
 static void failAccessingWritablePage(struct vdo_completion *completion)
 {
-  CU_ASSERT_PTR_NULL(vdo_dereference_writable_page(completion));
+  struct block_map_page *page;
+  CU_ASSERT_EQUAL(UDS_ASSERTION_FAILED, vdo_get_cached_page(completion, &page));
 }
 
 /**********************************************************************/
