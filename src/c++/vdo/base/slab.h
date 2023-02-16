@@ -11,9 +11,9 @@
 #include "permassert.h"
 
 #include "admin-state.h"
-#include "journal-point.h"
 #include "recovery-journal.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 enum slab_rebuild_status {
 	VDO_SLAB_REBUILT,

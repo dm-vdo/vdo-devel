@@ -10,6 +10,9 @@
 #define BLOCK_ALLOCATOR_UTILS_H
 
 #include "types.h"
+#include "vdo-component-states.h"
+
+#include "vdoAsserts.h"
 
 struct block_allocator;
 
@@ -25,5 +28,16 @@ void reserveVIOsFromPool(struct block_allocator *allocator, size_t count);
  * Return the VIOs reserved by reserveVIOsFromPool() to their pool
  **/
 void returnVIOsToPool(void);
+
+/**
+ * Check whether two journal points are equal
+ *
+ * @param a  The first journal point
+ * @param b  The second journal point
+ **/
+static inline bool areJournalPointsEqual(struct journal_point a, struct journal_point b)
+{
+  return ((a.sequence_number == b.sequence_number) && (a.entry_count == b.entry_count));
+}
 
 #endif // BLOCK_ALLOCATOR_UTILS_H

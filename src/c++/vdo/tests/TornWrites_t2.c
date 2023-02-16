@@ -15,6 +15,7 @@
 #include "vdo-component-states.h"
 
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "dataBlocks.h"
 #include "ioRequest.h"
 #include "testParameters.h"
@@ -51,10 +52,9 @@ static void assertCommitPointComparison(struct reference_block *block,
                                         uint8_t                 sector2,
                                         bool                    expectedEquality)
 {
-  bool equivalent
-    = vdo_are_equivalent_journal_points(&block->commit_points[sector1],
-                                        &block->commit_points[sector2]);
-  CU_ASSERT_EQUAL(equivalent, expectedEquality);
+  CU_ASSERT_EQUAL(areJournalPointsEqual(block->commit_points[sector1],
+                                        block->commit_points[sector2]),
+                  expectedEquality);
 }
 
 /**

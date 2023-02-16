@@ -17,7 +17,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "dedupe.h"
-#include "journal-point.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
 #include "thread-config.h"

@@ -16,12 +16,12 @@
 #include "admin-state.h"
 #include "block-allocator.h"
 #include "int-map.h"
-#include "journal-point.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "vdo.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 #include "adminUtils.h"

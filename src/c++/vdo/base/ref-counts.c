@@ -17,7 +17,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "io-submitter.h"
-#include "journal-point.h"
 #include "physical-zone.h"
 #include "read-only-notifier.h"
 #include "slab.h"
@@ -518,6 +517,11 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 	}
 }
 
+static bool __must_check is_valid_journal_point(const struct journal_point *point)
+{
+	return ((point != NULL) && (point->sequence_number > 0));
+}
+
 /**
  * update_reference_count() - Update the reference count of a block.
  * @ref_counts: The ref_counts responsible for the block.
@@ -582,7 +586,7 @@ update_reference_count(struct ref_counts *ref_counts,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (vdo_is_valid_journal_point(slab_journal_point))
+	if (is_valid_journal_point(slab_journal_point))
 		ref_counts->slab_journal_point = *slab_journal_point;
 
 	return VDO_SUCCESS;
@@ -637,7 +641,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 		 * the last time it was clean. We must release the per-entry slab journal lock for
 		 * the entry associated with the update we are now doing.
 		 */
-		result = ASSERT(vdo_is_valid_journal_point(slab_journal_point),
+		result = ASSERT(is_valid_journal_point(slab_journal_point),
 				"Reference count adjustments need slab journal points.");
 		if (result != VDO_SUCCESS)
 			return result;
@@ -651,7 +655,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 	 * entry to this block since the block was cleaned. Therefore, we convert the per-entry
 	 * slab journal lock to an uncommitted reference block lock, if there is a per-entry lock.
 	 */
-	if (vdo_is_valid_journal_point(slab_journal_point))
+	if (is_valid_journal_point(slab_journal_point))
 		block->slab_journal_lock = slab_journal_point->sequence_number;
 	else
 		block->slab_journal_lock = 0;
@@ -1402,6 +1406,12 @@ static void clear_provisional_references(struct reference_block *block)
 	}
 }
 
+static inline bool journal_points_equal(struct journal_point first, struct journal_point second)
+{
+	return ((first.sequence_number == second.sequence_number) &&
+		(first.entry_count == second.entry_count));
+}
+
 /**
  * unpack_reference_block() - Unpack reference counts blocks into the internal memory structure.
  * @packed: The written reference block to be unpacked.
@@ -1427,8 +1437,8 @@ unpack_reference_block(struct packed_reference_block *packed, struct reference_b
 					     &block->commit_points[i]))
 			ref_counts->slab_journal_point = block->commit_points[i];
 
-		if ((i > 0) && !vdo_are_equivalent_journal_points(&block->commit_points[0],
-								  &block->commit_points[i])) {
+		if ((i > 0) &&
+		    !journal_points_equal(block->commit_points[0], block->commit_points[i])) {
 			size_t block_index = block - block->ref_counts->blocks;
 
 			uds_log_warning("Torn write detected in sector %u of reference block %zu of slab %u",

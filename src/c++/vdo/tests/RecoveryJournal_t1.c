@@ -32,6 +32,7 @@
 #include "vdo.h"
 #include "vdo-component-states.h"
 
+#include "blockAllocatorUtils.h"
 #include "vdoConfig.h"
 
 #include "adminUtils.h"
@@ -605,8 +606,7 @@ static bool recordAppendPoint(void *context __attribute__((unused)))
    * may have been torn down, so if closeRequested has been set, we're done.
    */
   if (vdo_is_state_quiescent(&journal->state)
-      || vdo_are_equivalent_journal_points(&journal->append_point,
-                                           &lastAppendPoint)) {
+      || areJournalPointsEqual(journal->append_point, lastAppendPoint)) {
     return false;
   }
 

@@ -14,7 +14,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "flush.h"
-#include "journal-point.h"
 #include "read-only-notifier.h"
 #include "statistics.h"
 #include "types.h"

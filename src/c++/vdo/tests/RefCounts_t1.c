@@ -22,6 +22,7 @@
 
 #include "adminUtils.h"
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "callbackWrappingUtils.h"
 #include "latchedCloseUtils.h"
 #include "mutexUtils.h"
@@ -456,20 +457,16 @@ static void verifyRefCountsLoad(void)
   loaded = slabToLoad->reference_counts;
   performSuccessfulSlabAction(slabToLoad, VDO_ADMIN_STATE_SCRUBBING);
   CU_ASSERT_TRUE(vdo_are_equivalent_ref_counts(loaded, refs));
-  CU_ASSERT_TRUE(vdo_are_equivalent_journal_points(&loaded->slab_journal_point,
-                                                   &refs->slab_journal_point));
+  CU_ASSERT_TRUE(areJournalPointsEqual(loaded->slab_journal_point, refs->slab_journal_point));
   for (block_count_t i = 0; i < refs->reference_block_count; i++) {
     struct reference_block *loadedBlock = &loaded->blocks[i];
     struct reference_block *refsBlock   = &refs->blocks[i];
     for (sector_count_t j = 0; j < VDO_SECTORS_PER_BLOCK; j++) {
-      bool equivalent
-        = vdo_are_equivalent_journal_points(&loadedBlock->commit_points[j],
-                                            &refsBlock->commit_points[j]);
-      CU_ASSERT_TRUE(equivalent);
+      CU_ASSERT_TRUE(areJournalPointsEqual(loadedBlock->commit_points[j],
+                                           refsBlock->commit_points[j]));
     }
   }
-  priority_table_remove(allocator.prioritized_slabs,
-                        &slabToLoad->allocq_entry);
+  priority_table_remove(allocator.prioritized_slabs, &slabToLoad->allocq_entry);
   vdo_free_slab(slabToLoad);
 }
 

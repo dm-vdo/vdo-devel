@@ -17,7 +17,6 @@
 
 #include "block-allocator.h"
 #include "data-vio.h"
-#include "journal-point.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"

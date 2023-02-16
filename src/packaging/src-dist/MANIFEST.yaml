@@ -47,7 +47,6 @@ tarballs:
             - checksum.h
             - constants.c
             - constants.h
-            - journal-point.h
             - release-versions.h
             - statistics.h
             - status-codes.c
@@ -287,7 +286,6 @@ tarballs:
             - int-map.h
             - io-submitter.c
             - io-submitter.h
-            - journal-point.h
             - logical-zone.c
             - logical-zone.h
             - message-stats.c

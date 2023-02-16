@@ -12,7 +12,6 @@
 #include "numeric.h"
 
 #include "constants.h"
-#include "journal-point.h"
 #include "types.h"
 #include "vdo-layout.h"
 
@@ -143,6 +142,8 @@ struct recovery_journal_state_7_0 {
 } __packed;
 
 extern const struct header VDO_RECOVERY_JOURNAL_HEADER_7_0;
+
+typedef u16 journal_entry_count_t;
 
 /*
  * A recovery journal entry stores three physical locations: a data location that is the value of a
@@ -323,6 +324,24 @@ enum {
 
 /* A type representing a reference count of a block. */
 typedef u8 vdo_refcount_t;
+
+/* The absolute position of an entry in a recovery journal or slab journal. */
+struct journal_point {
+	sequence_number_t sequence_number;
+	journal_entry_count_t entry_count;
+};
+
+/* A packed, platform-independent encoding of a struct journal_point. */
+struct packed_journal_point {
+	/*
+	 * The packed representation is the little-endian 64-bit representation of the low-order 48
+	 * bits of the sequence number, shifted up 16 bits, or'ed with the 16-bit entry count.
+	 *
+	 * Very long-term, the top 16 bits of the sequence number may not always be zero, as this
+	 * encoding assumes--see BZ 1523240.
+	 */
+	__le64 encoded_point;
+} __packed;
 
 /* Special vdo_refcount_t values. */
 #define EMPTY_REFERENCE_COUNT 0
@@ -932,6 +951,64 @@ vdo_get_slab_journal_start_block(const struct slab_config *slab_config,
 				 physical_block_number_t origin)
 {
 	return origin + slab_config->data_blocks + slab_config->reference_count_blocks;
+}
+
+/**
+ * vdo_advance_journal_point() - Move the given journal point forward by one entry.
+ * @point: The journal point to adjust.
+ * @entries_per_block: The number of entries in one full block.
+ */
+static inline void
+vdo_advance_journal_point(struct journal_point *point, journal_entry_count_t entries_per_block)
+{
+	point->entry_count++;
+	if (point->entry_count == entries_per_block) {
+		point->sequence_number++;
+		point->entry_count = 0;
+	}
+}
+
+/**
+ * vdo_before_journal_point() - Check whether the first point precedes the second point.
+ * @first: The first journal point.
+ * @second: The second journal point.
+ *
+ * Return: true if the first point precedes the second point.
+ */
+static inline bool
+vdo_before_journal_point(const struct journal_point *first, const struct journal_point *second)
+{
+	return ((first->sequence_number < second->sequence_number) ||
+		((first->sequence_number == second->sequence_number) &&
+		 (first->entry_count < second->entry_count)));
+}
+
+/**
+ * vdo_pack_journal_point() - Encode the journal location represented by a
+ *                            journal_point into a packed_journal_point.
+ * @unpacked: The unpacked input point.
+ * @packed: The packed output point.
+ */
+static inline void
+vdo_pack_journal_point(const struct journal_point *unpacked, struct packed_journal_point *packed)
+{
+	packed->encoded_point =
+		__cpu_to_le64((unpacked->sequence_number << 16) | unpacked->entry_count);
+}
+
+/**
+ * vdo_unpack_journal_point() - Decode the journal location represented by a packed_journal_point
+ *                              into a journal_point.
+ * @packed: The packed input point.
+ * @unpacked: The unpacked output point.
+ */
+static inline void
+vdo_unpack_journal_point(const struct packed_journal_point *packed, struct journal_point *unpacked)
+{
+	u64 native = __le64_to_cpu(packed->encoded_point);
+
+	unpacked->sequence_number = (native >> 16);
+	unpacked->entry_count = (native & 0xffff);
 }
 
 /**

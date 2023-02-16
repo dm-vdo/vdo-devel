@@ -13,7 +13,6 @@
 #include "block-allocator.h"
 #include "completion.h"
 #include "data-vio.h"
-#include "journal-point.h"
 #include "slab.h"
 #include "slab-summary.h"
 #include "statistics.h"
