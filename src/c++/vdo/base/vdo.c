@@ -43,7 +43,6 @@
 #include "statistics.h"
 #include "status-codes.h"
 #include "super-block.h"
-#include "super-block-codec.h"
 #include "thread-config.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"

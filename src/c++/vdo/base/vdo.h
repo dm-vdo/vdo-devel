@@ -9,9 +9,6 @@
 #include <linux/atomic.h>
 #include <linux/blk_types.h>
 #include <linux/completion.h>
-#ifdef __KERNEL__
-#include <linux/crc32.h>
-#endif /* __KERNEL__ */
 #include <linux/kobject.h>
 #include <linux/list.h>
 
@@ -292,13 +289,5 @@ void vdo_dump_status(const struct vdo *vdo);
 block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo);
 block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo);
 #endif /* INTERNAL */
-
-#ifdef __KERNEL__
-/* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
-static inline u32 vdo_crc32(const void *buf, unsigned long len)
-{
-	return (crc32(0L, buf, len) ^ ~0L);
-}
-#endif // __KERNEL__
 
 #endif /* VDO_H */

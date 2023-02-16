@@ -14,7 +14,6 @@
 
 #include "status-codes.h"
 #include "types.h"
-#include "super-block-codec.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
 

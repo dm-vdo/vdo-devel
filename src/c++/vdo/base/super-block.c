@@ -14,8 +14,8 @@
 #include "completion.h"
 #include "io-submitter.h"
 #include "status-codes.h"
-#include "super-block-codec.h"
 #include "types.h"
+#include "vdo-component-states.h"
 #include "vio.h"
 
 struct vdo_super_block {

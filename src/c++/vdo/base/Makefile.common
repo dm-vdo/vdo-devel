@@ -42,7 +42,6 @@ BASE_OBJS :=     			\
 	slab-summary.o			\
 	status-codes.o			\
 	super-block.o			\
-	super-block-codec.o		\
 	thread-config.o			\
 	vdo.o				\
 	vdo-component-states.o  	\
@@ -63,7 +62,6 @@ KERNEL_OBJS:=                           \
 USER_OBJECTS:=                  	\
 	constants.o			\
 	status-codes.o			\
-	super-block-codec.o		\
 	vdo-component-states.o		\
 	vdo-layout-user.o		\
 	volume-geometry.o

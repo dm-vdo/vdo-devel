@@ -8,7 +8,6 @@
 #ifndef USER_VDO_H
 #define USER_VDO_H
 
-#include "super-block-codec.h"
 #include "types.h"
 #include "vdo-component-states.h"
 #include "volume-geometry.h"

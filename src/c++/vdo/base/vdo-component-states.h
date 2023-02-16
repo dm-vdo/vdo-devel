@@ -6,7 +6,14 @@
 #ifndef VDO_COMPONENT_STATES_H
 #define VDO_COMPONENT_STATES_H
 
+#ifdef __KERNEL__
+#include <linux/crc32.h>
+#endif /* __KERNEL__ */
 #include <linux/limits.h>
+#ifndef __KERNEL__
+
+#include <zlib.h>
+#endif /* not __KERNEL__ */
 
 #include "buffer.h"
 #include "numeric.h"
@@ -564,6 +571,8 @@ enum {
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
 	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
+	VDO_SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(u32),
+	VDO_MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - VDO_SUPER_BLOCK_FIXED_SIZE,
 	VDO_COMPONENT_ENCODED_SIZE =
 		(sizeof(struct packed_version_number) + sizeof(struct packed_vdo_component_41_0)),
 };
@@ -584,6 +593,19 @@ struct vdo_component_states {
 
 	/* Our partitioning of the underlying storage */
 	struct fixed_layout *layout;
+};
+
+/* The machinery for encoding and decoding super blocks. */
+struct super_block_codec {
+	/* The buffer for encoding and decoding component data */
+	struct buffer *component_buffer;
+	/*
+	 * A sector-sized buffer wrapping the first sector of encoded_super_block, for encoding and
+	 * decoding the entire super block.
+	 */
+	struct buffer *block_buffer;
+	/* A 1-block buffer holding the encoded on-disk super block */
+	u8 *encoded_super_block;
 };
 
 /**
@@ -1094,5 +1116,28 @@ vdo_validate_component_states(struct vdo_component_states *states,
 int __must_check vdo_encode(struct buffer *buffer, struct vdo_component_states *states);
 
 int vdo_encode_component_states(struct buffer *buffer, const struct vdo_component_states *states);
+
+int __must_check vdo_initialize_super_block_codec(struct super_block_codec *codec);
+
+void vdo_destroy_super_block_codec(struct super_block_codec *codec);
+
+int __must_check vdo_encode_super_block(struct super_block_codec *codec);
+
+int __must_check vdo_decode_super_block(struct super_block_codec *codec);
+
+/* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
+static inline u32 vdo_crc32(const void *buf, unsigned long len)
+{
+#ifdef __KERNEL__
+	return (crc32(0L, buf, len) ^ ~0L);
+#else /* not __KERNEL__ */
+	/*
+	 * Different from the kernelspace wrapper because the kernel implementation doesn't
+	 * precondition or postcondition the data; the userspace implementation does. So, despite
+	 * the difference in these two implementations, they actually do the same checksum.
+	 */
+	return crc32(~0L, buf, len);
+#endif /* __KERNEL__ */
+}
 
 #endif /* VDO_COMPONENT_STATES_H */

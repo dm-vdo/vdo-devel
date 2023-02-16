@@ -11,9 +11,6 @@
 #include "numeric.h"
 #include "permassert.h"
 
-#ifndef __KERNEL__
-#include "checksum.h"
-#endif /* not __KERNEL__ */
 #include "constants.h"
 #ifndef __KERNEL__
 #include "physicalLayer.h"
@@ -21,9 +18,6 @@
 #include "release-versions.h"
 #include "status-codes.h"
 #include "types.h"
-#ifdef __KERNEL__
-#include "vdo.h"
-#endif /* __KERNEL__ */
 #include "vdo-component-states.h"
 
 enum {

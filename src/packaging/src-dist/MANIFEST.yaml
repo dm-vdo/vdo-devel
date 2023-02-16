@@ -44,15 +44,12 @@ tarballs:
         src/c++/vdo/base:
           dest: utils/vdo
           sources:
-            - checksum.h
             - constants.c
             - constants.h
             - release-versions.h
             - statistics.h
             - status-codes.c
             - status-codes.h
-            - super-block-codec.c
-            - super-block-codec.h
             - types.h
             - vdo-component-states.c
             - vdo-component-states.h
@@ -322,8 +319,6 @@ tarballs:
             - status-codes.h
             - super-block.c
             - super-block.h
-            - super-block-codec.c
-            - super-block-codec.h
             - sysfs.c
             - thread-config.c
             - thread-config.h

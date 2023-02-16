@@ -14,8 +14,8 @@
 
 #include "release-versions.h"
 #include "super-block.h"
-#include "super-block-codec.h"
 #include "types.h"
+#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "userVDO.h"
@@ -67,7 +67,7 @@ static size_t                  superBlockSize;
  **/
 static void initializeSuperBlockT1(void)
 {
-  superBlockSize = vdo_get_super_block_fixed_size() + DATA1_SIZE + DATA2_SIZE;
+  superBlockSize = VDO_SUPER_BLOCK_FIXED_SIZE + DATA1_SIZE + DATA2_SIZE;
   initializeDefaultBasicTest();
 }
 
