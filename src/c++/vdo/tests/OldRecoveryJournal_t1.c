@@ -47,6 +47,8 @@ static TestParameters parameters = {
 
 static const char *CRASHED   = "testdata/vdo.old.rj.crashed";
 static const char *RECOVERED = "testdata/vdo.old.rj.recovered";
+static char *crashedPath;
+static char *recoveredPath;
 
 static bool generateFiles = false;
 
@@ -54,6 +56,24 @@ static bool generateFiles = false;
 static void initialize(int argc, const char **argv __attribute__((unused)))
 {
   generateFiles = (argc > 0);
+
+  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
+                                       &crashedPath,
+                                       "%s/%s",
+                                       getTestDirectory(),
+                                       CRASHED));
+  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("recovered file name",
+                                       &recoveredPath,
+                                       "%s/%s",
+                                       getTestDirectory(),
+                                       RECOVERED));
+}
+
+/**********************************************************************/
+static void cleanUp(void)
+{
+  UDS_FREE(crashedPath);
+  UDS_FREE(recoveredPath);
 }
 
 /**********************************************************************/
@@ -110,26 +130,13 @@ static void generate(void)
 
   crashVDO();
   int fd;
-  char *fileName;
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
-                                       &fileName,
-                                       "%s/%s",
-                                       getTestDirectory(),
-                                       CRASHED));
-  VDO_ASSERT_SUCCESS(open_file(fileName, FU_CREATE_WRITE_ONLY, &fd));
-  UDS_FREE(fileName);
+  VDO_ASSERT_SUCCESS(open_file(crashedPath, FU_CREATE_WRITE_ONLY, &fd));
   dumpRAMLayerToFile(getSynchronousLayer(), fd);
   close(fd);
   startVDO(VDO_DIRTY);
   waitForRecoveryDone();
   stopVDO();
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
-                                       &fileName,
-                                       "%s/%s",
-                                       getTestDirectory(),
-                                       RECOVERED));
-  VDO_ASSERT_SUCCESS(open_file(fileName, FU_CREATE_WRITE_ONLY, &fd));
-  UDS_FREE(fileName);
+  VDO_ASSERT_SUCCESS(open_file(recoveredPath, FU_CREATE_WRITE_ONLY, &fd));
   dumpRAMLayerToFile(getSynchronousLayer(), fd);
   close(fd);
 }
@@ -160,7 +167,7 @@ static void verify(u64 recoveryCount)
 /**********************************************************************/
 static void testClean(void)
 {
-  parameters.backingFile = RECOVERED;
+  parameters.backingFile = recoveredPath;
   initializeVDOTest(&parameters);
   verify(0);
   tearDownVDOTest();
@@ -169,7 +176,7 @@ static void testClean(void)
 /**********************************************************************/
 static void testDirty(void)
 {
-  parameters.backingFile = CRASHED;
+  parameters.backingFile = crashedPath;
   initializeTest(&parameters);
   setStartStopExpectation(VDO_READ_ONLY);
   startVDO(VDO_DIRTY);
@@ -194,7 +201,7 @@ static CU_SuiteInfo suite = {
   .name                     = "Old recovery journal format (OldRecoveryJournal_t1)",
   .initializerWithArguments = initialize,
   .initializer              = NULL,
-  .cleaner                  = NULL,
+  .cleaner                  = cleanUp,
   .tests                    = vdoTests
 };
 
