@@ -73,7 +73,7 @@ static void initializeAllocatorT1(block_count_t slabSize,
   initializeVDOTest(&parameters);
 
   depot      = vdo->depot;
-  allocator  = depot->allocators[0];
+  allocator  = &depot->allocators[0];
   slabConfig = depot->slab_config;
   firstBlock = depot->first_block;
 

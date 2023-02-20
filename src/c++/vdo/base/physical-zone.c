@@ -342,7 +342,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo->thread_config->physical_threads[zone_number];
-	zone->allocator = vdo->depot->allocators[zone_number];
+	zone->allocator = &vdo->depot->allocators[zone_number];
 	zone->next = &zones->zones[(zone_number + 1) % vdo->thread_config->physical_zone_count];
 	result = vdo_make_default_thread(vdo, zone->thread_id);
 	if (result != VDO_SUCCESS) {

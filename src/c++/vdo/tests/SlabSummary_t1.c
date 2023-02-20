@@ -160,7 +160,7 @@ static void initializeSlabSummary(void)
                                            MAX_FREE_BLOCKS_PER_SLAB,
                                            readOnlyNotifier,
                                            &summary));
-  summaryZone = vdo_get_slab_summary_for_zone(summary, 0);
+  summaryZone = summary->zones[0];
 
   result
     = vdo_make_fixed_layout_partition(layout, VDO_BLOCK_ALLOCATOR_PARTITION,
@@ -246,7 +246,7 @@ static void loadSlabSummaryFromPartition(struct partition *partition)
                                            MAX_FREE_BLOCKS_PER_SLAB,
                                            readOnlyNotifier,
                                            &summary));
-  summaryZone = vdo_get_slab_summary_for_zone(summary, 0);
+  summaryZone = summary->zones[0];
   performSuccessfulAction(loadSlabSummaryAction);
 }
 

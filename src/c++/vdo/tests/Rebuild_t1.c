@@ -225,7 +225,7 @@ static void verifyRefCountData(RefCountData *originalRefCountData)
 static void doAllocateBlock(struct vdo_completion *completion)
 {
   struct slab_depot *depot = vdo->depot;
-  VDO_ASSERT_SUCCESS(vdo_allocate_block(depot->allocators[0], &pbn));
+  VDO_ASSERT_SUCCESS(vdo_allocate_block(&depot->allocators[0], &pbn));
   struct reference_updater updater = {
     .operation = VDO_JOURNAL_DATA_REMAPPING,
     .increment = true,

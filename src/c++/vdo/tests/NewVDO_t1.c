@@ -21,8 +21,7 @@
 /**********************************************************************/
 static void verifySlabSummary(struct vdo *vdo)
 {
-  struct slab_summary_zone *summaryZone
-    = vdo_get_slab_summary_for_zone(vdo->depot->slab_summary, 0);
+  struct slab_summary_zone *summaryZone = vdo->depot->slab_summary->zones[0];
   slab_count_t              slabCount   = vdo->depot->slab_count;
   struct slab_status statuses[slabCount];
   vdo_get_summarized_slab_statuses(summaryZone, slabCount, statuses);

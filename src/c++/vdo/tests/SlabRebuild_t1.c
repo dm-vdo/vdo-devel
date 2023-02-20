@@ -185,7 +185,7 @@ static journal_entry_count_t
 setHeader(struct slab_journal_block_header *header, uint16_t number)
 {
   header->metadata_type = VDO_METADATA_SLAB_JOURNAL;
-  header->nonce         = depot->allocators[0]->nonce;
+  header->nonce         = depot->allocators[0].nonce;
   switch (number) {
   case 0:
     // This block is completely valid, but has a later head (reap

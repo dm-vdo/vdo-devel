@@ -608,7 +608,7 @@ static void testRequeueUnrecoveredSlab(void)
   startAndWaitForVDOInRecovery(false, VDO_DIRTY);
 
   // Get the last slab in the scrubber
-  struct block_allocator *allocator = vdo->depot->allocators[0];
+  struct block_allocator *allocator = &vdo->depot->allocators[0];
   struct slab_scrubber   *scrubber  = allocator->slab_scrubber;
   struct vdo_slab        *slab
     = list_last_entry(&scrubber->slabs, struct vdo_slab, allocq_entry);
@@ -675,7 +675,7 @@ static void testSuspendAndResumeWhileScrubbing(void)
   startAndWaitForVDOInRecovery(false, VDO_DIRTY);
 
   struct slab_depot *depot = vdo->depot;
-  scrubber                 = depot->allocators[0]->slab_scrubber;
+  scrubber                 = depot->allocators[0].slab_scrubber;
   scrubberSuspending       = false;
 
   // Tell the depot to suspend and then release the slab latch so the suspend
@@ -683,8 +683,7 @@ static void testSuspendAndResumeWhileScrubbing(void)
   struct vdo_completion *completion
     = launchDepotAction(depot, VDO_ADMIN_STATE_SUSPENDING);
   while (!checkState(&scrubberSuspending)) {
-    performSuccessfulActionOnThread(checkForSuspending,
-                                    depot->allocators[0]->thread_id);
+    performSuccessfulActionOnThread(checkForSuspending, depot->allocators[0].thread_id);
   }
 
   releaseSlabLatch(latchedSlab->slab_number);
@@ -803,7 +802,7 @@ static void testPostRecoveryMode(void)
   slabToLatch = 2;
   startAndWaitForVDOInRecovery(false, VDO_DIRTY);
   // There should be precisely slabCount - 2 slabs on the scrubber.
-  struct slab_scrubber *scrubber = vdo->depot->allocators[0]->slab_scrubber;
+  struct slab_scrubber *scrubber = vdo->depot->allocators[0].slab_scrubber;
   CU_ASSERT_EQUAL(totalSlabs - 2, vdo_get_scrubber_slab_count(scrubber));
 
   // Launch a trim for everything for the slab which is scrubbing.

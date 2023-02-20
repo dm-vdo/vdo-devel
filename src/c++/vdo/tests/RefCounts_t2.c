@@ -32,22 +32,23 @@ enum {
 
 static struct ref_counts      *refs;
 static struct slab_depot      *depot;
-static struct block_allocator  allocator;
+static struct block_allocator *allocator;
 static struct vdo_slab        *slab;
 
 /**********************************************************************/
 static void initializeRefCounts(void)
 {
   srand(42);
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot, 1,
-                                           struct block_allocator *,
-                                           __func__, &depot));
-  depot->allocators[0] = &allocator;
-  allocator.depot      = depot;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot,
+                                           1,
+                                           struct block_allocator,
+                                           __func__,
+                                           &depot));
+  allocator = &depot->allocators[0];
+  allocator->depot = depot;
 
-  VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE,
-                                        &depot->slab_config));
-  VDO_ASSERT_SUCCESS(vdo_make_slab(0, &allocator, 0, NULL, 0, false, &slab));
+  VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE, &depot->slab_config));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(0, allocator, 0, NULL, 0, false, &slab));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slab));
 
   /*

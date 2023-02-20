@@ -286,19 +286,6 @@ void vdo_free_slab_summary(struct slab_summary *summary)
 	UDS_FREE(summary);
 }
 
-/**
- * vdo_get_slab_summary_for_zone() - Get the portion of the slab summary for a specified zone.
- * @summary: The slab summary.
- * @zone: The zone.
- *
- * Return: The portion of the slab summary for the specified zone.
- */
-struct slab_summary_zone *
-vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone)
-{
-	return summary->zones[zone];
-}
-
 /* WRITING FUNCTIONALITY */
 
 /**

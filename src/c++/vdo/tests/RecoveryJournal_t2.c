@@ -394,7 +394,7 @@ static void attemptRebuild(CorruptionType  corruption,
     // Make VDO to do a full rebuild.
     vdo->load_state = VDO_FORCE_REBUILD;
   }
-  reset_priority_table(vdo->depot->allocators[0]->prioritized_slabs);
+  reset_priority_table(vdo->depot->allocators[0].prioritized_slabs);
 
   if (readOnly || (corruption == CORRUPT_NOTHING)) {
     // Free all the refcounts, so the expected amount of the slab depot is

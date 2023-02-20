@@ -120,9 +120,6 @@ int __must_check vdo_make_slab_summary(struct vdo *vdo,
 
 void vdo_free_slab_summary(struct slab_summary *summary);
 
-struct slab_summary_zone * __must_check
-vdo_get_slab_summary_for_zone(struct slab_summary *summary, zone_count_t zone);
-
 void vdo_drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
 				 const struct admin_state_code *operation,
 				 struct vdo_completion *parent);

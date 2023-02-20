@@ -42,7 +42,7 @@ static struct ref_counts         *refs;
 static struct ref_counts         *loaded;
 static struct fixed_layout       *layout;
 static struct slab_depot         *depot;
-static struct block_allocator     allocator;
+static struct block_allocator    *allocator;
 static struct read_only_notifier *readOnlyNotifier;
 static struct thread_config      *threadConfig;
 static struct vdo_slab           *slab;
@@ -81,11 +81,13 @@ static void initializeRefCountsT1(void)
   // clear out RAM layer with zeros.
   zeroRAMLayer(getSynchronousLayer());
 
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot, 1,
-                                           struct block_allocator *,
-                                           __func__, &depot));
-  depot->allocators[0] = &allocator;
-  allocator.depot      = depot;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot,
+                                           1,
+                                           struct block_allocator,
+                                           __func__,
+                                           &depot));
+  allocator        = &depot->allocators[0];
+  allocator->depot = depot;
 
 
   threadConfig = makeOneThreadConfig();
@@ -98,7 +100,7 @@ static void initializeRefCountsT1(void)
   VDO_ASSERT_SUCCESS(vdo_register_read_only_listener(readOnlyNotifier, NULL,
                                                      readOnlyNotification, 0));
 
-  allocator.read_only_notifier = readOnlyNotifier;
+  allocator->read_only_notifier = readOnlyNotifier;
 
   viosFinishedCount          = 0;
   refCountsCompletionWaiting = false;
@@ -124,20 +126,19 @@ static void initializeRefCountsT1(void)
                                            SLAB_SIZE,
                                            readOnlyNotifier,
                                            &depot->slab_summary));
-  allocator.summary = vdo_get_slab_summary_for_zone(depot->slab_summary, 0);
+  allocator->summary = depot->slab_summary->zones[0];
 
   VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE,
                                         &depot->slab_config));
-  VDO_ASSERT_SUCCESS(make_priority_table(63, &allocator.prioritized_slabs));
+  VDO_ASSERT_SUCCESS(make_priority_table(63, &allocator->prioritized_slabs));
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    TEST_VIO_POOL_SIZE,
-                                   allocator.thread_id,
+                                   allocator->thread_id,
                                    VIO_TYPE_SLAB_JOURNAL,
                                    VIO_PRIORITY_METADATA,
-                                   &allocator,
-                                   &allocator.vio_pool));
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, &allocator, 1, NULL, 0, false,
-                                   &slab));
+                                   allocator,
+                                   &allocator->vio_pool));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slab));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slab));
 
   /*
@@ -160,9 +161,9 @@ static void tearDownRefCountsT1(void)
 {
   performSuccessfulAction(notEnteringAction);
   CU_ASSERT_EQUAL(expectedCloseResult, closeSlabSummary(depot->slab_summary));
-  free_priority_table(UDS_FORGET(allocator.prioritized_slabs));
+  free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
   vdo_free_slab(UDS_FORGET(slab));
-  free_vio_pool(UDS_FORGET(allocator.vio_pool));
+  free_vio_pool(UDS_FORGET(allocator->vio_pool));
   vdo_free_slab_summary(UDS_FORGET(depot->slab_summary));
   vdo_free_read_only_notifier(UDS_FORGET(readOnlyNotifier));
   vdo_free_thread_config(UDS_FORGET(threadConfig));
@@ -450,8 +451,7 @@ static void saveOldestReferenceBlockAction(struct vdo_completion *completion)
 static void verifyRefCountsLoad(void)
 {
   struct vdo_slab *slabToLoad;
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, &allocator, 1, NULL, 0, false,
-                                   &slabToLoad));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slabToLoad));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slabToLoad));
   loaded = slabToLoad->reference_counts;
   performSuccessfulSlabAction(slabToLoad, VDO_ADMIN_STATE_SCRUBBING);
@@ -465,7 +465,7 @@ static void verifyRefCountsLoad(void)
                                            refsBlock->commit_points[j]));
     }
   }
-  priority_table_remove(allocator.prioritized_slabs, &slabToLoad->allocq_entry);
+  priority_table_remove(allocator->prioritized_slabs, &slabToLoad->allocq_entry);
   vdo_free_slab(slabToLoad);
 }
 
@@ -700,7 +700,7 @@ static void testBlockCollisions(void)
     .closeContext   = refs,
     .releaser       = releaseBlockedWrite,
     .releaseContext = blocked,
-    .threadID       = allocator.thread_id,
+    .threadID       = allocator->thread_id,
   };
 
   runLatchedClose(closeInfo, VDO_SUCCESS);
@@ -843,8 +843,7 @@ static void testReplay(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
 
   struct vdo_slab *slabToLoad;
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, &allocator, 1, NULL, 0, false,
-                                   &slabToLoad));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slabToLoad));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slabToLoad));
   loaded = slabToLoad->reference_counts;
   performSuccessfulSlabAction(loaded->slab, VDO_ADMIN_STATE_SCRUBBING);
@@ -915,7 +914,7 @@ static void testReadOnly(void)
     .closeContext   = refs,
     .releaser       = releaseBlockedWrites,
     .releaseContext = blockedVIOs,
-    .threadID       = allocator.thread_id,
+    .threadID       = allocator->thread_id,
   };
 
   runLatchedClose(closeInfo, VDO_READ_ONLY);

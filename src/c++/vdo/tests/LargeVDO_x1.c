@@ -62,7 +62,7 @@ static void vdo_allocate_from_last_slab(struct slab_depot *depot)
 	zone_count_t zone;
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		vdo_allocate_from_allocator_last_slab(depot->allocators[zone]);
+		vdo_allocate_from_allocator_last_slab(&depot->allocators[zone]);
 	}
 }
 

@@ -204,8 +204,7 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
   }
 
   if (vioPoolSize != BLOCK_ALLOCATOR_VIO_POOL_SIZE) {
-    reserveVIOsFromPool(depot->allocators[0],
-                        BLOCK_ALLOCATOR_VIO_POOL_SIZE - vioPoolSize);
+    reserveVIOsFromPool(&depot->allocators[0], BLOCK_ALLOCATOR_VIO_POOL_SIZE - vioPoolSize);
   }
 
   lastEntry       = 0;
@@ -711,7 +710,7 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
 
   CU_ASSERT_EQUAL(expectedHead, header.head);
   CU_ASSERT_EQUAL(sequenceNumber, header.sequence_number);
-  CU_ASSERT_EQUAL(depot->allocators[0]->nonce, header.nonce);
+  CU_ASSERT_EQUAL(depot->allocators[0].nonce, header.nonce);
   CU_ASSERT_EQUAL(entryCount, header.entry_count);
 
   sequence_number_t zeroBased   = sequenceNumber - 1;

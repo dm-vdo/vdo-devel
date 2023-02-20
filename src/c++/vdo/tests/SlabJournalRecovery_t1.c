@@ -276,7 +276,7 @@ static void testWaitForSlabJournalSpace(void)
   verifyBlockMapping(0);
   writeJournalBlocks(CORRUPT_NOTHING, false, slabJournalPattern);
 
-  struct block_allocator *allocator = vdo->depot->allocators[0];
+  struct block_allocator *allocator = &vdo->depot->allocators[0];
   reset_priority_table(allocator->prioritized_slabs);
 
   for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {

@@ -228,8 +228,7 @@ static void testReadWriteMix(void) {
   performSuccessfulDepotAction(VDO_ADMIN_STATE_RECOVERING);
 
   struct slab_depot *depot = vdo->depot;
-  struct slab_summary_zone *summaryZone
-    = vdo_get_slab_summary_for_zone(depot->slab_summary, 0);
+  struct slab_summary_zone *summaryZone = depot->slab_summary->zones[0];
   for (slab_count_t i = 0; i < depot->slab_count; i++) {
     slabToSave = depot->slabs[i];
     performSuccessfulSlabAction(slabToSave,

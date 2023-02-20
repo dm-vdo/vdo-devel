@@ -121,8 +121,7 @@ static int performDrain(struct slab_summary *summary)
   vdo_initialize_completion(&completion, vdo, VDO_TEST_COMPLETION);
 
   // XXX This assumes the slab summary has only one zone.
-  struct slab_summary_zone *summaryZone
-    = vdo_get_slab_summary_for_zone(summary, 0);
+  struct slab_summary_zone *summaryZone = summary->zones[0];
   completion.parent = summaryZone;
   completion.callback_thread_id
     = summaryZone->summary_blocks[0].vio->completion.callback_thread_id;

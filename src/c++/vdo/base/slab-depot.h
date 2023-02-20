@@ -170,7 +170,7 @@ struct slab_depot {
 	physical_block_number_t new_last_block;
 
 	/* The block allocators for this depot */
-	struct block_allocator *allocators[];
+	struct block_allocator allocators[];
 };
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
@@ -178,16 +178,6 @@ static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completi
 	vdo_assert_completion_type(completion->type, VDO_BLOCK_ALLOCATOR_COMPLETION);
 	return container_of(completion, struct block_allocator, completion);
 }
-
-int __must_check vdo_make_block_allocator(struct slab_depot *depot,
-					  zone_count_t zone_number,
-					  thread_id_t thread_id,
-					  nonce_t nonce,
-					  struct vdo *vdo,
-					  struct read_only_notifier *read_only_notifier,
-					  struct block_allocator **allocator_ptr);
-
-void vdo_free_block_allocator(struct block_allocator *allocator);
 
 void vdo_queue_slab(struct vdo_slab *slab);
 
@@ -200,46 +190,7 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,
 				 const char *why);
 
-void vdo_load_block_allocator(void *context,
-			      zone_count_t zone_number,
-			      struct vdo_completion *parent);
-
 void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
-
-void vdo_prepare_block_allocator_to_allocate(void *context,
-					     zone_count_t zone_number,
-					     struct vdo_completion *parent);
-
-void vdo_register_slab_with_allocator(struct block_allocator *allocator, struct vdo_slab *slab);
-
-void vdo_register_new_slabs_for_allocator(void *context,
-					  zone_count_t zone_number,
-					  struct vdo_completion *parent);
-
-void vdo_drain_block_allocator(void *context,
-			       zone_count_t zone_number,
-			       struct vdo_completion *parent);
-
-void vdo_resume_block_allocator(void *context,
-				zone_count_t zone_number,
-				struct vdo_completion *parent);
-
-void vdo_release_tail_block_locks(void *context,
-				  zone_count_t zone_number,
-				  struct vdo_completion *parent);
-
-void vdo_scrub_all_unrecovered_slabs_in_zone(void *context,
-					     zone_count_t zone_number,
-					     struct vdo_completion *parent);
-
-struct block_allocator_statistics __must_check
-vdo_get_block_allocator_statistics(const struct block_allocator *allocator);
-
-struct slab_journal_statistics __must_check
-vdo_get_slab_journal_statistics(const struct block_allocator *allocator);
-
-struct ref_counts_statistics __must_check
-vdo_get_ref_counts_statistics(const struct block_allocator *allocator);
 
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
@@ -302,7 +253,5 @@ void vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot, struct vdo_completion *parent);
 
 void vdo_dump_slab_depot(const struct slab_depot *depot);
-
-void vdo_notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
 #endif /* SLAB_DEPOT_H */

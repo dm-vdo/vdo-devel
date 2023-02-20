@@ -109,8 +109,7 @@ static void testNoReplay(void)
   tail_block_offset_t tailBlockOffset
     = vdo_get_slab_journal_block_offset(slabJournal,
                                         slabJournal->last_summarized);
-  struct slab_summary_zone *summary
-    = vdo_get_slab_summary_for_zone(depot->slab_summary, 0);
+  struct slab_summary_zone *summary = depot->slab_summary->zones[0];
   bool loadRefCounts
     = vdo_must_load_ref_counts(summary, dirtySlab->slab_number);
   performSlabSummaryUpdate(summary, dirtySlab->slab_number, tailBlockOffset,

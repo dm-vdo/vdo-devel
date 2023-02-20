@@ -152,7 +152,7 @@ static void verifySummary(zone_count_t zones)
 
   for (zone_count_t zone = 0; zone < zones; zone++) {
     for (slab_count_t s = 0; s < MAX_VDO_SLABS; s++) {
-      summaryZone = vdo_get_slab_summary_for_zone(summary, zone);
+      summaryZone = summary->zones[zone];
       struct slab_summary_entry *entry = &summaryZone->entries[s];
       CU_ASSERT_EQUAL(s & 0xff, entry->tail_block_offset);
       CU_ASSERT_EQUAL((s % INITIAL_ZONES) & 0x7f, entry->fullness_hint);
@@ -203,7 +203,7 @@ static void testMultipleZones(void)
 {
   makeSummary(INITIAL_ZONES);
   for (zone_count_t zone = 0; zone < INITIAL_ZONES; zone++) {
-    summaryZone = vdo_get_slab_summary_for_zone(summary, zone);
+    summaryZone = summary->zones[zone];
     performSuccessfulAction(updateSummaryZoneAction);
   }
 

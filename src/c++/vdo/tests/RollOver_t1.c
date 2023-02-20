@@ -32,7 +32,7 @@ static struct vio                  *latchedVIOs[259];
  **/
 static void markOpenSlabUnrecovered(struct vdo_completion *completion)
 {
-  struct block_allocator *allocator   = vdo->depot->allocators[0];
+  struct block_allocator *allocator   = &vdo->depot->allocators[0];
   struct vdo_slab        *currentSlab = allocator->open_slab;
   vdo_mark_slab_unrecovered(currentSlab);
 
