@@ -18,7 +18,6 @@ BASE_OBJS :=     			\
         dedupe.o                        \
 	device-config.o			\
         device-registry.o		\
-	dirty-lists.o			\
         dm-vdo-target.o                 \
 	flush.o				\
 	heap.o				\

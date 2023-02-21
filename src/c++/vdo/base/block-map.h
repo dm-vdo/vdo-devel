@@ -15,7 +15,6 @@
 
 #include "admin-state.h"
 #include "completion.h"
-#include "dirty-lists.h"
 #include "int-map.h"
 #include "statistics.h"
 #include "types.h"
@@ -59,8 +58,6 @@ struct vdo_page_cache {
 	struct int_map *page_map;
 	/* main LRU list (all infos) */
 	struct list_head lru_list;
-	/* dirty pages by period */
-	struct dirty_lists *dirty_lists;
 	/* free page list (oldest first) */
 	struct list_head free_list;
 	/* outgoing page list */
@@ -203,15 +200,37 @@ struct tree_page {
 	char page_buffer[VDO_BLOCK_SIZE];
 };
 
+enum block_map_page_type {
+	VDO_TREE_PAGE,
+	VDO_CACHE_PAGE,
+};
+
+typedef struct list_head dirty_era_t[2];
+
+struct dirty_lists {
+	/** The number of periods after which an element will be expired */
+	block_count_t maximum_age;
+	/** The oldest period which has unexpired elements */
+	sequence_number_t oldest_period;
+	/** One more than the current period */
+	sequence_number_t next_period;
+	/** The offset in the array of lists of the oldest period */
+	block_count_t offset;
+	/** Expired pages */
+	dirty_era_t expired;
+	/** The lists of dirty pages */
+	dirty_era_t eras[];
+};
+
 struct block_map_zone {
 	zone_count_t zone_number;
 	thread_id_t thread_id;
 	struct admin_state state;
 	struct block_map *block_map;
 	struct read_only_notifier *read_only_notifier;
-	struct vdo_page_cache page_cache;
-	/* Dirty tree pages, by era*/
+	/* Dirty pages, by era*/
 	struct dirty_lists *dirty_lists;
+	struct vdo_page_cache page_cache;
 	data_vio_count_t active_lookups;
 	struct int_map *loading_pages;
 	struct vio_pool *vio_pool;
@@ -304,16 +323,6 @@ vdo_find_block_map_page_pbn(struct block_map *map, page_number_t page_number);
 
 void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone);
 
-#ifdef INTERNAL
-void set_info_state(struct page_info *info, enum vdo_page_buffer_state new_state);
-int __must_check validate_completed_page(struct vdo_page_completion *completion, bool writable);
-bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
-struct tree_page * __must_check
-get_tree_page_by_index(struct forest *forest,
-		       root_count_t root_index,
-		       height_t height,
-		       page_number_t page_index);
-#endif /* INTERNAL */
 void vdo_traverse_forest(struct block_map *map,
 			 vdo_entry_callback *callback,
 			 struct vdo_completion *parent);
@@ -386,4 +395,19 @@ static inline block_count_t vdo_convert_maximum_age(block_count_t age)
 			    2 * RECOVERY_JOURNAL_ENTRIES_PER_BLOCK);
 }
 
+#ifdef INTERNAL
+void add_to_dirty_lists(struct block_map_zone *zone,
+			struct list_head *entry,
+			enum block_map_page_type type,
+			sequence_number_t old_period,
+			sequence_number_t new_period);
+void set_info_state(struct page_info *info, enum vdo_page_buffer_state new_state);
+int __must_check validate_completed_page(struct vdo_page_completion *completion, bool writable);
+bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus);
+struct tree_page * __must_check
+get_tree_page_by_index(struct forest *forest,
+		       root_count_t root_index,
+		       height_t height,
+		       page_number_t page_index);
+#endif /* INTERNAL */
 #endif /* BLOCK_MAP_H */

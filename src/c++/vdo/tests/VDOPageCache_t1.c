@@ -239,10 +239,11 @@ static void markPageDirty(struct vdo_completion *completion)
   sequence_number_t oldDirtyPeriod = pageCompletion->info->recovery_lock;
   pageCompletion->info->recovery_lock = asTestCompletion(completion->parent)->dirtyPeriod;
   set_info_state(info, PS_DIRTY);
-  vdo_add_to_dirty_lists(info->cache->dirty_lists,
-                         &info->state_entry,
-                         oldDirtyPeriod,
-                         info->recovery_lock);
+  add_to_dirty_lists(info->cache->zone,
+                     &info->state_entry,
+                     VDO_CACHE_PAGE,
+                     oldDirtyPeriod,
+                     info->recovery_lock);
 }
 
 /**********************************************************************/

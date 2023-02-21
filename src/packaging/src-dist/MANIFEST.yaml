@@ -266,8 +266,6 @@ tarballs:
             - device-config.h
             - device-registry.c
             - device-registry.h
-            - dirty-lists.c
-            - dirty-lists.h
             - dm-vdo-target.c
             - dump.c
             - dump.h

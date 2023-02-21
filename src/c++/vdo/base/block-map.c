@@ -17,7 +17,6 @@
 #include "admin-state.h"
 #include "constants.h"
 #include "data-vio.h"
-#include "dirty-lists.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
 #include "read-only-notifier.h"
@@ -190,8 +189,6 @@ static int initialize_info(struct vdo_page_cache *cache)
 	return VDO_SUCCESS;
 }
 
-static void write_dirty_cache_pages_callback(struct list_head *entry, void *context);
-
 /**
  * allocate_cache_components() - Allocate components of the cache which require their own
  *                               allocation.
@@ -203,8 +200,7 @@ static void write_dirty_cache_pages_callback(struct list_head *entry, void *cont
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int __must_check allocate_cache_components(struct vdo_page_cache *cache,
-						  block_count_t maximum_age)
+static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 {
 	u64 size = cache->page_count * (u64) VDO_BLOCK_SIZE;
 	int result;
@@ -221,14 +217,7 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = initialize_info(cache);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return vdo_make_dirty_lists(maximum_age,
-				    write_dirty_cache_pages_callback,
-				    cache,
-				    &cache->dirty_lists);
+	return initialize_info(cache);
 }
 
 /**
@@ -922,18 +911,6 @@ static void schedule_page_save(struct page_info *info)
 	set_info_state(info, PS_OUTGOING);
 }
 
-static void write_dirty_cache_pages_callback(struct list_head *expired, void *context)
-{
-	struct page_info *info, *tmp;
-
-	list_for_each_entry_safe(info, tmp, expired, state_entry) {
-		list_del_init(&info->state_entry);
-		schedule_page_save(info);
-	}
-
-	save_pages((struct vdo_page_cache *) context);
-}
-
 /**
  * launch_page_save() - Add a page to outgoing pages waiting to be saved, and then start saving
  * pages if another save is not in progress.
@@ -1417,8 +1394,6 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 	return make_int_map(cache->page_count, 0, &cache->page_map);
 }
 
-static void write_dirty_pages_callback(struct list_head *expired, void *context);
-
 static inline struct block_map_zone * __must_check
 get_block_map_zone(struct data_vio *data_vio)
 {
@@ -1786,35 +1761,6 @@ static void write_page(struct tree_page *tree_page, struct pooled_vio *vio)
 			    REQ_OP_WRITE | REQ_PRIO);
 }
 
-/*
- * Schedule a batch of dirty pages for writing.
- *
- * Implements vdo_dirty_callback.
- */
-static void write_dirty_pages_callback(struct list_head *expired, void *context)
-{
-	struct tree_page *page, *tmp;
-	struct block_map_zone *zone = (struct block_map_zone *) context;
-	u8 generation = zone->generation;
-
-	list_for_each_entry_safe(page, tmp, expired, entry) {
-		int result;
-
-		list_del_init(&page->entry);
-
-		result = ASSERT(!is_waiting(&page->waiter),
-				"Newly expired page not already waiting to write");
-		if (result != VDO_SUCCESS) {
-			enter_zone_read_only_mode(zone, result);
-			continue;
-		}
-
-		set_generation(zone, page, generation);
-		if (!page->writing)
-			enqueue_page(page, zone);
-	}
-}
-
 /* Release a lock on a page which was being loaded or allocated. */
 static void release_page_lock(struct data_vio *data_vio, char *what)
 {
@@ -2095,6 +2041,111 @@ static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 	allocate_block_map_page(get_block_map_zone(data_vio), data_vio);
 }
 
+/**
+ * expire_oldest_list() - Expire the oldest list.
+ * @dirty_lists: The dirty_lists to expire.
+ */
+static void expire_oldest_list(struct dirty_lists *dirty_lists)
+{
+	block_count_t i = dirty_lists->offset++;
+
+	dirty_lists->oldest_period++;
+	if (!list_empty(&dirty_lists->eras[i][VDO_TREE_PAGE]))
+		list_splice_tail_init(&dirty_lists->eras[i][VDO_TREE_PAGE],
+				      &dirty_lists->expired[VDO_TREE_PAGE]);
+	if (!list_empty(&dirty_lists->eras[i][VDO_CACHE_PAGE]))
+		list_splice_tail_init(&dirty_lists->eras[i][VDO_CACHE_PAGE],
+				      &dirty_lists->expired[VDO_CACHE_PAGE]);
+
+	if (dirty_lists->offset == dirty_lists->maximum_age)
+		dirty_lists->offset = 0;
+}
+
+
+/**
+ * update_period() - Update the dirty_lists period if necessary.
+ * @dirty_lists: The dirty_lists to update.
+ * @period: The new period.
+ */
+static void update_period(struct dirty_lists *dirty, sequence_number_t period)
+{
+	while (dirty->next_period <= period) {
+		if ((dirty->next_period - dirty->oldest_period) == dirty->maximum_age)
+			expire_oldest_list(dirty);
+		dirty->next_period++;
+	}
+}
+
+/**
+ * write_expired_elements() - Write out the expired list.
+ * @zone: The zone in which we are operating.
+ */
+static void write_expired_elements(struct block_map_zone *zone)
+{
+	struct tree_page *page, *ttmp;
+	struct page_info *info, *ptmp;
+	struct list_head *expired;
+	u8 generation = zone->generation;
+
+	expired = &zone->dirty_lists->expired[VDO_TREE_PAGE];
+	list_for_each_entry_safe(page, ttmp, expired, entry) {
+		int result;
+
+		list_del_init(&page->entry);
+
+		result = ASSERT(!is_waiting(&page->waiter),
+				"Newly expired page not already waiting to write");
+		if (result != VDO_SUCCESS) {
+			enter_zone_read_only_mode(zone, result);
+			continue;
+		}
+
+		set_generation(zone, page, generation);
+		if (!page->writing)
+			enqueue_page(page, zone);
+	}
+
+	expired = &zone->dirty_lists->expired[VDO_CACHE_PAGE];
+	list_for_each_entry_safe(info, ptmp, expired, state_entry) {
+		list_del_init(&info->state_entry);
+		schedule_page_save(info);
+	}
+
+	save_pages(&zone->page_cache);
+}
+
+/**
+ * add_to_dirty_lists() - Add an element to the dirty lists.
+ * @zone: The zone in which we are operating.
+ * @entry: The list entry of the element to add.
+ * @type: The type of page.
+ * @old_period: The period in which the element was previously dirtied, or 0 if it was not dirty.
+ * @new_period: The period in which the element has now been dirtied, or 0 if it does not hold a
+ *              lock.
+ */
+EXTERNAL_STATIC void
+add_to_dirty_lists(struct block_map_zone *zone,
+		   struct list_head *entry,
+		   enum block_map_page_type type,
+		   sequence_number_t old_period,
+		   sequence_number_t new_period)
+{
+	struct dirty_lists *dirty_lists = zone->dirty_lists;
+
+	if ((old_period == new_period) || ((old_period != 0) && (old_period < new_period)))
+		return;
+
+	if (new_period < dirty_lists->oldest_period) {
+		list_move_tail(entry, &dirty_lists->expired[type]);
+	} else {
+		update_period(dirty_lists, new_period);
+		list_move_tail(entry,
+			       &dirty_lists->eras[new_period % dirty_lists->maximum_age][type]);
+	}
+
+	write_expired_elements(zone);
+}
+
 /*
  * Record the allocation in the tree and wake any waiters now that the write lock has been
  * released.
@@ -2136,10 +2187,11 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 		/* Put the page on a dirty list */
 		if (old_lock == 0)
 			INIT_LIST_HEAD(&tree_page->entry);
-		vdo_add_to_dirty_lists(zone->dirty_lists,
-				       &tree_page->entry,
-				       old_lock,
-				       tree_page->recovery_lock);
+		add_to_dirty_lists(zone,
+				   &tree_page->entry,
+				   VDO_TREE_PAGE,
+				   old_lock,
+				   tree_page->recovery_lock);
 	}
 
 	tree_lock->height--;
@@ -2812,6 +2864,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 						  block_count_t maximum_age)
 {
 	int result;
+	block_count_t i;
 	struct block_map_zone *zone = &map->zones[zone_number];
 
 	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(u64));
@@ -2820,12 +2873,23 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	zone->thread_id = vdo_get_logical_zone_thread(thread_config, zone_number);
 	zone->block_map = map;
 	zone->read_only_notifier = read_only_notifier;
-	result = vdo_make_dirty_lists(maximum_age,
-				      write_dirty_pages_callback,
-				      zone,
-				      &zone->dirty_lists);
+
+	result = UDS_ALLOCATE_EXTENDED(struct dirty_lists,
+				       maximum_age,
+				       dirty_era_t,
+				       __func__,
+				       &zone->dirty_lists);
 	if (result != VDO_SUCCESS)
 		return result;
+
+	zone->dirty_lists->maximum_age = maximum_age;
+	INIT_LIST_HEAD(&zone->dirty_lists->expired[VDO_TREE_PAGE]);
+	INIT_LIST_HEAD(&zone->dirty_lists->expired[VDO_CACHE_PAGE]);
+
+	for (i = 0; i < maximum_age; i++) {
+		INIT_LIST_HEAD(&zone->dirty_lists->eras[i][VDO_TREE_PAGE]);
+		INIT_LIST_HEAD(&zone->dirty_lists->eras[i][VDO_CACHE_PAGE]);
+	}
 
 	result = make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->loading_pages);
 	if (result != VDO_SUCCESS)
@@ -2848,7 +2912,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	zone->page_cache.page_count = cache_size / map->zone_count;
 	zone->page_cache.stats.free_pages = zone->page_cache.page_count;
 
-	result = allocate_cache_components(&zone->page_cache, maximum_age);
+	result = allocate_cache_components(&zone->page_cache);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2884,8 +2948,8 @@ static void advance_block_map_zone_era(void *context,
 	struct block_map *map = context;
 	struct block_map_zone *zone = &map->zones[zone_number];
 
-	vdo_advance_dirty_lists_period(zone->page_cache.dirty_lists, map->current_era_point);
-	vdo_advance_dirty_lists_period(zone->dirty_lists, map->current_era_point);
+	update_period(zone->dirty_lists, map->current_era_point);
+	write_expired_elements(zone);
 	vdo_finish_completion(parent, VDO_SUCCESS);
 }
 
@@ -2923,7 +2987,6 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 			free_vio(UDS_FORGET(info->vio));
 	}
 
-	UDS_FREE(UDS_FORGET(cache->dirty_lists));
 	free_int_map(UDS_FORGET(cache->page_map));
 	UDS_FREE(UDS_FORGET(cache->infos));
 	UDS_FREE(UDS_FORGET(cache->pages));
@@ -3042,11 +3105,12 @@ void vdo_initialize_block_map_from_journal(struct block_map *map, struct recover
 	map->pending_era_point = map->current_era_point;
 
 	for (z = 0; z < map->zone_count; z++) {
-		struct block_map_zone *zone = &map->zones[z];
+		struct dirty_lists *dirty_lists = map->zones[z].dirty_lists;
 
-		vdo_set_dirty_lists_current_period(zone->dirty_lists, map->current_era_point);
-		vdo_set_dirty_lists_current_period(zone->page_cache.dirty_lists,
-						   map->current_era_point);
+		ASSERT_LOG_ONLY(dirty_lists->next_period == 0, "current period not set");
+		dirty_lists->oldest_period = map->current_era_point;
+		dirty_lists->next_period = map->current_era_point + 1;
+		dirty_lists->offset = map->current_era_point % dirty_lists->maximum_age;
 	}
 }
 
@@ -3088,9 +3152,9 @@ static void initiate_drain(struct admin_state *state)
 			__func__);
 
 	if (!vdo_is_state_suspending(state)) {
-		vdo_flush_dirty_lists(zone->dirty_lists);
-		vdo_flush_dirty_lists(zone->page_cache.dirty_lists);
-		save_pages(&zone->page_cache);
+		while (zone->dirty_lists->oldest_period < zone->dirty_lists->next_period)
+			expire_oldest_list(zone->dirty_lists);
+		write_expired_elements(zone);
 	}
 
 	check_for_drain_complete(zone);
@@ -3384,10 +3448,11 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 				  data_vio->new_mapped.state,
 				  &info->recovery_lock);
 	set_info_state(info, PS_DIRTY);
-	vdo_add_to_dirty_lists(info->cache->dirty_lists,
-			       &info->state_entry,
-			       old_lock,
-			       info->recovery_lock);
+	add_to_dirty_lists(info->cache->zone,
+			   &info->state_entry,
+			   VDO_CACHE_PAGE,
+			   old_lock,
+			   info->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }
 
