@@ -34,7 +34,7 @@ static void markOpenSlabUnrecovered(struct vdo_completion *completion)
 {
   struct block_allocator *allocator   = &vdo->depot->allocators[0];
   struct vdo_slab        *currentSlab = allocator->open_slab;
-  vdo_mark_slab_unrecovered(currentSlab);
+  currentSlab->status = VDO_SLAB_REQUIRES_SCRUBBING;
 
   // Remove slab from list of non-full slabs.
   priority_table_remove(allocator->prioritized_slabs,

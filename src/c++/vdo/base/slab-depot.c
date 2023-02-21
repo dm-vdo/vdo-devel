@@ -150,7 +150,7 @@ void vdo_queue_slab(struct vdo_slab *slab)
 		return;
 	}
 
-	if (!vdo_is_slab_resuming(slab)) {
+	if (!vdo_is_state_resuming(&slab->state)) {
 		/*
 		 * If the slab is resuming, we've already accounted for it here, so don't do it
 		 * again.
@@ -194,6 +194,34 @@ void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	prioritize_slab(slab);
 }
 
+/**
+ * vdo_acquire_provisional_reference() - Acquire a provisional reference on behalf of a PBN lock if
+ *                                       the block it locks is unreferenced.
+ * @slab: The slab which contains the block.
+ * @pbn: The physical block to reference.
+ * @lock: The lock.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_acquire_provisional_reference(struct vdo_slab *slab,
+				      physical_block_number_t pbn,
+				      struct pbn_lock *lock)
+{
+	int result;
+
+	if (vdo_pbn_lock_has_provisional_reference(lock))
+		return VDO_SUCCESS;
+
+	result = vdo_provisionally_reference_block(slab->reference_counts, pbn, lock);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	if (vdo_pbn_lock_has_provisional_reference(lock))
+		vdo_adjust_free_block_count(slab, false);
+
+	return VDO_SUCCESS;
+}
+
 static int allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number_ptr)
 {
 	physical_block_number_t pbn;
@@ -208,6 +236,26 @@ static int allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *b
 	*block_number_ptr = pbn;
 	return VDO_SUCCESS;
 }
+
+/**
+ * open_slab() - Prepare a slab to be allocated from.
+ * @slab: The slab.
+ */
+static void open_slab(struct vdo_slab *slab)
+{
+	vdo_reset_search_cursor(slab->reference_counts);
+	if (vdo_is_slab_journal_blank(slab->journal)) {
+		WRITE_ONCE(slab->allocator->statistics.slabs_opened,
+			   slab->allocator->statistics.slabs_opened + 1);
+		vdo_dirty_all_reference_blocks(slab->reference_counts);
+	} else {
+		WRITE_ONCE(slab->allocator->statistics.slabs_reopened,
+			   slab->allocator->statistics.slabs_reopened + 1);
+	}
+
+	slab->allocator->open_slab = slab;
+}
+
 
 /*
  * The block allocated will have a provisional reference and the reference must be either confirmed
@@ -230,16 +278,58 @@ int vdo_allocate_block(struct block_allocator *allocator,
 	}
 
 	/* Remove the highest priority slab from the priority table and make it the open slab. */
-	allocator->open_slab = list_entry(priority_table_dequeue(allocator->prioritized_slabs),
-					  struct vdo_slab,
-					  allocq_entry);
-	vdo_open_slab(allocator->open_slab);
+	open_slab(list_entry(priority_table_dequeue(allocator->prioritized_slabs),
+			     struct vdo_slab,
+			     allocq_entry));
 
 	/*
 	 * Try allocating again. If we're out of space immediately after opening a slab, then every
 	 * slab must be fully allocated.
 	 */
 	return allocate_slab_block(allocator->open_slab, block_number_ptr);
+}
+
+/**
+ * vdo_modify_slab_reference_count() - Increment or decrement the reference count of a block in a
+ *                                     slab.
+ * @slab: The slab containing the block (may be NULL when referencing the zero block).
+ * @journal_point: The slab journal entry corresponding to this change.
+ * @updater: The reference count updater.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_modify_slab_reference_count(struct vdo_slab *slab,
+				    const struct journal_point *journal_point,
+				    struct reference_updater *updater)
+{
+	bool free_status_changed;
+	int result;
+
+	if (slab == NULL)
+		return VDO_SUCCESS;
+
+	/*
+	 * If the slab is unrecovered, preserve the refCount state and let scrubbing correct the
+	 * refCount. Note that the slab journal has already captured all refCount updates.
+	 */
+	if (slab->status != VDO_SLAB_REBUILT) {
+		vdo_adjust_slab_journal_block_reference(slab->journal,
+							journal_point->sequence_number,
+							-1);
+		return VDO_SUCCESS;
+	}
+
+	result = vdo_adjust_reference_count(slab->reference_counts,
+					    updater,
+					    journal_point,
+					    &free_status_changed);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	if (free_status_changed)
+		vdo_adjust_free_block_count(slab, !updater->increment);
+
+	return VDO_SUCCESS;
 }
 
 /* Release an unused provisional reference. */
@@ -514,7 +604,7 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 			continue;
 		}
 
-		vdo_mark_slab_unrecovered(slab);
+		slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
 		high_priority = ((current_slab_status.is_clean &&
 				 (depot->load_type == VDO_SLAB_DEPOT_NORMAL_LOAD)) ||
 				 vdo_slab_journal_requires_scrubbing(slab->journal));
@@ -532,10 +622,27 @@ void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator)
 
 	ASSERT_LOG_ONLY(allocator->open_slab == NULL, "mustn't have an open slab");
 	priority_table_remove(allocator->prioritized_slabs, &last_slab->allocq_entry);
-	allocator->open_slab = last_slab;
-	vdo_open_slab(last_slab);
+	open_slab(last_slab);
 }
 #endif /* INTERNAL */
+
+static const char *status_to_string(enum slab_rebuild_status status)
+{
+	switch (status) {
+	case VDO_SLAB_REBUILT:
+		return "REBUILT";
+	case VDO_SLAB_REQUIRES_SCRUBBING:
+		return "SCRUBBING";
+	case VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING:
+		return "PRIORITY_SCRUBBING";
+	case VDO_SLAB_REBUILDING:
+		return "REBUILDING";
+	case VDO_SLAB_REPLAYING:
+		return "REPLAYING";
+	default:
+		return "UNKNOWN";
+	}
+}
 
 void vdo_dump_block_allocator(const struct block_allocator *allocator)
 {
@@ -544,7 +651,25 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 
 	uds_log_info("block_allocator zone %u", allocator->zone_number);
 	while (vdo_has_next_slab(&iterator)) {
-		vdo_dump_slab(vdo_next_slab(&iterator));
+		struct vdo_slab *slab = vdo_next_slab(&iterator);
+
+		if (slab->reference_counts != NULL)
+			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
+			uds_log_info("slab %u: P%u, %llu free",
+				     slab->slab_number,
+				     slab->priority,
+				     (unsigned long long) get_slab_free_block_count(slab));
+		else
+			uds_log_info("slab %u: status %s",
+				     slab->slab_number,
+				     status_to_string(slab->status));
+
+		vdo_dump_slab_journal(slab->journal);
+
+		if (slab->reference_counts != NULL)
+			vdo_dump_ref_counts(slab->reference_counts);
+		else
+			uds_log_info("refCounts is null");
 
 		/*
 		 * Wait for a while after each batch of 32 slabs dumped, an arbitrary number,

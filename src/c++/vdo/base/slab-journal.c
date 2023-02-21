@@ -884,7 +884,9 @@ bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 		journal->unreapable++;
 	}
 
-	vdo_mark_slab_replaying(journal->slab);
+	if (journal->slab->status == VDO_SLAB_REBUILT)
+		journal->slab->status = VDO_SLAB_REPLAYING;
+
 	add_entry(journal, pbn, operation, increment, expanded);
 	return true;
 }
@@ -1117,7 +1119,7 @@ static void add_entries(struct slab_journal *journal)
 	journal->adding_entries = false;
 
 	/* If there are no waiters, and we are flushing or saving, commit the tail block. */
-	if (vdo_is_slab_draining(journal->slab) &&
+	if (vdo_is_state_draining(&journal->slab->state) &&
 	    !vdo_is_state_suspending(&journal->slab->state) &&
 	    !has_waiters(&journal->entry_waiters))
 		commit_tail(journal);

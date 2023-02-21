@@ -121,25 +121,6 @@ void vdo_free_slab(struct vdo_slab *slab)
 }
 
 /**
- * vdo_mark_slab_replaying() - Mark a slab as replaying, during offline recovery.
- * @slab: The slab to mark.
- */
-void vdo_mark_slab_replaying(struct vdo_slab *slab)
-{
-	if (slab->status == VDO_SLAB_REBUILT)
-		slab->status = VDO_SLAB_REPLAYING;
-}
-
-/**
- * vdo_mark_slab_unrecovered() - Mark a slab as unrecovered, for online recovery.
- * @slab: The slab to mark.
- */
-void vdo_mark_slab_unrecovered(struct vdo_slab *slab)
-{
-	slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
-}
-
-/**
  * get_slab_free_block_count() - Get the current number of free blocks in a slab.
  * @slab: The slab to query.
  *
@@ -148,94 +129,6 @@ void vdo_mark_slab_unrecovered(struct vdo_slab *slab)
 block_count_t get_slab_free_block_count(const struct vdo_slab *slab)
 {
 	return vdo_get_unreferenced_block_count(slab->reference_counts);
-}
-
-/**
- * vdo_modify_slab_reference_count() - Increment or decrement the reference count of a block in a
- *                                     slab.
- * @slab: The slab containing the block (may be NULL when referencing the zero block).
- * @journal_point: The slab journal entry corresponding to this change.
- * @updater: The reference count updater.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_modify_slab_reference_count(struct vdo_slab *slab,
-				    const struct journal_point *journal_point,
-				    struct reference_updater *updater)
-{
-	bool free_status_changed;
-	int result;
-
-	if (slab == NULL)
-		return VDO_SUCCESS;
-
-	/*
-	 * If the slab is unrecovered, preserve the refCount state and let scrubbing correct the
-	 * refCount. Note that the slab journal has already captured all refCount updates.
-	 */
-	if (slab->status != VDO_SLAB_REBUILT) {
-		vdo_adjust_slab_journal_block_reference(slab->journal,
-							journal_point->sequence_number,
-							-1);
-		return VDO_SUCCESS;
-	}
-
-	result = vdo_adjust_reference_count(slab->reference_counts,
-					    updater,
-					    journal_point,
-					    &free_status_changed);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	if (free_status_changed)
-		vdo_adjust_free_block_count(slab, !updater->increment);
-
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_open_slab() - Perform all necessary initialization of a slab necessary for allocations.
- * @slab: The slab.
- */
-void vdo_open_slab(struct vdo_slab *slab)
-{
-	vdo_reset_search_cursor(slab->reference_counts);
-	if (vdo_is_slab_journal_blank(slab->journal)) {
-		WRITE_ONCE(slab->allocator->statistics.slabs_opened,
-			   slab->allocator->statistics.slabs_opened + 1);
-		vdo_dirty_all_reference_blocks(slab->reference_counts);
-	} else {
-		WRITE_ONCE(slab->allocator->statistics.slabs_reopened,
-			   slab->allocator->statistics.slabs_reopened + 1);
-	}
-}
-
-/**
- * vdo_acquire_provisional_reference() - Acquire a provisional reference on behalf of a PBN lock if
- *                                       the block it locks is unreferenced.
- * @slab: The slab which contains the block.
- * @pbn: The physical block to reference.
- * @lock: The lock.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_acquire_provisional_reference(struct vdo_slab *slab,
-				      physical_block_number_t pbn,
-				      struct pbn_lock *lock)
-{
-	int result;
-
-	if (vdo_pbn_lock_has_provisional_reference(lock))
-		return VDO_SUCCESS;
-
-	result = vdo_provisionally_reference_block(slab->reference_counts, pbn, lock);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	if (vdo_pbn_lock_has_provisional_reference(lock))
-		vdo_adjust_free_block_count(slab, false);
-
-	return VDO_SUCCESS;
 }
 
 /**
@@ -262,26 +155,6 @@ int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 
 	*slab_block_number_ptr = slab_block_number;
 	return VDO_SUCCESS;
-}
-
-/**
- * vdo_should_save_fully_built_slab() - Check whether the reference counts for a given rebuilt slab
- *                                      should be saved.
- * @slab: The slab to check.
- *
- * Return: true if the slab should be saved.
- */
-bool vdo_should_save_fully_built_slab(const struct vdo_slab *slab)
-{
-	/*
-	 * Write out the ref_counts if the slab has written them before, or it has any non-zero
-	 * reference counts, or there are any slab journal blocks.
-	 */
-	block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
-
-	return (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number) ||
-		(get_slab_free_block_count(slab) != data_blocks) ||
-		!vdo_is_slab_journal_blank(slab->journal));
 }
 
 /**
@@ -364,17 +237,6 @@ bool vdo_is_slab_open(struct vdo_slab *slab)
 }
 
 /**
- * vdo_is_slab_draining() - Check whether a slab is currently draining.
- * @slab: The slab to check.
- *
- * Return: true if the slab is performing a drain operation.
- */
-bool vdo_is_slab_draining(struct vdo_slab *slab)
-{
-	return vdo_is_state_draining(&slab->state);
-}
-
-/**
  * vdo_check_if_slab_drained() - Check whether a slab has drained, and if so, send a notification
  *                               thereof.
  * @slab: The slab to check.
@@ -391,83 +253,4 @@ void vdo_check_if_slab_drained(struct vdo_slab *slab)
 
 	read_only = vdo_is_read_only(slab->allocator->read_only_notifier);
 	vdo_finish_draining_with_result(&slab->state, (read_only ? VDO_READ_ONLY : VDO_SUCCESS));
-}
-
-/**
- * vdo_notify_slab_ref_counts_are_drained() - Inform a slab that its ref_counts have finished
- *                                            draining.
- * @slab: The slab whose ref_counts object has been drained.
- * @result: The result of the drain operation.
- */
-void vdo_notify_slab_ref_counts_are_drained(struct vdo_slab *slab, int result)
-{
-	vdo_finish_draining_with_result(&slab->state, result);
-}
-
-/**
- * vdo_is_slab_resuming() - Check whether a slab is currently resuming.
- * @slab: The slab to check.
- *
- * Return: true if the slab is performing a resume operation.
- */
-bool vdo_is_slab_resuming(struct vdo_slab *slab)
-{
-	return vdo_is_state_resuming(&slab->state);
-}
-
-/**
- * vdo_finish_scrubbing_slab() - Finish scrubbing a slab.
- * @slab: The slab whose reference counts have been rebuilt from its journal.
- *
- * Finishes scrubbing a slab now that it has been rebuilt by updating its status, queueing it for
- * allocation, and reopening its journal.
- */
-void vdo_finish_scrubbing_slab(struct vdo_slab *slab)
-{
-	slab->status = VDO_SLAB_REBUILT;
-	vdo_queue_slab(slab);
-	vdo_reopen_slab_journal(slab->journal);
-}
-
-static const char *status_to_string(enum slab_rebuild_status status)
-{
-	switch (status) {
-	case VDO_SLAB_REBUILT:
-		return "REBUILT";
-	case VDO_SLAB_REQUIRES_SCRUBBING:
-		return "SCRUBBING";
-	case VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING:
-		return "PRIORITY_SCRUBBING";
-	case VDO_SLAB_REBUILDING:
-		return "REBUILDING";
-	case VDO_SLAB_REPLAYING:
-		return "REPLAYING";
-	default:
-		return "UNKNOWN";
-	}
-}
-
-/**
- * vdo_dump_slab() - Dump information about a slab to the log for debugging.
- * @slab: The slab to dump.
- */
-void vdo_dump_slab(const struct vdo_slab *slab)
-{
-	if (slab->reference_counts != NULL)
-		/* Terse because there are a lot of slabs to dump and syslog is lossy. */
-		uds_log_info("slab %u: P%u, %llu free",
-			     slab->slab_number,
-			     slab->priority,
-			     (unsigned long long) get_slab_free_block_count(slab));
-	else
-		uds_log_info("slab %u: status %s",
-			     slab->slab_number,
-			     status_to_string(slab->status));
-
-	vdo_dump_slab_journal(slab->journal);
-
-	if (slab->reference_counts != NULL)
-		vdo_dump_ref_counts(slab->reference_counts);
-	else
-		uds_log_info("refCounts is null");
 }

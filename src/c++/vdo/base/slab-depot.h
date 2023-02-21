@@ -183,8 +183,16 @@ void vdo_queue_slab(struct vdo_slab *slab);
 
 void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment);
 
+int __must_check vdo_acquire_provisional_reference(struct vdo_slab *slab,
+						   physical_block_number_t pbn,
+						   struct pbn_lock *lock);
+
 int __must_check
 vdo_allocate_block(struct block_allocator *allocator, physical_block_number_t *block_number_ptr);
+
+int __must_check vdo_modify_slab_reference_count(struct vdo_slab *slab,
+						 const struct journal_point *journal_point,
+						 struct reference_updater *updater);
 
 void vdo_release_block_reference(struct block_allocator *allocator,
 				 physical_block_number_t pbn,

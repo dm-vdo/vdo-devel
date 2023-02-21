@@ -75,7 +75,7 @@ static void initialize(void)
  **/
 static void checkSlabState(struct vdo_completion *completion)
 {
-  CU_ASSERT(vdo_is_slab_draining(slab));
+  CU_ASSERT(vdo_is_state_draining(&slab->state));
   runSavedCallback(completion);
   signalState(&writeComplete);
 }
@@ -127,7 +127,7 @@ static void checkDraining(void)
     return;
   }
 
-  if (vdo_is_slab_draining(slab)) {
+  if (vdo_is_state_draining(&slab->state)) {
     signalState(&draining);
   }
 }

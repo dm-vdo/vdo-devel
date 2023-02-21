@@ -1203,7 +1203,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	/* Re-queue the block if it was re-dirtied while it was writing. */
 	if (block->is_dirty) {
 		enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
-		if (vdo_is_slab_draining(ref_counts->slab))
+		if (vdo_is_state_draining(&ref_counts->slab->state))
 			/* We must be saving, and this block will otherwise not be relaunched. */
 			vdo_save_dirty_reference_blocks(ref_counts);
 
@@ -1551,14 +1551,22 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 
 		save = true;
 	} else if (state == VDO_ADMIN_STATE_REBUILDING) {
-		if (vdo_should_save_fully_built_slab(slab)) {
+		/*
+		 * Write out the ref_counts if the slab has written them before, or it has any
+		 * non-zero reference counts, or there are any slab journal blocks.
+		 */
+		block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
+
+		if (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number) ||
+		    (get_slab_free_block_count(slab) != data_blocks) ||
+		    !vdo_is_slab_journal_blank(slab->journal)) {
 			vdo_dirty_all_reference_blocks(ref_counts);
 			save = true;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVING) {
 		save = (slab->status == VDO_SLAB_REBUILT);
 	} else {
-		vdo_notify_slab_ref_counts_are_drained(slab, VDO_SUCCESS);
+		vdo_finish_draining_with_result(&slab->state, VDO_SUCCESS);
 		return;
 	}
 

@@ -76,30 +76,12 @@ int __must_check vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab);
 
 void vdo_free_slab(struct vdo_slab *slab);
 
-void vdo_mark_slab_replaying(struct vdo_slab *slab);
-
-void vdo_mark_slab_unrecovered(struct vdo_slab *slab);
-
-void vdo_open_slab(struct vdo_slab *slab);
-
 block_count_t __must_check get_slab_free_block_count(const struct vdo_slab *slab);
-
-int __must_check
-vdo_modify_slab_reference_count(struct vdo_slab *slab,
-				const struct journal_point *journal_point,
-				struct reference_updater *updater);
-
-int __must_check
-vdo_acquire_provisional_reference(struct vdo_slab *slab,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock);
 
 int __must_check
 vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 			       physical_block_number_t physical_block_number,
 			       slab_block_number *slab_block_number_ptr);
-
-bool __must_check vdo_should_save_fully_built_slab(const struct vdo_slab *slab);
 
 void vdo_start_slab_action(struct vdo_slab *slab,
 			   const struct admin_state_code *operation,
@@ -109,16 +91,6 @@ void vdo_notify_slab_journal_is_loaded(struct vdo_slab *slab, int result);
 
 bool __must_check vdo_is_slab_open(struct vdo_slab *slab);
 
-bool __must_check vdo_is_slab_draining(struct vdo_slab *slab);
-
 void vdo_check_if_slab_drained(struct vdo_slab *slab);
-
-void vdo_notify_slab_ref_counts_are_drained(struct vdo_slab *slab, int result);
-
-bool __must_check vdo_is_slab_resuming(struct vdo_slab *slab);
-
-void vdo_finish_scrubbing_slab(struct vdo_slab *slab);
-
-void vdo_dump_slab(const struct vdo_slab *slab);
 
 #endif /* VDO_SLAB_H */

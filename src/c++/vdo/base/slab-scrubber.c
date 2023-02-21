@@ -225,8 +225,11 @@ static void scrub_next_slab(struct slab_scrubber *scrubber);
 static void slab_scrubbed(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
+	struct vdo_slab *slab = scrubber->slab;
 
-	vdo_finish_scrubbing_slab(scrubber->slab);
+	slab->status = VDO_SLAB_REBUILT;
+	vdo_queue_slab(slab);
+	vdo_reopen_slab_journal(slab->journal);
 	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
 }

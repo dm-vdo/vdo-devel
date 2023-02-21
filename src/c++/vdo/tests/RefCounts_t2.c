@@ -56,7 +56,7 @@ static void initializeRefCounts(void)
    * Since this test doesn't maintain the correct lock invariants, it would
    * fail on a lock count underflow otherwise.
    */
-  vdo_mark_slab_unrecovered(slab);
+  slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
   refs = slab->reference_counts;
 }
 
