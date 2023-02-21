@@ -26,13 +26,6 @@
  */
 struct block_map_recovery_completion {
 	struct vdo_completion completion;
-	/* for flushing the block map */
-	struct vdo_completion sub_task_completion;
-	/* the thread from which the block map may be flushed */
-	thread_id_t admin_thread;
-	/* the thread on which all block map operations must be done */
-	thread_id_t logical_thread_id;
-	struct block_map *block_map;
 	/* whether this recovery has been aborted */
 	bool aborted;
 	bool launching;
@@ -117,11 +110,11 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	vdo_finish_completion(parent, result);
 }
 
-static int vdo_make_recovery_completion(struct vdo *vdo,
-					block_count_t entry_count,
-					struct numbered_block_mapping *journal_entries,
-					struct vdo_completion *parent,
-					struct block_map_recovery_completion **recovery_ptr)
+static int make_recovery_completion(struct vdo *vdo,
+				    block_count_t entry_count,
+				    struct numbered_block_mapping *journal_entries,
+				    struct vdo_completion *parent,
+				    struct block_map_recovery_completion **recovery_ptr)
 {
 	page_count_t page_count =
 		min(vdo->device_config->cache_size >> 1,
@@ -138,14 +131,9 @@ static int vdo_make_recovery_completion(struct vdo *vdo,
 		return result;
 
 	vdo_initialize_completion(&recovery->completion, vdo, VDO_BLOCK_MAP_RECOVERY_COMPLETION);
-	vdo_initialize_completion(&recovery->sub_task_completion, vdo, VDO_SUB_TASK_COMPLETION);
-	recovery->block_map = vdo->block_map;
 	recovery->journal_entries = journal_entries;
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
-
-	recovery->admin_thread = vdo->thread_config->admin_thread;
-	recovery->logical_thread_id = vdo_get_logical_zone_thread(vdo->thread_config, 0);
 
 	/*
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
@@ -158,16 +146,10 @@ static int vdo_make_recovery_completion(struct vdo *vdo,
 			entry_count,
 			sizeof(struct numbered_block_mapping));
 	build_heap(&recovery->replay_heap, entry_count);
-
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == recovery->logical_thread_id),
-			"%s must be called on logical thread %u (not %u)",
-			__func__,
-			recovery->logical_thread_id,
-			vdo_get_callback_thread_id());
 	vdo_prepare_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
-			       recovery->logical_thread_id,
+			       vdo_get_logical_zone_thread(vdo->thread_config, 0),
 			       parent);
 
 #ifdef INTERNAL
@@ -181,16 +163,11 @@ static int vdo_make_recovery_completion(struct vdo *vdo,
 
 static void flush_block_map(struct vdo_completion *completion)
 {
-	struct block_map_recovery_completion *recovery =
-		as_block_map_recovery_completion(completion->parent);
+	thread_id_t thread_id = vdo_get_logical_zone_thread(completion->vdo->thread_config, 0);
 
 	uds_log_info("Flushing block map changes");
-	ASSERT_LOG_ONLY((completion->callback_thread_id == recovery->admin_thread),
-			"%s() called on admin thread",
-			__func__);
-
-	vdo_prepare_completion_to_finish_parent(completion, completion->parent);
-	vdo_drain_block_map(recovery->block_map, VDO_ADMIN_STATE_RECOVERING, completion);
+	vdo_set_completion_callback(completion, finish_block_map_recovery, thread_id);
+	vdo_drain_block_map(completion->vdo->block_map, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
 /* Return: true if recovery is done.  */
@@ -215,13 +192,12 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 				vdo_release_page_completion(&page_completion->completion);
 		}
 		vdo_complete_completion(&recovery->completion);
-	} else {
-		vdo_launch_completion_callback_with_parent(&recovery->sub_task_completion,
-							   flush_block_map,
-							   recovery->admin_thread,
-							   &recovery->completion);
+		return true;
 	}
 
+	vdo_launch_completion_callback(&recovery->completion,
+				       flush_block_map,
+				       recovery->completion.vdo->thread_config->admin_thread);
 	return true;
 }
 
@@ -319,7 +295,7 @@ fetch_page(struct block_map_recovery_completion *recovery, struct vdo_completion
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery, recovery->current_unfetched_entry, true);
 	vdo_init_page_completion(((struct vdo_page_completion *) completion),
-				 &recovery->block_map->zones[0].page_cache,
+				 &recovery->completion.vdo->block_map->zones[0].page_cache,
 				 new_pbn,
 				 true,
 				 &recovery->completion,
@@ -388,12 +364,15 @@ void vdo_recover_block_map(struct vdo *vdo,
 	page_count_t i;
 	struct block_map_recovery_completion *recovery;
 	int result;
+	thread_id_t thread_id = vdo_get_logical_zone_thread(vdo->thread_config, 0);
 
-	result = vdo_make_recovery_completion(vdo,
-					      entry_count,
-					      journal_entries,
-					      parent,
-					      &recovery);
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == thread_id),
+			"%s must be called on logical thread %u (not %u)",
+			__func__,
+			thread_id,
+			vdo_get_callback_thread_id());
+
+	result = make_recovery_completion(vdo, entry_count, journal_entries, parent, &recovery);
 	if (result != VDO_SUCCESS) {
 		vdo_finish_completion(parent, result);
 		return;
