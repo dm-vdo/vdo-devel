@@ -21,7 +21,6 @@
 #include "block-map.h"
 #include "completionUtils.h"
 #include "device-config.h"
-#include "device-registry.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab.h"

@@ -17,7 +17,6 @@ BASE_OBJS :=     			\
 	data-vio.o			\
         dedupe.o                        \
 	device-config.o			\
-        device-registry.o		\
         dm-vdo-target.o                 \
 	flush.o				\
 	heap.o				\

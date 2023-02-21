@@ -21,7 +21,6 @@
 #include "uds-threads.h"
 
 #include "completion.h"
-#include "device-registry.h"
 #include "status-codes.h"
 #include "vdo.h"
 

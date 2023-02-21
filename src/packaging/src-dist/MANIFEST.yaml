@@ -264,8 +264,6 @@ tarballs:
             - dedupe.h
             - device-config.c
             - device-config.h
-            - device-registry.c
-            - device-registry.h
             - dm-vdo-target.c
             - dump.c
             - dump.h

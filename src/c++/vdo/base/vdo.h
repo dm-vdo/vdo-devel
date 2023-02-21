@@ -212,6 +212,16 @@ static inline bool vdo_uses_bio_ack_queue(struct vdo *vdo)
 	return vdo->device_config->thread_counts.bio_ack_threads > 0;
 }
 
+/**
+ * typedef vdo_filter_t - Method type for vdo matching methods.
+ *
+ * A filter function returns false if the vdo doesn't match.
+ */
+typedef bool vdo_filter_t(struct vdo *vdo, const void *context);
+
+void vdo_initialize_device_registry_once(void);
+struct vdo * __must_check vdo_find_matching(vdo_filter_t *filter, const void *context);
+
 int __must_check vdo_make_thread(struct vdo *vdo,
 				 thread_id_t thread_id,
 				 const struct vdo_work_queue_type *type,
