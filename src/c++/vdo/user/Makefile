@@ -10,7 +10,7 @@ include ../defines
 
 INCLUDES  = -I$(VDO_BASE_DIR) $(UDS_INCLUDES)
 CFLAGS 	  = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
-	    -DINTERNAL -DCURRENT_VERSION="\"$(VDO_VERSION)\""
+	    -DVDO_USER -DCURRENT_VERSION="\"$(VDO_VERSION)\""
 
 STATS_HEADER = $(VDO_BASE_DIR)/statistics.h
 STATS_FILES  = messageStatsReader.c \

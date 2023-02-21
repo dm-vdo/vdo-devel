@@ -9,8 +9,6 @@
 #ifndef LINUX_MINMAX_H
 #define LINUX_MINMAX_H
 
-#include "types.h"
-
 #define __min(x, y) ((x) < (y) ? (x) : (y))
 
 /**

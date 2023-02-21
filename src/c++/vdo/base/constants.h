@@ -102,7 +102,4 @@ extern const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS;
 /** unit test minimum */
 extern const block_count_t MINIMUM_VDO_SLAB_JOURNAL_BLOCKS;
 
-#ifdef INTERNAL
-#define PAGE_SIZE VDO_BLOCK_SIZE
-#endif /* INTERNAL */
 #endif /* CONSTANTS_H */

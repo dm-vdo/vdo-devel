@@ -5,6 +5,9 @@
  */
 #include <linux/kstrtox.h>
 
+#include <linux/compiler_attributes.h>
+#include <linux/types.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>

@@ -12,8 +12,6 @@
 #include <linux/atomic.h>
 #include <linux/bvec.h>
 
-#include "types.h"
-
 struct bio;
 typedef u32 __bitwise blk_opf_t;
 typedef unsigned int blk_qc_t;

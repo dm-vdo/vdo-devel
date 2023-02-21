@@ -134,11 +134,9 @@ int __must_check
 vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 				       struct volume_geometry *geometry,
 				       u32 version);
-#endif /* VDO_USER */
 
-#if (defined(VDO_USER) || defined(INTERNAL))
 int __must_check
 vdo_compute_index_blocks(const struct index_config *index_config, block_count_t *index_blocks_ptr);
 
-#endif /* VDO_USER or INTERNAL */
+#endif /* not __KERNEL__ */
 #endif /* VOLUME_GEOMETRY_H */

@@ -11,15 +11,13 @@
 
 #include "permassert.h"
 
-#include "constants.h"
-
-struct page {
-  char page_data[VDO_BLOCK_SIZE];
-} __packed;
-
 #define PAGE_SHIFT 12
 #define PAGE_SIZE  (((unsigned long) 1) << PAGE_SHIFT)
 #define PAGE_MASK  (~(PAGE_SIZE - 1))
+
+struct page {
+  char page_data[PAGE_SIZE];
+} __packed;
 
 #define offset_in_page(p) ((unsigned long)(p) & ~PAGE_MASK)
 #define is_vmalloc_addr(x) (true)
@@ -37,7 +35,6 @@ static inline void memcpy_to_page(struct page *page,
                                   const char *from,
                                   size_t len)
 {
-  STATIC_ASSERT(PAGE_SIZE == VDO_BLOCK_SIZE);
   ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
   memcpy(page->page_data + offset, from, len);
 }

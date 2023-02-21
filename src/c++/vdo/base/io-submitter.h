@@ -9,7 +9,8 @@
 #include <linux/bio.h>
 
 #include "types.h"
-#include "vio.h"
+
+struct io_submitter;
 
 int vdo_make_io_submitter(unsigned int thread_count,
 			  unsigned int rotation_interval,

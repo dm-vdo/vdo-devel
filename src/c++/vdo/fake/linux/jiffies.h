@@ -7,8 +7,6 @@
 #ifndef LINUX_JIFFIES_H
 #define LINUX_JIFFIES_H
 
-#include "types.h"
-
 enum {
 	MS_PER_JIFFY = 4,
 	US_PER_JIFFY = MS_PER_JIFFY * 1000,

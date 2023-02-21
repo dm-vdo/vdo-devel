@@ -10,7 +10,6 @@
 #include <linux/atomic.h>
 
 #include "list.h"
-#include "types.h"
 
 struct kobject;
 

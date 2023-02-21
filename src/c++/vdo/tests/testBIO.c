@@ -11,6 +11,7 @@
 #include <linux/bio.h>
 #include <linux/blkdev.h>
 #include <linux/blk_types.h>
+#include <linux/highmem.h>
 #include <linux/kernel.h>
 
 #include "memory-alloc.h"
@@ -90,6 +91,7 @@ int bio_add_page(struct bio *bio,
 		 unsigned int len,
                  unsigned int offset)
 {
+  STATIC_ASSERT(PAGE_SIZE == VDO_BLOCK_SIZE);
   struct bio_vec *bv = &bio->bi_io_vec[bio->bi_vcnt];
 
   bv->bv_page = page;
