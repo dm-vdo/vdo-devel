@@ -7,8 +7,6 @@
 #define ACTION_MANAGER_H
 
 #include "admin-state.h"
-#include "completion.h"
-#include "thread-config.h"
 #include "types.h"
 
 /*

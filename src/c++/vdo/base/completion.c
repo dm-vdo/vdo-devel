@@ -19,48 +19,9 @@
 #endif /* INTERNAL or VDO_INTERNAL */
 #include "status-codes.h"
 #include "thread-config.h"
+#include "types.h"
 #include "vio.h"
 #include "vdo.h"
-
-static const char * const VDO_COMPLETION_TYPE_NAMES[] = {
-	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
-	"VDO_UNSET_COMPLETION_TYPE",
-
-	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
-	 * corresponding list in completion.h.
-	 */
-	"VDO_ACTION_COMPLETION",
-	"VDO_ADMIN_COMPLETION",
-	"VDO_BLOCK_ALLOCATOR_COMPLETION",
-	"VDO_BLOCK_MAP_RECOVERY_COMPLETION",
-	"VDO_DATA_VIO_POOL_COMPLETION",
-	"VDO_DECREMENT_COMPLETION",
-	"VDO_FLUSH_COMPLETION",
-	"VDO_FLUSH_NOTIFICATION_COMPLETION",
-	"VDO_GENERATION_FLUSHED_COMPLETION",
-	"VDO_HASH_ZONE_COMPLETION",
-	"VDO_HASH_ZONES_COMPLETION",
-	"VDO_LOCK_COUNTER_COMPLETION",
-	"VDO_PAGE_COMPLETION",
-	"VDO_PARTITION_COPY_COMPLETION",
-	"VDO_READ_ONLY_MODE_COMPLETION",
-	"VDO_READ_ONLY_REBUILD_COMPLETION",
-	"VDO_RECOVERY_COMPLETION",
-	"VDO_SLAB_SCRUBBER_COMPLETION",
-	"VDO_SUB_TASK_COMPLETION",
-	"VDO_SYNC_COMPLETION",
-	"VIO_COMPLETION",
-
-#ifndef __KERNEL__
-	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
-	 * corresponding list in completion.h.
-	 */
-	"VDO_TEST_COMPLETION",
-	"VDO_WRAPPING_COMPLETION",
-#endif /* not __KERNEL__ */
-};
 
 /**
  * vdo_initialize_completion() - Initialize a completion to a clean state, for reused completions.
@@ -187,29 +148,6 @@ void vdo_preserve_completion_error_and_continue(struct vdo_completion *completio
 }
 
 /**
- * get_completion_type_name() - Return the name of a completion type.
- * @completion_type: The completion type.
- *
- * Return: a pointer to a static string; if the completion_type is unknown this is to a static
- *         buffer that may be overwritten.
- */
-static const char *get_completion_type_name(enum vdo_completion_type completion_type)
-{
-	/* Try to catch failures to update the array when the enum values change. */
-	STATIC_ASSERT(ARRAY_SIZE(VDO_COMPLETION_TYPE_NAMES) ==
-		      (VDO_MAX_COMPLETION_TYPE - VDO_UNSET_COMPLETION_TYPE));
-
-	if (completion_type >= VDO_MAX_COMPLETION_TYPE) {
-		static char numeric[100];
-
-		snprintf(numeric, 99, "%d (%#x)", completion_type, completion_type);
-		return numeric;
-	}
-
-	return VDO_COMPLETION_TYPE_NAMES[completion_type];
-}
-
-/**
  * vdo_noop_completion_callback() - A callback which does nothing.
  * @completion: The completion being called back.
  *
@@ -219,21 +157,6 @@ static const char *get_completion_type_name(enum vdo_completion_type completion_
 void
 vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
 {
-}
-
-/**
- * vdo_assert_completion_type() - Assert that a completion is of the correct type.
- * @actual: The actual completion type.
- * @expected: The expected completion type.
- *
- * Return: VDO_SUCCESS or VDO_PARAMETER_MISMATCH
- */
-int vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_type expected)
-{
-	return ASSERT((expected == actual),
-		      "completion type is %s instead of %s",
-		      get_completion_type_name(actual),
-		      get_completion_type_name(expected));
 }
 
 /**

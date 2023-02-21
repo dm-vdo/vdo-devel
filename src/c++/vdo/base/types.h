@@ -9,6 +9,8 @@
 #include <linux/compiler_attributes.h>
 #include <linux/types.h>
 
+#include "funnel-queue.h"
+
 /* A size type in blocks. */
 typedef u64 block_count_t;
 
@@ -65,6 +67,12 @@ typedef u16 slab_count_t;
 
 /* A slot in a bin or block map page. */
 typedef u16 slot_number_t;
+
+/* typedef thread_count_t - A thread counter. */
+typedef u8 thread_count_t;
+
+/* typedef thread_id_t - A thread ID, vdo threads are numbered sequentially from 0. */
+typedef u8 thread_id_t;
 
 /* A zone counter */
 typedef u8 zone_count_t;
@@ -197,6 +205,119 @@ struct slab_config {
 } __packed;
 
 #if defined(__KERNEL__) || defined(INTERNAL)
+enum vdo_completion_type {
+	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
+	VDO_UNSET_COMPLETION_TYPE,
+	VDO_ACTION_COMPLETION,
+	VDO_ADMIN_COMPLETION,
+	VDO_BLOCK_ALLOCATOR_COMPLETION,
+	VDO_BLOCK_MAP_RECOVERY_COMPLETION,
+	VDO_DATA_VIO_POOL_COMPLETION,
+	VDO_DECREMENT_COMPLETION,
+	VDO_FLUSH_COMPLETION,
+	VDO_FLUSH_NOTIFICATION_COMPLETION,
+	VDO_GENERATION_FLUSHED_COMPLETION,
+	VDO_HASH_ZONE_COMPLETION,
+	VDO_HASH_ZONES_COMPLETION,
+	VDO_LOCK_COUNTER_COMPLETION,
+	VDO_PAGE_COMPLETION,
+	VDO_READ_ONLY_MODE_COMPLETION,
+	VDO_READ_ONLY_REBUILD_COMPLETION,
+	VDO_RECOVERY_COMPLETION,
+	VDO_SLAB_SCRUBBER_COMPLETION,
+	VDO_SUB_TASK_COMPLETION,
+	VDO_SYNC_COMPLETION,
+	VIO_COMPLETION,
+#ifndef __KERNEL__
+	/*
+	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
+	 * corresponding list in completion.c.
+	 */
+	VDO_TEST_COMPLETION, /* each unit test may define its own */
+	VDO_WRAPPING_COMPLETION,
+#endif /* not __KERNEL__ */
+} __packed;
+
+struct vdo_completion;
+
+/**
+ * typedef vdo_action - An asynchronous VDO operation.
+ * @completion: The completion of the operation.
+ */
+typedef void vdo_action(struct vdo_completion *completion);
+
+enum vdo_completion_priority {
+	BIO_ACK_Q_ACK_PRIORITY = 0,
+	BIO_ACK_Q_MAX_PRIORITY = 0,
+	BIO_Q_COMPRESSED_DATA_PRIORITY = 0,
+	BIO_Q_DATA_PRIORITY = 0,
+	BIO_Q_FLUSH_PRIORITY = 2,
+	BIO_Q_HIGH_PRIORITY = 2,
+	BIO_Q_METADATA_PRIORITY = 1,
+	BIO_Q_VERIFY_PRIORITY = 1,
+	BIO_Q_MAX_PRIORITY = 2,
+	CPU_Q_COMPLETE_VIO_PRIORITY = 0,
+	CPU_Q_COMPLETE_READ_PRIORITY = 0,
+	CPU_Q_COMPRESS_BLOCK_PRIORITY = 0,
+	CPU_Q_EVENT_REPORTER_PRIORITY = 0,
+	CPU_Q_HASH_BLOCK_PRIORITY = 0,
+	CPU_Q_MAX_PRIORITY = 0,
+	UDS_Q_PRIORITY = 0,
+	UDS_Q_MAX_PRIORITY = 0,
+	VDO_DEFAULT_Q_COMPLETION_PRIORITY = 1,
+	VDO_DEFAULT_Q_FLUSH_PRIORITY = 2,
+	VDO_DEFAULT_Q_MAP_BIO_PRIORITY = 0,
+	VDO_DEFAULT_Q_SYNC_PRIORITY = 2,
+	VDO_DEFAULT_Q_VIO_CALLBACK_PRIORITY = 1,
+	VDO_DEFAULT_Q_MAX_PRIORITY = 2,
+	/* The maximum allowable priority */
+	VDO_WORK_Q_MAX_PRIORITY = 2,
+	/* A value which must be out of range for a valid priority */
+	VDO_WORK_Q_DEFAULT_PRIORITY = VDO_WORK_Q_MAX_PRIORITY + 1,
+};
+
+struct vdo_completion {
+	/* The type of completion this is */
+	enum vdo_completion_type type;
+
+	/*
+	 * <code>true</code> once the processing of the operation is complete. This flag should not
+	 * be used by waiters external to the VDO base as it is used to gate calling the callback.
+	 */
+	bool complete;
+
+	/*
+	 * If true, queue this completion on the next callback invocation, even if it is already
+	 * running on the correct thread.
+	 */
+	bool requeue;
+
+	/* The ID of the thread which should run the next callback */
+	thread_id_t callback_thread_id;
+
+	/* The result of the operation */
+	int result;
+
+	/* The VDO on which this completion operates */
+	struct vdo *vdo;
+
+	/* The callback which will be called once the operation is complete */
+	vdo_action *callback;
+
+	/* Callback which, if set, will be called if an error result is set */
+	vdo_action *error_handler;
+
+	/* The parent object, if any, that spawned this completion */
+	void *parent;
+
+	/* Entry link for lock-free work queue */
+	struct funnel_queue_entry work_queue_entry_link;
+	enum vdo_completion_priority priority;
+	struct vdo_work_queue *my_queue;
+	u64 enqueue_time;
+};
+
+struct block_allocator;
 struct data_vio;
 struct vdo;
 #endif /* __KERNEL__ or INTERNAL */

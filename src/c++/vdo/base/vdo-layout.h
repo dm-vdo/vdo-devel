@@ -20,13 +20,6 @@
 
 #include "buffer.h"
 
-#ifdef __KERNEL__
-#include "completion.h"
-#else /* not __KERNEL__ */
-#ifdef INTERNAL
-struct vdo_completion;
-#endif /* INTERNAL */
-#endif /* __KERNEL__ */
 #include "types.h"
 
 enum partition_direction {

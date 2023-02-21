@@ -6,8 +6,7 @@
 #ifndef VDO_RECOVERY_H
 #define VDO_RECOVERY_H
 
-#include "completion.h"
-#include "vdo.h"
+#include "types.h"
 
 void vdo_replay_into_slab_journals(struct block_allocator *allocator, void *context);
 void vdo_repair(struct vdo_completion *parent);

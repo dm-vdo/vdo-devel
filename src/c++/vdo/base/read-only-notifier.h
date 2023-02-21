@@ -15,8 +15,8 @@
 #ifndef READ_ONLY_NOTIFIER_H
 #define READ_ONLY_NOTIFIER_H
 
-#include "completion.h"
 #include "thread-config.h"
+#include "types.h"
 
 /**
  * typedef vdo_read_only_notification - A function to notify a listener that the VDO has gone

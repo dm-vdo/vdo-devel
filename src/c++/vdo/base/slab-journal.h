@@ -10,7 +10,6 @@
 
 #include "numeric.h"
 
-#include "completion.h"
 #include "data-vio.h"
 #include "slab.h"
 #include "slab-depot.h"

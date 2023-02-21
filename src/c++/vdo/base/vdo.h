@@ -26,12 +26,12 @@
 #include "types.h"
 #include "uds.h"
 #include "vdo-component-states.h"
-#include "vdo-layout.h"
-#include "volume-geometry.h"
-
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
+#include "vdo-layout.h"
+#include "volume-geometry.h"
+#include "work-queue.h"
 
 struct vdo_thread {
 	struct vdo *vdo;

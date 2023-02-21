@@ -11,7 +11,6 @@
 #include "numeric.h"
 
 #include "admin-state.h"
-#include "completion.h"
 #include "constants.h"
 #include "flush.h"
 #include "read-only-notifier.h"

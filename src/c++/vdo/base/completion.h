@@ -9,99 +9,7 @@
 #include "permassert.h"
 
 #include "status-codes.h"
-#include "thread-config.h"
 #include "types.h"
-#include "work-queue.h"
-
-enum vdo_completion_type {
-	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
-	VDO_UNSET_COMPLETION_TYPE,
-
-	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
-	 * corresponding list in completion.c.
-	 */
-	VDO_ACTION_COMPLETION,
-	VDO_ADMIN_COMPLETION,
-	VDO_BLOCK_ALLOCATOR_COMPLETION,
-	VDO_BLOCK_MAP_RECOVERY_COMPLETION,
-	VDO_DATA_VIO_POOL_COMPLETION,
-	VDO_DECREMENT_COMPLETION,
-	VDO_FLUSH_COMPLETION,
-	VDO_FLUSH_NOTIFICATION_COMPLETION,
-	VDO_GENERATION_FLUSHED_COMPLETION,
-	VDO_HASH_ZONE_COMPLETION,
-	VDO_HASH_ZONES_COMPLETION,
-	VDO_LOCK_COUNTER_COMPLETION,
-	VDO_PAGE_COMPLETION,
-	VDO_PARTITION_COPY_COMPLETION,
-	VDO_READ_ONLY_MODE_COMPLETION,
-	VDO_READ_ONLY_REBUILD_COMPLETION,
-	VDO_RECOVERY_COMPLETION,
-	VDO_SLAB_SCRUBBER_COMPLETION,
-	VDO_SUB_TASK_COMPLETION,
-	VDO_SYNC_COMPLETION,
-	VIO_COMPLETION,
-
-#ifndef __KERNEL__
-	/*
-	 * Keep this block in sorted order. If you add or remove an entry, be sure to update the
-	 * corresponding list in completion.c.
-	 */
-	VDO_TEST_COMPLETION, /* each unit test may define its own */
-	VDO_WRAPPING_COMPLETION,
-#endif /* not __KERNEL__ */
-
-	/* Keep VDO_MAX_COMPLETION_TYPE at the bottom. */
-	VDO_MAX_COMPLETION_TYPE
-} __packed;
-
-/**
- * typedef vdo_action - An asynchronous VDO operation.
- * @completion: The completion of the operation.
- */
-typedef void vdo_action(struct vdo_completion *completion);
-
-struct vdo_completion {
-	/* The type of completion this is */
-	enum vdo_completion_type type;
-
-	/*
-	 * <code>true</code> once the processing of the operation is complete. This flag should not
-	 * be used by waiters external to the VDO base as it is used to gate calling the callback.
-	 */
-	bool complete;
-
-	/*
-	 * If true, queue this completion on the next callback invocation, even if it is already
-	 * running on the correct thread.
-	 */
-	bool requeue;
-
-	/* The ID of the thread which should run the next callback */
-	thread_id_t callback_thread_id;
-
-	/* The result of the operation */
-	int result;
-
-	/* The VDO on which this completion operates */
-	struct vdo *vdo;
-
-	/* The callback which will be called once the operation is complete */
-	vdo_action *callback;
-
-	/* Callback which, if set, will be called if an error result is set */
-	vdo_action *error_handler;
-
-	/* The parent object, if any, that spawned this completion */
-	void *parent;
-
-	/* Entry link for lock-free work queue */
-	struct funnel_queue_entry work_queue_entry_link;
-	enum vdo_completion_priority priority;
-	struct vdo_work_queue *my_queue;
-	u64 enqueue_time;
-};
 
 /**
  * vdo_run_completion_callback() - Actually run the callback.
@@ -163,7 +71,18 @@ void vdo_preserve_completion_error_and_continue(struct vdo_completion *completio
 
 void vdo_noop_completion_callback(struct vdo_completion *completion);
 
-int vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_type expected);
+/**
+ * vdo_assert_completion_type() - Assert that a completion is of the correct type.
+ * @actual: The actual completion type.
+ * @expected: The expected completion type.
+ *
+ * Return: VDO_SUCCESS or an error
+ */
+static inline int
+vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_type expected)
+{
+	return ASSERT(expected == actual, "completion type is %u instead of %u", actual, expected);
+}
 
 /**
  * vdo_set_completion_callback() - Set the callback for a completion.

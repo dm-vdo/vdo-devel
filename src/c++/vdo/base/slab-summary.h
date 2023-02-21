@@ -9,7 +9,6 @@
 #include <linux/atomic.h>
 
 #include "admin-state.h"
-#include "completion.h"
 #include "slab.h"
 #include "statistics.h"
 #include "types.h"

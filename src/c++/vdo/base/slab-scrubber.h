@@ -9,7 +9,6 @@
 #include <linux/list.h>
 
 #include "admin-state.h"
-#include "completion.h"
 #include "types.h"
 #include "wait-queue.h"
 

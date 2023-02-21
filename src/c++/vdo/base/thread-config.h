@@ -10,21 +10,11 @@
 
 #include "types.h"
 
-/* typedef thread_count_t - A thread counter. */
-typedef u8 thread_count_t;
-
-/**
- * typedef thread_id_t - A thread ID.
- *
- * Base-code threads are numbered sequentially starting from 0.
- */
-typedef u8 thread_id_t;
-
 /*
- * The thread ID returned when the current base code thread ID cannot be found or is otherwise
- * undefined.
+ * The thread ID returned when the current thread is not a vdo thread, or can not be determined
+ * (usually due to being at interrupt context).
  */
-static const thread_id_t VDO_INVALID_THREAD_ID = (thread_id_t) -1;
+#define VDO_INVALID_THREAD_ID ((thread_id_t) -1)
 
 struct thread_config {
 	zone_count_t logical_zone_count;
