@@ -893,7 +893,6 @@ $suiteNames{beakerExcludedTests}
      "StressBase",          # Base class
      "Stress02",            # Manual test
      "TornWriteBase",       # Base class
-     "TracerMismatch",      # System state from previous tests [VDO-5438]
      "UnitTestBase",        # Base class
      "UpgradeBase",         # Base class
      "VDOFIOPerfTest",      # Perf tests are invoked explicitly
