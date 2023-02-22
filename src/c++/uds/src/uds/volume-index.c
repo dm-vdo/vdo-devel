@@ -477,7 +477,13 @@ int compute_volume_index_save_blocks(const struct configuration *config,
 static size_t
 get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 {
-	return DIV_ROUND_UP(get_delta_index_bits_used(&sub_index->delta_index), BITS_PER_BYTE);
+	u64 bit_count = 0;
+	unsigned int z;
+
+	for (z = 0; z < sub_index->delta_index.zone_count; z++)
+		bit_count += get_delta_zone_bits_used(&sub_index->delta_index, z);
+
+	return DIV_ROUND_UP(bit_count, BITS_PER_BYTE);
 }
 
 size_t get_volume_index_memory_used(const struct volume_index *volume_index)

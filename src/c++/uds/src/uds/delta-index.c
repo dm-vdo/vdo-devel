@@ -119,9 +119,9 @@
  * delta_zone memory. As extra protection against this happening, the guard list at the end is set
  * to all ones.
  *
- * The delta_zone supports two different forms. The mutable form is created by
- * initialize_delta_zone(), and is used for the volume index and for open chapter indexes. The
- * immutable form is created by initialize_delta_zone_page(), and is used for closed (and cached)
+ * The delta_index supports two different forms. The mutable form is created by
+ * initialize_delta_index(), and is used for the volume index and for open chapter indexes. The
+ * immutable form is created by initialize_delta_index_page(), and is used for closed (and cached)
  * chapter index pages. The immutable form does not allocate delta list headers or temporary
  * offsets, and thus is somewhat more memory efficient.
  *
@@ -602,35 +602,6 @@ static bool verify_delta_index_page(u64 nonce,
 	return true;
 }
 
-EXTERNAL_STATIC void
-initialize_delta_zone_page(struct delta_zone *delta_zone,
-			   u8 *memory,
-			   size_t size,
-			   unsigned int list_count,
-			   unsigned int mean_delta,
-			   unsigned int payload_bits)
-{
-	compute_coding_constants(mean_delta,
-				 &delta_zone->min_bits,
-				 &delta_zone->min_keys,
-				 &delta_zone->incr_keys);
-	delta_zone->value_bits = payload_bits;
-	delta_zone->memory = memory;
-	delta_zone->delta_lists = NULL;
-	delta_zone->new_offsets = NULL;
-	delta_zone->buffered_writer = NULL;
-	delta_zone->size = size;
-	delta_zone->rebalance_time = 0;
-	delta_zone->rebalance_count = 0;
-	delta_zone->record_count = 0;
-	delta_zone->collision_count = 0;
-	delta_zone->discard_count = 0;
-	delta_zone->overflow_count = 0;
-	delta_zone->first_list = 0;
-	delta_zone->list_count = list_count;
-	delta_zone->tag = 'p';
-}
-
 /* Initialize a delta index page to refer to a supplied page. */
 int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 				u64 expected_nonce,
@@ -644,6 +615,7 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 	u64 first_list;
 	u64 list_count;
 	struct delta_page_header *header = (struct delta_page_header *) memory;
+	struct delta_zone *delta_zone = &delta_index_page->delta_zone;
 	const u8 *nonce_addr = (const u8 *) &header->nonce;
 	const u8 *vcn_addr = (const u8 *) &header->virtual_chapter_number;
 	const u8 *first_list_addr = (const u8 *) &header->first_list;
@@ -672,7 +644,7 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 			return UDS_CORRUPT_DATA;
 	}
 
-	delta_index_page->delta_index.delta_zones = &delta_index_page->delta_zone;
+	delta_index_page->delta_index.delta_zones = delta_zone;
 	delta_index_page->delta_index.zone_count = 1;
 	delta_index_page->delta_index.list_count = list_count;
 	delta_index_page->delta_index.lists_per_zone = list_count;
@@ -682,12 +654,26 @@ int initialize_delta_index_page(struct delta_index_page *delta_index_page,
 	delta_index_page->lowest_list_number = first_list;
 	delta_index_page->highest_list_number = first_list + list_count - 1;
 
-	initialize_delta_zone_page(&delta_index_page->delta_zone,
-				   memory,
-				   memory_size,
-				   list_count,
-				   mean_delta,
-				   payload_bits);
+	compute_coding_constants(mean_delta,
+				 &delta_zone->min_bits,
+				 &delta_zone->min_keys,
+				 &delta_zone->incr_keys);
+	delta_zone->value_bits = payload_bits;
+	delta_zone->memory = memory;
+	delta_zone->delta_lists = NULL;
+	delta_zone->new_offsets = NULL;
+	delta_zone->buffered_writer = NULL;
+	delta_zone->size = memory_size;
+	delta_zone->rebalance_time = 0;
+	delta_zone->rebalance_count = 0;
+	delta_zone->record_count = 0;
+	delta_zone->collision_count = 0;
+	delta_zone->discard_count = 0;
+	delta_zone->overflow_count = 0;
+	delta_zone->first_list = 0;
+	delta_zone->list_count = list_count;
+	delta_zone->tag = 'p';
+
 	return UDS_SUCCESS;
 }
 
@@ -2264,18 +2250,6 @@ u64 get_delta_zone_bits_used(const struct delta_index *delta_index, unsigned int
 	return bit_count;
 }
 
-#ifdef TEST_INTERNAL
-u64 get_delta_index_bits_used(const struct delta_index *delta_index)
-{
-	u64 bit_count = 0;
-	unsigned int z;
-
-	for (z = 0; z < delta_index->zone_count; z++)
-		bit_count += get_delta_zone_bits_used(delta_index, z);
-	return bit_count;
-}
-
-#endif /* TEST_INTERNAL */
 u64 get_delta_index_bits_allocated(const struct delta_index *delta_index)
 {
 	u64 byte_count = 0;

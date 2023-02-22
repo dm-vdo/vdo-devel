@@ -213,13 +213,6 @@ int __must_check initialize_delta_zone(struct delta_zone *delta_zone,
 				       unsigned int mean_delta,
 				       unsigned int payload_bits);
 
-void initialize_delta_zone_page(struct delta_zone *delta_zone,
-				u8 *memory,
-				size_t size,
-				unsigned int list_count,
-				unsigned int mean_delta,
-				unsigned int payload_bits);
-
 #endif /* TEST_INTERNAL */
 int __must_check initialize_delta_index(struct delta_index *delta_index,
 					unsigned int zone_count,
@@ -321,10 +314,6 @@ get_delta_zone_list_count(const struct delta_index *delta_index, unsigned int zo
 u64 __must_check
 get_delta_zone_bits_used(const struct delta_index *delta_index, unsigned int zone_number);
 
-#ifdef TEST_INTERNAL
-u64 __must_check get_delta_index_bits_used(const struct delta_index *delta_index);
-
-#endif /* TEST_INTERNAL */
 u64 __must_check get_delta_index_bits_allocated(const struct delta_index *delta_index);
 
 void get_delta_index_stats(const struct delta_index *delta_index, struct delta_index_stats *stats);

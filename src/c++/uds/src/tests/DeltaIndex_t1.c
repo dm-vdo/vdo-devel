@@ -466,7 +466,7 @@ static void overflowTest(void)
 
   // How big was that entry?  We expect that all subsequent entries have
   // the same size, and compute the expected number of entries accordingly.
-  int entrySize = get_delta_index_bits_used(&di);
+  int entrySize = get_delta_zone_bits_used(&di, 0);
   unsigned int entryCount = U16_MAX / entrySize;
 
   // Fill the index with more records, each with a delta of 1
