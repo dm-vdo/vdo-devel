@@ -14,7 +14,6 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 
-#include "device-config.h"
 #include "status-codes.h"
 #include "types.h"
 

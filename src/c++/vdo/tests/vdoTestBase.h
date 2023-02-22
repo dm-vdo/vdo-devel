@@ -9,7 +9,6 @@
 #ifndef VDO_TEST_BASE_H
 #define VDO_TEST_BASE_H
 
-#include "device-config.h"
 #include "types.h"
 #include "vdo.h"
 

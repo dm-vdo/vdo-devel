@@ -22,7 +22,6 @@
 #include "uds-threads.h"
 
 #include "dedupe.h"
-#include "device-config.h"
 #include "instance-number.h"
 #include "io-submitter.h"
 #include "lz4.h"

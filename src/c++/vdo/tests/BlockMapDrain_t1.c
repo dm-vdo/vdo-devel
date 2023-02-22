@@ -12,7 +12,6 @@
 
 #include "admin-state.h"
 #include "block-map.h"
-#include "device-config.h"
 #include "types.h"
 #include "vdo-component-states.h"
 

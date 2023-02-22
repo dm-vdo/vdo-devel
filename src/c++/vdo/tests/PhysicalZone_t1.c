@@ -11,11 +11,11 @@
 #include "albtest.h"
 
 #include "constants.h"
-#include "device-config.h"
 #include "physical-zone.h"
 #include "slab.h"
 #include "slab-depot.h"
 #include "thread-config.h"
+#include "types.h"
 #include "vdo.h"
 
 #include "vdoAsserts.h"

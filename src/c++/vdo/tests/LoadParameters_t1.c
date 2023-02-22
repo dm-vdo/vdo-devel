@@ -9,7 +9,6 @@
 #include "albtest.h"
 
 #include "block-map.h"
-#include "device-config.h"
 #include "slab-depot.h"
 #include "vdo.h"
 

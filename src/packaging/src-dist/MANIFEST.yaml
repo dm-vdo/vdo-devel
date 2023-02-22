@@ -262,8 +262,6 @@ tarballs:
             - data-vio.h
             - dedupe.c
             - dedupe.h
-            - device-config.c
-            - device-config.h
             - dm-vdo-target.c
             - dump.c
             - dump.h

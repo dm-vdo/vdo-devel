@@ -9,6 +9,8 @@
 #if defined(__KERNEL__) || defined(INTERNAL)
 #include <linux/bio.h>
 #include <linux/blkdev.h>
+#include <linux/device-mapper.h>
+#include <linux/list.h>
 #endif /* __KERNEL__ or INTERNAL */
 #include <linux/compiler_attributes.h>
 #include <linux/types.h>
@@ -209,6 +211,44 @@ struct slab_config {
 } __packed;
 
 #if defined(__KERNEL__) || defined(INTERNAL)
+/*
+ * This structure is memcmp'd for equality. Keep it packed and don't add any fields that are not
+ * properly set in both extant and parsed configs.
+ */
+struct thread_count_config {
+	unsigned int bio_ack_threads;
+	unsigned int bio_threads;
+	unsigned int bio_rotation_interval;
+	unsigned int cpu_threads;
+	unsigned int logical_zones;
+	unsigned int physical_zones;
+	unsigned int hash_zones;
+} __packed;
+
+struct device_config {
+	struct dm_target *owning_target;
+	struct dm_dev *owned_device;
+	struct vdo *vdo;
+	/* All configs referencing a layer are kept on a list in the layer */
+	struct list_head config_list;
+	char *original_string;
+	unsigned int version;
+	char *parent_device_name;
+	block_count_t physical_blocks;
+	/*
+	 * This is the number of logical blocks from VDO's internal point of view. It is the number
+	 * of 4K blocks regardles of the value of the logical_block_size parameter below.
+	 */
+	block_count_t logical_blocks;
+	unsigned int logical_block_size;
+	unsigned int cache_size;
+	unsigned int block_map_maximum_age;
+	bool deduplication;
+	bool compression;
+	struct thread_count_config thread_counts;
+	block_count_t max_discard_blocks;
+};
+
 enum vdo_completion_type {
 	/* Keep VDO_UNSET_COMPLETION_TYPE at the top. */
 	VDO_UNSET_COMPLETION_TYPE,

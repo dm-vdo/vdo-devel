@@ -9,7 +9,6 @@
 #ifndef TEST_PARAMETERS_H
 #define TEST_PARAMETERS_H
 
-#include "device-config.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo-component-states.h"

@@ -13,7 +13,6 @@
 #include <linux/list.h>
 
 #include "admin-state.h"
-#include "device-config.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
