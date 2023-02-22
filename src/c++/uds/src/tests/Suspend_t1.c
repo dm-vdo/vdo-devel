@@ -18,7 +18,7 @@ static const char *indexName;
 static struct uds_parameters params;
 static struct uds_index_session *indexSession;
 
-enum { NUM_CHAPTERS = 7 };
+enum { NUM_CHAPTERS = 10 };
 
 /**********************************************************************/
 static void postChunks(struct uds_index_session *indexSession,
@@ -192,13 +192,18 @@ static void suspendRebuildTest(void)
 
   // Wait for the rebuild to start.
   while (startChapters == atomic_read_acquire(&chapters_replayed)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
   int suspendChapters = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT((suspendChapters - startChapters) < NUM_CHAPTERS);
-  sleep_for(ms_to_ktime(250));
+  for (int i = 0; i < 10; i++) {
+    sleep_for(ms_to_ktime(25));
+    if (suspendChapters == atomic_read_acquire(&chapters_replayed)) {
+      break;
+    }
+  }
   int suspendChapters2 = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT_EQUAL(suspendChapters, suspendChapters2);
 
@@ -222,13 +227,18 @@ static void suspendRebuildTest(void)
 
   // Wait for the replay to start.
   while (startChapters == atomic_read_acquire(&chapters_replayed)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
 
   suspendChapters = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT((suspendChapters - startChapters) < NUM_CHAPTERS);
-  sleep_for(ms_to_ktime(250));
+  for (int i = 0; i < 10; i++) {
+    sleep_for(ms_to_ktime(25));
+    if (suspendChapters == atomic_read_acquire(&chapters_replayed)) {
+      break;
+    }
+  }
   suspendChapters2 = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT_EQUAL(suspendChapters, suspendChapters2);
   UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, NULL));
@@ -279,7 +289,7 @@ static void suspendSuspendTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch another suspend with a save.
@@ -301,7 +311,7 @@ static void suspendCloseTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a close.
@@ -323,7 +333,7 @@ static void suspendDestroyTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a destroy.
@@ -343,7 +353,7 @@ static void closeSuspendTest(void)
   struct thread *thread;
   UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a suspend with a save.
@@ -364,7 +374,7 @@ static void closeCloseTest(void)
   struct thread *thread;
   UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch another close.
@@ -385,7 +395,7 @@ static void closeDestroyTest(void)
   struct thread *thread;
   UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a destroy.
@@ -406,7 +416,7 @@ static void destroySuspendTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a suspend with a save.
@@ -427,7 +437,7 @@ static void destroyCloseTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a close.
@@ -448,7 +458,7 @@ static void destroyDestroyTest(void)
   UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
-    sleep_for(ms_to_ktime(20));
+    sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch another destroy.
