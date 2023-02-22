@@ -1701,10 +1701,10 @@ get_block_allocator_statistics(const struct slab_depot *depot)
 	memset(&totals, 0, sizeof(totals));
 
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		const struct block_allocator_statistics *stats =
-			&depot->allocators[zone].statistics;
+		const struct block_allocator *allocator = &depot->allocators[zone];
+		const struct block_allocator_statistics *stats = &allocator->statistics;
 
-		totals.slab_count += stats->slab_count;
+		totals.slab_count += allocator->slab_count;
 		totals.slabs_opened += READ_ONCE(stats->slabs_opened);
 		totals.slabs_reopened += READ_ONCE(stats->slabs_reopened);
 	}
