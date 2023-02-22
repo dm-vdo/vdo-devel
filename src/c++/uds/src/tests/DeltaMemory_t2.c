@@ -128,13 +128,13 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
   // Get some random bits
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &random));
   UDS_ASSERT_SUCCESS(initialize_delta_zone(random, initSize, 0, numLists,
-                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS, 'm'));
   get_random_bytes(random->memory, random->size);
 
   // Get the delta memory corresponding to the delta lists
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_zone, __func__, &dm));
   UDS_ASSERT_SUCCESS(initialize_delta_zone(dm, initSize, 0, numLists,
-                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS, 'm'));
   memset(dm->memory, initialValue, dm->size);
   memcpy(dm->delta_lists, pdl, pdlSize);
   validateDeltaLists(dm);

@@ -402,11 +402,12 @@ void uninitialize_delta_index(struct delta_index *delta_index)
 }
 
 EXTERNAL_STATIC int initialize_delta_zone(struct delta_zone *delta_zone,
-					    size_t size,
-					    unsigned int first_list,
-					    unsigned int list_count,
-					    unsigned int mean_delta,
-					    unsigned int payload_bits)
+					  size_t size,
+					  unsigned int first_list,
+					  unsigned int list_count,
+					  unsigned int mean_delta,
+					  unsigned int payload_bits,
+					  u8 tag)
 {
 	int result;
 
@@ -445,7 +446,7 @@ EXTERNAL_STATIC int initialize_delta_zone(struct delta_zone *delta_zone,
 	delta_zone->overflow_count = 0;
 	delta_zone->first_list = first_list;
 	delta_zone->list_count = list_count;
-	delta_zone->tag = 'm';
+	delta_zone->tag = tag;
 
 	empty_delta_lists(delta_zone);
 	return UDS_SUCCESS;
@@ -456,7 +457,8 @@ int initialize_delta_index(struct delta_index *delta_index,
 			   unsigned int list_count,
 			   unsigned int mean_delta,
 			   unsigned int payload_bits,
-			   size_t memory_size)
+			   size_t memory_size,
+			   u8 tag)
 {
 	int result;
 	unsigned int z;
@@ -473,7 +475,7 @@ int initialize_delta_index(struct delta_index *delta_index,
 	delta_index->list_count = list_count;
 	delta_index->lists_per_zone = DIV_ROUND_UP(list_count, zone_count);
 	delta_index->mutable = true;
-	delta_index->tag = 'm';
+	delta_index->tag = tag;
 
 	for (z = 0; z < zone_count; z++) {
 		unsigned int lists_in_zone = delta_index->lists_per_zone;
@@ -496,11 +498,12 @@ int initialize_delta_index(struct delta_index *delta_index,
 
 		zone_memory = get_zone_memory_size(zone_count, memory_size);
 		result = initialize_delta_zone(&delta_index->delta_zones[z],
-						 zone_memory,
-						 first_list_in_zone,
-						 lists_in_zone,
-						 mean_delta,
-						 payload_bits);
+					       zone_memory,
+					       first_list_in_zone,
+					       lists_in_zone,
+					       mean_delta,
+					       payload_bits,
+					       tag);
 		if (result != UDS_SUCCESS) {
 			uninitialize_delta_index(delta_index);
 			return result;
@@ -926,15 +929,6 @@ void swap_delta_index_page_endianness(u8 *memory)
 }
 
 #endif /* TEST_INTERNAL */
-void set_delta_index_tag(struct delta_index *delta_index, u8 tag)
-{
-	unsigned int z;
-
-	delta_index->tag = tag;
-	for (z = 0; z < delta_index->zone_count; z++)
-		delta_index->delta_zones[z].tag = tag;
-}
-
 static int __must_check
 decode_delta_index_header(struct buffer *buffer, struct delta_index_header *header)
 {

@@ -173,7 +173,7 @@ static void rebalanceTest(int nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
   UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, initSize, 0, nLists,
-                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS, 'm'));
   // Use lists that increase in size.
   initEvenly(&dm);
   allocateTriangularly(&dm);
@@ -214,7 +214,7 @@ static void growingTest(unsigned int nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
   UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, initSize, 0, nLists,
-                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS, 'm'));
 
   // Use random list sizes.
   initEvenly(&dm);
@@ -254,7 +254,7 @@ static void overflowTest(void)
   enum { LIST_COUNT = 1 << 10 };
   enum { ALLOC_SIZE = 1 << 17 };
   UDS_ASSERT_SUCCESS(initialize_delta_zone(&dm, ALLOC_SIZE, 0, LIST_COUNT,
-                                           MEAN_DELTA, NUM_PAYLOAD_BITS));
+                                           MEAN_DELTA, NUM_PAYLOAD_BITS, 'm'));
   CU_ASSERT_EQUAL(dm.size, ALLOC_SIZE);
 
   // Fill and extend, expecting a UDS_OVERFLOW error

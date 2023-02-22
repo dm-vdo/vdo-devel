@@ -846,11 +846,6 @@ int set_volume_index_record_chapter(struct volume_index_record *record, u64 virt
 	return UDS_SUCCESS;
 }
 
-static void set_volume_index_tag(struct volume_sub_index *sub_index, u8 tag)
-{
-	set_delta_index_tag(&sub_index->delta_index, tag);
-}
-
 static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index,
 					const struct uds_record_name *name)
 {
@@ -1444,6 +1439,7 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 #endif /* TEST_INTERNAL */
 static int initialize_volume_sub_index(const struct configuration *config,
 				       u64 volume_nonce,
+				       u8 tag,
 				       struct volume_sub_index *sub_index)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
@@ -1469,7 +1465,8 @@ static int initialize_volume_sub_index(const struct configuration *config,
 					params.num_delta_lists,
 					params.mean_delta,
 					params.chapter_bits,
-					params.memory_size);
+					params.memory_size,
+					tag);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1508,6 +1505,7 @@ int make_volume_index(const struct configuration *config,
 	if (!uses_sparse(config)) {
 		result = initialize_volume_sub_index(config,
 						     volume_nonce,
+						     'm',
 						     &volume_index->vi_non_hook);
 		if (result != UDS_SUCCESS) {
 			free_volume_index(volume_index);
@@ -1540,21 +1538,21 @@ int make_volume_index(const struct configuration *config,
 
 	result = initialize_volume_sub_index(&split.non_hook_config,
 					     volume_nonce,
+					     'd',
 					     &volume_index->vi_non_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index(volume_index);
 		return uds_log_error_strerror(result, "Error creating non hook volume index");
 	}
-	set_volume_index_tag(&volume_index->vi_non_hook, 'd');
 
 	result = initialize_volume_sub_index(&split.hook_config,
 					     volume_nonce,
+					     's',
 					     &volume_index->vi_hook);
 	if (result != UDS_SUCCESS) {
 		free_volume_index(volume_index);
 		return uds_log_error_strerror(result, "Error creating hook volume index");
 	}
-	set_volume_index_tag(&volume_index->vi_hook, 's');
 
 	*volume_index_ptr = volume_index;
 	return UDS_SUCCESS;

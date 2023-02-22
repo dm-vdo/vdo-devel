@@ -211,7 +211,8 @@ int __must_check initialize_delta_zone(struct delta_zone *delta_zone,
 				       unsigned int first_list,
 				       unsigned int list_count,
 				       unsigned int mean_delta,
-				       unsigned int payload_bits);
+				       unsigned int payload_bits,
+				       u8 tag);
 
 #endif /* TEST_INTERNAL */
 int __must_check initialize_delta_index(struct delta_index *delta_index,
@@ -219,7 +220,8 @@ int __must_check initialize_delta_index(struct delta_index *delta_index,
 					unsigned int list_count,
 					unsigned int mean_delta,
 					unsigned int payload_bits,
-					size_t memory_size);
+					size_t memory_size,
+					u8 tag);
 
 int __must_check initialize_delta_index_page(struct delta_index_page *delta_index_page,
 					     u64 expected_nonce,
@@ -239,8 +241,6 @@ int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       u64 virtual_chapter_number,
 				       unsigned int first_list,
 				       unsigned int *list_count);
-
-void set_delta_index_tag(struct delta_index *delta_index, u8 tag);
 
 int __must_check start_restoring_delta_index(struct delta_index *delta_index,
 					     struct buffered_reader **buffered_readers,

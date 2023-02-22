@@ -49,7 +49,8 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 					geometry->delta_lists_per_chapter,
 					geometry->chapter_mean_delta,
 					geometry->chapter_payload_bits,
-					memory_size);
+					memory_size,
+					'm');
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(index);
 		return result;

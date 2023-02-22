@@ -106,7 +106,7 @@ static void initializationTest(void)
   size_t memSize = 16 * MEGABYTE;
 
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, numLists, meanDelta,
-                                            numPayloadBits, memSize));
+                                            numPayloadBits, memSize, 'm'));
   uninitialize_delta_index(&di);
   uninitialize_delta_index(&di);
 }
@@ -120,7 +120,7 @@ static void basicTest(void)
   struct delta_index_entry entry;
   enum { NUM_LISTS = 1 };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256, 8,
-                                            2 * MEGABYTE));
+                                            2 * MEGABYTE, 'm'));
 
   // Should not find a record with key 0 in an empty list
   struct uds_record_name name0;
@@ -224,7 +224,7 @@ static void recordSizeTest(void)
   struct delta_index di;
   enum { NUM_LISTS = 1, PAYLOAD_BITS = 4 };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
-                                            PAYLOAD_BITS, 2 * MEGABYTE));
+                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
 
   unsigned int filler, i;
   for (filler = 0; filler < 2; filler++) {
@@ -298,7 +298,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   struct delta_index_stats stats;
   enum { NUM_LISTS = 1, PAYLOAD_BITS = 4 };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
-                                            PAYLOAD_BITS, 2 * MEGABYTE));
+                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
   CU_ASSERT_EQUAL(di.list_count, NUM_LISTS);
   get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
@@ -449,7 +449,7 @@ static void overflowTest(void)
   enum { PAYLOAD_BITS = 8 };
   enum { PAYLOAD_MASK = (1 << PAYLOAD_BITS) - 1 };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256,
-                                            PAYLOAD_BITS, 2 * MEGABYTE));
+                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
   get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
   CU_ASSERT_EQUAL(stats.overflow_count, 0);
@@ -549,7 +549,7 @@ static void lookupTest(void)
 
   // Create index with 1 delta list.  Ensure that the saved offset is valid.
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, 1, 256,
-                                            PAYLOAD_BITS, 2 * MEGABYTE));
+                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
   assertSavedValid(&di);
 
   // Make names for keys 1 to 7.  Insert all but keys 4 and 5 into the index.
@@ -754,7 +754,7 @@ static void saveRestoreTest(void)
   unsigned int meanDelta = (NUM_LISTS * MAX_KEY) / NUM_KEYS;
   enum { MEMORY_SIZE = 2 * MEGABYTE };
   UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, meanDelta,
-                                            4, MEMORY_SIZE));
+                                            4, MEMORY_SIZE, 'm'));
 
   // Compute the size needed for saving the delta index
   size_t saveSize = compute_delta_index_save_bytes(NUM_LISTS, MEMORY_SIZE);
