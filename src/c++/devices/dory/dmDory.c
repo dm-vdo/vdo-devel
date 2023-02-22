@@ -1001,7 +1001,8 @@ static void freeDoryDeviceCache(DoryDevice *dd)
   for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
     CacheBlock *cb = &dd->cacheBlocks[i];
     if (cb->blockBio != NULL) {
-      bio_put(cb->blockBio);
+      bio_uninit(cb->blockBio);
+      kfree(cb->blockBio);
     }
   }
 }
@@ -1065,7 +1066,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
     CacheBlock *cb = &dd->cacheBlocks[i];
     bio_list_init(&cb->waitingBios);
     spin_lock_init(&cb->lock);
-    cb->blockBio = bio_kmalloc(GFP_KERNEL, 1);
+    cb->blockBio = bio_kmalloc(1, GFP_KERNEL);
     cb->blockData = cacheData;
     cb->doryDevice = dd;
     cb->state = EMPTY;
