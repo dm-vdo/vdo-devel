@@ -23,7 +23,6 @@
 #include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
-#include "slab-iterator.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
 #include "status-codes.h"
@@ -671,12 +670,56 @@ static void register_slab_with_allocator(struct block_allocator *allocator, stru
 	allocator->last_slab = slab->slab_number;
 }
 
+/**
+ * get_depot_slab_iterator() - Return a slab_iterator over the slabs in a slab_depot.
+ * @depot: The depot over which to iterate.
+ * @start: The number of the slab to start iterating from.
+ * @end: The number of the last slab which may be returned.
+ * @stride: The difference in slab number between successive slabs.
+ *
+ * Iteration always occurs from higher to lower numbered slabs.
+ *
+ * Return: An initialized iterator structure.
+ */
+static struct slab_iterator get_depot_slab_iterator(struct slab_depot *depot,
+						    slab_count_t start,
+						    slab_count_t end,
+						    slab_count_t stride)
+{
+	struct vdo_slab **slabs = depot->slabs;
+
+	return (struct slab_iterator) {
+		.slabs = slabs,
+		.next = (((slabs == NULL) || (start < end)) ? NULL : slabs[start]),
+		.end = end,
+		.stride = stride,
+	};
+}
+
 static struct slab_iterator get_slab_iterator(const struct block_allocator *allocator)
 {
-	return vdo_iterate_slabs(allocator->depot->slabs,
-				 allocator->last_slab,
-				 allocator->zone_number,
-				 allocator->depot->zone_count);
+	return get_depot_slab_iterator(allocator->depot,
+				       allocator->last_slab,
+				       allocator->zone_number,
+				       allocator->depot->zone_count);
+}
+
+/**
+ * next_slab() - Get the next slab from a slab_iterator and advance the iterator
+ * @iterator: The slab_iterator.
+ *
+ * Return: The next slab or NULL if the iterator is exhausted.
+ */
+static struct vdo_slab *next_slab(struct slab_iterator *iterator)
+{
+	struct vdo_slab *slab = iterator->next;
+
+	if ((slab == NULL) || (slab->slab_number < iterator->end + iterator->stride))
+		iterator->next = NULL;
+	else
+		iterator->next = iterator->slabs[slab->slab_number - iterator->stride];
+
+	return slab;
 }
 
 /* Implements vdo_read_only_notification. */
@@ -687,8 +730,8 @@ static void notify_block_allocator_of_read_only_mode(void *listener, struct vdo_
 
 	assert_on_allocator_thread(allocator->thread_id, __func__);
 	iterator = get_slab_iterator(allocator);
-	while (vdo_has_next_slab(&iterator))
-		vdo_abort_slab_journal_waiters(vdo_next_slab(&iterator)->journal);
+	while (iterator.next != NULL)
+		vdo_abort_slab_journal_waiters(next_slab(&iterator)->journal);
 
 	vdo_complete_completion(parent);
 }
@@ -1017,10 +1060,10 @@ static void apply_to_slabs(struct block_allocator *allocator, vdo_action *callba
 	};
 
 	iterator = get_slab_iterator(allocator);
-	while (vdo_has_next_slab(&iterator)) {
+	while (iterator.next != NULL) {
 		const struct admin_state_code *operation =
 			vdo_get_admin_state_code(&allocator->state);
-		struct vdo_slab *slab = vdo_next_slab(&iterator);
+		struct vdo_slab *slab = next_slab(&iterator);
 
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
@@ -1072,12 +1115,12 @@ static void erase_next_slab_journal(struct block_allocator *allocator)
 	struct slab_depot *depot = allocator->depot;
 	block_count_t blocks = depot->slab_config.slab_journal_blocks;
 
-	if (!vdo_has_next_slab(&allocator->slabs_to_erase)) {
+	if (allocator->slabs_to_erase.next == NULL) {
 		vdo_finish_completion(&allocator->completion, VDO_SUCCESS);
 		return;
 	}
 
-	slab = vdo_next_slab(&allocator->slabs_to_erase);
+	slab = next_slab(&allocator->slabs_to_erase);
 	pbn = slab->journal_origin - depot->vdo->geometry.bio_offset;
 	regions[0] = (struct dm_io_region) {
 		.bdev = vdo_get_backing_device(depot->vdo),
@@ -1219,8 +1262,8 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 
 	uds_log_info("block_allocator zone %u", allocator->zone_number);
-	while (vdo_has_next_slab(&iterator)) {
-		struct vdo_slab *slab = vdo_next_slab(&iterator);
+	while (iterator.next != NULL) {
+		struct vdo_slab *slab = next_slab(&iterator);
 
 		if (slab->reference_counts != NULL)
 			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
@@ -1674,10 +1717,10 @@ struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot
 int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
 {
 	struct slab_iterator iterator =
-		vdo_iterate_slabs(depot->slabs, depot->slab_count - 1, 0, 1);
+		get_depot_slab_iterator(depot, depot->slab_count - 1, 0, 1);
 
-	while (vdo_has_next_slab(&iterator)) {
-		int result = vdo_allocate_ref_counts_for_slab(vdo_next_slab(&iterator));
+	while (iterator.next != NULL) {
+		int result = vdo_allocate_ref_counts_for_slab(next_slab(&iterator));
 
 		if (result != VDO_SUCCESS)
 			return result;

@@ -11,8 +11,9 @@
 
 #include "admin-state.h"
 #include "completion.h"
+#include "data-vio.h"
 #include "priority-table.h"
-#include "slab-iterator.h"
+#include "slab.h"
 #include "statistics.h"
 #include "types.h"
 #include "vdo-component-states.h"
@@ -80,6 +81,14 @@ struct slab_actor {
 	slab_count_t slab_action_count;
 	/* The method to call when a slab action has been completed by all slabs */
 	vdo_action *callback;
+};
+
+/* A slab_iterator is a structure for iterating over a set of slabs. */
+struct slab_iterator {
+	struct vdo_slab **slabs;
+	struct vdo_slab *next;
+	slab_count_t end;
+	slab_count_t stride;
 };
 
 struct block_allocator {
