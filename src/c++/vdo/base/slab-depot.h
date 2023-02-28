@@ -47,7 +47,6 @@ enum block_allocator_drain_step {
 };
 
 struct slab_scrubber {
-	struct vdo_completion completion;
 	/* The queue of slabs to scrub first */
 	struct list_head high_priority_slabs;
 	/* The queue of slabs to scrub once there are no high_priority_slabs */
@@ -65,14 +64,10 @@ struct slab_scrubber {
 	struct admin_state admin_state;
 	/* Whether to only scrub high-priority slabs */
 	bool high_priority_only;
-	/* The context for entering read-only mode */
-	struct read_only_notifier *read_only_notifier;
 	/* The slab currently being scrubbed */
 	struct vdo_slab *slab;
 	/* The vio for loading slab journal blocks */
-	struct vio *vio;
-	/* A buffer to store the slab journal blocks */
-	char *journal_data;
+	struct vio vio;
 };
 
 /* A sub-structure for applying actions in parallel to all an allocator's slabs. */
@@ -121,7 +116,7 @@ struct block_allocator {
 	/* A priority queue containing all slabs available for allocation */
 	struct priority_table *prioritized_slabs;
 	/* The slab scrubber */
-	struct slab_scrubber *slab_scrubber;
+	struct slab_scrubber scrubber;
 	/* What phase of the close operation the allocator is to perform */
 	enum block_allocator_drain_step drain_step;
 
@@ -210,37 +205,7 @@ struct slab_depot {
 	struct block_allocator allocators[];
 };
 
-int __must_check vdo_make_slab_scrubber(struct vdo *vdo,
-					block_count_t slab_journal_size,
-					struct read_only_notifier *read_only_notifier,
-					struct slab_scrubber **scrubber_ptr);
-
-void vdo_free_slab_scrubber(struct slab_scrubber *scrubber);
-
-void vdo_register_slab_for_scrubbing(struct slab_scrubber *scrubber,
-				     struct vdo_slab *slab,
-				     bool high_priority);
-
-void vdo_scrub_slabs(struct slab_scrubber *scrubber,
-		     void *parent,
-		     vdo_action *callback,
-		     vdo_action *error_handler);
-
-void vdo_scrub_high_priority_slabs(struct slab_scrubber *scrubber,
-				   bool scrub_at_least_one,
-				   struct vdo_completion *parent,
-				   vdo_action *callback,
-				   vdo_action *error_handler);
-
-void vdo_stop_slab_scrubbing(struct slab_scrubber *scrubber, struct vdo_completion *parent);
-
-void vdo_resume_slab_scrubbing(struct slab_scrubber *scrubber, struct vdo_completion *parent);
-
-int vdo_enqueue_clean_slab_waiter(struct slab_scrubber *scrubber, struct waiter *waiter);
-
-slab_count_t __must_check vdo_get_scrubber_slab_count(const struct slab_scrubber *scrubber);
-
-void vdo_dump_slab_scrubber(const struct slab_scrubber *scrubber);
+void vdo_register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
@@ -259,6 +224,8 @@ int __must_check vdo_acquire_provisional_reference(struct vdo_slab *slab,
 int __must_check
 vdo_allocate_block(struct block_allocator *allocator, physical_block_number_t *block_number_ptr);
 
+int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator, struct waiter *waiter);
+
 int __must_check vdo_modify_slab_reference_count(struct vdo_slab *slab,
 						 const struct journal_point *journal_point,
 						 struct reference_updater *updater);
@@ -272,7 +239,10 @@ void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
 #ifdef INTERNAL
+void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
+int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
 int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
+void stop_scrubbing(struct block_allocator *allocator);
 void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);
 
 #endif /* INTERNAL */

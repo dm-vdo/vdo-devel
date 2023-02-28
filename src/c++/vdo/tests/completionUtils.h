@@ -61,4 +61,11 @@ int awaitWrappedCompletion(struct vdo_completion *wrapper);
  **/
 void removeCompletionWrapping(struct vdo_completion *completion);
 
+/**
+ * Finish a completion's parent with the result of the completion.
+ *
+ * Implements vdo_action.
+ **/
+void finishParentCallback(struct vdo_completion *completion);
+
 #endif // COMPLETION_UTILS_H

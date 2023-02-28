@@ -16,6 +16,7 @@
 #include "vdo.h"
 
 #include "asyncLayer.h"
+#include "completionUtils.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
@@ -65,7 +66,7 @@ static void resetWrapper(DataVIOWrapper *wrapper, slab_count_t slabNumber)
   struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_reset_completion(&wrapper->completion);
   vdo_reset_completion(&dataVIO->vio.completion);
-  dataVIO->vio.completion.callback = vdo_finish_completion_parent_callback;
+  dataVIO->vio.completion.callback = finishParentCallback;
   dataVIO->vio.completion.parent   = &wrapper->completion;
   dataVIO->logical.lbn             = (logical_block_number_t) slabNumber;
 

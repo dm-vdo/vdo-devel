@@ -65,11 +65,7 @@ static inline void vdo_finish_completion(struct vdo_completion *completion, int 
 	vdo_complete_completion(completion);
 }
 
-void vdo_finish_completion_parent_callback(struct vdo_completion *completion);
-
 void vdo_preserve_completion_error_and_continue(struct vdo_completion *completion);
-
-void vdo_noop_completion_callback(struct vdo_completion *completion);
 
 /**
  * vdo_assert_completion_type() - Assert that a completion is of the correct type.
@@ -188,23 +184,6 @@ vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
 {
 	vdo_prepare_completion(completion, callback, error_handler, thread_id, parent);
 	completion->requeue = true;
-}
-
-/**
- * vdo_prepare_completion_to_finish_parent() - Prepare a completion for launch which will complete
- *                                             its parent when finished.
- * @completion: The completion.
- * @parent: The parent to complete.
- */
-static inline void
-vdo_prepare_completion_to_finish_parent(struct vdo_completion *completion,
-					struct vdo_completion *parent)
-{
-	vdo_prepare_completion(completion,
-			       vdo_finish_completion_parent_callback,
-			       vdo_finish_completion_parent_callback,
-			       parent->callback_thread_id,
-			       parent);
 }
 
 void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,

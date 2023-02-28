@@ -123,15 +123,6 @@ void vdo_complete_completion(struct vdo_completion *completion)
 }
 
 /**
- * vdo_finish_completion_parent_callback() - A callback to finish the parent of a completion.
- * @completion: The completion which has finished and whose parent should be finished.
- */
-void vdo_finish_completion_parent_callback(struct vdo_completion *completion)
-{
-	vdo_finish_completion((struct vdo_completion *) completion->parent, completion->result);
-}
-
-/**
  * vdo_preserve_completion_error_and_continue() - Error handler.
  * @completion: The completion which failed.
  *
@@ -145,18 +136,6 @@ void vdo_preserve_completion_error_and_continue(struct vdo_completion *completio
 
 	vdo_reset_completion(completion);
 	vdo_invoke_completion_callback(completion);
-}
-
-/**
- * vdo_noop_completion_callback() - A callback which does nothing.
- * @completion: The completion being called back.
- *
- * This callback is intended to be set as an error handler in the case where an error should do
- * nothing.
- */
-void
-vdo_noop_completion_callback(struct vdo_completion *completion __always_unused)
-{
 }
 
 /**

@@ -1149,7 +1149,7 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 
 	enqueue_waiter(&journal->entry_waiters, &updater->waiter);
 	if ((slab->status != VDO_SLAB_REBUILT) && requires_reaping(journal))
-		vdo_register_slab_for_scrubbing(slab->allocator->slab_scrubber, slab, true);
+		vdo_register_slab_for_scrubbing(slab, true);
 
 	add_entries(journal);
 }

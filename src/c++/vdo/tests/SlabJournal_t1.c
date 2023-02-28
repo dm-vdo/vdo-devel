@@ -28,6 +28,7 @@
 #include "asyncVIO.h"
 #include "blockAllocatorUtils.h"
 #include "callbackWrappingUtils.h"
+#include "completionUtils.h"
 #include "intIntMap.h"
 #include "latchedCloseUtils.h"
 #include "latchUtils.h"
@@ -300,13 +301,13 @@ static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
 
   struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_prepare_completion(&dataVIO->vio.completion,
-                         vdo_finish_completion_parent_callback,
-                         vdo_finish_completion_parent_callback,
+                         finishParentCallback,
+                         finishParentCallback,
                          0,
                          &wrapper->completion);
   vdo_prepare_completion(&dataVIO->decrement_completion,
-                         vdo_finish_completion_parent_callback,
-                         vdo_finish_completion_parent_callback,
+                         finishParentCallback,
+                         finishParentCallback,
                          0,
                          &wrapper->completion);
 

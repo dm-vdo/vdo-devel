@@ -42,8 +42,7 @@ static void markOpenSlabUnrecovered(struct vdo_completion *completion)
   allocator->open_slab = NULL;
 
   // Add slab to the unrecovered slab list.
-  vdo_register_slab_for_scrubbing(currentSlab->allocator->slab_scrubber,
-                                  currentSlab, false);
+  vdo_register_slab_for_scrubbing(currentSlab, false);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 

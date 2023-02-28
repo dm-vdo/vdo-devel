@@ -137,3 +137,13 @@ int performWrappedAction(vdo_action            *action,
   launchWrappedAction(action, completion, &wrapper);
   return awaitWrappedCompletion(wrapper);
 }
+
+/**
+ * Finish a completion's parent with the result of the completion.
+ *
+ * Implements vdo_action.
+ **/
+void finishParentCallback(struct vdo_completion *completion)
+{
+  vdo_finish_completion(completion->parent, completion->result);
+}

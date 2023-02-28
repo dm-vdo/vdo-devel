@@ -563,8 +563,7 @@ static bool continue_allocating(struct data_vio *data_vio)
 
 	if (allocation->wait_for_clean_slab) {
 		data_vio->waiter.callback = retry_allocation;
-		result = vdo_enqueue_clean_slab_waiter(zone->allocator->slab_scrubber,
-						       &data_vio->waiter);
+		result = vdo_enqueue_clean_slab_waiter(zone->allocator, &data_vio->waiter);
 		if (result == VDO_SUCCESS)
 			/* We've enqueued to wait for a slab to be scrubbed. */
 			return true;

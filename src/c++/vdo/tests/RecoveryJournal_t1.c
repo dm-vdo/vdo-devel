@@ -37,6 +37,7 @@
 
 #include "adminUtils.h"
 #include "asyncLayer.h"
+#include "completionUtils.h"
 #include "intIntMap.h"
 #include "latchUtils.h"
 #include "mutexUtils.h"
@@ -531,7 +532,7 @@ static void journalEntryCallback(struct vdo_completion *completion)
   }
 
   lastCommittedVIOSeen = dataVIO->recovery_journal_point;
-  vdo_finish_completion_parent_callback(completion);
+  finishParentCallback(completion);
 }
 
 /**
@@ -548,7 +549,7 @@ static void resetWrapper(DataVIOWrapper *wrapper, EntryNumber entry)
   struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_prepare_completion(&dataVIO->vio.completion,
                          journalEntryCallback,
-                         vdo_finish_completion_parent_callback,
+                         finishParentCallback,
                          journal->thread_id,
                          wrapper);
   vdo_prepare_completion(&dataVIO->decrement_completion,

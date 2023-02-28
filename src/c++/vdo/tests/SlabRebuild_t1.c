@@ -19,6 +19,7 @@
 #include "vdo.h"
 
 #include "asyncLayer.h"
+#include "callbackWrappingUtils.h"
 #include "completionUtils.h"
 #include "mutexUtils.h"
 #include "ramLayer.h"
@@ -42,11 +43,10 @@ static struct vdo_slab       *slab               = NULL;
 static struct slab_journal   *journal            = NULL;
 static vdo_refcount_t        *expectedReferences = NULL;
 
-static bool                  latchRead;
+static bool                   latchRead;
 
-static block_count_t         expectedBlocksFree;
-static struct slab_config    slabConfig;
-static struct slab_scrubber *scrubber;
+static block_count_t          expectedBlocksFree;
+static struct slab_config     slabConfig;
 
 // These are the commit points of the reference count blocks.
 static struct journal_point blockLimits[5] = {
@@ -119,12 +119,12 @@ static void failOnError(struct vdo_completion *completion)
 static void scrubSlabAction(struct vdo_completion *completion)
 {
   // Mark the slab summary to indicate the slab is unrecovered.
+  VDO_ASSERT_SUCCESS(initialize_slab_scrubber(slab->allocator));
   slab->allocator->summary->entries[slab->slab_number].is_dirty = true;
   slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
-  vdo_register_slab_for_scrubbing(scrubber, slab, true);
-  vdo_scrub_high_priority_slabs(scrubber, true, completion,
-                                vdo_finish_completion_parent_callback,
-                                failOnError);
+  vdo_register_slab_for_scrubbing(slab, true);
+  wrapCompletionCallbackAndErrorHandler(completion, runSavedCallbackAssertNoRequeue, failOnError);
+  scrub_slabs(slab->allocator, completion);
 }
 
 /**
@@ -483,14 +483,6 @@ static DataVIOWrapper *performAddEntry(void)
 }
 
 /**
- * An action to stop the scrubber so it may be freed.
- **/
-static void stopScrubbingAction(struct vdo_completion *completion)
-{
-  vdo_stop_slab_scrubbing(scrubber, completion);
-}
-
-/**
  * Create reference counts with a known pattern, then set up journal entries.
  * Show that the proper journal mappings are applied to the reference counts
  * while the others are ignored.
@@ -504,11 +496,6 @@ static void testRebuild(void)
 
   // Setup hook to latch the first metadata write.
   setBlockVIOCompletionEnqueueHook(shouldBlockVIO, false);
-
-  VDO_ASSERT_SUCCESS(vdo_make_slab_scrubber(vdo,
-                                            depot->slab_config.slab_journal_blocks,
-                                            vdo->read_only_notifier,
-                                            &scrubber));
 
   struct vdo_completion completion;
   vdo_initialize_completion(&completion, vdo, VDO_TEST_COMPLETION);
@@ -529,9 +516,6 @@ static void testRebuild(void)
   reallyEnqueueVIO(blockedVIO);
 
   VDO_ASSERT_SUCCESS(awaitCompletion(&completion));
-  performSuccessfulAction(stopScrubbingAction);
-  vdo_free_slab_scrubber(UDS_FORGET(scrubber));
-
   waitForState(&(vioWrapper->completion.complete));
   VDO_ASSERT_SUCCESS(vioWrapper->completion.result);
   UDS_FREE(vioWrapper);

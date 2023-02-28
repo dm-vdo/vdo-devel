@@ -562,13 +562,13 @@ static void testUnrecoveredSlabs(void)
   depot->load_type = VDO_SLAB_DEPOT_RECOVERY_LOAD;
   VDO_ASSERT_SUCCESS(vdo_prepare_slabs_for_allocation(allocator));
 
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 4);
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 0);
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 2);
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 5);
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 1);
-  CU_ASSERT_EQUAL(chopSlab(&allocator->slab_scrubber->slabs)->slab_number, 3);
-  CU_ASSERT_PTR_NULL(chopSlab(&allocator->slab_scrubber->slabs));
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 4);
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 0);
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 2);
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 5);
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 1);
+  CU_ASSERT_EQUAL(chopSlab(&allocator->scrubber.slabs)->slab_number, 3);
+  CU_ASSERT_PTR_NULL(chopSlab(&allocator->scrubber.slabs));
 }
 
 /**
