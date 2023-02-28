@@ -13,7 +13,6 @@
 #include "syscalls.h"
 
 #include "release-versions.h"
-#include "super-block.h"
 #include "types.h"
 #include "vdo-component-states.h"
 
@@ -23,263 +22,72 @@
 #include "vdoTestBase.h"
 
 enum {
-  DATA1_SIZE           = 10,
-  DATA2_SIZE           = 20,
-};
-
-static const u8 DATA1[] = {
-  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-};
-
-static const u8 DATA2[] = {
-  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-  0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
+  // By measurement.
+  SUPER_BLOCK_PAYLOAD_SIZE = 418,
+  SUPER_BLOCK_SIZE =  VDO_ENCODED_HEADER_SIZE + SUPER_BLOCK_PAYLOAD_SIZE,
+  CHECKSUM_OFFSET = SUPER_BLOCK_SIZE - sizeof(u32),
 };
 
 /*
- * A captured encoding of the super block version 12.0 wrapping the test
- * payload data above. This is used by testEncoding() to check that the
+ * The expected encoding of the super block version 12.0 header. This is used to test that the
  * encoding format hasn't changed and is platform-independent.
  */
-static u8 EXPECTED_SUPERBLOCK_12_0_ENCODING[] =
+static u8 EXPECTED_SUPERBLOCK_12_0_ENCODED_HEADER[] =
   {
                                                     // header
     0x00, 0x00, 0x00, 0x00,                         //   .id = VDO_SUPER_BLOCK
     0x0C, 0x00, 0x00, 0x00,                         //   .majorVersion = 12
     0x00, 0x00, 0x00, 0x00,                         //   .minorVersion = 0
-    0x22, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //   .size = 34
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // payload = DATA1 + DATA2
-    0x09, 0x0a, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-    0x07, 0x08, 0x09, 0x0a, 0x11, 0x12, 0x13, 0x14,
-    0x15, 0x16, 0x17, 0x18, 0x19, 0x1a,
-    0x55, 0xe2, 0xc7, 0x3c,                         // checksum = 0x3cc7e255
+    0xa2, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //   .size = SUPER_BLOCK_PAYLOAD_SIZE (418)
   };
 
-static char                    block[VDO_BLOCK_SIZE];
-static struct vdo_super_block *superBlock;
-static struct vdo_super_block *loadedSuperBlock;
-static UserVDO                *userVDO;
-static UserVDO                *loadedVDO;
-static size_t                  superBlockSize;
-
-/**
- * Initialize a super block.
- **/
-static void initializeSuperBlockT1(void)
-{
-  superBlockSize = VDO_SUPER_BLOCK_FIXED_SIZE + DATA1_SIZE + DATA2_SIZE;
-  initializeDefaultBasicTest();
-}
-
 /**********************************************************************/
-static void initializeVDO(UserVDO **vdoPtr)
+static void testSuperBlock(void)
 {
-  VDO_ASSERT_SUCCESS(makeUserVDO(layer, vdoPtr));
-  UserVDO *userVDO = *vdoPtr;
-  userVDO->geometry.regions[VDO_DATA_REGION] = (struct volume_region) {
-    .id = VDO_DATA_REGION,
-    .start_block = getSuperBlockLocation(),
-  };
-}
+  // Test set-up will have formatted and started the vdo confirming that what the synchronous save
+  // has written is intelligible to the asynchronous load.
 
-/**
- * Clean up from a test.
- **/
-static void tearDownSuperBlockT1(void)
-{
-  vdo_free_super_block(UDS_FORGET(superBlock));
-  freeUserVDO(&userVDO);
-  tearDownVDOTest();
-}
+  // Check the header.
+  char block[VDO_BLOCK_SIZE];
+  VDO_ASSERT_SUCCESS(layer->reader(layer, getSuperBlockLocation(), 1, block));
+  UDS_ASSERT_EQUAL_BYTES(EXPECTED_SUPERBLOCK_12_0_ENCODED_HEADER, block, VDO_ENCODED_HEADER_SIZE);
 
-/**
- * Check that a super block codec contains the correct data
- *
- * @param a  The first codec to validate
- * @param b  The second codec to validate
- **/
-static void assertEquivalentCodecs(struct super_block_codec *a,
-                                   struct super_block_codec *b)
-{
-  UDS_ASSERT_EQUAL_BYTES(a->encoded_super_block, b->encoded_super_block,
-                         VDO_BLOCK_SIZE);
-  CU_ASSERT_TRUE(equal_buffers(a->component_buffer, b->component_buffer));
-  CU_ASSERT_TRUE(equal_buffers(a->block_buffer, b->block_buffer));
-}
+  // Stop the VDO, confirm that the super block modified as the vdo state will have changed from
+  // VDO_NEW to VDO_CLEAN.
+  stopVDO();
+  struct super_block_codec codec;
+  VDO_ASSERT_SUCCESS(vdo_initialize_super_block_codec(&codec));
+  char *loaded = (char *) codec.encoded_super_block;
+  VDO_ASSERT_SUCCESS(layer->reader(layer, getSuperBlockLocation(), 1, loaded));
+  UDS_ASSERT_EQUAL_BYTES(EXPECTED_SUPERBLOCK_12_0_ENCODED_HEADER, loaded, VDO_ENCODED_HEADER_SIZE);
+  UDS_ASSERT_NOT_EQUAL_BYTES(block, loaded, SUPER_BLOCK_SIZE);
 
-/**********************************************************************/
-static struct super_block_codec *encodeSuperBlockPayload(bool async)
-{
-  struct super_block_codec *codec;
-  if (async) {
-    VDO_ASSERT_SUCCESS(vdo_make_super_block(vdo, &superBlock));
-    codec = vdo_get_super_block_codec(superBlock);
-  } else {
-    initializeVDO(&userVDO);
-    codec = &userVDO->superBlockCodec;
-  }
+  // Confirm that synchronous load can read the modified super block.
+  VDO_ASSERT_SUCCESS(vdo_decode_super_block(&codec));
 
-  // Set up what we think the super block should look like for later
-  // comparison.
-  memset(block, 0, VDO_BLOCK_SIZE);
-  memcpy(block, EXPECTED_SUPERBLOCK_12_0_ENCODING,
-         sizeof(EXPECTED_SUPERBLOCK_12_0_ENCODING));
+  // Break the checksum and confirm that decode/load fails.
+  u8 checksumByte = loaded[CHECKSUM_OFFSET];
+  memset(loaded + CHECKSUM_OFFSET, ++checksumByte, 1);
+  CU_ASSERT_EQUAL(VDO_CHECKSUM_MISMATCH, vdo_decode_super_block(&codec));
+  VDO_ASSERT_SUCCESS(layer->writer(layer, getSuperBlockLocation(), 1, loaded));
+  setStartStopExpectation(-EIO);
+  startAsyncLayer(getTestConfig(), true);
 
-  struct buffer *buffer = codec->component_buffer;
-  VDO_ASSERT_SUCCESS(reset_buffer_end(buffer, 0));
-  VDO_ASSERT_SUCCESS(put_bytes(buffer, DATA1_SIZE, DATA1));
-  VDO_ASSERT_SUCCESS(put_bytes(buffer, DATA2_SIZE, DATA2));
-
-  return codec;
-}
-
-/**********************************************************************/
-static void saveSuperBlockAction(struct vdo_completion *completion)
-{
-  vdo_save_super_block(superBlock, getSuperBlockLocation(), completion);
-}
-
-/**********************************************************************/
-static void attemptSaveSuperBlock(bool saveAsync, int expectedResult)
-{
-  if (saveAsync) {
-    performActionExpectResult(saveSuperBlockAction, expectedResult);
-  } else {
-    CU_ASSERT_EQUAL(expectedResult, saveSuperBlock(userVDO));
-  }
-}
-
-/**********************************************************************/
-static void cleanUpLoad(bool async) {
-  if (async) {
-    vdo_free_super_block(UDS_FORGET(loadedSuperBlock));
-  } else {
-    freeUserVDO(&loadedVDO);
-  }
-}
-
-/**********************************************************************/
-static void loadSuperBlockAction(struct vdo_completion *completion)
-{
-  vdo_load_super_block(vdo,
-                       completion,
-                       getSuperBlockLocation(),
-                       &loadedSuperBlock);
-}
-
-/**********************************************************************/
-static void attemptLoadSuperBlock(bool loadAsync, int expectedResult)
-{
-  if (loadAsync) {
-    performActionExpectResult(loadSuperBlockAction, expectedResult);
-  } else {
-    initializeVDO(&loadedVDO);
-    CU_ASSERT_EQUAL(expectedResult, loadSuperBlock(loadedVDO));
-  }
-}
-
-/**********************************************************************/
-static struct super_block_codec *attemptSuccessfulLoad(bool async)
-{
-  attemptLoadSuperBlock(async, VDO_SUCCESS);
-  if (async) {
-    return vdo_get_super_block_codec(loadedSuperBlock);
-  } else {
-    return &loadedVDO->superBlockCodec;
-  }
-}
-
-/**********************************************************************/
-static void attemptFailedLoad(bool async, int expectedResult)
-{
-  attemptLoadSuperBlock(async, expectedResult);
-  cleanUpLoad(async);
-}
-
-/**********************************************************************/
-static void superBlockLoad(struct super_block_codec *saved_codec, bool async)
-{
-  assertEquivalentCodecs(saved_codec, attemptSuccessfulLoad(async));
-  cleanUpLoad(async);
-}
-
-/**
- * Test saving and loading of a super block.
- **/
-static void doSaveAndLoadTest(bool saveAsync)
-{
-  /* Do a normal save and load */
-  struct super_block_codec *codec = encodeSuperBlockPayload(saveAsync);
-  attemptSaveSuperBlock(saveAsync, VDO_SUCCESS);
-  superBlockLoad(codec, false);
-  superBlockLoad(codec, true);
-
-  /* Break the checksum */
-  memset(block + superBlockSize - sizeof(uint32_t), 0, sizeof(uint32_t));
-  VDO_ASSERT_SUCCESS(layer->writer(layer, getSuperBlockLocation(), 1, block));
-  attemptFailedLoad(false, VDO_CHECKSUM_MISMATCH);
-  attemptFailedLoad(true, VDO_CHECKSUM_MISMATCH);
-}
-
-/**
- * Test saving and loading of a super block.
- **/
-static void testSyncSaveAndLoad(void)
-{
-  doSaveAndLoadTest(false);
-}
-
-/**
- * Test saving and loading of a super block.
- **/
-static void testAsyncSaveAndLoad(void)
-{
-  doSaveAndLoadTest(true);
-}
-
-/**
- * Test that a super_block is correctly decoded and re-encoded regardless of
- * the endianness of the test platform.
- **/
-static void testEncoding(void)
-{
-  // Fill in the expected DATA1+DATA2 payload for comparison.
-  struct super_block_codec *codec = encodeSuperBlockPayload(false);
-  VDO_ASSERT_SUCCESS(vdo_encode_super_block(codec));
-
-  // Test decoding by stashing the test encoding in the layer and loading it.
-  physical_block_number_t superBlockLocation = getSuperBlockLocation();
-  VDO_ASSERT_SUCCESS(layer->writer(layer, superBlockLocation, 1, block));
-
-  initializeVDO(&loadedVDO);
-  VDO_ASSERT_SUCCESS(loadSuperBlock(loadedVDO));
-
-  // Verify the contents of the loaded codec
-  assertEquivalentCodecs(codec, &loadedVDO->superBlockCodec);
-
-  // Re-encode it by saving it back out to the layer.
-  VDO_ASSERT_SUCCESS(saveSuperBlock(loadedVDO));
-
-  // Verify the encoding by reading it from the layer and comparing it.
-  VDO_ASSERT_SUCCESS(layer->reader(layer, superBlockLocation, 1, block));
-  UDS_ASSERT_EQUAL_BYTES(EXPECTED_SUPERBLOCK_12_0_ENCODING,
-                         block, sizeof(EXPECTED_SUPERBLOCK_12_0_ENCODING));
+  vdo_destroy_super_block_codec(&codec);
 }
 
 /**********************************************************************/
 
 static CU_TestInfo superBlockTests[] = {
-  { "test save and load",       testSyncSaveAndLoad  },
-  { "test save and load async", testAsyncSaveAndLoad },
-  { "test encoding",            testEncoding         },
+  { "test super block save and load", testSuperBlock  },
   CU_TEST_INFO_NULL
 };
 
 static CU_SuiteInfo superBlockSuite = {
   .name                     = "Super Block (SuperBlock_t1)",
   .initializerWithArguments = NULL,
-  .initializer              = initializeSuperBlockT1,
-  .cleaner                  = tearDownSuperBlockT1,
+  .initializer              = initializeDefaultVDOTest,
+  .cleaner                  = tearDownVDOTest,
   .tests                    = superBlockTests,
 };
 

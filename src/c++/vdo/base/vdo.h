@@ -16,7 +16,6 @@
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
-#include "super-block.h"
 #include "read-only-notifier.h"
 #include "thread-config.h"
 #ifdef __KERNEL__
@@ -73,6 +72,15 @@ struct atomic_statistics {
 	struct atomic_bio_stats bios_page_cache_completed;
 };
 
+struct vdo_super_block {
+	/* The vio for reading and writing the super block to disk */
+	struct vio vio;
+	/* The super block codec */
+	struct super_block_codec codec;
+	/* Whether this super block may not be written */
+	bool unwriteable;
+};
+
 struct data_vio_pool;
 
 struct vdo_administrator {
@@ -107,7 +115,7 @@ struct vdo {
 	struct thread_config *thread_config;
 
 	/* The super block */
-	struct vdo_super_block *super_block;
+	struct vdo_super_block super_block;
 
 	/* Our partitioning of the physical layer's storage */
 	struct vdo_layout *layout;
@@ -237,6 +245,8 @@ vdo_make(unsigned int instance, struct device_config *config, char **reason, str
 
 void vdo_destroy(struct vdo *vdo);
 
+void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent);
+
 int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
 
 struct block_device * __must_check vdo_get_backing_device(const struct vdo *vdo);
@@ -298,5 +308,4 @@ void vdo_dump_status(const struct vdo *vdo);
 block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo);
 block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo);
 #endif /* INTERNAL */
-
 #endif /* VDO_H */

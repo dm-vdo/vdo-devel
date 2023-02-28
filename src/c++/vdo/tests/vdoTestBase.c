@@ -25,7 +25,6 @@
 #include "slab.h"
 #include "status-codes.h"
 #include "status-codes.h"
-#include "super-block.h"
 #include "types.h"
 #include "vdo-component-states.h"
 #include "vdo.h"

@@ -1410,6 +1410,10 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 
 	/* The component data is all the rest, except for the checksum. */
 	component_data_size = content_length(buffer) - sizeof(u32);
+	result = reset_buffer_end(codec->component_buffer, 0);
+	if (result != VDO_SUCCESS)
+		return result;
+
 	result = put_buffer(codec->component_buffer, buffer, component_data_size);
 	if (result != VDO_SUCCESS)
 		return result;

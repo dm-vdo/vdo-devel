@@ -311,8 +311,6 @@ tarballs:
             - statistics.h
             - status-codes.c
             - status-codes.h
-            - super-block.c
-            - super-block.h
             - sysfs.c
             - thread-config.c
             - thread-config.h

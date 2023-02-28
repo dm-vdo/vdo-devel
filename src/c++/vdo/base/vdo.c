@@ -43,7 +43,6 @@
 #include "slab-summary.h"
 #include "statistics.h"
 #include "status-codes.h"
-#include "super-block.h"
 #include "thread-config.h"
 #include "vdo-component-states.h"
 #include "vdo-layout.h"
@@ -504,6 +503,12 @@ static void finish_vdo(struct vdo *vdo)
 		finish_work_queue(vdo->threads[i].queue);
 }
 
+static void uninitialize_super_block(struct vdo_super_block *super_block)
+{
+	free_vio_components(&super_block->vio);
+	vdo_destroy_super_block_codec(&super_block->codec);
+}
+
 /**
  * unregister_vdo() - Remove a vdo from the device registry.
  * @vdo: The vdo to remove.
@@ -550,7 +555,7 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
 	vdo_free_slab_depot(UDS_FORGET(vdo->depot));
 	vdo_free_layout(UDS_FORGET(vdo->layout));
-	vdo_free_super_block(UDS_FORGET(vdo->super_block));
+	uninitialize_super_block(&vdo->super_block);
 	vdo_free_block_map(UDS_FORGET(vdo->block_map));
 	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
 	vdo_free_physical_zones(UDS_FORGET(vdo->physical_zones));
@@ -585,6 +590,81 @@ void vdo_destroy(struct vdo *vdo)
 		UDS_FREE(vdo);
 	else
 		kobject_put(&vdo->vdo_directory);
+}
+
+static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
+{
+	int result;
+
+	result = vdo_initialize_super_block_codec(&super_block->codec);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	return allocate_vio_components(vdo,
+				       VIO_TYPE_SUPER_BLOCK,
+				       VIO_PRIORITY_METADATA,
+				       NULL,
+				       1,
+				       (char *) super_block->codec.encoded_super_block,
+				       &vdo->super_block.vio);
+}
+
+/**
+ * finish_reading_super_block() - Continue after loading the super block.
+ * @completion: The super block vio.
+ *
+ * This callback is registered in vdo_load_super_block().
+ */
+static void finish_reading_super_block(struct vdo_completion *completion)
+{
+	struct vdo_super_block *super_block =
+		container_of(as_vio(completion), struct vdo_super_block, vio);
+
+	vdo_continue_completion(UDS_FORGET(completion->parent),
+				vdo_decode_super_block(&super_block->codec));
+}
+
+/**
+ * handle_super_block_read_error() - Handle an error reading the super block.
+ * @completion: The super block vio.
+ *
+ * This error handler is registered in vdo_load_super_block().
+ */
+static void handle_super_block_read_error(struct vdo_completion *completion)
+{
+	record_metadata_io_error(as_vio(completion));
+	finish_reading_super_block(completion);
+}
+
+static void read_super_block_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vdo_completion *parent = vio->completion.parent;
+
+	continue_vio_after_io(vio, finish_reading_super_block, parent->callback_thread_id);
+}
+
+/**
+ * vdo_load_super_block() - Allocate a super block and read its contents from storage.
+ * @vdo: The vdo containing the super block on disk.
+ * @parent: The completion to notify after loading the super block.
+ */
+void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent)
+{
+	int result;
+
+	result = initialize_super_block(vdo, &vdo->super_block);
+	if (result != VDO_SUCCESS) {
+		vdo_continue_completion(parent, result);
+		return;
+	}
+
+	vdo->super_block.vio.completion.parent = parent;
+	submit_metadata_vio(&vdo->super_block.vio,
+			    vdo_get_data_region_start(vdo->geometry),
+			    read_super_block_endio,
+			    handle_super_block_read_error,
+			    REQ_OP_READ);
 }
 
 /**
@@ -745,26 +825,91 @@ static void record_vdo(struct vdo *vdo)
 }
 
 /**
+ * continue_super_block_parent() - Continue the parent of a super block save operation.
+ * @completion: The super block vio.
+ *
+ * This callback is registered in vdo_save_components().
+ */
+static void continue_super_block_parent(struct vdo_completion *completion)
+{
+	vdo_continue_completion(UDS_FORGET(completion->parent), completion->result);
+}
+
+/**
+ * handle_save_error() - Log a super block save error.
+ * @completion: The super block vio.
+ *
+ * This error handler is registered in vdo_save_components().
+ */
+static void handle_save_error(struct vdo_completion *completion)
+{
+	struct vdo_super_block *super_block =
+		container_of(as_vio(completion), struct vdo_super_block, vio);
+
+	record_metadata_io_error(&super_block->vio);
+	uds_log_error_strerror(completion->result, "super block save failed");
+	/*
+	 * Mark the super block as unwritable so that we won't attempt to write it again. This
+	 * avoids the case where a growth attempt fails writing the super block with the new size,
+	 * but the subsequent attempt to write out the read-only state succeeds. In this case,
+	 * writes which happened just before the suspend would not be visible if the VDO is
+	 * restarted without rebuilding, but, after a read-only rebuild, the effects of those
+	 * writes would reappear.
+	 */
+	super_block->unwriteable = true;
+	completion->callback(completion);
+}
+
+static void super_block_write_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct vdo_completion *parent = vio->completion.parent;
+
+	continue_vio_after_io(vio, continue_super_block_parent, parent->callback_thread_id);
+}
+
+/**
  * vdo_save_components() - Encode the vdo and save the super block asynchronously.
  * @vdo: The vdo whose state is being saved.
  * @parent: The completion to notify when the save is complete.
- *
- * All non-user mode super block savers should use this bottle neck instead of
- * calling vdo_save_super_block() directly.
  */
 void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	int result;
-	struct buffer *buffer = vdo_get_super_block_codec(vdo->super_block)->component_buffer;
+	struct buffer *buffer;
+	struct vdo_super_block *super_block = &vdo->super_block;
 
-	record_vdo(vdo);
-	result = vdo_encode_component_states(buffer, &vdo->states);
-	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+	if (super_block->unwriteable) {
+		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
-	vdo_save_super_block(vdo->super_block, vdo_get_data_region_start(vdo->geometry), parent);
+	if (super_block->vio.completion.parent != NULL) {
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
+		return;
+	}
+
+	record_vdo(vdo);
+	buffer = vdo->super_block.codec.component_buffer;
+	result = vdo_encode_component_states(buffer, &vdo->states);
+	if (result != VDO_SUCCESS) {
+		vdo_continue_completion(parent, result);
+		return;
+	}
+
+	result = vdo_encode_super_block(&super_block->codec);
+	if (result != VDO_SUCCESS) {
+		vdo_continue_completion(parent, result);
+		return;
+	}
+
+	super_block->vio.completion.parent = parent;
+	super_block->vio.completion.callback_thread_id = parent->callback_thread_id;
+	submit_metadata_vio(&super_block->vio,
+			    vdo_get_data_region_start(vdo->geometry),
+			    super_block_write_endio,
+			    handle_save_error,
+			    REQ_OP_WRITE | REQ_PREFLUSH | REQ_FUA);
 }
 
 /**

@@ -1397,10 +1397,9 @@ static void finish_operation_callback(struct vdo_completion *completion)
 static int __must_check decode_from_super_block(struct vdo *vdo)
 {
 	const struct device_config *config = vdo->device_config;
-	struct super_block_codec *codec = vdo_get_super_block_codec(vdo->super_block);
 	int result;
 
-	result = vdo_decode_component_states(codec->component_buffer,
+	result = vdo_decode_component_states(vdo->super_block.codec.component_buffer,
 					     vdo->geometry.release_version,
 					     &vdo->states);
 	if (result != VDO_SUCCESS)
@@ -1541,10 +1540,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 			return;
 		}
 
-		vdo_load_super_block(vdo,
-				     completion,
-				     vdo_get_data_region_start(vdo->geometry),
-				     &vdo->super_block);
+		vdo_load_super_block(vdo, completion);
 		return;
 
 	case PRE_LOAD_PHASE_LOAD_COMPONENTS:
