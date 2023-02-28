@@ -22,7 +22,6 @@
 #include "flush.h"
 #include "int-map.h"
 #include "slab-depot.h"
-#include "slab-scrubber.h"
 #include "status-codes.h"
 #include "vdo.h"
 #include "vdo-component-states.h"

@@ -304,8 +304,6 @@ tarballs:
             - slab-iterator.h
             - slab-journal.c
             - slab-journal.h
-            - slab-scrubber.c
-            - slab-scrubber.h
             - slab-summary.c
             - slab-summary.h
             - statistics.h

@@ -15,7 +15,6 @@
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab-scrubber.h"
 #include "status-codes.h"
 #include "vdo.h"
 #include "vio.h"

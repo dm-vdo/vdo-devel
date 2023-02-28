@@ -35,7 +35,6 @@ BASE_OBJS :=     			\
 	slab.o				\
 	slab-depot.o			\
 	slab-journal.o			\
-	slab-scrubber.o			\
 	slab-summary.o			\
 	status-codes.o			\
 	thread-config.o			\
