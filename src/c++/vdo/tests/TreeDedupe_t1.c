@@ -12,7 +12,6 @@
 #include "syscalls.h"
 
 #include "block-map.h"
-#include "read-only-notifier.h"
 #include "vdo-component-states.h"
 #include "volume-geometry.h"
 

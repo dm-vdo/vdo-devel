@@ -20,7 +20,6 @@
 #include "dedupe.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
-#include "read-only-notifier.h"
 #include "status-codes.h"
 #include "thread-config.h"
 #include "vdo.h"
@@ -475,7 +474,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
 
 	agent->vio.completion.error_handler = handle_compressed_write_error;
-	if (vdo_is_read_only(vdo_from_data_vio(agent)->read_only_notifier)) {
+	if (vdo_is_read_only(vdo_from_data_vio(agent))) {
 		continue_data_vio_with_error(agent, VDO_READ_ONLY);
 		return;
 	}

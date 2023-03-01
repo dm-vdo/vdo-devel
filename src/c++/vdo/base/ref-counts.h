@@ -90,8 +90,6 @@ struct ref_counts {
 	/* Whether slab summary update is in progress */
 	bool updating_slab_summary;
 
-	/* The notifier for read-only mode */
-	struct read_only_notifier *read_only_notifier;
 	/* The refcount statistics, shared by all refcounts in our physical zone */
 	struct ref_counts_statistics *statistics;
 	/* The layer PBN for the first struct reference_block */
@@ -109,7 +107,6 @@ int __must_check
 vdo_make_ref_counts(block_count_t block_count,
 		    struct vdo_slab *slab,
 		    physical_block_number_t origin,
-		    struct read_only_notifier *read_only_notifier,
 		    struct ref_counts **ref_counts_ptr);
 
 void vdo_free_ref_counts(struct ref_counts *ref_counts);

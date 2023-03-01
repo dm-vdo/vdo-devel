@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "read-only-notifier.h"
 #include "slab-depot.h"
 #include "slab-summary.h"
 #include "vdo.h"
@@ -28,16 +27,15 @@ enum {
   INITIAL_ZONES = 3,
 };
 
-static struct fixed_layout       *layout;
-static struct partition          *partition;
-static struct slab_summary_zone  *summaryZone;
+static struct fixed_layout      *layout;
+static struct partition         *partition;
+static struct slab_summary_zone *summaryZone;
 
-static struct read_only_notifier *readOnlyNotifier = NULL;
-static struct slab_summary       *summary          = NULL;
-static struct thread_config      *threadConfig     = NULL;
-static struct waiter              waiter;
-static slab_count_t               slabCount;
-static struct vdo_completion     *updateCompletion;
+static struct slab_summary      *summary      = NULL;
+static struct thread_config     *threadConfig = NULL;
+static struct waiter             waiter;
+static slab_count_t              slabCount;
+static struct vdo_completion    *updateCompletion;
 
 /**
  * Set up a slab_summary and layers for test purposes.
@@ -77,7 +75,6 @@ static void initializeSlabSummaryT2(void)
 static void destroySummary(void)
 {
   vdo_free_slab_summary(UDS_FORGET(summary));
-  vdo_free_read_only_notifier(UDS_FORGET(readOnlyNotifier));
   vdo_free_thread_config(UDS_FORGET(threadConfig));
 }
 
@@ -105,16 +102,11 @@ static void makeSummary(zone_count_t zones)
     .hash_zones = 1,
   };
   VDO_ASSERT_SUCCESS(vdo_make_thread_config(counts, &threadConfig));
-  VDO_ASSERT_SUCCESS(vdo_make_read_only_notifier(false,
-                                                 threadConfig,
-                                                 vdo,
-                                                 &readOnlyNotifier));
   VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
                                            partition,
                                            threadConfig,
                                            23,
                                            1 << 22,
-                                           readOnlyNotifier,
                                            &summary));
 }
 

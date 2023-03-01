@@ -320,6 +320,11 @@ static bool suspend_lock_counter(struct lock_counter *counter)
 		(prior_state == LOCK_COUNTER_STATE_NOT_NOTIFYING));
 }
 
+static inline bool is_read_only(struct recovery_journal *journal)
+{
+	return vdo_is_read_only(journal->flush_vio->completion.vdo);
+}
+
 /**
  * check_for_drain_complete() - Check whether the journal has drained.
  * @journal: The journal which may have just drained.
@@ -328,7 +333,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 {
 	int result = VDO_SUCCESS;
 
-	if (vdo_is_read_only(journal->read_only_notifier)) {
+	if (is_read_only(journal)) {
 		result = VDO_READ_ONLY;
 		/*
 		 * Clean up any full active blocks which were not written due to read-only mode.
@@ -389,7 +394,7 @@ notify_recovery_journal_of_read_only_mode(void *listener, struct vdo_completion 
  */
 static void enter_journal_read_only_mode(struct recovery_journal *journal, int error_code)
 {
-	vdo_enter_read_only_mode(journal->read_only_notifier, error_code);
+	vdo_enter_read_only_mode(journal->flush_vio->completion.vdo, error_code);
 	check_for_drain_complete(journal);
 }
 
@@ -702,7 +707,6 @@ static int initialize_recovery_block(struct vdo *vdo,
  * @partition: The partition for the journal.
  * @recovery_count: The VDO's number of completed recoveries.
  * @journal_size: The number of blocks in the journal on disk.
- * @read_only_notifier: The read-only mode notifier.
  * @thread_config: The thread configuration of the VDO.
  * @journal_ptr: The pointer to hold the new recovery journal.
  *
@@ -714,7 +718,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 				struct partition *partition,
 				u64 recovery_count,
 				block_count_t journal_size,
-				struct read_only_notifier *read_only_notifier,
 				const struct thread_config *thread_config,
 				struct recovery_journal **journal_ptr)
 {
@@ -739,7 +742,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
 	journal->size = journal_size;
-	journal->read_only_notifier = read_only_notifier;
 	journal->slab_journal_commit_threshold = (journal_size * 2) / 3;
 	journal->logical_blocks_used = state.logical_blocks_used;
 	journal->block_map_data_blocks = state.block_map_data_blocks;
@@ -776,7 +778,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 		return result;
 	}
 
-	result = vdo_register_read_only_listener(read_only_notifier,
+	result = vdo_register_read_only_listener(vdo,
 						 journal,
 						 notify_recovery_journal_of_read_only_mode,
 						 journal->thread_id);
@@ -1214,10 +1216,9 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
-	int result = (vdo_is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY : VDO_SUCCESS);
+	int result = (is_read_only(journal) ? VDO_READ_ONLY : VDO_SUCCESS);
 	bool has_decrement;
 
-	result = (vdo_is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY : VDO_SUCCESS);
 	ASSERT_LOG_ONLY(vdo_before_journal_point(&journal->commit_point,
 						 &data_vio->recovery_journal_point),
 			"DataVIOs released from recovery journal in order. Recovery journal point is (%llu, %u), but commit waiter point is (%llu, %u)",
@@ -1258,7 +1259,7 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 			return;
 
 		notify_all_waiters(&block->commit_waiters, continue_committed_waiter, journal);
-		if (vdo_is_read_only(journal->read_only_notifier))
+		if (is_read_only(journal))
 			notify_all_waiters(&block->entry_waiters,
 					   continue_committed_waiter,
 					   journal);
@@ -1281,8 +1282,7 @@ static void recycle_journal_blocks(struct recovery_journal *journal)
 			/* Don't recycle committing blocks. */
 			return;
 
-		if (!vdo_is_read_only(journal->read_only_notifier) &&
-		    (is_block_dirty(block) || !is_block_full(block)))
+		if (!is_read_only(journal) && (is_block_dirty(block) || !is_block_full(block)))
 			/*
 			 * Don't recycle partially written or partially full blocks, except in
 			 * read-only mode.
@@ -1412,9 +1412,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t pbn;
 
-	if (block->committing ||
-	    !has_waiters(&block->entry_waiters) ||
-	    vdo_is_read_only(block->journal->read_only_notifier))
+	if (block->committing || !has_waiters(&block->entry_waiters) || is_read_only(journal))
 		return;
 
 	result = vdo_translate_to_pbn(journal->partition, block->block_number, &pbn);
@@ -1502,7 +1500,7 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct dat
 		return;
 	}
 
-	if (vdo_is_read_only(journal->read_only_notifier)) {
+	if (is_read_only(journal)) {
 		continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
 		return;
 	}
@@ -1723,7 +1721,7 @@ void vdo_resume_recovery_journal(struct recovery_journal *journal, struct vdo_co
 	assert_on_journal_thread(journal, __func__);
 	saved = vdo_is_state_saved(&journal->state);
 	vdo_set_completion_result(parent, vdo_resume_if_quiescent(&journal->state));
-	if (vdo_is_read_only(journal->read_only_notifier)) {
+	if (is_read_only(journal)) {
 		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}

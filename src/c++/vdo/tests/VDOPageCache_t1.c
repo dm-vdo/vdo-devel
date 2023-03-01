@@ -516,12 +516,6 @@ static void readOnlyModeListener(void *listener __attribute__((unused)),
 }
 
 /**********************************************************************/
-static void notEnteringAction(struct vdo_completion *completion)
-{
-  vdo_wait_until_not_entering_read_only_mode(zone->read_only_notifier, completion);
-}
-
-/**********************************************************************/
 static void testReadOnly(void)
 {
   initializeWithDefaults();
@@ -534,7 +528,7 @@ static void testReadOnly(void)
   getWritablePage(0, &completions[0]);
   readOnly = false;
   setBIOSubmitHook(failMetaWritesHook);
-  vdo_register_read_only_listener(zone->read_only_notifier, NULL, readOnlyModeListener, 0);
+  vdo_register_read_only_listener(vdo, NULL, readOnlyModeListener, 0);
   fillPage(&completions[0], 2, 1);
   performPageAction(&completions[0], vdo_release_page_completion);
 
@@ -544,7 +538,7 @@ static void testReadOnly(void)
   // Fail the write of page 0.
   advanceDirtyPeriod(2, false);
   waitForState(&readOnly);
-  performSuccessfulAction(notEnteringAction);
+  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
 
   // Dirty page 1.
   fillPage(&completions[1], 3, 2);

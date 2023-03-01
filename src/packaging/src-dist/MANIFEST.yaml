@@ -290,8 +290,6 @@ tarballs:
             - pool-sysfs-stats.c
             - priority-table.c
             - priority-table.h
-            - read-only-notifier.c
-            - read-only-notifier.h
             - recovery-journal.c
             - recovery-journal.h
             - ref-counts.c

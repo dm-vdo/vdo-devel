@@ -12,7 +12,6 @@
 #include "permassert.h"
 
 #include "constants.h"
-#include "read-only-notifier.h"
 #include "slab.h"
 #include "slab-summary.h"
 #include "vdo-layout.h"
@@ -31,14 +30,13 @@ enum fakeErrorCodes {
   WRITE_ERROR  = -1,
 };
 
-static struct fixed_layout       *layout;
-static struct partition          *slabSummaryPartition;
-static struct partition          *slabPartition;
-static struct read_only_notifier *readOnlyNotifier;
-static struct thread_config      *threadConfig;
-static struct slab_summary       *summary;
-static struct slab_summary_zone  *summaryZone;
-static struct slab_status        *statuses;
+static struct fixed_layout      *layout;
+static struct partition         *slabSummaryPartition;
+static struct partition         *slabPartition;
+static struct thread_config     *threadConfig;
+static struct slab_summary      *summary;
+static struct slab_summary_zone *summaryZone;
+static struct slab_status       *statuses;
 
 /**********************************************************************/
 static block_count_t getDefaultFreeBlocks(size_t id)
@@ -149,16 +147,11 @@ static void initializeSlabSummary(void)
 						    VDO_SLAB_SUMMARY_PARTITION,
 						    &slabSummaryPartition));
   threadConfig = makeOneThreadConfig();
-  VDO_ASSERT_SUCCESS(vdo_make_read_only_notifier(false,
-                                                 threadConfig,
-                                                 vdo,
-                                                 &readOnlyNotifier));
   VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
                                            slabSummaryPartition,
                                            threadConfig,
                                            23,
                                            MAX_FREE_BLOCKS_PER_SLAB,
-                                           readOnlyNotifier,
                                            &summary));
   summaryZone = summary->zones[0];
 
@@ -185,7 +178,6 @@ static void tearDownSlabSummary(void)
   int result = closeSlabSummary(summary);
   CU_ASSERT_TRUE((result == VDO_SUCCESS) || (result == VDO_READ_ONLY));
   vdo_free_slab_summary(UDS_FORGET(summary));
-  vdo_free_read_only_notifier(UDS_FORGET(readOnlyNotifier));
   vdo_free_thread_config(UDS_FORGET(threadConfig));
   vdo_free_fixed_layout(UDS_FORGET(layout));
   tearDownVDOTest();
@@ -244,7 +236,6 @@ static void loadSlabSummaryFromPartition(struct partition *partition)
                                            threadConfig,
                                            23,
                                            MAX_FREE_BLOCKS_PER_SLAB,
-                                           readOnlyNotifier,
                                            &summary));
   summaryZone = summary->zones[0];
   performSuccessfulAction(loadSlabSummaryAction);
@@ -407,7 +398,7 @@ static void testBasicWrite(void)
  **/
 static void assertReadOnlyAction(struct vdo_completion *completion)
 {
-  CU_ASSERT(vdo_is_read_only(readOnlyNotifier));
+  CU_ASSERT(vdo_is_read_only(vdo));
   vdo_complete_completion(completion);
 }
 
@@ -514,8 +505,8 @@ static void releaseBlockedSummaryWrites(void *context)
  **/
 static void readOnlyModeAction(struct vdo_completion *completion)
 {
-  vdo_enter_read_only_mode(readOnlyNotifier, VDO_READ_ONLY);
-  vdo_wait_until_not_entering_read_only_mode(readOnlyNotifier, completion);
+  vdo_enter_read_only_mode(vdo, VDO_READ_ONLY);
+  vdo_wait_until_not_entering_read_only_mode(completion);
 }
 
 /**

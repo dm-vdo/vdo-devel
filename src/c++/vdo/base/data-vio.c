@@ -287,7 +287,7 @@ static void launch_locked_request(struct data_vio *data_vio)
 	if (data_vio->write) {
 		struct vdo *vdo = vdo_from_data_vio(data_vio);
 
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo)) {
 			continue_data_vio_with_error(data_vio, VDO_READ_ONLY);
 			return;
 		}
@@ -1411,6 +1411,8 @@ static void finish_cleanup(struct data_vio *data_vio)
  */
 static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_cleanup_stage stage)
 {
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
+
 	switch (stage) {
 	case VIO_RELEASE_HASH_LOCK:
 		if (data_vio->hash_lock != NULL) {
@@ -1428,7 +1430,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_clean
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recovery_sequence_number > 0) &&
-		    !vdo_is_or_will_be_read_only(vdo_from_data_vio(data_vio)->read_only_notifier) &&
+		    (READ_ONCE(vdo->read_only_notifier.read_only_error) == VDO_SUCCESS) &&
 		    (data_vio->vio.completion.result != VDO_READ_ONLY))
 			uds_log_warning("VDO not read-only when cleaning data_vio with RJ lock");
 		fallthrough;
@@ -1458,9 +1460,7 @@ void complete_data_vio(struct vdo_completion *completion)
 
 static void enter_read_only_mode(struct vdo_completion *completion)
 {
-	struct read_only_notifier *notifier = completion->vdo->read_only_notifier;
-
-	if (vdo_is_read_only(notifier))
+	if (vdo_is_read_only(completion->vdo))
 		return;
 
 	if (completion->result != VDO_READ_ONLY) {
@@ -1475,7 +1475,7 @@ static void enter_read_only_mode(struct vdo_completion *completion)
 				       get_data_vio_operation_name(data_vio));
 	}
 
-	vdo_enter_read_only_mode(notifier, completion->result);
+	vdo_enter_read_only_mode(completion->vdo, completion->result);
 }
 
 /**

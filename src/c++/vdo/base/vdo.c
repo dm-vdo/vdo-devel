@@ -8,6 +8,25 @@
  * constructing and destroying vdo instances (in memory).
  */
 
+/**
+ * DOC:
+ *
+ * A read_only_notifier has a single completion which is used to perform read-only notifications,
+ * however, vdo_enter_read_only_mode() may be called from any thread. A pair of fields, protected
+ * by a spinlock, are used to control the read-only mode entry process. The first field holds the
+ * read-only error. The second is the state field, which may hold any of the four special values
+ * enumerated here.
+ *
+ * When vdo_enter_read_only_mode() is called from some vdo thread, if the read_only_error field
+ * already contains an error (i.e. its value is not VDO_SUCCESS), then some other error has already
+ * initiated the read-only process, and nothing more is done. Otherwise, the new error is stored in
+ * the read_only_error field, and the state field is consulted. If the state is MAY_NOTIFY, it is
+ * set to NOTIFYING, and the notification process begins. If the state is MAY_NOT_NOTIFY, then
+ * notifications are currently disallowed, generally due to the vdo being suspended. In this case,
+ * the nothing more will be done until the vdo is resumed, at which point the notification will be
+ * performed. In any other case, the vdo is already read-only, and there is nothing more to do.
+ */
+
 #include "vdo.h"
 
 #include <linux/completion.h>
@@ -36,7 +55,6 @@
 #include "packer.h"
 #include "physical-zone.h"
 #include "pool-sysfs.h"
-#include "read-only-notifier.h"
 #include "recovery-journal.h"
 #include "release-versions.h"
 #include "slab-depot.h"
@@ -503,6 +521,20 @@ static void finish_vdo(struct vdo *vdo)
 		finish_work_queue(vdo->threads[i].queue);
 }
 
+/**
+ * free_listeners() - Free the list of read-only listeners associated with a thread.
+ * @thread_data: The thread holding the list to free.
+ */
+static void free_listeners(struct vdo_thread *thread)
+{
+	struct read_only_listener *listener, *next;
+
+	for (listener = UDS_FORGET(thread->listeners); listener != NULL; listener = next) {
+		next = UDS_FORGET(listener->next);
+		UDS_FREE(listener);
+	}
+}
+
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
@@ -521,7 +553,6 @@ static void unregister_vdo(struct vdo *vdo)
 
 	write_unlock(&registry.lock);
 }
-
 
 /**
  * vdo_destroy() - Destroy a vdo instance.
@@ -560,11 +591,12 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
 	vdo_free_physical_zones(UDS_FORGET(vdo->physical_zones));
 	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
-	vdo_free_read_only_notifier(UDS_FORGET(vdo->read_only_notifier));
 
 	if (vdo->threads != NULL) {
-		for (i = 0; i < vdo->thread_config->thread_count; i++)
+		for (i = 0; i < vdo->thread_config->thread_count; i++) {
+			free_listeners(&vdo->threads[i]);
 			free_work_queue(UDS_FORGET(vdo->threads[i].queue));
+		}
 		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
 
@@ -913,6 +945,44 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 }
 
 /**
+ * vdo_register_read_only_listener() - Register a listener to be notified when the VDO goes
+ *                                     read-only.
+ * @vdo: The vdo to register with.
+ * @listener: The object to notify.
+ * @notification: The function to call to send the notification.
+ * @thread_id: The id of the thread on which to send the notification.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_register_read_only_listener(struct vdo *vdo,
+				    void *listener,
+				    vdo_read_only_notification *notification,
+				    thread_id_t thread_id)
+{
+	struct vdo_thread *thread = &vdo->threads[thread_id];
+	struct read_only_listener *read_only_listener;
+	int result;
+
+	result = ASSERT(thread_id != vdo->thread_config->dedupe_thread,
+			"read only listener not registered on dedupe thread");
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = UDS_ALLOCATE(1, struct read_only_listener, __func__, &read_only_listener);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	*read_only_listener = (struct read_only_listener) {
+		.listener = listener,
+		.notify = notification,
+		.next = thread->listeners,
+	};
+
+	thread->listeners = read_only_listener;
+	return VDO_SUCCESS;
+}
+
+/**
  * notify_vdo_of_read_only_mode() - Notify a vdo that it is going read-only.
  * @listener: The vdo.
  * @parent: The completion to notify in order to acknowledge the notification.
@@ -940,10 +1010,260 @@ static void notify_vdo_of_read_only_mode(void *listener, struct vdo_completion *
  */
 int vdo_enable_read_only_entry(struct vdo *vdo)
 {
-	return vdo_register_read_only_listener(vdo->read_only_notifier,
+	thread_id_t id;
+	bool is_read_only = vdo_in_read_only_mode(vdo);
+	struct read_only_notifier *notifier = &vdo->read_only_notifier;
+
+	if (is_read_only) {
+		notifier->read_only_error = VDO_READ_ONLY;
+		notifier->state = NOTIFIED;
+	} else {
+		notifier->state = MAY_NOT_NOTIFY;
+	}
+
+	spin_lock_init(&notifier->lock);
+	vdo_initialize_completion(&notifier->completion, vdo, VDO_READ_ONLY_MODE_COMPLETION);
+
+	for (id = 0; id < vdo->thread_config->thread_count; id++)
+		vdo->threads[id].is_read_only = is_read_only;
+
+	return vdo_register_read_only_listener(vdo,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
 					       vdo->thread_config->admin_thread);
+}
+
+/**
+ * vdo_wait_until_not_entering_read_only_mode() - Wait until no read-only notifications are in
+ *                                                progress and prevent any subsequent
+ *                                                notifications.
+ * @parent: The completion to notify when no threads are entering read-only mode.
+ *
+ * Notifications may be re-enabled by calling vdo_allow_read_only_mode_entry().
+ */
+void vdo_wait_until_not_entering_read_only_mode(struct vdo_completion *parent)
+{
+	struct vdo *vdo = parent->vdo;
+	struct read_only_notifier *notifier = &vdo->read_only_notifier;
+
+	vdo_assert_on_admin_thread(vdo, __func__);
+
+	if (notifier->waiter != NULL) {
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
+		return;
+	}
+
+	spin_lock(&notifier->lock);
+	if (notifier->state == NOTIFYING)
+		notifier->waiter = parent;
+	else if (notifier->state == MAY_NOTIFY)
+		notifier->state = MAY_NOT_NOTIFY;
+	spin_unlock(&notifier->lock);
+
+	if (notifier->waiter == NULL) {
+		/*
+		 * A notification was not in progress, and now they are
+		 * disallowed.
+		 */
+		vdo_invoke_completion_callback(parent);
+		return;
+	}
+}
+
+/**
+ * as_notifier() - Convert a generic vdo_completion to a read_only_notifier.
+ * @completion: The completion to convert.
+ *
+ * Return: The completion as a read_only_notifier.
+ */
+static inline struct read_only_notifier *as_notifier(struct vdo_completion *completion)
+{
+	vdo_assert_completion_type(completion->type, VDO_READ_ONLY_MODE_COMPLETION);
+	return container_of(completion, struct read_only_notifier, completion);
+}
+
+/**
+ * finish_entering_read_only_mode() - Complete the process of entering read only mode.
+ * @completion: The read-only mode completion.
+ */
+static void finish_entering_read_only_mode(struct vdo_completion *completion)
+{
+	struct read_only_notifier *notifier = as_notifier(completion);
+
+	vdo_assert_on_admin_thread(completion->vdo, __func__);
+
+	spin_lock(&notifier->lock);
+	notifier->state = NOTIFIED;
+	spin_unlock(&notifier->lock);
+
+	if (notifier->waiter != NULL)
+		vdo_continue_completion(UDS_FORGET(notifier->waiter), completion->result);
+}
+
+/**
+ * make_thread_read_only() - Inform each thread that the VDO is in read-only mode.
+ * @completion: The read-only mode completion.
+ */
+static void make_thread_read_only(struct vdo_completion *completion)
+{
+	struct vdo *vdo = completion->vdo;
+	thread_id_t thread_id = completion->callback_thread_id;
+	struct read_only_notifier *notifier = as_notifier(completion);
+	struct read_only_listener *listener = completion->parent;
+
+	if (listener == NULL) {
+		/* This is the first call on this thread */
+		struct vdo_thread *thread = &vdo->threads[thread_id];
+
+		thread->is_read_only = true;
+		listener = thread->listeners;
+		if (thread_id == 0)
+#ifdef INTERNAL
+			/* Note: This message must be recognizable by Permabit::UserMachine. */
+#endif /* INTERNAL */
+			uds_log_error_strerror(READ_ONCE(notifier->read_only_error),
+					       "Unrecoverable error, entering read-only mode");
+	} else {
+		/* We've just finished notifying a listener */
+		listener = listener->next;
+	}
+
+	if (listener != NULL) {
+		/* We have a listener to notify */
+		vdo_prepare_completion(completion,
+				       make_thread_read_only,
+				       make_thread_read_only,
+				       thread_id,
+				       listener);
+		listener->notify(listener->listener, completion);
+		return;
+	}
+
+	/* We're done with this thread */
+	if (++thread_id == vdo->thread_config->dedupe_thread)
+		/*
+		 * We don't want to notify the dedupe thread since it may be
+		 * blocked rebuilding the index.
+		 */
+		++thread_id;
+
+	if (thread_id >= vdo->thread_config->thread_count)
+		/* There are no more threads */
+		vdo_prepare_completion(completion,
+				       finish_entering_read_only_mode,
+				       finish_entering_read_only_mode,
+				       vdo->thread_config->admin_thread,
+				       NULL);
+	else
+		vdo_prepare_completion(completion,
+				       make_thread_read_only,
+				       make_thread_read_only,
+				       thread_id,
+				       NULL);
+
+	vdo_invoke_completion_callback(completion);
+}
+
+/**
+ * vdo_allow_read_only_mode_entry() - Allow the notifier to put the VDO into read-only mode,
+ *                                    reversing the effects of
+ *                                    vdo_wait_until_not_entering_read_only_mode().
+ * @parent: The object to notify once the operation is complete.
+ *
+ * If some thread tried to put the vdo into read-only mode while notifications were disallowed, it
+ * will be done when this method is called. If that happens, the parent will not be notified until
+ * the vdo has actually entered read-only mode and attempted to save the super block.
+ *
+ * Context: This method may only be called from the admin thread.
+ */
+void vdo_allow_read_only_mode_entry(struct vdo_completion *parent)
+{
+	struct vdo *vdo = parent->vdo;
+	struct read_only_notifier *notifier = &vdo->read_only_notifier;
+
+	vdo_assert_on_admin_thread(vdo, __func__);
+
+	if (notifier->waiter != NULL) {
+		vdo_continue_completion(parent, VDO_COMPONENT_BUSY);
+		return;
+	}
+
+	spin_lock(&notifier->lock);
+	if (notifier->state == MAY_NOT_NOTIFY) {
+		if (notifier->read_only_error == VDO_SUCCESS) {
+			notifier->state = MAY_NOTIFY;
+		} else {
+			notifier->state = NOTIFYING;
+			notifier->waiter = parent;
+		}
+	}
+	spin_unlock(&notifier->lock);
+
+	if (notifier->waiter == NULL) {
+		/* We're done */
+		vdo_invoke_completion_callback(parent);
+		return;
+	}
+
+	/* Do the pending notification. */
+	make_thread_read_only(&notifier->completion);
+}
+
+/**
+ * vdo_enter_read_only_mode() - Put a VDO into read-only mode and save the read-only state in the
+ *                              super block.
+ * @vdo: The vdo.
+ * @error_code: The error which caused the VDO to enter read-only mode.
+ *
+ * This method is a no-op if the VDO is already read-only.
+ */
+void vdo_enter_read_only_mode(struct vdo *vdo, int error_code)
+{
+	bool notify = false;
+	thread_id_t thread_id = vdo_get_callback_thread_id();
+	struct read_only_notifier *notifier = &vdo->read_only_notifier;
+	struct vdo_thread *thread;
+
+	if (thread_id != VDO_INVALID_THREAD_ID) {
+		thread = &vdo->threads[thread_id];
+		if (thread->is_read_only)
+			/* This thread has already gone read-only. */
+			return;
+
+		/* Record for this thread that the VDO is read-only. */
+		thread->is_read_only = true;
+	}
+
+	spin_lock(&notifier->lock);
+	if (notifier->read_only_error == VDO_SUCCESS) {
+		WRITE_ONCE(notifier->read_only_error, error_code);
+		if (notifier->state == MAY_NOTIFY) {
+			notifier->state = NOTIFYING;
+			notify = true;
+		}
+	}
+	spin_unlock(&notifier->lock);
+
+	if (!notify)
+		/* The notifier is already aware of a read-only error */
+		return;
+
+	/* Initiate a notification starting on the lowest numbered thread. */
+	vdo_launch_completion_callback(&notifier->completion, make_thread_read_only, 0);
+}
+
+/**
+ * vdo_is_read_only() - Check whether the VDO is read-only.
+ * @vdo: The vdo.
+ *
+ * Return: true if the vdo is read-only.
+ *
+ * This method may be called from any thread, as opposed to examining the VDO's state field which
+ * is only safe to check from the admin thread.
+ */
+bool vdo_is_read_only(struct vdo *vdo)
+{
+	return vdo->threads[vdo_get_callback_thread_id()].is_read_only;
 }
 
 /**

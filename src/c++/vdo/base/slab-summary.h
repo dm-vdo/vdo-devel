@@ -91,8 +91,6 @@ struct slab_summary_zone {
 };
 
 struct slab_summary {
-	/* The context for entering read-only mode */
-	struct read_only_notifier *read_only_notifier;
 	/* The statistics for this slab summary */
 	struct atomic_slab_summary_statistics statistics;
 	/* The start of the slab summary partition relative to the layer */
@@ -114,7 +112,6 @@ int __must_check vdo_make_slab_summary(struct vdo *vdo,
 				       const struct thread_config *thread_config,
 				       unsigned int slab_size_shift,
 				       block_count_t maximum_free_blocks_per_slab,
-				       struct read_only_notifier *read_only_notifier,
 				       struct slab_summary **slab_summary_ptr);
 
 void vdo_free_slab_summary(struct slab_summary *summary);

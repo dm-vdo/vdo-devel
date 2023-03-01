@@ -19,7 +19,6 @@
 #include "data-vio.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
-#include "read-only-notifier.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
@@ -572,11 +571,11 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
 {
 	struct page_info *info;
 	/* If we're already read-only, there's no need to log. */
-	struct read_only_notifier *notifier = cache->zone->read_only_notifier;
+	struct vdo *vdo = cache->zone->block_map->vdo;
 
-	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(notifier)) {
+	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(vdo)) {
 		uds_log_error_strerror(result, "VDO Page Cache persistent error: %s", context);
-		vdo_enter_read_only_mode(notifier, result);
+		vdo_enter_read_only_mode(vdo, result);
 	}
 
 	assert_on_cache_thread(cache, __func__);
@@ -677,13 +676,13 @@ static void check_for_drain_complete(struct block_map_zone *zone)
 	    (zone->page_cache.outstanding_reads == 0) &&
 	    (zone->page_cache.outstanding_writes == 0))
 		vdo_finish_draining_with_result(&zone->state,
-						(vdo_is_read_only(zone->read_only_notifier) ?
+						(vdo_is_read_only(zone->block_map->vdo) ?
 						 VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 static void enter_zone_read_only_mode(struct block_map_zone *zone, int result)
 {
-	vdo_enter_read_only_mode(zone->read_only_notifier, result);
+	vdo_enter_read_only_mode(zone->block_map->vdo, result);
 
 	/*
 	 * We are in read-only mode, so we won't ever write any page out. Just take all waiters off
@@ -720,7 +719,7 @@ static void handle_load_error(struct vdo_completion *completion)
 
 	assert_on_cache_thread(cache, __func__);
 	record_metadata_io_error(as_vio(completion));
-	vdo_enter_read_only_mode(cache->zone->read_only_notifier, result);
+	vdo_enter_read_only_mode(cache->zone->block_map->vdo, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
 	distribute_error_over_queue(result, &info->waiting);
@@ -1179,7 +1178,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 			list_first_entry(&cache->outgoing_list, struct page_info, state_entry);
 
 		list_del_init(&info->state_entry);
-		if (vdo_is_read_only(info->cache->zone->read_only_notifier)) {
+		if (vdo_is_read_only(info->cache->zone->block_map->vdo)) {
 			struct vdo_completion *completion = &info->vio->completion;
 
 			vdo_reset_completion(completion);
@@ -1281,7 +1280,7 @@ void vdo_get_page(struct vdo_completion *completion)
 
 	assert_on_cache_thread(cache, __func__);
 
-	if (vdo_page_comp->writable && vdo_is_read_only(cache->zone->read_only_notifier)) {
+	if (vdo_page_comp->writable && vdo_is_read_only(cache->zone->block_map->vdo)) {
 		vdo_finish_completion(completion, VDO_READ_ONLY);
 		return;
 	}
@@ -2859,7 +2858,6 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 						  zone_count_t zone_number,
 						  const struct thread_config *thread_config,
 						  struct vdo *vdo,
-						  struct read_only_notifier *read_only_notifier,
 						  page_count_t cache_size,
 						  block_count_t maximum_age)
 {
@@ -2872,7 +2870,6 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo_get_logical_zone_thread(thread_config, zone_number);
 	zone->block_map = map;
-	zone->read_only_notifier = read_only_notifier;
 
 	result = UDS_ALLOCATE_EXTENDED(struct dirty_lists,
 				       maximum_age,
@@ -3014,7 +3011,6 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 			 block_count_t logical_blocks,
 			 const struct thread_config *thread_config,
 			 struct vdo *vdo,
-			 struct read_only_notifier *read_only_notifier,
 			 struct recovery_journal *journal,
 			 nonce_t nonce,
 			 page_count_t cache_size,
@@ -3040,6 +3036,7 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 	if (result != UDS_SUCCESS)
 		return result;
 
+	map->vdo = vdo;
 	map->root_origin = state.root_origin;
 	map->root_count = state.root_count;
 	map->entry_count = logical_blocks;
@@ -3060,7 +3057,6 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 						   zone,
 						   thread_config,
 						   vdo,
-						   read_only_notifier,
 						   cache_size,
 						   maximum_age);
 		if (result != VDO_SUCCESS) {

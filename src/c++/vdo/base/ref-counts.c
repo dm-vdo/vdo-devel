@@ -17,7 +17,6 @@
 #include "completion.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
-#include "read-only-notifier.h"
 #include "slab.h"
 #include "slab-journal.h"
 #include "slab-summary.h"
@@ -151,7 +150,6 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
  * @block_count: The number of physical blocks that can be referenced.
  * @slab: The slab of the ref counts object.
  * @origin: The layer PBN at which to save ref_counts.
- * @read_only_notifier: The context for tracking read-only mode.
  * @ref_counts_ptr: The pointer to hold the new ref counts object.
  *
  * A reference counting object can keep a reference count for every physical block in the VDO
@@ -163,7 +161,6 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 int vdo_make_ref_counts(block_count_t block_count,
 			struct vdo_slab *slab,
 			physical_block_number_t origin,
-			struct read_only_notifier *read_only_notifier,
 			struct ref_counts **ref_counts_ptr)
 {
 	size_t index, bytes;
@@ -195,7 +192,6 @@ int vdo_make_ref_counts(block_count_t block_count,
 	ref_counts->free_blocks = block_count;
 	ref_counts->origin = origin;
 	ref_counts->reference_block_count = ref_block_count;
-	ref_counts->read_only_notifier = read_only_notifier;
 	ref_counts->statistics = &slab->allocator->ref_counts_statistics;
 	ref_counts->search_cursor.first_block = &ref_counts->blocks[0];
 	ref_counts->search_cursor.last_block = &ref_counts->blocks[ref_block_count - 1];
@@ -255,7 +251,7 @@ bool vdo_are_ref_counts_active(struct ref_counts *ref_counts)
 
 static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts, int result)
 {
-	vdo_enter_read_only_mode(ref_counts->read_only_notifier, result);
+	vdo_enter_read_only_mode(ref_counts->slab->allocator->depot->vdo, result);
 	vdo_check_if_slab_drained(ref_counts->slab);
 }
 
@@ -1195,7 +1191,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 */
 	block->is_writing = false;
 
-	if (vdo_is_read_only(ref_counts->read_only_notifier)) {
+	if (vdo_is_read_only(ref_counts->slab->allocator->depot->vdo)) {
 		vdo_check_if_slab_drained(ref_counts->slab);
 		return;
 	}
@@ -1320,7 +1316,7 @@ static void launch_reference_block_write(struct waiter *waiter, void *context)
 	struct reference_block *block;
 	struct ref_counts *ref_counts = context;
 
-	if (vdo_is_read_only(ref_counts->read_only_notifier))
+	if (vdo_is_read_only(ref_counts->slab->allocator->depot->vdo))
 		return;
 
 	ref_counts->active_count++;

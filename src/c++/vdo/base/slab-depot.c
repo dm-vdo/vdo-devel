@@ -20,7 +20,6 @@
 #include "heap.h"
 #include "io-submitter.h"
 #include "priority-table.h"
-#include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-journal.h"
@@ -192,10 +191,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
  */
 static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 {
-	struct block_allocator *allocator =
-		container_of(scrubber, struct block_allocator, scrubber);
-
-	vdo_enter_read_only_mode(allocator->read_only_notifier, result);
+	vdo_enter_read_only_mode(scrubber->vio.completion.vdo, result);
 	finish_scrubbing(scrubber, result);
 }
 
@@ -396,7 +392,8 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	 * the VDO is quiescent.
 	 */
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
-	if (vdo_is_read_only(completion->vdo->read_only_notifier)) {
+
+	if (vdo_is_read_only(completion->vdo)) {
 		finish_scrubbing(scrubber, VDO_READ_ONLY);
 		return;
 	}
@@ -591,7 +588,7 @@ void vdo_queue_slab(struct vdo_slab *slab)
 			(unsigned long long) free_blocks,
 			(unsigned long long) allocator->depot->slab_config.data_blocks);
 	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(allocator->read_only_notifier, result);
+		vdo_enter_read_only_mode(allocator->depot->vdo, result);
 		return;
 	}
 
@@ -749,7 +746,7 @@ int vdo_allocate_block(struct block_allocator *allocator,
  */
 int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator, struct waiter *waiter)
 {
-	if (vdo_is_read_only(allocator->read_only_notifier))
+	if (vdo_is_read_only(allocator->depot->vdo))
 		return VDO_READ_ONLY;
 
 	if (vdo_is_state_quiescent(&allocator->scrubber.admin_state))
@@ -1355,13 +1352,12 @@ initialize_block_allocator(struct slab_depot *depot, zone_count_t zone)
 		.zone_number = zone,
 		.thread_id = vdo_get_physical_zone_thread(vdo->thread_config, zone),
 		.nonce = vdo->states.vdo.nonce,
-		.read_only_notifier = vdo->read_only_notifier,
 		.summary = depot->slab_summary->zones[zone],
 	};
 
 	INIT_LIST_HEAD(&allocator->dirty_slab_journals);
 	vdo_set_admin_state_code(&allocator->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
-	result = vdo_register_read_only_listener(allocator->read_only_notifier,
+	result = vdo_register_read_only_listener(vdo,
 						 allocator,
 						 notify_block_allocator_of_read_only_mode,
 						 allocator->thread_id);
@@ -1437,7 +1433,6 @@ static int allocate_components(struct slab_depot *depot,
 				       thread_config,
 				       depot->slab_size_shift,
 				       depot->slab_config.data_blocks,
-				       depot->vdo->read_only_notifier,
 				       &depot->slab_summary);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1668,7 +1663,7 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot, physical_block_num
 
 	result = get_slab_number(depot, pbn, &slab_number);
 	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(depot->vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(depot->vdo, result);
 		return NULL;
 	}
 
@@ -2132,7 +2127,7 @@ static void resume_allocator(void *context,
  */
 void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
-	if (vdo_is_read_only(depot->vdo->read_only_notifier)) {
+	if (vdo_is_read_only(depot->vdo)) {
 		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}

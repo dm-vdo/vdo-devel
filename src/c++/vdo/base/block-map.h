@@ -227,7 +227,6 @@ struct block_map_zone {
 	thread_id_t thread_id;
 	struct admin_state state;
 	struct block_map *block_map;
-	struct read_only_notifier *read_only_notifier;
 	/* Dirty pages, by era*/
 	struct dirty_lists *dirty_lists;
 	struct vdo_page_cache page_cache;
@@ -245,6 +244,7 @@ struct block_map_zone {
 };
 
 struct block_map {
+	struct vdo *vdo;
 	struct action_manager *action_manager;
 	/* The absolute PBN of the first root of the tree part of the block map */
 	physical_block_number_t root_origin;
@@ -331,7 +331,6 @@ int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,
 				      block_count_t logical_blocks,
 				      const struct thread_config *thread_config,
 				      struct vdo *vdo,
-				      struct read_only_notifier *read_only_notifier,
 				      struct recovery_journal *journal,
 				      nonce_t nonce,
 				      page_count_t cache_size,

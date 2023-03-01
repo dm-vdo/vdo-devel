@@ -92,8 +92,6 @@ struct block_allocator {
 	struct slab_depot *depot;
 	/* The slab summary zone for this allocator */
 	struct slab_summary_zone *summary;
-	/* The notifier for entering read-only mode */
-	struct read_only_notifier *read_only_notifier;
 	/* The nonce of the VDO */
 	nonce_t nonce;
 	/* The physical zone number of this allocator */

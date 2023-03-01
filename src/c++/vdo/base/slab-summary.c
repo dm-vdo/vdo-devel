@@ -14,7 +14,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "io-submitter.h"
-#include "read-only-notifier.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo-component-states.h"
@@ -169,7 +168,6 @@ static int make_slab_summary_zone(struct slab_summary *summary,
  * @thread_config: The thread config of the VDO.
  * @slab_size_shift: The number of bits in the slab size.
  * @maximum_free_blocks_per_slab: The maximum number of free blocks a slab can have.
- * @read_only_notifier: The context for entering read-only mode.
  * @slab_summary_ptr: A pointer to hold the summary.
  *
  * Return: VDO_SUCCESS or an error.
@@ -179,7 +177,6 @@ int vdo_make_slab_summary(struct vdo *vdo,
 			  const struct thread_config *thread_config,
 			  unsigned int slab_size_shift,
 			  block_count_t maximum_free_blocks_per_slab,
-			  struct read_only_notifier *read_only_notifier,
 			  struct slab_summary **slab_summary_ptr)
 {
 	struct slab_summary *summary;
@@ -204,7 +201,6 @@ int vdo_make_slab_summary(struct vdo *vdo,
 		return result;
 
 	summary->zone_count = thread_config->physical_zone_count;
-	summary->read_only_notifier = read_only_notifier;
 	summary->hint_shift = vdo_get_slab_summary_hint_shift(slab_size_shift);
 
 	total_entries = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES;
@@ -294,13 +290,13 @@ void vdo_free_slab_summary(struct slab_summary *summary)
  */
 static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
 {
+	struct vdo *vdo = summary_zone->summary_blocks[0].vio->completion.vdo;
+
 	if (!vdo_is_state_draining(&summary_zone->state) || (summary_zone->write_count > 0))
 		return;
 
 	vdo_finish_operation(&summary_zone->state,
-			     (vdo_is_read_only(summary_zone->summary->read_only_notifier) ?
-			      VDO_READ_ONLY :
-			      VDO_SUCCESS));
+			     (vdo_is_read_only(vdo) ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -313,9 +309,8 @@ static void check_for_drain_complete(struct slab_summary_zone *summary_zone)
  */
 static void notify_waiters(struct slab_summary_zone *summary_zone, struct wait_queue *queue)
 {
-	int result = (vdo_is_read_only(summary_zone->summary->read_only_notifier) ?
-		      VDO_READ_ONLY :
-		      VDO_SUCCESS);
+	struct vdo *vdo = summary_zone->summary_blocks[0].vio->completion.vdo;
+	int result = (vdo_is_read_only(vdo) ? VDO_READ_ONLY : VDO_SUCCESS);
 
 	notify_all_waiters(queue, NULL, &result);
 }
@@ -357,7 +352,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct slab_summary_block *block = completion->parent;
 
 	record_metadata_io_error(as_vio(completion));
-	vdo_enter_read_only_mode(block->zone->summary->read_only_notifier, completion->result);
+	vdo_enter_read_only_mode(completion->vdo, completion->result);
 	finish_updating_slab_summary_block(block);
 }
 
@@ -386,7 +381,7 @@ static void launch_write(struct slab_summary_block *block)
 	transfer_all_waiters(&block->next_update_waiters, &block->current_update_waiters);
 	block->writing = true;
 
-	if (vdo_is_read_only(summary->read_only_notifier)) {
+	if (vdo_is_read_only(block->vio->completion.vdo)) {
 		finish_updating_slab_summary_block(block);
 		return;
 	}
@@ -480,7 +475,7 @@ void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 	u8 hint;
 	struct slab_summary_entry *entry;
 
-	if (vdo_is_read_only(summary_zone->summary->read_only_notifier)) {
+	if (vdo_is_read_only(block->vio->completion.vdo)) {
 		result = VDO_READ_ONLY;
 		waiter->callback(waiter, &result);
 		return;

@@ -365,13 +365,6 @@ static void checkReplayingAction(struct vdo_completion *completion)
   vdo_complete_completion(completion);
 }
 
-/**********************************************************************/
-static void waitUntilReadOnlyAction(struct vdo_completion *completion)
-{
-  struct read_only_notifier *notifier = vdo->read_only_notifier;
-  vdo_wait_until_not_entering_read_only_mode(notifier, completion);
-}
-
 /**
  * Create a block map with a known pattern, then set up journal entries.
  * Show that the valid journal mappings are applied to the block map while
@@ -418,7 +411,7 @@ static void attemptRebuild(CorruptionType  corruption,
 
   if (!readOnly && (corruption != CORRUPT_NOTHING)) {
     // Corruption during normal rebuild should throw VDO into read-only mode.
-    performSuccessfulAction(waitUntilReadOnlyAction);
+    performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
     checkVDOState(VDO_READ_ONLY_MODE);
   }
 }

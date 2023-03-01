@@ -13,7 +13,6 @@
 #include "memory-alloc.h"
 
 #include "data-vio.h"
-#include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"

@@ -1465,13 +1465,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "maximum age must be greater than 0");
 
-	result = vdo_make_read_only_notifier(vdo_in_read_only_mode(vdo),
-					     thread_config,
-					     vdo,
-					     &vdo->read_only_notifier);
-	if (result != VDO_SUCCESS)
-		return result;
-
 	result = vdo_enable_read_only_entry(vdo);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1483,7 +1476,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 							       VDO_RECOVERY_JOURNAL_PARTITION),
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
-					     vdo->read_only_notifier,
 					     thread_config,
 					     &vdo->recovery_journal);
 	if (result != VDO_SUCCESS)
@@ -1500,7 +1492,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 				      vdo->states.vdo.config.logical_blocks,
 				      thread_config,
 				      vdo,
-				      vdo->read_only_notifier,
 				      vdo->recovery_journal,
 				      vdo->states.vdo.nonce,
 				      vdo->device_config->cache_size,
@@ -1688,7 +1679,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	assert_admin_phase_thread(vdo, __func__);
 
 	/* These checks can only be done from a vdo thread. */
-	if (vdo_is_read_only(vdo->read_only_notifier))
+	if (vdo_is_read_only(vdo))
 		vdo_set_completion_result(completion, VDO_READ_ONLY);
 
 	if (vdo_in_recovery_mode(vdo))
@@ -2025,7 +2016,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		 */
 		result = vdo_synchronous_flush(vdo);
 		if (result != VDO_SUCCESS)
-			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+			vdo_enter_read_only_mode(vdo, result);
 
 		vdo_drain_logical_zones(vdo->logical_zones,
 					vdo_get_admin_state_code(state),
@@ -2051,7 +2042,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_READ_ONLY_WAIT:
-		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier, completion);
+		vdo_wait_until_not_entering_read_only_mode(completion);
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
@@ -2233,7 +2224,7 @@ static void load_callback(struct vdo_completion *completion)
 
 		/* Prepare the recovery journal for new entries. */
 		vdo_open_recovery_journal(vdo->recovery_journal, vdo->depot, vdo->block_map);
-		vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
+		vdo_allow_read_only_mode_entry(completion);
 		return;
 
 	case LOAD_PHASE_STATS:
@@ -2241,7 +2232,7 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_LOAD_DEPOT:
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo)) {
 			/*
 			 * In read-only mode we don't use the allocator and it may not even be
 			 * readable, so don't bother trying to load it.
@@ -2305,7 +2296,7 @@ static void load_callback(struct vdo_completion *completion)
 		/* Avoid an infinite loop */
 		completion->error_handler = NULL;
 		vdo->admin.phase = LOAD_PHASE_FINISHED;
-		vdo_wait_until_not_entering_read_only_mode(vdo->read_only_notifier, completion);
+		vdo_wait_until_not_entering_read_only_mode(completion);
 		return;
 
 	default:
@@ -2342,7 +2333,7 @@ static void handle_load_error(struct vdo_completion *completion)
 
 	uds_log_error_strerror(completion->result, "Entering read-only mode due to load error");
 	vdo->admin.phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
-	vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
+	vdo_enter_read_only_mode(vdo, completion->result);
 	completion->result = VDO_READ_ONLY;
 	load_callback(completion);
 }
@@ -2400,7 +2391,7 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
-		vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
+		vdo_allow_read_only_mode_entry(completion);
 		return;
 
 	case RESUME_PHASE_DEDUPE:
@@ -2469,7 +2460,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 
 	switch (advance_phase(vdo)) {
 	case GROW_LOGICAL_PHASE_START:
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow logical size of a read-only VDO");
 			vdo_set_completion_result(completion, VDO_READ_ONLY);
@@ -2495,7 +2486,7 @@ static void grow_logical_callback(struct vdo_completion *completion)
 		break;
 
 	case GROW_LOGICAL_PHASE_ERROR:
-		vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
+		vdo_enter_read_only_mode(vdo, completion->result);
 		break;
 
 	default:
@@ -2580,7 +2571,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 
 	switch (advance_phase(vdo)) {
 	case GROW_PHYSICAL_PHASE_START:
-		if (vdo_is_read_only(vdo->read_only_notifier)) {
+		if (vdo_is_read_only(vdo)) {
 			uds_log_error_strerror(VDO_READ_ONLY,
 					       "Can't grow physical size of a read-only VDO");
 			vdo_set_completion_result(completion, VDO_READ_ONLY);
@@ -2622,7 +2613,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		break;
 
 	case GROW_PHYSICAL_PHASE_ERROR:
-		vdo_enter_read_only_mode(vdo->read_only_notifier, completion->result);
+		vdo_enter_read_only_mode(vdo, completion->result);
 		break;
 
 	default:
@@ -2792,7 +2783,7 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 		uds_log_error_strerror(result,
 				       "Commit of modifications to device '%s' failed",
 				       device_name);
-		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(vdo, result);
 		return result;
 	}
 

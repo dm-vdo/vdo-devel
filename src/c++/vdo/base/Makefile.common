@@ -29,7 +29,6 @@ BASE_OBJS :=     			\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
-	read-only-notifier.o		\
 	recovery-journal.o		\
 	ref-counts.o			\
 	slab.o				\

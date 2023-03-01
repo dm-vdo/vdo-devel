@@ -11,7 +11,6 @@
 #include <linux/bio.h>
 
 #include "block-map.h"
-#include "read-only-notifier.h"
 #include "vdo.h"
 #include "vdo-component-states.h"
 
@@ -142,19 +141,6 @@ static void testSuperBlockWriteFailure(void)
   verifyReadOnlyMode();
 }
 
-/**********************************************************************/
-static void notEnteringAction(struct vdo_completion *completion)
-{
-  struct read_only_notifier *notifier = vdo->read_only_notifier;
-  vdo_wait_until_not_entering_read_only_mode(notifier, completion);
-}
-
-/**********************************************************************/
-static void allowEnteringAction(struct vdo_completion *completion)
-{
-  vdo_allow_read_only_mode_entry(vdo->read_only_notifier, completion);
-}
-
 /**
  * Test re-enabling of read-only mode entry.
  **/
@@ -162,8 +148,8 @@ static void testAllowReadOnlyModeEntry(void)
 {
   writeData(1, 0, 10, VDO_SUCCESS);
   restartVDO(false);
-  performSuccessfulAction(notEnteringAction);
-  performSuccessfulAction(allowEnteringAction);
+  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
+  performSuccessfulAction(vdo_allow_read_only_mode_entry);
   forceVDOReadOnlyMode();
   verifyReadOnlyModePersistence();
 }
@@ -171,7 +157,7 @@ static void testAllowReadOnlyModeEntry(void)
 /**********************************************************************/
 static void enterAction(struct vdo_completion *completion)
 {
-  vdo_enter_read_only_mode(vdo->read_only_notifier, VDO_NOT_IMPLEMENTED);
+  vdo_enter_read_only_mode(vdo, VDO_NOT_IMPLEMENTED);
   assertVDOState(VDO_DIRTY);
   vdo_complete_completion(completion);
 }
@@ -183,9 +169,9 @@ static void testDelayedReadOnlyModeEntry(void)
 {
   writeData(1, 0, 10, VDO_SUCCESS);
   restartVDO(false);
-  performSuccessfulAction(notEnteringAction);
+  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
   performSuccessfulAction(enterAction);
-  performSuccessfulAction(allowEnteringAction);
+  performSuccessfulAction(vdo_allow_read_only_mode_entry);
   verifyReadOnlyModePersistence();
 }
 
@@ -196,8 +182,8 @@ static void testReadOnlyEntryFromNonVDOThread(void)
 {
   writeData(1, 0, 10, VDO_SUCCESS);
   restartVDO(false);
-  vdo_enter_read_only_mode(vdo->read_only_notifier, VDO_NOT_IMPLEMENTED);
-  performSuccessfulAction(notEnteringAction);
+  vdo_enter_read_only_mode(vdo, VDO_NOT_IMPLEMENTED);
+  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
   verifyReadOnlyModePersistence();
 }
 

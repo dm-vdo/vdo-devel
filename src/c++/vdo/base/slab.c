@@ -101,7 +101,6 @@ int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
 	return vdo_make_ref_counts(slab_config->data_blocks,
 				   slab,
 				   slab->ref_counts_origin,
-				   slab->allocator->read_only_notifier,
 				   &slab->reference_counts);
 }
 
@@ -251,6 +250,6 @@ void vdo_check_if_slab_drained(struct vdo_slab *slab)
 	if ((slab->reference_counts != NULL) && vdo_are_ref_counts_active(slab->reference_counts))
 		return;
 
-	read_only = vdo_is_read_only(slab->allocator->read_only_notifier);
+	read_only = vdo_is_read_only(slab->allocator->depot->vdo);
 	vdo_finish_draining_with_result(&slab->state, (read_only ? VDO_READ_ONLY : VDO_SUCCESS));
 }

@@ -27,7 +27,6 @@
 #include "uds-threads.h"
 
 #include "admin-state.h"
-#include "read-only-notifier.h"
 #include "recovery-journal.h"
 #include "vdo.h"
 #include "vdo-component-states.h"
@@ -53,7 +52,6 @@ static const block_count_t     TEST_DATA_BLOCKS_USED    = 0x0001ABCD04030201;
 typedef size_t EntryNumber;
 
 static struct recovery_journal       *journal;
-static struct read_only_notifier     *readOnlyNotifier;
 static sequence_number_t              pending;
 static sequence_number_t              recoverySequenceNumber;
 static enum vdo_zone_type             zoneTypeToAdjust;
@@ -170,10 +168,7 @@ static void createLayerAndJournal(void)
   initializeBasicTest(&testParameters);
 
   threadConfig = makeOneThreadConfig();
-  VDO_ASSERT_SUCCESS(vdo_make_read_only_notifier(false,
-                                                 threadConfig,
-                                                 vdo,
-                                                 &readOnlyNotifier));
+
   block_count_t recovery_journal_size
     = getTestConfig().config.recovery_journal_size;
   VDO_ASSERT_SUCCESS(vdo_decode_recovery_journal(configureRecoveryJournal(),
@@ -182,7 +177,6 @@ static void createLayerAndJournal(void)
                                                  NULL,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 readOnlyNotifier,
                                                  threadConfig,
                                                  &journal));
   performSuccessfulRecoveryJournalActionOnJournal(journal,
@@ -232,7 +226,6 @@ static void freeLayerAndJournal(void)
   freeIntIntMap(&expectedHeads);
   freeJournal();
   tearDownLatchUtils();
-  vdo_free_read_only_notifier(UDS_FORGET(readOnlyNotifier));
   vdo_free_thread_config(UDS_FORGET(threadConfig));
   tearDownVDOTest();
 }
@@ -301,7 +294,6 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
                                                  NULL,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 readOnlyNotifier,
                                                  threadConfig,
                                                  &journal));
 }

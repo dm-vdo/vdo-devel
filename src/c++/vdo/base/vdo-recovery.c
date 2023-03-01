@@ -515,7 +515,7 @@ static int extract_increments(struct recovery_completion *recovery)
 
 		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+			vdo_enter_read_only_mode(vdo, result);
 			return result;
 		}
 
@@ -532,7 +532,7 @@ static int extract_increments(struct recovery_completion *recovery)
 	result = ASSERT((recovery->block_map_entry_count <= recovery->entry_count),
 			"approximate entry count is an upper bound");
 	if (result != VDO_SUCCESS)
-		vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+		vdo_enter_read_only_mode(vdo, result);
 
 	return result;
 }
@@ -645,7 +645,7 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 
 		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
-			vdo_enter_read_only_mode(vdo->read_only_notifier, result);
+			vdo_enter_read_only_mode(vdo, result);
 			return result;
 		}
 
@@ -715,7 +715,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		if (increment) {
 			result = validate_recovery_journal_entry(vdo, &entry);
 			if (result != VDO_SUCCESS) {
-				vdo_enter_read_only_mode(journal->read_only_notifier, result);
+				vdo_enter_read_only_mode(vdo, result);
 				vdo_finish_completion(completion, result);
 				return;
 			}
@@ -838,7 +838,7 @@ static bool prepare_to_apply_journal_entries(struct recovery_completion *recover
 			/* This is an old format block, so we need to upgrade */
 			uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					       "Recovery journal is in the old format, a read-only rebuild is required.");
-			vdo_enter_read_only_mode(journal->read_only_notifier,
+			vdo_enter_read_only_mode(recovery->completion.vdo,
 						 VDO_UNSUPPORTED_VERSION);
 			vdo_finish_completion(&recovery->completion, VDO_READ_ONLY);
 			return true;

@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "read-only-notifier.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-depot.h"
@@ -43,7 +42,6 @@ static struct ref_counts         *loaded;
 static struct fixed_layout       *layout;
 static struct slab_depot         *depot;
 static struct block_allocator    *allocator;
-static struct read_only_notifier *readOnlyNotifier;
 static struct thread_config      *threadConfig;
 static struct vdo_slab           *slab;
 static physical_block_number_t    pbnToBlock;
@@ -60,12 +58,6 @@ static void readOnlyNotification(void *listener __attribute__((unused)),
 {
   expectedCloseResult = VDO_READ_ONLY;
   vdo_complete_completion(parent);
-}
-
-/**********************************************************************/
-static void allowEnteringAction(struct vdo_completion *completion)
-{
-  vdo_allow_read_only_mode_entry(readOnlyNotifier, completion);
 }
 
 /**********************************************************************/
@@ -88,19 +80,13 @@ static void initializeRefCountsT1(void)
                                            &depot));
   allocator        = &depot->allocators[0];
   allocator->depot = depot;
+  depot->vdo       = vdo;
 
 
   threadConfig = makeOneThreadConfig();
-  VDO_ASSERT_SUCCESS(vdo_make_read_only_notifier(false,
-                                                 threadConfig,
-                                                 vdo,
-                                                 &readOnlyNotifier));
-  performSuccessfulAction(allowEnteringAction);
+  performSuccessfulAction(vdo_allow_read_only_mode_entry);
   expectedCloseResult = VDO_SUCCESS;
-  VDO_ASSERT_SUCCESS(vdo_register_read_only_listener(readOnlyNotifier, NULL,
-                                                     readOnlyNotification, 0));
-
-  allocator->read_only_notifier = readOnlyNotifier;
+  VDO_ASSERT_SUCCESS(vdo_register_read_only_listener(vdo, NULL, readOnlyNotification, 0));
 
   viosFinishedCount          = 0;
   refCountsCompletionWaiting = false;
@@ -124,7 +110,6 @@ static void initializeRefCountsT1(void)
                                            threadConfig,
                                            depot->slab_size_shift,
                                            SLAB_SIZE,
-                                           readOnlyNotifier,
                                            &depot->slab_summary));
   allocator->summary = depot->slab_summary->zones[0];
 
@@ -151,21 +136,14 @@ static void initializeRefCountsT1(void)
 }
 
 /**********************************************************************/
-static void notEnteringAction(struct vdo_completion *completion)
-{
-  vdo_wait_until_not_entering_read_only_mode(readOnlyNotifier, completion);
-}
-
-/**********************************************************************/
 static void tearDownRefCountsT1(void)
 {
-  performSuccessfulAction(notEnteringAction);
+  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
   CU_ASSERT_EQUAL(expectedCloseResult, closeSlabSummary(depot->slab_summary));
   free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
   vdo_free_slab(UDS_FORGET(slab));
   free_vio_pool(UDS_FORGET(allocator->vio_pool));
   vdo_free_slab_summary(UDS_FORGET(depot->slab_summary));
-  vdo_free_read_only_notifier(UDS_FORGET(readOnlyNotifier));
   vdo_free_thread_config(UDS_FORGET(threadConfig));
   UDS_FREE(depot);
   vdo_free_fixed_layout(UDS_FORGET(layout));
@@ -868,7 +846,7 @@ static void testReplay(void)
  **/
 static void enterReadOnlyModeAction(struct vdo_completion *completion)
 {
-  vdo_enter_read_only_mode(readOnlyNotifier, VDO_READ_ONLY);
+  vdo_enter_read_only_mode(vdo, VDO_READ_ONLY);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 

@@ -44,7 +44,7 @@ get_lock(struct slab_journal *journal, sequence_number_t sequence_number)
  */
 static inline bool __must_check is_vdo_read_only(struct slab_journal *journal)
 {
-	return vdo_is_read_only(journal->slab->allocator->read_only_notifier);
+	return vdo_is_read_only(journal->slab->allocator->depot->vdo);
 }
 
 /**
@@ -311,7 +311,7 @@ void vdo_abort_slab_journal_waiters(struct slab_journal *journal)
  */
 static void enter_journal_read_only_mode(struct slab_journal *journal, int error_code)
 {
-	vdo_enter_read_only_mode(journal->slab->allocator->read_only_notifier, error_code);
+	vdo_enter_read_only_mode(journal->slab->allocator->depot->vdo, error_code);
 	vdo_abort_slab_journal_waiters(journal);
 }
 

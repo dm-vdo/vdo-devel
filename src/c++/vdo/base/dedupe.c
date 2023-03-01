@@ -2771,7 +2771,7 @@ resume_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion 
  */
 void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *parent)
 {
-	if (vdo_is_read_only(parent->vdo->read_only_notifier)) {
+	if (vdo_is_read_only(parent->vdo)) {
 		vdo_invoke_completion_callback(parent);
 		return;
 	}

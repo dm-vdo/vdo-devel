@@ -13,7 +13,6 @@
 #include "admin-state.h"
 #include "constants.h"
 #include "flush.h"
-#include "read-only-notifier.h"
 #include "statistics.h"
 #include "types.h"
 #include "vdo-component-states.h"
@@ -155,8 +154,6 @@ struct recovery_journal {
 	data_vio_count_t pending_decrement_count;
 	/* Whether the journal is adding entries from the increment or decrement waiters queues */
 	bool adding_entries;
-	/* The notifier for read-only mode */
-	struct read_only_notifier *read_only_notifier;
 	/* The administrative state of the journal */
 	struct admin_state state;
 	/* Whether a reap is in progress */
@@ -257,7 +254,6 @@ int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 s
 					     struct partition *partition,
 					     u64 recovery_count,
 					     block_count_t journal_size,
-					     struct read_only_notifier *read_only_notifier,
 					     const struct thread_config *thread_config,
 					     struct recovery_journal **journal_ptr);
 
