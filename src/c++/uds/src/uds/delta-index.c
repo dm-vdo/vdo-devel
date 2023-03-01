@@ -407,18 +407,16 @@ static int initialize_delta_zone(struct delta_zone *delta_zone,
 		return result;
 
 	result = UDS_ALLOCATE(list_count + 2, u64, "delta list temp", &delta_zone->new_offsets);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	/* Allocate the delta lists. */
 	result = UDS_ALLOCATE(list_count + 2,
 			      struct delta_list,
 			      "delta lists",
 			      &delta_zone->delta_lists);
-	if (result != UDS_SUCCESS) {
+	if (result != UDS_SUCCESS)
 		return result;
-	}
 
 	compute_coding_constants(mean_delta,
 				 &delta_zone->min_bits,
