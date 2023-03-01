@@ -115,8 +115,6 @@ bool __must_check vdo_are_ref_counts_active(struct ref_counts *ref_counts);
 
 void vdo_reset_search_cursor(struct ref_counts *ref_counts);
 
-block_count_t __must_check vdo_get_unreferenced_block_count(struct ref_counts *ref_counts);
-
 u8 __must_check
 vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn);
 

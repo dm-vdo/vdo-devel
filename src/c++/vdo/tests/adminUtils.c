@@ -54,12 +54,11 @@ launchAdminAction(void                          *operand,
 /**********************************************************************/
 static void slabOperationAction(struct vdo_completion *completion)
 {
-  AdminOperationCompletion *adminOperation
-    = (AdminOperationCompletion *) completion;
-  struct vdo_slab      *slab      = adminOperation->operand;
+  AdminOperationCompletion *adminOperation = (AdminOperationCompletion *) completion;
+  struct vdo_slab               *slab      = adminOperation->operand;
   const struct admin_state_code *operation = adminOperation->operation;
   list_del_init(&slab->allocq_entry);
-  vdo_start_slab_action(slab, operation, completion);
+  vdo_start_operation_with_waiter(&slab->state, operation, completion, initiate_slab_action);
 }
 
 /**********************************************************************/

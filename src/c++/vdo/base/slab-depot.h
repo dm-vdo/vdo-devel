@@ -237,6 +237,7 @@ void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
 #ifdef INTERNAL
+void initiate_slab_action(struct admin_state *state);
 void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
 int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
 int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);

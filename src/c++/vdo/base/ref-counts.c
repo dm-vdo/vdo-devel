@@ -271,18 +271,6 @@ static void dirty_block(struct reference_block *block)
 }
 
 /**
- * vdo_get_unreferenced_block_count() - Get the stored count of the number of blocks that are
- *                                      currently free.
- * @ref_counts: The ref_counts object.
- *
- * Return: The number of blocks with a reference count of zero.
- */
-block_count_t vdo_get_unreferenced_block_count(struct ref_counts *ref_counts)
-{
-	return ref_counts->free_blocks;
-}
-
-/**
  * vdo_get_reference_block() - Get the reference block that covers the given block index.
  * @ref_counts: The refcounts object.
  * @index: The block index.
@@ -1145,7 +1133,7 @@ static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 				      offset,
 				      true,
 				      true,
-				      get_slab_free_block_count(ref_counts->slab));
+				      ref_counts->free_blocks);
 }
 
 /**
@@ -1554,7 +1542,7 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 		block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
 
 		if (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number) ||
-		    (get_slab_free_block_count(slab) != data_blocks) ||
+		    (ref_counts->free_blocks != data_blocks) ||
 		    !vdo_is_slab_journal_blank(slab->journal)) {
 			vdo_dirty_all_reference_blocks(ref_counts);
 			save = true;

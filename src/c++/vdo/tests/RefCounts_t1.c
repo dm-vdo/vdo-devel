@@ -224,14 +224,14 @@ static void assertAdjustment(physical_block_number_t     pbn,
     expectedFreeStatusChanged = ((oldStatus == RS_FREE) && increment);
   }
 
-  block_count_t freeBefore = vdo_get_unreferenced_block_count(refs);
+  block_count_t freeBefore = refs->free_blocks;
   performAdjustment(pbn,
                     slabJournalPoint,
                     operation,
                     increment,
                     VDO_SUCCESS,
                     expectedFreeStatusChanged);
-  block_count_t freeAfter = vdo_get_unreferenced_block_count(refs);
+  block_count_t freeAfter = refs->free_blocks;
 
   assertReferenceStatus(pbn, expectedStatus);
 
@@ -290,7 +290,7 @@ static void addManyReferences(physical_block_number_t pbn, uint8_t howMany)
 /**********************************************************************/
 static void assertBlockMapIncrement(physical_block_number_t pbn)
 {
-  block_count_t freeBefore = vdo_get_unreferenced_block_count(refs);
+  block_count_t freeBefore = refs->free_blocks;
   performAdjustment(pbn,
                     NULL,
                     VDO_JOURNAL_BLOCK_MAP_REMAPPING,
@@ -300,8 +300,7 @@ static void assertBlockMapIncrement(physical_block_number_t pbn)
   assertReferenceStatus(pbn, RS_SHARED);
   // The block was already counted as not free when it was provisionally
   // referenced.
-  CU_ASSERT_EQUAL(freeBefore,
-                  vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(freeBefore, refs->free_blocks);
   assertFailedAdjustment(pbn, true, VDO_REF_COUNT_INVALID);
 }
 
@@ -315,14 +314,10 @@ static void testBasic(void)
   for (physical_block_number_t pbn = FIRST_BLOCK; pbn < dataBlocks; pbn++) {
     assertReferenceStatus(pbn, RS_FREE);
   }
-  CU_ASSERT_EQUAL(dataBlocks,
-                  vdo_get_unreferenced_block_count(refs));
-
+  CU_ASSERT_EQUAL(dataBlocks, refs->free_blocks);
+  CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE, vdo_get_reference_status(refs, FIRST_BLOCK - 1, &refStatus));
   CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE,
-                  vdo_get_reference_status(refs, FIRST_BLOCK - 1, &refStatus));
-  CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE,
-                  vdo_get_reference_status(refs, FIRST_BLOCK + dataBlocks,
-                                           &refStatus));
+                  vdo_get_reference_status(refs, FIRST_BLOCK + dataBlocks, &refStatus));
 
   assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
   assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
@@ -338,20 +333,19 @@ static void testBasic(void)
   assertFailedDecrement(1);
 
   assertAllocation(1);
-  CU_ASSERT_EQUAL(dataBlocks - 1,
-                  vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 1, refs->free_blocks);
   assertReferenceStatus(1, RS_PROVISIONAL);
 
   assertAdjustment(3, NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
-  CU_ASSERT_EQUAL(dataBlocks - 2, vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 2, refs->free_blocks);
 
   assertAllocation(2);
-  CU_ASSERT_EQUAL(dataBlocks - 3, vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 3, refs->free_blocks);
   assertReferenceStatus(2, RS_PROVISIONAL);
 
   // Block #3 was manually incRef'ed, so it will be skipped and #4 allocated.
   assertAllocation(4);
-  CU_ASSERT_EQUAL(dataBlocks - 4, vdo_get_unreferenced_block_count(refs));
+  CU_ASSERT_EQUAL(dataBlocks - 4, refs->free_blocks);
   assertReferenceStatus(4, RS_PROVISIONAL);
   assertAdjustment(4, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
   assertFailedDecrement(4);
@@ -705,7 +699,7 @@ static void doProvisionalReferencing(struct vdo_completion *completion)
  **/
 static void testProvisionalForDedupe(void)
 {
-  block_count_t blockCount = vdo_get_unreferenced_block_count(refs);
+  block_count_t blockCount = refs->free_blocks;
   CU_ASSERT_TRUE(blockCount > 256);
 
   // Set the first reference block to non-zero reference counts.
@@ -734,7 +728,7 @@ static void testProvisionalForDedupe(void)
  **/
 static void testClearProvisional(void)
 {
-  block_count_t blockCount = vdo_get_unreferenced_block_count(refs);
+  block_count_t blockCount = refs->free_blocks;
   CU_ASSERT_TRUE(blockCount > 256);
 
   // Set the first 254 to all valid non-zero reference counts.

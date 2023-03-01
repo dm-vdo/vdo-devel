@@ -40,6 +40,44 @@ struct slab_journal_eraser {
 };
 
 /**
+ * initiate_slab_action() - Initiate a slab action.
+ *
+ * Implements vdo_admin_initiator.
+ */
+EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
+{
+	struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
+
+	if (vdo_is_state_draining(state)) {
+		const struct admin_state_code *operation = vdo_get_admin_state_code(state);
+
+		if (operation == VDO_ADMIN_STATE_SCRUBBING)
+			slab->status = VDO_SLAB_REBUILDING;
+
+		vdo_drain_slab_journal(slab->journal);
+
+		if (slab->reference_counts != NULL)
+			vdo_drain_ref_counts(slab->reference_counts);
+
+		vdo_check_if_slab_drained(slab);
+		return;
+	}
+
+	if (vdo_is_state_loading(state)) {
+		vdo_decode_slab_journal(slab->journal);
+		return;
+	}
+
+	if (vdo_is_state_resuming(state)) {
+		vdo_queue_slab(slab);
+		vdo_finish_resuming(state);
+		return;
+	}
+
+	vdo_finish_operation(state, VDO_INVALID_ADMIN_STATE);
+}
+
+/**
  * get_next_slab() - Get the next slab to scrub.
  * @scrubber: The slab scrubber.
  *
@@ -341,7 +379,10 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			       handle_scrubber_error,
 			       slab->allocator->thread_id,
 			       completion->parent);
-	vdo_start_slab_action(slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
+	vdo_start_operation_with_waiter(&slab->state,
+					VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING,
+					completion,
+					initiate_slab_action);
 }
 
 static void read_slab_journal_endio(struct bio *bio)
@@ -415,7 +456,10 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 			       handle_scrubber_error,
 			       slab->allocator->thread_id,
 			       completion->parent);
-	vdo_start_slab_action(slab, VDO_ADMIN_STATE_SCRUBBING, completion);
+	vdo_start_operation_with_waiter(&slab->state,
+					VDO_ADMIN_STATE_SCRUBBING,
+					completion,
+					initiate_slab_action);
 }
 
 /**
@@ -457,7 +501,7 @@ static inline void assert_on_allocator_thread(thread_id_t thread_id, const char 
  */
 static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 {
-	block_count_t free_blocks = get_slab_free_block_count(slab);
+	block_count_t free_blocks = slab->reference_counts->free_blocks;
 	unsigned int unopened_slab_priority = slab->allocator->unopened_slab_priority;
 	unsigned int priority;
 
@@ -581,7 +625,7 @@ void vdo_queue_slab(struct vdo_slab *slab)
 
 	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a requeued slab must not already be on a ring");
-	free_blocks = get_slab_free_block_count(slab);
+	free_blocks = slab->reference_counts->free_blocks;
 	result = ASSERT((free_blocks <= allocator->depot->slab_config.data_blocks),
 			"rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
 			slab->slab_number,
@@ -922,7 +966,10 @@ static void apply_to_slabs(struct block_allocator *allocator, vdo_action *callba
 
 		list_del_init(&slab->allocq_entry);
 		allocator->slab_actor.slab_action_count++;
-		vdo_start_slab_action(slab, operation, &allocator->completion);
+		vdo_start_operation_with_waiter(&slab->state,
+						operation,
+						&allocator->completion,
+						initiate_slab_action);
 	}
 
 	slab_action_callback(&allocator->completion);
@@ -1126,7 +1173,7 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 			uds_log_info("slab %u: P%u, %llu free",
 				     slab->slab_number,
 				     slab->priority,
-				     (unsigned long long) get_slab_free_block_count(slab));
+				     (unsigned long long) slab->reference_counts->free_blocks);
 		else
 			uds_log_info("slab %u: status %s",
 				     slab->slab_number,
@@ -1402,7 +1449,7 @@ initialize_block_allocator(struct slab_depot *depot, zone_count_t zone)
 	 * This also avoids degenerate behavior in unit tests where the number of data blocks is
 	 * artificially constrained to a power of two.
 	 */
-#endif // VDO_INTERNAL
+#endif /* VDO_INTERNAL */
 	allocator->unopened_slab_priority = (1 + ilog2((max_free_blocks * 3) / 4));
 
 	return VDO_SUCCESS;

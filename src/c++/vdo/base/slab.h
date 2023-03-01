@@ -76,18 +76,10 @@ int __must_check vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab);
 
 void vdo_free_slab(struct vdo_slab *slab);
 
-block_count_t __must_check get_slab_free_block_count(const struct vdo_slab *slab);
-
 int __must_check
 vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
 			       physical_block_number_t physical_block_number,
 			       slab_block_number *slab_block_number_ptr);
-
-void vdo_start_slab_action(struct vdo_slab *slab,
-			   const struct admin_state_code *operation,
-			   struct vdo_completion *parent);
-
-void vdo_notify_slab_journal_is_loaded(struct vdo_slab *slab, int result);
 
 bool __must_check vdo_is_slab_open(struct vdo_slab *slab);
 

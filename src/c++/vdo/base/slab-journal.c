@@ -521,7 +521,7 @@ static void update_tail_block_location(struct slab_journal *journal)
 		free_block_count =
 			vdo_get_summarized_free_block_count(journal->summary, slab->slab_number);
 	else
-		free_block_count = get_slab_free_block_count(slab);
+		free_block_count = slab->reference_counts->free_blocks;
 
 	journal->summarized = journal->next_commit;
 	journal->updating_slab_summary = true;
@@ -1252,6 +1252,20 @@ void vdo_drain_slab_journal(struct slab_journal *journal)
 	commit_tail(journal);
 }
 
+static void finish_journal_load(struct slab_journal *journal, int result)
+{
+	struct vdo_slab *slab = journal->slab;
+
+	if ((result == VDO_SUCCESS) && vdo_is_state_clean_load(&slab->state))
+		/*
+		 * Since this is a normal or new load, we don't need the memory to read and process
+		 * the recovery journal, so we can allocate reference counts now.
+		 */
+		result = vdo_allocate_ref_counts_for_slab(slab);
+
+	vdo_finish_loading_with_result(&slab->state, result);
+}
+
 /**
  * finish_decoding_journal() - Finish the decode process by returning the vio and notifying the
  *                             slab that we're done.
@@ -1264,7 +1278,7 @@ static void finish_decoding_journal(struct vdo_completion *completion)
 
 	return_vio_to_pool(journal->slab->allocator->vio_pool,
 			   vio_as_pooled_vio(as_vio(completion)));
-	vdo_notify_slab_journal_is_loaded(journal->slab, result);
+	finish_journal_load(journal, result);
 }
 
 /**
@@ -1360,7 +1374,7 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 	struct vdo_slab *slab = journal->slab;
 	tail_block_offset_t last_commit_point;
 
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == journal->slab->allocator->thread_id),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == slab->allocator->thread_id),
 			"%s() called on correct thread",
 			__func__);
 	last_commit_point =
@@ -1375,7 +1389,7 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 		ASSERT_LOG_ONLY(((journal->size < 16) ||
 				 (journal->scrubbing_threshold < (journal->size - 1))),
 				"Scrubbing threshold protects against reads of unwritten slab journal blocks");
-		vdo_notify_slab_journal_is_loaded(slab, VDO_SUCCESS);
+		finish_journal_load(journal, VDO_SUCCESS);
 		return;
 	}
 

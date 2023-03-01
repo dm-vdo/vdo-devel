@@ -1520,8 +1520,12 @@ static bool journalIsClosed(void *context)
  **/
 static void closeJournalWrapper(void *context, struct vdo_completion *parent)
 {
-  vdo_start_slab_action(((struct slab_journal *) context)->slab,
-                        VDO_ADMIN_STATE_SAVING, parent);
+  struct slab_journal *journal = context;
+
+  vdo_start_operation_with_waiter(&journal->slab->state,
+                                  VDO_ADMIN_STATE_SAVING,
+                                  parent,
+                                  initiate_slab_action);
 }
 
 /**

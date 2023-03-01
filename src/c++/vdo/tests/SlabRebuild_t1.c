@@ -173,10 +173,9 @@ static void initializeReferenceCounts(void)
 /**********************************************************************/
 static void verifyReferences(void)
 {
-  CU_ASSERT_EQUAL(expectedBlocksFree, get_slab_free_block_count(slab));
+  CU_ASSERT_EQUAL(expectedBlocksFree, slab->reference_counts->free_blocks);
   for (block_count_t i = 0; i < slabConfig.data_blocks; i++ ) {
-    CU_ASSERT_EQUAL(expectedReferences[i],
-                    slab->reference_counts->counters[i]);
+    CU_ASSERT_EQUAL(expectedReferences[i], slab->reference_counts->counters[i]);
   }
 }
 
