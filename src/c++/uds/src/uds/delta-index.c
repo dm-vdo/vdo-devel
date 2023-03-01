@@ -292,14 +292,12 @@ static inline void move_delta_list_start(struct delta_list *delta_list, int incr
 }
 
 /* Move the end of the delta list bit stream without moving the start. */
-static inline void move_delta_list_end(struct delta_list *delta_list,
-				       int increment)
+static inline void move_delta_list_end(struct delta_list *delta_list, int increment)
 {
 	delta_list->size += increment;
 }
 
-static inline size_t get_zone_memory_size(unsigned int zone_count,
-					  size_t memory_size)
+static inline size_t get_zone_memory_size(unsigned int zone_count, size_t memory_size)
 {
 	size_t zone_size = memory_size / zone_count;
 
@@ -377,16 +375,6 @@ static void compute_coding_constants(unsigned int mean_delta,
 	*min_keys = (1 << *min_bits) - *incr_keys;
 }
 
-EXTERNAL_STATIC void uninitialize_delta_zone(struct delta_zone *delta_zone)
-{
-	UDS_FREE(delta_zone->new_offsets);
-	delta_zone->new_offsets = NULL;
-	UDS_FREE(delta_zone->delta_lists);
-	delta_zone->delta_lists = NULL;
-	UDS_FREE(delta_zone->memory);
-	delta_zone->memory = NULL;
-}
-
 void uninitialize_delta_index(struct delta_index *delta_index)
 {
 	unsigned int z;
@@ -394,20 +382,23 @@ void uninitialize_delta_index(struct delta_index *delta_index)
 	if (delta_index->delta_zones == NULL)
 		return;
 
-	for (z = 0; z < delta_index->zone_count; z++)
-		uninitialize_delta_zone(&delta_index->delta_zones[z]);
+	for (z = 0; z < delta_index->zone_count; z++) {
+		UDS_FREE(UDS_FORGET(delta_index->delta_zones[z].new_offsets));
+		UDS_FREE(UDS_FORGET(delta_index->delta_zones[z].delta_lists));
+		UDS_FREE(UDS_FORGET(delta_index->delta_zones[z].memory));
+	}
 
 	UDS_FREE(delta_index->delta_zones);
 	memset(delta_index, 0, sizeof(struct delta_index));
 }
 
-EXTERNAL_STATIC int initialize_delta_zone(struct delta_zone *delta_zone,
-					  size_t size,
-					  unsigned int first_list,
-					  unsigned int list_count,
-					  unsigned int mean_delta,
-					  unsigned int payload_bits,
-					  u8 tag)
+static int initialize_delta_zone(struct delta_zone *delta_zone,
+				 size_t size,
+				 unsigned int first_list,
+				 unsigned int list_count,
+				 unsigned int mean_delta,
+				 unsigned int payload_bits,
+				 u8 tag)
 {
 	int result;
 
@@ -417,7 +408,6 @@ EXTERNAL_STATIC int initialize_delta_zone(struct delta_zone *delta_zone,
 
 	result = UDS_ALLOCATE(list_count + 2, u64, "delta list temp", &delta_zone->new_offsets);
 	if (result != UDS_SUCCESS) {
-		uninitialize_delta_zone(delta_zone);
 		return result;
 	}
 
@@ -427,7 +417,6 @@ EXTERNAL_STATIC int initialize_delta_zone(struct delta_zone *delta_zone,
 			      "delta lists",
 			      &delta_zone->delta_lists);
 	if (result != UDS_SUCCESS) {
-		uninitialize_delta_zone(delta_zone);
 		return result;
 	}
 
@@ -800,11 +789,7 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
  * bits from the source to a temporary value, and then move all the bits from the temporary value
  * to the destination. The size and memory offsets are measured in bits.
  */
-EXTERNAL_STATIC void move_bits(const u8 *from,
-			       u64 from_offset,
-			       u8 *to,
-			       u64 to_offset,
-			       int size)
+EXTERNAL_STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, int size)
 {
 	u64 field;
 
@@ -1858,9 +1843,8 @@ int set_delta_entry_value(const struct delta_index_entry *delta_entry, unsigned 
  * Extend the memory used by the delta lists by adding growing_size bytes before the list indicated
  * by growing_index, then rebalancing the lists in the new chunk.
  */
-EXTERNAL_STATIC int extend_delta_zone(struct delta_zone *delta_zone,
-				      unsigned int growing_index,
-				      size_t growing_size)
+EXTERNAL_STATIC int
+extend_delta_zone(struct delta_zone *delta_zone, unsigned int growing_index, size_t growing_size)
 {
 	ktime_t start_time;
 	ktime_t end_time;

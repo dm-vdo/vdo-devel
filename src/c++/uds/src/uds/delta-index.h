@@ -204,16 +204,6 @@ int __must_check extend_delta_zone(struct delta_zone *delta_zone,
 
 void swap_delta_index_page_endianness(u8 *memory);
 
-void uninitialize_delta_zone(struct delta_zone *delta_zone);
-
-int __must_check initialize_delta_zone(struct delta_zone *delta_zone,
-				       size_t size,
-				       unsigned int first_list,
-				       unsigned int list_count,
-				       unsigned int mean_delta,
-				       unsigned int payload_bits,
-				       u8 tag);
-
 #endif /* TEST_INTERNAL */
 int __must_check initialize_delta_index(struct delta_index *delta_index,
 					unsigned int zone_count,
