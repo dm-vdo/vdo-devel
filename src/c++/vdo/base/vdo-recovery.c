@@ -1283,20 +1283,19 @@ static bool fetch_page(struct rebuild_completion *rebuild, struct vdo_completion
 	physical_block_number_t pbn = get_pbn_to_fetch(rebuild, block_map);
 
 	if (pbn != VDO_ZERO_BLOCK) {
-		vdo_init_page_completion(page_completion,
-					 &block_map->zones[0].page_cache,
-					 pbn,
-					 true,
-					 rebuild,
-					 page_loaded,
-					 handle_page_load_error);
 		rebuild->outstanding++;
 		/*
-		 * Ensure that we don't blow the stack or race with ourselves in the event that all
-		 * the pages we request are already in the cache.
+		 * We must set the requeue flag here to ensure that we don't blow the stack if all
+		 * the requested pages are already in the cache or get load errors.
 		 */
-		completion->requeue = true;
-		vdo_get_page(completion);
+		vdo_get_page(page_completion,
+			     &block_map->zones[0],
+			     pbn,
+			     true,
+			     rebuild,
+			     page_loaded,
+			     handle_page_load_error,
+			     true);
 	}
 
 	if (rebuild->outstanding > 0)

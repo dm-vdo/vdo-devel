@@ -294,15 +294,15 @@ fetch_page(struct block_map_recovery_completion *recovery, struct vdo_completion
 	new_pbn = recovery->current_unfetched_entry->block_map_slot.pbn;
 	recovery->current_unfetched_entry =
 		find_entry_starting_next_page(recovery, recovery->current_unfetched_entry, true);
-	vdo_init_page_completion(((struct vdo_page_completion *) completion),
-				 &recovery->completion.vdo->block_map->zones[0].page_cache,
-				 new_pbn,
-				 true,
-				 &recovery->completion,
-				 page_loaded,
-				 handle_page_load_error);
 	recovery->outstanding++;
-	vdo_get_page(completion);
+	vdo_get_page(((struct vdo_page_completion *) completion),
+		     &recovery->completion.vdo->block_map->zones[0],
+		     new_pbn,
+		     true,
+		     &recovery->completion,
+		     page_loaded,
+		     handle_page_load_error,
+		     false);
 }
 
 static struct vdo_page_completion *

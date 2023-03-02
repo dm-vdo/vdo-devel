@@ -588,47 +588,6 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
 }
 
 /**
- * vdo_init_page_completion() - Initialize a VDO Page Completion, requesting a particular page from
- *                              the cache.
- * @page_completion: The vdo_page_completion to initialize.
- * @cache: The VDO page cache.
- * @pbn: The absolute physical block of the desired page.
- * @writable: Whether the page can be modified.
- * @parent: The parent object.
- * @callback: The completion callback.
- * @error_handler: The handler for page errors.
- *
- * Once a completion has occurred for the vdo_get_page() operation, the underlying page shall be
- * busy (stuck in memory) until the vdo_completion returned by this operation has been released.
- */
-void vdo_init_page_completion(struct vdo_page_completion *page_completion,
-			      struct vdo_page_cache *cache,
-			      physical_block_number_t pbn,
-			      bool writable,
-			      void *parent,
-			      vdo_action *callback,
-			      vdo_action *error_handler)
-{
-	struct vdo_completion *completion = &page_completion->completion;
-
-	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
-			"New page completion was not already on a wait queue");
-
-	*page_completion = (struct vdo_page_completion) {
-		.pbn = pbn,
-		.writable = writable,
-		.cache = cache,
-	};
-
-	vdo_initialize_completion(completion, cache->vdo, VDO_PAGE_COMPLETION);
-	vdo_prepare_completion(completion,
-			       callback,
-			       error_handler,
-			       cache->zone->thread_id,
-			       parent);
-}
-
-/**
  * validate_completed_page() - Check that a page completion which is being freed to the cache
  *                             referred to a valid page and is in a valid state.
  * @completion: A VDO page completion.
@@ -1228,9 +1187,9 @@ void vdo_release_page_completion(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
 			"Page being released after leaving all queues");
 
+	page_completion->info = NULL;
 	cache = page_completion->cache;
 	assert_on_cache_thread(cache, __func__);
-	memset(page_completion, 0, sizeof(struct vdo_page_completion));
 
 	if (discard_info != NULL) {
 		if (discard_info->write_status == WRITE_STATUS_DEFERRED) {
@@ -1263,42 +1222,71 @@ load_page_for_completion(struct page_info *info, struct vdo_page_completion *vdo
 }
 
 /**
- * vdo_get_page() - Asynchronous operation to get a VDO page.
- * @completion: The completion initialized by vdo_init_page_completion().
+ * vdo_get_page() - Initialize a page completion and get a block map page.
+ * @page_completion: The vdo_page_completion to initialize.
+ * @zone: The block map zone of the desired page.
+ * @pbn: The absolute physical block of the desired page.
+ * @writable: Whether the page can be modified.
+ * @parent: The object to notify when the fetch is complete.
+ * @callback: The notification callback.
+ * @error_handler: The handler for fetch errors.
+ * @requeue: Whether we must requeue when notifying the parent.
  *
  * May cause another page to be discarded (potentially writing a dirty page) and the one nominated
- * by the completion to be loaded from disk.
- *
- * When the page becomes available the callback registered in the completion provided is triggered.
- * Once triggered the page is marked busy until the completion is destroyed.
+ * by the completion to be loaded from disk. When the callback is invoked, the page will be
+ * resident in the cache and marked busy. All callers must call vdo_release_page_completion()
+ * when they are done with the page to clear the busy mark.
  */
-void vdo_get_page(struct vdo_completion *completion)
+void vdo_get_page(struct vdo_page_completion *page_completion,
+		  struct block_map_zone *zone,
+		  physical_block_number_t pbn,
+		  bool writable,
+		  void *parent,
+		  vdo_action *callback,
+		  vdo_action *error_handler,
+		  bool requeue)
 {
+	struct vdo_page_cache *cache = &zone->page_cache;
+	struct vdo_completion *completion = &page_completion->completion;
 	struct page_info *info;
-	struct vdo_page_completion *vdo_page_comp = as_vdo_page_completion(completion);
-	struct vdo_page_cache *cache = vdo_page_comp->cache;
 
 	assert_on_cache_thread(cache, __func__);
+	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
+			"New page completion was not already on a wait queue");
 
-	if (vdo_page_comp->writable && vdo_is_read_only(cache->zone->block_map->vdo)) {
+	*page_completion = (struct vdo_page_completion) {
+		.pbn = pbn,
+		.writable = writable,
+		.cache = cache,
+	};
+
+	vdo_initialize_completion(completion, cache->vdo, VDO_PAGE_COMPLETION);
+	vdo_prepare_completion(completion,
+			       callback,
+			       error_handler,
+			       cache->zone->thread_id,
+			       parent);
+	completion->requeue = requeue;
+
+	if (page_completion->writable && vdo_is_read_only(cache->zone->block_map->vdo)) {
 		vdo_finish_completion(completion, VDO_READ_ONLY);
 		return;
 	}
 
-	if (vdo_page_comp->writable)
+	if (page_completion->writable)
 		ADD_ONCE(cache->stats.write_count, 1);
 	else
 		ADD_ONCE(cache->stats.read_count, 1);
 
-	info = find_page(cache, vdo_page_comp->pbn);
+	info = find_page(cache, page_completion->pbn);
 	if (info != NULL) {
 		/* The page is in the cache already. */
 		if ((info->write_status == WRITE_STATUS_DEFERRED) ||
 		    is_incoming(info) ||
-		    (is_outgoing(info) && vdo_page_comp->writable)) {
+		    (is_outgoing(info) && page_completion->writable)) {
 			/* The page is unusable until it has finished I/O. */
 			ADD_ONCE(cache->stats.wait_for_page, 1);
-			enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
+			enqueue_waiter(&info->waiting, &page_completion->waiter);
 			return;
 		}
 
@@ -1309,7 +1297,7 @@ void vdo_get_page(struct vdo_completion *completion)
 				ADD_ONCE(cache->stats.read_outgoing, 1);
 			update_lru(info);
 			++info->busy;
-			complete_with_page(info, vdo_page_comp);
+			complete_with_page(info, page_completion);
 			return;
 		}
 		/* Something horrible has gone wrong. */
@@ -1320,13 +1308,13 @@ void vdo_get_page(struct vdo_completion *completion)
 	info = find_free_page(cache);
 	if (info != NULL) {
 		ADD_ONCE(cache->stats.fetch_required, 1);
-		load_page_for_completion(info, vdo_page_comp);
+		load_page_for_completion(info, page_completion);
 		return;
 	}
 
 	/* The page must wait for a page to be discarded. */
 	ADD_ONCE(cache->stats.discard_required, 1);
-	discard_page_for_completion(vdo_page_comp);
+	discard_page_for_completion(page_completion);
 }
 
 /**
@@ -3264,14 +3252,14 @@ static void fetch_mapping_page(struct data_vio *data_vio, bool modifiable, vdo_a
 		return;
 	}
 
-	vdo_init_page_completion(&data_vio->page_completion,
-				 &zone->page_cache,
-				 data_vio->tree_lock.tree_slots[0].block_map_slot.pbn,
-				 modifiable,
-				 &data_vio->vio.completion,
-				 action,
-				 handle_page_error);
-	vdo_get_page(&data_vio->page_completion.completion);
+	vdo_get_page(&data_vio->page_completion,
+		     zone,
+		     data_vio->tree_lock.tree_slots[0].block_map_slot.pbn,
+		     modifiable,
+		     &data_vio->vio.completion,
+		     action,
+		     handle_page_error,
+		     false);
 }
 
 /**

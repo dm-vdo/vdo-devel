@@ -281,14 +281,6 @@ struct block_map {
  */
 typedef int vdo_entry_callback(physical_block_number_t pbn, struct vdo_completion *completion);
 
-void vdo_init_page_completion(struct vdo_page_completion *page_completion,
-			      struct vdo_page_cache *cache,
-			      physical_block_number_t pbn,
-			      bool writable,
-			      void *parent,
-			      vdo_action *callback,
-			      vdo_action *error_handler);
-
 static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
@@ -297,7 +289,14 @@ static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_comp
 
 void vdo_release_page_completion(struct vdo_completion *completion);
 
-void vdo_get_page(struct vdo_completion *completion);
+void vdo_get_page(struct vdo_page_completion *page_completion,
+		  struct block_map_zone *zone,
+		  physical_block_number_t pbn,
+		  bool writable,
+		  void *parent,
+		  vdo_action *callback,
+		  vdo_action *error_handler,
+		  bool requeue);
 
 void vdo_request_page_write(struct vdo_completion *completion);
 

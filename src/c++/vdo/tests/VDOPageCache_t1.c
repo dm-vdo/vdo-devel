@@ -297,18 +297,14 @@ static void getVDOPageAction(struct vdo_completion *completion)
 {
   TestCompletion             *testCompletion = asTestCompletion(completion);
   struct vdo_page_completion *pageCompletion = &testCompletion->pageCompletion;
-  vdo_init_page_completion(pageCompletion,
-                           cache,
-                           pageNumberToPBN(testCompletion->pageNumber),
-                           testCompletion->writable,
-                           NULL,
-                           NULL,
-                           NULL);
-  vdo_set_completion_callback_with_parent(&pageCompletion->completion,
-                                          finishGettingPage,
-                                          completion->callback_thread_id,
-                                          completion);
-  vdo_get_page(&pageCompletion->completion);
+  vdo_get_page(pageCompletion,
+               zone,
+               pageNumberToPBN(testCompletion->pageNumber),
+               testCompletion->writable,
+               testCompletion,
+               finishGettingPage,
+               finishGettingPage,
+               false);
   signalState(&getRequested);
 }
 
