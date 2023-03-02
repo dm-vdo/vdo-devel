@@ -149,7 +149,6 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
  * vdo_make_ref_counts() - Create a reference counting object.
  * @block_count: The number of physical blocks that can be referenced.
  * @slab: The slab of the ref counts object.
- * @origin: The layer PBN at which to save ref_counts.
  * @ref_counts_ptr: The pointer to hold the new ref counts object.
  *
  * A reference counting object can keep a reference count for every physical block in the VDO
@@ -160,7 +159,6 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
  */
 int vdo_make_ref_counts(block_count_t block_count,
 			struct vdo_slab *slab,
-			physical_block_number_t origin,
 			struct ref_counts **ref_counts_ptr)
 {
 	size_t index, bytes;
@@ -190,9 +188,7 @@ int vdo_make_ref_counts(block_count_t block_count,
 	ref_counts->slab = slab;
 	ref_counts->block_count = block_count;
 	ref_counts->free_blocks = block_count;
-	ref_counts->origin = origin;
 	ref_counts->reference_block_count = ref_block_count;
-	ref_counts->statistics = &slab->allocator->ref_counts_statistics;
 	ref_counts->search_cursor.first_block = &ref_counts->blocks[0];
 	ref_counts->search_cursor.last_block = &ref_counts->blocks[ref_block_count - 1];
 	vdo_reset_search_cursor(ref_counts);
@@ -1264,7 +1260,7 @@ static void write_reference_block(struct waiter *waiter, void *context)
 
 	vdo_pack_reference_block(block, pooled->vio.data);
 	block_offset = (block - block->ref_counts->blocks);
-	pbn = (block->ref_counts->origin + block_offset);
+	pbn = (block->ref_counts->slab->ref_counts_origin + block_offset);
 	block->slab_journal_lock_to_release = block->slab_journal_lock;
 	completion->parent = block;
 
@@ -1279,8 +1275,8 @@ static void write_reference_block(struct waiter *waiter, void *context)
 	 * Flush before writing to ensure that the recovery journal and slab journal entries which
 	 * cover this reference update are stable (VDO-2331).
 	 */
-	WRITE_ONCE(block->ref_counts->statistics->blocks_written,
-		   block->ref_counts->statistics->blocks_written + 1);
+	WRITE_ONCE(block->ref_counts->slab->allocator->ref_counts_statistics.blocks_written,
+		   block->ref_counts->slab->allocator->ref_counts_statistics.blocks_written + 1);
 
 	completion->callback_thread_id = ((struct block_allocator *) pooled->context)->thread_id;
 	submit_metadata_vio(&pooled->vio,
@@ -1482,7 +1478,7 @@ static void load_reference_block(struct waiter *waiter, void *context)
 
 	vio->completion.parent = block;
 	submit_metadata_vio(vio,
-			    block->ref_counts->origin + block_offset,
+			    block->ref_counts->slab->ref_counts_origin + block_offset,
 			    load_reference_block_endio,
 			    handle_io_error,
 			    REQ_OP_READ);

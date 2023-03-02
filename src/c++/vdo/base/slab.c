@@ -98,10 +98,7 @@ int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return vdo_make_ref_counts(slab_config->data_blocks,
-				   slab,
-				   slab->ref_counts_origin,
-				   &slab->reference_counts);
+	return vdo_make_ref_counts(slab_config->data_blocks, slab, &slab->reference_counts);
 }
 
 /**

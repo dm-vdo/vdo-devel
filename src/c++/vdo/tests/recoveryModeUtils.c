@@ -64,8 +64,8 @@ static bool latchSlab(struct vio              *vio,
 
   // Reference count may not exist when the hook is called.
   if ((refCounts == NULL)
-      || (pbn < refCounts->origin)
-      || (pbn >= refCounts->origin + refCounts->reference_block_count)) {
+      || (pbn < refCounts->slab->ref_counts_origin)
+      || (pbn >= refCounts->slab->ref_counts_origin + refCounts->reference_block_count)) {
     return true;
   }
 

@@ -136,7 +136,7 @@ static void scrubSlabAction(struct vdo_completion *completion)
 static void initializeReferenceCounts(void)
 {
   // Write the reference count block directly to the layer.
-  physical_block_number_t  pbn             = slab->reference_counts->origin;
+  physical_block_number_t  pbn             = slab->ref_counts_origin;
   block_count_t            blocksRemaining = slabConfig.data_blocks;
 
   // Leave block 0 half empty and half provisional for block map increments
