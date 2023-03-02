@@ -13,7 +13,7 @@
 
 #include "constants.h"
 #include "slab.h"
-#include "slab-summary.h"
+#include "slab-depot.h"
 #include "vdo-layout.h"
 
 #include "asyncLayer.h"

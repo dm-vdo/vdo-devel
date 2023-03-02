@@ -18,7 +18,6 @@
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab-summary.h"
 #include "vdo-component-states.h"
 
 /**

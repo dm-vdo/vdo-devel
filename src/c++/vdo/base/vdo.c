@@ -58,7 +58,6 @@
 #include "recovery-journal.h"
 #include "release-versions.h"
 #include "slab-depot.h"
-#include "slab-summary.h"
 #include "statistics.h"
 #include "status-codes.h"
 #include "thread-config.h"

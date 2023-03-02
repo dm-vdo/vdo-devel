@@ -12,7 +12,7 @@
 
 #include "constants.h"
 #include "slab.h"
-#include "slab-summary.h"
+#include "slab-depot.h"
 #include "types.h"
 #include "vdo.h"
 #include "vdoConfig.h"

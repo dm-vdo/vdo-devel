@@ -9,7 +9,7 @@
 #include "slabSummaryUtils.h"
 
 #include "slab-journal.h"
-#include "slab-summary.h"
+#include "slab-depot.h"
 
 #include "asyncLayer.h"
 #include "mutexUtils.h"

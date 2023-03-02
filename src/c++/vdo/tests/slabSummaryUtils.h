@@ -9,7 +9,7 @@
 #ifndef SLAB_SUMMARY_UTILS_H
 #define SLAB_SUMMARY_UTILS_H
 
-#include "slab-summary.h"
+#include "slab-depot.h"
 
 /**
  * A completion for updating a slab summary.

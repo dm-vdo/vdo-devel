@@ -15,7 +15,6 @@
 #include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab-summary.h"
 #include "vdo.h"
 
 #include "asyncLayer.h"

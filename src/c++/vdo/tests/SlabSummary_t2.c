@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "slab-depot.h"
-#include "slab-summary.h"
 #include "vdo.h"
 #include "vdo-layout.h"
 #include "wait-queue.h"

@@ -301,8 +301,6 @@ tarballs:
             - slab-depot.h
             - slab-journal.c
             - slab-journal.h
-            - slab-summary.c
-            - slab-summary.h
             - statistics.h
             - status-codes.c
             - status-codes.h
