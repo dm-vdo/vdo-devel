@@ -247,15 +247,4 @@ bool vdo_start_operation_with_waiter(struct admin_state *state,
 
 bool vdo_finish_operation(struct admin_state *state, int result);
 
-/**
- * vdo_set_operation_result() - Set a result for the current operation.
- * @state: the admin_state.
- * @result: the result to set; if there is no waiter, this is a no-op.
- */
-static inline void vdo_set_operation_result(struct admin_state *state, int result)
-{
-	if (state->waiter != NULL)
-		vdo_set_completion_result(state->waiter, result);
-}
-
 #endif /* ADMIN_STATE_H */

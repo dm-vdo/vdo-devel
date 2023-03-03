@@ -148,17 +148,6 @@ static const struct admin_state_code VDO_CODE_RESUMING = {
 const struct admin_state_code *VDO_ADMIN_STATE_RESUMING = &VDO_CODE_RESUMING;
 
 /**
- * is_vdo_state_operating() - Check whether an admin_state is operating.
- * @state  The admin_state to query.
- *
- * Return: true if the state is operating.
- */
-static inline bool __must_check is_vdo_state_operating(const struct admin_state *state)
-{
-	return vdo_get_admin_state_code(state)->operating;
-}
-
-/**
  * get_next_state() - Determine the state which should be set after a given operation completes
  *                    based on the operation and the current state.
  * @state The admin_state.
@@ -209,7 +198,7 @@ get_next_state(const struct admin_state *state, const struct admin_state_code *o
  */
 bool vdo_finish_operation(struct admin_state *state, int result)
 {
-	if (!is_vdo_state_operating(state))
+	if (!vdo_get_admin_state_code(state)->operating)
 		return false;
 
 	state->complete = state->starting;
@@ -518,18 +507,6 @@ int vdo_resume_if_quiescent(struct admin_state *state)
 }
 
 /**
- * assert_operation() - Check whether an admin_state_code is an operation.
- * @code The operation to check.
- * @waiter The completion to notify if the code is not an operation; may be NULL.
- *
- * Return: true if the code is an operation.
- */
-static bool assert_operation(const struct admin_state_code *code, struct vdo_completion *waiter)
-{
-	return check_code(code->operating, code, "operation", waiter);
-}
-
-/**
  * vdo_start_operation() - Attempt to start an operation.
  * @state the admin_state.
  * @operation the operation to start.
@@ -538,7 +515,7 @@ static bool assert_operation(const struct admin_state_code *code, struct vdo_com
  */
 int vdo_start_operation(struct admin_state *state, const struct admin_state_code *operation)
 {
-	return (assert_operation(operation, NULL) ?
+	return (check_code(operation->operating, operation, "operation", NULL) ?
 		begin_operation(state, operation, NULL, NULL) :
 		VDO_INVALID_ADMIN_STATE);
 }
@@ -557,6 +534,6 @@ bool vdo_start_operation_with_waiter(struct admin_state *state,
 				     struct vdo_completion *waiter,
 				     vdo_admin_initiator *initiator)
 {
-	return (assert_operation(operation, waiter) &&
+	return (check_code(operation->operating, operation, "operation", waiter) &&
 		(begin_operation(state, operation, waiter, initiator) == VDO_SUCCESS));
 }
