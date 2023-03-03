@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef VDO_TYPES_H
+#define VDO_TYPES_H
 
 #if defined(__KERNEL__) || defined(INTERNAL)
 #include <linux/bio.h>
@@ -433,4 +433,4 @@ struct vio {
 };
 #endif /* __KERNEL__ or INTERNAL */
 
-#endif /* TYPES_H */
+#endif /* VDO_TYPES_H */

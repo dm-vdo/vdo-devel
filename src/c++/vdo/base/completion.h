@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef COMPLETION_H
-#define COMPLETION_H
+#ifndef VDO_COMPLETION_H
+#define VDO_COMPLETION_H
 
 #include "permassert.h"
 
@@ -199,4 +199,4 @@ static inline void vdo_enqueue_completion(struct vdo_completion *completion)
 	vdo_enqueue_completion_with_priority(completion, VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
-#endif /* COMPLETION_H */
+#endif /* VDO_COMPLETION_H */

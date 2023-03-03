@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INSTANCE_NUMBER_H
-#define INSTANCE_NUMBER_H
+#ifndef VDO_INSTANCE_NUMBER_H
+#define VDO_INSTANCE_NUMBER_H
 
 int vdo_allocate_instance(unsigned int *instance_ptr);
 
@@ -14,4 +14,4 @@ void vdo_initialize_instance_number_tracking(void);
 
 void vdo_clean_up_instance_number_tracking(void);
 
-#endif /* INSTANCE_NUMBER_H */
+#endif /* VDO_INSTANCE_NUMBER_H */

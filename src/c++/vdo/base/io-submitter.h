@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef IO_SUBMITTER_H
-#define IO_SUBMITTER_H
+#ifndef VDO_IO_SUBMITTER_H
+#define VDO_IO_SUBMITTER_H
 
 #include <linux/bio.h>
 
@@ -49,4 +49,4 @@ submit_flush_vio(struct vio *vio, bio_end_io_t callback, vdo_action *error_handl
 	vdo_submit_metadata_io(vio, 0, callback, error_handler, REQ_OP_WRITE | REQ_PREFLUSH, NULL);
 }
 
-#endif /* IO_SUBMITTER_H */
+#endif /* VDO_IO_SUBMITTER_H */

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef POOL_SYSFS_H
-#define POOL_SYSFS_H
+#ifndef VDO_POOL_SYSFS_H
+#define VDO_POOL_SYSFS_H
 
 #include <linux/kobject.h>
 
@@ -16,4 +16,4 @@ extern const struct sysfs_ops vdo_pool_stats_sysfs_ops;
 /* The attribute used for the "statistics" subdirectory. */
 extern struct attribute *vdo_pool_stats_attrs[];
 
-#endif /* POOL_SYSFS_H */
+#endif /* VDO_POOL_SYSFS_H */

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef ADMIN_STATE_H
-#define ADMIN_STATE_H
+#ifndef VDO_ADMIN_STATE_H
+#define VDO_ADMIN_STATE_H
 
 #include "completion.h"
 #include "types.h"
@@ -177,4 +177,4 @@ bool vdo_start_operation_with_waiter(struct admin_state *state,
 
 bool vdo_finish_operation(struct admin_state *state, int result);
 
-#endif /* ADMIN_STATE_H */
+#endif /* VDO_ADMIN_STATE_H */

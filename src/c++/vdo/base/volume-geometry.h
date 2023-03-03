@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef VOLUME_GEOMETRY_H
-#define VOLUME_GEOMETRY_H
+#ifndef VDO_VOLUME_GEOMETRY_H
+#define VDO_VOLUME_GEOMETRY_H
 
 
 #ifdef __KERNEL__
@@ -139,4 +139,4 @@ int __must_check
 vdo_compute_index_blocks(const struct index_config *index_config, block_count_t *index_blocks_ptr);
 
 #endif /* not __KERNEL__ */
-#endif /* VOLUME_GEOMETRY_H */
+#endif /* VDO_VOLUME_GEOMETRY_H */

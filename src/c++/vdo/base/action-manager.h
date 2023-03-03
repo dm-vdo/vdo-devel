@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef ACTION_MANAGER_H
-#define ACTION_MANAGER_H
+#ifndef VDO_ACTION_MANAGER_H
+#define VDO_ACTION_MANAGER_H
 
 #include "admin-state.h"
 #include "types.h"
@@ -114,4 +114,4 @@ bool vdo_schedule_operation_with_context(struct action_manager *manager,
 					 void *context,
 					 struct vdo_completion *parent);
 
-#endif /* ACTION_MANAGER_H */
+#endif /* VDO_ACTION_MANAGER_H */

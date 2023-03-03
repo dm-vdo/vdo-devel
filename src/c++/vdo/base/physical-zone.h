@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef PHYSICAL_ZONE_H
-#define PHYSICAL_ZONE_H
+#ifndef VDO_PHYSICAL_ZONE_H
+#define VDO_PHYSICAL_ZONE_H
 
 #include <linux/atomic.h>
 
@@ -112,4 +112,4 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 
 void vdo_dump_physical_zone(const struct physical_zone *zone);
 
-#endif /* PHYSICAL_ZONE_H */
+#endif /* VDO_PHYSICAL_ZONE_H */

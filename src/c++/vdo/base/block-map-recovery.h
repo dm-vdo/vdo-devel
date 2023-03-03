@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef BLOCK_MAP_RECOVERY_H
-#define BLOCK_MAP_RECOVERY_H
+#ifndef VDO_BLOCK_MAP_RECOVERY_H
+#define VDO_BLOCK_MAP_RECOVERY_H
 
 #include "block-map.h"
 #include "types.h"
@@ -27,4 +27,4 @@ void vdo_recover_block_map(struct vdo *vdo,
 			   struct numbered_block_mapping *journal_entries,
 			   struct vdo_completion *parent);
 
-#endif /* BLOCK_MAP_RECOVERY_H */
+#endif /* VDO_BLOCK_MAP_RECOVERY_H */

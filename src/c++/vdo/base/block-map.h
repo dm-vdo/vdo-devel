@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef BLOCK_MAP_H
-#define BLOCK_MAP_H
+#ifndef VDO_BLOCK_MAP_H
+#define VDO_BLOCK_MAP_H
 
 #include <linux/list.h>
 #ifndef __KERNEL__
@@ -408,4 +408,4 @@ get_tree_page_by_index(struct forest *forest,
 		       height_t height,
 		       page_number_t page_index);
 #endif /* INTERNAL */
-#endif /* BLOCK_MAP_H */
+#endif /* VDO_BLOCK_MAP_H */

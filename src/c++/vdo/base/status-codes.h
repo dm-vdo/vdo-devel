@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef STATUS_CODES_H
-#define STATUS_CODES_H
+#ifndef VDO_STATUS_CODES_H
+#define VDO_STATUS_CODES_H
 
 #include "errors.h"
 
@@ -109,4 +109,4 @@ int vdo_register_status_codes(void);
 
 int vdo_map_to_system_error(int error);
 
-#endif /* STATUS_CODES_H */
+#endif /* VDO_STATUS_CODES_H */

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef RECOVERY_JOURNAL_H
-#define RECOVERY_JOURNAL_H
+#ifndef VDO_RECOVERY_JOURNAL_H
+#define VDO_RECOVERY_JOURNAL_H
 
 #include <linux/list.h>
 
@@ -324,4 +324,4 @@ bool is_lock_locked(struct recovery_journal *journal,
 		    block_count_t lock_number,
 		    enum vdo_zone_type zone_type);
 #endif /* INTERNAL */
-#endif /* RECOVERY_JOURNAL_H */
+#endif /* VDO_RECOVERY_JOURNAL_H */

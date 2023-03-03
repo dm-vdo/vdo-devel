@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef LOGICAL_ZONE_H
-#define LOGICAL_ZONE_H
+#ifndef VDO_LOGICAL_ZONE_H
+#define VDO_LOGICAL_ZONE_H
 
 #include <linux/list.h>
 
@@ -84,4 +84,4 @@ struct physical_zone * __must_check vdo_get_next_allocation_zone(struct logical_
 
 void vdo_dump_logical_zone(const struct logical_zone *zone);
 
-#endif /* LOGICAL_ZONE_H */
+#endif /* VDO_LOGICAL_ZONE_H */

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef VDO_CONSTANTS_H
+#define VDO_CONSTANTS_H
 
 #if defined(__KERNEL__)
 #include <linux/blkdev.h>
@@ -102,4 +102,4 @@ extern const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS;
 /** unit test minimum */
 extern const block_count_t MINIMUM_VDO_SLAB_JOURNAL_BLOCKS;
 
-#endif /* CONSTANTS_H */
+#endif /* VDO_CONSTANTS_H */

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef DUMP_H
-#define DUMP_H
+#ifndef VDO_DUMP_H
+#define VDO_DUMP_H
 
 #include "types.h"
 
@@ -14,4 +14,4 @@ void vdo_dump_all(struct vdo *vdo, const char *why);
 
 void dump_data_vio(void *data);
 
-#endif /* DUMP_H */
+#endif /* VDO_DUMP_H */

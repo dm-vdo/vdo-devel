@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef SLAB_JOURNAL_H
-#define SLAB_JOURNAL_H
+#ifndef VDO_SLAB_JOURNAL_H
+#define VDO_SLAB_JOURNAL_H
 
 #include <linux/list.h>
 
@@ -211,4 +211,4 @@ void vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header
 				   bool increment);
 bool __must_check vdo_is_slab_journal_dirty(const struct slab_journal *journal);
 #endif
-#endif /* SLAB_JOURNAL_H */
+#endif /* VDO_SLAB_JOURNAL_H */

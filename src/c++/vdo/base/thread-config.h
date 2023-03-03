@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef THREAD_CONFIG_H
-#define THREAD_CONFIG_H
+#ifndef VDO_THREAD_CONFIG_H
+#define VDO_THREAD_CONFIG_H
 
 #include "permassert.h"
 
@@ -89,4 +89,4 @@ void vdo_get_thread_name(const struct thread_config *thread_config,
 			 char *buffer,
 			 size_t buffer_length);
 
-#endif /* THREAD_CONFIG_H */
+#endif /* VDO_THREAD_CONFIG_H */

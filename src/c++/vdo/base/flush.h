@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef FLUSH_H
-#define FLUSH_H
+#ifndef VDO_FLUSH_H
+#define VDO_FLUSH_H
 
 #include "types.h"
 #include "vio.h"
@@ -45,4 +45,4 @@ void vdo_drain_flusher(struct flusher *flusher, struct vdo_completion *completio
 
 void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent);
 
-#endif /* FLUSH_H */
+#endif /* VDO_FLUSH_H */

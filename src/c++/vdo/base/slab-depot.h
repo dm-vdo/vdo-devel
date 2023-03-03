@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef SLAB_DEPOT_H
-#define SLAB_DEPOT_H
+#ifndef VDO_SLAB_DEPOT_H
+#define VDO_SLAB_DEPOT_H
 
 #include <linux/atomic.h>
 #include <linux/dm-kcopyd.h>
@@ -443,4 +443,4 @@ void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot, struct vdo_comple
 
 void vdo_dump_slab_depot(const struct slab_depot *depot);
 
-#endif /* SLAB_DEPOT_H */
+#endif /* VDO_SLAB_DEPOT_H */
