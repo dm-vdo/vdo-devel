@@ -1657,7 +1657,7 @@ static void handle_operation_error(struct vdo_completion *completion)
 	struct block_allocator *allocator = vdo_as_block_allocator(completion);
 
 	if (allocator->state.waiter != NULL)
-		vdo_set_completion_result(allocator->state.waiter, result);
+		vdo_set_completion_result(allocator->state.waiter, completion->result);
 	completion->callback(completion);
 }
 
