@@ -132,7 +132,8 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
     bitsNeeded += pdl[i].size;
   }
 
-  uint64_t bytesNeeded = DIV_ROUND_UP(bitsNeeded, BITS_PER_BYTE);
+  // move_bits() can read up to seven bytes beyond the bytes it needs.
+  uint64_t bytesNeeded = DIV_ROUND_UP(bitsNeeded + 56, BITS_PER_BYTE);
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesNeeded, u8, __func__, &random));
   get_random_bytes(random, bytesNeeded);
 
