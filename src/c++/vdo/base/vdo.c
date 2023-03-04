@@ -49,7 +49,6 @@
 #include "block-map.h"
 #include "data-vio.h"
 #include "dedupe.h"
-#include "instance-number.h"
 #include "io-submitter.h"
 #include "logical-zone.h"
 #include "packer.h"
@@ -403,7 +402,6 @@ int vdo_make(unsigned int instance,
 	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO";
-		vdo_release_instance(instance);
 		return result;
 	}
 
@@ -607,8 +605,6 @@ void vdo_destroy(struct vdo *vdo)
 
 		UDS_FREE(UDS_FORGET(vdo->compression_context));
 	}
-
-	vdo_release_instance(vdo->instance);
 
 	/*
 	 * The call to kobject_put on the kobj sysfs node will decrement its reference count; when

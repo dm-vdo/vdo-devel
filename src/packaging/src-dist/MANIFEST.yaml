@@ -269,8 +269,6 @@ tarballs:
             - flush.h
             - heap.c
             - heap.h
-            - instance-number.c
-            - instance-number.h
             - int-map.c
             - int-map.h
             - io-submitter.c

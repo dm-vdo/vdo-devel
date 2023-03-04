@@ -8,7 +8,7 @@
 
 #include "albtest.h"
 
-#include "instance-number.h"
+#include "dm-vdo-target.h"
 
 #include "vdoAsserts.h"
 
@@ -21,14 +21,14 @@ static void allocateRange(unsigned int start, unsigned int end)
 
   // Allocate and release a range of instance numbers, none should get reused.
   for (unsigned int i = start; i < end; i++) {
-    VDO_ASSERT_SUCCESS(vdo_allocate_instance(&instance));
+    VDO_ASSERT_SUCCESS(allocate_instance(&instance));
     CU_ASSERT_EQUAL(i, instance);
-    vdo_release_instance(i);
+    release_instance(i);
   }
 
   // Allocate them again, they should all get reused.
   for (unsigned int i = start; i < end; i++) {
-    VDO_ASSERT_SUCCESS(vdo_allocate_instance(&instance));
+    VDO_ASSERT_SUCCESS(allocate_instance(&instance));
     CU_ASSERT_EQUAL(i, instance);
   }
 }
@@ -37,12 +37,12 @@ static void allocateRange(unsigned int start, unsigned int end)
 static void reallocateSelected(unsigned int n)
 {
   for (unsigned int i = n; i > 0; i--) {
-    vdo_release_instance(selected[i - 1]);
+    release_instance(selected[i - 1]);
   }
 
   for (unsigned int i = 0; i < n; i++) {
     unsigned int instance;
-    VDO_ASSERT_SUCCESS(vdo_allocate_instance(&instance));
+    VDO_ASSERT_SUCCESS(allocate_instance(&instance));
     CU_ASSERT_EQUAL(selected[i], instance);
   }
 }
@@ -51,8 +51,8 @@ static void reallocateSelected(unsigned int n)
 static void testInstanceNumbers(void)
 {
   // Re-initialize in case other tests have been run in this process.
-  vdo_clean_up_instance_number_tracking();
-  vdo_initialize_instance_number_tracking();
+  clean_up_instance_number_tracking();
+  initialize_instance_number_tracking();
 
   // Allocate and reallocate the first 1000 in order.
   allocateRange(0, 1000);
@@ -72,7 +72,7 @@ static void testInstanceNumbers(void)
 
   // Allocate and release a range of instance numbers, none should get reused.
   for (unsigned int i = 0; i < 1200; i++) {
-    vdo_release_instance(i);
+    release_instance(i);
   }
 }
 

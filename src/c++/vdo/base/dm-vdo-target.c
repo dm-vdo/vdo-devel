@@ -4,10 +4,12 @@
  */
 
 #include <linux/atomic.h>
+#include <linux/bitops.h>
 #include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/device-mapper.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -25,7 +27,6 @@
 #include "dm-vdo/dump.h"
 #include "dm-vdo/errors.h"
 #include "dm-vdo/flush.h"
-#include "dm-vdo/instance-number.h"
 #include "dm-vdo/io-submitter.h"
 #include "dm-vdo/logger.h"
 #include "dm-vdo/memory-alloc.h"
@@ -51,10 +52,10 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
+#include "dm-vdo-target.h"
 #include "dump.h"
 #include "errors.h"
 #include "flush.h"
-#include "instance-number.h"
 #include "io-submitter.h"
 #include "logger.h"
 #include "memory-alloc.h"
@@ -183,6 +184,35 @@ static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
 /* pool name no longer used. only here for verification of older versions */
 static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
+/*
+ * Track in-use instance numbers using a flat bit array.
+ *
+ * O(n) run time isn't ideal, but if we have 1000 VDO devices in use simultaneously we still only
+ * need to scan 16 words, so it's not likely to be a big deal compared to other resource usage.
+ */
+
+enum {
+	/*
+	 * This minimum size for the bit array creates a numbering space of 0-999, which allows
+	 * successive starts of the same volume to have different instance numbers in any
+	 * reasonably-sized test. Changing instances on restart allows vdoMonReport to detect that
+	 * the ephemeral stats have reset to zero.
+	 */
+	BIT_COUNT_MINIMUM = 1000,
+	/** Grow the bit array by this many bits when needed */
+	BIT_COUNT_INCREMENT = 100,
+};
+
+struct instance_tracker {
+	struct mutex lock;
+	unsigned int bit_count;
+	unsigned long *words;
+	unsigned int count;
+	unsigned int next;
+};
+
+static struct instance_tracker instances;
+
 #ifndef __KERNEL__
 struct registered_thread {
 	int dummy;
@@ -204,6 +234,17 @@ static void uds_unregister_thread_device_id(void)
 
 static void uds_unregister_allocating_thread(void)
 {
+}
+
+void initialize_instance_number_tracking(void)
+{
+	memset(&instances, 0, sizeof(struct instance_tracker));
+}
+
+void clean_up_instance_number_tracking(void)
+{
+	UDS_FREE(instances.words);
+	initialize_instance_number_tracking();
 }
 
 #endif /* not __KERNEL__ */
@@ -1546,6 +1587,23 @@ static void pre_load_callback(struct vdo_completion *completion)
 	finish_operation_callback(completion);
 }
 
+EXTERNAL_STATIC void release_instance(unsigned int instance)
+{
+	mutex_lock(&instances.lock);
+	if (instance >= instances.bit_count) {
+		ASSERT_LOG_ONLY(false,
+				"instance number %u must be less than bit count %u",
+				instance,
+				instances.bit_count);
+	} else if (test_bit(instance, instances.words) == 0) {
+		ASSERT_LOG_ONLY(false, "instance number %u must be allocated", instance);
+	} else {
+		__clear_bit(instance, instances.words);
+		instances.count -= 1;
+	}
+	mutex_unlock(&instances.lock);
+}
+
 static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
 {
 	list_del_init(&config->config_list);
@@ -1580,7 +1638,6 @@ vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config
 	if (vdo != NULL) {
 		uds_log_error("Existing vdo already uses device %s",
 			      vdo->device_config->parent_device_name);
-		vdo_release_instance(instance);
 		ti->error = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -1624,6 +1681,90 @@ static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
 	return strcmp(device_name, (const char *) context) == 0;
 }
 
+/**
+ * get_bit_array_size() - Return the number of bytes needed to store a bit array of the specified
+ *                        capacity in an array of unsigned longs.
+ * @bit_count: The number of bits the array must hold.
+ *
+ * Return: the number of bytes needed for the array reperesentation.
+ */
+static size_t get_bit_array_size(unsigned int bit_count)
+{
+	/* Round up to a multiple of the word size and convert to a byte count. */
+	return (DIV_ROUND_UP(bit_count, BITS_PER_LONG) * sizeof(unsigned long));
+}
+
+/**
+ * grow_bit_array() - Re-allocate the bitmap word array so there will more instance numbers that
+ *                    can be allocated.
+ *
+ * Since the array is initially NULL, this also initializes the array the first time we allocate an
+ * instance number.
+ *
+ * Return: UDS_SUCCESS or an error code from the allocation
+ */
+static int grow_bit_array(void)
+{
+	unsigned int new_count =
+		max(instances.bit_count + BIT_COUNT_INCREMENT, (unsigned int) BIT_COUNT_MINIMUM);
+	unsigned long *new_words;
+	int result;
+
+	result = uds_reallocate_memory(instances.words,
+				       get_bit_array_size(instances.bit_count),
+				       get_bit_array_size(new_count),
+				       "instance number bit array",
+				       &new_words);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	instances.bit_count = new_count;
+	instances.words = new_words;
+	return UDS_SUCCESS;
+}
+
+/**
+ * allocate_instance() - Allocate an instance number.
+ * @instance_ptr: A point to hold the instance number
+ *
+ * Return: UDS_SUCCESS or an error code
+ *
+ * This function must be called while holding the instances lock.
+ */
+EXTERNAL_STATIC int allocate_instance(unsigned int *instance_ptr)
+{
+	unsigned int instance;
+	int result;
+
+	/* If there are no unallocated instances, grow the bit array. */
+	if (instances.count >= instances.bit_count) {
+		result = grow_bit_array();
+		if (result != UDS_SUCCESS)
+			return result;
+	}
+
+	/*
+	 * There must be a zero bit somewhere now. Find it, starting just after the last instance
+	 * allocated.
+	 */
+	instance = find_next_zero_bit(instances.words,
+				      instances.bit_count,
+				      instances.next);
+	if (instance >= instances.bit_count) {
+		/* Nothing free after next, so wrap around to instance zero. */
+		instance = find_first_zero_bit(instances.words, instances.bit_count);
+		result = ASSERT(instance < instances.bit_count, "impossibly, no zero bit found");
+		if (result != UDS_SUCCESS)
+			return result;
+	}
+
+	__set_bit(instance, instances.words);
+	instances.count++;
+	instances.next = instance + 1;
+	*instance_ptr = instance;
+	return UDS_SUCCESS;
+}
+
 static int construct_new_vdo_registered(struct dm_target *ti,
 					unsigned int argc,
 					char **argv,
@@ -1635,13 +1776,14 @@ static int construct_new_vdo_registered(struct dm_target *ti,
 	result = parse_device_config(argc, argv, ti, &config);
 	if (result != VDO_SUCCESS) {
 		uds_log_error_strerror(result, "parsing failed: %s", ti->error);
-		vdo_release_instance(instance);
+		release_instance(instance);
 		return -EINVAL;
 	}
 
 	/* Beyond this point, the instance number will be cleaned up for us if needed */
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
+		release_instance(instance);
 		free_device_config(config);
 		return vdo_map_to_system_error(result);
 	}
@@ -1655,7 +1797,9 @@ static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **arg
 	unsigned int instance;
 	struct registered_thread instance_thread;
 
-	result = vdo_allocate_instance(&instance);
+	mutex_lock(&instances.lock);
+	result = allocate_instance(&instance);
+	mutex_unlock(&instances.lock);
 	if (result != VDO_SUCCESS)
 		return -ENOMEM;
 
@@ -1910,6 +2054,7 @@ static void vdo_dtr(struct dm_target *ti)
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
+		release_instance(instance);
 	} else if (config == vdo->device_config) {
 		/*
 		 * The VDO still references this config. Give it a reference to a config that isn't
@@ -2869,7 +3014,12 @@ static void vdo_module_destroy(void)
 	if (dm_registered)
 		dm_unregister_target(&vdo_target_bio);
 
-	vdo_clean_up_instance_number_tracking();
+	ASSERT_LOG_ONLY(instances.count == 0,
+			"should have no instance numbers still in use, but have %u",
+			instances.count);
+	UDS_FREE(instances.words);
+	mutex_destroy(&instances.lock);
+	memset(&instances, 0, sizeof(struct instance_tracker));
 
 	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
@@ -2906,7 +3056,7 @@ static int __init vdo_init(void)
 	}
 	dm_registered = true;
 
-	vdo_initialize_instance_number_tracking();
+	mutex_init(&instances.lock);
 
 	return result;
 }
