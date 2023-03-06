@@ -176,7 +176,6 @@ EXPORT_SYMBOL_GPL(free_uds_index_layout);
 EXPORT_SYMBOL_GPL(free_volume);
 EXPORT_SYMBOL_GPL(free_volume_index);
 EXPORT_SYMBOL_GPL(get_delta_entry_value);
-EXPORT_SYMBOL_GPL(get_delta_zone_bits_used);
 EXPORT_SYMBOL_GPL(get_delta_index_entry);
 EXPORT_SYMBOL_GPL(get_delta_index_stats);
 EXPORT_SYMBOL_GPL(get_index_stats);

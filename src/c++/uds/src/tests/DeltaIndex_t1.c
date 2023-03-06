@@ -119,8 +119,7 @@ static void basicTest(void)
   struct delta_index di;
   struct delta_index_entry entry;
   enum { NUM_LISTS = 1 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256, 8,
-                                            2 * MEGABYTE, 'm'));
+  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256, 8, 2 * MEGABYTE, 'm'));
 
   // Should not find a record with key 0 in an empty list
   struct uds_record_name name0;
@@ -306,8 +305,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   struct delta_index_entry entry;
   struct uds_record_name *names;
   bool *collides;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, struct uds_record_name, __func__,
-                                  &names));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, struct uds_record_name, __func__, &names));
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numKeys, bool, __func__, &collides));
 
   // Put all the records in the specified order
@@ -315,16 +313,14 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   for (i = 0; i < numKeys; i++) {
     collides[i] = false;
     createBlockName(&names[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name,
-                                             &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     if (expectedCollisions == 0) {
       CU_ASSERT_FALSE(entry.is_collision);
     } else if (!entry.at_end && entry.key == keys[i]) {
       collides[i] = true;
     }
     UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, keys[i], i,
-                                             collides[i]
-                                               ? names[i].name : NULL));
+                                             collides[i] ? names[i].name : NULL));
     assertKeyValue(&entry, keys[i], i);
     if (collides[i]) {
       CU_ASSERT_TRUE(entry.is_collision);
@@ -339,8 +335,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
 
   // Get all the records in the specified order
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name,
-                                             &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], i);
     if (collides[i]) {
       CU_ASSERT_TRUE(entry.is_collision);
@@ -355,8 +350,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
 
   // Remove all the records in the specified order
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name,
-                                             &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], i);
     UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
   }
@@ -367,8 +361,7 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
 
   // Get all the records in the specified order, expecting to not find them
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name,
-                                             &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     CU_ASSERT_TRUE(entry.at_end || (keys[i] != entry.key));
   }
   get_delta_index_stats(&di, &stats);
@@ -466,8 +459,7 @@ static void overflowTest(void)
 
   // How big was that entry?  We expect that all subsequent entries have
   // the same size, and compute the expected number of entries accordingly.
-  int entrySize = get_delta_zone_bits_used(&di, 0);
-  unsigned int entryCount = U16_MAX / entrySize;
+  unsigned int entryCount = U16_MAX / entry.entry_bits;
 
   // Fill the index with more records, each with a delta of 1
   unsigned int key;
@@ -476,8 +468,7 @@ static void overflowTest(void)
     UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, name.name, &entry));
     CU_ASSERT_TRUE(entry.at_end);
     CU_ASSERT_FALSE(entry.is_collision);
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, key, key & PAYLOAD_MASK,
-                                             NULL));
+    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, key, key & PAYLOAD_MASK, NULL));
     assertKeyValue(&entry, key, key & PAYLOAD_MASK);
     CU_ASSERT_FALSE(entry.is_collision);
   }
@@ -486,12 +477,10 @@ static void overflowTest(void)
 
   // Insert one more record, expecting to overflow the index
   createBlockName(&name);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name,
-                                           &entry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(put_delta_index_entry(&entry, entryCount,
-                                        entryCount & PAYLOAD_MASK, NULL),
+  CU_ASSERT_EQUAL(put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK, NULL),
                   UDS_OVERFLOW);
   get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.overflow_count, 1);
@@ -522,12 +511,10 @@ static void overflowTest(void)
 
   // Insert one more record, expecting it to work this time
   createBlockName(&name);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name,
-                                           &entry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, entryCount,
-                                           entryCount & PAYLOAD_MASK, NULL));
+  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK, NULL));
   assertKeyValue(&entry, entryCount, entryCount & PAYLOAD_MASK);
   CU_ASSERT_FALSE(entry.is_collision);
 
@@ -558,8 +545,7 @@ static void lookupTest(void)
   for (key = 1; key < 8; key++) {
     createBlockName(&names[key]);
     if ((key < 4) || (key > 5)) {
-      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, names[key].name,
-                                               &entry));
+      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, names[key].name, &entry));
       CU_ASSERT_TRUE(entry.at_end);
       CU_ASSERT_FALSE(entry.is_collision);
       assertSavedValid(&di);
@@ -578,8 +564,7 @@ static void lookupTest(void)
   unsigned int i;
   for (i = 0; i < 2; i++) {
     createBlockName(&collisions[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[i].name,
-                                             &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[i].name, &entry));
     CU_ASSERT_FALSE(entry.at_end);
     CU_ASSERT_FALSE(entry.is_collision);
     assertSavedValid(&di);
@@ -594,14 +579,12 @@ static void lookupTest(void)
   // Delete a collision.  Between the get and remove calls, insert a
   // read-only get of an earlier record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[0].name,
-                                           &entry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[0].name, &entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
   assertKeyValue(&entry, 3, 0);
   CU_ASSERT_TRUE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 0);
   CU_ASSERT_TRUE(entry.is_collision);
@@ -615,14 +598,12 @@ static void lookupTest(void)
   // Delete a collision.  Between the get and remove calls, insert a
   // read-only get of a later record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[1].name,
-                                           &entry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[1].name, &entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
   assertKeyValue(&entry, 3, 1);
   CU_ASSERT_TRUE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 1);
   CU_ASSERT_TRUE(entry.is_collision);
@@ -641,8 +622,7 @@ static void lookupTest(void)
   assertSavedAt(&entry);
   assertKeyValue(&entry, 3, 3);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 3);
   CU_ASSERT_FALSE(entry.is_collision);
@@ -661,8 +641,7 @@ static void lookupTest(void)
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedValid(&di);
   assertSavedAt(&entry);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 2, 2);
@@ -681,8 +660,7 @@ static void lookupTest(void)
   assertSavedAt(&entry);
   assertKeyValue(&entry, 4, 4);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 4, 4);
   CU_ASSERT_FALSE(entry.is_collision);
@@ -701,8 +679,7 @@ static void lookupTest(void)
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedValid(&di);
   assertSavedAt(&entry);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name,
-                                           &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 6, 6);
@@ -737,8 +714,7 @@ static void verifyAllKeys(struct delta_index *di, unsigned int numKeys,
   struct delta_index_entry entry;
   unsigned int i;
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(di, lists[i], keys[i],
-                                             names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(di, lists[i], keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], 0);
   }
 }
@@ -767,18 +743,15 @@ static void saveRestoreTest(void)
   struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, unsigned int, __func__, &keys));
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, unsigned int, __func__, &lists));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, struct uds_record_name, __func__,
-                                  &names));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_KEYS, struct uds_record_name, __func__, &names));
   unsigned int i;
   for (i = 0; i < NUM_KEYS; i++) {
     keys[i] = random() % MAX_KEY;
     lists[i] = random() % NUM_LISTS;
     createBlockName(&names[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, lists[i], keys[i],
-                                             names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, lists[i], keys[i], names[i].name, &entry));
     bool isFound = !entry.at_end && entry.key == keys[i];
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, keys[i], 0,
-                                             isFound ? names[i].name : NULL));
+    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, keys[i], 0, isFound ? names[i].name : NULL));
     assertKeyValue(&entry, keys[i], 0);
   }
 

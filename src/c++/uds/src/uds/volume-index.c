@@ -75,7 +75,7 @@ struct sub_index_parameters {
 	/* The number of bytes of delta list memory */
 	size_t memory_size;
 	/* The number of free bytes we desire */
-	size_t target_free_size;
+	size_t target_free_bytes;
 };
 
 struct split_config {
@@ -241,7 +241,7 @@ get_sub_index(const struct volume_index *volume_index, const struct uds_record_n
 static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub_index,
 					      const struct uds_record_name *name)
 {
-	return get_delta_zone_number(&sub_index->delta_index, extract_dlist_num(sub_index, name));
+	return extract_dlist_num(sub_index, name) / sub_index->delta_index.lists_per_zone;
 }
 
 unsigned int get_volume_index_zone(const struct volume_index *volume_index,
@@ -347,7 +347,7 @@ static int compute_volume_index_parameters(const struct configuration *config,
 	expected_index_size = num_bits_per_index / BITS_PER_BYTE;
 	params->memory_size = expected_index_size * 106 / 100;
 
-	params->target_free_size = expected_index_size / 20;
+	params->target_free_bytes = expected_index_size / 20;
 	return UDS_SUCCESS;
 }
 
@@ -478,10 +478,14 @@ static size_t
 get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 {
 	u64 bit_count = 0;
-	unsigned int z;
+	unsigned int z, i;
+	const struct delta_zone *delta_zone;
 
-	for (z = 0; z < sub_index->delta_index.zone_count; z++)
-		bit_count += get_delta_zone_bits_used(&sub_index->delta_index, z);
+	for (z = 0; z < sub_index->delta_index.zone_count; z++) {
+		delta_zone = &sub_index->delta_index.delta_zones[z];
+		for (i = 1; i <= delta_zone->list_count; i++)
+			bit_count += delta_zone->delta_lists[i].size;
+	}
 
 	return DIV_ROUND_UP(bit_count, BITS_PER_BYTE);
 }
@@ -601,7 +605,7 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 	record->sub_index = sub_index;
 	record->mutex = NULL;
 	record->name = name;
-	record->zone_number = get_delta_zone_number(&sub_index->delta_index, delta_list_number);
+	record->zone_number = delta_list_number / sub_index->delta_index.lists_per_zone;
 	volume_index_zone = get_zone_for_record(record);
 
 	if (flush_chapter < volume_index_zone->virtual_chapter_low) {
@@ -738,16 +742,21 @@ static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_
 						   unsigned int zone_number,
 						   u64 virtual_chapter)
 {
-	u64 used_bits;
+	u64 used_bits = 0;
 	struct volume_sub_index_zone *zone = &sub_index->zones[zone_number];
+	struct delta_zone *delta_zone;
+	unsigned int i;
 
 	zone->virtual_chapter_low = (virtual_chapter >= sub_index->num_chapters ?
 				     virtual_chapter - sub_index->num_chapters + 1 :
 				     0);
 	zone->virtual_chapter_high = virtual_chapter;
 
-	/* Check to see if the zone data has grown to be too large. */
-	used_bits = get_delta_zone_bits_used(&sub_index->delta_index, zone_number);
+	/* Check to see if the new zone data is too large. */
+	delta_zone = &sub_index->delta_index.delta_zones[zone_number];
+	for (i = 1; i <= delta_zone->list_count; i++)
+		used_bits += delta_zone->delta_lists[i].size;
+
 	if (used_bits > sub_index->max_zone_bits) {
 		/* Expire enough chapters to free the desired space. */
 		u64 expire_count =
@@ -900,7 +909,7 @@ u64 lookup_volume_index_name(const struct volume_index *volume_index,
 
 static void abort_restoring_volume_sub_index(struct volume_sub_index *sub_index)
 {
-	abort_restoring_delta_index(&sub_index->delta_index);
+	reset_delta_index(&sub_index->delta_index);
 }
 
 static void abort_restoring_volume_index(struct volume_index *volume_index)
@@ -956,7 +965,6 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 	if (sub_index == NULL)
 		return uds_log_warning_strerror(UDS_BAD_STATE,
 						"cannot restore to null volume index");
-	empty_delta_index(&sub_index->delta_index);
 
 	for (i = 0; i < num_readers; i++) {
 		struct buffer *buffer;
@@ -1227,8 +1235,8 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 {
 	int result;
 	struct volume_sub_index_zone *volume_index_zone = &sub_index->zones[zone_number];
-	unsigned int first_list = get_delta_zone_first_list(&sub_index->delta_index, zone_number);
-	unsigned int num_lists = get_delta_zone_list_count(&sub_index->delta_index, zone_number);
+	unsigned int first_list = sub_index->delta_index.delta_zones[zone_number].first_list;
+	unsigned int num_lists = sub_index->delta_index.delta_zones[zone_number].list_count;
 	struct sub_index_data header;
 	u64 *first_flush_chapter;
 	struct buffer *buffer;
@@ -1444,6 +1452,8 @@ static int initialize_volume_sub_index(const struct configuration *config,
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
 	unsigned int num_zones = config->zone_count;
+	u64 available_bytes = 0;
+	unsigned int z;
 	int result;
 
 	result = compute_volume_index_parameters(config, &params);
@@ -1470,8 +1480,10 @@ static int initialize_volume_sub_index(const struct configuration *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	sub_index->max_zone_bits = ((get_delta_index_bits_allocated(&sub_index->delta_index) -
-				     params.target_free_size * BITS_PER_BYTE) / num_zones);
+	for (z = 0; z < sub_index->delta_index.zone_count; z++)
+		available_bytes += sub_index->delta_index.delta_zones[z].size;
+	available_bytes -= params.target_free_bytes;
+	sub_index->max_zone_bits = (available_bytes * BITS_PER_BYTE) / num_zones;
 
 	/* The following arrays are initialized to all zeros. */
 	result = UDS_ALLOCATE(params.num_delta_lists,
