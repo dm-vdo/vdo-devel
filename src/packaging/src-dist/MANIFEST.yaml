@@ -201,10 +201,12 @@ tarballs:
           dest: utils/uds/linux
           sources:
             - atomic.h
+            - bitops.h
             - bits.h
             - blkdev.h
             - cache.h
             - compiler.h
+            - const.h
             - compiler_attributes.h
             - dm-bufio.h
             - err.h

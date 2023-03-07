@@ -1686,12 +1686,12 @@ static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
  *                        capacity in an array of unsigned longs.
  * @bit_count: The number of bits the array must hold.
  *
- * Return: the number of bytes needed for the array reperesentation.
+ * Return: the number of bytes needed for the array representation.
  */
 static size_t get_bit_array_size(unsigned int bit_count)
 {
 	/* Round up to a multiple of the word size and convert to a byte count. */
-	return (DIV_ROUND_UP(bit_count, BITS_PER_LONG) * sizeof(unsigned long));
+	return (BITS_TO_LONGS(bit_count) * sizeof(unsigned long));
 }
 
 /**

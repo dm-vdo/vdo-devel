@@ -4,6 +4,7 @@
  */
 #include "delta-index.h"
 
+#include <linux/bitops.h>
 #include <linux/bits.h>
 #include <linux/compiler.h>
 #include <linux/limits.h>
@@ -234,7 +235,7 @@ static inline u16 get_delta_list_byte_size(const struct delta_list *delta_list)
 {
 	unsigned int bit_offset = delta_list->start % BITS_PER_BYTE;
 
-	return DIV_ROUND_UP(bit_offset + delta_list->size, BITS_PER_BYTE);
+	return BITS_TO_BYTES(bit_offset + delta_list->size);
 }
 
 static void rebalance_delta_zone(const struct delta_zone *delta_zone,
@@ -1134,7 +1135,7 @@ static int restore_delta_list_to_zone(struct delta_zone *delta_zone,
 						save_info->index);
 
 	bit_count = (unsigned int) save_info->bit_offset + delta_list->size;
-	byte_count = DIV_ROUND_UP(bit_count, BITS_PER_BYTE);
+	byte_count = BITS_TO_BYTES(bit_count);
 	if (save_info->byte_count != byte_count)
 		return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 						"unexpected delta list size %u != %u",
@@ -1840,9 +1841,7 @@ static int insert_bits(struct delta_index_entry *delta_entry, int size)
 		before_flag = before_size < after_size;
 		if (!before_flag)
 			growing_index++;
-		result = extend_delta_zone(delta_zone,
-					   growing_index,
-					   DIV_ROUND_UP(size, BITS_PER_BYTE));
+		result = extend_delta_zone(delta_zone, growing_index, BITS_TO_BYTES(size));
 		if (result != UDS_SUCCESS)
 			return result;
 	}

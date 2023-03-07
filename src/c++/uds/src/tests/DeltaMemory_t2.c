@@ -3,6 +3,7 @@
  * Copyright Red Hat
  */
 
+#include <linux/bitops.h>
 #include <linux/bits.h>
 #include <linux/random.h>
 
@@ -15,6 +16,10 @@
 
 static const unsigned int MEAN_DELTA = 4096;
 static const unsigned int NUM_PAYLOAD_BITS = 10;
+
+enum {
+  GUARD_BITS = (sizeof(uint64_t) - 1) * BITS_PER_BYTE,
+};
 
 /* Read a bit field from an arbitrary bit boundary. */
 static inline unsigned int
@@ -133,7 +138,7 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
   }
 
   // move_bits() can read up to seven bytes beyond the bytes it needs.
-  uint64_t bytesNeeded = DIV_ROUND_UP(bitsNeeded + 56, BITS_PER_BYTE);
+  uint64_t bytesNeeded = BITS_TO_BYTES(bitsNeeded + GUARD_BITS);
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesNeeded, u8, __func__, &random));
   get_random_bytes(random, bytesNeeded);
 
@@ -182,7 +187,6 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
 static void guardAndTest(struct delta_list *pdl, int numLists,
                          unsigned int gapSize)
 {
-  enum { GUARD_BITS = (sizeof(uint64_t) - 1) * BITS_PER_BYTE };
   struct delta_list *deltaListsCopy;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numLists + 2, struct delta_list, __func__, &deltaListsCopy));
 

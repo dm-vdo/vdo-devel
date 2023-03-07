@@ -11,9 +11,9 @@
 #ifndef _TOOLS_LINUX_BITOPS_H_
 #define _TOOLS_LINUX_BITOPS_H_
 
+#include <linux/bits.h> 
 #include <linux/compiler.h> 
-
-#include "const.h"
+#include <linux/const.h>
 
 // From vdso/const.h
 #define UL(x)		(_UL(x))
@@ -23,6 +23,12 @@
 #define BIT_MASK(nr) (UL(1) << ((nr) % BITS_PER_LONG))
 #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
 #define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
+
+#define BITS_PER_TYPE(type)	(sizeof(type) * BITS_PER_BYTE)
+#define BITS_TO_LONGS(nr)	__KERNEL_DIV_ROUND_UP(nr, BITS_PER_TYPE(long))
+#define BITS_TO_U64(nr)		__KERNEL_DIV_ROUND_UP(nr, BITS_PER_TYPE(u64))
+#define BITS_TO_U32(nr)		__KERNEL_DIV_ROUND_UP(nr, BITS_PER_TYPE(u32))
+#define BITS_TO_BYTES(nr)	__KERNEL_DIV_ROUND_UP(nr, BITS_PER_TYPE(char))
 
 /**
  * __set_bit - Set a bit in memory
@@ -36,18 +42,16 @@
 static inline void __set_bit(int nr, volatile unsigned long *addr)
 {
 	unsigned long mask = BIT_MASK(nr);
-	unsigned long *p = ((unsigned long *) addr) + BIT_WORD(nr);
 
-	*p  |= mask;
+	addr[BIT_WORD(nr)] |= mask;
 }
 
 /**********************************************************************/
 static inline void __clear_bit(int nr, volatile unsigned long *addr)
 {
 	unsigned long mask = BIT_MASK(nr);
-	unsigned long *p = ((unsigned long *) addr) + BIT_WORD(nr);
 
-	*p &= ~mask;
+	addr[BIT_WORD(nr)] &= ~mask;
 }
 
 /**
@@ -71,4 +75,5 @@ unsigned long __must_check
 find_first_zero_bit(const unsigned long *addr,
 		    unsigned long size);
 
-#endif _TOOLS_LINUX_BITOPS_H_
+#endif /* _TOOLS_LINUX_BITOPS_H_ */
+

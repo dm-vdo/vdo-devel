@@ -4,6 +4,7 @@
  */
 #include "volume-index.h"
 
+#include <linux/bitops.h>
 #include <linux/bits.h>
 #include <linux/cache.h>
 #include <linux/compiler.h>
@@ -487,7 +488,7 @@ get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 			bit_count += delta_zone->delta_lists[i].size;
 	}
 
-	return DIV_ROUND_UP(bit_count, BITS_PER_BYTE);
+	return BITS_TO_BYTES(bit_count);
 }
 
 size_t get_volume_index_memory_used(const struct volume_index *volume_index)
