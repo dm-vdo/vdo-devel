@@ -491,9 +491,7 @@ int vdo_resume_if_quiescent(struct admin_state *state)
  */
 int vdo_start_operation(struct admin_state *state, const struct admin_state_code *operation)
 {
-	return (check_code(operation->operating, operation, "operation", NULL) ?
-		begin_operation(state, operation, NULL, NULL) :
-		VDO_INVALID_ADMIN_STATE);
+	return vdo_start_operation_with_waiter(state, operation, NULL, NULL);
 }
 
 /**
@@ -501,13 +499,14 @@ int vdo_start_operation(struct admin_state *state, const struct admin_state_code
  * @waiter the completion to notify when the operation completes or fails to start; may be NULL.
  * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
  *
- * Return: true if the operation was started.
+ * Return: VDO_SUCCESS if the operation was started, VDO_INVALID_ADMIN_STATE if not
  */
-bool vdo_start_operation_with_waiter(struct admin_state *state,
-				     const struct admin_state_code *operation,
-				     struct vdo_completion *waiter,
-				     vdo_admin_initiator *initiator)
+int vdo_start_operation_with_waiter(struct admin_state *state,
+				    const struct admin_state_code *operation,
+				    struct vdo_completion *waiter,
+				    vdo_admin_initiator *initiator)
 {
-	return (check_code(operation->operating, operation, "operation", waiter) &&
-		(begin_operation(state, operation, waiter, initiator) == VDO_SUCCESS));
+	return (check_code(operation->operating, operation, "operation", waiter) ?
+		begin_operation(state, operation, waiter, initiator) :
+		VDO_INVALID_ADMIN_STATE);
 }

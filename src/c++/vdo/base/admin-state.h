@@ -170,10 +170,10 @@ int vdo_resume_if_quiescent(struct admin_state *state);
 
 int vdo_start_operation(struct admin_state *state, const struct admin_state_code *operation);
 
-bool vdo_start_operation_with_waiter(struct admin_state *state,
-				     const struct admin_state_code *operation,
-				     struct vdo_completion *waiter,
-				     vdo_admin_initiator *initiator);
+int vdo_start_operation_with_waiter(struct admin_state *state,
+				    const struct admin_state_code *operation,
+				    struct vdo_completion *waiter,
+				    vdo_admin_initiator *initiator);
 
 bool vdo_finish_operation(struct admin_state *state, int result);
 
