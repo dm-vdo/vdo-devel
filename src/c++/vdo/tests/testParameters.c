@@ -12,11 +12,11 @@
 
 #include "block-map.h"
 #include "constants.h"
+#include "encodings.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "thread-config.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "dataBlocks.h"

@@ -11,7 +11,7 @@
 #include "buffer.h"
 #include "memory-alloc.h"
 
-#include "vdo-component-states.h"
+#include "encodings.h"
 
 #include "vdoAsserts.h"
 

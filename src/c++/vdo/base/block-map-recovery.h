@@ -7,8 +7,8 @@
 #define VDO_BLOCK_MAP_RECOVERY_H
 
 #include "block-map.h"
+#include "encodings.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 /*
  * An explicitly numbered block mapping. Numbering the mappings allows them to be sorted by logical

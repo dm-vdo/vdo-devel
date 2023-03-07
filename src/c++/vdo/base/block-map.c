@@ -17,6 +17,7 @@
 #include "admin-state.h"
 #include "constants.h"
 #include "data-vio.h"
+#include "encodings.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
 #include "recovery-journal.h"
@@ -25,7 +26,6 @@
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 

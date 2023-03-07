@@ -14,8 +14,8 @@
 #include "time-utils.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "status-codes.h"
-#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "fileLayer.h"

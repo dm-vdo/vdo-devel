@@ -13,14 +13,14 @@
 #include "memory-alloc.h"
 
 #include "data-vio.h"
+#include "encodings.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "slab.h"
 #include "status-codes.h"
-#include "vdo.h"
-#include "vdo-component-states.h"
 #include "vdo-layout.h"
+#include "vdo.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

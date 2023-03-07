@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include "vdo-recovery.h"
+#include "recovery.h"
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -13,6 +13,7 @@
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
+#include "encodings.h"
 #include "int-map.h"
 #include "io-submitter.h"
 #include "recovery-journal.h"
@@ -22,7 +23,6 @@
 #include "slab.h"
 #include "thread-config.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "vdo.h"
 #include "wait-queue.h"
 

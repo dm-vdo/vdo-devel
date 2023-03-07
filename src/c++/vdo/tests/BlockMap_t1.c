@@ -16,10 +16,10 @@
 #include "syscalls.h"
 
 #include "block-map.h"
+#include "encodings.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "blockMapUtils.h"

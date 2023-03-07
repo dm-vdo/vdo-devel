@@ -18,12 +18,12 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
+#include "encodings.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
 #include "status-codes.h"
 #include "thread-config.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 
 static const struct version_number COMPRESSED_BLOCK_1_0 = {

@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef VDO_COMPONENT_STATES_H
-#define VDO_COMPONENT_STATES_H
+#ifndef VDO_ENCODINGS_H
+#define VDO_ENCODINGS_H
 
 #ifdef __KERNEL__
 #include <linux/crc32.h>
@@ -1140,4 +1140,4 @@ static inline u32 vdo_crc32(const void *buf, unsigned long len)
 #endif /* __KERNEL__ */
 }
 
-#endif /* VDO_COMPONENT_STATES_H */
+#endif /* VDO_ENCODINGS_H */

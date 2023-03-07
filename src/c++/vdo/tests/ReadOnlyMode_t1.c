@@ -11,8 +11,8 @@
 #include <linux/bio.h>
 
 #include "block-map.h"
+#include "encodings.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "ioRequest.h"

@@ -10,13 +10,13 @@
 #include "permassert.h"
 
 #include "block-map.h"
+#include "encodings.h"
 #include "heap.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 /*
  * A structure to manage recovering the block map from the recovery journal.

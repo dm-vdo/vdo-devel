@@ -9,9 +9,9 @@
 #include "albtest.h"
 
 #include "block-map.h"
+#include "encodings.h"
 #include "slab.h"
 #include "slab-depot.h"
-#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "ioRequest.h"

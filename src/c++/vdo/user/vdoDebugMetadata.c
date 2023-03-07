@@ -14,8 +14,7 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "vdo-component-states.h"
-
+#include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
 #include "volume-geometry.h"

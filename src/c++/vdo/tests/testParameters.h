@@ -9,9 +9,9 @@
 #ifndef TEST_PARAMETERS_H
 #define TEST_PARAMETERS_H
 
+#include "encodings.h"
 #include "thread-config.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "dataBlocks.h"

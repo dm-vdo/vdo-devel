@@ -11,10 +11,10 @@
 #include "numeric.h"
 
 #include "data-vio.h"
+#include "encodings.h"
 #include "slab.h"
 #include "statistics.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "wait-queue.h"
 
 struct journal_lock {

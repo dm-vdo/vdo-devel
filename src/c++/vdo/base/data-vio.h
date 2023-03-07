@@ -17,12 +17,12 @@
 #include "completion.h"
 #include "constants.h"
 #include "dedupe.h"
+#include "encodings.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 

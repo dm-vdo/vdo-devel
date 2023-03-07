@@ -12,9 +12,9 @@
 
 #include "memory-alloc.h"
 
+#include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "vdo-layout.h"
 
 #include "physicalLayer.h"

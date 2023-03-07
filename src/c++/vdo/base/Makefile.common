@@ -17,6 +17,7 @@ BASE_OBJS :=     			\
 	data-vio.o			\
         dedupe.o                        \
         dm-vdo-target.o                 \
+	encodings.o			\
 	flush.o				\
 	heap.o				\
 	int-map.o			\
@@ -28,6 +29,7 @@ BASE_OBJS :=     			\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
+	recovery.o			\
 	recovery-journal.o		\
 	ref-counts.o			\
 	slab.o				\
@@ -36,9 +38,7 @@ BASE_OBJS :=     			\
 	status-codes.o			\
 	thread-config.o			\
 	vdo.o				\
-	vdo-component-states.o  	\
 	vdo-layout.o			\
-	vdo-recovery.o			\
 	vio.o				\
 	volume-geometry.o		\
 	wait-queue.o
@@ -53,7 +53,7 @@ KERNEL_OBJS:=                           \
 
 USER_OBJECTS:=                  	\
 	constants.o			\
+	encodings.o			\
 	status-codes.o			\
-	vdo-component-states.o		\
 	vdo-layout-user.o		\
 	volume-geometry.o

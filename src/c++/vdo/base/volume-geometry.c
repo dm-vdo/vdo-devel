@@ -12,13 +12,13 @@
 #include "permassert.h"
 
 #include "constants.h"
+#include "encodings.h"
 #ifndef __KERNEL__
 #include "physicalLayer.h"
 #endif /* not __KERNEL__ */
 #include "release-versions.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 enum {
 	MAGIC_NUMBER_SIZE = 8,

@@ -19,7 +19,7 @@
 #include "string-utils.h"
 #include "syscalls.h"
 
-#include "vdo-component-states.h"
+#include "encodings.h"
 
 #include "vdoConfig.h"
 

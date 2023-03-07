@@ -8,11 +8,11 @@
 
 #include "albtest.h"
 
+#include "encodings.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
+#include "slab.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "blockAllocatorUtils.h"

@@ -17,9 +17,11 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "constants.h"
+#include "encodings.h"
 #include "heap.h"
 #include "io-submitter.h"
 #include "priority-table.h"
+#include "recovery.h"
 #include "ref-counts.h"
 #include "slab.h"
 #include "slab-journal.h"
@@ -27,8 +29,6 @@
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
-#include "vdo-recovery.h"
 #include "vio.h"
 
 struct slab_journal_eraser {

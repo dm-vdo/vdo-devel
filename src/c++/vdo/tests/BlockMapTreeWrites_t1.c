@@ -13,8 +13,8 @@
 #include "action-manager.h"
 #include "admin-state.h"
 #include "block-map.h"
+#include "encodings.h"
 #include "recovery-journal.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 
 #include "asyncLayer.h"

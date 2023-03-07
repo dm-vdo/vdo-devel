@@ -27,9 +27,9 @@
 #include "uds-threads.h"
 
 #include "admin-state.h"
+#include "encodings.h"
 #include "recovery-journal.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 #include "blockAllocatorUtils.h"
 #include "vdoConfig.h"

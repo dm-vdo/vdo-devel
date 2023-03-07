@@ -10,14 +10,14 @@
 
 #include "memory-alloc.h"
 
+#include "encodings.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "slab.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

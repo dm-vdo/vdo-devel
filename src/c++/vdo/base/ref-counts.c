@@ -15,15 +15,15 @@
 
 #include "admin-state.h"
 #include "completion.h"
+#include "encodings.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "slab.h"
 #include "status-codes.h"
 #include "string-utils.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 

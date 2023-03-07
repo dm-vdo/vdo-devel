@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include "vdo-component-states.h"
+#include "encodings.h"
 
 #include <linux/log2.h>
 

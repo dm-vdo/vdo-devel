@@ -46,13 +46,13 @@ tarballs:
           sources:
             - constants.c
             - constants.h
+            - encodings.c
+            - encodings.h
             - release-versions.h
             - statistics.h
             - status-codes.c
             - status-codes.h
             - types.h
-            - vdo-component-states.c
-            - vdo-component-states.h
             - vdo-layout.c
             - vdo-layout.h
             - volume-geometry.c
@@ -267,6 +267,8 @@ tarballs:
             - dm-vdo-target.c
             - dump.c
             - dump.h
+            - encodings.c
+            - encodings.h
             - flush.c
             - flush.h
             - heap.c
@@ -290,6 +292,8 @@ tarballs:
             - pool-sysfs-stats.c
             - priority-table.c
             - priority-table.h
+            - recovery.c
+            - recovery.h
             - recovery-journal.c
             - recovery-journal.h
             - ref-counts.c
@@ -310,12 +314,8 @@ tarballs:
             - types.h
             - vdo.c
             - vdo.h
-            - vdo-component-states.c
-            - vdo-component-states.h
             - vdo-layout.c
             - vdo-layout.h
-            - vdo-recovery.c
-            - vdo-recovery.h
             - vio.c
             - vio.h
             - volume-geometry.c

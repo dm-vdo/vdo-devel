@@ -19,9 +19,9 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
+#include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "slabSummaryReader.h"

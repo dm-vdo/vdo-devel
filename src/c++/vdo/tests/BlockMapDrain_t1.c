@@ -13,7 +13,7 @@
 #include "admin-state.h"
 #include "block-map.h"
 #include "types.h"
-#include "vdo-component-states.h"
+#include "encodings.h"
 
 #include "adminUtils.h"
 #include "asyncLayer.h"

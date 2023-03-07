@@ -8,8 +8,8 @@
 #ifndef USER_VDO_H
 #define USER_VDO_H
 
+#include "encodings.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "volume-geometry.h"
 
 #include "physicalLayer.h"

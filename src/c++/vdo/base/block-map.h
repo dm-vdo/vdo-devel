@@ -15,11 +15,11 @@
 
 #include "admin-state.h"
 #include "completion.h"
+#include "encodings.h"
 #include "int-map.h"
 #include "statistics.h"
 #include "types.h"
 #include "vdo-layout.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 

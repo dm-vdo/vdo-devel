@@ -12,14 +12,14 @@
 
 #include "admin-state.h"
 #include "block-map.h"
+#include "encodings.h"
+#include "recovery.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "slab.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
-#include "vdo-recovery.h"
 
 #include "asyncLayer.h"
 #include "blockAllocatorUtils.h"

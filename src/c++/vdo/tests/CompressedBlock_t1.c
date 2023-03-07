@@ -10,8 +10,8 @@
 
 #include "constants.h"
 #include "data-vio.h"
+#include "encodings.h"
 #include "packer.h"
-#include "vdo-component-states.h"
 
 #include "vdoAsserts.h"
 

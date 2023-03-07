@@ -19,12 +19,12 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
+#include "encodings.h"
 #include "flush.h"
 #include "int-map.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 
 enum {
 	/* Each user data_vio needs a PBN read lock and write lock. */

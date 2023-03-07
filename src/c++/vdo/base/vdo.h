@@ -14,6 +14,7 @@
 #include <linux/spinlock.h>
 
 #include "admin-state.h"
+#include "encodings.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
@@ -23,7 +24,6 @@
 #endif /* __KERNEL__ */
 #include "types.h"
 #include "uds.h"
-#include "vdo-component-states.h"
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */

@@ -14,13 +14,13 @@
 #include "permassert.h"
 
 #include "admin-state.h"
+#include "encodings.h"
 #include "int-map.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
+#include "slab.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 
 #include "adminUtils.h"

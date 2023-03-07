@@ -9,8 +9,8 @@
 #ifndef BLOCK_ALLOCATOR_UTILS_H
 #define BLOCK_ALLOCATOR_UTILS_H
 
+#include "encodings.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #include "vdoAsserts.h"
 

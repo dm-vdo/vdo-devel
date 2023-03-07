@@ -16,12 +16,12 @@
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
+#include "encodings.h"
 #include "io-submitter.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
-#include "vdo-component-states.h"
 #include "vio.h"
 #include "wait-queue.h"
 

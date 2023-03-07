@@ -28,9 +28,9 @@ dm_kcopyd_client_destroy(struct dm_kcopyd_client *kc __always_unused)
 #include "permassert.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #if defined(__KERNEL__) || defined(TEST_INTERNAL)
 #include "vdo.h"

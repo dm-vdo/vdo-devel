@@ -12,10 +12,10 @@
 
 #include "admin-state.h"
 #include "constants.h"
+#include "encodings.h"
 #include "flush.h"
 #include "statistics.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "wait-queue.h"
 

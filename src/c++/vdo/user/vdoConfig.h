@@ -9,8 +9,8 @@
 
 #include "errors.h"
 
+#include "encodings.h"
 #include "types.h"
-#include "vdo-component-states.h"
 #include "vdo-layout.h"
 #include "volume-geometry.h"
 

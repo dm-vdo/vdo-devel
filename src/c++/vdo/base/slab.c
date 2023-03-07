@@ -13,12 +13,12 @@
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
+#include "encodings.h"
 #include "physical-zone.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "vdo-component-states.h"
 
 /**
  * vdo_make_slab() - Construct a new, empty slab.

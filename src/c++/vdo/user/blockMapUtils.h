@@ -7,7 +7,7 @@
 #ifndef BLOCK_MAP_UTILS_H
 #define BLOCK_MAP_UTILS_H
 
-#include "vdo-component-states.h"
+#include "encodings.h"
 
 #include "physicalLayer.h"
 #include "userVDO.h"

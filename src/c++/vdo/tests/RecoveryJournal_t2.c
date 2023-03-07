@@ -11,11 +11,11 @@
 #include "memory-alloc.h"
 
 #include "block-map.h"
+#include "recovery.h"
 #include "recovery-journal.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "vdo.h"
-#include "vdo-recovery.h"
 #include "vio.h"
 
 #include "asyncLayer.h"

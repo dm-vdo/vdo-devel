@@ -13,11 +13,11 @@
 #include "memory-alloc.h"
 
 #include "block-map.h"
+#include "encodings.h"
 #include "heap.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "vdo-component-states.h"
 
 #include "vdoConfig.h"
 

@@ -12,9 +12,9 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
+#include "encodings.h"
 #include "release-versions.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #include "asyncLayer.h"
 #include "userVDO.h"

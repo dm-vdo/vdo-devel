@@ -10,11 +10,11 @@
 
 #include "block-map.h"
 #include "data-vio.h"
+#include "encodings.h"
 #include "recovery-journal.h"
-#include "slab.h"
 #include "slab-depot.h"
+#include "slab.h"
 #include "types.h"
-#include "vdo-component-states.h"
 
 #include "blockMapUtils.h"
 #include "vdoAsserts.h"
