@@ -509,18 +509,6 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 }
 
 /**
- * distribute_error_over_queue() - Complete a queue of VDO page completions with an error code.
- * @result: The error result.
- * @queue: A pointer to the queue (in, out).
- *
- * Upon completion the queue will be empty.
- */
-static void distribute_error_over_queue(int result, struct wait_queue *queue)
-{
-	notify_all_waiters(queue, complete_waiter_with_error, &result);
-}
-
-/**
  * complete_waiter_with_page() - Complete a page completion with a page.
  * @waiter: The page completion, as a waiter.
  * @page_info: The page info to complete with.
@@ -580,11 +568,11 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
 
 	assert_on_cache_thread(cache, __func__);
 
-	distribute_error_over_queue(result, &cache->free_waiters);
+	notify_all_waiters(&cache->free_waiters, complete_waiter_with_error, &result);
 	cache->waiter_count = 0;
 
 	for (info = cache->infos; info < cache->infos + cache->page_count; ++info)
-		distribute_error_over_queue(result, &info->waiting);
+		notify_all_waiters(&info->waiting, complete_waiter_with_error, &result);
 }
 
 /**
@@ -681,7 +669,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	vdo_enter_read_only_mode(cache->zone->block_map->vdo, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
-	distribute_error_over_queue(result, &info->waiting);
+	notify_all_waiters(&info->waiting, complete_waiter_with_error, &result);
 	reset_page_info(info);
 
 	/*
@@ -940,7 +928,7 @@ static void allocate_free_page(struct page_info *info)
 
 	result = launch_page_load(info, pbn);
 	if (result != VDO_SUCCESS)
-		distribute_error_over_queue(result, &info->waiting);
+		notify_all_waiters(&info->waiting, complete_waiter_with_error, &result);
 }
 
 /**
@@ -1218,7 +1206,7 @@ load_page_for_completion(struct page_info *info, struct vdo_page_completion *vdo
 	enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
 	result = launch_page_load(info, vdo_page_comp->pbn);
 	if (result != VDO_SUCCESS)
-		distribute_error_over_queue(result, &info->waiting);
+		notify_all_waiters(&info->waiting, complete_waiter_with_error, &result);
 }
 
 /**
@@ -1379,12 +1367,6 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 	/* Reset the page map by re-allocating it. */
 	free_int_map(UDS_FORGET(cache->page_map));
 	return make_int_map(cache->page_count, 0, &cache->page_map);
-}
-
-static inline struct block_map_zone * __must_check
-get_block_map_zone(struct data_vio *data_vio)
-{
-	return data_vio->logical.zone->block_map_zone;
 }
 
 /**
@@ -1760,7 +1742,7 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 			what, (unsigned long long) lock->key,
 			lock->root_index);
 
-	zone = get_block_map_zone(data_vio);
+	zone = data_vio->logical.zone->block_map_zone;
 	lock_holder = int_map_remove(zone->loading_pages, lock->key);
 	ASSERT_LOG_ONLY((lock_holder == lock),
 			"block map page %s mismatch for key %llu in tree %u",
@@ -1772,12 +1754,9 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 
 static void finish_lookup(struct data_vio *data_vio, int result)
 {
-	struct block_map_zone *zone;
-
 	data_vio->tree_lock.height = 0;
 
-	zone = get_block_map_zone(data_vio);
-	--zone->active_lookups;
+	--data_vio->logical.zone->block_map_zone->active_lookups;
 
 	set_data_vio_logical_callback(data_vio, continue_data_vio_with_block_map_slot);
 	data_vio->vio.completion.error_handler = handle_data_vio_error;
@@ -1802,7 +1781,7 @@ static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 static void abort_lookup(struct data_vio *data_vio, int result, char *what)
 {
 	if (result != VDO_NO_SPACE)
-		enter_zone_read_only_mode(get_block_map_zone(data_vio), result);
+		enter_zone_read_only_mode(data_vio->logical.zone->block_map_zone, result);
 
 	if (data_vio->tree_lock.locked) {
 		release_page_lock(data_vio, what);
@@ -1855,7 +1834,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio, struct block_ma
 
 	if (!vdo_is_mapped_location(&mapping)) {
 		/* The page we need is unallocated */
-		allocate_block_map_page(get_block_map_zone(data_vio), data_vio);
+		allocate_block_map_page(data_vio->logical.zone->block_map_zone, data_vio);
 		return;
 	}
 
@@ -1866,7 +1845,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio, struct block_ma
 	}
 
 	/* We know what page we need to load next */
-	load_block_map_page(get_block_map_zone(data_vio), data_vio);
+	load_block_map_page(data_vio->logical.zone->block_map_zone, data_vio);
 }
 
 static void continue_load_for_waiter(struct waiter *waiter, void *context)
@@ -1994,11 +1973,6 @@ static void load_block_map_page(struct block_map_zone *zone, struct data_vio *da
 	}
 }
 
-static void abort_allocation(struct data_vio *data_vio, int result)
-{
-	abort_lookup(data_vio, result, "allocation");
-}
-
 static void allocation_failure(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
@@ -2008,7 +1982,7 @@ static void allocation_failure(struct vdo_completion *completion)
 		return;
 	}
 
-	abort_allocation(data_vio, completion->result);
+	abort_lookup(data_vio, completion->result, "allocation");
 }
 
 static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
@@ -2025,7 +1999,7 @@ static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 		return;
 	}
 
-	allocate_block_map_page(get_block_map_zone(data_vio), data_vio);
+	allocate_block_map_page(data_vio->logical.zone->block_map_zone, data_vio);
 }
 
 /**
@@ -2144,7 +2118,7 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
 	struct block_map_page *page;
 	sequence_number_t old_lock;
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct block_map_zone *zone = get_block_map_zone(data_vio);
+	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 	struct tree_lock *tree_lock = &data_vio->tree_lock;
 	height_t height = tree_lock->height;
 
@@ -2280,7 +2254,7 @@ static void allocate_block_map_page(struct block_map_zone *zone, struct data_vio
 
 	result = attempt_page_lock(zone, data_vio);
 	if (result != VDO_SUCCESS) {
-		abort_allocation(data_vio, result);
+		abort_lookup(data_vio, result, "allocation");
 		return;
 	}
 
@@ -2307,7 +2281,7 @@ void vdo_find_block_map_slot(struct data_vio *data_vio)
 	struct data_location mapping;
 	struct block_map_page *page = NULL;
 	struct tree_lock *lock = &data_vio->tree_lock;
-	struct block_map_zone *zone = get_block_map_zone(data_vio);
+	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 
 	zone->active_lookups++;
 	if (vdo_is_state_draining(&zone->state)) {
