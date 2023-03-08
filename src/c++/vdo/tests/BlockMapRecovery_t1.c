@@ -11,7 +11,7 @@
 #include "memory-alloc.h"
 
 #include "block-map.h"
-#include "block-map-recovery.h"
+#include "recovery.h"
 #include "recovery-journal.h"
 #include "slab.h"
 #include "slab-depot.h"
@@ -20,6 +20,7 @@
 #include "blockMapUtils.h"
 #include "completionUtils.h"
 #include "journalWritingUtils.h"
+#include "numberedBlockMapping.h"
 #include "testParameters.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
@@ -101,7 +102,7 @@ static void generateNumberedBlockMappings(block_count_t mappingCount)
 /**********************************************************************/
 static void recoverAction(struct vdo_completion *completion)
 {
-  vdo_recover_block_map(vdo, entryCount, entries, completion);
+  recover_block_map(vdo, entryCount, entries, completion);
 }
 
 /**

@@ -254,8 +254,6 @@ tarballs:
             - admin-state.h
             - block-map.c
             - block-map.h
-            - block-map-recovery.c
-            - block-map-recovery.h
             - completion.c
             - completion.h
             - constants.c

@@ -90,7 +90,7 @@ TEST_COMMON  = adminUtils.o              \
                vdoTestBase.o             \
                workQueue.o
 
-STRUCT_HEADERS = dedupeContext.h hashZone.h
+STRUCT_HEADERS = dedupeContext.h hashZone.h numberedBlockMapping.h
 
 GENERATED_FILES = $(STRUCT_HEADERS) dump.c
 
@@ -159,6 +159,7 @@ endef
 
 $(eval $(call struct_header,dedupeContext.h,$(VDO_BASE_DIR)/dedupe.c,dedupe_context))
 $(eval $(call struct_header,hashZone.h,$(VDO_BASE_DIR)/dedupe.c,hash_zone))
+$(eval $(call struct_header,numberedBlockMapping.h,$(VDO_BASE_DIR)/recovery.c,numbered_block_mapping))
 
 dump.c: $(VDO_BASE_DIR)/dump.c dump.h Makefile
 	sed -e 's/%llu/%lu/g' < $< > $@
