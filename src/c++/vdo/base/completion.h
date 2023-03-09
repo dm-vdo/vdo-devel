@@ -39,7 +39,6 @@ void vdo_invoke_completion_callback_with_priority(struct vdo_completion *complet
 
 /**
  * vdo_invoke_completion_callback() - Invoke the callback of a completion.
- * @completion: The completion whose callback is to be invoked.
  *
  * If called on the correct thread (i.e. the one specified in the completion's callback_thread_id
  * field), the completion will be run immediately. Otherwise, the completion will be enqueued on
@@ -56,7 +55,6 @@ void vdo_complete_completion(struct vdo_completion *completion);
 
 /**
  * vdo_finish_completion() - Finish a completion.
- * @completion: The completion to finish.
  * @result: The result of the completion (will not mask older errors).
  */
 static inline void vdo_finish_completion(struct vdo_completion *completion, int result)
@@ -69,8 +67,6 @@ void vdo_preserve_completion_error_and_continue(struct vdo_completion *completio
 
 /**
  * vdo_assert_completion_type() - Assert that a completion is of the correct type.
- * @actual: The actual completion type.
- * @expected: The expected completion type.
  *
  * Return: VDO_SUCCESS or an error
  */
@@ -80,98 +76,70 @@ vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_
 	return ASSERT(expected == actual, "completion type is %u instead of %u", actual, expected);
 }
 
-/**
- * vdo_set_completion_callback() - Set the callback for a completion.
- * @completion: The completion.
- * @callback: The callback to register.
- * @thread_id: The ID of the thread on which the callback should run.
- */
+/** vdo_set_completion_callback() - Set the callback for a completion. */
 static inline void vdo_set_completion_callback(struct vdo_completion *completion,
 					       vdo_action *callback,
-					       thread_id_t thread_id)
+					       thread_id_t callback_thread_id)
 {
 	completion->callback = callback;
-	completion->callback_thread_id = thread_id;
+	completion->callback_thread_id = callback_thread_id;
 }
 
 /**
  * vdo_launch_completion_callback() - Set the callback for a completion and invoke it immediately.
- * @completion: The completion.
- * @callback: The callback to register.
- * @thread_id: The ID of the thread on which the callback should run.
  */
 static inline void vdo_launch_completion_callback(struct vdo_completion *completion,
 						  vdo_action *callback,
-						  thread_id_t thread_id)
+						  thread_id_t callback_thread_id)
 {
-	vdo_set_completion_callback(completion, callback, thread_id);
+	vdo_set_completion_callback(completion, callback, callback_thread_id);
 	vdo_invoke_completion_callback(completion);
 }
 
-/**
- * vdo_set_completion_callback_with_parent() - Set the callback and parent for a completion.
- * @completion: The completion.
- * @callback: The callback to register.
- * @thread_id: The ID of the thread on which the callback should run.
- * @parent: The new parent of the completion.
- */
+/** vdo_set_completion_callback_with_parent() - Set the callback and parent for a completion. */
 static inline void
 vdo_set_completion_callback_with_parent(struct vdo_completion *completion,
 					vdo_action *callback,
-					thread_id_t thread_id,
+					thread_id_t callback_thread_id,
 					void *parent)
 {
-	vdo_set_completion_callback(completion, callback, thread_id);
+	vdo_set_completion_callback(completion, callback, callback_thread_id);
 	completion->parent = parent;
 }
 
 /**
  * vdo_launch_completion_callback_with_parent() - Set the callback and parent for a completion and
  *                                                invoke the callback immediately.
- * @completion: The completion.
- * @callback: The callback to register.
- * @thread_id: The ID of the thread on which the callback should run.
- * @parent: The new parent of the completion.
  */
 static inline void
 vdo_launch_completion_callback_with_parent(struct vdo_completion *completion,
 					   vdo_action *callback,
-					   thread_id_t thread_id,
+					   thread_id_t callback_thread_id,
 					   void *parent)
 {
-	vdo_set_completion_callback_with_parent(completion, callback, thread_id, parent);
+	vdo_set_completion_callback_with_parent(completion, callback, callback_thread_id, parent);
 	vdo_invoke_completion_callback(completion);
 }
 
 /**
  * vdo_prepare_completion() - Prepare a completion for launch.
- * @completion: The completion.
- * @callback: The callback to register.
- * @error_handler: The error handler to register.
- * @thread_id: The ID of the thread on which the callback should run.
- * @parent: The new parent of the completion.
  *
  * Resets the completion, and then sets its callback, error handler, callback thread, and parent.
  */
 static inline void vdo_prepare_completion(struct vdo_completion *completion,
 					  vdo_action *callback,
 					  vdo_action *error_handler,
-					  thread_id_t thread_id,
+					  thread_id_t callback_thread_id,
 					  void *parent)
 {
 	vdo_reset_completion(completion);
-	vdo_set_completion_callback_with_parent(completion, callback, thread_id, parent);
+	vdo_set_completion_callback_with_parent(completion, callback, callback_thread_id, parent);
 	completion->error_handler = error_handler;
 }
 
 /**
  * vdo_prepare_completion_for_requeue() - Prepare a completion for launch ensuring that it will
  *                                        always be requeued.
- * @completion: The completion.
- * @callback: The callback to register.
- * @error_handler: The error handler to register.
- * @thread_id: The ID of the thread on which the callback should run.
- * @parent: The new parent of the completion.
  *
  * Resets the completion, and then sets its callback, error handler, callback thread, and parent.
  */
@@ -179,10 +147,10 @@ static inline void
 vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
 				   vdo_action *callback,
 				   vdo_action *error_handler,
-				   thread_id_t thread_id,
+				   thread_id_t callback_thread_id,
 				   void *parent)
 {
-	vdo_prepare_completion(completion, callback, error_handler, thread_id, parent);
+	vdo_prepare_completion(completion, callback, error_handler, callback_thread_id, parent);
 	completion->requeue = true;
 }
 
@@ -192,7 +160,6 @@ void vdo_enqueue_completion_with_priority(struct vdo_completion *completion,
 /**
  * vdo_enqueue_completion() - Enqueue a vdo_completion to run on the thread specified by its
  *                            callback_thread_id field at default priority.
- * @completion: The completion to be enqueued.
  */
 static inline void vdo_enqueue_completion(struct vdo_completion *completion)
 {
