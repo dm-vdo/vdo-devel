@@ -228,22 +228,18 @@ static void testReadWriteMix(void) {
   performSuccessfulDepotAction(VDO_ADMIN_STATE_RECOVERING);
 
   struct slab_depot *depot = vdo->depot;
-  struct slab_summary_zone *summaryZone = depot->slab_summary->zones[0];
   for (slab_count_t i = 0; i < depot->slab_count; i++) {
     slabToSave = depot->slabs[i];
-    performSuccessfulSlabAction(slabToSave,
-                                VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
-    struct slab_journal *slabJournal
-      = getVDOSlabJournal(slabToSave->slab_number);
+    performSuccessfulSlabAction(slabToSave, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
+    struct slab_journal *slabJournal = getVDOSlabJournal(slabToSave->slab_number);
     tail_block_offset_t tailBlockOffset
-      = vdo_get_slab_journal_block_offset(slabJournal,
-                                          slabJournal->last_summarized);
-    bool loadRefCounts = vdo_must_load_ref_counts(summaryZone,
-                                                  slabToSave->slab_number);
-    performSlabSummaryUpdate(summaryZone, slabToSave->slab_number,
-                             tailBlockOffset, loadRefCounts, false, 1000);
-    CU_ASSERT_FALSE(vdo_get_summarized_cleanliness(summaryZone,
-                                                   slabToSave->slab_number));
+      = vdo_get_slab_journal_block_offset(slabJournal, slabJournal->last_summarized);
+    bool loadRefCounts =
+      slabToSave->allocator->summary_entries[slabToSave->slab_number].load_ref_counts;
+    performSlabSummaryUpdate(slabToSave->slab_number, tailBlockOffset, loadRefCounts, false, 1000);
+    struct block_allocator *allocator =
+      &depot->allocators[i % vdo->thread_config->physical_zone_count];
+    CU_ASSERT(allocator->summary_entries[slabToSave->slab_number].is_dirty);
   }
 
   crashAndRebuildVDO();

@@ -107,15 +107,11 @@ static void testNoReplay(void)
   // Note that the free block count should be recalculated during scrubbing.
   struct slab_journal *slabJournal = getVDOSlabJournal(dirtySlab->slab_number);
   tail_block_offset_t tailBlockOffset
-    = vdo_get_slab_journal_block_offset(slabJournal,
-                                        slabJournal->last_summarized);
-  struct slab_summary_zone *summary = depot->slab_summary->zones[0];
-  bool loadRefCounts
-    = vdo_must_load_ref_counts(summary, dirtySlab->slab_number);
-  performSlabSummaryUpdate(summary, dirtySlab->slab_number, tailBlockOffset,
-                           loadRefCounts, false, 1000);
-  CU_ASSERT_FALSE(vdo_get_summarized_cleanliness(summary,
-                                                 dirtySlab->slab_number));
+    = vdo_get_slab_journal_block_offset(slabJournal, slabJournal->last_summarized);
+  struct block_allocator *allocator = dirtySlab->allocator;
+  bool loadRefCounts = allocator->summary_entries[dirtySlab->slab_number].load_ref_counts;
+  performSlabSummaryUpdate(dirtySlab->slab_number, tailBlockOffset, loadRefCounts, false, 1000);
+  CU_ASSERT(allocator->summary_entries[dirtySlab->slab_number].is_dirty);
 
   crashAndRebuildVDO();
 

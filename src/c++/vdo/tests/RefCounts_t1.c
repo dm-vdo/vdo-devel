@@ -33,18 +33,15 @@ enum {
   // Ensure multiple reference count blocks.
   SLAB_SIZE          = VDO_BLOCK_SIZE * 2,
   JOURNAL_SIZE       = 2,
-  FIRST_BLOCK        = 1,
   TEST_VIO_POOL_SIZE = 2,
 };
 
+struct vdo_slab                  *slab;
 static struct ref_counts         *refs;
 static struct ref_counts         *loaded;
-static struct fixed_layout       *layout;
-static struct slab_depot         *depot;
-static struct block_allocator    *allocator;
-static struct thread_config      *threadConfig;
-static struct vdo_slab           *slab;
 static physical_block_number_t    pbnToBlock;
+static physical_block_number_t    firstBlock;
+static physical_block_number_t    offset;
 static block_count_t              viosFinishedCount;
 static block_count_t              desiredFinishedCount;
 static bool                       refCountsCompletionWaiting;
@@ -64,67 +61,26 @@ static void readOnlyNotification(void *listener __attribute__((unused)),
 static void initializeRefCountsT1(void)
 {
   TestParameters testParameters = {
-    .slabSize = VDO_BLOCK_SIZE * 2,
+    .slabSize = SLAB_SIZE,
+    .slabJournalBlocks = JOURNAL_SIZE,
+    .slabCount = 1,
     .noIndexRegion = true,
   };
-  initializeBasicTest(&testParameters);
+  initializeVDOTest(&testParameters);
 
-  // This test assumes reference blocks are initialized to zero. So
-  // clear out RAM layer with zeros.
-  zeroRAMLayer(getSynchronousLayer());
+  // This test assumes reference blocks are initialized to zero.
+  slab = vdo->depot->slabs[0];
+  refs = slab->reference_counts;
+  zeroRAMLayer(getSynchronousLayer(),
+               slab->ref_counts_origin,
+               slab->end - slab->ref_counts_origin);
 
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot,
-                                           1,
-                                           struct block_allocator,
-                                           __func__,
-                                           &depot));
-  allocator        = &depot->allocators[0];
-  allocator->depot = depot;
-  depot->vdo       = vdo;
-
-
-  threadConfig = makeOneThreadConfig();
-  performSuccessfulAction(vdo_allow_read_only_mode_entry);
   expectedCloseResult = VDO_SUCCESS;
   VDO_ASSERT_SUCCESS(vdo_register_read_only_listener(vdo, NULL, readOnlyNotification, 0));
-
   viosFinishedCount          = 0;
   refCountsCompletionWaiting = false;
-
-  VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(layer->getBlockCount(layer), 0,
-                                           &layout));
-
-  int result = vdo_make_fixed_layout_partition(layout,
-                                               VDO_SLAB_SUMMARY_PARTITION,
-                                               VDO_SLAB_SUMMARY_BLOCKS,
-                                               VDO_PARTITION_FROM_END,
-                                               0);
-  VDO_ASSERT_SUCCESS(result);
-
-  struct partition *slabSummaryPartition;
-  VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(layout,
-						    VDO_SLAB_SUMMARY_PARTITION,
-						    &slabSummaryPartition));
-  VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
-                                           slabSummaryPartition,
-                                           threadConfig,
-                                           depot->slab_size_shift,
-                                           SLAB_SIZE,
-                                           &depot->slab_summary));
-  allocator->summary = depot->slab_summary->zones[0];
-
-  VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE,
-                                        &depot->slab_config));
-  VDO_ASSERT_SUCCESS(make_priority_table(63, &allocator->prioritized_slabs));
-  VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
-                                   TEST_VIO_POOL_SIZE,
-                                   allocator->thread_id,
-                                   VIO_TYPE_SLAB_JOURNAL,
-                                   VIO_PRIORITY_METADATA,
-                                   allocator,
-                                   &allocator->vio_pool));
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slab));
-  VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slab));
+  firstBlock                 = slab->start;
+  offset                     = firstBlock - 1;
 
   /*
    * Set the slab to be rebuilding so that slab journal locks will be ignored.
@@ -132,22 +88,6 @@ static void initializeRefCountsT1(void)
    * fail on a lock count underflow otherwise.
    */
   slab->status = VDO_SLAB_REPLAYING;
-  refs         = slab->reference_counts;
-}
-
-/**********************************************************************/
-static void tearDownRefCountsT1(void)
-{
-  performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
-  CU_ASSERT_EQUAL(expectedCloseResult, closeSlabSummary(depot->slab_summary));
-  free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
-  vdo_free_slab(UDS_FORGET(slab));
-  free_vio_pool(UDS_FORGET(allocator->vio_pool));
-  vdo_free_slab_summary(UDS_FORGET(depot->slab_summary));
-  vdo_free_thread_config(UDS_FORGET(threadConfig));
-  UDS_FREE(depot);
-  vdo_free_fixed_layout(UDS_FORGET(layout));
-  tearDownVDOTest();
 }
 
 /**
@@ -201,7 +141,7 @@ performAdjustment(physical_block_number_t     pbn,
 /**
  * Adjust a reference count and check that the resulting status is as expected.
  *
- * @param pbn               The physical block number to adjust
+ * @param pbn               The (test relative) physical block number to adjust
  * @param slabJournalPoint  The journal point of the slab journal entry for
  *                          this adjustment
  * @param operation         The type of adjustment
@@ -304,70 +244,99 @@ static void assertBlockMapIncrement(physical_block_number_t pbn)
   assertFailedAdjustment(pbn, true, VDO_REF_COUNT_INVALID);
 }
 
+/**********************************************************************/
+static void resetReferenceCounts(struct vdo_completion *completion)
+{
+  vdo_reset_reference_counts(refs);
+  vdo_complete_completion(completion);
+}
+
 /**
  * Most basic refCounts test.
  **/
 static void testBasic(void)
 {
   enum reference_status refStatus;
-  block_count_t         dataBlocks = depot->slab_config.data_blocks;
-  for (physical_block_number_t pbn = FIRST_BLOCK; pbn < dataBlocks; pbn++) {
+  block_count_t         dataBlocks = vdo->depot->slab_config.data_blocks;
+  physical_block_number_t pbns[7];
+
+  for (physical_block_number_t pbn = firstBlock; pbn <= dataBlocks; pbn++) {
     assertReferenceStatus(pbn, RS_FREE);
+    physical_block_number_t translated = pbn - offset;
+    if (translated < 7) {
+      pbns[translated] = pbn;
+    }
   }
+
   CU_ASSERT_EQUAL(dataBlocks, refs->free_blocks);
-  CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE, vdo_get_reference_status(refs, FIRST_BLOCK - 1, &refStatus));
+  CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE, vdo_get_reference_status(refs, firstBlock - 1, &refStatus));
   CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE,
-                  vdo_get_reference_status(refs, FIRST_BLOCK + dataBlocks, &refStatus));
+                  vdo_get_reference_status(refs, firstBlock + dataBlocks, &refStatus));
 
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
-  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
-  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
-  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
-  assertAdjustment(2, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SHARED);
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
-  assertAdjustment(1, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(pbns[2], NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SINGLE);
+  assertAdjustment(pbns[2], NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(pbns[2], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
+  assertAdjustment(pbns[2], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING,  true, RS_SHARED);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SHARED);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_SINGLE);
+  assertAdjustment(pbns[1], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
 
-  assertFailedDecrement(1);
+  assertFailedDecrement(pbns[1]);
 
-  assertAllocation(1);
+  assertAllocation(pbns[1]);
   CU_ASSERT_EQUAL(dataBlocks - 1, refs->free_blocks);
-  assertReferenceStatus(1, RS_PROVISIONAL);
+  assertReferenceStatus(pbns[1], RS_PROVISIONAL);
 
-  assertAdjustment(3, NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
+  assertAdjustment(pbns[3], NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
   CU_ASSERT_EQUAL(dataBlocks - 2, refs->free_blocks);
 
-  assertAllocation(2);
+  assertAllocation(pbns[2]);
   CU_ASSERT_EQUAL(dataBlocks - 3, refs->free_blocks);
-  assertReferenceStatus(2, RS_PROVISIONAL);
+  assertReferenceStatus(pbns[2], RS_PROVISIONAL);
 
   // Block #3 was manually incRef'ed, so it will be skipped and #4 allocated.
-  assertAllocation(4);
+  assertAllocation(pbns[4]);
   CU_ASSERT_EQUAL(dataBlocks - 4, refs->free_blocks);
-  assertReferenceStatus(4, RS_PROVISIONAL);
-  assertAdjustment(4, NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
-  assertFailedDecrement(4);
+  assertReferenceStatus(pbns[4], RS_PROVISIONAL);
+  assertAdjustment(pbns[4], NULL, VDO_JOURNAL_DATA_REMAPPING, false, RS_FREE);
+  assertFailedDecrement(pbns[4]);
 
-  addManyReferences(5, 254);
-  assertReferenceStatus(5, RS_SHARED);
+  addManyReferences(pbns[5], 254);
+  assertReferenceStatus(pbns[5], RS_SHARED);
 
-  assertFailedDecrement(6);
+  assertFailedDecrement(pbns[6]);
 
   // Test block map increment succeeds for a provisionally referenced block.
-  assertBlockMapIncrement(1);
+  assertBlockMapIncrement(pbns[1]);
 
   // Test block map increments fail for RS_FREE.
-  performAdjustment(4, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
-                    VDO_REF_COUNT_INVALID, false);
+  performAdjustment(pbns[4],
+                    NULL,
+                    VDO_JOURNAL_BLOCK_MAP_REMAPPING,
+                    true,
+                    VDO_REF_COUNT_INVALID,
+                    false);
   // Test block map increments fail for RS_SINGLE.
-  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
-                    VDO_REF_COUNT_INVALID, false);
+  performAdjustment(pbns[3],
+                    NULL,
+                    VDO_JOURNAL_BLOCK_MAP_REMAPPING,
+                    true,
+                    VDO_REF_COUNT_INVALID,
+                    false);
   // Test block map increments fail for RS_SHARED.
-  assertAdjustment(3, NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SHARED);
-  performAdjustment(3, NULL, VDO_JOURNAL_BLOCK_MAP_REMAPPING, true,
-                    VDO_REF_COUNT_INVALID, false);
+  assertAdjustment(pbns[3], NULL, VDO_JOURNAL_DATA_REMAPPING, true, RS_SHARED);
+  performAdjustment(pbns[3],
+                    NULL,
+                    VDO_JOURNAL_BLOCK_MAP_REMAPPING,
+                    true,
+                    VDO_REF_COUNT_INVALID,
+                    false);
+
+  // Enter read only mode so that the ref counts don't need to be drained on tear down.
+  performSuccessfulActionOnThread(resetReferenceCounts, slab->allocator->thread_id);
 }
 
 /**
@@ -375,7 +344,7 @@ static void testBasic(void)
  **/
 static void dirtyFirstBlockAction(struct vdo_completion *completion)
 {
-  addManyReferences(FIRST_BLOCK, 1);
+  addManyReferences(firstBlock, 1);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
@@ -384,7 +353,7 @@ static void dirtyFirstBlockAction(struct vdo_completion *completion)
  **/
 static void redirtyFirstBlockAction(struct vdo_completion *completion)
 {
-  addManyReferences(FIRST_BLOCK + 1, 1);
+  addManyReferences(firstBlock + 1, 1);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
@@ -393,7 +362,7 @@ static void redirtyFirstBlockAction(struct vdo_completion *completion)
  **/
 static void dirtySecondBlockAction(struct vdo_completion *completion)
 {
-  addManyReferences(FIRST_BLOCK + VDO_BLOCK_SIZE, 1);
+  addManyReferences(firstBlock + VDO_BLOCK_SIZE, 1);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
@@ -423,7 +392,13 @@ static void saveOldestReferenceBlockAction(struct vdo_completion *completion)
 static void verifyRefCountsLoad(void)
 {
   struct vdo_slab *slabToLoad;
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slabToLoad));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(firstBlock,
+                                   &vdo->depot->allocators[0],
+                                   0,
+                                   NULL,
+                                   0,
+                                   false,
+                                   &slabToLoad));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slabToLoad));
   loaded = slabToLoad->reference_counts;
   performSuccessfulSlabAction(slabToLoad, VDO_ADMIN_STATE_SCRUBBING);
@@ -437,7 +412,7 @@ static void verifyRefCountsLoad(void)
                                            refsBlock->commit_points[j]));
     }
   }
-  priority_table_remove(allocator->prioritized_slabs, &slabToLoad->allocq_entry);
+  priority_table_remove(vdo->depot->allocators[0].prioritized_slabs, &slabToLoad->allocq_entry);
   vdo_free_slab(slabToLoad);
 }
 
@@ -545,8 +520,8 @@ static void asyncSaveAndLoad(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
   verifyRefCountsLoad();
 
-  block_count_t dataBlocks = depot->slab_config.data_blocks;
-  for (physical_block_number_t pbn = FIRST_BLOCK; pbn < dataBlocks; pbn++) {
+  block_count_t dataBlocks = vdo->depot->slab_config.data_blocks;
+  for (physical_block_number_t pbn = firstBlock; pbn < dataBlocks; pbn++) {
     assertAllocation(pbn);
 
     uint8_t refCount = (pbn % 255);
@@ -563,7 +538,7 @@ static void asyncSaveAndLoad(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
   verifyRefCountsLoad();
 
-  for (physical_block_number_t pbn = FIRST_BLOCK; pbn < dataBlocks; pbn++) {
+  for (physical_block_number_t pbn = firstBlock; pbn < dataBlocks; pbn++) {
     assertReferenceStatus(pbn, getExpectedStatus(pbn));
   }
 }
@@ -672,11 +647,13 @@ static void testBlockCollisions(void)
     .closeContext   = refs,
     .releaser       = releaseBlockedWrite,
     .releaseContext = blocked,
-    .threadID       = allocator->thread_id,
+    .threadID       = vdo->depot->allocators[0].thread_id,
   };
 
   runLatchedClose(closeInfo, VDO_SUCCESS);
   verifyRefCountsLoad();
+
+  setStartStopExpectation(VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
@@ -685,7 +662,7 @@ static void doProvisionalReferencing(struct vdo_completion *completion)
   CU_ASSERT_PTR_EQUAL(&refs->blocks[0], refs->search_cursor.block);
   block_count_t firstRefBlockAllocatedCount  = refs->blocks[0].allocated_count;
   block_count_t secondRefBlockAllocatedCount = refs->blocks[1].allocated_count;
-  physical_block_number_t pbn = FIRST_BLOCK + COUNTS_PER_BLOCK;
+  physical_block_number_t pbn = firstBlock + COUNTS_PER_BLOCK;
   VDO_ASSERT_SUCCESS(vdo_provisionally_reference_block(refs, pbn, NULL));
   CU_ASSERT_EQUAL(firstRefBlockAllocatedCount, refs->blocks[0].allocated_count);
   CU_ASSERT_EQUAL(secondRefBlockAllocatedCount + 1,
@@ -704,7 +681,7 @@ static void testProvisionalForDedupe(void)
 
   // Set the first reference block to non-zero reference counts.
   for (block_count_t i = 0; i < COUNTS_PER_BLOCK; i++) {
-    addManyReferences(FIRST_BLOCK + i, (i % (MAXIMUM_REFERENCE_COUNT)) + 1);
+    addManyReferences(firstBlock + i, (i % (MAXIMUM_REFERENCE_COUNT)) + 1);
   }
 
   // Try to provisionally reference the next block, refcount 0, and make sure
@@ -715,7 +692,7 @@ static void testProvisionalForDedupe(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
 
   // Unset the provisional reference.
-  assertAdjustment(FIRST_BLOCK + COUNTS_PER_BLOCK,
+  assertAdjustment(firstBlock + COUNTS_PER_BLOCK,
                    NULL,
                    VDO_JOURNAL_DATA_REMAPPING,
                    false,
@@ -733,12 +710,12 @@ static void testClearProvisional(void)
 
   // Set the first 254 to all valid non-zero reference counts.
   for (block_count_t i = 0; i < 254; i++) {
-    addManyReferences(FIRST_BLOCK + i, 1 + i);
+    addManyReferences(firstBlock + i, 1 + i);
   }
 
   // Set the rest to provisionally referenced.
   for (block_count_t i = 254; i < blockCount; i++) {
-    assertAllocation(FIRST_BLOCK + i);
+    assertAllocation(firstBlock + i);
   }
 
   // Save this block with many provisional references.
@@ -746,7 +723,7 @@ static void testClearProvisional(void)
 
   // Unset the provisional references.
   for (block_count_t i = 254; i < blockCount; i++) {
-    assertAdjustment(FIRST_BLOCK + i,
+    assertAdjustment(firstBlock + i,
                      NULL,
                      VDO_JOURNAL_DATA_REMAPPING,
                      false,
@@ -802,7 +779,7 @@ static void testReplay(void)
   CU_ASSERT_TRUE(vdo_before_journal_point(&point2, &point3));
 
   slab_block_number       sbn = 0;
-  physical_block_number_t pbn = FIRST_BLOCK + sbn;
+  physical_block_number_t pbn = firstBlock + sbn;
 
   // Make the first incRef to the first block at the first point.
   assertAdjustment(pbn, &point1, VDO_JOURNAL_DATA_REMAPPING, true, RS_SINGLE);
@@ -815,10 +792,17 @@ static void testReplay(void)
   performSuccessfulSlabAction(refs->slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
 
   struct vdo_slab *slabToLoad;
-  VDO_ASSERT_SUCCESS(vdo_make_slab(FIRST_BLOCK, allocator, 1, NULL, 0, false, &slabToLoad));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(firstBlock,
+                                   &vdo->depot->allocators[0],
+                                   0,
+                                   NULL,
+                                   0,
+                                   false,
+                                   &slabToLoad));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slabToLoad));
   loaded = slabToLoad->reference_counts;
   performSuccessfulSlabAction(loaded->slab, VDO_ADMIN_STATE_SCRUBBING);
+  CU_ASSERT_TRUE(vdo_are_equivalent_ref_counts(loaded, refs));
 
   // Pretend that a third adjustment, a decRef, was made at the third point,
   // but not committed. We crash, then all three entries are replayed.
@@ -886,10 +870,11 @@ static void testReadOnly(void)
     .closeContext   = refs,
     .releaser       = releaseBlockedWrites,
     .releaseContext = blockedVIOs,
-    .threadID       = allocator->thread_id,
+    .threadID       = vdo->depot->allocators[0].thread_id,
   };
 
   runLatchedClose(closeInfo, VDO_READ_ONLY);
+  setStartStopExpectation(VDO_READ_ONLY);
 }
 
 /**********************************************************************/
@@ -910,7 +895,7 @@ static CU_TestInfo refCountsTests[] = {
 static CU_SuiteInfo refCountsSuite = {
   .name                     = "reference counter tests (RefCounts_t1)",
   .initializer              = initializeRefCountsT1,
-  .cleaner                  = tearDownRefCountsT1,
+  .cleaner                  = tearDownVDOTest,
   .tests                    = refCountsTests
 };
 

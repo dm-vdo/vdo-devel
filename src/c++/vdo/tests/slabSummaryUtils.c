@@ -30,16 +30,15 @@ static void slabSummaryUpdated(struct waiter *waiter, void *context)
 }
 
 /**********************************************************************/
-void initializeSlabSummaryClient(SlabSummaryClient        *client,
-                                 size_t                    id,
-                                 struct slab_summary_zone *summaryZone)
+void initializeSlabSummaryClient(SlabSummaryClient *client, slab_count_t slabNumber)
 {
   vdo_initialize_completion(&client->completion, vdo, VDO_TEST_COMPLETION);
   memset(&client->waiter, 0x0, sizeof(client->waiter));
+  client->slab            = (struct vdo_slab) {
+    .slab_number = slabNumber,
+    .allocator   = &vdo->depot->allocators[slabNumber % vdo->thread_config->physical_zone_count],
+  };
   client->waiter.callback = slabSummaryUpdated;
-  client->summaryZone     = summaryZone;
-  client->slabNumber      = id;
-  client->slabOffset      = id;
   client->freeBlocks      = 0;
   client->freeBlockHint   = 0;
   client->tailBlockOffset = 0;
@@ -56,9 +55,11 @@ void doUpdateSlabSummaryEntry(struct vdo_completion *completion)
   // Capture this before the completion callback is invoked, since that may
   // allow the test thread to destroy the completion.
   bool shouldSignal = client->shouldSignal;
-  vdo_update_slab_summary_entry(client->summaryZone, &client->waiter,
-                                client->slabNumber, client->tailBlockOffset,
-                                client->loadRefCounts, client->isClean,
+  vdo_update_slab_summary_entry(&client->slab,
+                                &client->waiter,
+                                client->tailBlockOffset,
+                                client->loadRefCounts,
+                                client->isClean,
                                 client->freeBlocks);
 
   // Must only notify if the caller is using launch/wait. If the caller is
@@ -84,16 +85,14 @@ void enqueueUpdateSlabSummaryEntry(SlabSummaryClient *client)
 }
 
 /**********************************************************************/
-int performSlabSummaryUpdate(struct slab_summary_zone *summaryZone,
-                             slab_count_t              slabNumber,
-                             tail_block_offset_t       tailBlockOffset,
-                             bool                      loadRefCounts,
-                             bool                      isClean,
-                             block_count_t             freeBlocks)
+int performSlabSummaryUpdate(slab_count_t         slabNumber,
+                             tail_block_offset_t  tailBlockOffset,
+                             bool                 loadRefCounts,
+                             bool                 isClean,
+                             block_count_t        freeBlocks)
 {
   SlabSummaryClient client;
-  initializeSlabSummaryClient(&client, 0, summaryZone);
-  client.slabNumber      = slabNumber;
+  initializeSlabSummaryClient(&client, slabNumber);
   client.tailBlockOffset = tailBlockOffset;
   client.loadRefCounts   = loadRefCounts;
   client.isClean         = isClean;
@@ -104,40 +103,38 @@ int performSlabSummaryUpdate(struct slab_summary_zone *summaryZone,
 /**********************************************************************/
 static void drainSlabSummaryAction(struct vdo_completion *completion)
 {
-  struct slab_summary_zone *zone = completion->parent;
-  if (checkQuiescence && vdo_is_state_quiescent(&zone->state)) {
+  struct block_allocator *allocator = completion->parent;
+  if (checkQuiescence && vdo_is_state_quiescent(&allocator->summary_state)) {
     vdo_complete_completion(completion);
     return;
   }
 
-  vdo_drain_slab_summary_zone(completion->parent, VDO_ADMIN_STATE_SAVING,
-                              completion);
+  vdo_start_draining(&allocator->summary_state,
+                     VDO_ADMIN_STATE_SAVING,
+                     completion,
+                     initiate_summary_drain);
 }
 
 /**********************************************************************/
-static int performDrain(struct slab_summary *summary)
+static int performDrain(struct block_allocator *allocator)
 {
   struct vdo_completion completion;
   vdo_initialize_completion(&completion, vdo, VDO_TEST_COMPLETION);
-
-  // XXX This assumes the slab summary has only one zone.
-  struct slab_summary_zone *summaryZone = summary->zones[0];
-  completion.parent = summaryZone;
-  completion.callback_thread_id
-    = summaryZone->summary_blocks[0].vio->completion.callback_thread_id;
+  completion.parent = allocator;
+  completion.callback_thread_id = allocator->thread_id;
   return performAction(drainSlabSummaryAction, &completion);
 }
 
 /**********************************************************************/
-int drainSlabSummary(struct slab_summary *summary)
+int drainSlabSummary(struct block_allocator *allocator)
 {
   checkQuiescence = false;
-  return performDrain(summary);
+  return performDrain(allocator);
 }
 
 /**********************************************************************/
-int closeSlabSummary(struct slab_summary *summary)
+int closeSlabSummary(struct block_allocator *allocator)
 {
   checkQuiescence = true;
-  return performDrain(summary);
+  return performDrain(allocator);
 }

@@ -1114,18 +1114,14 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
 {
 	tail_block_offset_t offset;
-	struct slab_summary_zone *summary = ref_counts->slab->allocator->summary;
-
-	if (summary == NULL)
-		return;
+	struct vdo_slab *slab = ref_counts->slab;
 
 	/* Update the slab summary to indicate this ref_counts is clean. */
-	offset = vdo_get_summarized_tail_block_offset(summary, ref_counts->slab->slab_number);
+	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
 	ref_counts->updating_slab_summary = true;
 	ref_counts->slab_summary_waiter.callback = finish_summary_update;
-	vdo_update_slab_summary_entry(summary,
+	vdo_update_slab_summary_entry(slab,
 				      &ref_counts->slab_summary_waiter,
-				      ref_counts->slab->slab_number,
 				      offset,
 				      true,
 				      true,
@@ -1514,18 +1510,19 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 {
 	struct vdo_slab *slab = ref_counts->slab;
 	bool save = false;
+	bool load = slab->allocator->summary_entries[slab->slab_number].load_ref_counts;
 	const struct admin_state_code *state = vdo_get_admin_state_code(&slab->state);
 
 	if ((state == VDO_ADMIN_STATE_RECOVERING) || (state == VDO_ADMIN_STATE_SUSPENDING))
 		return;
 
 	if (state == VDO_ADMIN_STATE_SCRUBBING) {
-		if (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number)) {
+		if (load) {
 			load_reference_blocks(ref_counts);
 			return;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING) {
-		if (!vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number))
+		if (load)
 			/* These reference counts were never written, so mark them all dirty. */
 			vdo_dirty_all_reference_blocks(ref_counts);
 
@@ -1537,7 +1534,7 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 		 */
 		block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
 
-		if (vdo_must_load_ref_counts(slab->allocator->summary, slab->slab_number) ||
+		if (load ||
 		    (ref_counts->free_blocks != data_blocks) ||
 		    !vdo_is_slab_journal_blank(slab->journal)) {
 			vdo_dirty_all_reference_blocks(ref_counts);

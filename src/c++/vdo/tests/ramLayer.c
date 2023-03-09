@@ -306,20 +306,22 @@ void makeRAMLayerFromFile(const char     *path,
 }
 
 /**********************************************************************/
-void zeroRAMLayer(PhysicalLayer *layer)
+void zeroRAMLayer(PhysicalLayer *layer, physical_block_number_t startBlock, size_t blockCount)
 {
   RAMLayer *ramLayer = asRAMLayer(layer);
-  if (ramLayer->backing != -1) {
-    try_close_file(ramLayer->backing);
-    ramLayer->backing = -1;
-  }
+  CU_ASSERT((startBlock + blockCount) <= ramLayer->blockCount);
 
-  ramLayer->pattern = 0;
-  for (Region *region = ramLayer->regionList;
-       region != NULL;
-       region = region->next) {
-    memset(region->cache, 0, REGION_BYTES);
-    memset(region->data, 0, REGION_BYTES);
+  RegionNumber regionNumber = startBlock / REGION_BLOCKS;
+  physical_block_number_t offset = startBlock % REGION_BLOCKS;
+  for (; blockCount > 0; regionNumber++) {
+    size_t regionBlocks = min((size_t) (REGION_BLOCKS - offset), (size_t) blockCount);
+    size_t regionBytes = regionBlocks * VDO_BLOCK_SIZE;
+    Region *region = getRegion(ramLayer, regionNumber, false);
+    memset(region->cache + (offset * VDO_BLOCK_SIZE), 0, regionBytes);
+    memset(region->data + (offset * VDO_BLOCK_SIZE), 0, regionBytes);
+
+    blockCount -= regionBlocks;
+    offset      = 0;
   }
 }
 

@@ -73,8 +73,6 @@ struct slab_journal {
 	/* The recovery journal of the VDO (slab journal holds locks on it) */
 	struct recovery_journal *recovery_journal;
 
-	/* The slab summary to update tail block location */
-	struct slab_summary_zone *summary;
 	/* The statistics shared by all slab journals in our physical zone */
 	struct slab_journal_statistics *events;
 	/* A list of the VIO pool entries for outstanding journal block writes */

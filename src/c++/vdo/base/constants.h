@@ -70,6 +70,9 @@ enum {
 	 */
 	MAXIMUM_SIMULTANEOUS_VDO_BLOCK_MAP_RESTORATION_READS = 1024,
 
+	/** The maximum number of entries in the slab summary */
+	MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES = MAX_VDO_SLABS * MAX_VDO_PHYSICAL_ZONES,
+
 	/** The maximum number of total threads in a VDO thread configuration. */
 	MAXIMUM_VDO_THREADS = 100,
 

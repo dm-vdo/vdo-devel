@@ -115,8 +115,8 @@ struct slab_status {
 };
 
 struct slab_summary_block {
-	/* The zone to which this block belongs */
-	struct slab_summary_zone *zone;
+	/* The block_allocator to which this block belongs */
+	struct block_allocator *allocator;
 	/* The index of this block in its zone's summary */
 	block_count_t index;
 	/* Whether this block has a write outstanding */
@@ -128,7 +128,7 @@ struct slab_summary_block {
 	/* The active slab_summary_entry array for this block */
 	struct slab_summary_entry *entries;
 	/* The vio used to write this block */
-	struct vio *vio;
+	struct vio vio;
 	/* The packed entries, one block long, backing the vio */
 	char *outgoing_entries;
 };
@@ -143,46 +143,10 @@ struct atomic_slab_summary_statistics {
 	atomic64_t blocks_written;
 };
 
-struct slab_summary_zone {
-	/* The summary of which this is a zone */
-	struct slab_summary *summary;
-	/* The number of this zone */
-	zone_count_t zone_number;
-	/* The thread id of this zone */
-	thread_id_t thread_id;
-	/* Count of the number of blocks currently out for writing */
-	block_count_t write_count;
-	/* The state of this zone */
-	struct admin_state state;
-	/* The array (owned by the blocks) of all entries */
-	struct slab_summary_entry *entries;
-	/* The array of slab_summary_blocks */
-	struct slab_summary_block summary_blocks[];
-};
-
-struct slab_summary {
-	/* The statistics for this slab summary */
-	struct atomic_slab_summary_statistics statistics;
-	/* The start of the slab summary partition relative to the layer */
-	physical_block_number_t origin;
-	/* The number of bits to shift to get a 7-bit fullness hint */
-	unsigned int hint_shift;
-	/* The entries for all of the zones the partition can hold */
-	struct slab_summary_entry *entries;
-	/* The number of zones which were active at the time of the last update */
-	zone_count_t zones_to_combine;
-	/* The current number of active zones */
-	zone_count_t zone_count;
-	/* The currently active zones */
-	struct slab_summary_zone *zones[];
-};
-
 struct block_allocator {
 	struct vdo_completion completion;
 	/* The slab depot for this allocator */
 	struct slab_depot *depot;
-	/* The slab summary zone for this allocator */
-	struct slab_summary_zone *summary;
 	/* The nonce of the VDO */
 	nonce_t nonce;
 	/* The physical zone number of this allocator */
@@ -240,6 +204,16 @@ struct block_allocator {
 	struct dm_kcopyd_client *eraser;
 	/* Iterator over the slabs to be erased */
 	struct slab_iterator slabs_to_erase;
+
+	/* The portion of the slab summary managed by this allocator */
+	/* The state of the slab summary */
+	struct admin_state summary_state;
+	/* The number of outstanding summary writes */
+	block_count_t summary_write_count;
+	/* The array (owned by the blocks) of all entries */
+	struct slab_summary_entry *summary_entries;
+	/* The array of slab_summary_blocks */
+	struct slab_summary_block *summary_blocks;
 };
 
 enum slab_depot_load_type {
@@ -253,7 +227,6 @@ struct slab_depot {
 	zone_count_t old_zone_count;
 	struct vdo *vdo;
 	struct slab_config slab_config;
-	struct slab_summary *slab_summary;
 	struct action_manager *action_manager;
 
 	physical_block_number_t first_block;
@@ -290,63 +263,29 @@ struct slab_depot {
 	/* The last block after resize, for resize */
 	physical_block_number_t new_last_block;
 
+	/* The statistics for the slab summary */
+	struct atomic_slab_summary_statistics summary_statistics;
+	/* The start of the slab summary partition */
+	physical_block_number_t summary_origin;
+	/* The number of bits to shift to get a 7-bit fullness hint */
+	unsigned int hint_shift;
+	/* The slab summary entries for all of the zones the partition can hold */
+	struct slab_summary_entry *summary_entries;
+
 	/* The block allocators for this depot */
 	struct block_allocator allocators[];
 };
 
 void vdo_register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
 
-int __must_check vdo_make_slab_summary(struct vdo *vdo,
-				       struct partition *partition,
-				       const struct thread_config *thread_config,
-				       unsigned int slab_size_shift,
-				       block_count_t maximum_free_blocks_per_slab,
-				       struct slab_summary **slab_summary_ptr);
-
-void vdo_free_slab_summary(struct slab_summary *summary);
-
-void vdo_drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
-				 const struct admin_state_code *operation,
-				 struct vdo_completion *parent);
-
-void vdo_resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
-				  struct vdo_completion *parent);
-
-void vdo_update_slab_summary_entry(struct slab_summary_zone *summary_zone,
+void vdo_update_slab_summary_entry(struct vdo_slab *slab,
 				   struct waiter *waiter,
-				   slab_count_t slab_number,
 				   tail_block_offset_t tail_block_offset,
 				   bool load_ref_counts,
 				   bool is_clean,
 				   block_count_t free_blocks);
 
-tail_block_offset_t __must_check
-vdo_get_summarized_tail_block_offset(struct slab_summary_zone *summary_zone,
-				     slab_count_t slab_number);
-
-bool __must_check
-vdo_must_load_ref_counts(struct slab_summary_zone *summary_zone, slab_count_t slab_number);
-
-bool __must_check
-vdo_get_summarized_cleanliness(struct slab_summary_zone *summary_zone, slab_count_t slab_number);
-
-block_count_t __must_check
-vdo_get_summarized_free_block_count(struct slab_summary_zone *summary_zone,
-				    slab_count_t slab_number);
-
-void vdo_get_summarized_slab_statuses(struct slab_summary_zone *summary_zone,
-				      slab_count_t slab_count,
-				      struct slab_status *statuses);
-
-void vdo_set_slab_summary_origin(struct slab_summary *summary, struct partition *partition);
-
-void vdo_load_slab_summary(struct slab_summary *summary,
-			   const struct admin_state_code *operation,
-			   zone_count_t zones_to_combine,
-			   struct vdo_completion *parent);
-
-struct slab_summary_statistics __must_check
-vdo_get_slab_summary_statistics(const struct slab_summary *summary);
+void vdo_set_slab_summary_origin(struct slab_depot *depot, struct partition *partition);
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
@@ -382,7 +321,10 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator);
 #ifdef INTERNAL
 void initiate_slab_action(struct admin_state *state);
 void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
+void initiate_summary_drain(struct admin_state *state);
 int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
+void load_slab_summary(void *context, struct vdo_completion *parent);
+int get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr);
 int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
 void stop_scrubbing(struct block_allocator *allocator);
 void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);

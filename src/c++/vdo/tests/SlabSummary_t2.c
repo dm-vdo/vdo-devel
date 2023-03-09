@@ -26,15 +26,10 @@ enum {
   INITIAL_ZONES = 3,
 };
 
-static struct fixed_layout      *layout;
-static struct partition         *partition;
-static struct slab_summary_zone *summaryZone;
-
-static struct slab_summary      *summary      = NULL;
-static struct thread_config     *threadConfig = NULL;
-static struct waiter             waiter;
-static slab_count_t              slabCount;
-static struct vdo_completion    *updateCompletion;
+static zone_count_t           zone;
+static struct vdo_slab        slab;
+static struct waiter          waiter;
+static struct vdo_completion *updateCompletion;
 
 /**
  * Set up a slab_summary and layers for test purposes.
@@ -42,109 +37,92 @@ static struct vdo_completion    *updateCompletion;
 static void initializeSlabSummaryT2(void)
 {
   TestParameters testParameters = {
-    .mappableBlocks      = VDO_SLAB_SUMMARY_BLOCKS,
     .logicalThreadCount  = 1,
-    .physicalThreadCount = MAX_VDO_PHYSICAL_ZONES,
+    .physicalThreadCount = INITIAL_ZONES,
     .hashZoneThreadCount = 1,
     .noIndexRegion       = true,
   };
-  initializeBasicTest(&testParameters);
+  initializeVDOTest(&testParameters);
+  vdo->depot->hint_shift = vdo_get_slab_summary_hint_shift(23);
+}
 
-  for (zone_count_t z = 0; z < MAX_VDO_PHYSICAL_ZONES; z++) {
-    VDO_ASSERT_SUCCESS(vdo_make_default_thread(vdo,
-                                               vdo->thread_config->physical_threads[z]));
+/**********************************************************************/
+static void updateNextSlab(struct waiter *waiter, void *context)
+{
+  int result = *((int *) context);
+  if (result == -1) {
+    // This is the first time.
+    slab.slab_number = 0;
+  } else {
+    vdo_set_completion_result(updateCompletion, result);
+    slab.slab_number++;
   }
 
-  VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(VDO_SLAB_SUMMARY_BLOCKS, 0, &layout));
+  if (slab.slab_number == MAX_VDO_SLABS) {
+    vdo_start_draining(&slab.allocator->summary_state,
+                       VDO_ADMIN_STATE_SAVING,
+                       updateCompletion,
+                       initiate_summary_drain);
+    return;
+  }
 
-  int result = vdo_make_fixed_layout_partition(layout,
-                                               VDO_SLAB_SUMMARY_PARTITION,
-                                               VDO_SLAB_SUMMARY_BLOCKS,
-                                               VDO_PARTITION_FROM_BEGINNING,
-                                               0);
-  VDO_ASSERT_SUCCESS(result);
-  VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(layout,
-						    VDO_SLAB_SUMMARY_PARTITION,
-						    &partition));
+  bool inZone = ((slab.slab_number % INITIAL_ZONES) == zone);
+  slab.allocator = &vdo->depot->allocators[zone];
+  vdo_update_slab_summary_entry(&slab,
+                                waiter,
+                                (inZone ? (slab.slab_number & 0xff) : 0),
+                                inZone,
+                                !inZone,
+                                (zone << vdo->depot->hint_shift));
 }
 
-/**
- * Destroy a summary and its associated notifier and thread config.
- **/
-static void destroySummary(void)
+/**********************************************************************/
+static void updateAllocatorSummaryAction(struct vdo_completion *completion)
 {
-  vdo_free_slab_summary(UDS_FORGET(summary));
-  vdo_free_thread_config(UDS_FORGET(threadConfig));
+  updateCompletion = completion;
+  waiter.next_waiter = NULL;
+  waiter.callback = updateNextSlab;
+  int result = -1;
+  updateNextSlab(&waiter, &result);
 }
 
-/**
- * Tear down a slab_summary and its associated variables and layers.
- **/
-static void tearDownSlabSummaryT2(void)
+/**********************************************************************/
+static void loadSummary(struct vdo_completion *completion)
 {
-  destroySummary();
-  vdo_free_fixed_layout(UDS_FORGET(layout));
-  tearDownVDOTest();
+  load_slab_summary(vdo->depot, completion);
 }
 
-/**
- * Make the summary.
- *
- * @param zones  The number of physical zones
- **/
-static void makeSummary(zone_count_t zones)
+/**********************************************************************/
+static void testMultipleZones(void)
 {
-  destroySummary();
-  struct thread_count_config counts = {
-    .logical_zones = 1,
-    .physical_zones = zones,
-    .hash_zones = 1,
-  };
-  VDO_ASSERT_SUCCESS(vdo_make_thread_config(counts, &threadConfig));
-  VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
-                                           partition,
-                                           threadConfig,
-                                           23,
-                                           1 << 22,
-                                           &summary));
-}
+  for (zone = 0; zone < INITIAL_ZONES; zone++) {
+    performSuccessfulAction(updateAllocatorSummaryAction);
+  }
 
-/**
- * An action to load the slab summary.
- *
- * @param completion  The completion for the action
- **/
-static void loadSlabSummaryAction(struct vdo_completion *completion)
-{
-  vdo_load_slab_summary(summary, VDO_ADMIN_STATE_LOADING, INITIAL_ZONES,
-                        completion);
-}
+  // write out the summary
+  suspendVDO(true);
 
-/**
- * Verify that summary for all active zones are correct. Also verify that
- * that the user space read_slab_summary() method reads them correctly.
- *
- * @param zones  The number of physical zones
- **/
-static void verifySummary(zone_count_t zones)
-{
   // Check that the user space tools can also read the summary.
-  UserVDO *vdo;
-  VDO_ASSERT_SUCCESS(makeUserVDO(layer, &vdo));
-  vdo->states.slab_depot.zone_count = INITIAL_ZONES;
-  vdo->states.layout = layout;
+  UserVDO *userVDO;
+  VDO_ASSERT_SUCCESS(loadVDO(layer, true, &userVDO));
   struct slab_summary_entry *entries;
-  VDO_ASSERT_SUCCESS(readSlabSummary(vdo, &entries));
-  vdo->states.layout = NULL;
-  freeUserVDO(&vdo);
+  VDO_ASSERT_SUCCESS(readSlabSummary(userVDO, &entries));
+  freeUserVDO(&userVDO);
 
-  makeSummary(zones);
-  performSuccessfulAction(loadSlabSummaryAction);
+  // Clear the summary.
+  memset(vdo->depot->summary_entries,
+         0,
+         MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES * sizeof(struct slab_summary_entry));
+  resumeVDO(vdo->device_config->owning_target);
 
-  for (zone_count_t zone = 0; zone < zones; zone++) {
-    for (slab_count_t s = 0; s < MAX_VDO_SLABS; s++) {
-      summaryZone = summary->zones[zone];
-      struct slab_summary_entry *entry = &summaryZone->entries[s];
+  // Read it back in.
+  vdo->depot->old_zone_count = vdo->depot->zone_count;
+  vdo->depot->zone_count = MAX_VDO_PHYSICAL_ZONES;
+  performSuccessfulAction(loadSummary);
+
+  struct slab_summary_entry *entry = vdo->depot->summary_entries;
+  for (zone_count_t zone = 0; zone < MAX_VDO_PHYSICAL_ZONES; zone++) {
+    for (slab_count_t s = 0; s < MAX_VDO_SLABS; s++, entry++) {
       CU_ASSERT_EQUAL(s & 0xff, entry->tail_block_offset);
       CU_ASSERT_EQUAL((s % INITIAL_ZONES) & 0x7f, entry->fullness_hint);
       CU_ASSERT_TRUE(entry->is_dirty);
@@ -157,49 +135,8 @@ static void verifySummary(zone_count_t zones)
   }
 
   UDS_FREE(entries);
-}
 
-/**********************************************************************/
-static void updateNextSlab(struct waiter *waiter, void *context)
-{
-  vdo_set_completion_result(updateCompletion, *((int *) context));
-  if (slabCount == MAX_VDO_SLABS) {
-    vdo_drain_slab_summary_zone(summaryZone, VDO_ADMIN_STATE_SAVING,
-                                updateCompletion);
-    return;
-  }
-
-  zone_count_t    zone       = summaryZone->zone_number;
-  bool            inZone     = ((slabCount % INITIAL_ZONES) == zone);
-  slab_count_t    slabNumber = slabCount++;
-  vdo_update_slab_summary_entry(summaryZone, waiter, slabNumber,
-                                (inZone ? (slabNumber & 0xff) : 0),
-                                inZone, !inZone,
-                                (zone << summaryZone->summary->hint_shift));
-}
-
-/**********************************************************************/
-static void updateSummaryZoneAction(struct vdo_completion *completion)
-{
-  updateCompletion = completion;
-  waiter.next_waiter = NULL;
-  waiter.callback = updateNextSlab;
-  slabCount = 0;
-  int result = VDO_SUCCESS;
-  updateNextSlab(&waiter, &result);
-}
-
-/**********************************************************************/
-static void testMultipleZones(void)
-{
-  makeSummary(INITIAL_ZONES);
-  for (zone_count_t zone = 0; zone < INITIAL_ZONES; zone++) {
-    summaryZone = summary->zones[zone];
-    performSuccessfulAction(updateSummaryZoneAction);
-  }
-
-  verifySummary(2);
-  verifySummary(MAX_VDO_PHYSICAL_ZONES);
+  vdo->depot->zone_count = vdo->depot->old_zone_count;
 }
 
 /**********************************************************************/
@@ -212,7 +149,7 @@ static CU_TestInfo tests[] = {
 static CU_SuiteInfo suite = {
   .name        = "multi-zone slab_summary tests (SlabSummary_t2)",
   .initializer = initializeSlabSummaryT2,
-  .cleaner     = tearDownSlabSummaryT2,
+  .cleaner     = tearDownVDOTest,
   .tests       = tests,
 };
 

@@ -164,7 +164,6 @@ int vdo_make_slab_journal(struct block_allocator *allocator,
 	journal->full_entries_per_block = VDO_SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;
 	journal->recovery_journal = recovery_journal;
-	journal->summary = allocator->summary;
 	journal->tail = 1;
 	journal->head = 1;
 
@@ -516,11 +515,13 @@ static void update_tail_block_location(struct slab_journal *journal)
 		return;
 	}
 
-	if (slab->status != VDO_SLAB_REBUILT)
-		free_block_count =
-			vdo_get_summarized_free_block_count(journal->summary, slab->slab_number);
-	else
+	if (slab->status != VDO_SLAB_REBUILT) {
+		u8 hint = slab->allocator->summary_entries[slab->slab_number].fullness_hint;
+
+		free_block_count = ((block_count_t) hint) << slab->allocator->depot->hint_shift;
+	} else {
 		free_block_count = slab->reference_counts->free_blocks;
+	}
 
 	journal->summarized = journal->next_commit;
 	journal->updating_slab_summary = true;
@@ -532,9 +533,8 @@ static void update_tail_block_location(struct slab_journal *journal)
 	 * loaded when the journal head has reaped past sequence number 1.
 	 */
 	block_offset = vdo_get_slab_journal_block_offset(journal, journal->summarized);
-	vdo_update_slab_summary_entry(journal->summary,
+	vdo_update_slab_summary_entry(slab,
 				      &journal->slab_summary_waiter,
-				      slab->slab_number,
 				      block_offset,
 				      (journal->head > 1),
 				      false,
@@ -1307,7 +1307,7 @@ static void set_decoded_state(struct vdo_completion *completion)
 	 * If the slab is clean, this implies the slab journal is empty, so advance the head
 	 * appropriately.
 	 */
-	if (vdo_get_summarized_cleanliness(journal->summary, journal->slab->slab_number))
+	if (!journal->slab->allocator->summary_entries[journal->slab->slab_number].is_dirty)
 		journal->head = journal->tail;
 	else
 		journal->head = header.head;
@@ -1346,7 +1346,8 @@ static void read_slab_journal_tail(struct waiter *waiter, void *context)
 	struct pooled_vio *pooled = context;
 	struct vio *vio = &pooled->vio;
 	tail_block_offset_t last_commit_point =
-		vdo_get_summarized_tail_block_offset(journal->summary, slab->slab_number);
+		slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
+
 	/*
 	 * Slab summary keeps the commit point offset, so the tail block is the block before that.
 	 * Calculation supports small journals in unit tests.
@@ -1376,10 +1377,9 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == slab->allocator->thread_id),
 			"%s() called on correct thread",
 			__func__);
-	last_commit_point =
-		vdo_get_summarized_tail_block_offset(journal->summary, slab->slab_number);
+	last_commit_point = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
 	if ((last_commit_point == 0) &&
-	    !vdo_must_load_ref_counts(journal->summary, slab->slab_number)) {
+	    !slab->allocator->summary_entries[slab->slab_number].load_ref_counts) {
 		/*
 		 * This slab claims that it has a tail block at (journal->size - 1), but a head of
 		 * 1. This is impossible, due to the scrubbing threshold, on a real system, so

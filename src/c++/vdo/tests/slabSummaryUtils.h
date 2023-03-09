@@ -15,19 +15,16 @@
  * A completion for updating a slab summary.
  **/
 typedef struct {
-  struct vdo_completion     completion;
-  struct waiter             waiter;
-  struct slab_summary_zone *summaryZone;
-  slab_count_t              slabNumber;
-  block_count_t             slabOffset;
-  block_count_t             freeBlocks;
-  size_t                    freeBlockHint;
-  tail_block_offset_t       tailBlockOffset;
-  bool                      loadRefCounts;
-  bool                      isClean;
-  struct slab_status       *statuses;
-  bool                      shouldSignal;
-  bool                      wasQueued;
+  struct vdo_completion  completion;
+  struct waiter          waiter;
+  struct vdo_slab        slab;
+  block_count_t          freeBlocks;
+  size_t                 freeBlockHint;
+  tail_block_offset_t    tailBlockOffset;
+  bool                   loadRefCounts;
+  bool                   isClean;
+  bool                   shouldSignal;
+  bool                   wasQueued;
 } SlabSummaryClient;
 
 /**
@@ -64,13 +61,10 @@ completionAsSlabSummaryClient(struct vdo_completion *completion)
 /**
  * Initialize a test client.
  *
- * @param client       The client to initialize
- * @param id           The indentifier of the client
- * @param summaryZone  The slab summary to be updated
+ * @param client     The client to initialize
+ * @param slabNumber The slab whose entry is to be updated
  **/
-void initializeSlabSummaryClient(SlabSummaryClient        *client,
-                                 size_t                    id,
-                                 struct slab_summary_zone *summaryZone);
+void initializeSlabSummaryClient(SlabSummaryClient *client, slab_count_t slabNumber);
 
 /**
  * VDO action wrapper for updateSlabSummaryEntry().
@@ -96,8 +90,7 @@ void enqueueUpdateSlabSummaryEntry(SlabSummaryClient *client);
 /*
  * Perform a slab summary update for a slab using the client wrapper.
  *
- * @param summaryZone      The slab_summary_zone
- * @param slabNumber       The slab number to update
+ * @param slabNumber       The slab whose entry is to be updated
  * @param tailBlockOffset  The new offset of the slab journal tail block
  * @param loadRefCounts    Whether refCounts should be loaded from the layer
  * @param isClean          Whether the slab is clean
@@ -105,33 +98,31 @@ void enqueueUpdateSlabSummaryEntry(SlabSummaryClient *client);
  *
  * return VDO_SUCCESS or an error code
  */
-int performSlabSummaryUpdate(struct slab_summary_zone *summaryZone,
-                             slab_count_t              slabNumber,
-                             tail_block_offset_t       tailBlockOffset,
-                             bool                      loadRefCounts,
-                             bool                      isClean,
-                             block_count_t             freeBlocks);
+int performSlabSummaryUpdate(slab_count_t         slabNumber,
+                             tail_block_offset_t  tailBlockOffset,
+                             bool                 loadRefCounts,
+                             bool                 isClean,
+                             block_count_t        freeBlocks);
 
 /**
- * Attempt to drain the slab summary. This method assumes there is only one
- * physical zone.
+ * Attempt to drain an allocator's slab summary.
  *
- * @param summary  The summary to drain
+ * @param allocator  The allocator whose summary is to be drained
  *
  * @return VDO_SUCCESS or an error
  **/
-int drainSlabSummary(struct slab_summary *summary)
+int drainSlabSummary(struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
- * Wait for the slab summary to complete writing by draining it if it is not
- * already quiescent. This method assumes there is only one physical zone.
+ * Wait for an allocator's slab summary to complete writing by draining it if
+ * it is not already quiescent.
  *
- * @param summary          The summary to close
+ * @param allocator  The allocator whose summary is to be drained
  *
  * @return VDO_SUCCESS or an error
  **/
-int closeSlabSummary(struct slab_summary *summary)
+int closeSlabSummary(struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 #endif // SLAB_SUMMARY_UTILS_H

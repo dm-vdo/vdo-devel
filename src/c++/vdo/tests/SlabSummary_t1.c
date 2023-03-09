@@ -30,13 +30,7 @@ enum fakeErrorCodes {
   WRITE_ERROR  = -1,
 };
 
-static struct fixed_layout      *layout;
-static struct partition         *slabSummaryPartition;
-static struct partition         *slabPartition;
-static struct thread_config     *threadConfig;
-static struct slab_summary      *summary;
-static struct slab_summary_zone *summaryZone;
-static struct slab_status       *statuses;
+static struct slab_status *statuses;
 
 /**********************************************************************/
 static block_count_t getDefaultFreeBlocks(size_t id)
@@ -75,7 +69,7 @@ static bool getDefaultCleanliness(size_t id)
  **/
 static void useDefaultPattern(SlabSummaryClient *client, size_t id)
 {
-  initializeSlabSummaryClient(client, id, summaryZone);
+  initializeSlabSummaryClient(client, id);
   client->freeBlocks      = getDefaultFreeBlocks(id);
   client->tailBlockOffset = getDefaultTailBlockOffset(id);
   client->isClean         = getDefaultCleanliness(id);
@@ -129,44 +123,11 @@ static void releaseLatchedVIO(struct vio *vio, int statusCode)
 static void initializeSlabSummary(void)
 {
   TestParameters testParameters = {
-    .mappableBlocks = BLOCK_COUNT,
     .noIndexRegion  = true,
+    .slabCount      = MAX_VDO_SLABS,
   };
-  initializeBasicTest(&testParameters);
-
-  VDO_ASSERT_SUCCESS(vdo_make_fixed_layout(BLOCK_COUNT, 0, &layout));
-
-  int result = vdo_make_fixed_layout_partition(layout,
-                                               VDO_SLAB_SUMMARY_PARTITION,
-                                               VDO_SLAB_SUMMARY_BLOCKS,
-                                               VDO_PARTITION_FROM_END,
-                                               0);
-  VDO_ASSERT_SUCCESS(result);
-
-  VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(layout,
-						    VDO_SLAB_SUMMARY_PARTITION,
-						    &slabSummaryPartition));
-  threadConfig = makeOneThreadConfig();
-  VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
-                                           slabSummaryPartition,
-                                           threadConfig,
-                                           23,
-                                           MAX_FREE_BLOCKS_PER_SLAB,
-                                           &summary));
-  summaryZone = summary->zones[0];
-
-  result
-    = vdo_make_fixed_layout_partition(layout, VDO_BLOCK_ALLOCATOR_PARTITION,
-                                      VDO_ALL_FREE_BLOCKS,
-                                      VDO_PARTITION_FROM_BEGINNING, 0);
-  VDO_ASSERT_SUCCESS(result);
-
-  VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(layout,
-						    VDO_BLOCK_ALLOCATOR_PARTITION,
-						    &slabPartition));
-
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(MAX_VDO_SLABS, struct slab_status, __func__,
-                                  &statuses));
+  initializeVDOTest(&testParameters);
+  vdo->depot->hint_shift = vdo_get_slab_summary_hint_shift(23);
 }
 
 /**
@@ -174,12 +135,6 @@ static void initializeSlabSummary(void)
  **/
 static void tearDownSlabSummary(void)
 {
-  UDS_FREE(statuses);
-  int result = closeSlabSummary(summary);
-  CU_ASSERT_TRUE((result == VDO_SUCCESS) || (result == VDO_READ_ONLY));
-  vdo_free_slab_summary(UDS_FORGET(summary));
-  vdo_free_thread_config(UDS_FORGET(threadConfig));
-  vdo_free_fixed_layout(UDS_FORGET(layout));
   tearDownVDOTest();
 }
 
@@ -215,43 +170,6 @@ static void testEntryEncoding(void)
 }
 
 /**
- * An action to load the slab summary.
- *
- * @param completion  The completion for the action
- **/
-static void loadSlabSummaryAction(struct vdo_completion *completion)
-{
-  vdo_load_slab_summary(summary, VDO_ADMIN_STATE_LOADING, 1, completion);
-}
-
-/**
- * Load a slab_summary from the given partition.
- *
- * @param partition The partition to load from
- **/
-static void loadSlabSummaryFromPartition(struct partition *partition)
-{
-  VDO_ASSERT_SUCCESS(vdo_make_slab_summary(vdo,
-                                           partition,
-                                           threadConfig,
-                                           23,
-                                           MAX_FREE_BLOCKS_PER_SLAB,
-                                           &summary));
-  summaryZone = summary->zones[0];
-  performSuccessfulAction(loadSlabSummaryAction);
-}
-
-/**
- * Save, free, and reload a slab_summary.
- **/
-static void cleanRestartSlabSummary(void)
-{
-  VDO_ASSERT_SUCCESS(drainSlabSummary(summary));
-  vdo_free_slab_summary(UDS_FORGET(summary));
-  loadSlabSummaryFromPartition(slabSummaryPartition);
-}
-
-/**
  * Writes the default data pattern to the slab_summary, parallelized.
  **/
 static void writeDefaultDataPattern(void)
@@ -284,9 +202,9 @@ static void writeDefaultDataPattern(void)
 static void doGetSlabSummaryEntry(struct vdo_completion *completion)
 {
   SlabSummaryClient *client = completionAsSlabSummaryClient(completion);
-  client->tailBlockOffset
-    = vdo_get_summarized_tail_block_offset(summaryZone, client->slabOffset);
-  struct slab_summary_entry *entry = &summaryZone->entries[client->slabOffset];
+  struct vdo_slab *slab = &client->slab;
+  struct slab_summary_entry *entry = &slab->allocator->summary_entries[slab->slab_number];
+  client->tailBlockOffset = entry->tail_block_offset;
   client->freeBlockHint = entry->fullness_hint;
   client->isClean = !entry->is_dirty;
   vdo_finish_completion(completion, VDO_SUCCESS);
@@ -306,11 +224,33 @@ static void assertSlabSummaryEntry(size_t        id,
                                    bool          expectedCleanliness)
 {
   SlabSummaryClient client;
-  initializeSlabSummaryClient(&client, id, summaryZone);
+  initializeSlabSummaryClient(&client, id);
   VDO_ASSERT_SUCCESS(performAction(doGetSlabSummaryEntry, &client.completion));
   CU_ASSERT_EQUAL(client.freeBlockHint,   expectedFreeBlockHint);
   CU_ASSERT_EQUAL(client.tailBlockOffset, expectedTailBlockOffset);
   CU_ASSERT_EQUAL(client.isClean,         expectedCleanliness);
+}
+
+/**********************************************************************/
+static void loadSummary(struct vdo_completion *completion)
+{
+  load_slab_summary(vdo->depot, completion);
+}
+
+/**********************************************************************/
+static void reloadSummary(void)
+{
+  // Write out the summary.
+  suspendVDO(true);
+
+  // Clear the summary.
+  memset(vdo->depot->summary_entries,
+         0,
+         MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES * sizeof(struct slab_summary_entry));
+  resumeVDO(vdo->device_config->owning_target);
+
+  // Read it back in.
+  performSuccessfulAction(loadSummary);
 }
 
 /**
@@ -321,66 +261,67 @@ static void assertSlabSummaryEntry(size_t        id,
 static void doGetSummarizedSlabStatuses(struct vdo_completion *completion)
 {
   SlabSummaryClient *client = completionAsSlabSummaryClient(completion);
-  vdo_get_summarized_slab_statuses(summaryZone, MAX_VDO_SLABS,
-                                   client->statuses);
+  get_slab_statuses(client->slab.allocator, &statuses);
   vdo_finish_completion(completion, VDO_SUCCESS);
 }
 
 /**
  * Fetch all slab statuses using vdo_get_summarized_slab_statuses()).
- *
- * @param [in,out] statuses     An array to hold the fetched slab statuses
  **/
-static void fetchSlabStatuses(struct slab_status *statuses)
+static void fetchSlabStatuses(void)
 {
   SlabSummaryClient statusClient;
-  initializeSlabSummaryClient(&statusClient, 0, summaryZone);
-  statusClient.statuses = statuses;
-  VDO_ASSERT_SUCCESS(performAction(doGetSummarizedSlabStatuses,
-                                   &statusClient.completion));
+  initializeSlabSummaryClient(&statusClient, 0);
+  VDO_ASSERT_SUCCESS(performAction(doGetSummarizedSlabStatuses, &statusClient.completion));
 }
 
 /**
- * Assert that the contents of the slab_summary, starting at slab index
- * startIndex, are filled with the default data pattern written by
- * writeDefaultDataPattern().
+ * Assert that the contents of the slab_summary over a given range of slabs are filled with the
+ * default data pattern written by writeDefaultDataPattern().
  *
  * @param startIndex    The first slab number to verify
  **/
-static void verifyDefaultDataPattern(size_t startIndex)
+static void verifyDefaultDataPattern(slab_count_t start, slab_count_t end)
 {
-  fetchSlabStatuses(statuses);
-  for (slab_count_t slabNumber = startIndex; slabNumber < MAX_VDO_SLABS;
-       slabNumber++) {
-    assertSlabSummaryEntry(slabNumber, getDefaultTailBlockOffset(slabNumber),
+  for (slab_count_t slabNumber = start; slabNumber < end; slabNumber++) {
+    assertSlabSummaryEntry(slabNumber,
+                           getDefaultTailBlockOffset(slabNumber),
                            getDefaultFreeBlockHint(slabNumber),
                            getDefaultCleanliness(slabNumber));
-    CU_ASSERT_EQUAL(statuses[slabNumber].is_clean,
-                    getDefaultCleanliness(slabNumber));
-    CU_ASSERT_EQUAL(statuses[slabNumber].emptiness,
-                    getDefaultFreeBlockHint(slabNumber));
   }
 }
 
 /**
- * Test serially writing some data in the slab_summary, then cleanly
- * restarting and verifying that all data remains.
+ * Serially update the slab_summary, save it out, and then verify that it reads
+ * back correctly.
  **/
 static void testSaveAndRestore(void)
 {
-  // Make a slab summary and update it with a bunch of serial writes.
-  SlabSummaryClient client;
-  // MAX_VDO_SLABS serial writes turns out to take a long time.
-  size_t start = (MAX_VDO_SLABS > 200) ? (MAX_VDO_SLABS - 200) : 0;
-  for (size_t id = start; id < MAX_VDO_SLABS; id++) {
-    useDefaultPattern(&client, id);
-    VDO_ASSERT_SUCCESS(performAction(doUpdateSlabSummaryEntry,
-                                     &client.completion));
-    vdo_reset_completion(&client.completion);
+  // MAX_VDO_SLABS serial writes is too slow, so we'll just do some.
+  for (slab_count_t i = 0; i < MAX_VDO_SLABS; i++) {
+    SlabSummaryClient client;
+
+    if (i == vdo->depot->slab_count) {
+      i = MAX_VDO_SLABS - 200;
+    }
+
+    useDefaultPattern(&client, i);
+    VDO_ASSERT_SUCCESS(performAction(doUpdateSlabSummaryEntry, &client.completion));
   }
 
-  cleanRestartSlabSummary();
-  verifyDefaultDataPattern(8000);
+  reloadSummary();
+
+  verifyDefaultDataPattern(0, vdo->depot->slab_count);
+  verifyDefaultDataPattern(MAX_VDO_SLABS - 200, MAX_VDO_SLABS);
+
+  fetchSlabStatuses();
+  for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {
+    struct slab_status status = statuses[i];
+    CU_ASSERT_EQUAL(status.is_clean, getDefaultCleanliness(status.slab_number));
+    CU_ASSERT_EQUAL(status.emptiness, getDefaultFreeBlockHint(status.slab_number));
+  }
+
+  UDS_FREE(UDS_FORGET(statuses));
 }
 
 /**
@@ -389,8 +330,8 @@ static void testSaveAndRestore(void)
 static void testBasicWrite(void)
 {
   writeDefaultDataPattern();
-  cleanRestartSlabSummary();
-  verifyDefaultDataPattern(0);
+  reloadSummary();
+  verifyDefaultDataPattern(0, MAX_VDO_SLABS);
 }
 
 /**
@@ -428,6 +369,8 @@ static void testBasicWriteError(void)
   client.isClean    = true;
   CU_ASSERT_EQUAL(performAction(doUpdateSlabSummaryEntry, &client.completion),
                   VDO_READ_ONLY);
+
+  setStartStopExpectation(VDO_READ_ONLY);
 }
 
 /**
@@ -440,8 +383,8 @@ static void testPendingUpdatesError(void)
 
   // Make two updates on the same block.
   SlabSummaryClient firstBlockClients[2];
-  initializeSlabSummaryClient(&firstBlockClients[0], 0, summaryZone);
-  initializeSlabSummaryClient(&firstBlockClients[1], 1, summaryZone);
+  initializeSlabSummaryClient(&firstBlockClients[0], 0);
+  initializeSlabSummaryClient(&firstBlockClients[1], 1);
   firstBlockClients[0].freeBlocks = (1 << 23) - 1;
   firstBlockClients[0].isClean    = true;
   firstBlockClients[1].freeBlocks = (1 << 23) - 1;
@@ -464,7 +407,9 @@ static void testPendingUpdatesError(void)
                   VDO_READ_ONLY);
 
   // Issue a close, which should finish with VDO_READ_ONLY.
-  CU_ASSERT_EQUAL(closeSlabSummary(summary), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(closeSlabSummary(&vdo->depot->allocators[0]), VDO_READ_ONLY);
+
+  setStartStopExpectation(VDO_READ_ONLY);
 }
 
 /**
@@ -474,9 +419,12 @@ static void testPendingUpdatesError(void)
  **/
 static void launchSummaryClose(void *context, struct vdo_completion *parent)
 {
-  vdo_drain_slab_summary_zone((struct slab_summary_zone *) context,
-                              VDO_ADMIN_STATE_SAVING,
-                              parent);
+  struct block_allocator *allocator = context;
+
+  vdo_start_draining(&allocator->summary_state,
+                     VDO_ADMIN_STATE_SAVING,
+                     parent,
+                     initiate_summary_drain);
 }
 
 /**
@@ -484,8 +432,8 @@ static void launchSummaryClose(void *context, struct vdo_completion *parent)
  **/
 static bool checkSummaryClosed(void *context)
 {
-  struct slab_summary_zone *summaryZone = context;
-  return vdo_is_state_quiescent(&summaryZone->state);
+  struct block_allocator *allocator = context;
+  return vdo_is_state_quiescent(&allocator->summary_state);
 }
 
 /**
@@ -519,8 +467,8 @@ static void testReadOnlyDuringWrite(void)
 
   // Make two updates on the same block.
   SlabSummaryClient firstBlockClients[2];
-  initializeSlabSummaryClient(&firstBlockClients[0], 0, summaryZone);
-  initializeSlabSummaryClient(&firstBlockClients[1], 1, summaryZone);
+  initializeSlabSummaryClient(&firstBlockClients[0], 0);
+  initializeSlabSummaryClient(&firstBlockClients[1], 1);
   firstBlockClients[0].freeBlocks = (1 << 23) - 1;
   firstBlockClients[0].isClean    = true;
   firstBlockClients[1].freeBlocks = (1 << 23) - 1;
@@ -538,10 +486,8 @@ static void testReadOnlyDuringWrite(void)
   // Launch and latch an update to a different block, then update the block
   // again. Skipping MAX_VDO_SLABS / 2 slabs will land on a different block.
   SlabSummaryClient secondBlockClients[2];
-  initializeSlabSummaryClient(&secondBlockClients[0], MAX_VDO_SLABS / 2,
-                              summaryZone);
-  initializeSlabSummaryClient(&secondBlockClients[1], (MAX_VDO_SLABS / 2) + 1,
-                              summaryZone);
+  initializeSlabSummaryClient(&secondBlockClients[0], MAX_VDO_SLABS / 2);
+  initializeSlabSummaryClient(&secondBlockClients[1], (MAX_VDO_SLABS / 2) + 1);
   secondBlockClients[0].freeBlocks = 18 << 17;
   secondBlockClients[0].isClean    = true;
   secondBlockClients[1].freeBlocks = 19 << 17;
@@ -554,32 +500,30 @@ static void testReadOnlyDuringWrite(void)
 
   // Issue a save, which should wait for both blocks to finish writing.
   performSuccessfulAction(readOnlyModeAction);
+  struct block_allocator *allocator = &vdo->depot->allocators[0];
   CloseInfo closeInfo = (CloseInfo) {
     .launcher       = launchSummaryClose,
     .checker        = checkSummaryClosed,
-    .closeContext   = summaryZone,
+    .closeContext   = allocator,
     .releaser       = releaseBlockedSummaryWrites,
     .releaseContext = blockedWrites,
-    .threadID       = vdo_get_physical_zone_thread(threadConfig,
-                                                   summaryZone->zone_number),
+    .threadID       = allocator->thread_id,
   };
   runLatchedClose(closeInfo, VDO_READ_ONLY);
 
   // Ensure that all waiters returned VDO_READ_ONLY.
-  CU_ASSERT_EQUAL(awaitCompletion(&firstBlockClients[0].completion),
-                  VDO_READ_ONLY);
-  CU_ASSERT_EQUAL(awaitCompletion(&firstBlockClients[1].completion),
-                  VDO_READ_ONLY);
-  CU_ASSERT_EQUAL(awaitCompletion(&secondBlockClients[0].completion),
-                  VDO_READ_ONLY);
-  CU_ASSERT_EQUAL(awaitCompletion(&secondBlockClients[1].completion),
-                  VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitCompletion(&firstBlockClients[0].completion), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitCompletion(&firstBlockClients[1].completion), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitCompletion(&secondBlockClients[0].completion), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitCompletion(&secondBlockClients[1].completion), VDO_READ_ONLY);
 
   // Another save should immediately return VDO_SUCCESS without launching any
   // IO.
   setBlockVIOCompletionEnqueueHook(isSlabSummaryWrite, true);
-  VDO_ASSERT_SUCCESS(drainSlabSummary(summary));
+  VDO_ASSERT_SUCCESS(drainSlabSummary(allocator));
   assertNoBlockedVIOs();
+
+  setStartStopExpectation(VDO_READ_ONLY);
 }
 
 /**
@@ -591,8 +535,8 @@ static void testBlockSimultaneousUpdate(void)
 
   // Make two updates on the same block with different values.
   SlabSummaryClient clients[2];
-  initializeSlabSummaryClient(&clients[0], 0, summaryZone);
-  initializeSlabSummaryClient(&clients[1], 1, summaryZone);
+  initializeSlabSummaryClient(&clients[0], 0);
+  initializeSlabSummaryClient(&clients[1], 1);
   clients[0].freeBlocks      = (1 << 23) - 1;
   clients[0].tailBlockOffset = 35;
   clients[0].isClean         = true;
@@ -619,7 +563,7 @@ static void testBlockSimultaneousUpdate(void)
   assertSlabSummaryEntry(0, 35, 0x3f, true);
   assertSlabSummaryEntry(1, 29, 0x3f, true);
 
-  verifyDefaultDataPattern(2);
+  verifyDefaultDataPattern(2, MAX_VDO_SLABS);
 }
 
 /**
@@ -632,9 +576,9 @@ static void testSlabSimultaneousUpdate(void)
 
   // Make three updates to the same location to different values.
   SlabSummaryClient clients[3];
-  initializeSlabSummaryClient(&clients[0], 0, summaryZone);
-  initializeSlabSummaryClient(&clients[1], 0, summaryZone);
-  initializeSlabSummaryClient(&clients[2], 0, summaryZone);
+  initializeSlabSummaryClient(&clients[0], 0);
+  initializeSlabSummaryClient(&clients[1], 0);
+  initializeSlabSummaryClient(&clients[2], 0);
   clients[0].freeBlocks      = (1 << 23) - 1;
   clients[0].tailBlockOffset = 228;
   clients[0].isClean         = true;
@@ -669,7 +613,7 @@ static void testSlabSimultaneousUpdate(void)
   assertSlabSummaryEntry(0, 38, (0xf), false);
 
   // Verify that the rest of the data is still correct.
-  verifyDefaultDataPattern(1);
+  verifyDefaultDataPattern(1, MAX_VDO_SLABS);
 }
 
 /**********************************************************************/

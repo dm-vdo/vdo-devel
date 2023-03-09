@@ -2747,7 +2747,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
-		vdo_set_slab_summary_origin(vdo->depot->slab_summary,
+		vdo_set_slab_summary_origin(vdo->depot,
 					    vdo_get_partition(vdo->layout,
 							      VDO_SLAB_SUMMARY_PARTITION));
 		vdo_set_recovery_journal_partition(vdo->recovery_journal,

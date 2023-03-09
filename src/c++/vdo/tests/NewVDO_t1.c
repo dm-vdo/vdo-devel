@@ -8,41 +8,44 @@
 
 #include "albtest.h"
 
-#include "asyncLayer.h"
+#include "memory-alloc.h"
 
 #include "slab-depot.h"
 #include "vdo.h"
 #include "vdoConfig.h"
 
+#include "asyncLayer.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
 /**********************************************************************/
-static void verifySlabSummary(struct vdo *vdo)
+static void verifySlabSummary(void)
 {
-  struct slab_summary_zone *summaryZone = vdo->depot->slab_summary->zones[0];
-  slab_count_t              slabCount   = vdo->depot->slab_count;
-  struct slab_status statuses[slabCount];
-  vdo_get_summarized_slab_statuses(summaryZone, slabCount, statuses);
+  struct block_allocator *allocator = &vdo->depot->allocators[0];
 
-  for (size_t i = 0; i < slabCount; ++i) {
-    struct slab_status *status = &statuses[i];
-    CU_ASSERT_EQUAL(i,     status->slab_number);
+  struct slab_status *statuses;
+  VDO_ASSERT_SUCCESS(get_slab_statuses(allocator, &statuses));
+
+  for (size_t i = allocator->slab_count; i > 0; i--) {
+    struct slab_status *status = statuses + (i - 1);
+    CU_ASSERT_EQUAL(allocator->slab_count - i, status->slab_number);
     CU_ASSERT_EQUAL(true,  status->is_clean);
     CU_ASSERT_NOT_EQUAL(0, status->emptiness);
-    CU_ASSERT_EQUAL(0, vdo_get_summarized_tail_block_offset(summaryZone, i));
+    CU_ASSERT_EQUAL(0, allocator->summary_entries[status->slab_number].tail_block_offset);
   }
+
+  UDS_FREE(statuses);
 }
 
 /**********************************************************************/
 static void testNewVDOSlabStatus(void)
 {
-  verifySlabSummary(vdo);
+  verifySlabSummary();
 
   // Now destroy that vdo without saving.
   crashVDO();
   startVDO(VDO_DIRTY);
-  verifySlabSummary(vdo);
+  verifySlabSummary();
 }
 
 /**********************************************************************/

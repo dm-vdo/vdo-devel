@@ -66,11 +66,13 @@ void makeRAMLayerFromFile(const char     *path,
                           PhysicalLayer **layerPtr);
 
 /**
- * Zero out a RAM Layer.
+ * Zero out a portion of a RAM Layer.
  *
- * @param layer  The layer to zero out
+ * @param layer       The layer to zero out
+ * @param startBlock  The physical block number at which to start
+ * @param blockCount  The number of blocks to zero
  **/
-void zeroRAMLayer(PhysicalLayer *layer);
+void zeroRAMLayer(PhysicalLayer *layer, physical_block_number_t startBlock, size_t blockCount);
 
 /**
  * Resize a RAM layer.

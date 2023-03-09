@@ -96,7 +96,7 @@ static void teardownRebuildTest(void)
 static void loadRefCounts(struct vdo_completion *completion)
 {
   // mark the ref counts for loading
-  slab->allocator->summary->entries[slab->slab_number].load_ref_counts = true;
+  slab->allocator->summary_entries[slab->slab_number].load_ref_counts = true;
   vdo_reset_reference_counts(slab->reference_counts);
   vdo_start_draining(&slab->state, VDO_ADMIN_STATE_SCRUBBING, completion,
                      NULL);
@@ -119,7 +119,7 @@ static void scrubSlabAction(struct vdo_completion *completion)
 {
   // Mark the slab summary to indicate the slab is unrecovered.
   VDO_ASSERT_SUCCESS(initialize_slab_scrubber(slab->allocator));
-  slab->allocator->summary->entries[slab->slab_number].is_dirty = true;
+  slab->allocator->summary_entries[slab->slab_number].is_dirty = true;
   slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
   vdo_register_slab_for_scrubbing(slab, true);
   wrapCompletionCallbackAndErrorHandler(completion, runSavedCallbackAssertNoRequeue, failOnError);

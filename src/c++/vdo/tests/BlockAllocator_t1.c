@@ -504,9 +504,11 @@ static void setSlabSummaryEntry(slab_count_t slabNumber,
                                 bool         cleanliness,
                                 size_t       emptiness)
 {
-  performSlabSummaryUpdate(allocator->summary, slabNumber,
-                           slabNumber % SLAB_JOURNAL_BLOCKS, true,
-                           cleanliness, emptiness);
+  performSlabSummaryUpdate(slabNumber,
+                           slabNumber % SLAB_JOURNAL_BLOCKS,
+                           true,
+                           cleanliness,
+                           emptiness);
 }
 
 /**
