@@ -162,7 +162,7 @@ static inline struct vdo_page_completion *page_completion_from_waiter(struct wai
 		return NULL;
 
 	completion = container_of(waiter, struct vdo_page_completion, waiter);
-	vdo_assert_completion_type(completion->completion.type, VDO_PAGE_COMPLETION);
+	vdo_assert_completion_type(&completion->completion, VDO_PAGE_COMPLETION);
 	return completion;
 }
 

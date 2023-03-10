@@ -217,7 +217,7 @@ static void swap_mappings(void *item1, void *item2)
 static inline struct block_map_recovery_completion * __must_check
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_BLOCK_MAP_RECOVERY_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_BLOCK_MAP_RECOVERY_COMPLETION);
 	return container_of(completion, struct block_map_recovery_completion, completion);
 }
 
@@ -533,7 +533,7 @@ recover_block_map(struct vdo *vdo,
 static inline struct recovery_completion * __must_check
 as_recovery_completion(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_RECOVERY_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_RECOVERY_COMPLETION);
 	return container_of(completion, struct recovery_completion, completion);
 }
 
@@ -1360,7 +1360,7 @@ static void launch_recovery(struct vdo_completion *parent, char *journal_data)
 static inline struct rebuild_completion * __must_check
 as_rebuild_completion(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_READ_ONLY_REBUILD_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_READ_ONLY_REBUILD_COMPLETION);
 	return container_of(completion, struct rebuild_completion, completion);
 }
 

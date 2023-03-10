@@ -370,13 +370,13 @@ uds_request_hook *uds_launch_request_hook = NULL;
 #endif /* INTERNAL */
 static inline struct hash_zone *as_hash_zone(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_HASH_ZONE_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_HASH_ZONE_COMPLETION);
 	return container_of(completion, struct hash_zone, completion);
 }
 
 static inline struct hash_zones *as_hash_zones(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_HASH_ZONES_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_HASH_ZONES_COMPLETION);
 	return container_of(completion, struct hash_zones, completion);
 }
 

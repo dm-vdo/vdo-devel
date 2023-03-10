@@ -65,7 +65,7 @@ struct action_manager {
 
 static inline struct action_manager *as_action_manager(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_ACTION_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_ACTION_COMPLETION);
 	return container_of(completion, struct action_manager, completion);
 }
 

@@ -221,7 +221,7 @@ enum data_vio_cleanup_stage {
 static inline struct data_vio_pool * __must_check
 as_data_vio_pool(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_DATA_VIO_POOL_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_DATA_VIO_POOL_COMPLETION);
 	return container_of(completion, struct data_vio_pool, completion);
 }
 

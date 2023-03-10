@@ -77,7 +77,7 @@ static inline void assert_on_flusher_thread(struct flusher *flusher, const char 
  */
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_FLUSH_NOTIFICATION_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
 }
 
@@ -89,7 +89,7 @@ static struct flusher *as_flusher(struct vdo_completion *completion)
  */
 static inline struct vdo_flush *completion_as_vdo_flush(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_FLUSH_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_FLUSH_COMPLETION);
 	return container_of(completion, struct vdo_flush, completion);
 }
 

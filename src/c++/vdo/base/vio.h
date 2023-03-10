@@ -41,7 +41,7 @@ struct pooled_vio {
  */
 static inline struct vio *as_vio(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VIO_COMPLETION);
+	vdo_assert_completion_type(completion, VIO_COMPLETION);
 	return container_of(completion, struct vio, completion);
 }
 

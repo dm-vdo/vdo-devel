@@ -31,7 +31,7 @@ typedef struct wrappingCompletion {
 static inline WrappingCompletion *
 asWrappingCompletion(struct vdo_completion *completion)
 {
-  vdo_assert_completion_type(completion->type, VDO_WRAPPING_COMPLETION);
+  vdo_assert_completion_type(completion, VDO_WRAPPING_COMPLETION);
   return container_of(completion, WrappingCompletion, completion);
 }
 

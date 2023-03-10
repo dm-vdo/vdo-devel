@@ -289,7 +289,7 @@ void vdo_set_slab_summary_origin(struct slab_depot *depot, struct partition *par
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_BLOCK_ALLOCATOR_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_BLOCK_ALLOCATOR_COMPLETION);
 	return container_of(completion, struct block_allocator, completion);
 }
 

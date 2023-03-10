@@ -1073,7 +1073,7 @@ void vdo_wait_until_not_entering_read_only_mode(struct vdo_completion *parent)
  */
 static inline struct read_only_notifier *as_notifier(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_READ_ONLY_MODE_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_READ_ONLY_MODE_COMPLETION);
 	return container_of(completion, struct read_only_notifier, completion);
 }
 
@@ -1304,7 +1304,7 @@ void vdo_enter_recovery_mode(struct vdo *vdo)
  */
 static void complete_synchronous_action(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_SYNC_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_SYNC_COMPLETION);
 	complete(&(container_of(completion, struct sync_completion, vdo_completion)->completion));
 }
 

@@ -54,7 +54,7 @@ waiterAsSlabSummaryClient(struct waiter *waiter)
 static inline SlabSummaryClient *
 completionAsSlabSummaryClient(struct vdo_completion *completion)
 {
-  vdo_assert_completion_type(completion->type, VDO_TEST_COMPLETION);
+  vdo_assert_completion_type(completion, VDO_TEST_COMPLETION);
   return container_of(completion, SlabSummaryClient, completion);
 }
 

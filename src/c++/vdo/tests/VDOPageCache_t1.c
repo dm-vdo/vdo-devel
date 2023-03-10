@@ -71,8 +71,7 @@ static PageCheck pageCheck;
 static TestCompletion *asTestCompletion(struct vdo_completion *completion)
 {
   TestCompletion *testCompletion = (TestCompletion *) completion;
-  vdo_assert_completion_type(testCompletion->completion.type,
-                             VDO_TEST_COMPLETION);
+  vdo_assert_completion_type(&testCompletion->completion, VDO_TEST_COMPLETION);
   return testCompletion;
 }
 

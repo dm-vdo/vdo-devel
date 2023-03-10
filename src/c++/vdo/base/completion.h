@@ -71,9 +71,12 @@ void vdo_preserve_completion_error_and_continue(struct vdo_completion *completio
  * Return: VDO_SUCCESS or an error
  */
 static inline int
-vdo_assert_completion_type(enum vdo_completion_type actual, enum vdo_completion_type expected)
+vdo_assert_completion_type(struct vdo_completion *completion, enum vdo_completion_type expected)
 {
-	return ASSERT(expected == actual, "completion type is %u instead of %u", actual, expected);
+	return ASSERT(expected == completion->type,
+		      "completion type should be %u, not %u",
+		      expected,
+		      completion->type);
 }
 
 /** vdo_set_completion_callback() - Set the callback for a completion. */

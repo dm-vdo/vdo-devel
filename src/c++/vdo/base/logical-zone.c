@@ -33,7 +33,7 @@ enum {
  */
 static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion->type, VDO_GENERATION_FLUSHED_COMPLETION);
+	vdo_assert_completion_type(completion, VDO_GENERATION_FLUSHED_COMPLETION);
 	return container_of(completion, struct logical_zone, completion);
 }
 
