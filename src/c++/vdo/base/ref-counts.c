@@ -1522,7 +1522,7 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 			return;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING) {
-		if (load)
+		if (!load)
 			/* These reference counts were never written, so mark them all dirty. */
 			vdo_dirty_all_reference_blocks(ref_counts);
 
