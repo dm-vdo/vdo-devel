@@ -1877,6 +1877,9 @@ static void uninitialize_allocator_summary(struct block_allocator *allocator)
 {
 	block_count_t i;
 
+	if (allocator->summary_blocks == NULL)
+		return;
+
 	for (i = 0; i < VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE; i++) {
 		free_vio_components(&allocator->summary_blocks[i].vio);
 		UDS_FREE(UDS_FORGET(allocator->summary_blocks[i].outgoing_entries));
