@@ -214,7 +214,7 @@ static inline int push_bins(struct task **stack,
 	return UDS_SUCCESS;
 }
 
-int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
+int make_uds_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 {
 	int result;
 	unsigned int stack_size = count / INSERTION_SORT_THRESHOLD;
@@ -234,7 +234,7 @@ int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 	return UDS_SUCCESS;
 }
 
-void free_radix_sorter(struct radix_sorter *sorter)
+void free_uds_radix_sorter(struct radix_sorter *sorter)
 {
 	UDS_FREE(sorter);
 }
@@ -243,10 +243,10 @@ void free_radix_sorter(struct radix_sorter *sorter)
  * Sort pointers to fixed-length keys (arrays of bytes) using a radix sort. The sort implementation
  * is unstable, so the relative ordering of equal keys is not preserved.
  */
-int radix_sort(struct radix_sorter *sorter,
-	       const unsigned char *keys[],
-	       unsigned int count,
-	       unsigned short length)
+int uds_radix_sort(struct radix_sorter *sorter,
+		   const unsigned char *keys[],
+		   unsigned int count,
+		   unsigned short length)
 {
 	struct task start;
 	struct histogram *bins = &sorter->bins;

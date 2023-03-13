@@ -1417,10 +1417,10 @@ EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
 	 * sorting the entire record values.
 	 */
 	STATIC_ASSERT(offsetof(struct uds_volume_record, name) == 0);
-	result = radix_sort(volume->radix_sorter,
-			    (const u8 **) record_pointers,
-			    records_per_page,
-			    UDS_RECORD_NAME_SIZE);
+	result = uds_radix_sort(volume->radix_sorter,
+				(const u8 **) record_pointers,
+				records_per_page,
+				UDS_RECORD_NAME_SIZE);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1825,7 +1825,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
-	result = make_radix_sorter(geometry->records_per_page, &volume->radix_sorter);
+	result = make_uds_radix_sorter(geometry->records_per_page, &volume->radix_sorter);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1976,7 +1976,7 @@ void free_volume(struct volume *volume)
 	uds_destroy_cond(&volume->read_threads_read_done_cond);
 	uds_destroy_mutex(&volume->read_threads_mutex);
 	free_index_page_map(volume->index_page_map);
-	free_radix_sorter(volume->radix_sorter);
+	free_uds_radix_sorter(volume->radix_sorter);
 	UDS_FREE(volume->geometry);
 	UDS_FREE(volume->record_pointers);
 	UDS_FREE(volume);

@@ -37,8 +37,8 @@ static void recordPageTest(int numRecords)
   // A fake volume but good enough for the encode_record_page interface
   struct volume *volume;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));
-  UDS_ASSERT_SUCCESS(make_radix_sorter(g->records_per_page,
-                                       &volume->radix_sorter));
+  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(g->records_per_page,
+                                           &volume->radix_sorter));
   volume->geometry        = g;
   volume->record_pointers = recordPointers;
 
@@ -85,7 +85,7 @@ static void recordPageTest(int numRecords)
   UDS_FREE(searchTotal);
   UDS_FREE(searchEach);
 
-  free_radix_sorter(volume->radix_sorter);
+  free_uds_radix_sorter(volume->radix_sorter);
   UDS_FREE(records);
   UDS_FREE(recordPage);
   UDS_FREE(recordPointers);
