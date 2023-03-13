@@ -289,8 +289,8 @@ static void persistenceTest(void)
   CU_ASSERT_EQUAL(8, vdo_get_fixed_layout_blocks_available(layout));
 
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(vdo_get_fixed_layout_encoded_size(layout),
-                                 &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(vdo_get_fixed_layout_encoded_size(layout),
+                                     &buffer));
   VDO_ASSERT_SUCCESS(vdo_encode_fixed_layout(layout, buffer));
 
   vdo_free_fixed_layout(UDS_FORGET(layout));
@@ -298,9 +298,10 @@ static void persistenceTest(void)
   // Check that the version 3.0 encoding hasn't accidentally been changed,
   // either due to code changes or because of the test platform's endianness.
   CU_ASSERT_EQUAL(sizeof(EXPECTED_LAYOUT_3_0_ENCODING),
-                  content_length(buffer));
+                  uds_content_length(buffer));
   UDS_ASSERT_EQUAL_BYTES(EXPECTED_LAYOUT_3_0_ENCODING,
-                         get_buffer_contents(buffer), content_length(buffer));
+                         uds_get_buffer_contents(buffer),
+                         uds_content_length(buffer));
 
   VDO_ASSERT_SUCCESS(vdo_decode_fixed_layout(buffer, &layout));
 
@@ -321,7 +322,7 @@ static void persistenceTest(void)
   checkPartition(layout, VDO_TEST_PARTITION_5, FIRST_BLOCK + 8 + 8 + 4, 8, 4);
   CU_ASSERT_EQUAL(BLOCKS, vdo_get_total_fixed_layout_size(layout));
 
-  free_buffer(UDS_FORGET(buffer));
+  free_uds_buffer(UDS_FORGET(buffer));
   vdo_free_fixed_layout(layout);
 }
 

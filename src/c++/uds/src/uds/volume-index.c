@@ -925,28 +925,28 @@ decode_volume_sub_index_header(struct buffer *buffer, struct sub_index_data *hea
 {
 	int result;
 
-	result = get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
+	result = uds_get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u64_le_from_buffer(buffer, &header->volume_nonce);
+	result = uds_get_u64_le_from_buffer(buffer, &header->volume_nonce);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u64_le_from_buffer(buffer, &header->virtual_chapter_low);
+	result = uds_get_u64_le_from_buffer(buffer, &header->virtual_chapter_low);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u64_le_from_buffer(buffer, &header->virtual_chapter_high);
+	result = uds_get_u64_le_from_buffer(buffer, &header->virtual_chapter_high);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u32_le_from_buffer(buffer, &header->first_list);
+	result = uds_get_u32_le_from_buffer(buffer, &header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u32_le_from_buffer(buffer, &header->num_lists);
+	result = uds_get_u32_le_from_buffer(buffer, &header->num_lists);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = ASSERT(content_length(buffer) == 0,
+	result = ASSERT(uds_content_length(buffer) == 0,
 			"%zu bytes decoded of %zu expected",
-			buffer_length(buffer) - content_length(buffer),
-			buffer_length(buffer));
+			uds_buffer_length(buffer) - uds_content_length(buffer),
+			uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS)
 		result = UDS_CORRUPT_DATA;
 
@@ -971,27 +971,27 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		struct buffer *buffer;
 		struct sub_index_data header;
 
-		result = make_buffer(sizeof(struct sub_index_data), &buffer);
+		result = make_uds_buffer(sizeof(struct sub_index_data), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = read_from_buffered_reader(buffered_readers[i],
-						   get_buffer_contents(buffer),
-						   buffer_length(buffer));
+						   uds_get_buffer_contents(buffer),
+						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
 		}
 
-		result = reset_buffer_end(buffer, buffer_length(buffer));
+		result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = decode_volume_sub_index_header(buffer, &header);
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1021,28 +1021,28 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		}
 
 		first_flush_chapter = &sub_index->flush_chapters[header.first_list];
-		result = make_buffer(header.num_lists * sizeof(u64), &buffer);
+		result = make_uds_buffer(header.num_lists * sizeof(u64), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = read_from_buffered_reader(buffered_readers[i],
-						   get_buffer_contents(buffer),
-						   buffer_length(buffer));
+						   uds_get_buffer_contents(buffer),
+						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index flush ranges");
 		}
 
-		result = reset_buffer_end(buffer, buffer_length(buffer));
+		result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
-		result = get_u64_les_from_buffer(buffer, header.num_lists,
-						 first_flush_chapter);
-		free_buffer(UDS_FORGET(buffer));
+		result = uds_get_u64_les_from_buffer(buffer, header.num_lists,
+						     first_flush_chapter);
+		free_uds_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -1066,16 +1066,16 @@ decode_volume_index_header(struct buffer *buffer, struct volume_index_data *head
 {
 	int result;
 
-	result = get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
+	result = uds_get_bytes_from_buffer(buffer, sizeof(header->magic), &header->magic);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = get_u32_le_from_buffer(buffer, &header->sparse_sample_rate);
+	result = uds_get_u32_le_from_buffer(buffer, &header->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = ASSERT(content_length(buffer) == 0,
+	result = ASSERT(uds_content_length(buffer) == 0,
 			"%zu bytes decoded of %zu expected",
-			buffer_length(buffer) - content_length(buffer),
-			buffer_length(buffer));
+			uds_buffer_length(buffer) - uds_content_length(buffer),
+			uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS)
 		result = UDS_CORRUPT_DATA;
 	return result;
@@ -1101,27 +1101,27 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 		struct volume_index_data header;
 		struct buffer *buffer;
 
-		result = make_buffer(sizeof(struct volume_index_data), &buffer);
+		result = make_uds_buffer(sizeof(struct volume_index_data), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = read_from_buffered_reader(buffered_readers[i],
-						   get_buffer_contents(buffer),
-						   buffer_length(buffer));
+						   uds_get_buffer_contents(buffer),
+						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
 		}
 
-		result = reset_buffer_end(buffer, buffer_length(buffer));
+		result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 
 		result = decode_volume_index_header(buffer, &header);
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1205,28 +1205,28 @@ encode_volume_sub_index_header(struct buffer *buffer, struct sub_index_data *hea
 {
 	int result;
 
-	result = put_bytes(buffer, MAGIC_SIZE, MAGIC_START_5);
+	result = uds_put_bytes(buffer, MAGIC_SIZE, MAGIC_START_5);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_u64_le_into_buffer(buffer, header->volume_nonce);
+	result = uds_put_u64_le_into_buffer(buffer, header->volume_nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 	result =
-		put_u64_le_into_buffer(buffer, header->virtual_chapter_low);
+		uds_put_u64_le_into_buffer(buffer, header->virtual_chapter_low);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_u64_le_into_buffer(buffer, header->virtual_chapter_high);
+	result = uds_put_u64_le_into_buffer(buffer, header->virtual_chapter_high);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_u32_le_into_buffer(buffer, header->first_list);
+	result = uds_put_u32_le_into_buffer(buffer, header->first_list);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_u32_le_into_buffer(buffer, header->num_lists);
+	result = uds_put_u32_le_into_buffer(buffer, header->num_lists);
 	if (result != UDS_SUCCESS)
 		return result;
-	return ASSERT(content_length(buffer) == sizeof(struct sub_index_data),
+	return ASSERT(uds_content_length(buffer) == sizeof(struct sub_index_data),
 		      "%zu bytes of config written, of %zu expected",
-		      content_length(buffer),
+		      uds_content_length(buffer),
 		      sizeof(struct sub_index_data));
 }
 
@@ -1250,38 +1250,38 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 	header.first_list = first_list;
 	header.num_lists = num_lists;
 
-	result = make_buffer(sizeof(struct sub_index_data), &buffer);
+	result = make_uds_buffer(sizeof(struct sub_index_data), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = encode_volume_sub_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
-					  get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
+					  uds_get_buffer_contents(buffer),
+					  uds_content_length(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write volume index header");
 
-	result = make_buffer(num_lists * sizeof(u64), &buffer);
+	result = make_uds_buffer(num_lists * sizeof(u64), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	first_flush_chapter = &sub_index->flush_chapters[first_list];
-	result = put_u64_les_into_buffer(buffer, num_lists, first_flush_chapter);
+	result = uds_put_u64_les_into_buffer(buffer, num_lists, first_flush_chapter);
 	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
-					  get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
+					  uds_get_buffer_contents(buffer),
+					  uds_content_length(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result,
 						"failed to write volume index flush ranges");
@@ -1294,15 +1294,15 @@ encode_volume_index_header(struct buffer *buffer, struct volume_index_data *head
 {
 	int result;
 
-	result = put_bytes(buffer, MAGIC_SIZE, MAGIC_START_6);
+	result = uds_put_bytes(buffer, MAGIC_SIZE, MAGIC_START_6);
 	if (result != UDS_SUCCESS)
 		return result;
-	result = put_u32_le_into_buffer(buffer, header->sparse_sample_rate);
+	result = uds_put_u32_le_into_buffer(buffer, header->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
-	return ASSERT(content_length(buffer) == sizeof(struct volume_index_data),
+	return ASSERT(uds_content_length(buffer) == sizeof(struct volume_index_data),
 		      "%zu bytes of config written, of %zu expected",
-		      content_length(buffer),
+		      uds_content_length(buffer),
 		      sizeof(struct volume_index_data));
 }
 
@@ -1319,7 +1319,7 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 						     zone_number,
 						     buffered_writer);
 
-	result = make_buffer(sizeof(struct volume_index_data), &buffer);
+	result = make_uds_buffer(sizeof(struct volume_index_data), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 	memset(&header, 0, sizeof(header));
@@ -1327,14 +1327,14 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 	header.sparse_sample_rate = volume_index->sparse_sample_rate;
 	result = encode_volume_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
-					  get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
+					  uds_get_buffer_contents(buffer),
+					  uds_content_length(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result, "failed to write volume index header");
 		return result;

@@ -48,12 +48,12 @@ static void assertSameHeader(struct header *headerA, struct header *headerB)
 static void testHeaderCoding(void)
 {
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(VDO_ENCODED_HEADER_SIZE, &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(VDO_ENCODED_HEADER_SIZE, &buffer));
   VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
 
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
-  free_buffer(UDS_FORGET(buffer));
+  free_uds_buffer(UDS_FORGET(buffer));
 
   assertSameHeader(&HEADER, &header);
 
@@ -75,14 +75,16 @@ static void testHeaderCoding(void)
 static void testHeaderCodingTooShort(void)
 {
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(VDO_ENCODED_HEADER_SIZE - 1, &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(VDO_ENCODED_HEADER_SIZE - 1, &buffer));
   CU_ASSERT_EQUAL(UDS_BUFFER_ERROR, vdo_encode_header(&HEADER, buffer));
 
-  VDO_ASSERT_SUCCESS(put_bytes(buffer, VDO_ENCODED_HEADER_SIZE - 1, &HEADER));
+  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer,
+                                   VDO_ENCODED_HEADER_SIZE - 1,
+                                   &HEADER));
 
   struct header header;
   CU_ASSERT_EQUAL(UDS_BUFFER_ERROR, vdo_decode_header(buffer, &header));
-  free_buffer(UDS_FORGET(buffer));
+  free_uds_buffer(UDS_FORGET(buffer));
 }
 
 /**
@@ -91,18 +93,18 @@ static void testHeaderCodingTooShort(void)
 static void testDataCoding(void)
 {
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE,
-                                 &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE,
+                                     &buffer));
 
   VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
-  VDO_ASSERT_SUCCESS(put_bytes(buffer, HEADER.size, DATA));
+  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer, HEADER.size, DATA));
 
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
 
   u8 data[DATA_SIZE];
-  VDO_ASSERT_SUCCESS(get_bytes_from_buffer(buffer, header.size, data));
-  free_buffer(UDS_FORGET(buffer));
+  VDO_ASSERT_SUCCESS(uds_get_bytes_from_buffer(buffer, header.size, data));
+  free_uds_buffer(UDS_FORGET(buffer));
 
   assertSameHeader(&HEADER, &header);
   UDS_ASSERT_EQUAL_BYTES(DATA, data, DATA_SIZE);
@@ -114,21 +116,21 @@ static void testDataCoding(void)
 static void testDataCodingTooShort(void)
 {
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE - 1,
-                                 &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE - 1,
+                                     &buffer));
 
   VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
-  VDO_ASSERT_SUCCESS(put_bytes(buffer, DATA_SIZE - 1, DATA));
+  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer, DATA_SIZE - 1, DATA));
 
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
 
   u8 data[DATA_SIZE];
   CU_ASSERT_EQUAL(UDS_BUFFER_ERROR,
-                  get_bytes_from_buffer(buffer, header.size, data));
-  CU_ASSERT_EQUAL(DATA_SIZE - 1, content_length(buffer));
+                  uds_get_bytes_from_buffer(buffer, header.size, data));
+  CU_ASSERT_EQUAL(DATA_SIZE - 1, uds_content_length(buffer));
 
-  free_buffer(UDS_FORGET(buffer));
+  free_uds_buffer(UDS_FORGET(buffer));
 }
 
 /**********************************************************************/

@@ -131,9 +131,9 @@ static void printReadableSize(size_t size)
     unit++;
   };
   if (unit > 0) {
-    printf("%4.2f %s", floatSize, UNITS[unit]);    
+    printf("%4.2f %s", floatSize, UNITS[unit]);
   } else {
-    printf("%zu %s", size, UNITS[unit]);    
+    printf("%zu %s", size, UNITS[unit]);
   }
 }
 
@@ -284,7 +284,7 @@ static int checkForSignaturesUsingBlkid(const char *filename, bool force)
                                     BLKID_SUBLKS_BADCSUM);
 
   struct buffer *buffer = NULL;
-  result = make_buffer(0, &buffer);
+  result = make_uds_buffer(0, &buffer);
   if (result != VDO_SUCCESS) {
     blkid_free_probe(probe);
     return ENOMEM;

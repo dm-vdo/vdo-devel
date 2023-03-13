@@ -264,7 +264,8 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
   struct recovery_journal_state_7_0 state
     = vdo_record_recovery_journal(journal);
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_buffer(RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE, &buffer));
+  VDO_ASSERT_SUCCESS(make_uds_buffer(RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE,
+                                     &buffer));
   VDO_ASSERT_SUCCESS(encode_recovery_journal_state_7_0(state, buffer));
   freeJournal();
 
@@ -272,15 +273,15 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
   // either due to code changes or because of the test platform's endianness.
   if (checkEncodingBytes) {
     CU_ASSERT_EQUAL(sizeof(EXPECTED_STATE_7_0_ENCODING),
-                    content_length(buffer));
+                    uds_content_length(buffer));
     UDS_ASSERT_EQUAL_BYTES(EXPECTED_STATE_7_0_ENCODING,
-                           get_buffer_contents(buffer),
-                           content_length(buffer));
+                           uds_get_buffer_contents(buffer),
+                           uds_content_length(buffer));
   }
 
   struct recovery_journal_state_7_0 decoded;
   VDO_ASSERT_SUCCESS(decode_recovery_journal_state_7_0(buffer, &decoded));
-  free_buffer(UDS_FORGET(buffer));
+  free_uds_buffer(UDS_FORGET(buffer));
 
   CU_ASSERT_EQUAL(state.journal_start, decoded.journal_start);
   CU_ASSERT_EQUAL(state.logical_blocks_used, decoded.logical_blocks_used);

@@ -99,15 +99,15 @@ static int decode_index_config(struct buffer *buffer, struct index_config *confi
 	bool sparse;
 	int result;
 
-	result = get_u32_le_from_buffer(buffer, &mem);
+	result = uds_get_u32_le_from_buffer(buffer, &mem);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(u32));
+	result = uds_skip_forward(buffer, sizeof(u32));
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = get_boolean(buffer, &sparse);
+	result = uds_get_boolean(buffer, &sparse);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -131,15 +131,15 @@ static int encode_index_config(const struct index_config *config, struct buffer 
 {
 	int result;
 
-	result = put_u32_le_into_buffer(buffer, config->mem);
+	result = uds_put_u32_le_into_buffer(buffer, config->mem);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(u32));
+	result = uds_zero_bytes(buffer, sizeof(u32));
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return put_boolean(buffer, config->sparse);
+	return uds_put_boolean(buffer, config->sparse);
 }
 #endif /* VDO_USER */
 
@@ -156,11 +156,11 @@ static int decode_volume_region(struct buffer *buffer, struct volume_region *reg
 	enum volume_region_id id;
 	int result;
 
-	result = get_u32_le_from_buffer(buffer, &id);
+	result = uds_get_u32_le_from_buffer(buffer, &id);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &start_block);
+	result = uds_get_u64_le_from_buffer(buffer, &start_block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -183,11 +183,11 @@ static int encode_volume_region(const struct volume_region *region, struct buffe
 {
 	int result;
 
-	result = put_u32_le_into_buffer(buffer, region->id);
+	result = uds_put_u32_le_into_buffer(buffer, region->id);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return put_u64_le_into_buffer(buffer, region->start_block);
+	return uds_put_u64_le_into_buffer(buffer, region->start_block);
 }
 #endif /* VDO_USER */
 
@@ -208,24 +208,26 @@ decode_volume_geometry(struct buffer *buffer, struct volume_geometry *geometry, 
 	block_count_t bio_offset;
 	int result;
 
-	result = get_u32_le_from_buffer(buffer, &release_version);
+	result = uds_get_u32_le_from_buffer(buffer, &release_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &nonce);
+	result = uds_get_u64_le_from_buffer(buffer, &nonce);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	geometry->release_version = release_version;
 	geometry->nonce = nonce;
 
-	result = get_bytes_from_buffer(buffer, sizeof(uuid_t), (unsigned char *) &geometry->uuid);
+	result = uds_get_bytes_from_buffer(buffer,
+					   sizeof(uuid_t),
+					   (unsigned char *) &geometry->uuid);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	bio_offset = 0;
 	if (version > 4) {
-		result = get_u64_le_from_buffer(buffer, &bio_offset);
+		result = uds_get_u64_le_from_buffer(buffer, &bio_offset);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -255,20 +257,20 @@ encode_volume_geometry(const struct volume_geometry *geometry, struct buffer *bu
 	enum volume_region_id id;
 	int result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->release_version);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->release_version);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, geometry->nonce);
+	result = uds_put_u64_le_into_buffer(buffer, geometry->nonce);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = put_bytes(buffer, sizeof(uuid_t), (unsigned char *) &geometry->uuid);
+	result = uds_put_bytes(buffer, sizeof(uuid_t), (unsigned char *) &geometry->uuid);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	if (version >= 5) {
-		result = put_u64_le_into_buffer(buffer, geometry->bio_offset);
+		result = uds_put_u64_le_into_buffer(buffer, geometry->bio_offset);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -296,10 +298,10 @@ static int decode_geometry_block(struct buffer *buffer, struct volume_geometry *
 	int result;
 	struct header header;
 
-	if (!has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE))
+	if (!uds_has_same_bytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE))
 		return VDO_BAD_MAGIC;
 
-	result = skip_forward(buffer, MAGIC_NUMBER_SIZE);
+	result = uds_skip_forward(buffer, MAGIC_NUMBER_SIZE);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -319,7 +321,7 @@ static int decode_geometry_block(struct buffer *buffer, struct volume_geometry *
 		return result;
 
 	/* Leave the CRC for the caller to decode and verify. */
-	return ASSERT(header.size == (uncompacted_amount(buffer) + sizeof(u32)),
+	return ASSERT(header.size == (uds_uncompacted_amount(buffer) + sizeof(u32)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -334,26 +336,26 @@ int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_ge
 	struct buffer *buffer;
 	int result;
 
-	result = wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
+	result = uds_wrap_buffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	/* Checksum everything decoded so far. */
-	checksum = vdo_crc32(block, uncompacted_amount(buffer));
-	result = get_u32_le_from_buffer(buffer, &saved_checksum);
+	checksum = vdo_crc32(block, uds_uncompacted_amount(buffer));
+	result = uds_get_u32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	/* Finished all decoding. Everything that follows is validation code. */
-	free_buffer(UDS_FORGET(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
@@ -379,7 +381,7 @@ encode_geometry_block(const struct volume_geometry *geometry, struct buffer *buf
 	const struct header *header;
 	int result;
 
-	result = put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
+	result = uds_put_bytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -393,7 +395,7 @@ encode_geometry_block(const struct volume_geometry *geometry, struct buffer *buf
 		return result;
 
 	/* Leave the CRC for the caller to compute and encode. */
-	return ASSERT(header->size == (content_length(buffer) + sizeof(u32)),
+	return ASSERT(header->size == (uds_content_length(buffer) + sizeof(u32)),
 		      "should have decoded up to the geometry checksum");
 }
 
@@ -556,7 +558,7 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = wrap_buffer((u8 *) block, VDO_BLOCK_SIZE, 0, &buffer);
+	result = uds_wrap_buffer((u8 *) block, VDO_BLOCK_SIZE, 0, &buffer);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(block);
 		return result;
@@ -564,23 +566,23 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 
 	result = encode_geometry_block(geometry, buffer, version);
 	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		UDS_FREE(block);
 		return result;
 	}
 
 	/* Checksum everything encoded so far and then encode the checksum. */
-	checksum = vdo_crc32((u8 *) block, content_length(buffer));
-	result = put_u32_le_into_buffer(buffer, checksum);
+	checksum = vdo_crc32((u8 *) block, uds_content_length(buffer));
+	result = uds_put_u32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 		UDS_FREE(block);
 		return result;
 	}
 
 	/* Write it. */
 	result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
-	free_buffer(UDS_FORGET(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 	UDS_FREE(block);
 	return result;
 }

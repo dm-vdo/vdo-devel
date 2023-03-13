@@ -27,48 +27,48 @@ decode_index_config_06_02(struct buffer *buffer, struct uds_configuration_8_02 *
 {
 	int result;
 
-	result = get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
+	result = uds_get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
+	result = uds_get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
+	result = uds_get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->cache_chapters);
+	result = uds_get_u32_le_from_buffer(buffer, &config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(u32));
+	result = uds_skip_forward(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
+	result = uds_get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->bytes_per_page);
+	result = uds_get_u32_le_from_buffer(buffer, &config->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
+	result = uds_get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &config->nonce);
+	result = uds_get_u64_le_from_buffer(buffer, &config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	config->remapped_virtual = 0;
 	config->remapped_physical = 0;
 
-	result = ASSERT(content_length(buffer) == 0,
+	result = ASSERT(uds_content_length(buffer) == 0,
 			"%zu bytes read but not decoded",
-			content_length(buffer));
+			uds_content_length(buffer));
 	if (result != UDS_SUCCESS)
 		return UDS_CORRUPT_DATA;
 
@@ -80,53 +80,53 @@ decode_index_config_08_02(struct buffer *buffer, struct uds_configuration_8_02 *
 {
 	int result;
 
-	result = get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
+	result = uds_get_u32_le_from_buffer(buffer, &config->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
+	result = uds_get_u32_le_from_buffer(buffer, &config->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
+	result = uds_get_u32_le_from_buffer(buffer, &config->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->cache_chapters);
+	result = uds_get_u32_le_from_buffer(buffer, &config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = skip_forward(buffer, sizeof(u32));
+	result = uds_skip_forward(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
+	result = uds_get_u32_le_from_buffer(buffer, &config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->bytes_per_page);
+	result = uds_get_u32_le_from_buffer(buffer, &config->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
+	result = uds_get_u32_le_from_buffer(buffer, &config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &config->nonce);
+	result = uds_get_u64_le_from_buffer(buffer, &config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &config->remapped_virtual);
+	result = uds_get_u64_le_from_buffer(buffer, &config->remapped_virtual);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &config->remapped_physical);
+	result = uds_get_u64_le_from_buffer(buffer, &config->remapped_physical);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = ASSERT(content_length(buffer) == 0,
+	result = ASSERT(uds_content_length(buffer) == 0,
 			"%zu bytes read but not decoded",
-			content_length(buffer));
+			uds_content_length(buffer));
 	if (result != UDS_SUCCESS)
 		return UDS_CORRUPT_DATA;
 
@@ -149,37 +149,37 @@ static int read_version(struct buffered_reader *reader, struct uds_configuration
 		return uds_log_error_strerror(result, "cannot read index config version");
 
 	if (is_version(INDEX_CONFIG_VERSION_6_02, version_buffer)) {
-		result = make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
+		result = make_uds_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = read_from_buffered_reader(reader,
-						   get_buffer_contents(buffer),
-						   buffer_length(buffer));
+						   uds_get_buffer_contents(buffer),
+						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
-		clear_buffer(buffer);
+		uds_clear_buffer(buffer);
 		result = decode_index_config_06_02(buffer, conf);
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 	} else if (is_version(INDEX_CONFIG_VERSION_8_02, version_buffer)) {
-		result = make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
+		result = make_uds_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = read_from_buffered_reader(reader,
-						   get_buffer_contents(buffer),
-						   buffer_length(buffer));
+						   uds_get_buffer_contents(buffer),
+						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
-		clear_buffer(buffer);
+		uds_clear_buffer(buffer);
 		result = decode_index_config_08_02(buffer, conf);
-		free_buffer(UDS_FORGET(buffer));
+		free_uds_buffer(UDS_FORGET(buffer));
 	} else {
 		uds_log_error_strerror(result,
 				       "unsupported configuration version: '%.*s'",
@@ -288,46 +288,46 @@ encode_index_config_06_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->cache_chapters);
+	result = uds_put_u32_le_into_buffer(buffer, config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(u32));
+	result = uds_zero_bytes(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
+	result = uds_put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
+	result = uds_put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, config->nonce);
+	result = uds_put_u64_le_into_buffer(buffer, config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return ASSERT((available_space(buffer) == 0),
+	return ASSERT((uds_available_space(buffer) == 0),
 		      "%zu bytes encoded, of %zu expected",
-		      content_length(buffer),
-		      buffer_length(buffer));
+		      uds_content_length(buffer),
+		      uds_buffer_length(buffer));
 }
 
 static int __must_check
@@ -336,54 +336,54 @@ encode_index_config_08_02(struct buffer *buffer, struct configuration *config)
 	int result;
 	struct geometry *geometry = config->geometry;
 
-	result = put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->cache_chapters);
+	result = uds_put_u32_le_into_buffer(buffer, config->cache_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = zero_bytes(buffer, sizeof(u32));
+	result = uds_zero_bytes(buffer, sizeof(u32));
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
+	result = uds_put_u32_le_into_buffer(buffer, config->volume_index_mean_delta);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
+	result = uds_put_u32_le_into_buffer(buffer, geometry->bytes_per_page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
+	result = uds_put_u32_le_into_buffer(buffer, config->sparse_sample_rate);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, config->nonce);
+	result = uds_put_u64_le_into_buffer(buffer, config->nonce);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, geometry->remapped_virtual);
+	result = uds_put_u64_le_into_buffer(buffer, geometry->remapped_virtual);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, geometry->remapped_physical);
+	result = uds_put_u64_le_into_buffer(buffer, geometry->remapped_physical);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return ASSERT((available_space(buffer) == 0),
+	return ASSERT((uds_available_space(buffer) == 0),
 		      "%zu bytes encoded, of %zu expected",
-		      content_length(buffer),
-		      buffer_length(buffer));
+		      uds_content_length(buffer),
+		      uds_buffer_length(buffer));
 }
 
 /*
@@ -413,13 +413,13 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
+		result = make_uds_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = encode_index_config_06_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	} else {
@@ -429,21 +429,21 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
+		result = make_uds_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = encode_index_config_08_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_buffer(UDS_FORGET(buffer));
+			free_uds_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 
 	result = write_to_buffered_writer(writer,
-					  get_buffer_contents(buffer),
-					  content_length(buffer));
-	free_buffer(UDS_FORGET(buffer));
+					  uds_get_buffer_contents(buffer),
+					  uds_content_length(buffer));
+	free_uds_buffer(UDS_FORGET(buffer));
 	return result;
 }
 

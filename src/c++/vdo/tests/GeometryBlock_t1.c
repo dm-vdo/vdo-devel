@@ -194,13 +194,13 @@ static void basicTest(void)
 
   // Decode the GeometryBlock header.
   struct buffer *headerBuffer;
-  VDO_ASSERT_SUCCESS(wrap_buffer((u8 *) geometryBlock + MAGIC_NUMBER_SIZE,
-                                 VDO_ENCODED_HEADER_SIZE,
-                                 VDO_ENCODED_HEADER_SIZE,
-                                 &headerBuffer));
+  VDO_ASSERT_SUCCESS(uds_wrap_buffer((u8 *) geometryBlock + MAGIC_NUMBER_SIZE,
+                                     VDO_ENCODED_HEADER_SIZE,
+                                     VDO_ENCODED_HEADER_SIZE,
+                                     &headerBuffer));
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(headerBuffer, &header));
-  free_buffer(UDS_FORGET(headerBuffer));
+  free_uds_buffer(UDS_FORGET(headerBuffer));
 
   // Try corrupting the magic number.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);

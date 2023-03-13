@@ -393,19 +393,19 @@ static int encode_partitions_3_0(const struct fixed_layout *layout, struct buffe
 		int result;
 
 		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
-		result = put_byte(buffer, partition->id);
+		result = uds_put_byte(buffer, partition->id);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_u64_le_into_buffer(buffer, partition->offset);
+		result = uds_put_u64_le_into_buffer(buffer, partition->offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_u64_le_into_buffer(buffer, partition->base);
+		result = uds_put_u64_le_into_buffer(buffer, partition->base);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = put_u64_le_into_buffer(buffer, partition->count);
+		result = uds_put_u64_le_into_buffer(buffer, partition->count);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -430,15 +430,15 @@ static int encode_layout_3_0(const struct fixed_layout *layout, struct buffer *b
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, layout->first_free);
+	result = uds_put_u64_le_into_buffer(buffer, layout->first_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = put_u64_le_into_buffer(buffer, layout->last_free);
+	result = uds_put_u64_le_into_buffer(buffer, layout->last_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return put_byte(buffer, layout->num_partitions);
+	return uds_put_byte(buffer, layout->num_partitions);
 }
 
 /**
@@ -454,7 +454,7 @@ int vdo_encode_fixed_layout(const struct fixed_layout *layout, struct buffer *bu
 	int result;
 	struct header header = LAYOUT_HEADER_3_0;
 
-	if (!ensure_available_space(buffer, vdo_get_fixed_layout_encoded_size(layout)))
+	if (!uds_ensure_available_space(buffer, vdo_get_fixed_layout_encoded_size(layout)))
 		return UDS_BUFFER_ERROR;
 
 	header.size = get_encoded_size(layout);
@@ -462,13 +462,13 @@ int vdo_encode_fixed_layout(const struct fixed_layout *layout, struct buffer *bu
 	if (result != UDS_SUCCESS)
 		return result;
 
-	initial_length = content_length(buffer);
+	initial_length = uds_content_length(buffer);
 
 	result = encode_layout_3_0(layout, buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	encoded_size = content_length(buffer) - initial_length;
+	encoded_size = uds_content_length(buffer) - initial_length;
 	result = ASSERT(encoded_size == sizeof(struct layout_3_0),
 			"encoded size of fixed layout header must match structure");
 	if (result != UDS_SUCCESS)
@@ -478,7 +478,7 @@ int vdo_encode_fixed_layout(const struct fixed_layout *layout, struct buffer *bu
 	if (result != UDS_SUCCESS)
 		return result;
 
-	encoded_size = content_length(buffer) - initial_length;
+	encoded_size = uds_content_length(buffer) - initial_length;
 	return ASSERT(encoded_size == header.size,
 		      "encoded size of fixed layout must match header size");
 }
@@ -500,19 +500,19 @@ static int decode_partitions_3_0(struct buffer *buffer, struct fixed_layout *lay
 		u64 offset, base, count;
 		int result;
 
-		result = get_byte(buffer, &id);
+		result = uds_get_byte(buffer, &id);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_u64_le_from_buffer(buffer, &offset);
+		result = uds_get_u64_le_from_buffer(buffer, &offset);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_u64_le_from_buffer(buffer, &base);
+		result = uds_get_u64_le_from_buffer(buffer, &base);
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = get_u64_le_from_buffer(buffer, &count);
+		result = uds_get_u64_le_from_buffer(buffer, &count);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -534,20 +534,20 @@ static int decode_partitions_3_0(struct buffer *buffer, struct fixed_layout *lay
  */
 static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 {
-	size_t decoded_size, initial_length = content_length(buffer);
+	size_t decoded_size, initial_length = uds_content_length(buffer);
 	physical_block_number_t first_free, last_free;
 	u8 partition_count;
 	int result;
 
-	result = get_u64_le_from_buffer(buffer, &first_free);
+	result = uds_get_u64_le_from_buffer(buffer, &first_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_u64_le_from_buffer(buffer, &last_free);
+	result = uds_get_u64_le_from_buffer(buffer, &last_free);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = get_byte(buffer, &partition_count);
+	result = uds_get_byte(buffer, &partition_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -557,7 +557,7 @@ static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
 		.partition_count = partition_count,
 	};
 
-	decoded_size = initial_length - content_length(buffer);
+	decoded_size = initial_length - uds_content_length(buffer);
 	return ASSERT(decoded_size == sizeof(struct layout_3_0),
 		      "decoded size of fixed layout header must match structure");
 }
@@ -589,7 +589,7 @@ int vdo_decode_fixed_layout(struct buffer *buffer, struct fixed_layout **layout_
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (content_length(buffer) <
+	if (uds_content_length(buffer) <
 	    (sizeof(struct partition_3_0) * layout_header.partition_count))
 		return VDO_UNSUPPORTED_VERSION;
 
