@@ -848,6 +848,7 @@ $suiteNames{beakerExcludedTests}
      "Upgrade",                    # VDO-5257
      "UpgradeCompressDedupe",      # VDO-5257
      "UpgradeLatest",              # VDO-5257
+     "Vdorecover",                 # VDO-5377
     );
 
 ###########################################################################
