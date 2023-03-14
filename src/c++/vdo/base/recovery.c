@@ -46,8 +46,6 @@ struct numbered_block_mapping {
  */
 struct block_map_recovery_completion {
 	struct vdo_completion completion;
-	/* whether this recovery has been aborted */
-	bool aborted;
 	bool launching;
 
 	/* Fields for the journal entries. */
@@ -294,11 +292,10 @@ static void flush_block_map(struct vdo_completion *completion)
 static bool finish_if_done(struct block_map_recovery_completion *recovery)
 {
 	/* Pages are still being launched or there is still work to do */
-	if (recovery->launching || (recovery->outstanding > 0) ||
-	    (!recovery->aborted && (recovery->current_entry >= recovery->journal_entries)))
+	if (recovery->launching || (recovery->outstanding > 0))
 		return false;
 
-	if (recovery->aborted) {
+	if (recovery->completion.result != VDO_SUCCESS) {
 		/*
 		 * We need to be careful here to only free completions that exist. But since we
 		 * know none are outstanding, we just go through the ready ones.
@@ -308,12 +305,16 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 		for (i = 0; i < recovery->page_count; i++) {
 			struct vdo_page_completion *page_completion =
 				&recovery->page_completions[i];
+
 			if (recovery->page_completions[i].ready)
 				vdo_release_page_completion(&page_completion->completion);
 		}
 		vdo_finish_completion(&recovery->completion);
 		return true;
 	}
+
+	if (recovery->current_entry >= recovery->journal_entries)
+		return false;
 
 	vdo_launch_completion_callback(&recovery->completion,
 				       flush_block_map,
@@ -323,7 +324,6 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 
 static void abort_block_map_recovery(struct block_map_recovery_completion *recovery, int result)
 {
-	recovery->aborted = true;
 	vdo_set_completion_result(&recovery->completion, result);
 	finish_if_done(recovery);
 }
