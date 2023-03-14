@@ -27,11 +27,14 @@ dm_kcopyd_client_destroy(struct dm_kcopyd_client *kc __always_unused)
 #include "memory-alloc.h"
 #include "permassert.h"
 
+
+#if defined(__KERNEL__) || defined(TEST_INTERNAL)
+#include "completion.h"
+#endif // KERNEL || TEST_INTERNAL
 #include "constants.h"
 #include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-
 #if defined(__KERNEL__) || defined(TEST_INTERNAL)
 #include "vdo.h"
 #endif // KERNEL || TEST_INTERNAL

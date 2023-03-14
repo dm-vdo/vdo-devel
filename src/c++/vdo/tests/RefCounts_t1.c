@@ -54,7 +54,7 @@ static void readOnlyNotification(void *listener __attribute__((unused)),
                                  struct vdo_completion *parent)
 {
   expectedCloseResult = VDO_READ_ONLY;
-  vdo_complete_completion(parent);
+  vdo_finish_completion(parent);
 }
 
 /**********************************************************************/
@@ -248,7 +248,7 @@ static void assertBlockMapIncrement(physical_block_number_t pbn)
 static void resetReferenceCounts(struct vdo_completion *completion)
 {
   vdo_reset_reference_counts(refs);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -345,7 +345,7 @@ static void testBasic(void)
 static void dirtyFirstBlockAction(struct vdo_completion *completion)
 {
   addManyReferences(firstBlock, 1);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -354,7 +354,7 @@ static void dirtyFirstBlockAction(struct vdo_completion *completion)
 static void redirtyFirstBlockAction(struct vdo_completion *completion)
 {
   addManyReferences(firstBlock + 1, 1);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -363,7 +363,7 @@ static void redirtyFirstBlockAction(struct vdo_completion *completion)
 static void dirtySecondBlockAction(struct vdo_completion *completion)
 {
   addManyReferences(firstBlock + VDO_BLOCK_SIZE, 1);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -373,7 +373,7 @@ static void saveDirtyBlocksAction(struct vdo_completion *completion)
 {
   // Fire off every dirty reference block in the queue at once.
   vdo_save_dirty_reference_blocks(refs);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -382,7 +382,7 @@ static void saveDirtyBlocksAction(struct vdo_completion *completion)
 static void saveOldestReferenceBlockAction(struct vdo_completion *completion)
 {
   vdo_save_oldest_reference_block(refs);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -667,7 +667,7 @@ static void doProvisionalReferencing(struct vdo_completion *completion)
   CU_ASSERT_EQUAL(firstRefBlockAllocatedCount, refs->blocks[0].allocated_count);
   CU_ASSERT_EQUAL(secondRefBlockAllocatedCount + 1,
                   refs->blocks[1].allocated_count);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -825,7 +825,7 @@ static void testReplay(void)
 static void enterReadOnlyModeAction(struct vdo_completion *completion)
 {
   vdo_enter_read_only_mode(vdo, VDO_READ_ONLY);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

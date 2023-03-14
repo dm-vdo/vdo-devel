@@ -98,7 +98,7 @@ static void corruptMapAction(struct vdo_completion *completion)
   corruptTreePageInForest(forest, 12, (VDO_BLOCK_MAP_ENTRIES_PER_PAGE - 1),
                           VDO_MAPPING_STATE_COMPRESSED_MAX, 0);
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -126,7 +126,7 @@ static void verifyRebuiltMapAction(struct vdo_completion *completion)
   validateUnmappedEntry(10, VDO_BLOCK_MAP_ENTRIES_PER_PAGE / 2);
   validateUnmappedEntry(12, VDO_BLOCK_MAP_ENTRIES_PER_PAGE - 1);
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

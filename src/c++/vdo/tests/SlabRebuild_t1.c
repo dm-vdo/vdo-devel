@@ -414,7 +414,7 @@ shouldBlockVIO(struct vdo_completion *completion,
  **/
 static void addEntryComplete(struct vdo_completion *completion)
 {
-  vdo_finish_completion(completion->parent, completion->result);
+  vdo_fail_completion(completion->parent, completion->result);
   broadcast();
 }
 
@@ -460,7 +460,7 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
   DataVIOWrapper *wrapper = (DataVIOWrapper *) completion;
   struct data_vio *dataVIO = &wrapper->dataVIO;
   vdo_add_slab_journal_entry(journal, &dataVIO->decrement_completion, &dataVIO->decrement_updater);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

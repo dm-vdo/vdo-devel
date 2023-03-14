@@ -207,7 +207,7 @@ static void doGetSlabSummaryEntry(struct vdo_completion *completion)
   client->tailBlockOffset = entry->tail_block_offset;
   client->freeBlockHint = entry->fullness_hint;
   client->isClean = !entry->is_dirty;
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -262,7 +262,7 @@ static void doGetSummarizedSlabStatuses(struct vdo_completion *completion)
 {
   SlabSummaryClient *client = completionAsSlabSummaryClient(completion);
   get_slab_statuses(client->slab.allocator, &statuses);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -340,7 +340,7 @@ static void testBasicWrite(void)
 static void assertReadOnlyAction(struct vdo_completion *completion)
 {
   CU_ASSERT(vdo_is_read_only(vdo));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

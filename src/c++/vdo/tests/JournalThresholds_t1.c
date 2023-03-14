@@ -78,7 +78,7 @@ static bool recordLBN(struct vdo_completion *completion)
 static void sampleJournal(struct vdo_completion *completion)
 {
   sampledJournal = *(vdo->recovery_journal);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

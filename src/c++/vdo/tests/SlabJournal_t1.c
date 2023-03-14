@@ -241,7 +241,7 @@ static void checkStopExpectation(struct vdo_completion *completion)
   }
   setStartStopExpectation(result);
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -284,7 +284,7 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
 static void makeProvisionalReference(struct vdo_completion *completion)
 {
   slab->reference_counts->counters[provisional] = PROVISIONAL_REFERENCE_COUNT;
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -418,7 +418,7 @@ addSlabJournalEntryForRebuildAction(struct vdo_completion *completion)
                                            &dataVIO->recovery_journal_point,
                                            NULL);
   CU_ASSERT(added);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -632,7 +632,7 @@ static void commitJournalTail(struct vdo_completion *completion)
   CU_ASSERT_EQUAL(commitExpected,
                   vdo_release_recovery_journal_lock(journal,
                                                     recoveryJournalLock));
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -655,7 +655,7 @@ static void launchCommitJournalTail(sequence_number_t recoveryLock,
 static void fetchTailHeader(struct vdo_completion *completion)
 {
   tailHeader = journal->tail_header;
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -750,7 +750,7 @@ static void adjustReference(struct vdo_completion *completion)
 {
   vdo_adjust_slab_journal_block_reference(journal, referenceSequenceNumber,
                                           referenceAdjustment);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1244,7 +1244,7 @@ static void checkJournalHead(struct vdo_completion *completion)
   CU_ASSERT_EQUAL(vdo_get_callback_thread_id(),
 		  journal->slab->allocator->thread_id);
   CU_ASSERT_EQUAL(journal->head, expectedJournalHead);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1281,7 +1281,7 @@ static void recordJournalHead(struct vdo_completion *completion)
   CU_ASSERT_EQUAL(vdo_get_callback_thread_id(),
 		  journal->slab->allocator->thread_id);
   runLocked(recordHead, NULL);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1314,7 +1314,7 @@ static void prepareForJournalReapWaiting(void)
 static void saveDirtyReferenceBlocksAction(struct vdo_completion *completion)
 {
   vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

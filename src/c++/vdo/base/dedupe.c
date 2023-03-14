@@ -1261,7 +1261,7 @@ static void start_verifying(struct hash_lock *lock, struct data_vio *agent)
 	}
 
 	set_data_vio_bio_zone_callback(agent, process_vio_io);
-	vdo_invoke_completion_callback_with_priority(&vio->completion, BIO_Q_VERIFY_PRIORITY);
+	vdo_launch_completion_with_priority(&vio->completion, BIO_Q_VERIFY_PRIORITY);
 }
 
 /**
@@ -2458,7 +2458,7 @@ static void timeout_index_operations(struct timer_list *t)
 	struct hash_zone *zone = from_timer(zone, t, timer);
 
 	if (change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING, DEDUPE_QUERY_TIMER_FIRED))
-		vdo_invoke_completion_callback(&zone->completion);
+		vdo_launch_completion(&zone->completion);
 }
 
 static int __must_check
@@ -2712,7 +2712,7 @@ static void launch_dedupe_state_change(struct hash_zones *zones)
 
 	if (zones->create_flag || (zones->index_state != zones->index_target)) {
 		zones->changing = true;
-		vdo_invoke_completion_callback(&zones->completion);
+		vdo_launch_completion(&zones->completion);
 		return;
 	}
 
@@ -2748,7 +2748,7 @@ static void resume_index(void *context, struct vdo_completion *parent)
 	launch_dedupe_state_change(zones);
 	spin_unlock(&zones->lock);
 
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /**
@@ -2761,7 +2761,7 @@ resume_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion 
 {
 	struct hash_zone *zone = &(((struct hash_zones *) context)->zones[zone_number]);
 
-	vdo_finish_completion(parent, vdo_resume_if_quiescent(&zone->state));
+	vdo_fail_completion(parent, vdo_resume_if_quiescent(&zone->state));
 }
 
 /**
@@ -2772,7 +2772,7 @@ resume_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion 
 void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *parent)
 {
 	if (vdo_is_read_only(parent->vdo)) {
-		vdo_invoke_completion_callback(parent);
+		vdo_launch_completion(parent);
 		return;
 	}
 

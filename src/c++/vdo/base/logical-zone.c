@@ -207,7 +207,7 @@ resume_logical_zone(void *context, zone_count_t zone_number, struct vdo_completi
 {
 	struct logical_zone *zone = &(((struct logical_zones *) context)->zones[zone_number]);
 
-	vdo_finish_completion(parent, vdo_resume_if_quiescent(&zone->state));
+	vdo_fail_completion(parent, vdo_resume_if_quiescent(&zone->state));
 }
 
 /**

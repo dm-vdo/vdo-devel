@@ -367,7 +367,7 @@ void handle_data_vio_error(struct vdo_completion *completion);
 
 static inline void continue_data_vio(struct data_vio *data_vio)
 {
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 /**
@@ -413,7 +413,7 @@ static inline void
 launch_data_vio_hash_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_hash_zone_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
@@ -443,7 +443,7 @@ static inline void
 launch_data_vio_logical_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_logical_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
@@ -475,7 +475,7 @@ static inline void
 launch_data_vio_allocated_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_allocated_zone_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
@@ -507,7 +507,7 @@ static inline void
 launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_duplicate_zone_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
@@ -577,7 +577,7 @@ static inline void
 launch_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_journal_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
@@ -606,7 +606,7 @@ static inline void set_data_vio_packer_callback(struct data_vio *data_vio, vdo_a
 static inline void launch_data_vio_packer_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_packer_callback(data_vio, callback);
-	vdo_invoke_completion_callback(&data_vio->vio.completion);
+	vdo_launch_completion(&data_vio->vio.completion);
 }
 
 static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
@@ -638,7 +638,7 @@ launch_data_vio_cpu_callback(struct data_vio *data_vio,
 			     enum vdo_completion_priority priority)
 {
 	set_data_vio_cpu_callback(data_vio, callback);
-	vdo_invoke_completion_callback_with_priority(&data_vio->vio.completion, priority);
+	vdo_launch_completion_with_priority(&data_vio->vio.completion, priority);
 }
 
 static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
@@ -656,8 +656,7 @@ static inline void
 launch_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
 {
 	set_data_vio_bio_zone_callback(data_vio, callback);
-	vdo_invoke_completion_callback_with_priority(&data_vio->vio.completion,
-						     BIO_Q_DATA_PRIORITY);
+	vdo_launch_completion_with_priority(&data_vio->vio.completion, BIO_Q_DATA_PRIORITY);
 }
 
 /**
@@ -677,7 +676,7 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio, vdo_action *callback
 	}
 
 	vdo_set_completion_callback(completion, callback, vdo->thread_config->bio_ack_thread);
-	vdo_invoke_completion_callback_with_priority(completion, BIO_ACK_Q_ACK_PRIORITY);
+	vdo_launch_completion_with_priority(completion, BIO_ACK_Q_ACK_PRIORITY);
 }
 
 void data_vio_allocate_data_block(struct data_vio *data_vio,

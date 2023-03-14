@@ -115,7 +115,7 @@ static void checkBins(struct vdo_completion *completion)
     CU_ASSERT_EQUAL(bin->slots_used, expectedSlotsUsed);
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -266,7 +266,7 @@ static void checkFullestBin(struct vdo_completion *completion)
     expected = 0;
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

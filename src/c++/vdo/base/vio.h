@@ -180,7 +180,7 @@ static inline void continue_vio(struct vio *vio, int result)
 	if (unlikely(result != VDO_SUCCESS))
 		vdo_set_completion_result(&vio->completion, result);
 
-	vdo_enqueue_completion(&vio->completion);
+	vdo_enqueue_completion(&vio->completion, VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
 void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);

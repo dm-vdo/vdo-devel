@@ -94,10 +94,10 @@ static void releaseNotification(struct vdo_completion *completion)
   struct vdo_completion *notificationCompletion = notification;
   notification = NULL;
   CU_ASSERT(vdo_is_state_quiescing(&journal->state));
-  vdo_run_completion_callback(notificationCompletion);
+  vdo_run_completion(notificationCompletion);
   CU_ASSERT(vdo_is_state_quiescent(&journal->state));
   checkReapHeads(false);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -119,7 +119,7 @@ static bool failOnNotification(struct vdo_completion *completion)
 static void assertReaped(struct vdo_completion *completion)
 {
   checkReapHeads(true);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

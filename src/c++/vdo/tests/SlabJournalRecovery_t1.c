@@ -181,7 +181,7 @@ static void releaseVIOPoolEntryAction(struct vdo_completion *completion)
 {
   return_vio_to_pool(slabJournal->slab->allocator->vio_pool, pooled);
   pooled = NULL;
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -244,7 +244,7 @@ static void checkForRecoveryBlocked(struct vdo_completion *completion)
     signalState(&recoveryBlocked);
   }
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

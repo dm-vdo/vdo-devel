@@ -1385,7 +1385,7 @@ static int perform_admin_operation(struct vdo *vdo,
 	admin->phase = starting_phase;
 	reinit_completion(&admin->callback_sync);
 	vdo_reset_completion(&admin->completion);
-	vdo_invoke_completion_callback(prepare_admin_completion(vdo, callback, error_handler));
+	vdo_launch_completion(prepare_admin_completion(vdo, callback, error_handler));
 
 	/*
 	 * Using the "interruptible" interface means that Linux will not log a message when we wait
@@ -2460,11 +2460,8 @@ static void handle_load_error(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 
-	if (vdo_get_callback_thread_id() != vdo->thread_config->admin_thread) {
-		completion->callback_thread_id = vdo->thread_config->admin_thread;
-		vdo_invoke_completion_callback(completion);
+	if (vdo_requeue_completion_if_needed(completion, vdo->thread_config->admin_thread))
 		return;
-	}
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state) &&
 	    (vdo->admin.phase == LOAD_PHASE_MAKE_DIRTY)) {
@@ -2502,7 +2499,7 @@ static void write_super_block_for_resume(struct vdo_completion *completion)
 	case VDO_RECOVERING:
 	case VDO_REBUILD_FOR_UPGRADE:
 		/* No need to write the super block in these cases */
-		vdo_invoke_completion_callback(completion);
+		vdo_launch_completion(completion);
 		return;
 
 	case VDO_REPLAYING:

@@ -72,7 +72,7 @@ static void initializeRecoveryModeT2(void)
 static void checkVDORecovery(struct vdo_completion *completion)
 {
   stillInRecovery = vdo_in_recovery_mode(vdo);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

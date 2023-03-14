@@ -129,7 +129,7 @@ static void doAdjustment(struct vdo_completion *completion)
     CU_FAIL("Non-journal zone adjustment is not of magnitude 1");
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

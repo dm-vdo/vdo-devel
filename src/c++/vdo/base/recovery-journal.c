@@ -185,7 +185,7 @@ void vdo_release_recovery_journal_block_reference(struct recovery_journal *journ
 	if (prior_state != LOCK_COUNTER_STATE_NOT_NOTIFYING)
 		return;
 
-	vdo_invoke_completion_callback(&journal->lock_counter.completion);
+	vdo_launch_completion(&journal->lock_counter.completion);
 }
 
 static inline struct recovery_journal_block * __must_check
@@ -381,7 +381,7 @@ static void
 notify_recovery_journal_of_read_only_mode(void *listener, struct vdo_completion *parent)
 {
 	check_for_drain_complete(listener);
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /**
@@ -626,10 +626,11 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
 		return result;
 
 	vdo_initialize_completion(&counter->completion, vdo, VDO_LOCK_COUNTER_COMPLETION);
-	vdo_set_completion_callback_with_parent(&counter->completion,
-						reap_recovery_journal_callback,
-						config->journal_thread,
-						journal);
+	vdo_prepare_completion(&counter->completion,
+			       reap_recovery_journal_callback,
+			       reap_recovery_journal_callback,
+			       config->journal_thread,
+			       journal);
 	counter->logical_zones = config->logical_zone_count;
 	counter->physical_zones = config->physical_zone_count;
 	counter->locks = journal->size;
@@ -1243,7 +1244,7 @@ static void continue_committed_waiter(struct waiter *waiter, void *context)
 		continue_data_vio(data_vio);
 
 	if (has_decrement)
-		vdo_invoke_completion_callback(&data_vio->decrement_completion);
+		vdo_launch_completion(&data_vio->decrement_completion);
 }
 
 /**
@@ -1733,7 +1734,7 @@ void vdo_resume_recovery_journal(struct recovery_journal *journal, struct vdo_co
 		/* We might have missed a notification. */
 		reap_recovery_journal(journal);
 
-	vdo_invoke_completion_callback(parent);
+	vdo_launch_completion(parent);
 }
 
 /**

@@ -26,7 +26,7 @@ static void slabSummaryUpdated(struct waiter *waiter, void *context)
 {
   SlabSummaryClient *client = waiterAsSlabSummaryClient(waiter);
   int                result = *((int *) context);
-  vdo_finish_completion(&client->completion, result);
+  vdo_fail_completion(&client->completion, result);
 }
 
 /**********************************************************************/
@@ -105,7 +105,7 @@ static void drainSlabSummaryAction(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = completion->parent;
   if (checkQuiescence && vdo_is_state_quiescent(&allocator->summary_state)) {
-    vdo_complete_completion(completion);
+    vdo_finish_completion(completion);
     return;
   }
 

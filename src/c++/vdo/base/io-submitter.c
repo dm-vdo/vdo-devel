@@ -390,7 +390,7 @@ void vdo_submit_metadata_io(struct vio *vio,
 	}
 
 	vdo_set_completion_callback(completion, process_vio_io, get_vio_bio_zone_thread_id(vio));
-	vdo_invoke_completion_callback_with_priority(completion, get_metadata_priority(vio));
+	vdo_launch_completion_with_priority(completion, get_metadata_priority(vio));
 }
 
 /**

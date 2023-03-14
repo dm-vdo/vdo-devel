@@ -152,7 +152,7 @@ static void advanceEra(struct vdo_completion *completion)
   vdo_advance_block_map_era(blockMap,
                             blockMap->current_era_point
                             + config.block_map_maximum_age);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

@@ -208,7 +208,7 @@ static void releaseRecoveryJournalLockAction(struct vdo_completion *completion)
 {
   sequence_number_t lock = slabJournal->recovery_lock;
   CU_ASSERT_TRUE(vdo_release_recovery_journal_lock(slabJournal, lock));
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -230,14 +230,14 @@ static void checkSlabJournalTail(struct vdo_completion *completion)
 static void assertSlabJournalClean(struct vdo_completion *completion)
 {
   CU_ASSERT_FALSE(vdo_is_slab_journal_dirty(slabJournal));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/
 static void assertSlabJournalDirty(struct vdo_completion *completion)
 {
   CU_ASSERT(vdo_is_slab_journal_dirty(slabJournal));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

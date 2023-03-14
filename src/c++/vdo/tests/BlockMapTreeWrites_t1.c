@@ -215,7 +215,7 @@ static void recordFirstWaiterPBN(struct vdo_completion *completion)
     = container_of(get_first_waiter(&zone->flush_waiters),
                    struct tree_page, waiter);
   pbn = vdo_get_block_map_page_pbn(vdo_as_block_map_page(treePage));
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -331,7 +331,7 @@ static void skipGenerations(struct vdo_completion *completion)
 {
   CU_ASSERT_EQUAL(zone->generation, 1);
   zone->generation = 254;
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

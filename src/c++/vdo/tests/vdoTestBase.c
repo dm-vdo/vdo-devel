@@ -403,7 +403,7 @@ void checkVDOState(enum vdo_state expectedState)
 static void assertReadOnlyAction(struct vdo_completion *completion)
 {
   CU_ASSERT(vdo_is_read_only(vdo));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/
@@ -453,7 +453,8 @@ static void checkRecoveryDone(struct vdo_completion *completion)
   if (!vdo_in_recovery_mode(vdo)) {
     inRecovery = false;
   }
-  vdo_finish_completion(completion, VDO_SUCCESS);
+
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/
@@ -472,7 +473,7 @@ void waitForRecoveryDone(void)
 static void enableCompressionAction(struct vdo_completion *completion)
 {
   vdo_set_compressing(vdo, true);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -481,7 +482,7 @@ static void enableCompressionAction(struct vdo_completion *completion)
 static void disableCompressionAction(struct vdo_completion *completion)
 {
   vdo_set_compressing(vdo, false);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

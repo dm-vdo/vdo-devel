@@ -162,7 +162,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber, int result)
 
 	if (scrubber->high_priority_only) {
 		scrubber->high_priority_only = false;
-		vdo_finish_completion(UDS_FORGET(scrubber->vio.completion.parent), result);
+		vdo_fail_completion(UDS_FORGET(scrubber->vio.completion.parent), result);
 	} else if (done && (atomic_add_return(-1, &allocator->depot->zones_to_scrub) == 0)) {
 		/* All of our slabs were scrubbed, and we're the last allocator to finish. */
 		enum vdo_state prior_state =
@@ -817,7 +817,7 @@ static void notify_block_allocator_of_read_only_mode(void *listener, struct vdo_
 	while (iterator.next != NULL)
 		vdo_abort_slab_journal_waiters(next_slab(&iterator)->journal);
 
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 
@@ -1207,7 +1207,7 @@ static void copy_callback(int read_err, unsigned long write_err, void *context)
 	int result = (((read_err == 0) && (write_err == 0)) ? VDO_SUCCESS : -EIO);
 
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(&allocator->completion, result);
+		vdo_fail_completion(&allocator->completion, result);
 		return;
 	}
 
@@ -1224,7 +1224,7 @@ static void erase_next_slab_journal(struct block_allocator *allocator)
 	block_count_t blocks = depot->slab_config.slab_journal_blocks;
 
 	if (allocator->slabs_to_erase.next == NULL) {
-		vdo_finish_completion(&allocator->completion, VDO_SUCCESS);
+		vdo_finish_completion(&allocator->completion);
 		return;
 	}
 
@@ -1256,7 +1256,7 @@ static void initiate_load(struct admin_state *state)
 						   NULL);
 		allocator->eraser = dm_kcopyd_client_create(NULL);
 		if (allocator->eraser == NULL) {
-			vdo_finish_completion(&allocator->completion, -ENOMEM);
+			vdo_fail_completion(&allocator->completion, -ENOMEM);
 			return;
 		}
 		allocator->slabs_to_erase = get_slab_iterator(allocator);
@@ -1536,7 +1536,7 @@ static void release_tail_block_locks(void *context,
 			break;
 	}
 
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /**
@@ -1549,7 +1549,7 @@ static void prepare_for_tail_block_commit(void *context, struct vdo_completion *
 	struct slab_depot *depot = context;
 
 	depot->active_release_request = depot->new_release_request;
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /**
@@ -2113,7 +2113,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 
 	free_vio(as_vio(UDS_FORGET(completion)));
-	vdo_finish_completion(parent, result);
+	vdo_fail_completion(parent, result);
 }
 
 static void handle_combining_error(struct vdo_completion *completion)
@@ -2217,7 +2217,7 @@ EXTERNAL_STATIC void load_slab_summary(void *context, struct vdo_completion *par
 						 (char *) depot->summary_entries,
 						 &vio);
 	if (result != VDO_SUCCESS)
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 
 	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
 	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
@@ -2279,7 +2279,7 @@ static void prepare_to_allocate(void *context,
 
 	result = vdo_prepare_slabs_for_allocation(allocator);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -2399,7 +2399,7 @@ static void register_new_slabs(void *context,
 			register_slab_with_allocator(allocator, slab);
 	}
 
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /**
@@ -2429,7 +2429,7 @@ EXTERNAL_STATIC void stop_scrubbing(struct block_allocator *allocator)
 	struct slab_scrubber *scrubber = &allocator->scrubber;
 
 	if (vdo_is_state_quiescent(&scrubber->admin_state))
-		vdo_complete_completion(&allocator->completion);
+		vdo_finish_completion(&allocator->completion);
 	else
 		vdo_start_draining(&scrubber->admin_state,
 				   VDO_ADMIN_STATE_SUSPENDING,
@@ -2536,18 +2536,18 @@ static void resume_scrubbing(struct block_allocator *allocator)
 	struct slab_scrubber *scrubber = &allocator->scrubber;
 
 	if (!has_slabs_to_scrub(scrubber)) {
-		vdo_complete_completion(&allocator->completion);
+		vdo_finish_completion(&allocator->completion);
 		return;
 	}
 
 	result = vdo_resume_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(&allocator->completion, result);
+		vdo_fail_completion(&allocator->completion, result);
 		return;
 	}
 
 	scrub_next_slab(scrubber);
-	vdo_complete_completion(&allocator->completion);
+	vdo_finish_completion(&allocator->completion);
 }
 
 static void do_resume_step(struct vdo_completion *completion)
@@ -2561,8 +2561,8 @@ static void do_resume_step(struct vdo_completion *completion)
 					   NULL);
 	switch (--allocator->drain_step) {
 	case VDO_DRAIN_ALLOCATOR_STEP_SUMMARY:
-		vdo_finish_completion(completion,
-				      vdo_resume_if_quiescent(&allocator->summary_state));
+		vdo_fail_completion(completion,
+				    vdo_resume_if_quiescent(&allocator->summary_state));
 		return;
 
 	case VDO_DRAIN_ALLOCATOR_STEP_SLABS:
@@ -2651,7 +2651,7 @@ static void scrub_all_unrecovered_slabs(void *context,
 	struct slab_depot *depot = context;
 
 	scrub_slabs(&depot->allocators[zone_number], NULL);
-	vdo_invoke_completion_callback(parent);
+	vdo_launch_completion(parent);
 }
 
 /**

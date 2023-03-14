@@ -31,7 +31,7 @@ static bool reachedPacker;
 static void flushAction(struct vdo_completion *completion)
 {
   vdo_flush_packer(vdo->packer);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

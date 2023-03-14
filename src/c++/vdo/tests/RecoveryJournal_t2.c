@@ -362,7 +362,7 @@ static void checkReplayingAction(struct vdo_completion *completion)
     setStartStopExpectation(UDS_BAD_STATE);
   }
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

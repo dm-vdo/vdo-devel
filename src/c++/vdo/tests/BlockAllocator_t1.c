@@ -392,7 +392,7 @@ static void reallocateEveryThird(block_count_t blockCount)
 static void prepareResizeAction(struct vdo_completion *completion)
 {
   VDO_ASSERT_SUCCESS(vdo_prepare_to_grow_slab_depot(depot, size));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

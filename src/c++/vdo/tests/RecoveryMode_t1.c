@@ -230,7 +230,7 @@ static void writeSingleZeroBlock(void)
 static void checkRecoveryMode(struct vdo_completion *completion)
 {
   isInRecoveryMode = vdo_in_recovery_mode(vdo);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -251,7 +251,7 @@ static void assertSlabNeedsScrubbing(struct vdo_completion *completion)
 {
   CU_ASSERT_NOT_EQUAL(vdo->depot->slabs[slabToLatch]->status,
                       VDO_SLAB_REBUILT);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -499,7 +499,7 @@ static void checkSlabWaiters(struct vdo_completion *completion)
     setCallbackFinishedHook(NULL);
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -572,7 +572,7 @@ static void checkSlabJournalWaiters(struct vdo_completion *completion)
     setCallbackFinishedHook(NULL);
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -651,7 +651,7 @@ static void checkForSuspending(struct vdo_completion *completion)
     signalState(&scrubberSuspending);
   }
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -660,7 +660,7 @@ static void checkForSuspending(struct vdo_completion *completion)
 static void countUnscrubbedSlabs(struct vdo_completion *completion)
 {
   slabsToScrub = READ_ONCE(scrubber->slab_count);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

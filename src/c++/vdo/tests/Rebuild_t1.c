@@ -236,7 +236,7 @@ static void doAllocateBlock(struct vdo_completion *completion)
   VDO_ASSERT_SUCCESS(vdo_modify_slab_reference_count(vdo_get_slab(depot, pbn),
                                                      NULL,
                                                      &updater));
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/
@@ -253,7 +253,7 @@ static void doDecrementReferenceCount(struct vdo_completion *completion)
   VDO_ASSERT_SUCCESS(vdo_modify_slab_reference_count(vdo_get_slab(depot, pbn),
                                                      NULL,
                                                      &updater));
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

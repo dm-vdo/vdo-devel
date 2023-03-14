@@ -204,7 +204,7 @@ bool vdo_finish_operation(struct admin_state *state, int result)
 	if (!state->starting) {
 		vdo_set_admin_state_code(state, state->next_state);
 		if (state->waiter != NULL)
-			vdo_invoke_completion_callback(UDS_FORGET(state->waiter));
+			vdo_launch_completion(UDS_FORGET(state->waiter));
 	}
 
 	return true;
@@ -330,7 +330,7 @@ bool vdo_start_draining(struct admin_state *state,
 		return false;
 
 	if (code->quiescent) {
-		vdo_invoke_completion_callback(waiter);
+		vdo_launch_completion(waiter);
 		return false;
 	}
 

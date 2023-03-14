@@ -67,7 +67,7 @@ static void borrow(struct vdo_completion *completion)
   // Overwrite the lock structure completely to ensure the pool doesn't
   // use any of it while it's on loan.
   memset(locks[count], 0xff, sizeof(struct pbn_lock));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -87,7 +87,7 @@ static void failBorrow(struct vdo_completion *completion)
   set_exit_on_assertion_failure(true);
   CU_ASSERT_EQUAL(VDO_LOCK_ERROR, result);
   CU_ASSERT_PTR_NULL(lock);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -103,7 +103,7 @@ static void returnLock(struct vdo_completion *completion)
   memcpy(lock, &saved, sizeof(struct pbn_lock));
   lock->holder_count = 1;
   vdo_release_physical_zone_pbn_lock(zone, count, lock);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

@@ -111,7 +111,7 @@ static bool runSaved(struct vdo_completion *completion)
   completion->callback      = actions->callback;
   completion->error_handler = actions->errorHandler;
   UDS_FREE(actions);
-  vdo_run_completion_callback(completion);
+  vdo_run_completion(completion);
 
   if (requeued) {
     return true;

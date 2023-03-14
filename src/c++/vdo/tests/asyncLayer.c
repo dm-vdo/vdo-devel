@@ -508,10 +508,11 @@ void launchAction(vdo_action *action, struct vdo_completion *completion)
                                   __func__,
                                   &wrapper));
   vdo_initialize_completion(wrapper, vdo, VDO_TEST_COMPLETION);
-  vdo_set_completion_callback_with_parent(wrapper,
-                                          requestCallback,
-                                          completion->callback_thread_id,
-                                          completion);
+  vdo_prepare_completion(wrapper,
+                         requestCallback,
+                         requestCallback,
+                         completion->callback_thread_id,
+                         completion);
   reallyEnqueueCompletion(wrapper);
 }
 
@@ -538,8 +539,7 @@ int performAction(vdo_action *action, struct vdo_completion *completion)
 /**********************************************************************/
 void reallyEnqueueCompletion(struct vdo_completion *completion)
 {
-  vdo_enqueue_completion_with_priority(completion,
-                                       (completion->priority | NO_HOOK_FLAG));
+  vdo_enqueue_completion(completion, (completion->priority | NO_HOOK_FLAG));
 }
 
 /**

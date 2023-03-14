@@ -386,7 +386,7 @@ static void launch_flush(struct vdo_flush *flush)
 			       flush_vdo,
 			       completion->vdo->thread_config->packer_thread,
 			       NULL);
-	vdo_enqueue_completion_with_priority(completion, VDO_DEFAULT_Q_FLUSH_PRIORITY);
+	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_FLUSH_PRIORITY);
 }
 
 /**
@@ -537,7 +537,7 @@ static void vdo_complete_flush(struct vdo_flush *flush)
 			       vdo_complete_flush_callback,
 			       select_bio_queue(completion->vdo->flusher),
 			       NULL);
-	vdo_enqueue_completion_with_priority(completion, BIO_Q_FLUSH_PRIORITY);
+	vdo_enqueue_completion(completion, BIO_Q_FLUSH_PRIORITY);
 }
 
 /**

@@ -50,7 +50,7 @@ static void grabVIOs(struct vdo_completion *completion)
     CU_ASSERT_TRUE(gotVIO);
   }
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/
@@ -75,7 +75,7 @@ static void returnVIOPoolEntries(struct vdo_completion *completion)
     return_vio_to_pool(poolAllocator->vio_pool, entry);
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

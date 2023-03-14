@@ -58,7 +58,7 @@ static void doAcquire(struct vdo_completion *wrapperCompletion)
 {
   CustomerWrapper *wrapper = asWrapper(wrapperCompletion);
   acquire_vio_from_pool(wrapper->pool, &wrapper->customer.waiter);
-  vdo_finish_completion(wrapperCompletion, VDO_SUCCESS);
+  vdo_finish_completion(wrapperCompletion);
 }
 
 /**********************************************************************/
@@ -73,7 +73,7 @@ static void doReturnVIO(struct vdo_completion *wrapperCompletion)
 {
   CustomerWrapper *wrapper = asWrapper(wrapperCompletion);
   return_vio_to_pool(wrapper->pool, wrapper->entry);
-  vdo_finish_completion(wrapperCompletion, VDO_SUCCESS);
+  vdo_finish_completion(wrapperCompletion);
 }
 
 /**********************************************************************/

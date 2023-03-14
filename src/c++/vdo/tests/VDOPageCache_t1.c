@@ -154,7 +154,7 @@ static void initializeJournalLocks(struct vdo_completion *completion)
     }
   }
 
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -222,7 +222,7 @@ static void pageAction(struct vdo_completion *completion)
   TestCompletion        *testCompletion = asTestCompletion(completion);
   struct vdo_completion *pageCompletion = &testCompletion->pageCompletion.completion;
   testCompletion->action(pageCompletion);
-  vdo_finish_completion(completion, pageCompletion->result);
+  vdo_fail_completion(completion, pageCompletion->result);
 }
 
 /**
@@ -282,7 +282,7 @@ static void finishGettingPage(struct vdo_completion *completion)
   if (testCompletion->action) {
     testCompletion->action(&testCompletion->completion);
   }
-  vdo_finish_completion(&testCompletion->completion, completion->result);
+  vdo_fail_completion(&testCompletion->completion, completion->result);
 }
 
 /**********************************************************************/
@@ -454,7 +454,7 @@ static bool failMetaWritesHook(struct bio *bio)
 static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 {
   vdo_advance_block_map_era(vdo->block_map, period);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -507,7 +507,7 @@ static void readOnlyModeListener(void *listener __attribute__((unused)),
 {
   readOnly = true;
   signalState(&readOnly);
-  vdo_complete_completion(parent);
+  vdo_finish_completion(parent);
 }
 
 /**********************************************************************/
@@ -665,7 +665,7 @@ static void checkPageAction(struct vdo_completion *completion)
   CU_ASSERT_EQUAL(info->busy, pageCheck.busyCount);
   CU_ASSERT_EQUAL(info->state, pageCheck.state);
   CU_ASSERT_EQUAL(info->write_status, pageCheck.writeStatus);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

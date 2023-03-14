@@ -576,7 +576,7 @@ static bool continue_allocating(struct data_vio *data_vio)
 
 	allocation->zone = zone->next;
 	completion->callback_thread_id = allocation->zone->thread_id;
-	vdo_continue_completion(completion, VDO_SUCCESS);
+	vdo_launch_completion(completion);
 	return true;
 }
 

@@ -159,7 +159,7 @@ static void enterAction(struct vdo_completion *completion)
 {
   vdo_enter_read_only_mode(vdo, VDO_NOT_IMPLEMENTED);
   assertVDOState(VDO_DIRTY);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**

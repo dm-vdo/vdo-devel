@@ -32,7 +32,7 @@ static void dmKcopydCallback(int readResult, unsigned long writeResult, void *co
 {
   struct vdo_completion *completion = context;
   int result = ((readResult == 0) && (writeResult == 0)) ? VDO_SUCCESS : -EIO;
-  vdo_finish_completion(completion, result);
+  vdo_fail_completion(completion, result);
 }
 
 /**********************************************************************/

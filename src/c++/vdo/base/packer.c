@@ -308,11 +308,8 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 	struct allocation *allocation = &agent->allocation;
 	struct data_vio *client, *next;
 
-	if (vdo_get_callback_thread_id() != allocation->zone->thread_id) {
-		completion->callback_thread_id = allocation->zone->thread_id;
-		vdo_continue_completion(completion, VDO_SUCCESS);
+	if (vdo_requeue_completion_if_needed(completion, allocation->zone->thread_id))
 		return;
-	}
 
 	update_vio_error_stats(as_vio(completion),
 			       "Completing compressed write vio for physical block %llu with error",

@@ -201,7 +201,7 @@ static void createLayerAndJournal(void)
 static void recordJournalState(struct vdo_completion *completion)
 {
   journalState = vdo_get_admin_state_code(&journal->state);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -773,7 +773,7 @@ static void *getJournalBlockFromLayer(sequence_number_t sequenceNumber)
 static void checkReaping(struct vdo_completion *completion)
 {
   reaping = journal->reaping;
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1097,7 +1097,7 @@ static void adjustReference(struct vdo_completion *completion)
                                                  zoneTypeToAdjust, 0);
   }
 
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1165,7 +1165,7 @@ static void checkJournalStateAction(struct vdo_completion *completion)
 {
   CU_ASSERT_PTR_EQUAL(VDO_ADMIN_STATE_SAVED,
                       vdo_get_admin_state_code(&journal->state));
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -1198,7 +1198,7 @@ static bool checkPendingBlock(struct waiter *waiter, void *context __attribute__
 static void checkPending(struct vdo_completion *completion)
 {
   dequeue_matching_waiters(&journal->pending_writes, checkPendingBlock, NULL, NULL);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

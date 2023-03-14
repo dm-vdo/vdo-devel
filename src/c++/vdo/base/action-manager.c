@@ -79,7 +79,7 @@ static bool no_default_action(void *context __always_unused)
 static void no_preamble(void *context __always_unused,
 			struct vdo_completion *completion)
 {
-	vdo_complete_completion(completion);
+	vdo_finish_completion(completion);
 }
 
 /* Implements vdo_action_conclusion. */
@@ -153,11 +153,20 @@ static thread_id_t get_acting_zone_thread_id(struct action_manager *manager)
 	return manager->get_zone_thread_id(manager->context, manager->acting_zone);
 }
 
+static void preserve_error(struct vdo_completion *completion)
+{
+	if (completion->parent != NULL)
+		vdo_set_completion_result(completion->parent, completion->result);
+
+	vdo_reset_completion(completion);
+	vdo_run_completion(completion);
+}
+
 static void prepare_for_next_zone(struct action_manager *manager)
 {
 	vdo_prepare_completion_for_requeue(&manager->completion,
 					   apply_to_zone,
-					   vdo_preserve_completion_error_and_continue,
+					   preserve_error,
 					   get_acting_zone_thread_id(manager),
 					   manager->current_action->parent);
 }
@@ -166,7 +175,7 @@ static void prepare_for_conclusion(struct action_manager *manager)
 {
 	vdo_prepare_completion_for_requeue(&manager->completion,
 					   finish_action_callback,
-					   vdo_preserve_completion_error_and_continue,
+					   preserve_error,
 					   manager->initiator_thread_id,
 					   manager->current_action->parent);
 }
@@ -198,7 +207,7 @@ static void handle_preamble_error(struct vdo_completion *completion)
 {
 	/* Skip the zone actions since the preamble failed. */
 	completion->callback = finish_action_callback;
-	vdo_preserve_completion_error_and_continue(completion);
+	preserve_error(completion);
 }
 
 static void launch_current_action(struct action_manager *manager)

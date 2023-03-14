@@ -88,7 +88,8 @@ static void finishWrapping(struct vdo_completion *completion)
     wc->original->parent   = wc->savedParent;
     wc->savedCallback(wc->original);
   }
-  vdo_finish_completion(&wc->completion, wc->original->result);
+
+  vdo_fail_completion(&wc->completion, wc->original->result);
 }
 
 /**
@@ -145,5 +146,5 @@ int performWrappedAction(vdo_action            *action,
  **/
 void finishParentCallback(struct vdo_completion *completion)
 {
-  vdo_finish_completion(completion->parent, completion->result);
+  vdo_fail_completion(completion->parent, completion->result);
 }

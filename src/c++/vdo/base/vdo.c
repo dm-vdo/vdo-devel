@@ -47,6 +47,7 @@
 #include "string-utils.h"
 
 #include "block-map.h"
+#include "completion.h"
 #include "data-vio.h"
 #include "dedupe.h"
 #include "encodings.h"
@@ -991,7 +992,7 @@ static void notify_vdo_of_read_only_mode(void *listener, struct vdo_completion *
 	struct vdo *vdo = listener;
 
 	if (vdo_in_read_only_mode(vdo))
-		vdo_complete_completion(parent);
+		vdo_finish_completion(parent);
 
 	vdo_set_state(vdo, VDO_READ_ONLY_MODE);
 	vdo_save_components(vdo, parent);
@@ -1060,7 +1061,7 @@ void vdo_wait_until_not_entering_read_only_mode(struct vdo_completion *parent)
 		 * A notification was not in progress, and now they are
 		 * disallowed.
 		 */
-		vdo_invoke_completion_callback(parent);
+		vdo_launch_completion(parent);
 		return;
 	}
 }
@@ -1156,7 +1157,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 				       thread_id,
 				       NULL);
 
-	vdo_invoke_completion_callback(completion);
+	vdo_launch_completion(completion);
 }
 
 /**
@@ -1196,7 +1197,7 @@ void vdo_allow_read_only_mode_entry(struct vdo_completion *parent)
 
 	if (notifier->waiter == NULL) {
 		/* We're done */
-		vdo_invoke_completion_callback(parent);
+		vdo_launch_completion(parent);
 		return;
 	}
 
@@ -1324,10 +1325,8 @@ static int perform_synchronous_action(struct vdo *vdo,
 
 	vdo_initialize_completion(&sync.vdo_completion, vdo, VDO_SYNC_COMPLETION);
 	init_completion(&sync.completion);
-	vdo_launch_completion_callback_with_parent(&sync.vdo_completion,
-						   action,
-						   thread_id,
-						   parent);
+	sync.vdo_completion.parent = parent;
+	vdo_launch_completion_callback(&sync.vdo_completion, action, thread_id);
 	wait_for_completion(&sync.completion);
 	return sync.vdo_completion.result;
 }

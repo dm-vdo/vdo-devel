@@ -43,7 +43,7 @@ static void markOpenSlabUnrecovered(struct vdo_completion *completion)
 
   // Add slab to the unrecovered slab list.
   vdo_register_slab_for_scrubbing(currentSlab, false);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**

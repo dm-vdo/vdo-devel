@@ -15,6 +15,7 @@
 
 #include "action-manager.h"
 #include "admin-state.h"
+#include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "encodings.h"
@@ -480,13 +481,13 @@ static void complete_with_page(struct page_info *info, struct vdo_page_completio
 				       get_page_state_name(info->state),
 				       vdo_page_comp->writable ? "present" :
 				       "valid");
-		vdo_finish_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
+		vdo_fail_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
 		return;
 	}
 
 	vdo_page_comp->info = info;
 	vdo_page_comp->ready = true;
-	vdo_finish_completion(&vdo_page_comp->completion, VDO_SUCCESS);
+	vdo_finish_completion(&vdo_page_comp->completion);
 }
 
 /**
@@ -500,7 +501,7 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 {
 	int *result = result_ptr;
 
-	vdo_finish_completion(&page_completion_from_waiter(waiter)->completion, *result);
+	vdo_fail_completion(&page_completion_from_waiter(waiter)->completion, *result);
 }
 
 /**
@@ -1107,7 +1108,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 			vdo_reset_completion(completion);
 			completion->callback = page_is_written_out;
 			completion->error_handler = handle_page_write_error;
-			vdo_finish_completion(completion, VDO_READ_ONLY);
+			vdo_fail_completion(completion, VDO_READ_ONLY);
 			continue;
 		}
 		ADD_ONCE(info->cache->stats.pages_saved, 1);
@@ -1230,7 +1231,7 @@ void vdo_get_page(struct vdo_page_completion *page_completion,
 	completion->requeue = requeue;
 
 	if (page_completion->writable && vdo_is_read_only(cache->zone->block_map->vdo)) {
-		vdo_finish_completion(completion, VDO_READ_ONLY);
+		vdo_fail_completion(completion, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1942,10 +1943,8 @@ static void allocation_failure(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
 
-	if (vdo_get_callback_thread_id() != data_vio->logical.zone->thread_id) {
-		launch_data_vio_logical_callback(data_vio, allocation_failure);
+	if (vdo_requeue_completion_if_needed(completion, data_vio->logical.zone->thread_id))
 		return;
-	}
 
 	abort_lookup(data_vio, completion->result, "allocation");
 }
@@ -2527,7 +2526,7 @@ static void finish_cursor(struct cursor *cursor)
 
 	UDS_FREE(cursors);
 
-	vdo_finish_completion(parent, VDO_SUCCESS);
+	vdo_finish_completion(parent);
 }
 
 static void traverse(struct cursor *cursor);
@@ -2718,7 +2717,7 @@ void vdo_traverse_forest(struct block_map *map,
 				       __func__,
 				       &cursors);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -2827,7 +2826,7 @@ static void prepare_for_era_advance(void *context, struct vdo_completion *parent
 	struct block_map *map = context;
 
 	map->current_era_point = map->pending_era_point;
-	vdo_complete_completion(parent);
+	vdo_finish_completion(parent);
 }
 
 /* Implements vdo_zone_action */
@@ -2840,7 +2839,7 @@ static void advance_block_map_zone_era(void *context,
 
 	update_period(zone->dirty_lists, map->current_era_point);
 	write_expired_elements(zone);
-	vdo_finish_completion(parent, VDO_SUCCESS);
+	vdo_finish_completion(parent);
 }
 
 /*
@@ -3075,7 +3074,7 @@ resume_block_map_zone(void *context, zone_count_t zone_number, struct vdo_comple
 	struct block_map *map = context;
 	struct block_map_zone *zone = &map->zones[zone_number];
 
-	vdo_finish_completion(parent, vdo_resume_if_quiescent(&zone->state));
+	vdo_fail_completion(parent, vdo_resume_if_quiescent(&zone->state));
 }
 
 void vdo_resume_block_map(struct block_map *map, struct vdo_completion *parent)
@@ -3109,7 +3108,7 @@ int vdo_prepare_to_grow_block_map(struct block_map *map, block_count_t new_logic
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
 	replace_forest(context);
-	vdo_complete_completion(completion);
+	vdo_finish_completion(completion);
 }
 
 /* Requires vdo_prepare_to_grow_block_map() to have been previously called. */

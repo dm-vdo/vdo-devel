@@ -537,7 +537,7 @@ static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lb
 	vdo_reset_completion(completion);
 	completion->error_handler = handle_data_vio_error;
 	set_data_vio_logical_callback(data_vio, attempt_logical_block_lock);
-	vdo_invoke_completion_callback_with_priority(completion, VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
+	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
 }
 
 EXTERNAL_STATIC bool is_zero_block(char *block)
@@ -710,8 +710,7 @@ static void schedule_releases(struct data_vio_pool *pool)
 		return;
 
 	pool->completion.requeue = true;
-	vdo_invoke_completion_callback_with_priority(&pool->completion,
-						     CPU_Q_COMPLETE_VIO_PRIORITY);
+	vdo_launch_completion_with_priority(&pool->completion, CPU_Q_COMPLETE_VIO_PRIORITY);
 }
 
 static void reuse_or_release_resources(struct data_vio_pool *pool,

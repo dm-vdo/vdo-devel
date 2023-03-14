@@ -31,7 +31,7 @@ static void advanceBlockMapEraAction(struct vdo_completion *completion)
 {
   vdo_advance_block_map_era(vdo->block_map,
                             vdo->recovery_journal->tail + increment++);
-  vdo_complete_completion(completion);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

@@ -44,7 +44,7 @@ static void runCloseObject(struct vdo_completion *completion)
                          completion->callback_thread_id,
                          NULL);
   (*closeInfo.launcher)(closeInfo.closeContext, &closeCompletion);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**
@@ -56,7 +56,7 @@ static void runCloseObject(struct vdo_completion *completion)
 static void assertCloseStatus(struct vdo_completion *completion)
 {
   CU_ASSERT_EQUAL((*closeInfo.checker)(closeInfo.closeContext), expectClosure);
-  vdo_finish_completion(completion, VDO_SUCCESS);
+  vdo_finish_completion(completion);
 }
 
 /**********************************************************************/

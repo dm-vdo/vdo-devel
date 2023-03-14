@@ -227,7 +227,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	struct vdo_completion *parent = completion->parent;
 
 	UDS_FREE(as_block_map_recovery_completion(UDS_FORGET(completion)));
-	vdo_finish_completion(parent, result);
+	vdo_fail_completion(parent, result);
 }
 
 static int make_recovery_completion(struct vdo *vdo,
@@ -311,7 +311,7 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 			if (recovery->page_completions[i].ready)
 				vdo_release_page_completion(&page_completion->completion);
 		}
-		vdo_complete_completion(&recovery->completion);
+		vdo_finish_completion(&recovery->completion);
 		return true;
 	}
 
@@ -495,12 +495,12 @@ recover_block_map(struct vdo *vdo,
 
 	result = make_recovery_completion(vdo, entry_count, journal_entries, parent, &recovery);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
 	if (is_heap_empty(&recovery->replay_heap)) {
-		vdo_finish_completion(&recovery->completion, VDO_SUCCESS);
+		vdo_finish_completion(&recovery->completion);
 		return;
 	}
 
@@ -803,7 +803,7 @@ static bool __must_check abort_recovery_on_error(int result, struct recovery_com
 	if (result == VDO_SUCCESS)
 		return false;
 
-	vdo_finish_completion(&recovery->completion, result);
+	vdo_fail_completion(&recovery->completion, result);
 	return true;
 }
 
@@ -1114,7 +1114,7 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			result = validate_recovery_journal_entry(vdo, &entry);
 			if (result != VDO_SUCCESS) {
 				vdo_enter_read_only_mode(vdo, result);
-				vdo_finish_completion(completion, result);
+				vdo_fail_completion(completion, result);
 				return;
 			}
 
@@ -1189,7 +1189,7 @@ static bool validate_heads(struct recovery_completion *recovery)
 						    (unsigned long long) recovery->block_map_head,
 						    (unsigned long long) recovery->slab_journal_head,
 						    (unsigned long long) recovery->tail);
-		vdo_finish_completion(&recovery->completion, result);
+		vdo_fail_completion(&recovery->completion, result);
 		return false;
 	}
 
@@ -1238,7 +1238,7 @@ static bool prepare_to_apply_journal_entries(struct recovery_completion *recover
 					       "Recovery journal is in the old format, a read-only rebuild is required.");
 			vdo_enter_read_only_mode(recovery->completion.vdo,
 						 VDO_UNSUPPORTED_VERSION);
-			vdo_finish_completion(&recovery->completion, VDO_READ_ONLY);
+			vdo_fail_completion(&recovery->completion, VDO_READ_ONLY);
 			return true;
 		}
 
@@ -1331,7 +1331,7 @@ static void launch_recovery(struct vdo_completion *parent, char *journal_data)
 	result = UDS_ALLOCATE(1, struct recovery_completion, __func__, &recovery);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(journal_data);
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -1452,7 +1452,7 @@ static bool __must_check abort_rebuild_on_error(int result, struct rebuild_compl
 	if (result == VDO_SUCCESS)
 		return false;
 
-	vdo_finish_completion(&rebuild->completion, result);
+	vdo_fail_completion(&rebuild->completion, result);
 	return true;
 }
 
@@ -2035,7 +2035,7 @@ static void launch_rebuild(struct vdo_completion *parent, char *journal_data)
 				       &rebuild);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(journal_data);
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -2084,7 +2084,7 @@ static void finish_journal_load(struct vdo_completion *completion)
 	free_journal_loader(UDS_FORGET(loader));
 	if (parent->result != VDO_SUCCESS) {
 		UDS_FREE(journal_data);
-		vdo_complete_completion(parent);
+		vdo_finish_completion(parent);
 		return;
 	}
 
@@ -2143,7 +2143,7 @@ void vdo_repair(struct vdo_completion *parent)
 
 	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &ptr);
 	if (result != VDO_SUCCESS) {
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -2154,7 +2154,7 @@ void vdo_repair(struct vdo_completion *parent)
 				       &loader);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(ptr);
-		vdo_finish_completion(parent, result);
+		vdo_fail_completion(parent, result);
 		return;
 	}
 
@@ -2173,7 +2173,7 @@ void vdo_repair(struct vdo_completion *parent)
 		if (result != VDO_SUCCESS) {
 			free_journal_loader(UDS_FORGET(loader));
 			UDS_FREE(ptr);
-			vdo_finish_completion(parent, result);
+			vdo_fail_completion(parent, result);
 			return;
 		}
 

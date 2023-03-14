@@ -232,7 +232,7 @@ static void process_completion(struct simple_work_queue *queue, struct vdo_compl
 		   completion->my_queue) == UDS_SUCCESS)
 		completion->my_queue = NULL;
 
-	vdo_run_completion_callback(completion);
+	vdo_run_completion(completion);
 }
 
 static void service_work_queue(struct simple_work_queue *queue)

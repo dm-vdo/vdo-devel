@@ -136,7 +136,7 @@ static void queueRunner(void *arg)
     }
 
     enum vdo_completion_priority priority = completion->priority;
-    vdo_run_completion_callback(completion);
+    vdo_run_completion(completion);
     runFinishedHook(priority);
   }
 
