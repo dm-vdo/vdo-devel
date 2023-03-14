@@ -21,9 +21,9 @@ use Permabit::Assertions qw(
 );
 use Permabit::Constants qw($GB);
 use Permabit::Utils qw(makeFullPath);
-use Permabit::SupportedVersions qw($SUPPORTED_VERSIONS);
+use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS $SUPPORTED_VERSIONS);
 
-use base qw(Permabit::BlockDevice::VDO::Managed);
+use base qw(Permabit::BlockDevice::VDO::LVMManaged);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -32,14 +32,20 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 #
 our %BLOCKDEVICE_PROPERTIES
   = (
+     # @ple Skip setting up the device on creation
+     setupOnCreation   => 0,
      # @ple The path to the currently installed VDO
-     _currentInstall  => undef,
+     _currentInstall   => undef,
+     # $ple The current VDO scenario being executed
+     _currentScenario  => {},
+     # @ple A hash taken from SUPPORTED_SCENARIOS
+     _scenarioData     => undef,
      # @ple Run the upgrader in verbose mode
-     _upgraderVerbose => 1,
+     _upgraderVerbose  => 1,
      # @ple A hash tracking files for different versions
-     _versions        => {},
+     _versions         => {},
      # @ple A hash taken from SUPPORTED_VERSIONS
-     _versionData     => undef,
+     _versionData      => undef,
     );
 ##
 
@@ -48,7 +54,7 @@ our %BLOCKDEVICE_PROPERTIES
 #
 our %BLOCKDEVICE_INHERITED_PROPERTIES
   = (
-     # @ple initial VDO scenario
+     # @ple The initial VDO scenario
      initialScenario => {},
     );
 ##
@@ -78,18 +84,15 @@ sub _setupVersionData {
 }
 
 ########################################################################
-# @inherit
+# Set the _scenarioData from the key
+#
+# @param scenarioKey  Key into the SUPPORTED_SCENARIOS hash
 ##
-sub setup {
-  my ($self) = assertNumArgs(1, @_);
-  my $scenario = $self->{initialScenario};
-  $scenario->{machine} //= $self->getMachine();
-  $scenario->{version} //= "head";
-  $log->info("Setting up VDO $scenario->{version} on "
-             . $scenario->{machine}->getName());
-  $self->switchToScenario($scenario);
-  $self->SUPER::setup();
-  $self->verifyModuleVersion();
+sub _setupScenarioData {
+  my ($self, $scenarioKey) = assertNumArgs(2, @_);
+
+  assertDefined($SUPPORTED_SCENARIOS->{$scenarioKey});
+  $self->{_scenarioData} = $SUPPORTED_SCENARIOS->{$scenarioKey};
 }
 
 ########################################################################
@@ -276,6 +279,8 @@ sub switchToScenario {
   $self->_installBinaries();
   $self->installModule();
   $self->verifyModuleVersion();
+  $self->{_currentScenario} = $scenario;
+  $self->_setupScenarioData($scenario->{name});
 }
 
 ########################################################################

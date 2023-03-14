@@ -17,7 +17,7 @@ use Permabit::Assertions qw(
 );
 use Permabit::Constants;
 
-use base qw(VDOTest);
+use base qw(VDOTest::UpgradeBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -25,17 +25,13 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES =
   (
-   # @ple Use a VDOUpgrade device
-   deviceType       => "upgrade",
-   # @ple VDO option that did not exist in Oxygen
-   logfile          => undef,
    # @ple The scenario to start with
-   initialScenario  => { version => "head" },
+   initialScenario  => "X86_RHEL9_head",
   );
 ##
 
 # This should be the oldest version currently supported by Upgrade tests.
-my $PRIOR_VERSION = "6.2.3-current";
+my $PRIOR_SCENARIO = "X86_RHEL9_8.2.1-current";
 
 #############################################################################
 ##
@@ -45,8 +41,9 @@ sub _failToDowngrade {
   my $machine = $device->getMachine();
 
   # Install an older VDO.
+  my $scenario = $self->generateScenarioHash($PRIOR_SCENARIO);
   $device->stop();
-  $device->switchToVersion($PRIOR_VERSION);
+  $device->switchToScenario($scenario);
 
   # Start the VDO and expect a failure.
   my $kernLogSize = $machine->getKernLogSize();
@@ -55,7 +52,8 @@ sub _failToDowngrade {
   assertTrue($machine->searchKernLog($kernLogSize, "VDO_UNSUPPORTED_VERSION"));
 
   # Switch back to head for test cleanup.
-  $device->switchToVersion("head");
+  $scenario = $self->generateScenarioHash($self->{initialScenario});
+  $device->switchToScenario($scenario);
 }
 
 #############################################################################
@@ -71,7 +69,7 @@ sub testDowngrade {
 ##
 sub propertiesUpgradeDowngrade {
   my ($self) = assertNumArgs(1, @_);
-  return ( initialScenario  => { version => $PRIOR_VERSION } );
+  return ( initialScenario  => $PRIOR_SCENARIO );
 }
 
 #############################################################################
@@ -92,7 +90,7 @@ sub testUpgradeDowngrade {
 # Test starting with a latest-prior VDO.
 ##
 sub propertiesUpgradeDeviceNotBinaries {
-  return ( initialScenario  => { version => $PRIOR_VERSION } );
+  return ( initialScenario  => $PRIOR_SCENARIO );
 }
 
 #############################################################################

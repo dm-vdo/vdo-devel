@@ -11,6 +11,7 @@ use Carp qw(confess);
 use English qw(-no_match_vars);
 use Log::Log4perl;
 use Permabit::Assertions qw(
+  assertDefined
   assertNumArgs
   assertType
 );
@@ -161,6 +162,20 @@ sub activate {
   # Calling this will enable the device via LVM and add disableLogicalVolume
   # to the list of deactivation steps.
   $self->Permabit::BlockDevice::LVM::activate();
+}
+
+########################################################################
+# @inherit
+##
+sub installModule {
+  my ($self) = assertNumArgs(1, @_);
+
+  assertDefined($self->{binaryDir});
+  if (!defined($self->getModuleSourceDir())) {
+    $self->setModuleSourceDir($self->{binaryDir});
+  }
+
+  $self->Permabit::BlockDevice::VDO::installModule();
 }
 
 ########################################################################

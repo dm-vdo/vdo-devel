@@ -38,20 +38,20 @@ our %PROPERTIES =
 #############################################################################
 # Make a test with a given name and version list.
 #
-# @param  package   The package in which to make the test
-# @param  name      The name of the test
-# @param  versions  The VDO versions the test should go through
+# @param  package    The package in which to make the test
+# @param  name       The name of the test
+# @param  scenarios  The VDO version scenarios the test should go through
 #
 # @return The requested test
 ##
 sub makeTest {
-  my ($package, $name, $versions) = assertNumArgs(3, @_);
+  my ($package, $name, $scenarios) = assertNumArgs(3, @_);
   my $test = $package->make_test_from_coderef(
     \&VDOTest::MigrationBase::_runTest,
     "${package}::${name}"
   );
-  $test->{initialScenario}      = { version => shift(@$versions) };
-  $test->{intermediateVersions} = $versions;
+  $test->{initialScenario}       = shift(@$scenarios);
+  $test->{intermediateScenarios} = $scenarios;
   return $test;
 }
 
@@ -64,17 +64,6 @@ sub doUpgrade {
   my $device = $self->getDevice();
   $device->upgrade($newVersion);
   $device->waitForIndex();
-}
-
-#############################################################################
-# Do an upgrade by swapping out the binaries.
-##
-sub _switchToIntermediateVersion {
-  my ($self, $intermediateVersion) = assertNumArgs(2, @_);
-  my $device = $self->getDevice();
-  $device->stop();
-  $device->switchToScenario({ version => $intermediateVersion });
-  $device->start();
 }
 
 #############################################################################

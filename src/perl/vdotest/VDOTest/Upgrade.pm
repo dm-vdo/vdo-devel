@@ -20,7 +20,7 @@ use Permabit::Assertions qw(
   assertNumArgs
 );
 use Permabit::Constants;
-use Permabit::SupportedVersions qw($SUPPORTED_VERSIONS);
+use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS $SUPPORTED_VERSIONS);
 
 use base qw(VDOTest::UpgradeBase);
 
@@ -38,7 +38,7 @@ our %PROPERTIES =
 ##
 
 # Released versions that support upgrades.
-my $SULFUR_VERSIONS = ["8.1.0-current"];
+my $SULFUR_SCENARIOS = ["8.1.0-current"];
 
 # A list of regexes for upgrades from released versions that do not work.
 my @BAD_UPGRADES = ();
@@ -101,7 +101,7 @@ sub generateUpgradePathsFromVersions {
 # Generate tests from current to current.
 ##
 sub generateHeadPaths {
-  return [ ["head"] ];
+  return [ ["X86_RHEL9_head"] ];
 }
 
 #############################################################################
@@ -110,24 +110,28 @@ sub generateHeadPaths {
 sub suite {
   my ($package) = assertNumArgs(1, @_);
 
-  my $upgradePaths = generateUpgradePathsFromVersions($SULFUR_VERSIONS);
+  my $upgradePaths = generateUpgradePathsFromVersions($SULFUR_SCENARIOS);
   my $headPaths = generateHeadPaths();
   my @allPaths = (@$headPaths, @$upgradePaths);
 
   # Generate the test names here, and store them in a hash so we remove
   # duplicate testcases.
   my %tests;
-  foreach my $versionList (@allPaths) {
-    # Fail immediately if any of the versions are unknown.
-    foreach my $version (@$versionList) {
+  foreach my $scenarioList (@allPaths) {
+    # Fail immediately if any of the scenarios or versions are unknown.
+    foreach my $scenario (@$scenarioList) {
+      assertDefined($SUPPORTED_SCENARIOS->{$scenario},
+                    "'$scenario' must be in SUPPORTED_SCENARIOS to test it.");
+
+      my $version = $SUPPORTED_SCENARIOS->{$scenario}{moduleVersion};
       assertDefined($SUPPORTED_VERSIONS->{$version},
                     "'$version' must be in SUPPORTED_VERSIONS to test it");
     }
 
-    my $name = "test" . join("_To_", @$versionList, "Head");
+    my $name = "test" . join("_To_", @$scenarioList, "Head");
     # Substitute for characters not allowed in test names.
     $name =~ tr/.-/_/;
-    $tests{$name} = $versionList;
+    $tests{$name} = $scenarioList;
   }
 
   my $suite = Test::Unit::TestSuite->empty_new($package);

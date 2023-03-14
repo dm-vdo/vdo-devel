@@ -9,6 +9,7 @@ package testcases::SupportedVersions_t1;
 use strict;
 use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
+use List::Util qw(any);
 use YAML;
 
 use Permabit::Assertions qw(
@@ -22,6 +23,9 @@ use Permabit::Assertions qw(
   assertTrue
 );
 use Permabit::SupportedVersions qw(
+  $SUPPORTED_ARCHITECTURES
+  $SUPPORTED_OSES
+  $SUPPORTED_SCENARIOS
   $SUPPORTED_VERSIONS
   compareVersionNumbers
   getDirectUpgradesToVersion
@@ -83,7 +87,7 @@ sub testHead {
 # Check that all the expected fields are defined, and have sensible values
 # (except for "head", which is special and handled above).
 ##
-sub testSchema {
+sub testVersionSchema {
   my ($self) = assertNumArgs(1, @_);
 
   foreach my $key (sort(keys(%{$SUPPORTED_VERSIONS}))) {
@@ -110,6 +114,27 @@ sub testSchema {
     assertFalse($EVAL_ERROR, "could not load $class for $key: $EVAL_ERROR");
 
     assertFileExists($info{path});
+  }
+}
+
+#############################################################################
+# Check that all the expected fields are defined, and have sensible values.
+##
+sub testScenarioSchema {
+  my ($self) = assertNumArgs(1, @_);
+
+  foreach my $key (sort(keys(%{$SUPPORTED_SCENARIOS}))) {
+    $log->debug("Checking scenario $key");
+    my %info = %{$SUPPORTED_SCENARIOS->{$key}};
+
+    assertTrue(any { $info{rsvpOSClass} eq $_ } @{$SUPPORTED_OSES}, "scenario"
+               . " RSVP OS class $info{rsvpOSClass} does not match a supported"
+               . " OS.");
+    assertTrue(any { $info{arch} eq $_ } @{$SUPPORTED_ARCHITECTURES}, "scenario"
+               . " architecture $info{arch} is not a supported architecture.");
+    assertDefined($SUPPORTED_VERSIONS->{$info{moduleVersion}}, "scenario module"
+                  . " version $info{moduleVersion} must be defined in the"
+                  . " SUPPORTED_VERSIONS table.");
   }
 }
 

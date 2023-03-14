@@ -11,13 +11,17 @@ use English qw(-no_match_vars);
 use Log::Log4perl;
 
 use Permabit::Assertions qw(
+  assertDefined
   assertNENumeric
   assertNumArgs
   assertTrue
 );
-use Permabit::SupportedVersions qw(getDirectUpgradesToVersion);
+use Permabit::SupportedVersions qw(
+  $SUPPORTED_SCENARIOS
+  getDirectUpgradesToVersion
+);
 
-use base qw(VDOTest);
+use base qw(VDOTest::UpgradeBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -29,8 +33,6 @@ our %PROPERTIES =
    auditVDO   => 1,
    # @ple Number of blocks to write
    blockCount => 1000,
-   # @ple Use a VDOUpgrade device
-   deviceType => "upgrade",
   );
 ##
 
@@ -44,15 +46,14 @@ our %PROPERTIES =
 # @return A test in the package.
 ##
 sub generateOneStepTest {
-  my ($package, $startingBuild, $endingBuild) = assertNumArgs(3, @_);
-
+  my ($package, $startingScenario, $endingScenario) = assertNumArgs(3, @_);
   my $name = join('', $package, "::testDirtyUpgrade",
-                  ucfirst($startingBuild), "To", ucfirst($endingBuild));
+                  ucfirst($startingScenario), "To", ucfirst($endingScenario));
   # Remove dots and dashes from the testname, as those are invalid.
   $name =~ s/[.-]/_/g;
   my $test = $package->make_test_from_coderef(\&_runDirtyUpgradeTest, $name);
-  $test->{initialScenario} = { version => $startingBuild };
-  $test->{_upgradeVersion} = $endingBuild;
+  $test->{initialScenario} = $startingScenario;
+  $test->{_upgradeScenario} = $endingScenario;
   return $test;
 }
 
@@ -66,7 +67,17 @@ sub suite {
   # Generate a test of every valid upgrade to head (if this is on the mainline)
   # or to the current version of this branch (if on a release branch).
   foreach my $version (getDirectUpgradesToVersion("head")) {
-    $suite->add_test(generateOneStepTest($package, $version, "head"));
+    # Find the scenario corresponding to this version and add the test
+    my $scenario = undef;
+    foreach my $name (keys(%{$SUPPORTED_SCENARIOS})) {
+      if ($SUPPORTED_SCENARIOS->{$name}{moduleVersion} eq $version) {
+        $scenario = $name;
+        last;
+      }
+    }
+    assertDefined($scenario, "Version '$version' must be associated with a"
+                  . " scenario in SUPPORTED_SCENARIOS in order to be used.");
+    $suite->add_test(generateOneStepTest($package, $scenario, "X86_RHEL9_head"));
   }
 
   return $suite;
@@ -82,11 +93,12 @@ sub _runDirtyUpgradeTest {
   my $data = $self->createSlice(blockCount => $self->{blockCount});
   $data->write(tag => "data", fsync => 1);
 
-  my $device  = $self->getDevice();
+  my $device = $self->getDevice();
   my $machine = $device->getMachine();
+  my $scenario = $self->generateScenarioHash($self->{_upgradeScenario});
   $machine->emergencyRestart();
   $device->runVDOCommand("stop");
-  $device->switchToVersion($self->{_upgradeVersion});
+  $device->switchToScenario($scenario);
 
   # Start the VDO and expect a failure.
   my $kernelCursor = $machine->getKernelJournalCursor();
@@ -96,17 +108,21 @@ sub _runDirtyUpgradeTest {
                                                 "VDO_UNSUPPORTED_VERSION"));
 
   # Switch back to the initial version for test cleanup.
-  $device->switchToScenario($self->{initialScenario});
+  $scenario = $self->generateScenarioHash($self->{initialScenario});
+  $device->switchToScenario($scenario);
 
   # Manually start the VDO with the initial version to ensure it still works.
   $device->recover();
 
   # Verify that this is a direct upgrade that would have worked if not dirty.
   $device->stop();
-  if ($device->needsExplicitUpgrade($self->{_upgradeVersion})) {
-    $device->upgrade($self->{_upgradeVersion});
+  my $upgradeVersion =
+    $SUPPORTED_SCENARIOS->{$self->{_upgradeScenario}}{moduleVersion};
+  if ($device->needsExplicitUpgrade($upgradeVersion)) {
+    $device->upgrade($upgradeVersion);
   } else {
-    $device->switchToVersion($self->{_upgradeVersion});
+    $scenario = $self->generateScenarioHash($self->{_upgradeScenario});
+    $device->switchToScenario($scenario);
   }
   $device->start();
 }

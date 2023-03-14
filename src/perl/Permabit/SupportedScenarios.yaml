@@ -1,0 +1,30 @@
+# This is the list of supported VDO scenarios and associated properties for
+# testing upgrades.
+#
+# $Id: //eng/vdo/src/perl/Permabit/SupportedScenarios.yaml#1 $
+##
+
+X86_RHEL9_head:
+  rsvpOSClass: RHEL9
+  arch: X86_64
+  moduleVersion: head
+
+X86_FEDORA36_head:
+  rsvpOSClass: FEDORA36
+  arch: X86_64
+  moduleVersion: head
+
+X86_RHEL9_8.2.1.3:
+  rsvpOSClass: RHEL9
+  arch: X86_64
+  moduleVersion: 8.2.1.3
+
+X86_RHEL9_8.2.1-current:
+  rsvpOSClass: RHEL9
+  arch: X86_64
+  moduleVersion: 8.2.1-current
+
+X86_RHEL8_6.2.8-current:
+  rsvpOSClass: RHEL8
+  arch: X86_64
+  moduleVersion: 6.2.8-current

@@ -23,14 +23,14 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES =
   (
-   # @ple The intermediate versions to go through
-   intermediateVersions => [],
+   # @ple The intermediate version scenarios to go through
+   intermediateScenarios => [],
    # @ple VDO physical size
-   physicalSize         => 50 * $GB,
+   physicalSize          => 50 * $GB,
    # @ple The scenario to start with
-   initialScenario      => { version => "8.1.0-current" },
+   initialScenario       => "X86_RHEL9_8.2.1-current",
    # @ple VDO slab bit count
-   slabBits             => $SLAB_BITS_TINY,
+   slabBits              => $SLAB_BITS_TINY,
   );
 ##
 
