@@ -494,7 +494,7 @@ static IORequest *waitForVIOWaiting(logical_block_number_t  start,
 static void checkSlabWaiters(struct vdo_completion *completion)
 {
   struct vdo_slab *slab = vdo->depot->slabs[slabToLatch];
-  if (has_waiters(&slab->allocator->scrubber.waiters)) {
+  if (vdo_has_waiters(&slab->allocator->scrubber.waiters)) {
     waiterQueued = true;
     setCallbackFinishedHook(NULL);
   }
@@ -567,7 +567,7 @@ static void testFreeSpaceWait(void)
 static void checkSlabJournalWaiters(struct vdo_completion *completion)
 {
   struct slab_journal *journal = vdo->depot->slabs[slabToLatch]->journal;
-  if (has_waiters(&journal->entry_waiters)) {
+  if (vdo_has_waiters(&journal->entry_waiters)) {
     waiterQueued = true;
     setCallbackFinishedHook(NULL);
   }

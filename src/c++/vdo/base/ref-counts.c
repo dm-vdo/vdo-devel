@@ -240,7 +240,7 @@ bool vdo_are_ref_counts_active(struct ref_counts *ref_counts)
 
 	/* When not suspending or recovering, the ref_counts must be clean. */
 	code = vdo_get_admin_state_code(&ref_counts->slab->state);
-	return (has_waiters(&ref_counts->dirty_blocks) &&
+	return (vdo_has_waiters(&ref_counts->dirty_blocks) &&
 		(code != VDO_ADMIN_STATE_SUSPENDING) &&
 		(code != VDO_ADMIN_STATE_RECOVERING));
 }
@@ -263,7 +263,7 @@ static void dirty_block(struct reference_block *block)
 
 	block->is_dirty = true;
 	if (!block->is_writing)
-		enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
+		vdo_enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
 }
 
 /**
@@ -1086,7 +1086,7 @@ void vdo_reset_reference_counts(struct ref_counts *ref_counts)
 	for (i = 0; i < ref_counts->reference_block_count; i++)
 		ref_counts->blocks[i].allocated_count = 0;
 
-	notify_all_waiters(&ref_counts->dirty_blocks, clear_dirty_reference_blocks, NULL);
+	vdo_notify_all_waiters(&ref_counts->dirty_blocks, clear_dirty_reference_blocks, NULL);
 }
 #endif /* INTERNAL */
 
@@ -1178,7 +1178,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 
 	/* Re-queue the block if it was re-dirtied while it was writing. */
 	if (block->is_dirty) {
-		enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
+		vdo_enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
 		if (vdo_is_state_draining(&ref_counts->slab->state))
 			/* We must be saving, and this block will otherwise not be relaunched. */
 			vdo_save_dirty_reference_blocks(ref_counts);
@@ -1190,7 +1190,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 * Mark the ref_counts as clean in the slab summary if there are no dirty or writing blocks
 	 * and no summary update in progress.
 	 */
-	if (!has_active_io(ref_counts) && !has_waiters(&ref_counts->dirty_blocks))
+	if (!has_active_io(ref_counts) && !vdo_has_waiters(&ref_counts->dirty_blocks))
 		update_slab_summary_as_clean(ref_counts);
 }
 
@@ -1313,7 +1313,9 @@ static void launch_reference_block_write(struct waiter *waiter, void *context)
  */
 EXTERNAL_STATIC void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
 {
-	notify_next_waiter(&ref_counts->dirty_blocks, launch_reference_block_write, ref_counts);
+	vdo_notify_next_waiter(&ref_counts->dirty_blocks,
+			       launch_reference_block_write,
+			       ref_counts);
 }
 
 /**
@@ -1327,7 +1329,7 @@ EXTERNAL_STATIC void vdo_save_oldest_reference_block(struct ref_counts *ref_coun
 void vdo_save_several_reference_blocks(struct ref_counts *ref_counts, size_t flush_divisor)
 {
 	block_count_t written, blocks_to_write;
-	block_count_t dirty_block_count = count_waiters(&ref_counts->dirty_blocks);
+	block_count_t dirty_block_count = vdo_count_waiters(&ref_counts->dirty_blocks);
 
 	if (dirty_block_count == 0)
 		return;
@@ -1348,7 +1350,9 @@ void vdo_save_several_reference_blocks(struct ref_counts *ref_counts, size_t flu
  */
 void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
 {
-	notify_all_waiters(&ref_counts->dirty_blocks, launch_reference_block_write, ref_counts);
+	vdo_notify_all_waiters(&ref_counts->dirty_blocks,
+			       launch_reference_block_write,
+			       ref_counts);
 	vdo_check_if_slab_drained(ref_counts->slab);
 }
 
@@ -1579,7 +1583,7 @@ void vdo_dump_ref_counts(const struct ref_counts *ref_counts)
 		     ref_counts->free_blocks,
 		     ref_counts->block_count,
 		     ref_counts->reference_block_count,
-		     count_waiters(&ref_counts->dirty_blocks),
+		     vdo_count_waiters(&ref_counts->dirty_blocks),
 		     ref_counts->active_count,
 		     (unsigned long long) ref_counts->slab_journal_point.sequence_number,
 		     ref_counts->slab_journal_point.entry_count,

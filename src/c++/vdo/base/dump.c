@@ -151,7 +151,7 @@ void vdo_dump_all(struct vdo *vdo, const char *why)
  */
 static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 {
-	struct waiter *waiter, *first = get_first_waiter(queue);
+	struct waiter *waiter, *first = vdo_get_first_waiter(queue);
 	struct data_vio *data_vio;
 
 	if (first == NULL)

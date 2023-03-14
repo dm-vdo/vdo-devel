@@ -413,7 +413,7 @@ void free_vio_pool(struct vio_pool *pool)
 		return;
 
 	/* Remove all available vios from the object pool. */
-	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
+	ASSERT_LOG_ONLY(!vdo_has_waiters(&pool->waiting),
 			"VIO pool must not have any waiters when being freed");
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
 			"VIO pool must not have %zu busy entries when being freed",
@@ -457,7 +457,7 @@ void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 			"acquire from active vio_pool called from correct thread");
 
 	if (list_empty(&pool->available)) {
-		enqueue_waiter(&pool->waiting, waiter);
+		vdo_enqueue_waiter(&pool->waiting, waiter);
 		return;
 	}
 
@@ -479,8 +479,8 @@ void return_vio_to_pool(struct vio_pool *pool, struct pooled_vio *vio)
 
 	vio->vio.completion.error_handler = NULL;
 	vio->vio.completion.parent = NULL;
-	if (has_waiters(&pool->waiting)) {
-		notify_next_waiter(&pool->waiting, NULL, vio);
+	if (vdo_has_waiters(&pool->waiting)) {
+		vdo_notify_next_waiter(&pool->waiting, NULL, vio);
 		return;
 	}
 

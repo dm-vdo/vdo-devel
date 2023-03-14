@@ -67,7 +67,7 @@ struct waiter {
  *
  * Return: true if the waiter is on some wait_queue.
  */
-static inline bool is_waiting(struct waiter *waiter)
+static inline bool vdo_is_waiting(struct waiter *waiter)
 {
 	return (waiter->next_waiter != NULL);
 }
@@ -76,7 +76,7 @@ static inline bool is_waiting(struct waiter *waiter)
  * initialize_wait_queue() - Initialize a wait queue.
  * @queue: The queue to initialize.
  */
-static inline void initialize_wait_queue(struct wait_queue *queue)
+static inline void vdo_initialize_wait_queue(struct wait_queue *queue)
 {
 	*queue = (struct wait_queue) {
 		.last_waiter = NULL,
@@ -90,27 +90,27 @@ static inline void initialize_wait_queue(struct wait_queue *queue)
  *
  * Return: true if there are any waiters in the queue.
  */
-static inline bool __must_check has_waiters(const struct wait_queue *queue)
+static inline bool __must_check vdo_has_waiters(const struct wait_queue *queue)
 {
 	return (queue->last_waiter != NULL);
 }
 
-void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
+void vdo_enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
 
-void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context);
+void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context);
 
-bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context);
+bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context);
 
-void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue);
+void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue);
 
-struct waiter *get_first_waiter(const struct wait_queue *queue);
+struct waiter *vdo_get_first_waiter(const struct wait_queue *queue);
 
-void dequeue_matching_waiters(struct wait_queue *queue,
-			      waiter_match *match_method,
-			      void *match_context,
-			      struct wait_queue *matched_queue);
+void vdo_dequeue_matching_waiters(struct wait_queue *queue,
+				  waiter_match *match_method,
+				  void *match_context,
+				  struct wait_queue *matched_queue);
 
-struct waiter *dequeue_next_waiter(struct wait_queue *queue);
+struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue);
 
 /**
  * count_waiters() - Count the number of waiters in a wait queue.
@@ -118,12 +118,12 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue);
  *
  * Return: The number of waiters in the queue.
  */
-static inline size_t __must_check count_waiters(const struct wait_queue *queue)
+static inline size_t __must_check vdo_count_waiters(const struct wait_queue *queue)
 {
 	return queue->queue_length;
 }
 
 const struct waiter * __must_check
-get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter);
+vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter);
 
 #endif /* WAIT_QUEUE_H */

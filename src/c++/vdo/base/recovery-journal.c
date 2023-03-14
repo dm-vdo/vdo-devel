@@ -288,7 +288,8 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 	 * has waiters.
 	 */
 	return ((block != NULL) &&
-		(has_waiters(&block->entry_waiters) || has_waiters(&block->commit_waiters)));
+		(vdo_has_waiters(&block->entry_waiters)
+		 || vdo_has_waiters(&block->commit_waiters)));
 }
 
 static void recycle_journal_blocks(struct recovery_journal *journal);
@@ -344,13 +345,13 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		recycle_journal_blocks(journal);
 
 		/* Release any data_vios waiting to be assigned entries. */
-		notify_all_waiters(&journal->entry_waiters, continue_waiter, &result);
+		vdo_notify_all_waiters(&journal->entry_waiters, continue_waiter, &result);
 	}
 
 	if (!vdo_is_state_draining(&journal->state) ||
 	    journal->reaping ||
 	    has_block_waiters(journal) ||
-	    has_waiters(&journal->entry_waiters) ||
+	    vdo_has_waiters(&journal->entry_waiters) ||
 	    !suspend_lock_counter(&journal->lock_counter))
 		return;
 
@@ -736,7 +737,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 
 	INIT_LIST_HEAD(&journal->free_tail_blocks);
 	INIT_LIST_HEAD(&journal->active_tail_blocks);
-	initialize_wait_queue(&journal->pending_writes);
+	vdo_initialize_wait_queue(&journal->pending_writes);
 
 	journal->thread_id = thread_config->journal_thread;
 	journal->partition = partition;
@@ -1091,7 +1092,7 @@ static void
 schedule_block_write(struct recovery_journal *journal, struct recovery_journal_block *block)
 {
 	if (!block->committing)
-		enqueue_waiter(&journal->pending_writes, &block->write_waiter);
+		vdo_enqueue_waiter(&journal->pending_writes, &block->write_waiter);
 	/*
 	 * At the end of adding entries, or discovering this partial block is now full and ready to
 	 * rewrite, we will call write_blocks() and write a whole batch.
@@ -1144,10 +1145,10 @@ static void assign_entry(struct waiter *waiter, void *context)
 	update_usages(journal, data_vio);
 	journal->available_space--;
 
-	if (!has_waiters(&block->entry_waiters))
+	if (!vdo_has_waiters(&block->entry_waiters))
 		journal->events.blocks.started++;
 
-	enqueue_waiter(&block->entry_waiters, &data_vio->waiter);
+	vdo_enqueue_waiter(&block->entry_waiters, &data_vio->waiter);
 	block->entry_count++;
 	block->uncommitted_entry_count++;
 	journal->events.entries.started++;
@@ -1170,10 +1171,10 @@ static void assign_entries(struct recovery_journal *journal)
 		return;
 
 	journal->adding_entries = true;
-	while (has_waiters(&journal->entry_waiters) && prepare_to_assign_entry(journal))
-		notify_next_waiter(&journal->entry_waiters,
-				   assign_entry,
-				   journal->active_block);
+	while (vdo_has_waiters(&journal->entry_waiters) && prepare_to_assign_entry(journal))
+		vdo_notify_next_waiter(&journal->entry_waiters,
+				       assign_entry,
+				       journal->active_block);
 
 	/* Now that we've finished with entries, see if we have a batch of blocks to write. */
 	write_blocks(journal);
@@ -1259,11 +1260,11 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 		if (block->committing)
 			return;
 
-		notify_all_waiters(&block->commit_waiters, continue_committed_waiter, journal);
+		vdo_notify_all_waiters(&block->commit_waiters, continue_committed_waiter, journal);
 		if (is_read_only(journal))
-			notify_all_waiters(&block->entry_waiters,
-					   continue_committed_waiter,
-					   journal);
+			vdo_notify_all_waiters(&block->entry_waiters,
+					       continue_committed_waiter,
+					       journal);
 		else if (is_block_dirty(block) || !is_block_full(block))
 			/* Stop at partially-committed or partially-filled blocks. */
 			return;
@@ -1367,9 +1368,9 @@ static void complete_write_endio(struct bio *bio)
  */
 static void add_queued_recovery_entries(struct recovery_journal_block *block)
 {
-	while (has_waiters(&block->entry_waiters)) {
+	while (vdo_has_waiters(&block->entry_waiters)) {
 		struct data_vio *data_vio =
-			waiter_as_data_vio(dequeue_next_waiter(&block->entry_waiters));
+			waiter_as_data_vio(vdo_dequeue_next_waiter(&block->entry_waiters));
 		struct tree_lock *lock = &data_vio->tree_lock;
 		struct packed_recovery_journal_entry *packed_entry;
 		struct recovery_journal_entry new_entry;
@@ -1395,7 +1396,7 @@ static void add_queued_recovery_entries(struct recovery_journal_block *block)
 		data_vio->recovery_sequence_number = block->sequence_number;
 
 		/* Enqueue the data_vio to wait for its entry to commit. */
-		enqueue_waiter(&block->commit_waiters, &data_vio->waiter);
+		vdo_enqueue_waiter(&block->commit_waiters, &data_vio->waiter);
 	}
 }
 
@@ -1413,7 +1414,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	struct packed_journal_header *header = get_block_header(block);
 	physical_block_number_t pbn;
 
-	if (block->committing || !has_waiters(&block->entry_waiters) || is_read_only(journal))
+	if (block->committing || !vdo_has_waiters(&block->entry_waiters) || is_read_only(journal))
 		return;
 
 	result = vdo_translate_to_pbn(journal->partition, block->block_number, &pbn);
@@ -1425,7 +1426,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 		return;
 	}
 
-	block->entries_in_commit = count_waiters(&block->entry_waiters);
+	block->entries_in_commit = vdo_count_waiters(&block->entry_waiters);
 	add_queued_recovery_entries(block);
 
 	journal->pending_write_count += 1;
@@ -1471,7 +1472,7 @@ static void write_blocks(struct recovery_journal *journal)
 		return;
 
 	/* Write all the full blocks. */
-	notify_all_waiters(&journal->pending_writes, write_block, NULL);
+	vdo_notify_all_waiters(&journal->pending_writes, write_block, NULL);
 
 	/*
 	 * Do we need to write the active block? Only if we have no outstanding writes, even after
@@ -1510,7 +1511,7 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct dat
 			"journal lock not held for new entry");
 
 	vdo_advance_journal_point(&journal->append_point, journal->entries_per_block);
-	enqueue_waiter(&journal->entry_waiters, &data_vio->waiter);
+	vdo_enqueue_waiter(&journal->entry_waiters, &data_vio->waiter);
 	assign_entries(journal);
 }
 
@@ -1771,8 +1772,8 @@ static void dump_recovery_block(const struct recovery_journal_block *block)
 		     (unsigned long long) block->sequence_number,
 		     block->entry_count,
 		     (block->committing ? "committing" : "waiting"),
-		     count_waiters(&block->entry_waiters),
-		     count_waiters(&block->commit_waiters));
+		     vdo_count_waiters(&block->entry_waiters),
+		     vdo_count_waiters(&block->commit_waiters));
 }
 
 /**
@@ -1795,7 +1796,7 @@ void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal
 		     (unsigned long long) journal->slab_journal_reap_head,
 		     (unsigned long long) stats.disk_full,
 		     (unsigned long long) stats.slab_journal_commits_requested,
-		     count_waiters(&journal->entry_waiters));
+		     vdo_count_waiters(&journal->entry_waiters));
 	uds_log_info("	entries: started=%llu written=%llu committed=%llu",
 		     (unsigned long long) stats.entries.started,
 		     (unsigned long long) stats.entries.written,

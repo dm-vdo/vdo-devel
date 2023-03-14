@@ -152,7 +152,7 @@ static void uninitialize_scrubber_vio(struct slab_scrubber *scrubber)
  */
 static void finish_scrubbing(struct slab_scrubber *scrubber, int result)
 {
-	bool notify = has_waiters(&scrubber->waiters);
+	bool notify = vdo_has_waiters(&scrubber->waiters);
 	bool done = !has_slabs_to_scrub(scrubber);
 	struct block_allocator *allocator =
 		container_of(scrubber, struct block_allocator, scrubber);
@@ -197,7 +197,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber, int result)
 	 * Fortunately if there were waiters, we can't have been freed yet.
 	 */
 	if (notify)
-		notify_all_waiters(&scrubber->waiters, NULL, NULL);
+		vdo_notify_all_waiters(&scrubber->waiters, NULL, NULL);
 }
 
 static void scrub_next_slab(struct slab_scrubber *scrubber);
@@ -431,7 +431,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	 * Note: this notify call is always safe only because scrubbing can only be started when
 	 * the VDO is quiescent.
 	 */
-	notify_all_waiters(&scrubber->waiters, NULL, NULL);
+	vdo_notify_all_waiters(&scrubber->waiters, NULL, NULL);
 
 	if (vdo_is_read_only(completion->vdo)) {
 		finish_scrubbing(scrubber, VDO_READ_ONLY);
@@ -541,7 +541,7 @@ static void notify_summary_waiters(struct block_allocator *allocator, struct wai
 {
 	int result = (vdo_is_read_only(allocator->depot->vdo) ? VDO_READ_ONLY : VDO_SUCCESS);
 
-	notify_all_waiters(queue, NULL, &result);
+	vdo_notify_all_waiters(queue, NULL, &result);
 }
 
 static void launch_write(struct slab_summary_block *summary_block);
@@ -556,7 +556,7 @@ static void finish_updating_slab_summary_block(struct slab_summary_block *block)
 	notify_summary_waiters(block->allocator, &block->current_update_waiters);
 	block->writing = false;
 	block->allocator->summary_write_count--;
-	if (has_waiters(&block->next_update_waiters))
+	if (vdo_has_waiters(&block->next_update_waiters))
 		launch_write(block);
 	else
 		check_summary_drain_complete(block->allocator);
@@ -611,7 +611,7 @@ static void launch_write(struct slab_summary_block *block)
 		return;
 
 	allocator->summary_write_count++;
-	transfer_all_waiters(&block->next_update_waiters, &block->current_update_waiters);
+	vdo_transfer_all_waiters(&block->next_update_waiters, &block->current_update_waiters);
 	block->writing = true;
 
 	if (vdo_is_read_only(depot->vdo)) {
@@ -677,7 +677,7 @@ void vdo_update_slab_summary_entry(struct vdo_slab *slab,
 		.is_dirty = !is_clean,
 		.fullness_hint = compute_fullness_hint(allocator->depot, free_blocks),
 	};
-	enqueue_waiter(&block->next_update_waiters, waiter);
+	vdo_enqueue_waiter(&block->next_update_waiters, waiter);
 	launch_write(block);
 }
 
@@ -1001,7 +1001,7 @@ int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator, struct wait
 	if (vdo_is_state_quiescent(&allocator->scrubber.admin_state))
 		return VDO_NO_SPACE;
 
-	enqueue_waiter(&allocator->scrubber.waiters, waiter);
+	vdo_enqueue_waiter(&allocator->scrubber.waiters, waiter);
 	return VDO_SUCCESS;
 }
 
@@ -1422,7 +1422,7 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 
 	uds_log_info("slab_scrubber slab_count %u waiters %zu %s%s",
 		     READ_ONCE(scrubber->slab_count),
-		     count_waiters(&scrubber->waiters),
+		     vdo_count_waiters(&scrubber->waiters),
 		     vdo_get_admin_state_code(&scrubber->admin_state)->name,
 		     scrubber->high_priority_only ? ", high_priority_only " : "");
 }

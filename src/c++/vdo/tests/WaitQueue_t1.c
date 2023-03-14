@@ -64,18 +64,18 @@ static void basicTest(void)
   struct waiter waiters[5];
   memset(waiters, 0, sizeof(waiters));
 
-  CU_ASSERT_FALSE(has_waiters(&queue));
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
+  CU_ASSERT_FALSE(vdo_has_waiters(&queue));
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
 
-  enqueue_waiter(&queue, &waiters[0]);
-  CU_ASSERT_TRUE(has_waiters(&queue));
-  CU_ASSERT_EQUAL(1, count_waiters(&queue));
+  vdo_enqueue_waiter(&queue, &waiters[0]);
+  CU_ASSERT_TRUE(vdo_has_waiters(&queue));
+  CU_ASSERT_EQUAL(1, vdo_count_waiters(&queue));
 
-  enqueue_waiter(&queue, &waiters[2]);
-  CU_ASSERT_EQUAL(2, count_waiters(&queue));
+  vdo_enqueue_waiter(&queue, &waiters[2]);
+  CU_ASSERT_EQUAL(2, vdo_count_waiters(&queue));
 
-  enqueue_waiter(&queue, &waiters[3]);
-  CU_ASSERT_EQUAL(3, count_waiters(&queue));
+  vdo_enqueue_waiter(&queue, &waiters[3]);
+  CU_ASSERT_EQUAL(3, vdo_count_waiters(&queue));
 
   unsigned int tracks[ARRAY_SIZE(waiters)];
   memset(&tracks, 0, sizeof(tracks));
@@ -87,54 +87,54 @@ static void basicTest(void)
     .seq     = 0,
   };
 
-  CU_ASSERT_TRUE(notify_next_waiter(&queue, trackWaitersCalled, &tracker));
+  CU_ASSERT_TRUE(vdo_notify_next_waiter(&queue, trackWaitersCalled, &tracker));
 
   checkTracker(&tracker, "TFFFF");
 
-  CU_ASSERT_TRUE(has_waiters(&queue));
-  CU_ASSERT_EQUAL(2, count_waiters(&queue));
-  notify_all_waiters(&queue, trackWaitersCalled, &tracker);
+  CU_ASSERT_TRUE(vdo_has_waiters(&queue));
+  CU_ASSERT_EQUAL(2, vdo_count_waiters(&queue));
+  vdo_notify_all_waiters(&queue, trackWaitersCalled, &tracker);
 
   checkTracker(&tracker, "10230");
 
-  CU_ASSERT_FALSE(has_waiters(&queue));
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
+  CU_ASSERT_FALSE(vdo_has_waiters(&queue));
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
   memset(&tracks, 0, sizeof(tracks));
-  notify_all_waiters(&queue, trackWaitersCalled, &tracker);
+  vdo_notify_all_waiters(&queue, trackWaitersCalled, &tracker);
 
   checkTracker(&tracker, "00000");
-  CU_ASSERT_FALSE(notify_next_waiter(&queue, trackWaitersCalled, &tracker));
+  CU_ASSERT_FALSE(vdo_notify_next_waiter(&queue, trackWaitersCalled, &tracker));
 
   struct wait_queue queue2;
   memset(&queue2, 0, sizeof(queue2));
 
   // transfer empty->empty
-  transfer_all_waiters(&queue, &queue2);
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
-  CU_ASSERT_EQUAL(0, count_waiters(&queue2));
+  vdo_transfer_all_waiters(&queue, &queue2);
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue2));
 
   // transfer single->empty
-  enqueue_waiter(&queue, &waiters[0]);
-  transfer_all_waiters(&queue, &queue2);
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
-  CU_ASSERT_EQUAL(1, count_waiters(&queue2));
+  vdo_enqueue_waiter(&queue, &waiters[0]);
+  vdo_transfer_all_waiters(&queue, &queue2);
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
+  CU_ASSERT_EQUAL(1, vdo_count_waiters(&queue2));
 
   // transfer double->single
-  enqueue_waiter(&queue, &waiters[1]);
-  enqueue_waiter(&queue, &waiters[2]);
-  transfer_all_waiters(&queue, &queue2);
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
-  CU_ASSERT_EQUAL(3, count_waiters(&queue2));
+  vdo_enqueue_waiter(&queue, &waiters[1]);
+  vdo_enqueue_waiter(&queue, &waiters[2]);
+  vdo_transfer_all_waiters(&queue, &queue2);
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
+  CU_ASSERT_EQUAL(3, vdo_count_waiters(&queue2));
 
   // transfer empty->triple
-  transfer_all_waiters(&queue, &queue2);
-  CU_ASSERT_EQUAL(0, count_waiters(&queue));
-  CU_ASSERT_EQUAL(3, count_waiters(&queue2));
+  vdo_transfer_all_waiters(&queue, &queue2);
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue));
+  CU_ASSERT_EQUAL(3, vdo_count_waiters(&queue2));
 
   // transfer triple->empty
-  transfer_all_waiters(&queue2, &queue);
-  CU_ASSERT_EQUAL(3, count_waiters(&queue));
-  CU_ASSERT_EQUAL(0, count_waiters(&queue2));
+  vdo_transfer_all_waiters(&queue2, &queue);
+  CU_ASSERT_EQUAL(3, vdo_count_waiters(&queue));
+  CU_ASSERT_EQUAL(0, vdo_count_waiters(&queue2));
 }
 
 /**********************************************************************/
@@ -158,13 +158,13 @@ static void iterationTest(void)
   CU_ASSERT_EQUAL(wp - order, ARRAY_SIZE(order));
 
   for (wp = order; wp < &order[ARRAY_SIZE(order)]; ++wp) {
-    enqueue_waiter(&queue, *wp);
+    vdo_enqueue_waiter(&queue, *wp);
   }
 
   wp = order;
-  for (const struct waiter *w = get_first_waiter(&queue);
+  for (const struct waiter *w = vdo_get_first_waiter(&queue);
        w != NULL;
-       w = get_next_waiter(&queue, w))
+       w = vdo_get_next_waiter(&queue, w))
   {
     CU_ASSERT_TRUE(wp < &order[ARRAY_SIZE(order)]);
     CU_ASSERT_PTR_EQUAL(w, *wp);

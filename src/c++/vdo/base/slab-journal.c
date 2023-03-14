@@ -56,7 +56,7 @@ static inline bool __must_check is_vdo_read_only(struct slab_journal *journal)
 static inline bool __must_check must_make_entries_to_flush(struct slab_journal *journal)
 {
 	return ((journal->slab->status != VDO_SLAB_REBUILDING) &&
-		has_waiters(&journal->entry_waiters));
+		vdo_has_waiters(&journal->entry_waiters));
 }
 
 /**
@@ -295,7 +295,7 @@ void vdo_abort_slab_journal_waiters(struct slab_journal *journal)
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == journal->slab->allocator->thread_id),
 			"%s() called on correct thread",
 			__func__);
-	notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
+	vdo_notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
 	vdo_check_if_slab_drained(journal->slab);
 }
 
@@ -1007,9 +1007,8 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
  */
 static inline bool is_next_entry_a_block_map_increment(struct slab_journal *journal)
 {
-	struct reference_updater *updater = container_of(get_first_waiter(&journal->entry_waiters),
-							 struct reference_updater,
-							 waiter);
+	struct waiter *waiter = vdo_get_first_waiter(&journal->entry_waiters);
+	struct reference_updater *updater = container_of(waiter, struct reference_updater, waiter);
 
 	return (updater->operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING);
 }
@@ -1028,7 +1027,7 @@ static void add_entries(struct slab_journal *journal)
 		return;
 
 	journal->adding_entries = true;
-	while (has_waiters(&journal->entry_waiters)) {
+	while (vdo_has_waiters(&journal->entry_waiters)) {
 		struct slab_journal_block_header *header = &journal->tail_header;
 
 		if (journal->partial_write_in_progress ||
@@ -1113,7 +1112,7 @@ static void add_entries(struct slab_journal *journal)
 				vdo_acquire_dirty_block_locks(journal->slab->reference_counts);
 		}
 
-		notify_next_waiter(&journal->entry_waiters, add_entry_from_waiter, journal);
+		vdo_notify_next_waiter(&journal->entry_waiters, add_entry_from_waiter, journal);
 	}
 
 	journal->adding_entries = false;
@@ -1121,7 +1120,7 @@ static void add_entries(struct slab_journal *journal)
 	/* If there are no waiters, and we are flushing or saving, commit the tail block. */
 	if (vdo_is_state_draining(&journal->slab->state) &&
 	    !vdo_is_state_suspending(&journal->slab->state) &&
-	    !has_waiters(&journal->entry_waiters))
+	    !vdo_has_waiters(&journal->entry_waiters))
 		commit_tail(journal);
 }
 
@@ -1147,7 +1146,7 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 		return;
 	}
 
-	enqueue_waiter(&journal->entry_waiters, &updater->waiter);
+	vdo_enqueue_waiter(&journal->entry_waiters, &updater->waiter);
 	if ((slab->status != VDO_SLAB_REBUILT) && requires_reaping(journal))
 		vdo_register_slab_for_scrubbing(slab, true);
 
@@ -1404,7 +1403,7 @@ void vdo_decode_slab_journal(struct slab_journal *journal)
 void vdo_dump_slab_journal(const struct slab_journal *journal)
 {
 	uds_log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
-		     count_waiters(&journal->entry_waiters),
+		     vdo_count_waiters(&journal->entry_waiters),
 		     uds_bool_to_string(journal->waiting_to_commit),
 		     uds_bool_to_string(journal->updating_slab_summary),
 		     (unsigned long long) journal->head,

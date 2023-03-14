@@ -83,7 +83,7 @@ static void initializeSlabJournalT2(void)
 static void checkForSlabJournalBlocked(struct vdo_completion *completion)
 {
   runSavedCallback(completion);
-  if (has_waiters(&slabJournal->entry_waiters)) {
+  if (vdo_has_waiters(&slabJournal->entry_waiters)) {
     clearCompletionEnqueueHooks();
     signalState(&slabJournalBlocked);
   }
@@ -110,7 +110,7 @@ static bool wrapIfInPhysicalZone(struct vdo_completion *completion)
 static void checkForRecoveryJournalBlocked(struct vdo_completion *completion)
 {
   runSavedCallback(completion);
-  if (has_waiters(&vdo->recovery_journal->entry_waiters)
+  if (vdo_has_waiters(&vdo->recovery_journal->entry_waiters)
       && (vdo->recovery_journal->available_space == 0)) {
     signalState(&recoveryJournalBlocked);
   }

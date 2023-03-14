@@ -210,9 +210,9 @@ static struct vio *advanceJournalUntilFlusherBlocked(void)
 /**********************************************************************/
 static void recordFirstWaiterPBN(struct vdo_completion *completion)
 {
-  CU_ASSERT_EQUAL(count_waiters(&zone->flush_waiters), 3);
+  CU_ASSERT_EQUAL(vdo_count_waiters(&zone->flush_waiters), 3);
   struct tree_page *treePage
-    = container_of(get_first_waiter(&zone->flush_waiters),
+    = container_of(vdo_get_first_waiter(&zone->flush_waiters),
                    struct tree_page, waiter);
   pbn = vdo_get_block_map_page_pbn(vdo_as_block_map_page(treePage));
   vdo_finish_completion(completion);
@@ -340,7 +340,7 @@ static void skipGenerations(struct vdo_completion *completion)
 static void countTreeWaiters(void)
 {
   if (vdo_get_callback_thread_id() == zone->thread_id) {
-    size_t waiters = count_waiters(&zone->flush_waiters);
+    size_t waiters = vdo_count_waiters(&zone->flush_waiters);
     CU_ASSERT_TRUE(waiters <= 4);
     if (waiters == 4) {
       signalState(&fourWaiters);

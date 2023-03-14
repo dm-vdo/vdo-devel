@@ -199,9 +199,10 @@ static void finish_notification(struct vdo_completion *completion)
 
 	assert_on_flusher_thread(flusher, __func__);
 
-	enqueue_waiter(&flusher->pending_flushes, dequeue_next_waiter(&flusher->notifiers));
+	vdo_enqueue_waiter(&flusher->pending_flushes,
+			   vdo_dequeue_next_waiter(&flusher->notifiers));
 	vdo_complete_flushes(flusher);
-	if (has_waiters(&flusher->notifiers))
+	if (vdo_has_waiters(&flusher->notifiers))
 		notify_flush(flusher);
 }
 
@@ -252,7 +253,7 @@ static void increment_generation(struct vdo_completion *completion)
  */
 static void notify_flush(struct flusher *flusher)
 {
-	struct vdo_flush *flush = waiter_as_flush(get_first_waiter(&flusher->notifiers));
+	struct vdo_flush *flush = waiter_as_flush(vdo_get_first_waiter(&flusher->notifiers));
 
 	flusher->notify_generation = flush->flush_generation;
 	flusher->logical_zone_to_notify = &flusher->vdo->logical_zones->zones[0];
@@ -284,8 +285,8 @@ static void flush_vdo(struct vdo_completion *completion)
 	}
 
 	flush->flush_generation = flusher->flush_generation++;
-	may_notify = !has_waiters(&flusher->notifiers);
-	enqueue_waiter(&flusher->notifiers, &flush->waiter);
+	may_notify = !vdo_has_waiters(&flusher->notifiers);
+	vdo_enqueue_waiter(&flusher->notifiers, &flush->waiter);
 	if (may_notify)
 		notify_flush(flusher);
 }
@@ -298,7 +299,7 @@ static void check_for_drain_complete(struct flusher *flusher)
 {
 	bool drained;
 
-	if (!vdo_is_state_draining(&flusher->state) || has_waiters(&flusher->pending_flushes))
+	if (!vdo_is_state_draining(&flusher->state) || vdo_has_waiters(&flusher->pending_flushes))
 		return;
 
 	spin_lock(&flusher->lock);
@@ -324,9 +325,9 @@ void vdo_complete_flushes(struct flusher *flusher)
 		oldest_active_generation =
 			min(oldest_active_generation, READ_ONCE(zone->oldest_active_generation));
 
-	while (has_waiters(&flusher->pending_flushes)) {
+	while (vdo_has_waiters(&flusher->pending_flushes)) {
 		struct vdo_flush *flush =
-			waiter_as_flush(get_first_waiter(&flusher->pending_flushes));
+			waiter_as_flush(vdo_get_first_waiter(&flusher->pending_flushes));
 
 		if (flush->flush_generation >= oldest_active_generation)
 			return;
@@ -336,7 +337,7 @@ void vdo_complete_flushes(struct flusher *flusher)
 				"acknowledged next expected flush, %llu, was: %llu",
 				(unsigned long long) flusher->first_unacknowledged_generation,
 				(unsigned long long) flush->flush_generation);
-		dequeue_next_waiter(&flusher->pending_flushes);
+		vdo_dequeue_next_waiter(&flusher->pending_flushes);
 		vdo_complete_flush(flush);
 		flusher->first_unacknowledged_generation++;
 	}
@@ -355,8 +356,8 @@ void vdo_dump_flusher(const struct flusher *flusher)
 		     (unsigned long long) flusher->flush_generation,
 		     (unsigned long long) flusher->first_unacknowledged_generation);
 	uds_log_info("  notifiers queue is %s; pending_flushes queue is %s",
-		     (has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
-		     (has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));
+		     (vdo_has_waiters(&flusher->notifiers) ? "not empty" : "empty"),
+		     (vdo_has_waiters(&flusher->pending_flushes) ? "not empty" : "empty"));
 }
 
 /**

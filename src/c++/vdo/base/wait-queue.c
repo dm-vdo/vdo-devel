@@ -16,7 +16,7 @@
 #include "status-codes.h"
 
 /**
- * enqueue_waiter() - Add a waiter to the tail end of a wait queue.
+ * vdo_enqueue_waiter() - Add a waiter to the tail end of a wait queue.
  * @queue: The queue to which to add the waiter.
  * @waiter: The waiter to add to the queue.
  *
@@ -24,7 +24,7 @@
  *
  * Return: VDO_SUCCESS or an error code.
  */
-void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
+void vdo_enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 {
 	BUG_ON(waiter->next_waiter != NULL);
 
@@ -46,18 +46,18 @@ void enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
 }
 
 /**
- * transfer_all_waiters() - Transfer all waiters from one wait queue to a second queue, emptying
- *                          the first queue.
+ * vdo_transfer_all_waiters() - Transfer all waiters from one wait queue to a second queue,
+ *                              emptying the first queue.
  * @from_queue: The queue containing the waiters to move.
  * @to_queue: The queue that will receive the waiters from the first queue.
  */
-void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue)
+void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue)
 {
 	/* If the source queue is empty, there's nothing to do. */
-	if (!has_waiters(from_queue))
+	if (!vdo_has_waiters(from_queue))
 		return;
 
-	if (has_waiters(to_queue)) {
+	if (vdo_has_waiters(to_queue)) {
 		/*
 		 * Both queues are non-empty. Splice the two circular lists together by swapping
 		 * the next (head) pointers in the list tails.
@@ -71,11 +71,11 @@ void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_q
 
 	to_queue->last_waiter = from_queue->last_waiter;
 	to_queue->queue_length += from_queue->queue_length;
-	initialize_wait_queue(from_queue);
+	vdo_initialize_wait_queue(from_queue);
 }
 
 /**
- * notify_all_waiters() - Notify all the entries waiting in a queue.
+ * vdo_notify_all_waiters() - Notify all the entries waiting in a queue.
  * @queue: The wait queue containing the waiters to notify.
  * @callback: The function to call to notify each waiter, or NULL to invoke the callback field
  *            registered in each waiter.
@@ -85,7 +85,7 @@ void transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_q
  * function on each of them in turn. The queue is copied and emptied before invoking any callbacks,
  * and only the waiters that were in the queue at the start of the call will be notified.
  */
-void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context)
+void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context)
 {
 	/*
 	 * Copy and empty the queue first, avoiding the possibility of an infinite loop if entries
@@ -93,22 +93,22 @@ void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, voi
 	 */
 	struct wait_queue waiters;
 
-	initialize_wait_queue(&waiters);
-	transfer_all_waiters(queue, &waiters);
+	vdo_initialize_wait_queue(&waiters);
+	vdo_transfer_all_waiters(queue, &waiters);
 
 	/* Drain the copied queue, invoking the callback on every entry. */
-	while (notify_next_waiter(&waiters, callback, context))
+	while (vdo_notify_next_waiter(&waiters, callback, context))
 		/* All the work is done by the loop condition. */
 		;
 }
 
 /**
- * get_first_waiter() - Return the waiter that is at the head end of a wait queue.
+ * vdo_get_first_waiter() - Return the waiter that is at the head end of a wait queue.
  * @queue: The queue from which to get the first waiter.
  *
  * Return: The first (oldest) waiter in the queue, or NULL if the queue is empty.
  */
-struct waiter *get_first_waiter(const struct wait_queue *queue)
+struct waiter *vdo_get_first_waiter(const struct wait_queue *queue)
 {
 	struct waiter *last_waiter = queue->last_waiter;
 
@@ -121,36 +121,38 @@ struct waiter *get_first_waiter(const struct wait_queue *queue)
 }
 
 /**
- * dequeue_matching_waiters() - Remove all waiters that match based on the specified matching
- *                              method and append them to a wait_queue.
+ * vdo_dequeue_matching_waiters() - Remove all waiters that match based on the specified matching
+ *                                  method and append them to a wait_queue.
  * @queue: The wait queue to process.
  * @match_method: The method to determine matching.
  * @match_context: Contextual info for the match method.
  * @matched_queue: A wait_queue to store matches.
  */
-void dequeue_matching_waiters(struct wait_queue *queue,
-			      waiter_match *match_method,
-			      void *match_context,
-			      struct wait_queue *matched_queue)
+void vdo_dequeue_matching_waiters(struct wait_queue *queue,
+				  waiter_match *match_method,
+				  void *match_context,
+				  struct wait_queue *matched_queue)
 {
 	struct wait_queue matched_waiters, iteration_queue;
 
-	initialize_wait_queue(&matched_waiters);
+	vdo_initialize_wait_queue(&matched_waiters);
 
-	initialize_wait_queue(&iteration_queue);
-	transfer_all_waiters(queue, &iteration_queue);
-	while (has_waiters(&iteration_queue)) {
-		struct waiter *waiter = dequeue_next_waiter(&iteration_queue);
+	vdo_initialize_wait_queue(&iteration_queue);
+	vdo_transfer_all_waiters(queue, &iteration_queue);
+	while (vdo_has_waiters(&iteration_queue)) {
+		struct waiter *waiter = vdo_dequeue_next_waiter(&iteration_queue);
 
-		enqueue_waiter((match_method(waiter, match_context) ? &matched_waiters : queue),
-			       waiter);
+		vdo_enqueue_waiter((match_method(waiter, match_context) ?
+				    &matched_waiters :
+				    queue),
+				   waiter);
 	}
 
-	transfer_all_waiters(&matched_waiters, matched_queue);
+	vdo_transfer_all_waiters(&matched_waiters, matched_queue);
 }
 
 /**
- * dequeue_next_waiter() - Remove the first waiter from the head end of a wait queue.
+ * vdo_dequeue_next_waiter() - Remove the first waiter from the head end of a wait queue.
  * @queue: The wait queue from which to remove the first entry.
  *
  * The caller will be responsible for waking the waiter by invoking the correct callback function
@@ -158,9 +160,9 @@ void dequeue_matching_waiters(struct wait_queue *queue,
  *
  * Return: The first (oldest) waiter in the queue, or NULL if the queue is empty.
  */
-struct waiter *dequeue_next_waiter(struct wait_queue *queue)
+struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue)
 {
-	struct waiter *first_waiter = get_first_waiter(queue);
+	struct waiter *first_waiter = vdo_get_first_waiter(queue);
 	struct waiter *last_waiter = queue->last_waiter;
 
 	if (first_waiter == NULL)
@@ -183,7 +185,7 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
 }
 
 /**
- * notify_next_waiter() - Notify the next entry waiting in a queue.
+ * vdo_notify_next_waiter() - Notify the next entry waiting in a queue.
  * @queue: The wait queue containing the waiter to notify.
  * @callback: The function to call to notify the waiter, or NULL to invoke the callback field
  *            registered in the waiter.
@@ -194,9 +196,9 @@ struct waiter *dequeue_next_waiter(struct wait_queue *queue)
  *
  * Return: true if there was a waiter in the queue.
  */
-bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context)
+bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context)
 {
-	struct waiter *waiter = dequeue_next_waiter(queue);
+	struct waiter *waiter = vdo_dequeue_next_waiter(queue);
 
 	if (waiter == NULL)
 		return false;
@@ -208,15 +210,16 @@ bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, voi
 }
 
 /**
- * get_next_waiter() - Get the waiter after this one, for debug iteration.
+ * vdo_get_next_waiter() - Get the waiter after this one, for debug iteration.
  * @queue: The wait queue.
  * @waiter: A waiter.
  *
  * Return: The next waiter, or NULL.
  */
-const struct waiter *get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
+const struct waiter *
+vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
 {
-	struct waiter *first_waiter = get_first_waiter(queue);
+	struct waiter *first_waiter = vdo_get_first_waiter(queue);
 
 	if (waiter == NULL)
 		return first_waiter;
