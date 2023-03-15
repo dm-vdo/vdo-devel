@@ -323,12 +323,12 @@ static void verifyCoding(void)
 
   struct slab_depot_state_2_0 state = vdo_record_slab_depot(depot);
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_uds_buffer(SLAB_DEPOT_COMPONENT_ENCODED_SIZE, &buffer));
+  VDO_ASSERT_SUCCESS(uds_make_buffer(SLAB_DEPOT_COMPONENT_ENCODED_SIZE, &buffer));
   VDO_ASSERT_SUCCESS(encode_slab_depot_state_2_0(state, buffer));
 
   struct slab_depot_state_2_0 decoded;
   VDO_ASSERT_SUCCESS(decode_slab_depot_state_2_0(buffer, &decoded));
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
 
   assertSameStates(state, decoded);
   struct partition *slabSummaryPartition =

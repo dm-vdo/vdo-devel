@@ -92,7 +92,7 @@ static void testBasicBuffer(void)
 {
   // Make a new buffer and check that it has the correct amount of space.
   struct buffer *buffer;
-  UDS_ASSERT_SUCCESS(make_uds_buffer(SIZE, &buffer));
+  UDS_ASSERT_SUCCESS(uds_make_buffer(SIZE, &buffer));
   CU_ASSERT_EQUAL(uds_available_space(buffer), SIZE);
   size_t s;
   for (s = 0; s <= SIZE + 10; s++) {
@@ -119,7 +119,7 @@ static void testBasicBuffer(void)
   // Check that we've emptied the buffer and can compact it
   compactEmptyBuffer(buffer, SIZE);
 
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
 }
 
 /**
@@ -173,7 +173,7 @@ static void checkContents(struct buffer *buffer)
 static void testBufferDataTypes(void)
 {
   struct buffer *buffer;
-  UDS_ASSERT_SUCCESS(make_uds_buffer(SIZE, &buffer));
+  UDS_ASSERT_SUCCESS(uds_make_buffer(SIZE, &buffer));
 
   // Fill the buffer with assorted data
   UDS_ASSERT_SUCCESS(uds_put_boolean(buffer, BOOL1));
@@ -201,18 +201,18 @@ static void testBufferDataTypes(void)
   memcpy(copy, uds_get_buffer_contents(buffer), SIZE);
 
   checkContents(buffer);
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
 
   UDS_ASSERT_SUCCESS(uds_wrap_buffer(copy, SIZE, SIZE, &buffer));
   checkContents(buffer);
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
 }
 
 /**********************************************************************/
 static void testZeroBytes(void)
 {
   struct buffer *buffer;
-  UDS_ASSERT_SUCCESS(make_uds_buffer(SIZE, &buffer));
+  UDS_ASSERT_SUCCESS(uds_make_buffer(SIZE, &buffer));
   fillBufferWithBytes(buffer, SIZE);
   UDS_ASSERT_SUCCESS(uds_skip_forward(buffer, SIZE));
   uds_compact_buffer(buffer);
@@ -227,7 +227,7 @@ static void testZeroBytes(void)
     CU_ASSERT_EQUAL(b, 0);
   }
 
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
 }
 
 /**********************************************************************/

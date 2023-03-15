@@ -149,7 +149,7 @@ static int read_version(struct buffered_reader *reader, struct uds_configuration
 		return uds_log_error_strerror(result, "cannot read index config version");
 
 	if (is_version(INDEX_CONFIG_VERSION_6_02, version_buffer)) {
-		result = make_uds_buffer(sizeof(struct uds_configuration_6_02), &buffer);
+		result = uds_make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -157,15 +157,15 @@ static int read_version(struct buffered_reader *reader, struct uds_configuration
 						   uds_get_buffer_contents(buffer),
 						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
 		uds_clear_buffer(buffer);
 		result = decode_index_config_06_02(buffer, conf);
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 	} else if (is_version(INDEX_CONFIG_VERSION_8_02, version_buffer)) {
-		result = make_uds_buffer(sizeof(struct uds_configuration_8_02), &buffer);
+		result = uds_make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -173,13 +173,13 @@ static int read_version(struct buffered_reader *reader, struct uds_configuration
 						   uds_get_buffer_contents(buffer),
 						   uds_buffer_length(buffer));
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return uds_log_error_strerror(result, "cannot read config data");
 		}
 
 		uds_clear_buffer(buffer);
 		result = decode_index_config_08_02(buffer, conf);
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 	} else {
 		uds_log_error_strerror(result,
 				       "unsupported configuration version: '%.*s'",
@@ -413,13 +413,13 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_uds_buffer(sizeof(struct uds_configuration_6_02), &buffer);
+		result = uds_make_buffer(sizeof(struct uds_configuration_6_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = encode_index_config_06_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	} else {
@@ -429,13 +429,13 @@ int write_config_contents(struct buffered_writer *writer,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = make_uds_buffer(sizeof(struct uds_configuration_8_02), &buffer);
+		result = uds_make_buffer(sizeof(struct uds_configuration_8_02), &buffer);
 		if (result != UDS_SUCCESS)
 			return result;
 
 		result = encode_index_config_08_02(buffer, config);
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
@@ -443,7 +443,7 @@ int write_config_contents(struct buffered_writer *writer,
 	result = write_to_buffered_writer(writer,
 					  uds_get_buffer_contents(buffer),
 					  uds_content_length(buffer));
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	return result;
 }
 

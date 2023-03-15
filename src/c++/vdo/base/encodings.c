@@ -1296,7 +1296,7 @@ int vdo_initialize_super_block_codec(struct super_block_codec *codec)
 {
 	int result;
 
-	result = make_uds_buffer(VDO_MAX_COMPONENT_DATA_SIZE, &codec->component_buffer);
+	result = uds_make_buffer(VDO_MAX_COMPONENT_DATA_SIZE, &codec->component_buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1323,8 +1323,8 @@ int vdo_initialize_super_block_codec(struct super_block_codec *codec)
  */
 void vdo_destroy_super_block_codec(struct super_block_codec *codec)
 {
-	free_uds_buffer(UDS_FORGET(codec->block_buffer));
-	free_uds_buffer(UDS_FORGET(codec->component_buffer));
+	uds_free_buffer(UDS_FORGET(codec->block_buffer));
+	uds_free_buffer(UDS_FORGET(codec->component_buffer));
 	UDS_FREE(codec->encoded_super_block);
 }
 

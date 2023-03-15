@@ -30,8 +30,8 @@ int __must_check uds_wrap_buffer(u8 *bytes,
 				 size_t content_length,
 				 struct buffer **buffer_ptr);
 
-int __must_check make_uds_buffer(size_t length, struct buffer **buffer_ptr);
-void free_uds_buffer(struct buffer *buffer);
+int __must_check uds_make_buffer(size_t length, struct buffer **buffer_ptr);
+void uds_free_buffer(struct buffer *buffer);
 
 bool __must_check uds_ensure_available_space(struct buffer *buffer, size_t bytes);
 

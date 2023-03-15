@@ -641,34 +641,34 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	unsigned int i;
 	struct buffer *buffer;
 
-	result = make_uds_buffer(table->encoded_size, &buffer);
+	result = uds_make_buffer(table->encoded_size, &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = encode_region_header(buffer, &table->header);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	for (i = 0; i < table->header.region_count; i++) {
 		result = encode_layout_region(buffer, &table->regions[i]);
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 
 	result = encode_index_save_data(buffer, &isl->save_data);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	if (isl->zone_count > 0) {
 		result = encode_index_state_data(buffer, &isl->state_data);
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
@@ -676,7 +676,7 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	result = write_to_buffered_writer(writer,
 					  uds_get_buffer_contents(buffer),
 					  uds_content_length(buffer));
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -884,34 +884,34 @@ static int __must_check write_layout_header(struct index_layout *layout,
 	unsigned int i;
 	struct buffer *buffer;
 
-	result = make_uds_buffer(table->encoded_size, &buffer);
+	result = uds_make_buffer(table->encoded_size, &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = encode_region_header(buffer, &table->header);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	for (i = 0; i < table->header.region_count; i++) {
 		result = encode_layout_region(buffer, &table->regions[i]);
 		if (result != UDS_SUCCESS) {
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 
 	result = encode_super_block_data(buffer, &layout->super);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(writer,
 					  uds_get_buffer_contents(buffer),
 					  uds_content_length(buffer));
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1378,7 +1378,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 	struct region_table *table;
 	struct buffer *buffer;
 
-	result = make_uds_buffer(sizeof(struct region_header), &buffer);
+	result = uds_make_buffer(sizeof(struct region_header), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1386,18 +1386,18 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 					   uds_get_buffer_contents(buffer),
 					   uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(result, "cannot read region table header");
 	}
 
 	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_region_header(buffer, &header);
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1418,7 +1418,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 		return result;
 
 	table->header = header;
-	result = make_uds_buffer(header.region_count * sizeof(struct layout_region), &buffer);
+	result = uds_make_buffer(header.region_count * sizeof(struct layout_region), &buffer);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(table);
 		return result;
@@ -1429,7 +1429,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 					   uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(table);
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "cannot read region table layouts");
 	}
@@ -1437,7 +1437,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(table);
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
@@ -1445,12 +1445,12 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 		result = decode_layout_region(buffer, &table->regions[i]);
 		if (result != UDS_SUCCESS) {
 			UDS_FREE(table);
-			free_uds_buffer(UDS_FORGET(buffer));
+			uds_free_buffer(UDS_FORGET(buffer));
 			return result;
 		}
 	}
 
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	*table_ptr = table;
 	return UDS_SUCCESS;
 }
@@ -1524,7 +1524,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	struct super_block_data *super = &layout->super;
 	struct buffer *buffer;
 
-	result = make_uds_buffer(saved_size, &buffer);
+	result = uds_make_buffer(saved_size, &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1532,18 +1532,18 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					   uds_get_buffer_contents(buffer),
 					   uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(result, "cannot read region table header");
 	}
 
 	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_super_block_data(buffer, super);
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read super block data");
 
@@ -1792,7 +1792,7 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 					      "unexpected index save data size %zu",
 					      saved_size);
 
-	result = make_uds_buffer(payload_size, &buffer);
+	result = uds_make_buffer(payload_size, &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1800,31 +1800,31 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 					   uds_get_buffer_contents(buffer),
 					   uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(result, "cannot read index save data");
 	}
 
 	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_index_save_data(buffer, &isl->save_data);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	if (isl->save_data.version > 1) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown index save version number %u",
 					      isl->save_data.version);
 	}
 
 	result = decode_index_state_data(buffer, &isl->state_data);
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	return result;
 }
 

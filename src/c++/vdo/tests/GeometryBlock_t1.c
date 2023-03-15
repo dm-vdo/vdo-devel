@@ -200,7 +200,7 @@ static void basicTest(void)
                                      &headerBuffer));
   struct header header;
   VDO_ASSERT_SUCCESS(vdo_decode_header(headerBuffer, &header));
-  free_uds_buffer(UDS_FORGET(headerBuffer));
+  uds_free_buffer(UDS_FORGET(headerBuffer));
 
   // Try corrupting the magic number.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);

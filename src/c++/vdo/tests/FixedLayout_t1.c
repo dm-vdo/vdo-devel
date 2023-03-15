@@ -289,7 +289,7 @@ static void persistenceTest(void)
   CU_ASSERT_EQUAL(8, vdo_get_fixed_layout_blocks_available(layout));
 
   struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(make_uds_buffer(vdo_get_fixed_layout_encoded_size(layout),
+  VDO_ASSERT_SUCCESS(uds_make_buffer(vdo_get_fixed_layout_encoded_size(layout),
                                      &buffer));
   VDO_ASSERT_SUCCESS(vdo_encode_fixed_layout(layout, buffer));
 
@@ -322,7 +322,7 @@ static void persistenceTest(void)
   checkPartition(layout, VDO_TEST_PARTITION_5, FIRST_BLOCK + 8 + 8 + 4, 8, 4);
   CU_ASSERT_EQUAL(BLOCKS, vdo_get_total_fixed_layout_size(layout));
 
-  free_uds_buffer(UDS_FORGET(buffer));
+  uds_free_buffer(UDS_FORGET(buffer));
   vdo_free_fixed_layout(layout);
 }
 

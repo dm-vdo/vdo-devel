@@ -930,7 +930,7 @@ read_delta_index_header(struct buffered_reader *reader, struct delta_index_heade
 	int result;
 	struct buffer *buffer;
 
-	result = make_uds_buffer(sizeof(*header), &buffer);
+	result = uds_make_buffer(sizeof(*header), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -938,19 +938,19 @@ read_delta_index_header(struct buffered_reader *reader, struct delta_index_heade
 					   uds_get_buffer_contents(buffer),
 					   uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return uds_log_warning_strerror(result,
 						"failed to read delta index header");
 	}
 
 	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = decode_delta_index_header(buffer, header);
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	return result;
 }
 
@@ -1331,20 +1331,20 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 	header.record_count = delta_zone->record_count;
 	header.collision_count = delta_zone->collision_count;
 
-	result = make_uds_buffer(sizeof(struct delta_index_header), &buffer);
+	result = uds_make_buffer(sizeof(struct delta_index_header), &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = encode_delta_index_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	result = write_to_buffered_writer(buffered_writer,
 					  uds_get_buffer_contents(buffer),
 					  uds_content_length(buffer));
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write delta index header");
 

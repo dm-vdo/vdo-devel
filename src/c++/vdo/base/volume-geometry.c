@@ -342,7 +342,7 @@ int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_ge
 
 	result = decode_geometry_block(buffer, geometry);
 	if (result != VDO_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
@@ -350,12 +350,12 @@ int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_ge
 	checksum = vdo_crc32(block, uds_uncompacted_amount(buffer));
 	result = uds_get_u32_le_from_buffer(buffer, &saved_checksum);
 	if (result != VDO_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		return result;
 	}
 
 	/* Finished all decoding. Everything that follows is validation code. */
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 
 	if (!is_loadable_release_version(geometry->release_version))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
@@ -566,7 +566,7 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 
 	result = encode_geometry_block(geometry, buffer, version);
 	if (result != VDO_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		UDS_FREE(block);
 		return result;
 	}
@@ -575,14 +575,14 @@ vdo_write_volume_geometry_with_version(PhysicalLayer *layer,
 	checksum = vdo_crc32((u8 *) block, uds_content_length(buffer));
 	result = uds_put_u32_le_into_buffer(buffer, checksum);
 	if (result != VDO_SUCCESS) {
-		free_uds_buffer(UDS_FORGET(buffer));
+		uds_free_buffer(UDS_FORGET(buffer));
 		UDS_FREE(block);
 		return result;
 	}
 
 	/* Write it. */
 	result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
-	free_uds_buffer(UDS_FORGET(buffer));
+	uds_free_buffer(UDS_FORGET(buffer));
 	UDS_FREE(block);
 	return result;
 }

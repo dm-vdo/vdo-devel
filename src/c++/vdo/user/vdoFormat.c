@@ -284,7 +284,7 @@ static int checkForSignaturesUsingBlkid(const char *filename, bool force)
                                     BLKID_SUBLKS_BADCSUM);
 
   struct buffer *buffer = NULL;
-  result = make_uds_buffer(0, &buffer);
+  result = uds_make_buffer(0, &buffer);
   if (result != VDO_SUCCESS) {
     blkid_free_probe(probe);
     return ENOMEM;

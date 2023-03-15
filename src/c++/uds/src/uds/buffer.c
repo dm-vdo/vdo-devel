@@ -53,7 +53,7 @@ int uds_wrap_buffer(u8 *bytes, size_t length, size_t content_length, struct buff
  *
  * Return: UDS_SUCCESS or an error code
  */
-int make_uds_buffer(size_t size, struct buffer **new_buffer)
+int uds_make_buffer(size_t size, struct buffer **new_buffer)
 {
 	int result;
 	u8 *data;
@@ -74,7 +74,7 @@ int make_uds_buffer(size_t size, struct buffer **new_buffer)
 	return UDS_SUCCESS;
 }
 
-void free_uds_buffer(struct buffer *buffer)
+void uds_free_buffer(struct buffer *buffer)
 {
 	if (buffer == NULL)
 		return;
