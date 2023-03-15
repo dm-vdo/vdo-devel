@@ -6,7 +6,7 @@
 #define REF_COUNTS_H
 
 #include "encodings.h"
-#include "slab.h"
+#include "physical-zone.h"
 #include "types.h"
 #include "wait-queue.h"
 
@@ -98,6 +98,8 @@ struct ref_counts {
 	/* reference count block array */
 	struct reference_block blocks[];
 };
+
+struct reference_updater;
 
 int __must_check
 vdo_make_ref_counts(block_count_t block_count,

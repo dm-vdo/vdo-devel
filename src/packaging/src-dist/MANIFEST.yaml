@@ -295,8 +295,6 @@ tarballs:
             - ref-counts.c
             - ref-counts.h
             - release-versions.h
-            - slab.c
-            - slab.h
             - slab-depot.c
             - slab-depot.h
             - slab-journal.c

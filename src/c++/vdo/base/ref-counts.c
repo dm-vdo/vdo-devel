@@ -20,7 +20,6 @@
 #include "physical-zone.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab.h"
 #include "status-codes.h"
 #include "string-utils.h"
 #include "vdo.h"

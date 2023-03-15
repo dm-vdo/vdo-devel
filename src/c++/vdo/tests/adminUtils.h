@@ -12,7 +12,7 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "packer.h"
-#include "slab.h"
+#include "slab-depot.h"
 #include "types.h"
 
 /**

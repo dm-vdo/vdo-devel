@@ -13,7 +13,6 @@
 #include "block-map.h"
 #include "recovery.h"
 #include "recovery-journal.h"
-#include "slab.h"
 #include "slab-depot.h"
 
 #include "asyncLayer.h"

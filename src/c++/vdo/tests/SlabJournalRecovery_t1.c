@@ -18,7 +18,6 @@
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab.h"
 #include "vdo.h"
 
 #include "asyncLayer.h"

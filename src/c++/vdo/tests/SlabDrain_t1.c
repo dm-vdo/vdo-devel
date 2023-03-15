@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "admin-state.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "types.h"

@@ -139,7 +139,6 @@
 #include "physical-zone.h"
 #include "pointer-map.h"
 #include "slab-depot.h"
-#include "slab.h"
 #include "statistics.h"
 #include "thread-config.h"
 #include "types.h"

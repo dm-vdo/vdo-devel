@@ -12,7 +12,6 @@
 
 #include "constants.h"
 #include "physical-zone.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "thread-config.h"
 #include "types.h"

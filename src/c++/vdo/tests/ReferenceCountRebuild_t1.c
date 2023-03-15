@@ -10,7 +10,6 @@
 
 #include "block-map.h"
 #include "encodings.h"
-#include "slab.h"
 #include "slab-depot.h"
 
 #include "blockMapUtils.h"

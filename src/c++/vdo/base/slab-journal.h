@@ -12,7 +12,6 @@
 
 #include "data-vio.h"
 #include "encodings.h"
-#include "slab.h"
 #include "statistics.h"
 #include "types.h"
 #include "wait-queue.h"

@@ -13,7 +13,6 @@
 
 #include "constants.h"
 #include "encodings.h"
-#include "slab.h"
 #include "slab-depot.h"
 
 #include "asyncLayer.h"

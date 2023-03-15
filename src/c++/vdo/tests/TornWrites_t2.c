@@ -11,7 +11,6 @@
 #include "encodings.h"
 #include "ref-counts.h"
 #include "slab-depot.h"
-#include "slab.h"
 #include "types.h"
 
 #include "asyncLayer.h"

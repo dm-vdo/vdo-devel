@@ -13,7 +13,6 @@
 #include "encodings.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "slab.h"
 #include "types.h"
 
 #include "blockMapUtils.h"

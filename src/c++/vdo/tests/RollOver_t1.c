@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "packerUtils.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "vio.h"
 

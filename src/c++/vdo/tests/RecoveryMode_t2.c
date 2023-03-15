@@ -11,7 +11,6 @@
 #include "memory-alloc.h"
 
 #include "physical-zone.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "vdo.h"
 

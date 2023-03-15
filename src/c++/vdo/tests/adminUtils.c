@@ -15,7 +15,6 @@
 #include "completion.h"
 #include "packer.h"
 #include "recovery-journal.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "types.h"
 

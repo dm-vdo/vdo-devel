@@ -31,7 +31,6 @@ BASE_OBJS :=     			\
 	recovery.o			\
 	recovery-journal.o		\
 	ref-counts.o			\
-	slab.o				\
 	slab-depot.o			\
 	slab-journal.o			\
 	status-codes.o			\

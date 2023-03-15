@@ -12,7 +12,6 @@
 
 #include "recovery-journal.h"
 #include "ref-counts.h"
-#include "slab.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "status-codes.h"

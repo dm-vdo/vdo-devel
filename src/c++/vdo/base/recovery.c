@@ -20,7 +20,6 @@
 #include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
-#include "slab.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
