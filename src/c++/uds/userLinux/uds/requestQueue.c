@@ -137,11 +137,11 @@ static struct uds_request *poll_queues(struct uds_request_queue *queue)
 {
 	struct funnel_queue_entry *entry;
 
-	entry = funnel_queue_poll(queue->retry_queue);
+	entry = uds_funnel_queue_poll(queue->retry_queue);
 	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
 
-	entry = funnel_queue_poll(queue->main_queue);
+	entry = uds_funnel_queue_poll(queue->main_queue);
 	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
 
@@ -236,13 +236,13 @@ int make_uds_request_queue(const char *queue_name,
 	queue->current_batch = 0;
 	queue->wait_nanoseconds = DEFAULT_WAIT_TIME;
 
-	result = make_funnel_queue(&queue->main_queue);
+	result = uds_make_funnel_queue(&queue->main_queue);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
 	}
 
-	result = make_funnel_queue(&queue->retry_queue);
+	result = uds_make_funnel_queue(&queue->retry_queue);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
@@ -283,7 +283,7 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue,
 	bool unbatched = request->unbatched;
 
 	sub_queue = request->requeued ? queue->retry_queue : queue->main_queue;
-	funnel_queue_put(sub_queue, &request->queue_link);
+	uds_funnel_queue_put(sub_queue, &request->queue_link);
 
 	/*
 	 * We must wake the worker thread when it is dormant. A read fence
@@ -320,7 +320,7 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 	}
 
 	free_event_count(queue->work_event);
-	free_funnel_queue(queue->main_queue);
-	free_funnel_queue(queue->retry_queue);
+	uds_free_funnel_queue(queue->main_queue);
+	uds_free_funnel_queue(queue->retry_queue);
 	UDS_FREE(queue);
 }

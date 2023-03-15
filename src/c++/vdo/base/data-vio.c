@@ -762,7 +762,7 @@ static void process_release_callback(struct vdo_completion *completion)
 
 	for (processed = 0; processed < DATA_VIO_RELEASE_BATCH_SIZE; processed++) {
 		struct data_vio *data_vio;
-		struct funnel_queue_entry *entry = funnel_queue_poll(pool->queue);
+		struct funnel_queue_entry *entry = uds_funnel_queue_poll(pool->queue);
 
 		if (entry == NULL)
 			break;
@@ -793,7 +793,7 @@ static void process_release_callback(struct vdo_completion *completion)
 	/* Pairs with the barrier in schedule_releases(). */
 	smp_mb();
 
-	reschedule = !is_funnel_queue_empty(pool->queue);
+	reschedule = !uds_is_funnel_queue_empty(pool->queue);
 	drained = (!reschedule &&
 		   vdo_is_state_draining(&pool->state) &&
 		   check_for_drain_complete_locked(pool));
@@ -913,7 +913,7 @@ int make_data_vio_pool(struct vdo *vdo,
 			       vdo->thread_config->cpu_thread,
 			       NULL);
 
-	result = make_funnel_queue(&pool->queue);
+	result = uds_make_funnel_queue(&pool->queue);
 	if (result != UDS_SUCCESS) {
 		free_data_vio_pool(UDS_FORGET(pool));
 		return result;
@@ -972,7 +972,7 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 		destroy_data_vio(data_vio);
 	}
 
-	free_funnel_queue(UDS_FORGET(pool->queue));
+	uds_free_funnel_queue(UDS_FORGET(pool->queue));
 	UDS_FREE(pool);
 }
 
@@ -1318,7 +1318,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 #ifdef INTERNAL
 		release_data_vio_hook(data_vio);
 #endif /* INTERNAL */
-		funnel_queue_put(pool->queue, &completion->work_queue_entry_link);
+		uds_funnel_queue_put(pool->queue, &completion->work_queue_entry_link);
 		schedule_releases(pool);
 		return;
 	}

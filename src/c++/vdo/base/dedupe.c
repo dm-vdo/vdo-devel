@@ -2364,7 +2364,7 @@ static void finish_index_operation(struct uds_request *request)
 				"uds request was timed out (state %d)",
 				atomic_read(&context->state));
 
-	funnel_queue_put(context->zone->timed_out_complete, &context->queue_entry);
+	uds_funnel_queue_put(context->zone->timed_out_complete, &context->queue_entry);
 }
 
 /**
@@ -2391,7 +2391,7 @@ static void check_for_drain_complete(struct hash_zone *zone)
 		struct dedupe_context *context;
 		struct funnel_queue_entry *entry;
 
-		entry = funnel_queue_poll(zone->timed_out_complete);
+		entry = uds_funnel_queue_poll(zone->timed_out_complete);
 		if (entry == NULL)
 			break;
 
@@ -2495,7 +2495,7 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 
 	INIT_LIST_HEAD(&zone->available);
 	INIT_LIST_HEAD(&zone->pending);
-	result = make_funnel_queue(&zone->timed_out_complete);
+	result = uds_make_funnel_queue(&zone->timed_out_complete);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2604,7 +2604,7 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 	for (i = 0; i < zones->zone_count; i++) {
 		struct hash_zone *zone = &zones->zones[i];
 
-		free_funnel_queue(UDS_FORGET(zone->timed_out_complete));
+		uds_free_funnel_queue(UDS_FORGET(zone->timed_out_complete));
 		free_pointer_map(UDS_FORGET(zone->hash_lock_map));
 		UDS_FREE(UDS_FORGET(zone->lock_array));
 	}
@@ -3023,7 +3023,7 @@ static struct dedupe_context * __must_check acquire_context(struct hash_zone *zo
 		return context;
 	}
 
-	entry = funnel_queue_poll(zone->timed_out_complete);
+	entry = uds_funnel_queue_poll(zone->timed_out_complete);
 	return ((entry == NULL) ? NULL : container_of(entry, struct dedupe_context, queue_entry));
 }
 

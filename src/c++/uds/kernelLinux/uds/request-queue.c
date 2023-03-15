@@ -69,11 +69,11 @@ static inline struct uds_request *poll_queues(struct uds_request_queue *queue)
 {
 	struct funnel_queue_entry *entry;
 
-	entry = funnel_queue_poll(queue->retry_queue);
+	entry = uds_funnel_queue_poll(queue->retry_queue);
 	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
 
-	entry = funnel_queue_poll(queue->main_queue);
+	entry = uds_funnel_queue_poll(queue->main_queue);
 	if (entry != NULL)
 		return container_of(entry, struct uds_request, queue_link);
 
@@ -82,8 +82,8 @@ static inline struct uds_request *poll_queues(struct uds_request_queue *queue)
 
 static inline bool are_queues_idle(struct uds_request_queue *queue)
 {
-	return is_funnel_queue_idle(queue->retry_queue) &&
-	       is_funnel_queue_idle(queue->main_queue);
+	return uds_is_funnel_queue_idle(queue->retry_queue) &&
+	       uds_is_funnel_queue_idle(queue->main_queue);
 }
 
 /*
@@ -210,13 +210,13 @@ int make_uds_request_queue(const char *queue_name,
 	atomic_set(&queue->dormant, false);
 	init_waitqueue_head(&queue->wait_head);
 
-	result = make_funnel_queue(&queue->main_queue);
+	result = uds_make_funnel_queue(&queue->main_queue);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
 	}
 
-	result = make_funnel_queue(&queue->retry_queue);
+	result = uds_make_funnel_queue(&queue->retry_queue);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
@@ -245,7 +245,7 @@ void uds_request_queue_enqueue(struct uds_request_queue *queue, struct uds_reque
 	bool unbatched = request->unbatched;
 
 	sub_queue = request->requeued ? queue->retry_queue : queue->main_queue;
-	funnel_queue_put(sub_queue, &request->queue_link);
+	uds_funnel_queue_put(sub_queue, &request->queue_link);
 
 	/*
 	 * We must wake the worker thread when it is dormant. A read fence isn't needed here since
@@ -278,7 +278,7 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 			uds_log_warning_strerror(result, "Failed to join worker thread");
 	}
 
-	free_funnel_queue(queue->main_queue);
-	free_funnel_queue(queue->retry_queue);
+	uds_free_funnel_queue(queue->main_queue);
+	uds_free_funnel_queue(queue->retry_queue);
 	UDS_FREE(queue);
 }

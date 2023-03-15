@@ -25,21 +25,21 @@
  * the queue entries, and pointers to those structures are used exclusively by the queue. No macros
  * are defined to template the queue, so the offset of the funnel_queue_entry in the records placed
  * in the queue must all be the same so the client can derive their structure pointer from the
- * entry pointer returned by funnel_queue_poll().
+ * entry pointer returned by uds_funnel_queue_poll().
  *
  * Callers are wholly responsible for allocating and freeing the entries. Entries may be freed as
  * soon as they are returned since this queue is not susceptible to the "ABA problem" present in
  * many lock-free data structures. The queue is dynamically allocated to ensure cache-line
  * alignment, but no other dynamic allocation is used.
  *
- * The algorithm is not actually 100% lock-free. There is a single point in funnel_queue_put() at
- * which a preempted producer will prevent the consumers from seeing items added to the queue by
+ * The algorithm is not actually 100% lock-free. There is a single point in uds_funnel_queue_put()
+ * at which a preempted producer will prevent the consumers from seeing items added to the queue by
  * later producers, and only if the queue is short enough or the consumer fast enough for it to
  * reach what was the end of the queue at the time of the preemption.
  *
- * The consumer function, funnel_queue_poll(), will return NULL when the queue is empty. To wait
- * for data to consume, spin (if safe) or combine the queue with a struct event_count to signal the
- * presence of new entries.
+ * The consumer function, uds_funnel_queue_poll(), will return NULL when the queue is empty. To
+ * wait for data to consume, spin (if safe) or combine the queue with a struct event_count to
+ * signal the presence of new entries.
  */
 
 /* This queue link structure must be embedded in client entries. */
@@ -51,7 +51,7 @@ struct funnel_queue_entry {
 /*
  * The dynamically allocated queue structure, which is allocated on a cache line boundary so the
  * producer and consumer fields in the structure will land on separate cache lines. This should be
- * consider opaque but it is exposed here so funnel_queue_put() can be inlined.
+ * consider opaque but it is exposed here so uds_funnel_queue_put() can be inlined.
  */
 struct __aligned(L1_CACHE_BYTES) funnel_queue {
 	/*
@@ -67,9 +67,9 @@ struct __aligned(L1_CACHE_BYTES) funnel_queue {
 	struct funnel_queue_entry stub;
 };
 
-int __must_check make_funnel_queue(struct funnel_queue **queue_ptr);
+int __must_check uds_make_funnel_queue(struct funnel_queue **queue_ptr);
 
-void free_funnel_queue(struct funnel_queue *queue);
+void uds_free_funnel_queue(struct funnel_queue *queue);
 
 /*
  * Put an entry on the end of the queue.
@@ -79,7 +79,8 @@ void free_funnel_queue(struct funnel_queue *queue);
  * from the pointer that passed in here, so every entry in the queue must have the struct
  * funnel_queue_entry at the same offset within the client's structure.
  */
-static inline void funnel_queue_put(struct funnel_queue *queue, struct funnel_queue_entry *entry)
+static inline void
+uds_funnel_queue_put(struct funnel_queue *queue, struct funnel_queue_entry *entry)
 {
 	struct funnel_queue_entry *previous;
 
@@ -100,10 +101,10 @@ static inline void funnel_queue_put(struct funnel_queue *queue, struct funnel_qu
 	WRITE_ONCE(previous->next, entry);
 }
 
-struct funnel_queue_entry *__must_check funnel_queue_poll(struct funnel_queue *queue);
+struct funnel_queue_entry *__must_check uds_funnel_queue_poll(struct funnel_queue *queue);
 
-bool __must_check is_funnel_queue_empty(struct funnel_queue *queue);
+bool __must_check uds_is_funnel_queue_empty(struct funnel_queue *queue);
 
-bool __must_check is_funnel_queue_idle(struct funnel_queue *queue);
+bool __must_check uds_is_funnel_queue_idle(struct funnel_queue *queue);
 
 #endif /* FUNNEL_QUEUE_H */

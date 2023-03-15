@@ -38,23 +38,23 @@ static inline void assertCacheAligned(const volatile void *address)
 static void testFieldAligment(void)
 {
   struct funnel_queue *queue;
-  UDS_ASSERT_SUCCESS(make_funnel_queue(&queue));
+  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
   assertCacheAligned(queue);
   assertCacheAligned(&queue->newest);
   assertCacheAligned(&queue->oldest);
-  free_funnel_queue(queue);
+  uds_free_funnel_queue(queue);
 }
 
 /**********************************************************************/
 static void testEmptyQueue(void)
 {
   struct funnel_queue *queue;
-  UDS_ASSERT_SUCCESS(make_funnel_queue(&queue));
+  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
   int i;
   for (i = 0; i < 10; i++) {
-    CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+    CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
   }
-  free_funnel_queue(queue);
+  uds_free_funnel_queue(queue);
 }
 
 /**********************************************************************/
@@ -63,27 +63,27 @@ static void testSingletonQueue(void)
   struct funnel_queue *queue;
   struct funnel_queue_entry first, second;
 
-  UDS_ASSERT_SUCCESS(make_funnel_queue(&queue));
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
   // Test the empty to non-empty transitions: 0->1, 1->0
-  funnel_queue_put(queue, &first);
-  CU_ASSERT_PTR_EQUAL(&first, funnel_queue_poll(queue));
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  uds_funnel_queue_put(queue, &first);
+  CU_ASSERT_PTR_EQUAL(&first, uds_funnel_queue_poll(queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
   // Do it again, making sure the new "empty" state is as good as new queue.
-  funnel_queue_put(queue, &first);
-  CU_ASSERT_PTR_EQUAL(&first, funnel_queue_poll(queue));
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  uds_funnel_queue_put(queue, &first);
+  CU_ASSERT_PTR_EQUAL(&first, uds_funnel_queue_poll(queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
   // Test the singleton to doubleton transitions: 0->1, 1->2, 2->1, 1->0
-  funnel_queue_put(queue, &first);
-  funnel_queue_put(queue, &second);
-  CU_ASSERT_PTR_EQUAL(&first, funnel_queue_poll(queue));
-  CU_ASSERT_PTR_EQUAL(&second, funnel_queue_poll(queue));
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  uds_funnel_queue_put(queue, &first);
+  uds_funnel_queue_put(queue, &second);
+  CU_ASSERT_PTR_EQUAL(&first, uds_funnel_queue_poll(queue));
+  CU_ASSERT_PTR_EQUAL(&second, uds_funnel_queue_poll(queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
-  free_funnel_queue(queue);
+  uds_free_funnel_queue(queue);
 }
 
 /**
@@ -99,7 +99,7 @@ static void enqueueLoop(void *arg)
     Entry *entry;
     UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, Entry, __func__, &entry));
     entry->value = i;
-    funnel_queue_put(queue, &entry->link);
+    uds_funnel_queue_put(queue, &entry->link);
   }
 }
 
@@ -110,7 +110,7 @@ static void enqueueLoop(void *arg)
 static Entry *dequeue(struct funnel_queue *queue)
 {
   for (;;) {
-    Entry *entry = (Entry *) funnel_queue_poll(queue);
+    Entry *entry = (Entry *) uds_funnel_queue_poll(queue);
     if (entry != NULL) {
       return entry;
     }
@@ -125,7 +125,7 @@ static Entry *dequeue(struct funnel_queue *queue)
 static void testOneProducer(void)
 {
   struct funnel_queue *queue;
-  UDS_ASSERT_SUCCESS(make_funnel_queue(&queue));
+  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
 
   // Start a single thread to generate ITERATIONS queue Entry instances.
   struct thread *producer;
@@ -144,9 +144,9 @@ static void testOneProducer(void)
   uds_join_threads(producer);
 
   // There mustn't be any excess entries on the queue.
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
-  free_funnel_queue(queue);
+  uds_free_funnel_queue(queue);
 }
 
 /**
@@ -156,7 +156,7 @@ static void testOneProducer(void)
 static void testTenProducers(void)
 {
   struct funnel_queue *queue;
-  UDS_ASSERT_SUCCESS(make_funnel_queue(&queue));
+  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
 
   // Start ten threads to generate ITERATIONS queue Entry instances.
   enum { PRODUCER_COUNT = 10 };
@@ -193,9 +193,9 @@ static void testTenProducers(void)
   }
 
   // There mustn't be any excess entries on the queue.
-  CU_ASSERT_PTR_NULL(funnel_queue_poll(queue));
+  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
 
-  free_funnel_queue(queue);
+  uds_free_funnel_queue(queue);
 }
 
 /**********************************************************************/
