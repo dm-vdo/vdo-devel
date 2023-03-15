@@ -288,8 +288,8 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 	 * has waiters.
 	 */
 	return ((block != NULL) &&
-		(vdo_has_waiters(&block->entry_waiters)
-		 || vdo_has_waiters(&block->commit_waiters)));
+		(vdo_has_waiters(&block->entry_waiters) ||
+		 vdo_has_waiters(&block->commit_waiters)));
 }
 
 static void recycle_journal_blocks(struct recovery_journal *journal);
