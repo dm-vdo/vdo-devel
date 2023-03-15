@@ -1536,7 +1536,7 @@ static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *sta
 	copy_bio_stat(&stats->bios_acknowledged_partial, &vdo->stats.bios_acknowledged_partial);
 	stats->bios_in_progress = subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 #ifdef __KERNEL__
-	get_uds_memory_stats(&stats->memory_usage.bytes_used,
+	uds_get_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);
 #endif /* __KERNEL__ */
 }

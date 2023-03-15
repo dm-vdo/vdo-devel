@@ -48,7 +48,7 @@ static enum mutex_kind get_mutex_kind(void)
 {
 	static atomic_t once_state = ATOMIC_INIT(0);
 
-	perform_once(&once_state, initialize_mutex_kind);
+	uds_perform_once(&once_state, initialize_mutex_kind);
 	return hidden_mutex_kind;
 }
 

@@ -64,13 +64,13 @@ static bool ids = true;
 
 
 /**********************************************************************/
-int get_uds_log_level(void)
+int uds_get_log_level(void)
 {
 	return log_level;
 }
 
 /**********************************************************************/
-void set_uds_log_level(int new_log_level)
+void uds_set_log_level(int new_log_level)
 {
 	log_level = new_log_level;
 }
@@ -99,9 +99,9 @@ static void init_logger(void)
 {
 	const char *uds_log_level = getenv("UDS_LOG_LEVEL");
 	if (uds_log_level != NULL)
-		set_uds_log_level(uds_log_string_to_priority(uds_log_level));
+		uds_set_log_level(uds_log_string_to_priority(uds_log_level));
 	else
-		set_uds_log_level(UDS_LOG_INFO);
+		uds_set_log_level(UDS_LOG_INFO);
 
 	char *timestamps_string = getenv(TIMESTAMPS_ENVIRONMENT_VARIABLE);
 	if (timestamps_string != NULL && strcmp(timestamps_string, "0") == 0)
@@ -160,7 +160,7 @@ static void init_logger(void)
  **/
 void open_uds_logger(void)
 {
-	perform_once(&logger_once, init_logger);
+	uds_perform_once(&logger_once, init_logger);
 }
 
 /**********************************************************************/
@@ -211,7 +211,7 @@ void uds_log_embedded_message(int priority,
 	va_list args2;
 
 	open_uds_logger();
-	if (priority > get_uds_log_level())
+	if (priority > uds_get_log_level())
 		return;
 
 	va_start(args2, fmt2);

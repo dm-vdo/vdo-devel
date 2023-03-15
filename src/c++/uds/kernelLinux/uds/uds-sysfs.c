@@ -152,7 +152,7 @@ static long memory_show_bytes_used(void)
 	u64 bytes_used;
 	u64 peak_bytes_used;
 
-	get_uds_memory_stats(&bytes_used, &peak_bytes_used);
+	uds_get_memory_stats(&bytes_used, &peak_bytes_used);
 	return bytes_used;
 }
 
@@ -282,12 +282,12 @@ parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, s
 
 static const char *parameter_show_log_level(void)
 {
-	return uds_log_priority_to_string(get_uds_log_level());
+	return uds_log_priority_to_string(uds_get_log_level());
 }
 
 static void parameter_store_log_level(const char *string)
 {
-	set_uds_log_level(uds_log_string_to_priority(string));
+	uds_set_log_level(uds_log_string_to_priority(string));
 }
 
 static struct parameter_attribute log_level_attr = {

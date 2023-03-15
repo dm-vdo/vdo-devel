@@ -80,7 +80,7 @@ int __must_check uds_create_thread(void (*thread_function)(void *),
 unsigned int uds_get_num_cores(void);
 
 pid_t __must_check uds_get_thread_id(void);
-void perform_once(atomic_t *once_state, void (*function) (void));
+void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
 

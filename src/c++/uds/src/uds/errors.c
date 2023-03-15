@@ -293,11 +293,11 @@ int uds_map_to_system_error(int error)
  * @infos: a pointer to the error info array for the block
  * @info_size: the size of the error info array
  */
-int register_error_block(const char *block_name,
-			 int first_error,
-			 int next_free_error,
-			 const struct error_info *infos,
-			 size_t info_size)
+int uds_register_error_block(const char *block_name,
+			     int first_error,
+			     int next_free_error,
+			     const struct error_info *infos,
+			     size_t info_size)
 {
 	int result;
 	struct error_block *block;

@@ -61,9 +61,9 @@
 #define uds_log_ratelimit(log_fn, ...) log_fn(__VA_ARGS__)
 #endif /* __KERNEL__ */
 
-int get_uds_log_level(void);
+int uds_get_log_level(void);
 
-void set_uds_log_level(int new_log_level);
+void uds_set_log_level(int new_log_level);
 
 int uds_log_string_to_priority(const char *string);
 

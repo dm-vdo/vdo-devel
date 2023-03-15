@@ -32,51 +32,51 @@ static void udsTest(void)
 /**********************************************************************/
 static void blockRegistrationTest(void)
 {
-  UDS_ASSERT_SUCCESS(register_error_block("foo", 6000, 7000, NULL, 0));
-  UDS_ASSERT_SUCCESS(register_error_block("bas", 8000, 9000, NULL, 0));
+  UDS_ASSERT_SUCCESS(uds_register_error_block("foo", 6000, 7000, NULL, 0));
+  UDS_ASSERT_SUCCESS(uds_register_error_block("bas", 8000, 9000, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_DUPLICATE_NAME,
-                   register_error_block("foo", 9001, 9002, NULL, 0));
+                   uds_register_error_block("foo", 9001, 9002, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6000, 6001, NULL, 0));
+                   uds_register_error_block("try", 6000, 6001, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6000, 7000, NULL, 0));
+                   uds_register_error_block("try", 6000, 7000, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6001, 7000, NULL, 0));
+                   uds_register_error_block("try", 6001, 7000, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6001, 6999, NULL, 0));
+                   uds_register_error_block("try", 6001, 6999, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6999, 7000, NULL, 0));
+                   uds_register_error_block("try", 6999, 7000, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6999, 7001, NULL, 0));
+                   uds_register_error_block("try", 6999, 7001, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 6999, 7001, NULL, 0));
+                   uds_register_error_block("try", 6999, 7001, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7000, 8001, NULL, 0));
+                   uds_register_error_block("try", 7000, 8001, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7000, 8999, NULL, 0));
+                   uds_register_error_block("try", 7000, 8999, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7000, 9000, NULL, 0));
+                   uds_register_error_block("try", 7000, 9000, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7000, 9001, NULL, 0));
+                   uds_register_error_block("try", 7000, 9001, NULL, 0));
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7000, 9999, NULL, 0));
+                   uds_register_error_block("try", 7000, 9999, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 5000, 9999, NULL, 0));
+                   uds_register_error_block("try", 5000, 9999, NULL, 0));
 
-  UDS_ASSERT_SUCCESS(register_error_block("baz", 7000, 7500, NULL, 0));
+  UDS_ASSERT_SUCCESS(uds_register_error_block("baz", 7000, 7500, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_ALREADY_REGISTERED,
-                   register_error_block("try", 7449, 8000, NULL, 0));
+                   uds_register_error_block("try", 7449, 8000, NULL, 0));
 
-  UDS_ASSERT_SUCCESS(register_error_block("oog", 7500, 7800, NULL, 0));
-  UDS_ASSERT_SUCCESS(register_error_block("ook", 7800, 8000, NULL, 0));
+  UDS_ASSERT_SUCCESS(uds_register_error_block("oog", 7500, 7800, NULL, 0));
+  UDS_ASSERT_SUCCESS(uds_register_error_block("ook", 7800, 8000, NULL, 0));
 
   UDS_ASSERT_ERROR(UDS_OVERFLOW,
-                   register_error_block("try", 9001, 9002, NULL, 0));
+                   uds_register_error_block("try", 9001, 9002, NULL, 0));
 }
 
 /**********************************************************************/

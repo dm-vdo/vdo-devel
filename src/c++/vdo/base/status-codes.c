@@ -65,11 +65,11 @@ static void do_status_code_registration(void)
 	STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) ==
 		      ARRAY_SIZE(vdo_status_list));
 
-	result = register_error_block("VDO Status",
-				      VDO_STATUS_CODE_BASE,
-				      VDO_STATUS_CODE_BLOCK_END,
-				      vdo_status_list,
-				      sizeof(vdo_status_list));
+	result = uds_register_error_block("VDO Status",
+					  VDO_STATUS_CODE_BASE,
+					  VDO_STATUS_CODE_BLOCK_END,
+					  vdo_status_list,
+					  sizeof(vdo_status_list));
 	/*
 	 * The following test handles cases where libvdo is statically linked against both the test
 	 * modules and the test driver (because multiple instances of this module call their own
@@ -88,7 +88,7 @@ static void do_status_code_registration(void)
  */
 int vdo_register_status_codes(void)
 {
-	perform_once(&vdo_status_codes_registered, do_status_code_registration);
+	uds_perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
 }
 

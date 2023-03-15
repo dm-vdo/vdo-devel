@@ -49,12 +49,12 @@ static const char *const PRIORITY_STRINGS[] = {
 
 static int log_level = UDS_LOG_INFO;
 
-int get_uds_log_level(void)
+int uds_get_log_level(void)
 {
 	return log_level;
 }
 
-void set_uds_log_level(int new_log_level)
+void uds_set_log_level(int new_log_level)
 {
 	log_level = new_log_level;
 }
@@ -98,7 +98,7 @@ static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
 	va_list args;
 	struct va_format vaf;
 
-	if (priority > get_uds_log_level())
+	if (priority > uds_get_log_level())
 		return;
 
 	va_start(args, fmt);
@@ -278,7 +278,7 @@ int __uds_log_strerror(int priority, int errnum, const char *module, const char 
 
 void uds_log_backtrace(int priority)
 {
-	if (priority > get_uds_log_level())
+	if (priority > uds_get_log_level())
 		return;
 	dump_stack();
 }

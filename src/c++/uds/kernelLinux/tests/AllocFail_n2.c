@@ -19,7 +19,7 @@ static const char *indexName;
 static size_t getBytesUsed(void)
 {
   uint64_t bytesUsed, peakBytesUsed;
-  get_uds_memory_stats(&bytesUsed, &peakBytesUsed);
+  uds_get_memory_stats(&bytesUsed, &peakBytesUsed);
   return bytesUsed;
 }
 

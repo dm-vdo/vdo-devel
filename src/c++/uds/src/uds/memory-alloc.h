@@ -182,9 +182,9 @@ void uds_register_allocating_thread(struct registered_thread *new_thread, const 
 
 void uds_unregister_allocating_thread(void);
 
-void get_uds_memory_stats(u64 *bytes_used, u64 *peak_bytes_used);
+void uds_get_memory_stats(u64 *bytes_used, u64 *peak_bytes_used);
 
-void report_uds_memory_usage(void);
+void uds_report_memory_usage(void);
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 /*

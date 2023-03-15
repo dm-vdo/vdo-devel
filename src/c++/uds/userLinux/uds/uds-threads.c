@@ -52,7 +52,7 @@ pid_t uds_get_thread_id(void)
 }
 
 /* Run a function once only, and record that fact in the atomic value. */
-void perform_once(atomic_t *once, void (*function)(void))
+void uds_perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
 		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {

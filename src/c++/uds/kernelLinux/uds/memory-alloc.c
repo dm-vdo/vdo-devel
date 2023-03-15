@@ -599,7 +599,7 @@ void uds_memory_exit(void)
 	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
-void get_uds_memory_stats(u64 *bytes_used, u64 *peak_bytes_used)
+void uds_get_memory_stats(u64 *bytes_used, u64 *peak_bytes_used)
 {
 	unsigned long flags;
 
@@ -613,7 +613,7 @@ void get_uds_memory_stats(u64 *bytes_used, u64 *peak_bytes_used)
  * Report stats on any allocated memory that we're tracking. Not all allocation types are
  * guaranteed to be tracked in bytes (e.g., bios).
  */
-void report_uds_memory_usage(void)
+void uds_report_memory_usage(void)
 {
 	unsigned long flags;
 	u64 kmalloc_blocks;

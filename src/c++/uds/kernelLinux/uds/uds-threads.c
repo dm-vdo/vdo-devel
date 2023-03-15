@@ -33,7 +33,7 @@ enum {
 };
 
 /* Run a function once only, and record that fact in the atomic value. */
-void perform_once(atomic_t *once, void (*function)(void))
+void uds_perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
 		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
@@ -63,7 +63,7 @@ static int thread_starter(void *arg)
 	struct thread *thread = arg;
 
 	thread->thread_task = current;
-	perform_once(&thread_once, thread_init);
+	uds_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_add_head(&thread->thread_links, &thread_list);
 	mutex_unlock(&thread_mutex);
@@ -145,7 +145,7 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *), voi
 {
 	struct thread *thread;
 
-	perform_once(&thread_once, thread_init);
+	uds_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links)
 		apply_function(argument, thread->thread_task);
@@ -157,7 +157,7 @@ void uds_thread_exit(void)
 	struct thread *thread;
 	struct completion *completion = NULL;
 
-	perform_once(&thread_once, thread_init);
+	uds_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links) {
 		if (thread->thread_task == current) {

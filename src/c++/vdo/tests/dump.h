@@ -11,7 +11,7 @@
 
 #include "../base/dump.h"
 
-static inline void report_uds_memory_usage(void)
+static inline void uds_report_memory_usage(void)
 {
 }
 

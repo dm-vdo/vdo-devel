@@ -81,10 +81,10 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen);
 
 int uds_map_to_system_error(int error);
 
-int register_error_block(const char *block_name,
-			 int first_error,
-			 int last_reserved_error,
-			 const struct error_info *infos,
-			 size_t info_size);
+int uds_register_error_block(const char *block_name,
+			     int first_error,
+			     int last_reserved_error,
+			     const struct error_info *infos,
+			     size_t info_size);
 
 #endif /* ERRORS_H */
