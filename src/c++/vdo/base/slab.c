@@ -25,7 +25,6 @@
  * @slab_origin: The physical block number within the block allocator partition of the first block
  *               in the slab.
  * @allocator: The block allocator to which the slab belongs.
- * @translation: The translation from the depot's partition to the physical storage.
  * @recovery_journal: The recovery journal of the VDO.
  * @slab_number: The slab number of the slab.
  * @is_new: true if this slab is being allocated as part of a resize.
@@ -35,7 +34,6 @@
  */
 int vdo_make_slab(physical_block_number_t slab_origin,
 		  struct block_allocator *allocator,
-		  physical_block_number_t translation,
 		  struct recovery_journal *recovery_journal,
 		  slab_count_t slab_number,
 		  bool is_new,
@@ -55,9 +53,8 @@ int vdo_make_slab(physical_block_number_t slab_origin,
 	slab->slab_number = slab_number;
 	INIT_LIST_HEAD(&slab->allocq_entry);
 
-	slab->ref_counts_origin = slab_origin + slab_config->data_blocks + translation;
-	slab->journal_origin =
-		(vdo_get_slab_journal_start_block(slab_config, slab_origin) + translation);
+	slab->ref_counts_origin = slab_origin + slab_config->data_blocks;
+	slab->journal_origin = vdo_get_slab_journal_start_block(slab_config, slab_origin);
 
 	result = vdo_make_slab_journal(allocator, slab, recovery_journal, &slab->journal);
 	if (result != VDO_SUCCESS) {

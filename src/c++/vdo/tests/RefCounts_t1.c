@@ -394,7 +394,6 @@ static void verifyRefCountsLoad(void)
   struct vdo_slab *slabToLoad;
   VDO_ASSERT_SUCCESS(vdo_make_slab(firstBlock,
                                    &vdo->depot->allocators[0],
-                                   0,
                                    NULL,
                                    0,
                                    false,
@@ -794,7 +793,6 @@ static void testReplay(void)
   struct vdo_slab *slabToLoad;
   VDO_ASSERT_SUCCESS(vdo_make_slab(firstBlock,
                                    &vdo->depot->allocators[0],
-                                   0,
                                    NULL,
                                    0,
                                    false,

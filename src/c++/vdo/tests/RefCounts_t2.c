@@ -48,7 +48,7 @@ static void initializeRefCounts(void)
   allocator->depot = depot;
 
   VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE, &depot->slab_config));
-  VDO_ASSERT_SUCCESS(vdo_make_slab(0, allocator, 0, NULL, 0, false, &slab));
+  VDO_ASSERT_SUCCESS(vdo_make_slab(0, allocator, NULL, 0, false, &slab));
   VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slab));
 
   /*

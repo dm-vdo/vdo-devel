@@ -1442,7 +1442,6 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	block_count_t slab_size;
 	bool resizing = false;
 	physical_block_number_t slab_origin;
-	block_count_t translation;
 	int result;
 
 	result = UDS_ALLOCATE(slab_count,
@@ -1462,28 +1461,21 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	slab_size = depot->slab_config.slab_blocks;
 	slab_origin = depot->first_block + (depot->slab_count * slab_size);
 
-	/* The translation between allocator partition PBNs and layer PBNs. */
-	translation = depot->origin - depot->first_block;
-	depot->new_slab_count = depot->slab_count;
-	while (depot->new_slab_count < slab_count) {
+	for (depot->new_slab_count = depot->slab_count;
+	     depot->new_slab_count < slab_count;
+	     depot->new_slab_count++, slab_origin += slab_size) {
 		struct block_allocator *allocator =
 			&depot->allocators[depot->new_slab_count % depot->zone_count];
 		struct vdo_slab **slab_ptr = &depot->new_slabs[depot->new_slab_count];
 
 		result = vdo_make_slab(slab_origin,
 				       allocator,
-				       translation,
 				       depot->vdo->recovery_journal,
 				       depot->new_slab_count,
 				       resizing,
 				       slab_ptr);
 		if (result != VDO_SUCCESS)
 			return result;
-
-		/* Increment here to ensure that vdo_abandon_new_slabs will clean up correctly. */
-		depot->new_slab_count++;
-
-		slab_origin += slab_size;
 	}
 
 	return VDO_SUCCESS;

@@ -66,7 +66,6 @@ struct reference_updater;
 
 int __must_check vdo_make_slab(physical_block_number_t slab_origin,
 			       struct block_allocator *allocator,
-			       physical_block_number_t translation,
 			       struct recovery_journal *recovery_journal,
 			       slab_count_t slab_number,
 			       bool is_new,
