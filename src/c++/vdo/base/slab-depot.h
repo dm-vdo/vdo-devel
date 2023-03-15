@@ -17,7 +17,6 @@
 #include "slab.h"
 #include "statistics.h"
 #include "types.h"
-#include "vdo-layout.h"
 #include "vio.h"
 #include "wait-queue.h"
 
@@ -285,8 +284,6 @@ void vdo_update_slab_summary_entry(struct vdo_slab *slab,
 				   bool is_clean,
 				   block_count_t free_blocks);
 
-void vdo_set_slab_summary_origin(struct slab_depot *depot, struct partition *partition);
-
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion, VDO_BLOCK_ALLOCATOR_COMPLETION);
@@ -366,7 +363,8 @@ void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 
 void vdo_update_slab_depot_size(struct slab_depot *depot);
 
-int __must_check vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size);
+int __must_check
+vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, const struct partition *partition);
 
 void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent);
 

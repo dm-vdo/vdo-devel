@@ -15,7 +15,6 @@
 #include "constants.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-layout.h"
 
 enum {
 	PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
@@ -51,6 +50,22 @@ const struct header VDO_SLAB_DEPOT_HEADER_2_0 = {
 		.minor_version = 0,
 	},
 	.size = sizeof(struct slab_depot_state_2_0),
+};
+
+const struct header VDO_LAYOUT_HEADER_3_0 = {
+	.id = VDO_LAYOUT,
+	.version = {
+		.major_version = 3,
+		.minor_version = 0,
+	},
+	.size = sizeof(struct layout_3_0) + (sizeof(struct partition_3_0) * VDO_PARTITION_COUNT),
+};
+
+static const enum partition_id REQUIRED_PARTITIONS[] = {
+	VDO_BLOCK_MAP_PARTITION,
+	VDO_SLAB_DEPOT_PARTITION,
+	VDO_RECOVERY_JOURNAL_PARTITION,
+	VDO_SLAB_SUMMARY_PARTITION,
 };
 
 /*
@@ -700,8 +715,7 @@ decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *
 
 /**
  * vdo_configure_slab_depot() - Configure the slab depot.
- * @block_count: The number of blocks in the underlying storage.
- * @first_block: The number of the first block that may be allocated.
+ * @partition: The slab depot partition
  * @slab_config: The configuration of a single slab.
  * @zone_count: The number of zones the depot will use.
  * @state: The state structure to be configured.
@@ -712,8 +726,7 @@ decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_configure_slab_depot(block_count_t block_count,
-			     physical_block_number_t first_block,
+int vdo_configure_slab_depot(const struct partition *partition,
 			     struct slab_config slab_config,
 			     zone_count_t zone_count,
 			     struct slab_depot_state_2_0 *state)
@@ -725,13 +738,13 @@ int vdo_configure_slab_depot(block_count_t block_count,
 
 	uds_log_debug("slabDepot %s(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
 		      __func__,
-		      (unsigned long long) block_count,
-		      (unsigned long long) first_block,
+		      (unsigned long long) partition->count,
+		      (unsigned long long) partition->offset,
 		      (unsigned long long) slab_size,
 		      zone_count);
 
 	/* We do not allow runt slabs, so we waste up to a slab's worth. */
-	slab_count = (block_count / slab_size);
+	slab_count = (partition->count / slab_size);
 	if (slab_count == 0)
 		return VDO_NO_SPACE;
 
@@ -740,11 +753,11 @@ int vdo_configure_slab_depot(block_count_t block_count,
 
 	total_slab_blocks = slab_count * slab_config.slab_blocks;
 	total_data_blocks = slab_count * slab_config.data_blocks;
-	last_block = first_block + total_slab_blocks;
+	last_block = partition->offset + total_slab_blocks;
 
 	*state = (struct slab_depot_state_2_0) {
 		.slab_config = slab_config,
-		.first_block = first_block,
+		.first_block = partition->offset,
 		.last_block = last_block,
 		.zone_count = zone_count,
 	};
@@ -753,7 +766,7 @@ int vdo_configure_slab_depot(block_count_t block_count,
 		      (unsigned long long) last_block,
 		      (unsigned long long) total_data_blocks,
 		      slab_count,
-		      (unsigned long long) (block_count - (last_block - first_block)));
+		      (unsigned long long) (partition->count - (last_block - partition->offset)));
 
 	return VDO_SUCCESS;
 }
@@ -855,6 +868,417 @@ vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 		entry.operation = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
 
 	return entry;
+}
+
+/**
+ * allocate_partition() - Allocate a partition and add it to a layout.
+ * @layout: The layout containing the partition.
+ * @id: The id of the partition.
+ * @offset: The offset into the layout at which the partition begins.
+ * @size: The size of the partition in blocks.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+static int allocate_partition(struct layout *layout,
+			      u8 id,
+			      physical_block_number_t offset,
+			      block_count_t size)
+{
+	struct partition *partition;
+	int result;
+
+	result = UDS_ALLOCATE(1, struct partition, __func__, &partition);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	partition->id = id;
+	partition->offset = offset;
+	partition->count = size;
+	partition->next = layout->head;
+	layout->head = partition;
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * make_partition() - Create a new partition from the beginning or end of the unused space in a
+ *                    layout.
+ * @layout: The layout.
+ * @id: The id of the partition to make.
+ * @size: The number of blocks to carve out; if 0, all remaining space will be used.
+ * @beginning: True if the partition should start at the beginning of the unused space.
+ *
+ * Return: A success or error code, particularly VDO_NO_SPACE if there are fewer than size blocks
+ *         remaining.
+ */
+EXTERNAL_STATIC int __must_check
+make_partition(struct layout *layout,
+	       enum partition_id id,
+	       block_count_t size,
+	       bool beginning)
+{
+	int result;
+	physical_block_number_t offset;
+	block_count_t free_blocks = layout->last_free - layout->first_free;
+
+	if (size == 0) {
+		if (free_blocks == 0)
+			return VDO_NO_SPACE;
+		size = free_blocks;
+	} else if (size > free_blocks) {
+		return VDO_NO_SPACE;
+	}
+
+	result = vdo_get_partition(layout, id, NULL);
+	if (result != VDO_UNKNOWN_PARTITION)
+		return VDO_PARTITION_EXISTS;
+
+	offset = beginning ? layout->first_free : (layout->last_free - size);
+
+	result = allocate_partition(layout, id, offset, size);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	layout->num_partitions++;
+	if (beginning)
+		layout->first_free += size;
+	else
+		layout->last_free = layout->last_free - size;
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * vdo_initialize_layout() - Lay out the partitions of a vdo.
+ * @size: The entire size of the vdo.
+ * @origin: The start of the layout on the underlying storage in blocks.
+ * @block_map_blocks: The size of the block map partition.
+ * @journal_blocks: The size of the journal partition.
+ * @summary_blocks: The size of the slab summary partition.
+ * @layout: The layout to initialize.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_initialize_layout(block_count_t size,
+			  physical_block_number_t offset,
+			  block_count_t block_map_blocks,
+			  block_count_t journal_blocks,
+			  block_count_t summary_blocks,
+			  struct layout *layout)
+{
+	int result;
+	block_count_t necessary_size =
+		(offset + block_map_blocks + journal_blocks + summary_blocks);
+
+	if (necessary_size > size)
+		return uds_log_error_strerror(VDO_NO_SPACE, "Not enough space to make a VDO");
+
+	*layout = (struct layout) {
+		.start = offset,
+		.size = size,
+		.first_free = offset,
+		.last_free = size,
+		.num_partitions = 0,
+		.head = NULL,
+	};
+
+	result = make_partition(layout, VDO_BLOCK_MAP_PARTITION, block_map_blocks, true);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(layout);
+		return result;
+	}
+
+	result = make_partition(layout, VDO_SLAB_SUMMARY_PARTITION, summary_blocks, false);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(layout);
+		return result;
+	}
+
+	result = make_partition(layout, VDO_RECOVERY_JOURNAL_PARTITION, journal_blocks, false);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(layout);
+		return result;
+	}
+
+	result = make_partition(layout, VDO_SLAB_DEPOT_PARTITION, 0, true);
+	if (result != VDO_SUCCESS)
+		vdo_uninitialize_layout(layout);
+
+	return result;
+}
+
+/**
+ * vdo_uninitialize_layout() - Clean up a layout.
+ * @layout: The layout to clean up.
+ *
+ * All partitions created by this layout become invalid pointers.
+ */
+void vdo_uninitialize_layout(struct layout *layout)
+{
+	while (layout->head != NULL) {
+		struct partition *part = layout->head;
+
+		layout->head = part->next;
+		UDS_FREE(part);
+	}
+
+	memset(layout, 0, sizeof(struct layout));
+}
+
+/**
+ * vdo_get_partition() - Get a partition by id.
+ * @layout: The layout from which to get a partition.
+ * @id: The id of the partition.
+ * @partition_ptr: A pointer to hold the partition.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_get_partition(struct layout *layout,
+		      enum partition_id id,
+		      struct partition **partition_ptr)
+{
+	struct partition *partition;
+
+	for (partition = layout->head; partition != NULL; partition = partition->next) {
+		if (partition->id == id) {
+			if (partition_ptr != NULL)
+				*partition_ptr = partition;
+			return VDO_SUCCESS;
+		}
+	}
+
+	return VDO_UNKNOWN_PARTITION;
+}
+
+/**
+ * vdo_get_known_partition() - Get a partition by id from a validated layout.
+ * @layout: The layout from which to get a partition.
+ * @id: The id of the partition.
+ *
+ * Return: the partition
+ */
+struct partition *vdo_get_known_partition(struct layout *layout, enum partition_id id)
+{
+	struct partition *partition;
+	int result = vdo_get_partition(layout, id, &partition);
+
+	ASSERT_LOG_ONLY(result == VDO_SUCCESS, "layout has expected partition: %u", id);
+
+	return partition;
+}
+
+static int encode_partitions_3_0(const struct layout *layout, struct buffer *buffer)
+{
+	const struct partition *partition;
+
+	for (partition = layout->head; partition != NULL; partition = partition->next) {
+		int result;
+
+		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
+		result = uds_put_byte(buffer, partition->id);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = uds_put_u64_le_into_buffer(buffer, partition->offset);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		/* This field only exists for backwards compatability */
+		result = uds_put_u64_le_into_buffer(buffer, 0);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = uds_put_u64_le_into_buffer(buffer, partition->count);
+		if (result != UDS_SUCCESS)
+			return result;
+	}
+
+	return UDS_SUCCESS;
+}
+
+static int encode_layout_3_0(const struct layout *layout, struct buffer *buffer)
+{
+	int result;
+
+	result = ASSERT(layout->num_partitions <= U8_MAX,
+			"layout partition count must fit in a byte");
+	if (result != UDS_SUCCESS)
+		return result;
+
+	result = uds_put_u64_le_into_buffer(buffer, layout->first_free);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	result = uds_put_u64_le_into_buffer(buffer, layout->last_free);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	return uds_put_byte(buffer, layout->num_partitions);
+}
+
+EXTERNAL_STATIC int encode_layout(const struct layout *layout, struct buffer *buffer)
+{
+	size_t initial_length, encoded_size;
+	int result;
+	struct header header = VDO_LAYOUT_HEADER_3_0;
+
+	if (!uds_ensure_available_space(buffer, VDO_LAYOUT_ENCODED_SIZE))
+		return UDS_BUFFER_ERROR;
+
+	result = vdo_encode_header(&header, buffer);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	initial_length = uds_content_length(buffer);
+
+	result = encode_layout_3_0(layout, buffer);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	encoded_size = uds_content_length(buffer) - initial_length;
+	result = ASSERT(encoded_size == sizeof(struct layout_3_0),
+			"encoded size of a layout header must match structure");
+	if (result != UDS_SUCCESS)
+		return result;
+
+	result = encode_partitions_3_0(layout, buffer);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	encoded_size = uds_content_length(buffer) - initial_length;
+	return ASSERT(encoded_size == header.size,
+		      "encoded size of a layout must match header size");
+}
+
+static int decode_partitions_3_0(struct buffer *buffer, struct layout *layout)
+{
+	size_t i;
+
+	for (i = 0; i < layout->num_partitions; i++) {
+		u8 id;
+		u64 offset, base, count;
+		int result;
+
+		result = uds_get_byte(buffer, &id);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = uds_get_u64_le_from_buffer(buffer, &offset);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = uds_get_u64_le_from_buffer(buffer, &base);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = uds_get_u64_le_from_buffer(buffer, &count);
+		if (result != UDS_SUCCESS)
+			return result;
+
+		result = allocate_partition(layout, id, offset, count);
+		if (result != VDO_SUCCESS)
+			return result;
+	}
+
+	return UDS_SUCCESS;
+}
+
+static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
+{
+	size_t decoded_size, initial_length = uds_content_length(buffer);
+	physical_block_number_t first_free, last_free;
+	u8 partition_count;
+	int result;
+
+	result = uds_get_u64_le_from_buffer(buffer, &first_free);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	result = uds_get_u64_le_from_buffer(buffer, &last_free);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	result = uds_get_byte(buffer, &partition_count);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	*layout = (struct layout_3_0) {
+		.first_free = first_free,
+		.last_free = last_free,
+		.partition_count = partition_count,
+	};
+
+	decoded_size = initial_length - uds_content_length(buffer);
+	return ASSERT(decoded_size == sizeof(struct layout_3_0),
+		      "decoded size of a layout header must match structure");
+}
+
+EXTERNAL_STATIC int
+decode_layout(struct buffer *buffer,
+	      physical_block_number_t start,
+	      block_count_t size,
+	      struct layout *layout)
+{
+	struct header header;
+	struct layout_3_0 layout_header;
+	struct partition *partition;
+	u8 i;
+	int result;
+
+	result = vdo_decode_header(buffer, &header);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	/* Layout is variable size, so only do a minimum size check here. */
+	result = vdo_validate_header(&VDO_LAYOUT_HEADER_3_0, &header, false, __func__);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = decode_layout_3_0(buffer, &layout_header);
+	if (result != UDS_SUCCESS)
+		return result;
+
+	if (uds_content_length(buffer) <
+	    (sizeof(struct partition_3_0) * layout_header.partition_count))
+		return VDO_UNSUPPORTED_VERSION;
+
+	layout->start = start;
+	layout->size = size;
+	layout->first_free = layout_header.first_free;
+	layout->last_free = layout_header.last_free;
+	layout->num_partitions = layout_header.partition_count;
+
+	result = decode_partitions_3_0(buffer, layout);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(layout);
+		return result;
+	}
+
+	/* Validate that the layout has all (and only) the required partitions */
+	if (layout->num_partitions > VDO_PARTITION_COUNT) {
+		vdo_uninitialize_layout(layout);
+		return uds_log_error_strerror(VDO_UNKNOWN_PARTITION,
+					      "layout has extra partitions");
+	}
+
+	for (i = 0; i < VDO_PARTITION_COUNT; i++) {
+		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i], &partition);
+		if (result != VDO_SUCCESS) {
+			vdo_uninitialize_layout(layout);
+			return uds_log_error_strerror(result,
+						      "layout is missing required partition %u",
+						      REQUIRED_PARTITIONS[i]);
+		}
+
+		start += partition->count;
+	}
+
+	if (start != size) {
+		vdo_uninitialize_layout(layout);
+		return uds_log_error_strerror(UDS_BAD_STATE, "partitions do not cover the layout");
+	}
+
+	return VDO_SUCCESS;
 }
 
 /**
@@ -1113,19 +1537,22 @@ void vdo_destroy_component_states(struct vdo_component_states *states)
 	if (states == NULL)
 		return;
 
-	vdo_free_fixed_layout(UDS_FORGET(states->layout));
+	vdo_uninitialize_layout(&states->layout);
 }
 
 /**
  * decode_components() - Decode the components now that we know the component data is a version we
  *                       understand.
  * @buffer: The buffer being decoded.
+ * @geometry: The vdo geometry
  * @states: An object to hold the successfully decoded state.
  *
  * Return: VDO_SUCCESS or an error.
  */
 static int __must_check
-decode_components(struct buffer *buffer, struct vdo_component_states *states)
+decode_components(struct buffer *buffer,
+		  struct volume_geometry *geometry,
+		  struct vdo_component_states *states)
 {
 	int result;
 
@@ -1133,7 +1560,10 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_decode_fixed_layout(buffer, &states->layout);
+	result = decode_layout(buffer,
+			       vdo_get_data_region_start(*geometry) + 1,
+			       states->vdo.config.physical_blocks,
+			       &states->layout);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1156,13 +1586,13 @@ decode_components(struct buffer *buffer, struct vdo_component_states *states)
 /**
  * vdo_decode_component_states() - Decode the payload of a super block.
  * @buffer: The buffer containing the encoded super block contents.
- * @expected_release_version: The required release version.
+ * @geometry: The vdo geometry
  * @states: A pointer to hold the decoded states.
  *
  * Return: VDO_SUCCESS or an error.
  */
 int vdo_decode_component_states(struct buffer *buffer,
-				release_version_number_t expected_release_version,
+				struct volume_geometry *geometry,
 				struct vdo_component_states *states)
 {
 	int result;
@@ -1172,10 +1602,10 @@ int vdo_decode_component_states(struct buffer *buffer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (states->release_version != expected_release_version)
+	if (states->release_version != geometry->release_version)
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "Geometry release version %u does not match super block release version %u",
-					      expected_release_version,
+					      geometry->release_version,
 					      states->release_version);
 
 	/* Check the VDO volume version */
@@ -1187,9 +1617,9 @@ int vdo_decode_component_states(struct buffer *buffer,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_components(buffer, states);
+	result = decode_components(buffer, geometry, states);
 	if (result != VDO_SUCCESS) {
-		vdo_free_fixed_layout(UDS_FORGET(states->layout));
+		vdo_uninitialize_layout(&states->layout);
 		return result;
 	}
 
@@ -1221,23 +1651,6 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 }
 
 /**
- * get_component_data_size() - Get the component data size of a vdo.
- * @layout: The layout of the vdo.
- *
- * Return: The component data size of the vdo.
- */
-static size_t __must_check get_component_data_size(struct fixed_layout *layout)
-{
-	return (sizeof(release_version_number_t) +
-		sizeof(struct packed_version_number) +
-		VDO_COMPONENT_ENCODED_SIZE +
-		vdo_get_fixed_layout_encoded_size(layout) +
-		RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE +
-		SLAB_DEPOT_COMPONENT_ENCODED_SIZE +
-		BLOCK_MAP_COMPONENT_ENCODED_SIZE);
-}
-
-/**
  * vdo_encode_component_states() - Encode the state of all vdo components for writing in the super
  *                                 block.
  * @buffer: The buffer to encode into.
@@ -1264,7 +1677,7 @@ int vdo_encode_component_states(struct buffer *buffer, const struct vdo_componen
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_encode_fixed_layout(states->layout, buffer);
+	result = encode_layout(&states->layout, buffer);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1280,7 +1693,7 @@ int vdo_encode_component_states(struct buffer *buffer, const struct vdo_componen
 	if (result != VDO_SUCCESS)
 		return result;
 
-	expected_size = get_component_data_size(states->layout);
+	expected_size = VDO_COMPONENT_DATA_SIZE;
 	ASSERT_LOG_ONLY((uds_content_length(buffer) == expected_size),
 			"All super block component data was encoded");
 	return VDO_SUCCESS;

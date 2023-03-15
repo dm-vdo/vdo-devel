@@ -11,10 +11,10 @@
 #include "syscalls.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "slab-depot.h"
 #include "vdo.h"
 #include "vdoConfig.h"
-#include "vdo-layout.h"
 
 #include "userVDO.h"
 

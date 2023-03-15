@@ -53,8 +53,6 @@ tarballs:
             - status-codes.c
             - status-codes.h
             - types.h
-            - vdo-layout.c
-            - vdo-layout.h
             - volume-geometry.c
             - volume-geometry.h
           undefines:
@@ -312,8 +310,6 @@ tarballs:
             - types.h
             - vdo.c
             - vdo.h
-            - vdo-layout.c
-            - vdo-layout.h
             - vio.c
             - vio.h
             - volume-geometry.c

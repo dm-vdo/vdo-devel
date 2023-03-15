@@ -15,7 +15,6 @@
 #include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-layout.h"
 
 #include "physicalLayer.h"
 
@@ -87,7 +86,7 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
   }
 
   result = vdo_decode_component_states(vdo->superBlockCodec.component_buffer,
-                                       geometry->release_version,
+                                       &vdo->geometry,
                                        &vdo->states);
   if (result != VDO_SUCCESS) {
     freeUserVDO(&vdo);
@@ -216,7 +215,8 @@ getPartition(const UserVDO     *vdo,
              const char        *errorMessage)
 {
   struct partition *partition;
-  int result = vdo_get_fixed_layout_partition(vdo->states.layout, id, &partition);
+  struct layout layout = vdo->states.layout;
+  int result = vdo_get_partition(&layout, id, &partition);
   if (result != VDO_SUCCESS) {
     errx(1, "%s", errorMessage);
   }

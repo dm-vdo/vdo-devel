@@ -20,7 +20,7 @@
 
 #include "constants.h"
 #include "types.h"
-#include "vdo-layout.h"
+#include "volume-geometry.h"
 
 /*
  * An in-memory representation of a version number for versioned structures on disk.
@@ -47,7 +47,7 @@ struct packed_version_number {
 
 /* The registry of component ids for use in headers */
 #define VDO_SUPER_BLOCK 0
-#define VDO_FIXED_LAYOUT 1
+#define VDO_LAYOUT 1
 #define VDO_RECOVERY_JOURNAL 2
 #define VDO_SLAB_DEPOT 3
 #define VDO_BLOCK_MAP 4
@@ -512,6 +512,35 @@ enum {
 	VDO_SLAB_SUMMARY_BLOCKS = VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * MAX_VDO_PHYSICAL_ZONES,
 };
 
+struct layout {
+	physical_block_number_t start;
+	block_count_t size;
+	physical_block_number_t first_free;
+	physical_block_number_t last_free;
+	size_t num_partitions;
+	struct partition *head;
+};
+
+struct partition {
+	enum partition_id id; /* The id of this partition */
+	physical_block_number_t offset; /* The offset into the layout of this partition */
+	block_count_t count; /* The number of blocks in the partition */
+	struct partition *next; /* A pointer to the next partition in the layout */
+};
+
+struct layout_3_0 {
+	physical_block_number_t first_free;
+	physical_block_number_t last_free;
+	u8 partition_count;
+} __packed;
+
+struct partition_3_0 {
+	enum partition_id id;
+	physical_block_number_t offset;
+	physical_block_number_t base; /* unused but retained for backwards compatability */
+	block_count_t count;
+} __packed;
+
 /*
  * The configuration of the VDO service.
  */
@@ -571,10 +600,21 @@ enum {
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0),
 	SLAB_DEPOT_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0),
+	VDO_PARTITION_COUNT = 4,
+	VDO_LAYOUT_ENCODED_SIZE = (VDO_ENCODED_HEADER_SIZE +
+				   sizeof(struct layout_3_0) +
+				   (sizeof(struct partition_3_0) * VDO_PARTITION_COUNT)),
 	VDO_SUPER_BLOCK_FIXED_SIZE = VDO_ENCODED_HEADER_SIZE + sizeof(u32),
 	VDO_MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - VDO_SUPER_BLOCK_FIXED_SIZE,
 	VDO_COMPONENT_ENCODED_SIZE =
 		(sizeof(struct packed_version_number) + sizeof(struct packed_vdo_component_41_0)),
+	VDO_COMPONENT_DATA_SIZE = (sizeof(release_version_number_t) +
+				   sizeof(struct packed_version_number) +
+				   VDO_COMPONENT_ENCODED_SIZE +
+				   VDO_LAYOUT_ENCODED_SIZE +
+				   RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE +
+				   SLAB_DEPOT_COMPONENT_ENCODED_SIZE +
+				   BLOCK_MAP_COMPONENT_ENCODED_SIZE),
 };
 
 /* The entirety of the component data encoded in the VDO super block. */
@@ -592,7 +632,7 @@ struct vdo_component_states {
 	struct slab_depot_state_2_0 slab_depot;
 
 	/* Our partitioning of the underlying storage */
-	struct fixed_layout *layout;
+	struct layout layout;
 };
 
 /* The machinery for encoding and decoding super blocks. */
@@ -938,8 +978,7 @@ int __must_check
 decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *state);
 
 #endif /* INTERNAL */
-int __must_check vdo_configure_slab_depot(block_count_t block_count,
-					  physical_block_number_t first_block,
+int __must_check vdo_configure_slab_depot(const struct partition *partition,
 					  struct slab_config slab_config,
 					  zone_count_t zone_count,
 					  struct slab_depot_state_2_0 *state);
@@ -1091,6 +1130,37 @@ static inline u8 __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_
 		0);
 }
 
+#ifdef INTERNAL
+int __must_check make_partition(struct layout *layout,
+				enum partition_id id,
+				block_count_t size,
+				bool beginning);
+
+#endif /* INTERNAL */
+int __must_check vdo_initialize_layout(block_count_t size,
+				       physical_block_number_t offset,
+				       block_count_t block_map_blocks,
+				       block_count_t journal_blocks,
+				       block_count_t summary_blocks,
+				       struct layout *layout);
+
+void vdo_uninitialize_layout(struct layout *layout);
+
+int __must_check vdo_get_partition(struct layout *layout,
+				   enum partition_id id,
+				   struct partition **partition_ptr);
+
+struct partition * __must_check
+vdo_get_known_partition(struct layout *layout, enum partition_id id);
+
+#ifdef INTERNAL
+int encode_layout(const struct layout *layout, struct buffer *buffer);
+int decode_layout(struct buffer *buffer,
+		  physical_block_number_t start,
+		  block_count_t size,
+		  struct layout *layout);
+
+#endif /* INTERNAL */
 int vdo_validate_config(const struct vdo_config *config,
 			block_count_t physical_block_count,
 			block_count_t logical_block_count);
@@ -1099,7 +1169,7 @@ void vdo_destroy_component_states(struct vdo_component_states *states);
 
 int __must_check
 vdo_decode_component_states(struct buffer *buffer,
-			    release_version_number_t expected_release_version,
+			    struct volume_geometry *geometry,
 			    struct vdo_component_states *states);
 
 int __must_check

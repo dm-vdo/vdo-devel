@@ -62,7 +62,6 @@
 #include "statistics.h"
 #include "status-codes.h"
 #include "thread-config.h"
-#include "vdo-layout.h"
 #include "vio.h"
 #include "work-queue.h"
 
@@ -583,7 +582,10 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_packer(UDS_FORGET(vdo->packer));
 	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
 	vdo_free_slab_depot(UDS_FORGET(vdo->depot));
-	vdo_free_layout(UDS_FORGET(vdo->layout));
+	vdo_uninitialize_layout(&vdo->layout);
+	vdo_uninitialize_layout(&vdo->next_layout);
+	if (vdo->partition_copier)
+		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
 	uninitialize_super_block(&vdo->super_block);
 	vdo_free_block_map(UDS_FORGET(vdo->block_map));
 	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
@@ -849,7 +851,7 @@ static void record_vdo(struct vdo *vdo)
 	vdo->states.block_map = vdo_record_block_map(vdo->block_map);
 	vdo->states.recovery_journal = vdo_record_recovery_journal(vdo->recovery_journal);
 	vdo->states.slab_depot = vdo_record_slab_depot(vdo->depot);
-	vdo->states.layout = vdo_get_fixed_layout(vdo->layout);
+	vdo->states.layout = vdo->layout;
 }
 
 /**

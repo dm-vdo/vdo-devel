@@ -135,17 +135,9 @@ enum journal_operation {
 /* Partition IDs encoded in the volume layout in the super block. */
 enum partition_id {
 	VDO_BLOCK_MAP_PARTITION = 0,
-	VDO_BLOCK_ALLOCATOR_PARTITION = 1,
+	VDO_SLAB_DEPOT_PARTITION = 1,
 	VDO_RECOVERY_JOURNAL_PARTITION = 2,
 	VDO_SLAB_SUMMARY_PARTITION = 3,
-#ifdef TEST_INTERNAL
-	/* These are used in unit tests */
-	VDO_TEST_PARTITION_1 = 1,
-	VDO_TEST_PARTITION_2 = 2,
-	VDO_TEST_PARTITION_3 = 3,
-	VDO_TEST_PARTITION_4 = 4,
-	VDO_TEST_PARTITION_5 = 5,
-#endif /* TEST_INTERNAL */
 } __packed;
 
 /* Metadata types for the vdo. */

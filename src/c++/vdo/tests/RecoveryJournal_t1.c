@@ -51,6 +51,7 @@ static const block_count_t     TEST_DATA_BLOCKS_USED    = 0x0001ABCD04030201;
 
 typedef size_t EntryNumber;
 
+static struct partition               partition;
 static struct recovery_journal       *journal;
 static sequence_number_t              pending;
 static sequence_number_t              recoverySequenceNumber;
@@ -171,10 +172,13 @@ static void createLayerAndJournal(void)
 
   block_count_t recovery_journal_size
     = getTestConfig().config.recovery_journal_size;
+  struct partition partition = {
+    .offset = 0,
+  };
   VDO_ASSERT_SUCCESS(vdo_decode_recovery_journal(configureRecoveryJournal(),
                                                  TEST_NONCE,
                                                  vdo,
-                                                 NULL,
+                                                 &partition,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
                                                  threadConfig,
@@ -292,7 +296,7 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
   VDO_ASSERT_SUCCESS(vdo_decode_recovery_journal(decoded,
                                                  TEST_NONCE,
                                                  vdo,
-                                                 NULL,
+                                                 &partition,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
                                                  threadConfig,

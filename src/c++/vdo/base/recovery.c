@@ -2123,7 +2123,7 @@ void vdo_repair(struct vdo_completion *parent)
 	struct journal_loader *loader;
 	struct vdo *vdo = parent->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
-	physical_block_number_t pbn = vdo_get_fixed_layout_partition_offset(journal->partition);
+	physical_block_number_t pbn = journal->origin;
 	block_count_t remaining = journal->size;
 	block_count_t vio_count = DIV_ROUND_UP(remaining, MAX_BLOCKS_PER_VIO);
 

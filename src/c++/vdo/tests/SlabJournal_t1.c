@@ -188,9 +188,7 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
   journal->blocking_threshold
     = (journal->flushing_threshold + SLAB_JOURNAL_SIZE) / 2;
 
-  struct partition *partition = vdo_get_partition(vdo->layout,
-                                                  VDO_SLAB_SUMMARY_PARTITION);
-  slabSummaryBlockPBN = vdo_get_fixed_layout_partition_offset(partition);
+  slabSummaryBlockPBN = vdo_get_known_partition(&vdo->layout, VDO_SLAB_SUMMARY_PARTITION)->offset;
 
   // Give refCounts some values so decrement will not underflow it.
   struct slab_config slabConfig = vdo->depot->slab_config;

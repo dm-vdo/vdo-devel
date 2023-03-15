@@ -15,7 +15,6 @@
 #include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "vdo-layout.h"
 
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
@@ -161,21 +160,16 @@ static void listSlabs(void)
 static void listRecoveryJournal(void)
 {
   const struct partition *partition
-    = getPartition(vdo, VDO_RECOVERY_JOURNAL_PARTITION,
-                   "no recovery journal partition");
-  listBlocks("recovery journal",
-             vdo_get_fixed_layout_partition_offset(partition),
-             vdo->states.vdo.config.recovery_journal_size);
+    = getPartition(vdo, VDO_RECOVERY_JOURNAL_PARTITION, "no recovery journal partition");
+  listBlocks("recovery journal", partition->offset, vdo->states.vdo.config.recovery_journal_size);
 }
 
 /**********************************************************************/
 static void listSlabSummary(void)
 {
   const struct partition *partition
-    = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION,
-                   "no slab summary partition");
-  listBlocks("slab summary", vdo_get_fixed_layout_partition_offset(partition),
-             VDO_SLAB_SUMMARY_BLOCKS);
+    = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION, "no slab summary partition");
+  listBlocks("slab summary", partition->offset, VDO_SLAB_SUMMARY_BLOCKS);
 }
 
 /**********************************************************************/

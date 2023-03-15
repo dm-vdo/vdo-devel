@@ -161,19 +161,15 @@ static void testAddStorage(void)
 
   // Store what we assert is the current journal region.
   config = getTestConfig().config;
-  struct partition *partition
-    = vdo_get_partition(vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
+  struct partition *partition = vdo_get_known_partition(&vdo->layout,
+                                                        VDO_RECOVERY_JOURNAL_PARTITION);
   block_count_t journalBlocks = config.recovery_journal_size;
   physical_block_number_t journalStart
     = (physicalBlocks - journalBlocks - VDO_SLAB_SUMMARY_BLOCKS);
-  CU_ASSERT_EQUAL(journalStart,
-                  vdo_get_fixed_layout_partition_offset(partition));
+  CU_ASSERT_EQUAL(journalStart, partition->offset);
   size_t journalSize = journalBlocks * VDO_BLOCK_SIZE;
   char buffer[journalSize];
-  VDO_ASSERT_SUCCESS(layer->reader(layer,
-                                   journalStart,
-                                   journalBlocks,
-                                   buffer));
+  VDO_ASSERT_SUCCESS(layer->reader(layer, journalStart, journalBlocks, buffer));
 
   // Grow the underlying storage pool and then expand VDO into it.
   block_count_t newSize = physicalBlocks + GROWTH_AMOUNT;
@@ -199,12 +195,10 @@ static void testAddStorage(void)
 
   // Ensure the journal moved and is still the same.
   physical_block_number_t newJournalStart = journalStart + GROWTH_AMOUNT;
-  partition = vdo_get_partition(vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
-  CU_ASSERT_EQUAL(newJournalStart,
-                  vdo_get_fixed_layout_partition_offset(partition));
+  partition = vdo_get_known_partition(&vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
+  CU_ASSERT_EQUAL(newJournalStart, partition->offset);
   char newBuffer[journalSize];
-  VDO_ASSERT_SUCCESS(layer->reader(layer, newJournalStart, journalBlocks,
-                                   newBuffer));
+  VDO_ASSERT_SUCCESS(layer->reader(layer, newJournalStart, journalBlocks, newBuffer));
   UDS_ASSERT_EQUAL_BYTES(buffer, newBuffer, journalSize);
 
   // Use the new storage.

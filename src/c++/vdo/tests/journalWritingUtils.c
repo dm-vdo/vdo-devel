@@ -183,18 +183,13 @@ void writeJournalBlocks(CorruptionType  corruption,
                         BlockPattern   *journalPattern)
 {
   struct recovery_journal *journal = vdo->recovery_journal;
-
-  physical_block_number_t journalStart;
-  VDO_ASSERT_SUCCESS(vdo_translate_to_pbn(journal->partition, 0,
-                                          &journalStart));
-
   char block[VDO_BLOCK_SIZE];
 
   logical_block_number_t nextLBN                = 0;
   sequence_number_t      maxValidSequenceNumber = 1;
   journal_entry_count_t  blockEntries           = 0;
   for (block_count_t i = 0; i < journalSize; i++) {
-    VDO_ASSERT_SUCCESS(layer->reader(layer, journalStart + i, 1, block));
+    VDO_ASSERT_SUCCESS(layer->reader(layer, journal->origin + i, 1, block));
     struct packed_journal_header *header
       = (struct packed_journal_header *) block;
     BlockPattern *blockPattern = &journalPattern[i];
@@ -238,7 +233,7 @@ void writeJournalBlocks(CorruptionType  corruption,
       }
     }
 
-    VDO_ASSERT_SUCCESS(layer->writer(layer, journalStart + i, 1, block));
+    VDO_ASSERT_SUCCESS(layer->writer(layer, journal->origin + i, 1, block));
   }
 
   // Pretend that the super block was last saved long ago.

@@ -37,7 +37,6 @@ BASE_OBJS :=     			\
 	status-codes.o			\
 	thread-config.o			\
 	vdo.o				\
-	vdo-layout.o			\
 	vio.o				\
 	volume-geometry.o		\
 	wait-queue.o
@@ -54,5 +53,4 @@ USER_OBJECTS:=                  	\
 	constants.o			\
 	encodings.o			\
 	status-codes.o			\
-	vdo-layout-user.o		\
 	volume-geometry.o

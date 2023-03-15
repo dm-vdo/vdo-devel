@@ -17,7 +17,6 @@
 #include "status-codes.h"
 #include "types.h"
 #include "volume-geometry.h"
-#include "vdo-layout.h"
 
 #include "blockMapUtils.h"
 #include "fileLayer.h"
@@ -306,8 +305,7 @@ static void dumpRecoveryJournal(void)
   const struct partition *partition
     = getPartition(vdo, VDO_RECOVERY_JOURNAL_PARTITION,
                    "Could not copy recovery journal, no partition");
-  int result = copyBlocks(vdo_get_fixed_layout_partition_offset(partition),
-                          vdo->states.vdo.config.recovery_journal_size);
+  int result = copyBlocks(partition->offset, vdo->states.vdo.config.recovery_journal_size);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not copy recovery journal");
   }
@@ -318,10 +316,8 @@ static void dumpSlabSummary(void)
 {
   // Copy the slab summary.
   const struct partition *partition
-    = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION,
-                   "Could not copy slab summary, no partition");
-  int result = copyBlocks(vdo_get_fixed_layout_partition_offset(partition),
-                          VDO_SLAB_SUMMARY_BLOCKS);
+    = getPartition(vdo, VDO_SLAB_SUMMARY_PARTITION, "Could not copy slab summary, no partition");
+  int result = copyBlocks(partition->offset, VDO_SLAB_SUMMARY_BLOCKS);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not copy slab summary");
   }

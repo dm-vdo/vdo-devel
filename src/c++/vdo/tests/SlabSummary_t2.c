@@ -10,9 +10,9 @@
 
 #include "memory-alloc.h"
 
+#include "encodings.h"
 #include "slab-depot.h"
 #include "vdo.h"
-#include "vdo-layout.h"
 #include "wait-queue.h"
 
 #include "slabSummaryReader.h"

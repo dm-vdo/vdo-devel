@@ -1439,7 +1439,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	int result;
 
 	result = vdo_decode_component_states(vdo->super_block.codec.component_buffer,
-					     vdo->geometry.release_version,
+					     &vdo->geometry,
 					     &vdo->states);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1465,7 +1465,8 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return vdo_decode_layout(vdo->states.layout, &vdo->layout);
+	vdo->layout = vdo->states.layout;
+	return VDO_SUCCESS;
 }
 
 /**
@@ -1483,6 +1484,7 @@ static int __must_check decode_vdo(struct vdo *vdo)
 {
 	block_count_t maximum_age, journal_length;
 	const struct thread_config *thread_config = vdo->thread_config;
+	struct partition *partition;
 	int result;
 
 	result = decode_from_super_block(vdo);
@@ -1508,11 +1510,11 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return result;
 
+	partition = vdo_get_known_partition(&vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
 	result = vdo_decode_recovery_journal(vdo->states.recovery_journal,
 					     vdo->states.vdo.nonce,
 					     vdo,
-					     vdo_get_partition(vdo->layout,
-							       VDO_RECOVERY_JOURNAL_PARTITION),
+					     partition,
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
 					     thread_config,
@@ -1520,9 +1522,10 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return result;
 
+	partition = vdo_get_known_partition(&vdo->layout, VDO_SLAB_SUMMARY_PARTITION);
 	result = vdo_decode_slab_depot(vdo->states.slab_depot,
 				       vdo,
-				       vdo_get_partition(vdo->layout, VDO_SLAB_SUMMARY_PARTITION),
+				       partition,
 				       &vdo->depot);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1830,10 +1833,72 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	finish_operation_callback(completion);
 }
 
+static block_count_t get_partition_size(struct layout *layout, enum partition_id id)
+{
+	return vdo_get_known_partition(layout, id)->count;
+}
+
+/**
+ * grow_layout() - Make the layout for growing a vdo.
+ * @vdo: The vdo preparing to grow.
+ * @old_size: The current size of the vdo.
+ * @new_size: The size to which the vdo will be grown.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+EXTERNAL_STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t new_size)
+{
+	int result;
+	block_count_t min_new_size;
+
+	if (vdo->next_layout.size == new_size)
+		/* We are already prepared to grow to the new size, so we're done. */
+		return VDO_SUCCESS;
+
+	/* Make a copy completion if there isn't one */
+	if (vdo->partition_copier == NULL) {
+		vdo->partition_copier = dm_kcopyd_client_create(NULL);
+		if (vdo->partition_copier == NULL)
+			return -ENOMEM;
+	}
+
+	/* Free any unused preparation. */
+	vdo_uninitialize_layout(&vdo->next_layout);
+
+	/*
+	 * Make a new layout with the existing partition sizes for everything but the slab depot
+	 * partition.
+	 */
+	result = vdo_initialize_layout(new_size,
+				       vdo->layout.start,
+				       get_partition_size(&vdo->layout, VDO_BLOCK_MAP_PARTITION),
+				       get_partition_size(&vdo->layout,
+							  VDO_RECOVERY_JOURNAL_PARTITION),
+				       get_partition_size(&vdo->layout,
+							  VDO_SLAB_SUMMARY_PARTITION),
+				       &vdo->next_layout);
+	if (result != VDO_SUCCESS) {
+		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		return result;
+	}
+
+	/* Ensure the new journal and summary are entirely within the added blocks. */
+	min_new_size = (old_size +
+			get_partition_size(&vdo->next_layout, VDO_SLAB_SUMMARY_PARTITION) +
+			get_partition_size(&vdo->next_layout, VDO_RECOVERY_JOURNAL_PARTITION));
+	if (min_new_size > new_size) {
+		/* Copying the journal and summary would destroy some old metadata. */
+		vdo_uninitialize_layout(&vdo->next_layout);
+		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		return VDO_INCREMENT_TOO_SMALL;
+	}
+
+	return VDO_SUCCESS;
+}
+
 static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
 {
 	int result;
-	block_count_t new_depot_size;
 	block_count_t current_physical_blocks = vdo->states.vdo.config.physical_blocks;
 
 	uds_log_info("Preparing to resize physical to %llu",
@@ -1848,16 +1913,15 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = prepare_to_vdo_grow_layout(vdo->layout,
-					    current_physical_blocks,
-					    new_physical_blocks);
+	result = grow_layout(vdo, current_physical_blocks, new_physical_blocks);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	new_depot_size = vdo_get_next_block_allocator_partition_size(vdo->layout);
-	result = vdo_prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
+	result = vdo_prepare_to_grow_slab_depot(vdo->depot,
+						vdo_get_known_partition(&vdo->next_layout,
+									VDO_SLAB_DEPOT_PARTITION));
 	if (result != VDO_SUCCESS) {
-		vdo_finish_layout_growth(vdo->layout);
+		vdo_uninitialize_layout(&vdo->next_layout);
 		return result;
 	}
 
@@ -2696,6 +2760,50 @@ static int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_block
 	return VDO_SUCCESS;
 }
 
+static void copy_callback(int read_err, unsigned long write_err, void *context)
+{
+	struct vdo_completion *completion = context;
+	int result = (((read_err == 0) && (write_err == 0)) ? VDO_SUCCESS : -EIO);
+
+	vdo_continue_completion(completion, result);
+}
+
+static void
+partition_to_region(struct partition *partition, struct vdo *vdo, struct dm_io_region *region)
+{
+	physical_block_number_t pbn = partition->offset - vdo->geometry.bio_offset;
+
+	*region = (struct dm_io_region) {
+		.bdev = vdo_get_backing_device(vdo),
+		.sector = pbn * VDO_SECTORS_PER_BLOCK,
+		.count = partition->count * VDO_SECTORS_PER_BLOCK,
+	};
+}
+
+/**
+ * copy_partition() - Copy a partition from the location specified in the current layout to that in
+ *                    the next layout.
+ * @vdo: The vdo preparing to grow.
+ * @id: The ID of the partition to copy.
+ * @parent: The completion to notify when the copy is complete.
+ */
+static void copy_partition(struct vdo *vdo, enum partition_id id, struct vdo_completion *parent)
+{
+	struct dm_io_region read_region, write_regions[1];
+	struct partition *from = vdo_get_known_partition(&vdo->layout, id);
+	struct partition *to = vdo_get_known_partition(&vdo->next_layout, id);
+
+	partition_to_region(from, vdo, &read_region);
+	partition_to_region(to, vdo, &write_regions[0]);
+	dm_kcopyd_copy(vdo->partition_copier,
+		       &read_region,
+		       1,
+		       write_regions,
+		       0,
+		       copy_callback,
+		       parent);
+}
+
 /**
  * grow_physical_callback() - Callback to initiate a grow physical.
  * @completion: The admin completion.
@@ -2726,15 +2834,18 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		}
 
 		/* Copy the journal into the new layout. */
-		vdo_copy_layout_partition(vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION, completion);
+		copy_partition(vdo, VDO_RECOVERY_JOURNAL_PARTITION, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
-		vdo_copy_layout_partition(vdo->layout, VDO_SLAB_SUMMARY_PARTITION, completion);
+		copy_partition(vdo, VDO_SLAB_SUMMARY_PARTITION, completion);
 		return;
 
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
-		vdo->states.vdo.config.physical_blocks = vdo_grow_layout(vdo->layout);
+		vdo_uninitialize_layout(&vdo->layout);
+		vdo->layout = vdo->next_layout;
+		UDS_FORGET(vdo->next_layout.head);
+		vdo->states.vdo.config.physical_blocks = vdo->layout.size;
 		vdo_update_slab_depot_size(vdo->depot);
 		vdo_save_components(vdo, completion);
 		return;
@@ -2744,12 +2855,11 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		return;
 
 	case GROW_PHYSICAL_PHASE_END:
-		vdo_set_slab_summary_origin(vdo->depot,
-					    vdo_get_partition(vdo->layout,
-							      VDO_SLAB_SUMMARY_PARTITION));
-		vdo_set_recovery_journal_partition(vdo->recovery_journal,
-						   vdo_get_partition(vdo->layout,
-								     VDO_RECOVERY_JOURNAL_PARTITION));
+		vdo->depot->summary_origin =
+			vdo_get_known_partition(&vdo->layout, VDO_SLAB_SUMMARY_PARTITION)->offset;
+		vdo->recovery_journal->origin =
+			vdo_get_known_partition(&vdo->layout,
+						VDO_RECOVERY_JOURNAL_PARTITION)->offset;
 		break;
 
 	case GROW_PHYSICAL_PHASE_ERROR:
@@ -2760,7 +2870,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		vdo_set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	vdo_finish_layout_growth(vdo->layout);
+	vdo_uninitialize_layout(&vdo->next_layout);
 	finish_operation_callback(completion);
 }
 
@@ -2794,19 +2904,20 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
 	if (old_physical_blocks == new_physical_blocks)
 		return VDO_SUCCESS;
 
-	if (new_physical_blocks != vdo_get_next_layout_size(vdo->layout)) {
+	if (new_physical_blocks != vdo->next_layout.size) {
 		/*
 		 * Either the VDO isn't prepared to grow, or it was prepared to grow to a different
 		 * size. Doing this check here relies on the fact that the call to this method is
 		 * done under the dmsetup message lock.
 		 */
-		vdo_finish_layout_growth(vdo->layout);
+		vdo_uninitialize_layout(&vdo->next_layout);
 		vdo_abandon_new_slabs(vdo->depot);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
 	/* Validate that we are prepared to grow appropriately. */
-	new_depot_size = vdo_get_next_block_allocator_partition_size(vdo->layout);
+	new_depot_size =
+		vdo_get_known_partition(&vdo->next_layout, VDO_SLAB_DEPOT_PARTITION)->count;
 	prepared_depot_size = (vdo->depot->new_slabs == NULL) ? 0 : vdo->depot->new_size;
 	if (prepared_depot_size != new_depot_size)
 		return VDO_PARAMETER_MISMATCH;

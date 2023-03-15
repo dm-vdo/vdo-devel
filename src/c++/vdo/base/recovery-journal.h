@@ -16,7 +16,6 @@
 #include "flush.h"
 #include "statistics.h"
 #include "types.h"
-#include "vdo-layout.h"
 #include "wait-queue.h"
 
 /**
@@ -158,8 +157,8 @@ struct recovery_journal {
 	struct admin_state state;
 	/* Whether a reap is in progress */
 	bool reaping;
-	/* The partition which holds the journal on disk */
-	struct partition *partition;
+	/* The location of the first journal block */
+	physical_block_number_t origin;
 	/* The oldest active block in the journal on disk for block map rebuild */
 	sequence_number_t block_map_head;
 	/* The oldest active block in the journal on disk for slab journal replay */
@@ -258,9 +257,6 @@ int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 s
 					     struct recovery_journal **journal_ptr);
 
 void vdo_free_recovery_journal(struct recovery_journal *journal);
-
-void vdo_set_recovery_journal_partition(struct recovery_journal *journal,
-					struct partition *partition);
 
 void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
 						   u64 recovery_count,

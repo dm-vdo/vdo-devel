@@ -740,7 +740,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	vdo_initialize_wait_queue(&journal->pending_writes);
 
 	journal->thread_id = thread_config->journal_thread;
-	journal->partition = partition;
+	journal->origin = partition->offset;
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
 	journal->size = journal_size;
@@ -837,20 +837,6 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	}
 
 	UDS_FREE(journal);
-}
-
-/**
- * vdo_set_recovery_journal_partition() - Move the backing partition pointer of the recovery
- *                                        journal.
- * @journal: The journal being moved.
- * @partition: The new journal partition.
- *
- * Assumes that the data in the old and the new partitions is identical.
- */
-void vdo_set_recovery_journal_partition(struct recovery_journal *journal,
-					struct partition *partition)
-{
-	journal->partition = partition;
 }
 
 /**
@@ -1407,24 +1393,13 @@ static void add_queued_recovery_entries(struct recovery_journal_block *block)
  */
 static void write_block(struct waiter *waiter, void *context __always_unused)
 {
-	int result;
 	struct recovery_journal_block *block =
 		container_of(waiter, struct recovery_journal_block, write_waiter);
 	struct recovery_journal *journal = block->journal;
 	struct packed_journal_header *header = get_block_header(block);
-	physical_block_number_t pbn;
 
 	if (block->committing || !vdo_has_waiters(&block->entry_waiters) || is_read_only(journal))
 		return;
-
-	result = vdo_translate_to_pbn(journal->partition, block->block_number, &pbn);
-	if (result != VDO_SUCCESS) {
-		uds_log_error_strerror(result,
-				       "Error translating recovery journal block number %llu",
-				       (unsigned long long) block->block_number);
-		enter_journal_read_only_mode(journal, result);
-		return;
-	}
 
 	block->entries_in_commit = vdo_count_waiters(&block->entry_waiters);
 	add_queued_recovery_entries(block);
@@ -1445,7 +1420,7 @@ static void write_block(struct waiter *waiter, void *context __always_unused)
 	 * block itself is stable before allowing overwrites of the lbn's previous data.
 	 */
 	submit_metadata_vio(&block->vio,
-			    pbn,
+			    journal->origin + block->block_number,
 			    complete_write_endio,
 			    handle_write_error,
 			    WRITE_FLAGS);

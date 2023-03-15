@@ -45,17 +45,6 @@ $(OBJECTS): $(GENERATED_FILES)
 $(GENERATED_FILES): $(VDO_STATS_DEPS)
 	$(MAKE) -C $(VDO_STATS_DIR)
 
-vdo-layout.o: CFLAGS += -DTEST_INTERNAL
-
-%-user.o: %.c
-	$(COMPILE.c) -MD -MF $(DEPDIR)/$*.d.new -MP -MT $@ -o $@ $<
-	if cmp -s $(DEPDIR)/$*.d $(DEPDIR)/$*.d.new ;     \
-	then                                              \
-		$(RM) $(DEPDIR)/$*.d.new ;                \
-	else                                              \
-		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ; \
-	fi
-
 $(DEPDIR)/%-test.d: %.c $(GENERATED_HEADERS)
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -M -MF $@ -MP -MT $*.o $<

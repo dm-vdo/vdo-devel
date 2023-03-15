@@ -681,17 +681,6 @@ void vdo_update_slab_summary_entry(struct vdo_slab *slab,
 	launch_write(block);
 }
 
-/**
- * vdo_set_slab_summary_origin() - Set the origin of the slab summary relative to the physical
- *                                 layer.
- * @summary: The slab_summary to update.
- * @partition: The slab summary partition.
- */
-void vdo_set_slab_summary_origin(struct slab_depot *depot, struct partition *partition)
-{
-	depot->summary_origin = vdo_get_fixed_layout_partition_offset(partition);
-}
-
 static inline void assert_on_allocator_thread(thread_id_t thread_id, const char *function_name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == thread_id),
@@ -1745,7 +1734,7 @@ static int allocate_components(struct slab_depot *depot,
 	/* block size must be a multiple of entry size */
 	STATIC_ASSERT((VDO_BLOCK_SIZE % sizeof(struct slab_summary_entry)) == 0);
 
-	vdo_set_slab_summary_origin(depot, summary_partition);
+	depot->summary_origin = summary_partition->offset;
 	depot->hint_shift = vdo_get_slab_summary_hint_shift(depot->slab_size_shift);
 	result = UDS_ALLOCATE(MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES,
 			      struct slab_summary_entry,
@@ -2312,22 +2301,23 @@ void vdo_update_slab_depot_size(struct slab_depot *depot)
  * vdo_prepare_to_grow_slab_depot() - Allocate new memory needed for a resize of a slab depot to
  *                                    the given size.
  * @depot: The depot to prepare to resize.
- * @new_size: The number of blocks in the new depot.
+ * @partition: The new depot partition
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_size)
+int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, const struct partition *partition)
 {
 	struct slab_depot_state_2_0 new_state;
 	int result;
 	slab_count_t new_slab_count;
 
-	if ((new_size >> depot->slab_size_shift) <= depot->slab_count)
+	if ((partition->count >> depot->slab_size_shift) <= depot->slab_count)
 		return VDO_INCREMENT_TOO_SMALL;
 
 	/* Generate the depot configuration for the new block count. */
-	result = vdo_configure_slab_depot(new_size,
-					  depot->first_block,
+	ASSERT_LOG_ONLY(depot->first_block == partition->offset,
+			"New slab depot partition doesn't change origin");
+	result = vdo_configure_slab_depot(partition,
 					  depot->slab_config,
 					  depot->zone_count,
 					  &new_state);
@@ -2350,7 +2340,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, block_count_t new_s
 		return result;
 	}
 
-	depot->new_size = new_size;
+	depot->new_size = partition->count;
 	depot->old_last_block = depot->last_block;
 	depot->new_last_block = new_state.last_block;
 

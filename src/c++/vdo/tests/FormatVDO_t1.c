@@ -11,9 +11,8 @@
 #include "syscalls.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "vdo.h"
-#include "vdo-layout.h"
-#include "vdo-layout.h"
 
 #include "userVDO.h"
 #include "vdoConfig.h"
@@ -25,19 +24,14 @@
 static void assertPartitionIsZeroed(UserVDO *vdo, enum partition_id id)
 {
   struct partition *partition;
-  VDO_ASSERT_SUCCESS(vdo_get_fixed_layout_partition(vdo->states.layout,
-						    id, &partition));
-  physical_block_number_t firstBlock
-    = vdo_get_fixed_layout_partition_offset(partition);
+  VDO_ASSERT_SUCCESS(vdo_get_partition(&vdo->states.layout, id, &partition));
 
   char zeroBlock[VDO_BLOCK_SIZE];
   memset(zeroBlock, 0, VDO_BLOCK_SIZE);
+
   char buffer[VDO_BLOCK_SIZE];
-  for (block_count_t i = 0;
-       i < vdo_get_fixed_layout_partition_size(partition);
-       i++) {
-    VDO_ASSERT_SUCCESS(vdo->layer->reader(vdo->layer, firstBlock + i, 1,
-                                          buffer));
+  for (block_count_t i = 0; i < partition->count; i++) {
+    VDO_ASSERT_SUCCESS(vdo->layer->reader(vdo->layer, partition->offset + i, 1, buffer));
     UDS_ASSERT_EQUAL_BYTES(buffer, zeroBlock, VDO_BLOCK_SIZE);
   }
 }

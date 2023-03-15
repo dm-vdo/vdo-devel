@@ -19,7 +19,6 @@
 #include "int-map.h"
 #include "statistics.h"
 #include "types.h"
-#include "vdo-layout.h"
 #include "vio.h"
 #include "wait-queue.h"
 

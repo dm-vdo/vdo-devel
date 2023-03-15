@@ -11,7 +11,6 @@
 
 #include "encodings.h"
 #include "types.h"
-#include "vdo-layout.h"
 #include "volume-geometry.h"
 
 // The vdo_config structure is fully declared in types.h
@@ -54,18 +53,18 @@ int calculateMinimumVDOFromConfig(const struct vdo_config *config,
   __attribute__((warn_unused_result));
 
 /**
- * Make a fixed_layout according to a vdo_config. Exposed for testing only.
+ * Intialize a layout according to a vdo_config. Exposed for testing only.
  *
  * @param [in]  config          The vdo_config to generate a vdo_layout from
  * @param [in]  startingOffset  The start of the layouts
- * @param [out] layoutPtr       A pointer to hold the new vdo_layout
+ * @param [out] layout          The layout to initialize
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check
-makeFixedLayoutFromConfig(const struct vdo_config  *config,
-                          physical_block_number_t   startingOffset,
-                          struct fixed_layout     **layoutPtr);
+initializeLayoutFromConfig(const struct vdo_config *config,
+                           physical_block_number_t  startingOffset,
+                           struct layout           *layout);
 
 /**
  * This is a version of formatVDO() which allows the caller to supply the

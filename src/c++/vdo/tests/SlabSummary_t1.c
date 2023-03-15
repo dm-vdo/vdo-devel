@@ -12,9 +12,9 @@
 #include "permassert.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "slab.h"
 #include "slab-depot.h"
-#include "vdo-layout.h"
 
 #include "asyncLayer.h"
 #include "latchedCloseUtils.h"

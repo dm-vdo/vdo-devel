@@ -19,7 +19,6 @@
 #include "slab-journal.h"
 #include "slab.h"
 #include "status-codes.h"
-#include "vdo-layout.h"
 #include "vdo.h"
 
 #include "adminUtils.h"
@@ -331,8 +330,8 @@ static void verifyCoding(void)
   uds_free_buffer(UDS_FORGET(buffer));
 
   assertSameStates(state, decoded);
-  struct partition *slabSummaryPartition =
-    vdo_get_partition(vdo->layout, VDO_SLAB_SUMMARY_PARTITION);
+  struct partition *slabSummaryPartition = vdo_get_known_partition(&vdo->layout,
+                                                                   VDO_SLAB_SUMMARY_PARTITION);
   VDO_ASSERT_SUCCESS(vdo_decode_slab_depot(decoded,
                                            vdo,
                                            slabSummaryPartition,
@@ -391,7 +390,11 @@ static void reallocateEveryThird(block_count_t blockCount)
  **/
 static void prepareResizeAction(struct vdo_completion *completion)
 {
-  VDO_ASSERT_SUCCESS(vdo_prepare_to_grow_slab_depot(depot, size));
+  struct partition partition = {
+    .offset = depot->first_block,
+    .count = size,
+  };
+  VDO_ASSERT_SUCCESS(vdo_prepare_to_grow_slab_depot(depot, &partition));
   vdo_finish_completion(completion);
 }
 

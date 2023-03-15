@@ -9,6 +9,7 @@
 #include <linux/atomic.h>
 #include <linux/blk_types.h>
 #include <linux/completion.h>
+#include <linux/dm-kcopyd.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
 #include <linux/spinlock.h>
@@ -27,7 +28,6 @@
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
-#include "vdo-layout.h"
 #include "volume-geometry.h"
 #include "work-queue.h"
 
@@ -174,8 +174,10 @@ struct vdo {
 	/* The super block */
 	struct vdo_super_block super_block;
 
-	/* Our partitioning of the physical layer's storage */
-	struct vdo_layout *layout;
+	/* The partitioning of the underlying storage */
+	struct layout layout;
+	struct layout next_layout;
+	struct dm_kcopyd_client *partition_copier;
 
 	/* The block map */
 	struct block_map *block_map;
