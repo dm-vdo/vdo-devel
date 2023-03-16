@@ -30,7 +30,6 @@ BASE_OBJS :=     			\
 	priority-table.o		\
 	recovery.o			\
 	recovery-journal.o		\
-	ref-counts.o			\
 	slab-depot.o			\
 	slab-journal.o			\
 	status-codes.o			\

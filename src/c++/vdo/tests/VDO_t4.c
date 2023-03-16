@@ -12,7 +12,6 @@
 #include "uds.h"
 
 #include "dedupe.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "vdo.h"
 

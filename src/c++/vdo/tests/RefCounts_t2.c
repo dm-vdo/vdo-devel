@@ -16,7 +16,6 @@
 #include "time-utils.h"
 
 #include "data-vio.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 

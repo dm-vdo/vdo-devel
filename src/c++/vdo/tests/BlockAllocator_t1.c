@@ -14,7 +14,6 @@
 
 #include "data-vio.h"
 #include "encodings.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "status-codes.h"

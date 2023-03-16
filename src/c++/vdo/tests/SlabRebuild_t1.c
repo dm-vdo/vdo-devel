@@ -10,7 +10,6 @@
 
 #include "memory-alloc.h"
 
-#include "ref-counts.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "slab-journal.h"

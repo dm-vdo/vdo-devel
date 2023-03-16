@@ -292,8 +292,6 @@ tarballs:
             - recovery.h
             - recovery-journal.c
             - recovery-journal.h
-            - ref-counts.c
-            - ref-counts.h
             - release-versions.h
             - slab-depot.c
             - slab-depot.h

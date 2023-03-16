@@ -9,7 +9,6 @@
 #include "albtest.h"
 
 #include "encodings.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "types.h"
 

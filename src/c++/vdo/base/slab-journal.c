@@ -17,7 +17,6 @@
 #include "data-vio.h"
 #include "io-submitter.h"
 #include "recovery-journal.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "vdo.h"
 #include "vio.h"

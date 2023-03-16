@@ -12,7 +12,6 @@
 
 #include "encodings.h"
 #include "recovery-journal.h"
-#include "ref-counts.h"
 #include "slab-depot.h"
 #include "slab-journal.h"
 #include "types.h"
