@@ -15,7 +15,9 @@
 
 typedef struct mutex spinlock_t;
 
-#define spin_lock_init(lock) \
+#define DEFINE_SPINLOCK(x) spinlock_t x = UDS_MUTEX_INITIALIZER
+
+#define spin_lock_init(lock)                                 \
 	ASSERT_LOG_ONLY(uds_init_mutex(lock) == UDS_SUCCESS, \
 			"spinlock init succeeds")
 #define spin_lock(lock) uds_lock_mutex(lock)

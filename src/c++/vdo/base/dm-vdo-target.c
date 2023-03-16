@@ -10,6 +10,7 @@
 #include <linux/device-mapper.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/spinlock.h>
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -204,13 +205,13 @@ enum {
 };
 
 struct instance_tracker {
-	struct mutex lock;
 	unsigned int bit_count;
 	unsigned long *words;
 	unsigned int count;
 	unsigned int next;
 };
 
+static DEFINE_SPINLOCK(instances_lock);
 static struct instance_tracker instances;
 
 #ifndef __KERNEL__
@@ -1592,7 +1593,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 
 EXTERNAL_STATIC void release_instance(unsigned int instance)
 {
-	mutex_lock(&instances.lock);
+	spin_lock(&instances_lock);
 	if (instance >= instances.bit_count) {
 		ASSERT_LOG_ONLY(false,
 				"instance number %u must be less than bit count %u",
@@ -1604,7 +1605,7 @@ EXTERNAL_STATIC void release_instance(unsigned int instance)
 		__clear_bit(instance, instances.words);
 		instances.count -= 1;
 	}
-	mutex_unlock(&instances.lock);
+	spin_unlock(&instances_lock);
 }
 
 static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
@@ -1800,9 +1801,9 @@ static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **arg
 	unsigned int instance;
 	struct registered_thread instance_thread;
 
-	mutex_lock(&instances.lock);
+	spin_lock(&instances_lock);
 	result = allocate_instance(&instance);
-	mutex_unlock(&instances.lock);
+	spin_unlock(&instances_lock);
 	if (result != VDO_SUCCESS)
 		return -ENOMEM;
 
@@ -3126,7 +3127,6 @@ static void vdo_module_destroy(void)
 			"should have no instance numbers still in use, but have %u",
 			instances.count);
 	UDS_FREE(instances.words);
-	mutex_destroy(&instances.lock);
 	memset(&instances, 0, sizeof(struct instance_tracker));
 
 	uds_log_info("unloaded version %s", CURRENT_VERSION);
@@ -3163,8 +3163,6 @@ static int __init vdo_init(void)
 		return result;
 	}
 	dm_registered = true;
-
-	mutex_init(&instances.lock);
 
 	return result;
 }
