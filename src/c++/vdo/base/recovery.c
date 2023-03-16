@@ -255,13 +255,13 @@ static int make_recovery_completion(struct vdo *vdo,
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
 	 * order incrementally, avoiding an expensive sort call.
 	 */
-	initialize_heap(&recovery->replay_heap,
-			compare_mappings,
-			swap_mappings,
-			journal_entries,
-			entry_count,
-			sizeof(struct numbered_block_mapping));
-	build_heap(&recovery->replay_heap, entry_count);
+	vdo_initialize_heap(&recovery->replay_heap,
+			    compare_mappings,
+			    swap_mappings,
+			    journal_entries,
+			    entry_count,
+			    sizeof(struct numbered_block_mapping));
+	vdo_build_heap(&recovery->replay_heap, entry_count);
 	vdo_prepare_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
@@ -352,7 +352,7 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 	       (current_entry->block_map_slot.pbn == current_page)) {
 		if (needs_sort) {
 			struct numbered_block_mapping *just_sorted_entry =
-				sort_next_heap_element(&recovery->replay_heap);
+				vdo_sort_next_heap_element(&recovery->replay_heap);
 			ASSERT_LOG_ONLY(just_sorted_entry < current_entry,
 					"heap is returning elements in an unexpected order");
 		}
@@ -497,12 +497,12 @@ recover_block_map(struct vdo *vdo,
 		return;
 	}
 
-	if (is_heap_empty(&recovery->replay_heap)) {
+	if (vdo_is_heap_empty(&recovery->replay_heap)) {
 		vdo_finish_completion(&recovery->completion);
 		return;
 	}
 
-	first_sorted_entry = sort_next_heap_element(&recovery->replay_heap);
+	first_sorted_entry = vdo_sort_next_heap_element(&recovery->replay_heap);
 	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
 			"heap is returning elements in an unexpected order");
 

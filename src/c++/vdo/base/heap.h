@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef HEAP_H
-#define HEAP_H
+#ifndef VDO_HEAP_H
+#define VDO_HEAP_H
 
 #include <linux/types.h>
 
@@ -30,7 +30,7 @@ typedef void heap_swapper(void *item1, void *item2);
 /*
  * A heap array can be any array of fixed-length elements in which the heap invariant can be
  * established. In a max-heap, every child of a node must be at least as large as its children.
- * Once that invariant is established in an array by calling build_heap(), all the other heap
+ * Once that invariant is established in an array by calling vdo_build_heap(), all the other heap
  * operations may be used on that array.
  */
 struct heap {
@@ -48,30 +48,30 @@ struct heap {
 	size_t count;
 };
 
-void initialize_heap(struct heap *heap,
-		     heap_comparator *comparator,
-		     heap_swapper *swapper,
-		     void *array,
-		     size_t capacity,
-		     size_t element_size);
+void vdo_initialize_heap(struct heap *heap,
+			 heap_comparator *comparator,
+			 heap_swapper *swapper,
+			 void *array,
+			 size_t capacity,
+			 size_t element_size);
 
-void build_heap(struct heap *heap, size_t count);
+void vdo_build_heap(struct heap *heap, size_t count);
 
 /**
- * is_heap_empty() - Check whether the heap is currently empty.
+ * vdo_is_heap_empty() - Check whether the heap is currently empty.
  * @heap: The heap to query.
  *
  * Return: true if there are no elements in the heap.
  */
-static inline bool is_heap_empty(const struct heap *heap)
+static inline bool vdo_is_heap_empty(const struct heap *heap)
 {
 	return (heap->count == 0);
 }
 
-bool pop_max_heap_element(struct heap *heap, void *element_ptr);
+bool vdo_pop_max_heap_element(struct heap *heap, void *element_ptr);
 
-size_t sort_heap(struct heap *heap);
+size_t vdo_sort_heap(struct heap *heap);
 
-void *sort_next_heap_element(struct heap *heap);
+void *vdo_sort_next_heap_element(struct heap *heap);
 
-#endif /* HEAP_H */
+#endif /* VDO_HEAP_H */

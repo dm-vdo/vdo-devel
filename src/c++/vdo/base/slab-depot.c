@@ -3028,15 +3028,15 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		return result;
 
 	/* Sort the slabs by cleanliness, then by emptiness hint. */
-	initialize_heap(&heap,
-			compare_slab_statuses,
-			swap_slab_statuses,
-			slab_statuses,
-			allocator->slab_count,
-			sizeof(struct slab_status));
-	build_heap(&heap, allocator->slab_count);
+	vdo_initialize_heap(&heap,
+			    compare_slab_statuses,
+			    swap_slab_statuses,
+			    slab_statuses,
+			    allocator->slab_count,
+			    sizeof(struct slab_status));
+	vdo_build_heap(&heap, allocator->slab_count);
 
-	while (pop_max_heap_element(&heap, &current_slab_status)) {
+	while (vdo_pop_max_heap_element(&heap, &current_slab_status)) {
 		bool high_priority;
 		struct vdo_slab *slab = depot->slabs[current_slab_status.slab_number];
 

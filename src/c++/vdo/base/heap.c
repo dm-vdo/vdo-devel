@@ -16,7 +16,7 @@
 #include "status-codes.h"
 
 /**
- * initialize_heap() - Initialize an binary heap by wrapping it around an array of elements.
+ * vdo_initialize_heap() - Initialize an binary heap by wrapping it around an array of elements.
  * @heap: The heap to initialize.
  * @comparator: The function to use to compare two heap elements.
  * @swapper: The function to use to swap two heap elements.
@@ -24,15 +24,15 @@
  * @capacity: The maximum number of elements which fit in the array.
  * @element_size: The size of every array element, in bytes.
  *
- * The heap will not own the array it wraps. Use build_heap() subsequently to arrange any elements
- * contained in the array into a valid heap.
+ * The heap will not own the array it wraps. Use vdo_build_heap() subsequently to arrange any
+ * elements contained in the array into a valid heap.
  */
-void initialize_heap(struct heap *heap,
-		     heap_comparator *comparator,
-		     heap_swapper *swapper,
-		     void *array,
-		     size_t capacity,
-		     size_t element_size)
+void vdo_initialize_heap(struct heap *heap,
+			 heap_comparator *comparator,
+			 heap_swapper *swapper,
+			 void *array,
+			 size_t capacity,
+			 size_t element_size)
 {
 	*heap = (struct heap) {
 		.comparator = comparator,
@@ -89,16 +89,16 @@ static void sift_heap_down(struct heap *heap, size_t top_node, size_t last_node)
 }
 
 /**
- * build_heap() - Build a max-heap in place in an array (heapify it) by re-ordering the elements to
- *                establish the heap invariant.
+ * vdo_build_heap() - Build a max-heap in place in an array (heapify it) by re-ordering the
+ *                    elements to establish the heap invariant.
  * @heap: The heap to build.
  * @count: The number of elements in the array to build into a heap.
  *
  * Before calling this function, first copy the elements to be arranged into a heap into the array
- * that was passed to initialize_heap(). This operation has O(N) time complexity in the number of
- * elements in the array.
+ * that was passed to vdo_initialize_heap(). This operation has O(N) time complexity in the number
+ * of elements in the array.
  */
-void build_heap(struct heap *heap, size_t count)
+void vdo_build_heap(struct heap *heap, size_t count)
 {
 	size_t size, last_parent, last_node, top_node;
 
@@ -130,8 +130,8 @@ void build_heap(struct heap *heap, size_t count)
 }
 
 /**
- * pop_max_heap_element() - Remove the largest element from the top of the heap and restore the
- *                          heap invariant on the remaining elements.
+ * vdo_pop_max_heap_element() - Remove the largest element from the top of the heap and restore the
+ *                              heap invariant on the remaining elements.
  * @heap: The heap to modify.
 
  * @element_ptr: A pointer to receive the largest element (may be NULL if the caller just wishes to
@@ -141,7 +141,7 @@ void build_heap(struct heap *heap, size_t count)
  *
  * Return: false if the heap was empty, so no element was removed.
  */
-bool pop_max_heap_element(struct heap *heap, void *element_ptr)
+bool vdo_pop_max_heap_element(struct heap *heap, void *element_ptr)
 {
 	size_t root_node, last_node;
 
@@ -190,7 +190,7 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node, size_t l
 }
 
 /**
- * sort_heap() - Sort the elements contained in a heap.
+ * vdo_sort_heap() - Sort the elements contained in a heap.
  * @heap: The heap containing the elements to sort.
  *
  * This function re-orders the elements contained in the heap to a sorted array in-place by
@@ -201,7 +201,7 @@ static inline size_t sift_and_sort(struct heap *heap, size_t root_node, size_t l
  *
  * Return: the number of elements that were sorted
  */
-size_t sort_heap(struct heap *heap)
+size_t vdo_sort_heap(struct heap *heap)
 {
 	size_t root_node, last_node, count;
 
@@ -228,13 +228,13 @@ size_t sort_heap(struct heap *heap)
 }
 
 /**
- * sort_next_heap_element() - Gets the next sorted heap element and returns a pointer to it, in
- *                            O(log2(N)) time.
+ * vdo_sort_next_heap_element() - Gets the next sorted heap element and returns a pointer to it, in
+ *                                O(log2(N)) time.
  * @heap: The heap to sort one more step.
  *
  * Return: a pointer to the element sorted, or NULL if already fully sorted.
  */
-void *sort_next_heap_element(struct heap *heap)
+void *vdo_sort_next_heap_element(struct heap *heap)
 {
 	size_t root_node, last_node;
 

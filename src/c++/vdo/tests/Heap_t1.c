@@ -85,20 +85,20 @@ static void testEmptyHeap(void)
 {
   struct heap heap;
   HeapRecord records[1];
-  initialize_heap(&heap, compareRecords, swapRecords,
-                  records, 0, sizeof(records[0]));
+  vdo_initialize_heap(&heap, compareRecords, swapRecords,
+                      records, 0, sizeof(records[0]));
 
   // Check the properties of the empty heap.
-  CU_ASSERT_TRUE(is_heap_empty(&heap));
+  CU_ASSERT_TRUE(vdo_is_heap_empty(&heap));
 
   // There are no elements to be popped.
   HeapRecord record;
-  CU_ASSERT_FALSE(pop_max_heap_element(&heap, &record));
+  CU_ASSERT_FALSE(vdo_pop_max_heap_element(&heap, &record));
 
   // Build heap does nothing, but shouldn't crash.
-  build_heap(&heap, 0);
+  vdo_build_heap(&heap, 0);
 
-  CU_ASSERT_TRUE(is_heap_empty(&heap));
+  CU_ASSERT_TRUE(vdo_is_heap_empty(&heap));
 }
 
 /**
@@ -148,8 +148,8 @@ static void testSmallHeap(struct heap *heap,
     qsort(sortedRecords, capacity, sizeof(HeapRecord), compareRecords);
 
     // Heapify the unique unsorted sequence of records in the record array.
-    CU_ASSERT_TRUE(is_heap_empty(heap));
-    build_heap(heap, capacity);
+    CU_ASSERT_TRUE(vdo_is_heap_empty(heap));
+    vdo_build_heap(heap, capacity);
     CU_ASSERT_EQUAL(capacity, heap->count);
 
     // Pop the elements off the heap one by one, verifying that they come off
@@ -158,7 +158,7 @@ static void testSmallHeap(struct heap *heap,
     for (size_t i = 0; i < capacity; i++) {
       CU_ASSERT_EQUAL(capacity - i, heap->count);
       HeapRecord record;
-      CU_ASSERT_TRUE(pop_max_heap_element(heap, &record));
+      CU_ASSERT_TRUE(vdo_pop_max_heap_element(heap, &record));
 
       // The records are sorted in ascending order, but the heap returns them
       // in descending order.
@@ -175,8 +175,8 @@ static void testSmallHeap(struct heap *heap,
     CU_ASSERT_EQUAL((1 << capacity) - 1, seen);
 
     // The heap must now be empty again.
-    CU_ASSERT_TRUE(is_heap_empty(heap));
-    CU_ASSERT_FALSE(pop_max_heap_element(heap, NULL));
+    CU_ASSERT_TRUE(vdo_is_heap_empty(heap));
+    CU_ASSERT_FALSE(vdo_pop_max_heap_element(heap, NULL));
   }
 }
 
@@ -189,8 +189,8 @@ static void testEverySmallHeap(void)
   for (size_t capacity = 1; capacity <= 6; capacity++) {
     struct heap heap;
     HeapRecord records[capacity];
-    initialize_heap(&heap, compareRecords, swapRecords,
-                    records, capacity, sizeof(records[0]));
+    vdo_initialize_heap(&heap, compareRecords, swapRecords,
+                        records, capacity, sizeof(records[0]));
     testSmallHeap(&heap, records, capacity);
   }
 }
@@ -207,15 +207,15 @@ static void testSortHeap(void)
   HeapRecord          *records = buildRandomRecords(COUNT);
 
   // Put the records into binary heap order.
-  initialize_heap(&heap, compareRecords, swapRecords,
+  vdo_initialize_heap(&heap, compareRecords, swapRecords,
                   records, COUNT, sizeof(records[0]));
-  build_heap(&heap, COUNT);
+  vdo_build_heap(&heap, COUNT);
 
   // Pull records off the heap one by one, sorting them.
-  CU_ASSERT_EQUAL(COUNT, sort_heap(&heap));
+  CU_ASSERT_EQUAL(COUNT, vdo_sort_heap(&heap));
 
   // The heap should be empty now, with the records sorted in place.
-  CU_ASSERT_TRUE(is_heap_empty(&heap));
+  CU_ASSERT_TRUE(vdo_is_heap_empty(&heap));
   CU_ASSERT_TRUE(isSorted(records, COUNT));
 
   UDS_FREE(records);
@@ -231,17 +231,17 @@ static void testSortNextHeapElement(void)
   static const size_t  COUNT = 100 * 1000;
   struct heap          heap;
   HeapRecord          *records = buildRandomRecords(COUNT);
-  initialize_heap(&heap, compareRecords, swapRecords,
+  vdo_initialize_heap(&heap, compareRecords, swapRecords,
                   records, COUNT, sizeof(records[0]));
   // Put the records into binary heap order.
-  build_heap(&heap, COUNT);
+  vdo_build_heap(&heap, COUNT);
 
   // Pull records off the heap one by one, sorting them.
   HeapRecord *lastPulledRecord    = NULL;
   HeapRecord *currentPulledRecord = NULL;
   for (size_t i = 0; i < COUNT; i++) {
     lastPulledRecord = currentPulledRecord;
-    currentPulledRecord = sort_next_heap_element(&heap);
+    currentPulledRecord = vdo_sort_next_heap_element(&heap);
     CU_ASSERT_TRUE(currentPulledRecord == &records[COUNT - 1 - i]);
     if (lastPulledRecord != NULL) {
       CU_ASSERT_TRUE(currentPulledRecord->key <= lastPulledRecord->key);
@@ -249,7 +249,7 @@ static void testSortNextHeapElement(void)
   }
 
   // The heap should be empty now, with the records sorted in place.
-  CU_ASSERT_TRUE(is_heap_empty(&heap));
+  CU_ASSERT_TRUE(vdo_is_heap_empty(&heap));
   CU_ASSERT_TRUE(isSorted(records, COUNT));
 
   UDS_FREE(records);
