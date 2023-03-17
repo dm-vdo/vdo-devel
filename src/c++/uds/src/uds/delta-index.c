@@ -436,6 +436,7 @@ int initialize_delta_index(struct delta_index *delta_index,
 	delta_index->zone_count = zone_count;
 	delta_index->list_count = list_count;
 	delta_index->lists_per_zone = DIV_ROUND_UP(list_count, zone_count);
+	delta_index->memory_size = 0;
 	delta_index->mutable = true;
 	delta_index->tag = tag;
 
@@ -470,6 +471,10 @@ int initialize_delta_index(struct delta_index *delta_index,
 			uninitialize_delta_index(delta_index);
 			return result;
 		}
+
+		delta_index->memory_size +=
+			(sizeof(struct delta_zone) + zone_memory +
+			 (lists_in_zone + 2) * (sizeof(struct delta_list) + sizeof(u64)));
 	}
 
 	reset_delta_index(delta_index);
@@ -2110,23 +2115,14 @@ int remove_delta_index_entry(struct delta_index_entry *delta_entry)
 	return UDS_SUCCESS;
 }
 
-static size_t get_delta_zone_allocated(const struct delta_zone *delta_zone)
-{
-	return delta_zone->size +
-	       (delta_zone->list_count + 2) * sizeof(struct delta_list) +
-	       (delta_zone->list_count + 2) * sizeof(u64);
-}
-
 void get_delta_index_stats(const struct delta_index *delta_index, struct delta_index_stats *stats)
 {
 	unsigned int z;
 	const struct delta_zone *delta_zone;
 
 	memset(stats, 0, sizeof(struct delta_index_stats));
-	stats->memory_allocated = delta_index->zone_count * sizeof(struct delta_zone);
 	for (z = 0; z < delta_index->zone_count; z++) {
 		delta_zone = &delta_index->delta_zones[z];
-		stats->memory_allocated += get_delta_zone_allocated(delta_zone);
 		stats->rebalance_time += delta_zone->rebalance_time;
 		stats->rebalance_count += delta_zone->rebalance_count;
 		stats->record_count += delta_zone->record_count;

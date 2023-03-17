@@ -1506,15 +1506,6 @@ int write_chapter(struct volume *volume,
 	return result;
 }
 
-size_t get_cache_size(struct volume *volume)
-{
-	size_t size = (volume->page_cache->num_cache_entries * sizeof(struct delta_index_page));
-
-	if (is_sparse_geometry(volume->geometry))
-		size += get_sparse_cache_memory_size(volume->sparse_cache);
-	return size;
-}
-
 static int probe_chapter(struct volume *volume,
 			 unsigned int chapter_number,
 			 u64 *virtual_chapter_number)
@@ -1841,6 +1832,8 @@ static int __must_check allocate_volume(const struct configuration *config,
 	}
 
 	if (is_sparse_geometry(geometry)) {
+		size_t page_size = sizeof(struct delta_index_page) + geometry->bytes_per_page;
+
 		result = make_sparse_cache(geometry,
 					   config->cache_chapters,
 					   config->zone_count,
@@ -1849,6 +1842,9 @@ static int __must_check allocate_volume(const struct configuration *config,
 			free_volume(volume);
 			return result;
 		}
+
+		volume->cache_size =
+			page_size * geometry->index_pages_per_chapter * config->cache_chapters;
 	}
 	result = make_page_cache(geometry,
 				 config->cache_chapters,
@@ -1865,6 +1861,8 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
+	volume->cache_size +=
+		volume->page_cache->num_cache_entries * sizeof(struct delta_index_page);
 	*new_volume = volume;
 	return UDS_SUCCESS;
 }

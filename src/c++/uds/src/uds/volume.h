@@ -129,6 +129,7 @@ struct volume {
 	struct geometry *geometry;
 	struct dm_bufio_client *client;
 	u64 nonce;
+	size_t cache_size;
 
 	/* A single page worth of records, for sorting */
 	const struct uds_volume_record **record_pointers;
@@ -337,8 +338,6 @@ int __must_check get_volume_index_page(struct volume *volume,
 				       unsigned int chapter,
 				       unsigned int page_number,
 				       struct delta_index_page **page_ptr);
-
-size_t __must_check get_cache_size(struct volume *volume);
 
 int __must_check
 find_volume_chapter_boundaries_impl(unsigned int chapter_limit,

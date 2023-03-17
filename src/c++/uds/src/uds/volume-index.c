@@ -89,54 +89,6 @@ struct split_config {
 	struct geometry non_hook_geometry;
 };
 
-struct volume_sub_index_zone {
-	u64 virtual_chapter_low;
-	u64 virtual_chapter_high;
-	long num_early_flushes;
-} __aligned(L1_CACHE_BYTES);
-
-struct volume_sub_index {
-	/* The delta index */
-	struct delta_index delta_index;
-	/* The first chapter to be flushed in each zone */
-	u64 *flush_chapters;
-	/* The zones */
-	struct volume_sub_index_zone *zones;
-	/* The volume nonce */
-	u64 volume_nonce;
-	/* Expected size of a chapter (per zone) */
-	u64 chapter_zone_bits;
-	/* Maximum size of the index (per zone) */
-	u64 max_zone_bits;
-	/* The number of bits in address mask */
-	unsigned int address_bits;
-	/* Mask to get address within delta list */
-	unsigned int address_mask;
-	/* The number of bits in chapter number */
-	unsigned int chapter_bits;
-	/* The largest storable chapter number */
-	unsigned int chapter_mask;
-	/* The number of chapters used */
-	unsigned int num_chapters;
-	/* The number of delta lists */
-	unsigned int num_delta_lists;
-	/* The number of zones */
-	unsigned int num_zones;
-};
-
-struct volume_index_zone {
-	/* Protects the sampled index in this zone */
-	struct mutex hook_mutex;
-} __aligned(L1_CACHE_BYTES);
-
-struct volume_index {
-	unsigned int sparse_sample_rate;
-	unsigned int num_zones;
-	struct volume_sub_index vi_non_hook;
-	struct volume_sub_index vi_hook;
-	struct volume_index_zone *zones;
-};
-
 struct chapter_range {
 	unsigned int chapter_start;
 	unsigned int chapter_count;
@@ -1401,9 +1353,6 @@ static void get_volume_sub_index_stats(const struct volume_sub_index *sub_index,
 	unsigned int z;
 
 	get_delta_index_stats(&sub_index->delta_index, &dis);
-	stats->memory_allocated = (dis.memory_allocated + sizeof(struct volume_sub_index) +
-				   sub_index->num_delta_lists * sizeof(u64) +
-				   sub_index->num_zones * sizeof(struct volume_sub_index_zone));
 	stats->rebalance_time = dis.rebalance_time;
 	stats->rebalance_count = dis.rebalance_count;
 	stats->record_count = dis.record_count;
@@ -1434,7 +1383,6 @@ void get_volume_index_combined_stats(const struct volume_index *volume_index,
 	struct volume_index_stats dense, sparse;
 
 	get_volume_index_stats(volume_index, &dense, &sparse);
-	stats->memory_allocated = dense.memory_allocated + sparse.memory_allocated;
 	stats->rebalance_time = dense.rebalance_time + sparse.rebalance_time;
 	stats->rebalance_count = dense.rebalance_count + sparse.rebalance_count;
 	stats->record_count = dense.record_count + sparse.record_count;
@@ -1485,6 +1433,10 @@ static int initialize_volume_sub_index(const struct configuration *config,
 		available_bytes += sub_index->delta_index.delta_zones[z].size;
 	available_bytes -= params.target_free_bytes;
 	sub_index->max_zone_bits = (available_bytes * BITS_PER_BYTE) / num_zones;
+	sub_index->memory_size = (sub_index->delta_index.memory_size +
+				  sizeof(struct volume_sub_index) +
+				  (params.num_delta_lists * sizeof(u64)) +
+				  (num_zones * sizeof(struct volume_sub_index_zone)));
 
 	/* The following arrays are initialized to all zeros. */
 	result = UDS_ALLOCATE(params.num_delta_lists,
@@ -1525,6 +1477,7 @@ int make_volume_index(const struct configuration *config,
 			return result;
 		}
 
+		volume_index->memory_size = volume_index->vi_non_hook.memory_size;
 		*volume_index_ptr = volume_index;
 		return UDS_SUCCESS;
 	}
@@ -1567,6 +1520,8 @@ int make_volume_index(const struct configuration *config,
 		return uds_log_error_strerror(result, "Error creating hook volume index");
 	}
 
+	volume_index->memory_size =
+		volume_index->vi_non_hook.memory_size + volume_index->vi_hook.memory_size;
 	*volume_index_ptr = volume_index;
 	return UDS_SUCCESS;
 }

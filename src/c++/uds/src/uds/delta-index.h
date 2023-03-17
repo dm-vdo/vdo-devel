@@ -96,6 +96,8 @@ struct delta_index {
 	unsigned int list_count;
 	/* Maximum lists per zone */
 	unsigned int lists_per_zone;
+	/* Total memory allocated to this index */
+	size_t memory_size;
 	/* The number of non-empty lists at load time per zone */
 	unsigned int load_lists[MAX_ZONES];
 	/* True if this index is mutable */

@@ -67,7 +67,7 @@ struct chapter_writer {
 	/* The result from the most recent write */
 	int result;
 	/* The number of bytes allocated by the chapter writer */
-	size_t memory_allocated;
+	size_t memory_size;
 	/* The number of zones which have submitted a chapter for writing */
 	unsigned int zones_to_write;
 	/* Open chapter index used by close_open_chapter() */
@@ -827,10 +827,10 @@ static int make_chapter_writer(struct uds_index *index, struct chapter_writer **
 		return result;
 	}
 
-	writer->memory_allocated = (sizeof(struct chapter_writer) +
-				    index->zone_count * sizeof(struct open_chapter_zone *) +
-				    collated_records_size +
-				    writer->open_chapter_index->memory_allocated);
+	writer->memory_size = (sizeof(struct chapter_writer) +
+			       index->zone_count * sizeof(struct open_chapter_zone *) +
+			       collated_records_size +
+			       writer->open_chapter_index->memory_size);
 
 	result = uds_create_thread(close_chapters, writer, "writer", &writer->thread);
 	if (result != UDS_SUCCESS) {
@@ -1398,14 +1398,13 @@ void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 	struct volume_index_stats sparse_stats;
 
 	get_volume_index_stats(index->volume_index, &dense_stats, &sparse_stats);
-
 	counters->entries_indexed = dense_stats.record_count + sparse_stats.record_count;
-	counters->memory_used = ((u64) dense_stats.memory_allocated +
-				 (u64) sparse_stats.memory_allocated +
-				 (u64) get_cache_size(index->volume) +
-				 index->chapter_writer->memory_allocated);
 	counters->collisions = (dense_stats.collision_count + sparse_stats.collision_count);
 	counters->entries_discarded = (dense_stats.discard_count + sparse_stats.discard_count);
+
+	counters->memory_used = (index->volume_index->memory_size +
+				 index->volume->cache_size +
+				 index->chapter_writer->memory_size);
 }
 
 void enqueue_request(struct uds_request *request, enum request_stage stage)

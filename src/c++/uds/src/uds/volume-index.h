@@ -9,6 +9,7 @@
 #include "config.h"
 #include "delta-index.h"
 #include "uds.h"
+#include "uds-threads.h"
 
 /*
  * The volume index is the primary top-level index for UDS. It comtains records which map a record
@@ -28,8 +29,6 @@ extern unsigned int min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
 struct volume_index_stats {
-	/* Number of bytes allocated */
-	size_t memory_allocated;
 	/* Nanoseconds spent rebalancing */
 	ktime_t rebalance_time;
 	/* Number of memory rebalances */
@@ -48,8 +47,56 @@ struct volume_index_stats {
 	long early_flushes;
 };
 
-struct volume_index;
-struct volume_sub_index;
+struct volume_sub_index_zone {
+	u64 virtual_chapter_low;
+	u64 virtual_chapter_high;
+	long num_early_flushes;
+} __aligned(L1_CACHE_BYTES);
+
+struct volume_sub_index {
+	/* The delta index */
+	struct delta_index delta_index;
+	/* The first chapter to be flushed in each zone */
+	u64 *flush_chapters;
+	/* The zones */
+	struct volume_sub_index_zone *zones;
+	/* The volume nonce */
+	u64 volume_nonce;
+	/* Expected size of a chapter (per zone) */
+	u64 chapter_zone_bits;
+	/* Maximum size of the index (per zone) */
+	u64 max_zone_bits;
+	/* The number of bits in address mask */
+	unsigned int address_bits;
+	/* Mask to get address within delta list */
+	unsigned int address_mask;
+	/* The number of bits in chapter number */
+	unsigned int chapter_bits;
+	/* The largest storable chapter number */
+	unsigned int chapter_mask;
+	/* The number of chapters used */
+	unsigned int num_chapters;
+	/* The number of delta lists */
+	unsigned int num_delta_lists;
+	/* The number of zones */
+	unsigned int num_zones;
+	/* The amount of memory allocated */
+	u64 memory_size;
+};
+
+struct volume_index_zone {
+	/* Protects the sampled index in this zone */
+	struct mutex hook_mutex;
+} __aligned(L1_CACHE_BYTES);
+
+struct volume_index {
+	unsigned int sparse_sample_rate;
+	unsigned int num_zones;
+	u64 memory_size;
+	struct volume_sub_index vi_non_hook;
+	struct volume_sub_index vi_hook;
+	struct volume_index_zone *zones;
+};
 
 /*
  * The volume_index_record structure is used to facilitate processing of a record name. A client

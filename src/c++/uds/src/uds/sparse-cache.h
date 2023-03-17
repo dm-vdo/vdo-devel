@@ -33,8 +33,6 @@ int __must_check make_sparse_cache(const struct geometry *geometry,
 
 void free_sparse_cache(struct sparse_cache *cache);
 
-size_t get_sparse_cache_memory_size(const struct sparse_cache *cache);
-
 bool sparse_cache_contains(struct sparse_cache *cache,
 			   u64 virtual_chapter,
 			   unsigned int zone_number);

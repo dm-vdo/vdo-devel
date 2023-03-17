@@ -80,8 +80,7 @@ reportIndexMemoryUsage(const struct volume_index_stats *denseStats,
                        const struct volume_index_stats *sparseStats)
 {
   long numBlocks = denseStats->record_count + sparseStats->record_count;
-  size_t memAlloc
-    = denseStats->memory_allocated + sparseStats->memory_allocated;
+  size_t memAlloc = volumeIndex->memory_size;
   size_t memUsed = get_volume_index_memory_used(volumeIndex);
   double usedBytesPerRecord  = (double)memUsed / (double)numBlocks;
   double allocBytesPerRecord = (double)memAlloc / (double)numBlocks;

@@ -29,7 +29,7 @@ struct open_chapter_index {
 	struct delta_index delta_index;
 	u64 virtual_chapter_number;
 	u64 volume_nonce;
-	size_t memory_allocated;
+	size_t memory_size;
 };
 #ifdef TEST_INTERNAL
 

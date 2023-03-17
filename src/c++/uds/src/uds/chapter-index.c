@@ -24,7 +24,6 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 {
 	int result;
 	size_t memory_size;
-	struct delta_index_stats stats;
 	struct open_chapter_index *index;
 
 #ifdef TEST_INTERNAL
@@ -56,8 +55,7 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 		return result;
 	}
 
-	get_delta_index_stats(&index->delta_index, &stats);
-	index->memory_allocated = stats.memory_allocated + sizeof(struct open_chapter_index);
+	index->memory_size = index->delta_index.memory_size + sizeof(struct open_chapter_index);
 	*chapter_index = index;
 	return UDS_SUCCESS;
 }

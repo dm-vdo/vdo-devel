@@ -78,7 +78,7 @@ static void reportIndexMemoryUsage(struct volume_index *volumeIndex)
   get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
 
   long numBlocks = denseStats.record_count + sparseStats.record_count;
-  size_t memAlloc = denseStats.memory_allocated + sparseStats.memory_allocated;
+  size_t memAlloc = volumeIndex->memory_size;
   size_t memUsed = get_volume_index_memory_used(volumeIndex);
   int usedBytesPerRecord  = 100 * memUsed / numBlocks;
   int allocBytesPerRecord = 100 * memAlloc / numBlocks;
@@ -142,7 +142,7 @@ static void miPerfTest(void)
   struct volume_index_stats combinedStats;
   get_volume_index_combined_stats(volumeIndex, &combinedStats);
   int numLists = combinedStats.num_lists;
-  size_t memAlloc = combinedStats.memory_allocated;
+  size_t memAlloc = volumeIndex->memory_size;
   albPrint("Initial Memory: allocated %zd for %d delta lists (%zd each)",
            memAlloc, numLists, memAlloc / numLists);
   albFlush();

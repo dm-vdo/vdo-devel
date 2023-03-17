@@ -61,7 +61,7 @@ static void reportVolumeIndexMemory(struct volume_index *volumeIndex)
 
   long numBlocks = combinedStats.record_count;
   long numLists = combinedStats.num_lists;
-  size_t memAlloc = combinedStats.memory_allocated;
+  size_t memAlloc = volumeIndex->memory_size;
   size_t memUsed = get_volume_index_memory_used(volumeIndex);
   if (numBlocks == 0) {
     albPrint("Memory: allocated %zd bytes for %ld delta lists (%zd each)",

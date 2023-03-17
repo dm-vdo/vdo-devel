@@ -268,15 +268,6 @@ int make_sparse_cache(const struct geometry *geometry,
 	return UDS_SUCCESS;
 }
 
-size_t get_sparse_cache_memory_size(const struct sparse_cache *cache)
-{
-	/* Count the delta_index_page as cache memory, but ignore all other overhead. */
-	size_t page_size = (sizeof(struct delta_index_page) + cache->geometry->bytes_per_page);
-	size_t chapter_size = (page_size * cache->geometry->index_pages_per_chapter);
-
-	return cache->capacity * chapter_size;
-}
-
 static inline void set_skip_search(struct cached_chapter_index *chapter, bool skip_search)
 {
 	/* Check before setting to reduce cache line contention. */
