@@ -578,10 +578,32 @@ readVDOFromDump(const char *filename)
           uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
     return result;
   }
-  geometry.regions[VDO_DATA_REGION].start_block = 1;
 
   // Create the VDO.
-  return loadVDOWithGeometry(layer, &geometry, false, &vdo);
+  result = makeUserVDO(layer, &vdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  vdo->geometry = geometry;
+  vdo->geometry.regions[VDO_DATA_REGION].start_block = 1;
+  result = loadSuperBlock(vdo);
+  if (result != VDO_SUCCESS) {
+    freeUserVDO(&vdo);
+    return result;
+  }
+
+  result = vdo_decode_component_states(vdo->superBlockCodec.component_buffer,
+                                       &geometry,
+                                       &vdo->states);
+  if (result != VDO_SUCCESS) {
+    freeUserVDO(&vdo);
+    return result;
+  }
+
+  vdo->states.layout.start = 2;
+  setDerivedSlabParameters(vdo);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
