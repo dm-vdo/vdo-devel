@@ -2194,7 +2194,7 @@ EXTERNAL_STATIC void scrub_slabs(struct block_allocator *allocator, struct vdo_c
 	}
 
 	if (scrubber->high_priority_only &&
-	    is_priority_table_empty(allocator->prioritized_slabs) &&
+	    vdo_is_priority_table_empty(allocator->prioritized_slabs) &&
 	    list_empty(&scrubber->high_priority_slabs))
 		vdo_register_slab_for_scrubbing(get_next_slab(scrubber), true);
 
@@ -2448,9 +2448,9 @@ static void prioritize_slab(struct vdo_slab *slab)
 	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a slab must not already be on a ring when prioritizing");
 	slab->priority = calculate_slab_priority(slab);
-	priority_table_enqueue(slab->allocator->prioritized_slabs,
-			       slab->priority,
-			       &slab->allocq_entry);
+	vdo_priority_table_enqueue(slab->allocator->prioritized_slabs,
+				   slab->priority,
+				   &slab->allocq_entry);
 }
 
 static void register_slab_with_allocator(struct block_allocator *allocator, struct vdo_slab *slab)
@@ -2591,7 +2591,7 @@ void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
 	 * Reprioritize the slab to reflect the new free block count by removing it from the table
 	 * and re-enqueuing it with the new priority.
 	 */
-	priority_table_remove(allocator->prioritized_slabs, &slab->allocq_entry);
+	vdo_priority_table_remove(allocator->prioritized_slabs, &slab->allocq_entry);
 	prioritize_slab(slab);
 }
 
@@ -2679,7 +2679,7 @@ int vdo_allocate_block(struct block_allocator *allocator,
 	}
 
 	/* Remove the highest priority slab from the priority table and make it the open slab. */
-	open_slab(list_entry(priority_table_dequeue(allocator->prioritized_slabs),
+	open_slab(list_entry(vdo_priority_table_dequeue(allocator->prioritized_slabs),
 			     struct vdo_slab,
 			     allocq_entry));
 
@@ -3064,7 +3064,7 @@ void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator)
 	struct vdo_slab *last_slab = allocator->depot->slabs[allocator->last_slab];
 
 	ASSERT_LOG_ONLY(allocator->open_slab == NULL, "mustn't have an open slab");
-	priority_table_remove(allocator->prioritized_slabs, &last_slab->allocq_entry);
+	vdo_priority_table_remove(allocator->prioritized_slabs, &last_slab->allocq_entry);
 	open_slab(last_slab);
 }
 
@@ -3379,7 +3379,7 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot, zon
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = make_priority_table(max_priority, &allocator->prioritized_slabs);
+	result = vdo_make_priority_table(max_priority, &allocator->prioritized_slabs);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3607,7 +3607,7 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 		uninitialize_allocator_summary(allocator);
 		uninitialize_scrubber_vio(&allocator->scrubber);
 		free_vio_pool(UDS_FORGET(allocator->vio_pool));
-		free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
+		vdo_free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
 	}
 
 	if (depot->slabs != NULL) {

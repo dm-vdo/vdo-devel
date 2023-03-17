@@ -275,7 +275,7 @@ static void testWaitForSlabJournalSpace(void)
   writeJournalBlocks(CORRUPT_NOTHING, false, slabJournalPattern);
 
   struct block_allocator *allocator = &vdo->depot->allocators[0];
-  reset_priority_table(allocator->prioritized_slabs);
+  vdo_reset_priority_table(allocator->prioritized_slabs);
 
   for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {
     vdo_free_ref_counts(UDS_FORGET(vdo->depot->slabs[i]->reference_counts));

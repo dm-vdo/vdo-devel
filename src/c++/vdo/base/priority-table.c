@@ -47,13 +47,13 @@ struct priority_table {
 };
 
 /**
- * make_priority_table() - Allocate and initialize a new priority_table.
+ * vdo_make_priority_table() - Allocate and initialize a new priority_table.
  * @max_priority: The maximum priority value for table entries.
  * @table_ptr: A pointer to hold the new table.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int make_priority_table(unsigned int max_priority, struct priority_table **table_ptr)
+int vdo_make_priority_table(unsigned int max_priority, struct priority_table **table_ptr)
 {
 	struct priority_table *table;
 	int result;
@@ -82,12 +82,12 @@ int make_priority_table(unsigned int max_priority, struct priority_table **table
 }
 
 /**
- * free_priority_table() - Free a priority_table.
+ * vdo_free_priority_table() - Free a priority_table.
  * @table: The table to free.
  *
  * The table does not own the entries stored in it and they are not freed by this call.
  */
-void free_priority_table(struct priority_table *table)
+void vdo_free_priority_table(struct priority_table *table)
 {
 	if (table == NULL)
 		return;
@@ -96,20 +96,20 @@ void free_priority_table(struct priority_table *table)
 	 * Unlink the buckets from any entries still in the table so the entries won't be left with
 	 * dangling pointers to freed memory.
 	 */
-	reset_priority_table(table);
+	vdo_reset_priority_table(table);
 
 	UDS_FREE(table);
 }
 
 /**
- * reset_priority_table() - Reset a priority table, leaving it in the same empty state as when
+ * vdo_reset_priority_table() - Reset a priority table, leaving it in the same empty state as when
  *                          newly constructed.
  * @table: The table to reset.
  *
  * The table does not own the entries stored in it and they are not freed (or even unlinked from
  * each other) by this call.
  */
-void reset_priority_table(struct priority_table *table)
+void vdo_reset_priority_table(struct priority_table *table)
 {
 	unsigned int priority;
 
@@ -119,16 +119,16 @@ void reset_priority_table(struct priority_table *table)
 }
 
 /**
- * priority_table_enqueue() - Add a new entry to the priority table, appending it to the queue for
- *                            entries with the specified priority.
+ * vdo_priority_table_enqueue() - Add a new entry to the priority table, appending it to the queue
+ *                                for entries with the specified priority.
  * @table: The table in which to store the entry.
  * @priority: The priority of the entry.
  * @entry: The list_head embedded in the entry to store in the table (the caller must have
  *         initialized it).
  */
-void priority_table_enqueue(struct priority_table *table,
-			    unsigned int priority,
-			    struct list_head *entry)
+void vdo_priority_table_enqueue(struct priority_table *table,
+				unsigned int priority,
+				struct list_head *entry)
 {
 	ASSERT_LOG_ONLY((priority <= table->max_priority),
 			"entry priority must be valid for the table");
@@ -146,8 +146,8 @@ static inline void mark_bucket_empty(struct priority_table *table, struct bucket
 }
 
 /**
- * priority_table_dequeue() - Find the highest-priority entry in the table, remove it from the
- *                            table, and return it.
+ * vdo_priority_table_dequeue() - Find the highest-priority entry in the table, remove it from the
+ *                                table, and return it.
  * @table: The priority table from which to remove an entry.
  *
  * If there are multiple entries with the same priority, the one that has been in the table with
@@ -155,7 +155,7 @@ static inline void mark_bucket_empty(struct priority_table *table, struct bucket
  *
  * Return: The dequeued entry, or NULL if the table is currently empty.
  */
-struct list_head *priority_table_dequeue(struct priority_table *table)
+struct list_head *vdo_priority_table_dequeue(struct priority_table *table)
 {
 	struct bucket *bucket;
 	struct list_head *entry;
@@ -184,11 +184,11 @@ struct list_head *priority_table_dequeue(struct priority_table *table)
 }
 
 /**
- * priority_table_remove() - Remove a specified entry from its priority table.
+ * vdo_priority_table_remove() - Remove a specified entry from its priority table.
  * @table: The table from which to remove the entry.
  * @entry: The entry to remove from the table.
  */
-void priority_table_remove(struct priority_table *table, struct list_head *entry)
+void vdo_priority_table_remove(struct priority_table *table, struct list_head *entry)
 {
 	struct list_head *next_entry;
 
@@ -215,12 +215,12 @@ void priority_table_remove(struct priority_table *table, struct list_head *entry
 }
 
 /**
- * is_priority_table_empty() - Return whether the priority table is empty.
+ * vdo_is_priority_table_empty() - Return whether the priority table is empty.
  * @table: The table to check.
  *
  * Return: true if the table is empty.
  */
-bool is_priority_table_empty(struct priority_table *table)
+bool vdo_is_priority_table_empty(struct priority_table *table)
 {
 	return (table->search_vector == 0);
 }

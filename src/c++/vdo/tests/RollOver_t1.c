@@ -36,8 +36,8 @@ static void markOpenSlabUnrecovered(struct vdo_completion *completion)
   currentSlab->status = VDO_SLAB_REQUIRES_SCRUBBING;
 
   // Remove slab from list of non-full slabs.
-  priority_table_remove(allocator->prioritized_slabs,
-                        &currentSlab->allocq_entry);
+  vdo_priority_table_remove(allocator->prioritized_slabs,
+                            &currentSlab->allocq_entry);
   allocator->open_slab = NULL;
 
   // Add slab to the unrecovered slab list.

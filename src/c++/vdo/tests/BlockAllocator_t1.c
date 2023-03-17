@@ -548,7 +548,7 @@ static void testUnrecoveredSlabs(void)
    * the unrecovered slab ring should give slabs in the order 5, 1, 3, NULL.
    */
   CU_ASSERT_TRUE(allocator->slab_count > 5);
-  reset_priority_table(allocator->prioritized_slabs);
+  vdo_reset_priority_table(allocator->prioritized_slabs);
   for (slab_count_t i = 0; i < depot->slab_count; i++) {
     struct vdo_slab *slab = depot->slabs[i];
     INIT_LIST_HEAD(&slab->allocq_entry);

@@ -409,7 +409,7 @@ static void verifyRefCountsLoad(void)
                                            refsBlock->commit_points[j]));
     }
   }
-  priority_table_remove(vdo->depot->allocators[0].prioritized_slabs, &slabToLoad->allocq_entry);
+  vdo_priority_table_remove(vdo->depot->allocators[0].prioritized_slabs, &slabToLoad->allocq_entry);
   vdo_free_slab(slabToLoad);
 }
 
