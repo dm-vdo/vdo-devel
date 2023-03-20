@@ -12,7 +12,6 @@
 
 #include "admin-state.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 #include "types.h"
 
 #include "adminUtils.h"

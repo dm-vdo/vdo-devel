@@ -36,7 +36,6 @@
 #include "packer.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"

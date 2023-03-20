@@ -16,7 +16,6 @@
 #include "encodings.h"
 #include "heap.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 
 #include "vdoConfig.h"
 

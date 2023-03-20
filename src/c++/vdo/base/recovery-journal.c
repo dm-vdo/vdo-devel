@@ -19,7 +19,6 @@
 #include "encodings.h"
 #include "io-submitter.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 #include "types.h"
 #include "vdo.h"
 #include "vio.h"

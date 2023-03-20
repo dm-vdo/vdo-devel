@@ -15,7 +15,6 @@
 #include "block-map.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 #include "vio.h"
 
 #include "adminUtils.h"

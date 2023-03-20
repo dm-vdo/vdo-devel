@@ -8,7 +8,6 @@
 
 #include "slabSummaryUtils.h"
 
-#include "slab-journal.h"
 #include "slab-depot.h"
 
 #include "asyncLayer.h"

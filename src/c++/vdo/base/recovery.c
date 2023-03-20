@@ -18,7 +18,6 @@
 #include "io-submitter.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "slab-journal.h"
 #include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
