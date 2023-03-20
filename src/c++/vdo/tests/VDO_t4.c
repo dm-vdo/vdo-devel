@@ -16,6 +16,7 @@
 #include "vdo.h"
 
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "dataBlocks.h"
 #include "dedupeContext.h"
 #include "ioRequest.h"
@@ -144,8 +145,7 @@ static void verifyReferenceStatus(physical_block_number_t pbn,
 {
   struct vdo_slab *slab = vdo_get_slab(vdo->depot, pbn);
   enum reference_status status;
-  VDO_ASSERT_SUCCESS(vdo_get_reference_status(slab->reference_counts, pbn,
-                                              &status));
+  VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &status));
   CU_ASSERT_EQUAL(expectedStatus, status);
 }
 

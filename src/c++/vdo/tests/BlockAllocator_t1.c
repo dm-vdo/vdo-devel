@@ -21,6 +21,7 @@
 
 #include "adminUtils.h"
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "completionUtils.h"
 #include "slabSummaryUtils.h"
 #include "vdoAsserts.h"
@@ -282,28 +283,27 @@ static void assertSameStates(struct slab_depot_state_2_0 a,
 }
 
 /**********************************************************************/
-static bool are_equivalent_slab_depots(struct slab_depot *depot_a,
-                                       struct slab_depot *depot_b)
+static bool are_equivalent_slab_depots(struct slab_depot *depotA,
+                                       struct slab_depot *depotB)
 {
 	size_t i;
 
-	if ((depot_a->first_block != depot_b->first_block) ||
-	    (depot_a->last_block != depot_b->last_block) ||
-	    (depot_a->slab_count != depot_b->slab_count) ||
-	    (depot_a->slab_size_shift != depot_b->slab_size_shift) ||
-	    (vdo_get_slab_depot_allocated_blocks(depot_a) !=
-	     vdo_get_slab_depot_allocated_blocks(depot_b))) {
+	if ((depotA->first_block != depotB->first_block) ||
+	    (depotA->last_block != depotB->last_block) ||
+	    (depotA->slab_count != depotB->slab_count) ||
+	    (depotA->slab_size_shift != depotB->slab_size_shift) ||
+	    (vdo_get_slab_depot_allocated_blocks(depotA) !=
+	     vdo_get_slab_depot_allocated_blocks(depotB))) {
 		return false;
 	}
 
-	for (i = 0; i < depot_a->slab_count; i++) {
-		struct vdo_slab *slab_a = depot_a->slabs[i];
-		struct vdo_slab *slab_b = depot_b->slabs[i];
+	for (i = 0; i < depotA->slab_count; i++) {
+		struct vdo_slab *slabA = depotA->slabs[i];
+		struct vdo_slab *slabB = depotB->slabs[i];
 
-		if ((slab_a->start != slab_b->start) ||
-		    (slab_a->end != slab_b->end) ||
-		    !vdo_are_equivalent_ref_counts(slab_a->reference_counts,
-						   slab_b->reference_counts)) {
+		if ((slabA->start != slabB->start) ||
+		    (slabA->end != slabB->end) ||
+		    !slabsHaveEquivalentReferenceCounts(slabA, slabB)) {
 			return false;
 		}
 	}
@@ -372,8 +372,7 @@ static void reallocateEveryThird(block_count_t blockCount)
     CU_ASSERT_EQUAL(0, (dataBlockNumber % 3));
     struct vdo_slab *slab = vdo_get_slab(depot, allocatedBlock);
     enum reference_status status;
-    VDO_ASSERT_SUCCESS(vdo_get_reference_status(slab->reference_counts,
-                                                allocatedBlock, &status));
+    VDO_ASSERT_SUCCESS(getReferenceStatus(slab, allocatedBlock, &status));
     CU_ASSERT_EQUAL(RS_SINGLE, status);
     verifyCoding();
   }

@@ -91,18 +91,17 @@ static void testReferenceCountTornWrite(void)
   lbn += COUNTS_PER_SECTOR / 2;
 
   // Archive the state of the first reference block in slab 1.
-  struct ref_counts      *refCounts   = vdo->depot->slabs[1]->reference_counts;
-  struct reference_block *referenceBlock
-    = vdo_get_reference_block(refCounts, 0);
+  struct reference_block *referenceBlock = get_reference_block(vdo->depot->slabs[1], 0);
   CU_ASSERT_EQUAL(COUNTS_PER_SECTOR * 2, referenceBlock->allocated_count);
   vdo_refcount_t counts[COUNTS_PER_BLOCK];
-  memcpy(counts, vdo_get_reference_counters_for_block(referenceBlock),
+  memcpy(counts,
+         get_reference_counters_for_block(referenceBlock),
          COUNTS_PER_BLOCK * sizeof(vdo_refcount_t));
 
   // Make the torn reference block for the block we are going to tear,
   // failing to write the second and last sectors.
   struct packed_reference_block packedReferenceBlock;
-  vdo_pack_reference_block(referenceBlock, &packedReferenceBlock);
+  pack_reference_block(referenceBlock, &packedReferenceBlock);
   memcpy(&packedReferenceBlock.sectors[1], buffer + VDO_SECTOR_SIZE,
          VDO_SECTOR_SIZE);
   memcpy(&packedReferenceBlock.sectors[7], buffer + (7 * VDO_SECTOR_SIZE),
@@ -118,8 +117,7 @@ static void testReferenceCountTornWrite(void)
   // Restart the VDO and confirm that the tear was repaired.
   startVDO(VDO_DIRTY);
   waitForRecoveryDone();
-  refCounts      = vdo->depot->slabs[1]->reference_counts;
-  referenceBlock = vdo_get_reference_block(refCounts, 0);
+  referenceBlock = get_reference_block(vdo->depot->slabs[1], 0);
 
   // Ensure we have a torn write, with sectors 1 and 7 having an old commit
   // point.
@@ -133,7 +131,7 @@ static void testReferenceCountTornWrite(void)
   assertCommitPointComparison(referenceBlock, 1, 7, true);
   CU_ASSERT_EQUAL(COUNTS_PER_SECTOR * 2, referenceBlock->allocated_count);
   UDS_ASSERT_EQUAL_BYTES(counts,
-                         vdo_get_reference_counters_for_block(referenceBlock),
+                         get_reference_counters_for_block(referenceBlock),
                          COUNTS_PER_BLOCK * sizeof(vdo_refcount_t));
 
   // Trim all of the previous writes to confirm that we don't underflow

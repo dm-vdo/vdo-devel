@@ -520,7 +520,7 @@ static void update_tail_block_location(struct slab_journal *journal)
 
 		free_block_count = ((block_count_t) hint) << slab->allocator->depot->hint_shift;
 	} else {
-		free_block_count = slab->reference_counts->free_blocks;
+		free_block_count = slab->free_blocks;
 	}
 
 	journal->summarized = journal->next_commit;
@@ -978,8 +978,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 			WRITE_ONCE(journal->events->flush_count, journal->events->flush_count + 1);
 			if (journal_length <= journal->flushing_deadline)
 				blocks_to_deadline = journal->flushing_deadline - journal_length;
-			vdo_save_several_reference_blocks(journal->slab->reference_counts,
-							  blocks_to_deadline + 1);
+			vdo_save_several_reference_blocks(journal->slab, blocks_to_deadline + 1);
 		}
 	}
 
@@ -1063,7 +1062,7 @@ static void add_entries(struct slab_journal *journal)
 		if (requires_reaping(journal)) {
 			WRITE_ONCE(journal->events->blocked_count,
 				   journal->events->blocked_count + 1);
-			vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
+			vdo_save_dirty_reference_blocks(journal->slab);
 			break;
 		}
 
@@ -1088,7 +1087,7 @@ static void add_entries(struct slab_journal *journal)
 
 				WRITE_ONCE(journal->events->disk_full_count,
 					   journal->events->disk_full_count + 1);
-				vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
+				vdo_save_dirty_reference_blocks(journal->slab);
 				break;
 			}
 
@@ -1108,7 +1107,7 @@ static void add_entries(struct slab_journal *journal)
 				 * ref_counts since here we don't know how many reference blocks
 				 * the ref_counts has.
 				 */
-				vdo_acquire_dirty_block_locks(journal->slab->reference_counts);
+				vdo_acquire_dirty_block_locks(journal->slab);
 		}
 
 		vdo_notify_next_waiter(&journal->entry_waiters, add_entry_from_waiter, journal);
@@ -1259,7 +1258,7 @@ static void finish_journal_load(struct slab_journal *journal, int result)
 		 * Since this is a normal or new load, we don't need the memory to read and process
 		 * the recovery journal, so we can allocate reference counts now.
 		 */
-		result = vdo_allocate_ref_counts_for_slab(slab);
+		result = vdo_allocate_slab_counters(slab);
 
 	vdo_finish_loading_with_result(&slab->state, result);
 }

@@ -58,13 +58,13 @@ static bool latchSlab(struct vio              *vio,
     return true;
   }
 
-  struct slab_depot *depot     = vdo->depot;
-  struct ref_counts *refCounts = depot->slabs[slabNumber]->reference_counts;
+  struct slab_depot *depot = vdo->depot;
+  struct vdo_slab   *slab  = depot->slabs[slabNumber];
 
   // Reference count may not exist when the hook is called.
-  if ((refCounts == NULL)
-      || (pbn < refCounts->slab->ref_counts_origin)
-      || (pbn >= refCounts->slab->ref_counts_origin + refCounts->reference_block_count)) {
+  if ((slab->reference_blocks == NULL)
+      || (pbn < slab->ref_counts_origin)
+      || (pbn >= slab->ref_counts_origin + slab->reference_block_count)) {
     return true;
   }
 

@@ -16,6 +16,7 @@
 #include "vdo.h"
 
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "callbackWrappingUtils.h"
 #include "completionUtils.h"
 #include "mutexUtils.h"
@@ -95,10 +96,9 @@ static void loadRefCounts(struct vdo_completion *completion)
 {
   // mark the ref counts for loading
   slab->allocator->summary_entries[slab->slab_number].load_ref_counts = true;
-  vdo_reset_reference_counts(slab->reference_counts);
-  vdo_start_draining(&slab->state, VDO_ADMIN_STATE_SCRUBBING, completion,
-                     NULL);
-  vdo_drain_ref_counts(slab->reference_counts);
+  resetReferenceCounts(slab);
+  vdo_start_draining(&slab->state, VDO_ADMIN_STATE_SCRUBBING, completion, NULL);
+  drain_slab(slab);
 }
 
 /**
@@ -160,8 +160,7 @@ static void initializeReferenceCounts(void)
   // Load the reference counts so that the in-memory state matches the layer.
   performSuccessfulAction(loadRefCounts);
 
-  memcpy(expectedReferences, slab->reference_counts->counters,
-         slabConfig.data_blocks);
+  memcpy(expectedReferences, slab->counters, slabConfig.data_blocks);
 
   // The load should wipe out the provisional reference counts
   expectedBlocksFree = COUNTS_PER_BLOCK;
@@ -170,9 +169,9 @@ static void initializeReferenceCounts(void)
 /**********************************************************************/
 static void verifyReferences(void)
 {
-  CU_ASSERT_EQUAL(expectedBlocksFree, slab->reference_counts->free_blocks);
+  CU_ASSERT_EQUAL(expectedBlocksFree, slab->free_blocks);
   for (block_count_t i = 0; i < slabConfig.data_blocks; i++ ) {
-    CU_ASSERT_EQUAL(expectedReferences[i], slab->reference_counts->counters[i]);
+    CU_ASSERT_EQUAL(expectedReferences[i], slab->counters[i]);
   }
 }
 

@@ -771,7 +771,7 @@ static void finish_recovery(struct vdo_completion *completion)
 	 * Now that we've freed the recovery completion and its vast array of journal entries, we
 	 * can allocate refcounts.
 	 */
-	vdo_continue_completion(parent, vdo_allocate_slab_ref_counts(vdo->depot));
+	vdo_continue_completion(parent, vdo_allocate_reference_counters(vdo->depot));
 }
 
 /**
@@ -1551,7 +1551,6 @@ static bool
 process_slot(struct block_map_page *page, struct vdo_completion *completion, slot_number_t slot)
 {
 	struct slab_depot *depot = completion->vdo->depot;
-	struct vdo_slab *slab;
 	int result;
 	struct data_location mapping = vdo_unpack_block_map_entry(&page->entries[slot]);
 
@@ -1577,8 +1576,7 @@ process_slot(struct block_map_page *page, struct vdo_completion *completion, slo
 		return false;
 	}
 
-	slab = vdo_get_slab(depot, mapping.pbn);
-	result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
+	result = vdo_adjust_reference_count_for_rebuild(depot,
 							mapping.pbn,
 							VDO_JOURNAL_DATA_REMAPPING);
 	if (result == VDO_SUCCESS)
@@ -1753,7 +1751,6 @@ static int process_entry(physical_block_number_t pbn, struct vdo_completion *com
 {
 	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
 	struct slab_depot *depot = completion->vdo->depot;
-	struct vdo_slab *slab;
 	int result;
 
 	if ((pbn == VDO_ZERO_BLOCK) || !vdo_is_physical_data_block(depot, pbn))
@@ -1761,8 +1758,7 @@ static int process_entry(physical_block_number_t pbn, struct vdo_completion *com
 					      "PBN %llu out of range",
 					      (unsigned long long) pbn);
 
-	slab = vdo_get_slab(depot, pbn);
-	result = vdo_adjust_reference_count_for_rebuild(slab->reference_counts,
+	result = vdo_adjust_reference_count_for_rebuild(depot,
 							pbn,
 							VDO_JOURNAL_BLOCK_MAP_REMAPPING);
 	if (result != VDO_SUCCESS)
@@ -1788,7 +1784,7 @@ static void rebuild_reference_counts(struct vdo_completion *completion)
 	struct vdo_page_cache *cache = &vdo->block_map->zones[0].page_cache;
 
 	/* We must allocate ref_counts before we can rebuild them. */
-	if (abort_rebuild_on_error(vdo_allocate_slab_ref_counts(vdo->depot), rebuild))
+	if (abort_rebuild_on_error(vdo_allocate_reference_counters(vdo->depot), rebuild))
 		return;
 
 	/*

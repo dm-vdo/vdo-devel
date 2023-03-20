@@ -16,6 +16,7 @@
 
 #include "adminUtils.h"
 #include "asyncLayer.h"
+#include "blockAllocatorUtils.h"
 #include "blockMapUtils.h"
 #include "ioRequest.h"
 #include "slabSummaryUtils.h"
@@ -91,9 +92,7 @@ static void testNoReplay(void)
 
   struct vdo_slab *dirtySlab       = vdo_get_slab(depot, trimmedPBN);
   slab_count_t     dirtySlabNumber = dirtySlab->slab_number;
-  CU_ASSERT_EQUAL(vdo_count_unreferenced_blocks(dirtySlab->reference_counts,
-                                                dirtySlab->start,
-                                                dirtySlab->end), 1);
+  CU_ASSERT_EQUAL(countUnreferencedBlocks(dirtySlab, dirtySlab->start, dirtySlab->end), 1);
 
   // Force all slab journal tail blocks to be written out.
   performSuccessfulDepotAction(VDO_ADMIN_STATE_RECOVERING);
@@ -114,11 +113,7 @@ static void testNoReplay(void)
   crashAndRebuildVDO();
 
   dirtySlab = depot->slabs[dirtySlabNumber];
-  block_count_t unreferenced
-    = vdo_count_unreferenced_blocks(dirtySlab->reference_counts,
-                                    dirtySlab->start,
-                                    dirtySlab->end);
-  CU_ASSERT_EQUAL(unreferenced, 1);
+  CU_ASSERT_EQUAL(countUnreferencedBlocks(dirtySlab, dirtySlab->start, dirtySlab->end), 1);
 }
 
 /**********************************************************************/

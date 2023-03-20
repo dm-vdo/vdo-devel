@@ -392,7 +392,8 @@ static void attemptRebuild(CorruptionType  corruption,
     // Free all the refcounts, so the expected amount of the slab depot is
     // allocated before rebuild/recovery allocates the rest.
     for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {
-      vdo_free_ref_counts(UDS_FORGET(vdo->depot->slabs[i]->reference_counts));
+      UDS_FREE(UDS_FORGET(vdo->depot->slabs[i]->counters));
+      UDS_FREE(UDS_FORGET(vdo->depot->slabs[i]->reference_blocks));
     }
   }
 

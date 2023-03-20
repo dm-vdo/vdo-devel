@@ -19,6 +19,7 @@
 #include "slab-depot.h"
 #include "status-codes.h"
 
+#include "blockAllocatorUtils.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
@@ -28,7 +29,6 @@ enum {
   JOURNAL_SIZE = 2,
 };
 
-static struct ref_counts      *refs;
 static struct slab_depot      *depot;
 static struct block_allocator *allocator;
 static struct vdo_slab        *slab;
@@ -46,8 +46,8 @@ static void initializeRefCounts(void)
   allocator->depot = depot;
 
   VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE, &depot->slab_config));
-  VDO_ASSERT_SUCCESS(vdo_make_slab(0, allocator, NULL, 0, false, &slab));
-  VDO_ASSERT_SUCCESS(vdo_allocate_ref_counts_for_slab(slab));
+  VDO_ASSERT_SUCCESS(make_slab(0, allocator, NULL, 0, false, &slab));
+  VDO_ASSERT_SUCCESS(vdo_allocate_slab_counters(slab));
 
   /*
    * Set the slab to be unrecovered so that slab journal locks will be ignored.
@@ -55,14 +55,13 @@ static void initializeRefCounts(void)
    * fail on a lock count underflow otherwise.
    */
   slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
-  refs = slab->reference_counts;
 }
 
 /**********************************************************************/
 static void tearDownRefCounts(void)
 {
-  UDS_FREE(depot);
-  vdo_free_slab(UDS_FORGET(slab));
+  free_slab(UDS_FORGET(slab));
+  UDS_FREE(UDS_FORGET(depot));
 }
 
 /**
@@ -82,19 +81,19 @@ static void setReferenceCount(physical_block_number_t pbn, size_t value)
       .pbn = pbn,
     },
   };
-  VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &refStatus));
+  VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   while (refStatus == RS_SHARED) {
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &wasFree));
-    VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &refStatus));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   }
   if (refStatus == RS_SINGLE) {
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &wasFree));
-    VDO_ASSERT_SUCCESS(vdo_get_reference_status(refs, pbn, &refStatus));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   }
   CU_ASSERT_EQUAL(refStatus, RS_FREE);
   updater.increment = true;
   for (size_t i = 0; i < value; i++) {
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
   }
 }
 
@@ -103,18 +102,18 @@ static void setReferenceCount(physical_block_number_t pbn, size_t value)
  **/
 static void performanceTest(block_count_t blocks)
 {
-  block_count_t freeBlocks = vdo_count_unreferenced_blocks(refs, 0, blocks);
+  block_count_t freeBlocks = countUnreferencedBlocks(slab, 0, blocks);
   uint64_t   elapsed    = current_time_us();
   for (block_count_t i = 0; i < freeBlocks; i++) {
     physical_block_number_t pbn;
-    VDO_ASSERT_SUCCESS(vdo_allocate_unreferenced_block(refs, &pbn));
+    VDO_ASSERT_SUCCESS(allocate_slab_block(slab, &pbn));
     CU_ASSERT_TRUE(pbn < blocks);
   }
 
   elapsed = current_time_us() - elapsed;
   printf("(%lu free in %lu usec) ", freeBlocks, elapsed);
 
-  CU_ASSERT_EQUAL(0, vdo_count_unreferenced_blocks(refs, 0, blocks));
+  CU_ASSERT_EQUAL(0, countUnreferencedBlocks(slab, 0, blocks));
 }
 
 /**
@@ -202,17 +201,19 @@ static void testAllFreeBlockPositions(block_count_t arrayLength)
         .pbn = freePBN - 1,
       },
     };
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
     updater.increment = false;
     updater.zpbn.pbn  = freePBN;
-    VDO_ASSERT_SUCCESS(vdo_adjust_reference_count(refs, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
 
     // Test that the free block is found correctly for all starts and ends.
     for (size_t start = 0; start < arrayLength; start++) {
+      slab->search_cursor.index = start;
       for (size_t end = start; end <= arrayLength; end++) {
         bool inRange = ((start <= freePBN) && (freePBN < end));
         slab_block_number freeIndex;
-        if (vdo_find_free_block(refs, start, end, &freeIndex)) {
+        slab->search_cursor.end_index = end;
+        if (find_free_block(slab, &freeIndex)) {
           CU_ASSERT_TRUE(inRange);
           CU_ASSERT_EQUAL(freePBN, freeIndex);
         } else {

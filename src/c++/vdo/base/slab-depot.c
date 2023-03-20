@@ -47,61 +47,13 @@ struct slab_journal_eraser {
 };
 
 /**
- * ref_counts_from_waiter() - Return the ref_counts from the ref_counts waiter.
- * @waiter: The waiter to convert.
- *
- * Return: The ref_counts.
- */
-static inline struct ref_counts * __must_check ref_counts_from_waiter(struct waiter *waiter)
-{
-	if (waiter == NULL)
-		return NULL;
-	return container_of(waiter, struct ref_counts, slab_summary_waiter);
-}
-
-/**
- * index_to_pbn() - Convert the index of a reference counter back to the block number of the
- *                  physical block for which it is counting references.
- * @ref_counts: The reference counts object.
- * @index: The array index of the reference counter.
- *
- * The index is assumed to be valid and in-range.
- *
- * Return: The physical block number corresponding to the index.
- */
-static physical_block_number_t index_to_pbn(const struct ref_counts *ref_counts, u64 index)
-{
-	return (ref_counts->slab->start + index);
-}
-
-#ifdef INTERNAL
-/**
- * pbn_to_index() - Convert a block number to the index of a reference counter for that block.
- * @ref_counts: The reference counts object.
- * @pbn: The physical block number.
- *
- * Out of range values are pinned to the beginning or one past the end of the array.
- *
- * Return: The index corresponding to the physical block number.
- */
-static u64 pbn_to_index(const struct ref_counts *ref_counts, physical_block_number_t pbn)
-{
-	u64 index;
-
-	if (pbn < ref_counts->slab->start)
-		return 0;
-	index = (pbn - ref_counts->slab->start);
-	return min_t(u64, index, ref_counts->block_count);
-}
-#endif /* INTERNAL */
-
-/**
- * vdo_reference_count_to_status() - Convert a reference count to a reference status.
+ * reference_count_to_status() - Convert a reference count to a reference status.
  * @count: The count to convert.
  *
  * Return: The appropriate reference status.
  */
-static enum reference_status __must_check vdo_reference_count_to_status(vdo_refcount_t count)
+EXTERNAL_STATIC enum reference_status __must_check
+reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT)
 		return RS_FREE;
@@ -114,38 +66,37 @@ static enum reference_status __must_check vdo_reference_count_to_status(vdo_refc
 }
 
 /**
- * vdo_reset_search_cursor() - Reset the free block search back to the first reference counter in
- *                             the first reference block.
- * @ref_counts: The ref_counts object containing the search cursor.
+ * reset_search_cursor() - Reset the free block search back to the first reference counter in the
+ *                         first reference block of a slab.
  */
-void vdo_reset_search_cursor(struct ref_counts *ref_counts)
+static void reset_search_cursor(struct vdo_slab *slab)
 {
-	struct search_cursor *cursor = &ref_counts->search_cursor;
+	struct search_cursor *cursor = &slab->search_cursor;
 
 	cursor->block = cursor->first_block;
 	cursor->index = 0;
 	/* Unit tests have slabs with only one reference block (and it's a runt). */
-	cursor->end_index = min_t(u32, COUNTS_PER_BLOCK, ref_counts->block_count);
+	cursor->end_index = min_t(u32, COUNTS_PER_BLOCK, slab->block_count);
 }
 
 /**
- * advance_search_cursor() - Advance the search cursor to the start of the next reference block.
- * @ref_counts: The ref_counts object containing the search cursor.
+ * advance_search_cursor() - Advance the search cursor to the start of the next reference block in
+ *                           a slab,
  *
  * Wraps around to the first reference block if the current block is the last reference block.
  *
  * Return: true unless the cursor was at the last reference block.
  */
-static bool advance_search_cursor(struct ref_counts *ref_counts)
+static bool advance_search_cursor(struct vdo_slab *slab)
 {
-	struct search_cursor *cursor = &ref_counts->search_cursor;
+	struct search_cursor *cursor = &slab->search_cursor;
 
 	/*
 	 * If we just finished searching the last reference block, then wrap back around to the
 	 * start of the array.
 	 */
 	if (cursor->block == cursor->last_block) {
-		vdo_reset_search_cursor(ref_counts);
+		reset_search_cursor(slab);
 		return false;
 	}
 
@@ -155,116 +106,18 @@ static bool advance_search_cursor(struct ref_counts *ref_counts)
 
 	if (cursor->block == cursor->last_block)
 		/* The last reference block will usually be a runt. */
-		cursor->end_index = ref_counts->block_count;
+		cursor->end_index = slab->block_count;
 	else
 		cursor->end_index += COUNTS_PER_BLOCK;
 	return true;
 }
 
 /**
- * vdo_make_ref_counts() - Create a reference counting object.
- * @block_count: The number of physical blocks that can be referenced.
- * @slab: The slab of the ref counts object.
- * @ref_counts_ptr: The pointer to hold the new ref counts object.
- *
- * A reference counting object can keep a reference count for every physical block in the VDO
- * configuration. Since we expect the vast majority of the blocks to have 0 or 1 reference counts,
- * the structure is optimized for that situation.
- *
- * Return: A success or error code.
+ * has_active_io() - Check whether a slab has active reference block or summary I/O.
  */
-int vdo_make_ref_counts(block_count_t block_count,
-			struct vdo_slab *slab,
-			struct ref_counts **ref_counts_ptr)
+static bool __must_check has_active_io(struct vdo_slab *slab)
 {
-	size_t index, bytes;
-	block_count_t ref_block_count = vdo_get_saved_reference_count_size(block_count);
-	struct ref_counts *ref_counts;
-	int result;
-
-	result = UDS_ALLOCATE_EXTENDED(struct ref_counts,
-				       ref_block_count,
-				       struct reference_block,
-				       "ref counts structure",
-				       &ref_counts);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	/*
-	 * Allocate such that the runt slab has a full-length memory array, plus a little padding
-	 * so we can word-search even at the very end.
-	 */
-	bytes = ((ref_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
-	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &ref_counts->counters);
-	if (result != UDS_SUCCESS) {
-		vdo_free_ref_counts(ref_counts);
-		return result;
-	}
-
-	ref_counts->slab = slab;
-	ref_counts->block_count = block_count;
-	ref_counts->free_blocks = block_count;
-	ref_counts->reference_block_count = ref_block_count;
-	ref_counts->search_cursor.first_block = &ref_counts->blocks[0];
-	ref_counts->search_cursor.last_block = &ref_counts->blocks[ref_block_count - 1];
-	vdo_reset_search_cursor(ref_counts);
-
-	for (index = 0; index < ref_block_count; index++) {
-		ref_counts->blocks[index] = (struct reference_block) {
-			.ref_counts = ref_counts,
-		};
-	}
-
-	*ref_counts_ptr = ref_counts;
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_free_ref_counts() - Free a reference counting object.
- * @ref_counts: The object to free.
- */
-void vdo_free_ref_counts(struct ref_counts *ref_counts)
-{
-	if (ref_counts == NULL)
-		return;
-
-	UDS_FREE(UDS_FORGET(ref_counts->counters));
-	UDS_FREE(ref_counts);
-}
-
-/**
- * has_active_io() - Check whether a ref_counts object has active I/O.
- * @ref_counts: The ref_counts to check.
- *
- * Return: true if there is reference block I/O or a summary update in progress.
- */
-static bool __must_check has_active_io(struct ref_counts *ref_counts)
-{
-	return ((ref_counts->active_count > 0) || ref_counts->updating_slab_summary);
-}
-
-/**
- * vdo_are_ref_counts_active() - Check whether a ref_counts is active.
- * @ref_counts: The ref_counts to check.
- */
-bool vdo_are_ref_counts_active(struct ref_counts *ref_counts)
-{
-	const struct admin_state_code *code;
-
-	if (has_active_io(ref_counts))
-		return true;
-
-	/* When not suspending or recovering, the ref_counts must be clean. */
-	code = vdo_get_admin_state_code(&ref_counts->slab->state);
-	return (vdo_has_waiters(&ref_counts->dirty_blocks) &&
-		(code != VDO_ADMIN_STATE_SUSPENDING) &&
-		(code != VDO_ADMIN_STATE_RECOVERING));
-}
-
-static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts, int result)
-{
-	vdo_enter_read_only_mode(ref_counts->slab->allocator->depot->vdo, result);
-	vdo_check_if_slab_drained(ref_counts->slab);
+	return ((slab->active_count > 0) || slab->updating_summary);
 }
 
 /**
@@ -279,66 +132,70 @@ static void dirty_block(struct reference_block *block)
 
 	block->is_dirty = true;
 	if (!block->is_writing)
-		vdo_enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
+		vdo_enqueue_waiter(&block->slab->dirty_blocks, &block->waiter);
 }
 
 /**
- * vdo_get_reference_block() - Get the reference block that covers the given block index.
- * @ref_counts: The refcounts object.
- * @index: The block index.
+ * get_reference_block() - Get the reference block that covers the given block index.
  */
 EXTERNAL_STATIC struct reference_block * __must_check
-vdo_get_reference_block(struct ref_counts *ref_counts, slab_block_number index)
+get_reference_block(struct vdo_slab *slab, slab_block_number index)
 {
-	return &ref_counts->blocks[index / COUNTS_PER_BLOCK];
+	return &slab->reference_blocks[index / COUNTS_PER_BLOCK];
+}
+
+/**
+ * slab_block_number_from_pbn() - Determine the index within the slab of a particular physical
+ *                                block number.
+ * @slab: The slab.
+ * @physical_block_number: The physical block number.
+ * @slab_block_number_ptr: A pointer to the slab block number.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+EXTERNAL_STATIC int __must_check
+slab_block_number_from_pbn(struct vdo_slab *slab,
+			   physical_block_number_t physical_block_number,
+			   slab_block_number *slab_block_number_ptr)
+{
+	u64 slab_block_number;
+
+	if (physical_block_number < slab->start)
+		return VDO_OUT_OF_RANGE;
+
+	slab_block_number = physical_block_number - slab->start;
+	if (slab_block_number >= slab->allocator->depot->slab_config.data_blocks)
+		return VDO_OUT_OF_RANGE;
+
+	*slab_block_number_ptr = slab_block_number;
+	return VDO_SUCCESS;
 }
 
 /**
  * get_reference_counter() - Get the reference counter that covers the given physical block number.
- * @ref_counts: The refcounts object.
+ * @slab: The slab to query.
  * @pbn: The physical block number.
  * @counter_ptr: A pointer to the reference counter.
  */
-static int get_reference_counter(struct ref_counts *ref_counts,
-				 physical_block_number_t pbn,
-				 vdo_refcount_t **counter_ptr)
+EXTERNAL_STATIC int __must_check
+get_reference_counter(struct vdo_slab *slab,
+		      physical_block_number_t pbn,
+		      vdo_refcount_t **counter_ptr)
 {
 	slab_block_number index;
-	int result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &index);
+	int result = slab_block_number_from_pbn(slab, pbn, &index);
 
 	if (result != VDO_SUCCESS)
 		return result;
 
-	*counter_ptr = &ref_counts->counters[index];
+	*counter_ptr = &slab->counters[index];
 
 	return VDO_SUCCESS;
 }
 
 /**
- * vdo_get_available_references() - Determine how many times a reference count
- *                                  can be incremented without overflowing.
- * @ref_counts: The ref_counts object.
- * @pbn: The physical block number.
- *
- * Return: The number of increments that can be performed.
- */
-u8 vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn)
-{
-	vdo_refcount_t *counter_ptr = NULL;
-	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
-
-	if (result != VDO_SUCCESS)
-		return 0;
-
-	if (*counter_ptr == PROVISIONAL_REFERENCE_COUNT)
-		return (MAXIMUM_REFERENCE_COUNT - 1);
-
-	return (MAXIMUM_REFERENCE_COUNT - *counter_ptr);
-}
-
-/**
  * increment_for_data() - Increment the reference count for a data block.
- * @ref_counts: The ref_counts responsible for the block.
+ * @slab: The slab which owns the block.
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @old_status: The reference status of the data block before this increment.
@@ -349,7 +206,7 @@ u8 vdo_get_available_references(struct ref_counts *ref_counts, physical_block_nu
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int increment_for_data(struct ref_counts *ref_counts,
+static int increment_for_data(struct vdo_slab *slab,
 			      struct reference_block *block,
 			      slab_block_number block_number,
 			      enum reference_status old_status,
@@ -361,7 +218,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 	case RS_FREE:
 		*counter_ptr = 1;
 		block->allocated_count++;
-		ref_counts->free_blocks--;
+		slab->free_blocks--;
 		*free_status_changed = true;
 		break;
 
@@ -375,7 +232,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 		if (*counter_ptr >= MAXIMUM_REFERENCE_COUNT)
 			return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 						      "Incrementing a block already having 254 references (slab %u, offset %u)",
-						      ref_counts->slab->slab_number,
+						      slab->slab_number,
 						      block_number);
 		(*counter_ptr)++;
 		*free_status_changed = false;
@@ -388,7 +245,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 
 /**
  * decrement_for_data() - Decrement the reference count for a data block.
- * @ref_counts: The ref_counts responsible for the block.
+ * @slab: The slab which owns the block.
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @old_status: The reference status of the data block before this decrement.
@@ -400,7 +257,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int decrement_for_data(struct ref_counts *ref_counts,
+static int decrement_for_data(struct vdo_slab *slab,
 			      struct reference_block *block,
 			      slab_block_number block_number,
 			      enum reference_status old_status,
@@ -413,7 +270,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 		return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 					      "Decrementing free block at offset %u in slab %u",
 					      block_number,
-					      ref_counts->slab->slab_number);
+					      slab->slab_number);
 
 	case RS_PROVISIONAL:
 	case RS_SINGLE:
@@ -435,7 +292,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 
 		*counter_ptr = EMPTY_REFERENCE_COUNT;
 		block->allocated_count--;
-		ref_counts->free_blocks++;
+		slab->free_blocks++;
 		*free_status_changed = true;
 		break;
 
@@ -450,7 +307,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 
 /**
  * increment_for_block_map() - Increment the reference count for a block map page.
- * @ref_counts: The ref_counts responsible for the block.
+ * @slab: The slab which owns the block.
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @old_status: The reference status of the block before this increment.
@@ -467,7 +324,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int increment_for_block_map(struct ref_counts *ref_counts,
+static int increment_for_block_map(struct vdo_slab *slab,
 				   struct reference_block *block,
 				   slab_block_number block_number,
 				   enum reference_status old_status,
@@ -481,12 +338,12 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		if (normal_operation)
 			return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 						      "Incrementing unallocated block map block (slab %u, offset %u)",
-						      ref_counts->slab->slab_number,
+						      slab->slab_number,
 						      block_number);
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
 		block->allocated_count++;
-		ref_counts->free_blocks--;
+		slab->free_blocks--;
 		*free_status_changed = true;
 		return VDO_SUCCESS;
 
@@ -494,7 +351,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		if (!normal_operation)
 			return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 						      "Block map block had provisional reference during replay (slab %u, offset %u)",
-						      ref_counts->slab->slab_number,
+						      slab->slab_number,
 						      block_number);
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
@@ -507,7 +364,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		return uds_log_error_strerror(VDO_REF_COUNT_INVALID,
 					      "Incrementing a block map block which is already referenced %u times (slab %u, offset %u)",
 					      *counter_ptr,
-					      ref_counts->slab->slab_number,
+					      slab->slab_number,
 					      block_number);
 	}
 }
@@ -519,7 +376,7 @@ static bool __must_check is_valid_journal_point(const struct journal_point *poin
 
 /**
  * update_reference_count() - Update the reference count of a block.
- * @ref_counts: The ref_counts responsible for the block.
+ * @slab: The slab which owns the block.
  * @block: The reference block which contains the block being updated.
  * @block_number: The block to update.
  * @slab_journal_point: The slab journal point at which this update is journaled.
@@ -533,7 +390,7 @@ static bool __must_check is_valid_journal_point(const struct journal_point *poin
  * Return: VDO_SUCCESS or an error.
  */
 static int
-update_reference_count(struct ref_counts *ref_counts,
+update_reference_count(struct vdo_slab *slab,
 		       struct reference_block *block,
 		       slab_block_number block_number,
 		       const struct journal_point *slab_journal_point,
@@ -542,12 +399,12 @@ update_reference_count(struct ref_counts *ref_counts,
 		       bool *free_status_changed,
 		       bool *provisional_decrement_ptr)
 {
-	vdo_refcount_t *counter_ptr = &ref_counts->counters[block_number];
-	enum reference_status old_status = vdo_reference_count_to_status(*counter_ptr);
+	vdo_refcount_t *counter_ptr = &slab->counters[block_number];
+	enum reference_status old_status = reference_count_to_status(*counter_ptr);
 	int result;
 
 	if (!updater->increment) {
-		result = decrement_for_data(ref_counts,
+		result = decrement_for_data(slab,
 					    block,
 					    block_number,
 					    old_status,
@@ -560,7 +417,7 @@ update_reference_count(struct ref_counts *ref_counts,
 			return VDO_SUCCESS;
 		}
 	} else if (updater->operation == VDO_JOURNAL_DATA_REMAPPING) {
-		result = increment_for_data(ref_counts,
+		result = increment_for_data(slab,
 					    block,
 					    block_number,
 					    old_status,
@@ -568,7 +425,7 @@ update_reference_count(struct ref_counts *ref_counts,
 					    counter_ptr,
 					    free_status_changed);
 	} else {
-		result = increment_for_block_map(ref_counts,
+		result = increment_for_block_map(slab,
 						 block,
 						 block_number,
 						 old_status,
@@ -582,14 +439,14 @@ update_reference_count(struct ref_counts *ref_counts,
 		return result;
 
 	if (is_valid_journal_point(slab_journal_point))
-		ref_counts->slab_journal_point = *slab_journal_point;
+		slab->slab_journal_point = *slab_journal_point;
 
 	return VDO_SUCCESS;
 }
 
 /**
- * vdo_adjust_reference_count() - Adjust the reference count of a block.
- * @ref_counts: The refcounts object.
+ * adjust_reference_count() - Adjust the reference count of a block.
+ * @slab: The block's slab.
  * @updater: The reference count updater.
  * @slab_journal_point: The slab journal entry for this adjustment.
  * @free_status_changed: A pointer which will be set to true if the free status of the block
@@ -598,27 +455,26 @@ update_reference_count(struct ref_counts *ref_counts,
  * Return: A success or error code, specifically: VDO_REF_COUNT_INVALID if a decrement would result
  *         in a negative reference count, or an increment in a count greater than MAXIMUM_REFS
  */
-int vdo_adjust_reference_count(struct ref_counts *ref_counts,
-			       struct reference_updater *updater,
-			       const struct journal_point *slab_journal_point,
-			       bool *free_status_changed)
+EXTERNAL_STATIC int __must_check
+adjust_reference_count(struct vdo_slab *slab,
+		       struct reference_updater *updater,
+		       const struct journal_point *slab_journal_point,
+		       bool *free_status_changed)
 {
 	slab_block_number block_number;
 	int result;
 	struct reference_block *block;
 	bool provisional_decrement = false;
 
-	if (!vdo_is_slab_open(ref_counts->slab))
+	if (!vdo_is_slab_open(slab))
 		return VDO_INVALID_ADMIN_STATE;
 
-	result = vdo_slab_block_number_from_pbn(ref_counts->slab,
-						updater->zpbn.pbn,
-						&block_number);
+	result = slab_block_number_from_pbn(slab, updater->zpbn.pbn, &block_number);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	block = vdo_get_reference_block(ref_counts, block_number);
-	result = update_reference_count(ref_counts,
+	block = get_reference_block(slab, block_number);
+	result = update_reference_count(slab,
 					block,
 					block_number,
 					slab_journal_point,
@@ -641,7 +497,7 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 		if (result != VDO_SUCCESS)
 			return result;
 
-		vdo_adjust_slab_journal_block_reference(ref_counts->slab->journal, entry_lock, -1);
+		vdo_adjust_slab_journal_block_reference(slab->journal, entry_lock, -1);
 		return VDO_SUCCESS;
 	}
 
@@ -661,13 +517,10 @@ int vdo_adjust_reference_count(struct ref_counts *ref_counts,
 
 /**
  * vdo_adjust_reference_count_for_rebuild() - Adjust the reference count of a block during rebuild.
- * @ref_counts: The refcounts object.
- * @pbn: The number of the block to adjust.
- * @operation: The operation to perform on the count.
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
+int vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
 					   physical_block_number_t pbn,
 					   enum journal_operation operation)
 {
@@ -675,17 +528,18 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 	slab_block_number block_number;
 	struct reference_block *block;
 	bool unused_free_status;
+	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
 	struct reference_updater updater = {
 		.operation = operation,
 		.increment = true,
 	};
 
-	result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &block_number);
+	result = slab_block_number_from_pbn(slab, pbn, &block_number);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	block = vdo_get_reference_block(ref_counts, block_number);
-	result = update_reference_count(ref_counts,
+	block = get_reference_block(slab, block_number);
+	result = update_reference_count(slab,
 					block,
 					block_number,
 					NULL,
@@ -701,9 +555,9 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
 }
 
 /**
- * vdo_replay_reference_count_change() - Replay the reference count adjustment from a slab journal
- *                                       entry into the reference count for a block.
- * @ref_counts: The refcounts object.
+ * replay_reference_count_change() - Replay the reference count adjustment from a slab journal
+ *                                   entry into the reference count for a block.
+ * @slab: The slab.
  * @entry_point: The slab journal point for the entry.
  * @entry: The slab journal entry being replayed.
  *
@@ -711,13 +565,14 @@ int vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
-				      const struct journal_point *entry_point,
-				      struct slab_journal_entry entry)
+EXTERNAL_STATIC int
+replay_reference_count_change(struct vdo_slab *slab,
+			      const struct journal_point *entry_point,
+			      struct slab_journal_entry entry)
 {
 	bool unused_free_status;
 	int result;
-	struct reference_block *block = vdo_get_reference_block(ref_counts, entry.sbn);
+	struct reference_block *block = get_reference_block(slab, entry.sbn);
 	sector_count_t sector = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
 	struct reference_updater updater = {
 		.operation = entry.operation,
@@ -729,7 +584,7 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 		return VDO_SUCCESS;
 
 	/* This entry is not yet counted in the reference counts. */
-	result = update_reference_count(ref_counts,
+	result = update_reference_count(slab,
 					block,
 					entry.sbn,
 					entry_point,
@@ -743,63 +598,6 @@ int vdo_replay_reference_count_change(struct ref_counts *ref_counts,
 	dirty_block(block);
 	return VDO_SUCCESS;
 }
-
-#ifdef INTERNAL
-/**
- * vdo_get_reference_status() - Get the reference status of a block.
- * @ref_counts: The refcounts object.
- * @pbn: The physical block number.
- * @status_ptr: Where to put the status of the block.
- *
- * Exposed only for unit testing.
- *
- * Return: A success or error code, specifically: VDO_OUT_OF_RANGE if the pbn is out of range.
- */
-int vdo_get_reference_status(struct ref_counts *ref_counts,
-			     physical_block_number_t pbn,
-			     enum reference_status *status_ptr)
-{
-	vdo_refcount_t *counter_ptr = NULL;
-	int result = get_reference_counter(ref_counts, pbn, &counter_ptr);
-
-	if (result != VDO_SUCCESS)
-		return result;
-
-	*status_ptr = vdo_reference_count_to_status(*counter_ptr);
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_are_equivalent_ref_counts() - Check whether two reference counters are equivalent.
- * @counter_a: The first counter to compare.
- * @counter_b: The second counter to compare.
- *
- * This method is used for unit testing.
- *
- * Return: true if the two counters are equivalent.
- */
-bool vdo_are_equivalent_ref_counts(struct ref_counts *counter_a, struct ref_counts *counter_b)
-{
-	size_t i;
-
-	if ((counter_a->block_count != counter_b->block_count) ||
-	    (counter_a->free_blocks != counter_b->free_blocks) ||
-	    (counter_a->reference_block_count != counter_b->reference_block_count))
-		return false;
-
-	for (i = 0; i < counter_a->reference_block_count; i++) {
-		struct reference_block *block_a = &counter_a->blocks[i];
-		struct reference_block *block_b = &counter_b->blocks[i];
-
-		if (block_a->allocated_count != block_b->allocated_count)
-			return false;
-	}
-
-	return (memcmp(counter_a->counters,
-		       counter_b->counters,
-		       sizeof(vdo_refcount_t) * counter_a->block_count) == 0);
-}
-#endif /* INTERNAL */
 
 /**
  * find_zero_byte_in_word() - Find the array index of the first zero byte in word-sized range of
@@ -836,25 +634,21 @@ find_zero_byte_in_word(const u8 *word_ptr,
 /**
  * vdo_find_free_block() - Find the first block with a reference count of zero in the specified
  *                         range of reference counter indexes.
- * @ref_counts: The reference counters to scan.
- * @start_index: The array index at which to start scanning (included in the scan).
- * @end_index: The array index at which to stop scanning (excluded from the scan).
+ * @slab: The slab counters to scan.
  * @index_ptr: A pointer to hold the array index of the free block.
  *
  * Exposed for unit testing.
  *
  * Return: true if a free block was found in the specified range.
  */
-EXTERNAL_STATIC
-bool vdo_find_free_block(const struct ref_counts *ref_counts,
-			 slab_block_number start_index,
-			 slab_block_number end_index,
-			 slab_block_number *index_ptr)
+EXTERNAL_STATIC bool
+find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr)
 {
 	slab_block_number zero_index;
-	slab_block_number next_index = start_index;
-	u8 *next_counter = &ref_counts->counters[next_index];
-	u8 *end_counter = &ref_counts->counters[end_index];
+	slab_block_number next_index = slab->search_cursor.index;
+	slab_block_number end_index = slab->search_cursor.end_index;
+	u8 *next_counter = &slab->counters[next_index];
+	u8 *end_counter = &slab->counters[end_index];
 
 	/*
 	 * Search every byte of the first unaligned word. (Array is padded so reading past end is
@@ -900,25 +694,22 @@ bool vdo_find_free_block(const struct ref_counts *ref_counts,
  * search_current_reference_block() - Search the reference block currently saved in the search
  *                                    cursor for a reference count of zero, starting at the saved
  *                                    counter index.
- * @ref_counts: The ref_counts object to search.
+ * @slab: The slab to search.
  * @free_index_ptr: A pointer to receive the array index of the zero reference count.
  *
  * Return: true if an unreferenced counter was found.
  */
-static bool search_current_reference_block(const struct ref_counts *ref_counts,
+static bool search_current_reference_block(const struct vdo_slab *slab,
 					   slab_block_number *free_index_ptr)
 {
 	/* Don't bother searching if the current block is known to be full. */
-	return ((ref_counts->search_cursor.block->allocated_count < COUNTS_PER_BLOCK) &&
-		vdo_find_free_block(ref_counts,
-				    ref_counts->search_cursor.index,
-				    ref_counts->search_cursor.end_index,
-				    free_index_ptr));
+	return ((slab->search_cursor.block->allocated_count < COUNTS_PER_BLOCK) &&
+		find_free_block(slab, free_index_ptr));
 }
 
 /**
  * search_reference_blocks() - Search each reference block for a reference count of zero.
- * @ref_counts: The ref_counts object to search.
+ * @slab: The slab to search.
  * @free_index_ptr: A pointer to receive the array index of the zero reference count.
  *
  * Searches each reference block for a reference count of zero, starting at the reference block and
@@ -928,15 +719,15 @@ static bool search_current_reference_block(const struct ref_counts *ref_counts,
  * Return: true if an unreferenced counter was found.
  */
 static bool
-search_reference_blocks(struct ref_counts *ref_counts, slab_block_number *free_index_ptr)
+search_reference_blocks(struct vdo_slab *slab, slab_block_number *free_index_ptr)
 {
 	/* Start searching at the saved search position in the current block. */
-	if (search_current_reference_block(ref_counts, free_index_ptr))
+	if (search_current_reference_block(slab, free_index_ptr))
 		return true;
 
 	/* Search each reference block up to the end of the slab. */
-	while (advance_search_cursor(ref_counts))
-		if (search_current_reference_block(ref_counts, free_index_ptr))
+	while (advance_search_cursor(slab))
+		if (search_current_reference_block(slab, free_index_ptr))
 			return true;
 
 	return false;
@@ -944,204 +735,37 @@ search_reference_blocks(struct ref_counts *ref_counts, slab_block_number *free_i
 
 /**
  * make_provisional_reference() - Do the bookkeeping for making a provisional reference.
- * @ref_counts: The ref_counts.
- * @block_number: The block to reference.
  */
 static void
-make_provisional_reference(struct ref_counts *ref_counts, slab_block_number block_number)
+make_provisional_reference(struct vdo_slab *slab, slab_block_number block_number)
 {
-	struct reference_block *block = vdo_get_reference_block(ref_counts, block_number);
+	struct reference_block *block = get_reference_block(slab, block_number);
 
 	/*
 	 * Make the initial transition from an unreferenced block to a
 	 * provisionally allocated block.
 	 */
-	ref_counts->counters[block_number] = PROVISIONAL_REFERENCE_COUNT;
+	slab->counters[block_number] = PROVISIONAL_REFERENCE_COUNT;
 
 	/* Account for the allocation. */
 	block->allocated_count++;
-	ref_counts->free_blocks--;
+	slab->free_blocks--;
 }
 
-/**
- * vdo_allocate_unreferenced_block() - Find a block with a reference count of zero in the range of
- *                                     physical block numbers tracked by the reference counter.
- * @ref_counts: The reference counters to scan.
- * @allocated_ptr: A pointer to hold the physical block number of the block that was found and
- *                 allocated.
- *
- * If a free block is found, that block is allocated by marking it as provisionally referenced, and
- * the allocated block number is returned.
- *
- * Return: VDO_SUCCESS if a free block was found and allocated; VDO_NO_SPACE if there are no
- *         unreferenced blocks; otherwise an error code.
- */
-int vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
-				    physical_block_number_t *allocated_ptr)
-{
-	slab_block_number free_index;
-
-	if (!vdo_is_slab_open(ref_counts->slab))
-		return VDO_INVALID_ADMIN_STATE;
-
-	if (!search_reference_blocks(ref_counts, &free_index))
-		return VDO_NO_SPACE;
-
-	ASSERT_LOG_ONLY((ref_counts->counters[free_index] == EMPTY_REFERENCE_COUNT),
-			"free block must have ref count of zero");
-	make_provisional_reference(ref_counts, free_index);
-
-	/*
-	 * Update the search hint so the next search will start at the array index just past the
-	 * free block we just found.
-	 */
-	ref_counts->search_cursor.index = (free_index + 1);
-
-	*allocated_ptr = index_to_pbn(ref_counts, free_index);
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_provisionally_reference_block() - Provisionally reference a block if it is unreferenced.
- * @ref_counts: The reference counters.
- * @pbn: The PBN to reference.
- * @lock: The pbn_lock on the block (may be NULL).
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_provisionally_reference_block(struct ref_counts *ref_counts,
-				      physical_block_number_t pbn,
-				      struct pbn_lock *lock)
-{
-	slab_block_number block_number;
-	int result;
-
-	if (!vdo_is_slab_open(ref_counts->slab))
-		return VDO_INVALID_ADMIN_STATE;
-
-	result = vdo_slab_block_number_from_pbn(ref_counts->slab, pbn, &block_number);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	if (ref_counts->counters[block_number] == EMPTY_REFERENCE_COUNT) {
-		make_provisional_reference(ref_counts, block_number);
-		if (lock != NULL)
-			vdo_assign_pbn_lock_provisional_reference(lock);
-	}
-
-	return VDO_SUCCESS;
-}
-
-#ifdef INTERNAL
-/**
- * vdo_count_unreferenced_blocks() - Count all unreferenced blocks in a range [start_block,
- *                                   end_block) of physical block numbers.
- * @ref_counts: The reference counters to scan.
- * @start_pbn: The physical block number at which to start scanning (included in the scan).
- * @end_pbn: The physical block number at which to stop scanning (excluded from the scan).
- *
- * Return: The number of unreferenced blocks.
- */
-block_count_t vdo_count_unreferenced_blocks(struct ref_counts *ref_counts,
-					    physical_block_number_t start_pbn,
-					    physical_block_number_t end_pbn)
-{
-	block_count_t free_blocks = 0;
-	slab_block_number start_index = pbn_to_index(ref_counts, start_pbn);
-	slab_block_number end_index = pbn_to_index(ref_counts, end_pbn);
-	slab_block_number index;
-
-	for (index = start_index; index < end_index; index++)
-		if (ref_counts->counters[index] == EMPTY_REFERENCE_COUNT)
-			free_blocks++;
-
-	return free_blocks;
-}
-#endif /* INTERNAL */
-
-/**
- * Waiter_as_reference_block() - Convert a reference_block's generic wait queue entry back into the
- *                               reference_block.
- * @waiter: The wait queue entry to convert.
- *
- * Return: The wrapping reference_block.
- */
-static inline struct reference_block *waiter_as_reference_block(struct waiter *waiter)
-{
-	return container_of(waiter, struct reference_block, waiter);
-}
-
-#ifdef INTERNAL
-/**
- * clear_dirty_reference_blocks() - A waiter_callback to clean dirty reference blocks when
- *                                  resetting.
- * @block_waiter: The dirty block.
- * @context: Unused.
- */
-static void
-clear_dirty_reference_blocks(struct waiter *block_waiter, void *context __always_unused)
-{
-	waiter_as_reference_block(block_waiter)->is_dirty = false;
-}
-
-/**
- * vdo_reset_reference_counts() - Reset all reference counts back to RS_FREE.
- * @ref_counts: The reference counters to reset.
- */
-void vdo_reset_reference_counts(struct ref_counts *ref_counts)
-{
-	size_t i;
-
-	memset(ref_counts->counters, 0, ref_counts->block_count * sizeof(vdo_refcount_t));
-	ref_counts->free_blocks = ref_counts->block_count;
-	ref_counts->slab_journal_point = (struct journal_point) {
-		.sequence_number = 0,
-		.entry_count = 0,
-	};
-
-	for (i = 0; i < ref_counts->reference_block_count; i++)
-		ref_counts->blocks[i].allocated_count = 0;
-
-	vdo_notify_all_waiters(&ref_counts->dirty_blocks, clear_dirty_reference_blocks, NULL);
-}
-#endif /* INTERNAL */
-
-/** finish_summary_update() - A waiter callback that resets the writing state of ref_counts. */
+/** finish_summary_update() - A waiter callback that resets the writing state of a slab. */
 static void finish_summary_update(struct waiter *waiter, void *context)
 {
-	struct ref_counts *ref_counts = ref_counts_from_waiter(waiter);
-	int result = *((int *)context);
+	struct vdo_slab *slab = container_of(waiter, struct vdo_slab, summary_waiter);
+	int result = *((int *) context);
 
-	ref_counts->updating_slab_summary = false;
+	slab->updating_summary = false;
 
-	if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-		vdo_check_if_slab_drained(ref_counts->slab);
-		return;
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		uds_log_error_strerror(result, "failed to update slab summary");
+		vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
 	}
 
-	uds_log_error_strerror(result, "failed to update slab summary");
-	enter_ref_counts_read_only_mode(ref_counts, result);
-}
-
-/**
- * update_slab_summary_as_clean() - Update slab summary that the ref_counts object is clean.
- * @ref_counts: The ref_counts object that is being written.
- */
-static void update_slab_summary_as_clean(struct ref_counts *ref_counts)
-{
-	tail_block_offset_t offset;
-	struct vdo_slab *slab = ref_counts->slab;
-
-	/* Update the slab summary to indicate this ref_counts is clean. */
-	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
-	ref_counts->updating_slab_summary = true;
-	ref_counts->slab_summary_waiter.callback = finish_summary_update;
-	vdo_update_slab_summary_entry(slab,
-				      &ref_counts->slab_summary_waiter,
-				      offset,
-				      true,
-				      true,
-				      ref_counts->free_blocks);
+	vdo_check_if_slab_drained(slab);
 }
 
 /**
@@ -1152,13 +776,13 @@ static void handle_io_error(struct vdo_completion *completion)
 {
 	int result = completion->result;
 	struct vio *vio = as_vio(completion);
-	struct ref_counts *ref_counts =
-		((struct reference_block *) completion->parent)->ref_counts;
+	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
 
 	record_metadata_io_error(vio);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool, vio_as_pooled_vio(vio));
-	ref_counts->active_count--;
-	enter_ref_counts_read_only_mode(ref_counts, result);
+	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	slab->active_count--;
+	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
+	vdo_check_if_slab_drained(slab);
 }
 
 /**
@@ -1171,15 +795,16 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	struct vio *vio = as_vio(completion);
 	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
 	struct reference_block *block = completion->parent;
-	struct ref_counts *ref_counts = block->ref_counts;
+	struct vdo_slab *slab = block->slab;
+	tail_block_offset_t offset;
 
-	ref_counts->active_count--;
+	slab->active_count--;
 
 	/* Release the slab journal lock. */
-	vdo_adjust_slab_journal_block_reference(ref_counts->slab->journal,
+	vdo_adjust_slab_journal_block_reference(slab->journal,
 						block->slab_journal_lock_to_release,
 						-1);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool, pooled);
+	return_vio_to_pool(slab->allocator->vio_pool, pooled);
 
 	/*
 	 * We can't clear the is_writing flag earlier as releasing the slab journal lock may cause
@@ -1187,57 +812,66 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 */
 	block->is_writing = false;
 
-	if (vdo_is_read_only(ref_counts->slab->allocator->depot->vdo)) {
-		vdo_check_if_slab_drained(ref_counts->slab);
+	if (vdo_is_read_only(completion->vdo)) {
+		vdo_check_if_slab_drained(slab);
 		return;
 	}
 
 	/* Re-queue the block if it was re-dirtied while it was writing. */
 	if (block->is_dirty) {
-		vdo_enqueue_waiter(&block->ref_counts->dirty_blocks, &block->waiter);
-		if (vdo_is_state_draining(&ref_counts->slab->state))
+		vdo_enqueue_waiter(&block->slab->dirty_blocks, &block->waiter);
+		if (vdo_is_state_draining(&slab->state))
 			/* We must be saving, and this block will otherwise not be relaunched. */
-			vdo_save_dirty_reference_blocks(ref_counts);
+			vdo_save_dirty_reference_blocks(slab);
 
 		return;
 	}
 
 	/*
-	 * Mark the ref_counts as clean in the slab summary if there are no dirty or writing blocks
+	 * Mark the slab as clean in the slab summary if there are no dirty or writing blocks
 	 * and no summary update in progress.
 	 */
-	if (!has_active_io(ref_counts) && !vdo_has_waiters(&ref_counts->dirty_blocks))
-		update_slab_summary_as_clean(ref_counts);
+	if (has_active_io(slab) || vdo_has_waiters(&slab->dirty_blocks))
+		return;
+
+	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
+	slab->updating_summary = true;
+	slab->summary_waiter.callback = finish_summary_update;
+	vdo_update_slab_summary_entry(slab,
+				      &slab->summary_waiter,
+				      offset,
+				      true,
+				      true,
+				      slab->free_blocks);
 }
 
 /**
- * vdo_get_reference_counters_for_block() - Find the reference counters for a given block.
+ * get_reference_counters_for_block() - Find the reference counters for a given block.
  * @block: The reference_block in question.
  *
  * Return: A pointer to the reference counters for this block.
  */
 EXTERNAL_STATIC vdo_refcount_t * __must_check
-vdo_get_reference_counters_for_block(struct reference_block *block)
+get_reference_counters_for_block(struct reference_block *block)
 {
-	size_t block_index = block - block->ref_counts->blocks;
+	size_t block_index = block - block->slab->reference_blocks;
 
-	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
+	return &block->slab->counters[block_index * COUNTS_PER_BLOCK];
 }
 
 /**
- * vdo_pack_reference_block() - Copy data from a reference block to a buffer ready to be written
- *                              out.
+ * pack_reference_block() - Copy data from a reference block to a buffer ready to be written out.
  * @block: The block to copy.
  * @buffer: The char buffer to fill with the packed block.
  */
-EXTERNAL_STATIC void vdo_pack_reference_block(struct reference_block *block, void *buffer)
+EXTERNAL_STATIC void pack_reference_block(struct reference_block *block, void *buffer)
 {
 	struct packed_reference_block *packed = buffer;
-	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	sector_count_t i;
 	struct packed_journal_point commit_point;
 
-	vdo_pack_journal_point(&block->ref_counts->slab_journal_point, &commit_point);
+	vdo_pack_journal_point(&block->slab->slab_journal_point, &commit_point);
 
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		packed->sectors[i].commit_point = commit_point;
@@ -1251,7 +885,7 @@ static void write_reference_block_endio(struct bio *bio)
 {
 	struct vio *vio = bio->bi_private;
 	struct reference_block *block = vio->completion.parent;
-	thread_id_t thread_id = block->ref_counts->slab->allocator->thread_id;
+	thread_id_t thread_id = block->slab->allocator->thread_id;
 
 	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
 }
@@ -1268,11 +902,11 @@ static void write_reference_block(struct waiter *waiter, void *context)
 	physical_block_number_t pbn;
 	struct pooled_vio *pooled = context;
 	struct vdo_completion *completion = &pooled->vio.completion;
-	struct reference_block *block = waiter_as_reference_block(waiter);
+	struct reference_block *block = container_of(waiter, struct reference_block, waiter);
 
-	vdo_pack_reference_block(block, pooled->vio.data);
-	block_offset = (block - block->ref_counts->blocks);
-	pbn = (block->ref_counts->slab->ref_counts_origin + block_offset);
+	pack_reference_block(block, pooled->vio.data);
+	block_offset = (block - block->slab->reference_blocks);
+	pbn = (block->slab->ref_counts_origin + block_offset);
 	block->slab_journal_lock_to_release = block->slab_journal_lock;
 	completion->parent = block;
 
@@ -1287,8 +921,8 @@ static void write_reference_block(struct waiter *waiter, void *context)
 	 * Flush before writing to ensure that the recovery journal and slab journal entries which
 	 * cover this reference update are stable (VDO-2331).
 	 */
-	WRITE_ONCE(block->ref_counts->slab->allocator->ref_counts_statistics.blocks_written,
-		   block->ref_counts->slab->allocator->ref_counts_statistics.blocks_written + 1);
+	WRITE_ONCE(block->slab->allocator->ref_counts_statistics.blocks_written,
+		   block->slab->allocator->ref_counts_statistics.blocks_written + 1);
 
 	completion->callback_thread_id = ((struct block_allocator *) pooled->context)->thread_id;
 	submit_metadata_vio(&pooled->vio,
@@ -1302,7 +936,7 @@ static void write_reference_block(struct waiter *waiter, void *context)
  * launch_reference_block_write() - Launch the write of a dirty reference block by first acquiring
  *                                  a VIO for it from the pool.
  * @waiter: The waiter of the block which is starting to write.
- * @context: The parent ref_counts of the block.
+ * @context: The parent slab of the block.
  *
  * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
  * currently in use.
@@ -1310,42 +944,30 @@ static void write_reference_block(struct waiter *waiter, void *context)
 static void launch_reference_block_write(struct waiter *waiter, void *context)
 {
 	struct reference_block *block;
-	struct ref_counts *ref_counts = context;
+	struct vdo_slab *slab = context;
 
-	if (vdo_is_read_only(ref_counts->slab->allocator->depot->vdo))
+	if (vdo_is_read_only(slab->allocator->depot->vdo))
 		return;
 
-	ref_counts->active_count++;
-	block = waiter_as_reference_block(waiter);
+	slab->active_count++;
+	block = container_of(waiter, struct reference_block, waiter);
 	block->is_writing = true;
 	waiter->callback = write_reference_block;
-	acquire_vio_from_pool(ref_counts->slab->allocator->vio_pool, waiter);
+	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
 }
 
 /**
- * vdo_save_oldest_reference_block() - Request a ref_counts object save its oldest dirty block
- *                                     asynchronously.
- * @ref_counts: The ref_counts object to notify.
- */
-EXTERNAL_STATIC void vdo_save_oldest_reference_block(struct ref_counts *ref_counts)
-{
-	vdo_notify_next_waiter(&ref_counts->dirty_blocks,
-			       launch_reference_block_write,
-			       ref_counts);
-}
-
-/**
- * vdo_save_several_reference_blocks() - Request a ref_counts object save several dirty blocks
+ * vdo_save_several_reference_blocks() - Request a slab object save several dirty blocks
  *                                       asynchronously.
- * @ref_counts: The ref_counts object to notify.
+ * @slab: The slab to notify.
  * @flush_divisor: The inverse fraction of the dirty blocks to write.
  *
  * This function currently writes 1 / flush_divisor of the dirty blocks.
  */
-void vdo_save_several_reference_blocks(struct ref_counts *ref_counts, size_t flush_divisor)
+void vdo_save_several_reference_blocks(struct vdo_slab *slab, size_t flush_divisor)
 {
 	block_count_t written, blocks_to_write;
-	block_count_t dirty_block_count = vdo_count_waiters(&ref_counts->dirty_blocks);
+	block_count_t dirty_block_count = vdo_count_waiters(&slab->dirty_blocks);
 
 	if (dirty_block_count == 0)
 		return;
@@ -1356,32 +978,28 @@ void vdo_save_several_reference_blocks(struct ref_counts *ref_counts, size_t flu
 		blocks_to_write = 1;
 
 	for (written = 0; written < blocks_to_write; written++)
-		vdo_save_oldest_reference_block(ref_counts);
+		vdo_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write, slab);
 }
 
 /**
- * vdo_save_dirty_reference_blocks() - Ask a ref_counts object to save all its dirty blocks
+ * vdo_save_dirty_reference_blocks() - Ask a slab object to save all its dirty blocks
  *                                     asynchronously.
- * @ref_counts: The ref_counts object to notify.
  */
-void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts)
+void vdo_save_dirty_reference_blocks(struct vdo_slab *slab)
 {
-	vdo_notify_all_waiters(&ref_counts->dirty_blocks,
-			       launch_reference_block_write,
-			       ref_counts);
-	vdo_check_if_slab_drained(ref_counts->slab);
+	vdo_notify_all_waiters(&slab->dirty_blocks, launch_reference_block_write, slab);
+	vdo_check_if_slab_drained(slab);
 }
 
 /**
- * vdo_dirty_all_reference_blocks() - Mark all reference count blocks as dirty.
- * @ref_counts: The ref_counts of the reference blocks.
+ * dirty_all_reference_blocks() - Mark all reference count blocks in a slab as dirty.
  */
-void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
+static void dirty_all_reference_blocks(struct vdo_slab *slab)
 {
 	block_count_t i;
 
-	for (i = 0; i < ref_counts->reference_block_count; i++)
-		dirty_block(&ref_counts->blocks[i]);
+	for (i = 0; i < slab->reference_block_count; i++)
+		dirty_block(&slab->reference_blocks[i]);
 }
 
 /**
@@ -1390,7 +1008,7 @@ void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts)
  */
 static void clear_provisional_references(struct reference_block *block)
 {
-	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 	block_count_t j;
 
 	for (j = 0; j < COUNTS_PER_BLOCK; j++) {
@@ -1417,8 +1035,8 @@ unpack_reference_block(struct packed_reference_block *packed, struct reference_b
 {
 	block_count_t index;
 	sector_count_t i;
-	struct ref_counts *ref_counts = block->ref_counts;
-	vdo_refcount_t *counters = vdo_get_reference_counters_for_block(block);
+	struct vdo_slab *slab = block->slab;
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
 
 	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
@@ -1428,18 +1046,17 @@ unpack_reference_block(struct packed_reference_block *packed, struct reference_b
 		       sector->counts,
 		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
 		/* The slab_journal_point must be the latest point found in any sector. */
-		if (vdo_before_journal_point(&ref_counts->slab_journal_point,
-					     &block->commit_points[i]))
-			ref_counts->slab_journal_point = block->commit_points[i];
+		if (vdo_before_journal_point(&slab->slab_journal_point, &block->commit_points[i]))
+			slab->slab_journal_point = block->commit_points[i];
 
 		if ((i > 0) &&
 		    !journal_points_equal(block->commit_points[0], block->commit_points[i])) {
-			size_t block_index = block - block->ref_counts->blocks;
+			size_t block_index = block - block->slab->reference_blocks;
 
 			uds_log_warning("Torn write detected in sector %u of reference block %zu of slab %u",
 					i,
 					block_index,
-					block->ref_counts->slab->slab_number);
+					block->slab->slab_number);
 		}
 	}
 
@@ -1458,15 +1075,15 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	struct vio *vio = as_vio(completion);
 	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
 	struct reference_block *block = completion->parent;
-	struct ref_counts *ref_counts = block->ref_counts;
+	struct vdo_slab *slab = block->slab;
 
 	unpack_reference_block((struct packed_reference_block *) vio->data, block);
-	return_vio_to_pool(ref_counts->slab->allocator->vio_pool, pooled);
-	ref_counts->active_count--;
+	return_vio_to_pool(slab->allocator->vio_pool, pooled);
+	slab->active_count--;
 	clear_provisional_references(block);
 
-	ref_counts->free_blocks -= block->allocated_count;
-	vdo_check_if_slab_drained(block->ref_counts->slab);
+	slab->free_blocks -= block->allocated_count;
+	vdo_check_if_slab_drained(slab);
 }
 
 static void load_reference_block_endio(struct bio *bio)
@@ -1474,9 +1091,7 @@ static void load_reference_block_endio(struct bio *bio)
 	struct vio *vio = bio->bi_private;
 	struct reference_block *block = vio->completion.parent;
 
-	continue_vio_after_io(vio,
-			      finish_reference_block_load,
-			      block->ref_counts->slab->allocator->thread_id);
+	continue_vio_after_io(vio, finish_reference_block_load, block->slab->allocator->thread_id);
 }
 
 /**
@@ -1489,75 +1104,78 @@ static void load_reference_block(struct waiter *waiter, void *context)
 {
 	struct pooled_vio *pooled = context;
 	struct vio *vio = &pooled->vio;
-	struct reference_block *block = waiter_as_reference_block(waiter);
-	size_t block_offset = (block - block->ref_counts->blocks);
+	struct reference_block *block = container_of(waiter, struct reference_block, waiter);
+	size_t block_offset = (block - block->slab->reference_blocks);
 
 	vio->completion.parent = block;
 	submit_metadata_vio(vio,
-			    block->ref_counts->slab->ref_counts_origin + block_offset,
+			    block->slab->ref_counts_origin + block_offset,
 			    load_reference_block_endio,
 			    handle_io_error,
 			    REQ_OP_READ);
 }
 
 /**
- * load_reference_blocks() - Load reference blocks from the underlying storage into a pre-allocated
- *                           reference counter.
- * @ref_counts: The reference counter to be loaded.
+ * load_reference_blocks() - Load a slab's reference blocks from the underlying storage into a
+ *                           pre-allocated reference counter.
  */
-static void load_reference_blocks(struct ref_counts *ref_counts)
+static void load_reference_blocks(struct vdo_slab *slab)
 {
 	block_count_t i;
 
-	ref_counts->free_blocks = ref_counts->block_count;
-	ref_counts->active_count = ref_counts->reference_block_count;
-	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		struct waiter *waiter = &ref_counts->blocks[i].waiter;
+	slab->free_blocks = slab->block_count;
+	slab->active_count = slab->reference_block_count;
+	for (i = 0; i < slab->reference_block_count; i++) {
+		struct waiter *waiter = &slab->reference_blocks[i].waiter;
 
 		waiter->callback = load_reference_block;
-		acquire_vio_from_pool(ref_counts->slab->allocator->vio_pool, waiter);
+		acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
 	}
 }
 
 /**
- * vdo_drain_ref_counts() - Drain all reference count I/O.
- * @ref_counts: The reference counts to drain.
+ * drain_slab() - Drain all reference count I/O.
  *
  * Depending upon the type of drain being performed (as recorded in the ref_count's vdo_slab), the
  * reference blocks may be loaded from disk or dirty reference blocks may be written out.
  */
-void vdo_drain_ref_counts(struct ref_counts *ref_counts)
+EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
 {
-	struct vdo_slab *slab = ref_counts->slab;
-	bool save = false;
-	bool load = slab->allocator->summary_entries[slab->slab_number].load_ref_counts;
-	const struct admin_state_code *state = vdo_get_admin_state_code(&slab->state);
+	bool save;
+	bool load;
+	const struct admin_state_code *state;
 
+	if (slab->counters == NULL)
+		return;
+
+	state = vdo_get_admin_state_code(&slab->state);
 	if ((state == VDO_ADMIN_STATE_RECOVERING) || (state == VDO_ADMIN_STATE_SUSPENDING))
 		return;
 
+	save = false;
+	load = slab->allocator->summary_entries[slab->slab_number].load_ref_counts;
 	if (state == VDO_ADMIN_STATE_SCRUBBING) {
 		if (load) {
-			load_reference_blocks(ref_counts);
+			load_reference_blocks(slab);
 			return;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING) {
 		if (!load)
 			/* These reference counts were never written, so mark them all dirty. */
-			vdo_dirty_all_reference_blocks(ref_counts);
+			dirty_all_reference_blocks(slab);
 
 		save = true;
 	} else if (state == VDO_ADMIN_STATE_REBUILDING) {
 		/*
-		 * Write out the ref_counts if the slab has written them before, or it has any
+		 * Write out the counters if the slab has written them before, or it has any
 		 * non-zero reference counts, or there are any slab journal blocks.
 		 */
 		block_count_t data_blocks = slab->allocator->depot->slab_config.data_blocks;
 
 		if (load ||
-		    (ref_counts->free_blocks != data_blocks) ||
+		    (slab->free_blocks != data_blocks) ||
 		    !vdo_is_slab_journal_blank(slab->journal)) {
-			vdo_dirty_all_reference_blocks(ref_counts);
+			dirty_all_reference_blocks(slab);
 			save = true;
 		}
 	} else if (state == VDO_ADMIN_STATE_SAVING) {
@@ -1568,160 +1186,22 @@ void vdo_drain_ref_counts(struct ref_counts *ref_counts)
 	}
 
 	if (save)
-		vdo_save_dirty_reference_blocks(ref_counts);
+		vdo_save_dirty_reference_blocks(slab);
 }
 
 /**
- * vdo_acquire_dirty_block_locks() - Mark all reference count blocks dirty and cause them to hold
- *                                   locks on slab journal block 1.
- * @ref_counts: The ref_counts of the reference blocks.
+ * vdo_acquire_dirty_block_locks() - Mark all of a slab's reference count block dirty and cause
+ *                                   them to hold locks on slab journal block 1.
  */
-void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts)
+void vdo_acquire_dirty_block_locks(struct vdo_slab *slab)
 {
 	block_count_t i;
 
-	vdo_dirty_all_reference_blocks(ref_counts);
-	for (i = 0; i < ref_counts->reference_block_count; i++)
-		ref_counts->blocks[i].slab_journal_lock = 1;
+	dirty_all_reference_blocks(slab);
+	for (i = 0; i < slab->reference_block_count; i++)
+		slab->reference_blocks[i].slab_journal_lock = 1;
 
-	vdo_adjust_slab_journal_block_reference(ref_counts->slab->journal, 1,
-						ref_counts->reference_block_count);
-}
-
-/**
- * vdo_dump_ref_counts() - Dump information about this ref_counts structure.
- * @ref_counts: The ref_counts to dump.
- */
-void vdo_dump_ref_counts(const struct ref_counts *ref_counts)
-{
-	/* Terse because there are a lot of slabs to dump and syslog is lossy. */
-	uds_log_info("  ref_counts: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
-		     ref_counts->free_blocks,
-		     ref_counts->block_count,
-		     ref_counts->reference_block_count,
-		     vdo_count_waiters(&ref_counts->dirty_blocks),
-		     ref_counts->active_count,
-		     (unsigned long long) ref_counts->slab_journal_point.sequence_number,
-		     ref_counts->slab_journal_point.entry_count,
-		     (ref_counts->updating_slab_summary ? " updating" : ""));
-}
-
-/**
- * vdo_make_slab() - Construct a new, empty slab.
- * @slab_origin: The physical block number within the block allocator partition of the first block
- *               in the slab.
- * @allocator: The block allocator to which the slab belongs.
- * @recovery_journal: The recovery journal of the VDO.
- * @slab_number: The slab number of the slab.
- * @is_new: true if this slab is being allocated as part of a resize.
- * @slab_ptr: A pointer to receive the new slab.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_make_slab(physical_block_number_t slab_origin,
-		  struct block_allocator *allocator,
-		  struct recovery_journal *recovery_journal,
-		  slab_count_t slab_number,
-		  bool is_new,
-		  struct vdo_slab **slab_ptr)
-{
-	const struct slab_config *slab_config = &allocator->depot->slab_config;
-	struct vdo_slab *slab;
-	int result;
-
-	result = UDS_ALLOCATE(1, struct vdo_slab, __func__, &slab);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	slab->allocator = allocator;
-	slab->start = slab_origin;
-	slab->end = slab->start + slab_config->slab_blocks;
-	slab->slab_number = slab_number;
-	INIT_LIST_HEAD(&slab->allocq_entry);
-
-	slab->ref_counts_origin = slab_origin + slab_config->data_blocks;
-	slab->journal_origin = vdo_get_slab_journal_start_block(slab_config, slab_origin);
-
-	result = vdo_make_slab_journal(allocator, slab, recovery_journal, &slab->journal);
-	if (result != VDO_SUCCESS) {
-		vdo_free_slab(slab);
-		return result;
-	}
-
-	if (is_new) {
-		vdo_set_admin_state_code(&slab->state, VDO_ADMIN_STATE_NEW);
-		result = vdo_allocate_ref_counts_for_slab(slab);
-		if (result != VDO_SUCCESS) {
-			vdo_free_slab(slab);
-			return result;
-		}
-	} else {
-		vdo_set_admin_state_code(&slab->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
-	}
-
-	*slab_ptr = slab;
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_allocate_ref_counts_for_slab() - Allocate the reference counts for a slab.
- * @slab: The slab whose reference counts need allocation.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab)
-{
-	const struct slab_config *slab_config = &slab->allocator->depot->slab_config;
-	int result;
-
-	result = ASSERT(slab->reference_counts == NULL,
-			"vdo_slab %u doesn't allocate refcounts twice",
-			slab->slab_number);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	return vdo_make_ref_counts(slab_config->data_blocks, slab, &slab->reference_counts);
-}
-
-/**
- * vdo_free_slab() - Destroy a slab.
- * @slab: The slab to destroy.
- */
-void vdo_free_slab(struct vdo_slab *slab)
-{
-	if (slab == NULL)
-		return;
-
-	list_del(&slab->allocq_entry);
-	vdo_free_slab_journal(UDS_FORGET(slab->journal));
-	vdo_free_ref_counts(UDS_FORGET(slab->reference_counts));
-	UDS_FREE(slab);
-}
-
-/**
- * vdo_slab_block_number_from_pbn() - Determine the index within the slab of a particular physical
- *                                    block number.
- * @slab: The slab.
- * @physical_block_number: The physical block number.
- * @slab_block_number_ptr: A pointer to the slab block number.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
-				   physical_block_number_t physical_block_number,
-				   slab_block_number *slab_block_number_ptr)
-{
-	u64 slab_block_number;
-
-	if (physical_block_number < slab->start)
-		return VDO_OUT_OF_RANGE;
-
-	slab_block_number = physical_block_number - slab->start;
-	if (slab_block_number >= slab->allocator->depot->slab_config.data_blocks)
-		return VDO_OUT_OF_RANGE;
-
-	*slab_block_number_ptr = slab_block_number;
-	return VDO_SUCCESS;
+	vdo_adjust_slab_journal_block_reference(slab->journal, 1, slab->reference_block_count);
 }
 
 /**
@@ -1743,15 +1223,112 @@ bool vdo_is_slab_open(struct vdo_slab *slab)
 void vdo_check_if_slab_drained(struct vdo_slab *slab)
 {
 	bool read_only;
+	const struct admin_state_code *code;
 
-	if (!vdo_is_state_draining(&slab->state) || vdo_is_slab_journal_active(slab->journal))
+	if (!vdo_is_state_draining(&slab->state) ||
+	    vdo_is_slab_journal_active(slab->journal) ||
+	    has_active_io(slab))
 		return;
 
-	if ((slab->reference_counts != NULL) && vdo_are_ref_counts_active(slab->reference_counts))
+	/* When not suspending or recovering, the slab must be clean. */
+	code = vdo_get_admin_state_code(&slab->state);
+	if (vdo_has_waiters(&slab->dirty_blocks) &&
+	    (code != VDO_ADMIN_STATE_SUSPENDING) &&
+	    (code != VDO_ADMIN_STATE_RECOVERING))
 		return;
 
 	read_only = vdo_is_read_only(slab->allocator->depot->vdo);
 	vdo_finish_draining_with_result(&slab->state, (read_only ? VDO_READ_ONLY : VDO_SUCCESS));
+}
+
+static unsigned int calculate_slab_priority(struct vdo_slab *slab)
+{
+	block_count_t free_blocks = slab->free_blocks;
+	unsigned int unopened_slab_priority = slab->allocator->unopened_slab_priority;
+	unsigned int priority;
+
+	/*
+	 * Wholly full slabs must be the only ones with lowest priority, 0.
+	 *
+	 * Slabs that have never been opened (empty, newly initialized, and never been written to)
+	 * have lower priority than previously opened slabs that have a significant number of free
+	 * blocks. This ranking causes VDO to avoid writing physical blocks for the first time
+	 * unless there are very few free blocks that have been previously written to.
+	 *
+	 * Since VDO doesn't discard blocks currently, reusing previously written blocks makes VDO
+	 * a better client of any underlying storage that is thinly-provisioned (though discarding
+	 * would be better).
+	 *
+	 * For all other slabs, the priority is derived from the logarithm of the number of free
+	 * blocks. Slabs with the same order of magnitude of free blocks have the same priority.
+	 * With 2^23 blocks, the priority will range from 1 to 25. The reserved
+	 * unopened_slab_priority divides the range and is skipped by the logarithmic mapping.
+	 */
+
+	if (free_blocks == 0)
+		return 0;
+
+	if (vdo_is_slab_journal_blank(slab->journal))
+		return unopened_slab_priority;
+
+	priority = (1 + ilog2(free_blocks));
+	return ((priority < unopened_slab_priority) ? priority : priority + 1);
+}
+
+/*
+ * Slabs are essentially prioritized by an approximation of the number of free blocks in the slab
+ * so slabs with lots of free blocks with be opened for allocation before slabs that have few free
+ * blocks.
+ */
+static void prioritize_slab(struct vdo_slab *slab)
+{
+	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
+			"a slab must not already be on a ring when prioritizing");
+	slab->priority = calculate_slab_priority(slab);
+	vdo_priority_table_enqueue(slab->allocator->prioritized_slabs,
+				   slab->priority,
+				   &slab->allocq_entry);
+}
+
+/* Queue a slab for allocation or scrubbing. */
+static void queue_slab(struct vdo_slab *slab)
+{
+	struct block_allocator *allocator = slab->allocator;
+	block_count_t free_blocks;
+	int result;
+
+	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
+			"a requeued slab must not already be on a ring");
+	free_blocks = slab->free_blocks;
+	result = ASSERT((free_blocks <= allocator->depot->slab_config.data_blocks),
+			"rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
+			slab->slab_number,
+			(unsigned long long) free_blocks,
+			(unsigned long long) allocator->depot->slab_config.data_blocks);
+	if (result != VDO_SUCCESS) {
+		vdo_enter_read_only_mode(allocator->depot->vdo, result);
+		return;
+	}
+
+	if (slab->status != VDO_SLAB_REBUILT) {
+		vdo_register_slab_for_scrubbing(slab, false);
+		return;
+	}
+
+	if (!vdo_is_state_resuming(&slab->state)) {
+		/*
+		 * If the slab is resuming, we've already accounted for it here, so don't do it
+		 * again.
+		 * FIXME: under what situation would the slab be resuming here?
+		 */
+		WRITE_ONCE(allocator->allocated_blocks, allocator->allocated_blocks - free_blocks);
+		if (!vdo_is_slab_journal_blank(slab->journal))
+			WRITE_ONCE(allocator->statistics.slabs_opened,
+				   allocator->statistics.slabs_opened + 1);
+	}
+
+	vdo_resume_slab_journal(slab->journal);
+	prioritize_slab(slab);
 }
 
 /**
@@ -1770,10 +1347,7 @@ EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
 			slab->status = VDO_SLAB_REBUILDING;
 
 		vdo_drain_slab_journal(slab->journal);
-
-		if (slab->reference_counts != NULL)
-			vdo_drain_ref_counts(slab->reference_counts);
-
+		drain_slab(slab);
 		vdo_check_if_slab_drained(slab);
 		return;
 	}
@@ -1784,7 +1358,7 @@ EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
 	}
 
 	if (vdo_is_state_resuming(state)) {
-		vdo_queue_slab(slab);
+		queue_slab(slab);
 		vdo_finish_resuming(state);
 		return;
 	}
@@ -1931,7 +1505,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
 	struct vdo_slab *slab = scrubber->slab;
 
 	slab->status = VDO_SLAB_REBUILT;
-	vdo_queue_slab(slab);
+	queue_slab(slab);
 	vdo_reopen_slab_journal(slab->journal);
 	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
@@ -1994,9 +1568,7 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 						      entry.sbn,
 						      max_sbn);
 
-		result = vdo_replay_reference_count_change(slab->reference_counts,
-							   &entry_point,
-							   entry);
+		result = replay_reference_count_change(slab, &entry_point, entry);
 		if (result != VDO_SUCCESS) {
 			uds_log_error_strerror(result,
 					       "vdo_slab journal entry (%llu, %u) (%s of offset %u) could not be applied in slab %u",
@@ -2026,7 +1598,6 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		= container_of(as_vio(completion), struct slab_scrubber, vio);
 	struct vdo_slab *slab = scrubber->slab;
 	struct slab_journal *journal = slab->journal;
-	struct ref_counts *reference_counts = slab->reference_counts;
 
 	/* Find the boundaries of the useful part of the journal. */
 	sequence_number_t tail = journal->tail;
@@ -2039,7 +1610,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	tail_block_offset_t head_index = vdo_get_slab_journal_block_offset(journal, head);
 	block_count_t index = head_index;
 
-	struct journal_point ref_counts_point = reference_counts->slab_journal_point;
+	struct journal_point ref_counts_point = slab->slab_journal_point;
 	struct journal_point last_entry_applied = ref_counts_point;
 	sequence_number_t sequence;
 
@@ -2078,8 +1649,8 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	/*
-	 * At the end of rebuild, the ref_counts should be accurate to the end of the journal we
-	 * just applied.
+	 * At the end of rebuild, the reference counters should be accurate to the end of the
+	 * journal we just applied.
 	 */
 	result = ASSERT(!vdo_before_journal_point(&last_entry_applied, &ref_counts_point),
 			"Refcounts are not more accurate than the slab journal");
@@ -2404,55 +1975,6 @@ static inline void assert_on_allocator_thread(thread_id_t thread_id, const char 
 			function_name);
 }
 
-/*
- * Slabs are essentially prioritized by an approximation of the number of free blocks in the slab
- * so slabs with lots of free blocks with be opened for allocation before slabs that have few free
- * blocks.
- */
-static unsigned int calculate_slab_priority(struct vdo_slab *slab)
-{
-	block_count_t free_blocks = slab->reference_counts->free_blocks;
-	unsigned int unopened_slab_priority = slab->allocator->unopened_slab_priority;
-	unsigned int priority;
-
-	/*
-	 * Wholly full slabs must be the only ones with lowest priority, 0.
-	 *
-	 * Slabs that have never been opened (empty, newly initialized, and never been written to)
-	 * have lower priority than previously opened slabs that have a significant number of free
-	 * blocks. This ranking causes VDO to avoid writing physical blocks for the first time
-	 * unless there are very few free blocks that have been previously written to.
-	 *
-	 * Since VDO doesn't discard blocks currently, reusing previously written blocks makes VDO
-	 * a better client of any underlying storage that is thinly-provisioned (though discarding
-	 * would be better).
-	 *
-	 * For all other slabs, the priority is derived from the logarithm of the number of free
-	 * blocks. Slabs with the same order of magnitude of free blocks have the same priority.
-	 * With 2^23 blocks, the priority will range from 1 to 25. The reserved
-	 * unopened_slab_priority divides the range and is skipped by the logarithmic mapping.
-	 */
-
-	if (free_blocks == 0)
-		return 0;
-
-	if (vdo_is_slab_journal_blank(slab->journal))
-		return unopened_slab_priority;
-
-	priority = (1 + ilog2(free_blocks));
-	return ((priority < unopened_slab_priority) ? priority : priority + 1);
-}
-
-static void prioritize_slab(struct vdo_slab *slab)
-{
-	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
-			"a slab must not already be on a ring when prioritizing");
-	slab->priority = calculate_slab_priority(slab);
-	vdo_priority_table_enqueue(slab->allocator->prioritized_slabs,
-				   slab->priority,
-				   &slab->allocq_entry);
-}
-
 static void register_slab_with_allocator(struct block_allocator *allocator, struct vdo_slab *slab)
 {
 	allocator->slab_count++;
@@ -2525,54 +2047,11 @@ static void notify_block_allocator_of_read_only_mode(void *listener, struct vdo_
 	vdo_finish_completion(parent);
 }
 
-
-/* Queue a slab for allocation or scrubbing. */
-void vdo_queue_slab(struct vdo_slab *slab)
-{
-	struct block_allocator *allocator = slab->allocator;
-	block_count_t free_blocks;
-	int result;
-
-	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
-			"a requeued slab must not already be on a ring");
-	free_blocks = slab->reference_counts->free_blocks;
-	result = ASSERT((free_blocks <= allocator->depot->slab_config.data_blocks),
-			"rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
-			slab->slab_number,
-			(unsigned long long) free_blocks,
-			(unsigned long long) allocator->depot->slab_config.data_blocks);
-	if (result != VDO_SUCCESS) {
-		vdo_enter_read_only_mode(allocator->depot->vdo, result);
-		return;
-	}
-
-	if (slab->status != VDO_SLAB_REBUILT) {
-		vdo_register_slab_for_scrubbing(slab, false);
-		return;
-	}
-
-	if (!vdo_is_state_resuming(&slab->state)) {
-		/*
-		 * If the slab is resuming, we've already accounted for it here, so don't do it
-		 * again.
-		 * FIXME: under what situation would the slab be resuming here?
-		 */
-		WRITE_ONCE(allocator->allocated_blocks, allocator->allocated_blocks - free_blocks);
-		if (!vdo_is_slab_journal_blank(slab->journal))
-			WRITE_ONCE(allocator->statistics.slabs_opened,
-				   allocator->statistics.slabs_opened + 1);
-	}
-
-	vdo_resume_slab_journal(slab->journal);
-	prioritize_slab(slab);
-}
-
 /**
- * vdo_adjust_free_block_count() - Adjust the free block count and (if needed) reprioritize the
- *                                 slab.
+ * adjust_free_block_count() - Adjust the free block count and (if needed) reprioritize the slab.
  * @increment: should be true if the free block count went up.
  */
-void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment)
+static void adjust_free_block_count(struct vdo_slab *slab, bool increment)
 {
 	struct block_allocator *allocator = slab->allocator;
 
@@ -2608,33 +2087,54 @@ int vdo_acquire_provisional_reference(struct vdo_slab *slab,
 				      physical_block_number_t pbn,
 				      struct pbn_lock *lock)
 {
+	slab_block_number block_number;
 	int result;
 
 	if (vdo_pbn_lock_has_provisional_reference(lock))
 		return VDO_SUCCESS;
 
-	result = vdo_provisionally_reference_block(slab->reference_counts, pbn, lock);
+	if (!vdo_is_slab_open(slab))
+		return VDO_INVALID_ADMIN_STATE;
+
+	result = slab_block_number_from_pbn(slab, pbn, &block_number);
 	if (result != VDO_SUCCESS)
 		return result;
 
+	if (slab->counters[block_number] == EMPTY_REFERENCE_COUNT) {
+		make_provisional_reference(slab, block_number);
+		if (lock != NULL)
+			vdo_assign_pbn_lock_provisional_reference(lock);
+	}
+
 	if (vdo_pbn_lock_has_provisional_reference(lock))
-		vdo_adjust_free_block_count(slab, false);
+		adjust_free_block_count(slab, false);
 
 	return VDO_SUCCESS;
 }
 
-static int allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number_ptr)
+EXTERNAL_STATIC int __must_check
+allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number_ptr)
 {
-	physical_block_number_t pbn;
-	int result;
+	slab_block_number free_index;
 
-	result = vdo_allocate_unreferenced_block(slab->reference_counts, &pbn);
-	if (result != VDO_SUCCESS)
-		return result;
+	if (!vdo_is_slab_open(slab))
+		return VDO_INVALID_ADMIN_STATE;
 
-	vdo_adjust_free_block_count(slab, false);
+	if (!search_reference_blocks(slab, &free_index))
+		return VDO_NO_SPACE;
 
-	*block_number_ptr = pbn;
+	ASSERT_LOG_ONLY((slab->counters[free_index] == EMPTY_REFERENCE_COUNT),
+			"free block must have ref count of zero");
+	make_provisional_reference(slab, free_index);
+	adjust_free_block_count(slab, false);
+
+	/*
+	 * Update the search hint so the next search will start at the array index just past the
+	 * free block we just found.
+	 */
+	slab->search_cursor.index = (free_index + 1);
+
+	*block_number_ptr = slab->start + free_index;
 	return VDO_SUCCESS;
 }
 
@@ -2644,11 +2144,11 @@ static int allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *b
  */
 static void open_slab(struct vdo_slab *slab)
 {
-	vdo_reset_search_cursor(slab->reference_counts);
+	reset_search_cursor(slab);
 	if (vdo_is_slab_journal_blank(slab->journal)) {
 		WRITE_ONCE(slab->allocator->statistics.slabs_opened,
 			   slab->allocator->statistics.slabs_opened + 1);
-		vdo_dirty_all_reference_blocks(slab->reference_counts);
+		dirty_all_reference_blocks(slab);
 	} else {
 		WRITE_ONCE(slab->allocator->statistics.slabs_reopened,
 			   slab->allocator->statistics.slabs_reopened + 1);
@@ -2740,15 +2240,12 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 		return VDO_SUCCESS;
 	}
 
-	result = vdo_adjust_reference_count(slab->reference_counts,
-					    updater,
-					    journal_point,
-					    &free_status_changed);
+	result = adjust_reference_count(slab, updater, journal_point, &free_status_changed);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	if (free_status_changed)
-		vdo_adjust_free_block_count(slab, !updater->increment);
+		adjust_free_block_count(slab, !updater->increment);
 
 	return VDO_SUCCESS;
 }
@@ -3043,7 +2540,7 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		if ((depot->load_type == VDO_SLAB_DEPOT_REBUILD_LOAD) ||
 		    (!allocator->summary_entries[slab->slab_number].load_ref_counts &&
 		     current_slab_status.is_clean)) {
-			vdo_queue_slab(slab);
+			queue_slab(slab);
 			continue;
 		}
 
@@ -3097,12 +2594,12 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 	while (iterator.next != NULL) {
 		struct vdo_slab *slab = next_slab(&iterator);
 
-		if (slab->reference_counts != NULL)
+		if (slab->reference_blocks != NULL)
 			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
 			uds_log_info("slab %u: P%u, %llu free",
 				     slab->slab_number,
 				     slab->priority,
-				     (unsigned long long) slab->reference_counts->free_blocks);
+				     (unsigned long long) slab->free_blocks);
 		else
 			uds_log_info("slab %u: status %s",
 				     slab->slab_number,
@@ -3110,10 +2607,19 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 
 		vdo_dump_slab_journal(slab->journal);
 
-		if (slab->reference_counts != NULL)
-			vdo_dump_ref_counts(slab->reference_counts);
+		if (slab->counters != NULL)
+			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
+			uds_log_info("  slab: free=%u/%u blocks=%u dirty=%zu active=%zu journal@(%llu,%u)%s",
+				     slab->free_blocks,
+				     slab->block_count,
+				     slab->reference_block_count,
+				     vdo_count_waiters(&slab->dirty_blocks),
+				     slab->active_count,
+				     (unsigned long long) slab->slab_journal_point.sequence_number,
+				     slab->slab_journal_point.entry_count,
+				     (slab->updating_summary ? " updating" : ""));
 		else
-			uds_log_info("refCounts is null");
+			uds_log_info("  no counters");
 
 		/*
 		 * Wait for a while after each batch of 32 slabs dumped, an arbitrary number,
@@ -3130,6 +2636,129 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 		     vdo_count_waiters(&scrubber->waiters),
 		     vdo_get_admin_state_code(&scrubber->admin_state)->name,
 		     scrubber->high_priority_only ? ", high_priority_only " : "");
+}
+
+EXTERNAL_STATIC void free_slab(struct vdo_slab *slab)
+{
+	if (slab == NULL)
+		return;
+
+	list_del(&slab->allocq_entry);
+	vdo_free_slab_journal(UDS_FORGET(slab->journal));
+	UDS_FREE(UDS_FORGET(slab->counters));
+	UDS_FREE(UDS_FORGET(slab->reference_blocks));
+	UDS_FREE(slab);
+}
+
+/**
+ * vdo_allocate_slab_counters() - Allocate the reference counters for a slab.
+ * @slab: The slab whose reference counts need allocation.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_allocate_slab_counters(struct vdo_slab *slab)
+{
+	int result;
+	size_t index, bytes;
+
+	result = ASSERT(slab->reference_blocks == NULL,
+			"vdo_slab %u doesn't allocate refcounts twice",
+			slab->slab_number);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = UDS_ALLOCATE(slab->reference_block_count,
+			      struct reference_block,
+			      __func__,
+			      &slab->reference_blocks);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	/*
+	 * Allocate such that the runt slab has a full-length memory array, plus a little padding
+	 * so we can word-search even at the very end.
+	 */
+	bytes = ((slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
+	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
+	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(slab->reference_blocks));
+		return result;
+	}
+
+	slab->search_cursor.first_block = slab->reference_blocks;
+	slab->search_cursor.last_block = &slab->reference_blocks[slab->reference_block_count - 1];
+	reset_search_cursor(slab);
+
+	for (index = 0; index < slab->reference_block_count; index++) {
+		slab->reference_blocks[index] = (struct reference_block) {
+			.slab = slab,
+		};
+	}
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * make_slab() - Construct a new, empty slab.
+ * @slab_origin: The physical block number within the block allocator partition of the first block
+ *               in the slab.
+ * @allocator: The block allocator to which the slab belongs.
+ * @recovery_journal: The recovery journal of the VDO.
+ * @slab_number: The slab number of the slab.
+ * @is_new: true if this slab is being allocated as part of a resize.
+ * @slab_ptr: A pointer to receive the new slab.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+EXTERNAL_STATIC int __must_check
+make_slab(physical_block_number_t slab_origin,
+	  struct block_allocator *allocator,
+	  struct recovery_journal *recovery_journal,
+	  slab_count_t slab_number,
+	  bool is_new,
+	  struct vdo_slab **slab_ptr)
+{
+	const struct slab_config *slab_config = &allocator->depot->slab_config;
+	struct vdo_slab *slab;
+	int result;
+
+	result = UDS_ALLOCATE(1, struct vdo_slab, __func__, &slab);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	*slab = (struct vdo_slab) {
+		.allocator = allocator,
+		.start = slab_origin,
+		.end = slab_origin + slab_config->slab_blocks,
+		.slab_number = slab_number,
+		.ref_counts_origin = slab_origin + slab_config->data_blocks,
+		.journal_origin = vdo_get_slab_journal_start_block(slab_config, slab_origin),
+		.block_count = slab_config->data_blocks,
+		.free_blocks = slab_config->data_blocks,
+		.reference_block_count =
+			vdo_get_saved_reference_count_size(slab_config->data_blocks),
+	};
+	INIT_LIST_HEAD(&slab->allocq_entry);
+
+	result = vdo_make_slab_journal(allocator, slab, recovery_journal, &slab->journal);
+	if (result != VDO_SUCCESS) {
+		free_slab(slab);
+		return result;
+	}
+
+	if (is_new) {
+		vdo_set_admin_state_code(&slab->state, VDO_ADMIN_STATE_NEW);
+		result = vdo_allocate_slab_counters(slab);
+		if (result != VDO_SUCCESS) {
+			free_slab(slab);
+			return result;
+		}
+	} else {
+		vdo_set_admin_state_code(&slab->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
+	}
+
+	*slab_ptr = slab;
+	return VDO_SUCCESS;
 }
 
 /**
@@ -3173,12 +2802,12 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 			&depot->allocators[depot->new_slab_count % depot->zone_count];
 		struct vdo_slab **slab_ptr = &depot->new_slabs[depot->new_slab_count];
 
-		result = vdo_make_slab(slab_origin,
-				       allocator,
-				       depot->vdo->recovery_journal,
-				       depot->new_slab_count,
-				       resizing,
-				       slab_ptr);
+		result = make_slab(slab_origin,
+				   allocator,
+				   depot->vdo->recovery_journal,
+				   depot->new_slab_count,
+				   resizing,
+				   slab_ptr);
 		if (result != VDO_SUCCESS)
 			return result;
 	}
@@ -3198,7 +2827,7 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 		return;
 
 	for (i = depot->slab_count; i < depot->new_slab_count; i++)
-		vdo_free_slab(UDS_FORGET(depot->new_slabs[i]));
+		free_slab(UDS_FORGET(depot->new_slabs[i]));
 	depot->new_slab_count = 0;
 	depot->new_size = 0;
 	UDS_FREE(UDS_FORGET(depot->new_slabs));
@@ -3614,7 +3243,7 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 		slab_count_t i;
 
 		for (i = 0; i < depot->slab_count; i++)
-			vdo_free_slab(UDS_FORGET(depot->slabs[i]));
+			free_slab(UDS_FORGET(depot->slabs[i]));
 	}
 
 	UDS_FREE(UDS_FORGET(depot->slabs));
@@ -3653,20 +3282,19 @@ struct slab_depot_state_2_0 vdo_record_slab_depot(const struct slab_depot *depot
 }
 
 /**
- * vdo_allocate_slab_ref_counts() - Allocate the ref_counts for all slabs in the depot.
- * @depot: The depot whose ref_counts need allocation.
+ * vdo_allocate_reference_counters() - Allocate the reference counters for all slabs in the depot.
  *
  * Context: This method may be called only before entering normal operation from the load thread.
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_allocate_slab_ref_counts(struct slab_depot *depot)
+int vdo_allocate_reference_counters(struct slab_depot *depot)
 {
 	struct slab_iterator iterator =
 		get_depot_slab_iterator(depot, depot->slab_count - 1, 0, 1);
 
 	while (iterator.next != NULL) {
-		int result = vdo_allocate_ref_counts_for_slab(next_slab(&iterator));
+		int result = vdo_allocate_slab_counters(next_slab(&iterator));
 
 		if (result != VDO_SUCCESS)
 			return result;
@@ -3739,11 +3367,20 @@ struct vdo_slab *vdo_get_slab(const struct slab_depot *depot, physical_block_num
 u8 vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn)
 {
 	struct vdo_slab *slab = vdo_get_slab(depot, pbn);
+	vdo_refcount_t *counter_ptr = NULL;
+	int result;
 
 	if ((slab == NULL) || (slab->status != VDO_SLAB_REBUILT))
 		return 0;
 
-	return vdo_get_available_references(slab->reference_counts, pbn);
+	result = get_reference_counter(slab, pbn, &counter_ptr);
+	if (result != VDO_SUCCESS)
+		return 0;
+
+	if (*counter_ptr == PROVISIONAL_REFERENCE_COUNT)
+		return (MAXIMUM_REFERENCE_COUNT - 1);
+
+	return (MAXIMUM_REFERENCE_COUNT - *counter_ptr);
 }
 
 /**
@@ -3760,7 +3397,7 @@ bool vdo_is_physical_data_block(const struct slab_depot *depot, physical_block_n
 
 	return ((pbn == VDO_ZERO_BLOCK) ||
 		((get_slab_number(depot, pbn, &slab_number) == VDO_SUCCESS) &&
-		 (vdo_slab_block_number_from_pbn(depot->slabs[slab_number], pbn, &sbn) ==
+		 (slab_block_number_from_pbn(depot->slabs[slab_number], pbn, &sbn) ==
 		  VDO_SUCCESS)));
 }
 

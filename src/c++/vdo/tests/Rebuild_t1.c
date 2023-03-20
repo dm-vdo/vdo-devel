@@ -199,13 +199,13 @@ static void verifyTestData(logical_block_number_t startBlock,
 static void verifyRefCountData(RefCountData *originalRefCountData)
 {
   struct slab_depot *currentDepot = vdo->depot;
-  for (slab_count_t slab = 0; slab < currentDepot->slab_count; slab++) {
-    struct ref_counts *refCounts = currentDepot->slabs[slab]->reference_counts;
-    RefCountData original = originalRefCountData[slab];
-    CU_ASSERT_EQUAL(original.counterCount, refCounts->block_count);
-    for (block_count_t block = 0; block < refCounts->block_count; block++) {
+  for (slab_count_t s = 0; s < currentDepot->slab_count; s++) {
+    struct vdo_slab *slab = currentDepot->slabs[s];
+    RefCountData original = originalRefCountData[s];
+    CU_ASSERT_EQUAL(original.counterCount, slab->block_count);
+    for (block_count_t block = 0; block < slab->block_count; block++) {
       vdo_refcount_t oldCount = original.counters[block];
-      vdo_refcount_t newCount = refCounts->counters[block];
+      vdo_refcount_t newCount = slab->counters[block];
       if (oldCount == newCount) {
         continue;
       }
@@ -215,7 +215,7 @@ static void verifyRefCountData(RefCountData *originalRefCountData)
       }
 
       CU_FAIL("Reference count mismatch slab %u, block %llu was %u, is %u",
-              slab, (unsigned long long) block, oldCount, newCount);
+              s, (unsigned long long) block, oldCount, newCount);
     }
   }
 }
@@ -294,13 +294,16 @@ static PreRebuildData *copyPreRebuildData(struct slab_depot *depot)
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(depot->slab_count, RefCountData, __func__,
                                   &originalData->refCountData));
   for (size_t i = 0; i < depot->slab_count; i++) {
-    struct ref_counts    *refCounts = depot->slabs[i]->reference_counts;
-    RefCountData *originalRefCounts = &originalData->refCountData[i];
-    originalRefCounts->counterCount = refCounts->block_count;
-    VDO_ASSERT_SUCCESS(UDS_ALLOCATE(refCounts->block_count, vdo_refcount_t,
-                                    __func__, &(originalRefCounts->counters)));
-    memcpy(originalRefCounts->counters, refCounts->counters,
-           refCounts->block_count * sizeof(vdo_refcount_t));
+    struct vdo_slab *slab              = depot->slabs[i];
+    RefCountData    *originalRefCounts = &originalData->refCountData[i];
+    originalRefCounts->counterCount    = slab->block_count;
+    VDO_ASSERT_SUCCESS(UDS_ALLOCATE(slab->block_count,
+                                    vdo_refcount_t,
+                                    __func__,
+                                    &(originalRefCounts->counters)));
+    memcpy(originalRefCounts->counters,
+           slab->counters,
+           slab->block_count * sizeof(vdo_refcount_t));
   }
 
   return originalData;
@@ -312,9 +315,9 @@ static void freePreRebuildData(PreRebuildData **originalDataPtr)
   PreRebuildData *originalData = *originalDataPtr;
 
   for (size_t i = 0; i < originalData->slabCount; i++) {
-    UDS_FREE(originalData->refCountData[i].counters);
-    originalData->refCountData[i].counters = NULL;
+    UDS_FREE(UDS_FORGET(originalData->refCountData[i].counters));
   }
+
   UDS_FREE(originalData->refCountData);
   originalData->refCountData = NULL;
   UDS_FREE(originalData);

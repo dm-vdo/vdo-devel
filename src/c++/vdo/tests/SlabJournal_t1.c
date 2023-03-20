@@ -190,14 +190,12 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
 
   // Give refCounts some values so decrement will not underflow it.
   struct slab_config slabConfig = vdo->depot->slab_config;
-  struct ref_counts *refCounts = slab->reference_counts;
   for (physical_block_number_t pbn = slab->start;
        pbn < slab->start + slabConfig.data_blocks; pbn++) {
     slab_block_number slabBlockNumber;
-    VDO_ASSERT_SUCCESS(vdo_slab_block_number_from_pbn(refCounts->slab, pbn,
-                                                      &slabBlockNumber));
-    refCounts->counters[slabBlockNumber] = 1;
-    refCounts->free_blocks--;
+    VDO_ASSERT_SUCCESS(slab_block_number_from_pbn(slab, pbn, &slabBlockNumber));
+    slab->counters[slabBlockNumber] = 1;
+    slab->free_blocks--;
   }
 
   if (vioPoolSize != BLOCK_ALLOCATOR_VIO_POOL_SIZE) {
@@ -279,7 +277,7 @@ static void initializeWrapper(DataVIOWrapper *wrapper)
  **/
 static void makeProvisionalReference(struct vdo_completion *completion)
 {
-  slab->reference_counts->counters[provisional] = PROVISIONAL_REFERENCE_COUNT;
+  slab->counters[provisional] = PROVISIONAL_REFERENCE_COUNT;
   vdo_finish_completion(completion);
 }
 
@@ -1309,7 +1307,7 @@ static void prepareForJournalReapWaiting(void)
  **/
 static void saveDirtyReferenceBlocksAction(struct vdo_completion *completion)
 {
-  vdo_save_dirty_reference_blocks(journal->slab->reference_counts);
+  vdo_save_dirty_reference_blocks(journal->slab);
   vdo_finish_completion(completion);
 }
 
@@ -1683,14 +1681,12 @@ static void testReapFlushing(void)
 
   // There is a lock on block 1 (because the first block is locked by every
   // reference block, and we haven't released it).
-  CU_ASSERT_EQUAL(journal->slab->reference_counts->reference_block_count,
-                  journal->locks[1].count);
+  CU_ASSERT_EQUAL(journal->slab->reference_block_count, journal->locks[1].count);
 
   // Let go of block 1's locks. It should launch a flush synchronously, which
   // we will block.
   setBlockBIO(isSlabJournalFlushVIO, true);
-  performAdjustment(1,
-                    -journal->slab->reference_counts->reference_block_count);
+  performAdjustment(1, -journal->slab->reference_block_count);
   waitForBlockedVIO();
 
   // Go into read only mode and try closing.

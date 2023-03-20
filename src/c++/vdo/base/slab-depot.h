@@ -49,6 +49,8 @@ enum reference_status {
 	RS_PROVISIONAL /* this block is provisionally allocated */
 };
 
+struct vdo_slab;
+
 /*
  * Reference_block structure
  *
@@ -57,8 +59,8 @@ enum reference_status {
 struct reference_block {
 	/* This block waits on the ref_counts to tell it to write */
 	struct waiter waiter;
-	/* The parent ref_count structure */
-	struct ref_counts *ref_counts;
+	/* The slab to which this reference_block belongs */
+	struct vdo_slab *slab;
 	/* The number of references in this block that represent allocations */
 	block_size_t allocated_count;
 	/* The slab journal block on which this block must hold a lock */
@@ -88,46 +90,6 @@ struct search_cursor {
 	struct reference_block *last_block;
 };
 
-/*
- * ref_counts structure
- *
- * A reference count is maintained for each physical block number. The vast majority of blocks have
- * a very small reference count (usually 0 or 1). For references less than or equal to MAXIMUM_REFS
- * (254) the reference count is stored in counters[pbn].
- */
-struct ref_counts {
-	/* The slab of this reference block */
-	struct vdo_slab *slab;
-
-	/* The size of the counters array */
-	u32 block_count;
-	/* The number of free blocks */
-	u32 free_blocks;
-	/* The array of reference counts */
-	vdo_refcount_t *counters; /* use UDS_ALLOCATE to align data ptr */
-
-	/* The saved block pointer and array indexes for the free block search */
-	struct search_cursor search_cursor;
-
-	/* A list of the dirty blocks waiting to be written out */
-	struct wait_queue dirty_blocks;
-	/* The number of blocks which are currently writing */
-	size_t active_count;
-
-	/* A waiter object for updating the slab summary */
-	struct waiter slab_summary_waiter;
-	/* Whether slab summary update is in progress */
-	bool updating_slab_summary;
-
-	/* The latest slab journal entry this ref_counts has been updated with */
-	struct journal_point slab_journal_point;
-
-	/* The number of reference count blocks */
-	u32 reference_block_count;
-	/* reference count block array */
-	struct reference_block blocks[];
-};
-
 enum slab_rebuild_status {
 	VDO_SLAB_REBUILT,
 	VDO_SLAB_REPLAYING,
@@ -140,6 +102,10 @@ enum slab_rebuild_status {
  * This is the type declaration for the vdo_slab type. A vdo_slab currently consists of a run of
  * 2^23 data blocks, but that will soon change to dedicate a small number of those blocks for
  * metadata storage for the reference counts and slab journal for the slab.
+ *
+ * A reference count is maintained for each physical block number. The vast majority of blocks have
+ * a very small reference count (usually 0 or 1). For references less than or equal to MAXIMUM_REFS
+ * (254) the reference count is stored in counters[pbn].
  */
 struct vdo_slab {
 	/* A list entry to queue this slab in a block_allocator list */
@@ -148,8 +114,6 @@ struct vdo_slab {
 	/* The struct block_allocator that owns this slab */
 	struct block_allocator *allocator;
 
-	/* The reference counts for the data blocks in this slab */
-	struct ref_counts *reference_counts;
 	/* The journal for this slab */
 	struct slab_journal *journal;
 
@@ -173,6 +137,35 @@ struct vdo_slab {
 
 	/* The priority at which this slab has been queued for allocation */
 	u8 priority;
+
+	/* Fields beyond this point are the reference counts for the data blocks in this slab. */
+	/* The size of the counters array */
+	u32 block_count;
+	/* The number of free blocks */
+	u32 free_blocks;
+	/* The array of reference counts */
+	vdo_refcount_t *counters; /* use UDS_ALLOCATE to align data ptr */
+
+	/* The saved block pointer and array indexes for the free block search */
+	struct search_cursor search_cursor;
+
+	/* A list of the dirty blocks waiting to be written out */
+	struct wait_queue dirty_blocks;
+	/* The number of blocks which are currently writing */
+	size_t active_count;
+
+	/* A waiter object for updating the slab summary */
+	struct waiter summary_waiter;
+	/* Whether slab summary update is in progress */
+	bool updating_summary;
+
+	/* The latest slab journal for which there has been a reference count update */
+	struct journal_point slab_journal_point;
+
+	/* The number of reference count blocks */
+	u32 reference_block_count;
+	/* reference count block array */
+	struct reference_block *reference_blocks;
 };
 
 enum block_allocator_drain_step {
@@ -323,7 +316,7 @@ struct block_allocator {
 	struct block_allocator_statistics statistics;
 	/* Cumulative statistics for the slab journals in this zone */
 	struct slab_journal_statistics slab_journal_statistics;
-	/* Cumulative statistics for the ref_counts in this zone */
+	/* Cumulative statistics for the reference counters in this zone */
 	struct ref_counts_statistics ref_counts_statistics;
 
 	/*
@@ -416,102 +409,17 @@ struct slab_depot {
 struct reference_updater;
 
 int __must_check
-vdo_make_ref_counts(block_count_t block_count,
-		    struct vdo_slab *slab,
-		    struct ref_counts **ref_counts_ptr);
-
-void vdo_free_ref_counts(struct ref_counts *ref_counts);
-
-bool __must_check vdo_are_ref_counts_active(struct ref_counts *ref_counts);
-
-void vdo_reset_search_cursor(struct ref_counts *ref_counts);
-
-u8 __must_check
-vdo_get_available_references(struct ref_counts *ref_counts, physical_block_number_t pbn);
-
-int __must_check
-vdo_adjust_reference_count(struct ref_counts *ref_counts,
-			   struct reference_updater *updater,
-			   const struct journal_point *slab_journal_point,
-			   bool *free_status_changed);
-
-int __must_check
-vdo_adjust_reference_count_for_rebuild(struct ref_counts *ref_counts,
+vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
 				       physical_block_number_t pbn,
 				       enum journal_operation operation);
 
-int __must_check
-vdo_replay_reference_count_change(struct ref_counts *ref_counts,
-				  const struct journal_point *entry_point,
-				  struct slab_journal_entry entry);
+void vdo_save_several_reference_blocks(struct vdo_slab *slab, size_t flush_divisor);
 
-int __must_check
-vdo_allocate_unreferenced_block(struct ref_counts *ref_counts,
-				physical_block_number_t *allocated_ptr);
+void vdo_save_dirty_reference_blocks(struct vdo_slab *slab);
 
-int __must_check
-vdo_provisionally_reference_block(struct ref_counts *ref_counts,
-				  physical_block_number_t pbn,
-				  struct pbn_lock *lock);
+void vdo_acquire_dirty_block_locks(struct vdo_slab *slab);
 
-block_count_t __must_check
-vdo_count_unreferenced_blocks(struct ref_counts *ref_counts,
-			      physical_block_number_t start_pbn,
-			      physical_block_number_t end_pbn);
-
-void vdo_save_several_reference_blocks(struct ref_counts *ref_counts,
-				       size_t flush_divisor);
-
-void vdo_save_dirty_reference_blocks(struct ref_counts *ref_counts);
-
-void vdo_dirty_all_reference_blocks(struct ref_counts *ref_counts);
-
-void vdo_drain_ref_counts(struct ref_counts *ref_counts);
-
-void vdo_acquire_dirty_block_locks(struct ref_counts *ref_counts);
-
-void vdo_dump_ref_counts(const struct ref_counts *ref_counts);
-
-#ifdef INTERNAL
-bool __must_check
-vdo_are_equivalent_ref_counts(struct ref_counts *counter_a, struct ref_counts *counter_b);
-
-struct reference_block * __must_check
-vdo_get_reference_block(struct ref_counts *ref_counts, slab_block_number index);
-
-vdo_refcount_t * __must_check vdo_get_reference_counters_for_block(struct reference_block *block);
-
-void vdo_pack_reference_block(struct reference_block *block, void *buffer);
-
-int __must_check vdo_get_reference_status(struct ref_counts *ref_counts,
-					  physical_block_number_t pbn,
-					  enum reference_status *status_ptr);
-
-bool __must_check vdo_find_free_block(const struct ref_counts *ref_counts,
-				      slab_block_number start_index,
-				      slab_block_number end_index,
-				      slab_block_number *index_ptr);
-
-void vdo_save_oldest_reference_block(struct ref_counts *ref_counts);
-
-void vdo_reset_reference_counts(struct ref_counts *ref_counts);
-
-#endif /* INTERNAL */
-int __must_check vdo_make_slab(physical_block_number_t slab_origin,
-			       struct block_allocator *allocator,
-			       struct recovery_journal *recovery_journal,
-			       slab_count_t slab_number,
-			       bool is_new,
-			       struct vdo_slab **slab_ptr);
-
-int __must_check vdo_allocate_ref_counts_for_slab(struct vdo_slab *slab);
-
-void vdo_free_slab(struct vdo_slab *slab);
-
-int __must_check
-vdo_slab_block_number_from_pbn(struct vdo_slab *slab,
-			       physical_block_number_t physical_block_number,
-			       slab_block_number *slab_block_number_ptr);
+int __must_check vdo_allocate_slab_counters(struct vdo_slab *slab);
 
 bool __must_check vdo_is_slab_open(struct vdo_slab *slab);
 
@@ -531,10 +439,6 @@ static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completi
 	vdo_assert_completion_type(completion, VDO_BLOCK_ALLOCATOR_COMPLETION);
 	return container_of(completion, struct block_allocator, completion);
 }
-
-void vdo_queue_slab(struct vdo_slab *slab);
-
-void vdo_adjust_free_block_count(struct vdo_slab *slab, bool increment);
 
 int __must_check vdo_acquire_provisional_reference(struct vdo_slab *slab,
 						   physical_block_number_t pbn,
@@ -557,18 +461,6 @@ void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
 
 void vdo_dump_block_allocator(const struct block_allocator *allocator);
 
-#ifdef INTERNAL
-void initiate_slab_action(struct admin_state *state);
-void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
-void initiate_summary_drain(struct admin_state *state);
-int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
-void load_slab_summary(void *context, struct vdo_completion *parent);
-int get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr);
-int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
-void stop_scrubbing(struct block_allocator *allocator);
-void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);
-
-#endif /* INTERNAL */
 int __must_check vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 				       struct vdo *vdo,
 				       struct partition *summary_partition,
@@ -578,7 +470,7 @@ void vdo_free_slab_depot(struct slab_depot *depot);
 
 struct slab_depot_state_2_0 __must_check vdo_record_slab_depot(const struct slab_depot *depot);
 
-int __must_check vdo_allocate_slab_ref_counts(struct slab_depot *depot);
+int __must_check vdo_allocate_reference_counters(struct slab_depot *depot);
 
 struct vdo_slab * __must_check
 vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
@@ -625,4 +517,45 @@ void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot, struct vdo_comple
 
 void vdo_dump_slab_depot(const struct slab_depot *depot);
 
+#ifdef INTERNAL
+enum reference_status __must_check reference_count_to_status(vdo_refcount_t count);
+struct reference_block * __must_check get_reference_block(struct vdo_slab *slab,
+							  slab_block_number index);
+int __must_check adjust_reference_count(struct vdo_slab *slab,
+					struct reference_updater *updater,
+					const struct journal_point *slab_journal_point,
+					bool *free_status_changed);
+int __must_check replay_reference_count_change(struct vdo_slab *slab,
+					       const struct journal_point *entry_point,
+					       struct slab_journal_entry entry);
+bool __must_check find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr);
+vdo_refcount_t * __must_check get_reference_counters_for_block(struct reference_block *block);
+void pack_reference_block(struct reference_block *block, void *buffer);
+void drain_slab(struct vdo_slab *slab);
+int __must_check make_slab(physical_block_number_t slab_origin,
+			   struct block_allocator *allocator,
+			   struct recovery_journal *recovery_journal,
+			   slab_count_t slab_number,
+			   bool is_new,
+			   struct vdo_slab **slab_ptr);
+void free_slab(struct vdo_slab *slab);
+int __must_check slab_block_number_from_pbn(struct vdo_slab *slab,
+					    physical_block_number_t physical_block_number,
+					    slab_block_number *slab_block_number_ptr);
+int __must_check get_reference_counter(struct vdo_slab *slab,
+				       physical_block_number_t pbn,
+				       vdo_refcount_t **counter_ptr);
+void initiate_slab_action(struct admin_state *state);
+void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
+int __must_check allocate_slab_block(struct vdo_slab *slab,
+				     physical_block_number_t *block_number_ptr);
+void initiate_summary_drain(struct admin_state *state);
+int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
+void load_slab_summary(void *context, struct vdo_completion *parent);
+int get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr);
+int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
+void stop_scrubbing(struct block_allocator *allocator);
+void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);
+
+#endif /* INTERNAL */
 #endif /* VDO_SLAB_DEPOT_H */

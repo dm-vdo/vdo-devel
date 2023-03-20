@@ -82,8 +82,118 @@ static void returnVIOPoolEntries(struct vdo_completion *completion)
 void returnVIOsToPool(void)
 {
   if (viosToReserve > 0) {
-    performSuccessfulActionOnThread(returnVIOPoolEntries,
-				    poolAllocator->thread_id);
+    performSuccessfulActionOnThread(returnVIOPoolEntries, poolAllocator->thread_id);
     viosToReserve = 0;
   }
+}
+
+/**********************************************************************/
+int getReferenceStatus(struct vdo_slab *slab,
+                       physical_block_number_t pbn,
+                       enum reference_status *statusPtr)
+{
+  vdo_refcount_t *counterPtr = NULL;
+  int result = get_reference_counter(slab, pbn, &counterPtr);
+
+  if (result != VDO_SUCCESS)
+    return result;
+
+  *statusPtr = reference_count_to_status(*counterPtr);
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+bool slabsHaveEquivalentReferenceCounts(struct vdo_slab *slabA, struct vdo_slab *slabB)
+{
+  size_t i;
+
+  if ((slabA->block_count != slabB->block_count) ||
+      (slabA->free_blocks != slabB->free_blocks) ||
+      (slabA->reference_block_count != slabB->reference_block_count))
+    return false;
+
+  for (i = 0; i < slabA->reference_block_count; i++) {
+    struct reference_block *block_a = slabA->reference_blocks + i;
+    struct reference_block *block_b = slabB->reference_blocks + i;
+
+    if (block_a->allocated_count != block_b->allocated_count)
+      return false;
+  }
+
+  return (memcmp(slabA->counters,
+                 slabB->counters,
+                 sizeof(vdo_refcount_t) * slabA->block_count) == 0);
+}
+
+/**
+ * A waiter_callback to clean dirty reference blocks when resetting.
+ *
+ * @param block_waiter  The dirty block
+ * @param context       Unused
+ */
+static void
+clearDirtyReferenceBlocks(struct waiter *block_waiter, void *context __always_unused)
+{
+  container_of(block_waiter, struct reference_block, waiter)->is_dirty = false;
+}
+
+/**
+ * vdo_reset_reference_counts() - Reset all reference counts back to RS_FREE.
+ * @ref_counts: The reference counters to reset.
+ */
+void resetReferenceCounts(struct vdo_slab *slab)
+{
+  size_t i;
+
+  memset(slab->counters, 0, slab->block_count * sizeof(vdo_refcount_t));
+  slab->free_blocks = slab->block_count;
+  slab->slab_journal_point = (struct journal_point) {
+    .sequence_number = 0,
+    .entry_count = 0,
+  };
+
+  for (i = 0; i < slab->reference_block_count; i++)
+    slab->reference_blocks[i].allocated_count = 0;
+
+  vdo_notify_all_waiters(&slab->dirty_blocks, clearDirtyReferenceBlocks, NULL);
+}
+
+/**
+ * Convert a block number to the index of a reference counter for that block. Out of range values
+ * are pinned to the beginning or one past the end of the array.
+ *
+ * @param slab  The slab
+ * @param pbn   The physical block number to convert
+ *
+ * @return The index corresponding to the physical block number.
+ */
+static u64 pbnToIndex(const struct vdo_slab *slab, physical_block_number_t pbn)
+{
+  u64 index;
+
+  if (pbn < slab->start) {
+    return 0;
+  }
+
+  index = (pbn - slab->start);
+  return min_t(u64, index, slab->block_count);
+}
+
+/**********************************************************************/
+block_count_t countUnreferencedBlocks(struct vdo_slab *slab,
+                                      physical_block_number_t start,
+                                      physical_block_number_t end)
+{
+  block_count_t freeBlocks = 0;
+  slab_block_number startIndex = pbnToIndex(slab, start);
+  slab_block_number endIndex = pbnToIndex(slab, end);
+  slab_block_number index;
+
+  for (index = startIndex; index < endIndex; index++) {
+    if (slab->counters[index] == EMPTY_REFERENCE_COUNT) {
+      freeBlocks++;
+    }
+  }
+
+  return freeBlocks;
 }
