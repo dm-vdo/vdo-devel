@@ -10,12 +10,12 @@
 #include <linux/limits.h>
 #include <linux/log2.h>
 
-#include "buffer.h"
 #include "config.h"
 #include "cpu.h"
 #include "errors.h"
 #include "logger.h"
 #include "memory-alloc.h"
+#include "numeric.h"
 #include "permassert.h"
 #include "string-utils.h"
 #include "time-utils.h"
@@ -890,75 +890,6 @@ void swap_delta_index_page_endianness(u8 *memory)
 }
 
 #endif /* TEST_INTERNAL */
-static int __must_check
-decode_delta_index_header(struct buffer *buffer, struct delta_index_header *header)
-{
-	int result;
-
-	result = uds_get_bytes_from_buffer(buffer, MAGIC_SIZE, &header->magic);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u32_le_from_buffer(buffer, &header->zone_number);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u32_le_from_buffer(buffer, &header->zone_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u32_le_from_buffer(buffer, &header->first_list);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u32_le_from_buffer(buffer, &header->list_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &header->record_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &header->collision_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return ASSERT(uds_content_length(buffer) == 0,
-		      "%zu bytes decoded of %zu expected",
-		      uds_buffer_length(buffer) - uds_content_length(buffer),
-		      uds_buffer_length(buffer));
-}
-
-static int __must_check
-read_delta_index_header(struct buffered_reader *reader, struct delta_index_header *header)
-{
-	int result;
-	struct buffer *buffer;
-
-	result = uds_make_buffer(sizeof(*header), &buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = read_from_buffered_reader(reader,
-					   uds_get_buffer_contents(buffer),
-					   uds_buffer_length(buffer));
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return uds_log_warning_strerror(result,
-						"failed to read delta index header");
-	}
-
-	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = decode_delta_index_header(buffer, header);
-	uds_free_buffer(UDS_FORGET(buffer));
-	return result;
-}
-
 /* Compute the new offsets of the delta lists. */
 static void compute_new_list_offsets(struct delta_zone *delta_zone,
 				     unsigned int growing_index,
@@ -1022,8 +953,27 @@ int start_restoring_delta_index(struct delta_index *delta_index,
 	/* Read and validate each header. */
 	for (z = 0; z < zone_count; z++) {
 		struct delta_index_header header;
+		u8 buffer[sizeof(struct delta_index_header)];
+		size_t offset = 0;
 
-		result = read_delta_index_header(buffered_readers[z], &header);
+		result = read_from_buffered_reader(buffered_readers[z], buffer, sizeof(buffer));
+		if (result != UDS_SUCCESS)
+			return uds_log_warning_strerror(result,
+							"failed to read delta index header");
+
+		memcpy(&header.magic, buffer, MAGIC_SIZE);
+		offset += MAGIC_SIZE;
+		decode_u32_le(buffer, &offset, &header.zone_number);
+		decode_u32_le(buffer, &offset, &header.zone_count);
+		decode_u32_le(buffer, &offset, &header.first_list);
+		decode_u32_le(buffer, &offset, &header.list_count);
+		decode_u64_le(buffer, &offset, &header.record_count);
+		decode_u64_le(buffer, &offset, &header.collision_count);
+
+		result = ASSERT(offset == sizeof(struct delta_index_header),
+				"%zu bytes decoded of %zu expected",
+				offset,
+				sizeof(struct delta_index_header));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to read delta index header");
@@ -1038,11 +988,6 @@ int start_restoring_delta_index(struct delta_index *delta_index,
 							zone_count,
 							header.zone_count);
 
-		if (header.zone_number >= zone_count)
-			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
-							"delta index files contains zone %u of %u zones",
-							header.zone_number,
-							zone_count);
 		if (header.zone_number != z)
 			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 							"delta index zone %u found in slot %u",
@@ -1249,45 +1194,6 @@ int check_guard_delta_lists(struct buffered_reader **buffered_readers, unsigned 
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-encode_delta_index_header(struct buffer *buffer, struct delta_index_header *header)
-{
-	int result;
-
-	result = uds_put_bytes(buffer, MAGIC_SIZE, DELTA_INDEX_MAGIC);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u32_le_into_buffer(buffer, header->zone_number);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u32_le_into_buffer(buffer, header->zone_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u32_le_into_buffer(buffer, header->first_list);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u32_le_into_buffer(buffer, header->list_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, header->record_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, header->collision_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return ASSERT(uds_content_length(buffer) == sizeof(*header),
-		      "%zu bytes encoded of %zu expected",
-		      uds_content_length(buffer),
-		      sizeof(*header));
-}
-
 static int flush_delta_list(struct delta_zone *zone, unsigned int flush_index)
 {
 	struct delta_list *delta_list;
@@ -1323,33 +1229,28 @@ int start_saving_delta_index(const struct delta_index *delta_index,
 {
 	int result;
 	unsigned int i;
-	struct buffer *buffer;
 	struct delta_zone *delta_zone;
-	struct delta_index_header header;
+	u8 buffer[sizeof(struct delta_index_header)];
+	size_t offset = 0;
 
 	delta_zone = &delta_index->delta_zones[zone_number];
-	memcpy(header.magic, DELTA_INDEX_MAGIC, MAGIC_SIZE);
-	header.zone_number = zone_number;
-	header.zone_count = delta_index->zone_count;
-	header.first_list = delta_zone->first_list;
-	header.list_count = delta_zone->list_count;
-	header.record_count = delta_zone->record_count;
-	header.collision_count = delta_zone->collision_count;
+	memcpy(buffer, DELTA_INDEX_MAGIC, MAGIC_SIZE);
+	offset += MAGIC_SIZE;
+	encode_u32_le(buffer, &offset, zone_number);
+	encode_u32_le(buffer, &offset, delta_index->zone_count);
+	encode_u32_le(buffer, &offset, delta_zone->first_list);
+	encode_u32_le(buffer, &offset, delta_zone->list_count);
+	encode_u64_le(buffer, &offset, delta_zone->record_count);
+	encode_u64_le(buffer, &offset, delta_zone->collision_count);
 
-	result = uds_make_buffer(sizeof(struct delta_index_header), &buffer);
+	result = ASSERT(offset == sizeof(struct delta_index_header),
+			"%zu bytes encoded of %zu expected",
+			offset,
+			sizeof(struct delta_index_header));
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = encode_delta_index_header(buffer, &header);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = write_to_buffered_writer(buffered_writer,
-					  uds_get_buffer_contents(buffer),
-					  uds_content_length(buffer));
-	uds_free_buffer(UDS_FORGET(buffer));
+	result = write_to_buffered_writer(buffered_writer, buffer, offset);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write delta index header");
 

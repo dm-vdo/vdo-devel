@@ -84,7 +84,7 @@ struct uds_configuration_8_02 {
 	u64 remapped_virtual;
 	/* New physical chapter which remapped chapter was moved to */
 	u64 remapped_physical;
-};
+} __packed;
 
 /* On-disk structure of data for a version 6.02 index. */
 struct uds_configuration_6_02 {
@@ -106,7 +106,7 @@ struct uds_configuration_6_02 {
 	unsigned int sparse_sample_rate;
 	/* Index owner's nonce */
 	u64 nonce;
-};
+} __packed;
 
 int __must_check make_configuration(const struct uds_parameters *params,
 				    struct configuration **config_ptr);

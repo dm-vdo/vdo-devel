@@ -5,11 +5,11 @@
 
 #include "index-page-map.h"
 
-#include "buffer.h"
 #include "errors.h"
 #include "hash-utils.h"
 #include "logger.h"
 #include "memory-alloc.h"
+#include "numeric.h"
 #include "permassert.h"
 #include "string-utils.h"
 #include "uds-threads.h"
@@ -28,7 +28,7 @@ enum {
 	PAGE_MAP_MAGIC_LENGTH = sizeof(PAGE_MAP_MAGIC) - 1,
 };
 
-static inline size_t get_entry_count(const struct geometry *geometry)
+static inline u64 get_entry_count(const struct geometry *geometry)
 {
 	return geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1);
 }
@@ -121,34 +121,23 @@ u64 compute_index_page_map_save_size(const struct geometry *geometry)
 int write_index_page_map(struct index_page_map *map, struct buffered_writer *writer)
 {
 	int result;
-	struct buffer *buffer;
+	u8 *buffer;
+	size_t offset = 0;
+	u64 saved_size = compute_index_page_map_save_size(map->geometry);
+	unsigned int i;
 
-	result = uds_make_buffer(compute_index_page_map_save_size(map->geometry), &buffer);
+	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_put_bytes(buffer, PAGE_MAP_MAGIC_LENGTH, PAGE_MAP_MAGIC);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
+	memcpy(buffer, PAGE_MAP_MAGIC, PAGE_MAP_MAGIC_LENGTH);
+	offset += PAGE_MAP_MAGIC_LENGTH;
+	encode_u64_le(buffer, &offset, map->last_update);
+	for (i = 0; i < get_entry_count(map->geometry); i++)
+		encode_u16_le(buffer, &offset, map->entries[i]);
 
-	result = uds_put_u64_le_into_buffer(buffer, map->last_update);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = uds_put_u16_les_into_buffer(buffer, get_entry_count(map->geometry), map->entries);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = write_to_buffered_writer(writer,
-					  uds_get_buffer_contents(buffer),
-					  uds_content_length(buffer));
-	uds_free_buffer(UDS_FORGET(buffer));
+	result = write_to_buffered_writer(writer, buffer, offset);
+	UDS_FREE(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -158,49 +147,34 @@ int write_index_page_map(struct index_page_map *map, struct buffered_writer *wri
 int read_index_page_map(struct index_page_map *map, struct buffered_reader *reader)
 {
 	int result;
-	struct buffer *buffer;
 	u8 magic[PAGE_MAP_MAGIC_LENGTH];
+	u8 *buffer;
+	size_t offset = 0;
+	u64 saved_size = compute_index_page_map_save_size(map->geometry);
+	unsigned int i;
 
-	result = uds_make_buffer(compute_index_page_map_save_size(map->geometry), &buffer);
+	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_from_buffered_reader(reader,
-					   uds_get_buffer_contents(buffer),
-					   uds_buffer_length(buffer));
+	result = read_from_buffered_reader(reader, buffer, saved_size);
 	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
+		UDS_FREE(buffer);
 		return result;
 	}
 
-	result = uds_reset_buffer_end(buffer, uds_buffer_length(buffer));
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
-	result = uds_get_bytes_from_buffer(buffer, PAGE_MAP_MAGIC_LENGTH, &magic);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
-
+	memcpy(&magic, buffer, PAGE_MAP_MAGIC_LENGTH);
+	offset += PAGE_MAP_MAGIC_LENGTH;
 	if (memcmp(magic, PAGE_MAP_MAGIC, PAGE_MAP_MAGIC_LENGTH) != 0) {
-		uds_free_buffer(UDS_FORGET(buffer));
+		UDS_FREE(buffer);
 		return UDS_CORRUPT_DATA;
 	}
 
-	result = uds_get_u64_le_from_buffer(buffer, &map->last_update);
-	if (result != UDS_SUCCESS) {
-		uds_free_buffer(UDS_FORGET(buffer));
-		return result;
-	}
+	decode_u64_le(buffer, &offset, &map->last_update);
+	for (i = 0; i < get_entry_count(map->geometry); i++)
+		decode_u16_le(buffer, &offset, &map->entries[i]);
 
-	result = uds_get_u16_les_from_buffer(buffer, get_entry_count(map->geometry), map->entries);
-	uds_free_buffer(UDS_FORGET(buffer));
-	if (result != UDS_SUCCESS)
-		return result;
-
+	UDS_FREE(buffer);
 	uds_log_debug("read index page map, last update %llu",
 		      (unsigned long long) map->last_update);
 	return UDS_SUCCESS;
