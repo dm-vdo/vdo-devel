@@ -451,7 +451,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 
 		bio_queue_data->queue_number = i;
 		result = vdo_make_thread(vdo,
-					 vdo->thread_config->bio_threads[i],
+					 vdo->thread_config.bio_threads[i],
 					 &bio_queue_type,
 					 1,
 					 (void **) &bio_queue_data);
@@ -467,7 +467,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 			return result;
 		}
 
-		bio_queue_data->queue = vdo->threads[vdo->thread_config->bio_threads[i]].queue;
+		bio_queue_data->queue = vdo->threads[vdo->thread_config.bio_threads[i]].queue;
 		io_submitter->num_bio_queues_used++;
 	}
 

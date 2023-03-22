@@ -125,8 +125,7 @@ static void testRecovery(size_t desiredEntryCount)
   generateNumberedBlockMappings(entryCount);
 
   // Do a block map recovery.
-  thread_id_t threadID = vdo_get_logical_zone_thread(vdo->thread_config, 0);
-  performSuccessfulActionOnThread(recoverAction, threadID);
+  performSuccessfulActionOnThread(recoverAction, vdo->thread_config.logical_threads[0]);
 
   // Verify that all block map mappings are either the original value or the
   // new mapping expected from recovery.

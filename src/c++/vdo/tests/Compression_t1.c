@@ -214,8 +214,7 @@ static void releaseAfterHashZone(struct vdo_completion *completion)
 static bool wrapIfEnteringHashZone(struct vdo_completion *completion)
 {
   if (logicalIs(completion, 3)
-      && (completion->callback_thread_id
-          == vdo->thread_config->hash_zone_threads[0])) {
+      && (completion->callback_thread_id == vdo->thread_config.hash_zone_threads[0])) {
     wrapCompletionCallback(completion, releaseAfterHashZone);
   }
 

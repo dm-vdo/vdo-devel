@@ -19,7 +19,6 @@
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
-#include "thread-config.h"
 #ifdef __KERNEL__
 #include "thread-registry.h"
 #endif /* __KERNEL__ */
@@ -129,6 +128,32 @@ struct read_only_notifier {
 	enum notifier_state state;
 };
 
+/*
+ * The thread ID returned when the current thread is not a vdo thread, or can not be determined
+ * (usually due to being at interrupt context).
+ */
+#define VDO_INVALID_THREAD_ID ((thread_id_t) -1)
+
+struct thread_config {
+	zone_count_t logical_zone_count;
+	zone_count_t physical_zone_count;
+	zone_count_t hash_zone_count;
+	thread_count_t bio_thread_count;
+	thread_count_t thread_count;
+	thread_id_t admin_thread;
+	thread_id_t journal_thread;
+	thread_id_t packer_thread;
+	thread_id_t dedupe_thread;
+	thread_id_t bio_ack_thread;
+	thread_id_t cpu_thread;
+	thread_id_t *logical_threads;
+	thread_id_t *physical_threads;
+	thread_id_t *hash_zone_threads;
+	thread_id_t *bio_threads;
+};
+
+struct thread_count_config;
+
 struct vdo_super_block {
 	/* The vio for reading and writing the super block to disk */
 	struct vio vio;
@@ -169,7 +194,7 @@ struct vdo {
 	/* The load-time configuration of this vdo */
 	struct device_config *device_config;
 	/* The thread mapping */
-	struct thread_config *thread_config;
+	struct thread_config thread_config;
 
 	/* The super block */
 	struct vdo_super_block super_block;
@@ -363,7 +388,7 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 
 static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo, const char *name)
 {
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config->dedupe_thread),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.dedupe_thread),
 			"%s called on dedupe index thread",
 			name);
 }
@@ -377,6 +402,13 @@ int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 void vdo_dump_status(const struct vdo *vdo);
 
 #ifdef INTERNAL
+void uninitialize_thread_config(struct thread_config *config);
+void get_thread_name(const struct thread_config *thread_config,
+		     thread_id_t thread_id,
+		     char *buffer,
+		     size_t buffer_length);
+int __must_check initialize_thread_config(struct thread_count_config counts,
+					  struct thread_config *config);
 block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo);
 block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo);
 #endif /* INTERNAL */

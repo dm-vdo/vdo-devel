@@ -29,7 +29,6 @@
 #include "recovery.h"
 #include "recovery-journal.h"
 #include "status-codes.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 #include "vio.h"
@@ -4375,7 +4374,7 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot, zon
 	*allocator = (struct block_allocator) {
 		.depot = depot,
 		.zone_number = zone,
-		.thread_id = vdo_get_physical_zone_thread(vdo->thread_config, zone),
+		.thread_id = vdo->thread_config.physical_threads[zone],
 		.nonce = vdo->states.vdo.nonce,
 	};
 
@@ -4457,7 +4456,7 @@ static int allocate_components(struct slab_depot *depot,
 	slab_count_t slab_count;
 	u8 hint;
 	u32 i;
-	const struct thread_config *thread_config = depot->vdo->thread_config;
+	const struct thread_config *thread_config = &depot->vdo->thread_config;
 
 	result = vdo_make_action_manager(depot->zone_count,
 					 get_allocator_thread_id,
@@ -4569,7 +4568,7 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 	slab_size_shift = ilog2(slab_size);
 
 	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
-				       vdo->thread_config->physical_zone_count,
+				       vdo->thread_config.physical_zone_count,
 				       struct block_allocator,
 				       __func__,
 				       &depot);
@@ -4578,7 +4577,7 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 
 	depot->vdo = vdo;
 	depot->old_zone_count = state.zone_count;
-	depot->zone_count = vdo->thread_config->physical_zone_count;
+	depot->zone_count = vdo->thread_config.physical_zone_count;
 	depot->slab_config = state.slab_config;
 	depot->first_block = state.first_block;
 	depot->last_block = state.last_block;
@@ -4856,7 +4855,7 @@ static void write_summary_endio(struct bio *bio)
 	struct vio *vio = bio->bi_private;
 	struct vdo *vdo = vio->completion.vdo;
 
-	continue_vio_after_io(vio, finish_combining_zones, vdo->thread_config->admin_thread);
+	continue_vio_after_io(vio, finish_combining_zones, vdo->thread_config.admin_thread);
 }
 
 /**
@@ -4922,7 +4921,7 @@ static void load_summary_endio(struct bio *bio)
 	struct vio *vio = bio->bi_private;
 	struct vdo *vdo = vio->completion.vdo;
 
-	continue_vio_after_io(vio, finish_loading_summary, vdo->thread_config->admin_thread);
+	continue_vio_after_io(vio, finish_loading_summary, vdo->thread_config.admin_thread);
 }
 
 /**

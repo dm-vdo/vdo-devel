@@ -18,7 +18,6 @@
 #include "data-vio.h"
 #endif /* INTERNAL or VDO_INTERNAL */
 #include "status-codes.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vio.h"
 #include "vdo.h"
@@ -119,11 +118,11 @@ void vdo_enqueue_completion(struct vdo_completion *completion,
 	struct vdo *vdo = completion->vdo;
 	thread_id_t thread_id = completion->callback_thread_id;
 
-	if (ASSERT(thread_id < vdo->thread_config->thread_count,
+	if (ASSERT(thread_id < vdo->thread_config.thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
 		   thread_id,
 		   completion->type,
-		   vdo->thread_config->thread_count) != UDS_SUCCESS)
+		   vdo->thread_config.thread_count) != UDS_SUCCESS)
 		BUG();
 
 #if defined(INTERNAL) || defined(VDO_INTERNAL)

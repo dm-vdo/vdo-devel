@@ -589,7 +589,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 static int __must_check initialize_lock_counter(struct recovery_journal *journal, struct vdo *vdo)
 {
 	int result;
-	struct thread_config *config = vdo->thread_config;
+	struct thread_config *config = &vdo->thread_config;
 	struct lock_counter *counter = &journal->lock_counter;
 
 	result = UDS_ALLOCATE(journal->size, u16, __func__, &counter->journal_counters);
@@ -708,7 +708,6 @@ static int initialize_recovery_block(struct vdo *vdo,
  * @partition: The partition for the journal.
  * @recovery_count: The VDO's number of completed recoveries.
  * @journal_size: The number of blocks in the journal on disk.
- * @thread_config: The thread configuration of the VDO.
  * @journal_ptr: The pointer to hold the new recovery journal.
  *
  * Return: A success or error code.
@@ -719,7 +718,6 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 				struct partition *partition,
 				u64 recovery_count,
 				block_count_t journal_size,
-				const struct thread_config *thread_config,
 				struct recovery_journal **journal_ptr)
 {
 	block_count_t i;
@@ -738,7 +736,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	INIT_LIST_HEAD(&journal->active_tail_blocks);
 	vdo_initialize_wait_queue(&journal->pending_writes);
 
-	journal->thread_id = thread_config->journal_thread;
+	journal->thread_id = vdo->thread_config.journal_thread;
 	journal->origin = partition->offset;
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);

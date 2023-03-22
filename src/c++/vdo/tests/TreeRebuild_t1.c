@@ -142,11 +142,7 @@ static void testBlockMapCorruption(void)
     writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, i, 1, VDO_SUCCESS);
   }
 
-  const struct thread_config *threadConfig = vdo->thread_config;
-  performSuccessfulActionOnThread(corruptMapAction,
-                                  vdo_get_logical_zone_thread(threadConfig,
-                                                              0));
-
+  performSuccessfulActionOnThread(corruptMapAction, vdo->thread_config.logical_threads[0]);
   performSuccessfulBlockMapAction(VDO_ADMIN_STATE_RECOVERING);
   rebuildReadOnlyVDO();
 
@@ -157,10 +153,7 @@ static void testBlockMapCorruption(void)
                                    buffer));
   }
 
-  threadConfig = vdo->thread_config;
-  performSuccessfulActionOnThread(verifyRebuiltMapAction,
-                                  vdo_get_logical_zone_thread(threadConfig,
-                                                              0));
+  performSuccessfulActionOnThread(verifyRebuiltMapAction, vdo->thread_config.logical_threads[0]);
 }
 
 /**********************************************************************/

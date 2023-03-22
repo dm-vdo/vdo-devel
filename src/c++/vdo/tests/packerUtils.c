@@ -44,9 +44,8 @@ void requestFlushPacker(void)
 bool isLeavingCompressor(struct vdo_completion *completion)
 {
   return (lastAsyncOperationIs(completion, VIO_ASYNC_OP_COMPRESS_DATA_VIO)
-          && (completion->callback_thread_id
-              == vdo->thread_config->packer_thread)
-          && (vdo_get_callback_thread_id() == vdo->thread_config->cpu_thread));
+          && (completion->callback_thread_id == vdo->thread_config.packer_thread)
+          && (vdo_get_callback_thread_id() == vdo->thread_config.cpu_thread));
 }
 
 /**

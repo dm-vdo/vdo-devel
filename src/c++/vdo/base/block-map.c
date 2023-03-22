@@ -2749,7 +2749,6 @@ void vdo_traverse_forest(struct block_map *map,
  */
 static int __must_check initialize_block_map_zone(struct block_map *map,
 						  zone_count_t zone_number,
-						  const struct thread_config *thread_config,
 						  struct vdo *vdo,
 						  page_count_t cache_size,
 						  block_count_t maximum_age)
@@ -2761,7 +2760,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(u64));
 
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_logical_zone_thread(thread_config, zone_number);
+	zone->thread_id = vdo->thread_config.logical_threads[zone_number];
 	zone->block_map = map;
 
 	result = UDS_ALLOCATE_EXTENDED(struct dirty_lists,
@@ -2902,7 +2901,6 @@ void vdo_free_block_map(struct block_map *map)
 /* @journal may be NULL. */
 int vdo_decode_block_map(struct block_map_state_2_0 state,
 			 block_count_t logical_blocks,
-			 const struct thread_config *thread_config,
 			 struct vdo *vdo,
 			 struct recovery_journal *journal,
 			 nonce_t nonce,
@@ -2922,7 +2920,7 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 		return result;
 
 	result = UDS_ALLOCATE_EXTENDED(struct block_map,
-				       thread_config->logical_zone_count,
+				       vdo->thread_config.logical_zone_count,
 				       struct block_map_zone,
 				       __func__,
 				       &map);
@@ -2944,14 +2942,9 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 
 	replace_forest(map);
 
-	map->zone_count = thread_config->logical_zone_count;
+	map->zone_count = vdo->thread_config.logical_zone_count;
 	for (zone = 0; zone < map->zone_count; zone++) {
-		result = initialize_block_map_zone(map,
-						   zone,
-						   thread_config,
-						   vdo,
-						   cache_size,
-						   maximum_age);
+		result = initialize_block_map_zone(map, zone, vdo, cache_size, maximum_age);
 		if (result != VDO_SUCCESS) {
 			vdo_free_block_map(map);
 			return result;

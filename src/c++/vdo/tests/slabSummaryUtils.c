@@ -35,7 +35,7 @@ void initializeSlabSummaryClient(SlabSummaryClient *client, slab_count_t slabNum
   memset(&client->waiter, 0x0, sizeof(client->waiter));
   client->slab            = (struct vdo_slab) {
     .slab_number = slabNumber,
-    .allocator   = &vdo->depot->allocators[slabNumber % vdo->thread_config->physical_zone_count],
+    .allocator   = &vdo->depot->allocators[slabNumber % vdo->thread_config.physical_zone_count],
   };
   client->waiter.callback = slabSummaryUpdated;
   client->freeBlocks      = 0;

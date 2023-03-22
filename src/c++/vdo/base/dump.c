@@ -70,7 +70,7 @@ static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const 
 	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0) && (vdo->threads != NULL)) {
 		thread_id_t id;
 
-		for (id = 0; id < vdo->thread_config->thread_count; id++)
+		for (id = 0; id < vdo->thread_config.thread_count; id++)
 			dump_work_queue(vdo->threads[id].queue);
 	}
 

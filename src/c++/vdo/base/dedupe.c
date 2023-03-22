@@ -140,7 +140,6 @@
 #include "pointer-map.h"
 #include "slab-depot.h"
 #include "statistics.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 #include "wait-queue.h"
@@ -277,54 +276,6 @@ struct hash_lock {
 
 enum {
 	LOCK_POOL_CAPACITY = MAXIMUM_VDO_USER_VIOS,
-};
-
-struct dedupe_context {
-	struct hash_zone *zone;
-	struct uds_request request;
-	struct list_head list_entry;
-	struct funnel_queue_entry queue_entry;
-	u64 submission_jiffies;
-	struct data_vio *requestor;
-	atomic_t state;
-};
-
-struct hash_zone {
-	/* Which hash zone this is */
-	zone_count_t zone_number;
-
-	/* The administrative state of the zone */
-	struct admin_state state;
-
-	/* The thread ID for this zone */
-	thread_id_t thread_id;
-
-	/* Mapping from record name fields to hash_locks */
-	struct pointer_map *hash_lock_map;
-
-	/* List containing all unused hash_locks */
-	struct list_head lock_pool;
-
-	/*
-	 * Statistics shared by all hash locks in this zone. Only modified on the hash zone thread,
-	 * but queried by other threads.
-	 */
-	struct hash_lock_statistics statistics;
-
-	/* Array of all hash_locks */
-	struct hash_lock *lock_array;
-
-	/* These fields are used to manage the dedupe contexts */
-	struct list_head available;
-	struct list_head pending;
-	struct funnel_queue *timed_out_complete;
-	struct timer_list timer;
-	struct vdo_completion completion;
-	unsigned int active;
-	atomic_t timer_state;
-
-	/* The dedupe contexts for querying the index from this zone */
-	struct dedupe_context contexts[MAXIMUM_VDO_USER_VIOS];
 };
 
 struct hash_zones {
@@ -2321,7 +2272,7 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = vdo_make_thread(vdo, vdo->thread_config->dedupe_thread, &uds_queue_type, 1, NULL);
+	result = vdo_make_thread(vdo, vdo->thread_config.dedupe_thread, &uds_queue_type, 1, NULL);
 	if (result != VDO_SUCCESS) {
 		uds_destroy_index_session(UDS_FORGET(zones->index_session));
 		uds_log_error("UDS index queue initialization failed (%d)", result);
@@ -2331,7 +2282,7 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 	vdo_initialize_completion(&zones->completion, vdo, VDO_HASH_ZONES_COMPLETION);
 	vdo_set_completion_callback(&zones->completion,
 				    change_dedupe_state,
-				    vdo->thread_config->dedupe_thread);
+				    vdo->thread_config.dedupe_thread);
 	kobject_init(&zones->dedupe_directory, &dedupe_directory_type);
 	return VDO_SUCCESS;
 }
@@ -2477,7 +2428,7 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 
 	vdo_set_admin_state_code(&zone->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_hash_zone_thread(vdo->thread_config, zone_number);
+	zone->thread_id = vdo->thread_config.hash_zone_threads[zone_number];
 	vdo_initialize_completion(&zone->completion, vdo, VDO_HASH_ZONE_COMPLETION);
 	vdo_set_completion_callback(&zone->completion,
 				    timeout_index_operations_callback,
@@ -2534,7 +2485,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 	int result;
 	struct hash_zones *zones;
 	zone_count_t z;
-	zone_count_t zone_count = vdo->thread_config->hash_zone_count;
+	zone_count_t zone_count = vdo->thread_config.hash_zone_count;
 
 	if (zone_count == 0)
 		return VDO_SUCCESS;
@@ -2566,7 +2517,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 
 	result = vdo_make_action_manager(zones->zone_count,
 					 get_thread_id_for_zone,
-					 vdo->thread_config->admin_thread,
+					 vdo->thread_config.admin_thread,
 					 zones,
 					 NULL,
 					 vdo,
@@ -2617,17 +2568,6 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 		UDS_FREE(zones);
 	else
 		kobject_put(&zones->dedupe_directory);
-}
-
-/**
- * vdo_get_hash_zone_thread_id() - Get the ID of a hash zone's thread.
- * @zone: The zone.
- *
- * Return: The zone's thread ID.
- */
-thread_id_t vdo_get_hash_zone_thread_id(const struct hash_zone *zone)
-{
-	return zone->thread_id;
 }
 
 static void initiate_suspend_index(struct admin_state *state)

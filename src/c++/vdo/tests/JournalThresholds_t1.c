@@ -236,7 +236,7 @@ static bool failOnSlabJournalReap(struct vdo_completion *completion)
 {
   struct recovery_journal *journal = vdo->recovery_journal;
   if ((completion == &journal->flush_vio->completion)
-      && (vdo_get_callback_thread_id() == vdo->thread_config->journal_thread)) {
+      && (vdo_get_callback_thread_id() == vdo->thread_config.journal_thread)) {
     CU_ASSERT_EQUAL(journal->slab_journal_head, journal->slab_journal_reap_head);
   }
 
@@ -248,7 +248,7 @@ static bool notifySlabJournalReap(struct vdo_completion *completion)
 {
   struct recovery_journal *journal = vdo->recovery_journal;
   if ((completion == &journal->flush_vio->completion)
-      && (vdo_get_callback_thread_id() == vdo->thread_config->journal_thread)
+      && (vdo_get_callback_thread_id() == vdo->thread_config.journal_thread)
       && (journal->slab_journal_head < journal->slab_journal_reap_head)) {
     signalState(&reaping);
   }

@@ -159,8 +159,10 @@ struct vdo_completion *
 launchBlockMapAction(struct block_map              *map,
                      const struct admin_state_code *operation)
 {
-  return launchAdminAction(map, operation, blockMapOperationAction,
-                           vdo->thread_config->admin_thread);
+  return launchAdminAction(map,
+                           operation,
+                           blockMapOperationAction,
+                           vdo->thread_config.admin_thread);
 }
 
 /**********************************************************************/
@@ -209,8 +211,10 @@ struct vdo_completion *
 launchPackerAction(struct packer                 *packer,
                    const struct admin_state_code *operation)
 {
-  return launchAdminAction(packer, operation, packerOperationAction,
-                           vdo->thread_config->packer_thread);
+  return launchAdminAction(packer,
+                           operation,
+                           packerOperationAction,
+                           vdo->thread_config.packer_thread);
 }
 
 /**********************************************************************/

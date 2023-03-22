@@ -10,7 +10,6 @@
 #define TEST_PARAMETERS_H
 
 #include "encodings.h"
-#include "thread-config.h"
 #include "types.h"
 #include "volume-geometry.h"
 
@@ -118,12 +117,5 @@ struct slab_config getSlabConfigFromParameters(TestParameters parameters);
  * @return The resulting block map overhead
  **/
 block_count_t computeBlockMapOverhead(block_count_t logicalBlocks);
-
-/**
- * Make a one thread config, will ASSERT on error.
- *
- * @return The new config
- **/
-struct thread_config *makeOneThreadConfig(void);
 
 #endif // TEST_PARAMETERS_H

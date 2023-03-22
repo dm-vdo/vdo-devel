@@ -63,7 +63,6 @@ static bool                           noVIOsSeen;
 static EntryNumber                    lastEntry;
 static struct journal_point           lastAppendPoint;
 static bool                           previousOperation;
-static struct thread_config          *threadConfig;
 static bool                           injectWriteError;
 static const struct admin_state_code *journalState;
 static physical_block_number_t        pbnToBlock;
@@ -162,16 +161,16 @@ static bool recordRecoveryJournalHead(void *context)
 static void createLayerAndJournal(void)
 {
   TestParameters testParameters = {
-    .mappableBlocks = 64,
-    .journalBlocks  = 8,
-    .noIndexRegion  = true,
+    .mappableBlocks      = 64,
+    .journalBlocks       = 8,
+    .noIndexRegion       = true,
+    .logicalThreadCount  = 0,
+    .physicalThreadCount = 0,
+    .hashZoneThreadCount = 0,
   };
   initializeBasicTest(&testParameters);
 
-  threadConfig = makeOneThreadConfig();
-
-  block_count_t recovery_journal_size
-    = getTestConfig().config.recovery_journal_size;
+  block_count_t recovery_journal_size = getTestConfig().config.recovery_journal_size;
   struct partition partition = {
     .offset = 0,
   };
@@ -181,7 +180,6 @@ static void createLayerAndJournal(void)
                                                  &partition,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 threadConfig,
                                                  &journal));
   performSuccessfulRecoveryJournalActionOnJournal(journal,
                                                   VDO_ADMIN_STATE_RESUMING);
@@ -230,7 +228,6 @@ static void freeLayerAndJournal(void)
   freeIntIntMap(&expectedHeads);
   freeJournal();
   tearDownLatchUtils();
-  vdo_free_thread_config(UDS_FORGET(threadConfig));
   tearDownVDOTest();
 }
 
@@ -299,7 +296,6 @@ static void reloadRecoveryJournal(bool checkEncodingBytes)
                                                  &partition,
                                                  TEST_RECOVERY_COUNT,
                                                  recovery_journal_size,
-                                                 threadConfig,
                                                  &journal));
 }
 

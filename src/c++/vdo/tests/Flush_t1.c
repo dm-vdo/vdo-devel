@@ -65,7 +65,7 @@ static bool countAcknowledgmentsLocked(void *context __attribute__((unused)))
  **/
 static bool countAcknowledgmentsHook(struct vdo_completion *completion)
 {
-  if (completion->callback_thread_id == vdo->thread_config->bio_ack_thread) {
+  if (completion->callback_thread_id == vdo->thread_config.bio_ack_thread) {
     runLocked(countAcknowledgmentsLocked, NULL);
   }
 

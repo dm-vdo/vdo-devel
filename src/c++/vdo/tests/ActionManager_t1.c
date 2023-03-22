@@ -86,8 +86,7 @@ static void testRepeatedDefaultAction(void)
 
   struct vdo_completion suspend;
   vdo_initialize_completion(&suspend, vdo, VDO_TEST_COMPLETION);
-  suspend.callback_thread_id
-    = vdo_get_logical_zone_thread(vdo->thread_config, 0);
+  suspend.callback_thread_id = vdo->thread_config.logical_threads[0];
   clearState(&suspendScheduled);
   launchAction(suspendBlockMapAction, &suspend);
   waitForState(&suspendScheduled);

@@ -39,7 +39,6 @@
 #include "dm-vdo/slab-depot.h"
 #include "dm-vdo/status-codes.h"
 #include "dm-vdo/string-utils.h"
-#include "dm-vdo/thread-config.h"
 #include "dm-vdo/thread-device.h"
 #include "dm-vdo/thread-registry.h"
 #include "dm-vdo/types.h"
@@ -67,7 +66,6 @@
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "string-utils.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 #include "vio.h"
@@ -1309,26 +1307,24 @@ static bool vdo_uses_device(struct vdo *vdo, const void *context)
 static thread_id_t __must_check
 get_thread_id_for_phase(struct vdo *vdo)
 {
-	const struct thread_config *thread_config = vdo->thread_config;
-
 	switch (vdo->admin.phase) {
 	case RESUME_PHASE_PACKER:
 	case RESUME_PHASE_FLUSHER:
 	case SUSPEND_PHASE_PACKER:
 	case SUSPEND_PHASE_FLUSHES:
-		return thread_config->packer_thread;
+		return vdo->thread_config.packer_thread;
 
 	case RESUME_PHASE_DATA_VIOS:
 	case SUSPEND_PHASE_DATA_VIOS:
-		return thread_config->cpu_thread;
+		return vdo->thread_config.cpu_thread;
 
 	case LOAD_PHASE_DRAIN_JOURNAL:
 	case RESUME_PHASE_JOURNAL:
 	case SUSPEND_PHASE_JOURNAL:
-		return thread_config->journal_thread;
+		return vdo->thread_config.journal_thread;
 
 	default:
-		return thread_config->admin_thread;
+		return vdo->thread_config.admin_thread;
 	}
 }
 
@@ -1484,7 +1480,6 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 static int __must_check decode_vdo(struct vdo *vdo)
 {
 	block_count_t maximum_age, journal_length;
-	const struct thread_config *thread_config = vdo->thread_config;
 	struct partition *partition;
 	int result;
 
@@ -1518,7 +1513,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 					     partition,
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
-					     thread_config,
 					     &vdo->recovery_journal);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1533,7 +1527,6 @@ static int __must_check decode_vdo(struct vdo *vdo)
 
 	result = vdo_decode_block_map(vdo->states.block_map,
 				      vdo->states.vdo.config.logical_blocks,
-				      thread_config,
 				      vdo,
 				      vdo->recovery_journal,
 				      vdo->states.vdo.nonce,
@@ -2525,7 +2518,7 @@ static void handle_load_error(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 
-	if (vdo_requeue_completion_if_needed(completion, vdo->thread_config->admin_thread))
+	if (vdo_requeue_completion_if_needed(completion, vdo->thread_config.admin_thread))
 		return;
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state) &&

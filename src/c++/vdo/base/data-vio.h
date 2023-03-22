@@ -20,7 +20,6 @@
 #include "encodings.h"
 #include "logical-zone.h"
 #include "physical-zone.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 #include "vio.h"
@@ -385,7 +384,7 @@ const char * __must_check get_data_vio_operation_name(struct data_vio *data_vio)
 
 static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 {
-	thread_id_t expected = vdo_get_hash_zone_thread_id(data_vio->hash_zone);
+	thread_id_t expected = data_vio->hash_zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 	/*
 	 * It's odd to use the LBN, but converting the record name to hex is a bit clunky for an
@@ -402,7 +401,7 @@ static inline void set_data_vio_hash_zone_callback(struct data_vio *data_vio, vd
 {
 	vdo_set_completion_callback(&data_vio->vio.completion,
 				    callback,
-				    vdo_get_hash_zone_thread_id(data_vio->hash_zone));
+				    data_vio->hash_zone->thread_id);
 }
 
 /**
@@ -552,7 +551,7 @@ set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio, vdo_action *cal
 
 static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 {
-	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config->journal_thread;
+	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config.journal_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((journal_thread == thread_id),
@@ -564,7 +563,7 @@ static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 
 static inline void set_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config->journal_thread;
+	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config.journal_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, journal_thread);
 }
@@ -582,7 +581,7 @@ launch_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback
 
 static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 {
-	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config->packer_thread;
+	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config.packer_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((packer_thread == thread_id),
@@ -594,7 +593,7 @@ static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 
 static inline void set_data_vio_packer_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config->packer_thread;
+	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config.packer_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, packer_thread);
 }
@@ -611,7 +610,7 @@ static inline void launch_data_vio_packer_callback(struct data_vio *data_vio, vd
 
 static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 {
-	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config->cpu_thread;
+	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config.cpu_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
 	ASSERT_LOG_ONLY((cpu_thread == thread_id),
@@ -623,7 +622,7 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 
 static inline void set_data_vio_cpu_callback(struct data_vio *data_vio, vdo_action *callback)
 {
-	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config->cpu_thread;
+	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config.cpu_thread;
 
 	vdo_set_completion_callback(&data_vio->vio.completion, callback, cpu_thread);
 }
@@ -675,7 +674,7 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio, vdo_action *callback
 		return;
 	}
 
-	vdo_set_completion_callback(completion, callback, vdo->thread_config->bio_ack_thread);
+	vdo_set_completion_callback(completion, callback, vdo->thread_config.bio_ack_thread);
 	vdo_launch_completion_with_priority(completion, BIO_ACK_Q_ACK_PRIORITY);
 }
 

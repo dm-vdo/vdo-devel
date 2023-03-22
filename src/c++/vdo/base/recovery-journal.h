@@ -253,7 +253,6 @@ int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 s
 					     struct partition *partition,
 					     u64 recovery_count,
 					     block_count_t journal_size,
-					     const struct thread_config *thread_config,
 					     struct recovery_journal **journal_ptr);
 
 void vdo_free_recovery_journal(struct recovery_journal *journal);

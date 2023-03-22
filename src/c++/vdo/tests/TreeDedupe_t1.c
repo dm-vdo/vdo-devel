@@ -97,7 +97,7 @@ static bool
 checkForAcknowledgement(struct vdo_completion *completion,
                         void                  *context __attribute__((unused)))
 {
-  if (completion->callback_thread_id != vdo->thread_config->bio_ack_thread) {
+  if (completion->callback_thread_id != vdo->thread_config.bio_ack_thread) {
     return false;
   }
 

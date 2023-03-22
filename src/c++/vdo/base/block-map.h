@@ -327,7 +327,6 @@ void vdo_traverse_forest(struct block_map *map,
 
 int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,
 				      block_count_t logical_blocks,
-				      const struct thread_config *thread_config,
 				      struct vdo *vdo,
 				      struct recovery_journal *journal,
 				      nonce_t nonce,

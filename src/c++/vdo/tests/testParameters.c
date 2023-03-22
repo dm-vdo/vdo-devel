@@ -15,7 +15,6 @@
 #include "encodings.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "thread-config.h"
 #include "types.h"
 #include "volume-geometry.h"
 
@@ -392,23 +391,3 @@ block_count_t computeBlockMapOverhead(block_count_t logicalBlocks)
 
   return overhead;
 }
-
-/**********************************************************************/
-struct thread_config *makeOneThreadConfig(void)
-{
-  // match the defaults from vdo_parse_device_config
-  struct thread_count_config counts = {
-    .bio_ack_threads = 1,
-    .bio_threads = DEFAULT_VDO_BIO_SUBMIT_QUEUE_COUNT,
-    .bio_rotation_interval = DEFAULT_VDO_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL,
-    .cpu_threads = 1,
-  };
-
-  struct thread_config *config;
-  VDO_ASSERT_SUCCESS(vdo_make_thread_config(counts, &config));
-  return config;
-}
-
-
-
-

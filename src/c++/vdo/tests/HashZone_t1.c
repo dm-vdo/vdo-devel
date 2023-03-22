@@ -13,11 +13,8 @@
 #include "numeric.h"
 
 #include "dedupe.h"
-#include "thread-config.h"
 #include "vdo.h"
 
-#include "dedupeContext.h"
-#include "hashZone.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
@@ -101,7 +98,7 @@ static void testSelectVdoHashZone(void)
   // cheap enough to check.
   for (thread_count_t hashZones = 1; hashZones < 16; hashZones++) {
     reconfigureHashZones(hashZones);
-    CU_ASSERT_EQUAL(hashZones, vdo->thread_config->hash_zone_count);
+    CU_ASSERT_EQUAL(hashZones, vdo->thread_config.hash_zone_count);
     verifySelectHashZone(vdo, hashZones);
   }
 }

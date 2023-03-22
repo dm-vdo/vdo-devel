@@ -8,16 +8,66 @@
 
 #include <linux/kobject.h>
 #include <linux/list.h>
+#include <linux/timer.h>
 
 #include "uds.h"
 
+#include "admin-state.h"
+#include "constants.h"
 #include "statistics.h"
 #include "types.h"
 #include "wait-queue.h"
 
-struct dedupe_context;
+struct dedupe_context {
+	struct hash_zone *zone;
+	struct uds_request request;
+	struct list_head list_entry;
+	struct funnel_queue_entry queue_entry;
+	u64 submission_jiffies;
+	struct data_vio *requestor;
+	atomic_t state;
+};
+
 struct hash_lock;
-struct hash_zone;
+
+struct hash_zone {
+	/* Which hash zone this is */
+	zone_count_t zone_number;
+
+	/* The administrative state of the zone */
+	struct admin_state state;
+
+	/* The thread ID for this zone */
+	thread_id_t thread_id;
+
+	/* Mapping from record name fields to hash_locks */
+	struct pointer_map *hash_lock_map;
+
+	/* List containing all unused hash_locks */
+	struct list_head lock_pool;
+
+	/*
+	 * Statistics shared by all hash locks in this zone. Only modified on the hash zone thread,
+	 * but queried by other threads.
+	 */
+	struct hash_lock_statistics statistics;
+
+	/* Array of all hash_locks */
+	struct hash_lock *lock_array;
+
+	/* These fields are used to manage the dedupe contexts */
+	struct list_head available;
+	struct list_head pending;
+	struct funnel_queue *timed_out_complete;
+	struct timer_list timer;
+	struct vdo_completion completion;
+	unsigned int active;
+	atomic_t timer_state;
+
+	/* The dedupe contexts for querying the index from this zone */
+	struct dedupe_context contexts[MAXIMUM_VDO_USER_VIOS];
+};
+
 struct hash_zones;
 
 struct pbn_lock * __must_check vdo_get_duplicate_lock(struct data_vio *data_vio);
@@ -31,9 +81,6 @@ void vdo_share_compressed_write_lock(struct data_vio *data_vio, struct pbn_lock 
 int __must_check vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr);
 
 void vdo_free_hash_zones(struct hash_zones *zones);
-
-thread_id_t __must_check
-vdo_get_hash_zone_thread_id(const struct hash_zone *zone);
 
 void vdo_drain_hash_zones(struct hash_zones *zones, struct vdo_completion *parent);
 

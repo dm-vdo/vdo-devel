@@ -61,7 +61,6 @@
 #include "slab-depot.h"
 #include "statistics.h"
 #include "status-codes.h"
-#include "thread-config.h"
 #include "vio.h"
 #include "work-queue.h"
 
@@ -191,6 +190,107 @@ static const struct vdo_work_queue_type cpu_q_type = {
 	.default_priority = CPU_Q_MAX_PRIORITY,
 };
 
+EXTERNAL_STATIC void uninitialize_thread_config(struct thread_config *config)
+{
+	UDS_FREE(UDS_FORGET(config->logical_threads));
+	UDS_FREE(UDS_FORGET(config->physical_threads));
+	UDS_FREE(UDS_FORGET(config->hash_zone_threads));
+	UDS_FREE(UDS_FORGET(config->bio_threads));
+	memset(config, 0, sizeof(struct thread_config));
+}
+
+static void
+assign_thread_ids(struct thread_config *config, thread_id_t thread_ids[], zone_count_t count)
+{
+	zone_count_t zone;
+
+	for (zone = 0; zone < count; zone++)
+		thread_ids[zone] = config->thread_count++;
+}
+
+/**
+ * initialize_thread_config() - Initialize the thread mapping
+ *
+ * If the logical, physical, and hash zone counts are all 0, a single thread will be shared by all
+ * three plus the packer and recovery journal. Otherwise, there must be at least one of each type,
+ * and each will have its own thread, as will the packer and recovery journal.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+EXTERNAL_STATIC int __must_check
+initialize_thread_config(struct thread_count_config counts, struct thread_config *config)
+{
+	int result;
+	bool single = ((counts.logical_zones + counts.physical_zones + counts.hash_zones) == 0);
+
+	config->bio_thread_count = counts.bio_threads;
+	if (single) {
+		config->logical_zone_count = 1;
+		config->physical_zone_count = 1;
+		config->hash_zone_count = 1;
+	} else {
+		config->logical_zone_count = counts.logical_zones;
+		config->physical_zone_count = counts.physical_zones;
+		config->hash_zone_count = counts.hash_zones;
+	}
+
+	result = UDS_ALLOCATE(config->logical_zone_count,
+			      thread_id_t,
+			      "logical thread array",
+			      &config->logical_threads);
+	if (result != VDO_SUCCESS) {
+		uninitialize_thread_config(config);
+		return result;
+	}
+
+	result = UDS_ALLOCATE(config->physical_zone_count,
+			      thread_id_t,
+			      "physical thread array",
+			      &config->physical_threads);
+	if (result != VDO_SUCCESS) {
+		uninitialize_thread_config(config);
+		return result;
+	}
+
+	result = UDS_ALLOCATE(config->hash_zone_count,
+			      thread_id_t,
+			      "hash thread array",
+			      &config->hash_zone_threads);
+	if (result != VDO_SUCCESS) {
+		uninitialize_thread_config(config);
+		return result;
+	}
+
+	result = UDS_ALLOCATE(config->bio_thread_count,
+			      thread_id_t,
+			      "bio thread array",
+			      &config->bio_threads);
+	if (result != VDO_SUCCESS) {
+		uninitialize_thread_config(config);
+		return result;
+	}
+
+	if (single) {
+		config->logical_threads[0] = config->thread_count;
+		config->physical_threads[0] = config->thread_count;
+		config->hash_zone_threads[0] = config->thread_count++;
+	} else {
+		config->admin_thread = config->thread_count;
+		config->journal_thread = config->thread_count++;
+		config->packer_thread = config->thread_count++;
+		assign_thread_ids(config, config->logical_threads, counts.logical_zones);
+		assign_thread_ids(config, config->physical_threads, counts.physical_zones);
+		assign_thread_ids(config, config->hash_zone_threads, counts.hash_zones);
+	}
+
+	config->dedupe_thread = config->thread_count++;
+	config->bio_ack_thread =
+		((counts.bio_ack_threads > 0) ? config->thread_count++ : VDO_INVALID_THREAD_ID);
+	config->cpu_thread = config->thread_count++;
+	assign_thread_ids(config, config->bio_threads, counts.bio_threads);
+	return VDO_SUCCESS;
+}
+
 /**
  * vdo_read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
  *                             device.
@@ -241,6 +341,107 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	return result;
 }
 
+static bool get_zone_thread_name(const thread_id_t thread_ids[],
+				 zone_count_t count,
+				 thread_id_t id,
+				 const char *prefix,
+				 char *buffer,
+				 size_t buffer_length)
+{
+	if (id >= thread_ids[0]) {
+		thread_id_t index = id - thread_ids[0];
+
+		if (index < count) {
+			snprintf(buffer, buffer_length, "%s%d", prefix, index);
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * get_thread_name() - Format the name of the worker thread desired to support a given work queue.
+ * @thread_config: The thread configuration.
+ * @thread_id: The thread id.
+ * @buffer: Where to put the formatted name.
+ * @buffer_length: Size of the output buffer.
+ *
+ * The physical layer may add a prefix identifying the product; the output from this function
+ * should just identify the thread.
+ */
+EXTERNAL_STATIC void
+get_thread_name(const struct thread_config *thread_config,
+		thread_id_t thread_id,
+		char *buffer,
+		size_t buffer_length)
+{
+	if (thread_id == thread_config->journal_thread) {
+		if (thread_config->packer_thread == thread_id) {
+			/*
+			 * This is the "single thread" config where one thread is used for the
+			 * journal, packer, logical, physical, and hash zones. In that case, it is
+			 * known as the "request queue."
+			 */
+			snprintf(buffer, buffer_length, "reqQ");
+			return;
+		}
+
+		snprintf(buffer, buffer_length, "journalQ");
+		return;
+	} else if (thread_id == thread_config->admin_thread) {
+		/* Theoretically this could be different from the journal thread. */
+		snprintf(buffer, buffer_length, "adminQ");
+		return;
+	} else if (thread_id == thread_config->packer_thread) {
+		snprintf(buffer, buffer_length, "packerQ");
+		return;
+	} else if (thread_id == thread_config->dedupe_thread) {
+		snprintf(buffer, buffer_length, "dedupeQ");
+		return;
+	} else if (thread_id == thread_config->bio_ack_thread) {
+		snprintf(buffer, buffer_length, "ackQ");
+		return;
+	} else if (thread_id == thread_config->cpu_thread) {
+		snprintf(buffer, buffer_length, "cpuQ");
+		return;
+	}
+
+	if (get_zone_thread_name(thread_config->logical_threads,
+				 thread_config->logical_zone_count,
+				 thread_id,
+				 "logQ",
+				 buffer,
+				 buffer_length))
+		return;
+
+	if (get_zone_thread_name(thread_config->physical_threads,
+				 thread_config->physical_zone_count,
+				 thread_id,
+				 "physQ",
+				 buffer,
+				 buffer_length))
+		return;
+
+	if (get_zone_thread_name(thread_config->hash_zone_threads,
+				 thread_config->hash_zone_count,
+				 thread_id,
+				 "hashQ",
+				 buffer,
+				 buffer_length))
+		return;
+
+	if (get_zone_thread_name(thread_config->bio_threads,
+				 thread_config->bio_thread_count,
+				 thread_id,
+				 "bioQ",
+				 buffer,
+				 buffer_length))
+		return;
+
+	/* Some sort of misconfiguration? */
+	snprintf(buffer, buffer_length, "reqQ%d", thread_id);
+}
+
 /**
  * vdo_make_thread() - Construct a single vdo work_queue and its associated thread (or threads for
  *                     round-robin queues).
@@ -275,7 +476,7 @@ int vdo_make_thread(struct vdo *vdo,
 
 	thread->vdo = vdo;
 	thread->thread_id = thread_id;
-	vdo_get_thread_name(vdo->thread_config, thread_id, queue_name, sizeof(queue_name));
+	get_thread_name(&vdo->thread_config, thread_id, queue_name, sizeof(queue_name));
 	return make_work_queue(vdo->thread_name_prefix,
 			       queue_name,
 			       thread,
@@ -336,7 +537,7 @@ initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int insta
 		return result;
 	}
 
-	result = vdo_make_thread_config(config->thread_counts, &vdo->thread_config);
+	result = initialize_thread_config(config->thread_counts, &vdo->thread_config);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot create thread configuration";
 		return result;
@@ -346,7 +547,7 @@ initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int insta
 		     config->thread_counts.logical_zones,
 		     config->thread_counts.physical_zones,
 		     config->thread_counts.hash_zones,
-		     vdo->thread_config->thread_count);
+		     vdo->thread_config.thread_count);
 
 	/* Compression context storage */
 	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
@@ -420,7 +621,7 @@ int vdo_make(unsigned int instance,
 		 MODULE_NAME,
 		 instance);
 	BUG_ON(vdo->thread_name_prefix[0] == '\0');
-	result = UDS_ALLOCATE(vdo->thread_config->thread_count,
+	result = UDS_ALLOCATE(vdo->thread_config.thread_count,
 			      struct vdo_thread,
 			      __func__,
 			      &vdo->threads);
@@ -430,7 +631,7 @@ int vdo_make(unsigned int instance,
 	}
 
 	result = vdo_make_thread(vdo,
-				 vdo->thread_config->admin_thread,
+				 vdo->thread_config.admin_thread,
 				 &default_queue_type,
 				 1,
 				 NULL);
@@ -481,7 +682,7 @@ int vdo_make(unsigned int instance,
 
 	if (vdo_uses_bio_ack_queue(vdo)) {
 		result = vdo_make_thread(vdo,
-					 vdo->thread_config->bio_ack_thread,
+					 vdo->thread_config.bio_ack_thread,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
 					 NULL);
@@ -492,7 +693,7 @@ int vdo_make(unsigned int instance,
 	}
 
 	result = vdo_make_thread(vdo,
-				 vdo->thread_config->cpu_thread,
+				 vdo->thread_config.cpu_thread,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
 				 (void **) vdo->compression_context);
@@ -514,7 +715,7 @@ static void finish_vdo(struct vdo *vdo)
 	vdo_cleanup_io_submitter(vdo->io_submitter);
 	vdo_finish_dedupe_index(vdo->hash_zones);
 
-	for (i = 0; i < vdo->thread_config->thread_count; i++)
+	for (i = 0; i < vdo->thread_config.thread_count; i++)
 		finish_work_queue(vdo->threads[i].queue);
 }
 
@@ -593,14 +794,14 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
 
 	if (vdo->threads != NULL) {
-		for (i = 0; i < vdo->thread_config->thread_count; i++) {
+		for (i = 0; i < vdo->thread_config.thread_count; i++) {
 			free_listeners(&vdo->threads[i]);
 			free_work_queue(UDS_FORGET(vdo->threads[i].queue));
 		}
 		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
 
-	vdo_free_thread_config(UDS_FORGET(vdo->thread_config));
+	uninitialize_thread_config(&vdo->thread_config);
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++)
@@ -961,7 +1162,7 @@ int vdo_register_read_only_listener(struct vdo *vdo,
 	struct read_only_listener *read_only_listener;
 	int result;
 
-	result = ASSERT(thread_id != vdo->thread_config->dedupe_thread,
+	result = ASSERT(thread_id != vdo->thread_config.dedupe_thread,
 			"read only listener not registered on dedupe thread");
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1022,13 +1223,13 @@ int vdo_enable_read_only_entry(struct vdo *vdo)
 	spin_lock_init(&notifier->lock);
 	vdo_initialize_completion(&notifier->completion, vdo, VDO_READ_ONLY_MODE_COMPLETION);
 
-	for (id = 0; id < vdo->thread_config->thread_count; id++)
+	for (id = 0; id < vdo->thread_config.thread_count; id++)
 		vdo->threads[id].is_read_only = is_read_only;
 
 	return vdo_register_read_only_listener(vdo,
 					       vdo,
 					       notify_vdo_of_read_only_mode,
-					       vdo->thread_config->admin_thread);
+					       vdo->thread_config.admin_thread);
 }
 
 /**
@@ -1138,19 +1339,19 @@ static void make_thread_read_only(struct vdo_completion *completion)
 	}
 
 	/* We're done with this thread */
-	if (++thread_id == vdo->thread_config->dedupe_thread)
+	if (++thread_id == vdo->thread_config.dedupe_thread)
 		/*
 		 * We don't want to notify the dedupe thread since it may be
 		 * blocked rebuilding the index.
 		 */
 		++thread_id;
 
-	if (thread_id >= vdo->thread_config->thread_count)
+	if (thread_id >= vdo->thread_config.thread_count)
 		/* There are no more threads */
 		vdo_prepare_completion(completion,
 				       finish_entering_read_only_mode,
 				       finish_entering_read_only_mode,
-				       vdo->thread_config->admin_thread,
+				       vdo->thread_config.admin_thread,
 				       NULL);
 	else
 		vdo_prepare_completion(completion,
@@ -1366,7 +1567,7 @@ bool vdo_set_compressing(struct vdo *vdo, bool enable)
 {
 	perform_synchronous_action(vdo,
 				   set_compression_callback,
-				   vdo->thread_config->packer_thread,
+				   vdo->thread_config.packer_thread,
 				   &enable);
 	return enable;
 }
@@ -1563,7 +1764,7 @@ void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
 {
 	perform_synchronous_action(vdo,
 				   vdo_fetch_statistics_callback,
-				   vdo->thread_config->admin_thread,
+				   vdo->thread_config.admin_thread,
 				   stats);
 }
 
@@ -1586,7 +1787,7 @@ thread_id_t vdo_get_callback_thread_id(void)
 	thread_id = thread->thread_id;
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
-		BUG_ON(thread_id >= thread->vdo->thread_config->thread_count);
+		BUG_ON(thread_id >= thread->vdo->thread_config.thread_count);
 		BUG_ON(thread != &thread->vdo->threads[thread_id]);
 	}
 
@@ -1599,7 +1800,6 @@ thread_id_t vdo_get_callback_thread_id(void)
  */
 void vdo_dump_status(const struct vdo *vdo)
 {
-	const struct thread_config *thread_config = vdo->thread_config;
 	zone_count_t zone;
 
 	vdo_dump_flusher(vdo->flusher);
@@ -1607,10 +1807,10 @@ void vdo_dump_status(const struct vdo *vdo)
 	vdo_dump_packer(vdo->packer);
 	vdo_dump_slab_depot(vdo->depot);
 
-	for (zone = 0; zone < thread_config->logical_zone_count; zone++)
+	for (zone = 0; zone < vdo->thread_config.logical_zone_count; zone++)
 		vdo_dump_logical_zone(&vdo->logical_zones->zones[zone]);
 
-	for (zone = 0; zone < thread_config->physical_zone_count; zone++)
+	for (zone = 0; zone < vdo->thread_config.physical_zone_count; zone++)
 		vdo_dump_physical_zone(&vdo->physical_zones->zones[zone]);
 
 	vdo_dump_hash_zones(vdo->hash_zones);
@@ -1623,7 +1823,7 @@ void vdo_dump_status(const struct vdo *vdo)
  */
 void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name)
 {
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config->admin_thread),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.admin_thread),
 			"%s called on admin thread",
 			name);
 }
@@ -1640,7 +1840,7 @@ void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
 				       const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo_get_logical_zone_thread(vdo->thread_config, logical_zone)),
+			 vdo->thread_config.logical_threads[logical_zone]),
 			"%s called on logical thread",
 			name);
 }
@@ -1657,14 +1857,14 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() ==
-			 vdo_get_physical_zone_thread(vdo->thread_config, physical_zone)),
+			 vdo->thread_config.physical_threads[physical_zone]),
 			"%s called on physical thread",
 			name);
 }
 
 void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
 {
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config->cpu_thread),
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.cpu_thread),
 			"%s called on cpu thread",
 			name);
 }

@@ -22,7 +22,6 @@
 #include "io-submitter.h"
 #include "physical-zone.h"
 #include "status-codes.h"
-#include "thread-config.h"
 #include "vdo.h"
 #include "vio.h"
 
@@ -157,7 +156,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	if (result != VDO_SUCCESS)
 		return result;
 
-	packer->thread_id = vdo->thread_config->packer_thread;
+	packer->thread_id = vdo->thread_config.packer_thread;
 	packer->size = bin_count;
 	INIT_LIST_HEAD(&packer->bins);
 	vdo_set_admin_state_code(&packer->state, VDO_ADMIN_STATE_NORMAL_OPERATION);

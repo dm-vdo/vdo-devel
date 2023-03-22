@@ -276,7 +276,7 @@ struct vdo_work_queue *get_current_work_queue(void)
   }
 
   pthread_t currentThread = pthread_self();
-  for (thread_id_t id = 0; id < vdo->thread_config->thread_count; id++) {
+  for (thread_id_t id = 0; id < vdo->thread_config.thread_count; id++) {
     struct vdo_work_queue *queue = vdo->threads[id].queue;
     if ((queue != NULL)
         && (pthread_equal(currentThread, queue->thread->thread))) {

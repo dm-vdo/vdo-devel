@@ -299,8 +299,6 @@ tarballs:
             - status-codes.c
             - status-codes.h
             - sysfs.c
-            - thread-config.c
-            - thread-config.h
             - types.h
             - vdo.c
             - vdo.h

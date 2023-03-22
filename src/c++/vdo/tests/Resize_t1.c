@@ -9,7 +9,6 @@
 #include "albtest.h"
 
 #include "slab-depot.h"
-#include "thread-config.h"
 #include "vdo.h"
 
 #include "asyncLayer.h"

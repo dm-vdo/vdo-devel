@@ -18,7 +18,6 @@
 #include "asyncLayer.h"
 #include "blockAllocatorUtils.h"
 #include "dataBlocks.h"
-#include "dedupeContext.h"
 #include "ioRequest.h"
 #include "mutexUtils.h"
 #include "vdoAsserts.h"

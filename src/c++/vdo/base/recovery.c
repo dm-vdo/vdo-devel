@@ -18,7 +18,6 @@
 #include "io-submitter.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 #include "wait-queue.h"
@@ -238,7 +237,7 @@ static int make_recovery_completion(struct vdo *vdo,
 	vdo_prepare_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
-			       vdo_get_logical_zone_thread(vdo->thread_config, 0),
+			       vdo->thread_config.logical_threads[0],
 			       parent);
 
 #ifdef INTERNAL
@@ -252,7 +251,7 @@ static int make_recovery_completion(struct vdo *vdo,
 
 static void flush_block_map(struct vdo_completion *completion)
 {
-	thread_id_t thread_id = vdo_get_logical_zone_thread(completion->vdo->thread_config, 0);
+	thread_id_t thread_id = completion->vdo->thread_config.logical_threads[0];
 
 	uds_log_info("Flushing block map changes");
 	vdo_set_completion_callback(completion, finish_block_map_recovery, thread_id);
@@ -289,7 +288,7 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 
 	vdo_launch_completion_callback(&recovery->completion,
 				       flush_block_map,
-				       recovery->completion.vdo->thread_config->admin_thread);
+				       recovery->completion.vdo->thread_config.admin_thread);
 	return true;
 }
 
@@ -456,7 +455,7 @@ recover_block_map(struct vdo *vdo,
 	page_count_t i;
 	struct block_map_recovery_completion *recovery;
 	int result;
-	thread_id_t thread_id = vdo_get_logical_zone_thread(vdo->thread_config, 0);
+	thread_id_t thread_id = vdo->thread_config.logical_threads[0];
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == thread_id),
 			"%s must be called on logical thread %u (not %u)",
@@ -675,12 +674,12 @@ static void prepare_recovery_completion(struct recovery_completion *recovery,
 					enum vdo_zone_type zone_type)
 {
 	struct vdo_completion *completion = &recovery->completion;
-	const struct thread_config *thread_config = completion->vdo->thread_config;
+	const struct thread_config *thread_config = &completion->vdo->thread_config;
 	thread_id_t thread_id;
 
 	/* All blockmap access is done on single thread, so use logical zone 0. */
 	thread_id = ((zone_type == VDO_ZONE_TYPE_LOGICAL) ?
-		     vdo_get_logical_zone_thread(thread_config, 0) :
+		     thread_config->logical_threads[0] :
 		     thread_config->admin_thread);
 	vdo_reset_completion(completion);
 	vdo_set_completion_callback(completion, callback, thread_id);
@@ -1887,7 +1886,7 @@ static void read_journal_endio(struct bio *bio)
 	struct vio *vio = bio->bi_private;
 	struct vdo *vdo = vio->completion.vdo;
 
-	continue_vio_after_io(vio, finish_journal_load, vdo->thread_config->admin_thread);
+	continue_vio_after_io(vio, finish_journal_load, vdo->thread_config.admin_thread);
 }
 
 /**

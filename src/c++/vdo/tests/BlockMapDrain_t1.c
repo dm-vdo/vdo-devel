@@ -29,7 +29,6 @@ static struct vio     *treePageWrite;
 static bool            blocked;
 static bool            draining;
 static bool            writeComplete;
-static thread_id_t     logicalZoneThread;
 
 /**
  * Initialize the test.
@@ -57,8 +56,6 @@ static void initialize(void)
   // Restart the VDO so that the pages are all written and the rest of the test
   // won't block if we trap writes.
   restartVDO(false);
-
-  logicalZoneThread = vdo_get_logical_zone_thread(vdo->thread_config, 0);
 }
 
 /**
@@ -162,7 +159,7 @@ static void advanceEra(struct vdo_completion *completion)
  **/
 static void checkDraining(void)
 {
-  if (vdo_get_callback_thread_id() != logicalZoneThread) {
+  if (vdo_get_callback_thread_id() != vdo->thread_config.logical_threads[0]) {
     return;
   }
 

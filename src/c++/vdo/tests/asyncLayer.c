@@ -25,7 +25,6 @@
 #include "io-submitter.h"
 #include "lz4.h"
 #include "status-codes.h"
-#include "thread-config.h"
 #include "vdo.h"
 #include "volume-geometry.h"
 #include "work-queue.h"

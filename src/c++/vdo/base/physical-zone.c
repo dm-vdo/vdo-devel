@@ -340,9 +340,9 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 	}
 
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo->thread_config->physical_threads[zone_number];
+	zone->thread_id = vdo->thread_config.physical_threads[zone_number];
 	zone->allocator = &vdo->depot->allocators[zone_number];
-	zone->next = &zones->zones[(zone_number + 1) % vdo->thread_config->physical_zone_count];
+	zone->next = &zones->zones[(zone_number + 1) % vdo->thread_config.physical_zone_count];
 	result = vdo_make_default_thread(vdo, zone->thread_id);
 	if (result != VDO_SUCCESS) {
 		free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
@@ -363,7 +363,7 @@ int vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr)
 {
 	struct physical_zones *zones;
 	int result;
-	zone_count_t zone_count = vdo->thread_config->physical_zone_count;
+	zone_count_t zone_count = vdo->thread_config.physical_zone_count;
 
 	if (zone_count == 0)
 		return VDO_SUCCESS;

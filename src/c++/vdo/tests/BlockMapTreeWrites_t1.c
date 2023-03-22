@@ -384,7 +384,7 @@ static bool wrapEraAdvance(struct vdo_completion *completion)
     return true;
   }
 
-  if (completion->callback_thread_id == vdo->thread_config->admin_thread) {
+  if (completion->callback_thread_id == vdo->thread_config.admin_thread) {
     wrapCompletionCallback(completion, checkNotOperating);
   }
 

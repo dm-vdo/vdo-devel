@@ -13,7 +13,6 @@
 #include "constants.h"
 #include "physical-zone.h"
 #include "slab-depot.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 
@@ -58,7 +57,7 @@ static void verifyGetPhysicalZone(thread_count_t zoneCount)
 
   struct vdo_config config = getTestConfig().config;
 
-  CU_ASSERT_EQUAL(zoneCount, vdo->thread_config->physical_zone_count);
+  CU_ASSERT_EQUAL(zoneCount, vdo->thread_config.physical_zone_count);
 
   // Check that the zones are all initialized and are who they think they are.
   for (zone_count_t i = 0; i < zoneCount; i++) {

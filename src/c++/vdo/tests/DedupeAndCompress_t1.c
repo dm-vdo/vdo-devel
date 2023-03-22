@@ -236,7 +236,7 @@ static void testReadWriteMix(void) {
       slabToSave->allocator->summary_entries[slabToSave->slab_number].load_ref_counts;
     performSlabSummaryUpdate(slabToSave->slab_number, tailBlockOffset, loadRefCounts, false, 1000);
     struct block_allocator *allocator =
-      &depot->allocators[i % vdo->thread_config->physical_zone_count];
+      &depot->allocators[i % vdo->thread_config.physical_zone_count];
     CU_ASSERT(allocator->summary_entries[slabToSave->slab_number].is_dirty);
   }
 

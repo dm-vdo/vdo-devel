@@ -14,7 +14,6 @@
 
 #include "completion.h"
 #include "constants.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 
@@ -54,7 +53,7 @@ static inline struct vio *as_vio(struct vdo_completion *completion)
  */
 static inline thread_id_t __must_check get_vio_bio_zone_thread_id(struct vio *vio)
 {
-	return vio->completion.vdo->thread_config->bio_threads[vio->bio_zone];
+	return vio->completion.vdo->thread_config.bio_threads[vio->bio_zone];
 }
 
 physical_block_number_t __must_check pbn_from_vio_bio(struct bio *bio);

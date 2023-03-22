@@ -909,7 +909,7 @@ int make_data_vio_pool(struct vdo *vdo,
 	vdo_prepare_completion(&pool->completion,
 			       process_release_callback,
 			       process_release_callback,
-			       vdo->thread_config->cpu_thread,
+			       vdo->thread_config.cpu_thread,
 			       NULL);
 
 	result = uds_make_funnel_queue(&pool->queue);
@@ -1997,7 +1997,7 @@ static void acknowledge_write_callback(struct vdo_completion *completion)
 	struct vdo *vdo = completion->vdo;
 
 	ASSERT_LOG_ONLY((!vdo_uses_bio_ack_queue(vdo) ||
-			 (vdo_get_callback_thread_id() == vdo->thread_config->bio_ack_thread)),
+			 (vdo_get_callback_thread_id() == vdo->thread_config.bio_ack_thread)),
 			"%s() called on bio ack queue",
 			__func__);
 	ASSERT_LOG_ONLY(data_vio_has_flush_generation_lock(data_vio),

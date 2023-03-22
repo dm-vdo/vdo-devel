@@ -17,7 +17,6 @@
 #include "io-submitter.h"
 #include "logical-zone.h"
 #include "slab-depot.h"
-#include "thread-config.h"
 #include "types.h"
 #include "vdo.h"
 
@@ -145,7 +144,7 @@ int vdo_make_flusher(struct vdo *vdo)
 		return result;
 
 	vdo->flusher->vdo = vdo;
-	vdo->flusher->thread_id = vdo->thread_config->packer_thread;
+	vdo->flusher->thread_id = vdo->thread_config.packer_thread;
 	vdo_set_admin_state_code(&vdo->flusher->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 	vdo_initialize_completion(&vdo->flusher->completion, vdo,
 				  VDO_FLUSH_NOTIFICATION_COMPLETION);
@@ -385,7 +384,7 @@ static void launch_flush(struct vdo_flush *flush)
 	vdo_prepare_completion(completion,
 			       flush_vdo,
 			       flush_vdo,
-			       completion->vdo->thread_config->packer_thread,
+			       completion->vdo->thread_config.packer_thread,
 			       NULL);
 	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_FLUSH_PRIORITY);
 }
@@ -508,11 +507,11 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 static thread_id_t select_bio_queue(struct flusher *flusher)
 {
 	struct vdo *vdo = flusher->vdo;
-	zone_count_t bio_threads = flusher->vdo->thread_config->bio_thread_count;
+	zone_count_t bio_threads = flusher->vdo->thread_config.bio_thread_count;
 	int interval;
 
 	if (bio_threads == 1)
-		return vdo->thread_config->bio_threads[0];
+		return vdo->thread_config.bio_threads[0];
 
 	interval = vdo->device_config->thread_counts.bio_rotation_interval;
 	if (flusher->flush_count == interval) {
@@ -522,7 +521,7 @@ static thread_id_t select_bio_queue(struct flusher *flusher)
 		flusher->flush_count++;
 	}
 
-	return vdo->thread_config->bio_threads[flusher->bio_queue_rotor];
+	return vdo->thread_config.bio_threads[flusher->bio_queue_rotor];
 }
 
 /**

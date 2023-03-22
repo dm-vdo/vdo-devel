@@ -15,7 +15,6 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "packer.h"
-#include "thread-config.h"
 #include "vdo.h"
 #include "wait-queue.h"
 
@@ -151,8 +150,7 @@ static void bestFitTest(void)
 
   // Each bin should contain exactly one vio.
   expectedSlotsUsed = 1;
-  performSuccessfulActionOnThread(checkBins,
-                                  vdo->thread_config->packer_thread);
+  performSuccessfulActionOnThread(checkBins, vdo->thread_config.packer_thread);
 
   // Add an item that would fit exactly in one of the unused bins in reverse
   // order.
@@ -174,8 +172,7 @@ static void bestFitTest(void)
 
   // Each bin should be empty.
   expectedSlotsUsed = 0;
-  performSuccessfulActionOnThread(checkBins,
-                                  vdo->thread_config->packer_thread);
+  performSuccessfulActionOnThread(checkBins, vdo->thread_config.packer_thread);
 
   // We should have written exactly 1 block per bin.
   CU_ASSERT_EQUAL(getPhysicalBlocksFree(), freeBlocks - DEFAULT_PACKER_BINS);
@@ -212,7 +209,7 @@ static void signalAllBinsFull(struct vdo_completion *completion)
  **/
 static bool wrapIfHeadingToPacker(struct vdo_completion *completion)
 {
-  if ((completion->callback_thread_id == vdo->thread_config->packer_thread)
+  if ((completion->callback_thread_id == vdo->thread_config.packer_thread)
       && lastAsyncOperationIs(completion, VIO_ASYNC_OP_COMPRESS_DATA_VIO)) {
     /*
      * Set the compressed size such that each bin will receive two data vios
@@ -297,8 +294,7 @@ static void removeVIOsTest(void)
   awaitAndFreeSuccessfulRequest(UDS_FORGET(requests[4]));
 
   expectedSlotsUsed = slots - 2;
-  performSuccessfulActionOnThread(checkFullestBin,
-                                  vdo->thread_config->packer_thread);
+  performSuccessfulActionOnThread(checkFullestBin, vdo->thread_config.packer_thread);
 
   // add two more to fill the bin
   packed = false;

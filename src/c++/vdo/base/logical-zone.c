@@ -61,18 +61,18 @@ static int initialize_zone(struct logical_zones *zones, zone_count_t zone_number
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (zone_number < vdo->thread_config->logical_zone_count - 1)
+	if (zone_number < vdo->thread_config.logical_zone_count - 1)
 		zone->next = &zones->zones[zone_number + 1];
 
 	vdo_initialize_completion(&zone->completion, vdo, VDO_GENERATION_FLUSHED_COMPLETION);
 	zone->zones = zones;
 	zone->zone_number = zone_number;
-	zone->thread_id = vdo_get_logical_zone_thread(vdo->thread_config, zone_number);
+	zone->thread_id = vdo->thread_config.logical_threads[zone_number];
 	zone->block_map_zone = &vdo->block_map->zones[zone_number];
 	INIT_LIST_HEAD(&zone->write_vios);
 	vdo_set_admin_state_code(&zone->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 
-	allocation_zone_number = zone->thread_id % vdo->thread_config->physical_zone_count;
+	allocation_zone_number = zone->thread_id % vdo->thread_config.physical_zone_count;
 	zone->allocation_zone = &vdo->physical_zones->zones[allocation_zone_number];
 
 	return vdo_make_default_thread(vdo, zone->thread_id);
@@ -90,7 +90,7 @@ int vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	struct logical_zones *zones;
 	int result;
 	zone_count_t zone;
-	zone_count_t zone_count = vdo->thread_config->logical_zone_count;
+	zone_count_t zone_count = vdo->thread_config.logical_zone_count;
 
 	if (zone_count == 0)
 		return VDO_SUCCESS;
@@ -112,7 +112,7 @@ int vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 
 	result = vdo_make_action_manager(zones->zone_count,
 					 get_thread_id_for_zone,
-					 vdo->thread_config->admin_thread,
+					 vdo->thread_config.admin_thread,
 					 zones,
 					 NULL,
 					 vdo,

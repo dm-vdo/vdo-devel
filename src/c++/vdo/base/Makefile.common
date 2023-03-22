@@ -32,7 +32,6 @@ BASE_OBJS :=     			\
 	recovery-journal.o		\
 	slab-depot.o			\
 	status-codes.o			\
-	thread-config.o			\
 	vdo.o				\
 	vio.o				\
 	volume-geometry.o		\

@@ -461,8 +461,7 @@ void waitForRecoveryDone(void)
 {
   inRecovery = true;
   while (inRecovery) {
-    performSuccessfulActionOnThread(checkRecoveryDone,
-                                    vdo->thread_config->admin_thread);
+    performSuccessfulActionOnThread(checkRecoveryDone, vdo->thread_config.admin_thread);
   }
 }
 
@@ -490,7 +489,7 @@ void performSetVDOCompressing(bool enable)
   performSuccessfulActionOnThread((enable
                                    ? enableCompressionAction
                                    : disableCompressionAction),
-                                  vdo->thread_config->packer_thread);
+                                  vdo->thread_config.packer_thread);
 }
 
 /**********************************************************************/
