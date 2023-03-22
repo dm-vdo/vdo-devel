@@ -4944,8 +4944,10 @@ EXTERNAL_STATIC void load_slab_summary(void *context, struct vdo_completion *par
 						 VDO_SLAB_SUMMARY_BLOCKS,
 						 (char *) depot->summary_entries,
 						 &vio);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
 		vdo_fail_completion(parent, result);
+		return;
+	}
 
 	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
 	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
