@@ -11,6 +11,9 @@
 
 #include "uds-threads.h"
 
+#define DEFINE_MUTEX(mutexname) \
+	struct mutex mutexname = UDS_MUTEX_INITIALIZER
+
 #define mutex_destroy(mutex) uds_destroy_mutex(mutex)
 #define mutex_init(mutex) \
 	ASSERT_LOG_ONLY(uds_init_mutex(mutex) == UDS_SUCCESS, \

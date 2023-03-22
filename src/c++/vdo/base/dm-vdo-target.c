@@ -211,7 +211,7 @@ struct instance_tracker {
 	unsigned int next;
 };
 
-static DEFINE_SPINLOCK(instances_lock);
+static DEFINE_MUTEX(instances_lock);
 static struct instance_tracker instances;
 
 #ifndef __KERNEL__
@@ -1593,7 +1593,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 
 EXTERNAL_STATIC void release_instance(unsigned int instance)
 {
-	spin_lock(&instances_lock);
+	mutex_lock(&instances_lock);
 	if (instance >= instances.bit_count) {
 		ASSERT_LOG_ONLY(false,
 				"instance number %u must be less than bit count %u",
@@ -1605,7 +1605,7 @@ EXTERNAL_STATIC void release_instance(unsigned int instance)
 		__clear_bit(instance, instances.words);
 		instances.count -= 1;
 	}
-	spin_unlock(&instances_lock);
+	mutex_unlock(&instances_lock);
 }
 
 static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
@@ -1801,9 +1801,9 @@ static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **arg
 	unsigned int instance;
 	struct registered_thread instance_thread;
 
-	spin_lock(&instances_lock);
+	mutex_lock(&instances_lock);
 	result = allocate_instance(&instance);
-	spin_unlock(&instances_lock);
+	mutex_unlock(&instances_lock);
 	if (result != VDO_SUCCESS)
 		return -ENOMEM;
 
