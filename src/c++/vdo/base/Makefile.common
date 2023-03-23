@@ -18,7 +18,6 @@ BASE_OBJS :=     			\
         dm-vdo-target.o                 \
 	encodings.o			\
 	flush.o				\
-	heap.o				\
 	int-map.o			\
 	io-submitter.o			\
 	logical-zone.o			\

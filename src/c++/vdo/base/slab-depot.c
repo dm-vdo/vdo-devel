@@ -8,6 +8,7 @@
 #include <linux/atomic.h>
 #include <linux/bio.h>
 #include <linux/log2.h>
+#include <linux/min_heap.h>
 #include <linux/minmax.h>
 
 #include "logger.h"
@@ -22,7 +23,6 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "encodings.h"
-#include "heap.h"
 #include "io-submitter.h"
 #include "physical-zone.h"
 #include "priority-table.h"
@@ -3674,43 +3674,39 @@ void vdo_release_block_reference(struct block_allocator *allocator,
 }
 
 /**
- * compare_slab_statuses() - This is a heap_comparator function that orders slab_status structures
- *                           using the 'is_clean' field as the primary key and the 'emptiness'
- *                           field as the secondary key.
- * @item1: The first item to compare.
- * @item2: The second item to compare.
+ * This is a min_heap callback function orders slab_status structures using the 'is_clean' field as
+ * the primary key and the 'emptiness' field as the secondary key.
  *
  * Slabs need to be pushed onto the rings in the same order they are to be popped off. Popping
  * should always get the most empty first, so pushing should be from most empty to least empty.
- * Thus, the comparator order is the usual sense since the heap structure returns larger elements
- * before smaller ones.
- *
- * Return:  1 if the first item is cleaner or emptier than the second;
- *          0 if the two items are equally clean and empty;
- *	   -1 otherwise
+ * Thus, the ordering is reversed from the usual sense since min_heap returns smaller elements
+ * before larger ones.
  */
-static int compare_slab_statuses(const void *item1, const void *item2)
+static bool slab_status_is_less_than(const void *item1, const void *item2)
 {
 	const struct slab_status *info1 = (const struct slab_status *) item1;
 	const struct slab_status *info2 = (const struct slab_status *) item2;
 
 	if (info1->is_clean != info2->is_clean)
-		return info1->is_clean ? 1 : -1;
+		return info1->is_clean;
 	if (info1->emptiness != info2->emptiness)
-		return ((info1->emptiness > info2->emptiness) ? 1 : -1);
-	return (info1->slab_number < info2->slab_number) ? 1 : -1;
+		return info1->emptiness > info2->emptiness;
+	return info1->slab_number < info2->slab_number;
 }
 
-/* Implements heap_swapper. */
 static void swap_slab_statuses(void *item1, void *item2)
 {
 	struct slab_status *info1 = item1;
 	struct slab_status *info2 = item2;
-	struct slab_status temp = *info1;
 
-	*info1 = *info2;
-	*info2 = temp;
+	swap(*info1, *info2);
 }
+
+static const struct min_heap_callbacks slab_status_min_heap = {
+	.elem_size = sizeof(struct slab_status),
+	.less = slab_status_is_less_than,
+	.swp = swap_slab_statuses,
+};
 
 /* Inform the slab actor that a action has finished on some slab; used by apply_to_slabs(). */
 static void slab_action_callback(struct vdo_completion *completion)
@@ -3907,7 +3903,7 @@ EXTERNAL_STATIC int __must_check
 vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
 	struct slab_status current_slab_status;
-	struct heap heap;
+	struct min_heap heap;
 	int result;
 	struct slab_status *slab_statuses;
 	struct slab_depot *depot = allocator->depot;
@@ -3919,17 +3915,20 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		return result;
 
 	/* Sort the slabs by cleanliness, then by emptiness hint. */
-	vdo_initialize_heap(&heap,
-			    compare_slab_statuses,
-			    swap_slab_statuses,
-			    slab_statuses,
-			    allocator->slab_count,
-			    sizeof(struct slab_status));
-	vdo_build_heap(&heap, allocator->slab_count);
+	heap = (struct min_heap) {
+		.data = slab_statuses,
+		.nr = allocator->slab_count,
+		.size = allocator->slab_count,
+	};
+	min_heapify_all(&heap, &slab_status_min_heap);
 
-	while (vdo_pop_max_heap_element(&heap, &current_slab_status)) {
+	while (heap.nr > 0) {
 		bool high_priority;
-		struct vdo_slab *slab = depot->slabs[current_slab_status.slab_number];
+		struct vdo_slab *slab;
+
+		current_slab_status = slab_statuses[0];
+		min_heap_pop(&heap, &slab_status_min_heap);
+		slab = depot->slabs[current_slab_status.slab_number];
 
 		if ((depot->load_type == VDO_SLAB_DEPOT_REBUILD_LOAD) ||
 		    (!allocator->summary_entries[slab->slab_number].load_ref_counts &&

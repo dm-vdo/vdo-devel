@@ -14,7 +14,6 @@
 
 #include "block-map.h"
 #include "encodings.h"
-#include "heap.h"
 #include "slab-depot.h"
 
 #include "vdoConfig.h"

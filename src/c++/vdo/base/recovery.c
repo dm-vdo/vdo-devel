@@ -5,6 +5,9 @@
 
 #include "recovery.h"
 
+#include <linux/min_heap.h>
+#include <linux/minmax.h>
+
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -13,7 +16,6 @@
 #include "completion.h"
 #include "constants.h"
 #include "encodings.h"
-#include "heap.h"
 #include "int-map.h"
 #include "io-submitter.h"
 #include "recovery-journal.h"
@@ -51,7 +53,7 @@ struct block_map_recovery_completion {
 	 * order, then original journal order. This permits efficient iteration over the journal
 	 * entries in order.
 	 */
-	struct heap replay_heap;
+	struct min_heap replay_heap;
 
 	/* Fields tracking progress through the journal entries. */
 
@@ -142,17 +144,13 @@ struct recovery_completion {
 };
 
 /*
- * This is a heap_comparator function that orders numbered_block_mappings using the
+ * This is a min_heap callback function that orders numbered_block_mappings using the
  * 'block_map_slot' field as the primary key and the mapping 'number' field as the secondary key.
  * Using the mapping number preserves the journal order of entries for the same slot, allowing us
  * to sort by slot while still ensuring we replay all entries with the same slot in the exact order
  * as they appeared in the journal.
- *
- * The comparator order is reversed from the usual sense since the heap structure is a max-heap,
- * returning larger elements before smaller ones, but we want to pop entries off the heap in
- * ascending LBN order.
  */
-static int compare_mappings(const void *item1, const void *item2)
+static bool mapping_is_less_than(const void *item1, const void *item2)
 {
 	const struct numbered_block_mapping *mapping1 =
 		(const struct numbered_block_mapping *) item1;
@@ -160,26 +158,48 @@ static int compare_mappings(const void *item1, const void *item2)
 		(const struct numbered_block_mapping *) item2;
 
 	if (mapping1->block_map_slot.pbn != mapping2->block_map_slot.pbn)
-		return ((mapping1->block_map_slot.pbn < mapping2->block_map_slot.pbn) ? 1 : -1);
+		return mapping1->block_map_slot.pbn < mapping2->block_map_slot.pbn;
 
 	if (mapping1->block_map_slot.slot != mapping2->block_map_slot.slot)
-		return ((mapping1->block_map_slot.slot < mapping2->block_map_slot.slot) ? 1 : -1);
+		return mapping1->block_map_slot.slot < mapping2->block_map_slot.slot;
 
 	if (mapping1->number != mapping2->number)
-		return ((mapping1->number < mapping2->number) ? 1 : -1);
+		return mapping1->number < mapping2->number;
 
 	return 0;
 }
 
-/* Implements heap_swapper. */
 static void swap_mappings(void *item1, void *item2)
 {
 	struct numbered_block_mapping *mapping1 = item1;
 	struct numbered_block_mapping *mapping2 = item2;
-	struct numbered_block_mapping temp = *mapping1;
 
-	*mapping1 = *mapping2;
-	*mapping2 = temp;
+	swap(*mapping1, *mapping2);
+}
+
+static const struct min_heap_callbacks recovery_min_heap = {
+	.elem_size = sizeof(struct numbered_block_mapping),
+	.less = mapping_is_less_than,
+	.swp = swap_mappings,
+};
+
+static struct numbered_block_mapping *
+sort_next_heap_element(struct block_map_recovery_completion *recovery)
+{
+	struct min_heap *heap = &recovery->replay_heap;
+	struct numbered_block_mapping *last;
+
+	if (heap->nr == 0)
+		return NULL;
+
+	/*
+	 * Swap the next heap element with the last one on the heap, popping it off the heap,
+	 * restore the heap invariant, and return a pointer to the popped element.
+	 */
+	last = &recovery->journal_entries[--heap->nr];
+	swap_mappings(heap->data, last);
+	min_heapify(heap, 0, &recovery_min_heap);
+	return last;
 }
 
 static inline struct block_map_recovery_completion * __must_check
@@ -227,13 +247,12 @@ static int make_recovery_completion(struct vdo *vdo,
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
 	 * order incrementally, avoiding an expensive sort call.
 	 */
-	vdo_initialize_heap(&recovery->replay_heap,
-			    compare_mappings,
-			    swap_mappings,
-			    journal_entries,
-			    entry_count,
-			    sizeof(struct numbered_block_mapping));
-	vdo_build_heap(&recovery->replay_heap, entry_count);
+	recovery->replay_heap = (struct min_heap) {
+		.data = journal_entries,
+		.nr = entry_count,
+		.size = entry_count,
+	};
+	min_heapify_all(&recovery->replay_heap, &recovery_min_heap);
 	vdo_prepare_completion(&recovery->completion,
 			       finish_block_map_recovery,
 			       finish_block_map_recovery,
@@ -243,7 +262,7 @@ static int make_recovery_completion(struct vdo *vdo,
 #ifdef INTERNAL
 	/* This message must be recognizable by VDOTest::RebuildBase. */
 #endif
-	uds_log_info("Replaying %zu recovery entries into block map", recovery->replay_heap.count);
+	uds_log_info("Replaying %d recovery entries into block map", recovery->replay_heap.nr);
 
 	*recovery_ptr = recovery;
 	return VDO_SUCCESS;
@@ -324,7 +343,7 @@ find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
 	       (current_entry->block_map_slot.pbn == current_page)) {
 		if (needs_sort) {
 			struct numbered_block_mapping *just_sorted_entry =
-				vdo_sort_next_heap_element(&recovery->replay_heap);
+				sort_next_heap_element(recovery);
 			ASSERT_LOG_ONLY(just_sorted_entry < current_entry,
 					"heap is returning elements in an unexpected order");
 		}
@@ -469,12 +488,12 @@ recover_block_map(struct vdo *vdo,
 		return;
 	}
 
-	if (vdo_is_heap_empty(&recovery->replay_heap)) {
+	if (recovery->replay_heap.nr == 0) {
 		vdo_finish_completion(&recovery->completion);
 		return;
 	}
 
-	first_sorted_entry = vdo_sort_next_heap_element(&recovery->replay_heap);
+	first_sorted_entry = sort_next_heap_element(recovery);
 	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
 			"heap is returning elements in an unexpected order");
 

@@ -24,4 +24,12 @@
  **/
 #define min_t(type, x, y) ((type) __min((type) (x), (type) (y)))
 
+/**
+ * swap - swap values of @a and @b
+ * @a: first value
+ * @b: second value
+ */
+#define swap(a, b) \
+	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
+
 #endif // LINUX_MINMAX_H

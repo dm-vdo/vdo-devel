@@ -267,8 +267,6 @@ tarballs:
             - encodings.h
             - flush.c
             - flush.h
-            - heap.c
-            - heap.h
             - int-map.c
             - int-map.h
             - io-submitter.c
