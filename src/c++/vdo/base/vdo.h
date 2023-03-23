@@ -155,10 +155,10 @@ struct thread_config {
 struct thread_count_config;
 
 struct vdo_super_block {
+	/* A buffer to hold the super block */
+	u8 buffer[VDO_BLOCK_SIZE];
 	/* The vio for reading and writing the super block to disk */
 	struct vio vio;
-	/* The super block codec */
-	struct super_block_codec codec;
 	/* Whether this super block may not be written */
 	bool unwriteable;
 };

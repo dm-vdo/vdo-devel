@@ -1435,7 +1435,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	const struct device_config *config = vdo->device_config;
 	int result;
 
-	result = vdo_decode_component_states(vdo->super_block.codec.component_buffer,
+	result = vdo_decode_component_states(vdo->super_block.buffer,
 					     &vdo->geometry,
 					     &vdo->states);
 	if (result != VDO_SUCCESS)

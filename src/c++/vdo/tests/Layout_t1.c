@@ -104,13 +104,13 @@ static void testLayout(void)
   VDO_ASSERT_SUCCESS(initializeLayoutFromConfig(&config, LAYOUT_START, layout));
   checkLayout(layout);
 
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(VDO_LAYOUT_ENCODED_SIZE, &buffer));
-  VDO_ASSERT_SUCCESS(encode_layout(layout, buffer));
+  u8 buffer[VDO_LAYOUT_ENCODED_SIZE];
+  size_t offset = 0;
+  encode_layout(buffer, &offset, layout);
   vdo_uninitialize_layout(layout);
 
-  VDO_ASSERT_SUCCESS(decode_layout(buffer, LAYOUT_START, physicalSize, layout));
-  uds_free_buffer(UDS_FORGET(buffer));
+  offset = 0;
+  VDO_ASSERT_SUCCESS(decode_layout(buffer, &offset, LAYOUT_START, physicalSize, layout));
   checkLayout(layout);
 
   memset(&vdo.next_layout, 0, sizeof(struct layout));

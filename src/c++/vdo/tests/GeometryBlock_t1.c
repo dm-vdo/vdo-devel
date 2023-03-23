@@ -8,7 +8,6 @@
 
 #include "albtest.h"
 
-#include "buffer.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
 
@@ -193,14 +192,9 @@ static void basicTest(void)
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, 1, geometryBlock));
 
   // Decode the GeometryBlock header.
-  struct buffer *headerBuffer;
-  VDO_ASSERT_SUCCESS(uds_wrap_buffer((u8 *) geometryBlock + MAGIC_NUMBER_SIZE,
-                                     VDO_ENCODED_HEADER_SIZE,
-                                     VDO_ENCODED_HEADER_SIZE,
-                                     &headerBuffer));
   struct header header;
-  VDO_ASSERT_SUCCESS(vdo_decode_header(headerBuffer, &header));
-  uds_free_buffer(UDS_FORGET(headerBuffer));
+  size_t offset = MAGIC_NUMBER_SIZE;
+  vdo_decode_header((u8 *) geometryBlock, &offset, &header);
 
   // Try corrupting the magic number.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);

@@ -593,9 +593,7 @@ readVDOFromDump(const char *filename)
     return result;
   }
 
-  result = vdo_decode_component_states(vdo->superBlockCodec.component_buffer,
-                                       &geometry,
-                                       &vdo->states);
+  result = vdo_decode_component_states((u8 *) vdo->superBlockBuffer, &geometry, &vdo->states);
   if (result != VDO_SUCCESS) {
     freeUserVDO(&vdo);
     return result;

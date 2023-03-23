@@ -736,7 +736,6 @@ static void free_listeners(struct vdo_thread *thread)
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
-	vdo_destroy_super_block_codec(&super_block->codec);
 }
 
 /**
@@ -825,18 +824,12 @@ void vdo_destroy(struct vdo *vdo)
 
 static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
 {
-	int result;
-
-	result = vdo_initialize_super_block_codec(&super_block->codec);
-	if (result != UDS_SUCCESS)
-		return result;
-
 	return allocate_vio_components(vdo,
 				       VIO_TYPE_SUPER_BLOCK,
 				       VIO_PRIORITY_METADATA,
 				       NULL,
 				       1,
-				       (char *) super_block->codec.encoded_super_block,
+				       (char *) super_block->buffer,
 				       &vdo->super_block.vio);
 }
 
@@ -852,7 +845,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 		container_of(as_vio(completion), struct vdo_super_block, vio);
 
 	vdo_continue_completion(UDS_FORGET(completion->parent),
-				vdo_decode_super_block(&super_block->codec));
+				vdo_decode_super_block(super_block->buffer));
 }
 
 /**
@@ -1106,8 +1099,6 @@ static void super_block_write_endio(struct bio *bio)
  */
 void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
-	int result;
-	struct buffer *buffer;
 	struct vdo_super_block *super_block = &vdo->super_block;
 
 	if (super_block->unwriteable) {
@@ -1121,19 +1112,8 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 	}
 
 	record_vdo(vdo);
-	buffer = vdo->super_block.codec.component_buffer;
-	result = vdo_encode_component_states(buffer, &vdo->states);
-	if (result != VDO_SUCCESS) {
-		vdo_continue_completion(parent, result);
-		return;
-	}
 
-	result = vdo_encode_super_block(&super_block->codec);
-	if (result != VDO_SUCCESS) {
-		vdo_continue_completion(parent, result);
-		return;
-	}
-
+	vdo_encode_super_block(super_block->buffer, &vdo->states);
 	super_block->vio.completion.parent = parent;
 	super_block->vio.completion.callback_thread_id = parent->callback_thread_id;
 	submit_metadata_vio(&super_block->vio,

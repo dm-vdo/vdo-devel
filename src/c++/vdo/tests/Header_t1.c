@@ -8,7 +8,6 @@
 
 #include "albtest.h"
 
-#include "buffer.h"
 #include "memory-alloc.h"
 
 #include "encodings.h"
@@ -47,14 +46,13 @@ static void assertSameHeader(struct header *headerA, struct header *headerB)
  **/
 static void testHeaderCoding(void)
 {
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(VDO_ENCODED_HEADER_SIZE, &buffer));
-  VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
+  u8 buffer[VDO_ENCODED_HEADER_SIZE];
+  size_t offset = 0;
+  vdo_encode_header(buffer, &offset, &HEADER);
 
   struct header header;
-  VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
-  uds_free_buffer(UDS_FORGET(buffer));
-
+  offset = 0;
+  vdo_decode_header(buffer, &offset, &header);
   assertSameHeader(&HEADER, &header);
 
   header.version.minor_version++;
@@ -70,76 +68,31 @@ static void testHeaderCoding(void)
 }
 
 /**
- * Test encoding and decoding a header with a buffer that is too short.
- **/
-static void testHeaderCodingTooShort(void)
-{
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(VDO_ENCODED_HEADER_SIZE - 1, &buffer));
-  CU_ASSERT_EQUAL(UDS_BUFFER_ERROR, vdo_encode_header(&HEADER, buffer));
-
-  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer,
-                                   VDO_ENCODED_HEADER_SIZE - 1,
-                                   &HEADER));
-
-  struct header header;
-  CU_ASSERT_EQUAL(UDS_BUFFER_ERROR, vdo_decode_header(buffer, &header));
-  uds_free_buffer(UDS_FORGET(buffer));
-}
-
-/**
  * Test encode and decode of structured data.
  **/
 static void testDataCoding(void)
 {
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE,
-                                     &buffer));
-
-  VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
-  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer, HEADER.size, DATA));
+  u8 buffer[VDO_ENCODED_HEADER_SIZE + DATA_SIZE];
+  size_t offset = 0;
+  vdo_encode_header(buffer, &offset, &HEADER);
+  memcpy(buffer + offset, DATA, HEADER.size);
 
   struct header header;
-  VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
+  offset = 0;
+  vdo_decode_header(buffer, &offset, &header);
 
   u8 data[DATA_SIZE];
-  VDO_ASSERT_SUCCESS(uds_get_bytes_from_buffer(buffer, header.size, data));
-  uds_free_buffer(UDS_FORGET(buffer));
+  memcpy(data, buffer + offset, header.size);
 
   assertSameHeader(&HEADER, &header);
   UDS_ASSERT_EQUAL_BYTES(DATA, data, DATA_SIZE);
 }
 
-/**
- * Test encode and decode of structured data with a buffer that is too short.
- **/
-static void testDataCodingTooShort(void)
-{
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(VDO_ENCODED_HEADER_SIZE + DATA_SIZE - 1,
-                                     &buffer));
-
-  VDO_ASSERT_SUCCESS(vdo_encode_header(&HEADER, buffer));
-  VDO_ASSERT_SUCCESS(uds_put_bytes(buffer, DATA_SIZE - 1, DATA));
-
-  struct header header;
-  VDO_ASSERT_SUCCESS(vdo_decode_header(buffer, &header));
-
-  u8 data[DATA_SIZE];
-  CU_ASSERT_EQUAL(UDS_BUFFER_ERROR,
-                  uds_get_bytes_from_buffer(buffer, header.size, data));
-  CU_ASSERT_EQUAL(DATA_SIZE - 1, uds_content_length(buffer));
-
-  uds_free_buffer(UDS_FORGET(buffer));
-}
-
 /**********************************************************************/
 
 static CU_TestInfo headerTests[] = {
-  { "header coding and version mismatch", testHeaderCoding,           },
-  { "header coding too short",            testHeaderCodingTooShort,   },
-  { "data coding",                        testDataCoding,             },
-  { "data coding too short",              testDataCodingTooShort,     },
+  { "header coding and version mismatch", testHeaderCoding, },
+  { "data coding",                        testDataCoding,   },
   CU_TEST_INFO_NULL
 };
 

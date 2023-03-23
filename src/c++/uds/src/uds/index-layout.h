@@ -10,7 +10,6 @@
 #include <linux/atomic.h>
 
 #endif /* TEST_INTERNAL */
-#include "buffer.h"
 #include "config.h"
 #include "io-factory.h"
 #include "uds.h"

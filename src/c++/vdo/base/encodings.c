@@ -7,7 +7,6 @@
 
 #include <linux/log2.h>
 
-#include "buffer.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
@@ -162,98 +161,39 @@ int vdo_validate_header(const struct header *expected_header,
 	return VDO_SUCCESS;
 }
 
-/**
- * encode_version_number() - Encode a version number into a buffer.
- * @version: The version to encode.
- * @buffer: The buffer in which to encode the version.
- *
- * Return: UDS_SUCCESS or an error.
- */
-static int encode_version_number(struct version_number version, struct buffer *buffer)
+static void encode_version_number(u8 *buffer, size_t *offset, struct version_number version)
 {
 	struct packed_version_number packed = vdo_pack_version_number(version);
 
-	return uds_put_bytes(buffer, sizeof(packed), &packed);
+	memcpy(buffer + *offset, &packed, sizeof(packed));
+	*offset += sizeof(packed);
 }
 
-/**
- * vdo_encode_header() - Encode a header into a buffer.
- * @header: The header to encode.
- * @buffer: The buffer in which to encode the header.
- *
- * Return: UDS_SUCCESS or an error.
- */
-int vdo_encode_header(const struct header *header, struct buffer *buffer)
+void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header)
 {
-	int result;
+	struct packed_header packed = vdo_pack_header(header);
 
-	if (!uds_ensure_available_space(buffer, VDO_ENCODED_HEADER_SIZE))
-		return UDS_BUFFER_ERROR;
-
-	result = uds_put_u32_le_into_buffer(buffer, header->id);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = encode_version_number(header->version, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return uds_put_u64_le_into_buffer(buffer, header->size);
+	memcpy(buffer + *offset, &packed, sizeof(packed));
+	*offset += sizeof(packed);
 }
 
-/**
- * decode_version_number() - Decode a version number from a buffer.
- * @buffer: The buffer from which to decode the version.
- * @version: The version structure to decode into.
- *
- * Return: UDS_SUCCESS or an error.
- */
-static int decode_version_number(struct buffer *buffer, struct version_number *version)
+static void decode_version_number(u8 *buffer, size_t *offset, struct version_number *version)
 {
 	struct packed_version_number packed;
-	int result;
 
-	result = uds_get_bytes_from_buffer(buffer, sizeof(packed), &packed);
-	if (result != UDS_SUCCESS)
-		return result;
-
+	memcpy(&packed, buffer + *offset, sizeof(packed));
+	*offset += sizeof(packed);
 	*version = vdo_unpack_version_number(packed);
-	return UDS_SUCCESS;
 }
 
-/**
- * vdo_decode_header() - Decode a header from a buffer.
- * @buffer: The buffer from which to decode the header.
- * @header: The header structure to decode into.
- *
- * Return: UDS_SUCCESS or an error.
- */
-int vdo_decode_header(struct buffer *buffer, struct header *header)
+void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header)
 {
-	u32 id;
-	u64 size;
-	struct version_number version;
-	int result;
+	struct packed_header packed;
 
-	result = uds_get_u32_le_from_buffer(buffer, &id);
+	memcpy(&packed, buffer + *offset, sizeof(packed));
+	*offset += sizeof(packed);
 
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = decode_version_number(buffer, &version);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &size);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	*header = (struct header) {
-		.id = id,
-		.version = version,
-		.size = size,
-	};
-	return UDS_SUCCESS;
+	*header = vdo_unpack_header(&packed);
 }
 
 struct block_map_page *vdo_format_block_map_page(void *buffer,
@@ -290,28 +230,22 @@ vdo_validate_block_map_page(struct block_map_page *page,
 }
 
 EXTERNAL_STATIC int
-decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state)
+decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 *state)
 {
-	size_t initial_length, decoded_size;
+	size_t initial_offset;
 	block_count_t flat_page_count, root_count;
 	physical_block_number_t flat_page_origin, root_origin;
 	struct header header;
 	int result;
 
-	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	vdo_decode_header(buffer, offset, &header);
 	result = vdo_validate_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
 
-	result = uds_get_u64_le_from_buffer(buffer, &flat_page_origin);
-	if (result != UDS_SUCCESS)
-		return result;
-
+	decode_u64_le(buffer, offset, &flat_page_origin);
 	result = ASSERT(flat_page_origin == VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
 			"Flat page origin must be %u (recorded as %llu)",
 			VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
@@ -319,26 +253,17 @@ decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *st
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_get_u64_le_from_buffer(buffer, &flat_page_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
+	decode_u64_le(buffer, offset, &flat_page_count);
 	result = ASSERT(flat_page_count == 0,
 			"Flat page count must be 0 (recorded as %llu)",
 			(unsigned long long) state->flat_page_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_get_u64_le_from_buffer(buffer, &root_origin);
-	if (result != UDS_SUCCESS)
-		return result;
+	decode_u64_le(buffer, offset, &root_origin);
+	decode_u64_le(buffer, offset, &root_count);
 
-	result = uds_get_u64_le_from_buffer(buffer, &root_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	decoded_size = initial_length - uds_content_length(buffer);
-	result = ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == decoded_size,
+	result = ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == *offset - initial_offset,
 			"decoded block map component size must match header size");
 	if (result != VDO_SUCCESS)
 		return result;
@@ -353,37 +278,21 @@ decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *st
 	return VDO_SUCCESS;
 }
 
-EXTERNAL_STATIC int
-encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buffer *buffer)
+EXTERNAL_STATIC void
+encode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 state)
 {
-	size_t initial_length, encoded_size;
-	int result;
+	size_t initial_offset;
 
-	result = vdo_encode_header(&VDO_BLOCK_MAP_HEADER_2_0, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
+	vdo_encode_header(buffer, offset, &VDO_BLOCK_MAP_HEADER_2_0);
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	encode_u64_le(buffer, offset, state.flat_page_origin);
+	encode_u64_le(buffer, offset, state.flat_page_count);
+	encode_u64_le(buffer, offset, state.root_origin);
+	encode_u64_le(buffer, offset, state.root_count);
 
-	result = uds_put_u64_le_into_buffer(buffer, state.flat_page_origin);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.flat_page_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.root_origin);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.root_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	encoded_size = uds_content_length(buffer) - initial_length;
-	return ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == encoded_size,
-		      "encoded block map component size must match header size");
+	ASSERT_LOG_ONLY(VDO_BLOCK_MAP_HEADER_2_0.size == *offset - initial_offset,
+			"encoded block map component size must match header size");
 }
 
 /**
@@ -419,38 +328,25 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 
 /**
  * encode_recovery_journal_state_7_0() - Encode the state of a recovery journal.
- * @state: The recovery journal state.
- * @buffer: The buffer to encode into.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int __must_check
-encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state, struct buffer *buffer)
+EXTERNAL_STATIC void
+encode_recovery_journal_state_7_0(u8 *buffer,
+				  size_t *offset,
+				  struct recovery_journal_state_7_0 state)
 {
-	size_t initial_length, encoded_size;
-	int result;
+	size_t initial_offset;
 
-	result = vdo_encode_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
+	vdo_encode_header(buffer, offset, &VDO_RECOVERY_JOURNAL_HEADER_7_0);
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	encode_u64_le(buffer, offset, state.journal_start);
+	encode_u64_le(buffer, offset, state.logical_blocks_used);
+	encode_u64_le(buffer, offset, state.block_map_data_blocks);
 
-	result = uds_put_u64_le_into_buffer(buffer, state.journal_start);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.logical_blocks_used);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.block_map_data_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	encoded_size = uds_content_length(buffer) - initial_length;
-	return ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
-		      "encoded recovery journal component size must match header size");
+	ASSERT_LOG_ONLY(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == *offset - initial_offset,
+			"encoded recovery journal component size must match header size");
 }
 
 /**
@@ -461,38 +357,27 @@ encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state, struc
  * Return: VDO_SUCCESS or an error code.
  */
 EXTERNAL_STATIC int __must_check
-decode_recovery_journal_state_7_0(struct buffer *buffer, struct recovery_journal_state_7_0 *state)
+decode_recovery_journal_state_7_0(u8 *buffer,
+				  size_t *offset,
+				  struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
 	int result;
-	size_t initial_length, decoded_size;
+	size_t initial_offset;
 	sequence_number_t journal_start;
 	block_count_t logical_blocks_used, block_map_data_blocks;
 
-	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	vdo_decode_header(buffer, offset, &header);
 	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	decode_u64_le(buffer, offset, &journal_start);
+	decode_u64_le(buffer, offset, &logical_blocks_used);
+	decode_u64_le(buffer, offset, &block_map_data_blocks);
 
-	result = uds_get_u64_le_from_buffer(buffer, &journal_start);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &logical_blocks_used);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &block_map_data_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	decoded_size = initial_length - uds_content_length(buffer);
-	result = ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
+	result = ASSERT(VDO_RECOVERY_JOURNAL_HEADER_7_0.size == *offset - initial_offset,
 			"decoded recovery journal component size must match header size");
 	if (result != UDS_SUCCESS)
 		return result;
@@ -527,178 +412,81 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
 }
 
 /**
- * encode_slab_config() - Encode a slab config into a buffer.
- * @config: The config structure to encode.
- * @buffer: A buffer positioned at the start of the encoding.
- *
- * Return: UDS_SUCCESS or an error code.
- */
-static int encode_slab_config(const struct slab_config *config, struct buffer *buffer)
-{
-	int result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->slab_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->data_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->reference_count_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->slab_journal_blocks);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->slab_journal_flushing_threshold);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, config->slab_journal_blocking_threshold);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return uds_put_u64_le_into_buffer(buffer, config->slab_journal_scrubbing_threshold);
-}
-
-/**
  * encode_slab_depot_state_2_0() - Encode the state of a slab depot into a buffer.
- * @state: The state to encode.
- * @buffer: The buffer to encode into.
  *
  * Return: UDS_SUCCESS or an error.
  */
-EXTERNAL_STATIC int
-encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state, struct buffer *buffer)
+EXTERNAL_STATIC void
+encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 state)
 {
-	size_t initial_length, encoded_size;
-	int result;
+	size_t initial_offset;
 
-	result = vdo_encode_header(&VDO_SLAB_DEPOT_HEADER_2_0, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
+	vdo_encode_header(buffer, offset, &VDO_SLAB_DEPOT_HEADER_2_0);
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	encode_u64_le(buffer, offset, state.slab_config.slab_blocks);
+	encode_u64_le(buffer, offset, state.slab_config.data_blocks);
+	encode_u64_le(buffer, offset, state.slab_config.reference_count_blocks);
+	encode_u64_le(buffer, offset, state.slab_config.slab_journal_blocks);
+	encode_u64_le(buffer, offset, state.slab_config.slab_journal_flushing_threshold);
+	encode_u64_le(buffer, offset, state.slab_config.slab_journal_blocking_threshold);
+	encode_u64_le(buffer, offset, state.slab_config.slab_journal_scrubbing_threshold);
+	encode_u64_le(buffer, offset, state.first_block);
+	encode_u64_le(buffer, offset, state.last_block);
+	buffer[(*offset)++] = state.zone_count;
 
-	result = encode_slab_config(&state.slab_config, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.first_block);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, state.last_block);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_byte(buffer, state.zone_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	encoded_size = uds_content_length(buffer) - initial_length;
-	return ASSERT(VDO_SLAB_DEPOT_HEADER_2_0.size == encoded_size,
-		      "encoded block map component size must match header size");
-}
-
-/**
- * decode_slab_config() - Decode a slab config from a buffer.
- * @buffer: A buffer positioned at the start of the encoding.
- * @config: The config structure to receive the decoded values.
- *
- * Return: UDS_SUCCESS or an error code.
- */
-static int decode_slab_config(struct buffer *buffer, struct slab_config *config)
-{
-	block_count_t count;
-	int result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->slab_blocks = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->data_blocks = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->reference_count_blocks = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->slab_journal_blocks = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->slab_journal_flushing_threshold = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->slab_journal_blocking_threshold = count;
-
-	result = uds_get_u64_le_from_buffer(buffer, &count);
-	if (result != UDS_SUCCESS)
-		return result;
-	config->slab_journal_scrubbing_threshold = count;
-
-	return UDS_SUCCESS;
+	ASSERT_LOG_ONLY(VDO_SLAB_DEPOT_HEADER_2_0.size == *offset - initial_offset,
+			"encoded block map component size must match header size");
 }
 
 /**
  * decode_slab_depot_state_2_0() - Decode slab depot component state version 2.0 from a buffer.
- * @buffer: A buffer positioned at the start of the encoding.
- * @state: The state structure to receive the decoded values.
  *
  * Return: UDS_SUCCESS or an error code.
  */
 EXTERNAL_STATIC int
-decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *state)
+decode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 *state)
 {
 	struct header header;
 	int result;
-	size_t initial_length, decoded_size;
+	size_t initial_offset;
 	struct slab_config slab_config;
+	block_count_t count;
 	physical_block_number_t first_block, last_block;
 	zone_count_t zone_count;
 
-	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	vdo_decode_header(buffer, offset, &header);
 	result = vdo_validate_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	decode_u64_le(buffer, offset, &count);
+	slab_config.slab_blocks = count;
 
-	result = decode_slab_config(buffer, &slab_config);
-	if (result != UDS_SUCCESS)
-		return result;
+	decode_u64_le(buffer, offset, &count);
+	slab_config.data_blocks = count;
 
-	result = uds_get_u64_le_from_buffer(buffer, &first_block);
-	if (result != UDS_SUCCESS)
-		return result;
+	decode_u64_le(buffer, offset, &count);
+	slab_config.reference_count_blocks = count;
 
-	result = uds_get_u64_le_from_buffer(buffer, &last_block);
-	if (result != UDS_SUCCESS)
-		return result;
+	decode_u64_le(buffer, offset, &count);
+	slab_config.slab_journal_blocks = count;
 
-	result = uds_get_byte(buffer, &zone_count);
-	if (result != UDS_SUCCESS)
-		return result;
+	decode_u64_le(buffer, offset, &count);
+	slab_config.slab_journal_flushing_threshold = count;
 
-	decoded_size = initial_length - uds_content_length(buffer);
-	result = ASSERT(VDO_SLAB_DEPOT_HEADER_2_0.size == decoded_size,
+	decode_u64_le(buffer, offset, &count);
+	slab_config.slab_journal_blocking_threshold = count;
+
+	decode_u64_le(buffer, offset, &count);
+	slab_config.slab_journal_scrubbing_threshold = count;
+
+	decode_u64_le(buffer, offset, &first_block);
+	decode_u64_le(buffer, offset, &last_block);
+	zone_count = buffer[(*offset)++];
+
+	result = ASSERT(VDO_SLAB_DEPOT_HEADER_2_0.size == *offset - initial_offset,
 			"decoded slab depot component size must match header size");
 	if (result != UDS_SUCCESS)
 		return result;
@@ -1067,154 +855,41 @@ struct partition *vdo_get_known_partition(struct layout *layout, enum partition_
 	return partition;
 }
 
-static int encode_partitions_3_0(const struct layout *layout, struct buffer *buffer)
+EXTERNAL_STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout)
 {
 	const struct partition *partition;
-
-	for (partition = layout->head; partition != NULL; partition = partition->next) {
-		int result;
-
-		STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
-		result = uds_put_byte(buffer, partition->id);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = uds_put_u64_le_into_buffer(buffer, partition->offset);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		/* This field only exists for backwards compatability */
-		result = uds_put_u64_le_into_buffer(buffer, 0);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = uds_put_u64_le_into_buffer(buffer, partition->count);
-		if (result != UDS_SUCCESS)
-			return result;
-	}
-
-	return UDS_SUCCESS;
-}
-
-static int encode_layout_3_0(const struct layout *layout, struct buffer *buffer)
-{
-	int result;
-
-	result = ASSERT(layout->num_partitions <= U8_MAX,
-			"layout partition count must fit in a byte");
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, layout->first_free);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u64_le_into_buffer(buffer, layout->last_free);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return uds_put_byte(buffer, layout->num_partitions);
-}
-
-EXTERNAL_STATIC int encode_layout(const struct layout *layout, struct buffer *buffer)
-{
-	size_t initial_length, encoded_size;
-	int result;
+	size_t initial_offset;
 	struct header header = VDO_LAYOUT_HEADER_3_0;
 
-	if (!uds_ensure_available_space(buffer, VDO_LAYOUT_ENCODED_SIZE))
-		return UDS_BUFFER_ERROR;
+	STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
+	ASSERT_LOG_ONLY(layout->num_partitions <= U8_MAX,
+			"layout partition count must fit in a byte");
 
-	result = vdo_encode_header(&header, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
+	vdo_encode_header(buffer, offset, &header);
 
-	initial_length = uds_content_length(buffer);
+	initial_offset = *offset;
+	encode_u64_le(buffer, offset, layout->first_free);
+	encode_u64_le(buffer, offset, layout->last_free);
+	buffer[(*offset)++] = layout->num_partitions;
 
-	result = encode_layout_3_0(layout, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	encoded_size = uds_content_length(buffer) - initial_length;
-	result = ASSERT(encoded_size == sizeof(struct layout_3_0),
+	ASSERT_LOG_ONLY(sizeof(struct layout_3_0) == *offset - initial_offset,
 			"encoded size of a layout header must match structure");
-	if (result != UDS_SUCCESS)
-		return result;
 
-	result = encode_partitions_3_0(layout, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	encoded_size = uds_content_length(buffer) - initial_length;
-	return ASSERT(encoded_size == header.size,
-		      "encoded size of a layout must match header size");
-}
-
-static int decode_partitions_3_0(struct buffer *buffer, struct layout *layout)
-{
-	size_t i;
-
-	for (i = 0; i < layout->num_partitions; i++) {
-		u8 id;
-		u64 offset, base, count;
-		int result;
-
-		result = uds_get_byte(buffer, &id);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = uds_get_u64_le_from_buffer(buffer, &offset);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = uds_get_u64_le_from_buffer(buffer, &base);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = uds_get_u64_le_from_buffer(buffer, &count);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		result = allocate_partition(layout, id, offset, count);
-		if (result != VDO_SUCCESS)
-			return result;
+	for (partition = layout->head; partition != NULL; partition = partition->next) {
+		buffer[(*offset)++] = partition->id;
+		encode_u64_le(buffer, offset, partition->offset);
+		/* This field only exists for backwards compatability */
+		encode_u64_le(buffer, offset, 0);
+		encode_u64_le(buffer, offset, partition->count);
 	}
 
-	return UDS_SUCCESS;
-}
-
-static int decode_layout_3_0(struct buffer *buffer, struct layout_3_0 *layout)
-{
-	size_t decoded_size, initial_length = uds_content_length(buffer);
-	physical_block_number_t first_free, last_free;
-	u8 partition_count;
-	int result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &first_free);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_u64_le_from_buffer(buffer, &last_free);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_get_byte(buffer, &partition_count);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	*layout = (struct layout_3_0) {
-		.first_free = first_free,
-		.last_free = last_free,
-		.partition_count = partition_count,
-	};
-
-	decoded_size = initial_length - uds_content_length(buffer);
-	return ASSERT(decoded_size == sizeof(struct layout_3_0),
-		      "decoded size of a layout header must match structure");
+	ASSERT_LOG_ONLY(header.size == *offset - initial_offset,
+			"encoded size of a layout must match header size");
 }
 
 EXTERNAL_STATIC int
-decode_layout(struct buffer *buffer,
+decode_layout(u8 *buffer,
+	      size_t *offset,
 	      physical_block_number_t start,
 	      block_count_t size,
 	      struct layout *layout)
@@ -1222,25 +897,32 @@ decode_layout(struct buffer *buffer,
 	struct header header;
 	struct layout_3_0 layout_header;
 	struct partition *partition;
+	size_t initial_offset;
+	physical_block_number_t first_free, last_free;
+	u8 partition_count;
 	u8 i;
 	int result;
 
-	result = vdo_decode_header(buffer, &header);
-	if (result != UDS_SUCCESS)
-		return result;
-
+	vdo_decode_header(buffer, offset, &header);
 	/* Layout is variable size, so only do a minimum size check here. */
 	result = vdo_validate_header(&VDO_LAYOUT_HEADER_3_0, &header, false, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_layout_3_0(buffer, &layout_header);
-	if (result != UDS_SUCCESS)
-		return result;
+	initial_offset = *offset;
+	decode_u64_le(buffer, offset, &first_free);
+	decode_u64_le(buffer, offset, &last_free);
+	partition_count = buffer[(*offset)++];
+	layout_header = (struct layout_3_0) {
+		.first_free = first_free,
+		.last_free = last_free,
+		.partition_count = partition_count,
+	};
 
-	if (uds_content_length(buffer) <
-	    (sizeof(struct partition_3_0) * layout_header.partition_count))
-		return VDO_UNSUPPORTED_VERSION;
+	result = ASSERT(sizeof(struct layout_3_0) == *offset - initial_offset,
+			"decoded size of a layout header must match structure");
+	if (result != VDO_SUCCESS)
+		return result;
 
 	layout->start = start;
 	layout->size = size;
@@ -1248,19 +930,27 @@ decode_layout(struct buffer *buffer,
 	layout->last_free = layout_header.last_free;
 	layout->num_partitions = layout_header.partition_count;
 
-	result = decode_partitions_3_0(buffer, layout);
-	if (result != VDO_SUCCESS) {
-		vdo_uninitialize_layout(layout);
-		return result;
+	if (layout->num_partitions > VDO_PARTITION_COUNT)
+		return uds_log_error_strerror(VDO_UNKNOWN_PARTITION,
+					      "layout has extra partitions");
+
+	for (i = 0; i < layout->num_partitions; i++) {
+		u8 id;
+		u64 partition_offset, count;
+
+		id = buffer[(*offset)++];
+		decode_u64_le(buffer, offset, &partition_offset);
+		*offset += sizeof(u64);
+		decode_u64_le(buffer, offset, &count);
+
+		result = allocate_partition(layout, id, partition_offset, count);
+		if (result != VDO_SUCCESS) {
+			vdo_uninitialize_layout(layout);
+			return result;
+		}
 	}
 
 	/* Validate that the layout has all (and only) the required partitions */
-	if (layout->num_partitions > VDO_PARTITION_COUNT) {
-		vdo_uninitialize_layout(layout);
-		return uds_log_error_strerror(VDO_UNKNOWN_PARTITION,
-					      "layout has extra partitions");
-	}
-
 	for (i = 0; i < VDO_PARTITION_COUNT; i++) {
 		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i], &partition);
 		if (result != VDO_SUCCESS) {
@@ -1304,8 +994,7 @@ static struct packed_vdo_config pack_vdo_config(struct vdo_config config)
  *
  * Return: The platform-independent representation of the component.
  */
-static struct packed_vdo_component_41_0
-pack_vdo_component(const struct vdo_component component)
+static struct packed_vdo_component_41_0 pack_vdo_component(const struct vdo_component component)
 {
 	return (struct packed_vdo_component_41_0) {
 		.state = __cpu_to_le32(component.state),
@@ -1316,24 +1005,14 @@ pack_vdo_component(const struct vdo_component component)
 	};
 }
 
-/**
- * encode_vdo_component() - Encode the component data for the vdo itself.
- * @component: The component structure.
- * @buffer: The buffer in which to encode the vdo.
- *
- * Return: VDO_SUCCESS or an error.
- */
-static int encode_vdo_component(struct vdo_component component, struct buffer *buffer)
+static void encode_vdo_component(u8 *buffer, size_t *offset, struct vdo_component component)
 {
-	int result;
 	struct packed_vdo_component_41_0 packed;
 
-	result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	encode_version_number(buffer, offset, VDO_COMPONENT_DATA_41_0);
 	packed = pack_vdo_component(component);
-	return uds_put_bytes(buffer, sizeof(packed), &packed);
+	memcpy(buffer + *offset, &packed, sizeof(packed));
+	*offset += sizeof(packed);
 }
 
 /**
@@ -1373,49 +1052,25 @@ unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
 }
 
 /**
- * vdo_decode_component_41_0() - Decode the version 41.0 component data for the vdo itself from a
- *				 buffer.
- * @buffer: A buffer positioned at the start of the encoding.
- * @component: The component structure to receive the decoded values.
+ * vdo_decode_component() - Decode the component data for the vdo itself out of the super block.
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check
-decode_vdo_component_41_0(struct buffer *buffer, struct vdo_component *component)
+static int decode_vdo_component(u8 *buffer, size_t *offset, struct vdo_component *component)
 {
+	struct version_number version;
 	struct packed_vdo_component_41_0 packed;
 	int result;
 
-	result = uds_get_bytes_from_buffer(buffer, sizeof(packed), &packed);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	*component = unpack_vdo_component_41_0(packed);
-	return VDO_SUCCESS;
-}
-
-/**
- * vdo_decode_component() - Decode the component data for the vdo itself from the component data
- *			    buffer in the super block.
- * @buffer: The buffer being decoded.
- * @component: The component structure in which to store the result of a successful decode.
- *
- * Return: VDO_SUCCESS or an error.
- */
-static int decode_vdo_component(struct buffer *buffer, struct vdo_component *component)
-{
-	struct version_number version;
-	int result;
-
-	result = decode_version_number(buffer, &version);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	decode_version_number(buffer, offset, &version);
 	result = validate_version(version, VDO_COMPONENT_DATA_41_0, "VDO component data");
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return decode_vdo_component_41_0(buffer, component);
+	memcpy(&packed, buffer + *offset, sizeof(packed));
+	*offset += sizeof(packed);
+	*component = unpack_vdo_component_41_0(packed);
+	return VDO_SUCCESS;
 }
 
 /**
@@ -1544,42 +1199,43 @@ void vdo_destroy_component_states(struct vdo_component_states *states)
  * decode_components() - Decode the components now that we know the component data is a version we
  *                       understand.
  * @buffer: The buffer being decoded.
+ * @offset: The offset to start decoding from.
  * @geometry: The vdo geometry
  * @states: An object to hold the successfully decoded state.
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check
-decode_components(struct buffer *buffer,
-		  struct volume_geometry *geometry,
-		  struct vdo_component_states *states)
+static int __must_check decode_components(u8 *buffer,
+					  size_t *offset,
+					  struct volume_geometry *geometry,
+					  struct vdo_component_states *states)
 {
 	int result;
 
-	result = decode_vdo_component(buffer, &states->vdo);
-	if (result != VDO_SUCCESS)
-		return result;
+	decode_vdo_component(buffer, offset, &states->vdo);
 
 	result = decode_layout(buffer,
+			       offset,
 			       vdo_get_data_region_start(*geometry) + 1,
 			       states->vdo.config.physical_blocks,
 			       &states->layout);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_recovery_journal_state_7_0(buffer, &states->recovery_journal);
+	result = decode_recovery_journal_state_7_0(buffer, offset, &states->recovery_journal);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_slab_depot_state_2_0(buffer, &states->slab_depot);
+	result = decode_slab_depot_state_2_0(buffer, offset, &states->slab_depot);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_block_map_state_2_0(buffer, &states->block_map);
+	result = decode_block_map_state_2_0(buffer, offset, &states->block_map);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	ASSERT_LOG_ONLY((uds_content_length(buffer) == 0), "All decoded component data was used");
+	ASSERT_LOG_ONLY(*offset == VDO_COMPONENT_DATA_OFFSET + VDO_COMPONENT_DATA_SIZE,
+			"All decoded component data was used");
 	return VDO_SUCCESS;
 }
 
@@ -1591,17 +1247,15 @@ decode_components(struct buffer *buffer,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_decode_component_states(struct buffer *buffer,
+int vdo_decode_component_states(u8 *buffer,
 				struct volume_geometry *geometry,
 				struct vdo_component_states *states)
 {
 	int result;
+	size_t offset = VDO_COMPONENT_DATA_OFFSET;
 
 	/* Get and check the release version against the one from the geometry. */
-	result = uds_get_u32_le_from_buffer(buffer, &states->release_version);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	decode_u32_le(buffer, &offset, &states->release_version);
 	if (states->release_version != geometry->release_version)
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "Geometry release version %u does not match super block release version %u",
@@ -1609,21 +1263,16 @@ int vdo_decode_component_states(struct buffer *buffer,
 					      states->release_version);
 
 	/* Check the VDO volume version */
-	result = decode_version_number(buffer, &states->volume_version);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	decode_version_number(buffer, &offset, &states->volume_version);
 	result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version, "volume");
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_components(buffer, geometry, states);
-	if (result != VDO_SUCCESS) {
+	result = decode_components(buffer, &offset, geometry, states);
+	if (result != VDO_SUCCESS)
 		vdo_uninitialize_layout(&states->layout);
-		return result;
-	}
 
-	return VDO_SUCCESS;
+	return result;
 }
 
 /**
@@ -1651,166 +1300,63 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 }
 
 /**
- * vdo_encode_component_states() - Encode the state of all vdo components for writing in the super
- *                                 block.
- * @buffer: The buffer to encode into.
- * @states: The states to encode.
+ * vdo_encode_component_states() - Encode the state of all vdo components in the super block.
  */
-int vdo_encode_component_states(struct buffer *buffer, const struct vdo_component_states *states)
+static void
+vdo_encode_component_states(u8 *buffer, size_t *offset, const struct vdo_component_states *states)
 {
-	size_t expected_size;
-	int result;
+	encode_u32_le(buffer, offset, states->release_version);
+	encode_version_number(buffer, offset, states->volume_version);
+	encode_vdo_component(buffer, offset, states->vdo);
+	encode_layout(buffer, offset, &states->layout);
+	encode_recovery_journal_state_7_0(buffer, offset, states->recovery_journal);
+	encode_slab_depot_state_2_0(buffer, offset, states->slab_depot);
+	encode_block_map_state_2_0(buffer, offset, states->block_map);
 
-	result = uds_reset_buffer_end(buffer, 0);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = uds_put_u32_le_into_buffer(buffer, states->release_version);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = encode_version_number(states->volume_version, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = encode_vdo_component(states->vdo, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = encode_layout(&states->layout, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = encode_recovery_journal_state_7_0(states->recovery_journal, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = encode_slab_depot_state_2_0(states->slab_depot, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = encode_block_map_state_2_0(states->block_map, buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	expected_size = VDO_COMPONENT_DATA_SIZE;
-	ASSERT_LOG_ONLY((uds_content_length(buffer) == expected_size),
+	ASSERT_LOG_ONLY(*offset == VDO_COMPONENT_DATA_OFFSET + VDO_COMPONENT_DATA_SIZE,
 			"All super block component data was encoded");
-	return VDO_SUCCESS;
 }
 
 /**
- * vdo_initialize_super_block_codec() - Initialize a super block codec.
- * @codec: The codec to initialize.
- *
- * Return: VDO_SUCCESS or an error.
+ * vdo_encode_super_block() - Encode a super block into its on-disk representation.
  */
-int vdo_initialize_super_block_codec(struct super_block_codec *codec)
+void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states)
 {
-	int result;
+	u32 checksum;
+	struct header header = SUPER_BLOCK_HEADER_12_0;
+	size_t offset = 0;
 
-	result = uds_make_buffer(VDO_MAX_COMPONENT_DATA_SIZE, &codec->component_buffer);
-	if (result != UDS_SUCCESS)
-		return result;
+	header.size += VDO_COMPONENT_DATA_SIZE;
+	vdo_encode_header(buffer, &offset, &header);
+	vdo_encode_component_states(buffer, &offset, states);
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
-			      char,
-			      "encoded super block",
-			      (char **) &codec->encoded_super_block);
-	if (result != UDS_SUCCESS)
-		return result;
+	checksum = vdo_crc32(buffer, offset);
+	encode_u32_le(buffer, &offset, checksum);
 
 	/*
 	 * Even though the buffer is a full block, to avoid the potential corruption from a torn
 	 * write, the entire encoding must fit in the first sector.
 	 */
-	return uds_wrap_buffer(codec->encoded_super_block,
-			       VDO_SECTOR_SIZE,
-			       0,
-			       &codec->block_buffer);
-}
-
-/**
- * vdo_destroy_super_block_codec() - Free resources in a super block codec.
- * @codec: The codec to clean up.
- */
-void vdo_destroy_super_block_codec(struct super_block_codec *codec)
-{
-	uds_free_buffer(UDS_FORGET(codec->block_buffer));
-	uds_free_buffer(UDS_FORGET(codec->component_buffer));
-	UDS_FREE(codec->encoded_super_block);
-}
-
-/**
- * vdo_encode_super_block() - Encode a super block into its on-disk representation.
- * @codec: The super block codec.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_encode_super_block(struct super_block_codec *codec)
-{
-	size_t component_data_size;
-	u32 checksum;
-	struct header header = SUPER_BLOCK_HEADER_12_0;
-	struct buffer *buffer = codec->block_buffer;
-	int result;
-
-	result = uds_reset_buffer_end(buffer, 0);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	component_data_size = uds_content_length(codec->component_buffer);
-
-	/* Encode the header. */
-	header.size += component_data_size;
-	result = vdo_encode_header(&header, buffer);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	/* Copy the already-encoded component data. */
-	result = uds_put_bytes(buffer,
-			       component_data_size,
-			       uds_get_buffer_contents(codec->component_buffer));
-	if (result != UDS_SUCCESS)
-		return result;
-
-	/* Compute and encode the checksum. */
-	checksum = vdo_crc32(codec->encoded_super_block, uds_content_length(buffer));
-	result = uds_put_u32_le_into_buffer(buffer, checksum);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return UDS_SUCCESS;
+	ASSERT_LOG_ONLY(offset <= VDO_SECTOR_SIZE, "entire superblock must fit in one sector");
 }
 
 /**
  * vdo_decode_super_block() - Decode a super block from its on-disk representation.
- * @codec: The super block to decode.
- *
- * Return: VDO_SUCCESS or an error.
  */
-int vdo_decode_super_block(struct super_block_codec *codec)
+int vdo_decode_super_block(u8 *buffer)
 {
 	struct header header;
 	int result;
-	size_t component_data_size;
 	u32 checksum, saved_checksum;
-
-	/* Reset the block buffer to start decoding the entire first sector. */
-	struct buffer *buffer = codec->block_buffer;
-
-	uds_clear_buffer(buffer);
+	size_t offset = 0;
 
 	/* Decode and validate the header. */
-	result = vdo_decode_header(buffer, &header);
-	if (result != VDO_SUCCESS)
-		return result;
-
+	vdo_decode_header(buffer, &offset, &header);
 	result = vdo_validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (header.size > uds_content_length(buffer))
+	if (header.size > VDO_COMPONENT_DATA_SIZE + sizeof(u32))
 		/*
 		 * We can't check release version or checksum until we know the content size, so we
 		 * have to assume a version mismatch on unexpected values.
@@ -1819,30 +1365,13 @@ int vdo_decode_super_block(struct super_block_codec *codec)
 					      "super block contents too large: %zu",
 					      header.size);
 
-	/* Restrict the buffer to the actual payload bytes that remain. */
-	result = uds_reset_buffer_end(buffer, uds_uncompacted_amount(buffer) + header.size);
-	if (result != VDO_SUCCESS)
-		return result;
+	/* Skip past the component data for now, to verify the checksum. */
+	offset += VDO_COMPONENT_DATA_SIZE;
 
-	/* The component data is all the rest, except for the checksum. */
-	component_data_size = uds_content_length(buffer) - sizeof(u32);
-	result = uds_reset_buffer_end(codec->component_buffer, 0);
-	if (result != VDO_SUCCESS)
-		return result;
+	checksum = vdo_crc32(buffer, offset);
+	decode_u32_le(buffer, &offset, &saved_checksum);
 
-	result = uds_put_buffer(codec->component_buffer, buffer, component_data_size);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	/* Checksum everything up to but not including the saved checksum itself. */
-	checksum = vdo_crc32(codec->encoded_super_block, uds_uncompacted_amount(buffer));
-
-	/* Decode and verify the saved checksum. */
-	result = uds_get_u32_le_from_buffer(buffer, &saved_checksum);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = ASSERT(uds_content_length(buffer) == 0,
+	result = ASSERT(offset == VDO_SUPER_BLOCK_FIXED_SIZE + VDO_COMPONENT_DATA_SIZE,
 			"must have decoded entire superblock payload");
 	if (result != VDO_SUCCESS)
 		return result;

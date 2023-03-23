@@ -318,13 +318,13 @@ static void verifyCoding(void)
   performSuccessfulDepotActionOnDepot(depot, VDO_ADMIN_STATE_SAVING);
 
   struct slab_depot_state_2_0 state = vdo_record_slab_depot(depot);
-  struct buffer *buffer;
-  VDO_ASSERT_SUCCESS(uds_make_buffer(SLAB_DEPOT_COMPONENT_ENCODED_SIZE, &buffer));
-  VDO_ASSERT_SUCCESS(encode_slab_depot_state_2_0(state, buffer));
+  u8 buffer[SLAB_DEPOT_COMPONENT_ENCODED_SIZE];
+  size_t offset = 0;
+  encode_slab_depot_state_2_0(buffer, &offset, state);
 
   struct slab_depot_state_2_0 decoded;
-  VDO_ASSERT_SUCCESS(decode_slab_depot_state_2_0(buffer, &decoded));
-  uds_free_buffer(UDS_FORGET(buffer));
+  offset = 0;
+  VDO_ASSERT_SUCCESS(decode_slab_depot_state_2_0(buffer, &offset, &decoded));
 
   assertSameStates(state, decoded);
   struct partition *slabSummaryPartition = vdo_get_known_partition(&vdo->layout,

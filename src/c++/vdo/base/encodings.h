@@ -15,7 +15,6 @@
 #include <zlib.h>
 #endif /* not __KERNEL__ */
 
-#include "buffer.h"
 #include "numeric.h"
 
 #include "constants.h"
@@ -34,7 +33,7 @@
 struct version_number {
 	u32 major_version;
 	u32 minor_version;
-} __packed;
+};
 
 /*
  * A packed, machine-independent, on-disk representation of a version_number. Both fields are
@@ -58,11 +57,14 @@ struct header {
 	u32 id; /* The component this is a header for */
 	struct version_number version; /* The version of the data format */
 	size_t size; /* The size of the data following this header */
-} __packed;
-
-enum {
-	VDO_ENCODED_HEADER_SIZE = sizeof(struct header),
 };
+
+/* A packed, machine-independent, on-disk representation of a component header. */
+struct packed_header {
+	__le32 id;
+	struct packed_version_number version;
+	__le64 size;
+} __packed;
 
 /**
  * DOC: Block map entries
@@ -594,6 +596,7 @@ struct packed_vdo_component_41_0 {
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
 
 enum {
+	VDO_ENCODED_HEADER_SIZE = sizeof(struct packed_header),
 	BLOCK_MAP_COMPONENT_ENCODED_SIZE =
 		VDO_ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0),
 	RECOVERY_JOURNAL_COMPONENT_ENCODED_SIZE =
@@ -608,6 +611,7 @@ enum {
 	VDO_MAX_COMPONENT_DATA_SIZE = VDO_SECTOR_SIZE - VDO_SUPER_BLOCK_FIXED_SIZE,
 	VDO_COMPONENT_ENCODED_SIZE =
 		(sizeof(struct packed_version_number) + sizeof(struct packed_vdo_component_41_0)),
+	VDO_COMPONENT_DATA_OFFSET = VDO_ENCODED_HEADER_SIZE,
 	VDO_COMPONENT_DATA_SIZE = (sizeof(release_version_number_t) +
 				   sizeof(struct packed_version_number) +
 				   VDO_COMPONENT_ENCODED_SIZE +
@@ -633,19 +637,6 @@ struct vdo_component_states {
 
 	/* Our partitioning of the underlying storage */
 	struct layout layout;
-};
-
-/* The machinery for encoding and decoding super blocks. */
-struct super_block_codec {
-	/* The buffer for encoding and decoding component data */
-	struct buffer *component_buffer;
-	/*
-	 * A sector-sized buffer wrapping the first sector of encoded_super_block, for encoding and
-	 * decoding the entire super block.
-	 */
-	struct buffer *block_buffer;
-	/* A 1-block buffer holding the encoded on-disk super block */
-	u8 *encoded_super_block;
 };
 
 /**
@@ -685,9 +676,8 @@ int __must_check vdo_validate_header(const struct header *expected_header,
 				     bool exact_size,
 				     const char *component_name);
 
-int __must_check vdo_encode_header(const struct header *header, struct buffer *buffer);
-
-int __must_check vdo_decode_header(struct buffer *buffer, struct header *header);
+void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header);
+void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header);
 
 /**
  * vdo_pack_version_number() - Convert a version_number to its packed on-disk representation.
@@ -715,6 +705,36 @@ static inline struct version_number vdo_unpack_version_number(struct packed_vers
 	return (struct version_number) {
 		.major_version = __le32_to_cpu(version.major_version),
 		.minor_version = __le32_to_cpu(version.minor_version),
+	};
+}
+
+/**
+ * vdo_pack_header() - Convert a component header to its packed on-disk representation.
+ * @header: The header to convert.
+ *
+ * Return: the platform-independent representation of the header
+ */
+static inline struct packed_header vdo_pack_header(const struct header *header)
+{
+	return (struct packed_header) {
+		.id = __cpu_to_le32(header->id),
+		.version = vdo_pack_version_number(header->version),
+		.size = __cpu_to_le64(header->size),
+	};
+}
+
+/**
+ * vdo_unpack_header() - Convert a packed_header to its native in-memory representation.
+ * @header: The header to convert.
+ *
+ * Return: The platform-independent representation of the version.
+ */
+static inline struct header vdo_unpack_header(const struct packed_header *header)
+{
+	return (struct header) {
+		.id = __le32_to_cpu(header->id),
+		.version = vdo_unpack_version_number(header->version),
+		.size = __le64_to_cpu(header->size),
 	};
 }
 
@@ -773,12 +793,6 @@ vdo_validate_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn);
 
-#ifdef INTERNAL
-int __must_check
-decode_block_map_state_2_0(struct buffer *buffer, struct block_map_state_2_0 *state);
-int __must_check
-encode_block_map_state_2_0(struct block_map_state_2_0 state, struct buffer *buffer);
-#endif /* INTERNAL */
 static inline page_count_t vdo_compute_block_map_page_count(block_count_t entries)
 {
 	return DIV_ROUND_UP(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
@@ -836,12 +850,6 @@ vdo_unpack_recovery_journal_entry(const struct packed_recovery_journal_entry *en
 	};
 }
 
-#ifdef INTERNAL
-int __must_check
-encode_recovery_journal_state_7_0(struct recovery_journal_state_7_0 state, struct buffer *buffer);
-int __must_check
-decode_recovery_journal_state_7_0(struct buffer *buffer, struct recovery_journal_state_7_0 *state);
-#endif /* INTERNAL */
 const char * __must_check vdo_get_journal_operation_name(enum journal_operation operation);
 
 /**
@@ -971,13 +979,6 @@ vdo_compute_slab_count(physical_block_number_t first_block,
 	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
 }
 
-#ifdef INTERNAL
-int __must_check
-encode_slab_depot_state_2_0(struct slab_depot_state_2_0 state, struct buffer *buffer);
-int __must_check
-decode_slab_depot_state_2_0(struct buffer *buffer, struct slab_depot_state_2_0 *state);
-
-#endif /* INTERNAL */
 int __must_check vdo_configure_slab_depot(const struct partition *partition,
 					  struct slab_config slab_config,
 					  zone_count_t zone_count,
@@ -1154,8 +1155,24 @@ struct partition * __must_check
 vdo_get_known_partition(struct layout *layout, enum partition_id id);
 
 #ifdef INTERNAL
-int encode_layout(const struct layout *layout, struct buffer *buffer);
-int decode_layout(struct buffer *buffer,
+int __must_check
+decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 *state);
+void encode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 state);
+
+void encode_recovery_journal_state_7_0(u8 *buffer,
+				       size_t *offset,
+				       struct recovery_journal_state_7_0 state);
+int __must_check decode_recovery_journal_state_7_0(u8 *buffer,
+						   size_t *offset,
+						   struct recovery_journal_state_7_0 *state);
+
+void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 state);
+int __must_check
+decode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 *state);
+
+void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout);
+int decode_layout(u8 *buffer,
+		  size_t *offset,
 		  physical_block_number_t start,
 		  block_count_t size,
 		  struct layout *layout);
@@ -1168,7 +1185,7 @@ int vdo_validate_config(const struct vdo_config *config,
 void vdo_destroy_component_states(struct vdo_component_states *states);
 
 int __must_check
-vdo_decode_component_states(struct buffer *buffer,
+vdo_decode_component_states(u8 *buffer,
 			    struct volume_geometry *geometry,
 			    struct vdo_component_states *states);
 
@@ -1178,22 +1195,8 @@ vdo_validate_component_states(struct vdo_component_states *states,
 			      block_count_t physical_size,
 			      block_count_t logical_size);
 
-/**
- * vdo_encode() - Encode a VDO super block into a buffer for writing in the super block.
- * @buffer: The buffer to encode into.
- * @states: The states of the vdo to be encoded.
- */
-int __must_check vdo_encode(struct buffer *buffer, struct vdo_component_states *states);
-
-int vdo_encode_component_states(struct buffer *buffer, const struct vdo_component_states *states);
-
-int __must_check vdo_initialize_super_block_codec(struct super_block_codec *codec);
-
-void vdo_destroy_super_block_codec(struct super_block_codec *codec);
-
-int __must_check vdo_encode_super_block(struct super_block_codec *codec);
-
-int __must_check vdo_decode_super_block(struct super_block_codec *codec);
+void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states);
+int __must_check vdo_decode_super_block(u8 *buffer);
 
 /* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
 static inline u32 vdo_crc32(const void *buf, unsigned long len)

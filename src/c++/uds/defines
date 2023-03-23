@@ -26,8 +26,7 @@ RUN_UDSTESTS = cd $(UDSTEST_DIR) && ./udstests.pl --log --threads=8
 # This is the base set of source files used to build UDS on all platforms
 
 UDS_COMMON_SOURCES =						\
-	$(addprefix $(SRC_UDS_DIR)/,	buffer.c		\
-					chapter-index.c		\
+	$(addprefix $(SRC_UDS_DIR)/,	chapter-index.c		\
 					config.c		\
 					delta-index.c		\
 					dory.c			\

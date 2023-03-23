@@ -128,7 +128,6 @@ tarballs:
         src/c++/uds/src/uds:
           dest: utils/uds
           sources:
-            - buffer.[hc]
             - chapter-index.[hc]
             - config.[hc]
             - cpu.h
@@ -318,8 +317,6 @@ tarballs:
         src/c++/uds/src/uds:
           dest: vdo
           sources:
-            - buffer.c
-            - buffer.h
             - chapter-index.c
             - chapter-index.h
             - config.c

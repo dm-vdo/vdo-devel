@@ -27,12 +27,6 @@ int makeUserVDO(PhysicalLayer *layer, UserVDO **vdoPtr)
     return result;
   }
 
-  result = vdo_initialize_super_block_codec(&vdo->superBlockCodec);
-  if (result != VDO_SUCCESS) {
-    freeUserVDO(&vdo);
-    return result;
-  }
-
   vdo->layer = layer;
   *vdoPtr = vdo;
   return VDO_SUCCESS;
@@ -47,7 +41,6 @@ void freeUserVDO(UserVDO **vdoPtr)
   }
 
   vdo_destroy_component_states(&vdo->states);
-  vdo_destroy_super_block_codec(&vdo->superBlockCodec);
   UDS_FREE(vdo);
   *vdoPtr = NULL;
 }
@@ -55,15 +48,14 @@ void freeUserVDO(UserVDO **vdoPtr)
 /**********************************************************************/
 int __must_check loadSuperBlock(UserVDO *vdo)
 {
-  int result
-    = vdo->layer->reader(vdo->layer,
-                         vdo_get_data_region_start(vdo->geometry), 1,
-                         (char *) vdo->superBlockCodec.encoded_super_block);
+  int result = vdo->layer->reader(vdo->layer,
+                                  vdo_get_data_region_start(vdo->geometry), 1,
+                                  vdo->superBlockBuffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return vdo_decode_super_block(&vdo->superBlockCodec);
+  return vdo_decode_super_block((u8 *) vdo->superBlockBuffer);
 }
 
 /**********************************************************************/
@@ -85,9 +77,7 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
     return result;
   }
 
-  result = vdo_decode_component_states(vdo->superBlockCodec.component_buffer,
-                                       &vdo->geometry,
-                                       &vdo->states);
+  result = vdo_decode_component_states((u8 *) vdo->superBlockBuffer, &vdo->geometry, &vdo->states);
   if (result != VDO_SUCCESS) {
     freeUserVDO(&vdo);
     return result;
@@ -125,28 +115,17 @@ int loadVDO(PhysicalLayer *layer, bool validateConfig, UserVDO **vdoPtr)
 /**********************************************************************/
 int saveSuperBlock(UserVDO *vdo)
 {
-  int result = vdo_encode_super_block(&vdo->superBlockCodec);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
+  vdo_encode_super_block((u8 *) vdo->superBlockBuffer, &vdo->states);
   return vdo->layer->writer(vdo->layer,
                             vdo_get_data_region_start(vdo->geometry),
                             1,
-                            (char *) vdo->superBlockCodec.encoded_super_block);
+                            vdo->superBlockBuffer);
 }
 
 /**********************************************************************/
 int saveVDO(UserVDO *vdo, bool saveGeometry)
 {
-  int result
-    = vdo_encode_component_states(vdo->superBlockCodec.component_buffer,
-                                  &vdo->states);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = saveSuperBlock(vdo);
+  int result = saveSuperBlock(vdo);
   if (result != VDO_SUCCESS) {
     return result;
   }

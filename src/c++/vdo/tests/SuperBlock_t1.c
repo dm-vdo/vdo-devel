@@ -8,7 +8,6 @@
 
 #include "albtest.h"
 
-#include "buffer.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
 
@@ -55,25 +54,21 @@ static void testSuperBlock(void)
   // Stop the VDO, confirm that the super block modified as the vdo state will have changed from
   // VDO_NEW to VDO_CLEAN.
   stopVDO();
-  struct super_block_codec codec;
-  VDO_ASSERT_SUCCESS(vdo_initialize_super_block_codec(&codec));
-  char *loaded = (char *) codec.encoded_super_block;
+  char loaded[VDO_BLOCK_SIZE];
   VDO_ASSERT_SUCCESS(layer->reader(layer, getSuperBlockLocation(), 1, loaded));
   UDS_ASSERT_EQUAL_BYTES(EXPECTED_SUPERBLOCK_12_0_ENCODED_HEADER, loaded, VDO_ENCODED_HEADER_SIZE);
   UDS_ASSERT_NOT_EQUAL_BYTES(block, loaded, SUPER_BLOCK_SIZE);
 
   // Confirm that synchronous load can read the modified super block.
-  VDO_ASSERT_SUCCESS(vdo_decode_super_block(&codec));
+  VDO_ASSERT_SUCCESS(vdo_decode_super_block((u8 *) &loaded));
 
   // Break the checksum and confirm that decode/load fails.
   u8 checksumByte = loaded[CHECKSUM_OFFSET];
   memset(loaded + CHECKSUM_OFFSET, ++checksumByte, 1);
-  CU_ASSERT_EQUAL(VDO_CHECKSUM_MISMATCH, vdo_decode_super_block(&codec));
+  CU_ASSERT_EQUAL(VDO_CHECKSUM_MISMATCH, vdo_decode_super_block((u8 *) &loaded));
   VDO_ASSERT_SUCCESS(layer->writer(layer, getSuperBlockLocation(), 1, loaded));
   setStartStopExpectation(-EIO);
   startAsyncLayer(getTestConfig(), true);
-
-  vdo_destroy_super_block_codec(&codec);
 }
 
 /**********************************************************************/

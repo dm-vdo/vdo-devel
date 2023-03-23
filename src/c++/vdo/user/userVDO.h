@@ -22,8 +22,8 @@ typedef struct user_vdo {
   PhysicalLayer               *layer;
   /* The geometry of the VDO */
   struct volume_geometry       geometry;
-  /* The codec for the super block */
-  struct super_block_codec     superBlockCodec;
+  /* The buffer for the super block */
+  char                         superBlockBuffer[VDO_BLOCK_SIZE];
   /* The full state of all components */
   struct vdo_component_states  states;
 

@@ -5,7 +5,6 @@
 
 #include <linux/module.h>
 
-#include "buffer.h"
 #include "errors.h"
 #include "funnel-queue.h"
 #include "logger.h"
@@ -54,71 +53,33 @@ EXPORT_SYMBOL_GPL(uds_allocate_memory);
 EXPORT_SYMBOL_GPL(uds_allocate_memory_nowait);
 EXPORT_SYMBOL_GPL(uds_append_to_buffer);
 EXPORT_SYMBOL_GPL(uds_assertion_failed);
-EXPORT_SYMBOL_GPL(uds_available_space);
-EXPORT_SYMBOL_GPL(uds_buffer_length);
-EXPORT_SYMBOL_GPL(uds_buffer_used);
-EXPORT_SYMBOL_GPL(uds_clear_buffer);
-EXPORT_SYMBOL_GPL(uds_compact_buffer);
-EXPORT_SYMBOL_GPL(uds_content_length);
-EXPORT_SYMBOL_GPL(uds_copy_bytes);
 EXPORT_SYMBOL_GPL(uds_duplicate_string);
-EXPORT_SYMBOL_GPL(uds_ensure_available_space);
-EXPORT_SYMBOL_GPL(uds_equal_buffers);
-EXPORT_SYMBOL_GPL(uds_free_buffer);
 EXPORT_SYMBOL_GPL(uds_free_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_free_memory);
 EXPORT_SYMBOL_GPL(uds_funnel_queue_poll);
-EXPORT_SYMBOL_GPL(uds_get_boolean);
-EXPORT_SYMBOL_GPL(uds_get_buffer_contents);
-EXPORT_SYMBOL_GPL(uds_get_byte);
-EXPORT_SYMBOL_GPL(uds_get_bytes_from_buffer);
 EXPORT_SYMBOL_GPL(uds_get_log_level);
 EXPORT_SYMBOL_GPL(uds_get_memory_stats);
 EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
-EXPORT_SYMBOL_GPL(uds_get_u16_le_from_buffer);
-EXPORT_SYMBOL_GPL(uds_get_u16_les_from_buffer);
-EXPORT_SYMBOL_GPL(uds_get_u32_le_from_buffer);
-EXPORT_SYMBOL_GPL(uds_get_u64_le_from_buffer);
-EXPORT_SYMBOL_GPL(uds_get_u64_les_from_buffer);
-EXPORT_SYMBOL_GPL(uds_has_same_bytes);
 EXPORT_SYMBOL_GPL(uds_initialize_thread_registry);
 EXPORT_SYMBOL_GPL(uds_is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(uds_log_backtrace);
 EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
 EXPORT_SYMBOL_GPL(uds_log_string_to_priority);
 EXPORT_SYMBOL_GPL(uds_lookup_thread);
-EXPORT_SYMBOL_GPL(uds_make_buffer);
 EXPORT_SYMBOL_GPL(uds_make_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_perform_once);
-EXPORT_SYMBOL_GPL(uds_put_boolean);
-EXPORT_SYMBOL_GPL(uds_put_buffer);
-EXPORT_SYMBOL_GPL(uds_put_byte);
-EXPORT_SYMBOL_GPL(uds_put_bytes);
-EXPORT_SYMBOL_GPL(uds_put_s64_le_into_buffer);
-EXPORT_SYMBOL_GPL(uds_put_u16_le_into_buffer);
-EXPORT_SYMBOL_GPL(uds_put_u16_les_into_buffer);
-EXPORT_SYMBOL_GPL(uds_put_u32_le_into_buffer);
-EXPORT_SYMBOL_GPL(uds_put_u64_le_into_buffer);
-EXPORT_SYMBOL_GPL(uds_put_u64_les_into_buffer);
 EXPORT_SYMBOL_GPL(uds_reallocate_memory);
 EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
 EXPORT_SYMBOL_GPL(uds_register_thread);
 EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_report_memory_usage);
-EXPORT_SYMBOL_GPL(uds_reset_buffer_end);
-EXPORT_SYMBOL_GPL(uds_rewind_buffer);
 EXPORT_SYMBOL_GPL(uds_set_log_level);
-EXPORT_SYMBOL_GPL(uds_skip_forward);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
-EXPORT_SYMBOL_GPL(uds_uncompacted_amount);
 EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
-EXPORT_SYMBOL_GPL(uds_wrap_buffer);
-EXPORT_SYMBOL_GPL(uds_zero_bytes);
-
 
 #ifdef TEST_INTERNAL
 #include "chapter-index.h"
