@@ -16,6 +16,10 @@ CHECK_SUBDIRS           := perl tools python/vdo
 CHECKIN_SUBDIRS         := c++ perl python packaging
 VDO_CHECKIN_SUBDIRS     := c++ perl
 
+# The directory of the srpm build products for use in testing
+SRPM_DIR = $(SRC_DIR)/srpms
+SRPM     = $(SRC_DIR)/packaging/rpm
+
 # The directory of build products to be picked up by tagAndArchive.pl
 ARCHIVE_DIR = $(SRC_DIR)/../archive
 ARCHIVE     = $(SRC_DIR)/packaging/github
@@ -34,6 +38,7 @@ all::
 	for i in $(SUBDIRS); do			\
 		$(MAKE) -C $$i all || exit 1;	\
 	done
+	$(MAKE) srpms
 
 .PHONY: clean
 clean::
@@ -41,7 +46,7 @@ clean::
 	for i in $(CLEAN_SUBDIRS); do		\
 		$(MAKE) -C $$i clean || exit 1;	\
 	done
-	$(RM) -rf $(ARCHIVE_DIR)
+	$(RM) -rf $(ARCHIVE_DIR) $(SRPM_DIR)
 
 .PHONY: cleanall
 cleanall::
@@ -50,7 +55,7 @@ cleanall::
 	for i in $(CLEAN_SUBDIRS); do			\
 		$(MAKE) -C $$i cleanall || exit 1;	\
 	done
-	$(RM) -rf $(ARCHIVE_DIR)
+	$(RM) -rf $(ARCHIVE_DIR) $(SRPM_DIR)
 
 .PHONY: checkin
 checkin::
@@ -130,6 +135,12 @@ archive:
 	mkdir -p $(ARCHIVE_DIR)
 	find $(ARCHIVE) -type f -name "*.rpm" -exec cp {} $(ARCHIVE_DIR) \;
 	$(MAKE) -C $(ARCHIVE) clean
+
+.PHONY: srpms
+srpms:
+	$(MAKE) -C $(SRPM) test-srpms
+	mkdir -p $(SRPM_DIR)
+	find $(SRPM) -type f -name "*.rpm" -exec cp {} $(SRPM_DIR) \;
 
 .PHONY: cleanall
 cleanall::
