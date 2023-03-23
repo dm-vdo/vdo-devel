@@ -229,10 +229,6 @@ tarballs:
     versionFrom: vdo
     sources:
       vdo:
-        doc:
-          dest: .
-          sources:
-            - dm-vdo.rst
         src/packaging/src-dist/kernel:
           dest: .
           sources:

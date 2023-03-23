@@ -21,6 +21,10 @@ tarballs:
   kvdo:
     sources:
       vdo:
+        doc:
+          dest: .
+          sources:
+            - dm-vdo.rst
         src/c++/vdo/base:
           +undefines:
             - INTERNAL
