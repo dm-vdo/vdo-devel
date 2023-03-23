@@ -17,7 +17,7 @@
 #include "uds-threads.h"
 #include "time-utils.h"
 
-static struct mutex mutex = { .mutex = UDS_MUTEX_INITIALIZER };
+static struct mutex mutex = UDS_MUTEX_INITIALIZER;
 
 static int log_socket = -1;
 

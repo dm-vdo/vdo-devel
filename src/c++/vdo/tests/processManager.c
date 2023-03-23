@@ -26,7 +26,7 @@ enum {
 
 static pid_t        *children   = NULL;
 static unsigned int  childCount = 0;
-static struct mutex  childMutex = { .mutex = UDS_MUTEX_INITIALIZER };
+static struct mutex  childMutex = UDS_MUTEX_INITIALIZER;
 
 /**********************************************************************/
 pid_t forkChild(void)
