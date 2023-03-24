@@ -130,11 +130,6 @@
  * very important.
  */
 
-/* This is the number of bits in a u32. */
-enum {
-	U32_BITS = sizeof(u32) * BITS_PER_BYTE,
-};
-
 /*
  * This is the largest field size supported by get_field() and set_field(). Any field that is
  * larger is not guaranteed to fit in a single byte-aligned u32.
@@ -695,7 +690,7 @@ static void move_bits_down(const u8 *from, u64 from_offset, u8 *to, u64 to_offse
 	u64 field;
 
 	/* Start by moving one field that ends on a to int boundary. */
-	count = (MAX_BIG_FIELD_BITS - ((to_offset + MAX_BIG_FIELD_BITS) % U32_BITS));
+	count = (MAX_BIG_FIELD_BITS - ((to_offset + MAX_BIG_FIELD_BITS) % BITS_PER_TYPE(u32)));
 	field = get_big_field(from, from_offset, count);
 	set_big_field(field, to, to_offset, count);
 	from_offset += count;
@@ -703,16 +698,16 @@ static void move_bits_down(const u8 *from, u64 from_offset, u8 *to, u64 to_offse
 	size -= count;
 
 	/* Now do the main loop to copy 32 bit chunks that are int-aligned at the destination. */
-	offset = from_offset % U32_BITS;
+	offset = from_offset % BITS_PER_TYPE(u32);
 	source = from + (from_offset - offset) / BITS_PER_BYTE;
 	destination = to + to_offset / BITS_PER_BYTE;
 	while (size > MAX_BIG_FIELD_BITS) {
 		put_unaligned_le32(get_unaligned_le64(source) >> offset, destination);
 		source += sizeof(u32);
 		destination += sizeof(u32);
-		from_offset += U32_BITS;
-		to_offset += U32_BITS;
-		size -= U32_BITS;
+		from_offset += BITS_PER_TYPE(u32);
+		to_offset += BITS_PER_TYPE(u32);
+		size -= BITS_PER_TYPE(u32);
 	}
 
 	/* Finish up by moving any remaining bits. */
@@ -735,7 +730,7 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
 	u64 field;
 
 	/* Start by moving one field that begins on a destination int boundary. */
-	count = (to_offset + size) % U32_BITS;
+	count = (to_offset + size) % BITS_PER_TYPE(u32);
 	if (count > 0) {
 		size -= count;
 		field = get_big_field(from, from_offset + size, count);
@@ -743,13 +738,13 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
 	}
 
 	/* Now do the main loop to copy 32 bit chunks that are int-aligned at the destination. */
-	offset = (from_offset + size) % U32_BITS;
+	offset = (from_offset + size) % BITS_PER_TYPE(u32);
 	source = from + (from_offset + size - offset) / BITS_PER_BYTE;
 	destination = to + (to_offset + size) / BITS_PER_BYTE;
 	while (size > MAX_BIG_FIELD_BITS) {
 		source -= sizeof(u32);
 		destination -= sizeof(u32);
-		size -= U32_BITS;
+		size -= BITS_PER_TYPE(u32);
 		put_unaligned_le32(get_unaligned_le64(source) >> offset, destination);
 	}
 
@@ -820,7 +815,7 @@ int pack_delta_index_page(const struct delta_index *delta_index,
 	 */
 	free_bits = memory_size * BITS_PER_BYTE;
 	free_bits -= get_immutable_header_offset(1);
-	free_bits -= POST_FIELD_GUARD_BYTES * BITS_PER_BYTE;
+	free_bits -= GUARD_BITS;
 	if (free_bits < IMMUTABLE_HEADER_SIZE)
 		/* This page is too small to store any delta lists. */
 		return uds_log_error_strerror(UDS_OVERFLOW,
