@@ -25,6 +25,7 @@ use strict;
 use warnings FATAL => qw(all);
 use English;
 
+use Carp qw(confess);
 use Cwd qw(cwd);
 use File::Basename;
 use File::Spec;
