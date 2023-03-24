@@ -736,6 +736,7 @@ static void free_listeners(struct vdo_thread *thread)
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
+	UDS_FREE(super_block->buffer);
 }
 
 /**
@@ -824,6 +825,15 @@ void vdo_destroy(struct vdo *vdo)
 
 static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
 {
+	int result;
+
+	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
+			      char,
+			      "encoded super block",
+			      (char **) &vdo->super_block.buffer);
+	if (result != VDO_SUCCESS)
+		return result;
+
 	return allocate_vio_components(vdo,
 				       VIO_TYPE_SUPER_BLOCK,
 				       VIO_PRIORITY_METADATA,
