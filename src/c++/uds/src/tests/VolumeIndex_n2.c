@@ -98,8 +98,7 @@ static void saveVolumeIndex(TestMI *testmi)
     free_buffered_writer(writers[z]);
   }
 
-  get_volume_index_stats(testmi->mi, &testmi->denseStats,
-                         &testmi->sparseStats);
+  get_volume_index_separate_stats(testmi->mi, &testmi->denseStats, &testmi->sparseStats);
   testmi->memoryUsed = get_volume_index_memory_used(testmi->mi);
   testmi->statsValid = true;
 }
@@ -131,16 +130,12 @@ static void reopenVolumeIndex(TestMI       *testmi,
 
   if ((status == UDS_SUCCESS) && testmi->statsValid) {
     struct volume_index_stats denseStats, sparseStats;
-    get_volume_index_stats(testmi->mi, &denseStats, &sparseStats);
+    get_volume_index_separate_stats(testmi->mi, &denseStats, &sparseStats);
     CU_ASSERT_EQUAL(testmi->denseStats.record_count, denseStats.record_count);
-    CU_ASSERT_EQUAL(testmi->denseStats.collision_count,
-                    denseStats.collision_count);
-    CU_ASSERT_EQUAL(testmi->sparseStats.record_count,
-                    sparseStats.record_count);
-    CU_ASSERT_EQUAL(testmi->sparseStats.collision_count,
-                    sparseStats.collision_count);
-    CU_ASSERT_EQUAL(testmi->memoryUsed,
-                    get_volume_index_memory_used(testmi->mi));
+    CU_ASSERT_EQUAL(testmi->denseStats.collision_count, denseStats.collision_count);
+    CU_ASSERT_EQUAL(testmi->sparseStats.record_count, sparseStats.record_count);
+    CU_ASSERT_EQUAL(testmi->sparseStats.collision_count, sparseStats.collision_count);
+    CU_ASSERT_EQUAL(testmi->memoryUsed, get_volume_index_memory_used(testmi->mi));
   }
 
   testmi->numZones = numZones;
@@ -149,9 +144,9 @@ static void reopenVolumeIndex(TestMI       *testmi,
 /**********************************************************************/
 static void addToVolumeIndex(TestMI *testmi, int count)
 {
-  struct volume_index_stats combinedStats;
-  get_volume_index_combined_stats(testmi->mi, &combinedStats);
-  CU_ASSERT_EQUAL(combinedStats.record_count, testmi->entryCounter);
+  struct volume_index_stats stats;
+  get_volume_index_stats(testmi->mi, &stats);
+  CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
   int i;
   for (i = 0; i < count; i++) {
     uint64_t counter = testmi->entryCounter++;
@@ -164,16 +159,16 @@ static void addToVolumeIndex(TestMI *testmi, int count)
     UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
     UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
   }
-  get_volume_index_combined_stats(testmi->mi, &combinedStats);
-  CU_ASSERT_EQUAL(combinedStats.record_count, testmi->entryCounter);
+  get_volume_index_stats(testmi->mi, &stats);
+  CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
 }
 
 /**********************************************************************/
 static void verifyVolumeIndex(TestMI *testmi)
 {
-  struct volume_index_stats combinedStats;
-  get_volume_index_combined_stats(testmi->mi, &combinedStats);
-  CU_ASSERT_EQUAL(combinedStats.record_count, testmi->entryCounter);
+  struct volume_index_stats stats;
+  get_volume_index_stats(testmi->mi, &stats);
+  CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
   long i;
   for (i = 0; i < testmi->entryCounter; i++) {
     uint64_t counter = i;
@@ -196,18 +191,16 @@ static void verifyVolumeIndex(TestMI *testmi)
 static void overflowVolumeIndex(TestMI *testmi)
 {
   uint64_t extraCounter = 0;
-  struct volume_index_stats *combinedStats;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume_index_stats, __func__,
-                                  &combinedStats));
-  get_volume_index_combined_stats(testmi->mi, combinedStats);
-  CU_ASSERT_EQUAL(combinedStats->early_flushes, 0);
+  struct volume_index_stats stats;
+  get_volume_index_stats(testmi->mi, &stats);
+  CU_ASSERT_EQUAL(stats.early_flushes, 0);
   for (;;) {
     uint64_t counter = testmi->entryCounter++;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     if (counter % testmi->geometry.records_per_chapter == 0) {
       set_volume_index_open_chapter(testmi->mi, chapter);
-      get_volume_index_combined_stats(testmi->mi, combinedStats);
-      if (combinedStats->early_flushes > 0) {
+      get_volume_index_stats(testmi->mi, &stats);
+      if (stats.early_flushes > 0) {
         break;
       }
     }
@@ -222,7 +215,6 @@ static void overflowVolumeIndex(TestMI *testmi)
       UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
     }
   }
-  UDS_FREE(combinedStats);
 }
 
 /**********************************************************************/

@@ -1394,13 +1394,12 @@ int replace_index_storage(struct uds_index *index, const char *path)
 /* Accessing statistics should be safe from any thread. */
 void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 {
-	struct volume_index_stats dense_stats;
-	struct volume_index_stats sparse_stats;
+	struct volume_index_stats stats;
 
-	get_volume_index_stats(index->volume_index, &dense_stats, &sparse_stats);
-	counters->entries_indexed = dense_stats.record_count + sparse_stats.record_count;
-	counters->collisions = (dense_stats.collision_count + sparse_stats.collision_count);
-	counters->entries_discarded = (dense_stats.discard_count + sparse_stats.discard_count);
+	get_volume_index_stats(index->volume_index, &stats);
+	counters->entries_indexed = stats.record_count;
+	counters->collisions = stats.collision_count;
+	counters->entries_discarded = stats.discard_count;
 
 	counters->memory_used = (index->volume_index->memory_size +
 				 index->volume->cache_size +

@@ -56,11 +56,11 @@ static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
 /**********************************************************************/
 static void reportVolumeIndexMemory(struct volume_index *volumeIndex)
 {
-  struct volume_index_stats combinedStats;
-  get_volume_index_combined_stats(volumeIndex, &combinedStats);
+  struct volume_index_stats stats;
+  get_volume_index_stats(volumeIndex, &stats);
 
-  long numBlocks = combinedStats.record_count;
-  long numLists = combinedStats.num_lists;
+  long numBlocks = stats.record_count;
+  long numLists = stats.num_lists;
   size_t memAlloc = volumeIndex->memory_size;
   size_t memUsed = get_volume_index_memory_used(volumeIndex);
   if (numBlocks == 0) {
@@ -160,7 +160,7 @@ static void saveRestoreTest(void)
 
   // Capture statistics for the initial index
   struct volume_index_stats denseStats1, sparseStats1;
-  get_volume_index_stats(volumeIndex, &denseStats1, &sparseStats1);
+  get_volume_index_separate_stats(volumeIndex, &denseStats1, &sparseStats1);
   size_t used1 = get_volume_index_memory_used(volumeIndex);
 
   uint64_t blockCount;
@@ -177,7 +177,7 @@ static void saveRestoreTest(void)
 
   // Compare restored index to the initial index
   struct volume_index_stats denseStats2, sparseStats2;
-  get_volume_index_stats(volumeIndex, &denseStats2, &sparseStats2);
+  get_volume_index_separate_stats(volumeIndex, &denseStats2, &sparseStats2);
   CU_ASSERT(get_volume_index_memory_used(volumeIndex) <= used1);
   CU_ASSERT_EQUAL(denseStats1.record_count, denseStats2.record_count);
   CU_ASSERT_EQUAL(sparseStats1.record_count, sparseStats2.record_count);

@@ -148,10 +148,6 @@ int __must_check compute_volume_index_save_blocks(const struct configuration *co
 						  size_t block_size,
 						  u64 *block_count);
 
-#ifdef TEST_INTERNAL
-size_t get_volume_index_memory_used(const struct volume_index *volume_index);
-
-#endif /* TEST_INTERNAL */
 unsigned int __must_check
 get_volume_index_zone(const struct volume_index *volume_index, const struct uds_record_name *name);
 
@@ -191,12 +187,14 @@ int __must_check save_volume_index(struct volume_index *volume_index,
 				   unsigned int num_writers);
 
 void get_volume_index_stats(const struct volume_index *volume_index,
-			    struct volume_index_stats *dense,
-			    struct volume_index_stats *sparse);
+			    struct volume_index_stats *stats);
 
 #ifdef TEST_INTERNAL
-void get_volume_index_combined_stats(const struct volume_index *volume_index,
-				     struct volume_index_stats *stats);
+size_t get_volume_index_memory_used(const struct volume_index *volume_index);
+
+void get_volume_index_separate_stats(const struct volume_index *volume_index,
+				     struct volume_index_stats *dense,
+				     struct volume_index_stats *sparse);
 
 #endif /* TEST_INTERNAL */
 #endif /* VOLUMEINDEX_H */

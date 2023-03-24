@@ -74,13 +74,10 @@ struct uds_parameters uds_parameters = { .zone_count = ZONES };
 /**********************************************************************/
 static void compute_index_info(struct volume_index *volumeIndex)
 {
-  struct volume_index_stats *volumeStats;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(2, struct volume_index_stats, __func__,
-                                  &volumeStats));
-  get_volume_index_stats(volumeIndex, volumeStats, volumeStats+1);
-  dense_info.num_delta_lists = volumeStats[0].num_lists;
-  sparse_info.num_delta_lists = volumeStats[1].num_lists;
-  UDS_FREE(volumeStats);
+  struct volume_index_stats denseStats, sparseStats;
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
+  dense_info.num_delta_lists = denseStats.num_lists;
+  sparse_info.num_delta_lists = sparseStats.num_lists;
   // deltaIndex.c:initialize_delta_index
   dense_info.lists_per_zone = (dense_info.num_delta_lists + ZONES - 1) / ZONES;
   sparse_info.lists_per_zone =

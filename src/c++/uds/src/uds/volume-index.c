@@ -1218,9 +1218,10 @@ static void get_volume_sub_index_stats(const struct volume_sub_index *sub_index,
 		stats->early_flushes += sub_index->zones[z].num_early_flushes;
 }
 
-void get_volume_index_stats(const struct volume_index *volume_index,
-			    struct volume_index_stats *dense,
-			    struct volume_index_stats *sparse)
+#ifdef TEST_INTERNAL
+void get_volume_index_separate_stats(const struct volume_index *volume_index,
+				     struct volume_index_stats *dense,
+				     struct volume_index_stats *sparse)
 {
 	get_volume_sub_index_stats(&volume_index->vi_non_hook, dense);
 	if (has_sparse(volume_index))
@@ -1229,24 +1230,27 @@ void get_volume_index_stats(const struct volume_index *volume_index,
 		memset(sparse, 0, sizeof(struct volume_index_stats));
 }
 
-#ifdef TEST_INTERNAL
-void get_volume_index_combined_stats(const struct volume_index *volume_index,
-				     struct volume_index_stats *stats)
+#endif /* TEST_INTERNAL */
+void get_volume_index_stats(const struct volume_index *volume_index,
+			    struct volume_index_stats *stats)
 {
-	struct volume_index_stats dense, sparse;
+	struct volume_index_stats sparse_stats;
 
-	get_volume_index_stats(volume_index, &dense, &sparse);
-	stats->rebalance_time = dense.rebalance_time + sparse.rebalance_time;
-	stats->rebalance_count = dense.rebalance_count + sparse.rebalance_count;
-	stats->record_count = dense.record_count + sparse.record_count;
-	stats->collision_count = dense.collision_count + sparse.collision_count;
-	stats->discard_count = dense.discard_count + sparse.discard_count;
-	stats->overflow_count = dense.overflow_count + sparse.overflow_count;
-	stats->num_lists = dense.num_lists + sparse.num_lists;
-	stats->early_flushes = dense.early_flushes + sparse.early_flushes;
+	get_volume_sub_index_stats(&volume_index->vi_non_hook, stats);
+	if (!has_sparse(volume_index))
+		return;
+
+	get_volume_sub_index_stats(&volume_index->vi_hook, &sparse_stats);
+	stats->rebalance_time += sparse_stats.rebalance_time;
+	stats->rebalance_count += sparse_stats.rebalance_count;
+	stats->record_count += sparse_stats.record_count;
+	stats->collision_count += sparse_stats.collision_count;
+	stats->discard_count += sparse_stats.discard_count;
+	stats->overflow_count += sparse_stats.overflow_count;
+	stats->num_lists += sparse_stats.num_lists;
+	stats->early_flushes += sparse_stats.early_flushes;
 }
 
-#endif /* TEST_INTERNAL */
 static int initialize_volume_sub_index(const struct configuration *config,
 				       u64 volume_nonce,
 				       u8 tag,

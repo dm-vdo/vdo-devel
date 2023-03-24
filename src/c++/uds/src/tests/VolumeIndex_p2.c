@@ -164,7 +164,7 @@ static void createAndFill(unsigned int numZones)
 
   reportTimes("Fill", numZones, chunkCount, elapsed);
   struct volume_index_stats denseStats, sparseStats;
-  get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
   reportIndexMemoryUsage(&denseStats, &sparseStats);
   reportCollisions(&denseStats, &sparseStats);
   fflush(stdout);
@@ -177,7 +177,7 @@ static ktime_t steady(unsigned int numZones)
 
   // Compute the number of chunks that the volume index has seen
   struct volume_index_stats denseStats, sparseStats;
-  get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
   unsigned long chunksBefore = chunksSeen(&denseStats, &sparseStats);
 
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
@@ -197,7 +197,7 @@ static ktime_t steady(unsigned int numZones)
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
 
   reportTimes("Steady", numZones, chunkCount, elapsed);
-  get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
   reportIndexMemoryUsage(&denseStats, &sparseStats);
   reportCollisions(&denseStats, &sparseStats);
 

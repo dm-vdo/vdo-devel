@@ -54,7 +54,7 @@ static void testEarlyLRU(int numZones)
   while (chapter < 2 * numChapters) {
     fillChapter(miptr, chapter, numRecords);
     ++chapter;
-    get_volume_index_combined_stats(miptr, &miStats);
+    get_volume_index_stats(miptr, &miStats);
     CU_ASSERT_EQUAL(miStats.overflow_count, 0);
     CU_ASSERT_EQUAL(miStats.early_flushes, 0);
   }
@@ -68,7 +68,7 @@ static void testEarlyLRU(int numZones)
 #endif
     fillChapter(miptr, chapter, numRecords + numRecords / 8);
     ++chapter;
-    get_volume_index_combined_stats(miptr, &miStats);
+    get_volume_index_stats(miptr, &miStats);
     CU_ASSERT_EQUAL(miStats.overflow_count, 0);
   }
   CU_ASSERT_NOT_EQUAL(miStats.early_flushes, 0);

@@ -57,22 +57,12 @@ static struct configuration *makeTestConfig(int numChapters)
 {
   struct configuration *config;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct configuration, __func__, &config));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct geometry, __func__,
-                                  &config->geometry));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct geometry, __func__, &config->geometry));
   config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   config->zone_count = 1;
   config->geometry->chapters_per_volume = numChapters;
   config->geometry->records_per_chapter = 16;
   return config;
-}
-
-/**********************************************************************/
-static void
-getVolumeIndexStatsDenseOnly(struct volume_index       *volumeIndex,
-                             struct volume_index_stats *denseStats)
-{
-  struct volume_index_stats sparseStats;
-  get_volume_index_stats(volumeIndex, denseStats, &sparseStats);
 }
 
 /**********************************************************************/
@@ -92,18 +82,16 @@ static void basicTest(void)
 {
   struct volume_index *volumeIndex;
   struct volume_index_record record;
-  struct volume_index_stats *volumeStats;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume_index_stats, __func__,
-                                  &volumeStats));
+  struct volume_index_stats volumeStats;
 
   // Make a volume index with only 1 delta list
   struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  getVolumeIndexStatsDenseOnly(volumeIndex, volumeStats);
-  CU_ASSERT_EQUAL(volumeStats->record_count, 0);
-  CU_ASSERT_EQUAL(volumeStats->discard_count, 0);
-  CU_ASSERT_EQUAL(volumeStats->num_lists, 1);
+  get_volume_index_stats(volumeIndex, &volumeStats);
+  CU_ASSERT_EQUAL(volumeStats.record_count, 0);
+  CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
+  CU_ASSERT_EQUAL(volumeStats.num_lists, 1);
 
   // Make record names that use keys 0, 1 and 2
   struct uds_record_name name0, name1, name2;
@@ -118,18 +106,18 @@ static void basicTest(void)
   UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
   CU_ASSERT_FALSE(record.is_found);
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  getVolumeIndexStatsDenseOnly(volumeIndex, volumeStats);
-  CU_ASSERT_EQUAL(volumeStats->record_count, 0);
-  CU_ASSERT_EQUAL(volumeStats->discard_count, 0);
+  get_volume_index_stats(volumeIndex, &volumeStats);
+  CU_ASSERT_EQUAL(volumeStats.record_count, 0);
+  CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
 
   // Insert a record with key 1
   uint64_t chapter1 = 0;
   UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
   UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter1));
   CU_ASSERT_NOT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  getVolumeIndexStatsDenseOnly(volumeIndex, volumeStats);
-  CU_ASSERT_EQUAL(volumeStats->record_count, 1);
-  CU_ASSERT_EQUAL(volumeStats->discard_count, 0);
+  get_volume_index_stats(volumeIndex, &volumeStats);
+  CU_ASSERT_EQUAL(volumeStats.record_count, 1);
+  CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
 
   // Should not find a record with key 0
   UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
@@ -151,21 +139,20 @@ static void basicTest(void)
   CU_ASSERT_FALSE(record.is_collision);
   CU_ASSERT_EQUAL(record.virtual_chapter, chapter1);
   UDS_ASSERT_SUCCESS(remove_volume_index_record(&record));
-  getVolumeIndexStatsDenseOnly(volumeIndex, volumeStats);
-  CU_ASSERT_EQUAL(volumeStats->record_count, 0);
-  CU_ASSERT_EQUAL(volumeStats->discard_count, 1);
+  get_volume_index_stats(volumeIndex, &volumeStats);
+  CU_ASSERT_EQUAL(volumeStats.record_count, 0);
+  CU_ASSERT_EQUAL(volumeStats.discard_count, 1);
 
   // Should not find a record with key 1
   UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_FALSE(record.is_found);
 
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  getVolumeIndexStatsDenseOnly(volumeIndex, volumeStats);
-  CU_ASSERT_EQUAL(volumeStats->record_count, 0);
-  CU_ASSERT_EQUAL(volumeStats->discard_count, 1);
+  get_volume_index_stats(volumeIndex, &volumeStats);
+  CU_ASSERT_EQUAL(volumeStats.record_count, 0);
+  CU_ASSERT_EQUAL(volumeStats.discard_count, 1);
   free_volume_index(volumeIndex);
   free_configuration(config);
-  UDS_FREE(volumeStats);
 }
 
 /**********************************************************************/
@@ -397,20 +384,20 @@ static void rotateForInvalidateChaptersTest(struct volume_index *volumeIndex,
                                             uint64_t *openChapter)
 {
   struct volume_index_stats volumeStats;
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   long newDiscards = highChapter - *openChapter;
   long expectedDiscards = volumeStats.discard_count + newDiscards;
   uint64_t newChapter = *openChapter + 1;
   advanceForInvalidateChaptersTest(volumeIndex, openChapter, highChapter);
   checkForInvalidateChaptersTest(volumeIndex, numChapters, testNames,
                                  testChapters, lowChapter, highChapter);
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters - newDiscards);
   CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
   insertForInvalidateChaptersTest(volumeIndex, numChapters, testNames,
                                   testChapters, newChapter, highChapter,
                                   openChapter);
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
   CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
 }
@@ -435,7 +422,7 @@ static void invalidateChapterTest(void)
   insertForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
                                   testChapters, lowChapter, highChapter,
                                   &openChapter);
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, CHAPTER_COUNT);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
   checkForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
@@ -505,7 +492,7 @@ static void invalidateChapterCollisionTest(void)
   CU_ASSERT_TRUE(record.is_found);
   UDS_ASSERT_SUCCESS(put_volume_index_record(&record, 0));
 
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 2);
   CU_ASSERT_EQUAL(volumeStats.collision_count, 1);
 
@@ -547,14 +534,14 @@ static void rollingChaptersTest(void)
     set_volume_index_open_chapter(volumeIndex, i);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], i);
   }
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   // Replace each block
   for (i = 0; i < numChapters; i++) {
     set_volume_index_open_chapter(volumeIndex, numChapters + i);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], numChapters + i);
-    getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+    get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
   }
 
@@ -568,7 +555,7 @@ static void rollingChaptersTest(void)
                     && (record.virtual_chapter == numChapters + i));
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], 2 * numChapters + i);
   }
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   // Look for an existing block, then replace the retired block
@@ -582,7 +569,7 @@ static void rollingChaptersTest(void)
     CU_ASSERT_EQUAL(record.virtual_chapter, jChapter);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], 3 * numChapters + i);
   }
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   free_volume_index(volumeIndex);
@@ -601,7 +588,7 @@ static void invalidateChapterEmptyTest(void)
   // Set up the volume index to use a single delta list and 5 chapters.
   struct configuration *config = makeTestConfig(5);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
-  getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+  get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   uint64_t chapter = 0;
 
@@ -614,13 +601,13 @@ static void invalidateChapterEmptyTest(void)
     uint64_t chapter1 = chapter;
     set_volume_index_open_chapter(volumeIndex, chapter);
     insertRandomlyNamedBlock(volumeIndex, &name1, chapter1);
-    getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+    get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 1);
 
     // Advance 4 chapters
     for (ch = 0; ch < 4; ch++) {
       set_volume_index_open_chapter(volumeIndex, ++chapter);
-      getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+      get_volume_index_stats(volumeIndex, &volumeStats);
       CU_ASSERT_EQUAL(volumeStats.record_count, 1);
     }
 
@@ -632,11 +619,11 @@ static void invalidateChapterEmptyTest(void)
 
     // Advance 1 chapter.  The block should disappear when we look for it.
     set_volume_index_open_chapter(volumeIndex, ++chapter);
-    getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+    get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 1);
     UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
     CU_ASSERT_FALSE(record.is_found);
-    getVolumeIndexStatsDenseOnly(volumeIndex, &volumeStats);
+    get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   }
 

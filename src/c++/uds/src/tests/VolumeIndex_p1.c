@@ -75,7 +75,7 @@ static void reportRebalances(int *rebalanceCount, const char *label,
 static void reportIndexMemoryUsage(struct volume_index *volumeIndex)
 {
   struct volume_index_stats denseStats, sparseStats;
-  get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
 
   long numBlocks = denseStats.record_count + sparseStats.record_count;
   size_t memAlloc = volumeIndex->memory_size;
@@ -99,7 +99,7 @@ static void reportIndexMemoryUsage(struct volume_index *volumeIndex)
 static void reportCollisions(struct volume_index *volumeIndex)
 {
   struct volume_index_stats denseStats, sparseStats;
-  get_volume_index_stats(volumeIndex, &denseStats, &sparseStats);
+  get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
   long numCollisions = denseStats.collision_count
                          + sparseStats.collision_count;
   long numBlocks     = denseStats.record_count    + sparseStats.record_count;
@@ -139,9 +139,9 @@ static void miPerfTest(void)
   struct volume_index *volumeIndex;
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
 
-  struct volume_index_stats combinedStats;
-  get_volume_index_combined_stats(volumeIndex, &combinedStats);
-  int numLists = combinedStats.num_lists;
+  struct volume_index_stats stats;
+  get_volume_index_stats(volumeIndex, &stats);
+  int numLists = stats.num_lists;
   size_t memAlloc = volumeIndex->memory_size;
   albPrint("Initial Memory: allocated %zd for %d delta lists (%zd each)",
            memAlloc, numLists, memAlloc / numLists);

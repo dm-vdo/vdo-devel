@@ -107,7 +107,7 @@ static void stressVolumeIndexBytesTest(void)
 {
   struct uds_record_name orig, name;
   struct uds_record_data data;
-  struct volume_index_stats denseStats, sparseStats;
+  struct volume_index_stats stats;
 
   createIndex(0);
   createRandomBlockName(&orig);
@@ -115,8 +115,8 @@ static void stressVolumeIndexBytesTest(void)
     createCollidingBlock(&orig, &name);
     createRandomMetadata(&data);
     requestIndex(&name, &data);
-    get_volume_index_stats(theIndex->volume_index, &denseStats, &sparseStats);
-  } while (denseStats.overflow_count < 1);
+    get_volume_index_stats(theIndex->volume_index, &stats);
+  } while (stats.overflow_count < 1);
 
   free_index(theIndex);
 }
