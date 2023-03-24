@@ -27,11 +27,11 @@ tarballs:
           +postProcessor: removeInternal.sh
   kvdo:
     sources:
-      doc:
-        dest: .
-        sources:
-          - dm-vdo.rst
       vdo:
+        +doc:
+          dest: .
+          sources:
+            - dm-vdo.rst
         +src/packaging/github:
           dest: .
           sources:

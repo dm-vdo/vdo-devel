@@ -21,7 +21,7 @@ tarballs:
   kvdo:
     sources:
       vdo:
-        doc:
+        +doc:
           dest: .
           sources:
             - dm-vdo.rst
