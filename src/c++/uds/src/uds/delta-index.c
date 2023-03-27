@@ -22,112 +22,47 @@
 #include "uds.h"
 
 /*
- * The entries in a delta index could be stored in a single delta list, but for efficiency it uses
- * multiple delta lists. These lists are stored in a single chunk of memory managed by the
- * delta_zone structure. The delta_zone can move the data around within its memory, so it never
- * keeps any reference pointers, only bit offsets into the memory.
+ * The entries in a delta index could be stored in a single delta list, but to reduce search times
+ * and update costs it uses multiple delta lists. These lists are stored in a single chunk of
+ * memory managed by the delta_zone structure. The delta_zone can move the data around within its
+ * memory, so the location of each delta list is recorded as a bit offset into the memory. Because
+ * the volume index can contain over a million delta lists, we want to be efficient with the size
+ * of the delta list header information. This information is encoded into 16 bytes per list. The
+ * volume index delta list memory can easily exceed 4 gigabits, so a 64 bit value is needed to
+ * address the memory. The volume index delta lists average around 6 kilobits, so 16 bits are
+ * sufficient to store the size of a delta list.
  *
- * The delta lists are stored as bit streams. These bit streams are stored in little endian order,
- * and all offsets into delta_memory are bit offsets.
+ * Each delta list is stored as a bit stream. Within the delta list encoding, bits and bytes are
+ * numbered in little endian order. Within a byte, bit 0 is the least significant bit (0x1), and
+ * bit 7 is the most significant bit (0x80). Within a bit stream, bit 7 is the most signficant bit
+ * of byte 0, and bit 8 is the least significant bit of byte 1. Within a byte array, a byte's
+ * number corresponds to its index in the array.
  *
- * All entries are stored as a fixed length payload (the value) followed by a variable length key
- * (the delta), and always strictly in little endian order.
+ * A standard delta list entry is stored as a fixed length payload (the value) followed by a
+ * variable length key (the delta). A collision entry is used when two block names have the same
+ * delta list address. A collision entry always follows a standard entry for the hash with which it
+ * collides, and is encoded with DELTA == 0 with an additional 256 bits field at the end,
+ * containing the full block name. An entry with a delta of 0 at the beginning of a delta list
+ * indicates a normal entry.
  *
- * A collision entry is used when two block names have the same delta list address. A collision
- * entry is encoded with DELTA == 0, and has 256 extension bits containing the full block name.
+ * The delta in each entry is encoded with a variable-length Huffman code to minimize the memory
+ * used by small deltas. The Huffman code is specified by three parameters, which can be computed
+ * from the desired mean delta when the index is full. (See compute_coding constants() for
+ * details.)
  *
- * The DELTA == 0 encoding usually indicates a collision with the preceding entry, but for the
- * first entry in any delta list there is no preceding entry, so the DELTA == 0 encoding at the
- * beginning of a delta list indicates a normal entry.
- *
- * The Huffman code is driven by 3 parameters:
- *
- *  MINBITS   The number of bits in the smallest code
- *  BASE      The number of values coded using a code of length MINBITS
- *  INCR      The number of values coded by using one additional bit
- *
- * These parameters are related by this equation:
- *
- *	BASE + INCR == 1 << MINBITS
- *
- * When an index is created, it needs to know the mean delta. From the mean delta, these three
- * parameters can be computed. The math for the Huffman code of an exponential distribution says
- * that
- *
- *	INCR = log(2) * MEAN_DELTA
- *
- * Then use the smallest MINBITS value so that
- *
- *	(1 << MINBITS) > INCR
- *
- * And then
- *
- *	BASE = (1 << MINBITS) - INCR
- *
- * Now the index can generate a code such that
- *
- * - The first BASE values code using MINBITS bits.
- * - The next INCR values code using MINBITS+1 bits.
- * - The next INCR values code using MINBITS+2 bits.
- * - The next INCR values code using MINBITS+3 bits.
- * - (and so on).
- *
- * ENCODE(DELTA):
- *
- *   if (DELTA < BASE)
- *	 put DELTA in MINBITS bits;
- *   else {
- *	 T1 = (DELTA - BASE) % INCR + BASE;
- *	 T2 = (DELTA - BASE) / INCR;
- *	 put T1 in MINBITS bits;
- *	 put 0 in T2 bits;
- *	 put 1 in 1 bit;
- *   }
- *
- * DECODE(BIT_STREAM):
- *
- *   T1 = next MINBITS bits of stream;
- *   if (T1 < BASE)
- *	 DELTA = T1;
- *   else {
- *	 Scan bits in the stream until reading a 1,
- *	   setting T2 to the number of 0 bits read;
- *	 DELTA = T2 * INCR + T1;
- *   }
- *
- * Within the delta list encoding, bits and bytes are numbered in little endian order. Within a
- * byte, bit 0 is the least significant bit (0x1), and bit 7 is the most significant bit (0x80).
- * Within a bit stream, bit 7 is the most signficant bit of byte 0, and bit 8 is the least
- * significant bit of byte 1. Within a byte array, a byte's number corresponds to its index in the
- * array.
- *
- * The delta_zone structure manages the memory that stores delta lists. Because the volume index
- * can contain a million delta lists or more, we want to be efficient with the delta list header
- * size.
- *
- * The delta list information is encoded into 16 bytes per list. The volume index delta list memory
- * can easily exceed 4 gigabits, so a 64 bit value is needed to address the memory. The volume
- * index delta lists average around 6 kilobits, so the size of a delta list can be stored in a
- * 16-bit value.
- *
- * The bit field utilities used on the delta lists assume that it is possible to read a few bytes
- * beyond the end of the bit field, so a delta_zone memory allocation is guarded by two invalid
- * delta lists to prevent reading outside the delta_zone memory. The valid delta lists are numbered
- * 1 to N, and the guard lists are numbered 0 and N+1.
- *
- * The functions to decode the bit streams include a step that skips over bits set to 0 until the
- * first 1 bit is found. A corrupted delta list could cause this step to run off the end of the
- * delta_zone memory. As extra protection against this happening, the guard list at the end is set
- * to all ones.
+ * The bit field utilities used to read and write delta entries assume that it is possible to read
+ * some bytes beyond the end of the bit field, so a delta_zone memory allocation is guarded by two
+ * invalid delta lists to prevent reading outside the delta_zone memory. The valid delta lists are
+ * numbered 1 to N, and the guard lists are numbered 0 and N+1. The function to decode the bit
+ * stream include a step that skips over bits set to 0 until the first 1 bit is found. A corrupted
+ * delta list could cause this step to run off the end of the delta_zone memory, so as extra
+ * protection against this happening, the tail guard list is set to all ones.
  *
  * The delta_index supports two different forms. The mutable form is created by
  * initialize_delta_index(), and is used for the volume index and for open chapter indexes. The
  * immutable form is created by initialize_delta_index_page(), and is used for closed (and cached)
  * chapter index pages. The immutable form does not allocate delta list headers or temporary
  * offsets, and thus is somewhat more memory efficient.
- *
- * This implementation assumes that the native machine is little endian, and that performance is
- * very important.
  */
 
 /*
@@ -148,11 +83,9 @@ enum {
 
 /*
  * This is the number of guard bytes needed at the end of the memory byte array when using the bit
- * utilities. 3 bytes are needed when get_field() and set_field() access a field, because they will
- * access some extra bytes past the end of the field. 7 bytes are needed when get_big_field() and
- * set_big_field() access a big field, for the same reason. Note that move_bits() calls
- * get_big_field() and set_big_field(). The definition is written to make it clear how it is
- * derived.
+ * utilities. These utilities call get_big_field() and set_big_field(), which can access up to 7
+ * bytes beyond the end of the desired field. The definition is written to make it clear how this
+ * value is derived.
  */
 enum {
 	POST_FIELD_GUARD_BYTES = sizeof(u64) - 1,
@@ -164,7 +97,7 @@ enum {
 };
 
 /*
- * The maximum size of a single delta list (in bytes). We count guard bytes in this value because a
+ * The maximum size of a single delta list in bytes. We count guard bytes in this value because a
  * buffer of this size can be used with move_bits().
  */
 enum {
@@ -331,7 +264,35 @@ void reset_delta_index(const struct delta_index *delta_index)
 	}
 }
 
-/* Compute the Huffman coding parameters for the given mean delta. */
+/* Compute the Huffman coding parameters for the given mean delta. The Huffman code is specified by
+ * three parameters:
+ *
+ *  MINBITS   The number of bits in the smallest code
+ *  BASE      The number of values coded using a code of length MINBITS
+ *  INCR      The number of values coded by using one additional bit
+ *
+ * These parameters are related by this equation:
+ *
+ *	BASE + INCR == 1 << MINBITS
+ *
+ * The math for the Huffman code of an exponential distribution says that
+ *
+ *	INCR = log(2) * MEAN_DELTA
+ *
+ * Then use the smallest MINBITS value so that
+ *
+ *	(1 << MINBITS) > INCR
+ *
+ * And then
+ *
+ *	BASE = (1 << MINBITS) - INCR
+ *
+ * Now the index can generate a code such that
+ * - The first BASE values code using MINBITS bits.
+ * - The next INCR values code using MINBITS+1 bits.
+ * - The next INCR values code using MINBITS+2 bits.
+ * - (and so on).
+ */
 static void compute_coding_constants(unsigned int mean_delta,
 				     unsigned short *min_bits,
 				     unsigned int *min_keys,
