@@ -124,8 +124,6 @@ struct volume_index_record {
 
 	/* Private fields */
 
-	/* The magic number for valid records */
-	unsigned char magic;
 	/* Zone that contains this name */
 	unsigned int zone_number;
 	/* The volume index */

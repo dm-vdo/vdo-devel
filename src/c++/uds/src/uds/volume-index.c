@@ -113,9 +113,6 @@ struct volume_index_data {
 	unsigned int sparse_sample_rate;
 };
 
-static const u8 volume_index_record_magic = 0xAA;
-static const u8 bad_magic;
-
 #ifdef TEST_INTERNAL
 /*
  * In production, the default value for min_volume_index_delta_lists will be MAX_ZONES * MAX_ZONES.
@@ -554,7 +551,6 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 	unsigned int delta_list_number = extract_dlist_num(sub_index, name);
 	u64 flush_chapter = sub_index->flush_chapters[delta_list_number];
 
-	record->magic = volume_index_record_magic;
 	record->sub_index = sub_index;
 	record->mutex = NULL;
 	record->name = name;
@@ -625,9 +621,6 @@ int put_volume_index_record(struct volume_index_record *record, u64 virtual_chap
 	unsigned int address;
 	const struct volume_sub_index *sub_index = record->sub_index;
 
-	if (record->magic != volume_index_record_magic)
-		return uds_log_warning_strerror(UDS_BAD_STATE,
-						"bad magic number in volume index record");
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		const struct volume_sub_index_zone *volume_index_zone =
 			get_zone_for_record(record);
@@ -664,25 +657,14 @@ int put_volume_index_record(struct volume_index_record *record, u64 virtual_chap
 	return result;
 }
 
-static inline int validate_record(struct volume_index_record *record)
-{
-	if (record->magic != volume_index_record_magic)
-		return uds_log_warning_strerror(UDS_BAD_STATE,
-						"bad magic number in volume index record");
-	if (!record->is_found)
-		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
-	return UDS_SUCCESS;
-}
-
 int remove_volume_index_record(struct volume_index_record *record)
 {
 	int result;
 
-	result = validate_record(record);
-	if (result != UDS_SUCCESS)
-		return result;
+	if (!record->is_found)
+		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
 	/* Mark the record so that it cannot be used again */
-	record->magic = bad_magic;
+	record->is_found = false;
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
 	result = remove_delta_index_entry(&record->delta_entry);
@@ -784,9 +766,8 @@ int set_volume_index_record_chapter(struct volume_index_record *record, u64 virt
 	const struct volume_sub_index *sub_index = record->sub_index;
 	int result;
 
-	result = validate_record(record);
-	if (result != UDS_SUCCESS)
-		return result;
+	if (!record->is_found)
+		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		const struct volume_sub_index_zone *sub_index_zone = get_zone_for_record(record);
 
