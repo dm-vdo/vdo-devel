@@ -23,9 +23,10 @@
 #include "uds-threads.h"
 
 /*
- * The volume index is combination of two separate subindexes, one containing sparse hook entries
- * (retained for all chapters), and one containing the remaining (non-hook) entries (retained only
- * for the dense chapters). If there are no sparse chapters, only the non-hook sub index is used.
+ * The volume index is a combination of two separate subindexes, one containing sparse hook entries
+ * (retained for all chapters), and one containing the remaining entries (retained only for the
+ * dense chapters). If there are no sparse chapters, only the non-hook sub index is used, and it
+ * will contain all records for all chapters.
  *
  * The volume index is also divided into zones, with one thread operating on each zone. Each
  * incoming request is dispatched to the appropriate thread, and then to the appropriate subindex.
@@ -33,24 +34,23 @@
  * zones doesn't underflow (leaving some zone with no delta lists), the minimum number of delta
  * lists must be the square of the maximum zone count for both subindexes.
  *
+ * Each subindex zone is a delta index where the payload is a chapter number. The volume index can
+ * compute the delta list number, address, and zone number from the record name in order to
+ * dispatch record handling to the correct structures.
+ *
  * Most operations that use all the zones take place either before request processing is allowed,
  * or after all requests have been flushed in order to shut down. The only multi-threaded operation
  * supported during normal operation is the lookup_volume_index_name() method, used to determine
  * whether a new chapter should be loaded into the sparse index cache. This operation only uses the
  * sparse hook subindex, and the zone mutexes are used to make this operation safe.
  *
- * Each subindex is a delta index where the payload is a chapter number. The volume index knows how
- * to compute the delta list number and address from a record name.
- *
  * There are three ways of expressing chapter numbers in the volume index: virtual, index, and
  * rolling. The interface to the volume index uses virtual chapter numbers, which are 64 bits long.
  * Internally the subindex stores only the minimal number of bits necessary by masking away the
- * high-order bits.
- *
- * When we need to deal with ordering of index chapter numbers, as when flushing entries from older
- * chapters, we roll the index chapter number around so that the smallest one we are using has the
- * representation 0. See convert_index_to_virtual() or flush_invalid_entries() for an example of
- * this technique.
+ * high-order bits. When the index needs to deal with ordering of index chapter numbers, as when
+ * flushing entries from older chapters, it rolls the index chapter number around so that the
+ * smallest one in use is mapped to 0. See convert_index_to_virtual() or flush_invalid_entries()
+ * for an example of this technique.
  *
  * For efficiency, when older chapter numbers become invalid, the index does not immediately remove
  * the invalidated entries. Instead it lazily removes them from a given delta list the next time it
@@ -75,7 +75,7 @@ struct sub_index_parameters {
 	size_t num_bits_per_chapter;
 	/* The number of bytes of delta list memory */
 	size_t memory_size;
-	/* The number of free bytes we desire */
+	/* The number of bytes the index should keep free at all times */
 	size_t target_free_bytes;
 };
 
@@ -597,8 +597,8 @@ int get_volume_index_record(struct volume_index *volume_index,
 
 	if (is_volume_index_sample(volume_index, name)) {
 		/*
-		 * We need to prevent a lookup_volume_index_name() happening while we are finding
-		 * the volume index record. Remember that because of lazy LRU flushing of the
+		 * Other threads cannot be allowed to call lookup_volume_index_name() while this
+		 * thread is finding the volume index record. Due to the lazy LRU flushing of the
 		 * volume index, get_volume_index_record() is not a read-only operation.
 		 */
 		unsigned int zone = get_volume_sub_index_zone(&volume_index->vi_hook, name);
@@ -737,8 +737,8 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					       virtual_chapter);
 
 	/*
-	 * We need to prevent calling lookup_volume_index_name() while we are changing the open
-	 * chapter number.
+	 * Other threads cannot be allowed to call lookup_volume_index_name() while the open
+	 * chapter number is changing.
 	 */
 	if (has_sparse(volume_index)) {
 		uds_lock_mutex(mutex);
@@ -1047,7 +1047,7 @@ int load_volume_index(struct volume_index *volume_index,
 		return result;
 	}
 
-	/* Check the final guard lists to make sure we read everything. */
+	/* Check the final guard lists to make sure there is no extra data. */
 	result = check_guard_delta_lists(readers, num_readers);
 	if (result != UDS_SUCCESS)
 		abort_restoring_volume_index(volume_index);
