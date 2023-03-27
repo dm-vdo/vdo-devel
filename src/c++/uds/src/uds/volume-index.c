@@ -162,8 +162,8 @@ is_virtual_chapter_indexed(const struct volume_index_record *record, u64 virtual
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 
-	return (virtual_chapter >= volume_index_zone->virtual_chapter_low) &&
-	       (virtual_chapter <= volume_index_zone->virtual_chapter_high);
+	return ((virtual_chapter >= volume_index_zone->virtual_chapter_low) &&
+		(virtual_chapter <= volume_index_zone->virtual_chapter_high));
 }
 
 static inline bool has_sparse(const struct volume_index *volume_index)
@@ -183,9 +183,9 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 static inline const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
 {
-	return is_volume_index_sample(volume_index, name) ?
-			&volume_index->vi_hook :
-			&volume_index->vi_non_hook;
+	return (is_volume_index_sample(volume_index, name) ?
+		&volume_index->vi_hook :
+		&volume_index->vi_non_hook);
 }
 
 static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub_index,
@@ -466,6 +466,7 @@ static inline int flush_invalid_entries(struct volume_index_record *record,
 		unsigned int index_chapter = get_delta_entry_value(&record->delta_entry);
 		unsigned int relative_chapter = ((index_chapter - flush_range->chapter_start) &
 						 record->sub_index->chapter_mask);
+
 		if (likely(relative_chapter >= flush_range->chapter_count)) {
 			if (relative_chapter < *next_chapter_to_invalidate)
 				*next_chapter_to_invalidate = relative_chapter;
@@ -489,8 +490,10 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	unsigned int next_chapter_to_invalidate = sub_index->chapter_mask;
 	int result;
 
-	result = start_delta_index_search(&sub_index->delta_index, list_number,
-					  0, &record->delta_entry);
+	result = start_delta_index_search(&sub_index->delta_index,
+					  list_number,
+					  0,
+					  &record->delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 	do {
@@ -814,7 +817,7 @@ static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index
 		return U64_MAX;
 
 	index_chapter = get_delta_entry_value(&delta_entry);
-	rolling_chapter = ((index_chapter - zone->virtual_chapter_low) & sub_index->chapter_mask);
+	rolling_chapter = (index_chapter - zone->virtual_chapter_low) & sub_index->chapter_mask;
 
 	virtual_chapter = zone->virtual_chapter_low + rolling_chapter;
 	if (virtual_chapter > zone->virtual_chapter_high)
@@ -1332,12 +1335,17 @@ int make_volume_index(const struct configuration *config,
 			      struct volume_index_zone,
 			      "volume index zones",
 			      &volume_index->zones);
-	for (zone = 0; zone < config->zone_count; zone++)
-		if (result == UDS_SUCCESS)
-			result = uds_init_mutex(&volume_index->zones[zone].hook_mutex);
 	if (result != UDS_SUCCESS) {
 		free_volume_index(volume_index);
 		return result;
+	}
+
+	for (zone = 0; zone < config->zone_count; zone++) {
+		result = uds_init_mutex(&volume_index->zones[zone].hook_mutex);
+		if (result != UDS_SUCCESS) {
+			free_volume_index(volume_index);
+			return result;
+		}
 	}
 
 	result = initialize_volume_sub_index(&split.non_hook_config,
