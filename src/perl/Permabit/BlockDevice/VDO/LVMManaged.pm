@@ -263,15 +263,26 @@ sub teardown {
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
-  $self->stop();
-
   my $currentHost = $self->getMachineName();
   my $newHost = $newMachine->getName();
-  $log->info("Migrating VDO device from $currentHost to $newHost");
-  $self->getStorageDevice()->migrate($newMachine);
-  $self->installModule();
 
-  $self->start();
+  my $migrate = sub {
+    if ($currentHost eq $newHost) {
+      $self->installModule();
+      return;
+    }
+
+    $log->info("Migrating VDO device from $currentHost to $newHost");
+    $self->getStorageDevice()->migrate($newMachine);
+    $self->installModule();
+
+    if ($newHost ne $self->getStorageHost()) {
+      # If we are building on an ISCSI device, we have to activate the
+      # device after migration.
+      $self->getStorageDevice()->activate();
+    }
+  };
+  $self->runWhileStopped($migrate);
 }
 
 ########################################################################

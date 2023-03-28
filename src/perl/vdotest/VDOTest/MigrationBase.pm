@@ -16,7 +16,6 @@ use Permabit::Assertions qw(
   assertMinMaxArgs
   assertNumArgs
 );
-use Permabit::RSVPer qw(getRSVPer);
 use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS $SUPPORTED_VERSIONS);
 
 use base qw(VDOTest);
@@ -33,7 +32,7 @@ our %PROPERTIES =
    blockCount => 33000,
    # @ple Use an upgrade device backed by iscsi, and don't use stripfua
    deviceType => "upgrade-iscsi-linear",
-   # @ple Hash reference mapping scenario keys to the scenario hash to be used
+   # @ple Hashref mapping scenario keys to the scenario hash to be used
    scenarios  => undef,
    # @ple Data to share between test methods
    _testData  => undef,
@@ -60,10 +59,17 @@ sub set_up {
                 . " must be defined in SUPPORTED_VERSIONS to be used.");
   }
 
-  $self->SUPER::set_up();
-
+  # Generate the scenario hashes and reserve the needed hosts.
   foreach my $name (@scenarioNames) {
     $self->{scenarios}{$name} = $self->generateScenarioHash($name);
+  }
+
+  $self->SUPER::set_up();
+
+  # Add the userMachines to the scenario hashes.
+  foreach my $name (@scenarioNames) {
+    my $scenario = $self->{scenarios}->{$name};
+    $scenario->{machine} = $self->getUserMachine($scenario->{hostname});
   }
 
   my $device = $self->getDevice();
@@ -74,6 +80,34 @@ sub set_up {
   $device->switchToScenario($scenario);
   $device->setup();
   $device->verifyModuleVersion();
+}
+
+#############################################################################
+# @inherit
+##
+sub reserveHosts {
+  my ($self) = assertNumArgs(1, @_);
+  my @scenarioNames = ($self->{initialScenario},
+                       @{$self->{intermediateScenarios}});
+
+  my $classes = {};
+  foreach my $name (@scenarioNames) {
+    my $scenarioOSClass = $SUPPORTED_SCENARIOS->{$name}{rsvpOSClass};
+    my $host = undef;
+    my $classString = join(",", $scenarioOSClass, $self->{clientClass});
+    ($host) = $self->reserveNumHosts(1, $classString, $self->{clientLabel});
+    $self->{scenarios}->{$name}{hostname} = $host;
+
+    my $lcOSClass = lc($scenarioOSClass);
+    push(@{$self->{$lcOSClass . "Names"}}, $host);
+
+    if (!grep(/^$lcOSClass$/, @{$self->{typeNames}})) {
+      push(@{$self->{typeNames}}, $lcOSClass);
+    }
+  }
+
+  $self->{defaultHostType} =
+    lc($SUPPORTED_SCENARIOS->{$self->{initialScenario}}{rsvpOSClass});
 }
 
 #############################################################################
@@ -115,17 +149,8 @@ sub switchToIntermediateScenario {
 sub generateScenarioHash {
   my ($self, $scenarioName) = assertNumArgs(2, @_);
   my $version = $SUPPORTED_SCENARIOS->{$scenarioName}{moduleVersion};
-  my $rsvpOSClass = $SUPPORTED_SCENARIOS->{$scenarioName}{rsvpOSClass};
-  my $rsvper = $self->getRSVPer();
-  my $machine;
 
-  # Upgrade tests are single-machine, so use the current machine.
-  $machine = $self->getDevice->getMachine();
-
-  assertDefined($machine, "Unable to find a reserved host matching the"
-                . " specified scenario requirements.");
-
-  return { name => $scenarioName, machine => $machine, version => $version };
+  return { name => $scenarioName, version => $version };
 }
 
 #############################################################################

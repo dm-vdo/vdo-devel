@@ -131,6 +131,11 @@ sub installModule {
     return;
   }
 
+  # Install the binary files on the host, if necessary. This is needed for
+  # migration tests when the VDO version is the same but the machine
+  # architecture or OS varies between scenarios.
+  $self->_installBinaries();
+
   # Set module properties to use the correct version.
   $self->setModuleVersion($self->{_versionData}->{moduleVersion});
   $self->setModuleSourceDir($self->{_currentInstall});

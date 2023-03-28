@@ -92,6 +92,8 @@ our %PROPERTIES
      compressibleChunkSize   => 4 * $KB,
      # @ple percentage of compressibility to use when creating data files
      compressibility         => 0,
+     # @ple Host type to start the test, used in setting the defaultHost
+     defaultHostType         => "client",
      # @ple if defined, set up this type of device for the test
      deviceType              => undef,
      # @ple options for the dory device (if any)
@@ -145,6 +147,8 @@ our %PROPERTIES
      # @ple Suppress clean up of the test machines if one of these named error
      #      types occurs.
      suppressCleanupOnError  => ["Verify"],
+     # @ple Host types
+     typeNames               => ["client", "nfsclient"],
      # @ple Whether to use a filesystem. Should only be set by tests.
      useFilesystem           => 0,
     );
@@ -355,7 +359,8 @@ sub set_up {
     $self->{numNfsclients} ||= 1;
   };
   $self->{fsBlockSize} //= $self->_getDefaultFSBlockSize();
-  $self->reserveHostGroups("client", "nfsclient");
+  $self->reserveHosts();
+
   $self->SUPER::set_up();
 
   $self->{scratchDir} = makeFullPath($self->{workDir}, 'scratch');
@@ -396,7 +401,7 @@ sub set_up {
     $log->info("computed kernel memory limit: " . sizeToText($minimumMemory));
     setupKernelMemoryLimiting($self->{clientNames}, $minimumMemory, 0);
   }
-  
+
   if ($self->{rawhideKernel}) {
     setupRawhideKernel($self->{clientNames});
   }
@@ -429,6 +434,16 @@ sub set_up {
   if ($self->{useFilesystem}) {
     $self->createFileSystem($self->getDevice());
   }
+}
+
+########################################################################
+# Reserve the hosts needed for the test.
+#
+# May be overridden by subclasses.
+##
+sub reserveHosts {
+  my ($self) = assertNumArgs(1, @_);
+  $self->reserveHostGroups("client", "nfsclient");
 }
 
 ########################################################################
@@ -563,7 +578,8 @@ sub getTestHosts {
   my ($self) = assertNumArgs(1, @_);
   return ($self->SUPER::getTestHosts(),
           map { ref($_) eq "ARRAY" ? @$_ : () }
-              map { $self->{$_} } qw(clientNames nfsclientNames));
+            map { $self->{$_} }
+              map { $_ . "Names" } @{$self->{typeNames}});
 }
 
 ########################################################################
@@ -597,6 +613,17 @@ sub generateDataFile {
     $path = $requestedPath;
   }
   return $path;
+}
+
+########################################################################
+# Get the default host to use for the test
+#
+# @return The hostname to start the test on
+##
+sub getDefaultHost {
+  my ($self) = assertNumArgs(1, @_);
+  my $typeNames = $self->{defaultHostType} . "Names";
+  return $self->{$typeNames}[0];
 }
 
 ########################################################################
@@ -640,7 +667,7 @@ sub getFileSystem {
 ##
 sub getUserMachine {
   my ($self, $name) = assertMinMaxArgs([undef], 1, 2, @_);
-  $name ||= $self->{clientNames}[0];
+  $name ||= $self->getDefaultHost();
   assertDefined($name);
   if (!defined($self->{_machines}{$name})) {
     my %params = (
@@ -905,7 +932,7 @@ sub tear_down {
       };
       $self->runTearDownStep($removeMemoryLimiting);
     }
-    
+
     if ($self->{rawhideKernel}) {
       my $removeRawhide = sub {
         removeRawhideKernel($self->{clientNames});
