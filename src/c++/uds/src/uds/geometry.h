@@ -36,8 +36,6 @@ struct geometry {
 	 */
 	/* Total number of pages in a volume, excluding the header */
 	unsigned int pages_per_volume;
-	/* Total number of header pages per volume */
-	unsigned int header_pages_per_volume;
 	/* Total number of bytes in a volume, including the header */
 	size_t bytes_per_volume;
 	/* Number of pages in a chapter */
@@ -92,6 +90,9 @@ enum {
 
 	/* The log2 of the number of delta lists in a small chapter */
 	SMALL_CHAPTER_DELTA_LIST_BITS = 10,
+
+	/* The number of header pages per volume */
+	HEADER_PAGES_PER_VOLUME = 1,
 };
 
 int __must_check make_geometry(size_t bytes_per_page,

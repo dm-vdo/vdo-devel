@@ -23,10 +23,8 @@ static void checkCommonGeometry(const struct geometry *g,
 {
   CU_ASSERT_EQUAL(g->bytes_per_page,      DEFAULT_BYTES_PER_PAGE);
   CU_ASSERT_EQUAL(g->chapters_per_volume, chapters_per_volume);
-  CU_ASSERT_EQUAL(g->header_pages_per_volume, 1);
   CU_ASSERT_EQUAL(g->bytes_per_volume,
-                  g->bytes_per_page * (g->pages_per_volume +
-                                       g->header_pages_per_volume));
+                  g->bytes_per_page * (g->pages_per_volume + HEADER_PAGES_PER_VOLUME));
   CU_ASSERT_EQUAL(g->records_per_page, g->bytes_per_page / BYTES_PER_RECORD);
   CU_ASSERT_EQUAL(g->chapter_address_bits, 22);
   CU_ASSERT_EQUAL(g->chapter_mean_delta, 1 << 16);

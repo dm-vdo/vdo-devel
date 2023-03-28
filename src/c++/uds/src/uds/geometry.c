@@ -104,9 +104,8 @@ int make_geometry(size_t bytes_per_page,
 
 	geometry->pages_per_chapter = geometry->index_pages_per_chapter + record_pages_per_chapter;
 	geometry->pages_per_volume = geometry->pages_per_chapter * chapters_per_volume;
-	geometry->header_pages_per_volume = 1;
 	geometry->bytes_per_volume =
-		bytes_per_page * (geometry->pages_per_volume + geometry->header_pages_per_volume);
+		bytes_per_page * (geometry->pages_per_volume + HEADER_PAGES_PER_VOLUME);
 
 	*geometry_ptr = geometry;
 	return UDS_SUCCESS;
