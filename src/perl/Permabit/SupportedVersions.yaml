@@ -17,14 +17,14 @@ head:
   moduleVersion: 8.2.1.3
   isCurrent: 0
   branch: chlorine
-  statistics: Permabit::Statistics::VDO
+  statistics: Permabit::Statistics::VDOChlorine
   path: /permabit/release/source/vdo-chlorine/vdo-chlorine-8-2-1-3
 
 8.2.1-current:
   moduleVersion: 8.2.1
   isCurrent: 1
   branch: chlorine
-  statistics: Permabit::Statistics::VDO
+  statistics: Permabit::Statistics::VDOChlorine
   path: /permabit/release/vdo-8.2.1/current/
 
 6.2.8-current:
