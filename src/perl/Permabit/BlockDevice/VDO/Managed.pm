@@ -277,8 +277,8 @@ sub startManagedVDO {
                   };
   if (defined($self->{_forceRebuild})) {
     $extraArgs->{forceRebuild} = 1;
-delete $self->{_forceRebuild};
-}
+    delete $self->{_forceRebuild};
+  }
   $self->assertVDOCommand("start", $extraArgs);
 }
 
