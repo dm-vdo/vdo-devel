@@ -94,10 +94,10 @@ struct page_cache {
 	const struct geometry *geometry;
 	/* The number of zones */
 	unsigned int zone_count;
-	/* The current number of cache entries */
-	unsigned int num_index_entries;
-	/* The maximum number of cached entries */
-	u16 num_cache_entries;
+	/* The number of volume pages that can be cached */
+	unsigned int indexable_pages;
+	/* The maximum number of simultaneously cached pages */
+	u16 cache_slots;
 	/* An index for each physical page noting where it is in the cache */
 	u16 *index;
 	/* The array of cached pages */
@@ -144,7 +144,7 @@ struct volume {
 	struct cond_var read_threads_cond;
 	struct cond_var read_threads_read_done_cond;
 	struct thread **reader_threads;
-	unsigned int num_read_threads;
+	unsigned int read_thread_count;
 	enum reader_state reader_state;
 
 	enum index_lookup_mode lookup_mode;

@@ -141,10 +141,10 @@ static void miPerfTest(void)
 
   struct volume_index_stats stats;
   get_volume_index_stats(volumeIndex, &stats);
-  int numLists = stats.num_lists;
+  int listCount = stats.delta_lists;
   size_t memAlloc = volumeIndex->memory_size;
   albPrint("Initial Memory: allocated %zd for %d delta lists (%zd each)",
-           memAlloc, numLists, memAlloc / numLists);
+           memAlloc, listCount, memAlloc / listCount);
   albFlush();
 
   // Fill the index, reporting after every 4M chunks

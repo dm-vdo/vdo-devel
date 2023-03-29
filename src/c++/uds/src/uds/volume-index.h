@@ -42,7 +42,7 @@ struct volume_index_stats {
 	/* The number of UDS_OVERFLOWs detected */
 	long overflow_count;
 	/* The number of delta lists */
-	unsigned int num_lists;
+	unsigned int delta_lists;
 	/* Number of early flushes */
 	long early_flushes;
 };
@@ -50,7 +50,7 @@ struct volume_index_stats {
 struct volume_sub_index_zone {
 	u64 virtual_chapter_low;
 	u64 virtual_chapter_high;
-	long num_early_flushes;
+	long early_flushes;
 } __aligned(L1_CACHE_BYTES);
 
 struct volume_sub_index {
@@ -75,11 +75,11 @@ struct volume_sub_index {
 	/* The largest storable chapter number */
 	unsigned int chapter_mask;
 	/* The number of chapters used */
-	unsigned int num_chapters;
+	unsigned int chapter_count;
 	/* The number of delta lists */
-	unsigned int num_delta_lists;
+	unsigned int list_count;
 	/* The number of zones */
-	unsigned int num_zones;
+	unsigned int zone_count;
 	/* The amount of memory allocated */
 	u64 memory_size;
 };
@@ -91,7 +91,7 @@ struct volume_index_zone {
 
 struct volume_index {
 	unsigned int sparse_sample_rate;
-	unsigned int num_zones;
+	unsigned int zone_count;
 	u64 memory_size;
 	struct volume_sub_index vi_non_hook;
 	struct volume_sub_index vi_hook;
@@ -178,11 +178,11 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 
 int __must_check load_volume_index(struct volume_index *volume_index,
 				   struct buffered_reader **readers,
-				   unsigned int num_readers);
+				   unsigned int reader_count);
 
 int __must_check save_volume_index(struct volume_index *volume_index,
 				   struct buffered_writer **writers,
-				   unsigned int num_writers);
+				   unsigned int writer_count);
 
 void get_volume_index_stats(const struct volume_index *volume_index,
 			    struct volume_index_stats *stats);

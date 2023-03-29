@@ -19,8 +19,8 @@ static void assertPageInCache(struct page_cache *cache,
 {
   uint16_t page_index = cache->index[page->cp_physical_page];
 
-  CU_ASSERT_TRUE(page->cp_physical_page < cache->num_index_entries);
-  CU_ASSERT_TRUE(page_index < cache->num_cache_entries);
+  CU_ASSERT_TRUE(page->cp_physical_page < cache->indexable_pages);
+  CU_ASSERT_TRUE(page_index < cache->cache_slots);
   CU_ASSERT_TRUE(&cache->cache[page_index] == page);
 }
 
@@ -32,13 +32,13 @@ static void getMostRecentPageFromCache(struct page_cache   *cache,
 
   unsigned int i;
   struct cached_page *mostRecent = &cache->cache[0];
-  for (i = 0; i < cache->num_cache_entries; i++) {
+  for (i = 0; i < cache->cache_slots; i++) {
     if (cache->cache[i].cp_last_used >= mostRecent->cp_last_used) {
       mostRecent = &cache->cache[i];
     }
   }
 
-  *pagePtr = ((mostRecent->cp_physical_page < cache->num_index_entries)
+  *pagePtr = ((mostRecent->cp_physical_page < cache->indexable_pages)
               ? mostRecent
               : NULL);
 }
@@ -55,7 +55,7 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
   uint16_t currentIndex = currentPage - cache->cache;
   uint16_t nextMostRecentIndex = 0;
   unsigned int i;
-  for (i = 0; i < cache->num_cache_entries; i++) {
+  for (i = 0; i < cache->cache_slots; i++) {
     if (i != currentIndex
         && (!foundNextMostRecentPage
             || cache->cache[i].cp_last_used >
@@ -69,7 +69,7 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
   struct cached_page *page = &cache->cache[nextMostRecentIndex];
   *pagePtr = (!foundNextMostRecentPage
               || ((page != NULL)
-                  && (page->cp_physical_page == cache->num_index_entries))
+                  && (page->cp_physical_page == cache->indexable_pages))
               ? NULL
               : page);
 
@@ -95,7 +95,7 @@ static void fillCache(void)
 {
   // Fill page cache
   unsigned int i;
-  for (i = 0; i < cache->num_cache_entries; i++) {
+  for (i = 0; i < cache->cache_slots; i++) {
     // Add a page
     struct cached_page *page = NULL;
     UDS_ASSERT_SUCCESS(addPageToCache(cache, i, &page));
@@ -139,14 +139,14 @@ static void testAddPages(void)
 
   // Add to cache limit
   unsigned int i;
-  for (i = 1; i < cache->num_cache_entries; i++) {
+  for (i = 1; i < cache->cache_slots; i++) {
     // Add a page index
     page = NULL;
     UDS_ASSERT_SUCCESS(addPageToCache(cache, i, &page));
   }
 
   // Verify cache is from most recent to least recent
-  int physicalPage = cache->num_cache_entries - 1;
+  int physicalPage = cache->cache_slots - 1;
   unsigned int cacheAccessCount = 0;
 
   entry = NULL;
@@ -163,13 +163,13 @@ static void testAddPages(void)
   CU_ASSERT_TRUE(physicalPage == -1);
 
   // Add one more to cause least recent to be knocked off
-  physicalPage = cache->num_cache_entries;
+  physicalPage = cache->cache_slots;
 
   page = NULL;
   UDS_ASSERT_SUCCESS(addPageToCache(cache, physicalPage, &page));
 
   // Verify the least recent entry (page 0) is now out of the cache
-  physicalPage = cache->num_cache_entries;
+  physicalPage = cache->cache_slots;
 
   entry = NULL;
   getMostRecentPageFromCache(cache, &entry);
@@ -211,7 +211,7 @@ static void testInvalidatePages(void)
 
   // Invalidate the most recent used entry, then make sure
   // getMostRecentPageFromCache does not return it.
-  int physicalPage = cache->num_cache_entries - 1;
+  int physicalPage = cache->cache_slots - 1;
   struct cached_page *entry = NULL;
 
   get_page_from_cache(cache, physicalPage, &entry);

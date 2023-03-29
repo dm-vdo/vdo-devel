@@ -47,16 +47,14 @@ enum {
   ZONES = MAX_ZONES,
 };
 
-// Number of delta lists is retrieved; lists per zone is computed.
-struct index_info {
-  unsigned int num_delta_lists;
-  unsigned int lists_per_zone;
-} dense_info, sparse_info;
+// Computed lists per zone
+unsigned int dense_lists_per_zone;
+unsigned int sparse_lists_per_zone;
 
 static uint64_t nameCounter;
 // geometry
 uint64_t records_per_chapter;   // assumes filling only one zone of N
-unsigned int num_chapters;      // changes on conversion
+unsigned int chapter_count;     // changes on conversion
 // total written so far
 unsigned long total_records;
 // conversion state
@@ -76,19 +74,16 @@ static void compute_index_info(struct volume_index *volumeIndex)
 {
   struct volume_index_stats denseStats, sparseStats;
   get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
-  dense_info.num_delta_lists = denseStats.num_lists;
-  sparse_info.num_delta_lists = sparseStats.num_lists;
   // deltaIndex.c:initialize_delta_index
-  dense_info.lists_per_zone = (dense_info.num_delta_lists + ZONES - 1) / ZONES;
-  sparse_info.lists_per_zone =
-    (sparse_info.num_delta_lists + ZONES - 1) / ZONES;
+  dense_lists_per_zone = (denseStats.delta_lists + ZONES - 1) / ZONES;
+  sparse_lists_per_zone = (sparseStats.delta_lists + ZONES - 1) / ZONES;
 }
 
 /**
  * Recalculate the derived values chapters_written_so_far,
  * forgotten_chapters, and active_chapters from those describing the
  * index geometry or test progress (total_records,
- * records_per_chapter, num_chapters, converted,
+ * records_per_chapter, chapter_count, converted,
  * chapters_written_at_conversion). We don't try to update previous
  * values, just recalculate them from scratch.
  *
@@ -99,17 +94,17 @@ static void compute_index_info(struct volume_index *volumeIndex)
 static void recalculate_stats(void)
 {
   chapters_written_so_far = total_records / records_per_chapter;
-  if (chapters_written_so_far >= num_chapters) {
-    forgotten_chapters = chapters_written_so_far - (num_chapters - 1);
+  if (chapters_written_so_far >= chapter_count) {
+    forgotten_chapters = chapters_written_so_far - (chapter_count - 1);
     // conversion forgets an extra chapter for a while
     if (converted &&
-        // When (new) num_chapters is 1023, 0..1022 new chapters means
+        // When (new) chapter_count is 1023, 0..1022 new chapters means
         // we may not have reached the new normal yet, but
         // chapters_written_at_conversion+1023 means we've definitely
         // written every chapter in the converted index *since*
         // conversion, and thus we're in the new-normal mode.
         (chapters_written_so_far <
-         (chapters_written_at_conversion + num_chapters))) {
+         (chapters_written_at_conversion + chapter_count))) {
       forgotten_chapters++;
     }
   } else {
@@ -133,9 +128,8 @@ static void adjust_list_number_for_zone_0(struct volume_index   *index,
     return;
   }
 
-  const struct index_info *index_info
-    = (is_volume_index_sample(index, name) ? &sparse_info : &dense_info);
-  unsigned int lists_per_zone = index_info->lists_per_zone;
+  unsigned int lists_per_zone
+    = (is_volume_index_sample(index, name) ? sparse_lists_per_zone : dense_lists_per_zone);
   uint64_t bits = extract_volume_index_bytes(name);
   // Change, e.g., the 4th list of zone 3 to the 4th list of zone 0.
   // This simple decrement can't wrap.
@@ -238,8 +232,8 @@ static void do_conversion(struct uds_parameters *params, off_t *start_p)
   UDS_ASSERT_SUCCESS(uds_convert_to_lvm(params, LVM_OFFSET, &moved));
   converted = true;
   chapters_written_at_conversion = chapters_written_so_far;
-  num_chapters--; // should re-retrieve it from index...
-  // update for new num_chapters
+  chapter_count--; // should re-retrieve it from index...
+  // update for new chapter_count
   recalculate_stats();
   slide_file(index_size);
   *start_p += moved - LVM_OFFSET;
@@ -275,7 +269,7 @@ static void doTestCase(unsigned int chapter_count1, bool sparse)
   nameCounter = 0;
   records_per_chapter = 0;
   total_records = 0;
-  num_chapters = 0;
+  chapter_count = 0;
   converted = false;
   chapters_written_at_conversion = 0;
   // and test state
@@ -293,8 +287,8 @@ static void doTestCase(unsigned int chapter_count1, bool sparse)
   UDS_ASSERT_SUCCESS(uds_create_index_session(&session));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_CREATE, &params, session));
   initialize_test_requests();
-  // num_chapters is affected by the sparseness setting above.
-  num_chapters = getChaptersPerIndex(session);
+  // chapter_count is affected by the sparseness setting above.
+  chapter_count = getChaptersPerIndex(session);
   records_per_chapter = getBlocksPerChapter(session) / ZONES;
   compute_index_info(session->index->volume_index);
   fillIndex(chapter_count1);
@@ -343,7 +337,7 @@ static void doTestCase(unsigned int chapter_count1, bool sparse)
    * keep saving and reloading the index during the chapter-by-chapter
    * portion.
    */
-  chapter_count2 = num_chapters - 3UL;
+  chapter_count2 = chapter_count - 3UL;
   chapter_count3 = 6;
 
   do_fill_and_verify(&params2, chapter_count2, true);

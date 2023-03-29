@@ -60,15 +60,15 @@ static void reportVolumeIndexMemory(struct volume_index *volumeIndex)
   get_volume_index_stats(volumeIndex, &stats);
 
   long numBlocks = stats.record_count;
-  long numLists = stats.num_lists;
+  long listCount = stats.delta_lists;
   size_t memAlloc = volumeIndex->memory_size;
   size_t memUsed = get_volume_index_memory_used(volumeIndex);
   if (numBlocks == 0) {
     albPrint("Memory: allocated %zd bytes for %ld delta lists (%zd each)",
-             memAlloc, numLists, memAlloc / numLists);
+             memAlloc, listCount, memAlloc / listCount);
   } else {
     albPrint("Memory: used %zd bytes in %ld delta lists (%zd each)",
-             memUsed, numLists, memUsed / numLists);
+             memUsed, listCount, memUsed / listCount);
   }
   albFlush();
 }

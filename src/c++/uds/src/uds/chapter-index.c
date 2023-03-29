@@ -152,13 +152,13 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  * @first_list: The first delta list number to be copied
  * @last_page: If true, this is the last page of the chapter index and all the remaining lists must
  *             be packed onto this page
- * @num_lists: The number of delta lists that were copied
+ * @lists_packed: The number of delta lists that were packed onto this page
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				 u8 *memory,
 				 unsigned int first_list,
 				 bool last_page,
-				 unsigned int *num_lists)
+				 unsigned int *lists_packed)
 {
 	int result;
 	struct delta_index *delta_index = &chapter_index->delta_index;
@@ -179,13 +179,13 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 					       geometry->bytes_per_page,
 					       chapter_number,
 					       first_list,
-					       num_lists);
+					       lists_packed);
 		if (result != UDS_SUCCESS)
 			return result;
-		if ((first_list + *num_lists) == list_count)
+		if ((first_list + *lists_packed) == list_count)
 			/* All lists are packed. */
 			break;
-		else if (*num_lists == 0) {
+		else if (*lists_packed == 0) {
 			/*
 			 * The next delta list does not fit on a page. This delta list will be
 			 * removed.
@@ -211,7 +211,7 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 					stats.collision_count);
 		}
 
-		list_number = *num_lists;
+		list_number = *lists_packed;
 		do {
 			if (list_number < 0)
 				return UDS_OVERFLOW;

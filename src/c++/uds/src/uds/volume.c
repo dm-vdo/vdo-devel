@@ -119,7 +119,7 @@ static void clear_cache_page(struct page_cache *cache, struct cached_page *page)
 {
 	/* Do not clear read_pending because the read queue relies on it. */
 	release_page_buffer(page);
-	page->cp_physical_page = cache->num_index_entries;
+	page->cp_physical_page = cache->indexable_pages;
 	WRITE_ONCE(page->cp_last_used, 0);
 }
 
@@ -147,7 +147,7 @@ static void get_page_and_index(struct page_cache *cache,
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 	index = index_value & ~VOLUME_CACHE_QUEUED_FLAG;
 
-	if (!queued && (index < cache->num_cache_entries)) {
+	if (!queued && (index < cache->cache_slots)) {
 		*page_ptr = &cache->cache[index];
 		/*
 		 * We have acquired access to the cached page, but unless we hold the
@@ -198,7 +198,7 @@ EXTERNAL_STATIC void invalidate_page(struct page_cache *cache, unsigned int phys
 	/* We hold the read_threads_mutex. */
 	get_page_and_index(cache, physical_page, &queue_index, &page);
 	if (page != NULL) {
-		WRITE_ONCE(cache->index[page->cp_physical_page], cache->num_cache_entries);
+		WRITE_ONCE(cache->index[page->cp_physical_page], cache->cache_slots);
 		wait_for_pending_searches(cache, page->cp_physical_page);
 		clear_cache_page(cache, page);
 	} else if (queue_index > -1) {
@@ -216,8 +216,8 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	unsigned int i;
 
 	cache->geometry = geometry;
-	cache->num_index_entries = geometry->pages_per_volume + 1;
-	cache->num_cache_entries = chapters_in_cache * geometry->record_pages_per_chapter;
+	cache->indexable_pages = geometry->pages_per_volume + 1;
+	cache->cache_slots = chapters_in_cache * geometry->record_pages_per_chapter;
 	cache->zone_count = zone_count;
 	atomic64_set(&cache->clock, 1);
 
@@ -235,29 +235,29 @@ static int __must_check initialize_page_cache(struct page_cache *cache,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = ASSERT((cache->num_cache_entries <= VOLUME_CACHE_MAX_ENTRIES),
+	result = ASSERT((cache->cache_slots <= VOLUME_CACHE_MAX_ENTRIES),
 			"requested cache size, %u, within limit %u",
-			cache->num_cache_entries,
+			cache->cache_slots,
 			VOLUME_CACHE_MAX_ENTRIES);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(cache->num_index_entries, u16, "page cache index", &cache->index);
+	result = UDS_ALLOCATE(cache->indexable_pages, u16, "page cache index", &cache->index);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	/* Initialize index values to invalid values. */
-	for (i = 0; i < cache->num_index_entries; i++)
-		cache->index[i] = cache->num_cache_entries;
+	for (i = 0; i < cache->indexable_pages; i++)
+		cache->index[i] = cache->cache_slots;
 
-	result = UDS_ALLOCATE(cache->num_cache_entries,
+	result = UDS_ALLOCATE(cache->cache_slots,
 			      struct cached_page,
 			      "page cache cache",
 			      &cache->cache);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	for (i = 0; i < cache->num_cache_entries; i++)
+	for (i = 0; i < cache->cache_slots; i++)
 		clear_cache_page(cache, &cache->cache[i]);
 
 	return UDS_SUCCESS;
@@ -293,7 +293,7 @@ void free_page_cache(struct page_cache *cache)
 	if (cache->cache != NULL) {
 		unsigned int i;
 
-		for (i = 0; i < cache->num_cache_entries; i++)
+		for (i = 0; i < cache->cache_slots; i++)
 			release_page_buffer(&cache->cache[i]);
 	}
 	UDS_FREE(cache->index);
@@ -307,10 +307,10 @@ void invalidate_page_cache(struct page_cache *cache)
 {
 	unsigned int i;
 
-	for (i = 0; i < cache->num_index_entries; i++)
-		cache->index[i] = cache->num_cache_entries;
+	for (i = 0; i < cache->indexable_pages; i++)
+		cache->index[i] = cache->cache_slots;
 
-	for (i = 0; i < cache->num_cache_entries; i++)
+	for (i = 0; i < cache->cache_slots; i++)
 		clear_cache_page(cache, &cache->cache[i]);
 }
 
@@ -345,7 +345,7 @@ get_least_recent_page(struct page_cache *cache, struct cached_page **page_ptr)
 	unsigned int i;
 
 	for (i = 0;; i++) {
-		if (i >= cache->num_cache_entries)
+		if (i >= cache->cache_slots)
 			/* This should never happen. */
 			return ASSERT(false, "oldest page is not NULL");
 
@@ -356,7 +356,7 @@ get_least_recent_page(struct page_cache *cache, struct cached_page **page_ptr)
 		}
 	}
 
-	for (i = 0; i < cache->num_cache_entries; i++) {
+	for (i = 0; i < cache->cache_slots; i++) {
 		if (!cache->cache[i].cp_read_pending &&
 		    (READ_ONCE(cache->cache[i].cp_last_used) <=
 		     READ_ONCE(cache->cache[oldest_index].cp_last_used)))
@@ -396,8 +396,8 @@ select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (page->cp_physical_page != cache->num_index_entries) {
-		WRITE_ONCE(cache->index[page->cp_physical_page], cache->num_cache_entries);
+	if (page->cp_physical_page != cache->indexable_pages) {
+		WRITE_ONCE(cache->index[page->cp_physical_page], cache->cache_slots);
 		wait_for_pending_searches(cache, page->cp_physical_page);
 	}
 
@@ -422,7 +422,7 @@ put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct c
 	page->cp_physical_page = physical_page;
 
 	value = page - cache->cache;
-	result = ASSERT((value < cache->num_cache_entries), "cache index is valid");
+	result = ASSERT((value < cache->cache_slots), "cache index is valid");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -456,7 +456,7 @@ static void cancel_page_in_cache(struct page_cache *cache,
 	page->cp_read_pending = false;
 
 	/* Clear the mapping and the queued flag for the new page. */
-	WRITE_ONCE(cache->index[physical_page], cache->num_cache_entries);
+	WRITE_ONCE(cache->index[physical_page], cache->cache_slots);
 }
 
 static inline u16 next_queue_position(u16 position)
@@ -596,7 +596,7 @@ static struct queued_read *reserve_read_queue_entry(struct page_cache *cache)
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 	/* Check to see if it's still queued before resetting. */
 	if (entry->invalid && queued)
-		WRITE_ONCE(cache->index[entry->physical_page], cache->num_cache_entries);
+		WRITE_ONCE(cache->index[entry->physical_page], cache->cache_slots);
 
 	/*
 	 * If a synchronous read has taken this page, set invalid to true so it doesn't get
@@ -1862,7 +1862,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 	}
 
 	volume->cache_size +=
-		volume->page_cache->num_cache_entries * sizeof(struct delta_index_page);
+		volume->page_cache->cache_slots * sizeof(struct delta_index_page);
 	*new_volume = volume;
 	return UDS_SUCCESS;
 }
@@ -1938,7 +1938,7 @@ int make_volume(const struct configuration *config,
 			return result;
 		}
 
-		volume->num_read_threads = i + 1;
+		volume->read_thread_count = i + 1;
 	}
 
 	*new_volume = volume;
@@ -1958,7 +1958,7 @@ void free_volume(struct volume *volume)
 		volume->reader_state |= READER_STATE_EXIT;
 		uds_broadcast_cond(&volume->read_threads_cond);
 		uds_unlock_mutex(&volume->read_threads_mutex);
-		for (i = 0; i < volume->num_read_threads; i++)
+		for (i = 0; i < volume->read_thread_count; i++)
 			uds_join_threads(volume->reader_threads[i]);
 		UDS_FREE(volume->reader_threads);
 		volume->reader_threads = NULL;

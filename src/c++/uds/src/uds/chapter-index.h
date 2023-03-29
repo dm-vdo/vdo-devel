@@ -58,7 +58,7 @@ int __must_check pack_open_chapter_index_page(struct open_chapter_index *chapter
 					      u8 *memory,
 					      unsigned int first_list,
 					      bool last_page,
-					      unsigned int *num_lists);
+					      unsigned int *lists_packed);
 
 int __must_check initialize_chapter_index_page(struct delta_index_page *index_page,
 					       const struct geometry *geometry,

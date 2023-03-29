@@ -15,8 +15,8 @@ enum {
   SINGLE_CHAPTERS = 8,
 
   // Used for an index that wants lots of delta lists
-  NUM_CHAPTERS = (1 << 10),
-  MAX_CHAPTER = NUM_CHAPTERS - 1,
+  MANY_CHAPTERS = (1 << 10),
+  MAX_CHAPTER = MANY_CHAPTERS - 1,
 };
 
 static unsigned int savedMinVolumeIndexDeltaLists;
@@ -71,7 +71,7 @@ static void initializationTest(void)
   struct volume_index *volumeIndex;
 
   // Expect this to succeed.
-  struct configuration *config = makeTestConfig(NUM_CHAPTERS);
+  struct configuration *config = makeTestConfig(MANY_CHAPTERS);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   free_volume_index(volumeIndex);
   free_configuration(config);
@@ -91,7 +91,7 @@ static void basicTest(void)
   get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
-  CU_ASSERT_EQUAL(volumeStats.num_lists, 1);
+  CU_ASSERT_EQUAL(volumeStats.delta_lists, 1);
 
   // Make record names that use keys 0, 1 and 2
   struct uds_record_name name0, name1, name2;
@@ -162,7 +162,7 @@ static void setChapterTest(void)
   struct volume_index_record record;
 
   // Set up a volume index using all chapters from 0 to MAX_CHAPTER
-  struct configuration *config = makeTestConfig(NUM_CHAPTERS);
+  struct configuration *config = makeTestConfig(MANY_CHAPTERS);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   set_volume_index_open_chapter(volumeIndex, MAX_CHAPTER);
 
