@@ -200,13 +200,8 @@ unsigned int get_volume_index_zone(const struct volume_index *volume_index,
 	return get_volume_sub_index_zone(get_sub_index(volume_index, name), name);
 }
 
-static inline bool uses_sparse(const struct configuration *config)
-{
-	return is_sparse_geometry(config->geometry);
-}
-
-static int compute_volume_index_parameters(const struct configuration *config,
-					   struct sub_index_parameters *params)
+static int compute_volume_sub_index_parameters(const struct configuration *config,
+					       struct sub_index_parameters *params)
 {
 	enum { DELTA_LIST_SIZE = 256 };
 	unsigned long invalid_chapters, address_span;
@@ -246,18 +241,6 @@ static int compute_volume_index_parameters(const struct configuration *config,
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"cannot initialize volume index with %u address bits",
 						params->address_bits);
-	if (is_sparse_geometry(geometry))
-		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						"cannot initialize dense volume index with %u sparse chapters",
-						geometry->sparse_chapters_per_volume);
-	if (records_per_chapter == 0)
-		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						"cannot initialize volume index with %lu records per chapter",
-						records_per_chapter);
-	if (params->chapter_count == 0)
-		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
-						"cannot initialize volume index with %lu chapters per volume",
-						params->chapter_count);
 
 	/*
 	 * The probability that a given delta list is not touched during the writing of an entire
@@ -302,10 +285,8 @@ static int compute_volume_index_parameters(const struct configuration *config,
 
 static void uninitialize_volume_sub_index(struct volume_sub_index *sub_index)
 {
-	UDS_FREE(sub_index->flush_chapters);
-	sub_index->flush_chapters = NULL;
-	UDS_FREE(sub_index->zones);
-	sub_index->zones = NULL;
+	UDS_FREE(UDS_FORGET(sub_index->flush_chapters));
+	UDS_FREE(UDS_FORGET(sub_index->zones));
 	uninitialize_delta_index(&sub_index->delta_index);
 }
 
@@ -319,9 +300,9 @@ void free_volume_index(struct volume_index *volume_index)
 
 		for (zone = 0; zone < volume_index->zone_count; zone++)
 			uds_destroy_mutex(&volume_index->zones[zone].hook_mutex);
-		UDS_FREE(volume_index->zones);
-		volume_index->zones = NULL;
+		UDS_FREE(UDS_FORGET(volume_index->zones));
 	}
+
 	uninitialize_volume_sub_index(&volume_index->vi_non_hook);
 	uninitialize_volume_sub_index(&volume_index->vi_hook);
 	UDS_FREE(volume_index);
@@ -334,7 +315,7 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 	struct sub_index_parameters params = { .address_bits = 0 };
 	int result;
 
-	result = compute_volume_index_parameters(config, &params);
+	result = compute_volume_sub_index_parameters(config, &params);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -343,21 +324,11 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 	return UDS_SUCCESS;
 }
 
-static int split_configuration(const struct configuration *config, struct split_config *split)
+/* This function is only useful if the configuration includes sparse chapters. */
+static void split_configuration(const struct configuration *config, struct split_config *split)
 {
 	u64 sample_rate, sample_records;
 	u64 dense_chapters, sparse_chapters;
-	int result;
-
-	result = ASSERT(config->geometry->sparse_chapters_per_volume != 0,
-			    "cannot initialize sparse+dense volume index with no sparse chapters");
-	if (result != UDS_SUCCESS)
-		return UDS_INVALID_ARGUMENT;
-	result = ASSERT(config->sparse_sample_rate != 0,
-			"cannot initialize sparse+dense volume index with a sparse sample rate of %u",
-			config->sparse_sample_rate);
-	if (result != UDS_SUCCESS)
-		return UDS_INVALID_ARGUMENT;
 
 	/* Start with copies of the base configuration. */
 	split->hook_config = *config;
@@ -380,7 +351,6 @@ static int split_configuration(const struct configuration *config, struct split_
 	split->hook_geometry.sparse_chapters_per_volume = 0;
 	split->non_hook_geometry.sparse_chapters_per_volume = 0;
 	split->non_hook_geometry.chapters_per_volume = dense_chapters;
-	return UDS_SUCCESS;
 }
 
 static int compute_volume_index_save_bytes(const struct configuration *config, size_t *bytes)
@@ -389,9 +359,10 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 	struct split_config split;
 	int result;
 
-	result = split_configuration(config, &split);
-	if (result != UDS_SUCCESS)
-		return result;
+	if (!is_sparse_geometry(config->geometry))
+		return compute_volume_sub_index_save_bytes(config, bytes);
+
+	split_configuration(config, &split);
 	result = compute_volume_sub_index_save_bytes(&split.hook_config, &hook_bytes);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -410,8 +381,7 @@ int compute_volume_index_save_blocks(const struct configuration *config,
 	size_t bytes;
 	int result;
 
-	result = (uses_sparse(config) ? compute_volume_index_save_bytes(config, &bytes) :
-					compute_volume_sub_index_save_bytes(config, &bytes));
+	result = compute_volume_index_save_bytes(config, &bytes);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -862,10 +832,6 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 	u64 virtual_chapter_low = 0, virtual_chapter_high = 0;
 	unsigned int i;
 
-	if (sub_index == NULL)
-		return uds_log_warning_strerror(UDS_BAD_STATE,
-						"cannot restore to null volume index");
-
 	for (i = 0; i < reader_count; i++) {
 		struct sub_index_data header;
 		u8 buffer[sizeof(struct sub_index_data)];
@@ -949,10 +915,6 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 {
 	unsigned int i;
 	int result;
-
-	result = ASSERT(volume_index != NULL, "cannot restore to null volume index");
-	if (result != UDS_SUCCESS)
-		return UDS_BAD_STATE;
 
 	if (!has_sparse(volume_index))
 		return start_restoring_volume_sub_index(&volume_index->vi_non_hook,
@@ -1243,7 +1205,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 	unsigned int z;
 	int result;
 
-	result = compute_volume_index_parameters(config, &params);
+	result = compute_volume_sub_index_parameters(config, &params);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1305,7 +1267,7 @@ int make_volume_index(const struct configuration *config,
 
 	volume_index->zone_count = config->zone_count;
 
-	if (!uses_sparse(config)) {
+	if (!is_sparse_geometry(config->geometry)) {
 		result = initialize_volume_sub_index(config,
 						     volume_nonce,
 						     'm',
@@ -1318,12 +1280,6 @@ int make_volume_index(const struct configuration *config,
 		volume_index->memory_size = volume_index->vi_non_hook.memory_size;
 		*volume_index_ptr = volume_index;
 		return UDS_SUCCESS;
-	}
-
-	result = split_configuration(config, &split);
-	if (result != UDS_SUCCESS) {
-		free_volume_index(volume_index);
-		return result;
 	}
 
 	volume_index->sparse_sample_rate = config->sparse_sample_rate;
@@ -1345,6 +1301,7 @@ int make_volume_index(const struct configuration *config,
 		}
 	}
 
+	split_configuration(config, &split);
 	result = initialize_volume_sub_index(&split.non_hook_config,
 					     volume_nonce,
 					     'd',
