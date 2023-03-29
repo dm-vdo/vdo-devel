@@ -15,6 +15,7 @@ use Permabit::Assertions qw(
   assertEq
   assertEqualNumeric
   assertLENumeric
+  assertMinArgs
   assertNotDefined
   assertNumArgs
   assertRegexpMatches
@@ -47,6 +48,58 @@ sub listSharedFiles {
           "src/c++/vdo/user/vdoDumpBlockMap",
           "src/c++/vdo/user/vdoListMetadata",
          );
+}
+
+#############################################################################
+# Log and assert the existence of the listed fields of a config hash.
+#
+# @param name    The name of the hash containing the config fields
+# @param config  The hash containing the config fields
+# @param indent  Prefix for each log line
+# @param keys    One or more names of hash fields to log
+##
+sub _logConfigFields {
+  my ($self, $name, $config, $indent, @keys) = assertMinArgs(5, @_);
+
+  assertDefined($config, "$name fields should exist");
+  if ($indent ne "") {
+    $log->info("$name:");
+  }
+  for my $key (@keys) {
+    my $value = $config->{$key};
+    assertDefined($value, "'$key' $name field should exist");
+    $log->info($indent . "$key: $value");
+  }
+}
+
+#############################################################################
+# Log the YAML hash representing the output of vdoDumpConfig
+##
+sub _logConfig {
+  my ($self, $config) = assertNumArgs(2, @_);
+
+  $self->_logConfigFields("config",
+                          $config,
+                          "",
+                          qw(DataRegion
+                             IndexRegion
+                             Nonce
+                             ReleaseVersion
+                             UUID));
+  $self->_logConfigFields("IndexConfig",
+                          $config->{IndexConfig},
+                          "    ",
+                          qw(memory
+                             sparse));
+  $self->_logConfigFields("VDOConfig",
+                          $config->{VDOConfig},
+                          "    ",
+                          qw(blockSize
+                             logicalBlocks
+                             physicalBlocks
+                             recoveryJournalSize
+                             slabJournalBlocks
+                             slabSize));
 }
 
 #############################################################################
@@ -187,6 +240,10 @@ sub testTools {
   my $storagePath = $device->getVDOStoragePath();
   $device->stop();
   $device->enableReadableStorage();
+
+  # At least exercise vdoDumpConfig to make sure it runs and returns expected keys.
+  my $config = $device->dumpConfig();
+  $self->_logConfig($config);
 
   $self->_verifySingleLBNDump($stats->{"logical blocks"});
 
