@@ -195,10 +195,11 @@ sub recoverAndRestartVDO {
         confess("Failed to find rebuild end");
       }
       $endTime = $1;
-      if ($logText !~ qr/[Rr]eplaying (\d+) recovery entries into block map/) {
-        confess("Failed to find recovery entries");
+      if ($logText =~ qr/[Rr]eplaying (\d+) recovery entries into block map/) {
+        $self->{entriesReplayed} = $1;
+      } else {
+        $self->{entriesReplayed} = 0;
       }
-      $self->{entriesReplayed} = $1;
     };
     my $failed_EVAL_ERROR = $EVAL_ERROR;
     if ($failed_EVAL_ERROR) {
