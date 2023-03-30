@@ -25,32 +25,32 @@
  */
 
 #ifdef TEST_INTERNAL
-extern unsigned int min_volume_index_delta_lists;
+extern u64 min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
 struct volume_index_stats {
 	/* Nanoseconds spent rebalancing */
 	ktime_t rebalance_time;
 	/* Number of memory rebalances */
-	int rebalance_count;
+	u32 rebalance_count;
 	/* The number of records in the index */
-	long record_count;
+	u64 record_count;
 	/* The number of collision records */
-	long collision_count;
+	u64 collision_count;
 	/* The number of records removed */
-	long discard_count;
+	u64 discard_count;
 	/* The number of UDS_OVERFLOWs detected */
-	long overflow_count;
+	u64 overflow_count;
 	/* The number of delta lists */
-	unsigned int delta_lists;
+	u32 delta_lists;
 	/* Number of early flushes */
-	long early_flushes;
+	u64 early_flushes;
 };
 
 struct volume_sub_index_zone {
 	u64 virtual_chapter_low;
 	u64 virtual_chapter_high;
-	long early_flushes;
+	u64 early_flushes;
 } __aligned(L1_CACHE_BYTES);
 
 struct volume_sub_index {
@@ -67,17 +67,17 @@ struct volume_sub_index {
 	/* Maximum size of the index (per zone) */
 	u64 max_zone_bits;
 	/* The number of bits in address mask */
-	unsigned int address_bits;
+	u8 address_bits;
 	/* Mask to get address within delta list */
-	unsigned int address_mask;
+	u32 address_mask;
 	/* The number of bits in chapter number */
-	unsigned int chapter_bits;
+	u8 chapter_bits;
 	/* The largest storable chapter number */
-	unsigned int chapter_mask;
+	u32 chapter_mask;
 	/* The number of chapters used */
-	unsigned int chapter_count;
+	u32 chapter_count;
 	/* The number of delta lists */
-	unsigned int list_count;
+	u32 list_count;
 	/* The number of zones */
 	unsigned int zone_count;
 	/* The amount of memory allocated */
@@ -90,7 +90,7 @@ struct volume_index_zone {
 } __aligned(L1_CACHE_BYTES);
 
 struct volume_index {
-	unsigned int sparse_sample_rate;
+	u32 sparse_sample_rate;
 	unsigned int zone_count;
 	u64 memory_size;
 	struct volume_sub_index vi_non_hook;

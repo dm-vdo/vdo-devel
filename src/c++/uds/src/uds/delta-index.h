@@ -34,7 +34,7 @@ struct delta_list {
 	/* Where the last search "found" the key, in bits */
 	u16 save_offset;
 	/* The key for the record just before save_offset */
-	unsigned int save_key;
+	u32 save_key;
 };
 
 struct delta_zone {
@@ -51,27 +51,27 @@ struct delta_zone {
 	/* Nanoseconds spent rebalancing */
 	ktime_t rebalance_time;
 	/* Number of memory rebalances */
-	int rebalance_count;
+	u32 rebalance_count;
 	/* The number of bits in a stored value */
-	unsigned short value_bits;
+	u8 value_bits;
 	/* The number of bits in the minimal key code */
-	unsigned short min_bits;
+	u16 min_bits;
 	/* The number of keys used in a minimal code */
-	unsigned int min_keys;
+	u32 min_keys;
 	/* The number of keys used for another code bit */
-	unsigned int incr_keys;
+	u32 incr_keys;
 	/* The number of records in the index */
-	long record_count;
+	u64 record_count;
 	/* The number of collision records */
-	long collision_count;
+	u64 collision_count;
 	/* The number of records removed */
-	long discard_count;
+	u64 discard_count;
 	/* The number of UDS_OVERFLOW errors detected */
-	long overflow_count;
+	u64 overflow_count;
 	/* The index of the first delta list */
-	unsigned int first_list;
+	u32 first_list;
 	/* The number of delta lists */
-	unsigned int list_count;
+	u32 list_count;
 	/* Tag belonging to this delta index */
 	u8 tag;
 } __aligned(L1_CACHE_BYTES);
@@ -93,13 +93,13 @@ struct delta_index {
 	/* The number of zones */
 	unsigned int zone_count;
 	/* The number of delta lists */
-	unsigned int list_count;
+	u32 list_count;
 	/* Maximum lists per zone */
-	unsigned int lists_per_zone;
+	u32 lists_per_zone;
 	/* Total memory allocated to this index */
 	size_t memory_size;
 	/* The number of non-empty lists at load time per zone */
-	unsigned int load_lists[MAX_ZONES];
+	u32 load_lists[MAX_ZONES];
 	/* True if this index is mutable */
 	bool mutable;
 	/* Tag belonging to this delta index */
@@ -114,8 +114,8 @@ struct delta_index {
 struct delta_index_page {
 	struct delta_index delta_index;
 	/* These values are loaded from the DeltaPageHeader */
-	unsigned int lowest_list_number;
-	unsigned int highest_list_number;
+	u32 lowest_list_number;
+	u32 highest_list_number;
 	u64 virtual_chapter_number;
 	/* This structure describes the single zone of a delta index page. */
 	struct delta_zone delta_zone;
@@ -151,7 +151,7 @@ struct delta_index_page {
 struct delta_index_entry {
 	/* Public fields */
 	/* The key for this entry */
-	unsigned int key;
+	u32 key;
 	/* We are after the last list entry */
 	bool at_end;
 	/* This record is a collision */
@@ -161,19 +161,19 @@ struct delta_index_entry {
 	/* This delta list overflowed */
 	bool list_overflow;
 	/* The number of bits used for the value */
-	unsigned short value_bits;
+	u8 value_bits;
 	/* The number of bits used for the entire entry */
-	unsigned short entry_bits;
+	u16 entry_bits;
 	/* The delta index zone */
 	struct delta_zone *delta_zone;
 	/* The delta list containing the entry */
 	struct delta_list *delta_list;
 	/* The delta list number */
-	unsigned int list_number;
+	u32 list_number;
 	/* Bit offset of this entry within the list */
-	u32 offset;
+	u16 offset;
 	/* The delta between this and previous entry */
-	unsigned int delta;
+	u32 delta;
 	/* Temporary delta list for immutable indices */
 	struct delta_list temp_delta_list;
 };
@@ -184,24 +184,24 @@ struct delta_index_stats {
 	/* Nanoseconds spent rebalancing */
 	ktime_t rebalance_time;
 	/* Number of memory rebalances */
-	int rebalance_count;
+	u32 rebalance_count;
 	/* The number of records in the index */
-	long record_count;
+	u64 record_count;
 	/* The number of collision records */
-	long collision_count;
+	u64 collision_count;
 	/* The number of records removed */
-	long discard_count;
+	u64 discard_count;
 	/* The number of UDS_OVERFLOW errors detected */
-	long overflow_count;
+	u64 overflow_count;
 	/* The number of delta lists */
-	unsigned int list_count;
+	u32 list_count;
 };
 
 #ifdef TEST_INTERNAL
-void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, int size);
+void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size);
 
 int __must_check extend_delta_zone(struct delta_zone *delta_zone,
-				   unsigned int growing_index,
+				   u32 growing_index,
 				   size_t growing_size);
 
 void swap_delta_index_page_endianness(u8 *memory);
@@ -209,16 +209,16 @@ void swap_delta_index_page_endianness(u8 *memory);
 #endif /* TEST_INTERNAL */
 int __must_check initialize_delta_index(struct delta_index *delta_index,
 					unsigned int zone_count,
-					unsigned int list_count,
-					unsigned int mean_delta,
-					unsigned int payload_bits,
+					u32 list_count,
+					u32 mean_delta,
+					u32 payload_bits,
 					size_t memory_size,
 					u8 tag);
 
 int __must_check initialize_delta_index_page(struct delta_index_page *delta_index_page,
 					     u64 expected_nonce,
-					     unsigned int mean_delta,
-					     unsigned int payload_bits,
+					     u32 mean_delta,
+					     u32 payload_bits,
 					     u8 *memory,
 					     size_t memory_size);
 
@@ -231,8 +231,8 @@ int __must_check pack_delta_index_page(const struct delta_index *delta_index,
 				       u8 *memory,
 				       size_t memory_size,
 				       u64 virtual_chapter_number,
-				       unsigned int first_list,
-				       unsigned int *list_count);
+				       u32 first_list,
+				       u32 *list_count);
 
 int __must_check start_restoring_delta_index(struct delta_index *delta_index,
 					     struct buffered_reader **buffered_readers,
@@ -255,11 +255,11 @@ finish_saving_delta_index(const struct delta_index *delta_index, unsigned int zo
 int __must_check
 write_guard_delta_list(struct buffered_writer *buffered_writer);
 
-size_t __must_check compute_delta_index_save_bytes(unsigned int list_count, size_t memory_size);
+size_t __must_check compute_delta_index_save_bytes(u32 list_count, size_t memory_size);
 
 int __must_check start_delta_index_search(const struct delta_index *delta_index,
-					  unsigned int list_number,
-					  unsigned int key,
+					  u32 list_number,
+					  u32 key,
 					  struct delta_index_entry *iterator);
 
 int __must_check next_delta_index_entry(struct delta_index_entry *delta_entry);
@@ -268,22 +268,21 @@ int __must_check
 remember_delta_index_offset(const struct delta_index_entry *delta_entry);
 
 int __must_check get_delta_index_entry(const struct delta_index *delta_index,
-				       unsigned int list_number,
-				       unsigned int key,
+				       u32 list_number,
+				       u32 key,
 				       const u8 *name,
 				       struct delta_index_entry *delta_entry);
 
 int __must_check
 get_delta_entry_collision(const struct delta_index_entry *delta_entry, u8 *name);
 
-unsigned int __must_check get_delta_entry_value(const struct delta_index_entry *delta_entry);
+u32 __must_check get_delta_entry_value(const struct delta_index_entry *delta_entry);
 
-int __must_check
-set_delta_entry_value(const struct delta_index_entry *delta_entry, unsigned int value);
+int __must_check set_delta_entry_value(const struct delta_index_entry *delta_entry, u32 value);
 
 int __must_check put_delta_index_entry(struct delta_index_entry *delta_entry,
-				       unsigned int key,
-				       unsigned int value,
+				       u32 key,
+				       u32 value,
 				       const u8 *name);
 
 int __must_check
@@ -291,15 +290,13 @@ remove_delta_index_entry(struct delta_index_entry *delta_entry);
 
 void get_delta_index_stats(const struct delta_index *delta_index, struct delta_index_stats *stats);
 
-size_t __must_check compute_delta_index_size(unsigned long entry_count,
-					     unsigned int mean_delta,
-					     unsigned int payload_bits);
+size_t __must_check compute_delta_index_size(u32 entry_count, u32 mean_delta, u32 payload_bits);
 
-unsigned int get_delta_index_page_count(unsigned int entry_count,
-					unsigned int list_count,
-					unsigned int mean_delta,
-					unsigned int payload_bits,
-					size_t bytes_per_page);
+u32 get_delta_index_page_count(u32 entry_count,
+			       u32 list_count,
+			       u32 mean_delta,
+			       u32 payload_bits,
+			       size_t bytes_per_page);
 
 void log_delta_index_entry(struct delta_index_entry *delta_entry);
 

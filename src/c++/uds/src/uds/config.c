@@ -228,12 +228,12 @@ int write_config_contents(struct buffered_writer *writer,
 /* Compute configuration parameters that depend on memory size. */
 static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
 				bool sparse,
-				unsigned int *chapters_per_volume,
-				unsigned int *record_pages_per_chapter,
-				unsigned int *sparse_chapters_per_volume)
+				u32 *chapters_per_volume,
+				u32 *record_pages_per_chapter,
+				u32 *sparse_chapters_per_volume)
 {
-	unsigned int reduced_chapters = 0;
-	unsigned int base_chapters;
+	u32 reduced_chapters = 0;
+	u32 base_chapters;
 
 	if (mem_gb == UDS_MEMORY_CONFIG_256MB) {
 		base_chapters = DEFAULT_CHAPTERS_PER_VOLUME;
@@ -322,9 +322,9 @@ static unsigned int __must_check normalize_read_threads(unsigned int requested)
 int make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
 {
 	struct configuration *config;
-	unsigned int chapters_per_volume = 0;
-	unsigned int record_pages_per_chapter = 0;
-	unsigned int sparse_chapters_per_volume = 0;
+	u32 chapters_per_volume = 0;
+	u32 record_pages_per_chapter = 0;
+	u32 sparse_chapters_per_volume = 0;
 	int result;
 
 	result = compute_memory_sizes(params->memory_size,

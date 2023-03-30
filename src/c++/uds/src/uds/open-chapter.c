@@ -216,7 +216,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 	unsigned int records_per_page;
 	unsigned int record_index;
 	unsigned int records = 0;
-	unsigned int page_number;
+	u32 page_number;
 	unsigned int z;
 	int overflow_count = 0;
 	struct uds_volume_record *fill_record = NULL;

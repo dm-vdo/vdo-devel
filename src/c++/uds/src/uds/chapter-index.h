@@ -34,11 +34,11 @@ struct open_chapter_index {
 #ifdef TEST_INTERNAL
 
 /* The number of discards in the open chapter indices. */
-extern long chapter_index_discard_count;
+extern u64 chapter_index_discard_count;
 /* The number of discards used to reset the open chapter indices to empty. */
-extern long chapter_index_empty_count;
+extern u64 chapter_index_empty_count;
 /* The number of overflows in the open chapter indices. */
-extern long chapter_index_overflow_count;
+extern u64 chapter_index_overflow_count;
 #endif /* TEST_INTERNAL */
 
 int __must_check make_open_chapter_index(struct open_chapter_index **chapter_index,
@@ -52,13 +52,13 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index,
 
 int __must_check put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 					       const struct uds_record_name *name,
-					       unsigned int page_number);
+					       u32 page_number);
 
 int __must_check pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 					      u8 *memory,
-					      unsigned int first_list,
+					      u32 first_list,
 					      bool last_page,
-					      unsigned int *lists_packed);
+					      u32 *lists_packed);
 
 int __must_check initialize_chapter_index_page(struct delta_index_page *index_page,
 					       const struct geometry *geometry,

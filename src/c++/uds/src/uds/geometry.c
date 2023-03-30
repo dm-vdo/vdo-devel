@@ -53,9 +53,9 @@
  */
 
 int make_geometry(size_t bytes_per_page,
-		  unsigned int record_pages_per_chapter,
-		  unsigned int chapters_per_volume,
-		  unsigned int sparse_chapters_per_volume,
+		  u32 record_pages_per_chapter,
+		  u32 chapters_per_volume,
+		  u32 sparse_chapters_per_volume,
 		  u64 remapped_virtual,
 		  u64 remapped_physical,
 		  struct geometry **geometry_ptr)
@@ -77,8 +77,7 @@ int make_geometry(size_t bytes_per_page,
 
 	geometry->records_per_page = bytes_per_page / BYTES_PER_RECORD;
 	geometry->records_per_chapter = geometry->records_per_page * record_pages_per_chapter;
-	geometry->records_per_volume =
-		((unsigned long) geometry->records_per_chapter * chapters_per_volume);
+	geometry->records_per_volume = (u64) geometry->records_per_chapter * chapters_per_volume;
 
 	geometry->chapter_mean_delta = 1 << DEFAULT_CHAPTER_MEAN_DELTA_BITS;
 	geometry->chapter_payload_bits = bits_per(record_pages_per_chapter - 1);
@@ -127,8 +126,7 @@ void free_geometry(struct geometry *geometry)
 	UDS_FREE(geometry);
 }
 
-unsigned int __must_check
-map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter)
+u32 __must_check map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter)
 {
 	u64 delta;
 
@@ -177,7 +175,7 @@ bool is_chapter_sparse(const struct geometry *geometry,
 }
 
 /* Calculate how many chapters to expire after opening the newest chapter. */
-unsigned int chapters_to_expire(const struct geometry *geometry, u64 newest_chapter)
+u32 chapters_to_expire(const struct geometry *geometry, u64 newest_chapter)
 {
 	/* If the index isn't full yet, don't expire anything. */
 	if (newest_chapter < geometry->chapters_per_volume)

@@ -19,7 +19,7 @@ enum {
   MAX_CHAPTER = MANY_CHAPTERS - 1,
 };
 
-static unsigned int savedMinVolumeIndexDeltaLists;
+static u64 savedMinVolumeIndexDeltaLists;
 
 /**********************************************************************/
 static void volumeIndexInit(void)

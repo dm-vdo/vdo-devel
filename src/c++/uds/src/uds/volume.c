@@ -1304,7 +1304,7 @@ int write_index_pages(struct volume *volume,
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
 		u8 *page_data;
-		unsigned int lists_packed;
+		u32 lists_packed;
 		bool last_page;
 		int result;
 

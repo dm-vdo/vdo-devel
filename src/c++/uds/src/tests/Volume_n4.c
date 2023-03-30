@@ -129,7 +129,7 @@ static void computeNameOnPage(struct uds_record_name *name, uint32_t physPage)
                                                    geometry,
                                                    pages[physPage],
                                                    volume->nonce));
-  unsigned int listNumber = hash_to_chapter_delta_list(name, geometry);
+  u32 listNumber = hash_to_chapter_delta_list(name, geometry);
   while ((listNumber < indexPage.lowest_list_number) ||
          (listNumber > indexPage.highest_list_number)) {
     createRandomBlockName(name);

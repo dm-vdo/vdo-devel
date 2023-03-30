@@ -52,11 +52,13 @@ static void reportCollisions(const struct volume_index_stats *denseStats,
   albPrint("%ld blocks with %ld collisions (%f)", numBlocks, collisions,
            (double) collisions / numBlocks);
   if ((denseStats->record_count > 0) && (sparseStats->record_count > 0)) {
-    albPrint("%ld dense blocks with %ld collisions (%f)",
-             denseStats->record_count, denseStats->collision_count,
+    albPrint("%llu dense blocks with %llu collisions (%f)",
+             (unsigned long long) denseStats->record_count,
+             (unsigned long long) denseStats->collision_count,
              (double) denseStats->collision_count / denseStats->record_count);
-    albPrint("%ld sparse blocks with %ld collisions (%f)",
-             sparseStats->record_count, sparseStats->collision_count,
+    albPrint("%llu sparse blocks with %llu collisions (%f)",
+             (unsigned long long) sparseStats->record_count,
+             (unsigned long long) sparseStats->collision_count,
              (double) sparseStats->collision_count
                         / sparseStats->record_count);
   }

@@ -18,13 +18,13 @@ struct geometry {
 	/* Size of a chapter page, in bytes */
 	size_t bytes_per_page;
 	/* Number of record pages in a chapter */
-	unsigned int record_pages_per_chapter;
+	u32 record_pages_per_chapter;
 	/* Total number of chapters in a volume */
-	unsigned int chapters_per_volume;
+	u32 chapters_per_volume;
 	/* Number of sparsely-indexed chapters in a volume */
-	unsigned int sparse_chapters_per_volume;
+	u32 sparse_chapters_per_volume;
 	/* Number of bits used to determine delta list numbers */
-	unsigned int chapter_delta_list_bits;
+	u8 chapter_delta_list_bits;
 	/* Virtual chapter remapped from physical chapter 0 */
 	u64 remapped_virtual;
 	/* New physical chapter where the remapped chapter can be found */
@@ -35,29 +35,29 @@ struct geometry {
 	 * recorded as fields for convenience.
 	 */
 	/* Total number of pages in a volume, excluding the header */
-	unsigned int pages_per_volume;
+	u32 pages_per_volume;
 	/* Total number of bytes in a volume, including the header */
 	size_t bytes_per_volume;
 	/* Number of pages in a chapter */
-	unsigned int pages_per_chapter;
+	u32 pages_per_chapter;
 	/* Number of index pages in a chapter index */
-	unsigned int index_pages_per_chapter;
+	u32 index_pages_per_chapter;
 	/* Number of records that fit on a page */
-	unsigned int records_per_page;
+	u32 records_per_page;
 	/* Number of records that fit in a chapter */
-	unsigned int records_per_chapter;
+	u32 records_per_chapter;
 	/* Number of records that fit in a volume */
 	u64 records_per_volume;
 	/* Number of delta lists per chapter index */
-	unsigned int delta_lists_per_chapter;
+	u32 delta_lists_per_chapter;
 	/* Mean delta for chapter indexes */
-	unsigned int chapter_mean_delta;
+	u32 chapter_mean_delta;
 	/* Number of bits needed for record page numbers */
-	unsigned int chapter_payload_bits;
+	u8 chapter_payload_bits;
 	/* Number of bits used to compute addresses for chapter delta lists */
-	unsigned int chapter_address_bits;
+	u8 chapter_address_bits;
 	/* Number of densely-indexed chapters in a volume */
-	unsigned int dense_chapters_per_volume;
+	u32 dense_chapters_per_volume;
 };
 
 enum {
@@ -96,9 +96,9 @@ enum {
 };
 
 int __must_check make_geometry(size_t bytes_per_page,
-			       unsigned int record_pages_per_chapter,
-			       unsigned int chapters_per_volume,
-			       unsigned int sparse_chapters_per_volume,
+			       u32 record_pages_per_chapter,
+			       u32 chapters_per_volume,
+			       u32 sparse_chapters_per_volume,
 			       u64 remapped_virtual,
 			       u64 remapped_physical,
 			       struct geometry **geometry_ptr);
@@ -107,8 +107,7 @@ int __must_check copy_geometry(struct geometry *source, struct geometry **geomet
 
 void free_geometry(struct geometry *geometry);
 
-unsigned int __must_check
-map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
+u32 __must_check map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
 
 /*
  * Check whether this geometry is reduced by a chapter. This will only be true if the volume was
@@ -133,6 +132,6 @@ bool __must_check is_chapter_sparse(const struct geometry *geometry,
 				    u64 newest_virtual_chapter,
 				    u64 virtual_chapter_number);
 
-unsigned int __must_check chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
+u32 __must_check chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
 
 #endif /* GEOMETRY_H */

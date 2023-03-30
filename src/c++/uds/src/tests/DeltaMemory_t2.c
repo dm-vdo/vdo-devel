@@ -14,8 +14,8 @@
 #include "random.h"
 #include "testPrototypes.h"
 
-static const unsigned int MEAN_DELTA = 4096;
-static const unsigned int NUM_PAYLOAD_BITS = 10;
+static const u32 MEAN_DELTA = 4096;
+static const u32 NUM_PAYLOAD_BITS = 10;
 
 enum {
   GUARD_BITS = (sizeof(uint64_t) - 1) * BITS_PER_BYTE,
@@ -88,7 +88,7 @@ static void moveBitsTest(void)
   u8 data[MEM_SIZE + POST_FIELD_GUARD_BYTES];
   memset(memory, 0, sizeof(memory));
 
-  int offset1, offset2, size;
+  u32 offset1, offset2, size;
   for (size = 1; size <= NUM_LENGTHS; size++) {
     for (offset1 = 10; offset1 < 10 + NUM_OFFSETS; offset1++) {
       for (offset2 = 10; offset2 < 10 + NUM_OFFSETS; offset2++) {
@@ -123,7 +123,7 @@ static void setupDeltaList(struct delta_list *pdl, int index,
  * @param numLists      The number of delta lists
  * @param initialValue  Value used to initialize the delta memory (0 or 0xFF)
  **/
-static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
+static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
 {
   struct delta_index *delta_index;
   u8 *random;
@@ -132,7 +132,7 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
 
   // Get some random bits
   uint64_t bitsNeeded = 0;
-  int i;
+  u32 i;
   for (i = 1; i <= numLists; i++) {
     bitsNeeded += pdl[i].size;
   }
@@ -154,7 +154,7 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
   // Copy the random bits into the delta lists
   uint64_t randomOffset = 0;
   for (i = 1; i <= numLists; i++) {
-    unsigned int size = dm->delta_lists[i].size;
+    u16 size = dm->delta_lists[i].size;
     move_bits(random, randomOffset, dm->memory, dm->delta_lists[i].start, size);
     randomOffset += size;
   }
@@ -184,8 +184,7 @@ static void testExtend(struct delta_list *pdl, int numLists, int initialValue)
  * @param numLists      The number of delta lists
  * @param gapSize       The minimum gap to leave before the guard list
  **/
-static void guardAndTest(struct delta_list *pdl, int numLists,
-                         unsigned int gapSize)
+static void guardAndTest(struct delta_list *pdl, u32 numLists, unsigned int gapSize)
 {
   struct delta_list *deltaListsCopy;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numLists + 2, struct delta_list, __func__, &deltaListsCopy));

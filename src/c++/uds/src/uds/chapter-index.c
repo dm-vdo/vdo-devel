@@ -13,9 +13,9 @@
 #include "uds.h"
 
 #ifdef TEST_INTERNAL
-long chapter_index_discard_count;
-long chapter_index_empty_count;
-long chapter_index_overflow_count;
+u64 chapter_index_discard_count;
+u64 chapter_index_empty_count;
+u64 chapter_index_overflow_count;
 
 #endif /* TEST_INTERNAL */
 int make_open_chapter_index(struct open_chapter_index **chapter_index,
@@ -94,7 +94,7 @@ void empty_open_chapter_index(struct open_chapter_index *chapter_index, u64 virt
 #endif /* TEST_INTERNAL */
 }
 
-static inline bool was_entry_found(const struct delta_index_entry *entry, unsigned int address)
+static inline bool was_entry_found(const struct delta_index_entry *entry, u32 address)
 {
 	return (!entry->at_end) && (entry->key == address);
 }
@@ -102,17 +102,17 @@ static inline bool was_entry_found(const struct delta_index_entry *entry, unsign
 /* Associate a record name with the record page containing its metadata. */
 int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 				  const struct uds_record_name *name,
-				  unsigned int page_number)
+				  u32 page_number)
 {
 	int result;
 	struct delta_index_entry entry;
-	unsigned int address;
-	unsigned int list_number;
+	u32 address;
+	u32 list_number;
 	const u8 *found_name;
 	bool found;
 	const struct geometry *geometry = chapter_index->geometry;
-	unsigned int chapter_number = chapter_index->virtual_chapter_number;
-	unsigned int record_pages = geometry->record_pages_per_chapter;
+	u64 chapter_number = chapter_index->virtual_chapter_number;
+	u32 record_pages = geometry->record_pages_per_chapter;
 
 	result = ASSERT(page_number < record_pages,
 			"Page number within chapter (%u) exceeds the maximum value %u",
@@ -156,9 +156,9 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  */
 int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 				 u8 *memory,
-				 unsigned int first_list,
+				 u32 first_list,
 				 bool last_page,
-				 unsigned int *lists_packed)
+				 u32 *lists_packed)
 {
 	int result;
 	struct delta_index *delta_index = &chapter_index->delta_index;
@@ -166,11 +166,11 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 	u64 nonce = chapter_index->volume_nonce;
 	u64 chapter_number = chapter_index->virtual_chapter_number;
 	const struct geometry *geometry = chapter_index->geometry;
-	unsigned int list_count = geometry->delta_lists_per_chapter;
+	u32 list_count = geometry->delta_lists_per_chapter;
 	unsigned int removals = 0;
 	struct delta_index_entry entry;
-	unsigned int next_list;
-	int list_number;
+	u32 next_list;
+	s32 list_number;
 
 	for (;;) {
 		result = pack_delta_index_page(delta_index,
@@ -205,10 +205,10 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 
 		if (removals == 0) {
 			get_delta_index_stats(delta_index, &stats);
-			uds_log_warning("The chapter index for chapter %llu contains %ld entries with %ld collisions",
+			uds_log_warning("The chapter index for chapter %llu contains %llu entries with %llu collisions",
 					(unsigned long long) chapter_number,
-					stats.record_count,
-					stats.collision_count);
+					(unsigned long long) stats.record_count,
+					(unsigned long long) stats.collision_count);
 		}
 
 		list_number = *lists_packed;
@@ -262,9 +262,9 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 {
 	int result;
 	const struct delta_index *delta_index = &index_page->delta_index;
-	unsigned int first = index_page->lowest_list_number;
-	unsigned int last = index_page->highest_list_number;
-	unsigned int list_number;
+	u32 first = index_page->lowest_list_number;
+	u32 last = index_page->highest_list_number;
+	u32 list_number;
 
 	/* We walk every delta list from start to finish. */
 	for (list_number = first; list_number <= last; list_number++) {
@@ -310,9 +310,9 @@ int search_chapter_index_page(struct delta_index_page *index_page,
 {
 	int result;
 	struct delta_index *delta_index = &index_page->delta_index;
-	unsigned int address = hash_to_chapter_delta_address(name, geometry);
-	unsigned int delta_list_number = hash_to_chapter_delta_list(name, geometry);
-	unsigned int sub_list_number = delta_list_number - index_page->lowest_list_number;
+	u32 address = hash_to_chapter_delta_address(name, geometry);
+	u32 delta_list_number = hash_to_chapter_delta_list(name, geometry);
+	u32 sub_list_number = delta_list_number - index_page->lowest_list_number;
 	struct delta_index_entry entry;
 
 	result = get_delta_index_entry(delta_index, sub_list_number, address, name->name, &entry);

@@ -57,7 +57,7 @@ static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
 }
 
 /**********************************************************************/
-static void reportRebalances(int *rebalanceCount, const char *label,
+static void reportRebalances(u32 *rebalanceCount, const char *label,
                              const struct volume_index_stats *mis)
 {
   if (*rebalanceCount != mis->rebalance_count) {
@@ -89,9 +89,9 @@ static void reportIndexMemoryUsage(struct volume_index *volumeIndex)
            memUsed  / MEGABYTE,
            usedBytesPerRecord / 100, usedBytesPerRecord % 100);
 
-  static int denseRebalanceCount = 0;
+  static u32 denseRebalanceCount = 0;
   reportRebalances(&denseRebalanceCount, "Dense", &denseStats);
-  static int sparseRebalanceCount = 0;
+  static u32 sparseRebalanceCount = 0;
   reportRebalances(&sparseRebalanceCount, "Sparse", &sparseStats);
 }
 
@@ -100,20 +100,19 @@ static void reportCollisions(struct volume_index *volumeIndex)
 {
   struct volume_index_stats denseStats, sparseStats;
   get_volume_index_separate_stats(volumeIndex, &denseStats, &sparseStats);
-  long numCollisions = denseStats.collision_count
-                         + sparseStats.collision_count;
-  long numBlocks     = denseStats.record_count    + sparseStats.record_count;
+  long numCollisions = denseStats.collision_count + sparseStats.collision_count;
+  long numBlocks = denseStats.record_count + sparseStats.record_count;
   int collRate = 1000000 * numCollisions / numBlocks;
-  albPrint("%ld blocks with %ld collisions (0.%06d)", numBlocks, numCollisions,
-           collRate);
+  albPrint("%ld blocks with %ld collisions (0.%06d)", numBlocks, numCollisions, collRate);
   if ((denseStats.record_count > 0) && (sparseStats.record_count > 0)) {
     collRate = 1000000 * denseStats.collision_count / denseStats.record_count;
-    albPrint("%ld dense blocks with %ld collisions (0.%06d)",
-             denseStats.record_count, denseStats.collision_count, collRate);
-    collRate = 1000000 * sparseStats.collision_count
-                           / sparseStats.record_count;
-    albPrint("%ld sparse blocks with %ld collisions (0.%06d)",
-             sparseStats.record_count, sparseStats.collision_count, collRate);
+    albPrint("%llu dense blocks with %llu collisions (0.%06d)",
+             (unsigned long long) denseStats.record_count,
+             (unsigned long long) denseStats.collision_count, collRate);
+    collRate = 1000000 * sparseStats.collision_count / sparseStats.record_count;
+    albPrint("%llu sparse blocks with %llu collisions (0.%06d)",
+             (unsigned long long) sparseStats.record_count,
+             (unsigned long long) sparseStats.collision_count, collRate);
   }
 }
 

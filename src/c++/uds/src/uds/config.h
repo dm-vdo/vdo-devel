@@ -49,35 +49,35 @@ struct configuration {
 	unsigned int read_threads;
 
 	/* Size of the page cache and sparse chapter index cache in chapters */
-	unsigned int cache_chapters;
+	u32 cache_chapters;
 
 	/* Parameters for the volume index */
 
 	/* The mean delta for the volume index */
-	unsigned int volume_index_mean_delta;
+	u32 volume_index_mean_delta;
 
 	/* Sampling rate for sparse indexing */
-	unsigned int sparse_sample_rate;
+	u32 sparse_sample_rate;
 };
 
 /* On-disk structure of data for a version 8.02 index. */
 struct uds_configuration_8_02 {
 	/* Smaller (16), Small (64) or large (256) indices */
-	unsigned int record_pages_per_chapter;
+	u32 record_pages_per_chapter;
 	/* Total number of chapters per volume */
-	unsigned int chapters_per_volume;
+	u32 chapters_per_volume;
 	/* Number of sparse chapters per volume */
-	unsigned int sparse_chapters_per_volume;
+	u32 sparse_chapters_per_volume;
 	/* Size of the page cache, in chapters */
-	unsigned int cache_chapters;
+	u32 cache_chapters;
 	/* Unused field */
-	unsigned int unused;
+	u32 unused;
 	/* The volume index mean delta to use */
-	unsigned int volume_index_mean_delta;
+	u32 volume_index_mean_delta;
 	/* Size of a page, used for both record pages and index pages */
-	unsigned int bytes_per_page;
+	u32 bytes_per_page;
 	/* Sampling rate for sparse indexing */
-	unsigned int sparse_sample_rate;
+	u32 sparse_sample_rate;
 	/* Index owner's nonce */
 	u64 nonce;
 	/* Virtual chapter remapped from physical chapter 0 */
@@ -89,21 +89,21 @@ struct uds_configuration_8_02 {
 /* On-disk structure of data for a version 6.02 index. */
 struct uds_configuration_6_02 {
 	/* Smaller (16), Small (64) or large (256) indices */
-	unsigned int record_pages_per_chapter;
+	u32 record_pages_per_chapter;
 	/* Total number of chapters per volume */
-	unsigned int chapters_per_volume;
+	u32 chapters_per_volume;
 	/* Number of sparse chapters per volume */
-	unsigned int sparse_chapters_per_volume;
+	u32 sparse_chapters_per_volume;
 	/* Size of the page cache, in chapters */
-	unsigned int cache_chapters;
+	u32 cache_chapters;
 	/* Unused field */
-	unsigned int unused;
+	u32 unused;
 	/* The volume index mean delta to use */
-	unsigned int volume_index_mean_delta;
+	u32 volume_index_mean_delta;
 	/* Size of a page, used for both record pages and index pages */
-	unsigned int bytes_per_page;
+	u32 bytes_per_page;
 	/* Sampling rate for sparse indexing */
-	unsigned int sparse_sample_rate;
+	u32 sparse_sample_rate;
 	/* Index owner's nonce */
 	u64 nonce;
 } __packed;

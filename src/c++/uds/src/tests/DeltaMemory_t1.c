@@ -12,8 +12,8 @@
 #include "random.h"
 #include "testPrototypes.h"
 
-static const unsigned int MEAN_DELTA = 4096;
-static const unsigned int NUM_PAYLOAD_BITS = 10;
+static const u32 MEAN_DELTA = 4096;
+static const u32 NUM_PAYLOAD_BITS = 10;
 static struct delta_index delta_index;
 
 /**
@@ -169,7 +169,7 @@ static void verifyEvenSpacing(const struct delta_zone *pdm,
 /**
  * Test basic rebalancing
  **/
-static void rebalanceTest(int nLists, int bytesPerList, int allocIncr)
+static void rebalanceTest(u32 nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
   UDS_ASSERT_SUCCESS(initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
@@ -212,7 +212,7 @@ static void largeRebalanceTest(void)
 /**
  * Test evenness of balancing, both with and without growing.
  **/
-static void growingTest(unsigned int nLists, int bytesPerList, int allocIncr)
+static void growingTest(u32 nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
   UDS_ASSERT_SUCCESS(initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
