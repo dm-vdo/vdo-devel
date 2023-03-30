@@ -229,15 +229,14 @@ static void testInvalidateAll(void)
 {
   fillCache();
 
-  // Invalidate chapter 1, telling the cache there are 5 pages per chapter
-  invalidate_page_cache_for_chapter(cache, 1, 5);
+  // Invalidate chapter 1, which has six pages
+  invalidate_page_cache_for_chapter(cache, 1);
 
-  // Make sure pages 6-10 are invalid
+  // Make sure pages 7-12 are invalid
   struct cached_page *entry = NULL;
   getMostRecentPageFromCache(cache, &entry);
   while (entry != NULL) {
-    CU_ASSERT_FALSE((entry->cp_physical_page >= 6)
-                    && (entry->cp_physical_page <= 10));
+    CU_ASSERT_FALSE((entry->cp_physical_page >= 7) && (entry->cp_physical_page <= 12));
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(cache, entry, &entry));
   }
 }

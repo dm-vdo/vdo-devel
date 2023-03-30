@@ -185,9 +185,7 @@ void free_page_cache(struct page_cache *cache);
 
 void invalidate_page_cache(struct page_cache *cache);
 
-void invalidate_page_cache_for_chapter(struct page_cache *cache,
-				       unsigned int chapter,
-				       unsigned int pages_per_chapter);
+void invalidate_page_cache_for_chapter(struct page_cache *cache, unsigned int chapter);
 
 #ifdef TEST_INTERNAL
 void invalidate_page(struct page_cache *cache, unsigned int physical_page);

@@ -91,8 +91,7 @@ map_to_chapter_number(struct geometry *geometry, unsigned int physical_page)
 
 static inline bool is_record_page(struct geometry *geometry, unsigned int physical_page)
 {
-	return ((physical_page - HEADER_PAGES_PER_VOLUME) % geometry->pages_per_chapter >=
-		geometry->index_pages_per_chapter);
+	return map_to_page_number(geometry, physical_page) >= geometry->index_pages_per_chapter;
 }
 
 static inline unsigned int get_zone_number(struct uds_request *request)
@@ -102,10 +101,7 @@ static inline unsigned int get_zone_number(struct uds_request *request)
 
 int map_to_physical_page(const struct geometry *geometry, int chapter, int page)
 {
-	/*
-	 * Page zero is the header page, so the first index page in the first chapter is physical
-	 * page one.
-	 */
+	/* Page zero is the header page, so the first chapter index page is page one. */
 	return HEADER_PAGES_PER_VOLUME + (geometry->pages_per_chapter * chapter) + page;
 }
 
@@ -314,16 +310,14 @@ void invalidate_page_cache(struct page_cache *cache)
 		clear_cache_page(cache, &cache->cache[i]);
 }
 
-void invalidate_page_cache_for_chapter(struct page_cache *cache,
-				       unsigned int chapter,
-				       unsigned int pages_per_chapter)
+void invalidate_page_cache_for_chapter(struct page_cache *cache, unsigned int chapter)
 {
 	unsigned int i;
-	unsigned int page_offset = HEADER_PAGES_PER_VOLUME + (pages_per_chapter * chapter);
+	unsigned int first_page = map_to_physical_page(cache->geometry, chapter, 0);
 
 	/* We hold the read_threads_mutex. */
-	for (i = 0; i < pages_per_chapter; i++)
-		invalidate_page(cache, page_offset + i);
+	for (i = 0; i < cache->geometry->pages_per_chapter; i++)
+		invalidate_page(cache, first_page + i);
 }
 
 EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
@@ -1240,9 +1234,7 @@ void forget_chapter(struct volume *volume, u64 virtual_chapter)
 
 	uds_log_debug("forgetting chapter %llu", (unsigned long long) virtual_chapter);
 	uds_lock_mutex(&volume->read_threads_mutex);
-	invalidate_page_cache_for_chapter(volume->page_cache,
-					  physical_chapter,
-					  volume->geometry->pages_per_chapter);
+	invalidate_page_cache_for_chapter(volume->page_cache, physical_chapter);
 	uds_unlock_mutex(&volume->read_threads_mutex);
 }
 

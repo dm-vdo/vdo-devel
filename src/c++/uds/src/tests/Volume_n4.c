@@ -307,8 +307,7 @@ static void testInvalidateReadQueue(void)
   // Invalidate all of the reads, so that when they're dequeued, they don't
   // push the synchronized read out of the cache
   for (i = 0; i < geometry->chapters_per_volume; i++) {
-    invalidate_page_cache_for_chapter(volume->page_cache, i,
-                                      geometry->pages_per_chapter);
+    invalidate_page_cache_for_chapter(volume->page_cache, i);
   }
   struct cached_page *actual;
 
