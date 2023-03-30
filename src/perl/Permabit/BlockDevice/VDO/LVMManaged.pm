@@ -275,12 +275,6 @@ sub migrate {
     $log->info("Migrating VDO device from $currentHost to $newHost");
     $self->getStorageDevice()->migrate($newMachine);
     $self->installModule();
-
-    if ($newHost ne $self->getStorageHost()) {
-      # If we are building on an ISCSI device, we have to activate the
-      # device after migration.
-      $self->getStorageDevice()->activate();
-    }
   };
   $self->runWhileStopped($migrate);
 }
