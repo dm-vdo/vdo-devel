@@ -139,7 +139,9 @@ $suiteNames{filesystem}
 
   $suiteNames{largeStress}
     = [
-       (map { "Large$_" } @largeStress),
+# XXX Exclude LargeRebuildStress03 due to VDO-5527
+#       (map { "Large$_" } @largeStress),
+       (map { "Large$_" } grep { !/RebuildStress03/ } @largeStress),
       ];
 }
 
