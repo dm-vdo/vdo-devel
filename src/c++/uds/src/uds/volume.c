@@ -1155,6 +1155,14 @@ int search_cached_record_page(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
+void prefetch_volume_chapter(const struct volume *volume, u32 chapter)
+{
+	const struct geometry *geometry = volume->geometry;
+	u32 physical_page = map_to_physical_page(geometry, chapter, 0);
+
+	dm_bufio_prefetch(volume->client, physical_page, geometry->pages_per_chapter);
+}
+
 int read_chapter_index_from_volume(const struct volume *volume,
 				   u64 virtual_chapter,
 				   struct dm_buffer *volume_buffers[],

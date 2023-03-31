@@ -310,6 +310,8 @@ int __must_check write_chapter(struct volume *volume,
 			       struct open_chapter_index *chapter_index,
 			       const struct uds_volume_record records[]);
 
+void prefetch_volume_chapter(const struct volume *volume, u32 chapter);
+
 int __must_check
 read_chapter_index_from_volume(const struct volume *volume,
 			       u64 virtual_chapter,

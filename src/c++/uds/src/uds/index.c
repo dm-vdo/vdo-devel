@@ -1034,9 +1034,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 
 	geometry = index->volume->geometry;
 	physical_chapter = map_to_physical_chapter(geometry, virtual);
-	dm_bufio_prefetch(index->volume->client,
-			  map_to_physical_page(geometry, physical_chapter, 0),
-			  geometry->pages_per_chapter);
+	prefetch_volume_chapter(index->volume, physical_chapter);
 	set_volume_index_open_chapter(index->volume_index, virtual);
 
 	result = rebuild_index_page_map(index, virtual);
