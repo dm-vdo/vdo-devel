@@ -36,8 +36,6 @@ our %BLOCKDEVICE_PROPERTIES
      setupOnCreation   => 0,
      # @ple The path to the currently installed VDO
      _currentInstall   => undef,
-     # $ple The current VDO scenario being executed
-     _currentScenario  => {},
      # @ple A hash taken from SUPPORTED_SCENARIOS
      _scenarioData     => undef,
      # @ple Run the upgrader in verbose mode
@@ -222,11 +220,16 @@ sub _getVersionedVDODirectory {
     $self->{_versions}->{$versionName} = $self->{binaryDir};
   }
 
+  my $versionDir;
   if (defined($self->{_versions}->{$versionName})) {
-    return $self->{_versions}->{$versionName};
+    $versionDir = $self->{_versions}->{$versionName};
+
+    if (!$self->sendCommand("test -d $versionDir")) {
+      return $self->{_versions}->{$versionName};
+    }
   }
 
-  my $versionDir = $self->_createVersionedVDODirectory($versionName);
+  $versionDir = $self->_createVersionedVDODirectory($versionName);
   $self->{_versions}->{$versionName} = $versionDir;
   return $versionDir;
 }
@@ -284,7 +287,6 @@ sub switchToScenario {
   $self->_installBinaries();
   $self->installModule();
   $self->verifyModuleVersion();
-  $self->{_currentScenario} = $scenario;
   $self->_setupScenarioData($scenario->{name});
 }
 

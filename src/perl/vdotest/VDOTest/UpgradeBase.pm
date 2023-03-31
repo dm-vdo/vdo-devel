@@ -20,6 +20,7 @@ use Permabit::Assertions qw(
   assertNumArgs
 );
 use Permabit::Constants;
+use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS);
 use Permabit::Utils qw(ceilMultiple);
 
 use base qw(VDOTest::MigrationBase);
@@ -34,6 +35,17 @@ our %PROPERTIES =
    _preUpgradeStats => undef,
   );
 ##
+
+#############################################################################
+# @inherit
+##
+sub set_up {
+  my ($self) = assertNumArgs(1, @_);
+
+  push(@{$self->{intermediateScenarios}}, 'X86_RHEL9_head');
+
+  $self->SUPER::set_up();
+}
 
 #############################################################################
 # Make a test with a given name and version list.
@@ -136,6 +148,14 @@ sub setupDevice {
     assertEqualNumeric(0, $self->{_preUpgradeStats}->{"dedupe advice stale"},
                        "Dedupe advice stale should be zero");
   }
+}
+
+#############################################################################
+# @inherit
+##
+sub verifyScenario {
+  # Placeholder for a future change.
+  return 1;
 }
 
 #############################################################################
