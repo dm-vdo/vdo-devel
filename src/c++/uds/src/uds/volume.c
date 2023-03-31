@@ -115,8 +115,8 @@ static void clear_cache_page(struct page_cache *cache, struct cached_page *page)
 {
 	/* Do not clear read_pending because the read queue relies on it. */
 	release_page_buffer(page);
-	page->cp_physical_page = cache->indexable_pages;
-	WRITE_ONCE(page->cp_last_used, 0);
+	page->physical_page = cache->indexable_pages;
+	WRITE_ONCE(page->last_used, 0);
 }
 
 static void get_page_and_index(struct page_cache *cache,
@@ -194,8 +194,8 @@ EXTERNAL_STATIC void invalidate_page(struct page_cache *cache, unsigned int phys
 	/* We hold the read_threads_mutex. */
 	get_page_and_index(cache, physical_page, &queue_index, &page);
 	if (page != NULL) {
-		WRITE_ONCE(cache->index[page->cp_physical_page], cache->cache_slots);
-		wait_for_pending_searches(cache, page->cp_physical_page);
+		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
+		wait_for_pending_searches(cache, page->physical_page);
 		clear_cache_page(cache, page);
 	} else if (queue_index > -1) {
 		uds_log_debug("setting pending read to invalid");
@@ -326,8 +326,8 @@ EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cach
 	 * ASSERTION: We are either a zone thread holding a search_pending_counter, or we are any
 	 * thread holding the read_threads_mutex.
 	 */
-	if (atomic64_read(&cache->clock) != READ_ONCE(page->cp_last_used))
-		WRITE_ONCE(page->cp_last_used,
+	if (atomic64_read(&cache->clock) != READ_ONCE(page->last_used))
+		WRITE_ONCE(page->last_used,
 			   atomic64_inc_return(&cache->clock));
 }
 
@@ -344,16 +344,16 @@ get_least_recent_page(struct page_cache *cache, struct cached_page **page_ptr)
 			return ASSERT(false, "oldest page is not NULL");
 
 		/* A page with a pending read must not be replaced. */
-		if (!cache->cache[i].cp_read_pending) {
+		if (!cache->cache[i].read_pending) {
 			oldest_index = i;
 			break;
 		}
 	}
 
 	for (i = 0; i < cache->cache_slots; i++) {
-		if (!cache->cache[i].cp_read_pending &&
-		    (READ_ONCE(cache->cache[i].cp_last_used) <=
-		     READ_ONCE(cache->cache[oldest_index].cp_last_used)))
+		if (!cache->cache[i].read_pending &&
+		    (READ_ONCE(cache->cache[i].last_used) <=
+		     READ_ONCE(cache->cache[oldest_index].last_used)))
 			oldest_index = i;
 	}
 
@@ -390,12 +390,12 @@ select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (page->cp_physical_page != cache->indexable_pages) {
-		WRITE_ONCE(cache->index[page->cp_physical_page], cache->cache_slots);
-		wait_for_pending_searches(cache, page->cp_physical_page);
+	if (page->physical_page != cache->indexable_pages) {
+		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
+		wait_for_pending_searches(cache, page->physical_page);
 	}
 
-	page->cp_read_pending = true;
+	page->read_pending = true;
 	clear_cache_page(cache, page);
 	*page_ptr = page;
 	return UDS_SUCCESS;
@@ -409,11 +409,11 @@ put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct c
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->cp_read_pending), "page to install has a pending read");
+	result = ASSERT((page->read_pending), "page to install has a pending read");
 	if (result != UDS_SUCCESS)
 		return result;
 
-	page->cp_physical_page = physical_page;
+	page->physical_page = physical_page;
 
 	value = page - cache->cache;
 	result = ASSERT((value < cache->cache_slots), "cache index is valid");
@@ -421,7 +421,7 @@ put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct c
 		return result;
 
 	make_page_most_recent(cache, page);
-	page->cp_read_pending = false;
+	page->read_pending = false;
 
 	/*
 	 * We hold the read_threads_mutex, but we must have a write memory barrier before making
@@ -442,12 +442,12 @@ static void cancel_page_in_cache(struct page_cache *cache,
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->cp_read_pending), "page to install has a pending read");
+	result = ASSERT((page->read_pending), "page to install has a pending read");
 	if (result != UDS_SUCCESS)
 		return;
 
 	clear_cache_page(cache, page);
-	page->cp_read_pending = false;
+	page->read_pending = false;
 
 	/* Clear the mapping and the queued flag for the new page. */
 	WRITE_ONCE(cache->index[physical_page], cache->cache_slots);
@@ -689,7 +689,7 @@ static int initialize_index_page(const struct volume *volume,
 				       dm_bufio_get_block_data(page->buffer),
 				       chapter,
 				       index_page_number,
-				       &page->cp_index_page);
+				       &page->index_page);
 }
 
 EXTERNAL_STATIC bool search_record_page(const u8 record_page[],
@@ -747,7 +747,7 @@ static int search_page(struct cached_page *page,
 		else
 			location = UDS_LOCATION_UNAVAILABLE;
 	} else {
-		result = search_chapter_index_page(&page->cp_index_page,
+		result = search_chapter_index_page(&page->index_page,
 						   volume->geometry,
 						   &request->record_name,
 						   &record_page_number);
@@ -1049,7 +1049,7 @@ int get_volume_index_page(struct volume *volume,
 
 	result = get_volume_page(volume, chapter, page_number, &page);
 	if (result == UDS_SUCCESS)
-		*index_page_ptr = &page->cp_index_page;
+		*index_page_ptr = &page->index_page;
 	return result;
 }
 
@@ -1090,7 +1090,7 @@ static int search_cached_index_page(struct volume *volume,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = search_chapter_index_page(&page->cp_index_page,
+	result = search_chapter_index_page(&page->index_page,
 					   volume->geometry,
 					   name,
 					   record_page_number);
@@ -1263,7 +1263,7 @@ static int donate_index_page_locked(struct volume *volume,
 					 dm_bufio_get_block_data(page_buffer),
 					 physical_chapter,
 					 index_page_number,
-					 &page->cp_index_page);
+					 &page->index_page);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error initialize chapter index page");
 		cancel_page_in_cache(volume->page_cache, physical_page, page);

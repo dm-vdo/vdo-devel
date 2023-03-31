@@ -78,15 +78,15 @@ struct __aligned(L1_CACHE_BYTES) search_pending_counter {
 
 struct cached_page {
 	/* Whether this page is currently being read asynchronously */
-	bool cp_read_pending;
+	bool read_pending;
 	/* The physical page stored in this cache entry */
-	unsigned int cp_physical_page;
+	unsigned int physical_page;
 	/* The value of the volume clock when this page was last used */
-	s64 cp_last_used;
+	s64 last_used;
 	/* The cached page buffer */
 	struct dm_buffer *buffer;
 	/* The chapter index page, meaningless for record pages */
-	struct delta_index_page cp_index_page;
+	struct delta_index_page index_page;
 };
 
 struct page_cache {
