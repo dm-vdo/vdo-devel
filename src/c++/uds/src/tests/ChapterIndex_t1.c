@@ -190,9 +190,8 @@ static void basicChapterTest(void)
     for (page = 0; page < g->index_pages_per_chapter; page++) {
       if ((cip[page].lowest_list_number <= deltaListNumber)
           && (deltaListNumber <= cip[page].highest_list_number)) {
-        int entry;
-        UDS_ASSERT_SUCCESS(search_chapter_index_page(&cip[page], g, &names[i],
-                                                     &entry));
+        u16 entry;
+        UDS_ASSERT_SUCCESS(search_chapter_index_page(&cip[page], g, &names[i], &entry));
         CU_ASSERT_EQUAL(entry, generatePageNumber(g, i));
         inChapter = true;
       }

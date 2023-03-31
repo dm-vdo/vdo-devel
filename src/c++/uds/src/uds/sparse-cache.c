@@ -529,7 +529,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 			    const struct geometry *geometry,
 			    const struct index_page_map *index_page_map,
 			    const struct uds_record_name *name,
-			    int *record_page_ptr)
+			    u16 *record_page_ptr)
 {
 	unsigned int physical_chapter =
 		map_to_physical_chapter(geometry, chapter->virtual_chapter);
@@ -543,7 +543,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 int search_sparse_cache(struct index_zone *zone,
 			const struct uds_record_name *name,
 			u64 *virtual_chapter_ptr,
-			int *record_page_ptr)
+			u16 *record_page_ptr)
 {
 	int result;
 	struct volume *volume = zone->index->volume;

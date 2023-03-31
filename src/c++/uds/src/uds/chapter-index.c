@@ -306,7 +306,7 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
 int search_chapter_index_page(struct delta_index_page *index_page,
 			      const struct geometry *geometry,
 			      const struct uds_record_name *name,
-			      int *record_page_ptr)
+			      u16 *record_page_ptr)
 {
 	int result;
 	struct delta_index *delta_index = &index_page->delta_index;

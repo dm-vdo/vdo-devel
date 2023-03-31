@@ -290,7 +290,7 @@ int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_request *request,
 					   const struct uds_record_name *name,
 					   unsigned int chapter,
-					   int record_page_number,
+					   u16 record_page_number,
 					   struct uds_record_data *duplicate,
 					   bool *found);
 

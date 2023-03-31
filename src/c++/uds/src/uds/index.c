@@ -350,7 +350,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 {
 	int result;
 	struct volume *volume;
-	int record_page_number;
+	u16 record_page_number;
 	unsigned int chapter;
 
 	result = search_sparse_cache(zone,

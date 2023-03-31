@@ -6,6 +6,8 @@
 #ifndef CHAPTER_INDEX_H
 #define CHAPTER_INDEX_H 1
 
+#include <linux/limits.h>
+
 #include "delta-index.h"
 #include "geometry.h"
 
@@ -17,11 +19,8 @@
  */
 
 enum {
-	/*
-	 * The value returned as the record page number when an entry is not found in the chapter
-	 * index.
-	 */
-	NO_CHAPTER_INDEX_ENTRY = -1
+	/* The value returned when no entry is found in the chapter index. */
+	NO_CHAPTER_INDEX_ENTRY = U16_MAX,
 };
 
 struct open_chapter_index {
@@ -71,6 +70,6 @@ int __must_check validate_chapter_index_page(const struct delta_index_page *inde
 int __must_check search_chapter_index_page(struct delta_index_page *index_page,
 					   const struct geometry *geometry,
 					   const struct uds_record_name *name,
-					   int *record_page_ptr);
+					   u16 *record_page_ptr);
 
 #endif /* CHAPTER_INDEX_H */

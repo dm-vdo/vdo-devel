@@ -44,6 +44,6 @@ void invalidate_sparse_cache(struct sparse_cache *cache);
 int __must_check search_sparse_cache(struct index_zone *zone,
 				     const struct uds_record_name *name,
 				     u64 *virtual_chapter_ptr,
-				     int *record_page_ptr);
+				     u16 *record_page_ptr);
 
 #endif /* SPARSE_CACHE_H */

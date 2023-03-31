@@ -736,7 +736,7 @@ static int search_page(struct cached_page *page,
 {
 	int result;
 	enum uds_index_region location;
-	int record_page_number;
+	u16 record_page_number;
 
 	if (is_record_page(volume->geometry, physical_page)) {
 		if (search_record_page(dm_bufio_get_block_data(page->buffer),
@@ -758,7 +758,7 @@ static int search_page(struct cached_page *page,
 			location = UDS_LOCATION_UNAVAILABLE;
 		} else {
 			location = UDS_LOCATION_INDEX_PAGE_LOOKUP;
-			*((int *) &request->old_metadata) = record_page_number;
+			*((u16 *) &request->old_metadata) = record_page_number;
 		}
 	}
 
@@ -1062,7 +1062,7 @@ static int search_cached_index_page(struct volume *volume,
 				    const struct uds_record_name *name,
 				    unsigned int chapter,
 				    unsigned int index_page_number,
-				    int *record_page_number)
+				    u16 *record_page_number)
 {
 	int result;
 	struct cached_page *page = NULL;
@@ -1106,7 +1106,7 @@ int search_cached_record_page(struct volume *volume,
 			      struct uds_request *request,
 			      const struct uds_record_name *name,
 			      unsigned int chapter,
-			      int record_page_number,
+			      u16 record_page_number,
 			      struct uds_record_data *duplicate,
 			      bool *found)
 {
@@ -1119,9 +1119,8 @@ int search_cached_record_page(struct volume *volume,
 	if (record_page_number == NO_CHAPTER_INDEX_ENTRY)
 		return UDS_SUCCESS;
 
-	result = ASSERT(((record_page_number >= 0) &&
-			 ((unsigned int) record_page_number < geometry->record_pages_per_chapter)),
-			"0 <= %d <= %u",
+	result = ASSERT(record_page_number < geometry->record_pages_per_chapter,
+			"0 <= %d < %u",
 			record_page_number,
 			geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
@@ -1202,12 +1201,12 @@ int search_volume_page_cache(struct volume *volume,
 	int result;
 	unsigned int physical_chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
 	unsigned int index_page_number;
-	int record_page_number;
+	u16 record_page_number;
 
 	index_page_number = find_index_page_number(volume->index_page_map, name, physical_chapter);
 
 	if ((request != NULL) && (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP)) {
-		record_page_number = *((int *) &request->old_metadata);
+		record_page_number = *((u16 *) &request->old_metadata);
 	} else {
 		result = search_cached_index_page(volume,
 						  request,
