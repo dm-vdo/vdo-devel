@@ -9,7 +9,6 @@
 #include <linux/cache.h>
 #include <linux/compiler.h>
 #include <linux/log2.h>
-#include <linux/limits.h>
 
 #include "config.h"
 #include "errors.h"
@@ -779,17 +778,17 @@ static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index
 				       name->name,
 				       &delta_entry);
 	if (result != UDS_SUCCESS)
-		return U64_MAX;
+		return NO_CHAPTER;
 
 	if (delta_entry.at_end || (delta_entry.key != address))
-		return U64_MAX;
+		return NO_CHAPTER;
 
 	index_chapter = get_delta_entry_value(&delta_entry);
 	rolling_chapter = (index_chapter - zone->virtual_chapter_low) & sub_index->chapter_mask;
 
 	virtual_chapter = zone->virtual_chapter_low + rolling_chapter;
 	if (virtual_chapter > zone->virtual_chapter_high)
-		return U64_MAX;
+		return NO_CHAPTER;
 
 	return virtual_chapter;
 }
@@ -803,7 +802,7 @@ u64 lookup_volume_index_name(const struct volume_index *volume_index,
 	u64 virtual_chapter;
 
 	if (!is_volume_index_sample(volume_index, name))
-		return U64_MAX;
+		return NO_CHAPTER;
 
 	uds_lock_mutex(mutex);
 	virtual_chapter = lookup_volume_sub_index_name(&volume_index->vi_hook, name);

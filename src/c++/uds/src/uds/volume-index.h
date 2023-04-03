@@ -6,6 +6,8 @@
 #ifndef VOLUMEINDEX_H
 #define VOLUMEINDEX_H 1
 
+#include <linux/limits.h>
+
 #include "config.h"
 #include "delta-index.h"
 #include "uds.h"
@@ -23,6 +25,8 @@
  * specific collision record to disambiguate the new entry from the existing one. Index entries are
  * managed with volume_index_record structures.
  */
+
+static const u64 NO_CHAPTER = U64_MAX;
 
 #ifdef TEST_INTERNAL
 extern u64 min_volume_index_delta_lists;

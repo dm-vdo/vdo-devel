@@ -52,7 +52,7 @@
  * time.
  *
  * The virtual chapter number field of the cache entry is the single field indicating whether a
- * chapter is a member of the cache or not. The value U64_MAX is used to represent a null or
+ * chapter is a member of the cache or not. The value NO_CHAPTER is used to represent a null or
  * undefined chapter number. When present in the virtual chapter number field of a
  * cached_chapter_index, it indicates that the cache entry is dead, and all the other fields of
  * that entry (other than immutable pointers to cache memory) are undefined and irrelevant. Any
@@ -93,7 +93,7 @@ struct __aligned(L1_CACHE_BYTES) cached_index_counters {
 
 struct __aligned(L1_CACHE_BYTES) cached_chapter_index {
 	/*
-	 * The virtual chapter number of the cached chapter index. U64_MAX means this cache
+	 * The virtual chapter number of the cached chapter index. NO_CHAPTER means this cache
 	 * entry is unused. This field must only be modified in the critical section in
 	 * update_sparse_cache().
 	 */
@@ -162,7 +162,7 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 {
 	int result;
 
-	chapter->virtual_chapter = U64_MAX;
+	chapter->virtual_chapter = NO_CHAPTER;
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
 	result = UDS_ALLOCATE(chapter->index_pages_count,
@@ -292,7 +292,7 @@ static void release_cached_chapter_index(struct cached_chapter_index *chapter)
 {
 	unsigned int i;
 
-	chapter->virtual_chapter = U64_MAX;
+	chapter->virtual_chapter = NO_CHAPTER;
 	if (chapter->page_buffers == NULL)
 		return;
 
@@ -404,7 +404,7 @@ static void purge_search_list(struct search_list *search_list,
 	for (i = 0; i < search_list->first_dead_entry; i++) {
 		chapter = search_list->entries[i];
 		if ((chapter->virtual_chapter < oldest_virtual_chapter) ||
-		    (chapter->virtual_chapter == U64_MAX))
+		    (chapter->virtual_chapter == NO_CHAPTER))
 			dead[next_dead++] = chapter;
 		else if (chapter->skip_search)
 			skipped[next_skipped++] = chapter;
@@ -514,11 +514,11 @@ static inline bool should_skip_chapter(struct cached_chapter_index *chapter,
 				       u64 oldest_chapter,
 				       u64 requested_chapter)
 {
-	if ((chapter->virtual_chapter == U64_MAX) ||
+	if ((chapter->virtual_chapter == NO_CHAPTER) ||
 	    (chapter->virtual_chapter < oldest_chapter))
 		return true;
 
-	if (requested_chapter != U64_MAX)
+	if (requested_chapter != NO_CHAPTER)
 		return requested_chapter != chapter->virtual_chapter;
 	else
 		return READ_ONCE(chapter->skip_search);
@@ -552,7 +552,7 @@ int search_sparse_cache(struct index_zone *zone,
 	struct search_list *search_list;
 	u8 i;
 	/* Search the entire cache unless a specific chapter was requested. */
-	bool search_one = (*virtual_chapter_ptr != U64_MAX);
+	bool search_one = (*virtual_chapter_ptr != NO_CHAPTER);
 
 	*record_page_ptr = NO_CHAPTER_INDEX_ENTRY;
 	search_list = cache->search_lists[zone->id];

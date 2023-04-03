@@ -131,12 +131,12 @@ static u64 triage_index_request(struct uds_index *index, struct uds_request *req
 	struct index_zone *zone;
 
 	virtual_chapter = lookup_volume_index_name(index->volume_index, &request->record_name);
-	if (virtual_chapter == U64_MAX)
-		return U64_MAX;
+	if (virtual_chapter == NO_CHAPTER)
+		return NO_CHAPTER;
 
 	zone = index->zones[request->zone_number];
 	if (!is_zone_chapter_sparse(zone, virtual_chapter))
-		return U64_MAX;
+		return NO_CHAPTER;
 
 	/*
 	 * FIXME: Optimize for a common case by remembering the chapter from the most recent
@@ -160,7 +160,7 @@ simulate_index_zone_barrier_message(struct index_zone *zone, struct uds_request 
 		return UDS_SUCCESS;
 
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
-	if (sparse_virtual_chapter == U64_MAX)
+	if (sparse_virtual_chapter == NO_CHAPTER)
 		return UDS_SUCCESS;
 
 	return update_sparse_cache(zone, sparse_virtual_chapter);
@@ -172,7 +172,7 @@ static void triage_request(struct uds_request *request)
 	struct uds_index *index = request->index;
 	u64 sparse_virtual_chapter = triage_index_request(index, request);
 
-	if (sparse_virtual_chapter != U64_MAX)
+	if (sparse_virtual_chapter != NO_CHAPTER)
 		enqueue_barrier_messages(index, sparse_virtual_chapter);
 
 	enqueue_request(request, STAGE_INDEX);
@@ -357,7 +357,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 				     &request->record_name,
 				     &virtual_chapter,
 				     &record_page_number);
-	if ((result != UDS_SUCCESS) || (virtual_chapter == U64_MAX))
+	if ((result != UDS_SUCCESS) || (virtual_chapter == NO_CHAPTER))
 		return result;
 
 	request->virtual_chapter = virtual_chapter;
@@ -494,7 +494,7 @@ static int search_index_zone(struct index_zone *zone, struct uds_request *reques
 		} else if (is_sparse_geometry(zone->index->volume->geometry) &&
 			   !is_volume_index_sample(zone->index->volume_index,
 						   &request->record_name)) {
-			result = search_sparse_cache_in_zone(zone, request, U64_MAX, &found);
+			result = search_sparse_cache_in_zone(zone, request, NO_CHAPTER, &found);
 			if (result != UDS_SUCCESS)
 				return result;
 		}

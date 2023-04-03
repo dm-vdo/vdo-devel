@@ -5,10 +5,10 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "volume-index.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
+#include "volume-index.h"
 
 enum { ZONES = 5 };
 
@@ -182,7 +182,7 @@ static void verifyVolumeIndex(TestMI *testmi)
     if (is_volume_index_sample(testmi->mi, &name)) {
       CU_ASSERT_EQUAL(virtual_chapter, chapter);
     } else {
-      CU_ASSERT_EQUAL(virtual_chapter, U64_MAX);
+      CU_ASSERT_EQUAL(virtual_chapter, NO_CHAPTER);
     }
   }
 }
@@ -345,7 +345,7 @@ static void threadLookup(void *arg)
       struct uds_record_name name
         = hash_record_name(&counter, sizeof(counter));
       uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
-      if (virtual_chapter != U64_MAX) {
+      if (virtual_chapter != NO_CHAPTER) {
         uint64_t chapter = counter / testmi->geometry.records_per_chapter;
         CU_ASSERT_EQUAL(virtual_chapter, chapter);
       }
