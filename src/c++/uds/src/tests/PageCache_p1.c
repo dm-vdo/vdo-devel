@@ -24,7 +24,7 @@ static ThreadArg args[MAX_THREADS];
 static struct thread *threads[MAX_THREADS];
 
 static struct configuration *config;
-static struct page_cache *cache;
+static struct page_cache cache;
 static const unsigned int LOTS = 10000000;
 static unsigned long globalCounter;
 
@@ -37,14 +37,14 @@ static void init(void)
   UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4 * BYTES_PER_RECORD, 5, 10);
 
-  UDS_ASSERT_SUCCESS(make_page_cache(config->geometry, config->cache_chapters,
-                                     config->zone_count, &cache));
+  UDS_ASSERT_SUCCESS(initialize_page_cache(&cache, config->geometry, config->cache_chapters,
+                                           config->zone_count));
 }
 
 /**********************************************************************/
 static void deinit(void)
 {
-  free_page_cache(cache);
+  uninitialize_page_cache(&cache);
   free_configuration(config);
 }
 
@@ -52,10 +52,10 @@ static void deinit(void)
 static void fillCacheWithPages(void)
 {
   unsigned int i;
-  for (i = 1; i < cache->cache_slots; i++) {
+  for (i = 1; i < cache.cache_slots; i++) {
     struct cached_page *page = NULL;
-    UDS_ASSERT_SUCCESS(select_victim_in_cache(cache, &page));
-    UDS_ASSERT_SUCCESS(put_page_in_cache(cache, i, page));
+    UDS_ASSERT_SUCCESS(select_victim_in_cache(&cache, &page));
+    UDS_ASSERT_SUCCESS(put_page_in_cache(&cache, i, page));
     CU_ASSERT_PTR_NOT_NULL(page);
   }
 }
@@ -74,10 +74,10 @@ static void testOptimalGuts(void *arg)
 {
   ThreadArg *a = (ThreadArg *) arg;
   struct cached_page *page = NULL;
-  int physicalPage = cache->cache_slots - 1;
+  u16 physicalPage = cache.cache_slots - 1;
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
-    get_page_from_cache(cache, physicalPage, &page);
+    get_page_from_cache(&cache, physicalPage, &page);
   }
 }
 
@@ -136,15 +136,15 @@ static void testOptimalMT(unsigned int numThreads)
 static void testLRUOnlyGuts(void *arg)
 {
   ThreadArg *a = (ThreadArg *) arg;
-  int physicalPage = 1;
+  u16 physicalPage = 1;
   struct cached_page *entry = NULL;
 
   unsigned int i;
   for (i = 0; i < (LOTS / a->totalThreads); ++i) {
-    get_page_from_cache(cache, physicalPage, &entry);
+    get_page_from_cache(&cache, physicalPage, &entry);
 
-    make_page_most_recent(cache, entry);
-    if (++physicalPage >= cache->cache_slots) {
+    make_page_most_recent(&cache, entry);
+    if (++physicalPage >= cache.cache_slots) {
       physicalPage = 1;
     }
   }
@@ -203,8 +203,8 @@ static void testLRUOnlyMT(unsigned int numThreads)
 static void testMixedGuts(void *arg)
 {
   ThreadArg *a = (ThreadArg *) arg;
-  int physicalPage = 1;
-  unsigned int absentPage = cache->cache_slots + 1;
+  u16 physicalPage = 1;
+  u16 absentPage = cache.cache_slots + 1;
   struct cached_page *entry = NULL;
   unsigned int i;
 
@@ -217,16 +217,16 @@ static void testMixedGuts(void *arg)
     murmurhash3_128(&a->counter, sizeof(a->counter), a->threadNum, &rand.hash);
     a->counter += 1;
     if (rand.val % 100 < a->percentageHits) {
-      get_page_from_cache(cache, physicalPage, &entry);
-      make_page_most_recent(cache, entry);
+      get_page_from_cache(&cache, physicalPage, &entry);
+      make_page_most_recent(&cache, entry);
     } else {
-      get_page_from_cache(cache, absentPage, &entry);
+      get_page_from_cache(&cache, absentPage, &entry);
     }
-    if (++physicalPage >= cache->cache_slots) {
+    if (++physicalPage >= cache.cache_slots) {
       physicalPage = 1;
     }
-    if (++absentPage >= cache->indexable_pages) {
-      absentPage = cache->cache_slots + 1;
+    if (++absentPage >= cache.indexable_pages) {
+      absentPage = cache.cache_slots + 1;
     }
   }
 }

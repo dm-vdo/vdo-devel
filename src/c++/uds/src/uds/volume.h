@@ -90,8 +90,6 @@ struct cached_page {
 };
 
 struct page_cache {
-	/* Geometry governing the volume */
-	const struct geometry *geometry;
 	/* The number of zones */
 	unsigned int zone_count;
 	/* The number of volume pages that can be cached */
@@ -137,7 +135,7 @@ struct volume {
 	struct radix_sorter *radix_sorter;
 
 	struct sparse_cache *sparse_cache;
-	struct page_cache *page_cache;
+	struct page_cache page_cache;
 	struct index_page_map *index_page_map;
 
 	struct mutex read_threads_mutex;
@@ -151,21 +149,6 @@ struct volume {
 	unsigned int reserved_buffers;
 };
 
-#ifdef TEST_INTERNAL
-typedef void (*request_restarter_t)(struct uds_request *);
-
-void set_request_restarter(request_restarter_t restarter);
-
-int encode_record_page(const struct volume *volume,
-		       const struct uds_volume_record records[],
-		       u8 record_page[]);
-
-bool search_record_page(const u8 record_page[],
-			const struct uds_record_name *name,
-			const struct geometry *geometry,
-			struct uds_record_data *metadata);
-
-#endif /* TEST_INTERNAL*/
 int __must_check make_volume(const struct configuration *config,
 			     struct index_layout *layout,
 			     struct volume **new_volume);
@@ -176,35 +159,6 @@ int __must_check replace_volume_storage(struct volume *volume,
 					struct index_layout *layout,
 					const char *path);
 
-int __must_check make_page_cache(const struct geometry *geometry,
-				 unsigned int chapters_in_cache,
-				 unsigned int zone_count,
-				 struct page_cache **cache_ptr);
-
-void free_page_cache(struct page_cache *cache);
-
-void invalidate_page_cache(struct page_cache *cache);
-
-void invalidate_page_cache_for_chapter(struct page_cache *cache, unsigned int chapter);
-
-#ifdef TEST_INTERNAL
-void invalidate_page(struct page_cache *cache, unsigned int physical_page);
-
-void make_page_most_recent(struct page_cache *cache, struct cached_page *page_ptr);
-
-void get_page_from_cache(struct page_cache *cache,
-			 unsigned int physical_page,
-			 struct cached_page **page);
-
-int __must_check
-enqueue_read(struct page_cache *cache, struct uds_request *request, unsigned int physical_page);
-
-int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr);
-
-int __must_check
-put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct cached_page *page);
-
-#endif /* TEST_INTERNAL */
 static inline invalidate_counter_t
 get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
@@ -318,17 +272,6 @@ read_chapter_index_from_volume(const struct volume *volume,
 			       struct dm_buffer *volume_buffers[],
 			       struct delta_index_page index_pages[]);
 
-#ifdef TEST_INTERNAL
-int __must_check get_volume_page_locked(struct volume *volume,
-					unsigned int physical_page,
-					struct cached_page **entry_ptr);
-
-int __must_check get_volume_page_protected(struct volume *volume,
-					   struct uds_request *request,
-					   unsigned int physical_page,
-					   struct cached_page **entry_ptr);
-
-#endif /* TEST_INTERNAL */
 int __must_check get_volume_record_page(struct volume *volume,
 					unsigned int chapter,
 					unsigned int page_number,
@@ -352,4 +295,51 @@ find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
 
 int __must_check map_to_physical_page(const struct geometry *geometry, int chapter, int page);
 
+#ifdef TEST_INTERNAL
+typedef void (*request_restarter_t)(struct uds_request *);
+
+void set_request_restarter(request_restarter_t restarter);
+
+int encode_record_page(const struct volume *volume,
+		       const struct uds_volume_record records[],
+		       u8 record_page[]);
+
+bool search_record_page(const u8 record_page[],
+			const struct uds_record_name *name,
+			const struct geometry *geometry,
+			struct uds_record_data *metadata);
+
+int __must_check initialize_page_cache(struct page_cache *cache,
+				       const struct geometry *geometry,
+				       unsigned int chapters_in_cache,
+				       unsigned int zone_count);
+
+void uninitialize_page_cache(struct page_cache *cache);
+
+void invalidate_page(struct page_cache *cache, unsigned int physical_page);
+
+void make_page_most_recent(struct page_cache *cache, struct cached_page *page_ptr);
+
+void get_page_from_cache(struct page_cache *cache,
+			 unsigned int physical_page,
+			 struct cached_page **page);
+
+int __must_check
+enqueue_read(struct page_cache *cache, struct uds_request *request, unsigned int physical_page);
+
+int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr);
+
+int __must_check
+put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct cached_page *page);
+
+int __must_check get_volume_page_locked(struct volume *volume,
+					unsigned int physical_page,
+					struct cached_page **entry_ptr);
+
+int __must_check get_volume_page_protected(struct volume *volume,
+					   struct uds_request *request,
+					   unsigned int physical_page,
+					   struct cached_page **entry_ptr);
+
+#endif /* TEST_INTERNAL */
 #endif /* VOLUME_H */

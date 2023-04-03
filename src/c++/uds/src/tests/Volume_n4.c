@@ -168,7 +168,7 @@ static void testSequentialGet(void)
       uint32_t physPage = chapter * geometry->pages_per_chapter + page;
       struct uds_request *request = newReadRequest(physPage);
       struct cached_page *actual;
-      begin_pending_search(volume->page_cache, physPage + 1, 0);
+      begin_pending_search(&volume->page_cache, physPage + 1, 0);
       // Make sure the page read is asynchronous
       int ret = get_volume_page_protected(volume, request, physPage + 1,
                                           &actual);
@@ -180,7 +180,7 @@ static void testSequentialGet(void)
         ++numRequestsQueued;
         uds_unlock_mutex(&numRequestsMutex);
       }
-      end_pending_search(volume->page_cache, 0);
+      end_pending_search(&volume->page_cache, 0);
     }
   }
   uds_lock_mutex(&numRequestsMutex);
@@ -200,7 +200,7 @@ static void testStumblingGet(void)
     struct uds_request *request = newReadRequest(page);
     struct cached_page *actual;
     // Make sure the page read is asynchronous
-    begin_pending_search(volume->page_cache, page + 1, 0);
+    begin_pending_search(&volume->page_cache, page + 1, 0);
     int ret = get_volume_page_protected(volume, request, page + 1, &actual);
     if (ret == UDS_SUCCESS) {
       freeReadRequest(request);
@@ -210,7 +210,7 @@ static void testStumblingGet(void)
       ++numRequestsQueued;
       uds_unlock_mutex(&numRequestsMutex);
     }
-    end_pending_search(volume->page_cache, 0);
+    end_pending_search(&volume->page_cache, 0);
     // back one page 25%, same page 25%, forward one page 50%.
     unsigned int action = random() % 4;
     if (action == 0) {
@@ -243,7 +243,7 @@ static void testFullReadQueue(void)
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     requests[i] = newReadRequest(i);
-    int result = enqueue_read(volume->page_cache, requests[i], i + 1);
+    int result = enqueue_read(&volume->page_cache, requests[i], i + 1);
     bool queued = (result == UDS_QUEUED);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
@@ -291,7 +291,7 @@ static void testInvalidateReadQueue(void)
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     requests[i] = newReadRequest(i);
-    int result = enqueue_read(volume->page_cache, requests[i], i + 1);
+    int result = enqueue_read(&volume->page_cache, requests[i], i + 1);
     bool queued = (result == UDS_QUEUED);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
@@ -306,14 +306,14 @@ static void testInvalidateReadQueue(void)
 
   // Invalidate all of the reads, so that when they're dequeued, they don't
   // push the synchronized read out of the cache
-  for (i = 0; i < geometry->chapters_per_volume; i++) {
-    invalidate_page_cache_for_chapter(volume->page_cache, i);
+  uds_lock_mutex(&volume->read_threads_mutex);
+  for (i = 0; i < geometry->pages_per_volume; i++) {
+    invalidate_page(&volume->page_cache, i + HEADER_PAGES_PER_VOLUME);
   }
-  struct cached_page *actual;
 
   // Synchronously read in physical page 5. We skip entry 0, as that is the
   // configuration page for the volume.
-  uds_lock_mutex(&volume->read_threads_mutex);
+  struct cached_page *actual;
   UDS_ASSERT_SUCCESS(get_volume_page_locked(volume, 5, &actual));
   CU_ASSERT_PTR_NOT_NULL(actual);
   uds_unlock_mutex(&volume->read_threads_mutex);
@@ -339,7 +339,7 @@ static void testInvalidateReadQueue(void)
 
   // Try to get page 5 from the map. It should be there from the sync read
   uds_lock_mutex(&volume->read_threads_mutex);
-  get_page_from_cache(volume->page_cache, 5, &actual);
+  get_page_from_cache(&volume->page_cache, 5, &actual);
   CU_ASSERT_PTR_NOT_NULL(actual);
   uds_unlock_mutex(&volume->read_threads_mutex);
 
@@ -395,7 +395,7 @@ static void invalidatePageThread(void *arg __attribute__((unused)))
     unsigned int physicalPage
       = chapter * geometry->pages_per_chapter + pageNumber;
 
-    invalidate_page(volume->page_cache, physicalPage);
+    invalidate_page(&volume->page_cache, physicalPage);
     uds_unlock_mutex(&volume->read_threads_mutex);
     cond_resched();
 
@@ -426,7 +426,7 @@ static void indexThreadAsync(void *arg)
     struct uds_request *request = newReadRequest(physicalPage);
     request->zone_number = zoneNumber;
 
-    begin_pending_search(volume->page_cache, physicalPage + 1, zoneNumber);
+    begin_pending_search(&volume->page_cache, physicalPage + 1, zoneNumber);
 
     // Assume we're enqueuing this
     uds_lock_mutex(&numRequestsMutex);
@@ -449,7 +449,7 @@ static void indexThreadAsync(void *arg)
       CU_ASSERT_EQUAL(result, UDS_QUEUED);
     }
 
-    end_pending_search(volume->page_cache, zoneNumber);
+    end_pending_search(&volume->page_cache, zoneNumber);
     cond_resched();
   }
 
@@ -480,7 +480,7 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     struct uds_request *request = newReadRequest(i);
-    int result = enqueue_read(volume->page_cache, request, i + 1);
+    int result = enqueue_read(&volume->page_cache, request, i + 1);
     bool queued = (result == UDS_QUEUED);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
