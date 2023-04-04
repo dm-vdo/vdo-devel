@@ -1852,13 +1852,6 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 			name);
 }
 
-void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
-{
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.cpu_thread),
-			"%s called on cpu thread",
-			name);
-}
-
 /**
  * vdo_get_physical_zone() - Get the physical zone responsible for a given physical block number.
  * @vdo: The vdo containing the physical zones.

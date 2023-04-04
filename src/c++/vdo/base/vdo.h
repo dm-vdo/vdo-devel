@@ -386,15 +386,6 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
 					zone_count_t physical_zone,
 					const char *name);
 
-static inline void vdo_assert_on_dedupe_thread(const struct vdo *vdo, const char *name)
-{
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.dedupe_thread),
-			"%s called on dedupe index thread",
-			name);
-}
-
-void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name);
-
 int __must_check vdo_get_physical_zone(const struct vdo *vdo,
 				       physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);

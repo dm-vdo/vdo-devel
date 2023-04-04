@@ -1034,6 +1034,13 @@ static void initiate_drain(struct admin_state *state)
 		vdo_finish_draining(state);
 }
 
+static void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
+{
+	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == vdo->thread_config.cpu_thread),
+			"%s called on cpu thread",
+			name);
+}
+
 /**
  * drain_data_vio_pool() - Wait asynchronously for all data_vios to be returned to the pool.
  * @completion: The completion to notify when the pool has drained.
