@@ -28,7 +28,7 @@ static void assertPageInCache(struct page_cache *cache,
 static void getMostRecentPageFromCache(struct page_cache   *cache,
                                        struct cached_page **pagePtr)
 {
-  unsigned int i;
+  u16 i;
   struct cached_page *mostRecent = &cache->cache[0];
   for (i = 0; i < cache->cache_slots; i++) {
     if (cache->cache[i].last_used >= mostRecent->last_used) {
@@ -49,9 +49,9 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
   assertPageInCache(cache, currentPage);
 
   bool foundNextMostRecentPage = false;
-  uint16_t currentIndex = currentPage - cache->cache;
-  uint16_t nextMostRecentIndex = 0;
-  unsigned int i;
+  u16 currentIndex = currentPage - cache->cache;
+  u16 nextMostRecentIndex = 0;
+  u16 i;
   for (i = 0; i < cache->cache_slots; i++) {
     if (i != currentIndex
         && (!foundNextMostRecentPage
@@ -73,7 +73,7 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
 }
 
 /**********************************************************************/
-static int addPageToCache(struct page_cache *cache, unsigned int physicalPage,
+static int addPageToCache(struct page_cache *cache, u32 physicalPage,
                           struct cached_page **pagePtr)
 {
   struct cached_page *page = NULL;
@@ -90,7 +90,7 @@ static int addPageToCache(struct page_cache *cache, unsigned int physicalPage,
 static void fillCache(void)
 {
   // Fill page cache
-  unsigned int i;
+  u16 i;
   for (i = 0; i < cache.cache_slots; i++) {
     // Add a page
     struct cached_page *page = NULL;
@@ -134,28 +134,28 @@ static void testAddPages(void)
   CU_ASSERT_TRUE(page == entry);
 
   // Add to cache limit
-  unsigned int i;
+  u16 i;
   for (i = 1; i < cache.cache_slots; i++) {
     page = NULL;
     UDS_ASSERT_SUCCESS(addPageToCache(&cache, i, &page));
   }
 
   // Verify cache is from most recent to least recent
-  int physicalPage = cache.cache_slots - 1;
+  u32 physicalPage = cache.cache_slots;
   unsigned int cacheAccessCount = 0;
 
   entry = NULL;
   getMostRecentPageFromCache(&cache, &entry);
   while (entry != NULL) {
-    CU_ASSERT_TRUE((unsigned int)physicalPage == entry->physical_page);
+    physicalPage--;
+    CU_ASSERT_TRUE(physicalPage == entry->physical_page);
     page = NULL;
     get_page_from_cache(&cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
-    physicalPage--;
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(&cache, entry, &entry));
     cacheAccessCount++;
   }
-  CU_ASSERT_TRUE(physicalPage == -1);
+  CU_ASSERT_TRUE(physicalPage == 0);
 
   // Add one more to cause least recent to be knocked off
   physicalPage = cache.cache_slots;
@@ -164,20 +164,20 @@ static void testAddPages(void)
   UDS_ASSERT_SUCCESS(addPageToCache(&cache, physicalPage, &page));
 
   // Verify the least recent entry (page 0) is now out of the cache
-  physicalPage = cache.cache_slots;
+  physicalPage = cache.cache_slots + 1;
 
   entry = NULL;
   getMostRecentPageFromCache(&cache, &entry);
   while (entry != NULL) {
-    CU_ASSERT_TRUE((unsigned int)physicalPage == entry->physical_page);
+    physicalPage--;
+    CU_ASSERT_TRUE(physicalPage == entry->physical_page);
     page = NULL;
     get_page_from_cache(&cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
-    physicalPage--;
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(&cache, entry, &entry));
     cacheAccessCount++;
   }
-  CU_ASSERT_TRUE(physicalPage == 0);
+  CU_ASSERT_TRUE(physicalPage == 1);
 }
 
 /**********************************************************************/
@@ -206,7 +206,7 @@ static void testInvalidatePages(void)
 
   // Invalidate the most recent used entry, then make sure
   // getMostRecentPageFromCache does not return it.
-  int physicalPage = cache.cache_slots - 1;
+  u32 physicalPage = cache.cache_slots - 1;
   struct cached_page *entry = NULL;
 
   get_page_from_cache(&cache, physicalPage, &entry);
@@ -216,7 +216,7 @@ static void testInvalidatePages(void)
   getMostRecentPageFromCache(&cache, &entry);
   CU_ASSERT_PTR_NOT_NULL(entry);
 
-  CU_ASSERT_TRUE((unsigned int)physicalPage != entry->physical_page);
+  CU_ASSERT_TRUE(physicalPage != entry->physical_page);
 
   // Invalidate several pages
   for (u16 i = 7; i < 13; i++)

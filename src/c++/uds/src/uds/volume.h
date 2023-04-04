@@ -52,7 +52,7 @@ enum {
 struct queued_read {
 	bool invalid;
 	bool reserved;
-	unsigned int physical_page;
+	u32 physical_page;
 	struct uds_request *first_request;
 	struct uds_request *last_request;
 };
@@ -80,7 +80,7 @@ struct cached_page {
 	/* Whether this page is currently being read asynchronously */
 	bool read_pending;
 	/* The physical page stored in this cache entry */
-	unsigned int physical_page;
+	u32 physical_page;
 	/* The value of the volume clock when this page was last used */
 	s64 last_used;
 	/* The cached page buffer */
@@ -93,7 +93,7 @@ struct page_cache {
 	/* The number of zones */
 	unsigned int zone_count;
 	/* The number of volume pages that can be cached */
-	unsigned int indexable_pages;
+	u32 indexable_pages;
 	/* The maximum number of simultaneously cached pages */
 	u16 cache_slots;
 	/* An index for each physical page noting where it is in the cache */
@@ -173,7 +173,7 @@ static inline void set_invalidate_counter(struct page_cache *cache,
 		     invalidate_counter);
 }
 
-static inline unsigned int searched_page(invalidate_counter_t counter)
+static inline u32 searched_page(invalidate_counter_t counter)
 {
 	return counter & PAGE_FIELD;
 }
@@ -185,7 +185,7 @@ static inline bool search_pending(invalidate_counter_t invalidate_counter)
 
 /* Lock the cache for a zone in order to search for a page. */
 static inline void begin_pending_search(struct page_cache *cache,
-					unsigned int physical_page,
+					u32 physical_page,
 					unsigned int zone_number)
 {
 	invalidate_counter_t invalidate_counter = get_invalidate_counter(cache, zone_number);
@@ -226,7 +226,7 @@ static inline void end_pending_search(struct page_cache *cache, unsigned int zon
 }
 
 int __must_check
-enqueue_page_read(struct volume *volume, struct uds_request *request, int physical_page);
+enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page);
 
 int __must_check find_volume_chapter_boundaries(struct volume *volume,
 						u64 *lowest_vcn,
@@ -243,7 +243,7 @@ int __must_check search_volume_page_cache(struct volume *volume,
 int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_request *request,
 					   const struct uds_record_name *name,
-					   unsigned int chapter,
+					   u32 chapter,
 					   u16 record_page_number,
 					   struct uds_record_data *duplicate,
 					   bool *found);
@@ -251,12 +251,12 @@ int __must_check search_cached_record_page(struct volume *volume,
 void forget_chapter(struct volume *volume, u64 chapter);
 
 int __must_check write_index_pages(struct volume *volume,
-				   int physical_page,
+				   u32 physical_page,
 				   struct open_chapter_index *chapter_index,
 				   u8 **pages);
 
 int __must_check write_record_pages(struct volume *volume,
-				    int physical_page,
+				    u32 physical_page,
 				    const struct uds_volume_record *records,
 				    u8 **pages);
 
@@ -272,28 +272,24 @@ read_chapter_index_from_volume(const struct volume *volume,
 			       struct dm_buffer *volume_buffers[],
 			       struct delta_index_page index_pages[]);
 
-int __must_check get_volume_record_page(struct volume *volume,
-					unsigned int chapter,
-					unsigned int page_number,
-					u8 **data_ptr);
+int __must_check
+get_volume_record_page(struct volume *volume, u32 chapter, u32 page_number, u8 **data_ptr);
 
 int __must_check get_volume_index_page(struct volume *volume,
-				       unsigned int chapter,
-				       unsigned int page_number,
+				       u32 chapter,
+				       u32 page_number,
 				       struct delta_index_page **page_ptr);
 
 int __must_check
-find_volume_chapter_boundaries_impl(unsigned int chapter_limit,
-				    unsigned int max_bad_chapters,
+find_volume_chapter_boundaries_impl(u32 chapter_limit,
+				    u32 max_bad_chapters,
 				    u64 *lowest_vcn,
 				    u64 *highest_vcn,
-				    int (*probe_func)(void *aux,
-						      unsigned int chapter,
-						      u64 *vcn),
+				    int (*probe_func)(void *aux, u32 chapter, u64 *vcn),
 				    struct geometry *geometry,
 				    void *aux);
 
-int __must_check map_to_physical_page(const struct geometry *geometry, int chapter, int page);
+u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
 
 #ifdef TEST_INTERNAL
 typedef void (*request_restarter_t)(struct uds_request *);
@@ -311,34 +307,32 @@ bool search_record_page(const u8 record_page[],
 
 int __must_check initialize_page_cache(struct page_cache *cache,
 				       const struct geometry *geometry,
-				       unsigned int chapters_in_cache,
+				       u32 chapters_in_cache,
 				       unsigned int zone_count);
 
 void uninitialize_page_cache(struct page_cache *cache);
 
-void invalidate_page(struct page_cache *cache, unsigned int physical_page);
+void invalidate_page(struct page_cache *cache, u32 physical_page);
 
 void make_page_most_recent(struct page_cache *cache, struct cached_page *page_ptr);
 
-void get_page_from_cache(struct page_cache *cache,
-			 unsigned int physical_page,
-			 struct cached_page **page);
+void get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page);
 
 int __must_check
-enqueue_read(struct page_cache *cache, struct uds_request *request, unsigned int physical_page);
+enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page);
 
 int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr);
 
 int __must_check
-put_page_in_cache(struct page_cache *cache, unsigned int physical_page, struct cached_page *page);
+put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page);
 
 int __must_check get_volume_page_locked(struct volume *volume,
-					unsigned int physical_page,
+					u32 physical_page,
 					struct cached_page **entry_ptr);
 
 int __must_check get_volume_page_protected(struct volume *volume,
 					   struct uds_request *request,
-					   unsigned int physical_page,
+					   u32 physical_page,
 					   struct cached_page **entry_ptr);
 
 #endif /* TEST_INTERNAL */

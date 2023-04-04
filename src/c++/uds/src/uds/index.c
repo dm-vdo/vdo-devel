@@ -257,7 +257,7 @@ static int open_next_chapter(struct index_zone *zone)
 	u64 closed_chapter;
 	u64 expiring;
 	unsigned int finished_zones;
-	unsigned int expire_chapters;
+	u32 expire_chapters;
 
 	uds_log_debug("closing chapter %llu of zone %u after %u entries (%u short)",
 		      (unsigned long long) zone->newest_virtual_chapter,
@@ -351,7 +351,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	int result;
 	struct volume *volume;
 	u16 record_page_number;
-	unsigned int chapter;
+	u32 chapter;
 
 	result = search_sparse_cache(zone,
 				     &request->record_name,
@@ -865,11 +865,11 @@ static int rebuild_index_page_map(struct uds_index *index, u64 vcn)
 	int result;
 	struct delta_index_page *chapter_index_page;
 	struct geometry *geometry = index->volume->geometry;
-	unsigned int chapter = map_to_physical_chapter(geometry, vcn);
-	unsigned int expected_list_number = 0;
-	unsigned int index_page_number;
-	unsigned int lowest_delta_list;
-	unsigned int highest_delta_list;
+	u32 chapter = map_to_physical_chapter(geometry, vcn);
+	u32 expected_list_number = 0;
+	u32 index_page_number;
+	u32 lowest_delta_list;
+	u32 highest_delta_list;
 
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
@@ -1012,10 +1012,10 @@ static bool check_for_suspend(struct uds_index *index)
 static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 {
 	int result;
-	unsigned int i;
-	unsigned int j;
+	u32 i;
+	u32 j;
 	const struct geometry *geometry;
-	unsigned int physical_chapter;
+	u32 physical_chapter;
 #ifdef TEST_INTERNAL
 
 	/*
@@ -1045,7 +1045,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 
 	for (i = 0; i < geometry->record_pages_per_chapter; i++) {
 		u8 *record_page;
-		unsigned int record_page_number;
+		u32 record_page_number;
 
 		record_page_number = geometry->index_pages_per_chapter + i;
 		result = get_volume_record_page(index->volume,
@@ -1126,7 +1126,7 @@ static int rebuild_index(struct uds_index *index)
 	u64 lowest;
 	u64 highest;
 	bool is_empty = false;
-	unsigned int chapters_per_volume = index->volume->geometry->chapters_per_volume;
+	u32 chapters_per_volume = index->volume->geometry->chapters_per_volume;
 
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
 	result = find_volume_chapter_boundaries(index->volume, &lowest, &highest, &is_empty);

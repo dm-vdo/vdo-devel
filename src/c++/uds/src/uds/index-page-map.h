@@ -18,7 +18,7 @@
 struct index_page_map {
 	const struct geometry *geometry;
 	u64 last_update;
-	unsigned int entries_per_chapter;
+	u32 entries_per_chapter;
 	u16 *entries;
 };
 
@@ -33,19 +33,19 @@ int __must_check write_index_page_map(struct index_page_map *map, struct buffere
 
 void update_index_page_map(struct index_page_map *map,
 			   u64 virtual_chapter_number,
-			   unsigned int chapter_number,
-			   unsigned int index_page_number,
-			   unsigned int delta_list_number);
+			   u32 chapter_number,
+			   u32 index_page_number,
+			   u32 delta_list_number);
 
-unsigned int __must_check find_index_page_number(const struct index_page_map *map,
-						 const struct uds_record_name *name,
-						 unsigned int chapter_number);
+u32 __must_check find_index_page_number(const struct index_page_map *map,
+					const struct uds_record_name *name,
+					u32 chapter_number);
 
 void get_list_number_bounds(const struct index_page_map *map,
-			    unsigned int chapter_number,
-			    unsigned int index_page_number,
-			    unsigned int *lowest_list,
-			    unsigned int *highest_list);
+			    u32 chapter_number,
+			    u32 index_page_number,
+			    u32 *lowest_list,
+			    u32 *highest_list);
 
 u64 compute_index_page_map_save_size(const struct geometry *geometry);
 

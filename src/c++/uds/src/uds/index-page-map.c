@@ -28,7 +28,7 @@ enum {
 	PAGE_MAP_MAGIC_LENGTH = sizeof(PAGE_MAP_MAGIC) - 1,
 };
 
-static inline u64 get_entry_count(const struct geometry *geometry)
+static inline u32 get_entry_count(const struct geometry *geometry)
 {
 	return geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1);
 }
@@ -67,9 +67,9 @@ void free_index_page_map(struct index_page_map *map)
 
 void update_index_page_map(struct index_page_map *map,
 			   u64 virtual_chapter_number,
-			   unsigned int chapter_number,
-			   unsigned int index_page_number,
-			   unsigned int delta_list_number)
+			   u32 chapter_number,
+			   u32 index_page_number,
+			   u32 delta_list_number)
 {
 	size_t slot;
 
@@ -81,13 +81,13 @@ void update_index_page_map(struct index_page_map *map,
 	map->entries[slot] = delta_list_number;
 }
 
-unsigned int find_index_page_number(const struct index_page_map *map,
-				    const struct uds_record_name *name,
-				    unsigned int chapter_number)
+u32 find_index_page_number(const struct index_page_map *map,
+			   const struct uds_record_name *name,
+			   u32 chapter_number)
 {
 	u32 delta_list_number = hash_to_chapter_delta_list(name, map->geometry);
-	unsigned int slot = chapter_number * map->entries_per_chapter;
-	unsigned int page;
+	u32 slot = chapter_number * map->entries_per_chapter;
+	u32 page;
 
 	for (page = 0; page < map->entries_per_chapter; page++) {
 		if (delta_list_number <= map->entries[slot + page])
@@ -98,12 +98,12 @@ unsigned int find_index_page_number(const struct index_page_map *map,
 }
 
 void get_list_number_bounds(const struct index_page_map *map,
-			    unsigned int chapter_number,
-			    unsigned int index_page_number,
-			    unsigned int *lowest_list,
-			    unsigned int *highest_list)
+			    u32 chapter_number,
+			    u32 index_page_number,
+			    u32 *lowest_list,
+			    u32 *highest_list)
 {
-	unsigned int slot = chapter_number * map->entries_per_chapter;
+	u32 slot = chapter_number * map->entries_per_chapter;
 
 	*lowest_list = ((index_page_number == 0) ?
 			0 :
@@ -124,7 +124,7 @@ int write_index_page_map(struct index_page_map *map, struct buffered_writer *wri
 	u8 *buffer;
 	size_t offset = 0;
 	u64 saved_size = compute_index_page_map_save_size(map->geometry);
-	unsigned int i;
+	u32 i;
 
 	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
@@ -151,7 +151,7 @@ int read_index_page_map(struct index_page_map *map, struct buffered_reader *read
 	u8 *buffer;
 	size_t offset = 0;
 	u64 saved_size = compute_index_page_map_save_size(map->geometry);
-	unsigned int i;
+	u32 i;
 
 	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
