@@ -135,8 +135,9 @@ sub emitStruct {
 
   $self->blankLine();
   my $name = $self->camelcaseToKernelStyle($struct);
-  $self->replaceAndEmit("int write_STRUCT(char *prefix,", "STRUCT", $name);
-  $self->indentTo("int write_${name}(");
+  $self->replaceAndEmit("static int write_STRUCT(char *prefix,",
+                        "STRUCT", $name);
+  $self->indentTo("static int write_${name}(");
   $self->replaceAndEmit("struct STRUCT *stats,", "STRUCT", $name);
   $self->emit("char *suffix,");
   $self->emit("char **buf,");
@@ -180,8 +181,9 @@ sub emitType {
   my $type = $field->getType("C");
   my $funcType = $type =~ "char" ? "string" : $type;
   my $cType = $type =~ "char" ? "char *" : $type . " ";
-  $self->replaceAndEmit("int write_TYPE(char *prefix,", "TYPE", $funcType);
-  $self->indentTo("int write_${funcType}(");
+  $self->replaceAndEmit("static int write_TYPE(char *prefix,",
+                        "TYPE", $funcType);
+  $self->indentTo("static int write_${funcType}(");
   $self->replaceAndEmit("TYPEvalue,", "TYPE", $cType);
   $self->emit("char *suffix,");
   $self->emit("char **buf,");
