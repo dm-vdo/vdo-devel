@@ -93,6 +93,7 @@ EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 #include "volume.h"
 #include "volume-index.h"
 
+EXPORT_SYMBOL_GPL(begin_pending_search);
 EXPORT_SYMBOL_GPL(chapter_index_discard_count);
 EXPORT_SYMBOL_GPL(chapter_index_empty_count);
 EXPORT_SYMBOL_GPL(chapter_index_overflow_count);
@@ -108,6 +109,7 @@ EXPORT_SYMBOL_GPL(discard_open_chapter);
 EXPORT_SYMBOL_GPL(dory_forgetful);
 EXPORT_SYMBOL_GPL(empty_open_chapter_index);
 EXPORT_SYMBOL_GPL(encode_record_page);
+EXPORT_SYMBOL_GPL(end_pending_search);
 EXPORT_SYMBOL_GPL(enqueue_page_read);
 EXPORT_SYMBOL_GPL(enqueue_read);
 EXPORT_SYMBOL_GPL(enqueue_request);

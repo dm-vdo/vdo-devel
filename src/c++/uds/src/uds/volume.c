@@ -69,6 +69,21 @@ enum {
 
 static const u64 BAD_CHAPTER = U64_MAX;
 
+/*
+ * The invalidate counter is two 32 bits fields stored together atomically. The low order 32 bits
+ * are the physical page number of the cached page being read. The high order 32 bits are a
+ * sequence number. This value is written when the zone that owns it begins or completes a cache
+ * search. Any other thread will only read the counter in wait_for_pending_searches() while waiting
+ * to update the cache contents.
+ */
+typedef u64 invalidate_counter_t;
+
+/* These masks select the fields of an invalidate_counter_t. */
+/* The mask for the page number field */
+#define PAGE_FIELD ((u64) U32_MAX)
+/* The mask for the LSB of the counter field */
+#define COUNTER_LSB (PAGE_FIELD + 1L)
+
 #ifdef TEST_INTERNAL
 /* This function pointer allows unit tests to intercept the slow-lane requeuing of a request. */
 static request_restarter_t request_restarter = NULL;
@@ -111,6 +126,99 @@ u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
 {
 	/* Page zero is the header page, so the first chapter index page is page one. */
 	return HEADER_PAGES_PER_VOLUME + (geometry->pages_per_chapter * chapter) + page;
+}
+
+static inline invalidate_counter_t
+get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
+{
+	return atomic64_read(&cache->search_pending_counters[zone_number].atomic_value);
+}
+
+static inline void set_invalidate_counter(struct page_cache *cache,
+					  unsigned int zone_number,
+					  invalidate_counter_t invalidate_counter)
+{
+	atomic64_set(&cache->search_pending_counters[zone_number].atomic_value,
+		     invalidate_counter);
+}
+
+static inline u32 searched_page(invalidate_counter_t counter)
+{
+	return counter & PAGE_FIELD;
+}
+
+static inline bool search_pending(invalidate_counter_t invalidate_counter)
+{
+	return (invalidate_counter & COUNTER_LSB) != 0;
+}
+
+/* Lock the cache for a zone in order to search for a page. */
+EXTERNAL_STATIC void
+begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number)
+{
+	invalidate_counter_t invalidate_counter = get_invalidate_counter(cache, zone_number);
+
+	invalidate_counter &= ~PAGE_FIELD;
+	invalidate_counter |= physical_page;
+	invalidate_counter += COUNTER_LSB;
+	set_invalidate_counter(cache, zone_number, invalidate_counter);
+	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			"Search is pending for zone %u",
+			zone_number);
+	/*
+	 * This memory barrier ensures that the write to the invalidate counter is seen by other
+	 * threads before this thread accesses the cached page. The corresponding read memory
+	 * barrier is in wait_for_pending_searches().
+	 */
+	smp_mb();
+}
+
+/* Unlock the cache for a zone by clearing its invalidate counter. */
+EXTERNAL_STATIC void end_pending_search(struct page_cache *cache, unsigned int zone_number)
+{
+	invalidate_counter_t invalidate_counter;
+
+	/*
+	 * This memory barrier ensures that this thread completes reads of the
+	 * cached page before other threads see the write to the invalidate
+	 * counter.
+	 */
+	smp_mb();
+
+	invalidate_counter = get_invalidate_counter(cache, zone_number);
+	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			"Search is pending for zone %u",
+			zone_number);
+	invalidate_counter += COUNTER_LSB;
+	set_invalidate_counter(cache, zone_number, invalidate_counter);
+}
+
+static void wait_for_pending_searches(struct page_cache *cache, u32 physical_page)
+{
+	invalidate_counter_t initial_counters[MAX_ZONES];
+	unsigned int i;
+
+	/*
+	 * We hold the read_threads_mutex. We are waiting for threads that do not hold the
+	 * read_threads_mutex. Those threads have "locked" their targeted page by setting the
+	 * search_pending_counter. The corresponding write memory barrier is in
+	 * begin_pending_search().
+	 */
+	smp_mb();
+
+	for (i = 0; i < cache->zone_count; i++)
+		initial_counters[i] = get_invalidate_counter(cache, i);
+	for (i = 0; i < cache->zone_count; i++)
+		if (search_pending(initial_counters[i]) &&
+		    (searched_page(initial_counters[i]) == physical_page))
+			/*
+			 * There is an active search using the physical page. We need to wait for
+			 * the search to finish.
+			 *
+			 * FIXME: Investigate using wait_event() to wait for the search to finish.
+			 */
+			while (initial_counters[i] == get_invalidate_counter(cache, i))
+				cond_resched();
 }
 
 static void release_page_buffer(struct cached_page *page)
@@ -164,34 +272,6 @@ static void get_page_and_index(struct page_cache *cache,
 	}
 
 	*queue_index = queued ? index : -1;
-}
-
-static void wait_for_pending_searches(struct page_cache *cache, u32 physical_page)
-{
-	invalidate_counter_t initial_counters[MAX_ZONES];
-	unsigned int i;
-
-	/*
-	 * We hold the read_threads_mutex. We are waiting for threads that do not hold the
-	 * read_threads_mutex. Those threads have "locked" their targeted page by setting the
-	 * search_pending_counter. The corresponding write memory barrier is in
-	 * begin_pending_search().
-	 */
-	smp_mb();
-
-	for (i = 0; i < cache->zone_count; i++)
-		initial_counters[i] = get_invalidate_counter(cache, i);
-	for (i = 0; i < cache->zone_count; i++)
-		if (search_pending(initial_counters[i]) &&
-		    (searched_page(initial_counters[i]) == physical_page))
-			/*
-			 * There is an active search using the physical page. We need to wait for
-			 * the search to finish.
-			 *
-			 * FIXME: Investigate using wait_event() to wait for the search to finish.
-			 */
-			while (initial_counters[i] == get_invalidate_counter(cache, i))
-				cond_resched();
 }
 
 EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
