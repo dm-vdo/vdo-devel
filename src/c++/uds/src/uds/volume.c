@@ -67,13 +67,23 @@ enum {
 	MAX_BAD_CHAPTERS = 100,
 };
 
+static const u64 BAD_CHAPTER = U64_MAX;
+
 #ifdef TEST_INTERNAL
 /* This function pointer allows unit tests to intercept the slow-lane requeuing of a request. */
-static request_restarter_t request_restarter;
+static request_restarter_t request_restarter = NULL;
 
 void set_request_restarter(request_restarter_t restarter)
 {
 	request_restarter = restarter;
+}
+
+/* This function pointer allows unit tests to fake reading and testing a chapter for rebuild. */
+static chapter_tester_t chapter_tester = NULL;
+
+void set_chapter_tester(chapter_tester_t tester)
+{
+	chapter_tester = tester;
 }
 
 #endif /* TEST_INTERNAL */
@@ -1383,13 +1393,21 @@ int write_chapter(struct volume *volume,
 	return result;
 }
 
-static int probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtual_chapter_number)
+static void probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtual_chapter_number)
 {
 	const struct geometry *geometry = volume->geometry;
 	u32 expected_list_number = 0;
 	u32 i;
-	u64 vcn, last_vcn = U64_MAX;
+	u64 vcn = BAD_CHAPTER;
 
+#ifdef TEST_INTERNAL
+	if (chapter_tester != NULL) {
+		chapter_tester(chapter_number, virtual_chapter_number);
+		return;
+	}
+
+#endif /* TEST_INTERNAL*/
+	*virtual_chapter_number = BAD_CHAPTER;
 	dm_bufio_prefetch(volume->client,
 			  map_to_physical_page(geometry, chapter_number, 0),
 			  geometry->index_pages_per_chapter);
@@ -1400,18 +1418,22 @@ static int probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtual
 
 		result = get_volume_index_page(volume, chapter_number, i, &page);
 		if (result != UDS_SUCCESS)
-			return result;
+			return;
 
-		vcn = page->virtual_chapter_number;
-		if (last_vcn == U64_MAX) {
-			last_vcn = vcn;
-		} else if (vcn != last_vcn) {
+		if (page->virtual_chapter_number == BAD_CHAPTER) {
+			uds_log_error("corrupt index page in chapter %u", chapter_number);
+			return;
+		}
+
+		if (vcn == BAD_CHAPTER) {
+			vcn = page->virtual_chapter_number;
+		} else if (page->virtual_chapter_number != vcn) {
 			uds_log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
 				      chapter_number,
 				      i,
-				      (unsigned long long) last_vcn,
-				      (unsigned long long) vcn);
-			return UDS_CORRUPT_DATA;
+				      (unsigned long long) vcn,
+				      (unsigned long long) page->virtual_chapter_number);
+			return;
 		}
 
 		if (expected_list_number != page->lowest_list_number) {
@@ -1420,132 +1442,64 @@ static int probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtual
 				      i,
 				      expected_list_number,
 				      page->lowest_list_number);
-			return UDS_CORRUPT_DATA;
+			return;
 		}
 		expected_list_number = page->highest_list_number + 1;
 
 		result = validate_chapter_index_page(page, geometry);
 		if (result != UDS_SUCCESS)
-			return result;
+			return;
 	}
 
-	if (last_vcn == U64_MAX) {
-		uds_log_error("no chapter %u virtual chapter number determined", chapter_number);
-		return UDS_CORRUPT_DATA;
-	}
-
-	if (chapter_number != map_to_physical_chapter(geometry, last_vcn)) {
+	if (chapter_number != map_to_physical_chapter(geometry, vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
 			      chapter_number,
-			      (unsigned long long) last_vcn,
+			      (unsigned long long) vcn,
 			      geometry->chapters_per_volume);
-		return UDS_CORRUPT_DATA;
+		return;
 	}
 
-	*virtual_chapter_number = last_vcn;
-	return UDS_SUCCESS;
-}
-
-static int probe_wrapper(void *aux, u32 chapter_number, u64 *virtual_chapter_number)
-{
-	struct volume *volume = aux;
-	int result;
-
-	result = probe_chapter(volume, chapter_number, virtual_chapter_number);
-	if (result == UDS_CORRUPT_DATA) {
-		*virtual_chapter_number = U64_MAX;
-		return UDS_SUCCESS;
-	}
-
-	return result;
+	*virtual_chapter_number = vcn;
 }
 
 /* Find the last valid physical chapter in the volume. */
-static int
-find_real_end_of_volume(struct volume *volume, u32 limit, u32 *limit_ptr)
+static void find_real_end_of_volume(struct volume *volume, u32 limit, u32 *limit_ptr)
 {
 	u32 span = 1;
 	u32 tries = 0;
 
 	while (limit > 0) {
-		int result;
 		u32 chapter = (span > limit) ? 0 : limit - span;
 		u64 vcn = 0;
 
-		result = probe_chapter(volume, chapter, &vcn);
-		if (result == UDS_SUCCESS) {
-			if (span == 1)
-				break;
-			span /= 2;
-			tries = 0;
-		} else if (result == UDS_CORRUPT_DATA) {
+		probe_chapter(volume, chapter, &vcn);
+		if (vcn == BAD_CHAPTER) {
 			limit = chapter;
 			if (++tries > 1)
 				span *= 2;
 		} else {
-			return uds_log_error_strerror(result, "cannot determine end of volume");
+			if (span == 1)
+				break;
+			span /= 2;
+			tries = 0;
 		}
 	}
 
 	*limit_ptr = limit;
-	return UDS_SUCCESS;
 }
 
-/*
- * Find the highest and lowest contiguous chapters present in the volume and determine their
- * virtual chapter numbers. This is used by rebuild.
- */
-int find_volume_chapter_boundaries(struct volume *volume,
-				   u64 *lowest_vcn,
-				   u64 *highest_vcn,
-				   bool *is_empty)
+EXTERNAL_STATIC int
+find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u64 *highest_vcn)
 {
-	u32 chapter_limit = volume->geometry->chapters_per_volume;
-	int result;
-
-	result = find_real_end_of_volume(volume, chapter_limit, &chapter_limit);
-	if (result != UDS_SUCCESS)
-		return uds_log_error_strerror(result, "cannot find end of volume");
-
-	if (chapter_limit == 0) {
-		*lowest_vcn = 0;
-		*highest_vcn = 0;
-		*is_empty = true;
-		return UDS_SUCCESS;
-	}
-
-	*is_empty = false;
-	return find_volume_chapter_boundaries_impl(chapter_limit,
-						   MAX_BAD_CHAPTERS,
-						   lowest_vcn,
-						   highest_vcn,
-						   probe_wrapper,
-						   volume->geometry,
-						   volume);
-}
-
-int find_volume_chapter_boundaries_impl(u32 chapter_limit,
-					u32 max_bad_chapters,
-					u64 *lowest_vcn,
-					u64 *highest_vcn,
-					int (*probe_func)(void *aux, u32 chapter, u64 *vcn),
-					struct geometry *geometry,
-					void *aux)
-{
+	struct geometry *geometry = volume->geometry;
 	u64 zero_vcn;
-	u64 lowest = U64_MAX;
-	u64 highest = U64_MAX;
-	u64 moved_chapter = U64_MAX;
+	u64 lowest = BAD_CHAPTER;
+	u64 highest = BAD_CHAPTER;
+	u64 moved_chapter = BAD_CHAPTER;
 	u32 left_chapter = 0;
 	u32 right_chapter = 0;
 	u32 bad_chapters = 0;
 	int result;
-
-	if (chapter_limit == 0) {
-		*lowest_vcn = 0;
-		*highest_vcn = 0;
-		return UDS_SUCCESS;
-	}
 
 	/*
 	 * This method assumes there is at most one run of contiguous bad chapters caused by
@@ -1555,14 +1509,12 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 	 * preceeds the lowest one.
 	 */
 
-	/* It doesn't matter if this results in a bad spot (U64_MAX). */
-	result = (*probe_func)(aux, 0, &zero_vcn);
-	if (result != UDS_SUCCESS)
-		return result;
+	/* It doesn't matter if this results in a bad spot (BAD_CHAPTER). */
+	probe_chapter(volume, 0, &zero_vcn);
 
 	/*
 	 * Binary search for end of the discontinuity in the monotonically increasing virtual
-	 * chapter numbers; bad spots are treated as a span of U64_MAX values. In effect we're
+	 * chapter numbers; bad spots are treated as a span of BAD_CHAPTER values. In effect we're
 	 * searching for the index of the smallest value less than zero_vcn. In the case we go off
 	 * the end it means that chapter 0 has the lowest vcn.
 	 *
@@ -1573,10 +1525,7 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 	if (geometry->remapped_physical > 0) {
 		u64 remapped_vcn;
 
-		result = (*probe_func)(aux, geometry->remapped_physical, &remapped_vcn);
-		if (result != UDS_SUCCESS)
-			return UDS_SUCCESS;
-
+		probe_chapter(volume, geometry->remapped_physical, &remapped_vcn);
 		if (remapped_vcn == geometry->remapped_virtual)
 			moved_chapter = geometry->remapped_physical;
 	}
@@ -1591,10 +1540,7 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 		if (chapter == moved_chapter)
 			chapter--;
 
-		result = (*probe_func)(aux, chapter, &probe_vcn);
-		if (result != UDS_SUCCESS)
-			return result;
-
+		probe_chapter(volume, chapter, &probe_vcn);
 		if (zero_vcn <= probe_vcn) {
 			left_chapter = chapter + 1;
 			if (left_chapter == moved_chapter)
@@ -1611,16 +1557,13 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 	left_chapter %= chapter_limit; /* in case we're at the end */
 
 	/* At this point, left_chapter is the chapter with the lowest virtual chapter number. */
-
-	result = (*probe_func)(aux, left_chapter, &lowest);
-	if (result != UDS_SUCCESS)
-		return result;
+	probe_chapter(volume, left_chapter, &lowest);
 
 	/* The moved chapter might be the lowest in the range. */
-	if ((moved_chapter != U64_MAX) && (lowest == geometry->remapped_virtual + 1))
+	if ((moved_chapter != BAD_CHAPTER) && (lowest == geometry->remapped_virtual + 1))
 		lowest = geometry->remapped_virtual;
 
-	result = ASSERT((lowest != U64_MAX), "invalid lowest chapter");
+	result = ASSERT((lowest != BAD_CHAPTER), "invalid lowest chapter");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1629,16 +1572,13 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 	 * which is the chapter with the highest vcn.
 	 */
 
-	while (highest == U64_MAX) {
+	while (highest == BAD_CHAPTER) {
 		right_chapter = (right_chapter + chapter_limit - 1) % chapter_limit;
 		if (right_chapter == moved_chapter)
 			continue;
 
-		result = (*probe_func)(aux, right_chapter, &highest);
-		if (result != UDS_SUCCESS)
-			return result;
-
-		if (bad_chapters++ >= max_bad_chapters) {
+		probe_chapter(volume, right_chapter, &highest);
+		if (bad_chapters++ >= MAX_BAD_CHAPTERS) {
 			uds_log_error("too many bad chapters in volume: %u", bad_chapters);
 			return UDS_CORRUPT_DATA;
 		}
@@ -1647,6 +1587,29 @@ int find_volume_chapter_boundaries_impl(u32 chapter_limit,
 	*lowest_vcn = lowest;
 	*highest_vcn = highest;
 	return UDS_SUCCESS;
+}
+
+/*
+ * Find the highest and lowest contiguous chapters present in the volume and determine their
+ * virtual chapter numbers. This is used by rebuild.
+ */
+int find_volume_chapter_boundaries(struct volume *volume,
+				   u64 *lowest_vcn,
+				   u64 *highest_vcn,
+				   bool *is_empty)
+{
+	u32 chapter_limit = volume->geometry->chapters_per_volume;
+
+	find_real_end_of_volume(volume, chapter_limit, &chapter_limit);
+	if (chapter_limit == 0) {
+		*lowest_vcn = 0;
+		*highest_vcn = 0;
+		*is_empty = true;
+		return UDS_SUCCESS;
+	}
+
+	*is_empty = false;
+	return find_chapter_limits(volume, chapter_limit, lowest_vcn, highest_vcn);
 }
 
 int __must_check

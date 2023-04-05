@@ -280,21 +280,14 @@ int __must_check get_volume_index_page(struct volume *volume,
 				       u32 page_number,
 				       struct delta_index_page **page_ptr);
 
-int __must_check
-find_volume_chapter_boundaries_impl(u32 chapter_limit,
-				    u32 max_bad_chapters,
-				    u64 *lowest_vcn,
-				    u64 *highest_vcn,
-				    int (*probe_func)(void *aux, u32 chapter, u64 *vcn),
-				    struct geometry *geometry,
-				    void *aux);
-
 u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
 
 #ifdef TEST_INTERNAL
 typedef void (*request_restarter_t)(struct uds_request *);
+typedef void (*chapter_tester_t)(u32 chapter, u64 *virtual_chapter);
 
 void set_request_restarter(request_restarter_t restarter);
+void set_chapter_tester(chapter_tester_t chapter_tester);
 
 int encode_record_page(const struct volume *volume,
 		       const struct uds_volume_record records[],
@@ -325,6 +318,11 @@ int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_
 
 int __must_check
 put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page);
+
+int __must_check find_chapter_limits(struct volume *volume,
+				     u32 chapter_limit,
+				     u64 *lowest_vcn,
+				     u64 *highest_vcn);
 
 int __must_check get_volume_page_locked(struct volume *volume,
 					u32 physical_page,

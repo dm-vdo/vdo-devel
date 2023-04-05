@@ -8,67 +8,31 @@
 #include "memory-alloc.h"
 #include "volume.h"
 
-struct auxData {
-  const uint64_t *data;
-  size_t          length;
-};
-
 static struct geometry *geometry;
+struct volume volume;
+static const u64 BAD_CHAPTER = U64_MAX;
+const uint64_t *chapterData;
 
 /**********************************************************************/
-static int myProbe(void *aux, unsigned int chapter, uint64_t *vcn)
+static void myProbe(u32 chapter, u64 *vcn)
 {
-  struct auxData *ad = (struct auxData *) aux;
-
-  if (chapter >= ad->length) {
-    return UDS_OUT_OF_RANGE;
-  }
-
-  *vcn = ad->data[chapter];
-  return UDS_SUCCESS;
+  *vcn = chapterData[chapter];
 }
 
 /**********************************************************************/
-static void testFindBoundaries(int             expectedResult,
-                               uint64_t        expectedLowest,
+static void testFindBoundaries(uint64_t        expectedLowest,
                                uint64_t        expectedHighest,
                                const uint64_t *data,
                                size_t          size)
 {
-  uint64_t lowest  = U64_MAX - 2;
-  uint64_t highest = U64_MAX - 1;
+  uint64_t lowest  = BAD_CHAPTER - 2;
+  uint64_t highest = BAD_CHAPTER - 1;
 
-  unsigned int chapterLimit = size / sizeof(uint64_t);
-
-  struct auxData auxData = {
-    .data = data,
-    .length = chapterLimit,
-  };
-
-  unsigned int maxBadChapters = 8;
-
-  if (expectedResult == UDS_CORRUPT_DATA) {
-    // use shorter max bad to save typing in test data
-    maxBadChapters = 2;
-  } else if (expectedResult == UDS_OUT_OF_RANGE) {
-    // force probe function to get illegal chapter number by lying about
-    // the number of chapters
-    chapterLimit *= 3;
-  }
-
-  UDS_ASSERT_ERROR(expectedResult,
-                   find_volume_chapter_boundaries_impl(chapterLimit,
-                                                       maxBadChapters, &lowest,
-                                                       &highest, myProbe,
-                                                       geometry,
-                                                       &auxData));
-  if (expectedResult == UDS_SUCCESS) {
-    CU_ASSERT_EQUAL(lowest, expectedLowest);
-    CU_ASSERT_EQUAL(highest, expectedHighest);
-  } else {
-    CU_ASSERT_EQUAL(lowest, U64_MAX - 2);
-    CU_ASSERT_EQUAL(highest, U64_MAX - 1);
-  }
+  unsigned int chapterLimit = size / sizeof(u64);
+  chapterData = data;
+  UDS_ASSERT_SUCCESS(find_chapter_limits(&volume, chapterLimit, &lowest, &highest));
+  CU_ASSERT_EQUAL(lowest, expectedLowest);
+  CU_ASSERT_EQUAL(highest, expectedHighest);
 }
 
 /**********************************************************************/
@@ -79,49 +43,37 @@ static void findBoundariesTest(void)
                                    DEFAULT_CHAPTERS_PER_VOLUME,
                                    DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
                                    0, 0, &geometry));
+  volume.geometry = geometry;
+  set_chapter_tester(myProbe);
 
   static const uint64_t data1[] = { 0, 1, 2, 3 };
-  testFindBoundaries(UDS_SUCCESS, 0, 3, data1, sizeof(data1));
+  testFindBoundaries(0, 3, data1, sizeof(data1));
 
-  static const uint64_t data2[] = { U64_MAX, U64_MAX, 2, 3, 4 };
-  testFindBoundaries(UDS_SUCCESS, 2, 4, data2, sizeof(data2));
+  static const uint64_t data2[] = { BAD_CHAPTER, BAD_CHAPTER, 2, 3, 4 };
+  testFindBoundaries(2, 4, data2, sizeof(data2));
 
-  static const uint64_t data3[] = { U64_MAX, 1, 2, 3, U64_MAX,
-                                    U64_MAX };
-  testFindBoundaries(UDS_SUCCESS, 1, 3, data3, sizeof(data3));
+  static const uint64_t data3[] = { BAD_CHAPTER, 1, 2, 3, BAD_CHAPTER, BAD_CHAPTER };
+  testFindBoundaries(1, 3, data3, sizeof(data3));
 
-  static const uint64_t data4[] = { 10, 11, 12, 13, U64_MAX, U64_MAX,
-                                    U64_MAX, U64_MAX, 8, 9 };
-  testFindBoundaries(UDS_SUCCESS, 8, 13, data4, sizeof(data4));
+  static const uint64_t data4[] = { 10, 11, 12, 13, BAD_CHAPTER, BAD_CHAPTER, BAD_CHAPTER,
+                                    BAD_CHAPTER, 8, 9 };
+  testFindBoundaries(8, 13, data4, sizeof(data4));
 
   static const uint64_t data5[] = { 10, 11, 12, 13, 14, 15, 6, 7, 8, 9 };
-  testFindBoundaries(UDS_SUCCESS, 6, 15, data5, sizeof(data5));
+  testFindBoundaries(6, 15, data5, sizeof(data5));
 
-  static const uint64_t data6[] = { 30, 31, 32, 33, 34, 35, 36, 37, U64_MAX,
-                                    U64_MAX };
-  testFindBoundaries(UDS_SUCCESS, 30, 37, data6, sizeof(data6));
+  static const uint64_t data6[] = { 30, 31, 32, 33, 34, 35, 36, 37, BAD_CHAPTER, BAD_CHAPTER };
+  testFindBoundaries(30, 37, data6, sizeof(data6));
 
-  static const uint64_t data7[] = { 30, U64_MAX, U64_MAX, U64_MAX,
-                                    U64_MAX, U64_MAX, U64_MAX, 27, 28,
-                                    29 };
-  testFindBoundaries(UDS_SUCCESS, 27, 30, data7, sizeof(data7));
-
-  static const uint64_t data8[] = { U64_MAX, U64_MAX, U64_MAX,
-                                    4, 5, 6, 7, 8, 9, 10 };
-  testFindBoundaries(UDS_CORRUPT_DATA, 0, 0, data8, sizeof(data8));
-
-  static const uint64_t data9[] = { 0, 1, 2, 3, 4, 5, 6, 7,
-                                    U64_MAX, U64_MAX, U64_MAX };
-  testFindBoundaries(UDS_CORRUPT_DATA, 0, 0, data9, sizeof(data9));
-
-  static const uint64_t data10[] = { 0, 1, 2, 3 };
-  testFindBoundaries(UDS_OUT_OF_RANGE, 0, 0, data10, sizeof(data10));
+  static const uint64_t data7[] = { 30, BAD_CHAPTER, BAD_CHAPTER, BAD_CHAPTER, BAD_CHAPTER,
+                                    BAD_CHAPTER, BAD_CHAPTER, 27, 28, 29 };
+  testFindBoundaries(27, 30, data7, sizeof(data7));
 
   static const uint64_t data11[] = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 9 };
-  testFindBoundaries(UDS_SUCCESS, 9, 18, data11, sizeof(data11));
+  testFindBoundaries(9, 18, data11, sizeof(data11));
 
   static const uint64_t data12[] = { 10, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-  testFindBoundaries(UDS_SUCCESS, 1, 10, data12, sizeof(data12));
+  testFindBoundaries(1, 10, data12, sizeof(data12));
 
   UDS_FREE(UDS_FORGET(geometry));
 }
@@ -135,55 +87,53 @@ static void findConvertedBoundariesTest(void)
                                    7,
                                    DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
                                    8, 2, &geometry));
+  volume.geometry = geometry;
+  set_chapter_tester(myProbe);
 
   static const uint64_t data1[] = { 9, 10, 8, 4, 5, 6, 7 };
-  testFindBoundaries(UDS_SUCCESS, 4, 10, data1, sizeof(data1));
+  testFindBoundaries(4, 10, data1, sizeof(data1));
 
-  static const uint64_t data2[] = { 9, 10, 8, U64_MAX, U64_MAX, 6, 7 };
-  testFindBoundaries(UDS_SUCCESS, 6, 10, data2, sizeof(data2));
+  static const uint64_t data2[] = { 9, 10, 8, BAD_CHAPTER, BAD_CHAPTER, 6, 7 };
+  testFindBoundaries(6, 10, data2, sizeof(data2));
 
   static const uint64_t data3[] = { 9, 10, 8, 11, 5, 6, 7 };
-  testFindBoundaries(UDS_SUCCESS, 5, 11, data3, sizeof(data3));
+  testFindBoundaries(5, 11, data3, sizeof(data3));
 
-  static const uint64_t data4[] = { 9, 10, 8, 11, U64_MAX, U64_MAX, 7 };
-  testFindBoundaries(UDS_SUCCESS, 7, 11, data4, sizeof(data4));
+  static const uint64_t data4[] = { 9, 10, 8, 11, BAD_CHAPTER, BAD_CHAPTER, 7 };
+  testFindBoundaries(7, 11, data4, sizeof(data4));
 
   static const uint64_t data5[] = { 9, 10, 8, 11, 12, 6, 7 };
-  testFindBoundaries(UDS_SUCCESS, 6, 12, data5, sizeof(data5));
+  testFindBoundaries(6, 12, data5, sizeof(data5));
 
-  static const uint64_t data6[] = { 9, 10, 8, 11, 12, U64_MAX, U64_MAX };
-  testFindBoundaries(UDS_SUCCESS, 8, 12, data6, sizeof(data6));
+  static const uint64_t data6[] = { 9, 10, 8, 11, 12, BAD_CHAPTER, BAD_CHAPTER };
+  testFindBoundaries(8, 12, data6, sizeof(data6));
 
   static const uint64_t data7[] = { 9, 10, 8, 11, 12, 13, 7 };
-  testFindBoundaries(UDS_SUCCESS, 7, 13, data7, sizeof(data7));
+  testFindBoundaries(7, 13, data7, sizeof(data7));
 
-  static const uint64_t data8[] = { U64_MAX, 10, 8, 11, 12, 13,
-                                    U64_MAX };
-  testFindBoundaries(UDS_SUCCESS, 10, 13, data8, sizeof(data8));
+  static const uint64_t data8[] = { BAD_CHAPTER, 10, 8, 11, 12, 13, BAD_CHAPTER };
+  testFindBoundaries(10, 13, data8, sizeof(data8));
 
   static const uint64_t data9[] = { 9, 10, 8, 11, 12, 13, 14 };
-  testFindBoundaries(UDS_SUCCESS, 8, 14, data9, sizeof(data9));
+  testFindBoundaries(8, 14, data9, sizeof(data9));
 
-  static const uint64_t data10[] = { U64_MAX, U64_MAX, 8, 11, 12, 13,
-                                     14 };
-  testFindBoundaries(UDS_SUCCESS, 11, 14, data10, sizeof(data10));
+  static const uint64_t data10[] = { BAD_CHAPTER, BAD_CHAPTER, 8, 11, 12, 13, 14 };
+  testFindBoundaries(11, 14, data10, sizeof(data10));
 
   static const uint64_t data11[] = { 15, 10, 8, 11, 12, 13, 14 };
-  testFindBoundaries(UDS_SUCCESS, 10, 15, data11, sizeof(data11));
+  testFindBoundaries(10, 15, data11, sizeof(data11));
 
   static const uint64_t data12[] = { 15, 16, 8, 11, 12, 13, 14 };
-  testFindBoundaries(UDS_SUCCESS, 11, 16, data12, sizeof(data12));
+  testFindBoundaries(11, 16, data12, sizeof(data12));
 
-  static const uint64_t data13[] = { 15, 16, U64_MAX, U64_MAX, 12, 13,
-                                    14 };
-  testFindBoundaries(UDS_SUCCESS, 12, 16, data13, sizeof(data13));
+  static const uint64_t data13[] = { 15, 16, BAD_CHAPTER, BAD_CHAPTER, 12, 13, 14 };
+  testFindBoundaries(12, 16, data13, sizeof(data13));
 
   static const uint64_t data14[] = { 15, 16, 17, 11, 12, 13, 14 };
-  testFindBoundaries(UDS_SUCCESS, 11, 17, data14, sizeof(data14));
+  testFindBoundaries(11, 17, data14, sizeof(data14));
 
-  static const uint64_t data15[] = { 15, 16, 17, U64_MAX, U64_MAX, 13,
-                                     14 };
-  testFindBoundaries(UDS_SUCCESS, 13, 17, data15, sizeof(data15));
+  static const uint64_t data15[] = { 15, 16, 17, BAD_CHAPTER, BAD_CHAPTER, 13, 14 };
+  testFindBoundaries(13, 17, data15, sizeof(data15));
 
   UDS_FREE(UDS_FORGET(geometry));
 }
