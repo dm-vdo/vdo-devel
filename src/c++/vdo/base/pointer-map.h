@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef POINTER_MAP_H
-#define POINTER_MAP_H
+#ifndef VDO_POINTER_MAP_H
+#define VDO_POINTER_MAP_H
 
 #include <linux/compiler.h>
 #include <linux/types.h>
@@ -58,24 +58,24 @@ typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
  */
 typedef u32 pointer_key_hasher(const void *key);
 
-int __must_check make_pointer_map(size_t initial_capacity,
-				  unsigned int initial_load,
-				  pointer_key_comparator comparator,
-				  pointer_key_hasher hasher,
-				  struct pointer_map **map_ptr);
+int __must_check vdo_make_pointer_map(size_t initial_capacity,
+				      unsigned int initial_load,
+				      pointer_key_comparator comparator,
+				      pointer_key_hasher hasher,
+				      struct pointer_map **map_ptr);
 
-void free_pointer_map(struct pointer_map *map);
+void vdo_free_pointer_map(struct pointer_map *map);
 
-size_t pointer_map_size(const struct pointer_map *map);
+size_t vdo_pointer_map_size(const struct pointer_map *map);
 
-void *pointer_map_get(struct pointer_map *map, const void *key);
+void *vdo_pointer_map_get(struct pointer_map *map, const void *key);
 
-int __must_check pointer_map_put(struct pointer_map *map,
-				 const void *key,
-				 void *new_value,
-				 bool update,
-				 void **old_value_ptr);
+int __must_check vdo_pointer_map_put(struct pointer_map *map,
+				     const void *key,
+				     void *new_value,
+				     bool update,
+				     void **old_value_ptr);
 
-void *pointer_map_remove(struct pointer_map *map, const void *key);
+void *vdo_pointer_map_remove(struct pointer_map *map, const void *key);
 
-#endif /* POINTER_MAP_H */
+#endif /* VDO_POINTER_MAP_H */

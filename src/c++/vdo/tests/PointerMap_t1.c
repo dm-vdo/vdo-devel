@@ -61,19 +61,19 @@ static uint32_t hashKey(const void *key)
 static void testEmptyMap(void)
 {
   struct pointer_map *map;
-  UDS_ASSERT_SUCCESS(make_pointer_map(0, 0, compareKeys, hashKey, &map));
+  UDS_ASSERT_SUCCESS(vdo_make_pointer_map(0, 0, compareKeys, hashKey, &map));
 
   // Check the properties of the empty map.
-  CU_ASSERT_EQUAL(0, pointer_map_size(map));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, NULL));
+  CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, NULL));
 
   // Try to remove the NULL key--it should not be mapped.
-  CU_ASSERT_PTR_NULL(pointer_map_remove(map, NULL));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, NULL));
 
   // Try to remove the empty string--it should not be mapped.
-  CU_ASSERT_PTR_NULL(pointer_map_remove(map, ""));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, ""));
 
-  free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(UDS_FORGET(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -82,15 +82,15 @@ static void verifySingletonMap(struct pointer_map *map,
                                const char         *key,
                                void               *value)
 {
-  CU_ASSERT_EQUAL(1, pointer_map_size(map));
-  CU_ASSERT_PTR_EQUAL(value, pointer_map_get(map, key));
+  CU_ASSERT_EQUAL(1, vdo_pointer_map_size(map));
+  CU_ASSERT_PTR_EQUAL(value, vdo_pointer_map_get(map, key));
 }
 
 /**********************************************************************/
 static void testNullKey(void)
 {
   struct pointer_map *map;
-  UDS_ASSERT_SUCCESS(make_pointer_map(1, 0, compareKeys, hashKey, &map));
+  UDS_ASSERT_SUCCESS(vdo_make_pointer_map(1, 0, compareKeys, hashKey, &map));
 
   const char *nullKey    = NULL;
   const char *emptyKey   = "";
@@ -105,7 +105,7 @@ static void testNullKey(void)
 
   // Map NULL to "null string".
   void *oldValue = &nullValue;
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, nullKey, nullValue, true, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, nullKey, nullValue, true, &oldValue));
 
   // The key must not have been mapped before.
   CU_ASSERT_PTR_NULL(oldValue);
@@ -113,22 +113,22 @@ static void testNullKey(void)
   verifySingletonMap(map, nullKey, nullValue);
 
   // The NULL key in the map must not be found by the empty key.
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, emptyKey));
-  CU_ASSERT_PTR_NULL(pointer_map_remove(map, emptyKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, emptyKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, emptyKey));
   verifySingletonMap(map, nullKey, nullValue);
 
   // Unmap the NULL key.
-  CU_ASSERT_PTR_EQUAL(nullValue, pointer_map_remove(map, nullKey));
+  CU_ASSERT_PTR_EQUAL(nullValue, vdo_pointer_map_remove(map, nullKey));
 
   // The mapping must no longer be there.
-  CU_ASSERT_EQUAL(0, pointer_map_size(map));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, nullKey));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, emptyKey));
+  CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, nullKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, emptyKey));
 
   // Map "" to "empty string".
   oldValue = &emptyValue;
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, emptyKey, emptyValue, true,
-                                     &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, emptyKey, emptyValue, true,
+                                         &oldValue));
 
   // The key must not have been mapped before.
   CU_ASSERT_PTR_NULL(oldValue);
@@ -136,19 +136,19 @@ static void testNullKey(void)
   verifySingletonMap(map, emptyKey, emptyValue);
 
   // The empty key in the map must not be found by the NULL key.
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, nullKey));
-  CU_ASSERT_PTR_NULL(pointer_map_remove(map, nullKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, nullKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, nullKey));
   verifySingletonMap(map, emptyKey, emptyValue);
 
   // Unmap the empty key.
-  CU_ASSERT_PTR_EQUAL(emptyValue, pointer_map_remove(map, emptyKey));
+  CU_ASSERT_PTR_EQUAL(emptyValue, vdo_pointer_map_remove(map, emptyKey));
 
   // The mapping must no longer be there.
-  CU_ASSERT_EQUAL(0, pointer_map_size(map));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, nullKey));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, emptyKey));
+  CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, nullKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, emptyKey));
 
-  free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(UDS_FORGET(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -156,14 +156,14 @@ static void testNullKey(void)
 static void testSingletonMap(void)
 {
   struct pointer_map *map;
-  UDS_ASSERT_SUCCESS(make_pointer_map(1, 0, compareKeys, hashKey, &map));
+  UDS_ASSERT_SUCCESS(vdo_make_pointer_map(1, 0, compareKeys, hashKey, &map));
 
   // Add one entry with a randomly-selected key.
   char key[10] = { 0, };
   get_random_bytes(key, sizeof(key) - 1);
   void *value = &key;
   void *oldValue = &value;
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, key, value, true, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, value, true, &oldValue));
 
   // The key must not have been mapped before.
   CU_ASSERT_PTR_NULL(oldValue);
@@ -174,13 +174,13 @@ static void testSingletonMap(void)
   char foo;
   void *value2 = &foo;
   void *oldValue2 = NULL;
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, key, value2, false, &oldValue2));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, value2, false, &oldValue2));
   CU_ASSERT_PTR_EQUAL(value, oldValue2);
   verifySingletonMap(map, key, value);
 
   if (strlen(key) != 0) {
     // Try to remove the empty key--it should not be mapped.
-    CU_ASSERT_PTR_NULL(pointer_map_remove(map, NULL));
+    CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, NULL));
     verifySingletonMap(map, key, value);
   }
 
@@ -190,7 +190,7 @@ static void testSingletonMap(void)
   do {
     get_random_bytes(bogusKey, sizeof(bogusKey) - 1);
   } while (strcmp(key, bogusKey) == 0);
-  CU_ASSERT_PTR_NULL(pointer_map_remove(map, bogusKey));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, bogusKey));
   verifySingletonMap(map, key, value);
 
   // Replace the singleton key.
@@ -198,7 +198,7 @@ static void testSingletonMap(void)
   char key3[10];
   strncpy(key3, key, sizeof(key3));
   oldValue = &value;
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, key3, value3, true, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key3, value3, true, &oldValue));
 
   // The previous mapping value must be returned in oldValue.
   CU_ASSERT_PTR_EQUAL(value, oldValue);
@@ -215,24 +215,24 @@ static void testSingletonMap(void)
     key[0] = ~key[0];
     CU_ASSERT_STRING_NOT_EQUAL(key, key3);
     verifySingletonMap(map, key3, value3);
-    CU_ASSERT_PTR_NULL(pointer_map_get(map, key));
+    CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, key));
     key[0] = ~key[0];
     verifySingletonMap(map, key, value3);
   }
 
   // Remove the singleton.
-  CU_ASSERT_PTR_EQUAL(value3, pointer_map_remove(map, key3));
+  CU_ASSERT_PTR_EQUAL(value3, vdo_pointer_map_remove(map, key3));
 
   // The mapping must no longer be there.
-  CU_ASSERT_EQUAL(0, pointer_map_size(map));
-  CU_ASSERT_PTR_NULL(pointer_map_get(map, key3));
+  CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, key3));
 
   // Try to add the value again.
-  UDS_ASSERT_SUCCESS(pointer_map_put(map, key, value2, false, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, value2, false, &oldValue));
   CU_ASSERT_PTR_EQUAL(NULL, oldValue);
   verifySingletonMap(map, key, value2);
 
-  free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(UDS_FORGET(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -248,8 +248,8 @@ static char *toKeyString(unsigned int key)
 static void test16BitMap(void)
 {
   struct pointer_map *map;
-  UDS_ASSERT_SUCCESS(make_pointer_map(U16_MAX + 1, 0, compareKeys, hashKey,
-                                      &map));
+  UDS_ASSERT_SUCCESS(vdo_make_pointer_map(U16_MAX + 1, 0, compareKeys, hashKey,
+                                          &map));
 
   char **keys;
   uint16_t *values;
@@ -264,53 +264,53 @@ static void test16BitMap(void)
 
   // Create an identity map of [0..65535] -> [0..65535].
   for (int key = 0; key <= U16_MAX; key++) {
-    CU_ASSERT_EQUAL(key, pointer_map_size(map));
-    CU_ASSERT_PTR_NULL(pointer_map_get(map, keys[key]));
-    UDS_ASSERT_SUCCESS(pointer_map_put(map, keys[key], &values[key],
-                                       true, NULL));
-    CU_ASSERT_PTR_EQUAL(&values[key], pointer_map_get(map, keys[key]));
+    CU_ASSERT_EQUAL(key, vdo_pointer_map_size(map));
+    CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, keys[key]));
+    UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, keys[key], &values[key],
+                                           true, NULL));
+    CU_ASSERT_PTR_EQUAL(&values[key], vdo_pointer_map_get(map, keys[key]));
   }
-  CU_ASSERT_EQUAL(1 << 16, pointer_map_size(map));
+  CU_ASSERT_EQUAL(1 << 16, vdo_pointer_map_size(map));
 
   // Remove the odd-numbered keys.
   for (int key = 1; key <= U16_MAX; key += 2) {
-    CU_ASSERT_PTR_EQUAL(&values[key], pointer_map_remove(map, keys[key]));
-    CU_ASSERT_PTR_NULL(pointer_map_get(map, keys[key]));
+    CU_ASSERT_PTR_EQUAL(&values[key], vdo_pointer_map_remove(map, keys[key]));
+    CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, keys[key]));
   }
-  CU_ASSERT_EQUAL(1 << 15, pointer_map_size(map));
+  CU_ASSERT_EQUAL(1 << 15, vdo_pointer_map_size(map));
 
   // Re-map everything to its complement: 0->65535, 1->65534, etc.
   for (int key = 0; key <= U16_MAX; key++) {
-    void *value = pointer_map_get(map, keys[key]);
+    void *value = vdo_pointer_map_get(map, keys[key]);
     if ((key % 2) == 0) {
       CU_ASSERT_PTR_EQUAL(&values[key], value);
     } else {
       CU_ASSERT_PTR_NULL(value);
     }
     void *newValue = &values[U16_MAX - key];
-    UDS_ASSERT_SUCCESS(pointer_map_put(map, keys[key], newValue, true, NULL));
+    UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, keys[key], newValue, true, NULL));
   }
 
   // Verify the mapping.
-  CU_ASSERT_EQUAL(1 << 16, pointer_map_size(map));
+  CU_ASSERT_EQUAL(1 << 16, vdo_pointer_map_size(map));
   for (int key = 0; key <= U16_MAX; key++) {
     CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key],
-                        pointer_map_get(map, keys[key]));
+                        vdo_pointer_map_get(map, keys[key]));
   }
 
   // Remove everything.
   for (int key = 0; key <= U16_MAX; key++) {
     CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key],
-                        pointer_map_remove(map, keys[key]));
-    CU_ASSERT_PTR_NULL(pointer_map_get(map, keys[key]));
-    CU_ASSERT_EQUAL(U16_MAX - key, pointer_map_size(map));
+                        vdo_pointer_map_remove(map, keys[key]));
+    CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, keys[key]));
+    CU_ASSERT_EQUAL(U16_MAX - key, vdo_pointer_map_size(map));
     UDS_FREE(keys[key]);
   }
-  CU_ASSERT_EQUAL(0, pointer_map_size(map));
+  CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
 
   UDS_FREE(keys);
   UDS_FREE(values);
-  free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(UDS_FORGET(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -320,39 +320,39 @@ static void testSteadyState(void)
   static size_t SIZE = 10 * 1000;
 
   struct pointer_map *map;
-  UDS_ASSERT_SUCCESS(make_pointer_map(0, 0, compareKeys, hashKey, &map));
+  UDS_ASSERT_SUCCESS(vdo_make_pointer_map(0, 0, compareKeys, hashKey, &map));
 
   // Fill the map with trivial mappings of { "[0]" -> "[0]" }, etc
   for (size_t i = 0; i < SIZE; i++) {
-    CU_ASSERT_EQUAL(i, pointer_map_size(map));
+    CU_ASSERT_EQUAL(i, vdo_pointer_map_size(map));
     char *key = toKeyString(i);
-    UDS_ASSERT_SUCCESS(pointer_map_put(map, key, key, true, NULL));
+    UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, key, true, NULL));
   }
 
   // Remove mappings one by one and replace them with a different key,
   // exercising the operation of the map at a steady-state of SIZE entries.
   for (size_t i = 0; i < (10 * SIZE); i++) {
     char *probeKey = toKeyString(i);
-    void *value = pointer_map_remove(map, probeKey);
+    void *value = vdo_pointer_map_remove(map, probeKey);
     CU_ASSERT_STRING_EQUAL(probeKey, value);
     UDS_FREE(probeKey);
     UDS_FREE(value);
 
     char *key = toKeyString(SIZE + i);
-    UDS_ASSERT_SUCCESS(pointer_map_put(map, key, key, true, NULL));
-    CU_ASSERT_EQUAL(SIZE, pointer_map_size(map));
+    UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, key, true, NULL));
+    CU_ASSERT_EQUAL(SIZE, vdo_pointer_map_size(map));
   }
 
   // Free the entries remaining in the map.
   for (size_t i = 0; i < SIZE; i++) {
     char *probeKey = toKeyString(i + (10 * SIZE));
-    void *value = pointer_map_remove(map, probeKey);
+    void *value = vdo_pointer_map_remove(map, probeKey);
     CU_ASSERT_STRING_EQUAL(probeKey, value);
     UDS_FREE(probeKey);
     UDS_FREE(value);
   }
 
-  free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(UDS_FORGET(map));
   CU_ASSERT_PTR_NULL(map);
 }
 

@@ -886,11 +886,11 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 	 */
 	new_lock->hash = *hash;
 
-	result = pointer_map_put(zone->hash_lock_map,
-				 &new_lock->hash,
-				 new_lock,
-				 (replace_lock != NULL),
-				 (void **) &lock);
+	result = vdo_pointer_map_put(zone->hash_lock_map,
+				     &new_lock->hash,
+				     new_lock,
+				     (replace_lock != NULL),
+				     (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_hash_lock_to_pool(zone, UDS_FORGET(new_lock));
 		return result;
@@ -1931,11 +1931,12 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 		return;
 
 	if (lock->registered) {
-		struct hash_lock *removed = pointer_map_remove(zone->hash_lock_map, &lock->hash);
+		struct hash_lock *removed;
 
+		removed = vdo_pointer_map_remove(zone->hash_lock_map, &lock->hash);
 		ASSERT_LOG_ONLY(lock == removed, "hash lock being released must have been mapped");
 	} else {
-		ASSERT_LOG_ONLY(lock != pointer_map_get(zone->hash_lock_map, &lock->hash),
+		ASSERT_LOG_ONLY(lock != vdo_pointer_map_get(zone->hash_lock_map, &lock->hash),
 				"unregistered hash lock must not be in the lock map");
 	}
 
@@ -2418,11 +2419,11 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 	data_vio_count_t i;
 	struct hash_zone *zone = &zones->zones[zone_number];
 
-	result = make_pointer_map(VDO_LOCK_MAP_CAPACITY,
-				  0,
-				  compare_keys,
-				  hash_key,
-				  &zone->hash_lock_map);
+	result = vdo_make_pointer_map(VDO_LOCK_MAP_CAPACITY,
+				      0,
+				      compare_keys,
+				      hash_key,
+				      &zone->hash_lock_map);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2556,7 +2557,7 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 		struct hash_zone *zone = &zones->zones[i];
 
 		uds_free_funnel_queue(UDS_FORGET(zone->timed_out_complete));
-		free_pointer_map(UDS_FORGET(zone->hash_lock_map));
+		vdo_free_pointer_map(UDS_FORGET(zone->hash_lock_map));
 		UDS_FREE(UDS_FORGET(zone->lock_array));
 	}
 
@@ -2878,7 +2879,7 @@ static void dump_hash_zone(const struct hash_zone *zone)
 
 	uds_log_info("struct hash_zone %u: mapSize=%zu",
 		     zone->zone_number,
-		     pointer_map_size(zone->hash_lock_map));
+		     vdo_pointer_map_size(zone->hash_lock_map));
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++)
 		dump_hash_lock(&zone->lock_array[i]);
 }

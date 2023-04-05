@@ -132,7 +132,7 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
 }
 
 /**
- * make_pointer_map() - Allocate and initialize a pointer_map.
+ * vdo_make_pointer_map() - Allocate and initialize a pointer_map.
  * @initial_capacity: The number of entries the map should initially be capable of holding (zero
  *                    tells the map to use its own small default).
  * @initial_load: The load factor of the map, expressed as an integer percentage (typically in the
@@ -143,11 +143,11 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int make_pointer_map(size_t initial_capacity,
-		     unsigned int initial_load,
-		     pointer_key_comparator comparator,
-		     pointer_key_hasher hasher,
-		     struct pointer_map **map_ptr)
+int vdo_make_pointer_map(size_t initial_capacity,
+			 unsigned int initial_load,
+			 pointer_key_comparator comparator,
+			 pointer_key_hasher hasher,
+			 struct pointer_map **map_ptr)
 {
 	int result;
 	struct pointer_map *map;
@@ -177,7 +177,7 @@ int make_pointer_map(size_t initial_capacity,
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		free_pointer_map(UDS_FORGET(map));
+		vdo_free_pointer_map(UDS_FORGET(map));
 		return result;
 	}
 
@@ -186,13 +186,13 @@ int make_pointer_map(size_t initial_capacity,
 }
 
 /**
- * free_pointer_map() - Free a pointer_map.
+ * vdo_free_pointer_map() - Free a pointer_map.
  * @map: The pointer_map to free.
  *
  * The map does not own the pointer keys and values stored in the map and they are not freed by
  * this call.
  */
-void free_pointer_map(struct pointer_map *map)
+void vdo_free_pointer_map(struct pointer_map *map)
 {
 	if (map == NULL)
 		return;
@@ -202,12 +202,12 @@ void free_pointer_map(struct pointer_map *map)
 }
 
 /**
- * pointer_map_size() - Get the number of entries stored in a pointer_map.
+ * vdo_pointer_map_size() - Get the number of entries stored in a pointer_map.
  * @map: The pointer_map to query.
  *
  * Return: The number of entries in the map.
  */
-size_t pointer_map_size(const struct pointer_map *map)
+size_t vdo_pointer_map_size(const struct pointer_map *map)
 {
 	return map->size;
 }
@@ -319,13 +319,13 @@ static struct bucket *search_hop_list(struct pointer_map *map,
 }
 
 /**
- * pointer_map_get() - Retrieve the value associated with a given key from the pointer_map.
+ * vdo_pointer_map_get() - Retrieve the value associated with a given key from the pointer_map.
  * @map: The pointer_map to query.
  * @key: The key to look up (may be NULL if the comparator and hasher functions support it).
  *
  * Return: the value associated with the given key, or NULL if the key is not mapped to any value.
  */
-void *pointer_map_get(struct pointer_map *map, const void *key)
+void *vdo_pointer_map_get(struct pointer_map *map, const void *key)
 {
 	struct bucket *match = search_hop_list(map, select_bucket(map, key), key, NULL);
 
@@ -366,7 +366,7 @@ static int resize_buckets(struct pointer_map *map)
 		if (entry->value == NULL)
 			continue;
 
-		result = pointer_map_put(map, entry->key, entry->value, true, NULL);
+		result = vdo_pointer_map_put(map, entry->key, entry->value, true, NULL);
 		if (result != UDS_SUCCESS) {
 			/* Destroy the new partial map and restore the map from the stack. */
 			UDS_FREE(UDS_FORGET(map->buckets));
@@ -566,7 +566,7 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map, struct bucke
 }
 
 /**
- * pointer_map_put() - Try to associate a value (a pointer) with an integer in a pointer_map.
+ * vdo_pointer_map_put() - Try to associate a value (a pointer) with an integer in a pointer_map.
  * @map: The pointer_map to attempt to modify.
  * @key: The key with which to associate the new value (may be NULL if the comparator and hasher
  *       functions support it).
@@ -587,11 +587,11 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map, struct bucke
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int pointer_map_put(struct pointer_map *map,
-		    const void *key,
-		    void *new_value,
-		    bool update,
-		    void **old_value_ptr)
+int vdo_pointer_map_put(struct pointer_map *map,
+			const void *key,
+			void *new_value,
+			bool update,
+			void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
@@ -651,14 +651,14 @@ int pointer_map_put(struct pointer_map *map,
 }
 
 /**
- * pointer_map_remove() - Remove the mapping for a given key from the pointer_map.
+ * vdo_pointer_map_remove() - Remove the mapping for a given key from the pointer_map.
  * @map: The pointer_map from which to remove the mapping.
  * @key: The key whose mapping is to be removed (may be NULL if the comparator and hasher functions
  *       support it).
  *
  * Return: the value that was associated with the key, or NULL if it was not mapped.
  */
-void *pointer_map_remove(struct pointer_map *map, const void *key)
+void *vdo_pointer_map_remove(struct pointer_map *map, const void *key)
 {
 	void *value;
 
