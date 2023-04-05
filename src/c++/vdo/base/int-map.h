@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INT_MAP_H
-#define INT_MAP_H
+#ifndef VDO_INT_MAP_H
+#define VDO_INT_MAP_H
 
 #include <linux/compiler.h>
 #include <linux/types.h>
@@ -24,17 +24,17 @@
 struct int_map;
 
 int __must_check
-make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr);
+vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr);
 
-void free_int_map(struct int_map *map);
+void vdo_free_int_map(struct int_map *map);
 
-size_t int_map_size(const struct int_map *map);
+size_t vdo_int_map_size(const struct int_map *map);
 
-void *int_map_get(struct int_map *map, u64 key);
+void *vdo_int_map_get(struct int_map *map, u64 key);
 
 int __must_check
-int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr);
+vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr);
 
-void *int_map_remove(struct int_map *map, u64 key);
+void *vdo_int_map_remove(struct int_map *map, u64 key);
 
-#endif /* INT_MAP_H */
+#endif /* VDO_INT_MAP_H */

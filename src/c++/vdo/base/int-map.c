@@ -45,6 +45,7 @@
  * need to ensure the table is pre-sized to be large enough so no resize is ever needed, or we'll
  * need to develop an approach to incrementally resize the table.
  */
+
 #include "int-map.h"
 
 #include <linux/minmax.h>
@@ -170,7 +171,7 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
 }
 
 /**
- * make_int_map() - Allocate and initialize an int_map.
+ * vdo_make_int_map() - Allocate and initialize an int_map.
  * @initial_capacity: The number of entries the map should initially be capable of holding (zero
  *                    tells the map to use its own small default).
  * @initial_load: The load factor of the map, expressed as an integer percentage (typically in the
@@ -179,7 +180,7 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
+int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
 {
 	struct int_map *map;
 	int result;
@@ -206,7 +207,7 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		free_int_map(UDS_FORGET(map));
+		vdo_free_int_map(UDS_FORGET(map));
 		return result;
 	}
 
@@ -215,13 +216,13 @@ int make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_
 }
 
 /**
- * free_int_map() - Free an int_map.
+ * vdo_free_int_map() - Free an int_map.
  * @map: The int_map to free.
  *
  * NOTE: The map does not own the pointer values stored in the map and they are not freed by this
  * call.
  */
-void free_int_map(struct int_map *map)
+void vdo_free_int_map(struct int_map *map)
 {
 	if (map == NULL)
 		return;
@@ -231,12 +232,12 @@ void free_int_map(struct int_map *map)
 }
 
 /**
- * int_map_size() - Get the number of entries stored in an int_map.
+ * vdo_int_map_size() - Get the number of entries stored in an int_map.
  * @map: The int_map to query.
  *
  * Return: The number of entries in the map.
  */
-size_t int_map_size(const struct int_map *map)
+size_t vdo_int_map_size(const struct int_map *map)
 {
 	return map->size;
 }
@@ -357,13 +358,13 @@ static struct bucket *search_hop_list(struct int_map *map __always_unused,
 }
 
 /**
- * int_map_get() - Retrieve the value associated with a given key from the int_map.
+ * vdo_int_map_get() - Retrieve the value associated with a given key from the int_map.
  * @map: The int_map to query.
  * @key: The key to look up.
  *
  * Return: The value associated with the given key, or NULL if the key is not mapped to any value.
  */
-void *int_map_get(struct int_map *map, u64 key)
+void *vdo_int_map_get(struct int_map *map, u64 key)
 {
 	struct bucket *match = search_hop_list(map, select_bucket(map, key), key, NULL);
 
@@ -404,7 +405,7 @@ static int resize_buckets(struct int_map *map)
 		if (entry->value == NULL)
 			continue;
 
-		result = int_map_put(map, entry->key, entry->value, true, NULL);
+		result = vdo_int_map_put(map, entry->key, entry->value, true, NULL);
 		if (result != UDS_SUCCESS) {
 			/* Destroy the new partial map and restore the map from the stack. */
 			UDS_FREE(UDS_FORGET(map->buckets));
@@ -596,7 +597,7 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
 }
 
 /**
- * int_map_put() - Try to associate a value with an integer.
+ * vdo_int_map_put() - Try to associate a value with an integer.
  * @map: The int_map to attempt to modify.
  * @key: The key with which to associate the new value.
  * @new_value: The value to be associated with the key.
@@ -612,7 +613,7 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
+int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
@@ -670,13 +671,13 @@ int int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void
 }
 
 /**
- * int_map_remove() - Remove the mapping for a given key from the int_map.
+ * vdo_int_map_remove() - Remove the mapping for a given key from the int_map.
  * @map: The int_map from which to remove the mapping.
  * @key: The key whose mapping is to be removed.
  *
  * Return: the value that was associated with the key, or NULL if it was not mapped.
  */
-void *int_map_remove(struct int_map *map, u64 key)
+void *vdo_int_map_remove(struct int_map *map, u64 key)
 {
 	void *value;
 

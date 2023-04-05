@@ -177,7 +177,7 @@ void destroyAsyncLayer(void)
   case LAYER_INITIALIZED:
     uds_destroy_cond(&asyncLayer->condition);
     uds_destroy_mutex(&asyncLayer->mutex);
-    free_int_map(UDS_FORGET(asyncLayer->completionEnqueueHooksMap));
+    vdo_free_int_map(UDS_FORGET(asyncLayer->completionEnqueueHooksMap));
     break;
 
   default:
@@ -202,9 +202,9 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
 {
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, AsyncLayer, __func__, &asyncLayer));
-  VDO_ASSERT_SUCCESS(make_int_map(0,
-                                  0,
-                                  &asyncLayer->completionEnqueueHooksMap));
+  VDO_ASSERT_SUCCESS(vdo_make_int_map(0,
+                                      0,
+                                      &asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));
   INIT_LIST_HEAD(&asyncLayer->completionEnqueueHooks);
@@ -555,8 +555,8 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
   CompletionHookEntry *hook
-    = int_map_remove(asyncLayer->completionEnqueueHooksMap,
-                     (uintptr_t) function);
+    = vdo_int_map_remove(asyncLayer->completionEnqueueHooksMap,
+                         (uintptr_t) function);
   if (hook != NULL) {
     list_del(&hook->listEntry);
     UDS_FREE(hook);
@@ -619,11 +619,11 @@ static void addCompletionEnqueueHookLocked(CompletionHook *function)
 
   CompletionHookEntry *old;
   AsyncLayer *asyncLayer = asAsyncLayer();
-  VDO_ASSERT_SUCCESS(int_map_put(asyncLayer->completionEnqueueHooksMap,
-                                 (uintptr_t) function,
-                                  hook,
-                                  false,
-                                  (void **) &old));
+  VDO_ASSERT_SUCCESS(vdo_int_map_put(asyncLayer->completionEnqueueHooksMap,
+                                     (uintptr_t) function,
+                                     hook,
+                                     false,
+                                     (void **) &old));
   CU_ASSERT_PTR_NULL(old);
   list_add_tail(&hook->listEntry, &asyncLayer->completionEnqueueHooks);
   asyncLayer->completionEnqueueHooksCacheValid = false;

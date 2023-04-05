@@ -50,7 +50,7 @@ static bool latchVIO(void *context)
   }
 
   physical_block_number_t  pbn     = pbnFromVIO(vio);
-  VIOLatch                *latched = int_map_get(latchedVIOs, pbn);
+  VIOLatch                *latched = vdo_int_map_get(latchedVIOs, pbn);
   if (latched == NULL) {
     return false;
   }
@@ -91,7 +91,7 @@ void initializeLatchUtils(size_t         expectedEntries,
 {
   CU_ASSERT_EQUAL(initialized, false);
   INIT_LIST_HEAD(&latches);
-  VDO_ASSERT_SUCCESS(make_int_map(expectedEntries, 0, &latchedVIOs));
+  VDO_ASSERT_SUCCESS(vdo_make_int_map(expectedEntries, 0, &latchedVIOs));
   waitCondition    = condition;
   latchAttemptHook = attemptHook;
   latchedVIOHook   = latchedHook;
@@ -109,8 +109,8 @@ void tearDownLatchUtils(void)
   latchedVIOHook   = NULL;
   latchAttemptHook = NULL;
   waitCondition    = NULL;
-  CU_ASSERT_EQUAL(int_map_size(latchedVIOs), 0);
-  free_int_map(UDS_FORGET(latchedVIOs));
+  CU_ASSERT_EQUAL(vdo_int_map_size(latchedVIOs), 0);
+  vdo_free_int_map(UDS_FORGET(latchedVIOs));
   CU_ASSERT(list_empty(&latches));
   initialized = false;
 }
@@ -134,8 +134,11 @@ static bool setLatchLocked(void *context)
   list_add_tail(&latch->latch_entry, &latches);
 
   VIOLatch *prior;
-  VDO_ASSERT_SUCCESS(int_map_put(latchedVIOs, pbn, latch, false,
-                                 (void **) &prior));
+  VDO_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs,
+                                     pbn,
+                                     latch,
+                                     false,
+                                     (void **) &prior));
   CU_ASSERT_PTR_NULL(prior);
   return false;
 }
@@ -159,7 +162,7 @@ void setLatch(physical_block_number_t pbn)
 static bool clearLatchLocked(void *context)
 {
   VIOLatch *latch
-    = int_map_remove(latchedVIOs, *((physical_block_number_t *) context));
+    = vdo_int_map_remove(latchedVIOs, *((physical_block_number_t *) context));
   if (latch != NULL) {
     if (latch->vio != NULL) {
       reallyEnqueueVIO(latch->vio);
@@ -184,7 +187,7 @@ void clearLatch(physical_block_number_t pbn)
 static bool checkForBlockedVIO(void *context)
 {
   VIOLatch *latched
-    = int_map_get(latchedVIOs, *((physical_block_number_t *) context));
+    = vdo_int_map_get(latchedVIOs, *((physical_block_number_t *) context));
   CU_ASSERT_PTR_NOT_NULL(latched);
   return (latched->vio != NULL);
 }

@@ -167,8 +167,8 @@ static struct bio *get_bio_list(struct vio *vio)
 	assert_in_bio_zone(vio);
 
 	mutex_lock(&bio_queue_data->lock);
-	int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.head));
-	int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.tail));
+	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.head));
+	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.tail));
 	bio = vio->bios_merged.head;
 	bio_list_init(&vio->bios_merged);
 	mutex_unlock(&bio_queue_data->lock);
@@ -218,7 +218,7 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio, bo
 	else
 		merge_sector += VDO_SECTORS_PER_BLOCK;
 
-	vio_merge = int_map_get(map, merge_sector);
+	vio_merge = vdo_int_map_get(map, merge_sector);
 
 	if (vio_merge == NULL)
 		return NULL;
@@ -244,14 +244,18 @@ static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio, struct v
 {
 	int result;
 
-	int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
+	vdo_int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
-	result = int_map_put(bio_map,
-			     get_bio_sector(prev_vio->bios_merged.head),
-			     prev_vio, true, NULL);
-	result = int_map_put(bio_map,
-			     get_bio_sector(prev_vio->bios_merged.tail),
-			     prev_vio, true, NULL);
+	result = vdo_int_map_put(bio_map,
+				 get_bio_sector(prev_vio->bios_merged.head),
+				 prev_vio,
+				 true,
+				 NULL);
+	result = vdo_int_map_put(bio_map,
+				 get_bio_sector(prev_vio->bios_merged.tail),
+				 prev_vio,
+				 true,
+				 NULL);
 	return result;
 }
 
@@ -264,14 +268,18 @@ static int merge_to_next_head(struct int_map *bio_map, struct vio *vio, struct v
 	 * that's compatible with using funnel queues in work queues. This avoids removing an
 	 * existing completion.
 	 */
-	int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
+	vdo_int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
-	result = int_map_put(bio_map,
-			     get_bio_sector(next_vio->bios_merged.head),
-			     next_vio, true, NULL);
-	result = int_map_put(bio_map,
-			     get_bio_sector(next_vio->bios_merged.tail),
-			     next_vio, true, NULL);
+	result = vdo_int_map_put(bio_map,
+				 get_bio_sector(next_vio->bios_merged.head),
+				 next_vio,
+				 true,
+				 NULL);
+	result = vdo_int_map_put(bio_map,
+				 get_bio_sector(next_vio->bios_merged.tail),
+				 next_vio,
+				 true,
+				 NULL);
 	return result;
 }
 
@@ -305,7 +313,11 @@ static bool try_bio_map_merge(struct vio *vio)
 	if ((prev_vio == NULL) && (next_vio == NULL)) {
 		/* no merge. just add to bio_queue */
 		merged = false;
-		result = int_map_put(bio_queue_data->map, get_bio_sector(bio), vio, true, NULL);
+		result = vdo_int_map_put(bio_queue_data->map,
+					 get_bio_sector(bio),
+					 vio,
+					 true,
+					 NULL);
 	} else if (next_vio == NULL) {
 		/* Only prev. merge to prev's tail */
 		result = merge_to_prev_tail(bio_queue_data->map, vio, prev_vio);
@@ -437,7 +449,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 		 * uneven. So for now, we'll assume that all requests *may* wind up on one thread,
 		 * and thus all in the same map.
 		 */
-		result = make_int_map(max_requests_active * 2, 0, &bio_queue_data->map);
+		result = vdo_make_int_map(max_requests_active * 2, 0, &bio_queue_data->map);
 		if (result != 0) {
 			/*
 			 * Clean up the partially initialized bio-queue entirely and indicate that
@@ -460,7 +472,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 			 * Clean up the partially initialized bio-queue entirely and indicate that
 			 * initialization failed.
 			 */
-			free_int_map(UDS_FORGET(bio_queue_data->map));
+			vdo_free_int_map(UDS_FORGET(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d", result);
 			vdo_cleanup_io_submitter(io_submitter);
 			vdo_free_io_submitter(io_submitter);
@@ -509,7 +521,7 @@ void vdo_free_io_submitter(struct io_submitter *io_submitter)
 		io_submitter->num_bio_queues_used--;
 		/* vdo_destroy() will free the work queue, so just give up our reference to it. */
 		UDS_FORGET(io_submitter->bio_queue_data[i].queue);
-		free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
+		vdo_free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
 	}
 	UDS_FREE(io_submitter);
 }

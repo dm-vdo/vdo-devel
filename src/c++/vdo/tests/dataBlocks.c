@@ -83,9 +83,9 @@ void tearDownDataBlocks(void)
 {
   if (dataBlocks != NULL) {
     for (block_count_t i = 0; i < maxIndex; i++) {
-      UDS_FREE(int_map_remove(dataBlocks, i));
+      UDS_FREE(vdo_int_map_remove(dataBlocks, i));
     }
-    free_int_map(UDS_FORGET(dataBlocks));
+    vdo_free_int_map(UDS_FORGET(dataBlocks));
   }
 
   UDS_FREE(buffer);
@@ -99,7 +99,7 @@ void tearDownDataBlocks(void)
 char *getDataBlock(block_count_t index)
 {
   if (maxIndex == 0) {
-    VDO_ASSERT_SUCCESS(make_int_map(INITIAL_BLOCKS, 0, &dataBlocks));
+    VDO_ASSERT_SUCCESS(vdo_make_int_map(INITIAL_BLOCKS, 0, &dataBlocks));
   }
 
   if (buffer == NULL) {
@@ -107,8 +107,11 @@ char *getDataBlock(block_count_t index)
   }
 
   char *block;
-  VDO_ASSERT_SUCCESS(int_map_put(dataBlocks, index, buffer, false,
-                                 (void **) &block));
+  VDO_ASSERT_SUCCESS(vdo_int_map_put(dataBlocks,
+                                     index,
+                                     buffer,
+                                     false,
+                                     (void **) &block));
   if (block == NULL) {
     block = buffer;
     buffer = NULL;

@@ -92,7 +92,7 @@ static void validatePage(struct vdo_completion *completion)
   struct vio              *vio = as_vio(completion);
   physical_block_number_t  pbn = pbn_from_vio_bio(vio->bio);
 
-  if (int_map_get(pageMap, pbn) != NULL) {
+  if (vdo_int_map_get(pageMap, pbn) != NULL) {
     struct block_map_page *page = (struct block_map_page *) vio->data;
     CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(page));
   }
@@ -116,10 +116,10 @@ static void checkPageWritten(struct vdo_completion *completion)
 
   void *oldPage;
   if (!page->header.initialized) {
-    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, pageMap, false, &oldPage));
+    VDO_ASSERT_SUCCESS(vdo_int_map_put(pageMap, pbn, pageMap, false, &oldPage));
     CU_ASSERT_PTR_NULL(oldPage);
   } else {
-    VDO_ASSERT_SUCCESS(int_map_put(pageMap, pbn, cache, true, &oldPage));
+    VDO_ASSERT_SUCCESS(vdo_int_map_put(pageMap, pbn, cache, true, &oldPage));
     CU_ASSERT_PTR_NOT_NULL(oldPage);
   }
 
@@ -176,7 +176,7 @@ static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
   };
 
   initializeVDOTest(&parameters);
-  VDO_ASSERT_SUCCESS(make_int_map(cacheSize, 0, &pageMap));
+  VDO_ASSERT_SUCCESS(vdo_make_int_map(cacheSize, 0, &pageMap));
   zone = &vdo->block_map->zones[0];
   cache = &zone->page_cache;
 
@@ -201,11 +201,11 @@ static void initializeWithDefaults(void)
 static void finishVDOPageCacheT1(void)
 {
   for (physical_block_number_t pbn = 0; pbn <= maxPBN; pbn++) {
-    void *marker = int_map_remove(pageMap, pbn);
+    void *marker = vdo_int_map_remove(pageMap, pbn);
     CU_ASSERT_FALSE(marker == pageMap);
   }
 
-  free_int_map(UDS_FORGET(pageMap));
+  vdo_free_int_map(UDS_FORGET(pageMap));
   tearDownVDOTest();
 }
 
@@ -657,7 +657,7 @@ shouldBlock(struct vdo_completion *completion,
  **/
 static void checkPageAction(struct vdo_completion *completion)
 {
-  struct page_info *info = int_map_get(cache->page_map, pageCheck.pbn);
+  struct page_info *info = vdo_int_map_get(cache->page_map, pageCheck.pbn);
   CU_ASSERT_PTR_NOT_NULL(info);
   CU_ASSERT_PTR_EQUAL(info, cache->last_found);
   CU_ASSERT_EQUAL(info->pbn, pageCheck.pbn);

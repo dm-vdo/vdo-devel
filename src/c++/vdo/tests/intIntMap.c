@@ -40,7 +40,7 @@ int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
     return result;
   }
 
-  result = make_int_map(initialCapacity, 0, &intIntMap->map);
+  result = vdo_make_int_map(initialCapacity, 0, &intIntMap->map);
   if (result != VDO_SUCCESS) {
     UDS_FREE(intIntMap);
     return result;
@@ -59,7 +59,7 @@ void freeIntIntMap(IntIntMap **mapPtr)
     return;
   }
 
-  free_int_map(UDS_FORGET(intIntMap->map));
+  vdo_free_int_map(UDS_FORGET(intIntMap->map));
 
   IntHolder *holder, *tmp;
   list_for_each_entry_safe_reverse(holder, tmp, &intIntMap->holders, node) {
@@ -74,13 +74,13 @@ void freeIntIntMap(IntIntMap **mapPtr)
 /**********************************************************************/
 size_t intIntMapSize(const IntIntMap *map)
 {
-  return int_map_size(map->map);
+  return vdo_int_map_size(map->map);
 }
 
 /**********************************************************************/
 bool intIntMapGet(IntIntMap *map, uint64_t key, uint64_t *value)
 {
-  IntHolder *holder = int_map_get(map->map, key);
+  IntHolder *holder = vdo_int_map_get(map->map, key);
   if (holder == NULL) {
     return false;
   }
@@ -106,7 +106,8 @@ int intIntMapPut(IntIntMap *map,
   newHolder->value = newValue;
 
   IntHolder *holder;
-  result = int_map_put(map->map, key, newHolder, update, (void **) &holder);
+  result
+    = vdo_int_map_put(map->map, key, newHolder, update, (void **) &holder);
   if (result != VDO_SUCCESS) {
     UDS_FREE(newHolder);
     return result;
@@ -138,7 +139,7 @@ int intIntMapPut(IntIntMap *map,
 /**********************************************************************/
 bool intIntMapRemove(IntIntMap *map, uint64_t key, uint64_t *oldValuePtr)
 {
-  IntHolder *holder = int_map_remove(map->map, key);
+  IntHolder *holder = vdo_int_map_remove(map->map, key);
   if (holder == NULL) {
     return false;
   }
