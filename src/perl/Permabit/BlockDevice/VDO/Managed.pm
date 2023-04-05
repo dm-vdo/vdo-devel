@@ -308,6 +308,7 @@ sub migrate {
   my $currentHost = $self->getMachineName();
   my $newHost = $newMachine->getName();
   if ($currentHost eq $newHost) {
+    $self->installModule();
     return;
   }
 

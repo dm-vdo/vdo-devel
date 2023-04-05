@@ -207,30 +207,30 @@ sub _createVersionedVDODirectory {
 
 ########################################################################
 # Get the path to a directory of artifacts for a specific version of
-# VDO. This creates the directory, if necessary.
+# VDO and host. This creates the directory, if necessary.
 #
-# @return The path to the VDO artifacts of the specified version
+# @return The path to the VDO artifacts of the specified version and host
 ##
 sub _getVersionedVDODirectory {
   my ($self) = assertNumArgs(1, @_);
-
+  my $hostName = $self->getMachineName();
   my $versionName = $self->{_versionData}->{moduleVersion};
   if ($self->{_versionData}->{isCurrent}
       && $self->{_versionData}->{branch} eq "head") {
-    $self->{_versions}->{$versionName} = $self->{binaryDir};
+    $self->{_versions}->{$versionName}->{$hostName} = $self->{binaryDir};
   }
 
   my $versionDir;
-  if (defined($self->{_versions}->{$versionName})) {
-    $versionDir = $self->{_versions}->{$versionName};
+  if (defined($self->{_versions}->{$versionName}->{$hostName})) {
+    $versionDir = $self->{_versions}->{$versionName}->{$hostName};
 
     if (!$self->sendCommand("test -d $versionDir")) {
-      return $self->{_versions}->{$versionName};
+      return $self->{_versions}->{$versionName}->{$hostName};
     }
   }
 
   $versionDir = $self->_createVersionedVDODirectory($versionName);
-  $self->{_versions}->{$versionName} = $versionDir;
+  $self->{_versions}->{$versionName}->{$hostName} = $versionDir;
   return $versionDir;
 }
 
@@ -284,8 +284,6 @@ sub switchToScenario {
   $log->info("Switching to VDO $version on " . $machine->getName());
   $self->_setupVersionData($version);
   $self->migrate($machine);
-  $self->_installBinaries();
-  $self->installModule();
   $self->verifyModuleVersion();
   $self->_setupScenarioData($scenario->{name});
 }
