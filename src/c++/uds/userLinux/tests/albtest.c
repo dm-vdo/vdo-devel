@@ -177,6 +177,18 @@ static void createTestFile(const char *path)
 }
 
 /**********************************************************************/
+static void removeTestFile(const char *path)
+{
+  int result = remove_file(path);
+  if (result != UDS_SUCCESS) {
+    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    errx(1, "Failed to remove test files: %s: %s",
+         uds_string_error(result, errbuf, sizeof(errbuf)),
+         path);
+  }
+}
+
+/**********************************************************************/
 static void setupTestState(void)
 {
   const char *const *names = getTestIndexNames();
@@ -188,6 +200,22 @@ static void setupTestState(void)
   names = getTestMultiIndexNames();
   while (*names != NULL) {
     createTestFile(*names);
+    names++;
+  }
+}
+
+/**********************************************************************/
+static void cleanupTestState(void)
+{
+  const char *const *names = getTestIndexNames();
+  while (*names != NULL) {
+    removeTestFile(*names);
+    names++;
+  }
+
+  names = getTestMultiIndexNames();
+  while (*names != NULL) {
+    removeTestFile(*names);
     names++;
   }
 }
@@ -579,6 +607,8 @@ int main(int argc, char **argv)
   } else {
     ret = 1;
   }
+
+  cleanupTestState();
 
   free(testArgv);
 

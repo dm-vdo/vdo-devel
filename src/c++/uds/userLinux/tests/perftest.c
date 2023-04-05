@@ -47,6 +47,18 @@ static void createIndexFile(void)
 }
 
 /**********************************************************************/
+static void removeIndexFile(void)
+{
+  const char *path = getTestIndexName();
+  int result = remove_file(path);
+  if (result != UDS_SUCCESS) {
+    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    errx(1, "Failed to remove index file: %s: %s", path,
+         uds_string_error(result, errbuf, sizeof(errbuf)));
+  }
+}
+
+/**********************************************************************/
 TestResult runTest(const CU_SuiteInfo *suite, const CU_TestInfo *test)
 {
   TestResult result = {
@@ -96,5 +108,6 @@ int main(int argc, const char **argv)
   TestResult result = runSuites(initializeModule());
   printFailuresToStderr(0, result);
   freeTestResults(&result);
+  removeIndexFile();
   return 0;
 }
