@@ -77,10 +77,7 @@ our @EXPORT_OK = qw(
 );
 
 our $SUPPORTED_OSES = ["RHEL8", "RHEL9", "FEDORA36", "FEDORA37"];
-# XXX Adding VFARM and PFARM is a temporary adjustment during development
-# in order to prevent SupportedVersions_t1 from failing [VDO-5409].
-our $SUPPORTED_ARCHITECTURES = ["X86_64", "AARCH64", "PPC64LE", "S390X",
-                                "VFARM", "PFARM"];
+our $SUPPORTED_ARCHITECTURES = ["X86_64", "AARCH64", "PPC64LE", "S390X"];
 
 # The name of the versions and scenarios file to load, which is assumed to
 # exist in the same directory as this module.

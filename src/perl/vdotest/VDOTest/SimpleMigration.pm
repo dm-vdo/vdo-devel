@@ -39,9 +39,9 @@ our %PROPERTIES =
 sub propertiesSimpleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.1-current",
+    initialScenario       => "X86_RHEL9_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["S390X_RHEL9_8.2.1-current"],
+    intermediateScenarios => ["S390X_RHEL9_head"],
   );
 }
 
@@ -58,9 +58,9 @@ sub testSimpleMigration {
 sub propertiesMultipleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.1-current",
+    initialScenario       => "X86_RHEL9_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["S390X_RHEL9_8.2.1-current", "AARCH64_RHEL9_8.2.1-current"],
+    intermediateScenarios => ["S390X_RHEL9_head", "AARCH64_RHEL9_head"],
   );
 }
 

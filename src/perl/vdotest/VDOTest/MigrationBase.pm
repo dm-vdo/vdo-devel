@@ -16,6 +16,7 @@ use Permabit::Assertions qw(
   assertMinMaxArgs
   assertNumArgs
 );
+use Permabit::RSVPer;
 use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS $SUPPORTED_VERSIONS);
 
 use base qw(VDOTest);
@@ -85,26 +86,53 @@ sub set_up {
 ##
 sub reserveHosts {
   my ($self) = assertNumArgs(1, @_);
+  my $rsvper = $self->getRSVPer();
   my @scenarioNames = ($self->{initialScenario},
                        @{$self->{intermediateScenarios}});
 
-  foreach my $name (@scenarioNames) {
-    my $scenarioOSClass = $SUPPORTED_SCENARIOS->{$name}{rsvpOSClass};
-    my $host = undef;
-    my $classString = join(",", $scenarioOSClass, $self->{clientClass});
-    ($host) = $self->reserveNumHosts(1, $classString, $self->{clientLabel});
-    $self->{_scenarios}->{$name}{hostname} = $host;
+  # Create hash of existing reserved hosts.
+  my $reservedHosts = $self->canonicalizeHostnames($self->{clientNames});
+  my $reserved = {};
+  for my $host (@{$reservedHosts}) {
+    my @classes = $rsvper->getHostOSArchClasses($host);
+    if (scalar(@classes) == 0) {
+      next;
+    }
 
-    my $lcOSClass = lc($scenarioOSClass);
+    my $key = join(",", @classes);
+    if (defined($reserved->{$key})) {
+      push(@{$reserved->{$key}}, $host);
+    } else {
+      $reserved->{$key} = [$host];
+    }
+  }
+
+  # Assign or reserve the host needed for each scenario.
+  foreach my $name (@scenarioNames) {
+    my $scenarioInfo = $SUPPORTED_SCENARIOS->{$name};
+    my $OSClass = $scenarioInfo->{rsvpOSClass};
+    my $lcOSClass = lc($OSClass);
+    my $arch = $scenarioInfo->{arch};
+
+    if ($name eq $self->{initialScenario}) {
+      $self->{defaultHostType} = $lcOSClass;
+    }
+
+    my $host = undef;
+    my $key = "$OSClass,$arch";
+    if (defined($reserved->{$key}) && scalar(@{$reserved->{$key}}) > 0) {
+      $host = shift(@{$reserved->{$key}});
+    } else {
+      my $classString = join(",", $OSClass, $arch, $self->{clientClass});
+      ($host) = $self->reserveNumHosts(1, $classString, $self->{clientLabel});
+    }
+
     push(@{$self->{$lcOSClass . "Names"}}, $host);
 
     if (!grep(/^$lcOSClass$/, @{$self->{typeNames}})) {
       push(@{$self->{typeNames}}, $lcOSClass);
     }
   }
-
-  $self->{defaultHostType} =
-    lc($SUPPORTED_SCENARIOS->{$self->{initialScenario}}{rsvpOSClass});
 }
 
 #############################################################################

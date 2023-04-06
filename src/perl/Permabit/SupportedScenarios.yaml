@@ -29,12 +29,12 @@ X86_RHEL8_6.2.8-current:
   arch: X86_64
   moduleVersion: 6.2.8-current
 
-AARCH64_RHEL9_8.2.1-current:
+AARCH64_RHEL9_head:
   rsvpOSClass: RHEL9
-  arch: PFARM
-  moduleVersion: 8.2.1-current
+  arch: AARCH64
+  moduleVersion: head
 
-S390X_RHEL9_8.2.1-current:
+S390X_RHEL9_head:
   rsvpOSClass: RHEL9
-  arch: VFARM
-  moduleVersion: 8.2.1-current
+  arch: S390X
+  moduleVersion: head
