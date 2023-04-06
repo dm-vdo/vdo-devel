@@ -619,6 +619,7 @@ static bool find_recovery_journal_head_and_tail(struct recovery_completion *reco
 	bool found_entries = false;
 	physical_block_number_t i;
 
+	recovery->highest_tail = journal->tail;
 	for (i = 0; i < journal->size; i++) {
 		struct recovery_block_header header =
 			get_recovery_journal_block_header(journal, recovery->journal_data, i);
@@ -635,6 +636,9 @@ static bool find_recovery_journal_head_and_tail(struct recovery_completion *reco
 			found_entries = true;
 			recovery->highest_tail = header.sequence_number;
 		}
+
+		if (!found_entries)
+			continue;
 
 		if (header.block_map_head > recovery->block_map_head)
 			recovery->block_map_head = header.block_map_head;
