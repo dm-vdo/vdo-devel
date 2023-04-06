@@ -58,7 +58,7 @@ struct queued_read {
 };
 
 struct __aligned(L1_CACHE_BYTES) search_pending_counter {
-	atomic64_t atomic_value;
+	u64 atomic_value;
 };
 
 struct cached_page {

@@ -76,13 +76,13 @@ static const u64 BAD_CHAPTER = U64_MAX;
  * search. Any other thread will only read the counter in wait_for_pending_searches() while waiting
  * to update the cache contents.
  */
-typedef u64 invalidate_counter_t;
-
-/* These masks select the fields of an invalidate_counter_t. */
-/* The mask for the page number field */
-#define PAGE_FIELD ((u64) U32_MAX)
-/* The mask for the LSB of the counter field */
-#define COUNTER_LSB (PAGE_FIELD + 1L)
+union invalidate_counter {
+	u64 value;
+	struct {
+		u32 page;
+		u32 counter;
+	};
+};
 
 #ifdef TEST_INTERNAL
 /* This function pointer allows unit tests to intercept the slow-lane requeuing of a request. */
@@ -128,39 +128,35 @@ u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
 	return HEADER_PAGES_PER_VOLUME + (geometry->pages_per_chapter * chapter) + page;
 }
 
-static inline invalidate_counter_t
+static inline union invalidate_counter
 get_invalidate_counter(struct page_cache *cache, unsigned int zone_number)
 {
-	return atomic64_read(&cache->search_pending_counters[zone_number].atomic_value);
+	return (union invalidate_counter) {
+		.value = READ_ONCE(cache->search_pending_counters[zone_number].atomic_value),
+	};
 }
 
 static inline void set_invalidate_counter(struct page_cache *cache,
 					  unsigned int zone_number,
-					  invalidate_counter_t invalidate_counter)
+					  union invalidate_counter invalidate_counter)
 {
-	atomic64_set(&cache->search_pending_counters[zone_number].atomic_value,
-		     invalidate_counter);
+	WRITE_ONCE(cache->search_pending_counters[zone_number].atomic_value,
+		   invalidate_counter.value);
 }
 
-static inline u32 searched_page(invalidate_counter_t counter)
+static inline bool search_pending(union invalidate_counter invalidate_counter)
 {
-	return counter & PAGE_FIELD;
-}
-
-static inline bool search_pending(invalidate_counter_t invalidate_counter)
-{
-	return (invalidate_counter & COUNTER_LSB) != 0;
+	return (invalidate_counter.counter & 1) != 0;
 }
 
 /* Lock the cache for a zone in order to search for a page. */
 EXTERNAL_STATIC void
 begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number)
 {
-	invalidate_counter_t invalidate_counter = get_invalidate_counter(cache, zone_number);
+	union invalidate_counter invalidate_counter = get_invalidate_counter(cache, zone_number);
 
-	invalidate_counter &= ~PAGE_FIELD;
-	invalidate_counter |= physical_page;
-	invalidate_counter += COUNTER_LSB;
+	invalidate_counter.page = physical_page;
+	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
 			"Search is pending for zone %u",
@@ -176,7 +172,7 @@ begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int z
 /* Unlock the cache for a zone by clearing its invalidate counter. */
 EXTERNAL_STATIC void end_pending_search(struct page_cache *cache, unsigned int zone_number)
 {
-	invalidate_counter_t invalidate_counter;
+	union invalidate_counter invalidate_counter;
 
 	/*
 	 * This memory barrier ensures that this thread completes reads of the
@@ -189,13 +185,13 @@ EXTERNAL_STATIC void end_pending_search(struct page_cache *cache, unsigned int z
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
 			"Search is pending for zone %u",
 			zone_number);
-	invalidate_counter += COUNTER_LSB;
+	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 }
 
 static void wait_for_pending_searches(struct page_cache *cache, u32 physical_page)
 {
-	invalidate_counter_t initial_counters[MAX_ZONES];
+	union invalidate_counter initial_counters[MAX_ZONES];
 	unsigned int i;
 
 	/*
@@ -210,14 +206,14 @@ static void wait_for_pending_searches(struct page_cache *cache, u32 physical_pag
 		initial_counters[i] = get_invalidate_counter(cache, i);
 	for (i = 0; i < cache->zone_count; i++)
 		if (search_pending(initial_counters[i]) &&
-		    (searched_page(initial_counters[i]) == physical_page))
+		    (initial_counters[i].page == physical_page))
 			/*
 			 * There is an active search using the physical page. We need to wait for
 			 * the search to finish.
 			 *
 			 * FIXME: Investigate using wait_event() to wait for the search to finish.
 			 */
-			while (initial_counters[i] == get_invalidate_counter(cache, i))
+			while (initial_counters[i].value == get_invalidate_counter(cache, i).value)
 				cond_resched();
 }
 
@@ -470,7 +466,7 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 static void wait_for_read_queue_not_full(struct volume *volume, struct uds_request *request)
 {
 	unsigned int zone_number = get_zone_number(request);
-	invalidate_counter_t invalidate_counter =
+	union invalidate_counter invalidate_counter =
 		get_invalidate_counter(&volume->page_cache, zone_number);
 
 	if (search_pending(invalidate_counter))
@@ -489,9 +485,7 @@ static void wait_for_read_queue_not_full(struct volume *volume, struct uds_reque
 
 	if (search_pending(invalidate_counter))
 		/* Reacquire the search_pending lock released earlier. */
-		begin_pending_search(&volume->page_cache,
-				     searched_page(invalidate_counter),
-				     zone_number);
+		begin_pending_search(&volume->page_cache, invalidate_counter.page, zone_number);
 }
 
 int enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page)
