@@ -15,7 +15,6 @@
 @deferred
   = (
      "DDBenchTest",                # This is failing the continuous build
-     "SystemTapCommand_t1",        # VDO-5501 systemtap bug on latest kernels 
     );
 
 ###########################################################################
