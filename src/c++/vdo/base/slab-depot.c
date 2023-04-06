@@ -454,6 +454,42 @@ static void reap_slab_journal(struct slab_journal *journal)
 }
 
 /**
+ * adjust_slab_journal_block_reference() - Adjust the reference count for a slab journal block.
+ * @journal: The slab journal.
+ * @sequence_number: The journal sequence number of the referenced block.
+ * @adjustment: Amount to adjust the reference counter.
+ *
+ * Note that when the adjustment is negative, the slab journal will be reaped.
+ */
+EXTERNAL_STATIC void
+adjust_slab_journal_block_reference(struct slab_journal *journal,
+				    sequence_number_t sequence_number,
+				    int adjustment)
+{
+	struct journal_lock *lock;
+
+	if (sequence_number == 0)
+		return;
+
+	if (journal->slab->status == VDO_SLAB_REPLAYING)
+		/* Locks should not be used during offline replay. */
+		return;
+
+	ASSERT_LOG_ONLY((adjustment != 0), "adjustment must be non-zero");
+	lock = get_lock(journal, sequence_number);
+	if (adjustment < 0)
+		ASSERT_LOG_ONLY((-adjustment <= lock->count),
+				"adjustment %d of lock count %u for slab journal block %llu must not underflow",
+				adjustment,
+				lock->count,
+				(unsigned long long) sequence_number);
+
+	lock->count += adjustment;
+	if (lock->count == 0)
+		reap_slab_journal(journal);
+}
+
+/**
  * release_journal_locks() - Callback invoked after a slab summary update completes.
  * @waiter: The slab summary waiter that has just been notified.
  * @context: The result code of the update.
@@ -509,7 +545,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		 * Release our own lock against reaping for blocks that are committed. (This
 		 * function will not change locks during replay.)
 		 */
-		vdo_adjust_slab_journal_block_reference(journal, i, -1);
+		adjust_slab_journal_block_reference(journal, i, -1);
 	}
 
 	journal->updating_slab_summary = false;
@@ -673,9 +709,9 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 		 * Release the per-entry locks for any unused entries in the block we are about to
 		 * write.
 		 */
-		vdo_adjust_slab_journal_block_reference(journal,
-							header->sequence_number,
-							-unused_entries);
+		adjust_slab_journal_block_reference(journal,
+						    header->sequence_number,
+						    -unused_entries);
 		journal->partial_write_in_progress = !block_is_full(journal);
 	}
 
@@ -852,6 +888,11 @@ static void add_entry(struct slab_journal *journal,
 		commit_tail(journal);
 }
 
+static inline block_count_t journal_length(const struct slab_journal *journal)
+{
+	return journal->tail - journal->head;
+}
+
 /**
  * vdo_attempt_replay_into_slab_journal() - Attempt to replay a recovery journal entry into a slab
  *                                          journal.
@@ -895,7 +936,7 @@ bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 		return false;
 	}
 
-	if ((journal->tail - journal->head) >= journal->size) {
+	if (journal_length(journal) >= journal->size) {
 		/*
 		 * We must have reaped the current head before the crash, since the blocked
 		 * threshold keeps us from having more entries than fit in a slab journal; hence we
@@ -913,19 +954,6 @@ bool vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 }
 
 /**
- * requires_flushing() - Check whether the journal should be saving reference blocks out.
- * @journal: The journal to check.
- *
- * Return: true if the journal should be requesting reference block writes.
- */
-static bool requires_flushing(const struct slab_journal *journal)
-{
-	block_count_t journal_length = (journal->tail - journal->head);
-
-	return (journal_length >= journal->flushing_threshold);
-}
-
-/**
  * requires_reaping() - Check whether the journal must be reaped before adding new entries.
  * @journal: The journal to check.
  *
@@ -933,9 +961,7 @@ static bool requires_flushing(const struct slab_journal *journal)
  */
 static bool requires_reaping(const struct slab_journal *journal)
 {
-	block_count_t journal_length = (journal->tail - journal->head);
-
-	return (journal_length >= journal->blocking_threshold);
+	return (journal_length(journal) >= journal->blocking_threshold);
 }
 
 /**
@@ -946,9 +972,239 @@ static bool requires_reaping(const struct slab_journal *journal)
  */
 bool vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal)
 {
-	block_count_t journal_length = (journal->tail - journal->head);
+	return (journal_length(journal) >= journal->scrubbing_threshold);
+}
 
-	return (journal_length >= journal->scrubbing_threshold);
+/** finish_summary_update() - A waiter callback that resets the writing state of a slab. */
+static void finish_summary_update(struct waiter *waiter, void *context)
+{
+	struct vdo_slab *slab = container_of(waiter, struct vdo_slab, summary_waiter);
+	int result = *((int *) context);
+
+	slab->updating_summary = false;
+
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		uds_log_error_strerror(result, "failed to update slab summary");
+		vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
+	}
+
+	vdo_check_if_slab_drained(slab);
+}
+
+/**
+ * handle_io_error() - Handle an I/O error reading or writing a reference count block.
+ * @completion: The VIO doing the I/O as a completion.
+ */
+static void handle_io_error(struct vdo_completion *completion)
+{
+	int result = completion->result;
+	struct vio *vio = as_vio(completion);
+	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
+
+	record_metadata_io_error(vio);
+	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	slab->active_count--;
+	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
+	vdo_check_if_slab_drained(slab);
+}
+
+/**
+ * has_active_io() - Check whether a slab has active reference block or summary I/O.
+ */
+static bool __must_check has_active_io(struct vdo_slab *slab)
+{
+	return ((slab->active_count > 0) || slab->updating_summary);
+}
+
+/**
+ * finish_reference_block_write() - After a reference block has written, clean it, release its
+ *                                  locks, and return its VIO to the pool.
+ * @completion: The VIO that just finished writing.
+ */
+static void finish_reference_block_write(struct vdo_completion *completion)
+{
+	struct vio *vio = as_vio(completion);
+	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
+	struct reference_block *block = completion->parent;
+	struct vdo_slab *slab = block->slab;
+	tail_block_offset_t offset;
+
+	slab->active_count--;
+
+	/* Release the slab journal lock. */
+	adjust_slab_journal_block_reference(slab->journal,
+					    block->slab_journal_lock_to_release,
+					    -1);
+	return_vio_to_pool(slab->allocator->vio_pool, pooled);
+
+	/*
+	 * We can't clear the is_writing flag earlier as releasing the slab journal lock may cause
+	 * us to be dirtied again, but we don't want to double enqueue.
+	 */
+	block->is_writing = false;
+
+	if (vdo_is_read_only(completion->vdo)) {
+		vdo_check_if_slab_drained(slab);
+		return;
+	}
+
+	/* Re-queue the block if it was re-dirtied while it was writing. */
+	if (block->is_dirty) {
+		vdo_enqueue_waiter(&block->slab->dirty_blocks, &block->waiter);
+		if (vdo_is_state_draining(&slab->state))
+			/* We must be saving, and this block will otherwise not be relaunched. */
+			vdo_save_dirty_reference_blocks(slab);
+
+		return;
+	}
+
+	/*
+	 * Mark the slab as clean in the slab summary if there are no dirty or writing blocks
+	 * and no summary update in progress.
+	 */
+	if (has_active_io(slab) || vdo_has_waiters(&slab->dirty_blocks))
+		return;
+
+	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
+	slab->updating_summary = true;
+	slab->summary_waiter.callback = finish_summary_update;
+	vdo_update_slab_summary_entry(slab,
+				      &slab->summary_waiter,
+				      offset,
+				      true,
+				      true,
+				      slab->free_blocks);
+}
+
+/**
+ * get_reference_counters_for_block() - Find the reference counters for a given block.
+ * @block: The reference_block in question.
+ *
+ * Return: A pointer to the reference counters for this block.
+ */
+EXTERNAL_STATIC vdo_refcount_t * __must_check
+get_reference_counters_for_block(struct reference_block *block)
+{
+	size_t block_index = block - block->slab->reference_blocks;
+
+	return &block->slab->counters[block_index * COUNTS_PER_BLOCK];
+}
+
+/**
+ * pack_reference_block() - Copy data from a reference block to a buffer ready to be written out.
+ * @block: The block to copy.
+ * @buffer: The char buffer to fill with the packed block.
+ */
+EXTERNAL_STATIC void pack_reference_block(struct reference_block *block, void *buffer)
+{
+	struct packed_reference_block *packed = buffer;
+	vdo_refcount_t *counters = get_reference_counters_for_block(block);
+	sector_count_t i;
+	struct packed_journal_point commit_point;
+
+	vdo_pack_journal_point(&block->slab->slab_journal_point, &commit_point);
+
+	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
+		packed->sectors[i].commit_point = commit_point;
+		memcpy(packed->sectors[i].counts,
+		       counters + (i * COUNTS_PER_SECTOR),
+		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
+	}
+}
+
+static void write_reference_block_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct reference_block *block = vio->completion.parent;
+	thread_id_t thread_id = block->slab->allocator->thread_id;
+
+	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
+}
+
+/**
+ * write_reference_block() - After a dirty block waiter has gotten a VIO from the VIO pool, copy
+ *                           its counters and associated data into the VIO, and launch the write.
+ * @waiter: The waiter of the dirty block.
+ * @context: The VIO returned by the pool.
+ */
+static void write_reference_block(struct waiter *waiter, void *context)
+{
+	size_t block_offset;
+	physical_block_number_t pbn;
+	struct pooled_vio *pooled = context;
+	struct vdo_completion *completion = &pooled->vio.completion;
+	struct reference_block *block = container_of(waiter, struct reference_block, waiter);
+
+	pack_reference_block(block, pooled->vio.data);
+	block_offset = (block - block->slab->reference_blocks);
+	pbn = (block->slab->ref_counts_origin + block_offset);
+	block->slab_journal_lock_to_release = block->slab_journal_lock;
+	completion->parent = block;
+
+	/*
+	 * Mark the block as clean, since we won't be committing any updates that happen after this
+	 * moment. As long as VIO order is preserved, two VIOs updating this block at once will not
+	 * cause complications.
+	 */
+	block->is_dirty = false;
+
+	/*
+	 * Flush before writing to ensure that the recovery journal and slab journal entries which
+	 * cover this reference update are stable (VDO-2331).
+	 */
+	WRITE_ONCE(block->slab->allocator->ref_counts_statistics.blocks_written,
+		   block->slab->allocator->ref_counts_statistics.blocks_written + 1);
+
+	completion->callback_thread_id = ((struct block_allocator *) pooled->context)->thread_id;
+	submit_metadata_vio(&pooled->vio,
+			    pbn,
+			    write_reference_block_endio,
+			    handle_io_error,
+			    REQ_OP_WRITE | REQ_PREFLUSH);
+}
+
+/**
+ * launch_reference_block_write() - Launch the write of a dirty reference block by first acquiring
+ *                                  a VIO for it from the pool.
+ * @waiter: The waiter of the block which is starting to write.
+ * @context: The parent slab of the block.
+ *
+ * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
+ * currently in use.
+ */
+EXTERNAL_STATIC void launch_reference_block_write(struct waiter *waiter, void *context)
+{
+	struct vdo_slab *slab = context;
+
+	if (vdo_is_read_only(slab->allocator->depot->vdo))
+		return;
+
+	slab->active_count++;
+	container_of(waiter, struct reference_block, waiter)->is_writing = true;
+	waiter->callback = write_reference_block;
+	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
+}
+
+static void reclaim_journal_space(struct slab_journal *journal)
+{
+	block_count_t length = journal_length(journal);
+	struct vdo_slab *slab = journal->slab;
+	block_count_t write_count = vdo_count_waiters(&slab->dirty_blocks);
+	block_count_t written;
+
+	if ((length < journal->flushing_threshold) || (write_count == 0))
+		return;
+
+	/* The slab journal is over the first threshold, schedule some reference block writes. */
+	WRITE_ONCE(journal->events->flush_count, journal->events->flush_count + 1);
+	if (length < journal->flushing_deadline)
+		/* Schedule more writes the closer to the deadline we get. */
+		write_count = max_t(block_count_t,
+				    write_count / (journal->flushing_deadline - length + 1),
+				    1);
+
+	for (written = 0; written < write_count; written++)
+		vdo_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write, slab);
 }
 
 /**
@@ -988,20 +1244,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 		}
 
 		mark_slab_journal_dirty(journal, recovery_block);
-
-		/*
-		 * If the slab journal is over the first threshold, tell the ref_counts to write
-		 * some reference blocks soon.
-		 */
-		if (requires_flushing(journal)) {
-			block_count_t journal_length = (journal->tail - journal->head);
-			block_count_t blocks_to_deadline = 0;
-
-			WRITE_ONCE(journal->events->flush_count, journal->events->flush_count + 1);
-			if (journal_length <= journal->flushing_deadline)
-				blocks_to_deadline = journal->flushing_deadline - journal_length;
-			vdo_save_several_reference_blocks(journal->slab, blocks_to_deadline + 1);
-		}
+		reclaim_journal_space(journal);
 	}
 
 	add_entry(journal,
@@ -1171,40 +1414,6 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 		vdo_register_slab_for_scrubbing(slab, true);
 
 	add_entries(journal);
-}
-
-/**
- * vdo_adjust_slab_journal_block_reference() - Adjust the reference count for a slab journal block.
- * @journal: The slab journal.
- * @sequence_number: The journal sequence number of the referenced block.
- * @adjustment: Amount to adjust the reference counter.
- *
- * Note that when the adjustment is negative, the slab journal will be reaped.
- */
-void vdo_adjust_slab_journal_block_reference(struct slab_journal *journal,
-					     sequence_number_t sequence_number,
-					     int adjustment)
-{
-	struct journal_lock *lock;
-
-	if (sequence_number == 0)
-		return;
-
-	if (journal->slab->status == VDO_SLAB_REPLAYING)
-		/* Locks should not be used during offline replay. */
-		return;
-
-	ASSERT_LOG_ONLY((adjustment != 0), "adjustment must be non-zero");
-	lock = get_lock(journal, sequence_number);
-	if (adjustment < 0)
-		ASSERT_LOG_ONLY((-adjustment <= lock->count),
-				"adjustment %d of lock count %u for slab journal block %llu must not underflow",
-				adjustment, lock->count,
-				(unsigned long long) sequence_number);
-
-	lock->count += adjustment;
-	if (lock->count == 0)
-		reap_slab_journal(journal);
 }
 
 /**
@@ -1504,14 +1713,6 @@ static bool advance_search_cursor(struct vdo_slab *slab)
 	else
 		cursor->end_index += COUNTS_PER_BLOCK;
 	return true;
-}
-
-/**
- * has_active_io() - Check whether a slab has active reference block or summary I/O.
- */
-static bool __must_check has_active_io(struct vdo_slab *slab)
-{
-	return ((slab->active_count > 0) || slab->updating_summary);
 }
 
 /**
@@ -1891,7 +2092,7 @@ adjust_reference_count(struct vdo_slab *slab,
 		if (result != VDO_SUCCESS)
 			return result;
 
-		vdo_adjust_slab_journal_block_reference(slab->journal, entry_lock, -1);
+		adjust_slab_journal_block_reference(slab->journal, entry_lock, -1);
 		return VDO_SUCCESS;
 	}
 
@@ -2146,235 +2347,6 @@ make_provisional_reference(struct vdo_slab *slab, slab_block_number block_number
 	slab->free_blocks--;
 }
 
-/** finish_summary_update() - A waiter callback that resets the writing state of a slab. */
-static void finish_summary_update(struct waiter *waiter, void *context)
-{
-	struct vdo_slab *slab = container_of(waiter, struct vdo_slab, summary_waiter);
-	int result = *((int *) context);
-
-	slab->updating_summary = false;
-
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		uds_log_error_strerror(result, "failed to update slab summary");
-		vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
-	}
-
-	vdo_check_if_slab_drained(slab);
-}
-
-/**
- * handle_io_error() - Handle an I/O error reading or writing a reference count block.
- * @completion: The VIO doing the I/O as a completion.
- */
-static void handle_io_error(struct vdo_completion *completion)
-{
-	int result = completion->result;
-	struct vio *vio = as_vio(completion);
-	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
-
-	record_metadata_io_error(vio);
-	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
-	slab->active_count--;
-	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
-	vdo_check_if_slab_drained(slab);
-}
-
-/**
- * finish_reference_block_write() - After a reference block has written, clean it, release its
- *                                  locks, and return its VIO to the pool.
- * @completion: The VIO that just finished writing.
- */
-static void finish_reference_block_write(struct vdo_completion *completion)
-{
-	struct vio *vio = as_vio(completion);
-	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
-	struct reference_block *block = completion->parent;
-	struct vdo_slab *slab = block->slab;
-	tail_block_offset_t offset;
-
-	slab->active_count--;
-
-	/* Release the slab journal lock. */
-	vdo_adjust_slab_journal_block_reference(slab->journal,
-						block->slab_journal_lock_to_release,
-						-1);
-	return_vio_to_pool(slab->allocator->vio_pool, pooled);
-
-	/*
-	 * We can't clear the is_writing flag earlier as releasing the slab journal lock may cause
-	 * us to be dirtied again, but we don't want to double enqueue.
-	 */
-	block->is_writing = false;
-
-	if (vdo_is_read_only(completion->vdo)) {
-		vdo_check_if_slab_drained(slab);
-		return;
-	}
-
-	/* Re-queue the block if it was re-dirtied while it was writing. */
-	if (block->is_dirty) {
-		vdo_enqueue_waiter(&block->slab->dirty_blocks, &block->waiter);
-		if (vdo_is_state_draining(&slab->state))
-			/* We must be saving, and this block will otherwise not be relaunched. */
-			vdo_save_dirty_reference_blocks(slab);
-
-		return;
-	}
-
-	/*
-	 * Mark the slab as clean in the slab summary if there are no dirty or writing blocks
-	 * and no summary update in progress.
-	 */
-	if (has_active_io(slab) || vdo_has_waiters(&slab->dirty_blocks))
-		return;
-
-	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
-	slab->updating_summary = true;
-	slab->summary_waiter.callback = finish_summary_update;
-	vdo_update_slab_summary_entry(slab,
-				      &slab->summary_waiter,
-				      offset,
-				      true,
-				      true,
-				      slab->free_blocks);
-}
-
-/**
- * get_reference_counters_for_block() - Find the reference counters for a given block.
- * @block: The reference_block in question.
- *
- * Return: A pointer to the reference counters for this block.
- */
-EXTERNAL_STATIC vdo_refcount_t * __must_check
-get_reference_counters_for_block(struct reference_block *block)
-{
-	size_t block_index = block - block->slab->reference_blocks;
-
-	return &block->slab->counters[block_index * COUNTS_PER_BLOCK];
-}
-
-/**
- * pack_reference_block() - Copy data from a reference block to a buffer ready to be written out.
- * @block: The block to copy.
- * @buffer: The char buffer to fill with the packed block.
- */
-EXTERNAL_STATIC void pack_reference_block(struct reference_block *block, void *buffer)
-{
-	struct packed_reference_block *packed = buffer;
-	vdo_refcount_t *counters = get_reference_counters_for_block(block);
-	sector_count_t i;
-	struct packed_journal_point commit_point;
-
-	vdo_pack_journal_point(&block->slab->slab_journal_point, &commit_point);
-
-	for (i = 0; i < VDO_SECTORS_PER_BLOCK; i++) {
-		packed->sectors[i].commit_point = commit_point;
-		memcpy(packed->sectors[i].counts,
-		       counters + (i * COUNTS_PER_SECTOR),
-		       (sizeof(vdo_refcount_t) * COUNTS_PER_SECTOR));
-	}
-}
-
-static void write_reference_block_endio(struct bio *bio)
-{
-	struct vio *vio = bio->bi_private;
-	struct reference_block *block = vio->completion.parent;
-	thread_id_t thread_id = block->slab->allocator->thread_id;
-
-	continue_vio_after_io(vio, finish_reference_block_write, thread_id);
-}
-
-/**
- * write_reference_block() - After a dirty block waiter has gotten a VIO from the VIO pool, copy
- *                           its counters and associated data into the VIO, and launch the write.
- * @waiter: The waiter of the dirty block.
- * @context: The VIO returned by the pool.
- */
-static void write_reference_block(struct waiter *waiter, void *context)
-{
-	size_t block_offset;
-	physical_block_number_t pbn;
-	struct pooled_vio *pooled = context;
-	struct vdo_completion *completion = &pooled->vio.completion;
-	struct reference_block *block = container_of(waiter, struct reference_block, waiter);
-
-	pack_reference_block(block, pooled->vio.data);
-	block_offset = (block - block->slab->reference_blocks);
-	pbn = (block->slab->ref_counts_origin + block_offset);
-	block->slab_journal_lock_to_release = block->slab_journal_lock;
-	completion->parent = block;
-
-	/*
-	 * Mark the block as clean, since we won't be committing any updates that happen after this
-	 * moment. As long as VIO order is preserved, two VIOs updating this block at once will not
-	 * cause complications.
-	 */
-	block->is_dirty = false;
-
-	/*
-	 * Flush before writing to ensure that the recovery journal and slab journal entries which
-	 * cover this reference update are stable (VDO-2331).
-	 */
-	WRITE_ONCE(block->slab->allocator->ref_counts_statistics.blocks_written,
-		   block->slab->allocator->ref_counts_statistics.blocks_written + 1);
-
-	completion->callback_thread_id = ((struct block_allocator *) pooled->context)->thread_id;
-	submit_metadata_vio(&pooled->vio,
-			    pbn,
-			    write_reference_block_endio,
-			    handle_io_error,
-			    REQ_OP_WRITE | REQ_PREFLUSH);
-}
-
-/**
- * launch_reference_block_write() - Launch the write of a dirty reference block by first acquiring
- *                                  a VIO for it from the pool.
- * @waiter: The waiter of the block which is starting to write.
- * @context: The parent slab of the block.
- *
- * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
- * currently in use.
- */
-static void launch_reference_block_write(struct waiter *waiter, void *context)
-{
-	struct reference_block *block;
-	struct vdo_slab *slab = context;
-
-	if (vdo_is_read_only(slab->allocator->depot->vdo))
-		return;
-
-	slab->active_count++;
-	block = container_of(waiter, struct reference_block, waiter);
-	block->is_writing = true;
-	waiter->callback = write_reference_block;
-	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
-}
-
-/**
- * vdo_save_several_reference_blocks() - Request a slab object save several dirty blocks
- *                                       asynchronously.
- * @slab: The slab to notify.
- * @flush_divisor: The inverse fraction of the dirty blocks to write.
- *
- * This function currently writes 1 / flush_divisor of the dirty blocks.
- */
-void vdo_save_several_reference_blocks(struct vdo_slab *slab, size_t flush_divisor)
-{
-	block_count_t written, blocks_to_write;
-	block_count_t dirty_block_count = vdo_count_waiters(&slab->dirty_blocks);
-
-	if (dirty_block_count == 0)
-		return;
-
-	blocks_to_write = dirty_block_count / flush_divisor;
-	/* Always save at least one block. */
-	if (blocks_to_write == 0)
-		blocks_to_write = 1;
-
-	for (written = 0; written < blocks_to_write; written++)
-		vdo_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write, slab);
-}
-
 /**
  * vdo_save_dirty_reference_blocks() - Ask a slab object to save all its dirty blocks
  *                                     asynchronously.
@@ -2595,7 +2567,7 @@ void vdo_acquire_dirty_block_locks(struct vdo_slab *slab)
 	for (i = 0; i < slab->reference_block_count; i++)
 		slab->reference_blocks[i].slab_journal_lock = 1;
 
-	vdo_adjust_slab_journal_block_reference(slab->journal, 1, slab->reference_block_count);
+	adjust_slab_journal_block_reference(slab->journal, 1, slab->reference_block_count);
 }
 
 /**
@@ -3628,9 +3600,9 @@ int vdo_modify_slab_reference_count(struct vdo_slab *slab,
 	 * refCount. Note that the slab journal has already captured all refCount updates.
 	 */
 	if (slab->status != VDO_SLAB_REBUILT) {
-		vdo_adjust_slab_journal_block_reference(slab->journal,
-							journal_point->sequence_number,
-							-1);
+		adjust_slab_journal_block_reference(slab->journal,
+						    journal_point->sequence_number,
+						    -1);
 		return VDO_SUCCESS;
 	}
 

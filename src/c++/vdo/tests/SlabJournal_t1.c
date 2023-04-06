@@ -732,7 +732,7 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
 }
 
 /**
- * Call vdo_adjust_slab_journal_block_reference(). This is the action performed
+ * Call adjust_slab_journal_block_reference(). This is the action performed
  * by performAdjustment().
  *
  * <p>Implements VDOAction.
@@ -741,8 +741,7 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
  **/
 static void adjustReference(struct vdo_completion *completion)
 {
-  vdo_adjust_slab_journal_block_reference(journal, referenceSequenceNumber,
-                                          referenceAdjustment);
+  adjust_slab_journal_block_reference(journal, referenceSequenceNumber, referenceAdjustment);
   vdo_finish_completion(completion);
 }
 
@@ -1431,8 +1430,6 @@ static void testReaping(void)
   defaultSlabJournalTestInitialization();
   fillSlabJournalUntilBlocking();
 
-  uint64_t flushCount = READ_ONCE(journal->events->flush_count);
-
   // Add entries that will wait for the slab journal to reap.
   CompletionsWrapper      wrappedCompletions;
   EntryNumber             blockedEntry = lastEntry;
@@ -1446,13 +1443,10 @@ static void testReaping(void)
   waitForState(&journalReaped);
   assertJournalHead(2);
 
-  flushCount += 1;
   CU_ASSERT_EQUAL(READ_ONCE(journal->events->disk_full_count), 0);
   uint64_t blockedCount = lastEntry - blockedEntry;
   CU_ASSERT_EQUAL(READ_ONCE(journal->events->blocked_count),
 		  blockedCount);
-  CU_ASSERT_EQUAL(READ_ONCE(journal->events->flush_count),
-		  flushCount);
 
   waitForCompletions(&wrappedCompletions, VDO_SUCCESS);
   freeWrappedCompletions(&wrappedCompletions);
@@ -1490,8 +1484,6 @@ static void testReaping(void)
   CU_ASSERT_EQUAL(READ_ONCE(journal->events->disk_full_count), 0);
   CU_ASSERT_EQUAL(READ_ONCE(journal->events->blocked_count),
 		  blockedCount);
-  CU_ASSERT_EQUAL(READ_ONCE(journal->events->flush_count),
-		  flushCount);
 }
 
 // READ-ONLY TESTS
@@ -1711,7 +1703,7 @@ static CU_TestInfo slabJournalTests[] = {
   { "commit point",                       testCommitPoint        },
   { "partial block commit",               testPartialBlock       },
   { "reaping",                            testReaping            },
-  { "read-only, waiting for vio",          testVIOEntry           },
+  { "read-only, waiting for vio",         testVIOEntry           },
   { "read-only, while writing",           testWriting            },
   { "read-only, while updating summary",  testSlabSummary        },
   { "read-only, while flushing for reap", testReapFlushing       },

@@ -563,10 +563,6 @@ void vdo_add_slab_journal_entry(struct slab_journal *journal,
 				struct vdo_completion *completion,
 				struct reference_updater *updater);
 
-void vdo_adjust_slab_journal_block_reference(struct slab_journal *journal,
-					     sequence_number_t sequence_number,
-					     int adjustment);
-
 bool __must_check
 vdo_release_recovery_journal_lock(struct slab_journal *journal, sequence_number_t recovery_lock);
 
@@ -598,8 +594,6 @@ int __must_check
 vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
 				       physical_block_number_t pbn,
 				       enum journal_operation operation);
-
-void vdo_save_several_reference_blocks(struct vdo_slab *slab, size_t flush_divisor);
 
 void vdo_save_dirty_reference_blocks(struct vdo_slab *slab);
 
@@ -710,6 +704,12 @@ void vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header
 				   enum journal_operation operation,
 				   bool increment);
 bool __must_check vdo_is_slab_journal_dirty(const struct slab_journal *journal);
+vdo_refcount_t * __must_check get_reference_counters_for_block(struct reference_block *block);
+void pack_reference_block(struct reference_block *block, void *buffer);
+void launch_reference_block_write(struct waiter *waiter, void *context);
+void adjust_slab_journal_block_reference(struct slab_journal *journal,
+					 sequence_number_t sequence_number,
+					 int adjustment);
 enum reference_status __must_check reference_count_to_status(vdo_refcount_t count);
 struct reference_block * __must_check get_reference_block(struct vdo_slab *slab,
 							  slab_block_number index);
@@ -721,8 +721,6 @@ int __must_check replay_reference_count_change(struct vdo_slab *slab,
 					       const struct journal_point *entry_point,
 					       struct slab_journal_entry entry);
 bool __must_check find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr);
-vdo_refcount_t * __must_check get_reference_counters_for_block(struct reference_block *block);
-void pack_reference_block(struct reference_block *block, void *buffer);
 void drain_slab(struct vdo_slab *slab);
 int __must_check make_slab(physical_block_number_t slab_origin,
 			   struct block_allocator *allocator,

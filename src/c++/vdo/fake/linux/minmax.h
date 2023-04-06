@@ -24,6 +24,21 @@
  **/
 #define min_t(type, x, y) ((type) __min((type) (x), (type) (y)))
 
+#define __max(x, y) ((x) > (y) ? (x) : (y))
+
+/**
+ * max_t - return maximum of two values, using the specified type
+ * @type: data type to use
+ * @x: first value
+ * @y: second value
+ *
+ * Note that, unlike in the kernel implementation, this form is not guaranteed
+ * to evaluate to a constant expression, and is not safe to call on
+ * non-constant inputs (such as x++). The kernel implementation runs afoul of
+ * the compiler settings we use in user space.
+ **/
+#define max_t(type, x, y) ((type) __max((type) (x), (type) (y)))
+
 /**
  * swap - swap values of @a and @b
  * @a: first value
