@@ -11,7 +11,6 @@
 
 #include "encodings.h"
 #include "types.h"
-#include "volume-geometry.h"
 
 // The vdo_config structure is fully declared in types.h
 
@@ -65,6 +64,34 @@ int __must_check
 initializeLayoutFromConfig(const struct vdo_config *config,
                            physical_block_number_t  startingOffset,
                            struct layout           *layout);
+
+/**
+ * Compute the index size in blocks from the index_config.
+ *
+ * @param index_config      The index config
+ * @param index_blocks_ptr  A pointer to return the index size in blocks
+ *
+ * @return VDO_SUCCESS or an error.
+ **/
+int __must_check
+computeIndexBlocks(const struct index_config *index_config,
+                   block_count_t             *index_blocks_ptr);
+
+/**
+ * Initialize a volume_geometry for a VDO.
+ *
+ * @param nonce         The nonce for the VDO
+ * @param uuid          The uuid for the VDO
+ * @param index_config  The index config of the VDO
+ * @param geometry      The geometry being initialized
+ *
+ * @return VDO_SUCCESS or an error.
+ **/
+int __must_check
+initializeVolumeGeometry(nonce_t                    nonce,
+                         uuid_t                    *uuid,
+                         const struct index_config *index_config,
+                         struct volume_geometry    *geometry);
 
 /**
  * This is a version of formatVDO() which allows the caller to supply the

@@ -17,7 +17,6 @@
 #include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "volume-geometry.h"
 
 #include "fileLayer.h"
 #include "parseUtils.h"
@@ -570,7 +569,7 @@ readVDOFromDump(const char *filename)
 
   // Load the geometry and tweak it to match the dump.
   struct volume_geometry geometry;
-  result = vdo_load_volume_geometry(layer, &geometry);
+  result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     layer->destroy(&layer);
     char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];

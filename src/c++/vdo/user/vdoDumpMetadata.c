@@ -16,7 +16,6 @@
 #include "encodings.h"
 #include "status-codes.h"
 #include "types.h"
-#include "volume-geometry.h"
 
 #include "blockMapUtils.h"
 #include "fileLayer.h"
@@ -229,7 +228,7 @@ static void dumpGeometryBlock(void)
 static void dumpSuperBlock(void)
 {
   struct volume_geometry geometry;
-  int result = vdo_load_volume_geometry(vdo->layer, &geometry);
+  int result = loadVolumeGeometry(vdo->layer, &geometry);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not load geometry");
   }

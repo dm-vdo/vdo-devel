@@ -101,15 +101,67 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
 }
 
 /**********************************************************************/
+int loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
+{
+  char *block;
+  int result;
+
+  result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block", &block);
+  if (result != VDO_SUCCESS)
+    return result;
+
+  result = layer->reader(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
+  if (result != VDO_SUCCESS) {
+    UDS_FREE(block);
+    return result;
+  }
+
+  result = vdo_parse_geometry_block((u8 *) block, geometry);
+  UDS_FREE(block);
+  return result;
+}
+
+/**********************************************************************/
 int loadVDO(PhysicalLayer *layer, bool validateConfig, UserVDO **vdoPtr)
 {
   struct volume_geometry geometry;
-  int result = vdo_load_volume_geometry(layer, &geometry);
+  int result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   return loadVDOWithGeometry(layer, &geometry, validateConfig, vdoPtr);
+}
+
+/**********************************************************************/
+int writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
+                                   struct volume_geometry *geometry,
+                                   u32                     version)
+{
+  u8 *block;
+  size_t offset = 0;
+  u32 checksum;
+  int result;
+
+  result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry", (char **) &block);
+  if (result != VDO_SUCCESS)
+    return result;
+
+  memcpy(block, VDO_GEOMETRY_MAGIC_NUMBER, VDO_GEOMETRY_MAGIC_NUMBER_SIZE);
+  offset += VDO_GEOMETRY_MAGIC_NUMBER_SIZE;
+
+  result = encode_volume_geometry(block, &offset, geometry, version);
+  if (result != VDO_SUCCESS) {
+    UDS_FREE(block);
+    return result;
+  }
+
+  checksum = vdo_crc32(block, offset);
+  encode_u32_le(block, &offset, checksum);
+
+  result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, (char *) block);
+  UDS_FREE(block);
+  return result;
 }
 
 /**********************************************************************/
@@ -134,7 +186,7 @@ int saveVDO(UserVDO *vdo, bool saveGeometry)
     return VDO_SUCCESS;
   }
 
-  return vdo_write_volume_geometry(vdo->layer, &vdo->geometry);
+  return writeVolumeGeometry(vdo->layer, &vdo->geometry);
 }
 
 /**********************************************************************/

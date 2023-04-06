@@ -10,7 +10,6 @@
 
 #include "encodings.h"
 #include "types.h"
-#include "volume-geometry.h"
 
 #include "physicalLayer.h"
 
@@ -50,6 +49,16 @@ int __must_check makeUserVDO(PhysicalLayer *layer, UserVDO **vdoPtr);
 void freeUserVDO(UserVDO **vdoPtr);
 
 /**
+ * Load the volume geometry from a layer.
+ *
+ * @param layer     The layer from which to read the geometry
+ * @param geometry  The structure to receive the decoded fields
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int __must_check loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry);
+
+/**
  * Read the super block from the location indicated by the geometry.
  *
  * @param vdo  The VDO whose super block is to be read
@@ -84,6 +93,33 @@ int __must_check loadVDOWithGeometry(PhysicalLayer           *layer,
  **/
 int __must_check
 loadVDO(PhysicalLayer *layer, bool validateConfig, UserVDO **vdoPtr);
+
+/**
+ * Write a specific version of geometry block for a VDO.
+ *
+ * @param layer     The layer on which to write
+ * @param geometry  The volume_geometry to be written
+ * @param version   The version of the geometry to write
+ *
+ * @return VDO_SUCCESS or an error.
+ **/
+int __must_check writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
+                                                struct volume_geometry *geometry,
+                                                u32                     version);
+
+/**
+ * Write a geometry block for a VDO.
+ *
+ * @param layer     The layer on which to write
+ * @param geometry  The volume_geometry to be written
+ *
+ * @return VDO_SUCCESS or an error.
+ **/
+static inline int __must_check
+writeVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
+{
+  return writeVolumeGeometryWithVersion(layer, geometry, VDO_DEFAULT_GEOMETRY_BLOCK_VERSION);
+}
 
 /**
  * Encode and write out the super block (assuming the components have already

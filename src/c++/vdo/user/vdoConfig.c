@@ -17,7 +17,6 @@
 #include "encodings.h"
 #include "release-versions.h"
 #include "status-codes.h"
-#include "volume-geometry.h"
 
 #include "physicalLayer.h"
 #include "userVDO.h"
@@ -167,7 +166,7 @@ int calculateMinimumVDOFromConfig(const struct vdo_config   *config,
 
   block_count_t indexSize = 0;
   if (indexConfig != NULL) {
-    int result = vdo_compute_index_blocks(indexConfig, &indexSize);
+    int result = computeIndexBlocks(indexConfig, &indexSize);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -226,6 +225,70 @@ static int __must_check clearPartition(UserVDO *vdo, enum partition_id id)
   return result;
 }
 
+/**********************************************************************/
+int computeIndexBlocks(const struct index_config *index_config,
+                       block_count_t             *index_blocks_ptr)
+{
+  int result;
+  u64 index_bytes;
+  block_count_t index_blocks;
+  struct uds_parameters uds_parameters = {
+    .memory_size = index_config->mem,
+    .sparse = index_config->sparse,
+  };
+
+  result = uds_compute_index_size(&uds_parameters, &index_bytes);
+  if (result != UDS_SUCCESS)
+    return uds_log_error_strerror(result, "error computing index size");
+
+  index_blocks = index_bytes / VDO_BLOCK_SIZE;
+  if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
+    return uds_log_error_strerror(VDO_PARAMETER_MISMATCH,
+                                  "index size must be a multiple of block size %d",
+                                  VDO_BLOCK_SIZE);
+
+  *index_blocks_ptr = index_blocks;
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int initializeVolumeGeometry(nonce_t                    nonce,
+                             uuid_t                    *uuid,
+                             const struct index_config *index_config,
+                             struct volume_geometry    *geometry)
+{
+  int result;
+  block_count_t index_size = 0;
+
+  if (index_config != NULL) {
+    result = computeIndexBlocks(index_config, &index_size);
+    if (result != VDO_SUCCESS)
+      return result;
+  }
+
+  *geometry = (struct volume_geometry) {
+    .release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER,
+    .nonce = nonce,
+    .bio_offset = 0,
+    .regions = {
+      [VDO_INDEX_REGION] = {
+        .id = VDO_INDEX_REGION,
+        .start_block = 1,
+      },
+      [VDO_DATA_REGION] = {
+        .id = VDO_DATA_REGION,
+        .start_block = 1 + index_size,
+      }
+    }
+  };
+
+  uuid_copy(geometry->uuid, *uuid);
+  if (index_size > 0)
+    memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
+
+  return VDO_SUCCESS;
+}
+
 /**
  * Configure a VDO and its geometry and write it out.
  *
@@ -241,13 +304,19 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
                                 nonce_t                    nonce,
                                 uuid_t                    *uuid)
 {
-  int result = vdo_initialize_volume_geometry(nonce, uuid, indexConfig,
-                                              &vdo->geometry);
+  int result = initializeVolumeGeometry(nonce, uuid, indexConfig, &vdo->geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = vdo_clear_volume_geometry(vdo->layer);
+  char *block;
+  result = vdo->layer->allocateIOBuffer(vdo->layer, VDO_BLOCK_SIZE, "geometry block", &block);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = vdo->layer->writer(vdo->layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
+  UDS_FREE(block);
   if (result != VDO_SUCCESS) {
     return result;
   }

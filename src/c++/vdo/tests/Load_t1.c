@@ -10,7 +10,9 @@
 
 #include "encodings.h"
 #include "types.h"
-#include "volume-geometry.h"
+
+#include "userVDO.h"
+#include "vdoConfig.h"
 
 #include "asyncLayer.h"
 #include "ramLayer.h"
@@ -41,9 +43,9 @@ static void testMismatchedNonce(void)
 
   // Perturb the nonce in the geometry block.
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(loadVolumeGeometry(layer, &geometry));
   geometry.nonce++;
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
   startVDOExpectError(vdo_map_to_system_error(VDO_BAD_NONCE));
 }
 
@@ -54,9 +56,9 @@ static void testMismatchedReleaseVersion(void)
 
   // Perturb the release version in the geometry block.
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(loadVolumeGeometry(layer, &geometry));
   geometry.release_version++;
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
   startVDOExpectError(vdo_map_to_system_error(VDO_UNSUPPORTED_VERSION));
 }
 

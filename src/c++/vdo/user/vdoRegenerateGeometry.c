@@ -16,11 +16,11 @@
 #include "constants.h"
 #include "encodings.h"
 #include "status-codes.h"
-#include "volume-geometry.h"
 
 #include "fileLayer.h"
 #include "parseUtils.h"
 #include "userVDO.h"
+#include "vdoConfig.h"
 #include "vdoVolumeUtils.h"
 
 static const char usageString[]
@@ -189,9 +189,7 @@ static int generateGeometry(const uds_memory_config_size_t memory, bool sparse)
     return result;
   }
 
-  result = vdo_initialize_volume_geometry(current_time_us(), &uuid,
-                                          &indexConfig,
-                                          &candidate->geometry);
+  result = initializeVolumeGeometry(current_time_us(), &uuid, &indexConfig, &candidate->geometry);
   if (result != VDO_SUCCESS) {
     warnx("failed to generate geometry for memory %s%s: %s",
           candidate->memoryString, (sparse ? ", sparse" : ""),
@@ -303,7 +301,7 @@ static void rewriteGeometry(Candidate *candidate)
   candidate->geometry.nonce = candidate->vdo->states.vdo.nonce;
   freeUserVDO(&candidate->vdo);
 
-  int result = vdo_write_volume_geometry(fileLayer, &candidate->geometry);
+  int result = writeVolumeGeometry(fileLayer, &candidate->geometry);
   if (result != VDO_SUCCESS) {
     errx(result, "Failed to write new geometry: %s", resultString(result));
   }

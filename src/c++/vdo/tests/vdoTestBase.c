@@ -27,7 +27,6 @@
 #include "status-codes.h"
 #include "types.h"
 #include "vdo.h"
-#include "volume-geometry.h"
 
 #include "blockMapUtils.h"
 #include "userVDO.h"

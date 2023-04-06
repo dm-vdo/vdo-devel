@@ -16,7 +16,8 @@
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "types.h"
-#include "volume-geometry.h"
+
+#include "vdoConfig.h"
 
 #include "dataBlocks.h"
 #include "vdoAsserts.h"
@@ -320,7 +321,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
       .mem    = UDS_MEMORY_CONFIG_TINY_TEST,
       .sparse = false,
     };
-    VDO_ASSERT_SUCCESS(vdo_compute_index_blocks(&indexConfig, &indexBlocks));
+    VDO_ASSERT_SUCCESS(computeIndexBlocks(&indexConfig, &indexBlocks));
   }
 
   TestConfiguration configuration = (TestConfiguration) {

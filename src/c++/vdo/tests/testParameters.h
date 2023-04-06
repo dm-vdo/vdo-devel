@@ -11,7 +11,6 @@
 
 #include "encodings.h"
 #include "types.h"
-#include "volume-geometry.h"
 
 #include "dataBlocks.h"
 

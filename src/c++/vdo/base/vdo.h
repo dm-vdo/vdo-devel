@@ -27,7 +27,6 @@
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
-#include "volume-geometry.h"
 #include "work-queue.h"
 
 enum notifier_state {

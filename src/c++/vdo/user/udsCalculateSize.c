@@ -15,10 +15,12 @@
 #include "logger.h"
 #include "string-utils.h"
 
+#include "encodings.h"
 #include "status-codes.h"
-#include "volume-geometry.h"
+#include "types.h"
 
 #include "parseUtils.h"
+#include "vdoConfig.h"
 
 static const char usageString[] = " [--help] [options...]";
 
@@ -109,9 +111,9 @@ int main(int argc, char *argv[])
   }
 
   block_count_t indexBlocks = 0;
-  result = vdo_compute_index_blocks(&indexConfig, &indexBlocks);
+  result = computeIndexBlocks(&indexConfig, &indexBlocks);
   if (result != VDO_SUCCESS) {
-    errx(result, "vdo_compute_index_blocks failed: %s",
+    errx(result, "computeIndexBlocks failed: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
 

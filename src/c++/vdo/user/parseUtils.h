@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "volume-geometry.h"
+#include "encodings.h"
 
 typedef struct {
   char *sparse;

@@ -14,9 +14,9 @@
 #include "memory-alloc.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "types.h"
 #include "status-codes.h"
-#include "volume-geometry.h"
 
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
@@ -107,7 +107,7 @@ static void readVDOConfig(const char             *vdoBacking,
 
   *configPtr = vdo->states.vdo.config;
 
-  result = vdo_load_volume_geometry(vdo->layer, geometryPtr);
+  result = loadVolumeGeometry(vdo->layer, geometryPtr);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not read VDO geometry from '%s'", vdoBacking);
   }

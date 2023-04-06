@@ -33,7 +33,6 @@ BASE_OBJS :=     			\
 	status-codes.o			\
 	vdo.o				\
 	vio.o				\
-	volume-geometry.o		\
 	wait-queue.o
 
 KERNEL_OBJS:=                           \
@@ -47,5 +46,4 @@ KERNEL_OBJS:=                           \
 USER_OBJECTS:=                  	\
 	constants.o			\
 	encodings.o			\
-	status-codes.o			\
-	volume-geometry.o
+	status-codes.o

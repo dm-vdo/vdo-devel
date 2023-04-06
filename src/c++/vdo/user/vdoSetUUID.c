@@ -14,9 +14,9 @@
 #include "memory-alloc.h"
 
 #include "constants.h"
+#include "encodings.h"
 #include "types.h"
 #include "status-codes.h"
-#include "volume-geometry.h"
 
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
   }
 
   struct volume_geometry geometry;
-  result = vdo_load_volume_geometry(vdo->layer, &geometry);
+  result = loadVolumeGeometry(vdo->layer, &geometry);
   if (result != VDO_SUCCESS) {
     freeVDOFromFile(&vdo);
     errx(1, "Could not load the geometry from '%s'", vdoBacking);
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 
   uuid_copy(geometry.uuid, uuid);
 
-  result = vdo_write_volume_geometry(vdo->layer, &geometry);
+  result = writeVolumeGeometry(vdo->layer, &geometry);
   if (result != VDO_SUCCESS) {
     freeVDOFromFile(&vdo);
     errx(1, "Could not write the geometry to '%s' %s", vdoBacking,

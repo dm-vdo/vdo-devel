@@ -13,7 +13,6 @@
 
 #include "block-map.h"
 #include "encodings.h"
-#include "volume-geometry.h"
 
 #include "vdoConfig.h"
 

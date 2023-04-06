@@ -12,9 +12,11 @@
 #include "syscalls.h"
 
 #include "constants.h"
-#include "volume-geometry.h"
+#include "encodings.h"
 
 #include "physicalLayer.h"
+#include "userVDO.h"
+#include "vdoConfig.h"
 
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
@@ -89,8 +91,7 @@ static u8 EXPECTED_GEOMETRY_5_0_ENCODING[] =
 static void encodingTest_4_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL,
-                                                    &geometry));
+  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
   // Save the release version so we can use a valid value later.
   release_version_number_t savedRelease = geometry.release_version;
 
@@ -103,8 +104,7 @@ static void encodingTest_4_0(void)
 
   // Encode and write the volume_geometry for version 4.
   PhysicalLayer *layer = getSynchronousLayer();
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry_with_version(layer,
-                                                            &geometry, 4));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometryWithVersion(layer, &geometry, 4));
 
   // Read and compare it to the expected byte sequence.
   char block[VDO_BLOCK_SIZE];
@@ -114,13 +114,11 @@ static void encodingTest_4_0(void)
 
   // Can't load the bogus release version, so re-encode with the saved one.
   geometry.release_version = savedRelease;
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry_with_version(layer,
-                                                            &geometry, 4));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometryWithVersion(layer, &geometry, 4));
 
   // Read, decode, and compare the decoded volume_geometry.
   struct volume_geometry decoded;
-  VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(getSynchronousLayer(),
-                                              &decoded));
+  VDO_ASSERT_SUCCESS(loadVolumeGeometry(getSynchronousLayer(), &decoded));
   UDS_ASSERT_EQUAL_BYTES(&geometry, &decoded, sizeof(decoded));
 }
 
@@ -128,8 +126,7 @@ static void encodingTest_4_0(void)
 static void encodingTest_5_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL,
-                                                    &geometry));
+  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
   // Save the release version so we can use a valid value later.
   release_version_number_t savedRelease = geometry.release_version;
 
@@ -143,7 +140,7 @@ static void encodingTest_5_0(void)
 
   // Encode and write the VolumeGeometry for version 5_0.
   PhysicalLayer *layer = getSynchronousLayer();
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
 
   // Read and compare it to the expected byte sequence for version 5_0.
   char block[VDO_BLOCK_SIZE];
@@ -153,11 +150,11 @@ static void encodingTest_5_0(void)
 
   // Can't load the bogus release version, so re-encode with the saved one.
   geometry.release_version = savedRelease;
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(layer, &geometry));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
 
   // Read, decode, and compare the decoded volume_geometry.
   struct volume_geometry decoded;
-  VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(getSynchronousLayer(),
+  VDO_ASSERT_SUCCESS(loadVolumeGeometry(getSynchronousLayer(),
                                               &decoded));
   UDS_ASSERT_EQUAL_BYTES(&geometry, &decoded, sizeof(decoded));
 }
@@ -175,12 +172,9 @@ static void assertRegionIs(struct volume_region  *region,
 static void basicTest(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL,
-                                                    &geometry));
-  VDO_ASSERT_SUCCESS(vdo_write_volume_geometry(getSynchronousLayer(),
-                                               &geometry));
-  VDO_ASSERT_SUCCESS(vdo_load_volume_geometry(getSynchronousLayer(),
-                                              &geometry));
+  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(writeVolumeGeometry(getSynchronousLayer(), &geometry));
+  VDO_ASSERT_SUCCESS(loadVolumeGeometry(getSynchronousLayer(), &geometry));
   CU_ASSERT_EQUAL(geometry.nonce, NONCE);
   assertRegionIs(&geometry.regions[0], VDO_INDEX_REGION, 1);
   assertRegionIs(&geometry.regions[1], VDO_DATA_REGION,  1);
@@ -200,29 +194,25 @@ static void basicTest(void)
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);
   buffer[0] = !buffer[0];
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, 1, buffer));
-  CU_ASSERT_EQUAL(vdo_load_volume_geometry(getSynchronousLayer(), &geometry),
-                  VDO_BAD_MAGIC);
+  CU_ASSERT_EQUAL(loadVolumeGeometry(getSynchronousLayer(), &geometry), VDO_BAD_MAGIC);
 
   // Try corrupting the header.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);
   buffer[MAGIC_NUMBER_SIZE] = !buffer[MAGIC_NUMBER_SIZE];
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, 1, buffer));
-  CU_ASSERT_EQUAL(vdo_load_volume_geometry(getSynchronousLayer(), &geometry),
-                  VDO_INCORRECT_COMPONENT);
+  CU_ASSERT_EQUAL(loadVolumeGeometry(getSynchronousLayer(), &geometry), VDO_INCORRECT_COMPONENT);
 
   // Try faking a different release version.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);
   buffer[VDO_ENCODED_HEADER_SIZE] = !buffer[VDO_ENCODED_HEADER_SIZE];
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, 1, buffer));
-  CU_ASSERT_EQUAL(vdo_load_volume_geometry(getSynchronousLayer(), &geometry),
-                  VDO_UNSUPPORTED_VERSION);
+  CU_ASSERT_EQUAL(loadVolumeGeometry(getSynchronousLayer(), &geometry), VDO_UNSUPPORTED_VERSION);
 
   // Try corrupting the checksum.
   memcpy(buffer, geometryBlock, VDO_BLOCK_SIZE);
   buffer[header.size - 1] = 255 - buffer[header.size - 1];
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, 1, buffer));
-  CU_ASSERT_EQUAL(vdo_load_volume_geometry(getSynchronousLayer(), &geometry),
-                  VDO_CHECKSUM_MISMATCH);
+  CU_ASSERT_EQUAL(loadVolumeGeometry(getSynchronousLayer(), &geometry), VDO_CHECKSUM_MISMATCH);
 }
 
 /**********************************************************************/
