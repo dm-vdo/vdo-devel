@@ -76,8 +76,7 @@ static int getNextMostRecentPageFromCache(struct page_cache   *cache,
 static int addPageToCache(struct page_cache *cache, u32 physicalPage,
                           struct cached_page **pagePtr)
 {
-  struct cached_page *page = NULL;
-  UDS_ASSERT_SUCCESS(select_victim_in_cache(cache, &page));
+  struct cached_page *page = select_victim_in_cache(cache);
   UDS_ASSERT_SUCCESS(put_page_in_cache(cache, physicalPage, page));
   CU_ASSERT_PTR_NOT_NULL(page);
 

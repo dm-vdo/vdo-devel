@@ -236,7 +236,7 @@ void get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cac
 int __must_check
 enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page);
 
-int __must_check select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr);
+struct cached_page * __must_check select_victim_in_cache(struct page_cache *cache);
 
 int __must_check
 put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page);

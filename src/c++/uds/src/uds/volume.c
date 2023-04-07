@@ -280,18 +280,13 @@ EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cach
 		WRITE_ONCE(page->last_used, atomic64_inc_return(&cache->clock));
 }
 
-static int __must_check
-get_least_recent_page(struct page_cache *cache, struct cached_page **page_ptr)
+static struct cached_page *get_least_recent_page(struct page_cache *cache)
 {
 	/* We hold the read_threads_mutex. */
 	int oldest_index = 0;
 	u16 i;
 
-	for (i = 0;; i++) {
-		if (i >= cache->cache_slots)
-			/* This should never happen. */
-			return ASSERT(false, "oldest page is not NULL");
-
+	for (i = 0; i < cache->cache_slots; i++) {
 		/* A page with a pending read must not be replaced. */
 		if (!cache->cache[i].read_pending) {
 			oldest_index = i;
@@ -306,8 +301,7 @@ get_least_recent_page(struct page_cache *cache, struct cached_page **page_ptr)
 			oldest_index = i;
 	}
 
-	*page_ptr = &cache->cache[oldest_index];
-	return UDS_SUCCESS;
+	return &cache->cache[oldest_index];
 }
 
 EXTERNAL_STATIC void
@@ -323,21 +317,11 @@ get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_p
 }
 
 /* Select a page to remove from the cache to make space for a new entry. */
-EXTERNAL_STATIC int
-select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr)
+EXTERNAL_STATIC struct cached_page *select_victim_in_cache(struct page_cache *cache)
 {
-	struct cached_page *page = NULL;
-	int result;
+	struct cached_page *page = get_least_recent_page(cache);
 
 	/* We hold the read_threads_mutex. */
-	result = get_least_recent_page(cache, &page);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	result = ASSERT((page != NULL), "least recent page was not NULL");
-	if (result != UDS_SUCCESS)
-		return result;
-
 	if (page->physical_page != cache->indexable_pages) {
 		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
 		wait_for_pending_searches(cache, page->physical_page);
@@ -345,15 +329,13 @@ select_victim_in_cache(struct page_cache *cache, struct cached_page **page_ptr)
 
 	page->read_pending = true;
 	clear_cache_page(cache, page);
-	*page_ptr = page;
-	return UDS_SUCCESS;
+	return page;
 }
 
 /* Make a newly filled cache entry available to other threads. */
 EXTERNAL_STATIC int
 put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page)
 {
-	u16 value;
 	int result;
 
 	/* We hold the read_threads_mutex. */
@@ -362,12 +344,6 @@ put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_pag
 		return result;
 
 	page->physical_page = physical_page;
-
-	value = page - cache->cache;
-	result = ASSERT((value < cache->cache_slots), "cache index is valid");
-	if (result != UDS_SUCCESS)
-		return result;
-
 	make_page_most_recent(cache, page);
 	page->read_pending = false;
 
@@ -379,7 +355,7 @@ put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_pag
 	smp_wmb();
 
 	/* This assignment also clears the queued flag. */
-	WRITE_ONCE(cache->index[physical_page], value);
+	WRITE_ONCE(cache->index[physical_page], page - cache->cache);
 	return UDS_SUCCESS;
 }
 
@@ -419,7 +395,6 @@ static inline bool read_queue_is_full(struct page_cache *cache)
 EXTERNAL_STATIC int
 enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page)
 {
-	int result;
 	struct queued_read *queue_entry;
 	u16 last = cache->read_queue_last;
 	u16 read_queue_index;
@@ -446,11 +421,6 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 		/* It's already queued, so add to the existing entry. */
 		read_queue_index = cache->index[physical_page] & ~VOLUME_CACHE_QUEUED_FLAG;
 	}
-
-	result = ASSERT((read_queue_index < VOLUME_CACHE_MAX_QUEUED_READS),
-			"queue is not overfull");
-	if (result != UDS_SUCCESS)
-		return result;
 
 	request->next_request = NULL;
 	queue_entry = &cache->read_queue[read_queue_index];
@@ -620,8 +590,8 @@ static int init_chapter_index_page(const struct volume *volume,
 			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
-	ASSERT_LOG_ONLY(false, "index page map mismatch with chapter index");
-	return UDS_CORRUPT_DATA;
+	return uds_log_error_strerror(UDS_CORRUPT_DATA,
+				      "index page map mismatch with chapter index");
 }
 
 static int initialize_index_page(const struct volume *volume,
@@ -726,11 +696,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 		return UDS_SUCCESS;
 	}
 
-	result = select_victim_in_cache(&volume->page_cache, &page);
-	if (result != UDS_SUCCESS) {
-		uds_log_warning("Error selecting cache victim for page read");
-		return result;
-	}
+	page = select_victim_in_cache(&volume->page_cache);
 
 	uds_unlock_mutex(&volume->read_threads_mutex);
 	page_data = dm_bufio_read(volume->client, page_number, &page->buffer);
@@ -837,12 +803,7 @@ static int read_page_locked(struct volume *volume,
 	if ((request != NULL) && (request->session != NULL))
 		return enqueue_page_read(volume, request, physical_page);
 
-	result = select_victim_in_cache(&volume->page_cache, &page);
-	if (result != UDS_SUCCESS) {
-		uds_log_warning("Error selecting cache victim for page read");
-		return result;
-	}
-
+	page = select_victim_in_cache(&volume->page_cache);
 	page_data = dm_bufio_read(volume->client, physical_page, &page->buffer);
 	if (IS_ERR(page_data)) {
 		result = -PTR_ERR(page_data);
@@ -865,8 +826,7 @@ static int read_page_locked(struct volume *volume,
 
 	result = put_page_in_cache(&volume->page_cache, physical_page, page);
 	if (result != UDS_SUCCESS) {
-		uds_log_warning("Error putting page %u in cache",
-				physical_page);
+		uds_log_warning("Error putting page %u in cache", physical_page);
 		cancel_page_in_cache(&volume->page_cache, physical_page, page);
 		return result;
 	}
@@ -1024,12 +984,6 @@ static int search_cached_index_page(struct volume *volume,
 		end_pending_search(&volume->page_cache, zone_number);
 		return result;
 	}
-
-	result = ASSERT(search_pending(get_invalidate_counter(&volume->page_cache, zone_number)),
-			"Search is pending for zone %u",
-			zone_number);
-	if (result != UDS_SUCCESS)
-		return result;
 
 	result = search_chapter_index_page(&page->index_page,
 					   volume->geometry,
@@ -1221,12 +1175,7 @@ static int donate_index_page_locked(struct volume *volume,
 	u32 physical_page =
 		map_to_physical_page(volume->geometry, physical_chapter, index_page_number);
 
-	result = select_victim_in_cache(&volume->page_cache, &page);
-	if (result != UDS_SUCCESS) {
-		dm_bufio_release(page_buffer);
-		return result;
-	}
-
+	page = select_victim_in_cache(&volume->page_cache);
 	page->buffer = page_buffer;
 	result = init_chapter_index_page(volume,
 					 dm_bufio_get_block_data(page_buffer),
@@ -1573,7 +1522,6 @@ find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u
 	u32 left_chapter = 0;
 	u32 right_chapter = 0;
 	u32 bad_chapters = 0;
-	int result;
 
 	/*
 	 * This method assumes there is at most one run of contiguous bad chapters caused by
@@ -1624,11 +1572,9 @@ find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u
 		}
 	}
 
-	result = ASSERT(left_chapter == right_chapter, "left_chapter == right_chapter");
-	if (result != UDS_SUCCESS)
-		return result;
-
-	left_chapter %= chapter_limit; /* in case we're at the end */
+	/* If left_chapter goes off the end, chapter 0 has the lowest virtual chapter number.*/
+	if (left_chapter >= chapter_limit)
+		left_chapter = 0;
 
 	/* At this point, left_chapter is the chapter with the lowest virtual chapter number. */
 	probe_chapter(volume, left_chapter, &lowest);
@@ -1637,15 +1583,10 @@ find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u
 	if ((moved_chapter != BAD_CHAPTER) && (lowest == geometry->remapped_virtual + 1))
 		lowest = geometry->remapped_virtual;
 
-	result = ASSERT((lowest != BAD_CHAPTER), "invalid lowest chapter");
-	if (result != UDS_SUCCESS)
-		return result;
-
 	/*
 	 * Circularly scan backwards, moving over any bad chapters until encountering a good one,
 	 * which is the chapter with the highest vcn.
 	 */
-
 	while (highest == BAD_CHAPTER) {
 		right_chapter = (right_chapter + chapter_limit - 1) % chapter_limit;
 		if (right_chapter == moved_chapter)

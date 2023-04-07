@@ -53,8 +53,7 @@ static void fillCacheWithPages(void)
 {
   unsigned int i;
   for (i = 1; i < cache.cache_slots; i++) {
-    struct cached_page *page = NULL;
-    UDS_ASSERT_SUCCESS(select_victim_in_cache(&cache, &page));
+    struct cached_page *page = select_victim_in_cache(&cache);
     UDS_ASSERT_SUCCESS(put_page_in_cache(&cache, i, page));
     CU_ASSERT_PTR_NOT_NULL(page);
   }
