@@ -41,6 +41,7 @@ use Permabit::KernelUtils qw(
   removeRawhideKernel
 );
 use Permabit::PlatformUtils qw(getDistroInfo);
+use Permabit::RSVPer;
 use Permabit::StorageStack;
 use Permabit::SystemTapCommand;
 use Permabit::SystemUtils qw(
@@ -92,8 +93,8 @@ our %PROPERTIES
      compressibleChunkSize   => 4 * $KB,
      # @ple percentage of compressibility to use when creating data files
      compressibility         => 0,
-     # @ple Host type to start the test, used in setting the defaultHost
-     defaultHostType         => "client",
+     # @ple Optional default host to use for the test
+     defaultHost             => undef,
      # @ple if defined, set up this type of device for the test
      deviceType              => undef,
      # @ple options for the dory device (if any)
@@ -133,6 +134,8 @@ our %PROPERTIES
      #      automatically be increased if the fsType specifies an NFS
      #      filesystem.
      numNfsclients           => 0,
+     # @ple Reference to the list of pre-reserved hosts passed in to the test.
+     prereservedHosts        => [],
      # @ple physical size of the underlying storage (may include a suffix),
      #      used for setting up a logical volume for VDO using LVM
      physicalSize            => undef,
@@ -147,8 +150,6 @@ our %PROPERTIES
      # @ple Suppress clean up of the test machines if one of these named error
      #      types occurs.
      suppressCleanupOnError  => ["Verify"],
-     # @ple Host types
-     typeNames               => ["client", "nfsclient"],
      # @ple Whether to use a filesystem. Should only be set by tests.
      useFilesystem           => 0,
     );
@@ -354,6 +355,8 @@ sub applicationMemoryNeeded {
 ##
 sub set_up {
   my ($self) = assertNumArgs(1, @_);
+  $self->{prereservedHosts} =
+    $self->canonicalizeHostnames($self->{clientNames});
 
   if (defined($self->{fsType}) && ($self->{fsType} =~ m/^nfs-/)) {
     $self->{numNfsclients} ||= 1;
@@ -576,10 +579,9 @@ sub shouldSaveLogs {
 ##
 sub getTestHosts {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->SUPER::getTestHosts(),
-          map { ref($_) eq "ARRAY" ? @$_ : () }
-            map { $self->{$_} }
-              map { $_ . "Names" } @{$self->{typeNames}});
+  return (@{$self->{prereservedHosts}},
+          $self->SUPER::getTestHosts(),
+          $self->getRSVPer()->getReservedHosts());
 }
 
 ########################################################################
@@ -618,12 +620,11 @@ sub generateDataFile {
 ########################################################################
 # Get the default host to use for the test
 #
-# @return The hostname to start the test on
+# @return The hostname of the default host
 ##
 sub getDefaultHost {
   my ($self) = assertNumArgs(1, @_);
-  my $typeNames = $self->{defaultHostType} . "Names";
-  return $self->{$typeNames}[0];
+  return $self->{defaultHost} // $self->{clientNames}[0];
 }
 
 ########################################################################

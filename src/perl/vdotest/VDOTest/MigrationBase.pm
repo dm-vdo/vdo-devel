@@ -71,6 +71,7 @@ sub set_up {
     $scenario->{machine} = $self->getUserMachine($scenario->{hostname});
   }
 
+  # Install the VDO module and begin the initial scenario.
   my $device = $self->getDevice();
   my $scenario = $self->{_scenarios}{$self->{initialScenario}};
 
@@ -91,9 +92,8 @@ sub reserveHosts {
                        @{$self->{intermediateScenarios}});
 
   # Create hash of existing reserved hosts.
-  my $reservedHosts = $self->canonicalizeHostnames($self->{clientNames});
   my $reserved = {};
-  for my $host (@{$reservedHosts}) {
+  for my $host (@{$self->{prereservedHosts}}) {
     my @classes = $rsvper->getHostOSArchClasses($host);
     if (scalar(@classes) == 0) {
       next;
@@ -114,10 +114,6 @@ sub reserveHosts {
     my $lcOSClass = lc($OSClass);
     my $arch = $scenarioInfo->{arch};
 
-    if ($name eq $self->{initialScenario}) {
-      $self->{defaultHostType} = $lcOSClass;
-    }
-
     my $host = undef;
     my $key = "$OSClass,$arch";
     if (defined($reserved->{$key}) && scalar(@{$reserved->{$key}}) > 0) {
@@ -127,12 +123,26 @@ sub reserveHosts {
       ($host) = $self->reserveNumHosts(1, $classString, $self->{clientLabel});
     }
 
-    push(@{$self->{$lcOSClass . "Names"}}, $host);
+    $self->{_scenarios}->{$name}{hostname} = $host;
 
-    if (!grep(/^$lcOSClass$/, @{$self->{typeNames}})) {
-      push(@{$self->{typeNames}}, $lcOSClass);
+    if ($name eq $self->{initialScenario}) {
+      $self->{defaultHost} = $host;
     }
   }
+}
+
+#############################################################################
+# Generate an initial scenario hash from a scenario specification.
+#
+# @param scenarioName  The name of the scenario to generate a hash for
+#
+# @return The scenario hash
+##
+sub generateScenarioHash {
+  my ($self, $scenarioName) = assertNumArgs(2, @_);
+  my $version = $SUPPORTED_SCENARIOS->{$scenarioName}{moduleVersion};
+
+  return { name => $scenarioName, version => $version };
 }
 
 #############################################################################
@@ -188,20 +198,6 @@ sub switchToIntermediateScenario {
   $device->stop();
   $device->switchToScenario($scenario);
   $device->start();
-}
-
-#############################################################################
-# Generate a scenario hash from a scenario specification.
-#
-# @param scenarioName  The name of the scenario to generate a hash for
-#
-# @return The scenario hash
-##
-sub generateScenarioHash {
-  my ($self, $scenarioName) = assertNumArgs(2, @_);
-  my $version = $SUPPORTED_SCENARIOS->{$scenarioName}{moduleVersion};
-
-  return { name => $scenarioName, version => $version };
 }
 
 #############################################################################
