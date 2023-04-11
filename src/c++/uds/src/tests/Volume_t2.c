@@ -218,14 +218,16 @@ static void testWriteChapter(void)
 
   // Test reading records through the index pages.
   for (i = 0; i < highestRecord; ++i) {
-    struct uds_record_data retMetadata;
     bool found;
+    struct uds_request request = {
+      .record_name = hashes[i],
+      .virtual_chapter = chapterNumber,
+      .unbatched = true,
+    };
 
-    UDS_ASSERT_SUCCESS(search_volume_page_cache(volume, NULL, &hashes[i],
-                                                chapterNumber, &retMetadata,
-                                                &found));
+    UDS_ASSERT_SUCCESS(search_volume_page_cache(volume, &request, &found));
     CU_ASSERT_TRUE(found);
-    UDS_ASSERT_BLOCKDATA_EQUAL(&retMetadata, &metadata[i]);
+    UDS_ASSERT_BLOCKDATA_EQUAL(&request.old_metadata, &metadata[i]);
   }
   UDS_FREE(metadata);
   UDS_FREE(hashes);

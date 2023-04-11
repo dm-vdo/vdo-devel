@@ -5,7 +5,6 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "index-session.h"
 #include "memory-alloc.h"
 #include "request-queue.h"
 #include "testPrototypes.h"
@@ -172,12 +171,7 @@ static void testInvalidateChapter(void)
     fillOpenChapter(i, 0);
   }
 
-  // The request needs an index session pointer so that readPageLocked will do
-  // an asynchronous read. It does not really dereference the pointer. We do
-  // not have an index session, so we will fake one. Also reset the location
-  // so we can reuse this request.
-  static struct uds_index_session fakeIndexSession;
-  request->session = &fakeIndexSession;
+  // Reset the location so we can reuse this request.
   request->location = UDS_LOCATION_UNKNOWN;
 
   // Block the read queue by turning on the stop state

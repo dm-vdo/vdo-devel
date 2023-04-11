@@ -154,17 +154,17 @@ int __must_check find_volume_chapter_boundaries(struct volume *volume,
 
 int __must_check search_volume_page_cache(struct volume *volume,
 					  struct uds_request *request,
-					  const struct uds_record_name *name,
-					  u64 virtual_chapter,
-					  struct uds_record_data *metadata,
 					  bool *found);
+
+int __must_check search_volume_page_cache_for_rebuild(struct volume *volume,
+						      const struct uds_record_name *name,
+						      u64 virtual_chapter,
+						      bool *found);
 
 int __must_check search_cached_record_page(struct volume *volume,
 					   struct uds_request *request,
-					   const struct uds_record_name *name,
 					   u32 chapter,
 					   u16 record_page_number,
-					   struct uds_record_data *duplicate,
 					   bool *found);
 
 void forget_chapter(struct volume *volume, u64 chapter);

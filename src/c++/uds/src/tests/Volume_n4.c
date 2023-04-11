@@ -7,7 +7,6 @@
 #include "assertions.h"
 #include "config.h"
 #include "hash-utils.h"
-#include "index-session.h"
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "random.h"
@@ -26,7 +25,6 @@ static struct geometry           *geometry;
 static struct index_layout       *layout;
 static u8                       **pages;
 static struct volume             *volume;
-static struct uds_index_session  *session;
 static unsigned int               numRequestsQueued = 0;
 static struct mutex               numRequestsMutex;
 static struct cond_var            allDoneCond;
@@ -83,7 +81,6 @@ static void init(request_restarter_t restartRequest, unsigned int zoneCount)
 
   UDS_ASSERT_SUCCESS(uds_init_mutex(&numRequestsMutex));
   UDS_ASSERT_SUCCESS(uds_init_cond(&allDoneCond));
-  UDS_ASSERT_SUCCESS(uds_create_index_session(&session));
   numRequestsQueued = 0;
 
   struct uds_parameters params = {
@@ -110,7 +107,6 @@ static void deinit(void)
   free_volume(volume);
   free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
-  UDS_ASSERT_SUCCESS(uds_destroy_index_session(session));
   uds_destroy_cond(&allDoneCond);
   uds_destroy_mutex(&numRequestsMutex);
 }
@@ -143,7 +139,6 @@ static struct uds_request *newReadRequest(uint32_t physPage)
   ReadRequest *readRequest = NULL;
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, ReadRequest, __func__, &readRequest));
-  readRequest->request.session = session;
   readRequest->physPage = physPage;
   readRequest->request.unbatched = true;
   computeNameOnPage(&readRequest->request.record_name, physPage);

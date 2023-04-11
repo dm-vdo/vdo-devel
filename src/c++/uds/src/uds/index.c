@@ -363,13 +363,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	request->virtual_chapter = virtual_chapter;
 	volume = zone->index->volume;
 	chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
-	return search_cached_record_page(volume,
-					 request,
-					 &request->record_name,
-					 chapter,
-					 record_page_number,
-					 &request->old_metadata,
-					 found);
+	return search_cached_record_page(volume, request, chapter, record_page_number, found);
 }
 
 static int get_record_from_zone(struct index_zone *zone, struct uds_request *request, bool *found)
@@ -409,12 +403,7 @@ static int get_record_from_zone(struct index_zone *zone, struct uds_request *req
 				  request->zone_number))
 		return search_sparse_cache_in_zone(zone, request, request->virtual_chapter, found);
 
-	return search_volume_page_cache(volume,
-					request,
-					&request->record_name,
-					request->virtual_chapter,
-					&request->old_metadata,
-					found);
+	return search_volume_page_cache(volume, request, found);
 }
 
 static int put_record_in_zone(struct index_zone *zone,
@@ -948,12 +937,10 @@ static int replay_record(struct uds_index *index,
 			 * need to search that chapter to determine if the volume index entry was
 			 * for the same record or a different one.
 			 */
-			result = search_volume_page_cache(index->volume,
-							  NULL,
-							  name,
-							  record.virtual_chapter,
-							  NULL,
-							  &update_record);
+			result = search_volume_page_cache_for_rebuild(index->volume,
+								      name,
+								      record.virtual_chapter,
+								      &update_record);
 			if (result != UDS_SUCCESS)
 				return result;
 			}
