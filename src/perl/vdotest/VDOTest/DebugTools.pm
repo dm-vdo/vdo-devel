@@ -15,6 +15,7 @@ use Permabit::Assertions qw(
   assertEq
   assertEqualNumeric
   assertLENumeric
+  assertNe
   assertMinArgs
   assertNotDefined
   assertNumArgs
@@ -244,6 +245,13 @@ sub testTools {
   # At least exercise vdoDumpConfig to make sure it runs and returns expected keys.
   my $config = $device->dumpConfig();
   $self->_logConfig($config);
+
+  # At least check that vdosetuuid changes the UUID.
+  $device->setUUID();
+  $device->enableReadableStorage();
+  assertNe("UUID should have changed",
+           $config->{UUID},
+           $device->dumpConfig()->{UUID});
 
   $self->_verifySingleLBNDump($stats->{"logical blocks"});
 

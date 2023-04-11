@@ -1039,6 +1039,27 @@ sub setReadOnlyMode {
 }
 
 ########################################################################
+# Change the UUID of the VDO volume.
+##
+sub setUUID {
+  my ($self, $uuid) = assertMinMaxArgs(1, 2, @_);
+  my $path = $self->getVDOStoragePath();
+  my $setUUID = $self->findBinary("vdoSetUUID");
+  my $options = "";
+
+  if (defined($uuid)) {
+    $options .= "--uuid $uuid";
+  }
+
+  $self->enableWritableStorage();
+  my $output = runCommand($self->getMachine()->getName(),
+                          "sudo $setUUID $options $path");
+  $self->disableWritableStorage();
+
+  return $output;
+}
+
+########################################################################
 # Force a full rebuild when VDO next starts by running vdoForceRebuild
 # on the VDO backing store.
 ##
