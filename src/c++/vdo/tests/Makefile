@@ -90,7 +90,7 @@ TEST_COMMON  = adminUtils.o              \
                vdoTestBase.o             \
                workQueue.o
 
-STRUCT_HEADERS = numberedBlockMapping.h
+STRUCT_HEADERS = numberedBlockMapping.h recoveryCompletion.h
 
 GENERATED_FILES = $(STRUCT_HEADERS) dump.c
 
@@ -158,6 +158,7 @@ define struct_header =
 endef
 
 $(eval $(call struct_header,numberedBlockMapping.h,$(VDO_BASE_DIR)/recovery.c,numbered_block_mapping))
+$(eval $(call struct_header,recoveryCompletion.h,$(VDO_BASE_DIR)/recovery.c,recovery_completion))
 
 dump.c: $(VDO_BASE_DIR)/dump.c dump.h Makefile
 	sed -e 's/%llu/%lu/g' < $< > $@

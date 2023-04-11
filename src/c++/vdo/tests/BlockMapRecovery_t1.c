@@ -20,6 +20,7 @@
 #include "completionUtils.h"
 #include "journalWritingUtils.h"
 #include "numberedBlockMapping.h"
+#include "recoveryCompletion.h"
 #include "testParameters.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
@@ -29,8 +30,7 @@ enum {
   BLOCK_COUNT = 8192,
 };
 
-static struct numbered_block_mapping *entries    = NULL;
-static size_t                         entryCount = 0;
+static size_t entryCount = 0;
 
 /**
  * Initialize the index, vdo, and test data.
@@ -61,28 +61,58 @@ static void initializeRecoveryTest(void)
  **/
 static void teardownRecoveryTest(void)
 {
-  UDS_FREE(entries);
   tearDownJournalWritingUtils();
   tearDownVDOTest();
 }
 
+/**********************************************************************/
+static bool preventReferenceCountRebuild(struct vdo_completion *completion)
+{
+  if (completion->type != VDO_RECOVERY_COMPLETION) {
+    return true;
+  }
+
+  struct vdo_completion *parent = completion->parent;
+  int result = completion->result;
+
+  free_recovery_completion((struct recovery_completion *) completion);
+  vdo_fail_completion(parent, result);
+  return false;
+}
+
+/**********************************************************************/
+static void recoverBlockMapCallback(struct vdo_completion *completion)
+{
+  setCompletionEnqueueHook(preventReferenceCountRebuild);
+  completion->requeue = true;
+  recover_block_map(completion);
+}
+
 /**
- * Allocate and generate a numbered block mapping array with the given number
+ * Hook to simulate the journal load with an artifial set of mappings.
+ * Allocates and generates a numbered block mapping array with the given number
  * of mappings, updating the expected block map mappings as the array is
  * generated. The pattern used to fill the array is different from the pattern
  * used to fill the block map with known mappings.
  *
  * @param mappingCount  The number of mappings to put in the array
  **/
-static void generateNumberedBlockMappings(block_count_t mappingCount)
+static bool hijackJournalLoad(struct vdo_completion *completion)
 {
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(mappingCount, struct numbered_block_mapping,
-                                  __func__, &entries));
+  if (!is_vio(completion)) {
+    return true;
+  }
+
+  struct recovery_completion *recovery = completion->parent;
+  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(entryCount,
+                                  struct numbered_block_mapping,
+                                  __func__,
+                                  &recovery->entries));
 
   struct block_map *map           = vdo->block_map;
   block_count_t     logicalBlocks = getTestConfig().config.logical_blocks;
-  for (block_count_t entry = 0; entry < mappingCount; entry++) {
-    struct numbered_block_mapping *mapping = &entries[entry];
+  for (block_count_t entry = 0; entry < entryCount; entry++) {
+    struct numbered_block_mapping *mapping = &recovery->entries[entry];
     logical_block_number_t         lbn     = (entry * 3) % logicalBlocks;
     page_count_t pageIndex = lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
     mapping->block_map_slot = (struct block_map_slot) {
@@ -91,17 +121,17 @@ static void generateNumberedBlockMappings(block_count_t mappingCount)
     };
 
     physical_block_number_t pbn = computePBNFromLBN(lbn, 1);
-    mapping->block_map_entry
-      = vdo_pack_block_map_entry(pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
+    mapping->block_map_entry = vdo_pack_block_map_entry(pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
     mapping->number = entry;
     setBlockMapping(lbn, pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
   }
-}
 
-/**********************************************************************/
-static void recoverAction(struct vdo_completion *completion)
-{
-  recover_block_map(vdo, entryCount, entries, completion);
+  recovery->block_map_entry_count = entryCount;
+  removeCompletionEnqueueHook(hijackJournalLoad);
+  vdo_launch_completion_callback(&recovery->completion,
+                                 recoverBlockMapCallback,
+                                 vdo->thread_config.logical_threads[0]);
+  return false;
 }
 
 /**
@@ -122,10 +152,10 @@ static void testRecovery(size_t desiredEntryCount)
    * the expected block map mapping array with these mappings.
    */
   entryCount = desiredEntryCount;
-  generateNumberedBlockMappings(entryCount);
 
   // Do a block map recovery.
-  performSuccessfulActionOnThread(recoverAction, vdo->thread_config.logical_threads[0]);
+  setCompletionEnqueueHook(hijackJournalLoad);
+  performSuccessfulAction(vdo_repair);
 
   // Verify that all block map mappings are either the original value or the
   // new mapping expected from recovery.
