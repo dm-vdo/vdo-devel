@@ -240,29 +240,26 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio, bo
 	return ((get_bio_sector(vio_merge->bios_merged.head) == merge_sector) ? vio_merge : NULL);
 }
 
-static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio, struct vio *prev_vio)
+static int map_merged_vio(struct int_map *bio_map, struct vio *vio)
 {
 	int result;
 
+	result = vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.head), vio, true, NULL);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.tail), vio, true, NULL);
+}
+
+static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio, struct vio *prev_vio)
+{
 	vdo_int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
-	result = vdo_int_map_put(bio_map,
-				 get_bio_sector(prev_vio->bios_merged.head),
-				 prev_vio,
-				 true,
-				 NULL);
-	result = vdo_int_map_put(bio_map,
-				 get_bio_sector(prev_vio->bios_merged.tail),
-				 prev_vio,
-				 true,
-				 NULL);
-	return result;
+	return map_merged_vio(bio_map, prev_vio);
 }
 
 static int merge_to_next_head(struct int_map *bio_map, struct vio *vio, struct vio *next_vio)
 {
-	int result;
-
 	/*
 	 * Handle "next merge" and "gap fill" cases the same way so as to reorder bios in a way
 	 * that's compatible with using funnel queues in work queues. This avoids removing an
@@ -270,17 +267,7 @@ static int merge_to_next_head(struct int_map *bio_map, struct vio *vio, struct v
 	 */
 	vdo_int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
-	result = vdo_int_map_put(bio_map,
-				 get_bio_sector(next_vio->bios_merged.head),
-				 next_vio,
-				 true,
-				 NULL);
-	result = vdo_int_map_put(bio_map,
-				 get_bio_sector(next_vio->bios_merged.tail),
-				 next_vio,
-				 true,
-				 NULL);
-	return result;
+	return map_merged_vio(bio_map, next_vio);
 }
 
 /**
