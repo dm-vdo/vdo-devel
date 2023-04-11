@@ -1206,6 +1206,43 @@ vdo_pack_slab_journal_block_header(const struct slab_journal_block_header *heade
 }
 
 /**
+ * vdo_unpack_slab_journal_block_header() - Decode the packed representation of a slab block
+ *                                          header.
+ * @packed: The packed header to decode.
+ * @header: The header into which to unpack the values.
+ */
+static inline void
+vdo_unpack_slab_journal_block_header(const struct packed_slab_journal_block_header *packed,
+				     struct slab_journal_block_header *header)
+{
+	*header = (struct slab_journal_block_header) {
+		.head = __le64_to_cpu(packed->head),
+		.sequence_number = __le64_to_cpu(packed->sequence_number),
+		.nonce = __le64_to_cpu(packed->nonce),
+		.entry_count = __le16_to_cpu(packed->entry_count),
+		.metadata_type = packed->metadata_type,
+		.has_block_map_increments = packed->has_block_map_increments,
+	};
+	vdo_unpack_journal_point(&packed->recovery_point, &header->recovery_point);
+}
+
+/**
+ * vdo_pack_slab_journal_entry() - Generate the packed encoding of a slab journal entry.
+ * @packed: The entry into which to pack the values.
+ * @sbn: The slab block number of the entry to encode.
+ * @is_increment: The increment flag.
+ */
+static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed,
+					       slab_block_number sbn,
+					       bool is_increment)
+{
+	packed->offset_low8 = (sbn & 0x0000FF);
+	packed->offset_mid8 = (sbn & 0x00FF00) >> 8;
+	packed->offset_high7 = (sbn & 0x7F0000) >> 16;
+	packed->increment = is_increment ? 1 : 0;
+}
+
+/**
  * vdo_unpack_slab_journal_entry() - Decode the packed representation of a slab journal entry.
  * @packed: The packed entry to decode.
  *
