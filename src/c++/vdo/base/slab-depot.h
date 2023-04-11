@@ -247,8 +247,6 @@ struct vdo_slab {
 
 	/* A waiter object for updating the slab summary */
 	struct waiter summary_waiter;
-	/* Whether slab summary update is in progress */
-	bool updating_summary;
 
 	/* The latest slab journal for which there has been a reference count update */
 	struct journal_point slab_journal_point;
@@ -508,10 +506,6 @@ void vdo_free_slab_journal(struct slab_journal *journal);
 
 bool __must_check vdo_is_slab_journal_blank(const struct slab_journal *journal);
 
-bool __must_check vdo_is_slab_journal_active(struct slab_journal *journal);
-
-void vdo_abort_slab_journal_waiters(struct slab_journal *journal);
-
 void vdo_reopen_slab_journal(struct slab_journal *journal);
 
 bool __must_check
@@ -565,8 +559,6 @@ void vdo_acquire_dirty_block_locks(struct vdo_slab *slab);
 int __must_check vdo_allocate_slab_counters(struct vdo_slab *slab);
 
 bool __must_check vdo_is_slab_open(struct vdo_slab *slab);
-
-void vdo_check_if_slab_drained(struct vdo_slab *slab);
 
 void vdo_register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
 
