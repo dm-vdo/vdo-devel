@@ -80,8 +80,7 @@ static void init(const char *indexName)
   UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 4);
 
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback,
-                                &theIndex));
+  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
 }
 
 /**
@@ -174,8 +173,8 @@ static void testInvalidateChapter(void)
   // Reset the location so we can reuse this request.
   request->location = UDS_LOCATION_UNKNOWN;
 
-  // Block the read queue by turning on the stop state
-  volume->reader_state |= READER_STATE_STOP;
+  // Stop the read queues from processing entries.
+  volume->read_threads_stopped = true;
 
   struct thread *thread;
   int result = uds_create_thread(readPageThread, request, "readpage", &thread);
@@ -189,8 +188,8 @@ static void testInvalidateChapter(void)
 
   fillOpenChapter(config->geometry->chapters_per_volume - 1, 1);
 
-  /* Unblock the read queue and signal it to wake up */
-  volume->reader_state &= ~READER_STATE_STOP;
+  // Wake the read queues.
+  volume->read_threads_stopped = false;
 
   incrementCallbackCount();
   uds_signal_cond(&volume->read_threads_cond);

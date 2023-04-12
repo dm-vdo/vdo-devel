@@ -29,24 +29,11 @@
  * as necessary.
  */
 
-enum reader_state {
-	READER_STATE_EXIT = 1,
-#ifdef TEST_INTERNAL
-	READER_STATE_STOP = 4,
-#endif /* TEST_INTERNAL */
-};
-
 enum index_lookup_mode {
 	/* Always do lookups in all chapters normally */
 	LOOKUP_NORMAL,
 	/* Only do a subset of lookups needed when rebuilding an index */
 	LOOKUP_FOR_REBUILD,
-};
-
-enum {
-	VOLUME_CACHE_MAX_ENTRIES = (U16_MAX >> 1),
-	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
-	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
 };
 
 struct queued_read {
@@ -95,14 +82,14 @@ struct page_cache {
 	/*
 	 * These values are all indexes into the array of read queue entries. New entries in the
 	 * read queue are enqueued at read_queue_last. To dequeue entries, a reader thread gets the
-	 * lock and then claims the entry pointed to by read_queue_last_read and increments that
+	 * lock and then claims the entry pointed to by read_queue_next_read and increments that
 	 * value. After the read is completed, the reader thread calls release_read_queue_entry(),
 	 * which increments read_queue_first until it points to a pending read, or is equal to
-	 * read_queue_last_read. This means that if multiple reads are outstanding,
+	 * read_queue_next_read. This means that if multiple reads are outstanding,
 	 * read_queue_first might not advance until the last of the reads finishes.
 	 */
 	u16 read_queue_first;
-	u16 read_queue_last_read;
+	u16 read_queue_next_read;
 	u16 read_queue_last;
 
 	atomic64_t clock;
@@ -128,7 +115,10 @@ struct volume {
 	struct cond_var read_threads_read_done_cond;
 	struct thread **reader_threads;
 	unsigned int read_thread_count;
-	enum reader_state reader_state;
+	bool read_threads_exiting;
+#ifdef TEST_INTERNAL
+	bool read_threads_stopped;
+#endif /* TEST_INTERNAL */
 
 	enum index_lookup_mode lookup_mode;
 	unsigned int reserved_buffers;
@@ -143,9 +133,6 @@ void free_volume(struct volume *volume);
 int __must_check replace_volume_storage(struct volume *volume,
 					struct index_layout *layout,
 					const char *path);
-
-int __must_check
-enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page);
 
 int __must_check find_volume_chapter_boundaries(struct volume *volume,
 						u64 *lowest_vcn,
@@ -233,7 +220,9 @@ void make_page_most_recent(struct page_cache *cache, struct cached_page *page_pt
 
 void get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page);
 
-int __must_check
+void enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page);
+
+bool __must_check
 enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page);
 
 struct cached_page * __must_check select_victim_in_cache(struct page_cache *cache);

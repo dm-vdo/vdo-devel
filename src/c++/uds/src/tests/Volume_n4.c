@@ -15,6 +15,11 @@
 #include "volume.h"
 #include "volumeUtils.h"
 
+enum {
+  // Matches the value in volume.c
+  VOLUME_CACHE_MAX_QUEUED_READS = 4096,
+};
+
 typedef struct readRequest {
   struct uds_request request;
   uint32_t           physPage;
@@ -44,8 +49,7 @@ static void verifyPageData(uint32_t            physPage,
                            struct cached_page *cp,
                            size_t              length)
 {
-  UDS_ASSERT_EQUAL_BYTES(pages[physPage], dm_bufio_get_block_data(cp->buffer),
-                         length);
+  UDS_ASSERT_EQUAL_BYTES(pages[physPage], dm_bufio_get_block_data(cp->buffer), length);
 }
 
 /**********************************************************************/
@@ -146,8 +150,7 @@ static struct uds_request *newReadRequest(uint32_t physPage)
 }
 
 /**********************************************************************/
-static bool waitCondTimeout(struct cond_var *cond, struct mutex *mutex,
-                            ktime_t timeout)
+static bool waitCondTimeout(struct cond_var *cond, struct mutex *mutex, ktime_t timeout)
 {
   int result = uds_timed_wait_cond(cond, mutex, timeout);
   return (result != ETIMEDOUT);
@@ -165,12 +168,11 @@ static void testSequentialGet(void)
       struct cached_page *actual;
       begin_pending_search(&volume->page_cache, physPage + 1, 0);
       // Make sure the page read is asynchronous
-      int ret = get_volume_page_protected(volume, request, physPage + 1,
-                                          &actual);
-      if (ret == UDS_SUCCESS) {
+      int result = get_volume_page_protected(volume, request, physPage + 1, &actual);
+      if (result == UDS_SUCCESS) {
         freeReadRequest(request);
         verifyPageData(physPage, actual, geometry->bytes_per_page);
-      } else if (ret == UDS_QUEUED) {
+      } else if (result == UDS_QUEUED) {
         uds_lock_mutex(&numRequestsMutex);
         ++numRequestsQueued;
         uds_unlock_mutex(&numRequestsMutex);
@@ -180,8 +182,7 @@ static void testSequentialGet(void)
   }
   uds_lock_mutex(&numRequestsMutex);
   while (numRequestsQueued > 0) {
-    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex,
-                                   seconds_to_ktime(10)));
+    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex, seconds_to_ktime(10)));
   }
   uds_unlock_mutex(&numRequestsMutex);
 }
@@ -196,11 +197,11 @@ static void testStumblingGet(void)
     struct cached_page *actual;
     // Make sure the page read is asynchronous
     begin_pending_search(&volume->page_cache, page + 1, 0);
-    int ret = get_volume_page_protected(volume, request, page + 1, &actual);
-    if (ret == UDS_SUCCESS) {
+    int result = get_volume_page_protected(volume, request, page + 1, &actual);
+    if (result == UDS_SUCCESS) {
       freeReadRequest(request);
       verifyPageData(page, actual, geometry->bytes_per_page);
-    } else if (ret == UDS_QUEUED) {
+    } else if (result == UDS_QUEUED) {
       uds_lock_mutex(&numRequestsMutex);
       ++numRequestsQueued;
       uds_unlock_mutex(&numRequestsMutex);
@@ -218,8 +219,7 @@ static void testStumblingGet(void)
   }
   uds_lock_mutex(&numRequestsMutex);
   while (numRequestsQueued > 0) {
-    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex,
-                                   seconds_to_ktime(10)));
+    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex, seconds_to_ktime(10)));
   }
   uds_unlock_mutex(&numRequestsMutex);
 }
@@ -231,15 +231,13 @@ static void testFullReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numRequests, struct uds_request *, __func__,
-                                  &requests));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numRequests, struct uds_request *, __func__, &requests));
 
-  volume->reader_state |= READER_STATE_STOP;
+  volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     requests[i] = newReadRequest(i);
-    int result = enqueue_read(&volume->page_cache, requests[i], i + 1);
-    bool queued = (result == UDS_QUEUED);
+    bool queued = enqueue_read(&volume->page_cache, requests[i], i + 1);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 
@@ -251,20 +249,17 @@ static void testFullReadQueue(void)
     }
   }
 
-  volume->reader_state &= ~READER_STATE_STOP;
+  volume->read_threads_stopped = false;
   uds_lock_mutex(&volume->read_threads_mutex);
-  int result = enqueue_page_read(volume, requests[numRequests - 1],
-                                 numRequests - 1);
+  enqueue_page_read(volume, requests[numRequests - 1], numRequests - 1);
   uds_unlock_mutex(&volume->read_threads_mutex);
-  UDS_ASSERT_ERROR(UDS_QUEUED, result);
   uds_lock_mutex(&numRequestsMutex);
   ++numRequestsQueued;
   uds_unlock_mutex(&numRequestsMutex);
 
   uds_lock_mutex(&numRequestsMutex);
   while (numRequestsQueued > 0) {
-    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex,
-                                   seconds_to_ktime(60)));
+    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex, seconds_to_ktime(60)));
   }
   uds_unlock_mutex(&numRequestsMutex);
 
@@ -278,16 +273,14 @@ static void testInvalidateReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numRequests, struct uds_request *, __func__,
-                                  &requests));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numRequests, struct uds_request *, __func__, &requests));
 
-  // Fill up the read queue by turning on the stop state and enqueuing entries
-  volume->reader_state |= READER_STATE_STOP;
+  // Fill up the read queue by stopping the read threads and enqueuing entries
+  volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     requests[i] = newReadRequest(i);
-    int result = enqueue_read(&volume->page_cache, requests[i], i + 1);
-    bool queued = (result == UDS_QUEUED);
+    bool queued = enqueue_read(&volume->page_cache, requests[i], i + 1);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 
@@ -313,22 +306,18 @@ static void testInvalidateReadQueue(void)
   CU_ASSERT_PTR_NOT_NULL(actual);
   uds_unlock_mutex(&volume->read_threads_mutex);
 
-  volume->reader_state &= ~READER_STATE_STOP;
+  volume->read_threads_stopped = false;
   uds_lock_mutex(&volume->read_threads_mutex);
-  // Enqueue another request to kick the reader threads awake to start
-  // dequeuing the now invalid reads
-  int result = enqueue_page_read(volume, requests[numRequests - 1],
-                                 numRequests - 1);
+  // This enqueue will wake the reader threads to process the now invalid reads
+  enqueue_page_read(volume, requests[numRequests - 1], numRequests - 1);
   uds_unlock_mutex(&volume->read_threads_mutex);
-  UDS_ASSERT_ERROR(UDS_QUEUED, result);
   uds_lock_mutex(&numRequestsMutex);
   ++numRequestsQueued;
   uds_unlock_mutex(&numRequestsMutex);
 
   uds_lock_mutex(&numRequestsMutex);
   while (numRequestsQueued > 0) {
-    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex,
-                                   seconds_to_ktime(60)));
+    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex, seconds_to_ktime(60)));
   }
   uds_unlock_mutex(&numRequestsMutex);
 
@@ -373,8 +362,8 @@ static void retryReadRequestAndVerifyMT(struct uds_request *request)
   retryReadRequest(request);
 }
 
-static const unsigned int MAX_REQUESTS  = 102400;
-static unsigned int       iterationCounter = 0;
+static const unsigned int MAX_REQUESTS = 102400;
+static unsigned int iterationCounter = 0;
 
 typedef struct {
   unsigned int zoneNumber;
@@ -408,8 +397,7 @@ static void indexThreadAsync(void *arg)
 
     unsigned int chapter = randomChapter();
     unsigned int pageNumber = randomPage();
-    unsigned int physicalPage
-      = chapter * geometry->pages_per_chapter + pageNumber;
+    unsigned int physicalPage = chapter * geometry->pages_per_chapter + pageNumber;
 
     // Only one of the async threads needs to keep track of the number of
     // iterations it has run.
@@ -428,9 +416,7 @@ static void indexThreadAsync(void *arg)
     ++numRequestsQueued;
     uds_unlock_mutex(&numRequestsMutex);
 
-    int result = get_volume_page_protected(volume, request, physicalPage + 1,
-                                           &entry);
-
+    int result = get_volume_page_protected(volume, request, physicalPage + 1, &entry);
     if (result == UDS_SUCCESS) {
       freeReadRequest(request);
       verifyPageData(physicalPage, entry, geometry->bytes_per_page);
@@ -470,13 +456,12 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   keepRunning = true;
 
-  // Fill up the read queue by turning on the stop state and enqueuing entries
-  volume->reader_state |= READER_STATE_STOP;
+  // Fill up the read queue by stopping the read threads and enqueuing entries
+  volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
     struct uds_request *request = newReadRequest(i);
-    int result = enqueue_read(&volume->page_cache, request, i + 1);
-    bool queued = (result == UDS_QUEUED);
+    bool queued = enqueue_read(&volume->page_cache, request, i + 1);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 
@@ -488,7 +473,7 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
       freeReadRequest(request);
     }
   }
-  volume->reader_state &= ~READER_STATE_STOP;
+  volume->read_threads_stopped = false;
 
   ThreadArg *args;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numZones, ThreadArg, __func__, &args));
@@ -498,21 +483,17 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   }
 
   struct thread **threads;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numThreads, struct thread *, __func__,
-                              &threads));
+  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numThreads, struct thread *, __func__, &threads));
 
   int result = UDS_SUCCESS;
   for (i = 0; i < numAsyncIndexThreads; i++) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
-                                         "asyncIndex%d", i));
-    result = uds_create_thread(indexThreadAsync, &args[i], nameBuf,
-                               &threads[i]);
+    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf), "asyncIndex%d", i));
+    result = uds_create_thread(indexThreadAsync, &args[i], nameBuf, &threads[i]);
     UDS_ASSERT_SUCCESS(result);
   }
 
-  result = uds_create_thread(invalidatePageThread, NULL, "invalidPage",
-                             &threads[i++]);
+  result = uds_create_thread(invalidatePageThread, NULL, "invalidPage", &threads[i++]);
   UDS_ASSERT_SUCCESS(result);
 
   CU_ASSERT_EQUAL(i, numThreads);
@@ -523,8 +504,7 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
 
   uds_lock_mutex(&numRequestsMutex);
   while (numRequestsQueued > 0) {
-    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex,
-                                   seconds_to_ktime(60)));
+    CU_ASSERT_TRUE(waitCondTimeout(&allDoneCond, &numRequestsMutex, seconds_to_ktime(60)));
   }
   uds_unlock_mutex(&numRequestsMutex);
 

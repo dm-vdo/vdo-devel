@@ -65,6 +65,9 @@
 enum {
 	/* The maximum allowable number of contiguous bad chapters */
 	MAX_BAD_CHAPTERS = 100,
+	VOLUME_CACHE_MAX_ENTRIES = (U16_MAX >> 1),
+	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
+	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
 };
 
 static const u64 BAD_CHAPTER = U64_MAX;
@@ -387,7 +390,7 @@ static inline bool read_queue_is_full(struct page_cache *cache)
 	return cache->read_queue_first == next_queue_position(cache->read_queue_last);
 }
 
-EXTERNAL_STATIC int
+EXTERNAL_STATIC bool
 enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page)
 {
 	struct queued_read *queue_entry;
@@ -398,7 +401,7 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 	if ((cache->index[physical_page] & VOLUME_CACHE_QUEUED_FLAG) == 0) {
 		/* This page has no existing entry in the queue. */
 		if (read_queue_is_full(cache))
-			return UDS_SUCCESS;
+			return false;
 
 		/* Fill in the read queue entry. */
 		cache->read_queue[last].physical_page = physical_page;
@@ -413,7 +416,7 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 
 		advance_queue_position(&cache->read_queue_last);
 	} else {
-		/* It's already queued, so add to the existing entry. */
+		/* It's already queued, so add this request to the existing entry. */
 		read_queue_index = cache->index[physical_page] & ~VOLUME_CACHE_QUEUED_FLAG;
 	}
 
@@ -425,61 +428,23 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 		queue_entry->last_request->next_request = request;
 	queue_entry->last_request = request;
 
-	return UDS_QUEUED;
+	return true;
 }
 
-static void wait_for_read_queue_not_full(struct volume *volume, struct uds_request *request)
+EXTERNAL_STATIC void
+enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page)
 {
-	union invalidate_counter invalidate_counter =
-		get_invalidate_counter(&volume->page_cache, request->zone_number);
-
-	if (search_pending(invalidate_counter))
-		/*
-		 * Release any search_pending lock to avoid deadlock where the reader threads
-		 * cannot make progress because they are waiting on the counter and the index
-		 * thread cannot because the read queue is full.
-		 */
-		end_pending_search(&volume->page_cache, request->zone_number);
-
-	while (read_queue_is_full(&volume->page_cache)) {
-		uds_log_debug("Waiting until read queue not full");
+	/* Mark the page as queued, so that chapter invalidation knows to cancel a read. */
+	while (!enqueue_read(&volume->page_cache, request, physical_page)) {
+		uds_log_debug("Read queue full, waiting for reads to finish");
+#ifdef TEST_INTERNAL
+		/* Restart the read threads, which normally only sleep when the queue is empty */
 		uds_signal_cond(&volume->read_threads_cond);
+#endif /* TEST_INTERNAL */
 		uds_wait_cond(&volume->read_threads_read_done_cond, &volume->read_threads_mutex);
 	}
 
-	if (search_pending(invalidate_counter))
-		/* Reacquire the search_pending lock released earlier. */
-		begin_pending_search(&volume->page_cache,
-				     invalidate_counter.page,
-				     request->zone_number);
-}
-
-int enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page)
-{
-	int result;
-
-	/* Don't allow new requests if we are shutting down. */
-	if ((volume->reader_state & READER_STATE_EXIT) != 0) {
-		uds_log_info("failed to queue read while shutting down");
-		return -EBUSY;
-	}
-
-	/*
-	 * Mark the page as queued in the volume cache, for chapter invalidation to be able to
-	 * cancel a read. If we are unable to do this because the queues are full, flush them
-	 * first.
-	 */
-	while ((result = enqueue_read(&volume->page_cache,
-				      request,
-				      physical_page)) == UDS_SUCCESS) {
-		uds_log_debug("Read queues full, waiting for reads to finish");
-		wait_for_read_queue_not_full(volume, request);
-	}
-
-	if (result == UDS_QUEUED)
-		uds_signal_cond(&volume->read_threads_cond);
-
-	return result;
+	uds_signal_cond(&volume->read_threads_cond);
 }
 
 /*
@@ -494,10 +459,10 @@ static struct queued_read *reserve_read_queue_entry(struct page_cache *cache)
 	bool queued;
 
 	/* No items to dequeue */
-	if (cache->read_queue_last_read == cache->read_queue_last)
+	if (cache->read_queue_next_read == cache->read_queue_last)
 		return NULL;
 
-	entry = &cache->read_queue[cache->read_queue_last_read];
+	entry = &cache->read_queue[cache->read_queue_next_read];
 	index_value = cache->index[entry->physical_page];
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 	/* Check to see if it's still queued before resetting. */
@@ -512,7 +477,7 @@ static struct queued_read *reserve_read_queue_entry(struct page_cache *cache)
 		entry->invalid = true;
 
 	entry->reserved = true;
-	advance_queue_position(&cache->read_queue_last_read);
+	advance_queue_position(&cache->read_queue_next_read);
 	return entry;
 }
 
@@ -520,9 +485,9 @@ static inline struct queued_read *wait_to_reserve_read_queue_entry(struct volume
 {
 	struct queued_read *queue_entry = NULL;
 
-	while ((volume->reader_state & READER_STATE_EXIT) == 0) {
+	while (!volume->read_threads_exiting) {
 #ifdef TEST_INTERNAL
-		if ((volume->reader_state & READER_STATE_STOP) != 0) {
+		if (volume->read_threads_stopped) {
 			uds_wait_cond(&volume->read_threads_cond, &volume->read_threads_mutex);
 			continue;
 		}
@@ -740,7 +705,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 static void release_queued_requests(struct volume *volume, struct queued_read *entry, int result)
 {
 	struct page_cache *cache = &volume->page_cache;
-	u16 last_read = cache->read_queue_last_read;
+	u16 next_read = cache->read_queue_next_read;
 	struct uds_request *request;
 	struct uds_request *next;
 
@@ -760,7 +725,7 @@ static void release_queued_requests(struct volume *volume, struct queued_read *e
 	entry->reserved = false;
 
 	/* Move the read_queue_first pointer as far as we can. */
-	while ((cache->read_queue_first != last_read) &&
+	while ((cache->read_queue_first != next_read) &&
 	       (!cache->read_queue[cache->read_queue_first].reserved))
 		advance_queue_position(&cache->read_queue_first);
 	uds_broadcast_cond(&volume->read_threads_read_done_cond);
@@ -777,7 +742,7 @@ static void read_thread_function(void *arg)
 		int result;
 
 		queue_entry = wait_to_reserve_read_queue_entry(volume);
-		if ((volume->reader_state & READER_STATE_EXIT) != 0)
+		if (volume->read_threads_exiting)
 			break;
 
 		result = process_entry(volume, queue_entry);
@@ -854,7 +819,6 @@ get_volume_page_protected(struct volume *volume,
 			  u32 physical_page,
 			  struct cached_page **page_ptr)
 {
-	int result;
 	struct cached_page *page;
 
 	get_page_from_cache(&volume->page_cache, physical_page, &page);
@@ -881,19 +845,15 @@ get_volume_page_protected(struct volume *volume,
 	 */
 	get_page_from_cache(&volume->page_cache, physical_page, &page);
 	if (page == NULL) {
-		result = enqueue_page_read(volume, request, physical_page);
-		if (result != UDS_SUCCESS) {
-			/*
-			 * This code path is used frequently in the UDS_QUEUED case, so the
-			 * performance gain from unlocking first, while "search pending" mode is
-			 * off, turns out to be significant in some cases.
-			 */
-			uds_unlock_mutex(&volume->read_threads_mutex);
-			begin_pending_search(&volume->page_cache,
-					     physical_page,
-					     request->zone_number);
-			return result;
-		}
+		enqueue_page_read(volume, request, physical_page);
+		/*
+		 * The performance gain from unlocking first, while "search pending" mode is off,
+		 * turns out to be significant in some cases. The page is not available yet so
+		 * the order does not matter for correctness as it does below.
+		 */
+		uds_unlock_mutex(&volume->read_threads_mutex);
+		begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
+		return UDS_QUEUED;
 	}
 
 	/*
@@ -1895,7 +1855,7 @@ void free_volume(struct volume *volume)
 
 		/* This works even if some threads weren't started. */
 		uds_lock_mutex(&volume->read_threads_mutex);
-		volume->reader_state |= READER_STATE_EXIT;
+		volume->read_threads_exiting = true;
 		uds_broadcast_cond(&volume->read_threads_cond);
 		uds_unlock_mutex(&volume->read_threads_mutex);
 		for (i = 0; i < volume->read_thread_count; i++)
