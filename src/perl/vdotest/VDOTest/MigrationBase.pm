@@ -30,7 +30,7 @@ our %PROPERTIES =
    # @ple Audit VDO metadata
    auditVDO   => 1,
    # @ple Number of blocks to write
-   blockCount => 33000,
+   blockCount => 256,
    # @ple Use an upgrade device backed by iscsi, and don't use stripfua
    deviceType => "upgrade-iscsi-linear",
    # @ple Hashref mapping scenario keys to the scenario hash to be used
@@ -94,8 +94,8 @@ sub reserveHosts {
   # Create hash of existing reserved hosts.
   my $reserved = {};
   for my $host (@{$self->{prereservedHosts}}) {
-    my @classes = $rsvper->getHostOSArchClasses($host);
-    if (scalar(@classes) == 0) {
+    my @classes = sort($rsvper->getHostOSArchClasses($host));
+    if (scalar(@classes) == 0 ) {
       next;
     }
 
@@ -110,16 +110,14 @@ sub reserveHosts {
   # Assign or reserve the host needed for each scenario.
   foreach my $name (@scenarioNames) {
     my $scenarioInfo = $SUPPORTED_SCENARIOS->{$name};
-    my $OSClass = $scenarioInfo->{rsvpOSClass};
-    my $lcOSClass = lc($OSClass);
-    my $arch = $scenarioInfo->{arch};
+    my @classes = sort($scenarioInfo->{rsvpOSClass}, $scenarioInfo->{arch});
 
+    my $key = join(",", @classes);
     my $host = undef;
-    my $key = "$OSClass,$arch";
     if (defined($reserved->{$key}) && scalar(@{$reserved->{$key}}) > 0) {
       $host = shift(@{$reserved->{$key}});
     } else {
-      my $classString = join(",", $OSClass, $arch, $self->{clientClass});
+      my $classString = join(",", @classes, $self->{clientClass});
       ($host) = $self->reserveNumHosts(1, $classString, $self->{clientLabel});
     }
 
@@ -152,7 +150,7 @@ sub setupDevice {
   my ($self) = assertNumArgs(1, @_);
 
   # Write an initial slice to the pass-through and verify.
-  $self->{_testData} = [$self->createSlice(blockCount => 256)];
+  $self->{_testData} = [$self->createSlice(blockCount => $self->{blockCount})];
   $self->{_testData}[0]->write(tag => "initial", direct => 1, sync => 1);
   $self->{_testData}[0]->verify();
 }
@@ -164,11 +162,11 @@ sub verifyScenario {
   my ($self) = assertNumArgs(1, @_);
 
   # Write a new slice and then verify all slices of data.
-  my $currentIndex = scalar(@{$self->{_testData}});
-  my $newSlice = $self->createSlice(blockCount => 256,
-                                    offset => 256 * $currentIndex);
-  $newSlice->write(tag => "S" . $currentIndex, direct => 1, sync => 1);
-  $self->{_testData}[$currentIndex] = $newSlice;
+  my $index = scalar(@{$self->{_testData}});
+  my $newSlice = $self->createSlice(blockCount => $self->{blockCount},
+                                    offset => $self->{blockCount} * $index);
+  $newSlice->write(tag => "S" . $index, direct => 1, sync => 1);
+  $self->{_testData}[$index] = $newSlice;
 
   foreach my $slice (@{$self->{_testData}}) {
     $slice->verify();
@@ -180,11 +178,18 @@ sub verifyScenario {
 ##
 sub verifyDevice {
   my ($self) = assertNumArgs(1, @_);
+  my $device = $self->getDevice();
 
-  # Verify all slices that have been written.
-  foreach my $slice (@{$self->{_testData}}) {
-    $slice->verify();
-  }
+  # Reboot then continue to use the VDO.
+  $self->rebootMachineForDevice($device);
+  $self->verifyScenario();
+
+  # Return to the initial scenario and verify.
+  my $initialHost =
+    $self->{_scenarios}->{$self->{initialScenario}}{machine}->getName();
+  $log->info("Returning to $self->{initialScenario} on $initialHost");
+  $self->switchToIntermediateScenario($self->{initialScenario});
+  $self->verifyScenario();
 }
 
 #############################################################################
@@ -228,15 +233,10 @@ sub _runTest {
       $self->verifyScenario();
     }
   }
+
   if (!$dontVerify) {
     $self->verifyDevice();
   }
-
-  my $initialHost =
-    $self->{_scenarios}->{$self->{initialScenario}}{machine}->getName();
-  $log->info("Returning to $self->{initialScenario} on $initialHost");
-  $self->switchToIntermediateScenario($self->{initialScenario});
-  # XXX  We should check that the old version still works.
 }
 
 1;

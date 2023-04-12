@@ -41,7 +41,7 @@ sub propertiesSimpleMigration {
     # @ple The scenario to start with
     initialScenario       => "X86_RHEL9_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["S390X_RHEL9_head"],
+    intermediateScenarios => ["X86_RHEL9_head"],
   );
 }
 
@@ -52,15 +52,15 @@ sub testSimpleMigration {
 }
 
 #############################################################################
-# Run the migration test from MigrationBase, specifying scenarios that
-# involve migration and upgrade.
+# Run the migration test from MigrationBase, specifying multiple scenarios
+# that involve migration.
 ##
 sub propertiesMultipleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_head",
+    initialScenario       => "X86_RHEL9_8.2.1.3",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["S390X_RHEL9_head", "AARCH64_RHEL9_head"],
+    intermediateScenarios => ["X86_RHEL9_8.2.1-current", "X86_RHEL9_head"],
   );
 }
 

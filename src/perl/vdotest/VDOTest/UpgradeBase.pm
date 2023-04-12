@@ -31,6 +31,8 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES =
   (
+   # @ple Number of blocks to write
+   blockCount => 33000,
    # @ple VDO stats to compare after upgrade
    _preUpgradeStats => undef,
   );
@@ -93,7 +95,7 @@ sub setupDevice {
   assertEqualNumeric(0, $initStats->{"logical blocks used"},
                      "Starting logical block used should be zero");
 
-  $self->{_testdata}
+  $self->{_testData}
     = [
        $self->createSlice(
                           blockCount => $self->{blockCount},
@@ -107,9 +109,9 @@ sub setupDevice {
                           offset     => $self->{blockCount} * 3 / 2,
                          ),
       ];
-  $self->{_testdata}[0]->write(tag => "data", fsync => 1);
+  $self->{_testData}[0]->write(tag => "data", fsync => 1);
   # Write half the blocks again, expecting complete dedupe.
-  $self->{_testdata}[1]->write(tag => "data", fsync => 1);
+  $self->{_testData}[1]->write(tag => "data", fsync => 1);
 
   # If we have dedupe enabled, make sure we get exactly the dedupe we want.
   my $preCompressStats = $device->getVDOStats();
@@ -122,7 +124,7 @@ sub setupDevice {
   # Write some compressible blocks
   my $compression = $device->isVDOCompressionEnabled();
   $device->enableCompression();
-  $self->{_testdata}[2]->write(tag => "data2", fsync => 1, compress => .9);
+  $self->{_testData}[2]->write(tag => "data2", fsync => 1, compress => .9);
   # Restore old compression status; then make sure compression happened.
   if (!$compression) {
     $device->disableCompression();
@@ -179,9 +181,9 @@ sub verifyDevice {
   }
 
   # Verify all the data have not changed.
-  $self->{_testdata}[0]->verify();
-  $self->{_testdata}[1]->verify();
-  $self->{_testdata}[2]->verify();
+  $self->{_testData}[0]->verify();
+  $self->{_testData}[1]->verify();
+  $self->{_testData}[2]->verify();
 
   # Overwrite the second half with the first half of data blocks.
   # Data should dedupe and free up half the blocks.
