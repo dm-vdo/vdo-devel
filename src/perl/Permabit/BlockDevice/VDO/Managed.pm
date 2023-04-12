@@ -215,6 +215,16 @@ sub doRemove {
 }
 
 ########################################################################
+# Remove the vdoconf file and import the VDO on an ISCSI device.
+##
+sub importOnISCSI {
+  my ($self) = assertNumArgs(1, @_);
+  $self->getMachine()->runSystemCmd("sudo rm -f $self->{confFile}");
+  $self->doImport(activate => 'disabled');
+  $self->assertVDOCommand("activate");
+}
+
+########################################################################
 # @inherit
 ##
 sub setup {
@@ -251,6 +261,19 @@ sub start {
 ##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
+
+  # For multi-machine tests with underlying ISCSI devices that are not
+  # passthrough devices, the vdoconf file needs to be removed and the VDO
+  # imported again when the host machine reboots. This is due to udev assigning
+  # the ISCSI a new UUID after reboot. VDO manager will search for the old UUID
+  # in the /dev/disk/by-id path and fail to start the VDO if this is not done.
+  my $storage = $self->getStorageDevice();
+  if ($storage->isa("Permabit::BlockDevice::ISCSI")) {
+    if (!$storage->isPassThrough()) {
+      $self->importOnISCSI();
+    }
+  }
+
   $self->startManagedVDO();
   $self->SUPER::activate();
 }
@@ -320,10 +343,8 @@ sub migrate {
 
     if ($newHost ne $self->getStorageHost()) {
       # If we are building on an ISCSI device, we have to import the VDO every
-      # time. This means removing the confFile also.
-      $self->getMachine()->runSystemCmd("sudo rm -f $self->{confFile}");
-      $self->doImport(activate => 'disabled');
-      $self->assertVDOCommand("activate");
+      # time.
+      $self->importOnISCSI();
     }
   };
   $self->runWhileStopped($migrate);

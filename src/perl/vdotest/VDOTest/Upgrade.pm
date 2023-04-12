@@ -38,7 +38,7 @@ our %PROPERTIES =
 ##
 
 # Released versions that support upgrades.
-my $SULFUR_SCENARIOS = ["8.1.0-current"];
+my $CHLORINE_SCENARIOS = ["X86_RHEL9_8.2.1.3", "X86_RHEL9_8.2.1-current"];
 
 # A list of regexes for upgrades from released versions that do not work.
 my @BAD_UPGRADES = ();
@@ -110,7 +110,7 @@ sub generateHeadPaths {
 sub suite {
   my ($package) = assertNumArgs(1, @_);
 
-  my $upgradePaths = generateUpgradePathsFromVersions($SULFUR_SCENARIOS);
+  my $upgradePaths = generateUpgradePathsFromVersions($CHLORINE_SCENARIOS);
   my $headPaths = generateHeadPaths();
   my @allPaths = (@$headPaths, @$upgradePaths);
 

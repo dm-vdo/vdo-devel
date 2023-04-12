@@ -240,6 +240,11 @@ sub getDevicePath {
 sub resize {
   my ($self, $newSize) = assertNumArgs(2, @_);
   $self->getStorageDevice()->resize($newSize);
+
+  if (defined($self->{targetIQN})) {
+    # Rescan the target to detect any physical size changes
+    $self->runOnHost("sudo iscsiadm -m node -T $self->{targetIQN} -R", 1);
+  }
 }
 
 ########################################################################
