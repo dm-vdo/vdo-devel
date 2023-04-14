@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright Red Hat
+#
+# Override manifest for generating SRPMs.
+# For the user space utilities, 
+
+
+manifest: ../src-dist/MANIFEST.yaml
+
+tarballs:
+  vdo:
+    sources:
+      vdo:
+        src/c++/vdo/base:
+          +excludes:
+            - histogram.c
+            - histogram.h
+          +postProcessor: ../github/removeInternal.sh
+        src/c++/uds/src/uds:
+          +postProcessor: ../github/removeInternal.sh
+        src/c++/uds/userLinux/uds:
+          +postProcessor: ../github/removeInternal.sh
+
+  kvdo:
+    sources:
+      vdo:
+        src/c++/vdo/base:
+          +undefines:
+            - VDO_USER
+          +postProcessor: postProcess.sh
+        src/c++/uds/src/uds:
+          -undefines: .
+          +postProcessor: postProcess.sh
+        src/c++/uds/kernelLinux/uds:
+          -undefines: .
+          +postProcessor: postProcess.sh

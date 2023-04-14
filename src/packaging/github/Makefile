@@ -8,6 +8,8 @@ VDO_ROOT ?= $(realpath ../../..)
 SRC_DIR = ../..
 include ../defines
 include $(SRC_DIR)/defines
+CURRENT_VERSION_FILE := $(VDO_ROOT)/src/tools/installers/CURRENT_VERSION
+include $(CURRENT_VERSION_FILE)
 
 ifdef AUTHOR
   AUTHOR_FLAG = --author=$(AUTHOR)
@@ -23,6 +25,8 @@ WORK_DIR          ?= $(realpath .)/work
 MANIFEST          ?= src/packaging/github/MANIFEST.yaml
 REPOSITORY_PREFIX  = dm-vdo
 RELEASE_DIR        = /permabit/release
+PACKAGE       = kvdo-$(VDO_VERSION)
+PREPARED_DIR  = $(WORK_DIR)/$(PACKAGE)
 
 # For building RPMs for testing
 RPMBUILD   =  rpmbuild
@@ -58,7 +62,7 @@ prepareGitHubDist.out: $(WORK_DIR)
 	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) \
           --repositoryPrefix=$(REPOSITORY_PREFIX) $(FLAGS) $(EXTRA_FLAGS) \
 	  | tee $@
-	cd $(WORK_DIR)/kvdo-*/vdo && ln -s . dm-vdo
+	[ -e  $(WORK_DIR)/$(PACKAGE)/dm-vdo-target.c ] || mv $(WORK_DIR)/$(PACKAGE)/dm-vdo/dm-vdo-target.c $(WORK_DIR)/$(PACKAGE)
 
 .PHONY: prepare
 prepare: FLAGS=--test --manifest=$(MANIFEST) $(VDO_ROOT)

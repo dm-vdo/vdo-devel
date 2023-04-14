@@ -1,4 +1,4 @@
-%define spec_release            4
+%define spec_release            5
 %define kmod_name		kvdo
 %define kmod_driver_version	@VERSION@
 %define kmod_rpm_release	%{spec_release}
@@ -19,18 +19,6 @@ BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires:       dkms
 Requires:	kernel-devel >= %{kmod_kernel_version}
 Requires:       make
-%if 0%{?fedora}
-# Fedora requires elfutils-libelf-devel, while rhel does not.
-BuildRequires:  elfutils-libelf-devel
-%endif
-BuildRequires:	glibc
-%if 0%{?rhel} && 0%{?rhel} < 9
-# Fedora doesn't have abi whitelists,
-# And RHEL9 doesn't have it yet.
-BuildRequires:  kernel-abi-whitelists
-%endif
-BuildRequires:  libuuid-devel
-BuildRequires:  redhat-rpm-config
 ExclusiveArch:	aarch64
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
@@ -41,10 +29,8 @@ ExcludeArch:    ppc64le
 ExcludeArch:    i686
 
 %description
-Virtual Data Optimizer (VDO) is a device mapper target that delivers
-block-level deduplication, compression, and thin provisioning.
-
-This package provides the kernel modules for VDO.
+dm-vdo is a device mapper target that delivers block-level
+deduplication, compression, and thin provisioning.
 
 %post
 set -x
@@ -79,8 +65,7 @@ PACKAGE_VERSION="%{version}"
 AUTOINSTALL="yes"
 
 BUILT_MODULE_NAME[0]="kvdo"
-BUILT_MODULE_LOCATION[0]="vdo"
-DEST_MODULE_LOCATION[0]="/kernel/drivers/block/"
+DEST_MODULE_LOCATION[0]=/kernel/drivers/md
 BUILD_DEPENDS[0]=LZ4_COMPRESS
 BUILD_DEPENDS[0]=LZ4_DECOMPRESS
 STRIP[0]="no"
@@ -94,6 +79,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
+* Sat Apr 01 2023 - John Wiele <jwiele@redhat.com> - 8.3.0.0-5
+- Updated to build version 8.3
+
 * Wed Jan 04 2023 - Joe Shimkus <jshimkus@redhat.com> - 6.2.0.35-4
 - Enabled building on aarch64.
 

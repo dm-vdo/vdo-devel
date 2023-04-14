@@ -73,7 +73,7 @@ GIT=git
 GITARGS=
 
 WORK_DIR ?= $(realpath .)/work
-PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)/vdo
+PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)/dm-vdo
 MANIFEST ?= src/packaging/kpatch/MANIFEST.yaml
 PREPARE_GITHUB_DIST ?= $(SRC_DIR)/perl/bin/prepareGitHubDist.pl
 

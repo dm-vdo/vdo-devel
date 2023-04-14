@@ -26,6 +26,9 @@ tarballs:
           sources:
             - dm-vdo.rst
         src/c++/vdo/base:
+          +excludes:
+            - histogram.c
+            - histogram.h
           +undefines:
             - INTERNAL
             - TEST_INTERNAL
@@ -38,6 +41,9 @@ tarballs:
             - VDO_UPSTREAM
           +postProcessor: ../github/removeInternal.sh
         src/c++/uds/src/uds:
+          +excludes:
+            - dory.c
+            - dory.h
           +defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP

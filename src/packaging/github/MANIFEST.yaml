@@ -20,10 +20,16 @@ tarballs:
           sources:
             - README.md
         src/c++/uds/src/uds:
+          +excludes:
+            - dory.c
+            - dory.h
           +postProcessor: removeInternal.sh
         src/c++/uds/userLinux/uds:
           +postProcessor: removeInternal.sh
         src/c++/vdo/base:
+          +excludes:
+            - histogram.c
+            - histogram.h
           +postProcessor: removeInternal.sh
   kvdo:
     sources:
@@ -32,6 +38,11 @@ tarballs:
           dest: .
           sources:
             - dm-vdo.rst
+        +src/packaging/src-dist/kernel:
+           dest: .
+           sources:
+            - COPYING
+            - Makefile
         +src/packaging/github:
           dest: .
           sources:
@@ -41,8 +52,14 @@ tarballs:
           sources:
             - README.md
         src/c++/vdo/base:
+          +excludes:
+            - histogram.c
+            - histogram.h
           +postProcessor: removeInternal.sh
         src/c++/uds/src/uds:
+          +excludes:
+            - dory.c
+            - dory.h
           +postProcessor: removeInternal.sh
         src/c++/uds/kernelLinux/uds:
           +postProcessor: removeInternal.sh
