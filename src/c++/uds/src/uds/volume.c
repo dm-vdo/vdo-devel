@@ -511,10 +511,11 @@ static int initialize_index_page(const struct volume *volume,
 				       &page->index_page);
 }
 
-EXTERNAL_STATIC bool search_record_page(const u8 record_page[],
-					const struct uds_record_name *name,
-					const struct geometry *geometry,
-					struct uds_record_data *metadata)
+EXTERNAL_STATIC bool
+search_record_page(const u8 record_page[],
+		   const struct uds_record_name *name,
+		   const struct geometry *geometry,
+		   struct uds_record_data *metadata)
 {
 	/*
 	 * The array of records is sorted by name and stored as a binary tree in heap order, so the
@@ -1279,9 +1280,10 @@ static u32 encode_tree(u8 record_page[],
 	return next_record;
 }
 
-EXTERNAL_STATIC int encode_record_page(const struct volume *volume,
-				       const struct uds_volume_record records[],
-				       u8 record_page[])
+EXTERNAL_STATIC int
+encode_record_page(const struct volume *volume,
+		   const struct uds_volume_record records[],
+		   u8 record_page[])
 {
 	int result;
 	u32 i;

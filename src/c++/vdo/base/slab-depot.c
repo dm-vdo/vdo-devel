@@ -3797,8 +3797,8 @@ void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion)
 	vdo_finish_loading_with_result(&allocator->state, completion->result);
 }
 
-EXTERNAL_STATIC int get_slab_statuses(struct block_allocator *allocator,
-				      struct slab_status **statuses_ptr)
+EXTERNAL_STATIC int
+get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr)
 {
 	int result;
 	struct slab_status *statuses;
