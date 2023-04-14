@@ -345,7 +345,7 @@ struct bio_integrity_payload {
 	struct bio_vec		*bip_vec;
 	struct bio_vec		bip_inline_vecs[];/* embedded bvec array */
 };
-#endif __KERNEL__
+#endif /* __KERNEL__ */
 
 #if defined(CONFIG_BLK_DEV_INTEGRITY)
 
@@ -420,7 +420,7 @@ struct bio *bio_alloc_kiocb(struct kiocb *kiocb, unsigned short nr_vecs,
 		struct bio_set *bs);
 struct bio *bio_kmalloc(gfp_t gfp_mask, unsigned short nr_iovecs);
 extern void bio_put(struct bio *);
-#endif // __KERNEL__
+#endif /* __KERNEL__ */
 
 #ifdef RHEL_RELEASE_CODE
 #define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
@@ -444,7 +444,7 @@ static inline struct bio *bio_alloc(gfp_t gfp_mask, unsigned short nr_iovecs)
 {
 	return bio_alloc_bioset(gfp_mask, nr_iovecs, &fs_bio_set);
 }
-#endif // __KERNEL__
+#endif /* __KERNEL__ */
 
 extern blk_qc_t submit_bio(struct bio *);
 
@@ -480,7 +480,7 @@ static inline int bio_iov_vecs_to_alloc(struct iov_iter *iter, int max_segs)
 }
 
 struct request_queue;
-#endif // __KERNEL__
+#endif /* __KERNEL__ */
 extern int submit_bio_wait(struct bio *bio);
 extern void bio_advance(struct bio *, unsigned);
 void bio_init(struct bio *bio, struct block_device *bdev, struct bio_vec *table,
@@ -824,5 +824,5 @@ static inline void bio_set_polled(struct bio *bio, struct kiocb *kiocb)
 
 struct bio *blk_next_bio(struct bio *bio, unsigned int nr_pages, gfp_t gfp);
 
-#endif // __KERNEL__
+#endif /* __KERNEL__ */
 #endif /* __LINUX_BIO_H */
