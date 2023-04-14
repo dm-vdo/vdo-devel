@@ -62,7 +62,9 @@ int uds_assertion_failed(const char *expression_string,
 
 #define STATIC_ASSERT_SIZEOF(type, expected_size) STATIC_ASSERT(sizeof(type) == (expected_size))
 
+#ifndef __KERNEL__
 /* Set whether or not to exit on an assertion failure, for tests. */
 bool set_exit_on_assertion_failure(bool should_exit);
 
+#endif /* not __KERNEL__ */
 #endif /* PERMASSERT_H */
