@@ -229,45 +229,6 @@ static void clear_cache_page(struct page_cache *cache, struct cached_page *page)
 	WRITE_ONCE(page->last_used, 0);
 }
 
-static void get_page_and_index(struct page_cache *cache,
-			       u32 physical_page,
-			       int *queue_index,
-			       struct cached_page **page_ptr)
-{
-	u16 index_value;
-	u16 index;
-	bool queued;
-
-	/*
-	 * ASSERTION: We are either a zone thread holding a search_pending_counter, or we are any
-	 * thread holding the read_threads_mutex.
-	 *
-	 * Holding only a search_pending_counter is the most frequent case.
-	 */
-	/*
-	 * It would be unlikely for the compiler to turn the usage of index_value into two reads of
-	 * cache->index, but it would be possible and very bad if those reads did not return the
-	 * same bits.
-	 */
-	index_value = READ_ONCE(cache->index[physical_page]);
-	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
-	index = index_value & ~VOLUME_CACHE_QUEUED_FLAG;
-
-	if (!queued && (index < cache->cache_slots)) {
-		*page_ptr = &cache->cache[index];
-		/*
-		 * We have acquired access to the cached page, but unless we hold the
-		 * read_threads_mutex, we need a read memory barrier now. The corresponding write
-		 * memory barrier is in put_page_in_cache().
-		 */
-		smp_rmb();
-	} else {
-		*page_ptr = NULL;
-	}
-
-	*queue_index = queued ? index : -1;
-}
-
 EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 {
 	/*
@@ -278,48 +239,29 @@ EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cach
 		WRITE_ONCE(page->last_used, atomic64_inc_return(&cache->clock));
 }
 
-static struct cached_page *get_least_recent_page(struct page_cache *cache)
-{
-	/* We hold the read_threads_mutex. */
-	int oldest_index = 0;
-	u16 i;
-
-	for (i = 0; i < cache->cache_slots; i++) {
-		/* A page with a pending read must not be replaced. */
-		if (!cache->cache[i].read_pending) {
-			oldest_index = i;
-			break;
-		}
-	}
-
-	for (i = 0; i < cache->cache_slots; i++) {
-		if (!cache->cache[i].read_pending &&
-		    (READ_ONCE(cache->cache[i].last_used) <=
-		     READ_ONCE(cache->cache[oldest_index].last_used)))
-			oldest_index = i;
-	}
-
-	return &cache->cache[oldest_index];
-}
-
-EXTERNAL_STATIC void
-get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page)
-{
-	/*
-	 * ASSERTION: We are in a zone thread.
-	 * ASSERTION: We holding a search_pending_counter or the read_threads_mutex.
-	 */
-	int queue_index = -1;
-
-	get_page_and_index(cache, physical_page, &queue_index, page);
-}
-
 /* Select a page to remove from the cache to make space for a new entry. */
 EXTERNAL_STATIC struct cached_page *select_victim_in_cache(struct page_cache *cache)
 {
-	struct cached_page *page = get_least_recent_page(cache);
+	struct cached_page *page;
+	int oldest_index = 0;
+	s64 oldest_time = S64_MAX;
+	s64 last_used;
+	u16 i;
 
-	/* We hold the read_threads_mutex. */
+	/* Find the oldest unclaimed page. We hold the read_threads_mutex. */
+	for (i = 0; i < cache->cache_slots; i++) {
+		/* A page with a pending read must not be replaced. */
+		if (cache->cache[i].read_pending)
+			continue;
+
+		last_used = READ_ONCE(cache->cache[i].last_used);
+		if (last_used <= oldest_time) {
+			oldest_time = last_used;
+			oldest_index = i;
+		}
+	}
+
+	page = &cache->cache[oldest_index];
 	if (page->physical_page != cache->indexable_pages) {
 		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
 		wait_for_pending_searches(cache, page->physical_page);
@@ -750,6 +692,57 @@ static void read_thread_function(void *arg)
 	}
 	uds_unlock_mutex(&volume->read_threads_mutex);
 	uds_log_debug("reader done");
+}
+
+static void get_page_and_index(struct page_cache *cache,
+			       u32 physical_page,
+			       int *queue_index,
+			       struct cached_page **page_ptr)
+{
+	u16 index_value;
+	u16 index;
+	bool queued;
+
+	/*
+	 * ASSERTION: We are either a zone thread holding a search_pending_counter, or we are any
+	 * thread holding the read_threads_mutex.
+	 *
+	 * Holding only a search_pending_counter is the most frequent case.
+	 */
+	/*
+	 * It would be unlikely for the compiler to turn the usage of index_value into two reads of
+	 * cache->index, but it would be possible and very bad if those reads did not return the
+	 * same bits.
+	 */
+	index_value = READ_ONCE(cache->index[physical_page]);
+	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
+	index = index_value & ~VOLUME_CACHE_QUEUED_FLAG;
+
+	if (!queued && (index < cache->cache_slots)) {
+		*page_ptr = &cache->cache[index];
+		/*
+		 * We have acquired access to the cached page, but unless we hold the
+		 * read_threads_mutex, we need a read memory barrier now. The corresponding write
+		 * memory barrier is in put_page_in_cache().
+		 */
+		smp_rmb();
+	} else {
+		*page_ptr = NULL;
+	}
+
+	*queue_index = queued ? index : -1;
+}
+
+EXTERNAL_STATIC void
+get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page)
+{
+	/*
+	 * ASSERTION: We are in a zone thread.
+	 * ASSERTION: We holding a search_pending_counter or the read_threads_mutex.
+	 */
+	int queue_index = -1;
+
+	get_page_and_index(cache, physical_page, &queue_index, page);
 }
 
 static int read_page_locked(struct volume *volume,
@@ -1685,11 +1678,12 @@ initialize_page_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-static int __must_check allocate_volume(const struct configuration *config,
-					struct index_layout *layout,
-					struct volume **new_volume)
+int make_volume(const struct configuration *config,
+		struct index_layout *layout,
+		struct volume **new_volume)
 {
-	struct volume *volume;
+	unsigned int i;
+	struct volume *volume = NULL;
 	struct geometry *geometry;
 	unsigned int reserved_buffers;
 	int result;
@@ -1755,6 +1749,7 @@ static int __must_check allocate_volume(const struct configuration *config,
 		volume->cache_size =
 			page_size * geometry->index_pages_per_chapter * config->cache_chapters;
 	}
+
 	result = initialize_page_cache(&volume->page_cache,
 				       geometry,
 				       config->cache_chapters,
@@ -1764,28 +1759,12 @@ static int __must_check allocate_volume(const struct configuration *config,
 		return result;
 	}
 
+	volume->cache_size += volume->page_cache.cache_slots * sizeof(struct delta_index_page);
 	result = make_index_page_map(geometry, &volume->index_page_map);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
 	}
-
-	volume->cache_size += volume->page_cache.cache_slots * sizeof(struct delta_index_page);
-	*new_volume = volume;
-	return UDS_SUCCESS;
-}
-
-int make_volume(const struct configuration *config,
-		struct index_layout *layout,
-		struct volume **new_volume)
-{
-	unsigned int i;
-	struct volume *volume = NULL;
-	int result;
-
-	result = allocate_volume(config, layout, &volume);
-	if (result != UDS_SUCCESS)
-		return result;
 
 	result = uds_init_mutex(&volume->read_threads_mutex);
 	if (result != UDS_SUCCESS) {
