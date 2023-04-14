@@ -271,7 +271,7 @@ static void syncTest(void)
 
   testEventCount(MESSAGE_COUNT);
 
-  if (uds_get_num_cores() > 1) {
+  if (num_online_cpus() > 1) {
     testSpinLoop(MESSAGE_COUNT);
   } else {
     // Spin loop is extraordinarily slow on a single core.

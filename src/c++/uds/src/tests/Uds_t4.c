@@ -145,8 +145,7 @@ static void zoneParameterTest(void)
 {
   // A value of zero should get the default zone count, which is half
   // the available cores, from 1 up to MAX_ZONES.
-  unsigned int expectedZoneCount = min((unsigned int) MAX_ZONES,
-				       max(uds_get_num_cores() / 2U, 1U));
+  unsigned int expectedZoneCount = min((unsigned int) MAX_ZONES, max(num_online_cpus() / 2U, 1U));
   checkZoneParameter(0, expectedZoneCount);
   unsigned int z;
   for (z = 1; z <= MAX_ZONES; z++) {

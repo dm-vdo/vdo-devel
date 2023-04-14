@@ -227,8 +227,6 @@ EXPORT_SYMBOL_GPL(uds_destroy_barrier);
 EXPORT_SYMBOL_GPL(uds_destroy_cond);
 EXPORT_SYMBOL_GPL(uds_enter_barrier);
 EXPORT_SYMBOL_GPL(uds_fixed_sprintf);
-EXPORT_SYMBOL_GPL(uds_get_num_cores);
-EXPORT_SYMBOL_GPL(uds_get_thread_id);
 EXPORT_SYMBOL_GPL(uds_init_cond);
 EXPORT_SYMBOL_GPL(uds_initialize_barrier);
 EXPORT_SYMBOL_GPL(uds_join_threads);

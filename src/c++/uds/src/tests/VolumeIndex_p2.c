@@ -266,7 +266,7 @@ static void restore(unsigned int oldZones, unsigned int newZones)
 /**********************************************************************/
 static void miPerfTest(void)
 {
-  unsigned int numCores = uds_get_num_cores();
+  unsigned int numCores = num_online_cpus();
   unsigned int defaultZones = config->zone_count;
   createAndFill(defaultZones);
   save(defaultZones);
@@ -304,8 +304,8 @@ static void miPerfTest(void)
 
   /*
    * Expect the total time to remain steady when we oversubscribe the cores.
-   * Accept a performance drop of up to 25%.  If there really are more cores
-   * than uds_get_num_cores() returns, performance can keep getting better.
+   * Accept a performance drop of up to 25%. If there really are more cores
+   * than num_online_cores() returns, performance should keep getting better.
    */
   for (unsigned int z = numCores + 1; z <= maxZones; z++) {
     double relativeSpeed = steadyTimes[numCores] / steadyTimes[z];

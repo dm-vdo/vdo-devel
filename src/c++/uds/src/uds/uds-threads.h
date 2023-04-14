@@ -12,14 +12,15 @@
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
+
 #include "event-count.h"
 #else
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
 #include <stdbool.h>
-#endif
 
+#endif
 #include "errors.h"
 #include "time-utils.h"
 
@@ -70,6 +71,9 @@ struct barrier {
 #endif
 
 extern const bool UDS_DO_ASSERTIONS;
+
+unsigned int num_online_cpus(void);
+pid_t __must_check uds_get_thread_id(void);
 #endif
 
 int __must_check uds_create_thread(void (*thread_function)(void *),
@@ -77,9 +81,6 @@ int __must_check uds_create_thread(void (*thread_function)(void *),
 				   const char *name,
 				   struct thread **new_thread);
 
-unsigned int uds_get_num_cores(void);
-
-pid_t __must_check uds_get_thread_id(void);
 void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);

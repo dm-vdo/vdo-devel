@@ -22,7 +22,7 @@ enum {
 };
 
 /**********************************************************************/
-unsigned int uds_get_num_cores(void)
+unsigned int num_online_cpus(void)
 {
 	cpu_set_t cpu_set;
 	unsigned int n_cpus = 0;

@@ -182,16 +182,6 @@ void uds_thread_exit(void)
 }
 
 #endif /* TEST_INTERNAL */
-pid_t uds_get_thread_id(void)
-{
-	return current->pid;
-}
-
-unsigned int uds_get_num_cores(void)
-{
-	return num_online_cpus();
-}
-
 int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
 {
 	int result;

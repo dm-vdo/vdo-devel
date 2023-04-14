@@ -292,7 +292,7 @@ static unsigned int __must_check normalize_zone_count(unsigned int requested)
 	unsigned int zone_count = requested;
 
 	if (zone_count == 0)
-		zone_count = uds_get_num_cores() / 2;
+		zone_count = num_online_cpus() / 2;
 
 	if (zone_count < 1)
 		zone_count = 1;
