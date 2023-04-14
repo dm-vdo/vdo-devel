@@ -1,4 +1,4 @@
-%define spec_release 31
+%define spec_release 32
 #
 #
 #
@@ -11,13 +11,9 @@ Source0: %{name}-%{version}.tgz
 URL: http://github.com/dm-vdo/vdo
 Requires: libuuid >= 2.23
 Requires: kmod-kvdo >= 6.2
-ExclusiveArch: aarch64
-ExclusiveArch: x86_64
 ExcludeArch: s390
-ExcludeArch: s390x
 ExcludeArch: ppc
 ExcludeArch: ppc64
-ExcludeArch: ppc64le
 ExcludeArch: i686
 BuildRequires: device-mapper-devel
 BuildRequires: device-mapper-event-devel
@@ -76,13 +72,9 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= bindir=%{_bindir} \
 Summary: Support tools for Virtual Data Optimizer
 License: GPLv2
 Requires: libuuid >= 2.23
-ExclusiveArch: aarch64
-ExclusiveArch: x86_64
 ExcludeArch: s390
-ExcludeArch: s390x
 ExcludeArch: ppc
 ExcludeArch: ppc64
-ExcludeArch: ppc64le
 ExcludeArch: i686
 
 %description support
@@ -112,6 +104,9 @@ This package provides the user-space support tools for VDO.
 %{_mandir}/man8/vdoregenerategeometry.8.gz
 
 %changelog
+* Fri Apr 14 2023 - Susan LeGendre-McGhee <slegendr@redhat.com> - 8.1.0.0-32
+- Removed exclusion of other supported architectures.
+
 * Wed Jan 04 2023 - Joe Shimkus <jshimkus@redhat.com> - 8.1.0.0-31
 - Enabled building on aarch64.
 

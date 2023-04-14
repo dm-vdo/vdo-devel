@@ -1,4 +1,4 @@
-%define spec_release            5
+%define spec_release            6
 %define kmod_name		kvdo
 %define kmod_driver_version	@VERSION@
 %define kmod_rpm_release	%{spec_release}
@@ -19,13 +19,9 @@ BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires:       dkms
 Requires:	kernel-devel >= %{kmod_kernel_version}
 Requires:       make
-ExclusiveArch:	aarch64
-ExclusiveArch:	x86_64
 ExcludeArch:    s390
-ExcludeArch:    s390x
 ExcludeArch:    ppc
 ExcludeArch:    ppc64
-ExcludeArch:    ppc64le
 ExcludeArch:    i686
 
 %description
@@ -79,6 +75,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}
 
 %changelog
+* Fri Apr 14 2023 - Susan LeGendre-McGhee <slegendr@redhat.com> - 8.3.0.0-6
+- Removed exclusion of other supported architectures.
+
 * Sat Apr 01 2023 - John Wiele <jwiele@redhat.com> - 8.3.0.0-5
 - Updated to build version 8.3
 
