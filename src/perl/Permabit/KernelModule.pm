@@ -121,16 +121,14 @@ sub loadFromFiles {
     return;
   }
 
-  if (0) {
-    # Look for a local SRPM to use.
-    # XXX We don't support this case yet, but this is how it would work.
-    my $sourceRPMFilename = makeFullPath($self->{modDir},
-                                         "kmod-$modName-$modVer*.src.rpm");
-    if (-f $sourceRPMFilename) {
-      $log->debug("Detected source RPM: $sourceRPMFilename");
-      $self->loadFromSourceRPM($sourceRPMFilename);
-      return;
-    }
+  # Look for a SRPM on the remote machine.
+  my $moduleSRPMPath = makeFullPath($self->{modDir},
+                                    "kmod-$modName-$modVer*.src.rpm");
+  $errno = $machine->sendCommand("test -f $moduleSRPMPath");
+  if ($errno == 0) {
+    $log->debug("Detected for module source RPM: $moduleSRPMPath");
+    $self->loadFromSourceRPM($moduleSRPMPath);
+    return;
   }
 
   # Look for a local tarball to use.
@@ -159,25 +157,29 @@ sub loadFromBinaryRPM {
 ###############################################################################
 # Load the module from a local source RPM by building a binary and loading that.
 #
-# @param filename  The name of the local source RPM to load
+# @param modulePath  The full path of the module source RPM to load
 ##
 sub loadFromSourceRPM {
-  my ($self, $filename) = assertNumArgs(2, @_);
-  # XXX This option is not implemented because we don't need it yet.
-  die("Loading from source RPMs is unimplemented");
+  my ($self, $modulePath) = assertNumArgs(2, @_);
+  my $machine = $self->{machine};
+  my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
+  $machine->sendCommand("uname -m");
+  my $arch = $machine->getStdout();
+  chomp($arch);
 
-  # Generally:
-  # - make sure the remote machine can build RPMS:
-  # - $ yum install rpm-build redhat-rpm-config
-  # - copy local source RPM to remote host (using tar, etc.)
-  # -- SRPMs are usually stored in /usr/src/redhat/SRPMS
-  # - Generate binary RPM with rpbbuild --rebuild: (no sudo)
-  # - $ rpmbuild --rebuild <source RPM file>
-  # - look in /usr/src/redhat/RPMS/<arch>/<name>.<arch>.rpm for the new module
-  # - Install the new module:
-  # - $ sudo rpm -iv <binary RPM file>
-  # - To uninstall or clean up:
-  # - $sudo rpm -e kmod-kvdo
+  # Build the kernel module from source and move the result to the top level.
+  $log->debug("Building kernel module SRPM");
+  $self->_step(command => "mkdir -p $topdir");
+  $self->_step(command => "cp -p $self->{modDir}/*.src.rpm $topdir");
+
+  my $buildModule = join(' ',
+                         "rpmbuild -rb --clean",
+                         "--define='_topdir $topdir'",
+                         "$modulePath");
+  $self->_step(command => $buildModule);
+  $self->_step(command => "mv -f $topdir/RPMS/$arch/* $topdir");
+  $self->_step(command => "sudo rpm -iv $topdir/kmod-*$arch.rpm",
+               cleaner => "sudo rpm -e kmod-kvdo");
 }
 
 ###############################################################################
