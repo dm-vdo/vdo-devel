@@ -3,7 +3,7 @@
 # Copyright Red Hat
 #
 # Override manifest for generating SRPMs.
-# For the user space utilities, 
+# For the user space utilities,
 
 
 manifest: ../src-dist/MANIFEST.yaml

@@ -39,8 +39,8 @@ tarballs:
           sources:
             - dm-vdo.rst
         +src/packaging/src-dist/kernel:
-           dest: .
-           sources:
+          dest: .
+          sources:
             - COPYING
             - Makefile
         +src/packaging/github:
