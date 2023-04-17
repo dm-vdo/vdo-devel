@@ -17,7 +17,6 @@
 static struct index_layout  *layout;
 static struct configuration *config;
 static struct geometry      *geometry;
-static u8                  **pages;
 static struct volume        *volume;
 
 /**********************************************************************/
@@ -37,14 +36,14 @@ static void init(const char *indexName)
   UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
 
   geometry = config->geometry;
-  pages = makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
-  writeTestVolumeData(volume, geometry, pages);
+  makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
+  writeTestVolumeData(volume, geometry);
 }
 
 /**********************************************************************/
 static void deinit(void)
 {
-  freePageArray(pages, geometry->pages_per_volume);
+  freePageArray();
   free_volume(volume);
   free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
@@ -53,8 +52,8 @@ static void deinit(void)
 /**********************************************************************/
 static void verifyPage(unsigned int chapter, unsigned int page)
 {
-  uint32_t physPage = chapter * geometry->pages_per_chapter + page;
-  const u8 *expected = pages[physPage];
+  u32 physicalPage = map_to_physical_page(geometry, chapter, page);
+  const u8 *expected = test_pages[physicalPage];
   u8 *actual;
   // Make sure the page read is synchronous
   UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &actual));
@@ -93,42 +92,9 @@ static void testStumblingGet(void)
 }
 
 /**********************************************************************/
-static void testWriteChapter(void)
-{
-  // This test only exercises the write code, and does nothing to check
-  // that the chapter is constructed correctly.
-  struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter,
-                                  struct uds_volume_record, __func__,
-                                  &records));
-
-  get_random_bytes((u8 *) records,
-                   BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
-
-  // Construct an empty delta chapter index for chapter zero. The chapter
-  // write code doesn't really care if it's populated or not.
-  struct open_chapter_index *chapterIndex;
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&chapterIndex, geometry,
-                                             volume->nonce));
-  CU_ASSERT_PTR_NOT_NULL(chapterIndex);
-
-  // Write chapter zero.
-  empty_open_chapter_index(chapterIndex, 0);
-  UDS_ASSERT_SUCCESS(write_chapter(volume, chapterIndex, records));
-
-  // Write an empty delta chapter index for chapter one.
-  empty_open_chapter_index(chapterIndex, 1);
-  UDS_ASSERT_SUCCESS(write_chapter(volume, chapterIndex, records));
-  free_open_chapter_index(chapterIndex);
-
-  UDS_FREE(records);
-}
-
-/**********************************************************************/
 static const CU_TestInfo tests[] = {
-  {"SequentialGet",        testSequentialGet},
-  {"StumblingGet",         testStumblingGet},
-  {"WriteChapter",         testWriteChapter},
+  {"SequentialGet", testSequentialGet},
+  {"StumblingGet",  testStumblingGet},
   CU_TEST_INFO_NULL,
 };
 

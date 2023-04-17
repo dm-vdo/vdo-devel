@@ -88,6 +88,10 @@ union invalidate_counter {
 };
 
 #ifdef TEST_INTERNAL
+/* This array, if set, will capture page data when it is encoded by closing chapters. */
+u8 **test_pages = NULL;
+u32 test_page_count = 0;
+
 /* This function pointer allows unit tests to intercept the slow-lane requeuing of a request. */
 static request_restarter_t request_restarter = NULL;
 
@@ -120,7 +124,7 @@ static inline bool is_record_page(struct geometry *geometry, u32 physical_page)
 	return map_to_page_number(geometry, physical_page) >= geometry->index_pages_per_chapter;
 }
 
-u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
+EXTERNAL_STATIC u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
 {
 	/* Page zero is the header page, so the first chapter index page is page one. */
 	return HEADER_PAGES_PER_VOLUME + (geometry->pages_per_chapter * chapter) + page;
@@ -1168,15 +1172,13 @@ static int donate_index_page_locked(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
-int write_index_pages(struct volume *volume,
-		      u32 physical_page,
-		      struct open_chapter_index *chapter_index,
-		      u8 **pages)
+static int write_index_pages(struct volume *volume,
+			     u32 physical_chapter_number,
+			     struct open_chapter_index *chapter_index)
 {
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
-	u32 physical_chapter_number =
-		map_to_physical_chapter(geometry, chapter_index->virtual_chapter_number);
+	u32 first_index_page = map_to_physical_page(geometry, physical_chapter_number, 0);
 	u32 delta_list_number = 0;
 	u32 index_page_number;
 
@@ -1184,13 +1186,12 @@ int write_index_pages(struct volume *volume,
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
 		u8 *page_data;
+		u32 physical_page = first_index_page + index_page_number;
 		u32 lists_packed;
 		bool last_page;
 		int result;
 
-		page_data = dm_bufio_new(volume->client,
-					 physical_page + index_page_number,
-					 &page_buffer);
+		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
 		if (IS_ERR(page_data))
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare index page");
@@ -1213,11 +1214,11 @@ int write_index_pages(struct volume *volume,
 							"failed to write chapter index page");
 		}
 
+		if (physical_page < test_page_count)
+			memcpy(test_pages[physical_page], page_data, geometry->bytes_per_page);
+
 #endif /* TEST_INTERNAL */
 		dm_bufio_mark_buffer_dirty(page_buffer);
-
-		if (pages != NULL)
-			memcpy(pages[index_page_number], page_data, geometry->bytes_per_page);
 
 		if (lists_packed == 0)
 			uds_log_debug("no delta lists packed on chapter %u page %u",
@@ -1309,28 +1310,26 @@ encode_record_page(const struct volume *volume,
 	return UDS_SUCCESS;
 }
 
-int write_record_pages(struct volume *volume,
-		       u32 physical_page,
-		       const struct uds_volume_record *records,
-		       u8 **pages)
+static int write_record_pages(struct volume *volume,
+			      u32 physical_chapter_number,
+			      const struct uds_volume_record *records)
 {
 	u32 record_page_number;
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
 	const struct uds_volume_record *next_record = records;
-
-	/* Skip over the index pages, which have already been written. */
-	physical_page += geometry->index_pages_per_chapter;
+	u32 first_record_page = map_to_physical_page(geometry,
+						     physical_chapter_number,
+						     geometry->index_pages_per_chapter);
 
 	for (record_page_number = 0;
 	     record_page_number < geometry->record_pages_per_chapter;
 	     record_page_number++) {
 		u8 *page_data;
+		u32 physical_page = first_record_page + record_page_number;
 		int result;
 
-		page_data = dm_bufio_new(volume->client,
-					 physical_page + record_page_number,
-					 &page_buffer);
+		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
 		if (IS_ERR(page_data))
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare record page");
@@ -1345,17 +1344,18 @@ int write_record_pages(struct volume *volume,
 
 		next_record += geometry->records_per_page;
 #ifdef TEST_INTERNAL
+
 		if (get_dory_forgetful()) {
 			dm_bufio_release(page_buffer);
 			return uds_log_warning_strerror(-EROFS,
 							"failed to write chapter record page");
 		}
 
+		if (physical_page < test_page_count)
+			memcpy(test_pages[physical_page], page_data, geometry->bytes_per_page);
+
 #endif /* TEST_INTERNAL */
 		dm_bufio_mark_buffer_dirty(page_buffer);
-		if (pages != NULL)
-			memcpy(pages[record_page_number], page_data, geometry->bytes_per_page);
-
 		dm_bufio_release(page_buffer);
 	}
 
@@ -1366,17 +1366,15 @@ int write_chapter(struct volume *volume,
 		  struct open_chapter_index *chapter_index,
 		  const struct uds_volume_record *records)
 {
-	struct geometry *geometry = volume->geometry;
-	u32 physical_chapter_number =
-		map_to_physical_chapter(geometry, chapter_index->virtual_chapter_number);
-	u32 physical_page = map_to_physical_page(geometry, physical_chapter_number, 0);
 	int result;
+	u32 physical_chapter_number =
+		map_to_physical_chapter(volume->geometry, chapter_index->virtual_chapter_number);
 
-	result = write_index_pages(volume, physical_page, chapter_index, NULL);
+	result = write_index_pages(volume, physical_chapter_number, chapter_index);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_record_pages(volume, physical_page, records, NULL);
+	result = write_record_pages(volume, physical_chapter_number, records);
 	if (result != UDS_SUCCESS)
 		return result;
 

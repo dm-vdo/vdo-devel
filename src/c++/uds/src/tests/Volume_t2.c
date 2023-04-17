@@ -54,79 +54,6 @@ static void deinit(void)
 }
 
 /**********************************************************************/
-static void writeAndVerifyPage(unsigned int chapter, unsigned int page)
-{
-  u8 **pages
-    = makePageArray(geometry->pages_per_chapter, geometry->bytes_per_page);
-  unsigned int physPage = 1 + (chapter * geometry->pages_per_chapter) + page;
-
-  writeTestVolumeChapter(volume, geometry, chapter, pages);
-
-  struct dm_buffer *volume_page;
-  UDS_ASSERT_KERNEL_SUCCESS(dm_bufio_read(volume->client, physPage,
-                                          &volume_page));
-  UDS_ASSERT_EQUAL_BYTES(dm_bufio_get_block_data(volume_page), pages[page],
-                         geometry->bytes_per_page);
-  dm_bufio_release(volume_page);
-
-  u8 *pageData;
-  // Make sure the page read is synchronous
-  UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &pageData));
-  UDS_ASSERT_EQUAL_BYTES(pageData, pages[page], geometry->bytes_per_page);
-
-  freePageArray(pages, geometry->pages_per_chapter);
-}
-
-/**********************************************************************/
-static void writeAndVerifyChapterIndex(unsigned int chapter)
-{
-  unsigned int i;
-  u8 **pages
-    = makePageArray(geometry->pages_per_chapter, geometry->bytes_per_page);
-  writeTestVolumeChapter(volume, geometry, chapter, pages);
-
-  struct dm_buffer *volume_page;
-  int physicalPage = map_to_physical_page(geometry, chapter, 0);
-  for (i = 0; i < geometry->index_pages_per_chapter; i++) {
-    UDS_ASSERT_KERNEL_SUCCESS(dm_bufio_read(volume->client, physicalPage + i,
-                                            &volume_page));
-    UDS_ASSERT_EQUAL_BYTES(dm_bufio_get_block_data(volume_page), pages[i],
-                           geometry->bytes_per_page);
-    dm_bufio_release(volume_page);
-  }
-
-  freePageArray(pages, geometry->pages_per_chapter);
-  // cppcheck-suppress resourceLeak
-}
-
-/**********************************************************************/
-static void testGetChapterIndex(void)
-{
-  // Write to chapter zero
-  writeAndVerifyChapterIndex(0);
-
-  // write to last chapter
-  writeAndVerifyChapterIndex(geometry->chapters_per_volume - 1);
-}
-
-/**********************************************************************/
-static void testGetPage(void)
-{
-  unsigned int firstPage = 0;
-  unsigned int lastPage = geometry->pages_per_chapter - 1;
-
-  // write data to chapter zero, page zero
-  writeAndVerifyPage(0, firstPage);
-  // write data to chapter zero, page N
-  writeAndVerifyPage(0, lastPage);
-  // write data to chapter N, page zero
-  unsigned int lastChapter = geometry->chapters_per_volume - 1;
-  writeAndVerifyPage(lastChapter, firstPage);
-  // write data to chapter N, page N
-  writeAndVerifyPage(lastChapter, lastPage);
-}
-
-/**********************************************************************/
 static void testWriteChapter(void)
 {
   uint64_t chapterNumber = 0;
@@ -237,9 +164,7 @@ static void testWriteChapter(void)
 /**********************************************************************/
 
 static const CU_TestInfo tests[] = {
-  {"GetPage",            testGetPage},
-  {"WriteChapter",       testWriteChapter},
-  {"GetChapterIndex",    testGetChapterIndex},
+  {"WriteChapter", testWriteChapter},
   CU_TEST_INFO_NULL,
 };
 

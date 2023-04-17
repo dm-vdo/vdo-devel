@@ -216,6 +216,8 @@ EXPORT_SYMBOL_GPL(start_delta_index_search);
 EXPORT_SYMBOL_GPL(start_restoring_delta_index);
 EXPORT_SYMBOL_GPL(start_saving_delta_index);
 EXPORT_SYMBOL_GPL(swap_delta_index_page_endianness);
+EXPORT_SYMBOL_GPL(test_page_count);
+EXPORT_SYMBOL_GPL(test_pages);
 EXPORT_SYMBOL_GPL(track_uds_memory_allocations);
 EXPORT_SYMBOL_GPL(uds_alloc_sprintf);
 EXPORT_SYMBOL_GPL(uds_allocate_memory_counter);
@@ -246,8 +248,6 @@ EXPORT_SYMBOL_GPL(wait_for_idle_index);
 EXPORT_SYMBOL_GPL(write_chapter);
 EXPORT_SYMBOL_GPL(write_guard_delta_list);
 EXPORT_SYMBOL_GPL(write_index_page_map);
-EXPORT_SYMBOL_GPL(write_index_pages);
-EXPORT_SYMBOL_GPL(write_record_pages);
 EXPORT_SYMBOL_GPL(write_to_buffered_writer);
 #endif /* TEST_INTERNAL */
 

@@ -22,18 +22,17 @@ enum {
 
 typedef struct readRequest {
   struct uds_request request;
-  uint32_t           physPage;
+  uint32_t           physicalPage;
 } ReadRequest;
 
-static struct configuration      *config;
-static struct geometry           *geometry;
-static struct index_layout       *layout;
-static u8                       **pages;
-static struct volume             *volume;
-static unsigned int               numRequestsQueued = 0;
-static struct mutex               numRequestsMutex;
-static struct cond_var            allDoneCond;
-static bool                       keepRunning       = false;
+static struct configuration  *config;
+static struct geometry       *geometry;
+static struct index_layout   *layout;
+static struct volume         *volume;
+static unsigned int           numRequestsQueued = 0;
+static struct mutex           numRequestsMutex;
+static struct cond_var        allDoneCond;
+static bool                   keepRunning       = false;
 
 /**********************************************************************/
 static void freeReadRequest(struct uds_request *request)
@@ -45,11 +44,9 @@ static void freeReadRequest(struct uds_request *request)
 }
 
 /**********************************************************************/
-static void verifyPageData(uint32_t            physPage,
-                           struct cached_page *cp,
-                           size_t              length)
+static void verifyPageData(uint32_t physicalPage, struct cached_page *cp, size_t length)
 {
-  UDS_ASSERT_EQUAL_BYTES(pages[physPage], dm_bufio_get_block_data(cp->buffer), length);
+  UDS_ASSERT_EQUAL_BYTES(test_pages[physicalPage], dm_bufio_get_block_data(cp->buffer), length);
 }
 
 /**********************************************************************/
@@ -67,14 +64,14 @@ static void retryReadRequest(struct uds_request *request)
 static void retryReadRequestAndVerify(struct uds_request *request)
 {
   ReadRequest *readRequest = container_of(request, ReadRequest, request);
-  uint32_t physPage = readRequest->physPage;
+  uint32_t physicalPage = readRequest->physicalPage;
 
   struct cached_page *actual;
   // Make sure the page read is synchronous. We do not need to grab
   // the volume read lock here, because the caller of this function already
   // has it.
-  UDS_ASSERT_SUCCESS(get_volume_page_locked(volume, physPage + 1, &actual));
-  verifyPageData(physPage, actual, geometry->bytes_per_page);
+  UDS_ASSERT_SUCCESS(get_volume_page_locked(volume, physicalPage, &actual));
+  verifyPageData(physicalPage, actual, geometry->bytes_per_page);
   retryReadRequest(request);
 }
 
@@ -99,15 +96,15 @@ static void init(request_restarter_t restartRequest, unsigned int zoneCount)
   UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
 
   geometry = config->geometry;
-  pages = makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
-  writeTestVolumeData(volume, geometry, pages);
+  makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
+  writeTestVolumeData(volume, geometry);
 }
 
 /**********************************************************************/
 static void deinit(void)
 {
   set_request_restarter(NULL);
-  freePageArray(pages, geometry->pages_per_volume);
+  freePageArray();
   free_volume(volume);
   free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
@@ -116,10 +113,10 @@ static void deinit(void)
 }
 
 /**********************************************************************/
-static void computeNameOnPage(struct uds_record_name *name, uint32_t physPage)
+static void computeNameOnPage(struct uds_record_name *name, uint32_t physicalPage)
 {
   struct delta_index_page indexPage;
-  uint32_t pageInChapter = physPage % geometry->pages_per_chapter;
+  uint32_t pageInChapter = (physicalPage - HEADER_PAGES_PER_VOLUME) % geometry->pages_per_chapter;
   if (pageInChapter >= geometry->index_pages_per_chapter) {
     /* This is a record page so it doesn't matter what record name we use. */
     return;
@@ -127,7 +124,7 @@ static void computeNameOnPage(struct uds_record_name *name, uint32_t physPage)
 
   UDS_ASSERT_SUCCESS(initialize_chapter_index_page(&indexPage,
                                                    geometry,
-                                                   pages[physPage],
+                                                   test_pages[physicalPage],
                                                    volume->nonce));
   u32 listNumber = hash_to_chapter_delta_list(name, geometry);
   while ((listNumber < indexPage.lowest_list_number) ||
@@ -138,14 +135,14 @@ static void computeNameOnPage(struct uds_record_name *name, uint32_t physPage)
 }
 
 /**********************************************************************/
-static struct uds_request *newReadRequest(uint32_t physPage)
+static struct uds_request *newReadRequest(uint32_t physicalPage)
 {
   ReadRequest *readRequest = NULL;
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, ReadRequest, __func__, &readRequest));
-  readRequest->physPage = physPage;
+  readRequest->physicalPage = physicalPage;
   readRequest->request.unbatched = true;
-  computeNameOnPage(&readRequest->request.record_name, physPage);
+  computeNameOnPage(&readRequest->request.record_name, physicalPage);
   return &readRequest->request;
 }
 
@@ -163,15 +160,15 @@ static void testSequentialGet(void)
   unsigned int chapter, page;
   for (chapter = 0; chapter < geometry->chapters_per_volume; ++chapter) {
     for (page = 0; page < geometry->pages_per_chapter; ++page) {
-      uint32_t physPage = chapter * geometry->pages_per_chapter + page;
-      struct uds_request *request = newReadRequest(physPage);
+      u32 physicalPage = map_to_physical_page(geometry, chapter, page);
+      struct uds_request *request = newReadRequest(physicalPage);
       struct cached_page *actual;
-      begin_pending_search(&volume->page_cache, physPage + 1, 0);
+      begin_pending_search(&volume->page_cache, physicalPage, 0);
       // Make sure the page read is asynchronous
-      int result = get_volume_page_protected(volume, request, physPage + 1, &actual);
+      int result = get_volume_page_protected(volume, request, physicalPage, &actual);
       if (result == UDS_SUCCESS) {
         freeReadRequest(request);
-        verifyPageData(physPage, actual, geometry->bytes_per_page);
+        verifyPageData(physicalPage, actual, geometry->bytes_per_page);
       } else if (result == UDS_QUEUED) {
         uds_lock_mutex(&numRequestsMutex);
         ++numRequestsQueued;
@@ -191,13 +188,13 @@ static void testSequentialGet(void)
 static void testStumblingGet(void)
 {
   init(retryReadRequestAndVerify, 1);
-  unsigned int page;
-  for (page = 0; page < geometry->pages_per_volume;) {
+  unsigned int page = HEADER_PAGES_PER_VOLUME;
+  while (page < geometry->pages_per_volume + HEADER_PAGES_PER_VOLUME) {
     struct uds_request *request = newReadRequest(page);
     struct cached_page *actual;
     // Make sure the page read is asynchronous
-    begin_pending_search(&volume->page_cache, page + 1, 0);
-    int result = get_volume_page_protected(volume, request, page + 1, &actual);
+    begin_pending_search(&volume->page_cache, page, 0);
+    int result = get_volume_page_protected(volume, request, page, &actual);
     if (result == UDS_SUCCESS) {
       freeReadRequest(request);
       verifyPageData(page, actual, geometry->bytes_per_page);
@@ -210,7 +207,7 @@ static void testStumblingGet(void)
     // back one page 25%, same page 25%, forward one page 50%.
     unsigned int action = random() % 4;
     if (action == 0) {
-      if (page > 0) {
+      if (page > HEADER_PAGES_PER_VOLUME) {
         --page;
       }
     } else if (action != 1) {
@@ -236,8 +233,9 @@ static void testFullReadQueue(void)
   volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
-    requests[i] = newReadRequest(i);
-    bool queued = enqueue_read(&volume->page_cache, requests[i], i + 1);
+    u32 page = HEADER_PAGES_PER_VOLUME + i;
+    requests[i] = newReadRequest(page);
+    bool queued = enqueue_read(&volume->page_cache, requests[i], page);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 
@@ -279,8 +277,9 @@ static void testInvalidateReadQueue(void)
   volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
-    requests[i] = newReadRequest(i);
-    bool queued = enqueue_read(&volume->page_cache, requests[i], i + 1);
+    u32 page = HEADER_PAGES_PER_VOLUME + i;
+    requests[i] = newReadRequest(page);
+    bool queued = enqueue_read(&volume->page_cache, requests[i], page);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 
@@ -346,14 +345,14 @@ static unsigned int randomPage(void)
 static void retryReadRequestAndVerifyMT(struct uds_request *request)
 {
   ReadRequest *readRequest = container_of(request, ReadRequest, request);
-  uint32_t physPage = readRequest->physPage;
+  uint32_t physicalPage = readRequest->physicalPage;
 
   struct cached_page *actual;
   // Make sure the page read is synchronous. We do not need to grab
   // the volume read lock here, because the caller of this function already
   // has it.
-  UDS_ASSERT_SUCCESS(get_volume_page_locked(volume, physPage + 1, &actual));
-  verifyPageData(physPage, actual, geometry->bytes_per_page);
+  UDS_ASSERT_SUCCESS(get_volume_page_locked(volume, physicalPage, &actual));
+  verifyPageData(physicalPage, actual, geometry->bytes_per_page);
 
   if (request->requeued) {
     keepRunning = false;
@@ -374,11 +373,7 @@ static void invalidatePageThread(void *arg __attribute__((unused)))
 {
   while (keepRunning) {
     uds_lock_mutex(&volume->read_threads_mutex);
-    unsigned int chapter = randomChapter();
-    unsigned int pageNumber = randomPage();
-    unsigned int physicalPage
-      = chapter * geometry->pages_per_chapter + pageNumber;
-
+    u32 physicalPage = map_to_physical_page(geometry, randomChapter(), randomPage());
     invalidate_page(&volume->page_cache, physicalPage);
     uds_unlock_mutex(&volume->read_threads_mutex);
     cond_resched();
@@ -395,9 +390,7 @@ static void indexThreadAsync(void *arg)
   while (iterationCounter < MAX_REQUESTS) {
     uds_signal_cond(&volume->read_threads_cond);
 
-    unsigned int chapter = randomChapter();
-    unsigned int pageNumber = randomPage();
-    unsigned int physicalPage = chapter * geometry->pages_per_chapter + pageNumber;
+    u32 physicalPage = map_to_physical_page(geometry, randomChapter(), randomPage());
 
     // Only one of the async threads needs to keep track of the number of
     // iterations it has run.
@@ -409,14 +402,14 @@ static void indexThreadAsync(void *arg)
     struct uds_request *request = newReadRequest(physicalPage);
     request->zone_number = zoneNumber;
 
-    begin_pending_search(&volume->page_cache, physicalPage + 1, zoneNumber);
+    begin_pending_search(&volume->page_cache, physicalPage, zoneNumber);
 
     // Assume we're enqueuing this
     uds_lock_mutex(&numRequestsMutex);
     ++numRequestsQueued;
     uds_unlock_mutex(&numRequestsMutex);
 
-    int result = get_volume_page_protected(volume, request, physicalPage + 1, &entry);
+    int result = get_volume_page_protected(volume, request, physicalPage, &entry);
     if (result == UDS_SUCCESS) {
       freeReadRequest(request);
       verifyPageData(physicalPage, entry, geometry->bytes_per_page);
@@ -460,8 +453,9 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   volume->read_threads_stopped = true;
   unsigned int i;
   for (i = 0; i < numRequests; i++) {
-    struct uds_request *request = newReadRequest(i);
-    bool queued = enqueue_read(&volume->page_cache, request, i + 1);
+    u32 page = HEADER_PAGES_PER_VOLUME + i;
+    struct uds_request *request = newReadRequest(page);
+    bool queued = enqueue_read(&volume->page_cache, request, page);
     if (i < numRequests - 1) {
       CU_ASSERT_TRUE(queued);
 

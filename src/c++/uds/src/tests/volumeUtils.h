@@ -14,19 +14,13 @@
  *
  * @param numPages the number of pages to create
  * @param pageSize the size of each page
- *
- * @return pointer to page array to store page data into
  */
-u8 **makePageArray(unsigned int numPages, size_t pageSize);
+void makePageArray(unsigned int numPages, size_t pageSize);
 
 /************************************************************************
  * Free up a page array created by makePageArray
- *
- * @param pages the array to free
- * @param numPages the number of pages in the array
- *
  */
-void freePageArray(u8 **pages, unsigned int numPages);
+void freePageArray(void);
 
 /**
  * Create a default volume chapter, with valid index and record pages
@@ -34,20 +28,15 @@ void freePageArray(u8 **pages, unsigned int numPages);
  * @param volume   the volume to write to
  * @param geometry the geometry to use
  * @param chapter  the chapter to write
- * @param pages    pointer to pages array to fill in while writing
- *                 used for testing
  */
-void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry,
-                            unsigned int chapter, u8 **pages);
+void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u32 chapter);
 
 /**
  * Create a default volume file, with valid index and record pages
  *
  * @param volume   the volume to write to
  * @param geometry the geometry to use
- * @param pages    pointer to pages array to fill in while writing
  */
-void writeTestVolumeData(struct volume *volume, struct geometry *geometry,
-                         u8 **pages);
+void writeTestVolumeData(struct volume *volume, struct geometry *geometry);
 
 #endif /* VOLUME_UTILS_H */

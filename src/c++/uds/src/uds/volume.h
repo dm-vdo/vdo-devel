@@ -156,16 +156,6 @@ int __must_check search_cached_record_page(struct volume *volume,
 
 void forget_chapter(struct volume *volume, u64 chapter);
 
-int __must_check write_index_pages(struct volume *volume,
-				   u32 physical_page,
-				   struct open_chapter_index *chapter_index,
-				   u8 **pages);
-
-int __must_check write_record_pages(struct volume *volume,
-				    u32 physical_page,
-				    const struct uds_volume_record *records,
-				    u8 **pages);
-
 int __must_check write_chapter(struct volume *volume,
 			       struct open_chapter_index *chapter_index,
 			       const struct uds_volume_record records[]);
@@ -186,14 +176,17 @@ int __must_check get_volume_index_page(struct volume *volume,
 				       u32 page_number,
 				       struct delta_index_page **page_ptr);
 
-u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
-
 #ifdef TEST_INTERNAL
+extern u8 **test_pages;
+extern u32 test_page_count;
+
 typedef void (*request_restarter_t)(struct uds_request *);
 typedef void (*chapter_tester_t)(u32 chapter, u64 *virtual_chapter);
 
 void set_request_restarter(request_restarter_t restarter);
 void set_chapter_tester(chapter_tester_t chapter_tester);
+
+u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
 
 void begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number);
 void end_pending_search(struct page_cache *cache, unsigned int zone_number);
