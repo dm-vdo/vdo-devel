@@ -200,6 +200,22 @@ sub testMultiple {
                                         deviceName    => "vdo2",
                                         storageDevice => $self->{secondVDOLV});
 
+  $machine->dropCaches();
+
+  # Get stats, specifying the VDOs under two different names.
+  my $name1 = $device->getVDODeviceResolvedName();
+  my $name2 = $device2->getVDODeviceName();
+  my $args = {
+              doSudo     => 1,
+              deviceName => [$name1, $name2],
+	      verbose    => 1,
+             };
+  my $command = Permabit::CommandString::VDOStats->new($self, $args);
+  $machine->assertExecuteCommand("$command");
+  my $statsYaml = YAML::Load($machine->getStdout());
+  assertDefined($statsYaml->{$name1}, "$name1 stats");
+  assertDefined($statsYaml->{$name2}, "$name2 stats");
+
   # Both devices should show up in the dmsetup status output.
   $machine->runSystemCmd("sudo dmsetup status");
   my $statusYAML = YAML::Load($machine->getStdout());
@@ -214,19 +230,7 @@ sub testMultiple {
   _assertBackingDevice($tree, $device,  $self->{firstVDOLV},  $statusFields1->{device});
   _assertBackingDevice($tree, $device2, $self->{secondVDOLV}, $statusFields2->{device});
 
-  # Try specifying the VDOs under two different names.
-  my $name1 = $device->getVDODeviceResolvedName();
-  my $name2 = $device2->getVDODeviceName();
-  my $args = {
-              doSudo     => 1,
-              deviceName => [$name1, $name2],
-	      verbose    => 1,
-             };
-  my $command = Permabit::CommandString::VDOStats->new($self, $args);
-  $machine->assertExecuteCommand("$command");
-  my $statsYaml = YAML::Load($machine->getStdout());
-  assertDefined($statsYaml->{$name1}, "$name1 stats");
-  assertDefined($statsYaml->{$name2}, "$name2 stats");
+  # Check that status and stats are consistent
   _checkStatusFields($statusFields1, $statsYaml->{$name1});
   _checkStatusFields($statusFields2, $statsYaml->{$name2});
 
