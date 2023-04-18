@@ -525,8 +525,6 @@ vdo_release_recovery_journal_lock(struct slab_journal *journal, sequence_number_
 
 void vdo_drain_slab_journal(struct slab_journal *journal);
 
-void vdo_decode_slab_journal(struct slab_journal *journal);
-
 bool __must_check vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal);
 
 /**

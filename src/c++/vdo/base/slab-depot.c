@@ -1436,151 +1436,6 @@ void vdo_drain_slab_journal(struct slab_journal *journal)
 	commit_tail(journal);
 }
 
-static void finish_journal_load(struct slab_journal *journal, int result)
-{
-	struct vdo_slab *slab = journal->slab;
-
-	if ((result == VDO_SUCCESS) && vdo_is_state_clean_load(&slab->state))
-		/*
-		 * Since this is a normal or new load, we don't need the memory to read and process
-		 * the recovery journal, so we can allocate reference counts now.
-		 */
-		result = vdo_allocate_slab_counters(slab);
-
-	vdo_finish_loading_with_result(&slab->state, result);
-}
-
-/**
- * finish_decoding_journal() - Finish the decode process by returning the vio and notifying the
- *                             slab that we're done.
- * @completion: The vio as a completion.
- */
-static void finish_decoding_journal(struct vdo_completion *completion)
-{
-	int result = completion->result;
-	struct slab_journal *journal = completion->parent;
-
-	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(as_vio(completion)));
-	finish_journal_load(journal, result);
-}
-
-/**
- * set_decoded_state() - Set up the in-memory journal state to the state which was written to disk.
- * @completion: The vio which was used to read the journal tail.
- *
- * This is the callback registered in read_slab_journal_tail().
- */
-static void set_decoded_state(struct vdo_completion *completion)
-{
-	struct vio *vio = as_vio(completion);
-	struct slab_journal *journal = completion->parent;
-	struct packed_slab_journal_block *block = (struct packed_slab_journal_block *) vio->data;
-	struct slab_journal_block_header header;
-
-	vdo_unpack_slab_journal_block_header(&block->header, &header);
-
-	if ((header.metadata_type != VDO_METADATA_SLAB_JOURNAL) ||
-	    (header.nonce != journal->slab->allocator->nonce)) {
-		finish_decoding_journal(completion);
-		return;
-	}
-
-	journal->tail = header.sequence_number + 1;
-
-	/*
-	 * If the slab is clean, this implies the slab journal is empty, so advance the head
-	 * appropriately.
-	 */
-	if (!journal->slab->allocator->summary_entries[journal->slab->slab_number].is_dirty)
-		journal->head = journal->tail;
-	else
-		journal->head = header.head;
-
-	journal->tail_header = header;
-	initialize_journal_state(journal);
-	finish_decoding_journal(completion);
-}
-
-static void read_slab_journal_tail_endio(struct bio *bio)
-{
-	struct vio *vio = bio->bi_private;
-	struct slab_journal *journal = vio->completion.parent;
-
-	continue_vio_after_io(vio, set_decoded_state, journal->slab->allocator->thread_id);
-}
-
-static void handle_decode_error(struct vdo_completion *completion)
-{
-	record_metadata_io_error(as_vio(completion));
-	finish_decoding_journal(completion);
-}
-
-/**
- * read_slab_journal_tail() - Read the slab journal tail block by using a vio acquired from the vio
- *                            pool.
- * @waiter: The vio pool waiter which has just been notified.
- * @context: The vio pool entry given to the waiter.
- *
- * This is the success callback from acquire_vio_from_pool() when decoding the slab journal.
- */
-static void read_slab_journal_tail(struct waiter *waiter, void *context)
-{
-	struct slab_journal *journal = container_of(waiter, struct slab_journal, resource_waiter);
-	struct vdo_slab *slab = journal->slab;
-	struct pooled_vio *pooled = context;
-	struct vio *vio = &pooled->vio;
-	tail_block_offset_t last_commit_point =
-		slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
-
-	/*
-	 * Slab summary keeps the commit point offset, so the tail block is the block before that.
-	 * Calculation supports small journals in unit tests.
-	 */
-	tail_block_offset_t tail_block = ((last_commit_point == 0) ?
-					  (tail_block_offset_t)(journal->size - 1) :
-					  (last_commit_point - 1));
-
-	vio->completion.parent = journal;
-	vio->completion.callback_thread_id = slab->allocator->thread_id;
-	submit_metadata_vio(vio,
-			    slab->journal_origin + tail_block,
-			    read_slab_journal_tail_endio,
-			    handle_decode_error,
-			    REQ_OP_READ);
-}
-
-/**
- * vdo_decode_slab_journal() - Decode the slab journal by reading its tail.
- * @journal: The journal to decode.
- */
-void vdo_decode_slab_journal(struct slab_journal *journal)
-{
-	struct vdo_slab *slab = journal->slab;
-	tail_block_offset_t last_commit_point;
-
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == slab->allocator->thread_id),
-			"%s() called on correct thread",
-			__func__);
-	last_commit_point = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
-	if ((last_commit_point == 0) &&
-	    !slab->allocator->summary_entries[slab->slab_number].load_ref_counts) {
-		/*
-		 * This slab claims that it has a tail block at (journal->size - 1), but a head of
-		 * 1. This is impossible, due to the scrubbing threshold, on a real system, so
-		 * don't bother reading the (bogus) data off disk.
-		 */
-		ASSERT_LOG_ONLY(((journal->size < 16) ||
-				 (journal->scrubbing_threshold < (journal->size - 1))),
-				"Scrubbing threshold protects against reads of unwritten slab journal blocks");
-		finish_journal_load(journal, VDO_SUCCESS);
-		return;
-	}
-
-	journal->resource_waiter.callback = read_slab_journal_tail;
-	acquire_vio_from_pool(slab->allocator->vio_pool, &journal->resource_waiter);
-}
-
 /**
  * vdo_dump_slab_journal() - Dump the slab journal.
  * @journal: The slab journal to dump.
@@ -2537,6 +2392,124 @@ bool vdo_is_slab_open(struct vdo_slab *slab)
 	return (!vdo_is_state_quiescing(&slab->state) && !vdo_is_state_quiescent(&slab->state));
 }
 
+static int allocate_counters_if_clean(struct vdo_slab *slab)
+{
+	if (vdo_is_state_clean_load(&slab->state))
+		return vdo_allocate_slab_counters(slab);
+
+	return VDO_SUCCESS;
+}
+
+static void finish_loading_journal(struct vdo_completion *completion)
+{
+	struct vio *vio = as_vio(completion);
+	struct slab_journal *journal = completion->parent;
+	struct vdo_slab *slab = journal->slab;
+	struct packed_slab_journal_block *block = (struct packed_slab_journal_block *) vio->data;
+	struct slab_journal_block_header header;
+
+	vdo_unpack_slab_journal_block_header(&block->header, &header);
+
+	/* FIXME: should it be an error if the following conditional fails? */
+	if ((header.metadata_type == VDO_METADATA_SLAB_JOURNAL) &&
+	    (header.nonce == slab->allocator->nonce)) {
+		journal->tail = header.sequence_number + 1;
+
+		/*
+		 * If the slab is clean, this implies the slab journal is empty, so advance the
+		 * head appropriately.
+		 */
+		journal->head = (slab->allocator->summary_entries[slab->slab_number].is_dirty ?
+				 header.head :
+				 journal->tail);
+		journal->tail_header = header;
+		initialize_journal_state(journal);
+	}
+
+	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	vdo_finish_loading_with_result(&slab->state, allocate_counters_if_clean(slab));
+}
+
+static void read_slab_journal_tail_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct slab_journal *journal = vio->completion.parent;
+
+	continue_vio_after_io(vio, finish_loading_journal, journal->slab->allocator->thread_id);
+}
+
+static void handle_load_error(struct vdo_completion *completion)
+{
+	int result = completion->result;
+	struct slab_journal *journal = completion->parent;
+	struct vio *vio = as_vio(completion);
+
+	record_metadata_io_error(vio);
+	return_vio_to_pool(journal->slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	vdo_finish_loading_with_result(&journal->slab->state, result);
+}
+
+/**
+ * read_slab_journal_tail() - Read the slab journal tail block by using a vio acquired from the vio
+ *                            pool.
+ * @waiter: The vio pool waiter which has just been notified.
+ * @context: The vio pool entry given to the waiter.
+ *
+ * This is the success callback from acquire_vio_from_pool() when loading a slab journal.
+ */
+static void read_slab_journal_tail(struct waiter *waiter, void *context)
+{
+	struct slab_journal *journal = container_of(waiter, struct slab_journal, resource_waiter);
+	struct vdo_slab *slab = journal->slab;
+	struct pooled_vio *pooled = context;
+	struct vio *vio = &pooled->vio;
+	tail_block_offset_t last_commit_point =
+		slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
+
+	/*
+	 * Slab summary keeps the commit point offset, so the tail block is the block before that.
+	 * Calculation supports small journals in unit tests.
+	 */
+	tail_block_offset_t tail_block = ((last_commit_point == 0) ?
+					  (tail_block_offset_t)(journal->size - 1) :
+					  (last_commit_point - 1));
+
+	vio->completion.parent = journal;
+	vio->completion.callback_thread_id = slab->allocator->thread_id;
+	submit_metadata_vio(vio,
+			    slab->journal_origin + tail_block,
+			    read_slab_journal_tail_endio,
+			    handle_load_error,
+			    REQ_OP_READ);
+}
+
+/**
+ * load_slab_journal() - Load a slab's journal by reading the journal's tail.
+ */
+static void load_slab_journal(struct vdo_slab *slab)
+{
+	struct slab_journal *journal = slab->journal;
+	tail_block_offset_t last_commit_point;
+
+	last_commit_point = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
+	if ((last_commit_point == 0) &&
+	    !slab->allocator->summary_entries[slab->slab_number].load_ref_counts) {
+		/*
+		 * This slab claims that it has a tail block at (journal->size - 1), but a head of
+		 * 1. This is impossible, due to the scrubbing threshold, on a real system, so
+		 * don't bother reading the (bogus) data off disk.
+		 */
+		ASSERT_LOG_ONLY(((journal->size < 16) ||
+				 (journal->scrubbing_threshold < (journal->size - 1))),
+				"Scrubbing threshold protects against reads of unwritten slab journal blocks");
+		vdo_finish_loading_with_result(&slab->state, allocate_counters_if_clean(slab));
+		return;
+	}
+
+	journal->resource_waiter.callback = read_slab_journal_tail;
+	acquire_vio_from_pool(slab->allocator->vio_pool, &journal->resource_waiter);
+}
+
 static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 {
 	block_count_t free_blocks = slab->free_blocks;
@@ -2649,7 +2622,7 @@ EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
 	}
 
 	if (vdo_is_state_loading(state)) {
-		vdo_decode_slab_journal(slab->journal);
+		load_slab_journal(slab);
 		return;
 	}
 
