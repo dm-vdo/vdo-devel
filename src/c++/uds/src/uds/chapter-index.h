@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef CHAPTER_INDEX_H
-#define CHAPTER_INDEX_H 1
+#ifndef UDS_CHAPTER_INDEX_H
+#define UDS_CHAPTER_INDEX_H 1
 
 #include <linux/limits.h>
 
@@ -40,36 +40,36 @@ extern u64 chapter_index_empty_count;
 extern u64 chapter_index_overflow_count;
 #endif /* TEST_INTERNAL */
 
-int __must_check make_open_chapter_index(struct open_chapter_index **chapter_index,
-					 const struct geometry *geometry,
-					 u64 volume_nonce);
+int __must_check uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
+					     const struct geometry *geometry,
+					     u64 volume_nonce);
 
-void free_open_chapter_index(struct open_chapter_index *chapter_index);
+void uds_free_open_chapter_index(struct open_chapter_index *chapter_index);
 
-void empty_open_chapter_index(struct open_chapter_index *chapter_index,
-			      u64 virtual_chapter_number);
+void uds_empty_open_chapter_index(struct open_chapter_index *chapter_index,
+				  u64 virtual_chapter_number);
 
-int __must_check put_open_chapter_index_record(struct open_chapter_index *chapter_index,
-					       const struct uds_record_name *name,
-					       u32 page_number);
+int __must_check uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
+						   const struct uds_record_name *name,
+						   u32 page_number);
 
-int __must_check pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-					      u8 *memory,
-					      u32 first_list,
-					      bool last_page,
-					      u32 *lists_packed);
+int __must_check uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
+						  u8 *memory,
+						  u32 first_list,
+						  bool last_page,
+						  u32 *lists_packed);
 
-int __must_check initialize_chapter_index_page(struct delta_index_page *index_page,
+int __must_check uds_initialize_chapter_index_page(struct delta_index_page *index_page,
+						   const struct geometry *geometry,
+						   u8 *page_buffer,
+						   u64 volume_nonce);
+
+int __must_check uds_validate_chapter_index_page(const struct delta_index_page *index_page,
+						 const struct geometry *geometry);
+
+int __must_check uds_search_chapter_index_page(struct delta_index_page *index_page,
 					       const struct geometry *geometry,
-					       u8 *page_buffer,
-					       u64 volume_nonce);
+					       const struct uds_record_name *name,
+					       u16 *record_page_ptr);
 
-int __must_check validate_chapter_index_page(const struct delta_index_page *index_page,
-					     const struct geometry *geometry);
-
-int __must_check search_chapter_index_page(struct delta_index_page *index_page,
-					   const struct geometry *geometry,
-					   const struct uds_record_name *name,
-					   u16 *record_page_ptr);
-
-#endif /* CHAPTER_INDEX_H */
+#endif /* UDS_CHAPTER_INDEX_H */

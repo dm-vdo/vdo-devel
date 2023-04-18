@@ -535,7 +535,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 	u32 index_page_number = find_index_page_number(index_page_map, name, physical_chapter);
 	struct delta_index_page *index_page = &chapter->index_pages[index_page_number];
 
-	return search_chapter_index_page(index_page, geometry, name, record_page_ptr);
+	return uds_search_chapter_index_page(index_page, geometry, name, record_page_ptr);
 }
 
 int search_sparse_cache(struct index_zone *zone,

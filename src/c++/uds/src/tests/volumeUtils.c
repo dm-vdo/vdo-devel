@@ -63,8 +63,8 @@ static void fillOpenChapter(struct open_chapter_index *oci,
   for (i = 0; i < geometry->records_per_chapter; i++) {
     get_delta_index_stats(&oci->delta_index, &stats);
     CU_ASSERT_EQUAL(stats.record_count, i);
-    int result = put_open_chapter_index_record(oci, &records[i].name,
-                                               i / geometry->records_per_page);
+    int result = uds_put_open_chapter_index_record(oci, &records[i].name,
+                                                   i / geometry->records_per_page);
     if (result != UDS_OVERFLOW) {
       UDS_ASSERT_SUCCESS(result);
     }
@@ -91,16 +91,16 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
   // Construct an empty delta chapter index for chapter zero. The chapter
   // write code doesn't really care if it's populated or not.
   struct open_chapter_index *chapterIndex;
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&chapterIndex, geometry, volume->nonce));
+  UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&chapterIndex, geometry, volume->nonce));
   CU_ASSERT_PTR_NOT_NULL(chapterIndex);
-  empty_open_chapter_index(chapterIndex, chapter);
+  uds_empty_open_chapter_index(chapterIndex, chapter);
 
   // Fill the delta list open chapter
   fillOpenChapter(chapterIndex, records, geometry);
 
   UDS_ASSERT_SUCCESS(write_chapter(volume, chapterIndex, records));
 
-  free_open_chapter_index(chapterIndex);
+  uds_free_open_chapter_index(chapterIndex);
   UDS_FREE(records);
 }
     

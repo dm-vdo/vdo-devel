@@ -102,10 +102,10 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&openChapterIndex,
-                                             volume->geometry,
-                                             volume->nonce));
-  empty_open_chapter_index(openChapterIndex, 0);
+  UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&openChapterIndex,
+                                                 volume->geometry,
+                                                 volume->nonce));
+  uds_empty_open_chapter_index(openChapterIndex, 0);
 
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
   UDS_ASSERT_SUCCESS(close_open_chapter(openChapters, zoneCount, volume,
@@ -114,7 +114,7 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
   ktime_t closeTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   reportCloseTime(recordCount, closeTime);
 
-  free_open_chapter_index(openChapterIndex);
+  uds_free_open_chapter_index(openChapterIndex);
   UDS_FREE(collatedRecords);
 
   totalRecordCount += recordCount;

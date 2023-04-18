@@ -256,7 +256,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		}
 
 		*record = open_chapter->records[record_index];
-		result = put_open_chapter_index_record(index, &record->name, page_number);
+		result = uds_put_open_chapter_index_record(index, &record->name, page_number);
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
@@ -284,7 +284,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 {
 	int result;
 
-	empty_open_chapter_index(chapter_index, virtual_chapter_number);
+	uds_empty_open_chapter_index(chapter_index, virtual_chapter_number);
 	result = fill_delta_chapter_index(chapter_zones,
 					  zone_count,
 					  chapter_index,

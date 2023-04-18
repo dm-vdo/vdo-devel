@@ -122,10 +122,10 @@ static void computeNameOnPage(struct uds_record_name *name, uint32_t physicalPag
     return;
   }
 
-  UDS_ASSERT_SUCCESS(initialize_chapter_index_page(&indexPage,
-                                                   geometry,
-                                                   test_pages[physicalPage],
-                                                   volume->nonce));
+  UDS_ASSERT_SUCCESS(uds_initialize_chapter_index_page(&indexPage,
+                                                       geometry,
+                                                       test_pages[physicalPage],
+                                                       volume->nonce));
   u32 listNumber = hash_to_chapter_delta_list(name, geometry);
   while ((listNumber < indexPage.lowest_list_number) ||
          (listNumber > indexPage.highest_list_number)) {

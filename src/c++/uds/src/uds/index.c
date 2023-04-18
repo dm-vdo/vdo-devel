@@ -766,7 +766,7 @@ static void free_chapter_writer(struct chapter_writer *writer)
 	stop_chapter_writer(writer);
 	uds_destroy_mutex(&writer->mutex);
 	uds_destroy_cond(&writer->cond);
-	free_open_chapter_index(writer->open_chapter_index);
+	uds_free_open_chapter_index(writer->open_chapter_index);
 	UDS_FREE(writer->collated_records);
 	UDS_FREE(writer);
 }
@@ -808,9 +808,9 @@ static int make_chapter_writer(struct uds_index *index, struct chapter_writer **
 		return result;
 	}
 
-	result = make_open_chapter_index(&writer->open_chapter_index,
-					 index->volume->geometry,
-					 index->volume->nonce);
+	result = uds_make_open_chapter_index(&writer->open_chapter_index,
+					     index->volume->geometry,
+					     index->volume->nonce);
 	if (result != UDS_SUCCESS) {
 		free_chapter_writer(writer);
 		return result;

@@ -462,10 +462,10 @@ static int init_chapter_index_page(const struct volume *volume,
 	struct geometry *geometry = volume->geometry;
 	int result;
 
-	result = initialize_chapter_index_page(chapter_index_page,
-					       geometry,
-					       index_page,
-					       volume->nonce);
+	result = uds_initialize_chapter_index_page(chapter_index_page,
+						   geometry,
+						   index_page,
+						   volume->nonce);
 	if (volume->lookup_mode == LOOKUP_FOR_REBUILD)
 		return result;
 
@@ -571,10 +571,10 @@ static int search_page(struct cached_page *page,
 		else
 			location = UDS_LOCATION_UNAVAILABLE;
 	} else {
-		result = search_chapter_index_page(&page->index_page,
-						   volume->geometry,
-						   &request->record_name,
-						   &record_page_number);
+		result = uds_search_chapter_index_page(&page->index_page,
+						       volume->geometry,
+						       &request->record_name,
+						       &record_page_number);
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -932,10 +932,10 @@ static int search_cached_index_page(struct volume *volume,
 		return result;
 	}
 
-	result = search_chapter_index_page(&page->index_page,
-					   volume->geometry,
-					   &request->record_name,
-					   record_page_number);
+	result = uds_search_chapter_index_page(&page->index_page,
+					       volume->geometry,
+					       &request->record_name,
+					       record_page_number);
 	end_pending_search(&volume->page_cache, request->zone_number);
 	return result;
 }
@@ -1089,7 +1089,10 @@ int search_volume_page_cache_for_rebuild(struct volume *volume,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = search_chapter_index_page(&page->index_page, geometry, name, &record_page_number);
+	result = uds_search_chapter_index_page(&page->index_page,
+					       geometry,
+					       name,
+					       &record_page_number);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1197,11 +1200,11 @@ static int write_index_pages(struct volume *volume,
 							"failed to prepare index page");
 
 		last_page = ((index_page_number + 1) == geometry->index_pages_per_chapter);
-		result = pack_open_chapter_index_page(chapter_index,
-						      page_data,
-						      delta_list_number,
-						      last_page,
-						      &lists_packed);
+		result = uds_pack_open_chapter_index_page(chapter_index,
+							  page_data,
+							  delta_list_number,
+							  last_page,
+							  &lists_packed);
 		if (result != UDS_SUCCESS) {
 			dm_bufio_release(page_buffer);
 			return uds_log_warning_strerror(result, "failed to pack index page");
@@ -1438,7 +1441,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtua
 		}
 		expected_list_number = page->highest_list_number + 1;
 
-		result = validate_chapter_index_page(page, geometry);
+		result = uds_validate_chapter_index_page(page, geometry);
 		if (result != UDS_SUCCESS)
 			return;
 	}

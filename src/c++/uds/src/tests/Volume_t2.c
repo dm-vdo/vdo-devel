@@ -104,14 +104,14 @@ static void testWriteChapter(void)
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&openChapterIndex,
-                                             volume->geometry,
-                                             volume->nonce));
-  empty_open_chapter_index(openChapterIndex, 0);
+  UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&openChapterIndex,
+                                                 volume->geometry,
+                                                 volume->nonce));
+  uds_empty_open_chapter_index(openChapterIndex, 0);
   UDS_ASSERT_SUCCESS(close_open_chapter(chapters, zoneCount, volume,
                                         openChapterIndex, collatedRecords,
                                         chapterNumber));
-  free_open_chapter_index(openChapterIndex);
+  uds_free_open_chapter_index(openChapterIndex);
   UDS_FREE(collatedRecords);
 
   for (zone = 0; zone < zoneCount; ++zone) {

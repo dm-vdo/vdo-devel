@@ -1435,8 +1435,8 @@ noinline int next_delta_index_entry(struct delta_index_entry *delta_entry)
 	next_offset = delta_entry->offset + delta_entry->entry_bits;
 	if (next_offset > size) {
 		/*
-		 * This is not an assertion because validate_chapter_index_page() wants to handle
-		 * this error.
+		 * This is not an assertion because uds_validate_chapter_index_page() wants to
+		 * handle this error.
 		 */
 		uds_log_warning("Decoded past the end of the delta list");
 		return UDS_CORRUPT_DATA;

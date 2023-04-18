@@ -47,14 +47,13 @@ struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
   int overflowCount = 0;
   struct delta_index_stats stats;
 
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&oci, g, volumeNonce));
-  empty_open_chapter_index(oci, SAMPLE_CHAPTER_NUMBER);
+  UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&oci, g, volumeNonce));
+  uds_empty_open_chapter_index(oci, SAMPLE_CHAPTER_NUMBER);
   unsigned int i;
   for (i = 0; i < g->records_per_chapter; i++) {
     get_delta_index_stats(&oci->delta_index, &stats);
     CU_ASSERT_EQUAL(stats.record_count + overflowCount, i);
-    int result = put_open_chapter_index_record(oci, &names[i],
-                                               generatePageNumber(g, i));
+    int result = uds_put_open_chapter_index_record(oci, &names[i], generatePageNumber(g, i));
     if (overflowFlag && (result == UDS_OVERFLOW)) {
       overflowCount++;
     } else {
@@ -81,8 +80,8 @@ static u8 *packOpenChapter(struct open_chapter_index *oci,
   unsigned int page;
   for (page = 0; page < numPages; page++) {
     unsigned int numLists;
-    UDS_ASSERT_SUCCESS(pack_open_chapter_index_page(oci, pageOffset, firstList,
-                                                    lastPage, &numLists));
+    UDS_ASSERT_SUCCESS(uds_pack_open_chapter_index_page(oci, pageOffset, firstList,
+                                                        lastPage, &numLists));
     firstList += numLists;
     pageOffset += g->bytes_per_page;
   }
@@ -101,8 +100,7 @@ setupChapterIndexPages(struct geometry *g, u8 *indexPages,
   unsigned int page;
   for (page = 0; page < numPages; page++) {
     u8 *indexPage = &indexPages[g->bytes_per_page * page];
-    UDS_ASSERT_SUCCESS(initialize_chapter_index_page(&cip[page], g, indexPage,
-                                                     volumeNonce));
+    UDS_ASSERT_SUCCESS(uds_initialize_chapter_index_page(&cip[page], g, indexPage, volumeNonce));
   }
   return cip;
 }
@@ -148,8 +146,8 @@ static void emptyChapterTest(void)
   // Create an open chapter index that is empty (no blocknames in it)
   struct open_chapter_index *oci;
   struct delta_index_stats stats;
-  UDS_ASSERT_SUCCESS(make_open_chapter_index(&oci, g, volumeNonce));
-  empty_open_chapter_index(oci, 0);
+  UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&oci, g, volumeNonce));
+  uds_empty_open_chapter_index(oci, 0);
   get_delta_index_stats(&oci->delta_index, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
 
@@ -159,7 +157,7 @@ static void emptyChapterTest(void)
   struct delta_index_page *cip
     = setupChapterIndexPages(g, indexPages, g->index_pages_per_chapter);
 
-  free_open_chapter_index(oci);
+  uds_free_open_chapter_index(oci);
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   free_configuration(config);
@@ -179,7 +177,7 @@ static void basicChapterTest(void)
   for (page = 0; page < g->index_pages_per_chapter; page++) {
     verifyChapterIndexPage(oci, &cip[page]);
   }
-  free_open_chapter_index(oci);
+  uds_free_open_chapter_index(oci);
 
   // Make sure that all the names in the open_chapter_index are in one of our
   // ChapterIndexPages
@@ -191,7 +189,7 @@ static void basicChapterTest(void)
       if ((cip[page].lowest_list_number <= deltaListNumber)
           && (deltaListNumber <= cip[page].highest_list_number)) {
         u16 entry;
-        UDS_ASSERT_SUCCESS(search_chapter_index_page(&cip[page], g, &names[i], &entry));
+        UDS_ASSERT_SUCCESS(uds_search_chapter_index_page(&cip[page], g, &names[i], &entry));
         CU_ASSERT_EQUAL(entry, generatePageNumber(g, i));
         inChapter = true;
       }
@@ -229,7 +227,7 @@ static void listOverflowTest(void)
   for (page = 0; page < g->index_pages_per_chapter; page++) {
     verifyChapterIndexPage(oci, &cip[page]);
   }
-  free_open_chapter_index(oci);
+  uds_free_open_chapter_index(oci);
 
   UDS_FREE(cip);
   UDS_FREE(indexPages);
@@ -251,7 +249,7 @@ static void pageOverflowTest(void)
   struct delta_index_page *cip = setupChapterIndexPages(g, indexPages, 1);
 
   verifyChapterIndexPage(oci, cip);
-  free_open_chapter_index(oci);
+  uds_free_open_chapter_index(oci);
 
   UDS_FREE(cip);
   UDS_FREE(indexPages);
@@ -281,7 +279,7 @@ static void bigEndianTest(void)
   for (page = 0; page < g->index_pages_per_chapter; page++) {
     verifyChapterIndexPage(oci, &cip[page]);
   }
-  free_open_chapter_index(oci);
+  uds_free_open_chapter_index(oci);
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   UDS_FREE(names);

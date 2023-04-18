@@ -18,9 +18,9 @@ u64 chapter_index_empty_count;
 u64 chapter_index_overflow_count;
 
 #endif /* TEST_INTERNAL */
-int make_open_chapter_index(struct open_chapter_index **chapter_index,
-			    const struct geometry *geometry,
-			    u64 volume_nonce)
+int uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
+				const struct geometry *geometry,
+				u64 volume_nonce)
 {
 	int result;
 	size_t memory_size;
@@ -60,7 +60,7 @@ int make_open_chapter_index(struct open_chapter_index **chapter_index,
 	return UDS_SUCCESS;
 }
 
-void free_open_chapter_index(struct open_chapter_index *chapter_index)
+void uds_free_open_chapter_index(struct open_chapter_index *chapter_index)
 {
 	if (chapter_index == NULL)
 		return;
@@ -78,7 +78,8 @@ void free_open_chapter_index(struct open_chapter_index *chapter_index)
 }
 
 /* Re-initialize an open chapter index for a new chapter. */
-void empty_open_chapter_index(struct open_chapter_index *chapter_index, u64 virtual_chapter_number)
+void uds_empty_open_chapter_index(struct open_chapter_index *chapter_index,
+				  u64 virtual_chapter_number)
 {
 #ifdef TEST_INTERNAL
 	struct delta_index_stats delta_index_stats;
@@ -100,9 +101,9 @@ static inline bool was_entry_found(const struct delta_index_entry *entry, u32 ad
 }
 
 /* Associate a record name with the record page containing its metadata. */
-int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
-				  const struct uds_record_name *name,
-				  u32 page_number)
+int uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
+				      const struct uds_record_name *name,
+				      u32 page_number)
 {
 	int result;
 	struct delta_index_entry entry;
@@ -154,11 +155,11 @@ int put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  *             be packed onto this page
  * @lists_packed: The number of delta lists that were packed onto this page
  */
-int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-				 u8 *memory,
-				 u32 first_list,
-				 bool last_page,
-				 u32 *lists_packed)
+int uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
+				     u8 *memory,
+				     u32 first_list,
+				     bool last_page,
+				     u32 *lists_packed)
 {
 	int result;
 	struct delta_index *delta_index = &chapter_index->delta_index;
@@ -243,10 +244,10 @@ int pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 }
 
 /* Make a new chapter index page, initializing it with the data from a given index_page buffer. */
-int initialize_chapter_index_page(struct delta_index_page *index_page,
-				  const struct geometry *geometry,
-				  u8 *page_buffer,
-				  u64 volume_nonce)
+int uds_initialize_chapter_index_page(struct delta_index_page *index_page,
+				      const struct geometry *geometry,
+				      u8 *page_buffer,
+				      u64 volume_nonce)
 {
 	return initialize_delta_index_page(index_page,
 					   volume_nonce,
@@ -257,8 +258,8 @@ int initialize_chapter_index_page(struct delta_index_page *index_page,
 }
 
 /* Validate a chapter index page read during rebuild. */
-int validate_chapter_index_page(const struct delta_index_page *index_page,
-				const struct geometry *geometry)
+int uds_validate_chapter_index_page(const struct delta_index_page *index_page,
+				    const struct geometry *geometry)
 {
 	int result;
 	const struct delta_index *delta_index = &index_page->delta_index;
@@ -303,10 +304,10 @@ int validate_chapter_index_page(const struct delta_index_page *index_page,
  * Search a chapter index page for a record name, returning the record page number that may contain
  * the name.
  */
-int search_chapter_index_page(struct delta_index_page *index_page,
-			      const struct geometry *geometry,
-			      const struct uds_record_name *name,
-			      u16 *record_page_ptr)
+int uds_search_chapter_index_page(struct delta_index_page *index_page,
+				  const struct geometry *geometry,
+				  const struct uds_record_name *name,
+				  u16 *record_page_ptr)
 {
 	int result;
 	struct delta_index *delta_index = &index_page->delta_index;
