@@ -24,7 +24,7 @@ tarballs:
         +doc:
           dest: .
           sources:
-            - dm-vdo.rst
+            - vdo.rst
         src/c++/vdo/base:
           +excludes:
             - histogram.c

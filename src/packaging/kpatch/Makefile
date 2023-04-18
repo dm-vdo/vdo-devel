@@ -40,7 +40,7 @@ include $(SRC_DIR)/defines
 CURRENT_VERSION_FILE := $(VDO_ROOT)/src/tools/installers/CURRENT_VERSION
 include $(CURRENT_VERSION_FILE)
 
-VDO_DOC=$(VDO_ROOT)/doc/dm-vdo.rst
+VDO_DOC=$(VDO_ROOT)/doc/vdo.rst
 
 CHANGE_LOG ?= Update $(VDO_VERSION)
 
