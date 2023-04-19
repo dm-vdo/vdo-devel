@@ -26,7 +26,7 @@ static void init(uds_memory_config_size_t memGB)
     .memory_size = memGB,
     .name = getTestIndexName(),
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
   geometry = config->geometry;
 
@@ -49,7 +49,7 @@ static void initSmall(void)
 static void deinit(void)
 {
   free_volume(volume);
-  free_configuration(config);
+  uds_free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
 }
 

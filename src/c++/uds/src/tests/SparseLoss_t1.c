@@ -84,7 +84,7 @@ static void suiteInit(const char *indexName)
     .memory_size = 1,
     .name = indexName,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   // Make a small geometry for speed.
   unsigned int chaptersPerVolume = 10240;
@@ -112,7 +112,7 @@ static void suiteCleaner(void)
 {
   free_index(theIndex);
   theIndex = NULL;
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }

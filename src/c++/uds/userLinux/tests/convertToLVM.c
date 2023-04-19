@@ -217,7 +217,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 		parameters->memory_size |= UDS_MEMORY_CONFIG_REDUCED;
 	}
 
-	result = make_configuration(parameters, &index_config);
+	result = uds_make_configuration(parameters, &index_config);
 	if (result != UDS_SUCCESS) {
 		cleanup_session(session);
 		return result;
@@ -230,7 +230,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 	uds_log_debug("Saving updated layout and writing index configuration");
 	result = update_uds_layout(layout, index_config, freed_space,
 				   bytes_per_chapter);
-	free_configuration(index_config);
+	uds_free_configuration(index_config);
 	if (result != UDS_SUCCESS) {
 		cleanup_session(session);
 		return result;

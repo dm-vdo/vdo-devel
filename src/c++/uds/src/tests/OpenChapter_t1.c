@@ -24,7 +24,7 @@ static void initializeTest(void)
     .memory_size = 1,
   };
 
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &conf));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, conf->geometry->bytes_per_page / 8,
                            conf->geometry->record_pages_per_chapter / 2,
                            CHAPTER_COUNT);
@@ -37,7 +37,7 @@ static void initializeTest(void)
 static void finishTest(void)
 {
   free_open_chapter(openChapter);
-  free_configuration(conf);
+  uds_free_configuration(conf);
 }
 
 /**********************************************************************/

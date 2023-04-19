@@ -89,7 +89,7 @@ static void init(request_restarter_t restartRequest, unsigned int zoneCount)
     .name = getTestIndexName(),
     .zone_count = zoneCount,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4096, 16, 256);
   UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
 
@@ -106,7 +106,7 @@ static void deinit(void)
   set_request_restarter(NULL);
   freePageArray();
   free_volume(volume);
-  free_configuration(config);
+  uds_free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
   uds_destroy_cond(&allDoneCond);
   uds_destroy_mutex(&numRequestsMutex);

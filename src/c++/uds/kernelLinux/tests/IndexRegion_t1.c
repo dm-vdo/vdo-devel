@@ -24,7 +24,7 @@ static void namesTest(void)
     .memory_size = UDS_MEMORY_CONFIG_256MB,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   // Make a layout by using the path (the default)
   struct index_layout *layout;
@@ -46,7 +46,7 @@ static void namesTest(void)
   UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
   free_uds_index_layout(layout);
   UDS_FREE(deviceNumber);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

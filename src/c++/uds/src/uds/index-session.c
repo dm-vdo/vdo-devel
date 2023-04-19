@@ -312,7 +312,7 @@ static int initialize_index_session(struct uds_index_session *index_session,
 	int result;
 	struct configuration *config;
 
-	result = make_configuration(&index_session->parameters, &config);
+	result = uds_make_configuration(&index_session->parameters, &config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Failed to allocate config");
 		return result;
@@ -327,9 +327,9 @@ static int initialize_index_session(struct uds_index_session *index_session,
 	if (result != UDS_SUCCESS)
 		uds_log_error_strerror(result, "Failed to make index");
 	else
-		log_uds_configuration(config);
+		uds_log_configuration(config);
 
-	free_configuration(config);
+	uds_free_configuration(config);
 	return result;
 }
 

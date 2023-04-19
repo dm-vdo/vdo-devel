@@ -18,7 +18,7 @@ static void recordPageTest(int numRecords)
     .memory_size = 1,
   };
   struct configuration *conf;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &conf));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
   struct geometry *g = conf->geometry;
 
@@ -90,7 +90,7 @@ static void recordPageTest(int numRecords)
   UDS_FREE(recordPage);
   UDS_FREE(recordPointers);
   UDS_FREE(volume);
-  free_configuration(conf);
+  uds_free_configuration(conf);
 }
 
 static void test64K(void)

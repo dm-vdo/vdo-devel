@@ -43,13 +43,13 @@ static void runTest(bool sparse)
   // Discard the index state so that we need to do a full rebuild (using index
   // interfaces).
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   config->zone_count = 1;
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(make_index(config, UDS_NO_REBUILD, NULL, NULL, &index));
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
   free_index(index);
-  free_configuration(config);
+  uds_free_configuration(config);
 
   // Rebuild the volume index.  This is where we do the performance timing.
   ThreadStatistics *preThreadStats = getThreadStatistics();

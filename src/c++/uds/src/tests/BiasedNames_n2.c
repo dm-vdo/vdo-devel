@@ -177,7 +177,7 @@ static void initializerWithSession(struct uds_index_session *is)
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(indexSession, &params));
   if (params->sparse) {
     struct configuration *config;
-    UDS_ASSERT_SUCCESS(make_configuration(params, &config));
+    UDS_ASSERT_SUCCESS(uds_make_configuration(params, &config));
     unsigned int chapters_per_volume = config->geometry->chapters_per_volume;
     resizeSparseConfiguration(config, 0, 0, 0, chapters_per_volume - 2, 0);
 
@@ -188,7 +188,7 @@ static void initializerWithSession(struct uds_index_session *is)
                                   oldIndex->callback, &newIndex));
     indexSession->index = newIndex;
     free_index(oldIndex);
-    free_configuration(config);
+    uds_free_configuration(config);
   }
   UDS_FREE(params);
 }

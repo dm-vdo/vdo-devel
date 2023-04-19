@@ -23,7 +23,7 @@ static void setup(void)
     .memory_size = 1,
     .name = getTestIndexName(),
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
 
   geometry = config->geometry;
@@ -37,7 +37,7 @@ static void setup(void)
 static void cleanup(void)
 {
   put_uds_io_factory(factory);
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_FREE(listNumbers);
 }
 

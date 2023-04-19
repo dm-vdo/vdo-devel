@@ -129,7 +129,7 @@ static void testFilling(void)
     .name = getTestIndexName(),
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, CHAPTER_COUNT);
   struct index_layout *layout;
   UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
@@ -159,7 +159,7 @@ static void testFilling(void)
   }
   UDS_FREE(openChapters);
   free_volume(volume);
-  free_configuration(config);
+  uds_free_configuration(config);
   free_uds_index_layout(layout);
 }
 

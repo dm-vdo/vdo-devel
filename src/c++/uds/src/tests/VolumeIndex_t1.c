@@ -74,7 +74,7 @@ static void initializationTest(void)
   struct configuration *config = makeTestConfig(MANY_CHAPTERS);
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -152,7 +152,7 @@ static void basicTest(void)
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 1);
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -206,7 +206,7 @@ static void setChapterTest(void)
                   UDS_INVALID_ARGUMENT);
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**
@@ -282,7 +282,7 @@ static void testInvalidateTrio(unsigned int addr1, unsigned int addr2,
   CU_ASSERT_EQUAL(record.virtual_chapter, CH3);
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -459,7 +459,7 @@ static void invalidateChapterTest(void)
                                   &openChapter);
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**
@@ -508,7 +508,7 @@ static void invalidateChapterCollisionTest(void)
   CU_ASSERT_TRUE(record.virtual_chapter == 1);
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**
@@ -573,7 +573,7 @@ static void rollingChaptersTest(void)
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_FREE(testNames);
 }
 
@@ -628,7 +628,7 @@ static void invalidateChapterEmptyTest(void)
   }
 
   free_volume_index(volumeIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

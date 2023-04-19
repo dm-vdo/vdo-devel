@@ -94,7 +94,7 @@ static bool are_matching_configurations(struct configuration *saved_config,
 }
 
 /* Read the configuration and validate it against the provided one. */
-int validate_config_contents(struct buffered_reader *reader, struct configuration *user_config)
+int uds_validate_config_contents(struct buffered_reader *reader, struct configuration *user_config)
 {
 	int result;
 	struct configuration config;
@@ -169,9 +169,9 @@ int validate_config_contents(struct buffered_reader *reader, struct configuratio
  * version; otherwise write the 8.02 version, indicating the configuration is for an index that has
  * been reduced by one chapter.
  */
-int write_config_contents(struct buffered_writer *writer,
-			  struct configuration *config,
-			  u32 version)
+int uds_write_config_contents(struct buffered_writer *writer,
+			      struct configuration *config,
+			      u32 version)
 {
 	int result;
 	struct geometry *geometry = config->geometry;
@@ -319,7 +319,7 @@ static unsigned int __must_check normalize_read_threads(unsigned int requested)
 	return read_threads;
 }
 
-int make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
+int uds_make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
 {
 	struct configuration *config;
 	u32 chapters_per_volume = 0;
@@ -347,7 +347,7 @@ int make_configuration(const struct uds_parameters *params, struct configuration
 			       0,
 			       &config->geometry);
 	if (result != UDS_SUCCESS) {
-		free_configuration(config);
+		uds_free_configuration(config);
 		return result;
 	}
 
@@ -366,7 +366,7 @@ int make_configuration(const struct uds_parameters *params, struct configuration
 	return UDS_SUCCESS;
 }
 
-void free_configuration(struct configuration *config)
+void uds_free_configuration(struct configuration *config)
 {
 	if (config != NULL) {
 		free_geometry(config->geometry);
@@ -374,7 +374,7 @@ void free_configuration(struct configuration *config)
 	}
 }
 
-void log_uds_configuration(struct configuration *config)
+void uds_log_configuration(struct configuration *config)
 {
 	struct geometry *geometry = config->geometry;
 

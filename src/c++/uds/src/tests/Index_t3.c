@@ -24,10 +24,10 @@ static struct uds_index *recreateTestIndex(enum uds_open_index_type openType)
     .name = indexName,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(make_index(config, openType, NULL, NULL, &index));
-  free_configuration(config);
+  uds_free_configuration(config);
   return index;
 }
 

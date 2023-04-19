@@ -38,7 +38,7 @@ static void zoneInitializeSuite(const char *indexName)
     .memory_size = UDS_MEMORY_CONFIG_256MB,
     .name = indexName,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Creating an index also creates the zone queues.
   UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback,
                                 &theIndex));
@@ -52,7 +52,7 @@ static void zoneInitializeSuite(const char *indexName)
 static void zoneFinishSuite(void)
 {
   free_index(theIndex);
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }

@@ -169,14 +169,14 @@ static void suspendRebuildTest(void)
    * interfaces).
    */
   struct configuration *tempConfig;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &tempConfig));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &tempConfig));
   tempConfig->zone_count = 1;
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(make_index(tempConfig, UDS_NO_REBUILD, NULL, NULL,
                                 &index));
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
   free_index(index);
-  free_configuration(tempConfig);
+  uds_free_configuration(tempConfig);
 
   // Make sure the index will not load.
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));

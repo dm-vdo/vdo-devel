@@ -43,7 +43,7 @@ static void indexInitSuite(const char *name)
     .memory_size = 1,
     .name = indexName,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &denseConfig));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &denseConfig));
   unsigned int zoneCount = denseConfig->zone_count;
   if (zoneCount >= 7) {
     // Need more delta-lists when we have many zones, so up the record count.
@@ -52,7 +52,7 @@ static void indexInitSuite(const char *name)
   resizeDenseConfiguration(denseConfig, 4096, 32, NUM_CHAPTERS);
 
   // Set up the geometry and config for sparse index testing
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &sparseConfig));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &sparseConfig));
   resizeSparseConfiguration(sparseConfig,
                             sparseConfig->geometry->bytes_per_page / 8,
                             64, NUM_CHAPTERS, NUM_CHAPTERS / 2, 2);
@@ -70,8 +70,8 @@ static void indexCleanSuite(void)
   free_index(testData.index);
   UDS_FREE(testData.metas);
   UDS_FREE(testData.hashes);
-  free_configuration(denseConfig);
-  free_configuration(sparseConfig);
+  uds_free_configuration(denseConfig);
+  uds_free_configuration(sparseConfig);
 }
 
 /**

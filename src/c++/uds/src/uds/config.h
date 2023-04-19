@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef UDS_CONFIG_H
+#define UDS_CONFIG_H
 
 #include "geometry.h"
 #include "io-factory.h"
@@ -108,18 +108,18 @@ struct uds_configuration_6_02 {
 	u64 nonce;
 } __packed;
 
-int __must_check make_configuration(const struct uds_parameters *params,
-				    struct configuration **config_ptr);
+int __must_check
+uds_make_configuration(const struct uds_parameters *params, struct configuration **config_ptr);
 
-void free_configuration(struct configuration *config);
+void uds_free_configuration(struct configuration *config);
 
-int __must_check validate_config_contents(struct buffered_reader *reader,
-					  struct configuration *config);
+int __must_check
+uds_validate_config_contents(struct buffered_reader *reader, struct configuration *config);
 
-int __must_check write_config_contents(struct buffered_writer *writer,
-				       struct configuration *config,
-				       u32 version);
+int __must_check uds_write_config_contents(struct buffered_writer *writer,
+					   struct configuration *config,
+					   u32 version);
 
-void log_uds_configuration(struct configuration *config);
+void uds_log_configuration(struct configuration *config);
 
-#endif /* CONFIG_H */
+#endif /* UDS_CONFIG_H */

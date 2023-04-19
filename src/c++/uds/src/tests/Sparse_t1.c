@@ -168,7 +168,7 @@ static void sparseInitSuite(const char *name)
     .memory_size = 1,
     .name = name,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   unsigned int zoneCount = config->zone_count;
   recordsPerChapter = (MAX_RECORDS_PER_CHAPTER
@@ -226,7 +226,7 @@ static void sparseCleanSuite(void)
   UDS_FREE(metas);
   UDS_FREE(hashes);
   cleanupIndex();
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }

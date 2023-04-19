@@ -267,14 +267,14 @@ int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_s
 		return -EINVAL;
 	}
 
-	result = make_configuration(parameters, &index_config);
+	result = uds_make_configuration(parameters, &index_config);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "cannot compute index size");
 		return uds_map_to_system_error(result);
 	}
 
 	result = compute_sizes(index_config, &sizes);
-	free_configuration(index_config);
+	uds_free_configuration(index_config);
 	if (result != UDS_SUCCESS)
 		return uds_map_to_system_error(result);
 
@@ -769,7 +769,7 @@ static int __must_check write_uds_index_config(struct index_layout *layout,
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "failed to open config region");
 
-	result = write_config_contents(writer, config, layout->super.version);
+	result = uds_write_config_contents(writer, config, layout->super.version);
 	if (result != UDS_SUCCESS) {
 		free_buffered_writer(writer);
 		return uds_log_error_strerror(result, "failed to write config region");
@@ -1648,7 +1648,7 @@ verify_uds_index_config(struct index_layout *layout, struct configuration *confi
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "failed to open config reader");
 
-	result = validate_config_contents(reader, config);
+	result = uds_validate_config_contents(reader, config);
 	if (result != UDS_SUCCESS) {
 		free_buffered_reader(reader);
 		return uds_log_error_strerror(result, "failed to read config region");

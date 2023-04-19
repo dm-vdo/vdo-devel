@@ -35,9 +35,9 @@ static void createIndex(unsigned int zone_count)
     .zone_count = zone_count,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

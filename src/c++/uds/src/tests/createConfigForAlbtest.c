@@ -12,7 +12,7 @@ struct configuration *createConfigForAlbtest(int argc, const char **argv)
   struct uds_parameters params
     = createUdsParametersForAlbtest(argc, argv);
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   return config;
 }
 

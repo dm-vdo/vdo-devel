@@ -160,7 +160,7 @@ static void emptyChapterTest(void)
   uds_free_open_chapter_index(oci);
   UDS_FREE(cip);
   UDS_FREE(indexPages);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -200,7 +200,7 @@ static void basicChapterTest(void)
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   UDS_FREE(names);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -232,7 +232,7 @@ static void listOverflowTest(void)
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   UDS_FREE(names);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -254,7 +254,7 @@ static void pageOverflowTest(void)
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   UDS_FREE(names);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -283,7 +283,7 @@ static void bigEndianTest(void)
   UDS_FREE(cip);
   UDS_FREE(indexPages);
   UDS_FREE(names);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

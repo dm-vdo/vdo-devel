@@ -45,12 +45,12 @@ static void checkMemoryConfig(uds_memory_config_size_t size, uint64_t pages)
     .memory_size = size,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
   CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
                   (uint64_t) config->geometry->record_pages_per_chapter,
                   pages);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -62,12 +62,12 @@ static void checkSparseMemoryConfig(uds_memory_config_size_t size,
     .sparse = true,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
   CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
                   (uint64_t) config->geometry->record_pages_per_chapter,
                   pages);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -78,7 +78,7 @@ static void initMemTest(void)
     .memory_size = 0,
   };
   struct configuration *config;
-  UDS_ASSERT_ERROR(-EINVAL, make_configuration(&params, &config));
+  UDS_ASSERT_ERROR(-EINVAL, uds_make_configuration(&params, &config));
 
   // Legal small sizes
   checkMemoryConfig(UDS_MEMORY_CONFIG_256MB, 64 * 1024);
@@ -119,7 +119,7 @@ static void initMemTest(void)
 
   // Too big
   params.memory_size = UDS_MEMORY_CONFIG_MAX + 1;
-  UDS_ASSERT_ERROR(-EINVAL, make_configuration(&params, &config));
+  UDS_ASSERT_ERROR(-EINVAL, uds_make_configuration(&params, &config));
 }
 
 /**********************************************************************/

@@ -77,7 +77,7 @@ static void init(const char *indexName)
     .memory_size = UDS_MEMORY_CONFIG_256MB,
     .name = indexName,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 4);
 
   UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
@@ -89,7 +89,7 @@ static void init(const char *indexName)
 static void deinit(void)
 {
   cleanupIndex();
-  free_configuration(config);
+  uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
 }

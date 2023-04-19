@@ -37,10 +37,10 @@ static struct uds_index *createTestIndex(unsigned int loadFlags)
     .name = indexName,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(make_index(config, loadFlags, NULL, NULL, &index));
-  free_configuration(config);
+  uds_free_configuration(config);
   return index;
 }
 

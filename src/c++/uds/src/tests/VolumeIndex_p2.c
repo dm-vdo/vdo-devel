@@ -326,7 +326,7 @@ static void initSuite(int argc, const char **argv)
 /**********************************************************************/
 static void cleanSuite(void)
 {
-  free_configuration(config);
+  uds_free_configuration(config);
   put_uds_io_factory(factory);
 }
 

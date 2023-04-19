@@ -45,9 +45,9 @@ static void indexInitSuite(const char *name)
     .memory_size = UDS_MEMORY_CONFIG_256MB,
     .name = name,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &smallConfig));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &smallConfig));
   size_t smallBytesPerPage = 128 * BYTES_PER_RECORD * smallConfig->zone_count;
   resizeDenseConfiguration(smallConfig, smallBytesPerPage, 1, 10);
   initialize_test_requests();
@@ -59,8 +59,8 @@ static void indexInitSuite(const char *name)
 static void indexCleanSuite(void)
 {
   uninitialize_test_requests();
-  free_configuration(config);
-  free_configuration(smallConfig);
+  uds_free_configuration(config);
+  uds_free_configuration(smallConfig);
 }
 
 /**

@@ -103,7 +103,7 @@ static void init(void)
   struct uds_parameters params = {
     .memory_size = 1,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4 * BYTES_PER_RECORD, 5, 10);
 
   UDS_ASSERT_SUCCESS(initialize_page_cache(&cache, config->geometry, config->cache_chapters,
@@ -114,7 +114,7 @@ static void init(void)
 static void deinit(void)
 {
   uninitialize_page_cache(&cache);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

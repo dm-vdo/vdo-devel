@@ -26,7 +26,7 @@ static void initializeTest(void)
     .memory_size = 1,
     .name = getTestIndexName(),
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, config->geometry->bytes_per_page / 8,
                            config->geometry->record_pages_per_chapter / 2, 16);
   UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
@@ -46,7 +46,7 @@ static void finishTest(void)
 {
   uninitialize_test_requests();
   put_uds_io_factory(factory);
-  free_configuration(config);
+  uds_free_configuration(config);
   free_index(theIndex);
 }
 

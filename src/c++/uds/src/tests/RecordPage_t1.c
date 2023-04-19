@@ -20,7 +20,7 @@ static void testSearchRecordPage(void)
     .memory_size = 1,
   };
   struct configuration *conf;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &conf));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
   struct geometry *g = conf->geometry;
 
@@ -65,7 +65,7 @@ static void testSearchRecordPage(void)
   UDS_FREE(volume->record_pointers);
   free_uds_radix_sorter(volume->radix_sorter);
   UDS_FREE(volume);
-  free_configuration(conf);
+  uds_free_configuration(conf);
 }
 
 /**********************************************************************/

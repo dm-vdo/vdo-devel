@@ -66,7 +66,7 @@ static void savedTest(void)
   randomizeUdsNonce(&params);
 
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   struct uds_index_session *indexSession;
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
@@ -115,7 +115,7 @@ static void savedTest(void)
   UDS_FREE(savedParams);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
-  free_configuration(config);
+  uds_free_configuration(config);
 
   uninitialize_test_requests();
   uninitializeOldInterfaces();
@@ -134,7 +134,7 @@ static void testRun(TestConfig *tc)
 
   // Test that the geometry is as expected
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   CU_ASSERT_EQUAL(DEFAULT_BYTES_PER_PAGE, config->geometry->bytes_per_page);
   CU_ASSERT_EQUAL(tc->recordPagesPerChapter,
                   config->geometry->record_pages_per_chapter);
@@ -218,7 +218,7 @@ static void testRun(TestConfig *tc)
     uninitializeOldInterfaces();
   }
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
-  free_configuration(config);
+  uds_free_configuration(config);
 
   // Make sure the chapter index did not throw away any entries by an
   // unexpected discard or an overflow.

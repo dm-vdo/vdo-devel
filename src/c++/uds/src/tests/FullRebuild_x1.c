@@ -157,11 +157,11 @@ static void testDenseTiny(void)
     .memory_size = 1,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 8);
 
   runTestsAtAllChapterOffsets(config);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -172,11 +172,11 @@ static void testSparseTiny(void)
     .sparse = true,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeSparseConfiguration(config, 0, 0, 8, 4, 2);
 
   runTestsAtAllChapterOffsets(config);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -186,10 +186,10 @@ static void testDenseNormal(void)
     .memory_size = 1,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   runTest(config, 0);
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/

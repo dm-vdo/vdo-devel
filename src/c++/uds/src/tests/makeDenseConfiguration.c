@@ -13,6 +13,6 @@ struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
     .memory_size = memGB,
   };
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   return config;
 }

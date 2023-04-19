@@ -29,7 +29,7 @@ static void init(const char *indexName)
     .memory_size = 1,
     .name = indexName,
   };
-  UDS_ASSERT_SUCCESS(make_configuration(&params, &config));
+  UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4096, 8, 128);
   UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
 
@@ -45,7 +45,7 @@ static void deinit(void)
 {
   freePageArray();
   free_volume(volume);
-  free_configuration(config);
+  uds_free_configuration(config);
   free_uds_index_layout(UDS_FORGET(layout));
 }
 

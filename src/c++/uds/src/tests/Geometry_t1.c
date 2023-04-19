@@ -68,7 +68,7 @@ static void testDefault(void)
    **/
   CU_ASSERT_EQUAL(g->records_per_volume, 256 * 1024 * 1024);
 
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -87,7 +87,7 @@ static void testDefaultReduced(void)
    **/
   CU_ASSERT_EQUAL(g->records_per_volume, 256 * 1024 * 1023);
 
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -120,7 +120,7 @@ static void testSmall(void)
    **/
   CU_ASSERT_EQUAL(g->records_per_volume, 64 * 1024 * 1024);
 
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
@@ -137,7 +137,7 @@ static void testSmallReduced(void)
    **/
   CU_ASSERT_EQUAL(g->records_per_volume, 64 * 1024 * 1023);
 
-  free_configuration(config);
+  uds_free_configuration(config);
 }
 
 /**********************************************************************/
