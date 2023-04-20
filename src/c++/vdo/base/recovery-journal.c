@@ -837,35 +837,22 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 }
 
 /**
- * vdo_initialize_recovery_journal_post_recovery() - Initialize the journal after a recovery.
- * @journal: The journal in question.
- * @recovery_count: The number of completed recoveries.
- * @tail: The new tail block sequence number.
- */
-void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
-						   u64 recovery_count,
-						   sequence_number_t tail)
-{
-	set_journal_tail(journal, tail + 1);
-	journal->recovery_count = compute_recovery_count_byte(recovery_count);
-	initialize_journal_state(journal);
-}
-
-/**
- * vdo_initialize_recovery_journal_post_rebuild() - Initialize the journal after a rebuild.
+ * vdo_initialize_recovery_journal_post_repair() - Initialize the journal after a repair.
  * @journal: The journal in question.
  * @recovery_count: The number of completed recoveries.
  * @tail: The new tail block sequence number.
  * @logical_blocks_used: The new number of logical blocks used.
  * @block_map_data_blocks: The new number of block map data blocks.
  */
-void vdo_initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
+void vdo_initialize_recovery_journal_post_repair(struct recovery_journal *journal,
 						  u64 recovery_count,
 						  sequence_number_t tail,
 						  block_count_t logical_blocks_used,
 						  block_count_t block_map_data_blocks)
 {
-	vdo_initialize_recovery_journal_post_recovery(journal, recovery_count, tail);
+	set_journal_tail(journal, tail + 1);
+	journal->recovery_count = compute_recovery_count_byte(recovery_count);
+	initialize_journal_state(journal);
 	journal->logical_blocks_used = logical_blocks_used;
 	journal->block_map_data_blocks = block_map_data_blocks;
 }

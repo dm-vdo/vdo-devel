@@ -257,15 +257,11 @@ int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 s
 
 void vdo_free_recovery_journal(struct recovery_journal *journal);
 
-void vdo_initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
-						   u64 recovery_count,
-						   sequence_number_t tail);
-
-void vdo_initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
-						  u64 recovery_count,
-						  sequence_number_t tail,
-						  block_count_t logical_blocks_used,
-						  block_count_t block_map_data_blocks);
+void vdo_initialize_recovery_journal_post_repair(struct recovery_journal *journal,
+						 u64 recovery_count,
+						 sequence_number_t tail,
+						 block_count_t logical_blocks_used,
+						 block_count_t block_map_data_blocks);
 
 block_count_t __must_check
 vdo_get_journal_block_map_data_blocks_used(struct recovery_journal *journal);

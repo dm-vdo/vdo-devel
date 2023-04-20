@@ -362,8 +362,6 @@ static void testWaitForSlabJournalSpace(void)
 
   // Make sure the slab journal got the expected entries.
   verifySlabJournalEntries();
-  // Make sure nothing happened to the block map.
-  verifyBlockMapping(0);
 
   setStartStopExpectation(VDO_READ_ONLY);
 

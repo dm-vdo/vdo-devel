@@ -93,7 +93,7 @@ enum vdo_state {
 	VDO_READ_ONLY_MODE = 3,
 	VDO_FORCE_REBUILD = 4,
 	VDO_RECOVERING = 5,
-	VDO_REPLAYING = 6,
+	VDO_REPLAYING = 6, /* VDO_REPLAYING is never set anymore, but retained for upgrade */
 	VDO_REBUILD_FOR_UPGRADE = 7,
 
 	/* Keep VDO_STATE_COUNT at the bottom. */

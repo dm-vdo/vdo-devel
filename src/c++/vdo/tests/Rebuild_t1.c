@@ -36,6 +36,9 @@ enum {
 static block_count_t           expectedLogicalBlocksUsed;
 static block_count_t           packedVIOs = 0;
 static physical_block_number_t pbn;
+static bool                    logicalThreadVisited;
+static bool                    blockMapDrained;
+static bool                    crashOnSlabDepotLoad;
 
 typedef struct refCountData {
   /** The number of reference counters in the array */
@@ -427,55 +430,113 @@ static void testRebuildAfterResize(void)
   verifyTestData(startBlock, TEST_BLOCKS);
 }
 
-/**
- * Check whether a completion is a super block write
- **/
-static bool isSuperBlockWrite(struct vdo_completion *completion)
+/**********************************************************************/
+static void setRequeueAndRun(struct vdo_completion *completion)
 {
-  return (vioTypeIs(completion, VIO_TYPE_SUPER_BLOCK)
-          && isMetadataWrite(completion));
+  completion->requeue = true;
+  runSavedCallback(completion);
 }
 
 /**
- * Fails the super block write after it is written in the RAMLayer.
+ * Fails slab depot load.
  *
  * Implements CompletionHook.
  **/
-static bool failAfterSuperBlockWrite(struct vdo_completion *completion)
+static bool failSlabDepotLoad(struct vdo_completion *completion)
 {
-  if (!isSuperBlockWrite(completion) || !onBIOThread()) {
+  if (completion->type != VDO_RECOVERY_COMPLETION) {
     return true;
   }
 
-  // Set a bad error code to force a failed write.
-  vdo_set_completion_result(completion, LAYER_ERROR);
+  if (!logicalThreadVisited) {
+    if (completion->callback_thread_id == vdo->thread_config.logical_threads[0]) {
+      logicalThreadVisited = true;
+    }
 
-  // Turn off this hook, and prevent all further writes.
-  clearCompletionEnqueueHooks();
-  flushRAMLayer(getSynchronousLayer());
-  prepareToCrashRAMLayer(getSynchronousLayer());
+    return true;
+  }
+
+  if (completion->callback_thread_id == vdo->thread_config.admin_thread) {
+    if (!blockMapDrained) {
+      /*
+       * We need to wrap flush_block_map() so that we can set the requeue flag
+       * on the recovery completion so that this hook gets to fire again when
+       * flush_block_map() is done.
+       */
+      wrapCompletionCallback(completion, setRequeueAndRun);
+      blockMapDrained = true;
+      return true;
+    }
+
+    if (crashOnSlabDepotLoad) {
+      flushRAMLayer(getSynchronousLayer());
+      prepareToCrashRAMLayer(getSynchronousLayer());
+    } else {
+      vdo_set_completion_result(completion, LAYER_ERROR);
+    }
+
+    // Turn off this hook, and prevent all further writes.
+    removeCompletionEnqueueHook(failSlabDepotLoad);
+  }
+
   return true;
 }
 
 /**
- * Test failing during the rebuild after the first super block write.
+ * Test crashing during recovery after the block map is rebuilt, but before
+ * recovering the reference counts.
  **/
-static void testCrashBeforeBlockMapRebuild(void)
+static void testCrashBeforeRefCountRebuild(void)
 {
   PreRebuildData       *originalData;
   struct vdo_statistics originalStats;
   prepareForRebuildTest(&originalData, &originalStats, false);
   crashVDO();
 
-  // Set hook and VDO load will fail before the block map is rebuilt.
-  setCompletionEnqueueHook(failAfterSuperBlockWrite);
+  // Set a hook to crash the vdo before loading the slab depot.
+  logicalThreadVisited = false;
+  blockMapDrained = false;
+  crashOnSlabDepotLoad = true;
+  setCompletionEnqueueHook(failSlabDepotLoad);
+  startVDO(VDO_DIRTY);
+  stopVDO();
   crashRAMLayer(getSynchronousLayer());
+
+  // Let the vdo recover.
+  rebuildAndVerify(&originalData, &originalStats, VDO_DIRTY, 1, 0);
+}
+
+/**
+ * Test an error during recovery after the block map is rebuilt, but before
+ * recovering the reference counts.
+ **/
+static void testErrorBeforeRefCountRebuild(void)
+{
+  PreRebuildData       *originalData;
+  struct vdo_statistics originalStats;
+  prepareForRebuildTest(&originalData, &originalStats, false);
+  crashVDO();
+
+  // Set a hook to inject an error on loading the slab depot.
+  logicalThreadVisited = false;
+  blockMapDrained = false;
+  crashOnSlabDepotLoad = false;
+  setCompletionEnqueueHook(failSlabDepotLoad);
   startReadOnlyVDO(VDO_DIRTY);
   stopVDO();
 
-  // Clear the hook and let the VDO rebuild.
-  clearCompletionEnqueueHooks();
-  rebuildAndVerify(&originalData, &originalStats, VDO_REPLAYING, 1, 0);
+  // Rebuild the vdo.
+  VDO_ASSERT_SUCCESS(forceVDORebuild(getSynchronousLayer()));
+  setStartStopExpectation(VDO_SUCCESS);
+  rebuildAndVerify(&originalData, &originalStats, VDO_FORCE_REBUILD, 1, 1);
+}
+
+/**
+ * Check whether a completion is a super block write
+ **/
+static bool isSuperBlockWrite(struct vdo_completion *completion)
+{
+  return (vioTypeIs(completion, VIO_TYPE_SUPER_BLOCK) && isMetadataWrite(completion));
 }
 
 /**
@@ -500,9 +561,9 @@ static bool failBeforeSuperBlockWrite(struct bio *bio)
 }
 
 /**
- * Test failing during rebuild before the first super block write.
+ * Test failing during load after recovery but before saving the super block.
  **/
-static void testCrashDuringRebuild(void)
+static void testCrashAfterRecovery(void)
 {
   PreRebuildData       *originalData;
   struct vdo_statistics originalStats;
@@ -616,8 +677,9 @@ static CU_TestInfo vdoTests[] = {
   { "rebuild VDO with compressed blocks",    testRebuildWithCompressedBlocks },
   { "rebuild VDO after resize",              testRebuildAfterResize          },
   { "force rebuild for a read-only VDO",     testForceRebuild                },
-  { "crash before block map rebuild",        testCrashBeforeBlockMapRebuild  },
-  { "crash during rebuild",                  testCrashDuringRebuild          },
+  { "crash before ref count rebuild",        testCrashBeforeRefCountRebuild  },
+  { "error before ref count rebuild",        testErrorBeforeRefCountRebuild  },
+  { "crash after recovery",                  testCrashAfterRecovery          },
   { "read error during block map rebuild",   testBlockMapReadError           },
   { "invalid page during block map rebuild", testBlockMapBadPageError        },
   CU_TEST_INFO_NULL,
