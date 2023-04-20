@@ -144,8 +144,8 @@ static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
 
   // Get the delta memory corresponding to the delta lists
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_index, __func__, &delta_index));
-  UDS_ASSERT_SUCCESS(initialize_delta_index(delta_index, 1, numLists, MEAN_DELTA,
-                                            NUM_PAYLOAD_BITS, initSize, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(delta_index, 1, numLists, MEAN_DELTA,
+                                                NUM_PAYLOAD_BITS, initSize, 'm'));
   struct delta_zone *dm = &delta_index->delta_zones[0];
   memset(dm->memory, initialValue, dm->size);
   memcpy(dm->delta_lists, pdl, pdlSize);
@@ -172,7 +172,7 @@ static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
     randomOffset += size;
   }
 
-  uninitialize_delta_index(delta_index);
+  uds_uninitialize_delta_index(delta_index);
   UDS_FREE(delta_index);
   UDS_FREE(random);
 }

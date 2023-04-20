@@ -41,20 +41,20 @@ static noinline void assertKeyValue(const struct delta_index_entry *entry,
   // just wrote the entry, or set_delta_entry_value just modified the entry.
   CU_ASSERT_FALSE(entry->at_end);
   CU_ASSERT_EQUAL(entry->key, key);
-  CU_ASSERT_EQUAL(get_delta_entry_value(entry), value);
+  CU_ASSERT_EQUAL(uds_get_delta_entry_value(entry), value);
 }
 
 /**********************************************************************/
 static noinline void assertSavedValid(const struct delta_index *di)
 {
   struct delta_index_entry entry;
-  UDS_ASSERT_SUCCESS(start_delta_index_search(di, 0, 0, &entry));
+  UDS_ASSERT_SUCCESS(uds_start_delta_index_search(di, 0, 0, &entry));
   const struct delta_list *deltaList = entry.delta_list;
   unsigned int saveKey    = deltaList->save_key;
   unsigned int saveOffset = deltaList->save_offset;
   bool found = false;
   do {
-    UDS_ASSERT_SUCCESS(next_delta_index_entry(&entry));
+    UDS_ASSERT_SUCCESS(uds_next_delta_index_entry(&entry));
     if ((saveKey == entry.key - entry.delta) && (saveOffset == entry.offset)) {
       found = true;
     }
@@ -105,10 +105,10 @@ static void initializationTest(void)
   int numPayloadBits = 10;
   size_t memSize = 16 * MEGABYTE;
 
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, numLists, meanDelta,
-                                            numPayloadBits, memSize, 'm'));
-  uninitialize_delta_index(&di);
-  uninitialize_delta_index(&di);
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, numLists, meanDelta,
+                                                numPayloadBits, memSize, 'm'));
+  uds_uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
 }
 
 /**
@@ -119,67 +119,68 @@ static void basicTest(void)
   struct delta_index di;
   struct delta_index_entry entry;
   enum { NUM_LISTS = 1 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256, 8, 2 * MEGABYTE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256,
+                                                8, 2 * MEGABYTE, 'm'));
 
   // Should not find a record with key 0 in an empty list
   struct uds_record_name name0;
   createBlockName(&name0);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name0.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 0, name0.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
 
   // Insert a record with key 1
   struct uds_record_name name1;
   createBlockName(&name1);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 1, name1.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 1, name1.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, 1, 99, NULL));
+  UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, 1, 99, NULL));
   CU_ASSERT_EQUAL(entry.key, 1);
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(get_delta_entry_value(&entry), 99);
+  CU_ASSERT_EQUAL(uds_get_delta_entry_value(&entry), 99);
 
   // Should not find a record with key 0
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name0.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 0, name0.name, &entry));
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
 
   // Should find the record with key 1
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 1, name1.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 1, name1.name, &entry));
   CU_ASSERT_EQUAL(entry.key, 1);
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(get_delta_entry_value(&entry), 99);
+  CU_ASSERT_EQUAL(uds_get_delta_entry_value(&entry), 99);
 
   // Modify its payload
-  UDS_ASSERT_SUCCESS(set_delta_entry_value(&entry, 42));
+  UDS_ASSERT_SUCCESS(uds_set_delta_entry_value(&entry, 42));
   CU_ASSERT_EQUAL(entry.key, 1);
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(get_delta_entry_value(&entry), 42);
+  CU_ASSERT_EQUAL(uds_get_delta_entry_value(&entry), 42);
 
   // Should not find a record with key 2
   struct uds_record_name name2;
   createBlockName(&name2);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, name2.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 2, name2.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
 
   // Remove the record with key 1
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 1, name1.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 1, name1.name, &entry));
   CU_ASSERT_EQUAL(entry.key, 1);
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(get_delta_entry_value(&entry), 42);
-  UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+  CU_ASSERT_EQUAL(uds_get_delta_entry_value(&entry), 42);
+  UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
 
   // Should not find a record with key 1
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 1, name1.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 1, name1.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
 
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
 }
 
 /**
@@ -222,8 +223,8 @@ static void recordSizeTest(void)
 
   struct delta_index di;
   enum { NUM_LISTS = 1, PAYLOAD_BITS = 4 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
-                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
+                                                PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
 
   unsigned int filler, i;
   for (filler = 0; filler < 2; filler++) {
@@ -238,7 +239,7 @@ static void recordSizeTest(void)
       unsigned int payload = i & ((1 << PAYLOAD_BITS) - 1);
 
       // The delta index starts out empty
-      get_delta_index_stats(&di, &stats);
+      uds_get_delta_index_stats(&di, &stats);
       CU_ASSERT_EQUAL(stats.record_count, 0);
 
       // Fill the delta memory with the filler value
@@ -246,10 +247,10 @@ static void recordSizeTest(void)
              di.delta_zones[0].size);
 
       // Create the record
-      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, name.name, &entry));
+      UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, key, name.name, &entry));
       CU_ASSERT_TRUE(entry.at_end);
       CU_ASSERT_FALSE(entry.is_collision);
-      UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, key, payload, NULL));
+      UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, key, payload, NULL));
       CU_ASSERT_EQUAL(entry.key, key);
       CU_ASSERT_FALSE(entry.at_end);
       CU_ASSERT_FALSE(entry.is_collision);
@@ -259,27 +260,27 @@ static void recordSizeTest(void)
       // from the total.
       unsigned int keyBits = (entry.entry_bits - entry.value_bits);
       CU_ASSERT_EQUAL(keyBits, table[i].expectedSize);
-      CU_ASSERT_EQUAL(get_delta_entry_value(&entry), payload);
+      CU_ASSERT_EQUAL(uds_get_delta_entry_value(&entry), payload);
 
       // The delta index now has one entry
-      get_delta_index_stats(&di, &stats);
+      uds_get_delta_index_stats(&di, &stats);
       CU_ASSERT_EQUAL(stats.record_count, 1);
 
       // Verify that we find the record we inserted
-      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, name.name, &entry));
+      UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, key, name.name, &entry));
       assertKeyValue(&entry, key, payload);
       CU_ASSERT_FALSE(entry.is_collision);
 
       // Remove the record
-      UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+      UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
 
       // The delta index ends up empty
-      get_delta_index_stats(&di, &stats);
+      uds_get_delta_index_stats(&di, &stats);
       CU_ASSERT_EQUAL(stats.record_count, 0);
     }
   }
 
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
 }
 
 /**
@@ -296,10 +297,10 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   struct delta_index di;
   struct delta_index_stats stats;
   enum { NUM_LISTS = 1, PAYLOAD_BITS = 4 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
-                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 1024,
+                                                PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
   CU_ASSERT_EQUAL(di.list_count, NUM_LISTS);
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
 
   struct delta_index_entry entry;
@@ -313,14 +314,14 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   for (i = 0; i < numKeys; i++) {
     collides[i] = false;
     createBlockName(&names[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     if (expectedCollisions == 0) {
       CU_ASSERT_FALSE(entry.is_collision);
     } else if (!entry.at_end && entry.key == keys[i]) {
       collides[i] = true;
     }
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, keys[i], i,
-                                             collides[i] ? names[i].name : NULL));
+    UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, keys[i], i,
+                                                 collides[i] ? names[i].name : NULL));
     assertKeyValue(&entry, keys[i], i);
     if (collides[i]) {
       CU_ASSERT_TRUE(entry.is_collision);
@@ -328,14 +329,14 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
       CU_ASSERT_FALSE(entry.is_collision);
     }
   }
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, numKeys);
   CU_ASSERT_EQUAL(stats.collision_count, expectedCollisions);
   validateDeltaIndex(&di);
 
   // Get all the records in the specified order
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], i);
     if (collides[i]) {
       CU_ASSERT_TRUE(entry.is_collision);
@@ -343,32 +344,32 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
       CU_ASSERT_FALSE(entry.is_collision);
     }
   }
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, numKeys);
   CU_ASSERT_EQUAL(stats.collision_count, expectedCollisions);
   validateDeltaIndex(&di);
 
   // Remove all the records in the specified order
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], i);
-    UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+    UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
   }
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
   CU_ASSERT_EQUAL(stats.collision_count, 0);
   validateDeltaIndex(&di);
 
   // Get all the records in the specified order, expecting to not find them
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, keys[i], names[i].name, &entry));
     CU_ASSERT_TRUE(entry.at_end || (keys[i] != entry.key));
   }
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
   CU_ASSERT_EQUAL(stats.collision_count, 0);
 
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
   UDS_FREE(names);
   UDS_FREE(collides);
 }
@@ -441,19 +442,19 @@ static void overflowTest(void)
   enum { NUM_LISTS = 1 };
   enum { PAYLOAD_BITS = 8 };
   enum { PAYLOAD_MASK = (1 << PAYLOAD_BITS) - 1 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256,
-                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
-  get_delta_index_stats(&di, &stats);
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, 256,
+                                                PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
   CU_ASSERT_EQUAL(stats.overflow_count, 0);
 
   // Insert a record with key 0
   struct uds_record_name name;
   createBlockName(&name);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 0, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, 0, 0, NULL));
+  UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, 0, 0, NULL));
   assertKeyValue(&entry, 0, 0);
   CU_ASSERT_FALSE(entry.is_collision);
 
@@ -465,37 +466,37 @@ static void overflowTest(void)
   unsigned int key;
   for (key = 1; key < entryCount; key++) {
     createBlockName(&name);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, name.name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, key, name.name, &entry));
     CU_ASSERT_TRUE(entry.at_end);
     CU_ASSERT_FALSE(entry.is_collision);
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, key, key & PAYLOAD_MASK, NULL));
+    UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, key, key & PAYLOAD_MASK, NULL));
     assertKeyValue(&entry, key, key & PAYLOAD_MASK);
     CU_ASSERT_FALSE(entry.is_collision);
   }
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.overflow_count, 0);
 
   // Insert one more record, expecting to overflow the index
   createBlockName(&name);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  CU_ASSERT_EQUAL(put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK, NULL),
+  CU_ASSERT_EQUAL(uds_put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK, NULL),
                   UDS_OVERFLOW);
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.overflow_count, 1);
 
   // Now make sure we can continue to use the delta list that overflowed.
   // Look for all the records that were successfully inserted.
   for (key = 1; key < entryCount; key++) {
     createBlockName(&name);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, name.name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, key, name.name, &entry));
     assertKeyValue(&entry, key, key & PAYLOAD_MASK);
     CU_ASSERT_FALSE(entry.is_collision);
 
     // Delete half of the records.  Make sure to keep the one with key==0.
     if ((key & 1) != 0) {
-      UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+      UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
     }
 
     // Some of the time, look for key 0.  We desire the side effect that
@@ -503,7 +504,7 @@ static void overflowTest(void)
     // the delta list.
     if ((key & 2) != 0) {
       createBlockName(&name);
-      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 0, name.name, &entry));
+      UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 0, name.name, &entry));
       assertKeyValue(&entry, 0, 0);
       CU_ASSERT_FALSE(entry.is_collision);
     }
@@ -511,16 +512,17 @@ static void overflowTest(void)
 
   // Insert one more record, expecting it to work this time
   createBlockName(&name);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, entryCount, name.name, &entry));
   CU_ASSERT_TRUE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK, NULL));
+  UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, entryCount, entryCount & PAYLOAD_MASK,
+                                               NULL));
   assertKeyValue(&entry, entryCount, entryCount & PAYLOAD_MASK);
   CU_ASSERT_FALSE(entry.is_collision);
 
-  get_delta_index_stats(&di, &stats);
+  uds_get_delta_index_stats(&di, &stats);
   CU_ASSERT_EQUAL(stats.overflow_count, 1);
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
 }
 
 /**********************************************************************/
@@ -535,8 +537,8 @@ static void lookupTest(void)
                                   __func__, &names));
 
   // Create index with 1 delta list.  Ensure that the saved offset is valid.
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, 1, 256,
-                                            PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, 1, 256,
+                                                PAYLOAD_BITS, 2 * MEGABYTE, 'm'));
   assertSavedValid(&di);
 
   // Make names for keys 1 to 7.  Insert all but keys 4 and 5 into the index.
@@ -545,12 +547,12 @@ static void lookupTest(void)
   for (key = 1; key < 8; key++) {
     createBlockName(&names[key]);
     if ((key < 4) || (key > 5)) {
-      UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, key, names[key].name, &entry));
+      UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, key, names[key].name, &entry));
       CU_ASSERT_TRUE(entry.at_end);
       CU_ASSERT_FALSE(entry.is_collision);
       assertSavedValid(&di);
       assertSavedAt(&entry);
-      UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, key, key, NULL));
+      UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, key, key, NULL));
       assertSavedValid(&di);
       assertSavedAt(&entry);
       assertKeyValue(&entry, key, key);
@@ -564,12 +566,12 @@ static void lookupTest(void)
   unsigned int i;
   for (i = 0; i < 2; i++) {
     createBlockName(&collisions[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 3, collisions[i].name, &entry));
     CU_ASSERT_FALSE(entry.at_end);
     CU_ASSERT_FALSE(entry.is_collision);
     assertSavedValid(&di);
     assertSavedAt(&entry);
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, 3, i, collisions[i].name));
+    UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, 3, i, collisions[i].name));
     assertSavedValid(&di);
     assertSavedBefore(&entry);
     assertKeyValue(&entry, 3, i);
@@ -579,74 +581,74 @@ static void lookupTest(void)
   // Delete a collision.  Between the get and remove calls, insert a
   // read-only get of an earlier record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[0].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 3, collisions[0].name, &entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
   assertKeyValue(&entry, 3, 0);
   CU_ASSERT_TRUE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 0);
   CU_ASSERT_TRUE(entry.is_collision);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 2, 2);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+  UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
 
   // Delete a collision.  Between the get and remove calls, insert a
   // read-only get of a later record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, collisions[1].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 3, collisions[1].name, &entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
   assertKeyValue(&entry, 3, 1);
   CU_ASSERT_TRUE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 1);
   CU_ASSERT_TRUE(entry.is_collision);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 6, 6);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+  UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
 
   // Delete a non-collision.  Between the get and remove calls, insert a
   // read-only get of an earlier record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 3, names[3].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 3, names[3].name, &entry));
   assertSavedValid(&di);
   assertSavedAt(&entry);
   assertKeyValue(&entry, 3, 3);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 3, 3);
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 2, 2);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+  UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
 
   // Add a non-collision entry.  Between the get and remove calls, insert a
   // read-only get of an earlier record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 4, names[4].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 4, names[4].name, &entry));
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedValid(&di);
   assertSavedAt(&entry);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 2, names[2].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 2, 2);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, 4, 4, NULL));
+  UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, 4, 4, NULL));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
   assertKeyValue(&entry, 4, 4);
@@ -655,42 +657,42 @@ static void lookupTest(void)
   // Delete a non-collision.  Between the get and remove calls, insert a
   // read-only get of a later record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 4, names[4].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 4, names[4].name, &entry));
   assertSavedValid(&di);
   assertSavedAt(&entry);
   assertKeyValue(&entry, 4, 4);
   CU_ASSERT_FALSE(entry.is_collision);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertKeyValue(&entry, 4, 4);
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 6, 6);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(remove_delta_index_entry(&entry));
+  UDS_ASSERT_SUCCESS(uds_remove_delta_index_entry(&entry));
   assertSavedValid(&di);
   assertSavedBefore(&entry);
 
   // Add a non-collision entry.  Between the get and remove calls, insert a
   // read-only get of a later record.  Ensure that the saved offset is
   // correct after every call.
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 5, names[5].name, &entry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 5, names[5].name, &entry));
   CU_ASSERT_FALSE(entry.at_end);
   CU_ASSERT_FALSE(entry.is_collision);
   assertSavedValid(&di);
   assertSavedAt(&entry);
-  UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
+  UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, 0, 6, names[6].name, &readOnlyEntry));
   assertSavedValid(&di);
   assertSavedAt(&readOnlyEntry);
   assertKeyValue(&readOnlyEntry, 6, 6);
   CU_ASSERT_FALSE(readOnlyEntry.is_collision);
-  UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, 5, 5, NULL));
+  UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, 5, 5, NULL));
   assertSavedValid(&di);
   assertSavedAt(&entry);
   assertKeyValue(&entry, 5, 5);
   CU_ASSERT_FALSE(entry.is_collision);
 
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
   UDS_FREE(names);
 }
 
@@ -700,8 +702,8 @@ static void lookupTest(void)
 static void restoreIndex(struct delta_index *di,
                          struct buffered_reader *bufferedReader)
 {
-  UDS_ASSERT_SUCCESS(start_restoring_delta_index(di, &bufferedReader, 1));
-  UDS_ASSERT_SUCCESS(finish_restoring_delta_index(di, &bufferedReader, 1));
+  UDS_ASSERT_SUCCESS(uds_start_restoring_delta_index(di, &bufferedReader, 1));
+  UDS_ASSERT_SUCCESS(uds_finish_restoring_delta_index(di, &bufferedReader, 1));
 }
 
 /**
@@ -714,7 +716,7 @@ static void verifyAllKeys(struct delta_index *di, unsigned int numKeys,
   struct delta_index_entry entry;
   unsigned int i;
   for (i = 0; i < numKeys; i++) {
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(di, lists[i], keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(di, lists[i], keys[i], names[i].name, &entry));
     assertKeyValue(&entry, keys[i], 0);
   }
 }
@@ -729,11 +731,11 @@ static void saveRestoreTest(void)
   enum { NUM_KEYS = 100 };
   unsigned int meanDelta = (NUM_LISTS * MAX_KEY) / NUM_KEYS;
   enum { MEMORY_SIZE = 2 * MEGABYTE };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, meanDelta,
-                                            4, MEMORY_SIZE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, NUM_LISTS, meanDelta,
+                                                4, MEMORY_SIZE, 'm'));
 
   // Compute the size needed for saving the delta index
-  size_t saveSize = compute_delta_index_save_bytes(NUM_LISTS, MEMORY_SIZE);
+  size_t saveSize = uds_compute_delta_index_save_bytes(NUM_LISTS, MEMORY_SIZE);
   saveSize += sizeof(struct delta_list_save_info);
   saveSize = DIV_ROUND_UP(saveSize, UDS_BLOCK_SIZE);
 
@@ -749,9 +751,10 @@ static void saveRestoreTest(void)
     keys[i] = random() % MAX_KEY;
     lists[i] = random() % NUM_LISTS;
     createBlockName(&names[i]);
-    UDS_ASSERT_SUCCESS(get_delta_index_entry(&di, lists[i], keys[i], names[i].name, &entry));
+    UDS_ASSERT_SUCCESS(uds_get_delta_index_entry(&di, lists[i], keys[i], names[i].name, &entry));
     bool isFound = !entry.at_end && entry.key == keys[i];
-    UDS_ASSERT_SUCCESS(put_delta_index_entry(&entry, keys[i], 0, isFound ? names[i].name : NULL));
+    UDS_ASSERT_SUCCESS(uds_put_delta_index_entry(&entry, keys[i], 0,
+                                                 isFound ? names[i].name : NULL));
     assertKeyValue(&entry, keys[i], 0);
   }
 
@@ -763,9 +766,9 @@ static void saveRestoreTest(void)
   UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, saveSize, &writer));
-  UDS_ASSERT_SUCCESS(start_saving_delta_index(&di, 0, writer));
-  UDS_ASSERT_SUCCESS(finish_saving_delta_index(&di, 0));
-  UDS_ASSERT_SUCCESS(write_guard_delta_list(writer));
+  UDS_ASSERT_SUCCESS(uds_start_saving_delta_index(&di, 0, writer));
+  UDS_ASSERT_SUCCESS(uds_finish_saving_delta_index(&di, 0));
+  UDS_ASSERT_SUCCESS(uds_write_guard_delta_list(writer));
   UDS_ASSERT_SUCCESS(flush_buffered_writer(writer));
   free_buffered_writer(writer);
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);
@@ -778,7 +781,7 @@ static void saveRestoreTest(void)
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);
 
   put_uds_io_factory(factory);
-  uninitialize_delta_index(&di);
+  uds_uninitialize_delta_index(&di);
   UDS_FREE(keys);
   UDS_FREE(lists);
   UDS_FREE(names);

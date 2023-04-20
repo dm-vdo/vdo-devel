@@ -51,7 +51,7 @@ struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
   uds_empty_open_chapter_index(oci, SAMPLE_CHAPTER_NUMBER);
   unsigned int i;
   for (i = 0; i < g->records_per_chapter; i++) {
-    get_delta_index_stats(&oci->delta_index, &stats);
+    uds_get_delta_index_stats(&oci->delta_index, &stats);
     CU_ASSERT_EQUAL(stats.record_count + overflowCount, i);
     int result = uds_put_open_chapter_index_record(oci, &names[i], generatePageNumber(g, i));
     if (overflowFlag && (result == UDS_OVERFLOW)) {
@@ -61,7 +61,7 @@ struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
     }
   }
 
-  get_delta_index_stats(&oci->delta_index, &stats);
+  uds_get_delta_index_stats(&oci->delta_index, &stats);
   CU_ASSERT_EQUAL(stats.record_count + overflowCount, g->records_per_chapter);
   return oci;
 }
@@ -116,14 +116,14 @@ static void verifyChapterIndexPage(struct open_chapter_index *openChapterIndex,
   int listNumber;
   for (listNumber = first; listNumber <= last; listNumber++) {
     struct delta_index_entry entry, openEntry;
-    UDS_ASSERT_SUCCESS(start_delta_index_search(&openChapterIndex->delta_index,
-                                                listNumber, 0, &openEntry));
-    UDS_ASSERT_SUCCESS(start_delta_index_search(&chapterIndexPage->delta_index,
-                                                listNumber - first, 0,
-                                                &entry));
+    UDS_ASSERT_SUCCESS(uds_start_delta_index_search(&openChapterIndex->delta_index,
+                                                    listNumber, 0, &openEntry));
+    UDS_ASSERT_SUCCESS(uds_start_delta_index_search(&chapterIndexPage->delta_index,
+                                                    listNumber - first, 0,
+                                                    &entry));
     for (;;) {
-      UDS_ASSERT_SUCCESS(next_delta_index_entry(&openEntry));
-      UDS_ASSERT_SUCCESS(next_delta_index_entry(&entry));
+      UDS_ASSERT_SUCCESS(uds_next_delta_index_entry(&openEntry));
+      UDS_ASSERT_SUCCESS(uds_next_delta_index_entry(&entry));
       CU_ASSERT_EQUAL(openEntry.key, entry.key);
       CU_ASSERT_EQUAL(openEntry.at_end, entry.at_end);
       CU_ASSERT_EQUAL(openEntry.is_collision, entry.is_collision);
@@ -148,7 +148,7 @@ static void emptyChapterTest(void)
   struct delta_index_stats stats;
   UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&oci, g, volumeNonce));
   uds_empty_open_chapter_index(oci, 0);
-  get_delta_index_stats(&oci->delta_index, &stats);
+  uds_get_delta_index_stats(&oci->delta_index, &stats);
   CU_ASSERT_EQUAL(stats.record_count, 0);
 
   // Pack the index pages - this will test pages with empty lists, and will

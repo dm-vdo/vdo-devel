@@ -95,11 +95,11 @@ int make_geometry(size_t bytes_per_page,
 		 geometry->chapter_delta_list_bits +
 		 bits_per(geometry->records_per_chapter - 1));
 	geometry->index_pages_per_chapter =
-		get_delta_index_page_count(geometry->records_per_chapter,
-					   geometry->delta_lists_per_chapter,
-					   geometry->chapter_mean_delta,
-					   geometry->chapter_payload_bits,
-					   bytes_per_page);
+		uds_get_delta_index_page_count(geometry->records_per_chapter,
+					       geometry->delta_lists_per_chapter,
+					       geometry->chapter_mean_delta,
+					       geometry->chapter_payload_bits,
+					       bytes_per_page);
 
 	geometry->pages_per_chapter = geometry->index_pages_per_chapter + record_pages_per_chapter;
 	geometry->pages_per_volume = geometry->pages_per_chapter * chapters_per_volume;

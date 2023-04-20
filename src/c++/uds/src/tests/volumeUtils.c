@@ -61,7 +61,7 @@ static void fillOpenChapter(struct open_chapter_index *oci,
   unsigned int i;
 
   for (i = 0; i < geometry->records_per_chapter; i++) {
-    get_delta_index_stats(&oci->delta_index, &stats);
+    uds_get_delta_index_stats(&oci->delta_index, &stats);
     CU_ASSERT_EQUAL(stats.record_count, i);
     int result = uds_put_open_chapter_index_record(oci, &records[i].name,
                                                    i / geometry->records_per_page);
@@ -70,7 +70,7 @@ static void fillOpenChapter(struct open_chapter_index *oci,
     }
   }
 
-  get_delta_index_stats(&oci->delta_index, &stats);
+  uds_get_delta_index_stats(&oci->delta_index, &stats);
   CU_ASSERT_EQUAL(stats.record_count, geometry->records_per_chapter);
 }
 

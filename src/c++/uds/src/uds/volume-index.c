@@ -271,9 +271,9 @@ static int compute_volume_sub_index_parameters(const struct configuration *confi
 	 * than that expected size. This number should be large enough that there are not many
 	 * rebalances when the index is full.
 	 */
-	params->chapter_size_in_bits = compute_delta_index_size(records_per_chapter,
-								params->mean_delta,
-								params->chapter_bits);
+	params->chapter_size_in_bits = uds_compute_delta_index_size(records_per_chapter,
+								    params->mean_delta,
+								    params->chapter_bits);
 	index_size_in_bits = params->chapter_size_in_bits * chapters_in_volume_index;
 	expected_index_size = index_size_in_bits / BITS_PER_BYTE;
 	params->memory_size = expected_index_size * 106 / 100;
@@ -286,7 +286,7 @@ static void uninitialize_volume_sub_index(struct volume_sub_index *sub_index)
 {
 	UDS_FREE(UDS_FORGET(sub_index->flush_chapters));
 	UDS_FREE(UDS_FORGET(sub_index->zones));
-	uninitialize_delta_index(&sub_index->delta_index);
+	uds_uninitialize_delta_index(&sub_index->delta_index);
 }
 
 void free_volume_index(struct volume_index *volume_index)
@@ -319,7 +319,7 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 		return result;
 
 	*bytes = (sizeof(struct sub_index_data) + params.list_count * sizeof(u64) +
-		  compute_delta_index_save_bytes(params.list_count, params.memory_size));
+		  uds_compute_delta_index_save_bytes(params.list_count, params.memory_size));
 	return UDS_SUCCESS;
 }
 
@@ -426,11 +426,11 @@ static inline int flush_invalid_entries(struct volume_index_record *record,
 {
 	int result;
 
-	result = next_delta_index_entry(&record->delta_entry);
+	result = uds_next_delta_index_entry(&record->delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 	while (!record->delta_entry.at_end) {
-		u32 index_chapter = get_delta_entry_value(&record->delta_entry);
+		u32 index_chapter = uds_get_delta_entry_value(&record->delta_entry);
 		u32 relative_chapter = ((index_chapter - flush_range->chapter_start) &
 					record->sub_index->chapter_mask);
 
@@ -439,7 +439,7 @@ static inline int flush_invalid_entries(struct volume_index_record *record,
 				*next_chapter_to_invalidate = relative_chapter;
 			break;
 		}
-		result = remove_delta_index_entry(&record->delta_entry);
+		result = uds_remove_delta_index_entry(&record->delta_entry);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -457,10 +457,10 @@ static int get_volume_index_entry(struct volume_index_record *record,
 	u32 next_chapter_to_invalidate = sub_index->chapter_mask;
 	int result;
 
-	result = start_delta_index_search(&sub_index->delta_index,
-					  list_number,
-					  0,
-					  &record->delta_entry);
+	result = uds_start_delta_index_search(&sub_index->delta_index,
+					      list_number,
+					      0,
+					      &record->delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 	do {
@@ -469,7 +469,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 			return result;
 	} while (!record->delta_entry.at_end && (key > record->delta_entry.key));
 
-	result = remember_delta_index_offset(&record->delta_entry);
+	result = uds_remember_delta_index_offset(&record->delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -487,8 +487,8 @@ static int get_volume_index_entry(struct volume_index_record *record,
 			if (other_record.delta_entry.at_end ||
 			    !other_record.delta_entry.is_collision)
 				break;
-			result = get_delta_entry_collision(&other_record.delta_entry,
-							   collision_name);
+			result = uds_get_delta_entry_collision(&other_record.delta_entry,
+							       collision_name);
 			if (result != UDS_SUCCESS)
 				return result;
 			if (memcmp(collision_name, record->name, UDS_RECORD_NAME_SIZE) == 0) {
@@ -541,17 +541,17 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 			flush_chapter = volume_index_zone->virtual_chapter_high;
 		sub_index->flush_chapters[delta_list_number] = flush_chapter;
 	} else {
-		result = get_delta_index_entry(&sub_index->delta_index,
-					       delta_list_number,
-					       address,
-					       name->name,
-					       &record->delta_entry);
+		result = uds_get_delta_index_entry(&sub_index->delta_index,
+						   delta_list_number,
+						   address,
+						   name->name,
+						   &record->delta_entry);
 	}
 	if (result != UDS_SUCCESS)
 		return result;
 	record->is_found = (!record->delta_entry.at_end && (record->delta_entry.key == address));
 	if (record->is_found) {
-		u32 index_chapter = get_delta_entry_value(&record->delta_entry);
+		u32 index_chapter = uds_get_delta_entry_value(&record->delta_entry);
 
 		record->virtual_chapter = convert_index_to_virtual(record, index_chapter);
 	}
@@ -603,10 +603,10 @@ int put_volume_index_record(struct volume_index_record *record, u64 virtual_chap
 	address = extract_address(sub_index, record->name);
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
-	result = put_delta_index_entry(&record->delta_entry,
-				       address,
-				       convert_virtual_to_index(sub_index, virtual_chapter),
-				       record->is_found ? record->name->name : NULL);
+	result = uds_put_delta_index_entry(&record->delta_entry,
+					   address,
+					   convert_virtual_to_index(sub_index, virtual_chapter),
+					   record->is_found ? record->name->name : NULL);
 	if (unlikely(record->mutex != NULL))
 		uds_unlock_mutex(record->mutex);
 	switch (result) {
@@ -619,7 +619,7 @@ int put_volume_index_record(struct volume_index_record *record, u64 virtual_chap
 		uds_log_ratelimit(uds_log_warning_strerror,
 				  UDS_OVERFLOW,
 				  "Volume index entry dropped due to overflow condition");
-		log_delta_index_entry(&record->delta_entry);
+		uds_log_delta_index_entry(&record->delta_entry);
 		break;
 	default:
 		break;
@@ -637,7 +637,7 @@ int remove_volume_index_record(struct volume_index_record *record)
 	record->is_found = false;
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
-	result = remove_delta_index_entry(&record->delta_entry);
+	result = uds_remove_delta_index_entry(&record->delta_entry);
 	if (unlikely(record->mutex != NULL))
 		uds_unlock_mutex(record->mutex);
 	return result;
@@ -749,8 +749,8 @@ int set_volume_index_record_chapter(struct volume_index_record *record, u64 virt
 	}
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
-	result = set_delta_entry_value(&record->delta_entry,
-				       convert_virtual_to_index(sub_index, virtual_chapter));
+	result = uds_set_delta_entry_value(&record->delta_entry,
+					   convert_virtual_to_index(sub_index, virtual_chapter));
 	if (unlikely(record->mutex != NULL))
 		uds_unlock_mutex(record->mutex);
 	if (result != UDS_SUCCESS)
@@ -772,18 +772,18 @@ static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index
 	u32 rolling_chapter;
 	struct delta_index_entry delta_entry;
 
-	result = get_delta_index_entry(&sub_index->delta_index,
-				       delta_list_number,
-				       address,
-				       name->name,
-				       &delta_entry);
+	result = uds_get_delta_index_entry(&sub_index->delta_index,
+					   delta_list_number,
+					   address,
+					   name->name,
+					   &delta_entry);
 	if (result != UDS_SUCCESS)
 		return NO_CHAPTER;
 
 	if (delta_entry.at_end || (delta_entry.key != address))
 		return NO_CHAPTER;
 
-	index_chapter = get_delta_entry_value(&delta_entry);
+	index_chapter = uds_get_delta_entry_value(&delta_entry);
 	rolling_chapter = (index_chapter - zone->virtual_chapter_low) & sub_index->chapter_mask;
 
 	virtual_chapter = zone->virtual_chapter_low + rolling_chapter;
@@ -813,7 +813,7 @@ u64 lookup_volume_index_name(const struct volume_index *volume_index,
 
 static void abort_restoring_volume_sub_index(struct volume_sub_index *sub_index)
 {
-	reset_delta_index(&sub_index->delta_index);
+	uds_reset_delta_index(&sub_index->delta_index);
 }
 
 static void abort_restoring_volume_index(struct volume_index *volume_index)
@@ -902,7 +902,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		sub_index->zones[z].virtual_chapter_high = virtual_chapter_high;
 	}
 
-	result = start_restoring_delta_index(&sub_index->delta_index, readers, reader_count);
+	result = uds_start_restoring_delta_index(&sub_index->delta_index, readers, reader_count);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "restoring delta index failed");
 
@@ -971,9 +971,9 @@ static int finish_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 					     struct buffered_reader **buffered_readers,
 					     unsigned int reader_count)
 {
-	return finish_restoring_delta_index(&sub_index->delta_index,
-					    buffered_readers,
-					    reader_count);
+	return uds_finish_restoring_delta_index(&sub_index->delta_index,
+						buffered_readers,
+						reader_count);
 }
 
 static int finish_restoring_volume_index(struct volume_index *volume_index,
@@ -1010,7 +1010,7 @@ int load_volume_index(struct volume_index *volume_index,
 	}
 
 	/* Check the final guard lists to make sure there is no extra data. */
-	result = check_guard_delta_lists(readers, reader_count);
+	result = uds_check_guard_delta_lists(readers, reader_count);
 	if (result != UDS_SUCCESS)
 		abort_restoring_volume_index(volume_index);
 
@@ -1058,7 +1058,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 							"failed to write volume index flush ranges");
 	}
 
-	return start_saving_delta_index(&sub_index->delta_index, zone_number, buffered_writer);
+	return uds_start_saving_delta_index(&sub_index->delta_index, zone_number, buffered_writer);
 }
 
 static int start_saving_volume_index(const struct volume_index *volume_index,
@@ -1100,7 +1100,7 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 static int
 finish_saving_volume_sub_index(const struct volume_sub_index *sub_index, unsigned int zone_number)
 {
-	return finish_saving_delta_index(&sub_index->delta_index, zone_number);
+	return uds_finish_saving_delta_index(&sub_index->delta_index, zone_number);
 }
 
 static int
@@ -1130,7 +1130,7 @@ int save_volume_index(struct volume_index *volume_index,
 		if (result != UDS_SUCCESS)
 			break;
 
-		result = write_guard_delta_list(writers[zone]);
+		result = uds_write_guard_delta_list(writers[zone]);
 		if (result != UDS_SUCCESS)
 			break;
 
@@ -1148,7 +1148,7 @@ static void get_volume_sub_index_stats(const struct volume_sub_index *sub_index,
 	struct delta_index_stats dis;
 	unsigned int z;
 
-	get_delta_index_stats(&sub_index->delta_index, &dis);
+	uds_get_delta_index_stats(&sub_index->delta_index, &dis);
 	stats->rebalance_time = dis.rebalance_time;
 	stats->rebalance_count = dis.rebalance_count;
 	stats->record_count = dis.record_count;
@@ -1219,13 +1219,13 @@ static int initialize_volume_sub_index(const struct configuration *config,
 	sub_index->chapter_zone_bits = params.chapter_size_in_bits / zone_count;
 	sub_index->volume_nonce = volume_nonce;
 
-	result = initialize_delta_index(&sub_index->delta_index,
-					zone_count,
-					params.list_count,
-					params.mean_delta,
-					params.chapter_bits,
-					params.memory_size,
-					tag);
+	result = uds_initialize_delta_index(&sub_index->delta_index,
+					    zone_count,
+					    params.list_count,
+					    params.mean_delta,
+					    params.chapter_bits,
+					    params.memory_size,
+					    tag);
 	if (result != UDS_SUCCESS)
 		return result;
 

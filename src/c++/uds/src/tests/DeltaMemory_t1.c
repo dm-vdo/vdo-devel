@@ -172,8 +172,8 @@ static void verifyEvenSpacing(const struct delta_zone *pdm,
 static void rebalanceTest(u32 nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
-                                            NUM_PAYLOAD_BITS, initSize, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
+                                                NUM_PAYLOAD_BITS, initSize, 'm'));
   struct delta_zone *dm = &delta_index.delta_zones[0];
 
   // Use lists that increase in size.
@@ -196,7 +196,7 @@ static void rebalanceTest(u32 nLists, int bytesPerList, int allocIncr)
   validateDeltaLists(dm);
   verifyData(dm);
 
-  uninitialize_delta_index(&delta_index);
+  uds_uninitialize_delta_index(&delta_index);
 }
 
 static void smallRebalanceTest(void)
@@ -215,8 +215,8 @@ static void largeRebalanceTest(void)
 static void growingTest(u32 nLists, int bytesPerList, int allocIncr)
 {
   int initSize = ((nLists + 2) * bytesPerList / allocIncr + 1) * allocIncr;
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
-                                            NUM_PAYLOAD_BITS, initSize, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&delta_index, 1, nLists, MEAN_DELTA,
+                                                NUM_PAYLOAD_BITS, initSize, 'm'));
   struct delta_zone *dm = &delta_index.delta_zones[0];
 
   // Use random list sizes.
@@ -236,7 +236,7 @@ static void growingTest(u32 nLists, int bytesPerList, int allocIncr)
     verifyEvenSpacing(dm, i, i);
   }
 
-  uninitialize_delta_index(&delta_index);
+  uds_uninitialize_delta_index(&delta_index);
 }
 
 static void smallGrowingTest(void)
@@ -256,8 +256,8 @@ static void overflowTest(void)
 {
   enum { LIST_COUNT = 1 << 10 };
   enum { ALLOC_SIZE = 1 << 17 };
-  UDS_ASSERT_SUCCESS(initialize_delta_index(&delta_index, 1, LIST_COUNT, MEAN_DELTA,
-                                            NUM_PAYLOAD_BITS, ALLOC_SIZE, 'm'));
+  UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&delta_index, 1, LIST_COUNT, MEAN_DELTA,
+                                                NUM_PAYLOAD_BITS, ALLOC_SIZE, 'm'));
   struct delta_zone *dm = &delta_index.delta_zones[0];
   CU_ASSERT_EQUAL(dm->size, ALLOC_SIZE);
 
@@ -266,7 +266,7 @@ static void overflowTest(void)
   UDS_ASSERT_ERROR(UDS_OVERFLOW, extend_delta_zone(dm, 1, 1));
   CU_ASSERT_EQUAL(dm->size, ALLOC_SIZE);
 
-  uninitialize_delta_index(&delta_index);
+  uds_uninitialize_delta_index(&delta_index);
 }
 
 /**********************************************************************/
