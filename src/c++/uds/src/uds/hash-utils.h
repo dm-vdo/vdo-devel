@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef HASH_UTILS_H
-#define HASH_UTILS_H 1
+#ifndef UDS_HASH_UTILS_H
+#define UDS_HASH_UTILS_H 1
 
 #include "geometry.h"
 #include "numeric.h"
@@ -22,7 +22,7 @@ enum {
 	SAMPLE_BYTES_COUNT = 2,
 };
 
-static inline u64 extract_chapter_index_bytes(const struct  uds_record_name *name)
+static inline u64 uds_extract_chapter_index_bytes(const struct  uds_record_name *name)
 {
 	const u8 *chapter_bits = &name->name[CHAPTER_INDEX_BYTES_OFFSET];
 	u64 bytes = (u64) get_unaligned_be16(chapter_bits) << 32;
@@ -31,35 +31,36 @@ static inline u64 extract_chapter_index_bytes(const struct  uds_record_name *nam
 	return bytes;
 }
 
-static inline u64 extract_volume_index_bytes(const struct uds_record_name *name)
+static inline u64 uds_extract_volume_index_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be64(&name->name[VOLUME_INDEX_BYTES_OFFSET]);
 }
 
-static inline u32 extract_sampling_bytes(const struct uds_record_name *name)
+static inline u32 uds_extract_sampling_bytes(const struct uds_record_name *name)
 {
 	return get_unaligned_be16(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /* Compute the chapter delta list for a given name. */
 static inline u32
-hash_to_chapter_delta_list(const struct uds_record_name *name, const struct geometry *geometry)
+uds_hash_to_chapter_delta_list(const struct uds_record_name *name, const struct geometry *geometry)
 {
-	return ((extract_chapter_index_bytes(name) >> geometry->chapter_address_bits) &
+	return ((uds_extract_chapter_index_bytes(name) >> geometry->chapter_address_bits) &
 		((1 << geometry->chapter_delta_list_bits) - 1));
 }
 
 /* Compute the chapter delta address for a given name. */
 static inline u32
-hash_to_chapter_delta_address(const struct uds_record_name *name, const struct geometry *geometry)
+uds_hash_to_chapter_delta_address(const struct uds_record_name *name,
+				  const struct geometry *geometry)
 {
-	return extract_chapter_index_bytes(name) & ((1 << geometry->chapter_address_bits) - 1);
+	return uds_extract_chapter_index_bytes(name) & ((1 << geometry->chapter_address_bits) - 1);
 }
 
 static inline unsigned int
-name_to_hash_slot(const struct uds_record_name *name, unsigned int slot_count)
+uds_name_to_hash_slot(const struct uds_record_name *name, unsigned int slot_count)
 {
-	return (unsigned int) (extract_chapter_index_bytes(name) % slot_count);
+	return (unsigned int) (uds_extract_chapter_index_bytes(name) % slot_count);
 }
 
-#endif /* HASH_UTILS_H */
+#endif /* UDS_HASH_UTILS_H */

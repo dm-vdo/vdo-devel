@@ -85,7 +85,7 @@ u32 find_index_page_number(const struct index_page_map *map,
 			   const struct uds_record_name *name,
 			   u32 chapter_number)
 {
-	u32 delta_list_number = hash_to_chapter_delta_list(name, map->geometry);
+	u32 delta_list_number = uds_hash_to_chapter_delta_list(name, map->geometry);
 	u32 slot = chapter_number * map->entries_per_chapter;
 	u32 page;
 

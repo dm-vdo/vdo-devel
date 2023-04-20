@@ -90,7 +90,7 @@ static void stressChapterIndexBytesTest(void)
   CU_ASSERT_EQUAL(chapter, 0);
 
   createRandomBlockName(&orig);
-  uint32_t chapterIndexField = extract_chapter_index_bytes(&orig);
+  uint32_t chapterIndexField = uds_extract_chapter_index_bytes(&orig);
   do {
     createRandomBlockName(&name);
     set_chapter_index_bytes(&name, chapterIndexField);

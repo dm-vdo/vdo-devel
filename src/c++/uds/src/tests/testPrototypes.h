@@ -290,7 +290,7 @@ static inline void set_chapter_delta_list_bits(struct uds_record_name *name,
                                                const struct geometry *geometry,
                                                uint64_t value)
 {
-        uint64_t delta_address = hash_to_chapter_delta_address(name, geometry);
+        uint64_t delta_address = uds_hash_to_chapter_delta_address(name, geometry);
 
         delta_address |= value << geometry->chapter_address_bits;
         set_chapter_index_bytes(name, delta_address);

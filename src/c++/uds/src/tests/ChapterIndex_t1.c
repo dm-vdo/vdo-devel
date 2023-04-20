@@ -183,7 +183,7 @@ static void basicChapterTest(void)
   // ChapterIndexPages
   unsigned int i;
   for (i = 0; i < g->records_per_chapter; i++) {
-    u32 deltaListNumber = hash_to_chapter_delta_list(&names[i], g);
+    u32 deltaListNumber = uds_hash_to_chapter_delta_list(&names[i], g);
     bool inChapter = false;
     for (page = 0; page < g->index_pages_per_chapter; page++) {
       if ((cip[page].lowest_list_number <= deltaListNumber)

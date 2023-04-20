@@ -183,7 +183,7 @@ static void testQuadraticProbing(void)
     do {
       createRandomBlockName(&name);
       memcpy(&data.data, &name.name, UDS_RECORD_NAME_SIZE);
-    } while (name_to_hash_slot(&name, theChapter->slot_count) != 0);
+    } while (uds_name_to_hash_slot(&name, theChapter->slot_count) != 0);
     CU_ASSERT_EQUAL(recordsPerZone - i - 1,
                     put_open_chapter(theChapter, &name, &data));
   }

@@ -89,7 +89,7 @@ static void verifyChapter(struct index_page_map *map,
       struct uds_record_name name;
       memset(&name, 0, sizeof(name));
       set_chapter_delta_list_bits(&name, geometry, list);
-      CU_ASSERT_EQUAL(list, hash_to_chapter_delta_list(&name, geometry));
+      CU_ASSERT_EQUAL(list, uds_hash_to_chapter_delta_list(&name, geometry));
       CU_ASSERT_EQUAL(page, find_index_page_number(map, &name, chapter));
     }
     firstList = listNumbers[page] + 1;

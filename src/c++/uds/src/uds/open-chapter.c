@@ -106,7 +106,7 @@ probe_chapter_slots(struct open_chapter_zone *open_chapter, const struct uds_rec
 {
 	struct uds_volume_record *record;
 	unsigned int slot_count = open_chapter->slot_count;
-	unsigned int slot = name_to_hash_slot(name, slot_count);
+	unsigned int slot = uds_name_to_hash_slot(name, slot_count);
 	unsigned int record_number;
 	unsigned int attempts = 1;
 

@@ -123,13 +123,13 @@ u64 min_volume_index_delta_lists;
 static inline u32
 extract_address(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
 {
-	return extract_volume_index_bytes(name) & sub_index->address_mask;
+	return uds_extract_volume_index_bytes(name) & sub_index->address_mask;
 }
 
 static inline u32
 extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
 {
-	u64 bits = extract_volume_index_bytes(name);
+	u64 bits = uds_extract_volume_index_bytes(name);
 
 	return (bits >> sub_index->address_bits) % sub_index->list_count;
 }
@@ -176,7 +176,7 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 	if (!has_sparse(volume_index))
 		return false;
 
-	return (extract_sampling_bytes(name) % volume_index->sparse_sample_rate) == 0;
+	return (uds_extract_sampling_bytes(name) % volume_index->sparse_sample_rate) == 0;
 }
 
 static inline const struct volume_sub_index *

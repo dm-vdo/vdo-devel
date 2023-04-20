@@ -130,7 +130,7 @@ static void adjust_list_number_for_zone_0(struct volume_index   *index,
 
   unsigned int lists_per_zone
     = (is_volume_index_sample(index, name) ? sparse_lists_per_zone : dense_lists_per_zone);
-  uint64_t bits = extract_volume_index_bytes(name);
+  uint64_t bits = uds_extract_volume_index_bytes(name);
   // Change, e.g., the 4th list of zone 3 to the 4th list of zone 0.
   // This simple decrement can't wrap.
   bits -= ((uint64_t)(zone * lists_per_zone)) << ADDRESS_BITS;

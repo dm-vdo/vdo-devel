@@ -122,8 +122,8 @@ int uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 	if (result != UDS_SUCCESS)
 		return UDS_INVALID_ARGUMENT;
 
-	address = hash_to_chapter_delta_address(name, geometry);
-	list_number = hash_to_chapter_delta_list(name, geometry);
+	address = uds_hash_to_chapter_delta_address(name, geometry);
+	list_number = uds_hash_to_chapter_delta_list(name, geometry);
 	result = uds_get_delta_index_entry(&chapter_index->delta_index,
 					   list_number,
 					   address,
@@ -312,8 +312,8 @@ int uds_search_chapter_index_page(struct delta_index_page *index_page,
 {
 	int result;
 	struct delta_index *delta_index = &index_page->delta_index;
-	u32 address = hash_to_chapter_delta_address(name, geometry);
-	u32 delta_list_number = hash_to_chapter_delta_list(name, geometry);
+	u32 address = uds_hash_to_chapter_delta_address(name, geometry);
+	u32 delta_list_number = uds_hash_to_chapter_delta_list(name, geometry);
 	u32 sub_list_number = delta_list_number - index_page->lowest_list_number;
 	struct delta_index_entry entry;
 

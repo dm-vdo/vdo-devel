@@ -148,8 +148,8 @@ static bool searchForCollisions(unsigned int lastHash)
       return true;
     }
 
-    if (hash_to_chapter_delta_address(&hashes[lastHash], geometry)
-        == hash_to_chapter_delta_address(&hashes[i], geometry)) {
+    if (uds_hash_to_chapter_delta_address(&hashes[lastHash], geometry)
+        == uds_hash_to_chapter_delta_address(&hashes[i], geometry)) {
       return true;
     }
   }
