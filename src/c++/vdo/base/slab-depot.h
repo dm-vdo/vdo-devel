@@ -516,10 +516,6 @@ vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 				     struct journal_point *recovery_point,
 				     struct vdo_completion *parent);
 
-void vdo_add_slab_journal_entry(struct slab_journal *journal,
-				struct vdo_completion *completion,
-				struct reference_updater *updater);
-
 bool __must_check
 vdo_release_recovery_journal_lock(struct slab_journal *journal, sequence_number_t recovery_lock);
 
@@ -582,13 +578,11 @@ vdo_allocate_block(struct block_allocator *allocator, physical_block_number_t *b
 
 int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator, struct waiter *waiter);
 
-int __must_check vdo_modify_slab_reference_count(struct vdo_slab *slab,
-						 const struct journal_point *journal_point,
-						 struct reference_updater *updater);
+void vdo_modify_reference_count(struct vdo_completion *completion,
+				struct reference_updater *updater);
 
-void vdo_release_block_reference(struct block_allocator *allocator,
-				 physical_block_number_t pbn,
-				 const char *why);
+int __must_check vdo_release_block_reference(struct block_allocator *allocator,
+					     physical_block_number_t pbn);
 
 void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion);
 
@@ -668,8 +662,7 @@ struct reference_block * __must_check get_reference_block(struct vdo_slab *slab,
 							  slab_block_number index);
 int __must_check adjust_reference_count(struct vdo_slab *slab,
 					struct reference_updater *updater,
-					const struct journal_point *slab_journal_point,
-					bool *free_status_changed);
+					const struct journal_point *slab_journal_point);
 int __must_check replay_reference_count_change(struct vdo_slab *slab,
 					       const struct journal_point *entry_point,
 					       struct slab_journal_entry entry);

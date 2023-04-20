@@ -1715,7 +1715,6 @@ static void update_block_map(struct vdo_completion *completion)
 
 static void decrement_reference_count(struct vdo_completion *completion)
 {
-	struct vdo_slab *slab;
 	struct data_vio *data_vio = container_of(completion,
 						 struct data_vio,
 						 decrement_completion);
@@ -1726,13 +1725,11 @@ static void decrement_reference_count(struct vdo_completion *completion)
 				    update_block_map,
 				    data_vio->logical.zone->thread_id);
 	completion->error_handler = update_block_map;
-	slab = vdo_get_slab(completion->vdo->depot, data_vio->decrement_updater.zpbn.pbn);
-	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->decrement_updater);
+	vdo_modify_reference_count(completion, &data_vio->decrement_updater);
 }
 
 static void increment_reference_count(struct vdo_completion *completion)
 {
-	struct vdo_slab *slab;
 	struct data_vio *data_vio = as_data_vio(completion);
 
 	assert_data_vio_in_new_mapped_zone(data_vio);
@@ -1750,8 +1747,7 @@ static void increment_reference_count(struct vdo_completion *completion)
 
 	set_data_vio_logical_callback(data_vio, update_block_map);
 	completion->error_handler = update_block_map;
-	slab = vdo_get_slab(completion->vdo->depot, data_vio->increment_updater.zpbn.pbn);
-	vdo_add_slab_journal_entry(slab->journal, completion, &data_vio->increment_updater);
+	vdo_modify_reference_count(completion, &data_vio->increment_updater);
 }
 
 /** journal_remapping() - Add a recovery journal entry for a data remapping. */

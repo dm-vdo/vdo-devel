@@ -379,11 +379,9 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
   struct data_vio *dataVIO = &wrapper->dataVIO;
   lastEntryWasIncrement = wrapper->increment;
   if (wrapper->increment) {
-    vdo_add_slab_journal_entry(journal, &dataVIO->vio.completion, &dataVIO->increment_updater);
+    vdo_modify_reference_count(&dataVIO->vio.completion, &dataVIO->increment_updater);
   } else {
-    vdo_add_slab_journal_entry(journal,
-                               &dataVIO->decrement_completion,
-                               &dataVIO->decrement_updater);
+    vdo_modify_reference_count(&dataVIO->decrement_completion, &dataVIO->decrement_updater);
   }
 
   runLocked(signalEntryAdded, NULL);

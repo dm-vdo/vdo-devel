@@ -2152,17 +2152,12 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
  */
 static void set_block_map_page_reference_count(struct vdo_completion *completion)
 {
-	physical_block_number_t pbn;
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct tree_lock *lock = &data_vio->tree_lock;
 
 	assert_data_vio_in_allocated_zone(data_vio);
 
-	pbn = lock->tree_slots[lock->height - 1].block_map_slot.pbn;
 	completion->callback = release_block_map_write_lock;
-	vdo_add_slab_journal_entry(vdo_get_slab(completion->vdo->depot, pbn)->journal,
-				   completion,
-				   &data_vio->increment_updater);
+	vdo_modify_reference_count(completion, &data_vio->increment_updater);
 }
 
 static void journal_block_map_allocation(struct vdo_completion *completion)

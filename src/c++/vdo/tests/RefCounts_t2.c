@@ -72,8 +72,7 @@ static void tearDownRefCounts(void)
  **/
 static void setReferenceCount(physical_block_number_t pbn, size_t value)
 {
-  enum reference_status      refStatus;
-  bool                       wasFree;
+  enum reference_status refStatus;
   struct reference_updater updater = {
     .operation = VDO_JOURNAL_DATA_REMAPPING,
     .increment = false,
@@ -83,17 +82,17 @@ static void setReferenceCount(physical_block_number_t pbn, size_t value)
   };
   VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   while (refStatus == RS_SHARED) {
-    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL));
     VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   }
   if (refStatus == RS_SINGLE) {
-    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL));
     VDO_ASSERT_SUCCESS(getReferenceStatus(slab, pbn, &refStatus));
   }
   CU_ASSERT_EQUAL(refStatus, RS_FREE);
   updater.increment = true;
   for (size_t i = 0; i < value; i++) {
-    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL));
   }
 }
 
@@ -185,7 +184,6 @@ static void testFullArray(void)
 static void testAllFreeBlockPositions(block_count_t arrayLength)
 {
   // Make all counts 1.
-  bool wasFree;
   for (size_t k = 0; k < arrayLength; k++) {
     setReferenceCount(k, 1);
   }
@@ -201,10 +199,10 @@ static void testAllFreeBlockPositions(block_count_t arrayLength)
         .pbn = freePBN - 1,
       },
     };
-    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL));
     updater.increment = false;
     updater.zpbn.pbn  = freePBN;
-    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL, &wasFree));
+    VDO_ASSERT_SUCCESS(adjust_reference_count(slab, &updater, NULL));
 
     // Test that the free block is found correctly for all starts and ends.
     for (size_t start = 0; start < arrayLength; start++) {

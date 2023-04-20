@@ -143,9 +143,7 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
   // is no recovery journal in this test; they simply need to unique.
   recoveryJournalPoint.entry_count++;
   dataVIO->recovery_journal_point = recoveryJournalPoint;
-  vdo_add_slab_journal_entry(vdo_get_slab(depot, updater->zpbn.pbn)->journal,
-                             completion,
-                             updater);
+  vdo_modify_reference_count(completion, updater);
 }
 
 /**

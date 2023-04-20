@@ -123,7 +123,7 @@ dataVIOFromWrapper(struct vdo_completion *completion)
 static void addSlabJournalEntryAction(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = dataVIOFromWrapper(completion);
-  vdo_add_slab_journal_entry(journal, &dataVIO->vio.completion, &dataVIO->increment_updater);
+  vdo_modify_reference_count(&dataVIO->vio.completion, &dataVIO->increment_updater);
 
 }
 

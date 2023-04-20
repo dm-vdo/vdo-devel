@@ -162,12 +162,19 @@ release_pbn_lock_provisional_reference(struct pbn_lock *lock,
 				       physical_block_number_t locked_pbn,
 				       struct block_allocator *allocator)
 {
-	if (vdo_pbn_lock_has_provisional_reference(lock)) {
-		vdo_release_block_reference(allocator,
-					    locked_pbn,
-					    lock->implementation->release_reason);
-		vdo_unassign_pbn_lock_provisional_reference(lock);
-	}
+	int result;
+
+	if (!vdo_pbn_lock_has_provisional_reference(lock))
+		return;
+
+	result = vdo_release_block_reference(allocator, locked_pbn);
+	if (result != VDO_SUCCESS)
+		uds_log_error_strerror(result,
+				       "Failed to release reference to %s physical block %llu",
+				       lock->implementation->release_reason,
+				       (unsigned long long) locked_pbn);
+
+	vdo_unassign_pbn_lock_provisional_reference(lock);
 }
 
 /**

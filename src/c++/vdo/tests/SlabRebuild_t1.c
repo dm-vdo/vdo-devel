@@ -455,7 +455,7 @@ static void addSlabJournalEntryAction(struct vdo_completion *completion)
 {
   DataVIOWrapper *wrapper = (DataVIOWrapper *) completion;
   struct data_vio *dataVIO = &wrapper->dataVIO;
-  vdo_add_slab_journal_entry(journal, &dataVIO->decrement_completion, &dataVIO->decrement_updater);
+  vdo_modify_reference_count(&dataVIO->decrement_completion, &dataVIO->decrement_updater);
   vdo_finish_completion(completion);
 }
 
