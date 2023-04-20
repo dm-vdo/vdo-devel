@@ -481,7 +481,7 @@ static int init_chapter_index_page(const struct volume *volume,
 			       &lowest_list,
 			       &highest_list);
 	ci_virtual = chapter_index_page->virtual_chapter_number;
-	ci_chapter = map_to_physical_chapter(geometry, ci_virtual);
+	ci_chapter = uds_map_to_physical_chapter(geometry, ci_virtual);
 	if ((chapter == ci_chapter) &&
 	    (lowest_list == chapter_index_page->lowest_list_number) &&
 	    (highest_list == chapter_index_page->highest_list_number))
@@ -1010,7 +1010,7 @@ int read_chapter_index_from_volume(const struct volume *volume,
 	int result;
 	u32 i;
 	const struct geometry *geometry = volume->geometry;
-	u32 physical_chapter = map_to_physical_chapter(geometry, virtual_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry, virtual_chapter);
 	u32 physical_page = map_to_physical_page(geometry, physical_chapter, 0);
 
 	dm_bufio_prefetch(volume->client, physical_page, geometry->index_pages_per_chapter);
@@ -1043,7 +1043,8 @@ int search_volume_page_cache(struct volume *volume,
 			     bool *found)
 {
 	int result;
-	u32 physical_chapter = map_to_physical_chapter(volume->geometry, request->virtual_chapter);
+	u32 physical_chapter =
+		uds_map_to_physical_chapter(volume->geometry, request->virtual_chapter);
 	u32 index_page_number;
 	u16 record_page_number;
 
@@ -1078,7 +1079,7 @@ int search_volume_page_cache_for_rebuild(struct volume *volume,
 	int result;
 	struct geometry *geometry = volume->geometry;
 	struct cached_page *page;
-	u32 physical_chapter = map_to_physical_chapter(geometry, virtual_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry, virtual_chapter);
 	u32 index_page_number;
 	u16 record_page_number;
 	u32 page_number;
@@ -1127,7 +1128,7 @@ EXTERNAL_STATIC void invalidate_page(struct page_cache *cache, u32 physical_page
 
 void forget_chapter(struct volume *volume, u64 virtual_chapter)
 {
-	u32 physical_chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
 	u32 first_page = map_to_physical_page(volume->geometry, physical_chapter, 0);
 	u32 i;
 
@@ -1371,7 +1372,8 @@ int write_chapter(struct volume *volume,
 {
 	int result;
 	u32 physical_chapter_number =
-		map_to_physical_chapter(volume->geometry, chapter_index->virtual_chapter_number);
+		uds_map_to_physical_chapter(volume->geometry,
+					    chapter_index->virtual_chapter_number);
 
 	result = write_index_pages(volume, physical_chapter_number, chapter_index);
 	if (result != UDS_SUCCESS)
@@ -1446,7 +1448,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtua
 			return;
 	}
 
-	if (chapter_number != map_to_physical_chapter(geometry, vcn)) {
+	if (chapter_number != uds_map_to_physical_chapter(geometry, vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
 			      chapter_number,
 			      (unsigned long long) vcn,
@@ -1697,7 +1699,7 @@ int make_volume(const struct configuration *config,
 
 	volume->nonce = get_uds_volume_nonce(layout);
 
-	result = copy_geometry(config->geometry, &volume->geometry);
+	result = uds_copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return uds_log_warning_strerror(result, "failed to allocate geometry: error");
@@ -1710,7 +1712,7 @@ int make_volume(const struct configuration *config,
 	 */
 	reserved_buffers = config->cache_chapters * geometry->record_pages_per_chapter;
 	reserved_buffers += 1;
-	if (is_sparse_geometry(geometry))
+	if (uds_is_sparse_geometry(geometry))
 		reserved_buffers += (config->cache_chapters * geometry->index_pages_per_chapter);
 	volume->reserved_buffers = reserved_buffers;
 	result = open_uds_volume_bufio(layout,
@@ -1737,7 +1739,7 @@ int make_volume(const struct configuration *config,
 		return result;
 	}
 
-	if (is_sparse_geometry(geometry)) {
+	if (uds_is_sparse_geometry(geometry)) {
 		size_t page_size = sizeof(struct delta_index_page) + geometry->bytes_per_page;
 
 		result = make_sparse_cache(geometry,

@@ -80,10 +80,10 @@ struct chapter_writer {
 
 static bool is_zone_chapter_sparse(const struct index_zone *zone, u64 virtual_chapter)
 {
-	return is_chapter_sparse(zone->index->volume->geometry,
-				 zone->oldest_virtual_chapter,
-				 zone->newest_virtual_chapter,
-				 virtual_chapter);
+	return uds_is_chapter_sparse(zone->index->volume->geometry,
+				     zone->oldest_virtual_chapter,
+				     zone->newest_virtual_chapter,
+				     virtual_chapter);
 }
 
 static int
@@ -156,7 +156,7 @@ simulate_index_zone_barrier_message(struct index_zone *zone, struct uds_request 
 {
 	u64 sparse_virtual_chapter;
 
-	if ((zone->index->zone_count > 1) || !is_sparse_geometry(zone->index->volume->geometry))
+	if ((zone->index->zone_count > 1) || !uds_is_sparse_geometry(zone->index->volume->geometry))
 		return UDS_SUCCESS;
 
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
@@ -283,8 +283,8 @@ static int open_next_chapter(struct index_zone *zone)
 	}
 
 	expiring = zone->oldest_virtual_chapter;
-	expire_chapters =
-		chapters_to_expire(zone->index->volume->geometry, zone->newest_virtual_chapter);
+	expire_chapters = uds_chapters_to_expire(zone->index->volume->geometry,
+						 zone->newest_virtual_chapter);
 	zone->oldest_virtual_chapter += expire_chapters;
 
 	if (finished_zones < zone->index->zone_count)
@@ -362,7 +362,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 
 	request->virtual_chapter = virtual_chapter;
 	volume = zone->index->volume;
-	chapter = map_to_physical_chapter(volume->geometry, virtual_chapter);
+	chapter = uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
 	return search_cached_record_page(volume, request, chapter, record_page_number, found);
 }
 
@@ -480,7 +480,7 @@ static int search_index_zone(struct index_zone *zone, struct uds_request *reques
 			found = true;
 		} else if (request->location == UDS_LOCATION_UNAVAILABLE) {
 			found = false;
-		} else if (is_sparse_geometry(zone->index->volume->geometry) &&
+		} else if (uds_is_sparse_geometry(zone->index->volume->geometry) &&
 			   !is_volume_index_sample(zone->index->volume_index,
 						   &request->record_name)) {
 			result = search_sparse_cache_in_zone(zone, request, NO_CHAPTER, &found);
@@ -663,7 +663,7 @@ static int initialize_index_queues(struct uds_index *index, const struct geometr
 	}
 
 	/* The triage queue is only needed for sparse multi-zone indexes. */
-	if ((index->zone_count > 1) && is_sparse_geometry(geometry)) {
+	if ((index->zone_count > 1) && uds_is_sparse_geometry(geometry)) {
 		result = make_uds_request_queue("triageW", &triage_request, &index->triage_queue);
 		if (result != UDS_SUCCESS)
 			return result;
@@ -734,7 +734,8 @@ static void close_chapters(void *arg)
 		uds_lock_mutex(&writer->mutex);
 		index->newest_virtual_chapter++;
 		index->oldest_virtual_chapter +=
-			chapters_to_expire(index->volume->geometry, index->newest_virtual_chapter);
+			uds_chapters_to_expire(index->volume->geometry,
+					       index->newest_virtual_chapter);
 		writer->result = result;
 		writer->zones_to_write = 0;
 		uds_broadcast_cond(&writer->cond);
@@ -854,7 +855,7 @@ static int rebuild_index_page_map(struct uds_index *index, u64 vcn)
 	int result;
 	struct delta_index_page *chapter_index_page;
 	struct geometry *geometry = index->volume->geometry;
-	u32 chapter = map_to_physical_chapter(geometry, vcn);
+	u32 chapter = uds_map_to_physical_chapter(geometry, vcn);
 	u32 expected_list_number = 0;
 	u32 index_page_number;
 	u32 lowest_delta_list;
@@ -1020,7 +1021,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 	}
 
 	geometry = index->volume->geometry;
-	physical_chapter = map_to_physical_chapter(geometry, virtual);
+	physical_chapter = uds_map_to_physical_chapter(geometry, virtual);
 	prefetch_volume_chapter(index->volume, physical_chapter);
 	set_volume_index_open_chapter(index->volume_index, virtual);
 
@@ -1086,10 +1087,10 @@ static int replay_volume(struct uds_index *index)
 	 */
 	old_map_update = index->volume->index_page_map->last_update;
 	for (virtual = from_virtual; virtual < upto_virtual; ++virtual) {
-		will_be_sparse = is_chapter_sparse(index->volume->geometry,
-						   from_virtual,
-						   upto_virtual,
-						   virtual);
+		will_be_sparse = uds_is_chapter_sparse(index->volume->geometry,
+						       from_virtual,
+						       upto_virtual,
+						       virtual);
 		result = replay_chapter(index, virtual, will_be_sparse);
 		if (result != UDS_SUCCESS)
 			return result;

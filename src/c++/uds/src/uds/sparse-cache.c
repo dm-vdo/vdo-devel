@@ -531,7 +531,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 			    const struct uds_record_name *name,
 			    u16 *record_page_ptr)
 {
-	u32 physical_chapter = map_to_physical_chapter(geometry, chapter->virtual_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	u32 index_page_number = find_index_page_number(index_page_map, name, physical_chapter);
 	struct delta_index_page *index_page = &chapter->index_pages[index_page_number];
 

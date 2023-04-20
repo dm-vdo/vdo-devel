@@ -12,7 +12,7 @@
 static void checkSparsenessAndDensity(const struct geometry *g,
                                       bool expectSparse)
 {
-  CU_ASSERT_EQUAL(is_sparse_geometry(g), expectSparse);
+  CU_ASSERT_EQUAL(uds_is_sparse_geometry(g), expectSparse);
   CU_ASSERT_EQUAL(g->dense_chapters_per_volume,
                   g->chapters_per_volume - g->sparse_chapters_per_volume);
 }
@@ -146,27 +146,26 @@ static void checkComputations(bool sparse)
   struct geometry *geometry;
   unsigned int chapters = 10;
   unsigned int sparseChapters = (sparse ? 5 : 0);
-  UDS_ASSERT_SUCCESS(make_geometry(1024, 1, chapters, sparseChapters, 0, 0,
-                                   &geometry));
+  UDS_ASSERT_SUCCESS(uds_make_geometry(1024, 1, chapters, sparseChapters, 0, 0, &geometry));
   checkSparsenessAndDensity(geometry, sparse);
 
   uint64_t chapter, newest, oldest;
   for (oldest = 0; oldest < chapters; oldest++) {
     for (newest = oldest; newest < chapters; newest++) {
       uint64_t active = newest - oldest + 1;
-      bool hasSparse = has_sparse_chapters(geometry, oldest, newest);
+      bool hasSparse = uds_has_sparse_chapters(geometry, oldest, newest);
       CU_ASSERT_EQUAL(hasSparse,
                       (active > geometry->dense_chapters_per_volume));
       for (chapter = oldest; chapter <= newest; chapter++) {
         bool shouldBeSparse
           = (hasSparse
              && (chapter <= newest - geometry->dense_chapters_per_volume));
-        CU_ASSERT_EQUAL(is_chapter_sparse(geometry, oldest, newest, chapter),
+        CU_ASSERT_EQUAL(uds_is_chapter_sparse(geometry, oldest, newest, chapter),
                         shouldBeSparse);
       }
     }
   }
-  free_geometry(geometry);
+  uds_free_geometry(geometry);
 }
 
 /**********************************************************************/

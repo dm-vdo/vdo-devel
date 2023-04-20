@@ -40,13 +40,13 @@ void resizeSparseConfiguration(struct configuration *config,
   if (sparse_chapters_per_volume == 0) {
     sparse_chapters_per_volume = oldGeometry->sparse_chapters_per_volume;
   }
-  free_geometry(oldGeometry);
+  uds_free_geometry(oldGeometry);
 
-  UDS_ASSERT_SUCCESS(make_geometry(bytes_per_page,
-                                   record_pages_per_chapter,
-                                   chapters_per_volume,
-                                   sparse_chapters_per_volume,
-                                   0, 0, &config->geometry));
+  UDS_ASSERT_SUCCESS(uds_make_geometry(bytes_per_page,
+                                       record_pages_per_chapter,
+                                       chapters_per_volume,
+                                       sparse_chapters_per_volume,
+                                       0, 0, &config->geometry));
   if (sparse_sample_rate > 0) {
     config->sparse_sample_rate = sparse_sample_rate;
   }

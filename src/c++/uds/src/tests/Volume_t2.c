@@ -120,7 +120,7 @@ static void testWriteChapter(void)
 
   // Test reading records directly from the record pages.
   unsigned int physicalChapterNumber
-    = map_to_physical_chapter(geometry, chapterNumber);
+    = uds_map_to_physical_chapter(geometry, chapterNumber);
   unsigned int recordNumber = 0;
   unsigned int j, page;
   for (page = 0; page < geometry->record_pages_per_chapter; ++page) {

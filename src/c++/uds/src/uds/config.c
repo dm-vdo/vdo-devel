@@ -339,13 +339,13 @@ int uds_make_configuration(const struct uds_parameters *params, struct configura
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = make_geometry(DEFAULT_BYTES_PER_PAGE,
-			       record_pages_per_chapter,
-			       chapters_per_volume,
-			       sparse_chapters_per_volume,
-			       0,
-			       0,
-			       &config->geometry);
+	result = uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
+				   record_pages_per_chapter,
+				   chapters_per_volume,
+				   sparse_chapters_per_volume,
+				   0,
+				   0,
+				   &config->geometry);
 	if (result != UDS_SUCCESS) {
 		uds_free_configuration(config);
 		return result;
@@ -369,7 +369,7 @@ int uds_make_configuration(const struct uds_parameters *params, struct configura
 void uds_free_configuration(struct configuration *config)
 {
 	if (config != NULL) {
-		free_geometry(config->geometry);
+		uds_free_geometry(config->geometry);
 		UDS_FREE(config);
 	}
 }

@@ -190,10 +190,10 @@ static void verifyData(unsigned int expectedLost)
 
     // We cannot expect to find entries in chapters that are sparse.
     // TODO: we can if they are hooks.
-    if (is_chapter_sparse(index->volume->geometry,
-                          index->oldest_virtual_chapter,
-                          index->newest_virtual_chapter,
-                          metaChapter)) {
+    if (uds_is_chapter_sparse(index->volume->geometry,
+                              index->oldest_virtual_chapter,
+                              index->newest_virtual_chapter,
+                              metaChapter)) {
       continue;
     }
 

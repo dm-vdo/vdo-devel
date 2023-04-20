@@ -225,7 +225,7 @@ static int compute_volume_sub_index_parameters(const struct configuration *confi
 	 * index delta list.
 	 */
 	rounded_chapters = params->chapter_count;
-	if (is_reduced_geometry(geometry))
+	if (uds_is_reduced_geometry(geometry))
 		rounded_chapters += 1;
 	delta_list_records = records_per_chapter * rounded_chapters;
 	address_count = config->volume_index_mean_delta * DELTA_LIST_SIZE;
@@ -358,7 +358,7 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 	struct split_config split;
 	int result;
 
-	if (!is_sparse_geometry(config->geometry))
+	if (!uds_is_sparse_geometry(config->geometry))
 		return compute_volume_sub_index_save_bytes(config, bytes);
 
 	split_configuration(config, &split);
@@ -1267,7 +1267,7 @@ int make_volume_index(const struct configuration *config,
 
 	volume_index->zone_count = config->zone_count;
 
-	if (!is_sparse_geometry(config->geometry)) {
+	if (!uds_is_sparse_geometry(config->geometry)) {
 		result = initialize_volume_sub_index(config,
 						     volume_nonce,
 						     'm',

@@ -38,11 +38,11 @@ static void testFindBoundaries(uint64_t        expectedLowest,
 /**********************************************************************/
 static void findBoundariesTest(void)
 {
-  UDS_ASSERT_SUCCESS(make_geometry(DEFAULT_BYTES_PER_PAGE,
-                                   DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                   DEFAULT_CHAPTERS_PER_VOLUME,
-                                   DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                   0, 0, &geometry));
+  UDS_ASSERT_SUCCESS(uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
+                                       DEFAULT_RECORD_PAGES_PER_CHAPTER,
+                                       DEFAULT_CHAPTERS_PER_VOLUME,
+                                       DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+                                       0, 0, &geometry));
   volume.geometry = geometry;
   set_chapter_tester(myProbe);
 
@@ -82,11 +82,11 @@ static void findBoundariesTest(void)
 static void findConvertedBoundariesTest(void)
 {
   // Remap a chapter in the middle
-  UDS_ASSERT_SUCCESS(make_geometry(DEFAULT_BYTES_PER_PAGE,
-                                   DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                   7,
-                                   DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                   8, 2, &geometry));
+  UDS_ASSERT_SUCCESS(uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
+                                       DEFAULT_RECORD_PAGES_PER_CHAPTER,
+                                       7,
+                                       DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+                                       8, 2, &geometry));
   volume.geometry = geometry;
   set_chapter_tester(myProbe);
 
@@ -137,11 +137,11 @@ static void findConvertedBoundariesTest(void)
   UDS_FREE(UDS_FORGET(geometry));
 
   // Remapped a chapter to the end of the volume.
-  UDS_ASSERT_SUCCESS(make_geometry(DEFAULT_BYTES_PER_PAGE,
-                                   DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                   7,
-                                   DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                   8, 6, &geometry));
+  UDS_ASSERT_SUCCESS(uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
+                                       DEFAULT_RECORD_PAGES_PER_CHAPTER,
+                                       7,
+                                       DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+                                       8, 6, &geometry));
   volume.geometry = geometry;
 
   static const uint64_t data16[] = { 9, 10, 11, 12, 13, 14, 8 };

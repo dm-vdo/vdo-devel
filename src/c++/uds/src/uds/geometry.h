@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef GEOMETRY_H
-#define GEOMETRY_H 1
+#ifndef UDS_GEOMETRY_H
+#define UDS_GEOMETRY_H 1
 
 #include "uds.h"
 
@@ -95,43 +95,43 @@ enum {
 	HEADER_PAGES_PER_VOLUME = 1,
 };
 
-int __must_check make_geometry(size_t bytes_per_page,
-			       u32 record_pages_per_chapter,
-			       u32 chapters_per_volume,
-			       u32 sparse_chapters_per_volume,
-			       u64 remapped_virtual,
-			       u64 remapped_physical,
-			       struct geometry **geometry_ptr);
+int __must_check uds_make_geometry(size_t bytes_per_page,
+				   u32 record_pages_per_chapter,
+				   u32 chapters_per_volume,
+				   u32 sparse_chapters_per_volume,
+				   u64 remapped_virtual,
+				   u64 remapped_physical,
+				   struct geometry **geometry_ptr);
 
-int __must_check copy_geometry(struct geometry *source, struct geometry **geometry_ptr);
+int __must_check uds_copy_geometry(struct geometry *source, struct geometry **geometry_ptr);
 
-void free_geometry(struct geometry *geometry);
+void uds_free_geometry(struct geometry *geometry);
 
-u32 __must_check map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
+u32 __must_check uds_map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
 
 /*
  * Check whether this geometry is reduced by a chapter. This will only be true if the volume was
  * converted from a non-lvm volume to an lvm volume.
  */
-static inline bool __must_check is_reduced_geometry(const struct geometry *geometry)
+static inline bool __must_check uds_is_reduced_geometry(const struct geometry *geometry)
 {
 	return !!(geometry->chapters_per_volume & 1);
 }
 
-static inline bool __must_check is_sparse_geometry(const struct geometry *geometry)
+static inline bool __must_check uds_is_sparse_geometry(const struct geometry *geometry)
 {
 	return geometry->sparse_chapters_per_volume > 0;
 }
 
-bool __must_check has_sparse_chapters(const struct geometry *geometry,
-				      u64 oldest_virtual_chapter,
-				      u64 newest_virtual_chapter);
+bool __must_check uds_has_sparse_chapters(const struct geometry *geometry,
+					  u64 oldest_virtual_chapter,
+					  u64 newest_virtual_chapter);
 
-bool __must_check is_chapter_sparse(const struct geometry *geometry,
-				    u64 oldest_virtual_chapter,
-				    u64 newest_virtual_chapter,
-				    u64 virtual_chapter_number);
+bool __must_check uds_is_chapter_sparse(const struct geometry *geometry,
+					u64 oldest_virtual_chapter,
+					u64 newest_virtual_chapter,
+					u64 virtual_chapter_number);
 
-u32 __must_check chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
+u32 __must_check uds_chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
 
-#endif /* GEOMETRY_H */
+#endif /* UDS_GEOMETRY_H */
