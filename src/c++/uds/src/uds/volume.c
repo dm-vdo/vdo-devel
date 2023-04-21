@@ -475,11 +475,11 @@ static int init_chapter_index_page(const struct volume *volume,
 					      chapter,
 					      index_page_number);
 
-	get_list_number_bounds(volume->index_page_map,
-			       chapter,
-			       index_page_number,
-			       &lowest_list,
-			       &highest_list);
+	uds_get_list_number_bounds(volume->index_page_map,
+				   chapter,
+				   index_page_number,
+				   &lowest_list,
+				   &highest_list);
 	ci_virtual = chapter_index_page->virtual_chapter_number;
 	ci_chapter = uds_map_to_physical_chapter(geometry, ci_virtual);
 	if ((chapter == ci_chapter) &&
@@ -1048,9 +1048,9 @@ int search_volume_page_cache(struct volume *volume,
 	u32 index_page_number;
 	u16 record_page_number;
 
-	index_page_number = find_index_page_number(volume->index_page_map,
-						   &request->record_name,
-						   physical_chapter);
+	index_page_number = uds_find_index_page_number(volume->index_page_map,
+						       &request->record_name,
+						       physical_chapter);
 
 	if (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP) {
 		record_page_number = *((u16 *) &request->old_metadata);
@@ -1085,7 +1085,8 @@ int search_volume_page_cache_for_rebuild(struct volume *volume,
 	u32 page_number;
 
 	*found = false;
-	index_page_number = find_index_page_number(volume->index_page_map, name, physical_chapter);
+	index_page_number =
+		uds_find_index_page_number(volume->index_page_map, name, physical_chapter);
 	result = get_volume_page(volume, physical_chapter, index_page_number, &page);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -1231,11 +1232,11 @@ static int write_index_pages(struct volume *volume,
 		else
 			delta_list_number += lists_packed;
 
-		update_index_page_map(volume->index_page_map,
-				      chapter_index->virtual_chapter_number,
-				      physical_chapter_number,
-				      index_page_number,
-				      delta_list_number - 1);
+		uds_update_index_page_map(volume->index_page_map,
+					  chapter_index->virtual_chapter_number,
+					  physical_chapter_number,
+					  index_page_number,
+					  delta_list_number - 1);
 
 		uds_lock_mutex(&volume->read_threads_mutex);
 		result = donate_index_page_locked(volume,
@@ -1765,7 +1766,7 @@ int make_volume(const struct configuration *config,
 	}
 
 	volume->cache_size += volume->page_cache.cache_slots * sizeof(struct delta_index_page);
-	result = make_index_page_map(geometry, &volume->index_page_map);
+	result = uds_make_index_page_map(geometry, &volume->index_page_map);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1857,7 +1858,7 @@ void free_volume(struct volume *volume)
 	uds_destroy_cond(&volume->read_threads_cond);
 	uds_destroy_cond(&volume->read_threads_read_done_cond);
 	uds_destroy_mutex(&volume->read_threads_mutex);
-	free_index_page_map(volume->index_page_map);
+	uds_free_index_page_map(volume->index_page_map);
 	free_uds_radix_sorter(volume->radix_sorter);
 	UDS_FREE(volume->geometry);
 	UDS_FREE(volume->record_pointers);

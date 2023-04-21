@@ -882,11 +882,11 @@ static int rebuild_index_page_map(struct uds_index *index, u64 vcn)
 						      chapter,
 						      index_page_number);
 
-		update_index_page_map(index->volume->index_page_map,
-				      vcn,
-				      chapter,
-				      index_page_number,
-				      highest_delta_list);
+		uds_update_index_page_map(index->volume->index_page_map,
+					  vcn,
+					  chapter,
+					  index_page_number,
+					  highest_delta_list);
 		expected_list_number = highest_delta_list + 1;
 	}
 

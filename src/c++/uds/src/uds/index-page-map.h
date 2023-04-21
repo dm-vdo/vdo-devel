@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INDEX_PAGE_MAP_H
-#define INDEX_PAGE_MAP_H 1
+#ifndef UDS_INDEX_PAGE_MAP_H
+#define UDS_INDEX_PAGE_MAP_H 1
 
 #include "geometry.h"
 #include "io-factory.h"
@@ -22,31 +22,33 @@ struct index_page_map {
 	u16 *entries;
 };
 
-int __must_check make_index_page_map(const struct geometry *geometry,
-				     struct index_page_map **map_ptr);
+int __must_check
+uds_make_index_page_map(const struct geometry *geometry, struct index_page_map **map_ptr);
 
-void free_index_page_map(struct index_page_map *map);
+void uds_free_index_page_map(struct index_page_map *map);
 
-int __must_check read_index_page_map(struct index_page_map *map, struct buffered_reader *reader);
+int __must_check
+uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *reader);
 
-int __must_check write_index_page_map(struct index_page_map *map, struct buffered_writer *writer);
+int __must_check
+uds_write_index_page_map(struct index_page_map *map, struct buffered_writer *writer);
 
-void update_index_page_map(struct index_page_map *map,
-			   u64 virtual_chapter_number,
-			   u32 chapter_number,
-			   u32 index_page_number,
-			   u32 delta_list_number);
+void uds_update_index_page_map(struct index_page_map *map,
+			       u64 virtual_chapter_number,
+			       u32 chapter_number,
+			       u32 index_page_number,
+			       u32 delta_list_number);
 
-u32 __must_check find_index_page_number(const struct index_page_map *map,
-					const struct uds_record_name *name,
-					u32 chapter_number);
+u32 __must_check uds_find_index_page_number(const struct index_page_map *map,
+					    const struct uds_record_name *name,
+					    u32 chapter_number);
 
-void get_list_number_bounds(const struct index_page_map *map,
-			    u32 chapter_number,
-			    u32 index_page_number,
-			    u32 *lowest_list,
-			    u32 *highest_list);
+void uds_get_list_number_bounds(const struct index_page_map *map,
+				u32 chapter_number,
+				u32 index_page_number,
+				u32 *lowest_list,
+				u32 *highest_list);
 
-u64 compute_index_page_map_save_size(const struct geometry *geometry);
+u64 uds_compute_index_page_map_save_size(const struct geometry *geometry);
 
-#endif /* INDEX_PAGE_MAP_H */
+#endif /* UDS_INDEX_PAGE_MAP_H */

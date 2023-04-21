@@ -63,7 +63,7 @@ static void fillChapter(struct index_page_map *map,
       listNumbers[page] = listNumber;
     }
 
-    update_index_page_map(map, vcn, chapterNumber, page, listNumber);
+    uds_update_index_page_map(map, vcn, chapterNumber, page, listNumber);
   }
 
   unsigned int lastDeltaListNumber = geometry->delta_lists_per_chapter - 1;
@@ -71,8 +71,7 @@ static void fillChapter(struct index_page_map *map,
     listNumbers[lastIndexPageNumber] = lastDeltaListNumber;
   }
 
-  update_index_page_map(map, vcn, chapterNumber, lastIndexPageNumber,
-                        lastDeltaListNumber);
+  uds_update_index_page_map(map, vcn, chapterNumber, lastIndexPageNumber, lastDeltaListNumber);
 }
 
 /**********************************************************************/
@@ -90,7 +89,7 @@ static void verifyChapter(struct index_page_map *map,
       memset(&name, 0, sizeof(name));
       set_chapter_delta_list_bits(&name, geometry, list);
       CU_ASSERT_EQUAL(list, uds_hash_to_chapter_delta_list(&name, geometry));
-      CU_ASSERT_EQUAL(page, find_index_page_number(map, &name, chapter));
+      CU_ASSERT_EQUAL(page, uds_find_index_page_number(map, &name, chapter));
     }
     firstList = listNumbers[page] + 1;
   }
@@ -100,7 +99,7 @@ static void verifyChapter(struct index_page_map *map,
 static void testDefault(void)
 {
   struct index_page_map *map;
-  UDS_ASSERT_SUCCESS(make_index_page_map(geometry, &map));
+  UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));
 
   unsigned int chapter = 12;
   fillChapter(map, geometry, 0, chapter - 1, NULL);
@@ -109,7 +108,7 @@ static void testDefault(void)
 
   verifyChapter(map, geometry, chapter, listNumbers);
 
-  free_index_page_map(map);
+  uds_free_index_page_map(map);
 }
 
 /**********************************************************************/
@@ -117,7 +116,7 @@ static void testReadWrite(void)
 {
   // Write an index page map
   struct index_page_map *map;
-  UDS_ASSERT_SUCCESS(make_index_page_map(geometry, &map));
+  UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));
 
   unsigned int chap;
   for (chap = 0; chap < geometry->chapters_per_volume; ++chap) {
@@ -127,20 +126,20 @@ static void testReadWrite(void)
   CU_ASSERT_EQUAL(map->last_update, vcn + geometry->chapters_per_volume - 1);
 
   uint64_t mapBlocks
-    = DIV_ROUND_UP(compute_index_page_map_save_size(geometry), UDS_BLOCK_SIZE);
+    = DIV_ROUND_UP(uds_compute_index_page_map_save_size(geometry), UDS_BLOCK_SIZE);
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, mapBlocks, &writer));
-  UDS_ASSERT_SUCCESS(write_index_page_map(map, writer));
+  UDS_ASSERT_SUCCESS(uds_write_index_page_map(map, writer));
   free_buffered_writer(writer);
-  free_index_page_map(UDS_FORGET(map));
+  uds_free_index_page_map(UDS_FORGET(map));
 
   // Read and verify the index page map
-  UDS_ASSERT_SUCCESS(make_index_page_map(geometry, &map));
+  UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));
 
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, mapBlocks, &reader));
-  UDS_ASSERT_SUCCESS(read_index_page_map(map, reader));
+  UDS_ASSERT_SUCCESS(uds_read_index_page_map(map, reader));
 
   CU_ASSERT_EQUAL(map->last_update, vcn + geometry->chapters_per_volume - 1);
 
@@ -150,7 +149,7 @@ static void testReadWrite(void)
   }
 
   free_buffered_reader(reader);
-  free_index_page_map(map);
+  uds_free_index_page_map(map);
 }
 
 /**********************************************************************/

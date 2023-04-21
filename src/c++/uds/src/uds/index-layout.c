@@ -244,7 +244,7 @@ static int __must_check compute_sizes(const struct configuration *config,
 		return uds_log_error_strerror(result, "cannot compute index save size");
 
 	sls->page_map_blocks =
-		DIV_ROUND_UP(compute_index_page_map_save_size(geometry), sls->block_size);
+		DIV_ROUND_UP(uds_compute_index_page_map_save_size(geometry), sls->block_size);
 	sls->open_chapter_blocks =
 		DIV_ROUND_UP(compute_saved_open_chapter_size(geometry), sls->block_size);
 	sls->save_blocks =
@@ -967,7 +967,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_index_page_map(index->volume->index_page_map, readers[0]);
+	result = uds_read_index_page_map(index->volume->index_page_map, readers[0]);
 	free_buffered_reader(readers[0]);
 
 	return result;
@@ -1149,7 +1149,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 	}
 
-	result = write_index_page_map(index->volume->index_page_map, writers[0]);
+	result = uds_write_index_page_map(index->volume->index_page_map, writers[0]);
 	free_buffered_writer(writers[0]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);
