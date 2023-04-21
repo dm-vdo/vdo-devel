@@ -42,7 +42,7 @@ static int __must_check move_chapter(struct volume *volume,
 	int result = UDS_SUCCESS;
 	unsigned int page;
 
-	result = open_uds_volume_bufio(layout,
+	result = uds_open_volume_bufio(layout,
 				       geometry->bytes_per_page,
 				       0,
 				       &client);

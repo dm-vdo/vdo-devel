@@ -345,7 +345,7 @@ static void testMissingOpenChapter(bool shouldAddData)
   }
   UDS_ASSERT_SUCCESS(save_index(testData.index));
 
-  UDS_ASSERT_SUCCESS(discard_open_chapter(testData.index->layout));
+  UDS_ASSERT_SUCCESS(uds_discard_open_chapter(testData.index->layout));
   free_index(testData.index);
   testData.index = NULL;
 

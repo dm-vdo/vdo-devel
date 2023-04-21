@@ -710,7 +710,7 @@ static void close_chapters(void *arg)
 			 * necessary.
 			 */
 			index->has_saved_open_chapter = false;
-			result = discard_open_chapter(index->layout);
+			result = uds_discard_open_chapter(index->layout);
 			if (result == UDS_SUCCESS)
 				uds_log_debug("Discarding saved open chapter");
 		}
@@ -837,7 +837,7 @@ static int load_index(struct uds_index *index)
 	int result;
 	u64 last_save_chapter;
 
-	result = load_index_state(index->layout, index);
+	result = uds_load_index_state(index->layout, index);
 	if (result != UDS_SUCCESS)
 		return UDS_INDEX_NOT_SAVED_CLEANLY;
 
@@ -1209,7 +1209,7 @@ int make_index(struct configuration *config,
 
 	index->zone_count = config->zone_count;
 
-	result = make_uds_index_layout(config, new, &index->layout);
+	result = uds_make_index_layout(config, new, &index->layout);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
 		return result;
@@ -1236,7 +1236,7 @@ int make_index(struct configuration *config,
 		}
 	}
 
-	nonce = get_uds_volume_nonce(index->layout);
+	nonce = uds_get_volume_nonce(index->layout);
 	result = make_volume_index(config, nonce, &index->volume_index);
 	if (result != UDS_SUCCESS) {
 		free_index(index);
@@ -1329,7 +1329,7 @@ void free_index(struct uds_index *index)
 	}
 
 	free_volume(index->volume);
-	free_uds_index_layout(UDS_FORGET(index->layout));
+	uds_free_index_layout(UDS_FORGET(index->layout));
 	UDS_FREE(index);
 }
 
@@ -1359,7 +1359,7 @@ int save_index(struct uds_index *index)
 			    index->newest_virtual_chapter - 1);
 	uds_log_info("beginning save (vcn %llu)", (unsigned long long) index->last_save);
 
-	result = save_index_state(index->layout, index);
+	result = uds_save_index_state(index->layout, index);
 	if (result != UDS_SUCCESS) {
 		uds_log_info("save index failed");
 		index->last_save = index->prev_save;

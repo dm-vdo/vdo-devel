@@ -132,7 +132,7 @@ static void testFilling(void)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, CHAPTER_COUNT);
   struct index_layout *layout;
-  UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
+  UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
 
   struct volume *volume;
   UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
@@ -160,7 +160,7 @@ static void testFilling(void)
   UDS_FREE(openChapters);
   free_volume(volume);
   uds_free_configuration(config);
-  free_uds_index_layout(layout);
+  uds_free_index_layout(layout);
 }
 
 /**********************************************************************/

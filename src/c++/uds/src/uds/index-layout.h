@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INDEX_LAYOUT_H
-#define INDEX_LAYOUT_H
+#ifndef UDS_INDEX_LAYOUT_H
+#define UDS_INDEX_LAYOUT_H
 
 #ifdef TEST_INTERNAL
 #include <linux/atomic.h>
@@ -26,27 +26,27 @@ extern atomic_t saves_begun;
 
 struct index_layout;
 
-int __must_check make_uds_index_layout(struct configuration *config,
+int __must_check uds_make_index_layout(struct configuration *config,
 				       bool new_layout,
 				       struct index_layout **layout_ptr);
 
-void free_uds_index_layout(struct index_layout *layout);
+void uds_free_index_layout(struct index_layout *layout);
 
-int __must_check replace_index_layout_storage(struct index_layout *layout, const char *name);
+int __must_check uds_replace_index_layout_storage(struct index_layout *layout, const char *name);
 
-int __must_check load_index_state(struct index_layout *layout, struct uds_index *index);
+int __must_check uds_load_index_state(struct index_layout *layout, struct uds_index *index);
 
-int __must_check save_index_state(struct index_layout *layout, struct uds_index *index);
+int __must_check uds_save_index_state(struct index_layout *layout, struct uds_index *index);
 
 #ifdef TEST_INTERNAL
 int __must_check discard_index_state_data(struct index_layout *layout);
 
 #endif /* TEST_INTERNAL */
-int __must_check discard_open_chapter(struct index_layout *layout);
+int __must_check uds_discard_open_chapter(struct index_layout *layout);
 
-u64 __must_check get_uds_volume_nonce(struct index_layout *layout);
+u64 __must_check uds_get_volume_nonce(struct index_layout *layout);
 
-int __must_check open_uds_volume_bufio(struct index_layout *layout,
+int __must_check uds_open_volume_bufio(struct index_layout *layout,
 				       size_t block_size,
 				       unsigned int reserved_buffers,
 				       struct dm_bufio_client **client_ptr);
@@ -58,4 +58,4 @@ int update_uds_layout(struct index_layout *layout,
 		      off_t offset);
 
 #endif /* TEST_INTERNAL */
-#endif /* INDEX_LAYOUT_H */
+#endif /* UDS_INDEX_LAYOUT_H */

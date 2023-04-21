@@ -29,8 +29,8 @@ static void namesTest(void)
   // Make a layout by using the path (the default)
   struct index_layout *layout;
   config->name = indexName;
-  UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
-  free_uds_index_layout(UDS_FORGET(layout));
+  UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
+  uds_free_index_layout(UDS_FORGET(layout));
 
   // Find the device number and make a layout using it
   struct block_device *bdev = blkdev_get_by_path(indexName, FMODE_READ, NULL);
@@ -43,8 +43,8 @@ static void namesTest(void)
   blkdev_put(bdev, FMODE_READ);
 
   config->name = deviceNumber;
-  UDS_ASSERT_SUCCESS(make_uds_index_layout(config, true, &layout));
-  free_uds_index_layout(layout);
+  UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
+  uds_free_index_layout(layout);
   UDS_FREE(deviceNumber);
   uds_free_configuration(config);
 }

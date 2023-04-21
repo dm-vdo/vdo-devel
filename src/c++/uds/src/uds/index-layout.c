@@ -896,7 +896,7 @@ find_latest_uds_index_save_slot(struct index_layout *layout, struct index_save_l
 	return UDS_SUCCESS;
 }
 
-int discard_open_chapter(struct index_layout *layout)
+int uds_discard_open_chapter(struct index_layout *layout)
 {
 	int result;
 	struct index_save_layout *isl;
@@ -921,7 +921,7 @@ int discard_open_chapter(struct index_layout *layout)
 	return result;
 }
 
-int load_index_state(struct index_layout *layout, struct uds_index *index)
+int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 {
 	int result;
 	unsigned int zone;
@@ -1083,7 +1083,7 @@ static void cancel_uds_index_save(struct index_save_layout *isl)
 	isl->zone_count = 0;
 }
 
-int save_index_state(struct index_layout *layout, struct uds_index *index)
+int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 {
 	int result;
 	unsigned int zone;
@@ -1707,7 +1707,7 @@ static int create_layout_factory(struct index_layout *layout, const struct confi
 	return UDS_SUCCESS;
 }
 
-int make_uds_index_layout(struct configuration *config,
+int uds_make_index_layout(struct configuration *config,
 			  bool new_layout,
 			  struct index_layout **layout_ptr)
 {
@@ -1725,7 +1725,7 @@ int make_uds_index_layout(struct configuration *config,
 
 	result = create_layout_factory(layout, config);
 	if (result != UDS_SUCCESS) {
-		free_uds_index_layout(layout);
+		uds_free_index_layout(layout);
 		return result;
 	}
 
@@ -1733,7 +1733,7 @@ int make_uds_index_layout(struct configuration *config,
 		uds_log_error("index storage (%zu) is smaller than the required size %llu",
 			      layout->factory_size,
 			      (unsigned long long) sizes.total_size);
-		free_uds_index_layout(layout);
+		uds_free_index_layout(layout);
 		return -ENOSPC;
 	}
 
@@ -1742,7 +1742,7 @@ int make_uds_index_layout(struct configuration *config,
 	else
 		result = load_index_layout(layout, config);
 	if (result != UDS_SUCCESS) {
-		free_uds_index_layout(layout);
+		uds_free_index_layout(layout);
 		return result;
 	}
 
@@ -1750,7 +1750,7 @@ int make_uds_index_layout(struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-void free_uds_index_layout(struct index_layout *layout)
+void uds_free_index_layout(struct index_layout *layout)
 {
 	if (layout == NULL)
 		return;
@@ -1762,13 +1762,13 @@ void free_uds_index_layout(struct index_layout *layout)
 	UDS_FREE(layout);
 }
 
-int replace_index_layout_storage(struct index_layout *layout, const char *name)
+int uds_replace_index_layout_storage(struct index_layout *layout, const char *name)
 {
 	return replace_uds_storage(layout->factory, name);
 }
 
 /* Obtain a dm_bufio_client for the volume region. */
-int open_uds_volume_bufio(struct index_layout *layout,
+int uds_open_volume_bufio(struct index_layout *layout,
 			  size_t block_size,
 			  unsigned int reserved_buffers,
 			  struct dm_bufio_client **client_ptr)
@@ -1780,7 +1780,7 @@ int open_uds_volume_bufio(struct index_layout *layout,
 	return make_uds_bufio(layout->factory, offset, block_size, reserved_buffers, client_ptr);
 }
 
-u64 get_uds_volume_nonce(struct index_layout *layout)
+u64 uds_get_volume_nonce(struct index_layout *layout)
 {
 	return layout->index.nonce;
 }

@@ -1607,7 +1607,7 @@ replace_volume_storage(struct volume *volume, struct index_layout *layout, const
 	int result;
 	u32 i;
 
-	result = replace_index_layout_storage(layout, name);
+	result = uds_replace_index_layout_storage(layout, name);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1621,7 +1621,7 @@ replace_volume_storage(struct volume *volume, struct index_layout *layout, const
 	if (volume->client != NULL)
 		dm_bufio_client_destroy(UDS_FORGET(volume->client));
 
-	return open_uds_volume_bufio(layout,
+	return uds_open_volume_bufio(layout,
 				     volume->geometry->bytes_per_page,
 				     volume->reserved_buffers,
 				     &volume->client);
@@ -1697,7 +1697,7 @@ int make_volume(const struct configuration *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	volume->nonce = get_uds_volume_nonce(layout);
+	volume->nonce = uds_get_volume_nonce(layout);
 
 	result = uds_copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
@@ -1715,7 +1715,7 @@ int make_volume(const struct configuration *config,
 	if (uds_is_sparse_geometry(geometry))
 		reserved_buffers += (config->cache_chapters * geometry->index_pages_per_chapter);
 	volume->reserved_buffers = reserved_buffers;
-	result = open_uds_volume_bufio(layout,
+	result = uds_open_volume_bufio(layout,
 				       geometry->bytes_per_page,
 				       volume->reserved_buffers,
 				       &volume->client);
