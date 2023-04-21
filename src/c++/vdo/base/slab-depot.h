@@ -504,10 +504,6 @@ int __must_check vdo_make_slab_journal(struct block_allocator *allocator,
 
 void vdo_free_slab_journal(struct slab_journal *journal);
 
-bool __must_check vdo_is_slab_journal_blank(const struct slab_journal *journal);
-
-void vdo_reopen_slab_journal(struct slab_journal *journal);
-
 bool __must_check
 vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 				     physical_block_number_t pbn,
@@ -516,52 +512,10 @@ vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
 				     struct journal_point *recovery_point,
 				     struct vdo_completion *parent);
 
-bool __must_check
-vdo_release_recovery_journal_lock(struct slab_journal *journal, sequence_number_t recovery_lock);
-
-void vdo_drain_slab_journal(struct slab_journal *journal);
-
-bool __must_check vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal);
-
-/**
- * vdo_get_slab_journal_block_offset() - Get the slab journal block offset of the given sequence
- *                                       number.
- * @journal: The slab journal.
- * @sequence: The sequence number.
- *
- * Return: The offset corresponding to the sequence number.
- */
-static inline tail_block_offset_t __must_check
-vdo_get_slab_journal_block_offset(struct slab_journal *journal, sequence_number_t sequence)
-{
-	return (sequence % journal->size);
-}
-
-void vdo_resume_slab_journal(struct slab_journal *journal);
-
-void vdo_dump_slab_journal(const struct slab_journal *journal);
-
 int __must_check
 vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
 				       physical_block_number_t pbn,
 				       enum journal_operation operation);
-
-void vdo_save_dirty_reference_blocks(struct vdo_slab *slab);
-
-void vdo_acquire_dirty_block_locks(struct vdo_slab *slab);
-
-int __must_check vdo_allocate_slab_counters(struct vdo_slab *slab);
-
-bool __must_check vdo_is_slab_open(struct vdo_slab *slab);
-
-void vdo_register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
-
-void vdo_update_slab_summary_entry(struct vdo_slab *slab,
-				   struct waiter *waiter,
-				   tail_block_offset_t tail_block_offset,
-				   bool load_ref_counts,
-				   bool is_clean,
-				   block_count_t free_blocks);
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
@@ -645,15 +599,21 @@ void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot, struct vdo_comple
 void vdo_dump_slab_depot(const struct slab_depot *depot);
 
 #ifdef INTERNAL
-void vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
-				   slab_journal_payload *payload,
-				   slab_block_number sbn,
-				   enum journal_operation operation,
-				   bool increment);
-bool __must_check vdo_is_slab_journal_dirty(const struct slab_journal *journal);
+void update_slab_summary_entry(struct vdo_slab *slab,
+			       struct waiter *waiter,
+			       tail_block_offset_t tail_block_offset,
+			       bool load_ref_counts,
+			       bool is_clean,
+			       block_count_t free_blocks);
+void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
+			       slab_journal_payload *payload,
+			       slab_block_number sbn,
+			       enum journal_operation operation,
+			       bool increment);
 vdo_refcount_t * __must_check get_reference_counters_for_block(struct reference_block *block);
 void pack_reference_block(struct reference_block *block, void *buffer);
 void launch_reference_block_write(struct waiter *waiter, void *context);
+void save_dirty_reference_blocks(struct vdo_slab *slab);
 void adjust_slab_journal_block_reference(struct slab_journal *journal,
 					 sequence_number_t sequence_number,
 					 int adjustment);
@@ -668,13 +628,17 @@ int __must_check replay_reference_count_change(struct vdo_slab *slab,
 					       struct slab_journal_entry entry);
 bool __must_check find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr);
 void drain_slab(struct vdo_slab *slab);
+int __must_check allocate_slab_counters(struct vdo_slab *slab);
+void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
+void free_slab(struct vdo_slab *slab);
 int __must_check make_slab(physical_block_number_t slab_origin,
 			   struct block_allocator *allocator,
 			   struct recovery_journal *recovery_journal,
 			   slab_count_t slab_number,
 			   bool is_new,
 			   struct vdo_slab **slab_ptr);
-void free_slab(struct vdo_slab *slab);
+bool __must_check release_recovery_journal_lock(struct slab_journal *journal,
+						sequence_number_t recovery_lock);
 int __must_check slab_block_number_from_pbn(struct vdo_slab *slab,
 					    physical_block_number_t physical_block_number,
 					    slab_block_number *slab_block_number_ptr);

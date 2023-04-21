@@ -54,18 +54,12 @@ struct slab_journal_eraser {
 static inline struct journal_lock * __must_check
 get_lock(struct slab_journal *journal, sequence_number_t sequence_number)
 {
-	return &journal->locks[vdo_get_slab_journal_block_offset(journal, sequence_number)];
+	return &journal->locks[sequence_number % journal->size];
 }
 
-/**
- * is_vdo_read_only() - Check whether the VDO is in read-only mode.
- * @journal: The journal whose owning VDO should be checked.
- *
- * Return: true if the VDO is in read-only mode.
- */
-static inline bool __must_check is_vdo_read_only(struct slab_journal *journal)
+static bool is_slab_open(struct vdo_slab *slab)
 {
-	return vdo_is_read_only(journal->slab->allocator->depot->vdo);
+	return (!vdo_is_state_quiescing(&slab->state) && !vdo_is_state_quiescent(&slab->state));
 }
 
 /**
@@ -218,30 +212,15 @@ void vdo_free_slab_journal(struct slab_journal *journal)
 }
 
 /**
- * vdo_is_slab_journal_blank() - Check whether a slab journal is blank.
- * @journal: The journal to query.
+ * is_slab_journal_blank() - Check whether a slab's journal is blank.
  *
  * A slab journal is blank if it has never had any entries recorded in it.
  *
- * Return: true if the slab journal has never been modified.
+ * Return: true if the slab's journal has never been modified.
  */
-bool vdo_is_slab_journal_blank(const struct slab_journal *journal)
+static bool is_slab_journal_blank(const struct vdo_slab *slab)
 {
-	return ((journal != NULL) &&
-		(journal->tail == 1) &&
-		(journal->tail_header.entry_count == 0));
-}
-
-/**
- * vdo_is_slab_journal_dirty() - Check whether the slab journal is on the block allocator's list of
- *                               dirty journals.
- * @journal: The journal to query.
- *
- * Return: true if the journal has been added to the dirty list.
- */
-EXTERNAL_STATIC bool vdo_is_slab_journal_dirty(const struct slab_journal *journal)
-{
-	return (journal->recovery_lock != 0);
+	return ((slab->journal->tail == 1) && (slab->journal->tail_header.entry_count == 0));
 }
 
 /**
@@ -255,8 +234,7 @@ static void mark_slab_journal_dirty(struct slab_journal *journal, sequence_numbe
 	struct slab_journal *dirty_journal;
 	struct list_head *dirty_list = &journal->slab->allocator->dirty_slab_journals;
 
-	ASSERT_LOG_ONLY(!vdo_is_slab_journal_dirty(journal),
-			"slab journal was clean");
+	ASSERT_LOG_ONLY(journal->recovery_lock == 0, "slab journal was clean");
 
 	journal->recovery_lock = lock;
 	list_for_each_entry_reverse(dirty_journal, dirty_list, dirty_entry) {
@@ -297,6 +275,201 @@ static void check_if_slab_drained(struct vdo_slab *slab)
 
 	read_only = vdo_is_read_only(slab->allocator->depot->vdo);
 	vdo_finish_draining_with_result(&slab->state, (read_only ? VDO_READ_ONLY : VDO_SUCCESS));
+}
+
+/* FULLNESS HINT COMPUTATION */
+
+/**
+ * compute_fullness_hint() - Translate a slab's free block count into a 'fullness hint' that can be
+ *                           stored in a slab_summary_entry's 7 bits that are dedicated to its free
+ *                           count.
+ * @depot: The depot whose summary being updated.
+ * @free_blocks: The number of free blocks.
+ *
+ * Note: the number of free blocks must be strictly less than 2^23 blocks, even though
+ * theoretically slabs could contain precisely 2^23 blocks; there is an assumption that at least
+ * one block is used by metadata. This assumption is necessary; otherwise, the fullness hint might
+ * overflow. The fullness hint formula is roughly (fullness >> 16) & 0x7f, but (2^23 >> 16) & 0x7f
+ * is 0, which would make it impossible to distinguish completely full from completely empty.
+ *
+ * Return: A fullness hint, which can be stored in 7 bits.
+ */
+static u8 __must_check compute_fullness_hint(struct slab_depot *depot, block_count_t free_blocks)
+{
+	block_count_t hint;
+
+	ASSERT_LOG_ONLY((free_blocks < (1 << 23)), "free blocks must be less than 2^23");
+
+	if (free_blocks == 0)
+		return 0;
+
+	hint = free_blocks >> depot->hint_shift;
+	return ((hint == 0) ? 1 : hint);
+}
+
+/**
+ * check_summary_drain_complete() - Check whether an allocators summary has finished draining.
+ */
+static void check_summary_drain_complete(struct block_allocator *allocator)
+{
+	struct vdo *vdo = allocator->depot->vdo;
+
+	if (!vdo_is_state_draining(&allocator->summary_state) ||
+	    (allocator->summary_write_count > 0))
+		return;
+
+	vdo_finish_operation(&allocator->summary_state,
+			     (vdo_is_read_only(vdo) ? VDO_READ_ONLY : VDO_SUCCESS));
+}
+
+/**
+ * notify_summary_waiters() - Wake all the waiters in a given queue.
+ * @allocator: The block allocator summary which owns the queue.
+ * @queue: The queue to notify.
+ */
+static void notify_summary_waiters(struct block_allocator *allocator, struct wait_queue *queue)
+{
+	int result = (vdo_is_read_only(allocator->depot->vdo) ? VDO_READ_ONLY : VDO_SUCCESS);
+
+	vdo_notify_all_waiters(queue, NULL, &result);
+}
+
+static void launch_write(struct slab_summary_block *summary_block);
+
+/**
+ * finish_updating_slab_summary_block() - Finish processing a block which attempted to write,
+ *                                        whether or not the attempt succeeded.
+ * @block: The block.
+ */
+static void finish_updating_slab_summary_block(struct slab_summary_block *block)
+{
+	notify_summary_waiters(block->allocator, &block->current_update_waiters);
+	block->writing = false;
+	block->allocator->summary_write_count--;
+	if (vdo_has_waiters(&block->next_update_waiters))
+		launch_write(block);
+	else
+		check_summary_drain_complete(block->allocator);
+}
+
+/**
+ * finish_update() - This is the callback for a successful summary block write.
+ * @completion: The write vio.
+ */
+static void finish_update(struct vdo_completion *completion)
+{
+	struct slab_summary_block *block =
+		container_of(as_vio(completion), struct slab_summary_block, vio);
+
+	atomic64_inc(&block->allocator->depot->summary_statistics.blocks_written);
+	finish_updating_slab_summary_block(block);
+}
+
+/**
+ * handle_write_error() - Handle an error writing a slab summary block.
+ * @completion: The write VIO.
+ */
+static void handle_write_error(struct vdo_completion *completion)
+{
+	struct slab_summary_block *block =
+		container_of(as_vio(completion), struct slab_summary_block, vio);
+
+	record_metadata_io_error(as_vio(completion));
+	vdo_enter_read_only_mode(completion->vdo, completion->result);
+	finish_updating_slab_summary_block(block);
+}
+
+static void write_slab_summary_endio(struct bio *bio)
+{
+	struct vio *vio = bio->bi_private;
+	struct slab_summary_block *block = container_of(vio, struct slab_summary_block, vio);
+
+	continue_vio_after_io(vio, finish_update, block->allocator->thread_id);
+}
+
+/**
+ * launch_write() - Write a slab summary block unless it is currently out for writing.
+ * @block: The block that needs to be committed.
+ */
+static void launch_write(struct slab_summary_block *block)
+{
+	struct block_allocator *allocator = block->allocator;
+	struct slab_depot *depot = allocator->depot;
+	physical_block_number_t pbn;
+
+	if (block->writing)
+		return;
+
+	allocator->summary_write_count++;
+	vdo_transfer_all_waiters(&block->next_update_waiters, &block->current_update_waiters);
+	block->writing = true;
+
+	if (vdo_is_read_only(depot->vdo)) {
+		finish_updating_slab_summary_block(block);
+		return;
+	}
+
+	memcpy(block->outgoing_entries, block->entries, VDO_BLOCK_SIZE);
+
+	/*
+	 * Flush before writing to ensure that the slab journal tail blocks and reference updates
+	 * covered by this summary update are stable (VDO-2332).
+	 */
+	pbn = (depot->summary_origin +
+	       (VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * allocator->zone_number) +
+	       block->index);
+	submit_metadata_vio(&block->vio,
+			    pbn,
+			    write_slab_summary_endio,
+			    handle_write_error,
+			    REQ_OP_WRITE | REQ_PREFLUSH);
+}
+
+/**
+ * update_slab_summary_entry() - Update the entry for a slab.
+ * @slab: The slab whose entry is to be updated
+ * @waiter: The waiter that is updating the summary.
+ * @tail_block_offset: The offset of the slab journal's tail block.
+ * @load_ref_counts: Whether the reference counts must be loaded from disk on the vdo load.
+ * @is_clean: Whether the slab is clean.
+ * @free_blocks: The number of free blocks.
+ */
+EXTERNAL_STATIC void
+update_slab_summary_entry(struct vdo_slab *slab,
+			  struct waiter *waiter,
+			  tail_block_offset_t tail_block_offset,
+			  bool load_ref_counts,
+			  bool is_clean,
+			  block_count_t free_blocks)
+{
+	u8 index = slab->slab_number / VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK;
+	struct block_allocator *allocator = slab->allocator;
+	struct slab_summary_block *block = &allocator->summary_blocks[index];
+	int result;
+	struct slab_summary_entry *entry;
+
+	if (vdo_is_read_only(block->vio.completion.vdo)) {
+		result = VDO_READ_ONLY;
+		waiter->callback(waiter, &result);
+		return;
+	}
+
+	if (vdo_is_state_draining(&allocator->summary_state) ||
+	    vdo_is_state_quiescent(&allocator->summary_state)) {
+		result = VDO_INVALID_ADMIN_STATE;
+		waiter->callback(waiter, &result);
+		return;
+	}
+
+	entry = &allocator->summary_entries[slab->slab_number];
+	*entry = (struct slab_summary_entry) {
+		.tail_block_offset = tail_block_offset,
+		.load_ref_counts = (entry->load_ref_counts || load_ref_counts),
+		.is_dirty = !is_clean,
+		.fullness_hint = compute_fullness_hint(allocator->depot, free_blocks),
+	};
+	vdo_enqueue_waiter(&block->next_update_waiters, waiter);
+	launch_write(block);
 }
 
 /**
@@ -379,7 +552,7 @@ static void reap_slab_journal(struct slab_journal *journal)
 
 	if ((journal->slab->status != VDO_SLAB_REBUILT) ||
 	    !vdo_is_state_normal(&journal->slab->state) ||
-	    is_vdo_read_only(journal))
+	    vdo_is_read_only(journal->slab->allocator->depot->vdo))
 		/*
 		 * We must not reap in the first two cases, and there's no point in read-only mode.
 		 */
@@ -526,11 +699,10 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 static void update_tail_block_location(struct slab_journal *journal)
 {
 	block_count_t free_block_count;
-	tail_block_offset_t block_offset;
 	struct vdo_slab *slab = journal->slab;
 
 	if (journal->updating_slab_summary ||
-	    is_vdo_read_only(journal) ||
+	    vdo_is_read_only(journal->slab->allocator->depot->vdo) ||
 	    (journal->last_summarized >= journal->next_commit)) {
 		check_if_slab_drained(slab);
 		return;
@@ -553,22 +725,20 @@ static void update_tail_block_location(struct slab_journal *journal)
 	 * slab have been written to the layer. Therefore, indicate that the ref counts must be
 	 * loaded when the journal head has reaped past sequence number 1.
 	 */
-	block_offset = vdo_get_slab_journal_block_offset(journal, journal->summarized);
-	vdo_update_slab_summary_entry(slab,
-				      &journal->slab_summary_waiter,
-				      block_offset,
-				      (journal->head > 1),
-				      false,
-				      free_block_count);
+	update_slab_summary_entry(slab,
+				  &journal->slab_summary_waiter,
+				  journal->summarized % journal->size,
+				  (journal->head > 1),
+				  false,
+				  free_block_count);
 }
 
 /**
- * vdo_reopen_slab_journal() - Reopen a slab journal by emptying it and then adding any pending
- *                             entries.
- * @journal: The journal to reopen.
+ * reopen_slab_journal() - Reopen a slab's journal by emptying it and then adding pending entries.
  */
-void vdo_reopen_slab_journal(struct slab_journal *journal)
+static void reopen_slab_journal(struct vdo_slab *slab)
 {
+	struct slab_journal *journal = slab->journal;
 	sequence_number_t block;
 
 	ASSERT_LOG_ONLY(journal->tail_header.entry_count == 0,
@@ -679,8 +849,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 		journal->partial_write_in_progress = !block_is_full(journal);
 	}
 
-	block_number = (journal->slab->journal_origin +
-			vdo_get_slab_journal_block_offset(journal, header->sequence_number));
+	block_number = journal->slab->journal_origin + (header->sequence_number % journal->size);
 	vio->completion.parent = journal;
 
 	/*
@@ -701,7 +870,9 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 	operation = vdo_get_admin_state_code(&journal->slab->state);
 	if (operation == VDO_ADMIN_STATE_WAITING_FOR_RECOVERY) {
 		vdo_finish_operation(&journal->slab->state,
-				     (is_vdo_read_only(journal) ? VDO_READ_ONLY : VDO_SUCCESS));
+				     (vdo_is_read_only(journal->slab->allocator->depot->vdo) ?
+				      VDO_READ_ONLY :
+				      VDO_SUCCESS));
 		return;
 	}
 
@@ -721,7 +892,7 @@ static void commit_tail(struct slab_journal *journal)
 		 */
 		return;
 
-	if (is_vdo_read_only(journal) ||
+	if (vdo_is_read_only(journal->slab->allocator->depot->vdo) ||
 	    journal->waiting_to_commit ||
 	    (journal->tail_header.entry_count == 0))
 		/*
@@ -743,7 +914,7 @@ static void commit_tail(struct slab_journal *journal)
 }
 
 /**
- * vdo_encode_slab_journal_entry() - Encode a slab journal entry.
+ * encode_slab_journal_entry() - Encode a slab journal entry.
  * @tail_header: The unpacked header for the block.
  * @payload: The journal block payload to hold the entry.
  * @sbn: The slab block number of the entry to encode.
@@ -753,11 +924,11 @@ static void commit_tail(struct slab_journal *journal)
  * Exposed for unit tests.
  */
 EXTERNAL_STATIC void
-vdo_encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
-			      slab_journal_payload *payload,
-			      slab_block_number sbn,
-			      enum journal_operation operation,
-			      bool increment)
+encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
+			  slab_journal_payload *payload,
+			  slab_block_number sbn,
+			  enum journal_operation operation,
+			  bool increment)
 {
 	journal_entry_count_t entry_number = tail_header->entry_count++;
 
@@ -842,11 +1013,11 @@ static void add_entry(struct slab_journal *journal,
 		}
 	}
 
-	vdo_encode_slab_journal_entry(&journal->tail_header,
-				      &block->payload,
-				      pbn - journal->slab->start,
-				      operation,
-				      increment);
+	encode_slab_journal_entry(&journal->tail_header,
+				  &block->payload,
+				  pbn - journal->slab->start,
+				  operation,
+				  increment);
 	journal->tail_header.recovery_point = recovery_point;
 	if (block_is_full(journal))
 		commit_tail(journal);
@@ -928,17 +1099,6 @@ static bool requires_reaping(const struct slab_journal *journal)
 	return (journal_length(journal) >= journal->blocking_threshold);
 }
 
-/**
- * vdo_slab_journal_requires_scrubbing() - Check to see if the journal should be scrubbed.
- * @journal: The slab journal.
- *
- * Return: true if the journal requires scrubbing.
- */
-bool vdo_slab_journal_requires_scrubbing(const struct slab_journal *journal)
-{
-	return (journal_length(journal) >= journal->scrubbing_threshold);
-}
-
 /** finish_summary_update() - A waiter callback that resets the writing state of a slab. */
 static void finish_summary_update(struct waiter *waiter, void *context)
 {
@@ -955,20 +1115,33 @@ static void finish_summary_update(struct waiter *waiter, void *context)
 	check_if_slab_drained(slab);
 }
 
-/**
- * handle_io_error() - Handle an I/O error reading or writing a reference count block.
- * @completion: The VIO doing the I/O as a completion.
- */
-static void handle_io_error(struct vdo_completion *completion)
-{
-	int result = completion->result;
-	struct vio *vio = as_vio(completion);
-	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
+static void write_reference_block(struct waiter *waiter, void *context);
 
-	record_metadata_io_error(vio);
-	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
-	slab->active_count--;
-	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
+/**
+ * launch_reference_block_write() - Launch the write of a dirty reference block by first acquiring
+ *                                  a VIO for it from the pool.
+ * @waiter: The waiter of the block which is starting to write.
+ * @context: The parent slab of the block.
+ *
+ * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
+ * currently in use.
+ */
+EXTERNAL_STATIC void launch_reference_block_write(struct waiter *waiter, void *context)
+{
+	struct vdo_slab *slab = context;
+
+	if (vdo_is_read_only(slab->allocator->depot->vdo))
+		return;
+
+	slab->active_count++;
+	container_of(waiter, struct reference_block, waiter)->is_writing = true;
+	waiter->callback = write_reference_block;
+	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
+}
+
+EXTERNAL_STATIC void save_dirty_reference_blocks(struct vdo_slab *slab)
+{
+	vdo_notify_all_waiters(&slab->dirty_blocks, launch_reference_block_write, slab);
 	check_if_slab_drained(slab);
 }
 
@@ -1009,7 +1182,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 		vdo_enqueue_waiter(&block->slab->dirty_blocks, &block->waiter);
 		if (vdo_is_state_draining(&slab->state))
 			/* We must be saving, and this block will otherwise not be relaunched. */
-			vdo_save_dirty_reference_blocks(slab);
+			save_dirty_reference_blocks(slab);
 
 		return;
 	}
@@ -1024,12 +1197,12 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
 	slab->active_count++;
 	slab->summary_waiter.callback = finish_summary_update;
-	vdo_update_slab_summary_entry(slab,
-				      &slab->summary_waiter,
-				      offset,
-				      true,
-				      true,
-				      slab->free_blocks);
+	update_slab_summary_entry(slab,
+				  &slab->summary_waiter,
+				  offset,
+				  true,
+				  true,
+				  slab->free_blocks);
 }
 
 /**
@@ -1078,6 +1251,23 @@ static void write_reference_block_endio(struct bio *bio)
 }
 
 /**
+ * handle_io_error() - Handle an I/O error reading or writing a reference count block.
+ * @completion: The VIO doing the I/O as a completion.
+ */
+static void handle_io_error(struct vdo_completion *completion)
+{
+	int result = completion->result;
+	struct vio *vio = as_vio(completion);
+	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
+
+	record_metadata_io_error(vio);
+	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	slab->active_count--;
+	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
+	check_if_slab_drained(slab);
+}
+
+/**
  * write_reference_block() - After a dirty block waiter has gotten a VIO from the VIO pool, copy
  *                           its counters and associated data into the VIO, and launch the write.
  * @waiter: The waiter of the dirty block.
@@ -1117,28 +1307,6 @@ static void write_reference_block(struct waiter *waiter, void *context)
 			    write_reference_block_endio,
 			    handle_io_error,
 			    REQ_OP_WRITE | REQ_PREFLUSH);
-}
-
-/**
- * launch_reference_block_write() - Launch the write of a dirty reference block by first acquiring
- *                                  a VIO for it from the pool.
- * @waiter: The waiter of the block which is starting to write.
- * @context: The parent slab of the block.
- *
- * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
- * currently in use.
- */
-EXTERNAL_STATIC void launch_reference_block_write(struct waiter *waiter, void *context)
-{
-	struct vdo_slab *slab = context;
-
-	if (vdo_is_read_only(slab->allocator->depot->vdo))
-		return;
-
-	slab->active_count++;
-	container_of(waiter, struct reference_block, waiter)->is_writing = true;
-	waiter->callback = write_reference_block;
-	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
 }
 
 static void reclaim_journal_space(struct slab_journal *journal)
@@ -1282,7 +1450,7 @@ static unsigned int calculate_slab_priority(struct vdo_slab *slab)
 	if (free_blocks == 0)
 		return 0;
 
-	if (vdo_is_slab_journal_blank(slab->journal))
+	if (is_slab_journal_blank(slab))
 		return unopened_slab_priority;
 
 	priority = (1 + ilog2(free_blocks));
@@ -1589,7 +1757,7 @@ adjust_reference_count(struct vdo_slab *slab,
 	struct reference_block *block;
 	bool provisional_decrement = false;
 
-	if (!vdo_is_slab_open(slab))
+	if (!is_slab_open(slab))
 		return VDO_INVALID_ADMIN_STATE;
 
 	result = slab_block_number_from_pbn(slab, updater->zpbn.pbn, &block_number);
@@ -1770,7 +1938,7 @@ static void add_entries(struct slab_journal *journal)
 		if (requires_reaping(journal)) {
 			WRITE_ONCE(journal->events->blocked_count,
 				   journal->events->blocked_count + 1);
-			vdo_save_dirty_reference_blocks(journal->slab);
+			save_dirty_reference_blocks(journal->slab);
 			break;
 		}
 
@@ -1795,7 +1963,7 @@ static void add_entries(struct slab_journal *journal)
 
 				WRITE_ONCE(journal->events->disk_full_count,
 					   journal->events->disk_full_count + 1);
-				vdo_save_dirty_reference_blocks(journal->slab);
+				save_dirty_reference_blocks(journal->slab);
 				break;
 			}
 
@@ -1806,7 +1974,10 @@ static void add_entries(struct slab_journal *journal)
 			 */
 			lock->count = journal->entries_per_block + 1;
 
-			if (header->sequence_number == 1)
+			if (header->sequence_number == 1) {
+				struct vdo_slab *slab = journal->slab;
+				block_count_t i;
+
 				/*
 				 * This is the first entry in this slab journal, ever. Dirty all of
 				 * the reference count blocks. Each will acquire a lock on the tail
@@ -1815,7 +1986,15 @@ static void add_entries(struct slab_journal *journal)
 				 * ref_counts since here we don't know how many reference blocks
 				 * the ref_counts has.
 				 */
-				vdo_acquire_dirty_block_locks(journal->slab);
+				for (i = 0; i < slab->reference_block_count; i++) {
+					slab->reference_blocks[i].slab_journal_lock = 1;
+					dirty_block(&slab->reference_blocks[i]);
+				}
+
+				adjust_slab_journal_block_reference(journal,
+								    1,
+								    slab->reference_block_count);
+			}
 		}
 
 		vdo_notify_next_waiter(&journal->entry_waiters, add_entry_from_waiter, journal);
@@ -1828,94 +2007,6 @@ static void add_entries(struct slab_journal *journal)
 	    !vdo_is_state_suspending(&journal->slab->state) &&
 	    !vdo_has_waiters(&journal->entry_waiters))
 		commit_tail(journal);
-}
-
-/**
- * vdo_release_recovery_journal_lock() - Request the slab journal to release the recovery journal
- *                                       lock it may hold on a specified recovery journal block.
- * @journal: The slab journal.
- * @recovery_lock: The sequence number of the recovery journal block whose locks should be
- *                 released.
- *
- * Return: true if the journal does hold a lock on the specified block (which it will release).
- */
-bool vdo_release_recovery_journal_lock(struct slab_journal *journal,
-				       sequence_number_t recovery_lock)
-{
-	if (recovery_lock > journal->recovery_lock) {
-		ASSERT_LOG_ONLY((recovery_lock < journal->recovery_lock),
-				"slab journal recovery lock is not older than the recovery journal head");
-		return false;
-	}
-
-	if ((recovery_lock < journal->recovery_lock) || is_vdo_read_only(journal))
-		return false;
-
-	/* All locks are held by the block which is in progress; write it. */
-	commit_tail(journal);
-	return true;
-}
-
-/**
- * vdo_resume_slab_journal() - Reset slab journal state, if necessary, for a suspend-resume cycle.
- * @journal: The journal to reset
- *
- * After a successful save, any info about locks, journal blocks partially filled, etc., is out of
- * date and should be reset.
- */
-void vdo_resume_slab_journal(struct slab_journal *journal)
-{
-	struct vdo *vdo = journal->slab->allocator->depot->vdo;
-
-	if ((vdo->suspend_type == VDO_ADMIN_STATE_SAVING) && !is_vdo_read_only(journal))
-		vdo_reopen_slab_journal(journal);
-}
-
-/**
- * vdo_drain_slab_journal() - Drain slab journal I/O.
- * @journal: The journal to drain.
- *
- * Depending upon the type of drain (as recorded in the journal's slab), any dirty journal blocks
- * may be written out.
- */
-void vdo_drain_slab_journal(struct slab_journal *journal)
-{
-	const struct admin_state_code *code = vdo_get_admin_state_code(&journal->slab->state);
-
-	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == journal->slab->allocator->thread_id),
-			"%s() called on correct thread",
-			__func__);
-
-	if ((code == VDO_ADMIN_STATE_REBUILDING) ||
-	    (code == VDO_ADMIN_STATE_SUSPENDING) ||
-	    (code == VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING))
-		return;
-
-	commit_tail(journal);
-}
-
-/**
- * vdo_dump_slab_journal() - Dump the slab journal.
- * @journal: The slab journal to dump.
- */
-void vdo_dump_slab_journal(const struct slab_journal *journal)
-{
-	uds_log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
-		     vdo_count_waiters(&journal->entry_waiters),
-		     uds_bool_to_string(journal->waiting_to_commit),
-		     uds_bool_to_string(journal->updating_slab_summary),
-		     (unsigned long long) journal->head,
-		     (unsigned long long) journal->unreapable,
-		     (unsigned long long) journal->tail,
-		     (unsigned long long) journal->next_commit,
-		     (unsigned long long) journal->summarized,
-		     (unsigned long long) journal->last_summarized,
-		     (unsigned long long) journal->recovery_lock,
-		     uds_bool_to_string(vdo_is_slab_journal_dirty(journal)));
-	/*
-	 * Given the frequency with which the locks are just a tiny bit off, it might be worth
-	 * dumping all the locks, but that might be too much logging.
-	 */
 }
 
 /**
@@ -2201,16 +2292,6 @@ make_provisional_reference(struct vdo_slab *slab, slab_block_number block_number
 }
 
 /**
- * vdo_save_dirty_reference_blocks() - Ask a slab object to save all its dirty blocks
- *                                     asynchronously.
- */
-void vdo_save_dirty_reference_blocks(struct vdo_slab *slab)
-{
-	vdo_notify_all_waiters(&slab->dirty_blocks, launch_reference_block_write, slab);
-	check_if_slab_drained(slab);
-}
-
-/**
  * dirty_all_reference_blocks() - Mark all reference count blocks in a slab as dirty.
  */
 static void dirty_all_reference_blocks(struct vdo_slab *slab)
@@ -2362,13 +2443,15 @@ EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
 {
 	bool save;
 	bool load;
-	const struct admin_state_code *state;
+	const struct admin_state_code *state = vdo_get_admin_state_code(&slab->state);
 
-	if (slab->counters == NULL)
+	if (state == VDO_ADMIN_STATE_SUSPENDING)
 		return;
 
-	state = vdo_get_admin_state_code(&slab->state);
-	if ((state == VDO_ADMIN_STATE_RECOVERING) || (state == VDO_ADMIN_STATE_SUSPENDING))
+	if ((state != VDO_ADMIN_STATE_REBUILDING) && (state != VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING))
+		commit_tail(slab->journal);
+
+	if ((state == VDO_ADMIN_STATE_RECOVERING) || (slab->counters == NULL))
 		return;
 
 	save = false;
@@ -2393,7 +2476,7 @@ EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
 
 		if (load ||
 		    (slab->free_blocks != data_blocks) ||
-		    !vdo_is_slab_journal_blank(slab->journal)) {
+		    !is_slab_journal_blank(slab)) {
 			dirty_all_reference_blocks(slab);
 			save = true;
 		}
@@ -2405,39 +2488,55 @@ EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
 	}
 
 	if (save)
-		vdo_save_dirty_reference_blocks(slab);
+		save_dirty_reference_blocks(slab);
 }
 
-/**
- * vdo_acquire_dirty_block_locks() - Mark all of a slab's reference count block dirty and cause
- *                                   them to hold locks on slab journal block 1.
- */
-void vdo_acquire_dirty_block_locks(struct vdo_slab *slab)
+EXTERNAL_STATIC int allocate_slab_counters(struct vdo_slab *slab)
 {
-	block_count_t i;
+	int result;
+	size_t index, bytes;
 
-	dirty_all_reference_blocks(slab);
-	for (i = 0; i < slab->reference_block_count; i++)
-		slab->reference_blocks[i].slab_journal_lock = 1;
+	result = ASSERT(slab->reference_blocks == NULL,
+			"vdo_slab %u doesn't allocate refcounts twice",
+			slab->slab_number);
+	if (result != VDO_SUCCESS)
+		return result;
 
-	adjust_slab_journal_block_reference(slab->journal, 1, slab->reference_block_count);
-}
+	result = UDS_ALLOCATE(slab->reference_block_count,
+			      struct reference_block,
+			      __func__,
+			      &slab->reference_blocks);
+	if (result != VDO_SUCCESS)
+		return result;
 
-/**
- * vdo_is_slab_open() - Check whether a slab is open, i.e. is neither quiescent nor quiescing.
- * @slab: The slab to check.
- *
- * Return: true if the slab is open.
- */
-bool vdo_is_slab_open(struct vdo_slab *slab)
-{
-	return (!vdo_is_state_quiescing(&slab->state) && !vdo_is_state_quiescent(&slab->state));
+	/*
+	 * Allocate such that the runt slab has a full-length memory array, plus a little padding
+	 * so we can word-search even at the very end.
+	 */
+	bytes = (slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD);
+	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
+	if (result != UDS_SUCCESS) {
+		UDS_FREE(UDS_FORGET(slab->reference_blocks));
+		return result;
+	}
+
+	slab->search_cursor.first_block = slab->reference_blocks;
+	slab->search_cursor.last_block = &slab->reference_blocks[slab->reference_block_count - 1];
+	reset_search_cursor(slab);
+
+	for (index = 0; index < slab->reference_block_count; index++) {
+		slab->reference_blocks[index] = (struct reference_block) {
+			.slab = slab,
+		};
+	}
+
+	return VDO_SUCCESS;
 }
 
 static int allocate_counters_if_clean(struct vdo_slab *slab)
 {
 	if (vdo_is_state_clean_load(&slab->state))
-		return vdo_allocate_slab_counters(slab);
+		return allocate_slab_counters(slab);
 
 	return VDO_SUCCESS;
 }
@@ -2552,6 +2651,30 @@ static void load_slab_journal(struct vdo_slab *slab)
 	acquire_vio_from_pool(slab->allocator->vio_pool, &journal->resource_waiter);
 }
 
+EXTERNAL_STATIC void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority)
+{
+	struct slab_scrubber *scrubber = &slab->allocator->scrubber;
+
+	ASSERT_LOG_ONLY((slab->status != VDO_SLAB_REBUILT), "slab to be scrubbed is unrecovered");
+
+	if (slab->status != VDO_SLAB_REQUIRES_SCRUBBING)
+		return;
+
+	list_del_init(&slab->allocq_entry);
+	if (!slab->was_queued_for_scrubbing) {
+		WRITE_ONCE(scrubber->slab_count, scrubber->slab_count + 1);
+		slab->was_queued_for_scrubbing = true;
+	}
+
+	if (high_priority) {
+		slab->status = VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
+		list_add_tail(&slab->allocq_entry, &scrubber->high_priority_slabs);
+		return;
+	}
+
+	list_add_tail(&slab->allocq_entry, &scrubber->slabs);
+}
+
 /* Queue a slab for allocation or scrubbing. */
 static void queue_slab(struct vdo_slab *slab)
 {
@@ -2561,6 +2684,10 @@ static void queue_slab(struct vdo_slab *slab)
 
 	ASSERT_LOG_ONLY(list_empty(&slab->allocq_entry),
 			"a requeued slab must not already be on a ring");
+
+	if (vdo_is_read_only(allocator->depot->vdo))
+		return;
+
 	free_blocks = slab->free_blocks;
 	result = ASSERT((free_blocks <= allocator->depot->slab_config.data_blocks),
 			"rebuilt slab %u must have a valid free block count (has %llu, expected maximum %llu)",
@@ -2573,7 +2700,7 @@ static void queue_slab(struct vdo_slab *slab)
 	}
 
 	if (slab->status != VDO_SLAB_REBUILT) {
-		vdo_register_slab_for_scrubbing(slab, false);
+		register_slab_for_scrubbing(slab, false);
 		return;
 	}
 
@@ -2584,12 +2711,14 @@ static void queue_slab(struct vdo_slab *slab)
 		 * FIXME: under what situation would the slab be resuming here?
 		 */
 		WRITE_ONCE(allocator->allocated_blocks, allocator->allocated_blocks - free_blocks);
-		if (!vdo_is_slab_journal_blank(slab->journal))
+		if (!is_slab_journal_blank(slab))
 			WRITE_ONCE(allocator->statistics.slabs_opened,
 				   allocator->statistics.slabs_opened + 1);
 	}
 
-	vdo_resume_slab_journal(slab->journal);
+	if (allocator->depot->vdo->suspend_type == VDO_ADMIN_STATE_SAVING)
+		reopen_slab_journal(slab);
+
 	prioritize_slab(slab);
 }
 
@@ -2608,7 +2737,6 @@ EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
 		if (operation == VDO_ADMIN_STATE_SCRUBBING)
 			slab->status = VDO_SLAB_REBUILDING;
 
-		vdo_drain_slab_journal(slab->journal);
 		drain_slab(slab);
 		check_if_slab_drained(slab);
 		return;
@@ -2656,35 +2784,6 @@ static struct vdo_slab *get_next_slab(struct slab_scrubber *scrubber)
 static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
 {
 	return (get_next_slab(scrubber) != NULL);
-}
-
-/**
- * vdo_register_slab_for_scrubbing() - Register a slab with a scrubber.
- * @slab: The slab to scrub.
- * @high_priority: true if the slab should be put on the high-priority queue.
- */
-void vdo_register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority)
-{
-	struct slab_scrubber *scrubber = &slab->allocator->scrubber;
-
-	ASSERT_LOG_ONLY((slab->status != VDO_SLAB_REBUILT), "slab to be scrubbed is unrecovered");
-
-	if (slab->status != VDO_SLAB_REQUIRES_SCRUBBING)
-		return;
-
-	list_del_init(&slab->allocq_entry);
-	if (!slab->was_queued_for_scrubbing) {
-		WRITE_ONCE(scrubber->slab_count, scrubber->slab_count + 1);
-		slab->was_queued_for_scrubbing = true;
-	}
-
-	if (high_priority) {
-		slab->status = VDO_SLAB_REQUIRES_HIGH_PRIORITY_SCRUBBING;
-		list_add_tail(&slab->allocq_entry, &scrubber->high_priority_slabs);
-		return;
-	}
-
-	list_add_tail(&slab->allocq_entry, &scrubber->slabs);
 }
 
 /**
@@ -2768,7 +2867,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
 
 	slab->status = VDO_SLAB_REBUILT;
 	queue_slab(slab);
-	vdo_reopen_slab_journal(slab->journal);
+	reopen_slab_journal(slab);
 	WRITE_ONCE(scrubber->slab_count, scrubber->slab_count - 1);
 	scrub_next_slab(scrubber);
 }
@@ -2863,13 +2962,13 @@ static void apply_journal_entries(struct vdo_completion *completion)
 
 	/* Find the boundaries of the useful part of the journal. */
 	sequence_number_t tail = journal->tail;
-	tail_block_offset_t end_index = vdo_get_slab_journal_block_offset(journal, tail - 1);
+	tail_block_offset_t end_index = (tail - 1) % journal->size;
 	char *end_data = scrubber->vio.data + (end_index * VDO_BLOCK_SIZE);
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
 	sequence_number_t head = __le64_to_cpu(end_block->header.head);
-	tail_block_offset_t head_index = vdo_get_slab_journal_block_offset(journal, head);
+	tail_block_offset_t head_index = head % journal->size;
 	block_count_t index = head_index;
 
 	struct journal_point ref_counts_point = slab->slab_journal_point;
@@ -3029,205 +3128,10 @@ EXTERNAL_STATIC void scrub_slabs(struct block_allocator *allocator, struct vdo_c
 	if (scrubber->high_priority_only &&
 	    vdo_is_priority_table_empty(allocator->prioritized_slabs) &&
 	    list_empty(&scrubber->high_priority_slabs))
-		vdo_register_slab_for_scrubbing(get_next_slab(scrubber), true);
+		register_slab_for_scrubbing(get_next_slab(scrubber), true);
 
 	vdo_resume_if_quiescent(&scrubber->admin_state);
 	scrub_next_slab(scrubber);
-}
-
-/* FULLNESS HINT COMPUTATION */
-
-/**
- * compute_fullness_hint() - Translate a slab's free block count into a 'fullness hint' that can be
- *                           stored in a slab_summary_entry's 7 bits that are dedicated to its free
- *                           count.
- * @depot: The depot whose summary being updated.
- * @free_blocks: The number of free blocks.
- *
- * Note: the number of free blocks must be strictly less than 2^23 blocks, even though
- * theoretically slabs could contain precisely 2^23 blocks; there is an assumption that at least
- * one block is used by metadata. This assumption is necessary; otherwise, the fullness hint might
- * overflow. The fullness hint formula is roughly (fullness >> 16) & 0x7f, but ((1 > 16) & 0x7f is
- * the same as (0 >> 16) & 0x7f, namely 0, which is clearly a bad hint if it could indicate both
- * 2^23 free blocks or 0 free blocks.
- *
- * Return: A fullness hint, which can be stored in 7 bits.
- */
-static u8 __must_check compute_fullness_hint(struct slab_depot *depot, block_count_t free_blocks)
-{
-	block_count_t hint;
-
-	ASSERT_LOG_ONLY((free_blocks < (1 << 23)), "free blocks must be less than 2^23");
-
-	if (free_blocks == 0)
-		return 0;
-
-	hint = free_blocks >> depot->hint_shift;
-	return ((hint == 0) ? 1 : hint);
-}
-
-/**
- * check_summary_drain_complete() - Check whether an allocators summary has finished draining.
- */
-static void check_summary_drain_complete(struct block_allocator *allocator)
-{
-	struct vdo *vdo = allocator->depot->vdo;
-
-	if (!vdo_is_state_draining(&allocator->summary_state) ||
-	    (allocator->summary_write_count > 0))
-		return;
-
-	vdo_finish_operation(&allocator->summary_state,
-			     (vdo_is_read_only(vdo) ? VDO_READ_ONLY : VDO_SUCCESS));
-}
-
-/**
- * notify_summary_waiters() - Wake all the waiters in a given queue.
- * @allocator: The block allocator summary which owns the queue.
- * @queue: The queue to notify.
- */
-static void notify_summary_waiters(struct block_allocator *allocator, struct wait_queue *queue)
-{
-	int result = (vdo_is_read_only(allocator->depot->vdo) ? VDO_READ_ONLY : VDO_SUCCESS);
-
-	vdo_notify_all_waiters(queue, NULL, &result);
-}
-
-static void launch_write(struct slab_summary_block *summary_block);
-
-/**
- * finish_updating_slab_summary_block() - Finish processing a block which attempted to write,
- *                                        whether or not the attempt succeeded.
- * @block: The block.
- */
-static void finish_updating_slab_summary_block(struct slab_summary_block *block)
-{
-	notify_summary_waiters(block->allocator, &block->current_update_waiters);
-	block->writing = false;
-	block->allocator->summary_write_count--;
-	if (vdo_has_waiters(&block->next_update_waiters))
-		launch_write(block);
-	else
-		check_summary_drain_complete(block->allocator);
-}
-
-/**
- * finish_update() - This is the callback for a successful summary block write.
- * @completion: The write vio.
- */
-static void finish_update(struct vdo_completion *completion)
-{
-	struct slab_summary_block *block =
-		container_of(as_vio(completion), struct slab_summary_block, vio);
-
-	atomic64_inc(&block->allocator->depot->summary_statistics.blocks_written);
-	finish_updating_slab_summary_block(block);
-}
-
-/**
- * handle_write_error() - Handle an error writing a slab summary block.
- * @completion: The write VIO.
- */
-static void handle_write_error(struct vdo_completion *completion)
-{
-	struct slab_summary_block *block =
-		container_of(as_vio(completion), struct slab_summary_block, vio);
-
-	record_metadata_io_error(as_vio(completion));
-	vdo_enter_read_only_mode(completion->vdo, completion->result);
-	finish_updating_slab_summary_block(block);
-}
-
-static void write_slab_summary_endio(struct bio *bio)
-{
-	struct vio *vio = bio->bi_private;
-	struct slab_summary_block *block = container_of(vio, struct slab_summary_block, vio);
-
-	continue_vio_after_io(vio, finish_update, block->allocator->thread_id);
-}
-
-/**
- * launch_write() - Write a slab summary block unless it is currently out for writing.
- * @block: The block that needs to be committed.
- */
-static void launch_write(struct slab_summary_block *block)
-{
-	struct block_allocator *allocator = block->allocator;
-	struct slab_depot *depot = allocator->depot;
-	physical_block_number_t pbn;
-
-	if (block->writing)
-		return;
-
-	allocator->summary_write_count++;
-	vdo_transfer_all_waiters(&block->next_update_waiters, &block->current_update_waiters);
-	block->writing = true;
-
-	if (vdo_is_read_only(depot->vdo)) {
-		finish_updating_slab_summary_block(block);
-		return;
-	}
-
-	memcpy(block->outgoing_entries, block->entries, VDO_BLOCK_SIZE);
-
-	/*
-	 * Flush before writing to ensure that the slab journal tail blocks and reference updates
-	 * covered by this summary update are stable (VDO-2332).
-	 */
-	pbn = (depot->summary_origin +
-	       (VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE * allocator->zone_number) +
-	       block->index);
-	submit_metadata_vio(&block->vio,
-			    pbn,
-			    write_slab_summary_endio,
-			    handle_write_error,
-			    REQ_OP_WRITE | REQ_PREFLUSH);
-}
-
-/**
- * vdo_update_slab_summary_entry() - Update the entry for a slab.
- * @slab: The slab whose entry is to be updated
- * @waiter: The waiter that is updating the summary.
- * @tail_block_offset: The offset of the slab journal's tail block.
- * @load_ref_counts: Whether the reference counts must be loaded from disk on the vdo load.
- * @is_clean: Whether the slab is clean.
- * @free_blocks: The number of free blocks.
- */
-void vdo_update_slab_summary_entry(struct vdo_slab *slab,
-				   struct waiter *waiter,
-				   tail_block_offset_t tail_block_offset,
-				   bool load_ref_counts,
-				   bool is_clean,
-				   block_count_t free_blocks)
-{
-	u8 index = slab->slab_number / VDO_SLAB_SUMMARY_ENTRIES_PER_BLOCK;
-	struct block_allocator *allocator = slab->allocator;
-	struct slab_summary_block *block = &allocator->summary_blocks[index];
-	int result;
-	struct slab_summary_entry *entry;
-
-	if (vdo_is_read_only(block->vio.completion.vdo)) {
-		result = VDO_READ_ONLY;
-		waiter->callback(waiter, &result);
-		return;
-	}
-
-	if (vdo_is_state_draining(&allocator->summary_state) ||
-	    vdo_is_state_quiescent(&allocator->summary_state)) {
-		result = VDO_INVALID_ADMIN_STATE;
-		waiter->callback(waiter, &result);
-		return;
-	}
-
-	entry = &allocator->summary_entries[slab->slab_number];
-	*entry = (struct slab_summary_entry) {
-		.tail_block_offset = tail_block_offset,
-		.load_ref_counts = (entry->load_ref_counts || load_ref_counts),
-		.is_dirty = !is_clean,
-		.fullness_hint = compute_fullness_hint(allocator->depot, free_blocks),
-	};
-	vdo_enqueue_waiter(&block->next_update_waiters, waiter);
-	launch_write(block);
 }
 
 static inline void assert_on_allocator_thread(thread_id_t thread_id, const char *function_name)
@@ -3351,7 +3255,7 @@ int vdo_acquire_provisional_reference(struct vdo_slab *slab,
 	if (vdo_pbn_lock_has_provisional_reference(lock))
 		return VDO_SUCCESS;
 
-	if (!vdo_is_slab_open(slab))
+	if (!is_slab_open(slab))
 		return VDO_INVALID_ADMIN_STATE;
 
 	result = slab_block_number_from_pbn(slab, pbn, &block_number);
@@ -3375,7 +3279,7 @@ allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number
 {
 	slab_block_number free_index;
 
-	if (!vdo_is_slab_open(slab))
+	if (!is_slab_open(slab))
 		return VDO_INVALID_ADMIN_STATE;
 
 	if (!search_reference_blocks(slab, &free_index))
@@ -3403,7 +3307,7 @@ allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number
 static void open_slab(struct vdo_slab *slab)
 {
 	reset_search_cursor(slab);
-	if (vdo_is_slab_journal_blank(slab->journal)) {
+	if (is_slab_journal_blank(slab)) {
 		WRITE_ONCE(slab->allocator->statistics.slabs_opened,
 			   slab->allocator->statistics.slabs_opened + 1);
 		dirty_all_reference_blocks(slab);
@@ -3480,7 +3384,7 @@ void vdo_modify_reference_count(struct vdo_completion *completion,
 {
 	struct vdo_slab *slab = vdo_get_slab(completion->vdo->depot, updater->zpbn.pbn);
 
-	if (!vdo_is_slab_open(slab)) {
+	if (!is_slab_open(slab)) {
 		vdo_continue_completion(completion, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
@@ -3492,7 +3396,7 @@ void vdo_modify_reference_count(struct vdo_completion *completion,
 
 	vdo_enqueue_waiter(&slab->journal->entry_waiters, &updater->waiter);
 	if ((slab->status != VDO_SLAB_REBUILT) && requires_reaping(slab->journal))
-		vdo_register_slab_for_scrubbing(slab, true);
+		register_slab_for_scrubbing(slab, true);
 
 	add_entries(slab->journal);
 }
@@ -3768,6 +3672,7 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 	while (heap.nr > 0) {
 		bool high_priority;
 		struct vdo_slab *slab;
+		struct slab_journal *journal;
 
 		current_slab_status = slab_statuses[0];
 		min_heap_pop(&heap, &slab_status_min_heap);
@@ -3781,10 +3686,11 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		}
 
 		slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
+		journal = slab->journal;
 		high_priority = ((current_slab_status.is_clean &&
 				 (depot->load_type == VDO_SLAB_DEPOT_NORMAL_LOAD)) ||
-				 vdo_slab_journal_requires_scrubbing(slab->journal));
-		vdo_register_slab_for_scrubbing(slab, high_priority);
+				 (journal_length(journal) >= journal->scrubbing_threshold));
+		register_slab_for_scrubbing(slab, high_priority);
 	}
 
 	UDS_FREE(slab_statuses);
@@ -3829,6 +3735,7 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 	uds_log_info("block_allocator zone %u", allocator->zone_number);
 	while (iterator.next != NULL) {
 		struct vdo_slab *slab = next_slab(&iterator);
+		struct slab_journal *journal = slab->journal;
 
 		if (slab->reference_blocks != NULL)
 			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
@@ -3841,7 +3748,22 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 				     slab->slab_number,
 				     status_to_string(slab->status));
 
-		vdo_dump_slab_journal(slab->journal);
+		uds_log_info("  slab journal: entry_waiters=%zu waiting_to_commit=%s updating_slab_summary=%s head=%llu unreapable=%llu tail=%llu next_commit=%llu summarized=%llu last_summarized=%llu recovery_lock=%llu dirty=%s",
+			     vdo_count_waiters(&journal->entry_waiters),
+			     uds_bool_to_string(journal->waiting_to_commit),
+			     uds_bool_to_string(journal->updating_slab_summary),
+			     (unsigned long long) journal->head,
+			     (unsigned long long) journal->unreapable,
+			     (unsigned long long) journal->tail,
+			     (unsigned long long) journal->next_commit,
+			     (unsigned long long) journal->summarized,
+			     (unsigned long long) journal->last_summarized,
+			     (unsigned long long) journal->recovery_lock,
+			     uds_bool_to_string(journal->recovery_lock != 0));
+		/*
+		 * Given the frequency with which the locks are just a tiny bit off, it might be
+		 * worth dumping all the locks, but that might be too much logging.
+		 */
 
 		if (slab->counters != NULL)
 			/* Terse because there are a lot of slabs to dump and syslog is lossy. */
@@ -3883,54 +3805,6 @@ EXTERNAL_STATIC void free_slab(struct vdo_slab *slab)
 	UDS_FREE(UDS_FORGET(slab->counters));
 	UDS_FREE(UDS_FORGET(slab->reference_blocks));
 	UDS_FREE(slab);
-}
-
-/**
- * vdo_allocate_slab_counters() - Allocate the reference counters for a slab.
- * @slab: The slab whose reference counts need allocation.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-int vdo_allocate_slab_counters(struct vdo_slab *slab)
-{
-	int result;
-	size_t index, bytes;
-
-	result = ASSERT(slab->reference_blocks == NULL,
-			"vdo_slab %u doesn't allocate refcounts twice",
-			slab->slab_number);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = UDS_ALLOCATE(slab->reference_block_count,
-			      struct reference_block,
-			      __func__,
-			      &slab->reference_blocks);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	/*
-	 * Allocate such that the runt slab has a full-length memory array, plus a little padding
-	 * so we can word-search even at the very end.
-	 */
-	bytes = ((slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD));
-	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(UDS_FORGET(slab->reference_blocks));
-		return result;
-	}
-
-	slab->search_cursor.first_block = slab->reference_blocks;
-	slab->search_cursor.last_block = &slab->reference_blocks[slab->reference_block_count - 1];
-	reset_search_cursor(slab);
-
-	for (index = 0; index < slab->reference_block_count; index++) {
-		slab->reference_blocks[index] = (struct reference_block) {
-			.slab = slab,
-		};
-	}
-
-	return VDO_SUCCESS;
 }
 
 /**
@@ -3983,7 +3857,7 @@ make_slab(physical_block_number_t slab_origin,
 
 	if (is_new) {
 		vdo_set_admin_state_code(&slab->state, VDO_ADMIN_STATE_NEW);
-		result = vdo_allocate_slab_counters(slab);
+		result = allocate_slab_counters(slab);
 		if (result != VDO_SUCCESS) {
 			free_slab(slab);
 			return result;
@@ -4078,6 +3952,33 @@ static thread_id_t get_allocator_thread_id(void *context, zone_count_t zone_numb
 	return ((struct slab_depot *) context)->allocators[zone_number].thread_id;
 }
 
+/**
+ * release_recovery_journal_lock() - Request the slab journal to release the recovery journal lock
+ *                                   it may hold on a specified recovery journal block.
+ * @journal: The slab journal.
+ * @recovery_lock: The sequence number of the recovery journal block whose locks should be
+ *                 released.
+ *
+ * Return: true if the journal does hold a lock on the specified block (which it will release).
+ */
+EXTERNAL_STATIC bool __must_check
+release_recovery_journal_lock(struct slab_journal *journal, sequence_number_t recovery_lock)
+{
+	if (recovery_lock > journal->recovery_lock) {
+		ASSERT_LOG_ONLY((recovery_lock < journal->recovery_lock),
+				"slab journal recovery lock is not older than the recovery journal head");
+		return false;
+	}
+
+	if ((recovery_lock < journal->recovery_lock) ||
+	    vdo_is_read_only(journal->slab->allocator->depot->vdo))
+		return false;
+
+	/* All locks are held by the block which is in progress; write it. */
+	commit_tail(journal);
+	return true;
+}
+
 /*
  * Request a commit of all dirty tail blocks which are locking the recovery journal block the depot
  * is seeking to release.
@@ -4093,7 +3994,7 @@ static void release_tail_block_locks(void *context,
 	struct list_head *list = &depot->allocators[zone_number].dirty_slab_journals;
 
 	list_for_each_entry_safe(journal, tmp, list, dirty_entry) {
-		if (!vdo_release_recovery_journal_lock(journal, depot->active_release_request))
+		if (!release_recovery_journal_lock(journal, depot->active_release_request))
 			break;
 	}
 
@@ -4529,7 +4430,7 @@ int vdo_allocate_reference_counters(struct slab_depot *depot)
 		get_depot_slab_iterator(depot, depot->slab_count - 1, 0, 1);
 
 	while (iterator.next != NULL) {
-		int result = vdo_allocate_slab_counters(next_slab(&iterator));
+		int result = allocate_slab_counters(next_slab(&iterator));
 
 		if (result != VDO_SUCCESS)
 			return result;

@@ -425,7 +425,7 @@ static EntryNumber performAddEntry(EntryNumber entry)
   struct vdo_completion *completion;
   makeWrappedVIO(entry, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryAction, completion));
-  CU_ASSERT_TRUE(vdo_is_slab_journal_dirty(journal));
+  CU_ASSERT_NOT_EQUAL(journal->recovery_lock, 0);
   UDS_FREE(completion);
   return (entry + 1);
 }
@@ -620,9 +620,7 @@ static void releaseJournalBlock(sequence_number_t sequenceNumber)
  **/
 static void commitJournalTail(struct vdo_completion *completion)
 {
-  CU_ASSERT_EQUAL(commitExpected,
-                  vdo_release_recovery_journal_lock(journal,
-                                                    recoveryJournalLock));
+  CU_ASSERT_EQUAL(commitExpected, release_recovery_journal_lock(journal, recoveryJournalLock));
   vdo_finish_completion(completion);
 }
 
@@ -1197,20 +1195,20 @@ static void testCommitPoint(void)
   // Releasing the fourth block should not move the commit point.
   releaseJournalBlock(4);
   CU_ASSERT_EQUAL(2, journal->next_commit);
-  CU_ASSERT_FALSE(vdo_is_slab_journal_dirty(journal));
+  CU_ASSERT_EQUAL(journal->recovery_lock, 0);
 
   // Releasing the third block should not move the commit point since the
   // second block is still held up.
   releaseJournalBlock(3);
   CU_ASSERT_EQUAL(2, journal->next_commit);
-  CU_ASSERT_FALSE(vdo_is_slab_journal_dirty(journal));
+  CU_ASSERT_EQUAL(journal->recovery_lock, 0);
 
   // Releasing the second block should move the commit point to match the
   // append point since all entries are now committed.
   releaseJournalBlock(2);
   assertAppendPoint(VIO_COUNT + 1, 0);
   assertJournalCommitted();
-  CU_ASSERT_FALSE(vdo_is_slab_journal_dirty(journal));
+  CU_ASSERT_EQUAL(journal->recovery_lock, 0);
 
   performSuccessfulSlabAction(journal->slab, VDO_ADMIN_STATE_SUSPENDING);
   assertAppendPoint(VIO_COUNT + 1, 0);
@@ -1303,7 +1301,7 @@ static void prepareForJournalReapWaiting(void)
  **/
 static void saveDirtyReferenceBlocksAction(struct vdo_completion *completion)
 {
-  vdo_save_dirty_reference_blocks(journal->slab);
+  save_dirty_reference_blocks(journal->slab);
   vdo_finish_completion(completion);
 }
 

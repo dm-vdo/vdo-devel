@@ -102,8 +102,7 @@ static void testNoReplay(void)
   // Mark the slab as dirty in slab summary to force scrubbing on next restart.
   // Note that the free block count should be recalculated during scrubbing.
   struct slab_journal *slabJournal = getVDOSlabJournal(dirtySlab->slab_number);
-  tail_block_offset_t tailBlockOffset
-    = vdo_get_slab_journal_block_offset(slabJournal, slabJournal->last_summarized);
+  tail_block_offset_t tailBlockOffset = slabJournal->last_summarized % slabJournal->size;
   struct block_allocator *allocator = dirtySlab->allocator;
   bool loadRefCounts = allocator->summary_entries[dirtySlab->slab_number].load_ref_counts;
   performSlabSummaryUpdate(dirtySlab->slab_number, tailBlockOffset, loadRefCounts, false, 1000);

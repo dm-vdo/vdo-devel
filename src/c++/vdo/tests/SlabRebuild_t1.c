@@ -118,7 +118,7 @@ static void scrubSlabAction(struct vdo_completion *completion)
   VDO_ASSERT_SUCCESS(initialize_slab_scrubber(slab->allocator));
   slab->allocator->summary_entries[slab->slab_number].is_dirty = true;
   slab->status = VDO_SLAB_REQUIRES_SCRUBBING;
-  vdo_register_slab_for_scrubbing(slab, true);
+  register_slab_for_scrubbing(slab, true);
   wrapCompletionCallbackAndErrorHandler(completion, runSavedCallbackAssertNoRequeue, failOnError);
   scrub_slabs(slab->allocator, completion);
 }
@@ -344,11 +344,11 @@ static void writeSlabJournalBlocks(void)
         }
       }
 
-      vdo_encode_slab_journal_entry(&header,
-                                    &block->payload,
-                                    sbn,
-                                    updater.operation,
-                                    updater.increment);
+      encode_slab_journal_entry(&header,
+                                &block->payload,
+                                sbn,
+                                updater.operation,
+                                updater.increment);
 
       // The header hasn't been packed yet, but decoding from the block
       // requires the hasBlockMapIncrements field from the header.

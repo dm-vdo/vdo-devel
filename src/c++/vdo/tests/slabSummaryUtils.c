@@ -54,12 +54,12 @@ void doUpdateSlabSummaryEntry(struct vdo_completion *completion)
   // Capture this before the completion callback is invoked, since that may
   // allow the test thread to destroy the completion.
   bool shouldSignal = client->shouldSignal;
-  vdo_update_slab_summary_entry(&client->slab,
-                                &client->waiter,
-                                client->tailBlockOffset,
-                                client->loadRefCounts,
-                                client->isClean,
-                                client->freeBlocks);
+  update_slab_summary_entry(&client->slab,
+                            &client->waiter,
+                            client->tailBlockOffset,
+                            client->loadRefCounts,
+                            client->isClean,
+                            client->freeBlocks);
 
   // Must only notify if the caller is using launch/wait. If the caller is
   // using performAction(), the completion may already be gone. [VDO-4965]

@@ -68,12 +68,12 @@ static void updateNextSlab(struct waiter *waiter, void *context)
 
   bool inZone = ((slab.slab_number % INITIAL_ZONES) == zone);
   slab.allocator = &vdo->depot->allocators[zone];
-  vdo_update_slab_summary_entry(&slab,
-                                waiter,
-                                (inZone ? (slab.slab_number & 0xff) : 0),
-                                inZone,
-                                !inZone,
-                                (zone << vdo->depot->hint_shift));
+  update_slab_summary_entry(&slab,
+                            waiter,
+                            (inZone ? (slab.slab_number & 0xff) : 0),
+                            inZone,
+                            !inZone,
+                            (zone << vdo->depot->hint_shift));
 }
 
 /**********************************************************************/

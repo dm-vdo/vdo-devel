@@ -47,7 +47,7 @@ static void initializeRefCounts(void)
 
   VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE, &depot->slab_config));
   VDO_ASSERT_SUCCESS(make_slab(0, allocator, NULL, 0, false, &slab));
-  VDO_ASSERT_SUCCESS(vdo_allocate_slab_counters(slab));
+  VDO_ASSERT_SUCCESS(allocate_slab_counters(slab));
 
   /*
    * Set the slab to be unrecovered so that slab journal locks will be ignored.

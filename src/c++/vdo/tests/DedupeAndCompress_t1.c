@@ -230,8 +230,7 @@ static void testReadWriteMix(void) {
     slabToSave = depot->slabs[i];
     performSuccessfulSlabAction(slabToSave, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
     struct slab_journal *slabJournal = getVDOSlabJournal(slabToSave->slab_number);
-    tail_block_offset_t tailBlockOffset
-      = vdo_get_slab_journal_block_offset(slabJournal, slabJournal->last_summarized);
+    tail_block_offset_t tailBlockOffset = slabJournal->last_summarized % slabJournal->size;
     bool loadRefCounts =
       slabToSave->allocator->summary_entries[slabToSave->slab_number].load_ref_counts;
     performSlabSummaryUpdate(slabToSave->slab_number, tailBlockOffset, loadRefCounts, false, 1000);
