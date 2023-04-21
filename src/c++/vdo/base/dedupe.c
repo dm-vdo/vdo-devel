@@ -117,7 +117,6 @@
 #include <linux/kernel.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
-#include <linux/murmurhash3.h>
 #include <linux/ratelimit.h>
 #include <linux/spinlock.h>
 #include <linux/timer.h>

@@ -26,7 +26,6 @@ EXTRA_CFLAGS =	-fno-builtin-memset					    \
 		-fno-stack-protector					    \
 		-Werror							    \
 		'$$(if $$(CONFIG_KASAN) $$(LLVM),,-Wframe-larger-than=400)' \
-		-DUDS_MURMURHASH3					    \
 		-DCURRENT_VERSION=\"$(VDO_VERSION)\"			    \
 		-I'$$(KBUILD_EXTMOD)'
 

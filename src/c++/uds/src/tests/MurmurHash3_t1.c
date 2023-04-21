@@ -3,10 +3,9 @@
  * Copyright Red Hat
  */
 
-#include <linux/murmurhash3.h>
-
 #include "albtest.h"
 #include "assertions.h"
+#include "murmurhash3.h"
 #include "testPrototypes.h"
 
 static const char *input1 = "The quick brown fox jumps over the lazy dog";

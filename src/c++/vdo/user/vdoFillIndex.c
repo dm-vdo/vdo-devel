@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 #include "errors.h"
-#include "linux/murmurhash3.h"
+#include "murmurhash3.h"
 #include "uds.h"
 
 #define BLOCK_SIZE 4096

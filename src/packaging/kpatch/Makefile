@@ -188,7 +188,6 @@ overlay overlay_vdo:
 	sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "$(VDO_VERSION)"/' \
 		$(LINUX_VDO_SRC)/dm-vdo-target.c
 	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
-	mv $(LINUX_VDO_SRC)/linux/murmurhash3.h $(LINUX_SRC)/include/linux/
 
 	# Update Kconfig and Makefile against the master branch, not
 	# a different branch such as the vdo-devel branch

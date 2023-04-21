@@ -15,7 +15,6 @@
 #include <linux/list.h>
 #include <linux/lz4.h>
 #include <linux/minmax.h>
-#include <linux/murmurhash3.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
 #ifndef VDO_UPSTREAM
@@ -25,6 +24,7 @@
 
 #include "logger.h"
 #include "memory-alloc.h"
+#include "murmurhash3.h"
 #include "permassert.h"
 
 #include "block-map.h"

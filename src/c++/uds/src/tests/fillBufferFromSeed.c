@@ -3,8 +3,7 @@
  * Copyright Red Hat
  */
 
-#include <linux/murmurhash3.h>
-
+#include "murmurhash3.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 
@@ -18,7 +17,7 @@ static inline uint32_t numberFromBuffer(const u8 *buffer)
 uint64_t fillBufferFromSeed(uint64_t seed, void *buffer, size_t size)
 {
   enum {
-    HASH_SIZE = 16              // for MurmurHash3_x64_128
+    HASH_SIZE = 16              // for murmurhash3_128
   };
 
   // hex numbers below all from /dev/urandom...

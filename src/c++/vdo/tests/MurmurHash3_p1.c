@@ -3,15 +3,15 @@
  *
  * %LICENSE%
  *
- * Performance testing of Murmur3 calculation.
+ * Performance testing of MurmurHash3 calculation.
  *
  * $Id$
  */
 
 #include "assertions.h"
+#include "murmurhash3.h"
 #include "uds.h"
 
-#include <linux/murmurhash3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>

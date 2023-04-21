@@ -11,8 +11,6 @@ include $(PLATFORM_DIR)/defines
 
 vpath %.c $(PLATFORM_DIR)/uds
 vpath %.c $(SRC_UDS_DIR)
-vpath %.c $(SRC_UDS_DIR)/murmur
-vpath %.c $(SRC_UDS_DIR)/util
 
 # Flags for linking the shared library itself.
 SHLIBFLAGS = -lm -ldl -pthread -lrt $(shell getconf LFS_LDFLAGS)

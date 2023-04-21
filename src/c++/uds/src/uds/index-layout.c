@@ -5,12 +5,12 @@
 
 #include "index-layout.h"
 
-#include <linux/murmurhash3.h>
 #include <linux/random.h>
 
 #include "config.h"
 #include "logger.h"
 #include "memory-alloc.h"
+#include "murmurhash3.h"
 #include "numeric.h"
 #include "open-chapter.h"
 #include "time-utils.h"

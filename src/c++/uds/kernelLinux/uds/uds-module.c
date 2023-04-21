@@ -88,6 +88,7 @@ EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 #include "index.h"
 #include "index-session.h"
 #include "io-factory.h"
+#include "murmurhash3.h"
 #include "open-chapter.h"
 #include "request-queue.h"
 #include "volume.h"
@@ -151,6 +152,7 @@ EXPORT_SYMBOL_GPL(make_volume_index);
 EXPORT_SYMBOL_GPL(map_to_physical_page);
 EXPORT_SYMBOL_GPL(min_volume_index_delta_lists);
 EXPORT_SYMBOL_GPL(move_bits);
+EXPORT_SYMBOL_GPL(murmurhash3_128);
 EXPORT_SYMBOL_GPL(put_open_chapter);
 EXPORT_SYMBOL_GPL(put_page_in_cache);
 EXPORT_SYMBOL_GPL(put_volume_index_record);

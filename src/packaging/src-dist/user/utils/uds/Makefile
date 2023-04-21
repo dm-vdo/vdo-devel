@@ -51,10 +51,8 @@ MY_CFLAGS   = $(MY_FLAGS)
 MY_LDFLAGS  =
 
 vpath %.c .
-vpath %.c ./murmur
 
-UDS_OBJECTS =	murmurhash3.o		\
-		chapter-index.o		\
+UDS_OBJECTS =	chapter-index.o		\
 		config.o		\
 		delta-index.o		\
 		errors.o		\
@@ -70,6 +68,7 @@ UDS_OBJECTS =	murmurhash3.o		\
 		logger.o		\
 		memoryAlloc.o		\
 		minisyslog.o		\
+		murmurhash3.o		\
 		open-chapter.o		\
 		permassert.o		\
 		radix-sort.o		\

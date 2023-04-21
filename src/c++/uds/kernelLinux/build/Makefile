@@ -37,7 +37,6 @@ UDS_DKMS_SOURCES = $(UDS_COMMON_SOURCES)			\
 					uds-threads.c)
 
 UDS_DKMS_HEADERS =						\
-	$(addprefix $(SRC_UDS_DIR)/linux/,	murmurhash3.h)	\
 	$(wildcard $(K_UDS_DIR)/*.h)				\
 	$(wildcard $(SRC_UDS_DIR)/*.h)
 
@@ -51,7 +50,6 @@ $(UDS_PACKAGE): $(UDS_DKMS_SOURCES) $(UDS_DKMS_HEADERS)
 	mkdir -p $(UDS_DIR)/linux
 	cp -p $(UDS_DKMS_SOURCES) $(UDS_SUBDIR)
 	cp -p $(UDS_DKMS_HEADERS) $(UDS_SUBDIR)
-	cp -p $(SRC_UDS_DIR)/linux/murmurhash3.h  $(UDS_DIR)/linux
 	$(call DKMS_MAKEFILE, $(UDS_NAME), $(UDS_DKMS_OBJECTS),	\
 		$(UDS_DKMS_EXTRA)) >$(UDS_SUBDIR)/Makefile
 	echo obj-m += $(UDS_NAME)/ >$(UDS_DIR)/Makefile

@@ -143,6 +143,7 @@ tarballs:
             - io-factory.[hc]
             - logger.h
             - memory-alloc.h
+            - murmurhash3.[hc]
             - numeric.h
             - open-chapter.[hc]
             - permassert.[hc]
@@ -158,20 +159,6 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
-            - __KERNEL__
-        src/c++/uds/src/uds/murmur:
-          dest: utils/uds
-          sources:
-            - murmurhash3.c
-          defines:
-            - UDS_MURMURHASH3
-          undefines:
-            - __KERNEL__
-        src/c++/uds/src/uds/linux:
-          dest: utils/uds/linux
-          sources:
-            - murmurhash3.h
-          undefines:
             - __KERNEL__
         src/c++/uds/userLinux/uds:
           dest: utils/uds
@@ -335,6 +322,8 @@ tarballs:
             - io-factory.h
             - logger.h
             - memory-alloc.h
+            - murmurhash3.c
+            - murmurhash3.h
             - numeric.h
             - open-chapter.c
             - open-chapter.h
@@ -359,19 +348,6 @@ tarballs:
             - VDO_INTERNAL
           defines:
             - __KERNEL__
-        src/c++/uds/src/uds/linux:
-          dest: dm-vdo/linux
-          sources:
-            - murmurhash3.h
-          defines:
-            - __KERNEL__
-        src/c++/uds/src/uds/murmur:
-          dest: dm-vdo
-          sources:
-            - murmurhash3.c
-          defines:
-            - __KERNEL__
-            - UDS_MURMURHASH3
         src/c++/uds/kernelLinux/uds:
           dest: dm-vdo
           sources:

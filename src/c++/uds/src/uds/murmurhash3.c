@@ -6,10 +6,7 @@
  * Adapted by John Wiele (jwiele@redhat.com).
  */
 
-#ifdef __KERNEL__
-#include <linux/module.h>
-#endif
-#include <linux/murmurhash3.h>
+#include "murmurhash3.h"
 
 static inline u64 rotl64(u64 x, s8 r)
 {
@@ -176,11 +173,3 @@ void murmurhash3_128(const void *key, const int len, const u32 seed, void *out)
 	putblock64((u64 *)out, 0, h1);
 	putblock64((u64 *)out, 1, h2);
 }
-#ifdef __KERNEL__
-EXPORT_SYMBOL(murmurhash3_128);
-
-#ifndef UDS_MURMURHASH3
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("MurmurHash3");
-#endif  /* UDS_MURMURHASH3 */
-#endif  /* __KERNEL__ */

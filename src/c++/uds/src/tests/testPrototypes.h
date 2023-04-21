@@ -6,7 +6,6 @@
 #ifndef TEST_PROTOTYPES_H
 #define TEST_PROTOTYPES_H
 
-#include <linux/murmurhash3.h>
 #include <linux/random.h>
 
 #include "config.h"
@@ -15,6 +14,7 @@
 #include "index.h"
 #include "io-factory.h"
 #include "memory-alloc.h"
+#include "murmurhash3.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
 #include "time-utils.h"
