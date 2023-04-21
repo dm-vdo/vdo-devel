@@ -763,24 +763,24 @@ static void saveRestoreTest(void)
 
   // Do a save, and verify the data
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, saveSize, &writer));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, saveSize, &writer));
   UDS_ASSERT_SUCCESS(uds_start_saving_delta_index(&di, 0, writer));
   UDS_ASSERT_SUCCESS(uds_finish_saving_delta_index(&di, 0));
   UDS_ASSERT_SUCCESS(uds_write_guard_delta_list(writer));
-  UDS_ASSERT_SUCCESS(flush_buffered_writer(writer));
-  free_buffered_writer(writer);
+  UDS_ASSERT_SUCCESS(uds_flush_buffered_writer(writer));
+  uds_free_buffered_writer(writer);
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);
 
   // Restore and verify the data
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, saveSize, &reader));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, saveSize, &reader));
   restoreIndex(&di, reader);
-  free_buffered_reader(reader);
+  uds_free_buffered_reader(reader);
   verifyAllKeys(&di, NUM_KEYS, keys, lists, names);
 
-  put_uds_io_factory(factory);
+  uds_put_io_factory(factory);
   uds_uninitialize_delta_index(&di);
   UDS_FREE(keys);
   UDS_FREE(lists);

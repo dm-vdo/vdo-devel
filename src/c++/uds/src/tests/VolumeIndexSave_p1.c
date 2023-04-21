@@ -123,9 +123,9 @@ static void saveTestIndex(struct volume_index *volumeIndex,
 {
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, saveSize, &writer));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, saveSize, &writer));
   UDS_ASSERT_SUCCESS(save_volume_index(volumeIndex, &writer, 1));
-  free_buffered_writer(writer);
+  uds_free_buffered_writer(writer);
 
   ktime_t saveTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
   reportIOTime("saveVolumeIndex:", saveTime);
@@ -139,10 +139,10 @@ static struct volume_index *restoreTestIndex(struct io_factory *factory,
   struct volume_index *volumeIndex;
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, saveSize, &reader));
-  put_uds_io_factory(factory);
+  UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, saveSize, &reader));
+  uds_put_io_factory(factory);
   UDS_ASSERT_SUCCESS(load_volume_index(volumeIndex, &reader, 1));
-  free_buffered_reader(reader);
+  uds_free_buffered_reader(reader);
   ktime_t restoreTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
   reportIOTime("load_volume_index():", restoreTime);
   return volumeIndex;
@@ -168,7 +168,7 @@ static void saveRestoreTest(void)
                                                       &blockCount));
   size_t saveSize = blockCount * UDS_BLOCK_SIZE;
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
   saveTestIndex(volumeIndex, factory, saveSize);
   free_volume_index(volumeIndex);
 

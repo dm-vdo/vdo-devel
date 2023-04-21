@@ -223,13 +223,12 @@ static void save(unsigned int numZones)
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
   struct buffered_writer *writers[numZones];
   for (unsigned int z = 0; z < numZones; z++) {
-    UDS_ASSERT_SUCCESS(make_buffered_writer(factory, z * zoneSize, zoneSize,
-                                            &writers[z]));
+    UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, z * zoneSize, zoneSize, &writers[z]));
   }
 
   UDS_ASSERT_SUCCESS(save_volume_index(volumeIndex, writers, numZones));
   for (unsigned int z = 0; z < numZones; z++) {
-    free_buffered_writer(writers[z]);
+    uds_free_buffered_writer(writers[z]);
   }
 
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
@@ -249,12 +248,11 @@ static void restore(unsigned int oldZones, unsigned int newZones)
   UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
   struct buffered_reader *readers[oldZones];
   for (unsigned int z = 0; z < oldZones; z++) {
-    UDS_ASSERT_SUCCESS(make_buffered_reader(factory, z * zoneSize, zoneSize,
-                                            &readers[z]));
+    UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, z * zoneSize, zoneSize, &readers[z]));
   }
   UDS_ASSERT_SUCCESS(load_volume_index(volumeIndex, readers, oldZones));
   for (unsigned int z = 0; z < oldZones; z++) {
-    free_buffered_reader(readers[z]);
+    uds_free_buffered_reader(readers[z]);
   }
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   char *total;
@@ -320,14 +318,14 @@ static void initSuite(int argc, const char **argv)
 {
   config = createConfigForAlbtest(argc, argv);
   geometry = config->geometry;
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
 }
 
 /**********************************************************************/
 static void cleanSuite(void)
 {
   uds_free_configuration(config);
-  put_uds_io_factory(factory);
+  uds_put_io_factory(factory);
 }
 
 /**********************************************************************/

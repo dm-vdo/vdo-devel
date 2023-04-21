@@ -907,7 +907,9 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 		u8 buffer[sizeof(struct delta_index_header)];
 		size_t offset = 0;
 
-		result = read_from_buffered_reader(buffered_readers[z], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(buffered_readers[z],
+						       buffer,
+						       sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to read delta index header");
@@ -987,9 +989,9 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 			unsigned int zone_number;
 			u8 size_data[sizeof(u16)];
 
-			result = read_from_buffered_reader(buffered_readers[z],
-							   size_data,
-							   sizeof(size_data));
+			result = uds_read_from_buffered_reader(buffered_readers[z],
+							       size_data,
+							       sizeof(size_data));
 			if (result != UDS_SUCCESS)
 				return uds_log_warning_strerror(result,
 								"failed to read delta index size");
@@ -1061,7 +1063,7 @@ static int restore_delta_list_data(struct delta_index *delta_index,
 	u8 buffer[sizeof(struct delta_list_save_info)];
 	unsigned int new_zone;
 
-	result = read_from_buffered_reader(buffered_reader, buffer, sizeof(buffer));
+	result = uds_read_from_buffered_reader(buffered_reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to read delta list data");
 
@@ -1086,7 +1088,7 @@ static int restore_delta_list_data(struct delta_index *delta_index,
 						save_info.index,
 						delta_index->list_count);
 
-	result = read_from_buffered_reader(buffered_reader, data, save_info.byte_count);
+	result = uds_read_from_buffered_reader(buffered_reader, data, save_info.byte_count);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result,
 						"failed to read delta list data");
@@ -1135,7 +1137,9 @@ int uds_check_guard_delta_lists(struct buffered_reader **buffered_readers,
 	u8 buffer[sizeof(struct delta_list_save_info)];
 
 	for (z = 0; z < reader_count; z++) {
-		result = read_from_buffered_reader(buffered_readers[z], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(buffered_readers[z],
+						       buffer,
+						       sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1159,15 +1163,15 @@ static int flush_delta_list(struct delta_zone *zone, u32 flush_index)
 	put_unaligned_le16(get_delta_list_byte_size(delta_list), &buffer[2]);
 	put_unaligned_le32(zone->first_list + flush_index, &buffer[4]);
 
-	result = write_to_buffered_writer(zone->buffered_writer, buffer, sizeof(buffer));
+	result = uds_write_to_buffered_writer(zone->buffered_writer, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result, "failed to write delta list memory");
 		return result;
 	}
 
-	result = write_to_buffered_writer(zone->buffered_writer,
-					  zone->memory + get_delta_list_byte_start(delta_list),
-					  get_delta_list_byte_size(delta_list));
+	result = uds_write_to_buffered_writer(zone->buffered_writer,
+					      zone->memory + get_delta_list_byte_start(delta_list),
+					      get_delta_list_byte_size(delta_list));
 	if (result != UDS_SUCCESS)
 		uds_log_warning_strerror(result, "failed to write delta list memory");
 
@@ -1202,7 +1206,7 @@ int uds_start_saving_delta_index(const struct delta_index *delta_index,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_to_buffered_writer(buffered_writer, buffer, offset);
+	result = uds_write_to_buffered_writer(buffered_writer, buffer, offset);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write delta index header");
 
@@ -1212,7 +1216,7 @@ int uds_start_saving_delta_index(const struct delta_index *delta_index,
 
 		delta_list = &delta_zone->delta_lists[i + 1];
 		put_unaligned_le16(delta_list->size, data);
-		result = write_to_buffered_writer(buffered_writer, data, sizeof(data));
+		result = uds_write_to_buffered_writer(buffered_writer, data, sizeof(data));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result, "failed to write delta list size");
 	}
@@ -1251,7 +1255,7 @@ int uds_write_guard_delta_list(struct buffered_writer *buffered_writer)
 	memset(buffer, 0, sizeof(struct delta_list_save_info));
 	buffer[0] = 'z';
 
-	result = write_to_buffered_writer(buffered_writer, buffer, sizeof(buffer));
+	result = uds_write_to_buffered_writer(buffered_writer, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
 		uds_log_warning_strerror(result, "failed to write guard delta list");
 
@@ -1280,9 +1284,9 @@ static int assert_not_at_end(const struct delta_index_entry *delta_entry)
  * Prepare to search for an entry in the specified delta list.
  *
  * This is always the first function to be called when dealing with delta index entries. It is
- * always followed by calls to uds_next_delta_index_entry() to iterate through a delta list. The fields
- * of the delta_index_entry argument will be set up for iteration, but will not contain an entry
- * from the list.
+ * always followed by calls to uds_next_delta_index_entry() to iterate through a delta list. The
+ * fields of the delta_index_entry argument will be set up for iteration, but will not contain an
+ * entry from the list.
  */
 int uds_start_delta_index_search(const struct delta_index *delta_index,
 				 u32 list_number,

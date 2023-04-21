@@ -104,11 +104,13 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
 	u8 buffer[sizeof(struct uds_configuration_6_02)];
 	size_t offset = 0;
 
-	result = verify_buffered_data(reader, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
+	result = uds_verify_buffered_data(reader, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_from_buffered_reader(reader, version_buffer, INDEX_CONFIG_VERSION_LENGTH);
+	result = uds_read_from_buffered_reader(reader,
+					       version_buffer,
+					       INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read index config version");
 
@@ -120,7 +122,7 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
 					      version_buffer);
 	}
 
-	result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
+	result = uds_read_from_buffered_reader(reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read config data");
 
@@ -147,7 +149,7 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
 	} else {
 		u8 remapping[sizeof(u64) + sizeof(u64)];
 
-		result = read_from_buffered_reader(reader, remapping, sizeof(remapping));
+		result = uds_read_from_buffered_reader(reader, remapping, sizeof(remapping));
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result, "cannot read converted config");
 
@@ -178,7 +180,9 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	u8 buffer[sizeof(struct uds_configuration_8_02)];
 	size_t offset = 0;
 
-	result = write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
+	result = uds_write_to_buffered_writer(writer,
+					      INDEX_CONFIG_MAGIC,
+					      INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -187,15 +191,15 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	 * as version 6.02 so that it is still compatible with older versions of UDS.
 	 */
 	if (version >= 4) {
-		result = write_to_buffered_writer(writer,
-						  INDEX_CONFIG_VERSION_8_02,
-						  INDEX_CONFIG_VERSION_LENGTH);
+		result = uds_write_to_buffered_writer(writer,
+						      INDEX_CONFIG_VERSION_8_02,
+						      INDEX_CONFIG_VERSION_LENGTH);
 		if (result != UDS_SUCCESS)
 			return result;
 	} else {
-		result = write_to_buffered_writer(writer,
-						  INDEX_CONFIG_VERSION_6_02,
-						  INDEX_CONFIG_VERSION_LENGTH);
+		result = uds_write_to_buffered_writer(writer,
+						      INDEX_CONFIG_VERSION_6_02,
+						      INDEX_CONFIG_VERSION_LENGTH);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -222,7 +226,7 @@ int uds_write_config_contents(struct buffered_writer *writer,
 		encode_u64_le(buffer, &offset, geometry->remapped_physical);
 	}
 
-	return write_to_buffered_writer(writer, buffer, offset);
+	return uds_write_to_buffered_writer(writer, buffer, offset);
 }
 
 /* Compute configuration parameters that depend on memory size. */

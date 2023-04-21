@@ -23,9 +23,9 @@ static void createAndWriteData(void)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, u8, __func__, &data));
   get_random_bytes(data, DATA_SIZE);
 
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
   struct dm_bufio_client *client = NULL;
-  UDS_ASSERT_SUCCESS(make_uds_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
+  UDS_ASSERT_SUCCESS(uds_make_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
   int i;
   for (i = 0; i < DATA_BLOCKS; i++) {
     struct dm_buffer *buffer = NULL;
@@ -46,23 +46,23 @@ static void verifyData(int count)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, u8, __func__, &buf));
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, DATA_BLOCKS, &reader));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, DATA_BLOCKS, &reader));
 
   for (offset = 0; offset + count <= DATA_SIZE; offset += count) {
-    UDS_ASSERT_SUCCESS(read_from_buffered_reader(reader, buf, count));
+    UDS_ASSERT_SUCCESS(uds_read_from_buffered_reader(reader, buf, count));
     UDS_ASSERT_EQUAL_BYTES(&data[offset], buf, count);
   }
 
   UDS_ASSERT_ERROR(UDS_OUT_OF_RANGE,
-                   read_from_buffered_reader(reader, buf, count));
-  free_buffered_reader(reader);
+                   uds_read_from_buffered_reader(reader, buf, count));
+  uds_free_buffered_reader(reader);
   UDS_FREE(buf);
 }
 
 /**********************************************************************/
 static void freeEverything(void)
 {
-  put_uds_io_factory(factory);
+  uds_put_io_factory(factory);
   UDS_FREE(data);
   data    = NULL;
   factory = NULL;
@@ -74,8 +74,8 @@ static void readerTest(void)
   createAndWriteData();
   verifyData(4);
   verifyData(5);
-  put_uds_io_factory(factory);
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  uds_put_io_factory(factory);
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
   verifyData(2 * UDS_BLOCK_SIZE);
   verifyData(42);
   freeEverything();

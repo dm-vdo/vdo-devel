@@ -75,7 +75,7 @@ static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
     testmi->zoneOff[z] = z * testmi->saveSize;
   }
 
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(),
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(),
                                          &testmi->factory));
   return testmi;
 }
@@ -87,15 +87,15 @@ static void saveVolumeIndex(TestMI *testmi)
   struct buffered_writer *writers[ZONES];
 
   for (z = 0; z < testmi->numZones; z++) {
-    UDS_ASSERT_SUCCESS(make_buffered_writer(testmi->factory,
-                                            testmi->zoneOff[z],
-                                            testmi->saveSize,
-                                            &writers[z]));
+    UDS_ASSERT_SUCCESS(uds_make_buffered_writer(testmi->factory,
+                                                testmi->zoneOff[z],
+                                                testmi->saveSize,
+                                                &writers[z]));
   }
 
   UDS_ASSERT_SUCCESS(save_volume_index(testmi->mi, writers, testmi->numZones));
   for (z = 0; z < testmi->numZones; z++) {
-    free_buffered_writer(writers[z]);
+    uds_free_buffered_writer(writers[z]);
   }
 
   get_volume_index_separate_stats(testmi->mi, &testmi->denseStats, &testmi->sparseStats);
@@ -117,15 +117,15 @@ static void reopenVolumeIndex(TestMI       *testmi,
   struct buffered_reader *readers[ZONES];
   unsigned int z;
   for (z = 0; z < testmi->numZones; z++) {
-    UDS_ASSERT_SUCCESS(make_buffered_reader(testmi->factory,
-                                            testmi->zoneOff[z],
-                                            testmi->saveSize,
-                                            &readers[z]));
+    UDS_ASSERT_SUCCESS(uds_make_buffered_reader(testmi->factory,
+                                                testmi->zoneOff[z],
+                                                testmi->saveSize,
+                                                &readers[z]));
   }
   UDS_ASSERT_ERROR(status, load_volume_index(testmi->mi, readers,
                                              testmi->numZones));
   for (z = 0; z < testmi->numZones; z++) {
-    free_buffered_reader(readers[z]);
+    uds_free_buffered_reader(readers[z]);
   }
 
   if ((status == UDS_SUCCESS) && testmi->statsValid) {
@@ -221,7 +221,7 @@ static void overflowVolumeIndex(TestMI *testmi)
 static void closeVolumeIndex(TestMI *testmi)
 {
   free_volume_index(testmi->mi);
-  put_uds_io_factory(testmi->factory);
+  uds_put_io_factory(testmi->factory);
   UDS_FREE(testmi);
 }
 

@@ -838,7 +838,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		size_t offset = 0;
 		u32 j;
 
-		result = read_from_buffered_reader(readers[i], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(readers[i], buffer, sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
@@ -886,7 +886,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		for (j = 0; j < header.list_count; j++) {
 			u8 decoded[sizeof(u64)];
 
-			result = read_from_buffered_reader(readers[i], decoded, sizeof(u64));
+			result = uds_read_from_buffered_reader(readers[i], decoded, sizeof(u64));
 			if (result != UDS_SUCCESS)
 				return uds_log_warning_strerror(result,
 								"failed to read volume index flush ranges");
@@ -926,7 +926,7 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 		u8 buffer[sizeof(struct volume_index_data)];
 		size_t offset = 0;
 
-		result = read_from_buffered_reader(buffered_readers[i], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(buffered_readers[i], buffer, sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
@@ -1044,7 +1044,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_to_buffered_writer(buffered_writer, buffer, offset);
+	result = uds_write_to_buffered_writer(buffered_writer, buffer, offset);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "failed to write volume index header");
 
@@ -1052,7 +1052,7 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 		u8 encoded[sizeof(u64)];
 
 		put_unaligned_le64(sub_index->flush_chapters[first_list + i], &encoded);
-		result = write_to_buffered_writer(buffered_writer, encoded, sizeof(u64));
+		result = uds_write_to_buffered_writer(buffered_writer, encoded, sizeof(u64));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to write volume index flush ranges");
@@ -1084,7 +1084,7 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_to_buffered_writer(writer, buffer, offset);
+	result = uds_write_to_buffered_writer(writer, buffer, offset);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning_strerror(result, "failed to write volume index header");
 		return result;
@@ -1134,7 +1134,7 @@ int save_volume_index(struct volume_index *volume_index,
 		if (result != UDS_SUCCESS)
 			break;
 
-		result = flush_buffered_writer(writers[zone]);
+		result = uds_flush_buffered_writer(writers[zone]);
 		if (result != UDS_SUCCESS)
 			break;
 	}

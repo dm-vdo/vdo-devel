@@ -331,10 +331,10 @@ static int __must_check open_layout_reader(struct index_layout *layout,
 					   off_t offset,
 					   struct buffered_reader **reader_ptr)
 {
-	return make_buffered_reader(layout->factory,
-				    lr->start_block + offset,
-				    lr->block_count,
-				    reader_ptr);
+	return uds_make_buffered_reader(layout->factory,
+					lr->start_block + offset,
+					lr->block_count,
+					reader_ptr);
 }
 
 static int open_region_reader(struct index_layout *layout,
@@ -349,10 +349,10 @@ static int __must_check open_layout_writer(struct index_layout *layout,
 					   off_t offset,
 					   struct buffered_writer **writer_ptr)
 {
-	return make_buffered_writer(layout->factory,
-				    lr->start_block + offset,
-				    lr->block_count,
-				    writer_ptr);
+	return uds_make_buffered_writer(layout->factory,
+					lr->start_block + offset,
+					lr->block_count,
+					writer_ptr);
 }
 
 static int open_region_writer(struct index_layout *layout,
@@ -576,12 +576,12 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 		encode_u64_le(buffer, &offset, 0);
 	}
 
-	result = write_to_buffered_writer(writer, buffer, offset);
+	result = uds_write_to_buffered_writer(writer, buffer, offset);
 	UDS_FREE(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return flush_buffered_writer(writer);
+	return uds_flush_buffered_writer(writer);
 }
 
 static int write_index_save_layout(struct index_layout *layout, struct index_save_layout *isl)
@@ -602,7 +602,7 @@ static int write_index_save_layout(struct index_layout *layout, struct index_sav
 
 	result = write_index_save_header(isl, table, writer);
 	UDS_FREE(table);
-	free_buffered_writer(writer);
+	uds_free_buffered_writer(writer);
 
 	return result;
 }
@@ -750,12 +750,12 @@ static int __must_check write_layout_header(struct index_layout *layout,
 		encode_u64_le(buffer, &offset, layout->super.start_offset);
 	}
 
-	result = write_to_buffered_writer(writer, buffer, offset);
+	result = uds_write_to_buffered_writer(writer, buffer, offset);
 	UDS_FREE(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return flush_buffered_writer(writer);
+	return uds_flush_buffered_writer(writer);
 }
 
 static int __must_check write_uds_index_config(struct index_layout *layout,
@@ -771,17 +771,17 @@ static int __must_check write_uds_index_config(struct index_layout *layout,
 
 	result = uds_write_config_contents(writer, config, layout->super.version);
 	if (result != UDS_SUCCESS) {
-		free_buffered_writer(writer);
+		uds_free_buffered_writer(writer);
 		return uds_log_error_strerror(result, "failed to write config region");
 	}
 
-	result = flush_buffered_writer(writer);
+	result = uds_flush_buffered_writer(writer);
 	if (result != UDS_SUCCESS) {
-		free_buffered_writer(writer);
+		uds_free_buffered_writer(writer);
 		return uds_log_error_strerror(result, "cannot flush config writer");
 	}
 
-	free_buffered_writer(writer);
+	uds_free_buffered_writer(writer);
 	return UDS_SUCCESS;
 }
 
@@ -803,7 +803,7 @@ static int __must_check save_layout(struct index_layout *layout, off_t offset)
 
 	result = write_layout_header(layout, table, writer);
 	UDS_FREE(table);
-	free_buffered_writer(writer);
+	uds_free_buffered_writer(writer);
 
 	return result;
 }
@@ -910,14 +910,14 @@ int uds_discard_open_chapter(struct index_layout *layout)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_to_buffered_writer(writer, NULL, UDS_BLOCK_SIZE);
+	result = uds_write_to_buffered_writer(writer, NULL, UDS_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
-		free_buffered_writer(writer);
+		uds_free_buffered_writer(writer);
 		return result;
 	}
 
-	result = flush_buffered_writer(writer);
-	free_buffered_writer(writer);
+	result = uds_flush_buffered_writer(writer);
+	uds_free_buffered_writer(writer);
 	return result;
 }
 
@@ -941,7 +941,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 
 	result = load_open_chapter(index, readers[0]);
-	free_buffered_reader(readers[0]);
+	uds_free_buffered_reader(readers[0]);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -951,7 +951,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 					    &readers[zone]);
 		if (result != UDS_SUCCESS) {
 			for (; zone > 0; zone--)
-				free_buffered_reader(readers[zone - 1]);
+				uds_free_buffered_reader(readers[zone - 1]);
 
 			return result;
 		}
@@ -959,7 +959,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 
 	result = load_volume_index(index->volume_index, readers, isl->zone_count);
 	for (zone = 0; zone < isl->zone_count; zone++)
-		free_buffered_reader(readers[zone]);
+		uds_free_buffered_reader(readers[zone]);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -968,7 +968,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 
 	result = uds_read_index_page_map(index->volume->index_page_map, readers[0]);
-	free_buffered_reader(readers[0]);
+	uds_free_buffered_reader(readers[0]);
 
 	return result;
 }
@@ -1116,7 +1116,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 	}
 
 	result = save_open_chapter(index, writers[0]);
-	free_buffered_writer(writers[0]);
+	uds_free_buffered_writer(writers[0]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);
 		return result;
@@ -1128,7 +1128,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 					    &writers[zone]);
 		if (result != UDS_SUCCESS) {
 			for (; zone > 0; zone--)
-				free_buffered_writer(writers[zone - 1]);
+				uds_free_buffered_writer(writers[zone - 1]);
 
 			cancel_uds_index_save(isl);
 			return result;
@@ -1137,7 +1137,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 
 	result = save_volume_index(index->volume_index, writers, index->zone_count);
 	for (zone = 0; zone < index->zone_count; zone++)
-		free_buffered_writer(writers[zone]);
+		uds_free_buffered_writer(writers[zone]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);
 		return result;
@@ -1150,7 +1150,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 	}
 
 	result = uds_write_index_page_map(index->volume->index_page_map, writers[0]);
-	free_buffered_writer(writers[0]);
+	uds_free_buffered_writer(writers[0]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);
 		return result;
@@ -1169,7 +1169,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 	u8 buffer[sizeof(struct region_header)];
 	size_t offset = 0;
 
-	result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
+	result = uds_read_from_buffered_reader(reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read region table header");
 
@@ -1201,7 +1201,9 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 		u8 region_buffer[sizeof(struct layout_region)];
 
 		offset = 0;
-		result = read_from_buffered_reader(reader, region_buffer, sizeof(region_buffer));
+		result = uds_read_from_buffered_reader(reader,
+						       region_buffer,
+						       sizeof(region_buffer));
 		if (result != UDS_SUCCESS) {
 			UDS_FREE(table);
 			return uds_log_error_strerror(UDS_CORRUPT_DATA,
@@ -1232,7 +1234,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_from_buffered_reader(reader, buffer, saved_size);
+	result = uds_read_from_buffered_reader(reader, buffer, saved_size);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(buffer);
 		return uds_log_error_strerror(result, "cannot read region table header");
@@ -1447,7 +1449,7 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 					      "unexpected index save data size %zu",
 					      saved_size);
 
-	result = read_from_buffered_reader(reader, buffer, sizeof(buffer));
+	result = uds_read_from_buffered_reader(reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read index save data");
 
@@ -1625,7 +1627,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 		}
 
 		result = load_index_save(isl, reader, j);
-		free_buffered_reader(reader);
+		uds_free_buffered_reader(reader);
 		if (result != UDS_SUCCESS) {
 			/* Another save slot might be valid. */
 			reset_index_save_layout(isl, 0);
@@ -1650,11 +1652,11 @@ verify_uds_index_config(struct index_layout *layout, struct configuration *confi
 
 	result = uds_validate_config_contents(reader, config);
 	if (result != UDS_SUCCESS) {
-		free_buffered_reader(reader);
+		uds_free_buffered_reader(reader);
 		return uds_log_error_strerror(result, "failed to read config region");
 	}
 
-	free_buffered_reader(reader);
+	uds_free_buffered_reader(reader);
 	return UDS_SUCCESS;
 }
 
@@ -1663,15 +1665,15 @@ static int load_index_layout(struct index_layout *layout, struct configuration *
 	int result;
 	struct buffered_reader *reader;
 
-	result = make_buffered_reader(layout->factory,
-				      layout->offset / UDS_BLOCK_SIZE,
-				      1,
-				      &reader);
+	result = uds_make_buffered_reader(layout->factory,
+					  layout->offset / UDS_BLOCK_SIZE,
+					  1,
+					  &reader);
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "unable to read superblock");
 
 	result = load_super_block(layout, UDS_BLOCK_SIZE, layout->offset / UDS_BLOCK_SIZE, reader);
-	free_buffered_reader(reader);
+	uds_free_buffered_reader(reader);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1688,13 +1690,13 @@ static int create_layout_factory(struct index_layout *layout, const struct confi
 	size_t writable_size;
 	struct io_factory *factory = NULL;
 
-	result = make_uds_io_factory(config->name, &factory);
+	result = uds_make_io_factory(config->name, &factory);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	writable_size = get_uds_writable_size(factory) & -UDS_BLOCK_SIZE;
+	writable_size = uds_get_writable_size(factory) & -UDS_BLOCK_SIZE;
 	if (writable_size < config->size + config->offset) {
-		put_uds_io_factory(factory);
+		uds_put_io_factory(factory);
 		uds_log_error("index storage (%zu) is smaller than the requested size %zu",
 			      writable_size,
 			      config->size + config->offset);
@@ -1757,14 +1759,14 @@ void uds_free_index_layout(struct index_layout *layout)
 
 	UDS_FREE(layout->index.saves);
 	if (layout->factory != NULL)
-		put_uds_io_factory(layout->factory);
+		uds_put_io_factory(layout->factory);
 
 	UDS_FREE(layout);
 }
 
 int uds_replace_index_layout_storage(struct index_layout *layout, const char *name)
 {
-	return replace_uds_storage(layout->factory, name);
+	return uds_replace_storage(layout->factory, name);
 }
 
 /* Obtain a dm_bufio_client for the volume region. */
@@ -1777,7 +1779,7 @@ int uds_open_volume_bufio(struct index_layout *layout,
 			layout->super.volume_offset -
 			layout->super.start_offset);
 
-	return make_uds_bufio(layout->factory, offset, block_size, reserved_buffers, client_ptr);
+	return uds_make_bufio(layout->factory, offset, block_size, reserved_buffers, client_ptr);
 }
 
 u64 uds_get_volume_nonce(struct index_layout *layout)

@@ -136,12 +136,12 @@ int uds_write_index_page_map(struct index_page_map *map, struct buffered_writer 
 	for (i = 0; i < get_entry_count(map->geometry); i++)
 		encode_u16_le(buffer, &offset, map->entries[i]);
 
-	result = write_to_buffered_writer(writer, buffer, offset);
+	result = uds_write_to_buffered_writer(writer, buffer, offset);
 	UDS_FREE(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return flush_buffered_writer(writer);
+	return uds_flush_buffered_writer(writer);
 }
 
 int uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *reader)
@@ -157,7 +157,7 @@ int uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_from_buffered_reader(reader, buffer, saved_size);
+	result = uds_read_from_buffered_reader(reader, buffer, saved_size);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(buffer);
 		return result;

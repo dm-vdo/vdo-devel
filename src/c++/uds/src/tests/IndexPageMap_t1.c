@@ -24,7 +24,7 @@ static void setup(void)
     .name = getTestIndexName(),
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
-  UDS_ASSERT_SUCCESS(make_uds_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
 
   geometry = config->geometry;
   vcn = geometry->chapters_per_volume * 3;
@@ -36,7 +36,7 @@ static void setup(void)
 /**********************************************************************/
 static void cleanup(void)
 {
-  put_uds_io_factory(factory);
+  uds_put_io_factory(factory);
   uds_free_configuration(config);
   UDS_FREE(listNumbers);
 }
@@ -129,16 +129,16 @@ static void testReadWrite(void)
     = DIV_ROUND_UP(uds_compute_index_page_map_save_size(geometry), UDS_BLOCK_SIZE);
 
   struct buffered_writer *writer;
-  UDS_ASSERT_SUCCESS(make_buffered_writer(factory, 0, mapBlocks, &writer));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, mapBlocks, &writer));
   UDS_ASSERT_SUCCESS(uds_write_index_page_map(map, writer));
-  free_buffered_writer(writer);
+  uds_free_buffered_writer(writer);
   uds_free_index_page_map(UDS_FORGET(map));
 
   // Read and verify the index page map
   UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));
 
   struct buffered_reader *reader;
-  UDS_ASSERT_SUCCESS(make_buffered_reader(factory, 0, mapBlocks, &reader));
+  UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, mapBlocks, &reader));
   UDS_ASSERT_SUCCESS(uds_read_index_page_map(map, reader));
 
   CU_ASSERT_EQUAL(map->last_update, vcn + geometry->chapters_per_volume - 1);
@@ -148,7 +148,7 @@ static void testReadWrite(void)
                   &listNumbers[chap * geometry->index_pages_per_chapter]);
   }
 
-  free_buffered_reader(reader);
+  uds_free_buffered_reader(reader);
   uds_free_index_page_map(map);
 }
 

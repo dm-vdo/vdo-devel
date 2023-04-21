@@ -305,13 +305,15 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	unsigned int record_index;
 	unsigned int z;
 
-	result = write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
+	result = uds_write_to_buffered_writer(writer,
+					      OPEN_CHAPTER_MAGIC,
+					      OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = write_to_buffered_writer(writer,
-					  OPEN_CHAPTER_VERSION,
-					  OPEN_CHAPTER_VERSION_LENGTH);
+	result = uds_write_to_buffered_writer(writer,
+					      OPEN_CHAPTER_VERSION,
+					      OPEN_CHAPTER_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -321,7 +323,9 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	}
 
 	put_unaligned_le32(record_count, record_count_data);
-	result = write_to_buffered_writer(writer, record_count_data, sizeof(record_count_data));
+	result = uds_write_to_buffered_writer(writer,
+					      record_count_data,
+					      sizeof(record_count_data));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -336,9 +340,9 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 				continue;
 
 			record = &open_chapter->records[record_index];
-			result = write_to_buffered_writer(writer,
-							  (u8 *) record,
-							  sizeof(*record));
+			result = uds_write_to_buffered_writer(writer,
+							      (u8 *) record,
+							      sizeof(*record));
 			if (result != UDS_SUCCESS)
 				return result;
 
@@ -348,7 +352,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 		record_index++;
 	}
 
-	return flush_buffered_writer(writer);
+	return uds_flush_buffered_writer(writer);
 }
 
 u64 compute_saved_open_chapter_size(struct geometry *geometry)
@@ -375,9 +379,9 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 		false,
 	};
 
-	result = read_from_buffered_reader(reader,
-					   (u8 *) &record_count_data,
-					   sizeof(record_count_data));
+	result = uds_read_from_buffered_reader(reader,
+					       (u8 *) &record_count_data,
+					       sizeof(record_count_data));
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -385,7 +389,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 	while (record_count-- > 0) {
 		unsigned int zone = 0;
 
-		result = read_from_buffered_reader(reader, (u8 *) &record, sizeof(record));
+		result = uds_read_from_buffered_reader(reader, (u8 *) &record, sizeof(record));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -411,11 +415,11 @@ int load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
 	u8 version[OPEN_CHAPTER_VERSION_LENGTH];
 	int result;
 
-	result = verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
+	result = uds_verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = read_from_buffered_reader(reader, version, sizeof(version));
+	result = uds_read_from_buffered_reader(reader, version, sizeof(version));
 	if (result != UDS_SUCCESS)
 		return result;
 
