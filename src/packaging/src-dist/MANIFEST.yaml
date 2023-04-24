@@ -262,11 +262,11 @@ tarballs:
             - pool-sysfs-stats.c
             - priority-table.c
             - priority-table.h
-            - recovery.c
-            - recovery.h
             - recovery-journal.c
             - recovery-journal.h
             - release-versions.h
+            - repair.c
+            - repair.h
             - slab-depot.c
             - slab-depot.h
             - statistics.h

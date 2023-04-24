@@ -20,7 +20,7 @@
 #include "completionUtils.h"
 #include "journalWritingUtils.h"
 #include "numberedBlockMapping.h"
-#include "recoveryCompletion.h"
+#include "repairCompletion.h"
 #include "testParameters.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
@@ -68,14 +68,14 @@ static void teardownRecoveryTest(void)
 /**********************************************************************/
 static bool preventReferenceCountRebuild(struct vdo_completion *completion)
 {
-  if (completion->type != VDO_RECOVERY_COMPLETION) {
+  if (completion->type != VDO_REPAIR_COMPLETION) {
     return true;
   }
 
   struct vdo_completion *parent = completion->parent;
   int result = completion->result;
 
-  free_recovery_completion((struct recovery_completion *) completion);
+  free_repair_completion((struct repair_completion *) completion);
   vdo_fail_completion(parent, result);
   return false;
 }
@@ -103,16 +103,16 @@ static bool hijackJournalLoad(struct vdo_completion *completion)
     return true;
   }
 
-  struct recovery_completion *recovery = completion->parent;
+  struct repair_completion *repair = completion->parent;
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(entryCount,
                                   struct numbered_block_mapping,
                                   __func__,
-                                  &recovery->entries));
+                                  &repair->entries));
 
   struct block_map *map           = vdo->block_map;
   block_count_t     logicalBlocks = getTestConfig().config.logical_blocks;
   for (block_count_t entry = 0; entry < entryCount; entry++) {
-    struct numbered_block_mapping *mapping = &recovery->entries[entry];
+    struct numbered_block_mapping *mapping = &repair->entries[entry];
     logical_block_number_t         lbn     = (entry * 3) % logicalBlocks;
     page_count_t pageIndex = lbn / VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
     mapping->block_map_slot = (struct block_map_slot) {
@@ -126,9 +126,9 @@ static bool hijackJournalLoad(struct vdo_completion *completion)
     setBlockMapping(lbn, pbn, VDO_MAPPING_STATE_UNCOMPRESSED);
   }
 
-  recovery->block_map_entry_count = entryCount;
+  repair->block_map_entry_count = entryCount;
   removeCompletionEnqueueHook(hijackJournalLoad);
-  vdo_launch_completion_callback(&recovery->completion,
+  vdo_launch_completion_callback(&repair->completion,
                                  recoverBlockMapCallback,
                                  vdo->thread_config.logical_threads[0]);
   return false;

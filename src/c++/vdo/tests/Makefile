@@ -90,7 +90,7 @@ TEST_COMMON  = adminUtils.o              \
                vdoTestBase.o             \
                workQueue.o
 
-STRUCT_HEADERS = numberedBlockMapping.h recoveryCompletion.h
+STRUCT_HEADERS = numberedBlockMapping.h repairCompletion.h
 
 GENERATED_FILES = $(STRUCT_HEADERS) dump.c
 
@@ -157,8 +157,8 @@ define struct_header =
 	echo '#endif /* not GUARD_$(3)_GUARD */' >> $1
 endef
 
-$(eval $(call struct_header,numberedBlockMapping.h,$(VDO_BASE_DIR)/recovery.c,numbered_block_mapping))
-$(eval $(call struct_header,recoveryCompletion.h,$(VDO_BASE_DIR)/recovery.c,recovery_completion))
+$(eval $(call struct_header,numberedBlockMapping.h,$(VDO_BASE_DIR)/repair.c,numbered_block_mapping))
+$(eval $(call struct_header,repairCompletion.h,$(VDO_BASE_DIR)/repair.c,repair_completion))
 
 dump.c: $(VDO_BASE_DIR)/dump.c dump.h Makefile
 	sed -e 's/%llu/%lu/g' < $< > $@

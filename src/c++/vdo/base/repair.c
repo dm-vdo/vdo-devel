@@ -3,7 +3,7 @@
  * Copyright Red Hat
  */
 
-#include "recovery.h"
+#include "repair.h"
 
 #include <linux/min_heap.h>
 #include <linux/minmax.h>
@@ -26,7 +26,7 @@
 
 /*
  * An explicitly numbered block mapping. Numbering the mappings allows them to be sorted by logical
- * block number during recovery while still preserving the relative order of journal entries with
+ * block number during repair while still preserving the relative order of journal entries with
  * the same logical block number.
  */
 struct numbered_block_mapping {
@@ -51,7 +51,7 @@ struct recovery_point {
 	bool increment_applied;
 };
 
-struct recovery_completion {
+struct repair_completion {
 	/* The completion header */
 	struct vdo_completion completion;
 
@@ -162,16 +162,16 @@ static void swap_mappings(void *item1, void *item2)
 	swap(*mapping1, *mapping2);
 }
 
-static const struct min_heap_callbacks recovery_min_heap = {
+static const struct min_heap_callbacks repair_min_heap = {
 	.elem_size = sizeof(struct numbered_block_mapping),
 	.less = mapping_is_less_than,
 	.swp = swap_mappings,
 };
 
 static struct numbered_block_mapping *
-sort_next_heap_element(struct recovery_completion *recovery)
+sort_next_heap_element(struct repair_completion *repair)
 {
-	struct min_heap *heap = &recovery->replay_heap;
+	struct min_heap *heap = &repair->replay_heap;
 	struct numbered_block_mapping *last;
 
 	if (heap->nr == 0)
@@ -181,30 +181,30 @@ sort_next_heap_element(struct recovery_completion *recovery)
 	 * Swap the next heap element with the last one on the heap, popping it off the heap,
 	 * restore the heap invariant, and return a pointer to the popped element.
 	 */
-	last = &recovery->entries[--heap->nr];
+	last = &repair->entries[--heap->nr];
 	swap_mappings(heap->data, last);
-	min_heapify(heap, 0, &recovery_min_heap);
+	min_heapify(heap, 0, &repair_min_heap);
 	return last;
 }
 
 /**
- * as_recovery_completion() - Convert a generic completion to a recovery_completion.
+ * as_repair_completion() - Convert a generic completion to a repair_completion.
  * @completion: The completion to convert.
  *
- * Return: The recovery_completion.
+ * Return: The repair_completion.
  */
-static inline struct recovery_completion * __must_check
-as_recovery_completion(struct vdo_completion *completion)
+static inline struct repair_completion * __must_check
+as_repair_completion(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion, VDO_RECOVERY_COMPLETION);
-	return container_of(completion, struct recovery_completion, completion);
+	vdo_assert_completion_type(completion, VDO_REPAIR_COMPLETION);
+	return container_of(completion, struct repair_completion, completion);
 }
 
-static void prepare_recovery_completion(struct recovery_completion *recovery,
-					vdo_action *callback,
-					enum vdo_zone_type zone_type)
+static void prepare_repair_completion(struct repair_completion *repair,
+				      vdo_action *callback,
+				      enum vdo_zone_type zone_type)
 {
-	struct vdo_completion *completion = &recovery->completion;
+	struct vdo_completion *completion = &repair->completion;
 	const struct thread_config *thread_config = &completion->vdo->thread_config;
 	thread_id_t thread_id;
 
@@ -216,44 +216,44 @@ static void prepare_recovery_completion(struct recovery_completion *recovery,
 	vdo_set_completion_callback(completion, callback, thread_id);
 }
 
-static void launch_recovery_completion(struct recovery_completion *recovery,
-				       vdo_action *callback,
-				       enum vdo_zone_type zone_type)
+static void launch_repair_completion(struct repair_completion *repair,
+				     vdo_action *callback,
+				     enum vdo_zone_type zone_type)
 {
-	prepare_recovery_completion(recovery, callback, zone_type);
-	vdo_launch_completion(&recovery->completion);
+	prepare_repair_completion(repair, callback, zone_type);
+	vdo_launch_completion(&repair->completion);
 }
 
-static void uninitialize_vios(struct recovery_completion *recovery)
+static void uninitialize_vios(struct repair_completion *repair)
 {
-	while (recovery->vio_count > 0)
-		free_vio_components(&recovery->vios[--recovery->vio_count]);
+	while (repair->vio_count > 0)
+		free_vio_components(&repair->vios[--repair->vio_count]);
 
-	UDS_FREE(UDS_FORGET(recovery->vios));
+	UDS_FREE(UDS_FORGET(repair->vios));
 }
 
-EXTERNAL_STATIC void free_recovery_completion(struct recovery_completion *recovery)
+EXTERNAL_STATIC void free_repair_completion(struct repair_completion *repair)
 {
-	if (recovery == NULL)
+	if (repair == NULL)
 		return;
 
 	/*
 	 * We do this here because this function is the only common bottleneck for all clean up
 	 * paths.
 	 */
-	recovery->completion.vdo->block_map->zones[0].page_cache.rebuilding = false;
+	repair->completion.vdo->block_map->zones[0].page_cache.rebuilding = false;
 
-	uninitialize_vios(recovery);
-	UDS_FREE(UDS_FORGET(recovery->journal_data));
-	UDS_FREE(UDS_FORGET(recovery->entries));
-	UDS_FREE(recovery);
+	uninitialize_vios(repair);
+	UDS_FREE(UDS_FORGET(repair->journal_data));
+	UDS_FREE(UDS_FORGET(repair->entries));
+	UDS_FREE(repair);
 }
 
-static void finish_recovery(struct vdo_completion *completion)
+static void finish_repair(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
 	struct vdo *vdo = completion->vdo;
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 
 	vdo_assert_on_admin_thread(vdo, __func__);
 
@@ -262,10 +262,10 @@ static void finish_recovery(struct vdo_completion *completion)
 
 	vdo_initialize_recovery_journal_post_repair(vdo->recovery_journal,
 						    vdo->states.vdo.complete_recoveries,
-						    recovery->highest_tail,
-						    recovery->logical_blocks_used,
-						    recovery->block_map_data_blocks);
-	free_recovery_completion(UDS_FORGET(recovery));
+						    repair->highest_tail,
+						    repair->logical_blocks_used,
+						    repair->block_map_data_blocks);
+	free_repair_completion(UDS_FORGET(repair));
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state)) {
 		uds_log_info("Read-only rebuild complete");
@@ -277,44 +277,44 @@ static void finish_recovery(struct vdo_completion *completion)
 	uds_log_info("Rebuild complete");
 
 	/*
-	 * Now that we've freed the recovery completion and its vast array of journal entries, we
+	 * Now that we've freed the repair completion and its vast array of journal entries, we
 	 * can allocate refcounts.
 	 */
 	vdo_continue_completion(parent, vdo_allocate_reference_counters(vdo->depot));
 }
 
 /**
- * abort_recovery() - Handle a recovery error.
- * @completion: The recovery completion.
+ * abort_repair() - Handle a repair error.
+ * @completion: The repair completion.
  */
-static void abort_recovery(struct vdo_completion *completion)
+static void abort_repair(struct vdo_completion *completion)
 {
 	struct vdo_completion *parent = completion->parent;
 	int result = completion->result;
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 
 	if (vdo_state_requires_read_only_rebuild(completion->vdo->load_state))
 		uds_log_info("Read-only rebuild aborted");
 	else
 		uds_log_warning("Recovery aborted");
 
-	free_recovery_completion(UDS_FORGET(recovery));
+	free_repair_completion(UDS_FORGET(repair));
 	vdo_continue_completion(parent, result);
 }
 
 /**
- * abort_on_error() - Abort a recovery if there is an error.
+ * abort_on_error() - Abort a repair if there is an error.
  * @result: The result to check.
- * @recovery: The recovery completion.
+ * @repair: The repair completion.
  *
  * Return: true if the result was an error.
  */
-static bool __must_check abort_on_error(int result, struct recovery_completion *recovery)
+static bool __must_check abort_on_error(int result, struct repair_completion *repair)
 {
 	if (result == VDO_SUCCESS)
 		return false;
 
-	vdo_fail_completion(&recovery->completion, result);
+	vdo_fail_completion(&repair->completion, result);
 	return true;
 }
 
@@ -325,18 +325,18 @@ static bool __must_check abort_on_error(int result, struct recovery_completion *
 static void drain_slab_depot(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	const struct admin_state_code *operation;
 
 	vdo_assert_on_admin_thread(vdo, __func__);
 
-	prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
+	prepare_repair_completion(repair, finish_repair, VDO_ZONE_TYPE_ADMIN);
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state)) {
 		uds_log_info("Saving rebuilt state");
 		operation = VDO_ADMIN_STATE_REBUILDING;
 	} else {
 		uds_log_info("Replayed %zu journal entries into slab journals",
-			     recovery->entries_added_to_slab_journals);
+			     repair->entries_added_to_slab_journals);
 		operation = VDO_ADMIN_STATE_RECOVERING;
 	}
 
@@ -345,7 +345,7 @@ static void drain_slab_depot(struct vdo_completion *completion)
 
 /**
  * flush_block_map_updates() - Flush the block map now that all the reference counts are rebuilt.
- * @completion: The recovery completion.
+ * @completion: The repair completion.
  *
  * This callback is registered in finish_if_done().
  */
@@ -354,13 +354,13 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 	vdo_assert_on_admin_thread(completion->vdo, __func__);
 
 	uds_log_info("Flushing block map changes");
-	prepare_recovery_completion(as_recovery_completion(completion),
-				    drain_slab_depot,
-				    VDO_ZONE_TYPE_ADMIN);
+	prepare_repair_completion(as_repair_completion(completion),
+				  drain_slab_depot,
+				  VDO_ZONE_TYPE_ADMIN);
 	vdo_drain_block_map(completion->vdo->block_map, VDO_ADMIN_STATE_RECOVERING, completion);
 }
 
-static bool fetch_page(struct recovery_completion *recovery, struct vdo_completion *completion);
+static bool fetch_page(struct repair_completion *repair, struct vdo_completion *completion);
 
 /**
  * handle_page_load_error() - Handle an error loading a page.
@@ -368,12 +368,12 @@ static bool fetch_page(struct recovery_completion *recovery, struct vdo_completi
  */
 static void handle_page_load_error(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = completion->parent;
+	struct repair_completion *repair = completion->parent;
 
-	recovery->outstanding--;
-	vdo_set_completion_result(&recovery->completion, completion->result);
+	repair->outstanding--;
+	vdo_set_completion_result(&repair->completion, completion->result);
 	vdo_release_page_completion(completion);
-	fetch_page(recovery, completion);
+	fetch_page(repair, completion);
 }
 
 /**
@@ -463,10 +463,10 @@ process_slot(struct block_map_page *page, struct vdo_completion *completion, slo
 
 /**
  * rebuild_reference_counts_from_page() - Rebuild reference counts from a block map page.
- * @rebuild: The rebuild completion.
+ * @repair: The repair completion.
  * @completion: The page completion holding the page.
  */
-static void rebuild_reference_counts_from_page(struct recovery_completion *recovery,
+static void rebuild_reference_counts_from_page(struct repair_completion *repair,
 					       struct vdo_completion *completion)
 {
 	slot_number_t slot, last_slot;
@@ -475,7 +475,7 @@ static void rebuild_reference_counts_from_page(struct recovery_completion *recov
 
 	result = vdo_get_cached_page(completion, &page);
 	if (result != VDO_SUCCESS) {
-		vdo_set_completion_result(&recovery->completion, result);
+		vdo_set_completion_result(&repair->completion, result);
 		return;
 	}
 
@@ -483,8 +483,8 @@ static void rebuild_reference_counts_from_page(struct recovery_completion *recov
 		return;
 
 	/* Remove any bogus entries which exist beyond the end of the logical space. */
-	if (vdo_get_block_map_page_pbn(page) == recovery->last_slot.pbn) {
-		last_slot = recovery->last_slot.slot;
+	if (vdo_get_block_map_page_pbn(page) == repair->last_slot.pbn) {
+		last_slot = repair->last_slot.slot;
 		remove_out_of_bounds_entries(page, completion, last_slot);
 	} else {
 		last_slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
@@ -493,7 +493,7 @@ static void rebuild_reference_counts_from_page(struct recovery_completion *recov
 	/* Inform the slab depot of all entries on this page. */
 	for (slot = 0; slot < last_slot; slot++) {
 		if (process_slot(page, completion, slot))
-			recovery->logical_blocks_used++;
+			repair->logical_blocks_used++;
 	}
 }
 
@@ -505,49 +505,49 @@ static void rebuild_reference_counts_from_page(struct recovery_completion *recov
  */
 static void page_loaded(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = completion->parent;
+	struct repair_completion *repair = completion->parent;
 
-	recovery->outstanding--;
-	rebuild_reference_counts_from_page(recovery, completion);
+	repair->outstanding--;
+	rebuild_reference_counts_from_page(repair, completion);
 	vdo_release_page_completion(completion);
 
 	/* Advance progress to the next page, and fetch the next page we haven't yet requested. */
-	fetch_page(recovery, completion);
+	fetch_page(repair, completion);
 }
 
 static physical_block_number_t
-get_pbn_to_fetch(struct recovery_completion *recovery, struct block_map *block_map)
+get_pbn_to_fetch(struct repair_completion *repair, struct block_map *block_map)
 {
 	physical_block_number_t pbn = VDO_ZERO_BLOCK;
 
-	if (recovery->completion.result != VDO_SUCCESS)
+	if (repair->completion.result != VDO_SUCCESS)
 		return VDO_ZERO_BLOCK;
 
-	while ((pbn == VDO_ZERO_BLOCK) && (recovery->page_to_fetch < recovery->leaf_pages))
-		pbn = vdo_find_block_map_page_pbn(block_map, recovery->page_to_fetch++);
+	while ((pbn == VDO_ZERO_BLOCK) && (repair->page_to_fetch < repair->leaf_pages))
+		pbn = vdo_find_block_map_page_pbn(block_map, repair->page_to_fetch++);
 
-	if (vdo_is_physical_data_block(recovery->completion.vdo->depot, pbn))
+	if (vdo_is_physical_data_block(repair->completion.vdo->depot, pbn))
 		return pbn;
 
-	vdo_set_completion_result(&recovery->completion, VDO_BAD_MAPPING);
+	vdo_set_completion_result(&repair->completion, VDO_BAD_MAPPING);
 	return VDO_ZERO_BLOCK;
 }
 
 /**
  * fetch_page() - Fetch a page from the block map.
- * @recovery: The recovery_completion.
+ * @repair: The repair_completion.
  * @completion: The page completion to use.
  *
  * Return true if the rebuild is complete
  */
-static bool fetch_page(struct recovery_completion *recovery, struct vdo_completion *completion)
+static bool fetch_page(struct repair_completion *repair, struct vdo_completion *completion)
 {
 	struct vdo_page_completion *page_completion = (struct vdo_page_completion *) completion;
-	struct block_map *block_map = recovery->completion.vdo->block_map;
-	physical_block_number_t pbn = get_pbn_to_fetch(recovery, block_map);
+	struct block_map *block_map = repair->completion.vdo->block_map;
+	physical_block_number_t pbn = get_pbn_to_fetch(repair, block_map);
 
 	if (pbn != VDO_ZERO_BLOCK) {
-		recovery->outstanding++;
+		repair->outstanding++;
 		/*
 		 * We must set the requeue flag here to ensure that we don't blow the stack if all
 		 * the requested pages are already in the cache or get load errors.
@@ -556,22 +556,22 @@ static bool fetch_page(struct recovery_completion *recovery, struct vdo_completi
 			     &block_map->zones[0],
 			     pbn,
 			     true,
-			     recovery,
+			     repair,
 			     page_loaded,
 			     handle_page_load_error,
 			     true);
 	}
 
-	if (recovery->outstanding > 0)
+	if (repair->outstanding > 0)
 		return false;
 
-	launch_recovery_completion(recovery, flush_block_map_updates, VDO_ZONE_TYPE_ADMIN);
+	launch_repair_completion(repair, flush_block_map_updates, VDO_ZONE_TYPE_ADMIN);
 	return true;
 }
 
 /**
  * rebuild_from_leaves() - Rebuild reference counts from the leaf block map pages.
- * @completion: The recovery completion.
+ * @completion: The repair completion.
  *
  * Rebuilds reference counts from the leaf block map pages now that reference counts have been
  * rebuilt from the interior tree pages (which have been loaded in the process). This callback is
@@ -580,25 +580,25 @@ static bool fetch_page(struct recovery_completion *recovery, struct vdo_completi
 static void rebuild_from_leaves(struct vdo_completion *completion)
 {
 	page_count_t i;
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	struct block_map *map = completion->vdo->block_map;
 
-	recovery->logical_blocks_used = 0;
+	repair->logical_blocks_used = 0;
 
 	/*
 	 * The PBN calculation doesn't work until the tree pages have been loaded, so we can't set
 	 * this value at the start of repair.
 	 */
-	recovery->leaf_pages = vdo_compute_block_map_page_count(map->entry_count);
-	recovery->last_slot = (struct block_map_slot) {
+	repair->leaf_pages = vdo_compute_block_map_page_count(map->entry_count);
+	repair->last_slot = (struct block_map_slot) {
 		.slot = map->entry_count % VDO_BLOCK_MAP_ENTRIES_PER_PAGE,
-		.pbn = vdo_find_block_map_page_pbn(map, recovery->leaf_pages - 1),
+		.pbn = vdo_find_block_map_page_pbn(map, repair->leaf_pages - 1),
 	};
-	if (recovery->last_slot.slot == 0)
-		recovery->last_slot.slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
+	if (repair->last_slot.slot == 0)
+		repair->last_slot.slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
-	for (i = 0; i < recovery->page_count; i++) {
-		if (fetch_page(recovery, &recovery->page_completions[i].completion))
+	for (i = 0; i < repair->page_count; i++) {
+		if (fetch_page(repair, &repair->page_completions[i].completion))
 			/*
 			 * The rebuild has already moved on, so it isn't safe nor is there a need
 			 * to launch any more fetches.
@@ -618,7 +618,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
  */
 static int process_entry(physical_block_number_t pbn, struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	struct slab_depot *depot = completion->vdo->depot;
 	int result;
 
@@ -635,34 +635,33 @@ static int process_entry(physical_block_number_t pbn, struct vdo_completion *com
 					      "Could not adjust reference count for block map tree PBN %llu",
 					      (unsigned long long) pbn);
 
-	recovery->block_map_data_blocks++;
+	repair->block_map_data_blocks++;
 	return VDO_SUCCESS;
 }
 
 static void rebuild_reference_counts(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	struct vdo *vdo = completion->vdo;
 	struct vdo_page_cache *cache = &vdo->block_map->zones[0].page_cache;
 
 	/* We must allocate ref_counts before we can rebuild them. */
-	if (abort_on_error(vdo_allocate_reference_counters(vdo->depot), recovery))
+	if (abort_on_error(vdo_allocate_reference_counters(vdo->depot), repair))
 		return;
 
 	/*
 	 * Completion chaining from page cache hits can lead to stack overflow during the rebuild,
 	 * so clear out the cache before this rebuild phase.
 	 */
-	if (abort_on_error(vdo_invalidate_page_cache(cache), recovery))
+	if (abort_on_error(vdo_invalidate_page_cache(cache), repair))
 		return;
 
-	prepare_recovery_completion(recovery, rebuild_from_leaves, VDO_ZONE_TYPE_LOGICAL);
+	prepare_repair_completion(repair, rebuild_from_leaves, VDO_ZONE_TYPE_LOGICAL);
 	vdo_traverse_forest(vdo->block_map, process_entry, completion);
 }
 
 /**
  * increment_recovery_point() - Move the given recovery point forward by one entry.
- * @point: The recovery point to alter.
  */
 static void increment_recovery_point(struct recovery_point *point)
 {
@@ -681,20 +680,20 @@ static void increment_recovery_point(struct recovery_point *point)
 
 /**
  * advance_points() - Advance the current recovery and journal points.
- * @recovery: The recovery_completion whose points are to be advanced.
+ * @repair: The repair_completion whose points are to be advanced.
  * @entries_per_block: The number of entries in a recovery journal block.
  */
 static void
-advance_points(struct recovery_completion *recovery, journal_entry_count_t entries_per_block)
+advance_points(struct repair_completion *repair, journal_entry_count_t entries_per_block)
 {
-	if (!recovery->next_recovery_point.increment_applied) {
-		recovery->next_recovery_point.increment_applied	= true;
+	if (!repair->next_recovery_point.increment_applied) {
+		repair->next_recovery_point.increment_applied	= true;
 		return;
 	}
 
-	increment_recovery_point(&recovery->next_recovery_point);
-	vdo_advance_journal_point(&recovery->next_journal_point, entries_per_block);
-	recovery->next_recovery_point.increment_applied	= false;
+	increment_recovery_point(&repair->next_recovery_point);
+	vdo_advance_journal_point(&repair->next_journal_point, entries_per_block);
+	repair->next_recovery_point.increment_applied	= false;
 }
 
 /**
@@ -735,18 +734,18 @@ get_sector(struct recovery_journal *journal,
 
 /**
  * get_entry() - Unpack the recovery journal entry associated with the given recovery point.
- * @recovery: The recovery completion.
+ * @repair: The repair completion.
  * @point: The recovery point.
  *
  * Return: The unpacked contents of the matching recovery journal entry.
  */
 static struct recovery_journal_entry
-get_entry(const struct recovery_completion *recovery, const struct recovery_point *point)
+get_entry(const struct repair_completion *repair, const struct recovery_point *point)
 {
 	struct packed_journal_sector *sector;
 
-	sector = get_sector(recovery->completion.vdo->recovery_journal,
-			    recovery->journal_data,
+	sector = get_sector(repair->completion.vdo->recovery_journal,
+			    repair->journal_data,
 			    point->sequence_number,
 			    point->sector_count);
 	return vdo_unpack_recovery_journal_entry(&sector->entries[point->entry_count]);
@@ -802,7 +801,7 @@ validate_recovery_journal_entry(const struct vdo *vdo, const struct recovery_jou
 static void add_slab_journal_entries(struct vdo_completion *completion)
 {
 	struct recovery_point *recovery_point;
-	struct recovery_completion *recovery = completion->parent;
+	struct repair_completion *repair = completion->parent;
 	struct vdo *vdo = completion->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	struct block_allocator *allocator = vdo_as_block_allocator(completion);
@@ -812,15 +811,15 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 			       add_slab_journal_entries,
 			       vdo_notify_slab_journals_are_recovered,
 			       completion->callback_thread_id,
-			       recovery);
-	for (recovery_point = &recovery->next_recovery_point;
-	     before_recovery_point(recovery_point, &recovery->tail_recovery_point);
-	     advance_points(recovery, journal->entries_per_block)) {
+			       repair);
+	for (recovery_point = &repair->next_recovery_point;
+	     before_recovery_point(recovery_point, &repair->tail_recovery_point);
+	     advance_points(repair, journal->entries_per_block)) {
 		int result;
 		physical_block_number_t pbn;
 		struct vdo_slab *slab;
-		struct recovery_journal_entry entry = get_entry(recovery, recovery_point);
-		bool increment = !recovery->next_recovery_point.increment_applied;
+		struct recovery_journal_entry entry = get_entry(repair, recovery_point);
+		bool increment = !repair->next_recovery_point.increment_applied;
 
 		if (increment) {
 			result = validate_recovery_journal_entry(vdo, &entry);
@@ -846,11 +845,11 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 							  pbn,
 							  entry.operation,
 							  increment,
-							  &recovery->next_journal_point,
+							  &repair->next_journal_point,
 							  completion))
 			return;
 
-		recovery->entries_added_to_slab_journals++;
+		repair->entries_added_to_slab_journals++;
 	}
 
 	vdo_notify_slab_journals_are_recovered(completion);
@@ -865,102 +864,99 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 void vdo_replay_into_slab_journals(struct block_allocator *allocator, void *context)
 {
 	struct vdo_completion *completion = &allocator->completion;
-	struct recovery_completion *recovery = context;
+	struct repair_completion *repair = context;
 	struct vdo *vdo = completion->vdo;
 
 	vdo_assert_on_physical_zone_thread(vdo, allocator->zone_number, __func__);
-	if (recovery->entry_count == 0) {
+	if (repair->entry_count == 0) {
 		/* there's nothing to replay */
-		recovery->logical_blocks_used = vdo->recovery_journal->logical_blocks_used;
-		recovery->block_map_data_blocks = vdo->recovery_journal->block_map_data_blocks;
+		repair->logical_blocks_used = vdo->recovery_journal->logical_blocks_used;
+		repair->block_map_data_blocks = vdo->recovery_journal->block_map_data_blocks;
 		vdo_notify_slab_journals_are_recovered(completion);
 		return;
 	}
 
-	recovery->next_recovery_point = (struct recovery_point) {
-		.sequence_number = recovery->slab_journal_head,
+	repair->next_recovery_point = (struct recovery_point) {
+		.sequence_number = repair->slab_journal_head,
 		.sector_count = 1,
 		.entry_count = 0,
 	};
 
-	recovery->next_journal_point = (struct journal_point) {
-		.sequence_number = recovery->slab_journal_head,
+	repair->next_journal_point = (struct journal_point) {
+		.sequence_number = repair->slab_journal_head,
 		.entry_count = 0,
 	};
 
 	uds_log_info("Replaying entries into slab journals for zone %u", allocator->zone_number);
-	completion->parent = recovery;
+	completion->parent = repair;
 	add_slab_journal_entries(completion);
 }
 
 static void load_slab_depot(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	const struct admin_state_code *operation;
 
 	vdo_assert_on_admin_thread(completion->vdo, __func__);
 
 	if (vdo_state_requires_read_only_rebuild(completion->vdo->load_state)) {
-		prepare_recovery_completion(recovery,
-					    rebuild_reference_counts,
-					    VDO_ZONE_TYPE_LOGICAL);
+		prepare_repair_completion(repair, rebuild_reference_counts, VDO_ZONE_TYPE_LOGICAL);
 		operation = VDO_ADMIN_STATE_LOADING_FOR_REBUILD;
 	} else {
-		prepare_recovery_completion(recovery, drain_slab_depot, VDO_ZONE_TYPE_ADMIN);
+		prepare_repair_completion(repair, drain_slab_depot, VDO_ZONE_TYPE_ADMIN);
 		operation = VDO_ADMIN_STATE_LOADING_FOR_RECOVERY;
 	}
 
-	vdo_load_slab_depot(completion->vdo->depot, operation, completion, recovery);
+	vdo_load_slab_depot(completion->vdo->depot, operation, completion, repair);
 }
 
 static void flush_block_map(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	const struct admin_state_code *operation;
 
 	vdo_assert_on_admin_thread(completion->vdo, __func__);
 
 	uds_log_info("Flushing block map changes");
-	prepare_recovery_completion(recovery, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
+	prepare_repair_completion(repair, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
 	operation = (vdo_state_requires_read_only_rebuild(completion->vdo->load_state) ?
 		     VDO_ADMIN_STATE_REBUILDING :
 		     VDO_ADMIN_STATE_RECOVERING);
 	vdo_drain_block_map(completion->vdo->block_map, operation, completion);
 }
 
-/* Return: true if recovery is done.  */
-static bool finish_if_done(struct recovery_completion *recovery)
+static bool finish_if_done(struct repair_completion *repair)
 {
 	/* Pages are still being launched or there is still work to do */
-	if (recovery->launching || (recovery->outstanding > 0))
+	if (repair->launching || (repair->outstanding > 0))
 		return false;
 
-	if (recovery->completion.result != VDO_SUCCESS) {
+	if (repair->completion.result != VDO_SUCCESS) {
 		page_count_t i;
 
-		for (i = 0; i < recovery->page_count; i++) {
+		for (i = 0; i < repair->page_count; i++) {
 			struct vdo_page_completion *page_completion =
-				&recovery->page_completions[i];
+				&repair->page_completions[i];
 
 			if (page_completion->ready)
 				vdo_release_page_completion(&page_completion->completion);
 		}
 
-		vdo_launch_completion(&recovery->completion);
+		vdo_launch_completion(&repair->completion);
 		return true;
 	}
 
-	if (recovery->current_entry >= recovery->entries)
+	if (repair->current_entry >= repair->entries)
 		return false;
 
-	launch_recovery_completion(recovery, flush_block_map, VDO_ZONE_TYPE_ADMIN);
+	launch_repair_completion(repair, flush_block_map, VDO_ZONE_TYPE_ADMIN);
 	return true;
 }
 
-static void abort_block_map_recovery(struct recovery_completion *recovery, int result)
+static void abort_block_map_recovery(struct repair_completion *repair, int result)
 {
-	vdo_set_completion_result(&recovery->completion, result);
-	finish_if_done(recovery);
+	vdo_set_completion_result(&repair->completion, result);
+	finish_if_done(repair);
 }
 
 /**
@@ -973,24 +969,24 @@ static void abort_block_map_recovery(struct recovery_completion *recovery, int r
  *         just before the journal entries if no subsequent entry is on a different block map page.
  */
 static struct numbered_block_mapping *
-find_entry_starting_next_page(struct recovery_completion *recovery,
+find_entry_starting_next_page(struct repair_completion *repair,
 			      struct numbered_block_mapping *current_entry,
 			      bool needs_sort)
 {
 	size_t current_page;
 
 	/* If current_entry is invalid, return immediately. */
-	if (current_entry < recovery->entries)
+	if (current_entry < repair->entries)
 		return current_entry;
 
 	current_page = current_entry->block_map_slot.pbn;
 
 	/* Decrement current_entry until it's out of bounds or on a different page. */
-	while ((current_entry >= recovery->entries) &&
+	while ((current_entry >= repair->entries) &&
 	       (current_entry->block_map_slot.pbn == current_page)) {
 		if (needs_sort) {
 			struct numbered_block_mapping *just_sorted_entry =
-				sort_next_heap_element(recovery);
+				sort_next_heap_element(repair);
 			ASSERT_LOG_ONLY(just_sorted_entry < current_entry,
 					"heap is returning elements in an unexpected order");
 		}
@@ -1017,69 +1013,68 @@ static void apply_journal_entries_to_page(struct block_map_page *page,
 	}
 }
 
-static void recover_ready_pages(struct recovery_completion *recovery,
+static void recover_ready_pages(struct repair_completion *repair,
 				struct vdo_completion *completion);
 
 static void block_map_page_loaded(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion->parent);
+	struct repair_completion *repair = as_repair_completion(completion->parent);
 
-	recovery->outstanding--;
-	if (!recovery->launching)
-		recover_ready_pages(recovery, completion);
+	repair->outstanding--;
+	if (!repair->launching)
+		recover_ready_pages(repair, completion);
 }
 
 static void handle_block_map_page_load_error(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion->parent);
+	struct repair_completion *repair = as_repair_completion(completion->parent);
 
-	recovery->outstanding--;
-	abort_block_map_recovery(recovery, completion->result);
+	repair->outstanding--;
+	abort_block_map_recovery(repair, completion->result);
 }
 
-static void fetch_block_map_page(struct recovery_completion *recovery,
+static void fetch_block_map_page(struct repair_completion *repair,
 				 struct vdo_completion *completion)
 {
 	physical_block_number_t pbn;
 
-	if (recovery->current_unfetched_entry < recovery->entries)
+	if (repair->current_unfetched_entry < repair->entries)
 		/* Nothing left to fetch. */
 		return;
 
 	/* Fetch the next page we haven't yet requested. */
-	pbn = recovery->current_unfetched_entry->block_map_slot.pbn;
-	recovery->current_unfetched_entry =
-		find_entry_starting_next_page(recovery, recovery->current_unfetched_entry, true);
-	recovery->outstanding++;
+	pbn = repair->current_unfetched_entry->block_map_slot.pbn;
+	repair->current_unfetched_entry =
+		find_entry_starting_next_page(repair, repair->current_unfetched_entry, true);
+	repair->outstanding++;
 	vdo_get_page(((struct vdo_page_completion *) completion),
-		     &recovery->completion.vdo->block_map->zones[0],
+		     &repair->completion.vdo->block_map->zones[0],
 		     pbn,
 		     true,
-		     &recovery->completion,
+		     &repair->completion,
 		     block_map_page_loaded,
 		     handle_block_map_page_load_error,
 		     false);
 }
 
 static struct vdo_page_completion *
-get_next_page_completion(struct recovery_completion *recovery,
-			 struct vdo_page_completion *completion)
+get_next_page_completion(struct repair_completion *repair, struct vdo_page_completion *completion)
 {
 	completion++;
-	if (completion == (&recovery->page_completions[recovery->page_count]))
-		completion = &recovery->page_completions[0];
+	if (completion == (&repair->page_completions[repair->page_count]))
+		completion = &repair->page_completions[0];
 	return completion;
 }
 
-static void recover_ready_pages(struct recovery_completion *recovery,
+static void recover_ready_pages(struct repair_completion *repair,
 				struct vdo_completion *completion)
 {
 	struct vdo_page_completion *page_completion = (struct vdo_page_completion *) completion;
 
-	if (finish_if_done(recovery))
+	if (finish_if_done(repair))
 		return;
 
-	if (recovery->pbn != page_completion->pbn)
+	if (repair->pbn != page_completion->pbn)
 		return;
 
 	while (page_completion->ready) {
@@ -1089,30 +1084,30 @@ static void recover_ready_pages(struct recovery_completion *recovery,
 
 		result = vdo_get_cached_page(completion, &page);
 		if (result != VDO_SUCCESS) {
-			abort_block_map_recovery(recovery, result);
+			abort_block_map_recovery(repair, result);
 			return;
 		}
 
 		start_of_next_page =
-			find_entry_starting_next_page(recovery, recovery->current_entry, false);
-		apply_journal_entries_to_page(page, recovery->current_entry, start_of_next_page);
-		recovery->current_entry = start_of_next_page;
+			find_entry_starting_next_page(repair, repair->current_entry, false);
+		apply_journal_entries_to_page(page, repair->current_entry, start_of_next_page);
+		repair->current_entry = start_of_next_page;
 		vdo_request_page_write(completion);
 		vdo_release_page_completion(completion);
 
-		if (finish_if_done(recovery))
+		if (finish_if_done(repair))
 			return;
 
-		recovery->pbn = recovery->current_entry->block_map_slot.pbn;
-		fetch_block_map_page(recovery, completion);
-		page_completion = get_next_page_completion(recovery, page_completion);
+		repair->pbn = repair->current_entry->block_map_slot.pbn;
+		fetch_block_map_page(repair, completion);
+		page_completion = get_next_page_completion(repair, page_completion);
 		completion = &page_completion->completion;
 	}
 }
 
 EXTERNAL_STATIC void recover_block_map(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = as_recovery_completion(completion);
+	struct repair_completion *repair = as_repair_completion(completion);
 	struct vdo *vdo = completion->vdo;
 	struct numbered_block_mapping *first_sorted_entry;
 	page_count_t i;
@@ -1123,13 +1118,13 @@ EXTERNAL_STATIC void recover_block_map(struct vdo_completion *completion)
 	vdo->block_map->zones[0].page_cache.rebuilding =
 		vdo_state_requires_read_only_rebuild(vdo->load_state);
 
-	if (recovery->block_map_entry_count == 0) {
+	if (repair->block_map_entry_count == 0) {
 #ifdef INTERNAL
 		/* This message must be in sync with VDOTest::RebuildBase. */
 #endif /* INTERNAL */
 		uds_log_info("Replaying 0 recovery entries into block map");
-		UDS_FREE(UDS_FORGET(recovery->journal_data));
-		launch_recovery_completion(recovery, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
+		UDS_FREE(UDS_FORGET(repair->journal_data));
+		launch_repair_completion(repair, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
 		return;
 	}
 
@@ -1137,38 +1132,38 @@ EXTERNAL_STATIC void recover_block_map(struct vdo_completion *completion)
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
 	 * order incrementally, avoiding an expensive sort call.
 	 */
-	recovery->replay_heap = (struct min_heap) {
-		.data = recovery->entries,
-		.nr = recovery->block_map_entry_count,
-		.size = recovery->block_map_entry_count,
+	repair->replay_heap = (struct min_heap) {
+		.data = repair->entries,
+		.nr = repair->block_map_entry_count,
+		.size = repair->block_map_entry_count,
 	};
-	min_heapify_all(&recovery->replay_heap, &recovery_min_heap);
+	min_heapify_all(&repair->replay_heap, &repair_min_heap);
 
 #ifdef INTERNAL
 	/* This message must be in sync with VDOTest::RebuildBase. */
 #endif /* INTERNAL */
 	uds_log_info("Replaying %zu recovery entries into block map",
-		     recovery->block_map_entry_count);
+		     repair->block_map_entry_count);
 
-	recovery->current_entry = &recovery->entries[recovery->block_map_entry_count - 1];
-	first_sorted_entry = sort_next_heap_element(recovery);
-	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
+	repair->current_entry = &repair->entries[repair->block_map_entry_count - 1];
+	first_sorted_entry = sort_next_heap_element(repair);
+	ASSERT_LOG_ONLY(first_sorted_entry == repair->current_entry,
 			"heap is returning elements in an unexpected order");
 
 	/* Prevent any page from being processed until all pages have been launched. */
-	recovery->launching = true;
-	recovery->pbn = recovery->current_entry->block_map_slot.pbn;
-	recovery->current_unfetched_entry = recovery->current_entry;
-	for (i = 0; i < recovery->page_count; i++) {
-		if (recovery->current_unfetched_entry < recovery->entries)
+	repair->launching = true;
+	repair->pbn = repair->current_entry->block_map_slot.pbn;
+	repair->current_unfetched_entry = repair->current_entry;
+	for (i = 0; i < repair->page_count; i++) {
+		if (repair->current_unfetched_entry < repair->entries)
 			break;
 
-		fetch_block_map_page(recovery, &recovery->page_completions[i].completion);
+		fetch_block_map_page(repair, &repair->page_completions[i].completion);
 	}
-	recovery->launching = false;
+	repair->launching = false;
 
 	/* Process any ready pages. */
-	recover_ready_pages(recovery, &recovery->page_completions[0].completion);
+	recover_ready_pages(repair, &repair->page_completions[0].completion);
 }
 
 /**
@@ -1246,9 +1241,9 @@ is_exact_recovery_journal_block(const struct recovery_journal *journal,
  *
  * Return: True if there were valid journal blocks.
  */
-static bool find_recovery_journal_head_and_tail(struct recovery_completion *recovery)
+static bool find_recovery_journal_head_and_tail(struct repair_completion *repair)
 {
-	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
+	struct recovery_journal *journal = repair->completion.vdo->recovery_journal;
 	bool found_entries = false;
 	physical_block_number_t i;
 
@@ -1257,10 +1252,10 @@ static bool find_recovery_journal_head_and_tail(struct recovery_completion *reco
 	 * block must be a lower bound. Not doing so can result in extra data loss by setting the
 	 * tail too early.
 	 */
-	recovery->highest_tail = journal->tail;
+	repair->highest_tail = journal->tail;
 	for (i = 0; i < journal->size; i++) {
 		struct recovery_block_header header =
-			get_recovery_journal_block_header(journal, recovery->journal_data, i);
+			get_recovery_journal_block_header(journal, repair->journal_data, i);
 
 		if (!is_valid_recovery_journal_block(journal, &header, true))
 			/* This block is old or incorrectly formatted */
@@ -1270,19 +1265,19 @@ static bool find_recovery_journal_head_and_tail(struct recovery_completion *reco
 			/* This block is in the wrong location */
 			continue;
 
-		if (header.sequence_number >= recovery->highest_tail) {
+		if (header.sequence_number >= repair->highest_tail) {
 			found_entries = true;
-			recovery->highest_tail = header.sequence_number;
+			repair->highest_tail = header.sequence_number;
 		}
 
 		if (!found_entries)
 			continue;
 
-		if (header.block_map_head > recovery->block_map_head)
-			recovery->block_map_head = header.block_map_head;
+		if (header.block_map_head > repair->block_map_head)
+			repair->block_map_head = header.block_map_head;
 
-		if (header.slab_journal_head > recovery->slab_journal_head)
-			recovery->slab_journal_head = header.slab_journal_head;
+		if (header.slab_journal_head > repair->slab_journal_head)
+			repair->slab_journal_head = header.slab_journal_head;
 	}
 
 	return found_entries;
@@ -1338,20 +1333,20 @@ static bool unpack_entry(struct vdo *vdo,
 
 /**
  * append_sector_entries() - Append an array of recovery journal entries from a journal block
- *                           sector to the array of numbered mappings in the recovery completion,
+ *                           sector to the array of numbered mappings in the repair completion,
  *                           numbering each entry in the order they are appended.
- * @recovery: The recovery completion.
+ * @repair: The repair completion.
  * @entries: The entries in the sector.
  * @format: The format of the sector.
  * @entry_count: The number of entries to append.
  */
-static void append_sector_entries(struct recovery_completion *recovery,
+static void append_sector_entries(struct repair_completion *repair,
 				  char *entries,
 				  enum vdo_metadata_type format,
 				  journal_entry_count_t entry_count)
 {
 	journal_entry_count_t i;
-	struct vdo *vdo = recovery->completion.vdo;
+	struct vdo *vdo = repair->completion.vdo;
 	off_t increment = ((format == VDO_METADATA_RECOVERY_JOURNAL_2)
 			   ? sizeof(struct packed_recovery_journal_entry)
 			   : sizeof(struct packed_recovery_journal_entry_1));
@@ -1363,14 +1358,14 @@ static void append_sector_entries(struct recovery_completion *recovery,
 			/* When recovering from read-only mode, ignore damaged entries. */
 			continue;
 
-		recovery->entries[recovery->block_map_entry_count] =
+		repair->entries[repair->block_map_entry_count] =
 			(struct numbered_block_mapping) {
 			.block_map_slot = entry.slot,
 			.block_map_entry = vdo_pack_block_map_entry(entry.mapping.pbn,
 								    entry.mapping.state),
-			.number = recovery->block_map_entry_count,
+			.number = repair->block_map_entry_count,
 		};
-		recovery->block_map_entry_count++;
+		repair->block_map_entry_count++;
 	}
 }
 
@@ -1384,7 +1379,7 @@ static journal_entry_count_t entries_per_sector(enum vdo_metadata_type format, u
 		: RECOVERY_JOURNAL_1_ENTRIES_PER_SECTOR);
 }
 
-static void extract_entries_from_block(struct recovery_completion *recovery,
+static void extract_entries_from_block(struct repair_completion *repair,
 				       struct recovery_journal *journal,
 				       sequence_number_t sequence,
 				       enum vdo_metadata_type format,
@@ -1392,7 +1387,7 @@ static void extract_entries_from_block(struct recovery_completion *recovery,
 {
 	sector_count_t i;
 	struct recovery_block_header header =
-		get_recovery_journal_block_header(journal, recovery->journal_data, sequence);
+		get_recovery_journal_block_header(journal, repair->journal_data, sequence);
 
 	if (!is_exact_recovery_journal_block(journal, &header, sequence, format))
 		/* This block is invalid, so skip it. */
@@ -1401,12 +1396,12 @@ static void extract_entries_from_block(struct recovery_completion *recovery,
 	entries = min(entries, header.entry_count);
 	for (i = 1; i < VDO_SECTORS_PER_BLOCK; i++) {
 		struct packed_journal_sector *sector =
-			get_sector(journal, recovery->journal_data, sequence, i);
+			get_sector(journal, repair->journal_data, sequence, i);
 		journal_entry_count_t sector_entries = min(entries, entries_per_sector(format, i));
 
 		if (vdo_is_valid_recovery_journal_sector(&header, sector, i)) {
 			/* Only extract as many as the block header calls for. */
-			append_sector_entries(recovery,
+			append_sector_entries(repair,
 					      (char *) sector->entries,
 					      format,
 					      min_t(journal_entry_count_t,
@@ -1422,19 +1417,19 @@ static void extract_entries_from_block(struct recovery_completion *recovery,
 	}
 }
 
-static int parse_journal_for_rebuild(struct recovery_completion *recovery)
+static int parse_journal_for_rebuild(struct repair_completion *repair)
 {
 	int result;
 	sequence_number_t i;
 	block_count_t count;
 	enum vdo_metadata_type format;
-	struct vdo *vdo = recovery->completion.vdo;
+	struct vdo *vdo = repair->completion.vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	journal_entry_count_t entries_per_block = journal->entries_per_block;
 
 	format = get_recovery_journal_block_header(journal,
-						   recovery->journal_data,
-						   recovery->highest_tail).metadata_type;
+						   repair->journal_data,
+						   repair->highest_tail).metadata_type;
 	if (format == VDO_METADATA_RECOVERY_JOURNAL)
 		entries_per_block = RECOVERY_JOURNAL_1_ENTRIES_PER_BLOCK;
 
@@ -1442,30 +1437,30 @@ static int parse_journal_for_rebuild(struct recovery_completion *recovery)
 	 * Allocate an array of numbered_block_mapping structures large enough to transcribe every
 	 * packed_recovery_journal_entry from every valid journal block.
 	 */
-	count = ((recovery->highest_tail - recovery->block_map_head + 1) * entries_per_block);
-	result = UDS_ALLOCATE(count, struct numbered_block_mapping, __func__, &recovery->entries);
+	count = ((repair->highest_tail - repair->block_map_head + 1) * entries_per_block);
+	result = UDS_ALLOCATE(count, struct numbered_block_mapping, __func__, &repair->entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	for (i = recovery->block_map_head; i <= recovery->highest_tail; i++)
-		extract_entries_from_block(recovery, journal, i, format, entries_per_block);
+	for (i = repair->block_map_head; i <= repair->highest_tail; i++)
+		extract_entries_from_block(repair, journal, i, format, entries_per_block);
 
 	return VDO_SUCCESS;
 }
 
-static int validate_heads(struct recovery_completion *recovery)
+static int validate_heads(struct repair_completion *repair)
 {
 	/* Both reap heads must be behind the tail. */
-	if ((recovery->block_map_head <= recovery->tail) &&
-	    (recovery->slab_journal_head <= recovery->tail))
+	if ((repair->block_map_head <= repair->tail) &&
+	    (repair->slab_journal_head <= repair->tail))
 		return VDO_SUCCESS;
 
 
 	return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 				      "Journal tail too early. block map head: %llu, slab journal head: %llu, tail: %llu",
-				      (unsigned long long) recovery->block_map_head,
-				      (unsigned long long) recovery->slab_journal_head,
-				      (unsigned long long) recovery->tail);
+				      (unsigned long long) repair->block_map_head,
+				      (unsigned long long) repair->slab_journal_head,
+				      (unsigned long long) repair->tail);
 }
 
 /**
@@ -1474,12 +1469,12 @@ static int validate_heads(struct recovery_completion *recovery)
  * The mappings are extracted from the journal and stored in a sortable array so that all of the
  * mappings to be applied to a given block map page can be done in a single page fetch.
  */
-static int extract_new_mappings(struct recovery_completion *recovery)
+static int extract_new_mappings(struct repair_completion *repair)
 {
 	int result;
-	struct vdo *vdo = recovery->completion.vdo;
+	struct vdo *vdo = repair->completion.vdo;
 	struct recovery_point recovery_point = {
-		.sequence_number = recovery->block_map_head,
+		.sequence_number = repair->block_map_head,
 		.sector_count = 1,
 		.entry_count = 0,
 	};
@@ -1488,16 +1483,16 @@ static int extract_new_mappings(struct recovery_completion *recovery)
 	 * Allocate an array of numbered_block_mapping structs just large enough to transcribe
 	 * every packed_recovery_journal_entry from every valid journal block.
 	 */
-	result = UDS_ALLOCATE(recovery->entry_count,
+	result = UDS_ALLOCATE(repair->entry_count,
 			      struct numbered_block_mapping,
 			      __func__,
-			      &recovery->entries);
+			      &repair->entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	for (; before_recovery_point(&recovery_point, &recovery->tail_recovery_point);
+	for (; before_recovery_point(&recovery_point, &repair->tail_recovery_point);
 	     increment_recovery_point(&recovery_point)) {
-		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
+		struct recovery_journal_entry entry = get_entry(repair, &recovery_point);
 
 		result = validate_recovery_journal_entry(vdo, &entry);
 		if (result != VDO_SUCCESS) {
@@ -1505,17 +1500,17 @@ static int extract_new_mappings(struct recovery_completion *recovery)
 			return result;
 		}
 
-		recovery->entries[recovery->block_map_entry_count] =
+		repair->entries[repair->block_map_entry_count] =
 			(struct numbered_block_mapping) {
 			.block_map_slot = entry.slot,
 			.block_map_entry = vdo_pack_block_map_entry(entry.mapping.pbn,
 								    entry.mapping.state),
-			.number = recovery->block_map_entry_count,
+			.number = repair->block_map_entry_count,
 		};
-		recovery->block_map_entry_count++;
+		repair->block_map_entry_count++;
 	}
 
-	result = ASSERT((recovery->block_map_entry_count <= recovery->entry_count),
+	result = ASSERT((repair->block_map_entry_count <= repair->entry_count),
 			"approximate entry count is an upper bound");
 	if (result != VDO_SUCCESS)
 		vdo_enter_read_only_mode(vdo, result);
@@ -1527,29 +1522,29 @@ static int extract_new_mappings(struct recovery_completion *recovery)
  * compute_usages() - Compute the lbns in use and block map data blocks counts from the tail of
  *                    the journal.
  */
-static noinline int compute_usages(struct recovery_completion *recovery)
+static noinline int compute_usages(struct repair_completion *repair)
 {
 	/*
 	 * VDO-5182: function is declared noinline to avoid what is likely a spurious valgrind
 	 * error about this structure being uninitialized.
 	 */
 	struct recovery_point recovery_point = {
-		.sequence_number = recovery->tail,
+		.sequence_number = repair->tail,
 		.sector_count = 1,
 		.entry_count = 0,
 	};
 
-	struct vdo *vdo = recovery->completion.vdo;
+	struct vdo *vdo = repair->completion.vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	struct recovery_block_header header =
-		get_recovery_journal_block_header(journal, recovery->journal_data, recovery->tail);
+		get_recovery_journal_block_header(journal, repair->journal_data, repair->tail);
 
-	recovery->logical_blocks_used = header.logical_blocks_used;
-	recovery->block_map_data_blocks = header.block_map_data_blocks;
+	repair->logical_blocks_used = header.logical_blocks_used;
+	repair->block_map_data_blocks = header.block_map_data_blocks;
 
-	for (; before_recovery_point(&recovery_point, &recovery->tail_recovery_point);
+	for (; before_recovery_point(&recovery_point, &repair->tail_recovery_point);
 	     increment_recovery_point(&recovery_point)) {
-		struct recovery_journal_entry entry = get_entry(recovery, &recovery_point);
+		struct recovery_journal_entry entry = get_entry(repair, &recovery_point);
 		int result;
 
 		result = validate_recovery_journal_entry(vdo, &entry);
@@ -1559,47 +1554,46 @@ static noinline int compute_usages(struct recovery_completion *recovery)
 		}
 
 		if (entry.operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) {
-			recovery->block_map_data_blocks++;
+			repair->block_map_data_blocks++;
 			continue;
 		}
 
 		if (vdo_is_mapped_location(&entry.mapping))
-			recovery->logical_blocks_used++;
+			repair->logical_blocks_used++;
 
 		if (vdo_is_mapped_location(&entry.unmapping))
-			recovery->logical_blocks_used--;
+			repair->logical_blocks_used--;
 	}
 
 	return VDO_SUCCESS;
 }
 
-static int parse_journal_for_recovery(struct recovery_completion *recovery)
+static int parse_journal_for_recovery(struct repair_completion *repair)
 {
 	int result;
 	sequence_number_t i, head;
 	bool found_entries = false;
-	struct recovery_journal *journal = recovery->completion.vdo->recovery_journal;
+	struct recovery_journal *journal = repair->completion.vdo->recovery_journal;
 
-	head = min(recovery->block_map_head, recovery->slab_journal_head);
-	for (i = head; i <= recovery->highest_tail; i++) {
+	head = min(repair->block_map_head, repair->slab_journal_head);
+	for (i = head; i <= repair->highest_tail; i++) {
 		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		u8 j;
 
-		recovery->tail = i;
-		recovery->tail_recovery_point = (struct recovery_point) {
+		repair->tail = i;
+		repair->tail_recovery_point = (struct recovery_point) {
 			.sequence_number = i,
 			.sector_count = 0,
 			.entry_count = 0,
 		};
 
-		header = get_recovery_journal_block_header(journal, recovery->journal_data, i);
+		header = get_recovery_journal_block_header(journal, repair->journal_data, i);
 		if (header.metadata_type == VDO_METADATA_RECOVERY_JOURNAL) {
 			/* This is an old format block, so we need to upgrade */
 			uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					       "Recovery journal is in the old format, a read-only rebuild is required.");
-			vdo_enter_read_only_mode(recovery->completion.vdo,
-						 VDO_UNSUPPORTED_VERSION);
+			vdo_enter_read_only_mode(repair->completion.vdo, VDO_UNSUPPORTED_VERSION);
 			return VDO_UNSUPPORTED_VERSION;
 		}
 
@@ -1615,7 +1609,7 @@ static int parse_journal_for_recovery(struct recovery_completion *recovery)
 		/* Examine each sector in turn to determine the last valid sector. */
 		for (j = 1; j < VDO_SECTORS_PER_BLOCK; j++) {
 			struct packed_journal_sector *sector =
-				get_sector(journal, recovery->journal_data, i, j);
+				get_sector(journal, repair->journal_data, i, j);
 			journal_entry_count_t sector_entries =
 				min_t(journal_entry_count_t, sector->entry_count, block_entries);
 
@@ -1625,10 +1619,10 @@ static int parse_journal_for_recovery(struct recovery_completion *recovery)
 
 			if (sector_entries > 0) {
 				found_entries = true;
-				recovery->tail_recovery_point.sector_count++;
-				recovery->tail_recovery_point.entry_count = sector_entries;
+				repair->tail_recovery_point.sector_count++;
+				repair->tail_recovery_point.entry_count = sector_entries;
 				block_entries -= sector_entries;
-				recovery->entry_count += sector_entries;
+				repair->entry_count += sector_entries;
 			}
 
 			/* If this sector is short, the later sectors can't matter. */
@@ -1643,56 +1637,56 @@ static int parse_journal_for_recovery(struct recovery_completion *recovery)
 	}
 
 	if (!found_entries)
-		return validate_heads(recovery);
+		return validate_heads(repair);
 
 	/* Set the tail to the last valid tail block, if there is one. */
-	if (recovery->tail_recovery_point.sector_count == 0)
-		recovery->tail--;
+	if (repair->tail_recovery_point.sector_count == 0)
+		repair->tail--;
 
-	result = validate_heads(recovery);
+	result = validate_heads(repair);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	uds_log_info("Highest-numbered recovery journal block has sequence number %llu, and the highest-numbered usable block is %llu",
-		     (unsigned long long) recovery->highest_tail,
-		     (unsigned long long) recovery->tail);
+		     (unsigned long long) repair->highest_tail,
+		     (unsigned long long) repair->tail);
 
-	result = extract_new_mappings(recovery);
+	result = extract_new_mappings(repair);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return compute_usages(recovery);
+	return compute_usages(repair);
 }
 
-static int parse_journal(struct recovery_completion *recovery)
+static int parse_journal(struct repair_completion *repair)
 {
-	if (!find_recovery_journal_head_and_tail(recovery))
+	if (!find_recovery_journal_head_and_tail(repair))
 		return VDO_SUCCESS;
 
-	return (vdo_state_requires_read_only_rebuild(recovery->completion.vdo->load_state) ?
-		parse_journal_for_rebuild(recovery) :
-		parse_journal_for_recovery(recovery));
+	return (vdo_state_requires_read_only_rebuild(repair->completion.vdo->load_state) ?
+		parse_journal_for_rebuild(repair) :
+		parse_journal_for_recovery(repair));
 }
 
 static void finish_journal_load(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = completion->parent;
+	struct repair_completion *repair = completion->parent;
 
-	if (++recovery->vios_complete != recovery->vio_count)
+	if (++repair->vios_complete != repair->vio_count)
 		return;
 
 	uds_log_info("Finished reading recovery journal");
-	uninitialize_vios(recovery);
-	prepare_recovery_completion(recovery, recover_block_map, VDO_ZONE_TYPE_LOGICAL);
-	vdo_continue_completion(&recovery->completion, parse_journal(recovery));
+	uninitialize_vios(repair);
+	prepare_repair_completion(repair, recover_block_map, VDO_ZONE_TYPE_LOGICAL);
+	vdo_continue_completion(&repair->completion, parse_journal(repair));
 }
 
 static void handle_journal_load_error(struct vdo_completion *completion)
 {
-	struct recovery_completion *recovery = completion->parent;
+	struct repair_completion *repair = completion->parent;
 
 	/* Preserve the error */
-	vdo_set_completion_result(&recovery->completion, completion->result);
+	vdo_set_completion_result(&repair->completion, completion->result);
 	record_metadata_io_error(as_vio(completion));
 	completion->callback(completion);
 }
@@ -1713,7 +1707,7 @@ void vdo_repair(struct vdo_completion *parent)
 {
 	int result;
 	char *ptr;
-	struct recovery_completion *recovery;
+	struct repair_completion *repair;
 	struct vdo *vdo = parent->vdo;
 	struct recovery_journal *journal = vdo->recovery_journal;
 	physical_block_number_t pbn = journal->origin;
@@ -1737,42 +1731,42 @@ void vdo_repair(struct vdo_completion *parent)
 		uds_log_warning("Device was dirty, rebuilding reference counts");
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct recovery_completion,
+	result = UDS_ALLOCATE_EXTENDED(struct repair_completion,
 				       page_count,
 				       struct vdo_page_completion,
 				       __func__,
-				       &recovery);
+				       &repair);
 	if (result != VDO_SUCCESS) {
 		vdo_fail_completion(parent, result);
 		return;
 	}
 
-	vdo_initialize_completion(&recovery->completion, vdo, VDO_RECOVERY_COMPLETION);
-	recovery->completion.error_handler = abort_recovery;
-	recovery->completion.parent = parent;
-	prepare_recovery_completion(recovery, finish_recovery, VDO_ZONE_TYPE_ADMIN);
-	recovery->page_count = page_count;
+	vdo_initialize_completion(&repair->completion, vdo, VDO_REPAIR_COMPLETION);
+	repair->completion.error_handler = abort_repair;
+	repair->completion.parent = parent;
+	prepare_repair_completion(repair, finish_repair, VDO_ZONE_TYPE_ADMIN);
+	repair->page_count = page_count;
 
-	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &recovery->journal_data);
-	if (abort_on_error(result, recovery))
+	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &repair->journal_data);
+	if (abort_on_error(result, repair))
 		return;
 
-	result = UDS_ALLOCATE(vio_count, struct vio, __func__, &recovery->vios);
-	if (abort_on_error(result, recovery))
+	result = UDS_ALLOCATE(vio_count, struct vio, __func__, &repair->vios);
+	if (abort_on_error(result, repair))
 		return;
 
-	ptr = recovery->journal_data;
-	for (recovery->vio_count = 0; recovery->vio_count < vio_count; recovery->vio_count++) {
+	ptr = repair->journal_data;
+	for (repair->vio_count = 0; repair->vio_count < vio_count; repair->vio_count++) {
 		block_count_t blocks = min_t(block_count_t, remaining, MAX_BLOCKS_PER_VIO);
 
 		result = allocate_vio_components(vdo,
 						 VIO_TYPE_RECOVERY_JOURNAL,
 						 VIO_PRIORITY_METADATA,
-						 recovery,
+						 repair,
 						 blocks,
 						 ptr,
-						 &recovery->vios[recovery->vio_count]);
-		if (abort_on_error(result, recovery))
+						 &repair->vios[repair->vio_count]);
+		if (abort_on_error(result, repair))
 			return;
 
 		ptr += (blocks * VDO_BLOCK_SIZE);
@@ -1780,9 +1774,9 @@ void vdo_repair(struct vdo_completion *parent)
 	}
 
 	for (vio_count = 0;
-	     vio_count < recovery->vio_count;
+	     vio_count < repair->vio_count;
 	     vio_count++, pbn += MAX_BLOCKS_PER_VIO)
-		submit_metadata_vio(&recovery->vios[vio_count],
+		submit_metadata_vio(&repair->vios[vio_count],
 				    pbn,
 				    read_journal_endio,
 				    handle_journal_load_error,

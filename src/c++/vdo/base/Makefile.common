@@ -27,8 +27,8 @@ BASE_OBJS :=     			\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
-	recovery.o			\
 	recovery-journal.o		\
+	repair.o			\
 	slab-depot.o			\
 	status-codes.o			\
 	vdo.o				\

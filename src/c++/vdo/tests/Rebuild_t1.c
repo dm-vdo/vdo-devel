@@ -444,7 +444,7 @@ static void setRequeueAndRun(struct vdo_completion *completion)
  **/
 static bool failSlabDepotLoad(struct vdo_completion *completion)
 {
-  if (completion->type != VDO_RECOVERY_COMPLETION) {
+  if (completion->type != VDO_REPAIR_COMPLETION) {
     return true;
   }
 
