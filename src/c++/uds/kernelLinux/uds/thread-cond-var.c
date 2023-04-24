@@ -3,52 +3,58 @@
  * Copyright Red Hat
  */
 
+#include <linux/jiffies.h>
+#include <linux/minmax.h>
+
 #include "errors.h"
 #include "time-utils.h"
 #include "uds-threads.h"
 
 int uds_init_cond(struct cond_var *cv)
 {
-	cv->event_count = NULL;
-	return make_event_count(&cv->event_count);
+	init_waitqueue_head(&cv->wait_queue);
+	return UDS_SUCCESS;
 }
 
 int uds_signal_cond(struct cond_var *cv)
 {
-	event_count_broadcast(cv->event_count);
+	wake_up(&cv->wait_queue);
 	return UDS_SUCCESS;
 }
 
 int uds_broadcast_cond(struct cond_var *cv)
 {
-	event_count_broadcast(cv->event_count);
+	wake_up_all(&cv->wait_queue);
 	return UDS_SUCCESS;
 }
 
 int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 {
-	event_token_t token = event_count_prepare(cv->event_count);
+	DEFINE_WAIT(__wait);
 
+	prepare_to_wait(&cv->wait_queue, &__wait, TASK_UNINTERRUPTIBLE);
 	uds_unlock_mutex(mutex);
-	event_count_wait(cv->event_count, token, NULL);
+	schedule();
+	finish_wait(&cv->wait_queue, &__wait);
 	uds_lock_mutex(mutex);
 	return UDS_SUCCESS;
 }
 
 int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeout)
 {
-	bool happened;
-	event_token_t token = event_count_prepare(cv->event_count);
+	long remaining;
+	DEFINE_WAIT(__wait);
 
+	prepare_to_wait(&cv->wait_queue, &__wait, TASK_UNINTERRUPTIBLE);
 	uds_unlock_mutex(mutex);
-	happened = event_count_wait(cv->event_count, token, &timeout);
+	remaining = schedule_timeout(max(1UL, nsecs_to_jiffies(timeout)));
+	finish_wait(&cv->wait_queue, &__wait);
 	uds_lock_mutex(mutex);
-	return happened ? UDS_SUCCESS : ETIMEDOUT;
+
+	return (remaining != 0) ? UDS_SUCCESS : ETIMEDOUT;
 }
 
 int uds_destroy_cond(struct cond_var *cv)
 {
-	free_event_count(cv->event_count);
-	cv->event_count = NULL;
 	return UDS_SUCCESS;
 }

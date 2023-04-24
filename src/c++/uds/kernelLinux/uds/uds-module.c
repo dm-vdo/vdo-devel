@@ -6,6 +6,7 @@
 #include <linux/module.h>
 
 #include "errors.h"
+#include "event-count.h"
 #include "funnel-queue.h"
 #include "logger.h"
 #include "memory-alloc.h"

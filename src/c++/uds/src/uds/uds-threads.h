@@ -12,15 +12,14 @@
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
-
-#include "event-count.h"
+#include <linux/wait.h>
 #else
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
 #include <stdbool.h>
-
 #endif
+
 #include "errors.h"
 #include "time-utils.h"
 
@@ -28,7 +27,7 @@
 
 #ifdef __KERNEL__
 struct cond_var {
-	struct event_count *event_count;
+	wait_queue_head_t wait_queue;
 };
 
 struct thread;

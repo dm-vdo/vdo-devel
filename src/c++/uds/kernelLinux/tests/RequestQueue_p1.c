@@ -16,6 +16,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "event-count.h"
 #include "funnel-queue.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
