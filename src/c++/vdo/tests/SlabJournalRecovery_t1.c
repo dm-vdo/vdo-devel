@@ -13,8 +13,8 @@
 #include "admin-state.h"
 #include "block-map.h"
 #include "encodings.h"
-#include "recovery.h"
 #include "recovery-journal.h"
+#include "repair.h"
 #include "slab-depot.h"
 #include "vdo.h"
 
