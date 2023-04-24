@@ -69,7 +69,7 @@ static void resetWrapper(DataVIOWrapper *wrapper, slab_count_t slabNumber)
   dataVIO->logical.lbn             = (logical_block_number_t) slabNumber;
 
   struct vdo_slab *slab = vdo->depot->slabs[slabNumber];
-  journal               = slab->journal;
+  journal               = &slab->journal;
 
   wrapper->dataVIO.new_mapped.pbn = slab->start + 1;
   wrapper->dataVIO.increment_updater = (struct reference_updater) {

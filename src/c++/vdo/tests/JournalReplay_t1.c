@@ -32,7 +32,7 @@ static struct recovery_journal *recoveryJournal;
  **/
 static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 {
-  return depot->slabs[slabNumber]->journal;
+  return &depot->slabs[slabNumber]->journal;
 }
 
 /**

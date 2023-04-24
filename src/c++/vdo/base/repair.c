@@ -841,12 +841,12 @@ static void add_slab_journal_entries(struct vdo_completion *completion)
 		if (slab->allocator != allocator)
 			continue;
 
-		if (!vdo_attempt_replay_into_slab_journal(slab->journal,
-							  pbn,
-							  entry.operation,
-							  increment,
-							  &repair->next_journal_point,
-							  completion))
+		if (!vdo_attempt_replay_into_slab(slab,
+						  pbn,
+						  entry.operation,
+						  increment,
+						  &repair->next_journal_point,
+						  completion))
 			return;
 
 		repair->entries_added_to_slab_journals++;

@@ -206,7 +206,7 @@ static void verifySlabJournalEntries(void)
 
     vdo_unpack_slab_journal_block_header(&block->header, &header);
     CU_ASSERT_EQUAL(header.sequence_number, sequenceNumber++);
-    CU_ASSERT_EQUAL(header.entry_count, min(totalEntries, slab->journal->entries_per_block));
+    CU_ASSERT_EQUAL(header.entry_count, min(totalEntries, slab->journal.entries_per_block));
     for (journal_entry_count_t i = 0; i < header.entry_count; i++) {
       struct slab_journal_entry entry = vdo_decode_slab_journal_entry(block, i);
       bool increment = ((totalEntries % 2) == 0);
@@ -295,7 +295,7 @@ static void testWaitForSlabJournalSpace(void)
    */
   readsComplete        = false;
   recoveryBlocked      = false;
-  slabJournal          = vdo->depot->slabs[1]->journal;
+  slabJournal          = &vdo->depot->slabs[1]->journal;
   setCompletionEnqueueHook(wrapIfJournalRead);
 
   // Launch the recovery.

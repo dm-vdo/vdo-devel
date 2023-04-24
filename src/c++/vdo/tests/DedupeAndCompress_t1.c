@@ -137,7 +137,7 @@ static void crashAndRebuildVDO(void)
  **/
 static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 {
-  return vdo->depot->slabs[slabNumber]->journal;
+  return &vdo->depot->slabs[slabNumber]->journal;
 }
 
 /**

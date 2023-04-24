@@ -29,25 +29,19 @@ enum {
   JOURNAL_SIZE = 2,
 };
 
-static struct slab_depot      *depot;
-static struct block_allocator *allocator;
-static struct vdo_slab        *slab;
+struct vdo_slab *slab;
 
 /**********************************************************************/
 static void initializeRefCounts(void)
 {
+  TestParameters parameters = {
+    .slabCount = 1,
+    .slabSize = SLAB_SIZE,
+  };
+  initializeVDOTest(&parameters);
   srand(42);
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(struct slab_depot,
-                                           1,
-                                           struct block_allocator,
-                                           __func__,
-                                           &depot));
-  allocator = &depot->allocators[0];
-  allocator->depot = depot;
 
-  VDO_ASSERT_SUCCESS(vdo_configure_slab(SLAB_SIZE, JOURNAL_SIZE, &depot->slab_config));
-  VDO_ASSERT_SUCCESS(make_slab(0, allocator, NULL, 0, false, &slab));
-  VDO_ASSERT_SUCCESS(allocate_slab_counters(slab));
+  slab = vdo->depot->slabs[0];
 
   /*
    * Set the slab to be unrecovered so that slab journal locks will be ignored.
@@ -60,8 +54,9 @@ static void initializeRefCounts(void)
 /**********************************************************************/
 static void tearDownRefCounts(void)
 {
-  free_slab(UDS_FORGET(slab));
-  UDS_FREE(UDS_FORGET(depot));
+  // Put the vdo in read-only mode so it doesn't try to write out all the reference count blocks.
+  forceVDOReadOnlyMode();
+  tearDownVDOTest();
 }
 
 /**
@@ -72,7 +67,9 @@ static void tearDownRefCounts(void)
  **/
 static void setReferenceCount(physical_block_number_t pbn, size_t value)
 {
-  enum reference_status refStatus;
+  enum reference_status      refStatus;
+
+  pbn += slab->start;
   struct reference_updater updater = {
     .operation = VDO_JOURNAL_DATA_REMAPPING,
     .increment = false,
@@ -168,7 +165,7 @@ static void testMostlyFullArray(void)
 static void testFullArray(void)
 {
   // Incref all blocks except the last.
-  block_count_t dataBlocks = depot->slab_config.data_blocks;
+  block_count_t dataBlocks = vdo->depot->slab_config.data_blocks;
   for (size_t k = 1; k < dataBlocks - 1; k++) {
     setReferenceCount(k, 1);
   }
@@ -188,10 +185,9 @@ static void testAllFreeBlockPositions(block_count_t arrayLength)
     setReferenceCount(k, 1);
   }
 
-  // Try every free block position. PBNs and array indexes can be directly
-  // compared here since they both start at zero in the test configuration.
   for (physical_block_number_t freePBN = 1; freePBN < arrayLength; freePBN++) {
     // Adjust the previously-free block to 1, and the new free one to 0.
+    freePBN += slab->start;
     struct reference_updater updater = {
       .operation = VDO_JOURNAL_DATA_REMAPPING,
       .increment = true,
@@ -208,12 +204,12 @@ static void testAllFreeBlockPositions(block_count_t arrayLength)
     for (size_t start = 0; start < arrayLength; start++) {
       slab->search_cursor.index = start;
       for (size_t end = start; end <= arrayLength; end++) {
-        bool inRange = ((start <= freePBN) && (freePBN < end));
+        bool inRange = ((start <= (freePBN - slab->start)) && ((freePBN - slab->start) < end));
         slab_block_number freeIndex;
         slab->search_cursor.end_index = end;
         if (find_free_block(slab, &freeIndex)) {
           CU_ASSERT_TRUE(inRange);
-          CU_ASSERT_EQUAL(freePBN, freeIndex);
+          CU_ASSERT_EQUAL(freePBN, slab->start + freeIndex);
         } else {
           CU_ASSERT_FALSE(inRange);
         }

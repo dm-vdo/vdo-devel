@@ -75,7 +75,7 @@ static void initializeRebuildTest(void)
   depot      = vdo->depot;
   slabConfig = depot->slab_config;
   slab       = depot->slabs[0];
-  journal    = slab->journal;
+  journal    = &slab->journal;
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(slabConfig.data_blocks, uint8_t, __func__,
                                   &expectedReferences));
   latchRead    = true;

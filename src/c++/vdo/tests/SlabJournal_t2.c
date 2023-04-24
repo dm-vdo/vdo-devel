@@ -65,7 +65,7 @@ static void initializeSlabJournalT2(void)
   journal->available_space   = (vdo_get_recovery_journal_length(journal->size)
                                 * journal->entries_per_block);
 
-  slabJournal                    = vdo->depot->slabs[1]->journal;
+  slabJournal                    = &vdo->depot->slabs[1]->journal;
   slabJournal->entries_per_block = vdo->recovery_journal->entries_per_block;
 
   slabJournalThread            = slabJournal->slab->allocator->thread_id;

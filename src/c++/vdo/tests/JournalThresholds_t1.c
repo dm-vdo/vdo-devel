@@ -42,7 +42,7 @@ static physical_block_number_t  nextDataBlock;
  **/
 static struct slab_journal *getVDOSlabJournal(slab_count_t slabNumber)
 {
-  return vdo->depot->slabs[slabNumber]->journal;
+  return &vdo->depot->slabs[slabNumber]->journal;
 }
 
 /**
@@ -93,7 +93,7 @@ static void interrogateJournalUntilNotReaping(void)
 static void setSlabJournalEntriesPerBlock(journal_entry_count_t entriesPerBlock)
 {
   for (slab_count_t slab = 0; slab < vdo->depot->slab_count; slab++) {
-    struct slab_journal *slabJournal    = vdo->depot->slabs[slab]->journal;
+    struct slab_journal *slabJournal    = &vdo->depot->slabs[slab]->journal;
     slabJournal->entries_per_block      = entriesPerBlock;
     slabJournal->full_entries_per_block = entriesPerBlock;
     slabJournal->blocking_threshold     = slabJournal->scrubbing_threshold;

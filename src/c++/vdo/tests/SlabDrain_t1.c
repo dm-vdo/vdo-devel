@@ -58,11 +58,11 @@ static void initialize(void)
    * write 1 block in order to get the journal to write. Set the flushing
    * threshold to 1 so that a reference count write will be triggered.
    */
-  slab                                  = vdo->depot->slabs[0];
-  slab->journal->entries_per_block      = 1;
-  slab->journal->full_entries_per_block = 1;
-  slab->journal->flushing_threshold     = 1;
-  physicalZoneThread                    = vdo->thread_config.physical_threads[0];
+  slab                                 = vdo->depot->slabs[0];
+  slab->journal.entries_per_block      = 1;
+  slab->journal.full_entries_per_block = 1;
+  slab->journal.flushing_threshold     = 1;
+  physicalZoneThread                   = vdo->thread_config.physical_threads[0];
 }
 
 /**

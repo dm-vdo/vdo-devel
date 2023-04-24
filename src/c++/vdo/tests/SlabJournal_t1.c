@@ -175,7 +175,7 @@ static void slabJournalTestInitialization(block_count_t vioPoolSize)
   initializeVDOTest(&TEST_PARAMETERS);
   depot   = vdo->depot;
   slab    = depot->slabs[0];
-  journal = slab->journal;
+  journal = &slab->journal;
 
   // Set the threshold policies to be stronger than in production (otherwise
   // the blocking threshold never kicks in for a small slab journal).
@@ -401,13 +401,12 @@ addSlabJournalEntryForRebuildAction(struct vdo_completion *completion)
   struct reference_updater *updater = (wrapper->increment
                                        ? &dataVIO->increment_updater
                                        : &dataVIO->decrement_updater);
-  bool added
-    = vdo_attempt_replay_into_slab_journal(journal,
-                                           updater->zpbn.pbn,
-                                           updater->operation,
-                                           updater->increment,
-                                           &dataVIO->recovery_journal_point,
-                                           NULL);
+  bool added = vdo_attempt_replay_into_slab(journal->slab,
+                                            updater->zpbn.pbn,
+                                            updater->operation,
+                                            updater->increment,
+                                            &dataVIO->recovery_journal_point,
+                                            NULL);
   CU_ASSERT(added);
   vdo_finish_completion(completion);
 }

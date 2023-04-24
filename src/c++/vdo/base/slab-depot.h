@@ -139,7 +139,7 @@ struct slab_journal {
 	/* The lock for the oldest unreaped block of the journal */
 	struct journal_lock *reap_lock;
 	/* The locks for each on disk block */
-	struct journal_lock locks[];
+	struct journal_lock *locks;
 };
 
 /*
@@ -206,7 +206,7 @@ struct vdo_slab {
 	struct block_allocator *allocator;
 
 	/* The journal for this slab */
-	struct slab_journal *journal;
+	struct slab_journal journal;
 
 	/* The slab number of this slab */
 	slab_count_t slab_number;
@@ -497,20 +497,13 @@ struct slab_depot {
 
 struct reference_updater;
 
-int __must_check vdo_make_slab_journal(struct block_allocator *allocator,
-				       struct vdo_slab *slab,
-				       struct recovery_journal *recovery_journal,
-				       struct slab_journal **journal_ptr);
-
-void vdo_free_slab_journal(struct slab_journal *journal);
-
 bool __must_check
-vdo_attempt_replay_into_slab_journal(struct slab_journal *journal,
-				     physical_block_number_t pbn,
-				     enum journal_operation operation,
-				     bool increment,
-				     struct journal_point *recovery_point,
-				     struct vdo_completion *parent);
+vdo_attempt_replay_into_slab(struct vdo_slab *slab,
+			     physical_block_number_t pbn,
+			     enum journal_operation operation,
+			     bool increment,
+			     struct journal_point *recovery_point,
+			     struct vdo_completion *parent);
 
 int __must_check
 vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
@@ -633,7 +626,6 @@ void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
 void free_slab(struct vdo_slab *slab);
 int __must_check make_slab(physical_block_number_t slab_origin,
 			   struct block_allocator *allocator,
-			   struct recovery_journal *recovery_journal,
 			   slab_count_t slab_number,
 			   bool is_new,
 			   struct vdo_slab **slab_ptr);

@@ -563,7 +563,7 @@ static void testFreeSpaceWait(void)
  **/
 static void checkSlabJournalWaiters(struct vdo_completion *completion)
 {
-  struct slab_journal *journal = vdo->depot->slabs[slabToLatch]->journal;
+  struct slab_journal *journal = &vdo->depot->slabs[slabToLatch]->journal;
   if (vdo_has_waiters(&journal->entry_waiters)) {
     waiterQueued = true;
     setCallbackFinishedHook(NULL);
@@ -618,7 +618,7 @@ static void testRequeueUnrecoveredSlab(void)
   CU_ASSERT_NOT_EQUAL(slab->slab_number, slabToLatch);
 
   // Shorten the slab journal blocking threshold.
-  struct slab_journal *journal      = slab->journal;
+  struct slab_journal *journal      = &slab->journal;
   block_count_t        oldThreshold = journal->blocking_threshold;
   journal->blocking_threshold       = 0;
 
@@ -763,7 +763,7 @@ static void fillJournals(block_count_t dataOffset)
 {
   // Determine slab journal and recovery journal sizes.
   struct recovery_journal *journal     = vdo->recovery_journal;
-  struct slab_journal     *slabJournal = vdo->depot->slabs[0]->journal;
+  struct slab_journal     *slabJournal = &vdo->depot->slabs[0]->journal;
   block_count_t entriesToFillRecoveryJournal
     = journal->entries_per_block * journal->size;
   block_count_t entriesToFillAllSlabJournals

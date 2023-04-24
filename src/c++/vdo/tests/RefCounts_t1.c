@@ -386,7 +386,7 @@ static void saveOldestReferenceBlockAction(struct vdo_completion *completion)
  **/
 static void verifyRefCountsLoad(void)
 {
-  VDO_ASSERT_SUCCESS(make_slab(slab->start, slab->allocator, NULL, 0, false, &loaded));
+  VDO_ASSERT_SUCCESS(make_slab(slab->start, slab->allocator, 0, false, &loaded));
   VDO_ASSERT_SUCCESS(allocate_slab_counters(loaded));
   performSuccessfulSlabAction(loaded, VDO_ADMIN_STATE_SCRUBBING);
   CU_ASSERT_TRUE(slabsHaveEquivalentReferenceCounts(loaded, slab));
@@ -775,7 +775,7 @@ static void testReplay(void)
   // Save and load the reference counts so the commit point is updated.
   performSuccessfulSlabAction(slab, VDO_ADMIN_STATE_SAVE_FOR_SCRUBBING);
 
-  VDO_ASSERT_SUCCESS(make_slab(firstBlock, slab->allocator, NULL, 0, false, &loaded));
+  VDO_ASSERT_SUCCESS(make_slab(firstBlock, slab->allocator, 0, false, &loaded));
   VDO_ASSERT_SUCCESS(allocate_slab_counters(loaded));
   performSuccessfulSlabAction(loaded, VDO_ADMIN_STATE_SCRUBBING);
   CU_ASSERT_TRUE(slabsHaveEquivalentReferenceCounts(loaded, slab));
