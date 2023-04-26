@@ -89,7 +89,7 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
   config->name = indexName;
 
   struct uds_index *index;
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &index));
   struct geometry *geometry = config->geometry;
   unsigned long recordsPerChapter = geometry->records_per_chapter;
   unsigned long numSparseRecords
@@ -117,10 +117,10 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
   uint64_t seed4 = fillIndex(index, numRecords4);
 
   // Rebuild the volume index.
-  UDS_ASSERT_SUCCESS(save_index(index));
+  UDS_ASSERT_SUCCESS(uds_save_index(index));
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_LOAD, NULL, NULL, &index));
+  uds_free_index(index);
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_LOAD, NULL, NULL, &index));
 
   // Verify the filled data.
   verifyData(index, numRecords1, seed1, true);
@@ -138,7 +138,7 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
   verifyData(index, numRecords4, seed4, false);
   verifyData(index, numRecords5, seed5, false);
 
-  free_index(index);
+  uds_free_index(index);
 }
 
 /**********************************************************************/

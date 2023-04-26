@@ -101,7 +101,7 @@ launch_zone_message(struct uds_zone_message message, unsigned int zone, struct u
 	request->zone_number = zone;
 	request->zone_message = message;
 
-	enqueue_request(request, STAGE_MESSAGE);
+	uds_enqueue_request(request, STAGE_MESSAGE);
 	return UDS_SUCCESS;
 }
 
@@ -156,7 +156,8 @@ simulate_index_zone_barrier_message(struct index_zone *zone, struct uds_request 
 {
 	u64 sparse_virtual_chapter;
 
-	if ((zone->index->zone_count > 1) || !uds_is_sparse_geometry(zone->index->volume->geometry))
+	if ((zone->index->zone_count > 1) ||
+	    !uds_is_sparse_geometry(zone->index->volume->geometry))
 		return UDS_SUCCESS;
 
 	sparse_virtual_chapter = triage_index_request(zone->index, request);
@@ -175,7 +176,7 @@ static void triage_request(struct uds_request *request)
 	if (sparse_virtual_chapter != NO_CHAPTER)
 		enqueue_barrier_messages(index, sparse_virtual_chapter);
 
-	enqueue_request(request, STAGE_INDEX);
+	uds_enqueue_request(request, STAGE_INDEX);
 }
 
 static int finish_previous_chapter(struct uds_index *index, u64 current_chapter_number)
@@ -1185,11 +1186,11 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 	return UDS_SUCCESS;
 }
 
-int make_index(struct configuration *config,
-	       enum uds_open_index_type open_type,
-	       struct index_load_context *load_context,
-	       index_callback_t callback,
-	       struct uds_index **new_index)
+int uds_make_index(struct configuration *config,
+		   enum uds_open_index_type open_type,
+		   struct index_load_context *load_context,
+		   index_callback_t callback,
+		   struct uds_index **new_index)
 {
 	int result;
 	bool loaded = false;
@@ -1211,19 +1212,19 @@ int make_index(struct configuration *config,
 
 	result = uds_make_index_layout(config, new, &index->layout);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return result;
 	}
 
 	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones", &index->zones);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return result;
 	}
 
 	result = make_volume(config, index->layout, &index->volume);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return result;
 	}
 
@@ -1231,7 +1232,7 @@ int make_index(struct configuration *config,
 	for (z = 0; z < index->zone_count; z++) {
 		result = make_index_zone(index, z);
 		if (result != UDS_SUCCESS) {
-			free_index(index);
+			uds_free_index(index);
 			return uds_log_error_strerror(result, "Could not create index zone");
 		}
 	}
@@ -1239,7 +1240,7 @@ int make_index(struct configuration *config,
 	nonce = uds_get_volume_nonce(index->layout);
 	result = make_volume_index(config, nonce, &index->volume_index);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return uds_log_error_strerror(result, "could not make volume index");
 	}
 
@@ -1248,13 +1249,13 @@ int make_index(struct configuration *config,
 
 	result = initialize_index_queues(index, config->geometry);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return result;
 	}
 
 	result = make_chapter_writer(index, &index->chapter_writer);
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return result;
 	}
 
@@ -1281,7 +1282,7 @@ int make_index(struct configuration *config,
 	}
 
 	if (result != UDS_SUCCESS) {
-		free_index(index);
+		uds_free_index(index);
 		return uds_log_error_strerror(result, "fatal error in %s()", __func__);
 	}
 
@@ -1308,7 +1309,7 @@ int make_index(struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-void free_index(struct uds_index *index)
+void uds_free_index(struct uds_index *index)
 {
 	unsigned int i;
 
@@ -1334,7 +1335,7 @@ void free_index(struct uds_index *index)
 }
 
 /* Wait for the chapter writer to complete any outstanding writes. */
-void wait_for_idle_index(struct uds_index *index)
+void uds_wait_for_idle_index(struct uds_index *index)
 {
 	struct chapter_writer *writer = index->chapter_writer;
 
@@ -1345,14 +1346,14 @@ void wait_for_idle_index(struct uds_index *index)
 }
 
 /* This function assumes that all requests have been drained. */
-int save_index(struct uds_index *index)
+int uds_save_index(struct uds_index *index)
 {
 	int result;
 
 	if (!index->need_to_save)
 		return UDS_SUCCESS;
 
-	wait_for_idle_index(index);
+	uds_wait_for_idle_index(index);
 	index->prev_save = index->last_save;
 	index->last_save = ((index->newest_virtual_chapter == 0) ?
 			    NO_LAST_SAVE :
@@ -1372,13 +1373,13 @@ int save_index(struct uds_index *index)
 	return result;
 }
 
-int replace_index_storage(struct uds_index *index, const char *path)
+int uds_replace_index_storage(struct uds_index *index, const char *path)
 {
 	return replace_volume_storage(index->volume, index->layout, path);
 }
 
 /* Accessing statistics should be safe from any thread. */
-void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
+void uds_get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 {
 	struct volume_index_stats stats;
 
@@ -1392,7 +1393,7 @@ void get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
 				 index->chapter_writer->memory_size);
 }
 
-void enqueue_request(struct uds_request *request, enum request_stage stage)
+void uds_enqueue_request(struct uds_request *request, enum request_stage stage)
 {
 	struct uds_index *index = request->index;
 	struct uds_request_queue *queue;

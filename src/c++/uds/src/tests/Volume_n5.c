@@ -61,7 +61,7 @@ static void assertLastLocation(enum uds_index_region expectedLocation)
 /**********************************************************************/
 static void cleanupIndex(void)
 {
-  free_index(theIndex);
+  uds_free_index(theIndex);
   theIndex = NULL;
 }
 
@@ -80,7 +80,7 @@ static void init(const char *indexName)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 4);
 
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
 }
 
 /**
@@ -102,7 +102,7 @@ static void dispatchRequest(struct uds_request           *request,
   request->index = theIndex;
   incrementCallbackCount();
   request->unbatched = true;
-  enqueue_request(request, STAGE_TRIAGE);
+  uds_enqueue_request(request, STAGE_TRIAGE);
   waitForCallbacks();
   UDS_ASSERT_SUCCESS(request->status);
   assertLastLocation(expectedLocation);
@@ -116,7 +116,7 @@ static void dispatchNonWaitingRequest(struct uds_request *request)
 {
   request->index = theIndex;
   request->unbatched = true;
-  enqueue_request(request, STAGE_TRIAGE);
+  uds_enqueue_request(request, STAGE_TRIAGE);
 }
 
 /**********************************************************************/
@@ -138,7 +138,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
     zone = (zone + 1) % theIndex->zone_count;
   }
 
-  wait_for_idle_index(theIndex);
+  uds_wait_for_idle_index(theIndex);
   CU_ASSERT_EQUAL(chapterNumber + 1, theIndex->newest_virtual_chapter);
 }
 

@@ -46,9 +46,9 @@ static void runTest(bool sparse)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   config->zone_count = 1;
   struct uds_index *index;
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_NO_REBUILD, NULL, NULL, &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_NO_REBUILD, NULL, NULL, &index));
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
+  uds_free_index(index);
   uds_free_configuration(config);
 
   // Rebuild the volume index.  This is where we do the performance timing.

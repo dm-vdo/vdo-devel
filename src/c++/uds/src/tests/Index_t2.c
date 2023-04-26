@@ -67,7 +67,7 @@ static void indexInitSuite(const char *name)
 static void indexCleanSuite(void)
 {
   uninitialize_test_requests();
-  free_index(testData.index);
+  uds_free_index(testData.index);
   UDS_FREE(testData.metas);
   UDS_FREE(testData.hashes);
   uds_free_configuration(denseConfig);
@@ -79,8 +79,7 @@ static void indexCleanSuite(void)
  **/
 static void initTestData(unsigned int numChapters, unsigned int collisionFreq)
 {
-  UDS_ASSERT_SUCCESS(make_index(testConfig, UDS_CREATE, NULL, NULL,
-                                &testData.index));
+  UDS_ASSERT_SUCCESS(uds_make_index(testConfig, UDS_CREATE, NULL, NULL, &testData.index));
 
   // Create a lot of records. Will use the metadata to store chapter number.
   testData.recordsPerChapter
@@ -137,7 +136,7 @@ static void addData(bool shouldExist)
 
     // If this request closed the chapter, wait for all zones to update.
     if (zone->newest_virtual_chapter > chapter) {
-      wait_for_idle_index(index);
+      uds_wait_for_idle_index(index);
     }
   }
 
@@ -221,17 +220,17 @@ static void rebuildIndex(void)
   struct uds_index *index = testData.index;
 
   // Wait for the chapter writer to finish
-  wait_for_idle_index(index);
+  uds_wait_for_idle_index(index);
 
   uint64_t oldOldestVirtualChapter = index->oldest_virtual_chapter;
   uint64_t oldNewestVirtualChapter = index->newest_virtual_chapter;
 
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
+  uds_free_index(index);
   testData.index = NULL;
 
   // Rebuild the volume index.
-  UDS_ASSERT_SUCCESS(make_index(testConfig, UDS_LOAD, NULL, NULL, &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(testConfig, UDS_LOAD, NULL, NULL, &index));
   testData.index = index;
 
   CU_ASSERT_EQUAL(oldOldestVirtualChapter, index->oldest_virtual_chapter);
@@ -314,22 +313,20 @@ static void badLoadTest(void)
 
   // Add data and save it.
   addData(false);
-  UDS_ASSERT_SUCCESS(save_index(testData.index));
+  UDS_ASSERT_SUCCESS(uds_save_index(testData.index));
 
   UDS_ASSERT_SUCCESS(discard_index_state_data(testData.index->layout));
 
-  free_index(testData.index);
+  uds_free_index(testData.index);
   testData.index = NULL;
 
   // Try to load the index for real, this should fail since the load files
   // are missing and we are not permitting rebuild.
   UDS_ASSERT_ERROR2(ENOENT, UDS_INDEX_NOT_SAVED_CLEANLY,
-                    make_index(testConfig, UDS_NO_REBUILD, NULL, NULL,
-                               &testData.index));
+                    uds_make_index(testConfig, UDS_NO_REBUILD, NULL, NULL, &testData.index));
 
   // Try to load the index for real, this time allow rebuild
-  UDS_ASSERT_SUCCESS(make_index(testConfig, UDS_LOAD, NULL, NULL,
-                                &testData.index));
+  UDS_ASSERT_SUCCESS(uds_make_index(testConfig, UDS_LOAD, NULL, NULL, &testData.index));
 
   verifyData(0);
 }
@@ -343,21 +340,19 @@ static void testMissingOpenChapter(bool shouldAddData)
   if (shouldAddData) {
     addData(false);
   }
-  UDS_ASSERT_SUCCESS(save_index(testData.index));
+  UDS_ASSERT_SUCCESS(uds_save_index(testData.index));
 
   UDS_ASSERT_SUCCESS(uds_discard_open_chapter(testData.index->layout));
-  free_index(testData.index);
+  uds_free_index(testData.index);
   testData.index = NULL;
 
   // Try to load the index for real, this should fail since one of the
   // components is missing.
   UDS_ASSERT_ERROR3(ENOENT, UDS_INDEX_NOT_SAVED_CLEANLY, UDS_CORRUPT_DATA,
-                    make_index(testConfig, UDS_NO_REBUILD, NULL, NULL,
-                               &testData.index));
+                    uds_make_index(testConfig, UDS_NO_REBUILD, NULL, NULL, &testData.index));
 
   // Try to load the index for real, this time allow rebuild
-  UDS_ASSERT_SUCCESS(make_index(testConfig, UDS_LOAD, NULL, NULL,
-                                &testData.index));
+  UDS_ASSERT_SUCCESS(uds_make_index(testConfig, UDS_LOAD, NULL, NULL, &testData.index));
 
   if (shouldAddData) {
     verifyData(0);

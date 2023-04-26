@@ -189,11 +189,14 @@ static void modifySessionConfiguration(struct uds_index_session *indexSession,
     struct uds_index *oldIndex = indexSession->index;
     struct uds_index *newIndex;
     enum uds_open_index_type openType = (create ? UDS_CREATE : UDS_NO_REBUILD);
-    UDS_ASSERT_SUCCESS(save_index(oldIndex));
-    UDS_ASSERT_SUCCESS(make_index(config, openType, oldIndex->load_context,
-                                  oldIndex->callback, &newIndex));
+    UDS_ASSERT_SUCCESS(uds_save_index(oldIndex));
+    UDS_ASSERT_SUCCESS(uds_make_index(config,
+                                      openType,
+                                      oldIndex->load_context,
+                                      oldIndex->callback,
+                                      &newIndex));
     indexSession->index = newIndex;
-    free_index(oldIndex);
+    uds_free_index(oldIndex);
     uds_free_configuration(config);
   }
   UDS_FREE(params);

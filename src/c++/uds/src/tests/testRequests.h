@@ -10,7 +10,7 @@ void initialize_test_requests(void);
 void uninitialize_test_requests(void);
 
 /**
- * A wrapper for enqueue_request() that dispatches a request to the index.
+ * A wrapper for uds_enqueue_request() that dispatches a request to the index.
  *
  * @param index    The index
  * @param request  The request to dispatch

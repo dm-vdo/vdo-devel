@@ -40,8 +40,7 @@ static void zoneInitializeSuite(const char *indexName)
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Creating an index also creates the zone queues.
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback,
-                                &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
   UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
 }
@@ -51,7 +50,7 @@ static void zoneInitializeSuite(const char *indexName)
  **/
 static void zoneFinishSuite(void)
 {
-  free_index(theIndex);
+  uds_free_index(theIndex);
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
@@ -85,7 +84,7 @@ static void addBlocksToZone(unsigned int zone, unsigned int count)
     request->type         = UDS_POST;
     request->unbatched    = true;
     createRandomBlockNameInZone(theIndex, zone, &request->record_name);
-    enqueue_request(request, STAGE_INDEX);
+    uds_enqueue_request(request, STAGE_INDEX);
   }
 }
 
@@ -138,7 +137,7 @@ static void laggingZonesTest(void)
     struct index_zone *zone = theIndex->zones[z];
     CU_ASSERT_EQUAL(zone->newest_virtual_chapter, newestChapter);
   }
-  wait_for_idle_index(theIndex);
+  uds_wait_for_idle_index(theIndex);
   CU_ASSERT_EQUAL(newestChapter, theIndex->newest_virtual_chapter);
 
   // Second, test closing a zone chapter when other zones have requests.
@@ -167,7 +166,7 @@ static void laggingZonesTest(void)
     request->index        = theIndex;
     request->type         = UDS_POST;
     request->unbatched    = true;
-    enqueue_request(request, STAGE_INDEX);
+    uds_enqueue_request(request, STAGE_INDEX);
   }
 
   waitForCallbacks(recordsPerChapter / 2);
@@ -177,7 +176,7 @@ static void laggingZonesTest(void)
     struct index_zone *zone = theIndex->zones[z];
     CU_ASSERT_EQUAL(zone->newest_virtual_chapter, newestChapter);
   }
-  wait_for_idle_index(theIndex);
+  uds_wait_for_idle_index(theIndex);
   CU_ASSERT_EQUAL(newestChapter, theIndex->newest_virtual_chapter);
 }
 

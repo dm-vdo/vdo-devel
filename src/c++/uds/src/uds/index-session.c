@@ -132,7 +132,7 @@ int uds_launch_request(struct uds_request *request)
 	request->unbatched = false;
 	request->index = request->session->index;
 
-	enqueue_request(request, STAGE_TRIAGE);
+	uds_enqueue_request(request, STAGE_TRIAGE);
 	return UDS_SUCCESS;
 }
 
@@ -319,11 +319,11 @@ static int initialize_index_session(struct uds_index_session *index_session,
 	}
 
 	memset(&index_session->stats, 0, sizeof(index_session->stats));
-	result = make_index(config,
-			    open_type,
-			    &index_session->load_context,
-			    enter_callback_stage,
-			    &index_session->index);
+	result = uds_make_index(config,
+				open_type,
+				&index_session->load_context,
+				enter_callback_stage,
+				&index_session->index);
 	if (result != UDS_SUCCESS)
 		uds_log_error_strerror(result, "Failed to make index");
 	else
@@ -411,10 +411,10 @@ static void wait_for_no_requests_in_progress(struct uds_index_session *index_ses
 	uds_unlock_mutex(&index_session->request_mutex);
 }
 
-static int __must_check uds_save_index(struct uds_index_session *index_session)
+static int __must_check save_index(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	return save_index(index_session->index);
+	return uds_save_index(index_session->index);
 }
 
 static void suspend_rebuild(struct uds_index_session *session)
@@ -485,7 +485,7 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	if (rebuilding)
 		suspend_rebuild(session);
 	else if (save)
-		result = uds_save_index(session);
+		result = save_index(session);
 	else
 		result = uds_flush_index_session(session);
 
@@ -506,7 +506,7 @@ static int replace_device(struct uds_index_session *session, const char *name)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = replace_index_storage(session->index, name);
+	result = uds_replace_index_storage(session->index, name);
 	if (result != UDS_SUCCESS) {
 		UDS_FREE(new_name);
 		return result;
@@ -606,11 +606,11 @@ static int save_and_free_index(struct uds_index_session *index_session)
 	uds_unlock_mutex(&index_session->request_mutex);
 
 	if (!suspended) {
-		result = save_index(index);
+		result = uds_save_index(index);
 		if (result != UDS_SUCCESS)
 			uds_log_warning_strerror(result, "ignoring error from save_index");
 	}
-	free_index(index);
+	uds_free_index(index);
 	index_session->index = NULL;
 
 	/*
@@ -725,7 +725,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 int uds_flush_index_session(struct uds_index_session *index_session)
 {
 	wait_for_no_requests_in_progress(index_session);
-	wait_for_idle_index(index_session->index);
+	uds_wait_for_idle_index(index_session->index);
 	return UDS_SUCCESS;
 }
 
@@ -803,7 +803,7 @@ int uds_get_index_session_stats(struct uds_index_session *index_session,
 
 	collect_stats(index_session, stats);
 	if (index_session->index != NULL) {
-		get_index_stats(index_session->index, stats);
+		uds_get_index_stats(index_session->index, stats);
 	} else {
 		stats->entries_indexed = 0;
 		stats->memory_used = 0;

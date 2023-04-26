@@ -26,7 +26,7 @@ static struct uds_index *recreateTestIndex(enum uds_open_index_type openType)
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
-  UDS_ASSERT_SUCCESS(make_index(config, openType, NULL, NULL, &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, openType, NULL, NULL, &index));
   uds_free_configuration(config);
   return index;
 }
@@ -46,7 +46,7 @@ static void initSuite(const char *name)
 static void cleanSuite(void)
 {
   uninitialize_test_requests();
-  free_index(UDS_FORGET(testIndex));
+  uds_free_index(UDS_FORGET(testIndex));
 }
 
 /**********************************************************************/
@@ -151,11 +151,11 @@ static noinline void updateChunk(struct uds_index             *index,
 static struct uds_index *rebuildIndex(struct uds_index *index)
 {
   fillChapterRandomly(index);
-  wait_for_idle_index(index);
+  uds_wait_for_idle_index(index);
 
   // Do a full rebuild from the volume file
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
+  uds_free_index(index);
   return recreateTestIndex(UDS_LOAD);
 }
 

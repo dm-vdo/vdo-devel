@@ -666,7 +666,7 @@ static void release_queued_requests(struct volume *volume, struct queued_read *e
 			continue;
 		}
 #endif /* TEST_INTERNAL*/
-		enqueue_request(request, STAGE_INDEX);
+		uds_enqueue_request(request, STAGE_INDEX);
 	}
 
 	entry->reserved = false;

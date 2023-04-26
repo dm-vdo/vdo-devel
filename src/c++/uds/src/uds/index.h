@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INDEX_H
-#define INDEX_H
+#ifndef UDS_INDEX_H
+#define UDS_INDEX_H
 
 #include "index-layout.h"
 #include "index-session.h"
@@ -67,22 +67,22 @@ enum request_stage {
 	STAGE_MESSAGE,
 };
 
-int __must_check make_index(struct configuration *config,
-			    enum uds_open_index_type open_type,
-			    struct index_load_context *load_context,
-			    index_callback_t callback,
-			    struct uds_index **new_index);
+int __must_check uds_make_index(struct configuration *config,
+				enum uds_open_index_type open_type,
+				struct index_load_context *load_context,
+				index_callback_t callback,
+				struct uds_index **new_index);
 
-int __must_check save_index(struct uds_index *index);
+int __must_check uds_save_index(struct uds_index *index);
 
-void free_index(struct uds_index *index);
+void uds_free_index(struct uds_index *index);
 
-int __must_check replace_index_storage(struct uds_index *index, const char *path);
+int __must_check uds_replace_index_storage(struct uds_index *index, const char *path);
 
-void get_index_stats(struct uds_index *index, struct uds_index_stats *counters);
+void uds_get_index_stats(struct uds_index *index, struct uds_index_stats *counters);
 
-void enqueue_request(struct uds_request *request, enum request_stage stage);
+void uds_enqueue_request(struct uds_request *request, enum request_stage stage);
 
-void wait_for_idle_index(struct uds_index *index);
+void uds_wait_for_idle_index(struct uds_index *index);
 
-#endif /* INDEX_H */
+#endif /* UDS_INDEX_H */

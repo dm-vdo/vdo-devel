@@ -29,7 +29,7 @@ static void initializeTest(void)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, config->geometry->bytes_per_page / 8,
                            config->geometry->record_pages_per_chapter / 2, 16);
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
   UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
 
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
@@ -47,7 +47,7 @@ static void finishTest(void)
   uninitialize_test_requests();
   uds_put_io_factory(factory);
   uds_free_configuration(config);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -143,9 +143,9 @@ static void testSaveLoadWithData(void)
 /**********************************************************************/
 static void testSaveLoadWithDiscard(void)
 {
-  free_index(theIndex);
+  uds_free_index(theIndex);
   config->zone_count = 1;
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
 
   // Fill a one-zone open chapter as full as possible.
   int totalRecords = theIndex->volume->geometry->records_per_chapter - 1;
@@ -165,11 +165,11 @@ static void testSaveLoadWithDiscard(void)
   struct buffered_writer *writer = openBufferedWriterForChapter();
   UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
   uds_free_buffered_writer(writer);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 
   enum { ZONE_COUNT = 3 };
   config->zone_count = ZONE_COUNT;
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_LOAD, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_LOAD, NULL, NULL, &theIndex));
   int z;
   for (z = 0; z < ZONE_COUNT; z++) {
     reset_open_chapter(theIndex->zones[z]->open_chapter);
@@ -240,7 +240,7 @@ static void loadModifiedOpenChapter(void)
   UDS_ASSERT_ERROR(UDS_CORRUPT_DATA,
                    load_open_chapter(restoringIndex, reader));
   uds_free_buffered_reader(reader);
-  free_index(restoringIndex);
+  uds_free_index(restoringIndex);
 }
 
 /**********************************************************************/

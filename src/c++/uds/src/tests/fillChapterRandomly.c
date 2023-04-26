@@ -18,5 +18,5 @@ void fillChapterRandomly(struct uds_index *index)
     createRandomMetadata(&request.new_metadata);
     verify_test_request(index, &request, false, NULL);
   }
-  wait_for_idle_index(index);
+  uds_wait_for_idle_index(index);
 }

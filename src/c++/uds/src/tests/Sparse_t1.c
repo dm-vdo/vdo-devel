@@ -84,14 +84,13 @@ static void assertLastLocation(enum uds_index_region expectedLocation)
  */
 static void createIndex(enum uds_open_index_type openType)
 {
-  UDS_ASSERT_SUCCESS(make_index(config, openType, NULL, &testCallback,
-                                &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, openType, NULL, &testCallback, &theIndex));
 }
 
 /**********************************************************************/
 static void cleanupIndex(void)
 {
-  free_index(theIndex);
+  uds_free_index(theIndex);
   theIndex = NULL;
 }
 
@@ -239,7 +238,7 @@ static void dispatchRequest(struct uds_request           *request,
   request->index = theIndex;
   incrementCallbackCount();
   request->unbatched = true;
-  enqueue_request(request, STAGE_TRIAGE);
+  uds_enqueue_request(request, STAGE_TRIAGE);
   waitForCallbacks();
   assertLastLocation(expectedLocation);
   if (request->found && (expectedMetaData != NULL)) {
@@ -300,7 +299,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
     zone = (zone + 1) % theIndex->zone_count;
   }
 
-  wait_for_idle_index(theIndex);
+  uds_wait_for_idle_index(theIndex);
   CU_ASSERT_EQUAL(chapterNumber + 1, theIndex->newest_virtual_chapter);
 }
 
@@ -470,7 +469,7 @@ static void sparseRebuildTest(void)
     }
   }
 
-  UDS_ASSERT_SUCCESS(save_index(theIndex));
+  UDS_ASSERT_SUCCESS(uds_save_index(theIndex));
   cleanupIndex();
   createIndex(UDS_NO_REBUILD);
 

@@ -103,14 +103,13 @@ static void suiteInit(const char *indexName)
                             chaptersPerVolume, sparseChaptersPerVolume, 
                             SPARSE_SAMPLE_RATE);
 
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, &testCallback,
-                                &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
 }
 
 /**********************************************************************/
 static void suiteCleaner(void)
 {
-  free_index(theIndex);
+  uds_free_index(theIndex);
   theIndex = NULL;
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
@@ -123,7 +122,7 @@ static void dispatchRequest(struct uds_request *request)
   request->index = theIndex;
   request->unbatched = true;
   incrementCallbackCount();
-  enqueue_request(request, STAGE_TRIAGE);
+  uds_enqueue_request(request, STAGE_TRIAGE);
 }
 
 /**********************************************************************/
@@ -197,7 +196,7 @@ static void sparseLossTest(void)
   }
 
   struct uds_index_stats counters;
-  get_index_stats(theIndex, &counters);
+  uds_get_index_stats(theIndex, &counters);
   albPrint("Sparse loss indexing %u chapters of dedupe in a %u-zone config: %llu (%llu discards)",
            chaptersDeduped, theIndex->zone_count,
            (unsigned long long) postsNotFound,

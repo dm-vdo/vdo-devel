@@ -52,7 +52,7 @@ void submit_test_request(struct uds_index *index,
   request_active = true;
   uds_unlock_mutex(&request_mutex);
 
-  enqueue_request(request, STAGE_TRIAGE);
+  uds_enqueue_request(request, STAGE_TRIAGE);
 
   uds_lock_mutex(&request_mutex);
   while (request_active) {

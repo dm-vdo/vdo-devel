@@ -184,10 +184,13 @@ static void initializerWithSession(struct uds_index_session *is)
     // Remake the index with the modified configuration.
     struct uds_index *oldIndex = indexSession->index;
     struct uds_index *newIndex;
-    UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, oldIndex->load_context,
-                                  oldIndex->callback, &newIndex));
+    UDS_ASSERT_SUCCESS(uds_make_index(config,
+                                      UDS_CREATE,
+                                      oldIndex->load_context,
+                                      oldIndex->callback,
+                                      &newIndex));
     indexSession->index = newIndex;
-    free_index(oldIndex);
+    uds_free_index(oldIndex);
     uds_free_configuration(config);
   }
   UDS_FREE(params);

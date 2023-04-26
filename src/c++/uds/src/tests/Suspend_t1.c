@@ -31,8 +31,8 @@ static void postChunks(struct uds_index_session *indexSession,
     struct uds_record_name chunkName = hash_record_name(&index, sizeof(index));
     UDS_ASSERT_ERROR(expectedResult,
                      oldPostBlockNameResult(indexSession, NULL,
-                                        (struct uds_record_data *) &chunkName,
-                                        &chunkName, NULL));
+                                            (struct uds_record_data *) &chunkName,
+                                            &chunkName, NULL));
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
 }
@@ -172,10 +172,9 @@ static void suspendRebuildTest(void)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &tempConfig));
   tempConfig->zone_count = 1;
   struct uds_index *index;
-  UDS_ASSERT_SUCCESS(make_index(tempConfig, UDS_NO_REBUILD, NULL, NULL,
-                                &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(tempConfig, UDS_NO_REBUILD, NULL, NULL, &index));
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
+  uds_free_index(index);
   uds_free_configuration(tempConfig);
 
   // Make sure the index will not load.

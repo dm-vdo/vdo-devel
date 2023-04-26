@@ -36,7 +36,7 @@ static void createIndex(unsigned int zone_count)
   };
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
-  UDS_ASSERT_SUCCESS(make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
   uds_free_configuration(config);
 }
 
@@ -74,7 +74,7 @@ static void stressZonesTest(void)
     requestIndex(&name, &data);
   } while (theIndex->newest_virtual_chapter < 4);
 
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -99,7 +99,7 @@ static void stressChapterIndexBytesTest(void)
     requestIndex(&name, &data);
   } while (theIndex->zones[zone]->newest_virtual_chapter == chapter);
 
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -118,7 +118,7 @@ static void stressVolumeIndexBytesTest(void)
     get_volume_index_stats(theIndex->volume_index, &stats);
   } while (stats.overflow_count < 1);
 
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/

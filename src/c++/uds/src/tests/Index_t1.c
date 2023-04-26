@@ -69,7 +69,7 @@ static void indexCleanSuite(void)
 static void createIndex(bool load, struct configuration *config)
 {
   enum uds_open_index_type openType = (load ? UDS_NO_REBUILD : UDS_CREATE);
-  UDS_ASSERT_SUCCESS(make_index(config, openType, NULL, NULL, &theIndex));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, openType, NULL, NULL, &theIndex));
   CU_ASSERT_PTR_NOT_NULL(theIndex);
 }
 
@@ -174,7 +174,7 @@ static void addTest(void)
   indexAdd(1, 1);
   indexAddAndCheck(1, 2, true, 1);
   indexAddAndCheck(1, 3, true, 1);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -184,7 +184,7 @@ static void updateTest(void)
   indexAdd(1, 1);
   indexUpdate(1, 2, true, 1);
   indexAddAndCheck(1, 3, true, 2);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -192,7 +192,7 @@ static void updateInsertTest(void)
 {
   createIndex(false, config);
   indexUpdate(1, 1, false, NUM_HASHES - 1);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -204,7 +204,7 @@ static void removeTest(void)
   indexAddAndCheck(1, 2, true, 1);
   indexDelete(1, true);
   indexAdd(1, 1);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -213,7 +213,7 @@ static void lruAddTest(void)
   createIndex(false, smallConfig);
   indexAdd(1, 1);
   indexAddAndCheck(1, 2, true, 1);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -225,7 +225,7 @@ static void lruAdd2Test(void)
   indexAddAndCheck(1, 3, true, 1);
   indexAddAndCheck(1, 4, true, 1);
   indexAddAndCheck(2, 5, true, 2);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -235,7 +235,7 @@ static void lruUpdateTest(void)
   indexAdd(1, 1);
   indexUpdate(1, 2, true, 1);
   indexAddAndCheck(1, 3, true, 2);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -246,7 +246,7 @@ static void lruUpdate2Test(void)
   indexAdd(2, 2);
   indexUpdate(1, 3, true, 1);
   indexUpdate(1, 4, true, 3);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -261,7 +261,7 @@ static void lruLookupTest(void)
   assertNotInOpenChapter(1);
   indexLookup(1, true, 1);
   assertInOpenChapter(1);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/
@@ -278,8 +278,8 @@ static void saveLoadTest(void)
   unsigned int oldestPhysicalChapter
     = uds_map_to_physical_chapter(theIndex->volume->geometry, oldestChapter);
 
-  UDS_ASSERT_SUCCESS(save_index(theIndex));
-  free_index(theIndex);
+  UDS_ASSERT_SUCCESS(uds_save_index(theIndex));
+  uds_free_index(theIndex);
 
   createIndex(true, config);
   addAllHashes(true);
@@ -292,11 +292,11 @@ static void saveLoadTest(void)
   CU_ASSERT_EQUAL(oldestPhysicalChapter,
                   uds_map_to_physical_chapter(theIndex->volume->geometry,
                                               theIndex->oldest_virtual_chapter));
-  free_index(theIndex);
+  uds_free_index(theIndex);
 
   createIndex(false, config);
   addAllHashes(false);
-  free_index(theIndex);
+  uds_free_index(theIndex);
 }
 
 /**********************************************************************/

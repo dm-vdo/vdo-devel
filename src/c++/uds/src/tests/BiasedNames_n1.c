@@ -39,7 +39,7 @@ static struct uds_index *createTestIndex(unsigned int loadFlags)
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
-  UDS_ASSERT_SUCCESS(make_index(config, loadFlags, NULL, NULL, &index));
+  UDS_ASSERT_SUCCESS(uds_make_index(config, loadFlags, NULL, NULL, &index));
   uds_free_configuration(config);
   return index;
 }
@@ -89,7 +89,7 @@ static struct uds_index *rebuildIndex(struct uds_index *index)
   fillChapterRandomly(index);
   // Do a full rebuild from the volume file
   UDS_ASSERT_SUCCESS(discard_index_state_data(index->layout));
-  free_index(index);
+  uds_free_index(index);
   return createTestIndex(UDS_LOAD);
 }
 
@@ -126,7 +126,7 @@ static void testWithNames(int numChunks, struct uds_record_name *names)
   // Rebuild the index from the volume file
   index = rebuildIndex(index);
   doLotsaChunks(index, numChunks, names, &data2, &data3);
-  free_index(index);
+  uds_free_index(index);
 }
 
 /**********************************************************************/
