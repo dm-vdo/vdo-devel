@@ -40,6 +40,7 @@ int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 	return UDS_SUCCESS;
 }
 
+#ifdef TEST_INTERNAL
 int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeout)
 {
 	long remaining;
@@ -54,6 +55,7 @@ int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeou
 	return (remaining != 0) ? UDS_SUCCESS : ETIMEDOUT;
 }
 
+#endif  /* TEST_INTERNAL */
 int uds_destroy_cond(struct cond_var *cv)
 {
 	return UDS_SUCCESS;

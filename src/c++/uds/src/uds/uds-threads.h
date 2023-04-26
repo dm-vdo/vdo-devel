@@ -92,7 +92,9 @@ int __must_check uds_init_cond(struct cond_var *cond);
 int uds_signal_cond(struct cond_var *cond);
 int uds_broadcast_cond(struct cond_var *cond);
 int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
+#ifdef TEST_INTERNAL
 int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
+#endif  /* TEST_INTERNAL */
 int uds_destroy_cond(struct cond_var *cond);
 
 #ifdef __KERNEL__

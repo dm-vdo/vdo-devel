@@ -47,6 +47,7 @@ int uds_wait_cond(struct cond_var *cond, struct mutex *mutex)
 	return result;
 }
 
+#ifdef TEST_INTERNAL
 /**********************************************************************/
 int uds_timed_wait_cond(struct cond_var *cond,
 			struct mutex *mutex,
@@ -57,6 +58,7 @@ int uds_timed_wait_cond(struct cond_var *cond,
 	return pthread_cond_timedwait(&cond->condition, &mutex->mutex, &ts);
 }
 
+#endif  /* TEST_INTERNAL */
 /**********************************************************************/
 int uds_destroy_cond(struct cond_var *cond)
 {
