@@ -41,7 +41,7 @@ static void testSearchRecordPage(void)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
                                   const struct uds_volume_record *,
                                   __func__, &volume->record_pointers));
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(g->records_per_page,
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(g->records_per_page,
                                            &volume->radix_sorter));
 
   UDS_ASSERT_SUCCESS(encode_record_page(volume, records, recordPage));
@@ -63,7 +63,7 @@ static void testSearchRecordPage(void)
   UDS_FREE(records);
   UDS_FREE(recordPage);
   UDS_FREE(volume->record_pointers);
-  free_uds_radix_sorter(volume->radix_sorter);
+  uds_free_radix_sorter(volume->radix_sorter);
   UDS_FREE(volume);
   uds_free_configuration(conf);
 }

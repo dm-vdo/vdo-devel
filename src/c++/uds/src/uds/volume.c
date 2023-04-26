@@ -1725,7 +1725,7 @@ int make_volume(const struct configuration *config,
 		return result;
 	}
 
-	result = make_uds_radix_sorter(geometry->records_per_page, &volume->radix_sorter);
+	result = uds_make_radix_sorter(geometry->records_per_page, &volume->radix_sorter);
 	if (result != UDS_SUCCESS) {
 		free_volume(volume);
 		return result;
@@ -1859,7 +1859,7 @@ void free_volume(struct volume *volume)
 	uds_destroy_cond(&volume->read_threads_read_done_cond);
 	uds_destroy_mutex(&volume->read_threads_mutex);
 	uds_free_index_page_map(volume->index_page_map);
-	free_uds_radix_sorter(volume->radix_sorter);
+	uds_free_radix_sorter(volume->radix_sorter);
 	UDS_FREE(volume->geometry);
 	UDS_FREE(volume->record_pointers);
 	UDS_FREE(volume);

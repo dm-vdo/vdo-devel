@@ -52,10 +52,10 @@ static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
 
   // Sort and check that the keys are sorted.
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(count, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(count, &radixSorter));
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, (const u8 **) keys, count,
                                     length));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   assertSorted(keys, count, length);
 
   // Make sure that every pointer we provided is in the sorted array.
@@ -173,9 +173,9 @@ static void test(const char *strings, unsigned int length,
 
   const u8 **keys = split(strings, count, length);
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(count, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(count, &radixSorter));
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, count, length));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   assertJoined(expected, keys, count, length);
   UDS_FREE(keys);
 }
@@ -206,9 +206,9 @@ static void testZeroLength(void)
 {
   const u8 **reversed = split("ZZXX", 2, 2);
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(2, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(2, &radixSorter));
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 2, 0));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
   UDS_FREE(reversed);
 }
@@ -218,9 +218,9 @@ static void testZeroCount(void)
 {
   const u8 **reversed = split("ZZXX", 2, 2);
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(2, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(2, &radixSorter));
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 0, 2));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
   UDS_FREE(reversed);
 }
@@ -242,7 +242,7 @@ static void testSize(int size)
   const u8 **keys;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(size, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(size, &radixSorter));
   int i;
   for (i = 0; i < size; i++) {
     data[i] = i;
@@ -256,7 +256,7 @@ static void testSize(int size)
   }
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, size, sizeof(data[0])));
   assertSorted(keys, size, sizeof(data[0]));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   UDS_FREE(data);
   UDS_FREE(keys);
 }
@@ -276,7 +276,7 @@ static void testRandom(void)
   const u8 **keys;
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
-  UDS_ASSERT_SUCCESS(make_uds_radix_sorter(SIZE, &radixSorter));
+  UDS_ASSERT_SUCCESS(uds_make_radix_sorter(SIZE, &radixSorter));
   int i;
   for (i = 0; i < SIZE; i++) {
     keys[i] = (u8 *) &data[i];
@@ -284,7 +284,7 @@ static void testRandom(void)
   get_random_bytes(data, SIZE * sizeof(data[0]));
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, SIZE, sizeof(data[0])));
   assertSorted(keys, SIZE, sizeof(data[0]));
-  free_uds_radix_sorter(radixSorter);
+  uds_free_radix_sorter(radixSorter);
   UDS_FREE(data);
   UDS_FREE(keys);
 }

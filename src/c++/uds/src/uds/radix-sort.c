@@ -214,7 +214,7 @@ static inline int push_bins(struct task **stack,
 	return UDS_SUCCESS;
 }
 
-int make_uds_radix_sorter(unsigned int count, struct radix_sorter **sorter)
+int uds_make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 {
 	int result;
 	unsigned int stack_size = count / INSERTION_SORT_THRESHOLD;
@@ -234,7 +234,7 @@ int make_uds_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 	return UDS_SUCCESS;
 }
 
-void free_uds_radix_sorter(struct radix_sorter *sorter)
+void uds_free_radix_sorter(struct radix_sorter *sorter)
 {
 	UDS_FREE(sorter);
 }
