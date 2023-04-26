@@ -209,7 +209,7 @@ static void testRun(TestConfig *tc)
 
     // Test that the memory usage is as expected
     struct uds_index_stats stats;
-    UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+    UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
     uds_log_info("Using %llu bytes of %zu",
                  (unsigned long long) stats.memory_used, tc->memoryUsed);
     CU_ASSERT(100 * stats.memory_used <= 102 * tc->memoryUsed);

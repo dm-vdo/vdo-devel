@@ -793,7 +793,8 @@ collect_stats(const struct uds_index_session *index_session, struct uds_index_st
 	stats->requests = READ_ONCE(session_stats->requests);
 }
 
-int uds_get_index_stats(struct uds_index_session *index_session, struct uds_index_stats *stats)
+int uds_get_index_session_stats(struct uds_index_session *index_session,
+				struct uds_index_stats *stats)
 {
 	if (stats == NULL) {
 		uds_log_error("received a NULL index stats pointer");

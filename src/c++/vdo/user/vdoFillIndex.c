@@ -135,7 +135,7 @@ static void fill(struct uds_index_session *session)
      * discarded, the index is full.
      */
     if (!(data % poll_interval)) {
-      result = uds_get_index_stats(session, &stats);
+      result = uds_get_index_session_stats(session, &stats);
       if (result != UDS_SUCCESS) {
         errx(1, "Unable to get index stats");
       }
@@ -149,7 +149,7 @@ static void fill(struct uds_index_session *session)
     errx(1, "Unable to flush the index session");
   }
 
-  result = uds_get_index_stats(session, &stats);
+  result = uds_get_index_session_stats(session, &stats);
   if (result != UDS_SUCCESS) {
     errx(1, "Unable to get index stats");
   }

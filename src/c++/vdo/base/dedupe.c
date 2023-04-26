@@ -2753,7 +2753,7 @@ static void get_index_statistics(struct hash_zones *zones, struct index_statisti
 	if (state != IS_OPENED)
 		return;
 
-	result = uds_get_index_stats(zones->index_session, &index_stats);
+	result = uds_get_index_session_stats(zones->index_session, &index_stats);
 	if (result != UDS_SUCCESS) {
 		uds_log_error_strerror(result, "Error reading index stats");
 		return;

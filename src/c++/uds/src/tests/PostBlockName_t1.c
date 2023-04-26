@@ -33,7 +33,7 @@ static void assertExpectations(Expectations *expect)
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
 
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(expect->entriesIndexed, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(expect->postsFound, indexStats.posts_found);
   CU_ASSERT_EQUAL(expect->postsNotFound, indexStats.posts_not_found);

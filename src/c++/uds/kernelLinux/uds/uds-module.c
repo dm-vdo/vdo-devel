@@ -42,7 +42,7 @@ EXPORT_SYMBOL_GPL(uds_create_index_session);
 EXPORT_SYMBOL_GPL(uds_destroy_index_session);
 EXPORT_SYMBOL_GPL(uds_flush_index_session);
 EXPORT_SYMBOL_GPL(uds_get_index_parameters);
-EXPORT_SYMBOL_GPL(uds_get_index_stats);
+EXPORT_SYMBOL_GPL(uds_get_index_session_stats);
 EXPORT_SYMBOL_GPL(uds_launch_request);
 EXPORT_SYMBOL_GPL(uds_open_index);
 EXPORT_SYMBOL_GPL(uds_resume_index_session);

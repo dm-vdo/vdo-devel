@@ -41,7 +41,7 @@ static void finishChunk(struct uds_request *udsRequest)
 static void reportIndexSize(struct uds_index_session *indexSession,
                             struct uds_index_stats   *indexStats)
 {
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, indexStats));
   albPrint("%llu entries indexed with %llu collisions",
            (unsigned long long) indexStats->entries_indexed,
            (unsigned long long) indexStats->collisions);

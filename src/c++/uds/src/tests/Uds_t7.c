@@ -17,7 +17,7 @@ static struct uds_index_session *indexSession;
 static void argumentsTest(void)
 {
   UDS_ASSERT_ERROR(-EINVAL, uds_get_index_parameters(indexSession, NULL));
-  UDS_ASSERT_ERROR(-EINVAL, uds_get_index_stats(indexSession, NULL));
+  UDS_ASSERT_ERROR(-EINVAL, uds_get_index_session_stats(indexSession, NULL));
 }
 
 /**********************************************************************/

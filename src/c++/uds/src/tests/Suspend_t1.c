@@ -51,7 +51,7 @@ static void setupIndexAndSession(int startingChapters, bool save)
     = startingChapters * getBlocksPerChapter(indexSession);
   postChunks(indexSession, 0, blockCount, UDS_SUCCESS);
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(0, indexStats.posts_found);
   CU_ASSERT_EQUAL(blockCount, indexStats.posts_not_found);
@@ -111,7 +111,7 @@ static void suspendIndexTest(void)
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_LOAD, &params, indexSession));
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(0, indexStats.entries_indexed);
 
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
@@ -142,7 +142,7 @@ static void suspendSaveIndexTest(void)
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_LOAD, &params, indexSession));
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(2, indexStats.entries_indexed);
 
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
@@ -252,7 +252,7 @@ static void suspendRebuildTest(void)
     = (NUM_CHAPTERS - 1) * getBlocksPerChapter(indexSession);
   postChunks(indexSession, 0, blocksToCheck, UDS_SUCCESS);
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(blocksToCheck, indexStats.posts_found);
   CU_ASSERT_EQUAL(0, indexStats.posts_not_found);
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));

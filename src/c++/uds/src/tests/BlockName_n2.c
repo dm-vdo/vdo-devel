@@ -78,7 +78,7 @@ static void setExpectations(struct uds_index_session *indexSession,
                             ExpectStats              *expect)
 {
   struct uds_index_stats stats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
   expect->postsFound      = stats.posts_found;
   expect->postsNotFound   = stats.posts_not_found;
   expect->queriesFound    = stats.queries_found;
@@ -92,7 +92,7 @@ static void checkExpectations(struct uds_index_session *indexSession,
                               ExpectStats              *expect)
 {
   struct uds_index_stats stats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
   if (isIndexSparse(indexSession)) {
     CU_ASSERT(stats.posts_found   <= expect->postsFound);
     CU_ASSERT(stats.queries_found <= expect->queriesFound);

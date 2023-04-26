@@ -123,7 +123,7 @@ static void basicsTest(void)
 
   // Index statistics
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(indexStats.collisions,          0);
   CU_ASSERT_EQUAL(indexStats.entries_discarded,   1);
   CU_ASSERT_EQUAL(indexStats.entries_indexed,     0);

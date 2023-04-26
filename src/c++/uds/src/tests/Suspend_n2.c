@@ -56,7 +56,7 @@ static void swapStorage(bool save)
   postChunks(indexSession, 0, blockCount, UDS_SUCCESS);
 
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(0, indexStats.posts_found);
   CU_ASSERT_EQUAL(blockCount, indexStats.posts_not_found);
@@ -69,7 +69,7 @@ static void swapStorage(bool save)
   UDS_ASSERT_ERROR2(-EIO, -ENOENT,
                     uds_resume_index_session(indexSession, "bogus-name"));
   UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, secondName));
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(0, indexStats.posts_found);
   CU_ASSERT_EQUAL(blockCount, indexStats.posts_not_found);
@@ -77,7 +77,7 @@ static void swapStorage(bool save)
   // Verify old entries and add some new ones.
   postChunks(indexSession, 0, 2 * blockCount, UDS_SUCCESS);
 
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(2 * blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(blockCount, indexStats.posts_found);
   CU_ASSERT_EQUAL(2 * blockCount, indexStats.posts_not_found);
@@ -86,7 +86,7 @@ static void swapStorage(bool save)
   // Reopen the index at the new location to prove it persists.
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_LOAD, &secondParams, indexSession));
   postChunks(indexSession, 0, 2 * blockCount, UDS_SUCCESS);
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(2 * blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(2 * blockCount, indexStats.posts_found);
   CU_ASSERT_EQUAL(0, indexStats.posts_not_found);
@@ -97,7 +97,7 @@ static void swapStorage(bool save)
     // loadable state. If it is, check that it got no new entries.
     UDS_ASSERT_SUCCESS(uds_open_index(UDS_LOAD, &firstParams, indexSession));
     postChunks(indexSession, 0, blockCount, UDS_SUCCESS);
-    UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+    UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
     CU_ASSERT_EQUAL(blockCount, indexStats.entries_indexed);
     CU_ASSERT_EQUAL(blockCount, indexStats.posts_found);
     UDS_ASSERT_SUCCESS(uds_close_index(indexSession));

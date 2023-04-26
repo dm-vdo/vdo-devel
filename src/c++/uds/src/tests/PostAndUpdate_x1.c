@@ -57,7 +57,7 @@ static struct uds_index_session  *indexSession;
 static void reportStats(void)
 {
   struct uds_index_stats stats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
   albPrint("PostsFound: %llu", (unsigned long long) stats.posts_found);
   albPrint("PostsNotFound: %llu", (unsigned long long) stats.posts_not_found);
   albPrint("UpdatesFound: %llu", (unsigned long long) stats.updates_found);
@@ -77,7 +77,7 @@ static void throttle(void)
 {
   for (;;) {
     struct uds_index_stats stats;
-    UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+    UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
     unsigned long posts = stats.posts_found + stats.posts_not_found;
     unsigned long updates = stats.updates_found + stats.updates_not_found;
     if (posts < updates + numBlocksThreshold) {

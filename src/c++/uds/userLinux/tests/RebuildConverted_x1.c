@@ -97,7 +97,7 @@ static void fullRebuildTest(void)
   // Rewrite the base set of 1000 chunks to make sure we can still find them.
   postChunks(indexSession, 0, NUM_CHUNKS);
   struct uds_index_stats indexStats;
-  UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &indexStats));
+  UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(NUM_CHUNKS, indexStats.posts_found);
   CU_ASSERT_EQUAL(0, indexStats.posts_not_found);
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));

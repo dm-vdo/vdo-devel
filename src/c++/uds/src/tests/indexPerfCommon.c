@@ -56,7 +56,7 @@ void fill(const char               *label,
     getResourceUsage(&curResUsage);
     {
       struct uds_index_stats stats;
-      UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &stats));
+      UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &stats));
 
       printResourceUsage(&prevResUsage, &curResUsage, loopElapsed);
       prevResUsage = curResUsage;

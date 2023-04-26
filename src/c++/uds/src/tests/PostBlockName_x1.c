@@ -49,7 +49,7 @@ static void pbnPerfTest(void)
     unsigned long startNewCounter = newCounter;
     unsigned long startDupCounter = dupCounter;
     struct uds_index_stats beforeStats;
-    UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &beforeStats));
+    UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &beforeStats));
     ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
     unsigned long i;
     for (i = 0; i < numBlocksPerLevel; i++) {
@@ -66,7 +66,7 @@ static void pbnPerfTest(void)
     ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
     // Check for correct dedupe found
     struct uds_index_stats afterStats;
-    UDS_ASSERT_SUCCESS(uds_get_index_stats(indexSession, &afterStats));
+    UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &afterStats));
     CU_ASSERT_EQUAL(numBlocksPerLevel,
                     afterStats.requests - beforeStats.requests);
     if (!sparseFlag) {

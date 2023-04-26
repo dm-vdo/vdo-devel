@@ -336,7 +336,7 @@ uds_get_index_parameters(struct uds_index_session *session, struct uds_parameter
 
 /* Get index statistics since the last time the index was opened. */
 int __must_check
-uds_get_index_stats(struct uds_index_session *session, struct uds_index_stats *stats);
+uds_get_index_session_stats(struct uds_index_session *session, struct uds_index_stats *stats);
 
 /* This function will fail if any required field of the request is not set. */
 int __must_check uds_launch_request(struct uds_request *request);
