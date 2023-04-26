@@ -579,13 +579,14 @@ static int writeSlice(const DeviceSlice *ds, DataStream *pds)
   return 0;
 }
 
+static char filePath[48];
+
 /**********************************************************************/
 static int iterateOverFiles(DeviceSlice *ds, DataStream *pds, bool writing)
 {
   enum { FILES_PER_DIRECTORY = 200 };
   BlockStream *pbs = container_of(pds, BlockStream, common);
   int status = 0;
-  char filePath[48];
   ds->path = filePath;
   int dedupe = pbs->dedupe;
   pbs->dedupe = 0;

@@ -194,11 +194,11 @@ static void testMutex(int messageCount)
 
 /** Shared variables for spin loop test */
 static int * volatile spinMessage;
+static int spinAdderReply;
 
 /**********************************************************************/
 static void spinAdder(void *arg __attribute__((unused)))
 {
-  int reply;
   // Wait for a non-NULL message - a NULL message means that the loop in
   // the main thread has not started yet
   while (spinMessage == NULL) {
@@ -206,7 +206,7 @@ static void spinAdder(void *arg __attribute__((unused)))
   }
   for (;;) {
     // Wait for a message (an integer to increment) from the driver thread.
-    while (spinMessage == &reply) {
+    while (spinMessage == &spinAdderReply) {
       cond_resched();
     }
     // A NULL message is the signal to shut down.
@@ -214,8 +214,8 @@ static void spinAdder(void *arg __attribute__((unused)))
       break;
     }
     // Increment the value in the message and send it as the reply.
-    reply = (*spinMessage + 1);
-    spinMessage = &reply;
+    spinAdderReply = (*spinMessage + 1);
+    spinMessage = &spinAdderReply;
   }
 }
 
