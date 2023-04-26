@@ -17,6 +17,15 @@ use base qw(VDOTest);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
+###############################################################################
+# @inherit
+##
+sub listSharedFiles {
+  my ($self) = assertNumArgs(1, @_);
+  my $vdoTGZ = $self->getTGZNameForVersion($VDO_MARKETING_VERSION);
+  return ($self->SUPER::listSharedFiles(), $vdoTGZ);
+}
+
 #############################################################################
 # Test installation with DKMS
 ##
