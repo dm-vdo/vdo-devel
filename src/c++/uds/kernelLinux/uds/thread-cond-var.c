@@ -32,7 +32,7 @@ int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 {
 	DEFINE_WAIT(__wait);
 
-	prepare_to_wait(&cv->wait_queue, &__wait, TASK_UNINTERRUPTIBLE);
+	prepare_to_wait(&cv->wait_queue, &__wait, TASK_IDLE);
 	uds_unlock_mutex(mutex);
 	schedule();
 	finish_wait(&cv->wait_queue, &__wait);
@@ -45,7 +45,7 @@ int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeou
 	long remaining;
 	DEFINE_WAIT(__wait);
 
-	prepare_to_wait(&cv->wait_queue, &__wait, TASK_UNINTERRUPTIBLE);
+	prepare_to_wait(&cv->wait_queue, &__wait, TASK_IDLE);
 	uds_unlock_mutex(mutex);
 	remaining = schedule_timeout(max(1UL, nsecs_to_jiffies(timeout)));
 	finish_wait(&cv->wait_queue, &__wait);
