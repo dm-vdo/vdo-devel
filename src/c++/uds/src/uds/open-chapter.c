@@ -61,9 +61,9 @@ static inline size_t slots_size(size_t slot_count)
 	return sizeof(struct open_chapter_zone_slot) * slot_count;
 }
 
-int make_open_chapter(const struct geometry *geometry,
-		      unsigned int zone_count,
-		      struct open_chapter_zone **open_chapter_ptr)
+int uds_make_open_chapter(const struct geometry *geometry,
+			  unsigned int zone_count,
+			  struct open_chapter_zone **open_chapter_ptr)
 {
 	int result;
 	struct open_chapter_zone *open_chapter;
@@ -84,7 +84,7 @@ int make_open_chapter(const struct geometry *geometry,
 					    "record pages",
 					    &open_chapter->records);
 	if (result != UDS_SUCCESS) {
-		free_open_chapter(open_chapter);
+		uds_free_open_chapter(open_chapter);
 		return result;
 	}
 
@@ -92,7 +92,7 @@ int make_open_chapter(const struct geometry *geometry,
 	return UDS_SUCCESS;
 }
 
-void reset_open_chapter(struct open_chapter_zone *open_chapter)
+void uds_reset_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	open_chapter->size = 0;
 	open_chapter->deletions = 0;
@@ -137,10 +137,10 @@ probe_chapter_slots(struct open_chapter_zone *open_chapter, const struct uds_rec
 	}
 }
 
-void search_open_chapter(struct open_chapter_zone *open_chapter,
-			 const struct uds_record_name *name,
-			 struct uds_record_data *metadata,
-			 bool *found)
+void uds_search_open_chapter(struct open_chapter_zone *open_chapter,
+			     const struct uds_record_name *name,
+			     struct uds_record_data *metadata,
+			     bool *found)
 {
 	unsigned int slot;
 	unsigned int record_number;
@@ -156,9 +156,9 @@ void search_open_chapter(struct open_chapter_zone *open_chapter,
 }
 
 /* Add a record to the open chapter zone and return the remaining space. */
-int put_open_chapter(struct open_chapter_zone *open_chapter,
-		     const struct uds_record_name *name,
-		     const struct uds_record_data *metadata)
+int uds_put_open_chapter(struct open_chapter_zone *open_chapter,
+			 const struct uds_record_name *name,
+			 const struct uds_record_data *metadata)
 {
 	unsigned int slot;
 	unsigned int record_number;
@@ -182,8 +182,8 @@ int put_open_chapter(struct open_chapter_zone *open_chapter,
 	return open_chapter->capacity - open_chapter->size;
 }
 
-void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
-			      const struct uds_record_name *name)
+void uds_remove_from_open_chapter(struct open_chapter_zone *open_chapter,
+				  const struct uds_record_name *name)
 {
 	unsigned int slot;
 	unsigned int record_number;
@@ -197,7 +197,7 @@ void remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 	}
 }
 
-void free_open_chapter(struct open_chapter_zone *open_chapter)
+void uds_free_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	if (open_chapter != NULL) {
 		UDS_FREE(open_chapter->records);
@@ -275,12 +275,12 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 	return UDS_SUCCESS;
 }
 
-int close_open_chapter(struct open_chapter_zone **chapter_zones,
-		       unsigned int zone_count,
-		       struct volume *volume,
-		       struct open_chapter_index *chapter_index,
-		       struct uds_volume_record *collated_records,
-		       u64 virtual_chapter_number)
+int uds_close_open_chapter(struct open_chapter_zone **chapter_zones,
+			   unsigned int zone_count,
+			   struct volume *volume,
+			   struct open_chapter_index *chapter_index,
+			   struct uds_volume_record *collated_records,
+			   u64 virtual_chapter_number)
 {
 	int result;
 
@@ -295,7 +295,7 @@ int close_open_chapter(struct open_chapter_zone **chapter_zones,
 	return write_chapter(volume, chapter_index, collated_records);
 }
 
-int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
+int uds_save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 {
 	int result;
 	struct open_chapter_zone *open_chapter;
@@ -355,7 +355,7 @@ int save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
 	return uds_flush_buffered_writer(writer);
 }
 
-u64 compute_saved_open_chapter_size(struct geometry *geometry)
+u64 uds_compute_saved_open_chapter_size(struct geometry *geometry)
 {
 	unsigned int records_per_chapter = geometry->records_per_chapter;
 
@@ -401,7 +401,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 			unsigned int remaining;
 
 			open_chapter = index->zones[zone]->open_chapter;
-			remaining = put_open_chapter(open_chapter, &record.name, &record.data);
+			remaining = uds_put_open_chapter(open_chapter, &record.name, &record.data);
 			/* Do not allow any zone to fill completely. */
 			full_flags[zone] = (remaining <= 1);
 		}
@@ -410,7 +410,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 	return UDS_SUCCESS;
 }
 
-int load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
+int uds_load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
 {
 	u8 version[OPEN_CHAPTER_VERSION_LENGTH];
 	int result;

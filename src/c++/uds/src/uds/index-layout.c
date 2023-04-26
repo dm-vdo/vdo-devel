@@ -246,7 +246,7 @@ static int __must_check compute_sizes(const struct configuration *config,
 	sls->page_map_blocks =
 		DIV_ROUND_UP(uds_compute_index_page_map_save_size(geometry), sls->block_size);
 	sls->open_chapter_blocks =
-		DIV_ROUND_UP(compute_saved_open_chapter_size(geometry), sls->block_size);
+		DIV_ROUND_UP(uds_compute_saved_open_chapter_size(geometry), sls->block_size);
 	sls->save_blocks =
 		1 + (sls->volume_index_blocks + sls->page_map_blocks + sls->open_chapter_blocks);
 	sls->sub_index_blocks = sls->volume_blocks + (sls->save_count * sls->save_blocks);
@@ -940,7 +940,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = load_open_chapter(index, readers[0]);
+	result = uds_load_open_chapter(index, readers[0]);
 	uds_free_buffered_reader(readers[0]);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -1115,7 +1115,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 		return result;
 	}
 
-	result = save_open_chapter(index, writers[0]);
+	result = uds_save_open_chapter(index, writers[0]);
 	uds_free_buffered_writer(writers[0]);
 	if (result != UDS_SUCCESS) {
 		cancel_uds_index_save(isl);

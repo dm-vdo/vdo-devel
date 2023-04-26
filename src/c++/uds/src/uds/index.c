@@ -70,9 +70,9 @@ struct chapter_writer {
 	size_t memory_size;
 	/* The number of zones which have submitted a chapter for writing */
 	unsigned int zones_to_write;
-	/* Open chapter index used by close_open_chapter() */
+	/* Open chapter index used by uds_close_open_chapter() */
 	struct open_chapter_index *open_chapter_index;
-	/* Collated records used by close_open_chapter() */
+	/* Collated records used by uds_close_open_chapter() */
 	struct uds_volume_record *collated_records;
 	/* The chapters to write (one per zone) */
 	struct open_chapter_zone *chapters[];
@@ -274,7 +274,7 @@ static int open_next_chapter(struct index_zone *zone)
 	set_volume_index_zone_open_chapter(zone->index->volume_index,
 					   zone->id,
 					   zone->newest_virtual_chapter);
-	reset_open_chapter(zone->open_chapter);
+	uds_reset_open_chapter(zone->open_chapter);
 
 	finished_zones = start_closing_chapter(zone->index, zone->id, zone->writing_chapter);
 	if ((finished_zones == 1) && (zone->index->zone_count > 1)) {
@@ -380,20 +380,20 @@ static int get_record_from_zone(struct index_zone *zone, struct uds_request *req
 	}
 
 	if (request->virtual_chapter == zone->newest_virtual_chapter) {
-		search_open_chapter(zone->open_chapter,
-				    &request->record_name,
-				    &request->old_metadata,
-				    found);
+		uds_search_open_chapter(zone->open_chapter,
+					&request->record_name,
+					&request->old_metadata,
+					found);
 		return UDS_SUCCESS;
 	}
 
 	if ((zone->newest_virtual_chapter > 0) &&
 	    (request->virtual_chapter == (zone->newest_virtual_chapter - 1)) &&
 	    (zone->writing_chapter->size > 0)) {
-		search_open_chapter(zone->writing_chapter,
-				    &request->record_name,
-				    &request->old_metadata,
-				    found);
+		uds_search_open_chapter(zone->writing_chapter,
+					&request->record_name,
+					&request->old_metadata,
+					found);
 		return UDS_SUCCESS;
 	}
 
@@ -413,7 +413,7 @@ static int put_record_in_zone(struct index_zone *zone,
 {
 	unsigned int remaining;
 
-	remaining = put_open_chapter(zone->open_chapter, &request->record_name, metadata);
+	remaining = uds_put_open_chapter(zone->open_chapter, &request->record_name, metadata);
 	if (remaining == 0)
 		return open_next_chapter(zone);
 
@@ -575,7 +575,7 @@ static int remove_from_index_zone(struct index_zone *zone, struct uds_request *r
 	 * trouble if the record is added again later.
 	 */
 	if (request->location == UDS_LOCATION_IN_OPEN_CHAPTER)
-		remove_from_open_chapter(zone->open_chapter, &request->record_name);
+		uds_remove_from_open_chapter(zone->open_chapter, &request->record_name);
 
 	return UDS_SUCCESS;
 }
@@ -716,12 +716,12 @@ static void close_chapters(void *arg)
 				uds_log_debug("Discarding saved open chapter");
 		}
 
-		result = close_open_chapter(writer->chapters,
-					    index->zone_count,
-					    index->volume,
-					    writer->open_chapter_index,
-					    writer->collated_records,
-					    index->newest_virtual_chapter);
+		result = uds_close_open_chapter(writer->chapters,
+						index->zone_count,
+						index->volume,
+						writer->open_chapter_index,
+						writer->collated_records,
+						index->newest_virtual_chapter);
 #ifdef TEST_INTERNAL
 
 		/*
@@ -1149,8 +1149,8 @@ static void free_index_zone(struct index_zone *zone)
 	if (zone == NULL)
 		return;
 
-	free_open_chapter(zone->open_chapter);
-	free_open_chapter(zone->writing_chapter);
+	uds_free_open_chapter(zone->open_chapter);
+	uds_free_open_chapter(zone->writing_chapter);
 	UDS_FREE(zone);
 }
 
@@ -1163,17 +1163,17 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = make_open_chapter(index->volume->geometry,
-				   index->zone_count,
-				   &zone->open_chapter);
+	result = uds_make_open_chapter(index->volume->geometry,
+				       index->zone_count,
+				       &zone->open_chapter);
 	if (result != UDS_SUCCESS) {
 		free_index_zone(zone);
 		return result;
 	}
 
-	result = make_open_chapter(index->volume->geometry,
-				   index->zone_count,
-				   &zone->writing_chapter);
+	result = uds_make_open_chapter(index->volume->geometry,
+				       index->zone_count,
+				       &zone->writing_chapter);
 	if (result != UDS_SUCCESS) {
 		free_index_zone(zone);
 		return result;

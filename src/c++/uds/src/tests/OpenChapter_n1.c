@@ -60,7 +60,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   }
 
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
-  reset_open_chapter(openChapter);
+  uds_reset_open_chapter(openChapter);
   ktime_t openTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
 
   start = current_time_ns(CLOCK_MONOTONIC);
@@ -69,7 +69,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   for (remaining = UINT_MAX; remaining > 0;) {
     struct uds_record_data metaData;
 
-    remaining = put_open_chapter(openChapter, &names[recordCount], &metaData);
+    remaining = uds_put_open_chapter(openChapter, &names[recordCount], &metaData);
     ++recordCount;
   }
   ktime_t putTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
@@ -108,9 +108,12 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
   uds_empty_open_chapter_index(openChapterIndex, 0);
 
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
-  UDS_ASSERT_SUCCESS(close_open_chapter(openChapters, zoneCount, volume,
-                                        openChapterIndex, collatedRecords,
-                                        chapterNumber));
+  UDS_ASSERT_SUCCESS(uds_close_open_chapter(openChapters,
+                                            zoneCount,
+                                            volume,
+                                            openChapterIndex,
+                                            collatedRecords,
+                                            chapterNumber));
   ktime_t closeTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   reportCloseTime(recordCount, closeTime);
 
@@ -143,8 +146,7 @@ static void testFilling(void)
                                   "open chapters", &openChapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
-    UDS_ASSERT_SUCCESS(make_open_chapter(volume->geometry, zoneCount,
-                                         &openChapters[i]));
+    UDS_ASSERT_SUCCESS(uds_make_open_chapter(volume->geometry, zoneCount, &openChapters[i]));
   }
 
   for (i = 0; i < CHAPTER_COUNT; i++) {
@@ -155,7 +157,7 @@ static void testFilling(void)
   reportCloseTime(totalRecordCount, totalCloseTime);
 
   for (i = 0; i < zoneCount; i++) {
-    free_open_chapter(openChapters[i]);
+    uds_free_open_chapter(openChapters[i]);
   }
   UDS_FREE(openChapters);
   free_volume(volume);

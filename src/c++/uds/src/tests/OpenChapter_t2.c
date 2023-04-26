@@ -35,7 +35,7 @@ static void initializeTest(void)
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
   scratchOffset = DIV_ROUND_UP(scratchOffset, UDS_BLOCK_SIZE);
   chapterBlocks
-    = DIV_ROUND_UP(compute_saved_open_chapter_size(config->geometry),
+    = DIV_ROUND_UP(uds_compute_saved_open_chapter_size(config->geometry),
                    UDS_BLOCK_SIZE);
 
   initialize_test_requests();
@@ -84,12 +84,12 @@ static void requestIndex(struct uds_record_name *hash,
 static void testSaveLoadEmpty(void)
 {
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
+  UDS_ASSERT_SUCCESS(uds_save_open_chapter(theIndex, writer));
   uds_free_buffered_writer(writer);
-  reset_open_chapter(theIndex->zones[0]->open_chapter);
+  uds_reset_open_chapter(theIndex->zones[0]->open_chapter);
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
+  UDS_ASSERT_SUCCESS(uds_load_open_chapter(theIndex, reader));
   uds_free_buffered_reader(reader);
 
   unsigned int i;
@@ -117,12 +117,12 @@ static void testSaveLoadWithData(void)
 
   // Save the open chapter file and assert that all records can be found.
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
+  UDS_ASSERT_SUCCESS(uds_save_open_chapter(theIndex, writer));
   uds_free_buffered_writer(writer);
-  reset_open_chapter(theIndex->zones[0]->open_chapter);
+  uds_reset_open_chapter(theIndex->zones[0]->open_chapter);
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
+  UDS_ASSERT_SUCCESS(uds_load_open_chapter(theIndex, reader));
   uds_free_buffered_reader(reader);
 
   for (i = 0; i < totalRecords; i++) {
@@ -131,8 +131,10 @@ static void testSaveLoadWithData(void)
     struct uds_record_data metadata;
     bool found = false;
 
-    search_open_chapter(theIndex->zones[zone]->open_chapter, &records[i].name,
-                        &metadata, &found);
+    uds_search_open_chapter(theIndex->zones[zone]->open_chapter,
+                            &records[i].name,
+                            &metadata,
+                            &found);
     CU_ASSERT_TRUE(found);
     UDS_ASSERT_BLOCKDATA_EQUAL(&records[i].data, &metadata);
   }
@@ -163,7 +165,7 @@ static void testSaveLoadWithDiscard(void)
 
   // Save the open chapter file, and reload with a three-zone index.
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
+  UDS_ASSERT_SUCCESS(uds_save_open_chapter(theIndex, writer));
   uds_free_buffered_writer(writer);
   uds_free_index(theIndex);
 
@@ -172,11 +174,11 @@ static void testSaveLoadWithDiscard(void)
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_LOAD, NULL, NULL, &theIndex));
   int z;
   for (z = 0; z < ZONE_COUNT; z++) {
-    reset_open_chapter(theIndex->zones[z]->open_chapter);
+    uds_reset_open_chapter(theIndex->zones[z]->open_chapter);
   }
 
   struct buffered_reader *reader = openBufferedReaderForChapter();
-  UDS_ASSERT_SUCCESS(load_open_chapter(theIndex, reader));
+  UDS_ASSERT_SUCCESS(uds_load_open_chapter(theIndex, reader));
   uds_free_buffered_reader(reader);
 
   // At least one zone will have more records than will fit in the
@@ -192,7 +194,7 @@ static void testSaveLoadWithDiscard(void)
     struct open_chapter_zone *openChapter
       = theIndex->zones[zone]->open_chapter;
 
-    search_open_chapter(openChapter, &records[i].name, &metadata, &found);
+    uds_search_open_chapter(openChapter, &records[i].name, &metadata, &found);
     CU_ASSERT_TRUE(found == (recordsPerZone[zone] < openChapter->capacity));
     if (found) {
       UDS_ASSERT_BLOCKDATA_EQUAL(&records[i].data, &metadata);
@@ -212,7 +214,7 @@ static void testSaveLoadWithDiscard(void)
 static void modifyOpenChapter(off_t offset, const char *data)
 {
   struct buffered_writer *writer = openBufferedWriterForChapter();
-  UDS_ASSERT_SUCCESS(save_open_chapter(theIndex, writer));
+  UDS_ASSERT_SUCCESS(uds_save_open_chapter(theIndex, writer));
   uds_free_buffered_writer(writer);
 
   u8 *block;
@@ -238,7 +240,7 @@ static void loadModifiedOpenChapter(void)
   struct buffered_reader *reader = openBufferedReaderForChapter();
   struct uds_index *restoringIndex = NULL;
   UDS_ASSERT_ERROR(UDS_CORRUPT_DATA,
-                   load_open_chapter(restoringIndex, reader));
+                   uds_load_open_chapter(restoringIndex, reader));
   uds_free_buffered_reader(reader);
   uds_free_index(restoringIndex);
 }

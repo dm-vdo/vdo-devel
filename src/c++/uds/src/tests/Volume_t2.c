@@ -65,7 +65,7 @@ static void testWriteChapter(void)
                                   "open chapters", &chapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
-    UDS_ASSERT_SUCCESS(make_open_chapter(geometry, zoneCount, &chapters[i]));
+    UDS_ASSERT_SUCCESS(uds_make_open_chapter(geometry, zoneCount, &chapters[i]));
   }
 
   struct uds_record_name *hashes;
@@ -85,7 +85,7 @@ static void testWriteChapter(void)
       createRandomMetadata(&metadata[i]);
 
       unsigned int remaining;
-      remaining = put_open_chapter(chapters[zone], &hashes[i], &metadata[i]);
+      remaining = uds_put_open_chapter(chapters[zone], &hashes[i], &metadata[i]);
       if (remaining == 0) {
         if (i > highestRecord) {
           highestRecord = i;
@@ -108,14 +108,17 @@ static void testWriteChapter(void)
                                                  volume->geometry,
                                                  volume->nonce));
   uds_empty_open_chapter_index(openChapterIndex, 0);
-  UDS_ASSERT_SUCCESS(close_open_chapter(chapters, zoneCount, volume,
-                                        openChapterIndex, collatedRecords,
-                                        chapterNumber));
+  UDS_ASSERT_SUCCESS(uds_close_open_chapter(chapters,
+                                            zoneCount,
+                                            volume,
+                                            openChapterIndex,
+                                            collatedRecords,
+                                            chapterNumber));
   uds_free_open_chapter_index(openChapterIndex);
   UDS_FREE(collatedRecords);
 
   for (zone = 0; zone < zoneCount; ++zone) {
-    free_open_chapter(chapters[zone]);
+    uds_free_open_chapter(chapters[zone]);
   }
 
   // Test reading records directly from the record pages.
