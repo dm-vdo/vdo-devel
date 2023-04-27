@@ -276,7 +276,7 @@ static void idleTest(void)
   struct uds_request_queue *queue;
 
   down(&requestCount);
-  UDS_ASSERT_SUCCESS(make_uds_request_queue("idleTest", &idleTestWorker,
+  UDS_ASSERT_SUCCESS(uds_make_request_queue("idleTest", &idleTestWorker,
                                             &queue));
   CU_ASSERT_PTR_NOT_NULL(queue);
 

@@ -656,7 +656,7 @@ static int initialize_index_queues(struct uds_index *index, const struct geometr
 	unsigned int i;
 
 	for (i = 0; i < index->zone_count; i++) {
-		result = make_uds_request_queue("indexW",
+		result = uds_make_request_queue("indexW",
 						&execute_zone_request,
 						&index->zone_queues[i]);
 		if (result != UDS_SUCCESS)
@@ -665,7 +665,7 @@ static int initialize_index_queues(struct uds_index *index, const struct geometr
 
 	/* The triage queue is only needed for sparse multi-zone indexes. */
 	if ((index->zone_count > 1) && uds_is_sparse_geometry(geometry)) {
-		result = make_uds_request_queue("triageW", &triage_request, &index->triage_queue);
+		result = uds_make_request_queue("triageW", &triage_request, &index->triage_queue);
 		if (result != UDS_SUCCESS)
 			return result;
 	}

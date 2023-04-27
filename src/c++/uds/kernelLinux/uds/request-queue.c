@@ -194,7 +194,7 @@ static void request_queue_worker(void *arg)
 		queue->processor(request);
 }
 
-int make_uds_request_queue(const char *queue_name,
+int uds_make_request_queue(const char *queue_name,
 			   uds_request_queue_processor_t *processor,
 			   struct uds_request_queue **queue_ptr)
 {

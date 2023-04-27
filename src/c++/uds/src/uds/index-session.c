@@ -252,7 +252,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 		return result;
 	}
 
-	result = make_uds_request_queue("callbackW", &handle_callbacks, &session->callback_queue);
+	result = uds_make_request_queue("callbackW", &handle_callbacks, &session->callback_queue);
 	if (result != UDS_SUCCESS) {
 		uds_destroy_cond(&session->load_context.cond);
 		uds_destroy_mutex(&session->load_context.mutex);

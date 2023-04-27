@@ -33,7 +33,7 @@ static void basicTest(void)
   requests[0].unbatched = true;
   requests[1].unbatched = true;
 
-  UDS_ASSERT_SUCCESS(make_uds_request_queue("single", &singleWorker, &queue));
+  UDS_ASSERT_SUCCESS(uds_make_request_queue("single", &singleWorker, &queue));
   CU_ASSERT_PTR_NOT_NULL(queue);
 
   uds_request_queue_enqueue(queue, &requests[0]);
@@ -101,7 +101,7 @@ static void retryPriorityTest(void)
   requests[2].status    = 1;
   UDS_ASSERT_SUCCESS(uds_initialize_semaphore(&requestSemaphore, 0));
 
-  UDS_ASSERT_SUCCESS(make_uds_request_queue("priority", &priorityTestWorker,
+  UDS_ASSERT_SUCCESS(uds_make_request_queue("priority", &priorityTestWorker,
                                             &priorityTestQueue));
   CU_ASSERT_PTR_NOT_NULL(priorityTestQueue);
 
