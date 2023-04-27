@@ -99,9 +99,9 @@ static struct volume_index_record
 getTheVolumeIndexRecord(unsigned int hashIndex)
 {
   struct volume_index_record record;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(theIndex->volume_index,
-                                             &hashes[hashIndex],
-                                             &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(theIndex->volume_index,
+                                                 &hashes[hashIndex],
+                                                 &record));
   return record;
 }
 
@@ -120,7 +120,7 @@ static void assertNotFoundInVolumeIndex(unsigned int hashIndex)
 /**********************************************************************/
 static bool isHook(unsigned int hashIndex)
 {
-  return is_volume_index_sample(theIndex->volume_index, &hashes[hashIndex]);
+  return uds_is_volume_index_sample(theIndex->volume_index, &hashes[hashIndex]);
 }
 
 /**********************************************************************/

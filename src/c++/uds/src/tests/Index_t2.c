@@ -120,8 +120,7 @@ static void addData(bool shouldExist)
   struct uds_index *index = testData.index;
   unsigned int i;
   for (i = 0; i < testData.totalRecords; i++) {
-    unsigned int zoneNumber = get_volume_index_zone(index->volume_index,
-                                                    &testData.hashes[i]);
+    unsigned int zoneNumber = uds_get_volume_index_zone(index->volume_index, &testData.hashes[i]);
     struct index_zone *zone = index->zones[zoneNumber];
     uint64_t chapter = zone->newest_virtual_chapter;
 
@@ -179,8 +178,7 @@ static void verifyData(unsigned int expectedLost)
 
     // We won't find any records in chapters that have been forgotten
     // or records that were in the open chapter before a rebuild.
-    unsigned int zoneNum = get_volume_index_zone(index->volume_index,
-                                                 &testData.hashes[i]);
+    unsigned int zoneNum = uds_get_volume_index_zone(index->volume_index, &testData.hashes[i]);
     if ((metaChapter < index->zones[zoneNum]->oldest_virtual_chapter)
         || (metaChapter == index->zones[zoneNum]->newest_virtual_chapter)) {
       recordsLost++;
@@ -198,8 +196,9 @@ static void verifyData(unsigned int expectedLost)
 
     // First make sure it is found in the chapter we expect.
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(index->volume_index,
-                                               &testData.hashes[i], &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(index->volume_index,
+                                                   &testData.hashes[i],
+                                                   &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(metaChapter, record.virtual_chapter);
 

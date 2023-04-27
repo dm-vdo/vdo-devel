@@ -127,13 +127,13 @@ static void threadAdd(void *arg)
     uint64_t counter = nameCounter + i;
     uint64_t chapter = counter / geometry->records_per_chapter;
     if (counter % geometry->records_per_chapter == 0) {
-      set_volume_index_zone_open_chapter(volumeIndex, ta->zone, chapter);
+      uds_set_volume_index_zone_open_chapter(volumeIndex, ta->zone, chapter);
     }
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
-    if (get_volume_index_zone(volumeIndex, &name) == ta->zone) {
+    if (uds_get_volume_index_zone(volumeIndex, &name) == ta->zone) {
       struct volume_index_record record;
-      UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name, &record));
-      UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+      UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name, &record));
+      UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
     }
   }
 }
@@ -142,7 +142,7 @@ static void threadAdd(void *arg)
 static void createAndFill(unsigned int numZones)
 {
   config->zone_count = numZones;
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   unsigned long chunkCount = (geometry->records_per_chapter
                               * (geometry->chapters_per_volume + 64));
@@ -215,8 +215,9 @@ static ktime_t steady(unsigned int numZones)
 static void save(unsigned int numZones)
 {
   uint64_t saveBlockCount;
-  UDS_ASSERT_SUCCESS(compute_volume_index_save_blocks(config, UDS_BLOCK_SIZE,
-                                                      &saveBlockCount));
+  UDS_ASSERT_SUCCESS(uds_compute_volume_index_save_blocks(config,
+                                                          UDS_BLOCK_SIZE,
+                                                          &saveBlockCount));
   uint64_t zoneBlockCount = (saveBlockCount + numZones - 1) / numZones;
   zoneSize = zoneBlockCount * UDS_BLOCK_SIZE;
 
@@ -226,7 +227,7 @@ static void save(unsigned int numZones)
     UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, z * zoneSize, zoneSize, &writers[z]));
   }
 
-  UDS_ASSERT_SUCCESS(save_volume_index(volumeIndex, writers, numZones));
+  UDS_ASSERT_SUCCESS(uds_save_volume_index(volumeIndex, writers, numZones));
   for (unsigned int z = 0; z < numZones; z++) {
     uds_free_buffered_writer(writers[z]);
   }
@@ -241,16 +242,16 @@ static void save(unsigned int numZones)
 /**********************************************************************/
 static void restore(unsigned int oldZones, unsigned int newZones)
 {
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   config->zone_count = newZones;
 
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   struct buffered_reader *readers[oldZones];
   for (unsigned int z = 0; z < oldZones; z++) {
     UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, z * zoneSize, zoneSize, &readers[z]));
   }
-  UDS_ASSERT_SUCCESS(load_volume_index(volumeIndex, readers, oldZones));
+  UDS_ASSERT_SUCCESS(uds_load_volume_index(volumeIndex, readers, oldZones));
   for (unsigned int z = 0; z < oldZones; z++) {
     uds_free_buffered_reader(readers[z]);
   }
@@ -281,7 +282,7 @@ static void miPerfTest(void)
     // Run the steady state test using the loop's number of zones
     steadyTimes[z] = steady(z) / 1.0e9;
   }
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
 
   /*
    * Expect nearly linear speedup until we run out of cores.

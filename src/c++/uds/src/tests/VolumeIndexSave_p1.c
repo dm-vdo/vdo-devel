@@ -28,8 +28,8 @@ static void insertRandomlyNamedBlock(struct volume_index *volumeIndex,
   nameCounter += 1;
 
   struct volume_index_record record;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name, &record));
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, virtualChapter));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name, &record));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, virtualChapter));
 }
 
 /**********************************************************************/
@@ -57,7 +57,7 @@ static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
 static void reportVolumeIndexMemory(struct volume_index *volumeIndex)
 {
   struct volume_index_stats stats;
-  get_volume_index_stats(volumeIndex, &stats);
+  uds_get_volume_index_stats(volumeIndex, &stats);
 
   long numBlocks = stats.record_count;
   long listCount = stats.delta_lists;
@@ -78,7 +78,7 @@ static ktime_t fillChapter(struct volume_index *mi, uint64_t virtualChapter)
 {
   int blocksPerChapter = config->geometry->records_per_chapter;
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
-  set_volume_index_open_chapter(mi, virtualChapter);
+  uds_set_volume_index_open_chapter(mi, virtualChapter);
   int count;
   for (count = 0; count < blocksPerChapter; count++) {
     insertRandomlyNamedBlock(mi, virtualChapter);
@@ -124,7 +124,7 @@ static void saveTestIndex(struct volume_index *volumeIndex,
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, saveSize, &writer));
-  UDS_ASSERT_SUCCESS(save_volume_index(volumeIndex, &writer, 1));
+  UDS_ASSERT_SUCCESS(uds_save_volume_index(volumeIndex, &writer, 1));
   uds_free_buffered_writer(writer);
 
   ktime_t saveTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
@@ -137,14 +137,14 @@ static struct volume_index *restoreTestIndex(struct io_factory *factory,
 {
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
   struct volume_index *volumeIndex;
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, saveSize, &reader));
   uds_put_io_factory(factory);
-  UDS_ASSERT_SUCCESS(load_volume_index(volumeIndex, &reader, 1));
+  UDS_ASSERT_SUCCESS(uds_load_volume_index(volumeIndex, &reader, 1));
   uds_free_buffered_reader(reader);
   ktime_t restoreTime = ktime_sub(current_time_ns(CLOCK_MONOTONIC), startTime);
-  reportIOTime("load_volume_index():", restoreTime);
+  reportIOTime("uds_load_volume_index():", restoreTime);
   return volumeIndex;
 }
 
@@ -152,7 +152,7 @@ static struct volume_index *restoreTestIndex(struct io_factory *factory,
 static void saveRestoreTest(void)
 {
   struct volume_index *volumeIndex;
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   reportVolumeIndexMemory(volumeIndex);
 
   fillTestIndex(volumeIndex);
@@ -164,13 +164,12 @@ static void saveRestoreTest(void)
   size_t used1 = get_volume_index_memory_used(volumeIndex);
 
   uint64_t blockCount;
-  UDS_ASSERT_SUCCESS(compute_volume_index_save_blocks(config, UDS_BLOCK_SIZE,
-                                                      &blockCount));
+  UDS_ASSERT_SUCCESS(uds_compute_volume_index_save_blocks(config, UDS_BLOCK_SIZE, &blockCount));
   size_t saveSize = blockCount * UDS_BLOCK_SIZE;
   struct io_factory *factory;
   UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
   saveTestIndex(volumeIndex, factory, saveSize);
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
 
   volumeIndex = restoreTestIndex(factory, saveSize);
   reportVolumeIndexMemory(volumeIndex);
@@ -182,7 +181,7 @@ static void saveRestoreTest(void)
   CU_ASSERT_EQUAL(denseStats1.record_count, denseStats2.record_count);
   CU_ASSERT_EQUAL(sparseStats1.record_count, sparseStats2.record_count);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
 }
 
 /**********************************************************************/

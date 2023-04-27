@@ -143,8 +143,8 @@ static void addAllHashes(bool expectFound)
 static struct volume_index_record assertFoundInMI(unsigned int hashIndex)
 {
   struct volume_index_record mir;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(theIndex->volume_index,
-                                             &hashes[hashIndex], &mir));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(theIndex->volume_index,
+                                                 &hashes[hashIndex], &mir));
   CU_ASSERT_TRUE(mir.is_found);
   return mir;
 }

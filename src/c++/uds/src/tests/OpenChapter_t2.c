@@ -126,8 +126,7 @@ static void testSaveLoadWithData(void)
   uds_free_buffered_reader(reader);
 
   for (i = 0; i < totalRecords; i++) {
-    unsigned int zone = get_volume_index_zone(theIndex->volume_index,
-                                              &records[i].name);
+    unsigned int zone = uds_get_volume_index_zone(theIndex->volume_index, &records[i].name);
     struct uds_record_data metadata;
     bool found = false;
 
@@ -186,8 +185,7 @@ static void testSaveLoadWithDiscard(void)
   unsigned int recordsPerZone[ZONE_COUNT];
   memset(recordsPerZone, 0, ZONE_COUNT * sizeof(unsigned int));
   for (i = 0; i < totalRecords; i++) {
-    unsigned int zone = get_volume_index_zone(theIndex->volume_index,
-                                              &records[i].name);
+    unsigned int zone = uds_get_volume_index_zone(theIndex->volume_index, &records[i].name);
     recordsPerZone[zone]++;
     struct uds_record_data metadata;
     bool found = false;

@@ -44,7 +44,7 @@ static void createIndex(unsigned int zone_count)
 static void requestIndex(struct uds_record_name *name,
                          struct uds_record_data *data)
 {
-  unsigned int zone = get_volume_index_zone(theIndex->volume_index, name);
+  unsigned int zone = uds_get_volume_index_zone(theIndex->volume_index, name);
   struct uds_request request = {
     .record_name  = *name,
     .new_metadata = *data,
@@ -65,8 +65,7 @@ static void stressZonesTest(void)
   CU_ASSERT_EQUAL(theIndex->newest_virtual_chapter, 0);
 
   createRandomBlockName(&orig);
-  unsigned int initialZone = get_volume_index_zone(theIndex->volume_index,
-                                                   &orig);
+  unsigned int initialZone = uds_get_volume_index_zone(theIndex->volume_index, &orig);
 
   do {
     createRandomBlockNameInZone(theIndex, initialZone, &name);
@@ -94,7 +93,7 @@ static void stressChapterIndexBytesTest(void)
   do {
     createRandomBlockName(&name);
     set_chapter_index_bytes(&name, chapterIndexField);
-    zone = get_volume_index_zone(theIndex->volume_index, &name);
+    zone = uds_get_volume_index_zone(theIndex->volume_index, &name);
     createRandomMetadata(&data);
     requestIndex(&name, &data);
   } while (theIndex->zones[zone]->newest_virtual_chapter == chapter);
@@ -115,7 +114,7 @@ static void stressVolumeIndexBytesTest(void)
     createCollidingBlock(&orig, &name);
     createRandomMetadata(&data);
     requestIndex(&name, &data);
-    get_volume_index_stats(theIndex->volume_index, &stats);
+    uds_get_volume_index_stats(theIndex->volume_index, &stats);
   } while (stats.overflow_count < 1);
 
   uds_free_index(theIndex);

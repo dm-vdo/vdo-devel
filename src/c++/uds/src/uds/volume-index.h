@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef VOLUMEINDEX_H
-#define VOLUMEINDEX_H 1
+#ifndef UDS_VOLUME_INDEX_H
+#define UDS_VOLUME_INDEX_H 1
 
 #include <linux/limits.h>
 
@@ -104,17 +104,17 @@ struct volume_index {
 
 /*
  * The volume_index_record structure is used to facilitate processing of a record name. A client
- * first calls get_volume_index_record() to find the volume index record for a record name. The
+ * first calls uds_get_volume_index_record() to find the volume index record for a record name. The
  * fields of the record can then be examined to determine the state of the record.
  *
  * If is_found is false, then the index did not find an entry for the record name. Calling
- * put_volume_index_record() will insert a new entry for that name at the proper place.
+ * uds_put_volume_index_record() will insert a new entry for that name at the proper place.
  *
  * If is_found is true, then we did find an entry for the record name, and the virtual_chapter and
  * is_collision fields reflect the entry found. Subsequently, a call to
- * remove_volume_index_record() will remove the entry, a call to set_volume_index_record_chapter()
- * will update the existing entry, and a call to put_volume_index_record() will insert a new
- * collision record after the existing entry.
+ * uds_remove_volume_index_record() will remove the entry, a call to
+ * uds_set_volume_index_record_chapter() will update the existing entry, and a call to
+ * uds_put_volume_index_record() will insert a new collision record after the existing entry.
  */
 struct volume_index_record {
 	/* Public fields */
@@ -140,56 +140,58 @@ struct volume_index_record {
 	struct delta_index_entry delta_entry;
 };
 
-int __must_check make_volume_index(const struct configuration *config,
-				   u64 volume_nonce,
-				   struct volume_index **volume_index);
+int __must_check uds_make_volume_index(const struct configuration *config,
+				       u64 volume_nonce,
+				       struct volume_index **volume_index);
 
-void free_volume_index(struct volume_index *volume_index);
+void uds_free_volume_index(struct volume_index *volume_index);
 
-int __must_check compute_volume_index_save_blocks(const struct configuration *config,
-						  size_t block_size,
-						  u64 *block_count);
+int __must_check uds_compute_volume_index_save_blocks(const struct configuration *config,
+						      size_t block_size,
+						      u64 *block_count);
 
 unsigned int __must_check
-get_volume_index_zone(const struct volume_index *volume_index, const struct uds_record_name *name);
+uds_get_volume_index_zone(const struct volume_index *volume_index,
+			  const struct uds_record_name *name);
 
-bool __must_check is_volume_index_sample(const struct volume_index *volume_index,
-					 const struct uds_record_name *name);
+bool __must_check uds_is_volume_index_sample(const struct volume_index *volume_index,
+					     const struct uds_record_name *name);
 
 /*
  * This function is only used to manage sparse cache membership. Most requests should use
- * get_volume_index_record() to look up index records instead.
+ * uds_get_volume_index_record() to look up index records instead.
  */
-u64 __must_check lookup_volume_index_name(const struct volume_index *volume_index,
-					  const struct uds_record_name *name);
+u64 __must_check uds_lookup_volume_index_name(const struct volume_index *volume_index,
+					      const struct uds_record_name *name);
 
-int __must_check get_volume_index_record(struct volume_index *volume_index,
-					 const struct uds_record_name *name,
-					 struct volume_index_record *record);
-
-int __must_check put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter);
-
-int __must_check remove_volume_index_record(struct volume_index_record *record);
+int __must_check uds_get_volume_index_record(struct volume_index *volume_index,
+					     const struct uds_record_name *name,
+					     struct volume_index_record *record);
 
 int __must_check
-set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter);
+uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter);
 
-void set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter);
+int __must_check uds_remove_volume_index_record(struct volume_index_record *record);
 
-void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
-					unsigned int zone_number,
-					u64 virtual_chapter);
+int __must_check
+uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter);
 
-int __must_check load_volume_index(struct volume_index *volume_index,
-				   struct buffered_reader **readers,
-				   unsigned int reader_count);
+void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter);
 
-int __must_check save_volume_index(struct volume_index *volume_index,
-				   struct buffered_writer **writers,
-				   unsigned int writer_count);
+void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
+					    unsigned int zone_number,
+					    u64 virtual_chapter);
 
-void get_volume_index_stats(const struct volume_index *volume_index,
-			    struct volume_index_stats *stats);
+int __must_check uds_load_volume_index(struct volume_index *volume_index,
+				       struct buffered_reader **readers,
+				       unsigned int reader_count);
+
+int __must_check uds_save_volume_index(struct volume_index *volume_index,
+				       struct buffered_writer **writers,
+				       unsigned int writer_count);
+
+void uds_get_volume_index_stats(const struct volume_index *volume_index,
+				struct volume_index_stats *stats);
 
 #ifdef TEST_INTERNAL
 size_t get_volume_index_memory_used(const struct volume_index *volume_index);
@@ -199,4 +201,4 @@ void get_volume_index_separate_stats(const struct volume_index *volume_index,
 				     struct volume_index_stats *sparse);
 
 #endif /* TEST_INTERNAL */
-#endif /* VOLUMEINDEX_H */
+#endif /* UDS_VOLUME_INDEX_H */

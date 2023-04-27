@@ -69,8 +69,7 @@ static void verifyData(struct uds_index_session *session,
 
     if (sparse) {
       // just verify the hooks for simplicity
-      bool hook = is_volume_index_sample(index->volume_index,
-                                         &request.record_name);
+      bool hook = uds_is_volume_index_sample(index->volume_index, &request.record_name);
       if (!hook) {
         continue;
       }

@@ -39,7 +39,7 @@
  *
  * Most operations that use all the zones take place either before request processing is allowed,
  * or after all requests have been flushed in order to shut down. The only multi-threaded operation
- * supported during normal operation is the lookup_volume_index_name() method, used to determine
+ * supported during normal operation is the uds_lookup_volume_index_name() method, used to determine
  * whether a new chapter should be loaded into the sparse index cache. This operation only uses the
  * sparse hook subindex, and the zone mutexes are used to make this operation safe.
  *
@@ -170,8 +170,8 @@ static inline bool has_sparse(const struct volume_index *volume_index)
 	return volume_index->sparse_sample_rate > 0;
 }
 
-bool is_volume_index_sample(const struct volume_index *volume_index,
-			    const struct uds_record_name *name)
+bool uds_is_volume_index_sample(const struct volume_index *volume_index,
+				const struct uds_record_name *name)
 {
 	if (!has_sparse(volume_index))
 		return false;
@@ -182,7 +182,7 @@ bool is_volume_index_sample(const struct volume_index *volume_index,
 static inline const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
 {
-	return (is_volume_index_sample(volume_index, name) ?
+	return (uds_is_volume_index_sample(volume_index, name) ?
 		&volume_index->vi_hook :
 		&volume_index->vi_non_hook);
 }
@@ -193,8 +193,8 @@ static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub
 	return extract_dlist_num(sub_index, name) / sub_index->delta_index.lists_per_zone;
 }
 
-unsigned int get_volume_index_zone(const struct volume_index *volume_index,
-				   const struct uds_record_name *name)
+unsigned int uds_get_volume_index_zone(const struct volume_index *volume_index,
+				       const struct uds_record_name *name)
 {
 	return get_volume_sub_index_zone(get_sub_index(volume_index, name), name);
 }
@@ -289,7 +289,7 @@ static void uninitialize_volume_sub_index(struct volume_sub_index *sub_index)
 	uds_uninitialize_delta_index(&sub_index->delta_index);
 }
 
-void free_volume_index(struct volume_index *volume_index)
+void uds_free_volume_index(struct volume_index *volume_index)
 {
 	if (volume_index == NULL)
 		return;
@@ -373,9 +373,9 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 	return UDS_SUCCESS;
 }
 
-int compute_volume_index_save_blocks(const struct configuration *config,
-				     size_t block_size,
-				     u64 *block_count)
+int uds_compute_volume_index_save_blocks(const struct configuration *config,
+					 size_t block_size,
+					 u64 *block_count)
 {
 	size_t bytes;
 	int result;
@@ -559,17 +559,17 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 	return UDS_SUCCESS;
 }
 
-int get_volume_index_record(struct volume_index *volume_index,
-			    const struct uds_record_name *name,
-			    struct volume_index_record *record)
+int uds_get_volume_index_record(struct volume_index *volume_index,
+				const struct uds_record_name *name,
+				struct volume_index_record *record)
 {
 	int result;
 
-	if (is_volume_index_sample(volume_index, name)) {
+	if (uds_is_volume_index_sample(volume_index, name)) {
 		/*
-		 * Other threads cannot be allowed to call lookup_volume_index_name() while this
-		 * thread is finding the volume index record. Due to the lazy LRU flushing of the
-		 * volume index, get_volume_index_record() is not a read-only operation.
+		 * Other threads cannot be allowed to call uds_lookup_volume_index_name() while
+		 * this thread is finding the volume index record. Due to the lazy LRU flushing of
+		 * the volume index, uds_get_volume_index_record() is not a read-only operation.
 		 */
 		unsigned int zone = get_volume_sub_index_zone(&volume_index->vi_hook, name);
 		struct mutex *mutex = &volume_index->zones[zone].hook_mutex;
@@ -585,7 +585,7 @@ int get_volume_index_record(struct volume_index *volume_index,
 	return result;
 }
 
-int put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter)
+int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter)
 {
 	int result;
 	u32 address;
@@ -627,7 +627,7 @@ int put_volume_index_record(struct volume_index_record *record, u64 virtual_chap
 	return result;
 }
 
-int remove_volume_index_record(struct volume_index_record *record)
+int uds_remove_volume_index_record(struct volume_index_record *record)
 {
 	int result;
 
@@ -696,9 +696,9 @@ static void set_volume_sub_index_zone_open_chapter(struct volume_sub_index *sub_
 	}
 }
 
-void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
-					unsigned int zone_number,
-					u64 virtual_chapter)
+void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
+					    unsigned int zone_number,
+					    u64 virtual_chapter)
 {
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
 
@@ -707,7 +707,7 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					       virtual_chapter);
 
 	/*
-	 * Other threads cannot be allowed to call lookup_volume_index_name() while the open
+	 * Other threads cannot be allowed to call uds_lookup_volume_index_name() while the open
 	 * chapter number is changing.
 	 */
 	if (has_sparse(volume_index)) {
@@ -723,15 +723,15 @@ void set_volume_index_zone_open_chapter(struct volume_index *volume_index,
  * Set the newest open chapter number for the index, while also advancing the oldest valid chapter
  * number.
  */
-void set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter)
+void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter)
 {
 	unsigned int zone;
 
 	for (zone = 0; zone < volume_index->zone_count; zone++)
-		set_volume_index_zone_open_chapter(volume_index, zone, virtual_chapter);
+		uds_set_volume_index_zone_open_chapter(volume_index, zone, virtual_chapter);
 }
 
-int set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter)
+int uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter)
 {
 	const struct volume_sub_index *sub_index = record->sub_index;
 	int result;
@@ -794,14 +794,14 @@ static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index
 }
 
 /* Do a read-only lookup of the record name for sparse cache management. */
-u64 lookup_volume_index_name(const struct volume_index *volume_index,
-			     const struct uds_record_name *name)
+u64 uds_lookup_volume_index_name(const struct volume_index *volume_index,
+				 const struct uds_record_name *name)
 {
-	unsigned int zone_number = get_volume_index_zone(volume_index, name);
+	unsigned int zone_number = uds_get_volume_index_zone(volume_index, name);
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
 	u64 virtual_chapter;
 
-	if (!is_volume_index_sample(volume_index, name))
+	if (!uds_is_volume_index_sample(volume_index, name))
 		return NO_CHAPTER;
 
 	uds_lock_mutex(mutex);
@@ -992,9 +992,9 @@ static int finish_restoring_volume_index(struct volume_index *volume_index,
 	return result;
 }
 
-int load_volume_index(struct volume_index *volume_index,
-		      struct buffered_reader **readers,
-		      unsigned int reader_count)
+int uds_load_volume_index(struct volume_index *volume_index,
+			  struct buffered_reader **readers,
+			  unsigned int reader_count)
 {
 	int result;
 
@@ -1114,9 +1114,9 @@ finish_saving_volume_index(const struct volume_index *volume_index, unsigned int
 	return result;
 }
 
-int save_volume_index(struct volume_index *volume_index,
-		      struct buffered_writer **writers,
-		      unsigned int writer_count)
+int uds_save_volume_index(struct volume_index *volume_index,
+			  struct buffered_writer **writers,
+			  unsigned int writer_count)
 {
 	int result = UDS_SUCCESS;
 	unsigned int zone;
@@ -1174,8 +1174,8 @@ void get_volume_index_separate_stats(const struct volume_index *volume_index,
 }
 
 #endif /* TEST_INTERNAL */
-void get_volume_index_stats(const struct volume_index *volume_index,
-			    struct volume_index_stats *stats)
+void uds_get_volume_index_stats(const struct volume_index *volume_index,
+				struct volume_index_stats *stats)
 {
 	struct volume_index_stats sparse_stats;
 
@@ -1252,9 +1252,9 @@ static int initialize_volume_sub_index(const struct configuration *config,
 			    &sub_index->zones);
 }
 
-int make_volume_index(const struct configuration *config,
-		      u64 volume_nonce,
-		      struct volume_index **volume_index_ptr)
+int uds_make_volume_index(const struct configuration *config,
+			  u64 volume_nonce,
+			  struct volume_index **volume_index_ptr)
 {
 	struct split_config split;
 	unsigned int zone;
@@ -1273,7 +1273,7 @@ int make_volume_index(const struct configuration *config,
 						     'm',
 						     &volume_index->vi_non_hook);
 		if (result != UDS_SUCCESS) {
-			free_volume_index(volume_index);
+			uds_free_volume_index(volume_index);
 			return result;
 		}
 
@@ -1289,14 +1289,14 @@ int make_volume_index(const struct configuration *config,
 			      "volume index zones",
 			      &volume_index->zones);
 	if (result != UDS_SUCCESS) {
-		free_volume_index(volume_index);
+		uds_free_volume_index(volume_index);
 		return result;
 	}
 
 	for (zone = 0; zone < config->zone_count; zone++) {
 		result = uds_init_mutex(&volume_index->zones[zone].hook_mutex);
 		if (result != UDS_SUCCESS) {
-			free_volume_index(volume_index);
+			uds_free_volume_index(volume_index);
 			return result;
 		}
 	}
@@ -1307,7 +1307,7 @@ int make_volume_index(const struct configuration *config,
 					     'd',
 					     &volume_index->vi_non_hook);
 	if (result != UDS_SUCCESS) {
-		free_volume_index(volume_index);
+		uds_free_volume_index(volume_index);
 		return uds_log_error_strerror(result, "Error creating non hook volume index");
 	}
 
@@ -1316,7 +1316,7 @@ int make_volume_index(const struct configuration *config,
 					     's',
 					     &volume_index->vi_hook);
 	if (result != UDS_SUCCESS) {
-		free_volume_index(volume_index);
+		uds_free_volume_index(volume_index);
 		return uds_log_error_strerror(result, "Error creating hook volume index");
 	}
 

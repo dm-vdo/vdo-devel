@@ -60,13 +60,13 @@ static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
   }
 
   // Create the volume index
-  UDS_ASSERT_SUCCESS(make_volume_index(&testmi->config, 0, &testmi->mi));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(&testmi->config, 0, &testmi->mi));
 
   // Compute the volume index saved byte stream size
   uint64_t blockCount;
-  UDS_ASSERT_SUCCESS(compute_volume_index_save_blocks(&testmi->config,
-                                                      UDS_BLOCK_SIZE,
-                                                      &blockCount));
+  UDS_ASSERT_SUCCESS(uds_compute_volume_index_save_blocks(&testmi->config,
+                                                          UDS_BLOCK_SIZE,
+                                                          &blockCount));
   testmi->saveSize = blockCount * UDS_BLOCK_SIZE;
 
   // Set the starting point for each save zone
@@ -93,7 +93,7 @@ static void saveVolumeIndex(TestMI *testmi)
                                                 &writers[z]));
   }
 
-  UDS_ASSERT_SUCCESS(save_volume_index(testmi->mi, writers, testmi->numZones));
+  UDS_ASSERT_SUCCESS(uds_save_volume_index(testmi->mi, writers, testmi->numZones));
   for (z = 0; z < testmi->numZones; z++) {
     uds_free_buffered_writer(writers[z]);
   }
@@ -108,11 +108,11 @@ static void reopenVolumeIndex(TestMI       *testmi,
                               unsigned int  numZones,
                               int           status)
 {
-  free_volume_index(testmi->mi);
+  uds_free_volume_index(testmi->mi);
   testmi->mi = NULL;
 
   testmi->config.zone_count = numZones;
-  UDS_ASSERT_SUCCESS(make_volume_index(&testmi->config, 0, &testmi->mi));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(&testmi->config, 0, &testmi->mi));
 
   struct buffered_reader *readers[ZONES];
   unsigned int z;
@@ -122,8 +122,7 @@ static void reopenVolumeIndex(TestMI       *testmi,
                                                 testmi->saveSize,
                                                 &readers[z]));
   }
-  UDS_ASSERT_ERROR(status, load_volume_index(testmi->mi, readers,
-                                             testmi->numZones));
+  UDS_ASSERT_ERROR(status, uds_load_volume_index(testmi->mi, readers, testmi->numZones));
   for (z = 0; z < testmi->numZones; z++) {
     uds_free_buffered_reader(readers[z]);
   }
@@ -145,21 +144,21 @@ static void reopenVolumeIndex(TestMI       *testmi,
 static void addToVolumeIndex(TestMI *testmi, int count)
 {
   struct volume_index_stats stats;
-  get_volume_index_stats(testmi->mi, &stats);
+  uds_get_volume_index_stats(testmi->mi, &stats);
   CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
   int i;
   for (i = 0; i < count; i++) {
     uint64_t counter = testmi->entryCounter++;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     if (counter % testmi->geometry.records_per_chapter == 0) {
-      set_volume_index_open_chapter(testmi->mi, chapter);
+      uds_set_volume_index_open_chapter(testmi->mi, chapter);
     }
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
-    UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
+    UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
   }
-  get_volume_index_stats(testmi->mi, &stats);
+  uds_get_volume_index_stats(testmi->mi, &stats);
   CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
 }
 
@@ -167,7 +166,7 @@ static void addToVolumeIndex(TestMI *testmi, int count)
 static void verifyVolumeIndex(TestMI *testmi)
 {
   struct volume_index_stats stats;
-  get_volume_index_stats(testmi->mi, &stats);
+  uds_get_volume_index_stats(testmi->mi, &stats);
   CU_ASSERT_EQUAL(stats.record_count, testmi->entryCounter);
   long i;
   for (i = 0; i < testmi->entryCounter; i++) {
@@ -175,11 +174,11 @@ static void verifyVolumeIndex(TestMI *testmi)
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, chapter);
-    uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
-    if (is_volume_index_sample(testmi->mi, &name)) {
+    uint64_t virtual_chapter = uds_lookup_volume_index_name(testmi->mi, &name);
+    if (uds_is_volume_index_sample(testmi->mi, &name)) {
       CU_ASSERT_EQUAL(virtual_chapter, chapter);
     } else {
       CU_ASSERT_EQUAL(virtual_chapter, NO_CHAPTER);
@@ -192,27 +191,27 @@ static void overflowVolumeIndex(TestMI *testmi)
 {
   uint64_t extraCounter = 0;
   struct volume_index_stats stats;
-  get_volume_index_stats(testmi->mi, &stats);
+  uds_get_volume_index_stats(testmi->mi, &stats);
   CU_ASSERT_EQUAL(stats.early_flushes, 0);
   for (;;) {
     uint64_t counter = testmi->entryCounter++;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     if (counter % testmi->geometry.records_per_chapter == 0) {
-      set_volume_index_open_chapter(testmi->mi, chapter);
-      get_volume_index_stats(testmi->mi, &stats);
+      uds_set_volume_index_open_chapter(testmi->mi, chapter);
+      uds_get_volume_index_stats(testmi->mi, &stats);
       if (stats.early_flushes > 0) {
         break;
       }
     }
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
-    UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
+    UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
     if (counter % 8 == 0) {
       counter = --extraCounter;
       name = hash_record_name(&counter, sizeof(counter));
-      UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
-      UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+      UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
+      UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
     }
   }
 }
@@ -220,7 +219,7 @@ static void overflowVolumeIndex(TestMI *testmi)
 /**********************************************************************/
 static void closeVolumeIndex(TestMI *testmi)
 {
-  free_volume_index(testmi->mi);
+  uds_free_volume_index(testmi->mi);
   uds_put_io_factory(testmi->factory);
   UDS_FREE(testmi);
 }
@@ -234,13 +233,13 @@ static void threadAddToVolumeIndex(TestMI *testmi, unsigned int zoneNumber,
     uint64_t counter = entryCounter + i;
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     if (counter % testmi->geometry.records_per_chapter == 0) {
-      set_volume_index_zone_open_chapter(testmi->mi, zoneNumber, chapter);
+      uds_set_volume_index_zone_open_chapter(testmi->mi, zoneNumber, chapter);
     }
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
-    if (get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
+    if (uds_get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
       struct volume_index_record record;
-      UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
-      UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+      UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
+      UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
     }
   }
 }
@@ -255,9 +254,9 @@ static void threadVerifyVolumeIndex(TestMI *testmi, unsigned int zoneNumber,
     uint64_t chapter = counter / testmi->geometry.records_per_chapter;
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
       
-    if (get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
+    if (uds_get_volume_index_zone(testmi->mi, &name) == zoneNumber) {
       struct volume_index_record record;
-      UDS_ASSERT_SUCCESS(get_volume_index_record(testmi->mi, &name, &record));
+      UDS_ASSERT_SUCCESS(uds_get_volume_index_record(testmi->mi, &name, &record));
       CU_ASSERT_TRUE(record.is_found);
       CU_ASSERT_EQUAL(record.virtual_chapter, chapter);
     }
@@ -344,7 +343,7 @@ static void threadLookup(void *arg)
       uint64_t counter = i;
       struct uds_record_name name
         = hash_record_name(&counter, sizeof(counter));
-      uint64_t virtual_chapter = lookup_volume_index_name(testmi->mi, &name);
+      uint64_t virtual_chapter = uds_lookup_volume_index_name(testmi->mi, &name);
       if (virtual_chapter != NO_CHAPTER) {
         uint64_t chapter = counter / testmi->geometry.records_per_chapter;
         CU_ASSERT_EQUAL(virtual_chapter, chapter);

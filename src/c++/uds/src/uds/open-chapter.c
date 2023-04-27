@@ -394,7 +394,7 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 			return result;
 
 		if (index->zone_count > 1)
-			zone = get_volume_index_zone(index->volume_index, &record.name);
+			zone = uds_get_volume_index_zone(index->volume_index, &record.name);
 
 		if (!full_flags[zone]) {
 			struct open_chapter_zone *open_chapter;

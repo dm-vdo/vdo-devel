@@ -75,7 +75,7 @@ static void updateChunk(struct uds_index             *index,
     .record_name  = *name,
     .new_metadata = *newData,
     .type         = UDS_UPDATE,
-    .zone_number  = get_volume_index_zone(index->volume_index, name),
+    .zone_number  = uds_get_volume_index_zone(index->volume_index, name),
   };
   submit_test_request(index, &request);
   if (request.found) {

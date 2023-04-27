@@ -48,8 +48,8 @@ static void insertRandomlyNamedBlock(struct volume_index    *volumeIndex,
 {
   createRandomBlockName(name);
   struct volume_index_record record;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, name, &record));
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, name, &record));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
 }
 
 /**********************************************************************/
@@ -72,8 +72,8 @@ static void initializationTest(void)
 
   // Expect this to succeed.
   struct configuration *config = makeTestConfig(MANY_CHAPTERS);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
-  free_volume_index(volumeIndex);
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -86,9 +86,9 @@ static void basicTest(void)
 
   // Make a volume index with only 1 delta list
   struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
   CU_ASSERT_EQUAL(volumeStats.delta_lists, 1);
@@ -103,55 +103,55 @@ static void basicTest(void)
   fillInAddress(&name2, 2);
 
   // Should not find a record with key 0 in an empty index
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name0, &record));
   CU_ASSERT_FALSE(record.is_found);
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
 
   // Insert a record with key 1
   uint64_t chapter1 = 0;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter1));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter1));
   CU_ASSERT_NOT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 1);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
 
   // Should not find a record with key 0
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name0, &record));
   CU_ASSERT_FALSE(record.is_found);
 
   // Should find a record with key 1
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_FALSE(record.is_collision);
   CU_ASSERT_EQUAL(record.virtual_chapter, chapter1);
 
   // Should not find a record with key 2
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name2, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name2, &record));
   CU_ASSERT_FALSE(record.is_found);
 
   // Remove the record with key 1
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_FALSE(record.is_collision);
   CU_ASSERT_EQUAL(record.virtual_chapter, chapter1);
-  UDS_ASSERT_SUCCESS(remove_volume_index_record(&record));
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  UDS_ASSERT_SUCCESS(uds_remove_volume_index_record(&record));
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 1);
 
   // Should not find a record with key 1
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_FALSE(record.is_found);
 
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 1);
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -163,8 +163,8 @@ static void setChapterTest(void)
 
   // Set up a volume index using all chapters from 0 to MAX_CHAPTER
   struct configuration *config = makeTestConfig(MANY_CHAPTERS);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
-  set_volume_index_open_chapter(volumeIndex, MAX_CHAPTER);
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
+  uds_set_volume_index_open_chapter(volumeIndex, MAX_CHAPTER);
 
   // Set up to iterate thru chapters in different directions
   uint64_t chapter1 = 0;
@@ -178,11 +178,11 @@ static void setChapterTest(void)
   // Try out all of the chapter numbers
 
   for (;;) {
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, chapter1);
 
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name2, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name2, &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, chapter2);
 
@@ -192,20 +192,20 @@ static void setChapterTest(void)
     }
     chapter2--;
 
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
     CU_ASSERT_TRUE(record.is_found);
-    UDS_ASSERT_SUCCESS(set_volume_index_record_chapter(&record, chapter1));
+    UDS_ASSERT_SUCCESS(uds_set_volume_index_record_chapter(&record, chapter1));
 
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name2, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name2, &record));
     CU_ASSERT_TRUE(record.is_found);
-    UDS_ASSERT_SUCCESS(set_volume_index_record_chapter(&record, chapter2));
+    UDS_ASSERT_SUCCESS(uds_set_volume_index_record_chapter(&record, chapter2));
   }
 
   // Try an illegal chapter number.
-  CU_ASSERT_EQUAL(set_volume_index_record_chapter(&record, chapter1),
+  CU_ASSERT_EQUAL(uds_set_volume_index_record_chapter(&record, chapter1),
                   UDS_INVALID_ARGUMENT);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -225,7 +225,7 @@ static void testInvalidateTrio(unsigned int addr1, unsigned int addr2,
 
   // Set up the volume index to use a single delta list.
   struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Initialize the names
   struct uds_record_name name1, name2, name3;
@@ -242,46 +242,46 @@ static void testInvalidateTrio(unsigned int addr1, unsigned int addr2,
   uint64_t CH3 = 2;
 
   // Advance to CH1 and insert name1
-  set_volume_index_open_chapter(volumeIndex, CH1);
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  uds_set_volume_index_open_chapter(volumeIndex, CH1);
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_FALSE(record.is_found);
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, CH1));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, CH1));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_EQUAL(record.virtual_chapter, CH1);
 
   // Insert name2
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name2, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name2, &record));
   CU_ASSERT_FALSE(record.is_found);
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, CH2));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, CH2));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_EQUAL(record.virtual_chapter, CH2);
 
   // Advance to CH2 + SINGLE_CHAPTERS, invalidating chapter CH2 and expecting
   // that name2 will be removed from index
-  set_volume_index_open_chapter(volumeIndex, CH2 + SINGLE_CHAPTERS);
+  uds_set_volume_index_open_chapter(volumeIndex, CH2 + SINGLE_CHAPTERS);
 
   // Insert name3
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name3, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name3, &record));
   CU_ASSERT_FALSE(record.is_found);
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, CH3));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, CH3));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_EQUAL(record.virtual_chapter, CH3);
 
   // Verify that name1 is present
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_EQUAL(record.virtual_chapter, CH1);
 
   // Verify that name2 is absent
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name2, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name2, &record));
   CU_ASSERT_FALSE(record.is_found);
 
   // Verify that name3 is present
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name3, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name3, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_EQUAL(record.virtual_chapter, CH3);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -328,7 +328,7 @@ static void advanceForInvalidateChaptersTest(struct volume_index *volumeIndex,
 {
   while (chapter > *openChapter) {
     *openChapter += 1;
-    set_volume_index_open_chapter(volumeIndex, *openChapter);
+    uds_set_volume_index_open_chapter(volumeIndex, *openChapter);
   }
 }
 
@@ -362,8 +362,7 @@ checkForInvalidateChaptersTest(struct volume_index *volumeIndex,
   struct volume_index_record record;
   unsigned int i;
   for (i = 0; i < numChapters; i++) {
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &testNames[i],
-                                               &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &testNames[i], &record));
     if ((testChapters[i] < lowChapter) || (testChapters[i] > highChapter)) {
       CU_ASSERT_FALSE(record.is_found
                       && (record.virtual_chapter == testChapters[i]));
@@ -384,20 +383,20 @@ static void rotateForInvalidateChaptersTest(struct volume_index *volumeIndex,
                                             uint64_t *openChapter)
 {
   struct volume_index_stats volumeStats;
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   long newDiscards = highChapter - *openChapter;
   long expectedDiscards = volumeStats.discard_count + newDiscards;
   uint64_t newChapter = *openChapter + 1;
   advanceForInvalidateChaptersTest(volumeIndex, openChapter, highChapter);
   checkForInvalidateChaptersTest(volumeIndex, numChapters, testNames,
                                  testChapters, lowChapter, highChapter);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters - newDiscards);
   CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
   insertForInvalidateChaptersTest(volumeIndex, numChapters, testNames,
                                   testChapters, newChapter, highChapter,
                                   openChapter);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
   CU_ASSERT_EQUAL(volumeStats.discard_count, expectedDiscards);
 }
@@ -413,7 +412,7 @@ static void invalidateChapterTest(void)
 
   // Set up the volume index to use a single delta list.
   struct configuration *config = makeTestConfig(CHAPTER_COUNT);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Deposit 1 block into each chapter.
   uint64_t openChapter = 0;
@@ -422,7 +421,7 @@ static void invalidateChapterTest(void)
   insertForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
                                   testChapters, lowChapter, highChapter,
                                   &openChapter);
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, CHAPTER_COUNT);
   CU_ASSERT_EQUAL(volumeStats.discard_count, 0);
   checkForInvalidateChaptersTest(volumeIndex, CHAPTER_COUNT, testNames,
@@ -458,7 +457,7 @@ static void invalidateChapterTest(void)
                                   testChapters, lowChapter, highChapter,
                                   &openChapter);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -479,35 +478,35 @@ static void invalidateChapterCollisionTest(void)
   fillInAddress(&name1, 0);
 
   struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
-  set_volume_index_open_chapter(volumeIndex, 1);
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
+  uds_set_volume_index_open_chapter(volumeIndex, 1);
 
   // Insert the first non-collision record into chapter 1
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name0, &record));
   CU_ASSERT_FALSE(record.is_found);
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, 1));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, 1));
 
   // Insert the second collision record into chapter 0
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_TRUE(record.is_found);
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, 0));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, 0));
 
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 2);
   CU_ASSERT_EQUAL(volumeStats.collision_count, 1);
 
   // Now invalidate chapter 0.  The collision record should disappear.
-  set_volume_index_open_chapter(volumeIndex, SINGLE_CHAPTERS);
+  uds_set_volume_index_open_chapter(volumeIndex, SINGLE_CHAPTERS);
 
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_FALSE(record.virtual_chapter == 0);
 
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name0, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name0, &record));
   CU_ASSERT_TRUE(record.is_found);
   CU_ASSERT_TRUE(record.virtual_chapter == 1);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 
@@ -526,53 +525,51 @@ static void rollingChaptersTest(void)
                                   __func__, &testNames));
 
   struct configuration *config = makeTestConfig(numChapters);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Deposit 1 block into each chapter
   unsigned int i;
   for (i = 0; i < numChapters; i++) {
-    set_volume_index_open_chapter(volumeIndex, i);
+    uds_set_volume_index_open_chapter(volumeIndex, i);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], i);
   }
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   // Replace each block
   for (i = 0; i < numChapters; i++) {
-    set_volume_index_open_chapter(volumeIndex, numChapters + i);
+    uds_set_volume_index_open_chapter(volumeIndex, numChapters + i);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], numChapters + i);
-    get_volume_index_stats(volumeIndex, &volumeStats);
+    uds_get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
   }
 
   // Look for each block that was just retired, then replace the block
   for (i = 0; i < numChapters; i++) {
-    set_volume_index_open_chapter(volumeIndex, 2 * numChapters + i);
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &testNames[i],
-                                               &record));
+    uds_set_volume_index_open_chapter(volumeIndex, 2 * numChapters + i);
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &testNames[i], &record));
 
     CU_ASSERT_FALSE(record.is_found
                     && (record.virtual_chapter == numChapters + i));
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], 2 * numChapters + i);
   }
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
   // Look for an existing block, then replace the retired block
   for (i = 0; i < numChapters; i++) {
     unsigned int j = i ^ 1;
     uint64_t jChapter = (j < i ? 3 : 2) * numChapters + j;
-    set_volume_index_open_chapter(volumeIndex, 3 * numChapters + i);
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &testNames[j],
-                                               &record));
+    uds_set_volume_index_open_chapter(volumeIndex, 3 * numChapters + i);
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &testNames[j], &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, jChapter);
     insertRandomlyNamedBlock(volumeIndex, &testNames[i], 3 * numChapters + i);
   }
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, numChapters);
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
   UDS_FREE(testNames);
 }
@@ -587,8 +584,8 @@ static void invalidateChapterEmptyTest(void)
 
   // Set up the volume index to use a single delta list and 5 chapters.
   struct configuration *config = makeTestConfig(5);
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
-  get_volume_index_stats(volumeIndex, &volumeStats);
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
+  uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   uint64_t chapter = 0;
 
@@ -599,35 +596,35 @@ static void invalidateChapterEmptyTest(void)
     // Insert 1 block into chapter 0 (or 5 or 10)
     struct uds_record_name name1;
     uint64_t chapter1 = chapter;
-    set_volume_index_open_chapter(volumeIndex, chapter);
+    uds_set_volume_index_open_chapter(volumeIndex, chapter);
     insertRandomlyNamedBlock(volumeIndex, &name1, chapter1);
-    get_volume_index_stats(volumeIndex, &volumeStats);
+    uds_get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 1);
 
     // Advance 4 chapters
     for (ch = 0; ch < 4; ch++) {
-      set_volume_index_open_chapter(volumeIndex, ++chapter);
-      get_volume_index_stats(volumeIndex, &volumeStats);
+      uds_set_volume_index_open_chapter(volumeIndex, ++chapter);
+      uds_get_volume_index_stats(volumeIndex, &volumeStats);
       CU_ASSERT_EQUAL(volumeStats.record_count, 1);
     }
 
     // The block should still be there
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
     CU_ASSERT_TRUE(record.is_found);
     CU_ASSERT_EQUAL(record.virtual_chapter, chapter1);
 
     // Advance 1 chapter.  The block should disappear when we look for it.
-    set_volume_index_open_chapter(volumeIndex, ++chapter);
-    get_volume_index_stats(volumeIndex, &volumeStats);
+    uds_set_volume_index_open_chapter(volumeIndex, ++chapter);
+    uds_get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 1);
-    UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name1, &record));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name1, &record));
     CU_ASSERT_FALSE(record.is_found);
-    get_volume_index_stats(volumeIndex, &volumeStats);
+    uds_get_volume_index_stats(volumeIndex, &volumeStats);
     CU_ASSERT_EQUAL(volumeStats.record_count, 0);
   }
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
 }
 

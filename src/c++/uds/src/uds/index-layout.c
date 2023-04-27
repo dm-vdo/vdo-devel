@@ -237,9 +237,9 @@ static int __must_check compute_sizes(const struct configuration *config,
 	sls->block_size = UDS_BLOCK_SIZE;
 	sls->volume_blocks = geometry->bytes_per_volume / sls->block_size;
 
-	result = compute_volume_index_save_blocks(config,
-						  sls->block_size,
-						  &sls->volume_index_blocks);
+	result = uds_compute_volume_index_save_blocks(config,
+						      sls->block_size,
+						      &sls->volume_index_blocks);
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot compute index save size");
 
@@ -957,7 +957,7 @@ int uds_load_index_state(struct index_layout *layout, struct uds_index *index)
 		}
 	}
 
-	result = load_volume_index(index->volume_index, readers, isl->zone_count);
+	result = uds_load_volume_index(index->volume_index, readers, isl->zone_count);
 	for (zone = 0; zone < isl->zone_count; zone++)
 		uds_free_buffered_reader(readers[zone]);
 	if (result != UDS_SUCCESS)
@@ -1135,7 +1135,7 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 		}
 	}
 
-	result = save_volume_index(index->volume_index, writers, index->zone_count);
+	result = uds_save_volume_index(index->volume_index, writers, index->zone_count);
 	for (zone = 0; zone < index->zone_count; zone++)
 		uds_free_buffered_writer(writers[zone]);
 	if (result != UDS_SUCCESS) {

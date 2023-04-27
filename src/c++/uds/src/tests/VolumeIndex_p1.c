@@ -33,15 +33,15 @@ static void insertRandomlyNamedBlock(struct volume_index *volumeIndex,
   nameCounter += 1;
 
   struct volume_index_record record;
-  UDS_ASSERT_SUCCESS(get_volume_index_record(volumeIndex, &name, &record));
+  UDS_ASSERT_SUCCESS(uds_get_volume_index_record(volumeIndex, &name, &record));
   if (record.is_found) {
-    if (is_volume_index_sample(volumeIndex, &name)) {
+    if (uds_is_volume_index_sample(volumeIndex, &name)) {
       sparseCollisions++;
     } else {
       denseCollisions++;
     }
   }
-  UDS_ASSERT_SUCCESS(put_volume_index_record(&record, virtualChapter));
+  UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, virtualChapter));
 }
 
 /**********************************************************************/
@@ -121,7 +121,7 @@ static ktime_t fillChapter(struct volume_index *mi, uint64_t virtualChapter)
 {
   int blocksPerChapter = config->geometry->records_per_chapter;
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
-  set_volume_index_open_chapter(mi, virtualChapter);
+  uds_set_volume_index_open_chapter(mi, virtualChapter);
   int count;
   for (count = 0; count < blocksPerChapter; count++) {
     insertRandomlyNamedBlock(mi, virtualChapter);
@@ -136,10 +136,10 @@ static void miPerfTest(void)
   int chapterCount = config->geometry->chapters_per_volume;
 
   struct volume_index *volumeIndex;
-  UDS_ASSERT_SUCCESS(make_volume_index(config, 0, &volumeIndex));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   struct volume_index_stats stats;
-  get_volume_index_stats(volumeIndex, &stats);
+  uds_get_volume_index_stats(volumeIndex, &stats);
   int listCount = stats.delta_lists;
   size_t memAlloc = volumeIndex->memory_size;
   albPrint("Initial Memory: allocated %zd for %d delta lists (%zd each)",
@@ -192,7 +192,7 @@ static void miPerfTest(void)
              " collisions", numBlocks, denseCollisions, sparseCollisions);
   }
 
-  free_volume_index(volumeIndex);
+  uds_free_volume_index(volumeIndex);
 }
 
 /**********************************************************************/

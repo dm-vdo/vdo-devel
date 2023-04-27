@@ -123,13 +123,13 @@ static void recalculate_stats(void)
 static void adjust_list_number_for_zone_0(struct volume_index   *index,
                                           struct uds_record_name *name)
 {
-  unsigned int zone = get_volume_index_zone(index, name);
+  unsigned int zone = uds_get_volume_index_zone(index, name);
   if (zone == 0) {
     return;
   }
 
   unsigned int lists_per_zone
-    = (is_volume_index_sample(index, name) ? sparse_lists_per_zone : dense_lists_per_zone);
+    = (uds_is_volume_index_sample(index, name) ? sparse_lists_per_zone : dense_lists_per_zone);
   uint64_t bits = uds_extract_volume_index_bytes(name);
   // Change, e.g., the 4th list of zone 3 to the 4th list of zone 0.
   // This simple decrement can't wrap.
@@ -137,7 +137,7 @@ static void adjust_list_number_for_zone_0(struct volume_index   *index,
   set_volume_index_bytes(name, bits);
 
   // Sanity check
-  CU_ASSERT_EQUAL(get_volume_index_zone(index, name), 0);
+  CU_ASSERT_EQUAL(uds_get_volume_index_zone(index, name), 0);
 }
 
 /**********************************************************************/
@@ -179,8 +179,7 @@ static void verifyData(bool sparse)
 
     if (sparse) {
       // just verify the hooks for simplicity
-      bool hook = is_volume_index_sample(index->volume_index,
-                                         &request.record_name);
+      bool hook = uds_is_volume_index_sample(index->volume_index, &request.record_name);
       if (!hook) {
         continue;
       }

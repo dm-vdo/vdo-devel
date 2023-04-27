@@ -13,14 +13,14 @@ static void fillChapter(struct volume_index *miptr, uint64_t chapter,
                         int numRecords)
 {
   static uint64_t counter = 0;
-  set_volume_index_open_chapter(miptr, chapter);
+  uds_set_volume_index_open_chapter(miptr, chapter);
   int i;
   for (i = 0; i < numRecords; i++) {
     struct uds_record_name name = hash_record_name(&counter, sizeof(counter));
     counter++;
     struct volume_index_record record;
-    UDS_ASSERT_SUCCESS(get_volume_index_record(miptr, &name, &record));
-    UDS_ASSERT_SUCCESS(put_volume_index_record(&record, chapter));
+    UDS_ASSERT_SUCCESS(uds_get_volume_index_record(miptr, &name, &record));
+    UDS_ASSERT_SUCCESS(uds_put_volume_index_record(&record, chapter));
   }
 }
 
@@ -47,14 +47,14 @@ static void testEarlyLRU(int numZones)
   // Create the volume index
   struct volume_index *miptr;
   struct volume_index_stats miStats;
-  UDS_ASSERT_SUCCESS(make_volume_index(&config, 0, &miptr));
+  UDS_ASSERT_SUCCESS(uds_make_volume_index(&config, 0, &miptr));
 
   // Fill the index, then fill it again
   unsigned int chapter = 0;
   while (chapter < 2 * numChapters) {
     fillChapter(miptr, chapter, numRecords);
     ++chapter;
-    get_volume_index_stats(miptr, &miStats);
+    uds_get_volume_index_stats(miptr, &miStats);
     CU_ASSERT_EQUAL(miStats.overflow_count, 0);
     CU_ASSERT_EQUAL(miStats.early_flushes, 0);
   }
@@ -68,12 +68,12 @@ static void testEarlyLRU(int numZones)
 #endif
     fillChapter(miptr, chapter, numRecords + numRecords / 8);
     ++chapter;
-    get_volume_index_stats(miptr, &miStats);
+    uds_get_volume_index_stats(miptr, &miStats);
     CU_ASSERT_EQUAL(miStats.overflow_count, 0);
   }
   CU_ASSERT_NOT_EQUAL(miStats.early_flushes, 0);
 
-  free_volume_index(miptr);
+  uds_free_volume_index(miptr);
 }
 
 /**********************************************************************/

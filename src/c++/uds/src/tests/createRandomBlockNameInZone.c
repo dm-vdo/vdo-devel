@@ -15,6 +15,6 @@ void createRandomBlockNameInZone(const struct uds_index *index,
   unsigned int nameZone = MAX_ZONES;
   while (nameZone != zone) {
     createRandomBlockName(name);
-    nameZone = get_volume_index_zone(index->volume_index, name);
+    nameZone = uds_get_volume_index_zone(index->volume_index, name);
   }
 }
