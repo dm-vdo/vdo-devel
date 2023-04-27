@@ -292,7 +292,7 @@ static int open_next_chapter(struct index_zone *zone)
 		return UDS_SUCCESS;
 
 	while (expire_chapters-- > 0)
-		forget_chapter(zone->index->volume, expiring++);
+		uds_forget_chapter(zone->index->volume, expiring++);
 
 	return UDS_SUCCESS;
 }
@@ -364,7 +364,7 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	request->virtual_chapter = virtual_chapter;
 	volume = zone->index->volume;
 	chapter = uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
-	return search_cached_record_page(volume, request, chapter, record_page_number, found);
+	return uds_search_cached_record_page(volume, request, chapter, record_page_number, found);
 }
 
 static int get_record_from_zone(struct index_zone *zone, struct uds_request *request, bool *found)
@@ -404,7 +404,7 @@ static int get_record_from_zone(struct index_zone *zone, struct uds_request *req
 				      request->zone_number))
 		return search_sparse_cache_in_zone(zone, request, request->virtual_chapter, found);
 
-	return search_volume_page_cache(volume, request, found);
+	return uds_search_volume_page_cache(volume, request, found);
 }
 
 static int put_record_in_zone(struct index_zone *zone,
@@ -865,10 +865,10 @@ static int rebuild_index_page_map(struct uds_index *index, u64 vcn)
 	for (index_page_number = 0;
 	     index_page_number < geometry->index_pages_per_chapter;
 	     index_page_number++) {
-		result = get_volume_index_page(index->volume,
-					       chapter,
-					       index_page_number,
-					       &chapter_index_page);
+		result = uds_get_volume_index_page(index->volume,
+						   chapter,
+						   index_page_number,
+						   &chapter_index_page);
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "failed to read index page %u in chapter %u",
@@ -939,10 +939,10 @@ static int replay_record(struct uds_index *index,
 			 * need to search that chapter to determine if the volume index entry was
 			 * for the same record or a different one.
 			 */
-			result = search_volume_page_cache_for_rebuild(index->volume,
-								      name,
-								      record.virtual_chapter,
-								      &update_record);
+			result = uds_search_volume_page_cache_for_rebuild(index->volume,
+									  name,
+									  record.virtual_chapter,
+									  &update_record);
 			if (result != UDS_SUCCESS)
 				return result;
 			}
@@ -1023,7 +1023,7 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 
 	geometry = index->volume->geometry;
 	physical_chapter = uds_map_to_physical_chapter(geometry, virtual);
-	prefetch_volume_chapter(index->volume, physical_chapter);
+	uds_prefetch_volume_chapter(index->volume, physical_chapter);
 	set_volume_index_open_chapter(index->volume_index, virtual);
 
 	result = rebuild_index_page_map(index, virtual);
@@ -1037,10 +1037,10 @@ static int replay_chapter(struct uds_index *index, u64 virtual, bool sparse)
 		u32 record_page_number;
 
 		record_page_number = geometry->index_pages_per_chapter + i;
-		result = get_volume_record_page(index->volume,
-						physical_chapter,
-						record_page_number,
-						&record_page);
+		result = uds_get_volume_record_page(index->volume,
+						    physical_chapter,
+						    record_page_number,
+						    &record_page);
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result,
 						      "could not get page %d",
@@ -1118,7 +1118,7 @@ static int rebuild_index(struct uds_index *index)
 	u32 chapters_per_volume = index->volume->geometry->chapters_per_volume;
 
 	index->volume->lookup_mode = LOOKUP_FOR_REBUILD;
-	result = find_volume_chapter_boundaries(index->volume, &lowest, &highest, &is_empty);
+	result = uds_find_volume_chapter_boundaries(index->volume, &lowest, &highest, &is_empty);
 	if (result != UDS_SUCCESS)
 		return uds_log_fatal_strerror(result,
 					      "cannot rebuild index: unknown volume chapter boundaries");
@@ -1222,7 +1222,7 @@ int uds_make_index(struct configuration *config,
 		return result;
 	}
 
-	result = make_volume(config, index->layout, &index->volume);
+	result = uds_make_volume(config, index->layout, &index->volume);
 	if (result != UDS_SUCCESS) {
 		uds_free_index(index);
 		return result;
@@ -1329,7 +1329,7 @@ void uds_free_index(struct uds_index *index)
 		UDS_FREE(index->zones);
 	}
 
-	free_volume(index->volume);
+	uds_free_volume(index->volume);
 	uds_free_index_layout(UDS_FORGET(index->layout));
 	UDS_FREE(index);
 }
@@ -1375,7 +1375,7 @@ int uds_save_index(struct uds_index *index)
 
 int uds_replace_index_storage(struct uds_index *index, const char *path)
 {
-	return replace_volume_storage(index->volume, index->layout, path);
+	return uds_replace_volume_storage(index->volume, index->layout, path);
 }
 
 /* Accessing statistics should be safe from any thread. */

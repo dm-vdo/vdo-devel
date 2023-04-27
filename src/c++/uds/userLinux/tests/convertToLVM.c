@@ -176,7 +176,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 		     (long long) newest);
 
 	if (newest - oldest > chapters_per_volume - 2) {
-		forget_chapter(volume, oldest);
+		uds_forget_chapter(volume, oldest);
 		index->oldest_virtual_chapter++;
 	}
 

@@ -429,10 +429,10 @@ static int __must_check cache_chapter_index(struct cached_chapter_index *chapter
 
 	release_cached_chapter_index(chapter);
 
-	result = read_chapter_index_from_volume(volume,
-						virtual_chapter,
-						chapter->page_buffers,
-						chapter->index_pages);
+	result = uds_read_chapter_index_from_volume(volume,
+						    virtual_chapter,
+						    chapter->page_buffers,
+						    chapter->index_pages);
 	if (result != UDS_SUCCESS)
 		return result;
 

@@ -138,7 +138,7 @@ static void testFilling(void)
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
 
   struct volume *volume;
-  UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
+  UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **openChapters;
@@ -160,7 +160,7 @@ static void testFilling(void)
     uds_free_open_chapter(openChapters[i]);
   }
   UDS_FREE(openChapters);
-  free_volume(volume);
+  uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(layout);
 }

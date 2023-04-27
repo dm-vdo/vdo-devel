@@ -30,7 +30,7 @@ static void init(uds_memory_config_size_t memGB)
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
   geometry = config->geometry;
 
-  UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
+  UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 }
 
 /**********************************************************************/
@@ -48,7 +48,7 @@ static void initSmall(void)
 /**********************************************************************/
 static void deinit(void)
 {
-  free_volume(volume);
+  uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(UDS_FORGET(layout));
 }
@@ -57,7 +57,7 @@ static void deinit(void)
 static void testWriteChapter(void)
 {
   uint64_t chapterNumber = 0;
-  forget_chapter(volume, chapterNumber);
+  uds_forget_chapter(volume, chapterNumber);
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **chapters;
@@ -130,8 +130,10 @@ static void testWriteChapter(void)
     unsigned int pageNumber = page + geometry->index_pages_per_chapter;
     u8 *pageData;
     // Make sure the page read is synchronous
-    UDS_ASSERT_SUCCESS(get_volume_record_page(volume, physicalChapterNumber,
-                                              pageNumber, &pageData));
+    UDS_ASSERT_SUCCESS(uds_get_volume_record_page(volume,
+                                                  physicalChapterNumber,
+                                                  pageNumber,
+                                                  &pageData));
 
     for (j = 0; j < geometry->records_per_page; ++j) {
       struct uds_record_data retMetadata;
@@ -155,7 +157,7 @@ static void testWriteChapter(void)
       .unbatched = true,
     };
 
-    UDS_ASSERT_SUCCESS(search_volume_page_cache(volume, &request, &found));
+    UDS_ASSERT_SUCCESS(uds_search_volume_page_cache(volume, &request, &found));
     CU_ASSERT_TRUE(found);
     UDS_ASSERT_BLOCKDATA_EQUAL(&request.old_metadata, &metadata[i]);
   }

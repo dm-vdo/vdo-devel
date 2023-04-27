@@ -292,7 +292,7 @@ int uds_close_open_chapter(struct open_chapter_zone **chapter_zones,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return write_chapter(volume, chapter_index, collated_records);
+	return uds_write_chapter(volume, chapter_index, collated_records);
 }
 
 int uds_save_open_chapter(struct uds_index *index, struct buffered_writer *writer)

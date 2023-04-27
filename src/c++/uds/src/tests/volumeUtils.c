@@ -98,7 +98,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
   // Fill the delta list open chapter
   fillOpenChapter(chapterIndex, records, geometry);
 
-  UDS_ASSERT_SUCCESS(write_chapter(volume, chapterIndex, records));
+  UDS_ASSERT_SUCCESS(uds_write_chapter(volume, chapterIndex, records));
 
   uds_free_open_chapter_index(chapterIndex);
   UDS_FREE(records);

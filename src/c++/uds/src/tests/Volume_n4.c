@@ -93,7 +93,7 @@ static void init(request_restarter_t restartRequest, unsigned int zoneCount)
   resizeDenseConfiguration(config, 4096, 16, 256);
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
 
-  UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
+  UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 
   geometry = config->geometry;
   makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
@@ -105,7 +105,7 @@ static void deinit(void)
 {
   set_request_restarter(NULL);
   freePageArray();
-  free_volume(volume);
+  uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(UDS_FORGET(layout));
   uds_destroy_cond(&allDoneCond);

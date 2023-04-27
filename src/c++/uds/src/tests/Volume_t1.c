@@ -33,7 +33,7 @@ static void init(const char *indexName)
   resizeDenseConfiguration(config, 4096, 8, 128);
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
 
-  UDS_ASSERT_SUCCESS(make_volume(config, layout, &volume));
+  UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 
   geometry = config->geometry;
   makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
@@ -44,7 +44,7 @@ static void init(const char *indexName)
 static void deinit(void)
 {
   freePageArray();
-  free_volume(volume);
+  uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(UDS_FORGET(layout));
 }
@@ -56,7 +56,7 @@ static void verifyPage(unsigned int chapter, unsigned int page)
   const u8 *expected = test_pages[physicalPage];
   u8 *actual;
   // Make sure the page read is synchronous
-  UDS_ASSERT_SUCCESS(get_volume_record_page(volume, chapter, page, &actual));
+  UDS_ASSERT_SUCCESS(uds_get_volume_record_page(volume, chapter, page, &actual));
   UDS_ASSERT_EQUAL_BYTES(actual, expected, geometry->bytes_per_page);
 }
 

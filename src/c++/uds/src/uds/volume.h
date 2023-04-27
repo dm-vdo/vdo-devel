@@ -124,57 +124,55 @@ struct volume {
 	unsigned int reserved_buffers;
 };
 
-int __must_check make_volume(const struct configuration *config,
-			     struct index_layout *layout,
-			     struct volume **new_volume);
+int __must_check uds_make_volume(const struct configuration *config,
+				 struct index_layout *layout,
+				 struct volume **new_volume);
 
-void free_volume(struct volume *volume);
+void uds_free_volume(struct volume *volume);
 
-int __must_check replace_volume_storage(struct volume *volume,
-					struct index_layout *layout,
-					const char *path);
+int __must_check
+uds_replace_volume_storage(struct volume *volume, struct index_layout *layout, const char *path);
 
-int __must_check find_volume_chapter_boundaries(struct volume *volume,
-						u64 *lowest_vcn,
-						u64 *highest_vcn,
-						bool *is_empty);
+int __must_check uds_find_volume_chapter_boundaries(struct volume *volume,
+						    u64 *lowest_vcn,
+						    u64 *highest_vcn,
+						    bool *is_empty);
 
-int __must_check search_volume_page_cache(struct volume *volume,
-					  struct uds_request *request,
-					  bool *found);
+int __must_check
+uds_search_volume_page_cache(struct volume *volume, struct uds_request *request, bool *found);
 
-int __must_check search_volume_page_cache_for_rebuild(struct volume *volume,
-						      const struct uds_record_name *name,
-						      u64 virtual_chapter,
-						      bool *found);
+int __must_check uds_search_volume_page_cache_for_rebuild(struct volume *volume,
+							  const struct uds_record_name *name,
+							  u64 virtual_chapter,
+							  bool *found);
 
-int __must_check search_cached_record_page(struct volume *volume,
-					   struct uds_request *request,
+int __must_check uds_search_cached_record_page(struct volume *volume,
+					       struct uds_request *request,
+					       u32 chapter,
+					       u16 record_page_number,
+					       bool *found);
+
+void uds_forget_chapter(struct volume *volume, u64 chapter);
+
+int __must_check uds_write_chapter(struct volume *volume,
+				   struct open_chapter_index *chapter_index,
+				   const struct uds_volume_record records[]);
+
+void uds_prefetch_volume_chapter(const struct volume *volume, u32 chapter);
+
+int __must_check
+uds_read_chapter_index_from_volume(const struct volume *volume,
+				   u64 virtual_chapter,
+				   struct dm_buffer *volume_buffers[],
+				   struct delta_index_page index_pages[]);
+
+int __must_check
+uds_get_volume_record_page(struct volume *volume, u32 chapter, u32 page_number, u8 **data_ptr);
+
+int __must_check uds_get_volume_index_page(struct volume *volume,
 					   u32 chapter,
-					   u16 record_page_number,
-					   bool *found);
-
-void forget_chapter(struct volume *volume, u64 chapter);
-
-int __must_check write_chapter(struct volume *volume,
-			       struct open_chapter_index *chapter_index,
-			       const struct uds_volume_record records[]);
-
-void prefetch_volume_chapter(const struct volume *volume, u32 chapter);
-
-int __must_check
-read_chapter_index_from_volume(const struct volume *volume,
-			       u64 virtual_chapter,
-			       struct dm_buffer *volume_buffers[],
-			       struct delta_index_page index_pages[]);
-
-int __must_check
-get_volume_record_page(struct volume *volume, u32 chapter, u32 page_number, u8 **data_ptr);
-
-int __must_check get_volume_index_page(struct volume *volume,
-				       u32 chapter,
-				       u32 page_number,
-				       struct delta_index_page **page_ptr);
+					   u32 page_number,
+					   struct delta_index_page **page_ptr);
 
 #ifdef TEST_INTERNAL
 extern u8 **test_pages;
