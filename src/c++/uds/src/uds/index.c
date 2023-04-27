@@ -164,7 +164,7 @@ simulate_index_zone_barrier_message(struct index_zone *zone, struct uds_request 
 	if (sparse_virtual_chapter == NO_CHAPTER)
 		return UDS_SUCCESS;
 
-	return update_sparse_cache(zone, sparse_virtual_chapter);
+	return uds_update_sparse_cache(zone, sparse_virtual_chapter);
 }
 
 /* This is the request processing function for the triage queue. */
@@ -312,7 +312,7 @@ static int dispatch_index_zone_control_request(struct uds_request *request)
 
 	switch (message->type) {
 	case UDS_MESSAGE_SPARSE_CACHE_BARRIER:
-		return update_sparse_cache(zone, message->virtual_chapter);
+		return uds_update_sparse_cache(zone, message->virtual_chapter);
 
 	case UDS_MESSAGE_ANNOUNCE_CHAPTER_CLOSED:
 		return handle_chapter_closed(zone, message->virtual_chapter);
@@ -354,10 +354,10 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	u16 record_page_number;
 	u32 chapter;
 
-	result = search_sparse_cache(zone,
-				     &request->record_name,
-				     &virtual_chapter,
-				     &record_page_number);
+	result = uds_search_sparse_cache(zone,
+					 &request->record_name,
+					 &virtual_chapter,
+					 &record_page_number);
 	if ((result != UDS_SUCCESS) || (virtual_chapter == NO_CHAPTER))
 		return result;
 
@@ -399,9 +399,9 @@ static int get_record_from_zone(struct index_zone *zone, struct uds_request *req
 
 	volume = zone->index->volume;
 	if (is_zone_chapter_sparse(zone, request->virtual_chapter) &&
-	    sparse_cache_contains(volume->sparse_cache,
-				  request->virtual_chapter,
-				  request->zone_number))
+	    uds_sparse_cache_contains(volume->sparse_cache,
+				      request->virtual_chapter,
+				      request->zone_number))
 		return search_sparse_cache_in_zone(zone, request, request->virtual_chapter, found);
 
 	return search_volume_page_cache(volume, request, found);

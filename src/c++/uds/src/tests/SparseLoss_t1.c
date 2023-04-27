@@ -181,7 +181,7 @@ static void sparseLossTest(void)
    */
   blockNameCounter = 0;
   postsNotFound = 0;
-  invalidate_sparse_cache(theIndex->volume->sparse_cache);
+  uds_invalidate_sparse_cache(theIndex->volume->sparse_cache);
 
   // Only re-index every n-th chapter or any sparse loss from
   // a multiple subindex multicore scaling will be concealed.

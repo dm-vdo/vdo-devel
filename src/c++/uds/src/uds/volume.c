@@ -1618,7 +1618,7 @@ replace_volume_storage(struct volume *volume, struct index_layout *layout, const
 	for (i = 0; i < volume->page_cache.cache_slots; i++)
 		clear_cache_page(&volume->page_cache, &volume->page_cache.cache[i]);
 	if (volume->sparse_cache != NULL)
-		invalidate_sparse_cache(volume->sparse_cache);
+		uds_invalidate_sparse_cache(volume->sparse_cache);
 	if (volume->client != NULL)
 		dm_bufio_client_destroy(UDS_FORGET(volume->client));
 
@@ -1743,10 +1743,10 @@ int make_volume(const struct configuration *config,
 	if (uds_is_sparse_geometry(geometry)) {
 		size_t page_size = sizeof(struct delta_index_page) + geometry->bytes_per_page;
 
-		result = make_sparse_cache(geometry,
-					   config->cache_chapters,
-					   config->zone_count,
-					   &volume->sparse_cache);
+		result = uds_make_sparse_cache(geometry,
+					       config->cache_chapters,
+					       config->zone_count,
+					       &volume->sparse_cache);
 		if (result != UDS_SUCCESS) {
 			free_volume(volume);
 			return result;
@@ -1851,7 +1851,7 @@ void free_volume(struct volume *volume)
 
 	/* Must destroy the client AFTER freeing the cached pages. */
 	uninitialize_page_cache(&volume->page_cache);
-	free_sparse_cache(volume->sparse_cache);
+	uds_free_sparse_cache(volume->sparse_cache);
 	if (volume->client != NULL)
 		dm_bufio_client_destroy(UDS_FORGET(volume->client));
 
