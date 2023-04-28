@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_VOLUME_INDEX_H
-#define UDS_VOLUME_INDEX_H 1
+#define UDS_VOLUME_INDEX_H
 
 #include <linux/limits.h>
 

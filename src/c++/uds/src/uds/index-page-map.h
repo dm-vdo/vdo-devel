@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_INDEX_PAGE_MAP_H
-#define UDS_INDEX_PAGE_MAP_H 1
+#define UDS_INDEX_PAGE_MAP_H
 
 #include "geometry.h"
 #include "io-factory.h"

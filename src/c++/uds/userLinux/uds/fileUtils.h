@@ -5,7 +5,7 @@
  */
 
 #ifndef FILE_UTILS_H
-#define FILE_UTILS_H 1
+#define FILE_UTILS_H
 
 #include <linux/compiler_attributes.h>
 #include <sys/stat.h>

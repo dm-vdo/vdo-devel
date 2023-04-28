@@ -5,7 +5,7 @@
  */
 
 #ifndef ASM_UNALIGNED_H
-#define ASM_UNALIGNED_H 1
+#define ASM_UNALIGNED_H
 
 #include <asm/byteorder.h>
 #include <linux/types.h>

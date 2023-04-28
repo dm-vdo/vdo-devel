@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef TIME_UTILS_H
-#define TIME_UTILS_H
+#ifndef UDS_TIME_UTILS_H
+#define UDS_TIME_UTILS_H
 
 #ifdef __KERNEL__
 #include <linux/ktime.h>
@@ -69,4 +69,4 @@ static inline s64 ktime_to_us(ktime_t reltime)
 }
 #endif /* __KERNEL__ */
 
-#endif /* TIME_UTILS_H */
+#endif /* UDS_TIME_UTILS_H */

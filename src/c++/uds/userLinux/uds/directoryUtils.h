@@ -7,7 +7,7 @@
  */
 
 #ifndef DIRECTORY_UTILS_H
-#define DIRECTORY_UTILS_H 1
+#define DIRECTORY_UTILS_H
 
 #include <dirent.h>
 #include <linux/compiler_attributes.h>

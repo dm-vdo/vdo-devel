@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_CHAPTER_INDEX_H
-#define UDS_CHAPTER_INDEX_H 1
+#define UDS_CHAPTER_INDEX_H
 
 #include <linux/limits.h>
 

@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_OPEN_CHAPTER_H
-#define UDS_OPEN_CHAPTER_H 1
+#define UDS_OPEN_CHAPTER_H
 
 #include "chapter-index.h"
 #include "geometry.h"

@@ -5,7 +5,7 @@
  */
 
 #ifndef MINISYSLOG_H
-#define MINISYSLOG_H 1
+#define MINISYSLOG_H
 
 #include <linux/compiler_attributes.h>
 

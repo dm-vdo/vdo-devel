@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef MEMORY_ALLOC_H
-#define MEMORY_ALLOC_H 1
+#ifndef UDS_MEMORY_ALLOC_H
+#define UDS_MEMORY_ALLOC_H
 
 #include <linux/cache.h>
 #ifdef __KERNEL__
@@ -238,4 +238,4 @@ void log_uds_memory_allocations(void);
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 #endif /* KERNEL */
-#endif /* MEMORY_ALLOC_H */
+#endif /* UDS_MEMORY_ALLOC_H */

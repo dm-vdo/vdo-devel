@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef LOGGER_H
-#define LOGGER_H 1
+#ifndef UDS_LOGGER_H
+#define UDS_LOGGER_H
 
 #ifdef __KERNEL__
 #include <linux/module.h>
@@ -150,4 +150,4 @@ void open_uds_logger(void);
 void reinit_uds_logger(void);
 #endif /* TEST_INTERNAL */
 #endif /* __KERNEL__ */
-#endif /* LOGGER_H */
+#endif /* UDS_LOGGER_H */

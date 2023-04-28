@@ -4,7 +4,7 @@
  */
 
 #ifndef RESOURCE_USAGE_H
-#define RESOURCE_USAGE_H 1
+#define RESOURCE_USAGE_H
 
 #include "time-utils.h"
 

@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_GEOMETRY_H
-#define UDS_GEOMETRY_H 1
+#define UDS_GEOMETRY_H
 
 #include "uds.h"
 

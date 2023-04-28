@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef NUMERIC_H
-#define NUMERIC_H 1
+#ifndef UDS_NUMERIC_H
+#define UDS_NUMERIC_H
 
 #include <asm/unaligned.h>
 #ifdef __KERNEL__
@@ -77,4 +77,4 @@ static inline void encode_u16_le(u8 *data, size_t *offset, u16 to_encode)
 	*offset += sizeof(u16);
 }
 
-#endif /* NUMERIC_H */
+#endif /* UDS_NUMERIC_H */

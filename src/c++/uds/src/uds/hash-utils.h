@@ -4,7 +4,7 @@
  */
 
 #ifndef UDS_HASH_UTILS_H
-#define UDS_HASH_UTILS_H 1
+#define UDS_HASH_UTILS_H
 
 #include "geometry.h"
 #include "numeric.h"

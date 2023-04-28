@@ -4,7 +4,7 @@
  */
 
 #ifndef SYSCALLS_H
-#define SYSCALLS_H 1
+#define SYSCALLS_H
 
 #include <linux/types.h>
 #include <errno.h>
