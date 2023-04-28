@@ -123,7 +123,7 @@ struct funnel_queue_entry *uds_funnel_queue_poll(struct funnel_queue *queue)
 	 * If "oldest" is a very light-weight work item, we'll be looking for the next one very
 	 * soon, so prefetch it now.
 	 */
-	prefetch_address(queue->oldest, true);
+	uds_prefetch_address(queue->oldest, true);
 	WRITE_ONCE(oldest->next, NULL);
 	return oldest;
 }

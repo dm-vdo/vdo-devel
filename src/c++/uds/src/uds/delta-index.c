@@ -1344,9 +1344,9 @@ int uds_start_delta_index_search(const struct delta_index *delta_index,
 			 * This usually means we're about to walk the entire delta list, so get all
 			 * of it into the CPU cache.
 			 */
-			prefetch_range(&delta_zone->memory[delta_list->start / BITS_PER_BYTE],
-				       delta_list->size / BITS_PER_BYTE,
-				       false);
+			uds_prefetch_range(&delta_zone->memory[delta_list->start / BITS_PER_BYTE],
+					   delta_list->size / BITS_PER_BYTE,
+					   false);
 	}
 
 	delta_entry->at_end = false;
