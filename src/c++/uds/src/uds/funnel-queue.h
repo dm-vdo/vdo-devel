@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef FUNNEL_QUEUE_H
-#define FUNNEL_QUEUE_H
+#ifndef UDS_FUNNEL_QUEUE_H
+#define UDS_FUNNEL_QUEUE_H
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
@@ -107,4 +107,4 @@ bool __must_check uds_is_funnel_queue_empty(struct funnel_queue *queue);
 
 bool __must_check uds_is_funnel_queue_idle(struct funnel_queue *queue);
 
-#endif /* FUNNEL_QUEUE_H */
+#endif /* UDS_FUNNEL_QUEUE_H */

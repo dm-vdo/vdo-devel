@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef ERRORS_H
-#define ERRORS_H
+#ifndef UDS_ERRORS_H
+#define UDS_ERRORS_H
 
 #include <linux/compiler.h>
 #include <linux/types.h>
@@ -87,4 +87,4 @@ int uds_register_error_block(const char *block_name,
 			     const struct error_info *infos,
 			     size_t info_size);
 
-#endif /* ERRORS_H */
+#endif /* UDS_ERRORS_H */

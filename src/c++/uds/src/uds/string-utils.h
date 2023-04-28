@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef STRING_UTILS_H
-#define STRING_UTILS_H
+#ifndef UDS_STRING_UTILS_H
+#define UDS_STRING_UTILS_H
 
 #ifdef __KERNEL__
 #include <linux/kernel.h>
@@ -43,4 +43,4 @@ int __must_check uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, 
 char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 	__printf(3, 4);
 
-#endif /* STRING_UTILS_H */
+#endif /* UDS_STRING_UTILS_H */

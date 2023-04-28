@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef VOLUME_H
-#define VOLUME_H
+#ifndef UDS_VOLUME_H
+#define UDS_VOLUME_H
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
@@ -236,4 +236,4 @@ int __must_check get_volume_page_protected(struct volume *volume,
 					   struct cached_page **entry_ptr);
 
 #endif /* TEST_INTERNAL */
-#endif /* VOLUME_H */
+#endif /* UDS_VOLUME_H */

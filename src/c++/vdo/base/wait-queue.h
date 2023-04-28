@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef WAIT_QUEUE_H
-#define WAIT_QUEUE_H
+#ifndef VDO_WAIT_QUEUE_H
+#define VDO_WAIT_QUEUE_H
 
 #include <linux/compiler.h>
 #include <linux/types.h>
@@ -126,4 +126,4 @@ static inline size_t __must_check vdo_count_waiters(const struct wait_queue *que
 const struct waiter * __must_check
 vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter);
 
-#endif /* WAIT_QUEUE_H */
+#endif /* VDO_WAIT_QUEUE_H */

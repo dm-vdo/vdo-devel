@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef THREAD_REGISTRY_H
-#define THREAD_REGISTRY_H
+#ifndef UDS_THREAD_REGISTRY_H
+#define UDS_THREAD_REGISTRY_H
 
 #include <linux/list.h>
 #include <linux/spinlock.h>
@@ -30,4 +30,4 @@ void uds_unregister_thread(struct thread_registry *registry);
 
 const void *uds_lookup_thread(struct thread_registry *registry);
 
-#endif /* THREAD_REGISTRY_H */
+#endif /* UDS_THREAD_REGISTRY_H */

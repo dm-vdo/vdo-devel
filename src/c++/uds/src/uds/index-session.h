@@ -3,8 +3,8 @@
  * Copyright Red Hat
  */
 
-#ifndef INDEX_SESSION_H
-#define INDEX_SESSION_H
+#ifndef UDS_INDEX_SESSION_H
+#define UDS_INDEX_SESSION_H
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
@@ -81,4 +81,4 @@ struct uds_index_session {
 	struct session_stats stats;
 };
 
-#endif /* INDEX_SESSION_H */
+#endif /* UDS_INDEX_SESSION_H */
