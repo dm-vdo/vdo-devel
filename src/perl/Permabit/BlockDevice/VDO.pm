@@ -92,8 +92,8 @@ our %BLOCKDEVICE_PROPERTIES
      _modules        => {},
      # VDO module name
      moduleName      => $VDO_MODNAME,
-     # VDO module name
-     moduleVersion   => $VDO_MARKETING_VERSION,
+     # VDO module version
+     moduleVersion   => undef,
      # Whether this VDO may be stacked on another VDO
      stackable       => 0,
      # The name of the created VDO device. The distinction
@@ -188,6 +188,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      vdoMaxRequestsActive      => undef,
      # value to override default min_deduplication_timer_interval setting
      vdoMinAlbireoTimer        => undef,
+     #
+     vdoModuleVersion          => undef,
      # whether to preload the block map page cache at startup
      vdoWarmup                 => undef,
      # whether to log verbose stats at shutdown
@@ -239,6 +241,9 @@ sub configure {
   if (defined($size)) {
     $self->resizeStorageDevice($size);
   }
+
+  $self->{moduleVersion} //= $self->{vdoModuleVersion};
+  $self->{moduleVersion} //= $VDO_MARKETING_VERSION;
 }
 
 ########################################################################

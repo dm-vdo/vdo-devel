@@ -212,6 +212,20 @@ sub tear_down {
 }
 
 ###############################################################################
+# @inherit
+##
+sub listSharedFiles {
+  my ($self) = assertNumArgs(1, @_);
+  my @extraTGZs = ();
+  if (defined($self->{testVectors}->{vdoModuleVersion})) {
+    @extraTGZs = map {
+      $self->getTGZNameForVersion($_);
+    } @{$self->{testVectors}->{vdoModuleVersion}};
+  }
+  return ($self->SUPER::listSharedFiles(), @extraTGZs);
+}
+
+###############################################################################
 # Generate the full Cartesian product of the supplied arrays.
 #
 # @param hashrefs  Hash ref mapping labels to lists of values

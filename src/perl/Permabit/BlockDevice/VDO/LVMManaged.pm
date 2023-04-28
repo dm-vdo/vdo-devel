@@ -18,6 +18,7 @@ use Permabit::Assertions qw(
 use Permabit::Constants;
 use Permabit::ProcessUtils qw(delayFailures);
 use Permabit::Utils qw(makeFullPath);
+use Permabit::Version qw($VDO_MARKETING_VERSION);
 
 # We're using multiple inheritance here. VDO is used to support all VDO
 # test functionality like displaying stats, etc. LVM is used to get access
@@ -47,6 +48,8 @@ sub configure {
   # the values that VDOTest uses. Hence we have to default them here.
   $self->{blockMapCacheSize} ||= 128 * $MB;
   $self->{blockMapPeriod}    ||= 16380;
+  $self->{moduleVersion}     //= $self->{vdoModuleVersion};
+  $self->{moduleVersion}     //= $VDO_MARKETING_VERSION;
 }
 
 ########################################################################

@@ -552,6 +552,22 @@ sub createSlice {
 }
 
 ########################################################################
+# Return the pathname of the expected tarball in the source tree, given
+# the module version string, relative to the top of the tree, and thus
+# suitable for use in the shared-files list.
+#
+# @param version  The version string, e.g., "6.3" or "6.3.experimental",
+#                 which must also match the directory name the tarball
+#                 unpacks into.
+#
+# @return the relative path of the file
+##
+sub getTGZNameForVersion {
+  my ($self, $version) = assertNumArgs(2, @_);
+  return "src/c++/vdo/kernel/$VDO_MODNAME-$version.tgz";
+}
+
+########################################################################
 # @inherit
 ##
 sub listSharedFiles {
@@ -560,7 +576,11 @@ sub listSharedFiles {
   if ($self->{useDistribution}) {
     return (@files, @RPM_NAMES);
   } else {
-    return (@files, @TARBALLS);
+    my @extraTGZ = ();
+    if (defined($self->{vdoModuleVersion})) {
+      $extraTGZ[0] = $self->getTGZNameForVersion($self->{vdoModuleVersion});
+    }
+    return (@files, @TARBALLS, @extraTGZ);
   }
 }
 
