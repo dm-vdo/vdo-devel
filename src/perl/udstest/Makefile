@@ -23,7 +23,7 @@ checkin:
 .PHONY: jenkins
 jenkins:
 	$(RSVP_HOST) ./udstests.pl $(TEST_ARGS) \
-	  --scale --clientClass=FARM\\,FEDORA36 $@
+	  --scale --clientClass=FARM\\,FEDORA37 $@
 
 .PHONY:	udstests
 udstests: checkin

@@ -76,7 +76,7 @@ our @EXPORT_OK = qw(
   getDirectUpgradesToVersion
 );
 
-our $SUPPORTED_OSES = ["RHEL8", "RHEL9", "FEDORA36", "FEDORA37"];
+our $SUPPORTED_OSES = ["RHEL8", "RHEL9", "FEDORA37"];
 our $SUPPORTED_ARCHITECTURES = ["X86_64", "AARCH64", "PPC64LE", "S390X"];
 
 # The name of the versions and scenarios file to load, which is assumed to
