@@ -1848,7 +1848,7 @@ static void compress_data_vio(struct vdo_completion *completion)
 				    data_vio->compression.block->data,
 				    VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				    (char *) get_work_queue_private_data());
+				    (char *) vdo_get_work_queue_private_data());
 	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);

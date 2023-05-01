@@ -147,7 +147,7 @@ struct vdo *vdo_find_matching(vdo_filter_t *filter, const void *context)
 #ifdef __KERNEL__
 static void start_vdo_request_queue(void *ptr)
 {
-	struct vdo_thread *thread = get_work_queue_owner(get_current_work_queue());
+	struct vdo_thread *thread = vdo_get_work_queue_owner(vdo_get_current_work_queue());
 
 	uds_register_allocating_thread(&thread->allocating_thread,
 				       &thread->vdo->allocations_allowed);
@@ -477,13 +477,13 @@ int vdo_make_thread(struct vdo *vdo,
 	thread->vdo = vdo;
 	thread->thread_id = thread_id;
 	get_thread_name(&vdo->thread_config, thread_id, queue_name, sizeof(queue_name));
-	return make_work_queue(vdo->thread_name_prefix,
-			       queue_name,
-			       thread,
-			       type,
-			       queue_count,
-			       contexts,
-			       &thread->queue);
+	return vdo_make_work_queue(vdo->thread_name_prefix,
+				   queue_name,
+				   thread,
+				   type,
+				   queue_count,
+				   contexts,
+				   &thread->queue);
 }
 
 /**
@@ -716,7 +716,7 @@ static void finish_vdo(struct vdo *vdo)
 	vdo_finish_dedupe_index(vdo->hash_zones);
 
 	for (i = 0; i < vdo->thread_config.thread_count; i++)
-		finish_work_queue(vdo->threads[i].queue);
+		vdo_finish_work_queue(vdo->threads[i].queue);
 }
 
 /**
@@ -796,7 +796,7 @@ void vdo_destroy(struct vdo *vdo)
 	if (vdo->threads != NULL) {
 		for (i = 0; i < vdo->thread_config.thread_count; i++) {
 			free_listeners(&vdo->threads[i]);
-			free_work_queue(UDS_FORGET(vdo->threads[i].queue));
+			vdo_free_work_queue(UDS_FORGET(vdo->threads[i].queue));
 		}
 		UDS_FREE(UDS_FORGET(vdo->threads));
 	}
@@ -1766,14 +1766,14 @@ void vdo_fetch_statistics(struct vdo *vdo, struct vdo_statistics *stats)
  */
 thread_id_t vdo_get_callback_thread_id(void)
 {
-	struct vdo_work_queue *queue = get_current_work_queue();
+	struct vdo_work_queue *queue = vdo_get_current_work_queue();
 	struct vdo_thread *thread;
 	thread_id_t thread_id;
 
 	if (queue == NULL)
 		return VDO_INVALID_THREAD_ID;
 
-	thread = get_work_queue_owner(queue);
+	thread = vdo_get_work_queue_owner(queue);
 	thread_id = thread->thread_id;
 
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {

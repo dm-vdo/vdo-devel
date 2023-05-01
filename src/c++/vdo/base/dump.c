@@ -71,7 +71,7 @@ static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const 
 		thread_id_t id;
 
 		for (id = 0; id < vdo->thread_config.thread_count; id++)
-			dump_work_queue(vdo->threads[id].queue);
+			vdo_dump_work_queue(vdo->threads[id].queue);
 	}
 
 	vdo_dump_hash_zones(vdo->hash_zones);
@@ -238,9 +238,9 @@ void dump_data_vio(void *data)
 	 * We're likely to be logging a couple thousand of these lines, and in some circumstances
 	 * syslogd may have trouble keeping up, so keep it BRIEF rather than user-friendly.
 	 */
-	dump_completion_to_buffer(&data_vio->vio.completion,
-				  vio_completion_dump_buffer,
-				  sizeof(vio_completion_dump_buffer));
+	vdo_dump_completion_to_buffer(&data_vio->vio.completion,
+				      vio_completion_dump_buffer,
+				      sizeof(vio_completion_dump_buffer));
 	if (data_vio->is_duplicate)
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),

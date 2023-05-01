@@ -2094,7 +2094,7 @@ static void start_uds_queue(void *ptr)
 	 * while reserving a large amount of memory. We could use an allocations_allowed boolean
 	 * (like the base threads do), but it would be an unnecessary embellishment.
 	 */
-	struct vdo_thread *thread = get_work_queue_owner(get_current_work_queue());
+	struct vdo_thread *thread = vdo_get_work_queue_owner(vdo_get_current_work_queue());
 
 	uds_register_allocating_thread(&thread->allocating_thread, NULL);
 }

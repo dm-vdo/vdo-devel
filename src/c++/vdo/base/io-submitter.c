@@ -487,7 +487,7 @@ void vdo_cleanup_io_submitter(struct io_submitter *io_submitter)
 		return;
 
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--)
-		finish_work_queue(io_submitter->bio_queue_data[i].queue);
+		vdo_finish_work_queue(io_submitter->bio_queue_data[i].queue);
 }
 
 /**

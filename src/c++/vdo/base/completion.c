@@ -136,7 +136,7 @@ void vdo_enqueue_completion(struct vdo_completion *completion,
 	completion->requeue = false;
 	completion->priority = priority;
 	completion->my_queue = NULL;
-	enqueue_work_queue(vdo->threads[thread_id].queue, completion);
+	vdo_enqueue_work_queue(vdo->threads[thread_id].queue, completion);
 }
 
 /**

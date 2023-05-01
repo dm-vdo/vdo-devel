@@ -1058,9 +1058,9 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	}
 
 	/* This could deadlock, */
-	current_work_queue = get_current_work_queue();
+	current_work_queue = vdo_get_current_work_queue();
 	BUG_ON((current_work_queue != NULL) &&
-	       (vdo == get_work_queue_owner(current_work_queue)->vdo));
+	       (vdo == vdo_get_work_queue_owner(current_work_queue)->vdo));
 	vdo_launch_bio(vdo->data_vio_pool, bio);
 	return DM_MAPIO_SUBMITTED;
 }

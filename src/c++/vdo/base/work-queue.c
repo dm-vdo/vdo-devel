@@ -15,6 +15,7 @@
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
 
+#include "funnel-queue.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
@@ -201,7 +202,7 @@ static struct vdo_completion *wait_for_next_completion(struct simple_work_queue 
 		/*
 		 * We need to check for thread-stop after setting TASK_INTERRUPTIBLE state up
 		 * above. Otherwise, schedule() will put the thread to sleep and might miss a
-		 * wakeup from kthread_stop() call in finish_work_queue().
+		 * wakeup from kthread_stop() call in vdo_finish_work_queue().
 		 */
 		if (kthread_should_stop())
 			break;
@@ -299,12 +300,12 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 	UDS_FREE(queue);
 }
 
-void free_work_queue(struct vdo_work_queue *queue)
+void vdo_free_work_queue(struct vdo_work_queue *queue)
 {
 	if (queue == NULL)
 		return;
 
-	finish_work_queue(queue);
+	vdo_finish_work_queue(queue);
 
 	if (queue->round_robin_mode)
 		free_round_robin_work_queue(as_round_robin_work_queue(queue));
@@ -388,13 +389,13 @@ static int make_simple_work_queue(const char *thread_name_prefix,
  * of the actual number of queues and threads allocated here, code outside of the queue
  * implementation will treat this as a single zone.
  */
-int make_work_queue(const char *thread_name_prefix,
-		    const char *name,
-		    struct vdo_thread *owner,
-		    const struct vdo_work_queue_type *type,
-		    unsigned int thread_count,
-		    void *thread_privates[],
-		    struct vdo_work_queue **queue_ptr)
+int vdo_make_work_queue(const char *thread_name_prefix,
+			const char *name,
+			struct vdo_thread *owner,
+			const struct vdo_work_queue_type *type,
+			unsigned int thread_count,
+			void *thread_privates[],
+			struct vdo_work_queue **queue_ptr)
 {
 	struct round_robin_work_queue *queue;
 	int result;
@@ -455,7 +456,7 @@ int make_work_queue(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			/* Destroy previously created subordinates. */
-			free_work_queue(UDS_FORGET(*queue_ptr));
+			vdo_free_work_queue(UDS_FORGET(*queue_ptr));
 			return result;
 		}
 	}
@@ -484,7 +485,7 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 }
 
 /* No enqueueing of completions should be done once this function is called. */
-void finish_work_queue(struct vdo_work_queue *queue)
+void vdo_finish_work_queue(struct vdo_work_queue *queue)
 {
 	if (queue == NULL)
 		return;
@@ -521,7 +522,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
  * dumping info about a lot of completions to syslog all at once, the format favors brevity over
  * readability.
  */
-void dump_work_queue(struct vdo_work_queue *queue)
+void vdo_dump_work_queue(struct vdo_work_queue *queue)
 {
 	if (queue->round_robin_mode) {
 		struct round_robin_work_queue *round_robin = as_round_robin_work_queue(queue);
@@ -560,7 +561,7 @@ static void get_function_name(void *pointer, char *buffer, size_t buffer_length)
 	}
 }
 
-void dump_completion_to_buffer(struct vdo_completion *completion, char *buffer, size_t length)
+void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buffer, size_t length)
 {
 	size_t current_length =
 		scnprintf(buffer,
@@ -580,7 +581,7 @@ void dump_completion_to_buffer(struct vdo_completion *completion, char *buffer, 
  * If the completion has a timeout that has already passed, the timeout handler function may be
  * invoked by this function.
  */
-void enqueue_work_queue(struct vdo_work_queue *queue, struct vdo_completion *completion)
+void vdo_enqueue_work_queue(struct vdo_work_queue *queue, struct vdo_completion *completion)
 {
 	/*
 	 * Convert the provided generic vdo_work_queue to the simple_work_queue to actually queue
@@ -660,14 +661,14 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	return kthread_data(current);
 }
 
-struct vdo_work_queue *get_current_work_queue(void)
+struct vdo_work_queue *vdo_get_current_work_queue(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
 
 	return (queue == NULL) ? NULL : &queue->common;
 }
 
-struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue)
+struct vdo_thread *vdo_get_work_queue_owner(struct vdo_work_queue *queue)
 {
 	return queue->owner;
 }
@@ -676,7 +677,7 @@ struct vdo_thread *get_work_queue_owner(struct vdo_work_queue *queue)
  * Returns the private data for the current thread's work queue, or NULL if none or if the current
  * thread is not a work queue thread.
  */
-void *get_work_queue_private_data(void)
+void *vdo_get_work_queue_private_data(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
 
