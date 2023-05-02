@@ -38,6 +38,7 @@ tarballs:
           dest: .
           sources:
             - vdo.rst
+            - vdo-design.rst
         +src/packaging/src-dist/kernel:
           dest: .
           sources:
