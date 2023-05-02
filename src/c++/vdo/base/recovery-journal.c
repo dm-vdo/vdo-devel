@@ -499,7 +499,7 @@ static void handle_flush_error(struct vdo_completion *completion)
 {
 	struct recovery_journal *journal = completion->parent;
 
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	journal->reaping = false;
 	enter_journal_read_only_mode(journal, completion->result);
 }
@@ -1315,7 +1315,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct recovery_journal_block *block = completion->parent;
 	struct recovery_journal *journal = block->journal;
 
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	uds_log_error_strerror(completion->result,
 			       "cannot write recovery journal block %llu",
 			       (unsigned long long) block->sequence_number);

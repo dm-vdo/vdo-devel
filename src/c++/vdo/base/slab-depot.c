@@ -294,7 +294,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct slab_summary_block *block =
 		container_of(as_vio(completion), struct slab_summary_block, vio);
 
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	vdo_enter_read_only_mode(completion->vdo, completion->result);
 	finish_updating_slab_summary_block(block);
 }
@@ -427,7 +427,7 @@ static void complete_reaping(struct vdo_completion *completion)
  */
 static void handle_flush_error(struct vdo_completion *completion)
 {
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	vdo_enter_read_only_mode(completion->vdo, completion->result);
 	complete_reaping(completion);
 }
@@ -700,7 +700,7 @@ static void complete_write(struct vdo_completion *completion)
 	return_vio_to_pool(journal->slab->allocator->vio_pool, UDS_FORGET(pooled));
 
 	if (result != VDO_SUCCESS) {
-		record_metadata_io_error(as_vio(completion));
+		vio_record_metadata_io_error(as_vio(completion));
 		uds_log_error_strerror(result,
 				       "cannot write slab journal block %llu",
 				       (unsigned long long) committed);
@@ -1180,7 +1180,7 @@ static void handle_io_error(struct vdo_completion *completion)
 	struct vio *vio = as_vio(completion);
 	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
 
-	record_metadata_io_error(vio);
+	vio_record_metadata_io_error(vio);
 	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
 	slab->active_count--;
 	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
@@ -2505,7 +2505,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct slab_journal *journal = completion->parent;
 	struct vio *vio = as_vio(completion);
 
-	record_metadata_io_error(vio);
+	vio_record_metadata_io_error(vio);
 	return_vio_to_pool(journal->slab->allocator->vio_pool, vio_as_pooled_vio(vio));
 	vdo_finish_loading_with_result(&journal->slab->state, result);
 }
@@ -2811,7 +2811,7 @@ static void handle_scrubber_error(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 
-	record_metadata_io_error(vio);
+	vio_record_metadata_io_error(vio);
 	abort_scrubbing(container_of(vio, struct slab_scrubber, vio), completion->result);
 }
 
@@ -4557,7 +4557,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 
 static void handle_combining_error(struct vdo_completion *completion)
 {
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	finish_combining_zones(completion);
 }
 

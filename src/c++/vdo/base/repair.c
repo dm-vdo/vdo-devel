@@ -1687,7 +1687,7 @@ static void handle_journal_load_error(struct vdo_completion *completion)
 
 	/* Preserve the error */
 	vdo_set_completion_result(&repair->completion, completion->result);
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	completion->callback(completion);
 }
 

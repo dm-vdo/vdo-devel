@@ -312,7 +312,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	va_end(args);
 }
 
-void record_metadata_io_error(struct vio *vio)
+void vio_record_metadata_io_error(struct vio *vio)
 {
 	const char *description;
 	physical_block_number_t pbn = pbn_from_vio_bio(vio->bio);

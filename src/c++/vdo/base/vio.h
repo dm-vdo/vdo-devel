@@ -195,7 +195,7 @@ static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback, 
 	continue_vio(vio, blk_status_to_errno(vio->bio->bi_status));
 }
 
-void record_metadata_io_error(struct vio *vio);
+void vio_record_metadata_io_error(struct vio *vio);
 
 /* A vio_pool is a collection of preallocated vios used to write arbitrary metadata blocks. */
 

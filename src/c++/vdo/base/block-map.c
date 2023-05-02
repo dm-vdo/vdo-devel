@@ -655,7 +655,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct vdo_page_cache *cache = info->cache;
 
 	assert_on_cache_thread(cache, __func__);
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	vdo_enter_read_only_mode(cache->zone->block_map->vdo, result);
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	set_info_state(info, PS_FAILED);
@@ -726,7 +726,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	 * We are doing a read-only rebuild, so treat this as a successful read of an uninitialized
 	 * page.
 	 */
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	ADD_ONCE(cache->stats.failed_reads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
 	vdo_reset_completion(completion);
@@ -781,7 +781,7 @@ static void handle_flush_error(struct vdo_completion *completion)
 {
 	struct page_info *info = completion->parent;
 
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	set_persistent_error(info->cache, "flush failed", completion->result);
 	write_pages(completion);
 }
@@ -991,7 +991,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	struct page_info *info = completion->parent;
 	struct vdo_page_cache *cache = info->cache;
 
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 
 	/* If we're already read-only, write failures are to be expected. */
 	if (result != VDO_READ_ONLY) {
@@ -1603,7 +1603,7 @@ static void handle_write_error(struct vdo_completion *completion)
 	struct pooled_vio *pooled = container_of(vio, struct pooled_vio, vio);
 	struct block_map_zone *zone = pooled->context;
 
-	record_metadata_io_error(vio);
+	vio_record_metadata_io_error(vio);
 	enter_zone_read_only_mode(zone, result);
 	return_to_pool(zone, pooled);
 }
@@ -1859,7 +1859,7 @@ static void handle_io_error(struct vdo_completion *completion)
 	struct data_vio *data_vio = completion->parent;
 	struct block_map_zone *zone = pooled->context;
 
-	record_metadata_io_error(vio);
+	vio_record_metadata_io_error(vio);
 	return_vio_to_pool(zone->vio_pool, pooled);
 	abort_load(data_vio, result);
 }
@@ -2537,7 +2537,7 @@ static void traverse(struct cursor *cursor);
  */
 static void continue_traversal(struct vdo_completion *completion)
 {
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	traverse(completion->parent);
 }
 

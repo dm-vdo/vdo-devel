@@ -866,7 +866,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
  */
 static void handle_super_block_read_error(struct vdo_completion *completion)
 {
-	record_metadata_io_error(as_vio(completion));
+	vio_record_metadata_io_error(as_vio(completion));
 	finish_reading_super_block(completion);
 }
 
@@ -1080,7 +1080,7 @@ static void handle_save_error(struct vdo_completion *completion)
 	struct vdo_super_block *super_block =
 		container_of(as_vio(completion), struct vdo_super_block, vio);
 
-	record_metadata_io_error(&super_block->vio);
+	vio_record_metadata_io_error(&super_block->vio);
 	uds_log_error_strerror(completion->result, "super block save failed");
 	/*
 	 * Mark the super block as unwritable so that we won't attempt to write it again. This
