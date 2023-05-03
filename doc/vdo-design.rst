@@ -20,11 +20,13 @@ of 14:1. All zero blocks consume no storage at all.
 Theory of Operation
 ===================
 
-Deduplication is a two-part problem: first, recognizing duplicate data, and
-second, avoiding storing multiple copies of the duplicated data. Therefore,
-dm-vdo has two main parts: a deduplication index (called UDS) that is used
-to discover duplicate data, and a reference counted block map that maps
-from logical block addresses to the actual storage location of the data.
+The design of dm-vdo is based on the idea that deduplication is a two-part
+problem. The first is to recognize duplicate data. The second is to avoid
+storing multiple copies of those duplicates. Therefore, dm-vdo has two main
+parts: a deduplication index (called UDS) that is used to discover
+duplicate data, and a data store with a reference counted block map that
+maps from logical block addresses to the actual storage location of the
+data.
 
 Zones and Threading
 -------------------
@@ -33,52 +35,56 @@ Due to the complexity of data optimization, the number of metadata
 structures involved in a single write operation to a vdo target is larger
 than most other targets. Furthermore, because vdo must operate on small
 block sizes in order to achieve good deduplication rates, acceptable
-performance can only be achieved through parallelism. That parallelism is
-best achieved by being as lock-free as possible. Most of a vdo's main data
-structures are designed to be easily divided into "zones" such that any
-given bio must only access a single zone of any zoned structure. Safety
-with minimal locking is achieved by ensuring that during normal operation,
-each zone is assigned to a specific thread, and only that thread will
-access the portion of that data structure in that zone. Associated with
-each thread is a work queue. Each bio is associated with a request object
-which can be enqueued on a work queue when the next phase of its operation
-requires access to the structures in the zone associated with that queue.
-Although each structure may be divided into zones, this division is not
-reflected in the on-disk representation of each data structure. Therefore,
-the number of zones for each structure, and hence the number of threads, is
-configured each time a vdo target is started.
+performance can only be achieved through parallelism. Therefore, vdo's
+design attempts to be lock-free. Most of a vdo's main data structures are
+designed to be easily divided into "zones" such that any given bio must
+only access a single zone of any zoned structure. Safety with minimal
+locking is achieved by ensuring that during normal operation, each zone is
+assigned to a specific thread, and only that thread will access the portion
+of that data structure in that zone. Associated with each thread is a work
+queue. Each bio is associated with a request object which can be added to a
+work queue when the next phase of its operation requires access to the
+structures in the zone associated with that queue. Although each structure
+may be divided into zones, this division is not reflected in the on-disk
+representation of each data structure. Therefore, the number of zones for
+each structure, and hence the number of threads, is configured each time a
+vdo target is started.
 
 The Deduplication Index
 -----------------------
 
-In order to identify duplicate data efficiently, it's worth recognizing
-some common characteristics of that data. From empirical observations,
-there are two key insights. The first is that when one block of duplicate
-data appears, other blocks written at around the same time are likely also
-duplicates. This means the index should keep records together when they are
-written at the same time. (This property is called temporal locality.) The
-second insight is that new data is more likely to duplicate recent data
-than it is to duplicate older data. This means the index should prioritize
-the newest records.
+In order to identify duplicate data efficiently, vdo was designed to
+leverage some common characteristics of duplicate data. From empirical
+observations, we gathered two key insights. The first is that in most data
+sets with significant amounts of duplicate data, the duplicates tend to
+have temporal locality. When a duplicate appears, it is more likely that
+other duplicates will be detected, and that those duplicates will have been
+written at about the same time. This is why the index keeps records in
+temporal order. The second insight is that new data is more likely to
+duplicate recent data than it is to duplicate older data and in general,
+there are diminishing returns to looking further back in time. Therefore,
+when the index is full, it should cull its oldest records to make space for
+new ones. Another important idea behind the design of the index is that the
+ultimate goal of deduplication is to reduce storage costs. Since there is a
+trade-off between the storage saved and the resources expended to achieve
+those savings, vdo does not attempt to find every last duplicate block. It
+is sufficient to find and eliminate most of the redundancy.
 
 Each block of data is hashed to produce a 16-byte block name which serves
 as an identifier for the block. An index record consists of this block name
 paired with the presumed location of that data on the underlying storage.
-There are certain cases where the index cannot accurately represent the
-location of all known blocks. (One such case is a hash collision where two
-different blocks produce the same block name.) This means that the rest of
-VDO must also read any block identified as a duplicate to verify that the
-data is identical before sharing the existing block with a new one. The
-need for this read-verify step means that the index does not need to try to
-keep its records completely accurate. It is sufficient if the index can
-identify most of the potential deduplication, as long as it can do so
-efficiently. For example, records are never deleted from the index, even if
-the original data is deleted, because vdo can easily identify when the
-index record is out of date and update the index record as necessary.
-Deleting records from the index is also costly since doing so requires
-either storing the hashes along with the blocks, which is difficult to do
-efficiently in block-based storage, or reading and rehashing each block
-before overwriting it.
+However, it is not possible to guarantee that the index is accurate. Most
+often, this occurs because it is too costly to update the index when a
+block is over-written or discarded. Doing so would require either storing
+the block name along with the blocks, which is difficult to do efficiently
+in block-based storage, or reading and rehashing each block before
+overwriting it. Inaccuracy can also result from a hash collision where two
+different blocks have the same name. In practice, this is extremely
+unlikely, but because vdo does not use a cryptographic hash, a malicious
+workload can be constructed. Because of these inaccuracies, vdo treats the
+locations in the index as hints, and reads each indicated block to verify
+that it is indeed a duplicate before sharing the existing block with a new
+one.
 
 Records are collected into groups called chapters. New records are added to
 the newest chapter, called the open chapter. This chapter is stored in a
@@ -144,17 +150,17 @@ the record it needs. The delta index reduces this lookup cost by splitting
 its key space into many sub-lists, each starting at a fixed key value, so
 that each individual list is short.
 
-The default index size used by VDO can hold 64 million records,
-corresponding to about 256GB. This means that the index can identify
-duplicate data if the original data was written within the last 256GB of
-writes. This range is called the deduplication window. If new writes
-duplicate data that is older than that, the index will not be able to find
-it because the records of the older data have been removed. So writing a
-200 GB file to a vdo target, and then immediately writing it again, the two
-copies will deduplicate perfectly. Doing the same with a 500 GB file will
-result in no deduplication, because the beginning of the file will no
-longer be in the index by the time the second write begins (assuming there
-is no duplication within the file itself).
+The default index size can hold 64 million records, corresponding to about
+256GB. This means that the index can identify duplicate data if the
+original data was written within the last 256GB of writes. This range is
+called the deduplication window. If new writes duplicate data that is older
+than that, the index will not be able to find it because the records of the
+older data have been removed. So when writing a 200 GB file to a vdo
+target, and then immediately writing it again, the two copies will
+deduplicate perfectly. Doing the same with a 500 GB file will result in no
+deduplication, because the beginning of the file will no longer be in the
+index by the time the second write begins (assuming there is no duplication
+within the file itself).
 
 If you anticipate a data workload that will see useful deduplication beyond
 the 256GB threshold, vdo can be configured to use a larger index with a
@@ -173,15 +179,16 @@ deduplication window by a factor of 10, at the expense of also increasing
 the storage size by a factor of 10. However with sparse indexing, the
 memory requirements do not increase; the trade-off is slightly more
 computation per request, and a slight decrease in the amount of
-deduplication detected. (Typically sparse indexing will detect 97-99% of
-the deduplication that a standard (or dense) index will detect.)
+deduplication detected. (For workloads with significant amounts of
+duplicate data, sparse indexing will detect 97-99% of the deduplication
+that a standard, or "dense", index will detect.)
 
-The Data
---------
+The Data Store
+--------------
 
-The rest of vdo is devoted to storing and sharing the actual data. This is
-done with three main data structures, all of which work in concert to
-reduce or amortize metadata updates across as many data writes as possible.
+The data store is implemented by three main data structures, all of which
+work in concert to reduce or amortize metadata updates across as many data
+writes as possible.
 
 *The Slab Depot*
 
@@ -196,8 +203,8 @@ written out one block at a time as each block fills. A copy of the
 reference counters are kept in memory, and are written out a block at a
 time, in oldest-dirtied-order whenever there is a need to reclaim slab
 journal space. The journal is used both to ensure that the main recovery
-journal (see below) can regularly free up space, but to amortize the cost
-of updating individual reference blocks.
+journal (see below) can regularly free up space, and also to amortize the
+cost of updating individual reference blocks.
 
 Each slab is independent of every other. They are assigned to "physical
 zones" in round-robin fashion. If there are P physical zones, then slab n
@@ -229,7 +236,7 @@ slots in the compressed block this logical address maps to (see below).
 
 In practice, the array of mapping entries is divided into "block map
 pages," each of which fits in a single 4K block. Each block map page
-consists of a header, and 812 mapping entries (this being the number that
+consists of a header, and 812 mapping entries (812 being the number that
 fit). Each mapping page is actually a leaf of a radix tree which consists
 of block map pages at each level. There are 60 radix trees which are
 assigned to "logical zones" in round robin fashion (if there are L logical
@@ -273,11 +280,11 @@ much larger data_vio.) There is a fixed pool of 2048 data_vios. This number
 was chosen both to bound the amount of work that is required to recover
 from a crash, and because measurements indicate that increasing it consumes
 more resources, but does not improve performance. These measurements have
-been, and should continue to be revisited over time.
+been, and should continue to be, revisited over time.
 
 Once a data_vio is assigned, the following steps are performed:
 
-1. The bio's data is to check to see if it is all zeros, and copied if not.
+1. The bio's data is checked to see if it is all zeros, and copied if not.
 2. A lock is obtained on the logical address of the bio. Because
    deduplication involves sharing blocks, it is vital to prevent
    simultaneous modifications of the same block.
@@ -307,8 +314,8 @@ Once a data_vio is assigned, the following steps are performed:
            compressed. If the compressed size is sufficiently small, the
            data_vio will go to the packer where it may be placed in a bin
            along with other data_vios.
-	e) Once a bin is full either because it is out of space, or because
-           all 14 of its slots are full, it is written out.
+	e) Once a bin is full, either because it is out of space, or
+           because all 14 of its slots are in use, it is written out.
 	f) Each data_vio from the bin just written is the agent of some
            hash lock, it will now proceed to treat the just written
            compressed block as if it were a duplicate and share it with as
@@ -359,15 +366,15 @@ decompressed.
 
 *Recovery*
 
-After a crash, vdo will attempt to recover from the recovery journal.
-During the pre-resume phase of the next start, the recovery journal is
-read. The increment portion of valid entries are played into the block map.
-Next, valid entries are played, in order as required, into the slab
-journals. Finally, each physical zone attempts to replay at least one slab
-journal to reconstruct the reference counts of one slab. Once each zone has
-some free space (or has determined that it has none), the vdo comes back
-online, while the remainder of the slab journals are used to reconstruct
-the rest of the reference counts.
+When a vdo is restarted after a crash, it will attempt to recover from the
+recovery journal. During the pre-resume phase of the next start, the
+recovery journal is read. The increment portion of valid entries are played
+into the block map. Next, valid entries are played, in order as required,
+into the slab journals. Finally, each physical zone attempts to replay at
+least one slab journal to reconstruct the reference counts of one slab.
+Once each zone has some free space (or has determined that it has none),
+the vdo comes back online, while the remainder of the slab journals are
+used to reconstruct the rest of the reference counts.
 
 *Read-only Rebuild*
 
@@ -381,5 +388,3 @@ reference counts are not rebuilt from the slab journals. Rather, the
 reference counts are zeroed, and then the entire block map is traversed,
 and the reference counts are updated from it. While this may lose some
 data, it ensures that the block map and reference counts are consistent.
-
-

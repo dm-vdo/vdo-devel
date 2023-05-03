@@ -22,9 +22,9 @@ included in this patch set.
 Deduplication is a two-part problem. The first part is recognizing
 duplicate data; the second part is avoiding multiple copies of the
 duplicated data. Therefore, vdo has two main sections: a deduplication
-index that is used to discover potential duplicate data, and a reference
-counted block map that maps from logical block addresses to the actual
-storage location of the data.
+index that is used to discover potential duplicate data, and a data store
+with a reference counted block map that maps from logical block addresses
+to the actual storage location of the data.
 
 Hashing:
 
@@ -50,15 +50,14 @@ constant size as the index fills.
 
 Because storing hashes along with the data, or rehashing blocks on
 overwrite is expensive, entries are never explicitly deleted from the
-index. Instead, vdo must always check the data at the physical location
+index. Instead, the vdo must always check the data at the physical location
 provided by the index to ensure that the hint is still valid.
 
-The Data:
+The Data Store:
 
-The rest of vdo is devoted to storing and sharing the actual data. This is
-done with three main data structures: the block map, the slab depot, and
-the recovery journal. These structures work in concert to amortize metadata
-updates across as many data writes as possible.
+The data store is implemented by three main data structures: the block map,
+the slab depot, and the recovery journal. These structures work in concert
+to amortize metadata updates across as many data writes as possible.
 
 The block map contains the mapping from logical addresses to physical
 locations. For each logical address it indicates whether that address is
@@ -71,8 +70,8 @@ The depot also maintains a reference count for each physical block. Each
 block can have up to 254 logical references.
 
 The recovery journal is a transaction log of the logical-to-physical
-mappings made by data writes. Committing this journal regularly allows vdo
-to reduce the frequency of other metadata writes and allows vdo to
+mappings made by data writes. Committing this journal regularly allows a
+vdo to reduce the frequency of other metadata writes and allows it to
 reconstruct its metadata in the event of a crash.
 
 Zones and Threading:
@@ -102,20 +101,19 @@ Work Queues:
 
 Handling a single bio requires a number of small operations across a number
 of zones. The per-zone worker threads can be very busy, often using upwards
-of 30% CPU time, with a couple sometimes approaching 100%. Kernel work
-queues seem targeted for lighter work loads. They do not let us easily
-prioritize individual tasks within a zone, and make CPU affinity control at
-a per-thread level more difficult.
+of 30% CPU time, with some approaching 100%. Kernel work queues seem
+targeted for lighter work loads. They do not let us easily prioritize
+individual tasks within a zone, and make CPU affinity control at a
+per-thread level more difficult.
 
 In UDS, the threads scanning and updating the in-memory index data process
 a large number of queries through a single function. It uses its own
 "request queue" mechanism to process these efficiently in dedicated
 threads. In experiments using kernel work queues for the UDS index lookups,
-with a lightweight batching mechanism to reduce per-query overhead and
-improve cache utilization, we observed an overall VDO throughput drop of
-almost 10% in some cases. In the following table, randwrite% and write%
-represent the change in throughput when switching to kernel work queues for
-random and sequential write workloads, respectively.
+we observed an overall throughput drop of up to almost 10%. In the
+following table, randwrite% and write% represent the change in throughput
+when switching to kernel work queues for random and sequential write
+workloads, respectively.
 
 | compression% | deduplication% | randwrite% | write% |
 |--------------+----------------+------------+--------|
@@ -144,9 +142,10 @@ be processed.
 
 MurmurHash:
 
-MurmurHash3 was selected for VDO for its 128-bit output size, hash
-quality, and performance on 4KB blocks. For cross-platform compatibility,
-VDO uses a modified version which always produces the same output as the
-original x64 variant, rather than being optimized per platform. VDO needs
-significantly more than 64 uniformly distributed bits for its in-memory and
-on-disk indexing. There is no such hash function already in the kernel.
+MurmurHash3 was selected for its hash quality, performance on 4KB blocks,
+and its 128-bit output size (vdo needs significantly more than 64 uniformly
+distributed bits for its in-memory and on-disk indexing). For
+cross-platform compatibility, vdo uses a modified version which always
+produces the same output as the original x64 variant, rather than being
+optimized per platform. There is no such hash function already in the
+kernel.
