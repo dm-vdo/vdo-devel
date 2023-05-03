@@ -101,10 +101,9 @@ Work Queues:
 
 Handling a single bio requires a number of small operations across a number
 of zones. The per-zone worker threads can be very busy, often using upwards
-of 30% CPU time, with some approaching 100%. Kernel work queues seem
-targeted for lighter work loads. They do not let us easily prioritize
-individual tasks within a zone, and make CPU affinity control at a
-per-thread level more difficult.
+of 30% CPU time. Kernel work queues seem targeted for lighter work loads.
+They do not let us easily prioritize individual tasks within a zone, and
+make CPU affinity control at a per-thread level more difficult.
 
 In UDS, the threads scanning and updating the in-memory index data process
 a large number of queries through a single function. It uses its own
