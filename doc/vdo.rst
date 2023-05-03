@@ -2,15 +2,16 @@ dm-vdo
 ======
 
 The dm-vdo device mapper target provides block-level deduplication,
-compression, and thin provisioning. As a device mapper target, it can add these
-features to the storage stack, compatible with any file system. The vdo target
-does not protect against data corruption, relying instead on integrity
-protection of the storage below it.
+compression, and thin provisioning. As a device mapper target, it can add
+these features to the storage stack, compatible with any file system. The
+vdo target does not protect against data corruption, relying instead on
+integrity protection of the storage below it.
 
 Userspace component
 ===================
 
-Formatting a vdo volume requires the use of the 'vdoformat' tool, available at:
+Formatting a vdo volume requires the use of the 'vdoformat' tool, available
+at:
 
 https://github.com/dm-vdo/vdo/
 
@@ -77,25 +78,25 @@ Some or all of these parameters may be specified as <key> <value> pairs.
 
 Thread related parameters:
 
-Different categories of work are assigned to separate thread groups, and the
-number of threads in each group can be configured separately.
+Different categories of work are assigned to separate thread groups, and
+the number of threads in each group can be configured separately.
 
-If <hash>, <logical>, and <physical> are all set to 0, the work handled by all
-three thread types will be handled by a single thread. If any of these values
-are non-zero, all of them must be non-zero.
+If <hash>, <logical>, and <physical> are all set to 0, the work handled by
+all three thread types will be handled by a single thread. If any of these
+values are non-zero, all of them must be non-zero.
 
 	ack:
 		The number of threads used to complete bios. Since
 		completing a bio calls an arbitrary completion function
-		outside the vdo volume, threads of this type allow the
-		vdo volume to continue processing requests even when bio
+		outside the vdo volume, threads of this type allow the vdo
+		volume to continue processing requests even when bio
 		completion is slow. The default is 1.
 
 	bio:
-		The number of threads used to issue bios to the
-		underlying storage. Threads of this type allow the vdo
-		volume to continue processing requests even when bio
-		submission is slow. The default is 4.
+		The number of threads used to issue bios to the underlying
+		storage. Threads of this type allow the vdo volume to
+		continue processing requests even when bio submission is
+		slow. The default is 4.
 
 	bioRotationInterval:
 		The number of bios to enqueue on each bio thread before
@@ -103,65 +104,65 @@ are non-zero, all of them must be non-zero.
 		than 0 and not more than 1024; the default is 64.
 
 	cpu:
-		The number of threads used to do CPU-intensive work,
-		such as hashing and compression. The default is 1.
+		The number of threads used to do CPU-intensive work, such
+		as hashing and compression. The default is 1.
 
 	hash:
 		The number of threads used to manage data comparisons for
-                deduplication based on the hash value of data blocks.
-                The default is 0.
+                deduplication based on the hash value of data blocks. The
+                default is 0.
 
 	logical:
-		The number of threads used to manage caching and locking based
-                on the logical address of incoming bios. The default is 0; the
-                maximum is 60.
+		The number of threads used to manage caching and locking
+                based on the logical address of incoming bios. The default
+                is 0; the maximum is 60.
 
 	physical:
-		The number of threads used to manage administration of
-		the underlying storage device. At format time, a slab
-		size for the vdo is chosen; the vdo storage device must
-		be large enough to have at least 1 slab per physical
-		thread. The default is 0; the maximum is 16.
+		The number of threads used to manage administration of the
+		underlying storage device. At format time, a slab size for
+		the vdo is chosen; the vdo storage device must be large
+		enough to have at least 1 slab per physical thread. The
+		default is 0; the maximum is 16.
 
 Miscellaneous parameters:
 
 	maxDiscard:
 		The maximum size of discard bio accepted, in 4096-byte
 		blocks. I/O requests to a vdo volume are normally split
-		into 4096-byte blocks, and processed up to 2048 at a
-		time. However, discard requests to a vdo volume can be
-		automatically split to a larger size, up to
-		<maxDiscard> 4096-byte blocks in a single bio, and are
-		limited to 1500 at a time. Increasing this value may
-		provide better overall performance, at the cost of
-		increased latency for the individual discard requests.
-		The default and minimum is 1; the maximum is
-		UINT_MAX / 4096.
+		into 4096-byte blocks, and processed up to 2048 at a time.
+		However, discard requests to a vdo volume can be
+		automatically split to a larger size, up to <maxDiscard>
+		4096-byte blocks in a single bio, and are limited to 1500
+		at a time. Increasing this value may provide better overall
+		performance, at the cost of increased latency for the
+		individual discard requests. The default and minimum is 1;
+		the maximum is UINT_MAX / 4096.
 
 	deduplication:
-                Whether deduplication is enabled. The default is 'on';
-                the acceptable values are 'on' and 'off'.
+                Whether deduplication is enabled. The default is 'on'; the
+                acceptable values are 'on' and 'off'.
 
 	compression:
-                Whether compression is enabled. The default is 'off';
-                the acceptable values are 'on' and 'off'.
+                Whether compression is enabled. The default is 'off'; the
+                acceptable values are 'on' and 'off'.
 		
 Device modification
 -------------------
 
-A modified table may be loaded into a running, non-suspended vdo volume. The
-modifications will take effect when the device is next resumed. The modifiable
-parameters are <logical device size>, <physical device size>, <maxDiscard>,
-<compression>, and <deduplication>.
+A modified table may be loaded into a running, non-suspended vdo volume.
+The modifications will take effect when the device is next resumed. The
+modifiable parameters are <logical device size>, <physical device size>,
+<maxDiscard>, <compression>, and <deduplication>.
 
-If the logical device size or physical device size are changed, upon successful
-resume vdo will store the new values and require them on future startups. These
-two parameters may not be decreased. The logical device size may not exceed 4
-PB. The physical device size must increase by at least 32832 4096-byte blocks
-if at all, and must not exceed the size of the underlying storage device.
-Additionally, when formatting the vdo device, a slab size is chosen: the
-physical device size may never increase above the size which provides 8192
-slabs, and each increase must be large enough to add at least one new slab.
+If the logical device size or physical device size are changed, upon
+successful resume vdo will store the new values and require them on future
+startups. These two parameters may not be decreased. The logical device
+size may not exceed 4 PB. The physical device size must increase by at
+least 32832 4096-byte blocks if at all, and must not exceed the size of the
+underlying storage device. Additionally, when formatting the vdo device, a
+slab size is chosen: the physical device size may never increase above the
+size which provides 8192 slabs, and each increase must be large enough to
+add at least one new slab.
 
 
 Examples:
@@ -221,22 +222,27 @@ All vdo devices accept messages in the form:
 
 The messages are:
 
-        stats: Outputs the current view of the vdo statistics. Mostly used by
-                the vdostats userspace program to interpret the output buffer.
+        stats:
+		Outputs the current view of the vdo statistics. Mostly used
+                by the vdostats userspace program to interpret the output
+                buffer.
 
-        dump: Dumps many internal structures to the system log. This is not
-              always safe to run, so it should only be used to debug a hung
-              vdo. Optional parameters to specify structures to dump are:
+        dump:
+		Dumps many internal structures to the system log. This is
+                not always safe to run, so it should only be used to debug
+                a hung vdo. Optional parameters to specify structures to
+                dump are:
 
-               viopool: The pool of structures used for user I/O inside vdo 
-               pools: A synonym of 'viopool'
-               vdo: Most of the structures managing on-disk data 
-               queues: Basic information about each thread vdo is using
-               threads: A synonym of 'queues'
-               default: Equivalent to 'queues vdo' 
-               all: All of the above.
+        	viopool: The pool of I/O requests incoming bios
+		pools: A synonym of 'viopool'
+		vdo: Most of the structures managing on-disk data 
+		queues: Basic information about each thread vdo is using
+		threads: A synonym of 'queues'
+		default: Equivalent to 'queues vdo' 
+		all: All of the above.
         
-        dump-on-shutdown: Perform a default dump next time vdo shuts down.
+        dump-on-shutdown:
+		Perform a default dump next time vdo shuts down.
 
 
 Status
@@ -244,44 +250,41 @@ Status
 
 ::
 
-    <device> <operating mode> <in recovery> <index state> <compression state>
-    <physical blocks used> <total physical blocks>
+    <device> <operating mode> <in recovery> <index state>
+    <compression state> <physical blocks used> <total physical blocks>
 
 	device:
 		The name of the vdo volume.
 
 	operating mode:
-		The current operating mode of the vdo volume; values
-		may be 'normal', 'recovering' (the volume has
-		detected an issue with its metadata and is attempting
-		to repair itself), and 'read-only' (an error has
-		occurred that forces the vdo volume to only support
-		read operations and not writes).
+		The current operating mode of the vdo volume; values may be
+		'normal', 'recovering' (the volume has detected an issue
+		with its metadata and is attempting to repair itself), and
+		'read-only' (an error has occurred that forces the vdo
+		volume to only support read operations and not writes).
 
 	in recovery:
-		Whether the vdo volume is currently in recovery
-		mode; values may be 'recovering' or '-' which
-		indicates not recovering.
+		Whether the vdo volume is currently in recovery mode;
+		values may be 'recovering' or '-' which indicates not
+		recovering.
 
 	index state:
-		The current state of the deduplication index in the
-		vdo volume; values may be 'closed', 'closing',
-		'error', 'offline', 'online', 'opening', and
-		'unknown'.
+		The current state of the deduplication index in the vdo
+		volume; values may be 'closed', 'closing', 'error',
+		'offline', 'online', 'opening', and 'unknown'.
 
 	compression state:
-		The current state of compression in the vdo volume;
-		values may be 'offline' and 'online'.
+		The current state of compression in the vdo volume; values
+		may be 'offline' and 'online'.
 
 	used physical blocks:
-		The number of physical blocks in use by the vdo
-		volume.
+		The number of physical blocks in use by the vdo volume.
 
 	total physical blocks:
-		The total number of physical blocks the vdo volume
-		may use; the difference between this value and the
-		<used physical blocks> is the number of blocks the
-		vdo volume has left before being full.
+		The total number of physical blocks the vdo volume may use;
+		the difference between this value and the
+		<used physical blocks> is the number of blocks the vdo
+		volume has left before being full.
 
 Memory Requirements
 ===================
@@ -289,39 +292,41 @@ Memory Requirements
 A vdo target requires a fixed 38 MB of RAM along with the following amounts
 that scale with the target:
 
-- 1.15 MB of RAM for each 1 MB of configured block map cache size. The block
-  map cache requires a minimum of 150 MB
+- 1.15 MB of RAM for each 1 MB of configured block map cache size. The
+  block map cache requires a minimum of 150 MB
 - 1.6 MB of RAM for each 1 TB of logical space.
 - 268 MB of RAM for each 1 TB of physical storage managed by the volume.
 
-The deduplication index requires additional memory which scales with the size
-of the deduplication window. For dense indexes, the index requires 1 GB of RAM
-per 1 TB of window. For sparse indexes, the index requires 1 GB of RAM per 10
-TB of window. The index configuration is set when the target is formatted and
-may not be modified.
+The deduplication index requires additional memory which scales with the
+size of the deduplication window. For dense indexes, the index requires 1
+GB of RAM per 1 TB of window. For sparse indexes, the index requires 1 GB
+of RAM per 10 TB of window. The index configuration is set when the target
+is formatted and may not be modified.
 
 Run-time Usage
 ==============
 
-When using vdo, it is important to be aware of the ways in which its behavior
-differs from other storage targets.
+When using vdo, it is important to be aware of the ways in which its
+behavior differs from other storage targets.
 
 - There is no guarantee that over-writes of existing blocks will succeed.
-  Because the underlying storage may be multiply referenced, over-writing an
-  existing block generally requires a vdo to have a free block available.
+  Because the underlying storage may be multiply referenced, over-writing
+  an existing block generally requires a vdo to have a free block
+  available.
   
-- When blocks are no longer in use, sending a discard request for those blocks
-  lets vdo release references for those blocks. If the vdo is thinly
-  provisioned, discarding unused blocks is essential to prevent the target from
-  running out of space. However, due to the sharing of duplicate blocks, no
-  discard request for any given logical block is guaranteed to reclaim space.
+- When blocks are no longer in use, sending a discard request for those
+  blocks lets vdo release references for those blocks. If the vdo is thinly
+  provisioned, discarding unused blocks is essential to prevent the target
+  from running out of space. However, due to the sharing of duplicate
+  blocks, no discard request for any given logical block is guaranteed to
+  reclaim space.
 
-- Assuming the underlying storage properly implements flush requests, vdo is
-  resilient against crashes, however, unflushed writes may or may not persist
-  after a crash.
+- Assuming the underlying storage properly implements flush requests, vdo
+  is resilient against crashes, however, unflushed writes may or may not
+  persist after a crash.
 
-- Each write to a vdo entails a significant amount of processing. However, much
-  of the work is paralellizable. Therefore, vdo targets achieve better
+- Each write to a vdo entails a significant amount of processing. However,
+  much of the work is paralellizable. Therefore, vdo targets achieve better
   throughput at higher I/O depths, and can support up 2048 requests in
   parallel.
 
@@ -330,10 +335,11 @@ Tuning
 
 The vdo device has many options, and it can be difficult to make optimal
 choices without perfect knowledge of the workload. Additionally, most
-configuration options must be set when vdo is started, and cannot be changed
-without shutting the vdo down completely, so the configuration cannot be easily
-changed while the target is active. Ideally, tuning with simulated workloads
-should be performed before deploying vdo in production environments.
+configuration options must be set when vdo is started, and cannot be
+changed without shutting the vdo down completely, so the configuration
+cannot be easily changed while the target is active. Ideally, tuning with
+simulated workloads should be performed before deploying vdo in production
+environments.
 
 The most important value to adjust is the block map cache size. In order to
 service a request for any logical address, vdo must load the portion of the
@@ -346,17 +352,17 @@ proportionally for larger working sets.
 The logical and physical thread counts should also be adjusted. A logical
 thread controls a disjoint section of the block map, so additional logical
 threads increase parallelism and can increase throughput. Physical threads
-control a disjoint section of the data blocks, so additional physical threads
-can increase throughput also. However, excess threads can waste resources and
-increase contention.
+control a disjoint section of the data blocks, so additional physical
+threads can increase throughput also. However, excess threads can waste
+resources and increase contention.
 
-Bio submission threads control the parallelism involved in sending I/O to the
-underlying storage; fewer threads mean there is more opportunity to reorder I/O
-requests for performance benefit, but also that each I/O request has to wait
-longer before being submitted.
+Bio submission threads control the parallelism involved in sending I/O to
+the underlying storage; fewer threads mean there is more opportunity to
+reorder I/O requests for performance benefit, but also that each I/O
+request has to wait longer before being submitted.
 
-Bio acknowledgment threads control parallelism in finishing I/O requests when
-vdo is ready to mark them as done. Usually one is sufficient. However,
+Bio acknowledgment threads control parallelism in finishing I/O requests
+when vdo is ready to mark them as done. Usually one is sufficient. However,
 particularly when bios have CPU-heavy callbacks, additional threads may be
 beneficial.
 
@@ -364,6 +370,6 @@ CPU threads are used for hashing and for compression; in workloads with
 compression enabled, more threads may result in higher throughput.
 
 Hash threads are used to sort active requests by hash and determine whether
-they should deduplicate; the most CPU intensive actions done by these threads
-are comparison of 4096-byte data blocks. In most cases, a single hash thread is
-sufficient.
+they should deduplicate; the most CPU intensive actions done by these
+threads are comparison of 4096-byte data blocks. In most cases, a single
+hash thread is sufficient.
