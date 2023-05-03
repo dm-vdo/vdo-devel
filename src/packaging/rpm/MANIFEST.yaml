@@ -26,6 +26,7 @@ tarballs:
     sources:
       vdo:
         src/c++/vdo/base:
+          -undefines: .
           +undefines:
             - VDO_USER
           +postProcessor: postProcess.sh
