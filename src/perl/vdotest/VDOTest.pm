@@ -47,6 +47,7 @@ use Permabit::SystemTapCommand;
 use Permabit::SystemUtils qw(
   assertCommand
   assertSystem
+  createRemoteFile
   pythonCommand
 );
 use Permabit::UserMachine;
@@ -154,17 +155,16 @@ our %PROPERTIES
      useFilesystem           => 0,
     );
 
-my @RPM_NAMES
+my @SRPM_NAMES
   = (
-     "src/packaging/github/build/RPMS/x86_64/kmod-kvdo-$VDO_VERSION-1.*.rpm",
-     "src/packaging/github/build/SRPMS/vdo-$VDO_VERSION-1.*.rpm",
-     "archive/kmod-kvdo-$VDO_VERSION-1.*.rpm",
-     "archive/vdo-$VDO_VERSION-1.*.rpm",
+     "src/srpms/kmod-kvdo-$VDO_VERSION-*.src.rpm",
+     "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
     );
 
-my @TARBALLS
+my @RPM_NAMES
   = (
-     "src/c++/vdo/kernel/$VDO_MODNAME-$VDO_MARKETING_VERSION.tgz",
+     "archive/kmod-kvdo-$VDO_VERSION-1.*.rpm",
+     "archive/vdo-$VDO_VERSION-1.*.rpm",
     );
 
 my @SHARED_PYTHON_PACKAGES
@@ -576,11 +576,7 @@ sub listSharedFiles {
   if ($self->{useDistribution}) {
     return (@files, @RPM_NAMES);
   } else {
-    my @extraTGZ = ();
-    if (defined($self->{vdoModuleVersion})) {
-      $extraTGZ[0] = $self->getTGZNameForVersion($self->{vdoModuleVersion});
-    }
-    return (@files, @TARBALLS, @extraTGZ);
+    return (@files, @SRPM_NAMES);
   }
 }
 
