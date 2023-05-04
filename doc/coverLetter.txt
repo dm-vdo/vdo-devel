@@ -105,14 +105,14 @@ of 30% CPU time. Kernel work queues seem targeted for lighter work loads.
 They do not let us easily prioritize individual tasks within a zone, and
 make CPU affinity control at a per-thread level more difficult.
 
-In UDS, the threads scanning and updating the in-memory index data process
-a large number of queries through a single function. It uses its own
-"request queue" mechanism to process these efficiently in dedicated
-threads. In experiments using kernel work queues for the UDS index lookups,
-we observed an overall throughput drop of up to almost 10%. In the
-following table, randwrite% and write% represent the change in throughput
-when switching to kernel work queues for random and sequential write
-workloads, respectively.
+The threads scanning and updating the in-memory portion of the
+deduplication index process a large number of queries through a single
+function. It uses its own "request queue" mechanism to process these
+efficiently in dedicated threads. In experiments using kernel work queues
+for the index lookups, we observed an overall throughput drop of up to
+almost 10%. In the following table, randwrite% and write% represent the
+change in throughput when switching to kernel work queues for random and
+sequential write workloads, respectively.
 
 | compression% | deduplication% | randwrite% | write% |
 |--------------+----------------+------------+--------|
@@ -128,16 +128,19 @@ workloads, respectively.
 
 Mempools:
 
-There are two object pools in the vdo implementation for which the existing
-mempool structure was not appropriate. In both cases, the mempool semantics
-are not a good fit for the users of these pools. Furthermore, in the case
-of struct vio_pool, the locking done by mempool is a needless cost since
-each vio_pool is only accessed from one thread. In the case of
-data_vio_pool, the locking semantics are much more complicated. When a
-thread attempts to submit a bio to vdo, but there is no data_vio available
-to process that bio, the thread is put to sleep. The pool is designed to
-only wake that thread once, when it is certain that that thread's bio will
-be processed.
+There are two types of object pools in the vdo implementation for which the
+existing mempool structure was not appropriate. The first of these are
+pools of structures wrapping the bios used for vdo's metadata I/O. Since
+each of these pools is only accessed from a single thread, the locking done
+by mempool is a needless cost. The second of these, the single pool of the
+wrappers for incoming bios, has more complicated locking semantics than
+mempool provides. When a thread attempts to submit a bio to vdo, but the
+pool is exhausted, the thread is put to sleep. The pool is designed to only
+wake that thread once, when it is certain that that thread's bio will be
+processed. It is not desirable to merely allocate more wrappers as a number
+of other vdo structures are designed to handle only a fixed number of
+concurrent requests. This limit is also necessary to bound the amount of
+work needed when recovering after a crash.
 
 MurmurHash:
 

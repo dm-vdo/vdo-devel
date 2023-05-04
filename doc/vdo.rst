@@ -1,11 +1,13 @@
 dm-vdo
 ======
 
-The dm-vdo device mapper target provides block-level deduplication,
-compression, and thin provisioning. As a device mapper target, it can add
-these features to the storage stack, compatible with any file system. The
-vdo target does not protect against data corruption, relying instead on
-integrity protection of the storage below it.
+The dm-vdo (virtual data optimizer) device mapper target provides
+block-level deduplication, compression, and thin provisioning. As a device
+mapper target, it can add these features to the storage stack, compatible
+with any file system. The vdo target does not protect against data
+corruption, relying instead on integrity protection of the storage below
+it. It is strongly recommended that lvm be used to manage vdo volumes. See
+lvm-vdo(7).
 
 Userspace component
 ===================
@@ -15,10 +17,20 @@ at:
 
 https://github.com/dm-vdo/vdo/
 
-Additional userspace tools are also available for inspecting vdo volumes.
+In most cases, a vdo target will recover from a crash automatically the
+next time it is started. In cases where it encountered an unrecoverable
+error (either during normal operation or crash recovery) the target will
+enter or come up in read-only mode. Because read-only mode is indicative of
+data-loss, a positive action must be taken to bring vdo out of read-only
+mode. The 'vdoforcerebuild' tool, available from the same repo, is used to
+prepare a read-only vdo to exit read-only mode. After running this tool,
+the vdo target will rebuild its metadata the next time it is
+started. Although some data may be lost, the rebuilt vdo's metadata will be
+internally consistent and the target will be writable again.
 
-It is strongly recommended that lvm be used to manage vdo volumes. See
-lvm-vdo(7).
+The repo also contains additional userspace tools which can be used to
+inspect a vdo target's on-disk metadata. Fortunately, these tools are
+rarely needed except by dm-vdo developers.
 
 Target interface
 ================
