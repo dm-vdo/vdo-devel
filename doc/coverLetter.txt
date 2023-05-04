@@ -1,16 +1,18 @@
-Add the dm-vdo target which provides inline deduplication, compression,
-zero-block elimination, and thin provisioning. A dm-vdo target can be
-backed by up to 256TB of storage, and can present a logical size of up to
-4PB. This target was originally developed at Permabit Technology
-Corp. starting in 2009. It was first released in 2013 and has been used in
-production environments ever since. It was made open-source in 2017 after
-Permabit was acquired by Red Hat.
+Add the dm-vdo deduplication and compression device mapper target.
+
+The dm-vdo target provides inline deduplication, compression, zero-block
+elimination, and thin provisioning. A dm-vdo target can be backed by up to
+256TB of storage, and can present a logical size of up to 4PB. This target
+was originally developed at Permabit Technology Corp. starting in 2009. It
+was first released in 2013 and has been used in production environments
+ever since. It was made open-source in 2017 after Permabit was acquired by
+Red Hat.
 
 Because deduplication rates fall drastically as the block size increases, a
 vdo target has a maximum block size of 4KB. However, it can achieve
-deduplication rates of 254:1, i.e. up to 254 copies of a given 4KB block can
-reference a single 4KB of actual storage. It can achieve compression rates
-of 14:1. All zero blocks consume no storage at all.
+deduplication rates of 254:1, i.e. up to 254 copies of a given 4KB block
+can reference a single 4KB of actual storage. It can achieve compression
+rates of 14:1. All zero blocks consume no storage at all.
 
 Design Summary
 --------------
