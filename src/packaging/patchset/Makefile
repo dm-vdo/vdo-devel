@@ -9,12 +9,13 @@
 #   work/kvdo-$(VDO_MARKETING_VERSION)/vdo.
 #
 
+WD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 VDO_ROOT ?= $(realpath ../../..)
 SRC_DIR = ../..
 CURRENT_VERSION_FILE := $(VDO_ROOT)/src/tools/installers/CURRENT_VERSION
 include $(CURRENT_VERSION_FILE)
 
-WD = $(realpath $(PWD))
 WORK_DIR ?= $(WD)/work
 PREPARED_DIR = $(WORK_DIR)/kvdo-$(VDO_VERSION)
 MANIFEST ?= src/packaging/patchset/MANIFEST.yaml
