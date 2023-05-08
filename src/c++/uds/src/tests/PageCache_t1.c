@@ -141,7 +141,6 @@ static void testAddPages(void)
 
   // Verify cache is from most recent to least recent
   u32 physicalPage = cache.cache_slots;
-  unsigned int cacheAccessCount = 0;
 
   entry = NULL;
   getMostRecentPageFromCache(&cache, &entry);
@@ -152,7 +151,6 @@ static void testAddPages(void)
     get_page_from_cache(&cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(&cache, entry, &entry));
-    cacheAccessCount++;
   }
   CU_ASSERT_TRUE(physicalPage == 0);
 
@@ -174,7 +172,6 @@ static void testAddPages(void)
     get_page_from_cache(&cache, physicalPage, &page);
     CU_ASSERT_TRUE(page == entry);
     UDS_ASSERT_SUCCESS(getNextMostRecentPageFromCache(&cache, entry, &entry));
-    cacheAccessCount++;
   }
   CU_ASSERT_TRUE(physicalPage == 1);
 }
