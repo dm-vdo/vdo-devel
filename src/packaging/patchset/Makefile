@@ -79,11 +79,11 @@ COVER_LETTER = $(PREPARED_DIR)/coverLetter.txt
 patchset: prepare
 	cd $(LINUX_SRC) && git checkout $(LINUX_BRANCH)
 	mkdir -p $(LINUX_DM_VDO)
+	$(call COMMIT, $(DOC_FILES), $(LINUX_DOC),$(WD)/src/doc.txt)
 	$(call COMMIT, $(UDS_FILES),$(LINUX_DM_VDO),$(WD)/src/uds.txt)
 	$(call COMMIT, $(VDO_FILES),$(LINUX_DM_VDO),$(WD)/src/vdo.txt)
 	$(call COMMIT, $(TARGET_FILE), $(LINUX_DRIVERS_MD),$(WD)/src/target.txt)
 	$(call COMMIT, $(BUILD_FILES), $(LINUX_DRIVERS_MD),$(WD)/src/build.txt)
-	$(call COMMIT, $(DOC_FILES), $(LINUX_DOC),$(WD)/src/doc.txt)
 	cd $(LINUX_SRC) && GIT_EDITOR='cp $(COVER_LETTER) ' git branch --edit-description  
 	cd $(LINUX_SRC) && git format-patch -s -o .. --cover-letter --cover-from-description=subject HEAD ^origin/$(LINUX_BRANCH)
 
