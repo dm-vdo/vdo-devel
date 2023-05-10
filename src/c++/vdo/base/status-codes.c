@@ -7,8 +7,8 @@
 
 #ifndef __KERNEL__
 #include <errno.h>
-#endif /* __KERNEL__ */
 
+#endif /* ! __KERNEL__ */
 #include "errors.h"
 #include "logger.h"
 #include "permassert.h"
