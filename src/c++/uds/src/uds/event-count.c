@@ -3,6 +3,7 @@
  * Copyright Red Hat
  */
 
+#if !defined(__KERNEL__) || defined(TEST_INTERNAL)
 /*
  * This event count implementation uses a posix semaphore for portability, although a futex would
  * be slightly superior to use and easy to substitute. It is designed to make signalling as cheap
@@ -335,3 +336,4 @@ bool event_count_wait(struct event_count *count, event_token_t token, const ktim
 		cond_resched();
 	}
 }
+#endif /* (! __KERNEL) or TEST_INTERNAL */

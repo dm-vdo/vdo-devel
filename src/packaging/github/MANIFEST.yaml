@@ -61,6 +61,8 @@ tarballs:
           +excludes:
             - dory.c
             - dory.h
+            - event-count.c
+            - event-count.h
           +postProcessor: removeInternal.sh
         src/c++/uds/kernelLinux/uds:
           +postProcessor: removeInternal.sh

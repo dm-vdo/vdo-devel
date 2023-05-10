@@ -45,6 +45,8 @@ tarballs:
           +excludes:
             - dory.c
             - dory.h
+            - event-count.c
+            - event-count.h
           +defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP

@@ -6,6 +6,7 @@
 #ifndef EVENT_COUNT_H
 #define EVENT_COUNT_H
 
+#if !defined(__KERNEL__) || defined(TEST_INTERNAL)
 #include "time-utils.h"
 
 /*
@@ -56,5 +57,6 @@ event_token_t __must_check event_count_prepare(struct event_count *count);
 void event_count_cancel(struct event_count *count, event_token_t token);
 
 bool event_count_wait(struct event_count *count, event_token_t token, const ktime_t *timeout);
+#endif /* (! __KERNEL) or TEST_INTERNAL */
 
 #endif /* EVENT_COUNT_H */
