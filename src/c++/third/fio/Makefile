@@ -6,10 +6,16 @@ VPATH := $(SRCDIR)
 
 all: fio
 
+# VDO: We can mix CPU generations in testing, and so could build on a
+# CPU with support for fancy new instructions but then run on an older
+# one without the support. So we must disable --march=native. The
+# Fedora package does it with --disable-optimizations.
+CONFIG_OPTS= --disable-optimizations
+
 config-host.mak: configure
 	@if [ ! -e "$@" ]; then					\
 	  echo "Running configure ...";				\
-	  ./configure;						\
+	  ./configure $(CONFIG_OPTS);				\
 	else							\
 	  echo "$@ is out-of-date, running configure";		\
 	  sed -n "/.*Configured with/s/[^:]*: //p" "$@" | sh;	\
