@@ -3007,13 +3007,6 @@ zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 	return (tree_lock->root_index % map->zone_count);
 }
 
-/**
- * vdo_find_block_map_slot() - Compute the block map slot in which the block map entry for a
- *                             data_vio resides and cache that in the data_vio.
- * @thread_id: The thread on which to run the callback.
- * Update the block map era information for a newly finished journal block.
- * This method must be called from the journal zone thread.
- */
 void vdo_advance_block_map_era(struct block_map *map, sequence_number_t recovery_block_number)
 {
 	if (map == NULL)

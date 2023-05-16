@@ -1455,6 +1455,12 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 	launch_data_vio_allocated_zone_callback(data_vio, callback);
 }
 
+/**
+ * release_data_vio_allocation_lock() - Release the PBN lock on a data_vio's allocated block.
+ * @reset: If true, the allocation will be reset (i.e. any allocated pbn will be forgotten).
+ *
+ * If the reference to the locked block is still provisional, it will be released as well.
+ */
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset)
 {
 	struct allocation *allocation = &data_vio->allocation;

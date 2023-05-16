@@ -683,12 +683,6 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  vdo_action *callback,
 				  vdo_action *error_handler);
 
-/**
- * release_data_vio_allocation_lock() - Release the PBN lock on a data_vio's allocated block.
- * @reset: If true, the allocation will be reset (i.e. any allocated pbn will be forgotten).
- *
- * If the reference to the locked block is still provisional, it will be released as well.
- */
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
 
 int __must_check uncompress_data_vio(struct data_vio *data_vio,
