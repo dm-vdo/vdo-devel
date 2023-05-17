@@ -6,7 +6,6 @@
 #ifndef VDO_DEDUPE_H
 #define VDO_DEDUPE_H
 
-#include <linux/kobject.h>
 #include <linux/list.h>
 #include <linux/timer.h>
 
