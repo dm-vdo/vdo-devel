@@ -17,7 +17,7 @@
 #include <string.h>
 #endif
 
-/* Utilities related to string manipuation */
+/* Utilities related to string manipulation */
 
 static inline const char *uds_bool_to_string(bool value)
 {
