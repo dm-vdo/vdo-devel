@@ -377,7 +377,7 @@ static void handle_page_load_error(struct vdo_completion *completion)
 }
 
 /**
- * Unmap an invalid entry and indicate that its page must be written out.
+ * unmap_entry() - Unmap an invalid entry and indicate that its page must be written out.
  * @page: The page containing the entries
  * @completion: The page_completion for writing the page
  * @slot: The slot to unmap
@@ -390,7 +390,7 @@ unmap_entry(struct block_map_page *page, struct vdo_completion *completion, slot
 }
 
 /**
- * remove_out_of_bounds_entries(): Unmap entries which outside the logical space.
+ * remove_out_of_bounds_entries() - Unmap entries which outside the logical space.
  * @page: The page containing the entries
  * @completion: The page_completion for writing the page
  * @start: The first slot to check
@@ -410,7 +410,7 @@ static void remove_out_of_bounds_entries(struct block_map_page *page,
 }
 
 /**
- * process_slot(): Update the reference counts for a single entry.
+ * process_slot() - Update the reference counts for a single entry.
  * @page: The page containing the entries
  * @completion: The page_completion for writing the page
  * @slot: The slot to check
@@ -1284,7 +1284,7 @@ static bool find_recovery_journal_head_and_tail(struct repair_completion *repair
 }
 
 /**
- * unpack_entry(): Unpack a recovery journal entry in either format.
+ * unpack_entry() - Unpack a recovery journal entry in either format.
  * @vdo: The vdo.
  * @packed: The entry to unpack.
  * @format: The expected format of the entry.
@@ -1700,7 +1700,7 @@ static void read_journal_endio(struct bio *bio)
 }
 
 /**
- * vdo_repair(): Load the recovery journal and then recover or rebuild a vdo.
+ * vdo_repair() - Load the recovery journal and then recover or rebuild a vdo.
  * @parent: The completion to notify when the operation is complete
  */
 void vdo_repair(struct vdo_completion *parent)

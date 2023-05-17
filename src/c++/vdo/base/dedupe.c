@@ -2292,7 +2292,7 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 }
 
 /**
- * finish_index_operation(): This is the UDS callback for index queries.
+ * finish_index_operation() - This is the UDS callback for index queries.
  * @request: The uds request which has just completed.
  */
 static void finish_index_operation(struct uds_request *request)

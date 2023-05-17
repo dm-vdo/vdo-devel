@@ -2221,9 +2221,9 @@ static void allocate_block_map_page(struct block_map_zone *zone, struct data_vio
 				     allocation_failure);
 }
 
-/*
- * vdo_find_block_map_slot(): Find the block map slot in which the block map entry for a data_vio
- *                            resides and cache that result in the data_vio.
+/**
+ * vdo_find_block_map_slot() - Find the block map slot in which the block map entry for a data_vio
+ *                             resides and cache that result in the data_vio.
  *
  * All ancestors in the tree will be allocated or loaded, as needed.
  */

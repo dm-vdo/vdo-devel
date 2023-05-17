@@ -87,8 +87,8 @@ static const char *get_current_interrupt_type(void)
 	return "INTR";
 }
 
-/*
- * Emit a log message to the kernel at the specified priority.
+/**
+ * emit_log_message_to_kernel() - Emit a log message to the kernel at the specified priority.
  *
  * @priority: The priority at which to log the message
  * @fmt: The format string of the message
@@ -134,9 +134,11 @@ static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
 	va_end(args);
 }
 
-/*
- * Emit a log message to the kernel log in a format suited to the current thread context. Context
- * info formats:
+/**
+ * emit_log_message() - Emit a log message to the kernel log in a format suited to the current
+ *                      thread context.
+ *
+ * Context info formats:
  *
  * interrupt:           uds[NMI]: blah
  * kvdo thread:         kvdo12:foobarQ: blah

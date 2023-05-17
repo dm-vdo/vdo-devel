@@ -429,7 +429,7 @@ join_strings(char **substring_array, size_t array_length, char separator, char *
 	return UDS_SUCCESS;
 }
 
-/*
+/**
  * parse_bool() - Parse a two-valued option into a bool.
  * @bool_str: The string value to convert to a bool.
  * @true_str: The string value which should be converted to true.
@@ -1346,8 +1346,8 @@ static struct vdo_completion *prepare_admin_completion(struct vdo *vdo,
 }
 
 /**
- * advance_phase(): Increment the phase of the current admin operation and prepare the admin
- *                  completion to run on the thread for the next phase.
+ * advance_phase() - Increment the phase of the current admin operation and prepare the admin
+ *                   completion to run on the thread for the next phase.
  * @vdo: The on which an admin operation is being performed
  *
  * Return: The current phase

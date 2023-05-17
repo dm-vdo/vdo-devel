@@ -62,7 +62,7 @@ struct waiter {
 };
 
 /**
- * is_waiting() -Check whether a waiter is waiting.
+ * is_waiting() - Check whether a waiter is waiting.
  * @waiter: The waiter to check.
  *
  * Return: true if the waiter is on some wait_queue.

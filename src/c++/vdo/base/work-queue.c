@@ -382,8 +382,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 }
 
 /**
- * Create a work queue; if multiple threads are requested, completions will be distributed to them
- * in round-robin fashion.
+ * vdo_make_work_queue() - Create a work queue; if multiple threads are requested, completions will
+ *                         be distributed to them in round-robin fashion.
  *
  * Each queue is associated with a struct vdo_thread which has a single vdo thread id. Regardless
  * of the actual number of queues and threads allocated here, code outside of the queue
@@ -517,7 +517,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	/* ->waiting_worker_threads wait queue status? anyone waiting? */
 }
 
-/**
+/*
  * Write to the buffer some info about the completion, for logging. Since the common use case is
  * dumping info about a lot of completions to syslog all at once, the format favors brevity over
  * readability.
@@ -674,8 +674,9 @@ struct vdo_thread *vdo_get_work_queue_owner(struct vdo_work_queue *queue)
 }
 
 /**
- * Returns the private data for the current thread's work queue, or NULL if none or if the current
- * thread is not a work queue thread.
+ * vdo_get_work_queue_private_data() - Returns the private data for the current thread's work
+ *                                     queue, or NULL if none or if the current thread is not a
+ *                                     work queue thread.
  */
 void *vdo_get_work_queue_private_data(void)
 {

@@ -372,7 +372,7 @@ void vdo_put_mapped_block(struct data_vio *data_vio);
 struct block_map_statistics __must_check vdo_get_block_map_statistics(struct block_map *map);
 
 /**
- * vdo_convert_maximum_age(): Convert the maximum age to reflect the new recovery journal format
+ * vdo_convert_maximum_age() - Convert the maximum age to reflect the new recovery journal format
  * @age: The configured maximum age
  *
  * Return: The converted age

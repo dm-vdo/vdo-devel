@@ -3340,7 +3340,7 @@ int vdo_release_block_reference(struct block_allocator *allocator, physical_bloc
 	return adjust_reference_count(vdo_get_slab(allocator->depot, pbn), &updater, NULL);
 }
 
-/**
+/*
  * This is a min_heap callback function orders slab_status structures using the 'is_clean' field as
  * the primary key and the 'emptiness' field as the secondary key.
  *
@@ -3527,9 +3527,9 @@ static void initiate_load(struct admin_state *state)
 	apply_to_slabs(allocator, finish_loading_allocator);
 }
 
-/*
- * vdo_notify_slab_journals_are_recovered(): Inform a block allocator that its slab journals have
- *                                           been recovered from the recovery journal.
+/**
+ * vdo_notify_slab_journals_are_recovered() - Inform a block allocator that its slab journals have
+ *                                            been recovered from the recovery journal.
  * @completion The allocator completion
  */
 void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion)
@@ -4879,9 +4879,7 @@ EXTERNAL_STATIC void stop_scrubbing(struct block_allocator *allocator)
 				   NULL);
 }
 
-/**
- * Implements vdo_admin_initiator.
- */
+/* Implements vdo_admin_initiator. */
 EXTERNAL_STATIC void initiate_summary_drain(struct admin_state *state)
 {
 	check_summary_drain_complete(container_of(state, struct block_allocator, summary_state));
