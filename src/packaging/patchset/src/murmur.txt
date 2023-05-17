@@ -1,0 +1,7 @@
+Add the MurmurHash3 fast hashing algorithm.
+
+MurmurHash3 is a fast non-cryptographic hash. It was originally
+written by Austin Appleby and placed in the public domain. This
+version has been modified to produce the same result on both big
+endian and little endian processors, making it suitable for use in
+portable persisted data.

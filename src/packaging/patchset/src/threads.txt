@@ -1,0 +1,4 @@
+Add thread and synchronization utilities for UDS.
+
+This adds utilities for managing and using named threads. These
+utilities help dm-vdo minimize thread transitions.

@@ -1,0 +1,4 @@
+Add monitoring and control of deduplication.
+
+This adds the ability to monitor and control the deduplication index
+via logging, sysfs nodes and dmsetup message calls.

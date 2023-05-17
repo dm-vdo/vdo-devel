@@ -46,4 +46,5 @@ EXTRA_CFLAGS =	-I$(KBUILD_EXTMOD)					\
 		$(EXTRA_ARCH_CFLAGS)					\
 		-DEXTERNAL_STATIC=static                		\
 		-DVDO_INTERNAL						\
-		-DVDO_VERSION='"$(VDO_VERSION)"'
+		-DVDO_VERSION='"$(VDO_VERSION)"'			\
+		-DPART2

@@ -1,0 +1,7 @@
+Add specialized request queueing functionality.
+
+This change adds funnel queue, a mostly lock-free multi-producer,
+single-consumer queue.  It also adds a request queue based on the funnel
+queue. This will be used by the dm-vdo deduplication index for maximum
+throughput, which is absolutely critical to inline deduplication.
+

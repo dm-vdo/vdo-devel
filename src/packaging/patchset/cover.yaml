@@ -1,0 +1,16 @@
+treeName: vdo
+copyright: Copyright Red Hat
+licenseFile:
+  tree: vdo
+  file: src/packaging/src-dist/LICENSE.txt
+tarballs:
+  kvdo:
+    versionFiles:
+      vdo: src/tools/installers/CURRENT_VERSION
+    versionFrom: vdo
+    sources:
+      vdo:
+        doc:
+          dest: .
+          sources:
+            - coverLetter.txt

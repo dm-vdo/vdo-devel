@@ -1,0 +1,85 @@
+treeName: vdo
+copyright: Copyright Red Hat
+licenseFile:
+  tree: vdo
+  file: src/packaging/src-dist/LICENSE.txt
+tarballs:
+  kvdo:
+    versionFiles:
+      vdo: src/tools/installers/CURRENT_VERSION
+    versionFrom: vdo
+    sources:
+      vdo:
+        src/c++/vdo/base:
+          dest: vdo
+          sources:
+            - action-manager.c
+            - action-manager.h
+            - admin-state.c
+            - admin-state.h
+            - block-map.c
+            - block-map.h
+            - completion.c
+            - completion.h
+            - constants.c
+            - constants.h
+            - data-vio.c
+            - data-vio.h
+            - dump.c
+            - dump.h
+            - encodings.c
+            - encodings.h
+            - flush.c
+            - flush.h
+            - histogram.c
+            - histogram.h
+            - int-map.c
+            - int-map.h
+            - io-submitter.c
+            - io-submitter.h
+            - logical-zone.c
+            - logical-zone.h
+            - message-stats.c
+            - message-stats.h
+            - packer.c
+            - packer.h
+            - physical-zone.c
+            - physical-zone.h
+            - pointer-map.c
+            - pointer-map.h
+            - pool-sysfs.c
+            - pool-sysfs.h
+            - pool-sysfs-stats.c
+            - priority-table.c
+            - priority-table.h
+            - recovery-journal.c
+            - recovery-journal.h
+            - release-versions.h
+            - repair.c
+            - repair.h
+            - slab-depot.c
+            - slab-depot.h
+            - statistics.h
+            - status-codes.c
+            - status-codes.h
+            - sysfs.c
+            - types.h
+            - vdo.c
+            - vdo.h
+            - vio.c
+            - vio.h
+            - wait-queue.c
+            - wait-queue.h
+            - work-queue.c
+            - work-queue.h
+          undefines:
+            - INTERNAL
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - VDO_USER
+            - RHEL_RELEASE_CODE
+            - VDO_USE_ALTERNATE
+          defines:
+            - __KERNEL__
+            - VDO_UPSTREAM
+          postProcessor: ../github/removeInternal.sh

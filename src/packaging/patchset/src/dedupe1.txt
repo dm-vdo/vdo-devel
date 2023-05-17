@@ -1,0 +1,7 @@
+Add connection to the deduplication index.
+
+This adds the code that launches asynchronous query requests to the
+deuplication index and handles the results. It uses a structure called
+a hash lock to combine queries for the same hash value, which yields
+improved deduplication performance when there are runs of identical
+blocks.
