@@ -21,12 +21,12 @@
  * A scheduled action consists of four components:
  *
  *   preamble
- *      an optional method to be run on the initator thread before applying the action to all zones
+ *     an optional method to be run on the initiator thread before applying the action to all zones
  *   zone_action
- *      an optional method to be applied to each of the zones
+ *     an optional method to be applied to each of the zones
  *   conclusion
- *      an optional method to be run on the initiator thread once the per-zone method has been
- *      applied to all zones
+ *     an optional method to be run on the initiator thread once the per-zone method has been
+ *     applied to all zones
  *   parent
  *     an optional completion to be finished once the conclusion is done
  *

@@ -16,7 +16,7 @@
 /*
  * The volume index is the primary top-level index for UDS. It contains records which map a record
  * name to the chapter where a record with that name is stored. This mapping can definitively say
- * when no record exists. However, because we only use a sebset of the name for this index, it
+ * when no record exists. However, because we only use a subset of the name for this index, it
  * cannot definitively say that a record for the entry does exist. It can only say that if a record
  * exists, it will be in a particular chapter. The request can then be dispatched to that chapter
  * for further processing.

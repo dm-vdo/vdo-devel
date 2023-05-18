@@ -103,7 +103,7 @@ static int makeAlignedBuffer(FileLayer *layer,
  * @param [in]     startBlock  The physical block number of the start of the
  *                             extent
  * @param [in]     blockCount  The number of blocks in the extent
- * @param [in]     read        Wether the I/O to perform is a read
+ * @param [in]     read        Whether the I/O to perform is a read
  * @param [in/out] buffer      The buffer to read into or write from
  *
  * @return VDO_SUCCESS or an error code

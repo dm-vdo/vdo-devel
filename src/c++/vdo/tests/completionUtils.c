@@ -78,7 +78,7 @@ void removeCompletionWrapping(struct vdo_completion *completion)
 }
 
 /**
- * This is the proxy callback that the originaol action actually calls.
+ * This is the proxy callback that the original action actually calls.
  **/
 static void finishWrapping(struct vdo_completion *completion)
 {

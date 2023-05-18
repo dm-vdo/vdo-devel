@@ -219,7 +219,7 @@ static int printSignatureInfo(blkid_probe probe,
   } else {
     result = blkid_probe_lookup_value(probe, "PTTYPE", &type, NULL);
     if (result != VDO_SUCCESS) {
-      // Unknown type. Ingore.
+      // Unknown type. Ignore.
       return VDO_SUCCESS;
     }
 

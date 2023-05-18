@@ -64,7 +64,7 @@ static bool getDefaultCleanliness(size_t id)
  * Initialize a client to use a default data pattern, based on its ID.
  *
  * @param client    The client to initialize
- * @param id        The indentifier of the client
+ * @param id        The identifier of the client
  **/
 static void useDefaultPattern(SlabSummaryClient *client, size_t id)
 {

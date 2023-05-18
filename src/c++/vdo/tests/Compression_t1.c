@@ -209,7 +209,7 @@ static void releaseAfterHashZone(struct vdo_completion *completion)
 }
 
 /**
- * Impelements CompletionHook
+ * Implements CompletionHook
  **/
 static bool wrapIfEnteringHashZone(struct vdo_completion *completion)
 {

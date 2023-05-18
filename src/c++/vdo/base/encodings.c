@@ -1081,7 +1081,7 @@ EXTERNAL_STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layo
 	for (partition = layout->head; partition != NULL; partition = partition->next) {
 		buffer[(*offset)++] = partition->id;
 		encode_u64_le(buffer, offset, partition->offset);
-		/* This field only exists for backwards compatability */
+		/* This field only exists for backwards compatibility */
 		encode_u64_le(buffer, offset, 0);
 		encode_u64_le(buffer, offset, partition->count);
 	}

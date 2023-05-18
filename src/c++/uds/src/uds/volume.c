@@ -1501,7 +1501,7 @@ find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u
 	 * unflushed writes. Either the bad spot is at the beginning and end, or somewhere in the
 	 * middle. Wherever it is, the highest and lowest VCNs are adjacent to it. Otherwise the
 	 * volume is cleanly saved and somewhere in the middle of it the highest VCN immediately
-	 * preceeds the lowest one.
+	 * precedes the lowest one.
 	 */
 
 	/* It doesn't matter if this results in a bad spot (BAD_CHAPTER). */

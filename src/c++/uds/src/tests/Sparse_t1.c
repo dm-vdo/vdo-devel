@@ -325,7 +325,7 @@ static void sparseIndexTest(void)
   assertLookup(4, UDS_LOCATION_IN_OPEN_CHAPTER, DONT_UPDATE);
 
   // Advance the open chapter to chapter 1, and put records 1 and 2 in
-  // the new open chpater.
+  // the new open chapter.
   fillOpenChapter(0, 4);
   assertLookup(1, UDS_LOCATION_IN_DENSE, DO_UPDATE);
   assertLookup(2, UDS_LOCATION_IN_DENSE, DO_UPDATE);

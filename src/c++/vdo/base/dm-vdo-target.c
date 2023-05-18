@@ -1926,7 +1926,7 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
 /**
  * validate_new_device_config() - Check whether a new device config represents a valid modification
  *				  to an existing config.
- * @to_validate: The new config to valudate.
+ * @to_validate: The new config to validate.
  * @config: The existing config.
  * @may_grow: Set to true if growing the logical and physical size of the vdo is currently
  *	      permitted.

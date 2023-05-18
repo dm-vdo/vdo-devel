@@ -316,7 +316,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 
 	/*
 	 * This is only safe because, having not already loaded the geometry, the vdo's geometry's
-	 * bio_offset field is 0, so the fact that vio_reset_bio() will substract that offset from
+	 * bio_offset field is 0, so the fact that vio_reset_bio() will subtract that offset from
 	 * the supplied pbn is not a problem.
 	 */
 	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ, VDO_GEOMETRY_BLOCK_LOCATION);
@@ -1090,7 +1090,7 @@ static void handle_save_error(struct vdo_completion *completion)
 	 * restarted without rebuilding, but, after a read-only rebuild, the effects of those
 	 * writes would reappear.
 	 */
-	super_block->unwriteable = true;
+	super_block->unwritable = true;
 	completion->callback(completion);
 }
 
@@ -1111,7 +1111,7 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
 {
 	struct vdo_super_block *super_block = &vdo->super_block;
 
-	if (super_block->unwriteable) {
+	if (super_block->unwritable) {
 		vdo_continue_completion(parent, VDO_READ_ONLY);
 		return;
 	}

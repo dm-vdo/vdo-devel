@@ -4968,7 +4968,7 @@ void vdo_drain_slab_depot(struct slab_depot *depot,
 
 /**
  * resume_scrubbing() - Tell the scrubber to resume scrubbing if it has been stopped.
- * @alocator: The allocator being resumed.
+ * @allocator: The allocator being resumed.
  */
 static void resume_scrubbing(struct block_allocator *allocator)
 {

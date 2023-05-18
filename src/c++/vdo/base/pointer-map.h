@@ -22,7 +22,7 @@
  *
  * The key and value pointers passed to the map are retained and used by the map, but are not owned
  * by the map. Freeing the map does not attempt to free the pointers. The client is entirely
- * responsible for the memory managment of the keys and values. The current interface and
+ * responsible for the memory management of the keys and values. The current interface and
  * implementation assume that keys will be properties of the values, or that keys will not be
  * memory managed, or that keys will not need to be freed as a result of being replaced when a key
  * is re-mapped.

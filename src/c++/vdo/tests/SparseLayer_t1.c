@@ -62,7 +62,7 @@ static void initializeData(void)
 }
 
 /**
- * Destroy the test data and sprase layer.
+ * Destroy the test data and sparse layer.
  **/
 static void tearDownData(void)
 {

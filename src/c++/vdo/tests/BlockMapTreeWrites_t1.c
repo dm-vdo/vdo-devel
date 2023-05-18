@@ -289,7 +289,7 @@ static void testBlockMapTreeWrites(void)
   blockMapPage = (struct block_map_page *) flusher->data;
   CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(blockMapPage));
 
-  // Upon releaes of the flusher, everything should write out
+  // Upon release of the flusher, everything should write out
   reallyEnqueueVIO(flusher);
   CU_ASSERT_FALSE(checkCondition(checkWriteCount, &writeTarget));
   waitForWrites(writeTarget);

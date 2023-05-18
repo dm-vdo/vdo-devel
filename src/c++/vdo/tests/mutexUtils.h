@@ -131,7 +131,7 @@ void runOnCondition(WaitCondition *waitCondition,
  *
  * @param waitCondition  A function which should return true if the condition
  *                       pertains
- * @param method         The method to run if the condition has occured
+ * @param method         The method to run if the condition has occurred
  * @param context        The context for the WaitCondition and method
  *
  * @return <code>true</code> if the condition pertains
@@ -144,7 +144,7 @@ bool runIfCondition(WaitCondition *waitCondition,
  *
  * @param state  The state to check
  *
- * @return <code>true</code> if the state has occured
+ * @return <code>true</code> if the state has occurred
  **/
 bool checkState(bool *state)
   __attribute__((warn_unused_result));

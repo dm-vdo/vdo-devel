@@ -26,7 +26,7 @@ extern int          testArgc;
 extern const char **testArgv;
 
 /**
- * Add a test result, propogating values upward
+ * Add a test result, propagating values upward
  *
  * @param target  The higher level build target
  * @param index   Index of the result to be recorded
@@ -137,7 +137,7 @@ void printName(unsigned int indent, const char *name,
 /**
  * Print a test case result.
  *
- * @param indent        the indent for priting
+ * @param indent        the indent for printing
  * @param name          the test case name
  * @param result        the test case result
  **/

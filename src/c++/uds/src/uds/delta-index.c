@@ -228,7 +228,7 @@ void uds_reset_delta_index(const struct delta_index *delta_index)
 	/*
 	 * Initialize all delta lists to be empty. We keep 2 extra delta list descriptors, one
 	 * before the first real entry and one after so that we don't need to bounds check the
-	 * array access when calculating preceeding and following gap sizes.
+	 * array access when calculating preceding and following gap sizes.
 	 */
 	for (z = 0; z < delta_index->zone_count; z++) {
 		u64 list_bits;

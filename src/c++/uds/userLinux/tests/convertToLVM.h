@@ -25,7 +25,7 @@
  * returned in the location pointed to by the chapter_size argument.
  *
  * @param parameters    The parameters of the index
- * @param freed_space   The minimun amount of space to free at the start
+ * @param freed_space   The minimum amount of space to free at the start
  *                      of the device, in bytes. Must be a multiple of 4K.      
  * @param chapter_size  A place to return the size in bytes of the
  *                      chapter that was eliminated

@@ -105,6 +105,6 @@ int main(int argc, char *argv[])
          filename, uds_string_error(result, buf, sizeof(buf)));
   }
 
-  // Close and sync the uderlying file.
+  // Close and sync the underlying file.
   layer->destroy(&layer);
 }

@@ -605,7 +605,7 @@ struct layout_3_0 {
 struct partition_3_0 {
 	enum partition_id id;
 	physical_block_number_t offset;
-	physical_block_number_t base; /* unused but retained for backwards compatability */
+	physical_block_number_t base; /* unused but retained for backwards compatibility */
 	block_count_t count;
 } __packed;
 

@@ -35,7 +35,7 @@ static inline void assertCacheAligned(const volatile void *address)
 }
 
 /**********************************************************************/
-static void testFieldAligment(void)
+static void testFieldAlignment(void)
 {
   struct funnel_queue *queue;
   UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&queue));
@@ -201,11 +201,11 @@ static void testTenProducers(void)
 /**********************************************************************/
 
 static const CU_TestInfo funnelQueueTests[] = {
-  {"field alignment",          testFieldAligment  },
-  {"empty queue",              testEmptyQueue     },
-  {"singleton queue",          testSingletonQueue },
-  {"one producer",             testOneProducer    },
-  {"ten producers",            testTenProducers   },
+  {"field alignment",          testFieldAlignment  },
+  {"empty queue",              testEmptyQueue      },
+  {"singleton queue",          testSingletonQueue  },
+  {"one producer",             testOneProducer     },
+  {"ten producers",            testTenProducers    },
   CU_TEST_INFO_NULL,
 };
 

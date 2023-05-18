@@ -17,7 +17,7 @@
 /**
  * Initialize the recovery journal state for a new VDO.
  *
- * @return An intialized recovery journal state
+ * @return An initialized recovery journal state
  **/
 struct recovery_journal_state_7_0 __must_check configureRecoveryJournal(void);
 
@@ -52,7 +52,7 @@ int calculateMinimumVDOFromConfig(const struct vdo_config *config,
   __attribute__((warn_unused_result));
 
 /**
- * Intialize a layout according to a vdo_config. Exposed for testing only.
+ * Initialize a layout according to a vdo_config. Exposed for testing only.
  *
  * @param [in]  config          The vdo_config to generate a vdo_layout from
  * @param [in]  startingOffset  The start of the layouts

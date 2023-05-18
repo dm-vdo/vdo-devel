@@ -1241,7 +1241,7 @@ static void testJournal(void)
   waitForAppendPoint(4, RECOVERY_JOURNAL_ENTRIES_PER_BLOCK - 1);
   assertLastVIOCommitted(2, 0);
   // Make sure a write of block 4 wasn't issued. Since this runs on the journal thread, and
-  // we know all of the entries to be added to block 4 preceeded us, this check is valid.
+  // we know all of the entries to be added to block 4 preceded us, this check is valid.
   assertPendingBlock(4);
   CU_ASSERT_FALSE(releaseIfLatched(pbnFromEntry(block4Entry)));
 

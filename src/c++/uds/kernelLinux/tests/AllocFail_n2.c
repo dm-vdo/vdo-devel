@@ -40,7 +40,7 @@ static void closeSessionTest(void)
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   CU_ASSERT_EQUAL(allocationOverhead, getBytesUsed());
 
-  // Test that failing to destory a session does not leak memory.  We loop
+  // Test that failing to destroy a session does not leak memory.  We loop
   // while we see memory allocation failures during the destruction.
   unsigned int pass = 1;
   bool loop;

@@ -27,7 +27,7 @@ static inline const char *uds_bool_to_string(bool value)
 #if !defined(__KERNEL__) || defined(TEST_INTERNAL)
 /*
  * Allocate memory to contain a formatted string. The caller is responsible for
- * freeing the allcated memory.
+ * freeing the allocated memory.
  */
 int __must_check uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	__printf(3, 4);

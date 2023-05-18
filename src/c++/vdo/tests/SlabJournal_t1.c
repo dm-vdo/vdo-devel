@@ -625,7 +625,7 @@ static void commitJournalTail(struct vdo_completion *completion)
 
 /**
  * Perform an action to request that the slab journal release locks on a given
- * recovery journal block by comitting its tail block.
+ * recovery journal block by committing its tail block.
  *
  * @param recoveryLock  The recovery block whose locks should be released
  * @param shouldCommit  Set to <code>true</code> if the tail should lock the

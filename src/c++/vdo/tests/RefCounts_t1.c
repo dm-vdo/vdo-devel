@@ -448,7 +448,7 @@ static bool isNumberFinishedCorrect(void *context)
  **/
 static void testWriteOne(void)
 {
-  // Touch an arbitary block.
+  // Touch an arbitrary block.
   performSuccessfulAction(dirtyFirstBlockAction);
 
   desiredFinishedCount = 1;

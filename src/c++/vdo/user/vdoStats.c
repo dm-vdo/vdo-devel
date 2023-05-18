@@ -312,7 +312,7 @@ static void freeAllocations(void)
 /**********************************************************************
  * Process the VDO stats for a single device.
  *
- * @param original The orignal name passed into vdostats
+ * @param original The original name passed into vdostats
  * @param name     The name of the vdo device to use in dmsetup message
  *
  **/

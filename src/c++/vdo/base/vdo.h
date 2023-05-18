@@ -159,7 +159,7 @@ struct vdo_super_block {
 	/* A buffer to hold the super block */
 	u8 *buffer;
 	/* Whether this super block may not be written */
-	bool unwriteable;
+	bool unwritable;
 };
 
 struct data_vio_pool;

@@ -44,7 +44,7 @@ int __must_check makeUserVDO(PhysicalLayer *layer, UserVDO **vdoPtr);
 /**
  * Free a user space VDO object and NULL out the reference to it.
  *
- * @param vdoPtr  A poitner to the VDO to free
+ * @param vdoPtr  A pointer to the VDO to free
  **/
 void freeUserVDO(UserVDO **vdoPtr);
 
@@ -123,7 +123,7 @@ writeVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 
 /**
  * Encode and write out the super block (assuming the components have already
- * been encoded). Thist method is broken out for unit testing.
+ * been encoded). This method is broken out for unit testing.
  *
  * @param vdo  The vdo whose super block is to be saved
  *

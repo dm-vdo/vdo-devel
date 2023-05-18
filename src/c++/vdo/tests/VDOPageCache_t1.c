@@ -578,7 +578,7 @@ static void testReadOnly(void)
  * release the page.
  *
  * @param pageNumber  The page to get
- * @param writeable   Whether the page should be writable
+ * @param writable    Whether the page should be writable
  * @param action      The action to perform on the page
  **/
 static void withPage(page_number_t pageNumber,
@@ -859,7 +859,7 @@ static void testAgeDirtyPages(void)
   advanceAndAssert(4, 1);
   // Dirty pages 0-3 in period 3.
   touchPages(0, 4, period);
-  // Advance the current period to 4, page 3 should get writtn out.
+  // Advance the current period to 4, page 3 should get written out.
   advanceAndAssert(4, 3);
   // Dirty pages 0 and 1 twice in period 4.
   touchPages(0, 2, period);

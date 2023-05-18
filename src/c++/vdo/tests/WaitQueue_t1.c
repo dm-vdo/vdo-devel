@@ -37,7 +37,7 @@ static void trackWaitersCalled(struct waiter *waiter, void *context)
  *                        tracks field is either true (has been called) or
  *                        false (has not been called) or if it was called
  *                        in the specified order. Must not be longer than
- *                        the tracker's count field. Unrecognized characers
+ *                        the tracker's count field. Unrecognized characters
  *                        are skipped.
  **/
 static void checkTracker(const WaiterTracker *tracker, const char *expected)

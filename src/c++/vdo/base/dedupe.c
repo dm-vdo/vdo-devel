@@ -1703,7 +1703,7 @@ static void finish_querying(struct vdo_completion *completion)
 }
 
 /**
- * start_querying() - Start deduplicatoin for a hash lock.
+ * start_querying() - Start deduplication for a hash lock.
  * @lock: The initialized hash lock.
  * @data_vio: The data_vio that has just obtained the new lock.
  *

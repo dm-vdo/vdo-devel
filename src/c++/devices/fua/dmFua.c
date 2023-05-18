@@ -6,7 +6,7 @@
  * This is a test "fua" device, which manages FUA (and sometimes flush)
  * bits on write requests. It can be used in these fashions:
  *
- * 1 - Atop VDO, wih frequency 1, testing how VDO behaves with every
+ * 1 - Atop VDO, with frequency 1, testing how VDO behaves with every
  *     write having the FUA bit set.
  *
  * 2 - Beneath VDO, especially on async storage, in tests where VDO's

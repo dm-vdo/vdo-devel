@@ -113,7 +113,7 @@ static bool wantsLogicalLockOnLBN1(struct vdo_completion *completion)
 }
 
 /**
- * Test fullfilling reads and mooting of blocks in the compressor.
+ * Test fulfilling reads and mooting of blocks in the compressor.
  **/
 static void testReadFulfillmentAndCompressorMooting(void)
 {
@@ -228,7 +228,7 @@ static bool checkPBN(struct vdo_completion *completion)
 }
 
 /**
- * Test fullfilling reads and mooting of blocks in the packer.
+ * Test fulfilling reads and mooting of blocks in the packer.
  **/
 static void testReadFulfillmentAndPackerMooting(void)
 {

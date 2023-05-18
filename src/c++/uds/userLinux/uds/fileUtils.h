@@ -19,7 +19,7 @@ enum file_access {
 	FU_CREATE_WRITE_ONLY = 3,        // like above, but open for writing
 					 // only
 				         // Direct I/O:
-	FU_READ_ONLY_DIRECT = 4,         // open file with read-only acces
+	FU_READ_ONLY_DIRECT = 4,         // open file with read-only access
 	FU_READ_WRITE_DIRECT = 5,        // open file with read-write access
 	FU_CREATE_READ_WRITE_DIRECT = 6, // same, but create and truncate with
 					 // 0666 mode bits if the file doesn't

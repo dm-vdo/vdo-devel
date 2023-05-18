@@ -89,7 +89,7 @@ static void checkForSlabJournalBlocked(struct vdo_completion *completion)
 }
 
 /**
- * Impelements CompletionHook.
+ * Implements CompletionHook.
  **/
 static bool wrapIfInPhysicalZone(struct vdo_completion *completion)
 {
@@ -116,7 +116,7 @@ static void checkForRecoveryJournalBlocked(struct vdo_completion *completion)
 }
 
 /**
- * Impelements CompletionHook.
+ * Implements CompletionHook.
  **/
 static bool wrapIfInJournalZone(struct vdo_completion *completion)
 {

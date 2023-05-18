@@ -247,7 +247,7 @@ static int unregisterVDO(char * devName) {
 }
 
 /**
- * Validate that dynamic shared libray exists
+ * Validate that dynamic shared library exists
  *
  * @returns 0 if success, otherwise error
  */

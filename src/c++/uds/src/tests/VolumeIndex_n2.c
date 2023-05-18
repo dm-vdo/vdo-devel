@@ -22,7 +22,7 @@ typedef struct testMI {
   struct io_factory         *factory;        // IO factory for saving volume
                                              // index
                                              // Save state:
-  off_t                      zoneOff[ZONES]; //     szve area offset
+  off_t                      zoneOff[ZONES]; //     save area offset
   size_t                     saveSize;       //     size of memory IOregion
   struct volume_index_stats  denseStats;     //     dense index stats
   struct volume_index_stats  sparseStats;    //     sparse index stats

@@ -89,7 +89,7 @@ static void recoverBlockMapCallback(struct vdo_completion *completion)
 }
 
 /**
- * Hook to simulate the journal load with an artifial set of mappings.
+ * Hook to simulate the journal load with an artificial set of mappings.
  * Allocates and generates a numbered block mapping array with the given number
  * of mappings, updating the expected block map mappings as the array is
  * generated. The pattern used to fill the array is different from the pattern
