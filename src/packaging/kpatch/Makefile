@@ -225,7 +225,7 @@ linux-clean linux_clean:
 kpatch:
 	cd $(LINUX_SRC) && $(GIT) $(GITARGS) add . \
 	  && $(GIT) $(GITARGS) commit -m "$(CHANGE_LOG)" \
-	  && $(GIT) $(GITARGS) format-patch -s -o .. HEAD ^origin
+	  && $(GIT) $(GITARGS) format-patch -s -o .. HEAD ^origin/$(LINUX_BRANCH)
 
 # Parallel builds are risky since all of the targets here are a linear
 # pipeline.
