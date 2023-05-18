@@ -9,6 +9,9 @@
 #include <linux/err.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "errors.h"
 #include "logger.h"
@@ -168,13 +171,19 @@ void uds_thread_exit(void)
 	mutex_unlock(&thread_mutex);
 	uds_unregister_allocating_thread();
 
-/*
- * Temporary workaround for LINUX_VERSION_CODE <= KERNEL_VERSION(5,17,0). We have two kernels, both
- * claiming to be version 5.17.0, that have different APIs. The only way to distinguish the two is
- * to check for the definition of a macro that was added as part of the change that implemented
- * kthread_complete_and_exit.
- */
-#ifndef module_put_and_kthread_exit
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#ifdef RHEL_RELEASE_CODE
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 	complete_and_exit(completion, 1);
 #else
 	kthread_complete_and_exit(completion, 1);
