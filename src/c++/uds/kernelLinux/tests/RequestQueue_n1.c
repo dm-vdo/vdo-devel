@@ -246,6 +246,15 @@ static void consoleMonitorTest(void)
 {
   startConsoleMonitor();
   pr_err("testing to see if we catch: blocked for more than 0 seconds\n");
+
+  /*
+   * We can tear down our console monitor before the thread that handles
+   * printing runs thus making it seem that message isn't getting to the
+   * console.  Delay for a short time (1 second seems to be enough, but
+   * use 2 for "certainty") to give the printing thread a chance to run.
+   */
+  ssleep(2);
+
   finishConsoleMonitor();
   /*
    * If these assertions fail, error level messages aren't getting to
