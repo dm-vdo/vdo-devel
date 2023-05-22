@@ -310,7 +310,8 @@ vdo_as_block_map_page(struct tree_page *tree_page)
 	return (struct block_map_page *) tree_page->page_buffer;
 }
 
-bool vdo_copy_valid_page(char *buffer, nonce_t nonce,
+bool vdo_copy_valid_page(char *buffer,
+			 nonce_t nonce,
 			 physical_block_number_t pbn,
 			 struct block_map_page *page);
 
