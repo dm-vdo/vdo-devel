@@ -48,6 +48,8 @@ tarballs:
             - dm-vdo-target.c
             - histogram.c
             - histogram.h
+            - vdo-histograms.c
+            - vdo-histograms.h
           +undefines:
             - INTERNAL
             - TEST_INTERNAL

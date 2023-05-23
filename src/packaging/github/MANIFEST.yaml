@@ -30,6 +30,8 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
+            - vdo-histograms.c
+            - vdo-histograms.h
           +postProcessor: removeInternal.sh
   kvdo:
     sources:
@@ -56,6 +58,8 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
+            - vdo-histograms.c
+            - vdo-histograms.h
           +postProcessor: removeInternal.sh
         src/c++/uds/src/uds:
           +excludes:

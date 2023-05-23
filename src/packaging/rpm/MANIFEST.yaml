@@ -13,9 +13,6 @@ tarballs:
     sources:
       vdo:
         src/c++/vdo/base:
-          +excludes:
-            - histogram.c
-            - histogram.h
           +postProcessor: ../github/removeInternal.sh
         src/c++/uds/src/uds:
           +postProcessor: ../github/removeInternal.sh
@@ -25,6 +22,11 @@ tarballs:
   kvdo:
     sources:
       vdo:
+        -src/packaging/src-dist/kernel:
+        +src/packaging/rpm/kernel:
+          dest: .
+          sources:
+            - Makefile
         src/c++/vdo/base:
           -undefines: .
           +undefines:

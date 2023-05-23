@@ -276,6 +276,8 @@ tarballs:
             - types.h
             - vdo.c
             - vdo.h
+            - vdo-histograms.c
+            - vdo-histograms.h
             - vio.c
             - vio.h
             - wait-queue.c
