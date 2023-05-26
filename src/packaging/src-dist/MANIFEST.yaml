@@ -290,7 +290,6 @@ tarballs:
             - VDO_INTERNAL
             - VDO_USER
           defines:
-            - PART2
             - __KERNEL__
         src/c++/uds/src/uds:
           dest: dm-vdo

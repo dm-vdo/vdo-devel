@@ -2037,7 +2037,6 @@ static u32 hash_key(const void *key)
 	return get_unaligned_le32(&name->name[4]);
 }
 
-#ifdef PART2
 static void dedupe_kobj_release(struct kobject *directory)
 {
 	UDS_FREE(container_of(directory, struct hash_zones, dedupe_directory));
@@ -2085,7 +2084,6 @@ static struct kobj_type dedupe_directory_type = {
 	.sysfs_ops = &dedupe_sysfs_ops,
 	.default_groups = dedupe_groups,
 };
-#endif /* PART2 */
 
 #ifdef __KERNEL__
 static void start_uds_queue(void *ptr)
@@ -2215,7 +2213,6 @@ static void start_expiration_timer(struct dedupe_context *context)
 	mod_timer(&context->zone->timer, end_time);
 }
 
-#ifdef PART2
 /**
  * report_dedupe_timeouts() - Record and eventually report that some dedupe requests reached their
  *                            expiration time without getting answers, so we timed them out.
@@ -2236,7 +2233,6 @@ static void report_dedupe_timeouts(struct hash_zones *zones, unsigned int timeou
 	}
 	spin_unlock(&zones->lock);
 }
-#endif /* PART2 */
 
 static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 {
@@ -2727,7 +2723,6 @@ void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *pare
 			       parent);
 }
 
-#ifdef PART2
 /**
  * get_hash_zone_statistics() - Add the statistics for this hash zone to the tally for all zones.
  * @zone: The hash zone to query.
@@ -2798,7 +2793,6 @@ void vdo_get_dedupe_statistics(struct hash_zones *zones, struct vdo_statistics *
 	stats->dedupe_advice_timeouts =
 		(atomic64_read(&zones->timeouts) + atomic64_read(&zones->dedupe_context_busy));
 }
-#endif /*  PART2 */
 
 /**
  * vdo_select_hash_zone() - Select the hash zone responsible for locking a given record name.
@@ -2827,7 +2821,6 @@ vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *nam
 	return &zones->zones[hash];
 }
 
-#ifdef PART2
 /**
  * dump_hash_lock() - Dump a compact description of hash_lock to the log if the lock is not on the
  *                    free list.
@@ -2949,7 +2942,6 @@ void vdo_set_dedupe_index_min_timer_interval(unsigned int value)
 	vdo_dedupe_index_min_timer_interval = value;
 	vdo_dedupe_index_min_timer_jiffies = min_jiffies;
 }
-#endif /* PART2 */
 
 /**
  * acquire_context() - Acquire a dedupe context from a hash_zone if any are available.
@@ -3081,7 +3073,6 @@ static void set_target_state(struct hash_zones *zones,
 		uds_log_info("Setting UDS index target state to %s", new_state);
 }
 
-#ifdef PART2
 const char *vdo_get_dedupe_index_state_name(struct hash_zones *zones)
 {
 	const char *state;
@@ -3123,7 +3114,6 @@ int vdo_add_dedupe_index_sysfs(struct hash_zones *zones)
 
 	return result;
 }
-#endif /* PART2 */
 
 /* If create_flag, create a new index without first attempting to load an existing index. */
 void vdo_start_dedupe_index(struct hash_zones *zones, bool create_flag)
