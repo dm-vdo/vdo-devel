@@ -70,21 +70,20 @@ trade-off between the storage saved and the resources expended to achieve
 those savings, vdo does not attempt to find every last duplicate block. It
 is sufficient to find and eliminate most of the redundancy.
 
-Each block of data is hashed to produce a 16-byte block name which serves
-as an identifier for the block. An index record consists of this block name
-paired with the presumed location of that data on the underlying storage.
-However, it is not possible to guarantee that the index is accurate. Most
-often, this occurs because it is too costly to update the index when a
-block is over-written or discarded. Doing so would require either storing
-the block name along with the blocks, which is difficult to do efficiently
-in block-based storage, or reading and rehashing each block before
-overwriting it. Inaccuracy can also result from a hash collision where two
-different blocks have the same name. In practice, this is extremely
-unlikely, but because vdo does not use a cryptographic hash, a malicious
-workload can be constructed. Because of these inaccuracies, vdo treats the
-locations in the index as hints, and reads each indicated block to verify
-that it is indeed a duplicate before sharing the existing block with a new
-one.
+Each block of data is hashed to produce a 16-byte block name. An index
+record consists of this block name paired with the presumed location of
+that data on the underlying storage. However, it is not possible to
+guarantee that the index is accurate. Most often, this occurs because it is
+too costly to update the index when a block is over-written or discarded.
+Doing so would require either storing the block name along with the blocks,
+which is difficult to do efficiently in block-based storage, or reading and
+rehashing each block before overwriting it. Inaccuracy can also result from
+a hash collision where two different blocks have the same name. In
+practice, this is extremely unlikely, but because vdo does not use a
+cryptographic hash, a malicious workload can be constructed. Because of
+these inaccuracies, vdo treats the locations in the index as hints, and
+reads each indicated block to verify that it is indeed a duplicate before
+sharing the existing block with a new one.
 
 Records are collected into groups called chapters. New records are added to
 the newest chapter, called the open chapter. This chapter is stored in a
