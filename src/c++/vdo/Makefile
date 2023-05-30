@@ -2,7 +2,7 @@
 #
 # VDO C top level Makefile
 #
-# Copyright Red Hat
+# Copyright 2023 Red Hat
 #
 
 SRC_DIR = ../..

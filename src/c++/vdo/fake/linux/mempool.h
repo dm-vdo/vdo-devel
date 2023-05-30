@@ -3,7 +3,7 @@
  * Unit test requirements from linux/mempool.h.
  *
  * Copyright (C) ??? (not sure what to put here)
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 #ifndef _LINUX_MEMPOOL_H

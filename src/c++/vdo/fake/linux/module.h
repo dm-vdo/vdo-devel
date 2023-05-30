@@ -4,7 +4,7 @@
  *
  * Presumes there is only one module (vdo).
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

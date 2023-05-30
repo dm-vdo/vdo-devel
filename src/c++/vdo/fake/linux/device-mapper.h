@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (C) 2001 Sistina Software (UK) Limited.
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

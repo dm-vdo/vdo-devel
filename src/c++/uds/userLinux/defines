@@ -3,7 +3,7 @@
 #
 # define variables used for userLinux makefiles
 #
-# Copyright Red Hat
+# Copyright 2023 Red Hat
 #
 
 VERSION           = -DCURRENT_VERSION='"$(VDO_VERSION)"'

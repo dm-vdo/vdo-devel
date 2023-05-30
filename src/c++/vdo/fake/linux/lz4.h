@@ -2,7 +2,7 @@
 /*
  * Fake implementation of linux/lz4.h for unit tests.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  */
 
 #ifndef LINUX_LZ4_H

@@ -3,7 +3,7 @@
  * This is an edited version of linux/list.h for use in user space
  * programs.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

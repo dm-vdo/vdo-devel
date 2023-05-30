@@ -8,7 +8,7 @@
  * are using VDO completions to implement.
  *
  * Copyright (C) 2001 - 2003 Sistina Software
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

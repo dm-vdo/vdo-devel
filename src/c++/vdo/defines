@@ -2,7 +2,7 @@
 # vim:filetype=make
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# Copyright Red Hat
+# Copyright 2023 Red Hat
 #
 # Define variables used for all makefiles.
 #

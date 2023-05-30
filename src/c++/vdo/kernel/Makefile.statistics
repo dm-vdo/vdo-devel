@@ -2,7 +2,7 @@
 # vim:filetype=make
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# Copyright Red Hat
+# Copyright 2023 Red Hat
 #
 # This makefile is used to generate the kernel stats header. It is not part of
 # the main makefile so that it can be free to include definitions from up the

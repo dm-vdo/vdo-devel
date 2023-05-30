@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  * Test the steady state performance of deduping data.  Test using a series of
  * "bands", where by a "band" we measure how many chunks we are reposting from

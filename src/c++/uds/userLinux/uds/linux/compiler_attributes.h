@@ -3,7 +3,7 @@
  * User space attribute defines to match the ones in the kernel's
  * linux/compiler_attributes.h
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  */
 #ifndef LINUX_COMPILER_ATTRIBUTES_H
 #define LINUX_COMPILER_ATTRIBUTES_H

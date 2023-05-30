@@ -4,7 +4,7 @@
  * unit testing, reimplemented without all of the architecture specific
  * macros.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

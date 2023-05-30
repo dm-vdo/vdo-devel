@@ -4,7 +4,7 @@
 #
 # define variables used for kernelLinux makefiles
 #
-# Copyright Red Hat
+# Copyright 2023 Red Hat
 #
 
 K_UDS_DIR	= $(PLATFORM_DIR)/uds

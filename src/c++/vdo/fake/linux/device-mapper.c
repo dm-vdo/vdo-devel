@@ -2,7 +2,7 @@
 /*
  * Implementation of fake device mapper functionality for user space.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

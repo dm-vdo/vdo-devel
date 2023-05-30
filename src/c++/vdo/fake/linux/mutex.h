@@ -2,7 +2,7 @@
 /*
  * Wrap our own mutexes to mimic the kernel.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  */
 

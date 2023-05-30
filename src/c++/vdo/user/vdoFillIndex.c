@@ -2,7 +2,7 @@
 /*
  * A utility to fill a UDS index with synthetic records.
  *
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  */
 
 #include <err.h>

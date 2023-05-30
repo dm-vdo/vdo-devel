@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright Red Hat
+ * Copyright 2023 Red Hat
  *
  * Rebuild_p1 measures the rebuild performance of a UDS index.
  */
