@@ -361,6 +361,7 @@ sub set_up {
 
   if (defined($self->{fsType}) && ($self->{fsType} =~ m/^nfs-/)) {
     $self->{numNfsclients} ||= 1;
+    $self->{nfsclientClass} //= $self->{clientClass};
   };
   $self->{fsBlockSize} //= $self->_getDefaultFSBlockSize();
   $self->reserveHosts();
