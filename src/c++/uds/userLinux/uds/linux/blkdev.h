@@ -15,6 +15,13 @@
 #define SECTOR_SHIFT 9
 #define SECTOR_SIZE 512
 
+#define MINORBITS 20
+#define MINORMASK ((1U << MINORBITS) - 1)
+
+#define MAJOR(dev) ((unsigned int) ((dev) >> MINORBITS))
+#define MINOR(dev) ((unsigned int) ((dev) & MINORMASK))
+#define MKDEV(ma,mi) (((ma) << MINORBITS) | (mi))
+
 /* Defined in linux/fs.h but hacked for vdo unit testing */
 struct inode {
   loff_t size;
@@ -72,15 +79,6 @@ void blkdev_put(struct block_device *bdev, fmode_t mode);
 static inline loff_t i_size_read(const struct inode *inode)
 {
         return (inode == NULL) ? (loff_t) SIZE_MAX : inode->size;
-}
-
-/*
- * Defined in linux/mount.h, but it's convenient to implement here. We
- * override this so we don't accidentally get a real device identifier.
- */
-static inline dev_t name_to_dev_t(const char *name __always_unused)
-{
-	return 0;
 }
 
 #endif // LINUX_BLKDEV_H

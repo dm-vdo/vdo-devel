@@ -9,6 +9,9 @@
 #include <linux/blkdev.h>
 #include <linux/err.h>
 #include <linux/mount.h>
+#ifndef __KERNEL__ 
+#include <stdio.h>
+#endif /* __KERNEL__ */
 
 #ifdef TEST_INTERNAL
 #include "dory.h"
@@ -66,12 +69,22 @@ static void uds_get_io_factory(struct io_factory *factory)
 
 static int get_block_device_from_name(const char *name, struct block_device **bdev)
 {
-	dev_t device = name_to_dev_t(name);
+	dev_t device;
+	unsigned int major, minor;
+	char dummy;
 
-	if (device != 0)
+	/* Extract the major/minor numbers */
+	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
+		device = MKDEV(major, minor);
+		if (MAJOR(device) != major || MINOR(device) != minor)
+			return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+						      "%s is not a valid block device",
+						      name);
 		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
-	else
+	} else {
 		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
+	}
+
 	if (IS_ERR(*bdev)) {
 		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
 		return UDS_INVALID_ARGUMENT;
