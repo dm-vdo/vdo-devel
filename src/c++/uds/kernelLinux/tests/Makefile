@@ -21,7 +21,6 @@ ZUB_DIR     = $(ZUB_MODULE)
 
 TEST_EXCLUDES :=
 TEST_EXCLUDES += $(TEST_DIR)/VolumeIndex_p2.c
-TEST_EXCLUDES += $(TEST_DIR)/BlockName_n2.c
 
 TEST_SOURCES = $(filter-out $(TEST_EXCLUDES),			\
 			$(wildcard ./[A-Z]*_[nptx][1-9].c)	\
