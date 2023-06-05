@@ -159,6 +159,7 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 		fsleep(1000);
 }
 
+#ifdef TEST_INTERNAL
 static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 {
 	unsigned int jiffies;
@@ -170,6 +171,7 @@ static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphor
 	return down_timeout(semaphore, jiffies) == 0;
 }
 
+#endif  /* TEST_INTERNAL */
 static inline void uds_release_semaphore(struct semaphore *semaphore)
 {
 	up(semaphore);
