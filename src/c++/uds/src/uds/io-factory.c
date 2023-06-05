@@ -76,10 +76,12 @@ static int get_block_device_from_name(const char *name, struct block_device **bd
 	/* Extract the major/minor numbers */
 	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
 		device = MKDEV(major, minor);
-		if (MAJOR(device) != major || MINOR(device) != minor)
+		if (MAJOR(device) != major || MINOR(device) != minor) {
+			*bdev = NULL;
 			return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 						      "%s is not a valid block device",
 						      name);
+		}
 		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
 	} else {
 		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
@@ -87,6 +89,7 @@ static int get_block_device_from_name(const char *name, struct block_device **bd
 
 	if (IS_ERR(*bdev)) {
 		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
+		*bdev = NULL;
 		return UDS_INVALID_ARGUMENT;
 	}
 
