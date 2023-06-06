@@ -9,73 +9,49 @@ use strict;
 use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
 use Log::Log4perl;
-use Permabit::Assertions qw(
-  assertDefined
-  assertMinMaxArgs
-  assertNumArgs
-  assertOptionalArgs
-  assertType
-);
+use Permabit::Assertions qw(assertNumArgs);
 use Permabit::Constants;
 use Permabit::SystemUtils qw(assertSystem);
 use Permabit::Utils qw(makeFullPath);
 use Permabit::VersionNumber;
-use Storable qw(dclone);
+
+use base qw(Permabit::ModuleBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
-my %useCounts;
-
 ###############################################################################
 # @paramList{new}
-my %PROPERTIES
+our %PROPERTIES
   = (
-     # @ple host that needs the kernel module (a Permabit::RemoteMachine)
-     machine        => undef,
-     # @ple directory where the DKMS module is found
-     modDir         => undef,
-     # @ple kernel module name
-     modName        => undef,
-     # @ple kernel module version
-     modVersion     => undef,
      # @ple options to pass to modprobe
      modprobeOption => "",
     );
 ##
 
 ###############################################################################
-# Creates a C<Permabit::KernelModule>.
-#
-# @param params  Module properties
-#
-# @return a new C<Permabit::KernelModule>
+# @inherit
 ##
 sub new {
   my $invocant = shift;
   my $class = ref($invocant) || $invocant;
-  my $self = bless({%PROPERTIES, @_}, $invocant);
-  assertDefined($self->{machine});
-  assertDefined($self->{modDir});
-  assertDefined($self->{modName});
-  assertDefined($self->{modVersion});
-  assertType("Permabit::RemoteMachine", $self->{machine});
-  $self->{_cleanCommands} = [];
+  my $self = $class->SUPER::new(@_);
+
+  if ($self->{modFileName} =~ /^kvdo$/) {
+    $self->{modFileName} = 'kmod-' . $self->{modName};
+  }
+
   return $self;
 }
 
 ###############################################################################
-# Load the module into the kernel for the first time
-#
-# @return a flag indicating if the module was actually loaded
+# @inherit
 ##
 sub load {
   my ($self) = assertNumArgs(1, @_);
-  my $loaded = 0;
   my $machine = $self->{machine};
   my $modName = $self->{modName};
-  if (!$useCounts{$machine->getName()}{$modName}) {
-    $self->loadFromFiles();
 
+  if ($self->SUPER::load()) {
     # modprobe will tell us whether we managed to load successfully.
     # modprobe failures leave the useful logging in the log, so
     # capture the kernel log upon any failure.
@@ -90,96 +66,31 @@ sub load {
     $self->_step(command => "sudo modprobe $modName $self->{modprobeOption}",
                  cleaner => "sudo modprobe -r $modName",
                  diagnostic => $uponModprobeError);
-    $loaded = 1;
   }
-  ++$useCounts{$machine->getName()}{$modName};
 
-  return $loaded;
+  return (!$machine->runSystemCmd("sudo modinfo $modName"));
 }
 
 ###############################################################################
-# Determine what type of module files are available, load them in the
-# appropriate way.
+# @inherit
 ##
 sub loadFromFiles {
   my ($self) = assertNumArgs(1, @_);
   my $modName = $self->{modName};
-  my $modVer  = $self->{modVersion};
-  my $machine = $self->{machine};
+  my $modVer = $self->{modVersion};
 
-  $machine->sendCommand("uname -m");
-  my $arch = $machine->getStdout();
-  chomp($arch);
-
-  # Look for a binary RPM on the remote machine.
-  my $binaryRPMFilename = makeFullPath($self->{modDir},
-                                       "kmod-$modName-$modVer*.$arch.rpm");
-  my $errno = $machine->sendCommand("test -f $binaryRPMFilename");
-  if ($errno == 0) {
-    $log->debug("Detected for binary RPM: $binaryRPMFilename");
-    $self->loadFromBinaryRPM($binaryRPMFilename);
-    return;
+  my $loaded = $self->SUPER::loadFromFiles();
+  if ($loaded == 0) {
+    # Look for a local tarball to use.
+    my $tarFilename = makeFullPath($self->{modDir}, "$modName-$modVer.tgz");
+    if (-f $tarFilename) {
+      $log->debug("Detected tarball for dkms: $tarFilename");
+      $self->loadFromTar($tarFilename);
+      $loaded = 1;
+    }
   }
 
-  # Look for a SRPM on the remote machine.
-  my $moduleSRPMPath = makeFullPath($self->{modDir},
-                                    "kmod-$modName-$modVer*.src.rpm");
-  $errno = $machine->sendCommand("test -f $moduleSRPMPath");
-  if ($errno == 0) {
-    $log->debug("Detected for module source RPM: $moduleSRPMPath");
-    $self->loadFromSourceRPM($moduleSRPMPath);
-    return;
-  }
-
-  # Look for a local tarball to use.
-  my $tarFilename = makeFullPath($self->{modDir}, "$modName-$modVer.tgz");
-  if (-f $tarFilename) {
-    $log->debug("Detected tarball for dkms: $tarFilename");
-    $self->loadFromTar($tarFilename);
-    return;
-  }
-
-  # We could not file any recognizable module to load.
-  die("Couldn't find any module files to install");
-}
-
-###############################################################################
-# Load the module from a binary RPM on the remote host.
-#
-# @param filename  The name of the binary RPM to load
-##
-sub loadFromBinaryRPM {
-  my ($self, $filename) = assertNumArgs(2, @_);
-  $self->_step(command => "sudo rpm -iv $filename",
-               cleaner => "sudo rpm -e kmod-kvdo");
-}
-
-###############################################################################
-# Load the module from a local source RPM by building a binary and loading that.
-#
-# @param modulePath  The full path of the module source RPM to load
-##
-sub loadFromSourceRPM {
-  my ($self, $modulePath) = assertNumArgs(2, @_);
-  my $machine = $self->{machine};
-  my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
-  $machine->sendCommand("uname -m");
-  my $arch = $machine->getStdout();
-  chomp($arch);
-
-  # Build the kernel module from source and move the result to the top level.
-  $log->debug("Building kernel module SRPM");
-  $self->_step(command => "mkdir -p $topdir");
-  $self->_step(command => "cp -p $self->{modDir}/*.src.rpm $topdir");
-
-  my $buildModule = join(' ',
-                         "rpmbuild -rb --clean",
-                         "--define='_topdir $topdir'",
-                         "$modulePath");
-  $self->_step(command => $buildModule);
-  $self->_step(command => "mv -f $topdir/RPMS/$arch/* $topdir");
-  $self->_step(command => "sudo rpm -iv $topdir/kmod-*$arch.rpm",
-               cleaner => "sudo rpm -e kmod-kvdo");
+  return $loaded;
 }
 
 ###############################################################################
@@ -227,86 +138,6 @@ sub reload {
   my ($self) = assertNumArgs(1, @_);
   my $modName = $self->{modName};
   $self->_step(command => "sudo modprobe $modName $self->{modprobeOption}");
-}
-
-###############################################################################
-# Unload the module from the kernel
-#
-# @return a flag indicating if the module was actually unloaded
-##
-sub unload {
-  my ($self) = assertNumArgs(1, @_);
-  my $unloaded = 0;
-  if (--$useCounts{$self->{machine}->getName()}{$self->{modName}} == 0) {
-    $self->_cleanup();
-    $unloaded = 1;
-  }
-
-  return $unloaded;
-}
-
-###############################################################################
-# Run the cleanup commands
-##
-sub _cleanup {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->{machine};
-  while (my $command = pop(@{$self->{_cleanCommands}})) {
-    $machine->runSystemCmd($command);
-    if ($machine->getStdout()) {
-      $log->debug($machine->getStdout());
-    }
-  }
-};
-
-###############################################################################
-# Run a step of module setup, handle problems appropriately, and schedule
-# cleanup of the module.  Arguments are passed using name-value pairs.
-#
-# @oparam command     Setup code or command to run as part of startup.
-# @oparam cleaner     Cleanup command to register upon success.
-# @oparam diagnostic  Diagnostic code or command to run upon error.
-#
-# @croaks if the command fails
-##
-sub _step {
-  my ($self, $args) = assertOptionalArgs(1,
-                                         {
-                                          command    => undef,
-                                          cleaner    => undef,
-                                          diagnostic => undef,
-                                         },
-                                         @_);
-  my $machine = $self->{machine};
-  my $error = undef;
-
-  assertDefined($args->{command});
-  if (ref($args->{command}) eq "CODE") {
-    eval { $args->{command}->(); };
-    $error = $EVAL_ERROR;
-  } else {
-    $log->info($machine->getName() . ": $args->{command}");
-    if ($machine->sendCommand($args->{command}) != 0) {
-      $log->error("Failure during $args->{command}");
-      $log->error("stdout:\n" . $machine->getStdout());
-      $log->error("stderr:\n" . $machine->getStderr());
-      $error = "Cannot load module $self->{modName}";
-    }
-  }
-  if ($error) {
-    if (defined($args->{diagnostic})) {
-      if (ref($args->{diagnostic}) eq "CODE") {
-        $args->{diagnostic}->();
-      } else {
-        $machine->assertExecuteCommand($args->{diagnostic});
-      }
-    }
-    $self->_cleanup();
-    die($error);
-  }
-  if (defined($args->{cleaner})) {
-    push(@{$self->{_cleanCommands}}, $args->{cleaner});
-  }
 }
 
 1;
