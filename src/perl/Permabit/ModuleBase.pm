@@ -138,8 +138,18 @@ sub loadFromFiles {
 sub loadFromBinaryRPM {
   my ($self, $filename, $modFileName) = assertMinMaxArgs([undef], 2, 3, @_);
   $modFileName //= $self->{modFileName};
-  my $topdir = makeFullPath($self->{machine}->{workDir}, $self->{modVersion});
+  my $machine = $self->{machine};
+  my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
 
+  # Make the topdir if it does not exist and copy the binary RPM to it.
+  # Necessary for useDistribution cases.
+  my $errno = $machine->sendCommand("test -d $topdir");
+  if ($errno == 1) {
+    $self->_step(command => "mkdir -p $topdir");
+    $self->_step(command => "cp -up $filename $topdir");
+  }
+
+  # Load the binary RPM.
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
 }
