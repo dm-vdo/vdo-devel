@@ -132,7 +132,7 @@ sub generateStruct {
     foreach my $field ($struct->getChildren()) {
       # There is no easy way to disable this in .stats; these
       # attributes are added by the parser.
-      if ($field->{name} ne "version" && $field->{name} ne "releaseVersion") {
+      if ($field->{name} ne "version") {
         $self->generate($field);
       }
     }

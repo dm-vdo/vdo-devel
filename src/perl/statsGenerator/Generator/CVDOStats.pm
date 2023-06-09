@@ -545,8 +545,7 @@ sub getDerivedFromFields {
 sub shouldSkip {
   my ($self, $statistic) = assertNumArgs(2, @_);
   # determine whether to skip stats
-  if ((($statistic->{name} eq 'version')
-       || ($statistic->{name} eq 'releaseVersion'))
+  if (($statistic->{name} eq 'version')
       && ($statistic->checkAttribute('displayVersion', 'False', 1))) {
     return 1;
   }

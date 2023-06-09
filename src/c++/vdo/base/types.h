@@ -47,15 +47,6 @@ typedef u32 page_number_t;
  */
 typedef u64 physical_block_number_t;
 
-/*
- * A release version number. These numbers are used to make the numbering space for component
- * versions independent across release branches.
- *
- * Really an enum, but we have to specify the size for encoding; see release_versions.h for the
- * enumeration values.
- */
-typedef u32 release_version_number_t;
-
 /* A count of tree roots. */
 typedef u8 root_count_t;
 

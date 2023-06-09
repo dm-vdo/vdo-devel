@@ -48,7 +48,6 @@ tarballs:
             - constants.h
             - encodings.c
             - encodings.h
-            - release-versions.h
             - statistics.h
             - status-codes.c
             - status-codes.h
@@ -264,7 +263,6 @@ tarballs:
             - priority-table.h
             - recovery-journal.c
             - recovery-journal.h
-            - release-versions.h
             - repair.c
             - repair.h
             - slab-depot.c

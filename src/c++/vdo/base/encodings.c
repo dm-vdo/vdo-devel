@@ -12,7 +12,6 @@
 #include "permassert.h"
 
 #include "constants.h"
-#include "release-versions.h"
 #include "status-codes.h"
 #include "types.h"
 
@@ -49,11 +48,6 @@ static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
 };
 
 const u8 VDO_GEOMETRY_MAGIC_NUMBER[VDO_GEOMETRY_MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
-
-static const release_version_number_t COMPATIBLE_RELEASE_VERSIONS[] = {
-	VDO_MAGNESIUM_RELEASE_VERSION_NUMBER,
-	VDO_ALUMINUM_RELEASE_VERSION_NUMBER,
-};
 
 enum {
 	PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
@@ -237,27 +231,6 @@ void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header)
 }
 
 /**
- * is_loadable_release_version() - Determine whether the supplied release version can be understood
- *                                 by the VDO code.
- * @version: The release version number to check.
- *
- * Return: True if the given version can be loaded.
- */
-static inline bool is_loadable_release_version(release_version_number_t version)
-{
-	unsigned int i;
-
-	if (version == VDO_CURRENT_RELEASE_VERSION_NUMBER)
-		return true;
-
-	for (i = 0; i < ARRAY_SIZE(COMPATIBLE_RELEASE_VERSIONS); i++)
-		if (version == COMPATIBLE_RELEASE_VERSIONS[i])
-			return true;
-
-	return false;
-}
-
-/**
  * decode_volume_geometry() - Decode the on-disk representation of a volume geometry from a buffer.
  * @buffer: A buffer to decode from.
  * @offset: The offset in the buffer at which to decode.
@@ -267,16 +240,17 @@ static inline bool is_loadable_release_version(release_version_number_t version)
 static void
 decode_volume_geometry(u8 *buffer, size_t *offset, struct volume_geometry *geometry, u32 version)
 {
-	release_version_number_t release_version;
+	u32 unused, mem;
 	enum volume_region_id id;
 	nonce_t nonce;
 	block_count_t bio_offset = 0;
-	u32 mem;
 	bool sparse;
 
-	decode_u32_le(buffer, offset, &release_version);
+	/* This is for backwards compatibility. */
+	decode_u32_le(buffer, offset, &unused);
+	geometry->unused = unused;
+
 	decode_u64_le(buffer, offset, &nonce);
-	geometry->release_version = release_version;
 	geometry->nonce = nonce;
 
 	memcpy((unsigned char *) &geometry->uuid, buffer + *offset, sizeof(uuid_t));
@@ -330,7 +304,8 @@ int encode_volume_geometry(u8 *buffer,
 	header = ((version <= 4) ? &GEOMETRY_BLOCK_HEADER_4_0 : &GEOMETRY_BLOCK_HEADER_5_0);
 	vdo_encode_header(buffer, offset, header);
 
-	encode_u32_le(buffer, offset, geometry->release_version);
+	/* This is for backwards compatibility */
+	encode_u32_le(buffer, offset, geometry->unused);
 	encode_u64_le(buffer, offset, geometry->nonce);
 	memcpy(buffer + *offset, (unsigned char *) &geometry->uuid, sizeof(uuid_t));
 	*offset += sizeof(uuid_t);
@@ -390,11 +365,6 @@ int __must_check vdo_parse_geometry_block(u8 *block, struct volume_geometry *geo
 	/* Decode and verify the checksum. */
 	checksum = vdo_crc32(block, offset);
 	decode_u32_le(block, &offset, &saved_checksum);
-
-	if (!is_loadable_release_version(geometry->release_version))
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					      "release version %d cannot be loaded",
-					      geometry->release_version);
 
 	return ((checksum == saved_checksum) ? VDO_SUCCESS : VDO_CHECKSUM_MISMATCH);
 }
@@ -1457,13 +1427,8 @@ int vdo_decode_component_states(u8 *buffer,
 	int result;
 	size_t offset = VDO_COMPONENT_DATA_OFFSET;
 
-	/* Get and check the release version against the one from the geometry. */
-	decode_u32_le(buffer, &offset, &states->release_version);
-	if (states->release_version != geometry->release_version)
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					      "Geometry release version %u does not match super block release version %u",
-					      geometry->release_version,
-					      states->release_version);
+	/* This is for backwards compatibility. */
+	decode_u32_le(buffer, &offset, &states->unused);
 
 	/* Check the VDO volume version */
 	decode_version_number(buffer, &offset, &states->volume_version);
@@ -1508,7 +1473,8 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 static void
 vdo_encode_component_states(u8 *buffer, size_t *offset, const struct vdo_component_states *states)
 {
-	encode_u32_le(buffer, offset, states->release_version);
+	/* This is for backwards compatibility. */
+	encode_u32_le(buffer, offset, states->unused);
 	encode_version_number(buffer, offset, states->volume_version);
 	encode_vdo_component(buffer, offset, states->vdo);
 	encode_layout(buffer, offset, &states->layout);

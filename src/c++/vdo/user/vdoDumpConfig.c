@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
   printf("  slabJournalBlocks: %llu\n",
          (unsigned long long) config.slab_journal_blocks);
   printf("UUID: %s\n", uuid);
-  printf("ReleaseVersion: %u\n", geometry.release_version);
   printf("Nonce: %llu\n", (unsigned long long) geometry.nonce);
   printf("IndexRegion: %llu\n",
          (unsigned long long) geometry.regions[VDO_INDEX_REGION].start_block);

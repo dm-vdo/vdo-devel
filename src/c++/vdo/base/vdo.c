@@ -57,7 +57,6 @@
 #include "physical-zone.h"
 #include "pool-sysfs.h"
 #include "recovery-journal.h"
-#include "release-versions.h"
 #include "slab-depot.h"
 #include "statistics.h"
 #include "status-codes.h"
@@ -1050,7 +1049,8 @@ const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
  */
 static void record_vdo(struct vdo *vdo)
 {
-	vdo->states.release_version = vdo->geometry.release_version;
+	/* This is for backwards compatibility. */
+	vdo->states.unused = vdo->geometry.unused;
 	vdo->states.vdo.state = vdo_get_state(vdo);
 	vdo->states.block_map = vdo_record_block_map(vdo->block_map);
 	vdo->states.recovery_journal = vdo_record_recovery_journal(vdo->recovery_journal);
@@ -1681,7 +1681,6 @@ static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *sta
 	 * thread.
 	 */
 	stats->version = STATISTICS_VERSION;
-	stats->release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER;
 	stats->logical_blocks = vdo->states.vdo.config.logical_blocks;
 	/*
 	 * config.physical_blocks is mutated during resize and is in a packed structure, but resize

@@ -54,12 +54,12 @@ static void testMismatchedReleaseVersion(void)
 {
   stopVDO();
 
-  // Perturb the release version in the geometry block.
+  // Perturb the unused field (nee release version) in the geometry block.
   struct volume_geometry geometry;
   VDO_ASSERT_SUCCESS(loadVolumeGeometry(layer, &geometry));
-  geometry.release_version++;
+  geometry.unused++;
   VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
-  startVDOExpectError(vdo_map_to_system_error(VDO_UNSUPPORTED_VERSION));
+  startVDO(VDO_CLEAN);
 }
 
 /**********************************************************************/

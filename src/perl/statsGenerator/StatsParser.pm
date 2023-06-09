@@ -180,26 +180,12 @@ sub structAction {
   $TYPES += $struct;
 
   if ($structType eq 'VersionedStruct') {
-    # Versioned structs have version number and release version fields.
+    # Versioned structs have version number
     $struct += fieldAction('versionNumber', 'version');
-    $struct += fieldAction('releaseVersionNumber', 'releaseVersion');
     $struct->addAttribute('versioned', 1);
   }
 
   return $struct += $block;
-}
-
-######################################################################
-# Action called when parsing a command block.
-#
-# @param name   The name of the command
-# @param block  The command definition block
-#
-# @return The command as a Statistic
-##
-sub commandAction {
-  my ($name, $block) = assertNumArgs(2, @_);
-  return Statistic::Command->new(name => $name) + $block;
 }
 
 ######################################################################

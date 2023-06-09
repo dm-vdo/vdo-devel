@@ -16,8 +16,6 @@ PERL_INSTALL_DIR = $(PERL_DIR)/Permabit/Statistics
 
 # Names and install locations of generated files
 
-RELEASE_VERSIONS_H           = release-versions.h
-RELEASE_VERSIONS_H_INSTALLED = $(VDO_DIR)/base/$(RELEASE_VERSIONS_H)
 STATS_H                      = statistics.h
 STATS_H_INSTALLED            = $(VDO_DIR)/base/$(STATS_H)
 MSGSTATS_C                   = message-stats.c
@@ -28,11 +26,10 @@ SYSSTATS_C                   = pool-sysfs-stats.c
 SYSSTATS_C_INSTALLED         = $(VDO_DIR)/base/$(SYSSTATS_C)
 VDOSTATS_C                   = vdoStatsWriter.c
 VDOSTATS_C_INSTALLED         = $(VDO_DIR)/user/$(VDOSTATS_C)
-C_FILES_INSTALLED            = $(RELEASE_VERSIONS_H_INSTALLED) \
-                               $(STATS_H_INSTALLED)            \
-                               $(MSGSTATS_C_INSTALLED)         \
-                               $(MSGSTATS_RDR_C_INSTALLED)     \
-                               $(SYSSTATS_C_INSTALLED)         \
+C_FILES_INSTALLED            = $(STATS_H_INSTALLED)        \
+                               $(MSGSTATS_C_INSTALLED)     \
+                               $(MSGSTATS_RDR_C_INSTALLED) \
+                               $(SYSSTATS_C_INSTALLED)     \
                                $(VDOSTATS_C_INSTALLED)
 
 PERL_DEFINITIONS           = Definitions.pm
@@ -49,9 +46,6 @@ INTERMEDIATE_FILES = $(notdir $(INSTALLED_FILES))
 
 .PHONY: all
 all: $(INSTALLED_FILES)
-
-$(RELEASE_VERSIONS_H_INSTALLED): $(RELEASE_VERSIONS_H)
-	cp $(RELEASE_VERSIONS_H) $(RELEASE_VERSIONS_H_INSTALLED)
 
 $(STATS_H_INSTALLED): $(STATS_H)
 	cp $(STATS_H) $(STATS_H_INSTALLED)

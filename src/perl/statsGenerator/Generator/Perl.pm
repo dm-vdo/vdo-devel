@@ -217,7 +217,7 @@ sub generateField {
   }
 
   # This is an actual, bottom-level field, so record its attributes.
-  if ((($field->{name} eq 'version') || ($field->{name} eq 'releaseVersion'))
+  if (($field->{name} eq 'version')
       && ($field->checkAttribute('displayVersion', 'False', 1))) {
     return;
   }

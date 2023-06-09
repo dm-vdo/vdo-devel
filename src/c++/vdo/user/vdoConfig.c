@@ -15,7 +15,6 @@
 
 #include "constants.h"
 #include "encodings.h"
-#include "release-versions.h"
 #include "status-codes.h"
 
 #include "physicalLayer.h"
@@ -267,7 +266,8 @@ int initializeVolumeGeometry(nonce_t                    nonce,
   }
 
   *geometry = (struct volume_geometry) {
-    .release_version = VDO_CURRENT_RELEASE_VERSION_NUMBER,
+    /* This is for backwards compatibility. */
+    .unused = 0,
     .nonce = nonce,
     .bio_offset = 0,
     .regions = {

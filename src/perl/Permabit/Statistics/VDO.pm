@@ -40,12 +40,6 @@ sub checkStatisticsVersion {
   assertEqualNumeric($requiredVersion, $version,
 		     "statistics version $version should match " .
 		     "$requiredVersion");
-
-  $requiredVersion = $self->{definitions}{ReleaseVersion} + 0;
-  $version = $self->{'release version'} + 0;
-  assertEqualNumeric($requiredVersion, $version,
-		     "statistics release version $version should match " .
-		     "$requiredVersion");
 }
 
 # Extract field definitions from the auto-generated Definitions.pm.

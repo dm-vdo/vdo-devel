@@ -82,13 +82,6 @@ type maximum64 {
   user   %lu;
 }
 
-type releaseVersionNumber {
-  C      u32;
-  Perl   constant;
-  kernel %u;
-  user   %u;
-}
-
 type snapshot32 {
   C      u32;
   Perl   snapshot;
@@ -139,21 +132,6 @@ stats {
   cmessageOutput       message-stats.c;
   cmessagereaderOutput messageStatsReader.c;
   cvdostatsOutput      vdoStatsWriter.c;
-
-  releaseVersions {
-    cHeader      release-versions.h;
-
-    enum ReleaseVersions {
-      VDO_OXYGEN_RELEASE_VERSION_NUMBER    109583;
-      VDO_FLUORINE_RELEASE_VERSION_NUMBER  115838;
-      VDO_NEON_RELEASE_VERSION_NUMBER      120965;
-      VDO_SODIUM_RELEASE_VERSION_NUMBER    127441;
-      VDO_MAGNESIUM_RELEASE_VERSION_NUMBER 131337;
-      VDO_ALUMINUM_RELEASE_VERSION_NUMBER  133524;
-      VDO_HEAD_RELEASE_VERSION_NUMBER      0;
-      VDO_CURRENT_RELEASE_VERSION_NUMBER   VDO_HEAD_RELEASE_VERSION_NUMBER;
-    }
-  }
 
   vdo {
     cHeader      statistics.h;

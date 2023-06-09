@@ -40,7 +40,7 @@ static u8 EXPECTED_GEOMETRY_4_0_ENCODING[] =
     0x04, 0x00, 0x00, 0x00,                         //   .majorVersion = 4
     0x00, 0x00, 0x00, 0x00,                         //   .minorVersion = 0
     0x5d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //   .size = 93
-    0x1d, 0x1c, 0x1b, 0x1a,                         // release = 0x1a1b1c1d
+    0x1d, 0x1c, 0x1b, 0x1a,                         // unused = 0x1a1b1c1d
     0xb5, 0x1a, 0xf5, 0xee, 0x4b, 0x30, 0x20, 0x10, // nonce = NONCE
     0x66, 0x61, 0x6b, 0x65, 0x00, 0x75, 0x75, 0x69, // uuid = TEST_UUID
     0x64, 0x20, 0x68, 0x61, 0x72, 0x65, 0x73, 0x00, //   ...  TEST_UUID
@@ -69,7 +69,7 @@ static u8 EXPECTED_GEOMETRY_5_0_ENCODING[] =
     0x05, 0x00, 0x00, 0x00,                         //   .majorVersion = 5
     0x00, 0x00, 0x00, 0x00,                         //   .minorVersion = 0
     0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //   .size = 101
-    0x1d, 0x1c, 0x1b, 0x1a,                         // release = 0x1a1b1c1d
+    0x1d, 0x1c, 0x1b, 0x1a,                         // unused = 0x1a1b1c1d
     0xb5, 0x1a, 0xf5, 0xee, 0x4b, 0x30, 0x20, 0x10, // nonce = NONCE
     0x66, 0x61, 0x6b, 0x65, 0x00, 0x75, 0x75, 0x69, // uuid = TEST_UUID
     0x64, 0x20, 0x68, 0x61, 0x72, 0x65, 0x73, 0x00, //   ...  TEST_UUID
@@ -92,15 +92,13 @@ static void encodingTest_4_0(void)
 {
   struct volume_geometry geometry;
   VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
-  // Save the release version so we can use a valid value later.
-  release_version_number_t savedRelease = geometry.release_version;
 
   // Fill the geometry fields with bogus values that will test endianness.
-  geometry.release_version                   = 0x1a1b1c1d;
-  geometry.regions[0].start_block            = 0x2122232425262728;
-  geometry.regions[1].start_block            = 0x3132333435363738;
-  geometry.index_config.mem                  = 0x4a4b4c4d;
-  geometry.index_config.sparse               = true;
+  geometry.unused                 = 0x1a1b1c1d;
+  geometry.regions[0].start_block = 0x2122232425262728;
+  geometry.regions[1].start_block = 0x3132333435363738;
+  geometry.index_config.mem       = 0x4a4b4c4d;
+  geometry.index_config.sparse    = true;
 
   // Encode and write the volume_geometry for version 4.
   PhysicalLayer *layer = getSynchronousLayer();
@@ -111,10 +109,6 @@ static void encodingTest_4_0(void)
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, 1, block));
   UDS_ASSERT_EQUAL_BYTES(EXPECTED_GEOMETRY_4_0_ENCODING,
                          block, sizeof(EXPECTED_GEOMETRY_4_0_ENCODING));
-
-  // Can't load the bogus release version, so re-encode with the saved one.
-  geometry.release_version = savedRelease;
-  VDO_ASSERT_SUCCESS(writeVolumeGeometryWithVersion(layer, &geometry, 4));
 
   // Read, decode, and compare the decoded volume_geometry.
   struct volume_geometry decoded;
@@ -127,11 +121,9 @@ static void encodingTest_5_0(void)
 {
   struct volume_geometry geometry;
   VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
-  // Save the release version so we can use a valid value later.
-  release_version_number_t savedRelease = geometry.release_version;
 
   // Fill the geometry fields with bogus values that will test endianness.
-  geometry.release_version                   = 0x1a1b1c1d;
+  geometry.unused                            = 0x1a1b1c1d;
   geometry.bio_offset                        = 0x1112131415161718;
   geometry.regions[0].start_block            = 0x2122232425262728;
   geometry.regions[1].start_block            = 0x3132333435363738;
@@ -147,10 +139,6 @@ static void encodingTest_5_0(void)
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, 1, block));
   UDS_ASSERT_EQUAL_BYTES(EXPECTED_GEOMETRY_5_0_ENCODING,
                          block, sizeof(EXPECTED_GEOMETRY_5_0_ENCODING));
-
-  // Can't load the bogus release version, so re-encode with the saved one.
-  geometry.release_version = savedRelease;
-  VDO_ASSERT_SUCCESS(writeVolumeGeometry(layer, &geometry));
 
   // Read, decode, and compare the decoded volume_geometry.
   struct volume_geometry decoded;

@@ -102,8 +102,8 @@ struct volume_region {
 } __packed;
 
 struct volume_geometry {
-	/* The release version number of this volume */
-	release_version_number_t release_version;
+	/* For backwards compatibility */
+	u32 unused;
 	/* The nonce of this volume */
 	nonce_t nonce;
 	/* The uuid of this volume */
@@ -118,8 +118,8 @@ struct volume_geometry {
 
 /* This volume geometry struct is used for sizing only */
 struct volume_geometry_4_0 {
-	/* The release version number of this volume */
-	release_version_number_t release_version;
+	/* For backwards compatibility */
+	u32 unused;
 	/* The nonce of this volume */
 	nonce_t nonce;
 	/* The uuid of this volume */
@@ -678,7 +678,7 @@ enum {
 	VDO_COMPONENT_ENCODED_SIZE =
 		(sizeof(struct packed_version_number) + sizeof(struct packed_vdo_component_41_0)),
 	VDO_COMPONENT_DATA_OFFSET = VDO_ENCODED_HEADER_SIZE,
-	VDO_COMPONENT_DATA_SIZE = (sizeof(release_version_number_t) +
+	VDO_COMPONENT_DATA_SIZE = (sizeof(u32) +
 				   sizeof(struct packed_version_number) +
 				   VDO_COMPONENT_ENCODED_SIZE +
 				   VDO_LAYOUT_ENCODED_SIZE +
@@ -689,8 +689,8 @@ enum {
 
 /* The entirety of the component data encoded in the VDO super block. */
 struct vdo_component_states {
-	/* The release version */
-	release_version_number_t release_version;
+	/* For backwards compatibility */
+	u32 unused;
 
 	/* The VDO volume version */
 	struct version_number volume_version;
