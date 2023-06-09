@@ -291,6 +291,7 @@ tarballs:
             - VDO_USER
           defines:
             - __KERNEL__
+            - RHEL_INTERNAL
         src/c++/uds/src/uds:
           dest: dm-vdo
           sources:

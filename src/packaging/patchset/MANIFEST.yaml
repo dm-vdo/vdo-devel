@@ -33,10 +33,11 @@ tarballs:
             - dm-vdo-target.c
           undefines:
             - INTERNAL
+            - RHEL_INTERNAL
+            - RHEL_RELEASE_CODE
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_USER
-            - RHEL_RELEASE_CODE
             - VDO_USE_ALTERNATE
           defines:
             - __KERNEL__

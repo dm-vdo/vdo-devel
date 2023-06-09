@@ -3180,5 +3180,7 @@ module_exit(vdo_exit);
 MODULE_DESCRIPTION(DM_NAME " target for transparent deduplication");
 MODULE_AUTHOR("Red Hat, Inc.");
 MODULE_LICENSE("GPL");
+#ifdef RHEL_INTERNAL
 MODULE_VERSION(CURRENT_VERSION);
+#endif /* RHEL_INTERNAL */
 #endif /* __KERNEL__ */
