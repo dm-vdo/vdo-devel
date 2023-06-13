@@ -9,6 +9,8 @@ corruption, relying instead on integrity protection of the storage below
 it. It is strongly recommended that lvm be used to manage vdo volumes. See
 lvmvdo(7).
 
+This is a test.
+
 Userspace component
 ===================
 
