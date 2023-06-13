@@ -85,7 +85,6 @@ sub _logConfig {
                           qw(DataRegion
                              IndexRegion
                              Nonce
-                             ReleaseVersion
                              UUID));
   $self->_logConfigFields("IndexConfig",
                           $config->{IndexConfig},
