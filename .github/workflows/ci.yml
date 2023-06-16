@@ -128,18 +128,27 @@ jobs:
     - name: Prepare Logfiles
       if: failure()
       run: |  
-        cd logs/vdotests
-        for file in *::*.log;
-        do
-          mv ${file} ${file/::/--}
-        done
+        cd logs
+	for i in *;
+	do
+	  if [ -d "$i" ]; then
+	    cd $i
+	    for file in *::*.log;
+	    do
+              mv ${file} ${file/::/--}
+	    done
+            cd ..
+	  else
+	    mv ${i} ${i/::/--}
+          fi
+	done
 
     - name: Upload artifact
       if: failure()
       uses: actions/upload-artifact@v2
       with:
         name: Upload Test Logs
-        path: logs/vdotests/*.log
+        path: logs/*/*.log
         retention-days: 5
 
     - name: Add public testing success
