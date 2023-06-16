@@ -30,15 +30,17 @@ my %useCounts;
 my %PROPERTIES
   = (
      # @ple host that needs the module (a Permabit::RemoteMachine)
-     machine     => undef,
+     machine         => undef,
      # @ple directory where the module is found
-     modDir      => undef,
+     modDir          => undef,
      # @ple module filename
-     modFileName => undef,
+     modFileName     => undef,
      # @ple module name
-     modName     => undef,
+     modName         => undef,
      # @ple module version
-     modVersion  => undef,
+     modVersion      => undef,
+     # @ple whether the test is loading the module from a released RPM
+     useDistribution => undef,
     );
 ##
 
@@ -141,15 +143,12 @@ sub loadFromBinaryRPM {
   my $machine = $self->{machine};
   my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
 
-  # Make the topdir if it does not exist and copy the binary RPM to it.
-  # Necessary for useDistribution cases.
-  my $errno = $machine->sendCommand("test -d $topdir");
-  if ($errno == 1) {
+  if ($self->{useDistribution}) {
     $self->_step(command => "mkdir -p $topdir");
     $self->_step(command => "cp -up $filename $topdir");
+    $filename = makeFullPath($topdir, "$modFileName*.rpm");
   }
 
-  # Load the binary RPM.
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
 }

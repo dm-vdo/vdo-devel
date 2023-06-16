@@ -70,6 +70,8 @@ sub _runVDOStats {
   my $machine = $self->getDevice()->getMachine();
 
   $args{doSudo} = 1;
+  $args{binary} = $machine->findNamedExecutable('vdostats');
+
   my $command = Permabit::CommandString::VDOStats->new($self, \%args);
   $machine->executeCommand("$command");
   return $machine;
@@ -174,7 +176,8 @@ sub testBasicExecution {
   my $machine = $device->getMachine();
 
   my $args = {
-              doSudo  => 1,
+              binary => $machine->findNamedExecutable('vdostats'),
+              doSudo => 1,
              };
 
   # Check it works with no target specified.

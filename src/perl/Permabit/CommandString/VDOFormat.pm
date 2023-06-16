@@ -25,7 +25,7 @@ our %COMMANDSTRING_PROPERTIES
      # force formatting despite existing VDO
      force              => undef,
      # executable name
-     name               => "vdoFormat",
+     name               => "vdoformat",
      # the absolute file name of the underlying file or device
      storage            => undef,
      # verbosity flag

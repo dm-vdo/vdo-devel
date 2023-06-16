@@ -37,6 +37,7 @@ use Permabit::SystemUtils qw(
   copyRemoteFilesAsRoot
   runCommand
 );
+use Permabit::UserModule;
 use Permabit::Utils qw(
   makeFullPath
   retryUntilTimeout
@@ -55,6 +56,8 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 my $VDO_WARMUP               = "src/c++/vdo/bin/vdoWarmup";
 my $VDO_INITIALIZE_BLOCK_MAP = "src/c++/vdo/bin/vdoInitializeBlockMap";
+
+my $VDO_USER_MODNAME = "vdo";
 
 # The keys of this hash are the names of the histogram that records the
 # statistic, and the values are used in the error message if any request
@@ -168,7 +171,7 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      scratchDir                => undef,
      # The number of bits in the VDO slab
      slabBits                  => undef,
-     # Whether the test is running from a released tarball
+     # Whether the test is loading a released RPM
      useDistribution           => 0,
      # UUID for VDO volume.
      uuid                      => undef,
@@ -244,6 +247,10 @@ sub configure {
 
   $self->{moduleVersion} //= $self->{vdoModuleVersion};
   $self->{moduleVersion} //= $VDO_MARKETING_VERSION;
+
+  if ($self->{useDistribution}) {
+    $self->getMachine()->{userBinaryDir} = "/usr/bin";
+  }
 }
 
 ########################################################################
@@ -290,7 +297,7 @@ sub dumpConfig {
   my ($self) = assertNumArgs(1, @_);
 
   my $path = $self->getVDOStoragePath();
-  my $cmd = $self->findBinary("vdoDumpConfig");
+  my $cmd = $self->getMachine()->findNamedExecutable("vdodumpconfig");
   my $output = $self->runOnHost("sudo $cmd $path");
   return yamlStringToHash($output);
 }
@@ -416,17 +423,16 @@ sub postActivate {
 }
 
 ########################################################################
-# Find the files necessary for full device operation.  Note that the
-# Permabit::BlockDevice::VDO::Upgrade overrides this method.
+# Find the files necessary for full device operation.
 ##
 sub resolveBinaries {
   my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
   $self->SUPER::resolveBinaries();
   if (!$self->{useDistribution}) {
-    $self->assertBinary("vdoAudit");
-    $self->assertBinary("corruptPBNRef");
+    assertDefined($machine->findNamedExecutable("vdoaudit"));
   }
-  $self->assertBinary("vdoReadOnly");
+  assertDefined($machine->findNamedExecutable("vdoreadonly"));
 }
 
 ########################################################################
@@ -578,16 +584,15 @@ sub _setModuleParameters {
 }
 
 ########################################################################
-# Install the kernel module
+# Install the kernel and user tools modules
 ##
 sub installModule {
   my ($self) = assertNumArgs(1, @_);
-
   my $machineName = $self->getMachineName();
   my $moduleName = $self->getModuleName();
   my $version = $self->getModuleVersion();
   if ($self->{_modules}{$machineName}) {
-    if ($self->{_modules}{$machineName}{modVersion} eq $version) {
+    if ($self->{_modules}{$machineName}{$moduleName}{modVersion} eq $version) {
       $log->info("Module $moduleName $version already installed"
                  . "on $machineName");
       return;
@@ -597,17 +602,32 @@ sub installModule {
     }
   }
 
+  # Build the kernel and user tool modules from source.
   $log->info("Installing module $moduleName $version on $machineName");
   my $module
     = Permabit::KernelModule->new(
-                                  machine    => $self->getMachine(),
-                                  modDir     => $self->getModuleSourceDir(),
-                                  modName    => $moduleName,
-                                  modVersion => $version,
+                                  machine         => $self->getMachine(),
+                                  modDir          => $self->getModuleSourceDir(),
+                                  modFileName     => "kmod-$moduleName",
+                                  modName         => $moduleName,
+                                  modVersion      => $version,
+                                  useDistribution => $self->{useDistribution},
                                  );
   $module->load();
-  $self->{_modules}{$machineName} = $module;
+  $self->{_modules}{$machineName}{$moduleName} = $module;
   $self->_setModuleParameters();
+
+  $log->info("Installing module $VDO_USER_MODNAME $version on $machineName");
+  my $userModule
+    = Permabit::UserModule->new(
+                                machine         => $self->getMachine(),
+                                modDir          => $self->getModuleSourceDir(),
+                                modName         => $VDO_USER_MODNAME,
+                                modVersion      => $version,
+                                useDistribution => $self->{useDistribution},
+                               );
+  $userModule->load();
+  $self->{_modules}{$machineName}{$VDO_USER_MODNAME} = $userModule;
 
   # Because some errors like kernel-module assertion failures may go
   # unrecognized until cleanup, after we've torn down the devices and
@@ -628,21 +648,26 @@ sub installModule {
 }
 
 ########################################################################
-# Uninstall the kernel module
+# Uninstall the kernel and user tools modules
 ##
 sub uninstallModule {
   my ($self, $machineName) = assertMinMaxArgs(1, 2, @_);
   $machineName //= $self->getMachineName();
-  $log->info("Uninstalling module from $machineName");
+  $log->info("Uninstalling modules from $machineName");
   if (defined($self->{_modules}{$machineName})) {
     # VDO-5320: Remove workaround symlink.
     if (defined($self->{_dmSymlink}{$machineName})) {
       $self->runOnHost("sudo rm -f $self->{_dmSymlink}{$machineName}");
       delete($self->{_dmSymlink}{$machineName});
     }
+  }
 
-    $self->{_modules}{$machineName}->unload();
-    delete($self->{_modules}{$machineName});
+  # Remove any installed modules
+  foreach my $moduleName ($VDO_USER_MODNAME, $self->getModuleName()) {
+    if (defined($self->{_modules}{$machineName}{$moduleName})) {
+      $self->{_modules}{$machineName}{$moduleName}->unload();
+      delete($self->{_modules}{$machineName}{$moduleName});
+    }
   }
 
   # Memory leaks are not logged until the module is uninstalled
@@ -967,7 +992,7 @@ sub doVDOAudit {
   }
 
   my $path = $self->getVDOStoragePath();
-  my $audit = $self->findBinary("vdoAudit");
+  my $audit = $self->getMachine()->findNamedExecutable("vdoaudit");
 
   $self->enableReadableStorage();
   my $output = runCommand($self->getMachine()->getName(),
@@ -990,7 +1015,7 @@ sub dumpMetadata {
   }
 
   my $path = $self->getVDOStoragePath();
-  my $dumpMetadata = $self->findBinary("vdoDumpMetadata");
+  my $dumpMetadata = $self->getMachine()->findNamedExecutable("vdodumpmetadata");
   my $dump = "$self->{runDir}/$self->{vdoDeviceName}-$suffix";
   my $noBlockMap = "";
   if (defined($self->{logicalSize}) && ($self->{logicalSize} > 8 * $TB)) {
@@ -1029,7 +1054,7 @@ sub corruptPBNRef {
 sub setReadOnlyMode {
   my ($self)     = assertNumArgs(1, @_);
   my $path       = $self->getVDOStoragePath();
-  my $readonly   = $self->findBinary("vdoReadOnly");
+  my $readonly   = $self->getMachine()->findNamedExecutable("vdoreadonly");
   my $output;
 
   my $setReadOnly = sub {
@@ -1049,7 +1074,7 @@ sub setReadOnlyMode {
 sub setUUID {
   my ($self, $uuid) = assertMinMaxArgs(1, 2, @_);
   my $path = $self->getVDOStoragePath();
-  my $setUUID = $self->findBinary("vdoSetUUID");
+  my $setUUID = $self->getMachine()->findNamedExecutable("vdosetuuid");
   my $options = "";
 
   if (defined($uuid)) {
@@ -1071,7 +1096,7 @@ sub setUUID {
 sub runVDOForceRebuild {
   my ($self) = assertNumArgs(1, @_);
   my $path = $self->getVDOStoragePath();
-  my $force = $self->findBinary("vdoForceRebuild");
+  my $force = $self->getMachine()->findNamedExecutable("vdoforcerebuild");
 
   $self->enableWritableStorage();
   my $output = runCommand($self->getMachine()->getName(),
@@ -1090,7 +1115,12 @@ sub runVDOForceRebuild {
 ##
 sub makeVDOStatsCommandString {
   my ($self, $args) = assertNumArgs(2, @_);
-  return Permabit::CommandString::VDOStats->new($self, $args);
+  my $machine = $self->getMachine();
+  my $params = {
+                binary  => $machine->findNamedExecutable("vdostats"),
+                %$args,
+               };
+  return Permabit::CommandString::VDOStats->new($self, $params);
 }
 
 ########################################################################

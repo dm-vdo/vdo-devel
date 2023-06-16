@@ -165,6 +165,7 @@ my @RPM_NAMES
   = (
      "archive/kmod-kvdo-$VDO_VERSION-1.*.rpm",
      "archive/vdo-$VDO_VERSION-1.*.rpm",
+     "archive/vdo-support-$VDO_VERSION-1.*.rpm",
     );
 
 my @SHARED_PYTHON_PACKAGES
@@ -183,30 +184,11 @@ my @SHARED_FILES
      "src/c++/vdo/bin/corruptpbnref",
      "src/c++/vdo/bin/vdoFillIndex",
      "src/c++/vdo/bin/udsCalculateSize",
-     "src/c++/vdo/bin/vdoAudit",
-     "src/c++/vdo/bin/vdoaudit",
-     "src/c++/vdo/bin/vdoDMEventd",
-     "src/c++/vdo/bin/vdodmeventd",
-     "src/c++/vdo/bin/vdoDumpConfig",
-     "src/c++/vdo/bin/vdodumpconfig",
-     "src/c++/vdo/bin/vdoDumpMetadata",
-     "src/c++/vdo/bin/vdodumpmetadata",
-     "src/c++/vdo/bin/vdoForceRebuild",
-     "src/c++/vdo/bin/vdoforcerebuild",
-     "src/c++/vdo/bin/vdoFormat",
-     "src/c++/vdo/bin/vdoformat",
-     "src/c++/vdo/bin/vdoReadOnly",
-     "src/c++/vdo/bin/vdoreadonly",
-     "src/c++/vdo/bin/vdoSetUUID",
-     "src/c++/vdo/bin/vdosetuuid",
-     "src/c++/vdo/bin/vdoStats",
-     "src/c++/vdo/bin/vdostats",
      "src/c++/vdo/user/$DMEVENT_LIB",
      "src/python/vdo/__init__.py",
      "src/python/vdo/dmdevice",
      "src/python/vdo/dmmgmnt",
      "src/python/vdo/utils",
-     "src/tools/adaptLVM/adaptLVMVDO.sh",
      "src/tools/systemtap",
     );
 

@@ -188,19 +188,23 @@ sub _createVersionedVDODirectory {
                     . " $versionDir/*kvdo-$versionName*.src.rpm",
                     "mv -f $versionDir/RPMS/$arch/* $versionDir"]);
 
-  # Build the user tools from source, and unpack them to the top level.
-  $log->debug("Building and unpacking user tools RPM");
-  my $rpmbuild = join(' ',
-                      "rpmbuild --rebuild",
-                      " --define='_topdir $versionDir'",
-                      " --define='_bindir /'",
-                      " $versionDir/vdo-$versionName*.src.rpm");
-  my $unpack = join(' && ',
-                    "cd $versionDir",
-                    "rpm2cpio RPMS/$arch/vdo-$versionName*.rpm | cpio -id");
+  # Build the user tools from source, and move the necessary RPMs to the top
+  # level.
+  $log->debug("Building user tools RPM");
+  my $userBuild = join(' ',
+                       "rpmbuild --rebuild",
+                       "--define='_topdir $versionDir'",
+                       "--define='_bindir /'",
+                       "$versionDir/vdo-$versionName*.src.rpm");
+  my $userMove = "mv -f $versionDir/RPMS/$arch/vdo-$versionName"
+                  . "*.rpm $versionDir";
   my $pythonPath = $self->getMachine()->getPythonLibraryPath();
   my $link = "ln -s $versionDir/$pythonPath $versionDir/pythonlibs";
-  $self->runOnHost([$rpmbuild, $unpack, $link]);
+  $self->runOnHost([$userBuild, $userMove, $link]);
+
+  my $supportMove = "mv -f $versionDir/RPMS/$arch/vdo-support-$versionName*.rpm"
+                     . " $versionDir";
+  $self->runOnHost($supportMove);
 
   return $versionDir;
 }
@@ -338,10 +342,8 @@ sub upgrade {
 sub makeVDOCommandString {
   my ($self, $args) = assertNumArgs(2, @_);
   my $params = {
-                albireoBinaryPath => "$self->{_currentInstall}",
-                binary            => makeFullPath($self->{_currentInstall},
-                                                  "vdo"),
-                pythonLibDir      => "$self->{_currentInstall}/pythonlibs",
+                binary        => $self->getMachine()->findNamedExecutable("vdo"),
+                pythonLibDir  => "$self->{_currentInstall}/pythonlibs",
                 %$args,
                };
   return $self->SUPER::makeVDOCommandString($params);
@@ -353,10 +355,8 @@ sub makeVDOCommandString {
 sub makeVDOStatsCommandString {
   my ($self, $args) = assertNumArgs(2, @_);
   my $params = {
-                albireoBinaryPath => "$self->{_currentInstall}",
-                binary            => makeFullPath($self->{_currentInstall},
-                                                  "vdostats"),
-                pythonLibDir      => "$self->{_currentInstall}/pythonlibs",
+                binary        => $self->getMachine()->findNamedExecutable("vdostats"),
+                pythonLibDir  => "$self->{_currentInstall}/pythonlibs",
                 %$args,
                };
   return $self->SUPER::makeVDOStatsCommandString($params);

@@ -47,8 +47,6 @@ my @CLEANUP_FILES =  ("/etc/vdoconf.yml",
 #
 our %BLOCKDEVICE_PROPERTIES
   = (
-     # The path to the binaries (used by Permabit::CommandString::VDO)
-     albireoBinaryPath => undef,
      # The configuration file
      confFile          => undef,
      # @ple the name of the (optional) manager log file
@@ -92,7 +90,6 @@ sub registerFileCleanup {
 sub installModule {
   my ($self) = assertNumArgs(1, @_);
 
-  $self->{albireoBinaryPath} //= $self->{binaryDir};
   $self->{confFile} //= makeFullPath($self->{scratchDir}, "vdoconf.yml");
 
   if (defined($self->{managerLogFile}) && ($self->{managerLogFile} !~ m(/))) {
@@ -445,12 +442,14 @@ sub makeVDOCommandString {
 ##
 sub makeVDOCommand {
   my ($self, $command, $extraArgs) = assertMinMaxArgs([{}], 2, 3, @_);
+  my $machine = $self->getMachine();
 
   my $args = {
-              command      => $command,
-              doSudo       => 1,
-              logfile      => $self->{managerLogFile},
-              verbose      => 1,
+              binary        => $machine->findNamedExecutable("vdo"),
+              command       => $command,
+              doSudo        => 1,
+              logfile        => $self->{managerLogFile},
+              verbose       => 1,
               %$extraArgs,
              };
   if ($command eq 'create' || $command eq 'import') {

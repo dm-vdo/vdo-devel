@@ -29,11 +29,8 @@ our %COMMANDSTRING_PROPERTIES
 
 our %COMMANDSTRING_INHERITED_PROPERTIES
   = (
-     # The path to the binaries; allows parent to be a Managed vdo;
-     # appended first to path
-     albireoBinaryPath => undef,
      # Name of the VDO device to operate on
-     deviceName        => undef,
+     deviceName => undef,
     );
 
 ###############################################################################
@@ -42,9 +39,6 @@ our %COMMANDSTRING_INHERITED_PROPERTIES
 sub getEnvironment {
   my ($self) = assertNumArgs(1, @_);
   my $path = "\$PATH";
-  if (defined($self->{albireoBinaryPath})) {
-    $path = "$path:$self->{albireoBinaryPath}";
-  }
   if (defined($self->{binaryDir})) {
     $path = "$path:$self->{binaryDir}";
   }

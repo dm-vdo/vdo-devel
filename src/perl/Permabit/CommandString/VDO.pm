@@ -22,91 +22,89 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %COMMANDSTRING_PROPERTIES
   = (
      # the number of threads to use for acknowledging write requests
-     ackThreads            => undef,
+     ackThreads          => undef,
      # whether or not to enable the VDO volume or start it
-     activate              => undef,
+     activate            => undef,
      # operate on all configured VDO devices
-     all                   => undef,
+     all                 => undef,
      # the number of I/O operations to submit in a batch before moving to the
      # next bio submission thread
-     bioRotationInterval   => undef,
+     bioRotationInterval => undef,
      # the number of threads to use to submit storage I/O operations
-     bioThreads            => undef,
+     bioThreads          => undef,
      # a string describing the size of the block map cache
-     blockMapCacheSize     => undef,
+     blockMapCacheSize   => undef,
      # the block map period
-     blockMapPeriod        => undef,
+     blockMapPeriod      => undef,
      # the command to run, one of create, remove, start, stop, enable, disable,
      # status, list, growLogical, growPhysical, printConfigFile
-     command               => undef,
+     command             => undef,
      # whether to enable or disable compression
-     compression           => undef,
+     compression         => undef,
      # the number of threads to use for cpu-intensive work
-     cpuThreads            => undef,
+     cpuThreads          => undef,
      # whether to enable or disable deduplication
-     deduplication         => undef,
+     deduplication       => undef,
      # Run with debug logging
-     debug                 => 0,
+     debug               => 0,
      # the storage device for the VDO volume
-     device                => undef,
+     device              => undef,
      # the list of extensions to disable
-     disableExtensions     => undef,
+     disableExtensions   => undef,
      # forcibly unmount file systems and remove
-     force                 => undef,
+     force               => undef,
      # forcibly rebuild
-     forceRebuild          => undef,
+     forceRebuild        => undef,
      # the number of hash lock zones/threads for subdividing work
-     hashZoneThreads       => undef,
+     hashZoneThreads     => undef,
      # print help message and exit
-     help                  => undef,
+     help                => undef,
      # the index memory size
-     indexMem              => undef,
+     indexMem            => undef,
      # if specified, the path to use for a log file
-     logfile               => undef,
+     logfile              => undef,
      # the number of logical zones/threads for subdividing work
-     logicalThreads        => undef,
+     logicalThreads      => undef,
      # max discard size
-     maxDiscardSize        => undef,
+     maxDiscardSize      => undef,
      # executable name
-     name                  => "vdo",
+     name                => "vdo",
      # Print commands instead of executing them
-     noRun                 => undef,
+     noRun               => undef,
      # print pending modifications to the device in square brackets
-     pending               => undef,
+     pending             => undef,
      # the number of physical zones/threads for subdividing work
-     physicalThreads       => undef,
+     physicalThreads     => undef,
      # whether the albireo index is sparse
-     sparseIndex           => undef,
+     sparseIndex         => undef,
      # log level of the VDO driver
-     vdoLogLevel           => undef,
+     vdoLogLevel         => undef,
      # a string describing the logical size of the VDO volume
-     vdoLogicalSize        => undef,
+     vdoLogicalSize      => undef,
      # The size of the VDO slabs
-     vdoSlabSize           => undef,
+     vdoSlabSize         => undef,
      # print commands before executing them
-     verbose               => undef,
+     verbose             => undef,
      # version number of VDO manager
-     version               => undef,
+     version             => undef,
     );
 
 our %COMMANDSTRING_INHERITED_PROPERTIES
   = (
-     # The path to the binaries
-     albireoBinaryPath => undef,
      # The block map era length
-     blockMapPeriod    => undef,
+     blockMapPeriod => undef,
      # The configuration file
-     confFile          => undef,
+     confFile       => undef,
      # Name of the VDO device to operate on
-     deviceName        => undef,
+     deviceName     => undef,
      # Whether to emulate a 512 byte block device
-     emulate512        => undef,
+     emulate512     => undef,
      # The path to the python libraries
-     pythonLibDir      => undef,
+     pythonLibDir   => undef,
      # Needed for create and import commands
-     uuid              => undef,
+     uuid           => undef,
      # The identifier for this VDO
-     vdoIdentifier     => undef,
+     vdoIdentifier   => undef,
     );
 
 ###############################################################################
@@ -115,9 +113,6 @@ our %COMMANDSTRING_INHERITED_PROPERTIES
 sub getEnvironment {
   my ($self) = assertNumArgs(1, @_);
   $self->{env}->{PYTHONDONTWRITEBYTECODE} = "true";
-  if (defined($self->{albireoBinaryPath})) {
-    $self->{env}->{PATH} = "\$PATH:$self->{albireoBinaryPath}";
-  }
   if (defined($self->{pythonLibDir})) {
     $self->{env}->{PYTHONPATH} = "$self->{pythonLibDir}:\$PYTHONPATH";
   }

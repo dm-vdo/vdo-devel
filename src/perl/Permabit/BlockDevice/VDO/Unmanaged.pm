@@ -61,9 +61,11 @@ sub formatVDO {
   my ($self, $extraArgs) = assertMinMaxArgs([{}], 1, 2, @_);
 
   my $device = $self->{storageDevice};
+  my $machine = $device->getMachine();
   my $args = {
               albireoMem    => $self->{memorySize},
               albireoSparse => $self->{sparse},
+              binary        => $machine->findNamedExecutable("vdoformat"),
               doSudo        => 1,
               force         => 1,
               logicalSize   => sizeToLvmText($self->{logicalSize}),

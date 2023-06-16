@@ -304,7 +304,7 @@ sub markVDOReadOnly {
                       "-vdo0";
 
   # Mark the volume as read only.
-  my $vdoReadOnly = $self->findBinary("vdoReadOnly");
+  my $vdoReadOnly = $machine->findNamedExecutable("vdoreadonly");
   $machine->runSystemCmd("sudo $vdoReadOnly $vdoDevicePath");
 }
 
@@ -320,7 +320,7 @@ sub runAdaptLVMScript {
   my $vdoDeviceName = $device->{volumeGroup}->getName() . "/" .
                       $device->{deviceName};
 
-  my $shellUtility = $self->findBinary("adaptLVMVDO.sh");
+  my $shellUtility = $machine->findNamedExecutable("adaptLVMVDO.sh");
 
   # The EXTRA_LVM_ARGS are needed for our environment, but in a typical default
   # LVM configuration environment, they won't be needed.

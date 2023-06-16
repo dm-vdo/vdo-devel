@@ -40,9 +40,6 @@ sub configure {
   $self->Permabit::BlockDevice::VDO::configure($arguments);
   $self->Permabit::BlockDevice::LVM::configure($arguments);
 
-  # Get the location of the vdoformat binary for use by LVM.
-  $self->{vdoformat} = $self->findBinary("vdoformat");
-
   # We can't just default these in PROPERTIES or INHERITED_PROPERTIES, because
   # the base class sets them to undef in its INHERITED_PROPERTIES and those are
   # the values that VDOTest uses. Hence we have to default them here.
@@ -145,6 +142,10 @@ sub makeLVMConfigString {
 ##
 sub setup {
   my ($self) = assertNumArgs(1, @_);
+
+  # Get the location of the vdoformat binary for use by LVM.
+  $self->{vdoformat} = $self->getMachine()->findNamedExecutable("vdoformat"),
+
   # This will create two devices at once; the vdo pool and the
   # volume on top of it.
   my $config = $self->makeLVMConfigString();
