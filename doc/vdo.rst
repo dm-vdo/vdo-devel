@@ -9,7 +9,7 @@ corruption, relying instead on integrity protection of the storage below
 it. It is strongly recommended that lvm be used to manage vdo volumes. See
 lvmvdo(7).
 
-Userspace component
+Userspace component extra text
 ===================
 
 Formatting a vdo volume requires the use of the 'vdoformat' tool, available
