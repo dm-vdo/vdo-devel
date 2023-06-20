@@ -135,11 +135,12 @@ jobs:
           cd $i
             for file in *::*.log;
             do
-              mv ${file} ${file/::/--}
+              [ -e "$file" ] || continue
+              mv "${file}" "${file/::/--}"
             done
           cd ..
           else
-            mv ${i} ${i/::/--}
+            mv "${i}" "${i/::/--}"
           fi
         done
 
