@@ -127,21 +127,21 @@ jobs:
     
     - name: Prepare Logfiles
       if: failure()
-      run: |  
+      run: |
         cd logs
-	for i in *;
-	do
-	  if [ -d "$i" ]; then
-	    cd $i
-	    for file in *::*.log;
-	    do
+        for i in *;
+        do
+          if [ -d "$i" ]; then
+          cd $i
+            for file in *::*.log;
+            do
               mv ${file} ${file/::/--}
-	    done
-            cd ..
-	  else
-	    mv ${i} ${i/::/--}
+            done
+          cd ..
+          else
+            mv ${i} ${i/::/--}
           fi
-	done
+        done
 
     - name: Upload artifact
       if: failure()
