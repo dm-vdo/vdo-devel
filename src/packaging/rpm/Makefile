@@ -18,7 +18,6 @@ SOURCES       = $(BUILD_DIR)/SOURCES
 
 SPECS         = $(BUILD_DIR)/SPECS
 MANIFEST     ?= src/packaging/rpm/MANIFEST.yaml
-SUPPLEMENT   ?= src/packaging/rpm/MANIFEST-SUPPLEMENT.yaml
 
 # rpmbuild fails to clean up after itself on RHEL8 if BUILDROOT is under
 # BUILD_DIR in NFS so just pick a temporary local directory for it to use.
@@ -36,7 +35,9 @@ clean:
 
 prepare: prepare.out
 
-prepare.out:
+.PHONY: FORCE
+prepare.out: FORCE
+	rm -rf $(WORK_DIR)
 	mkdir -p $(WORK_DIR)
 	$(PREPARE_SOURCE_DIST) --dest=$(WORK_DIR) --manifest=$(MANIFEST) \
 	    $(CHANGELOG_FLAGS) $(VDO_ROOT) > prepare.out
