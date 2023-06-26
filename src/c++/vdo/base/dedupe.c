@@ -2079,7 +2079,7 @@ static struct attribute *dedupe_attrs[] = {
 };
 ATTRIBUTE_GROUPS(dedupe);
 
-static struct kobj_type dedupe_directory_type = {
+static const struct kobj_type dedupe_directory_type = {
 	.release = dedupe_kobj_release,
 	.sysfs_ops = &dedupe_sysfs_ops,
 	.default_groups = dedupe_groups,

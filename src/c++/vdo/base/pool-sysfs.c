@@ -186,7 +186,7 @@ static struct attribute *pool_attrs[] = {
 };
 ATTRIBUTE_GROUPS(pool);
 
-struct kobj_type vdo_directory_type = {
+const struct kobj_type vdo_directory_type = {
 	.release = vdo_pool_release,
 	.sysfs_ops = &vdo_pool_sysfs_ops,
 	.default_groups = pool_groups,

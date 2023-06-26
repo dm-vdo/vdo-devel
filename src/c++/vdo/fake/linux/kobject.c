@@ -156,7 +156,7 @@ int kobject_add(struct kobject *kobj, struct kobject *parent,
  * to kobject_put(), not by a call to kfree directly to ensure that all of
  * the memory is cleaned up properly.
  */
-void kobject_init(struct kobject *kobj, struct kobj_type *ktype)
+void kobject_init(struct kobject *kobj, const struct kobj_type *ktype)
 {
 	char *err_str;
 
@@ -206,7 +206,7 @@ struct kobject *kobject_get(struct kobject *kobj)
 static void kobject_cleanup(struct kobject *kobj)
 {
 	struct kobject *parent = kobj->parent;
-	struct kobj_type *t = kobj->ktype;
+	const struct kobj_type *t = kobj->ktype;
 	char *name = kobj->name;
 
 	uds_log_debug("kobject: '%s' (%p): %s, parent %p\n",

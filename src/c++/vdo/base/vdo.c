@@ -912,7 +912,7 @@ static void pool_stats_release(struct kobject *directory)
 }
 
 ATTRIBUTE_GROUPS(vdo_pool_stats);
-static struct kobj_type stats_directory_type = {
+static const struct kobj_type stats_directory_type = {
 	.release = pool_stats_release,
 	.sysfs_ops = &vdo_pool_stats_sysfs_ops,
 	.default_groups = vdo_pool_stats_groups,

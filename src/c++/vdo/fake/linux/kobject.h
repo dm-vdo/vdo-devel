@@ -56,7 +56,7 @@ struct kobj_type {
 struct kobject {
 	char		        *name;
 	struct kobject		*parent;
-	struct kobj_type	*ktype;
+	const struct kobj_type	*ktype;
 	unsigned int		 state_initialized:1;
 	atomic_t		 refcount;
 };
@@ -78,7 +78,7 @@ struct kobject *kobject_get(struct kobject *kobj);
 
 void kobject_put(struct kobject *kobj);
 
-void kobject_init(struct kobject *kobj, struct kobj_type *ktype);
+void kobject_init(struct kobject *kobj, const struct kobj_type *ktype);
 
 /* The global /sys/kernel/ kobject for people to chain off of */
 extern struct kobject *kernel_kobj;

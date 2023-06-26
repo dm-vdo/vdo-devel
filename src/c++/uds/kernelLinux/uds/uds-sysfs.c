@@ -83,7 +83,7 @@ static struct attribute *empty_attrs[] = {
 };
 ATTRIBUTE_GROUPS(empty);
 
-static struct kobj_type empty_object_type = {
+static const struct kobj_type empty_object_type = {
 	.release = empty_release,
 	.sysfs_ops = &empty_ops,
 	.default_groups = empty_groups,
@@ -233,7 +233,7 @@ static const struct sysfs_ops memory_ops = {
 	.store = memory_store,
 };
 
-static struct kobj_type memory_object_type = {
+static const struct kobj_type memory_object_type = {
 	.release = empty_release,
 	.sysfs_ops = &memory_ops,
 	.default_groups = memory_groups,
@@ -307,7 +307,7 @@ static const struct sysfs_ops parameter_ops = {
 	.store = parameter_store,
 };
 
-static struct kobj_type parameter_object_type = {
+static const struct kobj_type parameter_object_type = {
 	.release = empty_release,
 	.sysfs_ops = &parameter_ops,
 	.default_groups = parameter_groups,

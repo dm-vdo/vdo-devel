@@ -2321,7 +2321,7 @@ static void vdo_pool_release(struct kobject *directory)
 	UDS_FREE(vdo);
 }
 
-struct kobj_type vdo_directory_type = {
+const struct kobj_type vdo_directory_type = {
 	.release = vdo_pool_release,
 	.sysfs_ops = NULL,
 	.default_groups = NULL,

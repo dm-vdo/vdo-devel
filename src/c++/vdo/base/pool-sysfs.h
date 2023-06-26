@@ -9,7 +9,7 @@
 #include <linux/kobject.h>
 
 /* The kobj_type used for setting up the kernel layer kobject. */
-extern struct kobj_type vdo_directory_type;
+extern const struct kobj_type vdo_directory_type;
 
 /* The sysfs_ops used for the "statistics" subdirectory. */
 extern const struct sysfs_ops vdo_pool_stats_sysfs_ops;
