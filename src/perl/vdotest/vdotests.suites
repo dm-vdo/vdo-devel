@@ -214,6 +214,11 @@ $suiteNames{distributionTests}
 ###########################################################################
 # Weekly upgrade tests.
 ##
+$suiteNames{beakerVDOMultiArchUpgradeTests}
+  = [
+     "MultiArchUpgrade",
+    ];
+
 $suiteNames{weeklyVDOUpgradeTests}
   = [
 #     "DirtyUpgrade",  # Requires explicit upgrade feature
@@ -865,6 +870,7 @@ $suiteNames{beakerExcludedTests}
 @excludes
   = (
      @deferred,
+     @{$suiteNames{beakerVDOMultiArchUpgradeTests}},
      @{$suiteNames{localTests}},
      @{$suiteNames{localUpgradeTests}},
      @{$suiteNames{nightlyVDOPerfTests}},

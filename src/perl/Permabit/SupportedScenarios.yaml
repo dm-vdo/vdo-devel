@@ -34,6 +34,11 @@ AARCH64_RHEL9_head:
   arch: AARCH64
   moduleVersion: head
 
+PPC64LE_RHEL9_head:
+  rsvpOSClass: RHEL9
+  arch: PPC64LE
+  moduleVersion: head
+
 S390X_RHEL9_head:
   rsvpOSClass: RHEL9
   arch: S390X

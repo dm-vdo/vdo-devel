@@ -40,8 +40,6 @@ our %BLOCKDEVICE_PROPERTIES
      _scenarioData     => undef,
      # @ple Run the upgrader in verbose mode
      _upgraderVerbose  => 1,
-     # @ple A hash tracking files for different versions
-     _versions         => {},
      # @ple A hash taken from SUPPORTED_VERSIONS
      _versionData      => undef,
     );
@@ -70,27 +68,19 @@ sub configure {
 }
 
 ########################################################################
-# Set the _versionData from the key
-#
-# @param versionKey  key into the SUPPORTED_VERSIONS hash
-##
-sub _setupVersionData {
-  my ($self, $versionKey) = assertNumArgs(2, @_);
-
-  assertDefined($SUPPORTED_VERSIONS->{$versionKey});
-  $self->{_versionData} = $SUPPORTED_VERSIONS->{$versionKey};
-}
-
-########################################################################
-# Set the _scenarioData from the key
+# Set the scenario and version data structures from the scenario key
 #
 # @param scenarioKey  Key into the SUPPORTED_SCENARIOS hash
 ##
-sub _setupScenarioData {
+sub _setupData {
   my ($self, $scenarioKey) = assertNumArgs(2, @_);
 
   assertDefined($SUPPORTED_SCENARIOS->{$scenarioKey});
   $self->{_scenarioData} = $SUPPORTED_SCENARIOS->{$scenarioKey};
+
+  my $versionKey = $self->{_scenarioData}->{moduleVersion};
+  assertDefined($SUPPORTED_VERSIONS->{$versionKey});
+  $self->{_versionData} = $SUPPORTED_VERSIONS->{$versionKey};
 }
 
 ########################################################################
@@ -124,8 +114,8 @@ sub getCurrentVDOStats {
 sub installModule {
   my ($self) = assertNumArgs(1, @_);
 
-  # If the version has not been set yet, don't install anything.
-  if (!defined($self->{_versionData})) {
+  # If the data structures have not been set yet, don't install anything.
+  if (!defined($self->{_scenarioData}) || !defined($self->{_versionData})) {
     return;
   }
 
@@ -157,40 +147,52 @@ sub needsExplicitUpgrade {
 
 ########################################################################
 # Create a directory containing all artifacts required to install and
-# run the requested version. This includes building the proper kernel
-# binary, building the user tools, and setting up the proper directory
-# structures for python.
+# run the requested version.
 #
-# @param versionName  The name of the version
-#
-# @return The path to the directory containing the new version files
+# @param  versionName  The name of the version
+# @param  versionDir   The versioned directory to create
 ##
 sub _createVersionedVDODirectory {
-  my ($self, $versionName) = assertNumArgs(2, @_);
-  my $versionDir           = makeFullPath($self->{workDir}, $versionName);
-  $self->runOnHost("mkdir $versionDir");
+  my ($self, $versionName, $versionDir) = assertNumArgs(3, @_);
+  $self->runOnHost("mkdir -p $versionDir");
 
+  # We only need to handle RPMs here because all release versions are released
+  # as RPMs. There can be only one of each VDO RPM in the release path.
+  my $releasePath;
+  if ($self->{_versionData}->{branch} eq "head") {
+    $releasePath = $self->{binaryDir};
+  } else {
+    $releasePath = $self->{_versionData}->{path};
+  }
+  my $sources     = "*vdo-$versionName*.src.rpm";
+  $self->runOnHost("cp -p $releasePath/$sources $versionDir");
+}
+
+########################################################################
+# Build the kernel and user tools modules for the specified version.
+#
+# @param versionName  The name of the version
+# @param versionDir   The versioned VDO directory where build artifacts exist
+##
+sub _buildModules {
+  my ($self, $versionName, $versionDir) = assertNumArgs(3, @_);
   my $arch = $self->runOnHost("uname -m", 1);
   chomp($arch);
 
-  # We only need to handle RPMs here because all release versions are
-  # released as RPMs, and head is handled separately. There can be
-  # only one of each VDO RPM in the release path.
-  my $releasePath = $self->{_versionData}->{path};
-  my $sources     = "*vdo-$versionName*.src.rpm";
-  $self->runOnHost("cp -p $releasePath/$sources $versionDir");
-
   # Build the kernel module from source and move the result to the top level.
-  # The KCFLAGS argument allow us to build vdo-6.2 (Aluminum) RPMs on Fedora.
-  $log->debug("Building kernel module RPM");
-  $self->runOnHost(["KCFLAGS='-Wno-vla' rpmbuild --rebuild"
-                    . " --define='_topdir $versionDir'"
-                    . " $versionDir/*kvdo-$versionName*.src.rpm",
-                    "mv -f $versionDir/RPMS/$arch/* $versionDir"]);
+  # The KCFLAGS argument allows us to build vdo-6.2 (Aluminum) RPMs on Fedora.
+  $log->debug("Building kernel module SRPM");
+  my $kernelBuild = join(' ',
+                         "KCFLAGS='-Wno-vla' rpmbuild --rebuild",
+                         "--define='_topdir $versionDir'",
+                         "$versionDir/*kvdo-$versionName*.src.rpm");
+  my $move = "mv -f $versionDir/RPMS/$arch/* $versionDir";
+  $self->runOnHost([$kernelBuild, $move]);
 
   # Build the user tools from source, and move the necessary RPMs to the top
   # level.
-  $log->debug("Building user tools RPM");
+  # This includes setting up the proper directory structures for python.
+  $log->debug("Building user tools SRPM");
   my $userBuild = join(' ',
                        "rpmbuild --rebuild",
                        "--define='_topdir $versionDir'",
@@ -219,22 +221,28 @@ sub _getVersionedVDODirectory {
   my ($self) = assertNumArgs(1, @_);
   my $hostName = $self->getMachineName();
   my $versionName = $self->{_versionData}->{moduleVersion};
-  if ($self->{_versionData}->{isCurrent}
-      && $self->{_versionData}->{branch} eq "head") {
-    $self->{_versions}->{$versionName}->{$hostName} = $self->{binaryDir};
+  my $versionDir = makeFullPath($self->{workDir}, $versionName);
+
+  # Create the versioned VDO directory if it does not exist on this host.
+  if ($self->sendCommand("test -d $versionDir")) {
+    $self->_createVersionedVDODirectory($versionName, $versionDir);
   }
 
-  my $versionDir;
-  if (defined($self->{_versions}->{$versionName}->{$hostName})) {
-    $versionDir = $self->{_versions}->{$versionName}->{$hostName};
+  # Build or rebuild the modules if necessary
+  my $scenarioArch = lc($self->{_scenarioData}{arch});
+  my @versionArchRPMNames =
+    map { "$versionDir/$_" } ("*kvdo-$versionName*$scenarioArch.rpm",
+                              "vdo-$versionName*$scenarioArch.rpm");
 
-    if (!$self->sendCommand("test -d $versionDir")) {
-      return $self->{_versions}->{$versionName}->{$hostName};
+  foreach my $name (@versionArchRPMNames) {
+    my $errno = $self->sendCommand("test -f $name");
+    if ($errno != 0) {
+      $log->debug("Building the VDO modules for architecture $scenarioArch");
+      $self->_buildModules($versionName, $versionDir);
+      last;
     }
   }
 
-  $versionDir = $self->_createVersionedVDODirectory($versionName);
-  $self->{_versions}->{$versionName}->{$hostName} = $versionDir;
   return $versionDir;
 }
 
@@ -286,54 +294,9 @@ sub switchToScenario {
   my $version = $scenario->{version} // "head";
 
   $log->info("Switching to VDO $version on " . $machine->getName());
-  $self->_setupVersionData($version);
+  $self->_setupData($scenario->{name});
   $self->migrate($machine);
   $self->verifyModuleVersion();
-  $self->_setupScenarioData($scenario->{name});
-}
-
-########################################################################
-# Run the vdoUpgrader command appropriate for a given version.
-#
-# XXX The explicit upgrade commands are not currently supported.
-#
-# @param  newVersion  The VDO version to upgrade to
-# @oparam extraArgs   Any extra arguments to the upgrade command
-##
-sub runVDOUpgrader {
-  my ($self, $newVersion, $extraArgs) = assertMinMaxArgs([""], 2, 3, @_);
-  $log->debug("Stopping VDO version $self->{_versionData}->{moduleVersion}");
-
-  $self->_setupVersionData($newVersion);
-  my $newVersionPath = $self->_getVersionedVDODirectory();
-
-  my $verbose = $self->{_upgraderVerbose} ? " --verbose" : "";
-
-  my $upgrader = makeFullPath($newVersionPath, "vdoUpgrader.sh");
-  my $upgradeCmd = "sudo $upgrader $verbose"
-                   . " --albireoBinaryPath=$self->{_currentInstall}"
-                   . " --moduleSourceDir=$newVersionPath"
-                   . " --confFile=$self->{confFile} $extraArgs";
-  my $upgradeSub = sub { $self->runOnHost($upgradeCmd); };
-  $self->getMachine()->withKernelLogErrorCheckDisabled($upgradeSub, "blocked");
-  $self->verifyModuleVersion();
-}
-
-########################################################################
-# Use the vdo manager option to explicitly upgrade an installed VDO to
-# a different version.
-#
-# XXX The explicit upgrade command is not currently supported.
-#
-# @param  newVersion  The VDO version to upgrade to
-# @oparam extraArgs   Any extra arguments to the upgrade command
-##
-sub upgrade {
-  my ($self, $newVersion, $extraArgs) = assertMinMaxArgs([""], 2, 3, @_);
-
-  $self->stop();
-  $self->runVDOUpgrader($newVersion, $extraArgs);
-  $self->start();
 }
 
 ########################################################################

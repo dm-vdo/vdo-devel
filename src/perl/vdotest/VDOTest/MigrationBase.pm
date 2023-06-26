@@ -88,14 +88,20 @@ sub set_up {
 sub reserveHosts {
   my ($self) = assertNumArgs(1, @_);
   my $rsvper = $self->getRSVPer();
-  my @scenarioNames = ($self->{initialScenario},
-                       @{$self->{intermediateScenarios}});
+
+  # Create list of scenario names with duplicates removed.
+  # Any repeated scenarios should use the same host throughout the test.
+  my %testScenarios = map { $_, 1 } ($self->{initialScenario},
+                                     @{$self->{intermediateScenarios}});
+  my @scenarioNames = keys(%testScenarios);
 
   # Create hash of existing reserved hosts.
   my $reserved = {};
   for my $host (@{$self->{prereservedHosts}}) {
-    my @classes = sort($rsvper->getHostOSArchClasses($host));
-    if (scalar(@classes) == 0 ) {
+    my @classes = $rsvper->getHostOSArchClasses($host);
+    if (scalar(@classes) > 0 ) {
+      @classes = sort(@classes);
+    } else {
       next;
     }
 
