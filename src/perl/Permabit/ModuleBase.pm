@@ -200,7 +200,7 @@ sub loadFromSourceRPM {
 
   $self->buildModule($modulePath, $topdir, $arch);
 
-  my $filename = makeFullPath($topdir, "$modFileName-*$arch.rpm");
+  my $filename = makeFullPath($topdir, "$modFileName-$version*$arch.rpm");
   $self->loadFromBinaryRPM($filename);
 }
 

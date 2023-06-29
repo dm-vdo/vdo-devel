@@ -46,21 +46,12 @@ sub loadFromBinaryRPM {
 
   $self->SUPER::loadFromBinaryRPM($filename);
 
-  # FIXME: Extra steps to load vdo-support module if it is not already installed
-  # Necessary for how RegenerateGeometry operates.
-  my $machine = $self->{machine};
-  my $modDir = $self->{modDir};
+  # Extra steps for loading the vdo-support module
   my $topdir = makeFullPath($self->{machine}->{workDir}, $self->{modVersion});
   my $supportName = "$modFileName-support";
-  my $supportFile = ($self->{useDistribution}) ? makeFullPath($modDir, "$supportName-*.rpm")
+  my $supportFile = ($self->{useDistribution}) ? makeFullPath($self->{modDir}, "$supportName-*.rpm")
                                                : makeFullPath($topdir, "$supportName-*.rpm");
-
-  $machine->sendCommand("rpm -qa $supportName");
-  if ($machine->getStdout() !~ /^$supportName/) {
-    $self->SUPER::loadFromBinaryRPM($supportFile, $supportName);
-  } else {
-    push(@{$self->{_cleanCommands}}, "cd $topdir && sudo rpm -e $supportName");
-  }
+  $self->SUPER::loadFromBinaryRPM($supportFile, $supportName);
 }
 
 ###############################################################################
