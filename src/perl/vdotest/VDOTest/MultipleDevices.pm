@@ -206,9 +206,10 @@ sub testMultiple {
   my $name1 = $device->getVDODeviceResolvedName();
   my $name2 = $device2->getVDODeviceName();
   my $args = {
+              binary     => $machine->findNamedExecutable('vdostats'),
               doSudo     => 1,
               deviceName => [$name1, $name2],
-	      verbose    => 1,
+              verbose    => 1,
              };
   my $command = Permabit::CommandString::VDOStats->new($self, $args);
   $machine->assertExecuteCommand("$command");
