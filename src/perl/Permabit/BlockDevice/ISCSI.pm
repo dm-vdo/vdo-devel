@@ -63,9 +63,13 @@ sub activate {
     my $lsscsiCmd = "lsscsi 2>/dev/null | grep pbit-target";
     my $lsscsi = $self->runOnHostIgnoreErrors($lsscsiCmd);
     my $device = (split('\s', $lsscsi))[-1];
-    if ($device) {
-      my $addDevCmd = "which lvmdevices && sudo lvmdevices -y --adddev $device";
-      my $delDevCmd = "which lvmdevices && sudo lvmdevices -y --deldev $device";
+
+    # LVM does not always recognize an ISCSI device unless it is added
+    # to the system.devices file. To do this, the lvmdevices tool is
+    # needed.
+    if ($device && ($self->sendCommand("which lvmdevices") == 0)) {
+      my $addDevCmd = "sudo lvmdevices -y --adddev $device";
+      my $delDevCmd = "sudo lvmdevices -y --deldev $device";
       $self->runOnHost($addDevCmd);
       $self->addDeactivationStep(sub { $self->runOnHost($delDevCmd); });
     }
