@@ -38,10 +38,10 @@ sub testDefaultCompression {
   my $device = $self->getDevice();
 
   assertTrue($device->isVDOCompressionEnabled(),
-	     "Default compression should be on");
+             "Default compression should be on");
   $device->disableCompression();
   assertFalse($device->isVDOCompressionEnabled(),
-	      "disableCompression command should disable compression");
+              "disableCompression command should disable compression");
 
 }
 
@@ -58,10 +58,10 @@ sub testEnableCompressionOnCreate {
   my $device = $self->getDevice();
 
   assertTrue($device->isVDOCompressionEnabled(),
-	     "Compression should be on");
+             "Compression should be on");
   $device->disableCompression();
   assertFalse($device->isVDOCompressionEnabled(),
-	      "disableCompression command should disable compression");
+              "disableCompression command should disable compression");
 
 }
 
@@ -78,10 +78,10 @@ sub testDisableCompressionOnCreate {
   my $device = $self->getDevice();
 
   assertFalse($device->isVDOCompressionEnabled(),
-	      "Compression should be off");
+              "Compression should be off");
   $device->enableCompression();
   assertTrue($device->isVDOCompressionEnabled(),
-	     "enableCompression command should enable compression");
+             "enableCompression command should enable compression");
 
 }
 
@@ -98,10 +98,10 @@ sub testDefaultDeduplication {
   my $device = $self->getDevice();
 
   assertTrue($device->isVDODedupeEnabled(),
-	     "Default deduplication should be on");
+             "Default deduplication should be on");
   $device->disableDeduplication();
   assertFalse($device->isVDODedupeEnabled(),
-	      "disableDeduplication command should disable deduplication");
+              "disableDeduplication command should disable deduplication");
 
 }
 
@@ -118,10 +118,10 @@ sub testEnableDeduplicationOnCreate {
   my $device = $self->getDevice();
 
   assertTrue($device->isVDODedupeEnabled(),
-	     "Deduplication should be on");
+             "Deduplication should be on");
   $device->disableDeduplication();
   assertFalse($device->isVDODedupeEnabled(),
-	      "disableDeduplication command should disable deduplication");
+              "disableDeduplication command should disable deduplication");
 
 }
 
@@ -131,10 +131,10 @@ sub testEnableDeduplicationOnCreate {
 ##
 sub propertiesDisableDeduplicationOnCreate {
   return (
-	  # suppresses check for indexer ready
-	  disableAlbireo => 1,
-	  enableDeduplication => 0,
-	 );
+          # suppresses check for indexer ready
+          disableAlbireo => 1,
+          enableDeduplication => 0,
+         );
 }
 
 sub testDisableDeduplicationOnCreate {
@@ -142,10 +142,11 @@ sub testDisableDeduplicationOnCreate {
   my $device = $self->getDevice();
 
   assertFalse($device->isVDODedupeEnabled(),
-	     "Deduplication should be off");
+             "Deduplication should be off");
   $device->enableDeduplication();
+  $device->waitForIndex(statusList => [qw(error online)]);
   assertTrue($device->isVDODedupeEnabled(),
-	     "enableDeduplication command should enable deduplication");
+             "enableDeduplication command should enable deduplication");
 
 }
 
