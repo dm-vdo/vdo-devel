@@ -337,7 +337,6 @@ struct vdo_completion {
 	struct funnel_queue_entry work_queue_entry_link;
 	enum vdo_completion_priority priority;
 	struct vdo_work_queue *my_queue;
-	u64 enqueue_time;
 };
 
 struct block_allocator;
