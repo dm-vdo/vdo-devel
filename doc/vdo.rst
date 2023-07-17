@@ -1,3 +1,5 @@
+.. SPDX-License-Identifier: GPL-2.0-only
+
 dm-vdo
 ======
 
@@ -156,7 +158,7 @@ Miscellaneous parameters:
 	compression:
 		Whether compression is enabled. The default is 'off'; the
 		acceptable values are 'on' and 'off'.
-		
+
 Device modification
 -------------------
 
@@ -245,12 +247,12 @@ The messages are:
 
 			viopool: The pool of I/O requests incoming bios
 			pools: A synonym of 'viopool'
-			vdo: Most of the structures managing on-disk data 
+			vdo: Most of the structures managing on-disk data
 			queues: Basic information about each vdo thread
 			threads: A synonym of 'queues'
-			default: Equivalent to 'queues vdo' 
+			default: Equivalent to 'queues vdo'
 			all: All of the above.
-        
+
         dump-on-shutdown:
 		Perform a default dump next time vdo shuts down.
 
@@ -323,7 +325,7 @@ behavior differs from other storage targets.
   Because the underlying storage may be multiply referenced, over-writing
   an existing block generally requires a vdo to have a free block
   available.
-  
+
 - When blocks are no longer in use, sending a discard request for those
   blocks lets the vdo release references for those blocks. If the vdo is
   thinly provisioned, discarding unused blocks is essential to prevent the
