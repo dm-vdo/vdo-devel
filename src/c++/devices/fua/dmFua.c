@@ -92,7 +92,9 @@ static int fuaMap(struct dm_target *ti, struct bio *bio)
     return DM_MAPIO_SUBMITTED;
   }
 
-  if (bio_data_dir(bio) == WRITE) {
+  // kernel 6.3.11 only allows _WRITE or _ZONE_APPEND to carry FUA/PREFLUSH,
+  // not DISCARD
+  if (bio_op(bio) == REQ_OP_WRITE) {
     if ((fd->frequency != 0)
         && (atomic_inc_return(&fd->counter) % fd->frequency == 0)) {
       bio->bi_opf |= REQ_FUA;
