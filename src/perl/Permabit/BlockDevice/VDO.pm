@@ -303,30 +303,36 @@ sub dumpConfig {
 }
 
 ########################################################################
-# Fill the index with synthetic records for steady state testing
+# Fill the index with synthetic records for steady state testing.
+#
+# @param  config        the index configuration from dumpConfig()
+# @oparam forceRebuild  If true, setup index to rebuild on next load
 ##
 sub fillIndex {
-  my ($self) = assertNumArgs(1, @_);
+  my ($self, $config, $forceRebuild) = assertMinMaxArgs([0], 2, 3, @_);
 
-  my $config = $self->dumpConfig();
   my $nonce = $config->{Nonce};
   my $offset = $config->{IndexRegion} * 4096;
   my $sparse = $config->{IndexConfig}->{sparse};
   my $path = $self->getVDOStoragePath();
 
   my $cmd = join(" ", $self->findBinary("vdoFillIndex"),
-		 "--nonce=$nonce", "--offset=$offset",
-		 (($sparse eq "true") ? "--sparse" : ()));
+                 "--nonce=$nonce", "--offset=$offset",
+                 (($sparse eq "true") ? "--sparse" : ()));
   if (defined($self->{memorySize})) {
     $cmd .= " --memory-size=$self->{memorySize}";
   }
+  if ($forceRebuild) {
+    $cmd .= " --force-rebuild";
+  }
 
-  $self->stop();
-  $self->enableWritableStorage();
-  my $output = $self->runOnHost("sudo $cmd $path");
-  $log->debug($output);
-  $self->disableWritableStorage();
-  $self->start();
+  my $fillIndex = sub {
+    $self->enableWritableStorage();
+    my $output = $self->runOnHost("sudo $cmd $path");
+    $log->debug($output);
+    $self->disableWritableStorage();
+  };
+  $self->runWhileStopped($fillIndex);
 }
 
 ########################################################################
@@ -353,7 +359,8 @@ sub postActivate {
   if (!$self->{disableAlbireo} && $self->{albFill}) {
     $self->waitForIndex();
     $self->{albFill} = 0;
-    $self->fillIndex();
+    my $config = $self->dumpConfig();
+    $self->fillIndex($config);
   }
 
   # In testing, we can try out different queue priorities

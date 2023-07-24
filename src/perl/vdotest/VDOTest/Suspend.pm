@@ -36,32 +36,49 @@ our %PROPERTIES
 ##
 sub makeRecoveringVDO {
   my ($self) = assertNumArgs(1, @_);
-  my $device     = $self->getDevice();
-  my $machine    = $device->getMachine();
-  my $deviceName = $device->getDeviceName();
+  my $vdoDevice  = $self->getDevice();
+  my $doryDevice = $self->getDoryDevice();
+  my $machine    = $vdoDevice->getMachine();
+  my $config     = $vdoDevice->dumpConfig();
 
-  # Generate some data to make the VDO recovery do some work.
+  # Add some data so that the VDO device is not empty.
   my $dataPath = $self->generateDataFile($MB, "source");
   $machine->fsync($dataPath);
-  $device->ddWrite(
-                   if    => $dataPath,
-                   count => 1,
-                   bs    => $MB,
-                   oflag => "direct",
-                  );
-
-  # Fill the index with chunk names so UDS rebuild takes some time.
-  $device->sendMessage("index-fill");
+  $vdoDevice->ddWrite(
+                      if    => $dataPath,
+                      count => 1,
+                      bs    => $MB,
+                      oflag => "direct",
+                     );
 
   # If we have hit a reportable kernel log error, just stop the test now.
-  $device->checkForKernelLogErrors();
+  $vdoDevice->checkForKernelLogErrors();
 
   # VDO will lose the necessary stats when restarted, so check them now.
-  $device->assertPerformanceExpectations();
+  $vdoDevice->assertPerformanceExpectations();
 
   # Make sure we don't wait for the index to finish rebuilding
-  $device->{expectIndexer} = 0;
-  return $self->causeRecovery();
+  $vdoDevice->{expectIndexer} = 0;
+
+  my $doStop = sub {
+    $doryDevice->stopWriting();
+    $log->info("Stop VDO");
+    $vdoDevice->stop();
+    $vdoDevice->dumpMetadata("before");
+  };
+  $machine->withKernelLogErrorCheckDisabled($doStop, "readonly");
+
+  $log->info("Restart Dory");
+  $doryDevice->restart();
+
+  # Fill the index with chunk names so UDS rebuild takes some time.
+  $vdoDevice->fillIndex($config, 1);
+
+  my $prerecoveryCursor = $machine->getKernelJournalCursor();
+  $log->info("Recover VDO");
+  $vdoDevice->recover();
+  $vdoDevice->waitForDeviceReady();
+  return $prerecoveryCursor;
 }
 
 #############################################################################
@@ -74,7 +91,6 @@ sub testSuspendAndResume {
 
   my $device     = $self->getDevice();
   my $machine    = $device->getMachine();
-  my $deviceName = $device->getDeviceName();
 
   $device->suspend();
 

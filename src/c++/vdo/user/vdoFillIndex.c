@@ -46,6 +46,7 @@ static uds_memory_config_size_t mem_size = UDS_MEMORY_CONFIG_256MB;
 static uint64_t nonce = 0;
 static off_t offset = 0;
 static bool use_sparse = false;
+static bool force_rebuild = false;
 static unsigned int poll_interval;
 /*
  * Gets a query from the lookaside list, or allocates one if possible.
@@ -166,6 +167,7 @@ static void usage(char *prog)
          "\n"
          "Options:\n"
          "  --help              Print this help message and exit\n"
+         "  --force-rebuild     Cause the index to rebuild on next load\n"
          "  --memory-size=Size  Optional index memory size, default 0.25\n"
          "  --nonce=Nonce       The index nonce (required)\n"
          "  --offset=Bytes      The byte offset to the start of the index\n"
@@ -224,6 +226,7 @@ static void parse_args(int argc, char *argv[])
 {
   static const char *optstring = "hn:o:";
   static const struct option longopts[] = {
+    {"force-rebuild",   no_argument,       0,    'f'},
     {"help",            no_argument,       0,    'h'},
     {"nonce",           required_argument, 0,    'n'},
     {"offset",          required_argument, 0,    'o'},
@@ -234,6 +237,9 @@ static void parse_args(int argc, char *argv[])
   int opt;
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
     switch(opt) {
+    case 'f':
+      force_rebuild = true;
+      break;
     case 'h':
       usage(argv[0]);
       exit(0);
@@ -300,10 +306,13 @@ int main(int argc, char *argv[])
   
   fill(session);
 
-  result = uds_close_index(session);
-  if (result != UDS_SUCCESS) {
-    errx(1, "Unable to close the index");
+  if (!force_rebuild) {
+    result = uds_close_index(session);
+    if (result != UDS_SUCCESS) {
+      errx(1, "Unable to close the index");
+    }
   }
+
   pthread_mutex_destroy(&list_mutex);
   return 0;
 }
