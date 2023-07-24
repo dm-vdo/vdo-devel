@@ -286,7 +286,8 @@ int main(int argc, char *argv[])
     .offset      = offset,
     .memory_size = mem_size,
     .sparse      = use_sparse,
-    .nonce       = nonce
+    .nonce       = nonce,
+    .zone_count  = 1,
   };
 
   result = uds_open_index(UDS_LOAD, &params, session);
