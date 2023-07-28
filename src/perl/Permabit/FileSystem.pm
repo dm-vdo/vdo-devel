@@ -228,7 +228,7 @@ sub getMountOptions {
   }
   push(@opts, @{$self->{mountOptions}});
   if ($readonly) {
-    push(@opts, "ro");
+    push(@opts, "ro,noload");
   }
   if (@opts) {
     return "-o " . join(",", @opts);
