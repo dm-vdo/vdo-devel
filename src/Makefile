@@ -119,6 +119,10 @@ cunittests-release:
 jenkins:
 	$(MAKE) -j$(NUM_JOBS) jenkins-parallel
 
+.PHONY: oss-jenkins
+oss-jenkins:
+	$(MAKE) -j$(NUM_JOBS) OSS_VDOBUILD=1 jenkins-parallel
+
 .PHONY: jenkins-parallel
 jenkins-parallel: export VDO_TESTINDEX=$(TEST_INDEX)
 jenkins-parallel: clean

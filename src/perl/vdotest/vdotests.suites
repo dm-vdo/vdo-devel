@@ -245,9 +245,17 @@ $suiteNames{checkin}
 # Tests to make sure we can install and start on any supported platform (on
 # a farm host).
 ##
-foreach my $class (qw(FEDORA37 FEDORA38 RHEL9)) {
+foreach my $class (qw(FEDORA37 FEDORA38)) {
   my $alias = "Basic01_" . ucfirst(lc($class));
   $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
+  push(@{$suiteNames{openPlatformTests}}, $alias);
+  push(@{$suiteNames{platformTests}}, $alias);
+}
+
+foreach my $class (qw(RHEL9)) {
+  my $alias = "Basic01_" . ucfirst(lc($class));
+  $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
+  push(@{$suiteNames{internalPlatformTests}}, $alias);
   push(@{$suiteNames{platformTests}}, $alias);
 }
 

@@ -26,6 +26,12 @@ VDOTESTS_INVOCATION = $(OPTIONAL_RSVP_HOST) ./vdotests.pl $(TEST_ARGS) \
                       $(TEST_EXTRA_ARGS) $(TEST_PARALLEL_ARGUMENT) \
 		      $(TEST_SUITES)
 
+ifeq ($(OSS_VDOBUILD), 1)
+  PLATFORM_TESTS = openPlatformTests
+else
+  PLATFORM_TESTS = platformTests
+endif
+
 .PHONY: jenkins
 jenkins: TEST_EXTRA_ARGS=$(JENKINS_CLIENT_CLASS)
 jenkins: checkin platform
@@ -43,8 +49,8 @@ vdotests:
 # For maximum parallelism the number of threads should be >= the
 # number of platforms being tested.
 platform: TEST_PARALLEL_ARGUMENT = --threads=5
-platform: TEST_SUITES = platformTests
-platform: 
+platform: TEST_SUITES = $(PLATFORM_TESTS)
+platform:
 	$(VDOTESTS_INVOCATION)
 
 .PHONY: test-vdo-distribution
