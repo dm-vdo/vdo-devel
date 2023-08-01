@@ -32,7 +32,7 @@ internally consistent and the target will be writable again.
 
 The repo also contains additional userspace tools which can be used to
 inspect a vdo target's on-disk metadata. Fortunately, these tools are
-rarely needed except by dm-vdo developers.
+rarely needed except by dm-vdo developers. Heres some extra text.
 
 Target interface
 ================
