@@ -349,8 +349,8 @@ static inline void set_newest_entry(struct search_list *search_list, u8 index)
 }
 
 bool uds_sparse_cache_contains(struct sparse_cache *cache,
-			   u64 virtual_chapter,
-			   unsigned int zone_number)
+			       u64 virtual_chapter,
+			       unsigned int zone_number)
 {
 	struct search_list *search_list;
 	struct cached_chapter_index *chapter;
