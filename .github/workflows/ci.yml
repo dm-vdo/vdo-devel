@@ -100,7 +100,6 @@ jobs:
         
     - name: Run-Untrusted-Tests
       run: |
-        sed -i 's/FEDORA37 FEDORA38 RHEL9/FEDORA36 FEDORA37/' src/perl/vdotest/vdotests.suites
         make oss-jenkins
     
     - name: Remove public testing running label
