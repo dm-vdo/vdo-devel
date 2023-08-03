@@ -7,11 +7,11 @@
 
 #include <linux/atomic.h>
 
+#include "funnel-requestqueue.h"
 #include "index.h"
 #include "index-layout.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "request-queue.h"
 #include "time-utils.h"
 
 /*

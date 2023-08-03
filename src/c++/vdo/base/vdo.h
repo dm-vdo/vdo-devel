@@ -16,6 +16,7 @@
 
 #include "admin-state.h"
 #include "encodings.h"
+#include "funnel-workqueue.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
@@ -27,7 +28,6 @@
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
-#include "work-queue.h"
 
 enum notifier_state {
 	/** Notifications are allowed but not in progress */
