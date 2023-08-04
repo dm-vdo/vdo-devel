@@ -846,7 +846,6 @@ $suiteNames{beakerExcludedTests}
      LowMemGenData03,
      LowMemGenData04,
      LowMemRebuild01,
-     StackedVDO,
      UDSTimeout01,
     ];
 
