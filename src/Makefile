@@ -142,6 +142,7 @@ archive:
 
 .PHONY: srpms
 srpms:
+	$(RM) -rf $(SRPM_DIR)
 	$(MAKE) -C $(SRPM) test-srpms
 	mkdir -p $(SRPM_DIR)
 	find $(SRPM) -type f -name "*.rpm" -exec cp {} $(SRPM_DIR) \;

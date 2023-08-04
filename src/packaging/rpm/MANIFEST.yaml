@@ -8,6 +8,10 @@
 
 manifest: ../src-dist/MANIFEST.yaml
 
+specFiles:
+  +files:
+    - src/packaging/rpm/vdo.spec
+    - src/packaging/rpm/kvdo.spec
 tarballs:
   vdo:
     sources:
