@@ -698,12 +698,12 @@ static void flushCacheBlock(CacheBlock *cb)
   spin_unlock_irq(&cb->lock);
 
   // Start writing the cache block
+#undef USE_ALTERNATE
 #ifdef RHEL_RELEASE_CODE
 #define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
 #else
 #define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
 #endif
-
 #if USE_ALTERNATE
   bio_reset(cb->blockBio);
   cb->blockBio->bi_opf = REQ_OP_WRITE;
@@ -714,8 +714,12 @@ static void flushCacheBlock(CacheBlock *cb)
   cb->blockBio->bi_private = cb;
   setBioBlockDevice(cb->blockBio, dd->dev->bdev);
   setBioSector(cb->blockBio, cb->blockNumber << dd->blockShift);
-  bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), dd->blockSize,
-               (unsigned long) cb->blockData % PAGE_SIZE);
+  int bytes_added =
+    bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), dd->blockSize,
+                 (unsigned long) cb->blockData % PAGE_SIZE);
+  if (bytes_added != dd->blockSize) {
+    printk(KERN_WARNING "problem adding block data to bio");
+  }
   if (dd->stopFlag) {
     // We are supposed to stop writing, so fail the write.
     atomic64_inc(&dd->flushFailure);

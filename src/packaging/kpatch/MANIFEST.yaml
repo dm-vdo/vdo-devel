@@ -49,9 +49,14 @@ tarballs:
             - dory.h
             - event-count.c
             - event-count.h
+          +undefines:
+            - TEST_INTERNAL
+            - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
           +defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP
+            - VDO_UPSTREAM
           +postProcessor: ../github/removeInternal.sh
         src/c++/uds/kernelLinux/uds:
           +postProcessor: ../github/removeInternal.sh

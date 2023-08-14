@@ -54,6 +54,6 @@ test: modules
 # Override kernel-object build rule when sources are in another directory
 
 DEVICE_COMMON_OBJS_FULL_PATH = $(addprefix $(obj)/,$(DEVICE_COMMON_OBJS))
-$(DEVICE_COMMON_OBJS_FULL_PATH): $(obj)/%.o: $(DEVICE_COMMON_DIR)/%.c
+$(DEVICE_COMMON_OBJS_FULL_PATH): $(obj)/%.o: $(DEVICE_COMMON_DIR)/%.c FORCE
 	$(call cmd,force_checksrc)
 	$(call if_changed_rule,cc_o_c)

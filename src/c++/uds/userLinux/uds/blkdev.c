@@ -4,14 +4,27 @@
  */
 
 #include <linux/blkdev.h>
+#include <linux/version.h>
 
 #include "errors.h"
 #include "fileUtils.h"
 #include "memory-alloc.h"
 
+#undef VDO_USE_ALTERNATE
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0))
+#define VDO_USE_ALTERNATE
+#endif
+
+#ifdef VDO_USE_ALTERNATE
 struct block_device *blkdev_get_by_path(const char *path,
 					fmode_t mode,
 					void *holder __always_unused)
+#else
+struct block_device *blkdev_get_by_path(const char *path,
+					fmode_t mode,
+					void *holder __always_unused,
+					const struct blk_holder_ops *hops __always_unused)
+#endif /* VDO_USE_ALTERNATE */
 {
 	int result;
 	int fd;
