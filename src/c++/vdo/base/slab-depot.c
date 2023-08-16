@@ -1111,8 +1111,10 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 * Mark the slab as clean in the slab summary if there are no dirty or writing blocks
 	 * and no summary update in progress.
 	 */
-	if ((slab->active_count > 0) || vdo_has_waiters(&slab->dirty_blocks))
+	if ((slab->active_count > 0) || vdo_has_waiters(&slab->dirty_blocks)) {
+		check_if_slab_drained(slab);
 		return;
+	}
 
 	offset = slab->allocator->summary_entries[slab->slab_number].tail_block_offset;
 	slab->active_count++;
