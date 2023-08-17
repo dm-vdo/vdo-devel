@@ -22,16 +22,19 @@
 #include <linux/version.h>
 #include <uapi/linux/dm-ioctl.h>
 
-#define STATIC_ASSERT(expr) \
-  do {                      \
-    switch (0) {            \
-    case 0:                 \
-    case expr:              \
-      ;                     \
-    default:                \
-      ;                     \
-    }                       \
-  } while(0)
+#define STATIC_ASSERT(expr)	     \
+  do {				     \
+    switch (0) {		     \
+    case 0:			     \
+      ;				     \
+      fallthrough;		     \
+    case expr:			     \
+      ;				     \
+      fallthrough;		     \
+    default:			     \
+      break;			     \
+    }				     \
+  } while (0)
 
 /**
  * Define SECTOR_SIZE if it currently isn't.
