@@ -194,10 +194,8 @@ void uds_get_volume_index_stats(const struct volume_index *volume_index,
 				struct volume_index_stats *stats);
 
 #ifdef TEST_INTERNAL
-u32 extract_address(const struct volume_sub_index *sub_index, const struct uds_record_name *name);
-
-u32 extract_dlist_num(const struct volume_sub_index *sub_index,
-		      const struct uds_record_name *name);
+u32 get_dlist_number(const struct volume_sub_index *sub_index,
+		     const struct uds_record_name *name);
 
 const struct volume_sub_index *
 get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name);

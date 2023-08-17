@@ -144,20 +144,17 @@ static bool searchForCollisions(unsigned int lastHash)
   const struct uds_record_name *candidate = &hashes[lastHash];
   u32 chapter_address = uds_hash_to_chapter_delta_address(candidate, geometry);
   const struct volume_sub_index *sub_index = get_sub_index(theIndex->volume_index, candidate);
-  u32 address = extract_address(sub_index, candidate);
-  u32 list_number = extract_dlist_num(sub_index, candidate);
+  u32 address = uds_extract_volume_index_bytes(candidate) & sub_index->address_mask;
+  u32 list_number = get_dlist_number(sub_index, candidate);
 
   for (unsigned int i = 0; i < lastHash; i++) {
     if (chapter_address == uds_hash_to_chapter_delta_address(&hashes[i], geometry)) {
       return true;
     }
 
-    // Unfortunately the highest-order bits of uds_extract_volume_index_bytes() are ignored so we
-    // can't simply compare those bytes to detect collisions like we do for the chapter address. 
-    // Instead, compare the values determined from those bytes.
     if ((sub_index == get_sub_index(theIndex->volume_index, &hashes[i]))
-        && (address == extract_address(sub_index, &hashes[i]))
-        && (list_number == extract_dlist_num(sub_index, &hashes[i]))) {
+        && (address == (uds_extract_volume_index_bytes(&hashes[i]) & sub_index->address_mask))
+        && (list_number == get_dlist_number(sub_index, &hashes[i]))) {
       return true;
     }
   }

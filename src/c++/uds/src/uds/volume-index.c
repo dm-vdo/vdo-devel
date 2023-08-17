@@ -120,19 +120,26 @@ struct volume_index_data {
 u64 min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
-EXTERNAL_STATIC inline u32
+static inline u32
 extract_address(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
 {
 	return uds_extract_volume_index_bytes(name) & sub_index->address_mask;
 }
 
-EXTERNAL_STATIC inline u32
+static inline u32
 extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
 {
 	u64 bits = uds_extract_volume_index_bytes(name);
 
 	return (bits >> sub_index->address_bits) % sub_index->list_count;
 }
+#ifdef TEST_INTERNAL
+
+u32 get_dlist_number(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+{
+	return extract_dlist_num(sub_index, name);
+}
+#endif /* TEST_INTERNAL */
 
 static inline const struct volume_sub_index_zone *
 get_zone_for_record(const struct volume_index_record *record)
@@ -179,13 +186,21 @@ bool uds_is_volume_index_sample(const struct volume_index *volume_index,
 	return (uds_extract_sampling_bytes(name) % volume_index->sparse_sample_rate) == 0;
 }
 
-EXTERNAL_STATIC inline const struct volume_sub_index *
-get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+static inline const struct volume_sub_index *
+get_volume_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
 {
 	return (uds_is_volume_index_sample(volume_index, name) ?
 		&volume_index->vi_hook :
 		&volume_index->vi_non_hook);
 }
+#ifdef TEST_INTERNAL
+
+const struct volume_sub_index *
+get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+{
+	return get_volume_sub_index(volume_index, name);
+}
+#endif /* TEST_INTERNAL */
 
 static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub_index,
 					      const struct uds_record_name *name)
@@ -196,7 +211,7 @@ static unsigned int get_volume_sub_index_zone(const struct volume_sub_index *sub
 unsigned int uds_get_volume_index_zone(const struct volume_index *volume_index,
 				       const struct uds_record_name *name)
 {
-	return get_volume_sub_index_zone(get_sub_index(volume_index, name), name);
+	return get_volume_sub_index_zone(get_volume_sub_index(volume_index, name), name);
 }
 
 static int compute_volume_sub_index_parameters(const struct configuration *config,
