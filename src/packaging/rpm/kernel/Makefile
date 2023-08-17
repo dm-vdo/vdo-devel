@@ -14,7 +14,6 @@ EXTRA_CFLAGS =	-std=gnu11					\
 		-DVDO_VERSION=\"$(VDO_VERSION)\"		\
 		-DEXTERNAL_STATIC=				\
 		-DVDO_INTERNAL					\
-		-DPART2						\
 		$(INCLUDES)
 
 obj-m += kvdo.o
