@@ -299,8 +299,8 @@ static int compute_volume_sub_index_parameters(const struct configuration *confi
 
 static void uninitialize_volume_sub_index(struct volume_sub_index *sub_index)
 {
-	UDS_FREE(uds_forget(sub_index->flush_chapters));
-	UDS_FREE(uds_forget(sub_index->zones));
+	uds_free(uds_forget(sub_index->flush_chapters));
+	uds_free(uds_forget(sub_index->zones));
 	uds_uninitialize_delta_index(&sub_index->delta_index);
 }
 
@@ -314,12 +314,12 @@ void uds_free_volume_index(struct volume_index *volume_index)
 
 		for (zone = 0; zone < volume_index->zone_count; zone++)
 			uds_destroy_mutex(&volume_index->zones[zone].hook_mutex);
-		UDS_FREE(uds_forget(volume_index->zones));
+		uds_free(uds_forget(volume_index->zones));
 	}
 
 	uninitialize_volume_sub_index(&volume_index->vi_non_hook);
 	uninitialize_volume_sub_index(&volume_index->vi_hook);
-	UDS_FREE(volume_index);
+	uds_free(volume_index);
 }
 
 

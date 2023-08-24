@@ -200,8 +200,8 @@ void uds_remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 void uds_free_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	if (open_chapter != NULL) {
-		UDS_FREE(open_chapter->records);
-		UDS_FREE(open_chapter);
+		uds_free(open_chapter->records);
+		uds_free(open_chapter);
 	}
 }
 

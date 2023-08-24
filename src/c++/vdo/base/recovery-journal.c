@@ -689,7 +689,7 @@ static int initialize_recovery_block(struct vdo *vdo,
 					 data,
 					 &block->vio);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(data);
+		uds_free(data);
 		return result;
 	}
 
@@ -808,12 +808,12 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	if (journal == NULL)
 		return;
 
-	UDS_FREE(uds_forget(journal->lock_counter.logical_zone_counts));
-	UDS_FREE(uds_forget(journal->lock_counter.physical_zone_counts));
-	UDS_FREE(uds_forget(journal->lock_counter.journal_counters));
-	UDS_FREE(uds_forget(journal->lock_counter.journal_decrement_counts));
-	UDS_FREE(uds_forget(journal->lock_counter.logical_counters));
-	UDS_FREE(uds_forget(journal->lock_counter.physical_counters));
+	uds_free(uds_forget(journal->lock_counter.logical_zone_counts));
+	uds_free(uds_forget(journal->lock_counter.physical_zone_counts));
+	uds_free(uds_forget(journal->lock_counter.journal_counters));
+	uds_free(uds_forget(journal->lock_counter.journal_decrement_counts));
+	uds_free(uds_forget(journal->lock_counter.logical_counters));
+	uds_free(uds_forget(journal->lock_counter.physical_counters));
 	free_vio(uds_forget(journal->flush_vio));
 
 	/*
@@ -829,11 +829,11 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	for (i = 0; i < RECOVERY_JOURNAL_RESERVED_BLOCKS; i++) {
 		struct recovery_journal_block *block = &journal->blocks[i];
 
-		UDS_FREE(uds_forget(block->vio.data));
+		uds_free(uds_forget(block->vio.data));
 		free_vio_components(&block->vio);
 	}
 
-	UDS_FREE(journal);
+	uds_free(journal);
 }
 
 /**

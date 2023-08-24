@@ -301,7 +301,7 @@ sub generateStruct {
     $self->replaceAndEmit("result = write_STRUCT(NULL, stats, NULL, &buf,"
                           . " &maxlen);",
                           "STRUCT", $name);
-    $self->emit("UDS_FREE(stats);");
+    $self->emit("uds_free(stats);");
     $self->emit("return result;");
     $self->undent();
     $self->emit("}");

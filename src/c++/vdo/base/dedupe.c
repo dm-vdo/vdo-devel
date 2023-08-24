@@ -2039,7 +2039,7 @@ static u32 hash_key(const void *key)
 
 static void dedupe_kobj_release(struct kobject *directory)
 {
-	UDS_FREE(container_of(directory, struct hash_zones, dedupe_directory));
+	uds_free(container_of(directory, struct hash_zones, dedupe_directory));
 }
 
 static ssize_t dedupe_status_show(struct kobject *directory, struct attribute *attr, char *buf)
@@ -2500,7 +2500,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 
 	result = initialize_index(vdo, zones);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(zones);
+		uds_free(zones);
 		return result;
 	}
 
@@ -2550,14 +2550,14 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 	if (zones == NULL)
 		return;
 
-	UDS_FREE(uds_forget(zones->manager));
+	uds_free(uds_forget(zones->manager));
 
 	for (i = 0; i < zones->zone_count; i++) {
 		struct hash_zone *zone = &zones->zones[i];
 
 		uds_free_funnel_queue(uds_forget(zone->timed_out_complete));
 		vdo_free_pointer_map(uds_forget(zone->hash_lock_map));
-		UDS_FREE(uds_forget(zone->lock_array));
+		uds_free(uds_forget(zone->lock_array));
 	}
 
 	if (zones->index_session != NULL)
@@ -2565,7 +2565,7 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 
 	ratelimit_state_exit(&zones->ratelimiter);
 	if (vdo_get_admin_state_code(&zones->state) == VDO_ADMIN_STATE_NEW)
-		UDS_FREE(zones);
+		uds_free(zones);
 	else
 		kobject_put(&zones->dedupe_directory);
 }

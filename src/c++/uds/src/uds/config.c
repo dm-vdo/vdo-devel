@@ -374,7 +374,7 @@ void uds_free_configuration(struct configuration *config)
 {
 	if (config != NULL) {
 		uds_free_geometry(config->geometry);
-		UDS_FREE(config);
+		uds_free(config);
 	}
 }
 

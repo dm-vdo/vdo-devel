@@ -236,7 +236,7 @@ int uds_make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 
 void uds_free_radix_sorter(struct radix_sorter *sorter)
 {
-	UDS_FREE(sorter);
+	uds_free(sorter);
 }
 
 /*

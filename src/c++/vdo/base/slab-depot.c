@@ -2439,7 +2439,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	bytes = (slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD);
 	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(uds_forget(slab->reference_blocks));
+		uds_free(uds_forget(slab->reference_blocks));
 		return result;
 	}
 
@@ -2715,7 +2715,7 @@ static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
  */
 static void uninitialize_scrubber_vio(struct slab_scrubber *scrubber)
 {
-	UDS_FREE(uds_forget(scrubber->vio.data));
+	uds_free(uds_forget(scrubber->vio.data));
 	free_vio_components(&scrubber->vio);
 }
 
@@ -3616,7 +3616,7 @@ vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 		register_slab_for_scrubbing(slab, high_priority);
 	}
 
-	UDS_FREE(slab_statuses);
+	uds_free(slab_statuses);
 	return VDO_SUCCESS;
 }
 
@@ -3724,11 +3724,11 @@ STATIC void free_slab(struct vdo_slab *slab)
 		return;
 
 	list_del(&slab->allocq_entry);
-	UDS_FREE(uds_forget(slab->journal.block));
-	UDS_FREE(uds_forget(slab->journal.locks));
-	UDS_FREE(uds_forget(slab->counters));
-	UDS_FREE(uds_forget(slab->reference_blocks));
-	UDS_FREE(slab);
+	uds_free(uds_forget(slab->journal.block));
+	uds_free(uds_forget(slab->journal.locks));
+	uds_free(uds_forget(slab->counters));
+	uds_free(uds_forget(slab->reference_blocks));
+	uds_free(slab);
 }
 
 static int initialize_slab_journal(struct vdo_slab *slab)
@@ -3911,7 +3911,7 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 		free_slab(uds_forget(depot->new_slabs[i]));
 	depot->new_slab_count = 0;
 	depot->new_size = 0;
-	UDS_FREE(uds_forget(depot->new_slabs));
+	uds_free(uds_forget(depot->new_slabs));
 }
 
 /**
@@ -4033,7 +4033,7 @@ STATIC int initialize_slab_scrubber(struct block_allocator *allocator)
 					 journal_data,
 					 &scrubber->vio);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(journal_data);
+		uds_free(journal_data);
 		return result;
 	}
 
@@ -4316,10 +4316,10 @@ static void uninitialize_allocator_summary(struct block_allocator *allocator)
 
 	for (i = 0; i < VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE; i++) {
 		free_vio_components(&allocator->summary_blocks[i].vio);
-		UDS_FREE(uds_forget(allocator->summary_blocks[i].outgoing_entries));
+		uds_free(uds_forget(allocator->summary_blocks[i].outgoing_entries));
 	}
 
-	UDS_FREE(uds_forget(allocator->summary_blocks));
+	uds_free(uds_forget(allocator->summary_blocks));
 }
 
 /**
@@ -4354,10 +4354,10 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 			free_slab(uds_forget(depot->slabs[i]));
 	}
 
-	UDS_FREE(uds_forget(depot->slabs));
-	UDS_FREE(uds_forget(depot->action_manager));
-	UDS_FREE(uds_forget(depot->summary_entries));
-	UDS_FREE(depot);
+	uds_free(uds_forget(depot->slabs));
+	uds_free(uds_forget(depot->action_manager));
+	uds_free(uds_forget(depot->summary_entries));
+	uds_free(depot);
 }
 
 /**
@@ -4821,7 +4821,7 @@ static int finish_registration(void *context)
 	struct slab_depot *depot = context;
 
 	WRITE_ONCE(depot->slab_count, depot->new_slab_count);
-	UDS_FREE(depot->slabs);
+	uds_free(depot->slabs);
 	depot->slabs = depot->new_slabs;
 	depot->new_slabs = NULL;
 	depot->new_slab_count = 0;

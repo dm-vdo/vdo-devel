@@ -157,7 +157,7 @@ static void remove_vmalloc_block(void *ptr)
 
 	spin_unlock_irqrestore(&memory_stats.lock, flags);
 	if (block != NULL)
-		UDS_FREE(block);
+		uds_free(block);
 	else
 		uds_log_info("attempting to remove ptr %px not found in vmalloc list", ptr);
 }
@@ -448,7 +448,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 			}
 
 			if (p == NULL) {
-				UDS_FREE(block);
+				uds_free(block);
 			} else {
 				block->ptr = p;
 				block->size = PAGE_ALIGN(size);
@@ -538,7 +538,7 @@ int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *w
 	int result;
 
 	if (size == 0) {
-		UDS_FREE(ptr);
+		uds_free(ptr);
 		*(void **) new_ptr = NULL;
 		return UDS_SUCCESS;
 	}
@@ -552,7 +552,7 @@ int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *w
 			size = old_size;
 
 		memcpy(*((void **) new_ptr), ptr, size);
-		UDS_FREE(ptr);
+		uds_free(ptr);
 	}
 
 	return UDS_SUCCESS;

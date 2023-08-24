@@ -281,8 +281,8 @@ static void free_simple_work_queue(struct simple_work_queue *queue)
 
 	for (i = 0; i <= VDO_WORK_Q_MAX_PRIORITY; i++)
 		uds_free_funnel_queue(queue->priority_lists[i]);
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
+	uds_free(queue->common.name);
+	uds_free(queue);
 }
 
 static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
@@ -295,9 +295,9 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 
 	for (i = 0; i < count; i++)
 		free_simple_work_queue(queue_table[i]);
-	UDS_FREE(queue_table);
-	UDS_FREE(queue->common.name);
-	UDS_FREE(queue);
+	uds_free(queue_table);
+	uds_free(queue->common.name);
+	uds_free(queue);
 }
 
 void vdo_free_work_queue(struct vdo_work_queue *queue)
@@ -343,7 +343,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(queue);
+		uds_free(queue);
 		return -ENOMEM;
 	}
 
@@ -426,7 +426,7 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 			      "subordinate work queues",
 			      &queue->service_queues);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(queue);
+		uds_free(queue);
 		return result;
 	}
 
@@ -436,8 +436,8 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 
 	result = uds_duplicate_string(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(queue->service_queues);
-		UDS_FREE(queue);
+		uds_free(queue->service_queues);
+		uds_free(queue);
 		return -ENOMEM;
 	}
 

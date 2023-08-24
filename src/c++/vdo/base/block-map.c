@@ -2444,15 +2444,15 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 		size_t segment;
 
 		for (segment = first_page_segment; segment < forest->segments; segment++)
-			UDS_FREE(forest->pages[segment]);
-		UDS_FREE(forest->pages);
+			uds_free(forest->pages[segment]);
+		uds_free(forest->pages);
 	}
 
 	for (root = 0; root < forest->map->root_count; root++)
-		UDS_FREE(forest->trees[root].segments);
+		uds_free(forest->trees[root].segments);
 
-	UDS_FREE(forest->boundaries);
-	UDS_FREE(forest);
+	uds_free(forest->boundaries);
+	uds_free(forest);
 }
 
 /**
@@ -2525,7 +2525,7 @@ static void finish_cursor(struct cursor *cursor)
 	if (--cursors->active_roots > 0)
 		return;
 
-	UDS_FREE(cursors);
+	uds_free(cursors);
 
 	vdo_finish_completion(parent);
 }
@@ -2860,7 +2860,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	struct vdo_page_cache *cache = &zone->page_cache;
 
-	UDS_FREE(uds_forget(zone->dirty_lists));
+	uds_free(uds_forget(zone->dirty_lists));
 	free_vio_pool(uds_forget(zone->vio_pool));
 	vdo_free_int_map(uds_forget(zone->loading_pages));
 	if (cache->infos != NULL) {
@@ -2871,8 +2871,8 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 	}
 
 	vdo_free_int_map(uds_forget(cache->page_map));
-	UDS_FREE(uds_forget(cache->infos));
-	UDS_FREE(uds_forget(cache->pages));
+	uds_free(uds_forget(cache->infos));
+	uds_free(uds_forget(cache->pages));
 }
 
 void vdo_free_block_map(struct block_map *map)
@@ -2888,8 +2888,8 @@ void vdo_free_block_map(struct block_map *map)
 	vdo_abandon_block_map_growth(map);
 	if (map->forest != NULL)
 		deforest(uds_forget(map->forest), 0);
-	UDS_FREE(uds_forget(map->action_manager));
-	UDS_FREE(map);
+	uds_free(uds_forget(map->action_manager));
+	uds_free(map);
 }
 
 /* @journal may be NULL. */

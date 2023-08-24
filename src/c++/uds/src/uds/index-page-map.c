@@ -60,8 +60,8 @@ int uds_make_index_page_map(const struct geometry *geometry, struct index_page_m
 void uds_free_index_page_map(struct index_page_map *map)
 {
 	if (map != NULL) {
-		UDS_FREE(map->entries);
-		UDS_FREE(map);
+		uds_free(map->entries);
+		uds_free(map);
 	}
 }
 
@@ -137,7 +137,7 @@ int uds_write_index_page_map(struct index_page_map *map, struct buffered_writer 
 		encode_u16_le(buffer, &offset, map->entries[i]);
 
 	result = uds_write_to_buffered_writer(writer, buffer, offset);
-	UDS_FREE(buffer);
+	uds_free(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -159,14 +159,14 @@ int uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *
 
 	result = uds_read_from_buffered_reader(reader, buffer, saved_size);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(buffer);
+		uds_free(buffer);
 		return result;
 	}
 
 	memcpy(&magic, buffer, PAGE_MAP_MAGIC_LENGTH);
 	offset += PAGE_MAP_MAGIC_LENGTH;
 	if (memcmp(magic, PAGE_MAP_MAGIC, PAGE_MAP_MAGIC_LENGTH) != 0) {
-		UDS_FREE(buffer);
+		uds_free(buffer);
 		return UDS_CORRUPT_DATA;
 	}
 
@@ -174,7 +174,7 @@ int uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *
 	for (i = 0; i < get_entry_count(map->geometry); i++)
 		decode_u16_le(buffer, &offset, &map->entries[i]);
 
-	UDS_FREE(buffer);
+	uds_free(buffer);
 	uds_log_debug("read index page map, last update %llu",
 		      (unsigned long long) map->last_update);
 	return UDS_SUCCESS;

@@ -191,10 +191,10 @@ static const struct vdo_work_queue_type cpu_q_type = {
 
 STATIC void uninitialize_thread_config(struct thread_config *config)
 {
-	UDS_FREE(uds_forget(config->logical_threads));
-	UDS_FREE(uds_forget(config->physical_threads));
-	UDS_FREE(uds_forget(config->hash_zone_threads));
-	UDS_FREE(uds_forget(config->bio_threads));
+	uds_free(uds_forget(config->logical_threads));
+	uds_free(uds_forget(config->physical_threads));
+	uds_free(uds_forget(config->hash_zone_threads));
+	uds_free(uds_forget(config->bio_threads));
 	memset(config, 0, sizeof(struct thread_config));
 }
 
@@ -309,7 +309,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 
 	result = create_metadata_vio(vdo, VIO_TYPE_GEOMETRY, VIO_PRIORITY_HIGH, NULL, block, &vio);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(block);
+		uds_free(block);
 		return result;
 	}
 
@@ -321,7 +321,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ, VDO_GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
 		free_vio(uds_forget(vio));
-		UDS_FREE(block);
+		uds_free(block);
 		return result;
 	}
 
@@ -331,12 +331,12 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	free_vio(uds_forget(vio));
 	if (result != 0) {
 		uds_log_error_strerror(result, "synchronous read failed");
-		UDS_FREE(block);
+		uds_free(block);
 		return -EIO;
 	}
 
 	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
-	UDS_FREE(block);
+	uds_free(block);
 	return result;
 }
 
@@ -728,14 +728,14 @@ static void free_listeners(struct vdo_thread *thread)
 
 	for (listener = uds_forget(thread->listeners); listener != NULL; listener = next) {
 		next = uds_forget(listener->next);
-		UDS_FREE(listener);
+		uds_free(listener);
 	}
 }
 
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
-	UDS_FREE(super_block->buffer);
+	uds_free(super_block->buffer);
 }
 
 /**
@@ -797,16 +797,16 @@ void vdo_destroy(struct vdo *vdo)
 			free_listeners(&vdo->threads[i]);
 			vdo_free_work_queue(uds_forget(vdo->threads[i].queue));
 		}
-		UDS_FREE(uds_forget(vdo->threads));
+		uds_free(uds_forget(vdo->threads));
 	}
 
 	uninitialize_thread_config(&vdo->thread_config);
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++)
-			UDS_FREE(uds_forget(vdo->compression_context[i]));
+			uds_free(uds_forget(vdo->compression_context[i]));
 
-		UDS_FREE(uds_forget(vdo->compression_context));
+		uds_free(uds_forget(vdo->compression_context));
 	}
 
 	/*
@@ -817,7 +817,7 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
 	if (!vdo->sysfs_added)
-		UDS_FREE(vdo);
+		uds_free(vdo);
 	else
 		kobject_put(&vdo->vdo_directory);
 }

@@ -137,12 +137,12 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 	if (zones == NULL)
 		return;
 
-	UDS_FREE(uds_forget(zones->manager));
+	uds_free(uds_forget(zones->manager));
 
 	for (index = 0; index < zones->zone_count; index++)
 		vdo_free_int_map(uds_forget(zones->zones[index].lbn_operations));
 
-	UDS_FREE(zones);
+	uds_free(zones);
 }
 
 static inline void assert_on_zone_thread(struct logical_zone *zone, const char *what)

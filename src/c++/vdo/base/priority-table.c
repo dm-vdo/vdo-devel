@@ -98,7 +98,7 @@ void vdo_free_priority_table(struct priority_table *table)
 	 */
 	vdo_reset_priority_table(table);
 
-	UDS_FREE(table);
+	uds_free(table);
 }
 
 /**

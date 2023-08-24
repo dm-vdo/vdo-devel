@@ -868,9 +868,9 @@ static void destroy_data_vio(struct data_vio *data_vio)
 		return;
 
 	vdo_free_bio(uds_forget(data_vio->vio.bio));
-	UDS_FREE(uds_forget(data_vio->vio.data));
-	UDS_FREE(uds_forget(data_vio->compression.block));
-	UDS_FREE(uds_forget(data_vio->scratch_block));
+	uds_free(uds_forget(data_vio->vio.data));
+	uds_free(uds_forget(data_vio->compression.block));
+	uds_free(uds_forget(data_vio->scratch_block));
 }
 
 /**
@@ -972,7 +972,7 @@ void free_data_vio_pool(struct data_vio_pool *pool)
 	}
 
 	uds_free_funnel_queue(uds_forget(pool->queue));
-	UDS_FREE(pool);
+	uds_free(pool);
 }
 
 static bool acquire_permit(struct limiter *limiter, struct bio *bio)

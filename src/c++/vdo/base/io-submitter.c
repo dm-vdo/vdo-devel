@@ -510,5 +510,5 @@ void vdo_free_io_submitter(struct io_submitter *io_submitter)
 		uds_forget(io_submitter->bio_queue_data[i].queue);
 		vdo_free_int_map(uds_forget(io_submitter->bio_queue_data[i].map));
 	}
-	UDS_FREE(io_submitter);
+	uds_free(io_submitter);
 }

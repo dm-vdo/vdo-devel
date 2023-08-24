@@ -206,11 +206,11 @@ void vdo_free_packer(struct packer *packer)
 
 	list_for_each_entry_safe(bin, tmp, &packer->bins, list) {
 		list_del_init(&bin->list);
-		UDS_FREE(bin);
+		uds_free(bin);
 	}
 
-	UDS_FREE(uds_forget(packer->canceled_bin));
-	UDS_FREE(packer);
+	uds_free(uds_forget(packer->canceled_bin));
+	uds_free(packer);
 }
 
 /**

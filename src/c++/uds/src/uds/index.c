@@ -627,7 +627,7 @@ static void execute_zone_request(struct uds_request *request)
 					       request->zone_message.type);
 
 		/* Once the message is processed it can be freed. */
-		UDS_FREE(uds_forget(request));
+		uds_free(uds_forget(request));
 		return;
 	}
 
@@ -769,8 +769,8 @@ static void free_chapter_writer(struct chapter_writer *writer)
 	uds_destroy_mutex(&writer->mutex);
 	uds_destroy_cond(&writer->cond);
 	uds_free_open_chapter_index(writer->open_chapter_index);
-	UDS_FREE(writer->collated_records);
-	UDS_FREE(writer);
+	uds_free(writer->collated_records);
+	uds_free(writer);
 }
 
 static int make_chapter_writer(struct uds_index *index, struct chapter_writer **writer_ptr)
@@ -791,14 +791,14 @@ static int make_chapter_writer(struct uds_index *index, struct chapter_writer **
 	writer->index = index;
 	result = uds_init_mutex(&writer->mutex);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(writer);
+		uds_free(writer);
 		return result;
 	}
 
 	result = uds_init_cond(&writer->cond);
 	if (result != UDS_SUCCESS) {
 		uds_destroy_mutex(&writer->mutex);
-		UDS_FREE(writer);
+		uds_free(writer);
 		return result;
 	}
 
@@ -1151,7 +1151,7 @@ static void free_index_zone(struct index_zone *zone)
 
 	uds_free_open_chapter(zone->open_chapter);
 	uds_free_open_chapter(zone->writing_chapter);
-	UDS_FREE(zone);
+	uds_free(zone);
 }
 
 static int make_index_zone(struct uds_index *index, unsigned int zone_number)
@@ -1326,12 +1326,12 @@ void uds_free_index(struct uds_index *index)
 	if (index->zones != NULL) {
 		for (i = 0; i < index->zone_count; i++)
 			free_index_zone(index->zones[i]);
-		UDS_FREE(index->zones);
+		uds_free(index->zones);
 	}
 
 	uds_free_volume(index->volume);
 	uds_free_index_layout(uds_forget(index->layout));
-	UDS_FREE(index);
+	uds_free(index);
 }
 
 /* Wait for the chapter writer to complete any outstanding writes. */

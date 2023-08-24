@@ -127,7 +127,7 @@ static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
 
 static void free_flush(void *element, void *pool_data __always_unused)
 {
-	UDS_FREE(element);
+	uds_free(element);
 }
 
 /**
@@ -166,7 +166,7 @@ void vdo_free_flusher(struct flusher *flusher)
 
 	if (flusher->flush_pool != NULL)
 		mempool_destroy(uds_forget(flusher->flush_pool));
-	UDS_FREE(flusher);
+	uds_free(flusher);
 }
 
 /**

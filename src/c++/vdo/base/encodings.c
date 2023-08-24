@@ -980,7 +980,7 @@ void vdo_uninitialize_layout(struct layout *layout)
 		struct partition *part = layout->head;
 
 		layout->head = part->next;
-		UDS_FREE(part);
+		uds_free(part);
 	}
 
 	memset(layout, 0, sizeof(struct layout));

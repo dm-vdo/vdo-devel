@@ -259,12 +259,12 @@ static void free_device_config(struct device_config *config)
 	if (config->owned_device != NULL)
 		dm_put_device(config->owning_target, config->owned_device);
 
-	UDS_FREE(config->parent_device_name);
-	UDS_FREE(config->original_string);
+	uds_free(config->parent_device_name);
+	uds_free(config->original_string);
 
 	/* Reduce the chance a use-after-free (as in BZ 1669960) happens to work. */
 	memset(config, 0, sizeof(*config));
-	UDS_FREE(config);
+	uds_free(config);
 }
 
 /**
@@ -319,15 +319,15 @@ static void free_string_array(char **string_array)
 	unsigned int offset;
 
 	for (offset = 0; string_array[offset] != NULL; offset++)
-		UDS_FREE(string_array[offset]);
-	UDS_FREE(string_array);
+		uds_free(string_array[offset]);
+	uds_free(string_array);
 }
 
 /*
  * Split the input string into substrings, separated at occurrences of the indicated character,
  * returning a null-terminated list of string pointers.
  *
- * The string pointers and the pointer array itself should both be freed with UDS_FREE() when no
+ * The string pointers and the pointer array itself should both be freed with uds_free() when no
  * longer needed. This can be done with vdo_free_string_array (below) if the pointers in the array
  * are not changed. Since the array and copied strings are allocated by this function, it may only
  * be used in contexts where allocation is permitted.
@@ -3119,7 +3119,7 @@ static void vdo_module_destroy(void)
 	ASSERT_LOG_ONLY(instances.count == 0,
 			"should have no instance numbers still in use, but have %u",
 			instances.count);
-	UDS_FREE(instances.words);
+	uds_free(instances.words);
 	memset(&instances, 0, sizeof(struct instance_tracker));
 
 	uds_log_info("unloaded version %s", CURRENT_VERSION);

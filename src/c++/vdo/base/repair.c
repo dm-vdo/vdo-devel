@@ -229,7 +229,7 @@ static void uninitialize_vios(struct repair_completion *repair)
 	while (repair->vio_count > 0)
 		free_vio_components(&repair->vios[--repair->vio_count]);
 
-	UDS_FREE(uds_forget(repair->vios));
+	uds_free(uds_forget(repair->vios));
 }
 
 STATIC void free_repair_completion(struct repair_completion *repair)
@@ -244,9 +244,9 @@ STATIC void free_repair_completion(struct repair_completion *repair)
 	repair->completion.vdo->block_map->zones[0].page_cache.rebuilding = false;
 
 	uninitialize_vios(repair);
-	UDS_FREE(uds_forget(repair->journal_data));
-	UDS_FREE(uds_forget(repair->entries));
-	UDS_FREE(repair);
+	uds_free(uds_forget(repair->journal_data));
+	uds_free(uds_forget(repair->entries));
+	uds_free(repair);
 }
 
 static void finish_repair(struct vdo_completion *completion)
@@ -1123,7 +1123,7 @@ STATIC void recover_block_map(struct vdo_completion *completion)
 		/* This message must be in sync with VDOTest::RebuildBase. */
 #endif /* INTERNAL */
 		uds_log_info("Replaying 0 recovery entries into block map");
-		UDS_FREE(uds_forget(repair->journal_data));
+		uds_free(uds_forget(repair->journal_data));
 		launch_repair_completion(repair, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
 		return;
 	}

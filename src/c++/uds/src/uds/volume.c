@@ -1823,10 +1823,10 @@ STATIC void uninitialize_page_cache(struct page_cache *cache)
 		for (i = 0; i < cache->cache_slots; i++)
 			release_page_buffer(&cache->cache[i]);
 	}
-	UDS_FREE(cache->index);
-	UDS_FREE(cache->cache);
-	UDS_FREE(cache->search_pending_counters);
-	UDS_FREE(cache->read_queue);
+	uds_free(cache->index);
+	uds_free(cache->cache);
+	uds_free(cache->search_pending_counters);
+	uds_free(cache->read_queue);
 }
 
 void uds_free_volume(struct volume *volume)
@@ -1844,7 +1844,7 @@ void uds_free_volume(struct volume *volume)
 		uds_unlock_mutex(&volume->read_threads_mutex);
 		for (i = 0; i < volume->read_thread_count; i++)
 			uds_join_threads(volume->reader_threads[i]);
-		UDS_FREE(volume->reader_threads);
+		uds_free(volume->reader_threads);
 		volume->reader_threads = NULL;
 	}
 
@@ -1859,7 +1859,7 @@ void uds_free_volume(struct volume *volume)
 	uds_destroy_mutex(&volume->read_threads_mutex);
 	uds_free_index_page_map(volume->index_page_map);
 	uds_free_radix_sorter(volume->radix_sorter);
-	UDS_FREE(volume->geometry);
-	UDS_FREE(volume->record_pointers);
-	UDS_FREE(volume);
+	uds_free(volume->geometry);
+	uds_free(volume->record_pointers);
+	uds_free(volume);
 }

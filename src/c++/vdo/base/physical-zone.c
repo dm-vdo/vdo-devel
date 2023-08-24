@@ -278,7 +278,7 @@ static void free_pbn_lock_pool(struct pbn_lock_pool *pool)
 	ASSERT_LOG_ONLY(pool->borrowed == 0,
 			"All PBN locks must be returned to the pool before it is freed, but %zu locks are still on loan",
 			pool->borrowed);
-	UDS_FREE(pool);
+	uds_free(pool);
 }
 
 /**
@@ -413,7 +413,7 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 		vdo_free_int_map(uds_forget(zone->pbn_operations));
 	}
 
-	UDS_FREE(zones);
+	uds_free(zones);
 }
 
 /**

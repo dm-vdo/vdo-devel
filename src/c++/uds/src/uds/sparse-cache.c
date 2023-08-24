@@ -308,20 +308,20 @@ void uds_free_sparse_cache(struct sparse_cache *cache)
 	if (cache == NULL)
 		return;
 
-	UDS_FREE(cache->scratch_entries);
+	uds_free(cache->scratch_entries);
 
 	for (i = 0; i < cache->zone_count; i++)
-		UDS_FREE(cache->search_lists[i]);
+		uds_free(cache->search_lists[i]);
 
 	for (i = 0; i < cache->capacity; i++) {
 		release_cached_chapter_index(&cache->chapters[i]);
-		UDS_FREE(cache->chapters[i].index_pages);
-		UDS_FREE(cache->chapters[i].page_buffers);
+		uds_free(cache->chapters[i].index_pages);
+		uds_free(cache->chapters[i].page_buffers);
 	}
 
 	uds_destroy_barrier(&cache->begin_update_barrier);
 	uds_destroy_barrier(&cache->end_update_barrier);
-	UDS_FREE(cache);
+	uds_free(cache);
 }
 
 /*

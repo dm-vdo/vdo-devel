@@ -276,7 +276,7 @@ parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, s
 		return -ENOMEM;
 
 	pa->store_string(string);
-	UDS_FREE(string);
+	uds_free(string);
 	return length;
 }
 

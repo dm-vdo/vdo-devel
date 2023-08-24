@@ -91,7 +91,7 @@ int uds_replace_storage(struct io_factory *factory, struct block_device *bdev)
 void uds_put_io_factory(struct io_factory *factory)
 {
 	if (atomic_add_return(-1, &factory->ref_count) <= 0)
-		UDS_FREE(factory);
+		uds_free(factory);
 }
 
 size_t uds_get_writable_size(struct io_factory *factory)
@@ -152,7 +152,7 @@ void uds_free_buffered_reader(struct buffered_reader *reader)
 
 	dm_bufio_client_destroy(reader->client);
 	uds_put_io_factory(reader->factory);
-	UDS_FREE(reader);
+	uds_free(reader);
 }
 
 /* Create a buffered reader for an index region starting at offset. */
@@ -400,7 +400,7 @@ void uds_free_buffered_writer(struct buffered_writer *writer)
 
 	dm_bufio_client_destroy(writer->client);
 	uds_put_io_factory(writer->factory);
-	UDS_FREE(writer);
+	uds_free(writer);
 }
 
 /*

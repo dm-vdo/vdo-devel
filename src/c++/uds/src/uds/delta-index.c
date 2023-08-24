@@ -310,12 +310,12 @@ void uds_uninitialize_delta_index(struct delta_index *delta_index)
 		return;
 
 	for (z = 0; z < delta_index->zone_count; z++) {
-		UDS_FREE(uds_forget(delta_index->delta_zones[z].new_offsets));
-		UDS_FREE(uds_forget(delta_index->delta_zones[z].delta_lists));
-		UDS_FREE(uds_forget(delta_index->delta_zones[z].memory));
+		uds_free(uds_forget(delta_index->delta_zones[z].new_offsets));
+		uds_free(uds_forget(delta_index->delta_zones[z].delta_lists));
+		uds_free(uds_forget(delta_index->delta_zones[z].memory));
 	}
 
-	UDS_FREE(delta_index->delta_zones);
+	uds_free(delta_index->delta_zones);
 	memset(delta_index, 0, sizeof(struct delta_index));
 }
 
@@ -1125,7 +1125,7 @@ int uds_finish_restoring_delta_index(struct delta_index *delta_index,
 		}
 	}
 
-	UDS_FREE(data);
+	uds_free(data);
 	return saved_result;
 }
 

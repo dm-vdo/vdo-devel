@@ -224,14 +224,14 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 
 	result = uds_init_mutex(&session->request_mutex);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(session);
+		uds_free(session);
 		return result;
 	}
 
 	result = uds_init_cond(&session->request_cond);
 	if (result != UDS_SUCCESS) {
 		uds_destroy_mutex(&session->request_mutex);
-		UDS_FREE(session);
+		uds_free(session);
 		return result;
 	}
 
@@ -239,7 +239,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 	if (result != UDS_SUCCESS) {
 		uds_destroy_cond(&session->request_cond);
 		uds_destroy_mutex(&session->request_mutex);
-		UDS_FREE(session);
+		uds_free(session);
 		return result;
 	}
 
@@ -248,7 +248,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 		uds_destroy_mutex(&session->load_context.mutex);
 		uds_destroy_cond(&session->request_cond);
 		uds_destroy_mutex(&session->request_mutex);
-		UDS_FREE(session);
+		uds_free(session);
 		return result;
 	}
 
@@ -258,7 +258,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 		uds_destroy_mutex(&session->load_context.mutex);
 		uds_destroy_cond(&session->request_cond);
 		uds_destroy_mutex(&session->request_mutex);
-		UDS_FREE(session);
+		uds_free(session);
 		return result;
 	}
 
@@ -696,7 +696,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	uds_destroy_cond(&index_session->request_cond);
 	uds_destroy_mutex(&index_session->request_mutex);
 	uds_log_debug("Destroyed index session");
-	UDS_FREE(index_session);
+	uds_free(index_session);
 	return uds_map_to_system_error(result);
 }
 

@@ -26,7 +26,7 @@ int __must_check uds_allocate_memory(size_t size, size_t align, const char *what
 void uds_free_memory(void *ptr);
 
 /* Free memory allocated with UDS_ALLOCATE(). */
-#define UDS_FREE(PTR) uds_free_memory(PTR)
+#define uds_free(PTR) uds_free_memory(PTR)
 
 static inline void *__uds_forget(void **ptr_ptr)
 {
@@ -169,7 +169,7 @@ static inline void uds_free_const(const void *pointer)
 		const void *const_p;
 		void *not_const;
 	} u = { .const_p = pointer };
-	UDS_FREE(u.not_const);
+	uds_free(u.not_const);
 }
 
 #endif /*TEST_INTERNAL */

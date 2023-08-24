@@ -123,7 +123,7 @@ int uds_copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 
 void uds_free_geometry(struct geometry *geometry)
 {
-	UDS_FREE(geometry);
+	uds_free(geometry);
 }
 
 u32 __must_check uds_map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter)
