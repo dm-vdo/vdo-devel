@@ -558,7 +558,7 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(table->encoded_size, u8, "index save data", &buffer);
+	result = uds_allocate(table->encoded_size, u8, "index save data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -727,7 +727,7 @@ static int __must_check write_layout_header(struct index_layout *layout,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(table->encoded_size, u8, "layout data", &buffer);
+	result = uds_allocate(table->encoded_size, u8, "layout data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -817,7 +817,7 @@ static int create_index_layout(struct index_layout *layout, struct configuration
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(sizes.save_count,
+	result = uds_allocate(sizes.save_count,
 			      struct index_save_layout,
 			      __func__,
 			      &layout->index.saves);
@@ -1230,7 +1230,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(saved_size, u8, "super block data", &buffer);
+	result = uds_allocate(saved_size, u8, "super block data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1357,7 +1357,7 @@ reconstitute_layout(struct index_layout *layout, struct region_table *table, u64
 	int result;
 	u64 next_block = first_block;
 
-	result = UDS_ALLOCATE(layout->super.max_saves,
+	result = uds_allocate(layout->super.max_saves,
 			      struct index_save_layout,
 			      __func__,
 			      &layout->index.saves);
@@ -1721,7 +1721,7 @@ int uds_make_index_layout(struct configuration *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
+	result = uds_allocate(1, struct index_layout, __func__, &layout);
 	if (result != UDS_SUCCESS)
 		return result;
 

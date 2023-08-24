@@ -217,7 +217,7 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 	u64 size = cache->page_count * (u64) VDO_BLOCK_SIZE;
 	int result;
 
-	result = UDS_ALLOCATE(cache->page_count, struct page_info, "page infos", &cache->infos);
+	result = uds_allocate(cache->page_count, struct page_info, "page infos", &cache->infos);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -2360,19 +2360,19 @@ static int make_segment(struct forest *old_forest,
 
 	forest->segments = index + 1;
 
-	result = UDS_ALLOCATE(forest->segments, struct boundary,
+	result = uds_allocate(forest->segments, struct boundary,
 			      "forest boundary array", &forest->boundaries);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(forest->segments,
+	result = uds_allocate(forest->segments,
 			      struct tree_page *,
 			      "forest page pointers",
 			      &forest->pages);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(new_pages,
+	result = uds_allocate(new_pages,
 			      struct tree_page,
 			      "new forest pages",
 			      &forest->pages[index]);
@@ -2400,7 +2400,7 @@ static int make_segment(struct forest *old_forest,
 		struct block_map_tree *tree = &(forest->trees[root]);
 		height_t height;
 
-		int result = UDS_ALLOCATE(forest->segments,
+		int result = uds_allocate(forest->segments,
 					  struct block_map_tree_segment,
 					  "tree root segments",
 					  &tree->segments);

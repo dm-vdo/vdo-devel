@@ -88,7 +88,7 @@ int uds_create_thread(void (*thread_function)(void *),
 	struct thread *thread;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
+	result = uds_allocate(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;

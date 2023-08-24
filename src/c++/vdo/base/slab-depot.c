@@ -2425,7 +2425,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(slab->reference_block_count,
+	result = uds_allocate(slab->reference_block_count,
 			      struct reference_block,
 			      __func__,
 			      &slab->reference_blocks);
@@ -2437,7 +2437,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	 * so we can word-search even at the very end.
 	 */
 	bytes = (slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD);
-	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
+	result = uds_allocate(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
 	if (result != UDS_SUCCESS) {
 		uds_free(uds_forget(slab->reference_blocks));
 		return result;
@@ -3549,7 +3549,7 @@ get_slab_statuses(struct block_allocator *allocator, struct slab_status **status
 	struct slab_status *statuses;
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 
-	result = UDS_ALLOCATE(allocator->slab_count, struct slab_status, __func__, &statuses);
+	result = uds_allocate(allocator->slab_count, struct slab_status, __func__, &statuses);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3737,14 +3737,14 @@ static int initialize_slab_journal(struct vdo_slab *slab)
 	const struct slab_config *slab_config = &slab->allocator->depot->slab_config;
 	int result;
 
-	result = UDS_ALLOCATE(slab_config->slab_journal_blocks,
+	result = uds_allocate(slab_config->slab_journal_blocks,
 			      struct journal_lock,
 			      __func__,
 			      &journal->locks);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
+	result = uds_allocate(VDO_BLOCK_SIZE,
 			      char,
 			      "struct packed_slab_journal_block",
 			      (char **) &journal->block);
@@ -3804,7 +3804,7 @@ make_slab(physical_block_number_t slab_origin,
 	struct vdo_slab *slab;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct vdo_slab, __func__, &slab);
+	result = uds_allocate(1, struct vdo_slab, __func__, &slab);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3860,7 +3860,7 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	physical_block_number_t slab_origin;
 	int result;
 
-	result = UDS_ALLOCATE(slab_count,
+	result = uds_allocate(slab_count,
 			      struct vdo_slab *,
 			      "slab pointer array",
 			      &depot->new_slabs);
@@ -4021,7 +4021,7 @@ STATIC int initialize_slab_scrubber(struct block_allocator *allocator)
 	char *journal_data;
 	int result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE * slab_journal_size, char, __func__, &journal_data);
+	result = uds_allocate(VDO_BLOCK_SIZE * slab_journal_size, char, __func__, &journal_data);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4056,7 +4056,7 @@ initialize_slab_summary_block(struct block_allocator *allocator, block_count_t i
 	struct slab_summary_block *block = &allocator->summary_blocks[index];
 	int result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__, &block->outgoing_entries);
+	result = uds_allocate(VDO_BLOCK_SIZE, char, __func__, &block->outgoing_entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4120,7 +4120,7 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot, zon
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE,
+	result = uds_allocate(VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE,
 			      struct slab_summary_block,
 			      __func__,
 			      &allocator->summary_blocks);
@@ -4189,7 +4189,7 @@ static int allocate_components(struct slab_depot *depot,
 
 	depot->summary_origin = summary_partition->offset;
 	depot->hint_shift = vdo_get_slab_summary_hint_shift(depot->slab_size_shift);
-	result = UDS_ALLOCATE(MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES,
+	result = uds_allocate(MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES,
 			      struct slab_summary_entry,
 			      __func__,
 			      &depot->summary_entries);

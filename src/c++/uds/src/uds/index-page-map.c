@@ -38,13 +38,13 @@ int uds_make_index_page_map(const struct geometry *geometry, struct index_page_m
 	int result;
 	struct index_page_map *map;
 
-	result = UDS_ALLOCATE(1, struct index_page_map, "page map", &map);
+	result = uds_allocate(1, struct index_page_map, "page map", &map);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	map->geometry = geometry;
 	map->entries_per_chapter = geometry->index_pages_per_chapter - 1;
-	result = UDS_ALLOCATE(get_entry_count(geometry),
+	result = uds_allocate(get_entry_count(geometry),
 			      u16,
 			      "Index Page Map Entries",
 			      &map->entries);
@@ -126,7 +126,7 @@ int uds_write_index_page_map(struct index_page_map *map, struct buffered_writer 
 	u64 saved_size = uds_compute_index_page_map_save_size(map->geometry);
 	u32 i;
 
-	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
+	result = uds_allocate(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -153,7 +153,7 @@ int uds_read_index_page_map(struct index_page_map *map, struct buffered_reader *
 	u64 saved_size = uds_compute_index_page_map_save_size(map->geometry);
 	u32 i;
 
-	result = UDS_ALLOCATE(saved_size, u8, "page map data", &buffer);
+	result = uds_allocate(saved_size, u8, "page map data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 

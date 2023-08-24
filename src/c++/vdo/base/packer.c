@@ -152,7 +152,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	block_count_t i;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct packer, __func__, &packer);
+	result = uds_allocate(1, struct packer, __func__, &packer);
 	if (result != VDO_SUCCESS)
 		return result;
 

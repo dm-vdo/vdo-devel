@@ -25,7 +25,7 @@ int __must_check uds_allocate_memory(size_t size, size_t align, const char *what
 
 void uds_free_memory(void *ptr);
 
-/* Free memory allocated with UDS_ALLOCATE(). */
+/* Free memory allocated with uds_allocate(). */
 #define uds_free(PTR) uds_free_memory(PTR)
 
 static inline void *__uds_forget(void **ptr_ptr)
@@ -103,7 +103,7 @@ int __must_check uds_reallocate_memory(void *ptr,
  *
  * Return: UDS_SUCCESS or an error code
  */
-#define UDS_ALLOCATE(COUNT, TYPE, WHAT, PTR) \
+#define uds_allocate(COUNT, TYPE, WHAT, PTR) \
 	uds_do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
 
 /*

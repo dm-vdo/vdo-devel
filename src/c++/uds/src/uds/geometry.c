@@ -63,7 +63,7 @@ int uds_make_geometry(size_t bytes_per_page,
 	int result;
 	struct geometry *geometry;
 
-	result = UDS_ALLOCATE(1, struct geometry, "geometry", &geometry);
+	result = uds_allocate(1, struct geometry, "geometry", &geometry);
 	if (result != UDS_SUCCESS)
 		return result;
 

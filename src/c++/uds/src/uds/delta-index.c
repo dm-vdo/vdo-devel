@@ -329,16 +329,16 @@ static int initialize_delta_zone(struct delta_zone *delta_zone,
 {
 	int result;
 
-	result = UDS_ALLOCATE(size, u8, "delta list", &delta_zone->memory);
+	result = uds_allocate(size, u8, "delta list", &delta_zone->memory);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(list_count + 2, u64, "delta list temp", &delta_zone->new_offsets);
+	result = uds_allocate(list_count + 2, u64, "delta list temp", &delta_zone->new_offsets);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	/* Allocate the delta lists. */
-	result = UDS_ALLOCATE(list_count + 2,
+	result = uds_allocate(list_count + 2,
 			      struct delta_list,
 			      "delta lists",
 			      &delta_zone->delta_lists);
@@ -377,7 +377,7 @@ int uds_initialize_delta_index(struct delta_index *delta_index,
 	unsigned int z;
 	size_t zone_memory;
 
-	result = UDS_ALLOCATE(zone_count,
+	result = uds_allocate(zone_count,
 			      struct delta_zone,
 			      "Delta Index Zones",
 			      &delta_index->delta_zones);
@@ -1108,7 +1108,7 @@ int uds_finish_restoring_delta_index(struct delta_index *delta_index,
 	unsigned int z;
 	u8 *data;
 
-	result = UDS_ALLOCATE(DELTA_LIST_MAX_BYTE_COUNT, u8, __func__, &data);
+	result = uds_allocate(DELTA_LIST_MAX_BYTE_COUNT, u8, __func__, &data);
 	if (result != UDS_SUCCESS)
 		return result;
 

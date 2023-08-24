@@ -1259,14 +1259,14 @@ static int initialize_volume_sub_index(const struct configuration *config,
 				  (zone_count * sizeof(struct volume_sub_index_zone)));
 
 	/* The following arrays are initialized to all zeros. */
-	result = UDS_ALLOCATE(params.list_count,
+	result = uds_allocate(params.list_count,
 			      u64,
 			      "first chapter to flush",
 			      &sub_index->flush_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return UDS_ALLOCATE(zone_count,
+	return uds_allocate(zone_count,
 			    struct volume_sub_index_zone,
 			    "volume index zones",
 			    &sub_index->zones);
@@ -1281,7 +1281,7 @@ int uds_make_volume_index(const struct configuration *config,
 	struct volume_index *volume_index;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct volume_index, "volume index", &volume_index);
+	result = uds_allocate(1, struct volume_index, "volume index", &volume_index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1304,7 +1304,7 @@ int uds_make_volume_index(const struct configuration *config,
 
 	volume_index->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = UDS_ALLOCATE(config->zone_count,
+	result = uds_allocate(config->zone_count,
 			      struct volume_index_zone,
 			      "volume index zones",
 			      &volume_index->zones);

@@ -165,14 +165,14 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 	chapter->virtual_chapter = NO_CHAPTER;
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
-	result = UDS_ALLOCATE(chapter->index_pages_count,
+	result = uds_allocate(chapter->index_pages_count,
 			      struct delta_index_page,
 			      __func__,
 			      &chapter->index_pages);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return UDS_ALLOCATE(chapter->index_pages_count,
+	return uds_allocate(chapter->index_pages_count,
 			    struct dm_buffer *,
 			    "sparse index volume pages",
 			    &chapter->page_buffers);
@@ -255,7 +255,7 @@ int uds_make_sparse_cache(const struct geometry *geometry,
 	}
 
 	/* purge_search_list() needs some temporary lists for sorting. */
-	result = UDS_ALLOCATE(capacity * 2,
+	result = uds_allocate(capacity * 2,
 			      struct cached_chapter_index *,
 			      "scratch entries",
 			      &cache->scratch_entries);

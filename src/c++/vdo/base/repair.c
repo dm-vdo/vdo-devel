@@ -1438,7 +1438,7 @@ static int parse_journal_for_rebuild(struct repair_completion *repair)
 	 * packed_recovery_journal_entry from every valid journal block.
 	 */
 	count = ((repair->highest_tail - repair->block_map_head + 1) * entries_per_block);
-	result = UDS_ALLOCATE(count, struct numbered_block_mapping, __func__, &repair->entries);
+	result = uds_allocate(count, struct numbered_block_mapping, __func__, &repair->entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1483,7 +1483,7 @@ static int extract_new_mappings(struct repair_completion *repair)
 	 * Allocate an array of numbered_block_mapping structs just large enough to transcribe
 	 * every packed_recovery_journal_entry from every valid journal block.
 	 */
-	result = UDS_ALLOCATE(repair->entry_count,
+	result = uds_allocate(repair->entry_count,
 			      struct numbered_block_mapping,
 			      __func__,
 			      &repair->entries);
@@ -1747,11 +1747,11 @@ void vdo_repair(struct vdo_completion *parent)
 	prepare_repair_completion(repair, finish_repair, VDO_ZONE_TYPE_ADMIN);
 	repair->page_count = page_count;
 
-	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &repair->journal_data);
+	result = uds_allocate(remaining * VDO_BLOCK_SIZE, char, __func__, &repair->journal_data);
 	if (abort_on_error(result, repair))
 		return;
 
-	result = UDS_ALLOCATE(vio_count, struct vio, __func__, &repair->vios);
+	result = uds_allocate(vio_count, struct vio, __func__, &repair->vios);
 	if (abort_on_error(result, repair))
 		return;
 

@@ -848,7 +848,7 @@ static int allocate_partition(struct layout *layout,
 	struct partition *partition;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct partition, __func__, &partition);
+	result = uds_allocate(1, struct partition, __func__, &partition);
 	if (result != UDS_SUCCESS)
 		return result;
 

@@ -331,7 +331,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			type->max_priority,
 			VDO_WORK_Q_MAX_PRIORITY);
 
-	result = UDS_ALLOCATE(1, struct simple_work_queue, "simple work queue", &queue);
+	result = uds_allocate(1, struct simple_work_queue, "simple work queue", &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -417,11 +417,11 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 
-	result = UDS_ALLOCATE(1, struct round_robin_work_queue, "round-robin work queue", &queue);
+	result = uds_allocate(1, struct round_robin_work_queue, "round-robin work queue", &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(thread_count,
+	result = uds_allocate(thread_count,
 			      struct simple_work_queue *,
 			      "subordinate work queues",
 			      &queue->service_queues);

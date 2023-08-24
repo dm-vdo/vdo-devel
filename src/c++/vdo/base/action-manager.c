@@ -110,7 +110,7 @@ int vdo_make_action_manager(zone_count_t zones,
 			    struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
-	int result = UDS_ALLOCATE(1, struct action_manager, __func__, &manager);
+	int result = uds_allocate(1, struct action_manager, __func__, &manager);
 
 	if (result != VDO_SUCCESS)
 		return result;

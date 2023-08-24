@@ -92,7 +92,7 @@ launch_zone_message(struct uds_zone_message message, unsigned int zone, struct u
 	int result;
 	struct uds_request *request;
 
-	result = UDS_ALLOCATE(1, struct uds_request, __func__, &request);
+	result = uds_allocate(1, struct uds_request, __func__, &request);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1159,7 +1159,7 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 	int result;
 	struct index_zone *zone;
 
-	result = UDS_ALLOCATE(1, struct index_zone, "index zone", &zone);
+	result = uds_allocate(1, struct index_zone, "index zone", &zone);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1216,7 +1216,7 @@ int uds_make_index(struct configuration *config,
 		return result;
 	}
 
-	result = UDS_ALLOCATE(index->zone_count, struct index_zone *, "zones", &index->zones);
+	result = uds_allocate(index->zone_count, struct index_zone *, "zones", &index->zones);
 	if (result != UDS_SUCCESS) {
 		uds_free_index(index);
 		return result;

@@ -2434,7 +2434,7 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 				    timeout_index_operations_callback,
 				    zone->thread_id);
 	INIT_LIST_HEAD(&zone->lock_pool);
-	result = UDS_ALLOCATE(LOCK_POOL_CAPACITY,
+	result = uds_allocate(LOCK_POOL_CAPACITY,
 			      struct hash_lock,
 			      "hash_lock array",
 			      &zone->lock_array);
