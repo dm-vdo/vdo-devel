@@ -76,7 +76,7 @@ void vdo_free_bio(struct bio *bio)
 		return;
 
 	bio_uninit(bio);
-	UDS_FREE(UDS_FORGET(bio));
+	UDS_FREE(uds_forget(bio));
 }
 
 int allocate_vio_components(struct vdo *vdo,
@@ -169,7 +169,7 @@ void free_vio_components(struct vio *vio)
 		return;
 
 	BUG_ON(is_data_vio(vio));
-	vdo_free_bio(UDS_FORGET(vio->bio));
+	vdo_free_bio(uds_forget(vio->bio));
 }
 
 /**
@@ -430,7 +430,7 @@ void free_vio_pool(struct vio_pool *pool)
 	ASSERT_LOG_ONLY(pool->size == 0,
 			"VIO pool must not have missing entries when being freed");
 
-	UDS_FREE(UDS_FORGET(pool->buffer));
+	UDS_FREE(uds_forget(pool->buffer));
 	UDS_FREE(pool);
 }
 

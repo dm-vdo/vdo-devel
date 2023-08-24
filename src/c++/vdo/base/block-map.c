@@ -1338,7 +1338,7 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 	}
 
 	/* Reset the page map by re-allocating it. */
-	vdo_free_int_map(UDS_FORGET(cache->page_map));
+	vdo_free_int_map(uds_forget(cache->page_map));
 	return vdo_make_int_map(cache->page_count, 0, &cache->page_map);
 }
 
@@ -2505,7 +2505,7 @@ static void replace_forest(struct block_map *map)
 	if (map->next_forest != NULL) {
 		if (map->forest != NULL)
 			deforest(map->forest, map->forest->segments);
-		map->forest = UDS_FORGET(map->next_forest);
+		map->forest = uds_forget(map->next_forest);
 	}
 
 	map->entry_count = map->next_entry_count;
@@ -2521,7 +2521,7 @@ static void finish_cursor(struct cursor *cursor)
 	struct cursors *cursors = cursor->parent;
 	struct vdo_completion *parent = cursors->parent;
 
-	return_vio_to_pool(cursors->pool, UDS_FORGET(cursor->vio));
+	return_vio_to_pool(cursors->pool, uds_forget(cursor->vio));
 	if (--cursors->active_roots > 0)
 		return;
 
@@ -2860,19 +2860,19 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	struct vdo_page_cache *cache = &zone->page_cache;
 
-	UDS_FREE(UDS_FORGET(zone->dirty_lists));
-	free_vio_pool(UDS_FORGET(zone->vio_pool));
-	vdo_free_int_map(UDS_FORGET(zone->loading_pages));
+	UDS_FREE(uds_forget(zone->dirty_lists));
+	free_vio_pool(uds_forget(zone->vio_pool));
+	vdo_free_int_map(uds_forget(zone->loading_pages));
 	if (cache->infos != NULL) {
 		struct page_info *info;
 
 		for (info = cache->infos; info < cache->infos + cache->page_count; ++info)
-			free_vio(UDS_FORGET(info->vio));
+			free_vio(uds_forget(info->vio));
 	}
 
-	vdo_free_int_map(UDS_FORGET(cache->page_map));
-	UDS_FREE(UDS_FORGET(cache->infos));
-	UDS_FREE(UDS_FORGET(cache->pages));
+	vdo_free_int_map(uds_forget(cache->page_map));
+	UDS_FREE(uds_forget(cache->infos));
+	UDS_FREE(uds_forget(cache->pages));
 }
 
 void vdo_free_block_map(struct block_map *map)
@@ -2887,8 +2887,8 @@ void vdo_free_block_map(struct block_map *map)
 
 	vdo_abandon_block_map_growth(map);
 	if (map->forest != NULL)
-		deforest(UDS_FORGET(map->forest), 0);
-	UDS_FREE(UDS_FORGET(map->action_manager));
+		deforest(uds_forget(map->forest), 0);
+	UDS_FREE(uds_forget(map->action_manager));
 	UDS_FREE(map);
 }
 
@@ -3105,7 +3105,7 @@ void vdo_grow_block_map(struct block_map *map, struct vdo_completion *parent)
 
 void vdo_abandon_block_map_growth(struct block_map *map)
 {
-	struct forest *forest = UDS_FORGET(map->next_forest);
+	struct forest *forest = uds_forget(map->next_forest);
 
 	if (forest != NULL)
 		deforest(forest, forest->segments - 1);

@@ -456,7 +456,7 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			/* Destroy previously created subordinates. */
-			vdo_free_work_queue(UDS_FORGET(*queue_ptr));
+			vdo_free_work_queue(uds_forget(*queue_ptr));
 			return result;
 		}
 	}

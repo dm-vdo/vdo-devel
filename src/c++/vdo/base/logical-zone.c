@@ -137,10 +137,10 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 	if (zones == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(zones->manager));
+	UDS_FREE(uds_forget(zones->manager));
 
 	for (index = 0; index < zones->zone_count; index++)
-		vdo_free_int_map(UDS_FORGET(zones->zones[index].lbn_operations));
+		vdo_free_int_map(uds_forget(zones->zones[index].lbn_operations));
 
 	UDS_FREE(zones);
 }

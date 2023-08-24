@@ -201,7 +201,7 @@ static int position_reader(struct buffered_reader *reader, sector_t block_number
 			return UDS_OUT_OF_RANGE;
 
 		if (reader->buffer != NULL)
-			dm_bufio_release(UDS_FORGET(reader->buffer));
+			dm_bufio_release(uds_forget(reader->buffer));
 
 		data = dm_bufio_read(reader->client, block_number, &buffer);
 		if (IS_ERR(data))

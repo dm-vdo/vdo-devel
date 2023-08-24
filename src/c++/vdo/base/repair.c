@@ -229,7 +229,7 @@ static void uninitialize_vios(struct repair_completion *repair)
 	while (repair->vio_count > 0)
 		free_vio_components(&repair->vios[--repair->vio_count]);
 
-	UDS_FREE(UDS_FORGET(repair->vios));
+	UDS_FREE(uds_forget(repair->vios));
 }
 
 STATIC void free_repair_completion(struct repair_completion *repair)
@@ -244,8 +244,8 @@ STATIC void free_repair_completion(struct repair_completion *repair)
 	repair->completion.vdo->block_map->zones[0].page_cache.rebuilding = false;
 
 	uninitialize_vios(repair);
-	UDS_FREE(UDS_FORGET(repair->journal_data));
-	UDS_FREE(UDS_FORGET(repair->entries));
+	UDS_FREE(uds_forget(repair->journal_data));
+	UDS_FREE(uds_forget(repair->entries));
 	UDS_FREE(repair);
 }
 
@@ -265,7 +265,7 @@ static void finish_repair(struct vdo_completion *completion)
 						    repair->highest_tail,
 						    repair->logical_blocks_used,
 						    repair->block_map_data_blocks);
-	free_repair_completion(UDS_FORGET(repair));
+	free_repair_completion(uds_forget(repair));
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state)) {
 		uds_log_info("Read-only rebuild complete");
@@ -298,7 +298,7 @@ static void abort_repair(struct vdo_completion *completion)
 	else
 		uds_log_warning("Recovery aborted");
 
-	free_repair_completion(UDS_FORGET(repair));
+	free_repair_completion(uds_forget(repair));
 	vdo_continue_completion(parent, result);
 }
 
@@ -1123,7 +1123,7 @@ STATIC void recover_block_map(struct vdo_completion *completion)
 		/* This message must be in sync with VDOTest::RebuildBase. */
 #endif /* INTERNAL */
 		uds_log_info("Replaying 0 recovery entries into block map");
-		UDS_FREE(UDS_FORGET(repair->journal_data));
+		UDS_FREE(uds_forget(repair->journal_data));
 		launch_repair_completion(repair, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
 		return;
 	}

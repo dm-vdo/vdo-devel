@@ -1872,7 +1872,7 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 							  VDO_SLAB_SUMMARY_PARTITION),
 				       &vdo->next_layout);
 	if (result != VDO_SUCCESS) {
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 		return result;
 	}
 
@@ -1883,7 +1883,7 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 	if (min_new_size > new_size) {
 		/* Copying the journal and summary would destroy some old metadata. */
 		vdo_uninitialize_layout(&vdo->next_layout);
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
@@ -2090,7 +2090,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
-	struct vdo *vdo = UDS_FORGET(config->vdo);
+	struct vdo *vdo = uds_forget(config->vdo);
 
 	list_del_init(&config->config_list);
 	if (list_empty(&vdo->device_config_list)) {
@@ -2108,7 +2108,7 @@ static void vdo_dtr(struct dm_target *ti)
 		if (vdo->dump_on_shutdown)
 			vdo_dump_all(vdo, "device shutdown");
 
-		vdo_destroy(UDS_FORGET(vdo));
+		vdo_destroy(uds_forget(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
@@ -2525,7 +2525,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	    (vdo->admin.phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 		vdo->admin.phase = LOAD_PHASE_DRAIN_JOURNAL;
-		load_callback(UDS_FORGET(completion));
+		load_callback(uds_forget(completion));
 		return;
 	}
 
@@ -2838,7 +2838,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo_uninitialize_layout(&vdo->layout);
 		vdo->layout = vdo->next_layout;
-		UDS_FORGET(vdo->next_layout.head);
+		uds_forget(vdo->next_layout.head);
 		vdo->states.vdo.config.physical_blocks = vdo->layout.size;
 		vdo_update_slab_depot_size(vdo->depot);
 		vdo_save_components(vdo, completion);

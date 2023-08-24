@@ -808,13 +808,13 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	if (journal == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(journal->lock_counter.logical_zone_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.physical_zone_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.journal_counters));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.journal_decrement_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.logical_counters));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.physical_counters));
-	free_vio(UDS_FORGET(journal->flush_vio));
+	UDS_FREE(uds_forget(journal->lock_counter.logical_zone_counts));
+	UDS_FREE(uds_forget(journal->lock_counter.physical_zone_counts));
+	UDS_FREE(uds_forget(journal->lock_counter.journal_counters));
+	UDS_FREE(uds_forget(journal->lock_counter.journal_decrement_counts));
+	UDS_FREE(uds_forget(journal->lock_counter.logical_counters));
+	UDS_FREE(uds_forget(journal->lock_counter.physical_counters));
+	free_vio(uds_forget(journal->flush_vio));
 
 	/*
 	 * FIXME: eventually, the journal should be constructed in a quiescent state which
@@ -829,7 +829,7 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	for (i = 0; i < RECOVERY_JOURNAL_RESERVED_BLOCKS; i++) {
 		struct recovery_journal_block *block = &journal->blocks[i];
 
-		UDS_FREE(UDS_FORGET(block->vio.data));
+		UDS_FREE(uds_forget(block->vio.data));
 		free_vio_components(&block->vio);
 	}
 

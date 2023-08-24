@@ -627,7 +627,7 @@ static void execute_zone_request(struct uds_request *request)
 					       request->zone_message.type);
 
 		/* Once the message is processed it can be freed. */
-		UDS_FREE(UDS_FORGET(request));
+		UDS_FREE(uds_forget(request));
 		return;
 	}
 
@@ -1330,7 +1330,7 @@ void uds_free_index(struct uds_index *index)
 	}
 
 	uds_free_volume(index->volume);
-	uds_free_index_layout(UDS_FORGET(index->layout));
+	uds_free_index_layout(uds_forget(index->layout));
 	UDS_FREE(index);
 }
 

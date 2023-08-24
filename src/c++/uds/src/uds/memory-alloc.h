@@ -28,7 +28,7 @@ void uds_free_memory(void *ptr);
 /* Free memory allocated with UDS_ALLOCATE(). */
 #define UDS_FREE(PTR) uds_free_memory(PTR)
 
-static inline void *uds_forget(void **ptr_ptr)
+static inline void *__uds_forget(void **ptr_ptr)
 {
 	void *ptr = *ptr_ptr;
 
@@ -40,7 +40,7 @@ static inline void *uds_forget(void **ptr_ptr)
  * Null out a pointer and return a copy to it. This macro should be used when passing a pointer to
  * a function for which it is not safe to access the pointer once the function returns.
  */
-#define UDS_FORGET(ptr) uds_forget((void **) &(ptr))
+#define uds_forget(ptr) __uds_forget((void **) &(ptr))
 
 /*
  * Allocate storage based on element counts, sizes, and alignment.

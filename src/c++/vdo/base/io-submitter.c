@@ -459,7 +459,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 			 * Clean up the partially initialized bio-queue entirely and indicate that
 			 * initialization failed.
 			 */
-			vdo_free_int_map(UDS_FORGET(bio_queue_data->map));
+			vdo_free_int_map(uds_forget(bio_queue_data->map));
 			uds_log_error("bio queue initialization failed %d", result);
 			vdo_cleanup_io_submitter(io_submitter);
 			vdo_free_io_submitter(io_submitter);
@@ -507,8 +507,8 @@ void vdo_free_io_submitter(struct io_submitter *io_submitter)
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		/* vdo_destroy() will free the work queue, so just give up our reference to it. */
-		UDS_FORGET(io_submitter->bio_queue_data[i].queue);
-		vdo_free_int_map(UDS_FORGET(io_submitter->bio_queue_data[i].map));
+		uds_forget(io_submitter->bio_queue_data[i].queue);
+		vdo_free_int_map(uds_forget(io_submitter->bio_queue_data[i].map));
 	}
 	UDS_FREE(io_submitter);
 }

@@ -298,7 +298,7 @@ static void release_cached_chapter_index(struct cached_chapter_index *chapter)
 
 	for (i = 0; i < chapter->index_pages_count; i++)
 		if (chapter->page_buffers[i] != NULL)
-			dm_bufio_release(UDS_FORGET(chapter->page_buffers[i]));
+			dm_bufio_release(uds_forget(chapter->page_buffers[i]));
 }
 
 void uds_free_sparse_cache(struct sparse_cache *cache)

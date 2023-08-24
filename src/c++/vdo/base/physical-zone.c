@@ -352,7 +352,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 	zone->next = &zones->zones[(zone_number + 1) % vdo->thread_config.physical_zone_count];
 	result = vdo_make_default_thread(vdo, zone->thread_id);
 	if (result != VDO_SUCCESS) {
-		free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
+		free_pbn_lock_pool(uds_forget(zone->lock_pool));
 		vdo_free_int_map(zone->pbn_operations);
 		return result;
 	}
@@ -409,8 +409,8 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 	for (index = 0; index < zones->zone_count; index++) {
 		struct physical_zone *zone = &zones->zones[index];
 
-		free_pbn_lock_pool(UDS_FORGET(zone->lock_pool));
-		vdo_free_int_map(UDS_FORGET(zone->pbn_operations));
+		free_pbn_lock_pool(uds_forget(zone->lock_pool));
+		vdo_free_int_map(uds_forget(zone->pbn_operations));
 	}
 
 	UDS_FREE(zones);
@@ -470,7 +470,7 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 
 	if (lock != NULL) {
 		/* The lock is already held, so we don't need the borrowed one. */
-		return_pbn_lock_to_pool(zone->lock_pool, UDS_FORGET(new_lock));
+		return_pbn_lock_to_pool(zone->lock_pool, uds_forget(new_lock));
 		result = ASSERT(lock->holder_count > 0,
 				"physical block %llu lock held",
 				(unsigned long long) pbn);

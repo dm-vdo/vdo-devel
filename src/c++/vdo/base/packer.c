@@ -209,7 +209,7 @@ void vdo_free_packer(struct packer *packer)
 		UDS_FREE(bin);
 	}
 
-	UDS_FREE(UDS_FORGET(packer->canceled_bin));
+	UDS_FREE(uds_forget(packer->canceled_bin));
 	UDS_FREE(packer);
 }
 
@@ -683,7 +683,7 @@ void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
-	lock_holder = UDS_FORGET(data_vio->compression.lock_holder);
+	lock_holder = uds_forget(data_vio->compression.lock_holder);
 	bin = lock_holder->compression.bin;
 	ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has a bin");
 

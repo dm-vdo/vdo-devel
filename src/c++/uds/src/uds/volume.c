@@ -222,7 +222,7 @@ static void wait_for_pending_searches(struct page_cache *cache, u32 physical_pag
 static void release_page_buffer(struct cached_page *page)
 {
 	if (page->buffer != NULL)
-		dm_bufio_release(UDS_FORGET(page->buffer));
+		dm_bufio_release(uds_forget(page->buffer));
 }
 
 static void clear_cache_page(struct page_cache *cache, struct cached_page *page)
@@ -1619,7 +1619,7 @@ int __must_check uds_replace_volume_storage(struct volume *volume,
 	if (volume->sparse_cache != NULL)
 		uds_invalidate_sparse_cache(volume->sparse_cache);
 	if (volume->client != NULL)
-		dm_bufio_client_destroy(UDS_FORGET(volume->client));
+		dm_bufio_client_destroy(uds_forget(volume->client));
 
 	return uds_open_volume_bufio(layout,
 				     volume->geometry->bytes_per_page,
@@ -1852,7 +1852,7 @@ void uds_free_volume(struct volume *volume)
 	uninitialize_page_cache(&volume->page_cache);
 	uds_free_sparse_cache(volume->sparse_cache);
 	if (volume->client != NULL)
-		dm_bufio_client_destroy(UDS_FORGET(volume->client));
+		dm_bufio_client_destroy(uds_forget(volume->client));
 
 	uds_destroy_cond(&volume->read_threads_cond);
 	uds_destroy_cond(&volume->read_threads_read_done_cond);

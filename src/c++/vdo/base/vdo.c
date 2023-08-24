@@ -191,10 +191,10 @@ static const struct vdo_work_queue_type cpu_q_type = {
 
 STATIC void uninitialize_thread_config(struct thread_config *config)
 {
-	UDS_FREE(UDS_FORGET(config->logical_threads));
-	UDS_FREE(UDS_FORGET(config->physical_threads));
-	UDS_FREE(UDS_FORGET(config->hash_zone_threads));
-	UDS_FREE(UDS_FORGET(config->bio_threads));
+	UDS_FREE(uds_forget(config->logical_threads));
+	UDS_FREE(uds_forget(config->physical_threads));
+	UDS_FREE(uds_forget(config->hash_zone_threads));
+	UDS_FREE(uds_forget(config->bio_threads));
 	memset(config, 0, sizeof(struct thread_config));
 }
 
@@ -320,7 +320,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	 */
 	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ, VDO_GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
-		free_vio(UDS_FORGET(vio));
+		free_vio(uds_forget(vio));
 		UDS_FREE(block);
 		return result;
 	}
@@ -328,7 +328,7 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
 	submit_bio_wait(vio->bio);
 	result = blk_status_to_errno(vio->bio->bi_status);
-	free_vio(UDS_FORGET(vio));
+	free_vio(uds_forget(vio));
 	if (result != 0) {
 		uds_log_error_strerror(result, "synchronous read failed");
 		UDS_FREE(block);
@@ -726,8 +726,8 @@ static void free_listeners(struct vdo_thread *thread)
 {
 	struct read_only_listener *listener, *next;
 
-	for (listener = UDS_FORGET(thread->listeners); listener != NULL; listener = next) {
-		next = UDS_FORGET(listener->next);
+	for (listener = uds_forget(thread->listeners); listener != NULL; listener = next) {
+		next = uds_forget(listener->next);
 		UDS_FREE(listener);
 	}
 }
@@ -777,36 +777,36 @@ void vdo_destroy(struct vdo *vdo)
 	finish_vdo(vdo);
 	unregister_vdo(vdo);
 	free_data_vio_pool(vdo->data_vio_pool);
-	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
-	vdo_free_flusher(UDS_FORGET(vdo->flusher));
-	vdo_free_packer(UDS_FORGET(vdo->packer));
-	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
-	vdo_free_slab_depot(UDS_FORGET(vdo->depot));
+	vdo_free_io_submitter(uds_forget(vdo->io_submitter));
+	vdo_free_flusher(uds_forget(vdo->flusher));
+	vdo_free_packer(uds_forget(vdo->packer));
+	vdo_free_recovery_journal(uds_forget(vdo->recovery_journal));
+	vdo_free_slab_depot(uds_forget(vdo->depot));
 	vdo_uninitialize_layout(&vdo->layout);
 	vdo_uninitialize_layout(&vdo->next_layout);
 	if (vdo->partition_copier)
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 	uninitialize_super_block(&vdo->super_block);
-	vdo_free_block_map(UDS_FORGET(vdo->block_map));
-	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
-	vdo_free_physical_zones(UDS_FORGET(vdo->physical_zones));
-	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
+	vdo_free_block_map(uds_forget(vdo->block_map));
+	vdo_free_hash_zones(uds_forget(vdo->hash_zones));
+	vdo_free_physical_zones(uds_forget(vdo->physical_zones));
+	vdo_free_logical_zones(uds_forget(vdo->logical_zones));
 
 	if (vdo->threads != NULL) {
 		for (i = 0; i < vdo->thread_config.thread_count; i++) {
 			free_listeners(&vdo->threads[i]);
-			vdo_free_work_queue(UDS_FORGET(vdo->threads[i].queue));
+			vdo_free_work_queue(uds_forget(vdo->threads[i].queue));
 		}
-		UDS_FREE(UDS_FORGET(vdo->threads));
+		UDS_FREE(uds_forget(vdo->threads));
 	}
 
 	uninitialize_thread_config(&vdo->thread_config);
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++)
-			UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
+			UDS_FREE(uds_forget(vdo->compression_context[i]));
 
-		UDS_FREE(UDS_FORGET(vdo->compression_context));
+		UDS_FREE(uds_forget(vdo->compression_context));
 	}
 
 	/*
@@ -853,7 +853,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_super_block *super_block =
 		container_of(as_vio(completion), struct vdo_super_block, vio);
 
-	vdo_continue_completion(UDS_FORGET(completion->parent),
+	vdo_continue_completion(uds_forget(completion->parent),
 				vdo_decode_super_block(super_block->buffer));
 }
 
@@ -1066,7 +1066,7 @@ static void record_vdo(struct vdo *vdo)
  */
 static void continue_super_block_parent(struct vdo_completion *completion)
 {
-	vdo_continue_completion(UDS_FORGET(completion->parent), completion->result);
+	vdo_continue_completion(uds_forget(completion->parent), completion->result);
 }
 
 /**
@@ -1286,7 +1286,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 	spin_unlock(&notifier->lock);
 
 	if (notifier->waiter != NULL)
-		vdo_continue_completion(UDS_FORGET(notifier->waiter), completion->result);
+		vdo_continue_completion(uds_forget(notifier->waiter), completion->result);
 }
 
 /**

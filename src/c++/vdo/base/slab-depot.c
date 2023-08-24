@@ -416,7 +416,7 @@ static void complete_reaping(struct vdo_completion *completion)
 	struct slab_journal *journal = completion->parent;
 
 	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(as_vio(UDS_FORGET(completion))));
+			   vio_as_pooled_vio(as_vio(uds_forget(completion))));
 	finish_reaping(journal);
 	reap_slab_journal(journal);
 }
@@ -698,7 +698,7 @@ static void complete_write(struct vdo_completion *completion)
 	sequence_number_t committed = get_committing_sequence_number(pooled);
 
 	list_del_init(&pooled->list_entry);
-	return_vio_to_pool(journal->slab->allocator->vio_pool, UDS_FORGET(pooled));
+	return_vio_to_pool(journal->slab->allocator->vio_pool, uds_forget(pooled));
 
 	if (result != VDO_SUCCESS) {
 		vio_record_metadata_io_error(as_vio(completion));
@@ -777,7 +777,7 @@ static void write_slab_journal_block(struct waiter *waiter, void *context)
 	 * This block won't be read in recovery until the slab summary is updated to refer to it.
 	 * The slab summary update does a flush which is sufficient to protect us from VDO-2331.
 	 */
-	submit_metadata_vio(UDS_FORGET(vio),
+	submit_metadata_vio(uds_forget(vio),
 			    block_number,
 			    write_slab_journal_endio,
 			    complete_write,
@@ -2439,7 +2439,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	bytes = (slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD);
 	result = UDS_ALLOCATE(bytes, vdo_refcount_t, "ref counts array", &slab->counters);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(UDS_FORGET(slab->reference_blocks));
+		UDS_FREE(uds_forget(slab->reference_blocks));
 		return result;
 	}
 
@@ -2715,7 +2715,7 @@ static bool __must_check has_slabs_to_scrub(struct slab_scrubber *scrubber)
  */
 static void uninitialize_scrubber_vio(struct slab_scrubber *scrubber)
 {
-	UDS_FREE(UDS_FORGET(scrubber->vio.data));
+	UDS_FREE(uds_forget(scrubber->vio.data));
 	free_vio_components(&scrubber->vio);
 }
 
@@ -2736,7 +2736,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber, int result)
 
 	if (scrubber->high_priority_only) {
 		scrubber->high_priority_only = false;
-		vdo_fail_completion(UDS_FORGET(scrubber->vio.completion.parent), result);
+		vdo_fail_completion(uds_forget(scrubber->vio.completion.parent), result);
 	} else if (done && (atomic_add_return(-1, &allocator->depot->zones_to_scrub) == 0)) {
 		/* All of our slabs were scrubbed, and we're the last allocator to finish. */
 		enum vdo_state prior_state =
@@ -3449,7 +3449,7 @@ static void finish_loading_allocator(struct vdo_completion *completion)
 	const struct admin_state_code *operation = vdo_get_admin_state_code(&allocator->state);
 
 	if (allocator->eraser != NULL)
-		dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
+		dm_kcopyd_client_destroy(uds_forget(allocator->eraser));
 
 	if (operation == VDO_ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context = vdo_get_current_action_context(allocator->depot->action_manager);
@@ -3724,10 +3724,10 @@ STATIC void free_slab(struct vdo_slab *slab)
 		return;
 
 	list_del(&slab->allocq_entry);
-	UDS_FREE(UDS_FORGET(slab->journal.block));
-	UDS_FREE(UDS_FORGET(slab->journal.locks));
-	UDS_FREE(UDS_FORGET(slab->counters));
-	UDS_FREE(UDS_FORGET(slab->reference_blocks));
+	UDS_FREE(uds_forget(slab->journal.block));
+	UDS_FREE(uds_forget(slab->journal.locks));
+	UDS_FREE(uds_forget(slab->counters));
+	UDS_FREE(uds_forget(slab->reference_blocks));
 	UDS_FREE(slab);
 }
 
@@ -3908,10 +3908,10 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 		return;
 
 	for (i = depot->slab_count; i < depot->new_slab_count; i++)
-		free_slab(UDS_FORGET(depot->new_slabs[i]));
+		free_slab(uds_forget(depot->new_slabs[i]));
 	depot->new_slab_count = 0;
 	depot->new_size = 0;
-	UDS_FREE(UDS_FORGET(depot->new_slabs));
+	UDS_FREE(uds_forget(depot->new_slabs));
 }
 
 /**
@@ -4316,10 +4316,10 @@ static void uninitialize_allocator_summary(struct block_allocator *allocator)
 
 	for (i = 0; i < VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE; i++) {
 		free_vio_components(&allocator->summary_blocks[i].vio);
-		UDS_FREE(UDS_FORGET(allocator->summary_blocks[i].outgoing_entries));
+		UDS_FREE(uds_forget(allocator->summary_blocks[i].outgoing_entries));
 	}
 
-	UDS_FREE(UDS_FORGET(allocator->summary_blocks));
+	UDS_FREE(uds_forget(allocator->summary_blocks));
 }
 
 /**
@@ -4339,24 +4339,24 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 		struct block_allocator *allocator = &depot->allocators[zone];
 
 		if (allocator->eraser != NULL)
-			dm_kcopyd_client_destroy(UDS_FORGET(allocator->eraser));
+			dm_kcopyd_client_destroy(uds_forget(allocator->eraser));
 
 		uninitialize_allocator_summary(allocator);
 		uninitialize_scrubber_vio(&allocator->scrubber);
-		free_vio_pool(UDS_FORGET(allocator->vio_pool));
-		vdo_free_priority_table(UDS_FORGET(allocator->prioritized_slabs));
+		free_vio_pool(uds_forget(allocator->vio_pool));
+		vdo_free_priority_table(uds_forget(allocator->prioritized_slabs));
 	}
 
 	if (depot->slabs != NULL) {
 		slab_count_t i;
 
 		for (i = 0; i < depot->slab_count; i++)
-			free_slab(UDS_FORGET(depot->slabs[i]));
+			free_slab(uds_forget(depot->slabs[i]));
 	}
 
-	UDS_FREE(UDS_FORGET(depot->slabs));
-	UDS_FREE(UDS_FORGET(depot->action_manager));
-	UDS_FREE(UDS_FORGET(depot->summary_entries));
+	UDS_FREE(uds_forget(depot->slabs));
+	UDS_FREE(uds_forget(depot->action_manager));
+	UDS_FREE(uds_forget(depot->summary_entries));
 	UDS_FREE(depot);
 }
 
@@ -4554,7 +4554,7 @@ static void finish_combining_zones(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
 
-	free_vio(as_vio(UDS_FORGET(completion)));
+	free_vio(as_vio(uds_forget(completion)));
 	vdo_fail_completion(parent, result);
 }
 
