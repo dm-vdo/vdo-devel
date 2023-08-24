@@ -495,7 +495,7 @@ make_index_save_region_table(struct index_save_layout *isl, struct region_table 
 		type = RH_TYPE_UNSAVED;
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       region_count,
 				       struct layout_region,
 				       "layout region table for ISL",
@@ -678,7 +678,7 @@ make_layout_region_table(struct index_layout *layout, struct region_table **tabl
 	struct region_table *table;
 	struct layout_region *lr;
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       region_count,
 				       struct layout_region,
 				       "layout region table",
@@ -1188,7 +1188,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 					      "unknown region table version %hu",
 					      header.version);
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       header.region_count,
 				       struct layout_region,
 				       "single file layout region table",

@@ -1731,7 +1731,7 @@ void vdo_repair(struct vdo_completion *parent)
 		uds_log_warning("Device was dirty, rebuilding reference counts");
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct repair_completion,
+	result = uds_allocate_extended(struct repair_completion,
 				       page_count,
 				       struct vdo_page_completion,
 				       __func__,

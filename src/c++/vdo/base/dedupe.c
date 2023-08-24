@@ -2490,7 +2490,7 @@ int vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr)
 	if (zone_count == 0)
 		return VDO_SUCCESS;
 
-	result = UDS_ALLOCATE_EXTENDED(struct hash_zones,
+	result = uds_allocate_extended(struct hash_zones,
 				       zone_count,
 				       struct hash_zone,
 				       __func__,

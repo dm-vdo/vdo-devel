@@ -123,7 +123,7 @@ static int __must_check make_bin(struct packer *packer)
 	struct packer_bin *bin;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
+	result = uds_allocate_extended(struct packer_bin,
 				       VDO_MAX_COMPRESSION_SLOTS,
 				       struct vio *,
 				       __func__,
@@ -174,7 +174,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	 * bin must have a canceler for which it is waiting, and any canceler will only have
 	 * canceled one lock holder at a time.
 	 */
-	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
+	result = uds_allocate_extended(struct packer_bin,
 				       MAXIMUM_VDO_USER_VIOS / 2,
 				       struct vio *, __func__,
 				       &packer->canceled_bin);

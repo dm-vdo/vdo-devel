@@ -413,7 +413,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 	struct io_submitter *io_submitter;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct io_submitter,
+	result = uds_allocate_extended(struct io_submitter,
 				       thread_count,
 				       struct bio_queue_data,
 				       "bio submission data",

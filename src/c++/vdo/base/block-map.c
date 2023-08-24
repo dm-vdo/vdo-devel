@@ -2479,7 +2479,7 @@ static int make_forest(struct block_map *map, block_count_t entries)
 		return VDO_SUCCESS;
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct forest, map->root_count,
+	result = uds_allocate_extended(struct forest, map->root_count,
 				       struct block_map_tree, __func__,
 				       &forest);
 	if (result != VDO_SUCCESS)
@@ -2706,7 +2706,7 @@ void vdo_traverse_forest(struct block_map *map,
 	struct cursors *cursors;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct cursors,
+	result = uds_allocate_extended(struct cursors,
 				       map->root_count,
 				       struct cursor,
 				       __func__,
@@ -2757,7 +2757,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	zone->thread_id = vdo->thread_config.logical_threads[zone_number];
 	zone->block_map = map;
 
-	result = UDS_ALLOCATE_EXTENDED(struct dirty_lists,
+	result = uds_allocate_extended(struct dirty_lists,
 				       maximum_age,
 				       dirty_era_t,
 				       __func__,
@@ -2913,7 +2913,7 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct block_map,
+	result = uds_allocate_extended(struct block_map,
 				       vdo->thread_config.logical_zone_count,
 				       struct block_map_zone,
 				       __func__,

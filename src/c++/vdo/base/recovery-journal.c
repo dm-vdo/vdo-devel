@@ -724,7 +724,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	struct recovery_journal *journal;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct recovery_journal,
+	result = uds_allocate_extended(struct recovery_journal,
 				       RECOVERY_JOURNAL_RESERVED_BLOCKS,
 				       struct recovery_journal_block,
 				       __func__,

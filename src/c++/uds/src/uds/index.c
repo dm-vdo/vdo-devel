@@ -780,7 +780,7 @@ static int make_chapter_writer(struct uds_index *index, struct chapter_writer **
 	size_t collated_records_size =
 		(sizeof(struct uds_volume_record) * index->volume->geometry->records_per_chapter);
 
-	result = UDS_ALLOCATE_EXTENDED(struct chapter_writer,
+	result = uds_allocate_extended(struct chapter_writer,
 				       index->zone_count,
 				       struct open_chapter_zone *,
 				       "Chapter Writer",
@@ -1200,7 +1200,7 @@ int uds_make_index(struct configuration *config,
 	u64 nonce;
 	unsigned int z;
 
-	result = UDS_ALLOCATE_EXTENDED(struct uds_index,
+	result = uds_allocate_extended(struct uds_index,
 				       config->zone_count,
 				       struct uds_request_queue *,
 				       "index",

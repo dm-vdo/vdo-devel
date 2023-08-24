@@ -244,7 +244,7 @@ static int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	struct pbn_lock_pool *pool;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool,
+	result = uds_allocate_extended(struct pbn_lock_pool,
 				       capacity,
 				       idle_pbn_lock,
 				       __func__,
@@ -375,7 +375,7 @@ int vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr)
 	if (zone_count == 0)
 		return VDO_SUCCESS;
 
-	result = UDS_ALLOCATE_EXTENDED(struct physical_zones,
+	result = uds_allocate_extended(struct physical_zones,
 				       zone_count,
 				       struct physical_zone,
 				       __func__,

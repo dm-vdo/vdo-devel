@@ -889,7 +889,7 @@ int make_data_vio_pool(struct vdo *vdo,
 	struct data_vio_pool *pool;
 	data_vio_count_t i;
 
-	result = UDS_ALLOCATE_EXTENDED(struct data_vio_pool,
+	result = uds_allocate_extended(struct data_vio_pool,
 				       pool_size,
 				       struct data_vio,
 				       __func__,

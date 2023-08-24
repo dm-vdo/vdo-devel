@@ -4281,7 +4281,7 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state,
 					      "slab size must be a power of two");
 	slab_size_shift = ilog2(slab_size);
 
-	result = UDS_ALLOCATE_EXTENDED(struct slab_depot,
+	result = uds_allocate_extended(struct slab_depot,
 				       vdo->thread_config.physical_zone_count,
 				       struct block_allocator,
 				       __func__,
