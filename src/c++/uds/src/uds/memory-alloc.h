@@ -19,26 +19,8 @@
 #include "thread-registry.h"
 #endif
 
-/* Custom memory allocation functions for UDS that track memory usage */
-
+/* Custom memory allocation function for UDS that tracks memory usage */
 int __must_check uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr);
-
-/* Free memory allocated with uds_allocate(). */
-void uds_free(void *ptr);
-
-static inline void *__uds_forget(void **ptr_ptr)
-{
-	void *ptr = *ptr_ptr;
-
-	*ptr_ptr = NULL;
-	return ptr;
-}
-
-/*
- * Null out a pointer and return a copy to it. This macro should be used when passing a pointer to
- * a function for which it is not safe to access the pointer once the function returns.
- */
-#define uds_forget(ptr) __uds_forget((void **) &(ptr))
 
 /*
  * Allocate storage based on element counts, sizes, and alignment.
@@ -83,12 +65,6 @@ static inline int uds_do_allocation(size_t count,
 
 	return uds_allocate_memory(total_size, align, what, ptr);
 }
-
-int __must_check uds_reallocate_memory(void *ptr,
-				       size_t old_size,
-				       size_t size,
-				       const char *what,
-				       void *new_ptr);
 
 /*
  * Allocate one or more elements of the indicated type, logging an error if the allocation fails.
@@ -157,7 +133,16 @@ static inline int __must_check uds_allocate_cache_aligned(size_t size, const cha
  */
 void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
 
+int __must_check uds_reallocate_memory(void *ptr,
+				       size_t old_size,
+				       size_t size,
+				       const char *what,
+				       void *new_ptr);
+
 int __must_check uds_duplicate_string(const char *string, const char *what, char **new_string);
+
+/* Free memory allocated with uds_allocate(). */
+void uds_free(void *ptr);
 
 #ifdef TEST_INTERNAL
 /* Wrapper which permits freeing a const pointer. */
@@ -171,10 +156,24 @@ static inline void uds_free_const(const void *pointer)
 }
 
 #endif /*TEST_INTERNAL */
-#ifdef __KERNEL__
-void uds_memory_exit(void);
+static inline void *__uds_forget(void **ptr_ptr)
+{
+	void *ptr = *ptr_ptr;
 
+	*ptr_ptr = NULL;
+	return ptr;
+}
+
+/*
+ * Null out a pointer and return a copy to it. This macro should be used when passing a pointer to
+ * a function for which it is not safe to access the pointer once the function returns.
+ */
+#define uds_forget(ptr) __uds_forget((void **) &(ptr))
+
+#ifdef __KERNEL__
 void uds_memory_init(void);
+
+void uds_memory_exit(void);
 
 void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr);
 
