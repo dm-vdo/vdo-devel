@@ -463,13 +463,9 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	if (allocations_restricted)
 		memalloc_noio_restore(noio_flags);
 
-	if (p == NULL) {
-		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
-
+	if (unlikely(p == NULL)) {
 		uds_log_error("Could not allocate %zu bytes for %s in %u msecs",
-			      size,
-			      what,
-			      duration);
+			      size, what, jiffies_to_msecs(jiffies - start_time));
 		return -ENOMEM;
 	}
 
