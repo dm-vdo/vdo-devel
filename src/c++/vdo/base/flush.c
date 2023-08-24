@@ -108,7 +108,7 @@ static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
 	struct vdo_flush *flush;
 
 	if ((gfp_mask & GFP_NOWAIT) == GFP_NOWAIT) {
-		flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+		flush = uds_allocate_memory_nowait(sizeof(struct vdo_flush), __func__);
 	} else {
 		int result = UDS_ALLOCATE(1, struct vdo_flush, __func__, &flush);
 

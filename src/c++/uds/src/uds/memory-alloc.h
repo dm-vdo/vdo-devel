@@ -148,18 +148,16 @@ static inline int __must_check uds_allocate_cache_aligned(size_t size, const cha
 	return uds_allocate_memory(size, L1_CACHE_BYTES, what, ptr);
 }
 
-void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
-
 /*
  * Allocate one element of the indicated type immediately, failing if the required memory is not
  * immediately available.
  *
- * @TYPE: The type of objects to allocate
- * @WHAT: What is being allocated (for error logging)
+ * @size: The number of bytes to allocate
+ * @what: What is being allocated (for error logging)
  *
  * Return: pointer to the memory, or NULL if the memory is not available.
  */
-#define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
+void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
 
 int __must_check uds_duplicate_string(const char *string, const char *what, char **new_string);
 
