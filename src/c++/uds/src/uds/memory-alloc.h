@@ -23,10 +23,8 @@
 
 int __must_check uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr);
 
-void uds_free_memory(void *ptr);
-
 /* Free memory allocated with uds_allocate(). */
-#define uds_free(PTR) uds_free_memory(PTR)
+void uds_free(void *ptr);
 
 static inline void *__uds_forget(void **ptr_ptr)
 {

@@ -505,7 +505,7 @@ void *uds_allocate_memory_nowait(size_t size, const char *what __maybe_unused)
 	return p;
 }
 
-void uds_free_memory(void *ptr)
+void uds_free(void *ptr)
 {
 	if (ptr != NULL) {
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
