@@ -385,7 +385,7 @@ static void handle_page_load_error(struct vdo_completion *completion)
 static void
 unmap_entry(struct block_map_page *page, struct vdo_completion *completion, slot_number_t slot)
 {
-	page->entries[slot] = vdo_pack_block_map_entry(VDO_ZERO_BLOCK, VDO_MAPPING_STATE_UNMAPPED);
+	page->entries[slot] = UNMAPPED_BLOCK_MAP_ENTRY;
 	vdo_request_page_write(completion);
 }
 

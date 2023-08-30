@@ -139,7 +139,7 @@ static inline bool __must_check vdo_is_state_quiescent(const struct admin_state 
 bool vdo_start_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
 			struct vdo_completion *waiter,
-			vdo_admin_initiator * initiator);
+			vdo_admin_initiator *initiator);
 
 bool vdo_finish_draining(struct admin_state *state);
 

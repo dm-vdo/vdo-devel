@@ -590,9 +590,10 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 		 */
 		if (journal->recovery_journal != NULL) {
 			zone_count_t zone_number = journal->slab->allocator->zone_number;
+			struct journal_lock *lock = get_lock(journal, i);
 
 			vdo_release_recovery_journal_block_reference(journal->recovery_journal,
-								     get_lock(journal, i)->recovery_start,
+								     lock->recovery_start,
 								     VDO_ZONE_TYPE_PHYSICAL,
 								     zone_number);
 		}

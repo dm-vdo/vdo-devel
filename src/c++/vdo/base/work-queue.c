@@ -542,7 +542,7 @@ static void get_function_name(void *pointer, char *buffer, size_t buffer_length)
 		 * Format "%ps" logs a null pointer as "(null)" with a bunch of leading spaces. We
 		 * sometimes use this when logging lots of data; don't be so verbose.
 		 */
-		strncpy(buffer, "-", buffer_length);
+		strscpy(buffer, "-", buffer_length);
 	} else {
 		/*
 		 * Use a pragma to defeat gcc's format checking, which doesn't understand that
@@ -570,7 +570,7 @@ void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buff
 			  TASK_COMM_LEN,
 			  (completion->my_queue == NULL ? "-" : completion->my_queue->name));
 
-	if (current_length < length)
+	if (current_length < length - 1)
 		get_function_name((void *) completion->callback,
 				  buffer + current_length,
 				  length - current_length);

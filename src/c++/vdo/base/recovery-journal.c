@@ -559,7 +559,7 @@ static void reap_recovery_journal_callback(struct vdo_completion *completion)
 {
 	struct recovery_journal *journal = (struct recovery_journal *) completion->parent;
 	/*
-	 * The acknowledgement must be done before reaping so that there is no race between
+	 * The acknowledgment must be done before reaping so that there is no race between
 	 * acknowledging the notification and unlocks wishing to notify.
 	 */
 	smp_wmb();

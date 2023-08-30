@@ -607,13 +607,13 @@ int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_
 	const struct volume_sub_index *sub_index = record->sub_index;
 
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
-		const struct volume_sub_index_zone *volume_index_zone =
-			get_zone_for_record(record);
+		u64 low = get_zone_for_record(record)->virtual_chapter_low;
+		u64 high = get_zone_for_record(record)->virtual_chapter_high;
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"cannot put record into chapter number %llu that is out of the valid range %llu to %llu",
 						(unsigned long long) virtual_chapter,
-						(unsigned long long) volume_index_zone->virtual_chapter_low,
-						(unsigned long long) volume_index_zone->virtual_chapter_high);
+						(unsigned long long) low,
+						(unsigned long long) high);
 	}
 	address = extract_address(sub_index, record->name);
 	if (unlikely(record->mutex != NULL))
@@ -754,13 +754,14 @@ int uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 
 	if (!record->is_found)
 		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
-		const struct volume_sub_index_zone *sub_index_zone = get_zone_for_record(record);
+		u64 low = get_zone_for_record(record)->virtual_chapter_low;
+		u64 high = get_zone_for_record(record)->virtual_chapter_high;
 
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"cannot set chapter number %llu that is out of the valid range %llu to %llu",
 						(unsigned long long) virtual_chapter,
-						(unsigned long long) sub_index_zone->virtual_chapter_low,
-						(unsigned long long) sub_index_zone->virtual_chapter_high);
+						(unsigned long long) low,
+						(unsigned long long) high);
 	}
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
@@ -887,13 +888,15 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 			virtual_chapter_low = header.virtual_chapter_low;
 			virtual_chapter_high = header.virtual_chapter_high;
 		} else if (virtual_chapter_high != header.virtual_chapter_high) {
+			u64 low = header.virtual_chapter_low;
+			u64 high = header.virtual_chapter_high;
 			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 							"Inconsistent volume index zone files: Chapter range is [%llu,%llu], chapter range %d is [%llu,%llu]",
 							(unsigned long long) virtual_chapter_low,
 							(unsigned long long) virtual_chapter_high,
 							i,
-							(unsigned long long) header.virtual_chapter_low,
-							(unsigned long long) header.virtual_chapter_high);
+							(unsigned long long) low,
+							(unsigned long long) high);
 		} else if (virtual_chapter_low < header.virtual_chapter_low) {
 			virtual_chapter_low = header.virtual_chapter_low;
 		}

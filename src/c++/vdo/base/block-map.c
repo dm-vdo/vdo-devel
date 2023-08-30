@@ -687,10 +687,11 @@ static void page_is_loaded(struct vdo_completion *completion)
 	page = (struct block_map_page *) get_page_buffer(info);
 	validity = vdo_validate_block_map_page(page, nonce, info->pbn);
 	if (validity == VDO_BLOCK_MAP_PAGE_BAD) {
+		physical_block_number_t pbn = vdo_get_block_map_page_pbn(page);
 		int result = uds_log_error_strerror(VDO_BAD_PAGE,
 						    "Expected page %llu but got page %llu instead",
 						    (unsigned long long) info->pbn,
-						    (unsigned long long) vdo_get_block_map_page_pbn(page));
+						    (unsigned long long) pbn);
 
 		vdo_continue_completion(completion, result);
 		return;
@@ -2595,9 +2596,7 @@ static void traverse(struct cursor *cursor)
 
 			if (!vdo_is_valid_location(&location)) {
 				/* This entry is invalid, so remove it from the page. */
-				page->entries[level->slot] =
-					vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
-								 VDO_MAPPING_STATE_UNMAPPED);
+				page->entries[level->slot] = UNMAPPED_BLOCK_MAP_ENTRY;
 				vdo_write_tree_page(tree_page, cursor->parent->zone);
 				continue;
 			}
@@ -2607,9 +2606,7 @@ static void traverse(struct cursor *cursor)
 
 			/* Erase mapped entries past the end of the logical space. */
 			if (entry_index >= cursor->boundary.levels[height]) {
-				page->entries[level->slot] =
-					vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
-								 VDO_MAPPING_STATE_UNMAPPED);
+				page->entries[level->slot] = UNMAPPED_BLOCK_MAP_ENTRY;
 				vdo_write_tree_page(tree_page, cursor->parent->zone);
 				continue;
 			}
@@ -2620,9 +2617,7 @@ static void traverse(struct cursor *cursor)
 								       cursor->parent->parent);
 
 				if (result != VDO_SUCCESS) {
-					page->entries[level->slot] =
-						vdo_pack_block_map_entry(VDO_ZERO_BLOCK,
-									 VDO_MAPPING_STATE_UNMAPPED);
+					page->entries[level->slot] = UNMAPPED_BLOCK_MAP_ENTRY;
 					vdo_write_tree_page(tree_page, cursor->parent->zone);
 					continue;
 				}
