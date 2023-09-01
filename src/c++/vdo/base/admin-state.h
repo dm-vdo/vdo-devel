@@ -136,15 +136,6 @@ static inline bool __must_check vdo_is_state_quiescent(const struct admin_state 
 	return vdo_get_admin_state_code(state)->quiescent;
 }
 
-bool vdo_start_draining(struct admin_state *state,
-			const struct admin_state_code *operation,
-			struct vdo_completion *waiter,
-			vdo_admin_initiator *initiator);
-
-bool vdo_finish_draining(struct admin_state *state);
-
-bool vdo_finish_draining_with_result(struct admin_state *state, int result);
-
 bool __must_check
 vdo_assert_load_operation(const struct admin_state_code *operation, struct vdo_completion *waiter);
 
@@ -167,6 +158,15 @@ bool vdo_finish_resuming(struct admin_state *state);
 bool vdo_finish_resuming_with_result(struct admin_state *state, int result);
 
 int vdo_resume_if_quiescent(struct admin_state *state);
+
+bool vdo_start_draining(struct admin_state *state,
+			const struct admin_state_code *operation,
+			struct vdo_completion *waiter,
+			vdo_admin_initiator *initiator);
+
+bool vdo_finish_draining(struct admin_state *state);
+
+bool vdo_finish_draining_with_result(struct admin_state *state, int result);
 
 int vdo_start_operation(struct admin_state *state, const struct admin_state_code *operation);
 

@@ -609,6 +609,7 @@ int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		u64 low = get_zone_for_record(record)->virtual_chapter_low;
 		u64 high = get_zone_for_record(record)->virtual_chapter_high;
+
 		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"cannot put record into chapter number %llu that is out of the valid range %llu to %llu",
 						(unsigned long long) virtual_chapter,
@@ -890,6 +891,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		} else if (virtual_chapter_high != header.virtual_chapter_high) {
 			u64 low = header.virtual_chapter_low;
 			u64 high = header.virtual_chapter_high;
+
 			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 							"Inconsistent volume index zone files: Chapter range is [%llu,%llu], chapter range %d is [%llu,%llu]",
 							(unsigned long long) virtual_chapter_low,
