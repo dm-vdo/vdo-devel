@@ -186,12 +186,12 @@ jobs:
     - name: Run-trusted-Tests
       run: make jenkins
       
-    - name: Copy log file to /home/bunsen-home/artifacts
+    - name: Copy log file to /permatbit/user/bunsen/artifacts
       if: failure()
       run: |
         REPO=${{ github.repository }}
         REPO=${REPO//\//-}
-        cp -a logs /home/bunsen-home/artifacts/logs.`date +'%Y%m%d%H%M'`.$REPO.${{ github.event.number }}
+        cp -a logs /permabit/user/bunsen/artifacts/logs.`date +'%Y%m%d%H%M'`.$REPO.${{ github.event.number }}
     
     - name: Remove private testing running label
       if: always()
