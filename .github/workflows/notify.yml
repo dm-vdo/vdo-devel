@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '0 0 */2 * * *'
+    - cron: '* */2 * * *'
 
 jobs:
   notify_schedule:
