@@ -1,0 +1,9 @@
+on:
+  workflow_dispatch:    
+
+jobs:
+  notify_schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every time
+        run: echo "This step will always run"
