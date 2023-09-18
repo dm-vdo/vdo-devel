@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get All PRs
+        env:
+          GITHUB_TOKEN: ${ secrets.VDO_DEVEL }
         run: |
          numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
             query($name: String!, $owner: String!) {
