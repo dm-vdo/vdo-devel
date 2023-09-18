@@ -13,7 +13,7 @@ jobs:
         env:
           OWNER: bjohnsto
           REPO: vdo-devel
-          GITHUB_TOKEN: ${ secrets.GITHUB_TOKEN }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
          numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
             query($name: String!, $owner: String!) {
