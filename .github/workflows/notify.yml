@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Get All PRs
         env:
+          OWNER: bjohnsto
+          REPO: vdo-devel
           GITHUB_TOKEN: ${ secrets.GITHUB_TOKEN }
         run: |
          numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
