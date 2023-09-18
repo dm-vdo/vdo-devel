@@ -9,5 +9,15 @@ jobs:
   notify_schedule:
     runs-on: ubuntu-latest
     steps:
-      - name: Every time
-        run: echo "This step will always run"
+      - name: Get All PRs
+        run: |
+         numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
+            query($name: String!, $owner: String!) {
+              repository(owner: $owner, name: $name) {
+                pullRequests(states:OPEN) {
+                  totalCount
+                }
+              }
+            }
+          ' --jq '.data.repository.pullRequests.totalCount')"
+          echo ${numOpenPRs}        
