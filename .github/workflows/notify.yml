@@ -16,19 +16,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
-            search(
-              type: ISSUE, 
-              query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free",""",
-              last: 100,    
-            ) {
-              pullRequests: edges {
-                totalCount
-                pullRequest: node {
-                  id
-                  url
-                  title
+            query { 
+              search(
+                type: ISSUE, 
+                query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free",""",
+                last: 100,    
+              ) {
+                pullRequests: edges {
+                  pullRequest: node {
+                    ... on PullRequest {
+                      id
+                      url
+                      title
+                    }
+                  }
                 }
               }
             }
-          ' --jq '.data.pullRequests.totalCount')"
-                 
+          ')"                 
