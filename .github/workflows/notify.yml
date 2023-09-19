@@ -18,7 +18,7 @@ jobs:
           numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
             search(
               type: ISSUE, 
-              query: """repo:"$OWNER/$NAME", state:open, is:pr, -label:"free",""",
+              query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free",""",
               last: 100,    
             ) {
               edges {
