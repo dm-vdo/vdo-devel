@@ -20,8 +20,14 @@ jobs:
               repository(owner: $owner, name: $name) {
                 pullRequests(states:OPEN) {
                   totalCount
+                  edges 
+                    nodes {
+                      number
+                      state
+                    }
+                  }
                 }
-              }
+              }                  
             }
           ' --jq '.data.repository.pullRequests.totalCount')"
-          echo ${numOpenPRs}        
+                 
