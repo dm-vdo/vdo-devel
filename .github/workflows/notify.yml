@@ -21,7 +21,7 @@ jobs:
                 pullRequests(states:OPEN) {
                   totalCount
                   edges {
-                    nodes {
+                    node {
                       number
                       state
                     }
