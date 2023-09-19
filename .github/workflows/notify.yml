@@ -21,15 +21,14 @@ jobs:
               query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free",""",
               last: 100,    
             ) {
-              edges {
-                node {
-                  ... on PullRequest {
-                    id
-                    url
-                    title
-                  }
+              pullRequests: edges {
+                totalCount
+                pullRequest: node {
+                  id
+                  url
+                  title
                 }
               }
             }
-          ' --jq '.data.repository.pullRequests.totalCount')"
+          ' --jq '.data.pullRequests.totalCount')"
                  
