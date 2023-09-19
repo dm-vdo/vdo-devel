@@ -18,7 +18,7 @@ jobs:
          numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
             query($name: String!, $owner: String!) {
               repository(owner: $owner, name: $name) {
-                pullRequests(states:OPEN) {
+                pullRequests(first:100 states:OPEN) {
                   totalCount
                   edges {
                     node {
