@@ -20,7 +20,7 @@ jobs:
               repository(owner: $owner, name: $name) {
                 pullRequests(states:OPEN) {
                   totalCount
-                  edges 
+                  edges {
                     nodes {
                       number
                       state
