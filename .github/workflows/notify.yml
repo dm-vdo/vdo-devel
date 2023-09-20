@@ -23,7 +23,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{ env.ORG }}/${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:required,"
+            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -49,7 +49,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{env.ORG}}/${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:changes_requested,"
+            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:changes_requested,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,7 +76,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{env.ORG}}/${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:approved,"
+            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:approved,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     
