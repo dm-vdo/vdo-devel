@@ -28,8 +28,8 @@ jobs:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PRMSG": "Number of PRs requiring review in vdo-devel : ${{ steps.needreview.outputs.data.search.issueCount }}",
-              "PRLINK": "https://github.com/dm-vdo/vdo-devel/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
+              "PR_MSG": "Number of PRs requiring review in vdo-devel : ${{ steps.needreview.outputs.data.search.issueCount }}",
+              "PR_LINK": "https://github.com/dm-vdo/vdo-devel/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
