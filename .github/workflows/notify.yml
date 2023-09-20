@@ -16,7 +16,7 @@ jobs:
             query needs_review($owner:String!,$repo:String!) {
               search(
                 type: ISSUE, 
-                query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
+                query: """repo:"$owner/$repo", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
