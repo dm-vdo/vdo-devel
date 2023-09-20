@@ -13,8 +13,8 @@ jobs:
         id: prs_need_review
         with:
           query: |
-            query needreview($owner:String!,$name:String!)  {
-              search(
+            query {
+              search($owner:String!,$name:String!)
                 type: ISSUE, 
                 query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
