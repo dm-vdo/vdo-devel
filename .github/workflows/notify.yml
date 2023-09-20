@@ -25,7 +25,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: print output
-        run: "echo 'Number of PRs requiring review in vdo-devel : ${{ steps.prs_need_review.outputs.data }}'"
+        run: "echo 'Number of PRs requiring review in vdo-devel : ${{ steps.prs_need_review.outputs.data.search }}'"
           
 #      - name: Send notification to Slack
 #        uses: slackapi/slack-github-action@v1.24.0
