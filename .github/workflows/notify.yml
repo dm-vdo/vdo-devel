@@ -8,7 +8,7 @@ on:
 jobs:
   notify_schedule:
     env:
-      ORG: ${{ github.event.org.login }}
+      ORG: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}      
     runs-on: ubuntu-latest
     steps:
