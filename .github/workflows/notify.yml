@@ -27,4 +27,4 @@ jobs:
             reponame: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: "echo 'needed reviews: ${{ steps.prs_need_reviews.outputs.data }}'"    
+      - run: "echo 'needed reviews: ${{ steps.prs_need_review.outputs.data }}'"    
