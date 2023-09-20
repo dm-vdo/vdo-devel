@@ -9,7 +9,8 @@ jobs:
   notify_schedule:
     runs-on: ubuntu-latest
     steps:
-      - uses: octokit/graphql-action@v2.x
+      - name: Get PRs Needing Review
+        uses: octokit/graphql-action@v2.x
         id: prs_need_review
         with:
           query: |
@@ -23,10 +24,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: print
+      - name: print output
         run: echo "Number of PRs requiring review in vdo-devel : ${{ steps.needreview.outputs.data.search.issueCount }}"
           
-      - uses: slackapi/slack-github-action@v1.24.0
+      - name: Send notification to Slack
+        uses: slackapi/slack-github-action@v1.24.0
         id: slack
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action
