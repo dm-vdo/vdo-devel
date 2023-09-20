@@ -16,7 +16,7 @@ jobs:
             query {
               search(
                 type: ISSUE, 
-                query: """repo:"$owner/$reponame", state:open, is:pr, -label:"free", review:required,""",
+                query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
@@ -24,7 +24,7 @@ jobs:
             }
           variables: |   
             owner: dm-vdo
-            reponame: ${{ github.event.repository.name }}
+            name: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: "echo 'needed reviews: ${{ steps.prs_need_review.outputs.data }}'"    
+      - run: "echo 'needed reviews: ${{ steps.prs_need_review.outputs.data.search.issueCount }}'"    
