@@ -13,16 +13,13 @@ jobs:
         id: prs_need_review
         with:
           query: |
-            query needreview($owner:String!,$repo:String!) {
-              repository(owner:$owner,name:$repo) {
-                pullRequests(last:10, state:OPEN, review:required) {
-                  totalCount
-                }
-              }    
+            query needreview($queryString:String!) {
+              search(type: ISSUE, query: $queryString, last: 100) {
+                issueCount
+              }
             }
           variables: |   
-            owner: dm-vdo
-            repo: ${{ github.event.repository.name }}
+            queryString: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free", review:required,"""
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: "echo 'needed reviews: ${{steps.prs_need_review.outputs.data}}'"    
