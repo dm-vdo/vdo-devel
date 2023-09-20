@@ -44,7 +44,7 @@ jobs:
                           }
                         }
                       }
-                      reviews(first: 50) {
+                      reviews(first: 10) {
                         edges {
                           review: node {
                             author {
