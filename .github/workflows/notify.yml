@@ -11,11 +11,11 @@ jobs:
     steps:
       - name: Get All PRs
         env:
-          OWNER: bjohnsto
+          OWNER: dm-vdo
           REPO: vdo-devel
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          numOpenPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
+          openPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
             query { 
               search(
                 type: ISSUE, 
@@ -25,9 +25,31 @@ jobs:
                 pullRequests: edges {
                   pullRequest: node {
                     ... on PullRequest {
-                      id
-                      url
-                      title
+                      assignees: edges {
+                        assignee: node {
+                          name
+                        }
+                      }
+                      mergeStateStatus
+                      reviewDecision
+                      reviewRequests: edges {
+                        reviewRequest: node {
+                          requestedReviewer {
+                            ... on User {
+                              name
+                            }
+                          }
+                        }
+                      }
+                      reviews: edges {
+                        review: node {
+                          author {
+                            name
+                          }
+                          state
+                        }
+                      }
+                      title                                      
                     }
                   }
                 }
