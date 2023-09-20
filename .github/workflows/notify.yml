@@ -13,16 +13,18 @@ jobs:
         id: prs_need_review
         with:
           query: |
+            query {
               search(
                 type: ISSUE, 
-                query: """repo:"$owner/$repo", state:open, is:pr, -label:"free", review:required,""",
+                query: """repo:"$owner/$reponame", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
-              }            
+              }    
+            }
           variables: |   
             owner: dm-vdo
-            repo: ${{ github.event.repository.name }}
+            reponame: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: "echo 'needed reviews: ${{ steps.prs_need_reviews.data }}'"    
