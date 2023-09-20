@@ -22,7 +22,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:\${{env.REPO}}", state:open, is:pr, -label:\"free\", review:required,"
+            queryString: "repo:\${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
