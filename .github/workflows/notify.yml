@@ -19,7 +19,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free", review:required,"""
+            queryString: "repo:\"dm-vdo/vdo-devel\", state:open, is:pr, -label:\"free\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: "echo 'needed reviews: ${{steps.prs_need_review.outputs.data}}'"    
