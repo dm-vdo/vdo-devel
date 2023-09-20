@@ -25,7 +25,7 @@ jobs:
                 pullRequests: edges {
                   pullRequest: node {
                     ... on PullRequest {
-                      assignees: {
+                      assignees {
                         edges {
                           assignee: node {
                             name
@@ -33,7 +33,7 @@ jobs:
                         }
                       }
                       reviewDecision
-                      reviewRequests: {
+                      reviewRequests {
                         edges {
                           reviewRequest: node {
                             requestedReviewer {
