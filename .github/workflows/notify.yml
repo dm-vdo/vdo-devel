@@ -10,10 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: octokit/graphql-action@v2.x
-        id: get_prs_need_review
+        id: prs_need_review
         with:
           query: |
-            query {
               search(
                 type: ISSUE, 
                 query: """repo:"$owner/$repo", state:open, is:pr, -label:"free", review:required,""",
@@ -21,9 +20,9 @@ jobs:
               ) {
                 issueCount
               }            
-            }
-          owner: dm-vdo
-          repo: ${{ github.event.repository.name }}
+          variables: |   
+            owner: dm-vdo
+            repo: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: "echo 'needed reviews: ${{ steps.get_prs_need_reviews.data }}'"    
+      - run: "echo 'needed reviews: ${{ steps.prs_need_reviews.data }}'"    
