@@ -13,10 +13,10 @@ jobs:
         id: prs_need_review
         with:
           query: |
-            query {
+            query needreview($owner:String!,$name:String!)  {
               search(
                 type: ISSUE, 
-                query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free", review:required,""",
+                query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
