@@ -25,28 +25,33 @@ jobs:
                 pullRequests: edges {
                   pullRequest: node {
                     ... on PullRequest {
-                      assignees: edges {
-                        assignee: node {
-                          name
+                      assignees: {
+                        edges {
+                          assignee: node {
+                            name
+                          }
                         }
                       }
-                      mergeStateStatus
                       reviewDecision
-                      reviewRequests: edges {
-                        reviewRequest: node {
-                          requestedReviewer {
-                            ... on User {
-                              name
+                      reviewRequests: {
+                        edges {
+                          reviewRequest: node {
+                            requestedReviewer {
+                              ... on User {
+                                name
+                              }
                             }
                           }
                         }
                       }
-                      reviews: edges {
-                        review: node {
-                          author {
-                            name
+                      reviews {
+                        edges {
+                          review: node {
+                            author {
+                              name
+                            }
+                            state
                           }
-                          state
                         }
                       }
                       title                                      
