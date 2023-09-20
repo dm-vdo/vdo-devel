@@ -8,21 +8,22 @@ on:
 jobs:
   notify_schedule:
     runs-on: ubuntu-latest
-    steps:   
-      - name: Notify Review Needed
-        env:
-          OWNER: dm-vdo
-          REPO: vdo-devel
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          openPRs="$(gh api graphql -F owner=$OWNER -F name=$REPO -f query='
-            query { 
+    steps:
+      - uses: octokit/graphql-action@v2.x
+        id: get_prs_need_review
+        with:
+          query: |
+            query needs_review($owner:String!,$repo:String!) {{
               search(
                 type: ISSUE, 
                 query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
-              }
+              }            
             }
-          ')"
+          owner: ${{ github.event.repository.owner.name }}
+          repo: ${{ github.event.repository.name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: "echo 'needed reviews: ${{ steps.get_prs_need_reviews.data }}'"    
