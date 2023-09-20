@@ -16,7 +16,7 @@ jobs:
             query {
               search(
                 type: ISSUE, 
-                query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
+                query: """repo:"dm-vdo/vdo-devel", state:open, is:pr, -label:"free", review:required,""",
                 last: 100,    
               ) {
                 issueCount
