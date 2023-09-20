@@ -22,6 +22,10 @@ jobs:
             queryString: "repo:\"dm-vdo/vdo-devel\", state:open, is:pr, -label:\"free\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: print
+        run: echo "Number of PRs requiring review in vdo-devel : ${{ steps.needreview.outputs.data.search.issueCount }}"
+          
       - uses: slackapi/slack-github-action@v1.24.0
         id: slack
         with:
