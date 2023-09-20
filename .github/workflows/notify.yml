@@ -13,13 +13,9 @@ jobs:
         id: prs_need_review
         with:
           query: |
-            query {
-              search($owner:String!,$name:String!)
-                type: ISSUE, 
-                query: """repo:"$owner/$name", state:open, is:pr, -label:"free", review:required,""",
-                last: 100,    
-              ) {
-                issueCount
+            query needreview($owner:String!,$repo:String!) {
+              pullRequests(state:OPEN, -label:"free", review:required, last: 100) {
+                totalCount
               }    
             }
           variables: |   
