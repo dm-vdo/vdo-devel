@@ -22,4 +22,14 @@ jobs:
             queryString: "repo:\"dm-vdo/vdo-devel\", state:open, is:pr, -label:\"free\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: "echo 'needed reviews: ${{steps.prs_need_review.outputs.data}}'"    
+      - uses: slackapi/slack-github-action@v1.24.0
+        id: slack
+        with:
+          # This data can be any valid JSON from a previous step in the GitHub Action
+          payload: |
+            {
+              "PRMSG": "Number of PRs requiring review in vdo-devel : ${{ steps.needreview.outputs.data.search.issueCount }}",
+              "PRLINK": "https://github.com/dm-vdo/vdo-devel/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
