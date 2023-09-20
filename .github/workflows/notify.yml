@@ -22,7 +22,7 @@ jobs:
                 issueCount
               }            
             }
-          owner: ${{ github.event.repository.owner.name }}
+          owner: dm-vdo
           repo: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
