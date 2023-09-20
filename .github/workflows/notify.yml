@@ -11,7 +11,7 @@ jobs:
       REPO: ${{ github.event.repository.name }}      
     runs-on: ubuntu-latest
     steps:
-      - name: Get PRs Needing Review
+      - name: Notify PRs Needing Review
         uses: octokit/graphql-action@v2.x
         id: prs_need_review
         with:
@@ -25,16 +25,67 @@ jobs:
             queryString: "repo:\${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Send notification to Slack
-        uses: slackapi/slack-github-action@v1.24.0
-        id: slack
+
+      - uses: slackapi/slack-github-action@v1.24.0
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
               "PR_MSG": "Number of PRs requiring review in vdo-devel : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
               "PR_LINK": "https://github.com/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
+
+      - name: Notify PRs Requesting Changes
+        uses: octokit/graphql-action@v2.x
+        id: prs_with_feedback
+        with:
+          query: |
+            query withfeedback($queryString:String!) {
+              search(type: ISSUE, query: $queryString, last: 100) {
+                issueCount
+              }
+            }
+          variables: |   
+            queryString: "repo:\${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:changes_requested,"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: slackapi/slack-github-action@v1.24.0
+        with:
+          # This data can be any valid JSON from a previous step in the GitHub Action
+          payload: |
+            {
+              "PR_MSG": "Number of PRs requesting changes in vdo-devel : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
+              "PR_LINK": "https://github.com/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Achanges_requested"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
+
+
+      - name: Notify PRs With Approval
+        uses: octokit/graphql-action@v2.x
+        id: prs_with_approval
+        with:
+          query: |
+            query withapproval($queryString:String!) {
+              search(type: ISSUE, query: $queryString, last: 100) {
+                issueCount
+              }
+            }
+          variables: |   
+            queryString: "repo:\${{env.REPO}}", state:open, is:pr, -label:\"on hold\", review:approved,"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    
+      - uses: slackapi/slack-github-action@v1.24.0
+        with:
+          # This data can be any valid JSON from a previous step in the GitHub Action
+          payload: |
+            {
+              "PR_MSG": "Number of PRs approved in vdo-devel : ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}",
+              "PR_LINK": "https://github.com/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Aapproved"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
