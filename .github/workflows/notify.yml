@@ -14,13 +14,15 @@ jobs:
         with:
           query: |
             query needreview($owner:String!,$repo:String!) {
-              pullRequests(state:OPEN, -label:"free", review:required, last: 100) {
-                totalCount
+              repository(owner:$owner,name:$repo) {
+                pullRequests(last:10, state:OPEN, review:required) {
+                  totalCount
+                }
               }    
             }
           variables: |   
             owner: dm-vdo
-            name: ${{ github.event.repository.name }}
+            repo: ${{ github.event.repository.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: "echo 'needed reviews: ${{steps.prs_need_review.outputs.data}}'"    
