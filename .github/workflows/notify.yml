@@ -32,13 +32,13 @@ jobs:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PR_MSG": "Number of PRs requiring review in ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
+              "PR_MSG": "Number of PRs awaiting reviews in ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
               "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
-      - name: Notify PRs Requesting Changes
+      - name: Notify PRs With Feedback
         uses: octokit/graphql-action@v2.x
         id: prs_with_feedback
         with:
@@ -58,7 +58,7 @@ jobs:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PR_MSG": "Number of PRs requesting changes in ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
+              "PR_MSG": "Number of PRs awaiting replies to reviews ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
               "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Achanges_requested"
             }
         env:
