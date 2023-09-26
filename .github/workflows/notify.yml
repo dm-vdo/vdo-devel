@@ -28,14 +28,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ env.COUNT > 0 }}
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PR_MSG": "Number of PRs awaiting reviews in ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
+              "PR_MSG": "Number of PRs awaiting reviews in ${{env.REPO}} : ${{ env.COUNT }}",
               "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Arequired"
             }
         env:
+          COUNT: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
       - name: Notify PRs With Feedback
@@ -54,14 +56,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ env.COUNT > 0 }}
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PR_MSG": "Number of PRs awaiting replies to reviews ${{env.REPO}} : ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}",
+              "PR_MSG": "Number of PRs awaiting replies to reviews ${{env.REPO}} : ${{ env.COUNT }}",
               "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Achanges_requested"
             }
         env:
+          COUNT: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
 
@@ -81,12 +85,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     
       - uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ env.COUNT > 0 }}
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action
           payload: |
             {
-              "PR_MSG": "Number of PRs approved in ${{env.REPO}} : ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}",
+              "PR_MSG": "Number of PRs approved in ${{env.REPO}} : ${{ env.COUNT }}",
               "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22free%22+review%3Aapproved"
             }
         env:
+          COUNT: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}        
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
