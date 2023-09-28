@@ -32,7 +32,8 @@ int __must_check uds_make_index_layout(struct configuration *config,
 
 void uds_free_index_layout(struct index_layout *layout);
 
-int __must_check uds_replace_index_layout_storage(struct index_layout *layout, const char *name);
+int __must_check uds_replace_index_layout_storage(struct index_layout *layout,
+						  struct block_device *bdev);
 
 int __must_check uds_load_index_state(struct index_layout *layout, struct uds_index *index);
 

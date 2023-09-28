@@ -135,8 +135,8 @@ struct uds_volume_record {
 };
 
 struct uds_parameters {
-	/* A string describing the storage device (a name or path) */
-	const char *name;
+	/* The block_device used for storage */
+	struct block_device *bdev;
 	/* The maximum allowable size of the index on storage */
 	size_t size;
 	/* The offset where the index should start */
@@ -316,10 +316,11 @@ int __must_check uds_suspend_index_session(struct uds_index_session *session, bo
 
 /*
  * Allow new index operations for an index, whether it was suspended or not. If the index is
- * suspended and the supplied name differs from the current backing store, the index will start
- * using the new backing store instead.
+ * suspended and the supplied block device differs from the current backing store, the index will
+ * start using the new backing store instead.
  */
-int __must_check uds_resume_index_session(struct uds_index_session *session, const char *name);
+int __must_check uds_resume_index_session(struct uds_index_session *session,
+					  struct block_device *bdev);
 
 /* Wait until all outstanding index operations are complete. */
 int __must_check uds_flush_index_session(struct uds_index_session *session);

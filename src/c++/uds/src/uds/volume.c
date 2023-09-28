@@ -1600,13 +1600,14 @@ int uds_find_volume_chapter_boundaries(struct volume *volume,
 	return find_chapter_limits(volume, chapter_limit, lowest_vcn, highest_vcn);
 }
 
-int __must_check
-uds_replace_volume_storage(struct volume *volume, struct index_layout *layout, const char *name)
+int __must_check uds_replace_volume_storage(struct volume *volume,
+					    struct index_layout *layout,
+					    struct block_device *bdev)
 {
 	int result;
 	u32 i;
 
-	result = uds_replace_index_layout_storage(layout, name);
+	result = uds_replace_index_layout_storage(layout, bdev);
 	if (result != UDS_SUCCESS)
 		return result;
 

@@ -130,8 +130,9 @@ int __must_check uds_make_volume(const struct configuration *config,
 
 void uds_free_volume(struct volume *volume);
 
-int __must_check
-uds_replace_volume_storage(struct volume *volume, struct index_layout *layout, const char *path);
+int __must_check uds_replace_volume_storage(struct volume *volume,
+					    struct index_layout *layout,
+					    struct block_device *bdev);
 
 int __must_check uds_find_volume_chapter_boundaries(struct volume *volume,
 						    u64 *lowest_vcn,
