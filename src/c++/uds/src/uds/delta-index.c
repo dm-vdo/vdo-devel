@@ -716,7 +716,7 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
  * bits from the source to a temporary value, and then move all the bits from the temporary value
  * to the destination. The size and memory offsets are measured in bits.
  */
-EXTERNAL_STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size)
+STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size)
 {
 	u64 field;
 
@@ -1613,7 +1613,7 @@ int uds_set_delta_entry_value(const struct delta_index_entry *delta_entry, u32 v
  * Extend the memory used by the delta lists by adding growing_size bytes before the list indicated
  * by growing_index, then rebalancing the lists in the new chunk.
  */
-EXTERNAL_STATIC int
+STATIC int
 extend_delta_zone(struct delta_zone *delta_zone, u32 growing_index, size_t growing_size)
 {
 	ktime_t start_time;

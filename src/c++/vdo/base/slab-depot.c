@@ -354,7 +354,7 @@ static void launch_write(struct slab_summary_block *block)
  * @is_clean: Whether the slab is clean.
  * @free_blocks: The number of free blocks.
  */
-EXTERNAL_STATIC void
+STATIC void
 update_slab_summary_entry(struct vdo_slab *slab,
 			  struct waiter *waiter,
 			  tail_block_offset_t tail_block_offset,
@@ -516,7 +516,7 @@ static void reap_slab_journal(struct slab_journal *journal)
  *
  * Note that when the adjustment is negative, the slab journal will be reaped.
  */
-EXTERNAL_STATIC void
+STATIC void
 adjust_slab_journal_block_reference(struct slab_journal *journal,
 				    sequence_number_t sequence_number,
 				    int adjustment)
@@ -844,7 +844,7 @@ static void commit_tail(struct slab_journal *journal)
  *
  * Exposed for unit tests.
  */
-EXTERNAL_STATIC void
+STATIC void
 encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			  slab_journal_payload *payload,
 			  slab_block_number sbn,
@@ -1047,7 +1047,7 @@ static void write_reference_block(struct waiter *waiter, void *context);
  * This can be asynchronous since the writer will have to wait if all VIOs in the pool are
  * currently in use.
  */
-EXTERNAL_STATIC void launch_reference_block_write(struct waiter *waiter, void *context)
+STATIC void launch_reference_block_write(struct waiter *waiter, void *context)
 {
 	struct vdo_slab *slab = context;
 
@@ -1060,7 +1060,7 @@ EXTERNAL_STATIC void launch_reference_block_write(struct waiter *waiter, void *c
 	acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
 }
 
-EXTERNAL_STATIC void save_dirty_reference_blocks(struct vdo_slab *slab)
+STATIC void save_dirty_reference_blocks(struct vdo_slab *slab)
 {
 	vdo_notify_all_waiters(&slab->dirty_blocks, launch_reference_block_write, slab);
 	check_if_slab_drained(slab);
@@ -1134,7 +1134,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
  *
  * Return: A pointer to the reference counters for this block.
  */
-EXTERNAL_STATIC vdo_refcount_t * __must_check
+STATIC vdo_refcount_t * __must_check
 get_reference_counters_for_block(struct reference_block *block)
 {
 	size_t block_index = block - block->slab->reference_blocks;
@@ -1147,7 +1147,7 @@ get_reference_counters_for_block(struct reference_block *block)
  * @block: The block to copy.
  * @buffer: The char buffer to fill with the packed block.
  */
-EXTERNAL_STATIC void pack_reference_block(struct reference_block *block, void *buffer)
+STATIC void pack_reference_block(struct reference_block *block, void *buffer)
 {
 	struct packed_reference_block *packed = buffer;
 	vdo_refcount_t *counters = get_reference_counters_for_block(block);
@@ -1260,7 +1260,7 @@ static void reclaim_journal_space(struct slab_journal *journal)
  *
  * Return: The appropriate reference status.
  */
-EXTERNAL_STATIC enum reference_status __must_check
+STATIC enum reference_status __must_check
 reference_count_to_status(vdo_refcount_t count)
 {
 	if (count == EMPTY_REFERENCE_COUNT)
@@ -1291,7 +1291,7 @@ static void dirty_block(struct reference_block *block)
 /**
  * get_reference_block() - Get the reference block that covers the given block index.
  */
-EXTERNAL_STATIC struct reference_block * __must_check
+STATIC struct reference_block * __must_check
 get_reference_block(struct vdo_slab *slab, slab_block_number index)
 {
 	return &slab->reference_blocks[index / COUNTS_PER_BLOCK];
@@ -1306,7 +1306,7 @@ get_reference_block(struct vdo_slab *slab, slab_block_number index)
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 slab_block_number_from_pbn(struct vdo_slab *slab,
 			   physical_block_number_t physical_block_number,
 			   slab_block_number *slab_block_number_ptr)
@@ -1330,7 +1330,7 @@ slab_block_number_from_pbn(struct vdo_slab *slab,
  * @pbn: The physical block number.
  * @counter_ptr: A pointer to the reference counter.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 get_reference_counter(struct vdo_slab *slab,
 		      physical_block_number_t pbn,
 		      vdo_refcount_t **counter_ptr)
@@ -1670,7 +1670,7 @@ update_reference_count(struct vdo_slab *slab,
 	return VDO_SUCCESS;
 }
 
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 adjust_reference_count(struct vdo_slab *slab,
 		       struct reference_updater *updater,
 		       const struct journal_point *slab_journal_point)
@@ -2028,7 +2028,7 @@ int vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int
+STATIC int
 replay_reference_count_change(struct vdo_slab *slab,
 			      const struct journal_point *entry_point,
 			      struct slab_journal_entry entry)
@@ -2103,7 +2103,7 @@ find_zero_byte_in_word(const u8 *word_ptr,
  *
  * Return: true if a free block was found in the specified range.
  */
-EXTERNAL_STATIC bool
+STATIC bool
 find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr)
 {
 	slab_block_number zero_index;
@@ -2362,7 +2362,7 @@ static void load_reference_blocks(struct vdo_slab *slab)
  * Depending upon the type of drain being performed (as recorded in the ref_count's vdo_slab), the
  * reference blocks may be loaded from disk or dirty reference blocks may be written out.
  */
-EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
+STATIC void drain_slab(struct vdo_slab *slab)
 {
 	bool save;
 	bool load;
@@ -2414,7 +2414,7 @@ EXTERNAL_STATIC void drain_slab(struct vdo_slab *slab)
 		save_dirty_reference_blocks(slab);
 }
 
-EXTERNAL_STATIC int allocate_slab_counters(struct vdo_slab *slab)
+STATIC int allocate_slab_counters(struct vdo_slab *slab)
 {
 	int result;
 	size_t index, bytes;
@@ -2574,7 +2574,7 @@ static void load_slab_journal(struct vdo_slab *slab)
 	acquire_vio_from_pool(slab->allocator->vio_pool, &journal->resource_waiter);
 }
 
-EXTERNAL_STATIC void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority)
+STATIC void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority)
 {
 	struct slab_scrubber *scrubber = &slab->allocator->scrubber;
 
@@ -2650,7 +2650,7 @@ static void queue_slab(struct vdo_slab *slab)
  *
  * Implements vdo_admin_initiator.
  */
-EXTERNAL_STATIC void initiate_slab_action(struct admin_state *state)
+STATIC void initiate_slab_action(struct admin_state *state)
 {
 	struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
 
@@ -3037,7 +3037,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
  * @allocator: The block_allocator to scrub.
  * @parent: The completion to notify when scrubbing is done, implies high_priority, may be NULL.
  */
-EXTERNAL_STATIC void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent)
+STATIC void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent)
 {
 	struct slab_scrubber *scrubber = &allocator->scrubber;
 
@@ -3197,7 +3197,7 @@ int vdo_acquire_provisional_reference(struct vdo_slab *slab,
 	return VDO_SUCCESS;
 }
 
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 allocate_slab_block(struct vdo_slab *slab, physical_block_number_t *block_number_ptr)
 {
 	slab_block_number free_index;
@@ -3542,7 +3542,7 @@ void vdo_notify_slab_journals_are_recovered(struct vdo_completion *completion)
 	vdo_finish_loading_with_result(&allocator->state, completion->result);
 }
 
-EXTERNAL_STATIC int
+STATIC int
 get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr)
 {
 	int result;
@@ -3569,7 +3569,7 @@ get_slab_statuses(struct block_allocator *allocator, struct slab_status **status
 }
 
 /* Prepare slabs for allocation or scrubbing. */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
 	struct slab_status current_slab_status;
@@ -3718,7 +3718,7 @@ void vdo_dump_block_allocator(const struct block_allocator *allocator)
 		     scrubber->high_priority_only ? ", high_priority_only " : "");
 }
 
-EXTERNAL_STATIC void free_slab(struct vdo_slab *slab)
+STATIC void free_slab(struct vdo_slab *slab)
 {
 	if (slab == NULL)
 		return;
@@ -3793,7 +3793,7 @@ static int initialize_slab_journal(struct vdo_slab *slab)
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 make_slab(physical_block_number_t slab_origin,
 	  struct block_allocator *allocator,
 	  slab_count_t slab_number,
@@ -3933,7 +3933,7 @@ static thread_id_t get_allocator_thread_id(void *context, zone_count_t zone_numb
  *
  * Return: true if the journal does hold a lock on the specified block (which it will release).
  */
-EXTERNAL_STATIC bool __must_check
+STATIC bool __must_check
 release_recovery_journal_lock(struct slab_journal *journal, sequence_number_t recovery_lock)
 {
 	if (recovery_lock > journal->recovery_lock) {
@@ -4014,7 +4014,7 @@ static bool schedule_tail_block_commit(void *context)
  *
  * Return: VDO_SUCCESS or an error.
  */
-EXTERNAL_STATIC int initialize_slab_scrubber(struct block_allocator *allocator)
+STATIC int initialize_slab_scrubber(struct block_allocator *allocator)
 {
 	struct slab_scrubber *scrubber = &allocator->scrubber;
 	block_count_t slab_journal_size = allocator->depot->slab_config.slab_journal_blocks;
@@ -4643,7 +4643,7 @@ static void load_summary_endio(struct bio *bio)
  *
  * Implements vdo_action_preamble.
  */
-EXTERNAL_STATIC void load_slab_summary(void *context, struct vdo_completion *parent)
+STATIC void load_slab_summary(void *context, struct vdo_completion *parent)
 {
 	int result;
 	struct vio *vio;
@@ -4869,7 +4869,7 @@ void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent)
  * @scrubber: The scrubber to stop.
  * @parent: The completion to notify when scrubbing has stopped.
  */
-EXTERNAL_STATIC void stop_scrubbing(struct block_allocator *allocator)
+STATIC void stop_scrubbing(struct block_allocator *allocator)
 {
 	struct slab_scrubber *scrubber = &allocator->scrubber;
 
@@ -4883,7 +4883,7 @@ EXTERNAL_STATIC void stop_scrubbing(struct block_allocator *allocator)
 }
 
 /* Implements vdo_admin_initiator. */
-EXTERNAL_STATIC void initiate_summary_drain(struct admin_state *state)
+STATIC void initiate_summary_drain(struct admin_state *state)
 {
 	check_summary_drain_complete(container_of(state, struct block_allocator, summary_state));
 }

@@ -23,7 +23,7 @@ UDS_SUBDIR		= $(UDS_DIR)/$(UDS_NAME)
 UDS_DKMS_OBJECTS	= $(notdir $(UDS_DKMS_SOURCES:%.c=%.o))
 TEST_MODULES            = y
 
-UDS_DKMS_EXTRA = -DEXTERNAL_STATIC=static
+UDS_DKMS_EXTRA = -DSTATIC=static
 
 UDS_DKMS_SOURCES = $(UDS_COMMON_SOURCES)			\
 	$(addprefix $(K_UDS_DIR)/,	logger.c		\

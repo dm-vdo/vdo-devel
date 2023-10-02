@@ -12,7 +12,7 @@ include Makefile.common
 INCLUDES = -I. $(UDS_INCLUDES) -I$(VDO_KERNEL_DIR) -isystem $(VDO_FAKE_DIR)
 CFLAGS   = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
 	   -DVDO_VERSION="\"$(VDO_VERSION)\"" -DINTERNAL -DRHEL_INTERNAL \
-           -DEXTERNAL_STATIC=
+           -DSTATIC=
 LDFLAGS  = $(GLOBAL_LDFLAGS)
 
 OBJECTS := $(sort $(BASE_OBJS) $(USER_OBJECTS))

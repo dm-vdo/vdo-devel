@@ -124,7 +124,7 @@ static inline bool is_record_page(struct geometry *geometry, u32 physical_page)
 	return map_to_page_number(geometry, physical_page) >= geometry->index_pages_per_chapter;
 }
 
-EXTERNAL_STATIC u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
+STATIC u32 map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page)
 {
 	/* Page zero is the header page, so the first chapter index page is page one. */
 	return HEADER_PAGES_PER_VOLUME + (geometry->pages_per_chapter * chapter) + page;
@@ -152,7 +152,7 @@ static inline bool search_pending(union invalidate_counter invalidate_counter)
 }
 
 /* Lock the cache for a zone in order to search for a page. */
-EXTERNAL_STATIC void
+STATIC void
 begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number)
 {
 	union invalidate_counter invalidate_counter = get_invalidate_counter(cache, zone_number);
@@ -172,7 +172,7 @@ begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int z
 }
 
 /* Unlock the cache for a zone by clearing its invalidate counter. */
-EXTERNAL_STATIC void end_pending_search(struct page_cache *cache, unsigned int zone_number)
+STATIC void end_pending_search(struct page_cache *cache, unsigned int zone_number)
 {
 	union invalidate_counter invalidate_counter;
 
@@ -233,7 +233,7 @@ static void clear_cache_page(struct page_cache *cache, struct cached_page *page)
 	WRITE_ONCE(page->last_used, 0);
 }
 
-EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
+STATIC void make_page_most_recent(struct page_cache *cache, struct cached_page *page)
 {
 	/*
 	 * ASSERTION: We are either a zone thread holding a search_pending_counter, or we are any
@@ -244,7 +244,7 @@ EXTERNAL_STATIC void make_page_most_recent(struct page_cache *cache, struct cach
 }
 
 /* Select a page to remove from the cache to make space for a new entry. */
-EXTERNAL_STATIC struct cached_page *select_victim_in_cache(struct page_cache *cache)
+STATIC struct cached_page *select_victim_in_cache(struct page_cache *cache)
 {
 	struct cached_page *page;
 	int oldest_index = 0;
@@ -277,7 +277,7 @@ EXTERNAL_STATIC struct cached_page *select_victim_in_cache(struct page_cache *ca
 }
 
 /* Make a newly filled cache entry available to other threads. */
-EXTERNAL_STATIC int
+STATIC int
 put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page)
 {
 	int result;
@@ -336,7 +336,7 @@ static inline bool read_queue_is_full(struct page_cache *cache)
 	return cache->read_queue_first == next_queue_position(cache->read_queue_last);
 }
 
-EXTERNAL_STATIC bool
+STATIC bool
 enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page)
 {
 	struct queued_read *queue_entry;
@@ -377,7 +377,7 @@ enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical
 	return true;
 }
 
-EXTERNAL_STATIC void
+STATIC void
 enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page)
 {
 	/* Mark the page as queued, so that chapter invalidation knows to cancel a read. */
@@ -515,7 +515,7 @@ static int initialize_index_page(const struct volume *volume,
 				       &page->index_page);
 }
 
-EXTERNAL_STATIC bool
+STATIC bool
 search_record_page(const u8 record_page[],
 		   const struct uds_record_name *name,
 		   const struct geometry *geometry,
@@ -738,7 +738,7 @@ static void get_page_and_index(struct page_cache *cache,
 	*queue_index = queued ? index : -1;
 }
 
-EXTERNAL_STATIC void
+STATIC void
 get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page)
 {
 	/*
@@ -791,7 +791,7 @@ static int read_page_locked(struct volume *volume,
 }
 
 /* Retrieve a page from the cache while holding the read threads mutex. */
-EXTERNAL_STATIC int
+STATIC int
 get_volume_page_locked(struct volume *volume, u32 physical_page, struct cached_page **page_ptr)
 {
 	int result;
@@ -811,7 +811,7 @@ get_volume_page_locked(struct volume *volume, u32 physical_page, struct cached_p
 }
 
 /* Retrieve a page from the cache while holding a search_pending lock. */
-EXTERNAL_STATIC int
+STATIC int
 get_volume_page_protected(struct volume *volume,
 			  struct uds_request *request,
 			  u32 physical_page,
@@ -1108,7 +1108,7 @@ int uds_search_volume_page_cache_for_rebuild(struct volume *volume,
 	return UDS_SUCCESS;
 }
 
-EXTERNAL_STATIC void invalidate_page(struct page_cache *cache, u32 physical_page)
+STATIC void invalidate_page(struct page_cache *cache, u32 physical_page)
 {
 	struct cached_page *page;
 	int queue_index = -1;
@@ -1284,7 +1284,7 @@ static u32 encode_tree(u8 record_page[],
 	return next_record;
 }
 
-EXTERNAL_STATIC int
+STATIC int
 encode_record_page(const struct volume *volume,
 		   const struct uds_volume_record records[],
 		   u8 record_page[])
@@ -1484,7 +1484,7 @@ static void find_real_end_of_volume(struct volume *volume, u32 limit, u32 *limit
 	*limit_ptr = limit;
 }
 
-EXTERNAL_STATIC int
+STATIC int
 find_chapter_limits(struct volume *volume, u32 chapter_limit, u64 *lowest_vcn, u64 *highest_vcn)
 {
 	struct geometry *geometry = volume->geometry;
@@ -1626,7 +1626,7 @@ uds_replace_volume_storage(struct volume *volume, struct index_layout *layout, c
 				     &volume->client);
 }
 
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 initialize_page_cache(struct page_cache *cache,
 		      const struct geometry *geometry,
 		      u32 chapters_in_cache,
@@ -1814,7 +1814,7 @@ int uds_make_volume(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-EXTERNAL_STATIC void uninitialize_page_cache(struct page_cache *cache)
+STATIC void uninitialize_page_cache(struct page_cache *cache)
 {
 	u16 i;
 

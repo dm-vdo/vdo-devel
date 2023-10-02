@@ -1485,7 +1485,7 @@ void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct dat
  *
  * Return: true if the specified lock has references (is locked).
  */
-EXTERNAL_STATIC bool
+STATIC bool
 is_lock_locked(struct recovery_journal *journal,
 	       block_count_t lock_number,
 	       enum vdo_zone_type zone_type)

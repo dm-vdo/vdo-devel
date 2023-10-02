@@ -340,7 +340,7 @@ static void update_lru(struct page_info *info)
  * set_info_state() - Set the state of a page_info and put it on the right list, adjusting
  *                    counters.
  */
-EXTERNAL_STATIC void
+STATIC void
 set_info_state(struct page_info *info, enum vdo_page_buffer_state new_state)
 {
 	if (new_state == info->state)
@@ -573,7 +573,7 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
  *
  * Return: VDO_SUCCESS if the page was valid, otherwise as error
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 validate_completed_page(struct vdo_page_completion *completion, bool writable)
 {
 	int result;
@@ -1347,7 +1347,7 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
  *
  * Return: The requested page.
  */
-EXTERNAL_STATIC struct tree_page * __must_check
+STATIC struct tree_page * __must_check
 get_tree_page_by_index(struct forest *forest,
 		       root_count_t root_index,
 		       height_t height,
@@ -1415,7 +1415,7 @@ bool vdo_copy_valid_page(char *buffer,
  *
  * Return: true if the value is in range.
  */
-EXTERNAL_STATIC bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus)
+STATIC bool in_cyclic_range(u16 lower, u16 value, u16 upper, u16 modulus)
 {
 	if (value < lower)
 		value += modulus;
@@ -2044,7 +2044,7 @@ static void write_expired_elements(struct block_map_zone *zone)
  * @new_period: The period in which the element has now been dirtied, or 0 if it does not hold a
  *              lock.
  */
-EXTERNAL_STATIC void
+STATIC void
 add_to_dirty_lists(struct block_map_zone *zone,
 		   struct list_head *entry,
 		   enum block_map_page_type type,

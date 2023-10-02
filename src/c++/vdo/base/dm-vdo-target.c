@@ -1584,7 +1584,7 @@ static void pre_load_callback(struct vdo_completion *completion)
 	finish_operation_callback(completion);
 }
 
-EXTERNAL_STATIC void release_instance(unsigned int instance)
+STATIC void release_instance(unsigned int instance)
 {
 	mutex_lock(&instances_lock);
 	if (instance >= instances.bit_count) {
@@ -1728,7 +1728,7 @@ static int grow_bit_array(void)
  *
  * This function must be called while holding the instances lock.
  */
-EXTERNAL_STATIC int allocate_instance(unsigned int *instance_ptr)
+STATIC int allocate_instance(unsigned int *instance_ptr)
 {
 	unsigned int instance;
 	int result;
@@ -1840,7 +1840,7 @@ static block_count_t get_partition_size(struct layout *layout, enum partition_id
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t new_size)
+STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t new_size)
 {
 	int result;
 	block_count_t min_new_size;
