@@ -485,6 +485,11 @@ static int replace_device(struct uds_index_session *session, struct block_device
 {
 	int result;
 
+#ifdef TEST_INTERNAL
+	if (bdev == NULL)
+		return UDS_SUCCESS;
+
+#endif /* TEST_INTERNAL */
 	result = uds_replace_index_storage(session->index, bdev);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -522,8 +527,7 @@ int uds_resume_index_session(struct uds_index_session *session, struct block_dev
 	if (no_work)
 		return result;
 
-	if ((bdev != NULL) && (session->index != NULL) &&
-	    (bdev != session->parameters.bdev)) {
+	if ((session->index != NULL) && (bdev != session->parameters.bdev)) {
 		result = replace_device(session, bdev);
 		if (result != UDS_SUCCESS) {
 			uds_lock_mutex(&session->request_mutex);
