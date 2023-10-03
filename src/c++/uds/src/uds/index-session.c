@@ -708,6 +708,7 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 	return UDS_SUCCESS;
 }
 
+#ifdef TEST_INTERNAL
 /*
  * Return the most recent parameters used to open an index. The caller is responsible for freeing
  * the returned structure.
@@ -729,6 +730,7 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 	return uds_map_to_system_error(result);
 }
 
+#endif /* TEST_INTERNAL */
 /* Statistics collection is intended to be thread-safe. */
 static void
 collect_stats(const struct uds_index_session *index_session, struct uds_index_stats *stats)

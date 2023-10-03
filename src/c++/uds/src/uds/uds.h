@@ -328,6 +328,7 @@ int __must_check uds_flush_index_session(struct uds_index_session *session);
 /* Close an index. This operation fails if the index session is suspended. */
 int __must_check uds_close_index(struct uds_index_session *session);
 
+#ifdef TEST_INTERNAL
 /*
  * Return a copy of the parameters used to create the index. The caller is responsible for freeing
  * the returned structure.
@@ -335,6 +336,7 @@ int __must_check uds_close_index(struct uds_index_session *session);
 int __must_check
 uds_get_index_parameters(struct uds_index_session *session, struct uds_parameters **parameters);
 
+#endif /* TEST_INTERNAL */
 /* Get index statistics since the last time the index was opened. */
 int __must_check
 uds_get_index_session_stats(struct uds_index_session *session, struct uds_index_stats *stats);
