@@ -163,6 +163,7 @@ void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
 
 int __must_check uds_duplicate_string(const char *string, const char *what, char **new_string);
 
+#ifdef TEST_INTERNAL
 /* Wrapper which permits freeing a const pointer. */
 static inline void uds_free_const(const void *pointer)
 {
@@ -173,6 +174,7 @@ static inline void uds_free_const(const void *pointer)
 	UDS_FREE(u.not_const);
 }
 
+#endif /*TEST_INTERNAL */
 #ifdef __KERNEL__
 void uds_memory_exit(void);
 
