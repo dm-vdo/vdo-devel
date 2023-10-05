@@ -1,0 +1,15 @@
+*.a
+*.bak
+*.elc
+*.gz
+*.o
+*.old
+*.orig
+*.rej
+*.so
+*~
+.#*
+.deps
+/srpms
+\#*
+core
