@@ -202,7 +202,8 @@ static inline bool fast_cancel(struct event_count *count, event_token_t token)
  * Consume a token from the semaphore, waiting (with an optional timeout) if one is not currently
  * available. Returns true if a token was consumed.
  */
-static bool consume_wait_token(struct event_count *count, const ktime_t *timeout)
+static bool consume_wait_token(struct event_count *count,
+			       const ktime_t *timeout)
 {
 	/* Try to grab a token without waiting. */
 	if (uds_attempt_semaphore(&count->semaphore, 0))
@@ -295,7 +296,8 @@ void event_count_cancel(struct event_count *count, event_token_t token)
  * attempt to cancel the token in this case. The timeout is measured in nanoseconds. This function
  * returns true if the state changed, or false if it timed out.
  */
-bool event_count_wait(struct event_count *count, event_token_t token, const ktime_t *timeout)
+bool event_count_wait(struct event_count *count, event_token_t token,
+		      const ktime_t *timeout)
 {
 #if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
 	atomic64_inc(&count->waits);
