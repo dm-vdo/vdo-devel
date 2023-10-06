@@ -95,7 +95,8 @@ void uds_empty_open_chapter_index(struct open_chapter_index *chapter_index,
 #endif /* TEST_INTERNAL */
 }
 
-static inline bool was_entry_found(const struct delta_index_entry *entry, u32 address)
+static inline bool was_entry_found(const struct delta_index_entry *entry,
+				   u32 address)
 {
 	return (!entry->at_end) && (entry->key == address);
 }
@@ -156,10 +157,8 @@ int uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
  * @lists_packed: The number of delta lists that were packed onto this page
  */
 int uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-				     u8 *memory,
-				     u32 first_list,
-				     bool last_page,
-				     u32 *lists_packed)
+				     u8 *memory, u32 first_list,
+				     bool last_page, u32 *lists_packed)
 {
 	int result;
 	struct delta_index *delta_index = &chapter_index->delta_index;
@@ -246,8 +245,7 @@ int uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 /* Make a new chapter index page, initializing it with the data from a given index_page buffer. */
 int uds_initialize_chapter_index_page(struct delta_index_page *index_page,
 				      const struct geometry *geometry,
-				      u8 *page_buffer,
-				      u64 volume_nonce)
+				      u8 *page_buffer, u64 volume_nonce)
 {
 	return uds_initialize_delta_index_page(index_page,
 					       volume_nonce,

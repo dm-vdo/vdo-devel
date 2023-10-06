@@ -54,8 +54,7 @@ int __must_check uds_put_open_chapter_index_record(struct open_chapter_index *ch
 						   u32 page_number);
 
 int __must_check uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
-						  u8 *memory,
-						  u32 first_list,
+						  u8 *memory, u32 first_list,
 						  bool last_page,
 						  u32 *lists_packed);
 
