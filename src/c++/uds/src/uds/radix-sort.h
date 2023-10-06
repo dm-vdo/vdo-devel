@@ -20,13 +20,13 @@
 
 struct radix_sorter;
 
-int __must_check uds_make_radix_sorter(unsigned int count, struct radix_sorter **sorter);
+int __must_check uds_make_radix_sorter(unsigned int count,
+				       struct radix_sorter **sorter);
 
 void uds_free_radix_sorter(struct radix_sorter *sorter);
 
 int __must_check uds_radix_sort(struct radix_sorter *sorter,
 				const unsigned char *keys[],
-				unsigned int count,
-				unsigned short length);
+				unsigned int count, unsigned short length);
 
 #endif /* UDS_RADIX_SORT_H */

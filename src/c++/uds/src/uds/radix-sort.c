@@ -65,7 +65,8 @@ struct radix_sorter {
 };
 
 /* Compare a segment of two fixed-length keys starting at an offset. */
-static inline int compare(sort_key_t key1, sort_key_t key2, u16 offset, u16 length)
+static inline int compare(sort_key_t key1, sort_key_t key2, u16 offset,
+			  u16 length)
 {
 	return memcmp(&key1[offset], &key2[offset], length);
 }
@@ -99,9 +100,7 @@ static inline void insertion_sort(const struct task task)
 
 /* Push a sorting task onto a task stack. */
 static inline void push_task(struct task **stack_pointer,
-			     sort_key_t *first_key,
-			     u32 count,
-			     u16 offset,
+			     sort_key_t *first_key, u32 count, u16 offset,
 			     u16 length)
 {
 	struct task *task = (*stack_pointer)++;
@@ -174,14 +173,10 @@ static inline void measure_bins(const struct task task, struct histogram *bins)
  *
  * Return: UDS_SUCCESS or an error code
  */
-static inline int push_bins(struct task **stack,
-			    struct task *end_of_stack,
-			    struct task **list,
-			    sort_key_t *pile[],
-			    struct histogram *bins,
-			    sort_key_t *first_key,
-			    u16 offset,
-			    u16 length)
+static inline int push_bins(struct task **stack, struct task *end_of_stack,
+			    struct task **list, sort_key_t *pile[],
+			    struct histogram *bins, sort_key_t *first_key,
+			    u16 offset, u16 length)
 {
 	sort_key_t *pile_start = first_key;
 	int bin;
@@ -243,10 +238,8 @@ void uds_free_radix_sorter(struct radix_sorter *sorter)
  * Sort pointers to fixed-length keys (arrays of bytes) using a radix sort. The sort implementation
  * is unstable, so the relative ordering of equal keys is not preserved.
  */
-int uds_radix_sort(struct radix_sorter *sorter,
-		   const unsigned char *keys[],
-		   unsigned int count,
-		   unsigned short length)
+int uds_radix_sort(struct radix_sorter *sorter, const unsigned char *keys[],
+		   unsigned int count, unsigned short length)
 {
 	struct task start;
 	struct histogram *bins = &sorter->bins;
