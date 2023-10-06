@@ -103,10 +103,8 @@ static int no_conclusion(void *context __always_unused)
  */
 int vdo_make_action_manager(zone_count_t zones,
 			    vdo_zone_thread_getter *get_zone_thread_id,
-			    thread_id_t initiator_thread_id,
-			    void *context,
-			    vdo_action_scheduler *scheduler,
-			    struct vdo *vdo,
+			    thread_id_t initiator_thread_id, void *context,
+			    vdo_action_scheduler *scheduler, struct vdo *vdo,
 			    struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
