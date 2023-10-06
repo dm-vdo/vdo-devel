@@ -232,7 +232,7 @@ static void uninitialize_vios(struct repair_completion *repair)
 	UDS_FREE(UDS_FORGET(repair->vios));
 }
 
-EXTERNAL_STATIC void free_repair_completion(struct repair_completion *repair)
+STATIC void free_repair_completion(struct repair_completion *repair)
 {
 	if (repair == NULL)
 		return;
@@ -1105,7 +1105,7 @@ static void recover_ready_pages(struct repair_completion *repair,
 	}
 }
 
-EXTERNAL_STATIC void recover_block_map(struct vdo_completion *completion)
+STATIC void recover_block_map(struct vdo_completion *completion)
 {
 	struct repair_completion *repair = as_repair_completion(completion);
 	struct vdo *vdo = completion->vdo;

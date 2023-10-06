@@ -189,7 +189,7 @@ static const struct vdo_work_queue_type cpu_q_type = {
 	.default_priority = CPU_Q_MAX_PRIORITY,
 };
 
-EXTERNAL_STATIC void uninitialize_thread_config(struct thread_config *config)
+STATIC void uninitialize_thread_config(struct thread_config *config)
 {
 	UDS_FREE(UDS_FORGET(config->logical_threads));
 	UDS_FREE(UDS_FORGET(config->physical_threads));
@@ -216,7 +216,7 @@ assign_thread_ids(struct thread_config *config, thread_id_t thread_ids[], zone_c
  *
  * Return: VDO_SUCCESS or an error.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 initialize_thread_config(struct thread_count_config counts, struct thread_config *config)
 {
 	int result;
@@ -368,7 +368,7 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
  * The physical layer may add a prefix identifying the product; the output from this function
  * should just identify the thread.
  */
-EXTERNAL_STATIC void
+STATIC void
 get_thread_name(const struct thread_config *thread_config,
 		thread_id_t thread_id,
 		char *buffer,
@@ -1622,7 +1622,7 @@ static struct bio_stats subtract_bio_stats(struct bio_stats minuend, struct bio_
  *
  * Return: The number of blocks allocated for user data.
  */
-EXTERNAL_STATIC block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo)
+STATIC block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo)
 {
 	return (vdo_get_slab_depot_allocated_blocks(vdo->depot) -
 		vdo_get_journal_block_map_data_blocks_used(vdo->recovery_journal));
@@ -1634,7 +1634,7 @@ EXTERNAL_STATIC block_count_t __must_check vdo_get_physical_blocks_allocated(con
  *
  * Return: The number of overhead blocks.
  */
-EXTERNAL_STATIC block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo)
+STATIC block_count_t __must_check vdo_get_physical_blocks_overhead(const struct vdo *vdo)
 {
 	/*
 	 * config.physical_blocks is mutated during resize and is in a packed structure,

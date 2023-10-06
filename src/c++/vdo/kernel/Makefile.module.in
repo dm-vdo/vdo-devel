@@ -44,7 +44,7 @@ EXTRA_CFLAGS =	-I$(KBUILD_EXTMOD)					\
 		$(if $(CONFIG_KASAN)$(LLVM),,-Wframe-larger-than=400)	\
 		-g							\
 		$(EXTRA_ARCH_CFLAGS)					\
-		-DEXTERNAL_STATIC=static                		\
+		-DSTATIC=static                				\
 		-DVDO_INTERNAL						\
 		-DRHEL_INTERNAL                                         \
 		-DVDO_VERSION='"$(VDO_VERSION)"'

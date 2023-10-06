@@ -402,7 +402,7 @@ vdo_validate_block_map_page(struct block_map_page *page,
 	return VDO_BLOCK_MAP_PAGE_VALID;
 }
 
-EXTERNAL_STATIC int
+STATIC int
 decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 *state)
 {
 	size_t initial_offset;
@@ -451,7 +451,7 @@ decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_
 	return VDO_SUCCESS;
 }
 
-EXTERNAL_STATIC void
+STATIC void
 encode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 state)
 {
 	size_t initial_offset;
@@ -504,7 +504,7 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC void
+STATIC void
 encode_recovery_journal_state_7_0(u8 *buffer,
 				  size_t *offset,
 				  struct recovery_journal_state_7_0 state)
@@ -529,7 +529,7 @@ encode_recovery_journal_state_7_0(u8 *buffer,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 decode_recovery_journal_state_7_0(u8 *buffer,
 				  size_t *offset,
 				  struct recovery_journal_state_7_0 *state)
@@ -589,7 +589,7 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
  *
  * Return: UDS_SUCCESS or an error.
  */
-EXTERNAL_STATIC void
+STATIC void
 encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 state)
 {
 	size_t initial_offset;
@@ -617,7 +617,7 @@ encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_
  *
  * Return: UDS_SUCCESS or an error code.
  */
-EXTERNAL_STATIC int
+STATIC int
 decode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 *state)
 {
 	struct header header;
@@ -872,7 +872,7 @@ static int allocate_partition(struct layout *layout,
  * Return: A success or error code, particularly VDO_NO_SPACE if there are fewer than size blocks
  *         remaining.
  */
-EXTERNAL_STATIC int __must_check
+STATIC int __must_check
 make_partition(struct layout *layout,
 	       enum partition_id id,
 	       block_count_t size,
@@ -1028,7 +1028,7 @@ struct partition *vdo_get_known_partition(struct layout *layout, enum partition_
 	return partition;
 }
 
-EXTERNAL_STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout)
+STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout)
 {
 	const struct partition *partition;
 	size_t initial_offset;
@@ -1060,7 +1060,7 @@ EXTERNAL_STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layo
 			"encoded size of a layout must match header size");
 }
 
-EXTERNAL_STATIC int
+STATIC int
 decode_layout(u8 *buffer,
 	      size_t *offset,
 	      physical_block_number_t start,

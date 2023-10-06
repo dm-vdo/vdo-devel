@@ -12,7 +12,7 @@ EXTRA_CFLAGS =	-std=gnu11					\
 		-Werror						\
 		$(if $(CONFIG_KASAN),,-Wframe-larger-than=400)	\
 		-DVDO_VERSION=\"$(VDO_VERSION)\"		\
-		-DEXTERNAL_STATIC=				\
+		-DSTATIC=					\
 		-DVDO_INTERNAL					\
 		$(INCLUDES)
 

@@ -71,9 +71,9 @@ ZUB_DKMS_SOURCES =	albtest.c		\
 ZUB_DKMS_HEADERS = $(wildcard $(TEST_DIR)/*.h) $(wildcard ./*.h)
 
 # These are extra EXTRA_CFLAGS for the zubenelgenubi module build.
-ZUB_EXTRA = 	$(ZUB_CFLAGS) -DTEST_INTERNAL		\
-		-UEXTERNAL_STATIC			\
-		-DEXTERNAL_STATIC=			\
+ZUB_EXTRA = 	$(ZUB_CFLAGS) -DTEST_INTERNAL	\
+		-USTATIC			\
+		-DSTATIC=			\
 		-Wno-declaration-after-statement
 
 # If VDO_PRESERVE_DKMS is defined then leave the intermediate products

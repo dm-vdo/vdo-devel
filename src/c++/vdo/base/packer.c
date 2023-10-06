@@ -373,7 +373,7 @@ static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin
  * data field, it needn't be copied. So all we need do is initialize the header and set the size of
  * the agent's fragment.
  */
-EXTERNAL_STATIC void initialize_compressed_block(struct compressed_block *block, u16 size)
+STATIC void initialize_compressed_block(struct compressed_block *block, u16 size)
 {
 	/*
 	 * Make sure the block layout isn't accidentally changed by changing the length of the
@@ -395,7 +395,7 @@ EXTERNAL_STATIC void initialize_compressed_block(struct compressed_block *block,
  *
  * Return: The new amount of space used.
  */
-EXTERNAL_STATIC block_size_t __must_check
+STATIC block_size_t __must_check
 pack_fragment(struct compression_state *compression,
 	      struct data_vio *data_vio,
 	      block_size_t offset,

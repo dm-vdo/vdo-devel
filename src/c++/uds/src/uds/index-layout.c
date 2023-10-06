@@ -647,7 +647,7 @@ invalidate_old_save(struct index_layout *layout, struct index_save_layout *isl)
 	return write_index_save_layout(layout, isl);
 }
 
-EXTERNAL_STATIC int discard_index_state_data(struct index_layout *layout)
+STATIC int discard_index_state_data(struct index_layout *layout)
 {
 	int result;
 	int saved_result = UDS_SUCCESS;

@@ -366,7 +366,7 @@ static u32 __must_check pack_status(struct data_vio_compression_status status)
  * Return: true if the new status was set, false if the data_vio's compression status did not
  *         match the expected state, and so was left unchanged.
  */
-EXTERNAL_STATIC bool __must_check
+STATIC bool __must_check
 set_data_vio_compression_status(struct data_vio *data_vio,
 				struct data_vio_compression_status status,
 				struct data_vio_compression_status new_status)
@@ -538,7 +538,7 @@ static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lb
 	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
 }
 
-EXTERNAL_STATIC bool is_zero_block(char *block)
+STATIC bool is_zero_block(char *block)
 {
 	int i;
 
