@@ -39,7 +39,8 @@ static inline void uds_prefetch_address(const void *address, bool for_write)
  * @size: the number of bytes in the address range
  * @for_write: must be constant at compile time--false if for reading, true if for writing
  */
-static inline void uds_prefetch_range(const void *start, unsigned int size, bool for_write)
+static inline void uds_prefetch_range(const void *start, unsigned int size,
+				      bool for_write)
 {
 	/*
 	 * Count the number of cache lines to fetch, allowing for the address range to span an
