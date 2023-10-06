@@ -79,12 +79,9 @@ void vdo_free_bio(struct bio *bio)
 	UDS_FREE(UDS_FORGET(bio));
 }
 
-int allocate_vio_components(struct vdo *vdo,
-			    enum vio_type vio_type,
-			    enum vio_priority priority,
-			    void *parent,
-			    unsigned int block_count,
-			    char *data,
+int allocate_vio_components(struct vdo *vdo, enum vio_type vio_type,
+			    enum vio_priority priority, void *parent,
+			    unsigned int block_count, char *data,
 			    struct vio *vio)
 {
 	struct bio *bio;
@@ -125,12 +122,9 @@ int allocate_vio_components(struct vdo *vdo,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int create_multi_block_metadata_vio(struct vdo *vdo,
-				    enum vio_type vio_type,
-				    enum vio_priority priority,
-				    void *parent,
-				    unsigned int block_count,
-				    char *data,
+int create_multi_block_metadata_vio(struct vdo *vdo, enum vio_type vio_type,
+				    enum vio_priority priority, void *parent,
+				    unsigned int block_count, char *data,
 				    struct vio **vio_ptr)
 {
 	struct vio *vio;
@@ -183,10 +177,8 @@ void free_vio(struct vio *vio)
 }
 
 /* Set bio properties for a VDO read or write. */
-void vdo_set_bio_properties(struct bio *bio,
-			    struct vio *vio,
-			    bio_end_io_t callback,
-			    unsigned int bi_opf,
+void vdo_set_bio_properties(struct bio *bio, struct vio *vio,
+			    bio_end_io_t callback, unsigned int bi_opf,
 			    physical_block_number_t pbn)
 {
 	struct vdo *vdo = vio->completion.vdo;
@@ -207,11 +199,8 @@ void vdo_set_bio_properties(struct bio *bio,
  * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned, but there does not have to be a
  * vio associated with the bio.
  */
-int vio_reset_bio(struct vio *vio,
-		  char *data,
-		  bio_end_io_t callback,
-		  unsigned int bi_opf,
-		  physical_block_number_t pbn)
+int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
+		  unsigned int bi_opf, physical_block_number_t pbn)
 {
 	int bvec_count, offset, len, i;
 	struct bio *bio = vio->bio;
@@ -280,8 +269,7 @@ int vio_reset_bio(struct vio *vio,
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
 #ifdef __KERNEL__
-	static DEFINE_RATELIMIT_STATE(error_limiter,
-				      DEFAULT_RATELIMIT_INTERVAL,
+	static DEFINE_RATELIMIT_STATE(error_limiter, DEFAULT_RATELIMIT_INTERVAL,
 				      DEFAULT_RATELIMIT_BURST);
 #endif
 	va_list args;
@@ -347,13 +335,9 @@ void vio_record_metadata_io_error(struct vio *vio)
  *
  * Return: A success or error code.
  */
-int make_vio_pool(struct vdo *vdo,
-		  size_t pool_size,
-		  thread_id_t thread_id,
-		  enum vio_type vio_type,
-		  enum vio_priority priority,
-		  void *context,
-		  struct vio_pool **pool_ptr)
+int make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
+		  enum vio_type vio_type, enum vio_priority priority,
+		  void *context, struct vio_pool **pool_ptr)
 {
 	struct vio_pool *pool;
 	char *ptr;

@@ -76,12 +76,9 @@ static inline void assert_vio_in_bio_zone(struct vio *vio)
 
 int vdo_create_bio(struct bio **bio_ptr);
 void vdo_free_bio(struct bio *bio);
-int allocate_vio_components(struct vdo *vdo,
-			    enum vio_type vio_type,
-			    enum vio_priority priority,
-			    void *parent,
-			    unsigned int block_count,
-			    char *data,
+int allocate_vio_components(struct vdo *vdo, enum vio_type vio_type,
+			    enum vio_priority priority, void *parent,
+			    unsigned int block_count, char *data,
 			    struct vio *vio);
 int __must_check create_multi_block_metadata_vio(struct vdo *vdo,
 						 enum vio_type vio_type,
@@ -91,13 +88,11 @@ int __must_check create_multi_block_metadata_vio(struct vdo *vdo,
 						 char *data,
 						 struct vio **vio_ptr);
 
-static inline int __must_check
-create_metadata_vio(struct vdo *vdo,
-		    enum vio_type vio_type,
-		    enum vio_priority priority,
-		    void *parent,
-		    char *data,
-		    struct vio **vio_ptr)
+static inline int __must_check create_metadata_vio(struct vdo *vdo,
+						   enum vio_type vio_type,
+						   enum vio_priority priority,
+						   void *parent, char *data,
+						   struct vio **vio_ptr)
 {
 	return create_multi_block_metadata_vio(vdo, vio_type, priority, parent, 1, data, vio_ptr);
 }
@@ -114,12 +109,10 @@ void free_vio(struct vio *vio);
  * @priority: The relative priority of the vio.
  * @vdo: The vdo for this vio.
  */
-static inline void initialize_vio(struct vio *vio,
-				  struct bio *bio,
+static inline void initialize_vio(struct vio *vio, struct bio *bio,
 				  unsigned int block_count,
 				  enum vio_type vio_type,
-				  enum vio_priority priority,
-				  struct vdo *vdo)
+				  enum vio_priority priority, struct vdo *vdo)
 {
 	/* data_vio's may not span multiple blocks */
 	BUG_ON((vio_type == VIO_TYPE_DATA) && (block_count != 1));
@@ -131,17 +124,12 @@ static inline void initialize_vio(struct vio *vio,
 	vdo_initialize_completion(&vio->completion, vdo, VIO_COMPLETION);
 }
 
-void vdo_set_bio_properties(struct bio *bio,
-			    struct vio *vio,
-			    bio_end_io_t callback,
-			    unsigned int bi_opf,
+void vdo_set_bio_properties(struct bio *bio, struct vio *vio,
+			    bio_end_io_t callback, unsigned int bi_opf,
 			    physical_block_number_t pbn);
 
-int vio_reset_bio(struct vio *vio,
-		  char *data,
-		  bio_end_io_t callback,
-		  unsigned int bi_opf,
-		  physical_block_number_t pbn);
+int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
+		  unsigned int bi_opf, physical_block_number_t pbn);
 
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 	__printf(2, 3);
@@ -188,7 +176,8 @@ void vdo_count_completed_bios(struct bio *bio);
 /**
  * continue_vio_after_io() - Continue a vio now that its I/O has returned.
  */
-static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback, thread_id_t thread)
+static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback,
+					 thread_id_t thread)
 {
 	vdo_count_completed_bios(vio->bio);
 	vdo_set_completion_callback(&vio->completion, callback, thread);
@@ -206,12 +195,9 @@ static inline struct pooled_vio *vio_as_pooled_vio(struct vio *vio)
 
 struct vio_pool;
 
-int __must_check make_vio_pool(struct vdo *vdo,
-			       size_t pool_size,
-			       thread_id_t thread_id,
-			       enum vio_type vio_type,
-			       enum vio_priority priority,
-			       void *context,
+int __must_check make_vio_pool(struct vdo *vdo, size_t pool_size,
+			       thread_id_t thread_id, enum vio_type vio_type,
+			       enum vio_priority priority, void *context,
 			       struct vio_pool **pool_ptr);
 void free_vio_pool(struct vio_pool *pool);
 bool __must_check is_vio_pool_busy(struct vio_pool *pool);
