@@ -66,8 +66,7 @@ struct admin_state {
  */
 typedef void vdo_admin_initiator(struct admin_state *state);
 
-static inline const struct admin_state_code * __must_check
-vdo_get_admin_state_code(const struct admin_state *state)
+static inline const struct admin_state_code * __must_check vdo_get_admin_state_code(const struct admin_state *state)
 {
 	return READ_ONCE(state->current_state);
 }
@@ -78,8 +77,8 @@ vdo_get_admin_state_code(const struct admin_state *state)
  * This function should be used primarily for initialization and by adminState internals. Most uses
  * should go through the operation interfaces.
  */
-static inline void
-vdo_set_admin_state_code(struct admin_state *state, const struct admin_state_code *code)
+static inline void vdo_set_admin_state_code(struct admin_state *state,
+					    const struct admin_state_code *code)
 {
 	WRITE_ONCE(state->current_state, code);
 }
@@ -136,8 +135,8 @@ static inline bool __must_check vdo_is_state_quiescent(const struct admin_state 
 	return vdo_get_admin_state_code(state)->quiescent;
 }
 
-bool __must_check
-vdo_assert_load_operation(const struct admin_state_code *operation, struct vdo_completion *waiter);
+bool __must_check vdo_assert_load_operation(const struct admin_state_code *operation,
+					    struct vdo_completion *waiter);
 
 bool vdo_start_loading(struct admin_state *state,
 		       const struct admin_state_code *operation,
@@ -168,7 +167,8 @@ bool vdo_finish_draining(struct admin_state *state);
 
 bool vdo_finish_draining_with_result(struct admin_state *state, int result);
 
-int vdo_start_operation(struct admin_state *state, const struct admin_state_code *operation);
+int vdo_start_operation(struct admin_state *state,
+			const struct admin_state_code *operation);
 
 int vdo_start_operation_with_waiter(struct admin_state *state,
 				    const struct admin_state_code *operation,
