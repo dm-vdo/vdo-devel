@@ -19,7 +19,8 @@
  * Since these are only used for internal testing, allocation errors constructing them will be
  * ignored.
  */
-void vdo_initialize_histograms(struct kobject *parent, struct vdo_histograms *histograms)
+void vdo_initialize_histograms(struct kobject *parent,
+			       struct vdo_histograms *histograms)
 {
 	/*
 	 * The numeric argument to make_logarithmic_jiffies_histogram is the number of orders of
