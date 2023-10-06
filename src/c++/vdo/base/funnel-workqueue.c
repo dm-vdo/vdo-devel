@@ -78,8 +78,7 @@ static inline struct simple_work_queue *as_simple_work_queue(struct vdo_work_que
 	return ((queue == NULL) ? NULL : container_of(queue, struct simple_work_queue, common));
 }
 
-static inline struct round_robin_work_queue *
-as_round_robin_work_queue(struct vdo_work_queue *queue)
+static inline struct round_robin_work_queue *as_round_robin_work_queue(struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :
@@ -110,8 +109,8 @@ static struct vdo_completion *poll_for_completion(struct simple_work_queue *queu
 	return NULL;
 }
 
-static void
-enqueue_work_queue_completion(struct simple_work_queue *queue, struct vdo_completion *completion)
+static void enqueue_work_queue_completion(struct simple_work_queue *queue,
+					  struct vdo_completion *completion)
 {
 	ASSERT_LOG_ONLY(completion->my_queue == NULL,
 			"completion %px (fn %px) to enqueue (%px) is not already queued (%px)",
@@ -224,7 +223,8 @@ static struct vdo_completion *wait_for_next_completion(struct simple_work_queue 
 	return completion;
 }
 
-static void process_completion(struct simple_work_queue *queue, struct vdo_completion *completion)
+static void process_completion(struct simple_work_queue *queue,
+			       struct vdo_completion *completion)
 {
 	if (ASSERT(completion->my_queue == &queue->common,
 		   "completion %px from queue %px marked as being in this queue (%px)",
@@ -314,8 +314,7 @@ void vdo_free_work_queue(struct vdo_work_queue *queue)
 }
 
 static int make_simple_work_queue(const char *thread_name_prefix,
-				  const char *name,
-				  struct vdo_thread *owner,
+				  const char *name, struct vdo_thread *owner,
 				  void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
@@ -389,12 +388,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
  * of the actual number of queues and threads allocated here, code outside of the queue
  * implementation will treat this as a single zone.
  */
-int vdo_make_work_queue(const char *thread_name_prefix,
-			const char *name,
+int vdo_make_work_queue(const char *thread_name_prefix, const char *name,
 			struct vdo_thread *owner,
 			const struct vdo_work_queue_type *type,
-			unsigned int thread_count,
-			void *thread_privates[],
+			unsigned int thread_count, void *thread_privates[],
 			struct vdo_work_queue **queue_ptr)
 {
 	struct round_robin_work_queue *queue;
@@ -535,7 +532,8 @@ void vdo_dump_work_queue(struct vdo_work_queue *queue)
 	}
 }
 
-static void get_function_name(void *pointer, char *buffer, size_t buffer_length)
+static void get_function_name(void *pointer, char *buffer,
+			      size_t buffer_length)
 {
 	if (pointer == NULL) {
 		/*
@@ -561,7 +559,8 @@ static void get_function_name(void *pointer, char *buffer, size_t buffer_length)
 	}
 }
 
-void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buffer, size_t length)
+void vdo_dump_completion_to_buffer(struct vdo_completion *completion,
+				   char *buffer, size_t length)
 {
 	size_t current_length =
 		scnprintf(buffer,
@@ -581,7 +580,8 @@ void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buff
  * If the completion has a timeout that has already passed, the timeout handler function may be
  * invoked by this function.
  */
-void vdo_enqueue_work_queue(struct vdo_work_queue *queue, struct vdo_completion *completion)
+void vdo_enqueue_work_queue(struct vdo_work_queue *queue,
+			    struct vdo_completion *completion)
 {
 	/*
 	 * Convert the provided generic vdo_work_queue to the simple_work_queue to actually queue
@@ -685,7 +685,8 @@ void *vdo_get_work_queue_private_data(void)
 	return (queue != NULL) ? queue->private : NULL;
 }
 
-bool vdo_work_queue_type_is(struct vdo_work_queue *queue, const struct vdo_work_queue_type *type)
+bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
+			    const struct vdo_work_queue_type *type)
 {
 	return (queue->type == type);
 }
