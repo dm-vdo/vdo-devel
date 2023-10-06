@@ -113,11 +113,9 @@ static inline bool dequeue_request(struct uds_request_queue *queue,
 	return false;
 }
 
-static void wait_for_request(struct uds_request_queue *queue,
-			     bool dormant,
+static void wait_for_request(struct uds_request_queue *queue, bool dormant,
 			     unsigned long timeout,
-			     struct uds_request **request,
-			     bool *waited)
+			     struct uds_request **request, bool *waited)
 {
 	if (dormant) {
 		wait_event_interruptible(queue->wait_head,
@@ -239,7 +237,8 @@ static inline void wake_up_worker(struct uds_request_queue *queue)
 		wake_up(&queue->wait_head);
 }
 
-void uds_request_queue_enqueue(struct uds_request_queue *queue, struct uds_request *request)
+void uds_request_queue_enqueue(struct uds_request_queue *queue,
+			       struct uds_request *request)
 {
 	struct funnel_queue *sub_queue;
 	bool unbatched = request->unbatched;

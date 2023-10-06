@@ -23,7 +23,8 @@ int __must_check uds_make_request_queue(const char *queue_name,
 					uds_request_queue_processor_t *processor,
 					struct uds_request_queue **queue_ptr);
 
-void uds_request_queue_enqueue(struct uds_request_queue *queue, struct uds_request *request);
+void uds_request_queue_enqueue(struct uds_request_queue *queue,
+			       struct uds_request *request);
 
 void uds_request_queue_finish(struct uds_request_queue *queue);
 
