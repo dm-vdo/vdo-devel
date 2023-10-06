@@ -51,7 +51,8 @@ void vdo_enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
  * @from_queue: The queue containing the waiters to move.
  * @to_queue: The queue that will receive the waiters from the first queue.
  */
-void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *to_queue)
+void vdo_transfer_all_waiters(struct wait_queue *from_queue,
+			      struct wait_queue *to_queue)
 {
 	/* If the source queue is empty, there's nothing to do. */
 	if (!vdo_has_waiters(from_queue))
@@ -85,7 +86,8 @@ void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *
  * function on each of them in turn. The queue is copied and emptied before invoking any callbacks,
  * and only the waiters that were in the queue at the start of the call will be notified.
  */
-void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context)
+void vdo_notify_all_waiters(struct wait_queue *queue,
+			    waiter_callback *callback, void *context)
 {
 	/*
 	 * Copy and empty the queue first, avoiding the possibility of an infinite loop if entries
@@ -196,7 +198,8 @@ struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue)
  *
  * Return: true if there was a waiter in the queue.
  */
-bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context)
+bool vdo_notify_next_waiter(struct wait_queue *queue,
+			    waiter_callback *callback, void *context)
 {
 	struct waiter *waiter = vdo_dequeue_next_waiter(queue);
 
@@ -216,8 +219,8 @@ bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
  *
  * Return: The next waiter, or NULL.
  */
-const struct waiter *
-vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
+const struct waiter *vdo_get_next_waiter(const struct wait_queue *queue,
+					 const struct waiter *waiter)
 {
 	struct waiter *first_waiter = vdo_get_first_waiter(queue);
 
