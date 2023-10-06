@@ -104,7 +104,8 @@ static struct {
 };
 
 /* Get the error info for an error number. Also returns the name of the error block, if known. */
-static const char *get_error_info(int errnum, const struct error_info **info_ptr)
+static const char *get_error_info(int errnum,
+				  const struct error_info **info_ptr)
 {
 	struct error_block *block;
 
@@ -153,8 +154,8 @@ static const char *system_string_error(int errnum, char *buf, size_t buflen)
 	return "System error";
 }
 #else
-static inline const char *
-system_string_error(int errnum, char *buf, size_t buflen)
+static inline const char *system_string_error(int errnum, char *buf,
+					      size_t buflen)
 {
 	return strerror_r(errnum, buf, buflen);
 }
@@ -293,11 +294,9 @@ int uds_map_to_system_error(int error)
  * @infos: a pointer to the error info array for the block
  * @info_size: the size of the error info array
  */
-int uds_register_error_block(const char *block_name,
-			     int first_error,
+int uds_register_error_block(const char *block_name, int first_error,
 			     int next_free_error,
-			     const struct error_info *infos,
-			     size_t info_size)
+			     const struct error_info *infos, size_t info_size)
 {
 	int result;
 	struct error_block *block;
