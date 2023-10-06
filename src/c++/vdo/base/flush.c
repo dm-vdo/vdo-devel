@@ -61,7 +61,8 @@ struct flusher {
  * @flusher: The flusher.
  * @caller: The function which is asserting.
  */
-static inline void assert_on_flusher_thread(struct flusher *flusher, const char *caller)
+static inline void assert_on_flusher_thread(struct flusher *flusher,
+					    const char *caller)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
 			"%s() called from flusher thread",
@@ -558,7 +559,8 @@ static void initiate_drain(struct admin_state *state)
  * Drains the flusher by preventing any more VIOs from entering the flusher and then flushing. The
  * flusher will be left in the suspended state.
  */
-void vdo_drain_flusher(struct flusher *flusher, struct vdo_completion *completion)
+void vdo_drain_flusher(struct flusher *flusher,
+		       struct vdo_completion *completion)
 {
 	assert_on_flusher_thread(flusher, __func__);
 	vdo_start_draining(&flusher->state,

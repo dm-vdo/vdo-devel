@@ -41,8 +41,10 @@ void vdo_dump_flusher(const struct flusher *flusher);
 
 void vdo_launch_flush(struct vdo *vdo, struct bio *bio);
 
-void vdo_drain_flusher(struct flusher *flusher, struct vdo_completion *completion);
+void vdo_drain_flusher(struct flusher *flusher,
+		       struct vdo_completion *completion);
 
-void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent);
+void vdo_resume_flusher(struct flusher *flusher,
+			struct vdo_completion *parent);
 
 #endif /* VDO_FLUSH_H */
