@@ -29,8 +29,7 @@ static inline void vdo_run_completion(struct vdo_completion *completion)
 void vdo_set_completion_result(struct vdo_completion *completion, int result);
 
 void vdo_initialize_completion(struct vdo_completion *completion,
-			       struct vdo *vdo,
-			       enum vdo_completion_type type);
+			       struct vdo *vdo, enum vdo_completion_type type);
 
 /**
  * vdo_reset_completion() - Reset a completion to a clean state, while keeping the type, vdo and
@@ -60,7 +59,8 @@ static inline void vdo_launch_completion(struct vdo_completion *completion)
  * Continue processing a completion by setting the current result and calling
  * vdo_launch_completion().
  */
-static inline void vdo_continue_completion(struct vdo_completion *completion, int result)
+static inline void vdo_continue_completion(struct vdo_completion *completion,
+					   int result)
 {
 	vdo_set_completion_result(completion, result);
 	vdo_launch_completion(completion);
@@ -72,7 +72,8 @@ void vdo_finish_completion(struct vdo_completion *completion);
  * vdo_fail_completion() - Set the result of a completion if it does not already have an error,
  *                         then finish it.
  */
-static inline void vdo_fail_completion(struct vdo_completion *completion, int result)
+static inline void vdo_fail_completion(struct vdo_completion *completion,
+				       int result)
 {
 	vdo_set_completion_result(completion, result);
 	vdo_finish_completion(completion);
@@ -83,8 +84,8 @@ static inline void vdo_fail_completion(struct vdo_completion *completion, int re
  *
  * Return: VDO_SUCCESS or an error
  */
-static inline int
-vdo_assert_completion_type(struct vdo_completion *completion, enum vdo_completion_type expected)
+static inline int vdo_assert_completion_type(struct vdo_completion *completion,
+					     enum vdo_completion_type expected)
 {
 	return ASSERT(expected == completion->type,
 		      "completion type should be %u, not %u",
@@ -134,12 +135,11 @@ static inline void vdo_prepare_completion(struct vdo_completion *completion,
  *
  * Resets the completion, and then sets its callback, error handler, callback thread, and parent.
  */
-static inline void
-vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
-				   vdo_action *callback,
-				   vdo_action *error_handler,
-				   thread_id_t callback_thread_id,
-				   void *parent)
+static inline void vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
+						      vdo_action *callback,
+						      vdo_action *error_handler,
+						      thread_id_t callback_thread_id,
+						      void *parent)
 {
 	vdo_prepare_completion(completion, callback, error_handler, callback_thread_id, parent);
 	completion->requeue = true;
