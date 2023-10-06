@@ -94,7 +94,8 @@ static bool are_matching_configurations(struct configuration *saved_config,
 }
 
 /* Read the configuration and validate it against the provided one. */
-int uds_validate_config_contents(struct buffered_reader *reader, struct configuration *user_config)
+int uds_validate_config_contents(struct buffered_reader *reader,
+				 struct configuration *user_config)
 {
 	int result;
 	struct configuration config;
@@ -172,8 +173,7 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
  * been reduced by one chapter.
  */
 int uds_write_config_contents(struct buffered_writer *writer,
-			      struct configuration *config,
-			      u32 version)
+			      struct configuration *config, u32 version)
 {
 	int result;
 	struct geometry *geometry = config->geometry;
@@ -230,8 +230,7 @@ int uds_write_config_contents(struct buffered_writer *writer,
 }
 
 /* Compute configuration parameters that depend on memory size. */
-static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
-				bool sparse,
+static int compute_memory_sizes(uds_memory_config_size_t mem_gb, bool sparse,
 				u32 *chapters_per_volume,
 				u32 *record_pages_per_chapter,
 				u32 *sparse_chapters_per_volume)
@@ -323,7 +322,8 @@ static unsigned int __must_check normalize_read_threads(unsigned int requested)
 	return read_threads;
 }
 
-int uds_make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
+int uds_make_configuration(const struct uds_parameters *params,
+			   struct configuration **config_ptr)
 {
 	struct configuration *config;
 	u32 chapters_per_volume = 0;
