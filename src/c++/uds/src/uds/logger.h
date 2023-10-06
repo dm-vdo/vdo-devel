@@ -69,13 +69,9 @@ int uds_log_string_to_priority(const char *string);
 
 const char *uds_log_priority_to_string(int priority);
 
-void uds_log_embedded_message(int priority,
-			      const char *module,
-			      const char *prefix,
-			      const char *fmt1,
-			      va_list args1,
-			      const char *fmt2,
-			      ...)
+void uds_log_embedded_message(int priority, const char *module,
+			      const char *prefix, const char *fmt1,
+			      va_list args1, const char *fmt2, ...)
 	__printf(4, 0) __printf(6, 7);
 
 void uds_log_backtrace(int priority);
@@ -85,14 +81,12 @@ void uds_log_backtrace(int priority);
 #define uds_log_strerror(priority, errnum, ...) \
 	__uds_log_strerror(priority, errnum, UDS_LOGGING_MODULE_NAME, __VA_ARGS__)
 
-int __uds_log_strerror(int priority, int errnum, const char *module, const char *format, ...)
+int __uds_log_strerror(int priority, int errnum, const char *module,
+		       const char *format, ...)
 	__printf(4, 5);
 
-int uds_vlog_strerror(int priority,
-		      int errnum,
-		      const char *module,
-		      const char *format,
-		      va_list args)
+int uds_vlog_strerror(int priority, int errnum, const char *module,
+		      const char *format, va_list args)
 	__printf(4, 0);
 
 /* Log an error prefixed with the string associated with the errnum. */
@@ -118,7 +112,8 @@ int uds_vlog_strerror(int priority,
 #define uds_log_message(priority, ...) \
 	__uds_log_message(priority, UDS_LOGGING_MODULE_NAME, __VA_ARGS__)
 
-void __uds_log_message(int priority, const char *module, const char *format, ...)
+void __uds_log_message(int priority, const char *module, const char *format,
+		       ...)
 	__printf(3, 4);
 #else /* not __KERNEL__ */
 #if defined(TEST_INTERNAL) || defined(INTERNAL)

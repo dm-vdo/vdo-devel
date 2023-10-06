@@ -153,10 +153,8 @@ static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
  * @vaf1: The first message format descriptor
  * @vaf2: The second message format descriptor
  */
-static void emit_log_message(int priority,
-			     const char *module,
-			     const char *prefix,
-			     const struct va_format *vaf1,
+static void emit_log_message(int priority, const char *module,
+			     const char *prefix, const struct va_format *vaf1,
 			     const struct va_format *vaf2)
 {
 	int device_instance;
@@ -211,13 +209,9 @@ static void emit_log_message(int priority,
  * @args1: arguments for message first part (required)
  * @fmt2: format of message second part
  */
-void uds_log_embedded_message(int priority,
-			      const char *module,
-			      const char *prefix,
-			      const char *fmt1,
-			      va_list args1,
-			      const char *fmt2,
-			      ...)
+void uds_log_embedded_message(int priority, const char *module,
+			      const char *prefix, const char *fmt1,
+			      va_list args1, const char *fmt2, ...)
 {
 	va_list args1_copy;
 	va_list args2;
@@ -248,11 +242,8 @@ void uds_log_embedded_message(int priority,
 	va_end(args2);
 }
 
-int uds_vlog_strerror(int priority,
-		      int errnum,
-		      const char *module,
-		      const char *format,
-		      va_list args)
+int uds_vlog_strerror(int priority, int errnum, const char *module,
+		      const char *format, va_list args)
 {
 	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
 	const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
@@ -268,7 +259,8 @@ int uds_vlog_strerror(int priority,
 	return errnum;
 }
 
-int __uds_log_strerror(int priority, int errnum, const char *module, const char *format, ...)
+int __uds_log_strerror(int priority, int errnum, const char *module,
+		       const char *format, ...)
 {
 	va_list args;
 
@@ -285,7 +277,8 @@ void uds_log_backtrace(int priority)
 	dump_stack();
 }
 
-void __uds_log_message(int priority, const char *module, const char *format, ...)
+void __uds_log_message(int priority, const char *module, const char *format,
+		       ...)
 {
 	va_list args;
 
