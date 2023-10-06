@@ -101,8 +101,8 @@ void uds_reset_open_chapter(struct open_chapter_zone *open_chapter)
 	memset(open_chapter->slots, 0, slots_size(open_chapter->slot_count));
 }
 
-static unsigned int
-probe_chapter_slots(struct open_chapter_zone *open_chapter, const struct uds_record_name *name)
+static unsigned int probe_chapter_slots(struct open_chapter_zone *open_chapter,
+					const struct uds_record_name *name)
 {
 	struct uds_volume_record *record;
 	unsigned int slot_count = open_chapter->slot_count;
@@ -139,8 +139,7 @@ probe_chapter_slots(struct open_chapter_zone *open_chapter, const struct uds_rec
 
 void uds_search_open_chapter(struct open_chapter_zone *open_chapter,
 			     const struct uds_record_name *name,
-			     struct uds_record_data *metadata,
-			     bool *found)
+			     struct uds_record_data *metadata, bool *found)
 {
 	unsigned int slot;
 	unsigned int record_number;
@@ -276,8 +275,7 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 }
 
 int uds_close_open_chapter(struct open_chapter_zone **chapter_zones,
-			   unsigned int zone_count,
-			   struct volume *volume,
+			   unsigned int zone_count, struct volume *volume,
 			   struct open_chapter_index *chapter_index,
 			   struct uds_volume_record *collated_records,
 			   u64 virtual_chapter_number)
@@ -295,7 +293,8 @@ int uds_close_open_chapter(struct open_chapter_zone **chapter_zones,
 	return uds_write_chapter(volume, chapter_index, collated_records);
 }
 
-int uds_save_open_chapter(struct uds_index *index, struct buffered_writer *writer)
+int uds_save_open_chapter(struct uds_index *index,
+			  struct buffered_writer *writer)
 {
 	int result;
 	struct open_chapter_zone *open_chapter;
@@ -363,7 +362,8 @@ u64 uds_compute_saved_open_chapter_size(struct geometry *geometry)
 		records_per_chapter * sizeof(struct uds_volume_record);
 }
 
-static int load_version20(struct uds_index *index, struct buffered_reader *reader)
+static int load_version20(struct uds_index *index,
+			  struct buffered_reader *reader)
 {
 	int result;
 	u32 record_count;
@@ -410,7 +410,8 @@ static int load_version20(struct uds_index *index, struct buffered_reader *reade
 	return UDS_SUCCESS;
 }
 
-int uds_load_open_chapter(struct uds_index *index, struct buffered_reader *reader)
+int uds_load_open_chapter(struct uds_index *index,
+			  struct buffered_reader *reader)
 {
 	u8 version[OPEN_CHAPTER_VERSION_LENGTH];
 	int result;

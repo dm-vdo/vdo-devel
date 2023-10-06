@@ -51,8 +51,7 @@ void uds_reset_open_chapter(struct open_chapter_zone *open_chapter);
 
 void uds_search_open_chapter(struct open_chapter_zone *open_chapter,
 			     const struct uds_record_name *name,
-			     struct uds_record_data *metadata,
-			     bool *found);
+			     struct uds_record_data *metadata, bool *found);
 
 int __must_check uds_put_open_chapter(struct open_chapter_zone *open_chapter,
 				      const struct uds_record_name *name,
@@ -70,9 +69,11 @@ int __must_check uds_close_open_chapter(struct open_chapter_zone **chapter_zones
 					struct uds_volume_record *collated_records,
 					u64 virtual_chapter_number);
 
-int __must_check uds_save_open_chapter(struct uds_index *index, struct buffered_writer *writer);
+int __must_check uds_save_open_chapter(struct uds_index *index,
+				       struct buffered_writer *writer);
 
-int __must_check uds_load_open_chapter(struct uds_index *index, struct buffered_reader *reader);
+int __must_check uds_load_open_chapter(struct uds_index *index,
+				       struct buffered_reader *reader);
 
 u64 uds_compute_saved_open_chapter_size(struct geometry *geometry);
 
