@@ -64,12 +64,8 @@ static inline void *uds_forget(void **ptr_ptr)
  *
  * Return: UDS_SUCCESS or an error code
  */
-static inline int uds_do_allocation(size_t count,
-				    size_t size,
-				    size_t extra,
-				    size_t align,
-				    const char *what,
-				    void *ptr)
+static inline int uds_do_allocation(size_t count, size_t size, size_t extra,
+				    size_t align, const char *what, void *ptr)
 {
 	size_t total_size = count * size + extra;
 
@@ -86,11 +82,8 @@ static inline int uds_do_allocation(size_t count,
 	return uds_allocate_memory(total_size, align, what, ptr);
 }
 
-int __must_check uds_reallocate_memory(void *ptr,
-				       size_t old_size,
-				       size_t size,
-				       const char *what,
-				       void *new_ptr);
+int __must_check uds_reallocate_memory(void *ptr, size_t old_size, size_t size,
+				       const char *what, void *new_ptr);
 
 /*
  * Allocate one or more elements of the indicated type, logging an error if the allocation fails.
@@ -161,7 +154,8 @@ void *__must_check uds_allocate_memory_nowait(size_t size, const char *what);
  */
 #define UDS_ALLOCATE_NOWAIT(TYPE, WHAT) uds_allocate_memory_nowait(sizeof(TYPE), WHAT)
 
-int __must_check uds_duplicate_string(const char *string, const char *what, char **new_string);
+int __must_check uds_duplicate_string(const char *string, const char *what,
+				      char **new_string);
 
 #ifdef TEST_INTERNAL
 /* Wrapper which permits freeing a const pointer. */
@@ -180,7 +174,8 @@ void uds_memory_exit(void);
 
 void uds_memory_init(void);
 
-void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr);
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr);
 
 void uds_unregister_allocating_thread(void);
 

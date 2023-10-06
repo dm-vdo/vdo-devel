@@ -47,7 +47,8 @@ static bool allocations_allowed(void)
  * @new_thread: registered_thread structure to use for the current thread
  * @flag_ptr: Location of the allocation-allowed flag
  */
-void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr)
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
@@ -533,7 +534,8 @@ void uds_free_memory(void *ptr)
  *
  * Return: UDS_SUCCESS or an error code
  */
-int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *what, void *new_ptr)
+int uds_reallocate_memory(void *ptr, size_t old_size, size_t size,
+			  const char *what, void *new_ptr)
 {
 	int result;
 
@@ -558,7 +560,8 @@ int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *w
 	return UDS_SUCCESS;
 }
 
-int uds_duplicate_string(const char *string, const char *what, char **new_string)
+int uds_duplicate_string(const char *string, const char *what,
+			 char **new_string)
 {
 	int result;
 	u8 *dup;
