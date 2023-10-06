@@ -20,7 +20,8 @@ struct pool_attribute {
 	ssize_t (*store)(struct vdo *vdo, const char *value, size_t count);
 };
 
-static ssize_t vdo_pool_attr_show(struct kobject *directory, struct attribute *attr, char *buf)
+static ssize_t vdo_pool_attr_show(struct kobject *directory,
+				  struct attribute *attr, char *buf)
 {
 	struct pool_attribute *pool_attr = container_of(attr, struct pool_attribute, attr);
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
@@ -31,8 +32,7 @@ static ssize_t vdo_pool_attr_show(struct kobject *directory, struct attribute *a
 }
 
 static ssize_t vdo_pool_attr_store(struct kobject *directory,
-				   struct attribute *attr,
-				   const char *buf,
+				   struct attribute *attr, const char *buf,
 				   size_t length)
 {
 	struct pool_attribute *pool_attr = container_of(attr, struct pool_attribute, attr);
@@ -63,7 +63,8 @@ static ssize_t pool_discards_limit_show(struct vdo *vdo, char *buf)
 	return sprintf(buf, "%u\n", get_data_vio_pool_discard_limit(vdo->data_vio_pool));
 }
 
-static ssize_t pool_discards_limit_store(struct vdo *vdo, const char *buf, size_t length)
+static ssize_t pool_discards_limit_store(struct vdo *vdo, const char *buf,
+					 size_t length)
 {
 	unsigned int value;
 	int result;
