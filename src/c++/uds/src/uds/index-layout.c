@@ -256,7 +256,8 @@ static int __must_check compute_sizes(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size)
+int uds_compute_index_size(const struct uds_parameters *parameters,
+			   u64 *index_size)
 {
 	int result;
 	struct configuration *index_config;
@@ -362,8 +363,8 @@ static int open_region_writer(struct index_layout *layout,
 	return open_layout_writer(layout, region, -layout->super.start_offset, writer_ptr);
 }
 
-static void
-generate_super_block_data(struct save_layout_sizes *sls, struct super_block_data *super)
+static void generate_super_block_data(struct save_layout_sizes *sls,
+				      struct super_block_data *super)
 {
 	memset(super, 0, sizeof(*super));
 	memcpy(super->magic_label, LAYOUT_MAGIC, MAGIC_SIZE);
@@ -398,8 +399,8 @@ static void define_sub_index_nonce(struct index_layout *layout)
 		sil->nonce = generate_secondary_nonce(~primary_nonce + 1, buffer, sizeof(buffer));
 }
 
-static void
-setup_sub_index(struct index_layout *layout, u64 start_block, struct save_layout_sizes *sls)
+static void setup_sub_index(struct index_layout *layout, u64 start_block,
+			    struct save_layout_sizes *sls)
 {
 	struct sub_index_layout *sil = &layout->index;
 	u64 next_block = start_block;
@@ -435,7 +436,8 @@ setup_sub_index(struct index_layout *layout, u64 start_block, struct save_layout
 	define_sub_index_nonce(layout);
 }
 
-static void initialize_layout(struct index_layout *layout, struct save_layout_sizes *sls)
+static void initialize_layout(struct index_layout *layout,
+			      struct save_layout_sizes *sls)
 {
 	u64 next_block = layout->offset / sls->block_size;
 
@@ -466,8 +468,8 @@ static void initialize_layout(struct index_layout *layout, struct save_layout_si
 	};
 }
 
-static int __must_check
-make_index_save_region_table(struct index_save_layout *isl, struct region_table **table_ptr)
+static int __must_check make_index_save_region_table(struct index_save_layout *isl,
+						     struct region_table **table_ptr)
 {
 	int result;
 	unsigned int z;
@@ -530,7 +532,8 @@ make_index_save_region_table(struct index_save_layout *isl, struct region_table 
 	return UDS_SUCCESS;
 }
 
-static void encode_region_table(u8 *buffer, size_t *offset, struct region_table *table)
+static void encode_region_table(u8 *buffer, size_t *offset,
+				struct region_table *table)
 {
 	unsigned int i;
 
@@ -584,7 +587,8 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	return uds_flush_buffered_writer(writer);
 }
 
-static int write_index_save_layout(struct index_layout *layout, struct index_save_layout *isl)
+static int write_index_save_layout(struct index_layout *layout,
+				   struct index_save_layout *isl)
 {
 	int result;
 	struct region_table *table;
@@ -607,7 +611,8 @@ static int write_index_save_layout(struct index_layout *layout, struct index_sav
 	return result;
 }
 
-static void reset_index_save_layout(struct index_save_layout *isl, u64 page_map_blocks)
+static void reset_index_save_layout(struct index_save_layout *isl,
+				    u64 page_map_blocks)
 {
 	u64 free_blocks;
 	u64 next_block = isl->index_save.start_block;
@@ -640,8 +645,8 @@ static void reset_index_save_layout(struct index_save_layout *isl, u64 page_map_
 	};
 }
 
-static int __must_check
-invalidate_old_save(struct index_layout *layout, struct index_save_layout *isl)
+static int __must_check invalidate_old_save(struct index_layout *layout,
+					    struct index_save_layout *isl)
 {
 	reset_index_save_layout(isl, layout->super.page_map_blocks);
 	return write_index_save_layout(layout, isl);
@@ -667,8 +672,8 @@ STATIC int discard_index_state_data(struct index_layout *layout)
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-make_layout_region_table(struct index_layout *layout, struct region_table **table_ptr)
+static int __must_check make_layout_region_table(struct index_layout *layout,
+						 struct region_table **table_ptr)
 {
 	int result;
 	unsigned int i;
@@ -808,7 +813,8 @@ static int __must_check save_layout(struct index_layout *layout, off_t offset)
 	return result;
 }
 
-static int create_index_layout(struct index_layout *layout, struct configuration *config)
+static int create_index_layout(struct index_layout *layout,
+			       struct configuration *config)
 {
 	int result;
 	struct save_layout_sizes sizes;
@@ -837,7 +843,8 @@ static int create_index_layout(struct index_layout *layout, struct configuration
 	return save_layout(layout, 0);
 }
 
-static u64 generate_index_save_nonce(u64 volume_nonce, struct index_save_layout *isl)
+static u64 generate_index_save_nonce(u64 volume_nonce,
+				     struct index_save_layout *isl)
 {
 	struct save_nonce_data {
 		struct index_save_data data;
@@ -858,7 +865,8 @@ static u64 generate_index_save_nonce(u64 volume_nonce, struct index_save_layout 
 	return generate_secondary_nonce(volume_nonce, buffer, sizeof(buffer));
 }
 
-static u64 validate_index_save_layout(struct index_save_layout *isl, u64 volume_nonce)
+static u64 validate_index_save_layout(struct index_save_layout *isl,
+				      u64 volume_nonce)
 {
 	if ((isl->zone_count == 0) || (isl->save_data.timestamp == 0))
 		return 0;
@@ -869,8 +877,8 @@ static u64 validate_index_save_layout(struct index_save_layout *isl, u64 volume_
 	return isl->save_data.timestamp;
 }
 
-static int
-find_latest_uds_index_save_slot(struct index_layout *layout, struct index_save_layout **isl_ptr)
+static int find_latest_uds_index_save_slot(struct index_layout *layout,
+					   struct index_save_layout **isl_ptr)
 {
 	struct index_save_layout *latest = NULL;
 	struct index_save_layout *isl;
@@ -1159,8 +1167,8 @@ int uds_save_index_state(struct index_layout *layout, struct uds_index *index)
 	return write_index_save_layout(layout, isl);
 }
 
-static int __must_check
-load_region_table(struct buffered_reader *reader, struct region_table **table_ptr)
+static int __must_check load_region_table(struct buffered_reader *reader,
+					  struct region_table **table_ptr)
 {
 	int result;
 	unsigned int i;
@@ -1295,8 +1303,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 }
 
 static int __must_check verify_region(struct layout_region *lr,
-				      u64 start_block,
-				      enum region_kind kind,
+				      u64 start_block, enum region_kind kind,
 				      unsigned int instance)
 {
 	if (lr->start_block != start_block)
@@ -1312,8 +1319,9 @@ static int __must_check verify_region(struct layout_region *lr,
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-verify_sub_index(struct index_layout *layout, u64 start_block, struct region_table *table)
+static int __must_check verify_sub_index(struct index_layout *layout,
+					 u64 start_block,
+					 struct region_table *table)
 {
 	int result;
 	unsigned int i;
@@ -1351,8 +1359,9 @@ verify_sub_index(struct index_layout *layout, u64 start_block, struct region_tab
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-reconstitute_layout(struct index_layout *layout, struct region_table *table, u64 first_block)
+static int __must_check reconstitute_layout(struct index_layout *layout,
+					    struct region_table *table,
+					    u64 first_block)
 {
 	int result;
 	u64 next_block = first_block;
@@ -1398,8 +1407,7 @@ reconstitute_layout(struct index_layout *layout, struct region_table *table, u64
 }
 
 static int __must_check load_super_block(struct index_layout *layout,
-					 size_t block_size,
-					 u64 first_block,
+					 size_t block_size, u64 first_block,
 					 struct buffered_reader *reader)
 {
 	int result;
@@ -1481,8 +1489,8 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-reconstruct_index_save(struct index_save_layout *isl, struct region_table *table)
+static int __must_check reconstruct_index_save(struct index_save_layout *isl,
+					       struct region_table *table)
 {
 	int result;
 	unsigned int z;
@@ -1638,8 +1646,8 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 	return UDS_SUCCESS;
 }
 
-static int __must_check
-verify_uds_index_config(struct index_layout *layout, struct configuration *config)
+static int __must_check verify_uds_index_config(struct index_layout *layout,
+						struct configuration *config)
 {
 	int result;
 	struct buffered_reader *reader = NULL;
@@ -1660,7 +1668,8 @@ verify_uds_index_config(struct index_layout *layout, struct configuration *confi
 	return UDS_SUCCESS;
 }
 
-static int load_index_layout(struct index_layout *layout, struct configuration *config)
+static int load_index_layout(struct index_layout *layout,
+			     struct configuration *config)
 {
 	int result;
 	struct buffered_reader *reader;
@@ -1684,7 +1693,8 @@ static int load_index_layout(struct index_layout *layout, struct configuration *
 	return load_sub_index_regions(layout);
 }
 
-static int create_layout_factory(struct index_layout *layout, const struct configuration *config)
+static int create_layout_factory(struct index_layout *layout,
+				 const struct configuration *config)
 {
 	int result;
 	size_t writable_size;
@@ -1709,8 +1719,7 @@ static int create_layout_factory(struct index_layout *layout, const struct confi
 	return UDS_SUCCESS;
 }
 
-int uds_make_index_layout(struct configuration *config,
-			  bool new_layout,
+int uds_make_index_layout(struct configuration *config, bool new_layout,
 			  struct index_layout **layout_ptr)
 {
 	int result;
@@ -1764,14 +1773,14 @@ void uds_free_index_layout(struct index_layout *layout)
 	UDS_FREE(layout);
 }
 
-int uds_replace_index_layout_storage(struct index_layout *layout, struct block_device *bdev)
+int uds_replace_index_layout_storage(struct index_layout *layout,
+				     struct block_device *bdev)
 {
 	return uds_replace_storage(layout->factory, bdev);
 }
 
 /* Obtain a dm_bufio_client for the volume region. */
-int uds_open_volume_bufio(struct index_layout *layout,
-			  size_t block_size,
+int uds_open_volume_bufio(struct index_layout *layout, size_t block_size,
 			  unsigned int reserved_buffers,
 			  struct dm_bufio_client **client_ptr)
 {
@@ -1797,8 +1806,7 @@ u64 uds_get_volume_nonce(struct index_layout *layout)
  * @offset: The offset in bytes to move the index
  */
 int update_uds_layout(struct index_layout *layout,
-		      struct configuration *config,
-		      off_t lvm_offset,
+		      struct configuration *config, off_t lvm_offset,
 		      off_t offset)
 {
 	int result = UDS_SUCCESS;

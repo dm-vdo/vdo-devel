@@ -35,9 +35,11 @@ void uds_free_index_layout(struct index_layout *layout);
 int __must_check uds_replace_index_layout_storage(struct index_layout *layout,
 						  struct block_device *bdev);
 
-int __must_check uds_load_index_state(struct index_layout *layout, struct uds_index *index);
+int __must_check uds_load_index_state(struct index_layout *layout,
+				      struct uds_index *index);
 
-int __must_check uds_save_index_state(struct index_layout *layout, struct uds_index *index);
+int __must_check uds_save_index_state(struct index_layout *layout,
+				      struct uds_index *index);
 
 #ifdef TEST_INTERNAL
 int __must_check discard_index_state_data(struct index_layout *layout);
@@ -54,8 +56,7 @@ int __must_check uds_open_volume_bufio(struct index_layout *layout,
 
 #ifdef TEST_INTERNAL
 int update_uds_layout(struct index_layout *layout,
-		      struct configuration *config,
-		      off_t lvm_offset,
+		      struct configuration *config, off_t lvm_offset,
 		      off_t offset);
 
 #endif /* TEST_INTERNAL */
