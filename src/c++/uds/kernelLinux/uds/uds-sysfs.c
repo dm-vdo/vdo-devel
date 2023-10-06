@@ -62,13 +62,14 @@ static void empty_release(struct kobject *kobj)
 {
 }
 
-static ssize_t empty_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t empty_show(struct kobject *kobj, struct attribute *attr,
+			  char *buf)
 {
 	return 0;
 }
 
-static ssize_t
-empty_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t empty_store(struct kobject *kobj, struct attribute *attr,
+			   const char *buf, size_t length)
 {
 	return length;
 }
@@ -110,7 +111,8 @@ struct memory_attribute {
 	void (*store_long)(long);
 };
 
-static ssize_t memory_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t memory_show(struct kobject *kobj, struct attribute *attr,
+			   char *buf)
 {
 	struct memory_attribute *ma;
 
@@ -121,8 +123,8 @@ static ssize_t memory_show(struct kobject *kobj, struct attribute *attr, char *b
 		return -EINVAL;
 }
 
-static ssize_t
-memory_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t memory_store(struct kobject *kobj, struct attribute *attr,
+			    const char *buf, size_t length)
 {
 	struct memory_attribute *ma;
 
@@ -251,7 +253,8 @@ struct parameter_attribute {
 	void (*store_string)(const char *string);
 };
 
-static ssize_t parameter_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t parameter_show(struct kobject *kobj, struct attribute *attr,
+			      char *buf)
 {
 	struct parameter_attribute *pa;
 
@@ -262,8 +265,8 @@ static ssize_t parameter_show(struct kobject *kobj, struct attribute *attr, char
 		return -EINVAL;
 }
 
-static ssize_t
-parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t parameter_store(struct kobject *kobj, struct attribute *attr,
+			       const char *buf, size_t length)
 {
 	char *string;
 	struct parameter_attribute *pa;
