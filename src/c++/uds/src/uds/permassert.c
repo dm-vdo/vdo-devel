@@ -55,11 +55,8 @@ bool set_exit_on_assertion_failure(bool should_exit)
 }
 
 #endif /* not __KERNEL__ */
-int uds_assertion_failed(const char *expression_string,
-			 const char *file_name,
-			 int line_number,
-			 const char *format,
-			 ...)
+int uds_assertion_failed(const char *expression_string, const char *file_name,
+			 int line_number, const char *format, ...)
 {
 	va_list args;
 
