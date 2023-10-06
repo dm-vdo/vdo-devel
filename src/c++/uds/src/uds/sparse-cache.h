@@ -33,11 +33,11 @@ int __must_check uds_make_sparse_cache(const struct geometry *geometry,
 
 void uds_free_sparse_cache(struct sparse_cache *cache);
 
-bool uds_sparse_cache_contains(struct sparse_cache *cache,
-			       u64 virtual_chapter,
+bool uds_sparse_cache_contains(struct sparse_cache *cache, u64 virtual_chapter,
 			       unsigned int zone_number);
 
-int __must_check uds_update_sparse_cache(struct index_zone *zone, u64 virtual_chapter);
+int __must_check uds_update_sparse_cache(struct index_zone *zone,
+					 u64 virtual_chapter);
 
 void uds_invalidate_sparse_cache(struct sparse_cache *cache);
 

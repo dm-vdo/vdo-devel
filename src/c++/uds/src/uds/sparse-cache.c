@@ -156,9 +156,8 @@ struct sparse_cache {
 	struct cached_chapter_index chapters[];
 };
 
-static int __must_check
-initialize_cached_chapter_index(struct cached_chapter_index *chapter,
-				const struct geometry *geometry)
+static int __must_check initialize_cached_chapter_index(struct cached_chapter_index *chapter,
+							const struct geometry *geometry)
 {
 	int result;
 
@@ -178,7 +177,8 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 			    &chapter->page_buffers);
 }
 
-static int __must_check make_search_list(struct sparse_cache *cache, struct search_list **list_ptr)
+static int __must_check make_search_list(struct sparse_cache *cache,
+					 struct search_list **list_ptr)
 {
 	struct search_list *list;
 	unsigned int bytes;
@@ -202,8 +202,7 @@ static int __must_check make_search_list(struct sparse_cache *cache, struct sear
 }
 
 int uds_make_sparse_cache(const struct geometry *geometry,
-			  unsigned int capacity,
-			  unsigned int zone_count,
+			  unsigned int capacity, unsigned int zone_count,
 			  struct sparse_cache **cache_ptr)
 {
 	int result;
@@ -268,7 +267,8 @@ int uds_make_sparse_cache(const struct geometry *geometry,
 	return UDS_SUCCESS;
 }
 
-static inline void set_skip_search(struct cached_chapter_index *chapter, bool skip_search)
+static inline void set_skip_search(struct cached_chapter_index *chapter,
+				   bool skip_search)
 {
 	/* Check before setting to reduce cache line contention. */
 	if (READ_ONCE(chapter->skip_search) != skip_search)
@@ -281,7 +281,8 @@ static void score_search_hit(struct cached_chapter_index *chapter)
 	set_skip_search(chapter, false);
 }
 
-static void score_search_miss(struct sparse_cache *cache, struct cached_chapter_index *chapter)
+static void score_search_miss(struct sparse_cache *cache,
+			      struct cached_chapter_index *chapter)
 {
 	chapter->counters.consecutive_misses++;
 	if (chapter->counters.consecutive_misses > cache->skip_threshold)
@@ -348,8 +349,7 @@ static inline void set_newest_entry(struct search_list *search_list, u8 index)
 		search_list->first_dead_entry++;
 }
 
-bool uds_sparse_cache_contains(struct sparse_cache *cache,
-			       u64 virtual_chapter,
+bool uds_sparse_cache_contains(struct sparse_cache *cache, u64 virtual_chapter,
 			       unsigned int zone_number)
 {
 	struct search_list *search_list;
@@ -443,7 +443,8 @@ static int __must_check cache_chapter_index(struct cached_chapter_index *chapter
 	return UDS_SUCCESS;
 }
 
-static inline void copy_search_list(const struct search_list *source, struct search_list *target)
+static inline void copy_search_list(const struct search_list *source,
+				    struct search_list *target)
 {
 	*target = *source;
 	memcpy(target->entries,
@@ -524,12 +525,11 @@ static inline bool should_skip_chapter(struct cached_chapter_index *chapter,
 		return READ_ONCE(chapter->skip_search);
 }
 
-static int __must_check
-search_cached_chapter_index(struct cached_chapter_index *chapter,
-			    const struct geometry *geometry,
-			    const struct index_page_map *index_page_map,
-			    const struct uds_record_name *name,
-			    u16 *record_page_ptr)
+static int __must_check search_cached_chapter_index(struct cached_chapter_index *chapter,
+						    const struct geometry *geometry,
+						    const struct index_page_map *index_page_map,
+						    const struct uds_record_name *name,
+						    u16 *record_page_ptr)
 {
 	u32 physical_chapter = uds_map_to_physical_chapter(geometry, chapter->virtual_chapter);
 	u32 index_page_number = uds_find_index_page_number(index_page_map, name, physical_chapter);
@@ -540,8 +540,7 @@ search_cached_chapter_index(struct cached_chapter_index *chapter,
 
 int uds_search_sparse_cache(struct index_zone *zone,
 			    const struct uds_record_name *name,
-			    u64 *virtual_chapter_ptr,
-			    u16 *record_page_ptr)
+			    u64 *virtual_chapter_ptr, u16 *record_page_ptr)
 {
 	int result;
 	struct volume *volume = zone->index->volume;
