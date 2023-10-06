@@ -216,8 +216,7 @@ enum data_vio_cleanup_stage {
 	VIO_CLEANUP_DONE
 };
 
-static inline struct data_vio_pool * __must_check
-as_data_vio_pool(struct vdo_completion *completion)
+static inline struct data_vio_pool * __must_check as_data_vio_pool(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion, VDO_DATA_VIO_POOL_COMPLETION);
 	return container_of(completion, struct data_vio_pool, completion);
@@ -243,7 +242,8 @@ static bool check_for_drain_complete_locked(struct data_vio_pool *pool)
 		bio_list_empty(&pool->discard_limiter.new_waiters));
 }
 
-static void initialize_lbn_lock(struct data_vio *data_vio, logical_block_number_t lbn)
+static void initialize_lbn_lock(struct data_vio *data_vio,
+				logical_block_number_t lbn)
 {
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	zone_count_t zone_number;
@@ -306,8 +306,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 		enter_histogram_sample(histograms->write_ack_histogram, latency_jiffies);
 
 	if (ack_msecs > 30000) {
-		static DEFINE_RATELIMIT_STATE(latency_limiter,
-					      DEFAULT_RATELIMIT_INTERVAL,
+		static DEFINE_RATELIMIT_STATE(latency_limiter, DEFAULT_RATELIMIT_INTERVAL,
 					      DEFAULT_RATELIMIT_BURST);
 
 		if (__ratelimit(&latency_limiter)) {
@@ -333,8 +332,7 @@ static void copy_to_bio(struct bio *bio, char *data_ptr)
 	}
 }
 
-struct data_vio_compression_status
-get_data_vio_compression_status(struct data_vio *data_vio)
+struct data_vio_compression_status get_data_vio_compression_status(struct data_vio *data_vio)
 {
 	u32 packed = atomic_read(&data_vio->compression.status);
 
@@ -366,10 +364,9 @@ static u32 __must_check pack_status(struct data_vio_compression_status status)
  * Return: true if the new status was set, false if the data_vio's compression status did not
  *         match the expected state, and so was left unchanged.
  */
-STATIC bool __must_check
-set_data_vio_compression_status(struct data_vio *data_vio,
-				struct data_vio_compression_status status,
-				struct data_vio_compression_status new_status)
+STATIC bool __must_check set_data_vio_compression_status(struct data_vio *data_vio,
+							 struct data_vio_compression_status status,
+							 struct data_vio_compression_status new_status)
 {
 	u32 actual;
 	u32 expected = pack_status(status);
@@ -513,7 +510,8 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
  * launch_data_vio() - (Re)initialize a data_vio to have a new logical block number, keeping the
  *		       same parent and other state and send it on its way.
  */
-static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lbn)
+static void launch_data_vio(struct data_vio *data_vio,
+			    logical_block_number_t lbn)
 {
 	struct vdo_completion *completion = &data_vio->vio.completion;
 
@@ -565,7 +563,8 @@ static void copy_from_bio(struct bio *bio, char *data_ptr)
 	}
 }
 
-static void launch_bio(struct vdo *vdo, struct data_vio *data_vio, struct bio *bio)
+static void launch_bio(struct vdo *vdo, struct data_vio *data_vio,
+		       struct bio *bio)
 {
 	logical_block_number_t lbn;
 #ifdef VDO_INTERNAL
@@ -651,8 +650,7 @@ static void get_waiters(struct limiter *limiter)
 	bio_list_init(&limiter->new_waiters);
 }
 
-static inline
-struct data_vio *get_available_data_vio(struct data_vio_pool *pool)
+static inline struct data_vio *get_available_data_vio(struct data_vio_pool *pool)
 {
 	struct data_vio *data_vio =
 		list_first_entry(&pool->available, struct data_vio, pool_entry);
@@ -812,8 +810,7 @@ static void process_release_callback(struct vdo_completion *completion)
 }
 
 static void initialize_limiter(struct limiter *limiter,
-			       struct data_vio_pool *pool,
-			       assigner *assigner,
+			       struct data_vio_pool *pool, assigner *assigner,
 			       data_vio_count_t limit)
 {
 	limiter->pool = pool;
@@ -880,8 +877,7 @@ static void destroy_data_vio(struct data_vio *data_vio)
  * @discard_limit: The maximum number of data_vios which may be used for discards.
  * @pool: A pointer to hold the newly allocated pool.
  */
-int make_data_vio_pool(struct vdo *vdo,
-		       data_vio_count_t pool_size,
+int make_data_vio_pool(struct vdo *vdo, data_vio_count_t pool_size,
 		       data_vio_count_t discard_limit,
 		       struct data_vio_pool **pool_ptr)
 {
@@ -1045,7 +1041,8 @@ static void assert_on_vdo_cpu_thread(const struct vdo *vdo, const char *name)
  * drain_data_vio_pool() - Wait asynchronously for all data_vios to be returned to the pool.
  * @completion: The completion to notify when the pool has drained.
  */
-void drain_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *completion)
+void drain_data_vio_pool(struct data_vio_pool *pool,
+			 struct vdo_completion *completion)
 {
 	assert_on_vdo_cpu_thread(completion->vdo, __func__);
 	vdo_start_draining(&pool->state, VDO_ADMIN_STATE_SUSPENDING, completion, initiate_drain);
@@ -1055,7 +1052,8 @@ void drain_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *comp
  * resume_data_vio_pool() - Resume a data_vio pool.
  * @completion: The completion to notify when the pool has resumed.
  */
-void resume_data_vio_pool(struct data_vio_pool *pool, struct vdo_completion *completion)
+void resume_data_vio_pool(struct data_vio_pool *pool,
+			  struct vdo_completion *completion)
 {
 	assert_on_vdo_cpu_thread(completion->vdo, __func__);
 	vdo_continue_completion(completion, vdo_resume_if_quiescent(&pool->state));
@@ -1129,7 +1127,8 @@ data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
 	return READ_ONCE(pool->discard_limiter.max_busy);
 }
 
-int set_data_vio_pool_discard_limit(struct data_vio_pool *pool, data_vio_count_t limit)
+int set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
+				    data_vio_count_t limit)
 {
 	if (get_data_vio_pool_request_limit(pool) < limit)
 		// The discard limit may not be higher than the data_vio limit.
@@ -1186,7 +1185,8 @@ static void update_data_vio_error_stats(struct data_vio *data_vio)
 			       get_data_vio_operation_name(data_vio));
 }
 
-static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_cleanup_stage stage);
+static void perform_cleanup_stage(struct data_vio *data_vio,
+				  enum data_vio_cleanup_stage stage);
 
 /**
  * release_allocated_lock() - Release the PBN lock and/or the reference on the allocated block at
@@ -1340,7 +1340,8 @@ static void finish_cleanup(struct data_vio *data_vio)
 }
 
 /** perform_cleanup_stage() - Perform the next step in the process of cleaning up a data_vio. */
-static void perform_cleanup_stage(struct data_vio *data_vio, enum data_vio_cleanup_stage stage)
+static void perform_cleanup_stage(struct data_vio *data_vio,
+				  enum data_vio_cleanup_stage stage)
 {
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 
@@ -1482,8 +1483,7 @@ void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset)
  * @buffer: The buffer to receive the uncompressed data.
  */
 int uncompress_data_vio(struct data_vio *data_vio,
-			enum block_mapping_state mapping_state,
-			char *buffer)
+			enum block_mapping_state mapping_state, char *buffer)
 {
 	int size;
 	u16 fragment_offset, fragment_size;
@@ -1675,8 +1675,7 @@ static void read_block(struct vdo_completion *completion)
 	submit_data_vio_io(data_vio);
 }
 
-static inline struct data_vio *
-reference_count_update_completion_as_data_vio(struct vdo_completion *completion)
+static inline struct data_vio *reference_count_update_completion_as_data_vio(struct vdo_completion *completion)
 {
 	if (completion->type == VIO_COMPLETION)
 		return as_data_vio(completion);
@@ -1801,7 +1800,8 @@ static void read_old_block_mapping(struct vdo_completion *completion)
 	vdo_get_mapped_block(data_vio);
 }
 
-void update_metadata_for_data_vio_write(struct data_vio *data_vio, struct pbn_lock *lock)
+void update_metadata_for_data_vio_write(struct data_vio *data_vio,
+					struct pbn_lock *lock)
 {
 	data_vio->increment_updater = (struct reference_updater) {
 		.operation = VDO_JOURNAL_DATA_REMAPPING,
