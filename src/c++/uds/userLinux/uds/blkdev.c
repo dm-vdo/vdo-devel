@@ -47,7 +47,11 @@ struct block_device *blkdev_get_by_path(const char *path,
 	return device;
 }
 
+#ifdef VDO_USE_ALTERNATE
 void blkdev_put(struct block_device *bdev, fmode_t mode __always_unused)
+#else
+void blkdev_put(struct block_device *bdev, void *holder __always_unused)
+#endif /* VDO_USE_ALTERNATE */
 {
 	close_file(bdev->fd, NULL);
 	UDS_FREE(bdev);
