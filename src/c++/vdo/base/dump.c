@@ -52,7 +52,8 @@ static inline bool is_arg_string(const char *arg, const char *this_option)
 	return strncasecmp(arg, this_option, strlen(this_option)) == 0;
 }
 
-static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const char *why)
+static void do_dump(struct vdo *vdo, unsigned int dump_options_requested,
+		    const char *why)
 {
 	u32 active, maximum;
 	s64 outstanding;
@@ -83,8 +84,8 @@ static void do_dump(struct vdo *vdo, unsigned int dump_options_requested, const 
 	uds_log_info("end of %s dump", UDS_LOGGING_MODULE_NAME);
 }
 
-static int
-parse_dump_options(unsigned int argc, char *const *argv, unsigned int *dump_options_requested_ptr)
+static int parse_dump_options(unsigned int argc, char *const *argv,
+			      unsigned int *dump_options_requested_ptr)
 {
 	unsigned int dump_options_requested = 0;
 
@@ -127,7 +128,8 @@ parse_dump_options(unsigned int argc, char *const *argv, unsigned int *dump_opti
 }
 
 /* Dump as specified by zero or more string arguments. */
-int vdo_dump(struct vdo *vdo, unsigned int argc, char *const *argv, const char *why)
+int vdo_dump(struct vdo *vdo, unsigned int argc, char *const *argv,
+	     const char *why)
 {
 	unsigned int dump_options_requested = 0;
 	int result = parse_dump_options(argc, argv, &dump_options_requested);
