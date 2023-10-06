@@ -117,7 +117,8 @@ static bool vdo_is_equal(struct vdo *vdo, const void *context)
  *
  * Return: the vdo object found, if any.
  */
-static struct vdo * __must_check filter_vdos_locked(vdo_filter_t *filter, const void *context)
+static struct vdo * __must_check filter_vdos_locked(vdo_filter_t *filter,
+						    const void *context)
 {
 	struct vdo *vdo;
 
@@ -198,8 +199,8 @@ STATIC void uninitialize_thread_config(struct thread_config *config)
 	memset(config, 0, sizeof(struct thread_config));
 }
 
-static void
-assign_thread_ids(struct thread_config *config, thread_id_t thread_ids[], zone_count_t count)
+static void assign_thread_ids(struct thread_config *config,
+			      thread_id_t thread_ids[], zone_count_t count)
 {
 	zone_count_t zone;
 
@@ -216,8 +217,8 @@ assign_thread_ids(struct thread_config *config, thread_id_t thread_ids[], zone_c
  *
  * Return: VDO_SUCCESS or an error.
  */
-STATIC int __must_check
-initialize_thread_config(struct thread_count_config counts, struct thread_config *config)
+STATIC int __must_check initialize_thread_config(struct thread_count_config counts,
+						 struct thread_config *config)
 {
 	int result;
 	bool single = ((counts.logical_zones + counts.physical_zones + counts.hash_zones) == 0);
@@ -341,10 +342,8 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 }
 
 static bool get_zone_thread_name(const thread_id_t thread_ids[],
-				 zone_count_t count,
-				 thread_id_t id,
-				 const char *prefix,
-				 char *buffer,
+				 zone_count_t count, thread_id_t id,
+				 const char *prefix, char *buffer,
 				 size_t buffer_length)
 {
 	if (id >= thread_ids[0]) {
@@ -368,11 +367,9 @@ static bool get_zone_thread_name(const thread_id_t thread_ids[],
  * The physical layer may add a prefix identifying the product; the output from this function
  * should just identify the thread.
  */
-STATIC void
-get_thread_name(const struct thread_config *thread_config,
-		thread_id_t thread_id,
-		char *buffer,
-		size_t buffer_length)
+STATIC void get_thread_name(const struct thread_config *thread_config,
+			    thread_id_t thread_id, char *buffer,
+			    size_t buffer_length)
 {
 	if (thread_id == thread_config->journal_thread) {
 		if (thread_config->packer_thread == thread_id) {
@@ -456,11 +453,9 @@ get_thread_name(const struct thread_config *thread_config,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_make_thread(struct vdo *vdo,
-		    thread_id_t thread_id,
+int vdo_make_thread(struct vdo *vdo, thread_id_t thread_id,
 		    const struct vdo_work_queue_type *type,
-		    unsigned int queue_count,
-		    void *contexts[])
+		    unsigned int queue_count, void *contexts[])
 {
 	struct vdo_thread *thread = &vdo->threads[thread_id];
 	char queue_name[MAX_VDO_WORK_QUEUE_NAME_LEN];
@@ -515,8 +510,8 @@ static int register_vdo(struct vdo *vdo)
  * @instance: The instance number of the vdo
  * @reason: The buffer to hold the failure reason on error
  */
-static int
-initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int instance, char **reason)
+static int initialize_vdo(struct vdo *vdo, struct device_config *config,
+			  unsigned int instance, char **reason)
 {
 	int result;
 	zone_count_t i;
@@ -588,10 +583,8 @@ initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int insta
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_make(unsigned int instance,
-	     struct device_config *config,
-	     char **reason,
-	     struct vdo **vdo_ptr)
+int vdo_make(unsigned int instance, struct device_config *config,
+	     char **reason, struct vdo **vdo_ptr)
 {
 	int result;
 	struct vdo *vdo;
@@ -822,7 +815,8 @@ void vdo_destroy(struct vdo *vdo)
 		kobject_put(&vdo->vdo_directory);
 }
 
-static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
+static int initialize_super_block(struct vdo *vdo,
+				  struct vdo_super_block *super_block)
 {
 	int result;
 
@@ -1143,8 +1137,7 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_register_read_only_listener(struct vdo *vdo,
-				    void *listener,
+int vdo_register_read_only_listener(struct vdo *vdo, void *listener,
 				    vdo_read_only_notification *notification,
 				    thread_id_t thread_id)
 {
@@ -1180,7 +1173,8 @@ int vdo_register_read_only_listener(struct vdo *vdo,
  *
  * Implements vdo_read_only_notification.
  */
-static void notify_vdo_of_read_only_mode(void *listener, struct vdo_completion *parent)
+static void notify_vdo_of_read_only_mode(void *listener,
+					 struct vdo_completion *parent)
 {
 	struct vdo *vdo = listener;
 
@@ -1509,10 +1503,8 @@ static void complete_synchronous_action(struct vdo_completion *completion)
  * @thread_id: The thread on which to run the action.
  * @parent: The parent of the sync completion (may be NULL).
  */
-static int perform_synchronous_action(struct vdo *vdo,
-				      vdo_action *action,
-				      thread_id_t thread_id,
-				      void *parent)
+static int perform_synchronous_action(struct vdo *vdo, vdo_action *action,
+				      thread_id_t thread_id, void *parent)
 {
 	struct sync_completion sync;
 
@@ -1594,7 +1586,8 @@ static struct error_statistics __must_check get_vdo_error_statistics(const struc
 	};
 }
 
-static void copy_bio_stat(struct bio_stats *b, const struct atomic_bio_stats *a)
+static void copy_bio_stat(struct bio_stats *b,
+			  const struct atomic_bio_stats *a)
 {
 	b->read = atomic64_read(&a->read);
 	b->write = atomic64_read(&a->write);
@@ -1604,7 +1597,8 @@ static void copy_bio_stat(struct bio_stats *b, const struct atomic_bio_stats *a)
 	b->fua = atomic64_read(&a->fua);
 }
 
-static struct bio_stats subtract_bio_stats(struct bio_stats minuend, struct bio_stats subtrahend)
+static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
+					   struct bio_stats subtrahend)
 {
 	return (struct bio_stats) {
 		.read = minuend.read - subtrahend.read,
@@ -1666,7 +1660,8 @@ static const char *vdo_describe_state(enum vdo_state state)
  * @vdo: The vdo.
  * @stats: The statistics structure to populate.
  */
-static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *stats)
+static void get_vdo_statistics(const struct vdo *vdo,
+			       struct vdo_statistics *stats)
 {
 	struct recovery_journal *journal = vdo->recovery_journal;
 	enum vdo_state state = vdo_get_state(vdo);
@@ -1866,8 +1861,7 @@ void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
  * Return: VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid or an error code for any
  *         other failure.
  */
-int vdo_get_physical_zone(const struct vdo *vdo,
-			  physical_block_number_t pbn,
+int vdo_get_physical_zone(const struct vdo *vdo, physical_block_number_t pbn,
 			  struct physical_zone **zone_ptr)
 {
 	struct vdo_slab *slab;
