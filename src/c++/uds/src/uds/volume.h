@@ -139,8 +139,9 @@ int __must_check uds_find_volume_chapter_boundaries(struct volume *volume,
 						    u64 *highest_vcn,
 						    bool *is_empty);
 
-int __must_check
-uds_search_volume_page_cache(struct volume *volume, struct uds_request *request, bool *found);
+int __must_check uds_search_volume_page_cache(struct volume *volume,
+					      struct uds_request *request,
+					      bool *found);
 
 int __must_check uds_search_volume_page_cache_for_rebuild(struct volume *volume,
 							  const struct uds_record_name *name,
@@ -161,17 +162,15 @@ int __must_check uds_write_chapter(struct volume *volume,
 
 void uds_prefetch_volume_chapter(const struct volume *volume, u32 chapter);
 
-int __must_check
-uds_read_chapter_index_from_volume(const struct volume *volume,
-				   u64 virtual_chapter,
-				   struct dm_buffer *volume_buffers[],
-				   struct delta_index_page index_pages[]);
+int __must_check uds_read_chapter_index_from_volume(const struct volume *volume,
+						    u64 virtual_chapter,
+						    struct dm_buffer *volume_buffers[],
+						    struct delta_index_page index_pages[]);
 
-int __must_check
-uds_get_volume_record_page(struct volume *volume, u32 chapter, u32 page_number, u8 **data_ptr);
+int __must_check uds_get_volume_record_page(struct volume *volume, u32 chapter,
+					    u32 page_number, u8 **data_ptr);
 
-int __must_check uds_get_volume_index_page(struct volume *volume,
-					   u32 chapter,
+int __must_check uds_get_volume_index_page(struct volume *volume, u32 chapter,
 					   u32 page_number,
 					   struct delta_index_page **page_ptr);
 
@@ -187,7 +186,8 @@ void set_chapter_tester(chapter_tester_t chapter_tester);
 
 u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
 
-void begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number);
+void begin_pending_search(struct page_cache *cache, u32 physical_page,
+			  unsigned int zone_number);
 void end_pending_search(struct page_cache *cache, unsigned int zone_number);
 
 int encode_record_page(const struct volume *volume,
@@ -208,24 +208,25 @@ void uninitialize_page_cache(struct page_cache *cache);
 
 void invalidate_page(struct page_cache *cache, u32 physical_page);
 
-void make_page_most_recent(struct page_cache *cache, struct cached_page *page_ptr);
+void make_page_most_recent(struct page_cache *cache,
+			   struct cached_page *page_ptr);
 
-void get_page_from_cache(struct page_cache *cache, u32 physical_page, struct cached_page **page);
+void get_page_from_cache(struct page_cache *cache, u32 physical_page,
+			 struct cached_page **page);
 
-void enqueue_page_read(struct volume *volume, struct uds_request *request, u32 physical_page);
+void enqueue_page_read(struct volume *volume, struct uds_request *request,
+		       u32 physical_page);
 
-bool __must_check
-enqueue_read(struct page_cache *cache, struct uds_request *request, u32 physical_page);
+bool __must_check enqueue_read(struct page_cache *cache,
+			       struct uds_request *request, u32 physical_page);
 
 struct cached_page * __must_check select_victim_in_cache(struct page_cache *cache);
 
-int __must_check
-put_page_in_cache(struct page_cache *cache, u32 physical_page, struct cached_page *page);
+int __must_check put_page_in_cache(struct page_cache *cache, u32 physical_page,
+				   struct cached_page *page);
 
-int __must_check find_chapter_limits(struct volume *volume,
-				     u32 chapter_limit,
-				     u64 *lowest_vcn,
-				     u64 *highest_vcn);
+int __must_check find_chapter_limits(struct volume *volume, u32 chapter_limit,
+				     u64 *lowest_vcn, u64 *highest_vcn);
 
 int __must_check get_volume_page_locked(struct volume *volume,
 					u32 physical_page,
