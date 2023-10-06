@@ -13,8 +13,7 @@ struct histogram *make_linear_histogram(struct kobject *parent,
 					const char *init_label,
 					const char *counted_items,
 					const char *metric,
-					const char *sample_units,
-					int size);
+					const char *sample_units, int size);
 
 struct histogram *make_logarithmic_histogram(struct kobject *parent,
 					     const char *name,

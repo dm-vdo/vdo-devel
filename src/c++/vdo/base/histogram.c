@@ -246,7 +246,8 @@ static void histogram_kobj_release(struct kobject *kobj)
 	UDS_FREE(h);
 }
 
-static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char *buf)
+static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr,
+			      char *buf)
 {
 	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
@@ -257,10 +258,8 @@ static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char
 	return ha->show(h, buf);
 }
 
-static ssize_t histogram_store(struct kobject *kobj,
-			       struct attribute *attr,
-			       const char *buf,
-			       size_t length)
+static ssize_t histogram_store(struct kobject *kobj, struct attribute *attr,
+			       const char *buf, size_t length)
 {
 	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute, attr);
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
@@ -402,7 +401,8 @@ static ssize_t histogram_show_limit(struct histogram *h, char *buf)
 	return sprintf(buf, "%u\n", (unsigned int) (h->conversion_factor * h->limit));
 }
 
-static ssize_t histogram_store_limit(struct histogram *h, const char *buf, size_t length)
+static ssize_t histogram_store_limit(struct histogram *h, const char *buf,
+				     size_t length)
 {
 	unsigned int value;
 
@@ -579,8 +579,7 @@ static struct kobj_type bucketless_histogram_kobj_type = {
 };
 
 static struct histogram *make_histogram(struct kobject *parent,
-					const char *name,
-					const char *label,
+					const char *name, const char *label,
 					const char *counted_items,
 					const char *metric,
 					const char *sample_units,
@@ -654,8 +653,7 @@ struct histogram *make_linear_histogram(struct kobject *parent,
 					const char *init_label,
 					const char *counted_items,
 					const char *metric,
-					const char *sample_units,
-					int size)
+					const char *sample_units, int size)
 {
 	return make_histogram(parent,
 			      name,
@@ -685,15 +683,14 @@ struct histogram *make_linear_histogram(struct kobject *parent,
  *
  * Return: The histogram.
  */
-static struct histogram *
-make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
-						  const char *name,
-						  const char *init_label,
-						  const char *counted_items,
-						  const char *metric,
-						  const char *sample_units,
-						  int log_size,
-						  u64 conversion_factor)
+static struct histogram *make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
+									   const char *name,
+									   const char *init_label,
+									   const char *counted_items,
+									   const char *metric,
+									   const char *sample_units,
+									   int log_size,
+									   u64 conversion_factor)
 {
 	if (log_size > MAX_LOG_SIZE)
 		log_size = MAX_LOG_SIZE;
