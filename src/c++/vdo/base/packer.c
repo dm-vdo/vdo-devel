@@ -47,8 +47,7 @@ enum {
  */
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
-				      u16 *fragment_offset,
-				      u16 *fragment_size)
+				      u16 *fragment_offset, u16 *fragment_size)
 {
 	u16 compressed_size;
 	u16 offset = 0;
@@ -87,7 +86,8 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
  * @packer: The packer.
  * @caller: The function which is asserting.
  */
-static inline void assert_on_packer_thread(struct packer *packer, const char *caller)
+static inline void assert_on_packer_thread(struct packer *packer,
+					   const char *caller)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == packer->thread_id),
 			"%s() called from packer thread", caller);
@@ -101,7 +101,8 @@ static inline void assert_on_packer_thread(struct packer *packer, const char *ca
  * The list is in ascending order of free space. Since all bins are already in the list, this
  * actually moves the bin to the correct position in the list.
  */
-static void insert_in_sorted_list(struct packer *packer, struct packer_bin *bin)
+static void insert_in_sorted_list(struct packer *packer,
+				  struct packer_bin *bin)
 {
 	struct packer_bin *active_bin;
 
@@ -146,7 +147,8 @@ static int __must_check make_bin(struct packer *packer)
  *
  * Return: VDO_SUCCESS or an error
  */
-int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **packer_ptr)
+int vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
+		    struct packer **packer_ptr)
 {
 	struct packer *packer;
 	block_count_t i;
@@ -262,8 +264,8 @@ static void abort_packing(struct data_vio *data_vio)
  * @data_vio: The data_vio to release.
  * @allocation: The allocation to which the compressed block was written.
  */
-static void
-release_compressed_write_waiter(struct data_vio *data_vio, struct allocation *allocation)
+static void release_compressed_write_waiter(struct data_vio *data_vio,
+					    struct allocation *allocation)
 {
 	data_vio->new_mapped = (struct zoned_pbn) {
 		.pbn = allocation->pbn,
@@ -345,7 +347,8 @@ static void add_to_bin(struct packer_bin *bin, struct data_vio *data_vio)
  * Any canceled data_vios will be moved to the canceled bin.
  * Return: An uncanceled data_vio from the bin or NULL if there are none.
  */
-static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin *bin)
+static struct data_vio *remove_from_bin(struct packer *packer,
+					struct packer_bin *bin)
 {
 	while (bin->slots_used > 0) {
 		struct data_vio *data_vio = bin->incoming[--bin->slots_used];
@@ -373,7 +376,8 @@ static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin
  * data field, it needn't be copied. So all we need do is initialize the header and set the size of
  * the agent's fragment.
  */
-STATIC void initialize_compressed_block(struct compressed_block *block, u16 size)
+STATIC void initialize_compressed_block(struct compressed_block *block,
+					u16 size)
 {
 	/*
 	 * Make sure the block layout isn't accidentally changed by changing the length of the
@@ -395,12 +399,11 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
  *
  * Return: The new amount of space used.
  */
-STATIC block_size_t __must_check
-pack_fragment(struct compression_state *compression,
-	      struct data_vio *data_vio,
-	      block_size_t offset,
-	      slot_number_t slot,
-	      struct compressed_block *block)
+STATIC block_size_t __must_check pack_fragment(struct compression_state *compression,
+					       struct data_vio *data_vio,
+					       block_size_t offset,
+					       slot_number_t slot,
+					       struct compressed_block *block)
 {
 	struct compression_state *to_pack = &data_vio->compression;
 	char *fragment = to_pack->block->data;
@@ -534,8 +537,8 @@ static void add_data_vio_to_packer_bin(struct packer *packer,
  * @packer: The packer.
  * @data_vio: The data_vio.
  */
-static struct packer_bin * __must_check
-select_bin(struct packer *packer, struct data_vio *data_vio)
+static struct packer_bin * __must_check select_bin(struct packer *packer,
+						   struct data_vio *data_vio)
 {
 	/*
 	 * First best fit: select the bin with the least free space that has enough room for the

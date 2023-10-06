@@ -99,8 +99,8 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      u16 *fragment_offset,
 				      u16 *fragment_size);
 
-int __must_check
-vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **packer_ptr);
+int __must_check vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
+				 struct packer **packer_ptr);
 
 void vdo_free_packer(struct packer *packer);
 
@@ -114,7 +114,8 @@ void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion);
 
 void vdo_increment_packer_flush_generation(struct packer *packer);
 
-void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion);
+void vdo_drain_packer(struct packer *packer,
+		      struct vdo_completion *completion);
 
 void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 
