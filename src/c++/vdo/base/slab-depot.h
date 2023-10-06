@@ -497,18 +497,16 @@ struct slab_depot {
 
 struct reference_updater;
 
-bool __must_check
-vdo_attempt_replay_into_slab(struct vdo_slab *slab,
-			     physical_block_number_t pbn,
-			     enum journal_operation operation,
-			     bool increment,
-			     struct journal_point *recovery_point,
-			     struct vdo_completion *parent);
+bool __must_check vdo_attempt_replay_into_slab(struct vdo_slab *slab,
+					       physical_block_number_t pbn,
+					       enum journal_operation operation,
+					       bool increment,
+					       struct journal_point *recovery_point,
+					       struct vdo_completion *parent);
 
-int __must_check
-vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
-				       physical_block_number_t pbn,
-				       enum journal_operation operation);
+int __must_check vdo_adjust_reference_count_for_rebuild(struct slab_depot *depot,
+							physical_block_number_t pbn,
+							enum journal_operation operation);
 
 static inline struct block_allocator *vdo_as_block_allocator(struct vdo_completion *completion)
 {
@@ -520,10 +518,11 @@ int __must_check vdo_acquire_provisional_reference(struct vdo_slab *slab,
 						   physical_block_number_t pbn,
 						   struct pbn_lock *lock);
 
-int __must_check
-vdo_allocate_block(struct block_allocator *allocator, physical_block_number_t *block_number_ptr);
+int __must_check vdo_allocate_block(struct block_allocator *allocator,
+				    physical_block_number_t *block_number_ptr);
 
-int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator, struct waiter *waiter);
+int vdo_enqueue_clean_slab_waiter(struct block_allocator *allocator,
+				  struct waiter *waiter);
 
 void vdo_modify_reference_count(struct vdo_completion *completion,
 				struct reference_updater *updater);
@@ -546,24 +545,25 @@ struct slab_depot_state_2_0 __must_check vdo_record_slab_depot(const struct slab
 
 int __must_check vdo_allocate_reference_counters(struct slab_depot *depot);
 
-struct vdo_slab * __must_check
-vdo_get_slab(const struct slab_depot *depot, physical_block_number_t pbn);
+struct vdo_slab * __must_check vdo_get_slab(const struct slab_depot *depot,
+					    physical_block_number_t pbn);
 
-u8 __must_check vdo_get_increment_limit(struct slab_depot *depot, physical_block_number_t pbn);
+u8 __must_check vdo_get_increment_limit(struct slab_depot *depot,
+					physical_block_number_t pbn);
 
-bool __must_check
-vdo_is_physical_data_block(const struct slab_depot *depot, physical_block_number_t pbn);
+bool __must_check vdo_is_physical_data_block(const struct slab_depot *depot,
+					     physical_block_number_t pbn);
 
 block_count_t __must_check vdo_get_slab_depot_allocated_blocks(const struct slab_depot *depot);
 
 block_count_t __must_check vdo_get_slab_depot_data_blocks(const struct slab_depot *depot);
 
-void vdo_get_slab_depot_statistics(const struct slab_depot *depot, struct vdo_statistics *stats);
+void vdo_get_slab_depot_statistics(const struct slab_depot *depot,
+				   struct vdo_statistics *stats);
 
 void vdo_load_slab_depot(struct slab_depot *depot,
 			 const struct admin_state_code *operation,
-			 struct vdo_completion *parent,
-			 void *context);
+			 struct vdo_completion *parent, void *context);
 
 void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 					enum slab_depot_load_type load_type,
@@ -571,10 +571,11 @@ void vdo_prepare_slab_depot_to_allocate(struct slab_depot *depot,
 
 void vdo_update_slab_depot_size(struct slab_depot *depot);
 
-int __must_check
-vdo_prepare_to_grow_slab_depot(struct slab_depot *depot, const struct partition *partition);
+int __must_check vdo_prepare_to_grow_slab_depot(struct slab_depot *depot,
+						const struct partition *partition);
 
-void vdo_use_new_slabs(struct slab_depot *depot, struct vdo_completion *parent);
+void vdo_use_new_slabs(struct slab_depot *depot,
+		       struct vdo_completion *parent);
 
 void vdo_abandon_new_slabs(struct slab_depot *depot);
 
@@ -582,21 +583,21 @@ void vdo_drain_slab_depot(struct slab_depot *depot,
 			  const struct admin_state_code *operation,
 			  struct vdo_completion *parent);
 
-void vdo_resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent);
+void vdo_resume_slab_depot(struct slab_depot *depot,
+			   struct vdo_completion *parent);
 
 void vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 						sequence_number_t recovery_block_number);
 
-void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot, struct vdo_completion *parent);
+void vdo_scrub_all_unrecovered_slabs(struct slab_depot *depot,
+				     struct vdo_completion *parent);
 
 void vdo_dump_slab_depot(const struct slab_depot *depot);
 
 #ifdef INTERNAL
-void update_slab_summary_entry(struct vdo_slab *slab,
-			       struct waiter *waiter,
+void update_slab_summary_entry(struct vdo_slab *slab, struct waiter *waiter,
 			       tail_block_offset_t tail_block_offset,
-			       bool load_ref_counts,
-			       bool is_clean,
+			       bool load_ref_counts, bool is_clean,
 			       block_count_t free_blocks);
 void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			       slab_journal_payload *payload,
@@ -619,15 +620,15 @@ int __must_check adjust_reference_count(struct vdo_slab *slab,
 int __must_check replay_reference_count_change(struct vdo_slab *slab,
 					       const struct journal_point *entry_point,
 					       struct slab_journal_entry entry);
-bool __must_check find_free_block(const struct vdo_slab *slab, slab_block_number *index_ptr);
+bool __must_check find_free_block(const struct vdo_slab *slab,
+				  slab_block_number *index_ptr);
 void drain_slab(struct vdo_slab *slab);
 int __must_check allocate_slab_counters(struct vdo_slab *slab);
 void register_slab_for_scrubbing(struct vdo_slab *slab, bool high_priority);
 void free_slab(struct vdo_slab *slab);
 int __must_check make_slab(physical_block_number_t slab_origin,
 			   struct block_allocator *allocator,
-			   slab_count_t slab_number,
-			   bool is_new,
+			   slab_count_t slab_number, bool is_new,
 			   struct vdo_slab **slab_ptr);
 bool __must_check release_recovery_journal_lock(struct slab_journal *journal,
 						sequence_number_t recovery_lock);
@@ -638,13 +639,15 @@ int __must_check get_reference_counter(struct vdo_slab *slab,
 				       physical_block_number_t pbn,
 				       vdo_refcount_t **counter_ptr);
 void initiate_slab_action(struct admin_state *state);
-void scrub_slabs(struct block_allocator *allocator, struct vdo_completion *parent);
+void scrub_slabs(struct block_allocator *allocator,
+		 struct vdo_completion *parent);
 int __must_check allocate_slab_block(struct vdo_slab *slab,
 				     physical_block_number_t *block_number_ptr);
 void initiate_summary_drain(struct admin_state *state);
 int __must_check initialize_slab_scrubber(struct block_allocator *allocator);
 void load_slab_summary(void *context, struct vdo_completion *parent);
-int get_slab_statuses(struct block_allocator *allocator, struct slab_status **statuses_ptr);
+int get_slab_statuses(struct block_allocator *allocator,
+		      struct slab_status **statuses_ptr);
 int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator);
 void stop_scrubbing(struct block_allocator *allocator);
 void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator);
