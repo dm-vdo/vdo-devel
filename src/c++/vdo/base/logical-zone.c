@@ -38,7 +38,8 @@ static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 }
 
 /* get_thread_id_for_zone() - Implements vdo_zone_thread_getter. */
-static thread_id_t get_thread_id_for_zone(void *context, zone_count_t zone_number)
+static thread_id_t get_thread_id_for_zone(void *context,
+					  zone_count_t zone_number)
 {
 	struct logical_zones *zones = context;
 
@@ -50,7 +51,8 @@ static thread_id_t get_thread_id_for_zone(void *context, zone_count_t zone_numbe
  * @zones: The logical_zones to which this zone belongs.
  * @zone_number: The logical_zone's index.
  */
-static int initialize_zone(struct logical_zones *zones, zone_count_t zone_number)
+static int initialize_zone(struct logical_zones *zones,
+			   zone_count_t zone_number)
 {
 	int result;
 	struct vdo *vdo = zones->vdo;
@@ -145,7 +147,8 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 	UDS_FREE(zones);
 }
 
-static inline void assert_on_zone_thread(struct logical_zone *zone, const char *what)
+static inline void assert_on_zone_thread(struct logical_zone *zone,
+					 const char *what)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == zone->thread_id),
 			"%s() called on correct thread", what);
@@ -179,8 +182,8 @@ static void initiate_drain(struct admin_state *state)
  *
  * Implements vdo_zone_action.
  */
-static void
-drain_logical_zone(void *context, zone_count_t zone_number, struct vdo_completion *parent)
+static void drain_logical_zone(void *context, zone_count_t zone_number,
+			       struct vdo_completion *parent)
 {
 	struct logical_zones *zones = context;
 
@@ -202,8 +205,8 @@ void vdo_drain_logical_zones(struct logical_zones *zones,
  *
  * Implements vdo_zone_action.
  */
-static void
-resume_logical_zone(void *context, zone_count_t zone_number, struct vdo_completion *parent)
+static void resume_logical_zone(void *context, zone_count_t zone_number,
+				struct vdo_completion *parent)
 {
 	struct logical_zone *zone = &(((struct logical_zones *) context)->zones[zone_number]);
 
@@ -215,7 +218,8 @@ resume_logical_zone(void *context, zone_count_t zone_number, struct vdo_completi
  * @zones: The logical zones to resume.
  * @parent: The object to notify when the zones have resumed.
  */
-void vdo_resume_logical_zones(struct logical_zones *zones, struct vdo_completion *parent)
+void vdo_resume_logical_zones(struct logical_zones *zones,
+			      struct vdo_completion *parent)
 {
 	vdo_schedule_operation(zones->manager, VDO_ADMIN_STATE_RESUMING, NULL,
 			       resume_logical_zone, NULL, parent);
