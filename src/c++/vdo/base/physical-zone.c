@@ -56,7 +56,8 @@ static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
 	},
 };
 
-static inline bool has_lock_type(const struct pbn_lock *lock, enum pbn_lock_type type)
+static inline bool has_lock_type(const struct pbn_lock *lock,
+				 enum pbn_lock_type type)
 {
 	return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
 }
@@ -72,7 +73,8 @@ bool vdo_is_pbn_read_lock(const struct pbn_lock *lock)
 	return has_lock_type(lock, VIO_READ_LOCK);
 }
 
-static inline void set_pbn_lock_type(struct pbn_lock *lock, enum pbn_lock_type type)
+static inline void set_pbn_lock_type(struct pbn_lock *lock,
+				     enum pbn_lock_type type)
 {
 	lock->implementation = &LOCK_IMPLEMENTATIONS[type];
 }
@@ -157,10 +159,9 @@ void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock)
  *
  * This method is called when the lock is released.
  */
-static void
-release_pbn_lock_provisional_reference(struct pbn_lock *lock,
-				       physical_block_number_t locked_pbn,
-				       struct block_allocator *allocator)
+static void release_pbn_lock_provisional_reference(struct pbn_lock *lock,
+						   physical_block_number_t locked_pbn,
+						   struct block_allocator *allocator)
 {
 	int result;
 
@@ -215,7 +216,8 @@ struct pbn_lock_pool {
  * It must be the last live reference, as if the memory were being freed (the lock memory will
  * re-initialized or zeroed).
  */
-static void return_pbn_lock_to_pool(struct pbn_lock_pool *pool, struct pbn_lock *lock)
+static void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+				    struct pbn_lock *lock)
 {
 	idle_pbn_lock *idle;
 
@@ -293,10 +295,9 @@ static void free_pbn_lock_pool(struct pbn_lock_pool *pool)
  *
  * Return: VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty.
  */
-static int __must_check
-borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
-			  enum pbn_lock_type type,
-			  struct pbn_lock **lock_ptr)
+static int __must_check borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+						  enum pbn_lock_type type,
+						  struct pbn_lock **lock_ptr)
 {
 	int result;
 	struct list_head *idle_entry;
@@ -423,8 +424,8 @@ void vdo_free_physical_zones(struct physical_zones *zones)
  *
  * Return: The lock or NULL if the PBN is not locked.
  */
-struct pbn_lock *
-vdo_get_physical_zone_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn)
+struct pbn_lock *vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
+						physical_block_number_t pbn)
 {
 	return ((zone == NULL) ? NULL : vdo_int_map_get(zone->pbn_operations, pbn));
 }
@@ -529,7 +530,8 @@ static int allocate_and_lock_block(struct allocation *allocation)
  * @waiter: The allocating_vio that was waiting to allocate.
  * @context: The context (unused).
  */
-static void retry_allocation(struct waiter *waiter, void *context __always_unused)
+static void retry_allocation(struct waiter *waiter,
+			     void *context __always_unused)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 

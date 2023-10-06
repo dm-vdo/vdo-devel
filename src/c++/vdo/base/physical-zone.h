@@ -76,7 +76,8 @@ struct physical_zones {
 };
 
 bool __must_check vdo_is_pbn_read_lock(const struct pbn_lock *lock);
-void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock, bool compressed_write);
+void vdo_downgrade_pbn_write_lock(struct pbn_lock *lock,
+				  bool compressed_write);
 bool __must_check vdo_claim_pbn_lock_increment(struct pbn_lock *lock);
 
 /**
@@ -91,18 +92,18 @@ static inline bool vdo_pbn_lock_has_provisional_reference(struct pbn_lock *lock)
 void vdo_assign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 void vdo_unassign_pbn_lock_provisional_reference(struct pbn_lock *lock);
 
-int __must_check vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr);
+int __must_check vdo_make_physical_zones(struct vdo *vdo,
+					 struct physical_zones **zones_ptr);
 
 void vdo_free_physical_zones(struct physical_zones *zones);
 
-struct pbn_lock * __must_check
-vdo_get_physical_zone_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn);
+struct pbn_lock * __must_check vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
+							      physical_block_number_t pbn);
 
-int __must_check
-vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
-				   physical_block_number_t pbn,
-				   enum pbn_lock_type type,
-				   struct pbn_lock **lock_ptr);
+int __must_check vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
+						    physical_block_number_t pbn,
+						    enum pbn_lock_type type,
+						    struct pbn_lock **lock_ptr);
 
 bool __must_check vdo_allocate_block_in_zone(struct data_vio *data_vio);
 
