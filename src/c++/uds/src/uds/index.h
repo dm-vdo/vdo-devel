@@ -80,9 +80,11 @@ void uds_free_index(struct uds_index *index);
 int __must_check uds_replace_index_storage(struct uds_index *index,
 					   struct block_device *bdev);
 
-void uds_get_index_stats(struct uds_index *index, struct uds_index_stats *counters);
+void uds_get_index_stats(struct uds_index *index,
+			 struct uds_index_stats *counters);
 
-void uds_enqueue_request(struct uds_request *request, enum request_stage stage);
+void uds_enqueue_request(struct uds_request *request,
+			 enum request_stage stage);
 
 void uds_wait_for_idle_index(struct uds_index *index);
 

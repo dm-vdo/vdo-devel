@@ -78,7 +78,8 @@ struct chapter_writer {
 	struct open_chapter_zone *chapters[];
 };
 
-static bool is_zone_chapter_sparse(const struct index_zone *zone, u64 virtual_chapter)
+static bool is_zone_chapter_sparse(const struct index_zone *zone,
+				   u64 virtual_chapter)
 {
 	return uds_is_chapter_sparse(zone->index->volume->geometry,
 				     zone->oldest_virtual_chapter,
@@ -86,8 +87,8 @@ static bool is_zone_chapter_sparse(const struct index_zone *zone, u64 virtual_ch
 				     virtual_chapter);
 }
 
-static int
-launch_zone_message(struct uds_zone_message message, unsigned int zone, struct uds_index *index)
+static int launch_zone_message(struct uds_zone_message message,
+			       unsigned int zone, struct uds_index *index)
 {
 	int result;
 	struct uds_request *request;
@@ -105,7 +106,8 @@ launch_zone_message(struct uds_zone_message message, unsigned int zone, struct u
 	return UDS_SUCCESS;
 }
 
-static void enqueue_barrier_messages(struct uds_index *index, u64 virtual_chapter)
+static void enqueue_barrier_messages(struct uds_index *index,
+				     u64 virtual_chapter)
 {
 	struct uds_zone_message message = {
 		.type = UDS_MESSAGE_SPARSE_CACHE_BARRIER,
@@ -125,7 +127,8 @@ static void enqueue_barrier_messages(struct uds_index *index, u64 virtual_chapte
  * membership of the sparse cache. If a change in membership is desired, the function returns the
  * chapter number to add.
  */
-static u64 triage_index_request(struct uds_index *index, struct uds_request *request)
+static u64 triage_index_request(struct uds_index *index,
+				struct uds_request *request)
 {
 	u64 virtual_chapter;
 	struct index_zone *zone;
@@ -151,8 +154,8 @@ static u64 triage_index_request(struct uds_index *index, struct uds_request *req
  * allows us to forgo the complicated locking required by a multi-zone sparse index. Any other kind
  * of index does nothing here.
  */
-static int
-simulate_index_zone_barrier_message(struct index_zone *zone, struct uds_request *request)
+static int simulate_index_zone_barrier_message(struct index_zone *zone,
+					       struct uds_request *request)
 {
 	u64 sparse_virtual_chapter;
 
@@ -179,7 +182,8 @@ static void triage_request(struct uds_request *request)
 	uds_enqueue_request(request, STAGE_INDEX);
 }
 
-static int finish_previous_chapter(struct uds_index *index, u64 current_chapter_number)
+static int finish_previous_chapter(struct uds_index *index,
+				   u64 current_chapter_number)
 {
 	int result;
 	struct chapter_writer *writer = index->chapter_writer;
@@ -323,7 +327,8 @@ static int dispatch_index_zone_control_request(struct uds_request *request)
 	}
 }
 
-static void set_request_location(struct uds_request *request, enum uds_index_region new_location)
+static void set_request_location(struct uds_request *request,
+				 enum uds_index_region new_location)
 {
 	request->location = new_location;
 	request->found = ((new_location == UDS_LOCATION_IN_OPEN_CHAPTER) ||
@@ -346,8 +351,7 @@ static void set_chapter_location(struct uds_request *request,
 
 static int search_sparse_cache_in_zone(struct index_zone *zone,
 				       struct uds_request *request,
-				       u64 virtual_chapter,
-				       bool *found)
+				       u64 virtual_chapter, bool *found)
 {
 	int result;
 	struct volume *volume;
@@ -367,7 +371,8 @@ static int search_sparse_cache_in_zone(struct index_zone *zone,
 	return uds_search_cached_record_page(volume, request, chapter, record_page_number, found);
 }
 
-static int get_record_from_zone(struct index_zone *zone, struct uds_request *request, bool *found)
+static int get_record_from_zone(struct index_zone *zone,
+				struct uds_request *request, bool *found)
 {
 	struct volume *volume;
 
@@ -420,7 +425,8 @@ static int put_record_in_zone(struct index_zone *zone,
 	return UDS_SUCCESS;
 }
 
-static int search_index_zone(struct index_zone *zone, struct uds_request *request)
+static int search_index_zone(struct index_zone *zone,
+			     struct uds_request *request)
 {
 	int result;
 	struct volume_index_record record;
@@ -524,7 +530,8 @@ static int search_index_zone(struct index_zone *zone, struct uds_request *reques
 	return put_record_in_zone(zone, request, metadata);
 }
 
-static int remove_from_index_zone(struct index_zone *zone, struct uds_request *request)
+static int remove_from_index_zone(struct index_zone *zone,
+				  struct uds_request *request)
 {
 	int result;
 	struct volume_index_record record;
@@ -580,7 +587,8 @@ static int remove_from_index_zone(struct index_zone *zone, struct uds_request *r
 	return UDS_SUCCESS;
 }
 
-static int dispatch_index_request(struct uds_index *index, struct uds_request *request)
+static int dispatch_index_request(struct uds_index *index,
+				  struct uds_request *request)
 {
 	int result;
 	struct index_zone *zone = index->zones[request->zone_number];
@@ -650,7 +658,8 @@ static void execute_zone_request(struct uds_request *request)
 	index->callback(request);
 }
 
-static int initialize_index_queues(struct uds_index *index, const struct geometry *geometry)
+static int initialize_index_queues(struct uds_index *index,
+				   const struct geometry *geometry)
 {
 	int result;
 	unsigned int i;
@@ -773,7 +782,8 @@ static void free_chapter_writer(struct chapter_writer *writer)
 	UDS_FREE(writer);
 }
 
-static int make_chapter_writer(struct uds_index *index, struct chapter_writer **writer_ptr)
+static int make_chapter_writer(struct uds_index *index,
+			       struct chapter_writer **writer_ptr)
 {
 	int result;
 	struct chapter_writer *writer;
@@ -896,8 +906,7 @@ static int rebuild_index_page_map(struct uds_index *index, u64 vcn)
 
 static int replay_record(struct uds_index *index,
 			 const struct uds_record_name *name,
-			 u64 virtual_chapter,
-			 bool will_be_sparse_chapter)
+			 u64 virtual_chapter, bool will_be_sparse_chapter)
 {
 	int result;
 	struct volume_index_record record;
@@ -1189,8 +1198,7 @@ static int make_index_zone(struct uds_index *index, unsigned int zone_number)
 int uds_make_index(struct configuration *config,
 		   enum uds_open_index_type open_type,
 		   struct index_load_context *load_context,
-		   index_callback_t callback,
-		   struct uds_index **new_index)
+		   index_callback_t callback, struct uds_index **new_index)
 {
 	int result;
 	bool loaded = false;
@@ -1379,7 +1387,8 @@ int uds_replace_index_storage(struct uds_index *index, struct block_device *bdev
 }
 
 /* Accessing statistics should be safe from any thread. */
-void uds_get_index_stats(struct uds_index *index, struct uds_index_stats *counters)
+void uds_get_index_stats(struct uds_index *index,
+			 struct uds_index_stats *counters)
 {
 	struct volume_index_stats stats;
 
