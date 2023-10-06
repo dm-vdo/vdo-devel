@@ -277,7 +277,8 @@ static void free_device_config(struct device_config *config)
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int get_version_number(int argc, char **argv, char **error_ptr, unsigned int *version_ptr)
+static int get_version_number(int argc, char **argv, char **error_ptr,
+			      unsigned int *version_ptr)
 {
 	/* version, if it exists, is in a form of V<n> */
 	if (sscanf(argv[0], "V%u", version_ptr) == 1) {
@@ -335,7 +336,8 @@ static void free_string_array(char **string_array)
  * Empty substrings are not ignored; that is, returned substrings may be empty strings if the
  * separator occurs twice in a row.
  */
-static int split_string(const char *string, char separator, char ***substring_array_ptr)
+static int split_string(const char *string, char separator,
+			char ***substring_array_ptr)
 {
 	unsigned int current_substring = 0, substring_count = 1;
 	const char *s;
@@ -395,8 +397,8 @@ static int split_string(const char *string, char separator, char ***substring_ar
  * string. array_length is a bound on the number of valid elements in substring_array, in case it
  * is not NULL-terminated.
  */
-static int
-join_strings(char **substring_array, size_t array_length, char separator, char **string_ptr)
+static int join_strings(char **substring_array, size_t array_length,
+			char separator, char **string_ptr)
 {
 	size_t string_length = 0;
 	size_t i;
@@ -438,8 +440,8 @@ join_strings(char **substring_array, size_t array_length, char separator, char *
  *
  * Return: VDO_SUCCESS or an error if bool_str is neither true_str nor false_str.
  */
-static inline int __must_check
-parse_bool(const char *bool_str, const char *true_str, const char *false_str, bool *bool_ptr)
+static inline int __must_check parse_bool(const char *bool_str, const char *true_str, const char *false_str,
+					  bool *bool_ptr)
 {
 	bool value = false;
 
@@ -547,7 +549,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
  * @spec: The thread parameter specification string.
  * @config: The configuration data to be updated.
  */
-static int parse_one_thread_config_spec(const char *spec, struct thread_count_config *config)
+static int parse_one_thread_config_spec(const char *spec,
+					struct thread_count_config *config)
 {
 	unsigned int count;
 	char **fields;
@@ -597,7 +600,8 @@ static int parse_one_thread_config_spec(const char *spec, struct thread_count_co
  *
  * Return: VDO_SUCCESS or -EINVAL or -ENOMEM
  */
-static int parse_thread_config_string(const char *string, struct thread_count_config *config)
+static int parse_thread_config_string(const char *string,
+				      struct thread_count_config *config)
 {
 	int result = VDO_SUCCESS;
 	char **specs;
@@ -631,8 +635,8 @@ static int parse_thread_config_string(const char *string, struct thread_count_co
  *
  * Return: VDO_SUCCESS or -EINVAL
  */
-static int
-process_one_key_value_pair(const char *key, unsigned int value, struct device_config *config)
+static int process_one_key_value_pair(const char *key, unsigned int value,
+				      struct device_config *config)
 {
 	/* Non thread optional parameters */
 	if (strcmp(key, "maxDiscard") == 0) {
@@ -662,8 +666,8 @@ process_one_key_value_pair(const char *key, unsigned int value, struct device_co
  *
  * Return: VDO_SUCCESS or error.
  */
-static int
-parse_one_key_value_pair(const char *key, const char *value, struct device_config *config)
+static int parse_one_key_value_pair(const char *key, const char *value,
+				    struct device_config *config)
 {
 	unsigned int count;
 	int result;
@@ -699,7 +703,8 @@ parse_one_key_value_pair(const char *key, const char *value, struct device_confi
  *
  * Return: VDO_SUCCESS or error
  */
-static int parse_key_value_pairs(int argc, char **argv, struct device_config *config)
+static int parse_key_value_pairs(int argc, char **argv,
+				 struct device_config *config)
 {
 	int result = VDO_SUCCESS;
 
@@ -763,7 +768,8 @@ static int parse_optional_arguments(struct dm_arg_set *arg_set,
  * @error_ptr: A place to store a constant string about the error.
  * @error_str: A constant string to store in error_ptr.
  */
-static void handle_parse_error(struct device_config *config, char **error_ptr, char *error_str)
+static void handle_parse_error(struct device_config *config, char **error_ptr,
+			       char *error_str)
 {
 	free_device_config(config);
 	*error_ptr = error_str;
@@ -778,9 +784,7 @@ static void handle_parse_error(struct device_config *config, char **error_ptr, c
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int parse_device_config(int argc,
-			       char **argv,
-			       struct dm_target *ti,
+static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 			       struct device_config **config_ptr)
 {
 	bool enable_512e;
@@ -1103,7 +1107,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
-static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn fn, void *data)
+static int vdo_iterate_devices(struct dm_target *ti,
+			       iterate_devices_callout_fn fn, void *data)
 {
 	struct device_config *config = get_vdo_for_target(ti)->device_config;
 
@@ -1120,10 +1125,8 @@ static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn 
  *    <used physical blocks> <total physical blocks>
  */
 
-static void vdo_status(struct dm_target *ti,
-		       status_type_t status_type,
-		       unsigned int status_flags,
-		       char *result,
+static void vdo_status(struct dm_target *ti, status_type_t status_type,
+		       unsigned int status_flags, char *result,
 		       unsigned int maxlen)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
@@ -1195,7 +1198,8 @@ static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int
  * and only proceed if so.
  * Returns -EBUSY if another message is being processed
  */
-static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
+static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc,
+					    char **argv)
 {
 	int result;
 
@@ -1234,11 +1238,8 @@ static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc, 
 	return result;
 }
 
-static int vdo_message(struct dm_target *ti,
-		       unsigned int argc,
-		       char **argv,
-		       char *result_buffer,
-		       unsigned int maxlen)
+static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
+		       char *result_buffer, unsigned int maxlen)
 {
 	struct registered_thread allocating_thread, instance_thread;
 	struct vdo *vdo;
@@ -1304,8 +1305,7 @@ static bool vdo_uses_device(struct vdo *vdo, const void *context)
  * get_thread_id_for_phase() - Get the thread id for the current phase of the admin operation in
  *                             progress.
  */
-static thread_id_t __must_check
-get_thread_id_for_phase(struct vdo *vdo)
+static thread_id_t __must_check get_thread_id_for_phase(struct vdo *vdo)
 {
 	switch (vdo->admin.phase) {
 	case RESUME_PHASE_PACKER:
@@ -1365,11 +1365,9 @@ static u32 advance_phase(struct vdo *vdo)
  * Perform an administrative operation (load, suspend, grow logical, or grow physical). This method
  * should not be called from vdo threads.
  */
-static int perform_admin_operation(struct vdo *vdo,
-				   u32 starting_phase,
+static int perform_admin_operation(struct vdo *vdo, u32 starting_phase,
 				   vdo_action *callback,
-				   vdo_action *error_handler,
-				   const char *type)
+				   vdo_action *error_handler, const char *type)
 {
 	int result;
 	struct vdo_administrator *admin = &vdo->admin;
@@ -1601,7 +1599,8 @@ STATIC void release_instance(unsigned int instance)
 	mutex_unlock(&instances_lock);
 }
 
-static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
+static void set_device_config(struct dm_target *ti, struct vdo *vdo,
+			      struct device_config *config)
 {
 	list_del_init(&config->config_list);
 	list_add_tail(&config->config_list, &vdo->device_config_list);
@@ -1612,8 +1611,8 @@ static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct devi
 #endif /* __KERNEL__ */
 }
 
-static int
-vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config *config)
+static int vdo_initialize(struct dm_target *ti, unsigned int instance,
+			  struct device_config *config)
 {
 	struct vdo *vdo;
 	int result;
@@ -1763,8 +1762,7 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 }
 
 static int construct_new_vdo_registered(struct dm_target *ti,
-					unsigned int argc,
-					char **argv,
+					unsigned int argc, char **argv,
 					unsigned int instance)
 {
 	int result;
@@ -1788,7 +1786,8 @@ static int construct_new_vdo_registered(struct dm_target *ti,
 	return VDO_SUCCESS;
 }
 
-static int construct_new_vdo(struct dm_target *ti, unsigned int argc, char **argv)
+static int construct_new_vdo(struct dm_target *ti, unsigned int argc,
+			     char **argv)
 {
 	int result;
 	unsigned int instance;
@@ -1827,7 +1826,8 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 	finish_operation_callback(completion);
 }
 
-static block_count_t get_partition_size(struct layout *layout, enum partition_id id)
+static block_count_t get_partition_size(struct layout *layout,
+					enum partition_id id)
 {
 	return vdo_get_known_partition(layout, id)->count;
 }
@@ -1840,7 +1840,8 @@ static block_count_t get_partition_size(struct layout *layout, enum partition_id
  *
  * Return: VDO_SUCCESS or an error code.
  */
-STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t new_size)
+STATIC int grow_layout(struct vdo *vdo, block_count_t old_size,
+		       block_count_t new_size)
 {
 	int result;
 	block_count_t min_new_size;
@@ -1890,7 +1891,8 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 	return VDO_SUCCESS;
 }
 
-static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
+static int prepare_to_grow_physical(struct vdo *vdo,
+				    block_count_t new_physical_blocks)
 {
 	int result;
 	block_count_t current_physical_blocks = vdo->states.vdo.config.physical_blocks;
@@ -1936,8 +1938,7 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
  */
 static int validate_new_device_config(struct device_config *to_validate,
 				      struct device_config *config,
-				      bool may_grow,
-				      char **error_ptr)
+				      bool may_grow, char **error_ptr)
 {
 	if (to_validate->owning_target->begin != config->owning_target->begin) {
 		*error_ptr = "Starting sector cannot change";
@@ -1984,7 +1985,8 @@ static int validate_new_device_config(struct device_config *to_validate,
 	return VDO_SUCCESS;
 }
 
-static int prepare_to_modify(struct dm_target *ti, struct device_config *config, struct vdo *vdo)
+static int prepare_to_modify(struct dm_target *ti,
+			     struct device_config *config, struct vdo *vdo)
 {
 	int result;
 	bool may_grow = (vdo_get_admin_state(vdo) != VDO_ADMIN_STATE_PRE_LOADED);
@@ -2041,11 +2043,8 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 	return VDO_SUCCESS;
 }
 
-static int update_existing_vdo(const char *device_name,
-			       struct dm_target *ti,
-			       unsigned int argc,
-			       char **argv,
-			       struct vdo *vdo)
+static int update_existing_vdo(const char *device_name, struct dm_target *ti,
+			       unsigned int argc, char **argv, struct vdo *vdo)
 {
 	int result;
 	struct device_config *config;
@@ -2725,7 +2724,8 @@ static void handle_logical_growth_error(struct vdo_completion *completion)
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_blocks)
+static int perform_grow_logical(struct vdo *vdo,
+				block_count_t new_logical_blocks)
 {
 	int result;
 
@@ -2762,8 +2762,8 @@ static void copy_callback(int read_err, unsigned long write_err, void *context)
 	vdo_continue_completion(completion, result);
 }
 
-static void
-partition_to_region(struct partition *partition, struct vdo *vdo, struct dm_io_region *region)
+static void partition_to_region(struct partition *partition, struct vdo *vdo,
+				struct dm_io_region *region)
 {
 	physical_block_number_t pbn = partition->offset - vdo->geometry.bio_offset;
 
@@ -2781,7 +2781,8 @@ partition_to_region(struct partition *partition, struct vdo *vdo, struct dm_io_r
  * @id: The ID of the partition to copy.
  * @parent: The completion to notify when the copy is complete.
  */
-static void copy_partition(struct vdo *vdo, enum partition_id id, struct vdo_completion *parent)
+static void copy_partition(struct vdo *vdo, enum partition_id id,
+			   struct vdo_completion *parent)
 {
 	struct dm_io_region read_region, write_regions[1];
 	struct partition *from = vdo_get_known_partition(&vdo->layout, id);
@@ -2888,7 +2889,8 @@ static void handle_physical_growth_error(struct vdo_completion *completion)
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blocks)
+static int perform_grow_physical(struct vdo *vdo,
+				 block_count_t new_physical_blocks)
 {
 	int result;
 	block_count_t new_depot_size, prepared_depot_size;
@@ -2939,7 +2941,8 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
+static int __must_check apply_new_vdo_configuration(struct vdo *vdo,
+						    struct device_config *config)
 {
 	int result;
 
