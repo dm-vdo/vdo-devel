@@ -120,14 +120,14 @@ struct volume_index_data {
 u64 min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
-static inline u32
-extract_address(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+static inline u32 extract_address(const struct volume_sub_index *sub_index,
+				  const struct uds_record_name *name)
 {
 	return uds_extract_volume_index_bytes(name) & sub_index->address_mask;
 }
 
-static inline u32
-extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+static inline u32 extract_dlist_num(const struct volume_sub_index *sub_index,
+				    const struct uds_record_name *name)
 {
 	u64 bits = uds_extract_volume_index_bytes(name);
 
@@ -135,20 +135,20 @@ extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_rec
 }
 #ifdef TEST_INTERNAL
 
-u32 get_dlist_number(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+u32 get_dlist_number(const struct volume_sub_index *sub_index,
+		     const struct uds_record_name *name)
 {
 	return extract_dlist_num(sub_index, name);
 }
 #endif /* TEST_INTERNAL */
 
-static inline const struct volume_sub_index_zone *
-get_zone_for_record(const struct volume_index_record *record)
+static inline const struct volume_sub_index_zone *get_zone_for_record(const struct volume_index_record *record)
 {
 	return &record->sub_index->zones[record->zone_number];
 }
 
-static inline u64
-convert_index_to_virtual(const struct volume_index_record *record, u32 index_chapter)
+static inline u64 convert_index_to_virtual(const struct volume_index_record *record,
+					   u32 index_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 	u32 rolling_chapter = ((index_chapter - volume_index_zone->virtual_chapter_low) &
@@ -157,14 +157,14 @@ convert_index_to_virtual(const struct volume_index_record *record, u32 index_cha
 	return volume_index_zone->virtual_chapter_low + rolling_chapter;
 }
 
-static inline u32
-convert_virtual_to_index(const struct volume_sub_index *sub_index, u64 virtual_chapter)
+static inline u32 convert_virtual_to_index(const struct volume_sub_index *sub_index,
+					   u64 virtual_chapter)
 {
 	return virtual_chapter & sub_index->chapter_mask;
 }
 
-static inline bool
-is_virtual_chapter_indexed(const struct volume_index_record *record, u64 virtual_chapter)
+static inline bool is_virtual_chapter_indexed(const struct volume_index_record *record,
+					      u64 virtual_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 
@@ -186,8 +186,8 @@ bool uds_is_volume_index_sample(const struct volume_index *volume_index,
 	return (uds_extract_sampling_bytes(name) % volume_index->sparse_sample_rate) == 0;
 }
 
-static inline const struct volume_sub_index *
-get_volume_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+static inline const struct volume_sub_index *get_volume_sub_index(const struct volume_index *volume_index,
+								  const struct uds_record_name *name)
 {
 	return (uds_is_volume_index_sample(volume_index, name) ?
 		&volume_index->vi_hook :
@@ -195,8 +195,8 @@ get_volume_sub_index(const struct volume_index *volume_index, const struct uds_r
 }
 #ifdef TEST_INTERNAL
 
-const struct volume_sub_index *
-get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+const struct volume_sub_index *get_sub_index(const struct volume_index *volume_index,
+					     const struct uds_record_name *name)
 {
 	return get_volume_sub_index(volume_index, name);
 }
@@ -323,8 +323,8 @@ void uds_free_volume_index(struct volume_index *volume_index)
 }
 
 
-static int
-compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *bytes)
+static int compute_volume_sub_index_save_bytes(const struct configuration *config,
+					       size_t *bytes)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
 	int result;
@@ -339,7 +339,8 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 }
 
 /* This function is only useful if the configuration includes sparse chapters. */
-static void split_configuration(const struct configuration *config, struct split_config *split)
+static void split_configuration(const struct configuration *config,
+				struct split_config *split)
 {
 	u64 sample_rate, sample_records;
 	u64 dense_chapters, sparse_chapters;
@@ -367,7 +368,8 @@ static void split_configuration(const struct configuration *config, struct split
 	split->non_hook_geometry.chapters_per_volume = dense_chapters;
 }
 
-static int compute_volume_index_save_bytes(const struct configuration *config, size_t *bytes)
+static int compute_volume_index_save_bytes(const struct configuration *config,
+					   size_t *bytes)
 {
 	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
@@ -389,8 +391,7 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 }
 
 int uds_compute_volume_index_save_blocks(const struct configuration *config,
-					 size_t block_size,
-					 u64 *block_count)
+					 size_t block_size, u64 *block_count)
 {
 	size_t bytes;
 	int result;
@@ -405,8 +406,7 @@ int uds_compute_volume_index_save_blocks(const struct configuration *config,
 }
 
 #ifdef TEST_INTERNAL
-static size_t
-get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
+static size_t get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 {
 	u64 bit_count = 0;
 	unsigned int z;
@@ -463,8 +463,7 @@ static inline int flush_invalid_entries(struct volume_index_record *record,
 
 /* Find the matching record, or the list offset where the record would go. */
 static int get_volume_index_entry(struct volume_index_record *record,
-				  u32 list_number,
-				  u32 key,
+				  u32 list_number, u32 key,
 				  struct chapter_range *flush_range)
 {
 	struct volume_index_record other_record;
@@ -600,7 +599,8 @@ int uds_get_volume_index_record(struct volume_index *volume_index,
 	return result;
 }
 
-int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_chapter)
+int uds_put_volume_index_record(struct volume_index_record *record,
+				u64 virtual_chapter)
 {
 	int result;
 	u32 address;
@@ -739,7 +739,8 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
  * Set the newest open chapter number for the index, while also advancing the oldest valid chapter
  * number.
  */
-void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter)
+void uds_set_volume_index_open_chapter(struct volume_index *volume_index,
+				       u64 virtual_chapter)
 {
 	unsigned int zone;
 
@@ -747,7 +748,8 @@ void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 vi
 		uds_set_volume_index_zone_open_chapter(volume_index, zone, virtual_chapter);
 }
 
-int uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter)
+int uds_set_volume_index_record_chapter(struct volume_index_record *record,
+					u64 virtual_chapter)
 {
 	const struct volume_sub_index *sub_index = record->sub_index;
 	int result;
@@ -1117,14 +1119,14 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 	return start_saving_volume_sub_index(&volume_index->vi_hook, zone_number, writer);
 }
 
-static int
-finish_saving_volume_sub_index(const struct volume_sub_index *sub_index, unsigned int zone_number)
+static int finish_saving_volume_sub_index(const struct volume_sub_index *sub_index,
+					  unsigned int zone_number)
 {
 	return uds_finish_saving_delta_index(&sub_index->delta_index, zone_number);
 }
 
-static int
-finish_saving_volume_index(const struct volume_index *volume_index, unsigned int zone_number)
+static int finish_saving_volume_index(const struct volume_index *volume_index,
+				      unsigned int zone_number)
 {
 	int result;
 
@@ -1215,8 +1217,7 @@ void uds_get_volume_index_stats(const struct volume_index *volume_index,
 }
 
 static int initialize_volume_sub_index(const struct configuration *config,
-				       u64 volume_nonce,
-				       u8 tag,
+				       u64 volume_nonce, u8 tag,
 				       struct volume_sub_index *sub_index)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
@@ -1272,8 +1273,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 			    &sub_index->zones);
 }
 
-int uds_make_volume_index(const struct configuration *config,
-			  u64 volume_nonce,
+int uds_make_volume_index(const struct configuration *config, u64 volume_nonce,
 			  struct volume_index **volume_index_ptr)
 {
 	struct split_config split;
