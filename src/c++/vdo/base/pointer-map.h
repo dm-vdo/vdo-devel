@@ -42,7 +42,8 @@ struct pointer_map;
  * Return: true if and only if the referents of the two key pointers are to be treated as the same
  *         key by the map.
  */
-typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
+typedef bool pointer_key_comparator(const void *this_key,
+				    const void *that_key);
 
 /**
  * typedef pointer_key_hasher - The prototype of functions that get or calculate a hash code
@@ -70,10 +71,8 @@ size_t vdo_pointer_map_size(const struct pointer_map *map);
 
 void *vdo_pointer_map_get(struct pointer_map *map, const void *key);
 
-int __must_check vdo_pointer_map_put(struct pointer_map *map,
-				     const void *key,
-				     void *new_value,
-				     bool update,
+int __must_check vdo_pointer_map_put(struct pointer_map *map, const void *key,
+				     void *new_value, bool update,
 				     void **old_value_ptr);
 
 void *vdo_pointer_map_remove(struct pointer_map *map, const void *key);

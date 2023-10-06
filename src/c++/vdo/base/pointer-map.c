@@ -143,8 +143,7 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_make_pointer_map(size_t initial_capacity,
-			 unsigned int initial_load,
+int vdo_make_pointer_map(size_t initial_capacity, unsigned int initial_load,
 			 pointer_key_comparator comparator,
 			 pointer_key_hasher hasher,
 			 struct pointer_map **map_ptr)
@@ -221,7 +220,8 @@ size_t vdo_pointer_map_size(const struct pointer_map *map)
  * Return: NULL if hop_offset is zero, otherwise a pointer to the bucket in the neighborhood at
  *         hop_offset - 1.
  */
-static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int hop_offset)
+static struct bucket *dereference_hop(struct bucket *neighborhood,
+				      unsigned int hop_offset)
 {
 	if (hop_offset == NULL_HOP_OFFSET)
 		return NULL;
@@ -236,7 +236,8 @@ static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int 
  * @neighborhood: The first bucket in the neighborhood.
  * @new_bucket: The bucket to add to the hop list.
  */
-static void insert_in_hop_list(struct bucket *neighborhood, struct bucket *new_bucket)
+static void insert_in_hop_list(struct bucket *neighborhood,
+			       struct bucket *new_bucket)
 {
 	/* Zero indicates a NULL hop offset, so bias the hop offset by one. */
 	int hop_offset = 1 + (new_bucket - neighborhood);
@@ -269,7 +270,8 @@ static void insert_in_hop_list(struct bucket *neighborhood, struct bucket *new_b
  * @map: The map to search.
  * @key: The mapping key.
  */
-static struct bucket *select_bucket(const struct pointer_map *map, const void *key)
+static struct bucket *select_bucket(const struct pointer_map *map,
+				    const void *key)
 {
 	/*
 	 * Scale the 32-bit hash to a bucket index by treating it as a binary fraction and
@@ -296,8 +298,7 @@ static struct bucket *select_bucket(const struct pointer_map *map, const void *k
  * Return: an entry that matches the key, or NULL if not found.
  */
 static struct bucket *search_hop_list(struct pointer_map *map,
-				      struct bucket *bucket,
-				      const void *key,
+				      struct bucket *bucket, const void *key,
 				      struct bucket **previous_ptr)
 {
 	struct bucket *previous = NULL;
@@ -392,8 +393,9 @@ static int resize_buckets(struct pointer_map *map)
  *
  * Return: The next empty bucket, or NULL if the search failed.
  */
-static struct bucket *
-find_empty_bucket(struct pointer_map *map, struct bucket *bucket, unsigned int max_probes)
+static struct bucket *find_empty_bucket(struct pointer_map *map,
+					struct bucket *bucket,
+					unsigned int max_probes)
 {
 	/*
 	 * Limit the search to either the nearer of the end of the bucket array or a fixed distance
@@ -423,8 +425,8 @@ find_empty_bucket(struct pointer_map *map, struct bucket *bucket, unsigned int m
  * Return: The bucket that was vacated by moving its entry to the provided hole, or NULL if no
  *         entry could be moved.
  */
-static struct bucket *
-move_empty_bucket(struct pointer_map *map __always_unused, struct bucket *hole)
+static struct bucket *move_empty_bucket(struct pointer_map *map __always_unused,
+					struct bucket *hole)
 {
 	/*
 	 * Examine every neighborhood that the empty bucket is part of, starting with the one in
@@ -494,11 +496,8 @@ move_empty_bucket(struct pointer_map *map __always_unused, struct bucket *hole)
  * Return: true if the map contains a mapping for the key, false if it does not.
  */
 static bool update_mapping(struct pointer_map *map,
-			   struct bucket *neighborhood,
-			   const void *key,
-			   void *new_value,
-			   bool update,
-			   void **old_value_ptr)
+			   struct bucket *neighborhood, const void *key,
+			   void *new_value, bool update, void **old_value_ptr)
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
 
@@ -536,7 +535,8 @@ static bool update_mapping(struct pointer_map *map,
  * Return: A pointer to an empty bucket in the desired neighborhood, or NULL if a vacancy could not
  *         be found or arranged.
  */
-static struct bucket *find_or_make_vacancy(struct pointer_map *map, struct bucket *neighborhood)
+static struct bucket *find_or_make_vacancy(struct pointer_map *map,
+					   struct bucket *neighborhood)
 {
 	/* Probe within and beyond the neighborhood for the first empty bucket. */
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
@@ -587,11 +587,8 @@ static struct bucket *find_or_make_vacancy(struct pointer_map *map, struct bucke
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_pointer_map_put(struct pointer_map *map,
-			const void *key,
-			void *new_value,
-			bool update,
-			void **old_value_ptr)
+int vdo_pointer_map_put(struct pointer_map *map, const void *key,
+			void *new_value, bool update, void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 

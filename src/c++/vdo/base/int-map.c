@@ -180,7 +180,8 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
+int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load,
+		     struct int_map **map_ptr)
 {
 	struct int_map *map;
 	int result;
@@ -251,7 +252,8 @@ size_t vdo_int_map_size(const struct int_map *map)
  * Return: NULL if hop_offset is zero, otherwise a pointer to the bucket in the neighborhood at
  *         hop_offset - 1.
  */
-static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int hop_offset)
+static struct bucket *dereference_hop(struct bucket *neighborhood,
+				      unsigned int hop_offset)
 {
 	if (hop_offset == NULL_HOP_OFFSET)
 		return NULL;
@@ -267,7 +269,8 @@ static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int 
  *
  * The bucket is inserted it into the list so the hop list remains sorted by hop offset.
  */
-static void insert_in_hop_list(struct bucket *neighborhood, struct bucket *new_bucket)
+static void insert_in_hop_list(struct bucket *neighborhood,
+			       struct bucket *new_bucket)
 {
 	/* Zero indicates a NULL hop offset, so bias the hop offset by one. */
 	int hop_offset = 1 + (new_bucket - neighborhood);
@@ -332,8 +335,7 @@ static struct bucket *select_bucket(const struct int_map *map, u64 key)
  * Return: An entry that matches the key, or NULL if not found.
  */
 static struct bucket *search_hop_list(struct int_map *map __always_unused,
-				      struct bucket *bucket,
-				      u64 key,
+				      struct bucket *bucket, u64 key,
 				      struct bucket **previous_ptr)
 {
 	struct bucket *previous = NULL;
@@ -431,8 +433,9 @@ static int resize_buckets(struct int_map *map)
  *
  * Return: The next empty bucket, or NULL if the search failed.
  */
-static struct bucket *
-find_empty_bucket(struct int_map *map, struct bucket *bucket, unsigned int max_probes)
+static struct bucket *find_empty_bucket(struct int_map *map,
+					struct bucket *bucket,
+					unsigned int max_probes)
 {
 	/*
 	 * Limit the search to either the nearer of the end of the bucket array or a fixed distance
@@ -461,7 +464,8 @@ find_empty_bucket(struct int_map *map, struct bucket *bucket, unsigned int max_p
  * Return: The bucket that was vacated by moving its entry to the provided hole, or NULL if no
  *         entry could be moved.
  */
-static struct bucket *move_empty_bucket(struct int_map *map __always_unused, struct bucket *hole)
+static struct bucket *move_empty_bucket(struct int_map *map __always_unused,
+					struct bucket *hole)
 {
 	/*
 	 * Examine every neighborhood that the empty bucket is part of, starting with the one in
@@ -530,11 +534,8 @@ static struct bucket *move_empty_bucket(struct int_map *map __always_unused, str
  *
  * Return: true if the map contains a mapping for the key, false if it does not.
  */
-static bool update_mapping(struct int_map *map,
-			   struct bucket *neighborhood,
-			   u64 key,
-			   void *new_value,
-			   bool update,
+static bool update_mapping(struct int_map *map, struct bucket *neighborhood,
+			   u64 key, void *new_value, bool update,
 			   void **old_value_ptr)
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
@@ -567,7 +568,8 @@ static bool update_mapping(struct int_map *map,
  * Return: a pointer to an empty bucket in the desired neighborhood, or NULL if a vacancy could not
  *         be found or arranged.
  */
-static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *neighborhood)
+static struct bucket *find_or_make_vacancy(struct int_map *map,
+					   struct bucket *neighborhood)
 {
 	/* Probe within and beyond the neighborhood for the first empty bucket. */
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
@@ -613,7 +615,8 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
+int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update,
+		    void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
