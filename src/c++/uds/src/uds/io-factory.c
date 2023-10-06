@@ -65,7 +65,8 @@ static void uds_get_io_factory(struct io_factory *factory)
 	atomic_inc(&factory->ref_count);
 }
 
-int uds_make_io_factory(struct block_device *bdev, struct io_factory **factory_ptr)
+int uds_make_io_factory(struct block_device *bdev,
+			struct io_factory **factory_ptr)
 {
 	int result;
 	struct io_factory *factory;
@@ -100,10 +101,8 @@ size_t uds_get_writable_size(struct io_factory *factory)
 }
 
 /* Create a struct dm_bufio_client for an index region starting at offset. */
-int uds_make_bufio(struct io_factory *factory,
-		   off_t block_offset,
-		   size_t block_size,
-		   unsigned int reserved_buffers,
+int uds_make_bufio(struct io_factory *factory, off_t block_offset,
+		   size_t block_size, unsigned int reserved_buffers,
 		   struct dm_bufio_client **client_ptr)
 {
 	struct dm_bufio_client *client;
@@ -156,8 +155,7 @@ void uds_free_buffered_reader(struct buffered_reader *reader)
 }
 
 /* Create a buffered reader for an index region starting at offset. */
-int uds_make_buffered_reader(struct io_factory *factory,
-			     off_t offset,
+int uds_make_buffered_reader(struct io_factory *factory, off_t offset,
 			     u64 block_count,
 			     struct buffered_reader **reader_ptr)
 {
@@ -191,7 +189,8 @@ int uds_make_buffered_reader(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
-static int position_reader(struct buffered_reader *reader, sector_t block_number, off_t offset)
+static int position_reader(struct buffered_reader *reader,
+			   sector_t block_number, off_t offset)
 {
 	struct dm_buffer *buffer = NULL;
 	void *data;
@@ -237,7 +236,8 @@ static int reset_reader(struct buffered_reader *reader)
 	return position_reader(reader, block_number, 0);
 }
 
-int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size_t length)
+int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data,
+				  size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -261,7 +261,8 @@ int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size
  * Verify that the next data on the reader matches the required value. If the value matches, the
  * matching contents are consumed. If the value does not match, the reader state is unchanged.
  */
-int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value, size_t length)
+int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value,
+			     size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -293,8 +294,7 @@ int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value, si
 }
 
 /* Create a buffered writer for an index region starting at offset. */
-int uds_make_buffered_writer(struct io_factory *factory,
-			     off_t offset,
+int uds_make_buffered_writer(struct io_factory *factory, off_t offset,
 			     u64 block_count,
 			     struct buffered_writer **writer_ptr)
 {
@@ -407,7 +407,8 @@ void uds_free_buffered_writer(struct buffered_writer *writer)
  * Append data to the buffer, writing as needed. If no data is provided, zeros are written instead.
  * If a write error occurs, it is recorded and returned on every subsequent write attempt.
  */
-int uds_write_to_buffered_writer(struct buffered_writer *writer, const u8 *data, size_t length)
+int uds_write_to_buffered_writer(struct buffered_writer *writer,
+				 const u8 *data, size_t length)
 {
 	int result = writer->error;
 	size_t chunk_size;
