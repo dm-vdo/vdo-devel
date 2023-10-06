@@ -167,8 +167,7 @@ static int __must_check validate_version(struct version_number expected_version,
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match.
  */
 int vdo_validate_header(const struct header *expected_header,
-			const struct header *actual_header,
-			bool exact_size,
+			const struct header *actual_header, bool exact_size,
 			const char *name)
 {
 	int result;
@@ -195,7 +194,8 @@ int vdo_validate_header(const struct header *expected_header,
 	return VDO_SUCCESS;
 }
 
-static void encode_version_number(u8 *buffer, size_t *offset, struct version_number version)
+static void encode_version_number(u8 *buffer, size_t *offset,
+				  struct version_number version)
 {
 	struct packed_version_number packed = vdo_pack_version_number(version);
 
@@ -211,7 +211,8 @@ void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header)
 	*offset += sizeof(packed);
 }
 
-static void decode_version_number(u8 *buffer, size_t *offset, struct version_number *version)
+static void decode_version_number(u8 *buffer, size_t *offset,
+				  struct version_number *version)
 {
 	struct packed_version_number packed;
 
@@ -237,8 +238,9 @@ void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header)
  * @geometry: The structure to receive the decoded fields.
  * @version: The geometry block version to decode.
  */
-static void
-decode_volume_geometry(u8 *buffer, size_t *offset, struct volume_geometry *geometry, u32 version)
+static void decode_volume_geometry(u8 *buffer, size_t *offset,
+				   struct volume_geometry *geometry,
+				   u32 version)
 {
 	u32 unused, mem;
 	enum volume_region_id id;
@@ -293,10 +295,8 @@ decode_volume_geometry(u8 *buffer, size_t *offset, struct volume_geometry *geome
  *
  * Return: VDO_SUCCESS or an error
  */
-int encode_volume_geometry(u8 *buffer,
-			   size_t *offset,
-			   const struct volume_geometry *geometry,
-			   u32 version)
+int encode_volume_geometry(u8 *buffer, size_t *offset,
+			   const struct volume_geometry *geometry, u32 version)
 {
 	enum volume_region_id id;
 	const struct header *header;
@@ -336,7 +336,8 @@ int encode_volume_geometry(u8 *buffer,
  * @block: The encoded geometry block.
  * @geometry: The structure to receive the decoded fields.
  */
-int __must_check vdo_parse_geometry_block(u8 *block, struct volume_geometry *geometry)
+int __must_check vdo_parse_geometry_block(u8 *block,
+					  struct volume_geometry *geometry)
 {
 	u32 checksum, saved_checksum;
 	struct header header;
@@ -369,8 +370,7 @@ int __must_check vdo_parse_geometry_block(u8 *block, struct volume_geometry *geo
 	return ((checksum == saved_checksum) ? VDO_SUCCESS : VDO_CHECKSUM_MISMATCH);
 }
 
-struct block_map_page *vdo_format_block_map_page(void *buffer,
-						 nonce_t nonce,
+struct block_map_page *vdo_format_block_map_page(void *buffer, nonce_t nonce,
 						 physical_block_number_t pbn,
 						 bool initialized)
 {
@@ -384,10 +384,9 @@ struct block_map_page *vdo_format_block_map_page(void *buffer,
 	return page;
 }
 
-enum block_map_page_validity
-vdo_validate_block_map_page(struct block_map_page *page,
-			    nonce_t nonce,
-			    physical_block_number_t pbn)
+enum block_map_page_validity vdo_validate_block_map_page(struct block_map_page *page,
+							 nonce_t nonce,
+							 physical_block_number_t pbn)
 {
 	BUILD_BUG_ON(sizeof(struct block_map_page_header) != PAGE_HEADER_4_1_SIZE);
 
@@ -402,8 +401,8 @@ vdo_validate_block_map_page(struct block_map_page *page,
 	return VDO_BLOCK_MAP_PAGE_VALID;
 }
 
-STATIC int
-decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 *state)
+STATIC int decode_block_map_state_2_0(u8 *buffer, size_t *offset,
+				      struct block_map_state_2_0 *state)
 {
 	size_t initial_offset;
 	block_count_t flat_page_count, root_count;
@@ -451,8 +450,8 @@ decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_
 	return VDO_SUCCESS;
 }
 
-STATIC void
-encode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 state)
+STATIC void encode_block_map_state_2_0(u8 *buffer, size_t *offset,
+				       struct block_map_state_2_0 state)
 {
 	size_t initial_offset;
 
@@ -504,10 +503,8 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-STATIC void
-encode_recovery_journal_state_7_0(u8 *buffer,
-				  size_t *offset,
-				  struct recovery_journal_state_7_0 state)
+STATIC void encode_recovery_journal_state_7_0(u8 *buffer, size_t *offset,
+					      struct recovery_journal_state_7_0 state)
 {
 	size_t initial_offset;
 
@@ -529,10 +526,9 @@ encode_recovery_journal_state_7_0(u8 *buffer,
  *
  * Return: VDO_SUCCESS or an error code.
  */
-STATIC int __must_check
-decode_recovery_journal_state_7_0(u8 *buffer,
-				  size_t *offset,
-				  struct recovery_journal_state_7_0 *state)
+STATIC int __must_check decode_recovery_journal_state_7_0(u8 *buffer,
+							  size_t *offset,
+							  struct recovery_journal_state_7_0 *state)
 {
 	struct header header;
 	int result;
@@ -589,8 +585,8 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
  *
  * Return: UDS_SUCCESS or an error.
  */
-STATIC void
-encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 state)
+STATIC void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
+					struct slab_depot_state_2_0 state)
 {
 	size_t initial_offset;
 
@@ -601,9 +597,12 @@ encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_
 	encode_u64_le(buffer, offset, state.slab_config.data_blocks);
 	encode_u64_le(buffer, offset, state.slab_config.reference_count_blocks);
 	encode_u64_le(buffer, offset, state.slab_config.slab_journal_blocks);
-	encode_u64_le(buffer, offset, state.slab_config.slab_journal_flushing_threshold);
-	encode_u64_le(buffer, offset, state.slab_config.slab_journal_blocking_threshold);
-	encode_u64_le(buffer, offset, state.slab_config.slab_journal_scrubbing_threshold);
+	encode_u64_le(buffer, offset,
+		      state.slab_config.slab_journal_flushing_threshold);
+	encode_u64_le(buffer, offset,
+		      state.slab_config.slab_journal_blocking_threshold);
+	encode_u64_le(buffer, offset,
+		      state.slab_config.slab_journal_scrubbing_threshold);
 	encode_u64_le(buffer, offset, state.first_block);
 	encode_u64_le(buffer, offset, state.last_block);
 	buffer[(*offset)++] = state.zone_count;
@@ -617,8 +616,8 @@ encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_
  *
  * Return: UDS_SUCCESS or an error code.
  */
-STATIC int
-decode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 *state)
+STATIC int decode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
+				       struct slab_depot_state_2_0 *state)
 {
 	struct header header;
 	int result;
@@ -816,9 +815,8 @@ int vdo_configure_slab(block_count_t slab_size,
  *
  * Return: The decoded entry.
  */
-struct slab_journal_entry
-vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
-			      journal_entry_count_t entry_count)
+struct slab_journal_entry vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
+							journal_entry_count_t entry_count)
 {
 	struct slab_journal_entry entry =
 		vdo_unpack_slab_journal_entry(&block->payload.entries[entry_count]);
@@ -840,8 +838,7 @@ vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int allocate_partition(struct layout *layout,
-			      u8 id,
+static int allocate_partition(struct layout *layout, u8 id,
 			      physical_block_number_t offset,
 			      block_count_t size)
 {
@@ -872,11 +869,9 @@ static int allocate_partition(struct layout *layout,
  * Return: A success or error code, particularly VDO_NO_SPACE if there are fewer than size blocks
  *         remaining.
  */
-STATIC int __must_check
-make_partition(struct layout *layout,
-	       enum partition_id id,
-	       block_count_t size,
-	       bool beginning)
+STATIC int __must_check make_partition(struct layout *layout,
+				       enum partition_id id,
+				       block_count_t size, bool beginning)
 {
 	int result;
 	physical_block_number_t offset;
@@ -920,12 +915,10 @@ make_partition(struct layout *layout,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_initialize_layout(block_count_t size,
-			  physical_block_number_t offset,
+int vdo_initialize_layout(block_count_t size, physical_block_number_t offset,
 			  block_count_t block_map_blocks,
 			  block_count_t journal_blocks,
-			  block_count_t summary_blocks,
-			  struct layout *layout)
+			  block_count_t summary_blocks, struct layout *layout)
 {
 	int result;
 	block_count_t necessary_size =
@@ -994,8 +987,7 @@ void vdo_uninitialize_layout(struct layout *layout)
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_get_partition(struct layout *layout,
-		      enum partition_id id,
+int vdo_get_partition(struct layout *layout, enum partition_id id,
 		      struct partition **partition_ptr)
 {
 	struct partition *partition;
@@ -1018,7 +1010,8 @@ int vdo_get_partition(struct layout *layout,
  *
  * Return: the partition
  */
-struct partition *vdo_get_known_partition(struct layout *layout, enum partition_id id)
+struct partition *vdo_get_known_partition(struct layout *layout,
+					  enum partition_id id)
 {
 	struct partition *partition;
 	int result = vdo_get_partition(layout, id, &partition);
@@ -1028,7 +1021,8 @@ struct partition *vdo_get_known_partition(struct layout *layout, enum partition_
 	return partition;
 }
 
-STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout)
+STATIC void encode_layout(u8 *buffer, size_t *offset,
+			  const struct layout *layout)
 {
 	const struct partition *partition;
 	size_t initial_offset;
@@ -1060,12 +1054,9 @@ STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layou
 			"encoded size of a layout must match header size");
 }
 
-STATIC int
-decode_layout(u8 *buffer,
-	      size_t *offset,
-	      physical_block_number_t start,
-	      block_count_t size,
-	      struct layout *layout)
+STATIC int decode_layout(u8 *buffer, size_t *offset,
+			 physical_block_number_t start, block_count_t size,
+			 struct layout *layout)
 {
 	struct header header;
 	struct layout_3_0 layout_header;
@@ -1178,7 +1169,8 @@ static struct packed_vdo_component_41_0 pack_vdo_component(const struct vdo_comp
 	};
 }
 
-static void encode_vdo_component(u8 *buffer, size_t *offset, struct vdo_component component)
+static void encode_vdo_component(u8 *buffer, size_t *offset,
+				 struct vdo_component component)
 {
 	struct packed_vdo_component_41_0 packed;
 
@@ -1212,8 +1204,7 @@ static struct vdo_config unpack_vdo_config(struct packed_vdo_config config)
  *
  * Return: The native in-memory representation of the component.
  */
-static struct vdo_component
-unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
+static struct vdo_component unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
 {
 	return (struct vdo_component) {
 		.state = __le32_to_cpu(component.state),
@@ -1229,7 +1220,8 @@ unpack_vdo_component_41_0(struct packed_vdo_component_41_0 component)
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int decode_vdo_component(u8 *buffer, size_t *offset, struct vdo_component *component)
+static int decode_vdo_component(u8 *buffer, size_t *offset,
+				struct vdo_component *component)
 {
 	struct version_number version;
 	struct packed_vdo_component_41_0 packed;
@@ -1378,8 +1370,7 @@ void vdo_destroy_component_states(struct vdo_component_states *states)
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check decode_components(u8 *buffer,
-					  size_t *offset,
+static int __must_check decode_components(u8 *buffer, size_t *offset,
 					  struct volume_geometry *geometry,
 					  struct vdo_component_states *states)
 {
@@ -1420,8 +1411,7 @@ static int __must_check decode_components(u8 *buffer,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int vdo_decode_component_states(u8 *buffer,
-				struct volume_geometry *geometry,
+int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 				struct vdo_component_states *states)
 {
 	int result;
@@ -1470,8 +1460,8 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 /**
  * vdo_encode_component_states() - Encode the state of all vdo components in the super block.
  */
-static void
-vdo_encode_component_states(u8 *buffer, size_t *offset, const struct vdo_component_states *states)
+static void vdo_encode_component_states(u8 *buffer, size_t *offset,
+					const struct vdo_component_states *states)
 {
 	/* This is for backwards compatibility. */
 	encode_u32_le(buffer, offset, states->unused);
