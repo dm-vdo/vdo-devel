@@ -76,15 +76,15 @@ pid_t __must_check uds_get_thread_id(void);
 #endif
 
 int __must_check uds_create_thread(void (*thread_function)(void *),
-				   void *thread_data,
-				   const char *name,
+				   void *thread_data, const char *name,
 				   struct thread **new_thread);
 
 void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
 
-int __must_check uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count);
+int __must_check uds_initialize_barrier(struct barrier *barrier,
+					unsigned int thread_count);
 int uds_destroy_barrier(struct barrier *barrier);
 int uds_enter_barrier(struct barrier *barrier);
 
@@ -93,14 +93,16 @@ int uds_signal_cond(struct cond_var *cond);
 int uds_broadcast_cond(struct cond_var *cond);
 int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
 #ifdef TEST_INTERNAL
-int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
+int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex,
+			ktime_t timeout);
 #endif  /* TEST_INTERNAL */
 int uds_destroy_cond(struct cond_var *cond);
 
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 /* Apply a function to every thread that we have created. */
-void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument);
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
+			  void *argument);
 
 /* This is a unit-test alternative to using BUG() or BUG_ON(). */
 __attribute__((noreturn)) void uds_thread_exit(void);
@@ -127,8 +129,8 @@ static inline void uds_unlock_mutex(struct mutex *mutex)
 	mutex_unlock(mutex);
 }
 
-static inline int __must_check
-uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
+static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
+							unsigned int value)
 {
 	sema_init(semaphore, value);
 	return UDS_SUCCESS;
@@ -160,7 +162,8 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 }
 
 #ifdef TEST_INTERNAL
-static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
+static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
+						      ktime_t timeout)
 {
 	unsigned int jiffies;
 
@@ -194,10 +197,12 @@ int uds_destroy_mutex(struct mutex *mutex);
 void uds_lock_mutex(struct mutex *mutex);
 void uds_unlock_mutex(struct mutex *mutex);
 
-int __must_check uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value);
+int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
+					  unsigned int value);
 int uds_destroy_semaphore(struct semaphore *semaphore);
 void uds_acquire_semaphore(struct semaphore *semaphore);
-bool __must_check uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout);
+bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
+					ktime_t timeout);
 void uds_release_semaphore(struct semaphore *semaphore);
 #endif /* __KERNEL__ */
 

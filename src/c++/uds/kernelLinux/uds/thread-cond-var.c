@@ -41,7 +41,8 @@ int uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
 }
 
 #ifdef TEST_INTERNAL
-int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeout)
+int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex,
+			ktime_t timeout)
 {
 	long remaining;
 	DEFINE_WAIT(__wait);
