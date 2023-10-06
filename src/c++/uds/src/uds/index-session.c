@@ -295,7 +295,8 @@ static int __must_check start_loading_index_session(struct uds_index_session *in
 	return result;
 }
 
-static void finish_loading_index_session(struct uds_index_session *index_session, int result)
+static void finish_loading_index_session(struct uds_index_session *index_session,
+					 int result)
 {
 	uds_lock_mutex(&index_session->request_mutex);
 	index_session->state &= ~IS_FLAG_LOADING;
@@ -481,7 +482,8 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	return uds_map_to_system_error(result);
 }
 
-static int replace_device(struct uds_index_session *session, struct block_device *bdev)
+static int replace_device(struct uds_index_session *session,
+			  struct block_device *bdev)
 {
 	int result;
 
@@ -502,7 +504,8 @@ static int replace_device(struct uds_index_session *session, struct block_device
  * Resume index operation after being suspended. If the index is suspended and the supplied block
  * device differs from the current backing store, the index will start using the new backing store.
  */
-int uds_resume_index_session(struct uds_index_session *session, struct block_device *bdev)
+int uds_resume_index_session(struct uds_index_session *session,
+			     struct block_device *bdev)
 {
 	int result = UDS_SUCCESS;
 	bool no_work = false;
@@ -732,8 +735,8 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 
 #endif /* TEST_INTERNAL */
 /* Statistics collection is intended to be thread-safe. */
-static void
-collect_stats(const struct uds_index_session *index_session, struct uds_index_stats *stats)
+static void collect_stats(const struct uds_index_session *index_session,
+			  struct uds_index_stats *stats)
 {
 	const struct session_stats *session_stats = &index_session->stats;
 
