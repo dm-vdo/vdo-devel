@@ -28,8 +28,8 @@
 
 struct priority_table;
 
-int __must_check
-vdo_make_priority_table(unsigned int max_priority, struct priority_table **table_ptr);
+int __must_check vdo_make_priority_table(unsigned int max_priority,
+					 struct priority_table **table_ptr);
 
 void vdo_free_priority_table(struct priority_table *table);
 
@@ -41,7 +41,8 @@ void vdo_reset_priority_table(struct priority_table *table);
 
 struct list_head * __must_check vdo_priority_table_dequeue(struct priority_table *table);
 
-void vdo_priority_table_remove(struct priority_table *table, struct list_head *entry);
+void vdo_priority_table_remove(struct priority_table *table,
+			       struct list_head *entry);
 
 bool __must_check vdo_is_priority_table_empty(struct priority_table *table);
 

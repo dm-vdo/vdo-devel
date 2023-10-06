@@ -53,7 +53,8 @@ struct priority_table {
  *
  * Return: VDO_SUCCESS or an error code.
  */
-int vdo_make_priority_table(unsigned int max_priority, struct priority_table **table_ptr)
+int vdo_make_priority_table(unsigned int max_priority,
+			    struct priority_table **table_ptr)
 {
 	struct priority_table *table;
 	int result;
@@ -127,8 +128,7 @@ void vdo_reset_priority_table(struct priority_table *table)
  *         initialized it).
  */
 void vdo_priority_table_enqueue(struct priority_table *table,
-				unsigned int priority,
-				struct list_head *entry)
+				unsigned int priority, struct list_head *entry)
 {
 	ASSERT_LOG_ONLY((priority <= table->max_priority),
 			"entry priority must be valid for the table");
@@ -140,7 +140,8 @@ void vdo_priority_table_enqueue(struct priority_table *table,
 	table->search_vector |= (1ULL << priority);
 }
 
-static inline void mark_bucket_empty(struct priority_table *table, struct bucket *bucket)
+static inline void mark_bucket_empty(struct priority_table *table,
+				     struct bucket *bucket)
 {
 	table->search_vector &= ~(1ULL << bucket->priority);
 }
@@ -188,7 +189,8 @@ struct list_head *vdo_priority_table_dequeue(struct priority_table *table)
  * @table: The table from which to remove the entry.
  * @entry: The entry to remove from the table.
  */
-void vdo_priority_table_remove(struct priority_table *table, struct list_head *entry)
+void vdo_priority_table_remove(struct priority_table *table,
+			       struct list_head *entry)
 {
 	struct list_head *next_entry;
 
