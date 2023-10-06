@@ -291,7 +291,8 @@ struct uds_request {
 };
 
 /* Compute the number of bytes needed to store an index. */
-int __must_check uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size);
+int __must_check uds_compute_index_size(const struct uds_parameters *parameters,
+					u64 *index_size);
 
 /* A session is required for most index operations. */
 int __must_check uds_create_index_session(struct uds_index_session **session);
@@ -333,13 +334,13 @@ int __must_check uds_close_index(struct uds_index_session *session);
  * Return a copy of the parameters used to create the index. The caller is responsible for freeing
  * the returned structure.
  */
-int __must_check
-uds_get_index_parameters(struct uds_index_session *session, struct uds_parameters **parameters);
+int __must_check uds_get_index_parameters(struct uds_index_session *session,
+					  struct uds_parameters **parameters);
 
 #endif /* TEST_INTERNAL */
 /* Get index statistics since the last time the index was opened. */
-int __must_check
-uds_get_index_session_stats(struct uds_index_session *session, struct uds_index_stats *stats);
+int __must_check uds_get_index_session_stats(struct uds_index_session *session,
+					     struct uds_index_stats *stats);
 
 /* This function will fail if any required field of the request is not set. */
 int __must_check uds_launch_request(struct uds_request *request);
