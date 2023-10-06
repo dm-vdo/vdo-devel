@@ -166,7 +166,8 @@ static inline u16 get_delta_list_byte_size(const struct delta_list *delta_list)
 	return BITS_TO_BYTES(bit_offset + delta_list->size);
 }
 
-static void rebalance_delta_zone(const struct delta_zone *delta_zone, u32 first, u32 last)
+static void rebalance_delta_zone(const struct delta_zone *delta_zone,
+				 u32 first, u32 last)
 {
 	struct delta_list *delta_list;
 	u64 new_start;
@@ -211,7 +212,8 @@ static void rebalance_delta_zone(const struct delta_zone *delta_zone, u32 first,
 	}
 }
 
-static inline size_t get_zone_memory_size(unsigned int zone_count, size_t memory_size)
+static inline size_t get_zone_memory_size(unsigned int zone_count,
+					  size_t memory_size)
 {
 	/* Round up so that each zone is a multiple of 64K in size. */
 	enum {
@@ -291,7 +293,8 @@ void uds_reset_delta_index(const struct delta_index *delta_index)
  * - The next INCR values code using MINBITS+2 bits.
  * - (and so on).
  */
-static void compute_coding_constants(u32 mean_delta, u16 *min_bits, u32 *min_keys, u32 *incr_keys)
+static void compute_coding_constants(u32 mean_delta, u16 *min_bits,
+				     u32 *min_keys, u32 *incr_keys)
 {
 	/*
 	 * We want to compute the rounded value of log(2) * mean_delta. Since we cannot always use
@@ -319,13 +322,9 @@ void uds_uninitialize_delta_index(struct delta_index *delta_index)
 	memset(delta_index, 0, sizeof(struct delta_index));
 }
 
-static int initialize_delta_zone(struct delta_zone *delta_zone,
-				 size_t size,
-				 u32 first_list,
-				 u32 list_count,
-				 u32 mean_delta,
-				 u32 payload_bits,
-				 u8 tag)
+static int initialize_delta_zone(struct delta_zone *delta_zone, size_t size,
+				 u32 first_list, u32 list_count,
+				 u32 mean_delta, u32 payload_bits, u8 tag)
 {
 	int result;
 
@@ -366,12 +365,9 @@ static int initialize_delta_zone(struct delta_zone *delta_zone,
 }
 
 int uds_initialize_delta_index(struct delta_index *delta_index,
-			       unsigned int zone_count,
-			       u32 list_count,
-			       u32 mean_delta,
-			       u32 payload_bits,
-			       size_t memory_size,
-			       u8 tag)
+			       unsigned int zone_count, u32 list_count,
+			       u32 mean_delta, u32 payload_bits,
+			       size_t memory_size, u8 tag)
 {
 	int result;
 	unsigned int z;
@@ -471,10 +467,8 @@ static inline void set_immutable_start(u8 *memory, u32 list_number, u32 start)
 	set_field(start, memory, get_immutable_header_offset(list_number), IMMUTABLE_HEADER_SIZE);
 }
 
-static bool verify_delta_index_page(u64 nonce,
-				    u16 list_count,
-				    u64 expected_nonce,
-				    u8 *memory,
+static bool verify_delta_index_page(u64 nonce, u16 list_count,
+				    u64 expected_nonce, u8 *memory,
 				    size_t memory_size)
 {
 	unsigned int i;
@@ -523,10 +517,8 @@ static bool verify_delta_index_page(u64 nonce,
 
 /* Initialize a delta index page to refer to a supplied page. */
 int uds_initialize_delta_index_page(struct delta_index_page *delta_index_page,
-				    u64 expected_nonce,
-				    u32 mean_delta,
-				    u32 payload_bits,
-				    u8 *memory,
+				    u64 expected_nonce, u32 mean_delta,
+				    u32 payload_bits, u8 *memory,
 				    size_t memory_size)
 {
 	u64 nonce;
@@ -637,7 +629,8 @@ static inline void set_zero(u8 *memory, u64 offset, u32 size)
  * Move several bits from a higher to a lower address, moving the lower addressed bits first. The
  * size and memory offsets are measured in bits.
  */
-static void move_bits_down(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size)
+static void move_bits_down(const u8 *from, u64 from_offset, u8 *to,
+			   u64 to_offset, u32 size)
 {
 	const u8 *source;
 	u8 *destination;
@@ -677,7 +670,8 @@ static void move_bits_down(const u8 *from, u64 from_offset, u8 *to, u64 to_offse
  * Move several bits from a lower to a higher address, moving the higher addressed bits first. The
  * size and memory offsets are measured in bits.
  */
-static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size)
+static void move_bits_up(const u8 *from, u64 from_offset, u8 *to,
+			 u64 to_offset, u32 size)
 {
 	const u8 *source;
 	u8 *destination;
@@ -716,7 +710,8 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
  * bits from the source to a temporary value, and then move all the bits from the temporary value
  * to the destination. The size and memory offsets are measured in bits.
  */
-STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size)
+STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
+		      u32 size)
 {
 	u64 field;
 
@@ -743,11 +738,8 @@ STATIC void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u3
  * list_count.
  */
 int uds_pack_delta_index_page(const struct delta_index *delta_index,
-			      u64 header_nonce,
-			      u8 *memory,
-			      size_t memory_size,
-			      u64 virtual_chapter_number,
-			      u32 first_list,
+			      u64 header_nonce, u8 *memory, size_t memory_size,
+			      u64 virtual_chapter_number, u32 first_list,
 			      u32 *list_count)
 {
 	const struct delta_zone *delta_zone;
@@ -843,8 +835,7 @@ void swap_delta_index_page_endianness(u8 *memory)
 #endif /* TEST_INTERNAL */
 /* Compute the new offsets of the delta lists. */
 static void compute_new_list_offsets(struct delta_zone *delta_zone,
-				     u32 growing_index,
-				     size_t growing_size,
+				     u32 growing_index, size_t growing_size,
 				     size_t used_space)
 {
 	size_t spacing;
@@ -1225,7 +1216,8 @@ int uds_start_saving_delta_index(const struct delta_index *delta_index,
 	return UDS_SUCCESS;
 }
 
-int uds_finish_saving_delta_index(const struct delta_index *delta_index, unsigned int zone_number)
+int uds_finish_saving_delta_index(const struct delta_index *delta_index,
+				  unsigned int zone_number)
 {
 	int result;
 	int first_error = UDS_SUCCESS;
@@ -1289,8 +1281,7 @@ static int assert_not_at_end(const struct delta_index_entry *delta_entry)
  * entry from the list.
  */
 int uds_start_delta_index_search(const struct delta_index *delta_index,
-				 u32 list_number,
-				 u32 key,
+				 u32 list_number, u32 key,
 				 struct delta_index_entry *delta_entry)
 {
 	int result;
@@ -1487,7 +1478,8 @@ static void get_collision_name(const struct delta_index_entry *entry, u8 *name)
 		*name++ = get_unaligned_le16(addr++) >> shift;
 }
 
-static void set_collision_name(const struct delta_index_entry *entry, const u8 *name)
+static void set_collision_name(const struct delta_index_entry *entry,
+			       const u8 *name)
 {
 	u64 offset = get_delta_entry_offset(entry) + entry->entry_bits - COLLISION_BITS;
 	u8 *addr = entry->delta_zone->memory + offset / BITS_PER_BYTE;
@@ -1503,9 +1495,7 @@ static void set_collision_name(const struct delta_index_entry *entry, const u8 *
 }
 
 int uds_get_delta_index_entry(const struct delta_index *delta_index,
-			      u32 list_number,
-			      u32 key,
-			      const u8 *name,
+			      u32 list_number, u32 key, const u8 *name,
 			      struct delta_index_entry *delta_entry)
 {
 	int result;
@@ -1548,7 +1538,8 @@ int uds_get_delta_index_entry(const struct delta_index *delta_index,
 	return UDS_SUCCESS;
 }
 
-int uds_get_delta_entry_collision(const struct delta_index_entry *delta_entry, u8 *name)
+int uds_get_delta_entry_collision(const struct delta_index_entry *delta_entry,
+				  u8 *name)
 {
 	int result;
 
@@ -1582,7 +1573,8 @@ static int assert_mutable_entry(const struct delta_index_entry *delta_entry)
 	return result;
 }
 
-int uds_set_delta_entry_value(const struct delta_index_entry *delta_entry, u32 value)
+int uds_set_delta_entry_value(const struct delta_index_entry *delta_entry,
+			      u32 value)
 {
 	int result;
 	u32 value_mask = (1 << delta_entry->value_bits) - 1;
@@ -1613,8 +1605,8 @@ int uds_set_delta_entry_value(const struct delta_index_entry *delta_entry, u32 v
  * Extend the memory used by the delta lists by adding growing_size bytes before the list indicated
  * by growing_index, then rebalancing the lists in the new chunk.
  */
-STATIC int
-extend_delta_zone(struct delta_zone *delta_zone, u32 growing_index, size_t growing_size)
+STATIC int extend_delta_zone(struct delta_zone *delta_zone, u32 growing_index,
+			     size_t growing_size)
 {
 	ktime_t start_time;
 	ktime_t end_time;
@@ -1748,7 +1740,8 @@ static void encode_delta(const struct delta_index_entry *delta_entry)
 	set_field(1, memory, offset + delta_zone->min_bits + t2, 1);
 }
 
-static void encode_entry(const struct delta_index_entry *delta_entry, u32 value, const u8 *name)
+static void encode_entry(const struct delta_index_entry *delta_entry,
+			 u32 value, const u8 *name)
 {
 	u8 *memory = delta_entry->delta_zone->memory;
 	u64 offset = get_delta_entry_offset(delta_entry);
@@ -1763,10 +1756,8 @@ static void encode_entry(const struct delta_index_entry *delta_entry, u32 value,
  * Create a new entry in the delta index. If the entry is a collision, the full 256 bit name must
  * be provided.
  */
-int uds_put_delta_index_entry(struct delta_index_entry *delta_entry,
-			      u32 key,
-			      u32 value,
-			      const u8 *name)
+int uds_put_delta_index_entry(struct delta_index_entry *delta_entry, u32 key,
+			      u32 value, const u8 *name)
 {
 	int result;
 	struct delta_zone *delta_zone;
@@ -1989,7 +1980,8 @@ void uds_get_delta_index_stats(const struct delta_index *delta_index,
 	}
 }
 
-size_t uds_compute_delta_index_size(u32 entry_count, u32 mean_delta, u32 payload_bits)
+size_t uds_compute_delta_index_size(u32 entry_count, u32 mean_delta,
+				    u32 payload_bits)
 {
 	u16 min_bits;
 	u32 incr_keys;
@@ -2000,10 +1992,8 @@ size_t uds_compute_delta_index_size(u32 entry_count, u32 mean_delta, u32 payload
 	return entry_count * (payload_bits + min_bits + 1) + entry_count / 2;
 }
 
-u32 uds_get_delta_index_page_count(u32 entry_count,
-				   u32 list_count,
-				   u32 mean_delta,
-				   u32 payload_bits,
+u32 uds_get_delta_index_page_count(u32 entry_count, u32 list_count,
+				   u32 mean_delta, u32 payload_bits,
 				   size_t bytes_per_page)
 {
 	unsigned int bits_per_delta_list;

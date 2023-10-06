@@ -198,28 +198,25 @@ struct delta_index_stats {
 };
 
 #ifdef TEST_INTERNAL
-void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset, u32 size);
+void move_bits(const u8 *from, u64 from_offset, u8 *to, u64 to_offset,
+	       u32 size);
 
 int __must_check extend_delta_zone(struct delta_zone *delta_zone,
-				   u32 growing_index,
-				   size_t growing_size);
+				   u32 growing_index, size_t growing_size);
 
 void swap_delta_index_page_endianness(u8 *memory);
 
 #endif /* TEST_INTERNAL */
 int __must_check uds_initialize_delta_index(struct delta_index *delta_index,
 					    unsigned int zone_count,
-					    u32 list_count,
-					    u32 mean_delta,
+					    u32 list_count, u32 mean_delta,
 					    u32 payload_bits,
-					    size_t memory_size,
-					    u8 tag);
+					    size_t memory_size, u8 tag);
 
 int __must_check uds_initialize_delta_index_page(struct delta_index_page *delta_index_page,
 						 u64 expected_nonce,
 						 u32 mean_delta,
-						 u32 payload_bits,
-						 u8 *memory,
+						 u32 payload_bits, u8 *memory,
 						 size_t memory_size);
 
 void uds_uninitialize_delta_index(struct delta_index *delta_index);
@@ -227,12 +224,10 @@ void uds_uninitialize_delta_index(struct delta_index *delta_index);
 void uds_reset_delta_index(const struct delta_index *delta_index);
 
 int __must_check uds_pack_delta_index_page(const struct delta_index *delta_index,
-					   u64 header_nonce,
-					   u8 *memory,
+					   u64 header_nonce, u8 *memory,
 					   size_t memory_size,
 					   u64 virtual_chapter_number,
-					   u32 first_list,
-					   u32 *list_count);
+					   u32 first_list, u32 *list_count);
 
 int __must_check uds_start_restoring_delta_index(struct delta_index *delta_index,
 						 struct buffered_reader **buffered_readers,
@@ -242,23 +237,23 @@ int __must_check uds_finish_restoring_delta_index(struct delta_index *delta_inde
 						  struct buffered_reader **buffered_readers,
 						  unsigned int reader_count);
 
-int __must_check
-uds_check_guard_delta_lists(struct buffered_reader **buffered_readers, unsigned int reader_count);
+int __must_check uds_check_guard_delta_lists(struct buffered_reader **buffered_readers,
+					     unsigned int reader_count);
 
 int __must_check uds_start_saving_delta_index(const struct delta_index *delta_index,
 					      unsigned int zone_number,
 					      struct buffered_writer *buffered_writer);
 
-int __must_check
-uds_finish_saving_delta_index(const struct delta_index *delta_index, unsigned int zone_number);
+int __must_check uds_finish_saving_delta_index(const struct delta_index *delta_index,
+					       unsigned int zone_number);
 
 int __must_check uds_write_guard_delta_list(struct buffered_writer *buffered_writer);
 
-size_t __must_check uds_compute_delta_index_save_bytes(u32 list_count, size_t memory_size);
+size_t __must_check uds_compute_delta_index_save_bytes(u32 list_count,
+						       size_t memory_size);
 
 int __must_check uds_start_delta_index_search(const struct delta_index *delta_index,
-					      u32 list_number,
-					      u32 key,
+					      u32 list_number, u32 key,
 					      struct delta_index_entry *iterator);
 
 int __must_check uds_next_delta_index_entry(struct delta_index_entry *delta_entry);
@@ -266,36 +261,31 @@ int __must_check uds_next_delta_index_entry(struct delta_index_entry *delta_entr
 int __must_check uds_remember_delta_index_offset(const struct delta_index_entry *delta_entry);
 
 int __must_check uds_get_delta_index_entry(const struct delta_index *delta_index,
-					   u32 list_number,
-					   u32 key,
+					   u32 list_number, u32 key,
 					   const u8 *name,
 					   struct delta_index_entry *delta_entry);
 
-int __must_check
-uds_get_delta_entry_collision(const struct delta_index_entry *delta_entry, u8 *name);
+int __must_check uds_get_delta_entry_collision(const struct delta_index_entry *delta_entry,
+					       u8 *name);
 
 u32 __must_check uds_get_delta_entry_value(const struct delta_index_entry *delta_entry);
 
-int __must_check uds_set_delta_entry_value(const struct delta_index_entry *delta_entry, u32 value);
+int __must_check uds_set_delta_entry_value(const struct delta_index_entry *delta_entry,
+					   u32 value);
 
 int __must_check uds_put_delta_index_entry(struct delta_index_entry *delta_entry,
-					   u32 key,
-					   u32 value,
-					   const u8 *name);
+					   u32 key, u32 value, const u8 *name);
 
 int __must_check uds_remove_delta_index_entry(struct delta_index_entry *delta_entry);
 
 void uds_get_delta_index_stats(const struct delta_index *delta_index,
 			       struct delta_index_stats *stats);
 
-size_t __must_check
-uds_compute_delta_index_size(u32 entry_count, u32 mean_delta, u32 payload_bits);
+size_t __must_check uds_compute_delta_index_size(u32 entry_count, u32 mean_delta,
+						 u32 payload_bits);
 
-u32 uds_get_delta_index_page_count(u32 entry_count,
-				   u32 list_count,
-				   u32 mean_delta,
-				   u32 payload_bits,
-				   size_t bytes_per_page);
+u32 uds_get_delta_index_page_count(u32 entry_count, u32 list_count, u32 mean_delta,
+				   u32 payload_bits, size_t bytes_per_page);
 
 void uds_log_delta_index_entry(struct delta_index_entry *delta_entry);
 
