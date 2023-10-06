@@ -329,14 +329,16 @@ static inline struct hash_zones *as_hash_zones(struct vdo_completion *completion
 	return container_of(completion, struct hash_zones, completion);
 }
 
-static inline void assert_in_hash_zone(struct hash_zone *zone, const char *name)
+static inline void assert_in_hash_zone(struct hash_zone *zone,
+				       const char *name)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == zone->thread_id),
 			"%s called on hash zone thread",
 			name);
 }
 
-static inline bool change_context_state(struct dedupe_context *context, int old, int new)
+static inline bool change_context_state(struct dedupe_context *context,
+					int old, int new)
 {
 	return (atomic_cmpxchg(&context->state, old, new) == old);
 }
@@ -351,7 +353,8 @@ static inline bool change_timer_state(struct hash_zone *zone, int old, int new)
  * @zone: The zone from which the lock was borrowed.
  * @lock: The lock that is no longer in use.
  */
-static void return_hash_lock_to_pool(struct hash_zone *zone, struct hash_lock *lock)
+static void return_hash_lock_to_pool(struct hash_zone *zone,
+				     struct hash_lock *lock)
 {
 	memset(lock, 0, sizeof(*lock));
 	INIT_LIST_HEAD(&lock->pool_node);
@@ -393,7 +396,8 @@ static const char *get_hash_lock_state_name(enum hash_lock_state state)
  * @data_vio: The data_vio expected to be the lock agent.
  * @where: A string describing the function making the assertion.
  */
-static void assert_hash_lock_agent(struct data_vio *data_vio, const char *where)
+static void assert_hash_lock_agent(struct data_vio *data_vio,
+				   const char *where)
 {
 	/* Not safe to access the agent field except from the hash zone. */
 	assert_data_vio_in_hash_zone(data_vio);
@@ -407,7 +411,8 @@ static void assert_hash_lock_agent(struct data_vio *data_vio, const char *where)
  * @hash_lock: The hash lock to update.
  * @pbn_lock: The PBN read lock to use as the duplicate lock.
  */
-static void set_duplicate_lock(struct hash_lock *hash_lock, struct pbn_lock *pbn_lock)
+static void set_duplicate_lock(struct hash_lock *hash_lock,
+			       struct pbn_lock *pbn_lock)
 {
 	ASSERT_LOG_ONLY((hash_lock->duplicate_lock == NULL),
 			"hash lock must not already hold a duplicate lock");
@@ -434,7 +439,8 @@ static inline struct data_vio *dequeue_lock_waiter(struct hash_lock *lock)
  *
  * Updates the hash lock (or locks) to reflect the change in membership.
  */
-static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
+static void set_hash_lock(struct data_vio *data_vio,
+			  struct hash_lock *new_lock)
 {
 	struct hash_lock *old_lock = data_vio->hash_lock;
 
@@ -477,7 +483,8 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 }
 
 /* There are loops in the state diagram, so some forward decl's are needed. */
-static void start_deduping(struct hash_lock *lock, struct data_vio *agent, bool agent_is_done);
+static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
+			   bool agent_is_done);
 static void start_locking(struct hash_lock *lock, struct data_vio *agent);
 static void start_writing(struct hash_lock *lock, struct data_vio *agent);
 static void unlock_duplicate_pbn(struct vdo_completion *completion);
@@ -505,7 +512,8 @@ static void exit_hash_lock(struct data_vio *data_vio)
  * @data_vio: The data_vio to modify.
  * @source: The location of the duplicate.
  */
-static void set_duplicate_location(struct data_vio *data_vio, const struct zoned_pbn source)
+static void set_duplicate_location(struct data_vio *data_vio,
+				   const struct zoned_pbn source)
 {
 	data_vio->is_duplicate = (source.pbn != VDO_ZERO_BLOCK);
 	data_vio->duplicate = source;
@@ -535,7 +543,8 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
  * @lock: The hash lock on which to wait.
  * @data_vio: The data_vio to add to the queue.
  */
-static void wait_on_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
+static void wait_on_hash_lock(struct hash_lock *lock,
+			      struct data_vio *data_vio)
 {
 	vdo_enqueue_waiter(&lock->waiters, &data_vio->waiter);
 
@@ -781,7 +790,8 @@ static void finish_updating(struct vdo_completion *completion)
 	start_bypassing(lock, agent);
 }
 
-static void query_index(struct data_vio *data_vio, enum uds_request_type operation);
+static void query_index(struct data_vio *data_vio,
+			enum uds_request_type operation);
 
 /**
  * start_updating() - Continue deduplication with the last step, updating UDS with the location of
@@ -939,7 +949,8 @@ static void enter_forked_lock(struct waiter *waiter, void *context)
  * Transfers the new agent and any lock waiters to a new hash lock instance which takes the place
  * of the old lock in the lock map. The old lock remains active, but will not update advice.
  */
-static void fork_hash_lock(struct hash_lock *old_lock, struct data_vio *new_agent)
+static void fork_hash_lock(struct hash_lock *old_lock,
+			   struct data_vio *new_agent)
 {
 	struct hash_lock *new_lock;
 	int result;
@@ -976,7 +987,8 @@ static void fork_hash_lock(struct hash_lock *old_lock, struct data_vio *new_agen
  * If no increments are available, this will roll over to a new hash lock and launch the data_vio
  * as the writing agent for that lock.
  */
-static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio, bool has_claim)
+static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio,
+			  bool has_claim)
 {
 	if (!has_claim && !vdo_claim_pbn_lock_increment(lock->duplicate_lock)) {
 		/* Out of increments, so must roll over to a new lock. */
@@ -1000,7 +1012,8 @@ static void launch_dedupe(struct hash_lock *lock, struct data_vio *data_vio, boo
  * If the agent itself needs to deduplicate, an increment for it must already have been claimed
  * from the duplicate lock, ensuring the hash lock will still have a data_vio holding it.
  */
-static void start_deduping(struct hash_lock *lock, struct data_vio *agent, bool agent_is_done)
+static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
+			   bool agent_is_done)
 {
 	lock->state = VDO_HASH_LOCK_DEDUPING;
 
@@ -1727,7 +1740,8 @@ static void start_querying(struct hash_lock *lock, struct data_vio *data_vio)
  * @lock: The hash lock.
  * @data_vio: The data_vio attempting to enter the lock.
  */
-static void report_bogus_lock_state(struct hash_lock *lock, struct data_vio *data_vio)
+static void report_bogus_lock_state(struct hash_lock *lock,
+				    struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(false,
 			"hash lock must not be in unimplemented state %s",
@@ -1794,7 +1808,8 @@ void vdo_continue_hash_lock(struct vdo_completion *completion)
  * Return: true if the given data_vio must not share the lock because it doesn't have the same data
  *         as the lock holders.
  */
-static bool is_hash_collision(struct hash_lock *lock, struct data_vio *candidate)
+static bool is_hash_collision(struct hash_lock *lock,
+			      struct data_vio *candidate)
 {
 	struct data_vio *lock_holder;
 	struct hash_zone *zone;
@@ -1991,7 +2006,8 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
  * If the lock is still a write lock (as it will be for the first share), it will be converted to a
  * read lock. This also reserves a reference count increment for the data_vio.
  */
-void vdo_share_compressed_write_lock(struct data_vio *data_vio, struct pbn_lock *pbn_lock)
+void vdo_share_compressed_write_lock(struct data_vio *data_vio,
+				     struct pbn_lock *pbn_lock)
 {
 	bool claimed;
 
@@ -2042,7 +2058,8 @@ static void dedupe_kobj_release(struct kobject *directory)
 	UDS_FREE(container_of(directory, struct hash_zones, dedupe_directory));
 }
 
-static ssize_t dedupe_status_show(struct kobject *directory, struct attribute *attr, char *buf)
+static ssize_t dedupe_status_show(struct kobject *directory,
+				  struct attribute *attr, char *buf)
 {
 	struct uds_attribute *ua = container_of(attr, struct uds_attribute, attr);
 	struct hash_zones *zones = container_of(directory, struct hash_zones, dedupe_directory);
@@ -2219,7 +2236,8 @@ static void start_expiration_timer(struct dedupe_context *context)
  * @zones: the hash zones.
  * @timeouts: the number of newly timed out requests.
  */
-static void report_dedupe_timeouts(struct hash_zones *zones, unsigned int timeouts)
+static void report_dedupe_timeouts(struct hash_zones *zones,
+				   unsigned int timeouts)
 {
 	atomic64_add(timeouts, &zones->timeouts);
 	spin_lock(&zones->lock);
@@ -2411,8 +2429,9 @@ static void timeout_index_operations(struct timer_list *t)
 		vdo_launch_completion(&zone->completion);
 }
 
-static int __must_check
-initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_number)
+static int __must_check initialize_zone(struct vdo *vdo,
+					struct hash_zones *zones,
+					zone_count_t zone_number)
 {
 	int result;
 	data_vio_count_t i;
@@ -2465,7 +2484,8 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 }
 
 /** get_thread_id_for_zone() - Implements vdo_zone_thread_getter. */
-static thread_id_t get_thread_id_for_zone(void *context, zone_count_t zone_number)
+static thread_id_t get_thread_id_for_zone(void *context,
+					  zone_count_t zone_number)
 {
 	struct hash_zones *zones = context;
 
@@ -2621,7 +2641,8 @@ static void initiate_drain(struct admin_state *state)
  *
  * Implements vdo_zone_action.
  */
-static void drain_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion *parent)
+static void drain_hash_zone(void *context, zone_count_t zone_number,
+			    struct vdo_completion *parent)
 {
 	struct hash_zones *zones = context;
 
@@ -2632,7 +2653,8 @@ static void drain_hash_zone(void *context, zone_count_t zone_number, struct vdo_
 }
 
 /** vdo_drain_hash_zones() - Drain all hash zones. */
-void vdo_drain_hash_zones(struct hash_zones *zones, struct vdo_completion *parent)
+void vdo_drain_hash_zones(struct hash_zones *zones,
+			  struct vdo_completion *parent)
 {
 	vdo_schedule_operation(zones->manager,
 			       parent->vdo->suspend_type,
@@ -2695,8 +2717,8 @@ static void resume_index(void *context, struct vdo_completion *parent)
  *
  * Implements vdo_zone_action.
  */
-static void
-resume_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion *parent)
+static void resume_hash_zone(void *context, zone_count_t zone_number,
+			     struct vdo_completion *parent)
 {
 	struct hash_zone *zone = &(((struct hash_zones *) context)->zones[zone_number]);
 
@@ -2708,7 +2730,8 @@ resume_hash_zone(void *context, zone_count_t zone_number, struct vdo_completion 
  * @zones: The hash zones to resume.
  * @parent: The object to notify when the zones have resumed.
  */
-void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *parent)
+void vdo_resume_hash_zones(struct hash_zones *zones,
+			   struct vdo_completion *parent)
 {
 	if (vdo_is_read_only(parent->vdo)) {
 		vdo_launch_completion(parent);
@@ -2728,8 +2751,8 @@ void vdo_resume_hash_zones(struct hash_zones *zones, struct vdo_completion *pare
  * @zone: The hash zone to query.
  * @tally: The tally
  */
-static void
-get_hash_zone_statistics(const struct hash_zone *zone, struct hash_lock_statistics *tally)
+static void get_hash_zone_statistics(const struct hash_zone *zone,
+				     struct hash_lock_statistics *tally)
 {
 	const struct hash_lock_statistics *stats = &zone->statistics;
 
@@ -2740,7 +2763,8 @@ get_hash_zone_statistics(const struct hash_zone *zone, struct hash_lock_statisti
 	tally->curr_dedupe_queries += READ_ONCE(zone->active);
 }
 
-static void get_index_statistics(struct hash_zones *zones, struct index_statistics *stats)
+static void get_index_statistics(struct hash_zones *zones,
+				 struct index_statistics *stats)
 {
 	enum index_state state;
 	struct uds_index_stats index_stats;
@@ -2776,7 +2800,8 @@ static void get_index_statistics(struct hash_zones *zones, struct index_statisti
  * Return: The sum of the hash lock statistics from all hash zones plus the statistics from the UDS
  *         index
  */
-void vdo_get_dedupe_statistics(struct hash_zones *zones, struct vdo_statistics *stats)
+void vdo_get_dedupe_statistics(struct hash_zones *zones,
+			       struct vdo_statistics *stats)
 
 {
 	zone_count_t zone;
@@ -2801,8 +2826,8 @@ void vdo_get_dedupe_statistics(struct hash_zones *zones, struct vdo_statistics *
  *
  * Return: The hash zone responsible for the record name.
  */
-struct hash_zone *
-vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *name)
+struct hash_zone *vdo_select_hash_zone(struct hash_zones *zones,
+				       const struct uds_record_name *name)
 {
 	/*
 	 * Use a fragment of the record name as a hash code. Eight bits of hash should suffice
@@ -2846,7 +2871,8 @@ static void dump_hash_lock(const struct hash_lock *lock)
 		     vdo_count_waiters(&lock->waiters), (void *) lock->agent);
 }
 
-static const char *index_state_to_string(struct hash_zones *zones, enum index_state state)
+static const char *index_state_to_string(struct hash_zones *zones,
+					 enum index_state state)
 {
 	if (!vdo_is_state_normal(&zones->state))
 		return SUSPENDED;
@@ -3009,7 +3035,8 @@ static int test_launch_request(struct uds_request *request)
  * NULL if none) will be returned via receive_data_vio_dedupe_advice(). dedupe_context.status is
  * set to the return status code of any asynchronous index processing.
  */
-static void query_index(struct data_vio *data_vio, enum uds_request_type operation)
+static void query_index(struct data_vio *data_vio,
+			enum uds_request_type operation)
 {
 	int result;
 	struct dedupe_context *context;
@@ -3048,11 +3075,8 @@ static void query_index(struct data_vio *data_vio, enum uds_request_type operati
 	}
 }
 
-static void set_target_state(struct hash_zones *zones,
-			     enum index_state target,
-			     bool change_dedupe,
-			     bool dedupe,
-			     bool set_create)
+static void set_target_state(struct hash_zones *zones, enum index_state target,
+			     bool change_dedupe, bool dedupe, bool set_create)
 {
 	const char *old_state, *new_state;
 
