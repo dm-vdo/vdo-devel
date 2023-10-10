@@ -21,7 +21,7 @@ typedef struct cu_SuiteInfo {
   const char *name;
   /* Initializers.  All of these that are not null are invoked. */
   void (*initializerWithArguments)(int argc, const char **argv);
-  void (*initializerWithIndexName)(const char *indexName);
+  void (*initializerWithBlockDevice)(struct block_device *bdev);
   void (*initializerWithSession)(struct uds_index_session *indexSession);
   void (*initializer)(void);
   /* Cleaner.  Called after the test if it is not null. */
@@ -30,8 +30,8 @@ typedef struct cu_SuiteInfo {
   const CU_TestInfo *tests;
   /* Link to the next suite */
   const struct cu_SuiteInfo *next;
-  /* Name of the index, filled in by expandSuites */
-  const char *indexName;
+  /* Test block device, filled in by expandSuites */
+  struct block_device *bdev;
   /* If this flag is set, the suite must be run.  Any testing options that
    * run a subset of the suites must not prevent this suite from being run
    * at least once. */

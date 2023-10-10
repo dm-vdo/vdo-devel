@@ -188,6 +188,32 @@ const char *const *getTestMultiIndexNames(void)
   __attribute__((warn_unused_result));
 
 /**
+ * Get the primary test block device, which is the created from the name
+ * returned by getTestIndexName().
+ *
+ * @return The primary test block device
+ **/
+struct block_device *getTestBlockDevice(void)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get test index block devices for indices that can be used at the same time
+ * in a multi-index test.
+ *
+ * @return an array of devices that can each be passed to uds_open_index()
+ **/
+struct block_device **getTestMultiBlockDevices(void)
+  __attribute__((warn_unused_result));
+
+/**
+ * Close a test block device. Must be called after getTestBlockDevice() or
+ * getTestMultiBlockDevices().
+ *
+ * @param device  The test block device
+ **/
+void putTestBlockDevice(struct block_device *device);
+
+/**
  * Make a test configuration for a dense index
  *
  * @param memGB  The maximum memory allocation, in GB

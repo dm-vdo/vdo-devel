@@ -82,28 +82,21 @@ static const CU_SuiteInfo *expandSuites(const CU_SuiteInfo *suites)
   const CU_SuiteInfo **pSuites = &suiteList;
   const CU_SuiteInfo *suite;
   for (suite = suites; suite != NULL; suite = suite->next) {
-    if ((suite->initializerWithIndexName != NULL)
+    if ((suite->initializerWithBlockDevice != NULL)
         || (suite->initializerWithSession != NULL)) {
-      // Suite uses a test index name
-      static const char *const *indexNames;
-      if (indexNames == NULL) {
-        indexNames = getTestIndexNames();
+      // Suite uses a test block device
+      CU_SuiteInfo *s = copySuite(suite);
+      s->bdev = getTestBlockDevice();
+      appendToSuiteList(&pSuites, s);
+      if (suite->oneIndexConfiguredByArgv) {
+        // Suite runs on only one index
+        break;
       }
-      const char *const *iName;
-      for (iName = indexNames; *iName != NULL; iName++) {
-        CU_SuiteInfo *s = copySuite(suite);
-        s->indexName = *iName;
+      if (!suite->noSparse && (suite->initializerWithSession != NULL)) {
+        s = copySuite(suite);
+        s->bdev = getTestBlockDevice();
+        s->useSparseSession = true;
         appendToSuiteList(&pSuites, s);
-        if (suite->oneIndexConfiguredByArgv) {
-          // Suite runs on only one index
-          break;
-        }
-        if (!suite->noSparse && (suite->initializerWithSession != NULL)) {
-          s = copySuite(suite);
-          s->indexName = *iName;
-          s->useSparseSession = true;
-          appendToSuiteList(&pSuites, s);
-        }
       }
     } else {
       appendToSuiteList(&pSuites, copySuite(suite));
@@ -123,7 +116,7 @@ static struct uds_index_session *testOpenIndex(const CU_SuiteInfo *suite)
   if (suite->oneIndexConfiguredByArgv) {
     params = createUdsParametersForAlbtest(testArgc, testArgv);
   }
-  params.name = suite->indexName;
+  params.bdev = suite->bdev;
   randomizeUdsNonce(&params);
   UDS_ASSERT_SUCCESS(uds_create_index_session(&session));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_CREATE, &params, session));
@@ -138,8 +131,8 @@ void testSub(const CU_SuiteInfo *suite, const CU_TestInfo *test)
   if (suite->initializerWithArguments != NULL) {
     suite->initializerWithArguments(testArgc, testArgv);
   }
-  if (suite->initializerWithIndexName != NULL) {
-    suite->initializerWithIndexName(suite->indexName);
+  if (suite->initializerWithBlockDevice != NULL) {
+    suite->initializerWithBlockDevice(suite->bdev);
   }
   if (suite->initializerWithSession != NULL) {
     indexSession = testOpenIndex(suite);
@@ -164,12 +157,11 @@ void testSub(const CU_SuiteInfo *suite, const CU_TestInfo *test)
 TestResult runSuite(const CU_SuiteInfo *suite)
 {
   TestResult result = { .name = suite->name };
-  if (suite->indexName != NULL) {
+  if (suite->bdev != NULL) {
     const char *sparseSuffix = suite->useSparseSession ? " {sparse}" : "";
     char *name;
-    UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &name, "%s [%s]%s",
-                                         suite->name, suite->indexName,
-                                         sparseSuffix));
+    UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &name, "%s %s",
+                                         suite->name, sparseSuffix));
     result.name     = name;
     result.freeName = true;
   }
@@ -218,6 +210,7 @@ void freeSuites(const CU_SuiteInfo *suites)
   while (suites != NULL) {
     const CU_SuiteInfo *s = suites;
     suites = s->next;
+    putTestBlockDevice(s->bdev);
     uds_free_const(s);
   }
 }
