@@ -47,7 +47,9 @@ void cbStatus(enum uds_request_type   type,
  *
  * @return UDS_SUCCESS or an error code if the copy fails
  **/
-int copyDevice(const char *source, const char *destination, off_t bytes);
+int copyDevice(struct block_device *source,
+	       struct block_device *destination,
+	       off_t bytes);
 
 /**
  * Create a block name that collides with the given block in the volume index.
