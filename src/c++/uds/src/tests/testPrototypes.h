@@ -153,6 +153,7 @@ static inline void freeRequest(struct uds_request *request)
   }
 }
 
+#ifndef __KERNEL__
 /**
  * Get test index names.  The index names are platform-specific, and
  * therefore this method is defined by platform dependent code.
@@ -187,6 +188,7 @@ static inline const char *getTestIndexName(void)
 const char *const *getTestMultiIndexNames(void)
   __attribute__((warn_unused_result));
 
+#endif /* __KERNEL__ */
 /**
  * Get the primary test block device, which is the created from the name
  * returned by getTestIndexName().
