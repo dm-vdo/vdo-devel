@@ -24,7 +24,7 @@
 #include "uds-threads.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 // This semaphore limits the number of simultaneous requests that will be sent
 // to the index.
@@ -56,7 +56,7 @@ static void fullRebuildTest(void)
   // Create a new index.
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
   struct uds_index_session *indexSession;
@@ -127,9 +127,9 @@ static void fullRebuildTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *in)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = in;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -140,9 +140,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "RebuildStress_x1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "RebuildStress_x1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

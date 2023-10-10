@@ -12,7 +12,7 @@
 #include "memory-alloc.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void initNullTest(void)
@@ -32,7 +32,7 @@ static void initNullTest(void)
   };
   UDS_ASSERT_ERROR(-EINVAL, uds_open_index(UDS_LOAD, &params, session));
 
-  params.name = indexName;
+  params.bdev = testDevice;
   UDS_ASSERT_ERROR(-EINVAL, uds_open_index(UDS_LOAD, &params, NULL));
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(session));
@@ -128,7 +128,7 @@ static void checkZoneParameter(unsigned int requested, unsigned int expected)
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
     .zone_count = requested,
-    .name = indexName,
+    .bdev = testDevice,
   };
 
   struct uds_index_session *session;
@@ -160,8 +160,8 @@ static void createIndexTest(void)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
-  };
+    .bdev = testDevice,
+ };
 
   /* Make the index */
   struct uds_index_session *session;
@@ -180,7 +180,7 @@ static void reuseIndexTest(void)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
 
   struct uds_index_session *session;
@@ -205,7 +205,7 @@ static void closeIndexTest(void)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
 
   /* Make the index */
@@ -218,9 +218,9 @@ static void closeIndexTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -236,9 +236,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Uds_t4",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "Uds_t4",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

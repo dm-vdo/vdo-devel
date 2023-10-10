@@ -10,7 +10,7 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 // The metadata we will use in this suite
 static struct uds_record_data cd1, cd2;
@@ -21,7 +21,7 @@ static struct uds_index *recreateTestIndex(enum uds_open_index_type openType)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
@@ -32,9 +32,9 @@ static struct uds_index *recreateTestIndex(enum uds_open_index_type openType)
 }
 
 /**********************************************************************/
-static void initSuite(const char *name)
+static void initSuite(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
   createRandomMetadata(&cd1);
   createRandomMetadata(&cd2);
 
@@ -319,10 +319,10 @@ static const CU_TestInfo indexTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Index_t3",
-  .initializerWithIndexName = initSuite,
-  .cleaner                  = cleanSuite,
-  .tests                    = indexTests, // List of suite tests
+  .name                       = "Index_t3",
+  .initializerWithBlockDevice = initSuite,
+  .cleaner                    = cleanSuite,
+  .tests                      = indexTests, // List of suite tests
 };
 
 /**

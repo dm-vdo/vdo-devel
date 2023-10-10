@@ -74,11 +74,11 @@ static void sizeOffsetTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
   struct uds_parameters parameters = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = name,
+    .bdev = bdev,
   };
   baseParameters = parameters;
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&parameters, &size));
@@ -94,9 +94,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "IndexName_t1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "IndexName_t1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**********************************************************************/

@@ -330,7 +330,7 @@ static void runMultiTest(int testDivisor)
 {
   divisor = testDivisor;
 
-  const char *const *indexNames = getTestMultiIndexNames();
+  struct block_device *const *testDevices = getTestMultiBlockDevices();
 
   enum { INDEX_COUNT = 2 };
   TestIndex ti[INDEX_COUNT];
@@ -339,7 +339,7 @@ static void runMultiTest(int testDivisor)
   for (i = 0; i < INDEX_COUNT; i++) {
     struct uds_parameters params = {
       .memory_size = UDS_MEMORY_CONFIG_256MB,
-      .name = indexNames[i],
+      .bdev = testDevices[i],
     };
     ti[i].parameters = params;
     randomizeUdsNonce(&ti[i].parameters);
@@ -348,6 +348,7 @@ static void runMultiTest(int testDivisor)
   }
   for (i = 0; i < INDEX_COUNT; i++) {
     UDS_ASSERT_SUCCESS(uds_join_threads(threads[i]));
+    putTestBlockDevice(testDevices[i]);
   }
 }
 

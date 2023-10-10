@@ -14,7 +14,7 @@
 #include "uds-threads.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 static struct uds_parameters params;
 static struct uds_index_session *indexSession;
 
@@ -74,7 +74,7 @@ static void suspendNoIndexTest(void)
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
 
   // Resuming when not suspended just succeeds.
-  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, indexName));
+  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, testDevice));
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
 
   // We can't create or load an index while suspended.
@@ -83,7 +83,7 @@ static void suspendNoIndexTest(void)
 
   // Suspending when already suspended also just succeeds.
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
-  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, indexName));
+  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, testDevice));
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   teardownIndexAndSession();
 }
@@ -468,12 +468,12 @@ static void destroyDestroyTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
   struct uds_parameters parameters = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&parameters);
   params = parameters;
@@ -498,9 +498,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Suspend_t1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "Suspend_t1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

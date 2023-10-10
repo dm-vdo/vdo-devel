@@ -72,7 +72,7 @@ static void testCallback(struct uds_request *request)
 }
 
 /**********************************************************************/
-static void suiteInit(const char *indexName)
+static void suiteInit(struct block_device *bdev)
 {
   blockNameCounter = 0;
   callbackCount = 0;
@@ -82,7 +82,7 @@ static void suiteInit(const char *indexName)
 
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
@@ -212,10 +212,10 @@ static const CU_TestInfo sparseTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "SparseLoss_t1",
-  .initializerWithIndexName = suiteInit,
-  .cleaner                  = suiteCleaner,
-  .tests                    = sparseTests,
+  .name                       = "SparseLoss_t1",
+  .initializerWithBlockDevice = suiteInit,
+  .cleaner                    = suiteCleaner,
+  .tests                      = sparseTests,
 };
 
 /**

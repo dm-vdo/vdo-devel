@@ -14,8 +14,9 @@
 enum { DATA_BLOCKS = 8 };
 enum { DATA_SIZE   = DATA_BLOCKS * UDS_BLOCK_SIZE };
 
-static u8                *data;
-static struct io_factory *factory;
+static u8                  *data;
+static struct io_factory   *factory;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void createAndWriteData(void)
@@ -23,7 +24,8 @@ static void createAndWriteData(void)
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(DATA_SIZE, u8, __func__, &data));
   get_random_bytes(data, DATA_SIZE);
 
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   struct dm_bufio_client *client = NULL;
   UDS_ASSERT_SUCCESS(uds_make_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
   int i;
@@ -63,6 +65,7 @@ static void verifyData(int count)
 static void freeEverything(void)
 {
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
   UDS_FREE(data);
   data    = NULL;
   factory = NULL;
@@ -75,7 +78,7 @@ static void readerTest(void)
   verifyData(4);
   verifyData(5);
   uds_put_io_factory(factory);
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   verifyData(2 * UDS_BLOCK_SIZE);
   verifyData(42);
   freeEverything();

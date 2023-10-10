@@ -129,7 +129,7 @@ static void testFilling(void)
 {
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = getTestIndexName(),
+    .bdev = getTestBlockDevice(),
   };
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
@@ -163,6 +163,7 @@ static void testFilling(void)
   uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(layout);
+  putTestBlockDevice(params.bdev);
 }
 
 /**********************************************************************/

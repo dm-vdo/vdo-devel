@@ -36,6 +36,8 @@ typedef struct threadMI {
   struct thread *thread;   // Thread handle
 } ThreadMI;
 
+static struct block_device *testDevice;
+
 /**********************************************************************/
 static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
 {
@@ -75,8 +77,8 @@ static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
     testmi->zoneOff[z] = z * testmi->saveSize;
   }
 
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(),
-                                         &testmi->factory));
+  testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &testmi->factory));
   return testmi;
 }
 
@@ -221,6 +223,7 @@ static void closeVolumeIndex(TestMI *testmi)
 {
   uds_free_volume_index(testmi->mi);
   uds_put_io_factory(testmi->factory);
+  putTestBlockDevice(testDevice);
   UDS_FREE(testmi);
 }
 

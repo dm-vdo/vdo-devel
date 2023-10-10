@@ -20,14 +20,14 @@ static struct geometry      *geometry;
 static struct volume        *volume;
 
 /**********************************************************************/
-static void init(const char *indexName)
+static void init(struct block_device *bdev)
 {
   // Pages need to be large enough for full header (which is the version
   // string plus the geometry, which is currently 88 bytes.  And also large
   // enough to make the storage device happy.
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4096, 8, 128);
@@ -99,10 +99,10 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Volume_t1",
-  .initializerWithIndexName = init,
-  .cleaner                  = deinit,
-  .tests                    = tests,
+  .name                       = "Volume_t1",
+  .initializerWithBlockDevice = init,
+  .cleaner                    = deinit,
+  .tests                      = tests,
 };
 
 // =============================================================================

@@ -13,6 +13,7 @@
 static struct configuration *config;
 static struct io_factory    *factory;
 static struct geometry      *geometry;
+static struct block_device  *testDevice;
 static uint64_t              vcn;
 static unsigned int         *listNumbers;
 
@@ -21,10 +22,11 @@ static void setup(void)
 {
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = getTestIndexName(),
+    .bdev = getTestBlockDevice(),
   };
+  testDevice = params.bdev;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(params.bdev, &factory));
 
   geometry = config->geometry;
   vcn = geometry->chapters_per_volume * 3;
@@ -38,6 +40,7 @@ static void cleanup(void)
 {
   uds_put_io_factory(factory);
   uds_free_configuration(config);
+  putTestBlockDevice(testDevice);
   UDS_FREE(listNumbers);
 }
 

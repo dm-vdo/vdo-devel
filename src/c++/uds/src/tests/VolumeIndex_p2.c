@@ -23,6 +23,7 @@ static struct configuration *config;
 static struct geometry      *geometry;
 static struct io_factory    *factory;
 static struct volume_index  *volumeIndex;
+static struct block_device  *testDevice;
 static size_t                zoneSize;
 
 /**
@@ -319,7 +320,8 @@ static void initSuite(int argc, const char **argv)
 {
   config = createConfigForAlbtest(argc, argv);
   geometry = config->geometry;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
 }
 
 /**********************************************************************/
@@ -327,6 +329,7 @@ static void cleanSuite(void)
 {
   uds_free_configuration(config);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

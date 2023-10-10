@@ -24,15 +24,15 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static const char *indexName;
-static uint64_t    nameCounter = 0;
+static struct block_device *testDevice;
+static uint64_t             nameCounter = 0;
 
 /**
  * The suite initialization function.
  **/
-static void initSuite(const char *name)
+static void initSuite(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
   initialize_test_requests();
 }
 
@@ -85,7 +85,7 @@ static void verifyData(struct uds_index *index,
 static void runTest(struct configuration *config, unsigned int prefillChapters)
 {
   config->zone_count = 1;
-  config->name = indexName;
+  config->bdev = testDevice;
 
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &index));
@@ -201,10 +201,10 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "FullRebuild_x1",
-  .initializerWithIndexName = initSuite,
-  .cleaner                  = cleanSuite,
-  .tests                    = tests,
+  .name                       = "FullRebuild_x1",
+  .initializerWithBlockDevice = initSuite,
+  .cleaner                    = cleanSuite,
+  .tests                      = tests,
 };
 
 /**

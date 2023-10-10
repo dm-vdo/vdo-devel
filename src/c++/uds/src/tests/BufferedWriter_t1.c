@@ -25,7 +25,8 @@ enum {
 static void bufferTest(void)
 {
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, REGION_BLOCKS, &writer));
@@ -56,13 +57,15 @@ static void bufferTest(void)
   }
   uds_free_buffered_reader(reader);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
 static void largeWriteTest(void)
 {
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, REGION_BLOCKS, &writer));
@@ -111,6 +114,7 @@ static void largeWriteTest(void)
 
   uds_free_buffered_reader(reader);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
   UDS_FREE(bigbuf);
   UDS_FREE(verbuf);
 }
@@ -121,7 +125,8 @@ static void zeroTest(void)
   u8 zeros[ZERO_LEN];
   memset(zeros, 0, ZERO_LEN);
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, 4, &writer));
@@ -139,6 +144,7 @@ static void zeroTest(void)
   UDS_ASSERT_SUCCESS(uds_verify_buffered_data(reader, BOSTON, BOSTON_LEN));
   uds_free_buffered_reader(reader);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
@@ -151,7 +157,8 @@ static void verifyTest(void)
   enum { X2_LEN = sizeof(X2) - 1 };
   enum { COUNT = UDS_BLOCK_SIZE / X1_LEN };
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
 
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, 4, &writer));
@@ -177,6 +184,7 @@ static void verifyTest(void)
   UDS_ASSERT_SUCCESS(uds_verify_buffered_data(reader, BOSTON, BOSTON_LEN));
   uds_free_buffered_reader(reader);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

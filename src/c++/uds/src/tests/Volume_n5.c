@@ -68,14 +68,14 @@ static void cleanupIndex(void)
 /**
  * The suite initialization function.
  **/
-static void init(const char *indexName)
+static void init(struct block_device *bdev)
 {
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
   UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 4);
@@ -211,10 +211,10 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Volume_n5",
-  .initializerWithIndexName = init,
-  .cleaner                  = deinit,
-  .tests                    = tests,
+  .name                       = "Volume_n5",
+  .initializerWithBlockDevice = init,
+  .cleaner                    = deinit,
+  .tests                      = tests,
 };
 
 // ===========================================================================

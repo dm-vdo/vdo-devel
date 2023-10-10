@@ -14,14 +14,14 @@
 #include "resourceUsage.h"
 #include "testPrototypes.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void runTest(bool sparse)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
     .sparse = true,
   };
 
@@ -82,9 +82,9 @@ static void testSparse(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -96,9 +96,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Rebuild_p1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "Rebuild_p1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

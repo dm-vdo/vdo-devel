@@ -21,7 +21,7 @@ typedef struct indexTestData {
   unsigned int            recordsPerChapter;
 } IndexTestData;
 
-static const char *indexName;
+static struct block_device *testDevice;
 static IndexTestData testData;
 static unsigned int NUM_CHAPTERS;
 
@@ -32,16 +32,16 @@ struct configuration *sparseConfig;
 /**
  * The suite initialization function.
  **/
-static void indexInitSuite(const char *name)
+static void indexInitSuite(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 
   NUM_CHAPTERS = 8;
 
   // Set up the geometry and config for dense index testing
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = testDevice,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &denseConfig));
   unsigned int zoneCount = denseConfig->zone_count;
@@ -439,10 +439,10 @@ static const CU_TestInfo indexTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Index_t2",
-  .initializerWithIndexName = indexInitSuite,
-  .cleaner                  = indexCleanSuite,
-  .tests                    = indexTests, // List of suite tests
+  .name                       = "Index_t2",
+  .initializerWithBlockDevice = indexInitSuite,
+  .cleaner                    = indexCleanSuite,
+  .tests                      = indexTests, // List of suite tests
 };
 
 /**
