@@ -24,7 +24,6 @@ LIBRARIES =	libuds.a				\
 		libuds-int.so
 
 UDS_OBJECTS =	$(notdir $(UDS_COMMON_SOURCES:%.c=%.o))	\
-		blkdev.o		\
 		bitops.o		\
 		directoryReader.o	\
 		directoryUtils.o	\
