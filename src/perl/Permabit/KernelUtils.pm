@@ -391,7 +391,9 @@ sub setupKernelMemoryLimiting {
   # Reboot the kernel using this much memory
   my $desired         = $target;
   my @hostsInProgress = @$hosts;
-  while (scalar(@hostsInProgress) > 0) {
+  my $iteration       = 0;
+  my $maxIterations   = 5;
+  while ((scalar(@hostsInProgress) > 0) && (++$iteration <= $maxIterations)) {
     _rebootWithKernelOption($hosts, "mem",
                             int(($target + $overhead) / $KB) . "K");
     my %currMem = map { $_ => getTotalRAM($_) } @hostsInProgress;
@@ -415,6 +417,13 @@ sub setupKernelMemoryLimiting {
 
       $target = $target + ($shouldGoDown ? -1 : 1) * max(@diffs) + 3 * $MB;
     }
+  }
+  if (scalar(@hostsInProgress) > 0) {
+    eval {
+      # Remove mem= options even if they weren't working.
+      removeKernelMemoryLimiting($hosts);
+    };
+    confess("unable to adjust system memory parameter: @hostsInProgress");
   }
 
   # Set the appropriate hung task timeout now that we've rebooted.
