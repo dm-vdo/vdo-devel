@@ -85,13 +85,13 @@ EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 #ifdef TEST_INTERNAL
 #include "chapter-index.h"
 #include "dory.h"
+#include "funnel-requestqueue.h"
 #include "hash-utils.h"
 #include "index.h"
 #include "index-session.h"
 #include "io-factory.h"
 #include "murmurhash3.h"
 #include "open-chapter.h"
-#include "request-queue.h"
 #include "volume.h"
 #include "volume-index.h"
 

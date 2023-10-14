@@ -5,8 +5,8 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "funnel-requestqueue.h"
 #include "testPrototypes.h"
-#include "request-queue.h"
 
 #include <linux/console.h>
 #include <linux/delay.h>

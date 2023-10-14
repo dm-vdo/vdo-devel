@@ -133,6 +133,7 @@ tarballs:
             - errors.[hc]
             - event-count.[hc]
             - funnel-queue.[hc]
+            - funnel-requestqueue.h
             - geometry.[hc]
             - hash-utils.h
             - index.[hc]
@@ -147,7 +148,6 @@ tarballs:
             - open-chapter.[hc]
             - permassert.[hc]
             - radix-sort.[hc]
-            - request-queue.h
             - sparse-cache.[hc]
             - string-utils.[hc]
             - time-utils.h
@@ -240,6 +240,8 @@ tarballs:
             - encodings.h
             - flush.c
             - flush.h
+            - funnel-workqueue.c
+            - funnel-workqueue.h
             - histogram.c
             - histogram.h
             - int-map.c
@@ -280,8 +282,6 @@ tarballs:
             - vio.h
             - wait-queue.c
             - wait-queue.h
-            - work-queue.c
-            - work-queue.h
           undefines:
             - INTERNAL
             - TEST_INTERNAL
@@ -308,6 +308,7 @@ tarballs:
             - event-count.h
             - funnel-queue.c
             - funnel-queue.h
+            - funnel-requestqueue.h
             - geometry.c
             - geometry.h
             - hash-utils.h
@@ -332,7 +333,6 @@ tarballs:
             - permassert.h
             - radix-sort.c
             - radix-sort.h
-            - request-queue.h
             - sparse-cache.c
             - sparse-cache.h
             - string-utils.c
@@ -352,9 +352,9 @@ tarballs:
         src/c++/uds/kernelLinux/uds:
           dest: dm-vdo
           sources:
+            - funnel-requestqueue.c
             - logger.c
             - memory-alloc.c
-            - request-queue.c
             - thread-cond-var.c
             - thread-device.c
             - thread-device.h

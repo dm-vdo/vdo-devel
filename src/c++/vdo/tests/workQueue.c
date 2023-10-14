@@ -6,7 +6,7 @@
  * $Id$
  */
 
-#include "work-queue.h"
+#include "funnel-workqueue.h"
 
 #include <linux/atomic.h>
 

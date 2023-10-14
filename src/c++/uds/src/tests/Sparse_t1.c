@@ -5,12 +5,12 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "funnel-requestqueue.h"
 #include "hash-utils.h"
 #include "index.h"
 #include "index-layout.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "request-queue.h"
 #include "testPrototypes.h"
 
 static unsigned int CHAPTERS_PER_VOLUME        = 10;
