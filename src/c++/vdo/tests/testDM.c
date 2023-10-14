@@ -14,6 +14,7 @@
 
 #include "status-codes.h"
 
+#include "fileUtils.h"
 #include "testDM.h"
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
@@ -25,6 +26,10 @@ static struct dm_dev dmDev;
 /**********************************************************************/
 static void tearDownDM(void)
 {
+  if (dmDev.bdev->fd != -1) {
+    close_file(dmDev.bdev->fd, NULL);
+  }
+
   UDS_FREE(dmDev.bdev->bd_inode);
   UDS_FREE(UDS_FORGET(dmDev.bdev));
 }
@@ -34,6 +39,7 @@ void initializeDM(void)
 {
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct block_device, __func__, &dmDev.bdev));
   VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct inode, __func__, &dmDev.bdev->bd_inode));
+  dmDev.bdev->fd = -1;
   registerTearDownAction(tearDownDM);
 }
 
@@ -68,11 +74,27 @@ const char *dm_shift_arg(struct dm_arg_set *as)
 
 /**********************************************************************/
 int dm_get_device(struct dm_target *ti __attribute__((unused)),
-                  const char *path __attribute__((unused)),
+                  const char *path,
                   fmode_t mode __attribute__((unused)),
-		  struct dm_dev **result)
+                  struct dm_dev **device)
 {
-  *result = &dmDev;
+  if (path != NULL) {
+    int fd;
+    int result;
+
+    if (dmDev.bdev->fd != -1) {
+      close_file(dmDev.bdev->fd, NULL);
+    }
+    
+    result = open_file(path, FU_READ_WRITE, &fd);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    dmDev.bdev->fd = fd;
+  }
+  
+  *device = &dmDev;
   return VDO_SUCCESS;
 }
 
