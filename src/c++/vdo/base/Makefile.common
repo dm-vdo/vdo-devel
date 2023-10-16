@@ -37,11 +37,11 @@ BASE_OBJS :=     			\
 
 KERNEL_OBJS:=                           \
         dump.o                          \
+        funnel-workqueue.o              \
         histogram.o                     \
         message-stats.o                 \
         sysfs.o                         \
-        vdo-histograms.o                \
-        work-queue.o
+        vdo-histograms.o
 
 USER_OBJECTS:=                  	\
 	constants.o			\

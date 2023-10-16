@@ -31,6 +31,8 @@ tarballs:
             - encodings.h
             - flush.c
             - flush.h
+            - funnel-workqueue.c
+            - funnel-workqueue.h
             - histogram.c
             - histogram.h
             - int-map.c
@@ -70,8 +72,6 @@ tarballs:
             - vio.h
             - wait-queue.c
             - wait-queue.h
-            - work-queue.c
-            - work-queue.h
           undefines:
             - INTERNAL
             - TEST_INTERNAL

@@ -23,11 +23,11 @@
 
 #include "dedupe.h"
 #include "encodings.h"
+#include "funnel-workqueue.h"
 #include "io-submitter.h"
 #include "lz4.h"
 #include "status-codes.h"
 #include "vdo.h"
-#include "work-queue.h"
 
 #include "physicalLayer.h"
 

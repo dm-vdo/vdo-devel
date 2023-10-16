@@ -14,7 +14,7 @@ tarballs:
           dest: queue
           sources:
             - funnel-queue.[hc]
-            - request-queue.h
+            - funnel-requestqueue.h
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
@@ -24,7 +24,7 @@ tarballs:
         src/c++/uds/kernelLinux/uds:
           dest: queue
           sources:
-            - request-queue.c
+            - funnel-requestqueue.c
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL

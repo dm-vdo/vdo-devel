@@ -13,11 +13,11 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
+#include "funnel-workqueue.h"
 #include "io-submitter.h"
 #include "logger.h"
 #include "types.h"
 #include "vdo.h"
-#include "work-queue.h"
 
 enum dump_options {
 	/* Work queues */

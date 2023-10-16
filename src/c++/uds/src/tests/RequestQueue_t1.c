@@ -5,8 +5,8 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "funnel-requestqueue.h"
 #include "memory-alloc.h"
-#include "request-queue.h"
 #include "testPrototypes.h"
 #include "uds-threads.h"
 

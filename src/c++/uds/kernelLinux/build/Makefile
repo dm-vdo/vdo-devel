@@ -26,9 +26,9 @@ TEST_MODULES            = y
 UDS_DKMS_EXTRA = -DSTATIC=static
 
 UDS_DKMS_SOURCES = $(UDS_COMMON_SOURCES)			\
-	$(addprefix $(K_UDS_DIR)/,	logger.c		\
+	$(addprefix $(K_UDS_DIR)/,	funnel-requestqueue.c	\
+					logger.c		\
 					memory-alloc.c		\
-					request-queue.c		\
 					thread-cond-var.c	\
 					thread-device.c		\
 					thread-registry.c	\

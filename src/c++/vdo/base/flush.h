@@ -6,10 +6,10 @@
 #ifndef VDO_FLUSH_H
 #define VDO_FLUSH_H
 
+#include "funnel-workqueue.h"
 #include "types.h"
 #include "vio.h"
 #include "wait-queue.h"
-#include "work-queue.h"
 
 /* A marker for tracking which journal entries are affected by a flush request. */
 struct vdo_flush {

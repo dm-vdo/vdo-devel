@@ -3,7 +3,7 @@
  * Copyright 2023 Red Hat
  */
 
-#include "request-queue.h"
+#include "funnel-requestqueue.h"
 
 #include <linux/atomic.h>
 #include <linux/cache.h>
