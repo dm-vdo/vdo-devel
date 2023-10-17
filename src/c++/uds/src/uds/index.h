@@ -77,7 +77,8 @@ int __must_check uds_save_index(struct uds_index *index);
 
 void uds_free_index(struct uds_index *index);
 
-int __must_check uds_replace_index_storage(struct uds_index *index, const char *path);
+int __must_check uds_replace_index_storage(struct uds_index *index,
+					   struct block_device *bdev);
 
 void uds_get_index_stats(struct uds_index *index, struct uds_index_stats *counters);
 

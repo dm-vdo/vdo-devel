@@ -12,7 +12,8 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static struct uds_index *theIndex;
+static struct uds_index    *theIndex;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void init(void)
@@ -31,12 +32,13 @@ static void createIndex(unsigned int zone_count)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = getTestIndexName(),
+    .bdev = getTestBlockDevice(),
     .zone_count = zone_count,
   };
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
+  testDevice = params.bdev;
   uds_free_configuration(config);
 }
 
@@ -74,6 +76,7 @@ static void stressZonesTest(void)
   } while (theIndex->newest_virtual_chapter < 4);
 
   uds_free_index(theIndex);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
@@ -99,6 +102,7 @@ static void stressChapterIndexBytesTest(void)
   } while (theIndex->zones[zone]->newest_virtual_chapter == chapter);
 
   uds_free_index(theIndex);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
@@ -118,6 +122,7 @@ static void stressVolumeIndexBytesTest(void)
   } while (stats.overflow_count < 1);
 
   uds_free_index(theIndex);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

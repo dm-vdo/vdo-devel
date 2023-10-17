@@ -22,7 +22,7 @@
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void reportDuration(const char *label, ktime_t start, ktime_t stop)
@@ -99,7 +99,7 @@ static void denseTest(void)
 {
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
   testRunner(&params);
@@ -110,7 +110,7 @@ static void sparseTest(void)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
     .sparse = true,
   };
   randomizeUdsNonce(&params);
@@ -118,9 +118,9 @@ static void sparseTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *in)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = in;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -131,9 +131,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Index_p1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests
+  .name                       = "Index_p1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests
 };
 
 /**********************************************************************/

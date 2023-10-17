@@ -9,8 +9,8 @@
 #include "testPrototypes.h"
 #include "uds.h"
 
-static const char *firstName;
-static const char *secondName;
+static struct block_device *firstDevice;
+static struct block_device *secondDevice;
 static struct uds_index_session *indexSession;
 
 /**********************************************************************/
@@ -33,19 +33,19 @@ static void postChunks(struct uds_index_session *indexSession,
 /**********************************************************************/
 static void swapStorage(bool save)
 {
-  const char *const *indexNames = getTestMultiIndexNames();
+  struct block_device *const *testDevices = getTestMultiBlockDevices();
   struct uds_parameters firstParams = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexNames[0],
+    .bdev = testDevices[0],
   };
 
   struct uds_parameters secondParams = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexNames[1],
+    .bdev = testDevices[1],
   };
 
-  firstName = indexNames[0];
-  secondName = indexNames[1];
+  firstDevice = testDevices[0];
+  secondDevice = testDevices[1];
 
   initializeOldInterfaces(2000);
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
@@ -65,10 +65,8 @@ static void swapStorage(bool save)
   // Copy index to the second device and resume. 
   uint64_t index_size;
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&firstParams, &index_size));
-  UDS_ASSERT_SUCCESS(copyDevice(firstName, secondName, index_size));
-  UDS_ASSERT_ERROR2(-EIO, -ENOENT,
-                    uds_resume_index_session(indexSession, "bogus-name"));
-  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, secondName));
+  UDS_ASSERT_SUCCESS(copyDevice(firstDevice, secondDevice, index_size));
+  UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, secondDevice));
   UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
   CU_ASSERT_EQUAL(blockCount, indexStats.entries_indexed);
   CU_ASSERT_EQUAL(0, indexStats.posts_found);
@@ -104,6 +102,8 @@ static void swapStorage(bool save)
   }
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
+  putTestBlockDevice(firstDevice);
+  putTestBlockDevice(secondDevice);
   uninitializeOldInterfaces();
 }
 

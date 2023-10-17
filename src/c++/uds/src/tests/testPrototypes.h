@@ -47,7 +47,9 @@ void cbStatus(enum uds_request_type   type,
  *
  * @return UDS_SUCCESS or an error code if the copy fails
  **/
-int copyDevice(const char *source, const char *destination, off_t bytes);
+int copyDevice(struct block_device *source,
+	       struct block_device *destination,
+	       off_t bytes);
 
 /**
  * Create a block name that collides with the given block in the volume index.
@@ -153,6 +155,7 @@ static inline void freeRequest(struct uds_request *request)
   }
 }
 
+#ifndef __KERNEL__
 /**
  * Get test index names.  The index names are platform-specific, and
  * therefore this method is defined by platform dependent code.
@@ -186,6 +189,33 @@ static inline const char *getTestIndexName(void)
  **/
 const char *const *getTestMultiIndexNames(void)
   __attribute__((warn_unused_result));
+
+#endif /* __KERNEL__ */
+/**
+ * Get the primary test block device, which is the created from the name
+ * returned by getTestIndexName().
+ *
+ * @return The primary test block device
+ **/
+struct block_device *getTestBlockDevice(void)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get test index block devices for indices that can be used at the same time
+ * in a multi-index test.
+ *
+ * @return an array of devices that can each be passed to uds_open_index()
+ **/
+struct block_device **getTestMultiBlockDevices(void)
+  __attribute__((warn_unused_result));
+
+/**
+ * Close a test block device. Must be called after getTestBlockDevice() or
+ * getTestMultiBlockDevices().
+ *
+ * @param device  The test block device
+ **/
+void putTestBlockDevice(struct block_device *device);
 
 /**
  * Make a test configuration for a dense index

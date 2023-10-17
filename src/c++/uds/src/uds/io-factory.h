@@ -24,9 +24,9 @@ enum {
 	SECTORS_PER_BLOCK = UDS_BLOCK_SIZE >> SECTOR_SHIFT,
 };
 
-int __must_check uds_make_io_factory(const char *path, struct io_factory **factory_ptr);
+int __must_check uds_make_io_factory(struct block_device *bdev, struct io_factory **factory_ptr);
 
-int __must_check uds_replace_storage(struct io_factory *factory, const char *path);
+int __must_check uds_replace_storage(struct io_factory *factory, struct block_device *bdev);
 
 void uds_put_io_factory(struct io_factory *factory);
 

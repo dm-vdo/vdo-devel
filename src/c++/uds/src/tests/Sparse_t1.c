@@ -165,14 +165,14 @@ static bool searchForCollisions(unsigned int lastHash)
 /**
  * The suite initialization function.
  **/
-static void sparseInitSuite(const char *name)
+static void sparseInitSuite(struct block_device *bdev)
 {
   UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
 
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = name,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
@@ -514,10 +514,10 @@ static const CU_TestInfo sparseTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Sparse_t1",
-  .initializerWithIndexName = sparseInitSuite,
-  .cleaner                  = sparseCleanSuite,
-  .tests                    = sparseTests,
+  .name                       = "Sparse_t1",
+  .initializerWithBlockDevice = sparseInitSuite,
+  .cleaner                    = sparseCleanSuite,
+  .tests                      = sparseTests,
 };
 
 /**

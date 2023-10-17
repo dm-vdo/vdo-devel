@@ -90,33 +90,39 @@ static void readPage(struct io_factory *factory,
 static void noioTest(void)
 {
   struct io_factory *factory;
+  struct block_device *testDevice = getTestBlockDevice();
   struct dm_bufio_client *client = NULL;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   UDS_ASSERT_SUCCESS(uds_make_bufio(factory, 0, UDS_BLOCK_SIZE, 1, &client));
   dm_bufio_client_destroy(client);
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
 static void singleTest(void)
 {
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   writePage(factory, 0, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   readPage(factory, 0, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
 static void doubleTest(void)
 {
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   writePage(factory, 1, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   writePage(factory, 2, SHAKESPEARE_SONNET_3, sizeof(SHAKESPEARE_SONNET_3));
   readPage(factory, 1, SHAKESPEARE_SONNET_2, sizeof(SHAKESPEARE_SONNET_2));
   readPage(factory, 2, SHAKESPEARE_SONNET_3, sizeof(SHAKESPEARE_SONNET_3));
   uds_put_io_factory(factory);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

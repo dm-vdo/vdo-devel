@@ -28,7 +28,7 @@ static struct uds_index *theIndex;
 /**
  * The suite initialization function.
  **/
-static void indexInitSuite(const char *name)
+static void indexInitSuite(struct block_device *bdev)
 {
   unsigned int i, j;
   for (i = 0; i < NUM_HASHES; i++) {
@@ -43,7 +43,7 @@ static void indexInitSuite(const char *name)
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = name,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
@@ -315,10 +315,10 @@ static const CU_TestInfo indexTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Index_t1",
-  .initializerWithIndexName = indexInitSuite,
-  .cleaner                  = indexCleanSuite,
-  .tests                    = indexTests,
+  .name                       = "Index_t1",
+  .initializerWithBlockDevice = indexInitSuite,
+  .cleaner                    = indexCleanSuite,
+  .tests                      = indexTests,
 };
 
 /**

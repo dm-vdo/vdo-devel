@@ -16,6 +16,7 @@
 static struct configuration *config;
 static struct io_factory    *factory;
 static struct uds_index     *theIndex;
+static struct block_device  *testDevice;
 static uint64_t              scratchOffset;
 static uint64_t              chapterBlocks;
 
@@ -24,13 +25,14 @@ static void initializeTest(void)
 {
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = getTestIndexName(),
+    .bdev = getTestBlockDevice(),
   };
+  testDevice = params.bdev;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, config->geometry->bytes_per_page / 8,
                            config->geometry->record_pages_per_chapter / 2, 16);
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(params.bdev, &factory));
 
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
   scratchOffset = DIV_ROUND_UP(scratchOffset, UDS_BLOCK_SIZE);
@@ -46,8 +48,9 @@ static void finishTest(void)
 {
   uninitialize_test_requests();
   uds_put_io_factory(factory);
-  uds_free_configuration(config);
   uds_free_index(theIndex);
+  uds_free_configuration(config);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

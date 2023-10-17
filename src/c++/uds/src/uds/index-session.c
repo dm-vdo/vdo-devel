@@ -356,13 +356,14 @@ int uds_open_index(enum uds_open_index_type open_type,
 		   struct uds_index_session *session)
 {
 	int result;
+	char name[BDEVNAME_SIZE];
 
 	if (parameters == NULL) {
 		uds_log_error("missing required parameters");
 		return -EINVAL;
 	}
-	if (parameters->name == NULL) {
-		uds_log_error("missing required index name");
+	if (parameters->bdev == NULL) {
+		uds_log_error("missing required block device");
 		return -EINVAL;
 	}
 	if (session == NULL) {
@@ -374,27 +375,10 @@ int uds_open_index(enum uds_open_index_type open_type,
 	if (result != UDS_SUCCESS)
 		return uds_map_to_system_error(result);
 
-	if ((session->parameters.name == NULL) ||
-	    (strcmp(parameters->name, session->parameters.name) != 0)) {
-		char *new_name;
+	session->parameters = *parameters;
+	format_dev_t(name, parameters->bdev->bd_dev);
+	uds_log_notice("%s: %s", get_open_type_string(open_type), name);
 
-		result = uds_duplicate_string(parameters->name, "device name", &new_name);
-		if (result != UDS_SUCCESS) {
-			finish_loading_index_session(session, result);
-			return uds_map_to_system_error(result);
-		}
-
-		uds_free_const(session->parameters.name);
-		session->parameters = *parameters;
-		session->parameters.name = new_name;
-	} else {
-		const char *old_name = session->parameters.name;
-
-		session->parameters = *parameters;
-		session->parameters.name = old_name;
-	}
-
-	uds_log_notice("%s: %s", get_open_type_string(open_type), parameters->name);
 	result = initialize_index_session(session, open_type);
 	if (result != UDS_SUCCESS)
 		uds_log_error_strerror(result, "Failed %s", get_open_type_string(open_type));
@@ -497,31 +481,28 @@ int uds_suspend_index_session(struct uds_index_session *session, bool save)
 	return uds_map_to_system_error(result);
 }
 
-static int replace_device(struct uds_index_session *session, const char *name)
+static int replace_device(struct uds_index_session *session, struct block_device *bdev)
 {
 	int result;
-	char *new_name;
 
-	result = uds_duplicate_string(name, "device name", &new_name);
+#ifdef TEST_INTERNAL
+	if (bdev == NULL)
+		return UDS_SUCCESS;
+
+#endif /* TEST_INTERNAL */
+	result = uds_replace_index_storage(session->index, bdev);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_replace_index_storage(session->index, name);
-	if (result != UDS_SUCCESS) {
-		UDS_FREE(new_name);
-		return result;
-	}
-
-	uds_free_const(session->parameters.name);
-	session->parameters.name = new_name;
+	session->parameters.bdev = bdev;
 	return UDS_SUCCESS;
 }
 
 /*
- * Resume index operation after being suspended. If the index is suspended and the supplied name is
- * different from the current backing store, the index will start using the new backing store.
+ * Resume index operation after being suspended. If the index is suspended and the supplied block
+ * device differs from the current backing store, the index will start using the new backing store.
  */
-int uds_resume_index_session(struct uds_index_session *session, const char *name)
+int uds_resume_index_session(struct uds_index_session *session, struct block_device *bdev)
 {
 	int result = UDS_SUCCESS;
 	bool no_work = false;
@@ -546,9 +527,8 @@ int uds_resume_index_session(struct uds_index_session *session, const char *name
 	if (no_work)
 		return result;
 
-	if ((name != NULL) && (session->index != NULL) &&
-	    (strcmp(name, session->parameters.name) != 0)) {
-		result = replace_device(session, name);
+	if ((session->index != NULL) && (bdev != session->parameters.bdev)) {
+		result = replace_device(session, bdev);
 		if (result != UDS_SUCCESS) {
 			uds_lock_mutex(&session->request_mutex);
 			session->state &= ~IS_FLAG_WAITING;
@@ -709,7 +689,6 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 	wait_for_no_requests_in_progress(index_session);
 	result = save_and_free_index(index_session);
-	uds_free_const(index_session->parameters.name);
 	uds_request_queue_finish(index_session->callback_queue);
 	index_session->callback_queue = NULL;
 	uds_destroy_cond(&index_session->load_context.cond);
@@ -729,6 +708,7 @@ int uds_flush_index_session(struct uds_index_session *index_session)
 	return UDS_SUCCESS;
 }
 
+#ifdef TEST_INTERNAL
 /*
  * Return the most recent parameters used to open an index. The caller is responsible for freeing
  * the returned structure.
@@ -737,32 +717,10 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 			     struct uds_parameters **parameters)
 {
 	int result;
-	const char *name = index_session->parameters.name;
 
 	if (parameters == NULL) {
 		uds_log_error("received a NULL parameters pointer");
 		return -EINVAL;
-	}
-
-	if (name != NULL) {
-		char *name_copy = NULL;
-		size_t name_length = strlen(name) + 1;
-		struct uds_parameters *copy;
-
-		result = UDS_ALLOCATE_EXTENDED(struct uds_parameters,
-					       name_length,
-					       char,
-					       __func__,
-					       &copy);
-		if (result != UDS_SUCCESS)
-			return uds_map_to_system_error(result);
-
-		*copy = index_session->parameters;
-		name_copy = (char *) copy + sizeof(struct uds_parameters);
-		memcpy(name_copy, name, name_length);
-		copy->name = name_copy;
-		*parameters = copy;
-		return UDS_SUCCESS;
 	}
 
 	result = UDS_ALLOCATE(1, struct uds_parameters, __func__, parameters);
@@ -772,6 +730,7 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 	return uds_map_to_system_error(result);
 }
 
+#endif /* TEST_INTERNAL */
 /* Statistics collection is intended to be thread-safe. */
 static void
 collect_stats(const struct uds_index_session *index_session, struct uds_index_stats *stats)

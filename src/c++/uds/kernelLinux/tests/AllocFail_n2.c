@@ -13,7 +13,7 @@
 #include "memory-alloc.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static size_t getBytesUsed(void)
@@ -67,7 +67,7 @@ static void closeIndexTest(void)
   // Create and close the index.
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   struct uds_index_session *indexSession;
   UDS_ASSERT_SUCCESS(uds_create_index_session(&indexSession));
@@ -106,9 +106,9 @@ static void closeIndexTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *in)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = in;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -120,9 +120,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "AllocFail_n2",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "AllocFail_n2",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

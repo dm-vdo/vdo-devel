@@ -16,7 +16,7 @@
 #include "testPrototypes.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 enum { NUM_CHUNKS = 1000 };
 
@@ -74,7 +74,7 @@ static void rebuildTest(void)
   // Create a new index and write the base set of 1000 chunks to the index.
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
   struct uds_index_session *indexSession;
@@ -119,9 +119,9 @@ static void rebuildTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *in)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = in;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -132,9 +132,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "AllocFail_x4",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "AllocFail_x4",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

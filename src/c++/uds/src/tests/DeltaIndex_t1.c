@@ -763,7 +763,8 @@ static void saveRestoreTest(void)
 
   // Do a save, and verify the data
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   struct buffered_writer *writer;
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, saveSize, &writer));
   UDS_ASSERT_SUCCESS(uds_start_saving_delta_index(&di, 0, writer));
@@ -782,6 +783,7 @@ static void saveRestoreTest(void)
 
   uds_put_io_factory(factory);
   uds_uninitialize_delta_index(&di);
+  putTestBlockDevice(testDevice);
   UDS_FREE(keys);
   UDS_FREE(lists);
   UDS_FREE(names);

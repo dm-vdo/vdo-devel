@@ -25,14 +25,15 @@ typedef struct readRequest {
   uint32_t           physicalPage;
 } ReadRequest;
 
-static struct configuration  *config;
-static struct geometry       *geometry;
-static struct index_layout   *layout;
-static struct volume         *volume;
-static unsigned int           numRequestsQueued = 0;
-static struct mutex           numRequestsMutex;
-static struct cond_var        allDoneCond;
-static bool                   keepRunning       = false;
+static struct configuration *config;
+static struct geometry      *geometry;
+static struct index_layout  *layout;
+static struct volume        *volume;
+static struct block_device  *testDevice;
+static unsigned int          numRequestsQueued = 0;
+static struct mutex          numRequestsMutex;
+static struct cond_var       allDoneCond;
+static bool                  keepRunning       = false;
 
 /**********************************************************************/
 static void freeReadRequest(struct uds_request *request)
@@ -83,10 +84,11 @@ static void init(request_restarter_t restartRequest, unsigned int zoneCount)
   UDS_ASSERT_SUCCESS(uds_init_mutex(&numRequestsMutex));
   UDS_ASSERT_SUCCESS(uds_init_cond(&allDoneCond));
   numRequestsQueued = 0;
+  testDevice = getTestBlockDevice();
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = getTestIndexName(),
+    .bdev = testDevice,
     .zone_count = zoneCount,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
@@ -108,6 +110,7 @@ static void deinit(void)
   uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(UDS_FORGET(layout));
+  putTestBlockDevice(testDevice);
   uds_destroy_cond(&allDoneCond);
   uds_destroy_mutex(&numRequestsMutex);
 }

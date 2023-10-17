@@ -27,14 +27,14 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static struct uds_index *createTestIndex(unsigned int loadFlags)
 {
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = testDevice,
   };
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
@@ -188,9 +188,9 @@ static void copy32Test(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
   initialize_test_requests();
 }
 
@@ -211,10 +211,10 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "BiasedNames_n1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .cleaner                  = deinit,
-  .tests                    = tests,
+  .name                       = "BiasedNames_n1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .cleaner                    = deinit,
+  .tests                      = tests,
 };
 
 /**

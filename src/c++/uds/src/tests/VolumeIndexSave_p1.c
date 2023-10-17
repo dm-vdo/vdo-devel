@@ -167,7 +167,8 @@ static void saveRestoreTest(void)
   UDS_ASSERT_SUCCESS(uds_compute_volume_index_save_blocks(config, UDS_BLOCK_SIZE, &blockCount));
   size_t saveSize = blockCount * UDS_BLOCK_SIZE;
   struct io_factory *factory;
-  UDS_ASSERT_SUCCESS(uds_make_io_factory(getTestIndexName(), &factory));
+  struct block_device *testDevice = getTestBlockDevice();
+  UDS_ASSERT_SUCCESS(uds_make_io_factory(testDevice, &factory));
   saveTestIndex(volumeIndex, factory, saveSize);
   uds_free_volume_index(volumeIndex);
 
@@ -182,6 +183,7 @@ static void saveRestoreTest(void)
   CU_ASSERT_EQUAL(sparseStats1.record_count, sparseStats2.record_count);
 
   uds_free_volume_index(volumeIndex);
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/

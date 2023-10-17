@@ -31,7 +31,7 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 typedef struct testConfig {
@@ -48,9 +48,9 @@ typedef struct testConfig {
 } TestConfig;
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -61,7 +61,7 @@ static void savedTest(void)
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
 
@@ -88,9 +88,7 @@ static void savedTest(void)
   struct uds_parameters *savedParams;
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_NO_REBUILD, &params, indexSession));
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(indexSession, &savedParams));
-  CU_ASSERT_STRING_EQUAL(params.name, savedParams->name);
-  UDS_ASSERT_EQUAL_BYTES(&params.size, &savedParams->size,
-                         sizeof(params) - sizeof(params.name));
+  UDS_ASSERT_EQUAL_BYTES(&params, savedParams, sizeof(params));
 
   // Test that the saved configuration can be used to reopen the index.
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
@@ -109,9 +107,7 @@ static void savedTest(void)
 
   // Test that the saved configuration persists after the index is closed.
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(indexSession, &savedParams));
-  CU_ASSERT_STRING_EQUAL(params.name, savedParams->name);
-  UDS_ASSERT_EQUAL_BYTES(&params.size, &savedParams->size,
-                         sizeof(params) - sizeof(params.name));
+  UDS_ASSERT_EQUAL_BYTES(&params, savedParams, sizeof(params));
   UDS_FREE(savedParams);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
@@ -127,7 +123,7 @@ static void testRun(TestConfig *tc)
   // Test that the user configuration is as expected
   struct uds_parameters params = {
     .memory_size = tc->memGB,
-    .name = indexName,
+    .bdev = testDevice,
     .sparse = tc->sparse,
   };
   randomizeUdsNonce(&params);
@@ -342,9 +338,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Configuration_n1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "Configuration_n1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

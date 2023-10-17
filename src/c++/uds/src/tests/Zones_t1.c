@@ -32,11 +32,11 @@ static void testCallback(struct uds_request *request)
 /**
  * The suite initialization function.
  **/
-static void zoneInitializeSuite(const char *indexName)
+static void zoneInitializeSuite(struct block_device *bdev)
 {
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = bdev,
   };
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Creating an index also creates the zone queues.
@@ -186,10 +186,10 @@ static const CU_TestInfo zoneTests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "Zones_t1",
-  .initializerWithIndexName = zoneInitializeSuite,
-  .cleaner                  = zoneFinishSuite,
-  .tests                    = zoneTests,
+  .name                       = "Zones_t1",
+  .initializerWithBlockDevice = zoneInitializeSuite,
+  .cleaner                    = zoneFinishSuite,
+  .tests                      = zoneTests,
 };
 
 /**

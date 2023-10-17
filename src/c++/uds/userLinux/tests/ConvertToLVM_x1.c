@@ -24,7 +24,7 @@
 #include "testRequests.h"
 #include "uds.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 enum {
   /*
@@ -189,9 +189,9 @@ static void verifyData(bool sparse)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -200,25 +200,23 @@ static void slide_file(off_t bytes)
   enum {
     BUFFER_SIZE  = 4096,
   };
-  int fd;
   void *buf;
   off_t offset;
   off_t file_size;
   size_t length;
 
   UDS_ASSERT_SUCCESS(UDS_ALLOCATE(BUFFER_SIZE, u8, "buffer", &buf));
-  UDS_ASSERT_SUCCESS(open_file(indexName, FU_READ_WRITE, &fd));
-
-  UDS_ASSERT_SUCCESS(get_open_file_size(fd, &file_size));
+  UDS_ASSERT_SUCCESS(get_open_file_size(testDevice->fd, &file_size));
   file_size = min(file_size, bytes);
 
   for (offset = LVM_OFFSET; offset < file_size; offset += BUFFER_SIZE) {
-    UDS_ASSERT_SUCCESS(read_data_at_offset(fd, offset,
+    UDS_ASSERT_SUCCESS(read_data_at_offset(testDevice->fd, offset,
                                            buf, BUFFER_SIZE, &length));
-    UDS_ASSERT_SUCCESS(write_buffer_at_offset(fd, offset - LVM_OFFSET,
+    UDS_ASSERT_SUCCESS(write_buffer_at_offset(testDevice->fd,
+                                              offset - LVM_OFFSET,
                                               buf, length));
   }
-  UDS_ASSERT_SUCCESS(sync_and_close_file(fd, "file copy"));
+  UDS_ASSERT_SUCCESS(logging_fsync(testDevice->fd, "file copy"));
   UDS_FREE(UDS_FORGET(buf));
 }
 
@@ -276,7 +274,7 @@ static void doTestCase(unsigned int chapter_count1, bool sparse)
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
     .nonce = nonce,
     .offset = start,
     .sparse = sparse,
@@ -299,7 +297,7 @@ static void doTestCase(unsigned int chapter_count1, bool sparse)
 
   struct uds_parameters params2 = {
     .memory_size = params.memory_size,
-    .name = indexName,
+    .bdev = testDevice,
     .nonce = nonce,
     .offset = start,
     .sparse = sparse,
@@ -424,9 +422,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "ConvertToLVM_x1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "ConvertToLVM_x1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

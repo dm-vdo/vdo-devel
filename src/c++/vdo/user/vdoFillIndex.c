@@ -7,6 +7,7 @@
 
 #include <err.h>
 #include <getopt.h>
+#include <linux/blkdev.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -16,6 +17,8 @@
 #include <unistd.h>
 
 #include "errors.h"
+#include "fileUtils.h"
+#include "memory-alloc.h"
 #include "murmurhash3.h"
 #include "uds.h"
 
@@ -41,7 +44,7 @@ static unsigned int request_limit = DEFAULT_REQUEST_LIMIT;
 static unsigned int concurrent_requests = 0;
 static unsigned int peak_requests = 0;
 
-static char *uds_index = NULL;
+static struct block_device *uds_device = NULL;
 static uds_memory_config_size_t mem_size = UDS_MEMORY_CONFIG_256MB;
 static uint64_t nonce = 0;
 static off_t offset = 0;
@@ -222,6 +225,35 @@ static off_t parse_offset(char *optarg)
   return (off_t) n;
 }
 
+/**********************************************************************/
+static struct block_device *parse_device(const char *name)
+{
+  int result;
+  int fd;
+  struct block_device *device;
+
+  result = open_file(name, FU_READ_WRITE, &fd);
+  if (result != UDS_SUCCESS) {
+    errx(1, "%s is not a block device", name);
+  }
+
+  result = UDS_ALLOCATE(1, struct block_device, __func__, &device);
+  if (result != UDS_SUCCESS) {
+    close_file(fd, NULL);
+    errx(1, "Cannot allocate device structure");
+  }
+
+  device->fd = fd;
+  return device;
+}
+
+static void free_device(struct block_device *device)
+{
+  close_file(device->fd, NULL);
+  UDS_FREE(device);
+  device = NULL;
+}
+
 static void parse_args(int argc, char *argv[])
 {
   static const char *optstring = "hn:o:";
@@ -274,7 +306,7 @@ static void parse_args(int argc, char *argv[])
     exit(2);
   }
 
-  uds_index = argv[optind];
+  uds_device = parse_device(argv[optind]);
 }
 
 int main(int argc, char *argv[])
@@ -288,7 +320,7 @@ int main(int argc, char *argv[])
   }
 
   const struct uds_parameters params = {
-    .name        = uds_index,
+    .bdev        = uds_device,
     .offset      = offset,
     .memory_size = mem_size,
     .sparse      = use_sparse,
@@ -313,6 +345,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  free_device(uds_device);
   pthread_mutex_destroy(&list_mutex);
   return 0;
 }

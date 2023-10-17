@@ -73,9 +73,9 @@ new wrappers include:
 
 - albFlush (replaces fflush)
 - albPrint (replaces printf)
-- getTestIndexName to get the name of the test index
-- getTestIndexNames to get the names all of all the test indices
-- getTestMultiIndexNames to get the names of 2 indices for simultaneous usage
+- getTestBlockDevice to get a test block_device
+- getTestMultiBlockDevices to get two block devices for simultaneous usage
+- putTestBlockDevice to free a test block device
 
 Performance tests
 -----------------
@@ -124,37 +124,34 @@ the existance of the initializer causes albtest to do additional setup steps.
 With one exception, the initializers can be called in any order.  But we
 guarantee that the one called "initializer" will be called last.
 
-The first new initializer is called "initializerWithIndexName".  When this
-initializer is non-NULL, we clone the suite and invoke it once for each name
-listed in the return value of the getTestIndexNames method.
+The first new initializer is called "initializerWithBlockDevice".  When this
+initializer is non-NULL, we clone the suite and invoke it once using the return
+value of the getTestBlockDevice method.
 
-This initializer makes the test source code independent of the platform's index
-naming scheme, and has been used in the past when platforms support multiple
-naming options.  For example, in //eng/uds tree you can call the index
-"file=/u1/zubengenubi" to test using a single file index, or "dir=/u1/albireo"
-to test using a multi-file index.  A example of a test using this initializer
-is BiasedNames_n1:
+This initializer makes the test source code independent of the platform's
+device opening semantics, and has been used in the past when platforms support
+multiple options. A example of a test using this initializer is BiasedNames_n1:
 
 
-static const char *indexName;
+static struct block_device *testDevice;
 
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 static const CU_SuiteInfo suite = {
-  .name                     = "BiasedNames_n1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "BiasedNames_n1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 The second new initializer is called "initializerWithSession".  When this
 initializer is non-NULL, we clone the suite and invoke it once for each
 standard UDS configuration.  Such tests then run using a dense index, and then
 run again using a sparse index.  Note that this initializer also does the same
-index name cloning as does "initializerWithIndexName".  A simple example of the
-usage of this initializer is PostBlockName_p1:
+index name cloning as does "initializerWithBlockDevice".  A simple example of
+the usage of this initializer is PostBlockName_p1:
 
 static struct uds_index_session *indexSession;
 

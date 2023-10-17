@@ -25,7 +25,7 @@ enum {
   NUM_CHUNKS = 1000,
 };
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**********************************************************************/
 static void postChunks(struct uds_index_session *indexSession,
@@ -49,7 +49,7 @@ static void fullRebuildTest(void)
   // Create a new index.
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
   struct uds_index_session *indexSession;
@@ -70,7 +70,7 @@ static void fullRebuildTest(void)
                                         
   struct uds_parameters params2 = {
     .memory_size = params.memory_size,
-    .name = indexName,
+    .bdev = testDevice,
     .nonce = params.nonce,
     .offset = moved,
   };
@@ -106,9 +106,9 @@ static void fullRebuildTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *in)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = in;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -119,9 +119,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "RebuildConverted_x1",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests,
+  .name                       = "RebuildConverted_x1",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests,
 };
 
 /**

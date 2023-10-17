@@ -14,7 +14,7 @@
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 
-static const char *indexName;
+static struct block_device *testDevice;
 
 /**
  * Full Dedupe pattern: Partition the indexed data into regions, typically
@@ -86,7 +86,7 @@ static void dedupePerfTest(void)
 
   struct uds_parameters params = {
     .memory_size = 1,
-    .name = indexName,
+    .bdev = testDevice,
   };
   randomizeUdsNonce(&params);
 
@@ -156,9 +156,9 @@ static void dedupePerfTest(void)
 }
 
 /**********************************************************************/
-static void initializerWithIndexName(const char *name)
+static void initializerWithBlockDevice(struct block_device *bdev)
 {
-  indexName = name;
+  testDevice = bdev;
 }
 
 /**********************************************************************/
@@ -168,9 +168,9 @@ static const CU_TestInfo tests[] = {
 };
 
 static const CU_SuiteInfo suite = {
-  .name                     = "PostBlockName_p2",
-  .initializerWithIndexName = initializerWithIndexName,
-  .tests                    = tests
+  .name                       = "PostBlockName_p2",
+  .initializerWithBlockDevice = initializerWithBlockDevice,
+  .tests                      = tests
 };
 
 /**********************************************************************/

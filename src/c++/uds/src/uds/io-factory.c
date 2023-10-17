@@ -12,9 +12,6 @@
 #ifndef __KERNEL__ 
 #include <stdio.h>
 #endif /* __KERNEL__ */
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 
 #ifdef TEST_INTERNAL
 #include "dory.h"
@@ -22,22 +19,6 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#ifdef RHEL_RELEASE_CODE
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-
-enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
 
 /*
  * The I/O factory object manages access to index storage, which is a contiguous range of blocks on
@@ -84,65 +65,14 @@ static void uds_get_io_factory(struct io_factory *factory)
 	atomic_inc(&factory->ref_count);
 }
 
-static int get_block_device_from_name(const char *name, struct block_device **bdev)
-{
-	dev_t device;
-	unsigned int major, minor;
-	char dummy;
-#ifndef VDO_USE_ALTERNATE
-	const struct blk_holder_ops hops = { NULL };
-#endif /* !VDO_USE_ALTERNATE */
-
-	/* Extract the major/minor numbers */
-	if (sscanf(name, "%u:%u%c", &major, &minor, &dummy) == 2) {
-		device = MKDEV(major, minor);
-		if (MAJOR(device) != major || MINOR(device) != minor) {
-			*bdev = NULL;
-			return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
-						      "%s is not a valid block device",
-						      name);
-		}
-#ifdef VDO_USE_ALTERNATE
-		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
-#else
-		*bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL, &hops);
-#endif /* VDO_USE_ALTERNATE */
-	} else {
-#ifdef VDO_USE_ALTERNATE
-		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL);
-#else
-		*bdev = blkdev_get_by_path(name, BLK_FMODE, NULL, &hops);
-#endif /* VDO_USE_ALTERNATE */
-	}
-
-	if (IS_ERR(*bdev)) {
-		uds_log_error_strerror(-PTR_ERR(*bdev), "%s is not a block device", name);
-		*bdev = NULL;
-		return UDS_INVALID_ARGUMENT;
-	}
-
-	return UDS_SUCCESS;
-}
-
-int uds_make_io_factory(const char *path, struct io_factory **factory_ptr)
+int uds_make_io_factory(struct block_device *bdev, struct io_factory **factory_ptr)
 {
 	int result;
-	struct block_device *bdev;
 	struct io_factory *factory;
 
-	result = get_block_device_from_name(path, &bdev);
+	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
 	if (result != UDS_SUCCESS)
 		return result;
-
-	result = UDS_ALLOCATE(1, struct io_factory, __func__, &factory);
-	if (result != UDS_SUCCESS) {
-#ifdef VDO_USE_ALTERNATE
-		blkdev_put(bdev, BLK_FMODE);
-#else
-		blkdev_put(bdev, NULL);
-#endif /* VDO_USE_ALTERNATE */
-		return result;
-	}
 
 	factory->bdev = bdev;
 	atomic_set_release(&factory->ref_count, 1);
@@ -151,20 +81,8 @@ int uds_make_io_factory(const char *path, struct io_factory **factory_ptr)
 	return UDS_SUCCESS;
 }
 
-int uds_replace_storage(struct io_factory *factory, const char *path)
+int uds_replace_storage(struct io_factory *factory, struct block_device *bdev)
 {
-	int result;
-	struct block_device *bdev;
-
-	result = get_block_device_from_name(path, &bdev);
-	if (result != UDS_SUCCESS)
-		return result;
-
-#ifdef VDO_USE_ALTERNATE
-	blkdev_put(factory->bdev, BLK_FMODE);
-#else
-	blkdev_put(factory->bdev, NULL);
-#endif /* VDO_USE_ALTERNATE */
 	factory->bdev = bdev;
 	return UDS_SUCCESS;
 }
@@ -172,14 +90,8 @@ int uds_replace_storage(struct io_factory *factory, const char *path)
 /* Free an I/O factory once all references have been released. */
 void uds_put_io_factory(struct io_factory *factory)
 {
-	if (atomic_add_return(-1, &factory->ref_count) <= 0) {
-#ifdef VDO_USE_ALTERNATE
-		blkdev_put(factory->bdev, BLK_FMODE);
-#else
-		blkdev_put(factory->bdev, NULL);
-#endif /* VDO_USE_ALTERNATE */
+	if (atomic_add_return(-1, &factory->ref_count) <= 0)
 		UDS_FREE(factory);
-	}
 }
 
 size_t uds_get_writable_size(struct io_factory *factory)

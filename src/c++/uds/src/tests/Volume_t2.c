@@ -18,14 +18,16 @@ static struct geometry      *geometry;
 static struct configuration *config;
 static struct index_layout  *layout;
 static struct volume        *volume;
+static struct block_device  *testDevice;
 
 /**********************************************************************/
 static void init(uds_memory_config_size_t memGB)
 {
   struct uds_parameters params = {
     .memory_size = memGB,
-    .name = getTestIndexName(),
+    .bdev = getTestBlockDevice(),
   };
+  testDevice = params.bdev;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
   geometry = config->geometry;
@@ -51,6 +53,7 @@ static void deinit(void)
   uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(UDS_FORGET(layout));
+  putTestBlockDevice(testDevice);
 }
 
 /**********************************************************************/
