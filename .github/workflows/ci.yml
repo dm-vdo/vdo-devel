@@ -118,13 +118,13 @@ jobs:
         label: public testing failed
         type: add
         
-    - name: Upload artifact
+    - name: Upload test results
       if: failure()
       uses: EnricoMi/publish-unit-test-result-action/composite@v1
       with:
         files: logs/**/*.xml
     
-    - name: Prepare Logfiles
+    - name: Prepare logfiles
       if: failure()
       run: |
         cd logs
@@ -143,11 +143,11 @@ jobs:
           fi
         done
 
-    - name: Upload artifact
+    - name: Upload logfiles
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: Upload Test Logs
+        name: logs-${{ github.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
         path: logs/*/*.log
         retention-days: 5
 
