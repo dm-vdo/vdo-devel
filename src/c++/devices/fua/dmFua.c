@@ -146,8 +146,7 @@ static struct target_type fuaTargetType = {
 /**********************************************************************/
 int __init fuaInit(void)
 {
-  STATIC_ASSERT(offsetof(FuaDevice, dev) 
-                == offsetof(CommonDevice, dev)); 
+  BUILD_BUG_ON(offsetof(FuaDevice, dev) != offsetof(CommonDevice, dev));
 
   int result = dm_register_target(&fuaTargetType);
   if (result < 0) {

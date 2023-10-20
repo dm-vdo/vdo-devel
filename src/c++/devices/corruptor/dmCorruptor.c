@@ -773,8 +773,7 @@ static struct target_type corruptorTargetType = {
 /**********************************************************************/
 int __init corruptorInit(void)
 {
-  STATIC_ASSERT(offsetof(CorruptorDevice, dev)
-                == offsetof(CommonDevice, dev));
+  BUILD_BUG_ON(offsetof(CorruptorDevice, dev) != offsetof(CommonDevice, dev));
 
   kobject_init(&corruptorKobj, &emptyObjectType);
   int result = kobject_add(&corruptorKobj, NULL, THIS_MODULE->name);

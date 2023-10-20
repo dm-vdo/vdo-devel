@@ -185,6 +185,7 @@ tarballs:
             - bitops.h
             - bits.h
             - blkdev.h
+            - build_bug.h
             - cache.h
             - compiler.h
             - const.h
