@@ -1301,7 +1301,7 @@ encode_record_page(const struct volume *volume,
 	 * Sort the record pointers by using just the names in the records, which is less work than
 	 * sorting the entire record values.
 	 */
-	STATIC_ASSERT(offsetof(struct uds_volume_record, name) == 0);
+	BUILD_BUG_ON(offsetof(struct uds_volume_record, name) != 0);
 	result = uds_radix_sort(volume->radix_sorter,
 				(const u8 **) record_pointers,
 				records_per_page,

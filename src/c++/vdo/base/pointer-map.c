@@ -226,7 +226,7 @@ static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int 
 	if (hop_offset == NULL_HOP_OFFSET)
 		return NULL;
 
-	STATIC_ASSERT(NULL_HOP_OFFSET == 0);
+	BUILD_BUG_ON(NULL_HOP_OFFSET != 0);
 	return &neighborhood[hop_offset - 1];
 }
 

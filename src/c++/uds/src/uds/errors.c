@@ -110,7 +110,7 @@ static const char *get_error_info(int errnum, const struct error_info **info_ptr
 
 #ifdef TEST_INTERNAL
 	/* These assertions need to appear once (anywhere) in the compiled code. */
-	STATIC_ASSERT((UDS_ERROR_CODE_LAST - UDS_ERROR_CODE_BASE) == ARRAY_SIZE(error_list));
+	BUILD_BUG_ON((UDS_ERROR_CODE_LAST - UDS_ERROR_CODE_BASE) != ARRAY_SIZE(error_list));
 
 #endif /* TEST_INTERNAL */
 	if (errnum == UDS_SUCCESS) {

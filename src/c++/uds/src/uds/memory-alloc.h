@@ -123,7 +123,7 @@ int __must_check uds_reallocate_memory(void *ptr,
 	__extension__({                                                  \
 		int _result;						 \
 		TYPE1 **_ptr = (PTR);                                    \
-		STATIC_ASSERT(__alignof__(TYPE1) >= __alignof__(TYPE2)); \
+		BUILD_BUG_ON(__alignof__(TYPE1) < __alignof__(TYPE2));   \
 		_result = uds_do_allocation(COUNT,                       \
 					    sizeof(TYPE2),               \
 					    sizeof(TYPE1),               \

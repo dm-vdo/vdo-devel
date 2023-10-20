@@ -766,8 +766,8 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 	 * If these fail, we have a jiffy duration that is not an integral number of milliseconds,
 	 * and the unit conversion code needs updating.
 	 */
-	STATIC_ASSERT(HZ <= MSEC_PER_SEC);
-	STATIC_ASSERT((MSEC_PER_SEC % HZ) == 0);
+	BUILD_BUG_ON(HZ > MSEC_PER_SEC);
+	BUILD_BUG_ON((MSEC_PER_SEC % HZ) != 0);
 	return make_logarithmic_histogram_with_conversion_factor(parent,
 								 name,
 								 init_label,

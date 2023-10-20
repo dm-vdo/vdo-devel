@@ -543,7 +543,7 @@ STATIC bool is_zero_block(char *block)
 	int i;
 
 #ifdef INTERNAL
-	STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(u64) == 0);
+	BUILD_BUG_ON(VDO_BLOCK_SIZE % sizeof(u64) != 0);
 	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(u64) == 0,
 			"Data blocks are expected to be aligned");
 
@@ -835,7 +835,7 @@ static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 	struct bio *bio;
 	int result;
 
-	STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
+	BUILD_BUG_ON(VDO_BLOCK_SIZE > PAGE_SIZE);
 	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "data_vio data", &data_vio->vio.data);
 	if (result != VDO_SUCCESS)
 		return uds_log_error_strerror(result, "data_vio data allocation failure");
@@ -1422,8 +1422,8 @@ void handle_data_vio_error(struct vdo_completion *completion)
  */
 const char *get_data_vio_operation_name(struct data_vio *data_vio)
 {
-	STATIC_ASSERT((MAX_VIO_ASYNC_OPERATION_NUMBER - MIN_VIO_ASYNC_OPERATION_NUMBER) ==
-		      ARRAY_SIZE(ASYNC_OPERATION_NAMES));
+	BUILD_BUG_ON((MAX_VIO_ASYNC_OPERATION_NUMBER - MIN_VIO_ASYNC_OPERATION_NUMBER) !=
+		     ARRAY_SIZE(ASYNC_OPERATION_NAMES));
 
 	return ((data_vio->last_async_operation < MAX_VIO_ASYNC_OPERATION_NUMBER) ?
 		ASYNC_OPERATION_NAMES[data_vio->last_async_operation] :

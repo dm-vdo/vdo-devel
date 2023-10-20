@@ -281,7 +281,7 @@ static const char * __must_check get_page_state_name(enum vdo_page_buffer_state 
 		"UDS_FREE", "INCOMING", "FAILED", "RESIDENT", "DIRTY", "OUTGOING"
 	};
 
-	STATIC_ASSERT(ARRAY_SIZE(state_names) == PAGE_STATE_COUNT);
+	BUILD_BUG_ON(ARRAY_SIZE(state_names) != PAGE_STATE_COUNT);
 
 	result = ASSERT(state < ARRAY_SIZE(state_names), "Unknown page_state value %d", state);
 	if (result != UDS_SUCCESS)
@@ -2751,7 +2751,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	block_count_t i;
 	struct block_map_zone *zone = &map->zones[zone_number];
 
-	STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(u64));
+	BUILD_BUG_ON(sizeof(struct page_descriptor) != sizeof(u64));
 
 	zone->zone_number = zone_number;
 	zone->thread_id = vdo->thread_config.logical_threads[zone_number];
@@ -2906,9 +2906,9 @@ int vdo_decode_block_map(struct block_map_state_2_0 state,
 	int result;
 	zone_count_t zone = 0;
 
-	STATIC_ASSERT(VDO_BLOCK_MAP_ENTRIES_PER_PAGE ==
-		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
-		       sizeof(struct block_map_entry)));
+	BUILD_BUG_ON(VDO_BLOCK_MAP_ENTRIES_PER_PAGE !=
+		     ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
+		      sizeof(struct block_map_entry)));
 	result = ASSERT(cache_size > 0, "block map cache size is specified");
 	if (result != UDS_SUCCESS)
 		return result;

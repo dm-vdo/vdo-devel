@@ -137,7 +137,7 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 	int result;
 
 	/* If struct vio grows past 256 bytes, we'll lose benefits of VDOSTORY-176. */
-	STATIC_ASSERT(sizeof(struct vio) <= 256);
+	BUILD_BUG_ON(sizeof(struct vio) > 256);
 
 	/*
 	 * Metadata vios should use direct allocation and not use the buffer pool, which is

@@ -4185,7 +4185,7 @@ static int allocate_components(struct slab_depot *depot,
 	depot->origin = depot->first_block;
 
 	/* block size must be a multiple of entry size */
-	STATIC_ASSERT((VDO_BLOCK_SIZE % sizeof(struct slab_summary_entry)) == 0);
+	BUILD_BUG_ON((VDO_BLOCK_SIZE % sizeof(struct slab_summary_entry)) != 0);
 
 	depot->summary_origin = summary_partition->offset;
 	depot->hint_shift = vdo_get_slab_summary_hint_shift(depot->slab_size_shift);
