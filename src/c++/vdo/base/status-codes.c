@@ -62,8 +62,8 @@ static void do_status_code_registration(void)
 {
 	int result;
 
-	STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) ==
-		      ARRAY_SIZE(vdo_status_list));
+	BUILD_BUG_ON((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) !=
+		     ARRAY_SIZE(vdo_status_list));
 
 	result = uds_register_error_block("VDO Status",
 					  VDO_STATUS_CODE_BASE,

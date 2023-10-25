@@ -389,7 +389,7 @@ vdo_validate_block_map_page(struct block_map_page *page,
 			    nonce_t nonce,
 			    physical_block_number_t pbn)
 {
-	STATIC_ASSERT_SIZEOF(struct block_map_page_header, PAGE_HEADER_4_1_SIZE);
+	BUILD_BUG_ON(sizeof(struct block_map_page_header) != PAGE_HEADER_4_1_SIZE);
 
 	if (!vdo_are_same_version(BLOCK_MAP_4_1, vdo_unpack_version_number(page->version)) ||
 	    !page->header.initialized ||
@@ -1034,7 +1034,7 @@ STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layou
 	size_t initial_offset;
 	struct header header = VDO_LAYOUT_HEADER_3_0;
 
-	STATIC_ASSERT_SIZEOF(enum partition_id, sizeof(u8));
+	BUILD_BUG_ON(sizeof(enum partition_id) != sizeof(u8));
 	ASSERT_LOG_ONLY(layout->num_partitions <= U8_MAX,
 			"layout partition count must fit in a byte");
 

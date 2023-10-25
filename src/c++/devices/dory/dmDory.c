@@ -1207,8 +1207,7 @@ static struct target_type doryTargetType = {
 /**********************************************************************/
 int __init doryInit(void)
 {
-  STATIC_ASSERT(offsetof(DoryDevice, dev) 
-                == offsetof(CommonDevice, dev)); 
+  BUILD_BUG_ON(offsetof(DoryDevice, dev) != offsetof(CommonDevice, dev));
 
   kobject_init(&doryKobj, &emptyObjectType);
   int result = kobject_add(&doryKobj, NULL, THIS_MODULE->name);

@@ -669,9 +669,9 @@ static int initialize_recovery_block(struct vdo *vdo,
 	/*
 	 * Ensure that a block is large enough to store RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	 */
-	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
-		      <= ((VDO_BLOCK_SIZE - sizeof(struct packed_journal_header)) /
-			  sizeof(struct packed_recovery_journal_entry)));
+	BUILD_BUG_ON(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK >
+		     ((VDO_BLOCK_SIZE - sizeof(struct packed_journal_header)) /
+		      sizeof(struct packed_recovery_journal_entry)));
 
 	/*
 	 * Allocate a full block for the journal block even though not all of the space is used

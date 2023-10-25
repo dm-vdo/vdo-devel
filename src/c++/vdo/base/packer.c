@@ -379,7 +379,7 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
 	 * Make sure the block layout isn't accidentally changed by changing the length of the
 	 * block header.
 	 */
-	STATIC_ASSERT_SIZEOF(struct compressed_block_header, COMPRESSED_BLOCK_1_0_SIZE);
+	BUILD_BUG_ON(sizeof(struct compressed_block_header) != COMPRESSED_BLOCK_1_0_SIZE);
 
 	block->header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
 	block->header.sizes[0] = __cpu_to_le16(size);

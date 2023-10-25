@@ -294,8 +294,7 @@ static struct target_type flushTargetType = {
 /**********************************************************************/
 int __init flushInit(void)
 {
-  STATIC_ASSERT(offsetof(FlushDevice, dev)
-                == offsetof(CommonDevice, dev));
+  BUILD_BUG_ON(offsetof(FlushDevice, dev) != offsetof(CommonDevice, dev));
 
   kobject_init(&flushKobj, &emptyObjectType);
   int result = kobject_add(&flushKobj, NULL, THIS_MODULE->name);

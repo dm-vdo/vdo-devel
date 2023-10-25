@@ -451,8 +451,7 @@ static struct target_type tracerTargetType = {
 /**********************************************************************/
 int __init tracerInit(void)
 {
-  STATIC_ASSERT(offsetof(TracerDevice, dev)
-                == offsetof(CommonDevice, dev));
+  BUILD_BUG_ON(offsetof(TracerDevice, dev) != offsetof(CommonDevice, dev));
 
   kobject_init(&tracerKobj, &emptyObjectType);
   int result = kobject_add(&tracerKobj, NULL, THIS_MODULE->name);
