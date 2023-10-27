@@ -73,7 +73,7 @@ static void testEmptyMap(void)
   // Try to remove the empty string--it should not be mapped.
   CU_ASSERT_PTR_NULL(vdo_pointer_map_remove(map, ""));
 
-  vdo_free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -148,7 +148,7 @@ static void testNullKey(void)
   CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, nullKey));
   CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, emptyKey));
 
-  vdo_free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -232,7 +232,7 @@ static void testSingletonMap(void)
   CU_ASSERT_PTR_EQUAL(NULL, oldValue);
   verifySingletonMap(map, key, value2);
 
-  vdo_free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -310,7 +310,7 @@ static void test16BitMap(void)
 
   UDS_FREE(keys);
   UDS_FREE(values);
-  vdo_free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -352,7 +352,7 @@ static void testSteadyState(void)
     UDS_FREE(value);
   }
 
-  vdo_free_pointer_map(UDS_FORGET(map));
+  vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 

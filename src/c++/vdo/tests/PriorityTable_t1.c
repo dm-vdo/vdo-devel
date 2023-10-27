@@ -39,7 +39,7 @@ static void setUp(void)
 /**********************************************************************/
 static void tearDown(void)
 {
-  vdo_free_priority_table(UDS_FORGET(table));
+  vdo_free_priority_table(uds_forget(table));
 }
 
 /**

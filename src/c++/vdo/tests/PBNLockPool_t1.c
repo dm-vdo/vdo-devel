@@ -98,7 +98,7 @@ static void failBorrow(struct vdo_completion *completion)
  **/
 static void returnLock(struct vdo_completion *completion)
 {
-  struct pbn_lock *lock = UDS_FORGET(locks[count]);
+  struct pbn_lock *lock = uds_forget(locks[count]);
 
   memcpy(lock, &saved, sizeof(struct pbn_lock));
   lock->holder_count = 1;

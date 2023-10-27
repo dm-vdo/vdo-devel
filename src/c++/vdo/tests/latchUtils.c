@@ -110,7 +110,7 @@ void tearDownLatchUtils(void)
   latchAttemptHook = NULL;
   waitCondition    = NULL;
   CU_ASSERT_EQUAL(vdo_int_map_size(latchedVIOs), 0);
-  vdo_free_int_map(UDS_FORGET(latchedVIOs));
+  vdo_free_int_map(uds_forget(latchedVIOs));
   CU_ASSERT(list_empty(&latches));
   initialized = false;
 }

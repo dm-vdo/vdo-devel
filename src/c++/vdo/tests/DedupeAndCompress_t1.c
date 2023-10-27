@@ -188,7 +188,7 @@ static void doReadWriteMix(bool success)
   for (size_t waiting = 0; waiting < readRequestCount; waiting++) {
     if (readRequests[waiting].request != NULL) {
       int result
-        = awaitAndFreeRequest(UDS_FORGET(readRequests[waiting].request));
+        = awaitAndFreeRequest(uds_forget(readRequests[waiting].request));
       if (success) {
         CU_ASSERT_EQUAL(result, VDO_SUCCESS);
       }
@@ -202,7 +202,7 @@ static void doReadWriteMix(bool success)
   for (size_t waiting = 0; waiting < writeRequestCount; waiting++) {
     if (writeRequests[waiting] != NULL) {
       int result
-        = awaitAndFreeRequest(UDS_FORGET(writeRequests[waiting]));
+        = awaitAndFreeRequest(uds_forget(writeRequests[waiting]));
       if (success) {
         CU_ASSERT_EQUAL(result, VDO_SUCCESS);
       }

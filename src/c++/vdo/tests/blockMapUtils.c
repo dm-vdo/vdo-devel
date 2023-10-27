@@ -44,7 +44,7 @@ void initializeBlockMapUtils(block_count_t logicalBlocks)
 /**********************************************************************/
 void tearDownBlockMapUtils(void)
 {
-  UDS_FREE(UDS_FORGET(expectedMappings));
+  UDS_FREE(uds_forget(expectedMappings));
 }
 
 /**********************************************************************/

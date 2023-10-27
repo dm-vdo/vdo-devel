@@ -396,7 +396,7 @@ static bool checkForBlockedVIO(void *context __attribute__((unused)))
 static bool fetchBlockedVIO(void *context)
 {
   FetchContext *fetchContext = context;
-  fetchContext->vio = UDS_FORGET(blockedVIO);
+  fetchContext->vio = uds_forget(blockedVIO);
   fetchContext->blockedAsBIO = blockedAsBIO;
   blockedAsBIO = false;
   return false;

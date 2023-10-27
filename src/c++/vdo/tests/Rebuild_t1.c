@@ -147,7 +147,7 @@ static void writeTestData(logical_block_number_t startBlock,
   // Flush VIOs out of the packer and wait for the request to finish.
   requestFlushPacker();
 
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
   clearCompletionEnqueueHooks();
 
   // Issue more writes which will all deduplicate.
@@ -312,7 +312,7 @@ static void freePreRebuildData(PreRebuildData **originalDataPtr)
   PreRebuildData *originalData = *originalDataPtr;
 
   for (size_t i = 0; i < originalData->slabCount; i++) {
-    UDS_FREE(UDS_FORGET(originalData->refCountData[i].counters));
+    UDS_FREE(uds_forget(originalData->refCountData[i].counters));
   }
 
   UDS_FREE(originalData->refCountData);

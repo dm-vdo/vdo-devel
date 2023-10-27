@@ -33,7 +33,7 @@ static void testEmptyMap(void)
   // Try to remove a randomly-selected key--it should not be mapped.
   CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, random()));
 
-  vdo_free_int_map(UDS_FORGET(map));
+  vdo_free_int_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -105,7 +105,7 @@ static void testSingletonMap(void)
   CU_ASSERT_PTR_EQUAL(NULL, oldValue);
   verifySingletonMap(map, key, value2);
 
-  vdo_free_int_map(UDS_FORGET(map));
+  vdo_free_int_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -164,7 +164,7 @@ static void test16BitMap(void)
   CU_ASSERT_EQUAL(0, vdo_int_map_size(map));
 
   free(values);
-  vdo_free_int_map(UDS_FORGET(map));
+  vdo_free_int_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 
@@ -194,7 +194,7 @@ static void testSteadyState(void)
     CU_ASSERT_EQUAL(SIZE, vdo_int_map_size(map));
   }
 
-  vdo_free_int_map(UDS_FORGET(map));
+  vdo_free_int_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
 

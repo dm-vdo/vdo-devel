@@ -153,8 +153,8 @@ static void testFill(void)
   waitForCondition(checkVIOsWaitingForHashLock, NULL);
   clearCompletionEnqueueHooks();
 
-  CU_ASSERT_EQUAL(awaitAndFreeRequest(UDS_FORGET(request)), VDO_NO_SPACE);
-  CU_ASSERT_EQUAL(awaitAndFreeRequest(UDS_FORGET(request2)), VDO_NO_SPACE);
+  CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(request)), VDO_NO_SPACE);
+  CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(request2)), VDO_NO_SPACE);
 }
 
 /**********************************************************************/

@@ -45,11 +45,11 @@ void freeRequest(IORequest *request)
     return;
   }
 
-  BIO *bio = UDS_FORGET(request->bios);
+  BIO *bio = uds_forget(request->bios);
   while (bio != NULL) {
     BIO *toFree = bio;
     bio = bio->next;
-    vdo_free_bio(UDS_FORGET(toFree->bio));
+    vdo_free_bio(uds_forget(toFree->bio));
     UDS_FREE(toFree);
   }
 
@@ -94,7 +94,7 @@ static bool isRequestComplete(void *context)
 static bool dataVIOReleased(void *context)
 {
   struct vdo_completion *completion = context;
-  IORequest *request = ((BIO *) UDS_FORGET(completion->parent))->request;
+  IORequest *request = ((BIO *) uds_forget(completion->parent))->request;
   if (request->result == VDO_SUCCESS) {
     request->result = completion->result;
   }

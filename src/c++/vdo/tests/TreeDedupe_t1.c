@@ -146,7 +146,7 @@ static void testNoDedupeAfterRebuild(void)
   waitForBlockedVIO();
   forceVDOReadOnlyMode();
   releaseBlockedVIO();
-  awaitAndFreeRequest(UDS_FORGET(request));
+  awaitAndFreeRequest(uds_forget(request));
   rebuildReadOnlyVDO();
   verify();
 }

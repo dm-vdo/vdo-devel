@@ -135,7 +135,7 @@ static void testReadWrite(void)
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, mapBlocks, &writer));
   UDS_ASSERT_SUCCESS(uds_write_index_page_map(map, writer));
   uds_free_buffered_writer(writer);
-  uds_free_index_page_map(UDS_FORGET(map));
+  uds_free_index_page_map(uds_forget(map));
 
   // Read and verify the index page map
   UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));

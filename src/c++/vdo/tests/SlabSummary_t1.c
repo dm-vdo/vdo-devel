@@ -320,7 +320,7 @@ static void testSaveAndRestore(void)
     CU_ASSERT_EQUAL(status.emptiness, getDefaultFreeBlockHint(status.slab_number));
   }
 
-  UDS_FREE(UDS_FORGET(statuses));
+  UDS_FREE(uds_forget(statuses));
 }
 
 /**

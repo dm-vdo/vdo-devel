@@ -161,9 +161,9 @@ testDrainWithBlockedWrite(const struct admin_state_code *drainType,
 
   struct vdo_completion *toRelease;
   if (journalFirst) {
-    toRelease = UDS_FORGET(slabJournalWrite);
+    toRelease = uds_forget(slabJournalWrite);
   } else {
-    toRelease = UDS_FORGET(refCountsWrite);
+    toRelease = uds_forget(refCountsWrite);
     /*
      * The reference count block will have been redirtied by the second block
      * we wrote while it was trapped so it will get written again due to the

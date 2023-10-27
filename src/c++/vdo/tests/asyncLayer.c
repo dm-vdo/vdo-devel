@@ -177,14 +177,14 @@ void destroyAsyncLayer(void)
   case LAYER_INITIALIZED:
     uds_destroy_cond(&asyncLayer->condition);
     uds_destroy_mutex(&asyncLayer->mutex);
-    vdo_free_int_map(UDS_FORGET(asyncLayer->completionEnqueueHooksMap));
+    vdo_free_int_map(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
 
   default:
     CU_FAIL("Unknown Async Layer state: %d", asyncLayer->state);
   }
 
-  UDS_FREE(UDS_FORGET(layer));
+  UDS_FREE(uds_forget(layer));
 }
 
 /**
@@ -426,12 +426,12 @@ void stopAsyncLayer(void)
   case TABLE_LOADED:
     target = vdo->device_config->owning_target;
     vdoTargetType->dtr(target);
-    UDS_FREE(UDS_FORGET(target));
+    UDS_FREE(uds_forget(target));
 
     fallthrough;
 
   case QUEUES_STARTED:
-    UDS_FORGET(vdo);
+    uds_forget(vdo);
     if (asyncLayer->bioThread != NULL) {
       uds_lock_mutex(&asyncLayer->mutex);
       asyncLayer->running = false;
@@ -486,7 +486,7 @@ static void requestDoneCallback(struct vdo_completion *completion)
 static void requestCallback(struct vdo_completion *completion)
 {
   struct vdo_completion *payload = completion->parent;
-  UDS_FREE(UDS_FORGET(completion));
+  UDS_FREE(uds_forget(completion));
 
   vdo_action *action             = payload->callback;
   payload->callback              = requestDoneCallback;

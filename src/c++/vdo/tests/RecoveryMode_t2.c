@@ -305,7 +305,7 @@ static void testMultipleZoneNoSpaceRecovery(void)
                    &expectedScrubberWaitingZone);
   clearCompletionEnqueueHooks();
   releaseSlabLatch(targetSlabIndex);
-  CU_ASSERT_EQUAL(VDO_NO_SPACE, awaitAndFreeRequest(UDS_FORGET(lateWrite)));
+  CU_ASSERT_EQUAL(VDO_NO_SPACE, awaitAndFreeRequest(uds_forget(lateWrite)));
   performSuccessfulAction(checkVDORecovery);
   CU_ASSERT_FALSE(stillInRecovery);
 }

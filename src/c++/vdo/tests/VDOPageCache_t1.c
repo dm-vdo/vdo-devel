@@ -205,7 +205,7 @@ static void finishVDOPageCacheT1(void)
     CU_ASSERT_FALSE(marker == pageMap);
   }
 
-  vdo_free_int_map(UDS_FORGET(pageMap));
+  vdo_free_int_map(uds_forget(pageMap));
   tearDownVDOTest();
 }
 

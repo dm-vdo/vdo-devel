@@ -33,8 +33,8 @@ static struct mutex             mutex;
  **/
 static void tearDown(void)
 {
-  vdo_free_int_map(UDS_FORGET(wrapMap));
-  vdo_free_int_map(UDS_FORGET(enqueueMap));
+  vdo_free_int_map(uds_forget(wrapMap));
+  vdo_free_int_map(uds_forget(enqueueMap));
   uds_destroy_mutex(&mutex);
 }
 

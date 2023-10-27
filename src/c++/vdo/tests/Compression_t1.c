@@ -103,7 +103,7 @@ static void testDedupeBlocksInPacker(void)
   requestFlushPacker();
 
   // Wait for the initial write VIO to come back from the packer.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
   CU_ASSERT_EQUAL(VDO_MAPPING_STATE_UNCOMPRESSED, lookupLBN(2).state);
 
   // Make sure the blocks deduplicated.
@@ -172,7 +172,7 @@ static void setupCompressBlockWriteAndWait(void)
 static void awaitRequests(bool assertCompressed)
 {
   for (int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; i++) {
-    awaitAndFreeSuccessfulRequest(UDS_FORGET(requests[i]));
+    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
     enum block_mapping_state mappingState = lookupLBN(i).state;
     if (assertCompressed) {
       CU_ASSERT_TRUE(mappingState >= VDO_MAPPING_STATE_COMPRESSED_BASE);
@@ -240,7 +240,7 @@ static void testDedupeBlocksInCompressor(void)
   writeData(3, 1, 1, VDO_SUCCESS);
 
   // Wait for the initial write VIO to come back from the packer.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
 
   // Make sure it got cancelled out from the compression path.
   CU_ASSERT_EQUAL(lookupLBN(2).state, VDO_MAPPING_STATE_UNCOMPRESSED);
@@ -271,14 +271,14 @@ static void testReadOnlyModeWithBlocksInPacker(void)
   writeCompressableData(REQUEST_COUNT, 1, requests);
   requestFlushPacker();
   for (block_count_t i = 0; i < REQUEST_COUNT; i++) {
-    awaitAndFreeRequest(UDS_FORGET(requests[i]));
+    awaitAndFreeRequest(uds_forget(requests[i]));
   }
 
   writeCompressableData(REQUEST_COUNT, 1 + REQUEST_COUNT, requests);
   forceVDOReadOnlyMode();
   requestFlushPacker();
   for (block_count_t i = 0; i < 2; i++) {
-    awaitAndFreeRequest(UDS_FORGET(requests[i]));
+    awaitAndFreeRequest(uds_forget(requests[i]));
   }
 }
 

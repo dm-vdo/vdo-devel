@@ -498,7 +498,7 @@ static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
   initialize(8);
 
   /* Replace the zone's vio pool with one which only has 1 vio */
-  free_vio_pool(UDS_FORGET(zone->vio_pool));
+  free_vio_pool(uds_forget(zone->vio_pool));
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    1,
                                    zone->thread_id,

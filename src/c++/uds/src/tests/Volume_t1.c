@@ -46,7 +46,7 @@ static void deinit(void)
   freePageArray();
   uds_free_volume(volume);
   uds_free_configuration(config);
-  uds_free_index_layout(UDS_FORGET(layout));
+  uds_free_index_layout(uds_forget(layout));
 }
 
 /**********************************************************************/

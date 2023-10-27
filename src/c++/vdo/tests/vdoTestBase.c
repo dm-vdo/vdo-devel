@@ -80,7 +80,7 @@ int dm_register_target(struct target_type *t)
 void dm_unregister_target(struct target_type *t)
 {
   CU_ASSERT_PTR_EQUAL(vdoTargetType, t);
-  UDS_FORGET(vdoTargetType);
+  uds_forget(vdoTargetType);
 }
 
 /**********************************************************************/

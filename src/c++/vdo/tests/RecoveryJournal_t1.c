@@ -216,7 +216,7 @@ static void freeJournal(void)
     performSuccessfulRecoveryJournalActionOnJournal(journal,
                                                     VDO_ADMIN_STATE_SAVING);
   }
-  vdo_free_recovery_journal(UDS_FORGET(journal));
+  vdo_free_recovery_journal(uds_forget(journal));
 }
 
 /**

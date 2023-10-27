@@ -403,7 +403,7 @@ static void testScrubSlabDuringRebuild(void)
   reallyEnqueueVIO(blockedVIO);
   releaseSlabLatch(slabNumber);
 
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(trim));
+  awaitAndFreeSuccessfulRequest(uds_forget(trim));
   stopVDO();
 
   // Replace the ram layer content with snapshot content.

@@ -215,7 +215,7 @@ static void freeRAMLayer(RAMLayer *layer)
     try_close_file(layer->backing);
   }
 
-  Region *list = UDS_FORGET(layer->regionList);
+  Region *list = uds_forget(layer->regionList);
   while (list != NULL) {
     Region *toFree = list;
     list = list->next;
