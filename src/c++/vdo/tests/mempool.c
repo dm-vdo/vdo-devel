@@ -31,7 +31,7 @@ mempool_t *mempool_create(int min_nr,
 			  void *pool_data)
 {
   mempool_t *pool;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(mempool_t,
+  VDO_ASSERT_SUCCESS(uds_allocate_extended(mempool_t,
                                            min_nr,
                                            void *,
                                            __func__,

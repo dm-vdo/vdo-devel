@@ -277,7 +277,7 @@ static int setupFileLayer(const char     *name,
   size_t     nameLen = strlen(name) + 1;
   FileLayer *layer   = NULL;
   result
-    = UDS_ALLOCATE_EXTENDED(FileLayer, nameLen, char, "file layer", &layer);
+    = uds_allocate_extended(FileLayer, nameLen, char, "file layer", &layer);
   if (result != UDS_SUCCESS) {
     return result;
   }

@@ -411,7 +411,7 @@ static void funnelEventConsume(QueueableBatch *qb)
 static QueueableBatch *allocateBatch(long stream, long count)
 {
   QueueableBatch *qb;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE_EXTENDED(QueueableBatch, count, Queueable,
+  UDS_ASSERT_SUCCESS(uds_allocate_extended(QueueableBatch, count, Queueable,
                                            __func__, &qb));
   qb->count  = count;
   qb->stream = stream;
