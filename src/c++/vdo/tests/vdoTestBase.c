@@ -113,7 +113,7 @@ void tearDownVDOTestBase(void)
     TearDownItem *item = tearDownItems;
     tearDownItems = tearDownItems->next;
     item->action();
-    UDS_FREE(item);
+    uds_free(item);
   }
 }
 
@@ -208,7 +208,7 @@ static void signalFlushDone(struct bio *bio)
     signalState(&flushDone);
   }
 
-  UDS_FREE(bio);
+  uds_free(bio);
 }
 
 /**********************************************************************/
@@ -640,7 +640,7 @@ int loadTable(TestConfiguration configuration, struct dm_target *target)
   int argc = makeTableLine(fixThreadCounts(configuration), argv);
   int result = vdoTargetType->ctr(target, argc, argv);
   while (argc-- > 0) {
-    UDS_FREE(argv[argc]);
+    uds_free(argv[argc]);
   }
 
   return result;
@@ -676,7 +676,7 @@ int resumeVDO(struct dm_target *target)
     struct dm_target *toDestroy
       = ((vdo->device_config->owning_target == target) ? old_target : target);
       vdoTargetType->dtr(toDestroy);
-      UDS_FREE(toDestroy);
+      uds_free(toDestroy);
   }
 
   return resume_result;
@@ -694,7 +694,7 @@ int modifyCompressDedupe(bool compress, bool dedupe)
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(target);
+    uds_free(target);
     return result;
   }
 
@@ -724,7 +724,7 @@ static int modifyVDO(block_count_t logicalSize,
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(target);
+    uds_free(target);
     return result;
   }
 

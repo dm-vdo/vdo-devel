@@ -152,7 +152,7 @@ static void testLockCounterSuspend(void)
   thread_id_t journalThread = notification->callback_thread_id;
   performSuccessfulActionOnThread(releaseNotification, journalThread);
   awaitCompletion(drain);
-  UDS_FREE(drain);
+  uds_free(drain);
 
   // Save the slab depot, blowing up if it sends a notification.
   setCompletionEnqueueHook(failOnNotification);

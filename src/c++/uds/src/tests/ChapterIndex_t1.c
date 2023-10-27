@@ -158,8 +158,8 @@ static void emptyChapterTest(void)
     = setupChapterIndexPages(g, indexPages, g->index_pages_per_chapter);
 
   uds_free_open_chapter_index(oci);
-  UDS_FREE(cip);
-  UDS_FREE(indexPages);
+  uds_free(cip);
+  uds_free(indexPages);
   uds_free_configuration(config);
 }
 
@@ -197,9 +197,9 @@ static void basicChapterTest(void)
     CU_ASSERT_TRUE(inChapter);
   }
 
-  UDS_FREE(cip);
-  UDS_FREE(indexPages);
-  UDS_FREE(names);
+  uds_free(cip);
+  uds_free(indexPages);
+  uds_free(names);
   uds_free_configuration(config);
 }
 
@@ -229,9 +229,9 @@ static void listOverflowTest(void)
   }
   uds_free_open_chapter_index(oci);
 
-  UDS_FREE(cip);
-  UDS_FREE(indexPages);
-  UDS_FREE(names);
+  uds_free(cip);
+  uds_free(indexPages);
+  uds_free(names);
   uds_free_configuration(config);
 }
 
@@ -251,9 +251,9 @@ static void pageOverflowTest(void)
   verifyChapterIndexPage(oci, cip);
   uds_free_open_chapter_index(oci);
 
-  UDS_FREE(cip);
-  UDS_FREE(indexPages);
-  UDS_FREE(names);
+  uds_free(cip);
+  uds_free(indexPages);
+  uds_free(names);
   uds_free_configuration(config);
 }
 
@@ -280,9 +280,9 @@ static void bigEndianTest(void)
     verifyChapterIndexPage(oci, &cip[page]);
   }
   uds_free_open_chapter_index(oci);
-  UDS_FREE(cip);
-  UDS_FREE(indexPages);
-  UDS_FREE(names);
+  uds_free(cip);
+  uds_free(indexPages);
+  uds_free(names);
   uds_free_configuration(config);
 }
 

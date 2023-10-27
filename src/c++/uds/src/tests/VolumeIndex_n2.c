@@ -224,7 +224,7 @@ static void closeVolumeIndex(TestMI *testmi)
   uds_free_volume_index(testmi->mi);
   uds_put_io_factory(testmi->factory);
   putTestBlockDevice(testDevice);
-  UDS_FREE(testmi);
+  uds_free(testmi);
 }
 
 /**********************************************************************/

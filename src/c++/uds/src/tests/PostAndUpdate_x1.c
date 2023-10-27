@@ -130,7 +130,7 @@ static void updateBlockNames(void *argument)
     TestBlockCounter *tbc = container_of(fqe, TestBlockCounter, queueEntry);
     struct uds_record_name chunkName;
     hashChunkCounter(&chunkName, tbc->chunkCounter);
-    UDS_FREE(tbc);
+    uds_free(tbc);
     oldUpdateBlockMapping(indexSession, NULL, &chunkName,
                           (struct uds_record_data *) &chunkName, cb);
     counter++;
@@ -169,7 +169,7 @@ static void postAndUpdate(void)
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(indexSession, &params));
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_NO_REBUILD, params, indexSession));
-  UDS_FREE(params);
+  uds_free(params);
 
   numBlocksInTest = getBlocksPerIndex(indexSession);
   numBlocksThreshold

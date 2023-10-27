@@ -151,7 +151,7 @@ size_t getMemTotalInGB(void) __attribute__((warn_unused_result));
 static inline void freeRequest(struct uds_request *request)
 {
   if (request != NULL) {
-    UDS_FREE(request);
+    uds_free(request);
   }
 }
 
@@ -257,7 +257,7 @@ static inline void randomizeUdsNonce(struct uds_parameters *params)
 
 /*
  * Format the supplied time as a string. Upon a success, the caller must
- * UDS_FREE the returned string.
+ * uds_free the returned string.
  */
 int __must_check rel_time_to_string(char **strp, ktime_t reltime);
 

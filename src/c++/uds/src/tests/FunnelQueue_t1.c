@@ -138,7 +138,7 @@ static void testOneProducer(void)
   for (i = 0; i < ITERATIONS; i++) {
     Entry *entry = dequeue(queue);
     CU_ASSERT_EQUAL(entry->value, i);
-    UDS_FREE(entry);
+    uds_free(entry);
   }
 
   uds_join_threads(producer);
@@ -179,14 +179,14 @@ static void testTenProducers(void)
   for (i = 0; i < ITERATIONS * PRODUCER_COUNT; i++) {
     Entry *entry = dequeue(queue);
     seen[entry->value] += 1;
-    UDS_FREE(entry);
+    uds_free(entry);
   }
 
   // Verify that each Entry value was seen 10 times for 10 threads.
   for (i = 0; i < ITERATIONS; i++) {
     CU_ASSERT_EQUAL(PRODUCER_COUNT, seen[i]);
   }
-  UDS_FREE(seen);
+  uds_free(seen);
 
   for (i = 0; i < PRODUCER_COUNT; i++) {
     uds_join_threads(producers[i]);

@@ -68,8 +68,8 @@ static void indexCleanSuite(void)
 {
   uninitialize_test_requests();
   uds_free_index(testData.index);
-  UDS_FREE(testData.metas);
-  UDS_FREE(testData.hashes);
+  uds_free(testData.metas);
+  uds_free(testData.hashes);
   uds_free_configuration(denseConfig);
   uds_free_configuration(sparseConfig);
 }

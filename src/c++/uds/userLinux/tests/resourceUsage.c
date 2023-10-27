@@ -81,7 +81,7 @@ void freeThreadStatistics(ThreadStatistics *ts)
 {
   while (ts != NULL) {
     ThreadStatistics *tsNext = ts->next;
-    UDS_FREE(ts);
+    uds_free(ts);
     ts = tsNext;
   }
 }

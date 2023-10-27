@@ -370,8 +370,8 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   CU_ASSERT_EQUAL(stats.collision_count, 0);
 
   uds_uninitialize_delta_index(&di);
-  UDS_FREE(names);
-  UDS_FREE(collides);
+  uds_free(names);
+  uds_free(collides);
 }
 
 /**
@@ -693,7 +693,7 @@ static void lookupTest(void)
   CU_ASSERT_FALSE(entry.is_collision);
 
   uds_uninitialize_delta_index(&di);
-  UDS_FREE(names);
+  uds_free(names);
 }
 
 /**
@@ -784,9 +784,9 @@ static void saveRestoreTest(void)
   uds_put_io_factory(factory);
   uds_uninitialize_delta_index(&di);
   putTestBlockDevice(testDevice);
-  UDS_FREE(keys);
-  UDS_FREE(lists);
-  UDS_FREE(names);
+  uds_free(keys);
+  uds_free(lists);
+  uds_free(names);
 }
 
 /**********************************************************************/

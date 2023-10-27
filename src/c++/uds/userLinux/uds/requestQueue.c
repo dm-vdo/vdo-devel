@@ -322,5 +322,5 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 	free_event_count(queue->work_event);
 	uds_free_funnel_queue(queue->main_queue);
 	uds_free_funnel_queue(queue->retry_queue);
-	UDS_FREE(queue);
+	uds_free(queue);
 }

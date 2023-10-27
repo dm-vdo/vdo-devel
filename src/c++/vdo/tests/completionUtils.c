@@ -65,7 +65,7 @@ static void freeWrappingCompletion(WrappingCompletion *wc)
   if (wc != NULL) {
     wc->original->parent   = wc->savedParent;
     wc->original->callback = wc->savedCallback;
-    UDS_FREE(wc);
+    uds_free(wc);
   }
 }
 

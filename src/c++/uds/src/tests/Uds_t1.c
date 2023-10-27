@@ -137,7 +137,7 @@ static void basicsTest(void)
   CU_ASSERT_EQUAL(indexStats.updates_not_found,   0);
   CU_ASSERT_EQUAL(indexStats.requests,            8);
 
-  UDS_FREE(request);
+  uds_free(request);
 }
 
 /**********************************************************************/

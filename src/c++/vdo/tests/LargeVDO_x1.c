@@ -157,7 +157,7 @@ static void testBasic(void)
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, blockCount, buffer));
   stopVDO();
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, blockCount, buffer));
-  UDS_FREE(buffer);
+  uds_free(buffer);
   startVDO(VDO_CLEAN);
 
   // Overwrite with zeros and reclaim space

@@ -200,8 +200,8 @@ static void testInvalidateChapter(void)
   fillOpenChapter(config->geometry->chapters_per_volume, 1);
   UDS_ASSERT_SUCCESS(uds_join_threads(thread));
 
-  UDS_FREE(request);
-  UDS_FREE(request2);
+  uds_free(request);
+  uds_free(request2);
 }
 
 /**********************************************************************/

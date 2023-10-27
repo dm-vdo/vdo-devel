@@ -283,7 +283,7 @@ static void remove_tracking_block(void *ptr)
 	}
 
 	mutex_unlock(&track_mutex);
-	ASSERT_LOG_ONLY(!track_always, "UDS_FREE called on block that UDS did not UDS_ALLOCATE");
+	ASSERT_LOG_ONLY(!track_always, "uds_free called on block that UDS did not UDS_ALLOCATE");
 }
 
 void log_uds_memory_allocations(void)

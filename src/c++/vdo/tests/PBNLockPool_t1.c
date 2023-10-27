@@ -141,7 +141,7 @@ static void testPBNLockPool(void)
     performSuccessfulActionOnThread(returnLock, zone->thread_id);
   }
 
-  UDS_FREE(locks);
+  uds_free(locks);
 }
 
 /**********************************************************************/

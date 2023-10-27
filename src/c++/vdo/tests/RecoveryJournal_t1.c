@@ -705,9 +705,9 @@ static void freeWrappedCompletions(CompletionsWrapper *wrapped)
 {
   for (unsigned int i = 0; i < wrapped->count; i++) {
     CU_ASSERT_TRUE(wrapped->completions[i]->complete);
-    UDS_FREE(wrapped->completions[i]);
+    uds_free(wrapped->completions[i]);
   }
-  UDS_FREE(wrapped->completions);
+  uds_free(wrapped->completions);
 }
 
 /**
@@ -822,7 +822,7 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
     CU_ASSERT_EQUAL(entryNumber, entry.mapping.pbn);
     CU_ASSERT_EQUAL(entryNumber + 1, entry.unmapping.pbn);
   }
-  UDS_FREE(packedHeader);
+  uds_free(packedHeader);
 }
 
 /**
@@ -869,7 +869,7 @@ static void addOneEntry(EntryNumber entry)
   struct data_vio    *dataVIO                = dataVIOFromWrapper(completion);
   CU_ASSERT_EQUAL(expectedSequenceNumber,
                   dataVIO->recovery_journal_point.sequence_number);
-  UDS_FREE(completion);
+  uds_free(completion);
 }
 
 /**
@@ -1176,7 +1176,7 @@ static void verifyJournalIsClosed(EntryNumber entry)
   makeWrappedVIO(entry, &addCompletion);
   launchAction(addJournalEntry, addCompletion);
   CU_ASSERT_EQUAL(VDO_INVALID_ADMIN_STATE, awaitCompletion(addCompletion));
-  UDS_FREE(addCompletion);
+  uds_free(addCompletion);
   performSuccessfulAction(checkJournalStateAction);
 }
 

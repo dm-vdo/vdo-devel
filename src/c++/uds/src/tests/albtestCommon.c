@@ -36,7 +36,7 @@ void freeTestResults(TestResult *tr)
     for (i = 0; i < tr->numSub; ++i) {
       freeTestResults(&tr->sub[i]);
     }
-    UDS_FREE(tr->sub);
+    uds_free(tr->sub);
     tr->sub = NULL;
     if (tr->freeName) {
       uds_free_const(tr->name);

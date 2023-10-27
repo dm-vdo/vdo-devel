@@ -50,10 +50,10 @@ void freeRequest(IORequest *request)
     BIO *toFree = bio;
     bio = bio->next;
     vdo_free_bio(uds_forget(toFree->bio));
-    UDS_FREE(toFree);
+    uds_free(toFree);
   }
 
-  UDS_FREE(request);
+  uds_free(request);
 }
 
 /**
@@ -440,7 +440,7 @@ void zeroData(logical_block_number_t startBlock,
 
   CU_ASSERT_EQUAL(performWrite(startBlock, blockCount, buffer),
                   expectedResult);
-  UDS_FREE(buffer);
+  uds_free(buffer);
 }
 
 /**********************************************************************/

@@ -121,7 +121,7 @@ static void init_logger(void)
 		fp = fopen(log_file, "a");
 		if (fp != NULL) {
 			if (is_abs_path)
-				UDS_FREE(log_file);
+				uds_free(log_file);
 			opened = 1;
 			return;
 		}
@@ -133,7 +133,7 @@ static void init_logger(void)
 			      program_invocation_short_name) == UDS_SUCCESS) {
 		mini_openlog(identity, LOG_PID | LOG_NDELAY | LOG_CONS,
 			     LOG_USER);
-		UDS_FREE(identity);
+		uds_free(identity);
 	} else {
 		mini_openlog(IDENTITY, LOG_PID | LOG_NDELAY | LOG_CONS,
 			     LOG_USER);
@@ -145,7 +145,7 @@ static void init_logger(void)
 				       log_file);
 
 	if (is_abs_path)
-		UDS_FREE(log_file);
+		uds_free(log_file);
 	opened = 1;
 }
 

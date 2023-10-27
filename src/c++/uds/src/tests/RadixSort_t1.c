@@ -72,7 +72,7 @@ static void sort(const u8 *keys[], unsigned int count, unsigned int length)
   const u8 **copy = sortAndVerify(keys, count, length);
 
   // Sort the sorted copy.
-  UDS_FREE(sortAndVerify(copy, count, length));
+  uds_free(sortAndVerify(copy, count, length));
 
   // Note: since the sort is not stable, we can't actually assert that keys
   // and copy are identical.
@@ -85,8 +85,8 @@ static void sort(const u8 *keys[], unsigned int count, unsigned int length)
   }
 
   // Sort the reversed array.
-  UDS_FREE(sortAndVerify(reversed, count, length));
-  UDS_FREE(reversed);
+  uds_free(sortAndVerify(reversed, count, length));
+  uds_free(reversed);
 }
 
 /**********************************************************************/
@@ -129,7 +129,7 @@ static void assertJoined(const char *strings, const u8 **keys,
 {
   char *joined = join(keys, count, length);
   CU_ASSERT_STRING_EQUAL(strings, joined);
-  UDS_FREE(joined);
+  uds_free(joined);
 }
 
 /**********************************************************************/
@@ -162,7 +162,7 @@ static void testIdentical(void)
   }
   assertSorted(keys, count, length);
   sort(keys, count, length);
-  UDS_FREE(keys);
+  uds_free(keys);
 }
 
 /**********************************************************************/
@@ -177,7 +177,7 @@ static void test(const char *strings, unsigned int length,
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, count, length));
   uds_free_radix_sorter(radixSorter);
   assertJoined(expected, keys, count, length);
-  UDS_FREE(keys);
+  uds_free(keys);
 }
 
 /**********************************************************************/
@@ -210,7 +210,7 @@ static void testZeroLength(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 2, 0));
   uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
-  UDS_FREE(reversed);
+  uds_free(reversed);
 }
 
 /**********************************************************************/
@@ -222,7 +222,7 @@ static void testZeroCount(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 0, 2));
   uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
-  UDS_FREE(reversed);
+  uds_free(reversed);
 }
 
 /**********************************************************************/
@@ -257,8 +257,8 @@ static void testSize(int size)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, size, sizeof(data[0])));
   assertSorted(keys, size, sizeof(data[0]));
   uds_free_radix_sorter(radixSorter);
-  UDS_FREE(data);
-  UDS_FREE(keys);
+  uds_free(data);
+  uds_free(keys);
 }
 
 /**********************************************************************/
@@ -285,8 +285,8 @@ static void testRandom(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, SIZE, sizeof(data[0])));
   assertSorted(keys, SIZE, sizeof(data[0]));
   uds_free_radix_sorter(radixSorter);
-  UDS_FREE(data);
-  UDS_FREE(keys);
+  uds_free(data);
+  uds_free(keys);
 }
 
 /**********************************************************************/

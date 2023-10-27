@@ -99,5 +99,5 @@ void putTestBlockDevice(struct block_device *bdev)
     return;
 
   close_file(bdev->fd, NULL);
-  UDS_FREE(bdev);
+  uds_free(bdev);
 }

@@ -126,7 +126,7 @@ static bool recordFlushDoneLocked(void *context)
 static void recordFlushDone(struct bio *bio)
 {
   runLocked(recordFlushDoneLocked, bio);
-  UDS_FREE(bio);
+  uds_free(bio);
 }
 
 /**

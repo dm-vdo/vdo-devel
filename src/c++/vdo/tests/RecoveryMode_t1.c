@@ -691,7 +691,7 @@ static void testSuspendAndResumeWhileScrubbing(void)
 
   releaseSlabLatch(latchedSlab->slab_number);
   VDO_ASSERT_SUCCESS(awaitCompletion(completion));
-  UDS_FREE(completion);
+  uds_free(completion);
 
   performSuccessfulAction(countUnscrubbedSlabs);
 

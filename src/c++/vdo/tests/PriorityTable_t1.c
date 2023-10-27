@@ -230,7 +230,7 @@ static void testRandomTable(void)
   enqueueEntries(entries, COUNT);
   drainTable(COUNT);
 
-  UDS_FREE(entries);
+  uds_free(entries);
 }
 
 /**********************************************************************/

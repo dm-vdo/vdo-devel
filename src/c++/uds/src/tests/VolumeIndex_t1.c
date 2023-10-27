@@ -571,7 +571,7 @@ static void rollingChaptersTest(void)
 
   uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
-  UDS_FREE(testNames);
+  uds_free(testNames);
 }
 
 /**

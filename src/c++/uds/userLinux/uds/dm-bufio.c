@@ -77,12 +77,12 @@ void dm_bufio_client_destroy(struct dm_bufio_client *client)
 	while (client->buffer_list != NULL) {
 		buffer = client->buffer_list;
 		client->buffer_list = buffer->next;
-		UDS_FREE(buffer->data);
-		UDS_FREE(buffer);
+		uds_free(buffer->data);
+		uds_free(buffer);
 	}
 
 	uds_destroy_mutex(&client->buffer_mutex);
-	UDS_FREE(client);
+	uds_free(client);
 }
 
 void dm_bufio_set_sector_offset(struct dm_bufio_client *client, sector_t start)
@@ -115,7 +115,7 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 				      __func__,
 				      &buffer->data);
 		if (result != UDS_SUCCESS) {
-			UDS_FREE(buffer);
+			uds_free(buffer);
 			return ERR_PTR(-ENOMEM);
 		}
 

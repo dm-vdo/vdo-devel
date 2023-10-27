@@ -141,7 +141,7 @@ static void testSaveLoadWithData(void)
     UDS_ASSERT_BLOCKDATA_EQUAL(&records[i].data, &metadata);
   }
 
-  UDS_FREE(records);
+  uds_free(records);
 }
 
 /**********************************************************************/
@@ -208,7 +208,7 @@ static void testSaveLoadWithDiscard(void)
   }
 
   CU_ASSERT_TRUE(totalRecords > newTotalRecords);
-  UDS_FREE(records);
+  uds_free(records);
 }
 
 /**********************************************************************/
@@ -232,7 +232,7 @@ static void modifyOpenChapter(off_t offset, const char *data)
   UDS_ASSERT_SUCCESS(uds_write_to_buffered_writer(writer, block, UDS_BLOCK_SIZE));
   UDS_ASSERT_SUCCESS(uds_flush_buffered_writer(writer));
   uds_free_buffered_writer(writer);
-  UDS_FREE(block);
+  uds_free(block);
 }
 
 /**********************************************************************/

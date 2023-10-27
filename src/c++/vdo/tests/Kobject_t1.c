@@ -30,7 +30,7 @@ static void release(struct kobject *kobj, char *name)
   CU_ASSERT_STRING_EQUAL(kobj->name, name);
   CU_ASSERT_EQUAL(atomic_read(&(kobj->refcount)), 0);
   released[toIndex(*name)] = true;
-  UDS_FREE(kobj);
+  uds_free(kobj);
 }
 
 /**********************************************************************/

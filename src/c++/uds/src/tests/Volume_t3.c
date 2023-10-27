@@ -75,7 +75,7 @@ static void findBoundariesTest(void)
   static const uint64_t data12[] = { 10, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   testFindBoundaries(1, 10, data12, sizeof(data12));
 
-  UDS_FREE(uds_forget(geometry));
+  uds_free(uds_forget(geometry));
 }
 
 /**********************************************************************/
@@ -134,7 +134,7 @@ static void findConvertedBoundariesTest(void)
 
   static const uint64_t data15[] = { 15, 16, 17, BAD_CHAPTER, BAD_CHAPTER, 13, 14 };
   testFindBoundaries(13, 17, data15, sizeof(data15));
-  UDS_FREE(uds_forget(geometry));
+  uds_free(uds_forget(geometry));
 
   // Remapped a chapter to the end of the volume.
   UDS_ASSERT_SUCCESS(uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
@@ -152,7 +152,7 @@ static void findConvertedBoundariesTest(void)
 
   static const uint64_t data18[] = { 15, 16, 11, 12, 13, 14, 8 };
   testFindBoundaries(11, 16, data18, sizeof(data18));
-  UDS_FREE(uds_forget(geometry));
+  uds_free(uds_forget(geometry));
 }
 
 /**********************************************************************/

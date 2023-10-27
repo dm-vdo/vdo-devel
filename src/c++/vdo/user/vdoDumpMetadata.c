@@ -94,8 +94,8 @@ static void freeAllocations(void)
 {
   freeVDOFromFile(&vdo);
   try_sync_and_close_file(outputFD);
-  UDS_FREE(buffer);
-  UDS_FREE(lbns);
+  uds_free(buffer);
+  uds_free(lbns);
   buffer = NULL;
 }
 

@@ -73,7 +73,7 @@ static void tearVIO(struct vio *vio, uint8_t corruptRegions)
              &currentDiskData[512 * chunkOffset], 512);
     }
   }
-  UDS_FREE(currentDiskData);
+  uds_free(currentDiskData);
 }
 
 /**

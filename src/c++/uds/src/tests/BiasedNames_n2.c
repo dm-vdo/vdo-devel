@@ -164,7 +164,7 @@ static void runTest(void)
   createCopy32Names(NUM_CHUNKS, names);
   testWithChunks(indexSession, NUM_CHUNKS, names, "Copy Bits");
 
-  UDS_FREE(names);
+  uds_free(names);
   uninitializeOldInterfaces();
 }
 
@@ -193,7 +193,7 @@ static void initializerWithSession(struct uds_index_session *is)
     uds_free_index(oldIndex);
     uds_free_configuration(config);
   }
-  UDS_FREE(params);
+  uds_free(params);
 }
 
 /**********************************************************************/

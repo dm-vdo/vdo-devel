@@ -115,8 +115,8 @@ static void largeWriteTest(void)
   uds_free_buffered_reader(reader);
   uds_put_io_factory(factory);
   putTestBlockDevice(testDevice);
-  UDS_FREE(bigbuf);
-  UDS_FREE(verbuf);
+  uds_free(bigbuf);
+  uds_free(verbuf);
 }
 
 /**********************************************************************/

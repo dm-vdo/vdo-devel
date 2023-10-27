@@ -173,8 +173,8 @@ static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
   }
 
   uds_uninitialize_delta_index(delta_index);
-  UDS_FREE(delta_index);
-  UDS_FREE(random);
+  uds_free(delta_index);
+  uds_free(random);
 }
 
 /**
@@ -202,7 +202,7 @@ static void guardAndTest(struct delta_list *pdl, u32 numLists, unsigned int gapS
 
   memcpy(deltaListsCopy, pdl, (numLists + 2) * sizeof(struct delta_list));
   testExtend(deltaListsCopy, numLists, 0xFF);
-  UDS_FREE(deltaListsCopy);
+  uds_free(deltaListsCopy);
 }
 
 /**
@@ -238,7 +238,7 @@ static void diffBlocks(bool increasing)
       guardAndTest(deltaLists, LIST_COUNT, gapSize);
     }
   }
-  UDS_FREE(deltaLists);
+  uds_free(deltaLists);
 }
 
 /**
@@ -275,7 +275,7 @@ static void randomTest(void)
 
   guardAndTest(deltaLists, LIST_COUNT,
                random() % (sizeof(uint16_t) * BITS_PER_BYTE + 1));
-  UDS_FREE(deltaLists);
+  uds_free(deltaLists);
 }
 
 /**********************************************************************/

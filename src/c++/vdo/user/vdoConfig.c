@@ -220,7 +220,7 @@ static int __must_check clearPartition(UserVDO *vdo, enum partition_id id)
     result = vdo->layer->writer(vdo->layer, pbn, bufferBlocks, zeroBuffer);
   }
 
-  UDS_FREE(zeroBuffer);
+  uds_free(zeroBuffer);
   return result;
 }
 
@@ -316,7 +316,7 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
   }
 
   result = vdo->layer->writer(vdo->layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
-  UDS_FREE(block);
+  uds_free(block);
   if (result != VDO_SUCCESS) {
     return result;
   }

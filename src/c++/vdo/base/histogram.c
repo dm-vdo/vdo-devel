@@ -242,8 +242,8 @@ static void histogram_kobj_release(struct kobject *kobj)
 {
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
-	UDS_FREE(h->counters);
-	UDS_FREE(h);
+	uds_free(h->counters);
+	uds_free(h);
 }
 
 static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char *buf)

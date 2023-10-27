@@ -306,7 +306,7 @@ static void process_args(int argc, char *argv[])
  **/
 static void freeAllocations(void)
 {
-  UDS_FREE(vdoPaths);
+  uds_free(vdoPaths);
 }
 
 /**********************************************************************

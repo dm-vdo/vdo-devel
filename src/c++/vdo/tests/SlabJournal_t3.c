@@ -138,7 +138,7 @@ static void performAddEntry(slab_count_t slabNumber)
   struct vdo_completion *completion;
   makeWrappedVIO(slabNumber, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryAction, completion));
-  UDS_FREE(completion);
+  uds_free(completion);
 }
 
 /**

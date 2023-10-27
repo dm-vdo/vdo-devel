@@ -41,7 +41,7 @@ static void freeReadRequest(struct uds_request *request)
   // Release the counted reference to the context that was acquired for the
   // request (and not released) in createRequest().
   ReadRequest *readRequest = container_of(request, ReadRequest, request);
-  UDS_FREE(readRequest);
+  uds_free(readRequest);
 }
 
 /**********************************************************************/
@@ -264,7 +264,7 @@ static void testFullReadQueue(void)
   }
   uds_unlock_mutex(&numRequestsMutex);
 
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/
@@ -329,7 +329,7 @@ static void testInvalidateReadQueue(void)
   CU_ASSERT_PTR_NOT_NULL(actual);
   uds_unlock_mutex(&volume->read_threads_mutex);
 
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/
@@ -505,8 +505,8 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   }
   uds_unlock_mutex(&numRequestsMutex);
 
-  UDS_FREE(threads);
-  UDS_FREE(args);
+  uds_free(threads);
+  uds_free(args);
 }
 
 /**********************************************************************/

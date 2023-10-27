@@ -208,9 +208,9 @@ void vdo_free_work_queue(struct vdo_work_queue *queue)
   }
 
   free_event_count(queue->wakeEvent);
-  UDS_FREE(queue->threadName);
-  UDS_FREE(queue->name);
-  UDS_FREE(queue);
+  uds_free(queue->threadName);
+  uds_free(queue->name);
+  uds_free(queue);
 }
 
 /*****************************************************************************/

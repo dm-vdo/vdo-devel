@@ -75,7 +75,7 @@ int performSlabAction(struct vdo_slab               *slab,
 {
   struct vdo_completion *completion = launchSlabAction(slab, operation);
   int                    result     = awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
   return result;
 }
 
@@ -119,7 +119,7 @@ int performDepotAction(struct slab_depot             *depot,
 {
   struct vdo_completion *completion = launchDepotAction(depot, operation);
   int                    result     = awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
   return result;
 }
 
@@ -171,7 +171,7 @@ int performBlockMapAction(struct block_map              *map,
 {
   struct vdo_completion *completion = launchBlockMapAction(map, operation);
   int                    result     = awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
   return result;
 }
 
@@ -223,7 +223,7 @@ int performPackerAction(struct packer                 *packer,
 {
   struct vdo_completion *completion = launchPackerAction(packer, operation);
   int result = awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
   return result;
 }
 
@@ -274,7 +274,7 @@ int performRecoveryJournalAction(struct recovery_journal       *journal,
   struct vdo_completion *completion
     = launchRecoveryJournalAction(journal, operation);
   int result = awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
   return result;
 }
 

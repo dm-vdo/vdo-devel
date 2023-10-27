@@ -232,11 +232,11 @@ static int corrupt(UserVDO *vdo)
             slabNumber);
     }
 
-    UDS_FREE(buffer);
+    uds_free(buffer);
     break;
   }
 
-  UDS_FREE(summaryEntries);
+  uds_free(summaryEntries);
   return result;
 }
 

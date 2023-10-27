@@ -219,12 +219,12 @@ static void freeRAMLayer(RAMLayer *layer)
   while (list != NULL) {
     Region *toFree = list;
     list = list->next;
-    UDS_FREE(toFree);
+    uds_free(toFree);
   }
 
-  UDS_FREE(layer->regions);
+  uds_free(layer->regions);
   uds_destroy_mutex(&layer->mutex);
-  UDS_FREE(layer);
+  uds_free(layer);
 }
 
 /**

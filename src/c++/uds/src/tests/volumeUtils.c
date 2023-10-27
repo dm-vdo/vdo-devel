@@ -36,9 +36,9 @@ void freePageArray(void)
   if (test_pages != NULL) {
     unsigned int i;
     for (i = 0; i < test_page_count; ++i) {
-      UDS_FREE(test_pages[i]);
+      uds_free(test_pages[i]);
     }
-    UDS_FREE(test_pages);
+    uds_free(test_pages);
   }
 
   test_pages = NULL;
@@ -101,7 +101,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
   UDS_ASSERT_SUCCESS(uds_write_chapter(volume, chapterIndex, records));
 
   uds_free_open_chapter_index(chapterIndex);
-  UDS_FREE(records);
+  uds_free(records);
 }
     
 /**********************************************************************

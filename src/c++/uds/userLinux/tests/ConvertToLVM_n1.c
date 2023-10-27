@@ -107,7 +107,7 @@ static void slide_file(off_t bytes)
                                               buf, length));
   }
   UDS_ASSERT_SUCCESS(logging_fsync(testDevice->fd, "file copy"));
-  UDS_FREE(uds_forget(buf));
+  uds_free(uds_forget(buf));
 }
 
 /**********************************************************************/

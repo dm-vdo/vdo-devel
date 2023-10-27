@@ -40,7 +40,7 @@ static void newCallback(struct uds_request *request)
                  request->found ? &request->old_metadata : NULL,
                  &request->record_name, NULL);
   }
-  UDS_FREE(or);
+  uds_free(or);
   uds_release_semaphore(&requestSemaphore);
 }
 
@@ -74,7 +74,7 @@ int oldPostBlockNameResult(struct uds_index_session     *session,
   or->request.type         = UDS_POST;
   int result = uds_launch_request(&or->request);
   if (result != UDS_SUCCESS) {
-    UDS_FREE(or);
+    uds_free(or);
     uds_release_semaphore(&requestSemaphore);
   }
   return result;

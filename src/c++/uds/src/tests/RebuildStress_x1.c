@@ -33,7 +33,7 @@ static struct semaphore semaphore;
 /**********************************************************************/
 static void finishChunk(struct uds_request *udsRequest)
 {
-  UDS_FREE(udsRequest);
+  uds_free(udsRequest);
   uds_release_semaphore(&semaphore);
 }
 
@@ -106,7 +106,7 @@ static void fullRebuildTest(void)
     char *timeString;
     UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, rebuildTime));
     albPrint("Index rebuilt in %s", timeString);
-    UDS_FREE(timeString);
+    uds_free(timeString);
     reportIndexSize(indexSession, &indexStats);
     // Report lost entries
     if (entriesIndexed > indexStats.entries_indexed) {

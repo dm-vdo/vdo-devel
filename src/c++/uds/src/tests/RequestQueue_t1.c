@@ -43,7 +43,7 @@ static void basicTest(void)
   CU_ASSERT_PTR_EQUAL(&requests[1], found);
   CU_ASSERT_EQUAL(2, count);
 
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/
@@ -128,7 +128,7 @@ static void retryPriorityTest(void)
   CU_ASSERT_TRUE(nextRequestRetryStatus);
 
   UDS_ASSERT_SUCCESS(uds_destroy_semaphore(&requestSemaphore));
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/

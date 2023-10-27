@@ -434,7 +434,7 @@ static void freeBatch(QueueableBatch *qb)
 {
   free_event_count(qb->event);
   uds_free_funnel_queue(qb->funnel);
-  UDS_FREE(qb);
+  uds_free(qb);
 }
 
 /**********************************************************************/
@@ -446,7 +446,7 @@ static void reportTime(const char *label,
   char *printTime;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&printTime, time / count));
   albPrint("    %-10s %s/%s", label, printTime, type);
-  UDS_FREE(printTime);
+  uds_free(printTime);
 }
 
 /**********************************************************************/

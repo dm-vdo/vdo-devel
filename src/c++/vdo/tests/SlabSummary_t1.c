@@ -190,7 +190,7 @@ static void writeDefaultDataPattern(void)
   for (size_t id = 0; id < MAX_VDO_SLABS; id++) {
     VDO_ASSERT_SUCCESS(awaitCompletion(&clients[id].completion));
   }
-  UDS_FREE(clients);
+  uds_free(clients);
 }
 
 /**
@@ -320,7 +320,7 @@ static void testSaveAndRestore(void)
     CU_ASSERT_EQUAL(status.emptiness, getDefaultFreeBlockHint(status.slab_number));
   }
 
-  UDS_FREE(uds_forget(statuses));
+  uds_free(uds_forget(statuses));
 }
 
 /**

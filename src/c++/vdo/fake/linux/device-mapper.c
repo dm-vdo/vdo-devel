@@ -19,7 +19,7 @@ static struct kobj_type fake_device_type;
 /**********************************************************************/
 static void release_fake_device(struct kobject *kobj)
 {
-	UDS_FREE(kobj);
+	uds_free(kobj);
 	the_fake_device = NULL;
 }
 
@@ -42,7 +42,7 @@ struct device *disk_to_dev(void *disk __attribute__((unused)))
 			     "%s",
 			     "fake device");
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(the_fake_device);
+		uds_free(the_fake_device);
 		the_fake_device = NULL;
 	}
 

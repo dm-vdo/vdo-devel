@@ -333,7 +333,7 @@ static void testInvalidFragment(void)
    */
   CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT, performRead(0, 1, buffer));
   CU_ASSERT_FALSE(vdo_in_read_only_mode(vdo));
-  UDS_FREE(buffer);
+  uds_free(buffer);
 }
 
 /**********************************************************************/

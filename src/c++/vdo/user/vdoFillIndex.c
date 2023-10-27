@@ -250,7 +250,7 @@ static struct block_device *parse_device(const char *name)
 static void free_device(struct block_device *device)
 {
   close_file(device->fd, NULL);
-  UDS_FREE(device);
+  uds_free(device);
   device = NULL;
 }
 

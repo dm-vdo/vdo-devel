@@ -134,8 +134,8 @@ static void initialize(void)
 /**********************************************************************/
 static void tearDownTest(void)
 {
-  UDS_FREE(slabLBNs2);
-  UDS_FREE(slabLBNs);
+  uds_free(slabLBNs2);
+  uds_free(slabLBNs);
   tearDownRecoveryModeTest();
 }
 

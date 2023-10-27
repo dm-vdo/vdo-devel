@@ -195,7 +195,7 @@ testDrainWithBlockedWrite(const struct admin_state_code *drainType,
 
   // Wait for the drain to complete
   awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
 
   // Resume the slab so that teardown succeeds.
   performSuccessfulSlabAction(slab, VDO_ADMIN_STATE_RESUMING);

@@ -41,7 +41,7 @@ static void cleanup(void)
   uds_put_io_factory(factory);
   uds_free_configuration(config);
   putTestBlockDevice(testDevice);
-  UDS_FREE(listNumbers);
+  uds_free(listNumbers);
 }
 
 /**********************************************************************/

@@ -242,7 +242,7 @@ void initialize_instance_number_tracking(void)
 
 void clean_up_instance_number_tracking(void)
 {
-	UDS_FREE(instances.words);
+	uds_free(instances.words);
 	initialize_instance_number_tracking();
 }
 
@@ -2318,7 +2318,7 @@ static void vdo_pool_release(struct kobject *directory)
 			"kobject being released has no references");
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
-	UDS_FREE(vdo);
+	uds_free(vdo);
 }
 
 const struct kobj_type vdo_directory_type = {

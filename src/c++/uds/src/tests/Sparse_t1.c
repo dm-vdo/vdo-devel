@@ -229,8 +229,8 @@ static void sparseInitSuite(struct block_device *bdev)
  **/
 static void sparseCleanSuite(void)
 {
-  UDS_FREE(metas);
-  UDS_FREE(hashes);
+  uds_free(metas);
+  uds_free(hashes);
   cleanupIndex();
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));

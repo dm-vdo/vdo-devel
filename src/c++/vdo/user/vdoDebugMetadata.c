@@ -205,20 +205,20 @@ static void freeState(SlabState *state)
 
   if (state->slabJournalBlocks != NULL) {
     for (block_count_t i = 0; i < slabConfig->slab_journal_blocks; i++) {
-      UDS_FREE(state->slabJournalBlocks[i]);
+      uds_free(state->slabJournalBlocks[i]);
       state->slabJournalBlocks[i] = NULL;
     }
   }
 
   if (state->referenceBlocks != NULL) {
     for (block_count_t i = 0; i < slabConfig->reference_count_blocks; i++) {
-      UDS_FREE(state->referenceBlocks[i]);
+      uds_free(state->referenceBlocks[i]);
       state->referenceBlocks[i] = NULL;
     }
   }
 
-  UDS_FREE(state->slabJournalBlocks);
-  UDS_FREE(state->referenceBlocks);
+  uds_free(state->slabJournalBlocks);
+  uds_free(state->referenceBlocks);
 }
 
 /**
@@ -338,23 +338,23 @@ static void freeMetadataSpace(void)
     }
   }
 
-  UDS_FREE(slabs);
+  uds_free(slabs);
   slabs = NULL;
 
-  UDS_FREE(rawJournalBytes);
+  uds_free(rawJournalBytes);
   rawJournalBytes = NULL;
 
-  UDS_FREE(recoveryJournal);
+  uds_free(recoveryJournal);
   recoveryJournal = NULL;
 
   if (slabSummary != NULL) {
     for (block_count_t i = 0; i < VDO_SLAB_SUMMARY_BLOCKS; i++) {
-      UDS_FREE(slabSummary[i]);
+      uds_free(slabSummary[i]);
       slabSummary[i] = NULL;
     }
   }
 
-  UDS_FREE(slabSummary);
+  uds_free(slabSummary);
   slabSummary = NULL;
 }
 

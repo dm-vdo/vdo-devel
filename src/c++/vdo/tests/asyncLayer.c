@@ -184,7 +184,7 @@ void destroyAsyncLayer(void)
     CU_FAIL("Unknown Async Layer state: %d", asyncLayer->state);
   }
 
-  UDS_FREE(uds_forget(layer));
+  uds_free(uds_forget(layer));
 }
 
 /**
@@ -373,7 +373,7 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   if (result != VDO_SUCCESS) {
     assertStartStopExpectation(result);
     stopAsyncLayer();
-    UDS_FREE(target);
+    uds_free(target);
     return;
   }
 
@@ -395,7 +395,7 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
 
   if (result != VDO_SUCCESS) {
     stopAsyncLayer();
-    UDS_FREE(target);
+    uds_free(target);
     return;
   }
 
@@ -426,7 +426,7 @@ void stopAsyncLayer(void)
   case TABLE_LOADED:
     target = vdo->device_config->owning_target;
     vdoTargetType->dtr(target);
-    UDS_FREE(uds_forget(target));
+    uds_free(uds_forget(target));
 
     fallthrough;
 
@@ -486,7 +486,7 @@ static void requestDoneCallback(struct vdo_completion *completion)
 static void requestCallback(struct vdo_completion *completion)
 {
   struct vdo_completion *payload = completion->parent;
-  UDS_FREE(uds_forget(completion));
+  uds_free(uds_forget(completion));
 
   vdo_action *action             = payload->callback;
   payload->callback              = requestDoneCallback;
@@ -559,7 +559,7 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
                          (uintptr_t) function);
   if (hook != NULL) {
     list_del(&hook->listEntry);
-    UDS_FREE(hook);
+    uds_free(hook);
     asyncLayer->completionEnqueueHooksCacheValid = false;
   }
 }

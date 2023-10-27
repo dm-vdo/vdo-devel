@@ -137,9 +137,9 @@ static void initializeVDOVersionT1(int argc, const char **argv)
 /**********************************************************************/
 static void tearDownVDOVersionT1(void)
 {
-  UDS_FREE(pickledData);
+  uds_free(pickledData);
   tearDownVDOTest();
-  UDS_FREE(currentVersionFileName);
+  uds_free(currentVersionFileName);
 }
 
 /**********************************************************************/

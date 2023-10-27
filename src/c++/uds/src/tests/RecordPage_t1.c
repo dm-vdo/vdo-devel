@@ -60,11 +60,11 @@ static void testSearchRecordPage(void)
   bool found = search_record_page(recordPage, &zero, g, NULL);
   CU_ASSERT_FALSE(found);
 
-  UDS_FREE(records);
-  UDS_FREE(recordPage);
-  UDS_FREE(volume->record_pointers);
+  uds_free(records);
+  uds_free(recordPage);
+  uds_free(volume->record_pointers);
   uds_free_radix_sorter(volume->radix_sorter);
-  UDS_FREE(volume);
+  uds_free(volume);
   uds_free_configuration(conf);
 }
 

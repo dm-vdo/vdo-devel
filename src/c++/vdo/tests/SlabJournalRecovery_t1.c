@@ -277,8 +277,8 @@ static void testWaitForSlabJournalSpace(void)
   vdo_reset_priority_table(allocator->prioritized_slabs);
 
   for (slab_count_t i = 0; i < vdo->depot->slab_count; i++) {
-    UDS_FREE(uds_forget(vdo->depot->slabs[i]->counters));
-    UDS_FREE(uds_forget(vdo->depot->slabs[i]->reference_blocks));
+    uds_free(uds_forget(vdo->depot->slabs[i]->counters));
+    uds_free(uds_forget(vdo->depot->slabs[i]->reference_blocks));
   }
 
   // Use a single-VIO pool so it's easy to keep the slab journal from having

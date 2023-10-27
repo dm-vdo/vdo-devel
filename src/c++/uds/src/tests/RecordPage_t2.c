@@ -80,16 +80,16 @@ static void recordPageTest(int numRecords)
   albPrint("Each page encoded in %s", encodeEach);
   albPrint("Searched %d entries in %s", totalRecords, searchTotal);
   albPrint("Each entry searched in %s", searchEach);
-  UDS_FREE(encodeTotal);
-  UDS_FREE(encodeEach);
-  UDS_FREE(searchTotal);
-  UDS_FREE(searchEach);
+  uds_free(encodeTotal);
+  uds_free(encodeEach);
+  uds_free(searchTotal);
+  uds_free(searchEach);
 
   uds_free_radix_sorter(volume->radix_sorter);
-  UDS_FREE(records);
-  UDS_FREE(recordPage);
-  UDS_FREE(recordPointers);
-  UDS_FREE(volume);
+  uds_free(records);
+  uds_free(recordPage);
+  uds_free(recordPointers);
+  uds_free(volume);
   uds_free_configuration(conf);
 }
 

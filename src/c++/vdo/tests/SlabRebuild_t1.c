@@ -86,7 +86,7 @@ static void initializeRebuildTest(void)
  **/
 static void teardownRebuildTest(void)
 {
-  UDS_FREE(expectedReferences);
+  uds_free(expectedReferences);
   tearDownVDOTest();
 }
 
@@ -512,7 +512,7 @@ static void testRebuild(void)
   VDO_ASSERT_SUCCESS(awaitCompletion(&completion));
   waitForState(&(vioWrapper->completion.complete));
   VDO_ASSERT_SUCCESS(vioWrapper->completion.result);
-  UDS_FREE(vioWrapper);
+  uds_free(vioWrapper);
 
   // The newly added slab journal entry caused the corresponding reference
   // count to change the in-memory state.

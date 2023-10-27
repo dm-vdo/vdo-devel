@@ -312,12 +312,12 @@ static void freePreRebuildData(PreRebuildData **originalDataPtr)
   PreRebuildData *originalData = *originalDataPtr;
 
   for (size_t i = 0; i < originalData->slabCount; i++) {
-    UDS_FREE(uds_forget(originalData->refCountData[i].counters));
+    uds_free(uds_forget(originalData->refCountData[i].counters));
   }
 
-  UDS_FREE(originalData->refCountData);
+  uds_free(originalData->refCountData);
   originalData->refCountData = NULL;
-  UDS_FREE(originalData);
+  uds_free(originalData);
   *originalDataPtr = NULL;
 }
 

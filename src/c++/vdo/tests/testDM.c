@@ -30,8 +30,8 @@ static void tearDownDM(void)
     close_file(dmDev.bdev->fd, NULL);
   }
 
-  UDS_FREE(dmDev.bdev->bd_inode);
-  UDS_FREE(uds_forget(dmDev.bdev));
+  uds_free(dmDev.bdev->bd_inode);
+  uds_free(uds_forget(dmDev.bdev));
 }
 
 /**********************************************************************/

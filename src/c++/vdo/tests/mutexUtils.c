@@ -52,7 +52,7 @@ static uint32_t         blockedThreadCount;
 /**********************************************************************/
 static void freeTask(void *task)
 {
-  UDS_FREE(task);
+  uds_free(task);
 }
 
 /**********************************************************************/

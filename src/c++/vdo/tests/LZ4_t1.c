@@ -68,7 +68,7 @@ static void uncompressRandomData(const char* source, int isize, int osize)
   for (size_t i = 0; i < frameSize; i++) {
     CU_ASSERT(frame[i] == 0);
   }
-  UDS_FREE(frame);
+  uds_free(frame);
 }
 
 /**********************************************************************/
@@ -104,9 +104,9 @@ static void compressString(const char *source)
   uncompressRandomData(compressed, compressedLen, sourceLen - 1);
   uncompressRandomData(compressed, compressedLen, sourceLen);
   uncompressRandomData(compressed, compressedLen, sourceLen + 1);
-  UDS_FREE(compressed);
-  UDS_FREE(copy);
-  UDS_FREE(ctx);
+  uds_free(compressed);
+  uds_free(copy);
+  uds_free(ctx);
 }
 
 /**********************************************************************/
@@ -137,10 +137,10 @@ static int compressBlockFromStream(FILE *stream, int sourceLen)
   } else {
     compressedLen = 0;
   }
-  UDS_FREE(compressed);
-  UDS_FREE(copy);
-  UDS_FREE(ctx);
-  UDS_FREE(source);
+  uds_free(compressed);
+  uds_free(copy);
+  uds_free(ctx);
+  uds_free(source);
   // Return the length of the compressed data, or zero if the data were not
   // compressible
   return compressedLen;

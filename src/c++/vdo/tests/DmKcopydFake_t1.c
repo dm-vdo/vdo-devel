@@ -96,8 +96,8 @@ static void testDmKcopyd(block_count_t regionSize)
                                    buffer));
   UDS_ASSERT_EQUAL_BYTES(buffer, data, VDO_BLOCK_SIZE * regionSize);
 
-  UDS_FREE(buffer);
-  UDS_FREE(data);
+  uds_free(buffer);
+  uds_free(data);
   tearDownVDOTest();
 }
 

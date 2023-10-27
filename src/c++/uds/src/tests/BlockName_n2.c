@@ -137,7 +137,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
     UDS_ASSERT_SUCCESS(uds_launch_request(&gr->request));
   }
   UDS_ASSERT_SUCCESS(uds_flush_index_session(testIndex->indexSession));
-  UDS_FREE(groupRequests);
+  uds_free(groupRequests);
   switch (type) {
   default:
     CU_FAIL("Unknown type");
@@ -199,7 +199,7 @@ static void modifySessionConfiguration(struct uds_index_session *indexSession,
     uds_free_index(oldIndex);
     uds_free_configuration(config);
   }
-  UDS_FREE(params);
+  uds_free(params);
 }
 
 /**********************************************************************/
@@ -222,7 +222,7 @@ static void newSection(TestIndex *testIndex)
       UDS_ASSERT_SUCCESS(uds_close_index(session));
       UDS_ASSERT_SUCCESS(uds_open_index(UDS_NO_REBUILD, oldParams, session));
     }
-    UDS_FREE(oldParams);
+    uds_free(oldParams);
   }
   if (suspendFlag) {
     // The point of this is to demonstrate that inserting a suspend and
@@ -310,7 +310,7 @@ static void runTest(TestIndex *testIndex)
     doGroup(testIndex, &groups[7 * g % NUM_GROUPS], UDS_QUERY_NO_UPDATE);
   }
 
-  UDS_FREE(groups);
+  uds_free(groups);
 }
 
 /**********************************************************************/

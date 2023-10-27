@@ -118,7 +118,7 @@ static void testWriteChapter(void)
                                             collatedRecords,
                                             chapterNumber));
   uds_free_open_chapter_index(openChapterIndex);
-  UDS_FREE(collatedRecords);
+  uds_free(collatedRecords);
 
   for (zone = 0; zone < zoneCount; ++zone) {
     uds_free_open_chapter(chapters[zone]);
@@ -164,9 +164,9 @@ static void testWriteChapter(void)
     CU_ASSERT_TRUE(found);
     UDS_ASSERT_BLOCKDATA_EQUAL(&request.old_metadata, &metadata[i]);
   }
-  UDS_FREE(metadata);
-  UDS_FREE(hashes);
-  UDS_FREE(chapters);
+  uds_free(metadata);
+  uds_free(hashes);
+  uds_free(chapters);
 }
 
 /**********************************************************************/

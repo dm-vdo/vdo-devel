@@ -169,7 +169,7 @@ static bool clearLatchLocked(void *context)
     }
 
     list_del(&latch->latch_entry);
-    UDS_FREE(latch);
+    uds_free(latch);
   }
 
   return false;

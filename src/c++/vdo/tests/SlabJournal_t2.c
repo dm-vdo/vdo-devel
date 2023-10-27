@@ -303,7 +303,7 @@ static void testSlabJournalFlushDelay(void)
 
   // The flush should complete.
   VDO_ASSERT_SUCCESS(awaitCompletion(flushCompletion));
-  UDS_FREE(flushCompletion);
+  uds_free(flushCompletion);
 }
 
 /**********************************************************************/

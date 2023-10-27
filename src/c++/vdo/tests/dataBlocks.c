@@ -83,12 +83,12 @@ void tearDownDataBlocks(void)
 {
   if (dataBlocks != NULL) {
     for (block_count_t i = 0; i < maxIndex; i++) {
-      UDS_FREE(vdo_int_map_remove(dataBlocks, i));
+      uds_free(vdo_int_map_remove(dataBlocks, i));
     }
     vdo_free_int_map(uds_forget(dataBlocks));
   }
 
-  UDS_FREE(buffer);
+  uds_free(buffer);
   buffer        = NULL;
   maxIndex      = 0;
   dataFormatter = NULL;

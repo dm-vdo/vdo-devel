@@ -58,7 +58,7 @@ static void verifyData(int count)
   UDS_ASSERT_ERROR(UDS_OUT_OF_RANGE,
                    uds_read_from_buffered_reader(reader, buf, count));
   uds_free_buffered_reader(reader);
-  UDS_FREE(buf);
+  uds_free(buf);
 }
 
 /**********************************************************************/
@@ -66,7 +66,7 @@ static void freeEverything(void)
 {
   uds_put_io_factory(factory);
   putTestBlockDevice(testDevice);
-  UDS_FREE(data);
+  uds_free(data);
   data    = NULL;
   factory = NULL;
 }

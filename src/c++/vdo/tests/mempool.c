@@ -63,7 +63,7 @@ void mempool_destroy(mempool_t *pool)
     pool->destructor(pool->reserve[--pool->reserveSize], pool->context);
   }
 
-  UDS_FREE(pool);
+  uds_free(pool);
 }
 
 void *mempool_alloc(mempool_t *pool, gfp_t gfp_mask)

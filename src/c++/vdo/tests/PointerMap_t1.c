@@ -304,12 +304,12 @@ static void test16BitMap(void)
                         vdo_pointer_map_remove(map, keys[key]));
     CU_ASSERT_PTR_NULL(vdo_pointer_map_get(map, keys[key]));
     CU_ASSERT_EQUAL(U16_MAX - key, vdo_pointer_map_size(map));
-    UDS_FREE(keys[key]);
+    uds_free(keys[key]);
   }
   CU_ASSERT_EQUAL(0, vdo_pointer_map_size(map));
 
-  UDS_FREE(keys);
-  UDS_FREE(values);
+  uds_free(keys);
+  uds_free(values);
   vdo_free_pointer_map(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
 }
@@ -335,8 +335,8 @@ static void testSteadyState(void)
     char *probeKey = toKeyString(i);
     void *value = vdo_pointer_map_remove(map, probeKey);
     CU_ASSERT_STRING_EQUAL(probeKey, value);
-    UDS_FREE(probeKey);
-    UDS_FREE(value);
+    uds_free(probeKey);
+    uds_free(value);
 
     char *key = toKeyString(SIZE + i);
     UDS_ASSERT_SUCCESS(vdo_pointer_map_put(map, key, key, true, NULL));
@@ -348,8 +348,8 @@ static void testSteadyState(void)
     char *probeKey = toKeyString(i + (10 * SIZE));
     void *value = vdo_pointer_map_remove(map, probeKey);
     CU_ASSERT_STRING_EQUAL(probeKey, value);
-    UDS_FREE(probeKey);
-    UDS_FREE(value);
+    uds_free(probeKey);
+    uds_free(value);
   }
 
   vdo_free_pointer_map(uds_forget(map));

@@ -77,7 +77,7 @@ static void assertFound(const char *str)
     }
     /* Search the journal log if not found already. */
     if (searchPipe(journalctlCommand, str)) {
-      UDS_FREE(journalctlCommand);
+      uds_free(journalctlCommand);
       return;
     }
   }
@@ -92,7 +92,7 @@ static void simple(void)
                                        rand()));
   mini_syslog(UDS_LOG_ERR, "%s", buf);
   assertFound(buf);
-  UDS_FREE(buf);
+  uds_free(buf);
 }
 
 /**********************************************************************/
@@ -107,9 +107,9 @@ static void labeled(void)
   UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &line,
                                        "foo\\(\\[%d\\]\\)\\{0,1\\}: %s",
                                        getpid(), buf));
-  UDS_FREE(buf);
+  uds_free(buf);
   assertFound(line);
-  UDS_FREE(line);
+  uds_free(line);
 }
 
 /**********************************************************************/
@@ -127,9 +127,9 @@ static void labeledPid(void)
                                        "foo\\[%u\\]: ERROR  (%s/%d) %s",
                                        getpid(), tname, uds_get_thread_id(),
                                        buf));
-  UDS_FREE(buf);
+  uds_free(buf);
   assertFound(line);
-  UDS_FREE(line);
+  uds_free(line);
 }
 
 /**********************************************************************/
@@ -164,15 +164,15 @@ static void unloadedName(void)
                                        identity, getpid(), tname,
                                        uds_get_thread_id(), test1));
   assertFound(buf);
-  UDS_FREE(buf);
+  uds_free(buf);
   UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf,
                                        "%s\\[%u\\]: ERROR  (%s/%d) %s",
                                        identity, getpid(), tname,
                                        uds_get_thread_id(), test2));
   assertFound(buf);
-  UDS_FREE(buf);
-  UDS_FREE(test1);
-  UDS_FREE(test2);
+  uds_free(buf);
+  uds_free(test1);
+  uds_free(test2);
 }
 
 /**********************************************************************/

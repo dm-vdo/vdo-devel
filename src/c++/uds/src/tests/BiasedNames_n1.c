@@ -142,7 +142,7 @@ static void testWithCollisions(int offset, int count)
     memset(names[i].name + offset, 0, count);
   }
   testWithNames(NUM_CHUNKS, names);
-  UDS_FREE(names);
+  uds_free(names);
 }
 
 /**********************************************************************/
@@ -184,7 +184,7 @@ static void copy32Test(void)
     }
   }
   testWithNames(NUM_CHUNKS, names);
-  UDS_FREE(names);
+  uds_free(names);
 }
 
 /**********************************************************************/

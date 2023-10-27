@@ -247,9 +247,9 @@ static void printErrorSummary(void)
  **/
 static void freeAuditAllocations(void)
 {
-  UDS_FREE(slabSummaryEntries);
+  uds_free(slabSummaryEntries);
   for (slab_count_t i = 0; i < vdo->slabCount; i++) {
-    UDS_FREE(slabs[i].refCounts);
+    uds_free(slabs[i].refCounts);
   }
   freeVDOFromFile(&vdo);
 }
@@ -668,7 +668,7 @@ static int verifyPBNRefCounts(void)
     }
   }
 
-  UDS_FREE(buffer);
+  uds_free(buffer);
   return result;
 }
 

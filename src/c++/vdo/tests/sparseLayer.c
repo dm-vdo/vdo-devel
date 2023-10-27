@@ -196,9 +196,9 @@ static void freeSparseLayer(SparseLayer *layer)
   if (layer->name != NULL) {
     unlink(layer->name);
   }
-  UDS_FREE(layer->name);
-  UDS_FREE(layer->ranges);
-  UDS_FREE(layer);
+  uds_free(layer->name);
+  uds_free(layer->ranges);
+  uds_free(layer);
 }
 
 /**

@@ -103,7 +103,7 @@ static void testBasic(void)
   VDO_ASSERT_SUCCESS(close_file(fd, NULL));
   CU_ASSERT_EQUAL(fileSize, MAPPED_COUNT * RANGE_COUNT * VDO_BLOCK_SIZE);
 
-  UDS_FREE(buffer);
+  uds_free(buffer);
 }
 
 /**********************************************************************/

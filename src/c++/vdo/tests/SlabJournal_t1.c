@@ -425,7 +425,7 @@ static EntryNumber performAddEntry(EntryNumber entry)
   makeWrappedVIO(entry, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryAction, completion));
   CU_ASSERT_NOT_EQUAL(journal->recovery_lock, 0);
-  UDS_FREE(completion);
+  uds_free(completion);
   return (entry + 1);
 }
 
@@ -456,7 +456,7 @@ static void addRebuildEntry(EntryNumber entry)
   makeWrappedVIO(entry, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryForRebuildAction,
                                    completion));
-  UDS_FREE(completion);
+  uds_free(completion);
 }
 
 /**
@@ -468,9 +468,9 @@ static void freeWrappedCompletions(CompletionsWrapper *wrapped)
 {
   for (unsigned int i = 0; i < wrapped->count; i++) {
     CU_ASSERT_TRUE(wrapped->completions[i]->complete);
-    UDS_FREE(wrapped->completions[i]);
+    uds_free(wrapped->completions[i]);
   }
-  UDS_FREE(wrapped->completions);
+  uds_free(wrapped->completions);
 }
 
 /**
@@ -1344,7 +1344,7 @@ static void testPartialBlock(void)
   releasePBN(blockedPBNs[0]);
   releasePBN(blockedPBNs[1]);
   VDO_ASSERT_SUCCESS(awaitCompletion(flushCompletion));
-  UDS_FREE(flushCompletion);
+  uds_free(flushCompletion);
 
   waitForCompletions(&wrappedCompletions, VDO_SUCCESS);
   freeWrappedCompletions(&wrappedCompletions);
