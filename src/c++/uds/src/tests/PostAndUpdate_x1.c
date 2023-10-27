@@ -146,7 +146,7 @@ static void postBlockNames(struct uds_index_session *indexSession)
   unsigned long counter;
   for (counter = 0; counter < numBlocksInTest; ) {
     TestBlockCounter *tbc;
-    UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, TestBlockCounter, __func__, &tbc));
+    UDS_ASSERT_SUCCESS(uds_allocate(1, TestBlockCounter, __func__, &tbc));
     tbc->chunkCounter = postCounter++;
     struct uds_record_name chunkName;
     hashChunkCounter(&chunkName, tbc->chunkCounter);

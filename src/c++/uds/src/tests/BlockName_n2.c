@@ -122,7 +122,7 @@ static void doGroup(TestIndex *testIndex, Group *group,
   group->type        = type;
   group->newMetadata = metadata;
   GroupRequest *groupRequests;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(group->numChunks, GroupRequest, __func__,
+  UDS_ASSERT_SUCCESS(uds_allocate(group->numChunks, GroupRequest, __func__,
                                   &groupRequests));
   int n;
   for (n = 0; n < group->numChunks; n++) {
@@ -245,7 +245,7 @@ static void runTest(TestIndex *testIndex)
     NUM_GROUPS = 23
   };
   Group *groups;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_GROUPS, Group, __func__, &groups));
+  UDS_ASSERT_SUCCESS(uds_allocate(NUM_GROUPS, Group, __func__, &groups));
   int g;
   for (g = 0; g < NUM_GROUPS; g++) {
     groups[g].startCounter = g * chunksPerGroup;

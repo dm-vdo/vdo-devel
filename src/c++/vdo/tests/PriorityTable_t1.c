@@ -155,7 +155,7 @@ static void testRandomTable(void)
   enum { COUNT = 1000 * 1000 };
 
   QueueEntry *entries;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(COUNT, QueueEntry, __func__, &entries));
+  UDS_ASSERT_SUCCESS(uds_allocate(COUNT, QueueEntry, __func__, &entries));
 
   for (size_t i = 0; i < COUNT; i++) {
     initializeRandomEntry(&entries[i]);

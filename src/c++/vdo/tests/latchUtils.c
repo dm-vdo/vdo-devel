@@ -128,7 +128,7 @@ static bool setLatchLocked(void *context)
 {
   physical_block_number_t pbn = *((physical_block_number_t *) context);
   VIOLatch *latch;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, VIOLatch, __func__, &latch));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, VIOLatch, __func__, &latch));
   latch->pbn = pbn;
   INIT_LIST_HEAD(&latch->latch_entry);
   list_add_tail(&latch->latch_entry, &latches);

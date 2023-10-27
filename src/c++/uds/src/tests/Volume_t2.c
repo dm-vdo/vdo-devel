@@ -64,7 +64,7 @@ static void testWriteChapter(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **chapters;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(zoneCount, struct open_chapter_zone *,
+  UDS_ASSERT_SUCCESS(uds_allocate(zoneCount, struct open_chapter_zone *,
                                   "open chapters", &chapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
@@ -72,10 +72,10 @@ static void testWriteChapter(void)
   }
 
   struct uds_record_name *hashes;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
+  UDS_ASSERT_SUCCESS(uds_allocate(geometry->records_per_chapter,
                                   struct uds_record_name, "names", &hashes));
   struct uds_record_data *metadata;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(geometry->records_per_chapter,
+  UDS_ASSERT_SUCCESS(uds_allocate(geometry->records_per_chapter,
                                   struct uds_record_data, "records",
                                   &metadata));
 

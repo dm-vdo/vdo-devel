@@ -136,7 +136,7 @@ static void runTest(void)
 {
   enum { NUM_CHUNKS = 40000 };
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(NUM_CHUNKS, struct uds_record_name, "names",
+  UDS_ASSERT_SUCCESS(uds_allocate(NUM_CHUNKS, struct uds_record_name, "names",
                                   &names));
   initializeOldInterfaces(2000);
 

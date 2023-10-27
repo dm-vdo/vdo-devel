@@ -590,7 +590,7 @@ static struct histogram *make_histogram(struct kobject *parent,
 {
 	struct histogram *h;
 
-	if (UDS_ALLOCATE(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
+	if (uds_allocate(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
 		return NULL;
 
 	if (NO_BUCKETS)
@@ -612,7 +612,7 @@ static struct histogram *make_histogram(struct kobject *parent,
 	h->conversion_factor = conversion_factor;
 	atomic64_set(&h->minimum, -1UL);
 
-	if (UDS_ALLOCATE(h->num_buckets + 1, atomic64_t, "histogram counters", &h->counters) !=
+	if (uds_allocate(h->num_buckets + 1, atomic64_t, "histogram counters", &h->counters) !=
 	    UDS_SUCCESS) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;

@@ -30,7 +30,7 @@ static void setup(void)
 
   geometry = config->geometry;
   vcn = geometry->chapters_per_volume * 3;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE((geometry->index_pages_per_chapter
+  UDS_ASSERT_SUCCESS(uds_allocate((geometry->index_pages_per_chapter
                                    * geometry->chapters_per_volume),
                                   unsigned int, __func__, &listNumbers));
 }

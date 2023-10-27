@@ -205,7 +205,7 @@ static void slide_file(off_t bytes)
   off_t file_size;
   size_t length;
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(BUFFER_SIZE, u8, "buffer", &buf));
+  UDS_ASSERT_SUCCESS(uds_allocate(BUFFER_SIZE, u8, "buffer", &buf));
   UDS_ASSERT_SUCCESS(get_open_file_size(testDevice->fd, &file_size));
   file_size = min(file_size, bytes);
 

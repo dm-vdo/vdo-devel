@@ -76,7 +76,7 @@ static void initializeRebuildTest(void)
   slabConfig = depot->slab_config;
   slab       = depot->slabs[0];
   journal    = &slab->journal;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(slabConfig.data_blocks, uint8_t, __func__,
+  VDO_ASSERT_SUCCESS(uds_allocate(slabConfig.data_blocks, uint8_t, __func__,
                                   &expectedReferences));
   latchRead    = true;
 }
@@ -423,7 +423,7 @@ static void addEntryComplete(struct vdo_completion *completion)
 static void makeWrappedVIO(DataVIOWrapper **wrapperPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, DataVIOWrapper, __func__, &wrapper));
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
   vdo_initialize_completion(&wrapper->actionCompletion, vdo,
                             VDO_TEST_COMPLETION);

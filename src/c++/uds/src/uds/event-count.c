@@ -236,7 +236,7 @@ int make_event_count(struct event_count **count_ptr)
 	int result;
 	struct event_count *count = NULL;
 
-	result = UDS_ALLOCATE(1, struct event_count, "event count", &count);
+	result = uds_allocate(1, struct event_count, "event count", &count);
 	if (result != UDS_SUCCESS)
 		return result;
 

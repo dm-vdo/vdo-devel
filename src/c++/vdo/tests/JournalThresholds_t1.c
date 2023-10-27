@@ -113,9 +113,9 @@ static void initialize(void)
   };
   initializeRecoveryModeTest(&parameters);
 
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(uds_allocate(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(uds_allocate(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs2));
 
   setCompletionEnqueueHook(recordLBN);

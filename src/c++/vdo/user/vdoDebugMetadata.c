@@ -228,7 +228,7 @@ static void freeState(SlabState *state)
  **/
 static int allocateState(SlabState *state)
 {
-  int result = UDS_ALLOCATE(slabConfig->slab_journal_blocks,
+  int result = uds_allocate(slabConfig->slab_journal_blocks,
                             struct packed_slab_journal_block *, __func__,
                             &state->slabJournalBlocks);
   if (result != VDO_SUCCESS) {
@@ -236,7 +236,7 @@ static int allocateState(SlabState *state)
     return result;
   }
 
-  result = UDS_ALLOCATE(slabConfig->reference_count_blocks,
+  result = uds_allocate(slabConfig->reference_count_blocks,
                         struct packed_reference_block *,
                         __func__, &state->referenceBlocks);
   if (result != VDO_SUCCESS) {
@@ -275,7 +275,7 @@ static int allocateState(SlabState *state)
 static int allocateMetadataSpace(void)
 {
   slabConfig = &vdo->states.slab_depot.slab_config;
-  int result = UDS_ALLOCATE(vdo->slabCount, SlabState, __func__, &slabs);
+  int result = uds_allocate(vdo->slabCount, SlabState, __func__, &slabs);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %u slab state pointers", slabCount);
   }
@@ -299,14 +299,14 @@ static int allocateMetadataSpace(void)
          (unsigned long long) journalBytes);
   }
 
-  result = UDS_ALLOCATE(config->recovery_journal_size, UnpackedJournalBlock,
+  result = uds_allocate(config->recovery_journal_size, UnpackedJournalBlock,
                         __func__, &recoveryJournal);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %llu journal block structures",
          (unsigned long long) config->recovery_journal_size);
   }
 
-  result = UDS_ALLOCATE(VDO_SLAB_SUMMARY_BLOCKS,
+  result = uds_allocate(VDO_SLAB_SUMMARY_BLOCKS,
                         struct slab_summary_entry *,
                         __func__, &slabSummary);
   if (result != VDO_SUCCESS) {
@@ -615,13 +615,13 @@ int main(int argc, char *argv[])
   }
 
   char *filename;
-  result = UDS_ALLOCATE(MAX_PBNS, physical_block_number_t, __func__, &pbns);
+  result = uds_allocate(MAX_PBNS, physical_block_number_t, __func__, &pbns);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",
          sizeof(physical_block_number_t) * MAX_PBNS);
   }
 
-  result = UDS_ALLOCATE(MAX_SEARCH_LBNS, logical_block_number_t, __func__,
+  result = uds_allocate(MAX_SEARCH_LBNS, logical_block_number_t, __func__,
                         &searchLBNs);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",

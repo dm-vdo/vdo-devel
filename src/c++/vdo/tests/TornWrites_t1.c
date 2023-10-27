@@ -60,7 +60,7 @@ static void initializeTornWritesT1(void)
 static void tearVIO(struct vio *vio, uint8_t corruptRegions)
 {
   char *currentDiskData;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
+  VDO_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE, char, __func__,
                                   &currentDiskData));
   VDO_ASSERT_SUCCESS(layer->reader(layer,
                                    pbnFromVIO(vio),

@@ -73,8 +73,8 @@ static void largeWriteTest(void)
   size_t bufSize = UDS_BLOCK_SIZE;
   size_t buflen = 4 * bufSize;
   u8 *bigbuf, *verbuf;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, u8, __func__, &bigbuf));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(buflen, u8, __func__, &verbuf));
+  UDS_ASSERT_SUCCESS(uds_allocate(buflen, u8, __func__, &bigbuf));
+  UDS_ASSERT_SUCCESS(uds_allocate(buflen, u8, __func__, &verbuf));
 
   fillBufferFromSeed(0, bigbuf, buflen);
   UDS_ASSERT_SUCCESS(uds_write_to_buffered_writer(writer, bigbuf, buflen));

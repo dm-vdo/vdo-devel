@@ -30,7 +30,7 @@ static void addThreadStatistics(ThreadStatistics **tsList,
 {
   // Allocate a new ThreadStatistics and copy the data into it
   ThreadStatistics *ts;
-  if (UDS_ALLOCATE(1, ThreadStatistics, __func__, &ts) == UDS_SUCCESS) {
+  if (uds_allocate(1, ThreadStatistics, __func__, &ts) == UDS_SUCCESS) {
     *ts = *tsNew;
     // Insert the new one into the list, sorted by id
     while ((*tsList != NULL) && (ts->id > (*tsList)->id)) {

@@ -50,7 +50,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
 {
   // We do not want to time the generation of the random names
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(openChapter->capacity,
+  UDS_ASSERT_SUCCESS(uds_allocate(openChapter->capacity,
                                   struct uds_record_name,
                                   "record names for chapter test",
                                   &names));
@@ -142,7 +142,7 @@ static void testFilling(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **openChapters;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(zoneCount, struct open_chapter_zone *,
+  UDS_ASSERT_SUCCESS(uds_allocate(zoneCount, struct open_chapter_zone *,
                                   "open chapters", &openChapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {

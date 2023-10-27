@@ -45,7 +45,7 @@ static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
 {
   // Make a copy of the keys we're going to sort.
   u8 *bytes;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count * sizeof(keys[0]), u8, "keys",
+  UDS_ASSERT_SUCCESS(uds_allocate(count * sizeof(keys[0]), u8, "keys",
                                   &bytes));
   memcpy(bytes, keys, count * sizeof(keys[0]));
   const u8 **copy = (const u8 **) bytes;
@@ -93,7 +93,7 @@ static void sort(const u8 *keys[], unsigned int count, unsigned int length)
 static const u8 **makeKeys(unsigned int count)
 {
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count, const u8 *, "split", &keys));
+  UDS_ASSERT_SUCCESS(uds_allocate(count, const u8 *, "split", &keys));
   CU_ASSERT_PTR_NOT_NULL(keys);
   return keys;
 }
@@ -115,7 +115,7 @@ static const u8 **split(const char *strings, unsigned int count,
 static char *join(const u8 **keys, int count, int length)
 {
   char *strings;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(count * length + 1, char, "join", &strings));
+  UDS_ASSERT_SUCCESS(uds_allocate(count * length + 1, char, "join", &strings));
   int i;
   for (i = 0; i < count; i++) {
     memcpy(&strings[i * length], keys[i], length);
@@ -238,9 +238,9 @@ static void testOneByteKeys(void)
 static void testSize(int size)
 {
   unsigned short *data;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, unsigned short, __func__, &data));
+  UDS_ASSERT_SUCCESS(uds_allocate(size, unsigned short, __func__, &data));
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(size, const u8 *, __func__, &keys));
+  UDS_ASSERT_SUCCESS(uds_allocate(size, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(size, &radixSorter));
   int i;
@@ -272,9 +272,9 @@ static void testRandom(void)
 {
   enum { SIZE = 0x10000 };
   unsigned long *data;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, unsigned long, __func__, &data));
+  UDS_ASSERT_SUCCESS(uds_allocate(SIZE, unsigned long, __func__, &data));
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(SIZE, const u8 *, __func__, &keys));
+  UDS_ASSERT_SUCCESS(uds_allocate(SIZE, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(SIZE, &radixSorter));
   int i;

@@ -81,7 +81,7 @@ void *uds_allocate_memory_nowait(size_t size, const char *what)
 {
 	void *p = NULL;
 
-	UDS_ALLOCATE(size, char *, what, &p);
+	uds_allocate(size, char *, what, &p);
 	return p;
 }
 
@@ -133,7 +133,7 @@ int uds_duplicate_string(const char *string,
 	int result;
 	u8 *dup = NULL;
 
-	result = UDS_ALLOCATE(strlen(string) + 1, u8, what, &dup);
+	result = uds_allocate(strlen(string) + 1, u8, what, &dup);
 	if (result != UDS_SUCCESS)
 		return result;
 

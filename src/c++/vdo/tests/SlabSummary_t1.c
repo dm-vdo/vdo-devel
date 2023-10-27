@@ -175,7 +175,7 @@ static void writeDefaultDataPattern(void)
 {
   // Make MAX_VDO_SLABS slab summary updates.
   SlabSummaryClient *clients;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(MAX_VDO_SLABS, SlabSummaryClient, __func__,
+  VDO_ASSERT_SUCCESS(uds_allocate(MAX_VDO_SLABS, SlabSummaryClient, __func__,
                                   &clients));
   for (size_t id = 0; id < MAX_VDO_SLABS; id++) {
     useDefaultPattern(&clients[id], id);

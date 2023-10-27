@@ -103,7 +103,7 @@ char *getDataBlock(block_count_t index)
   }
 
   if (buffer == NULL) {
-    VDO_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__, &buffer));
+    VDO_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE, char, __func__, &buffer));
   }
 
   char *block;

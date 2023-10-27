@@ -253,9 +253,9 @@ static void test16BitMap(void)
 
   char **keys;
   uint16_t *values;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(U16_MAX + 1, char *, "key string array",
+  UDS_ASSERT_SUCCESS(uds_allocate(U16_MAX + 1, char *, "key string array",
                                   &keys));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(U16_MAX + 1, uint16_t, "16-bit values",
+  UDS_ASSERT_SUCCESS(uds_allocate(U16_MAX + 1, uint16_t, "16-bit values",
                                   &values));
   for (int i = 0; i <= U16_MAX; i++) {
     keys[i] = toKeyString(i);

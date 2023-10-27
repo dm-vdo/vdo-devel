@@ -97,7 +97,7 @@ static void enqueueLoop(void *arg)
   unsigned int i;
   for (i = 0; i < ITERATIONS; i++) {
     Entry *entry;
-    UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, Entry, __func__, &entry));
+    UDS_ASSERT_SUCCESS(uds_allocate(1, Entry, __func__, &entry));
     entry->value = i;
     uds_funnel_queue_put(queue, &entry->link);
   }
@@ -173,7 +173,7 @@ static void testTenProducers(void)
   // Allocate an array to keep track of how many entries of each value have
   // been seen.
   u8 *seen;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(ITERATIONS, u8, __func__, &seen));
+  UDS_ASSERT_SUCCESS(uds_allocate(ITERATIONS, u8, __func__, &seen));
 
   // Consume all the entries, accounting for the values seen.
   for (i = 0; i < ITERATIONS * PRODUCER_COUNT; i++) {

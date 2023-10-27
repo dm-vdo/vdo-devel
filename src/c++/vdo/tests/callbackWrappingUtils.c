@@ -55,7 +55,7 @@ static void wrapCompletion(struct vdo_completion *completion,
   CU_ASSERT_PTR_NOT_NULL(completion->callback);
 
   SavedActions *actions;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, SavedActions, __func__, &actions));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, SavedActions, __func__, &actions));
   *actions = (SavedActions) {
     .callback     = completion->callback,
     .errorHandler = completion->error_handler,

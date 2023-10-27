@@ -226,7 +226,7 @@ int uds_make_request_queue(const char *queue_name,
 	int result;
 	struct uds_request_queue *queue;
 
-	result = UDS_ALLOCATE(1, struct uds_request_queue, __func__, &queue);
+	result = uds_allocate(1, struct uds_request_queue, __func__, &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 

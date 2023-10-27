@@ -50,7 +50,7 @@ static void initializePartialBlockWriteT1(void)
  **/
 static void generateData(block_count_t count)
 {
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(count * VDO_BLOCK_SIZE,
+  VDO_ASSERT_SUCCESS(uds_allocate(count * VDO_BLOCK_SIZE,
                                   char,
                                   __func__,
                                   &data));
@@ -116,7 +116,7 @@ static void testPartialWrites(void)
   VDO_ASSERT_SUCCESS(uds_join_threads(oddThread));
 
   char *buffer;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(blocks * VDO_BLOCK_SIZE,
+  VDO_ASSERT_SUCCESS(uds_allocate(blocks * VDO_BLOCK_SIZE,
                                   char,
                                   __func__,
                                   &buffer));

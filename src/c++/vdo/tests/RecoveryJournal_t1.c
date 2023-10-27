@@ -565,7 +565,7 @@ static void makeWrappedVIO(EntryNumber             entry,
                            struct vdo_completion **completionPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, DataVIOWrapper, __func__, &wrapper));
   initializeWrapper(wrapper);
   resetWrapper(wrapper, entry);
   *completionPtr = &wrapper->completion;
@@ -684,10 +684,10 @@ static EntryNumber launchAddEntries(EntryNumber         start,
                                     block_count_t       count,
                                     CompletionsWrapper *wrapped)
 {
-  // Local variable is just to avoid a bogus type error from UDS_ALLOCATE.
+  // Local variable is just to avoid a bogus type error from uds_allocate.
   struct vdo_completion ***completions = &wrapped->completions;
   wrapped->count = count;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(count, struct vdo_completion *, __func__,
+  VDO_ASSERT_SUCCESS(uds_allocate(count, struct vdo_completion *, __func__,
                                   completions));
   EntryNumber nextEntry = start;
   for (unsigned int i = 0; i < count; i++) {
@@ -749,7 +749,7 @@ static sequence_number_t sequenceNumberFromEntry(EntryNumber entry)
 static void *getJournalBlockFromLayer(sequence_number_t sequenceNumber)
 {
   char *block;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__, &block));
+  VDO_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE, char, __func__, &block));
   physical_block_number_t pbn = sequenceNumber % journal->size;
   PhysicalLayer *ramLayer = getSynchronousLayer();
   VDO_ASSERT_SUCCESS(ramLayer->reader(ramLayer, pbn, 1, block));

@@ -139,11 +139,11 @@ static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
 
   // move_bits() can read up to seven bytes beyond the bytes it needs.
   uint64_t bytesNeeded = BITS_TO_BYTES(bitsNeeded + GUARD_BITS);
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesNeeded, u8, __func__, &random));
+  UDS_ASSERT_SUCCESS(uds_allocate(bytesNeeded, u8, __func__, &random));
   get_random_bytes(random, bytesNeeded);
 
   // Get the delta memory corresponding to the delta lists
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct delta_index, __func__, &delta_index));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct delta_index, __func__, &delta_index));
   UDS_ASSERT_SUCCESS(uds_initialize_delta_index(delta_index, 1, numLists, MEAN_DELTA,
                                                 NUM_PAYLOAD_BITS, initSize, 'm'));
   struct delta_zone *dm = &delta_index->delta_zones[0];
@@ -187,7 +187,7 @@ static void testExtend(struct delta_list *pdl, u32 numLists, int initialValue)
 static void guardAndTest(struct delta_list *pdl, u32 numLists, unsigned int gapSize)
 {
   struct delta_list *deltaListsCopy;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numLists + 2, struct delta_list, __func__, &deltaListsCopy));
+  UDS_ASSERT_SUCCESS(uds_allocate(numLists + 2, struct delta_list, __func__, &deltaListsCopy));
 
   // Set the tail guard list, which ends on a 64K boundary
   uint32_t bitsNeeded = pdl[numLists].start + pdl[numLists].size + gapSize + GUARD_BITS;
@@ -217,7 +217,7 @@ static void diffBlocks(bool increasing)
     LIST_COUNT = NUM_SIZES,
   };
   struct delta_list *deltaLists;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(LIST_COUNT + 2, struct delta_list, __func__,
+  UDS_ASSERT_SUCCESS(uds_allocate(LIST_COUNT + 2, struct delta_list, __func__,
                                   &deltaLists));
 
   unsigned int gapSize, i, offset;
@@ -264,7 +264,7 @@ static void randomTest(void)
 {
   enum { LIST_COUNT = 8 * 1024 };
   struct delta_list *deltaLists;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(LIST_COUNT + 2, struct delta_list, __func__,
+  UDS_ASSERT_SUCCESS(uds_allocate(LIST_COUNT + 2, struct delta_list, __func__,
                                   &deltaLists));
   unsigned int i;
   for (i = 1; i <= LIST_COUNT; i++) {

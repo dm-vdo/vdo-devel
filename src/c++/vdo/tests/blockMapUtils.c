@@ -35,7 +35,7 @@ static struct zoned_pbn              lookupResult;
 void initializeBlockMapUtils(block_count_t logicalBlocks)
 {
   logicalBlockCount = logicalBlocks;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(logicalBlocks,
+  VDO_ASSERT_SUCCESS(uds_allocate(logicalBlocks,
                                   MappingExpectation,
                                   __func__,
                                   &expectedMappings));

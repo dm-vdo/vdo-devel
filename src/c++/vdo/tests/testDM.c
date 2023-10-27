@@ -37,8 +37,8 @@ static void tearDownDM(void)
 /**********************************************************************/
 void initializeDM(void)
 {
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct block_device, __func__, &dmDev.bdev));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct inode, __func__, &dmDev.bdev->bd_inode));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct block_device, __func__, &dmDev.bdev));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct inode, __func__, &dmDev.bdev->bd_inode));
   dmDev.bdev->fd = -1;
   registerTearDownAction(tearDownDM);
 }

@@ -64,7 +64,7 @@ int oldPostBlockNameResult(struct uds_index_session     *session,
 {
   uds_acquire_semaphore(&requestSemaphore);
   OldRequest *or;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, OldRequest, __func__, &or));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, OldRequest, __func__, &or));
   or->callback             = callback;
   or->cookie               = cookie;
   or->request.callback     = newCallback;
@@ -89,7 +89,7 @@ void oldUpdateBlockMapping(struct uds_index_session     *session,
 {
   uds_acquire_semaphore(&requestSemaphore);
   OldRequest *or;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, OldRequest, __func__, &or));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, OldRequest, __func__, &or));
   or->callback             = callback;
   or->cookie               = cookie;
   or->request.callback     = newCallback;

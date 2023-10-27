@@ -54,7 +54,7 @@ dm_bufio_client_create(struct block_device *bdev,
 	int result;
 	struct dm_bufio_client *client;
 
-	result = UDS_ALLOCATE(1, struct dm_bufio_client, __func__, &client);
+	result = uds_allocate(1, struct dm_bufio_client, __func__, &client);
 	if (result != UDS_SUCCESS)
 		return ERR_PTR(-ENOMEM);
 
@@ -106,11 +106,11 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 	uds_unlock_mutex(&client->buffer_mutex);
 
 	if (buffer == NULL) {
-		result = UDS_ALLOCATE(1, struct dm_buffer, __func__, &buffer);
+		result = uds_allocate(1, struct dm_buffer, __func__, &buffer);
 		if (result != UDS_SUCCESS)
 			return ERR_PTR(-ENOMEM);
 
-		result = UDS_ALLOCATE(client->bytes_per_page,
+		result = uds_allocate(client->bytes_per_page,
 				      u8,
 				      __func__,
 				      &buffer->data);

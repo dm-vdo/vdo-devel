@@ -41,7 +41,7 @@ static int makeWrappingCompletion(vdo_action             *action,
                                   struct vdo_completion **wrappingCompletion)
 {
   WrappingCompletion *wc;
-  int result = UDS_ALLOCATE(1, WrappingCompletion, "wrapping completion", &wc);
+  int result = uds_allocate(1, WrappingCompletion, "wrapping completion", &wc);
   if (result != UDS_SUCCESS) {
     return result;
   }

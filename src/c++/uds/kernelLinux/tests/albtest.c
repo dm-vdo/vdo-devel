@@ -139,7 +139,7 @@ static int parseArgs(const char   *buf,
                      char        **argBufPtr)
 {
   char *argBuf;
-  int result = UDS_ALLOCATE(length + 1, char, "argument list", &argBuf);
+  int result = uds_allocate(length + 1, char, "argument list", &argBuf);
   if (result != UDS_SUCCESS) {
     return -ENOMEM;
   }
@@ -161,7 +161,7 @@ static int parseArgs(const char   *buf,
   }
   argBuf[length] = '\000';
   const char **argv;
-  result = UDS_ALLOCATE(argc, char *, "argv", &argv);
+  result = uds_allocate(argc, char *, "argv", &argv);
   if (result != UDS_SUCCESS) {
     uds_free(argBuf);
     return -ENOMEM;
@@ -348,7 +348,7 @@ static struct kobj_type suiteObjectType = {
 SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 {
   SuiteState *ss;
-  if (UDS_ALLOCATE(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
+  if (uds_allocate(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
     return NULL;
   }
   ss->next = NULL;

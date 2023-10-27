@@ -422,7 +422,7 @@ static void enumerate_devices(void)
     errx(1, "Could not find any VDO devices");
   }
 
-  result = UDS_ALLOCATE(pathCount, struct vdoPath, __func__, &vdoPaths);
+  result = uds_allocate(pathCount, struct vdoPath, __func__, &vdoPaths);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate vdo path structure");
   }

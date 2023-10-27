@@ -237,7 +237,7 @@ static struct block_device *parse_device(const char *name)
     errx(1, "%s is not a block device", name);
   }
 
-  result = UDS_ALLOCATE(1, struct block_device, __func__, &device);
+  result = uds_allocate(1, struct block_device, __func__, &device);
   if (result != UDS_SUCCESS) {
     close_file(fd, NULL);
     errx(1, "Cannot allocate device structure");

@@ -104,14 +104,14 @@ int uds_create_thread(void (*thread_function)(void *),
 	struct thread_start_info *info;
 	struct thread *thread;
 
-	result = UDS_ALLOCATE(1, struct thread_start_info, __func__, &info);
+	result = uds_allocate(1, struct thread_start_info, __func__, &info);
 	if (result != UDS_SUCCESS)
 		return result;
 	info->thread_function = thread_function;
 	info->thread_data = thread_data;
 	info->name = name;
 
-	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
+	result = uds_allocate(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		uds_free(info);
