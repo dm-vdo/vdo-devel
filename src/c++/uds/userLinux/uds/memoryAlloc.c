@@ -86,7 +86,7 @@ void *uds_allocate_memory_nowait(size_t size, const char *what)
 }
 
 /**********************************************************************/
-void uds_free_memory(void *ptr)
+void uds_free(void *ptr)
 {
 	free(ptr);
 }
