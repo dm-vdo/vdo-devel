@@ -246,9 +246,10 @@ static void service_work_queue(struct simple_work_queue *queue)
 		if (completion == NULL)
 			completion = wait_for_next_completion(queue);
 
-		if (completion == NULL)
+		if (completion == NULL) {
 			/* No completions but kthread_should_stop() was triggered. */
 			break;
+		}
 
 		process_completion(queue, completion);
 
@@ -626,6 +627,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 */
 	if (in_interrupt())
 		return NULL;
+
 #ifndef VDO_UPSTREAM
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 	/*
@@ -658,6 +660,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	if (kthread_func(current) != work_queue_runner)
 		/* Not a VDO work queue thread. */
 		return NULL;
+
 	return kthread_data(current);
 }
 

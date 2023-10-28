@@ -423,11 +423,12 @@ int uds_load_open_chapter(struct uds_index *index, struct buffered_reader *reade
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (memcmp(OPEN_CHAPTER_VERSION, version, sizeof(version)) != 0)
+	if (memcmp(OPEN_CHAPTER_VERSION, version, sizeof(version)) != 0) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "Invalid open chapter version: %.*s",
 					      (int) sizeof(version),
 					      version);
+	}
 
 	return load_version20(index, reader);
 }

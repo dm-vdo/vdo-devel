@@ -412,9 +412,10 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 	spin_lock(&flusher->lock);
 
 #ifdef VDO_INTERNAL
-	if (bio_list_empty(&flusher->waiting_flush_bios))
+	if (bio_list_empty(&flusher->waiting_flush_bios)) {
 		/* The list was empty, so record the arrival time. */
 		flusher->flush_arrival_jiffies = jiffies;
+	}
 
 #endif /* VDO_INTERNAL */
 	/* We have a new bio to start. Add it to the list. */

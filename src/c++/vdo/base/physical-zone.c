@@ -168,11 +168,12 @@ release_pbn_lock_provisional_reference(struct pbn_lock *lock,
 		return;
 
 	result = vdo_release_block_reference(allocator, locked_pbn);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
 		uds_log_error_strerror(result,
 				       "Failed to release reference to %s physical block %llu",
 				       lock->implementation->release_reason,
 				       (unsigned long long) locked_pbn);
+	}
 
 	vdo_unassign_pbn_lock_provisional_reference(lock);
 }
@@ -510,12 +511,13 @@ static int allocate_and_lock_block(struct allocation *allocation)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (lock->holder_count > 0)
+	if (lock->holder_count > 0) {
 		/* This block is already locked, which should be impossible. */
 		return uds_log_error_strerror(VDO_LOCK_ERROR,
 					      "Newly allocated block %llu was spuriously locked (holder_count=%u)",
 					      (unsigned long long) allocation->pbn,
 					      lock->holder_count);
+	}
 
 	/* We've successfully acquired a new lock, so mark it as ours. */
 	lock->holder_count += 1;
@@ -571,9 +573,10 @@ static bool continue_allocating(struct data_vio *data_vio)
 	if (allocation->wait_for_clean_slab) {
 		data_vio->waiter.callback = retry_allocation;
 		result = vdo_enqueue_clean_slab_waiter(zone->allocator, &data_vio->waiter);
-		if (result == VDO_SUCCESS)
+		if (result == VDO_SUCCESS) {
 			/* We've enqueued to wait for a slab to be scrubbed. */
 			return true;
+		}
 
 		if ((result != VDO_NO_SPACE) || (was_waiting && tried_all)) {
 			vdo_set_completion_result(completion, result);
@@ -630,9 +633,10 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 	ASSERT_LOG_ONLY(lock->holder_count > 0, "should not be releasing a lock that is not held");
 
 	lock->holder_count -= 1;
-	if (lock->holder_count > 0)
+	if (lock->holder_count > 0) {
 		/* The lock was shared and is still referenced, so don't release it yet. */
 		return;
+	}
 
 	holder = vdo_int_map_remove(zone->pbn_operations, locked_pbn);
 	ASSERT_LOG_ONLY((lock == holder),

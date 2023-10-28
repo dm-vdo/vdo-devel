@@ -354,6 +354,7 @@ static struct bucket *search_hop_list(struct int_map *map __always_unused,
 		next_hop = entry->next_hop;
 		previous = entry;
 	}
+
 	return NULL;
 }
 
@@ -442,9 +443,11 @@ find_empty_bucket(struct int_map *map, struct bucket *bucket, unsigned int max_p
 	struct bucket *sentinel = &bucket[min_t(ptrdiff_t, remaining, max_probes)];
 	struct bucket *entry;
 
-	for (entry = bucket; entry < sentinel; entry++)
+	for (entry = bucket; entry < sentinel; entry++) {
 		if (entry->value == NULL)
 			return entry;
+	}
+
 	return NULL;
 }
 
@@ -478,12 +481,13 @@ static struct bucket *move_empty_bucket(struct int_map *map __always_unused, str
 		 */
 		struct bucket *new_hole = dereference_hop(bucket, bucket->first_hop);
 
-		if (new_hole == NULL)
+		if (new_hole == NULL) {
 			/*
 			 * There are no buckets in this neighborhood that are in use by this one
 			 * (they must all be owned by overlapping neighborhoods).
 			 */
 			continue;
+		}
 
 		/*
 		 * Skip this bucket if its first entry is actually further away than the hole that
@@ -539,9 +543,10 @@ static bool update_mapping(struct int_map *map,
 {
 	struct bucket *bucket = search_hop_list(map, neighborhood, key, NULL);
 
-	if (bucket == NULL)
+	if (bucket == NULL) {
 		/* There is no bucket containing the key in the neighborhood. */
 		return false;
+	}
 
 	/*
 	 * Return the value of the current mapping (if desired) and update the mapping with the new
@@ -579,12 +584,13 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
 	while (hole != NULL) {
 		int distance = hole - neighborhood;
 
-		if (distance < NEIGHBORHOOD)
+		if (distance < NEIGHBORHOOD) {
 			/*
 			 * We've found or relocated an empty bucket close enough to the initial
 			 * hash bucket to be referenced by its hop vector.
 			 */
 			return hole;
+		}
 
 		/*
 		 * The nearest empty bucket isn't within the neighborhood that must contain the new
@@ -686,9 +692,10 @@ void *vdo_int_map_remove(struct int_map *map, u64 key)
 	struct bucket *previous;
 	struct bucket *victim = search_hop_list(map, bucket, key, &previous);
 
-	if (victim == NULL)
+	if (victim == NULL) {
 		/* There is no matching entry to remove. */
 		return NULL;
+	}
 
 	/*
 	 * We found an entry to remove. Save the mapped value to return later and empty the bucket.
@@ -699,12 +706,13 @@ void *vdo_int_map_remove(struct int_map *map, u64 key)
 	victim->key = 0;
 
 	/* The victim bucket is now empty, but it still needs to be spliced out of the hop list. */
-	if (previous == NULL)
+	if (previous == NULL) {
 		/* The victim is the head of the list, so swing first_hop. */
 		bucket->first_hop = victim->next_hop;
-	else
+	} else {
 		previous->next_hop = victim->next_hop;
-	victim->next_hop = NULL_HOP_OFFSET;
+	}
 
+	victim->next_hop = NULL_HOP_OFFSET;
 	return value;
 }

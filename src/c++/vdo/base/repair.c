@@ -598,12 +598,13 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 		repair->last_slot.slot = VDO_BLOCK_MAP_ENTRIES_PER_PAGE;
 
 	for (i = 0; i < repair->page_count; i++) {
-		if (fetch_page(repair, &repair->page_completions[i].completion))
+		if (fetch_page(repair, &repair->page_completions[i].completion)) {
 			/*
 			 * The rebuild has already moved on, so it isn't safe nor is there a need
 			 * to launch any more fetches.
 			 */
 			return;
+		}
 	}
 }
 
@@ -622,18 +623,20 @@ static int process_entry(physical_block_number_t pbn, struct vdo_completion *com
 	struct slab_depot *depot = completion->vdo->depot;
 	int result;
 
-	if ((pbn == VDO_ZERO_BLOCK) || !vdo_is_physical_data_block(depot, pbn))
+	if ((pbn == VDO_ZERO_BLOCK) || !vdo_is_physical_data_block(depot, pbn)) {
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "PBN %llu out of range",
 					      (unsigned long long) pbn);
+	}
 
 	result = vdo_adjust_reference_count_for_rebuild(depot,
 							pbn,
 							VDO_JOURNAL_BLOCK_MAP_REMAPPING);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "Could not adjust reference count for block map tree PBN %llu",
 					      (unsigned long long) pbn);
+	}
 
 	repair->block_map_data_blocks++;
 	return VDO_SUCCESS;
@@ -766,7 +769,7 @@ validate_recovery_journal_entry(const struct vdo *vdo, const struct recovery_jou
 	    !vdo_is_valid_location(&entry->mapping) ||
 	    !vdo_is_valid_location(&entry->unmapping) ||
 	    !vdo_is_physical_data_block(vdo->depot, entry->mapping.pbn) ||
-	    !vdo_is_physical_data_block(vdo->depot, entry->unmapping.pbn))
+	    !vdo_is_physical_data_block(vdo->depot, entry->unmapping.pbn)) {
 		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 					      "Invalid entry: %s (%llu, %u) from %llu to %llu is not within bounds",
 					      vdo_get_journal_operation_name(entry->operation),
@@ -774,12 +777,13 @@ validate_recovery_journal_entry(const struct vdo *vdo, const struct recovery_jou
 					      entry->slot.slot,
 					      (unsigned long long) entry->unmapping.pbn,
 					      (unsigned long long) entry->mapping.pbn);
+	}
 
 	if ((entry->operation == VDO_JOURNAL_BLOCK_MAP_REMAPPING) &&
 	    (vdo_is_state_compressed(entry->mapping.state) ||
 	     (entry->mapping.pbn == VDO_ZERO_BLOCK) ||
 	     (entry->unmapping.state != VDO_MAPPING_STATE_UNMAPPED) ||
-	     (entry->unmapping.pbn != VDO_ZERO_BLOCK)))
+	     (entry->unmapping.pbn != VDO_ZERO_BLOCK))) {
 		return uds_log_error_strerror(VDO_CORRUPT_JOURNAL,
 					      "Invalid entry: %s (%llu, %u) from %llu to %llu is not a valid tree mapping",
 					      vdo_get_journal_operation_name(entry->operation),
@@ -787,6 +791,7 @@ validate_recovery_journal_entry(const struct vdo *vdo, const struct recovery_jou
 					      entry->slot.slot,
 					      (unsigned long long) entry->unmapping.pbn,
 					      (unsigned long long) entry->mapping.pbn);
+	}
 
 	return VDO_SUCCESS;
 }
@@ -1389,9 +1394,10 @@ static void extract_entries_from_block(struct repair_completion *repair,
 	struct recovery_block_header header =
 		get_recovery_journal_block_header(journal, repair->journal_data, sequence);
 
-	if (!is_exact_recovery_journal_block(journal, &header, sequence, format))
+	if (!is_exact_recovery_journal_block(journal, &header, sequence, format)) {
 		/* This block is invalid, so skip it. */
 		return;
+	}
 
 	entries = min(entries, header.entry_count);
 	for (i = 1; i < VDO_SECTORS_PER_BLOCK; i++) {
@@ -1600,9 +1606,10 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 		if (!is_exact_recovery_journal_block(journal,
 						     &header,
 						     i,
-						     VDO_METADATA_RECOVERY_JOURNAL_2))
+						     VDO_METADATA_RECOVERY_JOURNAL_2)) {
 			/* A bad block header was found so this must be the end of the journal. */
 			break;
+		}
 
 		block_entries = header.entry_count;
 
@@ -1775,10 +1782,11 @@ void vdo_repair(struct vdo_completion *parent)
 
 	for (vio_count = 0;
 	     vio_count < repair->vio_count;
-	     vio_count++, pbn += MAX_BLOCKS_PER_VIO)
+	     vio_count++, pbn += MAX_BLOCKS_PER_VIO) {
 		submit_metadata_vio(&repair->vios[vio_count],
 				    pbn,
 				    read_journal_endio,
 				    handle_journal_load_error,
 				    REQ_OP_READ);
+	}
 }

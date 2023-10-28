@@ -54,11 +54,12 @@ int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 	if (n < 0)
 		return uds_log_error_strerror(UDS_UNKNOWN_ERROR, "%s: vsnprintf failed", __func__);
 
-	if ((size_t) n >= buf_size)
+	if ((size_t) n >= buf_size) {
 		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
 					      "%s: string too long",
 					      __func__);
-
+	}
+        
 	return UDS_SUCCESS;
 }
 

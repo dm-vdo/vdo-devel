@@ -697,12 +697,13 @@ make_layout_region_table(struct index_layout *layout, struct region_table **tabl
 
 	*lr++ = layout->seal;
 
-	if (is_converted_super_block(&layout->super))
+	if (is_converted_super_block(&layout->super)) {
 		payload = sizeof(struct super_block_data);
-	else
+	} else {
 		payload = (sizeof(struct super_block_data) -
 			   sizeof(layout->super.volume_offset) -
 			   sizeof(layout->super.start_offset));
+	}
 
 	table->header = (struct region_header) {
 		.magic = REGION_MAGIC,
@@ -1183,10 +1184,11 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 	if (header.magic != REGION_MAGIC)
 		return UDS_NO_INDEX;
 
-	if (header.version != 1)
+	if (header.version != 1) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown region table version %hu",
 					      header.version);
+	}
 
 	result = uds_allocate_extended(struct region_table,
 				       header.region_count,
@@ -1270,26 +1272,30 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	    (super->version == 4) ||
 	    (super->version == 5) ||
 	    (super->version == 6) ||
-	    (super->version > SUPER_VERSION_MAXIMUM))
+	    (super->version > SUPER_VERSION_MAXIMUM)) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown superblock version number %u",
 					      super->version);
+	}
 
-	if (super->volume_offset < super->start_offset)
+	if (super->volume_offset < super->start_offset) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "inconsistent offsets (start %llu, volume %llu)",
 					      (unsigned long long) super->start_offset,
 					      (unsigned long long) super->volume_offset);
+	}
 
 	/* Sub-indexes are no longer used but the layout retains this field. */
-	if (super->index_count != 1)
+	if (super->index_count != 1) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "invalid subindex count %u",
 					      super->index_count);
+	}
 
-	if (generate_primary_nonce(super->nonce_info, sizeof(super->nonce_info)) != super->nonce)
+	if (generate_primary_nonce(super->nonce_info, sizeof(super->nonce_info)) != super->nonce) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "inconsistent superblock nonce");
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1305,9 +1311,10 @@ static int __must_check verify_region(struct layout_region *lr,
 	if (lr->kind != kind)
 		return uds_log_error_strerror(UDS_CORRUPT_DATA, "incorrect layout region kind");
 
-	if (lr->instance != instance)
+	if (lr->instance != instance) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "incorrect layout region instance");
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1344,9 +1351,10 @@ verify_sub_index(struct index_layout *layout, u64 start_block, struct region_tab
 	}
 
 	next_block -= layout->super.volume_offset;
-	if (next_block != start_block + sil->sub_index.block_count)
+	if (next_block != start_block + sil->sub_index.block_count) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "sub index region does not span all saves");
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1390,9 +1398,10 @@ reconstitute_layout(struct index_layout *layout, struct region_table *table, u64
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (++next_block != (first_block + layout->total_blocks))
+	if (++next_block != (first_block + layout->total_blocks)) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "layout table does not span total blocks");
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1444,10 +1453,11 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 	u8 buffer[sizeof(struct index_save_data) + sizeof(struct index_state_data301)];
 	size_t offset = 0;
 
-	if (saved_size != sizeof(buffer))
+	if (saved_size != sizeof(buffer)) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "unexpected index save data size %zu",
 					      saved_size);
+	}
 
 	result = uds_read_from_buffered_reader(reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
@@ -1458,20 +1468,22 @@ static int __must_check read_index_save_data(struct buffered_reader *reader,
 	decode_u32_le(buffer, &offset, &isl->save_data.version);
 	offset += sizeof(u32);
 
-	if (isl->save_data.version > 1)
+	if (isl->save_data.version > 1) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown index save version number %u",
 					      isl->save_data.version);
+	}
 
 	decode_s32_le(buffer, &offset, &file_version.signature);
 	decode_s32_le(buffer, &offset, &file_version.version_id);
 
 	if ((file_version.signature != INDEX_STATE_VERSION_301.signature) ||
-	    (file_version.version_id != INDEX_STATE_VERSION_301.version_id))
+	    (file_version.version_id != INDEX_STATE_VERSION_301.version_id)) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "index state version %d,%d is unsupported",
 					      file_version.signature,
 					      file_version.version_id);
+	}
 
 	decode_u64_le(buffer, &offset, &isl->state_data.newest_chapter);
 	decode_u64_le(buffer, &offset, &isl->state_data.oldest_chapter);
@@ -1547,9 +1559,10 @@ reconstruct_index_save(struct index_save_layout *isl, struct region_table *table
 		return result;
 
 	next_block += isl->free_space.block_count;
-	if (next_block != last_block)
+	if (next_block != last_block) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "index save layout table incomplete");
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1562,10 +1575,11 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 	struct region_table *table = NULL;
 
 	result = load_region_table(reader, &table);
-	if (result != UDS_SUCCESS)
+	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot read index save %u header",
 					      instance);
+	}
 
 	if (table->header.region_blocks != isl->index_save.block_count) {
 		u64 region_blocks = table->header.region_blocks;
@@ -1602,10 +1616,11 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 
 	result = reconstruct_index_save(isl, table);
 	uds_free(table);
-	if (result != UDS_SUCCESS)
+	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "cannot reconstruct index save %u",
 					      instance);
+	}
 
 	return UDS_SUCCESS;
 }

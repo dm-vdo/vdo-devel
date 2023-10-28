@@ -126,11 +126,12 @@ void vdo_enqueue_completion(struct vdo_completion *completion,
 		BUG();
 
 #if defined(INTERNAL) || defined(VDO_INTERNAL)
-	if ((completion->type == VIO_COMPLETION) && is_data_vio(as_vio(completion)))
+	if ((completion->type == VIO_COMPLETION) && is_data_vio(as_vio(completion))) {
 		ASSERT_LOG_ONLY(((completion->error_handler != NULL) ||
 				 (as_data_vio(completion)->last_async_operation ==
 				  VIO_ASYNC_OP_CLEANUP)),
 				"active data_vio has error handler");
+	}
 
 #endif /* INTERNAL or VDO_INTERNAL */
 	completion->requeue = false;

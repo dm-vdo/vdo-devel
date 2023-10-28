@@ -206,9 +206,9 @@ static void wait_for_pending_searches(struct page_cache *cache, u32 physical_pag
 
 	for (i = 0; i < cache->zone_count; i++)
 		initial_counters[i] = get_invalidate_counter(cache, i);
-	for (i = 0; i < cache->zone_count; i++)
+	for (i = 0; i < cache->zone_count; i++) {
 		if (search_pending(initial_counters[i]) &&
-		    (initial_counters[i].page == physical_page))
+		    (initial_counters[i].page == physical_page)) {
 			/*
 			 * There is an active search using the physical page. We need to wait for
 			 * the search to finish.
@@ -217,6 +217,8 @@ static void wait_for_pending_searches(struct page_cache *cache, u32 physical_pag
 			 */
 			while (initial_counters[i].value == get_invalidate_counter(cache, i).value)
 				cond_resched();
+		}
+	}
 }
 
 static void release_page_buffer(struct cached_page *page)
@@ -469,11 +471,12 @@ static int init_chapter_index_page(const struct volume *volume,
 	if (volume->lookup_mode == LOOKUP_FOR_REBUILD)
 		return result;
 
-	if (result != UDS_SUCCESS)
+	if (result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "Reading chapter index page for chapter %u page %u",
 					      chapter,
 					      index_page_number);
+	}
 
 	uds_get_list_number_bounds(volume->index_page_map,
 				   chapter,
@@ -821,9 +824,10 @@ get_volume_page_protected(struct volume *volume,
 
 	get_page_from_cache(&volume->page_cache, physical_page, &page);
 	if (page != NULL) {
-		if (request->zone_number == 0)
+		if (request->zone_number == 0) {
 			/* Only one zone is allowed to update the LRU. */
 			make_page_most_recent(&volume->page_cache, page);
+		}
 
 		*page_ptr = page;
 		return UDS_SUCCESS;
@@ -1195,9 +1199,10 @@ static int write_index_pages(struct volume *volume,
 		int result;
 
 		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
-		if (IS_ERR(page_data))
+		if (IS_ERR(page_data)) {
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare index page");
+		}
 
 		last_page = ((index_page_number + 1) == geometry->index_pages_per_chapter);
 		result = uds_pack_open_chapter_index_page(chapter_index,
@@ -1223,12 +1228,13 @@ static int write_index_pages(struct volume *volume,
 #endif /* TEST_INTERNAL */
 		dm_bufio_mark_buffer_dirty(page_buffer);
 
-		if (lists_packed == 0)
+		if (lists_packed == 0) {
 			uds_log_debug("no delta lists packed on chapter %u page %u",
 				      physical_chapter_number,
 				      index_page_number);
-		else
+		} else {
 			delta_list_number += lists_packed;
+		}
 
 		uds_update_index_page_map(volume->index_page_map,
 					  chapter_index->virtual_chapter_number,
@@ -1333,9 +1339,10 @@ static int write_record_pages(struct volume *volume,
 		int result;
 
 		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
-		if (IS_ERR(page_data))
+		if (IS_ERR(page_data)) {
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare record page");
+		}
 
 		result = encode_record_page(volume, next_record, page_data);
 		if (result != UDS_SUCCESS) {

@@ -69,12 +69,13 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 	if (next == NULL) {
 		struct funnel_queue_entry *newest = READ_ONCE(queue->newest);
 
-		if (oldest != newest)
+		if (oldest != newest) {
 			/*
 			 * Another thread has already swung queue->newest atomically, but not yet
 			 * assigned previous->next. The queue is really still empty.
 			 */
 			return NULL;
+		}
 
 		/*
 		 * Put the stub entry back on the queue, ensuring a successor will eventually be
@@ -84,12 +85,13 @@ static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)
 
 		/* Check again for a successor. */
 		next = READ_ONCE(oldest->next);
-		if (next == NULL)
+		if (next == NULL) {
 			/*
 			 * We lost a race with a producer who swapped queue->newest before we did,
 			 * but who hasn't yet updated previous->next. Try again later.
 			 */
 			return NULL;
+		}
 	}
 
 	return oldest;

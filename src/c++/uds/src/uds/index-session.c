@@ -410,9 +410,11 @@ static void suspend_rebuild(struct uds_index_session *session)
 
 		/* Wait until the index indicates that it is not replaying. */
 		while ((session->load_context.status != INDEX_SUSPENDED) &&
-		       (session->load_context.status != INDEX_READY))
+		       (session->load_context.status != INDEX_READY)) {
 			uds_wait_cond(&session->load_context.cond,
 				      &session->load_context.mutex);
+		}
+
 		break;
 
 	case INDEX_READY:

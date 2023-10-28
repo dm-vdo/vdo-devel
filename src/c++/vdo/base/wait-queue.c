@@ -97,9 +97,8 @@ void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
 	vdo_transfer_all_waiters(queue, &waiters);
 
 	/* Drain the copied queue, invoking the callback on every entry. */
-	while (vdo_notify_next_waiter(&waiters, callback, context))
-		/* All the work is done by the loop condition. */
-		;
+	while (vdo_has_waiters(&waiters))
+		vdo_notify_next_waiter(&waiters, callback, context);
 }
 
 /**
@@ -112,9 +111,10 @@ struct waiter *vdo_get_first_waiter(const struct wait_queue *queue)
 {
 	struct waiter *last_waiter = queue->last_waiter;
 
-	if (last_waiter == NULL)
+	if (last_waiter == NULL) {
 		/* There are no waiters, so we're done. */
 		return NULL;
+	}
 
 	/* The queue is circular, so the last entry links to the head of the queue. */
 	return last_waiter->next_waiter;
@@ -168,19 +168,21 @@ struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue)
 	if (first_waiter == NULL)
 		return NULL;
 
-	if (first_waiter == last_waiter)
+	if (first_waiter == last_waiter) {
 		/* The queue has a single entry, so just empty it out by nulling the tail. */
 		queue->last_waiter = NULL;
-	else
+	} else {
 		/*
 		 * The queue has more than one entry, so splice the first waiter out of the
 		 * circular queue.
 		 */
 		last_waiter->next_waiter = first_waiter->next_waiter;
+	}
 
 	/* The waiter is no longer in a wait queue. */
 	first_waiter->next_waiter = NULL;
 	queue->queue_length -= 1;
+
 	return first_waiter;
 }
 
@@ -206,6 +208,7 @@ bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
 	if (callback == NULL)
 		callback = waiter->callback;
 	(*callback)(waiter, context);
+
 	return true;
 }
 
@@ -223,5 +226,6 @@ vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
 
 	if (waiter == NULL)
 		return first_waiter;
+
 	return ((waiter->next_waiter != first_waiter) ? waiter->next_waiter : NULL);
 }

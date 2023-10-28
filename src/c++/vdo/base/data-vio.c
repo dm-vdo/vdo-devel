@@ -393,19 +393,21 @@ struct data_vio_compression_status advance_data_vio_compression_stage(struct dat
 			get_data_vio_compression_status(data_vio);
 		struct data_vio_compression_status new_status = status;
 
-		if (status.stage == DATA_VIO_POST_PACKER)
+		if (status.stage == DATA_VIO_POST_PACKER) {
 			/* We're already in the last stage. */
 			return status;
+		}
 
-		if (status.may_not_compress)
+		if (status.may_not_compress) {
 			/*
 			 * Compression has been dis-allowed for this VIO, so skip the rest of the
 			 * path and go to the end.
 			 */
 			new_status.stage = DATA_VIO_POST_PACKER;
-		else
+		} else {
 			/* Go to the next state. */
 			new_status.stage++;
+		}
 
 		if (set_data_vio_compression_status(data_vio, status, new_status))
 			return new_status;
@@ -425,9 +427,10 @@ bool cancel_data_vio_compression(struct data_vio *data_vio)
 
 	for (;;) {
 		status = get_data_vio_compression_status(data_vio);
-		if (status.may_not_compress || (status.stage == DATA_VIO_POST_PACKER))
+		if (status.may_not_compress || (status.stage == DATA_VIO_POST_PACKER)) {
 			/* This data_vio is already set up to not block in the packer. */
 			break;
+		}
 
 		new_status.stage = status.stage;
 		new_status.may_not_compress = true;
@@ -548,9 +551,11 @@ STATIC bool is_zero_block(char *block)
 			"Data blocks are expected to be aligned");
 
 #endif	/* INTERNAL */
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64))
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {
 		if (*((u64 *) &block[i]))
 			return false;
+	}
+
 	return true;
 }
 
@@ -716,11 +721,12 @@ static void reuse_or_release_resources(struct data_vio_pool *pool,
 				       struct list_head *returned)
 {
 	if (data_vio->remaining_discard > 0) {
-		if (bio_list_empty(&pool->discard_limiter.waiters))
+		if (bio_list_empty(&pool->discard_limiter.waiters)) {
 			/* Return the data_vio's discard permit. */
 			pool->discard_limiter.release_count++;
-		else
+		} else {
 			assign_discard_permit(&pool->discard_limiter);
+		}
 	}
 
 	if (pool->limiter.arrival < pool->discard_limiter.arrival) {
@@ -801,9 +807,10 @@ static void process_release_callback(struct vdo_completion *completion)
 	if (to_wake > 0)
 		wake_up_nr(&pool->limiter.blocked_threads, to_wake);
 
-	if (discards_to_wake > 0)
+	if (discards_to_wake > 0) {
 		wake_up_nr(&pool->discard_limiter.blocked_threads,
 			   discards_to_wake);
+	}
 
 	if (reschedule)
 		schedule_releases(pool);
@@ -844,9 +851,10 @@ static int initialize_data_vio(struct data_vio *data_vio, struct vdo *vdo)
 				     0,
 				     "compressed block",
 				     &data_vio->compression.block);
-	if (result != VDO_SUCCESS)
+	if (result != VDO_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "data_vio compressed block allocation failure");
+	}
 
 	result = uds_allocate_memory(VDO_BLOCK_SIZE, 0, "vio scratch", &data_vio->scratch_block);
 	if (result != VDO_SUCCESS)
@@ -1131,9 +1139,10 @@ data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool)
 
 int set_data_vio_pool_discard_limit(struct data_vio_pool *pool, data_vio_count_t limit)
 {
-	if (get_data_vio_pool_request_limit(pool) < limit)
+	if (get_data_vio_pool_request_limit(pool) < limit) {
 		// The discard limit may not be higher than the data_vio limit.
 		return -EINVAL;
+	}
 
 	spin_lock(&pool->lock);
 	pool->discard_limiter.limit = limit;
@@ -1773,12 +1782,13 @@ static void journal_remapping(struct vdo_completion *completion)
 		set_data_vio_new_mapped_zone_callback(data_vio, increment_reference_count);
 	}
 
-	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK)
+	if (data_vio->mapped.pbn == VDO_ZERO_BLOCK) {
 		data_vio->first_reference_operation_complete = true;
-	else
+	} else {
 		vdo_set_completion_callback(&data_vio->decrement_completion,
 					    decrement_reference_count,
 					    data_vio->mapped.zone->thread_id);
+	}
 
 	data_vio->last_async_operation = VIO_ASYNC_OP_JOURNAL_REMAPPING;
 	vdo_add_recovery_journal_entry(completion->vdo->recovery_journal, data_vio);

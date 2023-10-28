@@ -208,9 +208,10 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 		*p_flag++ = 'z';
 	if (data_vio->remaining_discard > 0)
 		*p_flag++ = 'd';
-	if (p_flag == &buffer[1])
+	if (p_flag == &buffer[1]) {
 		/* No flags, so remove the blank space. */
 		p_flag = buffer;
+	}
 	*p_flag = '\0';
 }
 
@@ -241,32 +242,34 @@ void dump_data_vio(void *data)
 	vdo_dump_completion_to_buffer(&data_vio->vio.completion,
 				      vio_completion_dump_buffer,
 				      sizeof(vio_completion_dump_buffer));
-	if (data_vio->is_duplicate)
+	if (data_vio->is_duplicate) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu D%llu",
 			 data_vio->allocation.pbn,
 			 data_vio->logical.lbn,
 			 data_vio->duplicate.pbn);
-	else if (data_vio_has_allocation(data_vio))
+	} else if (data_vio_has_allocation(data_vio)) {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "P%llu L%llu",
 			 data_vio->allocation.pbn,
 			 data_vio->logical.lbn);
-	else
+	} else {
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
 			 "L%llu",
 			 data_vio->logical.lbn);
+	}
 
-	if (data_vio->flush_generation != 0)
+	if (data_vio->flush_generation != 0) {
 		snprintf(vio_flush_generation_buffer,
 			 sizeof(vio_flush_generation_buffer),
 			 " FG%llu",
 			 data_vio->flush_generation);
-	else
+	} else {
 		vio_flush_generation_buffer[0] = 0;
+	}
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 

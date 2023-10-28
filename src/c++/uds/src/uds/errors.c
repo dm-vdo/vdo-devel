@@ -176,18 +176,19 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
-		if (info != NULL)
+		if (info != NULL) {
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s: %s",
 						      block_name,
 						      info->message);
-		else
+		} else {
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "Unknown %s %d",
 						      block_name,
 						      errnum);
+		}
 	} else if (info != NULL) {
 		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->message);
 	} else {
@@ -198,6 +199,7 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 		else
 			buffer += strlen(tmp);
 	}
+
 	return buf;
 }
 
@@ -214,14 +216,15 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
-		if (info != NULL)
+		if (info != NULL) {
 			buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
-		else
+		} else {
 			buffer = uds_append_to_buffer(buffer,
 						      buf_end,
 						      "%s %d",
 						      block_name,
 						      errnum);
+		}
 	} else if (info != NULL) {
 		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
 	} else {
@@ -233,6 +236,7 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 		else
 			buffer += strlen(tmp);
 	}
+
 	return buf;
 }
 
@@ -250,9 +254,10 @@ int uds_map_to_system_error(int error)
 	if (likely(error <= 0))
 		return error;
 
-	if (error < 1024)
+	if (error < 1024) {
 		/* This is probably an errno from userspace. */
 		return -error;
+	}
 
 	/* Internal UDS errors */
 	switch (error) {
@@ -313,9 +318,10 @@ int uds_register_error_block(const char *block_name,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	if (registered_errors.count == registered_errors.allocated)
+	if (registered_errors.count == registered_errors.allocated) {
 		/* This should never happen. */
 		return UDS_OVERFLOW;
+	}
 
 	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;

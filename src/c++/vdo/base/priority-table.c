@@ -161,9 +161,10 @@ struct list_head *vdo_priority_table_dequeue(struct priority_table *table)
 	struct list_head *entry;
 	int top_priority;
 
-	if (table->search_vector == 0)
+	if (table->search_vector == 0) {
 		/* All buckets are empty. */
 		return NULL;
+	}
 
 	/*
 	 * Find the highest priority non-empty bucket by finding the highest-order non-zero bit in
