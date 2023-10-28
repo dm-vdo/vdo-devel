@@ -1141,7 +1141,7 @@ int uds_save_volume_index(struct volume_index *volume_index,
 	int result = UDS_SUCCESS;
 	unsigned int zone;
 
-	for (zone = 0; zone < writer_count; ++zone) {
+	for (zone = 0; zone < writer_count; zone++) {
 		result = start_saving_volume_index(volume_index, zone, writers[zone]);
 		if (result != UDS_SUCCESS)
 			break;

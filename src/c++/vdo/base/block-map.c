@@ -176,7 +176,7 @@ static int initialize_info(struct vdo_page_cache *cache)
 	struct page_info *info;
 
 	INIT_LIST_HEAD(&cache->free_list);
-	for (info = cache->infos; info < cache->infos + cache->page_count; ++info) {
+	for (info = cache->infos; info < cache->infos + cache->page_count; info++) {
 		int result;
 
 		info->cache = cache;
@@ -562,7 +562,7 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
 	vdo_notify_all_waiters(&cache->free_waiters, complete_waiter_with_error, &result);
 	cache->waiter_count = 0;
 
-	for (info = cache->infos; info < cache->infos + cache->page_count; ++info)
+	for (info = cache->infos; info < cache->infos + cache->page_count; info++)
 		vdo_notify_all_waiters(&info->waiting, complete_waiter_with_error, &result);
 }
 
@@ -936,7 +936,7 @@ static void discard_a_page(struct vdo_page_cache *cache)
 
 	ASSERT_LOG_ONLY(!is_in_flight(info), "page selected for discard is not in flight");
 
-	++cache->discard_count;
+	cache->discard_count++;
 	info->write_status = WRITE_STATUS_DISCARD;
 	launch_page_save(info);
 }
@@ -949,7 +949,7 @@ static void discard_page_for_completion(struct vdo_page_completion *vdo_page_com
 {
 	struct vdo_page_cache *cache = vdo_page_comp->cache;
 
-	++cache->waiter_count;
+	cache->waiter_count++;
 	vdo_enqueue_waiter(&cache->free_waiters, &vdo_page_comp->waiter);
 	discard_a_page(cache);
 }
@@ -1258,7 +1258,7 @@ void vdo_get_page(struct vdo_page_completion *page_completion,
 			if (!is_present(info))
 				ADD_ONCE(cache->stats.read_outgoing, 1);
 			update_lru(info);
-			++info->busy;
+			info->busy++;
 			complete_with_page(info, page_completion);
 			return;
 		}
@@ -2866,7 +2866,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 	if (cache->infos != NULL) {
 		struct page_info *info;
 
-		for (info = cache->infos; info < cache->infos + cache->page_count; ++info)
+		for (info = cache->infos; info < cache->infos + cache->page_count; info++)
 			free_vio(uds_forget(info->vio));
 	}
 

@@ -34,7 +34,7 @@ unsigned int num_online_cpus(void)
 		return 1;
 	}
 
-	for (i = 0; i < CPU_SETSIZE; ++i)
+	for (i = 0; i < CPU_SETSIZE; i++)
 		n_cpus += CPU_ISSET(i, &cpu_set);
 	return n_cpus;
 }

@@ -1334,7 +1334,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		 * We don't want to notify the dedupe thread since it may be
 		 * blocked rebuilding the index.
 		 */
-		++thread_id;
+		thread_id++;
 
 	if (thread_id >= vdo->thread_config.thread_count)
 		/* There are no more threads */

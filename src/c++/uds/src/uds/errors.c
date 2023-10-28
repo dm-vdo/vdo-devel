@@ -120,7 +120,7 @@ static const char *get_error_info(int errnum, const struct error_info **info_ptr
 
 	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;
-	     ++block) {
+	     block++) {
 		if ((errnum >= block->base) && (errnum < block->last)) {
 			*info_ptr = block->infos + (errnum - block->base);
 			return block->name;
@@ -319,7 +319,7 @@ int uds_register_error_block(const char *block_name,
 
 	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;
-	     ++block) {
+	     block++) {
 		if (strcmp(block_name, block->name) == 0)
 			return UDS_DUPLICATE_NAME;
 

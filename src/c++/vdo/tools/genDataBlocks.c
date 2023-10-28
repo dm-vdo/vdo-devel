@@ -150,7 +150,7 @@ static void fillRandomly(void *seedPtr, size_t seedLen, void *ptr, size_t len)
   const unsigned long multiplier = (unsigned long) RAND_MAX + 1;
 
   unsigned char *bp = ptr;
-  for (size_t i = 0; i < len; ++i) {
+  for (size_t i = 0; i < len; i++) {
     if (randMask < 0xff) {
       randNum  = randNum * multiplier + random();
       randMask = randMask * multiplier + RAND_MAX;
@@ -326,7 +326,7 @@ static int countDataStreams(DataStream *pds)
 {
   int n = 0;
   for (; pds != NULL; pds = pds->next) {
-    ++n;
+    n++;
   }
   return n;
 }

@@ -1408,7 +1408,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number, u64 *virtua
 			  map_to_physical_page(geometry, chapter_number, 0),
 			  geometry->index_pages_per_chapter);
 
-	for (i = 0; i < geometry->index_pages_per_chapter; ++i) {
+	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
 		struct delta_index_page *page;
 		int result;
 

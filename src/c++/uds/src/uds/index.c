@@ -1087,7 +1087,7 @@ static int replay_volume(struct uds_index *index)
 	 * Also, go through each index page for each chapter and rebuild the index page map.
 	 */
 	old_map_update = index->volume->index_page_map->last_update;
-	for (virtual = from_virtual; virtual < upto_virtual; ++virtual) {
+	for (virtual = from_virtual; virtual < upto_virtual; virtual++) {
 		will_be_sparse = uds_is_chapter_sparse(index->volume->geometry,
 						       from_virtual,
 						       upto_virtual,

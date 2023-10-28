@@ -16,7 +16,7 @@ void get_random_bytes(void *buffer, size_t byte_count)
 	u8 *data = buffer;
 	size_t i;
 
-	for (i = 0; i < byte_count; ++i) {
+	for (i = 0; i < byte_count; i++) {
 		if (rand_mask < 0xff) {
 			rand_num = rand_num * multiplier + random();
 			rand_mask = rand_mask * multiplier + RAND_MAX;

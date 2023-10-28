@@ -1617,7 +1617,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 	struct index_save_layout *isl;
 	struct buffered_reader *reader;
 
-	for (j = 0; j < layout->super.max_saves; ++j) {
+	for (j = 0; j < layout->super.max_saves; j++) {
 		isl = &layout->index.saves[j];
 		result = open_region_reader(layout, &isl->index_save, &reader);
 

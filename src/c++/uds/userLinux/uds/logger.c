@@ -351,7 +351,7 @@ void uds_log_backtrace(int priority)
 	if (messages == NULL) {
 		uds_log_message(priority, "backtrace failed");
 	} else {
-		for (int i = 0; i < trace_size; ++i)
+		for (int i = 0; i < trace_size; i++)
 			uds_log_message(priority, "  %s", messages[i]);
 		// "messages" is malloc'ed indirectly by backtrace_symbols
 		free(messages);
