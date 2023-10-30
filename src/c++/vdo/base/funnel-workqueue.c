@@ -75,7 +75,9 @@ struct round_robin_work_queue {
 
 static inline struct simple_work_queue *as_simple_work_queue(struct vdo_work_queue *queue)
 {
-	return ((queue == NULL) ? NULL : container_of(queue, struct simple_work_queue, common));
+	return ((queue == NULL) ? NULL : container_of(queue,
+						      struct simple_work_queue,
+						      common));
 }
 
 static inline struct round_robin_work_queue *as_round_robin_work_queue(struct vdo_work_queue *queue)
@@ -103,7 +105,8 @@ static struct vdo_completion *poll_for_completion(struct simple_work_queue *queu
 		struct funnel_queue_entry *link = uds_funnel_queue_poll(queue->priority_lists[i]);
 
 		if (link != NULL)
-			return container_of(link, struct vdo_completion, work_queue_entry_link);
+			return container_of(link, struct vdo_completion,
+					    work_queue_entry_link);
 	}
 
 	return NULL;
@@ -114,9 +117,7 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 {
 	ASSERT_LOG_ONLY(completion->my_queue == NULL,
 			"completion %px (fn %px) to enqueue (%px) is not already queued (%px)",
-			completion,
-			completion->callback,
-			queue,
+			completion, completion->callback, queue,
 			completion->my_queue);
 	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY)
 		completion->priority = queue->common.type->default_priority;
@@ -148,7 +149,8 @@ static void enqueue_work_queue_completion(struct simple_work_queue *queue,
 	 * first is any better or worse for other platforms, even other x86 configurations.
 	 */
 	smp_mb();
-	if ((atomic_read(&queue->idle) != 1) || (atomic_cmpxchg(&queue->idle, 1, 0) != 1))
+	if ((atomic_read(&queue->idle) != 1) ||
+	    (atomic_cmpxchg(&queue->idle, 1, 0) != 1))
 		return;
 
 	/* There's a maximum of one thread in this list. */
@@ -182,7 +184,8 @@ static struct vdo_completion *wait_for_next_completion(struct simple_work_queue 
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		prepare_to_wait(&queue->waiting_worker_threads, &wait, TASK_INTERRUPTIBLE);
+		prepare_to_wait(&queue->waiting_worker_threads, &wait,
+				TASK_INTERRUPTIBLE);
 		/*
 		 * Don't set the idle flag until a wakeup will not be lost.
 		 *
@@ -228,9 +231,7 @@ static void process_completion(struct simple_work_queue *queue,
 {
 	if (ASSERT(completion->my_queue == &queue->common,
 		   "completion %px from queue %px marked as being in this queue (%px)",
-		   completion,
-		   queue,
-		   completion->my_queue) == UDS_SUCCESS)
+		   completion, queue, completion->my_queue) == UDS_SUCCESS)
 		completion->my_queue = NULL;
 
 	vdo_run_completion(completion);
@@ -327,10 +328,10 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	ASSERT_LOG_ONLY((type->max_priority <= VDO_WORK_Q_MAX_PRIORITY),
 			"queue priority count %u within limit %u",
-			type->max_priority,
-			VDO_WORK_Q_MAX_PRIORITY);
+			type->max_priority, VDO_WORK_Q_MAX_PRIORITY);
 
-	result = UDS_ALLOCATE(1, struct simple_work_queue, "simple work queue", &queue);
+	result = UDS_ALLOCATE(1, struct simple_work_queue, "simple work queue",
+			      &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -354,11 +355,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	thread = kthread_run(work_queue_runner,
-			     queue,
-			     "%s:%s",
-			     thread_name_prefix,
-			     queue->common.name);
+	thread = kthread_run(work_queue_runner, queue, "%s:%s",
+			     thread_name_prefix, queue->common.name);
 	if (IS_ERR(thread)) {
 		free_simple_work_queue(queue);
 		return (int) PTR_ERR(thread);
@@ -403,23 +401,20 @@ int vdo_make_work_queue(const char *thread_name_prefix, const char *name,
 		struct simple_work_queue *simple_queue;
 		void *context = ((thread_privates != NULL) ? thread_privates[0] : NULL);
 
-		result = make_simple_work_queue(thread_name_prefix,
-						name,
-						owner,
-						context,
-						type,
+		result = make_simple_work_queue(thread_name_prefix, name,
+						owner, context, type,
 						&simple_queue);
 		if (result == VDO_SUCCESS)
 			*queue_ptr = &simple_queue->common;
 		return result;
 	}
 
-	result = UDS_ALLOCATE(1, struct round_robin_work_queue, "round-robin work queue", &queue);
+	result = UDS_ALLOCATE(1, struct round_robin_work_queue,
+			      "round-robin work queue", &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(thread_count,
-			      struct simple_work_queue *,
+	result = UDS_ALLOCATE(thread_count, struct simple_work_queue *,
 			      "subordinate work queues",
 			      &queue->service_queues);
 	if (result != UDS_SUCCESS) {
@@ -445,9 +440,7 @@ int vdo_make_work_queue(const char *thread_name_prefix, const char *name,
 
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		result = make_simple_work_queue(thread_name_prefix,
-						thread_name,
-						owner,
-						context,
+						thread_name, owner, context,
 						type,
 						&queue->service_queues[i]);
 		if (result != VDO_SUCCESS) {
@@ -505,11 +498,8 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	uds_log_info("workQ %px (%s) %s (%c)",
-		     &queue->common,
-		     queue->common.name,
-		     thread_status,
-		     task_state_report);
+	uds_log_info("workQ %px (%s) %s (%c)", &queue->common,
+		     queue->common.name, thread_status, task_state_report);
 
 	/* ->waiting_worker_threads wait queue status? anyone waiting? */
 }
@@ -550,7 +540,8 @@ static void get_function_name(void *pointer, char *buffer,
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
-		snprintf(buffer, buffer_length, "%.*ps", buffer_length - 1, pointer);
+		snprintf(buffer, buffer_length, "%.*ps", buffer_length - 1,
+			 pointer);
 #pragma GCC diagnostic pop
 
 		space = strchr(buffer, ' ');
@@ -563,10 +554,7 @@ void vdo_dump_completion_to_buffer(struct vdo_completion *completion,
 				   char *buffer, size_t length)
 {
 	size_t current_length =
-		scnprintf(buffer,
-			  length,
-			  "%.*s/",
-			  TASK_COMM_LEN,
+		scnprintf(buffer, length, "%.*s/", TASK_COMM_LEN,
 			  (completion->my_queue == NULL ? "-" : completion->my_queue->name));
 
 	if (current_length < length - 1)
