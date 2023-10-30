@@ -271,10 +271,7 @@ intended for debugging purposes only."
       (if nil
 	  (message "examining %d %S"
 		   (point)
-		   (buffer-substring-no-properties (max (point-min)
-							(- (point) 5))
-						   (min (point-max)
-							(+ (point) 20)))))
+		   (buffer-substring-near-point 5 20)))
       (cond ((looking-back "=[ \t\n]*(*" nil)
 	     ;; Some enum value assignments get assigned a
 	     ;; c-decl-arg-start type for some reason.  Just skip
@@ -304,10 +301,7 @@ intended for debugging purposes only."
 			(message "what am i looking back at? %S/%S %S"
 				 (point)
 				 (current-line)
-				 (buffer-substring-no-properties (max (point-min)
-								      (- (point) 10))
-								 (min (point-max)
-								      (+ (point) 20))))
+				 (buffer-substring-near-point 10 20))
 			(setq done t)))))
 	     (goto-char end-pos)
 	     (end-of-line 1)
@@ -316,22 +310,19 @@ intended for debugging purposes only."
 	     (save-restriction
 	       (narrow-to-region start-pos end-pos)
 	       (restore-must-check-annotations-in-region start-pos end-pos)
-	       (reflow-function-decl (point-min) (point-max))
-	       (goto-char (point-max))
-	       )
+	       (if (not (point-in-macro-p))
+		   (reflow-function-decl (point-min) (point-max)))
+	       (goto-char (point-max)))
 	     (let ((lst (list (point)
 			      (current-line)
 			      (buffer-substring-no-properties start-pos
 							      (min (point-max)
-								   (+ end-pos 1)))
-			      )))
+								   (+ end-pos 1))))))
 	       (push (if t lst end-pos) result)))
 	    (t
 	     (error "not at a symbol? %S %S"
 		    (point)
-		    (buffer-substring-no-properties (- (point) 5)
-						    (+ (point) 20))))
-	    )
+		    (buffer-substring-near-point 5 20))))
       (setq start-limit end-pos)
       (goto-char end-pos)
       )
