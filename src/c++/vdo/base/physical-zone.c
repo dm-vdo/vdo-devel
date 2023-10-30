@@ -123,7 +123,8 @@ bool vdo_claim_pbn_lock_increment(struct pbn_lock *lock)
 	 * in a sane time-frame, we won't overflow a 32-bit claim counter, allowing a simple add
 	 * instead of a compare-and-swap.
 	 */
-	u32 claim_number = (u32) atomic_add_return(1, &lock->increments_claimed);
+	u32 claim_number = (u32) atomic_add_return(1,
+						   &lock->increments_claimed);
 
 	return (claim_number <= lock->increment_limit);
 }
@@ -228,7 +229,8 @@ static void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 	INIT_LIST_HEAD(&idle->entry);
 	list_add_tail(&idle->entry, &pool->idle_list);
 
-	ASSERT_LOG_ONLY(pool->borrowed > 0, "shouldn't return more than borrowed");
+	ASSERT_LOG_ONLY(pool->borrowed > 0,
+			"shouldn't return more than borrowed");
 	pool->borrowed -= 1;
 }
 
@@ -246,11 +248,8 @@ static int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
 	struct pbn_lock_pool *pool;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool,
-				       capacity,
-				       idle_pbn_lock,
-				       __func__,
-				       &pool);
+	result = UDS_ALLOCATE_EXTENDED(struct pbn_lock_pool, capacity,
+				       idle_pbn_lock, __func__, &pool);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -304,7 +303,8 @@ static int __must_check borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 	idle_pbn_lock *idle;
 
 	if (pool->borrowed >= pool->capacity)
-		return uds_log_error_strerror(VDO_LOCK_ERROR, "no free PBN locks left to borrow");
+		return uds_log_error_strerror(VDO_LOCK_ERROR,
+					      "no free PBN locks left to borrow");
 	pool->borrowed += 1;
 
 	result = ASSERT(!list_empty(&pool->idle_list),
@@ -337,7 +337,8 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 	zone_count_t zone_number = zones->zone_count;
 	struct physical_zone *zone = &zones->zones[zone_number];
 
-	result = vdo_make_int_map(VDO_LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
+	result = vdo_make_int_map(VDO_LOCK_MAP_CAPACITY, 0,
+				  &zone->pbn_operations);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -376,11 +377,8 @@ int vdo_make_physical_zones(struct vdo *vdo, struct physical_zones **zones_ptr)
 	if (zone_count == 0)
 		return VDO_SUCCESS;
 
-	result = UDS_ALLOCATE_EXTENDED(struct physical_zones,
-				       zone_count,
-				       struct physical_zone,
-				       __func__,
-				       &zones);
+	result = UDS_ALLOCATE_EXTENDED(struct physical_zones, zone_count,
+				       struct physical_zone, __func__, &zones);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -427,7 +425,8 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 struct pbn_lock *vdo_get_physical_zone_pbn_lock(struct physical_zone *zone,
 						physical_block_number_t pbn)
 {
-	return ((zone == NULL) ? NULL : vdo_int_map_get(zone->pbn_operations, pbn));
+	return ((zone == NULL) ? NULL : vdo_int_map_get(zone->pbn_operations,
+							pbn));
 }
 
 /**
@@ -459,11 +458,13 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 
 	result = borrow_pbn_lock_from_pool(zone->lock_pool, type, &new_lock);
 	if (result != VDO_SUCCESS) {
-		ASSERT_LOG_ONLY(false, "must always be able to borrow a PBN lock");
+		ASSERT_LOG_ONLY(false,
+				"must always be able to borrow a PBN lock");
 		return result;
 	}
 
-	result = vdo_int_map_put(zone->pbn_operations, pbn, new_lock, false, (void **) &lock);
+	result = vdo_int_map_put(zone->pbn_operations, pbn, new_lock, false,
+				 (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_pbn_lock_to_pool(zone->lock_pool, new_lock);
 		return result;
@@ -500,7 +501,8 @@ static int allocate_and_lock_block(struct allocation *allocation)
 	ASSERT_LOG_ONLY(allocation->lock == NULL,
 			"must not allocate a block while already holding a lock on one");
 
-	result = vdo_allocate_block(allocation->zone->allocator, &allocation->pbn);
+	result = vdo_allocate_block(allocation->zone->allocator,
+				    &allocation->pbn);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -572,7 +574,8 @@ static bool continue_allocating(struct data_vio *data_vio)
 
 	if (allocation->wait_for_clean_slab) {
 		data_vio->waiter.callback = retry_allocation;
-		result = vdo_enqueue_clean_slab_waiter(zone->allocator, &data_vio->waiter);
+		result = vdo_enqueue_clean_slab_waiter(zone->allocator,
+						       &data_vio->waiter);
 		if (result == VDO_SUCCESS)
 			/* We've enqueued to wait for a slab to be scrubbed. */
 			return true;
@@ -629,7 +632,8 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 	if (lock == NULL)
 		return;
 
-	ASSERT_LOG_ONLY(lock->holder_count > 0, "should not be releasing a lock that is not held");
+	ASSERT_LOG_ONLY(lock->holder_count > 0,
+			"should not be releasing a lock that is not held");
 
 	lock->holder_count -= 1;
 	if (lock->holder_count > 0)
@@ -641,7 +645,8 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 			"physical block lock mismatch for block %llu",
 			(unsigned long long) locked_pbn);
 
-	release_pbn_lock_provisional_reference(lock, locked_pbn, zone->allocator);
+	release_pbn_lock_provisional_reference(lock, locked_pbn,
+					       zone->allocator);
 	return_pbn_lock_to_pool(zone->lock_pool, lock);
 }
 
