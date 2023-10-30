@@ -70,8 +70,7 @@ static inline void assert_vio_in_bio_zone(struct vio *vio)
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"vio I/O for physical block %llu on thread %u, should be on bio zone thread %u",
 			(unsigned long long) pbn_from_vio_bio(vio->bio),
-			thread_id,
-			expected);
+			thread_id, expected);
 }
 
 int vdo_create_bio(struct bio **bio_ptr);
@@ -94,7 +93,8 @@ static inline int __must_check create_metadata_vio(struct vdo *vdo,
 						   void *parent, char *data,
 						   struct vio **vio_ptr)
 {
-	return create_multi_block_metadata_vio(vdo, vio_type, priority, parent, 1, data, vio_ptr);
+	return create_multi_block_metadata_vio(vdo, vio_type, priority, parent,
+					       1, data, vio_ptr);
 }
 
 void free_vio_components(struct vio *vio);

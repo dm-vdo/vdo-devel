@@ -57,7 +57,8 @@ static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 	struct bio *bio = NULL;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct bio, size + 1, struct bio_vec, "bio", &bio);
+	result = UDS_ALLOCATE_EXTENDED(struct bio, size + 1, struct bio_vec,
+				       "bio", &bio);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -89,14 +90,12 @@ int allocate_vio_components(struct vdo *vdo, enum vio_type vio_type,
 
 	result = ASSERT(block_count <= MAX_BLOCKS_PER_VIO,
 			"block count %u does not exceed maximum %u",
-			block_count,
-			MAX_BLOCKS_PER_VIO);
+			block_count, MAX_BLOCKS_PER_VIO);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED) && (vio_type != VIO_TYPE_DATA)),
-			"%d is a metadata type",
-			vio_type);
+			"%d is a metadata type", vio_type);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -143,7 +142,8 @@ int create_multi_block_metadata_vio(struct vdo *vdo, enum vio_type vio_type,
 		return result;
 	}
 
-	result = allocate_vio_components(vdo, vio_type, priority, parent, block_count, data, vio);
+	result = allocate_vio_components(vdo, vio_type, priority, parent,
+					 block_count, data, vio);
 	if (result != VDO_SUCCESS) {
 		UDS_FREE(vio);
 		return result;
@@ -251,7 +251,7 @@ int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
 		if (bytes_added != bytes)
 			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
 						      "Could only add %i bytes to bio",
-						       bytes_added);
+						      bytes_added);
 
 		data += bytes;
 		len -= bytes;
@@ -269,7 +269,8 @@ int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
 #ifdef __KERNEL__
-	static DEFINE_RATELIMIT_STATE(error_limiter, DEFAULT_RATELIMIT_INTERVAL,
+	static DEFINE_RATELIMIT_STATE(error_limiter,
+				      DEFAULT_RATELIMIT_INTERVAL,
 				      DEFAULT_RATELIMIT_BURST);
 #endif
 	va_list args;
@@ -296,7 +297,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, vio->completion.result, UDS_LOGGING_MODULE_NAME, format, args);
+	uds_vlog_strerror(priority, vio->completion.result,
+			  UDS_LOGGING_MODULE_NAME, format, args);
 	va_end(args);
 }
 
@@ -318,8 +320,7 @@ void vio_record_metadata_io_error(struct vio *vio)
 
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",
-			       description,
-			       vio->type,
+			       description, vio->type,
 			       (unsigned long long) pbn);
 }
 
@@ -343,11 +344,8 @@ int make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
 	char *ptr;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct vio_pool,
-				       pool_size,
-				       struct pooled_vio,
-				       __func__,
-				       &pool);
+	result = UDS_ALLOCATE_EXTENDED(struct vio_pool, pool_size,
+				       struct pooled_vio, __func__, &pool);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -355,7 +353,8 @@ int make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
 	INIT_LIST_HEAD(&pool->available);
 	INIT_LIST_HEAD(&pool->busy);
 
-	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer", &pool->buffer);
+	result = UDS_ALLOCATE(pool_size * VDO_BLOCK_SIZE, char,
+			      "VIO pool buffer", &pool->buffer);
 	if (result != VDO_SUCCESS) {
 		free_vio_pool(pool);
 		return result;
@@ -365,13 +364,8 @@ int make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
 	for (pool->size = 0; pool->size < pool_size; pool->size++, ptr += VDO_BLOCK_SIZE) {
 		struct pooled_vio *pooled = &pool->vios[pool->size];
 
-		result = allocate_vio_components(vdo,
-						 vio_type,
-						 priority,
-						 NULL,
-						 1,
-						 ptr,
-						 &pooled->vio);
+		result = allocate_vio_components(vdo, vio_type, priority, NULL,
+						 1, ptr, &pooled->vio);
 		if (result != VDO_SUCCESS) {
 			free_vio_pool(pool);
 			return result;
@@ -445,7 +439,8 @@ void acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 		return;
 	}
 
-	pooled = list_first_entry(&pool->available, struct pooled_vio, pool_entry);
+	pooled = list_first_entry(&pool->available, struct pooled_vio,
+				  pool_entry);
 	pool->busy_count++;
 	list_move_tail(&pooled->pool_entry, &pool->busy);
 	(*waiter->callback)(waiter, pooled);
@@ -499,7 +494,8 @@ void vdo_count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 		 * shouldn't exist.
 		 */
 	default:
-		ASSERT_LOG_ONLY(0, "Bio operation %d not a write, read, discard, or empty flush",
+		ASSERT_LOG_ONLY(0,
+				"Bio operation %d not a write, read, discard, or empty flush",
 				bio_op(bio));
 	}
 
