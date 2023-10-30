@@ -1,14 +1,14 @@
 ;; -*- lexical-binding: t -*-
 
-;; Code for reflowing function declarations and the headers of
-;; function definitions in order to comply better with the prevailing
-;; style in device-mapper.  In particular, return types don't go on a
-;; separate line, and argument lists get wrapped to stay under 80
-;; columns, despite longer lines being used elsewhere in the kernel.
-;; Argument lists are only broken after commas.  If these conflict --
-;; the first comma is after 80 columns -- then we overrun the
-;; 80-column limit, keeping the argument intact and keeping the return
-;; type on the same line as the function name.
+;; restyle-declarations-in-files
+
+;; There are still kernel constructs this doesn't handle, like "static
+;; DEFINE_THING(some,args,here);" but it's close enough for a first
+;; cut.
+
+;; There are plenty of other cases where scanning for decl arguments
+;; lands us someplace odd like in enum definitions, which we mostly
+;; manage to log and skip over.
 
 ;; There are still kernel constructs this doesn't recognize properly,
 ;; like "static DEFINE_THING(some,args,here);" variable definitions
@@ -28,6 +28,21 @@
 ;;   temporarily removed while working on the file.
 ;; encodings.h:
 ;;   blank line with whitespace gets inserted in an enum list
+
+;; restyle-funcalls-in-files
+
+;; Re-wraps function calls after arg-list commas. Sometimes this
+;; uglifies things, usually in expressions like
+;; "f1(arg1,arg2)&&f2(arg3,arg4)" where breaking at the binary
+;; operator would be nicer, or function calls that are themselves
+;; within argument lists.
+
+;; Also, function call as initializer in a compound expression
+;; (".x=foo(arg1,arg2)") often winds up with a blank line inserted
+;; after it.
+
+;; Most function calls are rewrapped pretty cleanly.  But some manual
+;; review of the results is needed.
 
 (require 'array) ;; for current-line
 (require 'subr-x)
@@ -129,19 +144,19 @@ macro.)"
     (point)))
 
 (defun current-line-as-string ()
+  ;; Just what it says on the tin.
   (buffer-substring-no-properties (beginning-of-line-pos) (end-of-line-pos)))
 
-(defun reflow-function-decl (start-pos end-pos)
-  "Reflow a function declaration or function definition header.
+(defun buffer-substring-near-point (chars-before chars-after)
+  (let ((here (point)))
+    (buffer-substring-no-properties (max (point-min)
+					 (- here chars-before))
+				    (min (point-max)
+					 (+ here chars-after)))))
 
-The function declaration must be enclosed in the region from
-START-POS to END-POS, without additional non-whitespace text.
-Break the argument list at commas to keep lines under
-`fill-column' when possible."
+(defun squash-function-decl-to-one-line (start-pos end-pos)
   (save-restriction
     (narrow-to-region start-pos end-pos)
-    ;; First, collapse everything into one line.
-    ;;
     ;; A "*" followed by newline can be squashed together, but
     ;; non-punctuation tokens followed by newline followed by more
     ;; stuff should keep some whitespace.
@@ -155,27 +170,84 @@ Break the argument list at commas to keep lines under
     (goto-char (point-max))
     ;; Remove trailing whitespace
     (while (looking-back "[\n\t ]" nil)
-      (delete-char -1))
-    ;; XXX may infloop if no commas
-    (let (done)
-      (while (and (not done)
-		  (> (current-column) fill-column))
-	(move-to-column fill-column)
-	(if (search-backward "," (beginning-of-line-pos) t)
+      (delete-char -1))))
+
+(defun search-nonstring (search-fn string bound)
+  "Similar to search-backward etc but skips strings found inside string literals.
+
+Assumes NOERROR is t and COUNT is unspecified.  Requires a fully
+fontified buffer."
+  (if (funcall search-fn string bound t)
+      (let (at-bound)
+	(while (and (not at-bound)
+		    (eq 'font-lock-string-face
+			(plist-get (text-properties-at (match-beginning 0)) 'face)))
+	  ;; We're looking at a string literal; skip it and keep
+	  ;; searching.
+	  (if (not (funcall search-fn string bound t))
+	      (setq at-bound t)))
+	;; On exit from the while loop, at-bound is t if we hit the
+	;; limit, nil if we found a match not in a string literal.
+	(not at-bound))))
+
+(defun search-backward-nonstring (string bound)
+  "Similar to search-backward but skips strings found inside string literals.
+
+Assumes NOERROR is t and COUNT is unspecified.  Requires a fully
+fontified buffer."
+  (search-nonstring #'search-backward string bound))
+
+(defun search-forward-nonstring (string bound)
+  "Similar to search-forward but skips strings found inside string literals.
+
+Assumes NOERROR is t and COUNT is unspecified.  Requires a fully
+fontified buffer."
+  (search-nonstring #'search-forward string bound))
+
+(defun re-search-forward-nonstring (string bound)
+  "Similar to search-forward but skips strings found inside string literals.
+
+Assumes NOERROR is t and COUNT is unspecified.  Requires a fully
+fontified buffer."
+  (search-nonstring #'re-search-forward string bound))
+
+(defun break-line-at-commas ()
+  "Break at commas to try to keep the line length under fill-column.
+
+The fill-column target is treated as soft; if the first comma is
+past that column or there are no commas, the line will exceed the
+target width."
+  (let (done)
+    (while (and (not done)
+		(> (current-column) fill-column))
+      (move-to-column fill-column)
+      (if (search-backward-nonstring "," (beginning-of-line-pos))
+	  (progn
+	    (forward-char 1)
+	    (insert "\n")
+	    (indent-for-tab-command))
+	(if debug-reflow
+	    (message "too long but no comma to left? %S %S"
+		     (point)
+		     (current-line-as-string)))
+	(if (search-forward-nonstring "," (end-of-line-pos))
 	    (progn
-	      (forward-char 1)
 	      (insert "\n")
 	      (indent-for-tab-command))
-	  (if debug-reflow
-	      (message "too long but no comma to left? %S %S"
-		       (point)
-		       (current-line-as-string)))
-	  (if (search-forward "," (end-of-line-pos) t)
-	      (progn
-		(insert "\n")
-		(indent-for-tab-command))
-	    (setq done t)))
-	(end-of-line)))))
+	  (setq done t)))
+      (end-of-line))))
+
+(defun reflow-function-decl (start-pos end-pos)
+  "Reflow a function declaration or function definition header.
+
+The function declaration must be enclosed in the region from
+START-POS to END-POS, without additional non-whitespace text.
+Break the argument list at commas to keep lines under
+`fill-column' when possible."
+  (save-restriction
+    (narrow-to-region start-pos end-pos)
+    (squash-function-decl-to-one-line start-pos end-pos)
+    (break-line-at-commas)))
 
 (defun examine-non-void-decls ()
   "Find function declarations with arguments and reflow the line breaks.
@@ -266,6 +338,9 @@ intended for debugging purposes only."
     (nreverse result)))
 
 (defun examine-void-decls ()
+  ;; To do: Look for "(void)" and still adjust return type line breaks
+  ;; etc.
+  ;;
   ;; Not handled yet.  Luckily all our no-argument functions already
   ;; seem to use the one-line style.
   )
@@ -293,17 +368,14 @@ Function definition headers are processed also."
 (defun run-test ()
   (message "%S" (reflow-current-buffer)))
 
-;; command line
-;; emacs --batch -Q -l thisfile.el -f restyle-files file1.c file2.h ...
-(defun restyle-files ()
-  "Reflow function declarations in files named on the command line."
+(defun apply-buffer-op-to-argv-files (operation)
   (let (filename (failed-files nil))
     (while (setq filename (pop argv))
       (message "Processing %s..." filename)
       (find-file filename)
       (c-mode)
       (condition-case x
-	  (reflow-current-buffer)
+	  (funcall operation)
 	(error
 	 (message "error processing %s : %S"
 		  filename x)
@@ -319,3 +391,79 @@ Function definition headers are processed also."
 	(message "Errors processing files: %s"
 		 (string-join (nreverse failed-files) " ")))
     (kill-emacs (if failed-files 1 0))))
+
+;; command line
+;; emacs --batch -Q -l thisfile.el -f restyle-declarations-in-files file1.c file2.h ...
+(defun restyle-declarations-in-files ()
+  (apply-buffer-op-to-argv-files #'reflow-current-buffer))
+
+;; function calls
+
+(defun reflow-function-call ()
+  (save-restriction
+    (let ((start (point)))
+      (forward-sexp 1)
+      (narrow-to-region start (point))
+      (goto-char (point-min))
+      ;; Skip reflowing if there aren't any commas.
+      (if (search-forward-nonstring "," nil)
+	  (progn
+	    (goto-char (point-min))
+	    (while (re-search-forward "[\t ]*\n[\t ]*" nil t)
+	      (replace-match " " t t))
+	    (goto-char (point-min))
+	    (let ((end (point-max)))
+	      ;; Restore preceding context to get proper indentation levels.
+	      (widen)
+	      ;; Add 1 to factor in ";" if present.
+	      (narrow-to-region (point-min) (+ 1 end)))
+	    ;; Note that this won't introduce line breaks for
+	    ;; "foo(arg1,arg2)+17" if the "+17" runs over the length
+	    ;; limit, because we're still limiting the processing to
+	    ;; the argument list.
+	    (goto-char (point-max))
+	    (break-line-at-commas)))
+      ;; Always move to the end of the argument list before widening,
+      ;; so that we can search forward for a second function call on
+      ;; the same line, if present.
+      (goto-char (point-max)))))
+
+(defun find-next-function-body ()
+  "Find the next function-body start.
+
+If found, sets point to the opening { and returns t; otherwise
+returns nil but may have adjusted point anyway."
+  ;; keep looping until defun-open found
+  (while (and (search-forward "{" nil 0)
+	      (not (assq 'defun-open (c-guess-basic-syntax)))))
+  (if (looking-back "{" (- (point) 1))
+      (progn
+	(backward-char 1)
+	t)))
+
+(defun reflow-function-calls-in-buffer ()
+  (font-lock-fontify-region (point-min) (point-max))
+  (goto-char (point-min))
+  (setq fill-column 79)
+  (while (find-next-function-body)
+    (save-restriction
+      (narrow-to-defun)
+      ;; Include ")" to handle "(foo->callback)(args)"
+      (while (re-search-forward-nonstring "[a-zA-Z0-9)](" nil)
+	(if (not (assq 'cpp-macro
+		       (save-restriction
+			 ;; Guessing syntax sometimes loops
+			 ;; recursively if it wants more context but
+			 ;; we're narrowed.
+			 (widen)
+			 (c-guess-basic-syntax))))
+	    (progn
+	      ;; Position at the "(" rather than after it
+	      (backward-char 1)
+	      (reflow-function-call)))
+	)
+      ;; Reposition so next search will start after this function.
+      (goto-char (point-max)))))
+
+(defun restyle-funcalls-in-files ()
+  (apply-buffer-op-to-argv-files #'reflow-function-calls-in-buffer))
