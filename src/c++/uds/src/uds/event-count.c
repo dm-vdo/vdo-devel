@@ -188,7 +188,8 @@ static inline bool fast_cancel(struct event_count *count, event_token_t token)
 		 * Try to decrement the waiter count via compare-and-swap as if we had never
 		 * prepared to wait.
 		 */
-		new_token = atomic64_cmpxchg(&count->state, current_token, current_token - 1);
+		new_token = atomic64_cmpxchg(&count->state, current_token,
+					     current_token - 1);
 		if (new_token == current_token)
 			return true;
 
