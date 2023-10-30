@@ -166,8 +166,7 @@ static void emit_log_message(int priority, const char *module,
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
 
-		emit_log_message_to_kernel(priority,
-					   "%s[%s]: %s%pV%pV\n",
+		emit_log_message_to_kernel(priority, "%s[%s]: %s%pV%pV\n",
 					   module, type, prefix, vaf1, vaf2);
 		return;
 	}
@@ -175,8 +174,7 @@ static void emit_log_message(int priority, const char *module,
 	/* Not at interrupt level; we have a process we can look at, and might have a device ID. */
 	device_instance = uds_get_thread_device_id();
 	if (device_instance >= 0) {
-		emit_log_message_to_kernel(priority,
-					   "%s%u:%s: %s%pV%pV\n",
+		emit_log_message_to_kernel(priority, "%s%u:%s: %s%pV%pV\n",
 					   module, device_instance,
 					   current->comm, prefix, vaf1, vaf2);
 		return;
@@ -188,16 +186,14 @@ static void emit_log_message(int priority, const char *module,
 	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
 	    (strncmp(module, current->comm, strlen(module)) == 0)) {
-		emit_log_message_to_kernel(priority,
-					   "%s: %s%pV%pV\n",
+		emit_log_message_to_kernel(priority, "%s: %s%pV%pV\n",
 					   current->comm, prefix, vaf1, vaf2);
 		return;
 	}
 
 	/* Identify the module and the process. */
-	emit_log_message_to_kernel(priority,
-				   "%s: %s: %s%pV%pV\n",
-				   module, current->comm, prefix, vaf1, vaf2);
+	emit_log_message_to_kernel(priority, "%s: %s: %s%pV%pV\n", module,
+				   current->comm, prefix, vaf1, vaf2);
 }
 
 /*
@@ -248,14 +244,8 @@ int uds_vlog_strerror(int priority, int errnum, const char *module,
 	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
 	const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
 
-	uds_log_embedded_message(priority,
-				 module,
-				 NULL,
-				 format,
-				 args,
-				 ": %s (%d)",
-				 message,
-				 errnum);
+	uds_log_embedded_message(priority, module, NULL, format, args,
+				 ": %s (%d)", message, errnum);
 	return errnum;
 }
 
@@ -283,7 +273,8 @@ void __uds_log_message(int priority, const char *module, const char *format,
 	va_list args;
 
 	va_start(args, format);
-	uds_log_embedded_message(priority, module, NULL, format, args, "%s", "");
+	uds_log_embedded_message(priority, module, NULL, format, args, "%s",
+				 "");
 	va_end(args);
 }
 
