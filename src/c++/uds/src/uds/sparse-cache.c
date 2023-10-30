@@ -165,14 +165,12 @@ static int __must_check initialize_cached_chapter_index(struct cached_chapter_in
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
 	result = UDS_ALLOCATE(chapter->index_pages_count,
-			      struct delta_index_page,
-			      __func__,
+			      struct delta_index_page, __func__,
 			      &chapter->index_pages);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return UDS_ALLOCATE(chapter->index_pages_count,
-			    struct dm_buffer *,
+	return UDS_ALLOCATE(chapter->index_pages_count, struct dm_buffer *,
 			    "sparse index volume pages",
 			    &chapter->page_buffers);
 }
@@ -225,20 +223,23 @@ int uds_make_sparse_cache(const struct geometry *geometry,
 	 */
 	cache->skip_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	result = uds_initialize_barrier(&cache->begin_update_barrier, zone_count);
+	result = uds_initialize_barrier(&cache->begin_update_barrier,
+					zone_count);
 	if (result != UDS_SUCCESS) {
 		uds_free_sparse_cache(cache);
 		return result;
 	}
 
-	result = uds_initialize_barrier(&cache->end_update_barrier, zone_count);
+	result = uds_initialize_barrier(&cache->end_update_barrier,
+					zone_count);
 	if (result != UDS_SUCCESS) {
 		uds_free_sparse_cache(cache);
 		return result;
 	}
 
 	for (i = 0; i < capacity; i++) {
-		result = initialize_cached_chapter_index(&cache->chapters[i], geometry);
+		result = initialize_cached_chapter_index(&cache->chapters[i],
+							 geometry);
 		if (result != UDS_SUCCESS) {
 			uds_free_sparse_cache(cache);
 			return result;
@@ -254,10 +255,8 @@ int uds_make_sparse_cache(const struct geometry *geometry,
 	}
 
 	/* purge_search_list() needs some temporary lists for sorting. */
-	result = UDS_ALLOCATE(capacity * 2,
-			      struct cached_chapter_index *,
-			      "scratch entries",
-			      &cache->scratch_entries);
+	result = UDS_ALLOCATE(capacity * 2, struct cached_chapter_index *,
+			      "scratch entries", &cache->scratch_entries);
 	if (result != UDS_SUCCESS) {
 		uds_free_sparse_cache(cache);
 		return result;
@@ -335,8 +334,7 @@ static inline void set_newest_entry(struct search_list *search_list, u8 index)
 
 	if (index > 0) {
 		newest = search_list->entries[index];
-		memmove(&search_list->entries[1],
-			&search_list->entries[0],
+		memmove(&search_list->entries[1], &search_list->entries[0],
 			index * sizeof(struct cached_chapter_index *));
 		search_list->entries[0] = newest;
 	}
@@ -412,11 +410,9 @@ static void purge_search_list(struct search_list *search_list,
 			entries[next_alive++] = chapter;
 	}
 
-	memcpy(&entries[next_alive],
-	       skipped,
+	memcpy(&entries[next_alive], skipped,
 	       next_skipped * sizeof(struct cached_chapter_index *));
-	memcpy(&entries[next_alive + next_skipped],
-	       dead,
+	memcpy(&entries[next_alive + next_skipped], dead,
 	       next_dead * sizeof(struct cached_chapter_index *));
 	search_list->first_dead_entry = next_alive + next_skipped;
 }
@@ -429,8 +425,7 @@ static int __must_check cache_chapter_index(struct cached_chapter_index *chapter
 
 	release_cached_chapter_index(chapter);
 
-	result = uds_read_chapter_index_from_volume(volume,
-						    virtual_chapter,
+	result = uds_read_chapter_index_from_volume(volume, virtual_chapter,
 						    chapter->page_buffers,
 						    chapter->index_pages);
 	if (result != UDS_SUCCESS)
@@ -447,8 +442,7 @@ static inline void copy_search_list(const struct search_list *source,
 				    struct search_list *target)
 {
 	*target = *source;
-	memcpy(target->entries,
-	       source->entries,
+	memcpy(target->entries, source->entries,
 	       source->capacity * sizeof(struct cached_chapter_index *));
 }
 
@@ -531,11 +525,15 @@ static int __must_check search_cached_chapter_index(struct cached_chapter_index 
 						    const struct uds_record_name *name,
 						    u16 *record_page_ptr)
 {
-	u32 physical_chapter = uds_map_to_physical_chapter(geometry, chapter->virtual_chapter);
-	u32 index_page_number = uds_find_index_page_number(index_page_map, name, physical_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry,
+							   chapter->virtual_chapter);
+	u32 index_page_number = uds_find_index_page_number(index_page_map,
+							   name,
+							   physical_chapter);
 	struct delta_index_page *index_page = &chapter->index_pages[index_page_number];
 
-	return uds_search_chapter_index_page(index_page, geometry, name, record_page_ptr);
+	return uds_search_chapter_index_page(index_page, geometry, name,
+					     record_page_ptr);
 }
 
 int uds_search_sparse_cache(struct index_zone *zone,
@@ -556,16 +554,13 @@ int uds_search_sparse_cache(struct index_zone *zone,
 	for (i = 0; i < search_list->first_dead_entry; i++) {
 		chapter = search_list->entries[i];
 
-		if (should_skip_chapter(chapter,
-					zone->oldest_virtual_chapter,
+		if (should_skip_chapter(chapter, zone->oldest_virtual_chapter,
 					*virtual_chapter_ptr))
 			continue;
 
-		result = search_cached_chapter_index(chapter,
-						     cache->geometry,
+		result = search_cached_chapter_index(chapter, cache->geometry,
 						     volume->index_page_map,
-						     name,
-						     record_page_ptr);
+						     name, record_page_ptr);
 		if (result != UDS_SUCCESS)
 			return result;
 
