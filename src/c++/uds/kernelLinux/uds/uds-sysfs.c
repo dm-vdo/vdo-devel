@@ -325,8 +325,10 @@ int uds_init_sysfs(void)
 	result = kobject_add(&object_root.kobj, NULL, UDS_SYSFS_NAME);
 	if (result == 0) {
 		object_root.flag = true;
-		kobject_init(&object_root.parameter_kobj, &parameter_object_type);
-		result = kobject_add(&object_root.parameter_kobj, &object_root.kobj, "parameter");
+		kobject_init(&object_root.parameter_kobj,
+			     &parameter_object_type);
+		result = kobject_add(&object_root.parameter_kobj,
+				     &object_root.kobj, "parameter");
 		if (result == 0)
 			object_root.parameter_flag = true;
 	}
@@ -334,7 +336,8 @@ int uds_init_sysfs(void)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (result == 0) {
 		kobject_init(&object_root.memory_kobj, &memory_object_type);
-		result = kobject_add(&object_root.memory_kobj, &object_root.kobj, "memory");
+		result = kobject_add(&object_root.memory_kobj,
+				     &object_root.kobj, "memory");
 		if (result == 0)
 			object_root.memory_flag = true;
 	}
