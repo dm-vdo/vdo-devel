@@ -175,11 +175,11 @@ int vdo_validate_header(const struct header *expected_header,
 	if (expected_header->id != actual_header->id)
 		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
-					      name,
-					      expected_header->id,
+					      name, expected_header->id,
 					      actual_header->id);
 
-	result = validate_version(expected_header->version, actual_header->version, name);
+	result = validate_version(expected_header->version,
+				  actual_header->version, name);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -187,8 +187,7 @@ int vdo_validate_header(const struct header *expected_header,
 	    (exact_size && (expected_header->size < actual_header->size)))
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s size mismatch, expected %zu, got %zu",
-					      name,
-					      expected_header->size,
+					      name, expected_header->size,
 					      actual_header->size);
 
 	return VDO_SUCCESS;
@@ -255,7 +254,8 @@ static void decode_volume_geometry(u8 *buffer, size_t *offset,
 	decode_u64_le(buffer, offset, &nonce);
 	geometry->nonce = nonce;
 
-	memcpy((unsigned char *) &geometry->uuid, buffer + *offset, sizeof(uuid_t));
+	memcpy((unsigned char *) &geometry->uuid, buffer + *offset,
+	       sizeof(uuid_t));
 	*offset += sizeof(uuid_t);
 
 	if (version > 4)
@@ -307,7 +307,8 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 	/* This is for backwards compatibility */
 	encode_u32_le(buffer, offset, geometry->unused);
 	encode_u64_le(buffer, offset, geometry->nonce);
-	memcpy(buffer + *offset, (unsigned char *) &geometry->uuid, sizeof(uuid_t));
+	memcpy(buffer + *offset, (unsigned char *) &geometry->uuid,
+	       sizeof(uuid_t));
 	*offset += sizeof(uuid_t);
 
 	if (version > 4)
@@ -315,7 +316,8 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 
 	for (id = 0; id < VDO_VOLUME_REGION_COUNT; id++) {
 		encode_u32_le(buffer, offset, geometry->regions[id].id);
-		encode_u64_le(buffer, offset, geometry->regions[id].start_block);
+		encode_u64_le(buffer, offset,
+			      geometry->regions[id].start_block);
 	}
 
 	encode_u32_le(buffer, offset, geometry->index_config.mem);
@@ -344,19 +346,23 @@ int __must_check vdo_parse_geometry_block(u8 *block,
 	size_t offset = 0;
 	int result;
 
-	if (memcmp(block, VDO_GEOMETRY_MAGIC_NUMBER, VDO_GEOMETRY_MAGIC_NUMBER_SIZE) != 0)
+	if (memcmp(block, VDO_GEOMETRY_MAGIC_NUMBER,
+		   VDO_GEOMETRY_MAGIC_NUMBER_SIZE) != 0)
 		return VDO_BAD_MAGIC;
 	offset += VDO_GEOMETRY_MAGIC_NUMBER_SIZE;
 
 	vdo_decode_header(block, &offset, &header);
 	if (header.version.major_version <= 4)
-		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_4_0,
+					     &header, true, __func__);
 	else
-		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0, &header, true, __func__);
+		result = vdo_validate_header(&GEOMETRY_BLOCK_HEADER_5_0,
+					     &header, true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	decode_volume_geometry(block, &offset, geometry, header.version.major_version);
+	decode_volume_geometry(block, &offset, geometry,
+			       header.version.major_version);
 
 	result = ASSERT(header.size == offset + sizeof(u32),
 			"should have decoded up to the geometry checksum");
@@ -390,7 +396,8 @@ enum block_map_page_validity vdo_validate_block_map_page(struct block_map_page *
 {
 	BUILD_BUG_ON(sizeof(struct block_map_page_header) != PAGE_HEADER_4_1_SIZE);
 
-	if (!vdo_are_same_version(BLOCK_MAP_4_1, vdo_unpack_version_number(page->version)) ||
+	if (!vdo_are_same_version(BLOCK_MAP_4_1,
+				  vdo_unpack_version_number(page->version)) ||
 	    !page->header.initialized ||
 	    (nonce != __le64_to_cpu(page->header.nonce)))
 		return VDO_BLOCK_MAP_PAGE_INVALID;
@@ -411,7 +418,8 @@ STATIC int decode_block_map_state_2_0(u8 *buffer, size_t *offset,
 	int result;
 
 	vdo_decode_header(buffer, offset, &header);
-	result = vdo_validate_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true, __func__);
+	result = vdo_validate_header(&VDO_BLOCK_MAP_HEADER_2_0, &header, true,
+				     __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -479,7 +487,8 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 					   block_count_t entries,
 					   struct boundary *new_sizes)
 {
-	page_count_t leaf_pages = max(vdo_compute_block_map_page_count(entries), 1U);
+	page_count_t leaf_pages = max(vdo_compute_block_map_page_count(entries),
+				      1U);
 	page_count_t level_size = DIV_ROUND_UP(leaf_pages, root_count);
 	block_count_t total_pages = 0;
 	height_t height;
@@ -487,7 +496,8 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 	for (height = 0; height < VDO_BLOCK_MAP_TREE_HEIGHT; height++) {
 		block_count_t new_pages;
 
-		level_size = DIV_ROUND_UP(level_size, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_size = DIV_ROUND_UP(level_size,
+					  VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;
 		new_pages = level_size;
 		if (old_sizes != NULL)
@@ -537,7 +547,8 @@ STATIC int __must_check decode_recovery_journal_state_7_0(u8 *buffer,
 	block_count_t logical_blocks_used, block_map_data_blocks;
 
 	vdo_decode_header(buffer, offset, &header);
-	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header, true, __func__);
+	result = vdo_validate_header(&VDO_RECOVERY_JOURNAL_HEADER_7_0, &header,
+				     true, __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -595,7 +606,8 @@ STATIC void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
 	initial_offset = *offset;
 	encode_u64_le(buffer, offset, state.slab_config.slab_blocks);
 	encode_u64_le(buffer, offset, state.slab_config.data_blocks);
-	encode_u64_le(buffer, offset, state.slab_config.reference_count_blocks);
+	encode_u64_le(buffer, offset,
+		      state.slab_config.reference_count_blocks);
 	encode_u64_le(buffer, offset, state.slab_config.slab_journal_blocks);
 	encode_u64_le(buffer, offset,
 		      state.slab_config.slab_journal_flushing_threshold);
@@ -628,7 +640,8 @@ STATIC int decode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
 	zone_count_t zone_count;
 
 	vdo_decode_header(buffer, offset, &header);
-	result = vdo_validate_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true, __func__);
+	result = vdo_validate_header(&VDO_SLAB_DEPOT_HEADER_2_0, &header, true,
+				     __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -697,11 +710,9 @@ int vdo_configure_slab_depot(const struct partition *partition,
 	block_count_t slab_size = slab_config.slab_blocks;
 
 	uds_log_debug("slabDepot %s(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
-		      __func__,
-		      (unsigned long long) partition->count,
+		      __func__, (unsigned long long) partition->count,
 		      (unsigned long long) partition->offset,
-		      (unsigned long long) slab_size,
-		      zone_count);
+		      (unsigned long long) slab_size, zone_count);
 
 	/* We do not allow runt slabs, so we waste up to a slab's worth. */
 	slab_count = (partition->count / slab_size);
@@ -724,8 +735,7 @@ int vdo_configure_slab_depot(const struct partition *partition,
 
 	uds_log_debug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
 		      (unsigned long long) last_block,
-		      (unsigned long long) total_data_blocks,
-		      slab_count,
+		      (unsigned long long) total_data_blocks, slab_count,
 		      (unsigned long long) (partition->count - (last_block - partition->offset)));
 
 	return VDO_SUCCESS;
@@ -925,7 +935,8 @@ int vdo_initialize_layout(block_count_t size, physical_block_number_t offset,
 		(offset + block_map_blocks + journal_blocks + summary_blocks);
 
 	if (necessary_size > size)
-		return uds_log_error_strerror(VDO_NO_SPACE, "Not enough space to make a VDO");
+		return uds_log_error_strerror(VDO_NO_SPACE,
+					      "Not enough space to make a VDO");
 
 	*layout = (struct layout) {
 		.start = offset,
@@ -936,19 +947,22 @@ int vdo_initialize_layout(block_count_t size, physical_block_number_t offset,
 		.head = NULL,
 	};
 
-	result = make_partition(layout, VDO_BLOCK_MAP_PARTITION, block_map_blocks, true);
+	result = make_partition(layout, VDO_BLOCK_MAP_PARTITION,
+				block_map_blocks, true);
 	if (result != VDO_SUCCESS) {
 		vdo_uninitialize_layout(layout);
 		return result;
 	}
 
-	result = make_partition(layout, VDO_SLAB_SUMMARY_PARTITION, summary_blocks, false);
+	result = make_partition(layout, VDO_SLAB_SUMMARY_PARTITION,
+				summary_blocks, false);
 	if (result != VDO_SUCCESS) {
 		vdo_uninitialize_layout(layout);
 		return result;
 	}
 
-	result = make_partition(layout, VDO_RECOVERY_JOURNAL_PARTITION, journal_blocks, false);
+	result = make_partition(layout, VDO_RECOVERY_JOURNAL_PARTITION,
+				journal_blocks, false);
 	if (result != VDO_SUCCESS) {
 		vdo_uninitialize_layout(layout);
 		return result;
@@ -1016,7 +1030,8 @@ struct partition *vdo_get_known_partition(struct layout *layout,
 	struct partition *partition;
 	int result = vdo_get_partition(layout, id, &partition);
 
-	ASSERT_LOG_ONLY(result == VDO_SUCCESS, "layout has expected partition: %u", id);
+	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
+			"layout has expected partition: %u", id);
 
 	return partition;
 }
@@ -1069,7 +1084,8 @@ STATIC int decode_layout(u8 *buffer, size_t *offset,
 
 	vdo_decode_header(buffer, offset, &header);
 	/* Layout is variable size, so only do a minimum size check here. */
-	result = vdo_validate_header(&VDO_LAYOUT_HEADER_3_0, &header, false, __func__);
+	result = vdo_validate_header(&VDO_LAYOUT_HEADER_3_0, &header, false,
+				     __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1107,7 +1123,8 @@ STATIC int decode_layout(u8 *buffer, size_t *offset,
 		*offset += sizeof(u64);
 		decode_u64_le(buffer, offset, &count);
 
-		result = allocate_partition(layout, id, partition_offset, count);
+		result = allocate_partition(layout, id, partition_offset,
+					    count);
 		if (result != VDO_SUCCESS) {
 			vdo_uninitialize_layout(layout);
 			return result;
@@ -1116,7 +1133,8 @@ STATIC int decode_layout(u8 *buffer, size_t *offset,
 
 	/* Validate that the layout has all (and only) the required partitions */
 	for (i = 0; i < VDO_PARTITION_COUNT; i++) {
-		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i], &partition);
+		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i],
+					   &partition);
 		if (result != VDO_SUCCESS) {
 			vdo_uninitialize_layout(layout);
 			return uds_log_error_strerror(result,
@@ -1129,7 +1147,8 @@ STATIC int decode_layout(u8 *buffer, size_t *offset,
 
 	if (start != size) {
 		vdo_uninitialize_layout(layout);
-		return uds_log_error_strerror(UDS_BAD_STATE, "partitions do not cover the layout");
+		return uds_log_error_strerror(UDS_BAD_STATE,
+					      "partitions do not cover the layout");
 	}
 
 	return VDO_SUCCESS;
@@ -1228,7 +1247,8 @@ static int decode_vdo_component(u8 *buffer, size_t *offset,
 	int result;
 
 	decode_version_number(buffer, offset, &version);
-	result = validate_version(version, VDO_COMPONENT_DATA_41_0, "VDO component data");
+	result = validate_version(version, VDO_COMPONENT_DATA_41_0,
+				  "VDO component data");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1258,7 +1278,8 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = ASSERT(is_power_of_2(config->slab_size), "slab size must be a power of two");
+	result = ASSERT(is_power_of_2(config->slab_size),
+			"slab size must be a power of two");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1278,7 +1299,8 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = vdo_configure_slab(config->slab_size, config->slab_journal_blocks, &slab_config);
+	result = vdo_configure_slab(config->slab_size,
+				    config->slab_journal_blocks, &slab_config);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1287,7 +1309,8 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = ASSERT(config->physical_blocks > 0, "physical blocks unspecified");
+	result = ASSERT(config->physical_blocks > 0,
+			"physical blocks unspecified");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1319,7 +1342,8 @@ int vdo_validate_config(const struct vdo_config *config,
 #endif /* __KERNEL__ */
 
 	if (logical_block_count > 0) {
-		result = ASSERT((config->logical_blocks > 0), "logical blocks unspecified");
+		result = ASSERT((config->logical_blocks > 0),
+				"logical blocks unspecified");
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1336,7 +1360,8 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = ASSERT(config->recovery_journal_size > 0, "recovery journal size unspecified");
+	result = ASSERT(config->recovery_journal_size > 0,
+			"recovery journal size unspecified");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1378,23 +1403,25 @@ static int __must_check decode_components(u8 *buffer, size_t *offset,
 
 	decode_vdo_component(buffer, offset, &states->vdo);
 
-	result = decode_layout(buffer,
-			       offset,
+	result = decode_layout(buffer, offset,
 			       vdo_get_data_region_start(*geometry) + 1,
 			       states->vdo.config.physical_blocks,
 			       &states->layout);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_recovery_journal_state_7_0(buffer, offset, &states->recovery_journal);
+	result = decode_recovery_journal_state_7_0(buffer, offset,
+						   &states->recovery_journal);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_slab_depot_state_2_0(buffer, offset, &states->slab_depot);
+	result = decode_slab_depot_state_2_0(buffer, offset,
+					     &states->slab_depot);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = decode_block_map_state_2_0(buffer, offset, &states->block_map);
+	result = decode_block_map_state_2_0(buffer, offset,
+					    &states->block_map);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1422,7 +1449,8 @@ int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 
 	/* Check the VDO volume version */
 	decode_version_number(buffer, &offset, &states->volume_version);
-	result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version, "volume");
+	result = validate_version(VDO_VOLUME_VERSION_67_0,
+				  states->volume_version, "volume");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1454,7 +1482,8 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 					      (unsigned long long) geometry_nonce,
 					      (unsigned long long) states->vdo.nonce);
 
-	return vdo_validate_config(&states->vdo.config, physical_size, logical_size);
+	return vdo_validate_config(&states->vdo.config, physical_size,
+				   logical_size);
 }
 
 /**
@@ -1468,7 +1497,8 @@ static void vdo_encode_component_states(u8 *buffer, size_t *offset,
 	encode_version_number(buffer, offset, states->volume_version);
 	encode_vdo_component(buffer, offset, states->vdo);
 	encode_layout(buffer, offset, &states->layout);
-	encode_recovery_journal_state_7_0(buffer, offset, states->recovery_journal);
+	encode_recovery_journal_state_7_0(buffer, offset,
+					  states->recovery_journal);
 	encode_slab_depot_state_2_0(buffer, offset, states->slab_depot);
 	encode_block_map_state_2_0(buffer, offset, states->block_map);
 
@@ -1496,7 +1526,8 @@ void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states)
 	 * Even though the buffer is a full block, to avoid the potential corruption from a torn
 	 * write, the entire encoding must fit in the first sector.
 	 */
-	ASSERT_LOG_ONLY(offset <= VDO_SECTOR_SIZE, "entire superblock must fit in one sector");
+	ASSERT_LOG_ONLY(offset <= VDO_SECTOR_SIZE,
+			"entire superblock must fit in one sector");
 }
 
 /**
@@ -1511,7 +1542,8 @@ int vdo_decode_super_block(u8 *buffer)
 
 	/* Decode and validate the header. */
 	vdo_decode_header(buffer, &offset, &header);
-	result = vdo_validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false, __func__);
+	result = vdo_validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false,
+				     __func__);
 	if (result != VDO_SUCCESS)
 		return result;
 

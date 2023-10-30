@@ -925,7 +925,8 @@ static inline struct packed_recovery_journal_entry vdo_pack_recovery_journal_ent
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
 		.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
 		.pbn_low_word = __cpu_to_le32(entry->slot.pbn & UINT_MAX),
-		.mapping = vdo_pack_block_map_entry(entry->mapping.pbn, entry->mapping.state),
+		.mapping = vdo_pack_block_map_entry(entry->mapping.pbn,
+						    entry->mapping.state),
 		.unmapping = vdo_pack_block_map_entry(entry->unmapping.pbn,
 						      entry->unmapping.state),
 	};
@@ -1187,7 +1188,8 @@ static inline void vdo_pack_slab_journal_block_header(const struct slab_journal_
 	packed->metadata_type = header->metadata_type;
 	packed->has_block_map_increments = header->has_block_map_increments;
 
-	vdo_pack_journal_point(&header->recovery_point, &packed->recovery_point);
+	vdo_pack_journal_point(&header->recovery_point,
+			       &packed->recovery_point);
 }
 
 /**
@@ -1207,7 +1209,8 @@ static inline void vdo_unpack_slab_journal_block_header(const struct packed_slab
 		.metadata_type = packed->metadata_type,
 		.has_block_map_increments = packed->has_block_map_increments,
 	};
-	vdo_unpack_journal_point(&packed->recovery_point, &header->recovery_point);
+	vdo_unpack_journal_point(&packed->recovery_point,
+				 &header->recovery_point);
 }
 
 /**
