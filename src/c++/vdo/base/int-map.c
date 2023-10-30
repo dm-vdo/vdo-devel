@@ -286,7 +286,8 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 
 	/* Search the hop list for the insertion point that maintains the sort order. */
 	for (;;) {
-		struct bucket *bucket = dereference_hop(neighborhood, next_hop);
+		struct bucket *bucket = dereference_hop(neighborhood,
+							next_hop);
 
 		next_hop = bucket->next_hop;
 
@@ -368,7 +369,8 @@ static struct bucket *search_hop_list(struct int_map *map __always_unused,
  */
 void *vdo_int_map_get(struct int_map *map, u64 key)
 {
-	struct bucket *match = search_hop_list(map, select_bucket(map, key), key, NULL);
+	struct bucket *match = search_hop_list(map, select_bucket(map, key),
+					       key, NULL);
 
 	return ((match != NULL) ? match->value : NULL);
 }
@@ -407,7 +409,8 @@ static int resize_buckets(struct int_map *map)
 		if (entry->value == NULL)
 			continue;
 
-		result = vdo_int_map_put(map, entry->key, entry->value, true, NULL);
+		result = vdo_int_map_put(map, entry->key, entry->value, true,
+					 NULL);
 		if (result != UDS_SUCCESS) {
 			/* Destroy the new partial map and restore the map from the stack. */
 			UDS_FREE(UDS_FORGET(map->buckets));
@@ -442,7 +445,8 @@ static struct bucket *find_empty_bucket(struct int_map *map,
 	 * beyond the initial bucket.
 	 */
 	ptrdiff_t remaining = &map->buckets[map->bucket_count] - bucket;
-	struct bucket *sentinel = &bucket[min_t(ptrdiff_t, remaining, max_probes)];
+	struct bucket *sentinel = &bucket[min_t(ptrdiff_t, remaining,
+						max_probes)];
 	struct bucket *entry;
 
 	for (entry = bucket; entry < sentinel; entry++)
@@ -480,7 +484,8 @@ static struct bucket *move_empty_bucket(struct int_map *map __always_unused,
 		 * Find the entry that is nearest to the bucket, which means it will be nearest to
 		 * the hash bucket whose neighborhood is full.
 		 */
-		struct bucket *new_hole = dereference_hop(bucket, bucket->first_hop);
+		struct bucket *new_hole = dereference_hop(bucket,
+							  bucket->first_hop);
 
 		if (new_hole == NULL)
 			/*
@@ -633,7 +638,8 @@ int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update,
 	 * Check whether the neighborhood already contains an entry for the key, in which case we
 	 * optionally update it, returning the old value.
 	 */
-	if (update_mapping(map, neighborhood, key, new_value, update, old_value_ptr))
+	if (update_mapping(map, neighborhood, key, new_value, update,
+			   old_value_ptr))
 		return UDS_SUCCESS;
 
 	/*

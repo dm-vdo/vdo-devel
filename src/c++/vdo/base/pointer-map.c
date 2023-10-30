@@ -125,10 +125,8 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
 	 * without have to wrap back around to element zero.
 	 */
 	map->bucket_count = capacity + (NEIGHBORHOOD - 1);
-	return UDS_ALLOCATE(map->bucket_count,
-			    struct bucket,
-			    "pointer_map buckets",
-			    &map->buckets);
+	return UDS_ALLOCATE(map->bucket_count, struct bucket,
+			    "pointer_map buckets", &map->buckets);
 }
 
 /**
@@ -253,7 +251,8 @@ static void insert_in_hop_list(struct bucket *neighborhood,
 
 	/* Search the hop list for the insertion point that maintains the sort order. */
 	for (;;) {
-		struct bucket *bucket = dereference_hop(neighborhood, next_hop);
+		struct bucket *bucket = dereference_hop(neighborhood,
+							next_hop);
 
 		next_hop = bucket->next_hop;
 
@@ -328,7 +327,8 @@ static struct bucket *search_hop_list(struct pointer_map *map,
  */
 void *vdo_pointer_map_get(struct pointer_map *map, const void *key)
 {
-	struct bucket *match = search_hop_list(map, select_bucket(map, key), key, NULL);
+	struct bucket *match = search_hop_list(map, select_bucket(map, key),
+					       key, NULL);
 
 	return ((match != NULL) ? match->value : NULL);
 }
@@ -350,10 +350,7 @@ static int resize_buckets(struct pointer_map *map)
 	size_t new_capacity = map->capacity / 2 * 3;
 
 	uds_log_info("%s: attempting resize from %zu to %zu, current size=%zu",
-		     __func__,
-		     map->capacity,
-		     new_capacity,
-		     map->size);
+		     __func__, map->capacity, new_capacity, map->size);
 	result = allocate_buckets(map, new_capacity);
 	if (result != UDS_SUCCESS) {
 		*map = old_map;
@@ -367,7 +364,8 @@ static int resize_buckets(struct pointer_map *map)
 		if (entry->value == NULL)
 			continue;
 
-		result = vdo_pointer_map_put(map, entry->key, entry->value, true, NULL);
+		result = vdo_pointer_map_put(map, entry->key, entry->value,
+					     true, NULL);
 		if (result != UDS_SUCCESS) {
 			/* Destroy the new partial map and restore the map from the stack. */
 			UDS_FREE(UDS_FORGET(map->buckets));
@@ -402,7 +400,8 @@ static struct bucket *find_empty_bucket(struct pointer_map *map,
 	 * beyond the initial bucket.
 	 */
 	ptrdiff_t remaining = &map->buckets[map->bucket_count] - bucket;
-	struct bucket *sentinel = &bucket[min_t(ptrdiff_t, remaining, max_probes)];
+	struct bucket *sentinel = &bucket[min_t(ptrdiff_t, remaining,
+						max_probes)];
 	struct bucket *entry;
 
 	for (entry = bucket; entry < sentinel; entry++)
@@ -441,7 +440,8 @@ static struct bucket *move_empty_bucket(struct pointer_map *map __always_unused,
 		 * Find the entry that is nearest to the bucket, which means it will be nearest to
 		 * the hash bucket whose neighborhood is full.
 		 */
-		struct bucket *new_hole = dereference_hop(bucket, bucket->first_hop);
+		struct bucket *new_hole = dereference_hop(bucket,
+							  bucket->first_hop);
 
 		if (new_hole == NULL)
 			/*
@@ -605,7 +605,8 @@ int vdo_pointer_map_put(struct pointer_map *map, const void *key,
 	 * Check whether the neighborhood already contains an entry for the key, in which case we
 	 * optionally update it, returning the old value.
 	 */
-	if (update_mapping(map, neighborhood, key, new_value, update, old_value_ptr))
+	if (update_mapping(map, neighborhood, key, new_value, update,
+			   old_value_ptr))
 		return UDS_SUCCESS;
 
 	/*
