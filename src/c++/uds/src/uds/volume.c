@@ -158,14 +158,14 @@ static inline bool search_pending(union invalidate_counter invalidate_counter)
 STATIC void begin_pending_search(struct page_cache *cache, u32 physical_page,
 				 unsigned int zone_number)
 {
-	union invalidate_counter invalidate_counter = get_invalidate_counter(cache, zone_number);
+	union invalidate_counter invalidate_counter = get_invalidate_counter(cache,
+									     zone_number);
 
 	invalidate_counter.page = physical_page;
 	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
-			"Search is pending for zone %u",
-			zone_number);
+			"Search is pending for zone %u", zone_number);
 	/*
 	 * This memory barrier ensures that the write to the invalidate counter is seen by other
 	 * threads before this thread accesses the cached page. The corresponding read memory
@@ -189,8 +189,7 @@ STATIC void end_pending_search(struct page_cache *cache,
 
 	invalidate_counter = get_invalidate_counter(cache, zone_number);
 	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
-			"Search is pending for zone %u",
-			zone_number);
+			"Search is pending for zone %u", zone_number);
 	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 }
@@ -220,7 +219,8 @@ static void wait_for_pending_searches(struct page_cache *cache,
 			 *
 			 * FIXME: Investigate using wait_event() to wait for the search to finish.
 			 */
-			while (initial_counters[i].value == get_invalidate_counter(cache, i).value)
+			while (initial_counters[i].value ==
+			       get_invalidate_counter(cache, i).value)
 				cond_resched();
 }
 
@@ -247,7 +247,8 @@ STATIC void make_page_most_recent(struct page_cache *cache,
 	 * thread holding the read_threads_mutex.
 	 */
 	if (atomic64_read(&cache->clock) != READ_ONCE(page->last_used))
-		WRITE_ONCE(page->last_used, atomic64_inc_return(&cache->clock));
+		WRITE_ONCE(page->last_used,
+			   atomic64_inc_return(&cache->clock));
 }
 
 /* Select a page to remove from the cache to make space for a new entry. */
@@ -274,7 +275,8 @@ STATIC struct cached_page *select_victim_in_cache(struct page_cache *cache)
 
 	page = &cache->cache[oldest_index];
 	if (page->physical_page != cache->indexable_pages) {
-		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
+		WRITE_ONCE(cache->index[page->physical_page],
+			   cache->cache_slots);
 		wait_for_pending_searches(cache, page->physical_page);
 	}
 
@@ -290,7 +292,8 @@ STATIC int put_page_in_cache(struct page_cache *cache, u32 physical_page,
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->read_pending), "page to install has a pending read");
+	result = ASSERT((page->read_pending),
+			"page to install has a pending read");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -316,7 +319,8 @@ static void cancel_page_in_cache(struct page_cache *cache, u32 physical_page,
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->read_pending), "page to install has a pending read");
+	result = ASSERT((page->read_pending),
+			"page to install has a pending read");
 	if (result != UDS_SUCCESS)
 		return;
 
@@ -393,7 +397,8 @@ STATIC void enqueue_page_read(struct volume *volume,
 		/* Restart the read threads, which normally only sleep when the queue is empty */
 		uds_signal_cond(&volume->read_threads_cond);
 #endif /* TEST_INTERNAL */
-		uds_wait_cond(&volume->read_threads_read_done_cond, &volume->read_threads_mutex);
+		uds_wait_cond(&volume->read_threads_read_done_cond,
+			      &volume->read_threads_mutex);
 	}
 
 	uds_signal_cond(&volume->read_threads_cond);
@@ -419,7 +424,8 @@ static struct queued_read *reserve_read_queue_entry(struct page_cache *cache)
 	queued = (index_value & VOLUME_CACHE_QUEUED_FLAG) != 0;
 	/* Check to see if it's still queued before resetting. */
 	if (entry->invalid && queued)
-		WRITE_ONCE(cache->index[entry->physical_page], cache->cache_slots);
+		WRITE_ONCE(cache->index[entry->physical_page],
+			   cache->cache_slots);
 
 	/*
 	 * If a synchronous read has taken this page, set invalid to true so it doesn't get
@@ -440,7 +446,8 @@ static inline struct queued_read *wait_to_reserve_read_queue_entry(struct volume
 	while (!volume->read_threads_exiting) {
 #ifdef TEST_INTERNAL
 		if (volume->read_threads_stopped) {
-			uds_wait_cond(&volume->read_threads_cond, &volume->read_threads_mutex);
+			uds_wait_cond(&volume->read_threads_cond,
+				      &volume->read_threads_mutex);
 			continue;
 		}
 
@@ -449,7 +456,8 @@ static inline struct queued_read *wait_to_reserve_read_queue_entry(struct volume
 		if (queue_entry != NULL)
 			break;
 
-		uds_wait_cond(&volume->read_threads_cond, &volume->read_threads_mutex);
+		uds_wait_cond(&volume->read_threads_cond,
+			      &volume->read_threads_mutex);
 	}
 
 	return queue_entry;
@@ -467,8 +475,7 @@ static int init_chapter_index_page(const struct volume *volume, u8 *index_page,
 	int result;
 
 	result = uds_initialize_chapter_index_page(chapter_index_page,
-						   geometry,
-						   index_page,
+						   geometry, index_page,
 						   volume->nonce);
 	if (volume->lookup_mode == LOOKUP_FOR_REBUILD)
 		return result;
@@ -476,13 +483,10 @@ static int init_chapter_index_page(const struct volume *volume, u8 *index_page,
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "Reading chapter index page for chapter %u page %u",
-					      chapter,
-					      index_page_number);
+					      chapter, index_page_number);
 
-	uds_get_list_number_bounds(volume->index_page_map,
-				   chapter,
-				   index_page_number,
-				   &lowest_list,
+	uds_get_list_number_bounds(volume->index_page_map, chapter,
+				   index_page_number, &lowest_list,
 				   &highest_list);
 	ci_virtual = chapter_index_page->virtual_chapter_number;
 	ci_chapter = uds_map_to_physical_chapter(geometry, ci_virtual);
@@ -494,10 +498,7 @@ static int init_chapter_index_page(const struct volume *volume, u8 *index_page,
 	uds_log_warning("Index page map updated to %llu",
 			(unsigned long long) volume->index_page_map->last_update);
 	uds_log_warning("Page map expects that chapter %u page %u has range %u to %u, but chapter index page has chapter %llu with range %u to %u",
-			chapter,
-			index_page_number,
-			lowest_list,
-			highest_list,
+			chapter, index_page_number, lowest_list, highest_list,
 			(unsigned long long) ci_virtual,
 			chapter_index_page->lowest_list_number,
 			chapter_index_page->highest_list_number);
@@ -509,12 +510,12 @@ static int initialize_index_page(const struct volume *volume,
 				 u32 physical_page, struct cached_page *page)
 {
 	u32 chapter = map_to_chapter_number(volume->geometry, physical_page);
-	u32 index_page_number = map_to_page_number(volume->geometry, physical_page);
+	u32 index_page_number = map_to_page_number(volume->geometry,
+						   physical_page);
 
 	return init_chapter_index_page(volume,
 				       dm_bufio_get_block_data(page->buffer),
-				       chapter,
-				       index_page_number,
+				       chapter, index_page_number,
 				       &page->index_page);
 }
 
@@ -564,8 +565,7 @@ static int search_page(struct cached_page *page, const struct volume *volume,
 
 	if (is_record_page(volume->geometry, physical_page)) {
 		if (search_record_page(dm_bufio_get_block_data(page->buffer),
-				       &request->record_name,
-				       volume->geometry,
+				       &request->record_name, volume->geometry,
 				       &request->old_metadata))
 			location = UDS_LOCATION_RECORD_PAGE_LOOKUP;
 		else
@@ -628,7 +628,8 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 		result = initialize_index_page(volume, page_number, page);
 		if (result != UDS_SUCCESS) {
 			uds_log_warning("Error initializing chapter index page");
-			cancel_page_in_cache(&volume->page_cache, page_number, page);
+			cancel_page_in_cache(&volume->page_cache, page_number,
+					     page);
 			return result;
 		}
 	}
@@ -757,7 +758,8 @@ static int read_page_locked(struct volume *volume, u32 physical_page,
 	u8 *page_data;
 
 	page = select_victim_in_cache(&volume->page_cache);
-	page_data = dm_bufio_read(volume->client, physical_page, &page->buffer);
+	page_data = dm_bufio_read(volume->client, physical_page,
+				  &page->buffer);
 	if (IS_ERR(page_data)) {
 		result = -PTR_ERR(page_data);
 		uds_log_warning_strerror(result,
@@ -771,15 +773,18 @@ static int read_page_locked(struct volume *volume, u32 physical_page,
 		result = initialize_index_page(volume, physical_page, page);
 		if (result != UDS_SUCCESS) {
 			if (volume->lookup_mode != LOOKUP_FOR_REBUILD)
-				uds_log_warning("Corrupt index page %u", physical_page);
-			cancel_page_in_cache(&volume->page_cache, physical_page, page);
+				uds_log_warning("Corrupt index page %u",
+						physical_page);
+			cancel_page_in_cache(&volume->page_cache,
+					     physical_page, page);
 			return result;
 		}
 	}
 
 	result = put_page_in_cache(&volume->page_cache, physical_page, page);
 	if (result != UDS_SUCCESS) {
-		uds_log_warning("Error putting page %u in cache", physical_page);
+		uds_log_warning("Error putting page %u in cache",
+				physical_page);
 		cancel_page_in_cache(&volume->page_cache, physical_page, page);
 		return result;
 	}
@@ -847,7 +852,8 @@ STATIC int get_volume_page_protected(struct volume *volume,
 		 * the order does not matter for correctness as it does below.
 		 */
 		uds_unlock_mutex(&volume->read_threads_mutex);
-		begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
+		begin_pending_search(&volume->page_cache, physical_page,
+				     request->zone_number);
 		return UDS_QUEUED;
 	}
 
@@ -856,7 +862,8 @@ STATIC int get_volume_page_protected(struct volume *volume,
 	 * "search pending" state in careful order so no other thread can mess with the data before
 	 * the caller gets to look at it.
 	 */
-	begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
+	begin_pending_search(&volume->page_cache, physical_page,
+			     request->zone_number);
 	uds_unlock_mutex(&volume->read_threads_mutex);
 	*page_ptr = page;
 	return UDS_SUCCESS;
@@ -866,7 +873,8 @@ static int get_volume_page(struct volume *volume, u32 chapter, u32 page_number,
 			   struct cached_page **page_ptr)
 {
 	int result;
-	u32 physical_page = map_to_physical_page(volume->geometry, chapter, page_number);
+	u32 physical_page = map_to_physical_page(volume->geometry, chapter,
+						 page_number);
 
 	uds_lock_mutex(&volume->read_threads_mutex);
 	result = get_volume_page_locked(volume, physical_page, page_ptr);
@@ -910,7 +918,8 @@ static int search_cached_index_page(struct volume *volume,
 {
 	int result;
 	struct cached_page *page = NULL;
-	u32 physical_page = map_to_physical_page(volume->geometry, chapter, index_page_number);
+	u32 physical_page = map_to_physical_page(volume->geometry, chapter,
+						 index_page_number);
 
 	/*
 	 * Make sure the invalidate counter is updated before we try and read the mapping. This
@@ -918,9 +927,11 @@ static int search_cached_index_page(struct volume *volume,
 	 * invalidation by the reader thread, before the reader thread has noticed that the
 	 * invalidate_counter has been incremented.
 	 */
-	begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
+	begin_pending_search(&volume->page_cache, physical_page,
+			     request->zone_number);
 
-	result = get_volume_page_protected(volume, request, physical_page, &page);
+	result = get_volume_page_protected(volume, request, physical_page,
+					   &page);
 	if (result != UDS_SUCCESS) {
 		end_pending_search(&volume->page_cache, request->zone_number);
 		return result;
@@ -952,15 +963,15 @@ int uds_search_cached_record_page(struct volume *volume,
 		return UDS_SUCCESS;
 
 	result = ASSERT(record_page_number < geometry->record_pages_per_chapter,
-			"0 <= %d < %u",
-			record_page_number,
+			"0 <= %d < %u", record_page_number,
 			geometry->record_pages_per_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	page_number = geometry->index_pages_per_chapter + record_page_number;
 
-	physical_page = map_to_physical_page(volume->geometry, chapter, page_number);
+	physical_page = map_to_physical_page(volume->geometry, chapter,
+					     page_number);
 
 	/*
 	 * Make sure the invalidate counter is updated before we try and read the mapping. This
@@ -968,17 +979,18 @@ int uds_search_cached_record_page(struct volume *volume,
 	 * invalidation by the reader thread, before the reader thread has noticed that the
 	 * invalidate_counter has been incremented.
 	 */
-	begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
+	begin_pending_search(&volume->page_cache, physical_page,
+			     request->zone_number);
 
-	result = get_volume_page_protected(volume, request, physical_page, &record_page);
+	result = get_volume_page_protected(volume, request, physical_page,
+					   &record_page);
 	if (result != UDS_SUCCESS) {
 		end_pending_search(&volume->page_cache, request->zone_number);
 		return result;
 	}
 
 	if (search_record_page(dm_bufio_get_block_data(record_page->buffer),
-			       &request->record_name,
-			       geometry,
+			       &request->record_name, geometry,
 			       &request->old_metadata))
 		*found = true;
 
@@ -991,7 +1003,8 @@ void uds_prefetch_volume_chapter(const struct volume *volume, u32 chapter)
 	const struct geometry *geometry = volume->geometry;
 	u32 physical_page = map_to_physical_page(geometry, chapter, 0);
 
-	dm_bufio_prefetch(volume->client, physical_page, geometry->pages_per_chapter);
+	dm_bufio_prefetch(volume->client, physical_page,
+			  geometry->pages_per_chapter);
 }
 
 int uds_read_chapter_index_from_volume(const struct volume *volume,
@@ -1002,15 +1015,18 @@ int uds_read_chapter_index_from_volume(const struct volume *volume,
 	int result;
 	u32 i;
 	const struct geometry *geometry = volume->geometry;
-	u32 physical_chapter = uds_map_to_physical_chapter(geometry, virtual_chapter);
-	u32 physical_page = map_to_physical_page(geometry, physical_chapter, 0);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry,
+							   virtual_chapter);
+	u32 physical_page = map_to_physical_page(geometry, physical_chapter,
+						 0);
 
 	dm_bufio_prefetch(volume->client, physical_page,
 			  geometry->index_pages_per_chapter);
 	for (i = 0; i < geometry->index_pages_per_chapter; i++) {
 		u8 *index_page;
 
-		index_page = dm_bufio_read(volume->client, physical_page + i, &volume_buffers[i]);
+		index_page = dm_bufio_read(volume->client, physical_page + i,
+					   &volume_buffers[i]);
 		if (IS_ERR(index_page)) {
 			result = -PTR_ERR(index_page);
 			uds_log_warning_strerror(result,
@@ -1019,10 +1035,8 @@ int uds_read_chapter_index_from_volume(const struct volume *volume,
 			return result;
 		}
 
-		result = init_chapter_index_page(volume,
-						 index_page,
-						 physical_chapter,
-						 i,
+		result = init_chapter_index_page(volume, index_page,
+						 physical_chapter, i,
 						 &index_pages[i]);
 		if (result != UDS_SUCCESS)
 			return result;
@@ -1036,7 +1050,8 @@ int uds_search_volume_page_cache(struct volume *volume,
 {
 	int result;
 	u32 physical_chapter =
-		uds_map_to_physical_chapter(volume->geometry, request->virtual_chapter);
+		uds_map_to_physical_chapter(volume->geometry,
+					    request->virtual_chapter);
 	u32 index_page_number;
 	u16 record_page_number;
 
@@ -1047,8 +1062,7 @@ int uds_search_volume_page_cache(struct volume *volume,
 	if (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP) {
 		record_page_number = *((u16 *) &request->old_metadata);
 	} else {
-		result = search_cached_index_page(volume,
-						  request,
+		result = search_cached_index_page(volume, request,
 						  physical_chapter,
 						  index_page_number,
 						  &record_page_number);
@@ -1056,11 +1070,8 @@ int uds_search_volume_page_cache(struct volume *volume,
 			return result;
 	}
 
-	return uds_search_cached_record_page(volume,
-					     request,
-					     physical_chapter,
-					     record_page_number,
-					     found);
+	return uds_search_cached_record_page(volume, request, physical_chapter,
+					     record_page_number, found);
 }
 
 int uds_search_volume_page_cache_for_rebuild(struct volume *volume,
@@ -1070,22 +1081,23 @@ int uds_search_volume_page_cache_for_rebuild(struct volume *volume,
 	int result;
 	struct geometry *geometry = volume->geometry;
 	struct cached_page *page;
-	u32 physical_chapter = uds_map_to_physical_chapter(geometry, virtual_chapter);
+	u32 physical_chapter = uds_map_to_physical_chapter(geometry,
+							   virtual_chapter);
 	u32 index_page_number;
 	u16 record_page_number;
 	u32 page_number;
 
 	*found = false;
 	index_page_number =
-		uds_find_index_page_number(volume->index_page_map, name, physical_chapter);
-	result = get_volume_page(volume, physical_chapter, index_page_number, &page);
+		uds_find_index_page_number(volume->index_page_map, name,
+					   physical_chapter);
+	result = get_volume_page(volume, physical_chapter, index_page_number,
+				 &page);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_search_chapter_index_page(&page->index_page,
-					       geometry,
-					       name,
-					       &record_page_number);
+	result = uds_search_chapter_index_page(&page->index_page, geometry,
+					       name, &record_page_number);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1097,7 +1109,8 @@ int uds_search_volume_page_cache_for_rebuild(struct volume *volume,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	*found = search_record_page(dm_bufio_get_block_data(page->buffer), name, geometry, NULL);
+	*found = search_record_page(dm_bufio_get_block_data(page->buffer),
+				    name, geometry, NULL);
 	return UDS_SUCCESS;
 }
 
@@ -1109,7 +1122,8 @@ STATIC void invalidate_page(struct page_cache *cache, u32 physical_page)
 	/* We hold the read_threads_mutex. */
 	get_page_and_index(cache, physical_page, &queue_index, &page);
 	if (page != NULL) {
-		WRITE_ONCE(cache->index[page->physical_page], cache->cache_slots);
+		WRITE_ONCE(cache->index[page->physical_page],
+			   cache->cache_slots);
 		wait_for_pending_searches(cache, page->physical_page);
 		clear_cache_page(cache, page);
 	} else if (queue_index > -1) {
@@ -1120,11 +1134,14 @@ STATIC void invalidate_page(struct page_cache *cache, u32 physical_page)
 
 void uds_forget_chapter(struct volume *volume, u64 virtual_chapter)
 {
-	u32 physical_chapter = uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
-	u32 first_page = map_to_physical_page(volume->geometry, physical_chapter, 0);
+	u32 physical_chapter = uds_map_to_physical_chapter(volume->geometry,
+							   virtual_chapter);
+	u32 first_page = map_to_physical_page(volume->geometry,
+					      physical_chapter, 0);
 	u32 i;
 
-	uds_log_debug("forgetting chapter %llu", (unsigned long long) virtual_chapter);
+	uds_log_debug("forgetting chapter %llu",
+		      (unsigned long long) virtual_chapter);
 	uds_lock_mutex(&volume->read_threads_mutex);
 	for (i = 0; i < volume->geometry->pages_per_chapter; i++)
 		invalidate_page(&volume->page_cache, first_page + i);
@@ -1143,14 +1160,14 @@ static int donate_index_page_locked(struct volume *volume,
 	int result;
 	struct cached_page *page = NULL;
 	u32 physical_page =
-		map_to_physical_page(volume->geometry, physical_chapter, index_page_number);
+		map_to_physical_page(volume->geometry, physical_chapter,
+				     index_page_number);
 
 	page = select_victim_in_cache(&volume->page_cache);
 	page->buffer = page_buffer;
 	result = init_chapter_index_page(volume,
 					 dm_bufio_get_block_data(page_buffer),
-					 physical_chapter,
-					 index_page_number,
+					 physical_chapter, index_page_number,
 					 &page->index_page);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error initialize chapter index page");
@@ -1160,7 +1177,8 @@ static int donate_index_page_locked(struct volume *volume,
 
 	result = put_page_in_cache(&volume->page_cache, physical_page, page);
 	if (result != UDS_SUCCESS) {
-		uds_log_warning("Error putting page %u in cache", physical_page);
+		uds_log_warning("Error putting page %u in cache",
+				physical_page);
 		cancel_page_in_cache(&volume->page_cache, physical_page, page);
 		return result;
 	}
@@ -1174,7 +1192,9 @@ static int write_index_pages(struct volume *volume,
 {
 	struct geometry *geometry = volume->geometry;
 	struct dm_buffer *page_buffer;
-	u32 first_index_page = map_to_physical_page(geometry, physical_chapter_number, 0);
+	u32 first_index_page = map_to_physical_page(geometry,
+						    physical_chapter_number,
+						    0);
 	u32 delta_list_number = 0;
 	u32 index_page_number;
 
@@ -1187,7 +1207,8 @@ static int write_index_pages(struct volume *volume,
 		bool last_page;
 		int result;
 
-		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
+		page_data = dm_bufio_new(volume->client, physical_page,
+					 &page_buffer);
 		if (IS_ERR(page_data))
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare index page");
@@ -1200,7 +1221,8 @@ static int write_index_pages(struct volume *volume,
 							  &lists_packed);
 		if (result != UDS_SUCCESS) {
 			dm_bufio_release(page_buffer);
-			return uds_log_warning_strerror(result, "failed to pack index page");
+			return uds_log_warning_strerror(result,
+							"failed to pack index page");
 		}
 
 #ifdef TEST_INTERNAL
@@ -1211,7 +1233,8 @@ static int write_index_pages(struct volume *volume,
 		}
 
 		if (physical_page < test_page_count)
-			memcpy(test_pages[physical_page], page_data, geometry->bytes_per_page);
+			memcpy(test_pages[physical_page], page_data,
+			       geometry->bytes_per_page);
 
 #endif /* TEST_INTERNAL */
 		dm_bufio_mark_buffer_dirty(page_buffer);
@@ -1251,25 +1274,18 @@ static u32 encode_tree(u8 record_page[],
 	if (node < node_count) {
 		u32 child = (2 * node) + 1;
 
-		next_record = encode_tree(record_page,
-					  sorted_pointers,
-					  next_record,
-					  child,
-					  node_count);
+		next_record = encode_tree(record_page, sorted_pointers,
+					  next_record, child, node_count);
 
 		/*
 		 * In-order traversal: copy the contents of the next record into the page at the
 		 * node offset.
 		 */
 		memcpy(&record_page[node * BYTES_PER_RECORD],
-		       sorted_pointers[next_record++],
-		       BYTES_PER_RECORD);
+		       sorted_pointers[next_record++], BYTES_PER_RECORD);
 
-		next_record = encode_tree(record_page,
-					  sorted_pointers,
-					  next_record,
-					  child + 1,
-					  node_count);
+		next_record = encode_tree(record_page, sorted_pointers,
+					  next_record, child + 1, node_count);
 	}
 
 	return next_record;
@@ -1294,8 +1310,7 @@ STATIC int encode_record_page(const struct volume *volume,
 	BUILD_BUG_ON(offsetof(struct uds_volume_record, name) != 0);
 	result = uds_radix_sort(volume->radix_sorter,
 				(const u8 **) record_pointers,
-				records_per_page,
-				UDS_RECORD_NAME_SIZE);
+				records_per_page, UDS_RECORD_NAME_SIZE);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1322,7 +1337,8 @@ static int write_record_pages(struct volume *volume,
 		u32 physical_page = first_record_page + record_page_number;
 		int result;
 
-		page_data = dm_bufio_new(volume->client, physical_page, &page_buffer);
+		page_data = dm_bufio_new(volume->client, physical_page,
+					 &page_buffer);
 		if (IS_ERR(page_data))
 			return uds_log_warning_strerror(-PTR_ERR(page_data),
 							"failed to prepare record page");
@@ -1345,7 +1361,8 @@ static int write_record_pages(struct volume *volume,
 		}
 
 		if (physical_page < test_page_count)
-			memcpy(test_pages[physical_page], page_data, geometry->bytes_per_page);
+			memcpy(test_pages[physical_page], page_data,
+			       geometry->bytes_per_page);
 
 #endif /* TEST_INTERNAL */
 		dm_bufio_mark_buffer_dirty(page_buffer);
@@ -1364,7 +1381,8 @@ int uds_write_chapter(struct volume *volume,
 		uds_map_to_physical_chapter(volume->geometry,
 					    chapter_index->virtual_chapter_number);
 
-	result = write_index_pages(volume, physical_chapter_number, chapter_index);
+	result = write_index_pages(volume, physical_chapter_number,
+				   chapter_index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1374,7 +1392,8 @@ int uds_write_chapter(struct volume *volume,
 
 	result = -dm_bufio_write_dirty_buffers(volume->client);
 	if (result != UDS_SUCCESS)
-		uds_log_error_strerror(result, "cannot sync chapter to volume");
+		uds_log_error_strerror(result,
+				       "cannot sync chapter to volume");
 
 	return result;
 }
@@ -1395,20 +1414,23 @@ static void probe_chapter(struct volume *volume, u32 chapter_number,
 
 #endif /* TEST_INTERNAL*/
 	*virtual_chapter_number = BAD_CHAPTER;
-	dm_bufio_prefetch(volume->client,
-			  map_to_physical_page(geometry, chapter_number, 0),
+	dm_bufio_prefetch(volume->client, map_to_physical_page(geometry,
+							       chapter_number,
+							       0),
 			  geometry->index_pages_per_chapter);
 
 	for (i = 0; i < geometry->index_pages_per_chapter; ++i) {
 		struct delta_index_page *page;
 		int result;
 
-		result = uds_get_volume_index_page(volume, chapter_number, i, &page);
+		result = uds_get_volume_index_page(volume, chapter_number, i,
+						   &page);
 		if (result != UDS_SUCCESS)
 			return;
 
 		if (page->virtual_chapter_number == BAD_CHAPTER) {
-			uds_log_error("corrupt index page in chapter %u", chapter_number);
+			uds_log_error("corrupt index page in chapter %u",
+				      chapter_number);
 			return;
 		}
 
@@ -1416,8 +1438,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number,
 			vcn = page->virtual_chapter_number;
 		} else if (page->virtual_chapter_number != vcn) {
 			uds_log_error("inconsistent chapter %u index page %u: expected vcn %llu, got vcn %llu",
-				      chapter_number,
-				      i,
+				      chapter_number, i,
 				      (unsigned long long) vcn,
 				      (unsigned long long) page->virtual_chapter_number);
 			return;
@@ -1425,9 +1446,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number,
 
 		if (expected_list_number != page->lowest_list_number) {
 			uds_log_error("inconsistent chapter %u index page %u: expected list number %u, got list number %u",
-				      chapter_number,
-				      i,
-				      expected_list_number,
+				      chapter_number, i, expected_list_number,
 				      page->lowest_list_number);
 			return;
 		}
@@ -1440,8 +1459,7 @@ static void probe_chapter(struct volume *volume, u32 chapter_number,
 
 	if (chapter_number != uds_map_to_physical_chapter(geometry, vcn)) {
 		uds_log_error("chapter %u vcn %llu is out of phase (%u)",
-			      chapter_number,
-			      (unsigned long long) vcn,
+			      chapter_number, (unsigned long long) vcn,
 			      geometry->chapters_per_volume);
 		return;
 	}
@@ -1512,7 +1530,8 @@ STATIC int find_chapter_limits(struct volume *volume, u32 chapter_limit,
 	if (geometry->remapped_physical > 0) {
 		u64 remapped_vcn;
 
-		probe_chapter(volume, geometry->remapped_physical, &remapped_vcn);
+		probe_chapter(volume, geometry->remapped_physical,
+			      &remapped_vcn);
 		if (remapped_vcn == geometry->remapped_virtual)
 			moved_chapter = geometry->remapped_physical;
 	}
@@ -1559,7 +1578,8 @@ STATIC int find_chapter_limits(struct volume *volume, u32 chapter_limit,
 
 		probe_chapter(volume, right_chapter, &highest);
 		if (bad_chapters++ >= MAX_BAD_CHAPTERS) {
-			uds_log_error("too many bad chapters in volume: %u", bad_chapters);
+			uds_log_error("too many bad chapters in volume: %u",
+				      bad_chapters);
 			return UDS_CORRUPT_DATA;
 		}
 	}
@@ -1587,7 +1607,8 @@ int uds_find_volume_chapter_boundaries(struct volume *volume, u64 *lowest_vcn,
 	}
 
 	*is_empty = false;
-	return find_chapter_limits(volume, chapter_limit, lowest_vcn, highest_vcn);
+	return find_chapter_limits(volume, chapter_limit, lowest_vcn,
+				   highest_vcn);
 }
 
 int __must_check uds_replace_volume_storage(struct volume *volume,
@@ -1605,14 +1626,14 @@ int __must_check uds_replace_volume_storage(struct volume *volume,
 	for (i = 0; i < volume->page_cache.indexable_pages; i++)
 		volume->page_cache.index[i] = volume->page_cache.cache_slots;
 	for (i = 0; i < volume->page_cache.cache_slots; i++)
-		clear_cache_page(&volume->page_cache, &volume->page_cache.cache[i]);
+		clear_cache_page(&volume->page_cache,
+				 &volume->page_cache.cache[i]);
 	if (volume->sparse_cache != NULL)
 		uds_invalidate_sparse_cache(volume->sparse_cache);
 	if (volume->client != NULL)
 		dm_bufio_client_destroy(UDS_FORGET(volume->client));
 
-	return uds_open_volume_bufio(layout,
-				     volume->geometry->bytes_per_page,
+	return uds_open_volume_bufio(layout, volume->geometry->bytes_per_page,
 				     volume->reserved_buffers,
 				     &volume->client);
 }
@@ -1632,33 +1653,29 @@ STATIC int __must_check initialize_page_cache(struct page_cache *cache,
 
 	result = ASSERT((cache->cache_slots <= VOLUME_CACHE_MAX_ENTRIES),
 			"requested cache size, %u, within limit %u",
-			cache->cache_slots,
-			VOLUME_CACHE_MAX_ENTRIES);
+			cache->cache_slots, VOLUME_CACHE_MAX_ENTRIES);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = UDS_ALLOCATE(VOLUME_CACHE_MAX_QUEUED_READS,
-			      struct queued_read,
-			      "volume read queue",
+			      struct queued_read, "volume read queue",
 			      &cache->read_queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(cache->zone_count,
-			      struct search_pending_counter,
+	result = UDS_ALLOCATE(cache->zone_count, struct search_pending_counter,
 			      "Volume Cache Zones",
 			      &cache->search_pending_counters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(cache->indexable_pages, u16, "page cache index", &cache->index);
+	result = UDS_ALLOCATE(cache->indexable_pages, u16, "page cache index",
+			      &cache->index);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(cache->cache_slots,
-			      struct cached_page,
-			      "page cache cache",
-			      &cache->cache);
+	result = UDS_ALLOCATE(cache->cache_slots, struct cached_page,
+			      "page cache cache", &cache->cache);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1690,7 +1707,8 @@ int uds_make_volume(const struct configuration *config,
 	result = uds_copy_geometry(config->geometry, &volume->geometry);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume(volume);
-		return uds_log_warning_strerror(result, "failed to allocate geometry: error");
+		return uds_log_warning_strerror(result,
+						"failed to allocate geometry: error");
 	}
 	geometry = volume->geometry;
 
@@ -1703,8 +1721,7 @@ int uds_make_volume(const struct configuration *config,
 	if (uds_is_sparse_geometry(geometry))
 		reserved_buffers += (config->cache_chapters * geometry->index_pages_per_chapter);
 	volume->reserved_buffers = reserved_buffers;
-	result = uds_open_volume_bufio(layout,
-				       geometry->bytes_per_page,
+	result = uds_open_volume_bufio(layout, geometry->bytes_per_page,
 				       volume->reserved_buffers,
 				       &volume->client);
 	if (result != UDS_SUCCESS) {
@@ -1712,7 +1729,8 @@ int uds_make_volume(const struct configuration *config,
 		return result;
 	}
 
-	result = uds_make_radix_sorter(geometry->records_per_page, &volume->radix_sorter);
+	result = uds_make_radix_sorter(geometry->records_per_page,
+				       &volume->radix_sorter);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume(volume);
 		return result;
@@ -1720,8 +1738,7 @@ int uds_make_volume(const struct configuration *config,
 
 	result = UDS_ALLOCATE(geometry->records_per_page,
 			      const struct uds_volume_record *,
-			      "record pointers",
-			      &volume->record_pointers);
+			      "record pointers", &volume->record_pointers);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume(volume);
 		return result;
@@ -1743,8 +1760,7 @@ int uds_make_volume(const struct configuration *config,
 			page_size * geometry->index_pages_per_chapter * config->cache_chapters;
 	}
 
-	result = initialize_page_cache(&volume->page_cache,
-				       geometry,
+	result = initialize_page_cache(&volume->page_cache, geometry,
 				       config->cache_chapters,
 				       config->zone_count);
 	if (result != UDS_SUCCESS) {
@@ -1777,10 +1793,8 @@ int uds_make_volume(const struct configuration *config,
 		return result;
 	}
 
-	result = UDS_ALLOCATE(config->read_threads,
-			      struct thread *,
-			      "reader threads",
-			      &volume->reader_threads);
+	result = UDS_ALLOCATE(config->read_threads, struct thread *,
+			      "reader threads", &volume->reader_threads);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume(volume);
 		return result;
@@ -1788,8 +1802,7 @@ int uds_make_volume(const struct configuration *config,
 
 	for (i = 0; i < config->read_threads; i++) {
 		result = uds_create_thread(read_thread_function,
-					   (void *) volume,
-					   "reader",
+					   (void *) volume, "reader",
 					   &volume->reader_threads[i]);
 		if (result != UDS_SUCCESS) {
 			uds_free_volume(volume);
