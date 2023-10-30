@@ -108,20 +108,11 @@ int uds_make_bufio(struct io_factory *factory, off_t block_offset,
 	struct dm_bufio_client *client;
 
 #ifdef DM_BUFIO_CLIENT_NO_SLEEP
-	client = dm_bufio_client_create(factory->bdev,
-					block_size,
-					reserved_buffers,
-					0,
-					NULL,
-					NULL,
-					0);
+	client = dm_bufio_client_create(factory->bdev, block_size,
+					reserved_buffers, 0, NULL, NULL, 0);
 #else
-	client = dm_bufio_client_create(factory->bdev,
-					block_size,
-					reserved_buffers,
-					0,
-					NULL,
-					NULL);
+	client = dm_bufio_client_create(factory->bdev, block_size,
+					reserved_buffers, 0, NULL, NULL);
 #endif
 	if (IS_ERR(client))
 		return -PTR_ERR(client);
@@ -135,7 +126,8 @@ static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 {
 	if (block_number < reader->limit) {
 		sector_t read_ahead =
-			min((sector_t) MAX_READ_AHEAD_BLOCKS, reader->limit - block_number);
+			min((sector_t) MAX_READ_AHEAD_BLOCKS,
+			    reader->limit - block_number);
 
 		dm_bufio_prefetch(reader->client, block_number, read_ahead);
 	}
@@ -167,7 +159,8 @@ int uds_make_buffered_reader(struct io_factory *factory, off_t offset,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct buffered_reader, "buffered reader", &reader);
+	result = UDS_ALLOCATE(1, struct buffered_reader, "buffered reader",
+			      &reader);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;
@@ -247,7 +240,8 @@ int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		chunk_size = min(length, bytes_remaining_in_read_buffer(reader));
+		chunk_size = min(length,
+				 bytes_remaining_in_read_buffer(reader));
 		memcpy(data, reader->end, chunk_size);
 		length -= chunk_size;
 		data += chunk_size;
@@ -276,7 +270,8 @@ int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value,
 			break;
 		}
 
-		chunk_size = min(length, bytes_remaining_in_read_buffer(reader));
+		chunk_size = min(length,
+				 bytes_remaining_in_read_buffer(reader));
 		if (memcmp(value, reader->end, chunk_size) != 0) {
 			result = UDS_CORRUPT_DATA;
 			break;
@@ -306,7 +301,8 @@ int uds_make_buffered_writer(struct io_factory *factory, off_t offset,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct buffered_writer, "buffered writer", &writer);
+	result = UDS_ALLOCATE(1, struct buffered_writer, "buffered writer",
+			      &writer);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;
@@ -396,7 +392,8 @@ void uds_free_buffered_writer(struct buffered_writer *writer)
 	flush_previous_buffer(writer);
 	result = -dm_bufio_write_dirty_buffers(writer->client);
 	if (result != UDS_SUCCESS)
-		uds_log_warning_strerror(result, "%s: failed to sync storage", __func__);
+		uds_log_warning_strerror(result, "%s: failed to sync storage",
+					 __func__);
 
 	dm_bufio_client_destroy(writer->client);
 	uds_put_io_factory(writer->factory);
