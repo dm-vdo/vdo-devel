@@ -123,9 +123,9 @@ static void send_bio_to_device(struct vio *vio, struct bio *bio)
 	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 #ifdef VDO_INTERNAL
-	enter_histogram_sample(((bio_data_dir(bio) == WRITE)
-				? histograms->write_queue_histogram
-				: histograms->read_queue_histogram),
+	enter_histogram_sample(((bio_data_dir(bio) == WRITE) ?
+				histograms->write_queue_histogram :
+				histograms->read_queue_histogram),
 			       jiffies - vio->bio_submission_jiffies);
 	vio->bio_submission_jiffies = jiffies;
 #endif
@@ -167,8 +167,10 @@ static struct bio *get_bio_list(struct vio *vio)
 	assert_in_bio_zone(vio);
 
 	mutex_lock(&bio_queue_data->lock);
-	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.head));
-	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.tail));
+	vdo_int_map_remove(bio_queue_data->map,
+			   get_bio_sector(vio->bios_merged.head));
+	vdo_int_map_remove(bio_queue_data->map,
+			   get_bio_sector(vio->bios_merged.tail));
 	bio = vio->bios_merged.head;
 	bio_list_init(&vio->bios_merged);
 	mutex_unlock(&bio_queue_data->lock);
@@ -245,17 +247,21 @@ static int map_merged_vio(struct int_map *bio_map, struct vio *vio)
 {
 	int result;
 
-	result = vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.head), vio, true, NULL);
+	result = vdo_int_map_put(bio_map,
+				 get_bio_sector(vio->bios_merged.head), vio,
+				 true, NULL);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.tail), vio, true, NULL);
+	return vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.tail),
+			       vio, true, NULL);
 }
 
 static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio,
 			      struct vio *prev_vio)
 {
-	vdo_int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
+	vdo_int_map_remove(bio_map,
+			   get_bio_sector(prev_vio->bios_merged.tail));
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, prev_vio);
 }
@@ -268,7 +274,8 @@ static int merge_to_next_head(struct int_map *bio_map, struct vio *vio,
 	 * that's compatible with using funnel queues in work queues. This avoids removing an
 	 * existing completion.
 	 */
-	vdo_int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
+	vdo_int_map_remove(bio_map,
+			   get_bio_sector(next_vio->bios_merged.head));
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, next_vio);
 }
@@ -304,16 +311,15 @@ static bool try_bio_map_merge(struct vio *vio)
 		/* no merge. just add to bio_queue */
 		merged = false;
 		result = vdo_int_map_put(bio_queue_data->map,
-					 get_bio_sector(bio),
-					 vio,
-					 true,
-					 NULL);
+					 get_bio_sector(bio), vio, true, NULL);
 	} else if (next_vio == NULL) {
 		/* Only prev. merge to prev's tail */
-		result = merge_to_prev_tail(bio_queue_data->map, vio, prev_vio);
+		result = merge_to_prev_tail(bio_queue_data->map, vio,
+					    prev_vio);
 	} else {
 		/* Only next. merge to next's head */
-		result = merge_to_next_head(bio_queue_data->map, vio, next_vio);
+		result = merge_to_next_head(bio_queue_data->map, vio,
+					    next_vio);
 	}
 
 	mutex_unlock(&bio_queue_data->lock);
@@ -377,19 +383,24 @@ void vdo_submit_metadata_io(struct vio *vio, physical_block_number_t physical,
 					       vdo_get_admin_state(completion->vdo));
 #endif /* __KERNEL__ */
 
-	ASSERT_LOG_ONLY(!code->quiescent, "I/O not allowed in state %s", code->name);
-	ASSERT_LOG_ONLY(vio->bio->bi_next == NULL, "metadata bio has no next bio");
+	ASSERT_LOG_ONLY(!code->quiescent, "I/O not allowed in state %s",
+			code->name);
+	ASSERT_LOG_ONLY(vio->bio->bi_next == NULL,
+			"metadata bio has no next bio");
 
 	vdo_reset_completion(completion);
 	completion->error_handler = error_handler;
-	result = vio_reset_bio(vio, data, callback, operation | REQ_META, physical);
+	result = vio_reset_bio(vio, data, callback, operation | REQ_META,
+			       physical);
 	if (result != VDO_SUCCESS) {
 		continue_vio(vio, result);
 		return;
 	}
 
-	vdo_set_completion_callback(completion, process_vio_io, get_vio_bio_zone_thread_id(vio));
-	vdo_launch_completion_with_priority(completion, get_metadata_priority(vio));
+	vdo_set_completion_callback(completion, process_vio_io,
+				    get_vio_bio_zone_thread_id(vio));
+	vdo_launch_completion_with_priority(completion,
+					    get_metadata_priority(vio));
 }
 
 /**
@@ -412,11 +423,9 @@ int vdo_make_io_submitter(unsigned int thread_count,
 	struct io_submitter *io_submitter;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct io_submitter,
-				       thread_count,
+	result = UDS_ALLOCATE_EXTENDED(struct io_submitter, thread_count,
 				       struct bio_queue_data,
-				       "bio submission data",
-				       &io_submitter);
+				       "bio submission data", &io_submitter);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -435,13 +444,15 @@ int vdo_make_io_submitter(unsigned int thread_count,
 		 * uneven. So for now, we'll assume that all requests *may* wind up on one thread,
 		 * and thus all in the same map.
 		 */
-		result = vdo_make_int_map(max_requests_active * 2, 0, &bio_queue_data->map);
+		result = vdo_make_int_map(max_requests_active * 2, 0,
+					  &bio_queue_data->map);
 		if (result != 0) {
 			/*
 			 * Clean up the partially initialized bio-queue entirely and indicate that
 			 * initialization failed.
 			 */
-			uds_log_error("bio map initialization failed %d", result);
+			uds_log_error("bio map initialization failed %d",
+				      result);
 			vdo_cleanup_io_submitter(io_submitter);
 			vdo_free_io_submitter(io_submitter);
 			return result;
@@ -450,8 +461,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 		bio_queue_data->queue_number = i;
 		result = vdo_make_thread(vdo,
 					 vdo->thread_config.bio_threads[i],
-					 &bio_queue_type,
-					 1,
+					 &bio_queue_type, 1,
 					 (void **) &bio_queue_data);
 		if (result != VDO_SUCCESS) {
 			/*
@@ -459,7 +469,8 @@ int vdo_make_io_submitter(unsigned int thread_count,
 			 * initialization failed.
 			 */
 			vdo_free_int_map(UDS_FORGET(bio_queue_data->map));
-			uds_log_error("bio queue initialization failed %d", result);
+			uds_log_error("bio queue initialization failed %d",
+				      result);
 			vdo_cleanup_io_submitter(io_submitter);
 			vdo_free_io_submitter(io_submitter);
 			return result;
