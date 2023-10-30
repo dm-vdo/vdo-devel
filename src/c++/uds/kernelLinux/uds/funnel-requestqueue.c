@@ -125,7 +125,8 @@ static void wait_for_request(struct uds_request_queue *queue, bool dormant,
 	}
 
 	wait_event_interruptible_hrtimeout(queue->wait_head,
-					   dequeue_request(queue, request, waited),
+					   dequeue_request(queue, request,
+							   waited),
 					   ns_to_ktime(timeout));
 }
 
@@ -139,7 +140,8 @@ static void request_queue_worker(void *arg)
 	long current_batch = 0;
 
 	for (;;) {
-		wait_for_request(queue, dormant, time_batch, &request, &waited);
+		wait_for_request(queue, dormant, time_batch, &request,
+				 &waited);
 		if (likely(request != NULL)) {
 			current_batch++;
 			queue->processor(request);
@@ -220,7 +222,8 @@ int uds_make_request_queue(const char *queue_name,
 		return result;
 	}
 
-	result = uds_create_thread(request_queue_worker, queue, queue_name, &queue->thread);
+	result = uds_create_thread(request_queue_worker, queue, queue_name,
+				   &queue->thread);
 	if (result != UDS_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
@@ -274,7 +277,8 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 		wake_up_worker(queue);
 		result = uds_join_threads(queue->thread);
 		if (result != UDS_SUCCESS)
-			uds_log_warning_strerror(result, "Failed to join worker thread");
+			uds_log_warning_strerror(result,
+						 "Failed to join worker thread");
 	}
 
 	uds_free_funnel_queue(queue->main_queue);
