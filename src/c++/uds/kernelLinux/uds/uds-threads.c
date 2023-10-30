@@ -110,12 +110,9 @@ int uds_create_thread(void (*thread_function)(void *), void *thread_data,
 	 * Otherwise just use the name supplied. This should be a rare occurrence.
 	 */
 	if ((name_colon == NULL) && (my_name_colon != NULL))
-		task = kthread_run(thread_starter,
-				   thread,
-				   "%.*s:%s",
+		task = kthread_run(thread_starter, thread, "%.*s:%s",
 				   (int) (my_name_colon - current->comm),
-				   current->comm,
-				   name);
+				   current->comm, name);
 	else
 		task = kthread_run(thread_starter, thread, "%s", name);
 
