@@ -194,9 +194,11 @@ static inline int push_bins(struct task **stack, struct task *end_of_stack,
 				if (*stack >= end_of_stack)
 					return UDS_BAD_STATE;
 
-				push_task(stack, pile_start, size, offset, length);
+				push_task(stack, pile_start, size, offset,
+					  length);
 			} else if (size > 1) {
-				push_task(list, pile_start, size, offset, length);
+				push_task(list, pile_start, size, offset,
+					  length);
 			}
 		}
 
@@ -215,11 +217,8 @@ int uds_make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 	unsigned int stack_size = count / INSERTION_SORT_THRESHOLD;
 	struct radix_sorter *radix_sorter;
 
-	result = UDS_ALLOCATE_EXTENDED(struct radix_sorter,
-				       stack_size,
-				       struct task,
-				       __func__,
-				       &radix_sorter);
+	result = UDS_ALLOCATE_EXTENDED(struct radix_sorter, stack_size,
+				       struct task, __func__, &radix_sorter);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -286,13 +285,9 @@ int uds_radix_sort(struct radix_sorter *sorter, const unsigned char *keys[],
 		 * and push a new task to sort each pile by the next radix byte.
 		 */
 		insertion_task_list = sorter->insertion_list;
-		result = push_bins(&task_stack,
-				   sorter->end_of_stack,
-				   &insertion_task_list,
-				   pile,
-				   bins,
-				   task.first_key,
-				   task.offset + 1,
+		result = push_bins(&task_stack, sorter->end_of_stack,
+				   &insertion_task_list, pile, bins,
+				   task.first_key, task.offset + 1,
 				   task.length - 1);
 		if (result != UDS_SUCCESS) {
 			memset(bins, 0, sizeof(*bins));
