@@ -64,9 +64,7 @@ static void do_dump(struct vdo *vdo, unsigned int dump_options_requested,
 	outstanding = (atomic64_read(&vdo->stats.bios_submitted) -
 		       atomic64_read(&vdo->stats.bios_completed));
 	uds_log_info("%u device requests outstanding (max %u), %lld bio requests outstanding, device '%s'",
-		     active,
-		     maximum,
-		     outstanding,
+		     active, maximum, outstanding,
 		     vdo_get_device_name(vdo->device_config->owning_target));
 	if (((dump_options_requested & FLAG_SHOW_QUEUES) != 0) && (vdo->threads != NULL)) {
 		thread_id_t id;
@@ -76,7 +74,8 @@ static void do_dump(struct vdo *vdo, unsigned int dump_options_requested,
 	}
 
 	vdo_dump_hash_zones(vdo->hash_zones);
-	dump_data_vio_pool(vdo->data_vio_pool, (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
+	dump_data_vio_pool(vdo->data_vio_pool,
+			   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0)
 		vdo_dump_status(vdo);
 
@@ -115,7 +114,8 @@ static int parse_dump_options(unsigned int argc, char *const *argv,
 			}
 		}
 		if (j == ARRAY_SIZE(option_names)) {
-			uds_log_warning("dump option name '%s' unknown", argv[i]);
+			uds_log_warning("dump option name '%s' unknown",
+					argv[i]);
 			options_okay = false;
 		}
 	}
@@ -162,20 +162,15 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 	data_vio = waiter_as_data_vio(first);
 
 	uds_log_info("      %s is locked. Waited on by: vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-		     wait_on,
-		     data_vio,
-		     data_vio->allocation.pbn,
-		     data_vio->logical.lbn,
-		     data_vio->duplicate.pbn,
+		     wait_on, data_vio, data_vio->allocation.pbn,
+		     data_vio->logical.lbn, data_vio->duplicate.pbn,
 		     get_data_vio_operation_name(data_vio));
 
 	for (waiter = first->next_waiter; waiter != first; waiter = waiter->next_waiter) {
 		data_vio = waiter_as_data_vio(waiter);
 		uds_log_info("     ... and : vio %px pbn %llu lbn %llu d-pbn %llu lastOp %s",
-			     data_vio,
-			     data_vio->allocation.pbn,
-			     data_vio->logical.lbn,
-			     data_vio->duplicate.pbn,
+			     data_vio, data_vio->allocation.pbn,
+			     data_vio->logical.lbn, data_vio->duplicate.pbn,
 			     get_data_vio_operation_name(data_vio));
 	}
 }
@@ -246,39 +241,30 @@ void dump_data_vio(void *data)
 	if (data_vio->is_duplicate)
 		snprintf(vio_block_number_dump_buffer,
 			 sizeof(vio_block_number_dump_buffer),
-			 "P%llu L%llu D%llu",
-			 data_vio->allocation.pbn,
-			 data_vio->logical.lbn,
-			 data_vio->duplicate.pbn);
+			 "P%llu L%llu D%llu", data_vio->allocation.pbn,
+			 data_vio->logical.lbn, data_vio->duplicate.pbn);
 	else if (data_vio_has_allocation(data_vio))
 		snprintf(vio_block_number_dump_buffer,
-			 sizeof(vio_block_number_dump_buffer),
-			 "P%llu L%llu",
-			 data_vio->allocation.pbn,
-			 data_vio->logical.lbn);
+			 sizeof(vio_block_number_dump_buffer), "P%llu L%llu",
+			 data_vio->allocation.pbn, data_vio->logical.lbn);
 	else
 		snprintf(vio_block_number_dump_buffer,
-			 sizeof(vio_block_number_dump_buffer),
-			 "L%llu",
+			 sizeof(vio_block_number_dump_buffer), "L%llu",
 			 data_vio->logical.lbn);
 
 	if (data_vio->flush_generation != 0)
 		snprintf(vio_flush_generation_buffer,
-			 sizeof(vio_flush_generation_buffer),
-			 " FG%llu",
+			 sizeof(vio_flush_generation_buffer), " FG%llu",
 			 data_vio->flush_generation);
 	else
 		vio_flush_generation_buffer[0] = 0;
 
 	encode_vio_dump_flags(data_vio, flags_dump_buffer);
 
-	uds_log_info("	vio %px %s%s %s %s%s",
-		     data_vio,
-		     vio_block_number_dump_buffer,
-		     vio_flush_generation_buffer,
+	uds_log_info("	vio %px %s%s %s %s%s", data_vio,
+		     vio_block_number_dump_buffer, vio_flush_generation_buffer,
 		     get_data_vio_operation_name(data_vio),
-		     vio_completion_dump_buffer,
-		     flags_dump_buffer);
+		     vio_completion_dump_buffer, flags_dump_buffer);
 	/*
 	 * might want info on: wantUDSAnswer / operation / status
 	 * might want info on: bio / bios_merged
