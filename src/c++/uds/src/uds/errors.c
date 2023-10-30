@@ -178,24 +178,23 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL)
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
-						      "%s: %s",
-						      block_name,
+			buffer = uds_append_to_buffer(buffer, buf_end,
+						      "%s: %s", block_name,
 						      info->message);
 		else
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
+			buffer = uds_append_to_buffer(buffer, buf_end,
 						      "Unknown %s %d",
-						      block_name,
-						      errnum);
+						      block_name, errnum);
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->message);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+					      info->message);
 	} else {
-		const char *tmp = system_string_error(errnum, buffer, buf_end - buffer);
+		const char *tmp = system_string_error(errnum, buffer,
+						      buf_end - buffer);
 
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -216,21 +215,21 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL)
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      info->name);
 		else
-			buffer = uds_append_to_buffer(buffer,
-						      buf_end,
-						      "%s %d",
-						      block_name,
-						      errnum);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s %d",
+						      block_name, errnum);
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
+		buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+					      info->name);
 	} else {
 		const char *tmp;
 
 		tmp = system_string_error(errnum, buffer, buf_end - buffer);
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = uds_append_to_buffer(buffer, buf_end, "%s",
+						      tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -277,10 +276,11 @@ int uds_map_to_system_error(int error)
 	default:
 		/* Translate an unexpected error into something generic. */
 		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
-			     __func__,
-			     error,
-			     uds_string_error_name(error, error_name, sizeof(error_name)),
-			     uds_string_error(error, error_message, sizeof(error_message)));
+			     __func__, error,
+			     uds_string_error_name(error, error_name,
+						   sizeof(error_name)),
+			     uds_string_error(error, error_message,
+					      sizeof(error_message)));
 		return -EIO;
 	}
 }
@@ -308,7 +308,8 @@ int uds_register_error_block(const char *block_name, int first_error,
 		.infos = infos,
 	};
 
-	result = ASSERT(first_error < next_free_error, "well-defined error block range");
+	result = ASSERT(first_error < next_free_error,
+			"well-defined error block range");
 	if (result != UDS_SUCCESS)
 		return result;
 
