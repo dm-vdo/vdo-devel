@@ -45,10 +45,8 @@ int uds_make_index_page_map(const struct geometry *geometry,
 
 	map->geometry = geometry;
 	map->entries_per_chapter = geometry->index_pages_per_chapter - 1;
-	result = UDS_ALLOCATE(get_entry_count(geometry),
-			      u16,
-			      "Index Page Map Entries",
-			      &map->entries);
+	result = UDS_ALLOCATE(get_entry_count(geometry), u16,
+			      "Index Page Map Entries", &map->entries);
 	if (result != UDS_SUCCESS) {
 		uds_free_index_page_map(map);
 		return result;
@@ -84,7 +82,8 @@ u32 uds_find_index_page_number(const struct index_page_map *map,
 			       const struct uds_record_name *name,
 			       u32 chapter_number)
 {
-	u32 delta_list_number = uds_hash_to_chapter_delta_list(name, map->geometry);
+	u32 delta_list_number = uds_hash_to_chapter_delta_list(name,
+							       map->geometry);
 	u32 slot = chapter_number * map->entries_per_chapter;
 	u32 page;
 
