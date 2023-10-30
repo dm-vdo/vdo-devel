@@ -120,8 +120,7 @@ void vdo_enqueue_completion(struct vdo_completion *completion,
 
 	if (ASSERT(thread_id < vdo->thread_config.thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
-		   thread_id,
-		   completion->type,
+		   thread_id, completion->type,
 		   vdo->thread_config.thread_count) != UDS_SUCCESS)
 		BUG();
 

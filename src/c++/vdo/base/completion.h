@@ -49,7 +49,8 @@ void vdo_launch_completion_with_priority(struct vdo_completion *completion,
  */
 static inline void vdo_launch_completion(struct vdo_completion *completion)
 {
-	vdo_launch_completion_with_priority(completion, VDO_WORK_Q_DEFAULT_PRIORITY);
+	vdo_launch_completion_with_priority(completion,
+					    VDO_WORK_Q_DEFAULT_PRIORITY);
 }
 
 /**
@@ -88,8 +89,7 @@ static inline int vdo_assert_completion_type(struct vdo_completion *completion,
 					     enum vdo_completion_type expected)
 {
 	return ASSERT(expected == completion->type,
-		      "completion type should be %u, not %u",
-		      expected,
+		      "completion type should be %u, not %u", expected,
 		      completion->type);
 }
 
@@ -141,7 +141,8 @@ static inline void vdo_prepare_completion_for_requeue(struct vdo_completion *com
 						      thread_id_t callback_thread_id,
 						      void *parent)
 {
-	vdo_prepare_completion(completion, callback, error_handler, callback_thread_id, parent);
+	vdo_prepare_completion(completion, callback, error_handler,
+			       callback_thread_id, parent);
 	completion->requeue = true;
 }
 
