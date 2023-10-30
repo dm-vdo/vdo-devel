@@ -432,6 +432,14 @@ returns nil but may have adjusted point anyway."
 	(backward-char 1)
 	t)))
 
+(defun point-in-macro-p ()
+  (assq 'cpp-macro
+	(save-restriction
+	  ;; Guessing syntax sometimes loops recursively if it wants
+	  ;; more context but we're narrowed.
+	  (widen)
+	  (c-guess-basic-syntax))))
+
 (defun reflow-function-calls-in-buffer ()
   (font-lock-fontify-region (point-min) (point-max))
   (goto-char (point-min))
@@ -441,13 +449,7 @@ returns nil but may have adjusted point anyway."
       (narrow-to-defun)
       ;; Include ")" to handle "(foo->callback)(args)"
       (while (re-search-forward-nonstring "[a-zA-Z0-9)](" nil)
-	(if (not (assq 'cpp-macro
-		       (save-restriction
-			 ;; Guessing syntax sometimes loops
-			 ;; recursively if it wants more context but
-			 ;; we're narrowed.
-			 (widen)
-			 (c-guess-basic-syntax))))
+	(if (not (point-in-macro-p))
 	    (progn
 	      ;; Position at the "(" rather than after it
 	      (backward-char 1)
