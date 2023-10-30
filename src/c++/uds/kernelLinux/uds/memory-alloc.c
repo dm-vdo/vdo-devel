@@ -160,7 +160,8 @@ static void remove_vmalloc_block(void *ptr)
 	if (block != NULL)
 		UDS_FREE(block);
 	else
-		uds_log_info("attempting to remove ptr %px not found in vmalloc list", ptr);
+		uds_log_info("attempting to remove ptr %px not found in vmalloc list",
+			     ptr);
 }
 
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
@@ -284,7 +285,8 @@ static void remove_tracking_block(void *ptr)
 	}
 
 	mutex_unlock(&track_mutex);
-	ASSERT_LOG_ONLY(!track_always, "UDS_FREE called on block that UDS did not UDS_ALLOCATE");
+	ASSERT_LOG_ONLY(!track_always,
+			"UDS_FREE called on block that UDS did not UDS_ALLOCATE");
 }
 
 void log_uds_memory_allocations(void)
@@ -308,7 +310,8 @@ void log_uds_memory_allocations(void)
 		for (i = 0; i < info->count; i++) {
 			struct track_block_info *block = &info->blocks[i];
 
-			uds_log_info("  %zu bytes for %s", block->size, block->what);
+			uds_log_info("  %zu bytes for %s", block->size,
+				     block->what);
 		}
 	}
 
@@ -390,7 +393,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (atomic_long_inc_return(&uds_allocate_memory_counter) ==
 	    uds_allocation_error_injection) {
-		uds_log_warning("Injecting %s error on %zu bytes for %s", __func__, size, what);
+		uds_log_warning("Injecting %s error on %zu bytes for %s",
+				__func__, size, what);
 		uds_log_backtrace(UDS_LOG_WARNING);
 		return -ENOMEM;
 	}
@@ -421,7 +425,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	} else {
 		struct vmalloc_block_info *block;
 
-		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__, &block) ==
+		if (UDS_ALLOCATE(1, struct vmalloc_block_info, __func__,
+				 &block) ==
 		    UDS_SUCCESS) {
 			/*
 			 * It is possible for __vmalloc to fail to allocate memory because there
@@ -468,9 +473,7 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 		unsigned int duration = jiffies_to_msecs(jiffies - start_time);
 
 		uds_log_error("Could not allocate %zu bytes for %s in %u msecs",
-			      size,
-			      what,
-			      duration);
+			      size, what, duration);
 		return -ENOMEM;
 	}
 
