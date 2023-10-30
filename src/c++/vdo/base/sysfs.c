@@ -13,7 +13,8 @@
 
 static int vdo_log_level_show(char *buf, const struct kernel_param *kp)
 {
-	return sprintf(buf, "%s\n", uds_log_priority_to_string(uds_get_log_level()));
+	return sprintf(buf, "%s\n",
+		       uds_log_priority_to_string(uds_get_log_level()));
 }
 
 static int vdo_log_level_store(const char *buf, const struct kernel_param *kp)
