@@ -70,11 +70,9 @@ int uds_make_open_chapter(const struct geometry *geometry,
 	size_t capacity = geometry->records_per_chapter / zone_count;
 	size_t slot_count = (1 << bits_per(capacity * LOAD_RATIO));
 
-	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
-				       slot_count,
+	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone, slot_count,
 				       struct open_chapter_zone_slot,
-				       "open chapter",
-				       &open_chapter);
+				       "open chapter", &open_chapter);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -255,7 +253,9 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 		}
 
 		*record = open_chapter->records[record_index];
-		result = uds_put_open_chapter_index_record(index, &record->name, page_number);
+		result = uds_put_open_chapter_index_record(index,
+							   &record->name,
+							   page_number);
 		switch (result) {
 		case UDS_SUCCESS:
 			break;
@@ -263,13 +263,15 @@ static int fill_delta_chapter_index(struct open_chapter_zone **chapter_zones,
 			overflow_count++;
 			break;
 		default:
-			uds_log_error_strerror(result, "failed to build open chapter index");
+			uds_log_error_strerror(result,
+					       "failed to build open chapter index");
 			return result;
 		}
 	}
 
 	if (overflow_count > 0)
-		uds_log_warning("Failed to add %d entries to chapter index", overflow_count);
+		uds_log_warning("Failed to add %d entries to chapter index",
+				overflow_count);
 
 	return UDS_SUCCESS;
 }
@@ -283,10 +285,8 @@ int uds_close_open_chapter(struct open_chapter_zone **chapter_zones,
 	int result;
 
 	uds_empty_open_chapter_index(chapter_index, virtual_chapter_number);
-	result = fill_delta_chapter_index(chapter_zones,
-					  zone_count,
-					  chapter_index,
-					  collated_records);
+	result = fill_delta_chapter_index(chapter_zones, zone_count,
+					  chapter_index, collated_records);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -304,14 +304,12 @@ int uds_save_open_chapter(struct uds_index *index,
 	unsigned int record_index;
 	unsigned int z;
 
-	result = uds_write_to_buffered_writer(writer,
-					      OPEN_CHAPTER_MAGIC,
+	result = uds_write_to_buffered_writer(writer, OPEN_CHAPTER_MAGIC,
 					      OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_write_to_buffered_writer(writer,
-					      OPEN_CHAPTER_VERSION,
+	result = uds_write_to_buffered_writer(writer, OPEN_CHAPTER_VERSION,
 					      OPEN_CHAPTER_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -322,8 +320,7 @@ int uds_save_open_chapter(struct uds_index *index,
 	}
 
 	put_unaligned_le32(record_count, record_count_data);
-	result = uds_write_to_buffered_writer(writer,
-					      record_count_data,
+	result = uds_write_to_buffered_writer(writer, record_count_data,
 					      sizeof(record_count_data));
 	if (result != UDS_SUCCESS)
 		return result;
@@ -389,19 +386,23 @@ static int load_version20(struct uds_index *index,
 	while (record_count-- > 0) {
 		unsigned int zone = 0;
 
-		result = uds_read_from_buffered_reader(reader, (u8 *) &record, sizeof(record));
+		result = uds_read_from_buffered_reader(reader, (u8 *) &record,
+						       sizeof(record));
 		if (result != UDS_SUCCESS)
 			return result;
 
 		if (index->zone_count > 1)
-			zone = uds_get_volume_index_zone(index->volume_index, &record.name);
+			zone = uds_get_volume_index_zone(index->volume_index,
+							 &record.name);
 
 		if (!full_flags[zone]) {
 			struct open_chapter_zone *open_chapter;
 			unsigned int remaining;
 
 			open_chapter = index->zones[zone]->open_chapter;
-			remaining = uds_put_open_chapter(open_chapter, &record.name, &record.data);
+			remaining = uds_put_open_chapter(open_chapter,
+							 &record.name,
+							 &record.data);
 			/* Do not allow any zone to fill completely. */
 			full_flags[zone] = (remaining <= 1);
 		}
@@ -416,19 +417,20 @@ int uds_load_open_chapter(struct uds_index *index,
 	u8 version[OPEN_CHAPTER_VERSION_LENGTH];
 	int result;
 
-	result = uds_verify_buffered_data(reader, OPEN_CHAPTER_MAGIC, OPEN_CHAPTER_MAGIC_LENGTH);
+	result = uds_verify_buffered_data(reader, OPEN_CHAPTER_MAGIC,
+					  OPEN_CHAPTER_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_read_from_buffered_reader(reader, version, sizeof(version));
+	result = uds_read_from_buffered_reader(reader, version,
+					       sizeof(version));
 	if (result != UDS_SUCCESS)
 		return result;
 
 	if (memcmp(OPEN_CHAPTER_VERSION, version, sizeof(version)) != 0)
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "Invalid open chapter version: %.*s",
-					      (int) sizeof(version),
-					      version);
+					      (int) sizeof(version), version);
 
 	return load_version20(index, reader);
 }
