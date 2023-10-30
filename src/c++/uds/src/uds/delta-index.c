@@ -241,13 +241,15 @@ void uds_reset_delta_index(const struct delta_index *delta_index)
 		struct delta_list *delta_lists = zone->delta_lists;
 
 		/* Zeroing the delta list headers initializes the head guard list correctly. */
-		memset(delta_lists, 0, (zone->list_count + 2) * sizeof(struct delta_list));
+		memset(delta_lists, 0,
+		       (zone->list_count + 2) * sizeof(struct delta_list));
 
 		/* Set all the bits in the end guard list. */
 		list_bits = (u64) zone->size * BITS_PER_BYTE - GUARD_BITS;
 		delta_lists[zone->list_count + 1].start = list_bits;
 		delta_lists[zone->list_count + 1].size = GUARD_BITS;
-		memset(zone->memory + (list_bits / BITS_PER_BYTE), ~0, POST_FIELD_GUARD_BYTES);
+		memset(zone->memory + (list_bits / BITS_PER_BYTE), ~0,
+		       POST_FIELD_GUARD_BYTES);
 
 		/* Evenly space out the real delta lists by setting regular offsets. */
 		spacing = list_bits / zone->list_count;
@@ -332,20 +334,18 @@ static int initialize_delta_zone(struct delta_zone *delta_zone, size_t size,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(list_count + 2, u64, "delta list temp", &delta_zone->new_offsets);
+	result = UDS_ALLOCATE(list_count + 2, u64, "delta list temp",
+			      &delta_zone->new_offsets);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	/* Allocate the delta lists. */
-	result = UDS_ALLOCATE(list_count + 2,
-			      struct delta_list,
-			      "delta lists",
+	result = UDS_ALLOCATE(list_count + 2, struct delta_list, "delta lists",
 			      &delta_zone->delta_lists);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	compute_coding_constants(mean_delta,
-				 &delta_zone->min_bits,
+	compute_coding_constants(mean_delta, &delta_zone->min_bits,
 				 &delta_zone->min_keys,
 				 &delta_zone->incr_keys);
 	delta_zone->value_bits = payload_bits;
@@ -373,10 +373,8 @@ int uds_initialize_delta_index(struct delta_index *delta_index,
 	unsigned int z;
 	size_t zone_memory;
 
-	result = UDS_ALLOCATE(zone_count,
-			      struct delta_zone,
-			      "Delta Index Zones",
-			      &delta_index->delta_zones);
+	result = UDS_ALLOCATE(zone_count, struct delta_zone,
+			      "Delta Index Zones", &delta_index->delta_zones);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -408,12 +406,9 @@ int uds_initialize_delta_index(struct delta_index *delta_index,
 
 		zone_memory = get_zone_memory_size(zone_count, memory_size);
 		result = initialize_delta_zone(&delta_index->delta_zones[z],
-					       zone_memory,
-					       first_list_in_zone,
-					       lists_in_zone,
-					       mean_delta,
-					       payload_bits,
-					       tag);
+					       zone_memory, first_list_in_zone,
+					       lists_in_zone, mean_delta,
+					       payload_bits, tag);
 		if (result != UDS_SUCCESS) {
 			uds_uninitialize_delta_index(delta_index);
 			return result;
@@ -458,13 +453,15 @@ static inline u32 get_immutable_header_offset(u32 list_number)
 /* Get the bit offset to the start of the immutable delta list bit stream. */
 static inline u32 get_immutable_start(const u8 *memory, u32 list_number)
 {
-	return get_field(memory, get_immutable_header_offset(list_number), IMMUTABLE_HEADER_SIZE);
+	return get_field(memory, get_immutable_header_offset(list_number),
+			 IMMUTABLE_HEADER_SIZE);
 }
 
 /* Set the bit offset to the start of the immutable delta list bit stream. */
 static inline void set_immutable_start(u8 *memory, u32 list_number, u32 start)
 {
-	set_field(start, memory, get_immutable_header_offset(list_number), IMMUTABLE_HEADER_SIZE);
+	set_field(start, memory, get_immutable_header_offset(list_number),
+		  IMMUTABLE_HEADER_SIZE);
 }
 
 static bool verify_delta_index_page(u64 nonce, u16 list_count,
@@ -494,7 +491,9 @@ static bool verify_delta_index_page(u64 nonce, u16 list_count,
 
 	/* Verify that the lists are in the correct order. */
 	for (i = 0; i < list_count; i++)
-		if (get_immutable_start(memory, i) > get_immutable_start(memory, i + 1))
+		if (get_immutable_start(memory,
+					i) > get_immutable_start(memory,
+								 i + 1))
 			return false;
 
 	/*
@@ -537,17 +536,15 @@ int uds_initialize_delta_index_page(struct delta_index_page *delta_index_page,
 	vcn = get_unaligned_le64(vcn_addr);
 	first_list = get_unaligned_le16(first_list_addr);
 	list_count = get_unaligned_le16(list_count_addr);
-	if (!verify_delta_index_page(nonce, list_count, expected_nonce, memory, memory_size)) {
+	if (!verify_delta_index_page(nonce, list_count, expected_nonce, memory,
+				     memory_size)) {
 		/* If that fails, try big endian. */
 		nonce = get_unaligned_be64(nonce_addr);
 		vcn = get_unaligned_be64(vcn_addr);
 		first_list = get_unaligned_be16(first_list_addr);
 		list_count = get_unaligned_be16(list_count_addr);
-		if (!verify_delta_index_page(nonce,
-					     list_count,
-					     expected_nonce,
-					     memory,
-					     memory_size))
+		if (!verify_delta_index_page(nonce, list_count, expected_nonce,
+					     memory, memory_size))
 			/*
 			 * Both attempts failed. Do not log this as an error, because it can happen
 			 * during a rebuild if we haven't written the entire volume at least once.
@@ -565,8 +562,7 @@ int uds_initialize_delta_index_page(struct delta_index_page *delta_index_page,
 	delta_index_page->lowest_list_number = first_list;
 	delta_index_page->highest_list_number = first_list + list_count - 1;
 
-	compute_coding_constants(mean_delta,
-				 &delta_zone->min_bits,
+	compute_coding_constants(mean_delta, &delta_zone->min_bits,
 				 &delta_zone->min_keys,
 				 &delta_zone->incr_keys);
 	delta_zone->value_bits = payload_bits;
@@ -651,7 +647,8 @@ static void move_bits_down(const u8 *from, u64 from_offset, u8 *to,
 	source = from + (from_offset - offset) / BITS_PER_BYTE;
 	destination = to + to_offset / BITS_PER_BYTE;
 	while (size > MAX_BIG_FIELD_BITS) {
-		put_unaligned_le32(get_unaligned_le64(source) >> offset, destination);
+		put_unaligned_le32(get_unaligned_le64(source) >> offset,
+				   destination);
 		source += sizeof(u32);
 		destination += sizeof(u32);
 		from_offset += BITS_PER_TYPE(u32);
@@ -695,7 +692,8 @@ static void move_bits_up(const u8 *from, u64 from_offset, u8 *to,
 		source -= sizeof(u32);
 		destination -= sizeof(u32);
 		size -= BITS_PER_TYPE(u32);
-		put_unaligned_le32(get_unaligned_le64(source) >> offset, destination);
+		put_unaligned_le32(get_unaligned_le64(source) >> offset,
+				   destination);
 	}
 
 	/* Finish up by moving any remaining bits. */
@@ -784,7 +782,8 @@ int uds_pack_delta_index_page(const struct delta_index *delta_index,
 
 	header = (struct delta_page_header *) memory;
 	put_unaligned_le64(header_nonce, (u8 *) &header->nonce);
-	put_unaligned_le64(virtual_chapter_number, (u8 *) &header->virtual_chapter_number);
+	put_unaligned_le64(virtual_chapter_number,
+			   (u8 *) &header->virtual_chapter_number);
 	put_unaligned_le16(first_list, (u8 *) &header->first_list);
 	put_unaligned_le16(n_lists, (u8 *) &header->list_count);
 
@@ -798,14 +797,12 @@ int uds_pack_delta_index_page(const struct delta_index *delta_index,
 
 	/* Copy the delta list data onto the memory page. */
 	for (i = 0; i < n_lists; i++)
-		move_bits(delta_zone->memory,
-			  delta_lists[i].start,
-			  memory,
-			  get_immutable_start(memory, i),
-			  delta_lists[i].size);
+		move_bits(delta_zone->memory, delta_lists[i].start, memory,
+			  get_immutable_start(memory, i), delta_lists[i].size);
 
 	/* Set all the bits in the guard bytes. */
-	memset(memory + memory_size - POST_FIELD_GUARD_BYTES, ~0, POST_FIELD_GUARD_BYTES);
+	memset(memory + memory_size - POST_FIELD_GUARD_BYTES, ~0,
+	       POST_FIELD_GUARD_BYTES);
 	return UDS_SUCCESS;
 }
 
@@ -899,8 +896,7 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 		size_t offset = 0;
 
 		result = uds_read_from_buffered_reader(buffered_readers[z],
-						       buffer,
-						       sizeof(buffer));
+						       buffer, sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
 							"failed to read delta index header");
@@ -915,8 +911,7 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 		decode_u64_le(buffer, &offset, &header.collision_count);
 
 		result = ASSERT(offset == sizeof(struct delta_index_header),
-				"%zu bytes decoded of %zu expected",
-				offset,
+				"%zu bytes decoded of %zu expected", offset,
 				sizeof(struct delta_index_header));
 		if (result != UDS_SUCCESS)
 			return uds_log_warning_strerror(result,
@@ -935,8 +930,7 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 		if (header.zone_number != z)
 			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 							"delta index zone %u found in slot %u",
-							header.zone_number,
-							z);
+							header.zone_number, z);
 
 		first_list[z] = header.first_list;
 		list_count[z] = header.list_count;
@@ -946,8 +940,7 @@ int uds_start_restoring_delta_index(struct delta_index *delta_index,
 		if (first_list[z] != list_next)
 			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
 							"delta index file for zone %u starts with list %u instead of list %u",
-							z,
-							first_list[z],
+							z, first_list[z],
 							list_next);
 
 		list_next += list_count[z];
@@ -1019,8 +1012,7 @@ static int restore_delta_list_to_zone(struct delta_zone *delta_zone,
 						"invalid delta list number %u not in range [%u,%u)",
 						save_info->index,
 						delta_zone->first_list,
-						delta_zone->first_list +
-						delta_zone->list_count);
+						delta_zone->first_list + delta_zone->list_count);
 
 	delta_list = &delta_zone->delta_lists[list_number + 1];
 	if (delta_list->size == 0)
@@ -1036,11 +1028,8 @@ static int restore_delta_list_to_zone(struct delta_zone *delta_zone,
 						save_info->byte_count,
 						byte_count);
 
-	move_bits(data,
-		  save_info->bit_offset,
-		  delta_zone->memory,
-		  delta_list->start,
-		  delta_list->size);
+	move_bits(data, save_info->bit_offset, delta_zone->memory,
+		  delta_list->start, delta_list->size);
 	return UDS_SUCCESS;
 }
 
@@ -1054,9 +1043,11 @@ static int restore_delta_list_data(struct delta_index *delta_index,
 	u8 buffer[sizeof(struct delta_list_save_info)];
 	unsigned int new_zone;
 
-	result = uds_read_from_buffered_reader(buffered_reader, buffer, sizeof(buffer));
+	result = uds_read_from_buffered_reader(buffered_reader, buffer,
+					       sizeof(buffer));
 	if (result != UDS_SUCCESS)
-		return uds_log_warning_strerror(result, "failed to read delta list data");
+		return uds_log_warning_strerror(result,
+						"failed to read delta list data");
 
 	save_info = (struct delta_list_save_info) {
 		.tag = buffer[0],
@@ -1067,7 +1058,8 @@ static int restore_delta_list_data(struct delta_index *delta_index,
 
 	if ((save_info.bit_offset >= BITS_PER_BYTE) ||
 	    (save_info.byte_count > DELTA_LIST_MAX_BYTE_COUNT))
-		return uds_log_warning_strerror(UDS_CORRUPT_DATA, "corrupt delta list data");
+		return uds_log_warning_strerror(UDS_CORRUPT_DATA,
+						"corrupt delta list data");
 
 	/* Make sure the data is intended for this delta index. */
 	if (save_info.tag != delta_index->tag)
@@ -1079,14 +1071,16 @@ static int restore_delta_list_data(struct delta_index *delta_index,
 						save_info.index,
 						delta_index->list_count);
 
-	result = uds_read_from_buffered_reader(buffered_reader, data, save_info.byte_count);
+	result = uds_read_from_buffered_reader(buffered_reader, data,
+					       save_info.byte_count);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result,
 						"failed to read delta list data");
 
 	delta_index->load_lists[load_zone] -= 1;
 	new_zone = save_info.index / delta_index->lists_per_zone;
-	return restore_delta_list_to_zone(&delta_index->delta_zones[new_zone], &save_info, data);
+	return restore_delta_list_to_zone(&delta_index->delta_zones[new_zone],
+					  &save_info, data);
 }
 
 /* Restore delta lists from saved data. */
@@ -1105,8 +1099,7 @@ int uds_finish_restoring_delta_index(struct delta_index *delta_index,
 
 	for (z = 0; z < reader_count; z++) {
 		while (delta_index->load_lists[z] > 0) {
-			result = restore_delta_list_data(delta_index,
-							 z,
+			result = restore_delta_list_data(delta_index, z,
 							 buffered_readers[z],
 							 data);
 			if (result != UDS_SUCCESS) {
@@ -1129,8 +1122,7 @@ int uds_check_guard_delta_lists(struct buffered_reader **buffered_readers,
 
 	for (z = 0; z < reader_count; z++) {
 		result = uds_read_from_buffered_reader(buffered_readers[z],
-						       buffer,
-						       sizeof(buffer));
+						       buffer, sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1154,9 +1146,11 @@ static int flush_delta_list(struct delta_zone *zone, u32 flush_index)
 	put_unaligned_le16(get_delta_list_byte_size(delta_list), &buffer[2]);
 	put_unaligned_le32(zone->first_list + flush_index, &buffer[4]);
 
-	result = uds_write_to_buffered_writer(zone->buffered_writer, buffer, sizeof(buffer));
+	result = uds_write_to_buffered_writer(zone->buffered_writer, buffer,
+					      sizeof(buffer));
 	if (result != UDS_SUCCESS) {
-		uds_log_warning_strerror(result, "failed to write delta list memory");
+		uds_log_warning_strerror(result,
+					 "failed to write delta list memory");
 		return result;
 	}
 
@@ -1164,7 +1158,8 @@ static int flush_delta_list(struct delta_zone *zone, u32 flush_index)
 					      zone->memory + get_delta_list_byte_start(delta_list),
 					      get_delta_list_byte_size(delta_list));
 	if (result != UDS_SUCCESS)
-		uds_log_warning_strerror(result, "failed to write delta list memory");
+		uds_log_warning_strerror(result,
+					 "failed to write delta list memory");
 
 	return result;
 }
@@ -1191,15 +1186,15 @@ int uds_start_saving_delta_index(const struct delta_index *delta_index,
 	encode_u64_le(buffer, &offset, delta_zone->collision_count);
 
 	result = ASSERT(offset == sizeof(struct delta_index_header),
-			"%zu bytes encoded of %zu expected",
-			offset,
+			"%zu bytes encoded of %zu expected", offset,
 			sizeof(struct delta_index_header));
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = uds_write_to_buffered_writer(buffered_writer, buffer, offset);
 	if (result != UDS_SUCCESS)
-		return uds_log_warning_strerror(result, "failed to write delta index header");
+		return uds_log_warning_strerror(result,
+						"failed to write delta index header");
 
 	for (i = 0; i < delta_zone->list_count; i++) {
 		u8 data[sizeof(u16)];
@@ -1207,9 +1202,11 @@ int uds_start_saving_delta_index(const struct delta_index *delta_index,
 
 		delta_list = &delta_zone->delta_lists[i + 1];
 		put_unaligned_le16(delta_list->size, data);
-		result = uds_write_to_buffered_writer(buffered_writer, data, sizeof(data));
+		result = uds_write_to_buffered_writer(buffered_writer, data,
+						      sizeof(data));
 		if (result != UDS_SUCCESS)
-			return uds_log_warning_strerror(result, "failed to write delta list size");
+			return uds_log_warning_strerror(result,
+							"failed to write delta list size");
 	}
 
 	delta_zone->buffered_writer = buffered_writer;
@@ -1247,9 +1244,11 @@ int uds_write_guard_delta_list(struct buffered_writer *buffered_writer)
 	memset(buffer, 0, sizeof(struct delta_list_save_info));
 	buffer[0] = 'z';
 
-	result = uds_write_to_buffered_writer(buffered_writer, buffer, sizeof(buffer));
+	result = uds_write_to_buffered_writer(buffered_writer, buffer,
+					      sizeof(buffer));
 	if (result != UDS_SUCCESS)
-		uds_log_warning_strerror(result, "failed to write guard delta list");
+		uds_log_warning_strerror(result,
+					 "failed to write guard delta list");
 
 	return UDS_SUCCESS;
 }
@@ -1291,8 +1290,7 @@ int uds_start_delta_index_search(const struct delta_index *delta_index,
 
 	result = ASSERT((list_number < delta_index->list_count),
 			"Delta list number (%u) is out of range (%u)",
-			list_number,
-			delta_index->list_count);
+			list_number, delta_index->list_count);
 	if (result != UDS_SUCCESS)
 		return UDS_CORRUPT_DATA;
 
@@ -1301,9 +1299,7 @@ int uds_start_delta_index_search(const struct delta_index *delta_index,
 	list_number -= delta_zone->first_list;
 	result = ASSERT((list_number < delta_zone->list_count),
 			"Delta list number (%u) is out of range (%u) for zone (%u)",
-			list_number,
-			delta_zone->list_count,
-			zone_number);
+			list_number, delta_zone->list_count, zone_number);
 	if (result != UDS_SUCCESS)
 		return UDS_CORRUPT_DATA;
 
@@ -1317,8 +1313,10 @@ int uds_start_delta_index_search(const struct delta_index *delta_index,
 		 * full delta list header.
 		 */
 		delta_list = &delta_entry->temp_delta_list;
-		delta_list->start = get_immutable_start(delta_zone->memory, list_number);
-		end_offset = get_immutable_start(delta_zone->memory, list_number + 1);
+		delta_list->start = get_immutable_start(delta_zone->memory,
+							list_number);
+		end_offset = get_immutable_start(delta_zone->memory,
+						 list_number + 1);
 		delta_list->size = end_offset - delta_list->start;
 		delta_list->save_key = 0;
 		delta_list->save_offset = 0;
@@ -1446,7 +1444,8 @@ int uds_remember_delta_index_offset(const struct delta_index_entry *delta_entry)
 	int result;
 	struct delta_list *delta_list = delta_entry->delta_list;
 
-	result = ASSERT(!delta_entry->is_collision, "entry is not a collision");
+	result = ASSERT(!delta_entry->is_collision,
+			"entry is not a collision");
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1500,7 +1499,8 @@ int uds_get_delta_index_entry(const struct delta_index *delta_index,
 {
 	int result;
 
-	result = uds_start_delta_index_search(delta_index, list_number, key, delta_entry);
+	result = uds_start_delta_index_search(delta_index, list_number, key,
+					      delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1589,13 +1589,11 @@ int uds_set_delta_entry_value(const struct delta_index_entry *delta_entry,
 
 	result = ASSERT((value & value_mask) == value,
 			"Value (%u) being set in a delta index is too large (must fit in %u bits)",
-			value,
-			delta_entry->value_bits);
+			value, delta_entry->value_bits);
 	if (result != UDS_SUCCESS)
 		return UDS_INVALID_ARGUMENT;
 
-	set_field(value,
-		  delta_entry->delta_zone->memory,
+	set_field(value, delta_entry->delta_zone->memory,
 		  get_delta_entry_offset(delta_entry),
 		  delta_entry->value_bits);
 	return UDS_SUCCESS;
@@ -1626,7 +1624,8 @@ STATIC int extend_delta_zone(struct delta_zone *delta_zone, u32 growing_index,
 		return UDS_OVERFLOW;
 
 	/* Compute the new offsets of the delta lists. */
-	compute_new_list_offsets(delta_zone, growing_index, growing_size, used_space);
+	compute_new_list_offsets(delta_zone, growing_index, growing_size,
+				 used_space);
 
 	/*
 	 * When we rebalance the delta list, we will include the end guard list in the rebalancing.
@@ -1695,7 +1694,8 @@ static int insert_bits(struct delta_index_entry *delta_entry, u16 size)
 		before_flag = before_size < after_size;
 		if (!before_flag)
 			growing_index++;
-		result = extend_delta_zone(delta_zone, growing_index, BITS_TO_BYTES(size));
+		result = extend_delta_zone(delta_zone, growing_index,
+					   BITS_TO_BYTES(size));
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -1728,7 +1728,8 @@ static void encode_delta(const struct delta_index_entry *delta_entry)
 
 	offset = get_delta_entry_offset(delta_entry) + delta_entry->value_bits;
 	if (delta_entry->delta < delta_zone->min_keys) {
-		set_field(delta_entry->delta, memory, offset, delta_zone->min_bits);
+		set_field(delta_entry->delta, memory, offset,
+			  delta_zone->min_bits);
 		return;
 	}
 
@@ -1791,7 +1792,8 @@ int uds_put_delta_index_entry(struct delta_index_entry *delta_entry, u32 key,
 		if (result != UDS_SUCCESS)
 			return result;
 
-		result = ASSERT((key == delta_entry->key), "incorrect key for collision entry");
+		result = ASSERT((key == delta_entry->key),
+				"incorrect key for collision entry");
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1802,7 +1804,8 @@ int uds_put_delta_index_entry(struct delta_index_entry *delta_entry, u32 key,
 		result = insert_bits(delta_entry, delta_entry->entry_bits);
 	} else if (delta_entry->at_end) {
 		/* Insert a new entry at the end of the delta list. */
-		result = ASSERT((key >= delta_entry->key), "key past end of list");
+		result = ASSERT((key >= delta_entry->key),
+				"key past end of list");
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1820,7 +1823,8 @@ int uds_put_delta_index_entry(struct delta_index_entry *delta_entry, u32 key,
 		 * Insert a new entry which requires the delta in the following entry to be
 		 * updated.
 		 */
-		result = ASSERT((key < delta_entry->key), "key precedes following entry");
+		result = ASSERT((key < delta_entry->key),
+				"key precedes following entry");
 		if (result != UDS_SUCCESS)
 			return result;
 
@@ -1832,7 +1836,8 @@ int uds_put_delta_index_entry(struct delta_index_entry *delta_entry, u32 key,
 		old_entry_size = delta_entry->entry_bits;
 		next_entry = *delta_entry;
 		next_value = uds_get_delta_entry_value(&next_entry);
-		set_delta(delta_entry, key - (delta_entry->key - delta_entry->delta));
+		set_delta(delta_entry,
+			  key - (delta_entry->key - delta_entry->delta));
 		delta_entry->key = key;
 		set_delta(&next_entry, next_entry.key - key);
 		next_entry.offset += delta_entry->entry_bits;
@@ -2001,7 +2006,8 @@ u32 uds_get_delta_index_page_count(u32 entry_count, u32 list_count,
 	size_t bits_per_index;
 
 	/* Compute the expected number of bits needed for all the entries. */
-	bits_per_index = uds_compute_delta_index_size(entry_count, mean_delta, payload_bits);
+	bits_per_index = uds_compute_delta_index_size(entry_count, mean_delta,
+						      payload_bits);
 	bits_per_delta_list = bits_per_index / list_count;
 
 	/* Add in the immutable delta list headers. */
@@ -2021,8 +2027,7 @@ void uds_log_delta_index_entry(struct delta_index_entry *delta_entry)
 {
 	uds_log_ratelimit(uds_log_info,
 			  "List 0x%X Key 0x%X Offset 0x%X%s%s List_size 0x%X%s",
-			  delta_entry->list_number,
-			  delta_entry->key,
+			  delta_entry->list_number, delta_entry->key,
 			  delta_entry->offset,
 			  delta_entry->at_end ? " end" : "",
 			  delta_entry->is_collision ? " collision" : "",
