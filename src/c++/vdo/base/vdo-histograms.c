@@ -30,89 +30,60 @@ void vdo_initialize_histograms(struct kobject *parent,
 	 * expensive.
 	 */
 	histograms->post_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "dedupe_post",
+		make_logarithmic_jiffies_histogram(parent, "dedupe_post",
 						   "Dedupe Index Post",
 						   "operations",
-						   "response time",
-						   4);
+						   "response time", 4);
 	histograms->query_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "dedupe_query",
+		make_logarithmic_jiffies_histogram(parent, "dedupe_query",
 						   "Dedupe Index Query",
 						   "operations",
-						   "response time",
-						   4);
+						   "response time", 4);
 	histograms->update_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "dedupe_update",
+		make_logarithmic_jiffies_histogram(parent, "dedupe_update",
 						   "Dedupe Index Update",
 						   "operations",
-						   "response time",
-						   4);
+						   "response time", 4);
 	histograms->flush_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "flush",
+		make_logarithmic_jiffies_histogram(parent, "flush",
 						   "Forward External Flush Request",
-						   "flushes",
-						   "latency",
-						   6);
+						   "flushes", "latency", 6);
 	histograms->read_ack_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "acknowledge_read",
+		make_logarithmic_jiffies_histogram(parent, "acknowledge_read",
 						   "Acknowledge External Read Request",
-						   "reads",
-						   "response time",
+						   "reads", "response time",
 						   5);
 	histograms->write_ack_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "acknowledge_write",
+		make_logarithmic_jiffies_histogram(parent, "acknowledge_write",
 						   "Acknowledge External Write Request",
-						   "writes",
-						   "response time",
+						   "writes", "response time",
 						   5);
 	histograms->discard_ack_histogram =
 		make_logarithmic_jiffies_histogram(parent,
 						   "acknowledge_discard",
 						   "Acknowledge External Discard Request",
-						   "discards",
-						   "response time",
+						   "discards", "response time",
 						   5);
 	histograms->read_bios_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "bio_read",
-						   "Read I/O",
-						   "reads",
-						   "I/O time",
-						   5);
+		make_logarithmic_jiffies_histogram(parent, "bio_read",
+						   "Read I/O", "reads",
+						   "I/O time", 5);
 	histograms->read_queue_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "read_queue",
-						   "Read Queue",
-						   "reads",
-						   "queue time",
-						   5);
+		make_logarithmic_jiffies_histogram(parent, "read_queue",
+						   "Read Queue", "reads",
+						   "queue time", 5);
 	histograms->write_bios_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "bio_write",
-						   "Write I/O",
-						   "writes",
-						   "I/O time",
-						   5);
+		make_logarithmic_jiffies_histogram(parent, "bio_write",
+						   "Write I/O", "writes",
+						   "I/O time", 5);
 	histograms->write_queue_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "write_queue",
-						   "Write Queue",
-						   "writes",
-						   "queue time",
-						   5);
+		make_logarithmic_jiffies_histogram(parent, "write_queue",
+						   "Write Queue", "writes",
+						   "queue time", 5);
 	histograms->start_request_histogram =
-		make_logarithmic_jiffies_histogram(parent,
-						   "bio_start",
-						   "Start Request",
-						   "requests",
-						   "delay time",
-						   5);
+		make_logarithmic_jiffies_histogram(parent, "bio_start",
+						   "Start Request", "requests",
+						   "delay time", 5);
 }
 
 /**
