@@ -145,9 +145,7 @@ void vdo_dequeue_matching_waiters(struct wait_queue *queue,
 		struct waiter *waiter = vdo_dequeue_next_waiter(&iteration_queue);
 
 		vdo_enqueue_waiter((match_method(waiter, match_context) ?
-				    &matched_waiters :
-				    queue),
-				   waiter);
+				    &matched_waiters : queue), waiter);
 	}
 
 	vdo_transfer_all_waiters(&matched_waiters, matched_queue);
