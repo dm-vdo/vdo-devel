@@ -228,7 +228,8 @@ static inline physical_block_number_t __must_check vdo_get_recovery_journal_bloc
 	 * Since journal size is a power of two, the block number modulus can just be extracted
 	 * from the low-order bits of the sequence.
 	 */
-	return vdo_compute_recovery_journal_block_number(journal->size, sequence);
+	return vdo_compute_recovery_journal_block_number(journal->size,
+							 sequence);
 }
 
 /**
