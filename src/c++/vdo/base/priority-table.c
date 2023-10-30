@@ -213,7 +213,8 @@ void vdo_priority_table_remove(struct priority_table *table,
 	 * and we can use it to update the search vector.
 	 */
 	if (list_empty(next_entry))
-		mark_bucket_empty(table, list_entry(next_entry, struct bucket, queue));
+		mark_bucket_empty(table, list_entry(next_entry, struct bucket,
+						    queue));
 }
 
 /**
