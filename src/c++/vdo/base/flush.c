@@ -65,8 +65,7 @@ static inline void assert_on_flusher_thread(struct flusher *flusher,
 					    const char *caller)
 {
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == flusher->thread_id),
-			"%s() called from flusher thread",
-			caller);
+			"%s() called from flusher thread", caller);
 }
 
 /**
@@ -77,7 +76,8 @@ static inline void assert_on_flusher_thread(struct flusher *flusher,
  */
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-	vdo_assert_completion_type(completion, VDO_FLUSH_NOTIFICATION_COMPLETION);
+	vdo_assert_completion_type(completion,
+				   VDO_FLUSH_NOTIFICATION_COMPLETION);
 	return container_of(completion, struct flusher, completion);
 }
 
@@ -111,16 +111,19 @@ static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
 	if ((gfp_mask & GFP_NOWAIT) == GFP_NOWAIT) {
 		flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
 	} else {
-		int result = UDS_ALLOCATE(1, struct vdo_flush, __func__, &flush);
+		int result = UDS_ALLOCATE(1, struct vdo_flush, __func__,
+					  &flush);
 
 		if (result != VDO_SUCCESS)
-			uds_log_error_strerror(result, "failed to allocate spare flush");
+			uds_log_error_strerror(result,
+					       "failed to allocate spare flush");
 	}
 
 	if (flush != NULL) {
 		struct flusher *flusher = pool_data;
 
-		vdo_initialize_completion(&flush->completion, flusher->vdo, VDO_FLUSH_COMPLETION);
+		vdo_initialize_completion(&flush->completion, flusher->vdo,
+					  VDO_FLUSH_COMPLETION);
 	}
 
 	return flush;
@@ -146,13 +149,15 @@ int vdo_make_flusher(struct vdo *vdo)
 
 	vdo->flusher->vdo = vdo;
 	vdo->flusher->thread_id = vdo->thread_config.packer_thread;
-	vdo_set_admin_state_code(&vdo->flusher->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
+	vdo_set_admin_state_code(&vdo->flusher->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 	vdo_initialize_completion(&vdo->flusher->completion, vdo,
 				  VDO_FLUSH_NOTIFICATION_COMPLETION);
 
 	spin_lock_init(&vdo->flusher->lock);
 	bio_list_init(&vdo->flusher->waiting_flush_bios);
-	vdo->flusher->flush_pool = mempool_create(1, allocate_flush, free_flush, vdo->flusher);
+	vdo->flusher->flush_pool = mempool_create(1, allocate_flush,
+						  free_flush, vdo->flusher);
 	return ((vdo->flusher->flush_pool == NULL) ? -ENOMEM : VDO_SUCCESS);
 }
 
@@ -218,7 +223,8 @@ static void flush_packer_callback(struct vdo_completion *completion)
 	struct flusher *flusher = as_flusher(completion);
 
 	vdo_increment_packer_flush_generation(flusher->vdo->packer);
-	vdo_launch_completion_callback(completion, finish_notification, flusher->thread_id);
+	vdo_launch_completion_callback(completion, finish_notification,
+				       flusher->thread_id);
 }
 
 /**
@@ -233,7 +239,8 @@ static void increment_generation(struct vdo_completion *completion)
 	struct flusher *flusher = as_flusher(completion);
 	struct logical_zone *zone = flusher->logical_zone_to_notify;
 
-	vdo_increment_logical_zone_flush_generation(zone, flusher->notify_generation);
+	vdo_increment_logical_zone_flush_generation(zone,
+						    flusher->notify_generation);
 	if (zone->next == NULL) {
 		vdo_launch_completion_callback(completion,
 					       flush_packer_callback,
@@ -242,8 +249,7 @@ static void increment_generation(struct vdo_completion *completion)
 	}
 
 	flusher->logical_zone_to_notify = zone->next;
-	vdo_launch_completion_callback(completion,
-				       increment_generation,
+	vdo_launch_completion_callback(completion, increment_generation,
 				       flusher->logical_zone_to_notify->thread_id);
 }
 
@@ -277,7 +283,8 @@ static void flush_vdo(struct vdo_completion *completion)
 	int result;
 
 	assert_on_flusher_thread(flusher, __func__);
-	result = ASSERT(vdo_is_state_normal(&flusher->state), "flusher is in normal operation");
+	result = ASSERT(vdo_is_state_normal(&flusher->state),
+			"flusher is in normal operation");
 	if (result != VDO_SUCCESS) {
 		vdo_enter_read_only_mode(flusher->vdo, result);
 		vdo_complete_flush(flush);
@@ -323,7 +330,8 @@ void vdo_complete_flushes(struct flusher *flusher)
 
 	for (zone = &flusher->vdo->logical_zones->zones[0]; zone != NULL; zone = zone->next)
 		oldest_active_generation =
-			min(oldest_active_generation, READ_ONCE(zone->oldest_active_generation));
+			min(oldest_active_generation,
+			    READ_ONCE(zone->oldest_active_generation));
 
 	while (vdo_has_waiters(&flusher->pending_flushes)) {
 		struct vdo_flush *flush =
@@ -332,8 +340,7 @@ void vdo_complete_flushes(struct flusher *flusher)
 		if (flush->flush_generation >= oldest_active_generation)
 			return;
 
-		ASSERT_LOG_ONLY((flush->flush_generation ==
-				 flusher->first_unacknowledged_generation),
+		ASSERT_LOG_ONLY((flush->flush_generation == flusher->first_unacknowledged_generation),
 				"acknowledged next expected flush, %llu, was: %llu",
 				(unsigned long long) flusher->first_unacknowledged_generation,
 				(unsigned long long) flush->flush_generation);
@@ -382,9 +389,7 @@ static void launch_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
 
-	vdo_prepare_completion(completion,
-			       flush_vdo,
-			       flush_vdo,
+	vdo_prepare_completion(completion, flush_vdo, flush_vdo,
 			       completion->vdo->thread_config.packer_thread,
 			       NULL);
 	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_FLUSH_PRIORITY);
@@ -404,11 +409,13 @@ void vdo_launch_flush(struct vdo *vdo, struct bio *bio)
 	 * Try to allocate a vdo_flush to represent the flush request. If the allocation fails,
 	 * we'll deal with it later.
 	 */
-	struct vdo_flush *flush = mempool_alloc(vdo->flusher->flush_pool, GFP_NOWAIT);
+	struct vdo_flush *flush = mempool_alloc(vdo->flusher->flush_pool,
+						GFP_NOWAIT);
 	struct flusher *flusher = vdo->flusher;
 	const struct admin_state_code *code = vdo_get_admin_state_code(&flusher->state);
 
-	ASSERT_LOG_ONLY(!code->quiescent, "Flushing not allowed in state %s", code->name);
+	ASSERT_LOG_ONLY(!code->quiescent, "Flushing not allowed in state %s",
+			code->name);
 
 	spin_lock(&flusher->lock);
 
@@ -491,7 +498,8 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 	}
 
 #ifdef VDO_INTERNAL
-	enter_histogram_sample(vdo->histograms.flush_histogram, jiffies - flush->arrival_jiffies);
+	enter_histogram_sample(vdo->histograms.flush_histogram,
+			       jiffies - flush->arrival_jiffies);
 #endif /* VDO_INTERNAL */
 
 	/*
@@ -533,8 +541,7 @@ static void vdo_complete_flush(struct vdo_flush *flush)
 {
 	struct vdo_completion *completion = &flush->completion;
 
-	vdo_prepare_completion(completion,
-			       vdo_complete_flush_callback,
+	vdo_prepare_completion(completion, vdo_complete_flush_callback,
 			       vdo_complete_flush_callback,
 			       select_bio_queue(completion->vdo->flusher),
 			       NULL);
@@ -563,10 +570,8 @@ void vdo_drain_flusher(struct flusher *flusher,
 		       struct vdo_completion *completion)
 {
 	assert_on_flusher_thread(flusher, __func__);
-	vdo_start_draining(&flusher->state,
-			   VDO_ADMIN_STATE_SUSPENDING,
-			   completion,
-			   initiate_drain);
+	vdo_start_draining(&flusher->state, VDO_ADMIN_STATE_SUSPENDING,
+			   completion, initiate_drain);
 }
 
 /**
@@ -577,5 +582,6 @@ void vdo_drain_flusher(struct flusher *flusher,
 void vdo_resume_flusher(struct flusher *flusher, struct vdo_completion *parent)
 {
 	assert_on_flusher_thread(flusher, __func__);
-	vdo_continue_completion(parent, vdo_resume_if_quiescent(&flusher->state));
+	vdo_continue_completion(parent,
+				vdo_resume_if_quiescent(&flusher->state));
 }
