@@ -289,7 +289,8 @@ typedef int vdo_entry_callback(physical_block_number_t pbn,
 static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_completion *completion)
 {
 	vdo_assert_completion_type(completion, VDO_PAGE_COMPLETION);
-	return container_of(completion, struct vdo_page_completion, completion);
+	return container_of(completion, struct vdo_page_completion,
+			    completion);
 }
 
 void vdo_release_page_completion(struct vdo_completion *completion);
