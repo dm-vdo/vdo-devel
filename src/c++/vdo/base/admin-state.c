@@ -223,7 +223,8 @@ static int __must_check begin_operation(struct admin_state *state,
 					vdo_admin_initiator *initiator)
 {
 	int result;
-	const struct admin_state_code *next_state = get_next_state(state, operation);
+	const struct admin_state_code *next_state = get_next_state(state,
+								   operation);
 
 	if (next_state == NULL) {
 		result = uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
@@ -306,7 +307,8 @@ static bool check_code(bool valid, const struct admin_state_code *code,
 static bool __must_check assert_vdo_drain_operation(const struct admin_state_code *operation,
 						    struct vdo_completion *waiter)
 {
-	return check_code(operation->draining, operation, "drain operation", waiter);
+	return check_code(operation->draining, operation, "drain operation",
+			  waiter);
 }
 
 /**
@@ -335,8 +337,7 @@ bool vdo_start_draining(struct admin_state *state,
 	if (!code->normal) {
 		uds_log_error_strerror(VDO_INVALID_ADMIN_STATE,
 				       "can't start %s from %s",
-				       operation->name,
-				       code->name);
+				       operation->name, code->name);
 		vdo_continue_completion(waiter, VDO_INVALID_ADMIN_STATE);
 		return false;
 	}
@@ -361,7 +362,8 @@ bool vdo_finish_draining(struct admin_state *state)
  */
 bool vdo_finish_draining_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_draining(state) && vdo_finish_operation(state, result));
+	return (vdo_is_state_draining(state) && vdo_finish_operation(state,
+								     result));
 }
 
 /**
@@ -373,7 +375,8 @@ bool vdo_finish_draining_with_result(struct admin_state *state, int result)
 bool vdo_assert_load_operation(const struct admin_state_code *operation,
 			       struct vdo_completion *waiter)
 {
-	return check_code(operation->loading, operation, "load operation", waiter);
+	return check_code(operation->loading, operation, "load operation",
+			  waiter);
 }
 
 /**
@@ -411,7 +414,8 @@ bool vdo_finish_loading(struct admin_state *state)
  */
 bool vdo_finish_loading_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_loading(state) && vdo_finish_operation(state, result));
+	return (vdo_is_state_loading(state) &&
+		vdo_finish_operation(state, result));
 }
 
 /**
@@ -423,10 +427,8 @@ bool vdo_finish_loading_with_result(struct admin_state *state, int result)
 static bool __must_check assert_vdo_resume_operation(const struct admin_state_code *operation,
 						     struct vdo_completion *waiter)
 {
-	return check_code(operation == VDO_ADMIN_STATE_RESUMING,
-			  operation,
-			  "resume operation",
-			  waiter);
+	return check_code(operation == VDO_ADMIN_STATE_RESUMING, operation,
+			  "resume operation", waiter);
 }
 
 /**
@@ -464,7 +466,8 @@ bool vdo_finish_resuming(struct admin_state *state)
  */
 bool vdo_finish_resuming_with_result(struct admin_state *state, int result)
 {
-	return (vdo_is_state_resuming(state) && vdo_finish_operation(state, result));
+	return (vdo_is_state_resuming(state) && vdo_finish_operation(state,
+								     result));
 }
 
 /**
@@ -505,7 +508,8 @@ int vdo_start_operation_with_waiter(struct admin_state *state,
 				    struct vdo_completion *waiter,
 				    vdo_admin_initiator *initiator)
 {
-	return (check_code(operation->operating, operation, "operation", waiter) ?
+	return (check_code(operation->operating, operation, "operation",
+			   waiter) ?
 		begin_operation(state, operation, waiter, initiator) :
 		VDO_INVALID_ADMIN_STATE);
 }
