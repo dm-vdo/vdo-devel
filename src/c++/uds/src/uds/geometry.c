@@ -117,8 +117,7 @@ int uds_copy_geometry(struct geometry *source, struct geometry **geometry_ptr)
 				 source->chapters_per_volume,
 				 source->sparse_chapters_per_volume,
 				 source->remapped_virtual,
-				 source->remapped_physical,
-				 geometry_ptr);
+				 source->remapped_physical, geometry_ptr);
 }
 
 void uds_free_geometry(struct geometry *geometry)
@@ -168,8 +167,7 @@ bool uds_is_chapter_sparse(const struct geometry *geometry,
 			   u64 newest_virtual_chapter,
 			   u64 virtual_chapter_number)
 {
-	return uds_has_sparse_chapters(geometry,
-				       oldest_virtual_chapter,
+	return uds_has_sparse_chapters(geometry, oldest_virtual_chapter,
 				       newest_virtual_chapter) &&
 	       ((virtual_chapter_number + geometry->dense_chapters_per_volume) <=
 		newest_virtual_chapter);
