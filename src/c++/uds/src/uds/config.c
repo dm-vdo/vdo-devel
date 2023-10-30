@@ -105,15 +105,16 @@ int uds_validate_config_contents(struct buffered_reader *reader,
 	u8 buffer[sizeof(struct uds_configuration_6_02)];
 	size_t offset = 0;
 
-	result = uds_verify_buffered_data(reader, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
+	result = uds_verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
+					  INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_read_from_buffered_reader(reader,
-					       version_buffer,
+	result = uds_read_from_buffered_reader(reader, version_buffer,
 					       INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
-		return uds_log_error_strerror(result, "cannot read index config version");
+		return uds_log_error_strerror(result,
+					      "cannot read index config version");
 
 	if (!is_version(INDEX_CONFIG_VERSION_6_02, version_buffer) &&
 	    !is_version(INDEX_CONFIG_VERSION_8_02, version_buffer)) {
@@ -125,7 +126,8 @@ int uds_validate_config_contents(struct buffered_reader *reader,
 
 	result = uds_read_from_buffered_reader(reader, buffer, sizeof(buffer));
 	if (result != UDS_SUCCESS)
-		return uds_log_error_strerror(result, "cannot read config data");
+		return uds_log_error_strerror(result,
+					      "cannot read config data");
 
 	decode_u32_le(buffer, &offset, &geometry.record_pages_per_chapter);
 	decode_u32_le(buffer, &offset, &geometry.chapters_per_volume);
@@ -150,13 +152,17 @@ int uds_validate_config_contents(struct buffered_reader *reader,
 	} else {
 		u8 remapping[sizeof(u64) + sizeof(u64)];
 
-		result = uds_read_from_buffered_reader(reader, remapping, sizeof(remapping));
+		result = uds_read_from_buffered_reader(reader, remapping,
+						       sizeof(remapping));
 		if (result != UDS_SUCCESS)
-			return uds_log_error_strerror(result, "cannot read converted config");
+			return uds_log_error_strerror(result,
+						      "cannot read converted config");
 
 		offset = 0;
-		decode_u64_le(remapping, &offset, &user_config->geometry->remapped_virtual);
-		decode_u64_le(remapping, &offset, &user_config->geometry->remapped_physical);
+		decode_u64_le(remapping, &offset,
+			      &user_config->geometry->remapped_virtual);
+		decode_u64_le(remapping, &offset,
+			      &user_config->geometry->remapped_physical);
 	}
 
 	if (!are_matching_configurations(&config, &geometry, user_config)) {
@@ -180,8 +186,7 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	u8 buffer[sizeof(struct uds_configuration_8_02)];
 	size_t offset = 0;
 
-	result = uds_write_to_buffered_writer(writer,
-					      INDEX_CONFIG_MAGIC,
+	result = uds_write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
 					      INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -215,8 +220,7 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	encode_u64_le(buffer, &offset, config->nonce);
 
 	result = ASSERT(offset == sizeof(struct uds_configuration_6_02),
-			"%zu bytes encoded, of %zu expected",
-			offset,
+			"%zu bytes encoded, of %zu expected", offset,
 			sizeof(struct uds_configuration_6_02));
 	if (result != UDS_SUCCESS)
 		return result;
@@ -303,8 +307,7 @@ static unsigned int __must_check normalize_zone_count(unsigned int requested)
 	if (zone_count > MAX_ZONES)
 		zone_count = MAX_ZONES;
 
-	uds_log_info("Using %u indexing zone%s for concurrency.",
-		     zone_count,
+	uds_log_info("Using %u indexing zone%s for concurrency.", zone_count,
 		     zone_count == 1 ? "" : "s");
 	return zone_count;
 }
@@ -331,8 +334,7 @@ int uds_make_configuration(const struct uds_parameters *params,
 	u32 sparse_chapters_per_volume = 0;
 	int result;
 
-	result = compute_memory_sizes(params->memory_size,
-				      params->sparse,
+	result = compute_memory_sizes(params->memory_size, params->sparse,
 				      &chapters_per_volume,
 				      &record_pages_per_chapter,
 				      &sparse_chapters_per_volume);
@@ -346,9 +348,7 @@ int uds_make_configuration(const struct uds_parameters *params,
 	result = uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
 				   record_pages_per_chapter,
 				   chapters_per_volume,
-				   sparse_chapters_per_volume,
-				   0,
-				   0,
+				   sparse_chapters_per_volume, 0, 0,
 				   &config->geometry);
 	if (result != UDS_SUCCESS) {
 		uds_free_configuration(config);
@@ -383,12 +383,20 @@ void uds_log_configuration(struct configuration *config)
 	struct geometry *geometry = config->geometry;
 
 	uds_log_debug("Configuration:");
-	uds_log_debug("  Record pages per chapter:   %10u", geometry->record_pages_per_chapter);
-	uds_log_debug("  Chapters per volume:        %10u", geometry->chapters_per_volume);
-	uds_log_debug("  Sparse chapters per volume: %10u", geometry->sparse_chapters_per_volume);
-	uds_log_debug("  Cache size (chapters):      %10u", config->cache_chapters);
-	uds_log_debug("  Volume index mean delta:    %10u", config->volume_index_mean_delta);
-	uds_log_debug("  Bytes per page:             %10zu", geometry->bytes_per_page);
-	uds_log_debug("  Sparse sample rate:         %10u", config->sparse_sample_rate);
-	uds_log_debug("  Nonce:                      %llu", (unsigned long long) config->nonce);
+	uds_log_debug("  Record pages per chapter:   %10u",
+		      geometry->record_pages_per_chapter);
+	uds_log_debug("  Chapters per volume:        %10u",
+		      geometry->chapters_per_volume);
+	uds_log_debug("  Sparse chapters per volume: %10u",
+		      geometry->sparse_chapters_per_volume);
+	uds_log_debug("  Cache size (chapters):      %10u",
+		      config->cache_chapters);
+	uds_log_debug("  Volume index mean delta:    %10u",
+		      config->volume_index_mean_delta);
+	uds_log_debug("  Bytes per page:             %10zu",
+		      geometry->bytes_per_page);
+	uds_log_debug("  Sparse sample rate:         %10u",
+		      config->sparse_sample_rate);
+	uds_log_debug("  Nonce:                      %llu",
+		      (unsigned long long) config->nonce);
 }
