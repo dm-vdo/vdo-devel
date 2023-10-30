@@ -125,10 +125,8 @@ static int __must_check make_bin(struct packer *packer)
 	int result;
 
 	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
-				       VDO_MAX_COMPRESSION_SLOTS,
-				       struct vio *,
-				       __func__,
-				       &bin);
+				       VDO_MAX_COMPRESSION_SLOTS, struct vio *,
+				       __func__, &bin);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -161,7 +159,8 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
 	packer->thread_id = vdo->thread_config.packer_thread;
 	packer->size = bin_count;
 	INIT_LIST_HEAD(&packer->bins);
-	vdo_set_admin_state_code(&packer->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
+	vdo_set_admin_state_code(&packer->state,
+				 VDO_ADMIN_STATE_NORMAL_OPERATION);
 
 	for (i = 0; i < bin_count; i++) {
 		result = make_bin(packer);
@@ -177,9 +176,8 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
 	 * canceled one lock holder at a time.
 	 */
 	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
-				       MAXIMUM_VDO_USER_VIOS / 2,
-				       struct vio *, __func__,
-				       &packer->canceled_bin);
+				       MAXIMUM_VDO_USER_VIOS / 2, struct vio *,
+				       __func__, &packer->canceled_bin);
 	if (result != VDO_SUCCESS) {
 		vdo_free_packer(packer);
 		return result;
@@ -309,7 +307,8 @@ static void handle_compressed_write_error(struct vdo_completion *completion)
 	struct allocation *allocation = &agent->allocation;
 	struct data_vio *client, *next;
 
-	if (vdo_requeue_completion_if_needed(completion, allocation->zone->thread_id))
+	if (vdo_requeue_completion_if_needed(completion,
+					     allocation->zone->thread_id))
 		return;
 
 	update_vio_error_stats(as_vio(completion),
@@ -425,8 +424,10 @@ static void compressed_write_end_io(struct bio *bio)
 	struct data_vio *data_vio = vio_as_data_vio(bio->bi_private);
 
 	vdo_count_completed_bios(bio);
-	set_data_vio_allocated_zone_callback(data_vio, finish_compressed_write);
-	continue_data_vio_with_error(data_vio, blk_status_to_errno(bio->bi_status));
+	set_data_vio_allocated_zone_callback(data_vio,
+					     finish_compressed_write);
+	continue_data_vio_with_error(data_vio,
+				     blk_status_to_errno(bio->bi_status));
 }
 
 /**
@@ -455,7 +456,8 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	offset = compression->size;
 
 	while ((client = remove_from_bin(packer, bin)) != NULL)
-		offset = pack_fragment(compression, client, offset, slot++, block);
+		offset = pack_fragment(compression, client, offset, slot++,
+				       block);
 
 	/*
 	 * If the batch contains only a single vio, then we save nothing by saving the compressed
@@ -468,8 +470,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 
 	if (slot < VDO_MAX_COMPRESSION_SLOTS)
 		/* Clear out the sizes of the unused slots */
-		memset(&block->header.sizes[slot],
-		       0,
+		memset(&block->header.sizes[slot], 0,
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
 
 	agent->vio.completion.error_handler = handle_compressed_write_error;
@@ -478,10 +479,8 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		return;
 	}
 
-	result = vio_reset_bio(&agent->vio,
-			       (char *) block,
-			       compressed_write_end_io,
-			       REQ_OP_WRITE,
+	result = vio_reset_bio(&agent->vio, (char *) block,
+			       compressed_write_end_io, REQ_OP_WRITE,
 			       agent->allocation.pbn);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio_with_error(agent, result);
@@ -497,7 +496,8 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		   (stats->compressed_fragments_in_packer - slot));
 	WRITE_ONCE(stats->compressed_fragments_written,
 		   (stats->compressed_fragments_written + slot));
-	WRITE_ONCE(stats->compressed_blocks_written, stats->compressed_blocks_written + 1);
+	WRITE_ONCE(stats->compressed_blocks_written,
+		   stats->compressed_blocks_written + 1);
 
 	submit_data_vio_io(agent);
 }
@@ -744,7 +744,8 @@ static void initiate_drain(struct admin_state *state)
 void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 {
 	assert_on_packer_thread(packer, __func__);
-	vdo_start_draining(&packer->state, VDO_ADMIN_STATE_SUSPENDING, completion, initiate_drain);
+	vdo_start_draining(&packer->state, VDO_ADMIN_STATE_SUSPENDING,
+			   completion, initiate_drain);
 }
 
 /**
@@ -755,7 +756,8 @@ void vdo_drain_packer(struct packer *packer, struct vdo_completion *completion)
 void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	vdo_continue_completion(parent, vdo_resume_if_quiescent(&packer->state));
+	vdo_continue_completion(parent,
+				vdo_resume_if_quiescent(&packer->state));
 }
 
 static void dump_packer_bin(const struct packer_bin *bin, bool canceled)
