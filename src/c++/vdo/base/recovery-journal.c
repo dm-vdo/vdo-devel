@@ -949,7 +949,7 @@ get_block_header(const struct recovery_journal_block *block)
  */
 static void set_active_sector(struct recovery_journal_block *block, void *sector)
 {
-	block->sector = (struct packed_journal_sector *) sector;
+	block->sector = sector;
 	block->sector->check_byte = get_block_header(block)->check_byte;
 	block->sector->recovery_count = block->journal->recovery_count;
 	block->sector->entry_count = 0;
@@ -1106,7 +1106,7 @@ static void update_usages(struct recovery_journal *journal, struct data_vio *dat
 static void assign_entry(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct recovery_journal_block *block = (struct recovery_journal_block *) context;
+	struct recovery_journal_block *block = context;
 	struct recovery_journal *journal = block->journal;
 
 	/* Record the point at which we will make the journal entry. */
@@ -1193,7 +1193,7 @@ static void recycle_journal_block(struct recovery_journal_block *block)
 static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct recovery_journal *journal = (struct recovery_journal *)context;
+	struct recovery_journal *journal = context;
 	int result = (is_read_only(journal) ? VDO_READ_ONLY : VDO_SUCCESS);
 	bool has_decrement;
 

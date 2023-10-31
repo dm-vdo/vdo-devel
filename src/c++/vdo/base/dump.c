@@ -218,7 +218,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 /* Implements buffer_dump_function. */
 void dump_data_vio(void *data)
 {
-	struct data_vio *data_vio = (struct data_vio *) data;
+	struct data_vio *data_vio = data;
 
 	/*
 	 * This just needs to be big enough to hold a queue (thread) name and a function name (plus

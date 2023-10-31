@@ -105,7 +105,7 @@ void vdo_initialize_device_registry_once(void)
 /** vdo_is_equal() - Implements vdo_filter_t. */
 static bool vdo_is_equal(struct vdo *vdo, const void *context)
 {
-	return ((void *) vdo == context);
+	return (vdo == context);
 }
 
 /**

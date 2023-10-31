@@ -928,7 +928,7 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 static void enter_forked_lock(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct hash_lock *new_lock = (struct hash_lock *) context;
+	struct hash_lock *new_lock = context;
 
 	set_hash_lock(data_vio, new_lock);
 	wait_on_hash_lock(new_lock, data_vio);
@@ -2849,10 +2849,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	 */
 	state = get_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
-		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
+		     lock, state, (lock->registered ? 'D' : 'U'),
 		     (unsigned long long) lock->duplicate.pbn,
 		     lock->duplicate.state, lock->reference_count,
-		     vdo_count_waiters(&lock->waiters), (void *) lock->agent);
+		     vdo_count_waiters(&lock->waiters), lock->agent);
 }
 
 static const char *index_state_to_string(struct hash_zones *zones, enum index_state state)

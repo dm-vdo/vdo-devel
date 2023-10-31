@@ -1679,7 +1679,7 @@ static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
 	struct dm_target *ti = vdo->device_config->owning_target;
 	const char *device_name = vdo_get_device_name(ti);
 
-	return strcmp(device_name, (const char *) context) == 0;
+	return strcmp(device_name, context) == 0;
 }
 
 /**
@@ -2080,7 +2080,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	uds_register_allocating_thread(&allocating_thread, NULL);
 	device_name = vdo_get_device_name(ti);
-	vdo = vdo_find_matching(vdo_is_named, (const void *) device_name);
+	vdo = vdo_find_matching(vdo_is_named, device_name);
 	if (vdo == NULL) {
 		result = construct_new_vdo(ti, argc, argv);
 	} else {

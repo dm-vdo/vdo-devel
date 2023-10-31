@@ -378,7 +378,7 @@ struct block_map_page *vdo_format_block_map_page(void *buffer,
 						 physical_block_number_t pbn,
 						 bool initialized)
 {
-	struct block_map_page *page = (struct block_map_page *) buffer;
+	struct block_map_page *page = buffer;
 
 	memset(buffer, 0, VDO_BLOCK_SIZE);
 	page->version = vdo_pack_version_number(BLOCK_MAP_4_1);
@@ -829,7 +829,7 @@ vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 
 	if (block->header.has_block_map_increments &&
 	    ((block->payload.full_entries.entry_types[entry_count / 8] &
-	      ((u8)1 << (entry_count % 8))) != 0))
+	      ((u8) 1 << (entry_count % 8))) != 0))
 		entry.operation = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
 
 	return entry;

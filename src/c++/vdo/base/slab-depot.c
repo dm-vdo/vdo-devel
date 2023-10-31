@@ -562,7 +562,7 @@ static void release_journal_locks(struct waiter *waiter, void *context)
 	sequence_number_t first, i;
 	struct slab_journal *journal =
 		container_of(waiter, struct slab_journal, slab_summary_waiter);
-	int result = *((int *)context);
+	int result = *((int *) context);
 
 	if (result != VDO_SUCCESS) {
 		if (result != VDO_READ_ONLY) {
@@ -3375,8 +3375,8 @@ int vdo_release_block_reference(struct block_allocator *allocator, physical_bloc
  */
 static bool slab_status_is_less_than(const void *item1, const void *item2)
 {
-	const struct slab_status *info1 = (const struct slab_status *) item1;
-	const struct slab_status *info2 = (const struct slab_status *) item2;
+	const struct slab_status *info1 = item1;
+	const struct slab_status *info2 = item2;
 
 	if (info1->is_clean != info2->is_clean)
 		return info1->is_clean;

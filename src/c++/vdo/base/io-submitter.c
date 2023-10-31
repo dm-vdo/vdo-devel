@@ -50,14 +50,14 @@ struct io_submitter {
 #ifdef __KERNEL__
 static void start_bio_queue(void *ptr)
 {
-	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *) ptr;
+	struct bio_queue_data *bio_queue_data = ptr;
 
 	blk_start_plug(&bio_queue_data->plug);
 }
 
 static void finish_bio_queue(void *ptr)
 {
-	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *) ptr;
+	struct bio_queue_data *bio_queue_data = ptr;
 
 	blk_finish_plug(&bio_queue_data->plug);
 }
