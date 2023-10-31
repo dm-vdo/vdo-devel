@@ -37,13 +37,6 @@
 static const u64 BYTES_PER_WORD = sizeof(u64);
 static const bool NORMAL_OPERATION = true;
 
-struct slab_journal_eraser {
-	struct vdo_completion *parent;
-	struct dm_kcopyd_client *client;
-	block_count_t blocks;
-	struct slab_iterator slabs;
-};
-
 /**
  * get_lock() - Get the lock object for a slab journal block by sequence number.
  * @journal: vdo_slab journal to retrieve from.
