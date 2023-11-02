@@ -339,7 +339,7 @@ int uds_make_configuration(const struct uds_parameters *params, struct configura
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct configuration, __func__, &config);
+	result = uds_allocate(1, struct configuration, __func__, &config);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -374,7 +374,7 @@ void uds_free_configuration(struct configuration *config)
 {
 	if (config != NULL) {
 		uds_free_geometry(config->geometry);
-		UDS_FREE(config);
+		uds_free(config);
 	}
 }
 

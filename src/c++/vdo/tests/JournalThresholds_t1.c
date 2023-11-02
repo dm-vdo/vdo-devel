@@ -113,9 +113,9 @@ static void initialize(void)
   };
   initializeRecoveryModeTest(&parameters);
 
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(uds_allocate(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdo->depot->slab_count, logical_block_number_t,
+  VDO_ASSERT_SUCCESS(uds_allocate(vdo->depot->slab_count, logical_block_number_t,
                                   __func__, &slabLBNs2));
 
   setCompletionEnqueueHook(recordLBN);
@@ -134,8 +134,8 @@ static void initialize(void)
 /**********************************************************************/
 static void tearDownTest(void)
 {
-  UDS_FREE(slabLBNs2);
-  UDS_FREE(slabLBNs);
+  uds_free(slabLBNs2);
+  uds_free(slabLBNs);
   tearDownRecoveryModeTest();
 }
 
@@ -403,7 +403,7 @@ static void testScrubSlabDuringRebuild(void)
   reallyEnqueueVIO(blockedVIO);
   releaseSlabLatch(slabNumber);
 
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(trim));
+  awaitAndFreeSuccessfulRequest(uds_forget(trim));
   stopVDO();
 
   // Replace the ram layer content with snapshot content.

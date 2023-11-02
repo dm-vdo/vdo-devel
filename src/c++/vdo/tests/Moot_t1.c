@@ -85,7 +85,7 @@ static void launchWriteAndRead(logical_block_number_t  lbn,
     = launchBufferBackedRequest(lbn, 1, buffer, REQ_OP_READ);
   releaseBlockedVIO();
   CU_ASSERT_EQUAL(expectedWriteResult,
-                  awaitAndFreeRequest(UDS_FORGET(request)));
+                  awaitAndFreeRequest(uds_forget(request)));
   awaitAndFreeSuccessfulRequest(readRequest);
 }
 
@@ -96,7 +96,7 @@ static void releaseLatchedVIO(struct vdo_completion *completion)
 {
   clearCompletionEnqueueHooks();
   runSavedCallback(completion);
-  struct data_vio *dataVIO = UDS_FORGET(toExamine);
+  struct data_vio *dataVIO = uds_forget(toExamine);
   reallyEnqueueCompletion(&dataVIO->vio.completion);
 }
 
@@ -148,10 +148,10 @@ static void testReadFulfillmentAndCompressorMooting(void)
   IORequest *request2 = launchIndexedWrite(1, 1, 2);
 
   // Wait for the initial write VIO to finish.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
 
   // Wait for the second write to finish.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request2));
+  awaitAndFreeSuccessfulRequest(uds_forget(request2));
   restorePacking();
 
   // Verify that the overwrite happened
@@ -203,7 +203,7 @@ static bool wrapIfLeavingCompressor(struct vdo_completion *completion)
 static bool assertCanceled(struct vdo_completion *completion)
 {
   if (completion == &toExamine->vio.completion) {
-    struct data_vio *dataVIO = UDS_FORGET(toExamine);
+    struct data_vio *dataVIO = uds_forget(toExamine);
     clearCompletionEnqueueHooks();
     CU_ASSERT_TRUE(get_data_vio_compression_status(dataVIO).may_not_compress);
   }
@@ -331,7 +331,7 @@ static void testFullOverwriteMooting(void)
 
   // Kick the packer and wait for the initial write VIO to finish.
   requestFlushPacker();
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
 
   // Make sure we haven't lost any data.
   verifyData(0, MAPPABLE_BLOCKS + 1, 1);

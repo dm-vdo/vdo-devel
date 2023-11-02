@@ -30,15 +30,15 @@ static void tearDownDM(void)
     close_file(dmDev.bdev->fd, NULL);
   }
 
-  UDS_FREE(dmDev.bdev->bd_inode);
-  UDS_FREE(UDS_FORGET(dmDev.bdev));
+  uds_free(dmDev.bdev->bd_inode);
+  uds_free(uds_forget(dmDev.bdev));
 }
 
 /**********************************************************************/
 void initializeDM(void)
 {
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct block_device, __func__, &dmDev.bdev));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct inode, __func__, &dmDev.bdev->bd_inode));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct block_device, __func__, &dmDev.bdev));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct inode, __func__, &dmDev.bdev->bd_inode));
   dmDev.bdev->fd = -1;
   registerTearDownAction(tearDownDM);
 }

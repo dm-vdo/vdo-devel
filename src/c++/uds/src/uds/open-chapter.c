@@ -70,7 +70,7 @@ int uds_make_open_chapter(const struct geometry *geometry,
 	size_t capacity = geometry->records_per_chapter / zone_count;
 	size_t slot_count = (1 << bits_per(capacity * LOAD_RATIO));
 
-	result = UDS_ALLOCATE_EXTENDED(struct open_chapter_zone,
+	result = uds_allocate_extended(struct open_chapter_zone,
 				       slot_count,
 				       struct open_chapter_zone_slot,
 				       "open chapter",
@@ -200,8 +200,8 @@ void uds_remove_from_open_chapter(struct open_chapter_zone *open_chapter,
 void uds_free_open_chapter(struct open_chapter_zone *open_chapter)
 {
 	if (open_chapter != NULL) {
-		UDS_FREE(open_chapter->records);
-		UDS_FREE(open_chapter);
+		uds_free(open_chapter->records);
+		uds_free(open_chapter);
 	}
 }
 

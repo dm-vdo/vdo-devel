@@ -45,12 +45,12 @@ static int readAndExaminePage(UserVDO                 *vdo,
 
   result = readBlockMapPage(vdo->layer, pagePBN, vdo->states.vdo.nonce, page);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(page);
+    uds_free(page);
     return result;
   }
 
   if (!page->header.initialized) {
-    UDS_FREE(page);
+    uds_free(page);
     return VDO_SUCCESS;
   }
 
@@ -65,7 +65,7 @@ static int readAndExaminePage(UserVDO                 *vdo,
 
     result = examiner(blockMapSlot, height, mapped.pbn, mapped.state);
     if (result != VDO_SUCCESS) {
-      UDS_FREE(page);
+      uds_free(page);
       return result;
     }
 
@@ -76,13 +76,13 @@ static int readAndExaminePage(UserVDO                 *vdo,
     if ((height > 0) && isValidDataBlock(vdo, mapped.pbn)) {
       result = readAndExaminePage(vdo, mapped.pbn, height - 1, examiner);
       if (result != VDO_SUCCESS) {
-        UDS_FREE(page);
+        uds_free(page);
         return result;
       }
     }
   }
 
-  UDS_FREE(page);
+  uds_free(page);
   return VDO_SUCCESS;
 }
 
@@ -140,7 +140,7 @@ static int readSlotFromPage(UserVDO                  *vdo,
 
   result = readBlockMapPage(vdo->layer, pbn, vdo->states.vdo.nonce, page);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(page);
+    uds_free(page);
     return result;
   }
 
@@ -157,7 +157,7 @@ static int readSlotFromPage(UserVDO                  *vdo,
   *mappedStatePtr = mapped.state;
   *mappedPBNPtr   = mapped.pbn;
 
-  UDS_FREE(page);
+  uds_free(page);
   return VDO_SUCCESS;
 }
 

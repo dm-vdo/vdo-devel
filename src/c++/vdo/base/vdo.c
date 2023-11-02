@@ -191,10 +191,10 @@ static const struct vdo_work_queue_type cpu_q_type = {
 
 STATIC void uninitialize_thread_config(struct thread_config *config)
 {
-	UDS_FREE(UDS_FORGET(config->logical_threads));
-	UDS_FREE(UDS_FORGET(config->physical_threads));
-	UDS_FREE(UDS_FORGET(config->hash_zone_threads));
-	UDS_FREE(UDS_FORGET(config->bio_threads));
+	uds_free(uds_forget(config->logical_threads));
+	uds_free(uds_forget(config->physical_threads));
+	uds_free(uds_forget(config->hash_zone_threads));
+	uds_free(uds_forget(config->bio_threads));
 	memset(config, 0, sizeof(struct thread_config));
 }
 
@@ -233,7 +233,7 @@ initialize_thread_config(struct thread_count_config counts, struct thread_config
 		config->hash_zone_count = counts.hash_zones;
 	}
 
-	result = UDS_ALLOCATE(config->logical_zone_count,
+	result = uds_allocate(config->logical_zone_count,
 			      thread_id_t,
 			      "logical thread array",
 			      &config->logical_threads);
@@ -242,7 +242,7 @@ initialize_thread_config(struct thread_count_config counts, struct thread_config
 		return result;
 	}
 
-	result = UDS_ALLOCATE(config->physical_zone_count,
+	result = uds_allocate(config->physical_zone_count,
 			      thread_id_t,
 			      "physical thread array",
 			      &config->physical_threads);
@@ -251,7 +251,7 @@ initialize_thread_config(struct thread_count_config counts, struct thread_config
 		return result;
 	}
 
-	result = UDS_ALLOCATE(config->hash_zone_count,
+	result = uds_allocate(config->hash_zone_count,
 			      thread_id_t,
 			      "hash thread array",
 			      &config->hash_zone_threads);
@@ -260,7 +260,7 @@ initialize_thread_config(struct thread_count_config counts, struct thread_config
 		return result;
 	}
 
-	result = UDS_ALLOCATE(config->bio_thread_count,
+	result = uds_allocate(config->bio_thread_count,
 			      thread_id_t,
 			      "bio thread array",
 			      &config->bio_threads);
@@ -303,13 +303,13 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	char *block;
 	int result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, u8, __func__, &block);
+	result = uds_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	result = create_metadata_vio(vdo, VIO_TYPE_GEOMETRY, VIO_PRIORITY_HIGH, NULL, block, &vio);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(block);
+		uds_free(block);
 		return result;
 	}
 
@@ -320,23 +320,23 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	 */
 	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ, VDO_GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
-		free_vio(UDS_FORGET(vio));
-		UDS_FREE(block);
+		free_vio(uds_forget(vio));
+		uds_free(block);
 		return result;
 	}
 
 	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
 	submit_bio_wait(vio->bio);
 	result = blk_status_to_errno(vio->bio->bi_status);
-	free_vio(UDS_FORGET(vio));
+	free_vio(uds_forget(vio));
 	if (result != 0) {
 		uds_log_error_strerror(result, "synchronous read failed");
-		UDS_FREE(block);
+		uds_free(block);
 		return -EIO;
 	}
 
 	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
-	UDS_FREE(block);
+	uds_free(block);
 	return result;
 }
 
@@ -549,7 +549,7 @@ initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int insta
 		     vdo->thread_config.thread_count);
 
 	/* Compression context storage */
-	result = UDS_ALLOCATE(config->thread_counts.cpu_threads,
+	result = uds_allocate(config->thread_counts.cpu_threads,
 			      char *,
 			      "LZ4 context",
 			      &vdo->compression_context);
@@ -559,7 +559,7 @@ initialize_vdo(struct vdo *vdo, struct device_config *config, unsigned int insta
 	}
 
 	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = UDS_ALLOCATE(LZ4_MEM_COMPRESS,
+		result = uds_allocate(LZ4_MEM_COMPRESS,
 				      char,
 				      "LZ4 context",
 				      &vdo->compression_context[i]);
@@ -599,7 +599,7 @@ int vdo_make(unsigned int instance,
 	/* VDO-3769 - Set a generic reason so we don't ever return garbage. */
 	*reason = "Unspecified error";
 
-	result = UDS_ALLOCATE(1, struct vdo, __func__, &vdo);
+	result = uds_allocate(1, struct vdo, __func__, &vdo);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate VDO";
 		return result;
@@ -620,7 +620,7 @@ int vdo_make(unsigned int instance,
 		 MODULE_NAME,
 		 instance);
 	BUG_ON(vdo->thread_name_prefix[0] == '\0');
-	result = UDS_ALLOCATE(vdo->thread_config.thread_count,
+	result = uds_allocate(vdo->thread_config.thread_count,
 			      struct vdo_thread,
 			      __func__,
 			      &vdo->threads);
@@ -726,16 +726,16 @@ static void free_listeners(struct vdo_thread *thread)
 {
 	struct read_only_listener *listener, *next;
 
-	for (listener = UDS_FORGET(thread->listeners); listener != NULL; listener = next) {
-		next = UDS_FORGET(listener->next);
-		UDS_FREE(listener);
+	for (listener = uds_forget(thread->listeners); listener != NULL; listener = next) {
+		next = uds_forget(listener->next);
+		uds_free(listener);
 	}
 }
 
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
-	UDS_FREE(super_block->buffer);
+	uds_free(super_block->buffer);
 }
 
 /**
@@ -777,36 +777,36 @@ void vdo_destroy(struct vdo *vdo)
 	finish_vdo(vdo);
 	unregister_vdo(vdo);
 	free_data_vio_pool(vdo->data_vio_pool);
-	vdo_free_io_submitter(UDS_FORGET(vdo->io_submitter));
-	vdo_free_flusher(UDS_FORGET(vdo->flusher));
-	vdo_free_packer(UDS_FORGET(vdo->packer));
-	vdo_free_recovery_journal(UDS_FORGET(vdo->recovery_journal));
-	vdo_free_slab_depot(UDS_FORGET(vdo->depot));
+	vdo_free_io_submitter(uds_forget(vdo->io_submitter));
+	vdo_free_flusher(uds_forget(vdo->flusher));
+	vdo_free_packer(uds_forget(vdo->packer));
+	vdo_free_recovery_journal(uds_forget(vdo->recovery_journal));
+	vdo_free_slab_depot(uds_forget(vdo->depot));
 	vdo_uninitialize_layout(&vdo->layout);
 	vdo_uninitialize_layout(&vdo->next_layout);
 	if (vdo->partition_copier)
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 	uninitialize_super_block(&vdo->super_block);
-	vdo_free_block_map(UDS_FORGET(vdo->block_map));
-	vdo_free_hash_zones(UDS_FORGET(vdo->hash_zones));
-	vdo_free_physical_zones(UDS_FORGET(vdo->physical_zones));
-	vdo_free_logical_zones(UDS_FORGET(vdo->logical_zones));
+	vdo_free_block_map(uds_forget(vdo->block_map));
+	vdo_free_hash_zones(uds_forget(vdo->hash_zones));
+	vdo_free_physical_zones(uds_forget(vdo->physical_zones));
+	vdo_free_logical_zones(uds_forget(vdo->logical_zones));
 
 	if (vdo->threads != NULL) {
 		for (i = 0; i < vdo->thread_config.thread_count; i++) {
 			free_listeners(&vdo->threads[i]);
-			vdo_free_work_queue(UDS_FORGET(vdo->threads[i].queue));
+			vdo_free_work_queue(uds_forget(vdo->threads[i].queue));
 		}
-		UDS_FREE(UDS_FORGET(vdo->threads));
+		uds_free(uds_forget(vdo->threads));
 	}
 
 	uninitialize_thread_config(&vdo->thread_config);
 
 	if (vdo->compression_context != NULL) {
 		for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++)
-			UDS_FREE(UDS_FORGET(vdo->compression_context[i]));
+			uds_free(uds_forget(vdo->compression_context[i]));
 
-		UDS_FREE(UDS_FORGET(vdo->compression_context));
+		uds_free(uds_forget(vdo->compression_context));
 	}
 
 	/*
@@ -817,7 +817,7 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
 	if (!vdo->sysfs_added)
-		UDS_FREE(vdo);
+		uds_free(vdo);
 	else
 		kobject_put(&vdo->vdo_directory);
 }
@@ -826,7 +826,7 @@ static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super
 {
 	int result;
 
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE,
+	result = uds_allocate(VDO_BLOCK_SIZE,
 			      char,
 			      "encoded super block",
 			      (char **) &vdo->super_block.buffer);
@@ -853,7 +853,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_super_block *super_block =
 		container_of(as_vio(completion), struct vdo_super_block, vio);
 
-	vdo_continue_completion(UDS_FORGET(completion->parent),
+	vdo_continue_completion(uds_forget(completion->parent),
 				vdo_decode_super_block(super_block->buffer));
 }
 
@@ -1066,7 +1066,7 @@ static void record_vdo(struct vdo *vdo)
  */
 static void continue_super_block_parent(struct vdo_completion *completion)
 {
-	vdo_continue_completion(UDS_FORGET(completion->parent), completion->result);
+	vdo_continue_completion(uds_forget(completion->parent), completion->result);
 }
 
 /**
@@ -1157,7 +1157,7 @@ int vdo_register_read_only_listener(struct vdo *vdo,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct read_only_listener, __func__, &read_only_listener);
+	result = uds_allocate(1, struct read_only_listener, __func__, &read_only_listener);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1286,7 +1286,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 	spin_unlock(&notifier->lock);
 
 	if (notifier->waiter != NULL)
-		vdo_continue_completion(UDS_FORGET(notifier->waiter), completion->result);
+		vdo_continue_completion(uds_forget(notifier->waiter), completion->result);
 }
 
 /**

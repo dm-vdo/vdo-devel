@@ -45,15 +45,15 @@ void freeRequest(IORequest *request)
     return;
   }
 
-  BIO *bio = UDS_FORGET(request->bios);
+  BIO *bio = uds_forget(request->bios);
   while (bio != NULL) {
     BIO *toFree = bio;
     bio = bio->next;
-    vdo_free_bio(UDS_FORGET(toFree->bio));
-    UDS_FREE(toFree);
+    vdo_free_bio(uds_forget(toFree->bio));
+    uds_free(toFree);
   }
 
-  UDS_FREE(request);
+  uds_free(request);
 }
 
 /**
@@ -94,7 +94,7 @@ static bool isRequestComplete(void *context)
 static bool dataVIOReleased(void *context)
 {
   struct vdo_completion *completion = context;
-  IORequest *request = ((BIO *) UDS_FORGET(completion->parent))->request;
+  IORequest *request = ((BIO *) uds_forget(completion->parent))->request;
   if (request->result == VDO_SUCCESS) {
     request->result = completion->result;
   }
@@ -190,7 +190,7 @@ allocateIORequest(logical_block_number_t  start,
                   uint32_t                operation)
 {
   IORequest *request;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, IORequest, __func__, &request));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, IORequest, __func__, &request));
 
   sector_t end = start + count;
   sector_t nextSector;
@@ -199,7 +199,7 @@ allocateIORequest(logical_block_number_t  start,
     nextSector = nextBIOSector(sector, end, maxSectorsPerBIO);
     sector_t length = nextSector - sector;
     uint32_t size   = length * VDO_SECTOR_SIZE;
-    VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, BIO, __func__, tail));
+    VDO_ASSERT_SUCCESS(uds_allocate(1, BIO, __func__, tail));
     BIO *bio = *tail;
     VDO_ASSERT_SUCCESS(vdo_create_bio(&bio->bio));
     *bio->bio = (struct bio) {
@@ -433,14 +433,14 @@ void zeroData(logical_block_number_t startBlock,
               block_count_t          blockCount,
               int                    expectedResult)
 {
-  // UDS_ALLOCATE always returns zeroed data
+  // uds_allocate always returns zeroed data
   char *buffer;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(blockCount * VDO_BLOCK_SIZE, char,
+  UDS_ASSERT_SUCCESS(uds_allocate(blockCount * VDO_BLOCK_SIZE, char,
                                   "test buffer", &buffer));
 
   CU_ASSERT_EQUAL(performWrite(startBlock, blockCount, buffer),
                   expectedResult);
-  UDS_FREE(buffer);
+  uds_free(buffer);
 }
 
 /**********************************************************************/

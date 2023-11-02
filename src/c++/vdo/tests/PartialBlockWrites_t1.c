@@ -50,7 +50,7 @@ static void initializePartialBlockWriteT1(void)
  **/
 static void generateData(block_count_t count)
 {
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(count * VDO_BLOCK_SIZE,
+  VDO_ASSERT_SUCCESS(uds_allocate(count * VDO_BLOCK_SIZE,
                                   char,
                                   __func__,
                                   &data));
@@ -83,7 +83,7 @@ static void doPartialWrites(sector_t start, sector_t count, int expectedResult)
   }
 
   for (block_count_t i = 0; i < count; i++) {
-    CU_ASSERT_EQUAL(awaitAndFreeRequest(UDS_FORGET(requests[i])),
+    CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(requests[i])),
                     expectedResult);
   }
 }
@@ -116,14 +116,14 @@ static void testPartialWrites(void)
   VDO_ASSERT_SUCCESS(uds_join_threads(oddThread));
 
   char *buffer;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(blocks * VDO_BLOCK_SIZE,
+  VDO_ASSERT_SUCCESS(uds_allocate(blocks * VDO_BLOCK_SIZE,
                                   char,
                                   __func__,
                                   &buffer));
   VDO_ASSERT_SUCCESS(performRead(0, blocks, buffer));
   UDS_ASSERT_EQUAL_BYTES(data, buffer, blocks * VDO_BLOCK_SIZE);
-  UDS_FREE(UDS_FORGET(buffer));
-  UDS_FREE(UDS_FORGET(data));
+  uds_free(uds_forget(buffer));
+  uds_free(uds_forget(data));
 }
 
 /**
@@ -157,7 +157,7 @@ static void testUnchangedSectorContents(void)
   // We wrote the 0th sector, so the other 7 sectors should be zeros.
   memset(data + VDO_SECTOR_SIZE, 0, VDO_SECTOR_SIZE * 7);
   UDS_ASSERT_EQUAL_BYTES(data, actualData, VDO_BLOCK_SIZE);
-  UDS_FREE(UDS_FORGET(data));
+  uds_free(uds_forget(data));
 }
 
 /**********************************************************************/
@@ -171,7 +171,7 @@ static void testReadOnly(void)
   startReadOnlyVDO(VDO_READ_ONLY_MODE);
   assertVDOState(VDO_READ_ONLY_MODE);
   doPartialWrites(20, 10, VDO_READ_ONLY);
-  UDS_FREE(UDS_FORGET(data));
+  uds_free(uds_forget(data));
 }
 
 /**********************************************************************/

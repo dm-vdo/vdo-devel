@@ -229,7 +229,7 @@ static void uninitialize_vios(struct repair_completion *repair)
 	while (repair->vio_count > 0)
 		free_vio_components(&repair->vios[--repair->vio_count]);
 
-	UDS_FREE(UDS_FORGET(repair->vios));
+	uds_free(uds_forget(repair->vios));
 }
 
 STATIC void free_repair_completion(struct repair_completion *repair)
@@ -244,9 +244,9 @@ STATIC void free_repair_completion(struct repair_completion *repair)
 	repair->completion.vdo->block_map->zones[0].page_cache.rebuilding = false;
 
 	uninitialize_vios(repair);
-	UDS_FREE(UDS_FORGET(repair->journal_data));
-	UDS_FREE(UDS_FORGET(repair->entries));
-	UDS_FREE(repair);
+	uds_free(uds_forget(repair->journal_data));
+	uds_free(uds_forget(repair->entries));
+	uds_free(repair);
 }
 
 static void finish_repair(struct vdo_completion *completion)
@@ -265,7 +265,7 @@ static void finish_repair(struct vdo_completion *completion)
 						    repair->highest_tail,
 						    repair->logical_blocks_used,
 						    repair->block_map_data_blocks);
-	free_repair_completion(UDS_FORGET(repair));
+	free_repair_completion(uds_forget(repair));
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state)) {
 		uds_log_info("Read-only rebuild complete");
@@ -298,7 +298,7 @@ static void abort_repair(struct vdo_completion *completion)
 	else
 		uds_log_warning("Recovery aborted");
 
-	free_repair_completion(UDS_FORGET(repair));
+	free_repair_completion(uds_forget(repair));
 	vdo_continue_completion(parent, result);
 }
 
@@ -1123,7 +1123,7 @@ STATIC void recover_block_map(struct vdo_completion *completion)
 		/* This message must be in sync with VDOTest::RebuildBase. */
 #endif /* INTERNAL */
 		uds_log_info("Replaying 0 recovery entries into block map");
-		UDS_FREE(UDS_FORGET(repair->journal_data));
+		uds_free(uds_forget(repair->journal_data));
 		launch_repair_completion(repair, load_slab_depot, VDO_ZONE_TYPE_ADMIN);
 		return;
 	}
@@ -1438,7 +1438,7 @@ static int parse_journal_for_rebuild(struct repair_completion *repair)
 	 * packed_recovery_journal_entry from every valid journal block.
 	 */
 	count = ((repair->highest_tail - repair->block_map_head + 1) * entries_per_block);
-	result = UDS_ALLOCATE(count, struct numbered_block_mapping, __func__, &repair->entries);
+	result = uds_allocate(count, struct numbered_block_mapping, __func__, &repair->entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1483,7 +1483,7 @@ static int extract_new_mappings(struct repair_completion *repair)
 	 * Allocate an array of numbered_block_mapping structs just large enough to transcribe
 	 * every packed_recovery_journal_entry from every valid journal block.
 	 */
-	result = UDS_ALLOCATE(repair->entry_count,
+	result = uds_allocate(repair->entry_count,
 			      struct numbered_block_mapping,
 			      __func__,
 			      &repair->entries);
@@ -1731,7 +1731,7 @@ void vdo_repair(struct vdo_completion *parent)
 		uds_log_warning("Device was dirty, rebuilding reference counts");
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct repair_completion,
+	result = uds_allocate_extended(struct repair_completion,
 				       page_count,
 				       struct vdo_page_completion,
 				       __func__,
@@ -1747,11 +1747,11 @@ void vdo_repair(struct vdo_completion *parent)
 	prepare_repair_completion(repair, finish_repair, VDO_ZONE_TYPE_ADMIN);
 	repair->page_count = page_count;
 
-	result = UDS_ALLOCATE(remaining * VDO_BLOCK_SIZE, char, __func__, &repair->journal_data);
+	result = uds_allocate(remaining * VDO_BLOCK_SIZE, char, __func__, &repair->journal_data);
 	if (abort_on_error(result, repair))
 		return;
 
-	result = UDS_ALLOCATE(vio_count, struct vio, __func__, &repair->vios);
+	result = uds_allocate(vio_count, struct vio, __func__, &repair->vios);
 	if (abort_on_error(result, repair))
 		return;
 

@@ -125,7 +125,7 @@ static int allocate_buckets(struct pointer_map *map, size_t capacity)
 	 * without have to wrap back around to element zero.
 	 */
 	map->bucket_count = capacity + (NEIGHBORHOOD - 1);
-	return UDS_ALLOCATE(map->bucket_count,
+	return uds_allocate(map->bucket_count,
 			    struct bucket,
 			    "pointer_map buckets",
 			    &map->buckets);
@@ -159,7 +159,7 @@ int vdo_make_pointer_map(size_t initial_capacity,
 	if (initial_load > 100)
 		return UDS_INVALID_ARGUMENT;
 
-	result = UDS_ALLOCATE(1, struct pointer_map, "pointer_map", &map);
+	result = uds_allocate(1, struct pointer_map, "pointer_map", &map);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -177,7 +177,7 @@ int vdo_make_pointer_map(size_t initial_capacity,
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		vdo_free_pointer_map(UDS_FORGET(map));
+		vdo_free_pointer_map(uds_forget(map));
 		return result;
 	}
 
@@ -197,8 +197,8 @@ void vdo_free_pointer_map(struct pointer_map *map)
 	if (map == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(map->buckets));
-	UDS_FREE(UDS_FORGET(map));
+	uds_free(uds_forget(map->buckets));
+	uds_free(uds_forget(map));
 }
 
 /**
@@ -369,14 +369,14 @@ static int resize_buckets(struct pointer_map *map)
 		result = vdo_pointer_map_put(map, entry->key, entry->value, true, NULL);
 		if (result != UDS_SUCCESS) {
 			/* Destroy the new partial map and restore the map from the stack. */
-			UDS_FREE(UDS_FORGET(map->buckets));
+			uds_free(uds_forget(map->buckets));
 			*map = old_map;
 			return result;
 		}
 	}
 
 	/* Destroy the old bucket array. */
-	UDS_FREE(UDS_FORGET(old_map.buckets));
+	uds_free(uds_forget(old_map.buckets));
 	return UDS_SUCCESS;
 }
 

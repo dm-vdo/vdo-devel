@@ -15,7 +15,7 @@ int uds_make_funnel_queue(struct funnel_queue **queue_ptr)
 	int result;
 	struct funnel_queue *queue;
 
-	result = UDS_ALLOCATE(1, struct funnel_queue, "funnel queue", &queue);
+	result = uds_allocate(1, struct funnel_queue, "funnel queue", &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -33,7 +33,7 @@ int uds_make_funnel_queue(struct funnel_queue **queue_ptr)
 
 void uds_free_funnel_queue(struct funnel_queue *queue)
 {
-	UDS_FREE(queue);
+	uds_free(queue);
 }
 
 static struct funnel_queue_entry *get_oldest(struct funnel_queue *queue)

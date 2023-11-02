@@ -108,9 +108,9 @@ static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
 	struct vdo_flush *flush;
 
 	if ((gfp_mask & GFP_NOWAIT) == GFP_NOWAIT) {
-		flush = UDS_ALLOCATE_NOWAIT(struct vdo_flush, __func__);
+		flush = uds_allocate_memory_nowait(sizeof(struct vdo_flush), __func__);
 	} else {
-		int result = UDS_ALLOCATE(1, struct vdo_flush, __func__, &flush);
+		int result = uds_allocate(1, struct vdo_flush, __func__, &flush);
 
 		if (result != VDO_SUCCESS)
 			uds_log_error_strerror(result, "failed to allocate spare flush");
@@ -127,7 +127,7 @@ static void *allocate_flush(gfp_t gfp_mask, void *pool_data)
 
 static void free_flush(void *element, void *pool_data __always_unused)
 {
-	UDS_FREE(element);
+	uds_free(element);
 }
 
 /**
@@ -138,7 +138,7 @@ static void free_flush(void *element, void *pool_data __always_unused)
  */
 int vdo_make_flusher(struct vdo *vdo)
 {
-	int result = UDS_ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
+	int result = uds_allocate(1, struct flusher, __func__, &vdo->flusher);
 
 	if (result != VDO_SUCCESS)
 		return result;
@@ -165,8 +165,8 @@ void vdo_free_flusher(struct flusher *flusher)
 		return;
 
 	if (flusher->flush_pool != NULL)
-		mempool_destroy(UDS_FORGET(flusher->flush_pool));
-	UDS_FREE(flusher);
+		mempool_destroy(uds_forget(flusher->flush_pool));
+	uds_free(flusher);
 }
 
 /**

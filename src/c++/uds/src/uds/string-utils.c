@@ -24,7 +24,7 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	va_start(args, fmt);
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
 	va_end(args);
-	result = UDS_ALLOCATE(count, char, what, strp);
+	result = uds_allocate(count, char, what, strp);
 	if (result == UDS_SUCCESS) {
 		va_start(args, fmt);
 		vsnprintf(*strp, count, fmt, args);

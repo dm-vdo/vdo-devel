@@ -88,7 +88,7 @@ int uds_create_thread(void (*thread_function)(void *),
 	struct thread *thread;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct thread, __func__, &thread);
+	result = uds_allocate(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;
@@ -122,7 +122,7 @@ int uds_create_thread(void (*thread_function)(void *),
 		task = kthread_run(thread_starter, thread, "%s", name);
 
 	if (IS_ERR(task)) {
-		UDS_FREE(thread);
+		uds_free(thread);
 		return PTR_ERR(task);
 	}
 
@@ -139,7 +139,7 @@ int uds_join_threads(struct thread *thread)
 	mutex_lock(&thread_mutex);
 	hlist_del(&thread->thread_links);
 	mutex_unlock(&thread_mutex);
-	UDS_FREE(thread);
+	uds_free(thread);
 	return UDS_SUCCESS;
 }
 

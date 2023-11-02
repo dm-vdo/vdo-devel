@@ -233,7 +233,7 @@ static void kobject_cleanup(struct kobject *kobj)
 	/* free name if we allocated it */
 	if (name) {
 		uds_log_debug("kobject: '%s': free name\n", name);
-		UDS_FREE(name);
+		uds_free(name);
 		//kfree_const(name);
 	}
 

@@ -290,7 +290,7 @@ sub generateStruct {
     $self->replaceAndEmit("struct STRUCT *stats;", "STRUCT", $name);
     $self->emit("int result;");
     $self->blankLine();
-    $self->replaceAndEmit("result = UDS_ALLOCATE(1, struct STRUCT,"
+    $self->replaceAndEmit("result = uds_allocate(1, struct STRUCT,"
                           . " __func__, &stats);", "STRUCT", $name);
     $self->emit("if (result != VDO_SUCCESS)");
     $self->indent();
@@ -301,7 +301,7 @@ sub generateStruct {
     $self->replaceAndEmit("result = write_STRUCT(NULL, stats, NULL, &buf,"
                           . " &maxlen);",
                           "STRUCT", $name);
-    $self->emit("UDS_FREE(stats);");
+    $self->emit("uds_free(stats);");
     $self->emit("return result;");
     $self->undent();
     $self->emit("}");

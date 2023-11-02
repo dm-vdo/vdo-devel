@@ -56,8 +56,8 @@ static void insertRandomlyNamedBlock(struct volume_index    *volumeIndex,
 static struct configuration *makeTestConfig(int numChapters)
 {
   struct configuration *config;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct configuration, __func__, &config));
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct geometry, __func__, &config->geometry));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct configuration, __func__, &config));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct geometry, __func__, &config->geometry));
   config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   config->zone_count = 1;
   config->geometry->chapters_per_volume = numChapters;
@@ -521,7 +521,7 @@ static void rollingChaptersTest(void)
   const unsigned int numChapters = SINGLE_CHAPTERS;
 
   struct uds_record_name *testNames;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(numChapters, struct uds_record_name,
+  UDS_ASSERT_SUCCESS(uds_allocate(numChapters, struct uds_record_name,
                                   __func__, &testNames));
 
   struct configuration *config = makeTestConfig(numChapters);
@@ -571,7 +571,7 @@ static void rollingChaptersTest(void)
 
   uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
-  UDS_FREE(testNames);
+  uds_free(testNames);
 }
 
 /**

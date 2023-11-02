@@ -32,7 +32,7 @@ int uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
 	chapter_index_overflow_count = 0;
 
 #endif /* TEST_INTERNAL */
-	result = UDS_ALLOCATE(1, struct open_chapter_index, "open chapter index", &index);
+	result = uds_allocate(1, struct open_chapter_index, "open chapter index", &index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -51,7 +51,7 @@ int uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
 					    memory_size,
 					    'm');
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(index);
+		uds_free(index);
 		return result;
 	}
 
@@ -74,7 +74,7 @@ void uds_free_open_chapter_index(struct open_chapter_index *chapter_index)
 
 #endif /* TEST_INTERNAL */
 	uds_uninitialize_delta_index(&chapter_index->delta_index);
-	UDS_FREE(chapter_index);
+	uds_free(chapter_index);
 }
 
 /* Re-initialize an open chapter index for a new chapter. */

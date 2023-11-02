@@ -188,7 +188,7 @@ static void sparseInitSuite(struct block_device *bdev)
                             SPARSE_SAMPLE_RATE);
   createIndex(UDS_CREATE);
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords,
+  UDS_ASSERT_SUCCESS(uds_allocate(totalRecords,
                                   struct uds_record_name,
                                   "hashes",
                                   &hashes));
@@ -215,7 +215,7 @@ static void sparseInitSuite(struct block_device *bdev)
     } while (searchForCollisions(i));
   }
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(totalRecords, struct uds_record_data,
+  UDS_ASSERT_SUCCESS(uds_allocate(totalRecords, struct uds_record_data,
                                   "metas", &metas));
   for (i = 0; i < totalRecords; i++) {
     for (j = 0; j < UDS_RECORD_DATA_SIZE; j++) {
@@ -229,8 +229,8 @@ static void sparseInitSuite(struct block_device *bdev)
  **/
 static void sparseCleanSuite(void)
 {
-  UDS_FREE(metas);
-  UDS_FREE(hashes);
+  uds_free(metas);
+  uds_free(hashes);
   cleanupIndex();
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));

@@ -126,7 +126,7 @@ static bool recordFlushDoneLocked(void *context)
 static void recordFlushDone(struct bio *bio)
 {
   runLocked(recordFlushDoneLocked, bio);
-  UDS_FREE(bio);
+  uds_free(bio);
 }
 
 /**
@@ -241,12 +241,12 @@ static void testDataVIOFlush(void)
   launchFirstWritesAndFlush();
 
   // Confirm everything except latched VIO is done.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
 
   int index = 0;
   assertFlushNotDone(&index);
   releaseBlockedVIO();
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(blocked));
+  awaitAndFreeSuccessfulRequest(uds_forget(blocked));
   waitForCondition(checkFlushDone, &index);
 }
 
@@ -264,13 +264,13 @@ static void testTwoVIOFlushes(void)
   waitForCondition(checkAckCount, &ackTarget);
 
   // Make sure VIOs from the first set don't get into the second flush.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request));
+  awaitAndFreeSuccessfulRequest(uds_forget(request));
 
   // Issue the second flush.
   launchFlush();
 
   // Finish the later write VIOs.
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(request2));
+  awaitAndFreeSuccessfulRequest(uds_forget(request2));
 
   // Confirm neither flush is gone from VDO (still holding a first-flush VIO).
   for (int i = 0; i < 2; i++) {
@@ -279,7 +279,7 @@ static void testTwoVIOFlushes(void)
 
   // Release the latched data-write VIO.
   releaseBlockedVIO();
-  awaitAndFreeSuccessfulRequest(UDS_FORGET(blocked));
+  awaitAndFreeSuccessfulRequest(uds_forget(blocked));
   for (int i = 0; i < 2; i++) {
     waitForCondition(checkFlushDone, &i);
   }

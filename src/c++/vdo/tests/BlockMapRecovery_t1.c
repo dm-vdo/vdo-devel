@@ -104,7 +104,7 @@ static bool hijackJournalLoad(struct vdo_completion *completion)
   }
 
   struct repair_completion *repair = completion->parent;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(entryCount,
+  VDO_ASSERT_SUCCESS(uds_allocate(entryCount,
                                   struct numbered_block_mapping,
                                   __func__,
                                   &repair->entries));

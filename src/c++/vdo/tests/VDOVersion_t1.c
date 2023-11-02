@@ -137,9 +137,9 @@ static void initializeVDOVersionT1(int argc, const char **argv)
 /**********************************************************************/
 static void tearDownVDOVersionT1(void)
 {
-  UDS_FREE(pickledData);
+  uds_free(pickledData);
   tearDownVDOTest();
-  UDS_FREE(currentVersionFileName);
+  uds_free(currentVersionFileName);
 }
 
 /**********************************************************************/
@@ -151,7 +151,7 @@ static void readVDOFromDisk(const char *fileName)
   off_t vdoSize;
   VDO_ASSERT_SUCCESS(get_open_file_size(fd, &vdoSize));
 
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(vdoSize, char, __func__, &pickledData));
+  VDO_ASSERT_SUCCESS(uds_allocate(vdoSize, char, __func__, &pickledData));
   ssize_t bytesRead;
   VDO_ASSERT_SUCCESS(logging_read(fd, pickledData, vdoSize, __func__,
                                   &bytesRead));

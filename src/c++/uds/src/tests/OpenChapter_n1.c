@@ -29,9 +29,9 @@ static void reportZoneTime(uint64_t records, ktime_t openTime,
   albPrint("reset_open_chapter:  %s", openString);
   albPrint("put_open_chapter:   %s (%s per record) for %llu records",
            putString, putPerRecord, (unsigned long long) records);
-  UDS_FREE(openString);
-  UDS_FREE(putString);
-  UDS_FREE(putPerRecord);
+  uds_free(openString);
+  uds_free(putString);
+  uds_free(putPerRecord);
 }
 
 /**********************************************************************/
@@ -41,8 +41,8 @@ static void reportCloseTime(uint64_t records, ktime_t closeTime)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&closeString, closeTime));
   UDS_ASSERT_SUCCESS(rel_time_to_string(&closePerRecord, closeTime / records));
   albPrint("closeOpenChapter: %s (%s per record)", closeString, closePerRecord);
-  UDS_FREE(closeString);
-  UDS_FREE(closePerRecord);
+  uds_free(closeString);
+  uds_free(closePerRecord);
 }
 
 /**********************************************************************/
@@ -50,7 +50,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
 {
   // We do not want to time the generation of the random names
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(openChapter->capacity,
+  UDS_ASSERT_SUCCESS(uds_allocate(openChapter->capacity,
                                   struct uds_record_name,
                                   "record names for chapter test",
                                   &names));
@@ -79,7 +79,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
 
   totalOpenTime += openTime;
   totalPutTime  += putTime;
-  UDS_FREE(names);
+  uds_free(names);
 }
 
 /**********************************************************************/
@@ -118,7 +118,7 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
   reportCloseTime(recordCount, closeTime);
 
   uds_free_open_chapter_index(openChapterIndex);
-  UDS_FREE(collatedRecords);
+  uds_free(collatedRecords);
 
   totalRecordCount += recordCount;
   totalCloseTime   += closeTime;
@@ -142,7 +142,7 @@ static void testFilling(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **openChapters;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(zoneCount, struct open_chapter_zone *,
+  UDS_ASSERT_SUCCESS(uds_allocate(zoneCount, struct open_chapter_zone *,
                                   "open chapters", &openChapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
@@ -159,7 +159,7 @@ static void testFilling(void)
   for (i = 0; i < zoneCount; i++) {
     uds_free_open_chapter(openChapters[i]);
   }
-  UDS_FREE(openChapters);
+  uds_free(openChapters);
   uds_free_volume(volume);
   uds_free_configuration(config);
   uds_free_index_layout(layout);

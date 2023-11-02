@@ -35,14 +35,14 @@ struct intIntMap {
 int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
 {
   IntIntMap *intIntMap;
-  int result = UDS_ALLOCATE(1, IntIntMap, __func__, &intIntMap);
+  int result = uds_allocate(1, IntIntMap, __func__, &intIntMap);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   result = vdo_make_int_map(initialCapacity, 0, &intIntMap->map);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(intIntMap);
+    uds_free(intIntMap);
     return result;
   }
 
@@ -59,15 +59,15 @@ void freeIntIntMap(IntIntMap **mapPtr)
     return;
   }
 
-  vdo_free_int_map(UDS_FORGET(intIntMap->map));
+  vdo_free_int_map(uds_forget(intIntMap->map));
 
   IntHolder *holder, *tmp;
   list_for_each_entry_safe_reverse(holder, tmp, &intIntMap->holders, node) {
     list_del(&holder->node);
-    UDS_FREE(holder);
+    uds_free(holder);
   }
 
-  UDS_FREE(intIntMap);
+  uds_free(intIntMap);
   *mapPtr = NULL;
 }
 
@@ -98,7 +98,7 @@ int intIntMapPut(IntIntMap *map,
                  uint64_t  *oldValuePtr)
 {
   IntHolder *newHolder;
-  int result = UDS_ALLOCATE(1, IntHolder, __func__, &newHolder);
+  int result = uds_allocate(1, IntHolder, __func__, &newHolder);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -109,7 +109,7 @@ int intIntMapPut(IntIntMap *map,
   result
     = vdo_int_map_put(map->map, key, newHolder, update, (void **) &holder);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(newHolder);
+    uds_free(newHolder);
     return result;
   }
 
@@ -123,12 +123,12 @@ int intIntMapPut(IntIntMap *map,
     }
 
     if (!update) {
-      UDS_FREE(newHolder);
+      uds_free(newHolder);
       return true;
     }
 
     list_del(&holder->node);
-    UDS_FREE(holder);
+    uds_free(holder);
   }
 
   INIT_LIST_HEAD(&newHolder->node);
@@ -149,6 +149,6 @@ bool intIntMapRemove(IntIntMap *map, uint64_t key, uint64_t *oldValuePtr)
   }
 
   list_del(&holder->node);
-  UDS_FREE(holder);
+  uds_free(holder);
   return true;
 }

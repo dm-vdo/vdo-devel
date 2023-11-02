@@ -58,7 +58,7 @@ static void uncompressRandomData(const char* source, int isize, int osize)
   // Create a large frame around the uncompressed result
   char *uncompressed, *frame;
   size_t frameSize = 3 * osize;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(frameSize, char, __func__, &frame));
+  VDO_ASSERT_SUCCESS(uds_allocate(frameSize, char, __func__, &frame));
   uncompressed = frame + osize;
   // Test that uncompressing does not write into the frame around the
   // output array.
@@ -68,7 +68,7 @@ static void uncompressRandomData(const char* source, int isize, int osize)
   for (size_t i = 0; i < frameSize; i++) {
     CU_ASSERT(frame[i] == 0);
   }
-  UDS_FREE(frame);
+  uds_free(frame);
 }
 
 /**********************************************************************/
@@ -76,9 +76,9 @@ static void compressString(const char *source)
 {
   int sourceLen = strlen(source);
   char *compressed, *copy, *ctx;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(sourceLen, char, __func__, &compressed));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(sourceLen + 1, char, __func__, &copy));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(LZ4_context_size(), char, __func__, &ctx));
+  VDO_ASSERT_SUCCESS(uds_allocate(sourceLen, char, __func__, &compressed));
+  VDO_ASSERT_SUCCESS(uds_allocate(sourceLen + 1, char, __func__, &copy));
+  VDO_ASSERT_SUCCESS(uds_allocate(LZ4_context_size(), char, __func__, &ctx));
   // Test the data are compressed
   int compressedLen = LZ4_compress_ctx_limitedOutput(ctx, source, compressed,
                                                      sourceLen, sourceLen);
@@ -104,9 +104,9 @@ static void compressString(const char *source)
   uncompressRandomData(compressed, compressedLen, sourceLen - 1);
   uncompressRandomData(compressed, compressedLen, sourceLen);
   uncompressRandomData(compressed, compressedLen, sourceLen + 1);
-  UDS_FREE(compressed);
-  UDS_FREE(copy);
-  UDS_FREE(ctx);
+  uds_free(compressed);
+  uds_free(copy);
+  uds_free(ctx);
 }
 
 /**********************************************************************/
@@ -120,10 +120,10 @@ static void testPoetry(void)
 static int compressBlockFromStream(FILE *stream, int sourceLen)
 {
   char *compressed, *copy, *ctx, *source;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(sourceLen, char, __func__, &compressed));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(sourceLen, char, __func__, &copy));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(LZ4_context_size(), char, __func__, &ctx));
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(sourceLen, char, __func__, &source));
+  VDO_ASSERT_SUCCESS(uds_allocate(sourceLen, char, __func__, &compressed));
+  VDO_ASSERT_SUCCESS(uds_allocate(sourceLen, char, __func__, &copy));
+  VDO_ASSERT_SUCCESS(uds_allocate(LZ4_context_size(), char, __func__, &ctx));
+  VDO_ASSERT_SUCCESS(uds_allocate(sourceLen, char, __func__, &source));
   CU_ASSERT(fread(source, sourceLen, 1, stream) == 1);
   uncompressRandomData(source, sourceLen, sourceLen);
   int compressedLen = LZ4_compress_ctx_limitedOutput(ctx, source, compressed,
@@ -137,10 +137,10 @@ static int compressBlockFromStream(FILE *stream, int sourceLen)
   } else {
     compressedLen = 0;
   }
-  UDS_FREE(compressed);
-  UDS_FREE(copy);
-  UDS_FREE(ctx);
-  UDS_FREE(source);
+  uds_free(compressed);
+  uds_free(copy);
+  uds_free(ctx);
+  uds_free(source);
   // Return the length of the compressed data, or zero if the data were not
   // compressible
   return compressedLen;

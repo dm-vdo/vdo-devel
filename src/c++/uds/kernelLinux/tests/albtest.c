@@ -122,7 +122,7 @@ static int sprintElapsed(char *buf, unsigned int indent, TestResult tr)
   char *elapsed;
   if (rel_time_to_string(&elapsed, tr.elapsed) == UDS_SUCCESS) {
     written += sprintf(buf, "%*s%s %s\n", indent, "", tr.name, elapsed);
-    UDS_FREE(elapsed);
+    uds_free(elapsed);
   }
   unsigned int i;
   for (i = 0; i < tr.numSub; ++i) {
@@ -139,7 +139,7 @@ static int parseArgs(const char   *buf,
                      char        **argBufPtr)
 {
   char *argBuf;
-  int result = UDS_ALLOCATE(length + 1, char, "argument list", &argBuf);
+  int result = uds_allocate(length + 1, char, "argument list", &argBuf);
   if (result != UDS_SUCCESS) {
     return -ENOMEM;
   }
@@ -161,9 +161,9 @@ static int parseArgs(const char   *buf,
   }
   argBuf[length] = '\000';
   const char **argv;
-  result = UDS_ALLOCATE(argc, char *, "argv", &argv);
+  result = uds_allocate(argc, char *, "argv", &argv);
   if (result != UDS_SUCCESS) {
-    UDS_FREE(argBuf);
+    uds_free(argBuf);
     return -ENOMEM;
   }
   int argIndex = 0;
@@ -241,10 +241,10 @@ static ssize_t storeRun(SuiteState *ss, const char *buf, size_t length)
   ss->result = runSuites(ss->suite);
   ss->resultAvailable = true;
   if (testArgv != NULL) {
-    UDS_FREE(testArgv);
+    uds_free(testArgv);
     testArgv = NULL;
   }
-  UDS_FREE(argBuf);
+  uds_free(argBuf);
   return length;
 }
 
@@ -348,7 +348,7 @@ static struct kobj_type suiteObjectType = {
 SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 {
   SuiteState *ss;
-  if (UDS_ALLOCATE(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
+  if (uds_allocate(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
     return NULL;
   }
   ss->next = NULL;
@@ -359,7 +359,7 @@ SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
   int result = kobject_add(&ss->kobjSuite, &moduleState.kobj, ss->name);
   if (result != 0) {
     freeSuites(suite);
-    UDS_FREE(ss);
+    uds_free(ss);
     return NULL;
   }
   return ss;
@@ -373,7 +373,7 @@ void freeSuiteState(SuiteState *ss)
     kobject_put(&ss->kobjSuite);
     freeTestResults(&ss->result);
     freeSuites(ss->suite);
-    UDS_FREE(ss);
+    uds_free(ss);
     ss = next;
   }
 }

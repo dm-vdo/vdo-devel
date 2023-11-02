@@ -54,7 +54,7 @@ dm_bufio_client_create(struct block_device *bdev,
 	int result;
 	struct dm_bufio_client *client;
 
-	result = UDS_ALLOCATE(1, struct dm_bufio_client, __func__, &client);
+	result = uds_allocate(1, struct dm_bufio_client, __func__, &client);
 	if (result != UDS_SUCCESS)
 		return ERR_PTR(-ENOMEM);
 
@@ -77,12 +77,12 @@ void dm_bufio_client_destroy(struct dm_bufio_client *client)
 	while (client->buffer_list != NULL) {
 		buffer = client->buffer_list;
 		client->buffer_list = buffer->next;
-		UDS_FREE(buffer->data);
-		UDS_FREE(buffer);
+		uds_free(buffer->data);
+		uds_free(buffer);
 	}
 
 	uds_destroy_mutex(&client->buffer_mutex);
-	UDS_FREE(client);
+	uds_free(client);
 }
 
 void dm_bufio_set_sector_offset(struct dm_bufio_client *client, sector_t start)
@@ -106,16 +106,16 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 	uds_unlock_mutex(&client->buffer_mutex);
 
 	if (buffer == NULL) {
-		result = UDS_ALLOCATE(1, struct dm_buffer, __func__, &buffer);
+		result = uds_allocate(1, struct dm_buffer, __func__, &buffer);
 		if (result != UDS_SUCCESS)
 			return ERR_PTR(-ENOMEM);
 
-		result = UDS_ALLOCATE(client->bytes_per_page,
+		result = uds_allocate(client->bytes_per_page,
 				      u8,
 				      __func__,
 				      &buffer->data);
 		if (result != UDS_SUCCESS) {
-			UDS_FREE(buffer);
+			uds_free(buffer);
 			return ERR_PTR(-ENOMEM);
 		}
 

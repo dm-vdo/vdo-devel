@@ -495,7 +495,7 @@ make_index_save_region_table(struct index_save_layout *isl, struct region_table 
 		type = RH_TYPE_UNSAVED;
 	}
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       region_count,
 				       struct layout_region,
 				       "layout region table for ISL",
@@ -558,7 +558,7 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(table->encoded_size, u8, "index save data", &buffer);
+	result = uds_allocate(table->encoded_size, u8, "index save data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -577,7 +577,7 @@ static int __must_check write_index_save_header(struct index_save_layout *isl,
 	}
 
 	result = uds_write_to_buffered_writer(writer, buffer, offset);
-	UDS_FREE(buffer);
+	uds_free(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -596,12 +596,12 @@ static int write_index_save_layout(struct index_layout *layout, struct index_sav
 
 	result = open_region_writer(layout, &isl->header, &writer);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(table);
+		uds_free(table);
 		return result;
 	}
 
 	result = write_index_save_header(isl, table, writer);
-	UDS_FREE(table);
+	uds_free(table);
 	uds_free_buffered_writer(writer);
 
 	return result;
@@ -678,7 +678,7 @@ make_layout_region_table(struct index_layout *layout, struct region_table **tabl
 	struct region_table *table;
 	struct layout_region *lr;
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       region_count,
 				       struct layout_region,
 				       "layout region table",
@@ -727,7 +727,7 @@ static int __must_check write_layout_header(struct index_layout *layout,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(table->encoded_size, u8, "layout data", &buffer);
+	result = uds_allocate(table->encoded_size, u8, "layout data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -751,7 +751,7 @@ static int __must_check write_layout_header(struct index_layout *layout,
 	}
 
 	result = uds_write_to_buffered_writer(writer, buffer, offset);
-	UDS_FREE(buffer);
+	uds_free(buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -797,12 +797,12 @@ static int __must_check save_layout(struct index_layout *layout, off_t offset)
 
 	result = open_layout_writer(layout, &layout->header, offset, &writer);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(table);
+		uds_free(table);
 		return result;
 	}
 
 	result = write_layout_header(layout, table, writer);
-	UDS_FREE(table);
+	uds_free(table);
 	uds_free_buffered_writer(writer);
 
 	return result;
@@ -817,7 +817,7 @@ static int create_index_layout(struct index_layout *layout, struct configuration
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(sizes.save_count,
+	result = uds_allocate(sizes.save_count,
 			      struct index_save_layout,
 			      __func__,
 			      &layout->index.saves);
@@ -1188,7 +1188,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 					      "unknown region table version %hu",
 					      header.version);
 
-	result = UDS_ALLOCATE_EXTENDED(struct region_table,
+	result = uds_allocate_extended(struct region_table,
 				       header.region_count,
 				       struct layout_region,
 				       "single file layout region table",
@@ -1205,7 +1205,7 @@ load_region_table(struct buffered_reader *reader, struct region_table **table_pt
 						       region_buffer,
 						       sizeof(region_buffer));
 		if (result != UDS_SUCCESS) {
-			UDS_FREE(table);
+			uds_free(table);
 			return uds_log_error_strerror(UDS_CORRUPT_DATA,
 						      "cannot read region table layouts");
 		}
@@ -1230,13 +1230,13 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	u8 *buffer;
 	size_t offset = 0;
 
-	result = UDS_ALLOCATE(saved_size, u8, "super block data", &buffer);
+	result = uds_allocate(saved_size, u8, "super block data", &buffer);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = uds_read_from_buffered_reader(reader, buffer, saved_size);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(buffer);
+		uds_free(buffer);
 		return uds_log_error_strerror(result, "cannot read region table header");
 	}
 
@@ -1261,7 +1261,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 		super->start_offset = 0;
 	}
 
-	UDS_FREE(buffer);
+	uds_free(buffer);
 
 	if (memcmp(super->magic_label, LAYOUT_MAGIC, MAGIC_SIZE) != 0)
 		return uds_log_error_strerror(UDS_CORRUPT_DATA, "unknown superblock magic label");
@@ -1357,7 +1357,7 @@ reconstitute_layout(struct index_layout *layout, struct region_table *table, u64
 	int result;
 	u64 next_block = first_block;
 
-	result = UDS_ALLOCATE(layout->super.max_saves,
+	result = uds_allocate(layout->super.max_saves,
 			      struct index_save_layout,
 			      __func__,
 			      &layout->index.saves);
@@ -1411,18 +1411,18 @@ static int __must_check load_super_block(struct index_layout *layout,
 		return result;
 
 	if (table->header.type != RH_TYPE_SUPER) {
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(UDS_CORRUPT_DATA, "not a superblock region table");
 	}
 
 	result = read_super_block_data(reader, layout, table->header.payload);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(result, "unknown superblock format");
 	}
 
 	if (super->block_size != block_size) {
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "superblock saved block_size %u differs from supplied block_size %zu",
 					      super->block_size,
@@ -1431,7 +1431,7 @@ static int __must_check load_super_block(struct index_layout *layout,
 
 	first_block -= (super->volume_offset - super->start_offset);
 	result = reconstitute_layout(layout, table, first_block);
-	UDS_FREE(table);
+	uds_free(table);
 	return result;
 }
 
@@ -1570,7 +1570,7 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 	if (table->header.region_blocks != isl->index_save.block_count) {
 		u64 region_blocks = table->header.region_blocks;
 
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "unexpected index save %u region block count %llu",
 					      instance,
@@ -1578,14 +1578,14 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 	}
 
 	if (table->header.type == RH_TYPE_UNSAVED) {
-		UDS_FREE(table);
+		uds_free(table);
 		reset_index_save_layout(isl, 0);
 		return UDS_SUCCESS;
 	}
 
 
 	if (table->header.type != RH_TYPE_SAVE) {
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "unexpected index save %u header type %u",
 					      instance,
@@ -1594,14 +1594,14 @@ static int __must_check load_index_save(struct index_save_layout *isl,
 
 	result = read_index_save_data(reader, isl, table->header.payload);
 	if (result != UDS_SUCCESS) {
-		UDS_FREE(table);
+		uds_free(table);
 		return uds_log_error_strerror(result,
 					      "unknown index save %u data format",
 					      instance);
 	}
 
 	result = reconstruct_index_save(isl, table);
-	UDS_FREE(table);
+	uds_free(table);
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
 					      "cannot reconstruct index save %u",
@@ -1721,7 +1721,7 @@ int uds_make_index_layout(struct configuration *config,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(1, struct index_layout, __func__, &layout);
+	result = uds_allocate(1, struct index_layout, __func__, &layout);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1757,11 +1757,11 @@ void uds_free_index_layout(struct index_layout *layout)
 	if (layout == NULL)
 		return;
 
-	UDS_FREE(layout->index.saves);
+	uds_free(layout->index.saves);
 	if (layout->factory != NULL)
 		uds_put_io_factory(layout->factory);
 
-	UDS_FREE(layout);
+	uds_free(layout);
 }
 
 int uds_replace_index_layout_storage(struct index_layout *layout, struct block_device *bdev)

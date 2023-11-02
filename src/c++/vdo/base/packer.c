@@ -123,7 +123,7 @@ static int __must_check make_bin(struct packer *packer)
 	struct packer_bin *bin;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
+	result = uds_allocate_extended(struct packer_bin,
 				       VDO_MAX_COMPRESSION_SLOTS,
 				       struct vio *,
 				       __func__,
@@ -152,7 +152,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	block_count_t i;
 	int result;
 
-	result = UDS_ALLOCATE(1, struct packer, __func__, &packer);
+	result = uds_allocate(1, struct packer, __func__, &packer);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -174,7 +174,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	 * bin must have a canceler for which it is waiting, and any canceler will only have
 	 * canceled one lock holder at a time.
 	 */
-	result = UDS_ALLOCATE_EXTENDED(struct packer_bin,
+	result = uds_allocate_extended(struct packer_bin,
 				       MAXIMUM_VDO_USER_VIOS / 2,
 				       struct vio *, __func__,
 				       &packer->canceled_bin);
@@ -206,11 +206,11 @@ void vdo_free_packer(struct packer *packer)
 
 	list_for_each_entry_safe(bin, tmp, &packer->bins, list) {
 		list_del_init(&bin->list);
-		UDS_FREE(bin);
+		uds_free(bin);
 	}
 
-	UDS_FREE(UDS_FORGET(packer->canceled_bin));
-	UDS_FREE(packer);
+	uds_free(uds_forget(packer->canceled_bin));
+	uds_free(packer);
 }
 
 /**
@@ -683,7 +683,7 @@ void vdo_remove_lock_holder_from_packer(struct vdo_completion *completion)
 
 	assert_data_vio_in_packer_zone(data_vio);
 
-	lock_holder = UDS_FORGET(data_vio->compression.lock_holder);
+	lock_holder = uds_forget(data_vio->compression.lock_holder);
 	bin = lock_holder->compression.bin;
 	ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has a bin");
 

@@ -352,7 +352,7 @@ static void makeWrappedVIO(EntryNumber             entry,
                            struct vdo_completion **completionPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, DataVIOWrapper, __func__, &wrapper));
   initializeWrapper(wrapper);
   resetWrapper(wrapper, entry);
   *completionPtr = &wrapper->completion;
@@ -425,7 +425,7 @@ static EntryNumber performAddEntry(EntryNumber entry)
   makeWrappedVIO(entry, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryAction, completion));
   CU_ASSERT_NOT_EQUAL(journal->recovery_lock, 0);
-  UDS_FREE(completion);
+  uds_free(completion);
   return (entry + 1);
 }
 
@@ -456,7 +456,7 @@ static void addRebuildEntry(EntryNumber entry)
   makeWrappedVIO(entry, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryForRebuildAction,
                                    completion));
-  UDS_FREE(completion);
+  uds_free(completion);
 }
 
 /**
@@ -468,9 +468,9 @@ static void freeWrappedCompletions(CompletionsWrapper *wrapped)
 {
   for (unsigned int i = 0; i < wrapped->count; i++) {
     CU_ASSERT_TRUE(wrapped->completions[i]->complete);
-    UDS_FREE(wrapped->completions[i]);
+    uds_free(wrapped->completions[i]);
   }
-  UDS_FREE(wrapped->completions);
+  uds_free(wrapped->completions);
 }
 
 /**
@@ -489,7 +489,7 @@ static EntryNumber addEntries(EntryNumber         start,
 {
   struct vdo_completion ***completions = &wrapped->completions;
   wrapped->count = count;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(wrapped->count, struct vdo_completion *,
+  VDO_ASSERT_SUCCESS(uds_allocate(wrapped->count, struct vdo_completion *,
                                   __func__, completions));
   for (unsigned int i = 0; i < count; i++) {
     (*completions)[i] = launchAddEntry(start + i);
@@ -1344,7 +1344,7 @@ static void testPartialBlock(void)
   releasePBN(blockedPBNs[0]);
   releasePBN(blockedPBNs[1]);
   VDO_ASSERT_SUCCESS(awaitCompletion(flushCompletion));
-  UDS_FREE(flushCompletion);
+  uds_free(flushCompletion);
 
   waitForCompletions(&wrappedCompletions, VDO_SUCCESS);
   freeWrappedCompletions(&wrappedCompletions);

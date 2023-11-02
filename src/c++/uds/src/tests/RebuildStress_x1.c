@@ -33,7 +33,7 @@ static struct semaphore semaphore;
 /**********************************************************************/
 static void finishChunk(struct uds_request *udsRequest)
 {
-  UDS_FREE(udsRequest);
+  uds_free(udsRequest);
   uds_release_semaphore(&semaphore);
 }
 
@@ -76,7 +76,7 @@ static void fullRebuildTest(void)
     unsigned int i;
     for (i = 0; i < numBlocks; i++) {
       struct uds_request *udsRequest;
-      UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct uds_request, __func__,
+      UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_request, __func__,
                                       &udsRequest));
       uds_acquire_semaphore(&semaphore);
       udsRequest->record_name = hash_record_name(&counter, sizeof(counter));
@@ -106,7 +106,7 @@ static void fullRebuildTest(void)
     char *timeString;
     UDS_ASSERT_SUCCESS(rel_time_to_string(&timeString, rebuildTime));
     albPrint("Index rebuilt in %s", timeString);
-    UDS_FREE(timeString);
+    uds_free(timeString);
     reportIndexSize(indexSession, &indexStats);
     // Report lost entries
     if (entriesIndexed > indexStats.entries_indexed) {

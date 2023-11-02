@@ -119,7 +119,7 @@ static int allocateIOBuffer(PhysicalLayer  *common __attribute__((unused)),
                             const char     *why,
                             char          **bufferPtr)
 {
-  return UDS_ALLOCATE(bytes, char, why, bufferPtr);
+  return uds_allocate(bytes, char, why, bufferPtr);
 }
 
 /**
@@ -177,14 +177,14 @@ void destroyAsyncLayer(void)
   case LAYER_INITIALIZED:
     uds_destroy_cond(&asyncLayer->condition);
     uds_destroy_mutex(&asyncLayer->mutex);
-    vdo_free_int_map(UDS_FORGET(asyncLayer->completionEnqueueHooksMap));
+    vdo_free_int_map(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
 
   default:
     CU_FAIL("Unknown Async Layer state: %d", asyncLayer->state);
   }
 
-  UDS_FREE(UDS_FORGET(layer));
+  uds_free(uds_forget(layer));
 }
 
 /**
@@ -201,7 +201,7 @@ static bool defaultBIOSubmitHook(struct bio *bio __attribute__((unused)))
 void initializeAsyncLayer(PhysicalLayer *syncLayer)
 {
   AsyncLayer *asyncLayer;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, AsyncLayer, __func__, &asyncLayer));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_make_int_map(0,
                                       0,
                                       &asyncLayer->completionEnqueueHooksMap));
@@ -368,12 +368,12 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   asyncLayer->state = QUEUES_STARTED;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct dm_target, __func__, &target));
   int result = loadTable(configuration, target);
   if (result != VDO_SUCCESS) {
     assertStartStopExpectation(result);
     stopAsyncLayer();
-    UDS_FREE(target);
+    uds_free(target);
     return;
   }
 
@@ -395,7 +395,7 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
 
   if (result != VDO_SUCCESS) {
     stopAsyncLayer();
-    UDS_FREE(target);
+    uds_free(target);
     return;
   }
 
@@ -426,12 +426,12 @@ void stopAsyncLayer(void)
   case TABLE_LOADED:
     target = vdo->device_config->owning_target;
     vdoTargetType->dtr(target);
-    UDS_FREE(UDS_FORGET(target));
+    uds_free(uds_forget(target));
 
     fallthrough;
 
   case QUEUES_STARTED:
-    UDS_FORGET(vdo);
+    uds_forget(vdo);
     if (asyncLayer->bioThread != NULL) {
       uds_lock_mutex(&asyncLayer->mutex);
       asyncLayer->running = false;
@@ -486,7 +486,7 @@ static void requestDoneCallback(struct vdo_completion *completion)
 static void requestCallback(struct vdo_completion *completion)
 {
   struct vdo_completion *payload = completion->parent;
-  UDS_FREE(UDS_FORGET(completion));
+  uds_free(uds_forget(completion));
 
   vdo_action *action             = payload->callback;
   payload->callback              = requestDoneCallback;
@@ -502,7 +502,7 @@ void launchAction(vdo_action *action, struct vdo_completion *completion)
   atomic64_add(1, &(asAsyncLayer()->requestCount));
 
   struct vdo_completion *wrapper;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1,
+  VDO_ASSERT_SUCCESS(uds_allocate(1,
                                   struct vdo_completion,
                                   __func__,
                                   &wrapper));
@@ -559,7 +559,7 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
                          (uintptr_t) function);
   if (hook != NULL) {
     list_del(&hook->listEntry);
-    UDS_FREE(hook);
+    uds_free(hook);
     asyncLayer->completionEnqueueHooksCacheValid = false;
   }
 }
@@ -614,7 +614,7 @@ void clearCompletionEnqueueHooks(void)
 static void addCompletionEnqueueHookLocked(CompletionHook *function)
 {
   CompletionHookEntry *hook;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, CompletionHookEntry, __func__, &hook));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, CompletionHookEntry, __func__, &hook));
   hook->function = function;
 
   CompletionHookEntry *old;

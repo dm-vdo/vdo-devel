@@ -201,7 +201,7 @@ int uds_make_request_queue(const char *queue_name,
 	int result;
 	struct uds_request_queue *queue;
 
-	result = UDS_ALLOCATE(1, struct uds_request_queue, __func__, &queue);
+	result = uds_allocate(1, struct uds_request_queue, __func__, &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -280,5 +280,5 @@ void uds_request_queue_finish(struct uds_request_queue *queue)
 
 	uds_free_funnel_queue(queue->main_queue);
 	uds_free_funnel_queue(queue->retry_queue);
-	UDS_FREE(queue);
+	uds_free(queue);
 }

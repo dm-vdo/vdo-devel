@@ -33,8 +33,8 @@ static struct mutex             mutex;
  **/
 static void tearDown(void)
 {
-  vdo_free_int_map(UDS_FORGET(wrapMap));
-  vdo_free_int_map(UDS_FORGET(enqueueMap));
+  vdo_free_int_map(uds_forget(wrapMap));
+  vdo_free_int_map(uds_forget(enqueueMap));
   uds_destroy_mutex(&mutex);
 }
 
@@ -55,7 +55,7 @@ static void wrapCompletion(struct vdo_completion *completion,
   CU_ASSERT_PTR_NOT_NULL(completion->callback);
 
   SavedActions *actions;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, SavedActions, __func__, &actions));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, SavedActions, __func__, &actions));
   *actions = (SavedActions) {
     .callback     = completion->callback,
     .errorHandler = completion->error_handler,
@@ -110,7 +110,7 @@ static bool runSaved(struct vdo_completion *completion)
 
   completion->callback      = actions->callback;
   completion->error_handler = actions->errorHandler;
-  UDS_FREE(actions);
+  uds_free(actions);
   vdo_run_completion(completion);
 
   if (requeued) {

@@ -21,10 +21,10 @@
 void makePageArray(unsigned int numPages, size_t pageSize)
 {
   test_page_count = HEADER_PAGES_PER_VOLUME + numPages;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(test_page_count, u8 *, __func__, &test_pages));
+  UDS_ASSERT_SUCCESS(uds_allocate(test_page_count, u8 *, __func__, &test_pages));
   unsigned int i;
   for (i = 0; i < test_page_count; ++i) {
-    UDS_ASSERT_SUCCESS(UDS_ALLOCATE(pageSize, u8, __func__, &test_pages[i]));
+    UDS_ASSERT_SUCCESS(uds_allocate(pageSize, u8, __func__, &test_pages[i]));
   }
 }
 
@@ -36,9 +36,9 @@ void freePageArray(void)
   if (test_pages != NULL) {
     unsigned int i;
     for (i = 0; i < test_page_count; ++i) {
-      UDS_FREE(test_pages[i]);
+      uds_free(test_pages[i]);
     }
-    UDS_FREE(test_pages);
+    uds_free(test_pages);
   }
 
   test_pages = NULL;
@@ -84,7 +84,7 @@ static void fillOpenChapter(struct open_chapter_index *oci,
 void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u32 chapter)
 {
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1 + geometry->records_per_chapter, struct uds_volume_record,
+  UDS_ASSERT_SUCCESS(uds_allocate(1 + geometry->records_per_chapter, struct uds_volume_record,
                                   __func__, &records));
   get_random_bytes((u8 *) records, BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
@@ -101,7 +101,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
   UDS_ASSERT_SUCCESS(uds_write_chapter(volume, chapterIndex, records));
 
   uds_free_open_chapter_index(chapterIndex);
-  UDS_FREE(records);
+  uds_free(records);
 }
     
 /**********************************************************************

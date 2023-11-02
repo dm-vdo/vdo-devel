@@ -217,7 +217,7 @@ static void testDrainWithBlockedWrite(const struct admin_state_code *drainType,
 
   // Wait for the drain to complete
   awaitCompletion(completion);
-  UDS_FREE(completion);
+  uds_free(completion);
 
   // Resume the block map so that teardown succeeds.
   performSuccessfulBlockMapAction(VDO_ADMIN_STATE_RESUMING);

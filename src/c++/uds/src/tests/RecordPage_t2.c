@@ -23,20 +23,20 @@ static void recordPageTest(int numRecords)
   struct geometry *g = conf->geometry;
 
   u8 *recordPage;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, u8, __func__, &recordPage));
+  UDS_ASSERT_SUCCESS(uds_allocate(bytesPerPage, u8, __func__, &recordPage));
   const struct uds_volume_record **recordPointers;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
+  UDS_ASSERT_SUCCESS(uds_allocate(g->records_per_page,
                                   const struct uds_volume_record *,
                                   __func__, &recordPointers));
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE((bytesPerPage /
+  UDS_ASSERT_SUCCESS(uds_allocate((bytesPerPage /
                                    sizeof(struct uds_volume_record)),
                                   struct uds_volume_record, __func__,
                                   &records));
 
   // A fake volume but good enough for the encode_record_page interface
   struct volume *volume;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct volume, __func__, &volume));
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(g->records_per_page,
                                            &volume->radix_sorter));
   volume->geometry        = g;
@@ -80,16 +80,16 @@ static void recordPageTest(int numRecords)
   albPrint("Each page encoded in %s", encodeEach);
   albPrint("Searched %d entries in %s", totalRecords, searchTotal);
   albPrint("Each entry searched in %s", searchEach);
-  UDS_FREE(encodeTotal);
-  UDS_FREE(encodeEach);
-  UDS_FREE(searchTotal);
-  UDS_FREE(searchEach);
+  uds_free(encodeTotal);
+  uds_free(encodeEach);
+  uds_free(searchTotal);
+  uds_free(searchEach);
 
   uds_free_radix_sorter(volume->radix_sorter);
-  UDS_FREE(records);
-  UDS_FREE(recordPage);
-  UDS_FREE(recordPointers);
-  UDS_FREE(volume);
+  uds_free(records);
+  uds_free(recordPage);
+  uds_free(recordPointers);
+  uds_free(volume);
   uds_free_configuration(conf);
 }
 

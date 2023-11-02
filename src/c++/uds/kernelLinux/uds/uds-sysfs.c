@@ -42,7 +42,7 @@ static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
 
-	if (UDS_ALLOCATE(length + 1, char, __func__, &string) != UDS_SUCCESS)
+	if (uds_allocate(length + 1, char, __func__, &string) != UDS_SUCCESS)
 		return NULL;
 
 	memcpy(string, buf, length);
@@ -276,7 +276,7 @@ parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, s
 		return -ENOMEM;
 
 	pa->store_string(string);
-	UDS_FREE(string);
+	uds_free(string);
 	return length;
 }
 

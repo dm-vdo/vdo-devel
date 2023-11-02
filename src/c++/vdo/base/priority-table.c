@@ -62,7 +62,7 @@ int vdo_make_priority_table(unsigned int max_priority, struct priority_table **t
 	if (max_priority > MAX_PRIORITY)
 		return UDS_INVALID_ARGUMENT;
 
-	result = UDS_ALLOCATE_EXTENDED(struct priority_table, max_priority + 1,
+	result = uds_allocate_extended(struct priority_table, max_priority + 1,
 				       struct bucket, __func__, &table);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -98,7 +98,7 @@ void vdo_free_priority_table(struct priority_table *table)
 	 */
 	vdo_reset_priority_table(table);
 
-	UDS_FREE(table);
+	uds_free(table);
 }
 
 /**

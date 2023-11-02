@@ -58,7 +58,7 @@ static struct block_device *getDeviceFromName(const char *name)
     return NULL;
   }
 
-  result = UDS_ALLOCATE(1, struct block_device, __func__, &device);
+  result = uds_allocate(1, struct block_device, __func__, &device);
   if (result != UDS_SUCCESS) {
     uds_log_error_strerror(ENOMEM, "cannot allocate device for %s", name);
     close_file(fd, NULL);
@@ -99,5 +99,5 @@ void putTestBlockDevice(struct block_device *bdev)
     return;
 
   close_file(bdev->fd, NULL);
-  UDS_FREE(bdev);
+  uds_free(bdev);
 }

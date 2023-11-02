@@ -110,7 +110,7 @@ void tearDownLatchUtils(void)
   latchAttemptHook = NULL;
   waitCondition    = NULL;
   CU_ASSERT_EQUAL(vdo_int_map_size(latchedVIOs), 0);
-  vdo_free_int_map(UDS_FORGET(latchedVIOs));
+  vdo_free_int_map(uds_forget(latchedVIOs));
   CU_ASSERT(list_empty(&latches));
   initialized = false;
 }
@@ -128,7 +128,7 @@ static bool setLatchLocked(void *context)
 {
   physical_block_number_t pbn = *((physical_block_number_t *) context);
   VIOLatch *latch;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, VIOLatch, __func__, &latch));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, VIOLatch, __func__, &latch));
   latch->pbn = pbn;
   INIT_LIST_HEAD(&latch->latch_entry);
   list_add_tail(&latch->latch_entry, &latches);
@@ -169,7 +169,7 @@ static bool clearLatchLocked(void *context)
     }
 
     list_del(&latch->latch_entry);
-    UDS_FREE(latch);
+    uds_free(latch);
   }
 
   return false;

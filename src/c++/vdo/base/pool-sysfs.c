@@ -105,7 +105,7 @@ static ssize_t pool_requests_maximum_show(struct vdo *vdo, char *buf)
 
 static void vdo_pool_release(struct kobject *directory)
 {
-	UDS_FREE(container_of(directory, struct vdo, vdo_directory));
+	uds_free(container_of(directory, struct vdo, vdo_directory));
 }
 
 static struct pool_attribute vdo_pool_compressing_attr = {

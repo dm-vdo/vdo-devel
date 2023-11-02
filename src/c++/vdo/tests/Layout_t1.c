@@ -127,7 +127,7 @@ static void testLayout(void)
 
   vdo_uninitialize_layout(&vdo.next_layout);
   vdo_uninitialize_layout(layout);
-  dm_kcopyd_client_destroy(UDS_FORGET(vdo.partition_copier));
+  dm_kcopyd_client_destroy(uds_forget(vdo.partition_copier));
 }
 
 /**********************************************************************/

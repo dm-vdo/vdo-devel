@@ -29,7 +29,7 @@ static void basicTest(void)
   count = 0;
   found = NULL;
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(2, struct uds_request, __func__, &requests));
+  UDS_ASSERT_SUCCESS(uds_allocate(2, struct uds_request, __func__, &requests));
   requests[0].unbatched = true;
   requests[1].unbatched = true;
 
@@ -43,7 +43,7 @@ static void basicTest(void)
   CU_ASSERT_PTR_EQUAL(&requests[1], found);
   CU_ASSERT_EQUAL(2, count);
 
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/
@@ -94,7 +94,7 @@ static void priorityTestWorker(struct uds_request *req)
 static void retryPriorityTest(void)
 {
   struct uds_request *requests;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(3, struct uds_request, __func__, &requests));
+  UDS_ASSERT_SUCCESS(uds_allocate(3, struct uds_request, __func__, &requests));
   requests[0].unbatched = false;
   requests[1].unbatched = true;
   requests[2].unbatched = true;
@@ -128,7 +128,7 @@ static void retryPriorityTest(void)
   CU_ASSERT_TRUE(nextRequestRetryStatus);
 
   UDS_ASSERT_SUCCESS(uds_destroy_semaphore(&requestSemaphore));
-  UDS_FREE(requests);
+  uds_free(requests);
 }
 
 /**********************************************************************/

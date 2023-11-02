@@ -25,20 +25,20 @@ static void testSearchRecordPage(void)
   struct geometry *g = conf->geometry;
 
   u8 *recordPage;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(bytesPerPage, u8, __func__, &recordPage));
+  UDS_ASSERT_SUCCESS(uds_allocate(bytesPerPage, u8, __func__, &recordPage));
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE((bytesPerPage /
+  UDS_ASSERT_SUCCESS(uds_allocate((bytesPerPage /
                                    sizeof(struct uds_volume_record)),
                                   struct uds_volume_record, __func__,
                                   &records));
   get_random_bytes((u8 *) records, bytesPerPage);
 
   struct volume *volume;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct volume, __func__, &volume));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct volume, __func__, &volume));
   // A fake volume but good enough for the encode_record_page interface
   volume->geometry = g;
 
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(g->records_per_page,
+  UDS_ASSERT_SUCCESS(uds_allocate(g->records_per_page,
                                   const struct uds_volume_record *,
                                   __func__, &volume->record_pointers));
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(g->records_per_page,
@@ -60,11 +60,11 @@ static void testSearchRecordPage(void)
   bool found = search_record_page(recordPage, &zero, g, NULL);
   CU_ASSERT_FALSE(found);
 
-  UDS_FREE(records);
-  UDS_FREE(recordPage);
-  UDS_FREE(volume->record_pointers);
+  uds_free(records);
+  uds_free(recordPage);
+  uds_free(volume->record_pointers);
   uds_free_radix_sorter(volume->radix_sorter);
-  UDS_FREE(volume);
+  uds_free(volume);
   uds_free_configuration(conf);
 }
 

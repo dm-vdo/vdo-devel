@@ -60,7 +60,7 @@ static void runTest(bool sparse)
   char *elapsed;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsed, loadElapsed));
   albPrint("Rebuild %s index in %s", sparse ? "sparse" : "dense", elapsed);
-  UDS_FREE(elapsed);
+  uds_free(elapsed);
   printThreadStatistics(preThreadStats, postThreadStats);
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));

@@ -153,11 +153,11 @@ static void testBasic(void)
   block_count_t  blockCount = layer->getBlockCount(layer);
   size_t         layerSize  = VDO_BLOCK_SIZE * blockCount;
   char          *buffer;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(layerSize, char, __func__, &buffer));
+  VDO_ASSERT_SUCCESS(uds_allocate(layerSize, char, __func__, &buffer));
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, blockCount, buffer));
   stopVDO();
   VDO_ASSERT_SUCCESS(layer->writer(layer, 0, blockCount, buffer));
-  UDS_FREE(buffer);
+  uds_free(buffer);
   startVDO(VDO_CLEAN);
 
   // Overwrite with zeros and reclaim space

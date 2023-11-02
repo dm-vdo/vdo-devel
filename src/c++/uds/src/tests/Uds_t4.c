@@ -23,7 +23,7 @@ static void initNullTest(void)
  
   struct uds_parameters *empty;
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(session, &empty));
-  UDS_FREE(empty);
+  uds_free(empty);
 
   UDS_ASSERT_ERROR(-EINVAL, uds_open_index(UDS_LOAD, NULL, session));
 

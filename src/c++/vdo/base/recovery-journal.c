@@ -592,36 +592,36 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
 	struct thread_config *config = &vdo->thread_config;
 	struct lock_counter *counter = &journal->lock_counter;
 
-	result = UDS_ALLOCATE(journal->size, u16, __func__, &counter->journal_counters);
+	result = uds_allocate(journal->size, u16, __func__, &counter->journal_counters);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(journal->size,
+	result = uds_allocate(journal->size,
 			      atomic_t,
 			      __func__,
 			      &counter->journal_decrement_counts);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(journal->size * config->logical_zone_count,
+	result = uds_allocate(journal->size * config->logical_zone_count,
 			      u16,
 			      __func__,
 			      &counter->logical_counters);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(journal->size, atomic_t, __func__, &counter->logical_zone_counts);
+	result = uds_allocate(journal->size, atomic_t, __func__, &counter->logical_zone_counts);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(journal->size * config->physical_zone_count,
+	result = uds_allocate(journal->size * config->physical_zone_count,
 			      u16,
 			      __func__,
 			      &counter->physical_counters);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = UDS_ALLOCATE(journal->size, atomic_t, __func__, &counter->physical_zone_counts);
+	result = uds_allocate(journal->size, atomic_t, __func__, &counter->physical_zone_counts);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -677,7 +677,7 @@ static int initialize_recovery_block(struct vdo *vdo,
 	 * Allocate a full block for the journal block even though not all of the space is used
 	 * since the VIO needs to write a full disk block.
 	 */
-	result = UDS_ALLOCATE(VDO_BLOCK_SIZE, char, __func__, &data);
+	result = uds_allocate(VDO_BLOCK_SIZE, char, __func__, &data);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -689,7 +689,7 @@ static int initialize_recovery_block(struct vdo *vdo,
 					 data,
 					 &block->vio);
 	if (result != VDO_SUCCESS) {
-		UDS_FREE(data);
+		uds_free(data);
 		return result;
 	}
 
@@ -724,7 +724,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
 	struct recovery_journal *journal;
 	int result;
 
-	result = UDS_ALLOCATE_EXTENDED(struct recovery_journal,
+	result = uds_allocate_extended(struct recovery_journal,
 				       RECOVERY_JOURNAL_RESERVED_BLOCKS,
 				       struct recovery_journal_block,
 				       __func__,
@@ -808,13 +808,13 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	if (journal == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(journal->lock_counter.logical_zone_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.physical_zone_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.journal_counters));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.journal_decrement_counts));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.logical_counters));
-	UDS_FREE(UDS_FORGET(journal->lock_counter.physical_counters));
-	free_vio(UDS_FORGET(journal->flush_vio));
+	uds_free(uds_forget(journal->lock_counter.logical_zone_counts));
+	uds_free(uds_forget(journal->lock_counter.physical_zone_counts));
+	uds_free(uds_forget(journal->lock_counter.journal_counters));
+	uds_free(uds_forget(journal->lock_counter.journal_decrement_counts));
+	uds_free(uds_forget(journal->lock_counter.logical_counters));
+	uds_free(uds_forget(journal->lock_counter.physical_counters));
+	free_vio(uds_forget(journal->flush_vio));
 
 	/*
 	 * FIXME: eventually, the journal should be constructed in a quiescent state which
@@ -829,11 +829,11 @@ void vdo_free_recovery_journal(struct recovery_journal *journal)
 	for (i = 0; i < RECOVERY_JOURNAL_RESERVED_BLOCKS; i++) {
 		struct recovery_journal_block *block = &journal->blocks[i];
 
-		UDS_FREE(UDS_FORGET(block->vio.data));
+		uds_free(uds_forget(block->vio.data));
 		free_vio_components(&block->vio);
 	}
 
-	UDS_FREE(journal);
+	uds_free(journal);
 }
 
 /**

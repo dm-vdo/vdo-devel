@@ -69,7 +69,7 @@ static void testDmKcopyd(block_count_t regionSize)
 
   // Generate data.
   char *data;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE * totalSize, char,
+  UDS_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE * totalSize, char,
                                   "test data", &data));
   for (block_count_t i = 0; i < totalSize; i++) {
     memset(&data[i * VDO_BLOCK_SIZE], i, VDO_BLOCK_SIZE);
@@ -86,7 +86,7 @@ static void testDmKcopyd(block_count_t regionSize)
 
   // Verify that the original data has not been touched.
   char *buffer;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(VDO_BLOCK_SIZE * regionSize, char,
+  UDS_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE * regionSize, char,
                                   "verification buffer", &buffer));
   VDO_ASSERT_SUCCESS(layer->reader(layer, 0, regionSize, buffer));
   UDS_ASSERT_EQUAL_BYTES(buffer, data, VDO_BLOCK_SIZE * regionSize);
@@ -96,8 +96,8 @@ static void testDmKcopyd(block_count_t regionSize)
                                    buffer));
   UDS_ASSERT_EQUAL_BYTES(buffer, data, VDO_BLOCK_SIZE * regionSize);
 
-  UDS_FREE(buffer);
-  UDS_FREE(data);
+  uds_free(buffer);
+  uds_free(data);
   tearDownVDOTest();
 }
 

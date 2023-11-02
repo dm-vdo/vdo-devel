@@ -242,7 +242,7 @@ void initialize_instance_number_tracking(void)
 
 void clean_up_instance_number_tracking(void)
 {
-	UDS_FREE(instances.words);
+	uds_free(instances.words);
 	initialize_instance_number_tracking();
 }
 
@@ -259,12 +259,12 @@ static void free_device_config(struct device_config *config)
 	if (config->owned_device != NULL)
 		dm_put_device(config->owning_target, config->owned_device);
 
-	UDS_FREE(config->parent_device_name);
-	UDS_FREE(config->original_string);
+	uds_free(config->parent_device_name);
+	uds_free(config->original_string);
 
 	/* Reduce the chance a use-after-free (as in BZ 1669960) happens to work. */
 	memset(config, 0, sizeof(*config));
-	UDS_FREE(config);
+	uds_free(config);
 }
 
 /**
@@ -319,15 +319,15 @@ static void free_string_array(char **string_array)
 	unsigned int offset;
 
 	for (offset = 0; string_array[offset] != NULL; offset++)
-		UDS_FREE(string_array[offset]);
-	UDS_FREE(string_array);
+		uds_free(string_array[offset]);
+	uds_free(string_array);
 }
 
 /*
  * Split the input string into substrings, separated at occurrences of the indicated character,
  * returning a null-terminated list of string pointers.
  *
- * The string pointers and the pointer array itself should both be freed with UDS_FREE() when no
+ * The string pointers and the pointer array itself should both be freed with uds_free() when no
  * longer needed. This can be done with vdo_free_string_array (below) if the pointers in the array
  * are not changed. Since the array and copied strings are allocated by this function, it may only
  * be used in contexts where allocation is permitted.
@@ -347,7 +347,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 		if (*s == separator)
 			substring_count++;
 
-	result = UDS_ALLOCATE(substring_count + 1, char *, "string-splitting array", &substrings);
+	result = uds_allocate(substring_count + 1, char *, "string-splitting array", &substrings);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -355,7 +355,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 		if (*s == separator) {
 			ptrdiff_t length = s - string;
 
-			result = UDS_ALLOCATE(length + 1,
+			result = uds_allocate(length + 1,
 					      char,
 					      "split string",
 					      &substrings[current_substring]);
@@ -378,7 +378,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 	BUG_ON(current_substring != (substring_count - 1));
 	length = strlen(string);
 
-	result = UDS_ALLOCATE(length + 1, char, "split string", &substrings[current_substring]);
+	result = uds_allocate(length + 1, char, "split string", &substrings[current_substring]);
 	if (result != UDS_SUCCESS) {
 		free_string_array(substrings);
 		return result;
@@ -406,7 +406,7 @@ join_strings(char **substring_array, size_t array_length, char separator, char *
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++)
 		string_length += strlen(substring_array[i]) + 1;
 
-	result = UDS_ALLOCATE(string_length, char, __func__, &output);
+	result = uds_allocate(string_length, char, __func__, &output);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -800,7 +800,7 @@ static int parse_device_config(int argc,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = UDS_ALLOCATE(1, struct device_config, "device_config", &config);
+	result = uds_allocate(1, struct device_config, "device_config", &config);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config, error_ptr, "Could not allocate config structure");
 		return VDO_BAD_CONFIGURATION;
@@ -1872,7 +1872,7 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 							  VDO_SLAB_SUMMARY_PARTITION),
 				       &vdo->next_layout);
 	if (result != VDO_SUCCESS) {
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 		return result;
 	}
 
@@ -1883,7 +1883,7 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 	if (min_new_size > new_size) {
 		/* Copying the journal and summary would destroy some old metadata. */
 		vdo_uninitialize_layout(&vdo->next_layout);
-		dm_kcopyd_client_destroy(UDS_FORGET(vdo->partition_copier));
+		dm_kcopyd_client_destroy(uds_forget(vdo->partition_copier));
 		return VDO_INCREMENT_TOO_SMALL;
 	}
 
@@ -2090,7 +2090,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
-	struct vdo *vdo = UDS_FORGET(config->vdo);
+	struct vdo *vdo = uds_forget(config->vdo);
 
 	list_del_init(&config->config_list);
 	if (list_empty(&vdo->device_config_list)) {
@@ -2108,7 +2108,7 @@ static void vdo_dtr(struct dm_target *ti)
 		if (vdo->dump_on_shutdown)
 			vdo_dump_all(vdo, "device shutdown");
 
-		vdo_destroy(UDS_FORGET(vdo));
+		vdo_destroy(uds_forget(vdo));
 		uds_log_info("device '%s' stopped", device_name);
 		uds_unregister_thread_device_id();
 		uds_unregister_allocating_thread();
@@ -2318,7 +2318,7 @@ static void vdo_pool_release(struct kobject *directory)
 			"kobject being released has no references");
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
-	UDS_FREE(vdo);
+	uds_free(vdo);
 }
 
 const struct kobj_type vdo_directory_type = {
@@ -2525,7 +2525,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	    (vdo->admin.phase == LOAD_PHASE_MAKE_DIRTY)) {
 		uds_log_error_strerror(completion->result, "aborting load");
 		vdo->admin.phase = LOAD_PHASE_DRAIN_JOURNAL;
-		load_callback(UDS_FORGET(completion));
+		load_callback(uds_forget(completion));
 		return;
 	}
 
@@ -2838,7 +2838,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo_uninitialize_layout(&vdo->layout);
 		vdo->layout = vdo->next_layout;
-		UDS_FORGET(vdo->next_layout.head);
+		uds_forget(vdo->next_layout.head);
 		vdo->states.vdo.config.physical_blocks = vdo->layout.size;
 		vdo_update_slab_depot_size(vdo->depot);
 		vdo_save_components(vdo, completion);
@@ -3119,7 +3119,7 @@ static void vdo_module_destroy(void)
 	ASSERT_LOG_ONLY(instances.count == 0,
 			"should have no instance numbers still in use, but have %u",
 			instances.count);
-	UDS_FREE(instances.words);
+	uds_free(instances.words);
 	memset(&instances, 0, sizeof(struct instance_tracker));
 
 	uds_log_info("unloaded version %s", CURRENT_VERSION);

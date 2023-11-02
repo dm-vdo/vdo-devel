@@ -80,14 +80,14 @@ int dm_register_target(struct target_type *t)
 void dm_unregister_target(struct target_type *t)
 {
   CU_ASSERT_PTR_EQUAL(vdoTargetType, t);
-  UDS_FORGET(vdoTargetType);
+  uds_forget(vdoTargetType);
 }
 
 /**********************************************************************/
 void registerTearDownAction(TearDownAction *action)
 {
   TearDownItem *item;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, TearDownItem, __func__, &item));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, TearDownItem, __func__, &item));
 
   item->action = action;
   item->next = tearDownItems;
@@ -113,7 +113,7 @@ void tearDownVDOTestBase(void)
     TearDownItem *item = tearDownItems;
     tearDownItems = tearDownItems->next;
     item->action();
-    UDS_FREE(item);
+    uds_free(item);
   }
 }
 
@@ -208,7 +208,7 @@ static void signalFlushDone(struct bio *bio)
     signalState(&flushDone);
   }
 
-  UDS_FREE(bio);
+  uds_free(bio);
 }
 
 /**********************************************************************/
@@ -640,7 +640,7 @@ int loadTable(TestConfiguration configuration, struct dm_target *target)
   int argc = makeTableLine(fixThreadCounts(configuration), argv);
   int result = vdoTargetType->ctr(target, argc, argv);
   while (argc-- > 0) {
-    UDS_FREE(argv[argc]);
+    uds_free(argv[argc]);
   }
 
   return result;
@@ -676,7 +676,7 @@ int resumeVDO(struct dm_target *target)
     struct dm_target *toDestroy
       = ((vdo->device_config->owning_target == target) ? old_target : target);
       vdoTargetType->dtr(toDestroy);
-      UDS_FREE(toDestroy);
+      uds_free(toDestroy);
   }
 
   return resume_result;
@@ -690,11 +690,11 @@ int modifyCompressDedupe(bool compress, bool dedupe)
   newConfiguration.deviceConfig.deduplication = dedupe;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct dm_target, __func__, &target));
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(target);
+    uds_free(target);
     return result;
   }
 
@@ -720,11 +720,11 @@ static int modifyVDO(block_count_t logicalSize,
   newConfiguration.config.logical_blocks = logicalSize;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(UDS_ALLOCATE(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(uds_allocate(1, struct dm_target, __func__, &target));
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
-    UDS_FREE(target);
+    uds_free(target);
     return result;
   }
 

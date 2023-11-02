@@ -165,14 +165,14 @@ initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 	chapter->virtual_chapter = NO_CHAPTER;
 	chapter->index_pages_count = geometry->index_pages_per_chapter;
 
-	result = UDS_ALLOCATE(chapter->index_pages_count,
+	result = uds_allocate(chapter->index_pages_count,
 			      struct delta_index_page,
 			      __func__,
 			      &chapter->index_pages);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return UDS_ALLOCATE(chapter->index_pages_count,
+	return uds_allocate(chapter->index_pages_count,
 			    struct dm_buffer *,
 			    "sparse index volume pages",
 			    &chapter->page_buffers);
@@ -255,7 +255,7 @@ int uds_make_sparse_cache(const struct geometry *geometry,
 	}
 
 	/* purge_search_list() needs some temporary lists for sorting. */
-	result = UDS_ALLOCATE(capacity * 2,
+	result = uds_allocate(capacity * 2,
 			      struct cached_chapter_index *,
 			      "scratch entries",
 			      &cache->scratch_entries);
@@ -298,7 +298,7 @@ static void release_cached_chapter_index(struct cached_chapter_index *chapter)
 
 	for (i = 0; i < chapter->index_pages_count; i++)
 		if (chapter->page_buffers[i] != NULL)
-			dm_bufio_release(UDS_FORGET(chapter->page_buffers[i]));
+			dm_bufio_release(uds_forget(chapter->page_buffers[i]));
 }
 
 void uds_free_sparse_cache(struct sparse_cache *cache)
@@ -308,20 +308,20 @@ void uds_free_sparse_cache(struct sparse_cache *cache)
 	if (cache == NULL)
 		return;
 
-	UDS_FREE(cache->scratch_entries);
+	uds_free(cache->scratch_entries);
 
 	for (i = 0; i < cache->zone_count; i++)
-		UDS_FREE(cache->search_lists[i]);
+		uds_free(cache->search_lists[i]);
 
 	for (i = 0; i < cache->capacity; i++) {
 		release_cached_chapter_index(&cache->chapters[i]);
-		UDS_FREE(cache->chapters[i].index_pages);
-		UDS_FREE(cache->chapters[i].page_buffers);
+		uds_free(cache->chapters[i].index_pages);
+		uds_free(cache->chapters[i].page_buffers);
 	}
 
 	uds_destroy_barrier(&cache->begin_update_barrier);
 	uds_destroy_barrier(&cache->end_update_barrier);
-	UDS_FREE(cache);
+	uds_free(cache);
 }
 
 /*

@@ -42,7 +42,7 @@ static struct block_device *testDevice;
 static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
 {
   TestMI *testmi;
-  UDS_ASSERT_SUCCESS(UDS_ALLOCATE(1, TestMI, __func__, &testmi));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, TestMI, __func__, &testmi));
   testmi->numZones = numZones;
 
   // Make the test geometry
@@ -224,7 +224,7 @@ static void closeVolumeIndex(TestMI *testmi)
   uds_free_volume_index(testmi->mi);
   uds_put_io_factory(testmi->factory);
   putTestBlockDevice(testDevice);
-  UDS_FREE(testmi);
+  uds_free(testmi);
 }
 
 /**********************************************************************/

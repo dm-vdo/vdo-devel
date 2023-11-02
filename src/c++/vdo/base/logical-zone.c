@@ -95,7 +95,7 @@ int vdo_make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 	if (zone_count == 0)
 		return VDO_SUCCESS;
 
-	result = UDS_ALLOCATE_EXTENDED(struct logical_zones, zone_count,
+	result = uds_allocate_extended(struct logical_zones, zone_count,
 				       struct logical_zone, __func__, &zones);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -137,12 +137,12 @@ void vdo_free_logical_zones(struct logical_zones *zones)
 	if (zones == NULL)
 		return;
 
-	UDS_FREE(UDS_FORGET(zones->manager));
+	uds_free(uds_forget(zones->manager));
 
 	for (index = 0; index < zones->zone_count; index++)
-		vdo_free_int_map(UDS_FORGET(zones->zones[index].lbn_operations));
+		vdo_free_int_map(uds_forget(zones->zones[index].lbn_operations));
 
-	UDS_FREE(zones);
+	uds_free(zones);
 }
 
 static inline void assert_on_zone_thread(struct logical_zone *zone, const char *what)

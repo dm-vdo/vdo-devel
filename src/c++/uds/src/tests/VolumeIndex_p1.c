@@ -52,8 +52,8 @@ static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %ld blocks took %s, average = %s/record",
            title, numBlocks, total, perRecord);
-  UDS_FREE(total);
-  UDS_FREE(perRecord);
+  uds_free(total);
+  uds_free(perRecord);
 }
 
 /**********************************************************************/
@@ -67,7 +67,7 @@ static void reportRebalances(u32 *rebalanceCount, const char *label,
                                           mis->rebalance_time));
     albPrint("%s: %d rebalances in %s", label, mis->rebalance_count,
              rebalanceTime);
-    UDS_FREE(rebalanceTime);
+    uds_free(rebalanceTime);
   }
 }
 
