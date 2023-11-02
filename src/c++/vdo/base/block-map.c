@@ -103,8 +103,16 @@ struct cursors {
 	struct cursor cursors[];
 };
 
+static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
+
 /* Used to indicate that the page holding the location of a tree root has been "loaded". */
-const physical_block_number_t VDO_INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
+static const physical_block_number_t VDO_INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
+
+const struct block_map_entry UNMAPPED_BLOCK_MAP_ENTRY = {
+	.mapping_state = VDO_MAPPING_STATE_UNMAPPED & 0x0F,
+	.pbn_high_nibble = 0,
+	.pbn_low_word = __cpu_to_le32(VDO_ZERO_BLOCK & UINT_MAX),
+};
 
 enum {
 	LOG_INTERVAL = 4000,
