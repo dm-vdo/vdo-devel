@@ -51,7 +51,7 @@ static __always_inline u64 fmix64(u64 k)
 
 void murmurhash3_128(const void *key, const int len, const u32 seed, void *out)
 {
-	const u8 *data = (const u8 *)key;
+	const u8 *data = key;
 	const int nblocks = len / 16;
 
 	u64 h1 = seed;

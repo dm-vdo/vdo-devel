@@ -259,10 +259,11 @@ int vio_reset_bio(struct vio *vio,
 		page = is_vmalloc_addr(data) ? vmalloc_to_page(data) : virt_to_page(data);
 		bytes_added = bio_add_page(bio, page, bytes, offset);
 
-		if (bytes_added != bytes)
+		if (bytes_added != bytes) {
 			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
 						      "Could only add %i bytes to bio",
 						       bytes_added);
+		}
 
 		data += bytes;
 		len -= bytes;
@@ -317,16 +318,17 @@ void vio_record_metadata_io_error(struct vio *vio)
 	const char *description;
 	physical_block_number_t pbn = pbn_from_vio_bio(vio->bio);
 
-	if (bio_op(vio->bio) == REQ_OP_READ)
+	if (bio_op(vio->bio) == REQ_OP_READ) {
 		description = "read";
-	else if ((vio->bio->bi_opf & REQ_PREFLUSH) == REQ_PREFLUSH)
+	} else if ((vio->bio->bi_opf & REQ_PREFLUSH) == REQ_PREFLUSH) {
 		description = (((vio->bio->bi_opf & REQ_FUA) == REQ_FUA) ?
 			       "write+preflush+fua" :
 			       "write+preflush");
-	else if ((vio->bio->bi_opf & REQ_FUA) == REQ_FUA)
+	} else if ((vio->bio->bi_opf & REQ_FUA) == REQ_FUA) {
 		description = "write+fua";
-	else
+	} else {
 		description = "write";
+	}
 
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",

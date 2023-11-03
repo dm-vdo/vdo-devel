@@ -233,9 +233,10 @@ static void add_tracking_block(void *ptr, size_t size, const char *what)
 
 	mutex_lock(&track_mutex);
 	/* Find a page with an available slot. */
-	for (info = track_info; info != NULL; info = info->next)
+	for (info = track_info; info != NULL; info = info->next) {
 		if (info->count < NUM_TRACK_BLOCKS)
 			break;
+	}
 
 	if (info == NULL) {
 		/* All pages are full, so allocate a new one. */

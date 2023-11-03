@@ -463,11 +463,12 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 		return;
 	}
 
-	if (slot < VDO_MAX_COMPRESSION_SLOTS)
+	if (slot < VDO_MAX_COMPRESSION_SLOTS) {
 		/* Clear out the sizes of the unused slots */
 		memset(&block->header.sizes[slot],
 		       0,
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
+	}
 
 	agent->vio.completion.error_handler = handle_compressed_write_error;
 	if (vdo_is_read_only(vdo_from_data_vio(agent))) {
@@ -543,9 +544,10 @@ select_bin(struct packer *packer, struct data_vio *data_vio)
 	 */
 	struct packer_bin *bin, *fullest_bin;
 
-	list_for_each_entry(bin, &packer->bins, list)
+	list_for_each_entry(bin, &packer->bins, list) {
 		if (bin->free_space >= data_vio->compression.size)
 			return bin;
+	}
 
 	/*
 	 * None of the bins have enough space for the data_vio. We're not allowed to create new

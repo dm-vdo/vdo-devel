@@ -37,9 +37,10 @@ static void initialize(void)
 {
 	uds_initialize_mutex(&mutex, !UDS_DO_ASSERTIONS);
 	char *exit_on_assertion_failure_string = getenv(EXIT_ON_ASSERTION_FAILURE_VARIABLE);
-	if (exit_on_assertion_failure_string != NULL)
+	if (exit_on_assertion_failure_string != NULL) {
 		exit_on_assertion_failure =
 			(strcasecmp(exit_on_assertion_failure_string, "true") == 0);
+	}
 }
 
 bool set_exit_on_assertion_failure(bool should_exit)

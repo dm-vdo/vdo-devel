@@ -329,9 +329,10 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 		if (bars && (total != 0)) {
 			/* +1 for the space at the beginning */
 			bar_length = (divide_rounding_to_nearest(value * BAR_SIZE, total) + 1);
-			if (bar_length == 1)
+			if (bar_length == 1) {
 				/* Don't bother printing just the initial space. */
 				bar_length = 0;
+			}
 		} else {
 			/* 0 means skip the space and the bar */
 			bar_length = 0;
@@ -353,17 +354,19 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 						    upper);
 			}
 		} else {
-			if (i == h->num_buckets)
+			if (i == h->num_buckets) {
 				length += scnprintf(buffer + length,
 						    buffer_size - length,
 						    "%6s",
 						    "Bigger");
-			else
+			} else {
 				length += scnprintf(buffer + length,
 						    buffer_size - length,
 						    "%6d",
 						    i);
+			}
 		}
+                
 		if (length >= (buffer_size - 1))
 			return buffer_size - 1;
 		length += scnprintf(buffer + length,

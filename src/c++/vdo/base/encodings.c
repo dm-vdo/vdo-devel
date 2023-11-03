@@ -141,7 +141,7 @@ static int __must_check validate_version(struct version_number expected_version,
 					 struct version_number actual_version,
 					 const char *component_name)
 {
-	if (!vdo_are_same_version(expected_version, actual_version))
+	if (!vdo_are_same_version(expected_version, actual_version)) {
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s version mismatch, expected %d.%d, got %d.%d",
 					      component_name,
@@ -149,6 +149,8 @@ static int __must_check validate_version(struct version_number expected_version,
 					      expected_version.minor_version,
 					      actual_version.major_version,
 					      actual_version.minor_version);
+	}
+
 	return VDO_SUCCESS;
 }
 
@@ -173,24 +175,26 @@ int vdo_validate_header(const struct header *expected_header,
 {
 	int result;
 
-	if (expected_header->id != actual_header->id)
+	if (expected_header->id != actual_header->id) {
 		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
 					      name,
 					      expected_header->id,
 					      actual_header->id);
+	}
 
 	result = validate_version(expected_header->version, actual_header->version, name);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	if ((expected_header->size > actual_header->size) ||
-	    (exact_size && (expected_header->size < actual_header->size)))
+	    (exact_size && (expected_header->size < actual_header->size))) {
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s size mismatch, expected %zu, got %zu",
 					      name,
 					      expected_header->size,
 					      actual_header->size);
+	}
 
 	return VDO_SUCCESS;
 }
@@ -374,7 +378,7 @@ struct block_map_page *vdo_format_block_map_page(void *buffer,
 						 physical_block_number_t pbn,
 						 bool initialized)
 {
-	struct block_map_page *page = (struct block_map_page *) buffer;
+	struct block_map_page *page = buffer;
 
 	memset(buffer, 0, VDO_BLOCK_SIZE);
 	page->version = vdo_pack_version_number(BLOCK_MAP_4_1);
@@ -825,7 +829,7 @@ vdo_decode_slab_journal_entry(struct packed_slab_journal_block *block,
 
 	if (block->header.has_block_map_increments &&
 	    ((block->payload.full_entries.entry_types[entry_count / 8] &
-	      ((u8)1 << (entry_count % 8))) != 0))
+	      ((u8) 1 << (entry_count % 8))) != 0))
 		entry.operation = VDO_JOURNAL_BLOCK_MAP_REMAPPING;
 
 	return entry;
@@ -1103,9 +1107,10 @@ decode_layout(u8 *buffer,
 	layout->last_free = layout_header.last_free;
 	layout->num_partitions = layout_header.partition_count;
 
-	if (layout->num_partitions > VDO_PARTITION_COUNT)
+	if (layout->num_partitions > VDO_PARTITION_COUNT) {
 		return uds_log_error_strerror(VDO_UNKNOWN_PARTITION,
 					      "layout has extra partitions");
+	}
 
 	for (i = 0; i < layout->num_partitions; i++) {
 		u8 id;
@@ -1458,11 +1463,12 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 				  block_count_t physical_size,
 				  block_count_t logical_size)
 {
-	if (geometry_nonce != states->vdo.nonce)
+	if (geometry_nonce != states->vdo.nonce) {
 		return uds_log_error_strerror(VDO_BAD_NONCE,
 					      "Geometry nonce %llu does not match superblock nonce %llu",
 					      (unsigned long long) geometry_nonce,
 					      (unsigned long long) states->vdo.nonce);
+	}
 
 	return vdo_validate_config(&states->vdo.config, physical_size, logical_size);
 }
@@ -1525,7 +1531,7 @@ int vdo_decode_super_block(u8 *buffer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (header.size > VDO_COMPONENT_DATA_SIZE + sizeof(u32))
+	if (header.size > VDO_COMPONENT_DATA_SIZE + sizeof(u32)) {
 		/*
 		 * We can't check release version or checksum until we know the content size, so we
 		 * have to assume a version mismatch on unexpected values.
@@ -1533,6 +1539,7 @@ int vdo_decode_super_block(u8 *buffer)
 		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "super block contents too large: %zu",
 					      header.size);
+	}
 
 	/* Skip past the component data for now, to verify the checksum. */
 	offset += VDO_COMPONENT_DATA_SIZE;

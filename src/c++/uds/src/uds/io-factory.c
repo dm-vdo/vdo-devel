@@ -232,7 +232,7 @@ static int reset_reader(struct buffered_reader *reader)
 
 	block_number = reader->block_number;
 	if (reader->end != NULL)
-		++block_number;
+		block_number++;
 
 	return position_reader(reader, block_number, 0);
 }

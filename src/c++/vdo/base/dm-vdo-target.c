@@ -343,9 +343,10 @@ static int split_string(const char *string, char separator, char ***substring_ar
 	int result;
 	ptrdiff_t length;
 
-	for (s = string; *s != 0; s++)
+	for (s = string; *s != 0; s++) {
 		if (*s == separator)
 			substring_count++;
+	}
 
 	result = uds_allocate(substring_count + 1, char *, "string-splitting array", &substrings);
 	if (result != UDS_SUCCESS)
@@ -1374,10 +1375,11 @@ static int perform_admin_operation(struct vdo *vdo,
 	int result;
 	struct vdo_administrator *admin = &vdo->admin;
 
-	if (atomic_cmpxchg(&admin->busy, 0, 1) != 0)
+	if (atomic_cmpxchg(&admin->busy, 0, 1) != 0) {
 		return uds_log_error_strerror(VDO_COMPONENT_BUSY,
 					      "Can't start %s operation, another operation is already in progress",
 					      type);
+	}
 
 	admin->phase = starting_phase;
 	reinit_completion(&admin->callback_sync);
@@ -1492,15 +1494,17 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	maximum_age = vdo_convert_maximum_age(vdo->device_config->block_map_maximum_age);
 	journal_length =
 		vdo_get_recovery_journal_length(vdo->states.vdo.config.recovery_journal_size);
-	if (maximum_age > (journal_length / 2))
+	if (maximum_age > (journal_length / 2)) {
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "maximum age: %llu exceeds limit %llu",
 					      (unsigned long long) maximum_age,
 					      (unsigned long long) (journal_length / 2));
+	}
 
-	if (maximum_age == 0)
+	if (maximum_age == 0) {
 		return uds_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "maximum age must be greater than 0");
+	}
 
 	result = vdo_enable_read_only_entry(vdo);
 	if (result != VDO_SUCCESS)
@@ -1675,7 +1679,7 @@ static bool __must_check vdo_is_named(struct vdo *vdo, const void *context)
 	struct dm_target *ti = vdo->device_config->owning_target;
 	const char *device_name = vdo_get_device_name(ti);
 
-	return strcmp(device_name, (const char *) context) == 0;
+	return strcmp(device_name, context) == 0;
 }
 
 /**
@@ -1845,9 +1849,10 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 	int result;
 	block_count_t min_new_size;
 
-	if (vdo->next_layout.size == new_size)
+	if (vdo->next_layout.size == new_size) {
 		/* We are already prepared to grow to the new size, so we're done. */
 		return VDO_SUCCESS;
+	}
 
 	/* Make a copy completion if there isn't one */
 	if (vdo->partition_copier == NULL) {
@@ -2013,12 +2018,13 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 	if (config->physical_blocks > vdo->device_config->physical_blocks) {
 		result = prepare_to_grow_physical(vdo, config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			if (result == VDO_PARAMETER_MISMATCH)
+			if (result == VDO_PARAMETER_MISMATCH) {
 				/*
 				 * If we don't trap this case, vdo_map_to_system_error() will remap
 				 * it to -EIO, which is misleading and ahistorical.
 				 */
 				result = -EINVAL;
+			}
 
 			if (result == VDO_TOO_MANY_SLABS)
 				ti->error = "Device vdo_prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
@@ -2074,7 +2080,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	uds_register_allocating_thread(&allocating_thread, NULL);
 	device_name = vdo_get_device_name(ti);
-	vdo = vdo_find_matching(vdo_is_named, (const void *) device_name);
+	vdo = vdo_find_matching(vdo_is_named, device_name);
 	if (vdo == NULL) {
 		result = construct_new_vdo(ti, argc, argv);
 	} else {
@@ -2177,9 +2183,10 @@ static void suspend_callback(struct vdo_completion *completion)
 
 	switch (advance_phase(vdo)) {
 	case SUSPEND_PHASE_START:
-		if (vdo_get_admin_state_code(state)->quiescent)
+		if (vdo_get_admin_state_code(state)->quiescent) {
 			/* Already suspended */
 			break;
+		}
 
 		vdo_continue_completion(completion, vdo_start_operation(state, vdo->suspend_type));
 		return;
@@ -2247,9 +2254,10 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (vdo_is_state_suspending(state) || (completion->result != VDO_SUCCESS))
+		if (vdo_is_state_suspending(state) || (completion->result != VDO_SUCCESS)) {
 			/* If we didn't save the VDO or there was an error, we're done. */
 			break;
+		}
 
 		write_super_block_for_suspend(completion);
 		return;
@@ -2474,12 +2482,13 @@ static void load_callback(struct vdo_completion *completion)
 
 	case LOAD_PHASE_DATA_REDUCTION:
 		WRITE_ONCE(vdo->compressing, vdo->device_config->compression);
-		if (vdo->device_config->deduplication)
+		if (vdo->device_config->deduplication) {
 			/*
 			 * Don't try to load or rebuild the index first (and log scary error
 			 * messages) if this is known to be a newly-formatted volume.
 			 */
 			vdo_start_dedupe_index(vdo->hash_zones, was_new(vdo));
+		}
 
 		vdo->allocations_allowed = false;
 		fallthrough;
@@ -3032,9 +3041,10 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 		return result;
 	}
 
-	if (vdo_get_admin_state(vdo)->normal)
+	if (vdo_get_admin_state(vdo)->normal) {
 		/* The VDO was just started, so we don't need to resume it. */
 		return VDO_SUCCESS;
+	}
 
 	result = perform_admin_operation(vdo,
 					 RESUME_PHASE_START,
@@ -3045,9 +3055,10 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 	resume_result = result;
 #endif /* INTERNAL */
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
-	if (result == VDO_READ_ONLY)
+	if (result == VDO_READ_ONLY) {
 		/* Even if the vdo is read-only, it has still resumed. */
 		result = VDO_SUCCESS;
+	}
 
 	if (result != VDO_SUCCESS)
 		uds_log_error("resume of device '%s' failed with error: %d", device_name, result);

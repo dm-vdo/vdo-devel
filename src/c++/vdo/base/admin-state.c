@@ -165,10 +165,11 @@ get_next_state(const struct admin_state *state, const struct admin_state_code *o
 	if (operation == VDO_ADMIN_STATE_SAVING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION ? VDO_ADMIN_STATE_SAVED : NULL);
 
-	if (operation == VDO_ADMIN_STATE_SUSPENDING)
+	if (operation == VDO_ADMIN_STATE_SUSPENDING) {
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION
 			? VDO_ADMIN_STATE_SUSPENDED
 			: NULL);
+	}
 
 	if (operation == VDO_ADMIN_STATE_STOPPING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION ? VDO_ADMIN_STATE_STOPPED : NULL);
@@ -176,9 +177,10 @@ get_next_state(const struct admin_state *state, const struct admin_state_code *o
 	if (operation == VDO_ADMIN_STATE_PRE_LOADING)
 		return (code == VDO_ADMIN_STATE_INITIALIZED ? VDO_ADMIN_STATE_PRE_LOADED : NULL);
 
-	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION)
+	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION) {
 		return (((code == VDO_ADMIN_STATE_SUSPENDED) ||
 			 (code == VDO_ADMIN_STATE_SAVED)) ? code : NULL);
+	}
 
 	return VDO_ADMIN_STATE_NORMAL_OPERATION;
 }

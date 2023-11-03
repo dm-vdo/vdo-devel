@@ -183,10 +183,11 @@ int uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 						   lists_packed);
 		if (result != UDS_SUCCESS)
 			return result;
-		if ((first_list + *lists_packed) == list_count)
+
+		if ((first_list + *lists_packed) == list_count) {
 			/* All lists are packed. */
 			break;
-		else if (*lists_packed == 0) {
+		} else if (*lists_packed == 0) {
 			/*
 			 * The next delta list does not fit on a page. This delta list will be
 			 * removed.
@@ -231,6 +232,7 @@ int uds_pack_open_chapter_index_page(struct open_chapter_index *chapter_index,
 			result = uds_remove_delta_index_entry(&entry);
 			if (result != UDS_SUCCESS)
 				return result;
+
 			removals++;
 		} while (!entry.at_end);
 	}
@@ -277,12 +279,13 @@ int uds_validate_chapter_index_page(const struct delta_index_page *index_page,
 
 		for (;;) {
 			result = uds_next_delta_index_entry(&entry);
-			if (result != UDS_SUCCESS)
+			if (result != UDS_SUCCESS) {
 				/*
 				 * A random bit stream is highly likely to arrive here when we go
 				 * past the end of the delta list.
 				 */
 				return result;
+			}
 
 			if (entry.at_end)
 				break;

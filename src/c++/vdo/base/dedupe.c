@@ -371,6 +371,7 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 {
 	if (data_vio->hash_lock == NULL)
 		return NULL;
+
 	return data_vio->hash_lock->duplicate_lock;
 }
 
@@ -447,7 +448,7 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 				"hash lock reference must be counted");
 
 		if ((old_lock->state != VDO_HASH_LOCK_BYPASSING) &&
-		    (old_lock->state != VDO_HASH_LOCK_UNLOCKING))
+		    (old_lock->state != VDO_HASH_LOCK_UNLOCKING)) {
 			/*
 			 * If the reference count goes to zero in a non-terminal state, we're most
 			 * likely leaking this lock.
@@ -455,6 +456,7 @@ static void set_hash_lock(struct data_vio *data_vio, struct hash_lock *new_lock)
 			ASSERT_LOG_ONLY(old_lock->reference_count > 1,
 					"hash locks should only become unreferenced in a terminal state, not state %s",
 					get_hash_lock_state_name(old_lock->state));
+		}
 
 		list_del_init(&data_vio->hash_lock_entry);
 		old_lock->reference_count -= 1;
@@ -828,7 +830,7 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 
 	/* The hash lock must have an agent for all other lock states. */
 	lock->agent = agent;
-	if (lock->update_advice)
+	if (lock->update_advice) {
 		/*
 		 * DEDUPING -> UPDATING transition: The location of the duplicate block changed
 		 * since the initial UDS query because of compression, rollover, or because the
@@ -837,13 +839,14 @@ static void finish_deduping(struct hash_lock *lock, struct data_vio *data_vio)
 		 * it's time to update the advice.
 		 */
 		start_updating(lock, agent);
-	else
+	} else {
 		/*
 		 * DEDUPING -> UNLOCKING transition: Release the PBN read lock on the duplicate
 		 * location so the hash lock itself can be released (contingent on no new data_vios
 		 * arriving in the lock before the agent returns).
 		 */
 		start_unlocking(lock, agent);
+	}
 }
 
 /**
@@ -925,7 +928,7 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 static void enter_forked_lock(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiter_as_data_vio(waiter);
-	struct hash_lock *new_lock = (struct hash_lock *) context;
+	struct hash_lock *new_lock = context;
 
 	set_hash_lock(data_vio, new_lock);
 	wait_on_hash_lock(new_lock, data_vio);
@@ -1037,13 +1040,14 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent, bool 
 	while (vdo_has_waiters(&lock->waiters))
 		launch_dedupe(lock, dequeue_lock_waiter(lock), false);
 
-	if (agent_is_done)
+	if (agent_is_done) {
 		/*
 		 * In the degenerate case where all the waiters rolled over to a new lock, this
 		 * will continue to use the old agent to clean up this lock, and otherwise it just
 		 * lets the agent exit the lock.
 		 */
 		finish_deduping(lock, agent);
+	}
 }
 
 /**
@@ -1127,9 +1131,10 @@ static bool blocks_equal(char *block1, char *block2)
 			"Data blocks are expected to be aligned");
 #endif  /* INTERNAL */
 
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64))
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {
 		if (*((u64 *) &block1[i]) != *((u64 *) &block2[i]))
 			return false;
+	}
 
 	return true;
 }
@@ -1925,9 +1930,10 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 
 	set_hash_lock(data_vio, NULL);
 
-	if (lock->reference_count > 0)
+	if (lock->reference_count > 0) {
 		/* The lock is still in use by other data_vios. */
 		return;
+	}
 
 	if (lock->registered) {
 		struct hash_lock *removed;
@@ -2330,13 +2336,14 @@ static void check_for_drain_complete(struct hash_zone *zone)
 		return;
 
 	if ((atomic_read(&zone->timer_state) == DEDUPE_QUERY_TIMER_IDLE) ||
-	    change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING, DEDUPE_QUERY_TIMER_IDLE))
+	    change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING, DEDUPE_QUERY_TIMER_IDLE)) {
 		del_timer_sync(&zone->timer);
-	else
+	} else {
 		/*
 		 * There is an in flight time-out, which must get processed before we can continue.
 		 */
 		return;
+	}
 
 	for (;;) {
 		struct dedupe_context *context;
@@ -2379,13 +2386,14 @@ static void timeout_index_operations_callback(struct vdo_completion *completion)
 
 		if (!change_context_state(context,
 					  DEDUPE_CONTEXT_PENDING,
-					  DEDUPE_CONTEXT_TIMED_OUT))
+					  DEDUPE_CONTEXT_TIMED_OUT)) {
 			/*
 			 * This context completed between the time the timeout fired, and now. We
 			 * can treat it as a a successful query, its requestor is already enqueued
 			 * to process it.
 			 */
 			continue;
+		}
 
 		/*
 		 * Remove this context from the pending list so we won't look at it again on a
@@ -2830,9 +2838,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
 {
 	const char *state;
 
-	if (!list_empty(&lock->pool_node))
+	if (!list_empty(&lock->pool_node)) {
 		/* This lock is on the free list. */
 		return;
+	}
 
 	/*
 	 * Necessarily cryptic since we can log a lot of these. First three chars of state is
@@ -2840,10 +2849,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	 */
 	state = get_hash_lock_state_name(lock->state);
 	uds_log_info("  hl %px: %3.3s %c%llu/%u rc=%u wc=%zu agt=%px",
-		     (const void *) lock, state, (lock->registered ? 'D' : 'U'),
+		     lock, state, (lock->registered ? 'D' : 'U'),
 		     (unsigned long long) lock->duplicate.pbn,
 		     lock->duplicate.state, lock->reference_count,
-		     vdo_count_waiters(&lock->waiters), (void *) lock->agent);
+		     vdo_count_waiters(&lock->waiters), lock->agent);
 }
 
 static const char *index_state_to_string(struct hash_zones *zones, enum index_state state)
@@ -3100,6 +3109,7 @@ int vdo_message_dedupe_index(struct hash_zones *zones, const char *name)
 		set_target_state(zones, IS_OPENED, true, true, false);
 		return 0;
 	}
+
 	return -EINVAL;
 }
 

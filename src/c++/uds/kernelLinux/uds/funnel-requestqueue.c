@@ -133,7 +133,7 @@ static void wait_for_request(struct uds_request_queue *queue,
 
 static void request_queue_worker(void *arg)
 {
-	struct uds_request_queue *queue = (struct uds_request_queue *) arg;
+	struct uds_request_queue *queue = arg;
 	struct uds_request *request = NULL;
 	unsigned long time_batch = DEFAULT_WAIT_TIME;
 	bool dormant = atomic_read(&queue->dormant);

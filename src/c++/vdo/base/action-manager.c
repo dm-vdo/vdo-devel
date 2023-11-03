@@ -190,15 +190,16 @@ static void apply_to_zone(struct vdo_completion *completion)
 			__func__);
 
 	zone = manager->acting_zone++;
-	if (manager->acting_zone == manager->zones)
+	if (manager->acting_zone == manager->zones) {
 		/*
 		 * We are about to apply to the last zone. Once that is finished, we're done, so go
 		 * back to the initiator thread and finish up.
 		 */
 		prepare_for_conclusion(manager);
-	else
+	} else {
 		/* Prepare to come back on the next zone */
 		prepare_for_next_zone(manager);
+	}
 
 	manager->current_action->zone_action(manager->context, zone, completion);
 }
