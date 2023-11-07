@@ -47,7 +47,8 @@ static bool allocations_allowed(void)
  * @new_thread: registered_thread structure to use for the current thread
  * @flag_ptr: Location of the allocation-allowed flag
  */
-void uds_register_allocating_thread(struct registered_thread *new_thread, const bool *flag_ptr)
+void uds_register_allocating_thread(struct registered_thread *new_thread,
+				    const bool *flag_ptr)
 {
 	if (flag_ptr == NULL) {
 		static const bool allocation_always_allowed = true;
@@ -284,7 +285,8 @@ static void remove_tracking_block(void *ptr)
 	}
 
 	mutex_unlock(&track_mutex);
-	ASSERT_LOG_ONLY(!track_always, "uds_free called on block that UDS did not uds_allocate");
+	ASSERT_LOG_ONLY(!track_always,
+			"uds_free called on block that UDS did not uds_allocate");
 }
 
 void log_uds_memory_allocations(void)
@@ -390,7 +392,8 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (atomic_long_inc_return(&uds_allocate_memory_counter) ==
 	    uds_allocation_error_injection) {
-		uds_log_warning("Injecting %s error on %zu bytes for %s", __func__, size, what);
+		uds_log_warning("Injecting %s error on %zu bytes for %s",
+				__func__, size, what);
 		uds_log_backtrace(UDS_LOG_WARNING);
 		return -ENOMEM;
 	}
@@ -530,7 +533,8 @@ void uds_free(void *ptr)
  *
  * Return: UDS_SUCCESS or an error code
  */
-int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *what, void *new_ptr)
+int uds_reallocate_memory(void *ptr, size_t old_size, size_t size, const char *what,
+			  void *new_ptr)
 {
 	int result;
 
@@ -587,12 +591,10 @@ void uds_memory_exit(void)
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
 	ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
 			"kmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
-			memory_stats.kmalloc_bytes,
-			memory_stats.kmalloc_blocks);
+			memory_stats.kmalloc_bytes, memory_stats.kmalloc_blocks);
 	ASSERT_LOG_ONLY(memory_stats.vmalloc_bytes == 0,
 			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
-			memory_stats.vmalloc_bytes,
-			memory_stats.vmalloc_blocks);
+			memory_stats.vmalloc_bytes, memory_stats.vmalloc_blocks);
 	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
@@ -636,6 +638,5 @@ void uds_report_memory_usage(void)
 		     (unsigned long long) vmalloc_bytes,
 		     (unsigned long long) vmalloc_blocks);
 	uds_log_info("  total %llu bytes, peak usage %llu bytes",
-		     (unsigned long long) total_bytes,
-		     (unsigned long long) peak_usage);
+		     (unsigned long long) total_bytes, (unsigned long long) peak_usage);
 }

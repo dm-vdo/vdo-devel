@@ -159,11 +159,8 @@ static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
  * @vaf1: The first message format descriptor
  * @vaf2: The second message format descriptor
  */
-static void emit_log_message(int priority,
-			     const char *module,
-			     const char *prefix,
-			     const struct va_format *vaf1,
-			     const struct va_format *vaf2)
+static void emit_log_message(int priority, const char *module, const char *prefix,
+			     const struct va_format *vaf1, const struct va_format *vaf2)
 {
 	int device_instance;
 
@@ -174,19 +171,17 @@ static void emit_log_message(int priority,
 	if (in_interrupt()) {
 		const char *type = get_current_interrupt_type();
 
-		emit_log_message_to_kernel(priority,
-					   "%s[%s]: %s%pV%pV\n",
-					   module, type, prefix, vaf1, vaf2);
+		emit_log_message_to_kernel(priority, "%s[%s]: %s%pV%pV\n", module, type,
+					   prefix, vaf1, vaf2);
 		return;
 	}
 
 	/* Not at interrupt level; we have a process we can look at, and might have a device ID. */
 	device_instance = uds_get_thread_device_id();
 	if (device_instance >= 0) {
-		emit_log_message_to_kernel(priority,
-					   "%s%u:%s: %s%pV%pV\n",
-					   module, device_instance,
-					   current->comm, prefix, vaf1, vaf2);
+		emit_log_message_to_kernel(priority, "%s%u:%s: %s%pV%pV\n", module,
+					   device_instance, current->comm, prefix, vaf1,
+					   vaf2);
 		return;
 	}
 
@@ -196,16 +191,14 @@ static void emit_log_message(int priority,
 	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
 	    (strncmp(module, current->comm, strlen(module)) == 0)) {
-		emit_log_message_to_kernel(priority,
-					   "%s: %s%pV%pV\n",
-					   current->comm, prefix, vaf1, vaf2);
+		emit_log_message_to_kernel(priority, "%s: %s%pV%pV\n", current->comm,
+					   prefix, vaf1, vaf2);
 		return;
 	}
 
 	/* Identify the module and the process. */
-	emit_log_message_to_kernel(priority,
-				   "%s: %s: %s%pV%pV\n",
-				   module, current->comm, prefix, vaf1, vaf2);
+	emit_log_message_to_kernel(priority, "%s: %s: %s%pV%pV\n", module, current->comm,
+				   prefix, vaf1, vaf2);
 }
 
 /*
@@ -217,13 +210,8 @@ static void emit_log_message(int priority,
  * @args1: arguments for message first part (required)
  * @fmt2: format of message second part
  */
-void uds_log_embedded_message(int priority,
-			      const char *module,
-			      const char *prefix,
-			      const char *fmt1,
-			      va_list args1,
-			      const char *fmt2,
-			      ...)
+void uds_log_embedded_message(int priority, const char *module, const char *prefix,
+			      const char *fmt1, va_list args1, const char *fmt2, ...)
 {
 	va_list args1_copy;
 	va_list args2;
@@ -255,23 +243,14 @@ void uds_log_embedded_message(int priority,
 	va_end(args2);
 }
 
-int uds_vlog_strerror(int priority,
-		      int errnum,
-		      const char *module,
-		      const char *format,
+int uds_vlog_strerror(int priority, int errnum, const char *module, const char *format,
 		      va_list args)
 {
 	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
 	const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
 
-	uds_log_embedded_message(priority,
-				 module,
-				 NULL,
-				 format,
-				 args,
-				 ": %s (%d)",
-				 message,
-				 errnum);
+	uds_log_embedded_message(priority, module, NULL, format, args, ": %s (%d)",
+				 message, errnum);
 	return errnum;
 }
 
