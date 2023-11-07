@@ -95,19 +95,19 @@ enum {
 	HEADER_PAGES_PER_VOLUME = 1,
 };
 
-int __must_check uds_make_geometry(size_t bytes_per_page,
-				   u32 record_pages_per_chapter,
+int __must_check uds_make_geometry(size_t bytes_per_page, u32 record_pages_per_chapter,
 				   u32 chapters_per_volume,
-				   u32 sparse_chapters_per_volume,
-				   u64 remapped_virtual,
+				   u32 sparse_chapters_per_volume, u64 remapped_virtual,
 				   u64 remapped_physical,
 				   struct geometry **geometry_ptr);
 
-int __must_check uds_copy_geometry(struct geometry *source, struct geometry **geometry_ptr);
+int __must_check uds_copy_geometry(struct geometry *source,
+				   struct geometry **geometry_ptr);
 
 void uds_free_geometry(struct geometry *geometry);
 
-u32 __must_check uds_map_to_physical_chapter(const struct geometry *geometry, u64 virtual_chapter);
+u32 __must_check uds_map_to_physical_chapter(const struct geometry *geometry,
+					     u64 virtual_chapter);
 
 /*
  * Check whether this geometry is reduced by a chapter. This will only be true if the volume was
@@ -132,6 +132,7 @@ bool __must_check uds_is_chapter_sparse(const struct geometry *geometry,
 					u64 newest_virtual_chapter,
 					u64 virtual_chapter_number);
 
-u32 __must_check uds_chapters_to_expire(const struct geometry *geometry, u64 newest_chapter);
+u32 __must_check uds_chapters_to_expire(const struct geometry *geometry,
+					u64 newest_chapter);
 
 #endif /* UDS_GEOMETRY_H */

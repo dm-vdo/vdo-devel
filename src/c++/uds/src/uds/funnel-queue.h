@@ -79,8 +79,8 @@ void uds_free_funnel_queue(struct funnel_queue *queue);
  * from the pointer that passed in here, so every entry in the queue must have the struct
  * funnel_queue_entry at the same offset within the client's structure.
  */
-static inline void
-uds_funnel_queue_put(struct funnel_queue *queue, struct funnel_queue_entry *entry)
+static inline void uds_funnel_queue_put(struct funnel_queue *queue,
+					struct funnel_queue_entry *entry)
 {
 	struct funnel_queue_entry *previous;
 

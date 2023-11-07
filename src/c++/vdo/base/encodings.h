@@ -712,8 +712,8 @@ struct vdo_component_states {
  *
  * Return: true if the two versions are the same.
  */
-static inline bool
-vdo_are_same_version(struct version_number version_a, struct version_number version_b)
+static inline bool vdo_are_same_version(struct version_number version_a,
+					struct version_number version_b)
 {
 	return ((version_a.major_version == version_b.major_version) &&
 		(version_a.minor_version == version_b.minor_version));
@@ -738,8 +738,7 @@ static inline bool vdo_is_upgradable_version(struct version_number expected_vers
 }
 
 int __must_check vdo_validate_header(const struct header *expected_header,
-				     const struct header *actual_header,
-				     bool exact_size,
+				     const struct header *actual_header, bool exact_size,
 				     const char *component_name);
 
 void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header);
@@ -841,11 +840,11 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 		vdo_get_index_region_start(geometry);
 }
 
-int __must_check vdo_parse_geometry_block(unsigned char *block, struct volume_geometry *geometry);
+int __must_check vdo_parse_geometry_block(unsigned char *block,
+					  struct volume_geometry *geometry);
 
 #if (defined(VDO_USER) || defined(INTERNAL))
-int __must_check encode_volume_geometry(u8 *buffer,
-					size_t *offset,
+int __must_check encode_volume_geometry(u8 *buffer, size_t *offset,
 					const struct volume_geometry *geometry,
 					u32 version);
 
@@ -895,26 +894,23 @@ vdo_get_block_map_page_pbn(const struct block_map_page *page)
 	return __le64_to_cpu(page->header.pbn);
 }
 
-struct block_map_page *vdo_format_block_map_page(void *buffer,
-						 nonce_t nonce,
+struct block_map_page *vdo_format_block_map_page(void *buffer, nonce_t nonce,
 						 physical_block_number_t pbn,
 						 bool initialized);
 
-enum block_map_page_validity __must_check
-vdo_validate_block_map_page(struct block_map_page *page,
-			    nonce_t nonce,
-			    physical_block_number_t pbn);
+enum block_map_page_validity __must_check vdo_validate_block_map_page(struct block_map_page *page,
+								      nonce_t nonce,
+								      physical_block_number_t pbn);
 
 static inline page_count_t vdo_compute_block_map_page_count(block_count_t entries)
 {
 	return DIV_ROUND_UP(entries, VDO_BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
-block_count_t __must_check
-vdo_compute_new_forest_pages(root_count_t root_count,
-			     struct boundary *old_sizes,
-			     block_count_t entries,
-			     struct boundary *new_sizes);
+block_count_t __must_check vdo_compute_new_forest_pages(root_count_t root_count,
+							struct boundary *old_sizes,
+							block_count_t entries,
+							struct boundary *new_sizes);
 
 /**
  * vdo_pack_recovery_journal_entry() - Return the packed, on-disk representation of a recovery
@@ -932,7 +928,8 @@ vdo_pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 		.slot_high = (entry->slot.slot >> 6) & 0x0F,
 		.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
 		.pbn_low_word = __cpu_to_le32(entry->slot.pbn & UINT_MAX),
-		.mapping = vdo_pack_block_map_entry(entry->mapping.pbn, entry->mapping.state),
+		.mapping = vdo_pack_block_map_entry(entry->mapping.pbn,
+						    entry->mapping.state),
 		.unmapping = vdo_pack_block_map_entry(entry->unmapping.pbn,
 						      entry->unmapping.state),
 	};
@@ -1083,10 +1080,9 @@ vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
  *
  * Return: The number of slabs.
  */
-static inline slab_count_t
-vdo_compute_slab_count(physical_block_number_t first_block,
-		       physical_block_number_t last_block,
-		       unsigned int slab_size_shift)
+static inline slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
+						  physical_block_number_t last_block,
+						  unsigned int slab_size_shift)
 {
 	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
 }
@@ -1108,8 +1104,7 @@ int __must_check vdo_configure_slab(block_count_t slab_size,
  *
  * Return: The number of blocks required to save reference counts with the given block count.
  */
-static inline block_count_t
-vdo_get_saved_reference_count_size(block_count_t block_count)
+static inline block_count_t vdo_get_saved_reference_count_size(block_count_t block_count)
 {
 	return DIV_ROUND_UP(block_count, COUNTS_PER_BLOCK);
 }
@@ -1132,8 +1127,8 @@ vdo_get_slab_journal_start_block(const struct slab_config *slab_config,
  * @point: The journal point to adjust.
  * @entries_per_block: The number of entries in one full block.
  */
-static inline void
-vdo_advance_journal_point(struct journal_point *point, journal_entry_count_t entries_per_block)
+static inline void vdo_advance_journal_point(struct journal_point *point,
+					     journal_entry_count_t entries_per_block)
 {
 	point->entry_count++;
 	if (point->entry_count == entries_per_block) {
@@ -1149,8 +1144,8 @@ vdo_advance_journal_point(struct journal_point *point, journal_entry_count_t ent
  *
  * Return: true if the first point precedes the second point.
  */
-static inline bool
-vdo_before_journal_point(const struct journal_point *first, const struct journal_point *second)
+static inline bool vdo_before_journal_point(const struct journal_point *first,
+					    const struct journal_point *second)
 {
 	return ((first->sequence_number < second->sequence_number) ||
 		((first->sequence_number == second->sequence_number) &&
@@ -1163,8 +1158,8 @@ vdo_before_journal_point(const struct journal_point *first, const struct journal
  * @unpacked: The unpacked input point.
  * @packed: The packed output point.
  */
-static inline void
-vdo_pack_journal_point(const struct journal_point *unpacked, struct packed_journal_point *packed)
+static inline void vdo_pack_journal_point(const struct journal_point *unpacked,
+					  struct packed_journal_point *packed)
 {
 	packed->encoded_point =
 		__cpu_to_le64((unpacked->sequence_number << 16) | unpacked->entry_count);
@@ -1176,8 +1171,8 @@ vdo_pack_journal_point(const struct journal_point *unpacked, struct packed_journ
  * @packed: The packed input point.
  * @unpacked: The unpacked output point.
  */
-static inline void
-vdo_unpack_journal_point(const struct packed_journal_point *packed, struct journal_point *unpacked)
+static inline void vdo_unpack_journal_point(const struct packed_journal_point *packed,
+					    struct journal_point *unpacked)
 {
 	u64 native = __le64_to_cpu(packed->encoded_point);
 
@@ -1233,8 +1228,7 @@ vdo_unpack_slab_journal_block_header(const struct packed_slab_journal_block_head
  * @is_increment: The increment flag.
  */
 static inline void vdo_pack_slab_journal_entry(packed_slab_journal_entry *packed,
-					       slab_block_number sbn,
-					       bool is_increment)
+					       slab_block_number sbn, bool is_increment)
 {
 	packed->offset_low8 = (sbn & 0x0000FF);
 	packed->offset_mid8 = (sbn & 0x00FF00) >> 8;
@@ -1281,10 +1275,8 @@ static inline u8 __must_check vdo_get_slab_summary_hint_shift(unsigned int slab_
 }
 
 #ifdef INTERNAL
-int __must_check make_partition(struct layout *layout,
-				enum partition_id id,
-				block_count_t size,
-				bool beginning);
+int __must_check make_partition(struct layout *layout, enum partition_id id,
+				block_count_t size, bool beginning);
 
 #endif /* INTERNAL */
 int __must_check vdo_initialize_layout(block_count_t size,
@@ -1296,35 +1288,31 @@ int __must_check vdo_initialize_layout(block_count_t size,
 
 void vdo_uninitialize_layout(struct layout *layout);
 
-int __must_check vdo_get_partition(struct layout *layout,
-				   enum partition_id id,
+int __must_check vdo_get_partition(struct layout *layout, enum partition_id id,
 				   struct partition **partition_ptr);
 
-struct partition * __must_check
-vdo_get_known_partition(struct layout *layout, enum partition_id id);
+struct partition * __must_check vdo_get_known_partition(struct layout *layout,
+							enum partition_id id);
 
 #ifdef INTERNAL
-int __must_check
-decode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 *state);
-void encode_block_map_state_2_0(u8 *buffer, size_t *offset, struct block_map_state_2_0 state);
+int __must_check decode_block_map_state_2_0(u8 *buffer, size_t *offset,
+					    struct block_map_state_2_0 *state);
+void encode_block_map_state_2_0(u8 *buffer, size_t *offset,
+				struct block_map_state_2_0 state);
 
-void encode_recovery_journal_state_7_0(u8 *buffer,
-				       size_t *offset,
+void encode_recovery_journal_state_7_0(u8 *buffer, size_t *offset,
 				       struct recovery_journal_state_7_0 state);
-int __must_check decode_recovery_journal_state_7_0(u8 *buffer,
-						   size_t *offset,
+int __must_check decode_recovery_journal_state_7_0(u8 *buffer, size_t *offset,
 						   struct recovery_journal_state_7_0 *state);
 
-void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 state);
-int __must_check
-decode_slab_depot_state_2_0(u8 *buffer, size_t *offset, struct slab_depot_state_2_0 *state);
+void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
+				 struct slab_depot_state_2_0 state);
+int __must_check decode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
+					     struct slab_depot_state_2_0 *state);
 
 void encode_layout(u8 *buffer, size_t *offset, const struct layout *layout);
-int decode_layout(u8 *buffer,
-		  size_t *offset,
-		  physical_block_number_t start,
-		  block_count_t size,
-		  struct layout *layout);
+int decode_layout(u8 *buffer, size_t *offset, physical_block_number_t start,
+		  block_count_t size, struct layout *layout);
 
 #endif /* INTERNAL */
 int vdo_validate_config(const struct vdo_config *config,
@@ -1333,16 +1321,14 @@ int vdo_validate_config(const struct vdo_config *config,
 
 void vdo_destroy_component_states(struct vdo_component_states *states);
 
-int __must_check
-vdo_decode_component_states(u8 *buffer,
-			    struct volume_geometry *geometry,
-			    struct vdo_component_states *states);
+int __must_check vdo_decode_component_states(u8 *buffer,
+					     struct volume_geometry *geometry,
+					     struct vdo_component_states *states);
 
-int __must_check
-vdo_validate_component_states(struct vdo_component_states *states,
-			      nonce_t geometry_nonce,
-			      block_count_t physical_size,
-			      block_count_t logical_size);
+int __must_check vdo_validate_component_states(struct vdo_component_states *states,
+					       nonce_t geometry_nonce,
+					       block_count_t physical_size,
+					       block_count_t logical_size);
 
 void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states);
 int __must_check vdo_decode_super_block(u8 *buffer);
