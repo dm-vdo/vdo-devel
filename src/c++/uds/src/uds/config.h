@@ -108,17 +108,16 @@ struct uds_configuration_6_02 {
 	u64 nonce;
 } __packed;
 
-int __must_check
-uds_make_configuration(const struct uds_parameters *params, struct configuration **config_ptr);
+int __must_check uds_make_configuration(const struct uds_parameters *params,
+					struct configuration **config_ptr);
 
 void uds_free_configuration(struct configuration *config);
 
-int __must_check
-uds_validate_config_contents(struct buffered_reader *reader, struct configuration *config);
+int __must_check uds_validate_config_contents(struct buffered_reader *reader,
+					      struct configuration *config);
 
 int __must_check uds_write_config_contents(struct buffered_writer *writer,
-					   struct configuration *config,
-					   u32 version);
+					   struct configuration *config, u32 version);
 
 void uds_log_configuration(struct configuration *config);
 

@@ -39,8 +39,7 @@
  * @zone_number: The number of zone to which the action is being applied
  * @parent: The object to notify when the action is complete
  */
-typedef void vdo_zone_action(void *context,
-			     zone_count_t zone_number,
+typedef void vdo_zone_action(void *context, zone_count_t zone_number,
 			     struct vdo_completion *parent);
 
 /*
@@ -77,14 +76,12 @@ typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_numb
 
 struct action_manager;
 
-int __must_check
-vdo_make_action_manager(zone_count_t zones,
-			vdo_zone_thread_getter *get_zone_thread_id,
-			thread_id_t initiator_thread_id,
-			void *context,
-			vdo_action_scheduler *scheduler,
-			struct vdo *vdo,
-			struct action_manager **manager_ptr);
+int __must_check vdo_make_action_manager(zone_count_t zones,
+					 vdo_zone_thread_getter *get_zone_thread_id,
+					 thread_id_t initiator_thread_id, void *context,
+					 vdo_action_scheduler *scheduler,
+					 struct vdo *vdo,
+					 struct action_manager **manager_ptr);
 
 const struct admin_state_code *__must_check
 vdo_get_current_manager_operation(struct action_manager *manager);
@@ -93,16 +90,13 @@ void * __must_check vdo_get_current_action_context(struct action_manager *manage
 
 bool vdo_schedule_default_action(struct action_manager *manager);
 
-bool vdo_schedule_action(struct action_manager *manager,
-			 vdo_action_preamble *preamble,
-			 vdo_zone_action *action,
-			 vdo_action_conclusion *conclusion,
+bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble *preamble,
+			 vdo_zone_action *action, vdo_action_conclusion *conclusion,
 			 struct vdo_completion *parent);
 
 bool vdo_schedule_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
-			    vdo_action_preamble *preamble,
-			    vdo_zone_action *action,
+			    vdo_action_preamble *preamble, vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
 			    struct vdo_completion *parent);
 
@@ -111,7 +105,6 @@ bool vdo_schedule_operation_with_context(struct action_manager *manager,
 					 vdo_action_preamble *preamble,
 					 vdo_zone_action *action,
 					 vdo_action_conclusion *conclusion,
-					 void *context,
-					 struct vdo_completion *parent);
+					 void *context, struct vdo_completion *parent);
 
 #endif /* VDO_ACTION_MANAGER_H */
