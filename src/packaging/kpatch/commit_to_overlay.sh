@@ -7,7 +7,7 @@
 #
 # Usage:
 # ./commit_to_overlay.sh <kernel_tree_repo_URL> <kernel_tree_branch_name>
-#                        <overlay_branch_name> [ -c | -b ] args...
+#                        <overlay_branch_name> [ -c | -b | -m ] args...
 #
 # Input Type Options:
 #  -c  Process a commit or series of commits into a kernel overlay branch
@@ -60,6 +60,7 @@ KERNEL_REPO_URL=    # URL for the kernel tree repository where the overlay branc
 KERNEL_BRANCH=      # Kernel tree branch to base the overlay on
 PROCESS_INPUT_FX=   # Function to call to process the input(s)
 SOURCE_BRANCH=      # Branch on the source repo where the relevant commits were made
+MERGE_COMMIT=       # Merge commit to find commits to apply
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
@@ -95,6 +96,11 @@ process_args() {
                 "$(get_repo_name ${SOURCE_REPO_URL})${NO_COLOR}"
         print_usage
       fi
+      ;;
+    "-m"|"--m"|"m")
+      PROCESS_INPUT_FX=process_merge
+      CONFIG_MSG=("merge" "Merge commit to be used in overlay:")
+      MERGE_COMMIT=${ADDITIONAL_ARGS[0]}
       ;;
     *)
       echo -e "${COLOR_RED}ERROR: Invalid input type specified${NO_COLOR}"
@@ -133,11 +139,12 @@ print_usage() {
   echo
   echo "  Usage: "
   echo "  ./${TOOL} <kernel_tree_repo_URL> <kernel_tree_branch_name>"
-  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b ] args...'
+  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b | -m ] args...'
   echo
   echo "  Input Type Options:"
   echo "     -c  Process a commit or series of commits into a kernel overlay branch"
   echo "     -b  Process all changes on a local branch into a kernel overlay branch"
+  echo "     -m  Process all changes merged in the named merge commit"
   echo
   echo "  Accepted Arguments:"
   echo "     Commit SHA(s) ordered from oldest to newest"
@@ -230,6 +237,36 @@ process_commits() {
       echo "Duplicate commit SHA found and removed ($commit)"
     fi
   done
+
+  prompt_user_verify
+}
+
+# Process the input commit SHA(s), verifying they are valid
+process_merge() {
+  echo -en "\nValidating input commit SHA ($MERGE_COMMIT)...\n"
+  git show ${MERGE_COMMIT} &>/dev/null
+
+  if [ $? != 0 ]; then
+    echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
+    echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
+    exit
+  fi
+
+  git show ${MERGE_COMMIT}^2 &>/dev/null
+
+  if [ $? != 0 ]; then
+    echo -e "${COLOR_RED}ERROR: Commit SHA ($MERGE_COMMIT) is not a merge"
+    echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
+    exit
+  fi
+
+  # List all commits merged in this commit
+  COMMIT_SHAS=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
+
+  if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
+    echo "No commits identified"
+    exit
+  fi
 
   prompt_user_verify
 }
