@@ -312,19 +312,18 @@ typedef bool vdo_filter_t(struct vdo *vdo, const void *context);
 void vdo_initialize_device_registry_once(void);
 struct vdo * __must_check vdo_find_matching(vdo_filter_t *filter, const void *context);
 
-int __must_check vdo_make_thread(struct vdo *vdo,
-				 thread_id_t thread_id,
+int __must_check vdo_make_thread(struct vdo *vdo, thread_id_t thread_id,
 				 const struct vdo_work_queue_type *type,
-				 unsigned int queue_count,
-				 void *contexts[]);
+				 unsigned int queue_count, void *contexts[]);
 
-static inline int __must_check vdo_make_default_thread(struct vdo *vdo, thread_id_t thread_id)
+static inline int __must_check vdo_make_default_thread(struct vdo *vdo,
+						       thread_id_t thread_id)
 {
 	return vdo_make_thread(vdo, thread_id, NULL, 1, NULL);
 }
 
-int __must_check
-vdo_make(unsigned int instance, struct device_config *config, char **reason, struct vdo **vdo_ptr);
+int __must_check vdo_make(unsigned int instance, struct device_config *config,
+			  char **reason, struct vdo **vdo_ptr);
 
 void vdo_destroy(struct vdo *vdo);
 
@@ -354,8 +353,7 @@ void vdo_set_state(struct vdo *vdo, enum vdo_state state);
 
 void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent);
 
-int vdo_register_read_only_listener(struct vdo *vdo,
-				    void *listener,
+int vdo_register_read_only_listener(struct vdo *vdo, void *listener,
 				    vdo_read_only_notification *notification,
 				    thread_id_t thread_id);
 
@@ -377,26 +375,21 @@ void vdo_enter_recovery_mode(struct vdo *vdo);
 
 void vdo_assert_on_admin_thread(const struct vdo *vdo, const char *name);
 
-void vdo_assert_on_logical_zone_thread(const struct vdo *vdo,
-				       zone_count_t logical_zone,
+void vdo_assert_on_logical_zone_thread(const struct vdo *vdo, zone_count_t logical_zone,
 				       const char *name);
 
-void vdo_assert_on_physical_zone_thread(const struct vdo *vdo,
-					zone_count_t physical_zone,
+void vdo_assert_on_physical_zone_thread(const struct vdo *vdo, zone_count_t physical_zone,
 					const char *name);
 
-int __must_check vdo_get_physical_zone(const struct vdo *vdo,
-				       physical_block_number_t pbn,
+int __must_check vdo_get_physical_zone(const struct vdo *vdo, physical_block_number_t pbn,
 				       struct physical_zone **zone_ptr);
 
 void vdo_dump_status(const struct vdo *vdo);
 
 #ifdef INTERNAL
 void uninitialize_thread_config(struct thread_config *config);
-void get_thread_name(const struct thread_config *thread_config,
-		     thread_id_t thread_id,
-		     char *buffer,
-		     size_t buffer_length);
+void get_thread_name(const struct thread_config *thread_config, thread_id_t thread_id,
+		     char *buffer, size_t buffer_length);
 int __must_check initialize_thread_config(struct thread_count_config counts,
 					  struct thread_config *config);
 block_count_t __must_check vdo_get_physical_blocks_allocated(const struct vdo *vdo);

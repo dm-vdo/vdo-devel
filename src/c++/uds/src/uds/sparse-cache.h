@@ -27,14 +27,12 @@ struct index_zone;
 struct sparse_cache;
 
 int __must_check uds_make_sparse_cache(const struct geometry *geometry,
-				       unsigned int capacity,
-				       unsigned int zone_count,
+				       unsigned int capacity, unsigned int zone_count,
 				       struct sparse_cache **cache_ptr);
 
 void uds_free_sparse_cache(struct sparse_cache *cache);
 
-bool uds_sparse_cache_contains(struct sparse_cache *cache,
-			       u64 virtual_chapter,
+bool uds_sparse_cache_contains(struct sparse_cache *cache, u64 virtual_chapter,
 			       unsigned int zone_number);
 
 int __must_check uds_update_sparse_cache(struct index_zone *zone, u64 virtual_chapter);
@@ -43,7 +41,6 @@ void uds_invalidate_sparse_cache(struct sparse_cache *cache);
 
 int __must_check uds_search_sparse_cache(struct index_zone *zone,
 					 const struct uds_record_name *name,
-					 u64 *virtual_chapter_ptr,
-					 u16 *record_page_ptr);
+					 u64 *virtual_chapter_ptr, u16 *record_page_ptr);
 
 #endif /* UDS_SPARSE_CACHE_H */

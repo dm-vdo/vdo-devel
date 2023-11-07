@@ -77,10 +77,8 @@ static int thread_starter(void *arg)
 	return 0;
 }
 
-int uds_create_thread(void (*thread_function)(void *),
-		      void *thread_data,
-		      const char *name,
-		      struct thread **new_thread)
+int uds_create_thread(void (*thread_function)(void *), void *thread_data,
+		      const char *name, struct thread **new_thread)
 {
 	char *name_colon = strchr(name, ':');
 	char *my_name_colon = strchr(current->comm, ':');
@@ -112,11 +110,8 @@ int uds_create_thread(void (*thread_function)(void *),
 	 * Otherwise just use the name supplied. This should be a rare occurrence.
 	 */
 	if ((name_colon == NULL) && (my_name_colon != NULL)) {
-		task = kthread_run(thread_starter,
-				   thread,
-				   "%.*s:%s",
-				   (int) (my_name_colon - current->comm),
-				   current->comm,
+		task = kthread_run(thread_starter, thread, "%.*s:%s",
+				   (int) (my_name_colon - current->comm), current->comm,
 				   name);
 	} else {
 		task = kthread_run(thread_starter, thread, "%s", name);
@@ -145,7 +140,8 @@ int uds_join_threads(struct thread *thread)
 }
 
 #ifdef TEST_INTERNAL
-void uds_apply_to_threads(void apply_function(void *, struct task_struct *), void *argument)
+void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
+			  void *argument)
 {
 	struct thread *thread;
 

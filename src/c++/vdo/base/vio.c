@@ -57,7 +57,8 @@ static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 	struct bio *bio = NULL;
 	int result;
 
-	result = uds_allocate_extended(struct bio, size + 1, struct bio_vec, "bio", &bio);
+	result = uds_allocate_extended(struct bio, size + 1, struct bio_vec,
+				       "bio", &bio);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -79,27 +80,21 @@ void vdo_free_bio(struct bio *bio)
 	uds_free(uds_forget(bio));
 }
 
-int allocate_vio_components(struct vdo *vdo,
-			    enum vio_type vio_type,
-			    enum vio_priority priority,
-			    void *parent,
-			    unsigned int block_count,
-			    char *data,
-			    struct vio *vio)
+int allocate_vio_components(struct vdo *vdo, enum vio_type vio_type,
+			    enum vio_priority priority, void *parent,
+			    unsigned int block_count, char *data, struct vio *vio)
 {
 	struct bio *bio;
 	int result;
 
 	result = ASSERT(block_count <= MAX_BLOCKS_PER_VIO,
-			"block count %u does not exceed maximum %u",
-			block_count,
+			"block count %u does not exceed maximum %u", block_count,
 			MAX_BLOCKS_PER_VIO);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	result = ASSERT(((vio_type != VIO_TYPE_UNINITIALIZED) && (vio_type != VIO_TYPE_DATA)),
-			"%d is a metadata type",
-			vio_type);
+			"%d is a metadata type", vio_type);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -125,12 +120,9 @@ int allocate_vio_components(struct vdo *vdo,
  *
  * Return: VDO_SUCCESS or an error.
  */
-int create_multi_block_metadata_vio(struct vdo *vdo,
-				    enum vio_type vio_type,
-				    enum vio_priority priority,
-				    void *parent,
-				    unsigned int block_count,
-				    char *data,
+int create_multi_block_metadata_vio(struct vdo *vdo, enum vio_type vio_type,
+				    enum vio_priority priority, void *parent,
+				    unsigned int block_count, char *data,
 				    struct vio **vio_ptr)
 {
 	struct vio *vio;
@@ -149,7 +141,8 @@ int create_multi_block_metadata_vio(struct vdo *vdo,
 		return result;
 	}
 
-	result = allocate_vio_components(vdo, vio_type, priority, parent, block_count, data, vio);
+	result = allocate_vio_components(vdo, vio_type, priority, parent, block_count,
+					 data, vio);
 	if (result != VDO_SUCCESS) {
 		uds_free(vio);
 		return result;
@@ -183,11 +176,8 @@ void free_vio(struct vio *vio)
 }
 
 /* Set bio properties for a VDO read or write. */
-void vdo_set_bio_properties(struct bio *bio,
-			    struct vio *vio,
-			    bio_end_io_t callback,
-			    unsigned int bi_opf,
-			    physical_block_number_t pbn)
+void vdo_set_bio_properties(struct bio *bio, struct vio *vio, bio_end_io_t callback,
+			    unsigned int bi_opf, physical_block_number_t pbn)
 {
 	struct vdo *vdo = vio->completion.vdo;
 	struct device_config *config = vdo->device_config;
@@ -207,11 +197,8 @@ void vdo_set_bio_properties(struct bio *bio,
  * bio, as it assumes the bio wraps a 4k buffer that is 4k aligned, but there does not have to be a
  * vio associated with the bio.
  */
-int vio_reset_bio(struct vio *vio,
-		  char *data,
-		  bio_end_io_t callback,
-		  unsigned int bi_opf,
-		  physical_block_number_t pbn)
+int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
+		  unsigned int bi_opf, physical_block_number_t pbn)
 {
 	int bvec_count, offset, len, i;
 	struct bio *bio = vio->bio;
@@ -262,7 +249,7 @@ int vio_reset_bio(struct vio *vio,
 		if (bytes_added != bytes) {
 			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
 						      "Could only add %i bytes to bio",
-						       bytes_added);
+						      bytes_added);
 		}
 
 		data += bytes;
@@ -281,8 +268,7 @@ int vio_reset_bio(struct vio *vio,
 void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
 #ifdef __KERNEL__
-	static DEFINE_RATELIMIT_STATE(error_limiter,
-				      DEFAULT_RATELIMIT_INTERVAL,
+	static DEFINE_RATELIMIT_STATE(error_limiter, DEFAULT_RATELIMIT_INTERVAL,
 				      DEFAULT_RATELIMIT_BURST);
 #endif
 	va_list args;
@@ -309,7 +295,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, vio->completion.result, UDS_LOGGING_MODULE_NAME, format, args);
+	uds_vlog_strerror(priority, vio->completion.result, UDS_LOGGING_MODULE_NAME,
+			  format, args);
 	va_end(args);
 }
 
@@ -332,9 +319,7 @@ void vio_record_metadata_io_error(struct vio *vio)
 
 	update_vio_error_stats(vio,
 			       "Completing %s vio of type %u for physical block %llu with error",
-			       description,
-			       vio->type,
-			       (unsigned long long) pbn);
+			       description, vio->type, (unsigned long long) pbn);
 }
 
 /**
@@ -349,23 +334,16 @@ void vio_record_metadata_io_error(struct vio *vio)
  *
  * Return: A success or error code.
  */
-int make_vio_pool(struct vdo *vdo,
-		  size_t pool_size,
-		  thread_id_t thread_id,
-		  enum vio_type vio_type,
-		  enum vio_priority priority,
-		  void *context,
+int make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
+		  enum vio_type vio_type, enum vio_priority priority, void *context,
 		  struct vio_pool **pool_ptr)
 {
 	struct vio_pool *pool;
 	char *ptr;
 	int result;
 
-	result = uds_allocate_extended(struct vio_pool,
-				       pool_size,
-				       struct pooled_vio,
-				       __func__,
-				       &pool);
+	result = uds_allocate_extended(struct vio_pool, pool_size, struct pooled_vio,
+				       __func__, &pool);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -373,7 +351,8 @@ int make_vio_pool(struct vdo *vdo,
 	INIT_LIST_HEAD(&pool->available);
 	INIT_LIST_HEAD(&pool->busy);
 
-	result = uds_allocate(pool_size * VDO_BLOCK_SIZE, char, "VIO pool buffer", &pool->buffer);
+	result = uds_allocate(pool_size * VDO_BLOCK_SIZE, char,
+			      "VIO pool buffer", &pool->buffer);
 	if (result != VDO_SUCCESS) {
 		free_vio_pool(pool);
 		return result;
@@ -383,12 +362,7 @@ int make_vio_pool(struct vdo *vdo,
 	for (pool->size = 0; pool->size < pool_size; pool->size++, ptr += VDO_BLOCK_SIZE) {
 		struct pooled_vio *pooled = &pool->vios[pool->size];
 
-		result = allocate_vio_components(vdo,
-						 vio_type,
-						 priority,
-						 NULL,
-						 1,
-						 ptr,
+		result = allocate_vio_components(vdo, vio_type, priority, NULL, 1, ptr,
 						 &pooled->vio);
 		if (result != VDO_SUCCESS) {
 			free_vio_pool(pool);

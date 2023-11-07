@@ -22,8 +22,7 @@ void uds_initialize_thread_registry(struct thread_registry *registry)
 
 /* Register the current thread and associate it with a data pointer. */
 void uds_register_thread(struct thread_registry *registry,
-			 struct registered_thread *new_thread,
-			 const void *pointer)
+			 struct registered_thread *new_thread, const void *pointer)
 {
 	struct registered_thread *thread;
 	bool found_it = false;
