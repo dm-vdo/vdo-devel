@@ -120,14 +120,14 @@ struct volume_index_data {
 u64 min_volume_index_delta_lists;
 
 #endif /* TEST_INTERNAL */
-static inline u32
-extract_address(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+static inline u32 extract_address(const struct volume_sub_index *sub_index,
+				  const struct uds_record_name *name)
 {
 	return uds_extract_volume_index_bytes(name) & sub_index->address_mask;
 }
 
-static inline u32
-extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+static inline u32 extract_dlist_num(const struct volume_sub_index *sub_index,
+				    const struct uds_record_name *name)
 {
 	u64 bits = uds_extract_volume_index_bytes(name);
 
@@ -135,7 +135,8 @@ extract_dlist_num(const struct volume_sub_index *sub_index, const struct uds_rec
 }
 #ifdef TEST_INTERNAL
 
-u32 get_dlist_number(const struct volume_sub_index *sub_index, const struct uds_record_name *name)
+u32 get_dlist_number(const struct volume_sub_index *sub_index,
+		     const struct uds_record_name *name)
 {
 	return extract_dlist_num(sub_index, name);
 }
@@ -147,8 +148,8 @@ get_zone_for_record(const struct volume_index_record *record)
 	return &record->sub_index->zones[record->zone_number];
 }
 
-static inline u64
-convert_index_to_virtual(const struct volume_index_record *record, u32 index_chapter)
+static inline u64 convert_index_to_virtual(const struct volume_index_record *record,
+					   u32 index_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 	u32 rolling_chapter = ((index_chapter - volume_index_zone->virtual_chapter_low) &
@@ -157,14 +158,14 @@ convert_index_to_virtual(const struct volume_index_record *record, u32 index_cha
 	return volume_index_zone->virtual_chapter_low + rolling_chapter;
 }
 
-static inline u32
-convert_virtual_to_index(const struct volume_sub_index *sub_index, u64 virtual_chapter)
+static inline u32 convert_virtual_to_index(const struct volume_sub_index *sub_index,
+					   u64 virtual_chapter)
 {
 	return virtual_chapter & sub_index->chapter_mask;
 }
 
-static inline bool
-is_virtual_chapter_indexed(const struct volume_index_record *record, u64 virtual_chapter)
+static inline bool is_virtual_chapter_indexed(const struct volume_index_record *record,
+					      u64 virtual_chapter)
 {
 	const struct volume_sub_index_zone *volume_index_zone = get_zone_for_record(record);
 
@@ -187,7 +188,8 @@ bool uds_is_volume_index_sample(const struct volume_index *volume_index,
 }
 
 static inline const struct volume_sub_index *
-get_volume_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+get_volume_sub_index(const struct volume_index *volume_index,
+		     const struct uds_record_name *name)
 {
 	return (uds_is_volume_index_sample(volume_index, name) ?
 		&volume_index->vi_hook :
@@ -195,8 +197,8 @@ get_volume_sub_index(const struct volume_index *volume_index, const struct uds_r
 }
 #ifdef TEST_INTERNAL
 
-const struct volume_sub_index *
-get_sub_index(const struct volume_index *volume_index, const struct uds_record_name *name)
+const struct volume_sub_index *get_sub_index(const struct volume_index *volume_index,
+					     const struct uds_record_name *name)
 {
 	return get_volume_sub_index(volume_index, name);
 }
@@ -326,8 +328,8 @@ void uds_free_volume_index(struct volume_index *volume_index)
 }
 
 
-static int
-compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *bytes)
+static int compute_volume_sub_index_save_bytes(const struct configuration *config,
+					       size_t *bytes)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
 	int result;
@@ -337,12 +339,14 @@ compute_volume_sub_index_save_bytes(const struct configuration *config, size_t *
 		return result;
 
 	*bytes = (sizeof(struct sub_index_data) + params.list_count * sizeof(u64) +
-		  uds_compute_delta_index_save_bytes(params.list_count, params.memory_size));
+		  uds_compute_delta_index_save_bytes(params.list_count,
+						     params.memory_size));
 	return UDS_SUCCESS;
 }
 
 /* This function is only useful if the configuration includes sparse chapters. */
-static void split_configuration(const struct configuration *config, struct split_config *split)
+static void split_configuration(const struct configuration *config,
+				struct split_config *split)
 {
 	u64 sample_rate, sample_records;
 	u64 dense_chapters, sparse_chapters;
@@ -370,7 +374,8 @@ static void split_configuration(const struct configuration *config, struct split
 	split->non_hook_geometry.chapters_per_volume = dense_chapters;
 }
 
-static int compute_volume_index_save_bytes(const struct configuration *config, size_t *bytes)
+static int compute_volume_index_save_bytes(const struct configuration *config,
+					   size_t *bytes)
 {
 	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
@@ -384,7 +389,8 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = compute_volume_sub_index_save_bytes(&split.non_hook_config, &non_hook_bytes);
+	result = compute_volume_sub_index_save_bytes(&split.non_hook_config,
+						     &non_hook_bytes);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -393,8 +399,7 @@ static int compute_volume_index_save_bytes(const struct configuration *config, s
 }
 
 int uds_compute_volume_index_save_blocks(const struct configuration *config,
-					 size_t block_size,
-					 u64 *block_count)
+					 size_t block_size, u64 *block_count)
 {
 	size_t bytes;
 	int result;
@@ -409,8 +414,7 @@ int uds_compute_volume_index_save_blocks(const struct configuration *config,
 }
 
 #ifdef TEST_INTERNAL
-static size_t
-get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
+static size_t get_volume_sub_index_memory_used(const struct volume_sub_index *sub_index)
 {
 	u64 bit_count = 0;
 	unsigned int z;
@@ -469,25 +473,22 @@ static inline int flush_invalid_entries(struct volume_index_record *record,
 }
 
 /* Find the matching record, or the list offset where the record would go. */
-static int get_volume_index_entry(struct volume_index_record *record,
-				  u32 list_number,
-				  u32 key,
-				  struct chapter_range *flush_range)
+static int get_volume_index_entry(struct volume_index_record *record, u32 list_number,
+				  u32 key, struct chapter_range *flush_range)
 {
 	struct volume_index_record other_record;
 	const struct volume_sub_index *sub_index = record->sub_index;
 	u32 next_chapter_to_invalidate = sub_index->chapter_mask;
 	int result;
 
-	result = uds_start_delta_index_search(&sub_index->delta_index,
-					      list_number,
-					      0,
+	result = uds_start_delta_index_search(&sub_index->delta_index, list_number, 0,
 					      &record->delta_entry);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	do {
-		result = flush_invalid_entries(record, flush_range, &next_chapter_to_invalidate);
+		result = flush_invalid_entries(record, flush_range,
+					       &next_chapter_to_invalidate);
 		if (result != UDS_SUCCESS)
 			return result;
 	} while (!record->delta_entry.at_end && (key > record->delta_entry.key));
@@ -502,8 +503,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 		for (;;) {
 			u8 collision_name[UDS_RECORD_NAME_SIZE];
 
-			result = flush_invalid_entries(&other_record,
-						       flush_range,
+			result = flush_invalid_entries(&other_record, flush_range,
 						       &next_chapter_to_invalidate);
 			if (result != UDS_SUCCESS)
 				return result;
@@ -524,8 +524,7 @@ static int get_volume_index_entry(struct volume_index_record *record,
 		}
 	}
 	while (!other_record.delta_entry.at_end) {
-		result = flush_invalid_entries(&other_record,
-					       flush_range,
+		result = flush_invalid_entries(&other_record, flush_range,
 					       &next_chapter_to_invalidate);
 		if (result != UDS_SUCCESS)
 			return result;
@@ -561,17 +560,16 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 		range.chapter_count = (flush_count > sub_index->chapter_mask ?
 				       sub_index->chapter_mask + 1 :
 				       flush_count);
-		result = get_volume_index_entry(record, delta_list_number, address, &range);
+		result = get_volume_index_entry(record, delta_list_number, address,
+						&range);
 		flush_chapter = convert_index_to_virtual(record, range.chapter_start);
 		if (flush_chapter > volume_index_zone->virtual_chapter_high)
 			flush_chapter = volume_index_zone->virtual_chapter_high;
 		sub_index->flush_chapters[delta_list_number] = flush_chapter;
 	} else {
 		result = uds_get_delta_index_entry(&sub_index->delta_index,
-						   delta_list_number,
-						   address,
-						   name->name,
-						   &record->delta_entry);
+						   delta_list_number, address,
+						   name->name, &record->delta_entry);
 	}
 
 	if (result != UDS_SUCCESS)
@@ -606,12 +604,14 @@ int uds_get_volume_index_record(struct volume_index *volume_index,
 		struct mutex *mutex = &volume_index->zones[zone].hook_mutex;
 
 		uds_lock_mutex(mutex);
-		result = get_volume_sub_index_record(&volume_index->vi_hook, name, record);
+		result = get_volume_sub_index_record(&volume_index->vi_hook, name,
+						     record);
 		uds_unlock_mutex(mutex);
 		/* Remember the mutex so that other operations on the index record can use it. */
 		record->mutex = mutex;
 	} else {
-		result = get_volume_sub_index_record(&volume_index->vi_non_hook, name, record);
+		result = get_volume_sub_index_record(&volume_index->vi_non_hook, name,
+						     record);
 	}
 
 	return result;
@@ -636,9 +636,9 @@ int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_
 	address = extract_address(sub_index, record->name);
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
-	result = uds_put_delta_index_entry(&record->delta_entry,
-					   address,
-					   convert_virtual_to_index(sub_index, virtual_chapter),
+	result = uds_put_delta_index_entry(&record->delta_entry, address,
+					   convert_virtual_to_index(sub_index,
+								    virtual_chapter),
 					   record->is_found ? record->name->name : NULL);
 	if (unlikely(record->mutex != NULL))
 		uds_unlock_mutex(record->mutex);
@@ -649,8 +649,7 @@ int uds_put_volume_index_record(struct volume_index_record *record, u64 virtual_
 		record->is_found = true;
 		break;
 	case UDS_OVERFLOW:
-		uds_log_ratelimit(uds_log_warning_strerror,
-				  UDS_OVERFLOW,
+		uds_log_ratelimit(uds_log_warning_strerror, UDS_OVERFLOW,
 				  "Volume index entry dropped due to overflow condition");
 		uds_log_delta_index_entry(&record->delta_entry);
 		break;
@@ -666,7 +665,8 @@ int uds_remove_volume_index_record(struct volume_index_record *record)
 	int result;
 
 	if (!record->is_found)
-		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"illegal operation on new record");
 
 	/* Mark the record so that it cannot be used again */
 	record->is_found = false;
@@ -737,8 +737,7 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 {
 	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
 
-	set_volume_sub_index_zone_open_chapter(&volume_index->vi_non_hook,
-					       zone_number,
+	set_volume_sub_index_zone_open_chapter(&volume_index->vi_non_hook, zone_number,
 					       virtual_chapter);
 
 	/*
@@ -748,8 +747,7 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 	if (has_sparse(volume_index)) {
 		uds_lock_mutex(mutex);
 		set_volume_sub_index_zone_open_chapter(&volume_index->vi_hook,
-						       zone_number,
-						       virtual_chapter);
+						       zone_number, virtual_chapter);
 		uds_unlock_mutex(mutex);
 	}
 }
@@ -758,7 +756,8 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
  * Set the newest open chapter number for the index, while also advancing the oldest valid chapter
  * number.
  */
-void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 virtual_chapter)
+void uds_set_volume_index_open_chapter(struct volume_index *volume_index,
+				       u64 virtual_chapter)
 {
 	unsigned int zone;
 
@@ -766,13 +765,15 @@ void uds_set_volume_index_open_chapter(struct volume_index *volume_index, u64 vi
 		uds_set_volume_index_zone_open_chapter(volume_index, zone, virtual_chapter);
 }
 
-int uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 virtual_chapter)
+int uds_set_volume_index_record_chapter(struct volume_index_record *record,
+					u64 virtual_chapter)
 {
 	const struct volume_sub_index *sub_index = record->sub_index;
 	int result;
 
 	if (!record->is_found)
-		return uds_log_warning_strerror(UDS_BAD_STATE, "illegal operation on new record");
+		return uds_log_warning_strerror(UDS_BAD_STATE,
+						"illegal operation on new record");
 
 	if (!is_virtual_chapter_indexed(record, virtual_chapter)) {
 		u64 low = get_zone_for_record(record)->virtual_chapter_low;
@@ -788,7 +789,8 @@ int uds_set_volume_index_record_chapter(struct volume_index_record *record, u64 
 	if (unlikely(record->mutex != NULL))
 		uds_lock_mutex(record->mutex);
 	result = uds_set_delta_entry_value(&record->delta_entry,
-					   convert_virtual_to_index(sub_index, virtual_chapter));
+					   convert_virtual_to_index(sub_index,
+								    virtual_chapter));
 	if (unlikely(record->mutex != NULL))
 		uds_unlock_mutex(record->mutex);
 	if (result != UDS_SUCCESS)
@@ -811,11 +813,8 @@ static u64 lookup_volume_sub_index_name(const struct volume_sub_index *sub_index
 	u32 rolling_chapter;
 	struct delta_index_entry delta_entry;
 
-	result = uds_get_delta_index_entry(&sub_index->delta_index,
-					   delta_list_number,
-					   address,
-					   name->name,
-					   &delta_entry);
+	result = uds_get_delta_index_entry(&sub_index->delta_index, delta_list_number,
+					   address, name->name, &delta_entry);
 	if (result != UDS_SUCCESS)
 		return NO_CHAPTER;
 
@@ -877,7 +876,8 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		size_t offset = 0;
 		u32 j;
 
-		result = uds_read_from_buffered_reader(readers[i], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(readers[i], buffer,
+						       sizeof(buffer));
 		if (result != UDS_SUCCESS) {
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
@@ -892,8 +892,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		decode_u32_le(buffer, &offset, &header.list_count);
 
 		result = ASSERT(offset = sizeof(buffer),
-				"%zu bytes decoded of %zu expected",
-				offset,
+				"%zu bytes decoded of %zu expected", offset,
 				sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			result = UDS_CORRUPT_DATA;
@@ -921,8 +920,7 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 							"Inconsistent volume index zone files: Chapter range is [%llu,%llu], chapter range %d is [%llu,%llu]",
 							(unsigned long long) virtual_chapter_low,
 							(unsigned long long) virtual_chapter_high,
-							i,
-							(unsigned long long) low,
+							i, (unsigned long long) low,
 							(unsigned long long) high);
 		} else if (virtual_chapter_low < header.virtual_chapter_low) {
 			virtual_chapter_low = header.virtual_chapter_low;
@@ -931,7 +929,8 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		for (j = 0; j < header.list_count; j++) {
 			u8 decoded[sizeof(u64)];
 
-			result = uds_read_from_buffered_reader(readers[i], decoded, sizeof(u64));
+			result = uds_read_from_buffered_reader(readers[i], decoded,
+							       sizeof(u64));
 			if (result != UDS_SUCCESS) {
 				return uds_log_warning_strerror(result,
 								"failed to read volume index flush ranges");
@@ -948,7 +947,8 @@ static int start_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 		sub_index->zones[z].virtual_chapter_high = virtual_chapter_high;
 	}
 
-	result = uds_start_restoring_delta_index(&sub_index->delta_index, readers, reader_count);
+	result = uds_start_restoring_delta_index(&sub_index->delta_index, readers,
+						 reader_count);
 	if (result != UDS_SUCCESS)
 		return uds_log_warning_strerror(result, "restoring delta index failed");
 
@@ -964,8 +964,7 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 
 	if (!has_sparse(volume_index)) {
 		return start_restoring_volume_sub_index(&volume_index->vi_non_hook,
-							buffered_readers,
-							reader_count);
+							buffered_readers, reader_count);
 	}
 
 	for (i = 0; i < reader_count; i++) {
@@ -973,7 +972,8 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 		u8 buffer[sizeof(struct volume_index_data)];
 		size_t offset = 0;
 
-		result = uds_read_from_buffered_reader(buffered_readers[i], buffer, sizeof(buffer));
+		result = uds_read_from_buffered_reader(buffered_readers[i], buffer,
+						       sizeof(buffer));
 		if (result != UDS_SUCCESS) {
 			return uds_log_warning_strerror(result,
 							"failed to read volume index header");
@@ -984,8 +984,7 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 		decode_u32_le(buffer, &offset, &header.sparse_sample_rate);
 
 		result = ASSERT(offset == sizeof(buffer),
-				"%zu bytes decoded of %zu expected",
-				offset,
+				"%zu bytes decoded of %zu expected", offset,
 				sizeof(buffer));
 		if (result != UDS_SUCCESS)
 			result = UDS_CORRUPT_DATA;
@@ -1006,13 +1005,11 @@ static int start_restoring_volume_index(struct volume_index *volume_index,
 	}
 
 	result = start_restoring_volume_sub_index(&volume_index->vi_non_hook,
-						  buffered_readers,
-						  reader_count);
+						  buffered_readers, reader_count);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return start_restoring_volume_sub_index(&volume_index->vi_hook,
-						buffered_readers,
+	return start_restoring_volume_sub_index(&volume_index->vi_hook, buffered_readers,
 						reader_count);
 }
 
@@ -1021,8 +1018,7 @@ static int finish_restoring_volume_sub_index(struct volume_sub_index *sub_index,
 					     unsigned int reader_count)
 {
 	return uds_finish_restoring_delta_index(&sub_index->delta_index,
-						buffered_readers,
-						reader_count);
+						buffered_readers, reader_count);
 }
 
 static int finish_restoring_volume_index(struct volume_index *volume_index,
@@ -1032,8 +1028,7 @@ static int finish_restoring_volume_index(struct volume_index *volume_index,
 	int result;
 
 	result = finish_restoring_volume_sub_index(&volume_index->vi_non_hook,
-						   buffered_readers,
-						   reader_count);
+						   buffered_readers, reader_count);
 	if ((result == UDS_SUCCESS) && has_sparse(volume_index)) {
 		result = finish_restoring_volume_sub_index(&volume_index->vi_hook,
 							   buffered_readers,
@@ -1044,8 +1039,7 @@ static int finish_restoring_volume_index(struct volume_index *volume_index,
 }
 
 int uds_load_volume_index(struct volume_index *volume_index,
-			  struct buffered_reader **readers,
-			  unsigned int reader_count)
+			  struct buffered_reader **readers, unsigned int reader_count)
 {
 	int result;
 
@@ -1089,28 +1083,30 @@ static int start_saving_volume_sub_index(const struct volume_sub_index *sub_inde
 	encode_u32_le(buffer, &offset, list_count);
 
 	result =  ASSERT(offset == sizeof(struct sub_index_data),
-			 "%zu bytes of config written, of %zu expected",
-			 offset,
+			 "%zu bytes of config written, of %zu expected", offset,
 			 sizeof(struct sub_index_data));
 	if (result != UDS_SUCCESS)
 		return result;
 
 	result = uds_write_to_buffered_writer(buffered_writer, buffer, offset);
 	if (result != UDS_SUCCESS)
-		return uds_log_warning_strerror(result, "failed to write volume index header");
+		return uds_log_warning_strerror(result,
+						"failed to write volume index header");
 
 	for (i = 0; i < list_count; i++) {
 		u8 encoded[sizeof(u64)];
 
 		put_unaligned_le64(sub_index->flush_chapters[first_list + i], &encoded);
-		result = uds_write_to_buffered_writer(buffered_writer, encoded, sizeof(u64));
+		result = uds_write_to_buffered_writer(buffered_writer, encoded,
+						      sizeof(u64));
 		if (result != UDS_SUCCESS) {
 			return uds_log_warning_strerror(result,
 							"failed to write volume index flush ranges");
 		}
 	}
 
-	return uds_start_saving_delta_index(&sub_index->delta_index, zone_number, buffered_writer);
+	return uds_start_saving_delta_index(&sub_index->delta_index, zone_number,
+					    buffered_writer);
 }
 
 static int start_saving_volume_index(const struct volume_index *volume_index,
@@ -1123,16 +1119,14 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 
 	if (!has_sparse(volume_index)) {
 		return start_saving_volume_sub_index(&volume_index->vi_non_hook,
-						     zone_number,
-						     writer);
+						     zone_number, writer);
 	}
 
 	memcpy(buffer, MAGIC_START_6, MAGIC_SIZE);
 	offset += MAGIC_SIZE;
 	encode_u32_le(buffer, &offset, volume_index->sparse_sample_rate);
 	result = ASSERT(offset == sizeof(struct volume_index_data),
-			"%zu bytes of header written, of %zu expected",
-			offset,
+			"%zu bytes of header written, of %zu expected", offset,
 			sizeof(struct volume_index_data));
 	if (result != UDS_SUCCESS)
 		return result;
@@ -1143,21 +1137,23 @@ static int start_saving_volume_index(const struct volume_index *volume_index,
 		return result;
 	}
 
-	result = start_saving_volume_sub_index(&volume_index->vi_non_hook, zone_number, writer);
+	result = start_saving_volume_sub_index(&volume_index->vi_non_hook, zone_number,
+					       writer);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return start_saving_volume_sub_index(&volume_index->vi_hook, zone_number, writer);
+	return start_saving_volume_sub_index(&volume_index->vi_hook, zone_number,
+					     writer);
 }
 
-static int
-finish_saving_volume_sub_index(const struct volume_sub_index *sub_index, unsigned int zone_number)
+static int finish_saving_volume_sub_index(const struct volume_sub_index *sub_index,
+					  unsigned int zone_number)
 {
 	return uds_finish_saving_delta_index(&sub_index->delta_index, zone_number);
 }
 
-static int
-finish_saving_volume_index(const struct volume_index *volume_index, unsigned int zone_number)
+static int finish_saving_volume_index(const struct volume_index *volume_index,
+				      unsigned int zone_number)
 {
 	int result;
 
@@ -1168,8 +1164,7 @@ finish_saving_volume_index(const struct volume_index *volume_index, unsigned int
 }
 
 int uds_save_volume_index(struct volume_index *volume_index,
-			  struct buffered_writer **writers,
-			  unsigned int writer_count)
+			  struct buffered_writer **writers, unsigned int writer_count)
 {
 	int result = UDS_SUCCESS;
 	unsigned int zone;
@@ -1248,8 +1243,7 @@ void uds_get_volume_index_stats(const struct volume_index *volume_index,
 }
 
 static int initialize_volume_sub_index(const struct configuration *config,
-				       u64 volume_nonce,
-				       u8 tag,
+				       u64 volume_nonce, u8 tag,
 				       struct volume_sub_index *sub_index)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
@@ -1272,12 +1266,9 @@ static int initialize_volume_sub_index(const struct configuration *config,
 	sub_index->chapter_zone_bits = params.chapter_size_in_bits / zone_count;
 	sub_index->volume_nonce = volume_nonce;
 
-	result = uds_initialize_delta_index(&sub_index->delta_index,
-					    zone_count,
-					    params.list_count,
-					    params.mean_delta,
-					    params.chapter_bits,
-					    params.memory_size,
+	result = uds_initialize_delta_index(&sub_index->delta_index, zone_count,
+					    params.list_count, params.mean_delta,
+					    params.chapter_bits, params.memory_size,
 					    tag);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -1292,21 +1283,16 @@ static int initialize_volume_sub_index(const struct configuration *config,
 				  (zone_count * sizeof(struct volume_sub_index_zone)));
 
 	/* The following arrays are initialized to all zeros. */
-	result = uds_allocate(params.list_count,
-			      u64,
-			      "first chapter to flush",
+	result = uds_allocate(params.list_count, u64, "first chapter to flush",
 			      &sub_index->flush_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return uds_allocate(zone_count,
-			    struct volume_sub_index_zone,
-			    "volume index zones",
-			    &sub_index->zones);
+	return uds_allocate(zone_count, struct volume_sub_index_zone,
+			    "volume index zones", &sub_index->zones);
 }
 
-int uds_make_volume_index(const struct configuration *config,
-			  u64 volume_nonce,
+int uds_make_volume_index(const struct configuration *config, u64 volume_nonce,
 			  struct volume_index **volume_index_ptr)
 {
 	struct split_config split;
@@ -1321,9 +1307,7 @@ int uds_make_volume_index(const struct configuration *config,
 	volume_index->zone_count = config->zone_count;
 
 	if (!uds_is_sparse_geometry(config->geometry)) {
-		result = initialize_volume_sub_index(config,
-						     volume_nonce,
-						     'm',
+		result = initialize_volume_sub_index(config, volume_nonce, 'm',
 						     &volume_index->vi_non_hook);
 		if (result != UDS_SUCCESS) {
 			uds_free_volume_index(volume_index);
@@ -1337,10 +1321,8 @@ int uds_make_volume_index(const struct configuration *config,
 
 	volume_index->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = uds_allocate(config->zone_count,
-			      struct volume_index_zone,
-			      "volume index zones",
-			      &volume_index->zones);
+	result = uds_allocate(config->zone_count, struct volume_index_zone,
+			      "volume index zones", &volume_index->zones);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume_index(volume_index);
 		return result;
@@ -1355,22 +1337,20 @@ int uds_make_volume_index(const struct configuration *config,
 	}
 
 	split_configuration(config, &split);
-	result = initialize_volume_sub_index(&split.non_hook_config,
-					     volume_nonce,
-					     'd',
+	result = initialize_volume_sub_index(&split.non_hook_config, volume_nonce, 'd',
 					     &volume_index->vi_non_hook);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume_index(volume_index);
-		return uds_log_error_strerror(result, "Error creating non hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating non hook volume index");
 	}
 
-	result = initialize_volume_sub_index(&split.hook_config,
-					     volume_nonce,
-					     's',
+	result = initialize_volume_sub_index(&split.hook_config, volume_nonce, 's',
 					     &volume_index->vi_hook);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume_index(volume_index);
-		return uds_log_error_strerror(result, "Error creating hook volume index");
+		return uds_log_error_strerror(result,
+					      "Error creating hook volume index");
 	}
 
 	volume_index->memory_size =
