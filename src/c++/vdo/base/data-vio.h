@@ -301,8 +301,7 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 	return container_of(waiter, struct data_vio, waiter);
 }
 
-static inline struct data_vio *
-data_vio_from_reference_updater(struct reference_updater *updater)
+static inline struct data_vio *data_vio_from_reference_updater(struct reference_updater *updater)
 {
 	if (updater->increment)
 		return container_of(updater, struct data_vio, increment_updater);
@@ -330,19 +329,16 @@ advance_data_vio_compression_stage(struct data_vio *data_vio);
 struct data_vio_compression_status __must_check
 get_data_vio_compression_status(struct data_vio *data_vio);
 #ifdef INTERNAL
-bool __must_check
-set_data_vio_compression_status(struct data_vio *data_vio,
-				struct data_vio_compression_status status,
-				struct data_vio_compression_status new_status);
+bool __must_check set_data_vio_compression_status(struct data_vio *data_vio,
+						  struct data_vio_compression_status status,
+						  struct data_vio_compression_status new_status);
 #endif /* INTERNAL */
 bool cancel_data_vio_compression(struct data_vio *data_vio);
 
 struct data_vio_pool;
 
-int make_data_vio_pool(struct vdo *vdo,
-		       data_vio_count_t pool_size,
-		       data_vio_count_t discard_limit,
-		       struct data_vio_pool **pool_ptr);
+int make_data_vio_pool(struct vdo *vdo, data_vio_count_t pool_size,
+		       data_vio_count_t discard_limit, struct data_vio_pool **pool_ptr);
 void free_data_vio_pool(struct data_vio_pool *pool);
 void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio);
 #ifdef INTERNAL
@@ -355,8 +351,8 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios);
 data_vio_count_t get_data_vio_pool_active_discards(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_discard_limit(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_maximum_discards(struct data_vio_pool *pool);
-int __must_check
-set_data_vio_pool_discard_limit(struct data_vio_pool *pool, data_vio_count_t limit);
+int __must_check set_data_vio_pool_discard_limit(struct data_vio_pool *pool,
+						 data_vio_count_t limit);
 data_vio_count_t get_data_vio_pool_active_requests(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_request_limit(struct data_vio_pool *pool);
 data_vio_count_t get_data_vio_pool_maximum_requests(struct data_vio_pool *pool);
@@ -392,15 +388,13 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 	 */
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on hash zone thread %u",
-			(unsigned long long) data_vio->logical.lbn,
-			thread_id,
-			expected);
+			(unsigned long long) data_vio->logical.lbn, thread_id, expected);
 }
 
-static inline void set_data_vio_hash_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_hash_zone_callback(struct data_vio *data_vio,
+						   vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->hash_zone->thread_id);
 }
 
@@ -408,8 +402,8 @@ static inline void set_data_vio_hash_zone_callback(struct data_vio *data_vio, vd
  * launch_data_vio_hash_zone_callback() - Set a callback as a hash zone operation and invoke it
  *					  immediately.
  */
-static inline void
-launch_data_vio_hash_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_hash_zone_callback(struct data_vio *data_vio,
+						      vdo_action *callback)
 {
 	set_data_vio_hash_zone_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -422,15 +416,13 @@ static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->logical.lbn,
-			thread_id,
-			expected);
+			(unsigned long long) data_vio->logical.lbn, thread_id, expected);
 }
 
-static inline void set_data_vio_logical_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_logical_callback(struct data_vio *data_vio,
+						 vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->logical.zone->thread_id);
 }
 
@@ -438,8 +430,8 @@ static inline void set_data_vio_logical_callback(struct data_vio *data_vio, vdo_
  * launch_data_vio_logical_callback() - Set a callback as a logical block operation and invoke it
  *					immediately.
  */
-static inline void
-launch_data_vio_logical_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_logical_callback(struct data_vio *data_vio,
+						    vdo_action *callback)
 {
 	set_data_vio_logical_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -452,16 +444,14 @@ static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"struct data_vio for allocated physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->allocation.pbn,
-			thread_id,
+			(unsigned long long) data_vio->allocation.pbn, thread_id,
 			expected);
 }
 
-static inline void
-set_data_vio_allocated_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_allocated_zone_callback(struct data_vio *data_vio,
+							vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->allocation.zone->thread_id);
 }
 
@@ -470,8 +460,8 @@ set_data_vio_allocated_zone_callback(struct data_vio *data_vio, vdo_action *call
  *					       data_vio's allocated zone and queue the data_vio and
  *					       invoke it immediately.
  */
-static inline void
-launch_data_vio_allocated_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_allocated_zone_callback(struct data_vio *data_vio,
+							   vdo_action *callback)
 {
 	set_data_vio_allocated_zone_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -484,16 +474,14 @@ static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for duplicate physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->duplicate.pbn,
-			thread_id,
+			(unsigned long long) data_vio->duplicate.pbn, thread_id,
 			expected);
 }
 
-static inline void
-set_data_vio_duplicate_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
+							vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->duplicate.zone->thread_id);
 }
 
@@ -502,8 +490,8 @@ set_data_vio_duplicate_zone_callback(struct data_vio *data_vio, vdo_action *call
  *					       data_vio's duplicate zone and queue the data_vio and
  *					       invoke it immediately.
  */
-static inline void
-launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
+							   vdo_action *callback)
 {
 	set_data_vio_duplicate_zone_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -516,16 +504,13 @@ static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for mapped physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->mapped.pbn,
-			thread_id,
-			expected);
+			(unsigned long long) data_vio->mapped.pbn, thread_id, expected);
 }
 
-static inline void
-set_data_vio_mapped_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
+						     vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->mapped.zone->thread_id);
 }
 
@@ -536,16 +521,14 @@ static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((expected == thread_id),
 			"data_vio for new_mapped physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->new_mapped.pbn,
-			thread_id,
+			(unsigned long long) data_vio->new_mapped.pbn, thread_id,
 			expected);
 }
 
-static inline void
-set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
+							 vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    data_vio->new_mapped.zone->thread_id);
 }
 
@@ -556,12 +539,12 @@ static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((journal_thread == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on journal thread %u",
-			(unsigned long long) data_vio->logical.lbn,
-			thread_id,
+			(unsigned long long) data_vio->logical.lbn, thread_id,
 			journal_thread);
 }
 
-static inline void set_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_journal_callback(struct data_vio *data_vio,
+						 vdo_action *callback)
 {
 	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config.journal_thread;
 
@@ -572,8 +555,8 @@ static inline void set_data_vio_journal_callback(struct data_vio *data_vio, vdo_
  * launch_data_vio_journal_callback() - Set a callback as a journal operation and invoke it
  *					immediately.
  */
-static inline void
-launch_data_vio_journal_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_journal_callback(struct data_vio *data_vio,
+						    vdo_action *callback)
 {
 	set_data_vio_journal_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -586,12 +569,12 @@ static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((packer_thread == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on packer thread %u",
-			(unsigned long long) data_vio->logical.lbn,
-			thread_id,
+			(unsigned long long) data_vio->logical.lbn, thread_id,
 			packer_thread);
 }
 
-static inline void set_data_vio_packer_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_packer_callback(struct data_vio *data_vio,
+						vdo_action *callback)
 {
 	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config.packer_thread;
 
@@ -602,7 +585,8 @@ static inline void set_data_vio_packer_callback(struct data_vio *data_vio, vdo_a
  * launch_data_vio_packer_callback() - Set a callback as a packer operation and invoke it
  *				       immediately.
  */
-static inline void launch_data_vio_packer_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_packer_callback(struct data_vio *data_vio,
+						   vdo_action *callback)
 {
 	set_data_vio_packer_callback(data_vio, callback);
 	vdo_launch_completion(&data_vio->vio.completion);
@@ -615,12 +599,12 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 
 	ASSERT_LOG_ONLY((cpu_thread == thread_id),
 			"data_vio for logical block %llu on thread %u, should be on cpu thread %u",
-			(unsigned long long) data_vio->logical.lbn,
-			thread_id,
+			(unsigned long long) data_vio->logical.lbn, thread_id,
 			cpu_thread);
 }
 
-static inline void set_data_vio_cpu_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_cpu_callback(struct data_vio *data_vio,
+					     vdo_action *callback)
 {
 	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config.cpu_thread;
 
@@ -631,19 +615,18 @@ static inline void set_data_vio_cpu_callback(struct data_vio *data_vio, vdo_acti
  * launch_data_vio_cpu_callback() - Set a callback to run on the CPU queues and invoke it
  *				    immediately.
  */
-static inline void
-launch_data_vio_cpu_callback(struct data_vio *data_vio,
-			     vdo_action *callback,
-			     enum vdo_completion_priority priority)
+static inline void launch_data_vio_cpu_callback(struct data_vio *data_vio,
+						vdo_action *callback,
+						enum vdo_completion_priority priority)
 {
 	set_data_vio_cpu_callback(data_vio, callback);
 	vdo_launch_completion_with_priority(&data_vio->vio.completion, priority);
 }
 
-static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio,
+						  vdo_action *callback)
 {
-	vdo_set_completion_callback(&data_vio->vio.completion,
-				    callback,
+	vdo_set_completion_callback(&data_vio->vio.completion, callback,
 				    get_vio_bio_zone_thread_id(&data_vio->vio));
 }
 
@@ -651,11 +634,12 @@ static inline void set_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo
  * launch_data_vio_bio_zone_callback() - Set a callback as a bio zone operation and invoke it
  *					 immediately.
  */
-static inline void
-launch_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_bio_zone_callback(struct data_vio *data_vio,
+						     vdo_action *callback)
 {
 	set_data_vio_bio_zone_callback(data_vio, callback);
-	vdo_launch_completion_with_priority(&data_vio->vio.completion, BIO_Q_DATA_PRIORITY);
+	vdo_launch_completion_with_priority(&data_vio->vio.completion,
+					    BIO_Q_DATA_PRIORITY);
 }
 
 /**
@@ -663,8 +647,8 @@ launch_data_vio_bio_zone_callback(struct data_vio *data_vio, vdo_action *callbac
  *					it and invoke it immediately, otherwise, just run the
  *					callback on the current thread.
  */
-static inline void
-launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio, vdo_action *callback)
+static inline void launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio,
+						    vdo_action *callback)
 {
 	struct vdo_completion *completion = &data_vio->vio.completion;
 	struct vdo *vdo = completion->vdo;
@@ -674,14 +658,14 @@ launch_data_vio_on_bio_ack_queue(struct data_vio *data_vio, vdo_action *callback
 		return;
 	}
 
-	vdo_set_completion_callback(completion, callback, vdo->thread_config.bio_ack_thread);
+	vdo_set_completion_callback(completion, callback,
+				    vdo->thread_config.bio_ack_thread);
 	vdo_launch_completion_with_priority(completion, BIO_ACK_Q_ACK_PRIORITY);
 }
 
 void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  enum pbn_lock_type write_lock_type,
-				  vdo_action *callback,
-				  vdo_action *error_handler);
+				  vdo_action *callback, vdo_action *error_handler);
 
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
 
@@ -692,7 +676,8 @@ int __must_check uncompress_data_vio(struct data_vio *data_vio,
 #ifdef INTERNAL
 bool is_zero_block(char *block);
 #endif /* INTERNAL */
-void update_metadata_for_data_vio_write(struct data_vio *data_vio, struct pbn_lock *lock);
+void update_metadata_for_data_vio_write(struct data_vio *data_vio,
+					struct pbn_lock *lock);
 void write_data_vio(struct data_vio *data_vio);
 void launch_compress_data_vio(struct data_vio *data_vio);
 void continue_data_vio_with_block_map_slot(struct vdo_completion *completion);
