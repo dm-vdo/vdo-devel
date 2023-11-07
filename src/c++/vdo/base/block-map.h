@@ -26,20 +26,12 @@ enum {
 	BLOCK_MAP_VIO_POOL_SIZE = 64,
 };
 
-/* Used to indicate that the page holding the location of a tree root has been "loaded". */
-extern const physical_block_number_t VDO_INVALID_PBN;
-
 /*
  * Generation counter for page references.
  */
 typedef u32 vdo_page_generation;
 
-static const physical_block_number_t NO_PAGE = 0xFFFFFFFFFFFFFFFF;
-static const struct block_map_entry UNMAPPED_BLOCK_MAP_ENTRY = {
-	.mapping_state = VDO_MAPPING_STATE_UNMAPPED & 0x0F,
-	.pbn_high_nibble = 0,
-	.pbn_low_word = __cpu_to_le32(VDO_ZERO_BLOCK & UINT_MAX),
-};
+extern const struct block_map_entry UNMAPPED_BLOCK_MAP_ENTRY;
 
 /* The VDO Page Cache abstraction. */
 struct vdo_page_cache {
