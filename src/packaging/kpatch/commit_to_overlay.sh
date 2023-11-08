@@ -427,10 +427,12 @@ for change in ${COMMIT_SHAS[@]}; do
   gitauthor="--author \"${commit_author_name} <${commit_author_email}>\""
   gitdate="--date \"${commit_date}\""
 
-  # Build the tree as normal
+  # Build the necessary parts of the tree
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
-  echo -en "Building the VDO tree... "
-  make >> ${build_log_file} 2>&1
+  echo -en "Building the VDO perl directory... "
+  make -C src/perl >> ${build_log_file} 2>&1
+  echo -en "Generating VDO statistics files... "
+  make -C src/stats >> ${build_log_file} 2>&1
   echo "Done"
 
   if [[ $? != 0 ]]; then
