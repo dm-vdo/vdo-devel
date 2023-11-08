@@ -577,7 +577,8 @@ static int get_volume_sub_index_record(struct volume_sub_index *sub_index,
 	if (result != UDS_SUCCESS)
 		return result;
 
-	record->is_found = (!record->delta_entry.at_end && (record->delta_entry.key == address));
+	record->is_found =
+		(!record->delta_entry.at_end && (record->delta_entry.key == address));
 	if (record->is_found) {
 		u32 index_chapter = uds_get_delta_entry_value(&record->delta_entry);
 
@@ -600,7 +601,8 @@ int uds_get_volume_index_record(struct volume_index *volume_index,
 		 * this thread is finding the volume index record. Due to the lazy LRU flushing of
 		 * the volume index, uds_get_volume_index_record() is not a read-only operation.
 		 */
-		unsigned int zone = get_volume_sub_index_zone(&volume_index->vi_hook, name);
+		unsigned int zone =
+			get_volume_sub_index_zone(&volume_index->vi_hook, name);
 		struct mutex *mutex = &volume_index->zones[zone].hook_mutex;
 
 		uds_lock_mutex(mutex);

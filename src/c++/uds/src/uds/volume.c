@@ -155,7 +155,8 @@ static inline bool search_pending(union invalidate_counter invalidate_counter)
 STATIC void
 begin_pending_search(struct page_cache *cache, u32 physical_page, unsigned int zone_number)
 {
-	union invalidate_counter invalidate_counter = get_invalidate_counter(cache, zone_number);
+	union invalidate_counter invalidate_counter =
+		get_invalidate_counter(cache, zone_number);
 
 	invalidate_counter.page = physical_page;
 	invalidate_counter.counter++;
@@ -1131,7 +1132,8 @@ STATIC void invalidate_page(struct page_cache *cache, u32 physical_page)
 
 void uds_forget_chapter(struct volume *volume, u64 virtual_chapter)
 {
-	u32 physical_chapter = uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
+	u32 physical_chapter =
+		uds_map_to_physical_chapter(volume->geometry, virtual_chapter);
 	u32 first_page = map_to_physical_page(volume->geometry, physical_chapter, 0);
 	u32 i;
 

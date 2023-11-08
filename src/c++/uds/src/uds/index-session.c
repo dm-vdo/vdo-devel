@@ -120,7 +120,8 @@ int uds_launch_request(struct uds_request *request)
 	}
 
 	/* Reset all internal fields before processing. */
-	internal_size = sizeof(struct uds_request) - offsetof(struct uds_request, zone_number);
+	internal_size =
+		sizeof(struct uds_request) - offsetof(struct uds_request, zone_number);
 	// FIXME should be using struct_group for this instead
 	memset((char *) request + sizeof(*request) - internal_size, 0, internal_size);
 
