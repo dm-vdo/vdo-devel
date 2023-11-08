@@ -73,7 +73,7 @@ sub checkStorageDevice {
 ########################################################################
 # @inherit
 ##
-sub activate {
+sub setup {
   my ($self) = assertNumArgs(1, @_);
   my $name    = $self->{deviceName};
   my $type    = $self->{raidType};
@@ -84,18 +84,7 @@ sub activate {
   $self->runOnHost("yes | sudo mdadm --create /dev/$name $devices "
 		   . " --level=$type --raid-devices=$count --force");
 
-  $self->addDeactivationStep(sub { $self->stopRaid(); });
-
-  $self->SUPER::activate();
-}
-
-########################################################################
-# @inherit
-##
-sub stopRaid {
-  my ($self) = assertNumArgs(1, @_);
-  my $name = $self->{deviceName};
-  $self->runOnHost("sudo mdadm --stop /dev/$name");
+  $self->Permabit::BlockDevice::VDO::setup();
 }
 
 ########################################################################
@@ -104,8 +93,10 @@ sub stopRaid {
 sub teardown {
   my ($self) = assertNumArgs(1, @_);
   $self->SUPER::teardown();
+  my $name    = $self->{deviceName};
   my @paths   = @{$self->{raidPaths}};
   my $devices = join(" ", @paths);
+  $self->runOnHost("sudo mdadm --stop /dev/$name");
   $self->runOnHost("sudo mdadm --zero-superblock $devices");
 }
 
