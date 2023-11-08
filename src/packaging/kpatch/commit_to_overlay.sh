@@ -327,7 +327,7 @@ _cleanup() {
     rm -fv ${commit_file}
   fi
 
-  unset -f CHANGE_LOG DEBUG GITDATE GITAUTHOR LINUX_SRC
+  unset -f COMMIT_FILE DEBUG GITDATE GITAUTHOR LINUX_SRC
 }
 
 ###############################################################################
@@ -360,14 +360,6 @@ git clone $SOURCE_REPO_URL ${VDO_TREE}
 # Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
 for change in ${COMMIT_SHAS[@]}; do
   echo -en "\nProcessing changes from commit $change\n"
-
-  # Remove existing dm-vdo in case we have any deletes.
-  # XXX: The kpatch overlay process doesn't handle deletes at the moment, which
-  #      is a bug that should get handled in the future by the Makefile process
-  #      there, but it's going to get dealt with here for now.
-  if [ -d drivers/md/dm-vdo ]; then
-    rm -rf drivers/md/dm-vdo
-  fi
 
   cd ${VDO_TREE}
 
@@ -413,18 +405,10 @@ for change in ${COMMIT_SHAS[@]}; do
   # Generate the kernel overlay and apply it to the linux tree
   echo "Generating the kernel overlay"
   cd src/packaging/kpatch
-  cp -p Makefile Makefile.orig
 
-  sed -r -i -e 's/^GITARGS=/GITARGS=\nGITAUTHOR ?= ""/g'        \
-            -e 's/^GITARGS=/GITARGS=\nGITDATE ?= ""/g'          \
-            -e 's/commit -m/commit --file/g'                     \
-            -e 's/ commit / commit $(GITAUTHOR) $(GITDATE) /g'  \
-            -e 's/^(\s*&&).*format-patch.*/\1 echo committed/g' \
-            -e "s/ origin\/master / origin\/${KERNEL_BRANCH} /g" Makefile
-
-  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" CHANGE_LOG="${commit_file}" \
+  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" COMMIT_FILE="${commit_file}" \
          LINUX_SRC=${LINUX_SRC}
-  make prepare overlay >> ${build_log_file}
+  make prepare kernel-overlay >> ${build_log_file}
 
   if [[ $? != 0 ]]; then
     echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed. See ${build_log_file} for" \
@@ -433,7 +417,7 @@ for change in ${COMMIT_SHAS[@]}; do
   fi
 
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  make kpatch >> ${build_log_file} 2>&1
+  make kernel-kpatch >> ${build_log_file} 2>&1
 
   if [[ $? != 0 ]]; then
     return=$(tail -5 ${build_log_file} | grep "^[nN]othing to commit" | wc -l)
@@ -449,7 +433,6 @@ for change in ${COMMIT_SHAS[@]}; do
 
   # Clean up
   echo "Cleaning up build artifacts"
-  mv Makefile.orig Makefile
 
   rm -fv ${commit_file}
 
@@ -457,7 +440,7 @@ for change in ${COMMIT_SHAS[@]}; do
     rm -fv ${build_log_file}
   fi
 
-  unset -f GITDATE GITAUTHOR CHANGE_LOG
+  unset -f GITDATE GITAUTHOR COMMIT_FILE
 done
 
 # Push the kernel overlay branch to the remote kernel repository
