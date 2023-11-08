@@ -71,8 +71,8 @@
 #if (defined(VDO_INTERNAL) || defined(INTERNAL))
 /* for our own testing, this global can be modified via sysfs. */
 int data_vio_count = MAXIMUM_VDO_USER_VIOS;
-#endif /* VDO_INTERNAL or INTERNAL */
 
+#endif /* VDO_INTERNAL or INTERNAL */
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 
 struct sync_completion {
@@ -1733,7 +1733,8 @@ static void get_vdo_statistics(const struct vdo *vdo, struct vdo_statistics *sta
 	copy_bio_stat(&stats->bios_page_cache_completed, &vdo->stats.bios_page_cache_completed);
 	copy_bio_stat(&stats->bios_acknowledged, &vdo->stats.bios_acknowledged);
 	copy_bio_stat(&stats->bios_acknowledged_partial, &vdo->stats.bios_acknowledged_partial);
-	stats->bios_in_progress = subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
+	stats->bios_in_progress =
+		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
 #ifdef __KERNEL__
 	uds_get_memory_stats(&stats->memory_usage.bytes_used,
 			     &stats->memory_usage.peak_bytes_used);

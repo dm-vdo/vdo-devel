@@ -285,7 +285,8 @@ static bool try_bio_map_merge(struct vio *vio)
 	struct bio *bio = vio->bio;
 	struct vio *prev_vio, *next_vio;
 	struct vdo *vdo = vio->completion.vdo;
-	struct bio_queue_data *bio_queue_data = &vdo->io_submitter->bio_queue_data[vio->bio_zone];
+	struct bio_queue_data *bio_queue_data =
+		&vdo->io_submitter->bio_queue_data[vio->bio_zone];
 
 	bio->bi_next = NULL;
 	bio_list_init(&vio->bios_merged);

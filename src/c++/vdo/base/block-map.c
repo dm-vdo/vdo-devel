@@ -1404,7 +1404,8 @@ bool vdo_copy_valid_page(char *buffer,
 			 struct block_map_page *page)
 {
 	struct block_map_page *loaded = (struct block_map_page *) buffer;
-	enum block_map_page_validity validity = vdo_validate_block_map_page(loaded, nonce, pbn);
+	enum block_map_page_validity validity =
+		vdo_validate_block_map_page(loaded, nonce, pbn);
 
 	if (validity == VDO_BLOCK_MAP_PAGE_VALID) {
 		memcpy(page, loaded, VDO_BLOCK_SIZE);
@@ -2635,9 +2636,8 @@ static void traverse(struct cursor *cursor)
 			}
 
 			if (cursor->height < VDO_BLOCK_MAP_TREE_HEIGHT - 1) {
-				int result =
-					cursor->parent->entry_callback(location.pbn,
-								       cursor->parent->parent);
+				int result = cursor->parent->entry_callback(location.pbn,
+									    cursor->parent->parent);
 
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] = UNMAPPED_BLOCK_MAP_ENTRY;
@@ -3377,7 +3377,8 @@ struct block_map_statistics vdo_get_block_map_statistics(struct block_map *map)
 
 	memset(&totals, 0, sizeof(struct block_map_statistics));
 	for (zone = 0; zone < map->zone_count; zone++) {
-		const struct block_map_statistics *stats = &(map->zones[zone].page_cache.stats);
+		const struct block_map_statistics *stats =
+			&(map->zones[zone].page_cache.stats);
 
 		totals.dirty_pages += READ_ONCE(stats->dirty_pages);
 		totals.clean_pages += READ_ONCE(stats->clean_pages);

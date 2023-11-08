@@ -1185,7 +1185,8 @@ get_recovery_journal_block_header(struct recovery_journal *journal,
 				  char *data,
 				  sequence_number_t sequence)
 {
-	physical_block_number_t pbn = vdo_get_recovery_journal_block_number(journal, sequence);
+	physical_block_number_t pbn =
+		vdo_get_recovery_journal_block_number(journal, sequence);
 	char *header = &data[pbn * VDO_BLOCK_SIZE];
 
 	return vdo_unpack_recovery_block_header((struct packed_journal_header *) header);
@@ -1262,13 +1263,15 @@ static bool find_recovery_journal_head_and_tail(struct repair_completion *repair
 		struct recovery_block_header header =
 			get_recovery_journal_block_header(journal, repair->journal_data, i);
 
-		if (!is_valid_recovery_journal_block(journal, &header, true))
+		if (!is_valid_recovery_journal_block(journal, &header, true)) {
 			/* This block is old or incorrectly formatted */
 			continue;
+		}
 
-		if (vdo_get_recovery_journal_block_number(journal, header.sequence_number) != i)
+		if (vdo_get_recovery_journal_block_number(journal, header.sequence_number) != i) {
 			/* This block is in the wrong location */
 			continue;
+		}
 
 		if (header.sequence_number >= repair->highest_tail) {
 			found_entries = true;
