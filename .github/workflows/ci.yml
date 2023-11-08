@@ -12,6 +12,7 @@ concurrency:
   
 jobs:
   Verifying:  
+    if: github.event.pull_request.draft == false  
     runs-on: ubuntu-latest
     steps:
       - name: Start verification
@@ -75,6 +76,7 @@ jobs:
           type: remove       
           
   Public-Testing:
+    if: github.event.pull_request.draft == false    
     runs-on: [self-hosted, untrusted]
     needs: [Verifying]      
     steps:
@@ -160,6 +162,7 @@ jobs:
         type: add
 
   Private-Testing:
+    if: github.event.pull_request.draft == false    
     runs-on: [self-hosted, trusted]
     needs: [Verifying, Public-Testing]
     steps:
