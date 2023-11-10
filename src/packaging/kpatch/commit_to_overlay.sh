@@ -364,7 +364,7 @@ _cleanup() {
     rm -fv ${commit_file}
   fi
 
-  unset -f COMMIT_FILE DEBUG GITDATE GITAUTHOR LINUX_SRC
+  unset -f COMMIT_FILE DEBUG LINUX_SRC
 }
 
 ###############################################################################
@@ -386,6 +386,11 @@ VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
 # Shallow clone the specified dm-linux repo branch into LINUX_SRC
 echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
 git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+
+LINUX_MD_SRC=${LINUX_SRC}/drivers/md
+LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
+LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
+
 cd $LINUX_SRC
 git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 
@@ -424,8 +429,8 @@ for change in ${COMMIT_SHAS[@]}; do
   commit_author_email=$(git log --format=%aE -1 ${change})
   commit_author_name=$(git log --format=%aN -1 ${change})
   commit_date=$(git log --format=%ad -1 ${change})
-  gitauthor="--author \"${commit_author_name} <${commit_author_email}>\""
-  gitdate="--date \"${commit_date}\""
+  gitauthor="--author=\"${commit_author_name} <${commit_author_email}>\""
+  gitdate="--date=\"${commit_date}\""
 
   # Build the necessary parts of the tree
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
@@ -445,27 +450,36 @@ for change in ${COMMIT_SHAS[@]}; do
   echo "Generating the kernel overlay"
   cd src/packaging/kpatch
 
-  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" COMMIT_FILE="${commit_file}" \
-         LINUX_SRC=${LINUX_SRC}
-  make prepare kernel-overlay >> ${build_log_file}
-
+  export LINUX_SRC=${LINUX_SRC}
+  make prepare >> ${build_log_file}
   if [[ $? != 0 ]]; then
-    echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed. See ${build_log_file} for" \
+    echo -e "${COLOR_RED}ERROR: Preparing kernel files failed. See ${build_log_file} for" \
             "more information.${NO_COLOR}"
     exit
   fi
 
-  echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  make kernel-kpatch >> ${build_log_file} 2>&1
-
+  WORK_DIR=work/kvdo-* # Location of the prepared kernel products
+  rm -rf ${LINUX_VDO_SRC} && \
+  mkdir -p ${LINUX_VDO_SRC} && \
+  cp -r ${WORK_DIR}/dm-vdo/* ${LINUX_VDO_SRC} && \
+  cp -f ${WORK_DIR}/vdo.rst ${WORK_DIR}/vdo-design.rst ${LINUX_DOC_SRC}/
   if [[ $? != 0 ]]; then
-    return=$(tail -5 ${build_log_file} | grep "^[nN]othing to commit" | wc -l)
+    echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed.${NO_COLOR}"
+    exit
+  fi
 
-    if [[ $return > 0 ]]; then
-      echo "Nothing to apply - moving on."
+  echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
+  git -C ${LINUX_SRC} diff-index --cached --quiet HEAD
+  if [[ $? == 0 ]]; then
+    echo "Nothing to apply - moving on."
+  else
+    git -C ${LINUX_SRC} add . && \
+    git -C ${LINUX_SRC} commit -s "${gitauthor}" "${gitdate}" --file "${commit_file}"
+    if [[ $? == 0 ]]; then
+      echo "Committed"
     else
-      echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch '${OVERLAY_BRANCH}'" \
-              "failed. See ${build_log_file} for more information.${NO_COLOR}"
+        echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
+                "'${OVERLAY_BRANCH}' failed."
       exit
     fi
   fi
@@ -479,7 +493,7 @@ for change in ${COMMIT_SHAS[@]}; do
     rm -fv ${build_log_file}
   fi
 
-  unset -f GITDATE GITAUTHOR COMMIT_FILE
+  unset -f COMMIT_FILE
 done
 
 # Push the kernel overlay branch to the remote kernel repository
