@@ -222,7 +222,6 @@ process_commits() {
   echo -en "\nValidating input commit SHAs on branch '${SOURCE_BRANCH}'...\n"
   for commit in ${ADDITIONAL_ARGS[@]}; do
     git show ${commit} &>/dev/null
-
     if [ $? != 0 ]; then
       echo -e "${COLOR_RED}ERROR: Invalid commit SHA encountered ($commit)"
       echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
@@ -245,7 +244,6 @@ process_commits() {
 process_merge() {
   echo -en "\nValidating input commit SHA ($MERGE_COMMIT)...\n"
   git show ${MERGE_COMMIT} &>/dev/null
-
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
@@ -253,7 +251,6 @@ process_merge() {
   fi
 
   git show ${MERGE_COMMIT}^2 &>/dev/null
-
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Commit SHA ($MERGE_COMMIT) is not a merge"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
@@ -262,7 +259,6 @@ process_merge() {
 
   # List all commits merged in this commit
   COMMIT_SHAS=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
-
   if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
     echo "No commits identified"
     exit
@@ -277,7 +273,6 @@ process_branch() {
 
   # List all commits on SOURCE_BRANCH that are not on origin/HEAD
   COMMIT_SHAS=($(git rev-list --reverse --no-merges ${SOURCE_BRANCH} ^origin/HEAD))
-
   if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
     echo "No commits identified"
     exit
@@ -364,7 +359,7 @@ _cleanup() {
     rm -fv ${commit_file}
   fi
 
-  unset -f COMMIT_FILE DEBUG LINUX_SRC
+  unset -f DEBUG LINUX_SRC
 }
 
 ###############################################################################
@@ -422,9 +417,6 @@ for change in ${COMMIT_SHAS[@]}; do
   commit_file=$(mktemp /tmp/overlay_commit_file.XXXXX)
   git log --format=%B -n 1 ${change} > ${commit_file}
 
-  # Capture the source commit hash into the commit message as well
-  echo "Original commit: ${change}" >> ${commit_file}
-
   # Capture authorship information for use later
   commit_author_email=$(git log --format=%aE -1 ${change})
   commit_author_name=$(git log --format=%aN -1 ${change})
@@ -436,10 +428,10 @@ for change in ${COMMIT_SHAS[@]}; do
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
   echo -en "Building the VDO perl directory... "
   make -C src/perl >> ${build_log_file} 2>&1
+  echo
   echo -en "Generating VDO statistics files... "
   make -C src/stats >> ${build_log_file} 2>&1
   echo "Done"
-
   if [[ $? != 0 ]]; then
     echo -e "${COLOR_RED}ERROR: Building the VDO tree failed. See ${build_log_file} for more" \
             "information.${NO_COLOR}"
@@ -462,6 +454,8 @@ for change in ${COMMIT_SHAS[@]}; do
   rm -rf ${LINUX_VDO_SRC} && \
   mkdir -p ${LINUX_VDO_SRC} && \
   cp -r ${WORK_DIR}/dm-vdo/* ${LINUX_VDO_SRC} && \
+  sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "8.3.0.65"/' \
+    ${LINUX_VDO_SRC}/dm-vdo-target.c && \
   cp -f ${WORK_DIR}/vdo.rst ${WORK_DIR}/vdo-design.rst ${LINUX_DOC_SRC}/
   if [[ $? != 0 ]]; then
     echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed.${NO_COLOR}"
@@ -492,8 +486,6 @@ for change in ${COMMIT_SHAS[@]}; do
   if [[ ${DEBUG} != 0 ]]; then
     rm -fv ${build_log_file}
   fi
-
-  unset -f COMMIT_FILE
 done
 
 # Push the kernel overlay branch to the remote kernel repository
