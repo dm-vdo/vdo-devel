@@ -386,6 +386,11 @@ VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
 # Shallow clone the specified dm-linux repo branch into LINUX_SRC
 echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
 git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+
+LINUX_MD_SRC=${LINUX_SRC}/drivers/md
+LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
+LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
+
 cd $LINUX_SRC
 git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 
@@ -417,20 +422,18 @@ for change in ${COMMIT_SHAS[@]}; do
   commit_file=$(mktemp /tmp/overlay_commit_file.XXXXX)
   git log --format=%B -n 1 ${change} > ${commit_file}
 
-  # Capture the source commit hash into the commit message as well
-  echo "Original commit: ${change}" >> ${commit_file}
-
   # Capture authorship information for use later
   commit_author_email=$(git log --format=%aE -1 ${change})
   commit_author_name=$(git log --format=%aN -1 ${change})
   commit_date=$(git log --format=%ad -1 ${change})
-  gitauthor="--author \"${commit_author_name} <${commit_author_email}>\""
-  gitdate="--date \"${commit_date}\""
+  gitauthor="--author=\"${commit_author_name} <${commit_author_email}>\""
+  gitdate="--date=\"${commit_date}\""
 
   # Build the necessary parts of the tree
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
   echo -en "Building the VDO perl directory... "
   make -C src/perl >> ${build_log_file} 2>&1
+  echo "Done"
   echo -en "Generating VDO statistics files... "
   make -C src/stats >> ${build_log_file} 2>&1
   echo "Done"
@@ -445,9 +448,17 @@ for change in ${COMMIT_SHAS[@]}; do
   echo "Generating the kernel overlay"
   cd src/packaging/kpatch
 
-  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" COMMIT_FILE="${commit_file}" \
-         LINUX_SRC=${LINUX_SRC}
-  make prepare kernel-overlay >> ${build_log_file}
+  export LINUX_SRC=${LINUX_SRC}
+  make prepare >> ${build_log_file}
+
+  WORK_DIR=work/kvdo-* # Location of the prepared kernel products
+  rm -rf ${LINUX_VDO_SRC}
+  mkdir -p ${LINUX_VDO_SRC}
+  cp -r ${WORK_DIR}/dm-vdo/* ${LINUX_VDO_SRC}
+  sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "8.3.0.65"/' \
+    ${LINUX_VDO_SRC}/dm-vdo-target.c
+  mv ${LINUX_VDO_SRC}/dm-vdo-target.c ${LINUX_MD_SRC}
+  cp -f ${WORK_DIR}/vdo.rst ${WORK_DIR}/vdo-design.rst ${LINUX_DOC_SRC}/
 
   if [[ $? != 0 ]]; then
     echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed. See ${build_log_file} for" \
@@ -456,7 +467,11 @@ for change in ${COMMIT_SHAS[@]}; do
   fi
 
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  make kernel-kpatch >> ${build_log_file} 2>&1
+  pushd ${LINUX_SRC} &> /dev/null
+  git add .
+  git commit -s "${gitauthor}" "${gitdate}" --file "${commit_file}"
+  popd &> /dev/null
+  echo -e "Committed"
 
   if [[ $? != 0 ]]; then
     return=$(tail -5 ${build_log_file} | grep "^[nN]othing to commit" | wc -l)

@@ -205,15 +205,6 @@ overlay overlay_vdo:
 
 	cp -f $(VDO_DOC) $(LINUX_DOC_SRC)/
 
-.PHONY: kernel-overlay
-kernel-overlay:
-	rm -rf $(LINUX_VDO_SRC)
-	mkdir -p $(LINUX_VDO_SRC)
-	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
-	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
-
-	cp -f $(VDO_DOC) $(LINUX_DOC_SRC)/
-
 #
 # The following are git operations that work on the linux source tree
 # in $(LINUX_SRC).
@@ -237,12 +228,6 @@ kpatch:
 	cd $(LINUX_SRC) && $(GIT) $(GITARGS) add . \
 	  && $(GIT) $(GITARGS) commit -m "$(CHANGE_LOG)" \
 	  && $(GIT) $(GITARGS) format-patch -s -o .. HEAD ^origin/$(LINUX_BRANCH)
-
-.PHONY: kernel-kpatch
-kernel-kpatch:
-	cd $(LINUX_SRC) && $(GIT) $(GITARGS) add . \
-	  && $(GIT) $(GITARGS) commit $(GITAUTHOR) $(GITDATE) --file "$(COMMIT_FILE)" \
-	  && echo committed
 
 # Parallel builds are risky since all of the targets here are a linear
 # pipeline.
