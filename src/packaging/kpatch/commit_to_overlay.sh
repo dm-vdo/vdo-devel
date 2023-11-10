@@ -7,7 +7,7 @@
 #
 # Usage:
 # ./commit_to_overlay.sh <kernel_tree_repo_URL> <kernel_tree_branch_name>
-#                        <overlay_branch_name> [ -c | -b ] args...
+#                        <overlay_branch_name> [ -c | -b | -m ] args...
 #
 # Input Type Options:
 #  -c  Process a commit or series of commits into a kernel overlay branch
@@ -60,6 +60,7 @@ KERNEL_REPO_URL=    # URL for the kernel tree repository where the overlay branc
 KERNEL_BRANCH=      # Kernel tree branch to base the overlay on
 PROCESS_INPUT_FX=   # Function to call to process the input(s)
 SOURCE_BRANCH=      # Branch on the source repo where the relevant commits were made
+MERGE_COMMIT=       # Merge commit to find commits to apply
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
@@ -95,6 +96,11 @@ process_args() {
                 "$(get_repo_name ${SOURCE_REPO_URL})${NO_COLOR}"
         print_usage
       fi
+      ;;
+    "-m"|"--m"|"m")
+      PROCESS_INPUT_FX=process_merge
+      CONFIG_MSG=("merge" "Merge commit to be used in overlay:")
+      MERGE_COMMIT=${ADDITIONAL_ARGS[0]}
       ;;
     *)
       echo -e "${COLOR_RED}ERROR: Invalid input type specified${NO_COLOR}"
@@ -133,11 +139,12 @@ print_usage() {
   echo
   echo "  Usage: "
   echo "  ./${TOOL} <kernel_tree_repo_URL> <kernel_tree_branch_name>"
-  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b ] args...'
+  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b | -m ] args...'
   echo
   echo "  Input Type Options:"
   echo "     -c  Process a commit or series of commits into a kernel overlay branch"
   echo "     -b  Process all changes on a local branch into a kernel overlay branch"
+  echo "     -m  Process all changes merged in the named merge commit"
   echo
   echo "  Accepted Arguments:"
   echo "     Commit SHA(s) ordered from oldest to newest"
@@ -230,6 +237,36 @@ process_commits() {
       echo "Duplicate commit SHA found and removed ($commit)"
     fi
   done
+
+  prompt_user_verify
+}
+
+# Process the input commit SHA(s), verifying they are valid
+process_merge() {
+  echo -en "\nValidating input commit SHA ($MERGE_COMMIT)...\n"
+  git show ${MERGE_COMMIT} &>/dev/null
+
+  if [ $? != 0 ]; then
+    echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
+    echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
+    exit
+  fi
+
+  git show ${MERGE_COMMIT}^2 &>/dev/null
+
+  if [ $? != 0 ]; then
+    echo -e "${COLOR_RED}ERROR: Commit SHA ($MERGE_COMMIT) is not a merge"
+    echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
+    exit
+  fi
+
+  # List all commits merged in this commit
+  COMMIT_SHAS=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
+
+  if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
+    echo "No commits identified"
+    exit
+  fi
 
   prompt_user_verify
 }
@@ -327,7 +364,7 @@ _cleanup() {
     rm -fv ${commit_file}
   fi
 
-  unset -f CHANGE_LOG DEBUG GITDATE GITAUTHOR LINUX_SRC
+  unset -f COMMIT_FILE DEBUG GITDATE GITAUTHOR LINUX_SRC
 }
 
 ###############################################################################
@@ -361,14 +398,6 @@ git clone $SOURCE_REPO_URL ${VDO_TREE}
 for change in ${COMMIT_SHAS[@]}; do
   echo -en "\nProcessing changes from commit $change\n"
 
-  # Remove existing dm-vdo in case we have any deletes.
-  # XXX: The kpatch overlay process doesn't handle deletes at the moment, which
-  #      is a bug that should get handled in the future by the Makefile process
-  #      there, but it's going to get dealt with here for now.
-  if [ -d drivers/md/dm-vdo ]; then
-    rm -rf drivers/md/dm-vdo
-  fi
-
   cd ${VDO_TREE}
 
   # Clean up from the last build, if necessary
@@ -398,10 +427,12 @@ for change in ${COMMIT_SHAS[@]}; do
   gitauthor="--author \"${commit_author_name} <${commit_author_email}>\""
   gitdate="--date \"${commit_date}\""
 
-  # Build the tree as normal
+  # Build the necessary parts of the tree
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
-  echo -en "Building the VDO tree... "
-  make >> ${build_log_file} 2>&1
+  echo -en "Building the VDO perl directory... "
+  make -C src/perl >> ${build_log_file} 2>&1
+  echo -en "Generating VDO statistics files... "
+  make -C src/stats >> ${build_log_file} 2>&1
   echo "Done"
 
   if [[ $? != 0 ]]; then
@@ -413,18 +444,10 @@ for change in ${COMMIT_SHAS[@]}; do
   # Generate the kernel overlay and apply it to the linux tree
   echo "Generating the kernel overlay"
   cd src/packaging/kpatch
-  cp -p Makefile Makefile.orig
 
-  sed -r -i -e 's/^GITARGS=/GITARGS=\nGITAUTHOR ?= ""/g'        \
-            -e 's/^GITARGS=/GITARGS=\nGITDATE ?= ""/g'          \
-            -e 's/commit -m/commit --file/g'                     \
-            -e 's/ commit / commit $(GITAUTHOR) $(GITDATE) /g'  \
-            -e 's/^(\s*&&).*format-patch.*/\1 echo committed/g' \
-            -e "s/ origin\/master / origin\/${KERNEL_BRANCH} /g" Makefile
-
-  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" CHANGE_LOG="${commit_file}" \
+  export GITDATE="${gitdate}" GITAUTHOR="${gitauthor}" COMMIT_FILE="${commit_file}" \
          LINUX_SRC=${LINUX_SRC}
-  make prepare overlay >> ${build_log_file}
+  make prepare kernel-overlay >> ${build_log_file}
 
   if [[ $? != 0 ]]; then
     echo -e "${COLOR_RED}ERROR: Generating the kernel overlay failed. See ${build_log_file} for" \
@@ -433,7 +456,7 @@ for change in ${COMMIT_SHAS[@]}; do
   fi
 
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  make kpatch >> ${build_log_file} 2>&1
+  make kernel-kpatch >> ${build_log_file} 2>&1
 
   if [[ $? != 0 ]]; then
     return=$(tail -5 ${build_log_file} | grep "^[nN]othing to commit" | wc -l)
@@ -449,7 +472,6 @@ for change in ${COMMIT_SHAS[@]}; do
 
   # Clean up
   echo "Cleaning up build artifacts"
-  mv Makefile.orig Makefile
 
   rm -fv ${commit_file}
 
@@ -457,7 +479,7 @@ for change in ${COMMIT_SHAS[@]}; do
     rm -fv ${build_log_file}
   fi
 
-  unset -f GITDATE GITAUTHOR CHANGE_LOG
+  unset -f GITDATE GITAUTHOR COMMIT_FILE
 done
 
 # Push the kernel overlay branch to the remote kernel repository
