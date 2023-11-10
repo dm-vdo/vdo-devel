@@ -253,10 +253,10 @@ size_t vdo_int_map_size(const struct int_map *map)
  */
 static struct bucket *dereference_hop(struct bucket *neighborhood, unsigned int hop_offset)
 {
+	BUILD_BUG_ON(NULL_HOP_OFFSET != 0);
 	if (hop_offset == NULL_HOP_OFFSET)
 		return NULL;
 
-	BUILD_BUG_ON(NULL_HOP_OFFSET != 0);
 	return &neighborhood[hop_offset - 1];
 }
 
