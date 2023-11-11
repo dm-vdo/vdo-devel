@@ -100,29 +100,17 @@ size_t uds_get_writable_size(struct io_factory *factory)
 }
 
 /* Create a struct dm_bufio_client for an index region starting at offset. */
-int uds_make_bufio(struct io_factory *factory,
-		   off_t block_offset,
-		   size_t block_size,
-		   unsigned int reserved_buffers,
-		   struct dm_bufio_client **client_ptr)
+int uds_make_bufio(struct io_factory *factory, off_t block_offset, size_t block_size,
+		   unsigned int reserved_buffers, struct dm_bufio_client **client_ptr)
 {
 	struct dm_bufio_client *client;
 
 #ifdef DM_BUFIO_CLIENT_NO_SLEEP
-	client = dm_bufio_client_create(factory->bdev,
-					block_size,
-					reserved_buffers,
-					0,
-					NULL,
-					NULL,
-					0);
+	client = dm_bufio_client_create(factory->bdev, block_size, reserved_buffers, 0,
+					NULL, NULL, 0);
 #else
-	client = dm_bufio_client_create(factory->bdev,
-					block_size,
-					reserved_buffers,
-					0,
-					NULL,
-					NULL);
+	client = dm_bufio_client_create(factory->bdev, block_size, reserved_buffers, 0,
+					NULL, NULL);
 #endif
 	if (IS_ERR(client))
 		return -PTR_ERR(client);
@@ -135,8 +123,8 @@ int uds_make_bufio(struct io_factory *factory,
 static void read_ahead(struct buffered_reader *reader, sector_t block_number)
 {
 	if (block_number < reader->limit) {
-		sector_t read_ahead =
-			min((sector_t) MAX_READ_AHEAD_BLOCKS, reader->limit - block_number);
+		sector_t read_ahead = min((sector_t) MAX_READ_AHEAD_BLOCKS,
+					  reader->limit - block_number);
 
 		dm_bufio_prefetch(reader->client, block_number, read_ahead);
 	}
@@ -156,9 +144,7 @@ void uds_free_buffered_reader(struct buffered_reader *reader)
 }
 
 /* Create a buffered reader for an index region starting at offset. */
-int uds_make_buffered_reader(struct io_factory *factory,
-			     off_t offset,
-			     u64 block_count,
+int uds_make_buffered_reader(struct io_factory *factory, off_t offset, u64 block_count,
 			     struct buffered_reader **reader_ptr)
 {
 	int result;
@@ -191,7 +177,8 @@ int uds_make_buffered_reader(struct io_factory *factory,
 	return UDS_SUCCESS;
 }
 
-static int position_reader(struct buffered_reader *reader, sector_t block_number, off_t offset)
+static int position_reader(struct buffered_reader *reader, sector_t block_number,
+			   off_t offset)
 {
 	struct dm_buffer *buffer = NULL;
 	void *data;
@@ -237,7 +224,8 @@ static int reset_reader(struct buffered_reader *reader)
 	return position_reader(reader, block_number, 0);
 }
 
-int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size_t length)
+int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data,
+				  size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -261,7 +249,8 @@ int uds_read_from_buffered_reader(struct buffered_reader *reader, u8 *data, size
  * Verify that the next data on the reader matches the required value. If the value matches, the
  * matching contents are consumed. If the value does not match, the reader state is unchanged.
  */
-int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value, size_t length)
+int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value,
+			     size_t length)
 {
 	int result = UDS_SUCCESS;
 	size_t chunk_size;
@@ -293,9 +282,7 @@ int uds_verify_buffered_data(struct buffered_reader *reader, const u8 *value, si
 }
 
 /* Create a buffered writer for an index region starting at offset. */
-int uds_make_buffered_writer(struct io_factory *factory,
-			     off_t offset,
-			     u64 block_count,
+int uds_make_buffered_writer(struct io_factory *factory, off_t offset, u64 block_count,
 			     struct buffered_writer **writer_ptr)
 {
 	int result;
@@ -407,7 +394,8 @@ void uds_free_buffered_writer(struct buffered_writer *writer)
  * Append data to the buffer, writing as needed. If no data is provided, zeros are written instead.
  * If a write error occurs, it is recorded and returned on every subsequent write attempt.
  */
-int uds_write_to_buffered_writer(struct buffered_writer *writer, const u8 *data, size_t length)
+int uds_write_to_buffered_writer(struct buffered_writer *writer, const u8 *data,
+				 size_t length)
 {
 	int result = writer->error;
 	size_t chunk_size;

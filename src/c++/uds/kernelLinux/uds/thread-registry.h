@@ -23,8 +23,7 @@ struct registered_thread {
 void uds_initialize_thread_registry(struct thread_registry *registry);
 
 void uds_register_thread(struct thread_registry *registry,
-			 struct registered_thread *new_thread,
-			 const void *pointer);
+			 struct registered_thread *new_thread, const void *pointer);
 
 void uds_unregister_thread(struct thread_registry *registry);
 

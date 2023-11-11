@@ -277,7 +277,8 @@ static void free_device_config(struct device_config *config)
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int get_version_number(int argc, char **argv, char **error_ptr, unsigned int *version_ptr)
+static int get_version_number(int argc, char **argv, char **error_ptr,
+			      unsigned int *version_ptr)
 {
 	/* version, if it exists, is in a form of V<n> */
 	if (sscanf(argv[0], "V%u", version_ptr) == 1) {
@@ -306,8 +307,7 @@ static int get_version_number(int argc, char **argv, char **error_ptr, unsigned 
 
 	if (*version_ptr != TABLE_VERSION) {
 		uds_log_warning("Detected version mismatch between kernel module and tools kernel: %d, tool: %d",
-				TABLE_VERSION,
-				*version_ptr);
+				TABLE_VERSION, *version_ptr);
 		uds_log_warning("Please consider upgrading management tools to match kernel.");
 	}
 	return VDO_SUCCESS;
@@ -348,7 +348,8 @@ static int split_string(const char *string, char separator, char ***substring_ar
 			substring_count++;
 	}
 
-	result = uds_allocate(substring_count + 1, char *, "string-splitting array", &substrings);
+	result = uds_allocate(substring_count + 1, char *, "string-splitting array",
+			      &substrings);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -356,9 +357,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 		if (*s == separator) {
 			ptrdiff_t length = s - string;
 
-			result = uds_allocate(length + 1,
-					      char,
-					      "split string",
+			result = uds_allocate(length + 1, char, "split string",
 					      &substrings[current_substring]);
 			if (result != UDS_SUCCESS) {
 				free_string_array(substrings);
@@ -379,7 +378,8 @@ static int split_string(const char *string, char separator, char ***substring_ar
 	BUG_ON(current_substring != (substring_count - 1));
 	length = strlen(string);
 
-	result = uds_allocate(length + 1, char, "split string", &substrings[current_substring]);
+	result = uds_allocate(length + 1, char, "split string",
+			      &substrings[current_substring]);
 	if (result != UDS_SUCCESS) {
 		free_string_array(substrings);
 		return result;
@@ -396,8 +396,8 @@ static int split_string(const char *string, char separator, char ***substring_ar
  * string. array_length is a bound on the number of valid elements in substring_array, in case it
  * is not NULL-terminated.
  */
-static int
-join_strings(char **substring_array, size_t array_length, char separator, char **string_ptr)
+static int join_strings(char **substring_array, size_t array_length, char separator,
+			char **string_ptr)
 {
 	size_t string_length = 0;
 	size_t i;
@@ -415,8 +415,7 @@ join_strings(char **substring_array, size_t array_length, char separator, char *
 
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		current_position = uds_append_to_buffer(current_position,
-							output + string_length,
-							"%s",
+							output + string_length, "%s",
 							substring_array[i]);
 		*current_position = separator;
 		current_position++;
@@ -439,8 +438,8 @@ join_strings(char **substring_array, size_t array_length, char separator, char *
  *
  * Return: VDO_SUCCESS or an error if bool_str is neither true_str nor false_str.
  */
-static inline int __must_check
-parse_bool(const char *bool_str, const char *true_str, const char *false_str, bool *bool_ptr)
+static inline int __must_check parse_bool(const char *bool_str, const char *true_str,
+					  const char *false_str, bool *bool_ptr)
 {
 	bool value = false;
 
@@ -505,8 +504,7 @@ static int process_one_thread_config_spec(const char *thread_param_type,
 	/* Handle other thread count parameters */
 	if (count > MAXIMUM_VDO_THREADS) {
 		uds_log_error("thread config string error: at most %d '%s' threads are allowed",
-			      MAXIMUM_VDO_THREADS,
-			      thread_param_type);
+			      MAXIMUM_VDO_THREADS, thread_param_type);
 		return -EINVAL;
 	}
 	if (strcmp(thread_param_type, "hash") == 0) {
@@ -548,7 +546,8 @@ static int process_one_thread_config_spec(const char *thread_param_type,
  * @spec: The thread parameter specification string.
  * @config: The configuration data to be updated.
  */
-static int parse_one_thread_config_spec(const char *spec, struct thread_count_config *config)
+static int parse_one_thread_config_spec(const char *spec,
+					struct thread_count_config *config)
 {
 	unsigned int count;
 	char **fields;
@@ -598,7 +597,8 @@ static int parse_one_thread_config_spec(const char *spec, struct thread_count_co
  *
  * Return: VDO_SUCCESS or -EINVAL or -ENOMEM
  */
-static int parse_thread_config_string(const char *string, struct thread_count_config *config)
+static int parse_thread_config_string(const char *string,
+				      struct thread_count_config *config)
 {
 	int result = VDO_SUCCESS;
 	char **specs;
@@ -632,8 +632,8 @@ static int parse_thread_config_string(const char *string, struct thread_count_co
  *
  * Return: VDO_SUCCESS or -EINVAL
  */
-static int
-process_one_key_value_pair(const char *key, unsigned int value, struct device_config *config)
+static int process_one_key_value_pair(const char *key, unsigned int value,
+				      struct device_config *config)
 {
 	/* Non thread optional parameters */
 	if (strcmp(key, "maxDiscard") == 0) {
@@ -663,8 +663,8 @@ process_one_key_value_pair(const char *key, unsigned int value, struct device_co
  *
  * Return: VDO_SUCCESS or error.
  */
-static int
-parse_one_key_value_pair(const char *key, const char *value, struct device_config *config)
+static int parse_one_key_value_pair(const char *key, const char *value,
+				    struct device_config *config)
 {
 	unsigned int count;
 	int result;
@@ -732,14 +732,14 @@ static int parse_key_value_pairs(int argc, char **argv, struct device_config *co
  *
  * Return: VDO_SUCCESS or error
  */
-static int parse_optional_arguments(struct dm_arg_set *arg_set,
-				    char **error_ptr,
+static int parse_optional_arguments(struct dm_arg_set *arg_set, char **error_ptr,
 				    struct device_config *config)
 {
 	int result = VDO_SUCCESS;
 
 	if (config->version == 0 || config->version == 1) {
-		result = parse_thread_config_string(arg_set->argv[0], &config->thread_counts);
+		result = parse_thread_config_string(arg_set->argv[0],
+						    &config->thread_counts);
 		if (result != VDO_SUCCESS) {
 			*error_ptr = "Invalid thread-count configuration";
 			return VDO_BAD_CONFIGURATION;
@@ -764,7 +764,8 @@ static int parse_optional_arguments(struct dm_arg_set *arg_set,
  * @error_ptr: A place to store a constant string about the error.
  * @error_str: A constant string to store in error_ptr.
  */
-static void handle_parse_error(struct device_config *config, char **error_ptr, char *error_str)
+static void handle_parse_error(struct device_config *config, char **error_ptr,
+			       char *error_str)
 {
 	free_device_config(config);
 	*error_ptr = error_str;
@@ -779,9 +780,7 @@ static void handle_parse_error(struct device_config *config, char **error_ptr, c
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int parse_device_config(int argc,
-			       char **argv,
-			       struct dm_target *ti,
+static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 			       struct device_config **config_ptr)
 {
 	bool enable_512e;
@@ -792,7 +791,8 @@ static int parse_device_config(int argc,
 	int result;
 
 	if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
-		handle_parse_error(config, error_ptr, "Logical size must be a multiple of 4096");
+		handle_parse_error(config, error_ptr,
+				   "Logical size must be a multiple of 4096");
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -803,7 +803,8 @@ static int parse_device_config(int argc,
 
 	result = uds_allocate(1, struct device_config, "device_config", &config);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(config, error_ptr, "Could not allocate config structure");
+		handle_parse_error(config, error_ptr,
+				   "Could not allocate config structure");
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -846,11 +847,11 @@ static int parse_device_config(int argc,
 	if (config->version >= 1)
 		dm_shift_arg(&arg_set);
 
-	result = uds_duplicate_string(dm_shift_arg(&arg_set),
-				      "parent device name",
+	result = uds_duplicate_string(dm_shift_arg(&arg_set), "parent device name",
 				      &config->parent_device_name);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(config, error_ptr, "Could not copy parent device name");
+		handle_parse_error(config, error_ptr,
+				   "Could not copy parent device name");
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -858,7 +859,8 @@ static int parse_device_config(int argc,
 	if (config->version >= 1) {
 		result = kstrtoull(dm_shift_arg(&arg_set), 10, &config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			handle_parse_error(config, error_ptr, "Invalid physical block count");
+			handle_parse_error(config, error_ptr,
+					   "Invalid physical block count");
 			return VDO_BAD_CONFIGURATION;
 		}
 	}
@@ -878,7 +880,8 @@ static int parse_device_config(int argc,
 	/* Get the page cache size. */
 	result = kstrtouint(dm_shift_arg(&arg_set), 10, &config->cache_size);
 	if (result != VDO_SUCCESS) {
-		handle_parse_error(config, error_ptr, "Invalid block map page cache size");
+		handle_parse_error(config, error_ptr,
+				   "Invalid block map page cache size");
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -904,7 +907,8 @@ static int parse_device_config(int argc,
 		 * the parsing of the table line.
 		 */
 		if (&arg_set.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
-			handle_parse_error(config, error_ptr, "Pool name not in expected location");
+			handle_parse_error(config, error_ptr,
+					   "Pool name not in expected location");
 			return VDO_BAD_CONFIGURATION;
 		}
 		dm_shift_arg(&arg_set);
@@ -927,8 +931,7 @@ static int parse_device_config(int argc,
 	     (config->thread_counts.physical_zones == 0)) ||
 	    ((config->thread_counts.physical_zones == 0) !=
 	     (config->thread_counts.hash_zones == 0))) {
-		handle_parse_error(config,
-				   error_ptr,
+		handle_parse_error(config, error_ptr,
 				   "Logical, physical, and hash zones counts must all be zero or all non-zero");
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -936,21 +939,17 @@ static int parse_device_config(int argc,
 #ifdef __KERNEL__
 	if (config->cache_size <
 	    (2 * MAXIMUM_VDO_USER_VIOS * config->thread_counts.logical_zones)) {
-		handle_parse_error(config,
-				   error_ptr,
+		handle_parse_error(config, error_ptr,
 				   "Insufficient block map cache for logical zones");
 		return VDO_BAD_CONFIGURATION;
 	}
 #endif /* __KERNEL__ */
 
-	result = dm_get_device(ti,
-			       config->parent_device_name,
-			       dm_table_get_mode(ti->table),
-			       &config->owned_device);
+	result = dm_get_device(ti, config->parent_device_name,
+			       dm_table_get_mode(ti->table), &config->owned_device);
 	if (result != 0) {
 		uds_log_error("couldn't open device \"%s\": error %d",
-			      config->parent_device_name,
-			      result);
+			      config->parent_device_name, result);
 		handle_parse_error(config, error_ptr, "Unable to open storage device");
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -1040,7 +1039,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	struct vdo_work_queue *current_work_queue;
 	const struct admin_state_code *code = vdo_get_admin_state_code(&vdo->admin.state);
 
-	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s", code->name);
+	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s",
+			code->name);
 
 	/* Count all incoming bios. */
 	vdo_count_bios(&vdo->stats.bios_in, bio);
@@ -1104,15 +1104,13 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 }
 
-static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn fn, void *data)
+static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn fn,
+			       void *data)
 {
 	struct device_config *config = get_vdo_for_target(ti)->device_config;
 
-	return fn(ti,
-		  config->owned_device,
-		  0,
-		  config->physical_blocks * VDO_SECTORS_PER_BLOCK,
-		  data);
+	return fn(ti, config->owned_device, 0,
+		  config->physical_blocks * VDO_SECTORS_PER_BLOCK, data);
 }
 
 /*
@@ -1121,11 +1119,8 @@ static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn 
  *    <used physical blocks> <total physical blocks>
  */
 
-static void vdo_status(struct dm_target *ti,
-		       status_type_t status_type,
-		       unsigned int status_flags,
-		       char *result,
-		       unsigned int maxlen)
+static void vdo_status(struct dm_target *ti, status_type_t status_type,
+		       unsigned int status_flags, char *result, unsigned int maxlen)
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
@@ -1141,8 +1136,7 @@ static void vdo_status(struct dm_target *ti,
 		stats = &vdo->stats_buffer;
 
 		DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
-		       vdo_get_backing_device(vdo),
-		       stats->mode,
+		       vdo_get_backing_device(vdo), stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
 		       vdo_get_compressing(vdo) ? "online" : "offline",
@@ -1170,7 +1164,8 @@ static block_count_t __must_check get_underlying_device_block_count(const struct
 	return i_size_read(vdo_get_backing_device(vdo)->bd_inode) / VDO_BLOCK_SIZE;
 }
 
-static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int argc, char **argv)
+static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int argc,
+						   char **argv)
 {
 	if ((argc == 2) && (strcasecmp(argv[0], "compression") == 0)) {
 		if (strcasecmp(argv[1], "on") == 0) {
@@ -1183,7 +1178,8 @@ static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int
 			return 0;
 		}
 
-		uds_log_warning("invalid argument '%s' to dmsetup compression message", argv[1]);
+		uds_log_warning("invalid argument '%s' to dmsetup compression message",
+				argv[1]);
 		return -EINVAL;
 	}
 
@@ -1196,7 +1192,8 @@ static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int
  * and only proceed if so.
  * Returns -EBUSY if another message is being processed
  */
-static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc, char **argv)
+static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc,
+					    char **argv)
 {
 	int result;
 
@@ -1235,11 +1232,8 @@ static int __must_check process_vdo_message(struct vdo *vdo, unsigned int argc, 
 	return result;
 }
 
-static int vdo_message(struct dm_target *ti,
-		       unsigned int argc,
-		       char **argv,
-		       char *result_buffer,
-		       unsigned int maxlen)
+static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
+		       char *result_buffer, unsigned int maxlen)
 {
 	struct registered_thread allocating_thread, instance_thread;
 	struct vdo *vdo;
@@ -1305,8 +1299,7 @@ static bool vdo_uses_device(struct vdo *vdo, const void *context)
  * get_thread_id_for_phase() - Get the thread id for the current phase of the admin operation in
  *                             progress.
  */
-static thread_id_t __must_check
-get_thread_id_for_phase(struct vdo *vdo)
+static thread_id_t __must_check get_thread_id_for_phase(struct vdo *vdo)
 {
 	switch (vdo->admin.phase) {
 	case RESUME_PHASE_PACKER:
@@ -1366,10 +1359,8 @@ static u32 advance_phase(struct vdo *vdo)
  * Perform an administrative operation (load, suspend, grow logical, or grow physical). This method
  * should not be called from vdo threads.
  */
-static int perform_admin_operation(struct vdo *vdo,
-				   u32 starting_phase,
-				   vdo_action *callback,
-				   vdo_action *error_handler,
+static int perform_admin_operation(struct vdo *vdo, u32 starting_phase,
+				   vdo_action *callback, vdo_action *error_handler,
 				   const char *type)
 {
 	int result;
@@ -1405,8 +1396,7 @@ static int perform_admin_operation(struct vdo *vdo,
 static void assert_admin_phase_thread(struct vdo *vdo, const char *what)
 {
 	ASSERT_LOG_ONLY(vdo_get_callback_thread_id() == get_thread_id_for_phase(vdo),
-			"%s on correct thread for %s",
-			what,
+			"%s on correct thread for %s", what,
 			ADMIN_PHASE_NAMES[vdo->admin.phase]);
 }
 
@@ -1437,8 +1427,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 	const struct device_config *config = vdo->device_config;
 	int result;
 
-	result = vdo_decode_component_states(vdo->super_block.buffer,
-					     &vdo->geometry,
+	result = vdo_decode_component_states(vdo->super_block.buffer, &vdo->geometry,
 					     &vdo->states);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1457,8 +1446,7 @@ static int __must_check decode_from_super_block(struct vdo *vdo)
 		vdo->states.vdo.config.logical_blocks = config->logical_blocks;
 	}
 
-	result = vdo_validate_component_states(&vdo->states,
-					       vdo->geometry.nonce,
+	result = vdo_validate_component_states(&vdo->states, vdo->geometry.nonce,
 					       config->physical_blocks,
 					       config->logical_blocks);
 	if (result != VDO_SUCCESS)
@@ -1510,11 +1498,10 @@ static int __must_check decode_vdo(struct vdo *vdo)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	partition = vdo_get_known_partition(&vdo->layout, VDO_RECOVERY_JOURNAL_PARTITION);
+	partition = vdo_get_known_partition(&vdo->layout,
+					    VDO_RECOVERY_JOURNAL_PARTITION);
 	result = vdo_decode_recovery_journal(vdo->states.recovery_journal,
-					     vdo->states.vdo.nonce,
-					     vdo,
-					     partition,
+					     vdo->states.vdo.nonce, vdo, partition,
 					     vdo->states.vdo.complete_recoveries,
 					     vdo->states.vdo.config.recovery_journal_size,
 					     &vdo->recovery_journal);
@@ -1522,20 +1509,15 @@ static int __must_check decode_vdo(struct vdo *vdo)
 		return result;
 
 	partition = vdo_get_known_partition(&vdo->layout, VDO_SLAB_SUMMARY_PARTITION);
-	result = vdo_decode_slab_depot(vdo->states.slab_depot,
-				       vdo,
-				       partition,
+	result = vdo_decode_slab_depot(vdo->states.slab_depot, vdo, partition,
 				       &vdo->depot);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_decode_block_map(vdo->states.block_map,
-				      vdo->states.vdo.config.logical_blocks,
-				      vdo,
-				      vdo->recovery_journal,
-				      vdo->states.vdo.nonce,
-				      vdo->device_config->cache_size,
-				      maximum_age,
+				      vdo->states.vdo.config.logical_blocks, vdo,
+				      vdo->recovery_journal, vdo->states.vdo.nonce,
+				      vdo->device_config->cache_size, maximum_age,
 				      &vdo->block_map);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -1565,7 +1547,8 @@ static void pre_load_callback(struct vdo_completion *completion)
 
 	switch (advance_phase(vdo)) {
 	case PRE_LOAD_PHASE_START:
-		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_PRE_LOADING);
+		result = vdo_start_operation(&vdo->admin.state,
+					     VDO_ADMIN_STATE_PRE_LOADING);
 		if (result != VDO_SUCCESS) {
 			vdo_continue_completion(completion, result);
 			return;
@@ -1594,8 +1577,7 @@ STATIC void release_instance(unsigned int instance)
 	if (instance >= instances.bit_count) {
 		ASSERT_LOG_ONLY(false,
 				"instance number %u must be less than bit count %u",
-				instance,
-				instances.bit_count);
+				instance, instances.bit_count);
 	} else if (test_bit(instance, instances.words) == 0) {
 		ASSERT_LOG_ONLY(false, "instance number %u must be allocated", instance);
 	} else {
@@ -1605,7 +1587,8 @@ STATIC void release_instance(unsigned int instance)
 	mutex_unlock(&instances_lock);
 }
 
-static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct device_config *config)
+static void set_device_config(struct dm_target *ti, struct vdo *vdo,
+			      struct device_config *config)
 {
 	list_del_init(&config->config_list);
 	list_add_tail(&config->config_list, &vdo->device_config_list);
@@ -1616,8 +1599,8 @@ static void set_device_config(struct dm_target *ti, struct vdo *vdo, struct devi
 #endif /* __KERNEL__ */
 }
 
-static int
-vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config *config)
+static int vdo_initialize(struct dm_target *ti, unsigned int instance,
+			  struct device_config *config)
 {
 	struct vdo *vdo;
 	int result;
@@ -1646,24 +1629,19 @@ vdo_initialize(struct dm_target *ti, unsigned int instance, struct device_config
 	result = vdo_make(instance, config, &ti->error, &vdo);
 	if (result != VDO_SUCCESS) {
 		uds_log_error("Could not create VDO device. (VDO error %d, message %s)",
-			      result,
-			      ti->error);
+			      result, ti->error);
 		vdo_destroy(vdo);
 		return result;
 	}
 
-	result = perform_admin_operation(vdo,
-					 PRE_LOAD_PHASE_START,
-					 pre_load_callback,
-					 finish_operation_callback,
-					 "pre-load");
+	result = perform_admin_operation(vdo, PRE_LOAD_PHASE_START, pre_load_callback,
+					 finish_operation_callback, "pre-load");
 	if (result != VDO_SUCCESS) {
 		ti->error = ((result == VDO_INVALID_ADMIN_STATE) ?
 			     "Pre-load is only valid immediately after initialization" :
 			     "Cannot load metadata from device");
 		uds_log_error("Could not start VDO device. (VDO error %d, message %s)",
-			      result,
-			      ti->error);
+			      result, ti->error);
 		vdo_destroy(vdo);
 		return result;
 	}
@@ -1706,16 +1684,15 @@ static size_t get_bit_array_size(unsigned int bit_count)
  */
 static int grow_bit_array(void)
 {
-	unsigned int new_count =
-		max(instances.bit_count + BIT_COUNT_INCREMENT, (unsigned int) BIT_COUNT_MINIMUM);
+	unsigned int new_count = max(instances.bit_count + BIT_COUNT_INCREMENT,
+				     (unsigned int) BIT_COUNT_MINIMUM);
 	unsigned long *new_words;
 	int result;
 
 	result = uds_reallocate_memory(instances.words,
 				       get_bit_array_size(instances.bit_count),
 				       get_bit_array_size(new_count),
-				       "instance number bit array",
-				       &new_words);
+				       "instance number bit array", &new_words);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1748,13 +1725,13 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 	 * There must be a zero bit somewhere now. Find it, starting just after the last instance
 	 * allocated.
 	 */
-	instance = find_next_zero_bit(instances.words,
-				      instances.bit_count,
+	instance = find_next_zero_bit(instances.words, instances.bit_count,
 				      instances.next);
 	if (instance >= instances.bit_count) {
 		/* Nothing free after next, so wrap around to instance zero. */
 		instance = find_first_zero_bit(instances.words, instances.bit_count);
-		result = ASSERT(instance < instances.bit_count, "impossibly, no zero bit found");
+		result = ASSERT(instance < instances.bit_count,
+				"impossibly, no zero bit found");
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -1766,10 +1743,8 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 	return UDS_SUCCESS;
 }
 
-static int construct_new_vdo_registered(struct dm_target *ti,
-					unsigned int argc,
-					char **argv,
-					unsigned int instance)
+static int construct_new_vdo_registered(struct dm_target *ti, unsigned int argc,
+					char **argv, unsigned int instance)
 {
 	int result;
 	struct device_config *config;
@@ -1868,9 +1843,9 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 	 * Make a new layout with the existing partition sizes for everything but the slab depot
 	 * partition.
 	 */
-	result = vdo_initialize_layout(new_size,
-				       vdo->layout.start,
-				       get_partition_size(&vdo->layout, VDO_BLOCK_MAP_PARTITION),
+	result = vdo_initialize_layout(new_size, vdo->layout.start,
+				       get_partition_size(&vdo->layout,
+							  VDO_BLOCK_MAP_PARTITION),
 				       get_partition_size(&vdo->layout,
 							  VDO_RECOVERY_JOURNAL_PARTITION),
 				       get_partition_size(&vdo->layout,
@@ -1883,8 +1858,10 @@ STATIC int grow_layout(struct vdo *vdo, block_count_t old_size, block_count_t ne
 
 	/* Ensure the new journal and summary are entirely within the added blocks. */
 	min_new_size = (old_size +
-			get_partition_size(&vdo->next_layout, VDO_SLAB_SUMMARY_PARTITION) +
-			get_partition_size(&vdo->next_layout, VDO_RECOVERY_JOURNAL_PARTITION));
+			get_partition_size(&vdo->next_layout,
+					   VDO_SLAB_SUMMARY_PARTITION) +
+			get_partition_size(&vdo->next_layout,
+					   VDO_RECOVERY_JOURNAL_PARTITION));
 	if (min_new_size > new_size) {
 		/* Copying the journal and summary would destroy some old metadata. */
 		vdo_uninitialize_layout(&vdo->next_layout);
@@ -1904,8 +1881,7 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
 		     (unsigned long long) new_physical_blocks);
 	ASSERT_LOG_ONLY((new_physical_blocks > current_physical_blocks),
 			"New physical size is larger than current physical size");
-	result = perform_admin_operation(vdo,
-					 PREPARE_GROW_PHYSICAL_PHASE_START,
+	result = perform_admin_operation(vdo, PREPARE_GROW_PHYSICAL_PHASE_START,
 					 check_may_grow_physical,
 					 finish_operation_callback,
 					 "prepare grow-physical");
@@ -1940,8 +1916,7 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
  * Return: VDO_SUCCESS or an error.
  */
 static int validate_new_device_config(struct device_config *to_validate,
-				      struct device_config *config,
-				      bool may_grow,
+				      struct device_config *config, bool may_grow,
 				      char **error_ptr)
 {
 	if (to_validate->owning_target->begin != config->owning_target->begin) {
@@ -1969,8 +1944,7 @@ static int validate_new_device_config(struct device_config *to_validate,
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	if (memcmp(&to_validate->thread_counts,
-		   &config->thread_counts,
+	if (memcmp(&to_validate->thread_counts, &config->thread_counts,
 		   sizeof(struct thread_count_config)) != 0) {
 		*error_ptr = "Thread configuration cannot change";
 		return VDO_PARAMETER_MISMATCH;
@@ -1989,12 +1963,14 @@ static int validate_new_device_config(struct device_config *to_validate,
 	return VDO_SUCCESS;
 }
 
-static int prepare_to_modify(struct dm_target *ti, struct device_config *config, struct vdo *vdo)
+static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
+			     struct vdo *vdo)
 {
 	int result;
 	bool may_grow = (vdo_get_admin_state(vdo) != VDO_ADMIN_STATE_PRE_LOADED);
 
-	result = validate_new_device_config(config, vdo->device_config, may_grow, &ti->error);
+	result = validate_new_device_config(config, vdo->device_config, may_grow,
+					    &ti->error);
 	if (result != VDO_SUCCESS)
 		return -EINVAL;
 
@@ -2006,7 +1982,8 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 		ASSERT_LOG_ONLY((config->logical_blocks > logical_blocks),
 				"New logical size is larger than current size");
 
-		result = vdo_prepare_to_grow_block_map(vdo->block_map, config->logical_blocks);
+		result = vdo_prepare_to_grow_block_map(vdo->block_map,
+						       config->logical_blocks);
 		if (result != VDO_SUCCESS) {
 			ti->error = "Device vdo_prepare_to_grow_logical failed";
 			return result;
@@ -2038,8 +2015,7 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 	if (strcmp(config->parent_device_name, vdo->device_config->parent_device_name) != 0) {
 		const char *device_name = vdo_get_device_name(config->owning_target);
 
-		uds_log_info("Updating backing device of %s from %s to %s",
-			     device_name,
+		uds_log_info("Updating backing device of %s from %s to %s", device_name,
 			     vdo->device_config->parent_device_name,
 			     config->parent_device_name);
 	}
@@ -2047,11 +2023,8 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 	return VDO_SUCCESS;
 }
 
-static int update_existing_vdo(const char *device_name,
-			       struct dm_target *ti,
-			       unsigned int argc,
-			       char **argv,
-			       struct vdo *vdo)
+static int update_existing_vdo(const char *device_name, struct dm_target *ti,
+			       unsigned int argc, char **argv, struct vdo *vdo)
 {
 	int result;
 	struct device_config *config;
@@ -2125,8 +2098,7 @@ static void vdo_dtr(struct dm_target *ti)
 		 * being destroyed.
 		 */
 		vdo->device_config = list_first_entry(&vdo->device_config_list,
-						      struct device_config,
-						      config_list);
+						      struct device_config, config_list);
 	}
 
 	free_device_config(config);
@@ -2188,7 +2160,8 @@ static void suspend_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		vdo_continue_completion(completion, vdo_start_operation(state, vdo->suspend_type));
+		vdo_continue_completion(completion,
+					vdo_start_operation(state, vdo->suspend_type));
 		return;
 
 	case SUSPEND_PHASE_PACKER:
@@ -2227,25 +2200,21 @@ static void suspend_callback(struct vdo_completion *completion)
 			vdo_enter_read_only_mode(vdo, result);
 
 		vdo_drain_logical_zones(vdo->logical_zones,
-					vdo_get_admin_state_code(state),
-					completion);
+					vdo_get_admin_state_code(state), completion);
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
-		vdo_drain_block_map(vdo->block_map,
-				    vdo_get_admin_state_code(state),
+		vdo_drain_block_map(vdo->block_map, vdo_get_admin_state_code(state),
 				    completion);
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
 		vdo_drain_recovery_journal(vdo->recovery_journal,
-					   vdo_get_admin_state_code(state),
-					   completion);
+					   vdo_get_admin_state_code(state), completion);
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
-		vdo_drain_slab_depot(vdo->depot,
-				     vdo_get_admin_state_code(state),
+		vdo_drain_slab_depot(vdo->depot, vdo_get_admin_state_code(state),
 				     completion);
 		return;
 
@@ -2290,11 +2259,8 @@ static void vdo_postsuspend(struct dm_target *ti)
 	 * It's important to note any error here does not actually stop device-mapper from
 	 * suspending the device. All this work is done post suspend.
 	 */
-	result = perform_admin_operation(vdo,
-					 SUSPEND_PHASE_START,
-					 suspend_callback,
-					 suspend_callback,
-					 "suspend");
+	result = perform_admin_operation(vdo, SUSPEND_PHASE_START, suspend_callback,
+					 suspend_callback, "suspend");
 #ifdef INTERNAL
 	suspend_result = result;
 #endif /* INTERNAL */
@@ -2309,7 +2275,8 @@ static void vdo_postsuspend(struct dm_target *ti)
 		uds_log_error("Suspend invoked while in unexpected state: %s",
 			      vdo_get_admin_state(vdo)->name);
 	} else {
-		uds_log_error_strerror(result, "Suspend of device '%s' failed", device_name);
+		uds_log_error_strerror(result, "Suspend of device '%s' failed",
+				       device_name);
 	}
 
 	uds_unregister_thread_device_id();
@@ -2398,7 +2365,8 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 
 	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
 	vdo->sysfs_added = true;
-	result = kobject_add(&vdo->vdo_directory, &disk_to_dev(dm_disk(md))->kobj, "vdo");
+	result = kobject_add(&vdo->vdo_directory, &disk_to_dev(dm_disk(md))->kobj,
+			     "vdo");
 	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
 
@@ -2432,7 +2400,8 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		/* Prepare the recovery journal for new entries. */
-		vdo_open_recovery_journal(vdo->recovery_journal, vdo->depot, vdo->block_map);
+		vdo_open_recovery_journal(vdo->recovery_journal, vdo->depot,
+					  vdo->block_map);
 		vdo_allow_read_only_mode_entry(completion);
 		return;
 
@@ -2456,11 +2425,9 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		vdo_load_slab_depot(vdo->depot,
-				    (was_new(vdo) ?
-				     VDO_ADMIN_STATE_FORMATTING :
+				    (was_new(vdo) ? VDO_ADMIN_STATE_FORMATTING :
 				     VDO_ADMIN_STATE_LOADING),
-				    completion,
-				    NULL);
+				    completion, NULL);
 		return;
 
 	case LOAD_PHASE_MAKE_DIRTY:
@@ -2469,8 +2436,10 @@ static void load_callback(struct vdo_completion *completion)
 		return;
 
 	case LOAD_PHASE_PREPARE_TO_ALLOCATE:
-		vdo_initialize_block_map_from_journal(vdo->block_map, vdo->recovery_journal);
-		vdo_prepare_slab_depot_to_allocate(vdo->depot, get_load_type(vdo), completion);
+		vdo_initialize_block_map_from_journal(vdo->block_map,
+						      vdo->recovery_journal);
+		vdo_prepare_slab_depot_to_allocate(vdo->depot, get_load_type(vdo),
+						   completion);
 		return;
 
 	case LOAD_PHASE_SCRUB_SLABS:
@@ -2497,8 +2466,7 @@ static void load_callback(struct vdo_completion *completion)
 		break;
 
 	case LOAD_PHASE_DRAIN_JOURNAL:
-		vdo_drain_recovery_journal(vdo->recovery_journal,
-					   VDO_ADMIN_STATE_SAVING,
+		vdo_drain_recovery_journal(vdo->recovery_journal, VDO_ADMIN_STATE_SAVING,
 					   completion);
 		return;
 
@@ -2527,7 +2495,8 @@ static void handle_load_error(struct vdo_completion *completion)
 {
 	struct vdo *vdo = completion->vdo;
 
-	if (vdo_requeue_completion_if_needed(completion, vdo->thread_config.admin_thread))
+	if (vdo_requeue_completion_if_needed(completion,
+					     vdo->thread_config.admin_thread))
 		return;
 
 	if (vdo_state_requires_read_only_rebuild(vdo->load_state) &&
@@ -2538,7 +2507,8 @@ static void handle_load_error(struct vdo_completion *completion)
 		return;
 	}
 
-	uds_log_error_strerror(completion->result, "Entering read-only mode due to load error");
+	uds_log_error_strerror(completion->result,
+			       "Entering read-only mode due to load error");
 	vdo->admin.phase = LOAD_PHASE_WAIT_FOR_READ_ONLY;
 	vdo_enter_read_only_mode(vdo, completion->result);
 	completion->result = VDO_READ_ONLY;
@@ -2588,7 +2558,8 @@ static void resume_callback(struct vdo_completion *completion)
 
 	switch (advance_phase(vdo)) {
 	case RESUME_PHASE_START:
-		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_RESUMING);
+		result = vdo_start_operation(&vdo->admin.state,
+					     VDO_ADMIN_STATE_RESUMING);
 		if (result != VDO_SUCCESS) {
 			vdo_continue_completion(completion, result);
 			return;
@@ -2747,15 +2718,14 @@ static int perform_grow_logical(struct vdo *vdo, block_count_t new_logical_block
 		return VDO_SUCCESS;
 	}
 
-	uds_log_info("Resizing logical to %llu", (unsigned long long) new_logical_blocks);
+	uds_log_info("Resizing logical to %llu",
+		     (unsigned long long) new_logical_blocks);
 	if (vdo->block_map->next_entry_count != new_logical_blocks)
 		return VDO_PARAMETER_MISMATCH;
 
-	result = perform_admin_operation(vdo,
-					 GROW_LOGICAL_PHASE_START,
+	result = perform_admin_operation(vdo, GROW_LOGICAL_PHASE_START,
 					 grow_logical_callback,
-					 handle_logical_growth_error,
-					 "grow logical");
+					 handle_logical_growth_error, "grow logical");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2771,8 +2741,8 @@ static void copy_callback(int read_err, unsigned long write_err, void *context)
 	vdo_continue_completion(completion, result);
 }
 
-static void
-partition_to_region(struct partition *partition, struct vdo *vdo, struct dm_io_region *region)
+static void partition_to_region(struct partition *partition, struct vdo *vdo,
+				struct dm_io_region *region)
 {
 	physical_block_number_t pbn = partition->offset - vdo->geometry.bio_offset;
 
@@ -2790,7 +2760,8 @@ partition_to_region(struct partition *partition, struct vdo *vdo, struct dm_io_r
  * @id: The ID of the partition to copy.
  * @parent: The completion to notify when the copy is complete.
  */
-static void copy_partition(struct vdo *vdo, enum partition_id id, struct vdo_completion *parent)
+static void copy_partition(struct vdo *vdo, enum partition_id id,
+			   struct vdo_completion *parent)
 {
 	struct dm_io_region read_region, write_regions[1];
 	struct partition *from = vdo_get_known_partition(&vdo->layout, id);
@@ -2798,13 +2769,8 @@ static void copy_partition(struct vdo *vdo, enum partition_id id, struct vdo_com
 
 	partition_to_region(from, vdo, &read_region);
 	partition_to_region(to, vdo, &write_regions[0]);
-	dm_kcopyd_copy(vdo->partition_copier,
-		       &read_region,
-		       1,
-		       write_regions,
-		       0,
-		       copy_callback,
-		       parent);
+	dm_kcopyd_copy(vdo->partition_copier, &read_region, 1, write_regions, 0,
+		       copy_callback, parent);
 }
 
 /**
@@ -2859,7 +2825,8 @@ static void grow_physical_callback(struct vdo_completion *completion)
 
 	case GROW_PHYSICAL_PHASE_END:
 		vdo->depot->summary_origin =
-			vdo_get_known_partition(&vdo->layout, VDO_SLAB_SUMMARY_PARTITION)->offset;
+			vdo_get_known_partition(&vdo->layout,
+						VDO_SLAB_SUMMARY_PARTITION)->offset;
 		vdo->recovery_journal->origin =
 			vdo_get_known_partition(&vdo->layout,
 						VDO_RECOVERY_JOURNAL_PARTITION)->offset;
@@ -2925,11 +2892,9 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
 	if (prepared_depot_size != new_depot_size)
 		return VDO_PARAMETER_MISMATCH;
 
-	result = perform_admin_operation(vdo,
-					 GROW_PHYSICAL_PHASE_START,
+	result = perform_admin_operation(vdo, GROW_PHYSICAL_PHASE_START,
 					 grow_physical_callback,
-					 handle_physical_growth_error,
-					 "grow physical");
+					 handle_physical_growth_error, "grow physical");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2948,7 +2913,8 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
  *
  * Return: VDO_SUCCESS or an error.
  */
-static int __must_check apply_new_vdo_configuration(struct vdo *vdo, struct device_config *config)
+static int __must_check apply_new_vdo_configuration(struct vdo *vdo,
+						    struct device_config *config)
 {
 	int result;
 
@@ -2980,19 +2946,15 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 	if (backing_blocks < config->physical_blocks) {
 		/* FIXME: can this still happen? */
 		uds_log_error("resume of device '%s' failed: backing device has %llu blocks but VDO physical size is %llu blocks",
-			      device_name,
-			      (unsigned long long) backing_blocks,
+			      device_name, (unsigned long long) backing_blocks,
 			      (unsigned long long) config->physical_blocks);
 		return -EINVAL;
 	}
 
 	if (vdo_get_admin_state(vdo) == VDO_ADMIN_STATE_PRE_LOADED) {
 		uds_log_info("starting device '%s'", device_name);
-		result = perform_admin_operation(vdo,
-						 LOAD_PHASE_START,
-						 load_callback,
-						 handle_load_error,
-						 "load");
+		result = perform_admin_operation(vdo, LOAD_PHASE_START, load_callback,
+						 handle_load_error, "load");
 		if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 			/*
 			 * Something has gone very wrong. Make sure everything has drained and
@@ -3001,10 +2963,8 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 			uds_log_error_strerror(result,
 					       "Start failed, could not load VDO metadata");
 			vdo->suspend_type = VDO_ADMIN_STATE_STOPPING;
-			perform_admin_operation(vdo,
-						SUSPEND_PHASE_START,
-						suspend_callback,
-						suspend_callback,
+			perform_admin_operation(vdo, SUSPEND_PHASE_START,
+						suspend_callback, suspend_callback,
 						"suspend");
 			return result;
 		}
@@ -3046,11 +3006,8 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 		return VDO_SUCCESS;
 	}
 
-	result = perform_admin_operation(vdo,
-					 RESUME_PHASE_START,
-					 resume_callback,
-					 resume_callback,
-					 "resume");
+	result = perform_admin_operation(vdo, RESUME_PHASE_START, resume_callback,
+					 resume_callback, "resume");
 #ifdef INTERNAL
 	resume_result = result;
 #endif /* INTERNAL */
@@ -3061,7 +3018,8 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 	}
 
 	if (result != VDO_SUCCESS)
-		uds_log_error("resume of device '%s' failed with error: %d", device_name, result);
+		uds_log_error("resume of device '%s' failed with error: %d", device_name,
+			      result);
 
 	return result;
 }
@@ -3084,7 +3042,8 @@ static void vdo_resume(struct dm_target *ti)
 {
 	struct registered_thread instance_thread;
 
-	uds_register_thread_device_id(&instance_thread, &get_vdo_for_target(ti)->instance);
+	uds_register_thread_device_id(&instance_thread,
+				      &get_vdo_for_target(ti)->instance);
 	uds_log_info("device '%s' resumed", vdo_get_device_name(ti));
 	uds_unregister_thread_device_id();
 }

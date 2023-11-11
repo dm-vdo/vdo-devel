@@ -57,8 +57,7 @@ static bool are_matching_configurations(struct configuration *saved_config,
 
 	if (saved_config->cache_chapters != user->cache_chapters) {
 		uds_log_error("Cache size (%u) does not match (%u)",
-			      saved_config->cache_chapters,
-			      user->cache_chapters);
+			      saved_config->cache_chapters, user->cache_chapters);
 		result = false;
 	}
 
@@ -71,8 +70,7 @@ static bool are_matching_configurations(struct configuration *saved_config,
 
 	if (saved_geometry->bytes_per_page != geometry->bytes_per_page) {
 		uds_log_error("Bytes per page value (%zu) does not match (%zu)",
-			      saved_geometry->bytes_per_page,
-			      geometry->bytes_per_page);
+			      saved_geometry->bytes_per_page, geometry->bytes_per_page);
 		result = false;
 	}
 
@@ -94,7 +92,8 @@ static bool are_matching_configurations(struct configuration *saved_config,
 }
 
 /* Read the configuration and validate it against the provided one. */
-int uds_validate_config_contents(struct buffered_reader *reader, struct configuration *user_config)
+int uds_validate_config_contents(struct buffered_reader *reader,
+				 struct configuration *user_config)
 {
 	int result;
 	struct configuration config;
@@ -104,12 +103,12 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
 	u8 buffer[sizeof(struct uds_configuration_6_02)];
 	size_t offset = 0;
 
-	result = uds_verify_buffered_data(reader, INDEX_CONFIG_MAGIC, INDEX_CONFIG_MAGIC_LENGTH);
+	result = uds_verify_buffered_data(reader, INDEX_CONFIG_MAGIC,
+					  INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_read_from_buffered_reader(reader,
-					       version_buffer,
+	result = uds_read_from_buffered_reader(reader, version_buffer,
 					       INDEX_CONFIG_VERSION_LENGTH);
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result, "cannot read index config version");
@@ -149,13 +148,16 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
 	} else {
 		u8 remapping[sizeof(u64) + sizeof(u64)];
 
-		result = uds_read_from_buffered_reader(reader, remapping, sizeof(remapping));
+		result = uds_read_from_buffered_reader(reader, remapping,
+						       sizeof(remapping));
 		if (result != UDS_SUCCESS)
 			return uds_log_error_strerror(result, "cannot read converted config");
 
 		offset = 0;
-		decode_u64_le(remapping, &offset, &user_config->geometry->remapped_virtual);
-		decode_u64_le(remapping, &offset, &user_config->geometry->remapped_physical);
+		decode_u64_le(remapping, &offset,
+			      &user_config->geometry->remapped_virtual);
+		decode_u64_le(remapping, &offset,
+			      &user_config->geometry->remapped_physical);
 	}
 
 	if (!are_matching_configurations(&config, &geometry, user_config)) {
@@ -172,16 +174,14 @@ int uds_validate_config_contents(struct buffered_reader *reader, struct configur
  * been reduced by one chapter.
  */
 int uds_write_config_contents(struct buffered_writer *writer,
-			      struct configuration *config,
-			      u32 version)
+			      struct configuration *config, u32 version)
 {
 	int result;
 	struct geometry *geometry = config->geometry;
 	u8 buffer[sizeof(struct uds_configuration_8_02)];
 	size_t offset = 0;
 
-	result = uds_write_to_buffered_writer(writer,
-					      INDEX_CONFIG_MAGIC,
+	result = uds_write_to_buffered_writer(writer, INDEX_CONFIG_MAGIC,
 					      INDEX_CONFIG_MAGIC_LENGTH);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -191,14 +191,12 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	 * as version 6.02 so that it is still compatible with older versions of UDS.
 	 */
 	if (version >= 4) {
-		result = uds_write_to_buffered_writer(writer,
-						      INDEX_CONFIG_VERSION_8_02,
+		result = uds_write_to_buffered_writer(writer, INDEX_CONFIG_VERSION_8_02,
 						      INDEX_CONFIG_VERSION_LENGTH);
 		if (result != UDS_SUCCESS)
 			return result;
 	} else {
-		result = uds_write_to_buffered_writer(writer,
-						      INDEX_CONFIG_VERSION_6_02,
+		result = uds_write_to_buffered_writer(writer, INDEX_CONFIG_VERSION_6_02,
 						      INDEX_CONFIG_VERSION_LENGTH);
 		if (result != UDS_SUCCESS)
 			return result;
@@ -215,8 +213,7 @@ int uds_write_config_contents(struct buffered_writer *writer,
 	encode_u64_le(buffer, &offset, config->nonce);
 
 	result = ASSERT(offset == sizeof(struct uds_configuration_6_02),
-			"%zu bytes encoded, of %zu expected",
-			offset,
+			"%zu bytes encoded, of %zu expected", offset,
 			sizeof(struct uds_configuration_6_02));
 	if (result != UDS_SUCCESS)
 		return result;
@@ -230,10 +227,8 @@ int uds_write_config_contents(struct buffered_writer *writer,
 }
 
 /* Compute configuration parameters that depend on memory size. */
-static int compute_memory_sizes(uds_memory_config_size_t mem_gb,
-				bool sparse,
-				u32 *chapters_per_volume,
-				u32 *record_pages_per_chapter,
+static int compute_memory_sizes(uds_memory_config_size_t mem_gb, bool sparse,
+				u32 *chapters_per_volume, u32 *record_pages_per_chapter,
 				u32 *sparse_chapters_per_volume)
 {
 	u32 reduced_chapters = 0;
@@ -305,8 +300,7 @@ static unsigned int __must_check normalize_zone_count(unsigned int requested)
 		zone_count = MAX_ZONES;
 
 	uds_log_info("Using %u indexing zone%s for concurrency.",
-		     zone_count,
-		     zone_count == 1 ? "" : "s");
+		     zone_count, zone_count == 1 ? "" : "s");
 	return zone_count;
 }
 
@@ -323,7 +317,8 @@ static unsigned int __must_check normalize_read_threads(unsigned int requested)
 	return read_threads;
 }
 
-int uds_make_configuration(const struct uds_parameters *params, struct configuration **config_ptr)
+int uds_make_configuration(const struct uds_parameters *params,
+			   struct configuration **config_ptr)
 {
 	struct configuration *config;
 	u32 chapters_per_volume = 0;
@@ -331,10 +326,8 @@ int uds_make_configuration(const struct uds_parameters *params, struct configura
 	u32 sparse_chapters_per_volume = 0;
 	int result;
 
-	result = compute_memory_sizes(params->memory_size,
-				      params->sparse,
-				      &chapters_per_volume,
-				      &record_pages_per_chapter,
+	result = compute_memory_sizes(params->memory_size, params->sparse,
+				      &chapters_per_volume, &record_pages_per_chapter,
 				      &sparse_chapters_per_volume);
 	if (result != UDS_SUCCESS)
 		return result;
@@ -343,12 +336,8 @@ int uds_make_configuration(const struct uds_parameters *params, struct configura
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_make_geometry(DEFAULT_BYTES_PER_PAGE,
-				   record_pages_per_chapter,
-				   chapters_per_volume,
-				   sparse_chapters_per_volume,
-				   0,
-				   0,
+	result = uds_make_geometry(DEFAULT_BYTES_PER_PAGE, record_pages_per_chapter,
+				   chapters_per_volume, sparse_chapters_per_volume, 0, 0,
 				   &config->geometry);
 	if (result != UDS_SUCCESS) {
 		uds_free_configuration(config);

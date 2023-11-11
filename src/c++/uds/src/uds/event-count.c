@@ -188,7 +188,8 @@ static inline bool fast_cancel(struct event_count *count, event_token_t token)
 		 * Try to decrement the waiter count via compare-and-swap as if we had never
 		 * prepared to wait.
 		 */
-		new_token = atomic64_cmpxchg(&count->state, current_token, current_token - 1);
+		new_token = atomic64_cmpxchg(&count->state, current_token,
+					     current_token - 1);
 		if (new_token == current_token)
 			return true;
 
@@ -295,7 +296,8 @@ void event_count_cancel(struct event_count *count, event_token_t token)
  * attempt to cancel the token in this case. The timeout is measured in nanoseconds. This function
  * returns true if the state changed, or false if it timed out.
  */
-bool event_count_wait(struct event_count *count, event_token_t token, const ktime_t *timeout)
+bool event_count_wait(struct event_count *count, event_token_t token,
+		      const ktime_t *timeout)
 {
 #if defined(TEST_INTERNAL) && defined(INSTRUMENTED)
 	atomic64_inc(&count->waits);

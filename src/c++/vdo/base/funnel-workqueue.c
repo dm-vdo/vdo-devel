@@ -75,11 +75,11 @@ struct round_robin_work_queue {
 
 static inline struct simple_work_queue *as_simple_work_queue(struct vdo_work_queue *queue)
 {
-	return ((queue == NULL) ? NULL : container_of(queue, struct simple_work_queue, common));
+	return ((queue == NULL) ?
+		NULL : container_of(queue, struct simple_work_queue, common));
 }
 
-static inline struct round_robin_work_queue *
-as_round_robin_work_queue(struct vdo_work_queue *queue)
+static inline struct round_robin_work_queue *as_round_robin_work_queue(struct vdo_work_queue *queue)
 {
 	return ((queue == NULL) ?
 		 NULL :
@@ -110,15 +110,12 @@ static struct vdo_completion *poll_for_completion(struct simple_work_queue *queu
 	return NULL;
 }
 
-static void
-enqueue_work_queue_completion(struct simple_work_queue *queue, struct vdo_completion *completion)
+static void enqueue_work_queue_completion(struct simple_work_queue *queue,
+					  struct vdo_completion *completion)
 {
 	ASSERT_LOG_ONLY(completion->my_queue == NULL,
 			"completion %px (fn %px) to enqueue (%px) is not already queued (%px)",
-			completion,
-			completion->callback,
-			queue,
-			completion->my_queue);
+			completion, completion->callback, queue, completion->my_queue);
 	if (completion->priority == VDO_WORK_Q_DEFAULT_PRIORITY)
 		completion->priority = queue->common.type->default_priority;
 
@@ -183,7 +180,8 @@ static struct vdo_completion *wait_for_next_completion(struct simple_work_queue 
 	DEFINE_WAIT(wait);
 
 	while (true) {
-		prepare_to_wait(&queue->waiting_worker_threads, &wait, TASK_INTERRUPTIBLE);
+		prepare_to_wait(&queue->waiting_worker_threads, &wait,
+				TASK_INTERRUPTIBLE);
 		/*
 		 * Don't set the idle flag until a wakeup will not be lost.
 		 *
@@ -224,13 +222,12 @@ static struct vdo_completion *wait_for_next_completion(struct simple_work_queue 
 	return completion;
 }
 
-static void process_completion(struct simple_work_queue *queue, struct vdo_completion *completion)
+static void process_completion(struct simple_work_queue *queue,
+			       struct vdo_completion *completion)
 {
 	if (ASSERT(completion->my_queue == &queue->common,
 		   "completion %px from queue %px marked as being in this queue (%px)",
-		   completion,
-		   queue,
-		   completion->my_queue) == UDS_SUCCESS)
+		   completion, queue, completion->my_queue) == UDS_SUCCESS)
 		completion->my_queue = NULL;
 
 	vdo_run_completion(completion);
@@ -314,10 +311,8 @@ void vdo_free_work_queue(struct vdo_work_queue *queue)
 		free_simple_work_queue(as_simple_work_queue(queue));
 }
 
-static int make_simple_work_queue(const char *thread_name_prefix,
-				  const char *name,
-				  struct vdo_thread *owner,
-				  void *private,
+static int make_simple_work_queue(const char *thread_name_prefix, const char *name,
+				  struct vdo_thread *owner, void *private,
 				  const struct vdo_work_queue_type *type,
 				  struct simple_work_queue **queue_ptr)
 {
@@ -328,8 +323,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	int result;
 
 	ASSERT_LOG_ONLY((type->max_priority <= VDO_WORK_Q_MAX_PRIORITY),
-			"queue priority count %u within limit %u",
-			type->max_priority,
+			"queue priority count %u within limit %u", type->max_priority,
 			VDO_WORK_Q_MAX_PRIORITY);
 
 	result = uds_allocate(1, struct simple_work_queue, "simple work queue", &queue);
@@ -356,10 +350,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		}
 	}
 
-	thread = kthread_run(work_queue_runner,
-			     queue,
-			     "%s:%s",
-			     thread_name_prefix,
+	thread = kthread_run(work_queue_runner, queue, "%s:%s", thread_name_prefix,
 			     queue->common.name);
 	if (IS_ERR(thread)) {
 		free_simple_work_queue(queue);
@@ -390,12 +381,9 @@ static int make_simple_work_queue(const char *thread_name_prefix,
  * of the actual number of queues and threads allocated here, code outside of the queue
  * implementation will treat this as a single zone.
  */
-int vdo_make_work_queue(const char *thread_name_prefix,
-			const char *name,
-			struct vdo_thread *owner,
-			const struct vdo_work_queue_type *type,
-			unsigned int thread_count,
-			void *thread_privates[],
+int vdo_make_work_queue(const char *thread_name_prefix, const char *name,
+			struct vdo_thread *owner, const struct vdo_work_queue_type *type,
+			unsigned int thread_count, void *thread_privates[],
 			struct vdo_work_queue **queue_ptr)
 {
 	struct round_robin_work_queue *queue;
@@ -407,25 +395,20 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 		struct simple_work_queue *simple_queue;
 		void *context = ((thread_privates != NULL) ? thread_privates[0] : NULL);
 
-		result = make_simple_work_queue(thread_name_prefix,
-						name,
-						owner,
-						context,
-						type,
-						&simple_queue);
+		result = make_simple_work_queue(thread_name_prefix, name, owner, context,
+						type, &simple_queue);
 		if (result == VDO_SUCCESS)
 			*queue_ptr = &simple_queue->common;
 		return result;
 	}
 
-	result = uds_allocate(1, struct round_robin_work_queue, "round-robin work queue", &queue);
+	result = uds_allocate(1, struct round_robin_work_queue, "round-robin work queue",
+			      &queue);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = uds_allocate(thread_count,
-			      struct simple_work_queue *,
-			      "subordinate work queues",
-			      &queue->service_queues);
+	result = uds_allocate(thread_count, struct simple_work_queue *,
+			      "subordinate work queues", &queue->service_queues);
 	if (result != UDS_SUCCESS) {
 		uds_free(queue);
 		return result;
@@ -448,12 +431,8 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 		void *context = ((thread_privates != NULL) ? thread_privates[i] : NULL);
 
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
-		result = make_simple_work_queue(thread_name_prefix,
-						thread_name,
-						owner,
-						context,
-						type,
-						&queue->service_queues[i]);
+		result = make_simple_work_queue(thread_name_prefix, thread_name, owner,
+						context, type, &queue->service_queues[i]);
 		if (result != VDO_SUCCESS) {
 			queue->num_service_queues = i;
 			/* Destroy previously created subordinates. */
@@ -509,11 +488,8 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status = atomic_read(&queue->idle) ? "idle" : "running";
 	}
 
-	uds_log_info("workQ %px (%s) %s (%c)",
-		     &queue->common,
-		     queue->common.name,
-		     thread_status,
-		     task_state_report);
+	uds_log_info("workQ %px (%s) %s (%c)", &queue->common, queue->common.name,
+		     thread_status, task_state_report);
 
 	/* ->waiting_worker_threads wait queue status? anyone waiting? */
 }
@@ -562,19 +538,17 @@ static void get_function_name(void *pointer, char *buffer, size_t buffer_length)
 	}
 }
 
-void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buffer, size_t length)
+void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buffer,
+				   size_t length)
 {
 	size_t current_length =
-		scnprintf(buffer,
-			  length,
-			  "%.*s/",
-			  TASK_COMM_LEN,
+		scnprintf(buffer, length, "%.*s/", TASK_COMM_LEN,
 			  (completion->my_queue == NULL ? "-" : completion->my_queue->name));
 
-	if (current_length < length - 1)
-		get_function_name((void *) completion->callback,
-				  buffer + current_length,
+	if (current_length < length - 1) {
+		get_function_name((void *) completion->callback, buffer + current_length,
 				  length - current_length);
+	}
 }
 
 /* Completion submission */
@@ -582,7 +556,8 @@ void vdo_dump_completion_to_buffer(struct vdo_completion *completion, char *buff
  * If the completion has a timeout that has already passed, the timeout handler function may be
  * invoked by this function.
  */
-void vdo_enqueue_work_queue(struct vdo_work_queue *queue, struct vdo_completion *completion)
+void vdo_enqueue_work_queue(struct vdo_work_queue *queue,
+			    struct vdo_completion *completion)
 {
 	/*
 	 * Convert the provided generic vdo_work_queue to the simple_work_queue to actually queue
@@ -688,7 +663,8 @@ void *vdo_get_work_queue_private_data(void)
 	return (queue != NULL) ? queue->private : NULL;
 }
 
-bool vdo_work_queue_type_is(struct vdo_work_queue *queue, const struct vdo_work_queue_type *type)
+bool vdo_work_queue_type_is(struct vdo_work_queue *queue,
+			    const struct vdo_work_queue_type *type)
 {
 	return (queue->type == type);
 }

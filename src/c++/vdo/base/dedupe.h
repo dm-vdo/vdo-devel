@@ -75,7 +75,8 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion);
 void vdo_continue_hash_lock(struct vdo_completion *completion);
 void vdo_release_hash_lock(struct data_vio *data_vio);
 void vdo_clean_failed_hash_lock(struct data_vio *data_vio);
-void vdo_share_compressed_write_lock(struct data_vio *data_vio, struct pbn_lock *pbn_lock);
+void vdo_share_compressed_write_lock(struct data_vio *data_vio,
+				     struct pbn_lock *pbn_lock);
 
 int __must_check vdo_make_hash_zones(struct vdo *vdo, struct hash_zones **zones_ptr);
 
@@ -85,8 +86,8 @@ void vdo_drain_hash_zones(struct hash_zones *zones, struct vdo_completion *paren
 
 void vdo_get_dedupe_statistics(struct hash_zones *zones, struct vdo_statistics *stats);
 
-struct hash_zone * __must_check
-vdo_select_hash_zone(struct hash_zones *zones, const struct uds_record_name *name);
+struct hash_zone * __must_check vdo_select_hash_zone(struct hash_zones *zones,
+						     const struct uds_record_name *name);
 
 void vdo_dump_hash_zones(struct hash_zones *zones);
 

@@ -85,7 +85,8 @@ void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *
  * function on each of them in turn. The queue is copied and emptied before invoking any callbacks,
  * and only the waiters that were in the queue at the start of the call will be notified.
  */
-void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback, void *context)
+void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
+			    void *context)
 {
 	/*
 	 * Copy and empty the queue first, avoiding the possibility of an infinite loop if entries
@@ -128,10 +129,8 @@ struct waiter *vdo_get_first_waiter(const struct wait_queue *queue)
  * @match_context: Contextual info for the match method.
  * @matched_queue: A wait_queue to store matches.
  */
-void vdo_dequeue_matching_waiters(struct wait_queue *queue,
-				  waiter_match *match_method,
-				  void *match_context,
-				  struct wait_queue *matched_queue)
+void vdo_dequeue_matching_waiters(struct wait_queue *queue, waiter_match *match_method,
+				  void *match_context, struct wait_queue *matched_queue)
 {
 	struct wait_queue matched_waiters, iteration_queue;
 
@@ -143,9 +142,7 @@ void vdo_dequeue_matching_waiters(struct wait_queue *queue,
 		struct waiter *waiter = vdo_dequeue_next_waiter(&iteration_queue);
 
 		vdo_enqueue_waiter((match_method(waiter, match_context) ?
-				    &matched_waiters :
-				    queue),
-				   waiter);
+				    &matched_waiters : queue), waiter);
 	}
 
 	vdo_transfer_all_waiters(&matched_waiters, matched_queue);
@@ -198,7 +195,8 @@ struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue)
  *
  * Return: true if there was a waiter in the queue.
  */
-bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback, void *context)
+bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
+			    void *context)
 {
 	struct waiter *waiter = vdo_dequeue_next_waiter(queue);
 
@@ -219,8 +217,8 @@ bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
  *
  * Return: The next waiter, or NULL.
  */
-const struct waiter *
-vdo_get_next_waiter(const struct wait_queue *queue, const struct waiter *waiter)
+const struct waiter *vdo_get_next_waiter(const struct wait_queue *queue,
+					 const struct waiter *waiter)
 {
 	struct waiter *first_waiter = vdo_get_first_waiter(queue);
 

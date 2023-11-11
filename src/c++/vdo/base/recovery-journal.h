@@ -248,8 +248,7 @@ vdo_compute_recovery_journal_check_byte(const struct recovery_journal *journal,
 }
 
 int __must_check vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state,
-					     nonce_t nonce,
-					     struct vdo *vdo,
+					     nonce_t nonce, struct vdo *vdo,
 					     struct partition *partition,
 					     u64 recovery_count,
 					     block_count_t journal_size,
@@ -269,8 +268,7 @@ vdo_get_journal_block_map_data_blocks_used(struct recovery_journal *journal);
 thread_id_t __must_check vdo_get_recovery_journal_thread_id(struct recovery_journal *journal);
 
 void vdo_open_recovery_journal(struct recovery_journal *journal,
-			       struct slab_depot *depot,
-			       struct block_map *block_map);
+			       struct slab_depot *depot, struct block_map *block_map);
 
 sequence_number_t
 vdo_get_recovery_journal_current_sequence_number(struct recovery_journal *journal);
@@ -280,7 +278,8 @@ block_count_t __must_check vdo_get_recovery_journal_length(block_count_t journal
 struct recovery_journal_state_7_0 __must_check
 vdo_record_recovery_journal(const struct recovery_journal *journal);
 
-void vdo_add_recovery_journal_entry(struct recovery_journal *journal, struct data_vio *data_vio);
+void vdo_add_recovery_journal_entry(struct recovery_journal *journal,
+				    struct data_vio *data_vio);
 
 void vdo_acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 						  sequence_number_t sequence_number,
@@ -311,8 +310,7 @@ vdo_get_recovery_journal_statistics(const struct recovery_journal *journal);
 void vdo_dump_recovery_journal_statistics(const struct recovery_journal *journal);
 
 #ifdef INTERNAL
-bool is_lock_locked(struct recovery_journal *journal,
-		    block_count_t lock_number,
+bool is_lock_locked(struct recovery_journal *journal, block_count_t lock_number,
 		    enum vdo_zone_type zone_type);
 #endif /* INTERNAL */
 #endif /* VDO_RECOVERY_JOURNAL_H */

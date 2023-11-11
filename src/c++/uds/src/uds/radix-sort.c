@@ -98,11 +98,8 @@ static inline void insertion_sort(const struct task task)
 }
 
 /* Push a sorting task onto a task stack. */
-static inline void push_task(struct task **stack_pointer,
-			     sort_key_t *first_key,
-			     u32 count,
-			     u16 offset,
-			     u16 length)
+static inline void push_task(struct task **stack_pointer, sort_key_t *first_key,
+			     u32 count, u16 offset, u16 length)
 {
 	struct task *task = (*stack_pointer)++;
 
@@ -174,14 +171,10 @@ static inline void measure_bins(const struct task task, struct histogram *bins)
  *
  * Return: UDS_SUCCESS or an error code
  */
-static inline int push_bins(struct task **stack,
-			    struct task *end_of_stack,
-			    struct task **list,
-			    sort_key_t *pile[],
-			    struct histogram *bins,
-			    sort_key_t *first_key,
-			    u16 offset,
-			    u16 length)
+static inline int push_bins(struct task **stack, struct task *end_of_stack,
+			    struct task **list, sort_key_t *pile[],
+			    struct histogram *bins, sort_key_t *first_key,
+			    u16 offset, u16 length)
 {
 	sort_key_t *pile_start = first_key;
 	int bin;
@@ -220,11 +213,8 @@ int uds_make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
 	unsigned int stack_size = count / INSERTION_SORT_THRESHOLD;
 	struct radix_sorter *radix_sorter;
 
-	result = uds_allocate_extended(struct radix_sorter,
-				       stack_size,
-				       struct task,
-				       __func__,
-				       &radix_sorter);
+	result = uds_allocate_extended(struct radix_sorter, stack_size, struct task,
+				       __func__, &radix_sorter);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -243,10 +233,8 @@ void uds_free_radix_sorter(struct radix_sorter *sorter)
  * Sort pointers to fixed-length keys (arrays of bytes) using a radix sort. The sort implementation
  * is unstable, so the relative ordering of equal keys is not preserved.
  */
-int uds_radix_sort(struct radix_sorter *sorter,
-		   const unsigned char *keys[],
-		   unsigned int count,
-		   unsigned short length)
+int uds_radix_sort(struct radix_sorter *sorter, const unsigned char *keys[],
+		   unsigned int count, unsigned short length)
 {
 	struct task start;
 	struct histogram *bins = &sorter->bins;
@@ -293,14 +281,9 @@ int uds_radix_sort(struct radix_sorter *sorter,
 		 * and push a new task to sort each pile by the next radix byte.
 		 */
 		insertion_task_list = sorter->insertion_list;
-		result = push_bins(&task_stack,
-				   sorter->end_of_stack,
-				   &insertion_task_list,
-				   pile,
-				   bins,
-				   task.first_key,
-				   task.offset + 1,
-				   task.length - 1);
+		result = push_bins(&task_stack, sorter->end_of_stack,
+				   &insertion_task_list, pile, bins, task.first_key,
+				   task.offset + 1, task.length - 1);
 		if (result != UDS_SUCCESS) {
 			memset(bins, 0, sizeof(*bins));
 			return result;

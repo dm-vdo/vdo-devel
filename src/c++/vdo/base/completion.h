@@ -28,8 +28,7 @@ static inline void vdo_run_completion(struct vdo_completion *completion)
 
 void vdo_set_completion_result(struct vdo_completion *completion, int result);
 
-void vdo_initialize_completion(struct vdo_completion *completion,
-			       struct vdo *vdo,
+void vdo_initialize_completion(struct vdo_completion *completion, struct vdo *vdo,
 			       enum vdo_completion_type type);
 
 /**
@@ -83,12 +82,11 @@ static inline void vdo_fail_completion(struct vdo_completion *completion, int re
  *
  * Return: VDO_SUCCESS or an error
  */
-static inline int
-vdo_assert_completion_type(struct vdo_completion *completion, enum vdo_completion_type expected)
+static inline int vdo_assert_completion_type(struct vdo_completion *completion,
+					     enum vdo_completion_type expected)
 {
 	return ASSERT(expected == completion->type,
-		      "completion type should be %u, not %u",
-		      expected,
+		      "completion type should be %u, not %u", expected,
 		      completion->type);
 }
 
@@ -119,8 +117,7 @@ static inline void vdo_launch_completion_callback(struct vdo_completion *complet
 static inline void vdo_prepare_completion(struct vdo_completion *completion,
 					  vdo_action *callback,
 					  vdo_action *error_handler,
-					  thread_id_t callback_thread_id,
-					  void *parent)
+					  thread_id_t callback_thread_id, void *parent)
 {
 	vdo_reset_completion(completion);
 	vdo_set_completion_callback(completion, callback, callback_thread_id);
@@ -134,14 +131,14 @@ static inline void vdo_prepare_completion(struct vdo_completion *completion,
  *
  * Resets the completion, and then sets its callback, error handler, callback thread, and parent.
  */
-static inline void
-vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
-				   vdo_action *callback,
-				   vdo_action *error_handler,
-				   thread_id_t callback_thread_id,
-				   void *parent)
+static inline void vdo_prepare_completion_for_requeue(struct vdo_completion *completion,
+						      vdo_action *callback,
+						      vdo_action *error_handler,
+						      thread_id_t callback_thread_id,
+						      void *parent)
 {
-	vdo_prepare_completion(completion, callback, error_handler, callback_thread_id, parent);
+	vdo_prepare_completion(completion, callback, error_handler,
+			       callback_thread_id, parent);
 	completion->requeue = true;
 }
 

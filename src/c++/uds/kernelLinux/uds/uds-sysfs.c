@@ -67,8 +67,8 @@ static ssize_t empty_show(struct kobject *kobj, struct attribute *attr, char *bu
 	return 0;
 }
 
-static ssize_t
-empty_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t empty_store(struct kobject *kobj, struct attribute *attr, const char *buf,
+			   size_t length)
 {
 	return length;
 }
@@ -121,8 +121,8 @@ static ssize_t memory_show(struct kobject *kobj, struct attribute *attr, char *b
 		return -EINVAL;
 }
 
-static ssize_t
-memory_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t memory_store(struct kobject *kobj, struct attribute *attr,
+			    const char *buf, size_t length)
 {
 	struct memory_attribute *ma;
 
@@ -262,8 +262,8 @@ static ssize_t parameter_show(struct kobject *kobj, struct attribute *attr, char
 		return -EINVAL;
 }
 
-static ssize_t
-parameter_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t length)
+static ssize_t parameter_store(struct kobject *kobj, struct attribute *attr,
+			       const char *buf, size_t length)
 {
 	char *string;
 	struct parameter_attribute *pa;
@@ -323,7 +323,8 @@ int uds_init_sysfs(void)
 	if (result == 0) {
 		object_root.flag = true;
 		kobject_init(&object_root.parameter_kobj, &parameter_object_type);
-		result = kobject_add(&object_root.parameter_kobj, &object_root.kobj, "parameter");
+		result = kobject_add(&object_root.parameter_kobj, &object_root.kobj,
+				     "parameter");
 		if (result == 0)
 			object_root.parameter_flag = true;
 	}
@@ -331,7 +332,8 @@ int uds_init_sysfs(void)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (result == 0) {
 		kobject_init(&object_root.memory_kobj, &memory_object_type);
-		result = kobject_add(&object_root.memory_kobj, &object_root.kobj, "memory");
+		result = kobject_add(&object_root.memory_kobj, &object_root.kobj,
+				     "memory");
 		if (result == 0)
 			object_root.memory_flag = true;
 	}

@@ -76,8 +76,7 @@ static bool no_default_action(void *context __always_unused)
 }
 
 /* Implements vdo_action_preamble. */
-static void no_preamble(void *context __always_unused,
-			struct vdo_completion *completion)
+static void no_preamble(void *context __always_unused, struct vdo_completion *completion)
 {
 	vdo_finish_completion(completion);
 }
@@ -103,10 +102,8 @@ static int no_conclusion(void *context __always_unused)
  */
 int vdo_make_action_manager(zone_count_t zones,
 			    vdo_zone_thread_getter *get_zone_thread_id,
-			    thread_id_t initiator_thread_id,
-			    void *context,
-			    vdo_action_scheduler *scheduler,
-			    struct vdo *vdo,
+			    thread_id_t initiator_thread_id, void *context,
+			    vdo_action_scheduler *scheduler, struct vdo *vdo,
 			    struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
@@ -127,10 +124,8 @@ int vdo_make_action_manager(zone_count_t zones,
 	manager->actions[0].next = &manager->actions[1];
 	manager->current_action = manager->actions[1].next =
 		&manager->actions[0];
-	vdo_set_admin_state_code(&manager->state,
-				 VDO_ADMIN_STATE_NORMAL_OPERATION);
-	vdo_initialize_completion(&manager->completion, vdo,
-				  VDO_ACTION_COMPLETION);
+	vdo_set_admin_state_code(&manager->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
+	vdo_initialize_completion(&manager->completion, vdo, VDO_ACTION_COMPLETION);
 	*manager_ptr = manager;
 	return VDO_SUCCESS;
 }
@@ -164,8 +159,7 @@ static void preserve_error(struct vdo_completion *completion)
 
 static void prepare_for_next_zone(struct action_manager *manager)
 {
-	vdo_prepare_completion_for_requeue(&manager->completion,
-					   apply_to_zone,
+	vdo_prepare_completion_for_requeue(&manager->completion, apply_to_zone,
 					   preserve_error,
 					   get_acting_zone_thread_id(manager),
 					   manager->current_action->parent);
@@ -173,10 +167,8 @@ static void prepare_for_next_zone(struct action_manager *manager)
 
 static void prepare_for_conclusion(struct action_manager *manager)
 {
-	vdo_prepare_completion_for_requeue(&manager->completion,
-					   finish_action_callback,
-					   preserve_error,
-					   manager->initiator_thread_id,
+	vdo_prepare_completion_for_requeue(&manager->completion, finish_action_callback,
+					   preserve_error, manager->initiator_thread_id,
 					   manager->current_action->parent);
 }
 
@@ -186,8 +178,7 @@ static void apply_to_zone(struct vdo_completion *completion)
 	struct action_manager *manager = as_action_manager(completion);
 
 	ASSERT_LOG_ONLY((vdo_get_callback_thread_id() == get_acting_zone_thread_id(manager)),
-			"%s() called on acting zones's thread",
-			__func__);
+			"%s() called on acting zones's thread", __func__);
 
 	zone = manager->acting_zone++;
 	if (manager->acting_zone == manager->zones) {
@@ -230,8 +221,7 @@ static void launch_current_action(struct action_manager *manager)
 		prepare_for_conclusion(manager);
 	} else {
 		manager->acting_zone = 0;
-		vdo_prepare_completion_for_requeue(&manager->completion,
-						   apply_to_zone,
+		vdo_prepare_completion_for_requeue(&manager->completion, apply_to_zone,
 						   handle_preamble_error,
 						   get_acting_zone_thread_id(manager),
 						   manager->current_action->parent);
@@ -300,18 +290,12 @@ static void finish_action_callback(struct vdo_completion *completion)
  *
  * Return: true if the action was scheduled.
  */
-bool vdo_schedule_action(struct action_manager *manager,
-			 vdo_action_preamble *preamble,
-			 vdo_zone_action *action,
-			 vdo_action_conclusion *conclusion,
+bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble *preamble,
+			 vdo_zone_action *action, vdo_action_conclusion *conclusion,
 			 struct vdo_completion *parent)
 {
-	return vdo_schedule_operation(manager,
-				      VDO_ADMIN_STATE_OPERATING,
-				      preamble,
-				      action,
-				      conclusion,
-				      parent);
+	return vdo_schedule_operation(manager, VDO_ADMIN_STATE_OPERATING, preamble,
+				      action, conclusion, parent);
 }
 
 /**
@@ -335,18 +319,12 @@ bool vdo_schedule_action(struct action_manager *manager,
  */
 bool vdo_schedule_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
-			    vdo_action_preamble *preamble,
-			    vdo_zone_action *action,
+			    vdo_action_preamble *preamble, vdo_zone_action *action,
 			    vdo_action_conclusion *conclusion,
 			    struct vdo_completion *parent)
 {
-	return vdo_schedule_operation_with_context(manager,
-						   operation,
-						   preamble,
-						   action,
-						   conclusion,
-						   NULL,
-						   parent);
+	return vdo_schedule_operation_with_context(manager, operation, preamble, action,
+						   conclusion, NULL, parent);
 }
 
 /**
@@ -375,8 +353,7 @@ bool vdo_schedule_operation_with_context(struct action_manager *manager,
 					 vdo_action_preamble *preamble,
 					 vdo_zone_action *action,
 					 vdo_action_conclusion *conclusion,
-					 void *context,
-					 struct vdo_completion *parent)
+					 void *context, struct vdo_completion *parent)
 {
 	struct action *current_action;
 

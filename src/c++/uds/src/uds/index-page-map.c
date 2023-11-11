@@ -33,7 +33,8 @@ static inline u32 get_entry_count(const struct geometry *geometry)
 	return geometry->chapters_per_volume * (geometry->index_pages_per_chapter - 1);
 }
 
-int uds_make_index_page_map(const struct geometry *geometry, struct index_page_map **map_ptr)
+int uds_make_index_page_map(const struct geometry *geometry,
+			    struct index_page_map **map_ptr)
 {
 	int result;
 	struct index_page_map *map;
@@ -44,9 +45,7 @@ int uds_make_index_page_map(const struct geometry *geometry, struct index_page_m
 
 	map->geometry = geometry;
 	map->entries_per_chapter = geometry->index_pages_per_chapter - 1;
-	result = uds_allocate(get_entry_count(geometry),
-			      u16,
-			      "Index Page Map Entries",
+	result = uds_allocate(get_entry_count(geometry), u16, "Index Page Map Entries",
 			      &map->entries);
 	if (result != UDS_SUCCESS) {
 		uds_free_index_page_map(map);
@@ -65,10 +64,8 @@ void uds_free_index_page_map(struct index_page_map *map)
 	}
 }
 
-void uds_update_index_page_map(struct index_page_map *map,
-			       u64 virtual_chapter_number,
-			       u32 chapter_number,
-			       u32 index_page_number,
+void uds_update_index_page_map(struct index_page_map *map, u64 virtual_chapter_number,
+			       u32 chapter_number, u32 index_page_number,
 			       u32 delta_list_number)
 {
 	size_t slot;
@@ -82,8 +79,7 @@ void uds_update_index_page_map(struct index_page_map *map,
 }
 
 u32 uds_find_index_page_number(const struct index_page_map *map,
-			       const struct uds_record_name *name,
-			       u32 chapter_number)
+			       const struct uds_record_name *name, u32 chapter_number)
 {
 	u32 delta_list_number = uds_hash_to_chapter_delta_list(name, map->geometry);
 	u32 slot = chapter_number * map->entries_per_chapter;
@@ -97,10 +93,8 @@ u32 uds_find_index_page_number(const struct index_page_map *map,
 	return page;
 }
 
-void uds_get_list_number_bounds(const struct index_page_map *map,
-				u32 chapter_number,
-				u32 index_page_number,
-				u32 *lowest_list,
+void uds_get_list_number_bounds(const struct index_page_map *map, u32 chapter_number,
+				u32 index_page_number, u32 *lowest_list,
 				u32 *highest_list)
 {
 	u32 slot = chapter_number * map->entries_per_chapter;

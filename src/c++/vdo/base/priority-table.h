@@ -28,13 +28,12 @@
 
 struct priority_table;
 
-int __must_check
-vdo_make_priority_table(unsigned int max_priority, struct priority_table **table_ptr);
+int __must_check vdo_make_priority_table(unsigned int max_priority,
+					 struct priority_table **table_ptr);
 
 void vdo_free_priority_table(struct priority_table *table);
 
-void vdo_priority_table_enqueue(struct priority_table *table,
-				unsigned int priority,
+void vdo_priority_table_enqueue(struct priority_table *table, unsigned int priority,
 				struct list_head *entry);
 
 void vdo_reset_priority_table(struct priority_table *table);
