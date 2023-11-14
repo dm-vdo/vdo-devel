@@ -32,8 +32,8 @@ static inline void submit_metadata_vio(struct vio *vio, physical_block_number_t 
 				       bio_end_io_t callback, vdo_action *error_handler,
 				       unsigned int operation)
 {
-	vdo_submit_metadata_io(vio, physical, callback, error_handler, operation,
-			       vio->data);
+	vdo_submit_metadata_io(vio, physical, callback, error_handler,
+			       operation, vio->data);
 }
 
 static inline void submit_flush_vio(struct vio *vio, bio_end_io_t callback,
