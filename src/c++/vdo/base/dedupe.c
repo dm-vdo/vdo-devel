@@ -2434,8 +2434,8 @@ static int __must_check initialize_zone(struct vdo *vdo, struct hash_zones *zone
 	data_vio_count_t i;
 	struct hash_zone *zone = &zones->zones[zone_number];
 
-	result = vdo_make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys, hash_key,
-				      &zone->hash_lock_map);
+	result = vdo_make_pointer_map(VDO_LOCK_MAP_CAPACITY, 0, compare_keys,
+				      hash_key, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2873,8 +2873,8 @@ static void dump_hash_zone(const struct hash_zone *zone)
 		return;
 	}
 
-	uds_log_info("struct hash_zone %u: mapSize=%zu", zone->zone_number,
-		     vdo_pointer_map_size(zone->hash_lock_map));
+	uds_log_info("struct hash_zone %u: mapSize=%zu",
+		     zone->zone_number, vdo_pointer_map_size(zone->hash_lock_map));
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++)
 		dump_hash_lock(&zone->lock_array[i]);
 }
