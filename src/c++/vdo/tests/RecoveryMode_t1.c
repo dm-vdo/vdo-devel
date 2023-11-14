@@ -466,7 +466,7 @@ static void triggerWaiterCheck(void)
  **/
 static IORequest *waitForVIOWaiting(logical_block_number_t  start,
                                     block_count_t           offset,
-                                    vdo_action             *action)
+                                    vdo_action_fn           action)
 {
   // Prepare to wait for the next write to block in the scrubber
   waiterQueued = false;

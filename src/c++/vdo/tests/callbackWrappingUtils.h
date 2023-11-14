@@ -27,8 +27,8 @@ void initializeCallbackWrapping(void);
  **/
 void
 wrapCompletionCallbackAndErrorHandler(struct vdo_completion *completion,
-                                      vdo_action            *callback,
-                                      vdo_action            *errorHandler);
+                                      vdo_action_fn          callback,
+                                      vdo_action_fn          errorHandler);
 
 /**
  * Wrap the callback of a completion. The error handler will also be wrapped
@@ -38,7 +38,7 @@ wrapCompletionCallbackAndErrorHandler(struct vdo_completion *completion,
  * @param callback    The wrapper callback
  **/
 static inline void wrapCompletionCallback(struct vdo_completion *completion,
-                                          vdo_action            *callback)
+                                          vdo_action_fn          callback)
 {
   wrapCompletionCallbackAndErrorHandler(completion, callback, callback);
 }

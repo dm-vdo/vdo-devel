@@ -38,7 +38,7 @@ typedef struct {
 } LockClient;
 
 static int         notificationCount = 0;
-static vdo_action *counterCallback;
+static vdo_action_fn counterCallback;
 
 /**
  * Implements LockedMethod.

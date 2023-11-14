@@ -22,8 +22,8 @@
 typedef struct wrappingCompletion {
   struct vdo_completion  completion;    ///< common completion header
   struct vdo_completion *original;      ///< original completion
-  vdo_action            *action;        ///< action to perform on original
-  vdo_action            *savedCallback; ///< saved completion callback
+  vdo_action_fn          action;        ///< action to perform on original
+  vdo_action_fn          savedCallback; ///< saved completion callback
   struct vdo_completion *savedParent;   ///< saved completion parent
 } WrappingCompletion;
 
@@ -36,7 +36,7 @@ asWrappingCompletion(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-static int makeWrappingCompletion(vdo_action             *action,
+static int makeWrappingCompletion(vdo_action_fn           action,
                                   struct vdo_completion  *completion,
                                   struct vdo_completion **wrappingCompletion)
 {
@@ -111,7 +111,7 @@ static void doWrappedAction(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void launchWrappedAction(vdo_action             *action,
+void launchWrappedAction(vdo_action_fn           action,
                          struct vdo_completion  *completion,
                          struct vdo_completion **wrapperPtr)
 {
@@ -131,7 +131,7 @@ int awaitWrappedCompletion(struct vdo_completion *wrapper)
 }
 
 /**********************************************************************/
-int performWrappedAction(vdo_action            *action,
+int performWrappedAction(vdo_action_fn          action,
                          struct vdo_completion *completion)
 {
   struct vdo_completion *wrapper;
@@ -142,7 +142,7 @@ int performWrappedAction(vdo_action            *action,
 /**
  * Finish a completion's parent with the result of the completion.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 void finishParentCallback(struct vdo_completion *completion)
 {

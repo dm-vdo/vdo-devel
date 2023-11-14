@@ -120,7 +120,7 @@ static void recoverJournalAction(struct vdo_completion *completion)
 }
 
 /**
- * This callback implements waiter_callback and is used in
+ * This callback implements waiter_callback_fn and is used in
  * signalWhenJournalReadCallbackDone().
  **/
 static void acquiredVIO(struct waiter *waiter __attribute__((unused)),

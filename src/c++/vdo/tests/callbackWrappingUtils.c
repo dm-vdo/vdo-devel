@@ -20,8 +20,8 @@
 #include "vdoTestBase.h"
 
 typedef struct {
-  vdo_action *callback;
-  vdo_action *errorHandler;
+  vdo_action_fn callback;
+  vdo_action_fn errorHandler;
 } SavedActions;
 
 static struct int_map          *wrapMap    = NULL;
@@ -49,8 +49,8 @@ void initializeCallbackWrapping(void)
 
 /**********************************************************************/
 static void wrapCompletion(struct vdo_completion *completion,
-                           vdo_action            *callback,
-                           vdo_action            *errorHandler)
+                           vdo_action_fn          callback,
+                           vdo_action_fn          errorHandler)
 {
   CU_ASSERT_PTR_NOT_NULL(completion->callback);
 
@@ -78,8 +78,8 @@ static void wrapCompletion(struct vdo_completion *completion,
 /**********************************************************************/
 void
 wrapCompletionCallbackAndErrorHandler(struct vdo_completion *completion,
-                                      vdo_action            *callback,
-                                      vdo_action            *errorHandler)
+                                      vdo_action_fn          callback,
+                                      vdo_action_fn          errorHandler)
 {
   wrapCompletion(completion, callback, errorHandler);
 }

@@ -54,7 +54,7 @@ typedef struct {
   page_number_t               pageNumber;
   sequence_number_t           dirtyPeriod;
   bool                        writable;
-  vdo_action                 *action;
+  vdo_action_fn               action;
 } TestCompletion;
 
 typedef struct {
@@ -85,7 +85,7 @@ static void initializeTestCompletion(TestCompletion *testCompletion)
 /**
  * This hook will be called on reads when enqueueing from the endio callback.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void validatePage(struct vdo_completion *completion)
 {
@@ -103,7 +103,7 @@ static void validatePage(struct vdo_completion *completion)
 /**
  * This hook will be called on writes when enqueueing from the endio callback.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void checkPageWritten(struct vdo_completion *completion)
 {
@@ -246,7 +246,7 @@ static void markPageDirty(struct vdo_completion *completion)
 
 /**********************************************************************/
 static int performPageAction(TestCompletion *testCompletion,
-                             vdo_action     *action)
+                             vdo_action_fn   action)
 {
   testCompletion->action = action;
   struct vdo_completion *completion = &testCompletion->completion;
@@ -310,7 +310,7 @@ static void getVDOPageAction(struct vdo_completion *completion)
 static void launchPageGet(page_number_t          pageNumber,
                           bool                   writable,
                           TestCompletion        *testCompletion,
-                          vdo_action            *action)
+                          vdo_action_fn          action)
 {
   vdo_reset_completion(&testCompletion->completion);
   testCompletion->pageNumber = pageNumber;
@@ -448,7 +448,7 @@ static bool failMetaWritesHook(struct bio *bio)
 /**
  * Action to advance the dirty period.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 {
@@ -459,7 +459,7 @@ static void advanceDirtyPeriodAction(struct vdo_completion *completion)
 /**
  * An action to suspend the page cache.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void suspendCacheAction(struct vdo_completion *completion)
 {
@@ -469,7 +469,7 @@ static void suspendCacheAction(struct vdo_completion *completion)
 /**
  * An action to resume the page cache.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void resumeCacheAction(struct vdo_completion *completion)
 {
@@ -583,7 +583,7 @@ static void testReadOnly(void)
  **/
 static void withPage(page_number_t pageNumber,
                      bool writable,
-                     vdo_action *action)
+                     vdo_action_fn action)
 {
   TestCompletion testCompletion;
   initializeTestCompletion(&testCompletion);
@@ -653,7 +653,7 @@ shouldBlock(struct vdo_completion *completion,
  * An action to check that a page, the last one accessed in the cache,
  * is in the expected state.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void checkPageAction(struct vdo_completion *completion)
 {
@@ -754,7 +754,7 @@ static void testBusyCachePage(void)
 /**
  * Action to get a page and dereference it for reading.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void accessReadablePage(struct vdo_completion *completion)
 {
@@ -769,7 +769,7 @@ static void accessReadablePage(struct vdo_completion *completion)
 /**
  * Action to get a page and dereference it for writing.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void accessWritablePage(struct vdo_completion *completion)
 {
@@ -782,7 +782,7 @@ static void accessWritablePage(struct vdo_completion *completion)
  * Action to confirm that getting a page and dereferencing it for writing
  * fails to return a page.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void failAccessingWritablePage(struct vdo_completion *completion)
 {

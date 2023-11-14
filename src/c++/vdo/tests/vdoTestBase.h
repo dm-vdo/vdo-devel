@@ -201,9 +201,9 @@ void tearDownVDOTest(void);
  *                        should run
  * @param expectedResult  The expected result
  **/
-void performActionOnThreadExpectResult(vdo_action  *action,
-                                       thread_id_t  threadID,
-                                       int          expectedResult);
+void performActionOnThreadExpectResult(vdo_action_fn action,
+                                       thread_id_t   threadID,
+                                       int           expectedResult);
 
 /**
  * Perform an action and assert that the result is as expected.
@@ -211,7 +211,7 @@ void performActionOnThreadExpectResult(vdo_action  *action,
  * @param action          The action to perform
  * @param expectedResult  The expected result
  **/
-void performActionExpectResult(vdo_action *action, int expectedResult);
+void performActionExpectResult(vdo_action_fn action, int expectedResult);
 
 /**
  * Perform an action on a specified callback thread and assert that it
@@ -221,14 +221,14 @@ void performActionExpectResult(vdo_action *action, int expectedResult);
  * @param threadID  The ID of the callback thread on which the action should
  *                  run
  **/
-void performSuccessfulActionOnThread(vdo_action *action, thread_id_t threadID);
+void performSuccessfulActionOnThread(vdo_action_fn action, thread_id_t threadID);
 
 /**
  * Perform an action and assert that it succeeds.
  *
  * @param action  The action to perform
  **/
-void performSuccessfulAction(vdo_action *action);
+void performSuccessfulAction(vdo_action_fn action);
 
 /**
  * Check the state of the VDO in the super block.

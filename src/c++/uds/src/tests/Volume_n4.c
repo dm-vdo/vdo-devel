@@ -77,7 +77,7 @@ static void retryReadRequestAndVerify(struct uds_request *request)
 }
 
 /**********************************************************************/
-static void init(request_restarter_t restartRequest, unsigned int zoneCount)
+static void init(request_restarter_fn restartRequest, unsigned int zoneCount)
 {
   set_request_restarter(restartRequest);
 

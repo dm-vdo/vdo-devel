@@ -22,7 +22,7 @@ static struct block_allocator  *poolAllocator;
 static bool                     gotVIO;
 
 /**
- * The waiter_callback registered in grabVIOs() to hold on
+ * The waiter_callback_fn registered in grabVIOs() to hold on
  * to a VIO pool entry so that it can later be returned to the pool.
  **/
 static void saveVIOPoolEntry(struct waiter *waiter __attribute__((unused)),
@@ -126,7 +126,7 @@ bool slabsHaveEquivalentReferenceCounts(struct vdo_slab *slabA, struct vdo_slab 
 }
 
 /**
- * A waiter_callback to clean dirty reference blocks when resetting.
+ * A waiter_callback_fn to clean dirty reference blocks when resetting.
  *
  * @param block_waiter  The dirty block
  * @param context       Unused
