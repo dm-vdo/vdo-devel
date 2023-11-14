@@ -548,7 +548,7 @@ STATIC void adjust_slab_journal_block_reference(struct slab_journal *journal,
  *
  * Registered in the constructor on behalf of update_tail_block_location().
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void release_journal_locks(struct waiter *waiter, void *context)
 {
@@ -1676,7 +1676,7 @@ STATIC int __must_check adjust_reference_count(struct vdo_slab *slab,
  * @context: The slab journal to make an entry in.
  *
  * This callback is invoked by add_entries() once it has determined that we are ready to make
- * another entry in the slab journal. Implements waiter_callback.
+ * another entry in the slab journal. Implements waiter_callback_fn.
  */
 static void add_entry_from_waiter(struct waiter *waiter, void *context)
 {
@@ -2583,7 +2583,7 @@ static void queue_slab(struct vdo_slab *slab)
 /**
  * initiate_slab_action() - Initiate a slab action.
  *
- * Implements vdo_admin_initiator.
+ * Implements vdo_admin_initiator_fn.
  */
 STATIC void initiate_slab_action(struct admin_state *state)
 {
@@ -3050,7 +3050,7 @@ static struct vdo_slab *next_slab(struct slab_iterator *iterator)
  * abort_waiter() - Abort vios waiting to make journal entries when read-only.
  *
  * This callback is invoked on all vios waiting to make slab journal entries after the VDO has gone
- * into read-only mode. Implements waiter_callback.
+ * into read-only mode. Implements waiter_callback_fn.
  */
 static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 {
@@ -3066,7 +3066,7 @@ static void abort_waiter(struct waiter *waiter, void *context __always_unused)
 	vdo_continue_completion(&data_vio->decrement_completion, VDO_READ_ONLY);
 }
 
-/* Implements vdo_read_only_notification. */
+/* Implements vdo_read_only_notification_fn. */
 static void notify_block_allocator_of_read_only_mode(void *listener,
 						     struct vdo_completion *parent)
 {
@@ -3331,7 +3331,7 @@ static void handle_operation_error(struct vdo_completion *completion)
 }
 
 /* Perform an action on each of an allocator's slabs in parallel. */
-static void apply_to_slabs(struct block_allocator *allocator, vdo_action *callback)
+static void apply_to_slabs(struct block_allocator *allocator, vdo_action_fn callback)
 {
 	struct slab_iterator iterator;
 
@@ -3426,7 +3426,7 @@ static void erase_next_slab_journal(struct block_allocator *allocator)
 	dm_kcopyd_zero(allocator->eraser, 1, regions, 0, copy_callback, allocator);
 }
 
-/* Implements vdo_admin_initiator. */
+/* Implements vdo_admin_initiator_fn. */
 static void initiate_load(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -3832,7 +3832,7 @@ void vdo_abandon_new_slabs(struct slab_depot *depot)
 /**
  * get_allocator_thread_id() - Get the ID of the thread on which a given allocator operates.
  *
- * Implements vdo_zone_thread_getter.
+ * Implements vdo_zone_thread_getter_fn.
  */
 static thread_id_t get_allocator_thread_id(void *context, zone_count_t zone_number)
 {
@@ -3870,7 +3870,7 @@ STATIC bool __must_check release_recovery_journal_lock(struct slab_journal *jour
  * Request a commit of all dirty tail blocks which are locking the recovery journal block the depot
  * is seeking to release.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void release_tail_block_locks(void *context, zone_count_t zone_number,
 				     struct vdo_completion *parent)
@@ -3891,7 +3891,7 @@ static void release_tail_block_locks(void *context, zone_count_t zone_number,
 /**
  * prepare_for_tail_block_commit() - Prepare to commit oldest tail blocks.
  *
- * Implements vdo_action_preamble.
+ * Implements vdo_action_preamble_fn.
  */
 static void prepare_for_tail_block_commit(void *context, struct vdo_completion *parent)
 {
@@ -3907,7 +3907,7 @@ static void prepare_for_tail_block_commit(void *context, struct vdo_completion *
  * This method should not be called directly. Rather, call vdo_schedule_default_action() on the
  * depot's action manager.
  *
- * Implements vdo_action_scheduler.
+ * Implements vdo_action_scheduler_fn.
  */
 static bool schedule_tail_block_commit(void *context)
 {
@@ -4547,7 +4547,7 @@ static void load_summary_endio(struct bio *bio)
 /**
  * load_slab_summary() - The preamble of a load operation.
  *
- * Implements vdo_action_preamble.
+ * Implements vdo_action_preamble_fn.
  */
 STATIC void load_slab_summary(void *context, struct vdo_completion *parent)
 {
@@ -4576,7 +4576,7 @@ STATIC void load_slab_summary(void *context, struct vdo_completion *parent)
 			    handle_combining_error, REQ_OP_READ);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void load_allocator(void *context, zone_count_t zone_number,
 			   struct vdo_completion *parent)
 {
@@ -4609,7 +4609,7 @@ void vdo_load_slab_depot(struct slab_depot *depot,
 					    NULL, context, parent);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void prepare_to_allocate(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
 {
@@ -4712,7 +4712,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot,
  * finish_registration() - Finish registering new slabs now that all of the allocators have
  *                         received their new slabs.
  *
- * Implements vdo_action_conclusion.
+ * Implements vdo_action_conclusion_fn.
  */
 static int finish_registration(void *context)
 {
@@ -4726,7 +4726,7 @@ static int finish_registration(void *context)
 	return VDO_SUCCESS;
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void register_new_slabs(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
 {
@@ -4777,7 +4777,7 @@ STATIC void stop_scrubbing(struct block_allocator *allocator)
 	}
 }
 
-/* Implements vdo_admin_initiator. */
+/* Implements vdo_admin_initiator_fn. */
 STATIC void initiate_summary_drain(struct admin_state *state)
 {
 	check_summary_drain_complete(container_of(state, struct block_allocator,
@@ -4817,7 +4817,7 @@ static void do_drain_step(struct vdo_completion *completion)
 	}
 }
 
-/* Implements vdo_admin_initiator. */
+/* Implements vdo_admin_initiator_fn. */
 static void initiate_drain(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -4831,7 +4831,7 @@ static void initiate_drain(struct admin_state *state)
  * Drain all allocator I/O. Depending upon the type of drain, some or all dirty metadata may be
  * written to disk. The type of drain will be determined from the state of the allocator's depot.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void drain_allocator(void *context, zone_count_t zone_number,
 			    struct vdo_completion *parent)
@@ -4914,7 +4914,7 @@ static void do_resume_step(struct vdo_completion *completion)
 	}
 }
 
-/* Implements vdo_admin_initiator. */
+/* Implements vdo_admin_initiator_fn. */
 static void initiate_resume(struct admin_state *state)
 {
 	struct block_allocator *allocator =
@@ -4924,7 +4924,7 @@ static void initiate_resume(struct admin_state *state)
 	do_resume_step(&allocator->completion);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void resume_allocator(void *context, zone_count_t zone_number,
 			     struct vdo_completion *parent)
 {
@@ -4970,7 +4970,7 @@ void vdo_commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 	vdo_schedule_default_action(depot->action_manager);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void scrub_all_unrecovered_slabs(void *context, zone_count_t zone_number,
 					struct vdo_completion *parent)
 {

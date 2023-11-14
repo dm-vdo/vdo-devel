@@ -28,9 +28,9 @@
 struct action {
 	bool in_use;
 	const struct admin_state_code *operation;
-	vdo_action_preamble *preamble;
-	vdo_zone_action *zone_action;
-	vdo_action_conclusion *conclusion;
+	vdo_action_preamble_fn preamble;
+	vdo_zone_action_fn zone_action;
+	vdo_action_conclusion_fn conclusion;
 	struct vdo_completion *parent;
 	void *context;
 	struct action *next;
@@ -56,8 +56,8 @@ struct action_manager {
 	struct action actions[2];
 	struct action *current_action;
 	zone_count_t zones;
-	vdo_action_scheduler *scheduler;
-	vdo_zone_thread_getter *get_zone_thread_id;
+	vdo_action_scheduler_fn scheduler;
+	vdo_zone_thread_getter_fn get_zone_thread_id;
 	thread_id_t initiator_thread_id;
 	void *context;
 	zone_count_t acting_zone;
@@ -69,19 +69,19 @@ static inline struct action_manager *as_action_manager(struct vdo_completion *co
 	return container_of(completion, struct action_manager, completion);
 }
 
-/* Implements vdo_action_scheduler. */
+/* Implements vdo_action_scheduler_fn. */
 static bool no_default_action(void *context __always_unused)
 {
 	return false;
 }
 
-/* Implements vdo_action_preamble. */
+/* Implements vdo_action_preamble_fn. */
 static void no_preamble(void *context __always_unused, struct vdo_completion *completion)
 {
 	vdo_finish_completion(completion);
 }
 
-/* Implements vdo_action_conclusion. */
+/* Implements vdo_action_conclusion_fn. */
 static int no_conclusion(void *context __always_unused)
 {
 	return VDO_SUCCESS;
@@ -101,9 +101,9 @@ static int no_conclusion(void *context __always_unused)
  * Return: VDO_SUCCESS or an error code.
  */
 int vdo_make_action_manager(zone_count_t zones,
-			    vdo_zone_thread_getter *get_zone_thread_id,
+			    vdo_zone_thread_getter_fn get_zone_thread_id,
 			    thread_id_t initiator_thread_id, void *context,
-			    vdo_action_scheduler *scheduler, struct vdo *vdo,
+			    vdo_action_scheduler_fn scheduler, struct vdo *vdo,
 			    struct action_manager **manager_ptr)
 {
 	struct action_manager *manager;
@@ -290,8 +290,8 @@ static void finish_action_callback(struct vdo_completion *completion)
  *
  * Return: true if the action was scheduled.
  */
-bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble *preamble,
-			 vdo_zone_action *action, vdo_action_conclusion *conclusion,
+bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble_fn preamble,
+			 vdo_zone_action_fn action, vdo_action_conclusion_fn conclusion,
 			 struct vdo_completion *parent)
 {
 	return vdo_schedule_operation(manager, VDO_ADMIN_STATE_OPERATING, preamble,
@@ -319,8 +319,8 @@ bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble *pr
  */
 bool vdo_schedule_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
-			    vdo_action_preamble *preamble, vdo_zone_action *action,
-			    vdo_action_conclusion *conclusion,
+			    vdo_action_preamble_fn preamble, vdo_zone_action_fn action,
+			    vdo_action_conclusion_fn conclusion,
 			    struct vdo_completion *parent)
 {
 	return vdo_schedule_operation_with_context(manager, operation, preamble, action,
@@ -350,9 +350,9 @@ bool vdo_schedule_operation(struct action_manager *manager,
  */
 bool vdo_schedule_operation_with_context(struct action_manager *manager,
 					 const struct admin_state_code *operation,
-					 vdo_action_preamble *preamble,
-					 vdo_zone_action *action,
-					 vdo_action_conclusion *conclusion,
+					 vdo_action_preamble_fn preamble,
+					 vdo_zone_action_fn action,
+					 vdo_action_conclusion_fn conclusion,
 					 void *context, struct vdo_completion *parent)
 {
 	struct action *current_action;

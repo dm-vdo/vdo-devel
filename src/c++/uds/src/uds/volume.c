@@ -93,17 +93,17 @@ u8 **test_pages = NULL;
 u32 test_page_count = 0;
 
 /* This function pointer allows unit tests to intercept the slow-lane requeuing of a request. */
-static request_restarter_t request_restarter = NULL;
+static request_restarter_fn request_restarter;
 
-void set_request_restarter(request_restarter_t restarter)
+void set_request_restarter(request_restarter_fn restarter)
 {
 	request_restarter = restarter;
 }
 
 /* This function pointer allows unit tests to fake reading and testing a chapter for rebuild. */
-static chapter_tester_t chapter_tester = NULL;
+static chapter_tester_fn chapter_tester;
 
-void set_chapter_tester(chapter_tester_t tester)
+void set_chapter_tester(chapter_tester_fn tester)
 {
 	chapter_tester = tester;
 }

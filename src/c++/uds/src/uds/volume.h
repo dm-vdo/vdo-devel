@@ -175,11 +175,11 @@ int __must_check uds_get_volume_index_page(struct volume *volume, u32 chapter,
 extern u8 **test_pages;
 extern u32 test_page_count;
 
-typedef void (*request_restarter_t)(struct uds_request *);
-typedef void (*chapter_tester_t)(u32 chapter, u64 *virtual_chapter);
+typedef void (*request_restarter_fn)(struct uds_request *);
+typedef void (*chapter_tester_fn)(u32 chapter, u64 *virtual_chapter);
 
-void set_request_restarter(request_restarter_t restarter);
-void set_chapter_tester(chapter_tester_t chapter_tester);
+void set_request_restarter(request_restarter_fn restarter);
+void set_chapter_tester(chapter_tester_fn chapter_tester);
 
 u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
 

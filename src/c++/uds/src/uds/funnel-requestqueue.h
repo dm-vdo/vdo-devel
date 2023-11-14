@@ -17,10 +17,10 @@
 
 struct uds_request_queue;
 
-typedef void uds_request_queue_processor_t(struct uds_request *);
+typedef void (*uds_request_queue_processor_fn)(struct uds_request *);
 
 int __must_check uds_make_request_queue(const char *queue_name,
-					uds_request_queue_processor_t *processor,
+					uds_request_queue_processor_fn processor,
 					struct uds_request_queue **queue_ptr);
 
 void uds_request_queue_enqueue(struct uds_request_queue *queue,

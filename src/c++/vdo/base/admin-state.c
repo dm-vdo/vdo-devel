@@ -215,14 +215,14 @@ bool vdo_finish_operation(struct admin_state *state, int result)
 /**
  * begin_operation() - Begin an operation if it may be started given the current state.
  * @waiter A completion to notify when the operation is complete; may be NULL.
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: VDO_SUCCESS or an error.
  */
 static int __must_check begin_operation(struct admin_state *state,
 					const struct admin_state_code *operation,
 					struct vdo_completion *waiter,
-					vdo_admin_initiator *initiator)
+					vdo_admin_initiator_fn initiator)
 {
 	int result;
 	const struct admin_state_code *next_state = get_next_state(state, operation);
@@ -260,14 +260,14 @@ static int __must_check begin_operation(struct admin_state *state,
 /**
  * start_operation() - Start an operation if it may be started given the current state.
  * @waiter     A completion to notify when the operation is complete.
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: true if the operation was started.
  */
 static inline bool __must_check start_operation(struct admin_state *state,
 						const struct admin_state_code *operation,
 						struct vdo_completion *waiter,
-						vdo_admin_initiator *initiator)
+						vdo_admin_initiator_fn initiator)
 {
 	return (begin_operation(state, operation, waiter, initiator) == VDO_SUCCESS);
 }
@@ -315,13 +315,13 @@ static bool __must_check assert_vdo_drain_operation(const struct admin_state_cod
  * vdo_start_draining() - Initiate a drain operation if the current state permits it.
  * @operation The type of drain to initiate.
  * @waiter The completion to notify when the drain is complete.
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: true if the drain was initiated, if not the waiter will be notified.
  */
 bool vdo_start_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
-			struct vdo_completion *waiter, vdo_admin_initiator *initiator)
+			struct vdo_completion *waiter, vdo_admin_initiator_fn initiator)
 {
 	const struct admin_state_code *code = vdo_get_admin_state_code(state);
 
@@ -379,13 +379,13 @@ bool vdo_assert_load_operation(const struct admin_state_code *operation,
  * vdo_start_loading() - Initiate a load operation if the current state permits it.
  * @operation The type of load to initiate.
  * @waiter The completion to notify when the load is complete (may be NULL).
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: true if the load was initiated, if not the waiter will be notified.
  */
 bool vdo_start_loading(struct admin_state *state,
 		       const struct admin_state_code *operation,
-		       struct vdo_completion *waiter, vdo_admin_initiator *initiator)
+		       struct vdo_completion *waiter, vdo_admin_initiator_fn initiator)
 {
 	return (vdo_assert_load_operation(operation, waiter) &&
 		start_operation(state, operation, waiter, initiator));
@@ -429,13 +429,13 @@ static bool __must_check assert_vdo_resume_operation(const struct admin_state_co
  * vdo_start_resuming() - Initiate a resume operation if the current state permits it.
  * @operation The type of resume to start.
  * @waiter The completion to notify when the resume is complete (may be NULL).
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: true if the resume was initiated, if not the waiter will be notified.
  */
 bool vdo_start_resuming(struct admin_state *state,
 			const struct admin_state_code *operation,
-			struct vdo_completion *waiter, vdo_admin_initiator *initiator)
+			struct vdo_completion *waiter, vdo_admin_initiator_fn initiator)
 {
 	return (assert_vdo_resume_operation(operation, waiter) &&
 		start_operation(state, operation, waiter, initiator));
@@ -491,14 +491,14 @@ int vdo_start_operation(struct admin_state *state,
 /**
  * vdo_start_operation_with_waiter() - Attempt to start an operation.
  * @waiter the completion to notify when the operation completes or fails to start; may be NULL.
- * @initiator The vdo_admin_initiator to call if the operation may begin; may be NULL.
+ * @initiator The vdo_admin_initiator_fn to call if the operation may begin; may be NULL.
  *
  * Return: VDO_SUCCESS if the operation was started, VDO_INVALID_ADMIN_STATE if not
  */
 int vdo_start_operation_with_waiter(struct admin_state *state,
 				    const struct admin_state_code *operation,
 				    struct vdo_completion *waiter,
-				    vdo_admin_initiator *initiator)
+				    vdo_admin_initiator_fn initiator)
 {
 	return (check_code(operation->operating, operation, "operation", waiter) ?
 		begin_operation(state, operation, waiter, initiator) :

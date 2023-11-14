@@ -39,8 +39,8 @@
  * @zone_number: The number of zone to which the action is being applied
  * @parent: The object to notify when the action is complete
  */
-typedef void vdo_zone_action(void *context, zone_count_t zone_number,
-			     struct vdo_completion *parent);
+typedef void (*vdo_zone_action_fn)(void *context, zone_count_t zone_number,
+				   struct vdo_completion *parent);
 
 /*
  * A function which is to be applied asynchronously on an action manager's initiator thread as the
@@ -48,7 +48,7 @@ typedef void vdo_zone_action(void *context, zone_count_t zone_number,
  * @context: The object which holds the per-zone context for the action
  * @parent: The object to notify when the action is complete
  */
-typedef void vdo_action_preamble(void *context, struct vdo_completion *parent);
+typedef void (*vdo_action_preamble_fn)(void *context, struct vdo_completion *parent);
 
 /*
  * A function which will run on the action manager's initiator thread as the conclusion of an
@@ -57,7 +57,7 @@ typedef void vdo_action_preamble(void *context, struct vdo_completion *parent);
  *
  * Return: VDO_SUCCESS or an error
  */
-typedef int vdo_action_conclusion(void *context);
+typedef int (*vdo_action_conclusion_fn)(void *context);
 
 /*
  * A function to schedule an action.
@@ -65,21 +65,21 @@ typedef int vdo_action_conclusion(void *context);
  *
  * Return: true if an action was scheduled
  */
-typedef bool vdo_action_scheduler(void *context);
+typedef bool (*vdo_action_scheduler_fn)(void *context);
 
 /*
  * A function to get the id of the thread associated with a given zone.
  * @context: The action context
  * @zone_number: The number of the zone for which the thread ID is desired
  */
-typedef thread_id_t vdo_zone_thread_getter(void *context, zone_count_t zone_number);
+typedef thread_id_t (*vdo_zone_thread_getter_fn)(void *context, zone_count_t zone_number);
 
 struct action_manager;
 
 int __must_check vdo_make_action_manager(zone_count_t zones,
-					 vdo_zone_thread_getter *get_zone_thread_id,
+					 vdo_zone_thread_getter_fn get_zone_thread_id,
 					 thread_id_t initiator_thread_id, void *context,
-					 vdo_action_scheduler *scheduler,
+					 vdo_action_scheduler_fn scheduler,
 					 struct vdo *vdo,
 					 struct action_manager **manager_ptr);
 
@@ -90,21 +90,21 @@ void * __must_check vdo_get_current_action_context(struct action_manager *manage
 
 bool vdo_schedule_default_action(struct action_manager *manager);
 
-bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble *preamble,
-			 vdo_zone_action *action, vdo_action_conclusion *conclusion,
+bool vdo_schedule_action(struct action_manager *manager, vdo_action_preamble_fn preamble,
+			 vdo_zone_action_fn action, vdo_action_conclusion_fn conclusion,
 			 struct vdo_completion *parent);
 
 bool vdo_schedule_operation(struct action_manager *manager,
 			    const struct admin_state_code *operation,
-			    vdo_action_preamble *preamble, vdo_zone_action *action,
-			    vdo_action_conclusion *conclusion,
+			    vdo_action_preamble_fn preamble, vdo_zone_action_fn action,
+			    vdo_action_conclusion_fn conclusion,
 			    struct vdo_completion *parent);
 
 bool vdo_schedule_operation_with_context(struct action_manager *manager,
 					 const struct admin_state_code *operation,
-					 vdo_action_preamble *preamble,
-					 vdo_zone_action *action,
-					 vdo_action_conclusion *conclusion,
+					 vdo_action_preamble_fn preamble,
+					 vdo_zone_action_fn action,
+					 vdo_action_conclusion_fn conclusion,
 					 void *context, struct vdo_completion *parent);
 
 #endif /* VDO_ACTION_MANAGER_H */

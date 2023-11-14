@@ -713,7 +713,7 @@ void vdo_increment_packer_flush_generation(struct packer *packer)
 /**
  * initiate_drain() - Initiate a drain.
  *
- * Implements vdo_admin_initiator.
+ * Implements vdo_admin_initiator_fn.
  */
 static void initiate_drain(struct admin_state *state)
 {

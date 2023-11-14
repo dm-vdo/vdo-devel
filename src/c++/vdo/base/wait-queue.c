@@ -85,7 +85,7 @@ void vdo_transfer_all_waiters(struct wait_queue *from_queue, struct wait_queue *
  * function on each of them in turn. The queue is copied and emptied before invoking any callbacks,
  * and only the waiters that were in the queue at the start of the call will be notified.
  */
-void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
+void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback_fn callback,
 			    void *context)
 {
 	/*
@@ -129,7 +129,7 @@ struct waiter *vdo_get_first_waiter(const struct wait_queue *queue)
  * @match_context: Contextual info for the match method.
  * @matched_queue: A wait_queue to store matches.
  */
-void vdo_dequeue_matching_waiters(struct wait_queue *queue, waiter_match *match_method,
+void vdo_dequeue_matching_waiters(struct wait_queue *queue, waiter_match_fn match_method,
 				  void *match_context, struct wait_queue *matched_queue)
 {
 	struct wait_queue matched_waiters, iteration_queue;
@@ -195,7 +195,7 @@ struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue)
  *
  * Return: true if there was a waiter in the queue.
  */
-bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
+bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback_fn callback,
 			    void *context)
 {
 	struct waiter *waiter = vdo_dequeue_next_waiter(queue);

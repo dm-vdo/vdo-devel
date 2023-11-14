@@ -28,7 +28,7 @@ extern atomic_t chapters_replayed;
 extern atomic_t chapters_written;
 #endif /* TEST_INTERNAL */
 
-typedef void (*index_callback_t)(struct uds_request *request);
+typedef void (*index_callback_fn)(struct uds_request *request);
 
 struct index_zone {
 	struct uds_index *index;
@@ -56,7 +56,7 @@ struct uds_index {
 	u64 prev_save;
 	struct chapter_writer *chapter_writer;
 
-	index_callback_t callback;
+	index_callback_fn callback;
 	struct uds_request_queue *triage_queue;
 	struct uds_request_queue *zone_queues[];
 };
@@ -70,7 +70,7 @@ enum request_stage {
 int __must_check uds_make_index(struct configuration *config,
 				enum uds_open_index_type open_type,
 				struct index_load_context *load_context,
-				index_callback_t callback, struct uds_index **new_index);
+				index_callback_fn callback, struct uds_index **new_index);
 
 int __must_check uds_save_index(struct uds_index *index);
 

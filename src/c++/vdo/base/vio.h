@@ -169,7 +169,7 @@ void vdo_count_completed_bios(struct bio *bio);
 /**
  * continue_vio_after_io() - Continue a vio now that its I/O has returned.
  */
-static inline void continue_vio_after_io(struct vio *vio, vdo_action *callback,
+static inline void continue_vio_after_io(struct vio *vio, vdo_action_fn callback,
 					 thread_id_t thread)
 {
 	vdo_count_completed_bios(vio->bio);

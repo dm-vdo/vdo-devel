@@ -37,7 +37,7 @@ static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 	return container_of(completion, struct logical_zone, completion);
 }
 
-/* get_thread_id_for_zone() - Implements vdo_zone_thread_getter. */
+/* get_thread_id_for_zone() - Implements vdo_zone_thread_getter_fn. */
 static thread_id_t get_thread_id_for_zone(void *context, zone_count_t zone_number)
 {
 	struct logical_zones *zones = context;
@@ -164,7 +164,7 @@ static void check_for_drain_complete(struct logical_zone *zone)
 /**
  * initiate_drain() - Initiate a drain.
  *
- * Implements vdo_admin_initiator.
+ * Implements vdo_admin_initiator_fn.
  */
 static void initiate_drain(struct admin_state *state)
 {
@@ -174,7 +174,7 @@ static void initiate_drain(struct admin_state *state)
 /**
  * drain_logical_zone() - Drain a logical zone.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void drain_logical_zone(void *context, zone_count_t zone_number,
 			       struct vdo_completion *parent)
@@ -197,7 +197,7 @@ void vdo_drain_logical_zones(struct logical_zones *zones,
 /**
  * resume_logical_zone() - Resume a logical zone.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void resume_logical_zone(void *context, zone_count_t zone_number,
 				struct vdo_completion *parent)
