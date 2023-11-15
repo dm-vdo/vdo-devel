@@ -240,7 +240,7 @@ struct uds_index;
 struct uds_request;
 
 /* Once this callback has been invoked, the uds_request structure can be reused or freed. */
-typedef void uds_request_callback_t(struct uds_request *request);
+typedef void (*uds_request_callback_fn)(struct uds_request *request);
 
 struct uds_request {
 	/* These input fields must be set before launching a request. */
@@ -250,7 +250,7 @@ struct uds_request {
 	/* New data to associate with the record name, if applicable */
 	struct uds_record_data new_metadata;
 	/* A callback to invoke when the request is complete */
-	uds_request_callback_t *callback;
+	uds_request_callback_fn callback;
 	/* The index session that will manage this request */
 	struct uds_index_session *session;
 	/* The type of operation to perform, as describe above */

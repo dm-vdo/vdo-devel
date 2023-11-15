@@ -41,7 +41,7 @@ static void success_callback(struct uds_request *request)
 void submit_test_request(struct uds_index *index,
                          struct uds_request *request)
 {
-  index_callback_t old_callback = index->callback;
+  index_callback_fn old_callback = index->callback;
 
   request->zone_number = uds_get_volume_index_zone(index->volume_index, &request->record_name);
   index->callback = &success_callback;

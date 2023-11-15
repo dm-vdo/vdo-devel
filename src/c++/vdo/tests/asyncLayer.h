@@ -82,7 +82,7 @@ void setAsyncLayerReadOnly(bool readOnly);
  * @note Callers must call awaitCompletion() on the completion parameter
  *      to await the result.
  **/
-void launchAction(vdo_action *action, struct vdo_completion *completion);
+void launchAction(vdo_action_fn action, struct vdo_completion *completion);
 
 /**
  * Low-level operation to wait for an operation started by launchAction()
@@ -106,7 +106,7 @@ int awaitCompletion(struct vdo_completion *completion);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int performAction(vdo_action *action, struct vdo_completion *completion);
+int performAction(vdo_action_fn action, struct vdo_completion *completion);
 
 /**
  * Enqueue a completion on a vdo thread skipping the callback hook.

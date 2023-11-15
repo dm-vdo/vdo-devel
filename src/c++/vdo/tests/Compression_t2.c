@@ -116,7 +116,7 @@ static void testDedupeVsPreCompressorVIO(void)
  * A hook to record some of the state of each data_vio as it is about to clean
  * up.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static bool recordHook(struct vdo_completion *completion)
 {

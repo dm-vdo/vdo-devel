@@ -73,7 +73,7 @@ void freeRequest(IORequest *request);
  * A callback to run when a data vio is complete, registered in
  * runEnqueueHook() for newly launched data vios.
  *
- * <p>Implements vdo_action.
+ * <p>Implements vdo_action_fn.
  **/
 void dataVIOCompleteCallback(struct vdo_completion *completion);
 

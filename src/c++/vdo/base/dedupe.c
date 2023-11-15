@@ -314,7 +314,7 @@ static u64 vdo_dedupe_index_timeout_jiffies;
 static u64 vdo_dedupe_index_min_timer_jiffies;
 
 #ifdef INTERNAL
-uds_request_hook *uds_launch_request_hook = NULL;
+uds_request_hook_fn uds_launch_request_hook = NULL;
 
 #endif /* INTERNAL */
 static inline struct hash_zone *as_hash_zone(struct vdo_completion *completion)
@@ -561,7 +561,7 @@ static void wait_on_hash_lock(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
- * abort_waiter() - waiter_callback function that shunts waiters to write their blocks without
+ * abort_waiter() - waiter_callback_fn function that shunts waiters to write their blocks without
  *                  optimization.
  * @waiter: The data_vio's waiter link.
  * @context: Not used.
@@ -922,8 +922,8 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 /**
  * enter_forked_lock() - Bind the data_vio to a new hash lock.
  *
- * Implements waiter_callback. Binds the data_vio that was waiting to a new hash lock and waits on
- * that lock.
+ * Implements waiter_callback_fn. Binds the data_vio that was waiting to a new hash lock and waits
+ * on that lock.
  */
 static void enter_forked_lock(struct waiter *waiter, void *context)
 {
@@ -2034,14 +2034,14 @@ void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 	ASSERT_LOG_ONLY(claimed, "impossible to fail to claim an initial increment");
 }
 
-/** compare_keys() - Implements pointer_key_comparator. */
+/** compare_keys() - Implements pointer_key_comparator_fn. */
 static bool compare_keys(const void *this_key, const void *that_key)
 {
 	/* Null keys are not supported. */
 	return (memcmp(this_key, that_key, sizeof(struct uds_record_name)) == 0);
 }
 
-/** hash_key() - Implements pointer_key_comparator. */
+/** hash_key() - Implements pointer_key_comparator_fn. */
 static u32 hash_key(const void *key)
 {
 	const struct uds_record_name *name = key;
@@ -2474,7 +2474,7 @@ static int __must_check initialize_zone(struct vdo *vdo, struct hash_zones *zone
 	return vdo_make_default_thread(vdo, zone->thread_id);
 }
 
-/** get_thread_id_for_zone() - Implements vdo_zone_thread_getter. */
+/** get_thread_id_for_zone() - Implements vdo_zone_thread_getter_fn. */
 static thread_id_t get_thread_id_for_zone(void *context, zone_count_t zone_number)
 {
 	struct hash_zones *zones = context;
@@ -2597,7 +2597,7 @@ static void initiate_suspend_index(struct admin_state *state)
 /**
  * suspend_index() - Suspend the UDS index prior to draining hash zones.
  *
- * Implements vdo_action_preamble
+ * Implements vdo_action_preamble_fn
  */
 static void suspend_index(void *context, struct vdo_completion *completion)
 {
@@ -2611,7 +2611,7 @@ static void suspend_index(void *context, struct vdo_completion *completion)
 /**
  * initiate_drain() - Initiate a drain.
  *
- * Implements vdo_admin_initiator.
+ * Implements vdo_admin_initiator_fn.
  */
 static void initiate_drain(struct admin_state *state)
 {
@@ -2621,7 +2621,7 @@ static void initiate_drain(struct admin_state *state)
 /**
  * drain_hash_zone() - Drain a hash zone.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void drain_hash_zone(void *context, zone_count_t zone_number,
 			    struct vdo_completion *parent)
@@ -2659,7 +2659,7 @@ static void launch_dedupe_state_change(struct hash_zones *zones)
 /**
  * resume_index() - Resume the UDS index prior to resuming hash zones.
  *
- * Implements vdo_action_preamble
+ * Implements vdo_action_preamble_fn
  */
 static void resume_index(void *context, struct vdo_completion *parent)
 {
@@ -2691,7 +2691,7 @@ static void resume_index(void *context, struct vdo_completion *parent)
 /**
  * resume_hash_zone() - Resume a hash zone.
  *
- * Implements vdo_zone_action.
+ * Implements vdo_zone_action_fn.
  */
 static void resume_hash_zone(void *context, zone_count_t zone_number,
 			     struct vdo_completion *parent)

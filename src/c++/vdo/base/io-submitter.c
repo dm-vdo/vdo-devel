@@ -360,7 +360,7 @@ void submit_data_vio_io(struct data_vio *data_vio)
  * will be needed if this ever changes.
  */
 void vdo_submit_metadata_io(struct vio *vio, physical_block_number_t physical,
-			    bio_end_io_t callback, vdo_action *error_handler,
+			    bio_end_io_t callback, vdo_action_fn error_handler,
 			    unsigned int operation, char *data)
 {
 	struct vdo_completion *completion = &vio->completion;

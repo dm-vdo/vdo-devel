@@ -33,7 +33,7 @@ static bool                     recoveryJournalBlocked;
 static bool                     slabJournalHasPassedBlocking;
 static block_count_t            blocksWritten;
 static thread_id_t              slabJournalThread;
-static vdo_action              *wrapper;
+static vdo_action_fn            wrapper;
 /**
  * Test-specific initialization.
  **/
@@ -214,7 +214,7 @@ static void releaseRecoveryJournalLockAction(struct vdo_completion *completion)
  * A callback wrapper to check that the slab journal tail has advanced to an
  * appropriate point.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 static void checkSlabJournalTail(struct vdo_completion *completion)
 {

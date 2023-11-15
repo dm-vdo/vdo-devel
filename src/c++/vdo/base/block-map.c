@@ -97,7 +97,7 @@ struct cursor {
 struct cursors {
 	struct block_map_zone *zone;
 	struct vio_pool *pool;
-	vdo_entry_callback *entry_callback;
+	vdo_entry_callback_fn entry_callback;
 	struct vdo_completion *parent;
 	root_count_t active_roots;
 	struct cursor cursors[];
@@ -504,7 +504,7 @@ static void complete_with_page(struct page_info *info,
  * @waiter: The page completion, as a waiter.
  * @result_ptr: A pointer to the error code.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 {
@@ -518,7 +518,7 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
  * @waiter: The page completion, as a waiter.
  * @page_info: The page info to complete with.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void complete_waiter_with_page(struct waiter *waiter, void *page_info)
 {
@@ -769,7 +769,7 @@ static int __must_check launch_page_load(struct page_info *info,
 					 physical_block_number_t pbn)
 {
 	int result;
-	vdo_action *callback;
+	vdo_action_fn callback;
 	struct vdo_page_cache *cache = info->cache;
 
 	assert_io_allowed(cache);
@@ -870,7 +870,7 @@ static void launch_page_save(struct page_info *info)
  *                           requesting a given page number.
  * @context: A pointer to the pbn of the desired page.
  *
- * Implements waiter_match.
+ * Implements waiter_match_fn.
  *
  * Return: true if the page completion is for the desired page number.
  */
@@ -1216,8 +1216,8 @@ static void load_page_for_completion(struct page_info *info,
  */
 void vdo_get_page(struct vdo_page_completion *page_completion,
 		  struct block_map_zone *zone, physical_block_number_t pbn,
-		  bool writable, void *parent, vdo_action *callback,
-		  vdo_action *error_handler, bool requeue)
+		  bool writable, void *parent, vdo_action_fn callback,
+		  vdo_action_fn error_handler, bool requeue)
 {
 	struct vdo_page_cache *cache = &zone->page_cache;
 	struct vdo_completion *completion = &page_completion->completion;
@@ -1502,7 +1502,7 @@ static void set_generation(struct block_map_zone *zone, struct tree_page *page,
 
 static void write_page(struct tree_page *tree_page, struct pooled_vio *vio);
 
-/* Implements waiter_callback */
+/* Implements waiter_callback_fn */
 static void write_page_callback(struct waiter *waiter, void *context)
 {
 	write_page(container_of(waiter, struct tree_page, waiter), context);
@@ -2633,7 +2633,7 @@ static void traverse(struct cursor *cursor)
  *                   which to load pages.
  * @context: The pooled_vio just acquired.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void launch_cursor(struct waiter *waiter, void *context)
 {
@@ -2683,7 +2683,7 @@ static struct boundary compute_boundary(struct block_map *map, root_count_t root
  * @callback: A function to call with the pbn of each allocated node in the forest.
  * @parent: The completion to notify on each traversed PBN, and when the traversal is complete.
  */
-void vdo_traverse_forest(struct block_map *map, vdo_entry_callback *callback,
+void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
 			 struct vdo_completion *parent)
 {
 	root_count_t root;
@@ -2781,7 +2781,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	return VDO_SUCCESS;
 }
 
-/* Implements vdo_zone_thread_getter */
+/* Implements vdo_zone_thread_getter_fn */
 static thread_id_t get_block_map_zone_thread_id(void *context, zone_count_t zone_number)
 {
 	struct block_map *map = context;
@@ -2789,7 +2789,7 @@ static thread_id_t get_block_map_zone_thread_id(void *context, zone_count_t zone
 	return map->zones[zone_number].thread_id;
 }
 
-/* Implements vdo_action_preamble */
+/* Implements vdo_action_preamble_fn */
 static void prepare_for_era_advance(void *context, struct vdo_completion *parent)
 {
 	struct block_map *map = context;
@@ -2798,7 +2798,7 @@ static void prepare_for_era_advance(void *context, struct vdo_completion *parent
 	vdo_finish_completion(parent);
 }
 
-/* Implements vdo_zone_action */
+/* Implements vdo_zone_action_fn */
 static void advance_block_map_zone_era(void *context, zone_count_t zone_number,
 				       struct vdo_completion *parent)
 {
@@ -2814,7 +2814,7 @@ static void advance_block_map_zone_era(void *context, zone_count_t zone_number,
  * Schedule an era advance if necessary. This method should not be called directly. Rather, call
  * vdo_schedule_default_action() on the block map's action manager.
  *
- * Implements vdo_action_scheduler.
+ * Implements vdo_action_scheduler_fn.
  */
 static bool schedule_era_advance(void *context)
 {
@@ -2976,7 +2976,7 @@ void vdo_advance_block_map_era(struct block_map *map,
 	vdo_schedule_default_action(map->action_manager);
 }
 
-/* Implements vdo_admin_initiator */
+/* Implements vdo_admin_initiator_fn */
 static void initiate_drain(struct admin_state *state)
 {
 	struct block_map_zone *zone = container_of(state, struct block_map_zone, state);
@@ -2993,7 +2993,7 @@ static void initiate_drain(struct admin_state *state)
 	check_for_drain_complete(zone);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void drain_zone(void *context, zone_count_t zone_number,
 		       struct vdo_completion *parent)
 {
@@ -3012,7 +3012,7 @@ void vdo_drain_block_map(struct block_map *map, const struct admin_state_code *o
 			       parent);
 }
 
-/* Implements vdo_zone_action. */
+/* Implements vdo_zone_action_fn. */
 static void resume_block_map_zone(void *context, zone_count_t zone_number,
 				  struct vdo_completion *parent)
 {
@@ -3046,7 +3046,7 @@ int vdo_prepare_to_grow_block_map(struct block_map *map,
 	return make_forest(map, new_logical_blocks);
 }
 
-/* Implements vdo_action_preamble */
+/* Implements vdo_action_preamble_fn */
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
 	replace_forest(context);
@@ -3087,7 +3087,7 @@ static void handle_page_error(struct vdo_completion *completion)
 
 /* Fetch the mapping page for a block map update, and call the provided handler when fetched. */
 static void fetch_mapping_page(struct data_vio *data_vio, bool modifiable,
-			       vdo_action *action)
+			       vdo_action_fn action)
 {
 	struct block_map_zone *zone = data_vio->logical.zone->block_map_zone;
 

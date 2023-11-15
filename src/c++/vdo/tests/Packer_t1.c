@@ -72,7 +72,7 @@ static void binBoundaryTest(void)
 /**
  * Set the compressed size on exit from the compressor.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void setCompressedSize(struct vdo_completion *completion)
 {
@@ -105,7 +105,7 @@ static bool wrapIfLeavingCompressor(struct vdo_completion *completion)
 /**
  * Check that each bin contains exactly the expected number of data_vios.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void checkBins(struct vdo_completion *completion)
 {
@@ -251,7 +251,7 @@ static void suspendAndResumePackerTest(void)
 /**
  * Check that the fullest bin has 2 empty slots, and all other bins are empty.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void checkFullestBin(struct vdo_completion *completion)
 {

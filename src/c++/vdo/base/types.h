@@ -264,10 +264,10 @@ enum vdo_completion_type {
 struct vdo_completion;
 
 /**
- * typedef vdo_action - An asynchronous VDO operation.
+ * typedef vdo_action_fn - An asynchronous VDO operation.
  * @completion: The completion of the operation.
  */
-typedef void vdo_action(struct vdo_completion *completion);
+typedef void (*vdo_action_fn)(struct vdo_completion *completion);
 
 enum vdo_completion_priority {
 	BIO_ACK_Q_ACK_PRIORITY = 0,
@@ -325,10 +325,10 @@ struct vdo_completion {
 	struct vdo *vdo;
 
 	/* The callback which will be called once the operation is complete */
-	vdo_action *callback;
+	vdo_action_fn callback;
 
 	/* Callback which, if set, will be called if an error result is set */
-	vdo_action *error_handler;
+	vdo_action_fn error_handler;
 
 	/* The parent object, if any, that spawned this completion */
 	void *parent;

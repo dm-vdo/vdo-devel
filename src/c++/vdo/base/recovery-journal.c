@@ -265,7 +265,7 @@ static void assert_on_journal_thread(struct recovery_journal *journal,
  * continue_waiter() - Release a data_vio from the journal.
  *
  * Invoked whenever a data_vio is to be released from the journal, either because its entry was
- * committed to disk, or because there was an error. Implements waiter_callback.
+ * committed to disk, or because there was an error. Implements waiter_callback_fn.
  */
 static void continue_waiter(struct waiter *waiter, void *context)
 {
@@ -375,7 +375,7 @@ static void check_for_drain_complete(struct recovery_journal *journal)
  * @listener: The journal.
  * @parent: The completion to notify in order to acknowledge the notification.
  *
- * Implements vdo_read_only_notification.
+ * Implements vdo_read_only_notification_fn.
  */
 static void notify_recovery_journal_of_read_only_mode(void *listener,
 						      struct vdo_completion *parent)
@@ -1082,7 +1082,7 @@ static void update_usages(struct recovery_journal *journal, struct data_vio *dat
 /**
  * assign_entry() - Assign an entry waiter to the active block.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void assign_entry(struct waiter *waiter, void *context)
 {
@@ -1168,7 +1168,7 @@ static void recycle_journal_block(struct recovery_journal_block *block)
  * continue_committed_waiter() - invoked whenever a VIO is to be released from the journal because
  *                               its entry was committed to disk.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
@@ -1364,7 +1364,7 @@ static void add_queued_recovery_entries(struct recovery_journal_block *block)
 /**
  * write_block() - Issue a block for writing.
  *
- * Implements waiter_callback.
+ * Implements waiter_callback_fn.
  */
 static void write_block(struct waiter *waiter, void *context __always_unused)
 {
@@ -1613,7 +1613,7 @@ void vdo_release_journal_entry_lock(struct recovery_journal *journal,
 /**
  * initiate_drain() - Initiate a drain.
  *
- * Implements vdo_admin_initiator.
+ * Implements vdo_admin_initiator_fn.
  */
 static void initiate_drain(struct admin_state *state)
 {

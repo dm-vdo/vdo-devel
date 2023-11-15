@@ -37,17 +37,18 @@ struct wait_queue {
 };
 
 /**
- * typedef waiter_callback - Callback type for functions which will be called to resume processing
- *                           of a waiter after it has been removed from its wait queue.
+ * typedef waiter_callback_fn - Callback type for functions which will be called to resume
+ *                              processing of a waiter after it has been removed from its wait
+ *                              queue.
  */
-typedef void waiter_callback(struct waiter *waiter, void *context);
+typedef void (*waiter_callback_fn)(struct waiter *waiter, void *context);
 
 /**
- * typedef waiter_match - Method type for waiter matching methods.
+ * typedef waiter_match_fn - Method type for waiter matching methods.
  *
- * A waiter_match method returns false if the waiter does not match.
+ * A waiter_match_fn method returns false if the waiter does not match.
  */
-typedef bool waiter_match(struct waiter *waiter, void *context);
+typedef bool (*waiter_match_fn)(struct waiter *waiter, void *context);
 
 /* The queue entry structure for entries in a wait_queue. */
 struct waiter {
@@ -58,7 +59,7 @@ struct waiter {
 	struct waiter *next_waiter;
 
 	/* Optional waiter-specific callback to invoke when waking this waiter. */
-	waiter_callback *callback;
+	waiter_callback_fn callback;
 };
 
 /**
@@ -97,10 +98,10 @@ static inline bool __must_check vdo_has_waiters(const struct wait_queue *queue)
 
 void vdo_enqueue_waiter(struct wait_queue *queue, struct waiter *waiter);
 
-void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
+void vdo_notify_all_waiters(struct wait_queue *queue, waiter_callback_fn callback,
 			    void *context);
 
-bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
+bool vdo_notify_next_waiter(struct wait_queue *queue, waiter_callback_fn callback,
 			    void *context);
 
 void vdo_transfer_all_waiters(struct wait_queue *from_queue,
@@ -108,7 +109,7 @@ void vdo_transfer_all_waiters(struct wait_queue *from_queue,
 
 struct waiter *vdo_get_first_waiter(const struct wait_queue *queue);
 
-void vdo_dequeue_matching_waiters(struct wait_queue *queue, waiter_match *match_method,
+void vdo_dequeue_matching_waiters(struct wait_queue *queue, waiter_match_fn match_method,
 				  void *match_context, struct wait_queue *matched_queue);
 
 struct waiter *vdo_dequeue_next_waiter(struct wait_queue *queue);

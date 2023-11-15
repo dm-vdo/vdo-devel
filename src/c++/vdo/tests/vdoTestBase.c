@@ -360,9 +360,9 @@ void tearDownVDOTest(void)
 }
 
 /**********************************************************************/
-void performActionOnThreadExpectResult(vdo_action  *action,
-                                       thread_id_t  threadID,
-                                       int          expectedResult)
+void performActionOnThreadExpectResult(vdo_action_fn action,
+                                       thread_id_t   threadID,
+                                       int           expectedResult)
 {
   struct vdo_completion completion;
   vdo_initialize_completion(&completion, vdo, VDO_TEST_COMPLETION);
@@ -371,19 +371,19 @@ void performActionOnThreadExpectResult(vdo_action  *action,
 }
 
 /**********************************************************************/
-void performActionExpectResult(vdo_action *action, int expectedResult)
+void performActionExpectResult(vdo_action_fn action, int expectedResult)
 {
   performActionOnThreadExpectResult(action, 0, expectedResult);
 }
 
 /**********************************************************************/
-void performSuccessfulActionOnThread(vdo_action *action, thread_id_t threadID)
+void performSuccessfulActionOnThread(vdo_action_fn action, thread_id_t threadID)
 {
   performActionOnThreadExpectResult(action, threadID, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-void performSuccessfulAction(vdo_action *action)
+void performSuccessfulAction(vdo_action_fn action)
 {
   performActionOnThreadExpectResult(action, 0, VDO_SUCCESS);
 }
@@ -465,7 +465,7 @@ void waitForRecoveryDone(void)
 }
 
 /**
- * A vdo_action to enable VDO compression from the request thread.
+ * A vdo_action_fn to enable VDO compression from the request thread.
  **/
 static void enableCompressionAction(struct vdo_completion *completion)
 {
@@ -474,7 +474,7 @@ static void enableCompressionAction(struct vdo_completion *completion)
 }
 
 /**
- * A vdo_action to disable VDO compression from the request thread.
+ * A vdo_action_fn to disable VDO compression from the request thread.
  **/
 static void disableCompressionAction(struct vdo_completion *completion)
 {

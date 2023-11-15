@@ -50,7 +50,7 @@ struct uds_request_queue {
 	/* Wait queue for synchronizing producers and consumer */
 	struct wait_queue_head wait_head;
 	/* Function to process a request */
-	uds_request_queue_processor_t *processor;
+	uds_request_queue_processor_fn processor;
 	/* Queue of new incoming requests */
 	struct funnel_queue *main_queue;
 	/* Queue of old requests to retry */
@@ -192,7 +192,7 @@ static void request_queue_worker(void *arg)
 }
 
 int uds_make_request_queue(const char *queue_name,
-			   uds_request_queue_processor_t *processor,
+			   uds_request_queue_processor_fn processor,
 			   struct uds_request_queue **queue_ptr)
 {
 	int result;

@@ -173,7 +173,7 @@ static void testInFlightDedupe(void)
 /**
  * Fail a data write.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void failDataWrite(struct vdo_completion *completion)
 {

@@ -32,7 +32,7 @@ typedef struct {
 static struct vdo_completion *
 launchAdminAction(void                          *operand,
                   const struct admin_state_code *operation,
-                  vdo_action                    *action,
+                  vdo_action_fn                  action,
                   thread_id_t                    threadID)
 {
   AdminOperationCompletion *adminOperation;

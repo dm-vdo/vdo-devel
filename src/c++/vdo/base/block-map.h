@@ -268,15 +268,15 @@ struct block_map {
 };
 
 /**
- * typedef vdo_entry_callback - A function to be called for each allocated PBN when traversing the
- *                              forest.
+ * typedef vdo_entry_callback_fn - A function to be called for each allocated PBN when traversing
+ *                                 the forest.
  * @pbn: A PBN of a tree node.
  * @completion: The parent completion of the traversal.
  *
  * Return: VDO_SUCCESS or an error.
  */
-typedef int vdo_entry_callback(physical_block_number_t pbn,
-			       struct vdo_completion *completion);
+typedef int (*vdo_entry_callback_fn)(physical_block_number_t pbn,
+				     struct vdo_completion *completion);
 
 static inline struct vdo_page_completion *as_vdo_page_completion(struct vdo_completion *completion)
 {
@@ -288,8 +288,8 @@ void vdo_release_page_completion(struct vdo_completion *completion);
 
 void vdo_get_page(struct vdo_page_completion *page_completion,
 		  struct block_map_zone *zone, physical_block_number_t pbn,
-		  bool writable, void *parent, vdo_action *callback,
-		  vdo_action *error_handler, bool requeue);
+		  bool writable, void *parent, vdo_action_fn callback,
+		  vdo_action_fn error_handler, bool requeue);
 
 void vdo_request_page_write(struct vdo_completion *completion);
 
@@ -315,7 +315,7 @@ physical_block_number_t vdo_find_block_map_page_pbn(struct block_map *map,
 
 void vdo_write_tree_page(struct tree_page *page, struct block_map_zone *zone);
 
-void vdo_traverse_forest(struct block_map *map, vdo_entry_callback *callback,
+void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
 			 struct vdo_completion *parent);
 
 int __must_check vdo_decode_block_map(struct block_map_state_2_0 state,

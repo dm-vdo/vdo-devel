@@ -47,7 +47,7 @@ static void assertLockInitialized(const struct pbn_lock *lock,
  * then corrupt every byte of it. The returned lock pointer must only be used
  * to return the lock to the pool.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void borrow(struct vdo_completion *completion)
 {
@@ -74,7 +74,7 @@ static void borrow(struct vdo_completion *completion)
  * Attempt to borrow a lock from the pool, asserting that it fails
  * with a lock error.
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void failBorrow(struct vdo_completion *completion)
 {
@@ -94,7 +94,7 @@ static void failBorrow(struct vdo_completion *completion)
  * Return a lock to the pool, first initializing it so error checks in the
  * pool code won't fail because of the memory smashing in borrow().
  *
- * Implements vdo_action
+ * Implements vdo_action_fn
  **/
 static void returnLock(struct vdo_completion *completion)
 {

@@ -30,7 +30,7 @@
  *
  * @return VDO_SUCCESS of an error code
  **/
-int performWrappedAction(vdo_action            *action,
+int performWrappedAction(vdo_action_fn          action,
                          struct vdo_completion *completion);
 
 /**
@@ -40,7 +40,7 @@ int performWrappedAction(vdo_action            *action,
  * @param completion    the completion to use when the action is complete
  * @param wrapperPtr    the new wrapper to wait on
  **/
-void launchWrappedAction(vdo_action             *action,
+void launchWrappedAction(vdo_action_fn           action,
                          struct vdo_completion  *completion,
                          struct vdo_completion **wrapperPtr);
 
@@ -64,7 +64,7 @@ void removeCompletionWrapping(struct vdo_completion *completion);
 /**
  * Finish a completion's parent with the result of the completion.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 void finishParentCallback(struct vdo_completion *completion);
 

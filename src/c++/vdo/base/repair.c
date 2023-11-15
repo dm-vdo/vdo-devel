@@ -200,7 +200,7 @@ as_repair_completion(struct vdo_completion *completion)
 }
 
 static void prepare_repair_completion(struct repair_completion *repair,
-				      vdo_action *callback, enum vdo_zone_type zone_type)
+				      vdo_action_fn callback, enum vdo_zone_type zone_type)
 {
 	struct vdo_completion *completion = &repair->completion;
 	const struct thread_config *thread_config = &completion->vdo->thread_config;
@@ -215,7 +215,7 @@ static void prepare_repair_completion(struct repair_completion *repair,
 }
 
 static void launch_repair_completion(struct repair_completion *repair,
-				     vdo_action *callback, enum vdo_zone_type zone_type)
+				     vdo_action_fn callback, enum vdo_zone_type zone_type)
 {
 	prepare_repair_completion(repair, callback, zone_type);
 	vdo_launch_completion(&repair->completion);
@@ -604,7 +604,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
  * @pbn: A pbn which holds a block map tree page.
  * @completion: The parent completion of the traversal.
  *
- * Implements vdo_entry_callback.
+ * Implements vdo_entry_callback_fn.
  *
  * Return: VDO_SUCCESS or an error.
  */

@@ -294,7 +294,7 @@ struct slab_actor {
 	/* The number of slabs performing a slab action */
 	slab_count_t slab_action_count;
 	/* The method to call when a slab action has been completed by all slabs */
-	vdo_action *callback;
+	vdo_action_fn callback;
 };
 
 /* A slab_iterator is a structure for iterating over a set of slabs. */

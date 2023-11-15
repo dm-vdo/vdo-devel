@@ -62,9 +62,9 @@ struct admin_state {
 };
 
 /**
- * typedef vdo_admin_initiator - A method to be called once an admin operation may be initiated.
+ * typedef vdo_admin_initiator_fn - A method to be called once an admin operation may be initiated.
  */
-typedef void vdo_admin_initiator(struct admin_state *state);
+typedef void (*vdo_admin_initiator_fn)(struct admin_state *state);
 
 static inline const struct admin_state_code * __must_check
 vdo_get_admin_state_code(const struct admin_state *state)
@@ -141,7 +141,7 @@ bool __must_check vdo_assert_load_operation(const struct admin_state_code *opera
 
 bool vdo_start_loading(struct admin_state *state,
 		       const struct admin_state_code *operation,
-		       struct vdo_completion *waiter, vdo_admin_initiator *initiator);
+		       struct vdo_completion *waiter, vdo_admin_initiator_fn initiator);
 
 bool vdo_finish_loading(struct admin_state *state);
 
@@ -149,7 +149,7 @@ bool vdo_finish_loading_with_result(struct admin_state *state, int result);
 
 bool vdo_start_resuming(struct admin_state *state,
 			const struct admin_state_code *operation,
-			struct vdo_completion *waiter, vdo_admin_initiator *initiator);
+			struct vdo_completion *waiter, vdo_admin_initiator_fn initiator);
 
 bool vdo_finish_resuming(struct admin_state *state);
 
@@ -159,7 +159,7 @@ int vdo_resume_if_quiescent(struct admin_state *state);
 
 bool vdo_start_draining(struct admin_state *state,
 			const struct admin_state_code *operation,
-			struct vdo_completion *waiter, vdo_admin_initiator *initiator);
+			struct vdo_completion *waiter, vdo_admin_initiator_fn initiator);
 
 bool vdo_finish_draining(struct admin_state *state);
 
@@ -171,7 +171,7 @@ int vdo_start_operation(struct admin_state *state,
 int vdo_start_operation_with_waiter(struct admin_state *state,
 				    const struct admin_state_code *operation,
 				    struct vdo_completion *waiter,
-				    vdo_admin_initiator *initiator);
+				    vdo_admin_initiator_fn initiator);
 
 bool vdo_finish_operation(struct admin_state *state, int result);
 

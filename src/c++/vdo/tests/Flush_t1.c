@@ -145,7 +145,7 @@ static bool incrementFlushCount(void *context)
 /**
  * Signal that a flush has started.
  *
- * <p>Implements vdo_action
+ * <p>Implements vdo_action_fn
  **/
 static void flushStartedCallback(struct vdo_completion *completion)
 {

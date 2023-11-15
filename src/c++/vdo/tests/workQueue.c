@@ -257,7 +257,7 @@ void *vdo_get_work_queue_private_data(void)
 }
 
 /*
- * Implements vdo_filter_t.
+ * Implements vdo_filter_fn.
  */
 static bool all_vdos_match(struct vdo *vdo __attribute__((unused)),
                            const void *context __attribute__((unused)))

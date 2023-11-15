@@ -171,7 +171,7 @@ static void testReadFulfillmentAndCompressorMooting(void)
  * Check that the data_vio which has just arrived at the packer will be
  * packing.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 static void assertPacking(struct vdo_completion *completion)
 {

@@ -102,7 +102,7 @@ void vdo_initialize_device_registry_once(void)
 	rwlock_init(&registry.lock);
 }
 
-/** vdo_is_equal() - Implements vdo_filter_t. */
+/** vdo_is_equal() - Implements vdo_filter_fn. */
 static bool vdo_is_equal(struct vdo *vdo, const void *context)
 {
 	return (vdo == context);
@@ -117,7 +117,7 @@ static bool vdo_is_equal(struct vdo *vdo, const void *context)
  *
  * Return: the vdo object found, if any.
  */
-static struct vdo * __must_check filter_vdos_locked(vdo_filter_t *filter,
+static struct vdo * __must_check filter_vdos_locked(vdo_filter_fn filter,
 						    const void *context)
 {
 	struct vdo *vdo;
@@ -135,7 +135,7 @@ static struct vdo * __must_check filter_vdos_locked(vdo_filter_t *filter,
  * @filter: The filter function to apply to vdos.
  * @context: A bit of context to provide the filter.
  */
-struct vdo *vdo_find_matching(vdo_filter_t *filter, const void *context)
+struct vdo *vdo_find_matching(vdo_filter_fn filter, const void *context)
 {
 	struct vdo *vdo;
 
@@ -1091,7 +1091,7 @@ void vdo_save_components(struct vdo *vdo, struct vdo_completion *parent)
  * Return: VDO_SUCCESS or an error.
  */
 int vdo_register_read_only_listener(struct vdo *vdo, void *listener,
-				    vdo_read_only_notification *notification,
+				    vdo_read_only_notification_fn notification,
 				    thread_id_t thread_id)
 {
 	struct vdo_thread *thread = &vdo->threads[thread_id];
@@ -1125,7 +1125,7 @@ int vdo_register_read_only_listener(struct vdo *vdo, void *listener,
  *
  * This will save the read-only state to the super block.
  *
- * Implements vdo_read_only_notification.
+ * Implements vdo_read_only_notification_fn.
  */
 static void notify_vdo_of_read_only_mode(void *listener, struct vdo_completion *parent)
 {
@@ -1454,7 +1454,7 @@ static void complete_synchronous_action(struct vdo_completion *completion)
  * @thread_id: The thread on which to run the action.
  * @parent: The parent of the sync completion (may be NULL).
  */
-static int perform_synchronous_action(struct vdo *vdo, vdo_action *action,
+static int perform_synchronous_action(struct vdo *vdo, vdo_action_fn action,
 				      thread_id_t thread_id, void *parent)
 {
 	struct sync_completion sync;

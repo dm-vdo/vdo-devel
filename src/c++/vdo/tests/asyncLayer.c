@@ -459,7 +459,7 @@ void setAsyncLayerReadOnly(bool readOnly)
 /**
  * The common callback used by all requests from the test thread.
  *
- * <p>Implements vdo_action.
+ * <p>Implements vdo_action_fn.
  *
  * @param completion  the completion for the operation which has finished
  **/
@@ -481,20 +481,20 @@ static void requestDoneCallback(struct vdo_completion *completion)
 /**
  * Strip the wrapper from an action and run that action.
  *
- * Implements vdo_action.
+ * Implements vdo_action_fn.
  **/
 static void requestCallback(struct vdo_completion *completion)
 {
   struct vdo_completion *payload = completion->parent;
   uds_free(uds_forget(completion));
 
-  vdo_action *action             = payload->callback;
+  vdo_action_fn action           = payload->callback;
   payload->callback              = requestDoneCallback;
   action(payload);
 }
 
 /**********************************************************************/
-void launchAction(vdo_action *action, struct vdo_completion *completion)
+void launchAction(vdo_action_fn action, struct vdo_completion *completion)
 {
   CU_ASSERT_PTR_NULL(completion->callback);
   completion->callback = action;
@@ -529,7 +529,7 @@ int awaitCompletion(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performAction(vdo_action *action, struct vdo_completion *completion)
+int performAction(vdo_action_fn action, struct vdo_completion *completion)
 {
   launchAction(action, completion);
   return awaitCompletion(completion);

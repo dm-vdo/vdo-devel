@@ -126,7 +126,7 @@ static const u32 COMPRESSION_STATUS_MASK = 0xff;
 static const u32 MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 struct limiter;
-typedef void assigner(struct limiter *limiter);
+typedef void (*assigner_fn)(struct limiter *limiter);
 
 /* Bookkeeping structure for a single type of resource. */
 struct limiter {
@@ -149,7 +149,7 @@ struct limiter {
 	/* The list of waiters which have their permits */
 	struct bio_list *permitted_waiters;
 	/* The function for assigning a resource to a waiter */
-	assigner *assigner;
+	assigner_fn assigner;
 	/* The queue of blocked threads */
 	wait_queue_head_t blocked_threads;
 	/* The arrival time of the eldest waiter */
@@ -814,7 +814,7 @@ static void process_release_callback(struct vdo_completion *completion)
 }
 
 static void initialize_limiter(struct limiter *limiter, struct data_vio_pool *pool,
-			       assigner *assigner, data_vio_count_t limit)
+			       assigner_fn assigner, data_vio_count_t limit)
 {
 	limiter->pool = pool;
 	limiter->assigner = assigner;
@@ -1022,7 +1022,7 @@ void vdo_launch_bio(struct data_vio_pool *pool, struct bio *bio)
 	launch_bio(pool->completion.vdo, data_vio, bio);
 }
 
-/* Implements vdo_admin_initiator. */
+/* Implements vdo_admin_initiator_fn. */
 static void initiate_drain(struct admin_state *state)
 {
 	bool drained;
@@ -1443,7 +1443,7 @@ const char *get_data_vio_operation_name(struct data_vio *data_vio)
  */
 void data_vio_allocate_data_block(struct data_vio *data_vio,
 				  enum pbn_lock_type write_lock_type,
-				  vdo_action *callback, vdo_action *error_handler)
+				  vdo_action_fn callback, vdo_action_fn error_handler)
 {
 	struct allocation *allocation = &data_vio->allocation;
 

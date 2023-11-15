@@ -25,7 +25,7 @@
  * @param vio       The vio
  * @param callback  The wrapper callback
  **/
-static inline void wrapVIOCallback(struct vio *vio, vdo_action *callback)
+static inline void wrapVIOCallback(struct vio *vio, vdo_action_fn callback)
 {
   wrapCompletionCallback(&vio->completion, callback);
 }
