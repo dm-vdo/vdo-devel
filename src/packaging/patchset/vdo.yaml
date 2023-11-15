@@ -47,8 +47,6 @@ tarballs:
             - packer.h
             - physical-zone.c
             - physical-zone.h
-            - pointer-map.c
-            - pointer-map.h
             - pool-sysfs.c
             - pool-sysfs.h
             - pool-sysfs-stats.c

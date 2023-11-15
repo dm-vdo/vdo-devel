@@ -23,7 +23,6 @@ BASE_OBJS :=     			\
 	logical-zone.o			\
 	packer.o			\
 	physical-zone.o			\
-	pointer-map.o			\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
