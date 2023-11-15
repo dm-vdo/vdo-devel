@@ -1223,14 +1223,14 @@ static void reclaim_journal_space(struct slab_journal *journal)
 	WRITE_ONCE(journal->events->flush_count, journal->events->flush_count + 1);
 	if (length < journal->flushing_deadline) {
 		/* Schedule more writes the closer to the deadline we get. */
-		write_count = max_t(block_count_t,
-				    write_count / (journal->flushing_deadline - length + 1),
-				    1);
+		write_count /= journal->flushing_deadline - length + 1;
+		write_count = max_t(block_count_t, write_count, 1);
 	}
 
-	for (written = 0; written < write_count; written++)
-		vdo_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write,
-				       slab);
+	for (written = 0; written < write_count; written++) {
+		vdo_notify_next_waiter(&slab->dirty_blocks,
+				       launch_reference_block_write, slab);
+	}
 }
 
 /**
@@ -1864,8 +1864,8 @@ static void add_entries(struct slab_journal *journal)
 			}
 		}
 
-		vdo_notify_next_waiter(&journal->entry_waiters, add_entry_from_waiter,
-				       journal);
+		vdo_notify_next_waiter(&journal->entry_waiters,
+				       add_entry_from_waiter, journal);
 	}
 
 	journal->adding_entries = false;
@@ -2269,7 +2269,8 @@ static void load_reference_block(struct waiter *waiter, void *context)
 
 	vio->completion.parent = block;
 	submit_metadata_vio(vio, block->slab->ref_counts_origin + block_offset,
-			    load_reference_block_endio, handle_io_error, REQ_OP_READ);
+			    load_reference_block_endio, handle_io_error,
+			    REQ_OP_READ);
 }
 
 /**
@@ -2456,8 +2457,8 @@ static void handle_load_error(struct vdo_completion *completion)
  */
 static void read_slab_journal_tail(struct waiter *waiter, void *context)
 {
-	struct slab_journal *journal = container_of(waiter, struct slab_journal,
-						    resource_waiter);
+	struct slab_journal *journal =
+		container_of(waiter, struct slab_journal, resource_waiter);
 	struct vdo_slab *slab = journal->slab;
 	struct pooled_vio *pooled = context;
 	struct vio *vio = &pooled->vio;
