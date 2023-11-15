@@ -162,13 +162,16 @@ static void iterationTest(void)
   }
 
   wp = order;
-  for (const struct vdo_waiter *w = vdo_waitq_get_first_waiter(&queue);
-       w != NULL;
-       w = vdo_waitq_get_next_waiter(&queue, w))
-  {
+  const struct vdo_waiter *first = vdo_waitq_get_first_waiter(&queue);
+  const struct vdo_waiter *w = first;
+  while (true) {
     CU_ASSERT_TRUE(wp < &order[ARRAY_SIZE(order)]);
     CU_ASSERT_PTR_EQUAL(w, *wp);
-    ++wp;
+    w = w->next_waiter;
+    wp++;
+    
+    if (w == first)
+      break;    
   }
 
   CU_ASSERT_PTR_EQUAL(wp, &order[ARRAY_SIZE(order)]);
