@@ -21,7 +21,7 @@ static bool checkQuiescence;
  * Finish the completion to indicate that the slab summary has been updated
  * for the client.
  */
-static void slabSummaryUpdated(struct waiter *waiter, void *context)
+static void slabSummaryUpdated(struct vdo_waiter *waiter, void *context)
 {
   SlabSummaryClient *client = waiterAsSlabSummaryClient(waiter);
   int                result = *((int *) context);

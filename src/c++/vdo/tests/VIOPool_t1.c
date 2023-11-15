@@ -26,7 +26,7 @@ enum {
 };
 
 typedef struct poolCustomer {
-  struct waiter          waiter;
+  struct vdo_waiter      waiter;
   struct vdo_completion *wrapper;
   struct pooled_vio     *entries[MAX_PER_CUST + 1];
   size_t                 using;
@@ -47,7 +47,7 @@ static CustomerWrapper *asWrapper(struct vdo_completion *wrapperCompletion)
 }
 
 /**********************************************************************/
-static void didAcquireVIO(struct waiter *element, void *context)
+static void didAcquireVIO(struct vdo_waiter *element, void *context)
 {
   PoolCustomer *customer = container_of(element, PoolCustomer, waiter);
   customer->entries[customer->using++] = context;

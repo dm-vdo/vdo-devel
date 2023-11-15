@@ -498,9 +498,9 @@ static void testRebuild(void)
   // Wait for the slab journal to be read during scrubbing.
   struct vio *blockedVIO = getBlockedVIO();
 
-  CU_ASSERT_FALSE(vdo_has_waiters(&journal->entry_waiters));
+  CU_ASSERT_FALSE(vdo_waitq_has_waiters(&journal->entry_waiters));
   DataVIOWrapper *vioWrapper = performAddEntry();
-  CU_ASSERT_TRUE(vdo_has_waiters(&journal->entry_waiters));
+  CU_ASSERT_TRUE(vdo_waitq_has_waiters(&journal->entry_waiters));
   reallyEnqueueVIO(blockedVIO);
 
   // The in-memory state of the reference count is rebuilt before it is written

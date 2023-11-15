@@ -28,7 +28,7 @@ enum {
 
 static zone_count_t           zone;
 static struct vdo_slab        slab;
-static struct waiter          waiter;
+static struct vdo_waiter      waiter;
 static struct vdo_completion *updateCompletion;
 
 /**
@@ -47,7 +47,7 @@ static void initializeSlabSummaryT2(void)
 }
 
 /**********************************************************************/
-static void updateNextSlab(struct waiter *waiter, void *context)
+static void updateNextSlab(struct vdo_waiter *waiter, void *context)
 {
   int result = *((int *) context);
   if (result == -1) {

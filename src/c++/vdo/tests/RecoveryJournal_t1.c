@@ -1181,7 +1181,7 @@ static void verifyJournalIsClosed(EntryNumber entry)
 }
 
 /**********************************************************************/
-static bool checkPendingBlock(struct waiter *waiter, void *context __attribute__((unused)))
+static bool checkPendingBlock(struct vdo_waiter *waiter, void *context __attribute__((unused)))
 {
   struct recovery_journal_block *block
     = container_of(waiter, struct recovery_journal_block, write_waiter);
@@ -1192,7 +1192,7 @@ static bool checkPendingBlock(struct waiter *waiter, void *context __attribute__
 /**********************************************************************/
 static void checkPending(struct vdo_completion *completion)
 {
-  vdo_dequeue_matching_waiters(&journal->pending_writes, checkPendingBlock, NULL, NULL);
+  vdo_waitq_dequeue_matching_waiters(&journal->pending_writes, checkPendingBlock, NULL, NULL);
   vdo_finish_completion(completion);
 }
 
@@ -1390,7 +1390,7 @@ static void testReadOnlyMode(void)
   nextEntry = launchAddEntries(nextEntry, entriesToAdd, &wrappedCompletions);
   waitForBlockedCommit(block5Entry);
   waitForBlockedCommit(block6Entry);
-  CU_ASSERT_TRUE(vdo_has_waiters(&journal->entry_waiters));
+  CU_ASSERT_TRUE(vdo_waitq_has_waiters(&journal->entry_waiters));
 
   releaseAllCommits();
 
