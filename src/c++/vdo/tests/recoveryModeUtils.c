@@ -35,7 +35,7 @@ void initializeRecoveryModeTest(const TestParameters *testParameters)
 {
   VDO_ASSERT_SUCCESS(uds_init_mutex(&mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&condition));
-  VDO_ASSERT_SUCCESS(vdo_int_map_create(8, 0, &latchedVIOs));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(8, &latchedVIOs));
   initializeVDOTest(testParameters);
 }
 

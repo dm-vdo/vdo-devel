@@ -203,7 +203,6 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_int_map_create(0,
-					0,
 					&asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));

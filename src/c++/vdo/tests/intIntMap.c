@@ -40,7 +40,7 @@ int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
     return result;
   }
 
-  result = vdo_int_map_create(initialCapacity, 0, &intIntMap->map);
+  result = vdo_int_map_create(initialCapacity, &intIntMap->map);
   if (result != VDO_SUCCESS) {
     uds_free(intIntMap);
     return result;

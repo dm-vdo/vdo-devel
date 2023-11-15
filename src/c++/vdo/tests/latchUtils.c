@@ -91,7 +91,7 @@ void initializeLatchUtils(size_t         expectedEntries,
 {
   CU_ASSERT_EQUAL(initialized, false);
   INIT_LIST_HEAD(&latches);
-  VDO_ASSERT_SUCCESS(vdo_int_map_create(expectedEntries, 0, &latchedVIOs));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(expectedEntries, &latchedVIOs));
   waitCondition    = condition;
   latchAttemptHook = attemptHook;
   latchedVIOHook   = latchedHook;

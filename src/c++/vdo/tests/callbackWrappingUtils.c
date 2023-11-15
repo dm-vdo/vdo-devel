@@ -42,8 +42,8 @@ static void tearDown(void)
 void initializeCallbackWrapping(void)
 {
   uds_initialize_mutex(&mutex, true);
-  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, 0, &wrapMap));
-  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, 0, &enqueueMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, &wrapMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, &enqueueMap));
   registerTearDownAction(tearDown);
 }
 

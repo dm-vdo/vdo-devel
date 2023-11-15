@@ -99,7 +99,7 @@ void tearDownDataBlocks(void)
 char *getDataBlock(block_count_t index)
 {
   if (maxIndex == 0) {
-    VDO_ASSERT_SUCCESS(vdo_int_map_create(INITIAL_BLOCKS, 0, &dataBlocks));
+    VDO_ASSERT_SUCCESS(vdo_int_map_create(INITIAL_BLOCKS, &dataBlocks));
   }
 
   if (buffer == NULL) {
