@@ -177,7 +177,7 @@ void destroyAsyncLayer(void)
   case LAYER_INITIALIZED:
     uds_destroy_cond(&asyncLayer->condition);
     uds_destroy_mutex(&asyncLayer->mutex);
-    vdo_free_int_map(uds_forget(asyncLayer->completionEnqueueHooksMap));
+    vdo_int_map_free(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
 
   default:
@@ -202,9 +202,9 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
 {
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
-  VDO_ASSERT_SUCCESS(vdo_make_int_map(0,
-                                      0,
-                                      &asyncLayer->completionEnqueueHooksMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(0,
+					0,
+					&asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));
   INIT_LIST_HEAD(&asyncLayer->completionEnqueueHooks);

@@ -33,8 +33,8 @@ static struct mutex             mutex;
  **/
 static void tearDown(void)
 {
-  vdo_free_int_map(uds_forget(wrapMap));
-  vdo_free_int_map(uds_forget(enqueueMap));
+  vdo_int_map_free(uds_forget(wrapMap));
+  vdo_int_map_free(uds_forget(enqueueMap));
   uds_destroy_mutex(&mutex);
 }
 
@@ -42,8 +42,8 @@ static void tearDown(void)
 void initializeCallbackWrapping(void)
 {
   uds_initialize_mutex(&mutex, true);
-  VDO_ASSERT_SUCCESS(vdo_make_int_map(0, 0, &wrapMap));
-  VDO_ASSERT_SUCCESS(vdo_make_int_map(0, 0, &enqueueMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, 0, &wrapMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(0, 0, &enqueueMap));
   registerTearDownAction(tearDown);
 }
 

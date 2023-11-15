@@ -171,7 +171,7 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
 }
 
 /**
- * vdo_make_int_map() - Allocate and initialize an int_map.
+ * vdo_int_map_create() - Allocate and initialize an int_map.
  * @initial_capacity: The number of entries the map should initially be capable of holding (zero
  *                    tells the map to use its own small default).
  * @initial_load: The load factor of the map, expressed as an integer percentage (typically in the
@@ -180,7 +180,7 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
+int vdo_int_map_create(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
 {
 	struct int_map *map;
 	int result;
@@ -207,7 +207,7 @@ int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct 
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		vdo_free_int_map(uds_forget(map));
+	        vdo_int_map_free(uds_forget(map));
 		return result;
 	}
 
@@ -216,13 +216,13 @@ int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct 
 }
 
 /**
- * vdo_free_int_map() - Free an int_map.
+ * vdo_int_map_free() - Free an int_map.
  * @map: The int_map to free.
  *
  * NOTE: The map does not own the pointer values stored in the map and they are not freed by this
  * call.
  */
-void vdo_free_int_map(struct int_map *map)
+void vdo_int_map_free(struct int_map *map)
 {
 	if (map == NULL)
 		return;
