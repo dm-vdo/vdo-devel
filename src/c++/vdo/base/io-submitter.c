@@ -133,16 +133,11 @@ static void send_bio_to_device(struct vio *vio, struct bio *bio)
 	submit_bio_noacct(bio);
 }
 
-static sector_t get_bio_sector(struct bio *bio)
-{
-	return bio->bi_iter.bi_sector;
-}
-
 /**
- * process_vio_io() - Submits a vio's bio to the underlying block device. May block if the device
- *                    is busy. This callback should be used by vios which did not attempt to merge.
+ * vdo_submit_vio() - Submits a vio's bio to the underlying block device. May block if the device
+ *		      is busy. This callback should be used by vios which did not attempt to merge.
  */
-void process_vio_io(struct vdo_completion *completion)
+void vdo_submit_vio(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 
@@ -167,8 +162,10 @@ static struct bio *get_bio_list(struct vio *vio)
 	assert_in_bio_zone(vio);
 
 	mutex_lock(&bio_queue_data->lock);
-	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.head));
-	vdo_int_map_remove(bio_queue_data->map, get_bio_sector(vio->bios_merged.tail));
+	vdo_int_map_remove(bio_queue_data->map,
+			   vio->bios_merged.head->bi_iter.bi_sector);
+	vdo_int_map_remove(bio_queue_data->map,
+			   vio->bios_merged.tail->bi_iter.bi_sector);
 	bio = vio->bios_merged.head;
 	bio_list_init(&vio->bios_merged);
 	mutex_unlock(&bio_queue_data->lock);
@@ -177,12 +174,12 @@ static struct bio *get_bio_list(struct vio *vio)
 }
 
 /**
- * process_data_vio_io() - Submit a data_vio's bio to the storage below along with any bios that
- *                         have been merged with it.
+ * submit_data_vio() - Submit a data_vio's bio to the storage below along with
+ *		       any bios that have been merged with it.
  *
  * Context: This call may block and so should only be called from a bio thread.
  */
-static void process_data_vio_io(struct vdo_completion *completion)
+static void submit_data_vio(struct vdo_completion *completion)
 {
 	struct bio *bio, *next;
 	struct vio *vio = as_vio(completion);
@@ -211,7 +208,7 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio,
 					bool back_merge)
 {
 	struct bio *bio = vio->bio;
-	sector_t merge_sector = get_bio_sector(bio);
+	sector_t merge_sector = bio->bi_iter.bi_sector;
 	struct vio *vio_merge;
 
 	if (back_merge)
@@ -234,31 +231,32 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio,
 		return NULL;
 
 	if (back_merge) {
-		return (get_bio_sector(vio_merge->bios_merged.tail) == merge_sector ?
+		return (vio_merge->bios_merged.tail->bi_iter.bi_sector == merge_sector ?
 			vio_merge : NULL);
 	}
 
-	return (get_bio_sector(vio_merge->bios_merged.head) == merge_sector ?
+	return (vio_merge->bios_merged.head->bi_iter.bi_sector == merge_sector ?
 		vio_merge : NULL);
 }
 
 static int map_merged_vio(struct int_map *bio_map, struct vio *vio)
 {
 	int result;
+	sector_t bio_sector;
 
-	result = vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.head), vio,
-				 true, NULL);
+	bio_sector = vio->bios_merged.head->bi_iter.bi_sector;
+	result = vdo_int_map_put(bio_map, bio_sector, vio, true, NULL);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	return vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.tail), vio, true,
-			       NULL);
+	bio_sector = vio->bios_merged.tail->bi_iter.bi_sector;
+	return vdo_int_map_put(bio_map, bio_sector, vio, true, NULL);
 }
 
 static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio,
 			      struct vio *prev_vio)
 {
-	vdo_int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
+	vdo_int_map_remove(bio_map, prev_vio->bios_merged.tail->bi_iter.bi_sector);
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, prev_vio);
 }
@@ -271,7 +269,7 @@ static int merge_to_next_head(struct int_map *bio_map, struct vio *vio,
 	 * that's compatible with using funnel queues in work queues. This avoids removing an
 	 * existing completion.
 	 */
-	vdo_int_map_remove(bio_map, get_bio_sector(next_vio->bios_merged.head));
+	vdo_int_map_remove(bio_map, next_vio->bios_merged.head->bi_iter.bi_sector);
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, next_vio);
 }
@@ -308,7 +306,7 @@ static bool try_bio_map_merge(struct vio *vio)
 		/* no merge. just add to bio_queue */
 		merged = false;
 		result = vdo_int_map_put(bio_queue_data->map,
-					 get_bio_sector(bio),
+					 bio->bi_iter.bi_sector,
 					 vio, true, NULL);
 	} else if (next_vio == NULL) {
 		/* Only prev. merge to prev's tail */
@@ -325,13 +323,13 @@ static bool try_bio_map_merge(struct vio *vio)
 }
 
 /**
- * submit_data_vio_io() - Submit I/O for a data_vio.
+ * vdo_submit_data_vio() - Submit I/O for a data_vio.
  * @data_vio: the data_vio for which to issue I/O.
  *
  * If possible, this I/O will be merged other pending I/Os. Otherwise, the data_vio will be sent to
  * the appropriate bio zone directly.
  */
-void submit_data_vio_io(struct data_vio *data_vio)
+void vdo_submit_data_vio(struct data_vio *data_vio)
 {
 #ifdef VDO_INTERNAL
 	data_vio->vio.bio_submission_jiffies = jiffies;
@@ -339,11 +337,11 @@ void submit_data_vio_io(struct data_vio *data_vio)
 	if (try_bio_map_merge(&data_vio->vio))
 		return;
 
-	launch_data_vio_bio_zone_callback(data_vio, process_data_vio_io);
+	launch_data_vio_bio_zone_callback(data_vio, submit_data_vio);
 }
 
 /**
- * vdo_submit_metadata_io() - Submit I/O for a metadata vio.
+ * __submit_metadata_vio() - Submit I/O for a metadata vio.
  * @vio: the vio for which to issue I/O
  * @physical: the physical block number to read or write
  * @callback: the bio endio function which will be called after the I/O completes
@@ -359,12 +357,12 @@ void submit_data_vio_io(struct data_vio *data_vio)
  * no error can occur on the bio queue. Currently this is true for all callers, but additional care
  * will be needed if this ever changes.
  */
-void vdo_submit_metadata_io(struct vio *vio, physical_block_number_t physical,
-			    bio_end_io_t callback, vdo_action_fn error_handler,
-			    unsigned int operation, char *data)
+void __submit_metadata_vio(struct vio *vio, physical_block_number_t physical,
+			   bio_end_io_t callback, vdo_action_fn error_handler,
+			   unsigned int operation, char *data)
 {
-	struct vdo_completion *completion = &vio->completion;
 	int result;
+	struct vdo_completion *completion = &vio->completion;
 #ifdef __KERNEL__
 	const struct admin_state_code *code = vdo_get_admin_state(completion->vdo);
 
@@ -389,7 +387,7 @@ void vdo_submit_metadata_io(struct vio *vio, physical_block_number_t physical,
 		return;
 	}
 
-	vdo_set_completion_callback(completion, process_vio_io,
+	vdo_set_completion_callback(completion, vdo_submit_vio,
 				    get_vio_bio_zone_thread_id(vio));
 	vdo_launch_completion_with_priority(completion, get_metadata_priority(vio));
 }
