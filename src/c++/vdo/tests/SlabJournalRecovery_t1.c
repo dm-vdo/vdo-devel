@@ -39,7 +39,7 @@ enum {
 
 static struct recovery_journal *journal = NULL;
 static struct vdo_completion    repair;
-static struct waiter            testWaiter;
+static struct vdo_waiter        testWaiter;
 static struct pooled_vio       *pooled;
 static struct slab_journal     *slabJournal;
 static bool                     readsComplete;
@@ -123,8 +123,8 @@ static void recoverJournalAction(struct vdo_completion *completion)
  * This callback implements waiter_callback_fn and is used in
  * signalWhenJournalReadCallbackDone().
  **/
-static void acquiredVIO(struct waiter *waiter __attribute__((unused)),
-                        void          *vioContext)
+static void acquiredVIO(struct vdo_waiter *waiter __attribute__((unused)),
+                        void              *vioContext)
 {
   CU_ASSERT_PTR_NULL(pooled);
   pooled = (struct pooled_vio *) vioContext;

@@ -16,7 +16,7 @@
  **/
 typedef struct {
   struct vdo_completion  completion;
-  struct waiter          waiter;
+  struct vdo_waiter      waiter;
   struct vdo_slab        slab;
   block_count_t          freeBlocks;
   size_t                 freeBlockHint;
@@ -36,7 +36,7 @@ typedef struct {
  **/
 __attribute__((warn_unused_result))
 static inline SlabSummaryClient *
-waiterAsSlabSummaryClient(struct waiter *waiter)
+waiterAsSlabSummaryClient(struct vdo_waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;

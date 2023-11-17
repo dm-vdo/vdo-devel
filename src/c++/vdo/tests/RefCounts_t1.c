@@ -376,7 +376,7 @@ static void saveDirtyBlocksAction(struct vdo_completion *completion)
  **/
 static void saveOldestReferenceBlockAction(struct vdo_completion *completion)
 {
-  vdo_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write, slab);
+  vdo_waitq_notify_next_waiter(&slab->dirty_blocks, launch_reference_block_write, slab);
   vdo_finish_completion(completion);
 }
 

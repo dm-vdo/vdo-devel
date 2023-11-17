@@ -22,7 +22,7 @@ struct vdo_flush {
 	u64 arrival_jiffies;
 #endif /* VDO_INTERNAL */
 	/* The wait queue entry for this flush */
-	struct waiter waiter;
+	struct vdo_waiter waiter;
 	/* Which flush this struct represents */
 	sequence_number_t flush_generation;
 };

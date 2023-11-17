@@ -71,7 +71,7 @@ struct vdo_page_cache {
 	/* how many VPCs waiting for free page */
 	unsigned int waiter_count;
 	/* queue of waiters who want a free page */
-	struct wait_queue free_waiters;
+	struct vdo_wait_queue free_waiters;
 	/*
 	 * Statistics are only updated on the logical zone thread, but are accessed from other
 	 * threads.
@@ -132,7 +132,7 @@ struct page_info {
 	/* page state */
 	enum vdo_page_buffer_state state;
 	/* queue of completions awaiting this item */
-	struct wait_queue waiting;
+	struct vdo_wait_queue waiting;
 	/* state linked list entry */
 	struct list_head state_entry;
 	/* LRU entry */
@@ -156,7 +156,7 @@ struct vdo_page_completion {
 	/* The cache involved */
 	struct vdo_page_cache *cache;
 	/* The waiter for the pending list */
-	struct waiter waiter;
+	struct vdo_waiter waiter;
 	/* The absolute physical block number of the page on disk */
 	physical_block_number_t pbn;
 	/* Whether the page may be modified */
@@ -170,7 +170,7 @@ struct vdo_page_completion {
 struct forest;
 
 struct tree_page {
-	struct waiter waiter;
+	struct vdo_waiter waiter;
 
 	/* Dirty list entry */
 	struct list_head entry;
@@ -231,7 +231,7 @@ struct block_map_zone {
 	struct vio_pool *vio_pool;
 	/* The tree page which has issued or will be issuing a flush */
 	struct tree_page *flusher;
-	struct wait_queue flush_waiters;
+	struct vdo_wait_queue flush_waiters;
 	/* The generation after the most recent flush */
 	u8 generation;
 	u8 oldest_generation;

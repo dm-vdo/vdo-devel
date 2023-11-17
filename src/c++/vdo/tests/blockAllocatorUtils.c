@@ -25,8 +25,8 @@ static bool                     gotVIO;
  * The waiter_callback_fn registered in grabVIOs() to hold on
  * to a VIO pool entry so that it can later be returned to the pool.
  **/
-static void saveVIOPoolEntry(struct waiter *waiter __attribute__((unused)),
-                             void          *context)
+static void saveVIOPoolEntry(struct vdo_waiter *waiter __attribute__((unused)),
+                             void              *context)
 {
   struct pooled_vio *pooled = context;
   list_add_tail(&pooled->list_entry, &reservedVIOPoolEntries);
@@ -38,7 +38,7 @@ static void saveVIOPoolEntry(struct waiter *waiter __attribute__((unused)),
  **/
 static void grabVIOs(struct vdo_completion *completion)
 {
-  struct waiter waiter = (struct waiter) {
+  struct vdo_waiter waiter = (struct vdo_waiter) {
     .next_waiter = NULL,
     .callback = saveVIOPoolEntry,
   };
@@ -132,7 +132,7 @@ bool slabsHaveEquivalentReferenceCounts(struct vdo_slab *slabA, struct vdo_slab 
  * @param context       Unused
  */
 static void
-clearDirtyReferenceBlocks(struct waiter *block_waiter, void *context __always_unused)
+clearDirtyReferenceBlocks(struct vdo_waiter *block_waiter, void *context __always_unused)
 {
   container_of(block_waiter, struct reference_block, waiter)->is_dirty = false;
 }
@@ -155,7 +155,7 @@ void resetReferenceCounts(struct vdo_slab *slab)
   for (i = 0; i < slab->reference_block_count; i++)
     slab->reference_blocks[i].allocated_count = 0;
 
-  vdo_notify_all_waiters(&slab->dirty_blocks, clearDirtyReferenceBlocks, NULL);
+  vdo_waitq_notify_all_waiters(&slab->dirty_blocks, clearDirtyReferenceBlocks, NULL);
 }
 
 /**
