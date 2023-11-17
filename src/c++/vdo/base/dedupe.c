@@ -376,13 +376,13 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 
 /**
  * get_hash_lock_key() - Get the hash lock key to use in int-map.
- * @locl: The hash lock.
+ * @lock: The hash lock.
  *
- * Return: The short string representing the state
+ * Return: The key to use for the int map.
  */
 static u64 get_hash_lock_key(struct hash_lock *lock)
 {
-  return get_unaligned_le64(&(lock->hash.name));
+	return get_unaligned_le64(&lock->hash.name);
 }
 
 /**
@@ -1939,6 +1939,7 @@ void vdo_acquire_hash_lock(struct vdo_completion *completion)
  */
 void vdo_release_hash_lock(struct data_vio *data_vio)
 {
+	u64 lock_key;
 	struct hash_lock *lock = data_vio->hash_lock;
 	struct hash_zone *zone = data_vio->hash_zone;
 
@@ -1952,13 +1953,15 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
+	lock_key = get_hash_lock_key(lock);
 	if (lock->registered) {
 		struct hash_lock *removed;
 
-		removed = vdo_int_map_remove(zone->hash_lock_map, get_hash_lock_key(lock));
-		ASSERT_LOG_ONLY(lock == removed, "hash lock being released must have been mapped");
+		removed = vdo_int_map_remove(zone->hash_lock_map, lock_key);
+		ASSERT_LOG_ONLY(lock == removed,
+				"hash lock being released must have been mapped");
 	} else {
-	        ASSERT_LOG_ONLY(lock != vdo_int_map_get(zone->hash_lock_map, get_hash_lock_key(lock)),
+		ASSERT_LOG_ONLY(lock != vdo_int_map_get(zone->hash_lock_map, lock_key),
 				"unregistered hash lock must not be in the lock map");
 	}
 

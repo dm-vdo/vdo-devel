@@ -199,7 +199,7 @@ int vdo_int_map_create(size_t initial_capacity, struct int_map **map_ptr)
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-	        vdo_int_map_free(uds_forget(map));
+		vdo_int_map_free(uds_forget(map));
 		return result;
 	}
 
@@ -456,7 +456,8 @@ find_empty_bucket(struct int_map *map, struct bucket *bucket, unsigned int max_p
  * Return: The bucket that was vacated by moving its entry to the provided hole, or NULL if no
  *         entry could be moved.
  */
-static struct bucket *move_empty_bucket(struct int_map *map __always_unused, struct bucket *hole)
+static struct bucket *move_empty_bucket(struct int_map *map __always_unused,
+					struct bucket *hole)
 {
 	/*
 	 * Examine every neighborhood that the empty bucket is part of, starting with the one in
@@ -564,7 +565,8 @@ static bool update_mapping(struct int_map *map,
  * Return: a pointer to an empty bucket in the desired neighborhood, or NULL if a vacancy could not
  *         be found or arranged.
  */
-static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *neighborhood)
+static struct bucket *find_or_make_vacancy(struct int_map *map,
+					   struct bucket *neighborhood)
 {
 	/* Probe within and beyond the neighborhood for the first empty bucket. */
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
@@ -611,7 +613,8 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
+int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update,
+		    void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
