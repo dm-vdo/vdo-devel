@@ -176,7 +176,7 @@ static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
   };
 
   initializeVDOTest(&parameters);
-  VDO_ASSERT_SUCCESS(vdo_make_int_map(cacheSize, 0, &pageMap));
+  VDO_ASSERT_SUCCESS(vdo_int_map_create(cacheSize, &pageMap));
   zone = &vdo->block_map->zones[0];
   cache = &zone->page_cache;
 
@@ -205,7 +205,7 @@ static void finishVDOPageCacheT1(void)
     CU_ASSERT_FALSE(marker == pageMap);
   }
 
-  vdo_free_int_map(uds_forget(pageMap));
+  vdo_int_map_free(uds_forget(pageMap));
   tearDownVDOTest();
 }
 

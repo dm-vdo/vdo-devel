@@ -40,7 +40,7 @@ int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
     return result;
   }
 
-  result = vdo_make_int_map(initialCapacity, 0, &intIntMap->map);
+  result = vdo_int_map_create(initialCapacity, &intIntMap->map);
   if (result != VDO_SUCCESS) {
     uds_free(intIntMap);
     return result;
@@ -59,7 +59,7 @@ void freeIntIntMap(IntIntMap **mapPtr)
     return;
   }
 
-  vdo_free_int_map(uds_forget(intIntMap->map));
+  vdo_int_map_free(uds_forget(intIntMap->map));
 
   IntHolder *holder, *tmp;
   list_for_each_entry_safe_reverse(holder, tmp, &intIntMap->holders, node) {

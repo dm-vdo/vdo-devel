@@ -171,26 +171,18 @@ static int allocate_buckets(struct int_map *map, size_t capacity)
 }
 
 /**
- * vdo_make_int_map() - Allocate and initialize an int_map.
+ * vdo_int_map_create() - Allocate and initialize an int_map.
  * @initial_capacity: The number of entries the map should initially be capable of holding (zero
  *                    tells the map to use its own small default).
- * @initial_load: The load factor of the map, expressed as an integer percentage (typically in the
- *                range 50 to 90, with zero telling the map to use its own default).
  * @map_ptr: Output, a pointer to hold the new int_map.
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct int_map **map_ptr)
+int vdo_int_map_create(size_t initial_capacity, struct int_map **map_ptr)
 {
 	struct int_map *map;
 	int result;
 	size_t capacity;
-
-	/* Use the default initial load if the caller did not specify one. */
-	if (initial_load == 0)
-		initial_load = DEFAULT_LOAD;
-	if (initial_load > 100)
-		return UDS_INVALID_ARGUMENT;
 
 	result = uds_allocate(1, struct int_map, "struct int_map", &map);
 	if (result != UDS_SUCCESS)
@@ -203,11 +195,11 @@ int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct 
 	 * Scale up the capacity by the specified initial load factor. (i.e to hold 1000 entries at
 	 * 80% load we need a capacity of 1250)
 	 */
-	capacity = capacity * 100 / initial_load;
+	capacity = capacity * 100 / DEFAULT_LOAD;
 
 	result = allocate_buckets(map, capacity);
 	if (result != UDS_SUCCESS) {
-		vdo_free_int_map(uds_forget(map));
+		vdo_int_map_free(uds_forget(map));
 		return result;
 	}
 
@@ -216,13 +208,13 @@ int vdo_make_int_map(size_t initial_capacity, unsigned int initial_load, struct 
 }
 
 /**
- * vdo_free_int_map() - Free an int_map.
+ * vdo_int_map_free() - Free an int_map.
  * @map: The int_map to free.
  *
  * NOTE: The map does not own the pointer values stored in the map and they are not freed by this
  * call.
  */
-void vdo_free_int_map(struct int_map *map)
+void vdo_int_map_free(struct int_map *map)
 {
 	if (map == NULL)
 		return;
@@ -464,7 +456,8 @@ find_empty_bucket(struct int_map *map, struct bucket *bucket, unsigned int max_p
  * Return: The bucket that was vacated by moving its entry to the provided hole, or NULL if no
  *         entry could be moved.
  */
-static struct bucket *move_empty_bucket(struct int_map *map __always_unused, struct bucket *hole)
+static struct bucket *move_empty_bucket(struct int_map *map __always_unused,
+					struct bucket *hole)
 {
 	/*
 	 * Examine every neighborhood that the empty bucket is part of, starting with the one in
@@ -572,7 +565,8 @@ static bool update_mapping(struct int_map *map,
  * Return: a pointer to an empty bucket in the desired neighborhood, or NULL if a vacancy could not
  *         be found or arranged.
  */
-static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *neighborhood)
+static struct bucket *find_or_make_vacancy(struct int_map *map,
+					   struct bucket *neighborhood)
 {
 	/* Probe within and beyond the neighborhood for the first empty bucket. */
 	struct bucket *hole = find_empty_bucket(map, neighborhood, MAX_PROBES);
@@ -619,7 +613,8 @@ static struct bucket *find_or_make_vacancy(struct int_map *map, struct bucket *n
  *
  * Return: UDS_SUCCESS or an error code.
  */
-int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update, void **old_value_ptr)
+int vdo_int_map_put(struct int_map *map, u64 key, void *new_value, bool update,
+		    void **old_value_ptr)
 {
 	struct bucket *neighborhood, *bucket;
 
