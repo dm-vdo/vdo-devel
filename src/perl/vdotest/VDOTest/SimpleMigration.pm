@@ -25,7 +25,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %PROPERTIES =
   (
    # @ple The scenario to start with
-   initialScenario       => "X86_RHEL9_8.2.1-current",
+   initialScenario       => "X86_RHEL9_head",
    # @ple The intermediate scenarios to go through
    intermediateScenarios => [],
    # @ple VDO physical size
@@ -58,9 +58,9 @@ sub testSimpleMigration {
 sub propertiesMultipleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.1.3",
+    initialScenario       => "X86_RHEL9_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_RHEL9_8.2.1-current", "X86_RHEL9_head"],
+    intermediateScenarios => ["X86_RHEL9_head", "X86_RHEL9_head"],
   );
 }
 
@@ -77,9 +77,9 @@ sub testMultipleMigration {
 sub propertiesMigrateAndUpgrade {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.1.3",
+    initialScenario       => "X86_RHEL9_8.2.3.2",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_RHEL9_8.2.1-current"],
+    intermediateScenarios => ["X86_RHEL9_8.2.3-current", "X86_RHEL9_head"],
   );
 }
 
