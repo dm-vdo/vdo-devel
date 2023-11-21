@@ -60,6 +60,8 @@ tarballs:
             - VDO_UPSTREAM
           +postProcessor: ../github/removeInternal.sh
         src/c++/uds/kernelLinux/uds:
+          +defines:
+            - VDO_UPSTREAM
           +postProcessor: ../github/removeInternal.sh
         -src/packaging/src-dist/kernel:
         -src/packaging/src-dist/kernel/vdo:
