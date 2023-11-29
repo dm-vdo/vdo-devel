@@ -375,12 +375,12 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 }
 
 /**
- * get_hash_lock_key() - Get the hash lock key to use in int-map.
+ * hash_lock_key() - Return hash_lock's record name as a hash code.
  * @lock: The hash lock.
  *
  * Return: The key to use for the int map.
  */
-static u64 get_hash_lock_key(struct hash_lock *lock)
+static inline u64 hash_lock_key(struct hash_lock *lock)
 {
 	return get_unaligned_le64(&lock->hash.name);
 }
@@ -901,9 +901,8 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 	 */
 	new_lock->hash = *hash;
 
-	result = vdo_int_map_put(zone->hash_lock_map, get_hash_lock_key(new_lock),
-				 new_lock, (replace_lock != NULL),
-				 (void **) &lock);
+	result = vdo_int_map_put(zone->hash_lock_map, hash_lock_key(new_lock),
+				 new_lock, (replace_lock != NULL), (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_hash_lock_to_pool(zone, uds_forget(new_lock));
 		return result;
@@ -1953,7 +1952,7 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	lock_key = get_hash_lock_key(lock);
+	lock_key = hash_lock_key(lock);
 	if (lock->registered) {
 		struct hash_lock *removed;
 
@@ -2432,8 +2431,7 @@ static int __must_check initialize_zone(struct vdo *vdo, struct hash_zones *zone
 	data_vio_count_t i;
 	struct hash_zone *zone = &zones->zones[zone_number];
 
-	result = vdo_int_map_create(VDO_LOCK_MAP_CAPACITY,
-				    &zone->hash_lock_map);
+	result = vdo_int_map_create(VDO_LOCK_MAP_CAPACITY, &zone->hash_lock_map);
 	if (result != VDO_SUCCESS)
 		return result;
 
