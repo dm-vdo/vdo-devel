@@ -345,7 +345,7 @@ static struct kobj_type suiteObjectType = {
 };
 
 /**********************************************************************/
-SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
+static SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 {
   SuiteState *ss;
   if (uds_allocate(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
@@ -366,7 +366,7 @@ SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 }
 
 /**********************************************************************/
-void freeSuiteState(SuiteState *ss)
+static void freeSuiteState(SuiteState *ss)
 {
   while (ss != NULL) {
     SuiteState *next = ss->next;
@@ -427,7 +427,7 @@ typedef struct {
 } TestThreadData;
 
 /**********************************************************************/
-void testThread(void *argument)
+static void testThread(void *argument)
 {
   TestThreadData *ttd = argument;
   // Record a failure, in case this thread exits without returning from testSub

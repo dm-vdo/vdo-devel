@@ -90,6 +90,11 @@ $(ZUB_PACKAGE): $(UDS_TGZ) $(ZUB_DKMS_SOURCES) $(ZUB_DKMS_HEADERS) \
 	cp -p $(ZUB_DKMS_SOURCES) $(ZUB_SUBDIR)
 	cp -p $(ZUB_DKMS_HEADERS) $(ZUB_SUBDIR)
 	$(ALLTESTS_COMMAND) >$(ZUB_SUBDIR)/AllTests_t1.c
+	ENDIF=`tail -n 1 $(ZUB_SUBDIR)/albtest.h`; \
+		sed -i '$$d' $(ZUB_SUBDIR)/albtest.h; \
+		grep "extern const" $(ZUB_SUBDIR)/AllTests_t1.c >> $(ZUB_SUBDIR)/albtest.h; \
+		echo "$$ENDIF" >> $(ZUB_SUBDIR)/albtest.h
+	sed -i 's/^extern const.*$$//g' $(ZUB_SUBDIR)/AllTests_t1.c
 	for T in $(TEST_SOURCES); do B=`basename $$T .c`; \
 		sed -e s/initializeModule/initializeModule_$$B/g \
 		<$$T >$(ZUB_SUBDIR)/$$B.c; done
