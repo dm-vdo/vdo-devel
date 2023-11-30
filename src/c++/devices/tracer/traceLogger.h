@@ -54,6 +54,10 @@ extern int destroyTraceLogger(TraceLogger **traceLoggerPtr);
  *
  * @return  0 on success, error code on error.
  **/
-extern int logBioDetails(TraceLogger *traceLogger, struct bio  *bio);
+extern int logBioDetails(TraceLogger *traceLogger, struct bio *bio);
+
+extern int makeTraceLogger(const TraceLoggerApi  *typeApi,
+                           void                  *creationParameters,
+                           TraceLogger          **traceLoggerPtr);
 
 #endif /* TRACE_LOGGER_H */
