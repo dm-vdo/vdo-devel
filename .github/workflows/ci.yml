@@ -11,9 +11,21 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  LOGFILE: logs-${{ github.event.pull_request.repository.owner.login }}-${{ github.event.pull_request.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  LOGFILE: logs-${{ github.event.pull_request.repo.owner.login }}-${{ github.event.pull_request.repo.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
+  Starting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display CI Info
+        run: |
+          echo CI starting for the following:
+          echo org: ${{ github.event.pull_request.repo.owner.login }}
+          echo repo: ${{ github.event.pull_request.repo.name }}
+          echo pr: ${{ github.event.pull_request.number }}:
+          echo commit: ${{ github.event.pull_request.head.sha }}
+          echo action: ${{ github.event.action }}
+
   Verifying:  
     if: github.event.pull_request.draft == false  
     runs-on: ubuntu-latest
