@@ -9,7 +9,10 @@ on:
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
   cancel-in-progress: true
-  
+
+env:
+  LOGFILE: logs-${{ github.event.pull_request.repository.owner.login }}-${{ github.event.pull_request.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+
 jobs:
   Verifying:  
     if: github.event.pull_request.draft == false  
@@ -149,7 +152,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: logs-${{ github.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        name: ${{ env.LOGFILE }}
         path: logs/*/*.log
         retention-days: 5
 
@@ -194,7 +197,7 @@ jobs:
       run: |
         REPO=${{ github.repository }}
         REPO=${REPO//\//-}
-        cp -a logs /permabit/user/bunsen/artifacts/logs.`date +'%Y%m%d%H%M'`.$REPO.${{ github.event.number }}
+        cp -a logs /permabit/user/bunsen/artifacts/${{ env.LOGFILE }}
     
     - name: Remove private testing running label
       if: always()
