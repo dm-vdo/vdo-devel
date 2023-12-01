@@ -26,13 +26,6 @@ jobs:
           echo commit: ${{ github.event.pull_request.head.sha }}
           echo action: ${{ github.event.action }}
 
-  Verifying:  
-    if: github.event.pull_request.draft == false  
-    runs-on: ubuntu-latest
-    steps:
-      - name: Start verification
-        run: echo Verification Start
-      
       # Run assignment action 
       - name: Assign reviewers and assignees
         uses: dm-vdo/vdo-auto-assign@main
@@ -46,6 +39,13 @@ jobs:
           labels: verification needed, untested, public testing running, public testing done, public testing failed, private testing running, private testing done, private testing failed
           type: remove
 
+  Verifying:  
+    if: github.event.pull_request.draft == false  
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start verification
+        run: echo Verification Start
+      
       - name: Check for org membership
         id: is_organization_member
         uses: jamessingleton/is-organization-member@1.0.0
