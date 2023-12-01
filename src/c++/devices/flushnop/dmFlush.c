@@ -292,7 +292,7 @@ static struct target_type flushTargetType = {
 };
 
 /**********************************************************************/
-int __init flushInit(void)
+static int __init flushInit(void)
 {
   BUILD_BUG_ON(offsetof(FlushDevice, dev) != offsetof(CommonDevice, dev));
 
@@ -310,7 +310,7 @@ int __init flushInit(void)
 }
 
 /**********************************************************************/
-void __exit flushExit(void)
+static void __exit flushExit(void)
 {
   dm_unregister_target(&flushTargetType);
   kobject_put(&flushKobj);
