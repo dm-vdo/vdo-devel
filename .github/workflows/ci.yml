@@ -209,8 +209,6 @@ jobs:
       - name: Copy log file to /permatbit/user/bunsen/artifacts
         if: failure()
         run: |
-          REPO=${{ github.repository }}
-          REPO=${REPO//\//-}
           cp -a logs /permabit/user/bunsen/artifacts/${{ env.LOGFILE }}
 
       - name: Remove private testing running label
