@@ -14,6 +14,15 @@ env:
   LOGFILE: logs-${{ github.event.pull_request.repo.owner.login }}-${{ github.event.pull_request.repo.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
+  PrintJob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+
   Starting:
     runs-on: ubuntu-latest
     steps:
