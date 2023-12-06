@@ -9,7 +9,7 @@ mapper target, it can add these features to the storage stack, compatible
 with any file system. The vdo target does not protect against data
 corruption, relying instead on integrity protection of the storage below
 it. It is strongly recommended that lvm be used to manage vdo volumes. See
-lvmvdo(7).
+lvmvdo(7). Testing text
 
 Userspace component
 ===================
