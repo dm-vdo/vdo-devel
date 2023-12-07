@@ -14,15 +14,6 @@ env:
   LOGFILE: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
-  PrintJob:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-
   Starting:
     runs-on: ubuntu-latest
     steps:
@@ -30,7 +21,7 @@ jobs:
         run: |
           echo CI starting for the following:
           echo org: ${{ github.event.repository.owner.login }}
-          echo repo: ${{ github.event.respository.name }}
+          echo repo: ${{ github.event.repository.name }}
           echo pr: ${{ github.event.pull_request.number }}:
           echo commit: ${{ github.event.pull_request.head.sha }}
           echo action: ${{ github.event.action }}
