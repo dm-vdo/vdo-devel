@@ -23,7 +23,7 @@ use Permabit::Assertions qw(
 use base qw(Exporter);
 
 # By default, each test suites will be run on each listed OS class.
-our $DEFAULT_OS_CLASSES = ["FEDORA38"];
+our $DEFAULT_OS_CLASSES = ["FEDORA38", "FEDORA39"];
 
 our @EXPORT = qw(
   $DEFAULT_OS_CLASSES
