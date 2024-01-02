@@ -309,8 +309,8 @@ sub _minimumMemory {
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
   my %DISTRO_MEMORY_REQUIREMENTS
     = (
-       FEDORA37 => 400 * $MB,
        FEDORA38 => 400 * $MB,
+       FEDORA39 => 400 * $MB,
        RAWHIDE  => 400 * $MB,
        RHEL8    => 400 * $MB,
        RHEL9    => 400 * $MB,
