@@ -270,12 +270,12 @@ _recoveryProcess(){
 
 #######################################################################
 VDO_DEVICE=$1
-VDO_VOLUME_NAME=$(basename $VDO_DEVICE)
 
 if [[ -z $1 ]] || [[ $1 == "--help" ]] || [[ $1 == "-h" ]]; then
 	echo "Usage: ./vdo_recover {path to vdo device}"
 	exit 1
 else
+	VDO_VOLUME_NAME=$(basename $VDO_DEVICE)
 
 	if [[ $EUID -ne 0 ]]; then
 		echo "$0: cannot open $VDO_DEVICE: Permission denied" 1>&2
