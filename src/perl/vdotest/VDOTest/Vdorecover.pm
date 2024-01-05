@@ -8,6 +8,7 @@ package VDOTest::Vdorecover;
 use strict;
 use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
+use File::Basename qw(dirname);
 use Log::Log4perl;
 use Permabit::Assertions qw(
   assertMinMaxArgs
@@ -30,6 +31,8 @@ our %PROPERTIES
   = (
      # @ple Number of blocks to write
      blockCount => 16000,
+     # @ple Class of host to reserve for tests (VDO-5640)
+     clientClass => 'PFARM',
      # @ple Use a LVM vdo device, though a managed device should be usable too
      deviceType => 'lvmvdo',
      # @ple Use a tiny VDO to fill it easily.
@@ -57,6 +60,7 @@ sub runVdorecover {
     = assertMinMaxArgs([$DEFAULT_TMP_STORAGE_SIZE], 2, 3, @_);
   my $machine    = $self->getDevice()->getMachine();
   my $vdorecover = $self->findBinary("vdorecover");
+  my $vdostatsDir = dirname($machine->findNamedExecutable('vdostats'));
 
   # Write 'y\n' to the script every 10 seconds, a maximum of 20 times -- this
   # is chosen to be twice as many times as ever observed to be needed. We need
@@ -71,7 +75,7 @@ sub runVdorecover {
   # Have to set PATH because the script expects to find vdostats in it.
   $machine->assertExecuteCommand("$inputter | sudo LOOPBACK_DIR=/u1"
 				 . " TMPFILESZ=$tmpStorageKB"
-				 . " PATH=$self->{binaryDir}:\$PATH"
+				 . " PATH=$vdostatsDir:\$PATH"
 				 . " $vdorecover $vdoDeviceName");
 }
 
