@@ -59,7 +59,7 @@ DKMS_FILES =	$(addprefix $(VDO_BASE_DIR)/,$(KERNEL_SOURCES))		\
 		$(filter-out $(VDO_BASE_DIR)/list.h,			\
 			$(wildcard $(VDO_BASE_DIR)/*.h))
 
-# The kernel Makefile treats V undefined the same as V equals 0 
+# The kernel Makefile treats V undefined the same as V equals 0
 V ?= 0
 
 # If VDO_PRESERVE_DKMS is defined then leave the intermediate products
@@ -88,7 +88,7 @@ $(DKMS_TGZ): $(UDS_DKMS_TGZ) $(DKMS_FILES) \
 	cd $(VDO_SUBDIR) && ln -s . dm-vdo
 	tar cvfz $@ --owner=0 --group=0 --mode=a+rX-w $(DKMS_DIR)
 	$(MAKE) -C $(KERNEL_SOURCE_DIR) M=$(abspath $(DKMS_DIR)) \
-		V=$(V) $(if $(LLVM),$(LLVM_ARGS),) modules 
+		V=$(V) $(if $(LLVM),$(LLVM_ARGS),) modules
 ifdef VDO_CHECK_STACK
 	  @echo The greatest stack usage within our module:
 	  objdump -d $(VDO_SUBDIR)/kvdo.ko | $(KERNEL_SOURCE_DIR)/scripts/checkstack.pl
@@ -100,6 +100,20 @@ endif
 .PHONY: build-against-latest-kernel
 build-against-latest-kernel:
 	$(MAKE) $(DKMS_TGZ) KERNEL_SOURCE_DIR=/permabit/not-backed-up/kernels/mainline/
+
+.PHONY: build-using-dm-linux
+build-using-dm-linux:
+	$(MAKE) $(DKMS_TGZ) VDO_PRESERVE_DKMS=1
+	rm -fr $(VDO_SUBDIR)/*.[cho]
+	rm -fr $(VDO_SUBDIR)/kvdo.ko
+	cp -p $(KERNEL_SOURCE_DIR)/drivers/md/dm-vdo/*.[ch] $(VDO_SUBDIR)
+	cp -p $(KERNEL_SOURCE_DIR)/drivers/md/dm-vdo-target.c $(VDO_SUBDIR)
+	sed -i "/histogram*/d" $(VDO_SUBDIR)/Makefile
+	sed -i "s/dory.o//" $(VDO_SUBDIR)/Makefile
+	sed -i "s/event-count.o//" $(VDO_SUBDIR)/Makefile
+	$(MAKE) -C $(KERNEL_SOURCE_DIR) M=$(abspath $(DKMS_DIR)) \
+		V=$(V) $(if $(LLVM),$(LLVM_ARGS),) modules
+	$(MAKE) clean-dkms-dirs
 
 .PHONY: check-kernel-doc
 check-kernel-doc:
