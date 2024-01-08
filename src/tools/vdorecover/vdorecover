@@ -242,7 +242,8 @@ _repointUpperDevicesOrMountVDO(){
 		dmsetup resume $VDO_DEPENDENT_DEV
 		echo "You may want to remount, and run fstrim, on any filesystem"
 	        echo "mounted on ${VDO_DEPENDENT_DEV}."
-		_fstrimAndPrompt "the device or filesystem atop ${VDO_DEPENDENT_DEV}"
+                DEPENDENT_MOUNT=$(awk "/${VDO_DEPENDENT_DEV}/ {print \$2}" /proc/self/mounts)
+		_fstrimAndPrompt "${DEPENDENT_MOUNT}"
 	else
 		_mountVDOSnap
 	fi
@@ -270,12 +271,12 @@ _recoveryProcess(){
 
 #######################################################################
 VDO_DEVICE=$1
-VDO_VOLUME_NAME=$(basename $VDO_DEVICE)
 
 if [[ -z $1 ]] || [[ $1 == "--help" ]] || [[ $1 == "-h" ]]; then
 	echo "Usage: ./vdo_recover {path to vdo device}"
 	exit 1
 else
+	VDO_VOLUME_NAME=$(basename $VDO_DEVICE)
 
 	if [[ $EUID -ne 0 ]]; then
 		echo "$0: cannot open $VDO_DEVICE: Permission denied" 1>&2
