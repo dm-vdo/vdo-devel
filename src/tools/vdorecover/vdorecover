@@ -227,8 +227,8 @@ _repointUpperDevicesOrMountVDO(){
 	# device to point at the VDO snap and prompt the user to clean up;
 	# else mount the VDO snap, fstrim, &c.
 	SNAP_OVER_BASENAME=$(basename $SNAP_OVER_VDO)
-	VDO_MAJMIN=$(dmsetup ls | grep \\\b$VDO_VOLUME_NAME\\\s | cut -f 2)
-        VDO_MAJMIN_DEPS_VERSION=$(echo $VDO_MAJMIN | sed "s/:/, /g")
+	VDO_MAJMIN=$(dmsetup ls | grep \\\b$VDO_VOLUME_NAME\\\s | cut -f 2 | sed -r 's/[()]//g')
+	VDO_MAJMIN_DEPS_VERSION=$(echo $VDO_MAJMIN | sed "s/:/, /g")
 	ORIGIN_OVER_BASENAME=$(echo $SNAP_OVER_BASENAME | sed 's/snap$/origin/')
 	VDO_DEPENDENT_DEV=$(dmsetup deps | grep "${VDO_MAJMIN_DEPS_VERSION}"\
 	       		    | grep -v \\\b$ORIGIN_OVER_BASENAME\\\b\
@@ -237,7 +237,7 @@ _repointUpperDevicesOrMountVDO(){
 	if [[ -n $VDO_DEPENDENT_DEV ]]; then
 		echo "Detecting dependent device $VDO_DEPENDENT_DEV on $VDO_VOLUME_NAME -- manual intervention will be required"
 		VDO_DEPENDENT_DEV_ORIGINAL_TABLE=$(dmsetup table $VDO_DEPENDENT_DEV)
-		DEPENDENT_NEW_TABLE=$(echo $VDO_DEPENDENT_DEV_ORIGINAL_TABLE | sed "s#^${VDO_MAJMIN}\$#${SNAP_OVER_VDO}#g; s#^${VDO_DEVICE}\$#${SNAP_OVER_VDO}#g")
+		DEPENDENT_NEW_TABLE=$(echo $VDO_DEPENDENT_DEV_ORIGINAL_TABLE | sed "s#${VDO_MAJMIN}#${SNAP_OVER_VDO}#g; s#^${VDO_DEVICE}\$#${SNAP_OVER_VDO}#g")
 		dmsetup reload $VDO_DEPENDENT_DEV --table "${DEPENDENT_NEW_TABLE}"
 		dmsetup resume $VDO_DEPENDENT_DEV
 		echo "You may want to remount, and run fstrim, on any filesystem"
