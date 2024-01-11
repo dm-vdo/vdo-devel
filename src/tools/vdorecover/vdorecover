@@ -244,6 +244,8 @@ _repointUpperDevicesOrMountVDO(){
 	        echo "mounted on ${VDO_DEPENDENT_DEV}."
                 DEPENDENT_MOUNT=$(awk "/${VDO_DEPENDENT_DEV}/ {print \$2}" /proc/self/mounts)
 		_fstrimAndPrompt "${DEPENDENT_MOUNT}"
+		dmsetup reload $VDO_DEPENDENT_DEV --table "${VDO_DEPENDENT_DEV_ORIGINAL_TABLE}"
+		dmsetup resume $VDO_DEPENDENT_DEV
 	else
 		_mountVDOSnap
 	fi
