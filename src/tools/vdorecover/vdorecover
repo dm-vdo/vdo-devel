@@ -64,12 +64,16 @@ _fstrimAndPrompt(){
 	local KEEPGOING=true
 
 	while $KEEPGOING; do
-		fstrim $MOUNT_POINT || true
-		FSOUT=$(echo $?)
+		# If we weren't provided a $MOUNT_POINT, then don't try to run fstrim
+		if [[ -n $MOUNT_POINT ]]; then
+			fstrim $MOUNT_POINT || echo "Unable to run fstrim against $MOUNT_POINT"
+		fi
 		USED=$(vdostats $VDO_VOLUME_NAME | awk 'NR==2 {print $5}' |  sed 's/%//')
 		echo "Now down to just ${USED}% used"
-		if [[ $FSOUT -ne 0 || $USED == 100 ]];then
-			_waitForUserToDeleteStuff "${MOUNT_POINT}"
+
+		# If volume usage is (still) at 100%, then the device needs additional manual cleanup.
+		if [[ $USED == 100 ]];then
+			_waitForUserToDeleteStuff "$MOUNT_POINT"
 		else
 			KEEPGOING=false
 		fi
