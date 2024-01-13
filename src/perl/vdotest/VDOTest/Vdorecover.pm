@@ -182,8 +182,11 @@ sub propertiesFullFilesystem {
 
 sub testFullFilesystem {
   my ($self) = assertNumArgs(1, @_);
-
+  my $device = $self->getDevice();
+  my $machine = $device->getMachine();
   my $fs = $self->getFileSystem();
+
+  $device->runOnHost("sudo dmesg -c >/dev/null");
 
   # Figure out how much space to do in each dataset.
   my $stats = $self->getDevice()->getVDOStats();
@@ -213,11 +216,13 @@ sub testFullFilesystem {
                   );
   $dir2->pollUntilDone();
 
-  $self->syncDeviceIgnoringErrors();
-
   # The error syncing matches either No space left on device or Input/output
   # error, but distinguishing them is hard.
+  $self->syncDeviceIgnoringErrors();
+  $fs->unmount();
+  $device->runOnHost("sudo dmesg -c");
 
+  # Define the recovery utility execution process and start an async recovery task
   my $doVdoRecover = sub {
     my $vdoDeviceName = $self->_getVDODevicePath();
     $self->runVdorecover($vdoDeviceName);
@@ -228,18 +233,26 @@ sub testFullFilesystem {
   # Sleep to give the script time to start up.
   sleep(20);
 
-  # Remount the filesystem to clear it's errors.
-  $fs->unmount();
+  # We should now be sitting at the prompt from vdorecover (for lvmvdo device).
+  # Remount the filesystem, delete some data, and do a fstrim.
+  # Logged dmesg output should show start and completion of recovery.
   $fs->mount();
-
-  # Delete some data and do a fstrim.
   $dir2->rm(async => 0);
-  my $machine = $self->getDevice()->getMachine();
   $machine->assertExecuteCommand("sudo fstrim " . $fs->getMountDir());
   $self->syncDeviceIgnoringErrors();
+  $device->runOnHost("sudo dmesg -c", 1);
+  $fs->unmount();
+  $device->runOnHost("sudo dmesg -c >/dev/null");
 
   # Make sure we succeeded at recovering.
   $recoverTask->result();
+
+  # Remount the filesystem.
+  # Logged dmesg output should show clean mount.
+  $fs->mount();
+  $device->runOnHost("sudo dmesg -c", 1);
+
+  # Verify the first set of data
   $dir1->verify();
   # Sleep to make sure the input script notices that its output pipe is
   # closed and therefore stops.
