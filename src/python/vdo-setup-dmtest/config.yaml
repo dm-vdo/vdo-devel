@@ -1,0 +1,28 @@
+# Devices to be used by dmtest-python
+DATA_DEVICE: /dev/mapper/scratch-vdo_scratch
+METADATA_DEVICE: /dev/mapper/scratch-vdo_scratch
+
+# Dmtest-python and dependency repos
+# May be defined with URL or full path. If URL, automatic cloning will be performed.
+DMTEST_PYTHON_REPO: https://github.com/dm-vdo/dmtest-python
+BUFIO_TEST_REPO: https://github.com/bmarzins/bufio-test.git
+BLK_ARCHIVE_REPO: https://github.com/jthornber/blk-archive.git
+
+# Linux kernel source repo to use.
+# May be defined with URL or full path. If URL, automatic cloning will be performed.
+# The branch key and/or value are optional
+LINUX_SOURCE: https://github.com/dm-vdo/dm-linux.git
+LINUX_SOURCE_BRANCH: vdo-next
+
+# Optional full path specifying where to clone repos
+# The path will be created if it does not exist. If not defined, clone location is defaulted
+# to <run directory>/repos.
+WORKSPACE:
+
+# Package dependencies for repo installation
+PACKAGES:
+  - rust                # needed by blk-archive
+  - cargo               # needed by blk-archive
+  - clang               # needed by blk-archive
+  - device-mapper-devel # needed by blk-archive
+  - fio                 # needed by dmtest-python

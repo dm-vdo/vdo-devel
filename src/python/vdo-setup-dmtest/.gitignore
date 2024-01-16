@@ -1,0 +1,7 @@
+# Python generated directories
+__pycache__/
+source/__pycache__/
+
+# Script generated files and directories
+repos/
+*.log
