@@ -11,11 +11,13 @@ use English qw(-no_match_vars);
 use File::Basename qw(dirname);
 use Log::Log4perl;
 use Permabit::Assertions qw(
+  assertEqualNumeric
   assertMinMaxArgs
   assertNumArgs
 );
 use Permabit::Constants;
 use Permabit::GenDataFiles qw(genDataFiles);
+use Permabit::Utils qw(retryUntilTimeout);
 use Permabit::VDOTask::SliceOperation;
 
 use base qw(VDOTest);
@@ -58,7 +60,7 @@ sub listSharedFiles {
 sub runVdorecover {
   my ($self, $vdoDeviceName, $tmpStorageKB)
     = assertMinMaxArgs([$DEFAULT_TMP_STORAGE_SIZE], 2, 3, @_);
-  my $machine    = $self->getDevice()->getMachine();
+  my $machine = $self->getDevice()->getMachine();
   my $vdorecover = $self->findBinary("vdorecover");
   my $vdostatsDir = dirname($machine->findNamedExecutable('vdostats'));
 
@@ -144,7 +146,12 @@ sub testFullDirect {
   $slice2->trim();
 
   # Make sure we succeeded at recovering.
-  $recoverTask->result();
+  # There is a built-in wait mechanism in AsyncSub that waits for completion before returning
+  # the result.
+  my $result = $recoverTask->result();
+  assertEqualNumeric(0, $result, "Recovery was not successful");
+
+  # Verify the data
   $slice->verify();
   # Sleep to make sure the input script notices that its output pipe is
   # closed and therefore stops.
@@ -182,8 +189,11 @@ sub propertiesFullFilesystem {
 
 sub testFullFilesystem {
   my ($self) = assertNumArgs(1, @_);
-
+  my $device = $self->getDevice();
+  my $machine = $device->getMachine();
   my $fs = $self->getFileSystem();
+
+  $device->runOnHost("sudo dmesg -c >/dev/null");
 
   # Figure out how much space to do in each dataset.
   my $stats = $self->getDevice()->getVDOStats();
@@ -213,11 +223,13 @@ sub testFullFilesystem {
                   );
   $dir2->pollUntilDone();
 
-  $self->syncDeviceIgnoringErrors();
-
   # The error syncing matches either No space left on device or Input/output
   # error, but distinguishing them is hard.
+  $self->syncDeviceIgnoringErrors();
+  $fs->unmount();
+  $device->runOnHost("sudo dmesg -c");
 
+  # Define the recovery utility execution process and start an async recovery task
   my $doVdoRecover = sub {
     my $vdoDeviceName = $self->_getVDODevicePath();
     $self->runVdorecover($vdoDeviceName);
@@ -228,18 +240,46 @@ sub testFullFilesystem {
   # Sleep to give the script time to start up.
   sleep(20);
 
-  # Remount the filesystem to clear it's errors.
-  $fs->unmount();
+  # We should now be sitting at the prompt from vdorecover (for lvmvdo device).
+  # Remount the filesystem, delete some data, and do a fstrim.
+  # Logged dmesg output should show start and completion of recovery.
   $fs->mount();
-
-  # Delete some data and do a fstrim.
   $dir2->rm(async => 0);
-  my $machine = $self->getDevice()->getMachine();
   $machine->assertExecuteCommand("sudo fstrim " . $fs->getMountDir());
   $self->syncDeviceIgnoringErrors();
+  $device->runOnHost("sudo dmesg -c", 1);
+  $fs->unmount();
+  $device->runOnHost("sudo dmesg -c >/dev/null");
 
   # Make sure we succeeded at recovering.
-  $recoverTask->result();
+
+  # It would be best to evaluate the success of the recovery script by verifying that
+  # 'Recovery process completed' was logged to stdout. However, this would require
+  # modifications to AsyncSub in order to make stdout accessible. Although it can be obtained
+  # from the RemoteMachine object by calling sendCommand() and getStdout() instead of
+  # assertExecuteCommand(), it is out of scope. 
+
+  # There is a built-in wait mechanism in AsyncSub::result() that waits for completion before
+  # returning the result. It does not appear to be sufficient, as we occasionally still fail to
+  # remount the filesystem.
+  my $i = 0;
+  my $recoveryCheck = sub {
+    $i++;
+    $log->debug("Recovery check iteration $i");
+    if ($recoverTask->isComplete()) {
+      return 1;
+    }
+    return 0;
+  };
+  retryUntilTimeout($recoveryCheck, "recovery script timed out", 10 * $MINUTE, 5);
+  assertEqualNumeric(0, $recoverTask->result(), "Recovery was not successful");
+
+  # Remount the filesystem.
+  # Logged dmesg output should show clean mount.
+  $fs->mount();
+  $device->runOnHost("sudo dmesg -c", 1);
+
+  # Verify the first set of data
   $dir1->verify();
   # Sleep to make sure the input script notices that its output pipe is
   # closed and therefore stops.
