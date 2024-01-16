@@ -352,7 +352,10 @@ sub unmount {
     # such a bug on XFS.
     $machine->runSystemCmd("timeout -s KILL 1200 sync; timeout -s KILL 1200 sync");
     my $umountSub = sub {
-      $machine->sendCommand("sudo timeout -s KILL 1200 umount $self->{mountDir}");
+      my $cmd = "sudo timeout -s KILL 1200 umount $self->{mountDir}";
+      my $machineName = $machine->getName();
+      $log->debug("$machineName: $cmd");
+      $machine->sendCommand($cmd);
       my $status = $machine->sendCommand("mount | grep $self->{mountDir}");
       return ($status != 0);
     };
