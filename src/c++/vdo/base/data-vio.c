@@ -277,7 +277,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 {
 	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	struct bio *bio = data_vio->user_bio;
-	int error = vdo_map_to_system_error(data_vio->vio.completion.result);
+	int error = vdo_status_to_errno(data_vio->vio.completion.result);
 #ifdef VDO_INTERNAL
 	u64 latency_jiffies;
 	unsigned int ack_msecs;
