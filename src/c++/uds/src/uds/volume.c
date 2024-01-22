@@ -1613,7 +1613,7 @@ STATIC int __must_check initialize_page_cache(struct page_cache *cache,
 	return UDS_SUCCESS;
 }
 
-int uds_make_volume(const struct configuration *config, struct index_layout *layout,
+int uds_make_volume(const struct uds_configuration *config, struct index_layout *layout,
 		    struct volume **new_volume)
 {
 	unsigned int i;
