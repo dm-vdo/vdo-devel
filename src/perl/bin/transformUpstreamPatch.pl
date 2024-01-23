@@ -87,9 +87,7 @@ foreach my $file (@files) {
   open(OUT, ">$file") || die();
 
   while(my $line = <IN>) {
-    if ($line =~ m|drivers/md/dm-vdo-target\.c|) {
-      $line =~ s|drivers/md|src/c++/vdo/base|g;
-    } elsif ($line =~ /$udsFilesRE/) {
+    if ($line =~ /$udsFilesRE/) {
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/src/uds|g;
     } elsif ($line =~ /$udsKernelFilesRE/) {
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/kernelLinux/uds|g;
