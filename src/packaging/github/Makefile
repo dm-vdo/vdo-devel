@@ -62,7 +62,6 @@ prepareGitHubDist.out: $(WORK_DIR)
 	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) \
           --repositoryPrefix=$(REPOSITORY_PREFIX) $(FLAGS) $(EXTRA_FLAGS) \
 	  | tee $@
-	[ -e  $(WORK_DIR)/$(PACKAGE)/dm-vdo-target.c ] || mv $(WORK_DIR)/$(PACKAGE)/dm-vdo/dm-vdo-target.c $(WORK_DIR)/$(PACKAGE)
 
 .PHONY: prepare
 prepare: FLAGS=--test --manifest=$(MANIFEST) $(VDO_ROOT)

@@ -1,7 +1,6 @@
 VDO_VERSION = %%VDOVersion%%
 
-OBJECTS = dm-vdo-target.o
-OBJECTS += $(patsubst %.c,dm-vdo/%.o,$(notdir $(wildcard $(src)/dm-vdo/*.c)))
+OBJECTS = $(patsubst %.c,dm-vdo/%.o,$(notdir $(wildcard $(src)/dm-vdo/*.c)))
 
 INCLUDES = -I$(src)/dm-vdo
 

@@ -19,41 +19,15 @@
 #include <linux/kstrtox.h>
 #endif /* INTERNAL */
 
-#ifdef __KERNEL__
-#include "dm-vdo/admin-state.h"
-#include "dm-vdo/block-map.h"
-#include "dm-vdo/completion.h"
-#include "dm-vdo/constants.h"
-#include "dm-vdo/data-vio.h"
-#include "dm-vdo/dedupe.h"
-#include "dm-vdo/dump.h"
-#include "dm-vdo/encodings.h"
-#include "dm-vdo/errors.h"
-#include "dm-vdo/flush.h"
-#include "dm-vdo/io-submitter.h"
-#include "dm-vdo/logger.h"
-#include "dm-vdo/memory-alloc.h"
-#include "dm-vdo/message-stats.h"
-#include "dm-vdo/pool-sysfs.h"
-#include "dm-vdo/recovery-journal.h"
-#include "dm-vdo/repair.h"
-#include "dm-vdo/slab-depot.h"
-#include "dm-vdo/status-codes.h"
-#include "dm-vdo/string-utils.h"
-#include "dm-vdo/thread-device.h"
-#include "dm-vdo/thread-registry.h"
-#include "dm-vdo/types.h"
-#include "dm-vdo/uds-sysfs.h"
-#include "dm-vdo/vdo.h"
-#include "dm-vdo/vio.h"
-#else /* not __KERNEL__ */
 #include "admin-state.h"
 #include "block-map.h"
 #include "completion.h"
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
+#ifndef __KERNEL__
 #include "dm-vdo-target.h"
+#endif /* __KERNEL__ */
 #include "dump.h"
 #include "encodings.h"
 #include "errors.h"
@@ -62,15 +36,24 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "message-stats.h"
+#ifdef __KERNEL__
+#include "pool-sysfs.h"
+#endif /* __KERNEL__ */
 #include "recovery-journal.h"
 #include "repair.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "string-utils.h"
+#ifdef __KERNEL__
+#include "thread-device.h"
+#include "thread-registry.h"
+#endif /* __KERNEL__ */
 #include "types.h"
+#ifdef __KERNEL__
+#include "uds-sysfs.h"
+#endif /* __KERNEL__ */
 #include "vdo.h"
 #include "vio.h"
-#endif /* __KERNEL__ */
 
 #define	CURRENT_VERSION	VDO_VERSION
 

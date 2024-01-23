@@ -43,7 +43,6 @@ prepare.out: FORCE
 	    $(CHANGELOG_FLAGS) $(VDO_ROOT) > prepare.out
 
 $(SOURCES): prepare
-	[ -e  $(WORK_DIR)/$(PACKAGE)/dm-vdo-target.c ] || mv $(WORK_DIR)/$(PACKAGE)/dm-vdo/dm-vdo-target.c $(WORK_DIR)/$(PACKAGE)
 	mkdir -p $(SOURCES)
 	tar -C $(WORK_DIR) -zcvf $(SOURCES)/$(PACKAGE).tgz ./$(PACKAGE)
 	cp $(WORK_DIR)/vdo-$(VDO_VERSION).tgz $(SOURCES)
