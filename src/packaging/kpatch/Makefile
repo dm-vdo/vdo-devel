@@ -189,7 +189,6 @@ overlay overlay_vdo:
 	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
 	sed -i -E -e 's/(#define	CURRENT_VERSION).*/\1 "$(VDO_VERSION)"/' \
 		$(LINUX_VDO_SRC)/dm-vdo-target.c
-	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
 
 	# Update Kconfig and Makefile against the master branch, not
 	# a different branch such as the vdo-devel branch
@@ -210,7 +209,6 @@ kernel-overlay:
 	rm -rf $(LINUX_VDO_SRC)
 	mkdir -p $(LINUX_VDO_SRC)
 	cp -r $(PREPARED_DIR)/* $(LINUX_VDO_SRC)
-	mv $(LINUX_VDO_SRC)/dm-vdo-target.c $(LINUX_MD_SRC)
 
 	cp -f $(VDO_DOC) $(LINUX_DOC_SRC)/
 
