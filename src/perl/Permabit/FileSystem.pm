@@ -133,7 +133,19 @@ sub fsck {
   my ($self) = assertNumArgs(1, @_);
   my $machine = $self->{machine};
   my $devPath = $self->{device}->getSymbolicPath();
-  $machine->runSystemCmd("sudo fsck -t $self->{fsType} -a $devPath");
+  my $fsckCommand = "sudo fsck -t $self->{fsType} -a $devPath";
+  $log->debug("$machine->{hostname}: $fsckCommand");
+  my $errno = $machine->sendCommand($fsckCommand);
+  if ($errno > 1) {
+    confess("fsck failed on $machine->{hostname}: $errno\n"
+            . $machine->_getCmdOutput());
+  } elsif ($errno == 1) {
+    # Some "problems" like metadata in two different locations not
+    # getting updated together atomically can come up naturally and
+    # reasonably, and may be reported by fsck. (VDO-5638)
+    $log->info("fsck fixed issues on $machine->{hostname}:\n"
+               . $machine->_getCmdOutput());
+  }
 }
 
 #############################################################################
