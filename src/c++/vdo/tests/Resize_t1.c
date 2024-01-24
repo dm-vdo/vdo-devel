@@ -227,7 +227,7 @@ static void testAddStorageInRecoveryMode(void)
   // Test that an attempt to resize while in recovery mode will fail safely
   // with a clear error.
   block_count_t oldSize = getTestConfig().config.physical_blocks;
-  growVDOPhysical(oldSize * 2, vdo_map_to_system_error(VDO_RETRY_AFTER_REBUILD));
+  growVDOPhysical(oldSize * 2, vdo_status_to_errno(VDO_RETRY_AFTER_REBUILD));
   CU_ASSERT_EQUAL(oldSize, getTestConfig().config.physical_blocks);
 
   // Release the latch and wait until VDO leaves the recovery mode.
@@ -247,7 +247,7 @@ static void testTooSmallGrowth(void)
   CU_ASSERT_TRUE(config.slab_size < (metadataSize / 2));
 
   block_count_t newSize = config.physical_blocks + (metadataSize / 2);
-  growVDOPhysical(newSize, vdo_map_to_system_error(VDO_INCREMENT_TOO_SMALL));
+  growVDOPhysical(newSize, vdo_status_to_errno(VDO_INCREMENT_TOO_SMALL));
   validateSuperBlock();
 }
 
