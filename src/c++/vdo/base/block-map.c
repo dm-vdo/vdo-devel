@@ -98,7 +98,7 @@ struct cursors {
 	struct block_map_zone *zone;
 	struct vio_pool *pool;
 	vdo_entry_callback_fn entry_callback;
-	struct vdo_completion *parent;
+	struct vdo_completion *completion;
 	root_count_t active_roots;
 	struct cursor cursors[];
 };
@@ -535,19 +535,19 @@ static void complete_waiter_with_page(struct vdo_waiter *waiter, void *page_info
 static unsigned int distribute_page_over_waitq(struct page_info *info,
 					       struct vdo_wait_queue *waitq)
 {
-	size_t pages;
+	size_t num_pages;
 
 	update_lru(info);
-	pages = vdo_waitq_num_waiters(waitq);
+	num_pages = vdo_waitq_num_waiters(waitq);
 
 	/*
 	 * Increment the busy count once for each pending completion so that this page does not
 	 * stop being busy until all completions have been processed (VDO-83).
 	 */
-	info->busy += pages;
+	info->busy += num_pages;
 
 	vdo_waitq_notify_all_waiters(waitq, complete_waiter_with_page, info);
-	return pages;
+	return num_pages;
 }
 
 /**
@@ -562,7 +562,7 @@ static void set_persistent_error(struct vdo_page_cache *cache, const char *conte
 {
 	struct page_info *info;
 	/* If we're already read-only, there's no need to log. */
-	struct vdo *vdo = cache->zone->block_map->vdo;
+	struct vdo *vdo = cache->vdo;
 
 	if ((result != VDO_READ_ONLY) && !vdo_is_read_only(vdo)) {
 		uds_log_error_strerror(result, "VDO Page Cache persistent error: %s",
@@ -614,7 +614,8 @@ STATIC int __must_check validate_completed_page(struct vdo_page_completion *comp
 		return result;
 
 	if (writable) {
-		result = ASSERT(completion->writable, "VDO Page Completion is writable");
+		result = ASSERT(completion->writable,
+				"VDO Page Completion must be writable");
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -741,8 +742,8 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	assert_on_cache_thread(cache, __func__);
 
 	/*
-	 * We are doing a read-only rebuild, so treat this as a successful read of an uninitialized
-	 * page.
+	 * We are doing a read-only rebuild, so treat this as a successful read
+	 * of an uninitialized page.
 	 */
 	vio_record_metadata_io_error(as_vio(completion));
 	ADD_ONCE(cache->stats.failed_reads, 1);
@@ -1014,13 +1015,9 @@ static void handle_page_write_error(struct vdo_completion *completion)
 	/* If we're already read-only, write failures are to be expected. */
 	if (result != VDO_READ_ONLY) {
 #if __KERNEL__
-		static DEFINE_RATELIMIT_STATE(error_limiter, DEFAULT_RATELIMIT_INTERVAL,
-					      DEFAULT_RATELIMIT_BURST);
-
-		if (__ratelimit(&error_limiter)) {
-			uds_log_error("failed to write block map page %llu",
-				      (unsigned long long) info->pbn);
-		}
+		uds_log_ratelimit(uds_log_error,
+				  "failed to write block map page %llu",
+				  (unsigned long long) info->pbn);
 #else
 		uds_log_error("failed to write block map page %llu",
 			      (unsigned long long) info->pbn);
@@ -1119,7 +1116,7 @@ static void write_pages(struct vdo_completion *flush_completion)
 					 state_entry);
 
 		list_del_init(&info->state_entry);
-		if (vdo_is_read_only(info->cache->zone->block_map->vdo)) {
+		if (vdo_is_read_only(info->cache->vdo)) {
 			struct vdo_completion *completion = &info->vio->completion;
 
 			vdo_reset_completion(completion);
@@ -1241,7 +1238,7 @@ void vdo_get_page(struct vdo_page_completion *page_completion,
 			       cache->zone->thread_id, parent);
 	completion->requeue = requeue;
 
-	if (page_completion->writable && vdo_is_read_only(cache->zone->block_map->vdo)) {
+	if (page_completion->writable && vdo_is_read_only(cache->vdo)) {
 		vdo_fail_completion(completion, VDO_READ_ONLY);
 		return;
 	}
@@ -2509,7 +2506,7 @@ static void replace_forest(struct block_map *map)
 static void finish_cursor(struct cursor *cursor)
 {
 	struct cursors *cursors = cursor->parent;
-	struct vdo_completion *parent = cursors->parent;
+	struct vdo_completion *completion = cursors->completion;
 
 	return_vio_to_pool(cursors->pool, uds_forget(cursor->vio));
 	if (--cursors->active_roots > 0)
@@ -2517,7 +2514,7 @@ static void finish_cursor(struct cursor *cursor)
 
 	uds_free(cursors);
 
-	vdo_finish_completion(parent);
+	vdo_finish_completion(completion);
 }
 
 static void traverse(struct cursor *cursor);
@@ -2603,12 +2600,10 @@ static void traverse(struct cursor *cursor)
 
 			if (cursor->height < VDO_BLOCK_MAP_TREE_HEIGHT - 1) {
 				int result = cursor->parent->entry_callback(location.pbn,
-									    cursor->parent->parent);
-
+									    cursor->parent->completion);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] = UNMAPPED_BLOCK_MAP_ENTRY;
-					vdo_write_tree_page(tree_page,
-							    cursor->parent->zone);
+					vdo_write_tree_page(tree_page, cursor->parent->zone);
 					continue;
 				}
 			}
@@ -2684,10 +2679,10 @@ static struct boundary compute_boundary(struct block_map *map, root_count_t root
 /**
  * vdo_traverse_forest() - Walk the entire forest of a block map.
  * @callback: A function to call with the pbn of each allocated node in the forest.
- * @parent: The completion to notify on each traversed PBN, and when the traversal is complete.
+ * @completion: The completion to notify on each traversed PBN, and when traversal completes.
  */
 void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
-			 struct vdo_completion *parent)
+			 struct vdo_completion *completion)
 {
 	root_count_t root;
 	struct cursors *cursors;
@@ -2696,14 +2691,14 @@ void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
 	result = uds_allocate_extended(struct cursors, map->root_count,
 				       struct cursor, __func__, &cursors);
 	if (result != VDO_SUCCESS) {
-		vdo_fail_completion(parent, result);
+		vdo_fail_completion(completion, result);
 		return;
 	}
 
 	cursors->zone = &map->zones[0];
 	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = callback;
-	cursors->parent = parent;
+	cursors->completion = completion;
 	cursors->active_roots = map->root_count;
 	for (root = 0; root < map->root_count; root++) {
 		struct cursor *cursor = &cursors->cursors[root];
@@ -2727,12 +2722,12 @@ void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
  */
 static int __must_check initialize_block_map_zone(struct block_map *map,
 						  zone_count_t zone_number,
-						  struct vdo *vdo,
 						  page_count_t cache_size,
 						  block_count_t maximum_age)
 {
 	int result;
 	block_count_t i;
+	struct vdo *vdo = map->vdo;
 	struct block_map_zone *zone = &map->zones[zone_number];
 
 	BUILD_BUG_ON(sizeof(struct page_descriptor) != sizeof(u64));
@@ -2906,8 +2901,7 @@ int vdo_decode_block_map(struct block_map_state_2_0 state, block_count_t logical
 
 	map->zone_count = vdo->thread_config.logical_zone_count;
 	for (zone = 0; zone < map->zone_count; zone++) {
-		result = initialize_block_map_zone(map, zone, vdo, cache_size,
-						   maximum_age);
+		result = initialize_block_map_zone(map, zone, cache_size, maximum_age);
 		if (result != VDO_SUCCESS) {
 			vdo_free_block_map(map);
 			return result;
