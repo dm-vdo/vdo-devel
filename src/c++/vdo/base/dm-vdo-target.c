@@ -1245,7 +1245,7 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
 #endif /* __KERNEL__ */
 		result = 1;
 	} else {
-		result = vdo_map_to_system_error(process_vdo_message(vdo, argc, argv));
+		result = vdo_status_to_errno(process_vdo_message(vdo, argc, argv));
 	}
 
 	uds_unregister_thread_device_id();
@@ -1745,7 +1745,7 @@ static int construct_new_vdo_registered(struct dm_target *ti, unsigned int argc,
 	if (result != VDO_SUCCESS) {
 		release_instance(instance);
 		free_device_config(config);
-		return vdo_map_to_system_error(result);
+		return vdo_status_to_errno(result);
 	}
 
 	return VDO_SUCCESS;
@@ -1984,7 +1984,7 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 		if (result != VDO_SUCCESS) {
 			if (result == VDO_PARAMETER_MISMATCH) {
 				/*
-				 * If we don't trap this case, vdo_map_to_system_error() will remap
+				 * If we don't trap this case, vdo_status_to_errno() will remap
 				 * it to -EIO, which is misleading and ahistorical.
 				 */
 				result = -EINVAL;
@@ -2024,7 +2024,7 @@ static int update_existing_vdo(const char *device_name, struct dm_target *ti,
 	result = prepare_to_modify(ti, config, vdo);
 	if (result != VDO_SUCCESS) {
 		free_device_config(config);
-		return vdo_map_to_system_error(result);
+		return vdo_status_to_errno(result);
 	}
 
 	set_device_config(ti, vdo, config);
@@ -3022,7 +3022,7 @@ static int vdo_preresume(struct dm_target *ti)
 	if ((result == VDO_PARAMETER_MISMATCH) || (result == VDO_INVALID_ADMIN_STATE))
 		result = -EINVAL;
 	uds_unregister_thread_device_id();
-	return vdo_map_to_system_error(result);
+	return vdo_status_to_errno(result);
 }
 
 static void vdo_resume(struct dm_target *ti)
