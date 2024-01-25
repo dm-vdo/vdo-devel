@@ -72,10 +72,17 @@ my @udsKernelFiles = qw(
   /uds-threads\.c
 );
 
+my @upstreamFiles = qw(
+  Makefile
+  Kconfig
+);
+
 my $udsFilesPattern = join('|', @udsFiles);
 my $udsFilesRE = qr/$udsFilesPattern/;
 my $udsKernelFilesPattern = join('|', @udsKernelFiles);
 my $udsKernelFilesRE = qr/$udsKernelFilesPattern/;
+my $upstreamFilesPattern = join('|', @upstreamFiles);
+my $upstreamFilesRE = qr/$upstreamFilesPattern/;
 
 my $args = join(' ', @ARGV);
 my @files = glob($args);
@@ -86,8 +93,10 @@ foreach my $file (@files) {
   open(IN, "$file.orig") || die("Couldn't open $file\n");
   open(OUT, ">$file") || die();
 
-  while(my $line = <IN>) {
-    if ($line =~ /$udsFilesRE/) {
+  while (my $line = <IN>) {
+    if ($line =~ m|dm-vdo/$upstreamFilesRE|) {
+      $line =~ s|drivers/md/dm-vdo/($upstreamFilesRE)|src/packaging/kpatch/$1.upstream|g;
+    } elsif ($line =~ /$udsFilesRE/) {
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/src/uds|g;
     } elsif ($line =~ /$udsKernelFilesRE/) {
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/kernelLinux/uds|g;
