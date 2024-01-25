@@ -32,6 +32,10 @@ else
   PLATFORM_TESTS = platformTests
 endif
 
+ifeq ($(DMLINUX), 1)
+  TEST_ARGS += --useUpstreamKernel
+endif
+
 .PHONY: jenkins
 jenkins: TEST_EXTRA_ARGS=$(JENKINS_CLIENT_CLASS)
 jenkins: checkin platform

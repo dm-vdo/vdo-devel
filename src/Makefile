@@ -133,6 +133,16 @@ jenkins-parallel: clean
 	$(MAKE) check-style
 	$(MAKE) test-vdo-distribution
 
+.PHONY: dmlinux-jenkins
+dmlinux-jenkins:
+	$(MAKE) -j$(NUM_JOBS) dmlinux-jenkins-parallel
+dmlinux-jenkins-parallel: export VDO_TESTINDEX=$(TEST_INDEX)
+dmlinux-jenkins-parallel: clean
+	$(MAKE) all
+	$(MAKE) -C packaging/dmlinux clean all
+	@echo "Using index name of $$VDO_TESTINDEX"
+	$(MAKE) DMLINUX=1 vdotests
+
 .PHONY: archive
 archive:
 	$(MAKE) -C $(ARCHIVE)
