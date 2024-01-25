@@ -175,6 +175,8 @@ checkpatch.out: prepare.out
 	  | tee $@
 	-$(CHECKPATCH) $(CHECKPATCH_STRICT_ARGS) $(PREPARED_DIR)/*.[hc] \
 	  | tee -a $@
+	cp ./Makefile.upstream $(PREPARED_DIR)/Makefile
+	cp ./Kconfig.upstream $(PREPARED_DIR)/Kconfig
 
 checkincludes.out: prepare.out
 	$(CHECKINCLUDES) $(PREPARED_DIR)/*.[hc] | tee checkincludes.out
