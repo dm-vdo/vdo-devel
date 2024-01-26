@@ -14,10 +14,10 @@
 #include "volume.h"
 #include "volumeUtils.h"
 
-static struct index_layout   *layout;
-static struct configuration  *config;
-static struct index_geometry *geometry;
-static struct volume         *volume;
+static struct index_layout      *layout;
+static struct uds_configuration *config;
+static struct index_geometry    *geometry;
+static struct volume            *volume;
 
 /**********************************************************************/
 static void init(struct block_device *bdev)

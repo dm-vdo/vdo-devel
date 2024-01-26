@@ -35,7 +35,7 @@ static void createIndex(unsigned int zone_count)
     .bdev = getTestBlockDevice(),
     .zone_count = zone_count,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
   testDevice = params.bdev;

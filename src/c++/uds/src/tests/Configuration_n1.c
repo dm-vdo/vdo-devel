@@ -65,7 +65,7 @@ static void savedTest(void)
   };
   randomizeUdsNonce(&params);
 
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   struct uds_index_session *indexSession;
@@ -129,7 +129,7 @@ static void testRun(TestConfig *tc)
   randomizeUdsNonce(&params);
 
   // Test that the geometry is as expected
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   CU_ASSERT_EQUAL(DEFAULT_BYTES_PER_PAGE, config->geometry->bytes_per_page);
   CU_ASSERT_EQUAL(tc->recordPagesPerChapter,

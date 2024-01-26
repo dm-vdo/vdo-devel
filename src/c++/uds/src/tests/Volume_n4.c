@@ -25,15 +25,15 @@ typedef struct readRequest {
   uint32_t           physicalPage;
 } ReadRequest;
 
-static struct configuration  *config;
-static struct index_geometry *geometry;
-static struct index_layout   *layout;
-static struct volume         *volume;
-static struct block_device   *testDevice;
-static unsigned int           numRequestsQueued = 0;
-static struct mutex           numRequestsMutex;
-static struct cond_var        allDoneCond;
-static bool                   keepRunning       = false;
+static struct uds_configuration *config;
+static struct index_geometry    *geometry;
+static struct index_layout      *layout;
+static struct volume            *volume;
+static struct block_device      *testDevice;
+static unsigned int              numRequestsQueued = 0;
+static struct mutex              numRequestsMutex;
+static struct cond_var           allDoneCond;
+static bool                      keepRunning       = false;
 
 /**********************************************************************/
 static void freeReadRequest(struct uds_request *request)

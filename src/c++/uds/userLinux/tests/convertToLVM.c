@@ -132,7 +132,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 		       off_t *chapter_size)
 {
 	struct uds_index_session *session = NULL;
-	struct configuration *index_config;
+	struct uds_configuration *index_config;
 	struct uds_index *index;
 	struct index_layout *layout;
 	struct volume *volume;

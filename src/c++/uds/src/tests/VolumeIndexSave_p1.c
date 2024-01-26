@@ -14,7 +14,7 @@
 #include "testPrototypes.h"
 #include "time-utils.h"
 
-static struct configuration *config;
+static struct uds_configuration *config;
 
 /**
  * Insert a randomly named block

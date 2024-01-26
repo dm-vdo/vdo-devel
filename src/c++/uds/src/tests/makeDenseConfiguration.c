@@ -7,12 +7,12 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
+struct uds_configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
 {
   struct uds_parameters params = {
     .memory_size = memGB,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   return config;
 }

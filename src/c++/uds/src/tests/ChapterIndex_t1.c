@@ -140,7 +140,7 @@ static void verifyChapterIndexPage(struct open_chapter_index *openChapterIndex,
 /**********************************************************************/
 static void emptyChapterTest(void)
 {
-  struct configuration *config = makeDenseConfiguration(1);
+  struct uds_configuration *config = makeDenseConfiguration(1);
   struct index_geometry *g = config->geometry;
 
   // Create an open chapter index that is empty (no blocknames in it)
@@ -166,7 +166,7 @@ static void emptyChapterTest(void)
 /**********************************************************************/
 static void basicChapterTest(void)
 {
-  struct configuration *config = makeDenseConfiguration(1);
+  struct uds_configuration *config = makeDenseConfiguration(1);
   struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
@@ -206,7 +206,7 @@ static void basicChapterTest(void)
 /**********************************************************************/
 static void listOverflowTest(void)
 {
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
   struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
@@ -238,7 +238,7 @@ static void listOverflowTest(void)
 /**********************************************************************/
 static void pageOverflowTest(void)
 {
-  struct configuration *config = makeDenseConfiguration(1);
+  struct uds_configuration *config = makeDenseConfiguration(1);
   struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
@@ -260,7 +260,7 @@ static void pageOverflowTest(void)
 /**********************************************************************/
 static void bigEndianTest(void)
 {
-  struct configuration *config = makeDenseConfiguration(1);
+  struct uds_configuration *config = makeDenseConfiguration(1);
   struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);

@@ -10,12 +10,12 @@
 #include "random.h"
 #include "testPrototypes.h"
 
-static struct configuration  *config;
-static struct io_factory     *factory;
-static struct index_geometry *geometry;
-static struct block_device   *testDevice;
-static uint64_t               vcn;
-static unsigned int          *listNumbers;
+static struct uds_configuration *config;
+static struct io_factory        *factory;
+static struct index_geometry    *geometry;
+static struct block_device      *testDevice;
+static uint64_t                  vcn;
+static unsigned int             *listNumbers;
 
 /**********************************************************************/
 static void setup(void)

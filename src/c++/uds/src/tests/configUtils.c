@@ -10,7 +10,7 @@
 #include "geometry.h"
 
 /**********************************************************************/
-void resizeDenseConfiguration(struct configuration *config,
+void resizeDenseConfiguration(struct uds_configuration *config,
                               size_t bytes_per_page,
                               unsigned int record_pages_per_chapter,
                               unsigned int chapters_per_volume)
@@ -20,7 +20,7 @@ void resizeDenseConfiguration(struct configuration *config,
 }
 
 /**********************************************************************/
-void resizeSparseConfiguration(struct configuration *config,
+void resizeSparseConfiguration(struct uds_configuration *config,
                                size_t bytes_per_page,
                                unsigned int record_pages_per_chapter,
                                unsigned int chapters_per_volume,

@@ -15,7 +15,7 @@
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 
-static struct configuration *config;
+static struct uds_configuration *config;
 
 // These counters count collisions encountered while inserting blocks.
 static unsigned long denseCollisions  = 0;

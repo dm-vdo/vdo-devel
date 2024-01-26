@@ -53,7 +53,7 @@ int __must_check uds_open_volume_bufio(struct index_layout *layout, size_t block
 				       struct dm_bufio_client **client_ptr);
 
 #ifdef TEST_INTERNAL
-int update_uds_layout(struct index_layout *layout, struct configuration *config,
+int update_uds_layout(struct index_layout *layout, struct uds_configuration *config,
 		      off_t lvm_offset, off_t offset);
 
 #endif /* TEST_INTERNAL */

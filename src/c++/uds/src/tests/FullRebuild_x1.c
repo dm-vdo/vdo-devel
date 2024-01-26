@@ -82,7 +82,7 @@ static void verifyData(struct uds_index *index,
 }
 
 /**********************************************************************/
-static void runTest(struct configuration *config, unsigned int prefillChapters)
+static void runTest(struct uds_configuration *config, unsigned int prefillChapters)
 {
   config->zone_count = 1;
   config->bdev = testDevice;
@@ -141,7 +141,7 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
 }
 
 /**********************************************************************/
-static void runTestsAtAllChapterOffsets(struct configuration *config)
+static void runTestsAtAllChapterOffsets(struct uds_configuration *config)
 {
   unsigned int i;
   for (i = 0; i < config->geometry->chapters_per_volume; i++) {
@@ -155,7 +155,7 @@ static void testDenseTiny(void)
   struct uds_parameters params = {
     .memory_size = 1,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, 8);
 
@@ -170,7 +170,7 @@ static void testSparseTiny(void)
     .memory_size = 1,
     .sparse = true,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeSparseConfiguration(config, 0, 0, 8, 4, 2);
 
@@ -184,7 +184,7 @@ static void testDenseNormal(void)
   struct uds_parameters params = {
     .memory_size = 1,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
 
   runTest(config, 0);

@@ -38,8 +38,8 @@ static void testEarlyLRU(int numZones)
   geometry.records_per_chapter = numRecords;
 
   // Make the test configuration
-  struct configuration config;
-  memset(&config, 0, sizeof(struct configuration));
+  struct uds_configuration config;
+  memset(&config, 0, sizeof(struct uds_configuration));
   config.geometry = &geometry;
   config.volume_index_mean_delta = meanDelta;
   config.zone_count = numZones;

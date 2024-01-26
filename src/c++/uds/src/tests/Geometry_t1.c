@@ -60,7 +60,7 @@ static void checkDefaultGeometry(struct index_geometry *g,
 static void testDefault(void)
 {
   /* Test default 1024 chapters/volume */
-  struct configuration *config = makeDenseConfiguration(1);
+  struct uds_configuration *config = makeDenseConfiguration(1);
   struct index_geometry *g = config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME);
   /**
@@ -77,7 +77,7 @@ static void testDefaultReduced(void)
   /* Test 1023 chapters/volume, such as VDO would create, if it had to
    * re-create an index that had been converted to 1023 chapters/volume
    */
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(1 | UDS_MEMORY_CONFIG_REDUCED);
   struct index_geometry *g = config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME - 1);
@@ -109,7 +109,7 @@ static void checkSmallGeometry(struct index_geometry *g,
 /**********************************************************************/
 static void testSmall(void)
 {
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
   struct index_geometry *g = config->geometry;
 
@@ -126,7 +126,7 @@ static void testSmall(void)
 /**********************************************************************/
 static void testSmallReduced(void)
 {
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_REDUCED_256MB);
   struct index_geometry *g = config->geometry;
 

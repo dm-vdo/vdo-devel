@@ -10,8 +10,8 @@
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 
-static struct configuration *config;
-static struct uds_index     *theIndex;
+static struct uds_configuration *config;
+static struct uds_index         *theIndex;
 
 static struct cond_var callbackCond;
 static struct mutex    callbackMutex;

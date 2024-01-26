@@ -19,7 +19,7 @@ static void testSearchRecordPage(void)
   struct uds_parameters params = {
     .memory_size = 1,
   };
-  struct configuration *conf;
+  struct uds_configuration *conf;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
   struct index_geometry *g = conf->geometry;

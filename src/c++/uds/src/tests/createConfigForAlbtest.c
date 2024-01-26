@@ -7,11 +7,11 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-struct configuration *createConfigForAlbtest(int argc, const char **argv)
+struct uds_configuration *createConfigForAlbtest(int argc, const char **argv)
 {
   struct uds_parameters params
     = createUdsParametersForAlbtest(argc, argv);
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   return config;
 }

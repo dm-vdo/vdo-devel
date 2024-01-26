@@ -13,7 +13,7 @@
 #include "testPrototypes.h"
 
 static const unsigned            CHAPTER_COUNT = 16;
-static struct configuration     *conf;
+static struct uds_configuration *conf;
 static struct index_geometry    *geometry;
 static struct open_chapter_zone *openChapter;
 

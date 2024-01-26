@@ -26,10 +26,10 @@ static const bool DONT_UPDATE = false;
 static unsigned int recordsPerChapter;
 static unsigned int totalRecords;
 
-static struct uds_record_name *hashes;
-static struct uds_record_data *metas;
-static struct configuration   *config;
-static struct uds_index       *theIndex;
+static struct uds_record_name     *hashes;
+static struct uds_record_data     *metas;
+static struct uds_configuration   *config;
+static struct uds_index           *theIndex;
 
 static struct cond_var       callbackCond;
 static struct mutex          callbackMutex;

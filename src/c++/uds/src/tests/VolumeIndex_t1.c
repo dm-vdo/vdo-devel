@@ -53,10 +53,10 @@ static void insertRandomlyNamedBlock(struct volume_index    *volumeIndex,
 }
 
 /**********************************************************************/
-static struct configuration *makeTestConfig(int numChapters)
+static struct uds_configuration *makeTestConfig(int numChapters)
 {
-  struct configuration *config;
-  UDS_ASSERT_SUCCESS(uds_allocate(1, struct configuration, __func__, &config));
+  struct uds_configuration *config;
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_configuration, __func__, &config));
   UDS_ASSERT_SUCCESS(uds_allocate(1, struct index_geometry, __func__, &config->geometry));
   config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   config->zone_count = 1;
@@ -71,7 +71,7 @@ static void initializationTest(void)
   struct volume_index *volumeIndex;
 
   // Expect this to succeed.
-  struct configuration *config = makeTestConfig(MANY_CHAPTERS);
+  struct uds_configuration *config = makeTestConfig(MANY_CHAPTERS);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   uds_free_volume_index(volumeIndex);
   uds_free_configuration(config);
@@ -85,7 +85,7 @@ static void basicTest(void)
   struct volume_index_stats volumeStats;
 
   // Make a volume index with only 1 delta list
-  struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
+  struct uds_configuration *config = makeTestConfig(SINGLE_CHAPTERS);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   CU_ASSERT_EQUAL(get_volume_index_memory_used(volumeIndex), 0);
   uds_get_volume_index_stats(volumeIndex, &volumeStats);
@@ -162,7 +162,7 @@ static void setChapterTest(void)
   struct volume_index_record record;
 
   // Set up a volume index using all chapters from 0 to MAX_CHAPTER
-  struct configuration *config = makeTestConfig(MANY_CHAPTERS);
+  struct uds_configuration *config = makeTestConfig(MANY_CHAPTERS);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   uds_set_volume_index_open_chapter(volumeIndex, MAX_CHAPTER);
 
@@ -224,7 +224,7 @@ static void testInvalidateTrio(unsigned int addr1, unsigned int addr2,
   struct volume_index_record record;
 
   // Set up the volume index to use a single delta list.
-  struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
+  struct uds_configuration *config = makeTestConfig(SINGLE_CHAPTERS);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Initialize the names
@@ -411,7 +411,7 @@ static void invalidateChapterTest(void)
   uint64_t testChapters[CHAPTER_COUNT];
 
   // Set up the volume index to use a single delta list.
-  struct configuration *config = makeTestConfig(CHAPTER_COUNT);
+  struct uds_configuration *config = makeTestConfig(CHAPTER_COUNT);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Deposit 1 block into each chapter.
@@ -477,7 +477,7 @@ static void invalidateChapterCollisionTest(void)
   createRandomBlockName(&name1);
   fillInAddress(&name1, 0);
 
-  struct configuration *config = makeTestConfig(SINGLE_CHAPTERS);
+  struct uds_configuration *config = makeTestConfig(SINGLE_CHAPTERS);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   uds_set_volume_index_open_chapter(volumeIndex, 1);
 
@@ -524,7 +524,7 @@ static void rollingChaptersTest(void)
   UDS_ASSERT_SUCCESS(uds_allocate(numChapters, struct uds_record_name,
                                   __func__, &testNames));
 
-  struct configuration *config = makeTestConfig(numChapters);
+  struct uds_configuration *config = makeTestConfig(numChapters);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
 
   // Deposit 1 block into each chapter
@@ -583,7 +583,7 @@ static void invalidateChapterEmptyTest(void)
   struct volume_index_stats volumeStats;
 
   // Set up the volume index to use a single delta list and 5 chapters.
-  struct configuration *config = makeTestConfig(5);
+  struct uds_configuration *config = makeTestConfig(5);
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));
   uds_get_volume_index_stats(volumeIndex, &volumeStats);
   CU_ASSERT_EQUAL(volumeStats.record_count, 0);

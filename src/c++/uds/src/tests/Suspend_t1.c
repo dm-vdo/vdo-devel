@@ -168,7 +168,7 @@ static void suspendRebuildTest(void)
    * Discard the index state so that we need to do a full rebuild (using index
    * interfaces).
    */
-  struct configuration *tempConfig;
+  struct uds_configuration *tempConfig;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &tempConfig));
   tempConfig->zone_count = 1;
   struct uds_index *index;

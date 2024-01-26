@@ -1789,7 +1789,7 @@ u64 uds_get_volume_nonce(struct index_layout *layout)
  * @lvm_offset: The adjustment for lvm space, in bytes
  * @offset: The offset in bytes to move the index
  */
-int update_uds_layout(struct index_layout *layout, struct configuration *config,
+int update_uds_layout(struct index_layout *layout, struct uds_configuration *config,
 		      off_t lvm_offset, off_t offset)
 {
 	int result = UDS_SUCCESS;
