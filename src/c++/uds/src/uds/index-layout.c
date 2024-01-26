@@ -390,9 +390,10 @@ static void define_sub_index_nonce(struct index_layout *layout)
 	encode_u64_le(buffer, &offset, sil->sub_index.start_block);
 	encode_u16_le(buffer, &offset, 0);
 	sil->nonce = generate_secondary_nonce(primary_nonce, buffer, sizeof(buffer));
-	if (sil->nonce == 0)
+	if (sil->nonce == 0) {
 		sil->nonce = generate_secondary_nonce(~primary_nonce + 1, buffer,
 						      sizeof(buffer));
+	}
 }
 
 static void setup_sub_index(struct index_layout *layout, u64 start_block,
@@ -655,10 +656,11 @@ STATIC int discard_index_state_data(struct index_layout *layout)
 			saved_result = result;
 	}
 
-	if (saved_result != UDS_SUCCESS)
+	if (saved_result != UDS_SUCCESS) {
 		return uds_log_error_strerror(result,
 					      "%s: cannot destroy all index saves",
 					      __func__);
+	}
 
 	return UDS_SUCCESS;
 }
@@ -1255,9 +1257,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 					      "unknown superblock magic label");
 
 	if ((super->version < SUPER_VERSION_MINIMUM) ||
-	    (super->version == 4) ||
-	    (super->version == 5) ||
-	    (super->version == 6) ||
+	    (super->version == 4) || (super->version == 5) || (super->version == 6) ||
 	    (super->version > SUPER_VERSION_MAXIMUM)) {
 		return uds_log_error_strerror(UDS_UNSUPPORTED_VERSION,
 					      "unknown superblock version number %u",

@@ -392,9 +392,10 @@ int uds_open_index(enum uds_open_index_type open_type,
 static void wait_for_no_requests_in_progress(struct uds_index_session *index_session)
 {
 	uds_lock_mutex(&index_session->request_mutex);
-	while (index_session->request_count > 0)
+	while (index_session->request_count > 0) {
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
+	}
 	uds_unlock_mutex(&index_session->request_mutex);
 }
 
@@ -624,9 +625,10 @@ int uds_close_index(struct uds_index_session *index_session)
 	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
-	       (index_session->state & IS_FLAG_CLOSING))
+	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
+	}
 
 	if (index_session->state & IS_FLAG_SUSPENDED) {
 		uds_log_info("Index session is suspended");
@@ -665,9 +667,10 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	/* Wait for any current index state change to complete. */
 	uds_lock_mutex(&index_session->request_mutex);
 	while ((index_session->state & IS_FLAG_WAITING) ||
-	       (index_session->state & IS_FLAG_CLOSING))
+	       (index_session->state & IS_FLAG_CLOSING)) {
 		uds_wait_cond(&index_session->request_cond,
 			      &index_session->request_mutex);
+	}
 
 	if (index_session->state & IS_FLAG_DESTROYING) {
 		uds_unlock_mutex(&index_session->request_mutex);
@@ -691,9 +694,10 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 
 		/* Wait until the load exits before proceeding. */
 		uds_lock_mutex(&index_session->request_mutex);
-		while (index_session->state & IS_FLAG_LOADING)
+		while (index_session->state & IS_FLAG_LOADING) {
 			uds_wait_cond(&index_session->request_cond,
 				      &index_session->request_mutex);
+		}
 		uds_unlock_mutex(&index_session->request_mutex);
 	}
 
