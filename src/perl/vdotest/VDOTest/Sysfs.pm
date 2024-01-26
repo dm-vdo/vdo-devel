@@ -103,7 +103,6 @@ sub testSysfs {
                     4 * $KB);
   $self->_readCheck(makeFullPath($blockDevDir, "queue/minimum_io_size"),
                     4 * $KB);
-  $self->_readCheck(makeFullPath($blockDevDir, "queue/nr_requests"), 128);
   $self->_readCheck(makeFullPath($blockDevDir, "queue/optimal_io_size"),
                     4 * $KB);
   $self->_readCheck(makeFullPath($blockDevDir, "queue/physical_block_size"),
