@@ -35,7 +35,7 @@ static int __must_check move_chapter(struct volume *volume,
 				     struct index_layout *layout,
 				     uint64_t new_physical)
 {
-	struct geometry *geometry = volume->geometry;
+	struct index_geometry *geometry = volume->geometry;
 	struct dm_bufio_client *client;
 	struct dm_buffer *buffer;
 	u8 *data;
@@ -105,7 +105,7 @@ static void cleanup_session(struct uds_index_session *session)
 static int reduce_index_page_map(struct volume *volume, uint64_t new_physical)
 {
 	struct index_page_map *map = volume->index_page_map;
-	struct geometry *geometry = volume->geometry;
+	struct index_geometry *geometry = volume->geometry;
 	int entries_per_chapter = map->entries_per_chapter;
 	int reduced_entries =
 		(geometry->chapters_per_volume - 1) * entries_per_chapter;

@@ -10,12 +10,12 @@
 #include "random.h"
 #include "testPrototypes.h"
 
-static struct configuration *config;
-static struct io_factory    *factory;
-static struct geometry      *geometry;
-static struct block_device  *testDevice;
-static uint64_t              vcn;
-static unsigned int         *listNumbers;
+static struct configuration  *config;
+static struct io_factory     *factory;
+static struct index_geometry *geometry;
+static struct block_device   *testDevice;
+static uint64_t               vcn;
+static unsigned int          *listNumbers;
 
 /**********************************************************************/
 static void setup(void)
@@ -46,7 +46,7 @@ static void cleanup(void)
 
 /**********************************************************************/
 static void fillChapter(struct index_page_map *map,
-                        struct geometry       *geometry,
+                        struct index_geometry *geometry,
                         uint64_t               vcn,
                         unsigned int           chapterNumber,
                         unsigned int          *listNumbers)
@@ -79,7 +79,7 @@ static void fillChapter(struct index_page_map *map,
 
 /**********************************************************************/
 static void verifyChapter(struct index_page_map *map,
-                          struct geometry       *geometry,
+                          struct index_geometry *geometry,
                           unsigned int           chapter,
                           unsigned int          *listNumbers)
 {

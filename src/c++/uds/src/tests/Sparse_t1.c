@@ -140,7 +140,7 @@ static void assertIsHook(unsigned int hashIndex)
  **/
 static bool searchForCollisions(unsigned int lastHash)
 {
-  struct geometry *geometry = theIndex->volume->geometry;
+  struct index_geometry *geometry = theIndex->volume->geometry;
   const struct uds_record_name *candidate = &hashes[lastHash];
   u32 chapter_address = uds_hash_to_chapter_delta_address(candidate, geometry);
   const struct volume_sub_index *sub_index = get_sub_index(theIndex->volume_index, candidate);

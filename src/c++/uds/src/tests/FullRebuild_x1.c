@@ -89,7 +89,7 @@ static void runTest(struct configuration *config, unsigned int prefillChapters)
 
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &index));
-  struct geometry *geometry = config->geometry;
+  struct index_geometry *geometry = config->geometry;
   unsigned long recordsPerChapter = geometry->records_per_chapter;
   unsigned long numSparseRecords
     = recordsPerChapter * geometry->sparse_chapters_per_volume;

@@ -110,7 +110,7 @@ static void flushZoneQueues(unsigned int zoneCount)
 static void laggingZonesTest(void)
 {
   unsigned int zoneCount = config->zone_count;
-  struct geometry *geometry = theIndex->volume->geometry;
+  struct index_geometry *geometry = theIndex->volume->geometry;
   unsigned int recordsPerChapter = geometry->records_per_chapter;
   unsigned int recordsPerZone = theIndex->zones[0]->open_chapter->capacity;
 

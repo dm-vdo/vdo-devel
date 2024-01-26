@@ -16,7 +16,7 @@ typedef struct testMI {
                                              // Test state:
   struct volume_index       *mi;             //     volume index
   struct configuration       config;         //     configuration
-  struct geometry            geometry;       //     geometry
+  struct index_geometry      geometry;       //     geometry
   long                       entryCounter;   // number of records written
   unsigned int               numZones;       // number of zones
   struct io_factory         *factory;        // IO factory for saving volume

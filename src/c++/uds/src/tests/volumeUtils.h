@@ -29,7 +29,7 @@ void freePageArray(void);
  * @param geometry the geometry to use
  * @param chapter  the chapter to write
  */
-void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u32 chapter);
+void writeTestVolumeChapter(struct volume *volume, struct index_geometry *geometry, u32 chapter);
 
 /**
  * Create a default volume file, with valid index and record pages
@@ -37,6 +37,6 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
  * @param volume   the volume to write to
  * @param geometry the geometry to use
  */
-void writeTestVolumeData(struct volume *volume, struct geometry *geometry);
+void writeTestVolumeData(struct volume *volume, struct index_geometry *geometry);
 
 #endif /* VOLUME_UTILS_H */

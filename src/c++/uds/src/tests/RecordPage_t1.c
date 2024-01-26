@@ -22,7 +22,7 @@ static void testSearchRecordPage(void)
   struct configuration *conf;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
-  struct geometry *g = conf->geometry;
+  struct index_geometry *g = conf->geometry;
 
   u8 *recordPage;
   UDS_ASSERT_SUCCESS(uds_allocate(bytesPerPage, u8, __func__, &recordPage));

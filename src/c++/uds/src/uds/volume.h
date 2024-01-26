@@ -181,7 +181,7 @@ typedef void (*chapter_tester_fn)(u32 chapter, u64 *virtual_chapter);
 void set_request_restarter(request_restarter_fn restarter);
 void set_chapter_tester(chapter_tester_fn chapter_tester);
 
-u32 __must_check map_to_physical_page(const struct geometry *geometry, u32 chapter, u32 page);
+u32 __must_check map_to_physical_page(const struct index_geometry *geometry, u32 chapter, u32 page);
 
 void begin_pending_search(struct page_cache *cache, u32 physical_page,
 			  unsigned int zone_number);
@@ -191,11 +191,11 @@ int encode_record_page(const struct volume *volume,
 		       const struct uds_volume_record records[], u8 record_page[]);
 
 bool search_record_page(const u8 record_page[], const struct uds_record_name *name,
-			const struct geometry *geometry,
+			const struct index_geometry *geometry,
 			struct uds_record_data *metadata);
 
 int __must_check initialize_page_cache(struct page_cache *cache,
-				       const struct geometry *geometry,
+				       const struct index_geometry *geometry,
 				       u32 chapters_in_cache, unsigned int zone_count);
 
 void uninitialize_page_cache(struct page_cache *cache);

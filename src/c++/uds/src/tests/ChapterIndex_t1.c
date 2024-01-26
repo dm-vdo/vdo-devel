@@ -16,7 +16,7 @@ const uint64_t volumeNonce = 0x0123456789ABCDEF;
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static struct uds_record_name *generateRandomBlockNames(struct geometry *g)
+static struct uds_record_name *generateRandomBlockNames(struct index_geometry *g)
 {
   struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(uds_allocate(g->records_per_chapter,
@@ -32,7 +32,7 @@ static struct uds_record_name *generateRandomBlockNames(struct geometry *g)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static unsigned int generatePageNumber(struct geometry *g, unsigned int index)
+static unsigned int generatePageNumber(struct index_geometry *g, unsigned int index)
 {
   return index % g->record_pages_per_chapter;
 }
@@ -40,7 +40,7 @@ static unsigned int generatePageNumber(struct geometry *g, unsigned int index)
 /**********************************************************************/
 __attribute__((warn_unused_result)) static
 struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
-                                           struct geometry *g,
+                                           struct index_geometry *g,
                                            bool overflowFlag)
 {
   struct open_chapter_index *oci;
@@ -69,7 +69,7 @@ struct open_chapter_index *fillOpenChapter(struct uds_record_name *names,
 /**********************************************************************/
 __attribute__((warn_unused_result))
 static u8 *packOpenChapter(struct open_chapter_index *oci,
-                           struct geometry *g, unsigned int numPages,
+                           struct index_geometry *g, unsigned int numPages,
                            bool lastPage)
 {
   u8 *indexPages;
@@ -91,7 +91,7 @@ static u8 *packOpenChapter(struct open_chapter_index *oci,
 
 /**********************************************************************/
 __attribute__((warn_unused_result)) static struct delta_index_page *
-setupChapterIndexPages(struct geometry *g, u8 *indexPages,
+setupChapterIndexPages(struct index_geometry *g, u8 *indexPages,
                        unsigned int numPages)
 {
   struct delta_index_page *cip;
@@ -141,7 +141,7 @@ static void verifyChapterIndexPage(struct open_chapter_index *openChapterIndex,
 static void emptyChapterTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
 
   // Create an open chapter index that is empty (no blocknames in it)
   struct open_chapter_index *oci;
@@ -167,7 +167,7 @@ static void emptyChapterTest(void)
 static void basicChapterTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
   u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);
@@ -208,7 +208,7 @@ static void listOverflowTest(void)
 {
   struct configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
 
   // Force all the names onto the same chapter delta list.  We are testing that
@@ -239,7 +239,7 @@ static void listOverflowTest(void)
 static void pageOverflowTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
 
@@ -261,7 +261,7 @@ static void pageOverflowTest(void)
 static void bigEndianTest(void)
 {
   struct configuration *config = makeDenseConfiguration(1);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
   struct uds_record_name *names = generateRandomBlockNames(g);
   struct open_chapter_index *oci = fillOpenChapter(names, g, false);
   u8 *indexPages = packOpenChapter(oci, g, g->index_pages_per_chapter, false);

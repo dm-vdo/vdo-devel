@@ -55,7 +55,7 @@ void freePageArray(void)
  */
 static void fillOpenChapter(struct open_chapter_index *oci,
                             struct uds_volume_record *records,
-                            struct geometry *geometry)
+                            struct index_geometry *geometry)
 {
   struct delta_index_stats stats;
   unsigned int i;
@@ -81,7 +81,7 @@ static void fillOpenChapter(struct open_chapter_index *oci,
  * @param geometry  the geometry to use
  * @param chapter   the chapter to write
  */
-void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u32 chapter)
+void writeTestVolumeChapter(struct volume *volume, struct index_geometry *geometry, u32 chapter)
 {
   struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(uds_allocate(1 + geometry->records_per_chapter, struct uds_volume_record,
@@ -110,7 +110,7 @@ void writeTestVolumeChapter(struct volume *volume, struct geometry *geometry, u3
  * @param volume   the volume to write to
  * @param geometry the geometry to use
  */
-void writeTestVolumeData(struct volume *volume, struct geometry *geometry)
+void writeTestVolumeData(struct volume *volume, struct index_geometry *geometry)
 {
   unsigned int i;
   for (i = 0; i < geometry->chapters_per_volume; ++i) {

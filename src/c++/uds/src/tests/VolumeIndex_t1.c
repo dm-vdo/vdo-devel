@@ -57,7 +57,7 @@ static struct configuration *makeTestConfig(int numChapters)
 {
   struct configuration *config;
   UDS_ASSERT_SUCCESS(uds_allocate(1, struct configuration, __func__, &config));
-  UDS_ASSERT_SUCCESS(uds_allocate(1, struct geometry, __func__, &config->geometry));
+  UDS_ASSERT_SUCCESS(uds_allocate(1, struct index_geometry, __func__, &config->geometry));
   config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   config->zone_count = 1;
   config->geometry->chapters_per_volume = numChapters;

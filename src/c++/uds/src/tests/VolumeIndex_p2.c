@@ -19,12 +19,12 @@
 #include "string-utils.h"
 #include "testPrototypes.h"
 
-static struct configuration *config;
-static struct geometry      *geometry;
-static struct io_factory    *factory;
-static struct volume_index  *volumeIndex;
-static struct block_device  *testDevice;
-static size_t                zoneSize;
+static struct configuration  *config;
+static struct index_geometry *geometry;
+static struct io_factory     *factory;
+static struct volume_index   *volumeIndex;
+static struct block_device   *testDevice;
+static size_t                 zoneSize;
 
 /**
  * This counter is hashed to generate a fixed sequence of record names, which

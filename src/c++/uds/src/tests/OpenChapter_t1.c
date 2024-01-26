@@ -14,7 +14,7 @@
 
 static const unsigned            CHAPTER_COUNT = 16;
 static struct configuration     *conf;
-static struct geometry          *geometry;
+static struct index_geometry    *geometry;
 static struct open_chapter_zone *openChapter;
 
 /**********************************************************************/
