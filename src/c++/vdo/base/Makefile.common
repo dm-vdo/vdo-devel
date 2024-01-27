@@ -12,7 +12,6 @@ BASE_OBJS :=     			\
 	admin-state.o			\
 	block-map.o			\
 	completion.o			\
-	constants.o			\
 	data-vio.o			\
         dedupe.o                        \
         dm-vdo-target.o                 \
@@ -43,6 +42,5 @@ KERNEL_OBJS:=                           \
         vdo-histograms.o
 
 USER_OBJECTS:=                  	\
-	constants.o			\
 	encodings.o			\
 	status-codes.o

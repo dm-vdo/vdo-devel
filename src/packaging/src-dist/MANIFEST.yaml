@@ -44,7 +44,6 @@ tarballs:
         src/c++/vdo/base:
           dest: utils/vdo
           sources:
-            - constants.c
             - constants.h
             - encodings.c
             - encodings.h
@@ -228,7 +227,6 @@ tarballs:
             - block-map.h
             - completion.c
             - completion.h
-            - constants.c
             - constants.h
             - data-vio.c
             - data-vio.h
