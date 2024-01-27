@@ -25,9 +25,9 @@ static struct block_device *testDevice;
 static IndexTestData testData;
 static unsigned int NUM_CHAPTERS;
 
-struct configuration *testConfig;
-struct configuration *denseConfig;
-struct configuration *sparseConfig;
+struct uds_configuration *testConfig;
+struct uds_configuration *denseConfig;
+struct uds_configuration *sparseConfig;
 
 /**
  * The suite initialization function.

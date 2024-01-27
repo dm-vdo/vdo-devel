@@ -10,7 +10,7 @@
 #include "testPrototypes.h"
 #include "volume.h"
 
-static struct configuration *config;
+static struct uds_configuration *config;
 static struct page_cache cache;
 
 /**********************************************************************/

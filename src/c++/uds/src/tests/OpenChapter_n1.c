@@ -131,7 +131,7 @@ static void testFilling(void)
     .memory_size = 1,
     .bdev = getTestBlockDevice(),
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 0, 0, CHAPTER_COUNT);
   struct index_layout *layout;

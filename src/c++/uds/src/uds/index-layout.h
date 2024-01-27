@@ -26,7 +26,7 @@ extern atomic_t saves_begun;
 
 struct index_layout;
 
-int __must_check uds_make_index_layout(struct configuration *config, bool new_layout,
+int __must_check uds_make_index_layout(struct uds_configuration *config, bool new_layout,
 				       struct index_layout **layout_ptr);
 
 void uds_free_index_layout(struct index_layout *layout);
@@ -53,7 +53,7 @@ int __must_check uds_open_volume_bufio(struct index_layout *layout, size_t block
 				       struct dm_bufio_client **client_ptr);
 
 #ifdef TEST_INTERNAL
-int update_uds_layout(struct index_layout *layout, struct configuration *config,
+int update_uds_layout(struct index_layout *layout, struct uds_configuration *config,
 		      off_t lvm_offset, off_t offset);
 
 #endif /* TEST_INTERNAL */

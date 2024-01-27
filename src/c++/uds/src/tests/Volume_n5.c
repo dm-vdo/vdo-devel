@@ -9,12 +9,12 @@
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 
-static struct configuration  *config;
-static struct uds_index      *theIndex;
-static struct mutex           callbackMutex;
-static struct cond_var        callbackCond;
-static unsigned int           callbackCount = 0;
-static enum uds_index_region  lastLocation;
+static struct uds_configuration  *config;
+static struct uds_index          *theIndex;
+static struct mutex               callbackMutex;
+static struct cond_var            callbackCond;
+static unsigned int               callbackCount = 0;
+static enum uds_index_region      lastLocation;
 
 /**********************************************************************/
 static void incrementCallbackCount(void)

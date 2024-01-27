@@ -10,8 +10,8 @@
 #include "memory-alloc.h"
 #include "testPrototypes.h"
 
-static struct configuration *config;
-static struct uds_index     *theIndex;
+static struct uds_configuration *config;
+static struct uds_index         *theIndex;
 
 static struct cond_var callbackCond;
 static struct mutex    callbackMutex;
@@ -110,7 +110,7 @@ static void flushZoneQueues(unsigned int zoneCount)
 static void laggingZonesTest(void)
 {
   unsigned int zoneCount = config->zone_count;
-  struct geometry *geometry = theIndex->volume->geometry;
+  struct index_geometry *geometry = theIndex->volume->geometry;
   unsigned int recordsPerChapter = geometry->records_per_chapter;
   unsigned int recordsPerZone = theIndex->zones[0]->open_chapter->capacity;
 

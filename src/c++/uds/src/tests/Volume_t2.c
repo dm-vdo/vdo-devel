@@ -14,11 +14,11 @@
 #include "volume.h"
 #include "volumeUtils.h"
 
-static struct geometry      *geometry;
-static struct configuration *config;
-static struct index_layout  *layout;
-static struct volume        *volume;
-static struct block_device  *testDevice;
+static struct index_geometry    *geometry;
+static struct uds_configuration *config;
+static struct index_layout      *layout;
+static struct volume            *volume;
+static struct block_device      *testDevice;
 
 /**********************************************************************/
 static void init(uds_memory_config_size_t memGB)

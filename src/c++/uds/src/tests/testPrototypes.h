@@ -69,7 +69,7 @@ void createCollidingBlock(const struct uds_record_name *orig,
  *
  * @return The new index configuration
  **/
-struct configuration *createConfigForAlbtest(int argc, const char **argv)
+struct uds_configuration *createConfigForAlbtest(int argc, const char **argv)
   __attribute__((warn_unused_result));
 
 /**
@@ -224,7 +224,7 @@ void putTestBlockDevice(struct block_device *device);
  *
  * @return the configuration
  **/
-struct configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
+struct uds_configuration *makeDenseConfiguration(uds_memory_config_size_t memGB)
   __attribute__((warn_unused_result));
 
 /**
@@ -270,7 +270,7 @@ int __must_check rel_time_to_string(char **strp, ktime_t reltime);
  * @param record_pages_per_chapter  The new number of record pages
  * @param chapters_per_volume       The new number of chapters per volume
  **/
-void resizeDenseConfiguration(struct configuration *config,
+void resizeDenseConfiguration(struct uds_configuration *config,
                               size_t bytes_per_page,
                               unsigned int record_pages_per_chapter,
                               unsigned int chapters_per_volume);
@@ -286,7 +286,7 @@ void resizeDenseConfiguration(struct configuration *config,
  * @param sparse_chapters_per_volume  The new number of sparse chapters
  * @param sparse_sample_rate          The new sparse sample rate
  **/
-void resizeSparseConfiguration(struct configuration *config,
+void resizeSparseConfiguration(struct uds_configuration *config,
                                size_t bytes_per_page,
                                unsigned int record_pages_per_chapter,
                                unsigned int chapters_per_volume,
@@ -317,7 +317,7 @@ static inline void set_chapter_index_bytes(struct uds_record_name *name,
  * @param value    The value to store
  **/
 static inline void set_chapter_delta_list_bits(struct uds_record_name *name,
-                                               const struct geometry *geometry,
+                                               const struct index_geometry *geometry,
                                                uint64_t value)
 {
         uint64_t delta_address = uds_hash_to_chapter_delta_address(name, geometry);

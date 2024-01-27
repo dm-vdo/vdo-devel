@@ -24,8 +24,8 @@ enum {
 
 static unsigned int numHashesInChapter;
 
-static struct configuration *config;
-static struct uds_index     *theIndex;
+static struct uds_configuration *config;
+static struct uds_index         *theIndex;
 
 static uint64_t blockNameCounter = 0;
 

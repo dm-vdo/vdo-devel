@@ -36,7 +36,7 @@ static struct uds_index *createTestIndex(unsigned int loadFlags)
     .memory_size = 1,
     .bdev = testDevice,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(uds_make_index(config, loadFlags, NULL, NULL, &index));

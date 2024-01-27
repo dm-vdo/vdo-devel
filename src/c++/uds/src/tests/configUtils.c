@@ -10,7 +10,7 @@
 #include "geometry.h"
 
 /**********************************************************************/
-void resizeDenseConfiguration(struct configuration *config,
+void resizeDenseConfiguration(struct uds_configuration *config,
                               size_t bytes_per_page,
                               unsigned int record_pages_per_chapter,
                               unsigned int chapters_per_volume)
@@ -20,14 +20,14 @@ void resizeDenseConfiguration(struct configuration *config,
 }
 
 /**********************************************************************/
-void resizeSparseConfiguration(struct configuration *config,
+void resizeSparseConfiguration(struct uds_configuration *config,
                                size_t bytes_per_page,
                                unsigned int record_pages_per_chapter,
                                unsigned int chapters_per_volume,
                                unsigned int sparse_chapters_per_volume,
                                unsigned int sparse_sample_rate)
 {
-  struct geometry *oldGeometry = config->geometry;
+  struct index_geometry *oldGeometry = config->geometry;
   if (bytes_per_page == 0) {
     bytes_per_page = oldGeometry->bytes_per_page;
   }
@@ -40,9 +40,9 @@ void resizeSparseConfiguration(struct configuration *config,
   if (sparse_chapters_per_volume == 0) {
     sparse_chapters_per_volume = oldGeometry->sparse_chapters_per_volume;
   }
-  uds_free_geometry(oldGeometry);
+  uds_free_index_geometry(oldGeometry);
 
-  UDS_ASSERT_SUCCESS(uds_make_geometry(bytes_per_page,
+  UDS_ASSERT_SUCCESS(uds_make_index_geometry(bytes_per_page,
                                        record_pages_per_chapter,
                                        chapters_per_volume,
                                        sparse_chapters_per_volume,

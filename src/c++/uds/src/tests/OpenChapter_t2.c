@@ -13,12 +13,12 @@
 #include "testPrototypes.h"
 #include "testRequests.h"
 
-static struct configuration *config;
-static struct io_factory    *factory;
-static struct uds_index     *theIndex;
-static struct block_device  *testDevice;
-static uint64_t              scratchOffset;
-static uint64_t              chapterBlocks;
+static struct uds_configuration *config;
+static struct io_factory        *factory;
+static struct uds_index         *theIndex;
+static struct block_device      *testDevice;
+static uint64_t                  scratchOffset;
+static uint64_t                  chapterBlocks;
 
 /**********************************************************************/
 static void initializeTest(void)

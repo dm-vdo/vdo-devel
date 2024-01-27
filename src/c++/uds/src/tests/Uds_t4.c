@@ -44,7 +44,7 @@ static void checkMemoryConfig(uds_memory_config_size_t size, uint64_t pages)
   struct uds_parameters params = {
     .memory_size = size,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
   CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
@@ -61,7 +61,7 @@ static void checkSparseMemoryConfig(uds_memory_config_size_t size,
     .memory_size = size,
     .sparse = true,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
   CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
@@ -77,7 +77,7 @@ static void initMemTest(void)
   struct uds_parameters params = {
     .memory_size = 0,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_ERROR(-EINVAL, uds_make_configuration(&params, &config));
 
   // Legal small sizes

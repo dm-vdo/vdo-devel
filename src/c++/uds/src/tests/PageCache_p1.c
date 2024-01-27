@@ -23,7 +23,7 @@ enum { MAX_THREADS = 16 };
 static ThreadArg args[MAX_THREADS];
 static struct thread *threads[MAX_THREADS];
 
-static struct configuration *config;
+static struct uds_configuration *config;
 static struct page_cache cache;
 static const unsigned int LOTS = 10000000;
 static unsigned long globalCounter;

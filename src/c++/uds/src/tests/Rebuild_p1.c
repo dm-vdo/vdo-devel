@@ -42,7 +42,7 @@ static void runTest(bool sparse)
 
   // Discard the index state so that we need to do a full rebuild (using index
   // interfaces).
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   config->zone_count = 1;
   struct uds_index *index;

@@ -32,14 +32,14 @@ static void testEarlyLRU(int numZones)
   enum { numChapters = 1024 };
 
   // Make the test geometry
-  struct geometry geometry;
-  memset(&geometry, 0, sizeof(struct geometry));
+  struct index_geometry geometry;
+  memset(&geometry, 0, sizeof(struct index_geometry));
   geometry.chapters_per_volume = numChapters;
   geometry.records_per_chapter = numRecords;
 
   // Make the test configuration
-  struct configuration config;
-  memset(&config, 0, sizeof(struct configuration));
+  struct uds_configuration config;
+  memset(&config, 0, sizeof(struct uds_configuration));
   config.geometry = &geometry;
   config.volume_index_mean_delta = meanDelta;
   config.zone_count = numZones;

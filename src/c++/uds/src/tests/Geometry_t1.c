@@ -9,17 +9,17 @@
 #include "testPrototypes.h"
 
 /**********************************************************************/
-static void checkSparsenessAndDensity(const struct geometry *g,
+static void checkSparsenessAndDensity(const struct index_geometry *g,
                                       bool expectSparse)
 {
-  CU_ASSERT_EQUAL(uds_is_sparse_geometry(g), expectSparse);
+  CU_ASSERT_EQUAL(uds_is_sparse_index_geometry(g), expectSparse);
   CU_ASSERT_EQUAL(g->dense_chapters_per_volume,
                   g->chapters_per_volume - g->sparse_chapters_per_volume);
 }
 
 /**********************************************************************/
-static void checkCommonGeometry(const struct geometry *g,
-                                unsigned int           chapters_per_volume)
+static void checkCommonGeometry(const struct index_geometry *g,
+                                unsigned int chapters_per_volume)
 {
   CU_ASSERT_EQUAL(g->bytes_per_page,      DEFAULT_BYTES_PER_PAGE);
   CU_ASSERT_EQUAL(g->chapters_per_volume, chapters_per_volume);
@@ -40,8 +40,8 @@ static void checkCommonGeometry(const struct geometry *g,
 }
 
 /**********************************************************************/
-static void checkDefaultGeometry(struct geometry *g,
-                                 unsigned int     chapters_per_volume)
+static void checkDefaultGeometry(struct index_geometry *g,
+                                 unsigned int chapters_per_volume)
 {
   unsigned int indexPagesPerChapter = 26;
 
@@ -60,8 +60,8 @@ static void checkDefaultGeometry(struct geometry *g,
 static void testDefault(void)
 {
   /* Test default 1024 chapters/volume */
-  struct configuration *config = makeDenseConfiguration(1);
-  struct geometry *g = config->geometry;
+  struct uds_configuration *config = makeDenseConfiguration(1);
+  struct index_geometry *g = config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME);
   /**
    * Verify that this geometry allows indexing 1TB of 4K blocks.
@@ -77,9 +77,9 @@ static void testDefaultReduced(void)
   /* Test 1023 chapters/volume, such as VDO would create, if it had to
    * re-create an index that had been converted to 1023 chapters/volume
    */
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(1 | UDS_MEMORY_CONFIG_REDUCED);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME - 1);
   /**
    * Verify that this geometry allows indexing 1TB of 4K blocks minus
@@ -91,8 +91,8 @@ static void testDefaultReduced(void)
 }
 
 /**********************************************************************/
-static void checkSmallGeometry(struct geometry *g,
-                                 unsigned int   chapters_per_volume)
+static void checkSmallGeometry(struct index_geometry *g,
+                               unsigned int chapters_per_volume)
 {
   unsigned int indexPagesPerChapter = 6;
 
@@ -109,9 +109,9 @@ static void checkSmallGeometry(struct geometry *g,
 /**********************************************************************/
 static void testSmall(void)
 {
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
 
   checkSmallGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME);
   /**
@@ -126,9 +126,9 @@ static void testSmall(void)
 /**********************************************************************/
 static void testSmallReduced(void)
 {
-  struct configuration *config
+  struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_REDUCED_256MB);
-  struct geometry *g = config->geometry;
+  struct index_geometry *g = config->geometry;
 
   checkSmallGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME - 1);
   /**
@@ -143,10 +143,10 @@ static void testSmallReduced(void)
 /**********************************************************************/
 static void checkComputations(bool sparse)
 {
-  struct geometry *geometry;
+  struct index_geometry *geometry;
   unsigned int chapters = 10;
   unsigned int sparseChapters = (sparse ? 5 : 0);
-  UDS_ASSERT_SUCCESS(uds_make_geometry(1024, 1, chapters, sparseChapters, 0, 0, &geometry));
+  UDS_ASSERT_SUCCESS(uds_make_index_geometry(1024, 1, chapters, sparseChapters, 0, 0, &geometry));
   checkSparsenessAndDensity(geometry, sparse);
 
   uint64_t chapter, newest, oldest;
@@ -165,7 +165,7 @@ static void checkComputations(bool sparse)
       }
     }
   }
-  uds_free_geometry(geometry);
+  uds_free_index_geometry(geometry);
 }
 
 /**********************************************************************/

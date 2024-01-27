@@ -13,21 +13,21 @@
 /**********************************************************************/
 unsigned int getBlocksPerChapter(struct uds_index_session *session)
 {
-  struct geometry *geometry = session->index->volume->geometry;
+  struct index_geometry *geometry = session->index->volume->geometry;
   return geometry->records_per_chapter;
 }
 
 /**********************************************************************/
 unsigned long getBlocksPerIndex(struct uds_index_session *session)
 {
-  struct geometry *geometry = session->index->volume->geometry;
+  struct index_geometry *geometry = session->index->volume->geometry;
   return geometry->records_per_volume;
 }
 
 /**********************************************************************/
 unsigned int getChaptersPerIndex(struct uds_index_session *session)
 {
-  struct geometry *geometry = session->index->volume->geometry;
+  struct index_geometry *geometry = session->index->volume->geometry;
   return geometry->chapters_per_volume;
 }
 

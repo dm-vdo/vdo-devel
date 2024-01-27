@@ -23,7 +23,7 @@ static struct uds_index *recreateTestIndex(enum uds_open_index_type openType)
     .memory_size = UDS_MEMORY_CONFIG_256MB,
     .bdev = testDevice,
   };
-  struct configuration *config;
+  struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   struct uds_index *index;
   UDS_ASSERT_SUCCESS(uds_make_index(config, openType, NULL, NULL, &index));

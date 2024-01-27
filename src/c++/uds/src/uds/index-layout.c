@@ -226,11 +226,11 @@ static inline bool is_converted_super_block(struct super_block_data *super)
 	return super->version == 7;
 }
 
-static int __must_check compute_sizes(const struct configuration *config,
+static int __must_check compute_sizes(const struct uds_configuration *config,
 				      struct save_layout_sizes *sls)
 {
 	int result;
-	struct geometry *geometry = config->geometry;
+	struct index_geometry *geometry = config->geometry;
 
 	memset(sls, 0, sizeof(*sls));
 	sls->save_count = MAX_SAVES;
@@ -260,7 +260,7 @@ static int __must_check compute_sizes(const struct configuration *config,
 int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size)
 {
 	int result;
-	struct configuration *index_config;
+	struct uds_configuration *index_config;
 	struct save_layout_sizes sizes;
 
 	if (index_size == NULL) {
@@ -756,7 +756,7 @@ static int __must_check write_layout_header(struct index_layout *layout,
 }
 
 static int __must_check write_uds_index_config(struct index_layout *layout,
-					       struct configuration *config,
+					       struct uds_configuration *config,
 					       off_t offset)
 {
 	int result;
@@ -805,7 +805,7 @@ static int __must_check save_layout(struct index_layout *layout, off_t offset)
 	return result;
 }
 
-static int create_index_layout(struct index_layout *layout, struct configuration *config)
+static int create_index_layout(struct index_layout *layout, struct uds_configuration *config)
 {
 	int result;
 	struct save_layout_sizes sizes;
@@ -1633,7 +1633,7 @@ static int __must_check load_sub_index_regions(struct index_layout *layout)
 }
 
 static int __must_check verify_uds_index_config(struct index_layout *layout,
-						struct configuration *config)
+						struct uds_configuration *config)
 {
 	int result;
 	struct buffered_reader *reader = NULL;
@@ -1654,7 +1654,7 @@ static int __must_check verify_uds_index_config(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-static int load_index_layout(struct index_layout *layout, struct configuration *config)
+static int load_index_layout(struct index_layout *layout, struct uds_configuration *config)
 {
 	int result;
 	struct buffered_reader *reader;
@@ -1678,7 +1678,7 @@ static int load_index_layout(struct index_layout *layout, struct configuration *
 }
 
 static int create_layout_factory(struct index_layout *layout,
-				 const struct configuration *config)
+				 const struct uds_configuration *config)
 {
 	int result;
 	size_t writable_size;
@@ -1702,7 +1702,7 @@ static int create_layout_factory(struct index_layout *layout,
 	return UDS_SUCCESS;
 }
 
-int uds_make_index_layout(struct configuration *config, bool new_layout,
+int uds_make_index_layout(struct uds_configuration *config, bool new_layout,
 			  struct index_layout **layout_ptr)
 {
 	int result;
@@ -1789,7 +1789,7 @@ u64 uds_get_volume_nonce(struct index_layout *layout)
  * @lvm_offset: The adjustment for lvm space, in bytes
  * @offset: The offset in bytes to move the index
  */
-int update_uds_layout(struct index_layout *layout, struct configuration *config,
+int update_uds_layout(struct index_layout *layout, struct uds_configuration *config,
 		      off_t lvm_offset, off_t offset)
 {
 	int result = UDS_SUCCESS;

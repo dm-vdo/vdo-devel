@@ -20,8 +20,8 @@ enum {
 static struct uds_record_name hashes[NUM_HASHES];
 static struct uds_record_data metas[NUM_HASHES];
 
-static struct configuration *config;
-static struct configuration *smallConfig;
+static struct uds_configuration *config;
+static struct uds_configuration *smallConfig;
 
 static struct uds_index *theIndex;
 
@@ -66,7 +66,7 @@ static void indexCleanSuite(void)
 /**
  * The index creation utility.
  */
-static void createIndex(bool load, struct configuration *config)
+static void createIndex(bool load, struct uds_configuration *config)
 {
   enum uds_open_index_type openType = (load ? UDS_NO_REBUILD : UDS_CREATE);
   UDS_ASSERT_SUCCESS(uds_make_index(config, openType, NULL, NULL, &theIndex));

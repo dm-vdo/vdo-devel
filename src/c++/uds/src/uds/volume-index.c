@@ -80,12 +80,12 @@ struct sub_index_parameters {
 
 struct split_config {
 	/* The hook subindex configuration */
-	struct configuration hook_config;
-	struct geometry hook_geometry;
+	struct uds_configuration hook_config;
+	struct index_geometry hook_geometry;
 
 	/* The non-hook subindex configuration */
-	struct configuration non_hook_config;
-	struct geometry non_hook_geometry;
+	struct uds_configuration non_hook_config;
+	struct index_geometry non_hook_geometry;
 };
 
 struct chapter_range {
@@ -216,7 +216,7 @@ unsigned int uds_get_volume_index_zone(const struct volume_index *volume_index,
 	return get_volume_sub_index_zone(get_volume_sub_index(volume_index, name), name);
 }
 
-static int compute_volume_sub_index_parameters(const struct configuration *config,
+static int compute_volume_sub_index_parameters(const struct uds_configuration *config,
 					       struct sub_index_parameters *params)
 {
 	enum { DELTA_LIST_SIZE = 256 };
@@ -228,7 +228,7 @@ static int compute_volume_sub_index_parameters(const struct configuration *confi
 	u64 index_size_in_bits;
 	size_t expected_index_size;
 	u64 min_delta_lists = MAX_ZONES * MAX_ZONES;
-	struct geometry *geometry = config->geometry;
+	struct index_geometry *geometry = config->geometry;
 	u64 records_per_chapter = geometry->records_per_chapter;
 
 #ifdef TEST_INTERNAL
@@ -242,7 +242,7 @@ static int compute_volume_sub_index_parameters(const struct configuration *confi
 	 * index delta list.
 	 */
 	rounded_chapters = params->chapter_count;
-	if (uds_is_reduced_geometry(geometry))
+	if (uds_is_reduced_index_geometry(geometry))
 		rounded_chapters += 1;
 	delta_list_records = records_per_chapter * rounded_chapters;
 	address_count = config->volume_index_mean_delta * DELTA_LIST_SIZE;
@@ -328,7 +328,7 @@ void uds_free_volume_index(struct volume_index *volume_index)
 }
 
 
-static int compute_volume_sub_index_save_bytes(const struct configuration *config,
+static int compute_volume_sub_index_save_bytes(const struct uds_configuration *config,
 					       size_t *bytes)
 {
 	struct sub_index_parameters params = { .address_bits = 0 };
@@ -345,7 +345,7 @@ static int compute_volume_sub_index_save_bytes(const struct configuration *confi
 }
 
 /* This function is only useful if the configuration includes sparse chapters. */
-static void split_configuration(const struct configuration *config,
+static void split_configuration(const struct uds_configuration *config,
 				struct split_config *split)
 {
 	u64 sample_rate, sample_records;
@@ -374,14 +374,14 @@ static void split_configuration(const struct configuration *config,
 	split->non_hook_geometry.chapters_per_volume = dense_chapters;
 }
 
-static int compute_volume_index_save_bytes(const struct configuration *config,
+static int compute_volume_index_save_bytes(const struct uds_configuration *config,
 					   size_t *bytes)
 {
 	size_t hook_bytes, non_hook_bytes;
 	struct split_config split;
 	int result;
 
-	if (!uds_is_sparse_geometry(config->geometry))
+	if (!uds_is_sparse_index_geometry(config->geometry))
 		return compute_volume_sub_index_save_bytes(config, bytes);
 
 	split_configuration(config, &split);
@@ -398,7 +398,7 @@ static int compute_volume_index_save_bytes(const struct configuration *config,
 	return UDS_SUCCESS;
 }
 
-int uds_compute_volume_index_save_blocks(const struct configuration *config,
+int uds_compute_volume_index_save_blocks(const struct uds_configuration *config,
 					 size_t block_size, u64 *block_count)
 {
 	size_t bytes;
@@ -1242,7 +1242,7 @@ void uds_get_volume_index_stats(const struct volume_index *volume_index,
 	stats->early_flushes += sparse_stats.early_flushes;
 }
 
-static int initialize_volume_sub_index(const struct configuration *config,
+static int initialize_volume_sub_index(const struct uds_configuration *config,
 				       u64 volume_nonce, u8 tag,
 				       struct volume_sub_index *sub_index)
 {
@@ -1292,7 +1292,7 @@ static int initialize_volume_sub_index(const struct configuration *config,
 			    "volume index zones", &sub_index->zones);
 }
 
-int uds_make_volume_index(const struct configuration *config, u64 volume_nonce,
+int uds_make_volume_index(const struct uds_configuration *config, u64 volume_nonce,
 			  struct volume_index **volume_index_ptr)
 {
 	struct split_config split;
@@ -1306,7 +1306,7 @@ int uds_make_volume_index(const struct configuration *config, u64 volume_nonce,
 
 	volume_index->zone_count = config->zone_count;
 
-	if (!uds_is_sparse_geometry(config->geometry)) {
+	if (!uds_is_sparse_index_geometry(config->geometry)) {
 		result = initialize_volume_sub_index(config, volume_nonce, 'm',
 						     &volume_index->vi_non_hook);
 		if (result != UDS_SUCCESS) {
