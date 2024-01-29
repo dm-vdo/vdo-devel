@@ -153,6 +153,8 @@ our %PROPERTIES
      suppressCleanupOnError  => ["Verify"],
      # @ple Whether to use a filesystem. Should only be set by tests.
      useFilesystem           => 0,
+     # @ple Use the dmlinux src rpm for testing.
+     useUpstreamKernel       => 0,
     );
 
 my @SRPM_NAMES
@@ -166,6 +168,12 @@ my @RPM_NAMES
      "archive/kmod-kvdo-$VDO_VERSION-1.*.rpm",
      "archive/vdo-$VDO_VERSION-1.*.rpm",
      "archive/vdo-support-$VDO_VERSION-1.*.rpm",
+    );
+
+my @UPSTREAM_NAMES
+  = (
+     "src/packaging/dmlinux/build/SRPMS/kmod-kvdo-$VDO_VERSION-*.src.rpm",
+     "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
     );
 
 my @SHARED_PYTHON_PACKAGES
@@ -557,7 +565,9 @@ sub getTGZNameForVersion {
 sub listSharedFiles {
   my ($self) = assertNumArgs(1, @_);
   my @files = ($self->SUPER::listSharedFiles(), @SHARED_FILES);
-  if ($self->{useDistribution}) {
+  if ($self->{useUpstreamKernel}) {
+    return (@files, @UPSTREAM_NAMES);
+  } elsif ($self->{useDistribution}) {
     return (@files, @RPM_NAMES);
   } else {
     return (@files, @SRPM_NAMES);
