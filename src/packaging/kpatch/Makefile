@@ -133,6 +133,8 @@ clean:
 	$(RM) -rf $(CLEAN_FILES)
 
 prepare: prepare.out
+	cp Makefile.upstream $(PREPARED_DIR)/Makefile
+	cp Kconfig.upstream $(PREPARED_DIR)/Kconfig
 
 prepare.out: $(WORK_DIR)
 	[ "$(KERNEL_VERSION)" != "NONE" ] || exit 1; \
@@ -175,8 +177,6 @@ checkpatch.out: prepare.out
 	  | tee $@
 	-$(CHECKPATCH) $(CHECKPATCH_STRICT_ARGS) $(PREPARED_DIR)/*.[hc] \
 	  | tee -a $@
-	cp ./Makefile.upstream $(PREPARED_DIR)/Makefile
-	cp ./Kconfig.upstream $(PREPARED_DIR)/Kconfig
 
 checkincludes.out: prepare.out
 	$(CHECKINCLUDES) $(PREPARED_DIR)/*.[hc] | tee checkincludes.out
