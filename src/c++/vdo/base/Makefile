@@ -17,9 +17,6 @@ LDFLAGS  = $(GLOBAL_LDFLAGS)
 
 OBJECTS := $(sort $(BASE_OBJS) $(USER_OBJECTS))
 
-GENERATED_HEADERS = statistics.h
-GENERATED_FILES   = $(GENERATED_HEADERS) message-stats.c
-
 .PHONY: all
 all: libvdo.a libvdouser.a
 
@@ -28,7 +25,7 @@ checkin: all
 
 .PHONY: clean
 clean:
-	rm -f *.o *.a *.so $(GENERATED_FILES)
+	rm -f *.o *.a *.so
 	rm -rf $(DEPDIR)
 
 libvdo.a: $(BASE_OBJS) Makefile.common
@@ -39,13 +36,7 @@ libvdouser.a: $(USER_OBJECTS) Makefile.common
 	$(RM) $@
 	$(AR) cr $@ $(USER_OBJECTS)
 
-$(OBJECTS): $(GENERATED_FILES)
-
-.NOTPARALLEL: $(GENERATED_FILES)
-$(GENERATED_FILES): $(VDO_STATS_DEPS)
-	$(MAKE) -C $(VDO_STATS_DIR)
-
-$(DEPDIR)/%-test.d: %.c $(GENERATED_HEADERS)
+$(DEPDIR)/%-test.d: %.c 
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -M -MF $@ -MP -MT $*.o $<
 
@@ -58,7 +49,7 @@ $(DEPDIR)/%-test.d: %.c $(GENERATED_HEADERS)
 		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ; \
 	fi
 
-$(DEPDIR)/%.d: %.c $(GENERATED_HEADERS) $(FAKE_INCLUDES)
+$(DEPDIR)/%.d: %.c $(FAKE_INCLUDES)
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -M -MF $@ -MP -MT $*.o $<
 

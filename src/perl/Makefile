@@ -16,7 +16,6 @@ CHECKIN_SUBDIRS  = vdotest
 SYMLINKS         = Permabit
 DOCTREES         = Permabit       \
                    bin            \
-                   statsGenerator \
                    vdotest
 
 PERL_COMMON_DEFINE   =  /etc/permabit/common-defines

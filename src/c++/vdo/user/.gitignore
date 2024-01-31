@@ -1,5 +1,4 @@
 corruptPBNRef
-messageStatsReader.c
 udsCalculateSize
 vdoAudit
 vdoDMEventd
@@ -16,5 +15,4 @@ vdoReadOnly
 vdoRegenerateGeometry
 vdoSetUUID
 vdoStats
-vdoStatsWriter.c
 vdoWarmup

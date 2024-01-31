@@ -5,7 +5,6 @@ DOCDIRS   =	BlockDevice	\
 		CommandString	\
 		FileSystem	\
 		MegaRaid	\
-		Statistics	\
 		VDOTask		\
 		testcases
 MANPREFIX = Permabit::
