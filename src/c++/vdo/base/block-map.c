@@ -67,7 +67,7 @@ struct block_map_tree_segment {
 
 struct block_map_tree {
 	struct block_map_tree_segment *segments;
-} block_map_tree;
+};
 
 struct forest {
 	struct block_map *map;
@@ -1625,7 +1625,7 @@ static void write_initialized_page(struct vdo_completion *completion)
 	struct block_map_zone *zone = pooled->context;
 	struct tree_page *tree_page = completion->parent;
 	struct block_map_page *page = (struct block_map_page *) vio->data;
-	unsigned int operation = REQ_OP_WRITE | REQ_PRIO;
+	blk_opf_t operation = REQ_OP_WRITE | REQ_PRIO;
 
 	/*
 	 * Now that we know the page has been written at least once, mark the copy we are writing

@@ -15,6 +15,8 @@
 #define __packed        __attribute__((packed))
 #define __printf(a, b)  __attribute__((__format__(printf, a, b)))
 #define __aligned(x)    __attribute__((__aligned__(x)))
+#define __must_hold(x)
+#define __releases(x)
 
 #if __has_attribute(__fallthrough__)
 #define fallthrough	__attribute__((__fallthrough__))

@@ -33,6 +33,7 @@ struct inode {
 };
 
 /* Defined in linux/blk_types.h */
+typedef unsigned int blk_opf_t;
 typedef uint32_t blk_status_t;
 typedef unsigned int blk_qc_t;
 
