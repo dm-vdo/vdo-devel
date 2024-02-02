@@ -1,6 +1,3 @@
 doxygen
 doxygen.log
 doxygen_err.log
-message-stats.c
-pool-sysfs-stats.c
-statistics.h

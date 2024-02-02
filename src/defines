@@ -12,7 +12,6 @@
 C_DIR         = $(SRC_DIR)/c++
 PERL_DIR      = $(SRC_DIR)/perl
 PYTHON_DIR    = $(SRC_DIR)/python
-STATS_DIR     = $(SRC_DIR)/stats
 TOOLS_DIR     = $(SRC_DIR)/tools
 PACKAGING_DIR = $(SRC_DIR)/packaging
 KPATCH_DIR    = $(PACKAGING_DIR)/kpatch
@@ -21,16 +20,6 @@ KERNEL_SOURCE_DIR ?= /lib/modules/$(shell uname -r)/build
 
 # Current version file
 CURRENT_VERSION_FILE = $(TOOLS_DIR)/installers/CURRENT_VERSION
-
-# VDO stats auto-generation
-STATS_GENERATOR_DIR = $(PERL_DIR)/statsGenerator
-include $(STATS_GENERATOR_DIR)/definitions
-
-VDO_STATS_DIR = $(SRC_DIR)/stats/vdo
-include $(VDO_STATS_DIR)/definitions
-
-VDO_STATS_DEPS = $(STATS_GENERATOR_DEPS) \
-                 $(VDO_STATS_FILES)
 
 PERL_LIB = $(PERL_DIR)/lib
 

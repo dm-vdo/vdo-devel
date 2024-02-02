@@ -11,7 +11,7 @@ include $(CURRENT_VERSION_FILE)
 export VDO_VERSION
 
 SUBDIRS                 := perl c++ python tools
-CLEAN_SUBDIRS           := $(SUBDIRS) stats packaging
+CLEAN_SUBDIRS           := $(SUBDIRS) packaging
 CHECK_SUBDIRS           := perl tools python/vdo
 CHECKIN_SUBDIRS         := c++ perl python packaging
 VDO_CHECKIN_SUBDIRS     := c++ perl

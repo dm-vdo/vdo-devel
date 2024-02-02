@@ -12,11 +12,6 @@ INCLUDES  = -I$(VDO_BASE_DIR) $(UDS_INCLUDES)
 CFLAGS 	  = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
 	    -DVDO_USER -DCURRENT_VERSION="\"$(VDO_VERSION)\""
 
-STATS_HEADER = $(VDO_BASE_DIR)/statistics.h
-STATS_FILES  = messageStatsReader.c \
-               vdoStatsWriter.c
-STATS_OBJS   = $(STATS_FILES:.c=.o)
-
 LDFLAGS   = $(GLOBAL_LDFLAGS)
 LDPRFLAGS = -ldl -pthread -lz -lrt -lm -luuid
 LDSHFLAGS = -shared -fPIC
@@ -25,12 +20,14 @@ LIBVDO = $(VDO_BASE_DIR)/libvdouser.a
 LIBUDS = $(UDS_USER_BUILD_DIR)/libuds.a
 LIBFLAGS = -pthread -lrt
 
-USER_OBJS = blockMapUtils.o     \
-            fileLayer.o         \
-            parseUtils.o        \
-            slabSummaryReader.o \
-            userVDO.o           \
-            vdoConfig.o         \
+USER_OBJS = blockMapUtils.o      \
+            fileLayer.o          \
+            messageStatsReader.o \
+            parseUtils.o         \
+            slabSummaryReader.o  \
+            userVDO.o            \
+            vdoConfig.o          \
+            vdoStatsWriter.o     \
             vdoVolumeUtils.o
 
 PROGS = corruptPBNRef          \
@@ -68,10 +65,7 @@ DMEVENT_LIB = libdevmapper-event-lvm2vdo.so
 LOGDIR ?= $(CURDIR)
 
 .PHONY: all
-all: $(STATS_HEADER) $(BIN_PROGS) $(DMEVENT_LIB)
-
-$(STATS_HEADER) $(STATS_FILES): $(VDO_STATS_DEPS)
-	$(MAKE) -C $(VDO_STATS_DIR)
+all: $(BIN_PROGS) $(DMEVENT_LIB)
 
 $(LIBUDS):
 	$(MAKE) -C $(UDS_USER_DIR)
@@ -90,7 +84,6 @@ clean:
 	rm -f  $(ALL_PROGS)
 	rm -f  $(BIN_PROGS)
 	rm -f  $(DMEVENT_LIB)
-	rm -f  $(STATS_FILES)
 	$(MAKE) -C man clean
 
 libuser.a: $(USER_OBJS)
@@ -116,7 +109,7 @@ $(DMEVENT_LIB): $(DMEVENT_SRC).o $(LIBVDO) $(LIBUDS) $(DMEVENT_SRC).vers
 
 vdoDMEventd.o: CFLAGS += "-DPLUGIN_NAME=\"$(DMEVENT_LIB)\""
 
-$(DEPDIR)/%.d: %.c $(STATS_HEADER) $(LIBUDS)
+$(DEPDIR)/%.d: %.c $(LIBUDS)
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -MM -MF $@ -MP -MT $*.o -MT "\$$(PROFDIR)/$*.o" $<
 
@@ -125,7 +118,7 @@ $(PROGS): $$@.o libuser.a $(LIBVDO) $(LIBUDS)
 	echo "Building $@ from $^"
 	$(CC) $(LDFLAGS) $^ $(LDPRFLAGS) -o $@
 
-vdoStats: $$@.o $(STATS_OBJS) libuser.a $(LIBVDO) $(LIBUDS)
+vdoStats: $$@.o libuser.a $(LIBVDO) $(LIBUDS)
 
 vdoFormat: LDPRFLAGS += "-lblkid"
 vdoDMEventd: LDPRFLAGS += "-ldevmapper-event"
