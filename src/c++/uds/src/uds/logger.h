@@ -9,6 +9,7 @@
 #ifdef __KERNEL__
 #include <linux/module.h>
 #include <linux/ratelimit.h>
+#include <linux/device-mapper.h>
 #else
 #include <stdarg.h>
 #include "minisyslog.h"
@@ -37,11 +38,8 @@
 #endif /* __KERNEL__ */
 
 #ifdef __KERNEL__
-#if defined(MODULE)
-#define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
-#else /* compiled into the kernel */
-#define UDS_LOGGING_MODULE_NAME "vdo"
-#endif
+#define DM_MSG_PREFIX "vdo"
+#define UDS_LOGGING_MODULE_NAME DM_NAME ": " DM_MSG_PREFIX
 #else /* userspace */
 #define UDS_LOGGING_MODULE_NAME "vdo"
 #endif /* __KERNEL__ */
