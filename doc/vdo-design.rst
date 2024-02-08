@@ -319,7 +319,15 @@ interruption such as a loss of power.
 
 *Write Path*
 
-An application write bio follows these steps through vdo:
+All write I/O to vdo is asynchronous. Each bio will be acknowledged as soon
+as vdo has done enough work to guarantee that it can complete the write
+eventually. Generally, the data for acknowledged but unflushed write I/O
+can be treated as though it is cached in memory. If an application
+requires data to be stable on storage, it must issue a flush or write the
+data with the FUA bit set like any other asynchronous I/O. Shutting down
+the vdo target will also flush any remaining I/O.
+
+Application write bios follow the steps outlined below.
 
 1.  A data_vio is obtained from the data_vio pool and associated with the
     application bio. If there are no data_vios available, the incoming bio
@@ -335,10 +343,10 @@ An application write bio follows these steps through vdo:
     already read the underlying block and the data is instead copied over
     the relevant portion of the larger block.
 
-2.  A logical lock is obtained on the logical address of the bio. It is
-    vital to prevent simultaneous modifications of the same logical
-    address, because deduplication involves sharing blocks. This is not
-    managed like a typical lock, but is simply a hashtable where the key is
+2.  The data_vio places a claim (the "logical lock") on the logical address
+    of the bio. It is vital to prevent simultaneous modifications of the
+    same logical address, because deduplication involves sharing blocks.
+    This claim is implemented as an entry in a hashtable where the key is
     the logical address and the value is a pointer to the data_vio
     currently handling that address.
 
@@ -346,13 +354,13 @@ An application write bio follows these steps through vdo:
     already operating on that logical address, it waits until the previous
     operation finishes. It also sends a message to inform the current
     lock holder that it is waiting. Most notably, a new data_vio waiting
-    for the logical lock will flush the previous lock holder out of the
+    for a logical lock will flush the previous lock holder out of the
     compression packer (step 8d) rather than allowing it to continue
-    waiting to be compressed.
+    waiting to be packed.
 
     This stage requires the data_vio to get an implicit lock on the
-    appropriate logical zone to prevent concurrent reads or modifications
-    of that table. This implicit locking is handled by the zone divisions
+    appropriate logical zone to prevent concurrent modifications of the
+    hashtable. This implicit locking is handled by the zone divisions
     described above.
 
 3.  The data_vio traverses the block map tree to ensure that all the
@@ -615,7 +623,7 @@ If a vdo encounters an unrecoverable error, it will enter read-only mode.
 This mode indicates that some previously acknowledged data may have been
 lost. The vdo may be instructed to rebuild as best it can in order to
 return to a writable state. However, this is never done automatically due
-to the likelihood that data has been lost. During a read-only rebuild, the
+to the possibility that data has been lost. During a read-only rebuild, the
 block map is recovered from the recovery journal as before. However, the
 reference counts are not rebuilt from the slab journals. Instead, the
 reference counts are zeroed, the entire block map is traversed, and the
