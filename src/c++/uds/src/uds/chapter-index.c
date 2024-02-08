@@ -6,11 +6,12 @@
 #include "chapter-index.h"
 
 #include "errors.h"
-#include "hash-utils.h"
-#include "indexer.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
+
+#include "hash-utils.h"
+#include "indexer.h"
 
 #ifdef TEST_INTERNAL
 u64 chapter_index_discard_count;

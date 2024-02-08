@@ -9,21 +9,22 @@
 #include <linux/dm-bufio.h>
 #include <linux/err.h>
 
+#include "errors.h"
+#include "logger.h"
+#include "memory-alloc.h"
+#include "permassert.h"
+#include "string-utils.h"
+#include "thread-utils.h"
+
 #include "chapter-index.h"
 #include "config.h"
 #ifdef TEST_INTERNAL
 #include "dory.h"
 #endif /* TEST_INTERNAL */
-#include "errors.h"
 #include "geometry.h"
 #include "hash-utils.h"
 #include "index.h"
-#include "logger.h"
-#include "memory-alloc.h"
-#include "permassert.h"
 #include "sparse-cache.h"
-#include "string-utils.h"
-#include "thread-utils.h"
 
 /*
  * The first block of the volume layout is reserved for the volume header, which is no longer used.
