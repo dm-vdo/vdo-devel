@@ -136,6 +136,7 @@ tarballs:
             - geometry.[hc]
             - hash-utils.h
             - index.[hc]
+            - indexer.h
             - index-layout.[hc]
             - index-page-map.[hc]
             - index-session.[hc]
@@ -151,7 +152,6 @@ tarballs:
             - string-utils.[hc]
             - thread-utils.h
             - time-utils.h
-            - uds.h
             - volume.[hc]
             - volume-index.[hc]
           undefines:
@@ -311,6 +311,7 @@ tarballs:
             - hash-utils.h
             - index.c
             - index.h
+            - indexer.h
             - index-layout.c
             - index-layout.h
             - index-page-map.c
@@ -336,7 +337,6 @@ tarballs:
             - string-utils.h
             - thread-utils.h
             - time-utils.h
-            - uds.h
             - volume.c
             - volume.h
             - volume-index.c

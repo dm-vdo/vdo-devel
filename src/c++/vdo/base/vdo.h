@@ -17,6 +17,7 @@
 #include "admin-state.h"
 #include "encodings.h"
 #include "funnel-workqueue.h"
+#include "indexer.h"
 #include "packer.h"
 #include "physical-zone.h"
 #include "statistics.h"
@@ -24,7 +25,6 @@
 #include "thread-registry.h"
 #endif /* __KERNEL__ */
 #include "types.h"
-#include "uds.h"
 #ifdef VDO_INTERNAL
 #include "vdo-histograms.h"
 #endif /* VDO_INTERNAL */
