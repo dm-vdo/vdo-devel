@@ -591,7 +591,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 
 	page = select_victim_in_cache(&volume->page_cache);
 
-	uds_unlock_mutex(&volume->read_threads_mutex);
+	mutex_unlock(&volume->read_threads_mutex);
 	page_data = dm_bufio_read(volume->client, page_number, &page->buffer);
 	if (IS_ERR(page_data)) {
 		result = -PTR_ERR(page_data);
@@ -601,7 +601,7 @@ static int process_entry(struct volume *volume, struct queued_read *entry)
 		cancel_page_in_cache(&volume->page_cache, page_number, page);
 		return result;
 	}
-	uds_lock_mutex(&volume->read_threads_mutex);
+	mutex_lock(&volume->read_threads_mutex);
 
 	if (entry->invalid) {
 		uds_log_warning("Page %u invalidated after read", page_number);
@@ -669,7 +669,7 @@ static void read_thread_function(void *arg)
 	struct volume *volume = arg;
 
 	uds_log_debug("reader starting");
-	uds_lock_mutex(&volume->read_threads_mutex);
+	mutex_lock(&volume->read_threads_mutex);
 	while (true) {
 		struct queued_read *queue_entry;
 		int result;
@@ -681,7 +681,7 @@ static void read_thread_function(void *arg)
 		result = process_entry(volume, queue_entry);
 		release_queued_requests(volume, queue_entry, result);
 	}
-	uds_unlock_mutex(&volume->read_threads_mutex);
+	mutex_unlock(&volume->read_threads_mutex);
 	uds_log_debug("reader done");
 }
 
@@ -812,7 +812,7 @@ STATIC int get_volume_page_protected(struct volume *volume, struct uds_request *
 
 	/* Prepare to enqueue a read for the page. */
 	end_pending_search(&volume->page_cache, request->zone_number);
-	uds_lock_mutex(&volume->read_threads_mutex);
+	mutex_lock(&volume->read_threads_mutex);
 
 	/*
 	 * Do the lookup again while holding the read mutex (no longer the fast case so this should
@@ -830,7 +830,7 @@ STATIC int get_volume_page_protected(struct volume *volume, struct uds_request *
 		 * turns out to be significant in some cases. The page is not available yet so
 		 * the order does not matter for correctness as it does below.
 		 */
-		uds_unlock_mutex(&volume->read_threads_mutex);
+		mutex_unlock(&volume->read_threads_mutex);
 		begin_pending_search(&volume->page_cache, physical_page,
 				     request->zone_number);
 		return UDS_QUEUED;
@@ -842,7 +842,7 @@ STATIC int get_volume_page_protected(struct volume *volume, struct uds_request *
 	 * the caller gets to look at it.
 	 */
 	begin_pending_search(&volume->page_cache, physical_page, request->zone_number);
-	uds_unlock_mutex(&volume->read_threads_mutex);
+	mutex_unlock(&volume->read_threads_mutex);
 	*page_ptr = page;
 	return UDS_SUCCESS;
 }
@@ -853,9 +853,9 @@ static int get_volume_page(struct volume *volume, u32 chapter, u32 page_number,
 	int result;
 	u32 physical_page = map_to_physical_page(volume->geometry, chapter, page_number);
 
-	uds_lock_mutex(&volume->read_threads_mutex);
+	mutex_lock(&volume->read_threads_mutex);
 	result = get_volume_page_locked(volume, physical_page, page_ptr);
-	uds_unlock_mutex(&volume->read_threads_mutex);
+	mutex_unlock(&volume->read_threads_mutex);
 	return result;
 }
 
@@ -1096,10 +1096,10 @@ void uds_forget_chapter(struct volume *volume, u64 virtual_chapter)
 	u32 i;
 
 	uds_log_debug("forgetting chapter %llu", (unsigned long long) virtual_chapter);
-	uds_lock_mutex(&volume->read_threads_mutex);
+	mutex_lock(&volume->read_threads_mutex);
 	for (i = 0; i < volume->geometry->pages_per_chapter; i++)
 		invalidate_page(&volume->page_cache, first_page + i);
-	uds_unlock_mutex(&volume->read_threads_mutex);
+	mutex_unlock(&volume->read_threads_mutex);
 }
 
 /*
@@ -1196,10 +1196,10 @@ static int write_index_pages(struct volume *volume, u32 physical_chapter_number,
 					  physical_chapter_number, index_page_number,
 					  delta_list_number - 1);
 
-		uds_lock_mutex(&volume->read_threads_mutex);
+		mutex_lock(&volume->read_threads_mutex);
 		result = donate_index_page_locked(volume, physical_chapter_number,
 						  index_page_number, page_buffer);
-		uds_unlock_mutex(&volume->read_threads_mutex);
+		mutex_unlock(&volume->read_threads_mutex);
 		if (result != UDS_SUCCESS) {
 			dm_bufio_release(page_buffer);
 			return result;
@@ -1696,12 +1696,7 @@ int uds_make_volume(const struct uds_configuration *config, struct index_layout 
 		return result;
 	}
 
-	result = uds_init_mutex(&volume->read_threads_mutex);
-	if (result != UDS_SUCCESS) {
-		uds_free_volume(volume);
-		return result;
-	}
-
+	mutex_init(&volume->read_threads_mutex);
 	uds_init_cond(&volume->read_threads_read_done_cond);
 	uds_init_cond(&volume->read_threads_cond);
 
@@ -1750,10 +1745,10 @@ void uds_free_volume(struct volume *volume)
 		unsigned int i;
 
 		/* This works even if some threads weren't started. */
-		uds_lock_mutex(&volume->read_threads_mutex);
+		mutex_lock(&volume->read_threads_mutex);
 		volume->read_threads_exiting = true;
 		uds_broadcast_cond(&volume->read_threads_cond);
-		uds_unlock_mutex(&volume->read_threads_mutex);
+		mutex_unlock(&volume->read_threads_mutex);
 		for (i = 0; i < volume->read_thread_count; i++)
 			uds_join_threads(volume->reader_threads[i]);
 		uds_free(volume->reader_threads);
@@ -1769,8 +1764,8 @@ void uds_free_volume(struct volume *volume)
 #ifndef __KERNEL__
 	uds_destroy_cond(&volume->read_threads_cond);
 	uds_destroy_cond(&volume->read_threads_read_done_cond);
+	mutex_destroy(&volume->read_threads_mutex);
 #endif /* __KERNEL__ */
-	uds_destroy_mutex(&volume->read_threads_mutex);
 	uds_free_index_page_map(volume->index_page_map);
 	uds_free_radix_sorter(volume->radix_sorter);
 	uds_free(volume->geometry);

@@ -184,11 +184,11 @@ static int finish_previous_chapter(struct uds_index *index, u64 current_chapter_
 	int result;
 	struct chapter_writer *writer = index->chapter_writer;
 
-	uds_lock_mutex(&writer->mutex);
+	mutex_lock(&writer->mutex);
 	while (index->newest_virtual_chapter < current_chapter_number)
 		uds_wait_cond(&writer->cond, &writer->mutex);
 	result = writer->result;
-	uds_unlock_mutex(&writer->mutex);
+	mutex_unlock(&writer->mutex);
 
 	if (result != UDS_SUCCESS)
 		return uds_log_error_strerror(result,
@@ -223,11 +223,11 @@ static unsigned int start_closing_chapter(struct uds_index *index,
 	unsigned int finished_zones;
 	struct chapter_writer *writer = index->chapter_writer;
 
-	uds_lock_mutex(&writer->mutex);
+	mutex_lock(&writer->mutex);
 	finished_zones = ++writer->zones_to_write;
 	writer->chapters[zone_number] = chapter;
 	uds_broadcast_cond(&writer->cond);
-	uds_unlock_mutex(&writer->mutex);
+	mutex_unlock(&writer->mutex);
 
 	return finished_zones;
 }
@@ -682,7 +682,7 @@ static void close_chapters(void *arg)
 	struct uds_index *index = writer->index;
 
 	uds_log_debug("chapter writer starting");
-	uds_lock_mutex(&writer->mutex);
+	mutex_lock(&writer->mutex);
 	for (;;) {
 		while (writer->zones_to_write < index->zone_count) {
 			if (writer->stop && (writer->zones_to_write == 0)) {
@@ -690,7 +690,7 @@ static void close_chapters(void *arg)
 				 * We've been told to stop, and all of the zones are in the same
 				 * open chapter, so we can exit now.
 				 */
-				uds_unlock_mutex(&writer->mutex);
+				mutex_unlock(&writer->mutex);
 				uds_log_debug("chapter writer stopping");
 				return;
 			}
@@ -702,7 +702,7 @@ static void close_chapters(void *arg)
 		 * it seems safer in principle. It's OK to access the chapter and chapter_number
 		 * fields without the lock since those aren't allowed to change until we're done.
 		 */
-		uds_unlock_mutex(&writer->mutex);
+		mutex_unlock(&writer->mutex);
 
 		if (index->has_saved_open_chapter) {
 			/*
@@ -732,7 +732,7 @@ static void close_chapters(void *arg)
 		atomic_inc(&chapters_written);
 #endif /* TEST_INTERNAL */
 
-		uds_lock_mutex(&writer->mutex);
+		mutex_lock(&writer->mutex);
 		index->newest_virtual_chapter++;
 		index->oldest_virtual_chapter +=
 			uds_chapters_to_expire(index->volume->geometry,
@@ -747,14 +747,14 @@ static void stop_chapter_writer(struct chapter_writer *writer)
 {
 	struct thread *writer_thread = NULL;
 
-	uds_lock_mutex(&writer->mutex);
+	mutex_lock(&writer->mutex);
 	if (writer->thread != NULL) {
 		writer_thread = writer->thread;
 		writer->thread = NULL;
 		writer->stop = true;
 		uds_broadcast_cond(&writer->cond);
 	}
-	uds_unlock_mutex(&writer->mutex);
+	mutex_unlock(&writer->mutex);
 
 	if (writer_thread != NULL)
 		uds_join_threads(writer_thread);
@@ -766,8 +766,8 @@ static void free_chapter_writer(struct chapter_writer *writer)
 		return;
 
 	stop_chapter_writer(writer);
-	uds_destroy_mutex(&writer->mutex);
 #ifndef __KERNEL__
+	mutex_destroy(&writer->mutex);
 	uds_destroy_cond(&writer->cond);
 #endif /* __KERNEL__ */
 	uds_free_open_chapter_index(writer->open_chapter_index);
@@ -790,12 +790,7 @@ static int make_chapter_writer(struct uds_index *index,
 		return result;
 
 	writer->index = index;
-	result = uds_init_mutex(&writer->mutex);
-	if (result != UDS_SUCCESS) {
-		uds_free(writer);
-		return result;
-	}
-
+	mutex_init(&writer->mutex);
 	uds_init_cond(&writer->cond);
 
 	result = uds_allocate_cache_aligned(collated_records_size, "collated records",
@@ -973,9 +968,9 @@ static bool check_for_suspend(struct uds_index *index)
 	if (index->load_context == NULL)
 		return false;
 
-	uds_lock_mutex(&index->load_context->mutex);
+	mutex_lock(&index->load_context->mutex);
 	if (index->load_context->status != INDEX_SUSPENDING) {
-		uds_unlock_mutex(&index->load_context->mutex);
+		mutex_unlock(&index->load_context->mutex);
 		return false;
 	}
 
@@ -988,7 +983,7 @@ static bool check_for_suspend(struct uds_index *index)
 		uds_wait_cond(&index->load_context->cond, &index->load_context->mutex);
 
 	closing = (index->load_context->status == INDEX_FREEING);
-	uds_unlock_mutex(&index->load_context->mutex);
+	mutex_unlock(&index->load_context->mutex);
 	return closing;
 }
 
@@ -1286,14 +1281,14 @@ int uds_make_index(struct uds_configuration *config, enum uds_open_index_type op
 	}
 
 	if (index->load_context != NULL) {
-		uds_lock_mutex(&index->load_context->mutex);
+		mutex_lock(&index->load_context->mutex);
 		index->load_context->status = INDEX_READY;
 		/*
 		 * If we get here, suspend is meaningless, but notify any thread trying to suspend
 		 * us so it doesn't hang.
 		 */
 		uds_broadcast_cond(&index->load_context->cond);
-		uds_unlock_mutex(&index->load_context->mutex);
+		mutex_unlock(&index->load_context->mutex);
 	}
 
 	index->has_saved_open_chapter = loaded;
@@ -1332,10 +1327,10 @@ void uds_wait_for_idle_index(struct uds_index *index)
 {
 	struct chapter_writer *writer = index->chapter_writer;
 
-	uds_lock_mutex(&writer->mutex);
+	mutex_lock(&writer->mutex);
 	while (writer->zones_to_write > 0)
 		uds_wait_cond(&writer->cond, &writer->mutex);
-	uds_unlock_mutex(&writer->mutex);
+	mutex_unlock(&writer->mutex);
 }
 
 /* This function assumes that all requests have been drained. */

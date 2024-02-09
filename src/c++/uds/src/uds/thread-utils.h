@@ -13,6 +13,7 @@
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
 #else
+#include <linux/mutex.h>
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
@@ -64,40 +65,15 @@ int __must_check uds_create_thread(void (*thread_function)(void *), void *thread
 void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
-
 #ifdef __KERNEL__
-/* FIXME: all below wrappers should be removed! */
-
 #ifdef TEST_INTERNAL
+
 /* Apply a function to every thread that we have created. */
 void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument);
 
 /* This is a unit-test alternative to using BUG() or BUG_ON(). */
 __attribute__((noreturn)) void uds_thread_exit(void);
-
-#endif  /* TEST_INTERNAL */
-static inline int __must_check uds_init_mutex(struct mutex *mutex)
-{
-	mutex_init(mutex);
-	return UDS_SUCCESS;
-}
-
-static inline int uds_destroy_mutex(struct mutex *mutex)
-{
-	return UDS_SUCCESS;
-}
-
-static inline void uds_lock_mutex(struct mutex *mutex)
-{
-	mutex_lock(mutex);
-}
-
-static inline void uds_unlock_mutex(struct mutex *mutex)
-{
-	mutex_unlock(mutex);
-}
-#ifdef TEST_INTERNAL
 
 static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 							unsigned int value)
@@ -150,6 +126,7 @@ static inline void uds_release_semaphore(struct semaphore *semaphore)
 }
 #endif  /* TEST_INTERNAL */
 #else
+
 void uds_get_thread_name(char *name);
 
 static inline void cond_resched(void)
