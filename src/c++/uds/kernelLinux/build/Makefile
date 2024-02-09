@@ -29,7 +29,6 @@ UDS_DKMS_SOURCES = $(UDS_COMMON_SOURCES)			\
 	$(addprefix $(K_UDS_DIR)/,	funnel-requestqueue.c	\
 					logger.c		\
 					memory-alloc.c		\
-					thread-cond-var.c	\
 					thread-device.c		\
 					thread-registry.c	\
 					thread-utils.c		\

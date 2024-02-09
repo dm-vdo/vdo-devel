@@ -352,7 +352,6 @@ tarballs:
             - funnel-requestqueue.c
             - logger.c
             - memory-alloc.c
-            - thread-cond-var.c
             - thread-device.c
             - thread-device.h
             - thread-registry.c

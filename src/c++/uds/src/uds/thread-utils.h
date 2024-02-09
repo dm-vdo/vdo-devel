@@ -74,15 +74,42 @@ void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
 
+#ifdef __KERNEL__
+static inline int __must_check uds_init_cond(struct cond_var *cv)
+{
+	init_waitqueue_head(&cv->wait_queue);
+	return UDS_SUCCESS;
+}
+
+static inline void uds_signal_cond(struct cond_var *cv)
+{
+	wake_up(&cv->wait_queue);
+}
+
+static inline void uds_broadcast_cond(struct cond_var *cv)
+{
+	wake_up_all(&cv->wait_queue);
+}
+
+void uds_wait_cond(struct cond_var *cv, struct mutex *mutex);
+
+/* FIXME: all below wrappers should be removed! */
+
+static inline void uds_destroy_cond(struct cond_var *cv)
+{
+}
+#else
 int __must_check uds_init_cond(struct cond_var *cond);
-int uds_signal_cond(struct cond_var *cond);
-int uds_broadcast_cond(struct cond_var *cond);
-int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
+void uds_signal_cond(struct cond_var *cond);
+void uds_broadcast_cond(struct cond_var *cond);
+void uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
+void uds_destroy_cond(struct cond_var *cond);
+#endif  /* __KERNEL__ */
+
 #ifdef TEST_INTERNAL
 int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
-#endif  /* TEST_INTERNAL */
-int uds_destroy_cond(struct cond_var *cond);
 
+#endif  /* TEST_INTERNAL */
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 /* Apply a function to every thread that we have created. */
