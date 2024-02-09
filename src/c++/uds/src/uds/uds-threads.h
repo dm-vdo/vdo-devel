@@ -127,6 +127,7 @@ static inline void uds_unlock_mutex(struct mutex *mutex)
 	mutex_unlock(mutex);
 }
 
+#ifdef TEST_INTERNAL
 static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 							unsigned int value)
 {
@@ -160,7 +161,6 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 	}
 }
 
-#ifdef TEST_INTERNAL
 static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 						      ktime_t timeout)
 {
@@ -173,11 +173,11 @@ static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphor
 	return down_timeout(semaphore, jiffies) == 0;
 }
 
-#endif  /* TEST_INTERNAL */
 static inline void uds_release_semaphore(struct semaphore *semaphore)
 {
 	up(semaphore);
 }
+#endif  /* TEST_INTERNAL */
 #else
 void uds_get_thread_name(char *name);
 
