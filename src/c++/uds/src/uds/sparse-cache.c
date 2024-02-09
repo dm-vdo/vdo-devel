@@ -6,6 +6,9 @@
 #include "sparse-cache.h"
 
 #include <linux/cache.h>
+#ifdef __KERNEL__
+#include <linux/delay.h>
+#endif /* __KERNEL__ */
 #include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
@@ -14,7 +17,9 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
+#ifndef __KERNEL__
 #include "uds-threads.h"
+#endif /* __KERNEL__ */
 
 /*
  * Since the cache is small, it is implemented as a simple array of cache entries. Searching for a
@@ -141,6 +146,19 @@ struct search_list {
 	struct cached_chapter_index *entries[];
 };
 
+#ifdef __KERNEL__
+struct barrier {
+	/* Lock for this barrier object */
+	struct semaphore lock;
+	/* Semaphore for threads waiting at this barrier */
+	struct semaphore wait;
+	/* Number of threads which have arrived */
+	int arrived;
+	/* Total number of threads using this barrier */
+	int thread_count;
+};
+
+#endif /* __KERNEL */
 struct sparse_cache {
 	const struct index_geometry *geometry;
 	unsigned int capacity;
@@ -156,6 +174,64 @@ struct sparse_cache {
 	struct cached_chapter_index chapters[];
 };
 
+#ifdef __KERNEL__
+static int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
+{
+	sema_init(&barrier->lock, 1);
+	barrier->arrived = 0;
+	barrier->thread_count = thread_count;
+	sema_init(&barrier->wait, 0);
+
+	return UDS_SUCCESS;
+}
+
+static int uds_destroy_barrier(struct barrier *barrier)
+{
+	return UDS_SUCCESS;
+}
+
+static inline void __down(struct semaphore *semaphore)
+{
+	/*
+	 * Do not use down(semaphore). Instead use down_interruptible so that
+	 * we do not get 120 second stall messages in kern.log.
+	 */
+	while (down_interruptible(semaphore) != 0) {
+		/*
+		 * If we're called from a user-mode process (e.g., "dmsetup
+		 * remove") while waiting for an operation that may take a
+		 * while (e.g., UDS index save), and a signal is sent (SIGINT,
+		 * SIGUSR2), then down_interruptible will not block. If that
+		 * happens, sleep briefly to avoid keeping the CPU locked up in
+		 * this loop. We could just call cond_resched, but then we'd
+		 * still keep consuming CPU time slices and swamp other threads
+		 * trying to do computational work. [VDO-4980]
+		 */
+		fsleep(1000);
+	}
+}
+
+static int uds_enter_barrier(struct barrier *barrier)
+{
+	__down(&barrier->lock);
+	if (++barrier->arrived == barrier->thread_count) {
+		/* last thread */
+		int i;
+
+		for (i = 1; i < barrier->thread_count; i++)
+			up(&barrier->wait);
+
+		barrier->arrived = 0;
+		up(&barrier->lock);
+	} else {
+		up(&barrier->lock);
+		__down(&barrier->wait);
+	}
+
+	return UDS_SUCCESS;
+}
+
+#endif /* __KERNEL */
 static int __must_check initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 							const struct index_geometry *geometry)
 {
