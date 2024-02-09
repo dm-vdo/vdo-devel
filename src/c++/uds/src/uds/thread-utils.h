@@ -12,7 +12,6 @@
 #include <linux/jiffies.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
-#include <linux/wait.h>
 #else
 #include <pthread.h>
 #include <sched.h>
@@ -28,17 +27,9 @@
 /* Thread and synchronization utilities for UDS */
 
 #ifdef __KERNEL__
-struct cond_var {
-	wait_queue_head_t wait_queue;
-};
-
 struct thread;
 
 #else
-struct cond_var {
-	pthread_cond_t condition;
-};
-
 struct mutex {
 	pthread_mutex_t mutex;
 };
@@ -75,42 +66,8 @@ void uds_perform_once(atomic_t *once_state, void (*function) (void));
 int uds_join_threads(struct thread *thread);
 
 #ifdef __KERNEL__
-static inline int __must_check uds_init_cond(struct cond_var *cv)
-{
-	init_waitqueue_head(&cv->wait_queue);
-	return UDS_SUCCESS;
-}
-
-static inline void uds_signal_cond(struct cond_var *cv)
-{
-	wake_up(&cv->wait_queue);
-}
-
-static inline void uds_broadcast_cond(struct cond_var *cv)
-{
-	wake_up_all(&cv->wait_queue);
-}
-
-void uds_wait_cond(struct cond_var *cv, struct mutex *mutex);
-
 /* FIXME: all below wrappers should be removed! */
 
-static inline void uds_destroy_cond(struct cond_var *cv)
-{
-}
-#else
-int __must_check uds_init_cond(struct cond_var *cond);
-void uds_signal_cond(struct cond_var *cond);
-void uds_broadcast_cond(struct cond_var *cond);
-void uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
-void uds_destroy_cond(struct cond_var *cond);
-#endif  /* __KERNEL__ */
-
-#ifdef TEST_INTERNAL
-int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
-
-#endif  /* TEST_INTERNAL */
-#ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 /* Apply a function to every thread that we have created. */
 void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
@@ -140,8 +97,8 @@ static inline void uds_unlock_mutex(struct mutex *mutex)
 {
 	mutex_unlock(mutex);
 }
-
 #ifdef TEST_INTERNAL
+
 static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 							unsigned int value)
 {

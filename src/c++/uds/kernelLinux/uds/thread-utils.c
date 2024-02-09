@@ -9,7 +9,6 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/kthread.h>
-#include <linux/sched.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
@@ -138,32 +137,7 @@ int uds_join_threads(struct thread *thread)
 	uds_free(thread);
 	return UDS_SUCCESS;
 }
-
-void uds_wait_cond(struct cond_var *cv, struct mutex *mutex)
-{
-	DEFINE_WAIT(__wait);
-
-	prepare_to_wait(&cv->wait_queue, &__wait, TASK_IDLE);
-	uds_unlock_mutex(mutex);
-	schedule();
-	finish_wait(&cv->wait_queue, &__wait);
-	uds_lock_mutex(mutex);
-}
 #ifdef TEST_INTERNAL
-
-int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeout)
-{
-	long remaining;
-	DEFINE_WAIT(__wait);
-
-	prepare_to_wait(&cv->wait_queue, &__wait, TASK_IDLE);
-	uds_unlock_mutex(mutex);
-	remaining = schedule_timeout(max(1UL, nsecs_to_jiffies(timeout)));
-	finish_wait(&cv->wait_queue, &__wait);
-	uds_lock_mutex(mutex);
-
-	return (remaining != 0) ? UDS_SUCCESS : ETIMEDOUT;
-}
 
 void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument)
