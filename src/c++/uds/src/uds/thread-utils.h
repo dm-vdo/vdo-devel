@@ -25,7 +25,7 @@
 #include "time-utils.h"
 #endif
 
-/* Thread and synchronization utilities for UDS */
+/* Thread and synchronization utilities */
 
 #ifdef __KERNEL__
 struct thread;
@@ -59,12 +59,11 @@ unsigned int num_online_cpus(void);
 pid_t __must_check uds_get_thread_id(void);
 #endif
 
-int __must_check uds_create_thread(void (*thread_function)(void *), void *thread_data,
+int __must_check vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 				   const char *name, struct thread **new_thread);
+int vdo_join_threads(struct thread *thread);
 
-void uds_perform_once(atomic_t *once_state, void (*function) (void));
-
-int uds_join_threads(struct thread *thread);
+void vdo_perform_once(atomic_t *once_state, void (*function) (void));
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 
