@@ -5,10 +5,10 @@
 
 #include "thread-utils.h"
 
-#include <linux/completion.h>
 #include <linux/delay.h>
-#include <linux/err.h>
 #include <linux/kthread.h>
+#include <linux/mutex.h>
+#include <linux/types.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */

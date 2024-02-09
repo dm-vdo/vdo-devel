@@ -8,20 +8,19 @@
 
 #include <linux/atomic.h>
 #ifdef __KERNEL__
+#ifdef TEST_INTERNAL
 #include <linux/delay.h>
-#include <linux/jiffies.h>
-#include <linux/mutex.h>
 #include <linux/semaphore.h>
+#endif /* TEST_INTERNAL */
 #else
-#include <linux/mutex.h>
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
 #include <stdbool.h>
-#endif
+#endif /* __KERNEL__ */
+#if !(defined __KERNEL__) || defined(TEST_INTERNAL)
 
 #include "errors.h"
-#if !(defined __KERNEL__) || defined(TEST_INTERNAL)
 #include "time-utils.h"
 #endif
 
