@@ -149,9 +149,9 @@ tarballs:
             - radix-sort.[hc]
             - sparse-cache.[hc]
             - string-utils.[hc]
+            - thread-utils.h
             - time-utils.h
             - uds.h
-            - uds-threads.h
             - volume.[hc]
             - volume-index.[hc]
           undefines:
@@ -173,7 +173,7 @@ tarballs:
             - threadCondVar.c
             - threadSemaphore.c
             - threadMutex.c
-            - uds-threads.c
+            - thread-utils.c
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
@@ -334,9 +334,9 @@ tarballs:
             - sparse-cache.h
             - string-utils.c
             - string-utils.h
+            - thread-utils.h
             - time-utils.h
             - uds.h
-            - uds-threads.h
             - volume.c
             - volume.h
             - volume-index.c
@@ -357,9 +357,9 @@ tarballs:
             - thread-device.h
             - thread-registry.c
             - thread-registry.h
+            - thread-utils.c
             - uds-sysfs.c
             - uds-sysfs.h
-            - uds-threads.c
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL

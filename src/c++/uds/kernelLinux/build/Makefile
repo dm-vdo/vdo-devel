@@ -32,9 +32,9 @@ UDS_DKMS_SOURCES = $(UDS_COMMON_SOURCES)			\
 					thread-cond-var.c	\
 					thread-device.c		\
 					thread-registry.c	\
+					thread-utils.c		\
 					uds-module.c		\
-					uds-sysfs.c		\
-					uds-threads.c)
+					uds-sysfs.c)
 
 UDS_DKMS_HEADERS =						\
 	$(wildcard $(K_UDS_DIR)/*.h)				\

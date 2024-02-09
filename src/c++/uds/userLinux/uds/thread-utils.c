@@ -3,7 +3,7 @@
  * Copyright 2023 Red Hat
  */
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include <errno.h>
 #include <sys/prctl.h>

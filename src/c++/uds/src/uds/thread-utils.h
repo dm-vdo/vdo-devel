@@ -3,8 +3,8 @@
  * Copyright 2023 Red Hat
  */
 
-#ifndef UDS_THREADS_H
-#define UDS_THREADS_H
+#ifndef THREAD_UTILS_H
+#define THREAD_UTILS_H
 
 #include <linux/atomic.h>
 #ifdef __KERNEL__
@@ -21,7 +21,9 @@
 #endif
 
 #include "errors.h"
+#if !(defined __KERNEL__) || defined(TEST_INTERNAL)
 #include "time-utils.h"
+#endif
 
 /* Thread and synchronization utilities for UDS */
 
