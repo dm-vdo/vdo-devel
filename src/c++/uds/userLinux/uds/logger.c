@@ -70,7 +70,7 @@ int uds_get_log_level(void)
 }
 
 /**********************************************************************/
-void uds_set_log_level(int new_log_level)
+static void uds_set_log_level(int new_log_level)
 {
 	log_level = new_log_level;
 }

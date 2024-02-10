@@ -42,7 +42,9 @@ const struct error_info vdo_status_list[] = {
 	{ "VDO_BAD_NONCE", "Bad nonce" },
 	{ "VDO_JOURNAL_OVERFLOW", "Journal sequence number overflow" },
 	{ "VDO_INVALID_ADMIN_STATE", "Invalid operation for current state" },
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	{ "VDO_CANT_ADD_SYSFS_NODE", "Failed to add sysfs node" },
+#endif
 #ifndef __KERNEL__
 	{ "VDO_UNEXPECTED_EOF", "Unexpected EOF on block read" },
 	{ "VDO_NOT_READ_ONLY", "The device is not in read-only mode" },
