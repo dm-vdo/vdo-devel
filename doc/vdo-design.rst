@@ -435,7 +435,7 @@ Application write bios follow the steps outlined below.
     tracked in a hashtable similar to the way logical block locks are
     tracked in step 2. This hashtable is covered by the implicit lock on
     the hash zone.
-   
+
     If there is no existing hash lock for this data_vio's record_name, the
     data_vio obtains a hash lock from the pool, adds it to the hashtable,
     and sets itself as the new hash lock's "agent." The hash_lock pool is
@@ -529,7 +529,7 @@ Application write bios follow the steps outlined below.
     j. If the agent actually wrote new data (whether compressed or not),
        the deduplication index is updated to reflect the location of the
        new data. The agent then releases the implicit hash zone lock.
-    
+
 9.  The data_vio determines the previous mapping of the logical address.
     There is a cache for block map leaf pages (the "block map cache"),
     because there are usually too many block map leaf nodes to store
