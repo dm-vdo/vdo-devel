@@ -592,8 +592,6 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
 
 /**
  * encode_slab_depot_state_2_0() - Encode the state of a slab depot into a buffer.
- *
- * Return: UDS_SUCCESS or an error.
  */
 STATIC void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
 					struct slab_depot_state_2_0 state)
@@ -621,7 +619,7 @@ STATIC void encode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
 /**
  * decode_slab_depot_state_2_0() - Decode slab depot component state version 2.0 from a buffer.
  *
- * Return: UDS_SUCCESS or an error code.
+ * Return: VDO_SUCCESS or an error code.
  */
 STATIC int decode_slab_depot_state_2_0(u8 *buffer, size_t *offset,
 				       struct slab_depot_state_2_0 *state)
