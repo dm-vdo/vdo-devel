@@ -69,9 +69,9 @@ static int thread_starter(void *arg)
 	mutex_lock(&thread_mutex);
 	hlist_add_head(&thread->thread_links, &thread_list);
 	mutex_unlock(&thread_mutex);
-	uds_register_allocating_thread(&allocating_thread, NULL);
+	vdo_register_allocating_thread(&allocating_thread, NULL);
 	thread->thread_function(thread->thread_data);
-	uds_unregister_allocating_thread();
+	vdo_unregister_allocating_thread();
 	complete(&thread->thread_done);
 	return 0;
 }
@@ -85,7 +85,7 @@ int vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 	struct thread *thread;
 	int result;
 
-	result = uds_allocate(1, struct thread, __func__, &thread);
+	result = vdo_allocate(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;
@@ -117,7 +117,7 @@ int vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 	}
 
 	if (IS_ERR(task)) {
-		uds_free(thread);
+		vdo_free(thread);
 		return PTR_ERR(task);
 	}
 
@@ -133,7 +133,7 @@ void vdo_join_threads(struct thread *thread)
 	mutex_lock(&thread_mutex);
 	hlist_del(&thread->thread_links);
 	mutex_unlock(&thread_mutex);
-	uds_free(thread);
+	vdo_free(thread);
 }
 #ifdef TEST_INTERNAL
 

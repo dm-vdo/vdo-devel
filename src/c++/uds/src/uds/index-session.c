@@ -221,7 +221,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 	int result;
 	struct uds_index_session *session;
 
-	result = uds_allocate(1, struct uds_index_session, __func__, &session);
+	result = vdo_allocate(1, struct uds_index_session, __func__, &session);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -239,7 +239,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 		uds_destroy_cond(&session->request_cond);
 		mutex_destroy(&session->request_mutex);
 #endif /* __KERNEL__ */
-		uds_free(session);
+		vdo_free(session);
 		return result;
 	}
 
@@ -690,7 +690,7 @@ int uds_destroy_index_session(struct uds_index_session *index_session)
 	mutex_destroy(&index_session->request_mutex);
 #endif /* __KERNEL__ */
 	uds_log_debug("Destroyed index session");
-	uds_free(index_session);
+	vdo_free(index_session);
 	return uds_status_to_errno(result);
 }
 

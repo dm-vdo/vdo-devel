@@ -847,7 +847,7 @@ static int allocate_partition(struct layout *layout, u8 id,
 	struct partition *partition;
 	int result;
 
-	result = uds_allocate(1, struct partition, __func__, &partition);
+	result = vdo_allocate(1, struct partition, __func__, &partition);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -976,7 +976,7 @@ void vdo_uninitialize_layout(struct layout *layout)
 		struct partition *part = layout->head;
 
 		layout->head = part->next;
-		uds_free(part);
+		vdo_free(part);
 	}
 
 	memset(layout, 0, sizeof(struct layout));
