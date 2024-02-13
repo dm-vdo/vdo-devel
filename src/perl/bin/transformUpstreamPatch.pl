@@ -97,11 +97,15 @@ foreach my $file (@files) {
     if ($line =~ m|dm-vdo/$upstreamFilesRE|) {
       $line =~ s|drivers/md/dm-vdo/($upstreamFilesRE)|src/packaging/kpatch/$1.upstream|g;
     } elsif ($line =~ /$udsFilesRE/) {
+      $line =~ s|drivers/md/dm-vdo/indexer|src/c++/uds/src/uds|g;
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/src/uds|g;
     } elsif ($line =~ /$udsKernelFilesRE/) {
+      $line =~ s|drivers/md/dm-vdo/indexer|src/c++/uds/kernelLinux/uds|g;
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/kernelLinux/uds|g;
     } elsif ($line =~ m|drivers/md/dm-vdo|) {
-      # If we have a new file, let's guess it should go with VDO.
+      # If we have a new file, let's guess it should go with VDO, unless it's
+      # in the indexer subdirectory in which case it's probably UDS.
+      $line =~ s|drivers/md/dm-vdo/indexer|src/c++/uds/src/uds|g;
       $line =~ s|drivers/md/dm-vdo|src/c++/vdo/base|g;
     }
 
