@@ -5,13 +5,11 @@
 
 #include "string-utils.h"
 
+#if !defined(__KERNEL__) || defined(TEST_INTERNAL)
 #include "errors.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "permassert.h"
-#include "uds.h"
 
-#if !defined(__KERNEL__) || defined(TEST_INTERNAL)
 int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 {
 	va_list args;
