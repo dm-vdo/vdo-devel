@@ -584,12 +584,12 @@ void vdo_memory_exit(void)
 	track_uds_memory_allocations(false);
 
 #endif /* TEST_INTERNAL or VDO_INTERNAL */
-	ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
-			"kmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
-			memory_stats.kmalloc_bytes, memory_stats.kmalloc_blocks);
-	ASSERT_LOG_ONLY(memory_stats.vmalloc_bytes == 0,
-			"vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
-			memory_stats.vmalloc_bytes, memory_stats.vmalloc_blocks);
+	VDO_ASSERT_LOG_ONLY(memory_stats.kmalloc_bytes == 0,
+			    "kmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
+			    memory_stats.kmalloc_bytes, memory_stats.kmalloc_blocks);
+	VDO_ASSERT_LOG_ONLY(memory_stats.vmalloc_bytes == 0,
+			    "vmalloc memory used (%zd bytes in %zd blocks) is returned to the kernel",
+			    memory_stats.vmalloc_bytes, memory_stats.vmalloc_blocks);
 	uds_log_debug("peak usage %zd bytes", memory_stats.peak_bytes);
 }
 
