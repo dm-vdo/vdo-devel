@@ -49,7 +49,7 @@ struct thread {
 	pthread_t thread;
 };
 
-struct barrier {
+struct threads_barrier {
 	pthread_barrier_t barrier;
 };
 
@@ -181,10 +181,10 @@ int uds_destroy_mutex(struct mutex *mutex);
 void uds_lock_mutex(struct mutex *mutex);
 void uds_unlock_mutex(struct mutex *mutex);
 
-int __must_check uds_initialize_barrier(struct barrier *barrier,
-					unsigned int thread_count);
-int uds_destroy_barrier(struct barrier *barrier);
-int uds_enter_barrier(struct barrier *barrier);
+void initialize_threads_barrier(struct threads_barrier *barrier,
+				unsigned int thread_count);
+void destroy_threads_barrier(struct threads_barrier *barrier);
+void enter_threads_barrier(struct threads_barrier *barrier);
 
 int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 					  unsigned int value);

@@ -146,34 +146,32 @@ int uds_join_threads(struct thread *thread)
 }
 
 /**********************************************************************/
-int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
+void initialize_threads_barrier(struct threads_barrier *barrier,
+				unsigned int thread_count)
 {
 	int result;
 
 	result = pthread_barrier_init(&barrier->barrier, NULL, thread_count);
 	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
-	return result;
 }
 
 /**********************************************************************/
-int uds_destroy_barrier(struct barrier *barrier)
+void destroy_threads_barrier(struct threads_barrier *barrier)
 {
 	int result;
 
 	result = pthread_barrier_destroy(&barrier->barrier);
 	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_destroy error");
-	return result;
 }
 
 /**********************************************************************/
-int uds_enter_barrier(struct barrier *barrier)
+void enter_threads_barrier(struct threads_barrier *barrier)
 {
 	int result;
 
 	result = pthread_barrier_wait(&barrier->barrier);
 	if (result == PTHREAD_BARRIER_SERIAL_THREAD)
-		return UDS_SUCCESS;
+		return;
 
-	ASSERT_LOG_ONLY((result == 0),	"pthread_barrier_wait error");
-	return result;
+	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_wait error");
 }
