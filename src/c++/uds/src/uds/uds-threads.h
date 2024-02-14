@@ -32,16 +32,6 @@ struct cond_var {
 
 struct thread;
 
-struct barrier {
-	/* Mutex for this barrier object */
-	struct semaphore mutex;
-	/* Semaphore for threads waiting at the barrier */
-	struct semaphore wait;
-	/* Number of threads which have arrived */
-	int arrived;
-	/* Total number of threads using this barrier */
-	int thread_count;
-};
 #else
 struct cond_var {
 	pthread_cond_t condition;
@@ -59,7 +49,7 @@ struct thread {
 	pthread_t thread;
 };
 
-struct barrier {
+struct threads_barrier {
 	pthread_barrier_t barrier;
 };
 
@@ -81,11 +71,6 @@ int __must_check uds_create_thread(void (*thread_function)(void *), void *thread
 void uds_perform_once(atomic_t *once_state, void (*function) (void));
 
 int uds_join_threads(struct thread *thread);
-
-int __must_check uds_initialize_barrier(struct barrier *barrier,
-					unsigned int thread_count);
-int uds_destroy_barrier(struct barrier *barrier);
-int uds_enter_barrier(struct barrier *barrier);
 
 int __must_check uds_init_cond(struct cond_var *cond);
 int uds_signal_cond(struct cond_var *cond);
@@ -127,6 +112,7 @@ static inline void uds_unlock_mutex(struct mutex *mutex)
 	mutex_unlock(mutex);
 }
 
+#ifdef TEST_INTERNAL
 static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 							unsigned int value)
 {
@@ -160,7 +146,6 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 	}
 }
 
-#ifdef TEST_INTERNAL
 static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphore,
 						      ktime_t timeout)
 {
@@ -173,11 +158,11 @@ static inline bool __must_check uds_attempt_semaphore(struct semaphore *semaphor
 	return down_timeout(semaphore, jiffies) == 0;
 }
 
-#endif  /* TEST_INTERNAL */
 static inline void uds_release_semaphore(struct semaphore *semaphore)
 {
 	up(semaphore);
 }
+#endif  /* TEST_INTERNAL */
 #else
 void uds_get_thread_name(char *name);
 
@@ -195,6 +180,11 @@ int __must_check uds_init_mutex(struct mutex *mutex);
 int uds_destroy_mutex(struct mutex *mutex);
 void uds_lock_mutex(struct mutex *mutex);
 void uds_unlock_mutex(struct mutex *mutex);
+
+void initialize_threads_barrier(struct threads_barrier *barrier,
+				unsigned int thread_count);
+void destroy_threads_barrier(struct threads_barrier *barrier);
+void enter_threads_barrier(struct threads_barrier *barrier);
 
 int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 					  unsigned int value);

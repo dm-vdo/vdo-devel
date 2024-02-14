@@ -138,8 +138,8 @@ int uds_join_threads(struct thread *thread)
 	uds_free(thread);
 	return UDS_SUCCESS;
 }
-
 #ifdef TEST_INTERNAL
+
 void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument)
 {
@@ -186,50 +186,4 @@ void uds_thread_exit(void)
 	kthread_complete_and_exit(completion, 1);
 #endif
 }
-
 #endif /* TEST_INTERNAL */
-int uds_initialize_barrier(struct barrier *barrier, unsigned int thread_count)
-{
-	int result;
-
-	result = uds_initialize_semaphore(&barrier->mutex, 1);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	barrier->arrived = 0;
-	barrier->thread_count = thread_count;
-	return uds_initialize_semaphore(&barrier->wait, 0);
-}
-
-int uds_destroy_barrier(struct barrier *barrier)
-{
-	int result;
-
-	result = uds_destroy_semaphore(&barrier->mutex);
-	if (result != UDS_SUCCESS)
-		return result;
-
-	return uds_destroy_semaphore(&barrier->wait);
-}
-
-int uds_enter_barrier(struct barrier *barrier)
-{
-	bool last_thread;
-
-	uds_acquire_semaphore(&barrier->mutex);
-	last_thread = (++barrier->arrived == barrier->thread_count);
-	if (last_thread) {
-		int i;
-
-		for (i = 1; i < barrier->thread_count; i++)
-			uds_release_semaphore(&barrier->wait);
-
-		barrier->arrived = 0;
-		uds_release_semaphore(&barrier->mutex);
-	} else {
-		uds_release_semaphore(&barrier->mutex);
-		uds_acquire_semaphore(&barrier->wait);
-	}
-
-	return UDS_SUCCESS;
-}

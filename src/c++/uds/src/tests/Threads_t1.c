@@ -98,61 +98,11 @@ static void testSemaphoreTimeout(void)
   CU_ASSERT_TRUE(failures < (ITERATIONS / 10));
 }
 
-/**
- * Parameters and globals for testBarriers().
- **/
-enum {
-  BARRIER_THREAD_COUNT      = 4,
-  BARRIER_THREAD_ITERATIONS = 500
-};
-
-static struct barrier  barrier1;
-static struct barrier  barrier2;
-
-/**
- * Worker thread driver function for testBarrier().
- **/
-static void barrierWorker(void *arg __attribute__((unused)))
-{
-  int i;
-  for (i = 0; i < BARRIER_THREAD_ITERATIONS; i++) {
-    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier1));
-    UDS_ASSERT_SUCCESS(uds_enter_barrier(&barrier2));
-  }
-}
-
-/**
- * Check that the barrier functions appear to work correctly. This is not an
- * exhaustive test of pthread barriers, but merely a simple test that the
- * wrappers are plugged in to the pthread calls and don't have anything wired
- * backwards.
- **/
-static void testBarriers(void)
-{
-  UDS_ASSERT_SUCCESS(uds_initialize_barrier(&barrier1, BARRIER_THREAD_COUNT));
-  UDS_ASSERT_SUCCESS(uds_initialize_barrier(&barrier2, BARRIER_THREAD_COUNT));
-
-  // Fork and join worker threads to exercise the barriers.
-  struct thread *threads[BARRIER_THREAD_COUNT];
-  int i;
-  for (i = 0; i < BARRIER_THREAD_COUNT; i++) {
-    UDS_ASSERT_SUCCESS(uds_create_thread(barrierWorker, NULL, "barrierWorker",
-                                         &threads[i]));
-  }
-  for (i = 0; i < BARRIER_THREAD_COUNT; i++) {
-    UDS_ASSERT_SUCCESS(uds_join_threads(threads[i]));
-  }
-
-  UDS_ASSERT_SUCCESS(uds_destroy_barrier(&barrier1));
-  UDS_ASSERT_SUCCESS(uds_destroy_barrier(&barrier2));
-}
-
 /**********************************************************************/
 
 static const CU_TestInfo tests[] = {
   {"attemptSemaphore",     testAttemptSemaphore},
   {"semaphore timeout",    testSemaphoreTimeout},
-  {"barriers",             testBarriers},
   CU_TEST_INFO_NULL,
 };
 

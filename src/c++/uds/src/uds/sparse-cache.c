@@ -6,6 +6,9 @@
 #include "sparse-cache.h"
 
 #include <linux/cache.h>
+#ifdef __KERNEL__
+#include <linux/delay.h>
+#endif /* __KERNEL__ */
 #include <linux/dm-bufio.h>
 
 #include "chapter-index.h"
@@ -14,7 +17,9 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
+#ifndef __KERNEL__
 #include "uds-threads.h"
+#endif /* __KERNEL__ */
 
 /*
  * Since the cache is small, it is implemented as a simple array of cache entries. Searching for a
@@ -141,6 +146,19 @@ struct search_list {
 	struct cached_chapter_index *entries[];
 };
 
+#ifdef __KERNEL__
+struct threads_barrier {
+	/* Lock for this barrier object */
+	struct semaphore lock;
+	/* Semaphore for threads waiting at this barrier */
+	struct semaphore wait;
+	/* Number of threads which have arrived */
+	int arrived;
+	/* Total number of threads using this barrier */
+	int thread_count;
+};
+
+#endif /* __KERNEL */
 struct sparse_cache {
 	const struct index_geometry *geometry;
 	unsigned int capacity;
@@ -150,12 +168,62 @@ struct sparse_cache {
 	struct search_list *search_lists[MAX_ZONES];
 	struct cached_chapter_index **scratch_entries;
 
-	struct barrier begin_update_barrier;
-	struct barrier end_update_barrier;
+	struct threads_barrier begin_update_barrier;
+	struct threads_barrier end_update_barrier;
 
 	struct cached_chapter_index chapters[];
 };
 
+#ifdef __KERNEL__
+static void initialize_threads_barrier(struct threads_barrier *barrier,
+				       unsigned int thread_count)
+{
+	sema_init(&barrier->lock, 1);
+	barrier->arrived = 0;
+	barrier->thread_count = thread_count;
+	sema_init(&barrier->wait, 0);
+}
+
+static inline void __down(struct semaphore *semaphore)
+{
+	/*
+	 * Do not use down(semaphore). Instead use down_interruptible so that
+	 * we do not get 120 second stall messages in kern.log.
+	 */
+	while (down_interruptible(semaphore) != 0) {
+		/*
+		 * If we're called from a user-mode process (e.g., "dmsetup
+		 * remove") while waiting for an operation that may take a
+		 * while (e.g., UDS index save), and a signal is sent (SIGINT,
+		 * SIGUSR2), then down_interruptible will not block. If that
+		 * happens, sleep briefly to avoid keeping the CPU locked up in
+		 * this loop. We could just call cond_resched, but then we'd
+		 * still keep consuming CPU time slices and swamp other threads
+		 * trying to do computational work. [VDO-4980]
+		 */
+		fsleep(1000);
+	}
+}
+
+static void enter_threads_barrier(struct threads_barrier *barrier)
+{
+	__down(&barrier->lock);
+	if (++barrier->arrived == barrier->thread_count) {
+		/* last thread */
+		int i;
+
+		for (i = 1; i < barrier->thread_count; i++)
+			up(&barrier->wait);
+
+		barrier->arrived = 0;
+		up(&barrier->lock);
+	} else {
+		up(&barrier->lock);
+		__down(&barrier->wait);
+	}
+}
+
+#endif /* __KERNEL */
 static int __must_check initialize_cached_chapter_index(struct cached_chapter_index *chapter,
 							const struct index_geometry *geometry)
 {
@@ -220,44 +288,32 @@ int uds_make_sparse_cache(const struct index_geometry *geometry, unsigned int ca
 	 */
 	cache->skip_threshold = (SKIP_SEARCH_THRESHOLD / zone_count);
 
-	result = uds_initialize_barrier(&cache->begin_update_barrier, zone_count);
-	if (result != UDS_SUCCESS) {
-		uds_free_sparse_cache(cache);
-		return result;
-	}
-
-	result = uds_initialize_barrier(&cache->end_update_barrier, zone_count);
-	if (result != UDS_SUCCESS) {
-		uds_free_sparse_cache(cache);
-		return result;
-	}
+	initialize_threads_barrier(&cache->begin_update_barrier, zone_count);
+	initialize_threads_barrier(&cache->end_update_barrier, zone_count);
 
 	for (i = 0; i < capacity; i++) {
 		result = initialize_cached_chapter_index(&cache->chapters[i], geometry);
-		if (result != UDS_SUCCESS) {
-			uds_free_sparse_cache(cache);
-			return result;
-		}
+		if (result != UDS_SUCCESS)
+			goto out;
 	}
 
 	for (i = 0; i < zone_count; i++) {
 		result = make_search_list(cache, &cache->search_lists[i]);
-		if (result != UDS_SUCCESS) {
-			uds_free_sparse_cache(cache);
-			return result;
-		}
+		if (result != UDS_SUCCESS)
+			goto out;
 	}
 
 	/* purge_search_list() needs some temporary lists for sorting. */
 	result = uds_allocate(capacity * 2, struct cached_chapter_index *,
 			      "scratch entries", &cache->scratch_entries);
-	if (result != UDS_SUCCESS) {
-		uds_free_sparse_cache(cache);
-		return result;
-	}
+	if (result != UDS_SUCCESS)
+		goto out;
 
 	*cache_ptr = cache;
 	return UDS_SUCCESS;
+out:
+	uds_free_sparse_cache(cache);
+	return result;
 }
 
 static inline void set_skip_search(struct cached_chapter_index *chapter,
@@ -314,8 +370,6 @@ void uds_free_sparse_cache(struct sparse_cache *cache)
 		uds_free(cache->chapters[i].page_buffers);
 	}
 
-	uds_destroy_barrier(&cache->begin_update_barrier);
-	uds_destroy_barrier(&cache->end_update_barrier);
 	uds_free(cache);
 }
 
@@ -458,7 +512,7 @@ int uds_update_sparse_cache(struct index_zone *zone, u64 virtual_chapter)
 	 * Wait for every zone thread to reach its corresponding barrier request and invoke this
 	 * function before starting to modify the cache.
 	 */
-	uds_enter_barrier(&cache->begin_update_barrier);
+	enter_threads_barrier(&cache->begin_update_barrier);
 
 	/*
 	 * This is the start of the critical section: the zone zero thread is captain, effectively
@@ -486,7 +540,7 @@ int uds_update_sparse_cache(struct index_zone *zone, u64 virtual_chapter)
 	/*
 	 * This is the end of the critical section. All cache invariants must have been restored.
 	 */
-	uds_enter_barrier(&cache->end_update_barrier);
+	enter_threads_barrier(&cache->end_update_barrier);
 	return result;
 }
 
