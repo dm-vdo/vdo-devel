@@ -148,7 +148,7 @@ static int __must_check validate_version(struct version_number expected_version,
 					 const char *component_name)
 {
 	if (!vdo_are_same_version(expected_version, actual_version)) {
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+		return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s version mismatch, expected %d.%d, got %d.%d",
 					      component_name,
 					      expected_version.major_version,
@@ -181,7 +181,7 @@ int vdo_validate_header(const struct header *expected_header,
 	int result;
 
 	if (expected_header->id != actual_header->id) {
-		return uds_log_error_strerror(VDO_INCORRECT_COMPONENT,
+		return vdo_log_error_strerror(VDO_INCORRECT_COMPONENT,
 					      "%s ID mismatch, expected %d, got %d",
 					      name, expected_header->id,
 					      actual_header->id);
@@ -194,7 +194,7 @@ int vdo_validate_header(const struct header *expected_header,
 
 	if ((expected_header->size > actual_header->size) ||
 	    (exact_size && (expected_header->size < actual_header->size))) {
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+		return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "%s size mismatch, expected %zu, got %zu",
 					      name, expected_header->size,
 					      actual_header->size);
@@ -701,7 +701,7 @@ int vdo_configure_slab_depot(const struct partition *partition,
 	physical_block_number_t last_block;
 	block_count_t slab_size = slab_config.slab_blocks;
 
-	uds_log_debug("slabDepot %s(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
+	vdo_log_debug("slabDepot %s(block_count=%llu, first_block=%llu, slab_size=%llu, zone_count=%u)",
 		      __func__, (unsigned long long) partition->count,
 		      (unsigned long long) partition->offset,
 		      (unsigned long long) slab_size, zone_count);
@@ -725,7 +725,7 @@ int vdo_configure_slab_depot(const struct partition *partition,
 		.zone_count = zone_count,
 	};
 
-	uds_log_debug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
+	vdo_log_debug("slab_depot last_block=%llu, total_data_blocks=%llu, slab_count=%zu, left_over=%llu",
 		      (unsigned long long) last_block,
 		      (unsigned long long) total_data_blocks, slab_count,
 		      (unsigned long long) (partition->count - (last_block - partition->offset)));
@@ -923,7 +923,7 @@ int vdo_initialize_layout(block_count_t size, physical_block_number_t offset,
 		(offset + block_map_blocks + journal_blocks + summary_blocks);
 
 	if (necessary_size > size)
-		return uds_log_error_strerror(VDO_NO_SPACE,
+		return vdo_log_error_strerror(VDO_NO_SPACE,
 					      "Not enough space to make a VDO");
 
 	*layout = (struct layout) {
@@ -1093,7 +1093,7 @@ STATIC int decode_layout(u8 *buffer, size_t *offset, physical_block_number_t sta
 	layout->num_partitions = layout_header.partition_count;
 
 	if (layout->num_partitions > VDO_PARTITION_COUNT) {
-		return uds_log_error_strerror(VDO_UNKNOWN_PARTITION,
+		return vdo_log_error_strerror(VDO_UNKNOWN_PARTITION,
 					      "layout has extra partitions");
 	}
 
@@ -1118,7 +1118,7 @@ STATIC int decode_layout(u8 *buffer, size_t *offset, physical_block_number_t sta
 		result = vdo_get_partition(layout, REQUIRED_PARTITIONS[i], &partition);
 		if (result != VDO_SUCCESS) {
 			vdo_uninitialize_layout(layout);
-			return uds_log_error_strerror(result,
+			return vdo_log_error_strerror(result,
 						      "layout is missing required partition %u",
 						      REQUIRED_PARTITIONS[i]);
 		}
@@ -1128,7 +1128,7 @@ STATIC int decode_layout(u8 *buffer, size_t *offset, physical_block_number_t sta
 
 	if (start != size) {
 		vdo_uninitialize_layout(layout);
-		return uds_log_error_strerror(UDS_BAD_STATE,
+		return vdo_log_error_strerror(UDS_BAD_STATE,
 					      "partitions do not cover the layout");
 	}
 
@@ -1307,7 +1307,7 @@ int vdo_validate_config(const struct vdo_config *config,
 
 #ifdef __KERNEL__
 	if (physical_block_count != config->physical_blocks) {
-		uds_log_error("A physical size of %llu blocks was specified, not the %llu blocks configured in the vdo super block",
+		vdo_log_error("A physical size of %llu blocks was specified, not the %llu blocks configured in the vdo super block",
 			      (unsigned long long) physical_block_count,
 			      (unsigned long long) config->physical_blocks);
 		return VDO_PARAMETER_MISMATCH;
@@ -1332,7 +1332,7 @@ int vdo_validate_config(const struct vdo_config *config,
 			return result;
 
 		if (logical_block_count != config->logical_blocks) {
-			uds_log_error("A logical size of %llu blocks was specified, but that differs from the %llu blocks configured in the vdo super block",
+			vdo_log_error("A logical size of %llu blocks was specified, but that differs from the %llu blocks configured in the vdo super block",
 				      (unsigned long long) logical_block_count,
 				      (unsigned long long) config->logical_blocks);
 			return VDO_PARAMETER_MISMATCH;
@@ -1456,7 +1456,7 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 				  block_count_t logical_size)
 {
 	if (geometry_nonce != states->vdo.nonce) {
-		return uds_log_error_strerror(VDO_BAD_NONCE,
+		return vdo_log_error_strerror(VDO_BAD_NONCE,
 					      "Geometry nonce %llu does not match superblock nonce %llu",
 					      (unsigned long long) geometry_nonce,
 					      (unsigned long long) states->vdo.nonce);
@@ -1529,7 +1529,7 @@ int vdo_decode_super_block(u8 *buffer)
 		 * We can't check release version or checksum until we know the content size, so we
 		 * have to assume a version mismatch on unexpected values.
 		 */
-		return uds_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+		return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "super block contents too large: %zu",
 					      header.size);
 	}
