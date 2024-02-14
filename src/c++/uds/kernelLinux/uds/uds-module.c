@@ -52,8 +52,6 @@ EXPORT_SYMBOL_GPL(__uds_log_strerror);
 EXPORT_SYMBOL_GPL(uds_append_to_buffer);
 EXPORT_SYMBOL_GPL(uds_get_log_level);
 EXPORT_SYMBOL_GPL(uds_log_backtrace);
-EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
-EXPORT_SYMBOL_GPL(uds_log_string_to_priority);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
