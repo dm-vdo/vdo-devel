@@ -63,7 +63,7 @@ int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 }
 
 #endif /* TEST_INTERNAL */
-char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
+char *vdo_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 {
 	va_list args;
 	size_t n;
