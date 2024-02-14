@@ -91,16 +91,6 @@ static void testInfo(void)
 }
 
 /**********************************************************************/
-static void testNotice(void)
-{
-  char buf[128];
-  snprintf(buf, sizeof(buf), "foo <%u>", rand());
-  uds_log_notice("blah %s", buf);
-  CU_ASSERT_TRUE(checkFound(buf));
-  CU_ASSERT_TRUE(checkFound("NOTICE"));
-}
-
-/**********************************************************************/
 static void testFiltering(void)
 {
   setenv("UDS_LOG_LEVEL", "WARNING", 1);
@@ -118,7 +108,6 @@ static void testFiltering(void)
 /**********************************************************************/
 static const CU_TestInfo tests[] = {
   {"info",          testInfo   },
-  {"notice",        testNotice },
   {"testFiltering", testFiltering },
   CU_TEST_INFO_NULL,
 };

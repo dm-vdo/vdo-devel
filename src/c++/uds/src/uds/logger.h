@@ -9,6 +9,7 @@
 #ifdef __KERNEL__
 #include <linux/module.h>
 #include <linux/ratelimit.h>
+#include <linux/device-mapper.h>
 #else
 #include <stdarg.h>
 #include "minisyslog.h"
@@ -37,11 +38,8 @@
 #endif /* __KERNEL__ */
 
 #ifdef __KERNEL__
-#if defined(MODULE)
-#define UDS_LOGGING_MODULE_NAME THIS_MODULE->name
-#else /* compiled into the kernel */
-#define UDS_LOGGING_MODULE_NAME "vdo"
-#endif
+#define DM_MSG_PREFIX "vdo"
+#define UDS_LOGGING_MODULE_NAME DM_NAME ": " DM_MSG_PREFIX
 #else /* userspace */
 #define UDS_LOGGING_MODULE_NAME "vdo"
 #endif /* __KERNEL__ */
@@ -98,9 +96,6 @@ int uds_vlog_strerror(int priority, int errnum, const char *module, const char *
 #define uds_log_info_strerror(errnum, ...) \
 	uds_log_strerror(UDS_LOG_INFO, errnum, __VA_ARGS__)
 
-#define uds_log_notice_strerror(errnum, ...) \
-	uds_log_strerror(UDS_LOG_NOTICE, errnum, __VA_ARGS__)
-
 #define uds_log_warning_strerror(errnum, ...) \
 	uds_log_strerror(UDS_LOG_WARNING, errnum, __VA_ARGS__)
 
@@ -125,8 +120,6 @@ void uds_log_message(int priority, const char *format, ...)
 #define uds_log_debug(...) uds_log_message(UDS_LOG_DEBUG, __VA_ARGS__)
 
 #define uds_log_info(...) uds_log_message(UDS_LOG_INFO, __VA_ARGS__)
-
-#define uds_log_notice(...) uds_log_message(UDS_LOG_NOTICE, __VA_ARGS__)
 
 #define uds_log_warning(...) uds_log_message(UDS_LOG_WARNING, __VA_ARGS__)
 
