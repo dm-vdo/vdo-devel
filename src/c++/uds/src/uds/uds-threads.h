@@ -140,7 +140,7 @@ static inline void uds_acquire_semaphore(struct semaphore *semaphore)
 		 * happens, sleep briefly to avoid keeping the CPU locked up in
 		 * this loop. We could just call cond_resched, but then we'd
 		 * still keep consuming CPU time slices and swamp other threads
-		 * trying to do computational work. [VDO-4980]
+		 * trying to do computational work.
 		 */
 		fsleep(1000);
 	}
