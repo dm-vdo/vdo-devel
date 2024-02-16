@@ -52,7 +52,7 @@ static void zoneFinishSuite(void)
 {
   uds_free_index(theIndex);
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
+  uds_destroy_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 

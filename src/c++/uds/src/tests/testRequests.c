@@ -23,7 +23,7 @@ void initialize_test_requests(void)
 void uninitialize_test_requests(void)
 {
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&request_mutex));
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&request_cond));
+  uds_destroy_cond(&request_cond);
 }
 
 /**********************************************************************/

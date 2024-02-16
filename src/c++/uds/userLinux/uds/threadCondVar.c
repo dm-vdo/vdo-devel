@@ -18,33 +18,30 @@ int uds_init_cond(struct cond_var *cond)
 }
 
 /**********************************************************************/
-int uds_signal_cond(struct cond_var *cond)
+void uds_signal_cond(struct cond_var *cond)
 {
 	int result;
 
 	result = pthread_cond_signal(&cond->condition);
 	ASSERT_LOG_ONLY((result == 0), "pthread_cond_signal error");
-	return result;
 }
 
 /**********************************************************************/
-int uds_broadcast_cond(struct cond_var *cond)
+void uds_broadcast_cond(struct cond_var *cond)
 {
 	int result;
 
 	result = pthread_cond_broadcast(&cond->condition);
 	ASSERT_LOG_ONLY((result == 0), "pthread_cond_broadcast error");
-	return result;
 }
 
 /**********************************************************************/
-int uds_wait_cond(struct cond_var *cond, struct mutex *mutex)
+void uds_wait_cond(struct cond_var *cond, struct mutex *mutex)
 {
 	int result;
 
 	result = pthread_cond_wait(&cond->condition, &mutex->mutex);
 	ASSERT_LOG_ONLY((result == 0), "pthread_cond_wait error");
-	return result;
 }
 
 #ifdef TEST_INTERNAL
@@ -60,11 +57,10 @@ int uds_timed_wait_cond(struct cond_var *cond,
 
 #endif  /* TEST_INTERNAL */
 /**********************************************************************/
-int uds_destroy_cond(struct cond_var *cond)
+void uds_destroy_cond(struct cond_var *cond)
 {
 	int result;
 
 	result = pthread_cond_destroy(&cond->condition);
 	ASSERT_LOG_ONLY((result == 0), "pthread_cond_destroy error");
-	return result;
 }

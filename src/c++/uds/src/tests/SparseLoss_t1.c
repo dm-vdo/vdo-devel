@@ -112,7 +112,7 @@ static void suiteCleaner(void)
   uds_free_index(theIndex);
   theIndex = NULL;
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
+  uds_destroy_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 

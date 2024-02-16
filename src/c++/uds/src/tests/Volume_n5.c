@@ -91,7 +91,7 @@ static void deinit(void)
   cleanupIndex();
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
+  uds_destroy_cond(&callbackCond);
 }
 
 /**********************************************************************/

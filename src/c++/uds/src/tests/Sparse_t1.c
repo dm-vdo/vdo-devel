@@ -233,7 +233,7 @@ static void sparseCleanSuite(void)
   uds_free(hashes);
   cleanupIndex();
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
+  uds_destroy_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 
