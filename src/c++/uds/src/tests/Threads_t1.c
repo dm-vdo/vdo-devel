@@ -5,7 +5,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "testPrototypes.h"
 #ifndef __KERNEL__
 #include "valgrind/valgrind.h"

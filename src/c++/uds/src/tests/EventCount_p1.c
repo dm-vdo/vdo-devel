@@ -25,8 +25,8 @@
 #include "assertions.h"
 #include "event-count.h"
 #include "memory-alloc.h"
-#include "uds-threads.h"
 #include "testPrototypes.h"
+#include "thread-utils.h"
 #include "time-utils.h"
 
 /** Shared variables for event count test */

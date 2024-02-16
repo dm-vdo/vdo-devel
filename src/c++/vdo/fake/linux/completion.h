@@ -7,7 +7,7 @@
 #ifndef LINUX_COMPLETION_H
 #define LINUX_COMPLETION_H
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 /*
  * struct completion - structure used to maintain state for a "completion"

@@ -11,7 +11,7 @@
 
 #include <linux/list.h>
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 typedef struct mutex spinlock_t;
 

@@ -13,7 +13,7 @@
 #include "string-utils.h"
 #ifdef __KERNEL__
 #include "logger.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #else
 #include <assert.h>
 #include "processManager.h"

@@ -21,7 +21,7 @@
 #include "memory-alloc.h"
 #include "random.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "uds.h"
 
 static struct block_device *testDevice;

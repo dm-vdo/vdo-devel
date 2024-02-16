@@ -18,7 +18,7 @@
 #include "permassert.h"
 #include "string-utils.h"
 #include "syscalls.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "completion.h"
 #include "status-codes.h"

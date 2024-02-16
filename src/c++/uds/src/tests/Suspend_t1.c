@@ -11,7 +11,7 @@
 #include "hash-utils.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "uds.h"
 
 static struct block_device *testDevice;

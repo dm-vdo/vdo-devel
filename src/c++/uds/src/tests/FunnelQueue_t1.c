@@ -16,8 +16,8 @@
 #include "funnel-queue.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
-#include "uds-threads.h"
 #include "testPrototypes.h"
+#include "thread-utils.h"
 
 enum {
   ITERATIONS = 200 * 1000

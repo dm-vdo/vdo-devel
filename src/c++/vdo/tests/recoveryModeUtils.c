@@ -9,7 +9,7 @@
 #include "recoveryModeUtils.h"
 
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "slab-depot.h"
 #include "vdo.h"

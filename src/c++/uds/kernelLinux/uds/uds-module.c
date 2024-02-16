@@ -12,10 +12,10 @@
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "thread-device.h"
+#include "thread-utils.h"
 #include "time-utils.h"
 #include "uds.h"
 #include "uds-sysfs.h"
-#include "uds-threads.h"
 
 static int __init dedupe_init(void)
 {

@@ -15,7 +15,7 @@
 #include "numeric.h"
 #include "permassert.h"
 #include "syscalls.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "constants.h"
 #include "status-codes.h"

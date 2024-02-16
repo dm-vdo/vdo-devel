@@ -9,7 +9,7 @@
 #ifndef LINUX_MUTEX_H
 #define LINUX_MUTEX_H
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #define DEFINE_MUTEX(mutexname) \
 	struct mutex mutexname = UDS_MUTEX_INITIALIZER

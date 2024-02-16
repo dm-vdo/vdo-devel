@@ -16,7 +16,7 @@
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 enum {
   READ         = 0,

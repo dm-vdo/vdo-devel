@@ -5,7 +5,7 @@
  */
 
 #include "permassert.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 /**********************************************************************/
 int uds_init_cond(struct cond_var *cond)

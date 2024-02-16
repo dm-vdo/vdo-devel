@@ -8,7 +8,7 @@
 #include "funnel-requestqueue.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 static unsigned int        count;
 static struct uds_request *found;

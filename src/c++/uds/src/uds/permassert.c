@@ -20,7 +20,7 @@
 #include <syslog.h>
 
 #include "string-utils.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #ifdef DEBUGGING_OFF
 static bool exit_on_assertion_failure;

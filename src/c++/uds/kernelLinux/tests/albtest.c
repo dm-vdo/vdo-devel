@@ -11,7 +11,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 typedef struct suiteState {
   struct kobject      kobjSuite;

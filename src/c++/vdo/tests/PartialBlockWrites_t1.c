@@ -11,7 +11,7 @@
 #include <linux/bio.h>
 
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "data-vio.h"
 #include "vdo.h"

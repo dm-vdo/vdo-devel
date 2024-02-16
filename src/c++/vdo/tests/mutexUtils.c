@@ -13,7 +13,7 @@
 #include <linux/wait.h>
 
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "asyncLayer.h"
 #include "testBIO.h"

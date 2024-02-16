@@ -20,7 +20,7 @@
 #include "funnel-queue.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 /*
  * The alignment is because the real things we care about on request queues

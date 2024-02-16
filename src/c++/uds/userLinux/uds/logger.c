@@ -13,7 +13,7 @@
 #include "fileUtils.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 typedef struct {
 	const char *name;

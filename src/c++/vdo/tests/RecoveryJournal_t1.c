@@ -24,7 +24,7 @@
 #include "memory-alloc.h"
 #include "numeric.h"
 #include "permassert.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "admin-state.h"
 #include "encodings.h"

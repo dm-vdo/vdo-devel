@@ -36,7 +36,7 @@
 #include "oldInterfaces.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "uds.h"
 
 typedef struct {

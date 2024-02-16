@@ -6,7 +6,7 @@
 #include "testRequests.h"
 
 #include "assertions.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 static struct mutex request_mutex;
 static struct cond_var request_cond;
