@@ -609,7 +609,7 @@ static struct simple_work_queue *get_current_thread_work_queue(void)
 	 * The kthreadd process has the PF_KTHREAD flag set but a null "struct kthread" pointer,
 	 * which breaks the (initial) implementation of kthread_func, which assumes the pointer is
 	 * always non-null. This matters if memory reclamation is triggered and causes calls into
-	 * VDO that get here. [VDO-5194]
+	 * VDO that get here.
 	 *
 	 * There might also be a similar reclamation issue in the usermodehelper code path before
 	 * exec is called, and/or kthread setup when allocating the kthread struct itself.
