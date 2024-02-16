@@ -193,6 +193,7 @@ tarballs:
             - err.h
             - limits.h
             - log2.h
+            - mutex.h
             - random.h
             - types.h
           undefines:

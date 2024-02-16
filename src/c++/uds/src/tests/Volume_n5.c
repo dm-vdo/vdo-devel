@@ -71,7 +71,7 @@ static void cleanupIndex(void)
 static void init(struct block_device *bdev)
 {
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
+  uds_init_cond(&callbackCond);
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
@@ -91,7 +91,9 @@ static void deinit(void)
   cleanupIndex();
   uds_free_configuration(config);
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
+#ifndef __KERNEL__
   uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
 }
 
 /**********************************************************************/

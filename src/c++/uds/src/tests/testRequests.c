@@ -16,14 +16,16 @@ static bool request_active;
 void initialize_test_requests(void)
 {
   UDS_ASSERT_SUCCESS(uds_init_mutex(&request_mutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&request_cond));
+  uds_init_cond(&request_cond);
 }
 
 /**********************************************************************/
 void uninitialize_test_requests(void)
 {
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&request_mutex));
+#ifndef __KERNEL__
   uds_destroy_cond(&request_cond);
+#endif  /* not __KERNEL__ */
 }
 
 /**********************************************************************/

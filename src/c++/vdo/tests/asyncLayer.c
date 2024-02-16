@@ -175,7 +175,9 @@ void destroyAsyncLayer(void)
     // fall through
 
   case LAYER_INITIALIZED:
+#ifndef __KERNEL__
     uds_destroy_cond(&asyncLayer->condition);
+#endif  /* not __KERNEL__ */
     uds_destroy_mutex(&asyncLayer->mutex);
     vdo_int_map_free(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
@@ -204,7 +206,7 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_int_map_create(0, &asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
-  VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));
+  uds_init_cond(&asyncLayer->condition);
   INIT_LIST_HEAD(&asyncLayer->completionEnqueueHooks);
   bio_list_init(&asyncLayer->bios);
   asyncLayer->bioHook      = defaultBIOSubmitHook;

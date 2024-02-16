@@ -42,6 +42,8 @@ typedef __u32 __bitwise __be32;
 typedef __u64 __bitwise __le64;
 typedef __u64 __bitwise __be64;
 
+#define __aligned_u64 __u64 __attribute__((aligned(8)))
+
 typedef unsigned int fmode_t;
 #define FMODE_READ (fmode_t) 0x1
 #define FMODE_WRITE (fmode_t) 0x2

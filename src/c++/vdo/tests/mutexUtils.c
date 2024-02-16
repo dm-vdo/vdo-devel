@@ -59,7 +59,9 @@ static void freeTask(void *task)
 static void tearDownMutexUtils(void)
 {
   pthread_key_delete(taskKey);
+#ifndef __KERNEL__
   uds_destroy_cond(&condition);
+#endif  /* not __KERNEL__ */
   uds_destroy_mutex(&mutex);
 }
 
@@ -76,7 +78,7 @@ void initializeMutexUtils(void)
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
   UDS_ASSERT_SUCCESS(pthread_mutex_init(&mutex.mutex, &attr));
   UDS_ASSERT_SUCCESS(pthread_mutexattr_destroy(&attr));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&condition));
+  uds_init_cond(&condition);
   UDS_ASSERT_SUCCESS(pthread_key_create(&taskKey, freeTask));
   registerTearDownAction(tearDownMutexUtils);
 }
@@ -438,7 +440,7 @@ void assertNoBlockedVIOs(void)
 void init_completion(struct completion *completion)
 {
   VDO_ASSERT_SUCCESS(uds_init_mutex(&completion->mutex));
-  VDO_ASSERT_SUCCESS(uds_init_cond(&completion->condition));
+  uds_init_cond(&completion->condition);
   completion->done = false;
 }
 

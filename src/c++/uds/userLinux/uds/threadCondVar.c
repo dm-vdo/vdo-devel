@@ -4,17 +4,16 @@
  * %LICENSE%
  */
 
+#include "indexer.h"
 #include "permassert.h"
-#include "thread-utils.h"
 
 /**********************************************************************/
-int uds_init_cond(struct cond_var *cond)
+void uds_init_cond(struct cond_var *cond)
 {
 	int result;
 
 	result = pthread_cond_init(&cond->condition, NULL);
 	ASSERT_LOG_ONLY((result == 0), "pthread_cond_init error");
-	return result;
 }
 
 /**********************************************************************/

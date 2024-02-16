@@ -77,7 +77,7 @@ static void suiteInit(struct block_device *bdev)
   blockNameCounter = 0;
   callbackCount = 0;
   postsNotFound = 0;
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
+  uds_init_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
 
   struct uds_parameters params = {
@@ -112,7 +112,9 @@ static void suiteCleaner(void)
   uds_free_index(theIndex);
   theIndex = NULL;
   uds_free_configuration(config);
+#ifndef __KERNEL__
   uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 

@@ -7,7 +7,7 @@
 #ifndef LINUX_COMPLETION_H
 #define LINUX_COMPLETION_H
 
-#include "thread-utils.h"
+#include "indexer.h"
 
 /*
  * struct completion - structure used to maintain state for a "completion"

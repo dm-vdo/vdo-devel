@@ -167,7 +167,7 @@ static bool searchForCollisions(unsigned int lastHash)
  **/
 static void sparseInitSuite(struct block_device *bdev)
 {
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
+  uds_init_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
 
   struct uds_parameters params = {
@@ -233,7 +233,9 @@ static void sparseCleanSuite(void)
   uds_free(hashes);
   cleanupIndex();
   uds_free_configuration(config);
+#ifndef __KERNEL__
   uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 

@@ -82,7 +82,7 @@ static void init(request_restarter_fn restartRequest, unsigned int zoneCount)
   set_request_restarter(restartRequest);
 
   UDS_ASSERT_SUCCESS(uds_init_mutex(&numRequestsMutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&allDoneCond));
+  uds_init_cond(&allDoneCond);
   numRequestsQueued = 0;
   testDevice = getTestBlockDevice();
 
@@ -111,7 +111,9 @@ static void deinit(void)
   uds_free_configuration(config);
   uds_free_index_layout(uds_forget(layout));
   putTestBlockDevice(testDevice);
+#ifndef __KERNEL__
   uds_destroy_cond(&allDoneCond);
+#endif  /* not __KERNEL__ */
   uds_destroy_mutex(&numRequestsMutex);
 }
 

@@ -34,7 +34,7 @@ static struct cond_var  condition;
 void initializeRecoveryModeTest(const TestParameters *testParameters)
 {
   VDO_ASSERT_SUCCESS(uds_init_mutex(&mutex));
-  VDO_ASSERT_SUCCESS(uds_init_cond(&condition));
+  uds_init_cond(&condition);
   VDO_ASSERT_SUCCESS(vdo_int_map_create(8, &latchedVIOs));
   initializeVDOTest(testParameters);
 }
@@ -44,7 +44,9 @@ void tearDownRecoveryModeTest(void)
 {
   tearDownVDOTest();
   vdo_int_map_free(uds_forget(latchedVIOs));
+#ifndef __KERNEL__
   uds_destroy_cond(&condition);
+#endif  /* not __KERNEL__ */
   uds_destroy_mutex(&mutex);
 }
 

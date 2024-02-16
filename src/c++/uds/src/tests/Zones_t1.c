@@ -41,7 +41,7 @@ static void zoneInitializeSuite(struct block_device *bdev)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Creating an index also creates the zone queues.
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
+  uds_init_cond(&callbackCond);
   UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
 }
 
@@ -52,7 +52,9 @@ static void zoneFinishSuite(void)
 {
   uds_free_index(theIndex);
   uds_free_configuration(config);
+#ifndef __KERNEL__
   uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
   UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
 }
 

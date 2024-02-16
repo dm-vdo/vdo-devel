@@ -150,7 +150,7 @@ static void testMutex(int messageCount)
   albPrint("    mutex starting %d iterations", messageCount);
 
   UDS_ASSERT_SUCCESS(uds_init_mutex(&mutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&cond));
+  uds_init_cond(&cond);
 
   uds_lock_mutex(&mutex);
   struct thread *adderThread;
@@ -188,7 +188,9 @@ static void testMutex(int messageCount)
   albPrint("    mutex %s, %s/increment", mutexTotal, mutexPer);
   uds_free(mutexTotal);
   uds_free(mutexPer);
+#ifndef __KERNEL__
   uds_destroy_cond(&cond);
+#endif  /* not __KERNEL__ */
   uds_destroy_mutex(&mutex);
 }
 

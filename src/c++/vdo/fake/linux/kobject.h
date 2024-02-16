@@ -8,8 +8,7 @@
 #define KOBJECT_H
 
 #include <linux/atomic.h>
-
-#include "list.h"
+#include <linux/list.h>
 
 struct kobject;
 
