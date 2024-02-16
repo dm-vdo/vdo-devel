@@ -178,7 +178,7 @@ void destroyAsyncLayer(void)
 #ifndef __KERNEL__
     uds_destroy_cond(&asyncLayer->condition);
 #endif  /* not __KERNEL__ */
-    uds_destroy_mutex(&asyncLayer->mutex);
+    mutex_destroy(&asyncLayer->mutex);
     vdo_int_map_free(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
 
@@ -205,7 +205,7 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_int_map_create(0, &asyncLayer->completionEnqueueHooksMap));
-  VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
+  mutex_init(&asyncLayer->mutex);
   uds_init_cond(&asyncLayer->condition);
   INIT_LIST_HEAD(&asyncLayer->completionEnqueueHooks);
   bio_list_init(&asyncLayer->bios);
@@ -325,14 +325,14 @@ static void drainBIOQueue(AsyncLayer *asyncLayer)
   while (!bio_list_empty(&asyncLayer->bios)) {
     bio_list_merge(&bios, &asyncLayer->bios);
     bio_list_init(&asyncLayer->bios);
-    uds_unlock_mutex(&asyncLayer->mutex);
+    mutex_unlock(&asyncLayer->mutex);
     while (!bio_list_empty(&bios)) {
       struct bio *bio = bio_list_pop(&bios);
       bio->bi_status = processBIO(bio);
       bio->bi_end_io(bio);
     }
 
-    uds_lock_mutex(&asyncLayer->mutex);
+    mutex_lock(&asyncLayer->mutex);
   }
 }
 
@@ -341,7 +341,7 @@ static void processBIOs(void *arg)
 {
   AsyncLayer *asyncLayer = arg;
   WRITE_ONCE(asyncLayer->bioThreadID, pthread_self());
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   do {
     while (asyncLayer->running && bio_list_empty(&asyncLayer->bios)) {
       uds_wait_cond(&asyncLayer->condition, &asyncLayer->mutex);
@@ -350,7 +350,7 @@ static void processBIOs(void *arg)
     drainBIOQueue(asyncLayer);
   } while (asyncLayer->running);
 
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**********************************************************************/
@@ -433,10 +433,10 @@ void stopAsyncLayer(void)
   case QUEUES_STARTED:
     uds_forget(vdo);
     if (asyncLayer->bioThread != NULL) {
-      uds_lock_mutex(&asyncLayer->mutex);
+      mutex_lock(&asyncLayer->mutex);
       asyncLayer->running = false;
       uds_broadcast_cond(&asyncLayer->condition);
-      uds_unlock_mutex(&asyncLayer->mutex);
+      mutex_unlock(&asyncLayer->mutex);
       uds_join_threads(asyncLayer->bioThread);
     }
     fallthrough;
@@ -466,7 +466,7 @@ void setAsyncLayerReadOnly(bool readOnly)
 static void requestDoneCallback(struct vdo_completion *completion)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   /*
    * By setting the callback to NULL, we indicate that this request is
    * complete. It would be nice if we could use the 'complete' field, but
@@ -475,7 +475,7 @@ static void requestDoneCallback(struct vdo_completion *completion)
    */
   completion->callback = NULL;
   uds_broadcast_cond(&asyncLayer->condition);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**
@@ -519,11 +519,11 @@ void launchAction(vdo_action_fn action, struct vdo_completion *completion)
 int awaitCompletion(struct vdo_completion *completion)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   while (completion->callback != NULL) {
     uds_wait_cond(&asyncLayer->condition, &asyncLayer->mutex);
   }
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
   atomic64_add(-1, &asyncLayer->requestCount);
   return completion->result;
 }
@@ -568,9 +568,9 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
 void removeCompletionEnqueueHook(CompletionHook *function)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   removeCompletionEnqueueHookLocked(function);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**
@@ -596,9 +596,9 @@ static void clearCompletionEnqueueHooksLocked(void)
 void clearCompletionEnqueueHooks(void)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   clearCompletionEnqueueHooksLocked();
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**
@@ -634,18 +634,18 @@ void addCompletionEnqueueHook(CompletionHook *function)
 {
   CU_ASSERT_PTR_NOT_NULL(function);
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   addCompletionEnqueueHookLocked(function);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**********************************************************************/
 void setCompletionEnqueueHook(CompletionHook *function) {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   clearCompletionEnqueueHooksLocked();
   addCompletionEnqueueHookLocked(function);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**********************************************************************/
@@ -676,7 +676,7 @@ bool runEnqueueHook(struct vdo_completion *completion)
   notifyEnqueue(completion);
 
   AsyncLayer *layer = asAsyncLayer();
-  uds_lock_mutex(&layer->mutex);
+  mutex_lock(&layer->mutex);
   if (!layer->completionEnqueueHooksCacheValid) {
     // The cache is invalid due to an add or remove, so repopulate it.
     layer->completionEnqueueHooksCacheValid = true;
@@ -688,7 +688,7 @@ bool runEnqueueHook(struct vdo_completion *completion)
         = hook->function;
     }
   }
-  uds_unlock_mutex(&layer->mutex);
+  mutex_unlock(&layer->mutex);
 
   // Use the cache without holding the mutex so that hooks are free to modify
   // the hook configuration in a thread-safe manner.
@@ -724,9 +724,9 @@ void setStartStopExpectation(int expectedResult)
 void setBIOSubmitHook(BIOSubmitHook *function)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   asyncLayer->bioHook = ((function == NULL) ? defaultBIOSubmitHook : function);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**********************************************************************/
@@ -737,11 +737,11 @@ void reallyEnqueueBIO(struct bio *bio)
   }
 
   AsyncLayer *asyncLayer = asAsyncLayer();
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   CU_ASSERT(asyncLayer->running);
   bio_list_add(&asyncLayer->bios, bio);
   uds_broadcast_cond(&asyncLayer->condition);
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 }
 
 /**********************************************************************/
@@ -749,9 +749,9 @@ void enqueueBIO(struct bio *bio)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
   BIOSubmitHook *hook;
-  uds_lock_mutex(&asyncLayer->mutex);
+  mutex_lock(&asyncLayer->mutex);
   hook = asyncLayer->bioHook;
-  uds_unlock_mutex(&asyncLayer->mutex);
+  mutex_unlock(&asyncLayer->mutex);
 
   if (hook(bio)) {
     reallyEnqueueBIO(bio);

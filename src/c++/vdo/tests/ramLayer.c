@@ -136,7 +136,7 @@ static int ramReader(PhysicalLayer           *header,
     return VDO_OUT_OF_RANGE;
   }
 
-  uds_lock_mutex(&layer->mutex);
+  mutex_lock(&layer->mutex);
 
   RegionNumber regionNumber = startBlock / REGION_BLOCKS;
   physical_block_number_t offset = startBlock % REGION_BLOCKS;
@@ -157,7 +157,7 @@ static int ramReader(PhysicalLayer           *header,
     regionNumber++;
   }
 
-  uds_unlock_mutex(&layer->mutex);
+  mutex_unlock(&layer->mutex);
 
   return VDO_SUCCESS;
 }
@@ -174,7 +174,7 @@ static int ramWriter(PhysicalLayer           *header,
     return VDO_OUT_OF_RANGE;
   }
 
-  uds_lock_mutex(&layer->mutex);
+  mutex_lock(&layer->mutex);
 
   RegionNumber regionNumber = startBlock / REGION_BLOCKS;
   physical_block_number_t offset = startBlock % REGION_BLOCKS;
@@ -195,7 +195,7 @@ static int ramWriter(PhysicalLayer           *header,
     offset      = 0;
   }
 
-  uds_unlock_mutex(&layer->mutex);
+  mutex_unlock(&layer->mutex);
 
   return VDO_SUCCESS;
 }
@@ -223,7 +223,7 @@ static void freeRAMLayer(RAMLayer *layer)
   }
 
   uds_free(layer->regions);
-  uds_destroy_mutex(&layer->mutex);
+  mutex_destroy(&layer->mutex);
   uds_free(layer);
 }
 
@@ -256,12 +256,7 @@ int makeRAMLayer(block_count_t   blockCount,
     return result;
   }
 
-  result = uds_init_mutex(&layer->mutex);
-  if (result != UDS_SUCCESS) {
-    freeRAMLayer(layer);
-    return result;
-  }
-
+  mutex_init(&layer->mutex);
   layer->size        = blockCount * VDO_BLOCK_SIZE;
   layer->regionCount = DIV_ROUND_UP(blockCount, REGION_BLOCKS);
   result = uds_allocate(layer->regionCount,
@@ -352,8 +347,8 @@ void copyRAMLayer(PhysicalLayer *to, PhysicalLayer *from)
   RAMLayer *fromLayer = asRAMLayer(from);
   CU_ASSERT_EQUAL(toLayer->size, fromLayer->size);
 
-  uds_lock_mutex(&toLayer->mutex);
-  uds_lock_mutex(&fromLayer->mutex);
+  mutex_lock(&toLayer->mutex);
+  mutex_lock(&fromLayer->mutex);
 
   for (RegionNumber r = 0; r < fromLayer->regionCount; r++) {
     Region *from = fromLayer->regions[r];
@@ -374,8 +369,8 @@ void copyRAMLayer(PhysicalLayer *to, PhysicalLayer *from)
     to->dirty = false;
   }
 
-  uds_unlock_mutex(&fromLayer->mutex);
-  uds_unlock_mutex(&toLayer->mutex);
+  mutex_unlock(&fromLayer->mutex);
+  mutex_unlock(&toLayer->mutex);
 }
 
 /**********************************************************************/
@@ -397,28 +392,28 @@ void persistSingleBlockInRAMLayer(PhysicalLayer           *layer,
   RAMLayer *ramLayer = asRAMLayer(layer);
   off_t     offset   = (blockNumber % REGION_BLOCKS) * VDO_BLOCK_SIZE;
 
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   Region *region = getRegion(ramLayer, blockNumber / REGION_BLOCKS, false);
   if ((region != NULL) && (ramLayer->writesEnabled)) {
     memcpy(region->data + offset, region->cache + offset, VDO_BLOCK_SIZE);
   }
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }
 
 /**********************************************************************/
 void prepareToCrashRAMLayer(PhysicalLayer *layer)
 {
   RAMLayer *ramLayer = asRAMLayer(layer);
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   ramLayer->writesEnabled = false;
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }
 
 /**********************************************************************/
 void crashRAMLayer(PhysicalLayer *layer)
 {
   RAMLayer *ramLayer = asRAMLayer(layer);
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   for (Region *region = ramLayer->regionList;
        region != NULL;
        region = region->next) {
@@ -428,14 +423,14 @@ void crashRAMLayer(PhysicalLayer *layer)
     }
   }
   ramLayer->writesEnabled = true;
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }
 
 /**********************************************************************/
 void dumpRAMLayerToFile(PhysicalLayer *layer, int fd)
 {
   RAMLayer *ramLayer = asRAMLayer(layer);
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   for (RegionNumber r = 0; r < ramLayer->regionCount; r++) {
     Region *region = ramLayer->regions[r];
     if (region == NULL) {
@@ -447,7 +442,7 @@ void dumpRAMLayerToFile(PhysicalLayer *layer, int fd)
                                               region->data,
                                               REGION_BYTES));
   }
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }
 
 /**********************************************************************/
@@ -458,7 +453,7 @@ void checkRAMLayerContents(PhysicalLayer   *layer,
   RAMLayer *ramLayer = asRAMLayer(layer);
   block_count_t blocks = ramLayer->blockCount;
 
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   for (RegionNumber r = 0; r < ramLayer->regionCount; r++) {
     block_count_t  toCompare = min(blocks, (block_count_t) REGION_BLOCKS);
     Region        *region    = ramLayer->regions[r];
@@ -484,14 +479,14 @@ void checkRAMLayerContents(PhysicalLayer   *layer,
 
     blocks -= REGION_BLOCKS;
   }
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }
 
 /**********************************************************************/
 void flushRAMLayer(PhysicalLayer *layer)
 {
   RAMLayer *ramLayer = asRAMLayer(layer);
-  uds_lock_mutex(&ramLayer->mutex);
+  mutex_lock(&ramLayer->mutex);
   if (ramLayer->acceptsFlushes && ramLayer->writesEnabled) {
     for (Region *region = ramLayer->regionList;
          region != NULL;
@@ -502,5 +497,5 @@ void flushRAMLayer(PhysicalLayer *layer)
       }
     }
   }
-  uds_unlock_mutex(&ramLayer->mutex);
+  mutex_unlock(&ramLayer->mutex);
 }

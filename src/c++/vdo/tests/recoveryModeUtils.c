@@ -33,7 +33,7 @@ static struct cond_var  condition;
 /**********************************************************************/
 void initializeRecoveryModeTest(const TestParameters *testParameters)
 {
-  VDO_ASSERT_SUCCESS(uds_init_mutex(&mutex));
+  mutex_init(&mutex);
   uds_init_cond(&condition);
   VDO_ASSERT_SUCCESS(vdo_int_map_create(8, &latchedVIOs));
   initializeVDOTest(testParameters);
@@ -47,7 +47,7 @@ void tearDownRecoveryModeTest(void)
 #ifndef __KERNEL__
   uds_destroy_cond(&condition);
 #endif  /* not __KERNEL__ */
-  uds_destroy_mutex(&mutex);
+  mutex_destroy(&mutex);
 }
 
 /**********************************************************************/
@@ -111,9 +111,9 @@ static bool latchReferenceBlockIO(struct vdo_completion *completion)
   struct slab_depot       *depot = vdo->depot;
   slab_count_t             slab_number
     = ((pbn - depot->first_block) >> depot->slab_size_shift);
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool result = latchSlab(vio, slab_number, pbn);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return result;
 }
 
@@ -123,7 +123,7 @@ static void setupSlabLatch(slab_count_t slabNumber, LatchOperation operation)
   CU_ASSERT_TRUE((latchOperation == operation)
                  || (latchOperation == LATCH_UNSET));
 
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   struct vio *oldEntry = NULL;
   UDS_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs,
                                      slabNumber,
@@ -136,7 +136,7 @@ static void setupSlabLatch(slab_count_t slabNumber, LatchOperation operation)
 
   latchOperation = operation;
   setCompletionEnqueueHook(latchReferenceBlockIO);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
@@ -175,18 +175,18 @@ static bool isSlabLatched(slab_count_t slabNumber, struct vio **latchedVIO)
 /**********************************************************************/
 void waitForSlabLatch(slab_count_t slabNumber)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (!isSlabLatched(slabNumber, NULL)) {
     uds_wait_cond(&condition, &mutex);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 slab_count_t waitForAnySlabToLatch(slab_count_t slabs)
 {
   slab_count_t latchedSlab;
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   for (bool slabLatched = false; !slabLatched;) {
     for (latchedSlab = 0; latchedSlab < slabs; latchedSlab++) {
       if (isSlabLatched(latchedSlab, NULL)) {
@@ -198,20 +198,20 @@ slab_count_t waitForAnySlabToLatch(slab_count_t slabs)
       uds_wait_cond(&condition, &mutex);
     }
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return latchedSlab;
 }
 
 /**********************************************************************/
 void releaseSlabLatch(slab_count_t slabNumber)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   struct vio *latchedSlabVIO = vdo_int_map_remove(latchedVIOs, slabNumber);
   if (vdo_int_map_size(latchedVIOs) == 0) {
     removeCompletionEnqueueHook(latchReferenceBlockIO);
     latchOperation = LATCH_UNSET;
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 
   CU_ASSERT_PTR_NOT_NULL(latchedSlabVIO);
   CU_ASSERT_FALSE(latchedSlabVIO == LATCH_DESIRED);
@@ -221,7 +221,7 @@ void releaseSlabLatch(slab_count_t slabNumber)
 /**********************************************************************/
 void releaseAllSlabLatches(slab_count_t slabs)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
 
   removeCompletionEnqueueHook(latchReferenceBlockIO);
   latchOperation = LATCH_UNSET;
@@ -233,15 +233,15 @@ void releaseAllSlabLatches(slab_count_t slabs)
     }
   }
 
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 void injectErrorInLatchedSlab(slab_count_t slabNumber, int errorCode)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   struct vio *latchedVIO;
   CU_ASSERT_TRUE(isSlabLatched(slabNumber, &latchedVIO));
   setVIOResult(latchedVIO, errorCode);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }

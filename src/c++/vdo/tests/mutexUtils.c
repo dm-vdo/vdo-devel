@@ -62,7 +62,7 @@ static void tearDownMutexUtils(void)
 #ifndef __KERNEL__
   uds_destroy_cond(&condition);
 #endif  /* not __KERNEL__ */
-  uds_destroy_mutex(&mutex);
+  mutex_destroy(&mutex);
 }
 
 /**********************************************************************/
@@ -86,7 +86,7 @@ void initializeMutexUtils(void)
 /**********************************************************************/
 void lockMutex(void)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
 }
 
 /**
@@ -94,18 +94,18 @@ void lockMutex(void)
  **/
 void unlockMutex(void)
 {
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 bool runLocked(LockedMethod *method, void *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool result = method(context);
   if (result) {
     uds_broadcast_cond(&condition);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return result;
 }
 
@@ -146,28 +146,28 @@ void clearState(bool *state)
 /**********************************************************************/
 void broadcast(void)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   uds_broadcast_cond(&condition);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 bool checkCondition(WaitCondition *waitCondition, void *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool result = waitCondition(context);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return result;
 }
 
 /**********************************************************************/
 void waitForCondition(WaitCondition *waitCondition, void *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (!waitCondition(context)) {
     uds_wait_cond(&condition, &mutex);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
@@ -175,14 +175,14 @@ void runOnCondition(WaitCondition *waitCondition,
                     LockedMethod  *method,
                     void          *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (!waitCondition(context)) {
     uds_wait_cond(&condition, &mutex);
   }
   if (method(context)) {
     uds_broadcast_cond(&condition);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
@@ -190,55 +190,55 @@ bool runIfCondition(WaitCondition *waitCondition,
                     LockedMethod  *method,
                     void          *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool result = waitCondition(context);
   if (result && method(context)) {
     uds_broadcast_cond(&condition);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return result;
 }
 
 /**********************************************************************/
 bool checkState(bool *state)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   // It just so happens that state is a bool, so we can just return it instead
   // of needing a more complicated check.
   bool result = *state;
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return result;
 }
 
 /**********************************************************************/
 void waitForState(bool *state)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (!*state) {
     uds_wait_cond(&condition, &mutex);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 void waitForStateAndClear(bool *state)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (!*state) {
     uds_wait_cond(&condition, &mutex);
   }
   *state = false;
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
 void waitForNotNull(void **ptr)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   while (*ptr == NULL) {
     uds_wait_cond(&condition, &mutex);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**
@@ -269,11 +269,11 @@ void blockVIOOnCondition(struct vio     *vio,
                          BlockCondition *blockCondition,
                          void           *context)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   if (attemptVIOBlock(vio, blockCondition, context)) {
     uds_broadcast_cond(&condition);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**
@@ -308,10 +308,10 @@ static bool blockVIOCompletionHook(struct vdo_completion *completion) {
     return true;
   }
 
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool wasBlocked = blockVIOLocked(as_vio(completion),
                                    &callbackEnqueueContext);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return !wasBlocked;
 }
 
@@ -349,12 +349,12 @@ void setBlockVIOCompletionEnqueueHook(BlockCondition *condition, bool takeOut)
  **/
 static bool blockBIOSubmitHook(struct bio *bio)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   bool wasBlocked = blockVIOLocked(bio->bi_private, &bioSubmitContext);
   if (wasBlocked) {
     blockedAsBIO = true;
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   return !wasBlocked;
 }
 
@@ -427,9 +427,9 @@ void releaseBlockedVIO(void)
 /**********************************************************************/
 void assertNoBlockedVIOs(void)
 {
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   CU_ASSERT_PTR_NULL(blockedVIO);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -439,7 +439,7 @@ void assertNoBlockedVIOs(void)
 /**********************************************************************/
 void init_completion(struct completion *completion)
 {
-  VDO_ASSERT_SUCCESS(uds_init_mutex(&completion->mutex));
+  mutex_init(&completion->mutex);
   uds_init_cond(&completion->condition);
   completion->done = false;
 }
@@ -453,20 +453,20 @@ void reinit_completion(struct completion *completion)
 /**********************************************************************/
 void wait_for_completion(struct completion *completion)
 {
-  uds_lock_mutex(&completion->mutex);
+  mutex_lock(&completion->mutex);
   while (!completion->done) {
     uds_wait_cond(&completion->condition, &completion->mutex);
   }
-  uds_unlock_mutex(&completion->mutex);
+  mutex_unlock(&completion->mutex);
 }
 
 /**********************************************************************/
 void complete(struct completion *completion)
 {
-  uds_lock_mutex(&completion->mutex);
+  mutex_lock(&completion->mutex);
   completion->done = true;
   uds_broadcast_cond(&completion->condition);
-  uds_unlock_mutex(&completion->mutex);
+  mutex_unlock(&completion->mutex);
 }
 
 /**********************************************************************/
@@ -481,7 +481,7 @@ bool checkBlockedThreadCount(void *context)
 
 void init_waitqueue_head(wait_queue_head_t *head)
 {
-  VDO_ASSERT_SUCCESS(uds_init_mutex(&head->lock));
+  VDO_ASSERT_SUCCESS(mutex_init(&head->lock));
   INIT_LIST_HEAD(&head->head);
 }
 
@@ -509,7 +509,7 @@ void io_schedule(void)
 /**********************************************************************/
 void wake_up_nr(wait_queue_head_t *head, int32_t count)
 {
-  uds_lock_mutex(&head->lock);
+  mutex_lock(&head->lock);
   struct list_head *entry;
   list_for_each(entry, &head->head) {
     struct task_struct *task = container_of(entry,
@@ -522,7 +522,7 @@ void wake_up_nr(wait_queue_head_t *head, int32_t count)
       }
     }
   }
-  uds_unlock_mutex(&head->lock);
+  mutex_unlock(&head->lock);
 
   broadcast();
 }
@@ -532,18 +532,18 @@ void prepare_to_wait_exclusive(wait_queue_head_t *queue,
 			       struct wait_queue_entry *entry,
 			       int state)
 {
-  uds_lock_mutex(&queue->lock);
+  mutex_lock(&queue->lock);
   list_add_tail(&entry->entry, &queue->head);
   set_current_state(state);
-  uds_unlock_mutex(&queue->lock);
+  mutex_unlock(&queue->lock);
 }
 
 /**********************************************************************/
 void finish_wait(wait_queue_head_t *queue, struct wait_queue_entry *entry)
 {
-  uds_lock_mutex(&queue->lock);
+  mutex_lock(&queue->lock);
   list_del_init(&entry->entry);
-  uds_unlock_mutex(&queue->lock);
+  mutex_unlock(&queue->lock);
 }
 
 /**********************************************************************/

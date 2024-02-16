@@ -38,10 +38,10 @@ static enum uds_index_region lastLocation;
 
 static void incrementCallbackCount(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount++;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -50,11 +50,11 @@ static void incrementCallbackCount(void)
  **/
 static void testCallback(struct uds_request *request)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount--;
   lastLocation = request->location;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -62,19 +62,19 @@ static void testCallback(struct uds_request *request)
  **/
 static void waitForCallbacks(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   while (callbackCount > 0) {
     uds_wait_cond(&callbackCond, &callbackMutex);
   }
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**********************************************************************/
 static void assertLastLocation(enum uds_index_region expectedLocation)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   CU_ASSERT_EQUAL(expectedLocation, lastLocation);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -168,7 +168,7 @@ static bool searchForCollisions(unsigned int lastHash)
 static void sparseInitSuite(struct block_device *bdev)
 {
   uds_init_cond(&callbackCond);
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
+  mutex_init(&callbackMutex);
 
   struct uds_parameters params = {
     .memory_size = 1,
@@ -236,7 +236,7 @@ static void sparseCleanSuite(void)
 #ifndef __KERNEL__
   uds_destroy_cond(&callbackCond);
 #endif  /* not __KERNEL__ */
-  UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
+  mutex_destroy(&callbackMutex);
 }
 
 /**********************************************************************/

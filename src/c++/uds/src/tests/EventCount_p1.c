@@ -126,7 +126,7 @@ static int     *mutexMessage;
 static void mutexAdder(void *arg __attribute__((unused)))
 {
   int reply;
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   for (;;) {
     // Wait for a message (an integer to increment) from the driver thread.
     while (mutexMessage == &reply) {
@@ -141,7 +141,7 @@ static void mutexAdder(void *arg __attribute__((unused)))
     mutexMessage = &reply;
     uds_signal_cond(&cond);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
@@ -149,10 +149,10 @@ static void testMutex(int messageCount)
 {
   albPrint("    mutex starting %d iterations", messageCount);
 
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&mutex));
+  mutex_init(&mutex);
   uds_init_cond(&cond);
 
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   struct thread *adderThread;
   UDS_ASSERT_SUCCESS(uds_create_thread(mutexAdder, NULL, "mutex",
                                        &adderThread));
@@ -179,7 +179,7 @@ static void testMutex(int messageCount)
   // Stop the adder thread by sending a NULL message.
   mutexMessage = NULL;
   uds_signal_cond(&cond);
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
   uds_join_threads(adderThread);
 
   char *mutexTotal, *mutexPer;
@@ -191,7 +191,7 @@ static void testMutex(int messageCount)
 #ifndef __KERNEL__
   uds_destroy_cond(&cond);
 #endif  /* not __KERNEL__ */
-  uds_destroy_mutex(&mutex);
+  mutex_destroy(&mutex);
 }
 
 /** Shared variables for spin loop test */
