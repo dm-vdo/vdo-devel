@@ -12,13 +12,13 @@
 #include "delta-index.h"
 #include "hash-utils.h"
 #include "index.h"
+#include "indexer.h"
 #include "io-factory.h"
 #include "memory-alloc.h"
 #include "murmurhash3.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
 #include "time-utils.h"
-#include "uds.h"
 
 enum {
 	KILOBYTE = 1024,

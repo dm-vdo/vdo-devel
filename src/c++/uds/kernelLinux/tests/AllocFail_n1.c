@@ -10,8 +10,8 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "indexer.h"
 #include "memory-alloc.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 

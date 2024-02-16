@@ -10,9 +10,9 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "testPrototypes.h"
-#include "uds.h"
 
 static struct uds_index_session *indexSession;
 

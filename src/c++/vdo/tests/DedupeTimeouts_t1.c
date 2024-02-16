@@ -8,7 +8,7 @@
 
 #include "albtest.h"
 
-#include "uds.h"
+#include "indexer.h"
 
 #include "dedupe.h"
 #include "statistics.h"

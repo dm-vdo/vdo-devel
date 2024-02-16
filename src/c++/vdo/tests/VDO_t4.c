@@ -8,8 +8,8 @@
 
 #include "albtest.h"
 
+#include "indexer.h"
 #include "memory-alloc.h"
-#include "uds.h"
 
 #include "dedupe.h"
 #include "slab-depot.h"

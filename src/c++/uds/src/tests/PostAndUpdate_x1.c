@@ -32,12 +32,12 @@
 #include "event-count.h"
 #include "funnel-queue.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "oldInterfaces.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "thread-utils.h"
-#include "uds.h"
 
 typedef struct {
   struct funnel_queue_entry queueEntry;

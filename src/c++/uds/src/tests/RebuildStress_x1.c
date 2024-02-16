@@ -18,11 +18,11 @@
 #include "assertions.h"
 #include "blockTestUtils.h"
 #include "dory.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "random.h"
 #include "testPrototypes.h"
 #include "thread-utils.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 

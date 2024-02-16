@@ -14,8 +14,8 @@
 #include <unistd.h>
 
 #include "errors.h"
+#include "indexer.h"
 #include "processManager.h"
-#include "uds.h"
 
 #ifndef TEST_ERROR_NAME_FUNC
 # define TEST_ERROR_NAME_FUNC uds_string_error_name

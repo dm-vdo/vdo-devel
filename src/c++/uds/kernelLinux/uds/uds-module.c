@@ -8,13 +8,13 @@
 #include "errors.h"
 #include "event-count.h"
 #include "funnel-queue.h"
+#include "indexer.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "thread-device.h"
 #include "thread-utils.h"
 #include "time-utils.h"
-#include "uds.h"
 #include "uds-sysfs.h"
 
 static int __init dedupe_init(void)

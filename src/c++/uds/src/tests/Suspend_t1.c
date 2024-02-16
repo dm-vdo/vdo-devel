@@ -9,10 +9,10 @@
 #include "assertions.h"
 #include "blockTestUtils.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 #include "thread-utils.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 static struct uds_parameters params;

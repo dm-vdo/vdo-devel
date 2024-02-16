@@ -6,7 +6,7 @@
 #ifndef BLOCK_TEST_UTILS_H
 #define BLOCK_TEST_UTILS_H
 
-#include "uds.h"
+#include "indexer.h"
 
 /**
  * Get the number of blocks in a chapter

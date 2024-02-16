@@ -14,12 +14,12 @@
 #include <linux/kobject.h>
 #include <linux/list.h>
 
+#include "indexer.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "permassert.h"
 #include "syscalls.h"
 #include "thread-utils.h"
-#include "uds.h"
 
 #include "dedupe.h"
 #include "encodings.h"

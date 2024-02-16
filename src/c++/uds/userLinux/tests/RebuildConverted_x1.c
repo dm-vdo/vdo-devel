@@ -17,9 +17,9 @@
 #include "convertToLVM.h"
 #include "dory.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
-#include "uds.h"
 
 enum {
   NUM_CHUNKS = 1000,

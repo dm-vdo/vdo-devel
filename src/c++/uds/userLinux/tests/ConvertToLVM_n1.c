@@ -16,10 +16,10 @@
 #include "convertToLVM.h"
 #include "fileUtils.h"
 #include "geometry.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 static uint64_t nameCounter = 0;

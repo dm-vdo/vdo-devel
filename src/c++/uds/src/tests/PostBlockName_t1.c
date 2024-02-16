@@ -11,9 +11,9 @@
 #include "assertions.h"
 #include "blockTestUtils.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
-#include "uds.h"
 
 enum { NEW_CHUNK_COUNT    = 101 };
 enum { REPEAT_CHUNK_COUNT = 53 };

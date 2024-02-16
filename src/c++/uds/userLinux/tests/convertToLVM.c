@@ -13,11 +13,11 @@
 #include "errors.h"
 #include "geometry.h"
 #include "index.h"
+#include "indexer.h"
 #include "index-layout.h"
 #include "index-session.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "uds.h"
 #include "volume.h"
 
 #include "convertToLVM.h"

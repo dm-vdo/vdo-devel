@@ -9,7 +9,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "uds.h"
+#include "indexer.h"
 
 static struct uds_index_session *indexSession;
 
