@@ -41,6 +41,7 @@ my @udsFiles = qw(
   /geometry\.[hc]
   /hash-utils\.h
   /index\.[hc]
+  /indexer\.h
   /index-layout\.[hc]
   /index-page-map\.[hc]
   /index-session\.[hc]
@@ -54,9 +55,8 @@ my @udsFiles = qw(
   /radix-sort\.[hc]
   /sparse-cache\.[hc]
   /string-utils\.[hc]
+  /thread-utils\.h
   /time-utils\.h
-  /uds\.h
-  /uds-threads\.h
   /volume\.[hc]
   /volume-index\.[hc]
 );
@@ -65,11 +65,10 @@ my @udsKernelFiles = qw(
   /funnel-requestqueue\.c
   /logger\.c
   /memory-alloc\.c
-  /thread-cond-var\.c
   /thread-device\.[hc]
   /thread-registry\.[hc]
+  /thread-utils\.c
   /uds-sysfs\.[hc]
-  /uds-threads\.c
 );
 
 my @upstreamFiles = qw(
