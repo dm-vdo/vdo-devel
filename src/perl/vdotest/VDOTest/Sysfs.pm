@@ -54,7 +54,7 @@ sub testSysfs {
                      5000, 4000);
 
   $self->_writeCheck(makeFullPath($sysModParmDir, "log_level"),
-		     "INFO", "DEBUG");
+		     "6", "7");
   $self->_writeCheckIfExists(makeFullPath($sysModParmDir,
 					  "max_discard_sectors"),
                              8, 64);
