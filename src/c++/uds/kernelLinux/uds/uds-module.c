@@ -19,7 +19,7 @@
 
 static int __init dedupe_init(void)
 {
-	uds_initialize_thread_device_registry();
+	vdo_initialize_thread_device_registry();
 	uds_memory_init();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 	uds_init_sysfs();
@@ -59,7 +59,6 @@ EXPORT_SYMBOL_GPL(uds_free_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_funnel_queue_poll);
 EXPORT_SYMBOL_GPL(uds_get_log_level);
 EXPORT_SYMBOL_GPL(uds_get_memory_stats);
-EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(uds_log_backtrace);
 EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
@@ -68,14 +67,14 @@ EXPORT_SYMBOL_GPL(uds_make_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_reallocate_memory);
 EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
-EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_report_memory_usage);
 EXPORT_SYMBOL_GPL(uds_set_log_level);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
 EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
-EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
 EXPORT_SYMBOL_GPL(vdo_perform_once);
+EXPORT_SYMBOL_GPL(vdo_register_thread_device_id);
+EXPORT_SYMBOL_GPL(vdo_unregister_thread_device_id);
 
 #ifdef TEST_INTERNAL
 #include "chapter-index.h"
