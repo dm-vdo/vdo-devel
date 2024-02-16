@@ -160,7 +160,7 @@ static void init_logger(void)
  **/
 void open_uds_logger(void)
 {
-	uds_perform_once(&logger_once, init_logger);
+	vdo_perform_once(&logger_once, init_logger);
 }
 
 /**********************************************************************/

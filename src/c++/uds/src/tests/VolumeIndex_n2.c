@@ -375,17 +375,17 @@ static void testParallel(unsigned int numZones, bool sparse)
                                            "parallel%d", z));
       threadmi[z].testmi = testmi;
       threadmi[z].zone   = z;
-      UDS_ASSERT_SUCCESS(uds_create_thread(threadParallel, &threadmi[z],
+      UDS_ASSERT_SUCCESS(vdo_create_thread(threadParallel, &threadmi[z],
                                            nameBuf, &threadmi[z].thread));
     }
     // Launch another thread to lookup names in parallel
     struct thread *lookupThread;
-    UDS_ASSERT_SUCCESS(uds_create_thread(threadLookup, testmi, "lookup",
+    UDS_ASSERT_SUCCESS(vdo_create_thread(threadLookup, testmi, "lookup",
                                          &lookupThread));
     // Join the threads
-    UDS_ASSERT_SUCCESS(uds_join_threads(lookupThread));
+    vdo_join_threads(lookupThread);
     for (z = 0; z < numZones; z++) {
-      UDS_ASSERT_SUCCESS(uds_join_threads(threadmi[z].thread));
+      vdo_join_threads(threadmi[z].thread);
     }
     saveVolumeIndex(threadmi->testmi);
 

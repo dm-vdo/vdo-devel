@@ -76,7 +76,7 @@ static void testEventCount(int messageCount)
   UDS_ASSERT_SUCCESS(make_event_count(&eventCount));
 
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(ecAdder, NULL, "eventCount",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(ecAdder, NULL, "eventCount",
                                        &adderThread));
 
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
@@ -106,7 +106,7 @@ static void testEventCount(int messageCount)
   // Stop the adder thread by sending a NULL message.
   ecMessage = NULL;
   event_count_broadcast(eventCount);
-  uds_join_threads(adderThread);
+  vdo_join_threads(adderThread);
 
   char *ecTotal, *ecPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&ecTotal, ecTime));
@@ -154,7 +154,7 @@ static void testMutex(int messageCount)
 
   mutex_lock(&mutex);
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(mutexAdder, NULL, "mutex",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(mutexAdder, NULL, "mutex",
                                        &adderThread));
 
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
@@ -180,7 +180,7 @@ static void testMutex(int messageCount)
   mutexMessage = NULL;
   uds_signal_cond(&cond);
   mutex_unlock(&mutex);
-  uds_join_threads(adderThread);
+  vdo_join_threads(adderThread);
 
   char *mutexTotal, *mutexPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexTotal, mutexTime));
@@ -229,7 +229,7 @@ static void testSpinLoop(int messageCount)
   UDS_ASSERT_SUCCESS(make_event_count(&eventCount));
 
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(spinAdder, NULL, "spin", &adderThread));
+  UDS_ASSERT_SUCCESS(vdo_create_thread(spinAdder, NULL, "spin", &adderThread));
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
 
   int x;
@@ -250,7 +250,7 @@ static void testSpinLoop(int messageCount)
 
   // Stop the adder thread by sending a NULL message.
   spinMessage = NULL;
-  uds_join_threads(adderThread);
+  vdo_join_threads(adderThread);
 
   char *spinTotal, *spinPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&spinTotal, spinTime));

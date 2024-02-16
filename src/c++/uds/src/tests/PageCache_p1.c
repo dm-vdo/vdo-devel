@@ -119,11 +119,11 @@ static void testOptimalMT(unsigned int numThreads)
     args[i].totalThreads = numThreads;
     args[i].percentageHits = 100;
 
-    UDS_ASSERT_SUCCESS(uds_create_thread(testOptimalGuts, &args[i], nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(testOptimalGuts, &args[i], nameBuf,
                                          &threads[i]));
   }
   for (i = 0; i < numThreads; ++i) {
-    uds_join_threads(threads[i]);
+    vdo_join_threads(threads[i]);
   }
   ktime_t loopElapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), loopStart);
   report(loopElapsed, LOTS);
@@ -186,11 +186,11 @@ static void testLRUOnlyMT(unsigned int numThreads)
     args[i].threadNum = i;
     args[i].totalThreads = numThreads;
     args[i].percentageHits = 100;
-    UDS_ASSERT_SUCCESS(uds_create_thread(testLRUOnlyGuts, &args[i], nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(testLRUOnlyGuts, &args[i], nameBuf,
                                          &threads[i]));
   }
   for (i = 0; i < numThreads; ++i) {
-    uds_join_threads(threads[i]);
+    vdo_join_threads(threads[i]);
   }
   ktime_t loopElapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), loopStart);
   report(loopElapsed, LOTS);
@@ -270,11 +270,11 @@ static void testMixedMT(unsigned int numThreads, int percentageHits)
     args[i].totalThreads = numThreads;
     args[i].percentageHits = percentageHits;
     globalCounter += LOTS;
-    UDS_ASSERT_SUCCESS(uds_create_thread(testMixedGuts, &args[i], nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(testMixedGuts, &args[i], nameBuf,
                                          &threads[i]));
   }
   for (i = 0; i < numThreads; ++i) {
-    uds_join_threads(threads[i]);
+    vdo_join_threads(threads[i]);
   }
   ktime_t loopElapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), loopStart);
   report(loopElapsed, LOTS);

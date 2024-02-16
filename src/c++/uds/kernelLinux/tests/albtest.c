@@ -452,9 +452,9 @@ TestResult runTest(const CU_SuiteInfo *suite, const CU_TestInfo *test)
   albPrint("  %s...", test->name);
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
   struct thread *thread;
-  int retval = uds_create_thread(testThread, &ttd, "zub:runtest", &thread);
+  int retval = vdo_create_thread(testThread, &ttd, "zub:runtest", &thread);
   if (retval == UDS_SUCCESS) {
-    uds_join_threads(thread);
+    vdo_join_threads(thread);
   } else {
     uds_log_error_strerror(retval, "creating test thread");
     result.failures = 1;

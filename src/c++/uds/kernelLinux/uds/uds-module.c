@@ -67,7 +67,6 @@ EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
 EXPORT_SYMBOL_GPL(uds_log_string_to_priority);
 EXPORT_SYMBOL_GPL(uds_lookup_thread);
 EXPORT_SYMBOL_GPL(uds_make_funnel_queue);
-EXPORT_SYMBOL_GPL(uds_perform_once);
 EXPORT_SYMBOL_GPL(uds_reallocate_memory);
 EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
@@ -80,6 +79,7 @@ EXPORT_SYMBOL_GPL(uds_string_error_name);
 EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread);
 EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
+EXPORT_SYMBOL_GPL(vdo_perform_once);
 
 #ifdef TEST_INTERNAL
 #include "chapter-index.h"
@@ -148,7 +148,6 @@ EXPORT_SYMBOL_GPL(uds_compute_delta_index_save_bytes);
 EXPORT_SYMBOL_GPL(uds_compute_index_page_map_save_size);
 EXPORT_SYMBOL_GPL(uds_compute_saved_open_chapter_size);
 EXPORT_SYMBOL_GPL(uds_compute_volume_index_save_blocks);
-EXPORT_SYMBOL_GPL(uds_create_thread);
 EXPORT_SYMBOL_GPL(uds_discard_open_chapter);
 EXPORT_SYMBOL_GPL(uds_empty_open_chapter_index);
 EXPORT_SYMBOL_GPL(uds_enqueue_request);
@@ -185,7 +184,6 @@ EXPORT_SYMBOL_GPL(uds_initialize_delta_index);
 EXPORT_SYMBOL_GPL(uds_invalidate_sparse_cache);
 EXPORT_SYMBOL_GPL(uds_is_chapter_sparse);
 EXPORT_SYMBOL_GPL(uds_is_volume_index_sample);
-EXPORT_SYMBOL_GPL(uds_join_threads);
 EXPORT_SYMBOL_GPL(uds_load_open_chapter);
 EXPORT_SYMBOL_GPL(uds_load_volume_index);
 EXPORT_SYMBOL_GPL(uds_log_embedded_message);
@@ -247,6 +245,8 @@ EXPORT_SYMBOL_GPL(uds_write_guard_delta_list);
 EXPORT_SYMBOL_GPL(uds_write_index_page_map);
 EXPORT_SYMBOL_GPL(uds_write_to_buffered_writer);
 EXPORT_SYMBOL_GPL(uninitialize_page_cache);
+EXPORT_SYMBOL_GPL(vdo_create_thread);
+EXPORT_SYMBOL_GPL(vdo_join_threads);
 #endif /* TEST_INTERNAL */
 
 

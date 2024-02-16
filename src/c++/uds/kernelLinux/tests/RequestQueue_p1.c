@@ -484,14 +484,14 @@ static void testQuadTime(const char *label,
     td[i].sections  = 4;
     td[i].producer  = producer;
     td[i].qb        = qb;
-    UDS_ASSERT_SUCCESS(uds_create_thread(producerThread, &td[i], "producer",
+    UDS_ASSERT_SUCCESS(vdo_create_thread(producerThread, &td[i], "producer",
                                          &td[i].id));
   }
   consumer(qb);
   ktime_t quadTime = ktime_sub(current_time_ns(CLOCK_REALTIME), startTime);
   reportTime(label, "quad", quadTime, qb->count);
   for (i = 0; i < 4; i++) {
-    uds_join_threads(td[i].id);
+    vdo_join_threads(td[i].id);
   }
   freeBatch(qb);
 }

@@ -129,7 +129,7 @@ static void testOneProducer(void)
 
   // Start a single thread to generate ITERATIONS queue Entry instances.
   struct thread *producer;
-  UDS_ASSERT_SUCCESS(uds_create_thread(enqueueLoop, queue, "producer",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(enqueueLoop, queue, "producer",
                                        &producer));
 
   // Consume the entries, which should be in numeric order since there's
@@ -141,7 +141,7 @@ static void testOneProducer(void)
     uds_free(entry);
   }
 
-  uds_join_threads(producer);
+  vdo_join_threads(producer);
 
   // There mustn't be any excess entries on the queue.
   CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(queue));
@@ -166,7 +166,7 @@ static void testTenProducers(void)
     char nameBuf[100];
     UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                          "producer%d", i));
-    UDS_ASSERT_SUCCESS(uds_create_thread(enqueueLoop, queue, nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(enqueueLoop, queue, nameBuf,
                                          &producers[i]));
   }
 
@@ -189,7 +189,7 @@ static void testTenProducers(void)
   uds_free(seen);
 
   for (i = 0; i < PRODUCER_COUNT; i++) {
-    uds_join_threads(producers[i]);
+    vdo_join_threads(producers[i]);
   }
 
   // There mustn't be any excess entries on the queue.

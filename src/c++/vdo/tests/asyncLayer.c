@@ -360,7 +360,7 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   assertOnTestThread();
 
   asyncLayer->running = true;
-  VDO_ASSERT_SUCCESS(uds_create_thread(processBIOs,
+  VDO_ASSERT_SUCCESS(vdo_create_thread(processBIOs,
                                        asyncLayer,
                                        "bio processor",
                                        &asyncLayer->bioThread));
@@ -437,7 +437,7 @@ void stopAsyncLayer(void)
       asyncLayer->running = false;
       uds_broadcast_cond(&asyncLayer->condition);
       mutex_unlock(&asyncLayer->mutex);
-      uds_join_threads(asyncLayer->bioThread);
+      vdo_join_threads(asyncLayer->bioThread);
     }
     fallthrough;
 

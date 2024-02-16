@@ -179,7 +179,7 @@ static void testInvalidateChapter(void)
   volume->read_threads_stopped = true;
 
   struct thread *thread;
-  int result = uds_create_thread(readPageThread, request, "readpage", &thread);
+  int result = vdo_create_thread(readPageThread, request, "readpage", &thread);
   UDS_ASSERT_SUCCESS(result);
 
   UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_request, __func__, &request2));
@@ -200,7 +200,7 @@ static void testInvalidateChapter(void)
 
   // Add some more stuff to make sure the library hasn't been disabled.
   fillOpenChapter(config->geometry->chapters_per_volume, 1);
-  UDS_ASSERT_SUCCESS(uds_join_threads(thread));
+  vdo_join_threads(thread);
 
   uds_free(request);
   uds_free(request2);

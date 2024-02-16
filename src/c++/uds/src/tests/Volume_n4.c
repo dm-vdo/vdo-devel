@@ -488,17 +488,17 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   for (i = 0; i < numAsyncIndexThreads; i++) {
     char nameBuf[100];
     UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf), "asyncIndex%d", i));
-    result = uds_create_thread(indexThreadAsync, &args[i], nameBuf, &threads[i]);
+    result = vdo_create_thread(indexThreadAsync, &args[i], nameBuf, &threads[i]);
     UDS_ASSERT_SUCCESS(result);
   }
 
-  result = uds_create_thread(invalidatePageThread, NULL, "invalidPage", &threads[i++]);
+  result = vdo_create_thread(invalidatePageThread, NULL, "invalidPage", &threads[i++]);
   UDS_ASSERT_SUCCESS(result);
 
   CU_ASSERT_EQUAL(i, numThreads);
 
   for (i = 0; i < numThreads; ++i) {
-    uds_join_threads(threads[i]);
+    vdo_join_threads(threads[i]);
   }
 
   mutex_lock(&numRequestsMutex);

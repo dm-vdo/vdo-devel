@@ -108,12 +108,12 @@ static void testPartialWrites(void)
    */
   sectors = blocks * VDO_SECTORS_PER_BLOCK;
   generateData(blocks);
-  VDO_ASSERT_SUCCESS(uds_create_thread(doOddWrites,
+  VDO_ASSERT_SUCCESS(vdo_create_thread(doOddWrites,
                                        NULL,
                                        "oddWriter",
                                        &oddThread));
   doPartialWrites(0, sectors / 2, VDO_SUCCESS);
-  VDO_ASSERT_SUCCESS(uds_join_threads(oddThread));
+  vdo_join_threads(oddThread);
 
   char *buffer;
   VDO_ASSERT_SUCCESS(uds_allocate(blocks * VDO_BLOCK_SIZE,

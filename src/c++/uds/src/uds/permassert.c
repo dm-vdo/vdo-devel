@@ -47,7 +47,7 @@ bool set_exit_on_assertion_failure(bool should_exit)
 {
 	bool previous_setting;
 
-	uds_perform_once(&init_once, initialize);
+	vdo_perform_once(&init_once, initialize);
 	uds_lock_mutex(&mutex);
 	previous_setting = exit_on_assertion_failure;
 	exit_on_assertion_failure = should_exit;
@@ -69,7 +69,7 @@ int uds_assertion_failed(const char *expression_string, const char *file_name,
 	uds_log_backtrace(UDS_LOG_ERR);
 
 #ifndef __KERNEL__
-	uds_perform_once(&init_once, initialize);
+	vdo_perform_once(&init_once, initialize);
 	uds_lock_mutex(&mutex);
 	if (exit_on_assertion_failure) {
 		__assert_fail(expression_string, file_name, line_number,

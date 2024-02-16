@@ -343,11 +343,11 @@ static void runMultiTest(int testDivisor)
     };
     ti[i].parameters = params;
     randomizeUdsNonce(&ti[i].parameters);
-    UDS_ASSERT_SUCCESS(uds_create_thread(multiTestWorker, &ti[i], "BNn2",
+    UDS_ASSERT_SUCCESS(vdo_create_thread(multiTestWorker, &ti[i], "BNn2",
                                          &threads[i]));
   }
   for (i = 0; i < INDEX_COUNT; i++) {
-    UDS_ASSERT_SUCCESS(uds_join_threads(threads[i]));
+    vdo_join_threads(threads[i]);
     putTestBlockDevice(testDevices[i]);
   }
 }

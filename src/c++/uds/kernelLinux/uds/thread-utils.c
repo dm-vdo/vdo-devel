@@ -143,7 +143,7 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 {
 	struct thread *thread;
 
-	uds_perform_once(&thread_once, thread_init);
+	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links)
 		apply_function(argument, thread->thread_task);
@@ -155,7 +155,7 @@ void uds_thread_exit(void)
 	struct thread *thread;
 	struct completion *completion = NULL;
 
-	uds_perform_once(&thread_once, thread_init);
+	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links) {
 		if (thread->thread_task == current) {
