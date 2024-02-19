@@ -16,7 +16,7 @@
 #include "assertions.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 enum {
   READ         = 0,
@@ -31,7 +31,7 @@ static struct mutex  childMutex = UDS_MUTEX_INITIALIZER;
 /**********************************************************************/
 pid_t forkChild(void)
 {
-  uds_lock_mutex(&childMutex);
+  mutex_lock(&childMutex);
   //  pid_t pid = (killing ? -1 : fork());
   pid_t pid = fork();
   if (pid == 0) {
@@ -49,7 +49,7 @@ pid_t forkChild(void)
     children = newChildren;
     children[childCount++] = pid;
   }
-  uds_unlock_mutex(&childMutex);
+  mutex_unlock(&childMutex);
   return pid;
 }
 
@@ -96,7 +96,7 @@ FILE *openProcessPipe(const char *command, pid_t *pidPtr)
 /**********************************************************************/
 int getStatus(pid_t pid)
 {
-  uds_lock_mutex(&childMutex);
+  mutex_lock(&childMutex);
   int status;
   waitpid(pid, &status, 0);
   for (unsigned int i = 0; i < childCount; i++) {
@@ -105,7 +105,7 @@ int getStatus(pid_t pid)
       break;
     }
   }
-  uds_unlock_mutex(&childMutex);
+  mutex_unlock(&childMutex);
   return status;
 }
 
@@ -118,7 +118,7 @@ void expectStatus(pid_t pid, int expectedStatus)
 /**********************************************************************/
 void killChildren(void)
 {
-  uds_lock_mutex(&childMutex);
+  mutex_lock(&childMutex);
   //  killing = true;
   for (unsigned int i = 0; i < childCount; i++) {
     if (children[i] == IGNORE_CHILD) {
@@ -132,5 +132,5 @@ void killChildren(void)
   free(children);
   children = NULL;
   childCount = 0;
-  uds_unlock_mutex(&childMutex);
+  mutex_unlock(&childMutex);
 }

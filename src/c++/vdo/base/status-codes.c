@@ -12,7 +12,7 @@
 #include "errors.h"
 #include "logger.h"
 #include "permassert.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 const struct error_info vdo_status_list[] = {
 	{ "VDO_NOT_IMPLEMENTED", "Not implemented" },
@@ -86,7 +86,7 @@ static void do_status_code_registration(void)
  */
 int vdo_register_status_codes(void)
 {
-	uds_perform_once(&vdo_status_codes_registered, do_status_code_registration);
+	vdo_perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
 }
 

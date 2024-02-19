@@ -11,7 +11,7 @@
 #include "fileUtils.h"
 #include "logger.h"
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 /*
  * This fake client does not actually do any type of sophisticated buffering.

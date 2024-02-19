@@ -25,8 +25,8 @@
 #include "assertions.h"
 #include "event-count.h"
 #include "memory-alloc.h"
-#include "uds-threads.h"
 #include "testPrototypes.h"
+#include "thread-utils.h"
 #include "time-utils.h"
 
 /** Shared variables for event count test */
@@ -76,7 +76,7 @@ static void testEventCount(int messageCount)
   UDS_ASSERT_SUCCESS(make_event_count(&eventCount));
 
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(ecAdder, NULL, "eventCount",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(ecAdder, NULL, "eventCount",
                                        &adderThread));
 
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
@@ -106,7 +106,7 @@ static void testEventCount(int messageCount)
   // Stop the adder thread by sending a NULL message.
   ecMessage = NULL;
   event_count_broadcast(eventCount);
-  uds_join_threads(adderThread);
+  vdo_join_threads(adderThread);
 
   char *ecTotal, *ecPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&ecTotal, ecTime));
@@ -126,7 +126,7 @@ static int     *mutexMessage;
 static void mutexAdder(void *arg __attribute__((unused)))
 {
   int reply;
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   for (;;) {
     // Wait for a message (an integer to increment) from the driver thread.
     while (mutexMessage == &reply) {
@@ -141,7 +141,7 @@ static void mutexAdder(void *arg __attribute__((unused)))
     mutexMessage = &reply;
     uds_signal_cond(&cond);
   }
-  uds_unlock_mutex(&mutex);
+  mutex_unlock(&mutex);
 }
 
 /**********************************************************************/
@@ -149,12 +149,12 @@ static void testMutex(int messageCount)
 {
   albPrint("    mutex starting %d iterations", messageCount);
 
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&mutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&cond));
+  mutex_init(&mutex);
+  uds_init_cond(&cond);
 
-  uds_lock_mutex(&mutex);
+  mutex_lock(&mutex);
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(mutexAdder, NULL, "mutex",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(mutexAdder, NULL, "mutex",
                                        &adderThread));
 
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
@@ -179,8 +179,8 @@ static void testMutex(int messageCount)
   // Stop the adder thread by sending a NULL message.
   mutexMessage = NULL;
   uds_signal_cond(&cond);
-  uds_unlock_mutex(&mutex);
-  uds_join_threads(adderThread);
+  mutex_unlock(&mutex);
+  vdo_join_threads(adderThread);
 
   char *mutexTotal, *mutexPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexTotal, mutexTime));
@@ -188,8 +188,10 @@ static void testMutex(int messageCount)
   albPrint("    mutex %s, %s/increment", mutexTotal, mutexPer);
   uds_free(mutexTotal);
   uds_free(mutexPer);
+#ifndef __KERNEL__
   uds_destroy_cond(&cond);
-  uds_destroy_mutex(&mutex);
+#endif  /* not __KERNEL__ */
+  mutex_destroy(&mutex);
 }
 
 /** Shared variables for spin loop test */
@@ -227,7 +229,7 @@ static void testSpinLoop(int messageCount)
   UDS_ASSERT_SUCCESS(make_event_count(&eventCount));
 
   struct thread *adderThread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(spinAdder, NULL, "spin", &adderThread));
+  UDS_ASSERT_SUCCESS(vdo_create_thread(spinAdder, NULL, "spin", &adderThread));
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
 
   int x;
@@ -248,7 +250,7 @@ static void testSpinLoop(int messageCount)
 
   // Stop the adder thread by sending a NULL message.
   spinMessage = NULL;
-  uds_join_threads(adderThread);
+  vdo_join_threads(adderThread);
 
   char *spinTotal, *spinPer;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&spinTotal, spinTime));

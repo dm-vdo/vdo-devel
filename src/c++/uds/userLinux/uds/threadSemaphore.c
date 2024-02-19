@@ -7,7 +7,7 @@
 
 #include "logger.h"
 #include "permassert.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "time-utils.h"
 
 /**********************************************************************/

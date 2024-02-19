@@ -6,8 +6,8 @@
 #include "albtest.h"
 #include "assertions.h"
 #include "blockTestUtils.h"
+#include "indexer.h"
 #include "testPrototypes.h"
-#include "uds.h"
 
 static struct block_device *firstDevice;
 static struct block_device *secondDevice;

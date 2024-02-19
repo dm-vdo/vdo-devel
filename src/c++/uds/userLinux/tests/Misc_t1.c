@@ -11,10 +11,10 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "random.h"
 #include "string-utils.h"
-#include "uds.h"
 
 /*
  * If we're compiled without _GNU_SOURCE, we get a version of

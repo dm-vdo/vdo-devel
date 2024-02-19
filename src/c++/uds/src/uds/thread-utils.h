@@ -3,40 +3,33 @@
  * Copyright 2023 Red Hat
  */
 
-#ifndef UDS_THREADS_H
-#define UDS_THREADS_H
+#ifndef THREAD_UTILS_H
+#define THREAD_UTILS_H
 
 #include <linux/atomic.h>
 #ifdef __KERNEL__
+#ifdef TEST_INTERNAL
 #include <linux/delay.h>
-#include <linux/jiffies.h>
-#include <linux/mutex.h>
 #include <linux/semaphore.h>
-#include <linux/wait.h>
+#endif /* TEST_INTERNAL */
 #else
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
 #include <stdbool.h>
-#endif
+#endif /* __KERNEL__ */
+#if !(defined __KERNEL__) || defined(TEST_INTERNAL)
 
 #include "errors.h"
 #include "time-utils.h"
+#endif
 
-/* Thread and synchronization utilities for UDS */
+/* Thread and synchronization utilities */
 
 #ifdef __KERNEL__
-struct cond_var {
-	wait_queue_head_t wait_queue;
-};
-
 struct thread;
 
 #else
-struct cond_var {
-	pthread_cond_t condition;
-};
-
 struct mutex {
 	pthread_mutex_t mutex;
 };
@@ -65,24 +58,14 @@ unsigned int num_online_cpus(void);
 pid_t __must_check uds_get_thread_id(void);
 #endif
 
-int __must_check uds_create_thread(void (*thread_function)(void *), void *thread_data,
+int __must_check vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 				   const char *name, struct thread **new_thread);
+void vdo_join_threads(struct thread *thread);
 
-void uds_perform_once(atomic_t *once_state, void (*function) (void));
-
-int uds_join_threads(struct thread *thread);
-
-int __must_check uds_init_cond(struct cond_var *cond);
-int uds_signal_cond(struct cond_var *cond);
-int uds_broadcast_cond(struct cond_var *cond);
-int uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
-#ifdef TEST_INTERNAL
-int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
-#endif  /* TEST_INTERNAL */
-int uds_destroy_cond(struct cond_var *cond);
-
+void vdo_perform_once(atomic_t *once_state, void (*function) (void));
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
+
 /* Apply a function to every thread that we have created. */
 void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 			  void *argument);
@@ -90,29 +73,6 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 /* This is a unit-test alternative to using BUG() or BUG_ON(). */
 __attribute__((noreturn)) void uds_thread_exit(void);
 
-#endif  /* TEST_INTERNAL */
-static inline int __must_check uds_init_mutex(struct mutex *mutex)
-{
-	mutex_init(mutex);
-	return UDS_SUCCESS;
-}
-
-static inline int uds_destroy_mutex(struct mutex *mutex)
-{
-	return UDS_SUCCESS;
-}
-
-static inline void uds_lock_mutex(struct mutex *mutex)
-{
-	mutex_lock(mutex);
-}
-
-static inline void uds_unlock_mutex(struct mutex *mutex)
-{
-	mutex_unlock(mutex);
-}
-
-#ifdef TEST_INTERNAL
 static inline int __must_check uds_initialize_semaphore(struct semaphore *semaphore,
 							unsigned int value)
 {
@@ -164,6 +124,7 @@ static inline void uds_release_semaphore(struct semaphore *semaphore)
 }
 #endif  /* TEST_INTERNAL */
 #else
+
 void uds_get_thread_name(char *name);
 
 static inline void cond_resched(void)

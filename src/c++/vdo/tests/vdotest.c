@@ -25,7 +25,6 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <uds-threads.h>
 #include <unistd.h>
 
 #include "assertions.h"
@@ -37,6 +36,7 @@
 #include "string-utils.h"
 #include "testPrototypes.h"
 #include "testUtils.h"
+#include "thread-utils.h"
 
 #include "dump.h"
 #include "vdoTestBase.h"

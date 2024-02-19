@@ -19,10 +19,10 @@ static enum uds_index_region      lastLocation;
 /**********************************************************************/
 static void incrementCallbackCount(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount++;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -31,11 +31,11 @@ static void incrementCallbackCount(void)
  **/
 static void testCallback(struct uds_request *request)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount--;
   lastLocation = request->location;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -43,19 +43,19 @@ static void testCallback(struct uds_request *request)
  **/
 static void waitForCallbacks(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   while (callbackCount > 0) {
     uds_wait_cond(&callbackCond, &callbackMutex);
   }
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**********************************************************************/
 static void assertLastLocation(enum uds_index_region expectedLocation)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   CU_ASSERT_EQUAL(expectedLocation, lastLocation);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**********************************************************************/
@@ -70,8 +70,8 @@ static void cleanupIndex(void)
  **/
 static void init(struct block_device *bdev)
 {
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
+  mutex_init(&callbackMutex);
+  uds_init_cond(&callbackCond);
 
   struct uds_parameters params = {
     .memory_size = UDS_MEMORY_CONFIG_256MB,
@@ -90,8 +90,10 @@ static void deinit(void)
 {
   cleanupIndex();
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
+  mutex_destroy(&callbackMutex);
+#ifndef __KERNEL__
+  uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
 }
 
 /**********************************************************************/
@@ -177,7 +179,7 @@ static void testInvalidateChapter(void)
   volume->read_threads_stopped = true;
 
   struct thread *thread;
-  int result = uds_create_thread(readPageThread, request, "readpage", &thread);
+  int result = vdo_create_thread(readPageThread, request, "readpage", &thread);
   UDS_ASSERT_SUCCESS(result);
 
   UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_request, __func__, &request2));
@@ -198,7 +200,7 @@ static void testInvalidateChapter(void)
 
   // Add some more stuff to make sure the library hasn't been disabled.
   fillOpenChapter(config->geometry->chapters_per_volume, 1);
-  UDS_ASSERT_SUCCESS(uds_join_threads(thread));
+  vdo_join_threads(thread);
 
   uds_free(request);
   uds_free(request2);

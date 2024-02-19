@@ -8,18 +8,18 @@
 #include "errors.h"
 #include "event-count.h"
 #include "funnel-queue.h"
+#include "indexer.h"
 #include "logger.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
 #include "thread-device.h"
+#include "thread-utils.h"
 #include "time-utils.h"
-#include "uds.h"
 #include "uds-sysfs.h"
-#include "uds-threads.h"
 
 static int __init dedupe_init(void)
 {
-	uds_initialize_thread_device_registry();
+	vdo_initialize_thread_device_registry();
 	uds_memory_init();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 	uds_init_sysfs();
@@ -59,27 +59,22 @@ EXPORT_SYMBOL_GPL(uds_free_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_funnel_queue_poll);
 EXPORT_SYMBOL_GPL(uds_get_log_level);
 EXPORT_SYMBOL_GPL(uds_get_memory_stats);
-EXPORT_SYMBOL_GPL(uds_get_thread_device_id);
-EXPORT_SYMBOL_GPL(uds_initialize_thread_registry);
 EXPORT_SYMBOL_GPL(uds_is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(uds_log_backtrace);
 EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
 EXPORT_SYMBOL_GPL(uds_log_string_to_priority);
-EXPORT_SYMBOL_GPL(uds_lookup_thread);
 EXPORT_SYMBOL_GPL(uds_make_funnel_queue);
-EXPORT_SYMBOL_GPL(uds_perform_once);
 EXPORT_SYMBOL_GPL(uds_reallocate_memory);
 EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
-EXPORT_SYMBOL_GPL(uds_register_thread);
-EXPORT_SYMBOL_GPL(uds_register_thread_device_id);
 EXPORT_SYMBOL_GPL(uds_report_memory_usage);
 EXPORT_SYMBOL_GPL(uds_set_log_level);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
 EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
-EXPORT_SYMBOL_GPL(uds_unregister_thread);
-EXPORT_SYMBOL_GPL(uds_unregister_thread_device_id);
+EXPORT_SYMBOL_GPL(vdo_perform_once);
+EXPORT_SYMBOL_GPL(vdo_register_thread_device_id);
+EXPORT_SYMBOL_GPL(vdo_unregister_thread_device_id);
 
 #ifdef TEST_INTERNAL
 #include "chapter-index.h"
@@ -143,14 +138,11 @@ EXPORT_SYMBOL_GPL(uds_alloc_sprintf);
 EXPORT_SYMBOL_GPL(uds_allocate_memory_counter);
 EXPORT_SYMBOL_GPL(uds_allocation_error_injection);
 EXPORT_SYMBOL_GPL(uds_apply_to_threads);
-EXPORT_SYMBOL_GPL(uds_broadcast_cond);
 EXPORT_SYMBOL_GPL(uds_close_open_chapter);
 EXPORT_SYMBOL_GPL(uds_compute_delta_index_save_bytes);
 EXPORT_SYMBOL_GPL(uds_compute_index_page_map_save_size);
 EXPORT_SYMBOL_GPL(uds_compute_saved_open_chapter_size);
 EXPORT_SYMBOL_GPL(uds_compute_volume_index_save_blocks);
-EXPORT_SYMBOL_GPL(uds_create_thread);
-EXPORT_SYMBOL_GPL(uds_destroy_cond);
 EXPORT_SYMBOL_GPL(uds_discard_open_chapter);
 EXPORT_SYMBOL_GPL(uds_empty_open_chapter_index);
 EXPORT_SYMBOL_GPL(uds_enqueue_request);
@@ -182,13 +174,11 @@ EXPORT_SYMBOL_GPL(uds_get_volume_index_stats);
 EXPORT_SYMBOL_GPL(uds_get_volume_index_zone);
 EXPORT_SYMBOL_GPL(uds_get_volume_record_page);
 EXPORT_SYMBOL_GPL(uds_has_sparse_chapters);
-EXPORT_SYMBOL_GPL(uds_init_cond);
 EXPORT_SYMBOL_GPL(uds_initialize_chapter_index_page);
 EXPORT_SYMBOL_GPL(uds_initialize_delta_index);
 EXPORT_SYMBOL_GPL(uds_invalidate_sparse_cache);
 EXPORT_SYMBOL_GPL(uds_is_chapter_sparse);
 EXPORT_SYMBOL_GPL(uds_is_volume_index_sample);
-EXPORT_SYMBOL_GPL(uds_join_threads);
 EXPORT_SYMBOL_GPL(uds_load_open_chapter);
 EXPORT_SYMBOL_GPL(uds_load_volume_index);
 EXPORT_SYMBOL_GPL(uds_log_embedded_message);
@@ -235,7 +225,6 @@ EXPORT_SYMBOL_GPL(uds_set_delta_entry_value);
 EXPORT_SYMBOL_GPL(uds_set_volume_index_open_chapter);
 EXPORT_SYMBOL_GPL(uds_set_volume_index_record_chapter);
 EXPORT_SYMBOL_GPL(uds_set_volume_index_zone_open_chapter);
-EXPORT_SYMBOL_GPL(uds_signal_cond);
 EXPORT_SYMBOL_GPL(uds_start_delta_index_search);
 EXPORT_SYMBOL_GPL(uds_start_restoring_delta_index);
 EXPORT_SYMBOL_GPL(uds_start_saving_delta_index);
@@ -251,6 +240,8 @@ EXPORT_SYMBOL_GPL(uds_write_guard_delta_list);
 EXPORT_SYMBOL_GPL(uds_write_index_page_map);
 EXPORT_SYMBOL_GPL(uds_write_to_buffered_writer);
 EXPORT_SYMBOL_GPL(uninitialize_page_cache);
+EXPORT_SYMBOL_GPL(vdo_create_thread);
+EXPORT_SYMBOL_GPL(vdo_join_threads);
 #endif /* TEST_INTERNAL */
 
 

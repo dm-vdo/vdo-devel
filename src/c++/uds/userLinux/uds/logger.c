@@ -13,7 +13,7 @@
 #include "fileUtils.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 typedef struct {
 	const char *name;
@@ -160,7 +160,7 @@ static void init_logger(void)
  **/
 void open_uds_logger(void)
 {
-	uds_perform_once(&logger_once, init_logger);
+	vdo_perform_once(&logger_once, init_logger);
 }
 
 /**********************************************************************/

@@ -156,11 +156,11 @@ static void createAndFill(unsigned int numZones)
                                          "adder%d", z));
     ta[z].count = chunkCount;
     ta[z].zone = z;
-    UDS_ASSERT_SUCCESS(uds_create_thread(threadAdd, &ta[z], nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(threadAdd, &ta[z], nameBuf,
                                          &ta[z].thread));
   }
   for (unsigned int z = 0; z < numZones; z++) {
-    UDS_ASSERT_SUCCESS(uds_join_threads(ta[z].thread));
+    vdo_join_threads(ta[z].thread);
   }
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
   nameCounter += chunkCount;
@@ -191,11 +191,11 @@ static ktime_t steady(unsigned int numZones)
                                          "adder%d", z));
     ta[z].count = chunkCount;
     ta[z].zone = z;
-    UDS_ASSERT_SUCCESS(uds_create_thread(threadAdd, &ta[z], nameBuf,
+    UDS_ASSERT_SUCCESS(vdo_create_thread(threadAdd, &ta[z], nameBuf,
                                          &ta[z].thread));
   }
   for (unsigned int z = 0; z < numZones; z++) {
-    UDS_ASSERT_SUCCESS(uds_join_threads(ta[z].thread));
+    vdo_join_threads(ta[z].thread);
   }
   ktime_t elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
 

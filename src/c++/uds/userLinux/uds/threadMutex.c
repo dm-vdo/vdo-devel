@@ -8,7 +8,7 @@
 
 #include "permassert.h"
 #include "string-utils.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 static enum mutex_kind {
 	fast_adaptive,
@@ -48,7 +48,7 @@ static enum mutex_kind get_mutex_kind(void)
 {
 	static atomic_t once_state = ATOMIC_INIT(0);
 
-	uds_perform_once(&once_state, initialize_mutex_kind);
+	vdo_perform_once(&once_state, initialize_mutex_kind);
 	return hidden_mutex_kind;
 }
 

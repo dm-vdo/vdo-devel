@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "resourceUsage.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 /**
  * Thread statistics as gathered from task_struct

@@ -14,7 +14,7 @@
 #include "memory-alloc.h"
 #include "minisyslog.h"
 #include "string-utils.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 #include "time-utils.h"
 
 static struct mutex mutex = UDS_MUTEX_INITIALIZER;

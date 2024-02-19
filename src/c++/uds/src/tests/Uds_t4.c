@@ -8,9 +8,9 @@
 #include "blockTestUtils.h"
 #include "config.h"
 #include "index.h"
+#include "indexer.h"
 #include "index-session.h"
 #include "memory-alloc.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 

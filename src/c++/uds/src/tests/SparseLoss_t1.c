@@ -38,20 +38,20 @@ static unsigned int    callbackCount = 0;
 /**********************************************************************/
 static void incrementCallbackCount(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount++;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**********************************************************************/
 static void waitForCallbacks(void)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   while (callbackCount > 0) {
     uds_wait_cond(&callbackCond, &callbackMutex);
   }
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
 }
 
 /**
@@ -61,13 +61,13 @@ static void waitForCallbacks(void)
 static void testCallback(struct uds_request *request)
 {
   UDS_ASSERT_SUCCESS(request->status);
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount--;
   if (!request->found) {
     postsNotFound++;
   }
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
   freeRequest(request);
 }
 
@@ -77,8 +77,8 @@ static void suiteInit(struct block_device *bdev)
   blockNameCounter = 0;
   callbackCount = 0;
   postsNotFound = 0;
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
+  uds_init_cond(&callbackCond);
+  mutex_init(&callbackMutex);
 
   struct uds_parameters params = {
     .memory_size = 1,
@@ -112,8 +112,10 @@ static void suiteCleaner(void)
   uds_free_index(theIndex);
   theIndex = NULL;
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
-  UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
+#ifndef __KERNEL__
+  uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
+  mutex_destroy(&callbackMutex);
 }
 
 /**********************************************************************/

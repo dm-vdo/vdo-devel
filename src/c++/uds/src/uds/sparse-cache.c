@@ -18,7 +18,7 @@
 #include "memory-alloc.h"
 #include "permassert.h"
 #ifndef __KERNEL__
-#include "uds-threads.h"
+#include "thread-utils.h"
 #endif /* __KERNEL__ */
 
 /*

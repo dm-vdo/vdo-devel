@@ -9,8 +9,8 @@
  */
 
 #include "assertions.h"
+#include "indexer.h"
 #include "murmurhash3.h"
-#include "uds.h"
 
 #include <stdio.h>
 #include <stdlib.h>

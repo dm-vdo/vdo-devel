@@ -32,12 +32,12 @@
 #include "event-count.h"
 #include "funnel-queue.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "oldInterfaces.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
-#include "uds.h"
+#include "thread-utils.h"
 
 typedef struct {
   struct funnel_queue_entry queueEntry;
@@ -178,10 +178,10 @@ static void postAndUpdate(void)
   struct thread *thread;
   UDS_ASSERT_SUCCESS(make_event_count(&testEvent));
   UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&testQueue));
-  UDS_ASSERT_SUCCESS(uds_create_thread(updateBlockNames, indexSession, "updater",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(updateBlockNames, indexSession, "updater",
                                        &thread));
   postBlockNames(indexSession);
-  UDS_ASSERT_SUCCESS(uds_join_threads(thread));
+  vdo_join_threads(thread);
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
 
   free_event_count(testEvent);

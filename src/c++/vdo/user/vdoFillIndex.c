@@ -18,9 +18,9 @@
 
 #include "errors.h"
 #include "fileUtils.h"
+#include "indexer.h"
 #include "memory-alloc.h"
 #include "murmurhash3.h"
-#include "uds.h"
 
 #define BLOCK_SIZE 4096
 

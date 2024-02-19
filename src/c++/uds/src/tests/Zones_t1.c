@@ -22,10 +22,10 @@ static unsigned int    callbackCount = 0;
  **/
 static void testCallback(struct uds_request *request)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   callbackCount++;
   uds_signal_cond(&callbackCond);
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
   freeRequest(request);
 }
 
@@ -41,8 +41,8 @@ static void zoneInitializeSuite(struct block_device *bdev)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Creating an index also creates the zone queues.
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, &testCallback, &theIndex));
-  UDS_ASSERT_SUCCESS(uds_init_cond(&callbackCond));
-  UDS_ASSERT_SUCCESS(uds_init_mutex(&callbackMutex));
+  uds_init_cond(&callbackCond);
+  mutex_init(&callbackMutex);
 }
 
 /**
@@ -52,8 +52,10 @@ static void zoneFinishSuite(void)
 {
   uds_free_index(theIndex);
   uds_free_configuration(config);
-  UDS_ASSERT_SUCCESS(uds_destroy_cond(&callbackCond));
-  UDS_ASSERT_SUCCESS(uds_destroy_mutex(&callbackMutex));
+#ifndef __KERNEL__
+  uds_destroy_cond(&callbackCond);
+#endif  /* not __KERNEL__ */
+  mutex_destroy(&callbackMutex);
 }
 
 /**
@@ -61,11 +63,11 @@ static void zoneFinishSuite(void)
  **/
 static void waitForCallbacks(unsigned int expectedCount)
 {
-  uds_lock_mutex(&callbackMutex);
+  mutex_lock(&callbackMutex);
   while (callbackCount < expectedCount) {
     uds_wait_cond(&callbackCond, &callbackMutex);
   }
-  uds_unlock_mutex(&callbackMutex);
+  mutex_unlock(&callbackMutex);
   callbackCount = 0;
 }
 

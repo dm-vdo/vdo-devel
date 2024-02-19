@@ -80,8 +80,8 @@ UDS_OBJECTS =	chapter-index.o		\
 		threadCondVar.o		\
 		threadMutex.o		\
 		threadSemaphore.o	\
+		thread-utils.o		\
 		time-utils.o		\
-		uds-threads.o		\
 		volume.o		\
 		volume-index.o
 

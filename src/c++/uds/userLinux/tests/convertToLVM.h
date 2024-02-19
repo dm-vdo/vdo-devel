@@ -9,7 +9,7 @@
 #ifndef CONVERT_TO_LVM_H
 #define CONVERT_TO_LVM_H
 
-#include "uds.h"
+#include "indexer.h"
 
 /**
  * Shrinks a UDS index to give VDO space to allow for LVM metadata to

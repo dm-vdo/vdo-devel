@@ -3,7 +3,7 @@
  * Copyright 2023 Red Hat
  */
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include <errno.h>
 #include <sys/prctl.h>
@@ -52,7 +52,7 @@ pid_t uds_get_thread_id(void)
 }
 
 /* Run a function once only, and record that fact in the atomic value. */
-void uds_perform_once(atomic_t *once, void (*function)(void))
+void vdo_perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
 		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
@@ -95,7 +95,7 @@ static void *thread_starter(void *arg)
 }
 
 /**********************************************************************/
-int uds_create_thread(void (*thread_function)(void *),
+int vdo_create_thread(void (*thread_function)(void *),
 		      void *thread_data,
 		      const char *name,
 		      struct thread **new_thread)
@@ -133,7 +133,7 @@ int uds_create_thread(void (*thread_function)(void *),
 }
 
 /**********************************************************************/
-int uds_join_threads(struct thread *thread)
+void vdo_join_threads(struct thread *thread)
 {
 	int result;
 	pthread_t pthread;
@@ -142,7 +142,6 @@ int uds_join_threads(struct thread *thread)
 	pthread = thread->thread;
 	uds_free(thread);
 	ASSERT_LOG_ONLY((result == 0), "thread: %p", (void *) pthread);
-	return result;
 }
 
 /**********************************************************************/

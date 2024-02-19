@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <time.h>
-#include <uds-threads.h>
 #include <unistd.h>
 
 #include "albtest.h"
@@ -21,6 +20,7 @@
 #include "memory-alloc.h"
 #include "minisyslog.h"
 #include "processManager.h"
+#include "thread-utils.h"
 
 static char timeBuffer[24];
 

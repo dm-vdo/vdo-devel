@@ -11,8 +11,8 @@
 
 #endif /* TEST_INTERNAL */
 #include "config.h"
+#include "indexer.h"
 #include "io-factory.h"
-#include "uds.h"
 
 /*
  * The index layout describes the format of the index on the underlying storage, and is responsible

@@ -136,6 +136,7 @@ tarballs:
             - geometry.[hc]
             - hash-utils.h
             - index.[hc]
+            - indexer.h
             - index-layout.[hc]
             - index-page-map.[hc]
             - index-session.[hc]
@@ -149,9 +150,8 @@ tarballs:
             - radix-sort.[hc]
             - sparse-cache.[hc]
             - string-utils.[hc]
+            - thread-utils.h
             - time-utils.h
-            - uds.h
-            - uds-threads.h
             - volume.[hc]
             - volume-index.[hc]
           undefines:
@@ -173,7 +173,7 @@ tarballs:
             - threadCondVar.c
             - threadSemaphore.c
             - threadMutex.c
-            - uds-threads.c
+            - thread-utils.c
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
@@ -193,6 +193,7 @@ tarballs:
             - err.h
             - limits.h
             - log2.h
+            - mutex.h
             - random.h
             - types.h
           undefines:
@@ -311,6 +312,7 @@ tarballs:
             - hash-utils.h
             - index.c
             - index.h
+            - indexer.h
             - index-layout.c
             - index-layout.h
             - index-page-map.c
@@ -334,9 +336,8 @@ tarballs:
             - sparse-cache.h
             - string-utils.c
             - string-utils.h
+            - thread-utils.h
             - time-utils.h
-            - uds.h
-            - uds-threads.h
             - volume.c
             - volume.h
             - volume-index.c
@@ -352,14 +353,13 @@ tarballs:
             - funnel-requestqueue.c
             - logger.c
             - memory-alloc.c
-            - thread-cond-var.c
             - thread-device.c
             - thread-device.h
             - thread-registry.c
             - thread-registry.h
+            - thread-utils.c
             - uds-sysfs.c
             - uds-sysfs.h
-            - uds-threads.c
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL

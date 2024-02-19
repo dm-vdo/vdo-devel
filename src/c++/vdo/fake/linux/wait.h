@@ -12,7 +12,7 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 typedef struct wait_queue_head {
 	spinlock_t		lock;

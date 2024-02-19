@@ -71,7 +71,7 @@
 
 #include "logger.h"
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 enum {
 	/* value used to increment the waiters field */

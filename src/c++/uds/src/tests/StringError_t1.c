@@ -5,8 +5,8 @@
 
 #include "albtest.h"
 #include "assertions.h"
+#include "indexer.h"
 #include "random.h"
-#include "uds.h"
 
 static void testNULL(void)
 {

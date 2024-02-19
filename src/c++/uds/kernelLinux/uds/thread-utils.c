@@ -3,13 +3,12 @@
  * Copyright 2023 Red Hat
  */
 
-#include "uds-threads.h"
+#include "thread-utils.h"
 
-#include <linux/completion.h>
 #include <linux/delay.h>
-#include <linux/err.h>
 #include <linux/kthread.h>
-#include <linux/sched.h>
+#include <linux/mutex.h>
+#include <linux/types.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
@@ -37,7 +36,7 @@ enum {
 };
 
 /* Run a function once only, and record that fact in the atomic value. */
-void uds_perform_once(atomic_t *once, void (*function)(void))
+void vdo_perform_once(atomic_t *once, void (*function)(void))
 {
 	for (;;) {
 		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
@@ -67,7 +66,7 @@ static int thread_starter(void *arg)
 	struct thread *thread = arg;
 
 	thread->thread_task = current;
-	uds_perform_once(&thread_once, thread_init);
+	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_add_head(&thread->thread_links, &thread_list);
 	mutex_unlock(&thread_mutex);
@@ -78,7 +77,7 @@ static int thread_starter(void *arg)
 	return 0;
 }
 
-int uds_create_thread(void (*thread_function)(void *), void *thread_data,
+int vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 		      const char *name, struct thread **new_thread)
 {
 	char *name_colon = strchr(name, ':');
@@ -127,7 +126,7 @@ int uds_create_thread(void (*thread_function)(void *), void *thread_data,
 	return UDS_SUCCESS;
 }
 
-int uds_join_threads(struct thread *thread)
+void vdo_join_threads(struct thread *thread)
 {
 	while (wait_for_completion_interruptible(&thread->thread_done))
 		fsleep(1000);
@@ -136,7 +135,6 @@ int uds_join_threads(struct thread *thread)
 	hlist_del(&thread->thread_links);
 	mutex_unlock(&thread_mutex);
 	uds_free(thread);
-	return UDS_SUCCESS;
 }
 #ifdef TEST_INTERNAL
 
@@ -145,7 +143,7 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 {
 	struct thread *thread;
 
-	uds_perform_once(&thread_once, thread_init);
+	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links)
 		apply_function(argument, thread->thread_task);
@@ -157,7 +155,7 @@ void uds_thread_exit(void)
 	struct thread *thread;
 	struct completion *completion = NULL;
 
-	uds_perform_once(&thread_once, thread_init);
+	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links) {
 		if (thread->thread_task == current) {

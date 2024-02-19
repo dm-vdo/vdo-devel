@@ -18,7 +18,7 @@
 #include "permassert.h"
 #include "string-utils.h"
 #include "syscalls.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "completion.h"
 #include "status-codes.h"
@@ -184,7 +184,7 @@ int vdo_make_work_queue(const char *thread_name_prefix,
   queue->context    = privates;
   WRITE_ONCE(queue->running, true);
 
-  VDO_ASSERT_SUCCESS(uds_create_thread(queueRunner,
+  VDO_ASSERT_SUCCESS(vdo_create_thread(queueRunner,
                                        queue,
                                        queue->threadName,
                                        &queue->thread));
@@ -243,7 +243,7 @@ void vdo_finish_work_queue(struct vdo_work_queue *queue)
   if (READ_ONCE(queue->running)) {
     WRITE_ONCE(queue->running, false);
     event_count_broadcast(queue->wakeEvent);
-    uds_join_threads(queue->thread);
+    vdo_join_threads(queue->thread);
   }
 }
 

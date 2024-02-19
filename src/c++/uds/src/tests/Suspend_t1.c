@@ -9,10 +9,10 @@
 #include "assertions.h"
 #include "blockTestUtils.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
-#include "uds-threads.h"
-#include "uds.h"
+#include "thread-utils.h"
 
 static struct block_device *testDevice;
 static struct uds_parameters params;
@@ -186,7 +186,7 @@ static void suspendRebuildTest(void)
   int startChapters = atomic_read_acquire(&chapters_replayed);
   int expectedRebuildResult = -EBUSY;
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(rebuildThread, &expectedRebuildResult,
+  UDS_ASSERT_SUCCESS(vdo_create_thread(rebuildThread, &expectedRebuildResult,
                                        "suspend", &thread));
 
   // Wait for the rebuild to start.
@@ -208,7 +208,7 @@ static void suspendRebuildTest(void)
 
   // Shut down the suspended index session, discarding rebuild progress.
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   int closeChapters = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT_EQUAL(suspendChapters, closeChapters);
@@ -221,7 +221,7 @@ static void suspendRebuildTest(void)
   // Rebuild the index in a separate thread so we can suspend and resume it.
   startChapters = atomic_read_acquire(&chapters_replayed);
   expectedRebuildResult = UDS_SUCCESS;
-  UDS_ASSERT_SUCCESS(uds_create_thread(rebuildThread, &expectedRebuildResult,
+  UDS_ASSERT_SUCCESS(vdo_create_thread(rebuildThread, &expectedRebuildResult,
                                        "suspend", &thread));
 
   // Wait for the replay to start.
@@ -241,7 +241,7 @@ static void suspendRebuildTest(void)
   suspendChapters2 = atomic_read_acquire(&chapters_replayed);
   CU_ASSERT_EQUAL(suspendChapters, suspendChapters2);
   UDS_ASSERT_SUCCESS(uds_resume_index_session(indexSession, NULL));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   // Check that the rebuild succeeded.
   // Rewrite the first N-1 chapters of chunks to show they're all in
@@ -285,7 +285,7 @@ static void suspendSuspendTest(void)
   // Launch a suspend operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -293,7 +293,7 @@ static void suspendSuspendTest(void)
 
   // While the first save is running, launch another suspend with a save.
   UDS_ASSERT_ERROR(-EBUSY, uds_suspend_index_session(indexSession, true));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   teardownIndexAndSession();
@@ -307,7 +307,7 @@ static void suspendCloseTest(void)
   // Launch a suspend operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -315,7 +315,7 @@ static void suspendCloseTest(void)
 
   // While the first save is running, launch a close.
   UDS_ASSERT_ERROR(-EBUSY, uds_close_index(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   teardownIndexAndSession();
@@ -329,7 +329,7 @@ static void suspendDestroyTest(void)
   // Launch a suspend operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(suspendThread, NULL, "suspend",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(suspendThread, NULL, "suspend",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -337,7 +337,7 @@ static void suspendDestroyTest(void)
 
   // While the first save is running, launch a destroy.
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   teardownIndexAndSession();
 }
@@ -350,14 +350,14 @@ static void closeSuspendTest(void)
   // Launch the close operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
+  UDS_ASSERT_SUCCESS(vdo_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a suspend with a save.
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, true));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   teardownIndexAndSession();
@@ -371,14 +371,14 @@ static void closeCloseTest(void)
   // Launch the close operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
+  UDS_ASSERT_SUCCESS(vdo_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch another close.
   UDS_ASSERT_ERROR(-ENOENT, uds_close_index(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   teardownIndexAndSession();
@@ -392,14 +392,14 @@ static void closeDestroyTest(void)
   // Launch the close operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(closeThread, NULL, "close", &thread));
+  UDS_ASSERT_SUCCESS(vdo_create_thread(closeThread, NULL, "close", &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
   }
 
   // While the first save is running, launch a destroy.
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   teardownIndexAndSession();
 }
@@ -412,7 +412,7 @@ static void destroySuspendTest(void)
   // Launch a destroy operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -420,7 +420,7 @@ static void destroySuspendTest(void)
 
   // While the first save is running, launch a suspend with a save.
   UDS_ASSERT_ERROR(-EBUSY, uds_suspend_index_session(indexSession, true));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   teardownIndexAndSession();
 }
@@ -433,7 +433,7 @@ static void destroyCloseTest(void)
   // Launch a destroy operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -441,7 +441,7 @@ static void destroyCloseTest(void)
 
   // While the first save is running, launch a close.
   UDS_ASSERT_ERROR(-ENOENT, uds_close_index(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   teardownIndexAndSession();
 }
@@ -454,7 +454,7 @@ static void destroyDestroyTest(void)
   // Launch a destroy operation to start a save.
   int startChapters = atomic_read_acquire(&saves_begun);
   struct thread *thread;
-  UDS_ASSERT_SUCCESS(uds_create_thread(destroyThread, NULL, "destroy",
+  UDS_ASSERT_SUCCESS(vdo_create_thread(destroyThread, NULL, "destroy",
                                        &thread));
   while (startChapters == atomic_read_acquire(&saves_begun)) {
     sleep_for(ms_to_ktime(10));
@@ -462,7 +462,7 @@ static void destroyDestroyTest(void)
 
   // While the first save is running, launch another destroy.
   UDS_ASSERT_ERROR(-EBUSY, uds_destroy_index_session(indexSession));
-  uds_join_threads(thread);
+  vdo_join_threads(thread);
 
   teardownIndexAndSession();
 }

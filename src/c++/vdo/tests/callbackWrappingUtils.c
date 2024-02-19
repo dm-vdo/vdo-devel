@@ -9,7 +9,7 @@
 #include "callbackWrappingUtils.h"
 
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "completion.h"
 #include "int-map.h"

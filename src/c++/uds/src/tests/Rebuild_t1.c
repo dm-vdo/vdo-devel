@@ -16,9 +16,9 @@
 #include "blockTestUtils.h"
 #include "dory.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 

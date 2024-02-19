@@ -3,18 +3,26 @@
  * Copyright 2023 Red Hat
  */
 
-#ifndef UDS_H
-#define UDS_H
+#ifndef INDEXER_H
+#define INDEXER_H
 
+#include <linux/mutex.h>
+#include <linux/sched.h>
 #include <linux/types.h>
-#ifndef __KERNEL__
+#ifdef __KERNEL__
+#include <linux/wait.h>
+#else
+#include <sched.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
-#endif
+#endif /* __KERNEL__ */
 
 #include "funnel-queue.h"
+#ifdef TEST_INTERNAL
+#include "time-utils.h"
+#endif  /* TEST_INTERNAL */
 
 /*
  * UDS public API
@@ -345,4 +353,41 @@ int __must_check uds_get_index_session_stats(struct uds_index_session *session,
 /* This function will fail if any required field of the request is not set. */
 int __must_check uds_launch_request(struct uds_request *request);
 
-#endif /* UDS_H */
+#ifdef __KERNEL__
+struct cond_var {
+	wait_queue_head_t wait_queue;
+};
+
+static inline void uds_init_cond(struct cond_var *cv)
+{
+	init_waitqueue_head(&cv->wait_queue);
+}
+
+static inline void uds_signal_cond(struct cond_var *cv)
+{
+	wake_up(&cv->wait_queue);
+}
+
+static inline void uds_broadcast_cond(struct cond_var *cv)
+{
+	wake_up_all(&cv->wait_queue);
+}
+
+void uds_wait_cond(struct cond_var *cv, struct mutex *mutex);
+#else
+struct cond_var {
+	pthread_cond_t condition;
+};
+
+void uds_init_cond(struct cond_var *cond);
+void uds_signal_cond(struct cond_var *cond);
+void uds_broadcast_cond(struct cond_var *cond);
+void uds_wait_cond(struct cond_var *cond, struct mutex *mutex);
+void uds_destroy_cond(struct cond_var *cond);
+#endif  /* __KERNEL__ */
+#ifdef TEST_INTERNAL
+
+int uds_timed_wait_cond(struct cond_var *cond, struct mutex *mutex, ktime_t timeout);
+#endif  /* TEST_INTERNAL */
+
+#endif /* INDEXER_H */

@@ -18,11 +18,11 @@
 #include "convertToLVM.h"
 #include "fileUtils.h"
 #include "hash-utils.h"
+#include "indexer.h"
 #include "numeric.h"
 #include "oldInterfaces.h"
 #include "testPrototypes.h"
 #include "testRequests.h"
-#include "uds.h"
 
 static struct block_device *testDevice;
 

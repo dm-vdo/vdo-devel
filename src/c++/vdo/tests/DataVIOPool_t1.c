@@ -12,7 +12,7 @@
 
 #include "logger.h"
 #include "memory-alloc.h"
-#include "uds-threads.h"
+#include "thread-utils.h"
 
 #include "types.h"
 
@@ -118,7 +118,7 @@ static void launchRequest(logical_block_number_t lbn)
 {
   char name[16];
   sprintf(name, "thread %" PRIu64, lbn);
-  VDO_ASSERT_SUCCESS(uds_create_thread(launchRequestOnThread,
+  VDO_ASSERT_SUCCESS(vdo_create_thread(launchRequestOnThread,
                                        &lbn,
                                        name,
                                        &threads[lbn]));
@@ -139,7 +139,7 @@ static void joinThreadsUpTo(uint8_t limit)
 {
   for (uint8_t i = 0; i < limit; i++) {
     if (threads[i] != NULL) {
-      uds_join_threads(uds_forget(threads[i]));
+      vdo_join_threads(uds_forget(threads[i]));
     }
   }
 }
