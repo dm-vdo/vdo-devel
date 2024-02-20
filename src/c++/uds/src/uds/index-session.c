@@ -794,4 +794,3 @@ int uds_timed_wait_cond(struct cond_var *cv, struct mutex *mutex, ktime_t timeou
 }
 #endif /* TEST_INTERNAL */
 #endif /* __KERNEL__ */
-
