@@ -9,6 +9,8 @@
 
 #include "errors.h"
 
+#include "indexer.h"
+
 #include "encodings.h"
 #include "types.h"
 

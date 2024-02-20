@@ -18,7 +18,6 @@
 #include <zlib.h>
 #endif /* not __KERNEL__ */
 
-#include "indexer.h"
 #include "numeric.h"
 #ifndef __KERNEL__
 
