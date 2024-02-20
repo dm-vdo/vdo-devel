@@ -57,37 +57,27 @@
 atomic_t saves_begun;
 #endif /* TEST_INTERNAL */
 
-enum {
-	MAGIC_SIZE = 32,
-	NONCE_INFO_SIZE = 32,
-	MAX_SAVES = 2,
-};
+#define MAGIC_SIZE 32
+#define NONCE_INFO_SIZE 32
+#define MAX_SAVES 2
 
-enum region_kind {
-	RL_KIND_EMPTY = 0,
-	RL_KIND_HEADER = 1,
-	RL_KIND_CONFIG = 100,
-	RL_KIND_INDEX = 101,
-	RL_KIND_SEAL = 102,
-	RL_KIND_VOLUME = 201,
-	RL_KIND_SAVE = 202,
-	RL_KIND_INDEX_PAGE_MAP = 301,
-	RL_KIND_VOLUME_INDEX = 302,
-	RL_KIND_OPEN_CHAPTER = 303,
-};
+static const unsigned int RL_KIND_EMPTY = 0;
+static const unsigned int RL_KIND_HEADER = 1;
+static const unsigned int RL_KIND_CONFIG = 100;
+static const unsigned int RL_KIND_INDEX = 101;
+static const unsigned int RL_KIND_SEAL = 102;
+static const unsigned int RL_KIND_VOLUME = 201;
+static const unsigned int RL_KIND_SAVE = 202;
+static const unsigned int RL_KIND_INDEX_PAGE_MAP = 301;
+static const unsigned int RL_KIND_VOLUME_INDEX = 302;
+static const unsigned int RL_KIND_OPEN_CHAPTER = 303;
 
 /* Some region types are historical and are no longer used. */
-enum region_type {
-	RH_TYPE_FREE = 0, /* unused */
-	RH_TYPE_SUPER = 1,
-	RH_TYPE_SAVE = 2,
-	RH_TYPE_CHECKPOINT = 3, /* unused */
-	RH_TYPE_UNSAVED = 4,
-};
+static const unsigned int RH_TYPE_SUPER = 1;
+static const unsigned int RH_TYPE_SAVE = 2;
+static const unsigned int RH_TYPE_UNSAVED = 4;
 
-enum {
-	RL_SOLE_INSTANCE = 65535,
-};
+static const unsigned int RL_SOLE_INSTANCE = 65535;
 
 /*
  * Super block version 2 is the first released version.
@@ -101,11 +91,9 @@ enum {
  * order to make room to prepend LVM metadata to a volume originally created without lvm. This
  * allows the index to retain most its deduplication records.
  */
-enum {
-	SUPER_VERSION_MINIMUM = 3,
-	SUPER_VERSION_CURRENT = 3,
-	SUPER_VERSION_MAXIMUM = 7,
-};
+static const unsigned int SUPER_VERSION_MINIMUM = 3;
+static const unsigned int SUPER_VERSION_CURRENT = 3;
+static const unsigned int SUPER_VERSION_MAXIMUM = 7;
 
 static const u8 LAYOUT_MAGIC[MAGIC_SIZE] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
 static const u64 REGION_MAGIC = 0x416c6252676e3031; /* 'AlbRgn01' */
@@ -1287,7 +1275,7 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 }
 
 static int __must_check verify_region(struct layout_region *lr, u64 start_block,
-				      enum region_kind kind, unsigned int instance)
+				      unsigned int kind, unsigned int instance)
 {
 	if (lr->start_block != start_block)
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,

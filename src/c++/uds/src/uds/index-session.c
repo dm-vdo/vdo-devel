@@ -30,33 +30,28 @@
  * the index_load_context are used to record the state of any interrupted rebuild.
  */
 
-enum index_session_flag_bit {
-	IS_FLAG_BIT_START = 8,
-	/* The session has started loading an index but not completed it. */
-	IS_FLAG_BIT_LOADING = IS_FLAG_BIT_START,
-	/* The session has loaded an index, which can handle requests. */
-	IS_FLAG_BIT_LOADED,
-	/* The session's index has been permanently disabled. */
-	IS_FLAG_BIT_DISABLED,
-	/* The session's index is suspended. */
-	IS_FLAG_BIT_SUSPENDED,
-	/* The session is handling some index state change. */
-	IS_FLAG_BIT_WAITING,
-	/* The session's index is closing and draining requests. */
-	IS_FLAG_BIT_CLOSING,
-	/* The session is being destroyed and is draining requests. */
-	IS_FLAG_BIT_DESTROYING,
-};
+/* The session has started loading an index but not completed it. */
+static const unsigned int IS_FLAG_BIT_LOADING = 8;
+/* The session has loaded an index, which can handle requests. */
+static const unsigned int IS_FLAG_BIT_LOADED = 9;
+/* The session's index has been permanently disabled. */
+static const unsigned int IS_FLAG_BIT_DISABLED = 10;
+/* The session's index is suspended. */
+static const unsigned int IS_FLAG_BIT_SUSPENDED = 11;
+/* The session is handling some index state change. */
+static const unsigned int IS_FLAG_BIT_WAITING = 12;
+/* The session's index is closing and draining requests. */
+static const unsigned int IS_FLAG_BIT_CLOSING = 13;
+/* The session is being destroyed and is draining requests. */
+static const unsigned int IS_FLAG_BIT_DESTROYING = 14;
 
-enum index_session_flag {
-	IS_FLAG_LOADED = (1 << IS_FLAG_BIT_LOADED),
-	IS_FLAG_LOADING = (1 << IS_FLAG_BIT_LOADING),
-	IS_FLAG_DISABLED = (1 << IS_FLAG_BIT_DISABLED),
-	IS_FLAG_SUSPENDED = (1 << IS_FLAG_BIT_SUSPENDED),
-	IS_FLAG_WAITING = (1 << IS_FLAG_BIT_WAITING),
-	IS_FLAG_CLOSING = (1 << IS_FLAG_BIT_CLOSING),
-	IS_FLAG_DESTROYING = (1 << IS_FLAG_BIT_DESTROYING),
-};
+#define IS_FLAG_LOADED (1 << IS_FLAG_BIT_LOADED)
+#define IS_FLAG_LOADING (1 << IS_FLAG_BIT_LOADING)
+#define IS_FLAG_DISABLED (1 << IS_FLAG_BIT_DISABLED)
+#define IS_FLAG_SUSPENDED (1 << IS_FLAG_BIT_SUSPENDED)
+#define IS_FLAG_WAITING (1 << IS_FLAG_BIT_WAITING)
+#define IS_FLAG_CLOSING (1 << IS_FLAG_BIT_CLOSING)
+#define IS_FLAG_DESTROYING (1 << IS_FLAG_BIT_DESTROYING)
 
 /* Release a reference to an index session. */
 static void release_index_session(struct uds_index_session *index_session)

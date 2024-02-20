@@ -81,10 +81,8 @@
  * considered to be a member of the cache for uds_sparse_cache_contains().
  */
 
-enum {
-	SKIP_SEARCH_THRESHOLD = 20000,
-	ZONE_ZERO = 0,
-};
+static const unsigned int SKIP_SEARCH_THRESHOLD = 20000;
+static const unsigned int ZONE_ZERO = 0;
 
 /*
  * These counters are essentially fields of the struct cached_chapter_index, but are segregated

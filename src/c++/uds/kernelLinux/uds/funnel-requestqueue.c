@@ -35,16 +35,14 @@
  * the queue to awaken immediately.
  */
 
-enum {
-	NANOSECOND = 1,
-	MICROSECOND = 1000 * NANOSECOND,
-	MILLISECOND = 1000 * MICROSECOND,
-	DEFAULT_WAIT_TIME = 20 * MICROSECOND,
-	MINIMUM_WAIT_TIME = DEFAULT_WAIT_TIME / 2,
-	MAXIMUM_WAIT_TIME = MILLISECOND,
-	MINIMUM_BATCH = 32,
-	MAXIMUM_BATCH = 64,
-};
+static const unsigned int NANOSECOND = 1;
+static const unsigned int MICROSECOND = 1000 * NANOSECOND;
+static const unsigned int MILLISECOND = 1000 * MICROSECOND;
+static const unsigned int DEFAULT_WAIT_TIME = 20 * MICROSECOND;
+static const unsigned int MINIMUM_WAIT_TIME = DEFAULT_WAIT_TIME / 2;
+static const unsigned int MAXIMUM_WAIT_TIME = MILLISECOND;
+static const unsigned int MINIMUM_BATCH = 32;
+static const unsigned int MAXIMUM_BATCH = 64;
 
 struct uds_request_queue {
 	/* Wait queue for synchronizing producers and consumer */

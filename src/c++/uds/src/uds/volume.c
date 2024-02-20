@@ -62,13 +62,11 @@
  * in-memory volume index.
  */
 
-enum {
 	/* The maximum allowable number of contiguous bad chapters */
-	MAX_BAD_CHAPTERS = 100,
-	VOLUME_CACHE_MAX_ENTRIES = (U16_MAX >> 1),
-	VOLUME_CACHE_QUEUED_FLAG = (1 << 15),
-	VOLUME_CACHE_MAX_QUEUED_READS = 4096,
-};
+static const unsigned int MAX_BAD_CHAPTERS = 100;
+static const unsigned int VOLUME_CACHE_MAX_ENTRIES = (U16_MAX >> 1);
+static const unsigned int VOLUME_CACHE_QUEUED_FLAG = (1 << 15);
+static const unsigned int VOLUME_CACHE_MAX_QUEUED_READS = 4096;
 
 static const u64 BAD_CHAPTER = U64_MAX;
 

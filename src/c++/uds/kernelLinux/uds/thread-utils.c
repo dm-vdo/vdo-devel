@@ -30,11 +30,9 @@ struct thread {
 	struct completion thread_done;
 };
 
-enum {
-	ONCE_NOT_DONE = 0,
-	ONCE_IN_PROGRESS = 1,
-	ONCE_COMPLETE = 2,
-};
+static const unsigned int ONCE_NOT_DONE = 0;
+static const unsigned int ONCE_IN_PROGRESS = 1;
+static const unsigned int ONCE_COMPLETE = 2;
 
 /* Run a function once only, and record that fact in the atomic value. */
 void vdo_perform_once(atomic_t *once, void (*function)(void))

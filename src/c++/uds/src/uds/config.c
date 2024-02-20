@@ -15,12 +15,11 @@ static const u8 INDEX_CONFIG_MAGIC[] = "ALBIC";
 static const u8 INDEX_CONFIG_VERSION_6_02[] = "06.02";
 static const u8 INDEX_CONFIG_VERSION_8_02[] = "08.02";
 
-enum {
-	DEFAULT_VOLUME_READ_THREADS = 2,
-	MAX_VOLUME_READ_THREADS = 16,
-	INDEX_CONFIG_MAGIC_LENGTH = sizeof(INDEX_CONFIG_MAGIC) - 1,
-	INDEX_CONFIG_VERSION_LENGTH = sizeof(INDEX_CONFIG_VERSION_6_02) - 1,
-};
+static const int DEFAULT_VOLUME_READ_THREADS = 2;
+static const int MAX_VOLUME_READ_THREADS = 16;
+
+#define INDEX_CONFIG_MAGIC_LENGTH sizeof(INDEX_CONFIG_MAGIC) - 1
+#define INDEX_CONFIG_VERSION_LENGTH sizeof(INDEX_CONFIG_VERSION_6_02) - 1
 
 static bool is_version(const u8 *version, u8 *buffer)
 {
@@ -117,7 +116,7 @@ int uds_validate_config_contents(struct buffered_reader *reader,
 	    !is_version(INDEX_CONFIG_VERSION_8_02, version_buffer)) {
 		return uds_log_error_strerror(UDS_CORRUPT_DATA,
 					      "unsupported configuration version: '%.*s'",
-					      INDEX_CONFIG_VERSION_LENGTH,
+					      (int)INDEX_CONFIG_VERSION_LENGTH,
 					      version_buffer);
 	}
 

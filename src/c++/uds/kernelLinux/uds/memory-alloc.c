@@ -200,8 +200,9 @@ struct track_memory_info {
 };
 
 /* Compute how many track_block_info will fit in a single page of memory. */
-enum { NUM_TRACK_BLOCKS = ((PAGE_SIZE - sizeof(struct track_memory_info)) /
-			   sizeof(struct track_block_info)) };
+static const unsigned int NUM_TRACK_BLOCKS =
+	((PAGE_SIZE - sizeof(struct track_memory_info)) /
+	 sizeof(struct track_block_info));
 
 static struct mutex track_mutex;
 static struct track_memory_info *track_info;
