@@ -1,8 +1,9 @@
 VDO_VERSION = %%VDOVersion%%
 
 OBJECTS = $(patsubst %.c,dm-vdo/%.o,$(notdir $(wildcard $(src)/dm-vdo/*.c)))
+OBJECTS += $(patsubst %.c,dm-vdo/indexer/%.o,$(notdir $(wildcard $(src)/dm-vdo/indexer/*.c)))
 
-INCLUDES = -I$(src)/dm-vdo
+INCLUDES = -I$(src)/dm-vdo -I$(src)/dm-vdo/indexer
 
 EXTRA_CFLAGS =	-std=gnu11					\
 		-fno-builtin-memset				\
