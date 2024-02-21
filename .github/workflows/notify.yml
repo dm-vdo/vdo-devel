@@ -23,7 +23,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:required,"
+            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -34,7 +34,7 @@ jobs:
           payload: |
             {
               "PR_MSG": "Number of PRs awaiting reviews in ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+review%3Arequired"
+              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Arequired"
             }
         env:
           COUNT: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
@@ -51,7 +51,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:changes_requested,"
+            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:changes_requested,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -62,12 +62,11 @@ jobs:
           payload: |
             {
               "PR_MSG": "Number of PRs awaiting replies to reviews ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+review%3Achanges_requested"
+              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Achanges_requested"
             }
         env:
           COUNT: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
-
 
       - name: Notify PRs With Approval
         uses: octokit/graphql-action@v2.x
@@ -80,7 +79,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", review:approved,"
+            queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:approved,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     
@@ -91,7 +90,7 @@ jobs:
           payload: |
             {
               "PR_MSG": "Number of PRs approved in ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+review%3Aapproved"
+              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Aapproved"
             }
         env:
           COUNT: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}        
