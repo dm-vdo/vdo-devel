@@ -286,8 +286,8 @@ STATIC int __must_check initialize_thread_config(struct thread_count_config coun
 }
 
 /**
- * vdo_read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
- *                             device.
+ * read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
+ *                         device.
  * @vdo: The vdo whose geometry is to be read.
  *
  * Return: VDO_SUCCESS or an error code.
