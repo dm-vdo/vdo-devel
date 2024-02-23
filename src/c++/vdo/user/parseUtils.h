@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "indexer.h"
+
 #include "encodings.h"
 
 typedef struct {

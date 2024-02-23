@@ -36,10 +36,12 @@ prepare: prepare.out
 prepare.out: FORCE
 	$(if $(DMLINUX_SOURCE_DIR),,$(error Must set DMLINUX_SOURCE_DIR))
 	rm -rf $(WORK_DIR)
-	mkdir -p $(WORK_DIR)/$(PACKAGE)/dm-vdo
+	mkdir -p $(WORK_DIR)/$(PACKAGE)
 	sed -e "s/@VERSION@/$(VDO_VERSION)/g" kvdo.spec >$(WORK_DIR)/kvdo.spec
 	cp kernel/Makefile $(WORK_DIR)/$(PACKAGE)
-	cp $(DMLINUX_SOURCE_DIR)/drivers/md/dm-vdo/*.[ch] $(WORK_DIR)/$(PACKAGE)/dm-vdo > prepare.out
+	cd $(DMLINUX_SOURCE_DIR)/drivers/md && 		\
+	find dm-vdo -type f -name '*.[ch]'		\
+	-exec cp --parents {} $(WORK_DIR)/$(PACKAGE) ';' > prepare.out
 
 $(SOURCES): prepare
 	mkdir -p $(SOURCES)
