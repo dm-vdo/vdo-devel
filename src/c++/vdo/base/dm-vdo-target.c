@@ -3086,9 +3086,7 @@ static int __init vdo_init(void)
 	int result = 0;
 
 #ifdef __KERNEL__
-	/*
-	 * UDS module level initialization must be done first, as VDO initialization depends on it
-	 */
+	/* Memory tracking must be initialized first for accurate accounting. */
 	uds_memory_init();
 	uds_init_sysfs();
 
@@ -3097,7 +3095,7 @@ static int __init vdo_init(void)
 	vdo_initialize_device_registry_once();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 
-	/* Add VDO errors to the already existing set of errors in UDS. */
+	/* Add VDO errors to the set of errors registered by the indexer. */
 	result = vdo_register_status_codes();
 	if (result != UDS_SUCCESS) {
 		uds_log_error("vdo_register_status_codes failed %d", result);
@@ -3119,12 +3117,9 @@ static int __init vdo_init(void)
 static void __exit vdo_exit(void)
 {
 	vdo_module_destroy();
-	/*
-	 * UDS module level exit processing must be done after all VDO module exit processing is
-	 * complete.
-	 */
 #ifdef __KERNEL__
 	uds_put_sysfs();
+	/* Memory tracking cleanup must be done last. */
 	uds_memory_exit();
 #endif /* __KERNEL__ */
 }

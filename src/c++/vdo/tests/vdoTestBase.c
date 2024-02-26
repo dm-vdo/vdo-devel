@@ -165,7 +165,7 @@ void startVDO(enum vdo_state expectedState)
 
   if ((expectedState == VDO_NEW) && (config->logical_blocks == 0)) {
     // The volume was just formatted to use the default logical block capacity,
-    // so grab the the value it was defaulted to instead of checking it.
+    // so grab the value it was defaulted to instead of checking it.
     config->logical_blocks = vdo->states.vdo.config.logical_blocks;
   } else {
     CU_ASSERT_EQUAL(config->logical_blocks,

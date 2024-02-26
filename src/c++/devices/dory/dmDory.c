@@ -811,7 +811,7 @@ static void processBioCached(CacheBlock      *cb,
  *
  * @return one of these specific values:
  *
- *         DM_MAPIO_REMAPPED to indicate the the bio is ready for submit_bio.
+ *         DM_MAPIO_REMAPPED to indicate the bio is ready for submit_bio.
  *
  *         DM_MAPIO_SUBMITTED to indicate that the bio will be processed by
  *                            dmDory, either by processing it completely and
