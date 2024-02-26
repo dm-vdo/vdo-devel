@@ -73,7 +73,7 @@
 int data_vio_count = MAXIMUM_VDO_USER_VIOS;
 
 #endif /* VDO_INTERNAL or INTERNAL */
-enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
+#define PARANOID_THREAD_CONSISTENCY_CHECKS 0
 
 struct sync_completion {
 	struct vdo_completion vdo_completion;
