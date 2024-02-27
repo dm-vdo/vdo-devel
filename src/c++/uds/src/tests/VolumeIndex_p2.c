@@ -74,7 +74,7 @@ static void reportRebalances(const char *label,
                                         mis->rebalance_time));
   albPrint("%d %s rebalances in %s", mis->rebalance_count, label,
            rebalanceTime);
-  uds_free(rebalanceTime);
+  vdo_free(rebalanceTime);
 }
 
 /**********************************************************************/
@@ -109,8 +109,8 @@ static void reportTimes(const char *title, unsigned int numZones,
   UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %u zones %lu blocks took %s, average = %s/record",
            title, numZones, numBlocks, total, perRecord);
-  uds_free(total);
-  uds_free(perRecord);
+  vdo_free(total);
+  vdo_free(perRecord);
 }
 
 /**********************************************************************/
@@ -237,7 +237,7 @@ static void save(unsigned int numZones)
   char *total;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
   albPrint("Saved %u zones in %s", numZones, total);
-  uds_free(total);
+  vdo_free(total);
 }
 
 /**********************************************************************/
@@ -260,7 +260,7 @@ static void restore(unsigned int oldZones, unsigned int newZones)
   char *total;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&total, elapsed));
   albPrint("Restored %u zones in %s", oldZones, total);
-  uds_free(total);
+  vdo_free(total);
 }
 
 /**********************************************************************/

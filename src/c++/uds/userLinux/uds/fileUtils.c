@@ -299,13 +299,13 @@ int make_abs_path(const char *path, char **abs_path)
 	char *tmp;
 	int result = UDS_SUCCESS;
 	if (path[0] == '/') {
-		result = uds_duplicate_string(path, __func__, &tmp);
+		result = vdo_duplicate_string(path, __func__, &tmp);
 	} else {
 		char *cwd = get_current_dir_name();
 		if (cwd == NULL)
 			return errno;
 		result = uds_alloc_sprintf(__func__, &tmp, "%s/%s", cwd, path);
-		uds_free(cwd);
+		vdo_free(cwd);
 	}
 	if (result == UDS_SUCCESS)
 		*abs_path = tmp;

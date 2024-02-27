@@ -30,7 +30,7 @@ static void setup(void)
 
   geometry = config->geometry;
   vcn = geometry->chapters_per_volume * 3;
-  UDS_ASSERT_SUCCESS(uds_allocate((geometry->index_pages_per_chapter
+  UDS_ASSERT_SUCCESS(vdo_allocate((geometry->index_pages_per_chapter
                                    * geometry->chapters_per_volume),
                                   unsigned int, __func__, &listNumbers));
 }
@@ -41,7 +41,7 @@ static void cleanup(void)
   uds_put_io_factory(factory);
   uds_free_configuration(config);
   putTestBlockDevice(testDevice);
-  uds_free(listNumbers);
+  vdo_free(listNumbers);
 }
 
 /**********************************************************************/
@@ -135,7 +135,7 @@ static void testReadWrite(void)
   UDS_ASSERT_SUCCESS(uds_make_buffered_writer(factory, 0, mapBlocks, &writer));
   UDS_ASSERT_SUCCESS(uds_write_index_page_map(map, writer));
   uds_free_buffered_writer(writer);
-  uds_free_index_page_map(uds_forget(map));
+  uds_free_index_page_map(vdo_forget(map));
 
   // Read and verify the index page map
   UDS_ASSERT_SUCCESS(uds_make_index_page_map(geometry, &map));

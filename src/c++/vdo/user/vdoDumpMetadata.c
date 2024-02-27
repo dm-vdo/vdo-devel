@@ -94,8 +94,8 @@ static void freeAllocations(void)
 {
   freeVDOFromFile(&vdo);
   try_sync_and_close_file(outputFD);
-  uds_free(buffer);
-  uds_free(lbns);
+  vdo_free(buffer);
+  vdo_free(lbns);
   buffer = NULL;
 }
 
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
          uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
   }
 
-  result = uds_allocate(MAX_LBNS, physical_block_number_t, __func__, &lbns);
+  result = vdo_allocate(MAX_LBNS, physical_block_number_t, __func__, &lbns);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",
          sizeof(physical_block_number_t) * MAX_LBNS);

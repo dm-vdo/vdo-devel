@@ -163,7 +163,7 @@ void uds_thread_exit(void)
 		}
 	}
 	mutex_unlock(&thread_mutex);
-	uds_unregister_allocating_thread();
+	vdo_unregister_allocating_thread();
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE

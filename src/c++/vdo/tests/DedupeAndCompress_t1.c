@@ -78,15 +78,15 @@ static void initializeDedupeAndCompressT1(void)
   size_t totalWritesPerRun
     = WRITE_BATCH + DEDUPE_BATCH + OVERWRITE_BATCH + ZERO_BLOCK_BATCH;
   writeRequestCount = totalWritesPerRun * NUM_RUNS;
-  VDO_ASSERT_SUCCESS(uds_allocate((writeRequestCount), IORequest *,
+  VDO_ASSERT_SUCCESS(vdo_allocate((writeRequestCount), IORequest *,
                                   "write requests", &writeRequests));
 
   readRequestCount = 2 * READ_BATCH * NUM_RUNS;
-  VDO_ASSERT_SUCCESS(uds_allocate((readRequestCount), ReadRequest,
+  VDO_ASSERT_SUCCESS(vdo_allocate((readRequestCount), ReadRequest,
                                   "read requests", &readRequests));
 
   for (size_t i = 0; i < readRequestCount; i++) {
-    VDO_ASSERT_SUCCESS(uds_allocate(VDO_BLOCK_SIZE, char,
+    VDO_ASSERT_SUCCESS(vdo_allocate(VDO_BLOCK_SIZE, char,
                                     "read buffer",
                                     &readRequests[i].buffer));
   }
@@ -188,7 +188,7 @@ static void doReadWriteMix(bool success)
   for (size_t waiting = 0; waiting < readRequestCount; waiting++) {
     if (readRequests[waiting].request != NULL) {
       int result
-        = awaitAndFreeRequest(uds_forget(readRequests[waiting].request));
+        = awaitAndFreeRequest(vdo_forget(readRequests[waiting].request));
       if (success) {
         CU_ASSERT_EQUAL(result, VDO_SUCCESS);
       }
@@ -202,7 +202,7 @@ static void doReadWriteMix(bool success)
   for (size_t waiting = 0; waiting < writeRequestCount; waiting++) {
     if (writeRequests[waiting] != NULL) {
       int result
-        = awaitAndFreeRequest(uds_forget(writeRequests[waiting]));
+        = awaitAndFreeRequest(vdo_forget(writeRequests[waiting]));
       if (success) {
         CU_ASSERT_EQUAL(result, VDO_SUCCESS);
       }

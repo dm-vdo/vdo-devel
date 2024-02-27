@@ -49,7 +49,7 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
   result = vdo->layer->reader(vdo->layer, origin, summary_blocks, (char *) entries);
   if (result != VDO_SUCCESS) {
     warnx("Could not read summary data");
-    uds_free(entries);
+    vdo_free(entries);
     return result;
   }
 
@@ -63,7 +63,7 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
                                           (char **) &buffer);
     if (result != VDO_SUCCESS) {
       warnx("Could not create slab summary buffer");
-      uds_free(entries);
+      vdo_free(entries);
       return result;
     }
 
@@ -73,8 +73,8 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
                                   (char *) buffer);
       if (result != VDO_SUCCESS) {
         warnx("Could not read summary data");
-        uds_free(buffer);
-        uds_free(entries);
+        vdo_free(buffer);
+        vdo_free(entries);
         return result;
       }
 
@@ -85,7 +85,7 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
       }
     }
 
-    uds_free(buffer);
+    vdo_free(buffer);
   }
 
   *entriesPtr = entries;

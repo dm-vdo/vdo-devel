@@ -97,7 +97,7 @@ static void enqueueLoop(void *arg)
   unsigned int i;
   for (i = 0; i < ITERATIONS; i++) {
     Entry *entry;
-    UDS_ASSERT_SUCCESS(uds_allocate(1, Entry, __func__, &entry));
+    UDS_ASSERT_SUCCESS(vdo_allocate(1, Entry, __func__, &entry));
     entry->value = i;
     uds_funnel_queue_put(queue, &entry->link);
   }
@@ -138,7 +138,7 @@ static void testOneProducer(void)
   for (i = 0; i < ITERATIONS; i++) {
     Entry *entry = dequeue(queue);
     CU_ASSERT_EQUAL(entry->value, i);
-    uds_free(entry);
+    vdo_free(entry);
   }
 
   vdo_join_threads(producer);
@@ -173,20 +173,20 @@ static void testTenProducers(void)
   // Allocate an array to keep track of how many entries of each value have
   // been seen.
   u8 *seen;
-  UDS_ASSERT_SUCCESS(uds_allocate(ITERATIONS, u8, __func__, &seen));
+  UDS_ASSERT_SUCCESS(vdo_allocate(ITERATIONS, u8, __func__, &seen));
 
   // Consume all the entries, accounting for the values seen.
   for (i = 0; i < ITERATIONS * PRODUCER_COUNT; i++) {
     Entry *entry = dequeue(queue);
     seen[entry->value] += 1;
-    uds_free(entry);
+    vdo_free(entry);
   }
 
   // Verify that each Entry value was seen 10 times for 10 threads.
   for (i = 0; i < ITERATIONS; i++) {
     CU_ASSERT_EQUAL(PRODUCER_COUNT, seen[i]);
   }
-  uds_free(seen);
+  vdo_free(seen);
 
   for (i = 0; i < PRODUCER_COUNT; i++) {
     vdo_join_threads(producers[i]);

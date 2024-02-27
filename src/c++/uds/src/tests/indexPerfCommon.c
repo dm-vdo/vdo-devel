@@ -75,10 +75,10 @@ void fill(const char               *label,
                (unsigned long long) stats.entries_indexed,
                (unsigned long long) stats.entries_discarded,
                (unsigned long long) stats.collisions);
-      uds_free(loopAll);
-      uds_free(loopEach);
-      uds_free(totalAll);
-      uds_free(totalEach);
+      vdo_free(loopAll);
+      vdo_free(loopEach);
+      vdo_free(totalAll);
+      vdo_free(totalEach);
     }
     albFlush();
   }

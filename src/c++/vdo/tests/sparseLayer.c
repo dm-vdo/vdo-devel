@@ -196,9 +196,9 @@ static void freeSparseLayer(SparseLayer *layer)
   if (layer->name != NULL) {
     unlink(layer->name);
   }
-  uds_free(layer->name);
-  uds_free(layer->ranges);
-  uds_free(layer);
+  vdo_free(layer->name);
+  vdo_free(layer->ranges);
+  vdo_free(layer);
 }
 
 /**
@@ -227,7 +227,7 @@ int makeSparseLayer(const char     *name,
                     PhysicalLayer **layerPtr)
 {
   SparseLayer *layer;
-  int result = uds_allocate(1, SparseLayer, __func__, &layer);
+  int result = vdo_allocate(1, SparseLayer, __func__, &layer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -237,14 +237,14 @@ int makeSparseLayer(const char     *name,
     return result;
   }
 
-  result = uds_allocate(numRanges, MappingRange, __func__, &layer->ranges);
+  result = vdo_allocate(numRanges, MappingRange, __func__, &layer->ranges);
   if (result != UDS_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }
 
   size_t nameLength = strlen(name) + 1;
-  result = uds_allocate(nameLength, char, __func__, &layer->name);
+  result = vdo_allocate(nameLength, char, __func__, &layer->name);
   if (result != UDS_SUCCESS) {
     return result;
   }

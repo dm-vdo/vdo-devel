@@ -41,7 +41,7 @@ static void freeReadRequest(struct uds_request *request)
   // Release the counted reference to the context that was acquired for the
   // request (and not released) in createRequest().
   ReadRequest *readRequest = container_of(request, ReadRequest, request);
-  uds_free(readRequest);
+  vdo_free(readRequest);
 }
 
 /**********************************************************************/
@@ -109,7 +109,7 @@ static void deinit(void)
   freePageArray();
   uds_free_volume(volume);
   uds_free_configuration(config);
-  uds_free_index_layout(uds_forget(layout));
+  uds_free_index_layout(vdo_forget(layout));
   putTestBlockDevice(testDevice);
 #ifndef __KERNEL__
   uds_destroy_cond(&allDoneCond);
@@ -144,7 +144,7 @@ static struct uds_request *newReadRequest(uint32_t physicalPage)
 {
   ReadRequest *readRequest = NULL;
 
-  UDS_ASSERT_SUCCESS(uds_allocate(1, ReadRequest, __func__, &readRequest));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, ReadRequest, __func__, &readRequest));
   readRequest->physicalPage = physicalPage;
   readRequest->request.unbatched = true;
   computeNameOnPage(&readRequest->request.record_name, physicalPage);
@@ -233,7 +233,7 @@ static void testFullReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(uds_allocate(numRequests, struct uds_request *, __func__, &requests));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, struct uds_request *, __func__, &requests));
 
   volume->read_threads_stopped = true;
   unsigned int i;
@@ -266,7 +266,7 @@ static void testFullReadQueue(void)
   }
   mutex_unlock(&numRequestsMutex);
 
-  uds_free(requests);
+  vdo_free(requests);
 }
 
 /**********************************************************************/
@@ -276,7 +276,7 @@ static void testInvalidateReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(uds_allocate(numRequests, struct uds_request *, __func__, &requests));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, struct uds_request *, __func__, &requests));
 
   // Fill up the read queue by stopping the read threads and enqueuing entries
   volume->read_threads_stopped = true;
@@ -331,7 +331,7 @@ static void testInvalidateReadQueue(void)
   CU_ASSERT_PTR_NOT_NULL(actual);
   mutex_unlock(&volume->read_threads_mutex);
 
-  uds_free(requests);
+  vdo_free(requests);
 }
 
 /**********************************************************************/
@@ -475,14 +475,14 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   volume->read_threads_stopped = false;
 
   ThreadArg *args;
-  UDS_ASSERT_SUCCESS(uds_allocate(numZones, ThreadArg, __func__, &args));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numZones, ThreadArg, __func__, &args));
   unsigned int k;
   for (k = 0; k < numZones; k++) {
     args[k].zoneNumber = k;
   }
 
   struct thread **threads;
-  UDS_ASSERT_SUCCESS(uds_allocate(numThreads, struct thread *, __func__, &threads));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numThreads, struct thread *, __func__, &threads));
 
   int result = UDS_SUCCESS;
   for (i = 0; i < numAsyncIndexThreads; i++) {
@@ -507,8 +507,8 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   }
   mutex_unlock(&numRequestsMutex);
 
-  uds_free(threads);
-  uds_free(args);
+  vdo_free(threads);
+  vdo_free(args);
 }
 
 /**********************************************************************/

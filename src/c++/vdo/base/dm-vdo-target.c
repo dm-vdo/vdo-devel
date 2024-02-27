@@ -197,7 +197,7 @@ struct registered_thread {
 	int dummy;
 };
 
-static void uds_register_allocating_thread(struct registered_thread *thread __always_unused,
+static void vdo_register_allocating_thread(struct registered_thread *thread __always_unused,
 					   void *context __always_unused)
 {
 }
@@ -211,7 +211,7 @@ static void vdo_unregister_thread_device_id(void)
 {
 }
 
-static void uds_unregister_allocating_thread(void)
+static void vdo_unregister_allocating_thread(void)
 {
 }
 
@@ -222,7 +222,7 @@ void initialize_instance_number_tracking(void)
 
 void clean_up_instance_number_tracking(void)
 {
-	uds_free(instances.words);
+	vdo_free(instances.words);
 	initialize_instance_number_tracking();
 }
 
@@ -2275,7 +2275,7 @@ static void vdo_pool_release(struct kobject *directory)
 			"kobject being released has no references");
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
-	uds_free(vdo);
+	vdo_free(vdo);
 }
 
 const struct kobj_type vdo_directory_type = {

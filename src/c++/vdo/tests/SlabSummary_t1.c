@@ -175,7 +175,7 @@ static void writeDefaultDataPattern(void)
 {
   // Make MAX_VDO_SLABS slab summary updates.
   SlabSummaryClient *clients;
-  VDO_ASSERT_SUCCESS(uds_allocate(MAX_VDO_SLABS, SlabSummaryClient, __func__,
+  VDO_ASSERT_SUCCESS(vdo_allocate(MAX_VDO_SLABS, SlabSummaryClient, __func__,
                                   &clients));
   for (size_t id = 0; id < MAX_VDO_SLABS; id++) {
     useDefaultPattern(&clients[id], id);
@@ -190,7 +190,7 @@ static void writeDefaultDataPattern(void)
   for (size_t id = 0; id < MAX_VDO_SLABS; id++) {
     VDO_ASSERT_SUCCESS(awaitCompletion(&clients[id].completion));
   }
-  uds_free(clients);
+  vdo_free(clients);
 }
 
 /**
@@ -320,7 +320,7 @@ static void testSaveAndRestore(void)
     CU_ASSERT_EQUAL(status.emptiness, getDefaultFreeBlockHint(status.slab_number));
   }
 
-  uds_free(uds_forget(statuses));
+  vdo_free(vdo_forget(statuses));
 }
 
 /**

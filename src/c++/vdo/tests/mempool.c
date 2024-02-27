@@ -31,7 +31,7 @@ mempool_t *mempool_create(int min_nr,
 			  void *pool_data)
 {
   mempool_t *pool;
-  VDO_ASSERT_SUCCESS(uds_allocate_extended(mempool_t,
+  VDO_ASSERT_SUCCESS(vdo_allocate_extended(mempool_t,
                                            min_nr,
                                            void *,
                                            __func__,
@@ -63,7 +63,7 @@ void mempool_destroy(mempool_t *pool)
     pool->destructor(pool->reserve[--pool->reserveSize], pool->context);
   }
 
-  uds_free(pool);
+  vdo_free(pool);
 }
 
 void *mempool_alloc(mempool_t *pool, gfp_t gfp_mask)

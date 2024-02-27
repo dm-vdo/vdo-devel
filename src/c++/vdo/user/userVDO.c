@@ -22,7 +22,7 @@
 int makeUserVDO(PhysicalLayer *layer, UserVDO **vdoPtr)
 {
   UserVDO *vdo;
-  int result = uds_allocate(1, UserVDO, __func__, &vdo);
+  int result = vdo_allocate(1, UserVDO, __func__, &vdo);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -41,7 +41,7 @@ void freeUserVDO(UserVDO **vdoPtr)
   }
 
   vdo_destroy_component_states(&vdo->states);
-  uds_free(vdo);
+  vdo_free(vdo);
   *vdoPtr = NULL;
 }
 
@@ -112,12 +112,12 @@ int loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 
   result = layer->reader(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, block);
   if (result != VDO_SUCCESS) {
-    uds_free(block);
+    vdo_free(block);
     return result;
   }
 
   result = vdo_parse_geometry_block((u8 *) block, geometry);
-  uds_free(block);
+  vdo_free(block);
   return result;
 }
 
@@ -152,7 +152,7 @@ int writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
 
   result = encode_volume_geometry(block, &offset, geometry, version);
   if (result != VDO_SUCCESS) {
-    uds_free(block);
+    vdo_free(block);
     return result;
   }
 
@@ -160,7 +160,7 @@ int writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
   encode_u32_le(block, &offset, checksum);
 
   result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, (char *) block);
-  uds_free(block);
+  vdo_free(block);
   return result;
 }
 

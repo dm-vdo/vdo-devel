@@ -98,7 +98,7 @@ static void failBorrow(struct vdo_completion *completion)
  **/
 static void returnLock(struct vdo_completion *completion)
 {
-  struct pbn_lock *lock = uds_forget(locks[count]);
+  struct pbn_lock *lock = vdo_forget(locks[count]);
 
   memcpy(lock, &saved, sizeof(struct pbn_lock));
   lock->holder_count = 1;
@@ -112,7 +112,7 @@ static void returnLock(struct vdo_completion *completion)
 static void testPBNLockPool(void)
 {
   zone = &vdo->physical_zones->zones[0];
-  VDO_ASSERT_SUCCESS(uds_allocate(MAXIMUM_VDO_USER_VIOS * 2,
+  VDO_ASSERT_SUCCESS(vdo_allocate(MAXIMUM_VDO_USER_VIOS * 2,
                                   struct pbn_lock *,
                                   __func__,
                                   &locks));
@@ -141,7 +141,7 @@ static void testPBNLockPool(void)
     performSuccessfulActionOnThread(returnLock, zone->thread_id);
   }
 
-  uds_free(locks);
+  vdo_free(locks);
 }
 
 /**********************************************************************/

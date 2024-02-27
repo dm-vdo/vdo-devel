@@ -42,7 +42,7 @@ pid_t forkChild(void)
     // parent
     uds_lock_mutex(&childMutex);
     pid_t *newChildren;
-    UDS_ASSERT_SUCCESS(uds_reallocate_memory(children,
+    UDS_ASSERT_SUCCESS(vdo_reallocate_memory(children,
                                              childCount * sizeof(pid_t),
                                              (childCount + 1) * sizeof(pid_t),
                                              __func__, &newChildren));

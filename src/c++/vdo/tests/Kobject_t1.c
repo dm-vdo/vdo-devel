@@ -30,7 +30,7 @@ static void release(struct kobject *kobj, char *name)
   CU_ASSERT_STRING_EQUAL(kobj->name, name);
   CU_ASSERT_EQUAL(atomic_read(&(kobj->refcount)), 0);
   released[toIndex(*name)] = true;
-  uds_free(kobj);
+  vdo_free(kobj);
 }
 
 /**********************************************************************/
@@ -61,7 +61,7 @@ static void releaseD(struct kobject *kobj)
 static struct kobject *makeKobject(char id, struct kobject *parent)
 {
   struct kobject *kobject;
-  VDO_ASSERT_SUCCESS(uds_allocate(1, struct kobject, __func__, &kobject));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct kobject, __func__, &kobject));
 
   unsigned int      index    = toIndex(id);
   struct kobj_type *kobjType = &kobjTypes[index];

@@ -23,7 +23,7 @@ enum { DEFAULT_MALLOC_ALIGNMENT = 2 * sizeof(size_t) }; // glibc malloc
  *
  * @return UDS_SUCCESS or an error code
  **/
-int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
+int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
 	int result;
 	void *p;
@@ -77,16 +77,16 @@ int uds_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
  * @return pointer to the allocated memory, or NULL if the required space is
  *         not available.
  */
-void *uds_allocate_memory_nowait(size_t size, const char *what)
+void *vdo_allocate_memory_nowait(size_t size, const char *what)
 {
 	void *p = NULL;
 
-	uds_allocate(size, char *, what, &p);
+	vdo_allocate(size, char *, what, &p);
 	return p;
 }
 
 /**********************************************************************/
-void uds_free(void *ptr)
+void vdo_free(void *ptr)
 {
 	free(ptr);
 }
@@ -104,7 +104,7 @@ void uds_free(void *ptr)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int uds_reallocate_memory(void *ptr,
+int vdo_reallocate_memory(void *ptr,
 			  size_t old_size,
 			  size_t size,
 			  const char *what,
@@ -126,14 +126,14 @@ int uds_reallocate_memory(void *ptr,
 }
 
 /**********************************************************************/
-int uds_duplicate_string(const char *string,
+int vdo_duplicate_string(const char *string,
 			 const char *what,
 			 char **new_string)
 {
 	int result;
 	u8 *dup = NULL;
 
-	result = uds_allocate(strlen(string) + 1, u8, what, &dup);
+	result = vdo_allocate(strlen(string) + 1, u8, what, &dup);
 	if (result != UDS_SUCCESS)
 		return result;
 

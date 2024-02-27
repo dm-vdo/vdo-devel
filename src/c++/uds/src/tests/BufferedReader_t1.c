@@ -21,7 +21,7 @@ static struct block_device *testDevice;
 /**********************************************************************/
 static void createAndWriteData(void)
 {
-  UDS_ASSERT_SUCCESS(uds_allocate(DATA_SIZE, u8, __func__, &data));
+  UDS_ASSERT_SUCCESS(vdo_allocate(DATA_SIZE, u8, __func__, &data));
   get_random_bytes(data, DATA_SIZE);
 
   testDevice = getTestBlockDevice();
@@ -45,7 +45,7 @@ static void verifyData(int count)
 {
   int offset;
   u8 *buf;
-  UDS_ASSERT_SUCCESS(uds_allocate(count, u8, __func__, &buf));
+  UDS_ASSERT_SUCCESS(vdo_allocate(count, u8, __func__, &buf));
 
   struct buffered_reader *reader;
   UDS_ASSERT_SUCCESS(uds_make_buffered_reader(factory, 0, DATA_BLOCKS, &reader));
@@ -58,7 +58,7 @@ static void verifyData(int count)
   UDS_ASSERT_ERROR(UDS_OUT_OF_RANGE,
                    uds_read_from_buffered_reader(reader, buf, count));
   uds_free_buffered_reader(reader);
-  uds_free(buf);
+  vdo_free(buf);
 }
 
 /**********************************************************************/
@@ -66,7 +66,7 @@ static void freeEverything(void)
 {
   uds_put_io_factory(factory);
   putTestBlockDevice(testDevice);
-  uds_free(data);
+  vdo_free(data);
   data    = NULL;
   factory = NULL;
 }

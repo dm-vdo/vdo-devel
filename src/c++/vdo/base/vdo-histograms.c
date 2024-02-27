@@ -79,16 +79,16 @@ void vdo_initialize_histograms(struct kobject *parent, struct vdo_histograms *hi
  */
 void vdo_destroy_histograms(struct vdo_histograms *histograms)
 {
-	free_histogram(uds_forget(histograms->discard_ack_histogram));
-	free_histogram(uds_forget(histograms->flush_histogram));
-	free_histogram(uds_forget(histograms->post_histogram));
-	free_histogram(uds_forget(histograms->query_histogram));
-	free_histogram(uds_forget(histograms->read_ack_histogram));
-	free_histogram(uds_forget(histograms->read_bios_histogram));
-	free_histogram(uds_forget(histograms->read_queue_histogram));
-	free_histogram(uds_forget(histograms->start_request_histogram));
-	free_histogram(uds_forget(histograms->update_histogram));
-	free_histogram(uds_forget(histograms->write_ack_histogram));
-	free_histogram(uds_forget(histograms->write_bios_histogram));
-	free_histogram(uds_forget(histograms->write_queue_histogram));
+	free_histogram(vdo_forget(histograms->discard_ack_histogram));
+	free_histogram(vdo_forget(histograms->flush_histogram));
+	free_histogram(vdo_forget(histograms->post_histogram));
+	free_histogram(vdo_forget(histograms->query_histogram));
+	free_histogram(vdo_forget(histograms->read_ack_histogram));
+	free_histogram(vdo_forget(histograms->read_bios_histogram));
+	free_histogram(vdo_forget(histograms->read_queue_histogram));
+	free_histogram(vdo_forget(histograms->start_request_histogram));
+	free_histogram(vdo_forget(histograms->update_histogram));
+	free_histogram(vdo_forget(histograms->write_ack_histogram));
+	free_histogram(vdo_forget(histograms->write_bios_histogram));
+	free_histogram(vdo_forget(histograms->write_queue_histogram));
 }

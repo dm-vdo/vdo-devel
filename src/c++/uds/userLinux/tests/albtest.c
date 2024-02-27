@@ -359,7 +359,7 @@ static void printTestElapsed(FILE *fp, ktime_t elapsed)
   if ((elapsed > 0)
       && (rel_time_to_string(&elapsedTime, elapsed) == UDS_SUCCESS)) {
     fprintf(fp, " time=\"%s\"", elapsedTime);
-    uds_free(elapsedTime);
+    vdo_free(elapsedTime);
   }
 }
 

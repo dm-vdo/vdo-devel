@@ -82,7 +82,7 @@ static void pbnPerfTest(void)
                                           elapsed / numBlocksPerLevel));
     albPrint("%3u%% dedupe, %s per iteration", 100 * level / NUM_LEVELS,
              perBlock);
-    uds_free(perBlock);
+    vdo_free(perBlock);
   }
 
   uninitializeOldInterfaces();

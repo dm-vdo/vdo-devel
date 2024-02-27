@@ -235,14 +235,14 @@ int make_event_count(struct event_count **count_ptr)
 	int result;
 	struct event_count *count = NULL;
 
-	result = uds_allocate(1, struct event_count, "event count", &count);
+	result = vdo_allocate(1, struct event_count, "event count", &count);
 	if (result != UDS_SUCCESS)
 		return result;
 
 	atomic64_set(&count->state, 0);
 	result = uds_initialize_semaphore(&count->semaphore, 0);
 	if (result != UDS_SUCCESS) {
-		uds_free(count);
+		vdo_free(count);
 		return result;
 	}
 
@@ -257,7 +257,7 @@ void free_event_count(struct event_count *count)
 		return;
 
 	uds_destroy_semaphore(&count->semaphore);
-	uds_free(count);
+	vdo_free(count);
 }
 
 /*

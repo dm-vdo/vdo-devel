@@ -68,8 +68,8 @@ static void indexCleanSuite(void)
 {
   uninitialize_test_requests();
   uds_free_index(testData.index);
-  uds_free(testData.metas);
-  uds_free(testData.hashes);
+  vdo_free(testData.metas);
+  vdo_free(testData.hashes);
   uds_free_configuration(denseConfig);
   uds_free_configuration(sparseConfig);
 }
@@ -85,10 +85,10 @@ static void initTestData(unsigned int numChapters, unsigned int collisionFreq)
   testData.recordsPerChapter
     = testData.index->volume->geometry->records_per_chapter;
   testData.totalRecords = testData.recordsPerChapter * numChapters;
-  UDS_ASSERT_SUCCESS(uds_allocate(testData.totalRecords,
+  UDS_ASSERT_SUCCESS(vdo_allocate(testData.totalRecords,
                                   struct uds_record_name,
                                   __func__, &testData.hashes));
-  UDS_ASSERT_SUCCESS(uds_allocate(testData.totalRecords,
+  UDS_ASSERT_SUCCESS(vdo_allocate(testData.totalRecords,
                                   struct uds_record_data,
                                   __func__, &testData.metas));
   uint64_t i;

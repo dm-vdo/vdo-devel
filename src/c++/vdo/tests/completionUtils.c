@@ -41,7 +41,7 @@ static int makeWrappingCompletion(vdo_action_fn           action,
                                   struct vdo_completion **wrappingCompletion)
 {
   WrappingCompletion *wc;
-  int result = uds_allocate(1, WrappingCompletion, "wrapping completion", &wc);
+  int result = vdo_allocate(1, WrappingCompletion, "wrapping completion", &wc);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -65,7 +65,7 @@ static void freeWrappingCompletion(WrappingCompletion *wc)
   if (wc != NULL) {
     wc->original->parent   = wc->savedParent;
     wc->original->callback = wc->savedCallback;
-    uds_free(wc);
+    vdo_free(wc);
   }
 }
 

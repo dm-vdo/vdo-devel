@@ -45,7 +45,7 @@ static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
 {
   // Make a copy of the keys we're going to sort.
   u8 *bytes;
-  UDS_ASSERT_SUCCESS(uds_allocate(count * sizeof(keys[0]), u8, "keys",
+  UDS_ASSERT_SUCCESS(vdo_allocate(count * sizeof(keys[0]), u8, "keys",
                                   &bytes));
   memcpy(bytes, keys, count * sizeof(keys[0]));
   const u8 **copy = (const u8 **) bytes;
@@ -72,7 +72,7 @@ static void sort(const u8 *keys[], unsigned int count, unsigned int length)
   const u8 **copy = sortAndVerify(keys, count, length);
 
   // Sort the sorted copy.
-  uds_free(sortAndVerify(copy, count, length));
+  vdo_free(sortAndVerify(copy, count, length));
 
   // Note: since the sort is not stable, we can't actually assert that keys
   // and copy are identical.
@@ -85,15 +85,15 @@ static void sort(const u8 *keys[], unsigned int count, unsigned int length)
   }
 
   // Sort the reversed array.
-  uds_free(sortAndVerify(reversed, count, length));
-  uds_free(reversed);
+  vdo_free(sortAndVerify(reversed, count, length));
+  vdo_free(reversed);
 }
 
 /**********************************************************************/
 static const u8 **makeKeys(unsigned int count)
 {
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(uds_allocate(count, const u8 *, "split", &keys));
+  UDS_ASSERT_SUCCESS(vdo_allocate(count, const u8 *, "split", &keys));
   CU_ASSERT_PTR_NOT_NULL(keys);
   return keys;
 }
@@ -115,7 +115,7 @@ static const u8 **split(const char *strings, unsigned int count,
 static char *join(const u8 **keys, int count, int length)
 {
   char *strings;
-  UDS_ASSERT_SUCCESS(uds_allocate(count * length + 1, char, "join", &strings));
+  UDS_ASSERT_SUCCESS(vdo_allocate(count * length + 1, char, "join", &strings));
   int i;
   for (i = 0; i < count; i++) {
     memcpy(&strings[i * length], keys[i], length);
@@ -129,7 +129,7 @@ static void assertJoined(const char *strings, const u8 **keys,
 {
   char *joined = join(keys, count, length);
   CU_ASSERT_STRING_EQUAL(strings, joined);
-  uds_free(joined);
+  vdo_free(joined);
 }
 
 /**********************************************************************/
@@ -162,7 +162,7 @@ static void testIdentical(void)
   }
   assertSorted(keys, count, length);
   sort(keys, count, length);
-  uds_free(keys);
+  vdo_free(keys);
 }
 
 /**********************************************************************/
@@ -177,7 +177,7 @@ static void test(const char *strings, unsigned int length,
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, count, length));
   uds_free_radix_sorter(radixSorter);
   assertJoined(expected, keys, count, length);
-  uds_free(keys);
+  vdo_free(keys);
 }
 
 /**********************************************************************/
@@ -210,7 +210,7 @@ static void testZeroLength(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 2, 0));
   uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
-  uds_free(reversed);
+  vdo_free(reversed);
 }
 
 /**********************************************************************/
@@ -222,7 +222,7 @@ static void testZeroCount(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, reversed, 0, 2));
   uds_free_radix_sorter(radixSorter);
   assertJoined("ZZXX", reversed, 2, 2);
-  uds_free(reversed);
+  vdo_free(reversed);
 }
 
 /**********************************************************************/
@@ -238,9 +238,9 @@ static void testOneByteKeys(void)
 static void testSize(int size)
 {
   unsigned short *data;
-  UDS_ASSERT_SUCCESS(uds_allocate(size, unsigned short, __func__, &data));
+  UDS_ASSERT_SUCCESS(vdo_allocate(size, unsigned short, __func__, &data));
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(uds_allocate(size, const u8 *, __func__, &keys));
+  UDS_ASSERT_SUCCESS(vdo_allocate(size, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(size, &radixSorter));
   int i;
@@ -257,8 +257,8 @@ static void testSize(int size)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, size, sizeof(data[0])));
   assertSorted(keys, size, sizeof(data[0]));
   uds_free_radix_sorter(radixSorter);
-  uds_free(data);
-  uds_free(keys);
+  vdo_free(data);
+  vdo_free(keys);
 }
 
 /**********************************************************************/
@@ -272,9 +272,9 @@ static void testRandom(void)
 {
   enum { SIZE = 0x10000 };
   unsigned long *data;
-  UDS_ASSERT_SUCCESS(uds_allocate(SIZE, unsigned long, __func__, &data));
+  UDS_ASSERT_SUCCESS(vdo_allocate(SIZE, unsigned long, __func__, &data));
   const u8 **keys;
-  UDS_ASSERT_SUCCESS(uds_allocate(SIZE, const u8 *, __func__, &keys));
+  UDS_ASSERT_SUCCESS(vdo_allocate(SIZE, const u8 *, __func__, &keys));
   struct radix_sorter *radixSorter;
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(SIZE, &radixSorter));
   int i;
@@ -285,8 +285,8 @@ static void testRandom(void)
   UDS_ASSERT_SUCCESS(uds_radix_sort(radixSorter, keys, SIZE, sizeof(data[0])));
   assertSorted(keys, SIZE, sizeof(data[0]));
   uds_free_radix_sorter(radixSorter);
-  uds_free(data);
-  uds_free(keys);
+  vdo_free(data);
+  vdo_free(keys);
 }
 
 /**********************************************************************/

@@ -38,7 +38,7 @@ static void reportIOTime(const char *title, ktime_t elapsed)
   char *elapsedTime;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&elapsedTime, elapsed));
   albPrint("%s elapsed time %s", title, elapsedTime);
-  uds_free(elapsedTime);
+  vdo_free(elapsedTime);
 }
 
 /**********************************************************************/
@@ -49,8 +49,8 @@ static void reportTimes(const char *title, long numBlocks, ktime_t elapsed)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&perRecord, elapsed / numBlocks));
   albPrint("%s %ld blocks took %s, average = %s/record",
            title, numBlocks, elapsedTime, perRecord);
-  uds_free(elapsedTime);
-  uds_free(perRecord);
+  vdo_free(elapsedTime);
+  vdo_free(perRecord);
 }
 
 /**********************************************************************/

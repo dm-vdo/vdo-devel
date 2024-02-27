@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
            "\na candidate\n");
   }
 
-  uds_free(blockBuffer);
+  vdo_free(blockBuffer);
   fileLayer->destroy(&fileLayer);
 
   if (candidateCount == 0) {

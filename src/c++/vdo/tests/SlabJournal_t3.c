@@ -96,7 +96,7 @@ static void makeWrappedVIO(slab_count_t            slabNumber,
                            struct vdo_completion **completionPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(uds_allocate(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, DataVIOWrapper, __func__, &wrapper));
   initializeWrapper(wrapper);
   resetWrapper(wrapper, slabNumber);
   *completionPtr = &wrapper->completion;
@@ -138,7 +138,7 @@ static void performAddEntry(slab_count_t slabNumber)
   struct vdo_completion *completion;
   makeWrappedVIO(slabNumber, &completion);
   VDO_ASSERT_SUCCESS(performAction(addSlabJournalEntryAction, completion));
-  uds_free(completion);
+  vdo_free(completion);
 }
 
 /**

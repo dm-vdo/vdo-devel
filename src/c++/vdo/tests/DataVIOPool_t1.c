@@ -129,7 +129,7 @@ static void launchRequest(logical_block_number_t lbn)
 /**********************************************************************/
 static void releaseBlockedDataVIO(logical_block_number_t lbn)
 {
-  struct data_vio *data_vio = uds_forget(blocked[lbn]);
+  struct data_vio *data_vio = vdo_forget(blocked[lbn]);
   CU_ASSERT_PTR_NOT_NULL(data_vio);
   reallyEnqueueVIO(&data_vio->vio);
 }
@@ -139,7 +139,7 @@ static void joinThreadsUpTo(uint8_t limit)
 {
   for (uint8_t i = 0; i < limit; i++) {
     if (threads[i] != NULL) {
-      vdo_join_threads(uds_forget(threads[i]));
+      vdo_join_threads(vdo_forget(threads[i]));
     }
   }
 }
@@ -171,7 +171,7 @@ static void testDataVIOPool(void)
     releaseBlockedDataVIO(i + REQUEST_COUNT);
   }
 
-  awaitAndFreeRequest(uds_forget(request));
+  awaitAndFreeRequest(vdo_forget(request));
 
   // The 4 writes to lbns 0-3 should have been launched and blocked.
   waitForCondition(waitForBlockedCount, &data_vio_count);

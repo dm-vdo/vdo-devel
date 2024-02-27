@@ -20,7 +20,7 @@
 static int __init dedupe_init(void)
 {
 	vdo_initialize_thread_device_registry();
-	uds_memory_init();
+	vdo_memory_init();
 	uds_log_info("loaded version %s", CURRENT_VERSION);
 	uds_init_sysfs();
 	return 0;
@@ -29,7 +29,7 @@ static int __init dedupe_init(void)
 static void __exit dedupe_exit(void)
 {
 	uds_put_sysfs();
-	uds_memory_exit();
+	vdo_memory_exit();
 	uds_log_info("unloaded version %s", CURRENT_VERSION);
 }
 
@@ -49,31 +49,31 @@ EXPORT_SYMBOL_GPL(uds_suspend_index_session);
 
 EXPORT_SYMBOL_GPL(__uds_log_message);
 EXPORT_SYMBOL_GPL(__uds_log_strerror);
-EXPORT_SYMBOL_GPL(uds_allocate_memory);
-EXPORT_SYMBOL_GPL(uds_allocate_memory_nowait);
 EXPORT_SYMBOL_GPL(uds_append_to_buffer);
 EXPORT_SYMBOL_GPL(uds_assertion_failed);
-EXPORT_SYMBOL_GPL(uds_duplicate_string);
-EXPORT_SYMBOL_GPL(uds_free);
 EXPORT_SYMBOL_GPL(uds_free_funnel_queue);
 EXPORT_SYMBOL_GPL(uds_funnel_queue_poll);
 EXPORT_SYMBOL_GPL(uds_get_log_level);
-EXPORT_SYMBOL_GPL(uds_get_memory_stats);
 EXPORT_SYMBOL_GPL(uds_is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(uds_log_backtrace);
 EXPORT_SYMBOL_GPL(uds_log_priority_to_string);
 EXPORT_SYMBOL_GPL(uds_log_string_to_priority);
 EXPORT_SYMBOL_GPL(uds_make_funnel_queue);
-EXPORT_SYMBOL_GPL(uds_reallocate_memory);
-EXPORT_SYMBOL_GPL(uds_register_allocating_thread);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
-EXPORT_SYMBOL_GPL(uds_report_memory_usage);
 EXPORT_SYMBOL_GPL(uds_set_log_level);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
-EXPORT_SYMBOL_GPL(uds_unregister_allocating_thread);
+EXPORT_SYMBOL_GPL(vdo_allocate_memory);
+EXPORT_SYMBOL_GPL(vdo_allocate_memory_nowait);
+EXPORT_SYMBOL_GPL(vdo_duplicate_string);
+EXPORT_SYMBOL_GPL(vdo_free);
+EXPORT_SYMBOL_GPL(vdo_get_memory_stats);
 EXPORT_SYMBOL_GPL(vdo_perform_once);
+EXPORT_SYMBOL_GPL(vdo_reallocate_memory);
+EXPORT_SYMBOL_GPL(vdo_register_allocating_thread);
 EXPORT_SYMBOL_GPL(vdo_register_thread_device_id);
+EXPORT_SYMBOL_GPL(vdo_report_memory_usage);
+EXPORT_SYMBOL_GPL(vdo_unregister_allocating_thread);
 EXPORT_SYMBOL_GPL(vdo_unregister_thread_device_id);
 
 #ifdef TEST_INTERNAL

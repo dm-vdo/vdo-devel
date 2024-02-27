@@ -36,7 +36,7 @@ void freeTestResults(TestResult *tr)
     for (i = 0; i < tr->numSub; ++i) {
       freeTestResults(&tr->sub[i]);
     }
-    uds_free(tr->sub);
+    vdo_free(tr->sub);
     tr->sub = NULL;
     if (tr->freeName) {
       uds_free_const(tr->name);
@@ -50,7 +50,7 @@ void freeTestResults(TestResult *tr)
 CU_SuiteInfo *copySuite(const CU_SuiteInfo *suite)
 {
   CU_SuiteInfo *s;
-  uds_allocate(1, CU_SuiteInfo, "suite", &s);
+  vdo_allocate(1, CU_SuiteInfo, "suite", &s);
   *s = *suite;
   s->useSparseSession = false;
   s->next = NULL;
@@ -171,7 +171,7 @@ TestResult runSuite(const CU_SuiteInfo *suite)
   for (tests = suite->tests; tests->name != NULL; ++tests) {
     ++numTests;
   }
-  uds_allocate(numTests, TestResult, "Test Results", &result.sub);
+  vdo_allocate(numTests, TestResult, "Test Results", &result.sub);
 
   albPrint("Running suite %s", result.name);
   unsigned int i;
@@ -193,7 +193,7 @@ TestResult runSuites(const CU_SuiteInfo *suites)
   for (s = expanded; s != NULL; s = s->next) {
     ++numSuites;
   }
-  uds_allocate(numSuites, TestResult, "Suite Results", &result.sub);
+  vdo_allocate(numSuites, TestResult, "Suite Results", &result.sub);
 
   unsigned int index = 0;
   for (s = expanded; s != NULL; s = s->next) {

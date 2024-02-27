@@ -162,7 +162,7 @@ static void bestFitTest(void)
     // emptiest non-empty bin.
     compressedSizes[i] = i - DEFAULT_PACKER_BINS;
     writeData(i, i + 1, 1, VDO_SUCCESS);
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i - DEFAULT_PACKER_BINS]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i - DEFAULT_PACKER_BINS]));
   }
 
   stats = vdo_get_packer_statistics(vdo->packer);
@@ -237,7 +237,7 @@ static void suspendAndResumePackerTest(void)
     = launchIndexedWrite(0, DEFAULT_PACKER_BINS * 2, 1);
   waitForState(&allBinsFull);
   performSuccessfulPackerAction(VDO_ADMIN_STATE_SUSPENDING);
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
 
   // Make sure all bins show all their block space free.
   struct packer_bin *bin;
@@ -291,7 +291,7 @@ static void removeVIOsTest(void)
   // dedupe is disabled, concurrent dedupe is not.
   shouldQueue = true;
   writeData(slots * 2, 4, 1, VDO_SUCCESS);
-  awaitAndFreeSuccessfulRequest(uds_forget(requests[4]));
+  awaitAndFreeSuccessfulRequest(vdo_forget(requests[4]));
 
   expectedSlotsUsed = slots - 2;
   performSuccessfulActionOnThread(checkFullestBin, vdo->thread_config.packer_thread);
@@ -310,7 +310,7 @@ static void removeVIOsTest(void)
 
   // wait for output vios
   for (size_t i = 0; i < slots - 1; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
   }
 
   // We should have written exactly 2 blocks.

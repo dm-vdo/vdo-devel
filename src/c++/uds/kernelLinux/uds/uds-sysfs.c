@@ -153,7 +153,7 @@ static long memory_show_bytes_used(void)
 	u64 bytes_used;
 	u64 peak_bytes_used;
 
-	uds_get_memory_stats(&bytes_used, &peak_bytes_used);
+	vdo_get_memory_stats(&bytes_used, &peak_bytes_used);
 	return bytes_used;
 }
 

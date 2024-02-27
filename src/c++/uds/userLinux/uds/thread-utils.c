@@ -89,7 +89,7 @@ static void *thread_starter(void *arg)
 	 * care much if this fails.
 	 */
 	process_control(PR_SET_NAME, (unsigned long) info->name, 0, 0, 0);
-	uds_free(info);
+	vdo_free(info);
 	thread_function(thread_data);
 	return NULL;
 }
@@ -104,17 +104,17 @@ int vdo_create_thread(void (*thread_function)(void *),
 	struct thread_start_info *info;
 	struct thread *thread;
 
-	result = uds_allocate(1, struct thread_start_info, __func__, &info);
+	result = vdo_allocate(1, struct thread_start_info, __func__, &info);
 	if (result != UDS_SUCCESS)
 		return result;
 	info->thread_function = thread_function;
 	info->thread_data = thread_data;
 	info->name = name;
 
-	result = uds_allocate(1, struct thread, __func__, &thread);
+	result = vdo_allocate(1, struct thread, __func__, &thread);
 	if (result != UDS_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
-		uds_free(info);
+		vdo_free(info);
 		return result;
 	}
 
@@ -123,8 +123,8 @@ int vdo_create_thread(void (*thread_function)(void *),
 		result = -errno;
 		uds_log_error_strerror(result, "could not create %s thread",
 				       name);
-		uds_free(thread);
-		uds_free(info);
+		vdo_free(thread);
+		vdo_free(info);
 		return result;
 	}
 
@@ -140,7 +140,7 @@ void vdo_join_threads(struct thread *thread)
 
 	result = pthread_join(thread->thread, NULL);
 	pthread = thread->thread;
-	uds_free(thread);
+	vdo_free(thread);
 	ASSERT_LOG_ONLY((result == 0), "thread: %p", (void *) pthread);
 }
 

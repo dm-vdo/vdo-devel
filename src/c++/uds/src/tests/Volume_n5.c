@@ -159,7 +159,7 @@ static void testInvalidateChapter(void)
   struct uds_request *request, *request2;
   struct volume *volume = theIndex->volume;
 
-  UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_request, __func__, &request));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, __func__, &request));
   request->type = UDS_POST;
   createRandomBlockNameInZone(theIndex, 0, &request->record_name);
   createRandomMetadata(&request->new_metadata);
@@ -182,7 +182,7 @@ static void testInvalidateChapter(void)
   int result = vdo_create_thread(readPageThread, request, "readpage", &thread);
   UDS_ASSERT_SUCCESS(result);
 
-  UDS_ASSERT_SUCCESS(uds_allocate(1, struct uds_request, __func__, &request2));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, __func__, &request2));
   request2->type = UDS_POST;
   createRandomBlockNameInZone(theIndex, 0, &request2->record_name);
   createRandomMetadata(&request2->new_metadata);
@@ -202,8 +202,8 @@ static void testInvalidateChapter(void)
   fillOpenChapter(config->geometry->chapters_per_volume, 1);
   vdo_join_threads(thread);
 
-  uds_free(request);
-  uds_free(request2);
+  vdo_free(request);
+  vdo_free(request2);
 }
 
 /**********************************************************************/

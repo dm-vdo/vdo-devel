@@ -147,7 +147,7 @@ static inline void uds_free_const(const void *pointer)
 		const void *const_p;
 		void *not_const;
 	} u = { .const_p = pointer };
-	uds_free(u.not_const);
+	vdo_free(u.not_const);
 }
 
 #endif /*TEST_INTERNAL */

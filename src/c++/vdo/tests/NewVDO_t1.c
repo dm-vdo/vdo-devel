@@ -34,7 +34,7 @@ static void verifySlabSummary(void)
     CU_ASSERT_EQUAL(0, allocator->summary_entries[status->slab_number].tail_block_offset);
   }
 
-  uds_free(statuses);
+  vdo_free(statuses);
 }
 
 /**********************************************************************/

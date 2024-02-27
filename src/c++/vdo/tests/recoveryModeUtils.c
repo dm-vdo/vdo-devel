@@ -43,7 +43,7 @@ void initializeRecoveryModeTest(const TestParameters *testParameters)
 void tearDownRecoveryModeTest(void)
 {
   tearDownVDOTest();
-  vdo_int_map_free(uds_forget(latchedVIOs));
+  vdo_int_map_free(vdo_forget(latchedVIOs));
 #ifndef __KERNEL__
   uds_destroy_cond(&condition);
 #endif  /* not __KERNEL__ */

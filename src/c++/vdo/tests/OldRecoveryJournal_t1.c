@@ -72,8 +72,8 @@ static void initialize(int argc, const char **argv __attribute__((unused)))
 /**********************************************************************/
 static void cleanUp(void)
 {
-  uds_free(crashedPath);
-  uds_free(recoveredPath);
+  vdo_free(crashedPath);
+  vdo_free(recoveredPath);
 }
 
 /**********************************************************************/
