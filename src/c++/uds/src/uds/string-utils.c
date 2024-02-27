@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 
-int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
+int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 {
 	va_list args;
 	int result;

@@ -289,7 +289,7 @@ static void loadTestDirectoryInitialization(struct module  **module,
 {
   char *moduleName;
 
-  int result = uds_alloc_sprintf(__func__, &moduleName, "%s/%s",
+  int result = vdo_alloc_sprintf(__func__, &moduleName, "%s/%s",
                                  getTestDirectory(), "__vdotest__init.so");
   if (result != UDS_SUCCESS) {
     errx(1, "failed to allocate test dir init");

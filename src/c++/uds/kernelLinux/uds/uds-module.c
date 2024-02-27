@@ -134,7 +134,6 @@ EXPORT_SYMBOL_GPL(swap_delta_index_page_endianness);
 EXPORT_SYMBOL_GPL(test_page_count);
 EXPORT_SYMBOL_GPL(test_pages);
 EXPORT_SYMBOL_GPL(track_uds_memory_allocations);
-EXPORT_SYMBOL_GPL(uds_alloc_sprintf);
 EXPORT_SYMBOL_GPL(uds_allocate_memory_counter);
 EXPORT_SYMBOL_GPL(uds_allocation_error_injection);
 EXPORT_SYMBOL_GPL(uds_apply_to_threads);
@@ -240,6 +239,7 @@ EXPORT_SYMBOL_GPL(uds_write_guard_delta_list);
 EXPORT_SYMBOL_GPL(uds_write_index_page_map);
 EXPORT_SYMBOL_GPL(uds_write_to_buffered_writer);
 EXPORT_SYMBOL_GPL(uninitialize_page_cache);
+EXPORT_SYMBOL_GPL(vdo_alloc_sprintf);
 EXPORT_SYMBOL_GPL(vdo_create_thread);
 EXPORT_SYMBOL_GPL(vdo_join_threads);
 #endif /* TEST_INTERNAL */

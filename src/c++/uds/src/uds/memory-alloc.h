@@ -141,7 +141,7 @@ void vdo_free(void *ptr);
 
 #ifdef TEST_INTERNAL
 /* Wrapper which permits freeing a const pointer. */
-static inline void uds_free_const(const void *pointer)
+static inline void vdo_free_const(const void *pointer)
 {
 	union {
 		const void *const_p;

@@ -32,7 +32,7 @@ static char *makeNameTemplate(const char *what)
   static const char *albTmp   = "AlbTmp";
 
   char *newName;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__,
                                        &newName, "%s%s%s%s%s.XXXXXX",
                                        absolute         ? ""     : tmpDir,
                                        plain            ? ""     : what,

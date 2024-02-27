@@ -63,7 +63,7 @@ static bool searchPipe(const char *pipe, const char *str)
 static void assertFound(const char *str)
 {
   char *journalctlCommand;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf("journalCommand", &journalctlCommand,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf("journalCommand", &journalctlCommand,
                                        "sudo journalctl -a -S '%s'",
                                        timeBuffer));
   // ALB-2828 showed a delay in our logging making it to a syslog file.
@@ -88,7 +88,7 @@ static void assertFound(const char *str)
 static void simple(void)
 {
   char *buf;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf, "foo simple %u",
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf, "foo simple %u",
                                        rand()));
   mini_syslog(UDS_LOG_ERR, "%s", buf);
   assertFound(buf);
@@ -100,11 +100,11 @@ static void labeled(void)
 {
   mini_openlog("foo", 0, LOG_USER);
   char *buf;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf,"foo labeled %u",
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,"foo labeled %u",
                                        rand()));
   mini_syslog(UDS_LOG_ERR, "%s", buf);
   char *line;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &line,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &line,
                                        "foo\\(\\[%d\\]\\)\\{0,1\\}: %s",
                                        getpid(), buf));
   vdo_free(buf);
@@ -117,13 +117,13 @@ static void labeledPid(void)
 {
   mini_openlog("foo", LOG_PID, LOG_USER);
   char *buf;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf,"foo labeledPid %u",
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,"foo labeledPid %u",
                                        rand()));
   mini_syslog(UDS_LOG_ERR, "%s", buf);
   char *line;
   char tname[16];
   uds_get_thread_name(tname);
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &line,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &line,
                                        "foo\\[%u\\]: ERROR  (%s/%d) %s",
                                        getpid(), tname, uds_get_thread_id(),
                                        buf));
@@ -148,24 +148,24 @@ static void unloadedName(void)
   mini_closelog();
   mini_openlog(mem, LOG_PID, LOG_USER);
   char *test1;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &test1, "test1 %u", rand()));
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &test1, "test1 %u", rand()));
   mini_syslog(UDS_LOG_ERR, "%s", test1);
   // Simulate unloading a shared object...
   UDS_ASSERT_SYSTEM_CALL(munmap(mem, pagesize));
   // ...followed by some action that logs a message.
   char *test2;
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &test2, "test2 %u", rand()));
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &test2, "test2 %u", rand()));
   mini_syslog(UDS_LOG_ERR, "%s", test2);
   char *buf;
   char tname[16];
   uds_get_thread_name(tname);
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,
                                        "%s\\[%u\\]: ERROR  (%s/%d) %s",
                                        identity, getpid(), tname,
                                        uds_get_thread_id(), test1));
   assertFound(buf);
   vdo_free(buf);
-  UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &buf,
+  UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,
                                        "%s\\[%u\\]: ERROR  (%s/%d) %s",
                                        identity, getpid(), tname,
                                        uds_get_thread_id(), test2));

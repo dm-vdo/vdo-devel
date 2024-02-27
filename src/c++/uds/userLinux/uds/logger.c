@@ -129,7 +129,7 @@ static void init_logger(void)
 	}
 
 	char *identity;
-	if (uds_alloc_sprintf(NULL, &identity, "%s/%s", IDENTITY,
+	if (vdo_alloc_sprintf(NULL, &identity, "%s/%s", IDENTITY,
 			      program_invocation_short_name) == UDS_SUCCESS) {
 		mini_openlog(identity, LOG_PID | LOG_NDELAY | LOG_CONS,
 			     LOG_USER);

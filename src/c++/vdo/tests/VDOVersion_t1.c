@@ -71,12 +71,12 @@ static char *pickledData               = NULL;
 static void makeFileName(const char *name)
 {
   if (*name == '/') {
-    VDO_ASSERT_SUCCESS(uds_alloc_sprintf("current version file name",
+    VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("current version file name",
                                          &currentVersionFileName, "%s", name));
     return;
   }
 
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("current version file name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("current version file name",
                                        &currentVersionFileName, "%s/%s",
                                        getTestDirectory(), name));
 }

@@ -169,7 +169,7 @@ int vdo_make_work_queue(const char *thread_name_prefix,
   VDO_ASSERT_SUCCESS(vdo_duplicate_string(name,
                                           "work queue name",
                                           &queue->name));
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("work queue thread name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("work queue thread name",
                                        &queue->threadName,
                                        "%s%s",
                                        thread_name_prefix,

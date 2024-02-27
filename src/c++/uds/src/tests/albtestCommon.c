@@ -39,7 +39,7 @@ void freeTestResults(TestResult *tr)
     vdo_free(tr->sub);
     tr->sub = NULL;
     if (tr->freeName) {
-      uds_free_const(tr->name);
+      vdo_free_const(tr->name);
       tr->name = NULL;
       tr->freeName = false;
     }
@@ -160,7 +160,7 @@ TestResult runSuite(const CU_SuiteInfo *suite)
   if (suite->bdev != NULL) {
     const char *sparseSuffix = suite->useSparseSession ? " {sparse}" : "";
     char *name;
-    UDS_ASSERT_SUCCESS(uds_alloc_sprintf(__func__, &name, "%s %s",
+    UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &name, "%s %s",
                                          suite->name, sparseSuffix));
     result.name     = name;
     result.freeName = true;
@@ -211,7 +211,7 @@ void freeSuites(const CU_SuiteInfo *suites)
     const CU_SuiteInfo *s = suites;
     suites = s->next;
     putTestBlockDevice(s->bdev);
-    uds_free_const(s);
+    vdo_free_const(s);
   }
 }
 
