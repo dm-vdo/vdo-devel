@@ -65,7 +65,7 @@ int __must_check parseUInt64(const char *arg, uint64_t *numPtr)
   }
 
   *numPtr = n;
-  return UDS_SUCCESS;
+  return VDO_SUCCESS;
 }
 
 /**
@@ -135,13 +135,13 @@ static int parseMem(char *string, uint32_t *sizePtr)
     mem = UDS_MEMORY_CONFIG_768MB;
   } else {
     int number;
-    if (parseInt(string, &number) != UDS_SUCCESS) {
+    if (parseInt(string, &number) != VDO_SUCCESS) {
       return -EINVAL;
     }
     mem = number;
   }
   *sizePtr = (uint32_t) mem;
-  return UDS_SUCCESS;
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -155,7 +155,7 @@ int parseIndexConfig(UdsConfigStrings    *configStrings,
   if (configStrings->memorySize != NULL) {
     uint32_t mem;
     int result = parseMem(configStrings->memorySize, &mem);
-    if (result != UDS_SUCCESS) {
+    if (result != VDO_SUCCESS) {
       return result;
     }
     config.mem = mem;

@@ -232,7 +232,7 @@ int makeSparseLayer(const char     *name,
     return result;
   }
   result = verifyRanges(blockCount, numRanges, ranges);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }
@@ -269,7 +269,7 @@ int makeSparseLayer(const char     *name,
 
   result = makeFileLayer(layer->name, fileLayerBlockCount,
                          &layer->fileLayer);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }

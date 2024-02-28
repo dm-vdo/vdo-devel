@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
 
   struct index_config indexConfig;
   result = parseIndexConfig(&configStrings, &indexConfig);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     errx(result, "parseIndexConfig failed: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
