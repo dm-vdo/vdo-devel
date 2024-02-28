@@ -21,7 +21,7 @@ static void testAbsolutePath(void)
   char *absPath;
   UDS_ASSERT_SUCCESS(make_abs_path(path, &absPath));
   CU_ASSERT_STRING_EQUAL(absPath, path);
-  uds_free(absPath);
+  vdo_free(absPath);
 }
 
 /**********************************************************************/
@@ -34,9 +34,9 @@ static void testRelativePath(void)
   char *absPath;
   UDS_ASSERT_SUCCESS(make_abs_path(path, &absPath));
   CU_ASSERT_STRING_EQUAL(absPath, "/tmp/file");
-  uds_free(absPath);
+  vdo_free(absPath);
   UDS_ASSERT_SYSTEM_CALL(chdir(savedCwd));
-  uds_free(savedCwd);
+  vdo_free(savedCwd);
 }
 
 /**********************************************************************/
@@ -52,16 +52,16 @@ static void testBadCWD(void)
   char *cwd = get_current_dir_name();
   CU_ASSERT_PTR_NOT_NULL(cwd);
   UDS_ASSERT_SYSTEM_CALL(remove(cwd));
-  uds_free(cwd);
+  vdo_free(cwd);
   char *path;
-  UDS_ASSERT_SUCCESS(uds_duplicate_string("tmp", __func__, &path));
+  UDS_ASSERT_SUCCESS(vdo_duplicate_string("tmp", __func__, &path));
   char *expectedPath = path;
   CU_ASSERT_NOT_EQUAL(make_abs_path(path, &path), UDS_SUCCESS);
   CU_ASSERT_STRING_EQUAL(path, "tmp");
   CU_ASSERT_PTR_EQUAL(path, expectedPath);
-  uds_free(path);
+  vdo_free(path);
   UDS_ASSERT_SYSTEM_CALL(chdir(savedCwd));
-  uds_free(savedCwd);
+  vdo_free(savedCwd);
 }
 
 /**********************************************************************/
@@ -70,16 +70,16 @@ static void testSamePtr(void)
   char *savedCwd = get_current_dir_name();
   CU_ASSERT_PTR_NOT_NULL(savedCwd);
   char *path1;
-  UDS_ASSERT_SUCCESS(uds_duplicate_string("12345", __func__, &path1));
+  UDS_ASSERT_SUCCESS(vdo_duplicate_string("12345", __func__, &path1));
   char *path2 = path1;
   UDS_ASSERT_SYSTEM_CALL(chdir("/tmp"));
   CU_ASSERT_PTR_EQUAL(path1, path2);
   UDS_ASSERT_SUCCESS(make_abs_path(path1, &path1));
   CU_ASSERT_NOT_EQUAL(path1, path2);
-  uds_free(path1);
-  uds_free(path2);
+  vdo_free(path1);
+  vdo_free(path2);
   UDS_ASSERT_SYSTEM_CALL(chdir(savedCwd));
-  uds_free(savedCwd);
+  vdo_free(savedCwd);
 }
 
 /**********************************************************************/

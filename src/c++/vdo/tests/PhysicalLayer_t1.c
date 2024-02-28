@@ -65,18 +65,18 @@ static void verifyLayerRead(char                    *data,
 
   VDO_ASSERT_SUCCESS(layer->reader(layer, start, count, buf));
   CU_ASSERT_EQUAL(memcmp(data, buf, bufferBytes), 0);
-  uds_free(buf);
+  vdo_free(buf);
 
   // Also check an unaligned buffer if the layer is a file layer
   if (!isFileLayer) {
     return;
   }
 
-  VDO_ASSERT_SUCCESS(uds_allocate(bufferBytes, char, __func__, &buf));
+  VDO_ASSERT_SUCCESS(vdo_allocate(bufferBytes, char, __func__, &buf));
   memset(buf, 255, bufferBytes);
   VDO_ASSERT_SUCCESS(layer->reader(layer, start, count, buf));
   CU_ASSERT_EQUAL(memcmp(data, buf, bufferBytes), 0);
-  uds_free(buf);
+  vdo_free(buf);
 }
 
 /**
@@ -98,12 +98,12 @@ static void verifyLayerWrite(char		      *data,
 
   // Also check an unaligned buffer if the layer is a file layer
   char *buffer;
-  VDO_ASSERT_SUCCESS(uds_allocate(count * VDO_BLOCK_SIZE, char, __func__,
+  VDO_ASSERT_SUCCESS(vdo_allocate(count * VDO_BLOCK_SIZE, char, __func__,
                                   &buffer));
   VDO_ASSERT_SUCCESS(layer->writer(layer, start, count, buffer));
   memcpy(buffer, data, count * VDO_BLOCK_SIZE);
   VDO_ASSERT_SUCCESS(layer->writer(layer, start, count, buffer));
-  uds_free(buffer);
+  vdo_free(buffer);
   verifyLayerRead(data, layer, start, count);
 }
 
@@ -118,7 +118,7 @@ static void checkPersistentLayer(PhysicalLayer **layerPtr)
     // Blocks at offset 1 mod 7 use a different key.
     fillBuf(buf, (b % 7 == 1) ? b + 1001 : b);
     verifyLayerRead(buf, layer, b, 1);
-    uds_free(buf);
+    vdo_free(buf);
     if (b == 0) {
       break;
     }
@@ -139,7 +139,7 @@ static void checkGenericLayer(PhysicalLayer **layerPtr)
 
   CU_ASSERT_EQUAL(VDO_OUT_OF_RANGE,
                   layer->writer(layer, BLOCK_COUNT, 1, zeros));
-  uds_free(zeros);
+  vdo_free(zeros);
 
   // Write sequential data.
   for (block_count_t b = 0; b < BLOCK_COUNT; ++b) {
@@ -148,7 +148,7 @@ static void checkGenericLayer(PhysicalLayer **layerPtr)
                                                "buffer", &buf));
     fillBuf(buf, b);
     verifyLayerWrite(buf, layer, b, 1);
-    uds_free(buf);
+    vdo_free(buf);
   }
 
   // Overwrite every seventh block starting at 1 with
@@ -159,7 +159,7 @@ static void checkGenericLayer(PhysicalLayer **layerPtr)
                                                "buffer", &buf));
     fillBuf(buf, b + 1001);
     verifyLayerWrite(buf, layer, b, 1);
-    uds_free(buf);
+    vdo_free(buf);
   }
 
   checkPersistentLayer(layerPtr);

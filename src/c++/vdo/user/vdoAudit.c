@@ -247,9 +247,9 @@ static void printErrorSummary(void)
  **/
 static void freeAuditAllocations(void)
 {
-  uds_free(slabSummaryEntries);
+  vdo_free(slabSummaryEntries);
   for (slab_count_t i = 0; i < vdo->slabCount; i++) {
-    uds_free(slabs[i].refCounts);
+    vdo_free(slabs[i].refCounts);
   }
   freeVDOFromFile(&vdo);
 }
@@ -668,7 +668,7 @@ static int verifyPBNRefCounts(void)
     }
   }
 
-  uds_free(buffer);
+  vdo_free(buffer);
   return result;
 }
 
@@ -762,7 +762,7 @@ int main(int argc, char *argv[])
     audit->firstError = (slab_block_number) -1;
 
     result
-      = uds_allocate(slabDataBlocks, uint8_t, __func__, &audit->refCounts);
+      = vdo_allocate(slabDataBlocks, uint8_t, __func__, &audit->refCounts);
     if (result != VDO_SUCCESS) {
       freeAuditAllocations();
       errx(1, "Could not allocate %llu reference counts: %s",

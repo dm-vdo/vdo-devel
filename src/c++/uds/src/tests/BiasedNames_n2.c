@@ -136,7 +136,7 @@ static void runTest(void)
 {
   enum { NUM_CHUNKS = 40000 };
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(uds_allocate(NUM_CHUNKS, struct uds_record_name, "names",
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_CHUNKS, struct uds_record_name, "names",
                                   &names));
   initializeOldInterfaces(2000);
 
@@ -164,7 +164,7 @@ static void runTest(void)
   createCopy32Names(NUM_CHUNKS, names);
   testWithChunks(indexSession, NUM_CHUNKS, names, "Copy Bits");
 
-  uds_free(names);
+  vdo_free(names);
   uninitializeOldInterfaces();
 }
 
@@ -193,7 +193,7 @@ static void initializerWithSession(struct uds_index_session *is)
     uds_free_index(oldIndex);
     uds_free_configuration(config);
   }
-  uds_free(params);
+  vdo_free(params);
 }
 
 /**********************************************************************/

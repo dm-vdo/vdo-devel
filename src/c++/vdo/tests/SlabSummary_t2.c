@@ -134,7 +134,7 @@ static void testMultipleZones(void)
     }
   }
 
-  uds_free(entries);
+  vdo_free(entries);
 
   vdo->depot->zone_count = vdo->depot->old_zone_count;
 }

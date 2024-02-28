@@ -71,12 +71,12 @@ static char *pickledData               = NULL;
 static void makeFileName(const char *name)
 {
   if (*name == '/') {
-    VDO_ASSERT_SUCCESS(uds_alloc_sprintf("current version file name",
+    VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("current version file name",
                                          &currentVersionFileName, "%s", name));
     return;
   }
 
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("current version file name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("current version file name",
                                        &currentVersionFileName, "%s/%s",
                                        getTestDirectory(), name));
 }
@@ -137,9 +137,9 @@ static void initializeVDOVersionT1(int argc, const char **argv)
 /**********************************************************************/
 static void tearDownVDOVersionT1(void)
 {
-  uds_free(pickledData);
+  vdo_free(pickledData);
   tearDownVDOTest();
-  uds_free(currentVersionFileName);
+  vdo_free(currentVersionFileName);
 }
 
 /**********************************************************************/
@@ -151,7 +151,7 @@ static void readVDOFromDisk(const char *fileName)
   off_t vdoSize;
   VDO_ASSERT_SUCCESS(get_open_file_size(fd, &vdoSize));
 
-  VDO_ASSERT_SUCCESS(uds_allocate(vdoSize, char, __func__, &pickledData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(vdoSize, char, __func__, &pickledData));
   ssize_t bytesRead;
   VDO_ASSERT_SUCCESS(logging_read(fd, pickledData, vdoSize, __func__,
                                   &bytesRead));

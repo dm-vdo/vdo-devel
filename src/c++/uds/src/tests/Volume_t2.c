@@ -52,7 +52,7 @@ static void deinit(void)
 {
   uds_free_volume(volume);
   uds_free_configuration(config);
-  uds_free_index_layout(uds_forget(layout));
+  uds_free_index_layout(vdo_forget(layout));
   putTestBlockDevice(testDevice);
 }
 
@@ -64,7 +64,7 @@ static void testWriteChapter(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **chapters;
-  UDS_ASSERT_SUCCESS(uds_allocate(zoneCount, struct open_chapter_zone *,
+  UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, struct open_chapter_zone *,
                                   "open chapters", &chapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
@@ -72,10 +72,10 @@ static void testWriteChapter(void)
   }
 
   struct uds_record_name *hashes;
-  UDS_ASSERT_SUCCESS(uds_allocate(geometry->records_per_chapter,
+  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter,
                                   struct uds_record_name, "names", &hashes));
   struct uds_record_data *metadata;
-  UDS_ASSERT_SUCCESS(uds_allocate(geometry->records_per_chapter,
+  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter,
                                   struct uds_record_data, "records",
                                   &metadata));
 
@@ -103,7 +103,7 @@ static void testWriteChapter(void)
     = (sizeof(struct uds_volume_record)
        * (1 + volume->geometry->records_per_chapter));
   struct uds_volume_record *collatedRecords;
-  UDS_ASSERT_SUCCESS(uds_allocate_cache_aligned(collatedRecordsSize,
+  UDS_ASSERT_SUCCESS(vdo_allocate_cache_aligned(collatedRecordsSize,
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
@@ -118,7 +118,7 @@ static void testWriteChapter(void)
                                             collatedRecords,
                                             chapterNumber));
   uds_free_open_chapter_index(openChapterIndex);
-  uds_free(collatedRecords);
+  vdo_free(collatedRecords);
 
   for (zone = 0; zone < zoneCount; ++zone) {
     uds_free_open_chapter(chapters[zone]);
@@ -164,9 +164,9 @@ static void testWriteChapter(void)
     CU_ASSERT_TRUE(found);
     UDS_ASSERT_BLOCKDATA_EQUAL(&request.old_metadata, &metadata[i]);
   }
-  uds_free(metadata);
-  uds_free(hashes);
-  uds_free(chapters);
+  vdo_free(metadata);
+  vdo_free(hashes);
+  vdo_free(chapters);
 }
 
 /**********************************************************************/

@@ -42,7 +42,7 @@ pid_t forkChild(void)
   } else if (pid > 0) {
     // parent
     pid_t *newChildren;
-    UDS_ASSERT_SUCCESS(uds_reallocate_memory(children,
+    UDS_ASSERT_SUCCESS(vdo_reallocate_memory(children,
                                              (childCount) * sizeof(pid_t),
                                              (childCount + 1) * sizeof(pid_t),
                                              __func__, &newChildren));

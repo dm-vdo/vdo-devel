@@ -52,7 +52,7 @@ static uint32_t         blockedThreadCount;
 /**********************************************************************/
 static void freeTask(void *task)
 {
-  uds_free(task);
+  vdo_free(task);
 }
 
 /**********************************************************************/
@@ -398,7 +398,7 @@ static bool checkForBlockedVIO(void *context __attribute__((unused)))
 static bool fetchBlockedVIO(void *context)
 {
   FetchContext *fetchContext = context;
-  fetchContext->vio = uds_forget(blockedVIO);
+  fetchContext->vio = vdo_forget(blockedVIO);
   fetchContext->blockedAsBIO = blockedAsBIO;
   blockedAsBIO = false;
   return false;
@@ -551,7 +551,7 @@ struct task_struct *getCurrentTaskStruct(void)
 {
   struct task_struct *task = pthread_getspecific(taskKey);
   if (task == NULL) {
-    VDO_ASSERT_SUCCESS(uds_allocate(1, struct task_struct, __func__, &task));
+    VDO_ASSERT_SUCCESS(vdo_allocate(1, struct task_struct, __func__, &task));
     VDO_ASSERT_SUCCESS(pthread_setspecific(taskKey, task));
     task->state = TASK_RUNNING;
     task->id = pthread_self();

@@ -46,7 +46,7 @@ static void initSuite(struct block_device *bdev)
 static void cleanSuite(void)
 {
   uninitialize_test_requests();
-  uds_free_index(uds_forget(testIndex));
+  uds_free_index(vdo_forget(testIndex));
 }
 
 /**********************************************************************/

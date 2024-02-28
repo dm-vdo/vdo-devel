@@ -131,7 +131,7 @@ static void doFinalWrite(IORequest *blockedWrite, int expectedResult)
   writeData(finalWriteBlock, finalWriteBlock, 1, VDO_SUCCESS);
 
   CU_ASSERT_EQUAL(expectedResult,
-                  awaitAndFreeRequest(uds_forget(blockedWrite)));
+                  awaitAndFreeRequest(vdo_forget(blockedWrite)));
 
   // Verify the write to finalWriteBlock (which we couldn't do before as the
   // verification would race with the completion of the request for LBN 1).
@@ -167,7 +167,7 @@ static void testVerificationRaceWithTrim(void)
    * was mapped to LBN 2 and then end up being written to the PBN which had
    * been mapped to LBN 3.
    */
-  doFinalWrite(uds_forget(request), VDO_SUCCESS);
+  doFinalWrite(vdo_forget(request), VDO_SUCCESS);
 
   // Verify the data from the initial write.
   verifyData(1, 2, 1);
@@ -223,7 +223,7 @@ static void testDecrementAfterIncorrectSpeculativeIncrement(void)
    * was mapped to LBN 2 and then end up being written to the PBN which had
    * been mapped to LBN 3.
    */
-  doFinalWrite(uds_forget(request), VDO_NO_SPACE);
+  doFinalWrite(vdo_forget(request), VDO_NO_SPACE);
   writeAndVerifyData(finalWriteBlock + 2, finalWriteBlock + 2, 1, 0,
                      dataBlocks);
 }

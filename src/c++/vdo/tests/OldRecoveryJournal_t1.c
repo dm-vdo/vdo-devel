@@ -57,12 +57,12 @@ static void initialize(int argc, const char **argv __attribute__((unused)))
 {
   generateFiles = (argc > 0);
 
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("crashed file name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("crashed file name",
                                        &crashedPath,
                                        "%s/%s",
                                        getTestDirectory(),
                                        CRASHED));
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("recovered file name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("recovered file name",
                                        &recoveredPath,
                                        "%s/%s",
                                        getTestDirectory(),
@@ -72,8 +72,8 @@ static void initialize(int argc, const char **argv __attribute__((unused)))
 /**********************************************************************/
 static void cleanUp(void)
 {
-  uds_free(crashedPath);
-  uds_free(recoveredPath);
+  vdo_free(crashedPath);
+  vdo_free(recoveredPath);
 }
 
 /**********************************************************************/

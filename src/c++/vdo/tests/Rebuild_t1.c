@@ -147,7 +147,7 @@ static void writeTestData(logical_block_number_t startBlock,
   // Flush VIOs out of the packer and wait for the request to finish.
   requestFlushPacker();
 
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
   clearCompletionEnqueueHooks();
 
   // Issue more writes which will all deduplicate.
@@ -285,16 +285,16 @@ static void verifyRebuiltDepot(PreRebuildData *originalData)
 static PreRebuildData *copyPreRebuildData(struct slab_depot *depot)
 {
   PreRebuildData *originalData;
-  VDO_ASSERT_SUCCESS(uds_allocate(1, PreRebuildData, __func__, &originalData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, PreRebuildData, __func__, &originalData));
   originalData->expectedFreeBlocks = getPhysicalBlocksFree();
   originalData->slabCount = depot->slab_count;
-  VDO_ASSERT_SUCCESS(uds_allocate(depot->slab_count, RefCountData, __func__,
+  VDO_ASSERT_SUCCESS(vdo_allocate(depot->slab_count, RefCountData, __func__,
                                   &originalData->refCountData));
   for (size_t i = 0; i < depot->slab_count; i++) {
     struct vdo_slab *slab              = depot->slabs[i];
     RefCountData    *originalRefCounts = &originalData->refCountData[i];
     originalRefCounts->counterCount    = slab->block_count;
-    VDO_ASSERT_SUCCESS(uds_allocate(slab->block_count,
+    VDO_ASSERT_SUCCESS(vdo_allocate(slab->block_count,
                                     vdo_refcount_t,
                                     __func__,
                                     &(originalRefCounts->counters)));
@@ -312,12 +312,12 @@ static void freePreRebuildData(PreRebuildData **originalDataPtr)
   PreRebuildData *originalData = *originalDataPtr;
 
   for (size_t i = 0; i < originalData->slabCount; i++) {
-    uds_free(uds_forget(originalData->refCountData[i].counters));
+    vdo_free(vdo_forget(originalData->refCountData[i].counters));
   }
 
-  uds_free(originalData->refCountData);
+  vdo_free(originalData->refCountData);
   originalData->refCountData = NULL;
-  uds_free(originalData);
+  vdo_free(originalData);
   *originalDataPtr = NULL;
 }
 

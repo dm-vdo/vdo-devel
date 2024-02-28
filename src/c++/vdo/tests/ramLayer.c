@@ -74,7 +74,7 @@ static int allocateIOBuffer(PhysicalLayer  *layer __attribute__((unused)),
                             const char     *why,
                             char          **bufferPtr)
 {
-  return uds_allocate(bytes, char, why, bufferPtr);
+  return vdo_allocate(bytes, char, why, bufferPtr);
 }
 
 /**
@@ -96,7 +96,7 @@ static Region *getRegion(RAMLayer *layer, RegionNumber regionNumber, bool read)
     return region;
   }
 
-  VDO_ASSERT_SUCCESS(uds_allocate(1, Region, __func__, &region));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, Region, __func__, &region));
   layer->regions[regionNumber] = region;
   region->next = layer->regionList;
   layer->regionList = region;
@@ -215,16 +215,16 @@ static void freeRAMLayer(RAMLayer *layer)
     try_close_file(layer->backing);
   }
 
-  Region *list = uds_forget(layer->regionList);
+  Region *list = vdo_forget(layer->regionList);
   while (list != NULL) {
     Region *toFree = list;
     list = list->next;
-    uds_free(toFree);
+    vdo_free(toFree);
   }
 
-  uds_free(layer->regions);
+  vdo_free(layer->regions);
   mutex_destroy(&layer->mutex);
-  uds_free(layer);
+  vdo_free(layer);
 }
 
 /**
@@ -251,7 +251,7 @@ int makeRAMLayer(block_count_t   blockCount,
                  PhysicalLayer **layerPtr)
 {
   RAMLayer *layer;
-  int result = uds_allocate(1, RAMLayer, __func__, &layer);
+  int result = vdo_allocate(1, RAMLayer, __func__, &layer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -259,7 +259,7 @@ int makeRAMLayer(block_count_t   blockCount,
   mutex_init(&layer->mutex);
   layer->size        = blockCount * VDO_BLOCK_SIZE;
   layer->regionCount = DIV_ROUND_UP(blockCount, REGION_BLOCKS);
-  result = uds_allocate(layer->regionCount,
+  result = vdo_allocate(layer->regionCount,
                         Region *,
                         __func__,
                         &layer->regions);
@@ -326,7 +326,7 @@ int resizeRAMLayer(PhysicalLayer *header, block_count_t newSize)
   RAMLayer *layer      = asRAMLayer(header);
   size_t    newRegions = DIV_ROUND_UP(newSize, REGION_BLOCKS);
   if (newRegions > layer->regionCount) {
-    VDO_ASSERT_SUCCESS(uds_reallocate_memory(layer->regions,
+    VDO_ASSERT_SUCCESS(vdo_reallocate_memory(layer->regions,
                                              (layer->regionCount
                                               * sizeof(Region *)),
                                              newRegions * sizeof(Region *),

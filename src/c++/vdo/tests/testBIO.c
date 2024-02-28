@@ -187,7 +187,7 @@ int submit_bio_wait(struct bio *bio)
  **/
 static void freeBIOEndio(struct bio *bio)
 {
-  uds_free(bio);
+  vdo_free(bio);
 }
 
 /**********************************************************************/

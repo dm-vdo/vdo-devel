@@ -19,7 +19,7 @@ static struct block_device *testDevice;
 static size_t getBytesUsed(void)
 {
   uint64_t bytesUsed, peakBytesUsed;
-  uds_get_memory_stats(&bytesUsed, &peakBytesUsed);
+  vdo_get_memory_stats(&bytesUsed, &peakBytesUsed);
   return bytesUsed;
 }
 

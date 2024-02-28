@@ -40,7 +40,7 @@ static void newCallback(struct uds_request *request)
                  request->found ? &request->old_metadata : NULL,
                  &request->record_name, NULL);
   }
-  uds_free(or);
+  vdo_free(or);
   uds_release_semaphore(&requestSemaphore);
 }
 
@@ -64,7 +64,7 @@ int oldPostBlockNameResult(struct uds_index_session     *session,
 {
   uds_acquire_semaphore(&requestSemaphore);
   OldRequest *or;
-  UDS_ASSERT_SUCCESS(uds_allocate(1, OldRequest, __func__, &or));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, OldRequest, __func__, &or));
   or->callback             = callback;
   or->cookie               = cookie;
   or->request.callback     = newCallback;
@@ -74,7 +74,7 @@ int oldPostBlockNameResult(struct uds_index_session     *session,
   or->request.type         = UDS_POST;
   int result = uds_launch_request(&or->request);
   if (result != UDS_SUCCESS) {
-    uds_free(or);
+    vdo_free(or);
     uds_release_semaphore(&requestSemaphore);
   }
   return result;
@@ -89,7 +89,7 @@ void oldUpdateBlockMapping(struct uds_index_session     *session,
 {
   uds_acquire_semaphore(&requestSemaphore);
   OldRequest *or;
-  UDS_ASSERT_SUCCESS(uds_allocate(1, OldRequest, __func__, &or));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, OldRequest, __func__, &or));
   or->callback             = callback;
   or->cookie               = cookie;
   or->request.callback     = newCallback;

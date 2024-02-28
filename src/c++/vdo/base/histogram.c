@@ -242,8 +242,8 @@ static void histogram_kobj_release(struct kobject *kobj)
 {
 	struct histogram *h = container_of(kobj, struct histogram, kobj);
 
-	uds_free(h->counters);
-	uds_free(h);
+	vdo_free(h->counters);
+	vdo_free(h);
 }
 
 static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char *buf)
@@ -575,7 +575,7 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 {
 	struct histogram *h;
 
-	if (uds_allocate(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
+	if (vdo_allocate(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
 		return NULL;
 
 	if (NO_BUCKETS)
@@ -597,7 +597,7 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 	h->conversion_factor = conversion_factor;
 	atomic64_set(&h->minimum, -1UL);
 
-	if (uds_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
+	if (vdo_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
 			 &h->counters) != UDS_SUCCESS) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;

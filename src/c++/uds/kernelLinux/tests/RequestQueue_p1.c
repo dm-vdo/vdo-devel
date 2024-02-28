@@ -411,7 +411,7 @@ static void funnelEventConsume(QueueableBatch *qb)
 static QueueableBatch *allocateBatch(long stream, long count)
 {
   QueueableBatch *qb;
-  UDS_ASSERT_SUCCESS(uds_allocate_extended(QueueableBatch, count, Queueable,
+  UDS_ASSERT_SUCCESS(vdo_allocate_extended(QueueableBatch, count, Queueable,
                                            __func__, &qb));
   qb->count  = count;
   qb->stream = stream;
@@ -434,7 +434,7 @@ static void freeBatch(QueueableBatch *qb)
 {
   free_event_count(qb->event);
   uds_free_funnel_queue(qb->funnel);
-  uds_free(qb);
+  vdo_free(qb);
 }
 
 /**********************************************************************/
@@ -446,7 +446,7 @@ static void reportTime(const char *label,
   char *printTime;
   UDS_ASSERT_SUCCESS(rel_time_to_string(&printTime, time / count));
   albPrint("    %-10s %s/%s", label, printTime, type);
-  uds_free(printTime);
+  vdo_free(printTime);
 }
 
 /**********************************************************************/

@@ -307,8 +307,8 @@ static int compute_volume_sub_index_parameters(const struct uds_configuration *c
 
 static void uninitialize_volume_sub_index(struct volume_sub_index *sub_index)
 {
-	uds_free(uds_forget(sub_index->flush_chapters));
-	uds_free(uds_forget(sub_index->zones));
+	vdo_free(vdo_forget(sub_index->flush_chapters));
+	vdo_free(vdo_forget(sub_index->zones));
 	uds_uninitialize_delta_index(&sub_index->delta_index);
 }
 
@@ -319,20 +319,20 @@ void uds_free_volume_index(struct volume_index *volume_index)
 
 #ifdef __KERNEL__
 	if (volume_index->zones != NULL)
-		uds_free(uds_forget(volume_index->zones));
+		vdo_free(vdo_forget(volume_index->zones));
 #else
 	if (volume_index->zones != NULL) {
 		unsigned int zone;
 
 		for (zone = 0; zone < volume_index->zone_count; zone++)
 			mutex_destroy(&volume_index->zones[zone].hook_mutex);
-		uds_free(uds_forget(volume_index->zones));
+		vdo_free(vdo_forget(volume_index->zones));
 	}
 #endif /* __KERNEL__ */
 
 	uninitialize_volume_sub_index(&volume_index->vi_non_hook);
 	uninitialize_volume_sub_index(&volume_index->vi_hook);
-	uds_free(volume_index);
+	vdo_free(volume_index);
 }
 
 
@@ -1291,12 +1291,12 @@ static int initialize_volume_sub_index(const struct uds_configuration *config,
 				  (zone_count * sizeof(struct volume_sub_index_zone)));
 
 	/* The following arrays are initialized to all zeros. */
-	result = uds_allocate(params.list_count, u64, "first chapter to flush",
+	result = vdo_allocate(params.list_count, u64, "first chapter to flush",
 			      &sub_index->flush_chapters);
 	if (result != UDS_SUCCESS)
 		return result;
 
-	return uds_allocate(zone_count, struct volume_sub_index_zone,
+	return vdo_allocate(zone_count, struct volume_sub_index_zone,
 			    "volume index zones", &sub_index->zones);
 }
 
@@ -1308,7 +1308,7 @@ int uds_make_volume_index(const struct uds_configuration *config, u64 volume_non
 	struct volume_index *volume_index;
 	int result;
 
-	result = uds_allocate(1, struct volume_index, "volume index", &volume_index);
+	result = vdo_allocate(1, struct volume_index, "volume index", &volume_index);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -1329,7 +1329,7 @@ int uds_make_volume_index(const struct uds_configuration *config, u64 volume_non
 
 	volume_index->sparse_sample_rate = config->sparse_sample_rate;
 
-	result = uds_allocate(config->zone_count, struct volume_index_zone,
+	result = vdo_allocate(config->zone_count, struct volume_index_zone,
 			      "volume index zones", &volume_index->zones);
 	if (result != UDS_SUCCESS) {
 		uds_free_volume_index(volume_index);

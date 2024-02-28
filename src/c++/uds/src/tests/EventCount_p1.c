@@ -112,8 +112,8 @@ static void testEventCount(int messageCount)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&ecTotal, ecTime));
   UDS_ASSERT_SUCCESS(rel_time_to_string(&ecPer, ecTime / messageCount));
   albPrint("    event count %s, %s/increment", ecTotal, ecPer);
-  uds_free(ecTotal);
-  uds_free(ecPer);
+  vdo_free(ecTotal);
+  vdo_free(ecPer);
   free_event_count(eventCount);
 }
 
@@ -186,8 +186,8 @@ static void testMutex(int messageCount)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexTotal, mutexTime));
   UDS_ASSERT_SUCCESS(rel_time_to_string(&mutexPer, mutexTime / messageCount));
   albPrint("    mutex %s, %s/increment", mutexTotal, mutexPer);
-  uds_free(mutexTotal);
-  uds_free(mutexPer);
+  vdo_free(mutexTotal);
+  vdo_free(mutexPer);
 #ifndef __KERNEL__
   uds_destroy_cond(&cond);
 #endif  /* not __KERNEL__ */
@@ -256,8 +256,8 @@ static void testSpinLoop(int messageCount)
   UDS_ASSERT_SUCCESS(rel_time_to_string(&spinTotal, spinTime));
   UDS_ASSERT_SUCCESS(rel_time_to_string(&spinPer, spinTime /messageCount));
   albPrint("    spin loop %s, %s/increment", spinTotal, spinPer);
-  uds_free(spinTotal);
-  uds_free(spinPer);
+  vdo_free(spinTotal);
+  vdo_free(spinPer);
   free_event_count(eventCount);
 }
 

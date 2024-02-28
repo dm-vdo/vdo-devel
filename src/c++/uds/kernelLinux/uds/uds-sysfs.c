@@ -43,7 +43,7 @@ static char *buffer_to_string(const char *buf, size_t length)
 {
 	char *string;
 
-	if (uds_allocate(length + 1, char, __func__, &string) != UDS_SUCCESS)
+	if (vdo_allocate(length + 1, char, __func__, &string) != UDS_SUCCESS)
 		return NULL;
 
 	memcpy(string, buf, length);
@@ -153,7 +153,7 @@ static long memory_show_bytes_used(void)
 	u64 bytes_used;
 	u64 peak_bytes_used;
 
-	uds_get_memory_stats(&bytes_used, &peak_bytes_used);
+	vdo_get_memory_stats(&bytes_used, &peak_bytes_used);
 	return bytes_used;
 }
 
@@ -277,7 +277,7 @@ static ssize_t parameter_store(struct kobject *kobj, struct attribute *attr,
 		return -ENOMEM;
 
 	pa->store_string(string);
-	uds_free(string);
+	vdo_free(string);
 	return length;
 }
 

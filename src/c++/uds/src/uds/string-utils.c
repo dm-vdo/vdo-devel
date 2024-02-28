@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "memory-alloc.h"
 
-int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
+int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 {
 	va_list args;
 	int result;
@@ -22,7 +22,7 @@ int uds_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	va_start(args, fmt);
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
 	va_end(args);
-	result = uds_allocate(count, char, what, strp);
+	result = vdo_allocate(count, char, what, strp);
 	if (result == UDS_SUCCESS) {
 		va_start(args, fmt);
 		vsnprintf(*strp, count, fmt, args);

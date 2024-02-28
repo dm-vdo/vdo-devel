@@ -94,7 +94,7 @@ static void savedTest(void)
   UDS_ASSERT_SUCCESS(uds_close_index(indexSession));
   UDS_ASSERT_SUCCESS(uds_open_index(UDS_NO_REBUILD, savedParams,
                                     indexSession));
-  uds_free(savedParams);
+  vdo_free(savedParams);
 
   // Verify data
   struct uds_request request = { .type = UDS_QUERY_NO_UPDATE };
@@ -108,7 +108,7 @@ static void savedTest(void)
   // Test that the saved configuration persists after the index is closed.
   UDS_ASSERT_SUCCESS(uds_get_index_parameters(indexSession, &savedParams));
   UDS_ASSERT_EQUAL_BYTES(&params, savedParams, sizeof(params));
-  uds_free(savedParams);
+  vdo_free(savedParams);
 
   UDS_ASSERT_SUCCESS(uds_destroy_index_session(indexSession));
   uds_free_configuration(config);

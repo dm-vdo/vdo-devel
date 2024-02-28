@@ -103,7 +103,7 @@ static void testDirect04(void)
 
   // Wait for the VIOs to come back from writing.
   for (logical_block_number_t i = 0; i < 1024; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
   }
 
   verifyWrite(0, 1, 2, blocksFree - 6, 6);
@@ -208,7 +208,7 @@ static void testConcurrentRollOver(void)
   }
 
   for (int i = 0; i < 254; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
   }
 
   CU_ASSERT_EQUAL(1, vdo_get_physical_blocks_allocated(vdo));
@@ -237,7 +237,7 @@ static void testConcurrentRollOver(void)
 
   // Release LBN 254, which will roll over PBN1, and wait for it to complete.
   releaseLatchedVIO(0);
-  awaitAndFreeSuccessfulRequest(uds_forget(pbn2Requests[0]));
+  awaitAndFreeSuccessfulRequest(vdo_forget(pbn2Requests[0]));
 
   // Release LBNs 255-507, which should dedupe against PBN2.
   for (int i = 1; i < 254; i++) {
@@ -245,7 +245,7 @@ static void testConcurrentRollOver(void)
   }
 
   for (int i = 1; i < 254; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(pbn2Requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(pbn2Requests[i]));
   }
 
   // Two blocks should have 254 references each, and two more should be
@@ -276,7 +276,7 @@ static void testConcurrentRollOver(void)
   // Release LBN 508, which will now finish rolling over and update UDS
   // with PBN3.
   releaseLatchedVIO(257);
-  awaitAndFreeSuccessfulRequest(uds_forget(pbn3Requests[0]));
+  awaitAndFreeSuccessfulRequest(vdo_forget(pbn3Requests[0]));
 
   // Two blocks have 254 references, one has one reference, and one is
   // provisionally allocated still.
@@ -284,7 +284,7 @@ static void testConcurrentRollOver(void)
 
   // Release LBN 509, and make sure it correctly dedupes against PBN3.
   releaseLatchedVIO(258);
-  awaitAndFreeSuccessfulRequest(uds_forget(pbn3Requests[1]));
+  awaitAndFreeSuccessfulRequest(vdo_forget(pbn3Requests[1]));
 
   // Exactly three blocks should be used now.
   CU_ASSERT_EQUAL(3, vdo_get_physical_blocks_allocated(vdo));
@@ -321,7 +321,7 @@ static void testCompressRollOver(void)
 
   for (unsigned int i = 0; i < FRAGMENT_COUNT; i++) {
     // Wait for the VIOs to come back from the packer.
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
   }
 
   // We now have 14 fragments in a compressed block.  Give it 230
@@ -343,7 +343,7 @@ static void testCompressRollOver(void)
   requestFlushPacker();
 
   // Wait for the VIO to come back from the packer.
-  awaitAndFreeSuccessfulRequest(uds_forget(rollOverRequest));
+  awaitAndFreeSuccessfulRequest(vdo_forget(rollOverRequest));
 
   // The last write both completed and used just one more block.
   verifyWrite(lbn, 1, 1, blocksFree - 2, 2);

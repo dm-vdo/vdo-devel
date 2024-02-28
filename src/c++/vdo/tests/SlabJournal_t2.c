@@ -171,8 +171,8 @@ static void testSlabJournalCommitDelay(void)
   returnVIOsToPool();
 
   // Everything should complete.
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
-  awaitAndFreeSuccessfulRequest(uds_forget(trim));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(trim));
 }
 
 /**
@@ -272,7 +272,7 @@ static void testLockReleaseRequestOnBlockedSlabJournal(void)
   // Release the blocked reference count write. The request should complete,
   // and the slab journal should commit.
   reallyEnqueueBIO(getBlockedVIO()->bio);
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
 
   // Actually cause the tail block to be written --- letting the waiting VIO
   // make an entry, and thus making the journal dirty.
@@ -299,11 +299,11 @@ static void testSlabJournalFlushDelay(void)
   returnVIOsToPool();
 
   // The request should complete.
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
 
   // The flush should complete.
   VDO_ASSERT_SUCCESS(awaitCompletion(flushCompletion));
-  uds_free(flushCompletion);
+  vdo_free(flushCompletion);
 }
 
 /**********************************************************************/

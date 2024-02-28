@@ -76,7 +76,7 @@ static void initializeRebuildTest(void)
   slabConfig = depot->slab_config;
   slab       = depot->slabs[0];
   journal    = &slab->journal;
-  VDO_ASSERT_SUCCESS(uds_allocate(slabConfig.data_blocks, uint8_t, __func__,
+  VDO_ASSERT_SUCCESS(vdo_allocate(slabConfig.data_blocks, uint8_t, __func__,
                                   &expectedReferences));
   latchRead    = true;
 }
@@ -86,7 +86,7 @@ static void initializeRebuildTest(void)
  **/
 static void teardownRebuildTest(void)
 {
-  uds_free(expectedReferences);
+  vdo_free(expectedReferences);
   tearDownVDOTest();
 }
 
@@ -423,7 +423,7 @@ static void addEntryComplete(struct vdo_completion *completion)
 static void makeWrappedVIO(DataVIOWrapper **wrapperPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(uds_allocate(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, DataVIOWrapper, __func__, &wrapper));
   vdo_initialize_completion(&wrapper->completion, vdo, VDO_TEST_COMPLETION);
   vdo_initialize_completion(&wrapper->actionCompletion, vdo,
                             VDO_TEST_COMPLETION);
@@ -512,7 +512,7 @@ static void testRebuild(void)
   VDO_ASSERT_SUCCESS(awaitCompletion(&completion));
   waitForState(&(vioWrapper->completion.complete));
   VDO_ASSERT_SUCCESS(vioWrapper->completion.result);
-  uds_free(vioWrapper);
+  vdo_free(vioWrapper);
 
   // The newly added slab journal entry caused the corresponding reference
   // count to change the in-memory state.

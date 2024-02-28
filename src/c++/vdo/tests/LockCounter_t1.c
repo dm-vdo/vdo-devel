@@ -140,7 +140,7 @@ static struct vdo_completion *launchAdjustment(enum vdo_zone_type zoneType,
                                                int32_t            adjustment)
 {
   LockClient *client;
-  VDO_ASSERT_SUCCESS(uds_allocate(1, LockClient, __func__, &client));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, LockClient, __func__, &client));
   vdo_initialize_completion(&client->completion, vdo, VDO_TEST_COMPLETION);
   client->completion.callback_thread_id = zoneID; // Use zone ID as thread ID.
   client->zoneType                      = zoneType;

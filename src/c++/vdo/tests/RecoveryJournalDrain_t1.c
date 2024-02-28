@@ -152,7 +152,7 @@ static void testLockCounterSuspend(void)
   thread_id_t journalThread = notification->callback_thread_id;
   performSuccessfulActionOnThread(releaseNotification, journalThread);
   awaitCompletion(drain);
-  uds_free(drain);
+  vdo_free(drain);
 
   // Save the slab depot, blowing up if it sends a notification.
   setCompletionEnqueueHook(failOnNotification);
@@ -181,7 +181,7 @@ static void testLockCounterSuspend(void)
   performSuccessfulBlockMapAction(VDO_ADMIN_STATE_RESUMING);
 
   waitForState(&notificationTrapped);
-  reallyEnqueueCompletion(uds_forget(notification));
+  reallyEnqueueCompletion(vdo_forget(notification));
   // Now that we know the notification is enqueued on the journal thread,
   // it is no longer racy to enqueue the reap check (VDO-5381).
   performSuccessfulActionOnThread(assertReaped, journalThread);

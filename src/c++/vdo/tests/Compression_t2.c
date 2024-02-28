@@ -273,7 +273,7 @@ static void testDedupeVsPostPackingVIO(void)
   requestFlushPacker();
 
   for (int i = 0; i < REQUEST_COUNT; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
     if (i < 4) {
       CU_ASSERT_EQUAL((i > 1), results[i].duplicate);
       if (i > 1) {
@@ -346,7 +346,7 @@ static void testDedupeVsOverwrittenCompressedBlock(void)
   requestFlushPacker();
 
   for (unsigned int i = 0; i < REQUEST_COUNT; i++) {
-    awaitAndFreeSuccessfulRequest(uds_forget(requests[i]));
+    awaitAndFreeSuccessfulRequest(vdo_forget(requests[i]));
     struct zoned_pbn zoned = lookupLBN(i);
     CU_ASSERT_TRUE(vdo_is_state_compressed(zoned.state));
     compressedBlock = zoned.pbn;
@@ -379,7 +379,7 @@ static void testDedupeVsOverwrittenCompressedBlock(void)
    */
   setCompletionEnqueueHook(releaseVIOAfterQuery);
   writeAndVerifyData(1, mappableBlocks + 1, 1, 0, mappableBlocks);
-  awaitAndFreeRequest(uds_forget(requests[0]));
+  awaitAndFreeRequest(vdo_forget(requests[0]));
 }
 
 /**********************************************************************/

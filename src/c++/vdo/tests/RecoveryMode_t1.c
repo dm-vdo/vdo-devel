@@ -552,10 +552,10 @@ static void testFreeSpaceWait(void)
   releaseAllSlabLatches(totalSlabs);
 
   // The first write used the only free block in slab 1.
-  awaitAndFreeSuccessfulRequest(uds_forget(firstWrite));
+  awaitAndFreeSuccessfulRequest(vdo_forget(firstWrite));
 
   // The second write failed because there is no space in the VDO.
-  CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(secondWrite)), VDO_NO_SPACE);
+  CU_ASSERT_EQUAL(awaitAndFreeRequest(vdo_forget(secondWrite)), VDO_NO_SPACE);
 }
 
 /**
@@ -588,8 +588,8 @@ static void testSlabScrubbingErrorHang(void)
 
   // Let it all go
   releaseSlabLatch(slabToLatch);
-  CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(request)), VDO_READ_ONLY);
-  CU_ASSERT_EQUAL(awaitAndFreeRequest(uds_forget(request2)), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitAndFreeRequest(vdo_forget(request)), VDO_READ_ONLY);
+  CU_ASSERT_EQUAL(awaitAndFreeRequest(vdo_forget(request2)), VDO_READ_ONLY);
   setStartStopExpectation(VDO_READ_ONLY);
 }
 
@@ -636,7 +636,7 @@ static void testRequeueUnrecoveredSlab(void)
   // Release the reference block write to allow slabs to be scrubbed and wait
   // for the trim to finish.
   releaseAllSlabLatches(totalSlabs);
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
 }
 
 /**
@@ -691,7 +691,7 @@ static void testSuspendAndResumeWhileScrubbing(void)
 
   releaseSlabLatch(latchedSlab->slab_number);
   VDO_ASSERT_SUCCESS(awaitCompletion(completion));
-  uds_free(completion);
+  vdo_free(completion);
 
   performSuccessfulAction(countUnscrubbedSlabs);
 
@@ -820,7 +820,7 @@ static void testPostRecoveryMode(void)
   // Since all the other trims have finished, the entries for the scrubbing
   // slab must be queued in the slab journal.
   releaseAllSlabLatches(totalSlabs);
-  awaitAndFreeSuccessfulRequest(uds_forget(request));
+  awaitAndFreeSuccessfulRequest(vdo_forget(request));
 
   fillJournals(totalFreeBlocks + 1);
 }

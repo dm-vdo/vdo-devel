@@ -335,7 +335,7 @@ static void verifyCoding(void)
   performSuccessfulAction(prepareDepotAction);
   CU_ASSERT_TRUE(are_equivalent_slab_depots(depot, decodedDepot));
 
-  vdo_free_slab_depot(uds_forget(decodedDepot));
+  vdo_free_slab_depot(vdo_forget(decodedDepot));
   performSuccessfulDepotActionOnDepot(depot, VDO_ADMIN_STATE_RESUMING);
 }
 

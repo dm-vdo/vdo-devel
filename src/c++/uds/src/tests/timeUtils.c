@@ -32,7 +32,7 @@ int rel_time_to_string(char **strp, ktime_t reltime)
 		value = reltime;
 	}
 
-	return uds_alloc_sprintf(__func__,
+	return vdo_alloc_sprintf(__func__,
 				 strp,
 				 "%s%ld.%03ld %s",
 				 sign,

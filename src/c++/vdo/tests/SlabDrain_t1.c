@@ -161,9 +161,9 @@ testDrainWithBlockedWrite(const struct admin_state_code *drainType,
 
   struct vdo_completion *toRelease;
   if (journalFirst) {
-    toRelease = uds_forget(slabJournalWrite);
+    toRelease = vdo_forget(slabJournalWrite);
   } else {
-    toRelease = uds_forget(refCountsWrite);
+    toRelease = vdo_forget(refCountsWrite);
     /*
      * The reference count block will have been redirtied by the second block
      * we wrote while it was trapped so it will get written again due to the
@@ -195,7 +195,7 @@ testDrainWithBlockedWrite(const struct admin_state_code *drainType,
 
   // Wait for the drain to complete
   awaitCompletion(completion);
-  uds_free(completion);
+  vdo_free(completion);
 
   // Resume the slab so that teardown succeeds.
   performSuccessfulSlabAction(slab, VDO_ADMIN_STATE_RESUMING);

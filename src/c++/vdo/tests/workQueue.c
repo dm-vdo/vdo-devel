@@ -161,15 +161,15 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 
   STATIC_ASSERT((int) NO_HOOK_FLAG > (int) VDO_WORK_Q_DEFAULT_PRIORITY);
   STATIC_ASSERT((int) WORK_FLAG    > (int) VDO_WORK_Q_DEFAULT_PRIORITY);
-  VDO_ASSERT_SUCCESS(uds_allocate_extended(struct vdo_work_queue,
+  VDO_ASSERT_SUCCESS(vdo_allocate_extended(struct vdo_work_queue,
                                            priorityLevels,
                                            struct funnel_queue *,
                                            __func__,
                                            &queue));
-  VDO_ASSERT_SUCCESS(uds_duplicate_string(name,
+  VDO_ASSERT_SUCCESS(vdo_duplicate_string(name,
                                           "work queue name",
                                           &queue->name));
-  VDO_ASSERT_SUCCESS(uds_alloc_sprintf("work queue thread name",
+  VDO_ASSERT_SUCCESS(vdo_alloc_sprintf("work queue thread name",
                                        &queue->threadName,
                                        "%s%s",
                                        thread_name_prefix,
@@ -208,9 +208,9 @@ void vdo_free_work_queue(struct vdo_work_queue *queue)
   }
 
   free_event_count(queue->wakeEvent);
-  uds_free(queue->threadName);
-  uds_free(queue->name);
-  uds_free(queue);
+  vdo_free(queue->threadName);
+  vdo_free(queue->name);
+  vdo_free(queue);
 }
 
 /*****************************************************************************/
