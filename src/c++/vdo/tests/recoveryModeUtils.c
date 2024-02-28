@@ -70,7 +70,7 @@ static bool latchSlab(struct vio              *vio,
     return true;
   }
 
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs, slabNumber, vio, true, NULL));
+  VDO_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs, slabNumber, vio, true, NULL));
   uds_broadcast_cond(&condition);
   return false;
 }
@@ -125,7 +125,7 @@ static void setupSlabLatch(slab_count_t slabNumber, LatchOperation operation)
 
   mutex_lock(&mutex);
   struct vio *oldEntry = NULL;
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs,
+  VDO_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs,
                                      slabNumber,
                                      LATCH_DESIRED,
                                      false,
