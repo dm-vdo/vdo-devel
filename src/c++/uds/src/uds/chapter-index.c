@@ -33,7 +33,7 @@ int uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
 
 #endif /* TEST_INTERNAL */
 	result = vdo_allocate(1, struct open_chapter_index, "open chapter index", &index);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	/*
@@ -113,10 +113,10 @@ int uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 	u64 chapter_number = chapter_index->virtual_chapter_number;
 	u32 record_pages = geometry->record_pages_per_chapter;
 
-	result = ASSERT(page_number < record_pages,
-			"Page number within chapter (%u) exceeds the maximum value %u",
-			page_number, record_pages);
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(page_number < record_pages,
+			    "Page number within chapter (%u) exceeds the maximum value %u",
+			    page_number, record_pages);
+	if (result != VDO_SUCCESS)
 		return UDS_INVALID_ARGUMENT;
 
 	address = uds_hash_to_chapter_delta_address(name, geometry);
@@ -127,10 +127,10 @@ int uds_put_open_chapter_index_record(struct open_chapter_index *chapter_index,
 		return result;
 
 	found = was_entry_found(&entry, address);
-	result = ASSERT(!(found && entry.is_collision),
-			"Chunk appears more than once in chapter %llu",
-			(unsigned long long) chapter_number);
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(!(found && entry.is_collision),
+			    "Chunk appears more than once in chapter %llu",
+			    (unsigned long long) chapter_number);
+	if (result != VDO_SUCCESS)
 		return UDS_BAD_STATE;
 
 	found_name = (found ? name->name : NULL);

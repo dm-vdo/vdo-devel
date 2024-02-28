@@ -307,7 +307,7 @@ int make_abs_path(const char *path, char **abs_path)
 		result = vdo_alloc_sprintf(__func__, &tmp, "%s/%s", cwd, path);
 		vdo_free(cwd);
 	}
-	if (result == UDS_SUCCESS)
+	if (result == VDO_SUCCESS)
 		*abs_path = tmp;
 	return result;
 }

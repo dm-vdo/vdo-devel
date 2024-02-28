@@ -182,7 +182,7 @@ static int generateGeometry(const uds_memory_config_size_t memory, bool sparse)
 
   struct index_config indexConfig;
   int result = parseIndexConfig(&configStrings, &indexConfig);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     warnx("parseIndexConfig for memory %s%s failed: %s",
           candidate->memoryString, (sparse ? ", sparse" : ""),
           resultString(result));

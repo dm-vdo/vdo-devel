@@ -35,7 +35,7 @@ static inline void memcpy_to_page(struct page *page,
                                   const char *from,
                                   size_t len)
 {
-  ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
+  VDO_ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
   memcpy(page->page_data + offset, from, len);
 }
 
@@ -44,7 +44,7 @@ static inline void memcpy_from_page(char *to,
 				    size_t offset,
                                     size_t len)
 {
-  ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
+  VDO_ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
   memcpy(to, page->page_data + offset, len);
 }
 

@@ -36,10 +36,10 @@ static void initialize_mutex_kind(void)
 		else if (strcmp(mutex_kind_string, "fast-adaptive") == 0)
 			hidden_mutex_kind = fast_adaptive;
 		else
-			ASSERT_LOG_ONLY(false,
-					"environment variable %s had unexpected value '%s'",
-					UDS_MUTEX_KIND_ENV,
-					mutex_kind_string);
+			VDO_ASSERT_LOG_ONLY(false,
+					    "environment variable %s had unexpected value '%s'",
+					    UDS_MUTEX_KIND_ENV,
+					    mutex_kind_string);
 	}
 }
 
@@ -64,7 +64,7 @@ int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error)
 
 	result = pthread_mutexattr_init(&attr);
 	if (result != 0) {
-		ASSERT_LOG_ONLY((result == 0), "pthread_mutexattr_init error");
+		VDO_ASSERT_LOG_ONLY((result == 0), "pthread_mutexattr_init error");
 		return result;
 	}
 
@@ -73,12 +73,12 @@ int uds_initialize_mutex(struct mutex *mutex, bool assert_on_error)
 
 	result = pthread_mutex_init(&mutex->mutex, &attr);
 	if ((result != 0) && assert_on_error)
-		ASSERT_LOG_ONLY((result == 0), "pthread_mutex_init error");
+		VDO_ASSERT_LOG_ONLY((result == 0), "pthread_mutex_init error");
 
 	result2 = pthread_mutexattr_destroy(&attr);
 	if (result2 != 0) {
-		ASSERT_LOG_ONLY((result2 == 0),
-				"pthread_mutexattr_destroy error");
+		VDO_ASSERT_LOG_ONLY((result2 == 0),
+				    "pthread_mutexattr_destroy error");
 		if (result == UDS_SUCCESS)
 			result = result2;
 	}
@@ -98,7 +98,7 @@ int uds_destroy_mutex(struct mutex *mutex)
 	int result;
 
 	result = pthread_mutex_destroy(&mutex->mutex);
-	ASSERT_LOG_ONLY((result == 0), "pthread_mutex_destroy error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "pthread_mutex_destroy error");
 	return result;
 }
 
@@ -109,7 +109,8 @@ void uds_lock_mutex(struct mutex *mutex)
 
 	result = pthread_mutex_lock(&mutex->mutex);
 #ifndef NDEBUG
-	ASSERT_LOG_ONLY((result == 0), "pthread_mutex_lock error %d", result);
+	VDO_ASSERT_LOG_ONLY((result == 0),
+			    "pthread_mutex_lock error %d", result);
 #endif
 }
 
@@ -120,7 +121,7 @@ void uds_unlock_mutex(struct mutex *mutex)
 
 	result = pthread_mutex_unlock(&mutex->mutex);
 #ifndef NDEBUG
-	ASSERT_LOG_ONLY((result == 0),
-			"pthread_mutex_unlock error %d", result);
+	VDO_ASSERT_LOG_ONLY((result == 0),
+			    "pthread_mutex_unlock error %d", result);
 #endif
 }

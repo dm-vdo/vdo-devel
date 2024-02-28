@@ -59,7 +59,7 @@ static struct block_device *getDeviceFromName(const char *name)
   }
 
   result = vdo_allocate(1, struct block_device, __func__, &device);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     uds_log_error_strerror(ENOMEM, "cannot allocate device for %s", name);
     close_file(fd, NULL);
     return NULL;

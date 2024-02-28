@@ -12,7 +12,8 @@
 #include <errno.h>
 #endif /*  __KERNEL__ */
 
-/* Custom error codes and error-related utilities for UDS */
+/* Custom error codes and error-related utilities */
+#define VDO_SUCCESS 0
 
 #ifdef TEST_INTERNAL
 /* If you add a value to this enum be sure to add a corresponding error description in errors.c! */
@@ -21,7 +22,7 @@
 /* Valid status codes for internal UDS functions. */
 enum uds_status_codes {
 	/* Successful return */
-	UDS_SUCCESS = 0,
+	UDS_SUCCESS = VDO_SUCCESS,
 	/* Used as a base value for reporting internal errors */
 	UDS_ERROR_CODE_BASE = 1024,
 	/* Index overflow */
@@ -36,20 +37,12 @@ enum uds_status_codes {
 	UDS_ASSERTION_FAILED,
 	/* A request has been queued for later processing (not an error) */
 	UDS_QUEUED,
-	/* A problem has occurred with a buffer */
-	UDS_BUFFER_ERROR,
-	/* No directory was found where one was expected */
-	UDS_NO_DIRECTORY,
 	/* This error range has already been registered */
 	UDS_ALREADY_REGISTERED,
 	/* Attempt to read or write data outside the valid range */
 	UDS_OUT_OF_RANGE,
-	/* Could not load modules */
-	UDS_EMODULE_LOAD,
 	/* The index session is disabled */
 	UDS_DISABLED,
-	/* Unknown error */
-	UDS_UNKNOWN_ERROR,
 	/* The index configuration or volume format is no longer supported */
 	UDS_UNSUPPORTED_VERSION,
 	/* Some index structure is corrupt */
@@ -58,6 +51,14 @@ enum uds_status_codes {
 	UDS_NO_INDEX,
 	/* Attempt to access incomplete index save data */
 	UDS_INDEX_NOT_SAVED_CLEANLY,
+#if defined(TEST_INTERNAL) || !defined(__KERNEL__)
+	/* No directory was found where one was expected */
+	UDS_NO_DIRECTORY,
+	/* Could not load modules */
+	UDS_EMODULE_LOAD,
+	/* Unknown error */
+	UDS_UNKNOWN_ERROR,
+#endif /*  Test_INTERNAL || ! __KERNEL__ */
 	/* One more than the last UDS_INTERNAL error code */
 	UDS_ERROR_CODE_LAST,
 	/* One more than the last error this block will ever use */

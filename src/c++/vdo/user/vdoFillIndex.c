@@ -238,7 +238,7 @@ static struct block_device *parse_device(const char *name)
   }
 
   result = vdo_allocate(1, struct block_device, __func__, &device);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     close_file(fd, NULL);
     errx(1, "Cannot allocate device structure");
   }

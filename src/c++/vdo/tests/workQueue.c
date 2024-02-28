@@ -127,11 +127,11 @@ static void queueRunner(void *arg)
     struct vdo_completion *completion = container_of(entry,
                                                      struct vdo_completion,
                                                      work_queue_entry_link);
-    if (ASSERT(completion->my_queue == queue,
-               "completion %px from queue %s marked as being in this queue (%px)",
-               (void *) completion,
-               queue->name,
-               (void *) completion->my_queue) == UDS_SUCCESS) {
+    if (VDO_ASSERT(completion->my_queue == queue,
+                   "completion %px from queue %s marked as being in this queue (%px)",
+                   (void *) completion,
+                   queue->name,
+                   (void *) completion->my_queue) == VDO_SUCCESS) {
       completion->my_queue = NULL;
     }
 

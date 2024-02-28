@@ -228,24 +228,24 @@ int makeSparseLayer(const char     *name,
 {
   SparseLayer *layer;
   int result = vdo_allocate(1, SparseLayer, __func__, &layer);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
   result = verifyRanges(blockCount, numRanges, ranges);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }
 
   result = vdo_allocate(numRanges, MappingRange, __func__, &layer->ranges);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }
 
   size_t nameLength = strlen(name) + 1;
   result = vdo_allocate(nameLength, char, __func__, &layer->name);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
   strcpy(layer->name, name);
@@ -269,7 +269,7 @@ int makeSparseLayer(const char     *name,
 
   result = makeFileLayer(layer->name, fileLayerBlockCount,
                          &layer->fileLayer);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }

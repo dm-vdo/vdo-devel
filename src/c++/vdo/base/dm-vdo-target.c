@@ -330,7 +330,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 
 	result = vdo_allocate(substring_count + 1, char *, "string-splitting array",
 			      &substrings);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	for (s = string; *s != 0; s++) {
@@ -339,7 +339,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 
 			result = vdo_allocate(length + 1, char, "split string",
 					      &substrings[current_substring]);
-			if (result != UDS_SUCCESS) {
+			if (result != VDO_SUCCESS) {
 				free_string_array(substrings);
 				return result;
 			}
@@ -360,7 +360,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 
 	result = vdo_allocate(length + 1, char, "split string",
 			      &substrings[current_substring]);
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		free_string_array(substrings);
 		return result;
 	}
@@ -368,7 +368,7 @@ static int split_string(const char *string, char separator, char ***substring_ar
 	current_substring++;
 	/* substrings[current_substring] is NULL already */
 	*substring_array_ptr = substrings;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /*
@@ -406,7 +406,7 @@ static int join_strings(char **substring_array, size_t array_length, char separa
 		*(current_position - 1) = '\0';
 
 	*string_ptr = output;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**
@@ -534,7 +534,7 @@ static int parse_one_thread_config_spec(const char *spec,
 	int result;
 
 	result = split_string(spec, '=', &fields);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	if ((fields[0] == NULL) || (fields[1] == NULL) || (fields[2] != NULL)) {
@@ -545,7 +545,7 @@ static int parse_one_thread_config_spec(const char *spec,
 	}
 
 	result = kstrtouint(fields[1], 10, &count);
-	if (result != UDS_SUCCESS) {
+	if (result) {
 		uds_log_error("thread config string error: integer value needed, found \"%s\"",
 			      fields[1]);
 		free_string_array(fields);
@@ -587,7 +587,7 @@ static int parse_thread_config_string(const char *string,
 		unsigned int i;
 
 		result = split_string(string, ',', &specs);
-		if (result != UDS_SUCCESS)
+		if (result != VDO_SUCCESS)
 			return result;
 
 		for (i = 0; specs[i] != NULL; i++) {
@@ -657,7 +657,7 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
-	if (result != UDS_SUCCESS) {
+	if (result) {
 		uds_log_error("optional config string error: integer value needed, found \"%s\"",
 			      value);
 		return result;
@@ -972,24 +972,24 @@ static int check_bio_validity(struct bio *bio)
 
 	/* Is this a flush? It must be empty. */
 	if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		result = ASSERT(is_empty, "flush bios must be empty");
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(is_empty, "flush bios must be empty");
+		if (result != VDO_SUCCESS)
 			result = -EINVAL;
 
 		return result;
 	}
 
 	/* Is this anything else? It must not be empty. */
-	result = ASSERT(!is_empty, "data bios must not be empty");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(!is_empty, "data bios must not be empty");
+	if (result != VDO_SUCCESS)
 		return -EINVAL;
 
 	/* Is this something other than a discard? Must have size <= 4k. */
 	if (bio_op(bio) != REQ_OP_DISCARD) {
-		result = ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
-				"data bios must not be more than %d bytes",
-				VDO_BLOCK_SIZE);
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
+				    "data bios must not be more than %d bytes",
+				    VDO_BLOCK_SIZE);
+		if (result != VDO_SUCCESS)
 			return -EINVAL;
 	}
 
@@ -1019,8 +1019,8 @@ static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 	struct vdo_work_queue *current_work_queue;
 	const struct admin_state_code *code = vdo_get_admin_state_code(&vdo->admin.state);
 
-	ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s",
-			code->name);
+	VDO_ASSERT_LOG_ONLY(code->normal, "vdo should not receive bios while in state %s",
+			    code->name);
 
 	/* Count all incoming bios. */
 	vdo_count_bios(&vdo->stats.bios_in, bio);
@@ -1374,9 +1374,9 @@ static int perform_admin_operation(struct vdo *vdo, u32 starting_phase,
 /* Assert that we are operating on the correct thread for the current phase. */
 static void assert_admin_phase_thread(struct vdo *vdo, const char *what)
 {
-	ASSERT_LOG_ONLY(vdo_get_callback_thread_id() == get_thread_id_for_phase(vdo),
-			"%s on correct thread for %s", what,
-			ADMIN_PHASE_NAMES[vdo->admin.phase]);
+	VDO_ASSERT_LOG_ONLY(vdo_get_callback_thread_id() == get_thread_id_for_phase(vdo),
+			    "%s on correct thread for %s", what,
+			    ADMIN_PHASE_NAMES[vdo->admin.phase]);
 }
 
 /**
@@ -1554,11 +1554,11 @@ STATIC void release_instance(unsigned int instance)
 {
 	mutex_lock(&instances_lock);
 	if (instance >= instances.bit_count) {
-		ASSERT_LOG_ONLY(false,
-				"instance number %u must be less than bit count %u",
-				instance, instances.bit_count);
+		VDO_ASSERT_LOG_ONLY(false,
+				    "instance number %u must be less than bit count %u",
+				    instance, instances.bit_count);
 	} else if (test_bit(instance, instances.words) == 0) {
-		ASSERT_LOG_ONLY(false, "instance number %u must be allocated", instance);
+		VDO_ASSERT_LOG_ONLY(false, "instance number %u must be allocated", instance);
 	} else {
 		__clear_bit(instance, instances.words);
 		instances.count -= 1;
@@ -1659,7 +1659,7 @@ static size_t get_bit_array_size(unsigned int bit_count)
  * Since the array is initially NULL, this also initializes the array the first time we allocate an
  * instance number.
  *
- * Return: UDS_SUCCESS or an error code from the allocation
+ * Return: VDO_SUCCESS or an error code from the allocation
  */
 static int grow_bit_array(void)
 {
@@ -1672,19 +1672,19 @@ static int grow_bit_array(void)
 				       get_bit_array_size(instances.bit_count),
 				       get_bit_array_size(new_count),
 				       "instance number bit array", &new_words);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	instances.bit_count = new_count;
 	instances.words = new_words;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**
  * allocate_instance() - Allocate an instance number.
  * @instance_ptr: A point to hold the instance number
  *
- * Return: UDS_SUCCESS or an error code
+ * Return: VDO_SUCCESS or an error code
  *
  * This function must be called while holding the instances lock.
  */
@@ -1696,7 +1696,7 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 	/* If there are no unallocated instances, grow the bit array. */
 	if (instances.count >= instances.bit_count) {
 		result = grow_bit_array();
-		if (result != UDS_SUCCESS)
+		if (result != VDO_SUCCESS)
 			return result;
 	}
 
@@ -1709,9 +1709,9 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 	if (instance >= instances.bit_count) {
 		/* Nothing free after next, so wrap around to instance zero. */
 		instance = find_first_zero_bit(instances.words, instances.bit_count);
-		result = ASSERT(instance < instances.bit_count,
-				"impossibly, no zero bit found");
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(instance < instances.bit_count,
+				    "impossibly, no zero bit found");
+		if (result != VDO_SUCCESS)
 			return result;
 	}
 
@@ -1719,7 +1719,7 @@ STATIC int allocate_instance(unsigned int *instance_ptr)
 	instances.count++;
 	instances.next = instance + 1;
 	*instance_ptr = instance;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 static int construct_new_vdo_registered(struct dm_target *ti, unsigned int argc,
@@ -1861,8 +1861,8 @@ static int prepare_to_grow_physical(struct vdo *vdo, block_count_t new_physical_
 
 	uds_log_info("Preparing to resize physical to %llu",
 		     (unsigned long long) new_physical_blocks);
-	ASSERT_LOG_ONLY((new_physical_blocks > current_physical_blocks),
-			"New physical size is larger than current physical size");
+	VDO_ASSERT_LOG_ONLY((new_physical_blocks > current_physical_blocks),
+			    "New physical size is larger than current physical size");
 	result = perform_admin_operation(vdo, PREPARE_GROW_PHYSICAL_PHASE_START,
 					 check_may_grow_physical,
 					 finish_operation_callback,
@@ -1961,8 +1961,8 @@ static int prepare_to_modify(struct dm_target *ti, struct device_config *config,
 
 		uds_log_info("Preparing to resize logical to %llu",
 			     (unsigned long long) config->logical_blocks);
-		ASSERT_LOG_ONLY((config->logical_blocks > logical_blocks),
-				"New logical size is larger than current size");
+		VDO_ASSERT_LOG_ONLY((config->logical_blocks > logical_blocks),
+				    "New logical size is larger than current size");
 
 		result = vdo_prepare_to_grow_block_map(vdo->block_map,
 						       config->logical_blocks);
@@ -2271,8 +2271,8 @@ static void vdo_postsuspend(struct dm_target *ti)
  */
 static void vdo_pool_release(struct kobject *directory)
 {
-	ASSERT_LOG_ONLY((atomic_read(&(directory->refcount)) == 0),
-			"kobject being released has no references");
+	VDO_ASSERT_LOG_ONLY((atomic_read(&(directory->refcount)) == 0),
+			    "kobject being released has no references");
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
 	vdo_free(vdo);
@@ -3068,9 +3068,9 @@ static void vdo_module_destroy(void)
 	if (dm_registered)
 		dm_unregister_target(&vdo_target_bio);
 
-	ASSERT_LOG_ONLY(instances.count == 0,
-			"should have no instance numbers still in use, but have %u",
-			instances.count);
+	VDO_ASSERT_LOG_ONLY(instances.count == 0,
+			    "should have no instance numbers still in use, but have %u",
+			    instances.count);
 	vdo_free(instances.words);
 	memset(&instances, 0, sizeof(struct instance_tracker));
 
@@ -3093,7 +3093,7 @@ static int __init vdo_init(void)
 
 	/* Add VDO errors to the set of errors registered by the indexer. */
 	result = vdo_register_status_codes();
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		uds_log_error("vdo_register_status_codes failed %d", result);
 		vdo_module_destroy();
 		return result;

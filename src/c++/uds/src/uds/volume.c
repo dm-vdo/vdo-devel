@@ -160,8 +160,8 @@ STATIC void begin_pending_search(struct page_cache *cache, u32 physical_page,
 	invalidate_counter.page = physical_page;
 	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
-	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
-			"Search is pending for zone %u", zone_number);
+	VDO_ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			    "Search is pending for zone %u", zone_number);
 	/*
 	 * This memory barrier ensures that the write to the invalidate counter is seen by other
 	 * threads before this thread accesses the cached page. The corresponding read memory
@@ -183,8 +183,8 @@ STATIC void end_pending_search(struct page_cache *cache, unsigned int zone_numbe
 	smp_mb();
 
 	invalidate_counter = get_invalidate_counter(cache, zone_number);
-	ASSERT_LOG_ONLY(search_pending(invalidate_counter),
-			"Search is pending for zone %u", zone_number);
+	VDO_ASSERT_LOG_ONLY(search_pending(invalidate_counter),
+			    "Search is pending for zone %u", zone_number);
 	invalidate_counter.counter++;
 	set_invalidate_counter(cache, zone_number, invalidate_counter);
 }
@@ -284,8 +284,8 @@ STATIC int put_page_in_cache(struct page_cache *cache, u32 physical_page,
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->read_pending), "page to install has a pending read");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT((page->read_pending), "page to install has a pending read");
+	if (result != VDO_SUCCESS)
 		return result;
 
 	page->physical_page = physical_page;
@@ -310,8 +310,8 @@ static void cancel_page_in_cache(struct page_cache *cache, u32 physical_page,
 	int result;
 
 	/* We hold the read_threads_mutex. */
-	result = ASSERT((page->read_pending), "page to install has a pending read");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT((page->read_pending), "page to install has a pending read");
+	if (result != VDO_SUCCESS)
 		return;
 
 	clear_cache_page(cache, page);
@@ -932,10 +932,10 @@ int uds_search_cached_record_page(struct volume *volume, struct uds_request *req
 	if (record_page_number == NO_CHAPTER_INDEX_ENTRY)
 		return UDS_SUCCESS;
 
-	result = ASSERT(record_page_number < geometry->record_pages_per_chapter,
-			"0 <= %d < %u", record_page_number,
-			geometry->record_pages_per_chapter);
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(record_page_number < geometry->record_pages_per_chapter,
+			    "0 <= %d < %u", record_page_number,
+			    geometry->record_pages_per_chapter);
+	if (result != VDO_SUCCESS)
 		return result;
 
 	page_number = geometry->index_pages_per_chapter + record_page_number;
@@ -1576,30 +1576,30 @@ STATIC int __must_check initialize_page_cache(struct page_cache *cache,
 	cache->zone_count = zone_count;
 	atomic64_set(&cache->clock, 1);
 
-	result = ASSERT((cache->cache_slots <= VOLUME_CACHE_MAX_ENTRIES),
-			"requested cache size, %u, within limit %u",
-			cache->cache_slots, VOLUME_CACHE_MAX_ENTRIES);
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT((cache->cache_slots <= VOLUME_CACHE_MAX_ENTRIES),
+			    "requested cache size, %u, within limit %u",
+			    cache->cache_slots, VOLUME_CACHE_MAX_ENTRIES);
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate(VOLUME_CACHE_MAX_QUEUED_READS, struct queued_read,
 			      "volume read queue", &cache->read_queue);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate(cache->zone_count, struct search_pending_counter,
 			      "Volume Cache Zones", &cache->search_pending_counters);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate(cache->indexable_pages, u16, "page cache index",
 			      &cache->index);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate(cache->cache_slots, struct cached_page, "page cache cache",
 			      &cache->cache);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	/* Initialize index values to invalid values. */
@@ -1622,7 +1622,7 @@ int uds_make_volume(const struct uds_configuration *config, struct index_layout 
 	int result;
 
 	result = vdo_allocate(1, struct volume, "volume", &volume);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	volume->nonce = uds_get_volume_nonce(layout);
@@ -1661,7 +1661,7 @@ int uds_make_volume(const struct uds_configuration *config, struct index_layout 
 	result = vdo_allocate(geometry->records_per_page,
 			      const struct uds_volume_record *, "record pointers",
 			      &volume->record_pointers);
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		uds_free_volume(volume);
 		return result;
 	}
@@ -1701,7 +1701,7 @@ int uds_make_volume(const struct uds_configuration *config, struct index_layout 
 
 	result = vdo_allocate(config->read_threads, struct thread *, "reader threads",
 			      &volume->reader_threads);
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		uds_free_volume(volume);
 		return result;
 	}
@@ -1709,7 +1709,7 @@ int uds_make_volume(const struct uds_configuration *config, struct index_layout 
 	for (i = 0; i < config->read_threads; i++) {
 		result = vdo_create_thread(read_thread_function, (void *) volume,
 					   "reader", &volume->reader_threads[i]);
-		if (result != UDS_SUCCESS) {
+		if (result != VDO_SUCCESS) {
 			uds_free_volume(volume);
 			return result;
 		}

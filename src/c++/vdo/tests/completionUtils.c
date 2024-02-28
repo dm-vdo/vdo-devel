@@ -42,7 +42,7 @@ static int makeWrappingCompletion(vdo_action_fn           action,
 {
   WrappingCompletion *wc;
   int result = vdo_allocate(1, WrappingCompletion, "wrapping completion", &wc);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

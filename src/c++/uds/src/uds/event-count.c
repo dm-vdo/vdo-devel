@@ -236,7 +236,7 @@ int make_event_count(struct event_count **count_ptr)
 	struct event_count *count = NULL;
 
 	result = vdo_allocate(1, struct event_count, "event count", &count);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	atomic64_set(&count->state, 0);

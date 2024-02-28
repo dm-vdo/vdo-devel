@@ -435,7 +435,7 @@ void zeroData(logical_block_number_t startBlock,
 {
   // vdo_allocate always returns zeroed data
   char *buffer;
-  UDS_ASSERT_SUCCESS(vdo_allocate(blockCount * VDO_BLOCK_SIZE, char,
+  VDO_ASSERT_SUCCESS(vdo_allocate(blockCount * VDO_BLOCK_SIZE, char,
                                   "test buffer", &buffer));
 
   CU_ASSERT_EQUAL(performWrite(startBlock, blockCount, buffer),

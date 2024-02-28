@@ -88,7 +88,7 @@ int load_module(const char *module_name,
 
   struct module *module;
   result = vdo_allocate(1, struct module, "module", &module);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     close_module(handle);
     return result;
   }
@@ -175,7 +175,7 @@ static bool module_dirent_processor(struct dirent *entry,
   char *name;
   *result = vdo_alloc_sprintf(__func__, &name, "%s/%s", directory,
                               entry->d_name);
-  if (*result != UDS_SUCCESS) {
+  if (*result != VDO_SUCCESS) {
     return true;
   }
 
@@ -204,7 +204,7 @@ int load_generic_modules(const char *directory,
                                  &context.pattern_buffer,
                                  "%s.so",
                                  pattern);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

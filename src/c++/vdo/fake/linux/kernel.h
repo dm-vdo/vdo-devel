@@ -19,7 +19,7 @@
 #ifdef NDEBUG
 #define BUG_ON(cond) do { if (cond) {} } while (0)
 #else
-#define BUG_ON(cond) ASSERT_LOG_ONLY(!(cond), "BUG_ON")
+#define BUG_ON(cond) VDO_ASSERT_LOG_ONLY(!(cond), "BUG_ON")
 #endif
 #endif
 #define BUG()	BUG_ON(1)

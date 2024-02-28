@@ -285,7 +285,7 @@ struct data_vio {
 
 static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 {
-	ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
+	VDO_ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
 	return container_of(vio, struct data_vio, vio);
 }
 
@@ -387,9 +387,9 @@ static inline void assert_data_vio_in_hash_zone(struct data_vio *data_vio)
 	 * It's odd to use the LBN, but converting the record name to hex is a bit clunky for an
 	 * inline, and the LBN better than nothing as an identifier.
 	 */
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"data_vio for logical block %llu on thread %u, should be on hash zone thread %u",
-			(unsigned long long) data_vio->logical.lbn, thread_id, expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "data_vio for logical block %llu on thread %u, should be on hash zone thread %u",
+			    (unsigned long long) data_vio->logical.lbn, thread_id, expected);
 }
 
 static inline void set_data_vio_hash_zone_callback(struct data_vio *data_vio,
@@ -415,9 +415,9 @@ static inline void assert_data_vio_in_logical_zone(struct data_vio *data_vio)
 	thread_id_t expected = data_vio->logical.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"data_vio for logical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->logical.lbn, thread_id, expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "data_vio for logical block %llu on thread %u, should be on thread %u",
+			    (unsigned long long) data_vio->logical.lbn, thread_id, expected);
 }
 
 static inline void set_data_vio_logical_callback(struct data_vio *data_vio,
@@ -443,10 +443,10 @@ static inline void assert_data_vio_in_allocated_zone(struct data_vio *data_vio)
 	thread_id_t expected = data_vio->allocation.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"struct data_vio for allocated physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->allocation.pbn, thread_id,
-			expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "struct data_vio for allocated physical block %llu on thread %u, should be on thread %u",
+			    (unsigned long long) data_vio->allocation.pbn, thread_id,
+			    expected);
 }
 
 static inline void set_data_vio_allocated_zone_callback(struct data_vio *data_vio,
@@ -473,10 +473,10 @@ static inline void assert_data_vio_in_duplicate_zone(struct data_vio *data_vio)
 	thread_id_t expected = data_vio->duplicate.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"data_vio for duplicate physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->duplicate.pbn, thread_id,
-			expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "data_vio for duplicate physical block %llu on thread %u, should be on thread %u",
+			    (unsigned long long) data_vio->duplicate.pbn, thread_id,
+			    expected);
 }
 
 static inline void set_data_vio_duplicate_zone_callback(struct data_vio *data_vio,
@@ -503,9 +503,9 @@ static inline void assert_data_vio_in_mapped_zone(struct data_vio *data_vio)
 	thread_id_t expected = data_vio->mapped.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"data_vio for mapped physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->mapped.pbn, thread_id, expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "data_vio for mapped physical block %llu on thread %u, should be on thread %u",
+			    (unsigned long long) data_vio->mapped.pbn, thread_id, expected);
 }
 
 static inline void set_data_vio_mapped_zone_callback(struct data_vio *data_vio,
@@ -520,10 +520,10 @@ static inline void assert_data_vio_in_new_mapped_zone(struct data_vio *data_vio)
 	thread_id_t expected = data_vio->new_mapped.zone->thread_id;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((expected == thread_id),
-			"data_vio for new_mapped physical block %llu on thread %u, should be on thread %u",
-			(unsigned long long) data_vio->new_mapped.pbn, thread_id,
-			expected);
+	VDO_ASSERT_LOG_ONLY((expected == thread_id),
+			    "data_vio for new_mapped physical block %llu on thread %u, should be on thread %u",
+			    (unsigned long long) data_vio->new_mapped.pbn, thread_id,
+			    expected);
 }
 
 static inline void set_data_vio_new_mapped_zone_callback(struct data_vio *data_vio,
@@ -538,10 +538,10 @@ static inline void assert_data_vio_in_journal_zone(struct data_vio *data_vio)
 	thread_id_t journal_thread = vdo_from_data_vio(data_vio)->thread_config.journal_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((journal_thread == thread_id),
-			"data_vio for logical block %llu on thread %u, should be on journal thread %u",
-			(unsigned long long) data_vio->logical.lbn, thread_id,
-			journal_thread);
+	VDO_ASSERT_LOG_ONLY((journal_thread == thread_id),
+			    "data_vio for logical block %llu on thread %u, should be on journal thread %u",
+			    (unsigned long long) data_vio->logical.lbn, thread_id,
+			    journal_thread);
 }
 
 static inline void set_data_vio_journal_callback(struct data_vio *data_vio,
@@ -568,10 +568,10 @@ static inline void assert_data_vio_in_packer_zone(struct data_vio *data_vio)
 	thread_id_t packer_thread = vdo_from_data_vio(data_vio)->thread_config.packer_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((packer_thread == thread_id),
-			"data_vio for logical block %llu on thread %u, should be on packer thread %u",
-			(unsigned long long) data_vio->logical.lbn, thread_id,
-			packer_thread);
+	VDO_ASSERT_LOG_ONLY((packer_thread == thread_id),
+			    "data_vio for logical block %llu on thread %u, should be on packer thread %u",
+			    (unsigned long long) data_vio->logical.lbn, thread_id,
+			    packer_thread);
 }
 
 static inline void set_data_vio_packer_callback(struct data_vio *data_vio,
@@ -598,10 +598,10 @@ static inline void assert_data_vio_on_cpu_thread(struct data_vio *data_vio)
 	thread_id_t cpu_thread = vdo_from_data_vio(data_vio)->thread_config.cpu_thread;
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((cpu_thread == thread_id),
-			"data_vio for logical block %llu on thread %u, should be on cpu thread %u",
-			(unsigned long long) data_vio->logical.lbn, thread_id,
-			cpu_thread);
+	VDO_ASSERT_LOG_ONLY((cpu_thread == thread_id),
+			    "data_vio for logical block %llu on thread %u, should be on cpu thread %u",
+			    (unsigned long long) data_vio->logical.lbn, thread_id,
+			    cpu_thread);
 }
 
 static inline void set_data_vio_cpu_callback(struct data_vio *data_vio,

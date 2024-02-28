@@ -163,10 +163,10 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 
 	bytes_per_chapter = volume->geometry->bytes_per_page *
 		volume->geometry->pages_per_chapter;
-	result = ASSERT(freed_space <= bytes_per_chapter,
-			"cannot free more than %zu bytes (%zu requested)",
-			bytes_per_chapter, freed_space);
-	if (result != UDS_SUCCESS) {
+	result = VDO_ASSERT(freed_space <= bytes_per_chapter,
+			    "cannot free more than %zu bytes (%zu requested)",
+			    bytes_per_chapter, freed_space);
+	if (result != VDO_SUCCESS) {
 		cleanup_session(session);
 		return result;
 	}

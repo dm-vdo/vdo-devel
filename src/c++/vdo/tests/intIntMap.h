@@ -25,7 +25,7 @@ typedef struct intIntMap IntIntMap;
  *                               the map to use its own small default)
  * @param [out] mapPtr           a pointer to hold the new IntIntMap
  *
- * @return UDS_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
   __attribute__((warn_unused_result));
@@ -79,7 +79,7 @@ bool intIntMapGet(IntIntMap *map, uint64_t key, uint64_t *valuePtr)
  *                            provided if the caller does not need to know the
  *                            old value
  *
- * @return UDS_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 int intIntMapPut(IntIntMap *map,
                  uint64_t   key,

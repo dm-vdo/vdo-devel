@@ -223,15 +223,15 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 
 	result = vdo_allocate(cache->page_count, struct page_info, "page infos",
 			      &cache->infos);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate_memory(size, VDO_BLOCK_SIZE, "cache pages", &cache->pages);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_int_map_create(cache->page_count, &cache->page_map);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	return initialize_info(cache);
@@ -246,16 +246,16 @@ static inline void assert_on_cache_thread(struct vdo_page_cache *cache,
 {
 	thread_id_t thread_id = vdo_get_callback_thread_id();
 
-	ASSERT_LOG_ONLY((thread_id == cache->zone->thread_id),
-			"%s() must only be called on cache thread %d, not thread %d",
-			function_name, cache->zone->thread_id, thread_id);
+	VDO_ASSERT_LOG_ONLY((thread_id == cache->zone->thread_id),
+			    "%s() must only be called on cache thread %d, not thread %d",
+			    function_name, cache->zone->thread_id, thread_id);
 }
 
 /** assert_io_allowed() - Assert that a page cache may issue I/O. */
 static inline void assert_io_allowed(struct vdo_page_cache *cache)
 {
-	ASSERT_LOG_ONLY(!vdo_is_state_quiescent(&cache->zone->state),
-			"VDO page cache may issue I/O");
+	VDO_ASSERT_LOG_ONLY(!vdo_is_state_quiescent(&cache->zone->state),
+			    "VDO page cache may issue I/O");
 }
 
 /** report_cache_pressure() - Log and, if enabled, report cache pressure. */
@@ -287,9 +287,9 @@ static const char * __must_check get_page_state_name(enum vdo_page_buffer_state 
 
 	BUILD_BUG_ON(ARRAY_SIZE(state_names) != PAGE_STATE_COUNT);
 
-	result = ASSERT(state < ARRAY_SIZE(state_names),
-			"Unknown page_state value %d", state);
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(state < ARRAY_SIZE(state_names),
+			    "Unknown page_state value %d", state);
+	if (result != VDO_SUCCESS)
 		return "[UNKNOWN PAGE STATE]";
 
 	return state_names[state];
@@ -378,8 +378,8 @@ static int __must_check set_info_pbn(struct page_info *info, physical_block_numb
 	struct vdo_page_cache *cache = info->cache;
 
 	/* Either the new or the old page number must be NO_PAGE. */
-	int result = ASSERT((pbn == NO_PAGE) || (info->pbn == NO_PAGE),
-			    "Must free a page before reusing it.");
+	int result = VDO_ASSERT((pbn == NO_PAGE) || (info->pbn == NO_PAGE),
+				"Must free a page before reusing it.");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -390,7 +390,7 @@ static int __must_check set_info_pbn(struct page_info *info, physical_block_numb
 
 	if (pbn != NO_PAGE) {
 		result = vdo_int_map_put(cache->page_map, pbn, info, true, NULL);
-		if (result != UDS_SUCCESS)
+		if (result != VDO_SUCCESS)
 			return result;
 	}
 	return VDO_SUCCESS;
@@ -401,13 +401,13 @@ static int reset_page_info(struct page_info *info)
 {
 	int result;
 
-	result = ASSERT(info->busy == 0, "VDO Page must not be busy");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(info->busy == 0, "VDO Page must not be busy");
+	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT(!vdo_waitq_has_waiters(&info->waiting),
-			"VDO Page must not have waiters");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(!vdo_waitq_has_waiters(&info->waiting),
+			    "VDO Page must not have waiters");
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = set_info_pbn(info, NO_PAGE);
@@ -592,29 +592,29 @@ STATIC int __must_check validate_completed_page(struct vdo_page_completion *comp
 {
 	int result;
 
-	result = ASSERT(completion->ready, "VDO Page completion not ready");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(completion->ready, "VDO Page completion not ready");
+	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT(completion->info != NULL,
-			"VDO Page Completion must be complete");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(completion->info != NULL,
+			    "VDO Page Completion must be complete");
+	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT(completion->info->pbn == completion->pbn,
-			"VDO Page Completion pbn must be consistent");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(completion->info->pbn == completion->pbn,
+			    "VDO Page Completion pbn must be consistent");
+	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT(is_valid(completion->info),
-			"VDO Page Completion page must be valid");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(is_valid(completion->info),
+			    "VDO Page Completion page must be valid");
+	if (result != VDO_SUCCESS)
 		return result;
 
 	if (writable) {
-		result = ASSERT(completion->writable,
-				"VDO Page Completion must be writable");
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(completion->writable,
+				    "VDO Page Completion must be writable");
+		if (result != VDO_SUCCESS)
 			return result;
 	}
 
@@ -776,7 +776,7 @@ static int __must_check launch_page_load(struct page_info *info,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = ASSERT((info->busy == 0), "Page is not busy before loading.");
+	result = VDO_ASSERT((info->busy == 0), "Page is not busy before loading.");
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -949,8 +949,8 @@ static void discard_a_page(struct vdo_page_cache *cache)
 		return;
 	}
 
-	ASSERT_LOG_ONLY(!is_in_flight(info),
-			"page selected for discard is not in flight");
+	VDO_ASSERT_LOG_ONLY(!is_in_flight(info),
+			    "page selected for discard is not in flight");
 
 	cache->discard_count++;
 	info->write_status = WRITE_STATUS_DISCARD;
@@ -1158,8 +1158,8 @@ void vdo_release_page_completion(struct vdo_completion *completion)
 			discard_info = page_completion->info;
 	}
 
-	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
-			"Page being released after leaving all queues");
+	VDO_ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
+			    "Page being released after leaving all queues");
 
 	page_completion->info = NULL;
 	cache = page_completion->cache;
@@ -1222,8 +1222,8 @@ void vdo_get_page(struct vdo_page_completion *page_completion,
 	struct page_info *info;
 
 	assert_on_cache_thread(cache, __func__);
-	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
-			"New page completion was not already on a wait queue");
+	VDO_ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
+			    "New page completion was not already on a wait queue");
 
 	*page_completion = (struct vdo_page_completion) {
 		.pbn = pbn,
@@ -1270,7 +1270,7 @@ void vdo_get_page(struct vdo_page_completion *page_completion,
 		}
 
 		/* Something horrible has gone wrong. */
-		ASSERT_LOG_ONLY(false, "Info found in a usable state.");
+		VDO_ASSERT_LOG_ONLY(false, "Info found in a usable state.");
 	}
 
 	/* The page must be fetched. */
@@ -1339,7 +1339,7 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 
 	/* Make sure we don't throw away any dirty pages. */
 	for (info = cache->infos; info < cache->infos + cache->page_count; info++) {
-		int result = ASSERT(!is_dirty(info), "cache must have no dirty pages");
+		int result = VDO_ASSERT(!is_dirty(info), "cache must have no dirty pages");
 
 		if (result != VDO_SUCCESS)
 			return result;
@@ -1445,10 +1445,10 @@ static bool __must_check is_not_older(struct block_map_zone *zone, u8 a, u8 b)
 {
 	int result;
 
-	result = ASSERT((in_cyclic_range(zone->oldest_generation, a, zone->generation, 1 << 8) &&
-			 in_cyclic_range(zone->oldest_generation, b, zone->generation, 1 << 8)),
-			"generation(s) %u, %u are out of range [%u, %u]",
-			a, b, zone->oldest_generation, zone->generation);
+	result = VDO_ASSERT((in_cyclic_range(zone->oldest_generation, a, zone->generation, 1 << 8) &&
+			     in_cyclic_range(zone->oldest_generation, b, zone->generation, 1 << 8)),
+			    "generation(s) %u, %u are out of range [%u, %u]",
+			    a, b, zone->oldest_generation, zone->generation);
 	if (result != VDO_SUCCESS) {
 		enter_zone_read_only_mode(zone, result);
 		return true;
@@ -1461,8 +1461,8 @@ static void release_generation(struct block_map_zone *zone, u8 generation)
 {
 	int result;
 
-	result = ASSERT((zone->dirty_page_counts[generation] > 0),
-			"dirty page count underflow for generation %u", generation);
+	result = VDO_ASSERT((zone->dirty_page_counts[generation] > 0),
+			    "dirty page count underflow for generation %u", generation);
 	if (result != VDO_SUCCESS) {
 		enter_zone_read_only_mode(zone, result);
 		return;
@@ -1487,8 +1487,8 @@ static void set_generation(struct block_map_zone *zone, struct tree_page *page,
 
 	page->generation = new_generation;
 	new_count = ++zone->dirty_page_counts[new_generation];
-	result = ASSERT((new_count != 0), "dirty page count overflow for generation %u",
-			new_generation);
+	result = VDO_ASSERT((new_count != 0), "dirty page count overflow for generation %u",
+			    new_generation);
 	if (result != VDO_SUCCESS) {
 		enter_zone_read_only_mode(zone, result);
 		return;
@@ -1703,15 +1703,15 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 	struct tree_lock *lock_holder;
 	struct tree_lock *lock = &data_vio->tree_lock;
 
-	ASSERT_LOG_ONLY(lock->locked,
-			"release of unlocked block map page %s for key %llu in tree %u",
-			what, (unsigned long long) lock->key, lock->root_index);
+	VDO_ASSERT_LOG_ONLY(lock->locked,
+			    "release of unlocked block map page %s for key %llu in tree %u",
+			    what, (unsigned long long) lock->key, lock->root_index);
 
 	zone = data_vio->logical.zone->block_map_zone;
 	lock_holder = vdo_int_map_remove(zone->loading_pages, lock->key);
-	ASSERT_LOG_ONLY((lock_holder == lock),
-			"block map page %s mismatch for key %llu in tree %u",
-			what, (unsigned long long) lock->key, lock->root_index);
+	VDO_ASSERT_LOG_ONLY((lock_holder == lock),
+			    "block map page %s mismatch for key %llu in tree %u",
+			    what, (unsigned long long) lock->key, lock->root_index);
 	lock->locked = false;
 }
 
@@ -2013,8 +2013,8 @@ static void write_expired_elements(struct block_map_zone *zone)
 
 		list_del_init(&page->entry);
 
-		result = ASSERT(!vdo_waiter_is_waiting(&page->waiter),
-				"Newly expired page not already waiting to write");
+		result = VDO_ASSERT(!vdo_waiter_is_waiting(&page->waiter),
+				    "Newly expired page not already waiting to write");
 		if (result != VDO_SUCCESS) {
 			enter_zone_read_only_mode(zone, result);
 			continue;
@@ -2872,14 +2872,14 @@ int vdo_decode_block_map(struct block_map_state_2_0 state, block_count_t logical
 	BUILD_BUG_ON(VDO_BLOCK_MAP_ENTRIES_PER_PAGE !=
 		     ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
 		      sizeof(struct block_map_entry)));
-	result = ASSERT(cache_size > 0, "block map cache size is specified");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(cache_size > 0, "block map cache size is specified");
+	if (result != VDO_SUCCESS)
 		return result;
 
 	result = vdo_allocate_extended(struct block_map,
 				       vdo->thread_config.logical_zone_count,
 				       struct block_map_zone, __func__, &map);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	map->vdo = vdo;
@@ -2942,7 +2942,7 @@ void vdo_initialize_block_map_from_journal(struct block_map *map,
 	for (z = 0; z < map->zone_count; z++) {
 		struct dirty_lists *dirty_lists = map->zones[z].dirty_lists;
 
-		ASSERT_LOG_ONLY(dirty_lists->next_period == 0, "current period not set");
+		VDO_ASSERT_LOG_ONLY(dirty_lists->next_period == 0, "current period not set");
 		dirty_lists->oldest_period = map->current_era_point;
 		dirty_lists->next_period = map->current_era_point + 1;
 		dirty_lists->offset = map->current_era_point % dirty_lists->maximum_age;
@@ -2976,8 +2976,8 @@ static void initiate_drain(struct admin_state *state)
 {
 	struct block_map_zone *zone = container_of(state, struct block_map_zone, state);
 
-	ASSERT_LOG_ONLY((zone->active_lookups == 0),
-			"%s() called with no active lookups", __func__);
+	VDO_ASSERT_LOG_ONLY((zone->active_lookups == 0),
+			    "%s() called with no active lookups", __func__);
 
 	if (!vdo_is_state_suspending(state)) {
 		while (zone->dirty_lists->oldest_period < zone->dirty_lists->next_period)

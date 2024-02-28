@@ -86,7 +86,7 @@ int vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 	int result;
 
 	result = vdo_allocate(1, struct thread, __func__, &thread);
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		uds_log_warning("Error allocating memory for %s", name);
 		return result;
 	}
@@ -122,7 +122,7 @@ int vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 	}
 
 	*new_thread = thread;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 void vdo_join_threads(struct thread *thread)

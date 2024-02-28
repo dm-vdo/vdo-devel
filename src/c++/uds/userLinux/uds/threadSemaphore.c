@@ -16,7 +16,7 @@ int uds_initialize_semaphore(struct semaphore *semaphore, unsigned int value)
 	int result;
 
 	result = sem_init(&semaphore->semaphore, false, value);
-	ASSERT_LOG_ONLY((result == 0), "sem_init error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "sem_init error");
 	return result;
 }
 
@@ -26,7 +26,7 @@ int uds_destroy_semaphore(struct semaphore *semaphore)
 	int result;
 
 	result = sem_destroy(&semaphore->semaphore);
-	ASSERT_LOG_ONLY((result == 0), "sem_destroy error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "sem_destroy error");
 	return result;
 }
 
@@ -40,7 +40,7 @@ void uds_acquire_semaphore(struct semaphore *semaphore)
 	} while ((result == -1) && (errno == EINTR));
 
 #ifndef NDEBUG
-	ASSERT_LOG_ONLY((result == 0), "sem_wait error %d", errno);
+	VDO_ASSERT_LOG_ONLY((result == 0), "sem_wait error %d", errno);
 #endif
 }
 
@@ -56,9 +56,9 @@ bool uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 		} while (errno == EINTR);
 #ifndef NDEBUG
 
-		ASSERT_LOG_ONLY((errno == ETIMEDOUT),
-				"sem_timedwait error %d",
-				errno);
+		VDO_ASSERT_LOG_ONLY((errno == ETIMEDOUT),
+				    "sem_timedwait error %d",
+				    errno);
 #endif
 	} else {
 		do {
@@ -67,9 +67,9 @@ bool uds_attempt_semaphore(struct semaphore *semaphore, ktime_t timeout)
 		} while (errno == EINTR);
 #ifndef NDEBUG
 
-		ASSERT_LOG_ONLY((errno == EAGAIN),
-				"sem_trywait error %d",
-				errno);
+		VDO_ASSERT_LOG_ONLY((errno == EAGAIN),
+				    "sem_trywait error %d",
+				    errno);
 #endif
 	}
 
@@ -83,6 +83,6 @@ void uds_release_semaphore(struct semaphore *semaphore)
 
 	result = sem_post(&semaphore->semaphore);
 #ifndef NDEBUG
-	ASSERT_LOG_ONLY((result == 0), "sem_post error %d", errno);
+	VDO_ASSERT_LOG_ONLY((result == 0), "sem_post error %d", errno);
 #endif
 }

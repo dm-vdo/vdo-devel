@@ -575,7 +575,7 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 {
 	struct histogram *h;
 
-	if (vdo_allocate(1, struct histogram, "histogram", &h) != UDS_SUCCESS)
+	if (vdo_allocate(1, struct histogram, "histogram", &h) != VDO_SUCCESS)
 		return NULL;
 
 	if (NO_BUCKETS)
@@ -598,7 +598,7 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 	atomic64_set(&h->minimum, -1UL);
 
 	if (vdo_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
-			 &h->counters) != UDS_SUCCESS) {
+			 &h->counters) != VDO_SUCCESS) {
 		histogram_kobj_release(&h->kobj);
 		return NULL;
 	}

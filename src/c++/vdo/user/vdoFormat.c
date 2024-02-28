@@ -362,7 +362,7 @@ static int checkDeviceInUse(char *filename, uint32_t major, uint32_t minor)
   int result = vdo_alloc_sprintf(__func__, &path,
                                  "/sys/dev/block/%u:%u/holders",
                                  major, minor);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 
@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
 
   struct index_config indexConfig;
   result = parseIndexConfig(&configStrings, &indexConfig);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     errx(result, "parseIndexConfig failed: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }

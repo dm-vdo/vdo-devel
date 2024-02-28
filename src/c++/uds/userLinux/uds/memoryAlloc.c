@@ -21,7 +21,7 @@ enum { DEFAULT_MALLOC_ALIGNMENT = 2 * sizeof(size_t) }; // glibc malloc
  * @param what   What is being allocated (for error logging)
  * @param ptr    A pointer to hold the allocated memory
  *
- * @return UDS_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 {
@@ -34,7 +34,7 @@ int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 	if (size == 0) {
 		// We can skip the malloc call altogether.
 		*((void **) ptr) = NULL;
-		return UDS_SUCCESS;
+		return VDO_SUCCESS;
 	}
 
 	if (align > DEFAULT_MALLOC_ALIGNMENT) {
@@ -64,7 +64,7 @@ int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 
 	memset(p, 0, size);
 	*((void **) ptr) = p;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /*
@@ -102,7 +102,7 @@ void vdo_free(void *ptr)
  * @param what      What is being allocated (for error logging)
  * @param new_ptr   A pointer to hold the reallocated pointer
  *
- * @return UDS_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error code
  **/
 int vdo_reallocate_memory(void *ptr,
 			  size_t old_size,
@@ -122,7 +122,7 @@ int vdo_reallocate_memory(void *ptr,
 		memset(new + old_size, 0, size - old_size);
 
 	*((void **) new_ptr) = new;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -134,10 +134,10 @@ int vdo_duplicate_string(const char *string,
 	u8 *dup = NULL;
 
 	result = vdo_allocate(strlen(string) + 1, u8, what, &dup);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return result;
 
 	memcpy(dup, string, strlen(string) + 1);
 	*new_string = (char *) dup;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
