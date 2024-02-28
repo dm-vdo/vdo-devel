@@ -179,7 +179,7 @@ static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
  * the ephemeral stats have reset to zero.
  */
 #define BIT_COUNT_MINIMUM 1000
-/** Grow the bit array by this many bits when needed */
+/* Grow the bit array by this many bits when needed */
 #define BIT_COUNT_INCREMENT 100
 
 struct instance_tracker {
