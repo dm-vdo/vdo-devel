@@ -129,7 +129,7 @@ int vdo_create_thread(void (*thread_function)(void *),
 	}
 
 	*new_thread = thread;
-	return UDS_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/

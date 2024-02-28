@@ -258,7 +258,7 @@ int uds_make_request_queue(const char *queue_name,
 				   queue,
 				   queue_name,
 				   &queue->thread);
-	if (result != UDS_SUCCESS) {
+	if (result != VDO_SUCCESS) {
 		uds_request_queue_finish(queue);
 		return result;
 	}
