@@ -90,18 +90,18 @@ static inline int __vdo_do_allocation(size_t count, size_t size, size_t extra,
  *
  * Return: UDS_SUCCESS or an error code
  */
-#define vdo_allocate_extended(TYPE1, COUNT, TYPE2, WHAT, PTR)		 \
-	__extension__({							 \
-		int _result;						 \
-		TYPE1 **_ptr = (PTR);					 \
-		BUILD_BUG_ON(__alignof__(TYPE1) < __alignof__(TYPE2));	 \
-		_result = __vdo_do_allocation(COUNT,			 \
-					    sizeof(TYPE2),		 \
-					    sizeof(TYPE1),		 \
-					    __alignof__(TYPE1),		 \
-					    WHAT,			 \
-					    _ptr);			 \
-		_result;						 \
+#define vdo_allocate_extended(TYPE1, COUNT, TYPE2, WHAT, PTR)		\
+	__extension__({							\
+		int _result;						\
+		TYPE1 **_ptr = (PTR);					\
+		BUILD_BUG_ON(__alignof__(TYPE1) < __alignof__(TYPE2));	\
+		_result = __vdo_do_allocation(COUNT,			\
+					      sizeof(TYPE2),		\
+					      sizeof(TYPE1),		\
+					      __alignof__(TYPE1),	\
+					      WHAT,			\
+					      _ptr);			\
+		_result;						\
 	})
 
 /*
