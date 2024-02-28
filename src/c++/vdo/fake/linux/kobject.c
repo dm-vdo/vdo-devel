@@ -189,11 +189,11 @@ error:
 struct kobject *kobject_get(struct kobject *kobj)
 {
 	if (kobj) {
-		ASSERT_LOG_ONLY(kobj->state_initialized,
-				"kobject '%s' (%p) "
-				"is initialized in kobject_get()",
-				kobj->name,
-				(void *) kobj);
+		VDO_ASSERT_LOG_ONLY(kobj->state_initialized,
+				    "kobject '%s' (%p) "
+				    "is initialized in kobject_get()",
+				    kobj->name,
+				    (void *) kobj);
 		atomic_add(1, &kobj->refcount);
 	}
 	return kobj;
@@ -215,13 +215,13 @@ static void kobject_cleanup(struct kobject *kobj)
 		      __func__,
 		      (void *) kobj->parent);
 
-	int result = ASSERT((t && t->release),
-			    "kobject: '%s' (%p): "
-			    "does not have a release() function, "
-			    "it is broken and must be fixed. "
-			    "See Documentation/core-api/kobject.rst.",
-			    kobj->name,
-			    (void *) kobj);
+	int result = VDO_ASSERT((t && t->release),
+				"kobject: '%s' (%p): "
+				"does not have a release() function, "
+				"it is broken and must be fixed. "
+				"See Documentation/core-api/kobject.rst.",
+				kobj->name,
+				(void *) kobj);
 
 	if (result == VDO_SUCCESS) {
 		uds_log_debug("kobject: '%s' (%p): calling ktype release\n",
@@ -254,8 +254,8 @@ void kobject_put(struct kobject *kobj)
 			uds_log_warning("kobject: '%s' (%p): is not initialized, yet kobject_put() is being called.\n",
 					kobj->name, (void *) kobj);
 		int count = atomic_add_return(-1, &kobj->refcount);
-		ASSERT_LOG_ONLY(((count + 1) != 0),
-				"kobject_put() did not decrement from 0");
+		VDO_ASSERT_LOG_ONLY(((count + 1) != 0),
+				    "kobject_put() did not decrement from 0");
 		if ((count == 0) && (kobj != kernel_kobj)) {
 			kobject_cleanup(kobj);
 		}

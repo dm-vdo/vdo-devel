@@ -269,8 +269,8 @@ static int setupFileLayer(const char     *name,
                           block_count_t   fileOffset,
                           PhysicalLayer **layerPtr)
 {
-  int result = ASSERT(layerPtr != NULL, "layerPtr must not be NULL");
-  if (result != UDS_SUCCESS) {
+  int result = VDO_ASSERT(layerPtr != NULL, "layerPtr must not be NULL");
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

@@ -3561,7 +3561,7 @@ void vdo_allocate_from_allocator_last_slab(struct block_allocator *allocator)
 {
 	struct vdo_slab *last_slab = allocator->depot->slabs[allocator->last_slab];
 
-	ASSERT_LOG_ONLY(allocator->open_slab == NULL, "mustn't have an open slab");
+	VDO_ASSERT_LOG_ONLY(allocator->open_slab == NULL, "mustn't have an open slab");
 	vdo_priority_table_remove(allocator->prioritized_slabs,
 				  &last_slab->allocq_entry);
 	open_slab(last_slab);

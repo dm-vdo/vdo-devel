@@ -33,10 +33,10 @@ static int __must_check loadVDOFromFile(const char *filename,
 					bool validateConfig,
 					UserVDO **vdoPtr)
 {
-  int result = ASSERT(validateConfig || readOnly,
-                      "Cannot make a writable VDO"
-                      " without validating its config");
-  if (result != UDS_SUCCESS) {
+  int result = VDO_ASSERT(validateConfig || readOnly,
+                          "Cannot make a writable VDO"
+                          " without validating its config");
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

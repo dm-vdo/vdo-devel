@@ -141,7 +141,7 @@ void vdo_join_threads(struct thread *thread)
 	result = pthread_join(thread->thread, NULL);
 	pthread = thread->thread;
 	vdo_free(thread);
-	ASSERT_LOG_ONLY((result == 0), "thread: %p", (void *) pthread);
+	VDO_ASSERT_LOG_ONLY((result == 0), "thread: %p", (void *) pthread);
 }
 
 /**********************************************************************/
@@ -151,7 +151,7 @@ void initialize_threads_barrier(struct threads_barrier *barrier,
 	int result;
 
 	result = pthread_barrier_init(&barrier->barrier, NULL, thread_count);
-	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "pthread_barrier_init error");
 }
 
 /**********************************************************************/
@@ -160,7 +160,7 @@ void destroy_threads_barrier(struct threads_barrier *barrier)
 	int result;
 
 	result = pthread_barrier_destroy(&barrier->barrier);
-	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_destroy error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "pthread_barrier_destroy error");
 }
 
 /**********************************************************************/
@@ -172,5 +172,5 @@ void enter_threads_barrier(struct threads_barrier *barrier)
 	if (result == PTHREAD_BARRIER_SERIAL_THREAD)
 		return;
 
-	ASSERT_LOG_ONLY((result == 0), "pthread_barrier_wait error");
+	VDO_ASSERT_LOG_ONLY((result == 0), "pthread_barrier_wait error");
 }

@@ -135,10 +135,10 @@ static const char *vdo_get_state_name(enum vdo_state state)
 	/* Catch if a state has been added without updating the name array. */
 	STATIC_ASSERT(ARRAY_SIZE(VDO_STATE_NAMES) == VDO_STATE_COUNT);
 
-	result = ASSERT(state < ARRAY_SIZE(VDO_STATE_NAMES),
-			"vdo_state value %u must have a registered name",
-			state);
-	if (result != UDS_SUCCESS) {
+	result = VDO_ASSERT(state < ARRAY_SIZE(VDO_STATE_NAMES),
+			    "vdo_state value %u must have a registered name",
+			    state);
+	if (result != VDO_SUCCESS) {
 		return "INVALID VDO STATE CODE";
 	}
 

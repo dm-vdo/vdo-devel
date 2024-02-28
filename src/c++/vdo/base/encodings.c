@@ -334,8 +334,8 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 	else
 		buffer[(*offset)++] = 0;
 
-	return ASSERT(header->size == (*offset + sizeof(u32)),
-		      "should have included up to the geometry checksum");
+	return VDO_ASSERT(header->size == (*offset + sizeof(u32)),
+		          "should have included up to the geometry checksum");
 }
 
 #endif /* VDO_USER */

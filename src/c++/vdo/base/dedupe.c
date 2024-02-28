@@ -1139,10 +1139,10 @@ static bool blocks_equal(char *block1, char *block2)
 
 #ifdef INTERNAL
 	BUILD_BUG_ON(VDO_BLOCK_SIZE % sizeof(u64) != 0);
-	ASSERT_LOG_ONLY((uintptr_t) block1 % sizeof(u64) == 0,
-			"Data blocks are expected to be aligned");
-	ASSERT_LOG_ONLY((uintptr_t) block2 % sizeof(u64) == 0,
-			"Data blocks are expected to be aligned");
+	VDO_ASSERT_LOG_ONLY((uintptr_t) block1 % sizeof(u64) == 0,
+			    "Data blocks are expected to be aligned");
+	VDO_ASSERT_LOG_ONLY((uintptr_t) block2 % sizeof(u64) == 0,
+			    "Data blocks are expected to be aligned");
 
 #endif  /* INTERNAL */
 	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {

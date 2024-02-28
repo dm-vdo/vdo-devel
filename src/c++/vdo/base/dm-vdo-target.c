@@ -972,24 +972,24 @@ static int check_bio_validity(struct bio *bio)
 
 	/* Is this a flush? It must be empty. */
 	if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-		result = ASSERT(is_empty, "flush bios must be empty");
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(is_empty, "flush bios must be empty");
+		if (result != VDO_SUCCESS)
 			result = -EINVAL;
 
 		return result;
 	}
 
 	/* Is this anything else? It must not be empty. */
-	result = ASSERT(!is_empty, "data bios must not be empty");
-	if (result != UDS_SUCCESS)
+	result = VDO_ASSERT(!is_empty, "data bios must not be empty");
+	if (result != VDO_SUCCESS)
 		return -EINVAL;
 
 	/* Is this something other than a discard? Must have size <= 4k. */
 	if (bio_op(bio) != REQ_OP_DISCARD) {
-		result = ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
-				"data bios must not be more than %d bytes",
-				VDO_BLOCK_SIZE);
-		if (result != UDS_SUCCESS)
+		result = VDO_ASSERT(bio->bi_iter.bi_size <= VDO_BLOCK_SIZE,
+				    "data bios must not be more than %d bytes",
+				    VDO_BLOCK_SIZE);
+		if (result != VDO_SUCCESS)
 			return -EINVAL;
 	}
 
@@ -2271,8 +2271,8 @@ static void vdo_postsuspend(struct dm_target *ti)
  */
 static void vdo_pool_release(struct kobject *directory)
 {
-	ASSERT_LOG_ONLY((atomic_read(&(directory->refcount)) == 0),
-			"kobject being released has no references");
+	VDO_ASSERT_LOG_ONLY((atomic_read(&(directory->refcount)) == 0),
+			    "kobject being released has no references");
 	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
 
 	vdo_free(vdo);

@@ -99,7 +99,7 @@ static void checkNotFound(const char *str)
 /**********************************************************************/
 static void testAssertionSuccess(void)
 {
-  UDS_ASSERT_SUCCESS(ASSERT(true, "true"));
+  UDS_ASSERT_SUCCESS(VDO_ASSERT(true, "true"));
   checkNotFound("assertion");
   checkNotFound("[Call Trace:]");
 }
@@ -107,7 +107,7 @@ static void testAssertionSuccess(void)
 /**********************************************************************/
 static void testAssertionFailure(void)
 {
-  CU_ASSERT_EQUAL(ASSERT(false, "false"), UDS_ASSERTION_FAILED);
+  CU_ASSERT_EQUAL(VDO_ASSERT(false, "false"), UDS_ASSERTION_FAILED);
   checkFound("assertion \"false\" (0) failed at");
   checkFound("Permassert_t1.c:");
   checkFound("[Call Trace:]");

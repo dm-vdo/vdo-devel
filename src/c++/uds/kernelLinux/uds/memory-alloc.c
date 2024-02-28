@@ -282,8 +282,8 @@ static void remove_tracking_block(void *ptr)
 	}
 
 	mutex_unlock(&track_mutex);
-	ASSERT_LOG_ONLY(!track_always,
-			"vdo_free called on block that UDS did not vdo_allocate");
+	VDO_ASSERT_LOG_ONLY(!track_always,
+			    "vdo_free called on block that UDS did not vdo_allocate");
 }
 
 void log_uds_memory_allocations(void)

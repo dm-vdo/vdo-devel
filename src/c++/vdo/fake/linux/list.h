@@ -66,13 +66,13 @@ static inline bool __list_add_valid(struct list_head *new,
 				    struct list_head *prev,
 				    struct list_head *next)
 {
-	ASSERT_LOG_ONLY(next->prev == prev,
-			"list_add corruption. next->prev should be prev (%px), but was %px. (next=%px).", V(prev), V(next->prev), V(next));
-	ASSERT_LOG_ONLY(prev->next == next,
-			"list_add corruption. prev->next should be next (%px), but was %px. (prev=%px).", V(next), V(prev->next), V(prev));
-	ASSERT_LOG_ONLY(new != prev && new != next,
-			"list_add double add: new=%px, prev=%px, next=%px.",
-			V(new), V(prev), V(next));
+	VDO_ASSERT_LOG_ONLY(next->prev == prev,
+			    "list_add corruption. next->prev should be prev (%px), but was %px. (next=%px).", V(prev), V(next->prev), V(next));
+	VDO_ASSERT_LOG_ONLY(prev->next == next,
+			    "list_add corruption. prev->next should be next (%px), but was %px. (prev=%px).", V(next), V(prev->next), V(prev));
+	VDO_ASSERT_LOG_ONLY(new != prev && new != next,
+			    "list_add double add: new=%px, prev=%px, next=%px.",
+			    V(new), V(prev), V(next));
 	return true;
 }
 
@@ -83,17 +83,18 @@ static inline bool __list_del_entry_valid(struct list_head *entry)
 	prev = entry->prev;
 	next = entry->next;
 
-	ASSERT_LOG_ONLY(next != LIST_POISON1,
-			"list_del corruption, %px->next is LIST_POISON1 (%px)", V(entry), LIST_POISON1);
-	ASSERT_LOG_ONLY(prev != LIST_POISON2,
-			"list_del corruption, %px->prev is LIST_POISON2 (%px)",
-			V(entry), LIST_POISON2);
-	ASSERT_LOG_ONLY(prev->next == entry,
-			"list_del corruption. prev->next should be %px, but was %px",
-			V(entry), V(prev->next));
-	ASSERT_LOG_ONLY(next->prev == entry,
-			"list_del corruption. next->prev should be %px, but was %px",
-			V(entry), V(next->prev));
+	VDO_ASSERT_LOG_ONLY(next != LIST_POISON1,
+			    "list_del corruption, %px->next is LIST_POISON1 (%px)",
+			    V(entry), LIST_POISON1);
+	VDO_ASSERT_LOG_ONLY(prev != LIST_POISON2,
+			    "list_del corruption, %px->prev is LIST_POISON2 (%px)",
+			    V(entry), LIST_POISON2);
+	VDO_ASSERT_LOG_ONLY(prev->next == entry,
+			    "list_del corruption. prev->next should be %px, but was %px",
+			    V(entry), V(prev->next));
+	VDO_ASSERT_LOG_ONLY(next->prev == entry,
+			    "list_del corruption. next->prev should be %px, but was %px",
+			    V(entry), V(next->prev));
 	return true;
 }
 #undef V

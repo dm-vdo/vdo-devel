@@ -90,14 +90,14 @@ static int readAndExaminePage(UserVDO                 *vdo,
 int examineBlockMapEntries(UserVDO *vdo, MappingExaminer *examiner)
 {
   struct block_map_state_2_0 *map = &vdo->states.block_map;
-  int result = ASSERT((map->root_origin != 0),
-                      "block map root origin must be non-zero");
+  int result = VDO_ASSERT((map->root_origin != 0),
+                          "block map root origin must be non-zero");
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = ASSERT((map->root_count != 0),
-                  "block map root count must be non-zero");
+  result = VDO_ASSERT((map->root_count != 0),
+                      "block map root count must be non-zero");
   if (result != VDO_SUCCESS) {
     return result;
   }

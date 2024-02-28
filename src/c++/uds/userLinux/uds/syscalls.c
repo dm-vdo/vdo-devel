@@ -123,12 +123,12 @@ int process_control(int option,
 		    unsigned long arg5)
 {
 	int result = prctl(option, arg2, arg3, arg4, arg5);
-	ASSERT_LOG_ONLY(result >= 0,
-			"option: %d, arg2: %lu, arg3: %lu, arg4: %lu, arg5: %lu",
-			option,
-			arg2,
-			arg3,
-			arg4,
-			arg5);
+	VDO_ASSERT_LOG_ONLY(result >= 0,
+			    "option: %d, arg2: %lu, arg3: %lu, arg4: %lu, arg5: %lu",
+			    option,
+			    arg2,
+			    arg3,
+			    arg4,
+			    arg5);
 	return errno;
 }

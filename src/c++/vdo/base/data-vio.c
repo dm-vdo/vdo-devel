@@ -544,8 +544,8 @@ STATIC bool is_zero_block(char *block)
 
 #ifdef INTERNAL
 	BUILD_BUG_ON(VDO_BLOCK_SIZE % sizeof(u64) != 0);
-	ASSERT_LOG_ONLY((uintptr_t) block % sizeof(u64) == 0,
-			"Data blocks are expected to be aligned");
+	VDO_ASSERT_LOG_ONLY((uintptr_t) block % sizeof(u64) == 0,
+			    "Data blocks are expected to be aligned");
 
 #endif	/* INTERNAL */
 	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {
