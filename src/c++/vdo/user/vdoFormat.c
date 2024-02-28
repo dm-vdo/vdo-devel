@@ -362,7 +362,7 @@ static int checkDeviceInUse(char *filename, uint32_t major, uint32_t minor)
   int result = vdo_alloc_sprintf(__func__, &path,
                                  "/sys/dev/block/%u:%u/holders",
                                  major, minor);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

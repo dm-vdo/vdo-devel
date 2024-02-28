@@ -13,10 +13,11 @@
 #include <signal.h>
 #include <stdlib.h>
 
-#include "assertions.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
 #include "thread-utils.h"
+
+#include "vdoAsserts.h"
 
 enum {
   READ         = 0,
@@ -42,7 +43,7 @@ pid_t forkChild(void)
   } else if (pid > 0) {
     // parent
     pid_t *newChildren;
-    UDS_ASSERT_SUCCESS(vdo_reallocate_memory(children,
+    VDO_ASSERT_SUCCESS(vdo_reallocate_memory(children,
                                              (childCount) * sizeof(pid_t),
                                              (childCount + 1) * sizeof(pid_t),
                                              __func__, &newChildren));

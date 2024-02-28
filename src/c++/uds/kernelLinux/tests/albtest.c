@@ -120,7 +120,7 @@ static int sprintElapsed(char *buf, unsigned int indent, TestResult tr)
 {
   int written = 0;
   char *elapsed;
-  if (rel_time_to_string(&elapsed, tr.elapsed) == UDS_SUCCESS) {
+  if (rel_time_to_string(&elapsed, tr.elapsed) == VDO_SUCCESS) {
     written += sprintf(buf, "%*s%s %s\n", indent, "", tr.name, elapsed);
     vdo_free(elapsed);
   }
@@ -140,7 +140,7 @@ static int parseArgs(const char   *buf,
 {
   char *argBuf;
   int result = vdo_allocate(length + 1, char, "argument list", &argBuf);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return -ENOMEM;
   }
   int argc = 0;
@@ -162,7 +162,7 @@ static int parseArgs(const char   *buf,
   argBuf[length] = '\000';
   const char **argv;
   result = vdo_allocate(argc, char *, "argv", &argv);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     vdo_free(argBuf);
     return -ENOMEM;
   }
@@ -348,7 +348,7 @@ static struct kobj_type suiteObjectType = {
 static SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 {
   SuiteState *ss;
-  if (vdo_allocate(1, SuiteState, __func__, &ss) != UDS_SUCCESS) {
+  if (vdo_allocate(1, SuiteState, __func__, &ss) != VDO_SUCCESS) {
     return NULL;
   }
   ss->next = NULL;

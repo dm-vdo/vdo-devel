@@ -252,7 +252,7 @@ int makeRAMLayer(block_count_t   blockCount,
 {
   RAMLayer *layer;
   int result = vdo_allocate(1, RAMLayer, __func__, &layer);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 
@@ -263,7 +263,7 @@ int makeRAMLayer(block_count_t   blockCount,
                         Region *,
                         __func__,
                         &layer->regions);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     freeRAMLayer(layer);
     return result;
   }

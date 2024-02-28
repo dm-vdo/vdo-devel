@@ -11,11 +11,12 @@
 #include <linux/limits.h>
 #include <stdlib.h>
 
-#include "assertions.h"
 #include "memory-alloc.h"
 #include "syscalls.h"
 
 #include "int-map.h"
+
+#include "vdoAsserts.h"
 
 /**********************************************************************/
 static void testEmptyMap(void)
@@ -116,7 +117,7 @@ static void test16BitMap(void)
   UDS_ASSERT_SUCCESS(vdo_int_map_create(U16_MAX + 1, &map));
 
   uint16_t *values;
-  UDS_ASSERT_SUCCESS(vdo_allocate(65536, uint16_t, "16-bit values", &values));
+  VDO_ASSERT_SUCCESS(vdo_allocate(65536, uint16_t, "16-bit values", &values));
   for (int i = 0; i <= U16_MAX; i++) {
     values[i] = i;
   }

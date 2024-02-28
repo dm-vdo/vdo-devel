@@ -55,7 +55,7 @@ dm_bufio_client_create(struct block_device *bdev,
 	struct dm_bufio_client *client;
 
 	result = vdo_allocate(1, struct dm_bufio_client, __func__, &client);
-	if (result != UDS_SUCCESS)
+	if (result != VDO_SUCCESS)
 		return ERR_PTR(-ENOMEM);
 
 
@@ -107,14 +107,14 @@ void *dm_bufio_new(struct dm_bufio_client *client,
 
 	if (buffer == NULL) {
 		result = vdo_allocate(1, struct dm_buffer, __func__, &buffer);
-		if (result != UDS_SUCCESS)
+		if (result != VDO_SUCCESS)
 			return ERR_PTR(-ENOMEM);
 
 		result = vdo_allocate(client->bytes_per_page,
 				      u8,
 				      __func__,
 				      &buffer->data);
-		if (result != UDS_SUCCESS) {
+		if (result != VDO_SUCCESS) {
 			vdo_free(buffer);
 			return ERR_PTR(-ENOMEM);
 		}

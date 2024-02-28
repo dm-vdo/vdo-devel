@@ -23,13 +23,13 @@ int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
 	va_end(args);
 	result = vdo_allocate(count, char, what, strp);
-	if (result == UDS_SUCCESS) {
+	if (result == VDO_SUCCESS) {
 		va_start(args, fmt);
 		vsnprintf(*strp, count, fmt, args);
 		va_end(args);
 	}
 
-	if ((result != UDS_SUCCESS) && (what != NULL))
+	if ((result != VDO_SUCCESS) && (what != NULL))
 		uds_log_error("cannot allocate %s", what);
 
 	return result;

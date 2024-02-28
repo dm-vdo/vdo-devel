@@ -278,7 +278,7 @@ static int setupFileLayer(const char     *name,
   FileLayer *layer   = NULL;
   result
     = vdo_allocate_extended(FileLayer, nameLen, char, "file layer", &layer);
-  if (result != UDS_SUCCESS) {
+  if (result != VDO_SUCCESS) {
     return result;
   }
 

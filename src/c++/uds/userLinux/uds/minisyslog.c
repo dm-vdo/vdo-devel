@@ -66,7 +66,7 @@ void mini_openlog(const char *ident, int option, int facility)
 	uds_lock_mutex(&mutex);
 	close_locked();
 	vdo_free(log_ident);
-	if (vdo_duplicate_string(ident, NULL, &log_ident) != UDS_SUCCESS)
+	if (vdo_duplicate_string(ident, NULL, &log_ident) != VDO_SUCCESS)
 		// on failure, NULL is okay
 		log_ident = NULL;
 	log_option = option;

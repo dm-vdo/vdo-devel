@@ -718,7 +718,7 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 	}
 
 	result = vdo_allocate(1, struct uds_parameters, __func__, parameters);
-	if (result == UDS_SUCCESS)
+	if (result == VDO_SUCCESS)
 		**parameters = index_session->parameters;
 
 	return uds_status_to_errno(result);
