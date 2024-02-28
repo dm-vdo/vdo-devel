@@ -73,16 +73,14 @@
 #include "memory-alloc.h"
 #include "thread-utils.h"
 
-enum {
-	/* value used to increment the waiters field */
-	ONE_WAITER = 1,
-	/* value used to increment the event counter */
-	ONE_EVENT = (1 << 16),
-	/* bit mask to access the waiters field */
-	WAITERS_MASK = (ONE_EVENT - 1),
-	/* bit mask to access the event counter */
-	EVENTS_MASK = ~WAITERS_MASK,
-};
+/* value used to increment the waiters field */
+#define ONE_WAITER 1
+/* value used to increment the event counter */
+#define ONE_EVENT (1 << 16)
+/* bit mask to access the waiters field */
+#define WAITERS_MASK (ONE_EVENT - 1)
+/* bit mask to access the event counter */
+#define EVENTS_MASK ~WAITERS_MASK
 
 struct event_count {
 	/*
