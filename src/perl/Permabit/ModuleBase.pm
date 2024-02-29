@@ -150,6 +150,7 @@ sub loadFromBinaryRPM {
   }
 
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
+               checker => sub { $machine->getStdout() !~ /failed/ },
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
 }
 
@@ -245,6 +246,7 @@ sub _step {
   my ($self, $args) = assertOptionalArgs(1,
                                          {
                                           command    => undef,
+                                          checker    => undef,
                                           cleaner    => undef,
                                           diagnostic => undef,
                                          },
@@ -258,7 +260,8 @@ sub _step {
     $error = $EVAL_ERROR;
   } else {
     $log->info($machine->getName() . ": $args->{command}");
-    if ($machine->sendCommand($args->{command}) != 0) {
+    if (($machine->sendCommand($args->{command}) != 0)
+        || (defined($args->{checker}) && !$args->{checker}->())) {
       $log->error("Failure during $args->{command}");
       $log->error("stdout:\n" . $machine->getStdout());
       $log->error("stderr:\n" . $machine->getStderr());

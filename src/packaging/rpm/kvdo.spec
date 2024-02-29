@@ -31,7 +31,14 @@ deduplication, compression, and thin provisioning.
 %post
 set -x
 /usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}
-/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}
+if ! /usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}; then
+  echo build failed
+  log=/var/lib/dkms/%{kmod_name}/%{version}/build/make.log
+  if test -r $log; then
+    cat $log
+  fi
+  exit 1
+fi
 /usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}
 
 %preun
