@@ -2327,7 +2327,7 @@ static void finish_index_operation(struct uds_request *request)
 				    atomic_read(&context->state));
 	}
 
-	uds_funnel_queue_put(context->zone->timed_out_complete, &context->queue_entry);
+	vdo_funnel_queue_put(context->zone->timed_out_complete, &context->queue_entry);
 }
 
 /**
@@ -2356,7 +2356,7 @@ static void check_for_drain_complete(struct hash_zone *zone)
 		struct dedupe_context *context;
 		struct funnel_queue_entry *entry;
 
-		entry = uds_funnel_queue_poll(zone->timed_out_complete);
+		entry = vdo_funnel_queue_poll(zone->timed_out_complete);
 		if (entry == NULL)
 			break;
 
@@ -2454,7 +2454,7 @@ static int __must_check initialize_zone(struct vdo *vdo, struct hash_zones *zone
 
 	INIT_LIST_HEAD(&zone->available);
 	INIT_LIST_HEAD(&zone->pending);
-	result = uds_make_funnel_queue(&zone->timed_out_complete);
+	result = vdo_make_funnel_queue(&zone->timed_out_complete);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2556,7 +2556,7 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 	for (i = 0; i < zones->zone_count; i++) {
 		struct hash_zone *zone = &zones->zones[i];
 
-		uds_free_funnel_queue(vdo_forget(zone->timed_out_complete));
+		vdo_free_funnel_queue(vdo_forget(zone->timed_out_complete));
 		vdo_int_map_free(vdo_forget(zone->hash_lock_map));
 		vdo_free(vdo_forget(zone->lock_array));
 	}
@@ -2959,7 +2959,7 @@ static struct dedupe_context * __must_check acquire_context(struct hash_zone *zo
 		return context;
 	}
 
-	entry = uds_funnel_queue_poll(zone->timed_out_complete);
+	entry = vdo_funnel_queue_poll(zone->timed_out_complete);
 	return ((entry == NULL) ?
 		NULL : container_of(entry, struct dedupe_context, queue_entry));
 }

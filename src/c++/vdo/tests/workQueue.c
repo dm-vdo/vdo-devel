@@ -55,7 +55,7 @@ static struct funnel_queue_entry *getNextItem(struct vdo_work_queue *queue)
   for (int level = queue->type->max_priority;
        (entry == NULL) && (level >= 0);
        level--) {
-    entry = uds_funnel_queue_poll(queue->queues[level]);
+    entry = vdo_funnel_queue_poll(queue->queues[level]);
   }
 
   return entry;
@@ -176,7 +176,7 @@ int vdo_make_work_queue(const char *thread_name_prefix,
                                        queue->name));
   VDO_ASSERT_SUCCESS(make_event_count(&queue->wakeEvent));
   for (int i = 0; i < priorityLevels; i++) {
-    VDO_ASSERT_SUCCESS(uds_make_funnel_queue(&queue->queues[i]));
+    VDO_ASSERT_SUCCESS(vdo_make_funnel_queue(&queue->queues[i]));
   }
 
   queue->vdo_thread = owner;
@@ -204,7 +204,7 @@ void vdo_free_work_queue(struct vdo_work_queue *queue)
   for (enum vdo_completion_priority i = 0;
        i <= queue->type->max_priority;
        i++) {
-    uds_free_funnel_queue(queue->queues[i]);
+    vdo_free_funnel_queue(queue->queues[i]);
   }
 
   free_event_count(queue->wakeEvent);
@@ -228,7 +228,7 @@ void vdo_enqueue_work_queue(struct vdo_work_queue *queue,
 
   CU_ASSERT(priority <= queue->type->max_priority);
   completion->my_queue = queue;
-  uds_funnel_queue_put(queue->queues[priority],
+  vdo_funnel_queue_put(queue->queues[priority],
                        &completion->work_queue_entry_link);
   event_count_broadcast(queue->wakeEvent);
 }

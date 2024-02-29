@@ -320,7 +320,7 @@ static void funnelSemaphoreProduce(QueueableBatch *qb,
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
     qb->q[i].stream = qb->stream;
     qb->q[i].number = i;
-    uds_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
     uds_release_semaphore(&qb->semaphore);
   }
 }
@@ -334,7 +334,7 @@ static void funnelSemaphoreConsume(QueueableBatch *qb)
   for (i = 0; i < qb->count; i++) {
     struct funnel_queue_entry *fq;
     uds_acquire_semaphore(&qb->semaphore);
-    while ((fq = uds_funnel_queue_poll(qb->funnel)) != NULL) {
+    while ((fq = vdo_funnel_queue_poll(qb->funnel)) != NULL) {
       dequeued++;
     }
   }
@@ -352,7 +352,7 @@ static void funnelWaitqueueProduce(QueueableBatch *qb,
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
     qb->q[i].stream = qb->stream;
     qb->q[i].number = i;
-    uds_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
     if (wq_has_sleeper(&qb->wqhead)) {
       wake_up(&qb->wqhead);
     }
@@ -364,9 +364,9 @@ static void funnelWaitqueueConsume(QueueableBatch *qb)
   long i;
   for (i = 0; i < qb->count; i++) {
     // wait_event completes only if the condition holds; no assertion needed
-    wait_event(qb->wqhead, uds_funnel_queue_poll(qb->funnel));
+    wait_event(qb->wqhead, vdo_funnel_queue_poll(qb->funnel));
   }
-  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(qb->funnel));
+  CU_ASSERT_PTR_NULL(vdo_funnel_queue_poll(qb->funnel));
 }
 
 /**********************************************************************/
@@ -378,7 +378,7 @@ static void funnelEventProduce(QueueableBatch *qb, int mySection, int sections)
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
     qb->q[i].stream = qb->stream;
     qb->q[i].number = i;
-    uds_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
     event_count_broadcast(qb->event);
   }
 }
@@ -387,13 +387,13 @@ static void funnelEventConsume(QueueableBatch *qb)
 {
   long i = 0;
   while (i < qb->count) {
-    struct funnel_queue_entry *fq = uds_funnel_queue_poll(qb->funnel);
+    struct funnel_queue_entry *fq = vdo_funnel_queue_poll(qb->funnel);
     if (fq != NULL) {
       i++;
       continue;
     }
     event_token_t token = event_count_prepare(qb->event);
-    fq = uds_funnel_queue_poll(qb->funnel);
+    fq = vdo_funnel_queue_poll(qb->funnel);
     if (fq != NULL) {
       event_count_cancel(qb->event, token);
       i++;
@@ -403,7 +403,7 @@ static void funnelEventConsume(QueueableBatch *qb)
     // Back to the top where we check again, without automatically updating i.
     // (Guard against a temporarily disconnected queue.)
   }
-  CU_ASSERT_PTR_NULL(uds_funnel_queue_poll(qb->funnel));
+  CU_ASSERT_PTR_NULL(vdo_funnel_queue_poll(qb->funnel));
 }
 
 /**********************************************************************/
@@ -424,7 +424,7 @@ static QueueableBatch *allocateBatch(long stream, long count)
   init_waitqueue_head(&qb->wqhead);
   UDS_ASSERT_SUCCESS(uds_initialize_semaphore(&qb->semaphore, 0));
   UDS_ASSERT_SUCCESS(make_event_count(&qb->event));
-  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&qb->funnel));
+  UDS_ASSERT_SUCCESS(vdo_make_funnel_queue(&qb->funnel));
   return qb;
 }
 
@@ -433,7 +433,7 @@ static QueueableBatch *allocateBatch(long stream, long count)
 static void freeBatch(QueueableBatch *qb)
 {
   free_event_count(qb->event);
-  uds_free_funnel_queue(qb->funnel);
+  vdo_free_funnel_queue(qb->funnel);
   vdo_free(qb);
 }
 
