@@ -107,7 +107,7 @@ static void cb(enum uds_request_type type,
   UDS_ASSERT_SUCCESS(status);
   if (type == UDS_POST) {
     TestBlockCounter *tbc = cookie;
-    uds_funnel_queue_put(testQueue, &tbc->queueEntry);
+    vdo_funnel_queue_put(testQueue, &tbc->queueEntry);
     event_count_broadcast(testEvent);
   }
 }
@@ -119,9 +119,9 @@ static void updateBlockNames(void *argument)
   unsigned long counter;
   for (counter = 0; counter < numBlocksInTest; ) {
     struct funnel_queue_entry *fqe;
-    while ((fqe = uds_funnel_queue_poll(testQueue)) == NULL) {
+    while ((fqe = vdo_funnel_queue_poll(testQueue)) == NULL) {
       event_token_t token = event_count_prepare(testEvent);
-      if ((fqe = uds_funnel_queue_poll(testQueue)) != NULL) {
+      if ((fqe = vdo_funnel_queue_poll(testQueue)) != NULL) {
         event_count_cancel(testEvent, token);
         break;
       }
@@ -177,7 +177,7 @@ static void postAndUpdate(void)
 
   struct thread *thread;
   UDS_ASSERT_SUCCESS(make_event_count(&testEvent));
-  UDS_ASSERT_SUCCESS(uds_make_funnel_queue(&testQueue));
+  UDS_ASSERT_SUCCESS(vdo_make_funnel_queue(&testQueue));
   UDS_ASSERT_SUCCESS(vdo_create_thread(updateBlockNames, indexSession, "updater",
                                        &thread));
   postBlockNames(indexSession);
@@ -185,7 +185,7 @@ static void postAndUpdate(void)
   UDS_ASSERT_SUCCESS(uds_flush_index_session(indexSession));
 
   free_event_count(testEvent);
-  uds_free_funnel_queue(testQueue);
+  vdo_free_funnel_queue(testQueue);
 
   reportStats();
 }
