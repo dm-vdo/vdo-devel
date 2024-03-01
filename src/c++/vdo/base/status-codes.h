@@ -72,8 +72,10 @@ enum vdo_status_codes {
 	VDO_JOURNAL_OVERFLOW,
 	/* the VDO is not in a state to perform an admin operation */
 	VDO_INVALID_ADMIN_STATE,
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	/* failure adding a sysfs node */
 	VDO_CANT_ADD_SYSFS_NODE,
+#endif
 #ifndef __KERNEL__
 	/* unexpected EOF on block read */
 	VDO_UNEXPECTED_EOF,

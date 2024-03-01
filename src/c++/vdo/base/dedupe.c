@@ -120,7 +120,9 @@
 #include <linux/atomic.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 #include <linux/kobject.h>
+#endif
 #include <linux/list.h>
 #include <linux/ratelimit.h>
 #include <linux/spinlock.h>
@@ -279,7 +281,9 @@ struct hash_lock {
 
 struct hash_zones {
 	struct action_manager *manager;
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	struct kobject dedupe_directory;
+#endif
 	struct uds_parameters parameters;
 	struct uds_index_session *index_session;
 	struct ratelimit_state ratelimiter;
@@ -2046,6 +2050,7 @@ void vdo_share_compressed_write_lock(struct data_vio *data_vio,
 	VDO_ASSERT_LOG_ONLY(claimed, "impossible to fail to claim an initial increment");
 }
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 static void dedupe_kobj_release(struct kobject *directory)
 {
 	vdo_free(container_of(directory, struct hash_zones, dedupe_directory));
@@ -2096,6 +2101,7 @@ static const struct kobj_type dedupe_directory_type = {
 	.default_groups = dedupe_groups,
 };
 
+#endif
 #ifdef __KERNEL__
 static void start_uds_queue(void *ptr)
 {
@@ -2294,7 +2300,9 @@ static int initialize_index(struct vdo *vdo, struct hash_zones *zones)
 	vdo_initialize_completion(&zones->completion, vdo, VDO_HASH_ZONES_COMPLETION);
 	vdo_set_completion_callback(&zones->completion, change_dedupe_state,
 				    vdo->thread_config.dedupe_thread);
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	kobject_init(&zones->dedupe_directory, &dedupe_directory_type);
+#endif
 	return VDO_SUCCESS;
 }
 
@@ -2565,10 +2573,14 @@ void vdo_free_hash_zones(struct hash_zones *zones)
 		vdo_finish_dedupe_index(zones);
 
 	ratelimit_state_exit(&zones->ratelimiter);
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	if (vdo_get_admin_state_code(&zones->state) == VDO_ADMIN_STATE_NEW)
 		vdo_free(zones);
 	else
 		kobject_put(&zones->dedupe_directory);
+#else
+	vdo_free(zones);
+#endif
 }
 
 static void initiate_suspend_index(struct admin_state *state)
@@ -3097,19 +3109,19 @@ int vdo_message_dedupe_index(struct hash_zones *zones, const char *name)
 	return -EINVAL;
 }
 
-int vdo_add_dedupe_index_sysfs(struct hash_zones *zones)
+void vdo_set_dedupe_state_normal(struct hash_zones *zones)
 {
-	int result = kobject_add(&zones->dedupe_directory,
-				 &zones->completion.vdo->vdo_directory, "dedupe");
-
-	if (result == 0) {
-		vdo_set_admin_state_code(&zones->state,
-					 VDO_ADMIN_STATE_NORMAL_OPERATION);
-	}
-
-	return result;
+	vdo_set_admin_state_code(&zones->state, VDO_ADMIN_STATE_NORMAL_OPERATION);
 }
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
+int vdo_add_dedupe_index_sysfs(struct hash_zones *zones)
+{
+	return kobject_add(&zones->dedupe_directory,
+			   &zones->completion.vdo->vdo_directory, "dedupe");
+}
+
+#endif
 /* If create_flag, create a new index without first attempting to load an existing index. */
 void vdo_start_dedupe_index(struct hash_zones *zones, bool create_flag)
 {

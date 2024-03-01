@@ -68,7 +68,6 @@ my @udsKernelFiles = qw(
   /thread-device\.[hc]
   /thread-registry\.[hc]
   /thread-utils\.c
-  /uds-sysfs\.[hc]
 );
 
 my @upstreamFiles = qw(

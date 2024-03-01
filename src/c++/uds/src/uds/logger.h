@@ -7,6 +7,7 @@
 #define UDS_LOGGER_H
 
 #ifdef __KERNEL__
+#include <linux/kern_levels.h>
 #include <linux/module.h>
 #include <linux/ratelimit.h>
 #include <linux/device-mapper.h>
@@ -18,14 +19,21 @@
 /* Custom logging utilities for UDS */
 
 #ifdef __KERNEL__
-#define UDS_LOG_EMERG 0
-#define UDS_LOG_ALERT 1
-#define UDS_LOG_CRIT 2
-#define UDS_LOG_ERR 3
-#define UDS_LOG_WARNING 4
-#define UDS_LOG_NOTICE 5
-#define UDS_LOG_INFO 6
-#define UDS_LOG_DEBUG 7
+enum {
+	UDS_LOG_EMERG = LOGLEVEL_EMERG,
+	UDS_LOG_ALERT = LOGLEVEL_ALERT,
+	UDS_LOG_CRIT = LOGLEVEL_CRIT,
+	UDS_LOG_ERR = LOGLEVEL_ERR,
+	UDS_LOG_WARNING = LOGLEVEL_WARNING,
+	UDS_LOG_NOTICE = LOGLEVEL_NOTICE,
+	UDS_LOG_INFO = LOGLEVEL_INFO,
+	UDS_LOG_DEBUG = LOGLEVEL_DEBUG,
+
+	UDS_LOG_MAX = UDS_LOG_DEBUG,
+	UDS_LOG_DEFAULT = UDS_LOG_INFO,
+};
+
+extern int vdo_log_level;
 #else
 #define UDS_LOG_EMERG LOG_EMERG
 #define UDS_LOG_ALERT LOG_ALERT
@@ -61,12 +69,12 @@
 
 int uds_get_log_level(void);
 
-void uds_set_log_level(int new_log_level);
-
+#ifndef __KERNEL__
 int uds_log_string_to_priority(const char *string);
 
 const char *uds_log_priority_to_string(int priority);
 
+#endif
 void uds_log_embedded_message(int priority, const char *module, const char *prefix,
 			      const char *fmt1, va_list args1, const char *fmt2, ...)
 	__printf(4, 0) __printf(6, 7);

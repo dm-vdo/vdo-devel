@@ -36,9 +36,11 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "message-stats.h"
+#ifdef VDO_INTERNAL
 #ifdef __KERNEL__
 #include "pool-sysfs.h"
 #endif /* __KERNEL__ */
+#endif /* VDO_INTERNAL */
 #include "recovery-journal.h"
 #include "repair.h"
 #include "slab-depot.h"
@@ -49,9 +51,11 @@
 #include "thread-registry.h"
 #endif /* __KERNEL__ */
 #include "types.h"
+#ifdef VDO_INTERNAL
 #ifdef __KERNEL__
 #include "uds-sysfs.h"
 #endif /* __KERNEL__ */
+#endif /* VDO_INTERNAL */
 #include "vdo.h"
 #include "vio.h"
 
@@ -69,7 +73,9 @@ enum admin_phases {
 	GROW_PHYSICAL_PHASE_END,
 	GROW_PHYSICAL_PHASE_ERROR,
 	LOAD_PHASE_START,
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	LOAD_PHASE_STATS,
+#endif
 	LOAD_PHASE_LOAD_DEPOT,
 	LOAD_PHASE_MAKE_DIRTY,
 	LOAD_PHASE_PREPARE_TO_ALLOCATE,
@@ -119,7 +125,9 @@ static const char * const ADMIN_PHASE_NAMES[] = {
 	"GROW_PHYSICAL_PHASE_END",
 	"GROW_PHYSICAL_PHASE_ERROR",
 	"LOAD_PHASE_START",
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	"LOAD_PHASE_STATS",
+#endif
 	"LOAD_PHASE_LOAD_DEPOT",
 	"LOAD_PHASE_MAKE_DIRTY",
 	"LOAD_PHASE_PREPARE_TO_ALLOCATE",
@@ -1069,8 +1077,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * blocked task warnings in kernel logs. In order to avoid these warnings, we choose to
 	 * use the smallest reasonable value.
 	 *
-	 * The value is displayed in sysfs, and also used by dm-thin to determine whether to pass
-	 * down discards. The block layer splits large discards on this boundary when this is set.
+	 * The value is used by dm-thin to determine whether to pass down discards. The block layer
+	 * splits large discards on this boundary when this is set.
 	 */
 	limits->max_discard_sectors =
 		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
@@ -2333,6 +2341,7 @@ static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 	return VDO_SLAB_DEPOT_NORMAL_LOAD;
 }
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 /**
  * vdo_initialize_kobjects() - Initialize the vdo sysfs directory.
  * @vdo: The vdo being initialized.
@@ -2362,6 +2371,7 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 	return vdo_add_sysfs_stats_dir(vdo);
 }
 
+#endif
 /**
  * load_callback() - Callback to do the destructive parts of loading a VDO.
  * @completion: The sub-task completion.
@@ -2387,11 +2397,14 @@ static void load_callback(struct vdo_completion *completion)
 		vdo_allow_read_only_mode_entry(completion);
 		return;
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 	case LOAD_PHASE_STATS:
 		vdo_continue_completion(completion, vdo_initialize_kobjects(vdo));
 		return;
 
+#endif
 	case LOAD_PHASE_LOAD_DEPOT:
+		vdo_set_dedupe_state_normal(vdo->hash_zones);
 		if (vdo_is_read_only(vdo)) {
 			/*
 			 * In read-only mode we don't use the allocator and it may not even be
@@ -3038,7 +3051,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 8, 2, 0 },
+	.version = { 9, 0, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
@@ -3084,8 +3097,9 @@ static int __init vdo_init(void)
 #ifdef __KERNEL__
 	/* Memory tracking must be initialized first for accurate accounting. */
 	vdo_memory_init();
+#ifdef VDO_INTERNAL
 	uds_init_sysfs();
-
+#endif
 	vdo_initialize_thread_device_registry();
 #endif /* __KERNEL__ */
 	vdo_initialize_device_registry_once();
@@ -3114,7 +3128,9 @@ static void __exit vdo_exit(void)
 {
 	vdo_module_destroy();
 #ifdef __KERNEL__
+#ifdef VDO_INTERNAL
 	uds_put_sysfs();
+#endif
 	/* Memory tracking cleanup must be done last. */
 	vdo_memory_exit();
 #endif /* __KERNEL__ */
@@ -3124,6 +3140,9 @@ module_init(vdo_init);
 module_exit(vdo_exit);
 
 #ifdef __KERNEL__
+module_param_named(log_level, vdo_log_level, uint, 0644);
+MODULE_PARM_DESC(log_level, "Log level for log messages");
+
 MODULE_DESCRIPTION(DM_NAME " target for transparent deduplication");
 MODULE_AUTHOR("Red Hat, Inc.");
 MODULE_LICENSE("GPL");

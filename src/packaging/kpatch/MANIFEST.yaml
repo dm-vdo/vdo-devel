@@ -30,6 +30,10 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
+            - pool-sysfs.c
+            - pool-sysfs.h
+            - pool-sysfs-stats.c
+            - sysfs.c
             - vdo-histograms.c
             - vdo-histograms.h
           +undefines:
@@ -124,8 +128,6 @@ tarballs:
             - thread-registry.c
             - thread-registry.h
             - thread-utils.c
-            - uds-sysfs.c
-            - uds-sysfs.h
           +undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL

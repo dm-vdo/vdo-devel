@@ -30,6 +30,10 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
+            - pool-sysfs.c
+            - pool-sysfs.h
+            - pool-sysfs-stats.c
+            - sysfs.c
             - vdo-histograms.c
             - vdo-histograms.h
           +postProcessor: removeInternal.sh
@@ -58,6 +62,10 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
+            - pool-sysfs.c
+            - pool-sysfs.h
+            - pool-sysfs-stats.c
+            - sysfs.c
             - vdo-histograms.c
             - vdo-histograms.h
           +defines:
@@ -138,8 +146,6 @@ tarballs:
             - thread-registry.c
             - thread-registry.h
             - thread-utils.c
-            - uds-sysfs.c
-            - uds-sysfs.h
           +defines:
             - __KERNEL__
             - VDO_UPSTREAM
