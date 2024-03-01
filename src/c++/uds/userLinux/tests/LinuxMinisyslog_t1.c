@@ -90,7 +90,7 @@ static void simple(void)
   char *buf;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf, "foo simple %u",
                                        rand()));
-  mini_syslog(UDS_LOG_ERR, "%s", buf);
+  mini_syslog(VDO_LOG_ERR, "%s", buf);
   assertFound(buf);
   vdo_free(buf);
 }
@@ -102,7 +102,7 @@ static void labeled(void)
   char *buf;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,"foo labeled %u",
                                        rand()));
-  mini_syslog(UDS_LOG_ERR, "%s", buf);
+  mini_syslog(VDO_LOG_ERR, "%s", buf);
   char *line;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &line,
                                        "foo\\(\\[%d\\]\\)\\{0,1\\}: %s",
@@ -119,7 +119,7 @@ static void labeledPid(void)
   char *buf;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &buf,"foo labeledPid %u",
                                        rand()));
-  mini_syslog(UDS_LOG_ERR, "%s", buf);
+  mini_syslog(VDO_LOG_ERR, "%s", buf);
   char *line;
   char tname[16];
   uds_get_thread_name(tname);
@@ -149,13 +149,13 @@ static void unloadedName(void)
   mini_openlog(mem, LOG_PID, LOG_USER);
   char *test1;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &test1, "test1 %u", rand()));
-  mini_syslog(UDS_LOG_ERR, "%s", test1);
+  mini_syslog(VDO_LOG_ERR, "%s", test1);
   // Simulate unloading a shared object...
   UDS_ASSERT_SYSTEM_CALL(munmap(mem, pagesize));
   // ...followed by some action that logs a message.
   char *test2;
   UDS_ASSERT_SUCCESS(vdo_alloc_sprintf(__func__, &test2, "test2 %u", rand()));
-  mini_syslog(UDS_LOG_ERR, "%s", test2);
+  mini_syslog(VDO_LOG_ERR, "%s", test2);
   char *buf;
   char tname[16];
   uds_get_thread_name(tname);

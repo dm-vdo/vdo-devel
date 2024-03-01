@@ -168,7 +168,7 @@ static void createTestFile(const char *path)
 
   result = open_file(path, FU_CREATE_READ_WRITE, &fd);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to initialize test files: %s: %s",
          uds_string_error(result, errbuf, sizeof(errbuf)),
          path);
@@ -181,7 +181,7 @@ static void removeTestFile(const char *path)
 {
   int result = remove_file(path);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to remove test files: %s: %s",
          uds_string_error(result, errbuf, sizeof(errbuf)),
          path);
@@ -264,7 +264,7 @@ static void loadTestModules(const char     *pattern,
                                     moduleCount,
                                     modules);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to load modules: %s",
          uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
   }
 
   umask(0);
-  open_uds_logger();
+  open_vdo_logger();
 
   testArgv = calloc(argc - optind, sizeof(char *));
 

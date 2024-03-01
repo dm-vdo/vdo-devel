@@ -33,7 +33,7 @@ static void init(void)
   srand(time(NULL));
   logFile = makeTempFileName("udsLogger");
   setenv("UDS_LOGFILE", logFile, 1);
-  reinit_uds_logger();
+  reinit_vdo_logger();
 }
 
 /**********************************************************************/
@@ -55,7 +55,7 @@ static void fini(void)
   } else {
     unsetenv("UDS_LOG_FILE");
   }
-  reinit_uds_logger();
+  reinit_vdo_logger();
 }
 
 /**********************************************************************/
@@ -85,7 +85,7 @@ static void testInfo(void)
 {
   char buf[128];
   snprintf(buf, sizeof(buf), "foo <%u>", rand());
-  uds_log_info("blah %s", buf);
+  vdo_log_info("blah %s", buf);
   CU_ASSERT_TRUE(checkFound(buf));
   CU_ASSERT_TRUE(checkFound("INFO"));
 }
@@ -94,13 +94,13 @@ static void testInfo(void)
 static void testFiltering(void)
 {
   setenv("UDS_LOG_LEVEL", "WARNING", 1);
-  reinit_uds_logger();
+  reinit_vdo_logger();
   char buf[128];
   snprintf(buf, sizeof(buf), "foo <%u>", rand());
-  uds_log_info("blah %s", buf);
+  vdo_log_info("blah %s", buf);
   CU_ASSERT_FALSE(checkFound(buf));
   CU_ASSERT_FALSE(checkFound("INFO"));
-  uds_log_warning("blah %s", buf);
+  vdo_log_warning("blah %s", buf);
   CU_ASSERT_TRUE(checkFound(buf));
   CU_ASSERT_TRUE(checkFound("WARN"));
 }

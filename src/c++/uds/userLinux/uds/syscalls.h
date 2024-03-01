@@ -118,8 +118,8 @@ int process_control(int option,
 static inline int log_system_call_errno(const char *function,
 					const char *context)
 {
-	return uds_log_strerror(((errno == EINTR) ? UDS_LOG_DEBUG
-						  : UDS_LOG_ERR),
+	return vdo_log_strerror(((errno == EINTR) ? VDO_LOG_DEBUG
+						  : VDO_LOG_ERR),
 				errno,
 				"%s failed in %s",
 				function,

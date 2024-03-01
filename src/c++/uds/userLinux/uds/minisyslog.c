@@ -111,7 +111,7 @@ static void log_it(int priority,
 		   const char *format2,
 		   va_list args2)
 {
-	const char *priority_str = uds_log_priority_to_string(priority);
+	const char *priority_str = vdo_log_priority_to_string(priority);
 	char buffer[1024];
 	char *buf_end = buffer + sizeof(buffer);
 	char *bufp = buffer;

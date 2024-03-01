@@ -107,7 +107,7 @@ int vdo_status_to_errno(int error)
 #ifdef VDO_INTERNAL
 	if (error < 1024)
 		/* errno macro used without negating - may be a minor bug */
-		uds_log_info("%s: mapping errno value %d used without negation",
+		vdo_log_info("%s: mapping errno value %d used without negation",
 			     __func__, error);
 #endif /* VDO_INTERNAL */
 	if (error < 1024)

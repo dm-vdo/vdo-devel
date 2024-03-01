@@ -974,7 +974,7 @@ static int check_bio_validity(struct bio *bio)
 
 	if (!is_known_type) {
 		/* TODO: Make this be assert like the other branches? */
-		uds_log_error("Received unexpected bio of type %d", bio_op(bio));
+		vdo_log_error("Received unexpected bio of type %d", bio_op(bio));
 		return -EINVAL;
 	}
 
@@ -1010,7 +1010,7 @@ static int check_bio_validity(struct bio *bio)
 					      DEFAULT_RATELIMIT_INTERVAL,
 					      DEFAULT_RATELIMIT_BURST);
 		if (__ratelimit(&unknown_flags_limiter))
-			uds_log_warning("Bio received with unexpected flags 0x%x (can handle 0x%x)",
+			vdo_log_warning("Bio received with unexpected flags 0x%x (can handle 0x%x)",
 					bio_flags, known_flags);
 	}
 

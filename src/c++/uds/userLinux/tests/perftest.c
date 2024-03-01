@@ -39,7 +39,7 @@ static void createIndexFile(void)
   const char *path = getTestIndexName();
   int result = open_file(path, FU_CREATE_READ_WRITE, &fd);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to initialize index file: %s: %s", path,
          uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -52,7 +52,7 @@ static void removeIndexFile(void)
   const char *path = getTestIndexName();
   int result = remove_file(path);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to remove index file: %s: %s", path,
          uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -103,7 +103,7 @@ int main(int argc, const char **argv)
   // Tests create files in global filespace.  Turn off private umask.
   umask(0);
 
-  open_uds_logger();
+  open_vdo_logger();
   createIndexFile();
   TestResult result = runSuites(initializeModule());
   printFailuresToStderr(0, result);

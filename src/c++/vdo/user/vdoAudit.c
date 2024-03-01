@@ -728,12 +728,12 @@ static bool auditVDO(void)
 /**********************************************************************/
 int main(int argc, char *argv[])
 {
-  static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   result = processAuditArgs(argc, argv);
@@ -744,7 +744,7 @@ int main(int argc, char *argv[])
   result = makeVDOFromFile(filename, true, &vdo);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not load VDO from '%s': %s", filename,
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   struct slab_depot_state_2_0 depot = vdo->states.slab_depot;
@@ -767,7 +767,7 @@ int main(int argc, char *argv[])
       freeAuditAllocations();
       errx(1, "Could not allocate %llu reference counts: %s",
            (unsigned long long) slabDataBlocks,
-           uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+           uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
     }
   }
 

@@ -35,7 +35,7 @@ static void init(void)
   logFile = makeTempFileName("udsLogger");
   setenv("UDS_LOGFILE", logFile, 1);
 
-  reinit_uds_logger();
+  reinit_vdo_logger();
 }
 
 /**********************************************************************/
@@ -58,7 +58,7 @@ static void fini(void)
     unsetenv("UDS_LOG_LEVEL");
   }
 
-  reinit_uds_logger();
+  reinit_vdo_logger();
 
   set_exit_on_assertion_failure(originalExitOnAssertionFailure);
 }

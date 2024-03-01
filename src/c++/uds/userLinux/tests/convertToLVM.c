@@ -55,7 +55,7 @@ static int __must_check move_chapter(struct volume *volume,
 
 		data = dm_bufio_read(client, physical_page, &buffer);
 		if (IS_ERR(data)) {
-			return uds_log_warning_strerror(-PTR_ERR(data),
+			return vdo_log_warning_strerror(-PTR_ERR(data),
 							"error reading physical page %u",
 							physical_page);
 		}
@@ -82,11 +82,11 @@ static void cleanup_session(struct uds_index_session *session)
 		// This can produce an error when the index is not open.
 		int result = uds_close_index(session);
 		if (result != UDS_SUCCESS) {
-			uds_log_warning_strerror(result, "Error closing index");
+			vdo_log_warning_strerror(result, "Error closing index");
 		}
 		result = uds_destroy_index_session(session);
 		if (result != UDS_SUCCESS) {
-			uds_log_warning_strerror(result, "Error closing index");
+			vdo_log_warning_strerror(result, "Error closing index");
 		}
 	}
 }
@@ -171,7 +171,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 		return result;
 	}
 
-	uds_log_info("virtual chapters %llu to %llu are valid\n",
+	vdo_log_info("virtual chapters %llu to %llu are valid\n",
 		     (long long) oldest,
 		     (long long) newest);
 
@@ -227,7 +227,7 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 	index_config->geometry->remapped_physical = new_physical - 1;
 
 	*volume->geometry = *index_config->geometry;
-	uds_log_debug("Saving updated layout and writing index configuration");
+	vdo_log_debug("Saving updated layout and writing index configuration");
 	result = update_uds_layout(layout, index_config, freed_space,
 				   bytes_per_chapter);
 	uds_free_configuration(index_config);

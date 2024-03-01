@@ -1172,7 +1172,7 @@ static int write_index_pages(struct volume *volume, u32 physical_chapter_number,
 #ifdef TEST_INTERNAL
 		if (get_dory_forgetful()) {
 			dm_bufio_release(page_buffer);
-			return uds_log_warning_strerror(-EROFS,
+			return vdo_log_warning_strerror(-EROFS,
 							"failed to write chapter index page");
 		}
 
@@ -1293,7 +1293,7 @@ static int write_record_pages(struct volume *volume, u32 physical_chapter_number
 
 		if (get_dory_forgetful()) {
 			dm_bufio_release(page_buffer);
-			return uds_log_warning_strerror(-EROFS,
+			return vdo_log_warning_strerror(-EROFS,
 							"failed to write chapter record page");
 		}
 

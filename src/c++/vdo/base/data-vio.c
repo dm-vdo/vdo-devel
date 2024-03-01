@@ -310,7 +310,7 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 					      DEFAULT_RATELIMIT_BURST);
 
 		if (__ratelimit(&latency_limiter)) {
-			uds_log_info("Acknowledgement Latency Violation: %u msecs, error %d",
+			vdo_log_info("Acknowledgement Latency Violation: %u msecs, error %d",
 				     ack_msecs, -error);
 			dump_data_vio(data_vio);
 		}

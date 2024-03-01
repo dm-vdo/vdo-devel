@@ -713,7 +713,7 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 	int result;
 
 	if (parameters == NULL) {
-		uds_log_error("received a NULL parameters pointer");
+		vdo_log_error("received a NULL parameters pointer");
 		return -EINVAL;
 	}
 

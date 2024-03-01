@@ -30,7 +30,7 @@
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
 
-static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
 static const char usageString[] = "[--help] filename";
 static const char helpString[]  =
@@ -150,7 +150,7 @@ static int corrupt(UserVDO *vdo)
   if (result != VDO_SUCCESS) {
     // Could not load the slab summary.
     warnx("Failed to load the slab summary: %s.",
-          uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+          uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
     return result;
   }
 
@@ -163,7 +163,7 @@ static int corrupt(UserVDO *vdo)
     if (result != VDO_SUCCESS) {
       warnx("Error retrieving mapping for LBN %llu: %s",
             (unsigned long long) lbn,
-	    uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+	    uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
       break;
     }
 
@@ -243,12 +243,12 @@ static int corrupt(UserVDO *vdo)
 /**********************************************************************/
 int main(int argc, char *argv[])
 {
-  static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   char *filename;
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
   result = makeVDOFromFile(filename, false, &vdo);
   if (result != VDO_SUCCESS) {
     errx(1, "failed to create layer or VDO from %s : %s", filename,
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   result = corrupt(vdo);

@@ -1017,7 +1017,7 @@ static void handle_page_write_error(struct vdo_completion *completion)
 				  "failed to write block map page %llu",
 				  (unsigned long long) info->pbn);
 #else
-		uds_log_error("failed to write block map page %llu",
+		vdo_log_error("failed to write block map page %llu",
 			      (unsigned long long) info->pbn);
 #endif
 	}

@@ -1318,7 +1318,7 @@ int vdo_validate_config(const struct vdo_config *config,
 	 * which may not match the super block size.
 	 */
 	if (physical_block_count < config->physical_blocks) {
-		uds_log_error("A physical size of %llu blocks was specified, but that is smaller than the %llu blocks configured in the vdo super block",
+		vdo_log_error("A physical size of %llu blocks was specified, but that is smaller than the %llu blocks configured in the vdo super block",
 			      (unsigned long long) physical_block_count,
 			      (unsigned long long) config->physical_blocks);
 		return VDO_PARAMETER_MISMATCH;

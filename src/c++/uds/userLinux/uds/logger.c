@@ -21,19 +21,19 @@ typedef struct {
 } PriorityName;
 
 static const PriorityName PRIORITIES[] = {
-	{ "ALERT", UDS_LOG_ALERT },
-	{ "CRITICAL", UDS_LOG_CRIT },
-	{ "CRIT", UDS_LOG_CRIT },
-	{ "DEBUG", UDS_LOG_DEBUG },
-	{ "EMERGENCY", UDS_LOG_EMERG },
-	{ "EMERG", UDS_LOG_EMERG },
-	{ "ERROR", UDS_LOG_ERR },
-	{ "ERR", UDS_LOG_ERR },
-	{ "INFO", UDS_LOG_INFO },
-	{ "NOTICE", UDS_LOG_NOTICE },
-	{ "PANIC", UDS_LOG_EMERG },
-	{ "WARN", UDS_LOG_WARNING },
-	{ "WARNING", UDS_LOG_WARNING },
+	{ "ALERT", VDO_LOG_ALERT },
+	{ "CRITICAL", VDO_LOG_CRIT },
+	{ "CRIT", VDO_LOG_CRIT },
+	{ "DEBUG", VDO_LOG_DEBUG },
+	{ "EMERGENCY", VDO_LOG_EMERG },
+	{ "EMERG", VDO_LOG_EMERG },
+	{ "ERROR", VDO_LOG_ERR },
+	{ "ERR", VDO_LOG_ERR },
+	{ "INFO", VDO_LOG_INFO },
+	{ "NOTICE", VDO_LOG_NOTICE },
+	{ "PANIC", VDO_LOG_EMERG },
+	{ "WARN", VDO_LOG_WARNING },
+	{ "WARNING", VDO_LOG_WARNING },
 	{ NULL, -1 },
 };
 
@@ -48,7 +48,7 @@ static const char *const PRIORITY_STRINGS[] = {
 	"DEBUG",
 };
 
-static int log_level = UDS_LOG_INFO;
+static int log_level = VDO_LOG_INFO;
 
 const char TIMESTAMPS_ENVIRONMENT_VARIABLE[] = "UDS_LOG_TIMESTAMPS";
 const char IDS_ENVIRONMENT_VARIABLE[] = "UDS_LOG_IDS";
@@ -64,29 +64,29 @@ static bool ids = true;
 
 
 /**********************************************************************/
-int uds_get_log_level(void)
+int vdo_get_log_level(void)
 {
 	return log_level;
 }
 
 /**********************************************************************/
-static void uds_set_log_level(int new_log_level)
+static void vdo_set_log_level(int new_log_level)
 {
 	log_level = new_log_level;
 }
 
 /**********************************************************************/
-int uds_log_string_to_priority(const char *string)
+int vdo_log_string_to_priority(const char *string)
 {
 	int i;
 	for (i = 0; PRIORITIES[i].name != NULL; i++)
 		if (strcasecmp(string, PRIORITIES[i].name) == 0)
 			return PRIORITIES[i].priority;
-	return UDS_LOG_INFO;
+	return VDO_LOG_INFO;
 }
 
 /**********************************************************************/
-const char *uds_log_priority_to_string(int priority)
+const char *vdo_log_priority_to_string(int priority)
 {
 	if ((priority < 0) ||
 	    (priority >= (int) ARRAY_SIZE(PRIORITY_STRINGS)))
@@ -97,11 +97,11 @@ const char *uds_log_priority_to_string(int priority)
 /**********************************************************************/
 static void init_logger(void)
 {
-	const char *uds_log_level = getenv("UDS_LOG_LEVEL");
-	if (uds_log_level != NULL)
-		uds_set_log_level(uds_log_string_to_priority(uds_log_level));
+	const char *vdo_log_level = getenv("UDS_LOG_LEVEL");
+	if (vdo_log_level != NULL)
+		vdo_set_log_level(vdo_log_string_to_priority(vdo_log_level));
 	else
-		uds_set_log_level(UDS_LOG_INFO);
+		vdo_set_log_level(VDO_LOG_INFO);
 
 	char *timestamps_string = getenv(TIMESTAMPS_ENVIRONMENT_VARIABLE);
 	if (timestamps_string != NULL && strcmp(timestamps_string, "0") == 0)
@@ -137,11 +137,11 @@ static void init_logger(void)
 	} else {
 		mini_openlog(IDENTITY, LOG_PID | LOG_NDELAY | LOG_CONS,
 			     LOG_USER);
-		uds_log_error("Could not include program name in log");
+		vdo_log_error("Could not include program name in log");
 	}
 
 	if (error != 0)
-		uds_log_error_strerror(error, "Couldn't open log file %s",
+		vdo_log_error_strerror(error, "Couldn't open log file %s",
 				       log_file);
 
 	if (is_abs_path)
@@ -154,11 +154,11 @@ static void init_logger(void)
  * variables to set the default log level and log file. Can be called
  * more than once, but only the first call affects logging by user
  * space programs. For testing purposes, when the logging environment
- * needs to be changed, see reinit_uds_logger. The kernel module uses
- * kernel logging facilities and therefore doesn't need an open_uds_logger
+ * needs to be changed, see reinit_vdo_logger. The kernel module uses
+ * kernel logging facilities and therefore doesn't need an open_vdo_logger
  * method.
  **/
-void open_uds_logger(void)
+void open_vdo_logger(void)
 {
 	vdo_perform_once(&logger_once, init_logger);
 }
@@ -200,7 +200,7 @@ static void format_current_time(char *buffer, size_t buffer_size)
  * @param args1		arguments for message first part (required)
  * @param fmt2		format of message second part
  **/
-void uds_log_embedded_message(int priority,
+void vdo_log_embedded_message(int priority,
 			      const char *module __always_unused,
 			      const char *prefix,
 			      const char *fmt1,
@@ -210,8 +210,8 @@ void uds_log_embedded_message(int priority,
 {
 	va_list args2;
 
-	open_uds_logger();
-	if (priority > uds_get_log_level())
+	open_vdo_logger();
+	if (priority > vdo_get_log_level())
 		return;
 
 	va_start(args2, fmt2);
@@ -237,7 +237,7 @@ void uds_log_embedded_message(int priority,
 		if (ids)
 			fprintf(fp, "[%u]", getpid());
 
-		fprintf(fp, ": %-6s (%s", uds_log_priority_to_string(priority),
+		fprintf(fp, ": %-6s (%s", vdo_log_priority_to_string(priority),
 			tname);
 
 		if (ids)
@@ -262,15 +262,15 @@ void uds_log_embedded_message(int priority,
 }
 
 /**********************************************************************/
-int uds_vlog_strerror(int priority,
+int vdo_vlog_strerror(int priority,
 		      int errnum,
 		      const char *module,
 		      const char *format,
 		      va_list args)
 {
-	char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+	char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 	const char *message = uds_string_error(errnum, errbuf, sizeof(errbuf));
-	uds_log_embedded_message(priority,
+	vdo_log_embedded_message(priority,
 				 module,
 				 NULL,
 				 format,
@@ -282,7 +282,7 @@ int uds_vlog_strerror(int priority,
 }
 
 /**********************************************************************/
-int __uds_log_strerror(int priority,
+int __vdo_log_strerror(int priority,
 		       int errnum,
 		       const char *module,
 		       const char *format,
@@ -291,7 +291,7 @@ int __uds_log_strerror(int priority,
 	va_list args;
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, errnum, module, format, args);
+	vdo_vlog_strerror(priority, errnum, module, format, args);
 	va_end(args);
 	return errnum;
 }
@@ -301,12 +301,12 @@ int __uds_log_strerror(int priority,
 #pragma GCC diagnostic ignored "-Wmissing-format-attribute"
 #endif
 /**********************************************************************/
-void uds_log_message(int priority, const char *format, ...)
+void vdo_log_message(int priority, const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
-	uds_log_embedded_message(priority, NULL, NULL, format, args, "%s", "");
+	vdo_log_embedded_message(priority, NULL, NULL, format, args, "%s", "");
 	va_end(args);
 }
 #if defined(TEST_INTERNAL) || defined(INTERNAL)
@@ -325,16 +325,16 @@ static void log_proc_maps(int priority)
 	if (maps_file == NULL)
 		return;
 
-	uds_log_message(priority, "maps file");
+	vdo_log_message(priority, "maps file");
 	char buffer[1024];
 	char *map_line;
 	while ((map_line = fgets(buffer, 1024, maps_file)) != NULL) {
 		char *newline = strchr(map_line, '\n');
 		if (newline != NULL)
 			*newline = '\0';
-		uds_log_message(priority, "  %s", map_line);
+		vdo_log_message(priority, "  %s", map_line);
 	}
-	uds_log_message(priority, "end of maps file");
+	vdo_log_message(priority, "end of maps file");
 
 	fclose(maps_file);
 }
@@ -342,17 +342,17 @@ static void log_proc_maps(int priority)
 enum { NUM_STACK_FRAMES = 32 };
 
 /**********************************************************************/
-void uds_log_backtrace(int priority)
+void vdo_log_backtrace(int priority)
 {
-	uds_log_message(priority, "[Call Trace:]");
+	vdo_log_message(priority, "[Call Trace:]");
 	void *trace[NUM_STACK_FRAMES];
 	int trace_size = backtrace(trace, NUM_STACK_FRAMES);
 	char **messages = backtrace_symbols(trace, trace_size);
 	if (messages == NULL) {
-		uds_log_message(priority, "backtrace failed");
+		vdo_log_message(priority, "backtrace failed");
 	} else {
 		for (int i = 0; i < trace_size; i++)
-			uds_log_message(priority, "  %s", messages[i]);
+			vdo_log_message(priority, "  %s", messages[i]);
 		// "messages" is malloc'ed indirectly by backtrace_symbols
 		free(messages);
 		log_proc_maps(priority);
@@ -360,7 +360,7 @@ void uds_log_backtrace(int priority)
 }
 
 /**********************************************************************/
-void uds_pause_for_logger(void)
+void vdo_pause_for_logger(void)
 {
 	// User-space logger can't be overrun, so this is a no-op.
 }
@@ -370,7 +370,7 @@ void uds_pause_for_logger(void)
  * Reinitialize the user space logger. This is only for tests of
  * logging itself that need to manipulate the log level and log file.
  **/
-void reinit_uds_logger(void)
+void reinit_vdo_logger(void)
 {
 	if (fp == NULL) {
 		mini_closelog();

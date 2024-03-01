@@ -10,7 +10,7 @@
 /**********************************************************************/
 static int haveMessage(int code)
 {
-  char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
   const char *message = uds_string_error(code, errbuf, sizeof(errbuf));
   const char *unknown = strstr(message, "Unknown");
   int number;

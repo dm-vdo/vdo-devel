@@ -29,7 +29,7 @@ unsigned int num_online_cpus(void)
 	unsigned int i;
 
 	if (sched_getaffinity(0, sizeof(cpu_set), &cpu_set) != 0) {
-		uds_log_warning_strerror(errno,
+		vdo_log_warning_strerror(errno,
 					 "sched_getaffinity() failed, using 1 as number of cores.");
 		return 1;
 	}
@@ -113,7 +113,7 @@ int vdo_create_thread(void (*thread_function)(void *),
 
 	result = vdo_allocate(1, struct thread, __func__, &thread);
 	if (result != VDO_SUCCESS) {
-		uds_log_warning("Error allocating memory for %s", name);
+		vdo_log_warning("Error allocating memory for %s", name);
 		vdo_free(info);
 		return result;
 	}
@@ -121,7 +121,7 @@ int vdo_create_thread(void (*thread_function)(void *),
 	result = pthread_create(&thread->thread, NULL, thread_starter, info);
 	if (result != 0) {
 		result = -errno;
-		uds_log_error_strerror(result, "could not create %s thread",
+		vdo_log_error_strerror(result, "could not create %s thread",
 				       name);
 		vdo_free(thread);
 		vdo_free(info);

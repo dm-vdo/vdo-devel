@@ -56,7 +56,7 @@ void albPrint(const char *format, ...)
    * shouldn't be much else running anyway.
    */
   cond_resched();
-  uds_log_embedded_message(UDS_LOG_INFO, THIS_MODULE->name, NULL,
+  vdo_log_embedded_message(VDO_LOG_INFO, THIS_MODULE->name, NULL,
                            format, args, "%s", "");
   va_end(args);
 }
@@ -177,9 +177,9 @@ static int parseArgs(const char   *buf,
     }
   }
 
-  uds_log_debug("storing %d args", argc);
+  vdo_log_debug("storing %d args", argc);
   for (i = 0; i < argc; i++) {
-    uds_log_debug("argv[%d] = %s", i, argv[i]);
+    vdo_log_debug("argv[%d] = %s", i, argv[i]);
   }
 
   *argcPtr   = argc;
@@ -456,7 +456,7 @@ TestResult runTest(const CU_SuiteInfo *suite, const CU_TestInfo *test)
   if (retval == VDO_SUCCESS) {
     vdo_join_threads(thread);
   } else {
-    uds_log_error_strerror(retval, "creating test thread");
+    vdo_log_error_strerror(retval, "creating test thread");
     result.failures = 1;
   }
   result.elapsed = ktime_sub(current_time_ns(CLOCK_MONOTONIC), start);
@@ -473,7 +473,7 @@ TestResult runTest(const CU_SuiteInfo *suite, const CU_TestInfo *test)
 /**********************************************************************/
 static int __init albtestInit(void)
 {
-  uds_log_info("UDS tests starting");
+  vdo_log_info("UDS tests starting");
   kobject_init(&moduleState.kobj, &moduleObjectType);
   int result = kobject_add(&moduleState.kobj, NULL, THIS_MODULE->name);
   if (result != 0) {
@@ -504,7 +504,7 @@ static void __exit albtestExit(void)
 {
   freeSuiteState(moduleState.suites);
   kobject_put(&moduleState.kobj);
-  uds_log_info("UDS tests exiting");
+  vdo_log_info("UDS tests exiting");
 }
 
 module_init(albtestInit);

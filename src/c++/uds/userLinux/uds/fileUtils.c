@@ -76,7 +76,7 @@ int open_file(const char *path, enum file_access access, int *fd)
 		mode = 0666;
 		break;
 	default:
-		return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+		return vdo_log_warning_strerror(UDS_INVALID_ARGUMENT,
 						"invalid access mode opening file %s",
 						path);
 	}
@@ -85,7 +85,7 @@ int open_file(const char *path, enum file_access access, int *fd)
 		ret_fd = open(path, flags, mode);
 	} while ((ret_fd == -1) && (errno == EINTR));
 	if (ret_fd < 0)
-		return uds_log_error_strerror(errno,
+		return vdo_log_error_strerror(errno,
 					      "open_file(): failed opening %s with file access: %d",
 					      path,
 					      access);
@@ -106,7 +106,7 @@ void try_close_file(int fd)
 	int result = close_file(fd, __func__);
 	errno = old_errno;
 	if (result != UDS_SUCCESS)
-		uds_log_debug_strerror(result, "error closing file");
+		vdo_log_debug_strerror(result, "error closing file");
 }
 
 /**********************************************************************/
@@ -125,7 +125,7 @@ void try_sync_and_close_file(int fd)
 {
 	int result = sync_and_close_file(fd, __func__);
 	if (result != UDS_SUCCESS)
-		uds_log_debug_strerror(result,
+		vdo_log_debug_strerror(result,
 				       "error syncing and closing file");
 }
 
@@ -143,7 +143,7 @@ int read_buffer(int fd, void *buffer, unsigned int length)
 			return result;
 
 		if (bytes_read == 0)
-			return uds_log_warning_strerror(UDS_CORRUPT_DATA,
+			return vdo_log_warning_strerror(UDS_CORRUPT_DATA,
 							"unexpected end of file while reading");
 
 		ptr += bytes_read;
@@ -195,7 +195,7 @@ int read_and_verify(int fd, const u8 *required_value, unsigned int length)
 	if (result != UDS_SUCCESS)
 		return result;
 	if (memcmp(required_value, buffer, length) != 0)
-		return uds_log_warning_strerror(UDS_CORRUPT_DATA,
+		return vdo_log_warning_strerror(UDS_CORRUPT_DATA,
 						"%s got wrong data",
 						__func__);
 	return UDS_SUCCESS;
@@ -217,7 +217,7 @@ int write_buffer(int fd, const void *buffer, unsigned int length)
 		if (written == 0)
 			// this should not happen, but if it does, errno won't
 			// be defined, so we need to return our own error
-			return uds_log_error_strerror(UDS_UNKNOWN_ERROR,
+			return vdo_log_error_strerror(UDS_UNKNOWN_ERROR,
 						      "wrote 0 bytes");
 		bytes_to_write -= written;
 		ptr += written;
@@ -249,7 +249,7 @@ int write_buffer_at_offset(int fd,
 		if (written == 0)
 			// this should not happen, but if it does, errno won't
 			// be defined, so we need to return our own error
-			return uds_log_error_strerror(UDS_UNKNOWN_ERROR,
+			return vdo_log_error_strerror(UDS_UNKNOWN_ERROR,
 						      "impossible write error");
 
 		bytes_to_write -= written;
@@ -277,7 +277,7 @@ int remove_file(const char *file_name)
 	int result = unlink(file_name);
 	if (result == 0 || errno == ENOENT)
 		return UDS_SUCCESS;
-	return uds_log_warning_strerror(errno, "Failed to remove %s",
+	return vdo_log_warning_strerror(errno, "Failed to remove %s",
 					file_name);
 }
 
@@ -286,7 +286,7 @@ bool file_name_match(const char *pattern, const char *string, int flags)
 {
 	int result = fnmatch(pattern, string, flags);
 	if ((result != 0) && (result != FNM_NOMATCH))
-		uds_log_error("file_name_match(): fnmatch(): returned an error: %d, looking for \"%s\" with flags: %d",
+		vdo_log_error("file_name_match(): fnmatch(): returned an error: %d, looking for \"%s\" with flags: %d",
 			      result,
 			      string,
 			      flags);
@@ -317,7 +317,7 @@ int logging_stat(const char *path, struct stat *buf, const char *context)
 {
 	if (stat(path, buf) == 0)
 		return UDS_SUCCESS;
-	return uds_log_error_strerror(errno, "%s failed in %s for path %s",
+	return vdo_log_error_strerror(errno, "%s failed in %s for path %s",
 				      __func__, context, path);
 }
 
@@ -330,7 +330,7 @@ int logging_stat_missing_ok(const char *path,
 		return UDS_SUCCESS;
 	if (errno == ENOENT)
 		return errno;
-	return uds_log_error_strerror(errno, "%s failed in %s for path %s",
+	return vdo_log_error_strerror(errno, "%s failed in %s for path %s",
 				      __func__, context, path);
 }
 

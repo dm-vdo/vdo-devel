@@ -248,7 +248,7 @@ static void add_tracking_block(void *ptr, size_t size, const char *what)
 
 	if (info == NULL) {
 		/* We still don't have a page, just forget this block. */
-		uds_log_warning("Could not allocate for memory tracking");
+		vdo_log_warning("Could not allocate for memory tracking");
 		track_always = false;
 	} else {
 		int index = info->count++;
@@ -302,12 +302,12 @@ void log_uds_memory_allocations(void)
 		max_count += NUM_TRACK_BLOCKS;
 	}
 
-	uds_log_info("Using %d of %d blocks", count, max_count);
+	vdo_log_info("Using %d of %d blocks", count, max_count);
 	for (info = track_info; info != NULL; info = info->next) {
 		for (i = 0; i < info->count; i++) {
 			struct track_block_info *block = &info->blocks[i];
 
-			uds_log_info("  %zu bytes for %s", block->size, block->what);
+			vdo_log_info("  %zu bytes for %s", block->size, block->what);
 		}
 	}
 
@@ -389,9 +389,9 @@ int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 #if defined(TEST_INTERNAL) || defined(VDO_INTERNAL)
 	if (atomic_long_inc_return(&uds_allocate_memory_counter) ==
 	    uds_allocation_error_injection) {
-		uds_log_warning("Injecting %s error on %zu bytes for %s",
+		vdo_log_warning("Injecting %s error on %zu bytes for %s",
 				__func__, size, what);
-		uds_log_backtrace(UDS_LOG_WARNING);
+		vdo_log_backtrace(VDO_LOG_WARNING);
 		return -ENOMEM;
 	}
 

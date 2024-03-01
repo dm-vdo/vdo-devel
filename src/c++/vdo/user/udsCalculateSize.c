@@ -64,12 +64,12 @@ static void usage(const char *progname, const char *usageOptionsString)
 
 int main(int argc, char *argv[])
 {
-  static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   UdsConfigStrings configStrings;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     usage(argv[0], usageString);
   }
 
-  char errorBuffer[UDS_MAX_ERROR_MESSAGE_SIZE];
+  char errorBuffer[VDO_MAX_ERROR_MESSAGE_SIZE];
 
   struct index_config indexConfig;
   result = parseIndexConfig(&configStrings, &indexConfig);

@@ -530,7 +530,7 @@ void vdo_count_completed_bios(struct bio *bio)
 			       bio_jiffies);
 
 	if (bio_msecs > 30000)
-		uds_log_info("Bio Latency Violation: %u msecs", bio_msecs);
+		vdo_log_info("Bio Latency Violation: %u msecs", bio_msecs);
 #endif
 
 	atomic64_inc(&vio->completion.vdo->stats.bios_completed);

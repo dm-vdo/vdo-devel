@@ -144,7 +144,7 @@ static void setupFiles(void)
   const char *path = getTestIndexName();
   int result = open_file(path, FU_CREATE_READ_WRITE, &fd);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to initialize index file: %s: %s", path,
          uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -160,7 +160,7 @@ static void cleanupFiles(void)
   const char *path = getTestIndexName();
   int result = remove_file(path);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     warnx("Error removing index file %s: %s", path,
           uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -369,7 +369,7 @@ static void loadTestModules(const char     *pattern,
                                     moduleCount,
                                     modules);
   if (result != UDS_SUCCESS) {
-    char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(1, "Failed to load modules: %s",
          uds_string_error(result, errbuf, sizeof(errbuf)));
   }
@@ -389,10 +389,10 @@ static void runTestDirInit(CU_TestDirInfo *testDirInfo,
     return;
   }
   if (testDirInfo->initializerWithArguments != NULL) {
-    uds_log_info("TESTDIR_INIT: %s:%s", suiteName, name);
+    vdo_log_info("TESTDIR_INIT: %s:%s", suiteName, name);
     testDirInfo->initializerWithArguments(testArgc, testArgv);
   } else if (testDirInfo->initializer != NULL) {
-    uds_log_info("TESTDIR_INIT: %s:%s", suiteName, name);
+    vdo_log_info("TESTDIR_INIT: %s:%s", suiteName, name);
     testDirInfo->initializer();
   }
 }
@@ -403,7 +403,7 @@ static void runTestDirCleanup(CU_TestDirInfo *testDirInfo,
                               const char     *name)
 {
   if ((testDirInfo != NULL) && (testDirInfo->cleaner != NULL)) {
-    uds_log_info("TESTDIR_CLEANUP: %s:%s", suiteName, name);
+    vdo_log_info("TESTDIR_CLEANUP: %s:%s", suiteName, name);
     testDirInfo->cleaner();
   }
 }
@@ -435,22 +435,22 @@ static int testSub(CU_TestDirInfo *testDirInfo,
   runTestDirInit(testDirInfo, suite->name, test->name);
   alarm(timeout);
   if (suite->initializerWithArguments != NULL) {
-    uds_log_info("SETUP: %s", test->name);
+    vdo_log_info("SETUP: %s", test->name);
     suite->initializerWithArguments(testArgc, testArgv);
   } else if (suite->initializer != NULL) {
-    uds_log_info("SETUP: %s", test->name);
+    vdo_log_info("SETUP: %s", test->name);
     suite->initializer();
   }
   alarm(0);
 
-  uds_log_info("STARTING: %s", test->name);
+  vdo_log_info("STARTING: %s", test->name);
   alarm(timeout);
   test->func();
   alarm(0);
-  uds_log_info("FINISHED: %s", test->name);
+  vdo_log_info("FINISHED: %s", test->name);
 
   if (suite->cleaner != NULL) {
-    uds_log_info("CLEANUP: %s", test->name);
+    vdo_log_info("CLEANUP: %s", test->name);
     alarm(timeout);
     suite->cleaner();
     alarm(0);
@@ -659,7 +659,7 @@ static void printXmlResults(const char *filename, TestResult tr)
 static TestResult runSuite(CU_TestDirInfo *testDirInfo, CU_SuiteInfo *suite)
 {
   fprintf(stderr, "Running suite %s\n", suite->name);
-  uds_log_info("STARTING SUITE: %s", suite->name);
+  vdo_log_info("STARTING SUITE: %s", suite->name);
   TestResult result = { .name = suite->name };
 
   unsigned int numTests = 0;
@@ -671,7 +671,7 @@ static TestResult runSuite(CU_TestDirInfo *testDirInfo, CU_SuiteInfo *suite)
   for (unsigned int i = 0; i < numTests; i++) {
     addTestResult(&result, i, runTest(testDirInfo, suite, &suite->tests[i]));
   }
-  uds_log_info("DONE SUITE: %s", suite->name);
+  vdo_log_info("DONE SUITE: %s", suite->name);
   if (printElapsedTimes) {
     fprintf(stderr, "%10.3f seconds to complete %2d tests in suite %s\n",
             result.elapsed, result.tests, suite->name);
@@ -933,7 +933,7 @@ int main(int argc, char **argv)
       } else {
         seed = specifiedSeed;
       }
-      uds_log_info("Using random seed %u", seed);
+      vdo_log_info("Using random seed %u", seed);
       srandom(seed);
 
       ret = runSuites(testDirInfo, suites, xml);

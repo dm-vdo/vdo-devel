@@ -48,7 +48,7 @@ static struct block_device *get_device_from_name(const char *name)
 #endif /* VDO_USE_ALTERNATE */
 
 	if (IS_ERR(bdev)) {
-		uds_log_error_strerror(-PTR_ERR(bdev), "%s is not a block device", name);
+		vdo_log_error_strerror(-PTR_ERR(bdev), "%s is not a block device", name);
 		return NULL;
 	}
 

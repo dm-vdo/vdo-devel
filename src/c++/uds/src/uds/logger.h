@@ -35,21 +35,21 @@ enum {
 
 extern int vdo_log_level;
 #else
-#define UDS_LOG_EMERG LOG_EMERG
-#define UDS_LOG_ALERT LOG_ALERT
-#define UDS_LOG_CRIT LOG_CRIT
-#define UDS_LOG_ERR LOG_ERR
-#define UDS_LOG_WARNING LOG_WARNING
-#define UDS_LOG_NOTICE LOG_NOTICE
-#define UDS_LOG_INFO LOG_INFO
-#define UDS_LOG_DEBUG LOG_DEBUG
+#define VDO_LOG_EMERG LOG_EMERG
+#define VDO_LOG_ALERT LOG_ALERT
+#define VDO_LOG_CRIT LOG_CRIT
+#define VDO_LOG_ERR LOG_ERR
+#define VDO_LOG_WARNING LOG_WARNING
+#define VDO_LOG_NOTICE LOG_NOTICE
+#define VDO_LOG_INFO LOG_INFO
+#define VDO_LOG_DEBUG LOG_DEBUG
 #endif /* __KERNEL__ */
 
 #ifdef __KERNEL__
 #define DM_MSG_PREFIX "vdo"
 #define VDO_LOGGING_MODULE_NAME DM_NAME ": " DM_MSG_PREFIX
 #else /* userspace */
-#define UDS_LOGGING_MODULE_NAME "vdo"
+#define VDO_LOGGING_MODULE_NAME "vdo"
 #endif /* __KERNEL__ */
 
 /* Apply a rate limiter to a log method call. */
@@ -64,15 +64,15 @@ extern int vdo_log_level;
 		}                                                         \
 	} while (0)
 #else
-#define uds_log_ratelimit(log_fn, ...) log_fn(__VA_ARGS__)
+#define vdo_log_ratelimit(log_fn, ...) log_fn(__VA_ARGS__)
 #endif /* __KERNEL__ */
 
 int vdo_get_log_level(void);
 
 #ifndef __KERNEL__
-int uds_log_string_to_priority(const char *string);
+int vdo_log_string_to_priority(const char *string);
 
-const char *uds_log_priority_to_string(int priority);
+const char *vdo_log_priority_to_string(int priority);
 
 #endif
 void vdo_log_embedded_message(int priority, const char *module, const char *prefix,
@@ -118,9 +118,9 @@ void __vdo_log_message(int priority, const char *module, const char *format, ...
 	__printf(3, 4);
 #else /* not __KERNEL__ */
 #if defined(TEST_INTERNAL) || defined(INTERNAL)
-void uds_log_message(int priority, const char *format, ...);
+void vdo_log_message(int priority, const char *format, ...);
 #else /* neither TEST_INTERNAL nor INTERNAL */
-void uds_log_message(int priority, const char *format, ...)
+void vdo_log_message(int priority, const char *format, ...)
 	__printf(2, 3);
 #endif /* TEST_INTERNAL */
 #endif /* __KERNEL__ */
@@ -138,10 +138,10 @@ void uds_log_message(int priority, const char *format, ...)
 void vdo_pause_for_logger(void);
 #ifndef __KERNEL__
 
-void open_uds_logger(void);
+void open_vdo_logger(void);
 #ifdef TEST_INTERNAL
 
-void reinit_uds_logger(void);
+void reinit_vdo_logger(void);
 #endif /* TEST_INTERNAL */
 #endif /* __KERNEL__ */
 #endif /* VDO_LOGGER_H */

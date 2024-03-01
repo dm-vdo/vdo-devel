@@ -116,7 +116,7 @@ static void queueRunner(void *arg)
 {
   struct vdo_work_queue *queue = arg;
 
-  uds_log_debug("started %s", queue->threadName);
+  vdo_log_debug("started %s", queue->threadName);
 
   if (queue->type->start != NULL) {
     queue->type->start(*(queue->context));
@@ -144,7 +144,7 @@ static void queueRunner(void *arg)
     queue->type->finish(*(queue->context));
   }
 
-  uds_log_debug("finished %s", queue->threadName);
+  vdo_log_debug("finished %s", queue->threadName);
 }
 
 /*****************************************************************************/
@@ -326,7 +326,7 @@ void vdo_dump_completion_to_buffer(struct vdo_completion *completion,
 
 void vdo_dump_work_queue(struct vdo_work_queue *queue)
 {
-  uds_log_info("workQ %s %s",
+  vdo_log_info("workQ %s %s",
                queue->name,
                (READ_ONCE(queue->running) ? "running" : "idle"));
 }
