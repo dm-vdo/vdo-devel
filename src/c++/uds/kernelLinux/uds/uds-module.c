@@ -65,7 +65,6 @@ EXPORT_SYMBOL_GPL(vdo_get_memory_stats);
 EXPORT_SYMBOL_GPL(vdo_is_funnel_queue_empty);
 EXPORT_SYMBOL_GPL(vdo_log_backtrace);
 EXPORT_SYMBOL_GPL(vdo_make_funnel_queue);
-EXPORT_SYMBOL_GPL(vdo_perform_once);
 EXPORT_SYMBOL_GPL(vdo_reallocate_memory);
 EXPORT_SYMBOL_GPL(vdo_register_allocating_thread);
 EXPORT_SYMBOL_GPL(vdo_register_thread_device_id);

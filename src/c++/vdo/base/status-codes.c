@@ -51,6 +51,24 @@ const struct error_info vdo_status_list[] = {
 #endif /* ! __KERNEL__ */
 };
 
+#ifdef __KERNEL__
+/**
+ * vdo_register_status_codes() - Register the VDO status codes.
+ * Return: A success or error code.
+ */
+int vdo_register_status_codes(void)
+{
+	int result;
+
+	BUILD_BUG_ON((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE) !=
+		     ARRAY_SIZE(vdo_status_list));
+
+	result = uds_register_error_block("VDO Status", VDO_STATUS_CODE_BASE,
+					  VDO_STATUS_CODE_BLOCK_END, vdo_status_list,
+					  sizeof(vdo_status_list));
+	return (result == UDS_SUCCESS) ? VDO_SUCCESS : result;
+}
+#else
 static atomic_t vdo_status_codes_registered = ATOMIC_INIT(0);
 static int status_code_registration_result;
 
@@ -85,6 +103,7 @@ int vdo_register_status_codes(void)
 	vdo_perform_once(&vdo_status_codes_registered, do_status_code_registration);
 	return status_code_registration_result;
 }
+#endif /* __KERNEL__ */
 
 /**
  * vdo_status_to_errno() - Given an error code, return a value we can return to the OS.

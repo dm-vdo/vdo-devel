@@ -49,6 +49,7 @@
 #ifdef __KERNEL__
 #include "thread-device.h"
 #include "thread-registry.h"
+#include "thread-utils.h"
 #endif /* __KERNEL__ */
 #include "types.h"
 #ifdef VDO_INTERNAL
@@ -3100,6 +3101,7 @@ static int __init vdo_init(void)
 #ifdef VDO_INTERNAL
 	uds_init_sysfs();
 #endif
+	vdo_initialize_threads_mutex();
 	vdo_initialize_thread_device_registry();
 #endif /* __KERNEL__ */
 	vdo_initialize_device_registry_once();
