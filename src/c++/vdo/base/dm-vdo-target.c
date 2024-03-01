@@ -60,8 +60,10 @@
 #include "vdo.h"
 #include "vio.h"
 
+#ifndef VDO_UPSTREAM
 #define	CURRENT_VERSION	VDO_VERSION
 
+#endif /* VDO_UPSTREAM */
 enum admin_phases {
 	GROW_LOGICAL_PHASE_START,
 	GROW_LOGICAL_PHASE_GROW_BLOCK_MAP,
@@ -3087,8 +3089,10 @@ static void vdo_module_destroy(void)
 			    instances.count);
 	vdo_free(instances.words);
 	memset(&instances, 0, sizeof(struct instance_tracker));
+#ifndef VDO_UPSTREAM
 
 	vdo_log_info("unloaded version %s", CURRENT_VERSION);
+#endif /* VDO_UPSTREAM */
 }
 
 static int __init vdo_init(void)
@@ -3105,7 +3109,9 @@ static int __init vdo_init(void)
 	vdo_initialize_thread_device_registry();
 #endif /* __KERNEL__ */
 	vdo_initialize_device_registry_once();
+#ifndef VDO_UPSTREAM
 	vdo_log_info("loaded version %s", CURRENT_VERSION);
+#endif /* VDO_UPSTREAM */
 
 	/* Add VDO errors to the set of errors registered by the indexer. */
 	result = vdo_register_status_codes();
