@@ -290,8 +290,8 @@ static void testBlockMapTreeWrites(void)
   CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(blockMapPage));
 
   // Upon release of the flusher, everything should write out
-  reallyEnqueueVIO(flusher);
   CU_ASSERT_FALSE(checkCondition(checkWriteCount, &writeTarget));
+  reallyEnqueueVIO(flusher);
   waitForWrites(writeTarget);
 
   // Lap the entire journal and check that no more writes occurred (i.e. that
