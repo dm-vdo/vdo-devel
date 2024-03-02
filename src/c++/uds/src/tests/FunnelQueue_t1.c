@@ -164,7 +164,7 @@ static void testTenProducers(void)
   unsigned int i;
   for (i = 0; i < PRODUCER_COUNT; i++) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+    UDS_ASSERT_SUCCESS(vdo_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                          "producer%d", i));
     UDS_ASSERT_SUCCESS(vdo_create_thread(enqueueLoop, queue, nameBuf,
                                          &producers[i]));

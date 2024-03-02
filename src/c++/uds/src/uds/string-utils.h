@@ -35,7 +35,7 @@ int __must_check vdo_alloc_sprintf(const char *what, char **strp, const char *fm
 #endif /* (! __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
 /* Format a string into a fixed-size buffer, similar to snprintf. */
-int __must_check uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
+int __must_check vdo_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 	__printf(3, 4);
 
 #endif /* TEST_INTERNAL */

@@ -128,16 +128,16 @@ static void log_it(int priority,
 	if (LOG_FAC(priority) == 0)
 		priority |= default_facility;
 
-	bufp = uds_append_to_buffer(bufp, buf_end, "<%d>%s", priority,
+	bufp = vdo_append_to_buffer(bufp, buf_end, "<%d>%s", priority,
 				    timestamp);
 	const char *stderr_msg = bufp;
-	bufp = uds_append_to_buffer(bufp, buf_end, " %s",
+	bufp = vdo_append_to_buffer(bufp, buf_end, " %s",
 				    log_ident == NULL ? "" : log_ident);
 
 	if (log_option & LOG_PID) {
 		char tname[16];
 		uds_get_thread_name(tname);
-		bufp = uds_append_to_buffer(bufp,
+		bufp = vdo_append_to_buffer(bufp,
 					    buf_end,
 					    "[%u]: %-6s (%s/%d) ",
 					    getpid(),
@@ -145,12 +145,12 @@ static void log_it(int priority,
 					    tname,
 					    uds_get_thread_id());
 	} else {
-		bufp = uds_append_to_buffer(bufp, buf_end, ": ");
+		bufp = vdo_append_to_buffer(bufp, buf_end, ": ");
 	}
 	if ((bufp + sizeof("...")) >= buf_end)
 		return;
 	if (prefix != NULL)
-		bufp = uds_append_to_buffer(bufp, buf_end, "%s", prefix);
+		bufp = vdo_append_to_buffer(bufp, buf_end, "%s", prefix);
 	if (format1 != NULL) {
 		int ret = vsnprintf(bufp, buf_end - bufp, format1, args1);
 		if (ret < (buf_end - bufp))

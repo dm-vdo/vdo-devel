@@ -16,9 +16,9 @@ static char *addRange(char       *buf,
   const char *sep = (pos > buf) ? ", " : "";
   if (pos < end) {
     if (first < last) {
-      pos = uds_append_to_buffer(pos, end, "%s%d-%d", sep, first, last);
+      pos = vdo_append_to_buffer(pos, end, "%s%d-%d", sep, first, last);
     } else {
-      pos = uds_append_to_buffer(pos, end, "%s%d", sep, first);
+      pos = vdo_append_to_buffer(pos, end, "%s%d", sep, first);
     }
 
     if (pos == end) {
@@ -28,7 +28,7 @@ static char *addRange(char       *buf,
         --pos;
       }
 
-      uds_append_to_buffer(pos, end, "%s%s", sep,  "...");
+      vdo_append_to_buffer(pos, end, "%s%s", sep,  "...");
       pos = end;
     }
   }

@@ -37,7 +37,7 @@ int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 
 #endif /* (not __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
-int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
+int vdo_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 {
 	va_list args;
 	int n;

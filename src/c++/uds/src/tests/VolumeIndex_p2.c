@@ -152,7 +152,7 @@ static void createAndFill(unsigned int numZones)
   ThreadAdder ta[numZones];
   for (unsigned int z = 0; z < numZones; z++) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+    UDS_ASSERT_SUCCESS(vdo_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                          "adder%d", z));
     ta[z].count = chunkCount;
     ta[z].zone = z;
@@ -187,7 +187,7 @@ static ktime_t steady(unsigned int numZones)
   ThreadAdder ta[numZones];
   for (unsigned int z = 0; z < numZones; z++) {
     char nameBuf[100];
-    UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+    UDS_ASSERT_SUCCESS(vdo_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                          "adder%d", z));
     ta[z].count = chunkCount;
     ta[z].zone = z;
