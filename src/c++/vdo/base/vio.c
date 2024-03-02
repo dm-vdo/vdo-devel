@@ -136,7 +136,7 @@ int create_multi_block_metadata_vio(struct vdo *vdo, enum vio_type vio_type,
 	 */
 	result = vdo_allocate(1, struct vio, __func__, &vio);
 	if (result != VDO_SUCCESS) {
-		uds_log_error("metadata vio allocation failure %d", result);
+		vdo_log_error("metadata vio allocation failure %d", result);
 		return result;
 	}
 
@@ -246,7 +246,7 @@ int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
 		bytes_added = bio_add_page(bio, page, bytes, offset);
 
 		if (bytes_added != bytes) {
-			return uds_log_error_strerror(VDO_BIO_CREATION_FAILED,
+			return vdo_log_error_strerror(VDO_BIO_CREATION_FAILED,
 						      "Could only add %i bytes to bio",
 						      bytes_added);
 		}
@@ -281,11 +281,11 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 
 	case VDO_NO_SPACE:
 		atomic64_inc(&vdo->stats.no_space_error_count);
-		priority = UDS_LOG_DEBUG;
+		priority = VDO_LOG_DEBUG;
 		break;
 
 	default:
-		priority = UDS_LOG_ERR;
+		priority = VDO_LOG_ERR;
 	}
 
 #ifdef __KERNEL__
@@ -294,7 +294,7 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
 #endif
 
 	va_start(args, format);
-	uds_vlog_strerror(priority, vio->completion.result, UDS_LOGGING_MODULE_NAME,
+	vdo_vlog_strerror(priority, vio->completion.result, VDO_LOGGING_MODULE_NAME,
 			  format, args);
 	va_end(args);
 }
@@ -530,7 +530,7 @@ void vdo_count_completed_bios(struct bio *bio)
 			       bio_jiffies);
 
 	if (bio_msecs > 30000)
-		uds_log_info("Bio Latency Violation: %u msecs", bio_msecs);
+		vdo_log_info("Bio Latency Violation: %u msecs", bio_msecs);
 #endif
 
 	atomic64_inc(&vio->completion.vdo->stats.bios_completed);

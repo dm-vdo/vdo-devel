@@ -21,7 +21,7 @@
 
 #ifdef __KERNEL__
 #define CU_COMPLAIN(PRED) \
-  uds_log_error("\n%s:%d: %s: %s: ", __FILE__, __LINE__, __func__, PRED)
+  vdo_log_error("\n%s:%d: %s: %s: ", __FILE__, __LINE__, __func__, PRED)
 #else
 #define CU_COMPLAIN(PRED) \
   fprintf(stderr, "\n%s:%d: %s: %s: ", __FILE__, __LINE__, __func__, PRED)
@@ -29,7 +29,7 @@
 
 #ifdef __KERNEL__
 #define CU_MESSAGE(...) \
-  uds_log_error(__VA_ARGS__)
+  vdo_log_error(__VA_ARGS__)
 #else
 #define CU_MESSAGE(...)           \
   do {                            \
@@ -49,7 +49,7 @@ void cuErrorMessage(const char *string, int value);
 #else
 static inline void cuErrorMessage(const char *string, int value)
 {
-  char buf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
   const char *errmsg = uds_string_error_name(value, buf, sizeof(buf));
   fprintf(stderr, "%s: %s (%d)\n", string, errmsg, value);
 }

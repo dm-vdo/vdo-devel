@@ -56,12 +56,12 @@ static void usage(const char *progname, const char *usageOptionsString)
 
 int main(int argc, char *argv[])
 {
-  static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   int c;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
   result = forceVDORebuild(layer);
   if (result != VDO_SUCCESS) {
-    char buf[UDS_MAX_ERROR_MESSAGE_SIZE];
+    char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
     errx(result, "forceRebuild failed on '%s': %s",
          filename, uds_string_error(result, buf, sizeof(buf)));
   }

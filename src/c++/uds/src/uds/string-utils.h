@@ -3,8 +3,8 @@
  * Copyright 2023 Red Hat
  */
 
-#ifndef UDS_STRING_UTILS_H
-#define UDS_STRING_UTILS_H
+#ifndef VDO_STRING_UTILS_H
+#define VDO_STRING_UTILS_H
 
 #ifdef __KERNEL__
 #include <linux/kernel.h>
@@ -19,7 +19,7 @@
 
 /* Utilities related to string manipulation */
 
-static inline const char *uds_bool_to_string(bool value)
+static inline const char *vdo_bool_to_string(bool value)
 {
 	return value ? "true" : "false";
 }
@@ -35,12 +35,12 @@ int __must_check vdo_alloc_sprintf(const char *what, char **strp, const char *fm
 #endif /* (! __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
 /* Format a string into a fixed-size buffer, similar to snprintf. */
-int __must_check uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
+int __must_check vdo_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 	__printf(3, 4);
 
 #endif /* TEST_INTERNAL */
 /* Append a formatted string to the end of a buffer. */
-char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
+char *vdo_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 	__printf(3, 4);
 
-#endif /* UDS_STRING_UTILS_H */
+#endif /* VDO_STRING_UTILS_H */

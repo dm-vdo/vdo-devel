@@ -77,20 +77,20 @@ void printThreadStatistics(ThreadStatistics *prev, ThreadStatistics *cur)
 {
   const unsigned long MILLION = 1000 * 1000;
   const unsigned long BILLION = 1000 * 1000 * 1000;
-  uds_log_info("Thread           CPUTime    Inblock Outblock Note");
-  uds_log_info("================ ========== ======= ======== ====");
+  vdo_log_info("Thread           CPUTime    Inblock Outblock Note");
+  vdo_log_info("================ ========== ======= ======== ====");
   while ((prev != NULL) && (cur != NULL)) {
     if ((cur == NULL) || (prev->id < cur->id)) {
-      uds_log_info("  %-45.*s gone", TASK_COMM_LEN, prev->comm);
+      vdo_log_info("  %-45.*s gone", TASK_COMM_LEN, prev->comm);
       prev = prev->next;
     } else if ((prev == NULL) || (prev->id > cur->id)) {
-      uds_log_info("%-16.*s %3lu.%06lu %7lu %8lu new",
+      vdo_log_info("%-16.*s %3lu.%06lu %7lu %8lu new",
                    TASK_COMM_LEN, cur->comm,
                    cur->cputime / BILLION, cur->cputime / 1000 % MILLION,
                    cur->inblock, cur->outblock);
       cur = cur->next;
     } else {
-      uds_log_info("%-16.*s %3lu.%06lu %7lu %8lu",
+      vdo_log_info("%-16.*s %3lu.%06lu %7lu %8lu",
                    TASK_COMM_LEN, cur->comm,
                    (cur->cputime - prev->cputime) / BILLION,
                    (cur->cputime - prev->cputime) / 1000 % MILLION,

@@ -16,9 +16,9 @@ static char *addRange(char       *buf,
   const char *sep = (pos > buf) ? ", " : "";
   if (pos < end) {
     if (first < last) {
-      pos = uds_append_to_buffer(pos, end, "%s%d-%d", sep, first, last);
+      pos = vdo_append_to_buffer(pos, end, "%s%d-%d", sep, first, last);
     } else {
-      pos = uds_append_to_buffer(pos, end, "%s%d", sep, first);
+      pos = vdo_append_to_buffer(pos, end, "%s%d", sep, first);
     }
 
     if (pos == end) {
@@ -28,7 +28,7 @@ static char *addRange(char       *buf,
         --pos;
       }
 
-      uds_append_to_buffer(pos, end, "%s%s", sep,  "...");
+      vdo_append_to_buffer(pos, end, "%s%s", sep,  "...");
       pos = end;
     }
   }
@@ -66,10 +66,10 @@ const char *displayByteDifferences(char     *buf,
 void cuErrorMessage(const char *string, int value)
 {
   // This is inline in userspace. The linux kernel limits us to 400
-  // bytes of stack frame, and sadly UDS_MAX_ERROR_MESSAGE_SIZE is
+  // bytes of stack frame, and sadly VDO_MAX_ERROR_MESSAGE_SIZE is
   // nearly a third of that 400 bytes.
-  char buf[UDS_MAX_ERROR_MESSAGE_SIZE];
+  char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
   const char *errmsg = uds_string_error_name(value, buf, sizeof(buf));
-  uds_log_error("%s: %s (%d)", string, errmsg, value);
+  vdo_log_error("%s: %s (%d)", string, errmsg, value);
 }
 #endif

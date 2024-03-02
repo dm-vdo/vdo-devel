@@ -212,10 +212,10 @@ static void request_queue_worker(void *arg)
 	struct uds_request_queue *queue = (struct uds_request_queue *) arg;
 	struct uds_request *request;
 
-	uds_log_debug("%s queue starting", queue->name);
+	vdo_log_debug("%s queue starting", queue->name);
 	while ((request = dequeue_request(queue)) != NULL)
 		queue->processor(request);
-	uds_log_debug("%s queue done", queue->name);
+	vdo_log_debug("%s queue done", queue->name);
 }
 
 /**********************************************************************/

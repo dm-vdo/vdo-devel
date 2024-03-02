@@ -21,7 +21,7 @@ static int __init dedupe_init(void)
 {
 	vdo_initialize_thread_device_registry();
 	vdo_memory_init();
-	uds_log_info("loaded version %s", CURRENT_VERSION);
+	vdo_log_info("loaded version %s", CURRENT_VERSION);
 	uds_init_sysfs();
 	return 0;
 }
@@ -30,7 +30,7 @@ static void __exit dedupe_exit(void)
 {
 	uds_put_sysfs();
 	vdo_memory_exit();
-	uds_log_info("unloaded version %s", CURRENT_VERSION);
+	vdo_log_info("unloaded version %s", CURRENT_VERSION);
 }
 
 module_init(dedupe_init);
@@ -47,23 +47,23 @@ EXPORT_SYMBOL_GPL(uds_open_index);
 EXPORT_SYMBOL_GPL(uds_resume_index_session);
 EXPORT_SYMBOL_GPL(uds_suspend_index_session);
 
-EXPORT_SYMBOL_GPL(__uds_log_message);
-EXPORT_SYMBOL_GPL(__uds_log_strerror);
-EXPORT_SYMBOL_GPL(uds_append_to_buffer);
-EXPORT_SYMBOL_GPL(uds_get_log_level);
-EXPORT_SYMBOL_GPL(uds_log_backtrace);
+EXPORT_SYMBOL_GPL(__vdo_log_message);
+EXPORT_SYMBOL_GPL(__vdo_log_strerror);
 EXPORT_SYMBOL_GPL(uds_register_error_block);
 EXPORT_SYMBOL_GPL(uds_string_error);
 EXPORT_SYMBOL_GPL(uds_string_error_name);
 EXPORT_SYMBOL_GPL(vdo_allocate_memory);
 EXPORT_SYMBOL_GPL(vdo_allocate_memory_nowait);
+EXPORT_SYMBOL_GPL(vdo_append_to_buffer);
 EXPORT_SYMBOL_GPL(vdo_assertion_failed);
 EXPORT_SYMBOL_GPL(vdo_duplicate_string);
 EXPORT_SYMBOL_GPL(vdo_free);
 EXPORT_SYMBOL_GPL(vdo_free_funnel_queue);
 EXPORT_SYMBOL_GPL(vdo_funnel_queue_poll);
+EXPORT_SYMBOL_GPL(vdo_get_log_level);
 EXPORT_SYMBOL_GPL(vdo_get_memory_stats);
 EXPORT_SYMBOL_GPL(vdo_is_funnel_queue_empty);
+EXPORT_SYMBOL_GPL(vdo_log_backtrace);
 EXPORT_SYMBOL_GPL(vdo_make_funnel_queue);
 EXPORT_SYMBOL_GPL(vdo_perform_once);
 EXPORT_SYMBOL_GPL(vdo_reallocate_memory);
@@ -145,7 +145,6 @@ EXPORT_SYMBOL_GPL(uds_enqueue_request);
 EXPORT_SYMBOL_GPL(uds_find_index_page_number);
 EXPORT_SYMBOL_GPL(uds_finish_restoring_delta_index);
 EXPORT_SYMBOL_GPL(uds_finish_saving_delta_index);
-EXPORT_SYMBOL_GPL(uds_fixed_sprintf);
 EXPORT_SYMBOL_GPL(uds_flush_buffered_writer);
 EXPORT_SYMBOL_GPL(uds_forget_chapter);
 EXPORT_SYMBOL_GPL(uds_free_buffered_reader);
@@ -177,7 +176,6 @@ EXPORT_SYMBOL_GPL(uds_is_chapter_sparse);
 EXPORT_SYMBOL_GPL(uds_is_volume_index_sample);
 EXPORT_SYMBOL_GPL(uds_load_open_chapter);
 EXPORT_SYMBOL_GPL(uds_load_volume_index);
-EXPORT_SYMBOL_GPL(uds_log_embedded_message);
 EXPORT_SYMBOL_GPL(uds_lookup_volume_index_name);
 EXPORT_SYMBOL_GPL(uds_make_buffered_reader);
 EXPORT_SYMBOL_GPL(uds_make_buffered_writer);
@@ -238,7 +236,9 @@ EXPORT_SYMBOL_GPL(uds_write_to_buffered_writer);
 EXPORT_SYMBOL_GPL(uninitialize_page_cache);
 EXPORT_SYMBOL_GPL(vdo_alloc_sprintf);
 EXPORT_SYMBOL_GPL(vdo_create_thread);
+EXPORT_SYMBOL_GPL(vdo_fixed_sprintf);
 EXPORT_SYMBOL_GPL(vdo_join_threads);
+EXPORT_SYMBOL_GPL(vdo_log_embedded_message);
 #endif /* TEST_INTERNAL */
 
 

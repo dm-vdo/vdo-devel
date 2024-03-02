@@ -39,7 +39,7 @@ int open_directory(const char *name,
 {
 	DIR *directory = opendir(name);
 	if (directory == NULL)
-		return uds_log_error_strerror(errno,
+		return vdo_log_error_strerror(errno,
 					      "%s failed in %s on %s directory %s",
 					      __func__,
 					      context,

@@ -69,7 +69,7 @@ static char          *blockBuffer;
 static PhysicalLayer *fileLayer;
 static block_count_t  physicalSize;
 static uuid_t         uuid;
-static char           errorBuffer[UDS_MAX_ERROR_MESSAGE_SIZE];
+static char           errorBuffer[VDO_MAX_ERROR_MESSAGE_SIZE];
 static Candidate      candidates[UDS_CONFIGURATIONS];
 static int            candidateCount = 0;
 
@@ -98,7 +98,7 @@ static void processArgs(int argc, char *argv[])
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errorBuffer, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errorBuffer, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   int c;
@@ -148,7 +148,7 @@ static void processArgs(int argc, char *argv[])
  * @return The error message associated with the error code
  **/
 static const char *resultString(int result) {
-  return uds_string_error(result, errorBuffer, UDS_MAX_ERROR_MESSAGE_SIZE);
+  return uds_string_error(result, errorBuffer, VDO_MAX_ERROR_MESSAGE_SIZE);
 }
 
 /**
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
     errx(1, "Could not register status codes: %s",
-         uds_string_error(result, errorBuffer, UDS_MAX_ERROR_MESSAGE_SIZE));
+         uds_string_error(result, errorBuffer, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
   processArgs(argc, argv);

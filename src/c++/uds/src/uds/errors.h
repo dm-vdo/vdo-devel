@@ -66,8 +66,8 @@ enum uds_status_codes {
 };
 
 enum {
-	UDS_MAX_ERROR_NAME_SIZE = 80,
-	UDS_MAX_ERROR_MESSAGE_SIZE = 128,
+	VDO_MAX_ERROR_NAME_SIZE = 80,
+	VDO_MAX_ERROR_MESSAGE_SIZE = 128,
 };
 
 struct error_info {

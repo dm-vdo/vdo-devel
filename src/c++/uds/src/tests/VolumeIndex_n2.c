@@ -371,7 +371,7 @@ static void testParallel(unsigned int numZones, bool sparse)
     unsigned int z;
     for (z = 0; z < numZones; z++) {
       char nameBuf[100];
-      UDS_ASSERT_SUCCESS(uds_fixed_sprintf(nameBuf, sizeof(nameBuf),
+      UDS_ASSERT_SUCCESS(vdo_fixed_sprintf(nameBuf, sizeof(nameBuf),
                                            "parallel%d", z));
       threadmi[z].testmi = testmi;
       threadmi[z].zone   = z;

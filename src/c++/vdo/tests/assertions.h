@@ -113,7 +113,7 @@
   do {                                                                       \
     int _r = (result);                                                       \
     if (_r != UDS_SUCCESS) {                                                 \
-      char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];                               \
+      char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];                               \
       const char *errmsg = TEST_ERROR_NAME_FUNC(_r, errbuf, sizeof(errbuf)); \
       CU_COMPLAIN_AND_DIE("UDS_ASSERT_SUCCESS",                              \
                           "%s: %s (%d)", #result, errmsg, _r);               \
@@ -124,7 +124,7 @@
   do {                                                            \
     int _r = (result);                                            \
     if (_r != 0) {                                                \
-      char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];                    \
+      char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];                    \
       const char *errmsg                                          \
         = TEST_ERROR_NAME_FUNC(errno, errbuf, sizeof(errbuf));    \
       CU_COMPLAIN_AND_DIE("UDS_ASSERT_SYSTEM_CALL",               \

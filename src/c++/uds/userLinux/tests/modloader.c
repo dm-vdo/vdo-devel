@@ -24,7 +24,7 @@ static int module_symbol(void *handle, const char *symbol, void **sym_addr)
 {
   *sym_addr = dlsym(handle, symbol);
   if (*sym_addr == NULL) {
-    return uds_log_warning_strerror(UDS_INVALID_ARGUMENT,
+    return vdo_log_warning_strerror(UDS_INVALID_ARGUMENT,
                                     "Cannot find module with symbol \"%s\"",
                                     symbol);
   }
@@ -46,7 +46,7 @@ static int open_module(const char *module_name, int flag, void **handle)
 {
   *handle = dlopen(module_name, flag);
   if (*handle == NULL) {
-    return uds_log_warning_strerror(UDS_EMODULE_LOAD,
+    return vdo_log_warning_strerror(UDS_EMODULE_LOAD,
                                     "Error opening module \"%s\": %s",
                                     module_name,
                                     module_error("open_module(): no previous dl error"));
@@ -58,7 +58,7 @@ static void close_module(void *handle)
 {
   int result = dlclose(handle);
   if (result != 0) {
-    uds_log_error("dlclose() failed: %s",
+    vdo_log_error("dlclose() failed: %s",
                   module_error("close_module(): no previous dl error"));
   }
 }
@@ -80,7 +80,7 @@ int load_module(const char *module_name,
   const char *errmsg = (*meta_init_func)(handle, &params, &ptype);
 
   if (errmsg) {
-    return uds_log_warning_strerror(UDS_EMODULE_LOAD,
+    return vdo_log_warning_strerror(UDS_EMODULE_LOAD,
                                     "Error initializing module \"%s\": %s",
                                     module_name,
                                     errmsg);

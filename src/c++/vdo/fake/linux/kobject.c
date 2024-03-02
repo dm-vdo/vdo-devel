@@ -62,14 +62,14 @@ static int kobject_add_internal(struct kobject *kobj)
 		return -ENOENT;
 
 	if (!kobj->name || !kobj->name[0]) {
-		uds_log_warning("kobject: (%p): attempted to be registered with empty name!\n",
+		vdo_log_warning("kobject: (%p): attempted to be registered with empty name!\n",
 				(void *) kobj);
 		return -EINVAL;
 	}
 
 	parent = kobject_get(kobj->parent);
 
-	uds_log_debug("kobject: '%s' (%p): %s: parent: '%s'\n",
+	vdo_log_debug("kobject: '%s' (%p): %s: parent: '%s'\n",
 		      kobj->name,
 		      (void *) kobj,
 		      __func__,
@@ -87,7 +87,7 @@ static int kobject_add_varg(struct kobject *kobj,
 	char *str;
 	int retval = vasprintf(&str, fmt, vargs) == -1 ? -ENOMEM : 0;
 	if (retval) {
-		uds_log_error("kobject: can not set name properly!\n");
+		vdo_log_error("kobject: can not set name properly!\n");
 		return retval;
 	}
 
@@ -134,7 +134,7 @@ int kobject_add(struct kobject *kobj, struct kobject *parent,
 		return -EINVAL;
 
 	if (!kobj->state_initialized) {
-		uds_log_error("kobject '%s' (%p): tried to add an uninitialized object, something is seriously wrong.\n",
+		vdo_log_error("kobject '%s' (%p): tried to add an uninitialized object, something is seriously wrong.\n",
 			      kobj->name, (void *) kobj);
 		return -EINVAL;
 	}
@@ -170,7 +170,7 @@ void kobject_init(struct kobject *kobj, const struct kobj_type *ktype)
 	}
 	if (kobj->state_initialized) {
 		/* do not error out as sometimes we can recover */
-		uds_log_error("kobject (%p): tried to init an initialized object, something is seriously wrong.\n",
+		vdo_log_error("kobject (%p): tried to init an initialized object, something is seriously wrong.\n",
 			      (void *) kobj);
 	}
 
@@ -179,7 +179,7 @@ void kobject_init(struct kobject *kobj, const struct kobj_type *ktype)
 	return;
 
 error:
-	uds_log_error("kobject (%p): %s\n", (void *) kobj, err_str);
+	vdo_log_error("kobject (%p): %s\n", (void *) kobj, err_str);
 }
 
 /**
@@ -209,7 +209,7 @@ static void kobject_cleanup(struct kobject *kobj)
 	const struct kobj_type *t = kobj->ktype;
 	char *name = kobj->name;
 
-	uds_log_debug("kobject: '%s' (%p): %s, parent %p\n",
+	vdo_log_debug("kobject: '%s' (%p): %s, parent %p\n",
 		      kobj->name,
 		      (void *) kobj,
 		      __func__,
@@ -224,7 +224,7 @@ static void kobject_cleanup(struct kobject *kobj)
 				(void *) kobj);
 
 	if (result == VDO_SUCCESS) {
-		uds_log_debug("kobject: '%s' (%p): calling ktype release\n",
+		vdo_log_debug("kobject: '%s' (%p): calling ktype release\n",
 			      kobj->name,
 			      (void *) kobj);
 		t->release(kobj);
@@ -232,7 +232,7 @@ static void kobject_cleanup(struct kobject *kobj)
 
 	/* free name if we allocated it */
 	if (name) {
-		uds_log_debug("kobject: '%s': free name\n", name);
+		vdo_log_debug("kobject: '%s': free name\n", name);
 		vdo_free(name);
 		//kfree_const(name);
 	}
@@ -251,7 +251,7 @@ void kobject_put(struct kobject *kobj)
 {
 	if (kobj) {
 		if (!kobj->state_initialized)
-			uds_log_warning("kobject: '%s' (%p): is not initialized, yet kobject_put() is being called.\n",
+			vdo_log_warning("kobject: '%s' (%p): is not initialized, yet kobject_put() is being called.\n",
 					kobj->name, (void *) kobj);
 		int count = atomic_add_return(-1, &kobj->refcount);
 		VDO_ASSERT_LOG_ONLY(((count + 1) != 0),

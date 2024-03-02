@@ -79,7 +79,7 @@ static void verifyGetPhysicalZone(thread_count_t zoneCount)
   // simpler here to expect that data blocks in adjacent slabs don't touch.
   bool inSlab = false;
 
-  uds_log_info("checking %d zones with %zu blocks in %d slabs",
+  vdo_log_info("checking %d zones with %zu blocks in %d slabs",
                zoneCount, config.physical_blocks, vdo->depot->slab_count);
 
   for (physical_block_number_t pbn = 0; pbn < config.physical_blocks; pbn++) {

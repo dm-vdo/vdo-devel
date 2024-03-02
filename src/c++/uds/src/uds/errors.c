@@ -176,19 +176,19 @@ const char *uds_string_error(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL) {
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s: %s",
+			buffer = vdo_append_to_buffer(buffer, buf_end, "%s: %s",
 						      block_name, info->message);
 		} else {
-			buffer = uds_append_to_buffer(buffer, buf_end, "Unknown %s %d",
+			buffer = vdo_append_to_buffer(buffer, buf_end, "Unknown %s %d",
 						      block_name, errnum);
 		}
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->message);
+		buffer = vdo_append_to_buffer(buffer, buf_end, "%s", info->message);
 	} else {
 		const char *tmp = system_string_error(errnum, buffer, buf_end - buffer);
 
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = vdo_append_to_buffer(buffer, buf_end, "%s", tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -210,19 +210,19 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
 	block_name = get_error_info(errnum, &info);
 	if (block_name != NULL) {
 		if (info != NULL) {
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
+			buffer = vdo_append_to_buffer(buffer, buf_end, "%s", info->name);
 		} else {
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s %d",
+			buffer = vdo_append_to_buffer(buffer, buf_end, "%s %d",
 						      block_name, errnum);
 		}
 	} else if (info != NULL) {
-		buffer = uds_append_to_buffer(buffer, buf_end, "%s", info->name);
+		buffer = vdo_append_to_buffer(buffer, buf_end, "%s", info->name);
 	} else {
 		const char *tmp;
 
 		tmp = system_string_error(errnum, buffer, buf_end - buffer);
 		if (tmp != buffer)
-			buffer = uds_append_to_buffer(buffer, buf_end, "%s", tmp);
+			buffer = vdo_append_to_buffer(buffer, buf_end, "%s", tmp);
 		else
 			buffer += strlen(tmp);
 	}
@@ -237,8 +237,8 @@ const char *uds_string_error_name(int errnum, char *buf, size_t buflen)
  */
 int uds_status_to_errno(int error)
 {
-	char error_name[UDS_MAX_ERROR_NAME_SIZE];
-	char error_message[UDS_MAX_ERROR_MESSAGE_SIZE];
+	char error_name[VDO_MAX_ERROR_NAME_SIZE];
+	char error_message[VDO_MAX_ERROR_MESSAGE_SIZE];
 
 	/* 0 is success, and negative values are already system error codes. */
 	if (likely(error <= 0))
@@ -270,7 +270,7 @@ int uds_status_to_errno(int error)
 
 	default:
 		/* Translate an unexpected error into something generic. */
-		uds_log_info("%s: mapping status code %d (%s: %s) to -EIO",
+		vdo_log_info("%s: mapping status code %d (%s: %s) to -EIO",
 			     __func__, error,
 			     uds_string_error_name(error, error_name,
 						   sizeof(error_name)),

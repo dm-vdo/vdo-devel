@@ -16,7 +16,7 @@
 #include "fileLayer.h"
 #include "userVDO.h"
 
-static char errBuf[UDS_MAX_ERROR_MESSAGE_SIZE];
+static char errBuf[VDO_MAX_ERROR_MESSAGE_SIZE];
 
 /**
  * Load a VDO from a file.
@@ -49,7 +49,7 @@ static int __must_check loadVDOFromFile(const char *filename,
 
   if (result != VDO_SUCCESS) {
     warnx("Failed to make FileLayer from '%s' with %s", filename,
-          uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+          uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
     return result;
   }
 
@@ -59,7 +59,7 @@ static int __must_check loadVDOFromFile(const char *filename,
   if (result != VDO_SUCCESS) {
     layer->destroy(&layer);
     warnx("loading VDO failed with: %s",
-          uds_string_error(result, errBuf, UDS_MAX_ERROR_MESSAGE_SIZE));
+          uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
     return result;
   }
 

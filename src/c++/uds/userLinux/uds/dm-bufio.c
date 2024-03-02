@@ -139,7 +139,7 @@ void *dm_bufio_read(struct dm_bufio_client *client,
 
 	data = dm_bufio_new(client, block, &buffer);
 	if (IS_ERR(data)) {
-		uds_log_error_strerror(-PTR_ERR(data),
+		vdo_log_error_strerror(-PTR_ERR(data),
 				       "error reading physical page %lu",
 				       block);
 		return data;
@@ -152,7 +152,7 @@ void *dm_bufio_read(struct dm_bufio_client *client,
 				     &read_length);
 	if (result != UDS_SUCCESS) {
 		dm_bufio_release(buffer);
-		uds_log_warning_strerror(result,
+		vdo_log_warning_strerror(result,
 					 "error reading physical page %lu",
 					 block);
 		return ERR_PTR(-EIO);

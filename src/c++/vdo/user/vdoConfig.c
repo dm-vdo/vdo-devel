@@ -238,11 +238,11 @@ int computeIndexBlocks(const struct index_config *index_config,
 
   result = uds_compute_index_size(&uds_parameters, &index_bytes);
   if (result != UDS_SUCCESS)
-    return uds_log_error_strerror(result, "error computing index size");
+    return vdo_log_error_strerror(result, "error computing index size");
 
   index_blocks = index_bytes / VDO_BLOCK_SIZE;
   if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
-    return uds_log_error_strerror(VDO_PARAMETER_MISMATCH,
+    return vdo_log_error_strerror(VDO_PARAMETER_MISMATCH,
                                   "index size must be a multiple of block size %d",
                                   VDO_BLOCK_SIZE);
 
@@ -331,12 +331,12 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
 
   result = clearPartition(vdo, VDO_BLOCK_MAP_PARTITION);
   if (result != VDO_SUCCESS) {
-    return uds_log_error_strerror(result, "cannot clear block map partition");
+    return vdo_log_error_strerror(result, "cannot clear block map partition");
   }
 
   result = clearPartition(vdo, VDO_RECOVERY_JOURNAL_PARTITION);
   if (result != VDO_SUCCESS) {
-    return uds_log_error_strerror(result,
+    return vdo_log_error_strerror(result,
                                   "cannot clear recovery journal partition");
   }
 
@@ -405,7 +405,7 @@ int forceVDORebuild(PhysicalLayer *layer)
 {
   int result = updateVDOSuperBlockState(layer, true, VDO_FORCE_REBUILD);
   if (result == VDO_NOT_READ_ONLY) {
-    return uds_log_error_strerror(VDO_NOT_READ_ONLY,
+    return vdo_log_error_strerror(VDO_NOT_READ_ONLY,
                                   "Can't force rebuild on a normal VDO");
   }
 

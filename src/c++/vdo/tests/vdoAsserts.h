@@ -17,7 +17,7 @@
   do {                                                                       \
     int r_ = (result);                                                       \
     if (r_ != VDO_SUCCESS) {                                                 \
-      char errbuf[UDS_MAX_ERROR_MESSAGE_SIZE];                               \
+      char errbuf[VDO_MAX_ERROR_MESSAGE_SIZE];                               \
       const char *errmsg = TEST_ERROR_NAME_FUNC(r_, errbuf, sizeof(errbuf)); \
       CU_COMPLAIN_AND_DIE("VDO_ASSERT_SUCCESS",                              \
                           "%s: %s (%d)",                                     \

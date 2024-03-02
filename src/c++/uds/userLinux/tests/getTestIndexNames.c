@@ -54,13 +54,13 @@ static struct block_device *getDeviceFromName(const char *name)
 
   result = open_file(name, FU_READ_WRITE, &fd);
   if (result != UDS_SUCCESS) {
-    uds_log_error_strerror(result, "%s is not a block device", name);
+    vdo_log_error_strerror(result, "%s is not a block device", name);
     return NULL;
   }
 
   result = vdo_allocate(1, struct block_device, __func__, &device);
   if (result != VDO_SUCCESS) {
-    uds_log_error_strerror(ENOMEM, "cannot allocate device for %s", name);
+    vdo_log_error_strerror(ENOMEM, "cannot allocate device for %s", name);
     close_file(fd, NULL);
     return NULL;
   }

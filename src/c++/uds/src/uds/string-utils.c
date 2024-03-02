@@ -30,14 +30,14 @@ int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	}
 
 	if ((result != VDO_SUCCESS) && (what != NULL))
-		uds_log_error("cannot allocate %s", what);
+		vdo_log_error("cannot allocate %s", what);
 
 	return result;
 }
 
 #endif /* (not __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL
-int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
+int vdo_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 {
 	va_list args;
 	int n;
@@ -50,12 +50,12 @@ int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 	va_end(args);
 
 	if (n < 0) {
-		return uds_log_error_strerror(UDS_UNKNOWN_ERROR, "%s: vsnprintf failed",
+		return vdo_log_error_strerror(UDS_UNKNOWN_ERROR, "%s: vsnprintf failed",
 					      __func__);
 	}
 
 	if ((size_t) n >= buf_size) {
-		return uds_log_error_strerror(UDS_INVALID_ARGUMENT,
+		return vdo_log_error_strerror(UDS_INVALID_ARGUMENT,
 					      "%s: string too long", __func__);
 	}
         
@@ -63,7 +63,7 @@ int uds_fixed_sprintf(char *buf, size_t buf_size, const char *fmt, ...)
 }
 
 #endif /* TEST_INTERNAL */
-char *uds_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
+char *vdo_append_to_buffer(char *buffer, char *buf_end, const char *fmt, ...)
 {
 	va_list args;
 	size_t n;
