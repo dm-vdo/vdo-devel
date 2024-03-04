@@ -20,7 +20,6 @@
 
 static struct hlist_head thread_list;
 static struct mutex thread_mutex;
-static atomic_t thread_once = ATOMIC_INIT(0);
 
 struct thread {
 	void (*thread_function)(void *thread_data);
@@ -30,31 +29,7 @@ struct thread {
 	struct completion thread_done;
 };
 
-#define ONCE_NOT_DONE 0
-#define ONCE_IN_PROGRESS 1
-#define ONCE_COMPLETE 2
-
-/* Run a function once only, and record that fact in the atomic value. */
-void vdo_perform_once(atomic_t *once, void (*function)(void))
-{
-	for (;;) {
-		switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
-		case ONCE_NOT_DONE:
-			function();
-			atomic_set_release(once, ONCE_COMPLETE);
-			return;
-		case ONCE_IN_PROGRESS:
-			cond_resched();
-			break;
-		case ONCE_COMPLETE:
-			return;
-		default:
-			return;
-		}
-	}
-}
-
-static void thread_init(void)
+void vdo_initialize_threads_mutex(void)
 {
 	mutex_init(&thread_mutex);
 }
@@ -65,7 +40,6 @@ static int thread_starter(void *arg)
 	struct thread *thread = arg;
 
 	thread->thread_task = current;
-	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_add_head(&thread->thread_links, &thread_list);
 	mutex_unlock(&thread_mutex);
@@ -142,7 +116,6 @@ void uds_apply_to_threads(void apply_function(void *, struct task_struct *),
 {
 	struct thread *thread;
 
-	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links)
 		apply_function(argument, thread->thread_task);
@@ -154,7 +127,6 @@ void uds_thread_exit(void)
 	struct thread *thread;
 	struct completion *completion = NULL;
 
-	vdo_perform_once(&thread_once, thread_init);
 	mutex_lock(&thread_mutex);
 	hlist_for_each_entry(thread, &thread_list, thread_links) {
 		if (thread->thread_task == current) {

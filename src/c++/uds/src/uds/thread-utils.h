@@ -29,6 +29,7 @@
 #ifdef __KERNEL__
 struct thread;
 
+void vdo_initialize_threads_mutex(void);
 #else
 struct mutex {
 	pthread_mutex_t mutex;
@@ -56,13 +57,13 @@ extern const bool UDS_DO_ASSERTIONS;
 
 unsigned int num_online_cpus(void);
 pid_t __must_check uds_get_thread_id(void);
-#endif
 
+void vdo_perform_once(atomic_t *once_state, void (*function) (void));
+
+#endif
 int __must_check vdo_create_thread(void (*thread_function)(void *), void *thread_data,
 				   const char *name, struct thread **new_thread);
 void vdo_join_threads(struct thread *thread);
-
-void vdo_perform_once(atomic_t *once_state, void (*function) (void));
 #ifdef __KERNEL__
 #ifdef TEST_INTERNAL
 
