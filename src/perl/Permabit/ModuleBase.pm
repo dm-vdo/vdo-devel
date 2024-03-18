@@ -15,6 +15,7 @@ use Permabit::Assertions qw(
   assertNe
   assertNumArgs
   assertOptionalArgs
+  assertRegexpDoesNotMatch
   assertType
 );
 use Permabit::Utils qw(addToHash makeFullPath);
@@ -150,8 +151,11 @@ sub loadFromBinaryRPM {
   }
 
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
-               checker => sub { $machine->getStdout() !~ /failed/ },
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
+  $self->_step(command => sub {
+                 assertRegexpDoesNotMatch(qr/failed/, $machine->getStdout(),
+                                          "rpm install logged a failure");
+               });
 }
 
 ###############################################################################
@@ -246,7 +250,6 @@ sub _step {
   my ($self, $args) = assertOptionalArgs(1,
                                          {
                                           command    => undef,
-                                          checker    => undef,
                                           cleaner    => undef,
                                           diagnostic => undef,
                                          },
@@ -260,8 +263,7 @@ sub _step {
     $error = $EVAL_ERROR;
   } else {
     $log->info($machine->getName() . ": $args->{command}");
-    if (($machine->sendCommand($args->{command}) != 0)
-        || (defined($args->{checker}) && !$args->{checker}->())) {
+    if ($machine->sendCommand($args->{command}) != 0) {
       $log->error("Failure during $args->{command}");
       $log->error("stdout:\n" . $machine->getStdout());
       $log->error("stderr:\n" . $machine->getStderr());
