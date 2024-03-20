@@ -456,9 +456,8 @@ sub getFreeBytes {
 sub getLVMConfig {
   my ($self, $config) = assertMinMaxArgs([""], 1, 2, @_);
   my $storageDevice = $self->{storageDevice};
-  my $filter = "devices {scan_lvs=1}";
+  my $filter = "devices {scan_lvs=1 use_devicesfile=0}";
   if ($storageDevice->isa('Permabit::BlockDevice::TestDevice')) {
-    $filter .= " devices {use_devicesfile=0}";
     my $underlyingDevice = $storageDevice->getStorageDevice();
     my $underlyingStorage = $underlyingDevice->getDevicePath();
     $filter .= " devices {filter=r|$underlyingStorage|}";
