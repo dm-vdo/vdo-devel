@@ -8,6 +8,10 @@
 
 #include "murmurhash3.h"
 
+#ifdef __KERNEL__
+#include <asm/byteorder.h>
+
+#endif
 static inline u64 rotl64(u64 x, s8 r)
 {
 	return (x << r) | (x >> (64 - r));
@@ -16,6 +20,9 @@ static inline u64 rotl64(u64 x, s8 r)
 #define ROTL64(x, y) rotl64(x, y)
 static __always_inline u64 getblock64(const u64 *p, int i)
 {
+#ifdef __KERNEL__
+	return le64_to_cpup(&p[i]);
+#else
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	return p[i];
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -23,16 +30,21 @@ static __always_inline u64 getblock64(const u64 *p, int i)
 #else
 #error "can't figure out byte order"
 #endif
+#endif
 }
 
 static __always_inline void putblock64(u64 *p, int i, u64 value)
 {
+#ifdef __KERNEL__
+	p[i] = cpu_to_le64(value);
+#else
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	p[i] = value;
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 	p[i] = __builtin_bswap64(value);
 #else
 #error "can't figure out byte order"
+#endif
 #endif
 }
 
