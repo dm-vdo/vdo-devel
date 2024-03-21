@@ -153,6 +153,8 @@ our %PROPERTIES
      suppressCleanupOnError  => ["Verify"],
      # @ple Whether to use a filesystem. Should only be set by tests.
      useFilesystem           => 0,
+     # @ple The directory to put the user tool binaries in
+     userBinaryDir           => undef,
      # @ple Use the dmlinux src rpm for testing.
      useUpstreamKernel       => 0,
     );
@@ -359,6 +361,7 @@ sub set_up {
   $self->SUPER::set_up();
 
   $self->{scratchDir} = makeFullPath($self->{workDir}, 'scratch');
+  $self->{userBinaryDir} = makeFullPath($self->{runDir}, 'executables');
 
   if (!defined($self->{pythonLibDir})) {
     $self->{pythonLibDir} = $self->{binaryDir} . "/pythonlibs";
@@ -687,6 +690,7 @@ sub getUserMachine {
                   nfsShareDir      => $self->{nfsShareDir},
                   scratchDir       => $self->{scratchDir},
                   workDir          => $self->{workDir},
+                  userBinaryDir    => $self->{userBinaryDir},
                  );
     $self->{_machines}{$name} = Permabit::UserMachine->new(%params);
 
