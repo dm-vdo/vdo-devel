@@ -196,7 +196,7 @@ sub _buildModules {
   my $userBuild = join(' ',
                        "rpmbuild --rebuild",
                        "--define='_topdir $versionDir'",
-                       "--define='_bindir /'",
+                       "--define='_bindir $self->{userBinaryDir}'",
                        "$versionDir/vdo-$versionName*.src.rpm");
   my $userMove = "mv -f $versionDir/RPMS/$arch/vdo-$versionName"
                   . "*.rpm $versionDir";

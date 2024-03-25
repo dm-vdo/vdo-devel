@@ -173,6 +173,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      slabBits                  => undef,
      # Whether the test is loading a released RPM
      useDistribution           => 0,
+     # The directory to put the user tool binaries in
+     userBinaryDir             => undef,
      # UUID for VDO volume.
      uuid                      => undef,
      # Bitmask of CPUs on which to run VDO threads

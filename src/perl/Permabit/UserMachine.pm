@@ -38,7 +38,7 @@ use Permabit::Constants;
 use Permabit::LabUtils qw(getTestBlockDeviceNames isVirtualMachine);
 use Permabit::MegaRaid::Adapter;
 use Permabit::PlatformUtils qw(isMaipo);
-use Permabit::SystemUtils qw(isHWRaid);
+use Permabit::SystemUtils qw(isHWRaid runCommand);
 use Permabit::Utils qw(hashExtractor makeFullPath);
 use Permabit::Version qw($VDO_MODNAME);
 
@@ -127,6 +127,8 @@ my %PROPERTIES
      saveScratchData    => 0,
      # @ple The directory to place scratch files in
      scratchDir         => undef,
+     # @ple The directory to put the user tool binaries in
+     userBinaryDir      => undef,
      # @ple The directory to place logfiles in
      workDir            => undef,
      # @ple running cursor into the journal log for kernel messages
@@ -155,10 +157,11 @@ sub new {
                            getParameters());
   my $self = $class->SUPER::new(%args);
 
-  # Ensure that scratchDir and workDir exist on the host.
+  # Ensure that scratchDir, workDir and userBinaryDir exist on the host.
   assertDefined($self->{scratchDir}, "scratchDir not defined");
   assertDefined($self->{workDir}, "workDir not defined");
-  $self->runSystemCmd("mkdir -p $self->{workDir} $self->{scratchDir}");
+  assertDefined($self->{userBinaryDir}, "userBinaryDir not defined");
+  $self->runSystemCmd("mkdir -p $self->{workDir} $self->{scratchDir} $self->{userBinaryDir}");
 
   if (isVirtualMachine($self->getName())) {
     $self->removeKernelLogErrorCheck("blocked");
@@ -254,6 +257,26 @@ sub getPythonLibraryPath {
     $self->{_pythonLibraryPath} = $stdout;
   }
   return $self->{_pythonLibraryPath};
+}
+
+#############################################################################
+# Find the requested executable locally.
+#
+# @param executable The name of the executable to look for
+#
+# @return The path to the executable or undef
+##
+sub findNamedExecutable {
+  my ($self, $executable) = assertNumArgs(2, @_);
+  my $searchPath = makeFullPath($self->{userBinaryDir}, $executable);
+  my $result = runCommand($self->getName(), "test -x $searchPath");
+
+  if ($result->{returnValue} != 1) {
+    $self->{_executables}->{$executable} = $searchPath;
+    return $searchPath;
+  }
+
+  return undef;
 }
 
 ###############################################################################
