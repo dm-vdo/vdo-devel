@@ -293,9 +293,10 @@ sub deleteThinVolume {
   # remove a logical volume
   my $machine = $self->{storageDevice}->getMachine();
   my $lvPath = "$self->{volumeGroup}/$name";
-  $machine->runSystemCmd("sudo lvremove --force $lvPath");
+  my $config = $self->getLVMConfig();
+  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   $lvPath = "$self->{volumeGroup}/$name-pool";
-  $machine->runSystemCmd("sudo lvremove --force $lvPath");
+  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   if (--$self->{_useCount} == 0) {
     $log->info("Automatically removing VG " . $self->{volumeGroup});
     $self->remove();
@@ -456,7 +457,7 @@ sub getFreeBytes {
 sub getLVMConfig {
   my ($self, $config) = assertMinMaxArgs([""], 1, 2, @_);
   my $storageDevice = $self->{storageDevice};
-  my $filter = "devices {scan_lvs=1 use_devicesfile=0}";
+  my $filter = "devices {scan_lvs=1}";
   if ($storageDevice->isa('Permabit::BlockDevice::TestDevice')) {
     my $underlyingDevice = $storageDevice->getStorageDevice();
     my $underlyingStorage = $underlyingDevice->getDevicePath();

@@ -342,8 +342,10 @@ sub fillIndex {
 ##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
-  $self->SUPER::activate();
   $self->addDeactivationStep(sub { $self->stopVDO(); });
+
+  # Always call SUPER::activate at end to do final initialization.
+  $self->SUPER::activate();
 }
 
 ########################################################################
