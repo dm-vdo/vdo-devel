@@ -332,6 +332,18 @@ sub start {
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   $self->runOnHost("sudo chmod 666 " . $self->getDevicePath());
+
+  # LVM does not always recognize an ISCSI device unless it is added
+  # to the system.devices file. To do this, the lvmdevices tool is
+  # needed.
+  my $device = $self->getLVMDevicesDevicePath();
+  if ($device && ($self->sendCommand("which lvmdevices") == 0)) {
+    my $addDevCmd = "sudo lvmdevices -y --adddev $device";
+    my $delDevCmd = "sudo lvmdevices -y --deldev $device";
+    $self->runOnHost($addDevCmd);
+    $self->addDeactivationStep(sub { $self->runOnHost($delDevCmd); });
+    $log->info($self->runOnHost("sudo lvmdevices"));
+  }
 }
 
 ########################################################################
@@ -625,6 +637,16 @@ sub getDevicePath {
 sub getDeviceResolvedName {
   my ($self) = assertNumArgs(1, @_);
   return basename($self->getDevicePath());
+}
+
+########################################################################
+# Get the device pathname to use for the lvm devices file
+#
+# @return the device pathname
+##
+sub getLVMDevicesDevicePath {
+  my ($self) = assertNumArgs(1, @_);
+  return $self->getDevicePath();
 }
 
 ########################################################################
