@@ -17,6 +17,9 @@
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 #include <linux/wait.h>
 
 #include "logger.h"
@@ -647,10 +650,26 @@ static void assign_discard_permit(struct limiter *limiter)
 	bio_list_add(limiter->permitted_waiters, bio);
 }
 
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
 static void get_waiters(struct limiter *limiter)
 {
+#ifdef VDO_USE_ALTERNATE
 	bio_list_merge(&limiter->waiters, &limiter->new_waiters);
 	bio_list_init(&limiter->new_waiters);
+#else
+	bio_list_merge_init(&limiter->waiters, &limiter->new_waiters);
+#endif
 }
 
 static inline struct data_vio *get_available_data_vio(struct data_vio_pool *pool)
