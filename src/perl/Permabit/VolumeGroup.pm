@@ -293,9 +293,10 @@ sub deleteThinVolume {
   # remove a logical volume
   my $machine = $self->{storageDevice}->getMachine();
   my $lvPath = "$self->{volumeGroup}/$name";
-  $machine->runSystemCmd("sudo lvremove --force $lvPath");
+  my $config = $self->getLVMConfig();
+  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   $lvPath = "$self->{volumeGroup}/$name-pool";
-  $machine->runSystemCmd("sudo lvremove --force $lvPath");
+  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   if (--$self->{_useCount} == 0) {
     $log->info("Automatically removing VG " . $self->{volumeGroup});
     $self->remove();
