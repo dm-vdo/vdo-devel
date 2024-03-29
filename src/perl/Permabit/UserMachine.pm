@@ -157,11 +157,17 @@ sub new {
                            getParameters());
   my $self = $class->SUPER::new(%args);
 
-  # Ensure that scratchDir, workDir and userBinaryDir exist on the host.
+  # Ensure that scratchDir and workDir exist on the host.
   assertDefined($self->{scratchDir}, "scratchDir not defined");
   assertDefined($self->{workDir}, "workDir not defined");
-  assertDefined($self->{userBinaryDir}, "userBinaryDir not defined");
-  $self->runSystemCmd("mkdir -p $self->{workDir} $self->{scratchDir} $self->{userBinaryDir}");
+  $self->runSystemCmd("mkdir -p $self->{workDir} $self->{scratchDir}");
+  
+  # Ensure that userBinaryDir exists on the host, when defined. 
+  # The userBinaryDir property will not be defined in cases where tests using UserMachine do
+  # not go through VDOTest.pm. 
+  if (defined($self->{userBinaryDir})) {
+    $self->runSystemCmd("mkdir -p $self->{userBinaryDir}");
+  }
 
   if (isVirtualMachine($self->getName())) {
     $self->removeKernelLogErrorCheck("blocked");
