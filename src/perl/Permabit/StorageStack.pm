@@ -45,7 +45,6 @@ my %DEVICE_TYPES = (
   tracer      => 'Permabit::BlockDevice::TestDevice::Managed::Tracer',
   upgrade     => 'Permabit::BlockDevice::VDO::Upgrade',
   vdo         => 'Permabit::BlockDevice::VDO::Unmanaged',
-  virtual     => 'Permabit::MegaRaid::VirtualDevice',
 );
 
 my $DEFAULT_LOGICAL_VOLUME_GROUP = 'vdo';

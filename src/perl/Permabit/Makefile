@@ -4,7 +4,6 @@ ROOT      = ..
 DOCDIRS   =	BlockDevice	\
 		CommandString	\
 		FileSystem	\
-		MegaRaid	\
 		VDOTask		\
 		testcases
 MANPREFIX = Permabit::
