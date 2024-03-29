@@ -9,6 +9,7 @@
 #ifndef __LINUX_HIGHMEM_H
 #define __LINUX_HIGHMEM_H
 
+#include <string.h>
 #include "permassert.h"
 
 #define PAGE_SHIFT 12

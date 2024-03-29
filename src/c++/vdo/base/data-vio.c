@@ -1329,7 +1329,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 	    (completion->result != VDO_SUCCESS)) {
 		struct data_vio_pool *pool = completion->vdo->data_vio_pool;
 
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(__KERNEL__)
 		release_data_vio_hook(data_vio);
 #endif /* INTERNAL */
 		vdo_funnel_queue_put(pool->queue, &completion->work_queue_entry_link);

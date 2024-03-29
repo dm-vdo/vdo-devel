@@ -35,6 +35,11 @@ tarballs:
           +undefines:
             - VDO_USER
           +postProcessor: postProcess.sh
+        +src/c++/vdo/base/.:
+          dest: dm-vdo
+          sources:
+            - dm-vdo-target.h
+          postProcessor: postProcess.sh
         src/c++/uds/src/uds:
           -undefines: .
           +postProcessor: postProcess.sh

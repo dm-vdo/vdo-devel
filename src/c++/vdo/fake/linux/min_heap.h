@@ -7,9 +7,6 @@
 
 #include "permassert.h"
 
-#define WARN_ONCE(condition, format...) \
-	(VDO_ASSERT_LOG_ONLY(!(condition), format) != UDS_SUCCESS)
-
 /**
  * struct min_heap - Data structure to hold a min-heap.
  * @data: Start of array holding the heap elements.
