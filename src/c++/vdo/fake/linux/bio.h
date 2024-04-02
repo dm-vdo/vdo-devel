@@ -11,8 +11,11 @@
 #define __LINUX_BIO_H
 
 /* struct bio, bio_vec and BIO_* flags are defined in blk_types.h */
+#include <asm/unaligned.h>
 #include <linux/blk_types.h>
+#include <linux/kernel.h>
 #include <linux/limits.h>
+#include <linux/minmax.h>
 #include <linux/version.h>
 
 #define BIO_DEBUG
@@ -96,14 +99,6 @@ static inline unsigned int bio_cur_bytes(struct bio *bio)
 		return bio_iovec(bio).bv_len;
 	else /* dataless requests such as discard */
 		return bio->bi_iter.bi_size;
-}
-
-static inline void *bio_data(struct bio *bio)
-{
-	if (bio_has_data(bio))
-		return page_address(bio_page(bio)) + bio_offset(bio);
-
-	return NULL;
 }
 
 /**
@@ -298,23 +293,6 @@ static inline void bio_get_last_bvec(struct bio *bio, struct bio_vec *bv)
 	 */
 	if (iter.bi_bvec_done)
 		bv->bv_len = iter.bi_bvec_done;
-}
-
-static inline struct bio_vec *bio_first_bvec_all(struct bio *bio)
-{
-	WARN_ON_ONCE(bio_flagged(bio, BIO_CLONED));
-	return bio->bi_io_vec;
-}
-
-static inline struct page *bio_first_page_all(struct bio *bio)
-{
-	return bio_first_bvec_all(bio)->bv_page;
-}
-
-static inline struct bio_vec *bio_last_bvec_all(struct bio *bio)
-{
-	WARN_ON_ONCE(bio_flagged(bio, BIO_CLONED));
-	return &bio->bi_io_vec[bio->bi_vcnt - 1];
 }
 
 enum bip_flags {

@@ -15,6 +15,10 @@
 #define READ  0
 #define WRITE 1
 
+#define WARN_ONCE(condition, format...) \
+	(VDO_ASSERT_LOG_ONLY(!(condition), format) != UDS_SUCCESS)
+#define WARN_ON_ONCE(condition) WARN_ONCE(condition)
+
 #ifndef BUG_ON
 #ifdef NDEBUG
 #define BUG_ON(cond) do { if (cond) {} } while (0)

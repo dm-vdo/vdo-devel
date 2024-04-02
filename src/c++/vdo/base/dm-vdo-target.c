@@ -25,7 +25,7 @@
 #include "constants.h"
 #include "data-vio.h"
 #include "dedupe.h"
-#ifndef __KERNEL__
+#if !defined(__KERNEL__) || defined(INTERNAL)
 #include "dm-vdo-target.h"
 #endif /* __KERNEL__ */
 #include "dump.h"
@@ -2234,7 +2234,7 @@ static void suspend_callback(struct vdo_completion *completion)
 	finish_operation_callback(completion);
 }
 
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(KERNEL)
 extern int suspend_result;
 #endif /* INTERNAL */
 static void vdo_postsuspend(struct dm_target *ti)
@@ -2254,7 +2254,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	 */
 	result = perform_admin_operation(vdo, SUSPEND_PHASE_START, suspend_callback,
 					 suspend_callback, "suspend");
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(__KERNEL__)
 	suspend_result = result;
 #endif /* INTERNAL */
 
@@ -2929,7 +2929,7 @@ static int __must_check apply_new_vdo_configuration(struct vdo *vdo,
 	return result;
 }
 
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(__KERNEL__)
 extern int resume_result;
 
 #endif /* INTERNAL */
@@ -2975,7 +2975,7 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 
 	/* If this fails, the VDO was not in a state to be resumed. This should never happen. */
 	result = apply_new_vdo_configuration(vdo, config);
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(__KERNEL__)
 	resume_result = result;
 #endif /* INTERNAL */
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);
@@ -3006,7 +3006,7 @@ static int vdo_preresume_registered(struct dm_target *ti, struct vdo *vdo)
 
 	result = perform_admin_operation(vdo, RESUME_PHASE_START, resume_callback,
 					 resume_callback, "resume");
-#ifdef INTERNAL
+#if defined(INTERNAL) && !defined(__KERNEL__)
 	resume_result = result;
 #endif /* INTERNAL */
 	BUG_ON(result == VDO_INVALID_ADMIN_STATE);

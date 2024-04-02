@@ -9,9 +9,13 @@ EXTRA_CFLAGS =	-std=gnu11					\
 		-fno-omit-frame-pointer				\
 		-fno-optimize-sibling-calls			\
 		-Werror						\
+		-Wmissing-declarations                          \
+		-Wmissing-prototypes                            \
 		$(if $(CONFIG_KASAN),,-Wframe-larger-than=400)	\
 		-DVDO_VERSION=\"$(VDO_VERSION)\"		\
 		-DSTATIC=					\
+		-DINTERNAL                                      \
+		-DTEST_INTERNAL                                 \
 		-DVDO_INTERNAL					\
 		$(INCLUDES)
 
