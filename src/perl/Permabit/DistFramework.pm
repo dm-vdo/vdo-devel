@@ -518,6 +518,7 @@ sub copyFiles {
 
     if ($content =~ /\n([^\n]*)\%LICENSE\%/s) {
       my $license = join($1, @{$self->get('license')});
+      $license =~ s/\s+\n/\n/g;
       $license =~ s/\n$//;
       $content =~ s/\%LICENSE\%/$license/gs;
     }
