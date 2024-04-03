@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright 2023 Red Hat
- *
+ */
+#ifdef VDO_INTERNAL
+/*
  * If you add new statistics, be sure to update the following files:
  *
  * ../base/statistics.h
@@ -10,6 +12,7 @@
  * ./vdoStatsWriter.c
  * ../../../perl/Permabit/Statistics/Definitions.pm
  */
+#endif /* VDO_INTERNAL */
 
 #include "string-utils.h"
 
