@@ -400,7 +400,7 @@ struct bio *bio_kmalloc(gfp_t gfp_mask, unsigned short nr_iovecs);
 extern void bio_put(struct bio *);
 #endif /* __KERNEL__ */
 
-#ifdef RHEL_RELEASE_CODE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
 #else /* not RHEL_RELEASE_CODE */
 #define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))

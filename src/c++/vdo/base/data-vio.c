@@ -1634,7 +1634,7 @@ static void read_block(struct vdo_completion *completion)
 			/* A full 4k read. Use the incoming bio to avoid having to copy the data */
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
-#ifdef RHEL_RELEASE_CODE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
 #define VDO_USE_ALTERNATE
 #endif
