@@ -55,6 +55,7 @@ tarballs:
             - INTERNAL
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_UPSTREAM
             - __KERNEL__
           defines:
             - VDO_USER
@@ -155,6 +156,7 @@ tarballs:
             - volume.[hc]
             - volume-index.[hc]
           undefines:
+            - INTERNAL
             - TEST_INTERNAL
             - VDO_INTERNAL
             - __KERNEL__
