@@ -4,8 +4,6 @@
 # %LICENSE%
 #
 
-# $Id$
-
 SUBDIRS = uds vdo
 
 .PHONY: all clean install

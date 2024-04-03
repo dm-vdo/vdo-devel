@@ -3,7 +3,6 @@
 #
 # %LICENSE%
 #
-# $Id$
 
 INSTALLFILES= \
         adaptlvm.8               \

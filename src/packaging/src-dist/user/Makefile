@@ -3,7 +3,6 @@
 #
 # %LICENSE%
 #
-# $Id$
 
 INSTALL = install
 INSTALLOWNER ?= -o root -g root
