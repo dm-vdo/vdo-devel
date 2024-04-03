@@ -1,9 +1,5 @@
 /*
- * For INTERNAL USE ONLY, DO NOT DISTRIBUTE!!!!
- *
- * Unit test requirements from linux/blkdev.h.
- *
- * $Id$
+ * Unit test requirements from linux/blkdev.h and other kernel headers.
  */
 
 #ifndef LINUX_BLKDEV_H

@@ -23,8 +23,6 @@
 #
 # The "vdostats" program must be in the path used by "sudo".
 #
-# $Id$
-#
 ##
 
 use strict;

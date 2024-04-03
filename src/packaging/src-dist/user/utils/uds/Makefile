@@ -3,7 +3,6 @@
 #
 # %LICENSE%
 #
-# $Id$
 
 BUILD_VERSION = %%VDOVersion%%
 

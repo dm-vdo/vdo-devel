@@ -3,7 +3,6 @@
 #
 # %LICENSE%
 #
-# $Id$
 
 SUBDIRS = monitor
 

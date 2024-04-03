@@ -3,10 +3,9 @@
 #
 # %LICENSE%
 #
-# $Id$
 
 INSTALLFILES=monitor_check_vdostats_logicalSpace.pl	\
-	monitor_check_vdostats_physicalSpace.pl	\
+	monitor_check_vdostats_physicalSpace.pl		\
 	monitor_check_vdostats_savingPercent.pl
 
 
