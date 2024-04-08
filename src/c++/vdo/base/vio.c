@@ -204,7 +204,7 @@ int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
-#ifdef RHEL_RELEASE_CODE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
 #define VDO_USE_ALTERNATE
 #endif

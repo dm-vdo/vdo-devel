@@ -139,7 +139,7 @@ void uds_thread_exit(void)
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
-#ifdef RHEL_RELEASE_CODE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2))
 #define VDO_USE_ALTERNATE
 #endif

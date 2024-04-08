@@ -139,7 +139,7 @@ static inline int getBioResult(struct bio *bio)
 static inline struct bio *cloneBio(struct bio *bio,
                                    struct bio_set *bs)
 {
-#ifdef RHEL_RELEASE_CODE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
 #else
 #define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
