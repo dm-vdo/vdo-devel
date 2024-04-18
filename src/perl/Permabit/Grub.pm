@@ -13,6 +13,7 @@ use List::Util qw(max);
 use Log::Log4perl;
 use Permabit::Assertions qw(assertDefined assertNumArgs);
 use Permabit::Constants;
+use Permabit::PlatformUtils qw(isPlow);
 use Permabit::SystemUtils qw(
   assertCommand
   runCommand
@@ -57,55 +58,63 @@ sub new {
 
 ############################################################################
 # Install the current grub configuration, if necessary.
+#
+# Not for use on RHEL 9, as the boot configuration contains options not
+# included in the grub configuration.
 ##
-sub installConfig {
+sub _installGrubConfig {
   my ($self) = assertNumArgs(1, @_);
-
-  # If there exists a /boot/efi/EFI/redhat/grub.cfg, we assume that the
-  # rest of the grub config points at it. Despite the name, it's still
-  # BIOS-compatible; it is just there so that the same file structure
-  # exists on both EFI and BIOS machines.
-  my $configName = "/boot/efi/EFI/redhat/grub.cfg";
-  my $result = runCommand($self->{host}, "sudo test -e $configName");
-  if ($result->{returnValue} != 0) {
-    $configName = "/boot/grub2/grub.cfg";
-  }
+  my $configName = "/boot/grub2/grub.cfg";
   assertCommand($self->{host}, "sudo grub2-mkconfig -o $configName"
                                . " && sudo cat $configName");
 }
 
 ############################################################################
-# Modify the appropriate grub configuration file on a host with a new option
-# on the kernel command lines. Does not necessarily install the new
-# configuration. Currently only permits modifying with key=value options.
+# Modify the default boot configuration on a host with a new option on the
+# kernel command line. Installs the new configuration. Currently only
+# permits modifying with key=value options.
 #
 # @param kernelOption  The kernel option to add
 # @param optionValue   The value to set the option to
 ##
 sub modifyOption {
   my ($self, $kernelOption, $optionValue) = assertNumArgs(3, @_);
-  $self->stripOption($kernelOption);
-  my $GRUB2_EDIT = ('if(/^GRUB_CMDLINE_LINUX=/) {'
-                    . 's/"\n/ ' . $kernelOption . '=' . $optionValue . '"\n/;'
-                    . 's/" /"/;'
-                    . '}');
-  assertCommand($self->{host}, "sudo perl -i.bak -p -e '$GRUB2_EDIT' "
-                               . $self->{_conf});
-  assertCommand($self->{host}, "sudo grep $kernelOption= " . $self->{_conf},
-                undef, 1);
+  if (isPlow($self->{host})) {
+    assertCommand($self->{host},
+                  "sudo grubby --update-kernel=DEFAULT "
+                  . "--args=${kernelOption}=${optionValue}");
+  } else {
+    $self->stripOption($kernelOption);
+    my $GRUB2_EDIT = ('if(/^GRUB_CMDLINE_LINUX=/) {'
+                      . 's/"\n/ ' . $kernelOption . '=' . $optionValue . '"\n/;'
+                      . 's/" /"/;'
+                      . '}');
+    assertCommand($self->{host}, "sudo perl -i.bak -p -e '$GRUB2_EDIT' "
+                  . $self->{_conf});
+    assertCommand($self->{host}, "sudo grep $kernelOption= " . $self->{_conf},
+                  undef, 1);
+    $self->_installGrubConfig();
+  }
 }
 
 ############################################################################
-# Remove a kernel option from the appropriate grub configuration file on a
-# host. Does not necessarily install the new configuration.
+# Remove a kernel option from the appropriate boot configuration on a
+# host. Installs the new configuration.
 #
 # @param kernelOption  The kernel option to strip
 ##
 sub stripOption {
   my ($self, $kernelOption) = assertNumArgs(2, @_);
-  assertCommand($self->{host}, "sudo sed -i.UNSTRIPPED"
-                               . " 's/ ${kernelOption}=[^ \"]*//' "
-                               . $self->{_conf});
+  if (isPlow($self->{host})) {
+    assertCommand($self->{host},
+                  "sudo grubby --update-kernel=DEFAULT "
+                  . "--remove-args=${kernelOption}");
+  } else {
+    assertCommand($self->{host}, "sudo sed -i.UNSTRIPPED"
+                                 . " 's/ ${kernelOption}=[^ \"]*//' "
+                                 . $self->{_conf});
+    $self->_installGrubConfig();
+  }
 }
 
 1;
