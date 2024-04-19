@@ -320,7 +320,7 @@ sub runAdaptLVMScript {
   my $vdoDeviceName = $device->{volumeGroup}->getName() . "/" .
                       $device->{deviceName};
 
-  my $shellUtility = $machine->findNamedExecutable("adaptLVMVDO.sh");
+  my $shellUtility = $machine->findNamedExecutable("adaptlvm");
 
   # The EXTRA_LVM_ARGS are needed for our environment, but in a typical default
   # LVM configuration environment, they won't be needed.

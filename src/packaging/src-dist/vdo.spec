@@ -84,7 +84,7 @@ block-level deduplication, compression, and thin provisioning.
 This package provides the user-space support tools for VDO.
 
 %files support
-%{_bindir}/adaptLVMVDO.sh
+%{_bindir}/adaptlvm
 %{_bindir}/vdoaudit
 %{_bindir}/vdodebugmetadata
 %{_bindir}/vdodumpblockmap
