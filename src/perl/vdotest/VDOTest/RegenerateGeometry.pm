@@ -62,6 +62,7 @@ sub set_up {
     if ($result->{stdout} =~ /at block (\d+)/) {
       @offsets = ($1 * $PHYSICAL_BLOCK_SIZE);
     } else {
+      $device->disableWritableStorage();
       die("regenerate succeeded with no candidate");
     }
   } else {
@@ -92,11 +93,11 @@ sub testRegenerateGeometry {
   $self->overwriteBlocks(@offsets);
 
   my $result = $self->regenerate();
+  $self->getDevice()->disableWritableStorage();
   if ($result->{returnValue} == 0) {
     die("regeneration unexpectedly succeeded");
   }
 
-  $self->getDevice()->disableWritableStorage();
 }
 
 ########################################################################
@@ -128,6 +129,7 @@ sub regenerateTest {
     checkResult($result);
   } else {
     if ($result->{returnValue} == 0) {
+      $self->getDevice()->disableWritableStorage();
       die("regeneration unexpectedly succeeded");
     }
 
@@ -160,6 +162,7 @@ sub regenerateTest {
                        "found $candidates candidate super blocks, not the "
                        . "$expectedCandidates expected");
     if (!defined($offset)) {
+      $self->getDevice()->disableWritableStorage();
       die("Failed to find offset for $memory"
           . ($sparse ? ', sparse ' : ' ') . 'config');
     }
