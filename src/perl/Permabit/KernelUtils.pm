@@ -618,11 +618,8 @@ sub _rebootWithKernelOption {
   my @grubConfigs = map { Permabit::Grub->new($_) } @$hosts;
 
   map { $_->modifyOption($kernelOption, $optionValue) } @grubConfigs;
-  map { $_->installConfig() } @grubConfigs;
-
   rebootMachines(@$hosts);
   map { $_->stripOption($kernelOption) } @grubConfigs;
-  map { $_->installConfig() } @grubConfigs;
 }
 
 1;
