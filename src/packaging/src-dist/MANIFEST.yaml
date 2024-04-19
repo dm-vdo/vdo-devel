@@ -40,7 +40,7 @@ tarballs:
         src/tools/adaptLVM:
           dest: utils/vdo
           sources:
-            - adaptLVMVDO.sh
+            - adaptlvm
         src/c++/vdo/base:
           dest: utils/vdo
           sources:
