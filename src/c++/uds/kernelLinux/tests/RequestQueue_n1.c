@@ -268,9 +268,7 @@ static void consoleMonitorTest(void)
 
 // Now, the "real" unit test for UDS.
 
-// TODO: use this when the two-argument flavor is available in shipped Fedora
-// static DEFINE_SEMAPHORE(requestCount, 1);
-static struct semaphore requestCount = __SEMAPHORE_INITIALIZER(requestCount, 1);
+static DEFINE_SEMAPHORE(requestCount, 1);
 
 /**********************************************************************/
 static void idleTestWorker(struct uds_request *req)
