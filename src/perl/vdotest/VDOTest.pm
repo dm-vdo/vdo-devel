@@ -43,7 +43,6 @@ use Permabit::KernelUtils qw(
 use Permabit::PlatformUtils qw(getDistroInfo);
 use Permabit::RSVPer;
 use Permabit::StorageStack;
-use Permabit::SystemTapCommand;
 use Permabit::SystemUtils qw(
   assertCommand
   assertSystem
@@ -118,9 +117,6 @@ our %PROPERTIES
      # @ple size of the storage volume (may include a suffix) used for
      #      deviceType "linear" and possibly other LVM type volumes.
      lvmSize                 => undef,
-     # @ple whether to run a systemtap script to watch kernel page-cache
-     #      behavior relating to our device
-     monitorPageCacheStats   => 0,
      # @ple The RSVP class nfs clients should be reserved from
      nfsclientClass          => undef,
      # @ple Label for the nfsclient host
@@ -199,7 +195,6 @@ my @SHARED_FILES
      "src/python/vdo/dmdevice",
      "src/python/vdo/dmmgmnt",
      "src/python/vdo/utils",
-     "src/tools/systemtap",
     );
 
 # Used to set the raidType property for RAID devices when calling
@@ -224,48 +219,6 @@ sub new {
   assertEqualNumeric($self->{blockSize}, $DEFAULT_BLOCK_SIZE);
 
   return $self;
-}
-
-########################################################################
-# Create a SystemTap command object to invoke on the test machines.
-#
-# @param  script      The systemtap script to be run
-# @oparam stapArgs    A list of additional parameters to pass to systemtap
-# @oparam scriptArgs  Any additional parameters to be passed to the script
-#
-# @return  the new command object
-##
-sub makeSystemTapCommand {
-  my ($self, $script, $stapArgs, @scriptArgs) = assertMinArgs(2, @_);
-  my %args = (
-              machine    => $self->getUserMachine(),
-              outputDir  => $self->{runDir},
-              script     => "$self->{binaryDir}/systemtap/$script",
-              scriptArgs => \@scriptArgs,
-              stapArgs   => $stapArgs // "",
-             );
-  return Permabit::SystemTapCommand->new(%args);
-}
-
-########################################################################
-# Launch a SystemTap script to record the kernel page cache's
-# retention of blocks in our device.
-#
-# @param devMajor  The block major device number
-# @param devMinor  The block minor device number
-##
-sub _monitorPageCacheStats {
-  my ($self, $devMajor, $devMinor) = assertNumArgs(3, @_);
-  if (!$self->{_pageCacheMonitor}) {
-    my $script = "monitor-page-cache.stp";
-    $self->{_pageCacheMonitor}
-      = $self->makeSystemTapCommand($script, undef, $devMajor, $devMinor);
-    $self->{_pageCacheMonitor}->start();
-    if ($self->{kmemleak}) {
-      # This *is* a problem as of systemtap 1.7 and kernel 3.2.0.
-      $log->warn("Some versions of SystemTap cause memory-leak warnings!!");
-    }
-  }
 }
 
 ########################################################################
@@ -498,12 +451,6 @@ sub getStorageStack {
 ##
 sub deviceCreated {
   my ($self, $device) = assertNumArgs(2, @_);
-
-  # After creating a device, start device monitors
-  if ($self->{monitorPageCacheStats}) {
-    my @majorMinor = $device->getDeviceMajorMinor();
-    $self->_monitorPageCacheStats($majorMinor[0], $majorMinor[1]);
-  }
 
   # After creating a device, do any associated manual wait points
   foreach my $subclass (qw(TestDevice::Managed::Corruptor
@@ -890,17 +837,6 @@ sub tear_down {
     # Stop any tasks belonging to this test.  We must do this before trying
     # to teardown any VDO device or filesystem.
     $self->tearDownAsyncTasks();
-
-    if (defined($self->{_pageCacheMonitor})) {
-      eval {
-        $self->{_pageCacheMonitor}->stop();
-        delete($self->{_pageCacheMonitor});
-      };
-      if ($EVAL_ERROR) {
-        $log->debug("failed to stop systemtap script $self->{scriptName}:"
-                    . $EVAL_ERROR);
-      }
-    }
 
     # Tear down filesystems.  Do this while stall detection is still active!
     while (my $fs = pop(@{$self->{_filesystems}})) {
