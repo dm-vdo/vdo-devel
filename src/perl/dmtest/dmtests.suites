@@ -1,0 +1,94 @@
+# -*-cperl-*-
+# vim:filetype=perl
+# $Id$
+#
+
+###########################################################################
+# These suites define convenient groups of tests
+##
+
+# Basic VDO functional tests using filesystems
+my $CCA = "--clientClass=ALBIREO-PMI\\,RAWHIDE";
+my $CCV = "--clientClass=VDO-PMI\\,RAWHIDE";
+
+$aliasNames{Checkin} = "Grouped   --dmtestName=vdo";
+$aliasNames{Full}    = "Separated";
+$aliasNames{Jenkins} = "Grouped   --dmtestName=vdo";
+$aliasNames{HDD}     = "Separated --dmtestName=vdo $CCA";
+$aliasNames{Perf}    = "Separated --dmtestName=vdo $CCV";
+
+###############################################################################
+# Aliased tests to run nightly on pfarms.
+##
+$suiteNames{nightly}
+  = [
+     "Full",
+    ];
+
+###############################################################################
+# General checkin tests run by jenkins. Note that the makefiles refer to this
+# suite for the "jenkins" make target.
+##
+$suiteNames{jenkins}
+  = [
+     "Jenkins",
+    ];
+
+###############################################################################
+# Local checkin tests. Note that the makefiles refer to this suite for the
+# "checkin" make target.
+##
+$suiteNames{checkin}
+  = [
+     "Checkin",
+    ];
+
+###############################################################################
+# Performance tests and local tests. Runs nightly in lab.
+##
+$suiteNames{performance}
+  = [
+     "HDD",
+     "Perf",
+    ];
+
+###########################################################################
+# Tests that do not run (yet) are here.
+##
+@deferred = ();
+
+###########################################################################
+# Tests that we don't want to run as part of nightly.  The "nightly" suite is
+# the default suite, which is specified by a command line that contains no test
+# or suite to be run.  The default suite takes all the tests in the VDOTest
+# directory, adds the aliased tests named in @addToDefaultTests, and then
+# removes any tests named in @excludes.
+#
+# There is no need to exclude any aliased tests unless they are named in
+# @addToDefaultTests.  There is no need to exclude any suite that consists
+# entirely of aliased tests.
+##
+@excludes
+  = (
+     @deferred,
+     "Grouped",       # Base class, though runnable as is
+     "Separated",     # Base class, though runnable as is
+    );
+
+###############################################################################
+# The default set of OS-agnostic test aliases. These suites run everything. It
+# is generally better to run specific suite aliases.
+##
+push(@addToDefaultTests,
+     "Full",
+    );
+
+############################################################################
+# Each user may define his own "dmtests.private" file.
+# If that file exists, "do" it now.
+##
+if (-f "dmtests.private") {
+  doFile("dmtests.private");
+}
+
+1;

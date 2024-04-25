@@ -1,0 +1,10 @@
+# -*-cperl-*-
+# $Id$
+#
+
+$RUNTESTS_OPTIONS
+  = {
+     baseTestClass   => 'DMTest',
+     copySharedFiles => 1,
+     suiteFile       => 'dmtests.suites',
+    };

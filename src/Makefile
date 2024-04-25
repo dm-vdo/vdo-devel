@@ -83,6 +83,11 @@ check-style:
 	$(MAKE) -C $(KPATCH_DIR) KERNEL_VERSION=$(CHECK_PATCH_KERNEL_VERSION) \
 	  clean $@
 
+.PHONY: dmtests
+dmtests:
+	mkdir -p $(LOGBASE)/$@
+	$(MAKE) -C perl/dmtest SAVELOGS=1 LOGDIR=$(LOGBASE)/$@ jenkins
+
 .PHONY: udstests
 udstests:
 	mkdir -p $(LOGBASE)/$@
@@ -142,6 +147,7 @@ dmlinux-jenkins-parallel: clean
 	$(MAKE) -C packaging/dmlinux clean all
 	@echo "Using index name of $$VDO_TESTINDEX"
 	$(MAKE) DMLINUX=1 vdotests
+	$(MAKE) dmtests
 
 .PHONY: archive
 archive:
