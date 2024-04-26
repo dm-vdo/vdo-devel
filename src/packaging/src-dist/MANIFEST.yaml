@@ -163,6 +163,7 @@ tarballs:
         src/c++/uds/userLinux/uds:
           dest: utils/uds
           sources:
+            - dm-bufio.c
             - fileUtils.[hc]
             - hlist.h
             - logger.c

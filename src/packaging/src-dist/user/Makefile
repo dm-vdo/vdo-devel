@@ -6,11 +6,11 @@
 
 INSTALL = install
 INSTALLOWNER ?= -o root -g root
-defaultdocdir ?= /usr/share/doc
 name ?= vdo
-licensedir ?= $(defaultdocdir)
-LICENSEDIR=$(DESTDIR)/$(licensedir)/$(name)
-INSTALLDIR=$(DESTDIR)/$(defaultdocdir)/$(name)
+defaultdocdir ?= /usr/share/doc
+defaultlicensedir ?= /usr/share/licenses
+DOCDIR=$(DESTDIR)/$(defaultdocdir)/$(name)
+LICENSEDIR=$(DESTDIR)/$(defaultlicensedir)/$(name)
 
 SUBDIRS = examples utils
 
@@ -21,7 +21,7 @@ all clean:
 	done
 
 install:
-	$(INSTALL) $(INSTALLOWNER) -d $(INSTALLDIR)
+	$(INSTALL) $(INSTALLOWNER) -d $(DOCDIR)
 	$(INSTALL) $(INSTALLOWNER) -D -m 644 COPYING -t $(LICENSEDIR) 
 	for d in $(SUBDIRS); do         \
 	  $(MAKE) -C $$d $@ || exit 1; \
