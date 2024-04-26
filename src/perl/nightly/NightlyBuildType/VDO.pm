@@ -22,10 +22,17 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 # The following are tests that need to be run nightly.
 my $SUITE_PROPERTIES = {
+  dmRawhideTests => {
+    displayName  => "DM_Nightly_Tests",
+    suiteName    => "nightly",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["RAWHIDE"],
+    type         => "dm",
+  },
   perlLocalTests => {
     displayName => "Perl_Local_Tests",
     suiteName   => "",
-    type        => "perl",
+    type        => "unit",
   },
   udsPerformanceTests => {
     displayName => "UDS_Performance_Tests",
