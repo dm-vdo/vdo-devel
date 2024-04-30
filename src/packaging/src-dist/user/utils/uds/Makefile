@@ -54,6 +54,7 @@ vpath %.c .
 UDS_OBJECTS =	chapter-index.o		\
 		config.o		\
 		delta-index.o		\
+		dm-bufio.o              \
 		errors.o		\
 		event-count.o		\
 		fileUtils.o		\

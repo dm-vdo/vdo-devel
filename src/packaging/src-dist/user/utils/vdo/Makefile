@@ -107,7 +107,7 @@ INSTALL = install
 INSTALLOWNER ?= -o root -g root
 bindir ?= /usr/bin
 INSTALLDIR=$(DESTDIR)$(bindir)
-bash_completions_dir ?= $(sysconfdir)/bash_completion.d
+bash_completions_dir ?= /usr/share/bash-completion/completions
 COMPLETIONINSTALLDIR=$(DESTDIR)$(bash_completions_dir)/
 
 .PHONY: install

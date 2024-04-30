@@ -59,7 +59,7 @@ $(WORK_DIR):
 	mkdir -p $(WORK_DIR)
 
 prepareGitHubDist.out: $(WORK_DIR)
-	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) \
+	$(PREPARE_GITHUB_DIST) --dest=$(WORK_DIR) --manifest=$(MANIFEST) \
           --repositoryPrefix=$(REPOSITORY_PREFIX) $(FLAGS) $(EXTRA_FLAGS) \
 	  | tee $@
 
