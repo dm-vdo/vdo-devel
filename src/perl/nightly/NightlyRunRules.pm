@@ -48,10 +48,10 @@ sub _generateTestSubroutine {
 
   my $displayName = $testProperties->{displayName} . "_" . $osClass;
   my $type = $testProperties->{type} //= "vdo";
-  if ($type eq "perl") {
+  if ($type eq "unit") {
     return sub {
       my ($properties) = assertNumArgs(1, @_);
-      _runPerlTests($properties, $displayName, $osClass,
+      _runUnitTests($properties, $displayName, $osClass,
                     $testProperties->{suiteName});
     };
   }
@@ -61,18 +61,10 @@ sub _generateTestSubroutine {
     $extraArgs .= " --scale=$testProperties->{scale},$osClass";
   }
 
-  if ($type eq "uds") {
-    return sub {
-      my ($properties) = assertNumArgs(1, @_);
-      _runUDSTestSuite($properties, $displayName, $osClass,
-                       $testProperties->{suiteName}, $extraArgs);
-    };
-  }
-
   return sub {
     my ($properties) = assertNumArgs(1, @_);
-    _runVDOTestSuite($properties, $displayName, $osClass,
-                     $testProperties->{suiteName}, $extraArgs);
+    _runTestSuite($properties, $displayName, $type, $osClass,
+                  $testProperties->{suiteName}, $extraArgs);
   };
 }
 
@@ -115,7 +107,7 @@ sub generateTestSuites {
 # @param  osClass     The default OS class to reserve machines from
 # @oparam suite       The suite to run
 ##
-sub _runPerlTests {
+sub _runUnitTests {
   my ($properties, $testName, $osClass, $suite)
     = assertMinMaxArgs([""], 3, 4, @_);
 
@@ -135,24 +127,25 @@ sub _runPerlTests {
 }
 
 ######################################################################
-# Run the perl VDO tests. The targets are sets of tests defined in
-# vdotests.suites. The default target is the default (nightly) test suite.
+# Run the non-unit perl tests. If no suite is provided, use the default
+# (nightly) test suite.
 #
 # @param  properties  A hashref of runtime properties
 # @param  testName    A descriptive name for the tests being run
+# @param  type        The test type (vdo, uds, or dm)
 # @param  osClass     The default OS class to reserve machines from
-# @oparam suite       The VDO test suite to run
+# @oparam suite       The test suite to run
 # @oparam otherArgs   Other arguments to pass to the tests
 ##
-sub _runVDOTestSuite {
-  my ($properties, $testName, $osClass, $suite, $otherArgs)
-    = assertMinMaxArgs(['', ''], 3, 5, @_);
+sub _runTestSuite {
+  my ($properties, $testName, $type, $osClass, $suite, $otherArgs)
+    = assertMinMaxArgs(['', ''], 4, 6, @_);
 
   my $logDir = "$properties->{runLogDir}/$testName/";
-  my $rundir = "$properties->{perlRoot}/vdotest";
+  my $rundir = "$properties->{perlRoot}/${type}test";
   my $regexp = "The following tests failed";
 
-  my $cmd = "./vdotests.pl $suite --log=1 --JSON=1"
+  my $cmd = "./${type}tests.pl $suite --log=1 --JSON=1"
             . " --logDir=$logDir"
             . " --xmlOutput=1"
             . " --saveServerLogDir=$logDir"
@@ -164,40 +157,7 @@ sub _runVDOTestSuite {
     return;
   }
   NightlyUtils::runTests($testName, $cmd, $rundir, $logDir, $regexp);
-  installFiles("$logDir/*.xml", "$properties->{xmlLogDir}/vdotest");
-}
-
-######################################################################
-# Run the perl UDS tests. The targets are sets of tests defined in
-# udstests.suites. The default target is the default test suite.
-#
-# @param  properties  A hashref of runtime properties
-# @param  testName    A descriptive name for the tests being run
-# @param  osClass     The default OS class to reserve machines from
-# @oparam suite       The UDS test suite to run
-# @oparam otherArgs   Other arguments to pass to the tests
-##
-sub _runUDSTestSuite {
-  my ($properties, $testName, $osClass, $suite, $otherArgs)
-    = assertMinMaxArgs(['', ''], 3, 5, @_);
-
-  my $logDir = "$properties->{runLogDir}/$testName/";
-  my $rundir = "$properties->{perlRoot}/udstest";
-  my $regexp = "The following tests failed";
-
-  my $cmd = "./udstests.pl $suite --log=1 --JSON=1"
-            . " --logDir=$logDir"
-            . " --xmlOutput=1"
-            . " --saveServerLogDir=$logDir"
-            . " --nightlyStart=$properties->{nightlyStart}"
-            . " --moveToMaintenance --rsvpOSClass=$osClass $otherArgs";
-
-  if ($properties->{skipTestExecution}) {
-    $log->debug("Skipping execution of $testName with command: $cmd");
-    return;
-  }
-  NightlyUtils::runTests($testName, $cmd, $rundir, $logDir, $regexp);
-  installFiles("$logDir/*.xml", "$properties->{xmlLogDir}/udstest");
+  installFiles("$logDir/*.xml", "$properties->{xmlLogDir}/${type}test");
 }
 
 1;

@@ -22,10 +22,15 @@ use base qw(NightlyBuildType::VDO);
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 my $SUITE_PROPERTIES = {
+  dmLocalCheckinTests => {
+    displayName => "DM_Local_Checkin_Tests",
+    suiteName   => "checkin",
+    type        => "dm",
+  },
   perlLocalCheckinTests => {
     displayName => "Perl_Local_Tests",
     suiteName   => "",
-    type        => "perl",
+    type        => "unit",
   },
   udsLocalCheckinTests => {
     displayName => "UDS_Local_Checkin_Tests",

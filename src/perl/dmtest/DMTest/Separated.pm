@@ -26,14 +26,15 @@ sub suite {
 
   my $options = $package->makeDummyTest();
   my $testList;
-  if (defined($options->{dmTestName})
-      && ($options->{dmTestName} ne "")
-      && ($options->{dmTestName} !~ /[\[\]{}*?]/)) {
+  if (defined($options->{dmtestName})
+      && ($options->{dmtestName} ne "")
+      && ($options->{dmtestName} !~ /[\[\]{}*?]/)) {
     # If unitTestName names isn't a pattern but appears to name exactly one
     # test, just use it. If the name is bad, we'll find out soon enough.
-    $testList = $options->{dmTestName};
+    $testList = $options->{dmtestName};
   } else {
     # TODO: Get all tests from dmtest
+    $testList = "vdo";
   }
 
   # Now it is a simple matter of making and returning the suite
@@ -42,7 +43,7 @@ sub suite {
     my $test
       = $package->make_test_from_coderef(\&DMTest::Grouped::testRunner,
                                          "${package}::$testName");
-    $test->{unitTestName} = $testName;
+    $test->{dmtestName} = $testName;
     $suite->add_test($test);
   }
   return $suite;
