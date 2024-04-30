@@ -15,7 +15,7 @@ endif
 
 include $(ROOT)/Makefile.common
 
-ifeq ($(USER),continuous)
+ifeq ($(USER),$(filter $(USER),bunsen continuous))
   OPTIONAL_RSVP_HOST = PRSVP_HOST=jenkins
 endif
 
