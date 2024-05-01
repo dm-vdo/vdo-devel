@@ -1,0 +1,11 @@
+# -*-text-*-
+# vim: filetype=text
+#
+# This file contains the text that was used for GitHub commit messages.
+# When doing a push, add the description to the end of this file along
+# with the VDO version to which it applies and check the file in once
+# the push is done. This may eventually get automated.
+
+Version 8.3.0.70
+vdo:
+* Rebased for kernel version 6.9.
