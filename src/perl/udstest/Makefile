@@ -12,7 +12,7 @@ ifdef LOGDIR
   TEST_ARGS += --logDir=$(LOGDIR) --saveServerLogDir=$(LOGDIR)
 endif
 
-ifeq ($(USER),continuous)
+ifeq ($(USER),$(filter $(USER),bunsen continuous))
   RSVP_HOST = PRSVP_HOST=jenkins
 endif
 
