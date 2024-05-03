@@ -46,7 +46,6 @@
  */
 
 #include <linux/blk_types.h>
-#include <linux/build_bug.h>
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
@@ -59,21 +58,6 @@
 #endif /* VDO_UPSTREAM */
 
 // common.h
-/**
- * Define SECTOR_SIZE if it currently isn't.
- **/
-#if !defined(SECTOR_SIZE)
-#define SECTOR_SIZE (1 << SECTOR_SHIFT)
-#endif // !defined(SECTOR_SIZE)
-
-typedef blk_status_t BioStatusType;
-enum { BIO_SUCCESS = BLK_STS_OK,
-       BIO_EIO     = BLK_STS_IOERR};
-
-typedef struct commonDevice {
-  // Pointer to the underlying storage device. MUST BE FIRST ITEM IN STRUCT.
-  struct dm_dev        *dev;
-} CommonDevice;
 
 /**********************************************************************/
 static inline bool isDiscardBio(struct bio *bio)
@@ -184,7 +168,7 @@ static inline struct bio *cloneBio(struct bio *bio,
  * @param bio    The bio
  * @param error  An error indication
  **/
-static inline void endio(struct bio *bio, BioStatusType error)
+static inline void endio(struct bio *bio, blk_status_t error)
 {
   bio->bi_status = error;
   bio_endio(bio);
@@ -405,41 +389,43 @@ enum { DORY_NAME_SIZE = 11 };
  *     When the write completes, the cache block returns to EMPTY state.
  *     We do not try to maintain any "clean" blocks in the cache.
  */
-typedef enum __attribute__((__packed__)) {
+enum __attribute__((__packed__)) block_state {
   EMPTY,
   COPYING,
   DIRTY,
   WRITING,
-} BlockState;
+};
 
-typedef struct {
+struct lossy_device;
+
+struct cache_block {
   // A spin lock that protects the cache block.  It is taken by the bi_end_io
   // callback when we write a cache block, and therefore should be used with
   // spin_lock_irq or spin_lock_irqsave.
-  spinlock_t         lock;
+  spinlock_t               lock;
   // When this block is in COPYING or WRITING state, bios that refer to this
   // block are put on this list and processed later.
-  struct bio_list    waitingBios;
-  // Pointer back to the DoryDevice containing this block.
-  struct doryDevice *doryDevice;
+  struct bio_list          waitingBios;
+  // Pointer back to the struct lossy_device containing this block.
+  struct lossy_device     *device;
   // Pointer to the data for this block.
-  char              *blockData;
+  char                    *blockData;
   // Pointer to the bio reserved for use when we need to write this block.
-  struct bio        *blockBio;
+  struct bio              *blockBio;
   // The BLOCK number of this block (not the sector number).
-  sector_t           blockNumber;
+  sector_t                 blockNumber;
   // The state of this cache block
-  BlockState         state;
-} CacheBlock;
+  enum block_state         state;
+};
 
-typedef struct doryDevice {
+struct lossy_device {
   // Pointer to the underlying storage device. MUST BE FIRST ITEM IN STRUCT.
   struct dm_dev  *dev;
   // The sysfs node that connects /sys/<moduleName>/dory/<doryName> to this
   // dory device.
   struct kobject  kobj;
   // Return value for unsuccessful writes.
-  BioStatusType   ioError;
+  blk_status_t    ioError;
   // Flag that is set to true to stop all writes by the device.
   bool            stopFlag;
   // The name of the Dory device.
@@ -517,25 +503,25 @@ typedef struct doryDevice {
   // END of statistics
 
   // The block cache (variable sized, so it goes at the end).
-  CacheBlock cacheBlocks[];
-} DoryDevice;
+  struct cache_block cacheBlocks[];
+};
 
-static void processBioList(DoryDevice *dd, struct bio_list *ready);
+static void processBioList(struct lossy_device *dd, struct bio_list *ready);
 
 /**********************************************************************/
 // BEGIN large section of code for the sysfs interface
 /**********************************************************************/
 
-typedef struct {
+struct dory_attribute {
   struct attribute attr;
-  ssize_t (*show)(DoryDevice *dd, char *buf);
-  ssize_t (*store)(DoryDevice *dd, const char *value);
-} DoryAttribute;
+  ssize_t (*show)(struct lossy_device *dd, char *buf);
+  ssize_t (*store)(struct lossy_device *dd, const char *value);
+};
 
 /**********************************************************************/
 static void doryRelease(struct kobject *kobj)
 {
-  DoryDevice *dd = container_of(kobj, DoryDevice, kobj);
+  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
   kfree(dd);
 }
 
@@ -544,8 +530,8 @@ static ssize_t doryShow(struct kobject   *kobj,
                         struct attribute *attr,
                         char             *buf)
 {
-  DoryDevice *dd = container_of(kobj, DoryDevice, kobj);
-  DoryAttribute *da = container_of(attr, DoryAttribute, attr);
+  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
+  struct dory_attribute *da = container_of(attr, struct dory_attribute, attr);
   if (da->show != NULL) {
     return da->show(dd, buf);
   }
@@ -553,7 +539,7 @@ static ssize_t doryShow(struct kobject   *kobj,
 }
 
 /**********************************************************************/
-static ssize_t doryShowCache(DoryDevice *dd, char *buf)
+static ssize_t doryShowCache(struct lossy_device *dd, char *buf)
 {
   // The string that indicates the data do not fit in the output.
   static const char ETC_STRING[] = "...\n";
@@ -565,14 +551,14 @@ static ssize_t doryShowCache(DoryDevice *dd, char *buf)
   bool full = false;
   int length = 0;
   for (unsigned int i = 0; !full && (i < dd->cacheBlockCount); i++) {
-    CacheBlock *cb = &dd->cacheBlocks[i];
+    struct cache_block *cb = &dd->cacheBlocks[i];
     spin_lock_irq(&cb->lock);
     unsigned int waiterCount = bio_list_size(&cb->waitingBios);
     sector_t     sector      = cb->blockNumber << dd->blockShift;
-    BlockState   blockState  = cb->state;
+    enum block_state block_state = cb->state;
     spin_unlock_irq(&cb->lock);
     char *state = "UNKNOWN";
-    switch (blockState) {
+    switch (block_state) {
     case EMPTY:                       continue;
     case COPYING:  state = "COPYING"; break;
     case DIRTY:    state = "DIRTY";   break;
@@ -595,14 +581,14 @@ static ssize_t doryShowCache(DoryDevice *dd, char *buf)
 }
 
 /**********************************************************************/
-static ssize_t doryShowMode(DoryDevice *dd, char *buf)
+static ssize_t doryShowMode(struct lossy_device *dd, char *buf)
 {
   strcpy(buf, dd->stopFlag ? "stop\n" : "running\n");
   return strlen(buf);
 }
 
 /**********************************************************************/
-static ssize_t doryShowState(DoryDevice *dd, char *buf)
+static ssize_t doryShowState(struct lossy_device *dd, char *buf)
 {
   spin_lock_irq(&dd->flushLock);
   unsigned int flushFlushCount = bio_list_size(&dd->flushBios);
@@ -638,7 +624,7 @@ static ssize_t doryShowState(DoryDevice *dd, char *buf)
 }
 
 /**********************************************************************/
-static ssize_t doryShowStatistics(DoryDevice *dd, char *buf)
+static ssize_t doryShowStatistics(struct lossy_device *dd, char *buf)
 {
   return sprintf(buf,
                  "reads: %lld\n"
@@ -674,13 +660,13 @@ static ssize_t doryShowStatistics(DoryDevice *dd, char *buf)
 }
 
 /**********************************************************************/
-static ssize_t doryShowTornMask(DoryDevice *dd, char *buf)
+static ssize_t doryShowTornMask(struct lossy_device *dd, char *buf)
 {
   return sprintf(buf, "%u\n", dd->tornMask);
 }
 
 /**********************************************************************/
-static ssize_t doryShowTornModulus(DoryDevice *dd, char *buf)
+static ssize_t doryShowTornModulus(struct lossy_device *dd, char *buf)
 {
   return sprintf(buf, "%u\n", dd->tornModulus);
 }
@@ -691,8 +677,8 @@ static ssize_t doryStore(struct kobject   *kobj,
                          const char       *buf,
                          size_t            length)
 {
-  DoryDevice *dd = container_of(kobj, DoryDevice, kobj);
-  DoryAttribute *da = container_of(attr, DoryAttribute, attr);
+  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
+  struct dory_attribute *da = container_of(attr, struct dory_attribute, attr);
   char *string = bufferToString(buf, length);
   ssize_t status;
   if (string == NULL) {
@@ -707,7 +693,7 @@ static ssize_t doryStore(struct kobject   *kobj,
 }
 
 /**********************************************************************/
-static ssize_t doryStoreStop(DoryDevice *dd, const char *value)
+static ssize_t doryStoreStop(struct lossy_device *dd, const char *value)
 {
   dd->stopFlag = true;
   dd->readsAtStop  = atomic64_read(&dd->readTotal);
@@ -716,16 +702,16 @@ static ssize_t doryStoreStop(DoryDevice *dd, const char *value)
 }
 
 /**********************************************************************/
-static ssize_t doryStoreReturnEIO(DoryDevice *dd, const char *value)
+static ssize_t doryStoreReturnEIO(struct lossy_device *dd, const char *value)
 {
   unsigned int val;
   if (sscanf(value, "%u", &val) != 1) {
     return -EINVAL;
   }
   if (val == 0) {
-    dd->ioError = BIO_SUCCESS;
+    dd->ioError = BLK_STS_OK;
   } else if (val == 1) {
-    dd->ioError = BIO_EIO;
+    dd->ioError = BLK_STS_IOERR;
   } else {
     return -EINVAL;
   }
@@ -733,7 +719,7 @@ static ssize_t doryStoreReturnEIO(DoryDevice *dd, const char *value)
 }
 
 /**********************************************************************/
-static ssize_t doryStoreTornMask(DoryDevice *dd, const char *value)
+static ssize_t doryStoreTornMask(struct lossy_device *dd, const char *value)
 {
   unsigned long m;
   if (sscanf(value, "%lu", &m) != 1) {
@@ -747,7 +733,7 @@ static ssize_t doryStoreTornMask(DoryDevice *dd, const char *value)
 }
 
 /**********************************************************************/
-static ssize_t doryStoreTornModulus(DoryDevice *dd, const char *value)
+static ssize_t doryStoreTornModulus(struct lossy_device *dd, const char *value)
 {
   unsigned long m;
   if (sscanf(value, "%lu", &m) != 1) {
@@ -762,43 +748,43 @@ static ssize_t doryStoreTornModulus(DoryDevice *dd, const char *value)
 
 /**********************************************************************/
 
-static DoryAttribute cacheAttr = {
+static struct dory_attribute cacheAttr = {
   .attr = { .name = "cache", .mode = 0444 },
   .show = doryShowCache,
 };
 
-static DoryAttribute modeAttr = {
+static struct dory_attribute modeAttr = {
   .attr = { .name = "mode", .mode = 0444 },
   .show = doryShowMode,
 };
 
-static DoryAttribute returnEIOAttr = {
+static struct dory_attribute returnEIOAttr = {
   .attr  = { .name = "returnEIO", .mode = 0200 },
   .store = doryStoreReturnEIO,
 };
 
-static DoryAttribute stateAttr = {
+static struct dory_attribute stateAttr = {
   .attr = { .name = "state", .mode = 0444 },
   .show = doryShowState,
 };
 
-static DoryAttribute statisticsAttr = {
+static struct dory_attribute statisticsAttr = {
   .attr = { .name = "statistics", .mode = 0444 },
   .show = doryShowStatistics,
 };
 
-static DoryAttribute stopAttr = {
+static struct dory_attribute stopAttr = {
   .attr  = { .name = "stop", .mode = 0200 },
   .store = doryStoreStop,
 };
 
-static DoryAttribute tornMaskAttr = {
+static struct dory_attribute tornMaskAttr = {
   .attr  = { .name = "torn_mask", .mode = 0644 },
   .show  = doryShowTornMask,
   .store = doryStoreTornMask,
 };
 
-static DoryAttribute tornModulusAttr = {
+static struct dory_attribute tornModulusAttr = {
   .attr  = { .name = "torn_modulus", .mode = 0644 },
   .show  = doryShowTornModulus,
   .store = doryStoreTornModulus,
@@ -839,7 +825,7 @@ static struct kobj_type doryObjectType = {
  **/
 static void processDelayed(struct work_struct *work)
 {
-  DoryDevice *dd = container_of(work, DoryDevice, workWork);
+  struct lossy_device *dd = container_of(work, struct lossy_device, workWork);
 
   // Under the worklock, grab the lists of bios to be processed.
   struct bio_list flushes, ready;
@@ -879,9 +865,9 @@ static void processDelayed(struct work_struct *work)
  * @param ready    bio list of bios that are now unblocked
  * @param flushes  bio list of REQ_FLUSH bios that are now complete
  **/
-static void scheduleDelayedProcessing(DoryDevice      *dd,
-                                      struct bio_list *ready,
-                                      struct bio_list *flushes)
+static void scheduleDelayedProcessing(struct lossy_device *dd,
+                                      struct bio_list     *ready,
+                                      struct bio_list     *flushes)
 {
   bool haveBios = !bio_list_empty(ready);
   bool haveFlushes = (flushes != NULL) && !bio_list_empty(flushes);
@@ -922,7 +908,7 @@ static void scheduleDelayedProcessing(DoryDevice      *dd,
  *
  * @param dd  The Dory device
  **/
-static void decrementBusyCountAndTest(DoryDevice *dd)
+static void decrementBusyCountAndTest(struct lossy_device *dd)
 {
   if (atomic_dec_and_test(&dd->busyCount)) {
     // The busy count has just dropped to zero, so we need to take flushLock
@@ -958,8 +944,8 @@ static void decrementBusyCountAndTest(DoryDevice *dd)
 static void endFlushCacheBlock(struct bio *bio)
 {
   int error = getBioResult(bio);
-  CacheBlock *cb = bio->bi_private;
-  DoryDevice *dd = cb->doryDevice;
+  struct cache_block *cb = bio->bi_private;
+  struct lossy_device *dd = cb->device;
   struct bio_list ready;
   bio_list_init(&ready);
 
@@ -990,9 +976,9 @@ static void endFlushCacheBlock(struct bio *bio)
  *
  * @param cb  The cache block (locked)
  **/
-static void flushCacheBlock(CacheBlock *cb)
+static void flushCacheBlock(struct cache_block *cb)
 {
-  DoryDevice *dd = cb->doryDevice;
+  struct lossy_device *dd = cb->device;
 
   // Set the block state to WRITING, and release the cache block lock.  We do
   // not want to hold the lock while we write the data.
@@ -1037,11 +1023,11 @@ static void flushCacheBlock(CacheBlock *cb)
  * @param ready  bio list of bios that are now unblocked and can be processed
  *               after we return
  **/
-static void processBioCached(CacheBlock      *cb,
-                             struct bio      *bio,
-                             struct bio_list *ready)
+static void processBioCached(struct cache_block *cb,
+                             struct bio         *bio,
+                             struct bio_list    *ready)
 {
-  DoryDevice *dd = cb->doryDevice;
+  struct lossy_device *dd = cb->device;
 
   // Set the block state to COPYING, and release the cache block lock.  We do
   // not want to hold the lock while we copy the data.
@@ -1109,11 +1095,11 @@ static void processBioCached(CacheBlock      *cb,
  *                            calling bio_endio, or forwarding it onward by
  *                            submitting it to the next layer.
  **/
-static int processBioLocked(CacheBlock      *cb,
-                            struct bio      *bio,
-                            struct bio_list *ready)
+static int processBioLocked(struct cache_block *cb,
+                            struct bio         *bio,
+                            struct bio_list    *ready)
 {
-  DoryDevice *dd = cb->doryDevice;
+  struct lossy_device *dd = cb->device;
   sector_t blockNumber = getBioSector(bio) >> dd->blockShift;
   if (cb->state == EMPTY) {
     // Cache block is unused.  Look for a reason to do the I/O directly.  In
@@ -1176,10 +1162,10 @@ static int processBioLocked(CacheBlock      *cb,
  *
  * @param dd  The Dory device
  **/
-static void flushTheCache(DoryDevice *dd)
+static void flushTheCache(struct lossy_device *dd)
 {
   for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
-    CacheBlock *cb = &dd->cacheBlocks[i];
+    struct cache_block *cb = &dd->cacheBlocks[i];
     spin_lock_irq(&cb->lock);
     if (cb->state == DIRTY) {
       flushCacheBlock(cb);
@@ -1206,7 +1192,8 @@ static void flushTheCache(DoryDevice *dd)
  *                            calling bio_endio, or forwarding it onward by
  *                            submitting it to the next layer.
  **/
-static int processBio(DoryDevice *dd, struct bio *bio, struct bio_list *ready)
+static int processBio(struct lossy_device *dd, struct bio *bio,
+                      struct bio_list *ready)
 {
   if ((bio_data_dir(bio) == WRITE) && dd->stopFlag) {
     // We have been told to stop writing.  Make it so.
@@ -1251,7 +1238,7 @@ static int processBio(DoryDevice *dd, struct bio *bio, struct bio_list *ready)
     // proceed to do the I/O.
     sector_t blockNumber = getBioSector(bio) >> dd->blockShift;
     unsigned int slotNumber = blockNumber % dd->cacheBlockCount;
-    CacheBlock *cb = &dd->cacheBlocks[slotNumber];
+    struct cache_block *cb = &dd->cacheBlocks[slotNumber];
     spin_lock_irq(&cb->lock);
     result = processBioLocked(cb, bio, ready);
     spin_unlock_irq(&cb->lock);
@@ -1269,7 +1256,7 @@ static int processBio(DoryDevice *dd, struct bio *bio, struct bio_list *ready)
  * @param dd     The Dory device
  * @param ready  bio list of bios that are ready to process
  **/
-static void processBioList(DoryDevice *dd, struct bio_list *ready)
+static void processBioList(struct lossy_device *dd, struct bio_list *ready)
 {
   struct bio *bio;
   while ((bio = bio_list_pop(ready)) != NULL) {
@@ -1281,7 +1268,7 @@ static void processBioList(DoryDevice *dd, struct bio_list *ready)
 }
 
 /**********************************************************************/
-static void freeDoryDeviceCache(DoryDevice *dd)
+static void freeDoryDeviceCache(struct lossy_device *dd)
 {
   // Free the cache data blocks.
   if (dd->cacheData != NULL) {
@@ -1290,7 +1277,7 @@ static void freeDoryDeviceCache(DoryDevice *dd)
 
   // Free the bios for the cache data blocks.
   for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
-    CacheBlock *cb = &dd->cacheBlocks[i];
+    struct cache_block *cb = &dd->cacheBlocks[i];
     if (cb->blockBio != NULL) {
       bio_uninit(cb->blockBio);
       kfree(cb->blockBio);
@@ -1322,9 +1309,10 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  DoryDevice *dd = kzalloc(sizeof(DoryDevice)
-                           + cacheBlockCount * sizeof(CacheBlock),
-                           GFP_KERNEL);
+  struct lossy_device *dd
+    = kzalloc(sizeof(struct lossy_device)
+              + cacheBlockCount * sizeof(struct cache_block),
+              GFP_KERNEL);
   if (dd == NULL) {
     ti->error = "Cannot allocate context";
     return -ENOMEM;
@@ -1342,7 +1330,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   dd->blockSize       = blockSize;
   dd->cacheData       = cacheData;
   dd->cacheBlockCount = cacheBlockCount;
-  dd->ioError         = BIO_EIO;
+  dd->ioError         = BLK_STS_IOERR;
   dd->stopFlag        = false;
   dd->tornMask        = ~0;
   dd->tornModulus     = 8;
@@ -1354,12 +1342,12 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   spin_lock_init(&dd->flushLock);
   spin_lock_init(&dd->workLock);
   for (unsigned int i = 0; i < cacheBlockCount; i++) {
-    CacheBlock *cb = &dd->cacheBlocks[i];
+    struct cache_block *cb = &dd->cacheBlocks[i];
     bio_list_init(&cb->waitingBios);
     spin_lock_init(&cb->lock);
     cb->blockBio = bio_kmalloc(1, GFP_KERNEL);
     cb->blockData = cacheData;
-    cb->doryDevice = dd;
+    cb->device = dd;
     cb->state = EMPTY;
     cacheData += blockSize;
     if (cb->blockBio == NULL) {
@@ -1397,7 +1385,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
 /**********************************************************************/
 static void doryDtr(struct dm_target *ti)
 {
-  DoryDevice *dd = ti->private;
+  struct lossy_device *dd = ti->private;
   dm_put_device(ti, dd->dev);
   freeDoryDeviceCache(dd);
   kobject_put(&dd->kobj);
@@ -1407,7 +1395,7 @@ static void doryDtr(struct dm_target *ti)
 static int doryMap(struct dm_target *ti,
                    struct bio       *bio)
 {
-  DoryDevice *dd = ti->private;
+  struct lossy_device *dd = ti->private;
 
   // Map the I/O to the storage device.
   setBioBlockDevice(bio, dd->dev->bdev);
@@ -1456,7 +1444,7 @@ static void doryStatus(struct dm_target *ti,
                        char             *result,
                        unsigned int      maxlen)
 {
-  DoryDevice *dd = ti->private;
+  struct lossy_device *dd = ti->private;
   unsigned int sz = 0;  // used by the DMEMIT macro
 
   switch (type) {
@@ -1491,8 +1479,6 @@ static struct target_type doryTargetType = {
 /**********************************************************************/
 int __init doryInit(void)
 {
-  BUILD_BUG_ON(offsetof(DoryDevice, dev) != offsetof(CommonDevice, dev));
-
   kobject_init(&doryKobj, &emptyObjectType);
   int result = kobject_add(&doryKobj, NULL, THIS_MODULE->name);
   if (result < 0) {
