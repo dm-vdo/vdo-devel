@@ -12,6 +12,10 @@ ifdef LOGDIR
   TEST_ARGS += --logDir=$(LOGDIR) --saveServerLogDir=$(LOGDIR)
 endif
 
+ifeq ($(DMLINUX), 1)
+  TEST_ARGS += --useUpstreamKernel
+endif
+
 ifeq ($(USER),continuous)
   RSVP_HOST = PRSVP_HOST=jenkins
 endif
