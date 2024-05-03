@@ -109,16 +109,8 @@ sub exportNfs {
   assertTrue($self->{mounted});
   if (!$self->{exported}) {
     my $machine = $self->{machine};
-    # Start the nfs service. Systems with systemd use systemctl; others
-    # use service
     my $command
-      = "sudo touch /etc/exports"
-        . " && if which systemctl;"
-             . " then sudo systemctl start nfs-server.service;"
-           . " elif test -f /etc/init.d/nfs-kernel-server;"
-             . " then sudo service nfs-kernel-server start;"
-             . " else sudo service nfs start;"
-            . "fi";
+      = "sudo touch /etc/exports && sudo systemctl start nfs-server.service";
     $machine->runSystemCmd("$command");
     my $options = "async,rw,no_root_squash";
     $machine->runSystemCmd("sudo exportfs -i -o $options :$self->{mountDir}");
@@ -347,6 +339,7 @@ sub unexport {
   my ($self) = assertNumArgs(1, @_);
   if ($self->{mounted} && $self->{exported}) {
     $self->{machine}->runSystemCmd("sudo exportfs -u *:$self->{mountDir}");
+    $self->{machine}->executeCommand("sudo systemctl stop nfs-server");
   }
   $self->{exported} = 0;
 }
