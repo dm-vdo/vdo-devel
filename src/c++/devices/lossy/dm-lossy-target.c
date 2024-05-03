@@ -50,14 +50,13 @@
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
-// use VDO_UPSTREAM for version
-#include <linux/version.h>
 #include <linux/vmalloc.h>
 #include <uapi/linux/dm-ioctl.h>
-
+#ifndef VDO_UPSTREAM
 
 // only needed for tests; see dm-vdo-target.c
 #include "dm-lossy-target.h"
+#endif /* VDO_UPSTREAM */
 
 // common.h
 /**
@@ -199,26 +198,12 @@ extern struct kobj_type emptyObjectType;
 /**********************************************************************/
 char *bufferToString(const char *buf, size_t length);
 
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* RHEL_RELEASE_CODE */
 /**********************************************************************/
-#ifdef VDO_USE_ALTERNATE
-int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev);
-#else
 int commonPrepareIoctl(struct dm_target     *ti,
                        struct block_device **bdev,
                        unsigned int          cmd,
                        unsigned long         arg,
                        bool                 *forward);
-#endif /* VDO_USE_ALTERNATE */
 
 /**********************************************************************/
 int commonIterateDevices(struct dm_target           *ti,
@@ -289,26 +274,12 @@ char *bufferToString(const char *buf, size_t length)
   return string;
 }
 
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* RHEL_RELEASE_CODE */
 /**********************************************************************/
-#ifdef VDO_USE_ALTERNATE
-int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev)
-#else
 int commonPrepareIoctl(struct dm_target     *ti,
                        struct block_device **bdev,
                        unsigned int          cmd __always_unused,
                        unsigned long         arg __always_unused,
                        bool                 *forward __always_unused)
-#endif /* VDO_USE_ALTERNATE */
 {
   CommonDevice *cd = (CommonDevice *)ti->private;
   struct dm_dev *dev = cd->dev;
@@ -385,8 +356,6 @@ struct kobject topKobj;
 
 #include <linux/device-mapper.h>
 #include <linux/module.h>
-// use VDO_UPSTREAM for version
-#include <linux/version.h>
 #include <linux/vmalloc.h>
 
 //#include "common.h"
@@ -1031,18 +1000,7 @@ static void flushCacheBlock(CacheBlock *cb)
   spin_unlock_irq(&cb->lock);
 
   // Start writing the cache block
-#undef USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9,1))
-#else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0))
-#endif
-#if USE_ALTERNATE
-  bio_reset(cb->blockBio);
-  cb->blockBio->bi_opf = REQ_OP_WRITE;
-#else
   bio_reset(cb->blockBio, dd->dev->bdev, REQ_OP_WRITE);
-#endif
   cb->blockBio->bi_end_io  = endFlushCacheBlock;
   cb->blockBio->bi_private = cb;
   setBioBlockDevice(cb->blockBio, dd->dev->bdev);
