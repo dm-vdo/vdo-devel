@@ -57,192 +57,6 @@
 #include "dm-lossy-target.h"
 #endif /* VDO_UPSTREAM */
 
-// common.h
-
-/**********************************************************************/
-static inline bool isDiscardBio(struct bio *bio)
-{
-  return (bio_op(bio) == REQ_OP_DISCARD);
-}
-
-/**********************************************************************/
-static inline bool isFlushBio(struct bio *bio)
-{
-  return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
-}
-
-/**********************************************************************/
-static inline bool isFUABio(struct bio *bio)
-{
-  return (bio->bi_opf & REQ_FUA) != 0;
-}
-
-/**********************************************************************/
-static inline bool isReadBio(struct bio *bio)
-{
-  return bio_data_dir(bio) == READ;
-}
-
-/**********************************************************************/
-static inline bool isWriteBio(struct bio *bio)
-{
-  return bio_data_dir(bio) == WRITE;
-}
-
-/**
- * Get a bio's size.
- *
- * @param bio  The bio
- *
- * @return the bio's size
- **/
-static inline unsigned int getBioSize(struct bio *bio)
-{
-  return bio->bi_iter.bi_size;
-}
-
-/**
- * Set the bio's sector.
- *
- * @param bio     The bio
- * @param sector  The sector
- **/
-static inline void setBioSector(struct bio *bio, sector_t sector)
-{
-  bio->bi_iter.bi_sector = sector;
-}
-
-/**
- * Get the bio's sector.
- *
- * @param bio  The bio
- *
- * @return the sector
- **/
-static inline sector_t getBioSector(struct bio *bio)
-{
-  return bio->bi_iter.bi_sector;
-}
-
-/**
- * Set the block device for a bio.
- *
- * @param bio     The bio to modify
- * @param device  The new block device for the bio
- **/
-static inline void setBioBlockDevice(struct bio          *bio,
-                                     struct block_device *device)
-{
-  bio_set_dev(bio, device);
-}
-
-/**
- * Get the error from the bio.
- *
- * @param bio  The bio
- *
- * @return the bio's error if any
- **/
-static inline int getBioResult(struct bio *bio)
-{
-  return blk_status_to_errno(bio->bi_status);
-}
-
-/**
- * Clone a bio.
- *
- * @param  bio  The bio to clone
- * @param  bs   The bio set to use for cloning
- *
- * @return the cloned bio, or NULL if none could be allocated
- **/
-static inline struct bio *cloneBio(struct bio *bio,
-                                   struct bio_set *bs)
-{
-  return bio_alloc_clone(bio->bi_bdev, bio, GFP_KERNEL, bs);
-}
-
-/**
- * Invoke the bi_end_io callback routine
- *
- * @param bio    The bio
- * @param error  An error indication
- **/
-static inline void endio(struct bio *bio, blk_status_t error)
-{
-  bio->bi_status = error;
-  bio_endio(bio);
-}
-
-/**********************************************************************/
-
-// sysfs type for an "empty" directory (other directories can be added to it)
-extern struct kobj_type emptyObjectType;
-
-/**********************************************************************/
-char *bufferToString(const char *buf, size_t length);
-
-/**********************************************************************/
-int commonPrepareIoctl(struct dm_target     *ti,
-                       struct block_device **bdev,
-                       unsigned int          cmd,
-                       unsigned long         arg,
-                       bool                 *forward);
-
-/**********************************************************************/
-int commonIterateDevices(struct dm_target           *ti,
-                         iterate_devices_callout_fn  fn,
-                         void                       *data);
-
-/**********************************************************************/
-int dmGetDevice(struct dm_target  *ti,
-                const char        *path,
-                struct dm_dev    **devPtr);
-
-/**********************************************************************
- * Checks whether the argument passed in is the string we want to
- * compare against.
- *
- * @param [in] arg        the argument to check
- * @param [in] thisOption the value to compare against
- *
- * @return true if argument matches value, false otherwise
- */
-static inline bool isArgString(const char *arg, const char *thisOption)
-{
-  // device-mapper convention seems to be case-independent options
-  return strncasecmp(arg, thisOption, strlen(thisOption)) == 0;
-}
-
-/**
- * Returns a boolean indicating if the specified dmsetup message is a global
- * disable (don't perform the device's processing; just pass through) message.
- *
- * @param [in]  argc    message argument count
- * @param [in]  argv    message argument vector
- *
- * @return  boolean   true => message to disable all device processing and
- *                            just pass through requests
- **/
-static inline int isGlobalDisableMessage(unsigned int argc, char * const *argv)
-{
-  return (argc == 1) && isArgString(argv[0], "disable");
-}
-
-/**
- * Returns a boolean indicating if the specified dmsetup message is a global
- * enable (perform the device's operations) message.
- *
- * @param [in]  argc    message argument count
- * @param [in]  argv    message argument vector
- *
- * @return  boolean   true => message to enable device processing
- **/
-static inline int isGlobalEnableMessage(unsigned int argc, char * const *argv)
-{
-  return (argc == 1) && isArgString(argv[0], "enable");
-}
-
 // common.c
 
 /**********************************************************************/
@@ -256,44 +70,6 @@ char *bufferToString(const char *buf, size_t length)
     }
   }
   return string;
-}
-
-/**********************************************************************/
-int commonPrepareIoctl(struct dm_target     *ti,
-                       struct block_device **bdev,
-                       unsigned int          cmd __always_unused,
-                       unsigned long         arg __always_unused,
-                       bool                 *forward __always_unused)
-{
-  CommonDevice *cd = (CommonDevice *)ti->private;
-  struct dm_dev *dev = cd->dev;
-
-  *bdev = dev->bdev;
-
-  // Only pass ioctls through if the device sizes match exactly.
-  if (ti->len != bdev_nr_bytes(dev->bdev) >> SECTOR_SHIFT) {
-    return 1;
-  }
-  return 0;
-}
-
-/**********************************************************************/
-int commonIterateDevices(struct dm_target           *ti,
-                         iterate_devices_callout_fn  fn,
-                         void                       *data)
-{
-  CommonDevice *cd = ti->private;
-  struct dm_dev *dev = cd->dev;
-
-  return fn(ti, dev, 0, ti->len, data);
-}
-
-/**********************************************************************/
-int dmGetDevice(struct dm_target  *ti,
-                const char        *path,
-                struct dm_dev    **devPtr)
-{
-  return dm_get_device(ti, path, dm_table_get_mode(ti->table), devPtr);
 }
 
 /**********************************************************************/
@@ -330,6 +106,7 @@ static struct sysfs_ops emptyOps = {
   .store = emptyStore,
 };
 
+// sysfs type for an "empty" directory (other directories can be added to it)
 struct kobj_type emptyObjectType = {
   .release        = emptyRelease,
   .sysfs_ops      = &emptyOps,
@@ -337,13 +114,6 @@ struct kobj_type emptyObjectType = {
 };
 
 struct kobject topKobj;
-
-#include <linux/device-mapper.h>
-#include <linux/module.h>
-#include <linux/vmalloc.h>
-
-//#include "common.h"
-//#include "dmDory.h"
 
 static struct kobject doryKobj;
 
@@ -505,8 +275,6 @@ struct lossy_device {
   // The block cache (variable sized, so it goes at the end).
   struct cache_block cacheBlocks[];
 };
-
-static void processBioList(struct lossy_device *dd, struct bio_list *ready);
 
 /**********************************************************************/
 // BEGIN large section of code for the sysfs interface
@@ -818,6 +586,8 @@ static struct kobj_type doryObjectType = {
 // BEGIN large section of code for the block cache
 /**********************************************************************/
 
+static void processBioList(struct lossy_device *dd, struct bio_list *ready);
+
 /**
  * Do delayed processing of a list of bios in a kworker thread.
  *
@@ -843,7 +613,8 @@ static void processDelayed(struct work_struct *work)
   while ((bio = bio_list_pop(&flushes)) != NULL) {
     if (dd->stopFlag && (atomic64_read(&dd->writeFailure) > 0)) {
       // We are stopping writes and failed to write a cached block.
-      endio(bio, dd->ioError);
+      bio->bi_status = dd->ioError;
+      bio_endio(bio);
       atomic64_inc(&dd->errorBios);
     } else {
       // Still succeeding, so forward the flush to the storage medium.
@@ -943,7 +714,7 @@ static void decrementBusyCountAndTest(struct lossy_device *dd)
  **/
 static void endFlushCacheBlock(struct bio *bio)
 {
-  int error = getBioResult(bio);
+  int error = blk_status_to_errno(bio->bi_status);
   struct cache_block *cb = bio->bi_private;
   struct lossy_device *dd = cb->device;
   struct bio_list ready;
@@ -989,8 +760,8 @@ static void flushCacheBlock(struct cache_block *cb)
   bio_reset(cb->blockBio, dd->dev->bdev, REQ_OP_WRITE);
   cb->blockBio->bi_end_io  = endFlushCacheBlock;
   cb->blockBio->bi_private = cb;
-  setBioBlockDevice(cb->blockBio, dd->dev->bdev);
-  setBioSector(cb->blockBio, cb->blockNumber << dd->blockShift);
+  bio_set_dev(cb->blockBio, dd->dev->bdev);
+  cb->blockBio->bi_iter.bi_sector = (cb->blockNumber << dd->blockShift);
   cb->blockBio->bi_io_vec = bio_inline_vecs(cb->blockBio);
   cb->blockBio->bi_max_vecs = 1;
 
@@ -1004,7 +775,8 @@ static void flushCacheBlock(struct cache_block *cb)
   if (dd->stopFlag) {
     // We are supposed to stop writing, so fail the write.
     atomic64_inc(&dd->flushFailure);
-    endio(cb->blockBio, dd->ioError);
+    cb->blockBio->bi_status = dd->ioError;
+    bio_endio(cb->blockBio);
   } else {
     submit_bio_noacct(cb->blockBio);
   }
@@ -1035,8 +807,8 @@ static void processBioCached(struct cache_block *cb,
   spin_unlock_irq(&cb->lock);
 
   // Compute the cache address to begin transfers.
-  sector_t blockNumber = getBioSector(bio) >> dd->blockShift;
-  size_t offset = (getBioSector(bio) - (blockNumber << dd->blockShift)) << 9;
+  sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
+  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << dd->blockShift)) << 9;
   char *data = cb->blockData + offset;
 
   // Copy the data.
@@ -1054,7 +826,8 @@ static void processBioCached(struct cache_block *cb,
   }
 
   // We are done with the bio.
-  endio(bio, 0);
+  bio->bi_status = 0;
+  bio_endio(bio);
   atomic64_inc(&dd->successBios);
 
   // Grab the cache block lock, and set the block state to DIRTY.
@@ -1100,15 +873,15 @@ static int processBioLocked(struct cache_block *cb,
                             struct bio_list    *ready)
 {
   struct lossy_device *dd = cb->device;
-  sector_t blockNumber = getBioSector(bio) >> dd->blockShift;
+  sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
   if (cb->state == EMPTY) {
     // Cache block is unused.  Look for a reason to do the I/O directly.  In
     // order: It's a read; it's a REQ_FUA; it's a REQ_DISCARD; it's a partial
     // block.
     if ((bio_data_dir(bio) == READ)
-        || isFUABio(bio)
-        || isDiscardBio(bio)
-        || (getBioSize(bio) < dd->blockSize)) {
+        || ((bio->bi_opf & REQ_FUA) != 0)
+        || (bio_op(bio) == REQ_OP_DISCARD)
+        || (bio->bi_iter.bi_size < dd->blockSize)) {
       return DM_MAPIO_REMAPPED;
     }
     // We have an unused cache block for an ordinary write of a full block.
@@ -1135,12 +908,12 @@ static int processBioLocked(struct cache_block *cb,
     // The block is busy, so we must wait.
     bio_list_add(&cb->waitingBios, bio);
     return DM_MAPIO_SUBMITTED;
-  } else if (!isFUABio(bio) && !isDiscardBio(bio)) {
+  } else if (((bio->bi_opf & REQ_FUA) == 0) && (bio_op(bio) != REQ_OP_DISCARD)) {
     // Unless it is a FUA write or a discard, we can service the bio directly
     // using the cache.
     processBioCached(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (getBioSize(bio) == dd->blockSize) {
+  } else if (bio->bi_iter.bi_size == dd->blockSize) {
     // It's a full block FUA write or discard, so drop the cache block and just
     // do the write.  Because our bio is known to be busy, this can never drop
     // the busy count to zero.
@@ -1198,7 +971,8 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
   if ((bio_data_dir(bio) == WRITE) && dd->stopFlag) {
     // We have been told to stop writing.  Make it so.
     atomic64_inc(&dd->writeFailure);
-    endio(bio, dd->ioError);
+    bio->bi_status = dd->ioError;
+    bio_endio(bio);
     return DM_MAPIO_SUBMITTED;
   }
 
@@ -1213,8 +987,8 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
 
   spin_lock_irq(&dd->flushLock);
   int result;
-  if (isFlushBio(bio)) {
-    if (getBioSize(bio) > 0) {
+  if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
+    if (bio->bi_iter.bi_size > 0) {
       printk(KERN_WARNING "flush bio too big!");
     }
     // Add to the list of active flush bios.  If we are the first one, we must
@@ -1236,7 +1010,7 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
     spin_unlock_irq(&dd->flushLock);
     // There is no flush in progress, so we may lock the cache block and
     // proceed to do the I/O.
-    sector_t blockNumber = getBioSector(bio) >> dd->blockShift;
+    sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
     unsigned int slotNumber = blockNumber % dd->cacheBlockCount;
     struct cache_block *cb = &dd->cacheBlocks[slotNumber];
     spin_lock_irq(&cb->lock);
@@ -1358,7 +1132,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
     }
   }
 
-  if (dmGetDevice(ti, devicePath, &dd->dev)) {
+  if (dm_get_device(ti, devicePath, dm_table_get_mode(ti->table), &dd->dev)) {
     ti->error = "Device lookup failed";
     freeDoryDeviceCache(dd);
     kfree(dd);
@@ -1392,28 +1166,56 @@ static void doryDtr(struct dm_target *ti)
 }
 
 /**********************************************************************/
+static int commonPrepareIoctl(struct dm_target     *ti,
+                              struct block_device **bdev,
+                              unsigned int          cmd,
+                              unsigned long         arg,
+                              bool                 *forward)
+{
+  struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
+
+  *bdev = dev->bdev;
+
+  // Only pass ioctls through if the device sizes match exactly.
+  if (ti->len != bdev_nr_bytes(dev->bdev) >> SECTOR_SHIFT) {
+    return 1;
+  }
+  return 0;
+}
+
+/**********************************************************************/
+static int commonIterateDevices(struct dm_target           *ti,
+                                iterate_devices_callout_fn  fn,
+                                void                       *data)
+{
+  struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
+
+  return fn(ti, dev, 0, ti->len, data);
+}
+
+/**********************************************************************/
 static int doryMap(struct dm_target *ti,
                    struct bio       *bio)
 {
   struct lossy_device *dd = ti->private;
 
   // Map the I/O to the storage device.
-  setBioBlockDevice(bio, dd->dev->bdev);
-  setBioSector(bio, dm_target_offset(ti, getBioSector(bio)));
+  bio_set_dev(bio, dd->dev->bdev);
+  bio->bi_iter.bi_sector = dm_target_offset(ti, bio->bi_iter.bi_sector);
 
   // Perform accounting.
   if (bio_data_dir(bio) == READ) {
     atomic64_inc(&dd->readTotal);
   } else {
-    if (isFlushBio(bio)) {
+    if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
       atomic64_inc(&dd->flushTotal);
       dd->readsAtLastFlush  = atomic64_read(&dd->readTotal);
       dd->writesAtLastFlush = atomic64_read(&dd->writeTotal);
     }
-    if (isFUABio(bio)) {
+    if ((bio->bi_opf & REQ_FUA) != 0) {
       atomic64_inc(&dd->fuaTotal);
     }
-    if (getBioSize(bio) > 0) {
+    if (bio->bi_iter.bi_size > 0) {
       atomic64_inc(&dd->writeTotal);
     }
   }
