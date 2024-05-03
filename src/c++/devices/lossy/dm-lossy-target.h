@@ -2,8 +2,6 @@
  * %COPYRIGHT%
  *
  * %LICENSE%
- *
- * $Id$
  */
 
 #include <linux/module.h>

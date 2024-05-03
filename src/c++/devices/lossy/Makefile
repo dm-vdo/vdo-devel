@@ -4,27 +4,22 @@
 #
 # %LICENSE%
 #
-# $Id$
-#
 
 src ?= .
 
 KERNEL_SRC_DIR ?=  /lib/modules/$(shell uname -r)/build
 SUDO := $(shell test $$(id -u) = 0 || echo sudo)
 
-include $(src)/../Makefile.devices
 include $(src)/Makefile.common
 
-INCLUDES += -I$(DORY_DIR)
+INCLUDES += -I$(LOSSY_DIR)
 
-CFLAGS_super.o := -DDEBUG
-
-MODNAME = pbitdory
+MODNAME = pbitlossy
 
 EXTRA_CFLAGS += $(INCLUDES)
 
 obj-m := $(MODNAME).o
-$(MODNAME)-objs := $(DORY_OBJS) $(DEVICE_COMMON_OBJS)
+$(MODNAME)-objs := $(LOSSY_OBJS)
 
 all: modules
 
@@ -49,11 +44,3 @@ test: modules
 	$(SUDO) insmod $(MODNAME).ko
 
 .PHONY: all clean check TAGS tags
-
-###############################################################################
-# Override kernel-object build rule when sources are in another directory
-
-DEVICE_COMMON_OBJS_FULL_PATH = $(addprefix $(obj)/,$(DEVICE_COMMON_OBJS))
-$(DEVICE_COMMON_OBJS_FULL_PATH): $(obj)/%.o: $(DEVICE_COMMON_DIR)/%.c FORCE
-	$(call cmd,force_checksrc)
-	$(call if_changed_rule,cc_o_c)

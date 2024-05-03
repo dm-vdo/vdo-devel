@@ -1,18 +1,17 @@
-# Makefile for building dory with DKMS -*-makefile-gmake-*-
+# Makefile for building lossy with DKMS -*-makefile-gmake-*-
 #
 # %COPYRIGHT%
 #
 # %LICENSE%
 #
-# $Id: $
 
-MODNAME=pbitdory
+MODNAME=pbitlossy
 MODULE_VERSION=1
 
 include $(src)/Makefile.common
 
 obj-m += $(MODNAME).o
-$(MODNAME)-objs := $(DORY_OBJS)
+$(MODNAME)-objs := $(LOSSY_OBJS)
 
 INCLUDES += -I$(src)/
 EXTRA_CFLAGS += $(INCLUDES)

@@ -4,18 +4,16 @@
 #
 # %LICENSE%
 #
-# $Id: $
-#
 
-DORY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+LOSSY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-DORY_SRCS = $(notdir $(wildcard $(DORY_DIR)/*.c))
-DORY_OBJS = $(DORY_SRCS:.c=.o)
-DORY_HDRS = $(notdir $(wildcard $(DORY_DIR)/*.h))
+LOSSY_SRCS = $(notdir $(wildcard $(LOSSY_DIR)/*.c))
+LOSSY_OBJS = $(LOSSY_SRCS:.c=.o)
+LOSSY_HDRS = $(notdir $(wildcard $(LOSSY_DIR)/*.h))
 
-INCLUDES += -I$(DORY_DIR)
+INCLUDES += -I$(LOSSY_DIR)
 
-VPATH += $(DORY_DIR)
+VPATH += $(LOSSY_DIR)
 
 EXTRA_CFLAGS =	-std=gnu11				\
 		-fno-builtin-memset			\
