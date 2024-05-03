@@ -147,7 +147,7 @@ dmlinux-jenkins-parallel: clean
 	$(MAKE) -C packaging/dmlinux clean all
 	@echo "Using index name of $$VDO_TESTINDEX"
 	$(MAKE) DMLINUX=1 vdotests
-	$(MAKE) dmtests
+	$(MAKE) DMLINUX=1 dmtests
 
 .PHONY: archive
 archive:

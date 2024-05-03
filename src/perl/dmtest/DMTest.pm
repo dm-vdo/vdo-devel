@@ -103,9 +103,24 @@ our %PROPERTIES
      suppressCleanupOnError => ["Verify"],
      # @ple The directory to put the user tool binaries in
      userBinaryDir          => undef,
+     # @ple Use the dmlinux src rpm for testing.
+     useUpstreamKernel      => 0,
     );
 
 my @SRPM_NAMES
+  = (
+     "src/srpms/kmod-kvdo-$VDO_VERSION-*.src.rpm",
+     "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
+    );
+
+my @RPM_NAMES
+  = (
+     "archive/kmod-kvdo-$VDO_VERSION-1.*.rpm",
+     "archive/vdo-$VDO_VERSION-1.*.rpm",
+     "archive/vdo-support-$VDO_VERSION-1.*.rpm",
+    );
+
+my @UPSTREAM_NAMES
   = (
      "src/packaging/dmlinux/build/SRPMS/kmod-kvdo-$VDO_VERSION-*.src.rpm",
      "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
@@ -383,7 +398,13 @@ sub installModules {
 sub listSharedFiles {
   my ($self) = assertNumArgs(1, @_);
   my @files = ($self->SUPER::listSharedFiles(), @SHARED_FILES);
-  return (@files, @SRPM_NAMES);
+  if ($self->{useUpstreamKernel}) {
+    return (@files, @UPSTREAM_NAMES);
+  } elsif ($self->{useDistribution}) {
+    return (@files, @RPM_NAMES);
+  } else {
+    return (@files, @SRPM_NAMES);
+  }
 }
 
 ########################################################################
