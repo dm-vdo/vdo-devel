@@ -47,7 +47,6 @@
 
 #include <linux/blk_types.h>
 #include <linux/device-mapper.h>
-#include <linux/kobject.h>
 #include <linux/module.h>
 #include <linux/vmalloc.h>
 #include <uapi/linux/dm-ioctl.h>
@@ -57,70 +56,7 @@
 #include "dm-lossy-target.h"
 #endif /* VDO_UPSTREAM */
 
-// common.c
-
-/**********************************************************************/
-char *bufferToString(const char *buf, size_t length)
-{
-  char *string = kzalloc(length + 1, GFP_KERNEL);
-  if (string != NULL) {
-    memcpy(string, buf, length);
-    if (string[length - 1] == '\n') {
-      string[length - 1] = '\0';
-    }
-  }
-  return string;
-}
-
-/**********************************************************************/
-static void emptyRelease(struct kobject *kobj)
-{
-}
-
-/**********************************************************************/
-static ssize_t emptyShow(struct kobject   *kobj,
-                         struct attribute *attr,
-                         char             *buf)
-{
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t emptyStore(struct kobject   *kobj,
-                          struct attribute *attr,
-                          const char       *buf,
-                          size_t            length)
-{
-  return length;
-}
-
-/**********************************************************************/
-
-static struct attribute *empty_attrs[] = {
-  NULL,
-};
-ATTRIBUTE_GROUPS(empty);
-
-static struct sysfs_ops emptyOps = {
-  .show  = emptyShow,
-  .store = emptyStore,
-};
-
-// sysfs type for an "empty" directory (other directories can be added to it)
-struct kobj_type emptyObjectType = {
-  .release        = emptyRelease,
-  .sysfs_ops      = &emptyOps,
-  .default_groups = empty_groups,
-};
-
-struct kobject topKobj;
-
-static struct kobject doryKobj;
-
-/**********************************************************************/
-
 #define DM_MSG_PREFIX  "dory"
-#define SYSFS_DIR_NAME "dory"
 
 enum { DORY_NAME_SIZE = 11 };
 
@@ -191,9 +127,6 @@ struct cache_block {
 struct lossy_device {
   // Pointer to the underlying storage device. MUST BE FIRST ITEM IN STRUCT.
   struct dm_dev  *dev;
-  // The sysfs node that connects /sys/<moduleName>/dory/<doryName> to this
-  // dory device.
-  struct kobject  kobj;
   // Return value for unsuccessful writes.
   blk_status_t    ioError;
   // Flag that is set to true to stop all writes by the device.
@@ -274,312 +207,6 @@ struct lossy_device {
 
   // The block cache (variable sized, so it goes at the end).
   struct cache_block cacheBlocks[];
-};
-
-/**********************************************************************/
-// BEGIN large section of code for the sysfs interface
-/**********************************************************************/
-
-struct dory_attribute {
-  struct attribute attr;
-  ssize_t (*show)(struct lossy_device *dd, char *buf);
-  ssize_t (*store)(struct lossy_device *dd, const char *value);
-};
-
-/**********************************************************************/
-static void doryRelease(struct kobject *kobj)
-{
-  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
-  kfree(dd);
-}
-
-/**********************************************************************/
-static ssize_t doryShow(struct kobject   *kobj,
-                        struct attribute *attr,
-                        char             *buf)
-{
-  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
-  struct dory_attribute *da = container_of(attr, struct dory_attribute, attr);
-  if (da->show != NULL) {
-    return da->show(dd, buf);
-  }
-  return -EINVAL;
-}
-
-/**********************************************************************/
-static ssize_t doryShowCache(struct lossy_device *dd, char *buf)
-{
-  // The string that indicates the data do not fit in the output.
-  static const char ETC_STRING[] = "...\n";
-  static const int ETC_LENGTH = sizeof(ETC_STRING) - 1;
-  // The maximum length of an output line
-  //               %u      %s      %u       %u  \n
-  enum { LINE_MAX = 5 + 1 + 7 + 1 + 2 + 1 + 12 + 1 };
-
-  bool full = false;
-  int length = 0;
-  for (unsigned int i = 0; !full && (i < dd->cacheBlockCount); i++) {
-    struct cache_block *cb = &dd->cacheBlocks[i];
-    spin_lock_irq(&cb->lock);
-    unsigned int waiterCount = bio_list_size(&cb->waitingBios);
-    sector_t     sector      = cb->blockNumber << dd->blockShift;
-    enum block_state block_state = cb->state;
-    spin_unlock_irq(&cb->lock);
-    char *state = "UNKNOWN";
-    switch (block_state) {
-    case EMPTY:                       continue;
-    case COPYING:  state = "COPYING"; break;
-    case DIRTY:    state = "DIRTY";   break;
-    case WRITING:  state = "WRITING"; break;
-    default:                          break;
-    }
-    full = (length > PAGE_SIZE - LINE_MAX - ETC_LENGTH - 1);
-    if (!full) {
-      char *line = &buf[length];
-      snprintf(line, LINE_MAX, "%u %s %u %llu\n", i, state, waiterCount,
-               (unsigned long long) sector);
-      length += strlen(line);
-    }
-  }
-  if (full) {
-    strcpy(&buf[length], ETC_STRING);
-    length += ETC_LENGTH;
-  }
-  return length;
-}
-
-/**********************************************************************/
-static ssize_t doryShowMode(struct lossy_device *dd, char *buf)
-{
-  strcpy(buf, dd->stopFlag ? "stop\n" : "running\n");
-  return strlen(buf);
-}
-
-/**********************************************************************/
-static ssize_t doryShowState(struct lossy_device *dd, char *buf)
-{
-  spin_lock_irq(&dd->flushLock);
-  unsigned int flushFlushCount = bio_list_size(&dd->flushBios);
-  unsigned int flushBioCount   = bio_list_size(&dd->waitingBios);
-  spin_unlock_irq(&dd->flushLock);
-  spin_lock_irq(&dd->workLock);
-  unsigned int workFlushCount = bio_list_size(&dd->workFlushBios);
-  unsigned int workBioCount   = bio_list_size(&dd->workBios);
-  spin_unlock_irq(&dd->workLock);
-  return sprintf(buf,
-                 "blockSize: %zu\n"
-                 "cacheBlockCount: %u\n"
-                 "tornMask: %u\n"
-                 "tornModulus: %u\n"
-                 "busyCount: %d\n"
-                 "stopFlag: %u\n"
-                 "flushFlag: %u\n"
-                 "flushFlushCount: %u\n"
-                 "flushBioCount: %u\n"
-                 "workFlushCount: %u\n"
-                 "workBioCount: %u\n",
-                 dd->blockSize,
-                 dd->cacheBlockCount,
-                 dd->tornMask,
-                 dd->tornModulus,
-                 atomic_read(&dd->busyCount),
-                 dd->stopFlag,
-                 dd->flushFlag,
-                 flushFlushCount,
-                 flushBioCount,
-                 workFlushCount,
-                 workBioCount);
-}
-
-/**********************************************************************/
-static ssize_t doryShowStatistics(struct lossy_device *dd, char *buf)
-{
-  return sprintf(buf,
-                 "reads: %lld\n"
-                 "writes: %lld\n"
-                 "flushes: %lld\n"
-                 "FUAs: %lld\n"
-                 "writeFailure: %lld\n"
-                 "flushFailure: %lld\n"
-                 "readsAtLastFlush: %lu\n"
-                 "writesAtLastFlush: %lu\n"
-                 "readsAtStop: %lu\n"
-                 "writesAtStop: %lu\n"
-                 "mappedReturns: %lld\n"
-                 "submittedReturns: %lld\n"
-                 "submittedBios: %lld\n"
-                 "successBios: %lld\n"
-                 "errorBios: %lld\n",
-                 (long long) atomic64_read(&dd->readTotal),
-                 (long long) atomic64_read(&dd->writeTotal),
-                 (long long) atomic64_read(&dd->flushTotal),
-                 (long long) atomic64_read(&dd->fuaTotal),
-                 (long long) atomic64_read(&dd->writeFailure),
-                 (long long) atomic64_read(&dd->flushFailure),
-                 dd->readsAtLastFlush,
-                 dd->writesAtLastFlush,
-                 dd->readsAtStop,
-                 dd->writesAtStop,
-                 (long long) atomic64_read(&dd->mappedReturns),
-                 (long long) atomic64_read(&dd->submittedReturns),
-                 (long long) atomic64_read(&dd->submittedBios),
-                 (long long) atomic64_read(&dd->successBios),
-                 (long long) atomic64_read(&dd->errorBios));
-}
-
-/**********************************************************************/
-static ssize_t doryShowTornMask(struct lossy_device *dd, char *buf)
-{
-  return sprintf(buf, "%u\n", dd->tornMask);
-}
-
-/**********************************************************************/
-static ssize_t doryShowTornModulus(struct lossy_device *dd, char *buf)
-{
-  return sprintf(buf, "%u\n", dd->tornModulus);
-}
-
-/**********************************************************************/
-static ssize_t doryStore(struct kobject   *kobj,
-                         struct attribute *attr,
-                         const char       *buf,
-                         size_t            length)
-{
-  struct lossy_device *dd = container_of(kobj, struct lossy_device, kobj);
-  struct dory_attribute *da = container_of(attr, struct dory_attribute, attr);
-  char *string = bufferToString(buf, length);
-  ssize_t status;
-  if (string == NULL) {
-    status = -ENOMEM;
-  } else if (da->store != NULL) {
-    status = da->store(dd, string);
-  } else {
-    status = -EINVAL;
-  }
-  kfree(string);
-  return status ? status : length;
-}
-
-/**********************************************************************/
-static ssize_t doryStoreStop(struct lossy_device *dd, const char *value)
-{
-  dd->stopFlag = true;
-  dd->readsAtStop  = atomic64_read(&dd->readTotal);
-  dd->writesAtStop = atomic64_read(&dd->writeTotal);
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t doryStoreReturnEIO(struct lossy_device *dd, const char *value)
-{
-  unsigned int val;
-  if (sscanf(value, "%u", &val) != 1) {
-    return -EINVAL;
-  }
-  if (val == 0) {
-    dd->ioError = BLK_STS_OK;
-  } else if (val == 1) {
-    dd->ioError = BLK_STS_IOERR;
-  } else {
-    return -EINVAL;
-  }
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t doryStoreTornMask(struct lossy_device *dd, const char *value)
-{
-  unsigned long m;
-  if (sscanf(value, "%lu", &m) != 1) {
-    return -EINVAL;
-  }
-  if (m == 0) {
-    return -EINVAL;
-  }
-  dd->tornMask = m;
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t doryStoreTornModulus(struct lossy_device *dd, const char *value)
-{
-  unsigned long m;
-  if (sscanf(value, "%lu", &m) != 1) {
-    return -EINVAL;
-  }
-  if ((m < 8) || (m > 32)) {
-    return -EINVAL;
-  }
-  dd->tornModulus = m;
-  return 0;
-}
-
-/**********************************************************************/
-
-static struct dory_attribute cacheAttr = {
-  .attr = { .name = "cache", .mode = 0444 },
-  .show = doryShowCache,
-};
-
-static struct dory_attribute modeAttr = {
-  .attr = { .name = "mode", .mode = 0444 },
-  .show = doryShowMode,
-};
-
-static struct dory_attribute returnEIOAttr = {
-  .attr  = { .name = "returnEIO", .mode = 0200 },
-  .store = doryStoreReturnEIO,
-};
-
-static struct dory_attribute stateAttr = {
-  .attr = { .name = "state", .mode = 0444 },
-  .show = doryShowState,
-};
-
-static struct dory_attribute statisticsAttr = {
-  .attr = { .name = "statistics", .mode = 0444 },
-  .show = doryShowStatistics,
-};
-
-static struct dory_attribute stopAttr = {
-  .attr  = { .name = "stop", .mode = 0200 },
-  .store = doryStoreStop,
-};
-
-static struct dory_attribute tornMaskAttr = {
-  .attr  = { .name = "torn_mask", .mode = 0644 },
-  .show  = doryShowTornMask,
-  .store = doryStoreTornMask,
-};
-
-static struct dory_attribute tornModulusAttr = {
-  .attr  = { .name = "torn_modulus", .mode = 0644 },
-  .show  = doryShowTornModulus,
-  .store = doryStoreTornModulus,
-};
-
-static struct attribute *dory_attrs[] = {
-  &cacheAttr.attr,
-  &modeAttr.attr,
-  &returnEIOAttr.attr,
-  &stateAttr.attr,
-  &statisticsAttr.attr,
-  &stopAttr.attr,
-  &tornMaskAttr.attr,
-  &tornModulusAttr.attr,
-  NULL,
-};
-ATTRIBUTE_GROUPS(dory);
-
-static struct sysfs_ops doryOps = {
-  .show  = doryShow,
-  .store = doryStore,
-};
-
-static struct kobj_type doryObjectType = {
-  .release        = doryRelease,
-  .sysfs_ops      = &doryOps,
-  .default_groups = dory_groups,
 };
 
 /**********************************************************************/
@@ -1139,16 +766,6 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  kobject_init(&dd->kobj, &doryObjectType);
-  int result = kobject_add(&dd->kobj, &doryKobj, dd->doryName);
-  if (result < 0) {
-    ti->error = "sysfs addition failed";
-    dm_put_device(ti, dd->dev);
-    freeDoryDeviceCache(dd);
-    kfree(dd);
-    return result;
-  }
-
   ti->flush_supported = 1;
   BUG_ON(dm_set_target_max_io_len(ti, blockSize >> 9) != 0);
   ti->num_flush_bios = 1;
@@ -1162,7 +779,6 @@ static void doryDtr(struct dm_target *ti)
   struct lossy_device *dd = ti->private;
   dm_put_device(ti, dd->dev);
   freeDoryDeviceCache(dd);
-  kobject_put(&dd->kobj);
 }
 
 /**********************************************************************/
@@ -1475,15 +1091,8 @@ static struct target_type doryTargetType = {
 /**********************************************************************/
 int __init doryInit(void)
 {
-  kobject_init(&doryKobj, &emptyObjectType);
-  int result = kobject_add(&doryKobj, NULL, THIS_MODULE->name);
+  int result = dm_register_target(&doryTargetType);
   if (result < 0) {
-    return result;
-  }
-
-  result = dm_register_target(&doryTargetType);
-  if (result < 0) {
-    kobject_put(&doryKobj);
     DMERR("dm_register_target failed %d", result);
   }
   return result;
@@ -1493,7 +1102,6 @@ int __init doryInit(void)
 void __exit doryExit(void)
 {
   dm_unregister_target(&doryTargetType);
-  kobject_put(&doryKobj);
 }
 
 module_init(doryInit);
