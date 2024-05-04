@@ -1194,6 +1194,199 @@ static int commonIterateDevices(struct dm_target           *ti,
 }
 
 /**********************************************************************/
+static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
+			char *result, unsigned int maxlen)
+{
+	struct lossy_device *dd = ti->private;
+	unsigned int flush_flush_count;
+	unsigned int flush_bio_count;
+	unsigned int work_flush_count;
+	unsigned int work_bio_count;
+	unsigned int sz = 0;
+	int errval;
+	unsigned int val;
+
+	if (!strcasecmp(argv[0], "stop")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		DMINFO("stopping");
+		dd->stopFlag = true;
+		dd->readsAtStop = atomic64_read(&dd->readTotal);
+		dd->writesAtStop = atomic64_read(&dd->writeTotal);
+	} else if (!strcasecmp(argv[0], "return_eio")) {
+		if (argc != 2) {
+			DMERR("%s takes exactly one argument", argv[0]);
+			return -EINVAL;
+		}
+
+		errval = kstrtouint(argv[1], 0, &val);
+		if (errval)
+			return errval;
+
+		if (val == 0)
+			dd->ioError = BLK_STS_OK;
+		else if (val == 1)
+			dd->ioError = BLK_STS_IOERR;
+	} else if (!strcasecmp(argv[0], "torn_mask")) {
+		if (argc != 2) {
+			DMERR("%s takes exactly one argument", argv[0]);
+			return -EINVAL;
+		}
+
+		errval = kstrtouint(argv[1], 0, &val);
+		if (errval)
+			return errval;
+
+		dd->tornMask = val;
+	} else if (!strcasecmp(argv[0], "torn_modulus")) {
+		if (argc != 2) {
+			DMERR("%s takes exactly one argument", argv[0]);
+			return -EINVAL;
+		}
+
+		errval = kstrtouint(argv[1], 0, &val);
+		if (errval)
+			return errval;
+
+		dd->tornModulus = val;
+	} else if (!strcasecmp(argv[0], "show_mode")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		DMEMIT(dd->stopFlag ? "stop\n" : "running\n");
+	} else if (!strcasecmp(argv[0], "show_modulus")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		DMEMIT("%u\n", dd->tornModulus);
+	} else if (!strcasecmp(argv[0], "show_mask")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		DMEMIT("%u\n", dd->tornMask);
+	} else if (!strcasecmp(argv[0], "state")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		spin_lock_irq(&fd->flushLock);
+		flush_flush_count = bio_list_size(&fd->flushBios);
+		flush_bio_count = bio_list_size(&fd->waitingBios);
+		spin_unlock_irq(&fd->flushLock);
+		spin_lock_irq(&fd->workLock);
+		work_flush_count = bio_list_size(&fd->workFlushBios);
+		work_bio_count = bio_list_size(&fd->workBios);
+		spin_unlock_irq(&fd->workLock);
+		DMEMIT("block_size: %zu\n"
+		       "cache_block_count: %u\n"
+		       "torn_mask: %u\n"
+		       "torn_modulus: %u\n"
+		       "busy_count: %d\n"
+		       "stop_flag: %u\n"
+		       "flush_flag: %u\n"
+		       "flush_flush_count: %u\n"
+		       "flush_bio_count: %u\n"
+		       "work_flush_count: %u\n"
+		       "work_bio_count: %u\n",
+		       dd->blockSize,
+		       dd->cacheBlockCount,
+		       dd->tornMask,
+		       dd->tornModulus,
+		       atomic_read(&dd->busyCount),
+		       dd->stopFlag,
+		       dd->flushFlag,
+		       flush_flush_count,
+		       flush_bio_count,
+		       work_flush_count,
+		       work_bio_count);
+	} else if (!strcasecmp(argv[0], "statistics")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		DMEMIT("reads: %lld\n"
+		       "writes: %lld\n"
+		       "flushes: %lld\n"
+		       "FUAs: %lld\n"
+		       "write_failure: %lld\n"
+		       "flush_failure: %lld\n"
+		       "reads_at_last_flush: %lu\n"
+		       "writes_at_last_flush: %lu\n"
+		       "reads_at_stop: %lu\n"
+		       "writes_at_stop: %lu\n"
+		       "mapped_returns: %lld\n"
+		       "submitted_returns: %lld\n"
+		       "submitted_bios: %lld\n"
+		       "success_bios: %lld\n"
+		       "error_bios: %lld\n",
+		       (long long)atomic64_read(&dd->readTotal),
+		       (long long)atomic64_read(&dd->writeTotal),
+		       (long long)atomic64_read(&dd->flushTotal),
+		       (long long)atomic64_read(&dd->fuaTotal),
+		       (long long)atomic64_read(&dd->writeFailure),
+		       (long long)atomic64_read(&dd->flushFailure),
+		       dd->readsAtLastFlush, dd->writesAtLastFlush,
+		       dd->readsAtStop, dd->writesAtStop,
+		       (long long)atomic64_read(&dd->mappedReturns),
+		       (long long)atomic64_read(&dd->submittedReturns),
+		       (long long)atomic64_read(&dd->submittedBios),
+		       (long long)atomic64_read(&dd->successBios),
+		       (long long)atomic64_read(&dd->errorBios));
+	} else if (!strcasecmp(argv[0], "show_cache")) {
+		if (argc != 1) {
+			DMERR("%s takes no arguments", argv[0]);
+			return -EINVAL;
+		}
+
+		for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
+			struct cache_block *cb = &dd->cacheBlocks[i];
+			unsigned int waiter_count;
+			sector_t sector;
+			enum block_state block_state;
+			char *state;
+
+			spin_lock_irq(&cb->lock);
+			waiter_count = bio_list_size(&cb->waitingBios);
+			sector = cb->blockNumber << dd->blockShift;
+			block_state = cb->state;
+			spin_unlock_irq(&cb->lock);
+			state = "UNKNOWN";
+			switch (block_state) {
+			case EMPTY:
+				continue;
+			case COPYING:
+				state = "COPYING";
+				break;
+			case DIRTY:
+				state = "DIRTY";
+				break;
+			case WRITING:
+				state = "WRITING";
+				break;
+			default:
+				break;
+			}
+
+			DMEMIT("%u %s %u %llu\n", i, state,
+			       waiter_count, (unsigned long long)sector);
+		}
+	}
+
+	return 0;
+}
+
+/**********************************************************************/
 static int doryMap(struct dm_target *ti,
                    struct bio       *bio)
 {
@@ -1273,6 +1466,7 @@ static struct target_type doryTargetType = {
   .dtr             = doryDtr,
   .iterate_devices = commonIterateDevices,
   .map             = doryMap,
+  .message         = dory_message,
   .status          = doryStatus,
   // Put version specific functions at the bottom
   .prepare_ioctl   = commonPrepareIoctl,
