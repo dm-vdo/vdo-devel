@@ -773,7 +773,14 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   ti->flush_supported = 1;
-  BUG_ON(dm_set_target_max_io_len(ti, blockSize >> 9) != 0);
+  if (dm_set_target_max_io_len(ti, blockSize >> 9) != 0) {
+    ti->error = "Set max io failed";
+    dm_put_device(ti, dd->dev);
+    freeDoryDeviceCache(dd);
+    kfree(dd);
+    return -EINVAL;
+  }
+
   ti->num_flush_bios = 1;
   ti->private = dd;
   return 0;
