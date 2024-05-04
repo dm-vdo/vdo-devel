@@ -348,7 +348,7 @@ static void endFlushCacheBlock(struct bio *bio)
   bio_list_init(&ready);
 
   if (error) {
-    printk(KERN_WARNING "error flushing at sector %llu: %d\n",
+    DMWARN("error flushing at sector %llu: %d\n",
            (unsigned long long) (cb->blockNumber << dd->blockShift), error);
   }
 
@@ -397,7 +397,7 @@ static void flushCacheBlock(struct cache_block *cb)
                  offset_in_page(cb->blockData));
   if (bytes_added != dd->blockSize) {
     /* This should never fail, and there's nowhere to report an error. */
-    printk(KERN_WARNING "problem adding block data to bio");
+    DMWARN("problem adding block data to bio");
   }
   if (dd->stopFlag) {
     // We are supposed to stop writing, so fail the write.
@@ -616,7 +616,7 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
   int result;
   if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
     if (bio->bi_iter.bi_size > 0) {
-      printk(KERN_WARNING "flush bio too big!");
+      DMWARN("flush bio too big!");
     }
     // Add to the list of active flush bios.  If we are the first one, we must
     // initiate flushing the cache.
@@ -697,15 +697,21 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
   const char *doryName   = argv[0];
   const char *devicePath = argv[1];
+  int result;
   unsigned long long blockSize, cacheBlockCount;
-  char dummy;
-  if ((sscanf(argv[2], "%llu%c", &blockSize, &dummy) != 1)
-      || ((blockSize != 512) && (blockSize != 4096))) {
+
+  result = kstrtoull(argv[2], 10, &blockSize);
+  if (result)
+    return result;
+  if ((blockSize != 512) && (blockSize != 4096)) {
     ti->error = "Invalid block size";
     return -EINVAL;
   }
-  if ((sscanf(argv[3], "%llu%c", &cacheBlockCount, &dummy) != 1)
-      || (cacheBlockCount > 0xFFEC)) {
+
+  result = kstrtoull(argv[3], 10, &cacheBlockCount);
+  if (result)
+    return result;
+  if (cacheBlockCount > 0xFFEC) {
     ti->error = "Invalid cache size";
     return -EINVAL;
   }
