@@ -56,9 +56,9 @@
 #include "dm-lossy-target.h"
 #endif /* VDO_UPSTREAM */
 
-#define DM_MSG_PREFIX  "dory"
-
-enum { DORY_NAME_SIZE = 11 };
+#define MAX_CACHE_BLOCKS 0xFFEC
+#define LOSSY_NAME_SIZE 12
+#define DM_MSG_PREFIX "lossy"
 
 /*
  * Cache block states.  Note that all state changes are protected by a spin
@@ -132,7 +132,7 @@ struct lossy_device {
   // Flag that is set to true to stop all writes by the device.
   bool            stopFlag;
   // The name of the Dory device.
-  char            doryName[DORY_NAME_SIZE + 1];
+  char            doryName[LOSSY_NAME_SIZE + 1];
   // Pointer to the cached data, used only for allocate/free of the memory.
   char           *cacheData;
   // The block size, which must be either 512 or 4K.
@@ -435,7 +435,7 @@ static void processBioCached(struct cache_block *cb,
 
   // Compute the cache address to begin transfers.
   sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
-  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << dd->blockShift)) << 9;
+  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << dd->blockShift)) << SECTOR_SHIFT;
   char *data = cb->blockData + offset;
 
   // Copy the data.
@@ -711,7 +711,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   result = kstrtoull(argv[3], 10, &cacheBlockCount);
   if (result)
     return result;
-  if (cacheBlockCount > 0xFFEC) {
+  if (cacheBlockCount > MAX_CACHE_BLOCKS) {
     ti->error = "Invalid cache size";
     return -EINVAL;
   }
@@ -741,7 +741,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   dd->stopFlag        = false;
   dd->tornMask        = ~0;
   dd->tornModulus     = 8;
-  strncpy(dd->doryName, doryName, DORY_NAME_SIZE);
+  strncpy(dd->doryName, doryName, LOSSY_NAME_SIZE);
   bio_list_init(&dd->flushBios);
   bio_list_init(&dd->waitingBios);
   bio_list_init(&dd->workBios);
@@ -773,7 +773,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   ti->flush_supported = 1;
-  if (dm_set_target_max_io_len(ti, blockSize >> 9) != 0) {
+  if (dm_set_target_max_io_len(ti, blockSize >> SECTOR_SHIFT) != 0) {
     ti->error = "Set max io failed";
     dm_put_device(ti, dd->dev);
     freeDoryDeviceCache(dd);
