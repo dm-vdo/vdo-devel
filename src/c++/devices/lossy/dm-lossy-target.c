@@ -3,7 +3,7 @@
  *
  * %LICENSE%
  *
- * This is the test "Dory" device, which has a short term memory problem.
+ * This is the test "lossy" device, which has a short term memory problem.
  * It has these expected usage modes:
  *
  * 1 - No cache, device stops suddenly.
@@ -35,9 +35,9 @@
  *          mask & (1 << (sector_number % modulus))
  *
  *     Using modulus of 8 with a mask with only 1 bit set will cache only 1
- *     sector of a 4K block and will cause the Dory device to fail to write
+ *     sector of a 4K block and will cause the lossy device to fail to write
  *     that sector.  Using modulus of 8 with a mask with only 1 bit clear will
- *     cache all but 1 sector of a 4K block, and will cause the Dory device to
+ *     cache all but 1 sector of a 4K block, and will cause the lossy device to
  *     write only 1 sector of the block.
  *
  *     A more interesting effect happens with a modulus of 9.  Similar mask
@@ -131,8 +131,8 @@ struct lossy_device {
   blk_status_t    ioError;
   // Flag that is set to true to stop all writes by the device.
   bool            stopFlag;
-  // The name of the Dory device.
-  char            doryName[LOSSY_NAME_SIZE + 1];
+  // The name of the device.
+  char            name[LOSSY_NAME_SIZE + 1];
   // Pointer to the cached data, used only for allocate/free of the memory.
   char           *cacheData;
   // The block size, which must be either 512 or 4K.
@@ -152,7 +152,7 @@ struct lossy_device {
   // zero.
   atomic_t        busyCount;
 
-  // BEGIN data that pertains to work done in a kworker thread for this Dory
+  // BEGIN data that pertains to work done in a kworker thread for this
   // device.  This spin lock protects these data, and it is taken by the
   // bi_end_io callback when we write a cache block, and therefore should be
   // used with spin_lock_irq or spin_lock_irqsave.
@@ -184,7 +184,7 @@ struct lossy_device {
   // END of data protected by flushLock.
 
   // BEGIN data that are merely statistics and do not effect code behavior.
-  // These stats count the bios that arrive into the doryMap method.
+  // These stats count the bios that arrive into the lossyMap method.
   atomic64_t    readTotal;
   atomic64_t    writeTotal;
   atomic64_t    flushTotal;
@@ -195,10 +195,10 @@ struct lossy_device {
   unsigned long writesAtLastFlush;
   unsigned long readsAtStop;
   unsigned long writesAtStop;
-  // These stats count the values returned by the doryMap method.
+  // These stats count the values returned by the lossyMap method.
   atomic64_t    mappedReturns;
   atomic64_t    submittedReturns;
-  // These stats count the bios for which the doryMap method returned
+  // These stats count the bios for which the lossyMap method returned
   // "submitted".
   atomic64_t    submittedBios;
   atomic64_t    successBios;
@@ -213,7 +213,7 @@ struct lossy_device {
 // BEGIN large section of code for the block cache
 /**********************************************************************/
 
-static void processBioList(struct lossy_device *dd, struct bio_list *ready);
+static void processBioList(struct lossy_device *ld, struct bio_list *ready);
 
 /**
  * Do delayed processing of a list of bios in a kworker thread.
@@ -222,36 +222,36 @@ static void processBioList(struct lossy_device *dd, struct bio_list *ready);
  **/
 static void processDelayed(struct work_struct *work)
 {
-  struct lossy_device *dd = container_of(work, struct lossy_device, workWork);
+  struct lossy_device *ld = container_of(work, struct lossy_device, workWork);
 
   // Under the worklock, grab the lists of bios to be processed.
   struct bio_list flushes, ready;
   bio_list_init(&flushes);
   bio_list_init(&ready);
-  spin_lock_irq(&dd->workLock);
-  bio_list_merge(&flushes, &dd->workFlushBios);
-  bio_list_init(&dd->workFlushBios);
-  bio_list_merge(&ready, &dd->workBios);
-  bio_list_init(&dd->workBios);
-  spin_unlock_irq(&dd->workLock);
+  spin_lock_irq(&ld->workLock);
+  bio_list_merge(&flushes, &ld->workFlushBios);
+  bio_list_init(&ld->workFlushBios);
+  bio_list_merge(&ready, &ld->workBios);
+  bio_list_init(&ld->workBios);
+  spin_unlock_irq(&ld->workLock);
 
   // Process the completed flushes.
   struct bio *bio;
   while ((bio = bio_list_pop(&flushes)) != NULL) {
-    if (dd->stopFlag && (atomic64_read(&dd->writeFailure) > 0)) {
+    if (ld->stopFlag && (atomic64_read(&ld->writeFailure) > 0)) {
       // We are stopping writes and failed to write a cached block.
-      bio->bi_status = dd->ioError;
+      bio->bi_status = ld->ioError;
       bio_endio(bio);
-      atomic64_inc(&dd->errorBios);
+      atomic64_inc(&ld->errorBios);
     } else {
       // Still succeeding, so forward the flush to the storage medium.
       submit_bio_noacct(bio);
-      atomic64_inc(&dd->submittedBios);
+      atomic64_inc(&ld->submittedBios);
     }
   }
 
   // Process the delayed bios.
-  processBioList(dd, &ready);
+  processBioList(ld, &ready);
 }
 
 /**********************************************************************/
@@ -259,11 +259,11 @@ static void processDelayed(struct work_struct *work)
  * Schedule delayed processing of bios.  This uses the Linux kworker
  * threads, so as to avoid extended processing in a bi_end_io callback.
  *
- * @param dd       The Dory device
+ * @param ld       The lossy device
  * @param ready    bio list of bios that are now unblocked
  * @param flushes  bio list of REQ_FLUSH bios that are now complete
  **/
-static void scheduleDelayedProcessing(struct lossy_device *dd,
+static void scheduleDelayedProcessing(struct lossy_device *ld,
                                       struct bio_list     *ready,
                                       struct bio_list     *flushes)
 {
@@ -278,24 +278,24 @@ static void scheduleDelayedProcessing(struct lossy_device *dd,
   // Under the worklock, add the new bios to the existing lists of bios to
   // process.
   unsigned long flags;
-  spin_lock_irqsave(&dd->workLock, flags);
-  bool schedulingNeeded = (bio_list_empty(&dd->workBios)
-                           && bio_list_empty(&dd->workFlushBios));
+  spin_lock_irqsave(&ld->workLock, flags);
+  bool schedulingNeeded = (bio_list_empty(&ld->workBios)
+                           && bio_list_empty(&ld->workFlushBios));
   if (haveBios) {
-    bio_list_merge(&dd->workBios, ready);
+    bio_list_merge(&ld->workBios, ready);
     bio_list_init(ready);
   }
   if (haveFlushes) {
-    bio_list_merge(&dd->workFlushBios, flushes);
+    bio_list_merge(&ld->workFlushBios, flushes);
     bio_list_init(flushes);
   }
-  spin_unlock_irqrestore(&dd->workLock, flags);
+  spin_unlock_irqrestore(&ld->workLock, flags);
 
   // If we added to empty lists, schedule a work item.  Otherwise there is
   // already a work item scheduled.
   if (schedulingNeeded) {
-    INIT_WORK(&dd->workWork, processDelayed);
-    schedule_work(&dd->workWork);
+    INIT_WORK(&ld->workWork, processDelayed);
+    schedule_work(&ld->workWork);
   }
 }
 
@@ -304,32 +304,32 @@ static void scheduleDelayedProcessing(struct lossy_device *dd,
  * Decrement the busy count.  If it goes to zero and a flush is in progress,
  * finish the flush.  This method can be called from a bi_end_io callback.
  *
- * @param dd  The Dory device
+ * @param ld  The lossy device
  **/
-static void decrementBusyCountAndTest(struct lossy_device *dd)
+static void decrementBusyCountAndTest(struct lossy_device *ld)
 {
-  if (atomic_dec_and_test(&dd->busyCount)) {
+  if (atomic_dec_and_test(&ld->busyCount)) {
     // The busy count has just dropped to zero, so we need to take flushLock
     // and deal with any flushes in progress.
     struct bio_list completedFlushes, readyBios;
     unsigned long flags;
     bio_list_init(&completedFlushes);
     bio_list_init(&readyBios);
-    spin_lock_irqsave(&dd->flushLock, flags);
-    if (dd->flushFlag) {
+    spin_lock_irqsave(&ld->flushLock, flags);
+    if (ld->flushFlag) {
       // And there are REQ_FLUSH requests in progress.
-      dd->flushFlag = false;
+      ld->flushFlag = false;
       // Record the flush bios that are complete.
-      bio_list_merge(&completedFlushes, &dd->flushBios);
-      bio_list_init(&dd->flushBios);
+      bio_list_merge(&completedFlushes, &ld->flushBios);
+      bio_list_init(&ld->flushBios);
       // Record the bios that are now ready to start.
-      bio_list_merge(&readyBios, &dd->waitingBios);
-      bio_list_init(&dd->waitingBios);
+      bio_list_merge(&readyBios, &ld->waitingBios);
+      bio_list_init(&ld->waitingBios);
     }
-    spin_unlock_irqrestore(&dd->flushLock, flags);
+    spin_unlock_irqrestore(&ld->flushLock, flags);
 
     // Start the "ready" ones.
-    scheduleDelayedProcessing(dd, &readyBios, &completedFlushes);
+    scheduleDelayedProcessing(ld, &readyBios, &completedFlushes);
   }
 }
 
@@ -343,13 +343,13 @@ static void endFlushCacheBlock(struct bio *bio)
 {
   int error = blk_status_to_errno(bio->bi_status);
   struct cache_block *cb = bio->bi_private;
-  struct lossy_device *dd = cb->device;
+  struct lossy_device *ld = cb->device;
   struct bio_list ready;
   bio_list_init(&ready);
 
   if (error) {
     DMWARN("error flushing at sector %llu: %d\n",
-           (unsigned long long) (cb->blockNumber << dd->blockShift), error);
+           (unsigned long long) (cb->blockNumber << ld->blockShift), error);
   }
 
   // Set the block state to EMPTY.  This is a transition from WRITING to EMPTY.
@@ -362,10 +362,10 @@ static void endFlushCacheBlock(struct bio *bio)
   spin_unlock_irqrestore(&cb->lock, flags);
 
   // Finish the transition to EMPTY.
-  decrementBusyCountAndTest(dd);
+  decrementBusyCountAndTest(ld);
 
   // Start any bios that were waiting for this specific cache block.
-  scheduleDelayedProcessing(dd, &ready, NULL);
+  scheduleDelayedProcessing(ld, &ready, NULL);
 }
 
 /**********************************************************************/
@@ -376,7 +376,7 @@ static void endFlushCacheBlock(struct bio *bio)
  **/
 static void flushCacheBlock(struct cache_block *cb)
 {
-  struct lossy_device *dd = cb->device;
+  struct lossy_device *ld = cb->device;
 
   // Set the block state to WRITING, and release the cache block lock.  We do
   // not want to hold the lock while we write the data.
@@ -384,25 +384,25 @@ static void flushCacheBlock(struct cache_block *cb)
   spin_unlock_irq(&cb->lock);
 
   // Start writing the cache block
-  bio_reset(cb->blockBio, dd->dev->bdev, REQ_OP_WRITE);
+  bio_reset(cb->blockBio, ld->dev->bdev, REQ_OP_WRITE);
   cb->blockBio->bi_end_io  = endFlushCacheBlock;
   cb->blockBio->bi_private = cb;
-  bio_set_dev(cb->blockBio, dd->dev->bdev);
-  cb->blockBio->bi_iter.bi_sector = (cb->blockNumber << dd->blockShift);
+  bio_set_dev(cb->blockBio, ld->dev->bdev);
+  cb->blockBio->bi_iter.bi_sector = (cb->blockNumber << ld->blockShift);
   cb->blockBio->bi_io_vec = bio_inline_vecs(cb->blockBio);
   cb->blockBio->bi_max_vecs = 1;
 
   int bytes_added =
-    bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), dd->blockSize,
+    bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), ld->blockSize,
                  offset_in_page(cb->blockData));
-  if (bytes_added != dd->blockSize) {
+  if (bytes_added != ld->blockSize) {
     /* This should never fail, and there's nowhere to report an error. */
     DMWARN("problem adding block data to bio");
   }
-  if (dd->stopFlag) {
+  if (ld->stopFlag) {
     // We are supposed to stop writing, so fail the write.
-    atomic64_inc(&dd->flushFailure);
-    cb->blockBio->bi_status = dd->ioError;
+    atomic64_inc(&ld->flushFailure);
+    cb->blockBio->bi_status = ld->ioError;
     bio_endio(cb->blockBio);
   } else {
     submit_bio_noacct(cb->blockBio);
@@ -426,7 +426,7 @@ static void processBioCached(struct cache_block *cb,
                              struct bio         *bio,
                              struct bio_list    *ready)
 {
-  struct lossy_device *dd = cb->device;
+  struct lossy_device *ld = cb->device;
 
   // Set the block state to COPYING, and release the cache block lock.  We do
   // not want to hold the lock while we copy the data.
@@ -434,8 +434,8 @@ static void processBioCached(struct cache_block *cb,
   spin_unlock_irq(&cb->lock);
 
   // Compute the cache address to begin transfers.
-  sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
-  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << dd->blockShift)) << SECTOR_SHIFT;
+  sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << ld->blockShift)) << SECTOR_SHIFT;
   char *data = cb->blockData + offset;
 
   // Copy the data.
@@ -455,7 +455,7 @@ static void processBioCached(struct cache_block *cb,
   // We are done with the bio.
   bio->bi_status = 0;
   bio_endio(bio);
-  atomic64_inc(&dd->successBios);
+  atomic64_inc(&ld->successBios);
 
   // Grab the cache block lock, and set the block state to DIRTY.
   spin_lock_irq(&cb->lock);
@@ -471,7 +471,7 @@ static void processBioCached(struct cache_block *cb,
   // and the flushTheCache() missed this cache block while we were in COPYING
   // state.  The cache block spinlock has provided us with adequate memory
   // barriers.
-  if (dd->flushFlag) {
+  if (ld->flushFlag) {
     flushCacheBlock(cb);
   }
 }
@@ -491,16 +491,16 @@ static void processBioCached(struct cache_block *cb,
  *         DM_MAPIO_REMAPPED to indicate the bio is ready for submit_bio.
  *
  *         DM_MAPIO_SUBMITTED to indicate that the bio will be processed by
- *                            dmDory, either by processing it completely and
- *                            calling bio_endio, or forwarding it onward by
- *                            submitting it to the next layer.
+ *                            this device, either by processing it completely
+ *                            and calling bio_endio, or forwarding it onward
+ *                            by submitting it to the next layer.
  **/
 static int processBioLocked(struct cache_block *cb,
                             struct bio         *bio,
                             struct bio_list    *ready)
 {
-  struct lossy_device *dd = cb->device;
-  sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
+  struct lossy_device *ld = cb->device;
+  sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
   if (cb->state == EMPTY) {
     // Cache block is unused.  Look for a reason to do the I/O directly.  In
     // order: It's a read; it's a REQ_FUA; it's a REQ_DISCARD; it's a partial
@@ -508,7 +508,7 @@ static int processBioLocked(struct cache_block *cb,
     if ((bio_data_dir(bio) == READ)
         || ((bio->bi_opf & REQ_FUA) != 0)
         || (bio_op(bio) == REQ_OP_DISCARD)
-        || (bio->bi_iter.bi_size < dd->blockSize)) {
+        || (bio->bi_iter.bi_size < ld->blockSize)) {
       return DM_MAPIO_REMAPPED;
     }
     // We have an unused cache block for an ordinary write of a full block.
@@ -516,12 +516,12 @@ static int processBioLocked(struct cache_block *cb,
     // cause the block to be cached.  We expect to use these defaults for 4K
     // blocks.  When the blocksize if 512, we expect that the mask/modules
     // settings will be used to test with torn writes.
-    if ((dd->tornMask & (1 << (blockNumber % dd->tornModulus))) == 0) {
+    if ((ld->tornMask & (1 << (blockNumber % ld->tornModulus))) == 0) {
       return DM_MAPIO_REMAPPED;
     }
     // Use this cache block.  This is an EMPTY to DIRTY transition, so bump the
     // busy count.
-    atomic_inc(&dd->busyCount);
+    atomic_inc(&ld->busyCount);
     cb->blockNumber = blockNumber;
     processBioCached(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
@@ -540,12 +540,12 @@ static int processBioLocked(struct cache_block *cb,
     // using the cache.
     processBioCached(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (bio->bi_iter.bi_size == dd->blockSize) {
+  } else if (bio->bi_iter.bi_size == ld->blockSize) {
     // It's a full block FUA write or discard, so drop the cache block and just
     // do the write.  Because our bio is known to be busy, this can never drop
     // the busy count to zero.
     cb->state = EMPTY;
-    atomic_dec(&dd->busyCount);
+    atomic_dec(&ld->busyCount);
     return DM_MAPIO_REMAPPED;
   } else {
     // It's a partial block FUA write or discard, so wait while we flush the
@@ -560,12 +560,12 @@ static int processBioLocked(struct cache_block *cb,
 /**
  * Flush all of the cached data to the storage medium.
  *
- * @param dd  The Dory device
+ * @param ld  The lossy device
  **/
-static void flushTheCache(struct lossy_device *dd)
+static void flushTheCache(struct lossy_device *ld)
 {
-  for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
-    struct cache_block *cb = &dd->cacheBlocks[i];
+  for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+    struct cache_block *cb = &ld->cacheBlocks[i];
     spin_lock_irq(&cb->lock);
     if (cb->state == DIRTY) {
       flushCacheBlock(cb);
@@ -578,7 +578,7 @@ static void flushTheCache(struct lossy_device *dd)
 /**
  * Process an I/O request encapsulated in a struct bio.
  *
- * @param dd     The Dory device
+ * @param ld     The lossy device
  * @param bio    The I/O request to be processed
  * @param ready  bio list of bios that are now unblocked and can be processed
  *               after we return
@@ -588,31 +588,31 @@ static void flushTheCache(struct lossy_device *dd)
  *         DM_MAPIO_REMAPPED to indicate that the bio is ready for submit_bio.
  *
  *         DM_MAPIO_SUBMITTED to indicate that the bio will be processed by
- *                            dmDory, either by processing it completely and
- *                            calling bio_endio, or forwarding it onward by
- *                            submitting it to the next layer.
+ *                            this device, either by processing it completely
+ *                            and calling bio_endio, or forwarding it onward
+ *                            by submitting it to the next layer.
  **/
-static int processBio(struct lossy_device *dd, struct bio *bio,
+static int processBio(struct lossy_device *ld, struct bio *bio,
                       struct bio_list *ready)
 {
-  if ((bio_data_dir(bio) == WRITE) && dd->stopFlag) {
+  if ((bio_data_dir(bio) == WRITE) && ld->stopFlag) {
     // We have been told to stop writing.  Make it so.
-    atomic64_inc(&dd->writeFailure);
-    bio->bi_status = dd->ioError;
+    atomic64_inc(&ld->writeFailure);
+    bio->bi_status = ld->ioError;
     bio_endio(bio);
     return DM_MAPIO_SUBMITTED;
   }
 
-  if (dd->cacheBlockCount == 0) {
+  if (ld->cacheBlockCount == 0) {
     // We are not doing caching.  Just go ahead and do the I/O.
     return DM_MAPIO_REMAPPED;
   }
 
   // We are doing caching.  When this busy count returns to zero, it will be
   // time to acknowledge empty flushes.
-  atomic_inc(&dd->busyCount);
+  atomic_inc(&ld->busyCount);
 
-  spin_lock_irq(&dd->flushLock);
+  spin_lock_irq(&ld->flushLock);
   int result;
   if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
     if (bio->bi_iter.bi_size > 0) {
@@ -620,33 +620,33 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
     }
     // Add to the list of active flush bios.  If we are the first one, we must
     // initiate flushing the cache.
-    bio_list_add(&dd->flushBios, bio);
-    bool firstFlush = !dd->flushFlag;
-    dd->flushFlag = true;
-    spin_unlock_irq(&dd->flushLock);
+    bio_list_add(&ld->flushBios, bio);
+    bool firstFlush = !ld->flushFlag;
+    ld->flushFlag = true;
+    spin_unlock_irq(&ld->flushLock);
     if (firstFlush) {
-      flushTheCache(dd);
+      flushTheCache(ld);
     }
     result = DM_MAPIO_SUBMITTED;
-  } else if (dd->flushFlag) {
+  } else if (ld->flushFlag) {
     // A flush is in progress.  Need to defer this bio.
-    bio_list_add(&dd->waitingBios, bio);
-    spin_unlock_irq(&dd->flushLock);
+    bio_list_add(&ld->waitingBios, bio);
+    spin_unlock_irq(&ld->flushLock);
     result = DM_MAPIO_SUBMITTED;
   } else {
-    spin_unlock_irq(&dd->flushLock);
+    spin_unlock_irq(&ld->flushLock);
     // There is no flush in progress, so we may lock the cache block and
     // proceed to do the I/O.
-    sector_t blockNumber = bio->bi_iter.bi_sector >> dd->blockShift;
-    unsigned int slotNumber = blockNumber % dd->cacheBlockCount;
-    struct cache_block *cb = &dd->cacheBlocks[slotNumber];
+    sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+    unsigned int slotNumber = blockNumber % ld->cacheBlockCount;
+    struct cache_block *cb = &ld->cacheBlocks[slotNumber];
     spin_lock_irq(&cb->lock);
     result = processBioLocked(cb, bio, ready);
     spin_unlock_irq(&cb->lock);
   }
 
   // We have finished working on this bio.
-  decrementBusyCountAndTest(dd);
+  decrementBusyCountAndTest(ld);
   return result;
 }
 
@@ -654,31 +654,31 @@ static int processBio(struct lossy_device *dd, struct bio *bio,
 /**
  * Process a list of delayed I/O requests encapsulated in a struct bio_list.
  *
- * @param dd     The Dory device
+ * @param ld     The lossy device
  * @param ready  bio list of bios that are ready to process
  **/
-static void processBioList(struct lossy_device *dd, struct bio_list *ready)
+static void processBioList(struct lossy_device *ld, struct bio_list *ready)
 {
   struct bio *bio;
   while ((bio = bio_list_pop(ready)) != NULL) {
-    if (processBio(dd, bio, ready) == DM_MAPIO_REMAPPED) {
+    if (processBio(ld, bio, ready) == DM_MAPIO_REMAPPED) {
       submit_bio_noacct(bio);
-      atomic64_inc(&dd->submittedBios);
+      atomic64_inc(&ld->submittedBios);
     }
   }
 }
 
 /**********************************************************************/
-static void freeDoryDeviceCache(struct lossy_device *dd)
+static void freeLossyDeviceCache(struct lossy_device *ld)
 {
   // Free the cache data blocks.
-  if (dd->cacheData != NULL) {
-    vfree(dd->cacheData);
+  if (ld->cacheData != NULL) {
+    vfree(ld->cacheData);
   }
 
   // Free the bios for the cache data blocks.
-  for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
-    struct cache_block *cb = &dd->cacheBlocks[i];
+  for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+    struct cache_block *cb = &ld->cacheBlocks[i];
     if (cb->blockBio != NULL) {
       bio_uninit(cb->blockBio);
       kfree(cb->blockBio);
@@ -687,15 +687,15 @@ static void freeDoryDeviceCache(struct lossy_device *dd)
 }
 
 /**********************************************************************/
-// BEGIN Dory device methods for the dory target type
+// BEGIN device methods for the lossy target type
 /**********************************************************************/
-static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
+static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
 {
   if (argc != 4) {
     ti->error = "requires exactly 4 arguments";
     return -EINVAL;
   }
-  const char *doryName   = argv[0];
+  const char *deviceName = argv[0];
   const char *devicePath = argv[1];
   int result;
   unsigned long long blockSize, cacheBlockCount;
@@ -716,11 +716,11 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  struct lossy_device *dd
+  struct lossy_device *ld
     = kzalloc(sizeof(struct lossy_device)
               + cacheBlockCount * sizeof(struct cache_block),
               GFP_KERNEL);
-  if (dd == NULL) {
+  if (ld == NULL) {
     ti->error = "Cannot allocate context";
     return -ENOMEM;
   }
@@ -728,78 +728,78 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   if (cacheBlockCount > 0) {
     cacheData = __vmalloc(cacheBlockCount * blockSize, GFP_KERNEL);
     if (cacheData == NULL) {
-      kfree(dd);
+      kfree(ld);
       ti->error = "Cannot allocate cache";
       return -ENOMEM;
     }
   }
-  dd->blockShift      = blockSize == 4096 ? 3 : 0;
-  dd->blockSize       = blockSize;
-  dd->cacheData       = cacheData;
-  dd->cacheBlockCount = cacheBlockCount;
-  dd->ioError         = BLK_STS_IOERR;
-  dd->stopFlag        = false;
-  dd->tornMask        = ~0;
-  dd->tornModulus     = 8;
-  strncpy(dd->doryName, doryName, LOSSY_NAME_SIZE);
-  bio_list_init(&dd->flushBios);
-  bio_list_init(&dd->waitingBios);
-  bio_list_init(&dd->workBios);
-  bio_list_init(&dd->workFlushBios);
-  spin_lock_init(&dd->flushLock);
-  spin_lock_init(&dd->workLock);
+  ld->blockShift      = blockSize == 4096 ? 3 : 0;
+  ld->blockSize       = blockSize;
+  ld->cacheData       = cacheData;
+  ld->cacheBlockCount = cacheBlockCount;
+  ld->ioError         = BLK_STS_IOERR;
+  ld->stopFlag        = false;
+  ld->tornMask        = ~0;
+  ld->tornModulus     = 8;
+  strncpy(ld->name, deviceName, LOSSY_NAME_SIZE);
+  bio_list_init(&ld->flushBios);
+  bio_list_init(&ld->waitingBios);
+  bio_list_init(&ld->workBios);
+  bio_list_init(&ld->workFlushBios);
+  spin_lock_init(&ld->flushLock);
+  spin_lock_init(&ld->workLock);
   for (unsigned int i = 0; i < cacheBlockCount; i++) {
-    struct cache_block *cb = &dd->cacheBlocks[i];
+    struct cache_block *cb = &ld->cacheBlocks[i];
     bio_list_init(&cb->waitingBios);
     spin_lock_init(&cb->lock);
     cb->blockBio = bio_kmalloc(1, GFP_KERNEL);
     cb->blockData = cacheData;
-    cb->device = dd;
+    cb->device = ld;
     cb->state = EMPTY;
     cacheData += blockSize;
     if (cb->blockBio == NULL) {
-      freeDoryDeviceCache(dd);
-      kfree(dd);
+      freeLossyDeviceCache(ld);
+      kfree(ld);
       ti->error = "Cannot allocate cache bio";
       return -ENOMEM;
     }
   }
 
-  if (dm_get_device(ti, devicePath, dm_table_get_mode(ti->table), &dd->dev)) {
+  if (dm_get_device(ti, devicePath, dm_table_get_mode(ti->table), &ld->dev)) {
     ti->error = "Device lookup failed";
-    freeDoryDeviceCache(dd);
-    kfree(dd);
+    freeLossyDeviceCache(ld);
+    kfree(ld);
     return -EINVAL;
   }
 
   ti->flush_supported = 1;
   if (dm_set_target_max_io_len(ti, blockSize >> SECTOR_SHIFT) != 0) {
     ti->error = "Set max io failed";
-    dm_put_device(ti, dd->dev);
-    freeDoryDeviceCache(dd);
-    kfree(dd);
+    dm_put_device(ti, ld->dev);
+    freeLossyDeviceCache(ld);
+    kfree(ld);
     return -EINVAL;
   }
 
   ti->num_flush_bios = 1;
-  ti->private = dd;
+  ti->private = ld;
   return 0;
 }
 
 /**********************************************************************/
-static void doryDtr(struct dm_target *ti)
+static void lossyDtr(struct dm_target *ti)
 {
-  struct lossy_device *dd = ti->private;
-  dm_put_device(ti, dd->dev);
-  freeDoryDeviceCache(dd);
+  struct lossy_device *ld = ti->private;
+  dm_put_device(ti, ld->dev);
+  freLossyDeviceCache(ld);
 }
 
 /**********************************************************************/
-static int commonPrepareIoctl(struct dm_target     *ti,
-                              struct block_device **bdev,
-                              unsigned int          cmd,
-                              unsigned long         arg,
-                              bool                 *forward)
+static int lossyPrepareIoctl(struct dm_target     *ti,
+                             struct block_device **bdev,
+                             unsigned int          cmd,
+                             unsigned long         arg,
+                             bool                 *forward)
 {
   struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
 
@@ -813,9 +813,9 @@ static int commonPrepareIoctl(struct dm_target     *ti,
 }
 
 /**********************************************************************/
-static int commonIterateDevices(struct dm_target           *ti,
-                                iterate_devices_callout_fn  fn,
-                                void                       *data)
+static int lossyIterateDevices(struct dm_target           *ti,
+                               iterate_devices_callout_fn  fn,
+                               void                       *data)
 {
   struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
 
@@ -823,10 +823,10 @@ static int commonIterateDevices(struct dm_target           *ti,
 }
 
 /**********************************************************************/
-static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
-			char *result, unsigned int maxlen)
+static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
+                         char *result, unsigned int maxlen)
 {
-	struct lossy_device *dd = ti->private;
+	struct lossy_device *ld = ti->private;
 	unsigned int flush_flush_count;
 	unsigned int flush_bio_count;
 	unsigned int work_flush_count;
@@ -842,9 +842,9 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 		}
 
 		DMINFO("stopping");
-		dd->stopFlag = true;
-		dd->readsAtStop = atomic64_read(&dd->readTotal);
-		dd->writesAtStop = atomic64_read(&dd->writeTotal);
+		ld->stopFlag = true;
+		ld->readsAtStop = atomic64_read(&ld->readTotal);
+		ld->writesAtStop = atomic64_read(&ld->writeTotal);
 	} else if (!strcasecmp(argv[0], "return_eio")) {
 		if (argc != 2) {
 			DMERR("%s takes exactly one argument", argv[0]);
@@ -856,9 +856,9 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 			return errval;
 
 		if (val == 0)
-			dd->ioError = BLK_STS_OK;
+			ld->ioError = BLK_STS_OK;
 		else if (val == 1)
-			dd->ioError = BLK_STS_IOERR;
+			ld->ioError = BLK_STS_IOERR;
 	} else if (!strcasecmp(argv[0], "torn_mask")) {
 		if (argc != 2) {
 			DMERR("%s takes exactly one argument", argv[0]);
@@ -869,7 +869,7 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 		if (errval)
 			return errval;
 
-		dd->tornMask = val;
+		ld->tornMask = val;
 	} else if (!strcasecmp(argv[0], "torn_modulus")) {
 		if (argc != 2) {
 			DMERR("%s takes exactly one argument", argv[0]);
@@ -880,42 +880,42 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 		if (errval)
 			return errval;
 
-		dd->tornModulus = val;
+		ld->tornModulus = val;
 	} else if (!strcasecmp(argv[0], "show_mode")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		DMEMIT(dd->stopFlag ? "stop\n" : "running\n");
+		DMEMIT(ld->stopFlag ? "stop\n" : "running\n");
 	} else if (!strcasecmp(argv[0], "show_modulus")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		DMEMIT("%u\n", dd->tornModulus);
+		DMEMIT("%u\n", ld->tornModulus);
 	} else if (!strcasecmp(argv[0], "show_mask")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		DMEMIT("%u\n", dd->tornMask);
+		DMEMIT("%u\n", ld->tornMask);
 	} else if (!strcasecmp(argv[0], "state")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		spin_lock_irq(&fd->flushLock);
-		flush_flush_count = bio_list_size(&fd->flushBios);
-		flush_bio_count = bio_list_size(&fd->waitingBios);
-		spin_unlock_irq(&fd->flushLock);
-		spin_lock_irq(&fd->workLock);
-		work_flush_count = bio_list_size(&fd->workFlushBios);
-		work_bio_count = bio_list_size(&fd->workBios);
-		spin_unlock_irq(&fd->workLock);
+		spin_lock_irq(&ld->flushLock);
+		flush_flush_count = bio_list_size(&ld->flushBios);
+		flush_bio_count = bio_list_size(&ld->waitingBios);
+		spin_unlock_irq(&ld->flushLock);
+		spin_lock_irq(&ld->workLock);
+		work_flush_count = bio_list_size(&ld->workFlushBios);
+		work_bio_count = bio_list_size(&ld->workBios);
+		spin_unlock_irq(&ld->workLock);
 		DMEMIT("block_size: %zu\n"
 		       "cache_block_count: %u\n"
 		       "torn_mask: %u\n"
@@ -927,13 +927,13 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       "flush_bio_count: %u\n"
 		       "work_flush_count: %u\n"
 		       "work_bio_count: %u\n",
-		       dd->blockSize,
-		       dd->cacheBlockCount,
-		       dd->tornMask,
-		       dd->tornModulus,
-		       atomic_read(&dd->busyCount),
-		       dd->stopFlag,
-		       dd->flushFlag,
+		       ld->blockSize,
+		       ld->cacheBlockCount,
+		       ld->tornMask,
+		       ld->tornModulus,
+		       atomic_read(&ld->busyCount),
+		       ld->stopFlag,
+		       ld->flushFlag,
 		       flush_flush_count,
 		       flush_bio_count,
 		       work_flush_count,
@@ -959,27 +959,27 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       "submitted_bios: %lld\n"
 		       "success_bios: %lld\n"
 		       "error_bios: %lld\n",
-		       (long long)atomic64_read(&dd->readTotal),
-		       (long long)atomic64_read(&dd->writeTotal),
-		       (long long)atomic64_read(&dd->flushTotal),
-		       (long long)atomic64_read(&dd->fuaTotal),
-		       (long long)atomic64_read(&dd->writeFailure),
-		       (long long)atomic64_read(&dd->flushFailure),
-		       dd->readsAtLastFlush, dd->writesAtLastFlush,
-		       dd->readsAtStop, dd->writesAtStop,
-		       (long long)atomic64_read(&dd->mappedReturns),
-		       (long long)atomic64_read(&dd->submittedReturns),
-		       (long long)atomic64_read(&dd->submittedBios),
-		       (long long)atomic64_read(&dd->successBios),
-		       (long long)atomic64_read(&dd->errorBios));
+		       (long long)atomic64_read(&ld->readTotal),
+		       (long long)atomic64_read(&ld->writeTotal),
+		       (long long)atomic64_read(&ld->flushTotal),
+		       (long long)atomic64_read(&ld->fuaTotal),
+		       (long long)atomic64_read(&ld->writeFailure),
+		       (long long)atomic64_read(&ld->flushFailure),
+		       ld->readsAtLastFlush, ld->writesAtLastFlush,
+		       ld->readsAtStop, ld->writesAtStop,
+		       (long long)atomic64_read(&ld->mappedReturns),
+		       (long long)atomic64_read(&ld->submittedReturns),
+		       (long long)atomic64_read(&ld->submittedBios),
+		       (long long)atomic64_read(&ld->successBios),
+		       (long long)atomic64_read(&ld->errorBios));
 	} else if (!strcasecmp(argv[0], "show_cache")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		for (unsigned int i = 0; i < dd->cacheBlockCount; i++) {
-			struct cache_block *cb = &dd->cacheBlocks[i];
+		for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+			struct cache_block *cb = &ld->cacheBlocks[i];
 			unsigned int waiter_count;
 			sector_t sector;
 			enum block_state block_state;
@@ -987,7 +987,7 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 
 			spin_lock_irq(&cb->lock);
 			waiter_count = bio_list_size(&cb->waitingBios);
-			sector = cb->blockNumber << dd->blockShift;
+			sector = cb->blockNumber << ld->blockShift;
 			block_state = cb->state;
 			spin_unlock_irq(&cb->lock);
 			state = "UNKNOWN";
@@ -1016,59 +1016,59 @@ static int dory_message(struct dm_target *ti, unsigned int argc, char **argv,
 }
 
 /**********************************************************************/
-static int doryMap(struct dm_target *ti,
-                   struct bio       *bio)
+static int lossyMap(struct dm_target *ti,
+                    struct bio       *bio)
 {
-  struct lossy_device *dd = ti->private;
+  struct lossy_device *ld = ti->private;
 
   // Map the I/O to the storage device.
-  bio_set_dev(bio, dd->dev->bdev);
+  bio_set_dev(bio, ld->dev->bdev);
   bio->bi_iter.bi_sector = dm_target_offset(ti, bio->bi_iter.bi_sector);
 
   // Perform accounting.
   if (bio_data_dir(bio) == READ) {
-    atomic64_inc(&dd->readTotal);
+    atomic64_inc(&ld->readTotal);
   } else {
     if ((bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0)) {
-      atomic64_inc(&dd->flushTotal);
-      dd->readsAtLastFlush  = atomic64_read(&dd->readTotal);
-      dd->writesAtLastFlush = atomic64_read(&dd->writeTotal);
+      atomic64_inc(&ld->flushTotal);
+      ld->readsAtLastFlush  = atomic64_read(&ld->readTotal);
+      ld->writesAtLastFlush = atomic64_read(&ld->writeTotal);
     }
     if ((bio->bi_opf & REQ_FUA) != 0) {
-      atomic64_inc(&dd->fuaTotal);
+      atomic64_inc(&ld->fuaTotal);
     }
     if (bio->bi_iter.bi_size > 0) {
-      atomic64_inc(&dd->writeTotal);
+      atomic64_inc(&ld->writeTotal);
     }
   }
 
   // Process the already mapped I/O.
   struct bio_list readyList;
   bio_list_init(&readyList);
-  int result = processBio(dd, bio, &readyList);
+  int result = processBio(ld, bio, &readyList);
 
   // If the processing released any other bio requests, process them now.  This
   // indirect method of making a list to process one at a time ensures that we
   // do not overrun the small kernel stack.
-  processBioList(dd, &readyList);
+  processBioList(ld, &readyList);
 
   // Perform return value accounting.
   if (result == DM_MAPIO_REMAPPED) {
-    atomic64_inc(&dd->mappedReturns);
+    atomic64_inc(&ld->mappedReturns);
   } else if (result == DM_MAPIO_SUBMITTED) {
-    atomic64_inc(&dd->submittedReturns);
+    atomic64_inc(&ld->submittedReturns);
   }
   return result;
 }
 
 /**********************************************************************/
-static void doryStatus(struct dm_target *ti,
-                       status_type_t     type,
-                       unsigned int      status_flags,
-                       char             *result,
-                       unsigned int      maxlen)
+static void lossyStatus(struct dm_target *ti,
+                        status_type_t     type,
+                        unsigned int      status_flags,
+                        char             *result,
+                        unsigned int      maxlen)
 {
-  struct lossy_device *dd = ti->private;
+  struct lossy_device *ld = ti->private;
   unsigned int sz = 0;  // used by the DMEMIT macro
 
   switch (type) {
@@ -1077,8 +1077,8 @@ static void doryStatus(struct dm_target *ti,
     break;
 
   case STATUSTYPE_TABLE:
-    DMEMIT("%s %s %zu %u", dd->doryName, dd->dev->name, dd->blockSize,
-           dd->cacheBlockCount);
+    DMEMIT("%s %s %zu %u", ld->name, ld->dev->name, ld->blockSize,
+           ld->cacheBlockCount);
     break;
   case STATUSTYPE_IMA:
     *result = '\0';
@@ -1087,24 +1087,24 @@ static void doryStatus(struct dm_target *ti,
 }
 
 /**********************************************************************/
-static struct target_type doryTargetType = {
-  .name            = "dory",
+static struct target_type lossyTargetType = {
+  .name            = "lossy",
   .version         = { 1, 0, 0 },
   .module          = THIS_MODULE,
-  .ctr             = doryCtr,
-  .dtr             = doryDtr,
-  .iterate_devices = commonIterateDevices,
-  .map             = doryMap,
-  .message         = dory_message,
-  .status          = doryStatus,
+  .ctr             = lossyCtr,
+  .dtr             = lossyDtr,
+  .iterate_devices = lossyIterateDevices,
+  .map             = lossyMap,
+  .message         = lossy_message,
+  .status          = lossyStatus,
   // Put version specific functions at the bottom
-  .prepare_ioctl   = commonPrepareIoctl,
+  .prepare_ioctl   = lossyPrepareIoctl,
 };
 
 /**********************************************************************/
-int __init doryInit(void)
+int __init lossyInit(void)
 {
-  int result = dm_register_target(&doryTargetType);
+  int result = dm_register_target(&lossyTargetType);
   if (result < 0) {
     DMERR("dm_register_target failed %d", result);
   }
@@ -1112,14 +1112,14 @@ int __init doryInit(void)
 }
 
 /**********************************************************************/
-void __exit doryExit(void)
+void __exit lossyExit(void)
 {
-  dm_unregister_target(&doryTargetType);
+  dm_unregister_target(&lossyTargetType);
 }
 
-module_init(doryInit);
-module_exit(doryExit);
+module_init(lossyInit);
+module_exit(lossyExit);
 
-MODULE_DESCRIPTION(DM_NAME " dory testing device");
+MODULE_DESCRIPTION(DM_NAME " lossy testing device");
 MODULE_AUTHOR("Red Hat, Inc.");
 MODULE_LICENSE("GPL");

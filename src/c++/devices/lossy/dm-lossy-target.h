@@ -6,5 +6,5 @@
 
 #include <linux/module.h>
 
-int __init doryInit(void);
-void __exit doryExit(void);
+int __init lossyInit(void);
+void __exit lossyExit(void);
