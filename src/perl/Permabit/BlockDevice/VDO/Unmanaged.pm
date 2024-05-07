@@ -250,7 +250,7 @@ sub activate {
                     "sudo dmsetup table $self->{deviceName}",
                     "sudo dmsetup info $self->{deviceName}"
                    ], "\n");
-
+  $self->addDeactivationStep(sub { $self->stopVDO(); });
   $self->SUPER::activate();
 }
 

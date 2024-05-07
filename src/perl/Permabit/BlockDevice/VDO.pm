@@ -340,15 +340,6 @@ sub fillIndex {
 ########################################################################
 # @inherit
 ##
-sub activate {
-  my ($self) = assertNumArgs(1, @_);
-  $self->SUPER::activate();
-  $self->addDeactivationStep(sub { $self->stopVDO(); });
-}
-
-########################################################################
-# @inherit
-##
 sub postActivate {
   my ($self) = assertNumArgs(1, @_);
   $self->addPreDeactivationStep(sub { $self->preDeactivateVDO(); }, 0);
@@ -490,14 +481,6 @@ sub logStatsAtStop {
   if ($self->{verboseShutdownStatistics}) {
     $self->logHistograms();
   }
-}
-
-########################################################################
-# A stop step that actually does a vdo stop.
-##
-sub stopVDO {
-  my ($self) = assertNumArgs(1, @_);
-  confess("Failed to override the stopVDO method");
 }
 
 ########################################################################

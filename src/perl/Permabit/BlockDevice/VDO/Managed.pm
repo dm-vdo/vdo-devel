@@ -272,6 +272,7 @@ sub activate {
   }
 
   $self->startManagedVDO();
+  $self->addDeactivationStep(sub { $self->stopVDO(); });
   $self->SUPER::activate();
 }
 

@@ -97,7 +97,7 @@ sub _changeLogicalVolume {
 
   # Change a logical volume.  The /sbin/udevd daemon can be temporarily
   # accessing the backing device, so we may need to run the command again.
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   my $changeCommand = "sudo lvchange $value --yes $config $lvPath";
 
   $log->debug($machine->getName() . ": $changeCommand");
@@ -131,7 +131,7 @@ sub createLogicalVolume {
   my $machine = $self->{storageDevice}->getMachine();
   assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
 
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   $self->createVolumeGroup($machine, $config);
 
   my $ksize = int($size / $KB);
@@ -167,7 +167,7 @@ sub createThinVolume {
   my $machine = $self->{storageDevice}->getMachine();
   assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
 
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   $self->createVolumeGroup($machine, $config);
 
   my $ksize = int($size / $KB);
@@ -218,7 +218,7 @@ sub createVDOVolume {
   assertEqualNumeric(0, $logicalSize % $KB,
                      "logical size must be a multiple of 1KB");
 
-  $config = $self->getLVMConfig($config);
+  $config = $self->getLVMOptions($config);
   $self->createVolumeGroup($machine, $config);
 
   my $logicalKB = int($logicalSize / $KB);
@@ -274,7 +274,7 @@ sub deleteLogicalVolume {
   # remove a logical volume
   my $machine = $self->{storageDevice}->getMachine();
   my $lvPath = "$self->{volumeGroup}/$name";
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   if (--$self->{_useCount} == 0) {
     $log->info("Automatically removing VG " . $self->{volumeGroup});
@@ -293,7 +293,7 @@ sub deleteThinVolume {
   # remove a logical volume
   my $machine = $self->{storageDevice}->getMachine();
   my $lvPath = "$self->{volumeGroup}/$name";
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   $lvPath = "$self->{volumeGroup}/$name-pool";
   $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
@@ -356,7 +356,7 @@ sub _changeLogicalVolumeSize {
   assertEqualNumeric(0, $newSize % $self->{physicalExtentSize},
                      "size must be a multiple of the physical extent size");
   my $sizeKB = $newSize / $KB;
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   my $path   = "$self->{volumeGroup}/$name";
   $machine->runSystemCmd("sudo $command --size ${sizeKB}k $config $path");
 }
@@ -403,7 +403,7 @@ sub reduceLogicalVolume {
 sub renameLogicalVolume {
   my ($self, $name, $newName) = assertNumArgs(3, @_);
   my $machine = $self->{storageDevice}->getMachine();
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   $machine->runSystemCmd("sudo lvrename $config"
 			 . " $self->{volumeGroup}/$name"
 			 . " $self->{volumeGroup}/$newName");
@@ -430,12 +430,12 @@ sub getFreeBytes {
   my ($self) = assertNumArgs(1, @_);
   if ($self->{_useCount} > 0) {
     my $machine = $self->{storageDevice}->getMachine();
-    my $config  = $self->getLVMConfig();
+    my $config  = $self->getLVMOptions();
     $machine->runSystemCmd("sudo vgs -o vg_free --noheadings --units k "
                            . "$config --nosuffix $self->{volumeGroup}");
-    my $res = $machine->getStdout();
-    $res =~ s/^\s*(.*)\s*$/$1/;
-    return int($res) * $KB;
+    my $result = $machine->getStdout();
+    $result =~ s/^\s*(.*)\s*$/$1/;
+    return int($result) * $KB;
   } else {
     # XXX The intent of this appears to be to round down, but it does nothing.
     return ($self->{storageDevice}->getSize()
@@ -445,25 +445,61 @@ sub getFreeBytes {
 }
 
 ########################################################################
-# Return an LVM config argument to use in lvm command. Adds in an
-# additional config filter to strip out test devices such as
-# Permabit::BlockDevice::TestDevice::Fua in order to prevent LVM
-# commands from seeing duplicate PVs.
+# Return a --devices string to use in an lvm command. If the storage
+# device for the volume group is a TestDevice, we will filter out the
+# TestDevice's storage device from the list so we can avoid duplicate
+# PVs.
 #
-# @oparam config String of config parameters to use
+# @return the devices parameter string to use
+##
+sub getLVMDevices {
+  my ($self) = assertNumArgs(1, @_);
+  my $storageDevice = $self->{storageDevice};
+  my $machine = $storageDevice->getMachine();
+  if ($storageDevice->isa('Permabit::BlockDevice::TestDevice')) {
+    # Create a copy of the devices file and filter it
+    my $underlyingDevice = $storageDevice->getStorageDevice();
+    my $underlyingStorage = $underlyingDevice->getDevicePath();
+
+    $machine->runSystemCmd("sudo lvmdevices");
+    my $result = $machine->getStdout();
+    my @devices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+    my @filtered = ();
+    foreach my $device (@devices) {
+      my $resolved = $machine->resolveSymlink($device);
+      if ($resolved !~ /$underlyingStorage/) {
+        push(@filtered, $device);
+      }
+    }
+    if (scalar(@filtered) > 0) {
+      return "--devices '" . join(",", @filtered) . "'";
+    }
+  }
+  return "";
+}
+
+########################################################################
+# Return an LVM config argument to use in an lvm command. Add an
+# additional option to make sure LVM allows PVs on top of PVs.
+#
+# @param config String of config parameters to add scan_lvs to
 #
 # @return the complete config argument for lvm commands
 ##
 sub getLVMConfig {
+  my ($self, $config) = assertNumArgs(2, @_);
+  my $fullConfig = "$config devices/scan_lvs=1";
+  return "--config '" . $fullConfig . "'";
+}
+
+########################################################################
+# Return both --config and --devices parameters for lvm commands to use.
+#
+# @return the combination of --config and --devices parameters
+##
+sub getLVMOptions {
   my ($self, $config) = assertMinMaxArgs([""], 1, 2, @_);
-  my $storageDevice = $self->{storageDevice};
-  my $filter = "devices {scan_lvs=1 use_devicesfile=0}";
-  if ($storageDevice->isa('Permabit::BlockDevice::TestDevice')) {
-    my $underlyingDevice = $storageDevice->getStorageDevice();
-    my $underlyingStorage = $underlyingDevice->getDevicePath();
-    $filter .= " devices {filter=r|$underlyingStorage|}";
-  }
-  return "--config '" . $filter . " " . $config . "'";
+  return $self->getLVMConfig($config) . " " . $self->getLVMDevices();
 }
 
 ########################################################################
@@ -493,7 +529,7 @@ sub remove {
   my ($self) = assertNumArgs(1, @_);
   my $storageDevice = $self->{storageDevice};
   my $machine = $storageDevice->getMachine();
-  my $config = $self->getLVMConfig();
+  my $config = $self->getLVMOptions();
   # remove a volume group
   $machine->runSystemCmd("sudo vgremove $config $self->{volumeGroup}");
   # remove a physical volume

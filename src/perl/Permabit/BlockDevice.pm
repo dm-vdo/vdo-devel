@@ -327,11 +327,33 @@ sub start {
 }
 
 ########################################################################
+# Perform action to add device to lvm devices file.
+##
+sub addToDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+  my $device = $self->getDevicePath();
+  my $addDevCmd = "sudo lvmdevices -y --adddev $device";
+  $self->runOnHost($addDevCmd);
+  $self->addDeactivationStep(sub { $self->removeFromDevicesFile($device); })
+}
+
+########################################################################
+# Perform action to remove device from lvm devices file.
+# @param device The name of the device to remove.
+##
+sub removeFromDevicesFile {
+  my ($self, $device) = assertNumArgs(2, @_);
+  my $delDevCmd = "sudo lvmdevices -y --deldev $device";
+  $self->runOnHost($delDevCmd);
+}
+
+########################################################################
 # Perform actions to start a device.
 ##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   $self->runOnHost("sudo chmod 666 " . $self->getDevicePath());
+  $self->addToDevicesFile();
 }
 
 ########################################################################
