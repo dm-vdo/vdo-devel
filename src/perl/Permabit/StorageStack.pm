@@ -32,7 +32,6 @@ my %DEVICE_TYPES = (
   crypt       => 'Permabit::BlockDevice::Crypt',
   delay       => 'Permabit::BlockDevice::Delay',
   dory        => 'Permabit::BlockDevice::TestDevice::Dory',
-  flushnop    => 'Permabit::BlockDevice::TestDevice::FlushNop',
   fua         => 'Permabit::BlockDevice::TestDevice::Fua',
   iscsi       => 'Permabit::BlockDevice::ISCSI',
   linear      => 'Permabit::BlockDevice::LVM::Linear',
