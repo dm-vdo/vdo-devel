@@ -11,7 +11,7 @@ SRC_DIR = ../..
 include $(SRC_DIR)/c++/defines
 
 KERNEL_MODULES = pbitcorruptor-1.tgz pbitfua-1.tgz pbitdory-1.tgz \
-                  pbittracer-1.tgz pbitflushnop-1.tgz
+                  pbittracer-1.tgz
 
 .PHONY: all
 all: $(KERNEL_MODULES)
@@ -49,17 +49,6 @@ pbitfua-1.tgz:	$(addprefix fua/, \
 		--transform s,fua/,pbitfua-1/, 	\
 		--transform s,^common,pbitfua-1/common,	\
 		--show-transformed-names 		\
-		$^
-
-pbitflushnop-1.tgz: \
-	$(addprefix flushnop/, Makefile.dkms Makefile.common dkms.conf)	  \
-	$(filter-out flushnop/pbitflushnop%, $(wildcard flushnop/*.[ch])) \
-	$(wildcard common.[ch])
-	tar cvfz $@ \
-		--transform s,Makefile.dkms,Makefile,		\
-		--transform s,flushnop/,pbitflushnop-1/,	\
-		--transform s,^common,pbitflushnop-1/common,	\
-		--show-transformed-names			\
 		$^
 
 pbitdory-1.tgz:	$(addprefix dory/, \

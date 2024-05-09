@@ -27,7 +27,6 @@ my @deviceTypes = qw(
   crypt
   delay
   dory
-  flushnop
   fua
   iscsi
   linear
@@ -42,7 +41,6 @@ my @deviceTypes = qw(
   delay-raw
   dory-linear
   dory-raw
-  flushnop-raw
   fua-lvmvdo
   fua-raw
   fua-vdo
