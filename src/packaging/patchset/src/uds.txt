@@ -1,3 +1,0 @@
-Add UDS deduplication index.
-
-This adds the deduplication index used by dm-vdo.

@@ -1,3 +1,0 @@
-Add dm-vdo-target.c
-
-This adds the dm-vdo target.

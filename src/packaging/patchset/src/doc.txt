@@ -1,7 +1,0 @@
-Add documentation for dm-vdo.
-
-This adds the admin-guide documentation for dm-vdo.
-
-vdo.rst is the guide to using dm-vdo. vdo-design is an overview of the
-design of dm-vdo.
-

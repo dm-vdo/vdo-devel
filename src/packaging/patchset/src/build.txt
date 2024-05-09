@@ -1,3 +1,0 @@
-Enable configuration and building of dm-vdo.
-
-This adds dm-vdo to the drivers/md Kconfig and Makefile.
