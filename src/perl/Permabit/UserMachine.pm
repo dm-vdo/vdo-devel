@@ -36,9 +36,8 @@ use Permabit::Assertions qw(
 );
 use Permabit::Constants;
 use Permabit::LabUtils qw(getTestBlockDeviceNames isVirtualMachine);
-use Permabit::MegaRaid::Adapter;
 use Permabit::PlatformUtils qw(isMaipo);
-use Permabit::SystemUtils qw(isHWRaid runCommand);
+use Permabit::SystemUtils qw(runCommand);
 use Permabit::Utils qw(hashExtractor makeFullPath);
 use Permabit::Version qw($VDO_MODNAME);
 
@@ -78,12 +77,6 @@ my %KERNEL_LOG_ERROR_TABLE
      mapError   => [qr/mapToSystemError: mapping errno/,
                     "Error path with incorrect value"],
      # kernel
-     megaraid   => [qr/megaraid_sas: resetting fusion adapter/,
-                    "SSD adapter reset"],
-     # kernel
-     megasas    => [qr/megasas: target reset FAILED!!/,
-                    "SSD adapter reset failed"],
-     # kernel
      rcuStall   => [qr/self-detected stall on CPU/,
                     "RCU stall"],
      # readOnlyNotifier.c
@@ -116,8 +109,6 @@ my %TASKS_TO_IGNORE
 # @paramList{new}
 my %PROPERTIES
   = (
-     # @ple The Permabit::MegaRaid::Adapter, if we have one
-     megaraid           => undef,
      # @ple The directory test executables are found.  This must be set to use
      #      fsync, genDataSet, genDiscard or murmur3collide.
      nfsShareDir        => undef,
@@ -285,30 +276,6 @@ sub findNamedExecutable {
   return undef;
 }
 
-###############################################################################
-# @inherit
-##
-sub close {
-  my ($self) = assertNumArgs(1, @_);
-  delete $self->{megaraid};
-  $self->SUPER::close();
-}
-
-#############################################################################
-# Creates a MegaRaid::Adapter object and caches it to return on subsequent
-# calls because when manipulating VirtualDevices and PhysicalDisks objects
-# it must all be done through the *same* Adapter object.
-#
-# @return a Permabit::MegaRaid::Adapter
-##
-sub getMegaRaidAdapter {
-  my ($self) = assertNumArgs(1, @_);
-  if (!defined($self->{megaraid})) {
-    $self->{megaraid} = Permabit::MegaRaid::Adapter->new(machine => $self);
-  }
-  return $self->{megaraid};
-}
-
 #############################################################################
 # Select the default devices to use for tests on the indicated machine.
 #
@@ -318,52 +285,13 @@ sub selectDefaultRawDevices {
   my ($self) = assertNumArgs(1, @_);
   $log->info("Selecting raw devices"); #
   if (!defined($self->{rawDeviceNames})) {
-    if (isHWRaid($self->getName())) {
-      my $adapter = $self->getMegaRaidAdapter();
-      # For now our tests just assume that the first virtual device
-      #  is what we want.
-      my $vDev = $adapter->getVirtualDevices()->[0];
-      # XXX We don't really deal with partitions well and for these
-      #     RAID disks, we assume that the first partition is the one
-      #     to use for VDO testing. It would be better if we could just
-      #     hand over the VirtualDevice but we shouldn't modify the global
-      #     instance when all we want to do is deal with a single partition.
-      if (isMaipo($self->getName())) {
-        # Set the scheduler on RHEL7 to "noop" to keep the scheduler from
-        # reordering I/O.
-        # On RHEL8 and Fedora systems, the default multiqueue deadline
-        # scheduler is appropriate.
-        my $deviceName = basename($vDev->getDevicePath());
-        $self->setProcFile("noop", "/sys/block/$deviceName/queue/scheduler");
-      }
-      my $devicePath = "disk/by-path/" . basename($vDev->{symbolicPath});
-      $self->{rawDeviceNames} = [ $devicePath . "-part1" ];
-    } else {
-      $self->{rawDeviceNames} = getTestBlockDeviceNames($self);
-      $self->{rawDeviceNames}
-	= [ map { s|^/dev/||r } @{$self->{rawDeviceNames}} ];
-    }
+    $self->{rawDeviceNames} = getTestBlockDeviceNames($self);
+    $self->{rawDeviceNames}
+      = [ map { s|^/dev/||r } @{$self->{rawDeviceNames}} ];
     $log->debug("rawDeviceNames = " . join(' ', @{$self->{rawDeviceNames}}));
   }
 
   return $self->{rawDeviceNames};
-}
-
-
-#############################################################################
-# Print the wearout levels for the SSD drives on the mega raid adapter used
-#  this test.
-#
-# This method does nothing if we're not using VDO-PMI machines.
-##
-sub printSSDWearout {
-  my ($self) = assertNumArgs(1, @_);
-  if (isHWRaid($self->getName())) {
-    foreach my $disk (@{$self->getMegaRaidAdapter()->getPhysDisks()}) {
-      my $wearout = 100 - $disk->getMediaWearoutIndicator();
-      $log->info("$disk wearout: $wearout%");
-    }
-  }
 }
 
 ###############################################################################

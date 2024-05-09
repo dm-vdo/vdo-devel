@@ -73,10 +73,6 @@ sub testFioBenchmark {
   my $rate  = $wrate + $rrate;
   my $io    = $wio   + $rio;
 
-  # Print out the SSD wearout indicators
-  # XXX Assert that we're not too worn out?  (worn out SSDs == invalid test?)
-  $machine->printSSDWearout();
-
   $log->info("write rate = " . ($wrate/$MB) . " MB/s i/o = "
                              . ($wio/$MB)   . " MB");
   $log->info("read rate = "  . ($rrate/$MB) . " MB/s i/o = "
