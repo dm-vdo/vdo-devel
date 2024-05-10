@@ -25,6 +25,9 @@ ARCHIVE_DIR = $(SRC_DIR)/../archive
 ARCHIVE     = $(SRC_DIR)/packaging/github
 LOGBASE     = $(CURDIR)/../logs
 
+# The directory for testing building from tarball
+ARCHIVE_BUILD_DIR = $(ARCHIVE_DIR)/build
+
 # Number of concurrent jobs to run
 NUM_JOBS := $(shell expr $$(grep -F -c processor /proc/cpuinfo) + 1)
 
@@ -149,12 +152,23 @@ dmlinux-jenkins-parallel: clean
 	$(MAKE) DMLINUX=1 vdotests
 	$(MAKE) DMLINUX=1 dmtests
 
+.PHONY: test-build-from-tgz
+test-build-from-tgz:
+	set -e;                                                                         \
+	for i in $(shell find $(ARCHIVE_DIR) -name '*.tgz'); do                         \
+		tar -xzf $$i -C $(ARCHIVE_BUILD_DIR) && cd $(ARCHIVE_BUILD_DIR);        \
+		cd *;                                                                   \
+		($(MAKE) clean all && echo "Successfully built from $$i") ||            \
+		(echo "Failed to build from $$i" && exit 1);                            \
+	done
+	
 .PHONY: archive
 archive:
 	$(MAKE) -C $(ARCHIVE)
-	mkdir -p $(ARCHIVE_DIR)
-	find $(ARCHIVE) -type f -name "*.rpm" -exec cp {} $(ARCHIVE_DIR) \;
+	mkdir -p $(ARCHIVE_BUILD_DIR)
+	find $(ARCHIVE) -type f -regex '.*\.rpm\|.*[^k]vdo.*\.tgz' -exec cp {} $(ARCHIVE_DIR) \;
 	$(MAKE) -C $(ARCHIVE) clean
+	$(MAKE) test-build-from-tgz
 
 .PHONY: srpms
 srpms:
