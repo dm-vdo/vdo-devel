@@ -41,7 +41,7 @@ int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev)
   *bdev = dev->bdev;
 
   // Only pass ioctls through if the device sizes match exactly.
-  if (ti->len != i_size_read(dev->bdev->bd_inode) >> SECTOR_SHIFT) {
+  if (ti->len != bdev_nr_bytes(dev->bdev) >> SECTOR_SHIFT) {
     return 1;
   }
   return 0;
