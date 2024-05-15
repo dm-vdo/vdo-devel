@@ -631,8 +631,7 @@ int loadTable(TestConfiguration configuration, struct dm_target *target)
 {
   struct dm_dev *dm_dev;
   dm_get_device(NULL, NULL, 0, &dm_dev);
-  dm_dev->bdev->bd_inode->size =
-    (configuration.config.physical_blocks * VDO_BLOCK_SIZE);
+  dm_dev->bdev->size = configuration.config.physical_blocks * VDO_BLOCK_SIZE;
 
   target->len = configuration.config.logical_blocks * VDO_SECTORS_PER_BLOCK;
 

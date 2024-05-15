@@ -66,6 +66,7 @@ static struct block_device *getDeviceFromName(const char *name)
   }
 
   device->fd = fd;
+  device->size = (loff_t) SIZE_MAX;
   return device;
 }
 

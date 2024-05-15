@@ -30,7 +30,6 @@ static void tearDownDM(void)
     close_file(dmDev.bdev->fd, NULL);
   }
 
-  vdo_free(dmDev.bdev->bd_inode);
   vdo_free(vdo_forget(dmDev.bdev));
 }
 
@@ -38,7 +37,6 @@ static void tearDownDM(void)
 void initializeDM(void)
 {
   VDO_ASSERT_SUCCESS(vdo_allocate(1, struct block_device, __func__, &dmDev.bdev));
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct inode, __func__, &dmDev.bdev->bd_inode));
   dmDev.bdev->fd = -1;
   registerTearDownAction(tearDownDM);
 }
