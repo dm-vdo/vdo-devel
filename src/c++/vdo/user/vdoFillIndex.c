@@ -244,6 +244,7 @@ static struct block_device *parse_device(const char *name)
   }
 
   device->fd = fd;
+  device->size = SIZE_MAX;
   return device;
 }
 
