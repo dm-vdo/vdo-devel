@@ -245,13 +245,6 @@ sub testTools {
   my $config = $device->dumpConfig();
   $self->_logConfig($config);
 
-  # At least check that vdosetuuid changes the UUID.
-  $device->setUUID();
-  $device->enableReadableStorage();
-  assertNe("UUID should have changed",
-           $config->{UUID},
-           $device->dumpConfig()->{UUID});
-
   $self->_verifySingleLBNDump($stats->{"logical blocks"});
 
   # Dump the entire block map before corrupting a PBN. Verify it later after

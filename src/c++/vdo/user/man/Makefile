@@ -19,7 +19,6 @@ PAGES= \
 	vdolistmetadata.8        \
 	vdoreadonly.8            \
 	vdoregenerategeometry.8  \
-	vdosetuuid.8             \
 	vdostats.8
 
 CATFILES= $(PAGES:.8=.cat)

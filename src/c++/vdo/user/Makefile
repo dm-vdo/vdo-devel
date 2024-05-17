@@ -37,7 +37,6 @@ PROGS = corruptPBNRef          \
         vdoForceRebuild        \
         vdoFormat              \
         vdoInitializeBlockMap  \
-        vdoSetUUID             \
         vdoStats               \
         vdoWarmup              \
         $(SUPPORT_PROGS)

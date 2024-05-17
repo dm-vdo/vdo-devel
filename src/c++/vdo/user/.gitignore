@@ -12,6 +12,5 @@ vdoInitializeBlockMap
 vdoListMetadata
 vdoReadOnly
 vdoRegenerateGeometry
-vdoSetUUID
 vdoStats
 vdoWarmup
