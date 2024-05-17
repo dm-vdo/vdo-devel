@@ -244,6 +244,7 @@ static struct block_device *parse_device(const char *name)
   }
 
   device->fd = fd;
+  device->size = SIZE_MAX;
   return device;
 }
 
@@ -316,6 +317,7 @@ int main(int argc, char *argv[])
   struct uds_index_session *session;
   int result = uds_create_index_session(&session);
   if (result != UDS_SUCCESS) {
+    free_device(uds_device);
     errx(1, "Unable to create an index session");
   }
 
@@ -330,6 +332,7 @@ int main(int argc, char *argv[])
 
   result = uds_open_index(UDS_LOAD, &params, session);
   if (result != UDS_SUCCESS) {
+    free_device(uds_device);
     errx(1, "Unable to open the index");
   }
   
@@ -341,6 +344,7 @@ int main(int argc, char *argv[])
   if (!force_rebuild) {
     result = uds_close_index(session);
     if (result != UDS_SUCCESS) {
+      free_device(uds_device);
       errx(1, "Unable to close the index");
     }
   }
