@@ -32,9 +32,8 @@ USER_OBJS = blockMapUtils.o      \
 
 PROGS = corruptPBNRef          \
         udsCalculateSize       \
-        vdoDMEventd            \
         vdoDumpConfig          \
-	vdoFillIndex           \
+        vdoFillIndex           \
         vdoForceRebuild        \
         vdoFormat              \
         vdoInitializeBlockMap  \
@@ -59,13 +58,10 @@ BIN_CAMELCASE_PROGS = $(addprefix $(VDO_BIN_DIR)/, $(ALL_PROGS))
 BIN_LOWERCASE_PROGS = $(addprefix $(VDO_BIN_DIR)/, $(call DOWNCASE,$(ALL_PROGS)))
 BIN_PROGS := $(BIN_CAMELCASE_PROGS) $(BIN_LOWERCASE_PROGS)
 
-DMEVENT_SRC = dmeventd_vdo
-DMEVENT_LIB = libdevmapper-event-lvm2vdo.so
-
 LOGDIR ?= $(CURDIR)
 
 .PHONY: all
-all: $(BIN_PROGS) $(DMEVENT_LIB)
+all: $(BIN_PROGS)
 
 $(LIBUDS):
 	$(MAKE) -C $(UDS_USER_DIR)
@@ -83,16 +79,11 @@ clean:
 	rm -fr $(PROFDIR) $(DEPDIR) tmpdir
 	rm -f  $(ALL_PROGS)
 	rm -f  $(BIN_PROGS)
-	rm -f  $(DMEVENT_LIB)
 	$(MAKE) -C man clean
 
 libuser.a: $(USER_OBJS)
 	$(RM) $@
 	$(AR) cr $@ $(USER_OBJS)
-
-$(DMEVENT_LIB): $(DMEVENT_SRC).o $(LIBVDO) $(LIBUDS) $(DMEVENT_SRC).vers
-	$(CC) $(LDFLAGS) $(LDSHFLAGS) $(LDPRFLAGS) $(DMEVENT_SRC).o $(LIBVDO) \
-	  $(LIBUDS) -Wl,--version-script,$(DMEVENT_SRC).vers -o $@
 
 ########################################################################
 # Dependency processing
@@ -107,8 +98,6 @@ $(DMEVENT_LIB): $(DMEVENT_SRC).o $(LIBVDO) $(LIBUDS) $(DMEVENT_SRC).vers
 		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ;	 \
 	fi
 
-vdoDMEventd.o: CFLAGS += "-DPLUGIN_NAME=\"$(DMEVENT_LIB)\""
-
 $(DEPDIR)/%.d: %.c $(LIBUDS)
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -MM -MF $@ -MP -MT $*.o -MT "\$$(PROFDIR)/$*.o" $<
@@ -121,7 +110,6 @@ $(PROGS): $$@.o libuser.a $(LIBVDO) $(LIBUDS)
 vdoStats: $$@.o libuser.a $(LIBVDO) $(LIBUDS)
 
 vdoFormat: LDPRFLAGS += "-lblkid"
-vdoDMEventd: LDPRFLAGS += "-ldevmapper-event"
 
 # For program X, make $(VDO_BIN_DIR)/X depend on X, and install X into
 # $(VDO_BIN_DIR).
