@@ -63,8 +63,6 @@ use base qw(Permabit::Testcase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
-my $DMEVENT_LIB = "libdevmapper-event-lvm2vdo.so";
-
 # XXX This should be computed from device parameters and verified
 # against reality. For now, it's hard-coded with the value
 # appropriate for LowMemGenData* tests as currently configured.
@@ -190,7 +188,6 @@ my @SHARED_FILES
      "src/c++/vdo/bin/corruptpbnref",
      "src/c++/vdo/bin/vdoFillIndex",
      "src/c++/vdo/bin/udsCalculateSize",
-     "src/c++/vdo/user/$DMEVENT_LIB",
      "src/python/vdo/__init__.py",
      "src/python/vdo/dmdevice",
      "src/python/vdo/dmmgmnt",
@@ -640,16 +637,8 @@ sub getUserMachine {
                   userBinaryDir    => $self->{userBinaryDir},
                  );
     $self->{_machines}{$name} = Permabit::UserMachine->new(%params);
-
-    # Copy the dmeventd plugin to the location where dmeventd can find it
-    my $cmd = "sudo cp $self->{binaryDir}/$DMEVENT_LIB /lib64/.";
-    $self->{_machines}{$name}->runSystemCmd($cmd);
-    my $cleanup = sub {
-      my ($machine) = assertNumArgs(1, @_);
-      $machine->runSystemCmd("sudo rm -f /lib64/$DMEVENT_LIB");
-    };
-    $self->{_machines}{$name}->addCleanupStep($cleanup);
   }
+
   return $self->{_machines}{$name};
 }
 
