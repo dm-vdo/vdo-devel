@@ -9,16 +9,15 @@
 #
 
 PAGES= \
-	vdoaudit.8               \
-	vdodebugmetadata.8       \
-	vdodumpblockmap.8        \
-	vdodumpconfig.8          \
-	vdodumpmetadata.8        \
-	vdoforcerebuild.8        \
-	vdoformat.8              \
-	vdolistmetadata.8        \
-	vdoreadonly.8            \
-	vdoregenerategeometry.8  \
+	vdoaudit.8         \
+	vdodebugmetadata.8 \
+	vdodumpblockmap.8  \
+	vdodumpconfig.8    \
+	vdodumpmetadata.8  \
+	vdoforcerebuild.8  \
+	vdoformat.8        \
+	vdolistmetadata.8  \
+	vdoreadonly.8      \
 	vdostats.8
 
 CATFILES= $(PAGES:.8=.cat)
