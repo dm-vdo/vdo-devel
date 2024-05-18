@@ -41,13 +41,12 @@ PROGS = corruptPBNRef          \
         vdoWarmup              \
         $(SUPPORT_PROGS)
 
-SUPPORT_PROGS = vdoAudit               \
-                vdoDebugMetadata       \
-                vdoDumpBlockMap        \
-                vdoDumpMetadata        \
-                vdoListMetadata        \
-                vdoReadOnly            \
-                vdoRegenerateGeometry
+SUPPORT_PROGS = vdoAudit         \
+                vdoDebugMetadata \
+                vdoDumpBlockMap  \
+                vdoDumpMetadata  \
+                vdoListMetadata  \
+                vdoReadOnly
 
 ALL_PROGS = $(PROGS)
 
