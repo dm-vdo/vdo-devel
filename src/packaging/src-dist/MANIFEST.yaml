@@ -64,16 +64,12 @@ tarballs:
           sources:
             - vdoaudit.8
             - vdodebugmetadata.8
-            - vdodmeventd.8
             - vdodumpblockmap.8
-            - vdodumpconfig.8
             - vdodumpmetadata.8
             - vdoforcerebuild.8
             - vdoformat.8
             - vdolistmetadata.8
             - vdoreadonly.8
-            - vdoregenerategeometry.8
-            - vdosetuuid.8
             - vdostats.8
         src/c++/vdo/user:
           dest: utils/vdo
@@ -87,17 +83,13 @@ tarballs:
             - userVDO.[hc]
             - vdoAudit.c->vdoaudit.c
             - vdoConfig.[hc]
-            - vdoDMEventd.c->vdodmeventd.c
             - vdoDebugMetadata.c->vdodebugmetadata.c
             - vdoDumpBlockMap.c->vdodumpblockmap.c
-            - vdoDumpConfig.c->vdodumpconfig.c
             - vdoDumpMetadata.c->vdodumpmetadata.c
             - vdoForceRebuild.c->vdoforcerebuild.c
             - vdoFormat.c->vdoformat.c
             - vdoListMetadata.c->vdolistmetadata.c
             - vdoReadOnly.c->vdoreadonly.c
-            - vdoRegenerateGeometry.c->vdoregenerategeometry.c
-            - vdoSetUUID.c->vdosetuuid.c
             - vdoStats.c->vdostats.c
             - vdoStats.h
             - vdoStatsWriter.c
