@@ -3,7 +3,6 @@ udsCalculateSize
 vdoAudit
 vdoDebugMetadata
 vdoDumpBlockMap
-vdoDumpConfig
 vdoDumpMetadata
 vdoFillIndex
 vdoForceRebuild

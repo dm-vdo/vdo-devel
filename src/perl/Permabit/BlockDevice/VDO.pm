@@ -293,18 +293,6 @@ sub start {
 }
 
 ########################################################################
-# Get the VDO configuration as a hash
-##
-sub dumpConfig {
-  my ($self) = assertNumArgs(1, @_);
-
-  my $path = $self->getVDOStoragePath();
-  my $cmd = $self->getMachine()->findNamedExecutable("vdodumpconfig");
-  my $output = $self->runOnHost("sudo $cmd $path");
-  return yamlStringToHash($output);
-}
-
-########################################################################
 # Fill the index with synthetic records for steady state testing.
 #
 # @oparam forceRebuild  If true, set up index to rebuild on next load
