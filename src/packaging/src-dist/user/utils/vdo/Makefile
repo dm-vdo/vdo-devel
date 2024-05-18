@@ -66,18 +66,14 @@ LDPRFLAGS = -ldl -pthread -lz -lrt -lm -luuid
 DEPLIBS  = $(UDS_DIR)/libuds.a
 LIBFLAGS = -pthread -lrt
 
-PROGS = vdoaudit               \
-        vdodebugmetadata       \
-        vdodmeventd            \
-        vdodumpblockmap        \
-        vdodumpconfig          \
-        vdodumpmetadata        \
-        vdoforcerebuild        \
-        vdoformat              \
-        vdolistmetadata        \
-        vdoreadonly            \
-        vdoregenerategeometry  \
-        vdosetuuid             \
+PROGS = vdoaudit         \
+        vdodebugmetadata \
+        vdodumpblockmap  \
+        vdodumpmetadata  \
+        vdoforcerebuild  \
+        vdoformat        \
+        vdolistmetadata  \
+        vdoreadonly      \
         vdostats
 
 COMPLETIONS=vdostats
@@ -87,8 +83,6 @@ NOBUILDPROGS = adaptlvm \
 PROG_SOURCES := $(PROGS:%=%.c)
 C_FILES      := $(filter-out $(PROG_SOURCES),$(wildcard *.c))
 LIB_OBJECTS  := $(C_FILES:%.c=%.o)
-
-DMEVENT_LIB = libdevmapper-event-lvm2vdo.so
 
 .PHONY: all
 all: libvdo.a $(PROGS)
@@ -135,8 +129,6 @@ install:
 		$(MV) $(DEPDIR)/$*.d.new $(DEPDIR)/$*.d ;	\
 	fi
 
-vdodmeventd.o: CFLAGS += "-DPLUGIN_NAME=\"$(DMEVENT_LIB)\""
-
 $(DEPDIR)/%.d: %.c
 	@mkdir -p $(DEPDIR)
 	$(CC) $(CFLAGS) -MM -MF $@ -MP -MT $*.o $<
@@ -147,7 +139,6 @@ $(PROGS): $$@.o libvdo.a $(DEPLIBS)
 	$(CC) $(LDFLAGS) $^ $(LDPRFLAGS) -o $@
 
 vdoformat: LDPRFLAGS += "-lblkid"
-vdodmeventd: LDPRFLAGS += "-ldevmapper-event"
 
 ifneq ($(MAKECMDGOALS),clean)
 DEPSOURCES = $(wildcard *.c)

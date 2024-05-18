@@ -1,4 +1,4 @@
-%define spec_release 33
+%define spec_release 34
 %define bash_completions_dir %{_datadir}/bash-completion/completions
 
 Summary: Management tools for Virtual Data Optimizer
@@ -65,11 +65,8 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 
 %files
 %license COPYING
-%{_bindir}/vdodmeventd
-%{_bindir}/vdodumpconfig
 %{_bindir}/vdoforcerebuild
 %{_bindir}/vdoformat
-%{_bindir}/vdosetuuid
 %{_bindir}/vdostats
 %{bash_completions_dir}/vdostats
 %dir %{_defaultdocdir}/%{name}
@@ -78,11 +75,8 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_logicalSpace.pl
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_physicalSpace.pl
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_savingPercent.pl
-%{_mandir}/man8/vdodmeventd.8*
-%{_mandir}/man8/vdodumpconfig.8*
 %{_mandir}/man8/vdoforcerebuild.8*
 %{_mandir}/man8/vdoformat.8*
-%{_mandir}/man8/vdosetuuid.8*
 %{_mandir}/man8/vdostats.8*
 
 %files support
@@ -94,7 +88,6 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 %{_bindir}/vdolistmetadata
 %{_bindir}/vdoreadonly
 %{_bindir}/vdorecover
-%{_bindir}/vdoregenerategeometry
 %{_mandir}/man8/adaptlvm.8*
 %{_mandir}/man8/vdoaudit.8*
 %{_mandir}/man8/vdodebugmetadata.8*
@@ -103,9 +96,11 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 %{_mandir}/man8/vdolistmetadata.8*
 %{_mandir}/man8/vdoreadonly.8*
 %{_mandir}/man8/vdorecover.8*
-%{_mandir}/man8/vdoregenerategeometry.8*
 
 %changelog
+* Mon May 20 2024 - Matthew Sakai <msakai@redhat.com> - 8.4.0.0-34
+- Removed vdodmeventd, vdosetuuid, vdodumpconfig, and vdoregenerategeometry.
+
 * Fri Apr 26 2024 - Susan LeGendre-McGhee <slegendr@redhat.com> - 8.4.0.0-33
 - Reformat to improve clarity and make consistent with current standards.
 
