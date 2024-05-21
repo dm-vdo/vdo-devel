@@ -39,7 +39,6 @@ sub makeRecoveringVDO {
   my $vdoDevice  = $self->getDevice();
   my $doryDevice = $self->getDoryDevice();
   my $machine    = $vdoDevice->getMachine();
-  my $config     = $vdoDevice->dumpConfig();
 
   # Add some data so that the VDO device is not empty.
   my $dataPath = $self->generateDataFile($MB, "source");
@@ -72,7 +71,7 @@ sub makeRecoveringVDO {
   $doryDevice->restart();
 
   # Fill the index with chunk names so UDS rebuild takes some time.
-  $vdoDevice->fillIndex($config, 1);
+  $vdoDevice->fillIndex(1);
 
   my $prerecoveryCursor = $machine->getKernelJournalCursor();
   $log->info("Recover VDO");

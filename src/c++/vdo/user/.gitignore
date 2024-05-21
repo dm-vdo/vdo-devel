@@ -1,10 +1,8 @@
 corruptPBNRef
 udsCalculateSize
 vdoAudit
-vdoDMEventd
 vdoDebugMetadata
 vdoDumpBlockMap
-vdoDumpConfig
 vdoDumpMetadata
 vdoFillIndex
 vdoForceRebuild
@@ -12,7 +10,5 @@ vdoFormat
 vdoInitializeBlockMap
 vdoListMetadata
 vdoReadOnly
-vdoRegenerateGeometry
-vdoSetUUID
 vdoStats
 vdoWarmup

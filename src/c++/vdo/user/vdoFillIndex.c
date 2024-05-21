@@ -22,7 +22,13 @@
 #include "memory-alloc.h"
 #include "murmurhash3.h"
 
-#define BLOCK_SIZE 4096
+#include "constants.h"
+#include "encodings.h"
+#include "types.h"
+#include "status-codes.h"
+
+#include "userVDO.h"
+#include "vdoVolumeUtils.h"
 
 struct query {
   LIST_ENTRY(query) query_list;
@@ -45,12 +51,8 @@ static unsigned int concurrent_requests = 0;
 static unsigned int peak_requests = 0;
 
 static struct block_device *uds_device = NULL;
-static uds_memory_config_size_t mem_size = UDS_MEMORY_CONFIG_256MB;
-static uint64_t nonce = 0;
-static off_t offset = 0;
-static bool use_sparse = false;
 static bool force_rebuild = false;
-static unsigned int poll_interval;
+static unsigned int poll_interval = 65536;
 /*
  * Gets a query from the lookaside list, or allocates one if possible.
  */
@@ -169,64 +171,28 @@ static void usage(char *prog)
          "Fill a UDS index with synthetic data.\n"
          "\n"
          "Options:\n"
-         "  --help              Print this help message and exit\n"
-         "  --force-rebuild     Cause the index to rebuild on next load\n"
-         "  --memory-size=Size  Optional index memory size, default 0.25\n"
-         "  --nonce=Nonce       The index nonce (required)\n"
-         "  --offset=Bytes      The byte offset to the start of the index\n"
-         "  --sparse            If the index is sparse\n",
+         "  --help           Print this help message and exit\n"
+         "  --force-rebuild  Cause the index to rebuild on next load\n",
          prog);
 }
 
-static uds_memory_config_size_t parse_mem_size(char *size_string)
+static void read_geometry(const char *name,
+                          struct volume_geometry *geometry_ptr)
 {
-  uds_memory_config_size_t mem_size;
-  
-  if (strcmp("0.25", size_string) == 0) {
-    mem_size = UDS_MEMORY_CONFIG_256MB;
-    poll_interval = 65536;
-  } else if (strcmp("0.5", size_string) == 0
-             || strcmp("0.50", size_string) == 0) {
-    mem_size = UDS_MEMORY_CONFIG_512MB;
-    poll_interval = 131072;
-  } else if (strcmp("0.75", size_string) == 0) {
-    mem_size = UDS_MEMORY_CONFIG_768MB;
-    poll_interval = 196608;
-  } else {
-    char *endptr = NULL;
-    unsigned long n = strtoul(size_string, &endptr, 10);
-    if (*endptr != '\0' || n == 0 || n > UDS_MEMORY_CONFIG_MAX) {
-      errx(1, "Illegal memory size, valid value: 1..%u, 0.25, 0.5, 0.75",
-           UDS_MEMORY_CONFIG_MAX);
-    }
-    mem_size = (uds_memory_config_size_t) n;
-    poll_interval = 262144;
+  UserVDO *vdo;
+  int result = makeVDOFromFile(name, true, &vdo);
+  if (result != VDO_SUCCESS) {
+    errx(1, "Could not load VDO from '%s'", name);
   }
-  return mem_size;
+
+  result = loadVolumeGeometry(vdo->layer, geometry_ptr);
+  freeVDOFromFile(&vdo);
+  if (result != VDO_SUCCESS) {
+    errx(1, "Could not read VDO geometry from '%s'", name);
+  }
 }
 
-static uint64_t parse_nonce(char *optarg)
-{
-  char *endptr = NULL;
-  unsigned long long n = strtoull(optarg, &endptr, 10);
-  if (*endptr != '\0') {
-    errx(1, "Nonce must be a non-negative integer");
-  }
-  return (uint64_t) n;
-}
-
-static off_t parse_offset(char *optarg)
-{
-  char *endptr = NULL;
-  unsigned long long n = strtoull(optarg, &endptr, 10);
-  if (*endptr != '\0') {
-    errx(1, "Offset must be a non-negative integer");
-  }
-  return (off_t) n;
-}
-
-/**********************************************************************/
-static struct block_device *parse_device(const char *name)
+static struct block_device *create_device(const char *name)
 {
   int result;
   int fd;
@@ -255,17 +221,13 @@ static void free_device(struct block_device *device)
   device = NULL;
 }
 
-static void parse_args(int argc, char *argv[])
+static const char *parse_args(int argc, char *argv[])
 {
-  static const char *optstring = "hn:o:";
+  static const char *optstring = "fh";
   static const struct option longopts[] = {
-    {"force-rebuild",   no_argument,       0,    'f'},
-    {"help",            no_argument,       0,    'h'},
-    {"nonce",           required_argument, 0,    'n'},
-    {"offset",          required_argument, 0,    'o'},
-    {"memory-size",     required_argument, 0,    'm'},
-    {"sparse",          no_argument,       0,    's'},
-    {0,                 0,                 0,     0 }
+    {"force-rebuild",   no_argument, 0, 'f'},
+    {"help",            no_argument, 0, 'h'},
+    {0,                 0,           0,  0 }
   };
   int opt;
   while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
@@ -277,18 +239,6 @@ static void parse_args(int argc, char *argv[])
       usage(argv[0]);
       exit(0);
       break;
-    case 'm':
-      mem_size = parse_mem_size(optarg);
-      break;
-    case 'n':
-      nonce = parse_nonce(optarg);
-      break;
-    case 'o':
-      offset = parse_offset(optarg);
-      break;
-    case 's':
-      use_sparse = true;
-      break;
     default:
       usage(argv[0]);
       exit(2);
@@ -296,37 +246,44 @@ static void parse_args(int argc, char *argv[])
     }
   }
 
-  if (!nonce) {
-    fprintf(stderr, "The index nonce must be specified.\n");
-    usage(argv[0]);
-    exit(2);
-  }
   if (optind != argc - 1) {
     fprintf(stderr, "Exactly one PATH argument is required.\n");
     usage(argv[0]);
     exit(2);
   }
 
-  uds_device = parse_device(argv[optind]);
+  return argv[optind++];
 }
 
 int main(int argc, char *argv[])
 {
-  parse_args(argc, argv);
+  const char *name = parse_args(argc, argv);
+
+  int result = vdo_register_status_codes();
+  if (result != VDO_SUCCESS) {
+    errx(1, "Could not register VDO status codes");
+  }
+
+  struct volume_geometry geometry;
+  read_geometry(name, &geometry);
+
+  uds_device = create_device(name);
 
   struct uds_index_session *session;
-  int result = uds_create_index_session(&session);
+  result = uds_create_index_session(&session);
   if (result != UDS_SUCCESS) {
     free_device(uds_device);
     errx(1, "Unable to create an index session");
   }
 
+  block_count_t start_block
+    = geometry.regions[VDO_INDEX_REGION].start_block - geometry.bio_offset;
   const struct uds_parameters params = {
     .bdev        = uds_device,
-    .offset      = offset,
-    .memory_size = mem_size,
-    .sparse      = use_sparse,
-    .nonce       = nonce,
+    .offset      = start_block * VDO_BLOCK_SIZE,
+    .memory_size = geometry.index_config.mem,
+    .sparse      = geometry.index_config.sparse,
+    .nonce       = geometry.nonce,
     .zone_count  = 1,
   };
 
@@ -335,10 +292,10 @@ int main(int argc, char *argv[])
     free_device(uds_device);
     errx(1, "Unable to open the index");
   }
-  
+
   pthread_mutex_init(&list_mutex, NULL);
   pthread_cond_init(&list_cond, NULL);
-  
+
   fill(session);
 
   if (!force_rebuild) {

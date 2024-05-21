@@ -293,37 +293,15 @@ sub start {
 }
 
 ########################################################################
-# Get the VDO configuration as a hash
-##
-sub dumpConfig {
-  my ($self) = assertNumArgs(1, @_);
-
-  my $path = $self->getVDOStoragePath();
-  my $cmd = $self->getMachine()->findNamedExecutable("vdodumpconfig");
-  my $output = $self->runOnHost("sudo $cmd $path");
-  return yamlStringToHash($output);
-}
-
-########################################################################
 # Fill the index with synthetic records for steady state testing.
 #
-# @param  config        the index configuration from dumpConfig()
-# @oparam forceRebuild  If true, setup index to rebuild on next load
+# @oparam forceRebuild  If true, set up index to rebuild on next load
 ##
 sub fillIndex {
-  my ($self, $config, $forceRebuild) = assertMinMaxArgs([0], 2, 3, @_);
+  my ($self, $forceRebuild) = assertMinMaxArgs([0], 1, 2, @_);
 
-  my $nonce = $config->{Nonce};
-  my $offset = $config->{IndexRegion} * 4096;
-  my $sparse = $config->{IndexConfig}->{sparse};
   my $path = $self->getVDOStoragePath();
-
-  my $cmd = join(" ", $self->findBinary("vdoFillIndex"),
-                 "--nonce=$nonce", "--offset=$offset",
-                 (($sparse eq "true") ? "--sparse" : ()));
-  if (defined($self->{memorySize})) {
-    $cmd .= " --memory-size=$self->{memorySize}";
-  }
+  my $cmd = $self->findBinary("vdoFillIndex");
   if ($forceRebuild) {
     $cmd .= " --force-rebuild";
   }
@@ -352,8 +330,7 @@ sub postActivate {
   if (!$self->{disableAlbireo} && $self->{albFill}) {
     $self->waitForIndex();
     $self->{albFill} = 0;
-    my $config = $self->dumpConfig();
-    $self->fillIndex($config);
+    $self->fillIndex();
   }
 
   # In testing, we can try out different queue priorities
@@ -1056,27 +1033,6 @@ sub setReadOnlyMode {
     $self->disableWritableStorage();
   };
   $self->runWhileStopped($setReadOnly);
-
-  return $output;
-}
-
-########################################################################
-# Change the UUID of the VDO volume.
-##
-sub setUUID {
-  my ($self, $uuid) = assertMinMaxArgs(1, 2, @_);
-  my $path = $self->getVDOStoragePath();
-  my $setUUID = $self->getMachine()->findNamedExecutable("vdosetuuid");
-  my $options = "";
-
-  if (defined($uuid)) {
-    $options .= "--uuid $uuid";
-  }
-
-  $self->enableWritableStorage();
-  my $output = runCommand($self->getMachine()->getName(),
-                          "sudo $setUUID $options $path");
-  $self->disableWritableStorage();
 
   return $output;
 }
