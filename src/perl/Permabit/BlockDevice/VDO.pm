@@ -76,37 +76,41 @@ my %LATENCY_CHECKS = (
 our %BLOCKDEVICE_PROPERTIES
   = (
      # @ple Flag whether the VDO is converted until VDOSTORY-275 is complete
-     converted       => 0,
+     converted               => 0,
      # @ple name of the device node
-     deviceName      => "vdo0",
+     deviceName              => "vdo0",
      # @ple directory path containing the device node.
-     deviceRootDir   => "/dev/mapper",
+     deviceRootDir           => "/dev/mapper",
      # workaround for VDO-5320
-     _dmSymlink      => {},
+     _dmSymlink              => {},
      # @ple whether to wait for the indexer to come up at start
-     expectIndexer   => 1,
+     expectIndexer           => 1,
      # @ple whether to expect VDO and the index to rebuild
-     expectRebuild   => 0,
+     expectRebuild           => 0,
      # @ple the path to the VDO installer script
-     installer       => undef,
+     installer               => undef,
      # VDO physical metadata size (in bytes)
-     metadataSize    => undef,
+     metadataSize            => undef,
      # Hash of installed VDO modules
-     _modules        => {},
+     _modules                => {},
      # VDO module name
-     moduleName      => $VDO_MODNAME,
+     moduleName              => $VDO_MODNAME,
      # VDO module version
-     moduleVersion   => undef,
+     moduleVersion           => undef,
+     # Whether readable storage is enabled, for cleanup
+     _readableStorageEnabled => 0,
      # Whether this VDO may be stacked on another VDO
-     stackable       => 0,
+     stackable               => 0,
      # The name of the created VDO device. The distinction
      # is needed in order to support LVMManaged which is a
      # hybrid device on both a VDO and a volume on top of it
-     vdoDeviceName   => undef,
+     vdoDeviceName           => undef,
      # The path to the created VDO device. The distinction
      # is needed in order to support LVMManaged which is a
      # hybrid device on both a VDO and a volume on top of it
-     vdoSymbolicPath => undef,
+     vdoSymbolicPath         => undef,
+     # Whether writable storage is enabled, for cleanup
+     _writableStorageEnabled => 0,
     );
 ##
 
@@ -290,6 +294,23 @@ sub start {
   }
 
   $self->SUPER::start();
+}
+
+########################################################################
+# @inherit
+##
+sub stop {
+  my ($self) = assertNumArgs(1, @_);
+
+  # Check to see if we need to revert a non-standard device state
+  if ($self->{_writableStorageEnabled}) {
+    $self->disableWritableStorage();
+  }
+  if ($self->{_readableStorageEnabled}) {
+    $self->disableReadableStorage();
+  }
+
+  $self->SUPER::stop();
 }
 
 ########################################################################
@@ -927,27 +948,35 @@ sub doVDOSync {
 }
 
 ########################################################################
-# Brings down the readable vdo storage device
+# Brings down the readable vdo storage device.
 ##
 sub disableReadableStorage {
+  my ($self) = assertNumArgs(1, @_);
+  $self->{_readableStorageEnabled} = 0;
 }
 
 ########################################################################
 # Brings up the vdo storage as a readable device.
 ##
 sub enableReadableStorage {
+  my ($self) = assertNumArgs(1, @_);
+  $self->{_readableStorageEnabled} = 1;
 }
 
 ########################################################################
-# Brings down the writable vdo storage device
+# Brings down the writable vdo storage device.
 ##
 sub disableWritableStorage {
+  my ($self) = assertNumArgs(1, @_);
+  $self->{_writableStorageEnabled} = 0;
 }
 
 ########################################################################
 # Brings up the vdo storage as a writable device.
 ##
 sub enableWritableStorage {
+  my ($self) = assertNumArgs(1, @_);
+  $self->{_writableStorageEnabled} = 1;
 }
 
 ########################################################################
