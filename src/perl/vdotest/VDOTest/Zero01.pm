@@ -24,7 +24,7 @@ our %PROPERTIES
   = (
      # @ple Number of blocks in a data set
      blockCount => 200000,
-     # @ple Use a managed device (overridden by some specific tests)
+     # @ple The type of device to use (overridden by some specific tests)
      deviceType => "lvmvdo",
      # @ple Set to false to turn off verification
      verify     => 1,

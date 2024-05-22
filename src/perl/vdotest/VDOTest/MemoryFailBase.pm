@@ -30,7 +30,7 @@ our %PROPERTIES
      # @ple The machine type, just a cheap local machine since the tests
      #      log a lot.
      clientClass               => "ALBIREO-PMI",
-     # @ple The type of VDO device to use, default is managed
+     # @ple The type of VDO device to use
      deviceType                => "lvmvdo",
      # @ple set to true to track memory allocations and report leaks
      trackMemory               => 0,

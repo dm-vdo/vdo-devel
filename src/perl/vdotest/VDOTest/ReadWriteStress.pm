@@ -36,7 +36,7 @@ our %PROPERTIES
      clientClass                 => "VDO-PMI",
      # @ple Number of CPU threads to use
      cpuThreadCount              => 2,
-     # @ple Use a VDO managed device
+     # @ple The type of VDO device to use
      deviceType                  => "lvmvdo",
      # @ple Enable offset writes
      emulate512Enabled           => 1,

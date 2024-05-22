@@ -35,9 +35,9 @@ our %PROPERTIES
      blockCount => 16000,
      # @ple Class of host to reserve for tests (VDO-5640)
      clientClass => 'PFARM',
-     # @ple Use a LVM vdo device, though a managed device should be usable too
+     # @ple The type of VDO device to use
      deviceType => 'lvmvdo',
-     # @ple Use a tiny VDO to fill it easily.
+     # @ple Use a tiny VDO to fill it easily
      physicalSize => 750 * $MB,
      # @ple Use small slabs
      slabBits => $SLAB_BITS_TINY,

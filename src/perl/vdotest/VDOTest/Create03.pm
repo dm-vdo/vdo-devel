@@ -27,7 +27,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 ##
 # @paramList{getProperties}
 our %PROPERTIES = (
-  # @ple The type of VDO device to use, default is managed
+  # @ple The type of VDO device to use
   deviceType                => "lvmvdo",
   # @ple Number of times to restart the device
   iterationCount            => 1024,
