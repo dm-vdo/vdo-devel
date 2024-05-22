@@ -293,6 +293,7 @@ sub disableWritableStorage {
   my $fullName = "$vgName-$deviceName";
 
   $self->runOnHost("sudo dmsetup remove $fullName");
+  $self->SUPER::disableWritableStorage();
 }
 
 ########################################################################
@@ -311,6 +312,7 @@ sub enableWritableStorage {
   $self->{volumeGroup}->disableLogicalVolume($deviceName);
 
   $self->runOnHost("sudo dmsetup create $fullName --table '$table'");
+  $self->SUPER::enableWritableStorage();
 }
 
 ########################################################################
@@ -319,6 +321,7 @@ sub enableWritableStorage {
 sub disableReadableStorage {
   my ($self) = assertNumArgs(1, @_);
   $self->{volumeGroup}->disableLogicalVolume("$self->{deviceName}pool_vdata");
+  $self->SUPER::disableReadableStorage();
 }
 
 ########################################################################
@@ -327,6 +330,7 @@ sub disableReadableStorage {
 sub enableReadableStorage {
   my ($self) = assertNumArgs(1, @_);
   $self->{volumeGroup}->enableLogicalVolume("$self->{deviceName}pool_vdata");
+  $self->SUPER::enableReadableStorage();
 }
 
 ########################################################################
