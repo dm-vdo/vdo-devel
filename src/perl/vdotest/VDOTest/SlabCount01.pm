@@ -66,7 +66,7 @@ my %TEST_TABLE
 # @paramList{getProperties}
 our %PROPERTIES
   = (
-     # @ple Use a managed device
+     # @ple The type of VDO device to use
      deviceType => "lvmvdo",
     );
 ##

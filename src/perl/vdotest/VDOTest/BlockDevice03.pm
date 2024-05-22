@@ -24,7 +24,7 @@ our %PROPERTIES
   = (
      # @ple fill index first
      albFill    => 1,
-     # @ple use a managed vdo device
+     # @ple the type of vdo device to use
      deviceType => "lvmvdo",
     );
 ##
