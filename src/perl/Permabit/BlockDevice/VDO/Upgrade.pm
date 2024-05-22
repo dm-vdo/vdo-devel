@@ -84,17 +84,6 @@ sub _setupData {
 }
 
 ########################################################################
-# Start a managed VDO
-##
-sub startManagedVDO {
-  my ($self) = assertNumArgs(1, @_);
-  # We need to suppress checking for blocked tasks, because the Fluorine
-  # release still has blocked tasks reported during "dmsetup create".
-  my $start = sub { $self->SUPER::startManagedVDO(); };
-  $self->getMachine()->withKernelLogErrorCheckDisabled($start, "blocked");
-}
-
-########################################################################
 # @inherit
 ##
 sub getCurrentVDOStats {

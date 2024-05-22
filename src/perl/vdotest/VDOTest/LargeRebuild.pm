@@ -28,7 +28,7 @@ our %PROPERTIES
      blockMapCacheSize => 5 * $GB,
      # @ple class of machine, requires large volume
      clientClass       => "VDO-PMI",
-     # @ple device stack must be managed-linear at present; due to
+     # @ple device stack must be lvmvdo-linear at present; due to
      #      physical size, must have a linear just under VDO, and
      #      RebuildBase is not yet smart enough to start multiple
      #      devices atop Dory.

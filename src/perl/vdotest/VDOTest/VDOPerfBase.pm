@@ -24,7 +24,7 @@ our %PROPERTIES = (
   albFill               => 1,
   # @ple use hardware raid by default
   clientClass           => "VDO-PMI",
-  # @ple use a managed vdo device
+  # @ple The type of VDO device to use
   deviceType            => "lvmvdo",
   # @ple Our SSD arrays can only index 1TB so no point for a large index
   memorySize            => 0.25,

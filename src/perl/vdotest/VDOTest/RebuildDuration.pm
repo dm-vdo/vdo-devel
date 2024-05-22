@@ -44,7 +44,7 @@ our %PROPERTIES
      blockMapCacheSize => 4 * $GB,
      # @ple class of machine, requires large volume
      clientClass       => "VDO-PMI",
-     # @ple use a managed vdo device
+     # @ple the type of vdo device to use
      deviceType        => "lvmvdo",
      # @ple volume size
      logicalSize       => 256 * $TB,
