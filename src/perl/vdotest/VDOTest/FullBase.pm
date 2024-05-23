@@ -67,7 +67,9 @@ sub tear_down {
   if ($self->failedTest() && defined($device)
       && $device->isa("Permabit::BlockDevice::VDO")) {
     # Upon failure, save the metadata from the VDO device
-    $device->dumpMetadata();
+    eval {
+      $device->dumpMetadata();
+    };
   }
   $self->SUPER::tear_down();
 }
