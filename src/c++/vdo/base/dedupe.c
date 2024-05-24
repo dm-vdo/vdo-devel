@@ -151,11 +151,13 @@
 #include "vdo.h"
 #include "wait-queue.h"
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 struct uds_attribute {
 	struct attribute attr;
 	const char *(*show_string)(struct hash_zones *hash_zones);
 };
 
+#endif
 #define DEDUPE_QUERY_TIMER_IDLE 0
 #define DEDUPE_QUERY_TIMER_RUNNING 1
 #define DEDUPE_QUERY_TIMER_FIRED 2
