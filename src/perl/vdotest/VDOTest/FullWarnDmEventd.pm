@@ -161,10 +161,10 @@ sub _writeToFullnessPercent {
   my @warnings = $self->_getFullnessWarnings();
   assertEqualNumeric(scalar @warnings, 1);
 
-  my $regexp = "VDO " . $device->getVDODeviceName() . " is now .* full";
+  my $regexp = "VDO pool " . $device->getVDODeviceName() . " is now .* full";
   assertRegexpMatches(qr/$regexp/, $warnings[0]);
 
-  $regexp = "VDO .* is now ([0-9]+\.[0-9]+)% full";
+  $regexp = "VDO pool .* is now ([0-9]+\.[0-9]+)% full";
   if ($warnings[0] =~ qr/$regexp/) {
     my $percentFull = $1;
     assertGENumeric($percentFull, $percent);
