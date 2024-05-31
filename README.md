@@ -1,7 +1,7 @@
-# kvdo
+# vdo-devel
 
-The kernel module component of VDO which provides pools of deduplicated and/or
-compressed block storage.
+Primary development repository for the dm-vdo kernel module and related
+userspace tools, plus documentation, tests and packaging support for dm-vdo.
 
 ## Background
 
@@ -38,20 +38,18 @@ When a shared block is overwritten, a new physical block is allocated for
 storing the new block data to ensure that other logical block addresses that
 are mapped to the shared physical block are not modified.
 
-This repository includes the kvdo module, which can be built and loaded as an
-out-of-tree kernel module. This module implements fine-grained storage
-virtualization, thin provisioning, block sharing, compression, and
-memory-efficient duplicate identification.
-
 ## History
 
 VDO was originally developed by Permabit Technology Corp. as a proprietary set
 of kernel modules and userspace tools. This software and technology has been
 acquired by Red Hat and relicensed under the GPL (v2 or later). The kernel
-module has been merged into the upstream Linux kernel as the dm-vdo devive
+module has been merged into the upstream Linux kernel as the dm-vdo device
 mapper target. The source for this module can be found in drivers/md/dm-vdo/.
 
 ## Documentation
+
+Documentation can be found in the `doc` directory. Additional documentation
+can be found here:
 
 - [RHEL9 VDO Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/deduplicating_and_compressing_logical_volumes_on_rhel/index)
 - [RHEL8 VDO Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deduplicating_and_compressing_storage/index)
@@ -60,49 +58,39 @@ mapper target. The source for this module can be found in drivers/md/dm-vdo/.
 
 ## Releases
 
-**This repository is no longer being updated for newer kernels.**
+This repository is the upstream source for the dm-vdo kernel module. The most
+recent updates enter the mainline Linux kernel through the 
+[device-mapper tree](https://git.kernel.org/pub/scm/linux/kernel/git/device-mapper/linux-dm.git/).
 
-The most recent version of this project can be found in the upstream Linux
-kernel, as the dm-vdo module. Each existing branch of this repository is
-intended to work with a specific release of Enterprise Linux (Red Hat
-Enterprise Linux, CentOS, etc.).
-
-Version | Intended Enterprise Linux Release
-------- | ---------------------------------
-6.1.x.x | EL7 (3.10.0-*.el7)
-6.2.x.x | EL8 (4.18.0-*.el8)
-8.2.x.x | EL9 (5.14.0-*.el9)
-
-* Pre-built versions with the required modifications for older Fedora releases
-  can be found [here](https://copr.fedorainfracloud.org/coprs/rhawalsh/dm-vdo)
-  and can be used by running `dnf copr enable rhawalsh/dm-vdo`.
+Userspace tools for managing dm-vdo device-mapper targets are published
+periodically through the [vdo](https://github.com/dm-vdo/vdo) repository.
 
 ## Building
 
-In order to build the kernel modules, invoke the following command
-from the top directory of this tree:
+In order to build the entire project, invoke the following command from the
+`src` directory of this tree:
 
-        make -C /usr/src/kernels/`uname -r` M=`pwd`
+        make all archive
 
-To install the compiled module:
+Source tarballs and installable RPMs will appear in the `archive` directory.
 
-        make -C /usr/src/kernels/`uname -r` M=`pwd` modules_install
-
-* There is a dkms.conf template that can be used in the kvdo.spec file which
-  can take care of rebuilding and installing the kernel module any time a new
-  kernel is booted.
-
-* Patched sources that work with certain older upstream kernels can be found
-  [here](https://github.com/rhawalsh/kvdo).
+Patched sources that work with some older kernels can be found
+[here](https://github.com/rhawalsh/kvdo).
 
 ## Communication Channels and Contributions
 
-Community feedback, participation and patches are welcome to the
-[vdo-devel](https://github.com/dm-vdo/vdo-devel) repository, which is the
-parent of this one. This repository does not accept pull requests.
+Community feedback, participation and patches are welcome. Code contributions
+can be filed as pull requests and will be accepted based on review feedback
+and testing results. Patches can also be submitted to dm-devel@lists.linux.dev
+using the normal kernel patch submission process.
+
+Questions and suggestions can be filed as issues. We try to address issues and
+pull requests in a timely manner, but a response may sometimes take a few
+days. Your patience is appreciated.
 
 ## Licensing
 
 [GPL v2.0 or later](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
 All contributions retain ownership by their original author, but must also
 be licensed under the GPL 2.0 or later to be merged.
+
