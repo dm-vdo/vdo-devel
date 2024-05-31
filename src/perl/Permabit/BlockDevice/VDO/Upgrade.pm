@@ -291,19 +291,6 @@ sub switchToScenario {
 ########################################################################
 # @inherit
 ##
-sub makeVDOCommandString {
-  my ($self, $args) = assertNumArgs(2, @_);
-  my $params = {
-                binary        => $self->getMachine()->findNamedExecutable("vdo"),
-                pythonLibDir  => "$self->{_currentInstall}/pythonlibs",
-                %$args,
-               };
-  return $self->SUPER::makeVDOCommandString($params);
-}
-
-########################################################################
-# @inherit
-##
 sub makeVDOStatsCommandString {
   my ($self, $args) = assertNumArgs(2, @_);
   my $params = {
