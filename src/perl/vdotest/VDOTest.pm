@@ -424,7 +424,7 @@ sub deviceCreated {
 
   # After creating a device, do any associated manual wait points
   foreach my $subclass (qw(TestDevice::Managed::Corruptor
-                           TestDevice::Crypt
+                           Crypt
                            TestDevice::Dory
                            TestDevice::Fua
                            Loop
