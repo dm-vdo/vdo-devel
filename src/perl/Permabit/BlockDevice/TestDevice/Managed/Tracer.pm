@@ -63,19 +63,6 @@ sub makeTableLine {
 ########################################################################
 # @inherit
 ##
-sub getDmdeviceCommandOptions {
-  my ($self, $command) = assertNumArgs(2, @_);
-  my $options = "";
-  if (($command eq "create") || ($command eq "configure")) {
-    $options = join("=", "--sectorCount", $self->{traceSectors});
-  }
-  return join(" ", $self->SUPER::getDmdeviceCommandOptions($command),
-              $options);
-}
-
-########################################################################
-# @inherit
-##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   $self->SUPER::activate();
