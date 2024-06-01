@@ -180,7 +180,6 @@ sub _buildModules {
 
   # Build the user tools from source, and move the necessary RPMs to the top
   # level.
-  # This includes setting up the proper directory structures for python.
   $log->debug("Building user tools SRPM");
   my $userBuild = join(' ',
                        "rpmbuild --rebuild",
@@ -189,9 +188,7 @@ sub _buildModules {
                        "$versionDir/vdo-$versionName*.src.rpm");
   my $userMove = "mv -f $versionDir/RPMS/$arch/vdo-$versionName"
                   . "*.rpm $versionDir";
-  my $pythonPath = $self->getMachine()->getPythonLibraryPath();
-  my $link = "ln -s $versionDir/$pythonPath $versionDir/pythonlibs";
-  $self->runOnHost([$userBuild, $userMove, $link]);
+  $self->runOnHost([$userBuild, $userMove]);
 
   my $supportMove = "mv -f $versionDir/RPMS/$arch/vdo-support-$versionName*.rpm"
                      . " $versionDir";
@@ -294,8 +291,7 @@ sub switchToScenario {
 sub makeVDOStatsCommandString {
   my ($self, $args) = assertNumArgs(2, @_);
   my $params = {
-                binary        => $self->getMachine()->findNamedExecutable("vdostats"),
-                pythonLibDir  => "$self->{_currentInstall}/pythonlibs",
+                binary => $self->getMachine()->findNamedExecutable("vdostats"),
                 %$args,
                };
   return $self->SUPER::makeVDOStatsCommandString($params);
