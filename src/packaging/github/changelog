@@ -9,3 +9,9 @@
 Version 8.3.0.70
 vdo:
 * Rebased for kernel version 6.9.
+
+Version 8.3.0.71
+vdo:
+* Removed obsolete utilities.
+* Fixed version numbering.
+* Updated project documentation.
