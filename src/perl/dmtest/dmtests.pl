@@ -40,7 +40,7 @@ our $SOURCE_FILES = [
     dest  => 'src/perl',
   },
   {
-    files => ['src/python/bin', 'src/python/vdo', 'src/python/devices'],
+    files => ['src/python/bin'],
     dest  => 'src/python',
   },
   {

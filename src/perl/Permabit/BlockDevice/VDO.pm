@@ -161,8 +161,6 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      physicalSize              => undef,
      # Number of physical threads/zones to use
      physicalThreadCount       => 2,
-     # The directory in which to look for python libraries
-     pythonLibDir              => undef,
      # test kvdo queue priorities
      queuePriorities           => undef,
      # The directory to save logs in

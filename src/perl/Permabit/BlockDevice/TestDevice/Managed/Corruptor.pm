@@ -42,7 +42,7 @@ our %BLOCKDEVICE_PROPERTIES
 ##
 sub enableCurrentRead {
   my ($self) = assertNumArgs(1, @_);
-  $self->sendDmdeviceCommand("configure --read=enable");
+  $self->sendMessage("enable read");
 }
 
 ########################################################################
@@ -50,7 +50,7 @@ sub enableCurrentRead {
 ##
 sub enableCurrentWrite {
   my ($self) = assertNumArgs(1, @_);
-  $self->sendDmdeviceCommand("configure --write=enable");
+  $self->sendMessage("enable write");
 }
 
 ########################################################################
@@ -124,7 +124,7 @@ sub enableSequentialWrite {
 ##
 sub disableCurrentRead {
   my ($self) = assertNumArgs(1, @_);
-  $self->sendDmdeviceCommand("configure --read=disable");
+  $self->sendMessage("disable read");
 }
 
 ########################################################################
@@ -132,7 +132,7 @@ sub disableCurrentRead {
 ##
 sub disableCurrentWrite {
   my ($self) = assertNumArgs(1, @_);
-  $self->sendDmdeviceCommand("configure --write=disable");
+  $self->sendMessage("disable write");
 }
 
 ########################################################################
@@ -166,8 +166,7 @@ sub parseBlockParse {
 ##
 sub setModuloRead {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --read=modulo --readFrequency=$frequency");
+  $self->sendMessage("parameters read modulo $frequency");
 }
 
 ########################################################################
@@ -178,8 +177,7 @@ sub setModuloRead {
 ##
 sub setModuloWrite {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --write=modulo --writeFrequency=$frequency");
+  $self->sendMessage("parameters write modulo $frequency");
 }
 
 ########################################################################
@@ -190,8 +188,7 @@ sub setModuloWrite {
 ##
 sub setRandomRead {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --read=random --readFrequency=$frequency");
+  $self->sendMessage("parameters read random $frequency");
 }
 
 ########################################################################
@@ -202,8 +199,7 @@ sub setRandomRead {
 ##
 sub setRandomWrite {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --write=random --writeFrequency=$frequency");
+  $self->sendMessage("parameters write random $frequency");
 }
 
 ########################################################################
@@ -214,8 +210,7 @@ sub setRandomWrite {
 ##
 sub setSequentialRead {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --read=sequential --readFrequency=$frequency");
+  $self->sendMessage("parameters read sequential $frequency");
 }
 
 ########################################################################
@@ -226,8 +221,7 @@ sub setSequentialRead {
 ##
 sub setSequentialWrite {
   my ($self, $frequency) = assertNumArgs(2, @_);
-  $self->sendDmdeviceCommand(
-    "configure --write=sequential --writeFrequency=$frequency");
+  $self->sendMessage("parameters write sequential $frequency");
 }
 
 1;
