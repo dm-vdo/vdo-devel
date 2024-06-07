@@ -77,9 +77,9 @@ sub testMultipleMigration {
 sub propertiesMigrateAndUpgrade {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.3.2",
+    initialScenario       => "X86_RHEL9_8.2.4.9",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_RHEL9_8.2.3-current", "X86_RHEL9_head"],
+    intermediateScenarios => ["X86_RHEL9_8.2.4-current", "X86_RHEL9_head"],
   );
 }
 
