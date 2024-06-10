@@ -76,13 +76,14 @@ my $SUITE_PROPERTIES = {
     extraArgs    => "--clientClass=PFARM",
     osClasses    => ["RAWHIDE"],
   },
-  vdoDebugKernelTests => {
-    displayName  => "VDO_Debug_Kernel_Tests",
-    suiteName    => "debugKernelTests",
-    scale        => "PFARM",
-    extraArgs    => "--clientClass=PFARM",
-    osClasses    => ["RHEL9DEBUG"],
-  },
+# XXX VDO-5778 Disble debug tests until we can get a newer debug kernel
+#  vdoDebugKernelTests => {
+#    displayName  => "VDO_Debug_Kernel_Tests",
+#    suiteName    => "debugKernelTests",
+#    scale        => "PFARM",
+#    extraArgs    => "--clientClass=PFARM",
+#    osClasses    => ["RHEL9DEBUG"],
+#  },
   vdoSingle => {
     displayName => "VDO_Single_Threaded_Tests",
     suiteName   => "",

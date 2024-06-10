@@ -252,7 +252,7 @@ foreach my $class (qw(FEDORA39)) {
   push(@{$suiteNames{platformTests}}, $alias);
 }
 
-foreach my $class (qw(RHEL9)) {
+foreach my $class (qw()) {
   my $alias = "Basic01_" . ucfirst(lc($class));
   $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
   push(@{$suiteNames{internalPlatformTests}}, $alias);
