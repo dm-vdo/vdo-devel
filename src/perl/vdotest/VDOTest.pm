@@ -251,12 +251,14 @@ sub _minimumMemory {
   # Fedora 36 not measured; assume it needs 200M for pre-VDO operation.
   # Fedora 37 measured 2023-07-24 needed 400M for pre-VDO operation.
   # Fedora 38 measured 2023-07-24 needed 400M for pre-VDO operation.
+  # Fedora 39 not measured; assume it needs 400M for pre-VDO operation.
+  # Fedora 40 not measured; assume it needs 400M for pre-VDO operation.
   # RHEL8 measured 2023-07-24 needed 400M for pre-VDO operation.
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
   my %DISTRO_MEMORY_REQUIREMENTS
     = (
-       FEDORA38 => 400 * $MB,
        FEDORA39 => 400 * $MB,
+       FEDORA40 => 400 * $MB,
        RAWHIDE  => 400 * $MB,
        RHEL8    => 400 * $MB,
        RHEL9    => 400 * $MB,
