@@ -12,7 +12,7 @@ my $CCA = "--clientClass=ALBIREO-PMI\\,RAWHIDE";
 my $CCV = "--clientClass=VDO-PMI\\,RAWHIDE";
 
 $aliasNames{Checkin} = "Grouped   --dmtestName=vdo";
-$aliasNames{Full}    = "Separated";
+$aliasNames{Full}    = "Separated --dmtestName=vdo";
 $aliasNames{Jenkins} = "Grouped   --dmtestName=vdo";
 $aliasNames{HDD}     = "Separated --dmtestName=vdo $CCA";
 $aliasNames{Perf}    = "Separated --dmtestName=vdo $CCV";
