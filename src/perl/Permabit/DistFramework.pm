@@ -55,7 +55,7 @@ my %ARGUMENTS = (
 );
 
 my %DEFAULTS = (
-  author => 'Red Hat VDO Team <vdo-devel@redhat.com>',
+  author => 'Red Hat VDO Team <dm-devel@lists.linux.dev>',
   dest => '.'
 );
 
