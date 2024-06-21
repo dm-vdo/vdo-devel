@@ -1,9 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * %COPYRIGHT%
+ * Copyright (C) 2026 Red Hat, Inc.
  *
- * %LICENSE%
- *
- * This is the test "lossy" device, which has a short term memory problem.
  * It has these expected usage modes:
  *
  * 1 - No cache, device stops suddenly.
@@ -1121,5 +1119,5 @@ module_init(lossyInit);
 module_exit(lossyExit);
 
 MODULE_DESCRIPTION(DM_NAME " lossy testing device");
-MODULE_AUTHOR("Red Hat, Inc.");
+MODULE_AUTHOR("Matthew Sakai <dm-devel@lists.linux.dev>");
 MODULE_LICENSE("GPL");
