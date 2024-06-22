@@ -227,10 +227,8 @@ static void processDelayed(struct work_struct *work)
   bio_list_init(&flushes);
   bio_list_init(&ready);
   spin_lock_irq(&ld->workLock);
-  bio_list_merge(&flushes, &ld->workFlushBios);
-  bio_list_init(&ld->workFlushBios);
-  bio_list_merge(&ready, &ld->workBios);
-  bio_list_init(&ld->workBios);
+  bio_list_merge_init(&flushes, &ld->workFlushBios);
+  bio_list_merge_init(&ready, &ld->workBios);
   spin_unlock_irq(&ld->workLock);
 
   // Process the completed flushes.
@@ -280,12 +278,10 @@ static void scheduleDelayedProcessing(struct lossy_device *ld,
   bool schedulingNeeded = (bio_list_empty(&ld->workBios)
                            && bio_list_empty(&ld->workFlushBios));
   if (haveBios) {
-    bio_list_merge(&ld->workBios, ready);
-    bio_list_init(ready);
+    bio_list_merge_init(&ld->workBios, ready);
   }
   if (haveFlushes) {
-    bio_list_merge(&ld->workFlushBios, flushes);
-    bio_list_init(flushes);
+    bio_list_merge_init(&ld->workFlushBios, flushes);
   }
   spin_unlock_irqrestore(&ld->workLock, flags);
 
@@ -318,12 +314,10 @@ static void decrementBusyCountAndTest(struct lossy_device *ld)
       // And there are REQ_FLUSH requests in progress.
       ld->flushFlag = false;
       // Record the flush bios that are complete.
-      bio_list_merge(&completedFlushes, &ld->flushBios);
-      bio_list_init(&ld->flushBios);
+      bio_list_merge_init(&completedFlushes, &ld->flushBios);
       // Record the bios that are now ready to start.
-      bio_list_merge(&readyBios, &ld->waitingBios);
-      bio_list_init(&ld->waitingBios);
-    }
+      bio_list_merge_init(&readyBios, &ld->waitingBios);
+     }
     spin_unlock_irqrestore(&ld->flushLock, flags);
 
     // Start the "ready" ones.
@@ -355,8 +349,7 @@ static void endFlushCacheBlock(struct bio *bio)
   spin_lock_irqsave(&cb->lock, flags);
   cb->state = EMPTY;
   // Record the bios that are now ready to start
-  bio_list_merge(&ready, &cb->waitingBios);
-  bio_list_init(&cb->waitingBios);
+  bio_list_merge_init(&ready, &cb->waitingBios);
   spin_unlock_irqrestore(&cb->lock, flags);
 
   // Finish the transition to EMPTY.
@@ -460,8 +453,7 @@ static void processBioCached(struct cache_block *cb,
   cb->state = DIRTY;
 
   // We can immediately release the waiting bios.
-  bio_list_merge(ready, &cb->waitingBios);
-  bio_list_init(&cb->waitingBios);
+  bio_list_merge_init(ready, &cb->waitingBios);
 
   // See whether a flush request has asked to flush all blocks.  Note that this
   // check is made without holding the flush lock.  This is safe because
