@@ -18,6 +18,9 @@
 #include <linux/kernel.h>
 #include <linux/kstrtox.h>
 #endif /* INTERNAL */
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "admin-state.h"
 #include "block-map.h"
@@ -1083,8 +1086,25 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * The value is used by dm-thin to determine whether to pass down discards. The block layer
 	 * splits large discards on this boundary when this is set.
 	 */
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 	limits->max_discard_sectors =
 		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
+#else
+	limits->max_hw_discard_sectors =
+		(vdo->device_config->max_discard_blocks * VDO_SECTORS_PER_BLOCK);
+#endif
 
 	/*
 	 * Force discards to not begin or end with a partial block by stating the granularity is
