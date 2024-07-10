@@ -28,7 +28,7 @@ our %PROPERTIES
      compressibility       => 55,
      # @ple Use a fast Dory rebuild, even though Xfs sometimes fails. Never
      #      use a real reboot with a stripfua device; it doesn't survive.
-     deviceType            => "lvmvdo-dory",
+     deviceType            => "lvmvdo-lossy",
      # @ple Enable compression by VDO
      enableCompression     => 1,
     );

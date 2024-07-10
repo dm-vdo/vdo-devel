@@ -39,9 +39,9 @@ our %PROPERTIES
   = (
      # @ple Whether to enable vdoAudit
      auditVDO        => 1,
-     # @ple Either 'lvmvdo' (to do a real reboot) or 'lvmvdo-dory'
-     #      to use a dory-simulated crash.
-     deviceType      => "lvmvdo-dory",
+     # @ple Either 'lvmvdo' (to do a real reboot) or 'lvmvdo-lossy'
+     #      to use a simulated crash.
+     deviceType      => "lvmvdo-lossy",
      # @ple If non-zero, randomly discard (trim) this fraction of blocks
      randomlyDiscard => 0,
      # @ple If non-zero, randomly zero this fraction of blocks

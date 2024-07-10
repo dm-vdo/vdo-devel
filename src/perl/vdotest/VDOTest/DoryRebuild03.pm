@@ -36,12 +36,12 @@ sub suite {
 
   my $name = "${package}::testNoCache";
   my $test = $package->make_test_from_coderef(\&_testLoop, $name);
-  $test->{doryOptions} = { cacheBlocks => 0, };
+  $test->{lossyOptions} = { cacheBlocks => 0, };
   $suite->add_test($test, $name);
 
   $name = "${package}::testMiniCache";
   $test = $package->make_test_from_coderef(\&_testLoop, $name);
-  $test->{doryOptions} = { cacheBlocks => 5, };
+  $test->{lossyOptions} = { cacheBlocks => 5, };
   $suite->add_test($test, $name);
   return $suite;
 }

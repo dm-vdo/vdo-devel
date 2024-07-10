@@ -25,7 +25,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES
   = (
-     deviceType        => "lvmvdo-dory",
+     deviceType        => "lvmvdo-lossy",
      enableCompression => 1,
     );
 ##

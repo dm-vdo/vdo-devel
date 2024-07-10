@@ -92,8 +92,8 @@ our %PROPERTIES
      defaultHost             => undef,
      # @ple if defined, set up this type of device for the test
      deviceType              => undef,
-     # @ple options for the dory device (if any)
-     doryOptions             => {},
+     # @ple options for the lossy device (if any)
+     lossyOptions            => {},
      # @ple the block size for the filesystem (defaults to VDO exported size)
      fsBlockSize             => undef,
      # @ple the type of filesystem to create
@@ -390,8 +390,8 @@ sub createTestDevice {
   my %deviceOptions = ();
 
   # This option allows tests to specify options for specific device
-  # classes on the command line, allowing easy configuration of
-  # test devices other than vdo. It is currently only used for dory.
+  # classes on the command line, allowing easy configuration of test
+  # devices other than vdo. It is currently only used for lossy devices.
   if (defined($self->{"${deviceType}Options"})) {
     %deviceOptions = ( %{$self->{"${deviceType}Options"}});
   }
@@ -446,7 +446,7 @@ sub deviceCreated {
   # After creating a device, do any associated manual wait points
   foreach my $subclass (qw(TestDevice::Managed::Corruptor
                            Crypt
-                           TestDevice::Dory
+                           TestDevice::Lossy
                            TestDevice::Fua
                            Loop
                            TestDevice::Managed::Tracer
@@ -683,11 +683,11 @@ sub createVolumeGroup {
 }
 
 ########################################################################
-# Get a Dory device that exists in the device hierarchy.
+# Get a Lossy device that exists in the device hierarchy.
 ##
 sub getDoryDevice {
   my ($self) = assertNumArgs(1, @_);
-  return $self->getDevice('Permabit::BlockDevice::TestDevice::Dory');
+  return $self->getDevice('Permabit::BlockDevice::TestDevice::Lossy');
 }
 
 ########################################################################

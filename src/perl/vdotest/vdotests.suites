@@ -188,7 +188,7 @@ $suiteNames{localFull}
   sub _makeTornWriteTest {
     my ($name, $mask, $modulus) = @_;
     $aliasNames{"TornWrite_$name"}
-      = "TornWriteBase --doryOptions=tornMask=$mask,tornModulus=$modulus";
+      = "TornWriteBase --lossyOptions=tornMask=$mask,tornModulus=$modulus";
     push(@{$suiteNames{tornWrites}}, "TornWrite_$name");
   }
 

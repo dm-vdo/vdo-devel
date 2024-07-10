@@ -31,9 +31,9 @@ sub suite {
 
   my $options = $package->makeDummyTest();
 
-  my %doryTypes;
-  $doryTypes{NoCache} = { cacheBlocks => 0, };
-  $doryTypes{MiniCache} = { cacheBlocks => 5, };
+  my %lossyTypes;
+  $lossyTypes{NoCache} = { cacheBlocks => 0, };
+  $lossyTypes{MiniCache} = { cacheBlocks => 5, };
   my %dedupeTypes = (
                      "0"  => 0,
                      "45" => 0.45,
@@ -44,14 +44,14 @@ sub suite {
                        "60" => 0.6,
                        "90" => 0.9,
                       );
-  foreach my $doryKey (keys(%doryTypes)) {
+  foreach my $lossyKey (keys(%lossyTypes)) {
     foreach my $dedupeKey (keys(%dedupeTypes)) {
       foreach my $compressKey (keys(%compressTypes)) {
-        my $name = "${package}::test${doryKey}D${dedupeKey}C${compressKey}";
+        my $name = "${package}::test${lossyKey}D${dedupeKey}C${compressKey}";
         my $test = $package->make_test_from_coderef(\&_testAudit, $name);
-        $test->{doryOptions} = $doryTypes{$doryKey};
-        $test->{_compress}   = $compressTypes{$compressKey};
-        $test->{_dedupe}     = $dedupeTypes{$dedupeKey};
+        $test->{lossyOptions} = $lossyTypes{$lossyKey};
+        $test->{_compress}    = $compressTypes{$compressKey};
+        $test->{_dedupe}      = $dedupeTypes{$dedupeKey};
         $suite->add_test($test, $name);
       }
     }

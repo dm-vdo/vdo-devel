@@ -40,12 +40,12 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES
   = (
-     # @ple Use a vdo-dory stack.
-     deviceType        => "vdo-dory",
-     # @ple Dory device options.
-     doryOptions       => {},
+     # @ple Use a vdo-lossy stack.
+     deviceType        => "vdo-lossy",
      # @ple turn on compression
      enableCompression => 1,
+     # @ple Lossy device options
+     lossyOptions      => {},
     );
 ##
 

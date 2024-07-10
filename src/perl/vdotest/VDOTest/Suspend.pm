@@ -22,7 +22,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %PROPERTIES
   = (
      # @ple Using dory give the test more control of the VDO device state.
-     deviceType    => "lvmvdo-dory",
+     deviceType    => "lvmvdo-lossy",
      # @ple A filesystem would be unnecessary complication here.
      useFilesystem => 0,
     );

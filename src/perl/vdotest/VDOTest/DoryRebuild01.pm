@@ -32,8 +32,8 @@ our %PROPERTIES
      compressFractions => [0, 0.45, 0.9],
      # @ple Dedupe settings to try
      dedupeFractions   => [0, 0.6, 0.9],
-     # @ple Dory device options.
-     doryOptions       => { cacheBlocks => 0, },
+     # @ple Lossy device options.
+     lossyOptions      => { cacheBlocks => 0, },
      # @ple Time to write each dataset before a rebuild, in seconds
      timePerSlice      => 30,
     );
