@@ -387,6 +387,8 @@ static int checkDeviceInUse(char *filename, uint32_t major, uint32_t minor)
       return result;
     }
   }
+
+  free(path);
   return VDO_SUCCESS;
 }
 
