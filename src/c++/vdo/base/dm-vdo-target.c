@@ -1269,6 +1269,14 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
 			*result_buffer = '\0';
 #endif /* __KERNEL__ */
 		result = 1;
+	} else if ((argc == 1) && (strcasecmp(argv[0], "config") == 0)) {
+#ifdef __KERNEL__
+		vdo_write_config(vdo, &result_buffer, &maxlen);
+#else /* not __KERNEL__ */
+		if (maxlen > 0)
+			*result_buffer = '\0';
+#endif /* __KERNEL__ */
+		result = 1;
 	} else {
 		result = vdo_status_to_errno(process_vdo_message(vdo, argc, argv));
 	}
@@ -3074,7 +3082,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 0, 0 },
+	.version = { 9, 1, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
