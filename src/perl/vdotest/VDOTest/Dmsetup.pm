@@ -21,7 +21,8 @@ use Permabit::Assertions qw(
   assertRegexpMatches
   assertTrue);
 use Permabit::Constants;
-use Permabit::Utils qw(retryUntilTimeout);
+use Permabit::Utils qw(retryUntilTimeout sizeToLvmText yamlStringToHash);
+use YAML;
 
 use base qw(VDOTest);
 
@@ -62,6 +63,35 @@ sub testBasicOps {
     $device->sendMessage("California");
   };
   assertNe("", $EVAL_ERROR, "unknown message failed to generate an error");
+}
+
+###############################################################################
+# Test with non default slab bits
+##
+sub propertiesConfigNonDefaultSlab {
+  return ( slabBits => 20 );
+}
+
+###############################################################################
+# Test dmsetup message for displaying config information using a non default
+# slab bits value.
+#
+##
+sub testConfigNonDefaultSlab {
+  my ($self) = assertNumArgs(1, @_);
+  my $device = $self->getDevice();
+  my $path = $device->getVDODevicePath();
+
+  my $output = $device->runOnHost("sudo dmsetup message $path 0 config");
+  $output = "config : " . $output;
+  my $yaml = yamlStringToHash($output);
+  my $config = $yaml->{"config"};
+
+  assertEq($config->{"physicalSize"}, int($device->{storageDevice}->getSize()));
+  assertEq($config->{"logicalSize"}, $device->{logicalSize});
+  assertEq($config->{"slabSize"}, 1 << $self->{slabBits});
+  assertEq($config->{"index"}->{"memorySize"}, $self->{memorySize});
+  assertEq($config->{"index"}->{"isSparse"}, $device->{sparse});
 }
 
 ###############################################################################
