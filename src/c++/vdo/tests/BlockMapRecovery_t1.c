@@ -19,7 +19,6 @@
 #include "blockMapUtils.h"
 #include "completionUtils.h"
 #include "journalWritingUtils.h"
-#include "numberedBlockMapping.h"
 #include "repairCompletion.h"
 #include "testParameters.h"
 #include "vdoAsserts.h"
