@@ -750,6 +750,7 @@ static void process_update_result(struct data_vio *agent)
 	enter_histogram_sample(vdo_from_data_vio(agent)->histograms.update_histogram,
 			       jiffies - context->submission_jiffies);
 #endif /* VDO_INTERNAL */
+	agent->dedupe_context = NULL;
 	release_context(context);
 }
 
@@ -1685,6 +1686,7 @@ static void process_query_result(struct data_vio *agent)
 		enter_histogram_sample(histogram, jiffies - context->submission_jiffies);
 #endif /* VDO_INTERNAL */
 		agent->is_duplicate = decode_uds_advice(context);
+		agent->dedupe_context = NULL;
 		release_context(context);
 	}
 }
@@ -2417,6 +2419,7 @@ static void timeout_index_operations_callback(struct vdo_completion *completion)
 		 * send its requestor on its way.
 		 */
 		list_del_init(&context->list_entry);
+		context->requestor->dedupe_context = NULL;
 		continue_data_vio(context->requestor);
 		timed_out++;
 	}
