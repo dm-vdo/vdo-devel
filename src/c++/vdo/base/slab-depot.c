@@ -14,6 +14,7 @@
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
+
 #include "logger.h"
 #include "memory-alloc.h"
 #include "numeric.h"
@@ -39,12 +40,12 @@
 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 5))
+#if defined(RHEL_RELEASE_CODE)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 5)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
 #define VDO_USE_ALTERNATE
 #endif
 #else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 11, 0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 10, 0))
 #define VDO_USE_ALTERNATE
 #endif
 #endif /* !RHEL_RELEASE_CODE */
