@@ -1613,10 +1613,36 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 	sequence_number_t i, head;
 	bool found_entries = false;
 	struct recovery_journal *journal = repair->completion.vdo->recovery_journal;
+	struct recovery_block_header header;
+	enum vdo_metadata_type expected_format;
 
 	head = min(repair->block_map_head, repair->slab_journal_head);
+	header = get_recovery_journal_block_header(journal, repair->journal_data, head);
+	expected_format = header.metadata_type;
 	for (i = head; i <= repair->highest_tail; i++) {
-		struct recovery_block_header header;
+		header = get_recovery_journal_block_header(journal, repair->journal_data, i);
+		if (header.metadata_type != expected_format) {
+			/* There is a mix of old and new format blocks, so we need to rebuild. */
+			vdo_log_error_strerror(VDO_CORRUPT_JOURNAL,
+					       "Recovery journal is in an invalid format, a read-only rebuild is required.");
+			vdo_enter_read_only_mode(repair->completion.vdo, VDO_CORRUPT_JOURNAL);
+			return VDO_CORRUPT_JOURNAL;
+		}
+
+		if (!is_exact_recovery_journal_block(journal, &header, i, expected_format)) {
+			/* A bad block header was found so this must be the end of the journal. */
+			break;
+		}
+	}
+
+	if (expected_format == VDO_METADATA_RECOVERY_JOURNAL) {
+		/* All journal blocks have the old format, so we need to upgrade. */
+		vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+				       "Recovery journal is in the old format. Downgrade and complete recovery, then upgrade with a clean volume");
+		return VDO_UNSUPPORTED_VERSION;
+	}
+
+	for (i = head; i <= repair->highest_tail; i++) {
 		journal_entry_count_t block_entries;
 		u8 j;
 
@@ -1628,13 +1654,6 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 		};
 
 		header = get_recovery_journal_block_header(journal, repair->journal_data, i);
-		if (header.metadata_type == VDO_METADATA_RECOVERY_JOURNAL) {
-			/* This is an old format block, so we need to upgrade */
-			vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					       "Recovery journal is in the old format. Downgrade and complete recovery, then upgrade with a clean volume");
-			return VDO_UNSUPPORTED_VERSION;
-		}
-
 		if (!is_exact_recovery_journal_block(journal, &header, i,
 						     VDO_METADATA_RECOVERY_JOURNAL_2)) {
 			/* A bad block header was found so this must be the end of the journal. */
