@@ -698,8 +698,8 @@ sub getVDOStats {
 ##
 sub assertVDOStats {
   my ($self, $expected) = assertNumArgs(2, @_);
-  my $device = $self->getDevice();
-  my $stats = $device->getVDOStats();
+  my $device = $self->getVDODevice();
+  my $stats = $self->getVDOStats();
   $stats->logStats($device->getDevicePath());
 
   foreach my $key (sort(keys(%$expected))) {
