@@ -15,6 +15,7 @@
 #include "fileUtils.h"
 #include "memory-alloc.h"
 #include "string-utils.h"
+#include "syscalls.h"
 
 #include "constants.h"
 #include "packer.h"
@@ -141,6 +142,40 @@ static void generate(void)
   close(fd);
 }
 
+/**
+ * Read the VDO contents from disk and store in a char array.
+ * 
+ * The allocated array must be freed by the calling function.
+ **/
+static void saveExpectedFileContents(const char *fileName, char **expectedData)
+{
+  int fd;
+  off_t vdoSize;
+  ssize_t bytesRead;
+  
+  VDO_ASSERT_SUCCESS(open_file(fileName, FU_READ_ONLY, &fd));
+  VDO_ASSERT_SUCCESS(get_open_file_size(fd, &vdoSize));
+  VDO_ASSERT_SUCCESS(vdo_allocate(vdoSize, char, __func__, expectedData));
+  VDO_ASSERT_SUCCESS(logging_read(fd, *expectedData, vdoSize, __func__,
+                                  &bytesRead));
+  CU_ASSERT_EQUAL(vdoSize, bytesRead);
+  close(fd);
+}
+
+/**
+ * Error if a mismatch is detected for a given pbn, as there are no
+ * acceptable mismatches in this implementation.
+ *
+ * Implements MismatchChecker.
+ **/
+static void mismatchChecker(physical_block_number_t pbn,
+                            char *expectedBlock,
+                            char *actualBlock)
+{
+  CU_FAIL("Unexpected mismatch at pbn %" PRIu64 ": expected '%s', actual '%s'",
+          pbn, expectedBlock, actualBlock);
+}
+
 /**********************************************************************/
 static void verify(u64 recoveryCount)
 {
@@ -176,15 +211,18 @@ static void testClean(void)
 /**********************************************************************/
 static void testDirty(void)
 {
+  char *expectedData = NULL;
+  
   parameters.backingFile = crashedPath;
   initializeTest(&parameters);
-  setStartStopExpectation(VDO_READ_ONLY);
-  startVDO(VDO_DIRTY);
+  saveExpectedFileContents(crashedPath, &expectedData);
+
+  // VDO_UNSUPPORTED_VERSION is translated to -EINVAL upon load failure
+  startVDOExpectError(-EINVAL);
+
   stopVDO();
-  VDO_ASSERT_SUCCESS(forceVDORebuild(getSynchronousLayer()));
-  setStartStopExpectation(VDO_SUCCESS);
-  startVDO(VDO_FORCE_REBUILD);
-  verify(1);
+  checkRAMLayerContents(getSynchronousLayer(), expectedData, mismatchChecker);
+  vdo_free(expectedData);
   tearDownVDOTest();
 }
 

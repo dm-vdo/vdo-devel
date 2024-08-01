@@ -306,6 +306,37 @@ static BlockPattern partialHeaderPattern[JOURNAL_BLOCKS] = {
 };
 
 /**
+ * A non-wrapped journal that has been corrupted by the old header
+ * version being written in block 4. The reap head is 1 and the
+ * highest sequence number is 5.
+ **/
+static BlockPattern corruptHeaderPattern[JOURNAL_BLOCKS] = {
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 1, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 2, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 3, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 4, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 5, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+};
+
+/**
+ * A non-wrapped journal with the old header version written for all
+ * blocks. The reap head is 1 and the highest sequence number is 5.
+ **/
+static BlockPattern unsupportedVersionHeaderPattern[JOURNAL_BLOCKS] = {
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 1, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 2, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 3, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 4, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 5, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+};
+
+/**
  * Initialize the index, vdo, and test data.
  **/
 static void initializeRebuildTest(void)
@@ -399,6 +430,12 @@ static void attemptRebuild(CorruptionType  corruption,
 
   if (readOnly) {
     performSuccessfulAction(rebuildJournalAction);
+  } else if (journalPattern == corruptHeaderPattern) {
+    performActionExpectResult(recoverJournalAction, VDO_CORRUPT_JOURNAL);
+    setStartStopExpectation(VDO_READ_ONLY);
+  } else if (journalPattern == unsupportedVersionHeaderPattern) {
+    performActionExpectResult(recoverJournalAction, VDO_UNSUPPORTED_VERSION);
+    setStartStopExpectation(VDO_DIRTY);
   } else if (corruption == CORRUPT_NOTHING) {
     performSuccessfulAction(recoverJournalAction);
     performSuccessfulAction(checkReplayingAction);
@@ -525,6 +562,18 @@ static void testPartialHeader(void)
 }
 
 /**********************************************************************/
+static void testVersionMismatch(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, corruptHeaderPattern);
+}
+
+/**********************************************************************/
+static void testUnsupportedVersion(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, unsupportedVersionHeaderPattern);
+}
+
+/**********************************************************************/
 static CU_TestInfo journalRebuildTests[] = {
   { "rebuild block map with short block",   testRebuildShortBlock         },
   { "rebuild with a hole at reap head",     testRebuildHoleAtReapHead     },
@@ -544,6 +593,8 @@ static CU_TestInfo journalRebuildTests[] = {
   { "rebuild with bad sector (count)",      testBadCountByteSector        },
   { "rebuild with partial sector",          testPartialSector             },
   { "rebuild with partial header",          testPartialHeader             },
+  { "rebuild with version mismatch",        testVersionMismatch           },
+  { "rebuild with unsupported version",     testUnsupportedVersion        },
   CU_TEST_INFO_NULL
 };
 

@@ -395,7 +395,6 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
 
   if (result != VDO_SUCCESS) {
     stopAsyncLayer();
-    vdo_free(target);
     return;
   }
 

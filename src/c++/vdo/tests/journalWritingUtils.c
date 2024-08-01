@@ -138,13 +138,15 @@ void setBlockHeader(struct packed_journal_header *header,
   unpacked.block_map_head    = blockPattern->head;
   unpacked.slab_journal_head = blockPattern->head;
   unpacked.sequence_number   = blockPattern->sequenceNumber;
-  unpacked.metadata_type     = VDO_METADATA_RECOVERY_JOURNAL_2;
   unpacked.recovery_count    = blockPattern->recoveryCount;
   unpacked.check_byte
     = vdo_compute_recovery_journal_check_byte(journal, unpacked.sequence_number);
 
+  unpacked.metadata_type = VDO_METADATA_RECOVERY_JOURNAL_2;
   unpacked.nonce = journal->nonce;
-  if (blockPattern->nonceState == BAD_NONCE) {
+  if (blockPattern->nonceState == BAD_METADATA) {
+    unpacked.metadata_type = VDO_METADATA_RECOVERY_JOURNAL;
+  } else if (blockPattern->nonceState == BAD_NONCE) {
     unpacked.nonce = BAD_NONCE;
   }
 
