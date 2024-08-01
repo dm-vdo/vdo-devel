@@ -812,9 +812,10 @@ $suiteNames{debugKernelTests}
     ];
 
 ###########################################################################
-# Some tests that exercise various kernel interface areas, to run on rawhide.
+# Some tests that exercise various kernel interface areas, to run on rawhide
+# mainline next systems.
 ##
-$suiteNames{rawhideTests}
+$suiteNames{upstreamTests}
   = [
      @{$suiteNames{checkin}},	# A bunch of basic VDO operation tests.
      "Create03",		# Test that many restarts works

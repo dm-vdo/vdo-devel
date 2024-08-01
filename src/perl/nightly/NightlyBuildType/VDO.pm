@@ -63,6 +63,13 @@ my $SUITE_PROPERTIES = {
     scale       => "ALBIREO-PMI",
     extraArgs   => "--clientClass=ALBIREO-PMI",
   },
+  vdoMainlineNextTests => {
+    displayName  => "VDO_Mainline_Next_Kernel_Tests",
+    suiteName    => "upstreamTests",
+    scale        => "PFARM",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["FEDORANEXT"],
+  },
   vdoPerfTests => {
     displayName => "VDO_Perf_Tests",
     suiteName   => "nightlyVDOPerfTests",
@@ -71,7 +78,7 @@ my $SUITE_PROPERTIES = {
   },
   vdoRawhideTests => {
     displayName  => "VDO_Latest_Kernel_Tests",
-    suiteName    => "rawhideTests",
+    suiteName    => "upstreamTests",
     scale        => "PFARM",
     extraArgs    => "--clientClass=PFARM",
     osClasses    => ["RAWHIDE"],
