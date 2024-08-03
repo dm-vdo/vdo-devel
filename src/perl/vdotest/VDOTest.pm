@@ -47,6 +47,7 @@ use Permabit::SystemUtils qw(
   assertCommand
   assertSystem
   createRemoteFile
+  runCommand
 );
 use Permabit::UserMachine;
 use Permabit::Utils qw(
@@ -171,6 +172,8 @@ my @UPSTREAM_NAMES
      "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
     );
 
+my $KVDO_RENAME_FILE = "/etc/modprobe.d/dm-vdo-kvdo-workaround.conf";
+
 my @SHARED_FILES
   = (
      "src/c++/third/fio/fio",
@@ -285,6 +288,21 @@ sub applicationMemoryNeeded {
   return ($self->{memorySize} || 1) * $GB + $VDO_REQUIRED_MEMORY;
 }
 
+########################################################################
+# Add an alias to /etc/modprobe.d/ to treat kmod-kvdo as the dm-vdo module.
+# This is necessary to make lvm load our test kvdo module even though it is
+# looking for the 'dm-vdo' module.
+##
+sub aliasKvdoModule {
+  my ($self, $host) = assertNumArgs(2, @_);
+  my $aliasEditor = "#/bin/sh\necho alias kvdo dm-vdo > \"\$1\";";
+  my $editorPath = createRemoteFile($host, $aliasEditor);
+  assertCommand($host, "SUDO_EDITOR='/bin/sh $editorPath' sudo -e $KVDO_RENAME_FILE");
+  assertCommand($host, "cat $editorPath");
+  assertCommand($host, "cat $KVDO_RENAME_FILE");
+  assertCommand($host, "rm -f $editorPath");
+}
+
 #############################################################################
 # @inherit
 ##
@@ -331,6 +349,12 @@ sub set_up {
 
   if ($self->{rawhideKernel}) {
     setupRawhideKernel($self->{clientNames});
+  }
+
+  if (!$self->{useUpstreamModule}) {
+    foreach my $host (@{$self->{clientNames}}) {
+      $self->aliasKvdoModule($host);
+    }
   }
 
   # Make the device stack if specified
@@ -844,6 +868,12 @@ sub tear_down {
     # reservations.
     map { $_->closeForRelease() } values(%{$self->{_machines}});
     delete $self->{_machines};
+
+    if (!$self->{useUpstreamModule}) {
+      foreach my $host (@{$self->{clientNames}}) {
+        runCommand($host, "sudo rm -f $KVDO_RENAME_FILE");
+      }
+    }
 
     if ($self->{lowMemoryTest}) {
       my $removeMemoryLimiting = sub {
