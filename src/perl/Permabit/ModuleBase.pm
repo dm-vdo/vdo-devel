@@ -153,7 +153,9 @@ sub loadFromBinaryRPM {
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
   $self->_step(command => sub {
-                 assertRegexpDoesNotMatch(qr/failed/, $machine->getStdout(),
+                 assertRegexpDoesNotMatch(qr/failed/i,
+                                          $machine->getStdout()
+                                          . $machine->getStderr(),
                                           "rpm install logged a failure");
                });
 }
