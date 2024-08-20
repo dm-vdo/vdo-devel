@@ -36,7 +36,7 @@
 #define VDO_USE_NEXT
 #endif
 #else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 10, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0))
 #define VDO_USE_NEXT
 #endif
 #endif /* RHEL_RELEASE_CODE */
