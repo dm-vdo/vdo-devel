@@ -148,6 +148,8 @@ our %PROPERTIES
      userBinaryDir           => undef,
      # @ple Use the dmlinux src rpm for testing.
      useDmLinuxModule        => 0,
+     # @ple Use the installed kernel module, dm-vdo
+     useUpstreamModule       => 0,
     );
 
 my @SRPM_NAMES
