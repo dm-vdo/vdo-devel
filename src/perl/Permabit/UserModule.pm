@@ -40,6 +40,27 @@ sub load {
 ###############################################################################
 # @inherit
 ##
+sub loadFromFiles {
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->{machine};
+  my $modFileName = $self->{modFileName};
+
+  # if useUpstream, download vdo package from distribution repo
+  if ($self->{useUpstream}) {
+    $log->debug("Using upstream version VDO: $self->{modVersion}");
+    my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
+    $self->_step(command => "mkdir -p $topdir");
+    my $getFromDnf = join(' ',
+			  "dnf", "download", "--destdir",
+			  "$self->{modDir}", "$modFileName");
+    $self->_step(command => $getFromDnf);
+  }
+  $self->SUPER::loadFromFiles();
+}
+
+###############################################################################
+# @inherit
+##
 sub loadFromBinaryRPM {
   my ($self, $filename, $modFileName) = assertMinMaxArgs([undef], 2, 3, @_);
   $modFileName //= $self->{modFileName};
@@ -51,6 +72,13 @@ sub loadFromBinaryRPM {
   my $supportName = "$modFileName-support";
   my $supportFile = ($self->{useDistribution}) ? makeFullPath($self->{modDir}, "$supportName-*.rpm")
                                                : makeFullPath($topdir, "$supportName-*.rpm");
+   # if useUpstreamModule, download vdo package from distribution repo
+   if ($self->{useUpstream}) {
+     my $getFromDnf = join(' ',
+                           "dnf", "download", "--destdir", "$topdir",
+                           "$supportName");
+     $self->_step(command => $getFromDnf);
+  }
   $self->SUPER::loadFromBinaryRPM($supportFile, $supportName);
 }
 
