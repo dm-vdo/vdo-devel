@@ -160,12 +160,13 @@ sub createLogicalVolume {
 ########################################################################
 # Create a thin pool
 #
-# @param name    Thin pool name
-# @param size    Thin pool size in bytes
-# @oparam config String of create time lvm.conf overrides
+# @param  name    Thin pool name
+# @param  size    Thin pool size in bytes
+# @oparam config  String of create time lvm.conf overrides
+# @oparam vdo     Whether the thin pool uses VDO or not
 ##
 sub createThinPool {
-  my ($self, $name, $size, $config) = assertMinMaxArgs([""], 3, 4, @_);
+  my ($self, $name, $size, $config, $vdo) = assertMinMaxArgs(["", 0], 3, 5, @_);
   my $machine = $self->{storageDevice}->getMachine();
   assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
 
@@ -177,6 +178,11 @@ sub createThinPool {
   if ($ksize > $kfree) {
     $log->info("requested size ${ksize}K is too large, using ${kfree}K");
     $ksize = $kfree;
+  }
+
+  my $dataType = "";
+  if ($vdo) {
+    $dataType = "--pooldatavdo y";
   }
 
   # The first time a thin pool LV is created, lvm will create a spare metadata LV in
@@ -195,7 +201,7 @@ sub createThinPool {
   # Create a thin pool in an existing volume group. The pool is not
   # immediately enabled.
   $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool"
-                         . " --size ${ksize}K --yes $config"
+                         . " --size ${ksize}K --yes $dataType $config"
                          . " $self->{volumeGroup} </dev/null");
 
   # Make sure to wait for the udev event recording the new event has

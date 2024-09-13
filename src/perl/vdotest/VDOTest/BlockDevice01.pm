@@ -46,22 +46,22 @@ my @deviceTypes = qw(
   fua-vdo
   iscsi-raw
   linear-raw
+  lvmvdo-crypt-raw
+  lvmvdo-dory-raw
   lvmvdo-iscsi
+  lvmvdo-iscsi-linear
   lvmvdo-linear
   lvmvdo-loop
   lvmvdo-raw
+  lvmvdo-tracer-raw
+  thin-thinpool-lvmvdo
+  thin-thinpool-vdo
   thin-thinpool-raw
   tracer-raw
   vdo-linear
   vdo-loop
   vdo-raw
   vdo-stripfua
-  lvmvdo-crypt-raw
-  lvmvdo-dory-raw
-  lvmvdo-iscsi-linear
-  lvmvdo-tracer-raw
-  thin-thinpool-lvmvdo-thin-thinpool
-  thin-thinpool-vdo-thin-thinpool
   tracer-corruptor-raw
   vdo-crypt-raw
   vdo-dory-raw
