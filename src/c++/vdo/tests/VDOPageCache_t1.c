@@ -27,7 +27,6 @@
 #include "vdoTestBase.h"
 
 typedef enum {
-  WRITE_ERROR    = -5,
   PAGE_NEW       = 0,
   PAGE_WRITTEN   = 1,
   PAGE_REWRITTEN = 2,
@@ -440,7 +439,7 @@ static bool failMetaWritesHook(struct bio *bio)
     return true;
   }
 
-  bio->bi_status = WRITE_ERROR;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
   bio->bi_end_io(bio);
   return false;
 }

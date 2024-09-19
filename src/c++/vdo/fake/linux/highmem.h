@@ -2,7 +2,7 @@
 /*
  * Unit test implementations of linux/highmem.h (and mm.h)
  *
- * Copyright 2023 Red Hat
+ * Copyright 2024 Red Hat
  *
  */
 
@@ -47,6 +47,14 @@ static inline void memcpy_from_page(char *to,
 {
   VDO_ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
   memcpy(to, page->page_data + offset, len);
+}
+
+static inline void memzero_page(struct page *page,
+				size_t offset,
+				size_t len)
+{
+  VDO_ASSERT_LOG_ONLY(((offset + len) <= PAGE_SIZE), "page overflow");
+  memset(page->page_data + offset, 0, len);
 }
 
 #endif // __LINUX_HIGHMEM_H
