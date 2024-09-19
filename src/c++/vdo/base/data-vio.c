@@ -17,9 +17,6 @@
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 #include <linux/wait.h>
 
 #include "logger.h"
@@ -1635,26 +1632,9 @@ static void read_block(struct vdo_completion *completion)
 					       data_vio->mapped.pbn);
 		} else {
 			/* A full 4k read. Use the incoming bio to avoid having to copy the data */
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-			bio_reset(vio->bio);
-			__bio_clone_fast(vio->bio, data_vio->user_bio);
-#else
 			bio_reset(vio->bio, vio->bio->bi_bdev, opf);
 			bio_init_clone(data_vio->user_bio->bi_bdev, vio->bio,
 				       data_vio->user_bio, GFP_KERNEL);
-#endif
 
 			/* Copy over the original bio iovec and opflags. */
 			vdo_set_bio_properties(vio->bio, vio, read_endio, opf,
