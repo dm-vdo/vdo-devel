@@ -21,7 +21,7 @@
 
 enum {
   BLOCKS_PER_MB = 1024 * 1024 / VDO_BLOCK_SIZE,
-  DEFAULT_MAX_DISCARD_SIZE = 8,
+  DEFAULT_MAX_DISCARD_SECTORS = 64,
 };
 
 /**
@@ -147,24 +147,26 @@ static void noteAcknowledgement(struct bio *bio)
  * Compute the sector of the start of the next bio given the start of the
  * current bio.
  *
- * @param sector            The start of the current bio
- * @param end               The end of the IORequest
- * @param maxSectorsPerBIO  The maximum number of sectors in a single bio
+ * @param sector     The start of the current bio
+ * @param end        The end of the IORequest
+ * @param operation  The operation for the request to perform
  *
  * @return The start of the next sector (i.e. the end of the current sector)
  **/
 static inline sector_t nextBIOSector(sector_t sector,
                                      sector_t end,
-                                     size_t   maxSectorsPerBIO)
+                                     uint32_t operation)
 {
-  CU_ASSERT(maxSectorsPerBIO >= VDO_SECTORS_PER_BLOCK);
+  if (operation == REQ_OP_DISCARD) {
+    return sector + min(DEFAULT_MAX_DISCARD_SECTORS, end - sector);
+  }
 
   sector_t partial = sector % VDO_SECTORS_PER_BLOCK;
   if (partial > 0) {
     return sector + min(VDO_SECTORS_PER_BLOCK - partial, end - sector);
   }
 
-  return sector + min(maxSectorsPerBIO, end - sector);
+  return sector + min(VDO_SECTORS_PER_BLOCK, end - sector);
 }
 
 /**
@@ -172,8 +174,6 @@ static inline sector_t nextBIOSector(sector_t sector,
  *
  * @param start             The sector at which the request begins
  * @param sectors           The number of sectors in the request
- * @param maxSectorsPerBIO  The maximum size of each bio, should be 8 for
- *                          data, and up to 64 for discards
  * @param generator         The generator for the data backing the request
  * @param generatorContext  The context for the data generator
  * @param operation         The operation for the request to perform
@@ -181,13 +181,11 @@ static inline sector_t nextBIOSector(sector_t sector,
  * @return The request
  **/
 __attribute__((warn_unused_result))
-static IORequest *
-allocateIORequest(logical_block_number_t  start,
-                  block_count_t           count,
-                  size_t                  maxSectorsPerBIO,
-                  DataGenerator          *generator,
-                  void                   *generatorContext,
-                  uint32_t                operation)
+static IORequest *allocateIORequest(sector_t       start,
+                                    sector_t       count,
+                                    DataGenerator *generator,
+                                    void          *generatorContext,
+                                    uint32_t       operation)
 {
   IORequest *request;
   VDO_ASSERT_SUCCESS(vdo_allocate(1, IORequest, __func__, &request));
@@ -196,7 +194,7 @@ allocateIORequest(logical_block_number_t  start,
   sector_t nextSector;
   BIO **tail = &request->bios;
   for (sector_t sector = start; sector < end; sector = nextSector) {
-    nextSector = nextBIOSector(sector, end, maxSectorsPerBIO);
+    nextSector = nextBIOSector(sector, end, operation);
     sector_t length = nextSector - sector;
     uint32_t size   = length * VDO_SECTOR_SIZE;
     VDO_ASSERT_SUCCESS(vdo_allocate(1, BIO, __func__, tail));
@@ -278,7 +276,6 @@ static IORequest *createRequestFromBuffer(sector_t  start,
                               : generateFromBuffer);
   return allocateIORequest(start,
                            count,
-                           VDO_SECTORS_PER_BLOCK,
                            generator,
                            &buffer,
                            operation);
@@ -339,7 +336,6 @@ createIndexedWrite(logical_block_number_t start,
   CU_ASSERT_TRUE(count <= MAXIMUM_VDO_USER_VIOS);
   return allocateIORequest(start * VDO_SECTORS_PER_BLOCK,
                            count * VDO_SECTORS_PER_BLOCK,
-                           VDO_SECTORS_PER_BLOCK,
                            autoGenerate,
                            &index,
                            REQ_OP_WRITE);
@@ -356,37 +352,27 @@ IORequest *launchIndexedWrite(logical_block_number_t start,
 /**
  * Create a trim request.
  *
- * @param start        The logical block at which the request's operation starts
- * @param count        The number of blocks in the request
- * @param discardSize  The maximum number of discard blocks per bio (hence
- *                     data_vio)
+ * @param start  The sector at which the request's operation starts
+ * @param count  The number of sectors in the request
  *
  * @return The request
  **/
-static IORequest * __must_check createTrim(logical_block_number_t start,
-                                           block_count_t count,
-                                           block_count_t discardSize)
+static IORequest * __must_check createTrim(sector_t start, sector_t count)
 {
-  return allocateIORequest(start * VDO_SECTORS_PER_BLOCK,
-                           count * VDO_SECTORS_PER_BLOCK,
-                           discardSize * VDO_SECTORS_PER_BLOCK,
-                           generateNULL,
-                           NULL,
-                           REQ_OP_DISCARD);
+  return allocateIORequest(start, count, generateNULL, NULL, REQ_OP_DISCARD);
 }
 
 /**********************************************************************/
-IORequest *launchTrimWithMaxDiscardSize(logical_block_number_t start,
-                                        block_count_t          count,
-                                        block_count_t          size)
+IORequest *launchUnalignedTrim(sector_t start, sector_t count)
 {
-  return launchIORequest(createTrim(start, count, size));
+  return launchIORequest(createTrim(start, count));
 }
 
 /**********************************************************************/
 IORequest *launchTrim(logical_block_number_t start, block_count_t count)
 {
-  return launchTrimWithMaxDiscardSize(start, count, DEFAULT_MAX_DISCARD_SIZE);
+  return launchUnalignedTrim(start * VDO_SECTORS_PER_BLOCK,
+                             count * VDO_SECTORS_PER_BLOCK);
 }
 
 /**********************************************************************/
