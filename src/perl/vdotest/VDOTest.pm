@@ -60,6 +60,7 @@ use Permabit::VolumeGroup;
 
 use base qw(Permabit::Testcase);
 
+my $ciTest = "20240920";
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 # XXX This should be computed from device parameters and verified
