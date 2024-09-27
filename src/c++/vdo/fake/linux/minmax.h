@@ -2,14 +2,12 @@
 /*
  * Unit test requirements from linux/minmax.h.
  *
- * Copyright 2023 Red Hat
+ * Copyright 2024 Red Hat
  *
  */
 
 #ifndef LINUX_MINMAX_H
 #define LINUX_MINMAX_H
-
-#define __min(x, y) ((x) < (y) ? (x) : (y))
 
 /**
  * min_t - return minimum of two values, using the specified type
@@ -22,9 +20,7 @@
  * non-constant inputs (such as x++). The kernel implementation runs afoul of
  * the compiler settings we use in user space.
  **/
-#define min_t(type, x, y) ((type) __min((type) (x), (type) (y)))
-
-#define __max(x, y) ((x) > (y) ? (x) : (y))
+#define min_t(type, x, y) __careful_cmp(min, (type)(x), (type)(y))
 
 /**
  * max_t - return maximum of two values, using the specified type
@@ -37,7 +33,7 @@
  * non-constant inputs (such as x++). The kernel implementation runs afoul of
  * the compiler settings we use in user space.
  **/
-#define max_t(type, x, y) ((type) __max((type) (x), (type) (y)))
+#define max_t(type, x, y) __careful_cmp(max, (type)(x), (type)(y))
 
 /**
  * swap - swap values of @a and @b

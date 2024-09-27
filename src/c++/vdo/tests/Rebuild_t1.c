@@ -30,7 +30,6 @@
 enum {
   TEST_BLOCKS = 60,
   MAX_TRIES   = 3,
-  LAYER_ERROR = -1,
 };
 
 static block_count_t           expectedLogicalBlocksUsed;
@@ -472,7 +471,7 @@ static bool failSlabDepotLoad(struct vdo_completion *completion)
       flushRAMLayer(getSynchronousLayer());
       prepareToCrashRAMLayer(getSynchronousLayer());
     } else {
-      vdo_set_completion_result(completion, LAYER_ERROR);
+      vdo_set_completion_result(completion, BLK_STS_VDO_INJECTED);
     }
 
     // Turn off this hook, and prevent all further writes.
@@ -555,7 +554,7 @@ static bool failBeforeSuperBlockWrite(struct bio *bio)
   clearBIOSubmitHook();
   flushRAMLayer(getSynchronousLayer());
   prepareToCrashRAMLayer(getSynchronousLayer());
-  vdo_set_completion_result(&vio->completion, LAYER_ERROR);
+  vdo_set_completion_result(&vio->completion, BLK_STS_VDO_INJECTED);
   bio->bi_end_io(bio);
   return false;
 }
@@ -593,7 +592,7 @@ static bool failDuringBlockMapRead(struct bio *bio)
   }
 
   clearBIOSubmitHook();
-  bio->bi_status = LAYER_ERROR;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
   bio->bi_end_io(bio);
   return false;
 }

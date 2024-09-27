@@ -22,10 +22,6 @@
 
 #include "logger.h"
 
-enum {
-  INJECTED_ERROR = -1,
-};
-
 static enum vio_type errorType;
 static unsigned int errorOperation;
 
@@ -87,7 +83,7 @@ static bool injectError(struct bio *bio)
     return true;
   }
 
-  bio->bi_status = INJECTED_ERROR;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
   bio->bi_end_io(bio);
   return false;
 }
@@ -114,7 +110,7 @@ static void testWithIOError(enum vio_type type,
  **/
 static void testBlockMapWriteFailure(void)
 {
-  testWithIOError(VIO_TYPE_BLOCK_MAP, REQ_OP_READ, INJECTED_ERROR);
+  testWithIOError(VIO_TYPE_BLOCK_MAP, REQ_OP_READ, BLK_STS_VDO_INJECTED);
 }
 
 /**

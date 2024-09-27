@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright 2023 Red Hat
+ * Unit test implementations of linux/workqueue.h.
+ * 
+ * Copyright 2024 Red Hat
  *
  */
 
@@ -10,12 +12,13 @@
 #include <linux/atomic.h>
 #include <linux/list.h>
 
+/* Defined in linux/workqueue_types.h */
 struct work_struct;
 
 typedef void (* work_func_t)(struct work_struct *work);
 
 struct work_struct {
-	atomic64_t data;
+	atomic_long_t data;
 	struct list_head entry;
 	work_func_t func;
 };
@@ -32,11 +35,6 @@ static inline bool
 schedule_work(struct work_struct *work __attribute__((unused)))
 {
 	return true;
-}
-
-static inline bool
-cancel_work_sync(struct work_struct *work __attribute__((unused))) {
-	return false;
 }
 
 #endif /* LINUX_WORKQUEUE_H */

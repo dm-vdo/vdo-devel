@@ -42,9 +42,9 @@ unsigned long getUnitTestJiffies(void)
 }
 
 /**********************************************************************/
-void timer_setup(struct timer_list *timer,
-                 void (*func)(struct timer_list *),
-                 uint32_t flags)
+void __init_timer(struct timer_list *timer,
+                  void (*func)(struct timer_list *),
+                  unsigned int flags)
 {
   INIT_LIST_HEAD(&timer->entry);
   timer->function = func;

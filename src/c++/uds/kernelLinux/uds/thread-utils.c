@@ -10,9 +10,6 @@
 #include <linux/kthread.h>
 #include <linux/mutex.h>
 #include <linux/types.h>
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 
 #include "errors.h"
 #include "logger.h"
@@ -137,22 +134,6 @@ void uds_thread_exit(void)
 	mutex_unlock(&thread_mutex);
 	vdo_unregister_allocating_thread();
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-	complete_and_exit(completion, 1);
-#else
 	kthread_complete_and_exit(completion, 1);
-#endif
 }
 #endif /* TEST_INTERNAL */

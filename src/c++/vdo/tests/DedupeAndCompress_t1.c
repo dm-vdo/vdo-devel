@@ -255,7 +255,7 @@ static bool injectIOErrors(struct bio *bio)
   }
 
   if (atomic64_read(&ioCount) > 512) {
-    bio->bi_status = -1;
+    bio->bi_status = BLK_STS_VDO_INJECTED;
     bio->bi_end_io(bio);
     return false;
   }
