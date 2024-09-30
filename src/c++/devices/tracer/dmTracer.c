@@ -318,9 +318,9 @@ static void tracerIoHints(struct dm_target *ti, struct queue_limits *limits)
   limits->physical_block_size = SECTOR_SIZE;
 
   // The minimum io size for random io
-  blk_limits_io_min(limits, sectorCount * SECTOR_SIZE);
+  limits->io_min = VDO_BLOCK_SIZE;
   // The optimal io size for streamed/sequential io
-  blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
+  limits->io_opt = VDO_BLOCK_SIZE;
 
   // Discard hints
   limits->max_discard_sectors = VDO_SECTORS_PER_BLOCK;
