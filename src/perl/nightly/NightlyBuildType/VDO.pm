@@ -70,6 +70,14 @@ my $SUITE_PROPERTIES = {
     extraArgs    => "--clientClass=PFARM",
     osClasses    => ["FEDORANEXT"],
   },
+  vdoUpstreamTests => {
+    displayName    => "VDO_Upstream_Tests",
+    suiteName      => "upstreamTests",
+    scale          => "PFARM",
+    extraArgs      => "--clientClass=PFARM"
+                      . " --useUpstreamModule",
+    osClasses      => ["FEDORANEXT"],
+  },
   vdoPerfTests => {
     displayName => "VDO_Perf_Tests",
     suiteName   => "nightlyVDOPerfTests",
