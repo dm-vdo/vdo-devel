@@ -87,7 +87,6 @@ sub loadFromFiles {
   }
 
   my $loaded = $self->SUPER::loadFromFiles();
-
   if ($loaded == 0) {
     # Look for a local tarball to use.
     my $tarFilename = makeFullPath($self->{modDir}, "$modName-$modVer.tgz");

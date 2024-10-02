@@ -45,7 +45,6 @@ sub loadFromFiles {
   my $machine = $self->{machine};
   my $modFileName = $self->{modFileName};
 
-  # if useUpstream, download vdo package from distribution repo
   if ($self->{useUpstream}) {
     $log->debug("Using upstream version VDO: $self->{modVersion}");
     my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
@@ -53,6 +52,10 @@ sub loadFromFiles {
     my $getFromDnf = join(' ',
 			  "dnf", "download", "--destdir",
 			  "$self->{modDir}", "$modFileName");
+    $self->_step(command => $getFromDnf);
+    $getFromDnf = join(' ',
+                       "dnf", "download", "--destdir", "$topdir",
+                       "$modFileName-support");
     $self->_step(command => $getFromDnf);
   }
   $self->SUPER::loadFromFiles();
@@ -72,13 +75,6 @@ sub loadFromBinaryRPM {
   my $supportName = "$modFileName-support";
   my $supportFile = ($self->{useDistribution}) ? makeFullPath($self->{modDir}, "$supportName-*.rpm")
                                                : makeFullPath($topdir, "$supportName-*.rpm");
-   # if useUpstreamModule, download vdo package from distribution repo
-   if ($self->{useUpstream}) {
-     my $getFromDnf = join(' ',
-                           "dnf", "download", "--destdir", "$topdir",
-                           "$supportName");
-     $self->_step(command => $getFromDnf);
-  }
   $self->SUPER::loadFromBinaryRPM($supportFile, $supportName);
 }
 

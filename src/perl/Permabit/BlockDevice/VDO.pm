@@ -542,6 +542,13 @@ sub suspend {
 ##
 sub getModuleVersion {
   my ($self) = assertNumArgs(1, @_);
+  if ($self->{useUpstreamModule}) {
+    my $getVerCmd = "yum list $VDO_USER_MODNAME.`uname -m` | " .
+                    "awk '/^$VDO_USER_MODNAME/ {print \$2}'";
+    my @ver = split(/\./,
+		    runCommand($self->getMachineName(), $getVerCmd)->{stdout});
+    $self->setModuleVersion("$ver[0].$ver[1]");
+  }
   return $self->{moduleVersion};
 }
 
@@ -553,6 +560,20 @@ sub getModuleVersion {
 sub setModuleVersion {
   my ($self, $versionString) = assertNumArgs(2, @_);
   $self->{moduleVersion} = $versionString;
+}
+
+########################################################################
+# @inherit
+##
+sub getModuleName {
+  my ($self) = assertNumArgs(1, @_);
+
+  # If useUpstreamModule is set, we need to use $VDO_UPSTREAM_MODNAME(dm-vdo)
+  # module otherwise we load the $VDO_MODNAME(kvdo)
+  if ($self->{useUpstreamModule}) {
+    return $VDO_UPSTREAM_MODNAME;
+  }
+  return $self->SUPER::getModuleName();
 }
 
 ########################################################################
@@ -582,13 +603,6 @@ sub installModule {
   my $machineName = $self->getMachineName();
   my $moduleName = $self->getModuleName();
 
-  if ($self->{useUpstreamModule}) {
-    my $getVerCmd = "yum list $VDO_USER_MODNAME.`uname -m` | " .
-                    "awk '/^$VDO_USER_MODNAME/ {print \$2}'";
-    my @ver = split(/\./,
-		    runCommand($self->getMachineName(), $getVerCmd)->{stdout});
-    $self->setModuleVersion("$ver[0].$ver[1]");
-  }
   my $version = $self->getModuleVersion();
 
   if ($self->{_modules}{$machineName}) {
@@ -1378,20 +1392,6 @@ sub check {
   my ($self) = assertNumArgs(1, @_);
   $self->SUPER::check();
   $self->assertPerformanceExpectations();
-}
-
-########################################################################
-# @inherit
-##
-sub getModuleName {
-  my ($self) = assertNumArgs(1, @_);
-
-  # If useUpstreamModule is set, we need to use $VDO_UPSTREAM_MODNAME(dm-vdo)
-  # module otherwise we load the $VDO_MODNAME(kvdo)
-  if ($self->{useUpstreamModule}) {
-    return $VDO_UPSTREAM_MODNAME;
-  }
-  return $self->SUPER::getModuleName();
 }
 
 ########################################################################
