@@ -47,7 +47,7 @@ sub _tryIllegal {
   eval {
     $vdoDevice->formatVDO({ $paramName => $value });
   };
-  assertEvalErrorMatches(qr/$error/);
+  assertEvalErrorMatches(qr/vdoformat:.*\Q$error\E/);
 }
 
 ########################################################################
@@ -80,9 +80,9 @@ sub testOptions {
 
   $self->_tryIllegal("logicalSize",            "-4K", "Usage:");
   $self->_tryIllegal("logicalSize",             "1K", "must be a multiple of");
-  $self->_tryIllegal("logicalSize", "4398046511108B", "exceeds the maximum");
+  $self->_tryIllegal("logicalSize", "4398046511108B", "must be a multiple of");
   $self->_tryIllegal("logicalSize", "4398046511108K", "exceeds the maximum");
-  $self->_tryIllegal("logicalSize", ($maxUInt >> 20), "Usage:");
+  $self->_tryIllegal("logicalSize", ($maxUInt >> 20), "exceeds the maximum");
   $self->_tryIllegal("logicalSize",    "${maxUInt}K", "Usage:");
   $self->_tryIllegal("logicalSize",    "${maxUInt}M", "Usage:");
   $self->_tryIllegal("logicalSize",    "${maxUInt}G", "Usage:");
