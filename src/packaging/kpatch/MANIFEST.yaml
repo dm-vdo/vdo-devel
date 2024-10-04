@@ -44,6 +44,7 @@ tarballs:
             - RHEL_INTERNAL
             - RHEL_RELEASE_CODE
             - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           +defines:
             - __KERNEL__
             - VDO_UPSTREAM
@@ -70,6 +71,7 @@ tarballs:
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           +defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP
@@ -113,6 +115,7 @@ tarballs:
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP
@@ -132,6 +135,7 @@ tarballs:
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           +defines:
             - __KERNEL__
             - VDO_UPSTREAM
@@ -144,6 +148,7 @@ tarballs:
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__
             - VDO_UPSTREAM
