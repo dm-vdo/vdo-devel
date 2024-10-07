@@ -146,6 +146,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      enableCompression         => 0,
      # whether to enable deduplication in module
      enableDeduplication       => 1,
+     # @ple whether to format using vdoformat or through the kernel.
+     formatInKernel            => 0,
      # Number of hash lock threads/zones to use
      hashZoneThreadCount       => 1,
      # Turn on the kernel memory allocation checker
