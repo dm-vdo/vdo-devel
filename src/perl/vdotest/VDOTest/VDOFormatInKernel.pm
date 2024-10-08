@@ -73,6 +73,8 @@ sub _tryLegal {
   };
   assertEvalErrorMatches(qr| reload ioctl on .* failed: Input/output error|);
   assertTrue($machine->searchKernelJournalSince($preformatCursor,
+                                                "vdo is not formatted"));
+  assertTrue($machine->searchKernelJournalSince($preformatCursor,
                                                 "Could not load geometry block"));
 }
 
