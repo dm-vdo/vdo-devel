@@ -282,28 +282,22 @@ STATIC int __must_check initialize_thread_config(struct thread_count_config coun
 }
 
 /**
- * read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
- *                         device.
+ * read_geometry_block() - Synchronously reads the geometry block from a vdo's
+ *                         underlying block device. Does not validate the data.
  * @vdo: The vdo whose geometry is to be read.
+ * @block: The buffer to read into.
  *
  * Return: VDO_SUCCESS or an error code.
  */
-static int __must_check read_geometry_block(struct vdo *vdo)
+static int __must_check read_geometry_block(struct vdo *vdo, char *block)
 {
 	struct vio *vio;
-	char *block;
 	int result;
-
-	result = vdo_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
-	if (result != VDO_SUCCESS)
-		return result;
 
 	result = create_metadata_vio(vdo, VIO_TYPE_GEOMETRY, VIO_PRIORITY_HIGH, NULL,
 				     block, &vio);
-	if (result != VDO_SUCCESS) {
-		vdo_free(block);
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
 	/*
 	 * This is only safe because, having not already loaded the geometry, the vdo's geometry's
@@ -314,7 +308,6 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 			       VDO_GEOMETRY_BLOCK_LOCATION);
 	if (result != VDO_SUCCESS) {
 		free_vio(vdo_forget(vio));
-		vdo_free(block);
 		return result;
 	}
 
@@ -322,10 +315,29 @@ static int __must_check read_geometry_block(struct vdo *vdo)
 	submit_bio_wait(vio->bio);
 	result = blk_status_to_errno(vio->bio->bi_status);
 	free_vio(vdo_forget(vio));
-	if (result != 0) {
-		vdo_log_error_strerror(result, "synchronous read failed");
+	return result;
+}
+
+/**
+ * load_geometry_block() - Synchronously reads the geometry block from a vdo's
+ *                         underlying block device. Validates the data.
+ * @vdo: The vdo whose geometry is to be read.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static int __must_check load_geometry_block(struct vdo *vdo)
+{
+	char *block;
+	int result;
+
+	result = vdo_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = read_geometry_block(vdo, block);
+	if (result != VDO_SUCCESS) {
 		vdo_free(block);
-		return -EIO;
+		return result;
 	}
 
 	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
@@ -478,6 +490,46 @@ static int register_vdo(struct vdo *vdo)
 }
 
 /**
+ * vdo_is_formatted() - Check to see whether the areas vdo will write to during
+ *                      formatting are all zeroes.
+ *
+ * @vdo        The vdo to format.
+ * @formatted: The state of the device. 0 means ok to format, 1 otherwise.
+ *
+ * Return: VDO_SUCCESS or an error
+ **/
+static int __must_check vdo_is_formatted(struct vdo *vdo, int *formatted)
+{
+	char *block;
+	int result;
+	__le64 *data_le;
+	__le64 zero = __cpu_to_le64(0);
+
+	result = vdo_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = read_geometry_block(vdo, block);
+	if (result != VDO_SUCCESS) {
+		vdo_free(block);
+		return result;
+	}
+
+	// Following dm-thin-metadata.c logic
+	unsigned int block_size = VDO_BLOCK_SIZE / sizeof(__le64);
+
+	data_le = (__le64 *)block;
+	for (unsigned int i = 0; i < block_size; i++) {
+		if (data_le[i] != zero) {
+			*formatted = 1;
+			break;
+		}
+	}
+	vdo_free(block);
+	return VDO_SUCCESS;
+}
+
+/**
  * initialize_vdo() - Do the portion of initializing a vdo which will clean up after itself on
  *                    error.
  * @vdo: The vdo being initialized
@@ -490,6 +542,7 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 {
 	int result;
 	zone_count_t i;
+	int formatted = 0;
 
 	vdo->device_config = config;
 	vdo->starting_sector_offset = config->owning_target->begin;
@@ -500,7 +553,20 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 	vdo_initialize_completion(&vdo->admin.completion, vdo, VDO_ADMIN_COMPLETION);
 	init_completion(&vdo->admin.callback_sync);
 	mutex_init(&vdo->stats_mutex);
-	result = read_geometry_block(vdo);
+
+	// Check to see whether we should format the device
+	result = vdo_is_formatted(vdo, &formatted);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not determine whether layout is empty";
+		return result;
+	}
+
+	// This is here to distiguish between regular error and not formattable.
+	if (formatted == 0) {
+		vdo_log_info("vdo is not formatted");
+	}
+
+	result = load_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
 		return result;
