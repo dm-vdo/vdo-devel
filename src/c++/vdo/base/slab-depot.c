@@ -38,21 +38,6 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_NEXT
-#if defined(RHEL_RELEASE_CODE)
-#if defined(LINUX_VERSION_CODE) && (LINUX_VERSION_CODE > KERNEL_VERSION(6, 10, 0))
-#define VDO_USE_NEXT
-#endif
-#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 5)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#define VDO_USE_NEXT
-#endif
-#else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0))
-#define VDO_USE_NEXT
-#endif
-#endif /* RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
 static const u64 BYTES_PER_WORD = sizeof(u64);
 static const bool NORMAL_OPERATION = true;
 
@@ -3304,7 +3289,19 @@ int vdo_release_block_reference(struct block_allocator *allocator,
  * Thus, the ordering is reversed from the usual sense since min_heap returns smaller elements
  * before larger ones.
  */
-#ifndef VDO_USE_NEXT
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 static bool slab_status_is_less_than(const void *item1, const void *item2)
 #else
 static bool slab_status_is_less_than(const void *item1, const void *item2,
@@ -3321,7 +3318,7 @@ static bool slab_status_is_less_than(const void *item1, const void *item2,
 	return info1->slab_number < info2->slab_number;
 }
 
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 static void swap_slab_statuses(void *item1, void *item2)
 #else
 static void swap_slab_statuses(void *item1, void *item2, void __always_unused *args)
@@ -3334,7 +3331,7 @@ static void swap_slab_statuses(void *item1, void *item2, void __always_unused *a
 }
 
 static const struct min_heap_callbacks slab_status_min_heap = {
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	.elem_size = sizeof(struct slab_status),
 #endif
 	.less = slab_status_is_less_than,
@@ -3536,7 +3533,7 @@ STATIC int get_slab_statuses(struct block_allocator *allocator,
 STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
 	struct slab_status current_slab_status;
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	struct min_heap heap;
 #else
 	DEFINE_MIN_HEAP(struct slab_status, heap) heap;
@@ -3552,7 +3549,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		return result;
 
 	/* Sort the slabs by cleanliness, then by emptiness hint. */
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	heap = (struct min_heap) {
 #else
 	heap = (struct heap) {
@@ -3561,7 +3558,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		.nr = allocator->slab_count,
 		.size = allocator->slab_count,
 	};
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	min_heapify_all(&heap, &slab_status_min_heap);
 #else
 	min_heapify_all(&heap, &slab_status_min_heap, NULL);
@@ -3573,7 +3570,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		struct slab_journal *journal;
 
 		current_slab_status = slab_statuses[0];
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 		min_heap_pop(&heap, &slab_status_min_heap);
 #else
 		min_heap_pop(&heap, &slab_status_min_heap, NULL);
