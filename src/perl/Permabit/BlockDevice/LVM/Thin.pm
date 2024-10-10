@@ -18,9 +18,37 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 ########################################################################
 # @inherit
 ##
+sub checkStorageDevice {
+  my ($self) = assertNumArgs(1, @_);
+  # This will create the bottom device if needed.
+  $self->SUPER::checkStorageDevice();
+  # If our storage device is a thin pool (this includes vdo thin pools),
+  # don't do anything, just use it.
+  if ($self->{storageDevice}->isa("Permabit::BlockDevice::LVM::ThinPool")) {
+    $self->{volumeGroup} = $self->{storageDevice}->{volumeGroup};
+    return;
+  }
+  # If we don't have a thin pool already, create a generic one.
+  $self->{storageDevice} = $self->{stack}->create("thinpool")
+}
+
+########################################################################
+# @inherit
+##
+sub configure {
+  my ($self, $arguments) = assertNumArgs(2, @_);
+  $self->SUPER::configure($arguments);
+  $self->{lvmSize} = $self->{storageDevice}->getSize();
+  $self->{lvmSize} = $self->{volumeGroup}->alignToExtent($self->{lvmSize});
+}
+
+########################################################################
+# @inherit
+##
 sub setup {
   my ($self) = assertNumArgs(1, @_);
-  $self->{volumeGroup}->createThinVolume($self->{deviceName},
+  $self->{volumeGroup}->createThinVolume($self->{storageDevice},
+                                         $self->{deviceName},
                                          $self->{lvmSize});
   $self->SUPER::setup();
 }
@@ -31,7 +59,7 @@ sub setup {
 sub teardown {
   my ($self) = assertNumArgs(1, @_);
   $self->SUPER::teardown();
-  $self->{volumeGroup}->deleteThinVolume($self->{deviceName});
+  $self->{volumeGroup}->deleteLogicalVolume($self->{deviceName});
 }
 
 1;
