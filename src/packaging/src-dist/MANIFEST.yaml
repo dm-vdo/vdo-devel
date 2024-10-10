@@ -191,6 +191,7 @@ tarballs:
             - mutex.h
             - random.h
             - types.h
+            - unaligned.h
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL

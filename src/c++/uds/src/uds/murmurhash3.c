@@ -8,7 +8,24 @@
 
 #include "murmurhash3.h"
 
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_NEXT
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_NEXT
+#include <linux/unaligned.h>
+#else
 #include <asm/unaligned.h>
+#endif
 
 static inline u64 rotl64(u64 x, s8 r)
 {
