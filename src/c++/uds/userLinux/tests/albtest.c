@@ -499,6 +499,8 @@ int main(int argc, char **argv)
   umask(0);
   open_vdo_logger();
 
+  set_exit_on_assertion_failure(true);
+
   testArgv = calloc(argc - optind, sizeof(char *));
 
   // load all the tests and copy their suite information

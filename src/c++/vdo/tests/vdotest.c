@@ -809,6 +809,8 @@ int main(int argc, char **argv)
   umask(0);
   setThreadName("main");
 
+  set_exit_on_assertion_failure(true);
+
   testArgv = calloc(argc - optind, sizeof(char *));
 
   struct module  *testDirModule = NULL;
