@@ -586,6 +586,10 @@ int main(int argc, char *argv[])
     if (result == VDO_TOO_MANY_SLABS) {
       extraHelp = "\nReduce the device size or increase the slab size";
     }
+    if (result == UDS_ASSERTION_FAILED) {
+      result = VDO_BAD_CONFIGURATION;
+      extraHelp = "\nInformation on the failure can be found in the logs";
+    }
     if (result == VDO_NO_SPACE) {
       block_count_t minVDOBlocks = 0;
       int calcResult = calculateMinimumVDOFromConfig(&config,

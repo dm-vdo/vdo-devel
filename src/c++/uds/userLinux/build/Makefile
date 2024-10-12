@@ -15,7 +15,7 @@ vpath %.c $(SRC_UDS_DIR)
 # Flags for linking the shared library itself.
 SHLIBFLAGS = -lm -ldl -pthread -lrt $(shell getconf LFS_LDFLAGS)
 
-CFLAGS 	  = $(PLATFORM_CFLAGS) -I$(SRC_UDS_DIR)
+CFLAGS 	  = $(PLATFORM_CFLAGS) -DNDEBUG -I$(SRC_UDS_DIR)
 LDFLAGS   = $(GLOBAL_LDFLAGS)
 LDSHFLAGS = -shared -Wl,--unresolved-symbols=ignore-in-shared-libs
 
@@ -76,7 +76,7 @@ $(PROFDIR)/libuds.a: $(addprefix $(PROFDIR)/,$(UDS_OBJECTS))
 
 $(PROFDIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) -pg -DNDEBUG $(CFLAGS) $< -c -o $@
+	$(CC) -pg $(CFLAGS) $< -c -o $@
 
 ########################################################################
 # Dependency processing
