@@ -70,6 +70,11 @@ my @udsKernelFiles = qw(
   /thread-utils\.c
 );
 
+my @docFiles = qw(
+  vdo.rst
+  vdo-design.rst
+);
+
 my @upstreamFiles = qw(
   Makefile
   Kconfig
@@ -79,6 +84,8 @@ my $udsFilesPattern = join('|', @udsFiles);
 my $udsFilesRE = qr/$udsFilesPattern/;
 my $udsKernelFilesPattern = join('|', @udsKernelFiles);
 my $udsKernelFilesRE = qr/$udsKernelFilesPattern/;
+my $docFilesPattern = join('|', @docFiles);
+my $docFilesRE = qr/$docFilesPattern/;
 my $upstreamFilesPattern = join('|', @upstreamFiles);
 my $upstreamFilesRE = qr/$upstreamFilesPattern/;
 
@@ -94,6 +101,8 @@ foreach my $file (@files) {
   while (my $line = <IN>) {
     if ($line =~ m|dm-vdo/$upstreamFilesRE|) {
       $line =~ s|drivers/md/dm-vdo/($upstreamFilesRE)|src/packaging/kpatch/$1.upstream|g;
+    } elsif ($line =~ /$docFilesRE/) {
+      $line =~ s|Documentation/admin-guide/device-mapper|doc|g;
     } elsif ($line =~ /$udsFilesRE/) {
       $line =~ s|drivers/md/dm-vdo/indexer|src/c++/uds/src/uds|g;
       $line =~ s|drivers/md/dm-vdo|src/c++/uds/src/uds|g;

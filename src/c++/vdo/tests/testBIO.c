@@ -28,13 +28,6 @@
 // Mocks of bio related functions in vdo/kernel/bio.c as well as the kernel
 // itself.
 
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#define USE_ALTERNATE (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#else
-#define USE_ALTERNATE (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-#endif
-
-#if (!USE_ALTERNATE)
 void bio_init(struct bio          *bio,
               struct block_device *bdev,
               struct bio_vec      *table,
@@ -57,6 +50,7 @@ void bio_init(struct bio          *bio,
 
 	atomic_set(&bio->__bi_remaining, 1);
 	atomic_set(&bio->__bi_cnt, 1);
+	bio->bi_cookie = BLK_QC_T_NONE;
 
 	bio->bi_max_vecs = max_vecs;
 	bio->bi_io_vec = table;
@@ -64,67 +58,62 @@ void bio_init(struct bio          *bio,
 }
 
 static
-#endif // not USE_ALTERNATE
+
 /**********************************************************************/
-void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
+int __bio_clone(struct bio *bio, struct bio *bio_src, gfp_t gfp __attribute__((unused)))
 {
-  bio->bi_bdev   = bio_src->bi_bdev;
-  bio->bi_opf    = bio_src->bi_opf;
-  bio->bi_iter   = bio_src->bi_iter;
-  bio->bi_io_vec = bio_src->bi_io_vec;
+  bio->bi_ioprio = bio_src->bi_ioprio;
+  bio->bi_iter = bio_src->bi_iter;
+  
+  return 0;
 }
 
-#if (!USE_ALTERNATE)
-int bio_init_clone(struct block_device *bdev __attribute__((unused)),
+int bio_init_clone(struct block_device *bdev,
                    struct bio *bio,
                    struct bio *bio_src,
-                   gfp_t gfp __attribute__((unused)))
+                   gfp_t gfp)
 {
-  __bio_clone_fast(bio, bio_src);
-  return 1;
+  int ret;
+  
+  bio_init(bio, bdev, bio_src->bi_io_vec, 0, bio_src->bi_opf);
+  ret = __bio_clone(bio, bio_src, gfp);
+  if (ret)
+	  bio_uninit(bio);
+  return ret;
 }
-#endif // not USE_ALTERNATE
 
 /**********************************************************************/
-int bio_add_page(struct bio *bio,
-                 struct page *page,
-		 unsigned int len,
-                 unsigned int offset)
+void __bio_add_page(struct bio *bio,
+                    struct page *page,
+		    unsigned int len,
+		    unsigned int off)
 {
   STATIC_ASSERT(PAGE_SIZE == VDO_BLOCK_SIZE);
   struct bio_vec *bv = &bio->bi_io_vec[bio->bi_vcnt];
 
-  bv->bv_page = page;
-  bv->bv_offset = offset;
-  bv->bv_len = len;
+  bvec_set_page(bv, page, len, off);
 
   bio->bi_iter.bi_size += len;
   bio->bi_vcnt++;
+}
 
+int bio_add_page(struct bio *bio, struct page *page,
+		 unsigned int len, unsigned int off)
+{
+  __bio_add_page(bio, page, len, off);
   return len;
 }
 
 /**********************************************************************/
-void zero_fill_bio(struct bio *bio)
+void zero_fill_bio_iter(struct bio *bio, struct bvec_iter start)
 {
-  if (bio->bi_vcnt == 0) {
-    return;
-  }
-
-  CU_ASSERT_EQUAL(bio->bi_vcnt, 1);
-  struct bio_vec *bvec = bio->bi_io_vec;
-  memset(bvec->bv_page, 0, bvec->bv_len);
+  struct bio_vec bv;
+  struct bvec_iter iter;
+  
+  __bio_for_each_segment(bv, bio, iter, start)
+    memzero_bvec(&bv);
 }
 
-#if USE_ALTERNATE
-/**********************************************************************/
-void bio_reset(struct bio *bio)
-{
-  void *context = bio->unitTestContext;
-  memset(bio, 0, sizeof(struct bio));
-  bio->unitTestContext = context;
-}
-#else // not USE_ALTERNATE
 /**********************************************************************/
 void bio_reset(struct bio *bio, struct block_device *bdev, unsigned int opf)
 {
@@ -134,7 +123,12 @@ void bio_reset(struct bio *bio, struct block_device *bdev, unsigned int opf)
   bio->bi_bdev = bdev;
   bio->bi_opf  = opf;
 }
-#endif // USE_ALTERNATE
+
+/**********************************************************************/
+void bio_endio(struct bio *bio)
+{
+  bio->bi_end_io(bio);
+}
 
 /**********************************************************************/
 void bio_uninit(struct bio *bio __attribute__((unused)))
@@ -143,12 +137,9 @@ void bio_uninit(struct bio *bio __attribute__((unused)))
 }
 
 /**********************************************************************/
-blk_qc_t submit_bio_noacct(struct bio *bio)
+void submit_bio_noacct(struct bio *bio)
 {
   enqueueBIO(bio);
-
-  // Nothing looks at this return value.
-  return 0;
 }
 
 /**********************************************************************/
@@ -171,7 +162,7 @@ int submit_bio_wait(struct bio *bio)
   }
 
   bio->bi_end_io = submit_bio_wait_endio;
-  bio->bi_flags = REQ_NOIDLE; /* Don't check the vdo admin state */
+  bio->bi_flags = REQ_IDLE; /* Don't check the vdo admin state */
   ((struct vio *) bio->bi_private)->completion.parent = &done;
   enqueueBIO(bio);
   waitForState(&done);

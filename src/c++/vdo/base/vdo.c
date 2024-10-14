@@ -37,9 +37,6 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -671,7 +668,7 @@ static void finish_vdo(struct vdo *vdo)
 
 /**
  * free_listeners() - Free the list of read-only listeners associated with a thread.
- * @thread_data: The thread holding the list to free.
+ * @thread: The thread holding the list to free.
  */
 static void free_listeners(struct vdo_thread *thread)
 {
@@ -924,26 +921,8 @@ int vdo_synchronous_flush(struct vdo *vdo)
 	int result;
 	struct bio bio;
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-	bio_init(&bio, 0, 0);
-	bio_set_dev(&bio, vdo_get_backing_device(vdo));
-	bio.bi_opf = REQ_OP_WRITE | REQ_PREFLUSH;
-#else
 	bio_init(&bio, vdo_get_backing_device(vdo), NULL, 0,
 		 REQ_OP_WRITE | REQ_PREFLUSH);
-#endif
 	submit_bio_wait(&bio);
 	result = blk_status_to_errno(bio.bi_status);
 
@@ -960,7 +939,7 @@ int vdo_synchronous_flush(struct vdo *vdo)
 /**
  * vdo_get_state() - Get the current state of the vdo.
  * @vdo: The vdo.
-
+ *
  * Context: This method may be called from any thread.
  *
  * Return: The current state of the vdo.

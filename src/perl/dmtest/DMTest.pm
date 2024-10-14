@@ -43,7 +43,6 @@ use Permabit::SystemUtils qw(
   assertCommand
   assertSystem
   createRemoteFile
-  pythonCommand
 );
 use Permabit::UserMachine;
 use Permabit::UserModule;
@@ -92,8 +91,6 @@ our %PROPERTIES
      kmemleak               => 0,
      # @ple use one client machine
      numClients             => 1,
-     # @ple The directory to find python libraries in
-     pythonLibDir           => undef,
      # @ple Ask rsvpd to randomize its list of available hosts before selecting
      randomizeReservations  => 1,
      # @ple The directory to put generated datasets in
@@ -135,9 +132,6 @@ my @SHARED_PYTHON_FILES
 my @SHARED_FILES
   = (
      "src/c++/tools/fsync",
-     "src/python/vdo/__init__.py",
-     "src/python/vdo/dmdevice",
-     "src/python/vdo/utils",
     );
 
 #############################################################################
@@ -154,10 +148,6 @@ sub set_up {
   $self->{scratchDir} = makeFullPath($self->{workDir}, 'scratch');
   $self->{userBinaryDir} = makeFullPath($self->{runDir}, 'executables');
   $self->{dmtestDir} = makeFullPath($self->{userBinaryDir}, 'dmtest');
-
-  if (!defined($self->{pythonLibDir})) {
-    $self->{pythonLibDir} = $self->{binaryDir} . "/pythonlibs";
-  }
 
   # Decide what kind of default bottom device to make.
   my $stack = $self->getStorageStack();

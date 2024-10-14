@@ -113,6 +113,21 @@ const SectorPattern noSectors[VDO_SECTORS_PER_BLOCK] = {
 };
 
 /**
+ * A non-wrapped journal that has not been corrupted and has no holes.
+ * The reap head is 1 and the highest sequence number is 5.
+ **/
+static BlockPattern basicFullBlocksPattern[JOURNAL_BLOCKS] = {
+  { 0, 0, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
+  { 1, 1, GOOD_COUNT, USE_NONCE, FULL_BLOCK, true,  normalSectors },
+  { 1, 2, GOOD_COUNT, USE_NONCE, FULL_BLOCK, true,  normalSectors },
+  { 1, 3, GOOD_COUNT, USE_NONCE, FULL_BLOCK, true,  normalSectors },
+  { 1, 4, GOOD_COUNT, USE_NONCE, FULL_BLOCK, true,  normalSectors },
+  { 1, 5, GOOD_COUNT, USE_NONCE, FULL_BLOCK, true,  normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE, FULL_BLOCK, false, normalSectors },
+};
+
+/**
  * A wrapped journal with a reap head at block 6 and the tail at a partial
  * block1. The reap head is 14 and the highest sequence number is 17.
  **/
@@ -306,6 +321,53 @@ static BlockPattern partialHeaderPattern[JOURNAL_BLOCKS] = {
 };
 
 /**
+ * A non-wrapped journal that has been corrupted by the old header
+ * version being written in block 4. The reap head is 1 and the
+ * highest sequence number is 5.
+ **/
+static BlockPattern corruptHeaderPattern[JOURNAL_BLOCKS] = {
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 1, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 2, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 3, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 1, 4, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 5, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+};
+
+/**
+ * A journal with a block that has a hole and old metadata. The hole is
+ * a bad sequence number. The reap head is 9 and the highest sequence
+ * number is 13.
+ **/
+static BlockPattern corruptHeaderBadSequencePattern[JOURNAL_BLOCKS] = {
+  { 6, 8,  GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 9, 9,  GOOD_COUNT, USE_NONCE,    FULL_BLOCK, true,  normalSectors },
+  { 9, 10, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, true,  normalSectors },
+  { 9, 11, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, true,  normalSectors },
+  { 1, 4,  GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 9, 13, GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 6, 6,  GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+  { 6, 7,  GOOD_COUNT, USE_NONCE,    FULL_BLOCK, false, normalSectors },
+};
+
+/**
+ * A non-wrapped journal with the old header version written for all
+ * blocks. The reap head is 1 and the highest sequence number is 5.
+ **/
+static BlockPattern unsupportedVersionHeaderPattern[JOURNAL_BLOCKS] = {
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 1, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 2, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 3, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 4, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 1, 5, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+  { 0, 0, GOOD_COUNT, BAD_METADATA, FULL_BLOCK, false, normalSectors },
+};
+
+/**
  * Initialize the index, vdo, and test data.
  **/
 static void initializeRebuildTest(void)
@@ -399,6 +461,12 @@ static void attemptRebuild(CorruptionType  corruption,
 
   if (readOnly) {
     performSuccessfulAction(rebuildJournalAction);
+  } else if (journalPattern == corruptHeaderPattern) {
+    performActionExpectResult(recoverJournalAction, VDO_CORRUPT_JOURNAL);
+    setStartStopExpectation(VDO_READ_ONLY);
+  } else if (journalPattern == unsupportedVersionHeaderPattern) {
+    performActionExpectResult(recoverJournalAction, VDO_UNSUPPORTED_VERSION);
+    setStartStopExpectation(VDO_DIRTY);
   } else if (corruption == CORRUPT_NOTHING) {
     performSuccessfulAction(recoverJournalAction);
     performSuccessfulAction(checkReplayingAction);
@@ -414,6 +482,12 @@ static void attemptRebuild(CorruptionType  corruption,
     performSuccessfulAction(vdo_wait_until_not_entering_read_only_mode);
     checkVDOState(VDO_READ_ONLY_MODE);
   }
+}
+
+/**********************************************************************/
+static void testRebuildFullBlocks(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, basicFullBlocksPattern);
 }
 
 /**********************************************************************/
@@ -525,7 +599,26 @@ static void testPartialHeader(void)
 }
 
 /**********************************************************************/
+static void testVersionMismatch(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, corruptHeaderPattern);
+}
+
+/**********************************************************************/
+static void testUnsupportedVersion(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, unsupportedVersionHeaderPattern);
+}
+
+/**********************************************************************/
+static void testCorruptHeaderBadSequence(void)
+{
+  attemptRebuild(CORRUPT_NOTHING, false, corruptHeaderBadSequencePattern);
+}
+
+/**********************************************************************/
 static CU_TestInfo journalRebuildTests[] = {
+  { "basic recovery with no holes",         testRebuildFullBlocks         },
   { "rebuild block map with short block",   testRebuildShortBlock         },
   { "rebuild with a hole at reap head",     testRebuildHoleAtReapHead     },
   { "rebuild with a hole mid-journal",      testRebuildHoleMidJournal     },
@@ -544,6 +637,9 @@ static CU_TestInfo journalRebuildTests[] = {
   { "rebuild with bad sector (count)",      testBadCountByteSector        },
   { "rebuild with partial sector",          testPartialSector             },
   { "rebuild with partial header",          testPartialHeader             },
+  { "rebuild with version mismatch",        testVersionMismatch           },
+  { "rebuild with unsupported version",     testUnsupportedVersion        },
+  { "rebuild with corrupt header and hole", testCorruptHeaderBadSequence  },
   CU_TEST_INFO_NULL
 };
 

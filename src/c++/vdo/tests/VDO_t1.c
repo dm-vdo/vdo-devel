@@ -178,7 +178,7 @@ static void testInFlightDedupe(void)
 static void failDataWrite(struct vdo_completion *completion)
 {
   struct bio *bio = as_vio(completion)->bio;
-  bio->bi_status = VDO_NO_SPACE;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
   bio->bi_end_io(bio);
 }
 
@@ -204,7 +204,7 @@ static void testFailedWrite(void)
 {
   initializeVDOT1(fillWithOffset);
   setCompletionEnqueueHook(failDataWritesHook);
-  writeData(1, 1, 1, VDO_NO_SPACE);
+  writeData(1, 1, 1, BLK_STS_VDO_INJECTED);
   setStartStopExpectation(VDO_READ_ONLY);
 }
 

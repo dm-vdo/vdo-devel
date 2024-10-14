@@ -17,9 +17,6 @@
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 #include <linux/wait.h>
 
 #include "logger.h"
@@ -358,8 +355,9 @@ static u32 __must_check pack_status(struct data_vio_compression_status status)
 
 /**
  * set_data_vio_compression_status() - Set the compression status of a data_vio.
- * @state: The expected current status of the data_vio.
- * @new_state: The status to set.
+ * @data_vio: The data_vio to change.
+ * @status: The expected current status of the data_vio.
+ * @new_status: The status to set.
  *
  * Return: true if the new status was set, false if the data_vio's compression status did not
  *         match the expected state, and so was left unchanged.
@@ -532,6 +530,7 @@ static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lb
 
 	memset(&data_vio->record_name, 0, sizeof(data_vio->record_name));
 	memset(&data_vio->duplicate, 0, sizeof(data_vio->duplicate));
+	vdo_reset_completion(&data_vio->decrement_completion);
 	vdo_reset_completion(completion);
 	completion->error_handler = handle_data_vio_error;
 	set_data_vio_logical_callback(data_vio, attempt_logical_block_lock);
@@ -882,7 +881,7 @@ static void destroy_data_vio(struct data_vio *data_vio)
  * @vdo: The vdo to which the pool will belong.
  * @pool_size: The number of data_vios in the pool.
  * @discard_limit: The maximum number of data_vios which may be used for discards.
- * @pool: A pointer to hold the newly allocated pool.
+ * @pool_ptr: A pointer to hold the newly allocated pool.
  */
 int make_data_vio_pool(struct vdo *vdo, data_vio_count_t pool_size,
 		       data_vio_count_t discard_limit, struct data_vio_pool **pool_ptr)
@@ -1320,12 +1319,14 @@ static void clean_hash_lock(struct vdo_completion *completion)
 static void finish_cleanup(struct data_vio *data_vio)
 {
 	struct vdo_completion *completion = &data_vio->vio.completion;
+	u32 discard_size = min_t(u32, data_vio->remaining_discard,
+				 VDO_BLOCK_SIZE - data_vio->offset);
 
 	VDO_ASSERT_LOG_ONLY(data_vio->allocation.lock == NULL,
 			    "complete data_vio has no allocation lock");
 	VDO_ASSERT_LOG_ONLY(data_vio->hash_lock == NULL,
 			    "complete data_vio has no hash lock");
-	if ((data_vio->remaining_discard <= VDO_BLOCK_SIZE) ||
+	if ((data_vio->remaining_discard <= discard_size) ||
 	    (completion->result != VDO_SUCCESS)) {
 		struct data_vio_pool *pool = completion->vdo->data_vio_pool;
 
@@ -1337,12 +1338,12 @@ static void finish_cleanup(struct data_vio *data_vio)
 		return;
 	}
 
-	data_vio->remaining_discard -= min_t(u32, data_vio->remaining_discard,
-					     VDO_BLOCK_SIZE - data_vio->offset);
+	data_vio->remaining_discard -= discard_size;
 	data_vio->is_partial = (data_vio->remaining_discard < VDO_BLOCK_SIZE);
 	data_vio->read = data_vio->is_partial;
 	data_vio->offset = 0;
 	completion->requeue = true;
+	data_vio->first_reference_operation_complete = false;
 	launch_data_vio(data_vio, data_vio->logical.lbn + 1);
 }
 
@@ -1632,26 +1633,9 @@ static void read_block(struct vdo_completion *completion)
 					       data_vio->mapped.pbn);
 		} else {
 			/* A full 4k read. Use the incoming bio to avoid having to copy the data */
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-			bio_reset(vio->bio);
-			__bio_clone_fast(vio->bio, data_vio->user_bio);
-#else
 			bio_reset(vio->bio, vio->bio->bi_bdev, opf);
 			bio_init_clone(data_vio->user_bio->bi_bdev, vio->bio,
 				       data_vio->user_bio, GFP_KERNEL);
-#endif
 
 			/* Copy over the original bio iovec and opflags. */
 			vdo_set_bio_properties(vio->bio, vio, read_endio, opf,
@@ -2032,7 +2016,8 @@ static void allocate_block(struct vdo_completion *completion)
 		.state = VDO_MAPPING_STATE_UNCOMPRESSED,
 	};
 
-	if (data_vio->fua) {
+	if (data_vio->fua ||
+	    data_vio->remaining_discard > (u32) (VDO_BLOCK_SIZE - data_vio->offset)) {
 		prepare_for_dedupe(data_vio);
 		return;
 	}
@@ -2109,7 +2094,6 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 		return;
 	}
 
-
 	/*
 	 * We don't need to write any data, so skip allocation and just update the block map and
 	 * reference counts (via the journal).
@@ -2118,7 +2102,7 @@ void continue_data_vio_with_block_map_slot(struct vdo_completion *completion)
 	if (data_vio->is_zero)
 		data_vio->new_mapped.state = VDO_MAPPING_STATE_UNCOMPRESSED;
 
-	if (data_vio->remaining_discard > VDO_BLOCK_SIZE) {
+	if (data_vio->remaining_discard > (u32) (VDO_BLOCK_SIZE - data_vio->offset)) {
 		/* This is not the final block of a discard so we can't acknowledge it yet. */
 		update_metadata_for_data_vio_write(data_vio, NULL);
 		return;

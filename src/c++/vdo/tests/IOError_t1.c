@@ -16,10 +16,6 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-enum {
-  INJECTED_ERROR = -1,
-};
-
 static unsigned int errorOperation;
 
 /**
@@ -45,7 +41,7 @@ static bool injectError(struct bio *bio)
     return true;
   }
 
-  bio->bi_status = INJECTED_ERROR;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
   bio->bi_end_io(bio);
   clearBIOSubmitHook();
   return false;
@@ -59,7 +55,7 @@ static void testDataReadError(void)
   writeData(0, 1, 1, VDO_SUCCESS);
   errorOperation = REQ_OP_READ;
   setBIOSubmitHook(injectError);
-  CU_ASSERT_EQUAL(INJECTED_ERROR, performRead(0, 1, buffer));
+  CU_ASSERT_EQUAL(BLK_STS_VDO_INJECTED, performRead(0, 1, buffer));
   // Confirm that we're not read-only
   setStartStopExpectation(VDO_SUCCESS);
   restartVDO(false);
@@ -86,7 +82,7 @@ static void testDataWriteError(void)
 {
   errorOperation = REQ_OP_WRITE;
   setBIOSubmitHook(injectError);
-  writeData(0, 1, 1, INJECTED_ERROR);
+  writeData(0, 1, 1, BLK_STS_VDO_INJECTED);
   // Confirm that we're read-only
   setStartStopExpectation(VDO_READ_ONLY);
   stopVDO();

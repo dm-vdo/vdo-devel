@@ -7,6 +7,9 @@
 
 #include <linux/min_heap.h>
 #include <linux/minmax.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -24,6 +27,20 @@
 #include "vdo.h"
 #include "wait-queue.h"
 
+#ifndef VDO_UPSTREAM
+#if defined(RHEL_RELEASE_CODE)
+#if defined(LINUX_VERSION_CODE) && (LINUX_VERSION_CODE > KERNEL_VERSION(6, 10, 0))
+#define VDO_USE_NEXT
+#endif
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 5)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#define VDO_USE_NEXT
+#endif
+#else /* RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
 /*
  * An explicitly numbered block mapping. Numbering the mappings allows them to be sorted by logical
  * block number during repair while still preserving the relative order of journal entries with
@@ -51,6 +68,9 @@ struct recovery_point {
 	bool increment_applied;
 };
 
+#ifdef VDO_USE_NEXT
+DEFINE_MIN_HEAP(struct numbered_block_mapping, replay_heap);
+#endif
 struct repair_completion {
 	/* The completion header */
 	struct vdo_completion completion;
@@ -97,7 +117,11 @@ struct repair_completion {
 	 * order, then original journal order. This permits efficient iteration over the journal
 	 * entries in order.
 	 */
+#ifndef VDO_USE_NEXT
 	struct min_heap replay_heap;
+#else
+	struct replay_heap replay_heap;
+#endif
 	/* Fields tracking progress through the journal entries. */
 	struct numbered_block_mapping *current_entry;
 	struct numbered_block_mapping *current_unfetched_entry;
@@ -135,7 +159,11 @@ struct repair_completion {
  * to sort by slot while still ensuring we replay all entries with the same slot in the exact order
  * as they appeared in the journal.
  */
+#ifndef VDO_USE_NEXT
 static bool mapping_is_less_than(const void *item1, const void *item2)
+#else
+static bool mapping_is_less_than(const void *item1, const void *item2, void __always_unused *args)
+#endif
 {
 	const struct numbered_block_mapping *mapping1 =
 		(const struct numbered_block_mapping *) item1;
@@ -154,7 +182,11 @@ static bool mapping_is_less_than(const void *item1, const void *item2)
 	return 0;
 }
 
+#ifndef VDO_USE_NEXT
 static void swap_mappings(void *item1, void *item2)
+#else
+static void swap_mappings(void *item1, void *item2, void __always_unused *args)
+#endif
 {
 	struct numbered_block_mapping *mapping1 = item1;
 	struct numbered_block_mapping *mapping2 = item2;
@@ -163,14 +195,20 @@ static void swap_mappings(void *item1, void *item2)
 }
 
 static const struct min_heap_callbacks repair_min_heap = {
+#ifndef VDO_USE_NEXT
 	.elem_size = sizeof(struct numbered_block_mapping),
+#endif
 	.less = mapping_is_less_than,
 	.swp = swap_mappings,
 };
 
 static struct numbered_block_mapping *sort_next_heap_element(struct repair_completion *repair)
 {
+#ifndef VDO_USE_NEXT
 	struct min_heap *heap = &repair->replay_heap;
+#else
+	struct replay_heap *heap = &repair->replay_heap;
+#endif
 	struct numbered_block_mapping *last;
 
 	if (heap->nr == 0)
@@ -181,8 +219,13 @@ static struct numbered_block_mapping *sort_next_heap_element(struct repair_compl
 	 * restore the heap invariant, and return a pointer to the popped element.
 	 */
 	last = &repair->entries[--heap->nr];
+#ifndef VDO_USE_NEXT
 	swap_mappings(heap->data, last);
 	min_heapify(heap, 0, &repair_min_heap);
+#else
+	swap_mappings(heap->data, last, NULL);
+	min_heap_sift_down(heap, 0, &repair_min_heap, NULL);
+#endif
 	return last;
 }
 
@@ -318,6 +361,7 @@ static bool __must_check abort_on_error(int result, struct repair_completion *re
 /**
  * drain_slab_depot() - Flush out all dirty refcounts blocks now that they have been rebuilt or
  *                      recovered.
+ * @completion: The repair completion.
  */
 static void drain_slab_depot(struct vdo_completion *completion)
 {
@@ -653,9 +697,6 @@ static void rebuild_reference_counts(struct vdo_completion *completion)
 	vdo_traverse_forest(vdo->block_map, process_entry, completion);
 }
 
-/**
- * increment_recovery_point() - Move the given recovery point forward by one entry.
- */
 static void increment_recovery_point(struct recovery_point *point)
 {
 	if (++point->entry_count < RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
@@ -952,6 +993,7 @@ static void abort_block_map_recovery(struct repair_completion *repair, int resul
 /**
  * find_entry_starting_next_page() - Find the first journal entry after a given entry which is not
  *                                   on the same block map page.
+ * @repair: The repair completion.
  * @current_entry: The entry to search from.
  * @needs_sort: Whether sorting is needed to proceed.
  *
@@ -1120,12 +1162,20 @@ STATIC void recover_block_map(struct vdo_completion *completion)
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
 	 * order incrementally, avoiding an expensive sort call.
 	 */
+#ifndef VDO_USE_NEXT
 	repair->replay_heap = (struct min_heap) {
+#else
+	repair->replay_heap = (struct replay_heap) {
+#endif
 		.data = repair->entries,
 		.nr = repair->block_map_entry_count,
 		.size = repair->block_map_entry_count,
 	};
+#ifndef VDO_USE_NEXT
 	min_heapify_all(&repair->replay_heap, &repair_min_heap);
+#else
+	min_heapify_all(&repair->replay_heap, &repair_min_heap, NULL);
+#endif
 
 #ifdef INTERNAL
 	/* This message must be in sync with VDOTest::RebuildBase. */
@@ -1208,22 +1258,20 @@ static bool __must_check is_valid_recovery_journal_block(const struct recovery_j
  * @journal: The journal to use.
  * @header: The unpacked block header to check.
  * @sequence: The expected sequence number.
- * @type: The expected metadata type.
  *
  * Return: True if the block matches.
  */
 static bool __must_check is_exact_recovery_journal_block(const struct recovery_journal *journal,
 							 const struct recovery_block_header *header,
-							 sequence_number_t sequence,
-							 enum vdo_metadata_type type)
+							 sequence_number_t sequence)
 {
-	return ((header->metadata_type == type) &&
-		(header->sequence_number == sequence) &&
+	return ((header->sequence_number == sequence) &&
 		(is_valid_recovery_journal_block(journal, header, true)));
 }
 
 /**
  * find_recovery_journal_head_and_tail() - Find the tail and head of the journal.
+ * @repair: The repair completion.
  *
  * Return: True if there were valid journal blocks.
  */
@@ -1376,7 +1424,8 @@ static void extract_entries_from_block(struct repair_completion *repair,
 		get_recovery_journal_block_header(journal, repair->journal_data,
 						  sequence);
 
-	if (!is_exact_recovery_journal_block(journal, &header, sequence, format)) {
+	if (!is_exact_recovery_journal_block(journal, &header, sequence) ||
+	    (header.metadata_type != format)) {
 		/* This block is invalid, so skip it. */
 		return;
 	}
@@ -1452,6 +1501,7 @@ static int validate_heads(struct repair_completion *repair)
 
 /**
  * extract_new_mappings() - Find all valid new mappings to be applied to the block map.
+ * @repair: The repair completion.
  *
  * The mappings are extracted from the journal and stored in a sortable array so that all of the
  * mappings to be applied to a given block map page can be done in a single page fetch.
@@ -1506,6 +1556,7 @@ static int extract_new_mappings(struct repair_completion *repair)
 /**
  * compute_usages() - Compute the lbns in use and block map data blocks counts from the tail of
  *                    the journal.
+ * @repair: The repair completion.
  */
 static noinline int compute_usages(struct repair_completion *repair)
 {
@@ -1560,10 +1611,13 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 	sequence_number_t i, head;
 	bool found_entries = false;
 	struct recovery_journal *journal = repair->completion.vdo->recovery_journal;
+	struct recovery_block_header header;
+	enum vdo_metadata_type expected_format;
 
 	head = min(repair->block_map_head, repair->slab_journal_head);
+	header = get_recovery_journal_block_header(journal, repair->journal_data, head);
+	expected_format = header.metadata_type;
 	for (i = head; i <= repair->highest_tail; i++) {
-		struct recovery_block_header header;
 		journal_entry_count_t block_entries;
 		u8 j;
 
@@ -1575,19 +1629,15 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 		};
 
 		header = get_recovery_journal_block_header(journal, repair->journal_data, i);
-		if (header.metadata_type == VDO_METADATA_RECOVERY_JOURNAL) {
-			/* This is an old format block, so we need to upgrade */
-			vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-					       "Recovery journal is in the old format, a read-only rebuild is required.");
-			vdo_enter_read_only_mode(repair->completion.vdo,
-						 VDO_UNSUPPORTED_VERSION);
-			return VDO_UNSUPPORTED_VERSION;
-		}
-
-		if (!is_exact_recovery_journal_block(journal, &header, i,
-						     VDO_METADATA_RECOVERY_JOURNAL_2)) {
+		if (!is_exact_recovery_journal_block(journal, &header, i)) {
 			/* A bad block header was found so this must be the end of the journal. */
 			break;
+		} else if (header.metadata_type != expected_format) {
+			/* There is a mix of old and new format blocks, so we need to rebuild. */
+			vdo_log_error_strerror(VDO_CORRUPT_JOURNAL,
+					       "Recovery journal is in an invalid format, a read-only rebuild is required.");
+			vdo_enter_read_only_mode(repair->completion.vdo, VDO_CORRUPT_JOURNAL);
+			return VDO_CORRUPT_JOURNAL;
 		}
 
 		block_entries = header.entry_count;
@@ -1623,8 +1673,14 @@ static int parse_journal_for_recovery(struct repair_completion *repair)
 			break;
 	}
 
-	if (!found_entries)
+	if (!found_entries) {
 		return validate_heads(repair);
+	} else if (expected_format == VDO_METADATA_RECOVERY_JOURNAL) {
+		/* All journal blocks have the old format, so we need to upgrade. */
+		vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+				       "Recovery journal is in the old format. Downgrade and complete recovery, then upgrade with a clean volume");
+		return VDO_UNSUPPORTED_VERSION;
+	}
 
 	/* Set the tail to the last valid tail block, if there is one. */
 	if (repair->tail_recovery_point.sector_count == 0)

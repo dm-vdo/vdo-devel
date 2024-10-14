@@ -479,10 +479,10 @@ bool checkBlockedThreadCount(void *context)
 // Implementation of sleep and wake from linux/wait.h and linux/sched.h  //
 ///////////////////////////////////////////////////////////////////////////
 
-void init_waitqueue_head(wait_queue_head_t *head)
+void init_waitqueue_head(struct wait_queue_head *wq_head)
 {
-  VDO_ASSERT_SUCCESS(mutex_init(&head->lock));
-  INIT_LIST_HEAD(&head->head);
+  VDO_ASSERT_SUCCESS(mutex_init(&wq_head->lock));
+  INIT_LIST_HEAD(&wq_head->head);
 }
 
 /**********************************************************************/
@@ -495,7 +495,7 @@ void io_schedule(void)
 
   blockedThreadCount++;
   uds_broadcast_cond(&condition);
-  while (task->state != TASK_RUNNABLE) {
+  while (task->state != TASK_PARKED) {
     uds_wait_cond(&condition, &mutex);
   }
 
@@ -507,43 +507,46 @@ void io_schedule(void)
 }
 
 /**********************************************************************/
-void wake_up_nr(wait_queue_head_t *head, int32_t count)
+void __wake_up(struct wait_queue_head *wq_head,
+               unsigned int mode __attribute__((unused)),
+               int nr,
+               void *key __attribute__((unused)))
 {
-  mutex_lock(&head->lock);
+  mutex_lock(&wq_head->lock);
   struct list_head *entry;
-  list_for_each(entry, &head->head) {
+  list_for_each(entry, &wq_head->head) {
     struct task_struct *task = container_of(entry,
                                             struct wait_queue_entry,
                                             entry)->private;
     if (task->state == TASK_UNINTERRUPTIBLE) {
-      task->state = TASK_RUNNABLE;
-      if (--count == 0) {
+      task->state = TASK_PARKED;
+      if (--nr == 0) {
         break;
       }
     }
   }
-  mutex_unlock(&head->lock);
+  mutex_unlock(&wq_head->lock);
 
   broadcast();
 }
 
 /**********************************************************************/
-void prepare_to_wait_exclusive(wait_queue_head_t *queue,
-			       struct wait_queue_entry *entry,
+void prepare_to_wait_exclusive(struct wait_queue_head *wq_head,
+			       struct wait_queue_entry *wq_entry,
 			       int state)
 {
-  mutex_lock(&queue->lock);
-  list_add_tail(&entry->entry, &queue->head);
+  mutex_lock(&wq_head->lock);
+  list_add_tail(&wq_entry->entry, &wq_head->head);
   set_current_state(state);
-  mutex_unlock(&queue->lock);
+  mutex_unlock(&wq_head->lock);
 }
 
 /**********************************************************************/
-void finish_wait(wait_queue_head_t *queue, struct wait_queue_entry *entry)
+void finish_wait(struct wait_queue_head *wq_head, struct wait_queue_entry *wq_entry)
 {
-  mutex_lock(&queue->lock);
-  list_del_init(&entry->entry);
-  mutex_unlock(&queue->lock);
+  mutex_lock(&wq_head->lock);
+  list_del_init(&wq_entry->entry);
+  mutex_unlock(&wq_head->lock);
 }
 
 /**********************************************************************/

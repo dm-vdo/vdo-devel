@@ -22,7 +22,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 my %PROPERTIES =
   (
    # @ple the binary to use
-   binary           => "src/python/devices/corruptor/processCorruptorTrace.py",
+   binary           => "src/python/bin/processCorruptorTrace.py",
    # @ple file in which to write debug output; undef => no debug output
    debugFile        => undef,
    # @ple specifies files to process

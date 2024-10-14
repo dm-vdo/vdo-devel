@@ -8,7 +8,7 @@
 # $Id$
 #
 
-SUBDIRS = devices vdo
+SUBDIRS = bin
 
 .PHONY: all check checkin clean dist doc
 all check checkin clean dist doc:
