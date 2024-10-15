@@ -15,3 +15,9 @@ vdo:
 * Removed obsolete utilities.
 * Fixed version numbering.
 * Updated project documentation.
+
+Version 8.3.0.72
+vdo:
+* Improved vdoformat error handling.
+* Added clang support.
+* General code clean up and simplification.
