@@ -11,9 +11,6 @@
 #ifdef __KERNEL__
 #include <linux/ratelimit.h>
 #endif
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -202,27 +199,12 @@ int vio_reset_bio(struct vio *vio, char *data, bio_end_io_t callback,
 	int bvec_count, offset, len, i;
 	struct bio *bio = vio->bio;
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-	bio_reset(bio);
-#else
 	bio_reset(bio, bio->bi_bdev, bi_opf);
-#endif
 	vdo_set_bio_properties(bio, vio, callback, bi_opf, pbn);
 	if (data == NULL)
 		return VDO_SUCCESS;
 
+	bio->bi_ioprio = 0;
 	bio->bi_io_vec = bio->bi_inline_vecs;
 	bio->bi_max_vecs = vio->block_count + 1;
 	len = VDO_BLOCK_SIZE * vio->block_count;

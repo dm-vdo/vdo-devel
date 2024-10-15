@@ -270,7 +270,6 @@ sub getModuleSourceDir {
 ##
 sub resolveBinaries {
   my ($self) = assertNumArgs(1, @_);
-  $self->{dmdevice} = $self->findBinary("dmdevice");
 }
 
 ########################################################################

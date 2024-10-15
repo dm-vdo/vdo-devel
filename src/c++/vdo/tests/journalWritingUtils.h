@@ -23,6 +23,7 @@ enum {
   APPLY_PART     = SHORT_SECTOR, // Only some sector entries should be applied
   USE_NONCE      = -1, // Value indicating the VDO nonce should be used
   BAD_NONCE      = 0x01,
+  BAD_METADATA   = -2, // Value indicating the old journal format should be used
   GOOD_COUNT     = 0,
   BAD_COUNT      = 0xff,
 };

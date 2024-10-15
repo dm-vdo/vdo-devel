@@ -47,7 +47,6 @@ use Permabit::SystemUtils qw(
   assertCommand
   assertSystem
   createRemoteFile
-  pythonCommand
 );
 use Permabit::UserMachine;
 use Permabit::Utils qw(
@@ -134,8 +133,6 @@ our %PROPERTIES
      # @ple physical size of the underlying storage (may include a suffix),
      #      used for setting up a logical volume for VDO using LVM
      physicalSize            => undef,
-     # @ple The directory to find python libraries in
-     pythonLibDir            => undef,
      # @ple Ask rsvpd to randomize its list of available hosts before selecting
      randomizeReservations   => 1,
      # @ple Run the test on machines with the latest rawhide kernel installed
@@ -172,13 +169,6 @@ my @UPSTREAM_NAMES
      "src/srpms/vdo-$VDO_VERSION-*.src.rpm",
     );
 
-my @SHARED_PYTHON_PACKAGES
-  = (
-     "__init__.py",
-     "dmmgmnt",
-     "utils",
-     );
-
 my @SHARED_FILES
   = (
      "src/c++/third/fio/fio",
@@ -188,10 +178,6 @@ my @SHARED_FILES
      "src/c++/vdo/bin/corruptpbnref",
      "src/c++/vdo/bin/vdoFillIndex",
      "src/c++/vdo/bin/udsCalculateSize",
-     "src/python/vdo/__init__.py",
-     "src/python/vdo/dmdevice",
-     "src/python/vdo/dmmgmnt",
-     "src/python/vdo/utils",
     );
 
 # Used to set the raidType property for RAID devices when calling
@@ -265,15 +251,19 @@ sub _minimumMemory {
   # Fedora 36 not measured; assume it needs 200M for pre-VDO operation.
   # Fedora 37 measured 2023-07-24 needed 400M for pre-VDO operation.
   # Fedora 38 measured 2023-07-24 needed 400M for pre-VDO operation.
+  # Fedora 39 not measured; assume it needs 400M for pre-VDO operation.
+  # Fedora 40 not measured; assume it needs 400M for pre-VDO operation.
+  # FEDORANEXT not measured; assume it needs 400M for pre-VDO operation.
   # RHEL8 measured 2023-07-24 needed 400M for pre-VDO operation.
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
   my %DISTRO_MEMORY_REQUIREMENTS
     = (
-       FEDORA38 => 400 * $MB,
-       FEDORA39 => 400 * $MB,
-       RAWHIDE  => 400 * $MB,
-       RHEL8    => 400 * $MB,
-       RHEL9    => 400 * $MB,
+       FEDORA39   => 400 * $MB,
+       FEDORA40   => 400 * $MB,
+       FEDORANEXT => 400 * $MB,
+       RAWHIDE    => 400 * $MB,
+       RHEL8      => 400 * $MB,
+       RHEL9      => 400 * $MB,
       );
   my $distro   =  getDistroInfo($host);
   assertDefined($DISTRO_MEMORY_REQUIREMENTS{$distro});
@@ -312,19 +302,6 @@ sub set_up {
 
   $self->{scratchDir} = makeFullPath($self->{workDir}, 'scratch');
   $self->{userBinaryDir} = makeFullPath($self->{runDir}, 'executables');
-
-  if (!defined($self->{pythonLibDir})) {
-    $self->{pythonLibDir} = $self->{binaryDir} . "/pythonlibs";
-    assertSystem("mkdir -p $self->{pythonLibDir}/vdo");
-  }
-
-  foreach my $path (@SHARED_PYTHON_PACKAGES) {
-    my $dest = "$self->{pythonLibDir}/vdo/$path";
-    # Note that due to races between concurrent tests, multiple ln
-    # processes could collide and cause errors.
-    assertSystem("test -e $dest || ln -s $self->{binaryDir}/$path $dest"
-                 . " || test -e $dest");
-  }
 
   if ($self->{kmemleak}) {
     setupKmemleak($self->{clientNames});
@@ -451,7 +428,7 @@ sub deviceCreated {
 
   # After creating a device, do any associated manual wait points
   foreach my $subclass (qw(TestDevice::Managed::Corruptor
-                           TestDevice::Crypt
+                           Crypt
                            TestDevice::Dory
                            TestDevice::Fua
                            Loop

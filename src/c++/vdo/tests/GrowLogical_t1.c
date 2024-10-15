@@ -20,10 +20,6 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-enum {
-  LAYER_ERROR = -1,
-};
-
 static const block_count_t NEW_LOGICAL_SIZE = 100000000;
 
 static bool success;
@@ -64,7 +60,7 @@ static bool failSuperBlockWrite(struct bio *bio)
   clearBIOSubmitHook();
 
   // Set a bad error code to force a failed write.
-  bio->bi_status = LAYER_ERROR;
+  bio->bi_status = BLK_STS_VDO_INJECTED;
 
   // Don't do the write.
   bio->bi_end_io(bio);
@@ -97,7 +93,7 @@ static void testGrowLogical(void)
   }
 
   // Attempt to grow
-  CU_ASSERT_EQUAL((success ? VDO_SUCCESS : LAYER_ERROR),
+  CU_ASSERT_EQUAL((success ? VDO_SUCCESS : BLK_STS_VDO_INJECTED),
                   growVDOLogical(NEW_LOGICAL_SIZE, save));
   CU_ASSERT_EQUAL(expectedSize, getTestConfig().config.logical_blocks);
 

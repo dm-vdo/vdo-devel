@@ -125,29 +125,26 @@ IORequest *launchIndexedWrite(logical_block_number_t start,
   __attribute__((warn_unused_result));
 
 /**
- * Launch an asynchronous trim but don't wait for the result.
+ * Launch an asynchronous trim but don't wait for the result. The default
+ * max discard size will be used.
  *
- * <p>The request is enqueued and a pointer to it is returned. The caller must
- * free the request once it has completed.
+ * <p>The request is enqueued and a pointer to it is returned. The caller
+ * must free the request once it has completed.
  *
- * @param start        The starting block number
- * @param count        The number of blocks to trim
- * @param discardSize  The maximum number of discard blocks per bio (hence
- *                     data_vio)
+ * @param start  The starting sector
+ * @param count  The number of sectots to trim
  *
  * @return The request
  **/
-IORequest *launchTrimWithMaxDiscardSize(logical_block_number_t start,
-                                        block_count_t          count,
-                                        block_count_t          size)
-    __attribute__((warn_unused_result));
+IORequest *launchUnalignedTrim(sector_t start, sector_t count)
+  __attribute__((warn_unused_result));
 
 /**
  * Launch an asynchronous trim but don't wait for the result. The default
  * max discard size will be used.
  *
- * <p>The request is enqueued and a pointer it is returned. The caller must
- * free the request once it has completed.
+ * <p>The request is enqueued and a pointer to it is returned. The caller
+ * must free the request once it has completed.
  *
  * @param start  The starting block number
  * @param count  The number of blocks to trim

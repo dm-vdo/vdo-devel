@@ -12,7 +12,7 @@ export VDO_VERSION
 
 SUBDIRS                 := perl c++ python tools
 CLEAN_SUBDIRS           := $(SUBDIRS) packaging
-CHECK_SUBDIRS           := perl tools python/vdo
+CHECK_SUBDIRS           := perl tools
 CHECKIN_SUBDIRS         := c++ perl python packaging
 VDO_CHECKIN_SUBDIRS     := c++ perl
 
@@ -161,7 +161,7 @@ test-build-from-tgz:
 		($(MAKE) clean all && echo "Successfully built from $$i") ||            \
 		(echo "Failed to build from $$i" && exit 1);                            \
 	done
-	
+
 .PHONY: archive
 archive:
 	$(MAKE) -C $(ARCHIVE)

@@ -2,7 +2,7 @@
 /*
  * Unit test requirements from linux/bio.h.
  *
- * Copyright 2023 Red Hat
+ * Copyright 2024 Red Hat
  *
  */
 
@@ -15,8 +15,10 @@
 struct bio;
 typedef u32 __bitwise blk_opf_t;
 typedef unsigned int blk_qc_t;
-typedef uint32_t blk_status_t;
+typedef u8 __bitwise blk_status_t;
 typedef void (bio_end_io_t) (struct bio *);
+
+#define BLK_QC_T_NONE -1U
 
 /*
  * In the kernel, this is actually in blk-types.h which bio.h includes,
@@ -30,9 +32,8 @@ struct bio {
 
 	struct bio		*bi_next;	/* request queue link */
 	struct block_device	*bi_bdev;
-	unsigned int		bi_opf;		/* bottom bits req flags,
-						 * top bits REQ_OP. Use
-						 * accessors.
+	blk_opf_t		bi_opf;		/* bottom bits REQ_OP, top bits
+						 * req_flags.
 						 */
 	unsigned short		bi_flags;	/* BIO_* below */
 	unsigned short		bi_ioprio;
@@ -42,6 +43,12 @@ struct bio {
 
 	struct bvec_iter	bi_iter;
 
+	union {
+		/* for polled bios: */
+		blk_qc_t	bi_cookie;
+		/* for plugged zoned writes only: */
+		unsigned int	__bi_nr_segments;
+	};
 	bio_end_io_t		*bi_end_io;
 
 	void			*bi_private;
@@ -95,21 +102,22 @@ struct bio {
  * bio flags
  */
 enum {
-	BIO_NO_PAGE_REF,	/* don't put release vec pages */
+	BIO_PAGE_PINNED,	/* Unpin pages in bio_release_pages() */
 	BIO_CLONED,		/* doesn't own data */
 	BIO_BOUNCED,		/* bio is a bounce bio */
-	BIO_WORKINGSET,		/* contains userspace workingset pages */
 	BIO_QUIET,		/* Make BIO Quiet */
 	BIO_CHAIN,		/* chained bio, ->bi_remaining in effect */
 	BIO_REFFED,		/* bio has elevated ->bi_cnt */
-	BIO_THROTTLED,		/* This bio has already been subjected to
+	BIO_BPS_THROTTLED,	/* This bio has already been subjected to
 				 * throttling rules. Don't do it again. */
 	BIO_TRACE_COMPLETION,	/* bio_endio() should trace the final completion
 				 * of this bio. */
 	BIO_CGROUP_ACCT,	/* has been accounted to a cgroup */
-	BIO_TRACKED,		/* set if bio goes through the rq_qos path */
+	BIO_QOS_THROTTLED,	/* bio went through rq_qos throttle path */
+	BIO_QOS_MERGED,         /* but went through rq_qos merge path */
 	BIO_REMAPPED,
-	BIO_ZONE_WRITE_LOCKED,	/* Owns a zoned device zone write lock */
+	BIO_ZONE_WRITE_PLUGGING, /* bio handled through zone write plugging */
+	BIO_EMULATES_ZONE_APPEND, /* bio emulates a zone append operation */
 	BIO_FLAG_LAST
 };
 
@@ -130,7 +138,7 @@ enum {
 #define REQ_OP_MASK	((1 << REQ_OP_BITS) - 1)
 #define REQ_FLAG_BITS	24
 
-enum req_opf {
+enum req_op {
 	/* read sectors from the device */
 	REQ_OP_READ		= 0,
 	/* write sectors to the device */
@@ -141,8 +149,8 @@ enum req_opf {
 	REQ_OP_DISCARD		= 3,
 	/* securely erase sectors */
 	REQ_OP_SECURE_ERASE	= 5,
-	/* write the same sector many times */
-	REQ_OP_WRITE_SAME	= 7,
+	/* write data at the current zone write pointer */
+	REQ_OP_ZONE_APPEND	= 7,
 	/* write the zero filled sector many times */
 	REQ_OP_WRITE_ZEROES	= 9,
 	/* Open a zone */
@@ -151,18 +159,16 @@ enum req_opf {
 	REQ_OP_ZONE_CLOSE	= 11,
 	/* Transition a zone to full */
 	REQ_OP_ZONE_FINISH	= 12,
-	/* write data at the current zone write pointer */
-	REQ_OP_ZONE_APPEND	= 13,
 	/* reset a zone write pointer */
-	REQ_OP_ZONE_RESET	= 15,
+	REQ_OP_ZONE_RESET	= 13,
 	/* reset all the zone present on the device */
-	REQ_OP_ZONE_RESET_ALL	= 17,
+	REQ_OP_ZONE_RESET_ALL	= 15,
 
 	/* Driver private requests */
 	REQ_OP_DRV_IN		= 34,
 	REQ_OP_DRV_OUT		= 35,
 
-	REQ_OP_LAST,
+	REQ_OP_LAST		= 36,
 };
 
 /*
@@ -170,46 +176,32 @@ enum req_opf {
  * bi_opf of struct bio.  Note that some flags are only valid in either one.
  */
 enum req_flag_bits {
-	/* common flags */
 	__REQ_FAILFAST_DEV = REQ_OP_BITS, /* no driver retries of device errors */
 	__REQ_FAILFAST_TRANSPORT, /* no driver retries of transport errors */
 	__REQ_FAILFAST_DRIVER,	/* no driver retries of driver errors */
-
 	__REQ_SYNC,		/* request is sync (sync write or read) */
 	__REQ_META,		/* metadata io request */
 	__REQ_PRIO,		/* boost priority in cfq */
-
-	__REQ_NOIDLE,		/* don't anticipate more IO after this one */
+	__REQ_NOMERGE,          /* don't touch this for merging */
+	__REQ_IDLE,		/* anticipate more IO after this one */
 	__REQ_INTEGRITY,	/* I/O includes block integrity payload */
 	__REQ_FUA,		/* forced unit access */
 	__REQ_PREFLUSH,		/* request for cache flush */
-
-	/* bio only flags */
 	__REQ_RAHEAD,		/* read ahead, can fail anytime */
-	__REQ_THROTTLED,	/* This bio has already been subjected to
-				 * throttling rules. Don't do it again. */
+	__REQ_BACKGROUND,       /* background IO */
+	__REQ_NOWAIT,           /* Don't wait if request will block */
+	__REQ_POLLED,           /* caller polls for completion using bio_poll */
+	__REQ_ALLOC_CACHE,      /* allocate IO from cache if available */
+	__REQ_SWAP,             /* swap I/O */
+	__REQ_DRV,              /* for driver use */
+	__REQ_FS_PRIVATE,       /* for file system (submitter) use */
 
-	/* request only flags */
-	__REQ_SORTED,		/* elevator knows about this request */
-	__REQ_SOFTBARRIER,	/* may not be passed by ioscheduler */
-	__REQ_NOMERGE,		/* don't touch this for merging */
-	__REQ_STARTED,		/* drive already may have started this one */
-	__REQ_DONTPREP,		/* don't call prep for this one */
-	__REQ_QUEUED,		/* uses queueing */
-	__REQ_ELVPRIV,		/* elevator private data attached */
-	__REQ_FAILED,		/* set if the request failed */
-	__REQ_QUIET,		/* don't worry about errors */
-	__REQ_PREEMPT,		/* set for "ide_preempt" requests and also
-				   for requests for which the SCSI "quiesce"
-				   state must be ignored. */
-	__REQ_ALLOCED,		/* request came from our alloc pool */
-	__REQ_COPY_USER,	/* contains copies of user pages */
-	__REQ_FLUSH_SEQ,	/* request for flush sequence */
-	__REQ_IO_STAT,		/* account I/O stat */
-	__REQ_MIXED_MERGE,	/* merge of different types, fail separately */
-	__REQ_PM,		/* runtime pm request */
-	__REQ_HASHED,		/* on IO scheduler merge hash */
-	__REQ_MQ_INFLIGHT,	/* track inflight for MQ */
+	/*
+	 * Command specific flags, keep last:
+	 */
+	/* for REQ_OP_WRITE_ZEROES: */
+	__REQ_NOUNMAP,		/* do not free blocks when zeroing */
+
 	__REQ_NR_BITS,		/* stops here */
 };
 
@@ -219,51 +211,37 @@ enum req_flag_bits {
 #define REQ_SYNC		(1ULL << __REQ_SYNC)
 #define REQ_META		(1ULL << __REQ_META)
 #define REQ_PRIO		(1ULL << __REQ_PRIO)
-#define REQ_NOIDLE		(1ULL << __REQ_NOIDLE)
+#define REQ_NOMERGE		(1ULL << __REQ_NOMERGE)
+#define REQ_IDLE		(1ULL << __REQ_IDLE)
 #define REQ_INTEGRITY		(1ULL << __REQ_INTEGRITY)
+#define REQ_FUA                 (1ULL << __REQ_FUA)
+#define REQ_PREFLUSH		(1ULL << __REQ_PREFLUSH)
+#define REQ_RAHEAD		(1ULL << __REQ_RAHEAD)
+#define REQ_BACKGROUND		(1ULL << __REQ_BACKGROUND)
+#define REQ_NOWAIT		(1ULL << __REQ_NOWAIT)
+#define REQ_POLLED		(1ULL << __REQ_POLLED)
+#define REQ_ALLOC_CACHE		(1ULL << __REQ_ALLOC_CACHE)
+#define REQ_SWAP		(1ULL << __REQ_SWAP)
+#define REQ_DRV                 (1ULL << __REQ_DRV)
+#define REQ_FS_PRIVATE		(1ULL << __REQ_FS_PRIVATE)
+
+#define REQ_NOUNMAP		(1ULL << __REQ_NOUNMAP)
 
 #define REQ_FAILFAST_MASK \
 	(REQ_FAILFAST_DEV | REQ_FAILFAST_TRANSPORT | REQ_FAILFAST_DRIVER)
-#define REQ_COMMON_MASK \
-	(REQ_FAILFAST_MASK | REQ_SYNC | REQ_META | REQ_PRIO | REQ_NOIDLE | \
-	 REQ_PREFLUSH | REQ_FUA | REQ_INTEGRITY | REQ_NOMERGE)
-#define REQ_CLONE_MASK		REQ_COMMON_MASK
 
 /* This mask is used for both bio and request merge checking */
 #define REQ_NOMERGE_FLAGS \
-	(REQ_NOMERGE | REQ_STARTED | REQ_SOFTBARRIER | REQ_PREFLUSH | REQ_FUA | REQ_FLUSH_SEQ)
+	(REQ_NOMERGE | REQ_PREFLUSH | REQ_FUA )
 
-#define REQ_RAHEAD		(1ULL << __REQ_RAHEAD)
-#define REQ_THROTTLED		(1ULL << __REQ_THROTTLED)
-
-#define REQ_SORTED		(1ULL << __REQ_SORTED)
-#define REQ_SOFTBARRIER		(1ULL << __REQ_SOFTBARRIER)
-#define REQ_FUA			(1ULL << __REQ_FUA)
-#define REQ_NOMERGE		(1ULL << __REQ_NOMERGE)
-#define REQ_STARTED		(1ULL << __REQ_STARTED)
-#define REQ_DONTPREP		(1ULL << __REQ_DONTPREP)
-#define REQ_QUEUED		(1ULL << __REQ_QUEUED)
-#define REQ_ELVPRIV		(1ULL << __REQ_ELVPRIV)
-#define REQ_FAILED		(1ULL << __REQ_FAILED)
-#define REQ_QUIET		(1ULL << __REQ_QUIET)
-#define REQ_PREEMPT		(1ULL << __REQ_PREEMPT)
-#define REQ_ALLOCED		(1ULL << __REQ_ALLOCED)
-#define REQ_COPY_USER		(1ULL << __REQ_COPY_USER)
-#define REQ_PREFLUSH		(1ULL << __REQ_PREFLUSH)
-#define REQ_FLUSH_SEQ		(1ULL << __REQ_FLUSH_SEQ)
-#define REQ_IO_STAT		(1ULL << __REQ_IO_STAT)
-#define REQ_MIXED_MERGE		(1ULL << __REQ_MIXED_MERGE)
-#define REQ_PM			(1ULL << __REQ_PM)
-#define REQ_HASHED		(1ULL << __REQ_HASHED)
-#define REQ_MQ_INFLIGHT		(1ULL << __REQ_MQ_INFLIGHT)
-
-#define bio_op(bio) \
-	((bio)->bi_opf & REQ_OP_MASK)
-
-/**********************************************************************/
-static inline bool op_is_write(unsigned int op)
+static inline enum req_op bio_op(const struct bio *bio)
 {
-	return (op & 1);
+	return bio->bi_opf & REQ_OP_MASK;
+}
+
+static inline bool op_is_write(blk_opf_t op)
+{
+	return !!(op & 1);
 }
 
 #endif // LINUX_BLK_TYPES_H

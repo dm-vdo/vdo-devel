@@ -4,8 +4,8 @@
  * %LICENSE%
  */
 
-#ifndef ASM_UNALIGNED_H
-#define ASM_UNALIGNED_H
+#ifndef LINUX_UNALIGNED_H
+#define LINUX_UNALIGNED_H
 
 #include <asm/byteorder.h>
 #include <linux/types.h>
@@ -121,4 +121,4 @@ static inline void put_unaligned_be64(uint64_t val, void *p)
 	*((__be64 *)p) = __cpu_to_be64(val);
 }
 
-#endif /* ASM_UNALIGNED_H */
+#endif /* LINUX_UNALIGNED_H */
