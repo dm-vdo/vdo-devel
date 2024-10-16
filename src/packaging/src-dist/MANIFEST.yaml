@@ -56,6 +56,8 @@ tarballs:
             - TEST_INTERNAL
             - VDO_INTERNAL
             - VDO_UPSTREAM
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
             - __KERNEL__
           defines:
             - VDO_USER
@@ -99,6 +101,8 @@ tarballs:
             - INTERNAL
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
             - __KERNEL__
         src/tools/monitor:
           dest: examples/monitor
@@ -151,6 +155,8 @@ tarballs:
             - INTERNAL
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
             - __KERNEL__
         src/c++/uds/userLinux/uds:
           dest: utils/uds
@@ -172,6 +178,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
         src/c++/uds/userLinux/uds/linux:
           dest: utils/uds/linux
           sources:
@@ -194,6 +202,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
             - __KERNEL__
         src/c++/uds/userLinux/uds/asm:
           dest: utils/uds/asm
@@ -202,6 +212,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
   kvdo:
     versionFiles:
       vdo: src/tools/installers/CURRENT_VERSION
@@ -279,6 +291,8 @@ tarballs:
             - INTERNAL
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
             - VDO_USER
           defines:
             - __KERNEL__
@@ -340,6 +354,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__
         src/c++/uds/kernelLinux/uds:
@@ -358,5 +374,7 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__

@@ -24,8 +24,12 @@ tarballs:
             - dory.c
             - dory.h
           +postProcessor: removeInternal.sh
+          +defines:
+            - VDO_UPSTREAM
         src/c++/uds/userLinux/uds:
           +postProcessor: removeInternal.sh
+          +defines:
+            - VDO_UPSTREAM
         src/c++/vdo/base:
           +excludes:
             - histogram.c
@@ -37,6 +41,9 @@ tarballs:
             - vdo-histograms.c
             - vdo-histograms.h
           +postProcessor: removeInternal.sh
+          +defines:
+            - VDO_UPSTREAM
+            - VDO_USER
   kvdo:
     sources:
       vdo:
@@ -131,6 +138,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__
             - DM_BUFIO_CLIENT_NO_SLEEP
@@ -157,6 +166,8 @@ tarballs:
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
+            - VDO_USE_ALTERNATE
+            - VDO_USE_NEXT
           defines:
             - __KERNEL__
             - VDO_UPSTREAM
