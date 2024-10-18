@@ -13,7 +13,7 @@ ifdef LOGDIR
 endif
 
 ifeq ($(DMLINUX), 1)
-  TEST_ARGS += --useUpstreamKernel
+  TEST_ARGS += --useDmLinuxModule
 endif
 
 ifeq ($(USER),continuous)

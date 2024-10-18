@@ -147,7 +147,9 @@ our %PROPERTIES
      # @ple The directory to put the user tool binaries in
      userBinaryDir           => undef,
      # @ple Use the dmlinux src rpm for testing.
-     useUpstreamKernel       => 0,
+     useDmLinuxModule        => 0,
+     # @ple Use the installed kernel module, dm-vdo
+     useUpstreamModule       => 0,
     );
 
 my @SRPM_NAMES
@@ -489,7 +491,7 @@ sub getTGZNameForVersion {
 sub listSharedFiles {
   my ($self) = assertNumArgs(1, @_);
   my @files = ($self->SUPER::listSharedFiles(), @SHARED_FILES);
-  if ($self->{useUpstreamKernel}) {
+  if ($self->{useDmLinuxModule}) {
     return (@files, @UPSTREAM_NAMES);
   } elsif ($self->{useDistribution}) {
     return (@files, @RPM_NAMES);
