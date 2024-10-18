@@ -33,7 +33,7 @@ else
 endif
 
 ifeq ($(DMLINUX), 1)
-  TEST_ARGS += --useUpstreamKernel
+  TEST_ARGS += --useDmLinuxModule
 endif
 
 .PHONY: jenkins

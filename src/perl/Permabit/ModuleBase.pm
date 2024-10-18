@@ -42,6 +42,8 @@ my %PROPERTIES
      modVersion      => undef,
      # @ple whether the test is loading the module from a released RPM
      useDistribution => undef,
+     # @ple whether the test is loading the dm-vdo module from kernel
+     useUpstream     => 0,
     );
 ##
 
