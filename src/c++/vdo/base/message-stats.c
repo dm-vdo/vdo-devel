@@ -2,6 +2,7 @@
 /*
  * Copyright 2023 Red Hat
  */
+
 #include "dedupe.h"
 #include "indexer.h"
 #include "logger.h"
