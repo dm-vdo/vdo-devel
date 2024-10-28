@@ -233,6 +233,7 @@ struct device_config {
 	unsigned int index_memory;
 	bool index_sparse;
 	unsigned int slab_bits;
+	block_count_t index_blocks;
 };
 
 enum vdo_completion_type {

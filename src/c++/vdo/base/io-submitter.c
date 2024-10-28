@@ -109,8 +109,8 @@ static void assert_in_bio_zone(struct vio *vio)
 /**
  * send_bio_to_device() - Update stats and tracing info, then submit the supplied bio to the OS for
  *                        processing.
- * @vio: The vio associated with the bio.
- * @bio: The bio to submit to the OS.
+ * @vio:  The vio associated with the bio.
+ * @bio:  The bio to submit to the OS.
  */
 static void send_bio_to_device(struct vio *vio, struct bio *bio)
 {
@@ -389,6 +389,39 @@ void __submit_metadata_vio(struct vio *vio, physical_block_number_t physical,
 	vdo_set_completion_callback(completion, vdo_submit_vio,
 				    get_vio_bio_zone_thread_id(vio));
 	vdo_launch_completion_with_priority(completion, get_metadata_priority(vio));
+}
+
+/**
+ * vdo_submit_metadata_vio_wait() - Submit I/O for a metadata vio and wait for completion.
+ * @vdo: the vdo to use
+ * @vio: the vio for which to issue I/O
+ * @physical: the physical block number to read or write
+ * @operation: the type of I/O to perform
+ *
+ * The vio is enqueued on a vdo bio queue so that bio submission (which may block) does not block
+ * other vdo threads.
+ *
+ * The submission will wait for the i/o to compelete and then return the result code.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_submit_metadata_vio_wait(struct vdo *vdo, struct vio *vio,
+				  physical_block_number_t physical,
+				  blk_opf_t operation)
+{
+	int result;
+#ifdef VDO_INTERNAL
+	vio->bio_submission_jiffies = jiffies;
+#endif /* not VDO_INTERNAL */
+
+	result = vio_reset_bio(vio, vio->data, NULL, operation | REQ_META, physical);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
+	submit_bio_wait(vio->bio);
+	return blk_status_to_errno(vio->bio->bi_status);
 }
 
 /**

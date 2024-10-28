@@ -293,7 +293,6 @@ static void decode_volume_geometry(u8 *buffer, size_t *offset,
 	};
 }
 
-#if (defined(VDO_USER) || defined(INTERNAL))
 /**
  * encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
  * @buffer: A buffer to store the encoding.
@@ -338,7 +337,6 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 		          "should have included up to the geometry checksum");
 }
 
-#endif /* VDO_USER */
 /**
  * vdo_parse_geometry_block() - Decode and validate an encoded geometry block.
  * @block: The encoded geometry block.

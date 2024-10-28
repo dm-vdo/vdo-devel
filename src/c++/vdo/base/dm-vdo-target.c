@@ -887,7 +887,6 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 {
 	bool enable_512e;
 	size_t logical_bytes = to_bytes(ti->len);
-	block_count_t index_blocks = 0;
 	struct dm_arg_set arg_set;
 	char **error_ptr = &ti->error;
 	struct device_config *config = NULL;
@@ -1078,7 +1077,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	}
 
 	/* Get size of indexer */
-	result = compute_index_blocks(config, &index_blocks);
+	result = compute_index_blocks(config, &config->index_blocks);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(config, error_ptr, "Unable to calculate index size");
 		return VDO_BAD_CONFIGURATION;
@@ -1086,7 +1085,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	block_count_t slab_blocks = 1 << config->slab_bits;
 
 	/* Check if minimal size of the VDO is too big */
-	block_count_t fixed_layout_size = 2 + index_blocks +
+	block_count_t fixed_layout_size = 2 + config->index_blocks +
 		DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT +
 		DEFAULT_VDO_RECOVERY_JOURNAL_SIZE + VDO_SLAB_SUMMARY_BLOCKS;
 	block_count_t necessary_size = fixed_layout_size + slab_blocks;
