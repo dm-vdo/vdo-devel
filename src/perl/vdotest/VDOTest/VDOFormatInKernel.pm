@@ -59,26 +59,6 @@ sub _tryIllegal {
 }
 
 ########################################################################
-# This is temporary till the actual formatting code goes in.
-##
-sub _tryLegal {
-  my ($self, $paramName, $value) = assertNumArgs(3, @_);
-
-  my $vdoDevice = $self->getDevice();
-  my $machine = $vdoDevice->getMachine();
-
-  my $preformatCursor = $machine->getKernelJournalCursor();
-  eval {
-    $vdoDevice->formatVDO({ $paramName => $value });
-  };
-  assertEvalErrorMatches(qr| reload ioctl on .* failed: Input/output error|);
-  assertTrue($machine->searchKernelJournalSince($preformatCursor,
-                                                "vdo is not formatted"));
-  assertTrue($machine->searchKernelJournalSince($preformatCursor,
-                                                "Could not load geometry block"));
-}
-
-########################################################################
 ##
 sub testOptions {
   my ($self) = assertNumArgs(1, @_);
@@ -86,8 +66,8 @@ sub testOptions {
   my $oneMoreThanMax = "18446744073709551616";
   my $vdoDevice = $self->getDevice();
 
-  $self->_tryLegal("slabBits", 14);
-  $self->_tryLegal("slabBits", 17);
+  $vdoDevice->formatVDO({ slabBits => 14 });
+  $vdoDevice->formatVDO({ slabBits => 17 });
 
   my $slabBitsError = "invalid slab bits";
   $self->_tryIllegal("slabBits",              -2, $slabBitsError);
@@ -97,14 +77,15 @@ sub testOptions {
   $self->_tryIllegal("slabBits",        $maxUInt, $slabBitsError);
   $self->_tryIllegal("slabBits", $oneMoreThanMax, $slabBitsError);
 
-  $self->_tryLegal("logicalSize", 1024);
-  $self->_tryLegal("logicalSize", "4096B");
-  $self->_tryLegal("logicalSize", "4K");
-  $self->_tryLegal("logicalSize", "4M");
-  $self->_tryLegal("logicalSize", "1G");
-  $self->_tryLegal("logicalSize", "4T");
-  $self->_tryLegal("logicalSize", "4P");
-  $self->_tryLegal("logicalSize", "4398046511104K");
+  $vdoDevice->formatVDO({ logicalSize => 1024 });
+  $vdoDevice->formatVDO({ logicalSize => "4096B" });
+  $vdoDevice->formatVDO({ logicalSize => "4K" });
+  $vdoDevice->formatVDO({ logicalSize => "4M" });
+  $vdoDevice->formatVDO({ logicalSize => "1G" });
+  $vdoDevice->formatVDO({ logicalSize => "4T" });
+  # This doesn't work as it needs more memory than our lab machines have.
+#  $vdoDevice->formatVDO({ logicalSize => "4P" });
+#  $vdoDevice->formatVDO({ logicalSize => "4398046511104K" });
 
   # This doesn't work. dmsetup accepts negatives but gets converted to u64 in kernel.
 # $self->_tryIllegal("logicalSize",            "-4K", "Usage:");
@@ -123,14 +104,23 @@ sub testOptions {
   # This doesn't work. parseBytes in Utils.pm knows nothing about Q as a suffix.
 # $self->_tryIllegal("logicalSize",             "1Q", "is zero");
 
-  $self->_tryLegal("albireoMem", .25);
-  $self->_tryLegal("albireoMem", .5);
-  $self->_tryLegal("albireoMem", 1);
+  $vdoDevice->formatVDO({ albireoMem => .25 });
+  $vdoDevice->formatVDO({ albireoMem => .5 });
+  $vdoDevice->formatVDO({ albireoMem => 1 });
 
   $self->_tryIllegal("albireoMem", 255, "Out of space");
 
-  $self->_tryLegal("albireoSparse", 0);
-  $self->_tryLegal("albireoSparse", 1);
+  $vdoDevice->formatVDO({ albireoSparse => 0 });
+  $vdoDevice->formatVDO({ albireoSparse => 1 });
+}
+
+#############################################################################
+# Properties to make sure physical threads = slab count.
+##
+sub propertiesMinimumSize {
+  return (
+	  physicalThreadCount => 1,
+         );
 }
 
 ########################################################################
@@ -143,7 +133,7 @@ sub testMinimumSize {
 
   my $preformatCursor = $machine->getKernelJournalCursor();
   eval {
-    $vdoDevice->formatVDO({ albireoMem => 4, slabBits => 23 });
+    $vdoDevice->formatVDO({ albireoMem => 2, slabBits => 23 });
   };
   assertEvalErrorMatches(qr| reload ioctl on .* failed: Invalid argument|);
 
@@ -165,19 +155,13 @@ sub testMinimumSize {
 
   my $extend1Cursor = $machine->getKernelJournalCursor();
   eval {
-    $vdoDevice->formatVDO({ albireoMem => 4, slabBits => 23 });
+    $vdoDevice->formatVDO({ albireoMem => 2, slabBits => 23 });
   };
   assertEvalErrorMatches(qr| reload ioctl on .* failed: Invalid argument|);
   assertTrue($machine->searchKernelJournalSince($extend1Cursor, "Out of space"));
 
   $storageDevice->extend($physicalSize);
-  my $extend2Cursor = $machine->getKernelJournalCursor();
-  eval {
-    $vdoDevice->formatVDO({ albireoMem => 4, slabBits => 23 });
-  };
-  assertEvalErrorMatches(qr| reload ioctl on .* failed: Input/output error|);
-  assertTrue($machine->searchKernelJournalSince($extend2Cursor,
-                                                "Could not load geometry block"));
+  $vdoDevice->formatVDO({ albireoMem => 2, slabBits => 23 });
 }
 
 1;

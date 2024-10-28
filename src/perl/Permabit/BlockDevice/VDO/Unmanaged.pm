@@ -100,9 +100,10 @@ sub formatVDOInKernel {
 
   my $path = $self->getStoragePath();
   if (defined($extraArgs->{force}) && $extraArgs->{force} == 0) {
-    $self->runOnHost(["sudo wipefs --all $path"])
+    $self->runOnHost(["sudo wipefs --all $path"]);
   } else {
-    $self->runOnHost(["sudo wipefs --force --all $path"])
+    $self->runOnHost(["sudo wipefs --force --all $path"]);
+    $self->runOnHost(["sudo dd if=/dev/zero of=$path bs=4096 count=1"]);
   }
 
   if ($extraArgs) {
@@ -112,7 +113,9 @@ sub formatVDOInKernel {
                       "sudo dmsetup status",
                       "sudo dmsetup table $self->{deviceName}",
                       "sudo dmsetup info $self->{deviceName}",
-                      "sudo dmsetup remove $self->{deviceName}"
+                     ], "\n");
+    $self->waitForIndex();
+    $self->runOnHost(["sudo dmsetup remove $self->{deviceName}",
                      ], "\n");
   }
 }
@@ -133,6 +136,7 @@ sub _parseLogicalSize {
     $log->info("Value = $2");
     my $size = $2;
     if (defined($3)) {
+      $log->info("Suffix = $3");
       $size = $size . $3;
     } else {
       $size = $size . "M";
@@ -187,6 +191,7 @@ sub makeConfigString {
     = defined($extraArgs->{logicalSize})
       ? _parseLogicalSize($extraArgs->{logicalSize})
       : $self->{logicalSize};
+  $log->info("logical size = $logicalSize");
 
   my @optional = ();
 
