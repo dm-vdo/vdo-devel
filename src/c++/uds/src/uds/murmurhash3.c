@@ -24,7 +24,11 @@
 #ifndef VDO_USE_NEXT
 #include <asm/unaligned.h>
 #else
+#ifdef __KERNEL__
 #include <linux/unaligned.h>
+#else
+#include <asm/unaligned.h>
+#endif /* __KERNEL__ */
 #endif
 
 static inline u64 rotl64(u64 x, s8 r)
