@@ -1138,6 +1138,7 @@ void dump_data_vio_pool(struct data_vio_pool *pool, bool dump_vios)
 	spin_unlock(&pool->lock);
 }
 
+#if defined(VDO_INTERNAL) || defined(INTERNAL)
 data_vio_count_t get_data_vio_pool_active_discards(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->discard_limiter.busy);
@@ -1167,6 +1168,7 @@ int set_data_vio_pool_discard_limit(struct data_vio_pool *pool, data_vio_count_t
 	return VDO_SUCCESS;
 }
 
+#endif
 data_vio_count_t get_data_vio_pool_active_requests(struct data_vio_pool *pool)
 {
 	return READ_ONCE(pool->limiter.busy);
