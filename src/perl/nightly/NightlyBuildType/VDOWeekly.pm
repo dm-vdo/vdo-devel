@@ -35,12 +35,6 @@ my $SUITE_PROPERTIES = {
     suiteName   => "weeklyVDOLocalTests",
     extraArgs   => "--threads=3",
   },
-  weeklyVDOPerfHDDTests => {
-    displayName => "VDO_Perf_HDD_Tests",
-    suiteName   => "nightlyVDOPerfTests",
-    extraArgs   => "--threads=2 --clientClass=ALBIREO-PMI"
-                   . " --runTime=3000",
- },
   weeklyVDOPerfTests => {
     displayName => "VDO_Weekly_Perf_Tests",
     suiteName   => "weeklyVDOPerfTests",
