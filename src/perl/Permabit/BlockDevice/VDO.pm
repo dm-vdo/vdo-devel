@@ -288,6 +288,12 @@ sub makeBackingDevice {
 ##
 sub start {
   my ($self) = assertNumArgs(1, @_);
+  my $machineName = $self->getMachineName();
+  my $moduleName = $self->getModuleName();
+
+  if ($self->{_modules}{$machineName}) {
+    $self->{_modules}{$machineName}{$moduleName}->reload();
+  }
   if ($self->{expectRebuild}) {
     my $start = sub { $self->SUPER::start(); };
     $self->getMachine()->withKernelLogErrorCheckDisabled($start, "rebuild");
