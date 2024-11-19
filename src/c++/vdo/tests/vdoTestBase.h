@@ -56,6 +56,11 @@ PhysicalLayer *getSynchronousLayer(void)
   __attribute__((warn_unused_result));
 
 /**
+ * Wipe the geometry block in a VDO.
+ **/
+void zeroGeometryBlock(void);
+
+/**
  * Format a VDO.
  **/
 void formatTestVDO(void);

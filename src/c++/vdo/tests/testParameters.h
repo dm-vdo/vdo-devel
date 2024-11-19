@@ -10,6 +10,7 @@
 #define TEST_PARAMETERS_H
 
 #include "encodings.h"
+#include "indexer.h"
 #include "types.h"
 
 #include "dataBlocks.h"
@@ -54,6 +55,8 @@ typedef struct testParameters {
   thread_count_t            physicalThreadCount;
   /** The number of hash zone threads */
   thread_count_t            hashZoneThreadCount;
+  /** The index memory to use. */
+  uds_memory_config_size_t  indexMemory;
   /** Whether the underlying storage is synchronous */
   bool                      synchronousStorage;
   /** A function to modify the config generated from these parameters */
@@ -70,6 +73,8 @@ typedef struct testParameters {
   bool                      disableDeduplication;
   /** Whether physicalBlocks should include an index region */
   bool                      noIndexRegion;
+  /** Whether to format in the kernel itself */
+  bool                      formatInKernel;
   /** The backing file from which to initially load the RAMLayer (if not NULL) */
   const char               *backingFile;
 } TestParameters;
@@ -84,6 +89,7 @@ struct testConfiguration {
   physical_block_number_t  indexRegionStart;
   physical_block_number_t  vdoRegionStart;
   bool                     synchronousStorage;
+  bool                     formatInKernel;
   DataFormatter           *dataFormatter;
   const char              *backingFile;
 };
