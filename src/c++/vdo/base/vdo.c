@@ -271,6 +271,44 @@ STATIC int __must_check initialize_thread_config(struct thread_count_config coun
 }
 
 /**
+ * initialize_geometry_block() - Sets up the geometry block for use.
+ *
+ * @block      The geometry block to check.
+ *
+ * Return: VDO_SUCCESS or error
+ **/
+static int initialize_geometry_block(struct vdo *vdo,
+				     struct vdo_geometry_block *geometry_block)
+{
+	int result;
+
+	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded geometry block",
+			      (char **) &vdo->geometry_block.buffer);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return allocate_vio_components(vdo, VIO_TYPE_GEOMETRY,
+				       VIO_PRIORITY_METADATA, NULL, 1,
+				       (char *) geometry_block->buffer,
+				       &vdo->geometry_block.vio);
+}
+
+static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
+{
+	int result;
+
+	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded super block",
+			      (char **) &vdo->super_block.buffer);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return allocate_vio_components(vdo, VIO_TYPE_SUPER_BLOCK,
+				       VIO_PRIORITY_METADATA, NULL, 1,
+				       (char *) super_block->buffer,
+				       &vdo->super_block.vio);
+}
+
+/**
  * read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
  *                         device.
  * @vdo: The vdo whose geometry is to be read.
@@ -489,6 +527,19 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 	vdo_initialize_completion(&vdo->admin.completion, vdo, VDO_ADMIN_COMPLETION);
 	init_completion(&vdo->admin.callback_sync);
 	mutex_init(&vdo->stats_mutex);
+
+	result = initialize_geometry_block(vdo, &vdo->geometry_block);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not initialize geometry block";
+		return result;
+	}
+
+	result = initialize_super_block(vdo, &vdo->super_block);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not initialize super block";
+		return result;
+	}
+
 	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
@@ -668,6 +719,12 @@ static void free_listeners(struct vdo_thread *thread)
 	}
 }
 
+static void uninitialize_geometry_block(struct vdo_geometry_block *geometry_block)
+{
+	free_vio_components(&geometry_block->vio);
+	vdo_free(geometry_block->buffer);
+}
+
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
@@ -715,6 +772,7 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_uninitialize_layout(&vdo->next_layout);
 	if (vdo->partition_copier)
 		dm_kcopyd_client_destroy(vdo_forget(vdo->partition_copier));
+	uninitialize_geometry_block(&vdo->geometry_block);
 	uninitialize_super_block(&vdo->super_block);
 	vdo_free_block_map(vdo_forget(vdo->block_map));
 	vdo_free_hash_zones(vdo_forget(vdo->hash_zones));
@@ -741,21 +799,6 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
 	vdo_free(vdo);
-}
-
-static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
-{
-	int result;
-
-	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded super block",
-			      (char **) &vdo->super_block.buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	return allocate_vio_components(vdo, VIO_TYPE_SUPER_BLOCK,
-				       VIO_PRIORITY_METADATA, NULL, 1,
-				       (char *) super_block->buffer,
-				       &vdo->super_block.vio);
 }
 
 /**
@@ -801,14 +844,6 @@ static void read_super_block_endio(struct bio *bio)
  */
 void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent)
 {
-	int result;
-
-	result = initialize_super_block(vdo, &vdo->super_block);
-	if (result != VDO_SUCCESS) {
-		vdo_continue_completion(parent, result);
-		return;
-	}
-
 	vdo->super_block.vio.completion.parent = parent;
 	vdo_submit_metadata_vio(&vdo->super_block.vio,
 				vdo_get_data_region_start(vdo->geometry),
@@ -906,6 +941,7 @@ const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
 {
 	return vdo_get_admin_state_code(&vdo->admin.state);
 }
+
 
 /**
  * record_vdo() - Record the state of the VDO for encoding in the super block.
