@@ -40,12 +40,13 @@ static const TestParameters DEFAULT_PARAMETERS = {
   .logicalThreadCount   = 0,
   .physicalThreadCount  = 0,
   .hashZoneThreadCount  = 0,
+  .indexMemory          = UDS_MEMORY_CONFIG_TINY_TEST,
   .synchronousStorage   = false,
   .dataFormatter        = fillWithOffset,
   .enableCompression    = false,
   .disableDeduplication = false,
   .noIndexRegion        = false,
-  .backingFile          = NULL,
+  .formatInKernel       = false,
 };
 
 static char *DEVICE_NAME = "test device name";
@@ -117,6 +118,10 @@ static TestParameters applyDefaults(const TestParameters *parameters)
     applied.hashZoneThreadCount = parameters->hashZoneThreadCount;
   }
 
+  if (parameters->indexMemory != 0) {
+    applied.indexMemory = parameters->indexMemory;
+  }
+  
   if (parameters->dataFormatter != NULL) {
     applied.dataFormatter = parameters->dataFormatter;
   }
@@ -142,6 +147,10 @@ static TestParameters applyDefaults(const TestParameters *parameters)
 
   if (parameters->backingFile) {
     applied.backingFile = parameters->backingFile;
+  }
+
+  if (parameters->formatInKernel != applied.formatInKernel) {
+    applied.formatInKernel = parameters->formatInKernel;
   }
 
   return applied;
@@ -289,6 +298,30 @@ static TestParameters computeParameters(const TestParameters *parameters)
   return params;
 }
 
+/**
+ * Compute the slab bits given the slab size.
+ *
+ * @param slabSize the slab size to calculate bits from
+ * @param slabBits the value to store the computation in
+ *
+ * @return VDO_SUCCESS or error
+ */
+static int computeSlabBitsFromSlabSize(block_count_t slabSize, block_count_t *slabBits)
+{
+  block_count_t value = slabSize;
+  block_count_t count = 0;
+
+  if (value == 0) {
+    return VDO_BAD_CONFIGURATION;
+  }
+  while (value > 1) {
+    value >>= 1;
+    count++;
+  }
+  *slabBits = count;
+  return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 TestConfiguration makeTestConfiguration(const TestParameters *parameters)
 {
@@ -308,6 +341,9 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
     }
   }
 
+  block_count_t slabBits;
+  VDO_ASSERT_SUCCESS(computeSlabBitsFromSlabSize(params.slabSize, &slabBits));
+
   struct index_config indexConfig;
   block_count_t indexBlocks;
   if (params.noIndexRegion) {
@@ -318,7 +354,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
     indexBlocks = 0;
   } else {
     indexConfig = (struct index_config) {
-      .mem    = UDS_MEMORY_CONFIG_TINY_TEST,
+      .mem    = params.indexMemory,
       .sparse = false,
     };
     VDO_ASSERT_SUCCESS(computeIndexBlocks(&indexConfig, &indexBlocks));
@@ -351,6 +387,10 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
       .physical_blocks    = params.physicalBlocks + indexBlocks,
       .compression        = params.enableCompression,
       .deduplication      = !params.disableDeduplication,
+      .index_memory       = indexConfig.mem,
+      .index_sparse       = indexConfig.sparse,
+      .slab_bits          = slabBits,
+      .index_blocks       = indexBlocks,
     },
     .indexConfig         = indexConfig,
     .indexRegionStart    = 1,
@@ -358,6 +398,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
     .synchronousStorage  = params.synchronousStorage,
     .dataFormatter       = params.dataFormatter,
     .backingFile         = params.backingFile,
+    .formatInKernel      = params.formatInKernel,
   };
 
   if ((parameters == NULL) || (parameters->modifier == NULL)) {
