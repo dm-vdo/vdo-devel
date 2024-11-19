@@ -146,7 +146,8 @@ int formatVDO(const struct vdo_config   *config,
   uuid_t uuid;
   uuid_generate(uuid);
 
-  return formatVDOWithNonce(config, indexConfig, layer, current_time_us(),
+  struct vdo_config modifyConfig = *config;
+  return formatVDOWithNonce(&modifyConfig, indexConfig, layer, current_time_us(),
                             &uuid);
 }
 
@@ -296,7 +297,7 @@ int initializeVolumeGeometry(nonce_t                    nonce,
  * @param uuid              The uuid for the VDO
  **/
 static int configureAndWriteVDO(UserVDO                   *vdo,
-                                const struct vdo_config   *config,
+                                struct vdo_config         *config,
                                 const struct index_config *indexConfig,
                                 nonce_t                    nonce,
                                 uuid_t                    *uuid)
@@ -341,7 +342,7 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
 }
 
 /**********************************************************************/
-int formatVDOWithNonce(const struct vdo_config   *config,
+int formatVDOWithNonce(struct vdo_config         *config,
                        const struct index_config *indexConfig,
                        PhysicalLayer             *layer,
                        nonce_t                    nonce,
@@ -364,6 +365,9 @@ int formatVDOWithNonce(const struct vdo_config   *config,
   }
 
   result = configureAndWriteVDO(vdo, config, indexConfig, nonce, uuid);
+  if (result == VDO_SUCCESS && config->logical_blocks == 0) {
+    config->logical_blocks = vdo->states.vdo.config.logical_blocks;
+  }
   freeUserVDO(&vdo);
   return result;
 }
