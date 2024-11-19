@@ -366,10 +366,6 @@ void __submit_metadata_vio(struct vio *vio, physical_block_number_t physical,
 	struct vdo_completion *completion = &vio->completion;
 #ifdef __KERNEL__
 	const struct admin_state_code *code = vdo_get_admin_state(completion->vdo);
-
-#ifdef VDO_INTERNAL
-	vio->bio_submission_jiffies = jiffies;
-#endif /* not VDO_INTERNAL */
 #else /* not __KERNEL__ */
 	/* Some unit tests don't make a VDO. */
 	const struct admin_state_code *code = ((completion->vdo == NULL) ?
@@ -377,6 +373,10 @@ void __submit_metadata_vio(struct vio *vio, physical_block_number_t physical,
 					       vdo_get_admin_state(completion->vdo));
 #endif /* __KERNEL__ */
 
+#ifdef VDO_INTERNAL
+	vio->bio_submission_jiffies = jiffies;
+
+#endif /* not VDO_INTERNAL */
 	VDO_ASSERT_LOG_ONLY(!code->quiescent, "I/O not allowed in state %s", code->name);
 
 	vdo_reset_completion(completion);
@@ -391,6 +391,38 @@ void __submit_metadata_vio(struct vio *vio, physical_block_number_t physical,
 	vdo_set_completion_callback(completion, vdo_submit_vio,
 				    get_vio_bio_zone_thread_id(vio));
 	vdo_launch_completion_with_priority(completion, get_metadata_priority(vio));
+}
+
+/**
+ * vdo_submit_metadata_vio_wait() - Submit I/O for a metadata vio and wait for completion.
+ * @vdo: the vdo to use
+ * @vio: the vio for which to issue I/O
+ * @physical: the physical block number to read or write
+ * @operation: the type of I/O to perform
+ *
+ * The function operates similarly to __submit_metadata_vio except that it will
+ * block until the work is done. It can be used to do i/o before work queues
+ * and thread completions are set up.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+int vdo_submit_metadata_vio_wait(struct vio *vio,
+				 physical_block_number_t physical,
+				 blk_opf_t operation)
+{
+	int result;
+
+#ifdef VDO_INTERNAL
+	vio->bio_submission_jiffies = jiffies;
+
+#endif /* not VDO_INTERNAL */
+	result = vio_reset_bio(vio, vio->data, NULL, operation | REQ_META, physical);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	bio_set_dev(vio->bio, vdo_get_backing_device(vio->completion.vdo));
+	submit_bio_wait(vio->bio);
+	return blk_status_to_errno(vio->bio->bi_status);
 }
 
 /**
