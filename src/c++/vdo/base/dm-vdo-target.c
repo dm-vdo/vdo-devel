@@ -449,6 +449,78 @@ static inline int __must_check parse_bool(const char *bool_str, const char *true
 }
 
 /**
+ * parse_mem() - Parse a string into an index memory value.
+ * @mem_str: The string value to convert to a memory value.
+ * @mem_ptr: A pointer to return the memory value in.
+ *
+ * Return: VDO_SUCCESS or an error
+ */
+static inline int __must_check parse_mem(const char *mem_str,
+					 uds_memory_config_size_t *mem_ptr)
+{
+	uds_memory_config_size_t mem;
+
+	if (strcmp(mem_str, "0.25") == 0) {
+		mem = UDS_MEMORY_CONFIG_256MB;
+	} else if ((strcmp(mem_str, "0.5") == 0) || (strcmp(mem_str, "0.50") == 0)) {
+		mem = UDS_MEMORY_CONFIG_512MB;
+	} else if (strcmp(mem_str, "0.75") == 0) {
+		mem = UDS_MEMORY_CONFIG_768MB;
+	} else {
+		unsigned int value;
+		int result;
+
+		result = kstrtouint(mem_str, 10, &value);
+		if (result) {
+			vdo_log_error("optional parameter error: invalid memory size, must be a postive integer");
+			return -EINVAL;
+		}
+
+		if (value > UDS_MEMORY_CONFIG_MAX) {
+			vdo_log_error("optional parameter error: invalid memory size, must not be greater than %d",
+				      UDS_MEMORY_CONFIG_MAX);
+			return -EINVAL;
+		}
+		mem = value;
+	}
+	*mem_ptr = mem;
+	return VDO_SUCCESS;
+}
+
+/**
+ * parse_slab_size() - Parse a string option into a slab bits value.
+ * @slab_str: The string value representing slab size to convert to a slab bits value.
+ * @slab_size_ptr: A pointer to return the slab bits in.
+ *
+ * Return: VDO_SUCCESS or an error
+ */
+static inline int __must_check parse_slab_size(const char *slab_str, unsigned int *slab_bits_ptr)
+{
+	unsigned int value;
+	unsigned int slab_bits;
+	int result;
+
+	result = kstrtouint(slab_str, 10, &value);
+	if (result) {
+		vdo_log_error("optional parameter error: invalid slab size, must be a postive integer");
+		return -EINVAL;
+	}
+
+	slab_bits = MAX_VDO_SLAB_BITS;
+	while ((slab_bits >= MIN_VDO_SLAB_BITS) && (1U << slab_bits != value))
+		slab_bits--;
+
+	if (slab_bits < MIN_VDO_SLAB_BITS) {
+		vdo_log_error("optional parameter error: invalid slab size, must be power of two between %u and %u",
+			      (1 << MIN_VDO_SLAB_BITS), (1 << MAX_VDO_SLAB_BITS));
+		return -EINVAL;
+	}
+
+	*slab_bits_ptr = slab_bits;
+	return VDO_SUCCESS;
+}
+
+/**
  * process_one_thread_config_spec() - Process one component of a thread parameter configuration
  *				      string and update the configuration data structure.
  * @thread_param_type: The type of thread specified.
@@ -637,7 +709,7 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 		}
 		/* Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9 */
 		if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
-			vdo_log_error("optional parameter error: at most %d max discard	 blocks are allowed",
+			vdo_log_error("optional parameter error: at most %d max discard blocks are allowed",
 				      UINT_MAX / VDO_BLOCK_SIZE);
 			return -EINVAL;
 		}
@@ -669,10 +741,19 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "compression") == 0)
 		return parse_bool(value, "on", "off", &config->compression);
 
+	if (strcmp(key, "indexSparse") == 0)
+		return parse_bool(value, "on", "off", &config->index_sparse);
+
+	if (strcmp(key, "indexMemory") == 0)
+		return parse_mem(value, &config->index_memory);
+
+	if (strcmp(key, "slabSize") == 0)
+		return parse_slab_size(value, &config->slab_bits);
+
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
 	if (result) {
-		vdo_log_error("optional config string error: integer value needed, found \"%s\"",
+		vdo_log_error("optional config string error: positive integer value needed, found \"%s\"",
 			      value);
 		return result;
 	}
@@ -784,6 +865,12 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	struct device_config *config = NULL;
 	int result;
 
+	if (logical_bytes > (MAXIMUM_VDO_LOGICAL_BLOCKS * VDO_BLOCK_SIZE)) {
+		handle_parse_error(config, error_ptr,
+				   "Logical size exceeds the maximum");
+		return VDO_BAD_CONFIGURATION;
+	}
+
 	if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
 		handle_parse_error(config, error_ptr,
 				   "Logical size must be a multiple of 4096");
@@ -827,6 +914,9 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
 	config->compression = false;
+	config->index_memory = UDS_MEMORY_CONFIG_256MB;
+	config->index_sparse = false;
+	config->slab_bits = DEFAULT_VDO_SLAB_BITS;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
@@ -852,7 +942,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	/* Get the physical blocks, if known. */
 	if (config->version >= 1) {
 		result = kstrtoull(dm_shift_arg(&arg_set), 10, &config->physical_blocks);
-		if (result != VDO_SUCCESS) {
+		if (result) {
 			handle_parse_error(config, error_ptr,
 					   "Invalid physical block count");
 			return VDO_BAD_CONFIGURATION;
@@ -873,7 +963,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 
 	/* Get the page cache size. */
 	result = kstrtouint(dm_shift_arg(&arg_set), 10, &config->cache_size);
-	if (result != VDO_SUCCESS) {
+	if (result) {
 		handle_parse_error(config, error_ptr,
 				   "Invalid block map page cache size");
 		return VDO_BAD_CONFIGURATION;
@@ -881,7 +971,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 
 	/* Get the block map era length. */
 	result = kstrtouint(dm_shift_arg(&arg_set), 10, &config->block_map_maximum_age);
-	if (result != VDO_SUCCESS) {
+	if (result) {
 		handle_parse_error(config, error_ptr, "Invalid block map maximum age");
 		return VDO_BAD_CONFIGURATION;
 	}
@@ -1635,6 +1725,9 @@ static int vdo_initialize(struct dm_target *ti, unsigned int instance,
 	vdo_log_debug("Block map maximum age  = %u", config->block_map_maximum_age);
 	vdo_log_debug("Deduplication          = %s", (config->deduplication ? "on" : "off"));
 	vdo_log_debug("Compression            = %s", (config->compression ? "on" : "off"));
+	vdo_log_debug("Slab bits              = %u", config->slab_bits);
+	vdo_log_debug("Index memory           = %d", config->index_memory);
+	vdo_log_debug("Index sparse           = %s", (config->index_sparse ? "on" : "off"));
 
 	vdo = vdo_find_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
@@ -3104,7 +3197,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 1, 0 },
+	.version = { 9, 2, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
