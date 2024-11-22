@@ -190,7 +190,8 @@ static inline struct pooled_vio *vio_as_pooled_vio(struct vio *vio)
 
 struct vio_pool;
 
-int __must_check make_vio_pool(struct vdo *vdo, size_t pool_size, thread_id_t thread_id,
+int __must_check make_vio_pool(struct vdo *vdo, size_t pool_size, size_t block_count,
+			       thread_id_t thread_id,
 			       enum vio_type vio_type, enum vio_priority priority,
 			       void *context, struct vio_pool **pool_ptr);
 void free_vio_pool(struct vio_pool *pool);

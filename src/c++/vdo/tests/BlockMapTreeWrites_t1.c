@@ -501,6 +501,7 @@ static void testBlockMapTreeWritesWithExhaustedVIOPool(void)
   free_vio_pool(vdo_forget(zone->vio_pool));
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    1,
+                                   1,
                                    zone->thread_id,
                                    VIO_TYPE_BLOCK_MAP_INTERIOR,
                                    VIO_PRIORITY_METADATA,
