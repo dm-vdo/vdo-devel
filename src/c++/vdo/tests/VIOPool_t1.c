@@ -72,7 +72,7 @@ static void acquireVIO(CustomerWrapper *wrapper)
 static void doReturnVIO(struct vdo_completion *wrapperCompletion)
 {
   CustomerWrapper *wrapper = asWrapper(wrapperCompletion);
-  return_vio_to_pool(wrapper->pool, wrapper->entry);
+  return_vio_to_pool(wrapper->entry);
   vdo_finish_completion(wrapperCompletion);
 }
 
