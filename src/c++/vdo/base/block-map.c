@@ -2947,6 +2947,37 @@ void vdo_initialize_block_map_from_journal(struct block_map *map,
 	}
 }
 
+/**
+ * vdo_compute_forest_size() - Compute the approximate number of pages which the
+ *                             forest will allocate in order to map the specified
+ *                             number of logical blocks. This method assumes that
+ *                             the block map is entirely arboreal.
+ * @logicalBlocks: The number of blocks to map
+ * @rootCount: The number of trees in the forest
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+block_count_t vdo_compute_forest_size(block_count_t logicalBlocks,
+				      root_count_t  rootCount)
+{
+	struct boundary newSizes;
+	block_count_t approximateNonLeaves =
+		vdo_compute_new_forest_pages(rootCount, NULL, logicalBlocks, &newSizes);
+
+	// Exclude the tree roots since those aren't allocated from slabs,
+	// and also exclude the super-roots, which only exist in memory.
+	approximateNonLeaves -=
+		rootCount * (newSizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 2] +
+			     newSizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1]);
+
+	block_count_t approximateLeaves =
+		vdo_compute_block_map_page_count(logicalBlocks - approximateNonLeaves);
+
+	// This can be a slight over-estimate since the tree will never have to
+	// address these blocks, so it might be a tiny bit smaller.
+	return (approximateNonLeaves + approximateLeaves);
+}
+
 /* Compute the logical zone for the LBN of a data vio. */
 zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio)
 {

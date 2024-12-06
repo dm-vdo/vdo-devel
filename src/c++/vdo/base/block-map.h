@@ -358,6 +358,9 @@ struct block_map_state_2_0 __must_check vdo_record_block_map(const struct block_
 void vdo_initialize_block_map_from_journal(struct block_map *map,
 					   struct recovery_journal *journal);
 
+block_count_t vdo_compute_forest_size(block_count_t logicalBlocks,
+				      root_count_t  rootCount);
+
 zone_count_t vdo_compute_logical_zone(struct data_vio *data_vio);
 
 void vdo_advance_block_map_era(struct block_map *map,
