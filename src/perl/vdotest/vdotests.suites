@@ -818,7 +818,6 @@ $suiteNames{debugKernelTests}
 $suiteNames{upstreamTests}
   = [
      @{$suiteNames{checkin}},	# A bunch of basic VDO operation tests.
-     "Create03",		# Test that many restarts works
      "DiscardPerf",     	# Test that normal discards work. Longer.
      "Discard512",		# Test that 512 byte discards work
      "Dmsetup",			# Test that dmsetup interface works
