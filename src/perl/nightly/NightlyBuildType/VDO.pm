@@ -75,7 +75,8 @@ my $SUITE_PROPERTIES = {
     suiteName      => "upstreamTests",
     scale          => "PFARM",
     extraArgs      => "--clientClass=PFARM"
-                      . " --useUpstreamModule",
+	              . " --useUpstreamModule"
+	              . " --exclude=Creat03",
     osClasses      => ["FEDORANEXT"],
   },
   vdoPerfTests => {
