@@ -21,7 +21,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %PROPERTIES
   = (
      # @ple set up a Thin volume on top of VDO for the test
-     deviceType           => "thin-lvmvdo",
+     deviceType           => "thin-thinpool-lvmvdo",
      # @ple logical (provisioned) size of the exported VDO device
      logicalSize          => "100G",
      # accept large discards so that thin will pass them down

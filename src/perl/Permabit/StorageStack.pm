@@ -42,6 +42,7 @@ my %DEVICE_TYPES = (
   raw         => 'Permabit::BlockDevice::Raw',
   stripfua    => 'Permabit::BlockDevice::TestDevice::StripFua',
   thin        => 'Permabit::BlockDevice::LVM::Thin',
+  thinpool    => 'Permabit::BlockDevice::LVM::ThinPool',
   tracer      => 'Permabit::BlockDevice::TestDevice::Managed::Tracer',
   upgrade     => 'Permabit::BlockDevice::VDO::Upgrade',
   vdo         => 'Permabit::BlockDevice::VDO::Unmanaged',

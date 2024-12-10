@@ -18,6 +18,7 @@ use Permabit::Assertions qw(
   assertEqualNumeric
   assertMinMaxArgs
   assertNumArgs
+  assertTrue
   assertType
 );
 use Permabit::Constants;
@@ -157,40 +158,84 @@ sub createLogicalVolume {
 }
 
 ########################################################################
-# Create a thin volume
+# Create a thin pool
 #
-# @param name  Thin volume name
-# @param size  Thin volume size in bytes
+# @param  name    Thin pool name
+# @param  size    Thin pool size in bytes
+# @oparam config  String of create time lvm.conf overrides
 ##
-sub createThinVolume {
-  my ($self, $name, $size) = assertNumArgs(3, @_);
+sub createThinPool {
+  my ($self, $name, $size, $config) = assertMinMaxArgs([""], 3, 4, @_);
   my $machine = $self->{storageDevice}->getMachine();
   assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
 
-  my $config = $self->getLVMOptions();
+  $config = $self->getLVMOptions($config);
   $self->createVolumeGroup($machine, $config);
 
   my $ksize = int($size / $KB);
   my $kfree = int($self->getFreeBytes() / $KB);
-  if ($ksize > $kfree) {
-    $log->info("requested size ${ksize}K is too large, using ${kfree}K");
-    $ksize = $kfree;
+
+  # The first time a thin pool is created, lvm will create both a metadata device
+  # and a spare metadata LV in the VG. The spare device behavior can be controlled with
+  # the option --poolmetadataspare y|n. Unfortunately, if we try to create a pool using
+  # --poolmetadataspare n, the output will still generate a WARNING to stderr, thus
+  # causing our perl code to fail.
+  #
+  # As such, we have to take in account the size of both the metadata device and the
+  # spare metadata device when calculating how much space the pool takes as it doesn't
+  # take that into account itself. So we take the overall size asked and add the size
+  # needed for both the metadata and spare metadata devices. Then we see if the VG
+  # has sufficient space. Currently that space is 30 extents for each device.
+  my $metaDataSize = (60 * $self->{physicalExtentSize}) / $KB;
+  my $fullSize = $ksize + $metaDataSize;
+
+  if ($fullSize > $kfree) {
+    my $newSize = $kfree - $metaDataSize;
+    $log->info("requested size ${ksize}K plus metadata is too large for VG, using ${newSize}K");
+    $ksize = $newSize;
   }
 
-  # Create a thin volume in an existing volume group. This is a two step
-  # process where we create a thin pool first, then a thin volume.
-  # If lvcreate asks for a yes/no on whether to wipeout a filesystem
-  # signature (it does on RHEL7), the input redirection will cause the
-  # answer to be "no". The volume is not immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name-pool --type=thin-pool"
-                         . " --extents 100\%FREE --yes $config"
+  # Create a thin pool in an existing volume group. The pool is not
+  # immediately enabled.
+  $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool"
+                         . " --size ${ksize}K --yes $config"
                          . " $self->{volumeGroup} </dev/null");
+  # Make sure to wait for the udev event recording the new event has
+  # been processed. Otherwise, the lv may be open due to blkid when
+  # we try to disable it below.
+  $machine->sendCommand("sudo udevadm settle");
+  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
+  # -a flag, we can stop doing two separate commands and use lvcreate -an.
+  $self->disableAutoActivation($name);
+  $self->disableLogicalVolume($name);
 
+}
+
+########################################################################
+# Create a thin volume on top of a thin pool
+#
+# @param pool  The thin pool device to create on top of
+# @param name  Thin volume name
+# @param size  Thin volume size in bytes
+##
+sub createThinVolume {
+  my ($self, $pool, $name, $size) = assertNumArgs(4, @_);
+  my $machine = $self->{storageDevice}->getMachine();
+  my $poolName = $pool->getDeviceName();
+  assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
+  assertTrue($pool->isa("Permabit::BlockDevice::LVM::ThinPool"));
+  assertTrue($self->{_useCount} > 0);
+
+  my $ksize = int($size / $KB);
+  ++$self->{_useCount};
+
+  my $config = $self->getLVMOptions();
+  # Create a thin volume in an existing thin pool. The volume is not
+  # immediately enabled.
   $machine->runSystemCmd("sudo lvcreate --name $name --type=thin"
-                         . " --virtualsize=${ksize}K --thinpool=$name-pool"
+                         . " --virtualsize=${ksize}K --thinpool=$poolName"
                          . " --yes $config $self->{volumeGroup}"
                          . " </dev/null");
-
   # Make sure to wait for the udev event recording the new event has
   # been processed. Otherwise, the lv may be open due to blkid when
   # we try to disable it below.
@@ -250,9 +295,8 @@ sub createVDOVolume {
   }
 
   my $args = join(' ', map { "--$_ $args{$_}" } keys(%args));
-  $machine->runSystemCmd("sudo lvcreate $args --yes -ay $config"
+  $machine->runSystemCmd("sudo lvcreate $args --yes $config"
                          . " $self->{volumeGroup} </dev/null");
-
   # Make sure to wait for the udev event recording the new event has
   # been processed. Otherwise, the lv may be open due to blkid when
   # we try to disable it below.
@@ -275,27 +319,6 @@ sub deleteLogicalVolume {
   my $machine = $self->{storageDevice}->getMachine();
   my $lvPath = "$self->{volumeGroup}/$name";
   my $config = $self->getLVMOptions();
-  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
-  if (--$self->{_useCount} == 0) {
-    $log->info("Automatically removing VG " . $self->{volumeGroup});
-    $self->remove();
-  }
-}
-
-########################################################################
-# Delete a logical volume
-#
-# @param name  Logical volume name
-##
-sub deleteThinVolume {
-  my ($self, $name) = assertNumArgs(2, @_);
-  $self->disableLogicalVolume($name);
-  # remove a logical volume
-  my $machine = $self->{storageDevice}->getMachine();
-  my $lvPath = "$self->{volumeGroup}/$name";
-  my $config = $self->getLVMOptions();
-  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
-  $lvPath = "$self->{volumeGroup}/$name-pool";
   $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
   if (--$self->{_useCount} == 0) {
     $log->info("Automatically removing VG " . $self->{volumeGroup});
