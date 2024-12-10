@@ -23,7 +23,7 @@ use Permabit::Constants qw($GB);
 use Permabit::Utils qw(makeFullPath);
 use Permabit::SupportedVersions qw($SUPPORTED_SCENARIOS $SUPPORTED_VERSIONS);
 
-use base qw(Permabit::BlockDevice::VDO::LVMManaged);
+use base qw(Permabit::BlockDevice::VDO::LVMVDO::Managed);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 

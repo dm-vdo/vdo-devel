@@ -63,7 +63,7 @@ sub _verifySingleLBNDump {
   my $storagePath = $device->getVDOStoragePath();
   my $lbnOffset = 0;
 
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
+  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
     # LVM grabs 512k/128 blocks of metadata space on top of the VDO volume.
     $lbnOffset = 128;
   }
