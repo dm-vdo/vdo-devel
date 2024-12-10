@@ -193,8 +193,8 @@ sub doThreadCountChange {
 
   # XXX when LVM adds support for changing thread counts (BZ 2070777), remove
   # this and implement properly at the bottom.
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
-    $log->info("Skipping thread count change on LVMManaged");
+  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
+    $log->info("Skipping thread count change on Managed device");
     return;
   }
 
