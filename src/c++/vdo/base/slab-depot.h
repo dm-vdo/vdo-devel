@@ -45,6 +45,9 @@
 enum {
 	/* The number of vios in the vio pool is proportional to the throughput of the VDO. */
 	BLOCK_ALLOCATOR_VIO_POOL_SIZE = 128,
+
+	/* The number of vios in the vio pool used for loading reference count data. */
+	BLOCK_ALLOCATOR_REFCOUNT_VIO_POOL_SIZE = 16,
 };
 
 /*
@@ -248,7 +251,7 @@ struct vdo_slab {
 
 	/* A list of the dirty blocks waiting to be written out */
 	struct vdo_wait_queue dirty_blocks;
-	/* The number of blocks which are currently writing */
+	/* The number of I/Os which are currently reading or writing */
 	size_t active_count;
 
 	/* A waiter object for updating the slab summary */
@@ -439,6 +442,11 @@ struct block_allocator {
 	struct slab_summary_entry *summary_entries;
 	/* The array of slab_summary_blocks */
 	struct slab_summary_block *summary_blocks;
+
+	/* The vio pool for large initial reads of ref count areas */
+	struct vio_pool *refcount_big_vio_pool;
+	/* How many ref count blocks are read per vio at initial load */
+	u32 refcount_blocks_per_big_vio;
 };
 
 enum slab_depot_load_type {

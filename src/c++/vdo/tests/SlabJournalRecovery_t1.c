@@ -176,7 +176,7 @@ isSlabJournalWrite(struct vdo_completion *completion,
  **/
 static void releaseVIOPoolEntryAction(struct vdo_completion *completion)
 {
-  return_vio_to_pool(slabJournal->slab->allocator->vio_pool, pooled);
+  return_vio_to_pool(pooled);
   pooled = NULL;
   vdo_finish_completion(completion);
 }
