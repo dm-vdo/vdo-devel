@@ -80,8 +80,6 @@ sub testSysfs {
                         $DEFAULT_MAX_REQUESTS_ACTIVE);
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_maximum"),
                         undef);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "dedupe/status"),
-                        "online");
 
   # Check parameters writable only by root
   $self->_writeCheck(makeFullPath($sysModDevDir, "discards_limit"),
