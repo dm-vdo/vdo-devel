@@ -92,7 +92,7 @@ sub _getVDODevicePath {
   # If LVM creates a vdo with the nominal name of 'vdo0' in 'vg1', the visible
   # device for a filesystem is named more like 'vg1-vdo0', and the actual VDO
   # device is named vg1-vdo0pool-vpool, for LVM reasons...
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
+  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
     my $vgName = $device->{volumeGroup}->getName();
     $deviceName = "${vgName}-${deviceName}pool-vpool";
   }

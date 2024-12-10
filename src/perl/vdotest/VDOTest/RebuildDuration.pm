@@ -290,7 +290,7 @@ sub testRecovery {
   eval {
     $vdo->growPhysical($newSize);
   };
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
+  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
     assertEvalErrorMatches(qr/reload ioctl on .* failed/);
   } else {
     assertEvalErrorMatches(qr/ERROR\s*[:-] Device.*could not be changed/);

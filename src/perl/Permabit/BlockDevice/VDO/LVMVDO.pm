@@ -1,9 +1,9 @@
 ##
-# Perl object that represents a VDO Volume managed by LVM
+# Base Perl object that represents a VDO Volume managed by LVM
 #
 # $Id$
 ##
-package Permabit::BlockDevice::VDO::LVMManaged;
+package Permabit::BlockDevice::VDO::LVMVDO;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -140,27 +140,6 @@ sub makeLVMConfigString {
 ########################################################################
 # @inherit
 ##
-sub setup {
-  my ($self) = assertNumArgs(1, @_);
-
-  # Get the location of the vdoformat binary for use by LVM.
-  $self->{vdoformat} = $self->getMachine()->findNamedExecutable("vdoformat"),
-
-  # This will create two devices at once; the vdo pool and the
-  # volume on top of it.
-  my $config = $self->makeLVMConfigString();
-  my $totalSize = $self->getTotalSize($self->{physicalSize});
-  $self->{volumeGroup}->createVDOVolume($self->{deviceName},
-                                        "$self->{deviceName}pool",
-                                        $totalSize,
-                                        $self->{logicalSize},
-                                        $config);
-  $self->Permabit::BlockDevice::VDO::setup();
-}
-
-########################################################################
-# @inherit
-##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   # Calling this will enable the device via LVM and add disableLogicalVolume
@@ -187,13 +166,7 @@ sub installModule {
 ##
 sub growLogical {
   my ($self, $logicalSize) = assertNumArgs(2, @_);
-
-  # resize the vdo logical volume
-  my $name = "$self->{deviceName}";
-
-  my $newSize = $self->{volumeGroup}->alignToExtent($logicalSize);
-  $self->{volumeGroup}->resizeLogicalVolume($name, $newSize);
-  $self->{logicalSize} = $newSize;
+  confess("Failed to override the growLogical method");
 }
 
 ########################################################################
@@ -201,22 +174,57 @@ sub growLogical {
 ##
 sub growPhysical {
   my ($self, $physicalSize) = assertNumArgs(2, @_);
+  confess("Failed to override the growPhysical method");
+}
 
-  # resize the vdo pool
-  my $name = "$self->{deviceName}pool";
+########################################################################
+# Get the lvm name of the device on top of VDO. Implemented in inheriting
+# classes.
+##
+sub getLVMName {
+  my ($self) = assertNumArgs(1, @_);
+  confess("Failed to override the getLVMPoolName method");
+}
 
-  my $newSize = $self->{metadataSize} + $physicalSize;
-  $newSize = $self->{volumeGroup}->alignToExtent($newSize);
-  $self->{volumeGroup}->resizeLogicalVolume($name, $newSize);
-  $self->{physicalSize} = $newSize - $self->{metadataSize};
+########################################################################
+# Get the lvm name of the vdo device. Implemented in inheriting classes.
+##
+sub getLVMVDOName {
+  my ($self) = assertNumArgs(1, @_);
+  confess("Failed to override the getLVMPoolName method");
+}
+
+########################################################################
+# Get the lvm name of the vdo storage device. Implemented in inheriting
+# classes.
+##
+sub getLVMStorageName {
+  my ($self) = assertNumArgs(1, @_);
+  confess("Failed to override the getLVMStorageName method");
+}
+
+########################################################################
+# Get the name of the vdo storage device. Implemented in inheriting
+# classes.
+##
+sub getVDOStorageName {
+  my ($self) = assertNumArgs(1, @_);
+  confess("Failed to override the getVDOStorageName method");
 }
 
 ########################################################################
 # @inherit
 ##
-sub getLogicalMetadataSize {
+sub getVDOStoragePath {
   my ($self) = assertNumArgs(1, @_);
-  return $MB;
+  if (defined($self->{volumeGroup})) {
+    my $vgName      = $self->{volumeGroup}->getName();
+    my $storageName = "$vgName-" . $self->getLVMStorageName();
+    my $path        = makeFullPath($self->{deviceRootDir}, $storageName);
+
+    return $self->_resolveSymlink($path);
+  }
+  return $self->getStoragePath();
 }
 
 ########################################################################
@@ -237,11 +245,7 @@ sub resizeStorageDevice {
 ##
 sub renameVDO {
   my ($self, $newName) = assertNumArgs(2, @_);
-  my $name = "$self->{deviceName}";
-  my $pool = "$self->{deviceName}pool";
-  $self->{volumeGroup}->renameLogicalVolume($name, $newName);
-  $self->{volumeGroup}->renameLogicalVolume($pool, $newName . "pool");
-  $self->setDeviceName($newName);
+  confess("Failed to override the renameVDO method");
 }
 
 ########################################################################
@@ -288,9 +292,9 @@ sub migrate {
 ##
 sub disableWritableStorage {
   my ($self) = assertNumArgs(1, @_);
-  my $deviceName = "$self->{deviceName}pool_vdata";
+  my $storageName = $self->getLVMStorageName();
   my $vgName   = $self->{volumeGroup}->getName();
-  my $fullName = "$vgName-$deviceName";
+  my $fullName = "$vgName-$storageName";
 
   $self->runOnHost("sudo dmsetup remove $fullName");
   $self->SUPER::disableWritableStorage();
@@ -301,15 +305,15 @@ sub disableWritableStorage {
 ##
 sub enableWritableStorage {
   my ($self) = assertNumArgs(1, @_);
-  my $deviceName = "$self->{deviceName}pool_vdata";
+  my $storageName = $self->getLVMStorageName();
 
-  $self->{volumeGroup}->enableLogicalVolume($deviceName);
+  $self->{volumeGroup}->enableLogicalVolume($storageName);
 
   my $vgName   = $self->{volumeGroup}->getName();
-  my $fullName = "$vgName-$deviceName";
+  my $fullName = "$vgName-$storageName";
   my $table = $self->runOnHost("sudo dmsetup table $fullName");
 
-  $self->{volumeGroup}->disableLogicalVolume($deviceName);
+  $self->{volumeGroup}->disableLogicalVolume($storageName);
 
   $self->runOnHost("sudo dmsetup create $fullName --table '$table'");
   $self->SUPER::enableWritableStorage();
@@ -320,7 +324,8 @@ sub enableWritableStorage {
 ##
 sub disableReadableStorage {
   my ($self) = assertNumArgs(1, @_);
-  $self->{volumeGroup}->disableLogicalVolume("$self->{deviceName}pool_vdata");
+  my $storageName = $self->getLVMStorageName();
+  $self->{volumeGroup}->disableLogicalVolume($storageName);
   $self->SUPER::disableReadableStorage();
 }
 
@@ -329,34 +334,9 @@ sub disableReadableStorage {
 ##
 sub enableReadableStorage {
   my ($self) = assertNumArgs(1, @_);
-  $self->{volumeGroup}->enableLogicalVolume("$self->{deviceName}pool_vdata");
+  my $storageName = $self->getLVMStorageName();
+  $self->{volumeGroup}->enableLogicalVolume($storageName);
   $self->SUPER::enableReadableStorage();
-}
-
-########################################################################
-# @inherit
-##
-sub getVDOStoragePath {
-  my ($self) = assertNumArgs(1, @_);
-  if (defined($self->{volumeGroup})) {
-    my $vgName      = $self->{volumeGroup}->getName();
-    my $storageName = "$vgName-$self->{deviceName}pool_vdata";
-    my $path        = makeFullPath($self->{deviceRootDir}, $storageName);
-
-    return $self->_resolveSymlink($path);
-  }
-  return $self->getStoragePath();
-}
-
-########################################################################
-# @inherit
-##
-sub setDeviceName {
-  my ($self, $deviceName) = assertNumArgs(2, @_);
-  $self->Permabit::BlockDevice::VDO::setDeviceName($deviceName);
-  # Override the vdo name to point at the VDO pool.
-  my $vgName             = $self->{volumeGroup}->getName();
-  $self->{vdoDeviceName} = "$vgName-$self->{deviceName}pool-vpool";
 }
 
 ########################################################################
@@ -364,13 +344,9 @@ sub setDeviceName {
 ##
 sub setSymbolicPath {
   my ($self) = assertNumArgs(1, @_);
-  $self->Permabit::BlockDevice::LVM::setSymbolicPath();
-  # Override the vdo symbolic path to point at the VDO pool.
-  my $vgName     = $self->{volumeGroup}->getName();
-  my $deviceName = "$vgName-$self->{deviceName}pool-vpool";
-
   $self->{vdoSymbolicPath}
-    = makeFullPath($self->{deviceRootDir}, $deviceName);
+    = makeFullPath($self->{deviceRootDir}, $self->{vdoDeviceName});
+  $self->Permabit::BlockDevice::LVM::setSymbolicPath();
 }
 
 ########################################################################
@@ -391,8 +367,7 @@ sub forceRebuild {
 ##
 sub _changeVDOSetting {
   my ($self, $setting) = assertNumArgs(2, @_);
-  my $name = "$self->{deviceName}pool";
-  $self->{volumeGroup}->_changeLogicalVolume($name, $setting);
+  $self->{volumeGroup}->_changeLogicalVolume($self->getVDODeviceName(), $setting);
 }
 
 ########################################################################
