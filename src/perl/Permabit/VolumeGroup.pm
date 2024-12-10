@@ -156,9 +156,10 @@ sub createLogicalVolume {
 # @param  name    Thin pool name
 # @param  size    Thin pool size in bytes
 # @oparam config  String of create time lvm.conf overrides
+# @oparam vdo     Whether the thin pool uses VDO or not
 ##
 sub createThinPool {
-  my ($self, $name, $size, $config) = assertMinMaxArgs(["", 0], 3, 4, @_);
+  my ($self, $name, $size, $config, $vdo) = assertMinMaxArgs(["", 0], 3, 5, @_);
   my $machine = $self->{storageDevice}->getMachine();
   assertEqualNumeric(0, $size % $KB, "size must be a multiple of 1KB");
 
@@ -192,9 +193,14 @@ sub createThinPool {
     $ksize = $newSize;
   }
 
+  my $dataType = "";
+  if ($vdo) {
+    $dataType = "--pooldatavdo y";
+  }
+
   # Create a thin pool in an existing volume group. The pool is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool"
+  $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool $dataType"
                          . " --size ${ksize}K -an -kn --yes $config"
                          . " $self->{volumeGroup} </dev/null");
 }
