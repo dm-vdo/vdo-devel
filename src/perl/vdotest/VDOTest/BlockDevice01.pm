@@ -33,7 +33,6 @@ my @deviceTypes = qw(
   loop
   lvmvdo
   raw
-  thin
   tracer
   vdo
   corruptor-raw
@@ -50,7 +49,7 @@ my @deviceTypes = qw(
   lvmvdo-linear
   lvmvdo-loop
   lvmvdo-raw
-  thin-raw
+  thin-thinpool
   tracer-raw
   vdo-linear
   vdo-loop
@@ -60,8 +59,9 @@ my @deviceTypes = qw(
   lvmvdo-dory-raw
   lvmvdo-iscsi-linear
   lvmvdo-tracer-raw
-  thin-lvmvdo-thin
-  thin-vdo-thin
+  thin-thinpool-raw
+  thin-thinpool-lvmvdo
+  thin-thinpool-vdo
   tracer-corruptor-raw
   vdo-crypt-raw
   vdo-dory-raw
