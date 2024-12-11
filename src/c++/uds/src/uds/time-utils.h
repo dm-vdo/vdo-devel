@@ -13,6 +13,19 @@
 #include <linux/compiler.h>
 #endif /* __KERNEL__ */
 #include <linux/types.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_NEXT
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
 #ifndef __KERNEL__
 #include <sys/time.h>
 #include <time.h>
@@ -40,6 +53,13 @@ static inline ktime_t current_time_us(void)
 {
 	return current_time_ns(CLOCK_REALTIME) / NSEC_PER_USEC;
 }
+#ifndef VDO_USE_NEXT
+
+static inline ktime_t us_to_ktime(u64 microseconds)
+{
+	return (ktime_t) microseconds * NSEC_PER_USEC;
+}
+#endif
 #else
 ktime_t __must_check current_time_ns(clockid_t clock);
 
@@ -66,6 +86,11 @@ static inline ktime_t ms_to_ktime(u64 milliseconds)
 static inline s64 ktime_to_us(ktime_t reltime)
 {
 	return reltime / NSEC_PER_USEC;
+}
+
+static inline ktime_t us_to_ktime(u64 microseconds)
+{
+	return (ktime_t) microseconds * NSEC_PER_USEC;
 }
 #endif /* __KERNEL__ */
 

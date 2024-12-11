@@ -352,14 +352,9 @@ static inline void set_volume_index_bytes(struct uds_record_name *name,
 
 void sleep_for(ktime_t reltime);
 
-static inline ktime_t seconds_to_ktime(int64_t seconds)
+static inline ktime_t seconds_to_ktime(uint64_t seconds)
 {
         return (ktime_t) seconds * NSEC_PER_SEC;
-}
-
-static inline ktime_t us_to_ktime(int64_t microseconds)
-{
-        return (ktime_t) microseconds * NSEC_PER_USEC;
 }
 
 /**
