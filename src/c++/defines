@@ -60,11 +60,12 @@ GCC_ONLY_WARNS   = -Wlogical-op			\
 		   -Wformat=2			\
 
 # Ignore additional warnings for clang
-CLANG_ONLY_WARNS = -Wno-language-extension-token \
+CLANG_ONLY_WARNS = -Wno-compare-distinct-pointer-types \
+		   -Wno-implicit-const-int-float-conversion \
 		   -Wno-gnu-statement-expression \
-		   -Wno-compare-distinct-pointer-types \
 		   -Wno-gnu-zero-variadic-macro-arguments \
-		   -Wno-implicit-const-int-float-conversion
+		   -Wno-language-extension-token \
+		   -Wno-zero-length-array
 
 ifdef LLVM
 	WARNS = $(CLANG_ONLY_WARNS)
