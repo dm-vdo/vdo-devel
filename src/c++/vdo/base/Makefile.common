@@ -23,7 +23,6 @@ BASE_OBJS :=     			\
 	packer.o			\
 	physical-zone.o			\
 	pool-sysfs.o			\
-	pool-sysfs-stats.o		\
 	priority-table.o		\
 	recovery-journal.o		\
 	repair.o			\

@@ -2447,11 +2447,7 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 #ifdef VDO_INTERNAL
 	vdo_initialize_histograms(&vdo->vdo_directory, &vdo->histograms);
 #endif /* VDO_INTERNAL */
-	result = vdo_add_dedupe_index_sysfs(vdo->hash_zones);
-	if (result != 0)
-		return VDO_CANT_ADD_SYSFS_NODE;
-
-	return vdo_add_sysfs_stats_dir(vdo);
+	return VDO_SUCCESS;
 }
 
 #endif
