@@ -1692,7 +1692,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return ($self->getCurrentVDOStats()->{"instance"});
   };
 }
 
