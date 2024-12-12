@@ -403,12 +403,6 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
