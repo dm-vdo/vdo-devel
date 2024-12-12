@@ -8,7 +8,6 @@
  *
  * ../base/statistics.h
  * ../base/message-stats.c
- * ../base/pool-sysfs-stats.c
  * ./vdoStatsWriter.c
  * ../../../perl/Permabit/Statistics/Definitions.pm
  */
