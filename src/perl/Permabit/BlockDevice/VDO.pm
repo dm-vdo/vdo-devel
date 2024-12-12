@@ -801,18 +801,6 @@ sub getVDODedupeStatus {
 }
 
 ########################################################################
-# Get the number of dedupe queue timeouts.
-#
-# @return the number of dedupe queue timeouts.
-##
-sub getDedupeQueueTimeoutCount {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  my $path = $self->getSysModuleDevicePath("dedupe/queue_timeout_count");
-  return $machine->catAndChomp($path);
-}
-
-########################################################################
 # Get the underlying storage device used.
 #
 # @return the storage device
