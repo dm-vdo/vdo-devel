@@ -6,7 +6,6 @@
  *
  * ../base/statistics.h
  * ../base/message-stats.c
- * ../base/pool-sysfs-stats.c
  * ./messageStatsReader.c
  * ../../../perl/Permabit/Statistics/Definitions.pm
  */

@@ -334,10 +334,6 @@ void vdo_destroy(struct vdo *vdo);
 
 void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent);
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
-
-#endif
 struct block_device * __must_check vdo_get_backing_device(const struct vdo *vdo);
 
 const char * __must_check vdo_get_device_name(const struct dm_target *target);
