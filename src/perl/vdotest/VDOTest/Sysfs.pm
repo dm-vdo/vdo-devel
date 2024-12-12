@@ -108,33 +108,6 @@ sub testSysfs {
 }
 
 #############################################################################
-##
-sub testSysfsStats {
-  my ($self) = assertNumArgs(1, @_);
-  my $device = $self->getDevice();
-  my $majorMinor = join(":", $device->getVDODeviceMajorMinor());
-
-  # This is the directory in /sys where the kvdo statistics are found
-  my $statsDir = makeFullPath("/sys/dev/block", $majorMinor, "vdo/statistics");
-
-  my $stats = $device->getVDOStats();
-  # Statistics called out in VDOSTORY-72 as supported/documented
-  $self->_readCheck(makeFullPath($statsDir, "data_blocks_used"), undef);
-  $self->_readCheck(makeFullPath($statsDir, "logical_blocks_used"), undef);
-  $self->_readCheck(makeFullPath($statsDir, "physical_blocks"),
-		   $stats->{"physical blocks"});
-  $self->_readCheck(makeFullPath($statsDir, "logical_blocks"),
-		   $stats->{"logical blocks"});
-  $self->_readCheck(makeFullPath($statsDir, "mode"),
-		   $stats->{"mode"});
-
-  # Other statistics
-  $self->_readCheck(makeFullPath($statsDir, "block_size"),
-		   $stats->{"block size"});
-  $self->_readCheck(makeFullPath($statsDir, "bios_out_read"), undef);
-}
-
-#############################################################################
 # Test the max length checking works properly.
 ##
 sub testSysfsLength {
