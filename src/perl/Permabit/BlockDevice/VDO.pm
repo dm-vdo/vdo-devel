@@ -406,8 +406,8 @@ sub postActivate {
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->getMachine()->setProcFile(secondsToMS($self->{latencyLimit}),
+                                       $self->getSysModuleDevicePath("$histogram/limit"));
     }
   };
 
