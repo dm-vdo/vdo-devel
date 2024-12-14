@@ -28,6 +28,12 @@
 typedef u32 __bitwise blk_opf_t;
 typedef unsigned int  blk_qc_t;
 
+/* Defined in linux/gfp_types.h */
+typedef unsigned int  gfp_t;
+#define GFP_KERNEL 1
+#define GFP_NOWAIT 2
+#define GFP_NOIO   3
+
 typedef u8 __bitwise  blk_status_t;
 #define BLK_STS_OK 0
 #define BLK_STS_NOSPC    ((blk_status_t)3)
@@ -91,5 +97,21 @@ static inline loff_t bdev_nr_bytes(struct block_device *bdev)
 {
 	return bdev->size;
 }
+
+/**
+ * blkdev_issue_zeroout - zero-fill a block range
+ * @bdev:	blockdev to write
+ * @sector:	start sector
+ * @nr_sects:	number of sectors to write
+ * @gfp_mask:	memory allocation flags (for bio_alloc)
+ * @flags:	controls detailed behavior
+ *
+ * Description:
+ *  Zero-fill a block range, either using hardware offload or by explicitly
+ *  writing zeroes to the device.  See __blkdev_issue_zeroout() for the
+ *  valid values for %flags.
+ */
+int blkdev_issue_zeroout(struct block_device *bdev, sector_t sector,
+			 sector_t nr_sects, gfp_t gfp_mask, unsigned flags);
 
 #endif // LINUX_BLKDEV_H
