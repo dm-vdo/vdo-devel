@@ -146,15 +146,8 @@ sub createLogicalVolume {
   # a yes/no on whether to wipeout a filesystem signature (it does on RHEL7),
   # the input redirection will cause the answer to be "no". The volume is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name --size ${ksize}K --yes"
+  $machine->runSystemCmd("sudo lvcreate --name $name -an --size ${ksize}K --yes"
                          . " $config $self->{volumeGroup} </dev/null");
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableLogicalVolume($name);
 }
 
 ########################################################################
@@ -204,17 +197,8 @@ sub createThinPool {
   # Create a thin pool in an existing volume group. The pool is not
   # immediately enabled.
   $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool"
-                         . " --size ${ksize}K --yes $config"
+                         . " --size ${ksize}K -an -kn --yes $config"
                          . " $self->{volumeGroup} </dev/null");
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableAutoActivation($name);
-  $self->disableLogicalVolume($name);
-
 }
 
 ########################################################################
@@ -238,17 +222,10 @@ sub createThinVolume {
   my $config = $self->getLVMOptions();
   # Create a thin volume in an existing thin pool. The volume is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name --type=thin"
+  $machine->runSystemCmd("sudo lvcreate --name $name -an --type=thin"
                          . " --virtualsize=${ksize}K --thinpool=$poolName"
                          . " --yes $config $self->{volumeGroup}"
                          . " </dev/null");
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableLogicalVolume($name);
 }
 
 ########################################################################
@@ -301,16 +278,8 @@ sub createVDOVolume {
   }
 
   my $args = join(' ', map { "--$_ $args{$_}" } keys(%args));
-  $machine->runSystemCmd("sudo lvcreate $args --yes $config"
+  $machine->runSystemCmd("sudo lvcreate $args -an -kn --yes $config"
                          . " $self->{volumeGroup} </dev/null");
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableAutoActivation($name);
-  $self->disableLogicalVolume($name);
 }
 
 ########################################################################
