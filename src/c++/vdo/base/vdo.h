@@ -334,6 +334,8 @@ void vdo_destroy(struct vdo *vdo);
 
 void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent);
 
+int vdo_save_super_block(struct vdo *vdo);
+
 #if defined(VDO_INTERNAL) || defined(INTERNAL)
 int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
 
