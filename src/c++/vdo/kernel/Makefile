@@ -140,8 +140,6 @@ DKMS_CONF =	(echo PACKAGE_NAME=\"$(strip $(1))\";	\
 		echo PACKAGE_VERSION=\"$(strip $(2))\";	\
 		echo MODULE_NAME=\"$(strip $(1))\";	\
 		echo AUTOINSTALL=\"yes\";		\
-		echo BUILD_DEPENDS=LZ4_COMPRESS;	\
-		echo BUILD_DEPENDS=LZ4_DECOMPRESS;	\
 		$(call DKMS_MODULE,0,$(strip $(3)))	\
 		$(call DKMS_MODULE,1,$(strip $(4)))	\
 		$(call DKMS_MODULE,2,$(strip $(5))))
