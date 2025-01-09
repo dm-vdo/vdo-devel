@@ -6,24 +6,7 @@
 #ifndef UDS_NUMERIC_H
 #define UDS_NUMERIC_H
 
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#undef VDO_USE_NEXT
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(10, 0))
-#define VDO_USE_NEXT
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-#define VDO_USE_NEXT
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifndef VDO_USE_NEXT
-#include <asm/unaligned.h>
-#else
 #include <linux/unaligned.h>
-#endif
 #ifdef __KERNEL__
 #include <linux/kernel.h>
 #endif
