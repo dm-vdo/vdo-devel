@@ -11,25 +11,10 @@
 #define __LINUX_BIO_H
 
 /* struct bio, bio_vec and BIO_* flags are defined in blk_types.h */
-#include <linux/version.h>
-#undef VDO_USE_NEXT
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(10, 0))
-#define VDO_USE_NEXT
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-#define VDO_USE_NEXT
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#ifndef VDO_USE_NEXT
-#include <asm/unaligned.h>
-#else
-#include <linux/unaligned.h>
-#endif
 #include <linux/blk_types.h>
 #include <linux/limits.h>
 #include <linux/minmax.h>
+#include <linux/unaligned.h>
 #include <linux/version.h>
 
 #define BIO_MAX_VECS		256U
