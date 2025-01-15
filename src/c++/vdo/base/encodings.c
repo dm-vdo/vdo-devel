@@ -15,14 +15,6 @@
 #include "status-codes.h"
 #include "types.h"
 
-#ifdef VDO_UPSTREAM
-/** The maximum logical space is 4 petabytes, which is 1 terablock. */
-static const block_count_t MAXIMUM_VDO_LOGICAL_BLOCKS = 1024ULL * 1024 * 1024 * 1024;
-
-/** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
-static const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS = 1024ULL * 1024 * 1024 * 64;
-
-#endif
 struct geometry_block {
 	char magic_number[VDO_GEOMETRY_MAGIC_NUMBER_SIZE];
 	struct packed_header header;
@@ -293,7 +285,6 @@ static void decode_volume_geometry(u8 *buffer, size_t *offset,
 	};
 }
 
-#if (defined(VDO_USER) || defined(INTERNAL))
 /**
  * encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
  * @buffer: A buffer to store the encoding.
@@ -335,10 +326,9 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 		buffer[(*offset)++] = 0;
 
 	return VDO_ASSERT(header->size == (*offset + sizeof(u32)),
-		          "should have included up to the geometry checksum");
+			  "should have included up to the geometry checksum");
 }
 
-#endif /* VDO_USER */
 /**
  * vdo_parse_geometry_block() - Decode and validate an encoded geometry block.
  * @block: The encoded geometry block.
