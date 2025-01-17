@@ -14,16 +14,13 @@ obj-m += @MODNAME@.o
 OBJS = $(BASE_OBJS) $(KERNEL_OBJS) $(UDS_OBJS)
 $(MODNAME)-objs = $(OBJS)
 
-# XXX - Temporary fix for latest version of gcc to
-# fix kernel include-file issue.  This need to be reviewed
-# when Fedora 36 is out.
-GCCVERSION = $(shell gcc -dumpversion)
-ifeq "$(shell test ${GCCVERSION} -ge 12 && echo y)" 'y'
-  EXTRA_GCC_CFLAGS = -Wno-infinite-recursion \
-                     -Wno-implicit-function-declaration
-else
-  EXTRA_GCC_CFLAGS =
-endif
+EXTRA_GCC_CFLAGS = -Wno-infinite-recursion \
+                   -Wno-implicit-function-declaration \
+		   -Wmissing-format-attribute \
+		   -Wmissing-include-dirs \
+		   -Wunused-const-variable \
+		   -Wundef \
+		   -DKBUILD_EXTRA_WARN1
 
 # With gcc-4.4 and linux-3.2 on x86_64, at least, the kernel-exported
 # memset appears to be better than the compiler-expanded version.
