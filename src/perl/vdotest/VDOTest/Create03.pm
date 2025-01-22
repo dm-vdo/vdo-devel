@@ -51,13 +51,17 @@ sub testCreate03 {
     $device->stop();
     if (defined($logCursor)) {
       # Skipped the first time around when setup would've logged
-      # "kvdo: modprobe: loaded version..."
+      # "vdo: modprobe: loaded version..."
       my $logText = $machine->getKernelJournalSince($logCursor);
       # Check that we did log some messages.
-      assertRegexpMatches(qr/ kvdo[0-9]+:/, $logText);
-      # Check that they all include the device ID, excluding anything logged
-      # anonymously from an interrupt context (such as a latency warning).
-      assertRegexpDoesNotMatch(qr/ kvdo:(?!\[SI]:)/, $logText);
+      assertRegexpMatches(qr/ vdo[0-9]+:/, $logText);
+      foreach my $line (split('\n', $logText)) {
+        if ($line =~ /vdo/) {
+          # Check that each message includes the device instance, except for
+          # anything logged anonymously from an interrupt context.
+          assertRegexpMatches(qr/ vdo([0-9]+:|:\[SI\]:)/, $logText);
+        }
+      }
     }
     $logCursor = $machine->getKernelJournalCursor();
     $sysfsTask->result();
