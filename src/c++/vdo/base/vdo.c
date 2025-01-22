@@ -573,7 +573,6 @@ int vdo_make(unsigned int instance, struct device_config *config, char **reason,
 
 	snprintf(vdo->thread_name_prefix, sizeof(vdo->thread_name_prefix),
 		 "%s%u", "vdo", instance);
-	BUG_ON(vdo->thread_name_prefix[0] == '\0');
 	result = vdo_allocate(vdo->thread_config.thread_count,
 			      struct vdo_thread, __func__, &vdo->threads);
 	if (result != VDO_SUCCESS) {
