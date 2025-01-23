@@ -627,6 +627,7 @@ void adjust_slab_journal_block_reference(struct slab_journal *journal,
 enum reference_status __must_check reference_count_to_status(vdo_refcount_t count);
 struct reference_block * __must_check get_reference_block(struct vdo_slab *slab,
 							  slab_block_number index);
+void finish_reference_block_load(struct vdo_completion *completion);
 int __must_check adjust_reference_count(struct vdo_slab *slab,
 					struct reference_updater *updater,
 					const struct journal_point *slab_journal_point);
