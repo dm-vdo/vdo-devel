@@ -2236,7 +2236,7 @@ static void unpack_reference_block(struct packed_reference_block *packed,
  * finish_reference_block_load() - After a reference block has been read, unpack it.
  * @completion: The VIO that just finished reading.
  */
-static void finish_reference_block_load(struct vdo_completion *completion)
+STATIC void finish_reference_block_load(struct vdo_completion *completion)
 {
 	struct vio *vio = as_vio(completion);
 	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
