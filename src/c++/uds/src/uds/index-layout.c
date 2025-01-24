@@ -253,7 +253,6 @@ static int __must_check compute_sizes(const struct uds_configuration *config,
 	return UDS_SUCCESS;
 }
 
-#if defined(TEST_INTERNAL) || !defined(__KERNEL__)
 int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size)
 {
 	int result;
@@ -280,7 +279,6 @@ int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_s
 	return UDS_SUCCESS;
 }
 
-#endif /*  TEST_INTERNAL || ! __KERNEL__ */
 /* Create unique data using the current time and a pseudorandom number. */
 static void create_unique_nonce_data(u8 *buffer)
 {
