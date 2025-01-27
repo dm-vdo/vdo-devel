@@ -1605,11 +1605,11 @@ sub _setAffinity {
 
   my %kernelPids = $self->_getKernelThreadIDs();
   # Map from thread type (a simplified form of the thread name, e.g.,
-  # "kvdo1:BioQ3" becomes "bio") to arrayref of PIDs.
+  # "vdo1:BioQ3" becomes "bio") to arrayref of PIDs.
   my %threadsByType = ();
   foreach my $thread (keys(%kernelPids)) {
     my $type = $kernelPids{$thread};
-    $type =~ s/^\[kvdo\d+:(.*)Q\d*\]$/$1/;
+    $type =~ s/^\[vdo\d+:(.*)Q\d*\]$/$1/;
     $type = lc($type);
     $threadsByType{$type} ||= ();
     push(@{$threadsByType{$type}}, $thread);
