@@ -72,7 +72,7 @@ static void returnVIOPoolEntries(struct vdo_completion *completion)
   struct pooled_vio *entry, *tmp;
   list_for_each_entry_safe_reverse(entry, tmp, &reservedVIOPoolEntries, list_entry) {
     list_del_init(&entry->list_entry);
-    return_vio_to_pool(poolAllocator->vio_pool, entry);
+    return_vio_to_pool(entry);
   }
 
   vdo_finish_completion(completion);

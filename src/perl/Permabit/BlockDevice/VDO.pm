@@ -58,6 +58,7 @@ my $VDO_WARMUP               = "src/c++/vdo/bin/vdoWarmup";
 my $VDO_INITIALIZE_BLOCK_MAP = "src/c++/vdo/bin/vdoInitializeBlockMap";
 
 my $VDO_USER_MODNAME = "vdo";
+my $VDO_UPSTREAM_MODNAME = "dm-vdo";
 
 # The keys of this hash are the names of the histogram that records the
 # statistic, and the values are used in the error message if any request
@@ -177,6 +178,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      useDistribution           => 0,
      # The directory to put the user tool binaries in
      userBinaryDir             => undef,
+     # Whether to use dm-vdo
+     useUpstreamModule         => 0,
      # UUID for VDO volume.
      uuid                      => undef,
      # Bitmask of CPUs on which to run VDO threads
@@ -252,7 +255,7 @@ sub configure {
   $self->{moduleVersion} //= $self->{vdoModuleVersion};
   $self->{moduleVersion} //= $VDO_MARKETING_VERSION;
 
-  if ($self->{useDistribution}) {
+  if ($self->{useDistribution} || $self->{useUpstreamModule}) {
     $self->getMachine()->{userBinaryDir} = "/usr/bin";
   }
 }
@@ -285,6 +288,12 @@ sub makeBackingDevice {
 ##
 sub start {
   my ($self) = assertNumArgs(1, @_);
+  my $machineName = $self->getMachineName();
+  my $moduleName = $self->getModuleName();
+
+  if ($self->{_modules}{$machineName}) {
+    $self->{_modules}{$machineName}{$moduleName}->reload();
+  }
   if ($self->{expectRebuild}) {
     my $start = sub { $self->SUPER::start(); };
     $self->getMachine()->withKernelLogErrorCheckDisabled($start, "rebuild");
@@ -539,6 +548,13 @@ sub suspend {
 ##
 sub getModuleVersion {
   my ($self) = assertNumArgs(1, @_);
+  if ($self->{useUpstreamModule}) {
+    my $getVerCmd = "yum list $VDO_USER_MODNAME.`uname -m` | " .
+                    "awk '/^$VDO_USER_MODNAME/ {print \$2}'";
+    my @ver = split(/\./,
+		    runCommand($self->getMachineName(), $getVerCmd)->{stdout});
+    $self->setModuleVersion("$ver[0].$ver[1]");
+  }
   return $self->{moduleVersion};
 }
 
@@ -550,6 +566,20 @@ sub getModuleVersion {
 sub setModuleVersion {
   my ($self, $versionString) = assertNumArgs(2, @_);
   $self->{moduleVersion} = $versionString;
+}
+
+########################################################################
+# @inherit
+##
+sub getModuleName {
+  my ($self) = assertNumArgs(1, @_);
+
+  # If useUpstreamModule is set, we need to use $VDO_UPSTREAM_MODNAME(dm-vdo)
+  # module otherwise we load the $VDO_MODNAME(kvdo)
+  if ($self->{useUpstreamModule}) {
+    return $VDO_UPSTREAM_MODNAME;
+  }
+  return $self->SUPER::getModuleName();
 }
 
 ########################################################################
@@ -578,7 +608,9 @@ sub installModule {
   my ($self) = assertNumArgs(1, @_);
   my $machineName = $self->getMachineName();
   my $moduleName = $self->getModuleName();
+
   my $version = $self->getModuleVersion();
+
   if ($self->{_modules}{$machineName}) {
     if ($self->{_modules}{$machineName}{$moduleName}{modVersion} eq $version) {
       $log->info("Module $moduleName $version already installed"
@@ -600,6 +632,7 @@ sub installModule {
                                   modName         => $moduleName,
                                   modVersion      => $version,
                                   useDistribution => $self->{useDistribution},
+                                  useUpstream     => $self->{useUpstreamModule},
                                  );
   $module->load();
   $self->{_modules}{$machineName}{$moduleName} = $module;
@@ -613,6 +646,7 @@ sub installModule {
                                 modName         => $VDO_USER_MODNAME,
                                 modVersion      => $version,
                                 useDistribution => $self->{useDistribution},
+                                useUpstream     => $self->{useUpstreamModule},
                                );
   $userModule->load();
   $self->{_modules}{$machineName}{$VDO_USER_MODNAME} = $userModule;

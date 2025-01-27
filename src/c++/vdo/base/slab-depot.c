@@ -38,21 +38,6 @@
 #include "vio.h"
 #include "wait-queue.h"
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_NEXT
-#if defined(RHEL_RELEASE_CODE)
-#if defined(LINUX_VERSION_CODE) && (LINUX_VERSION_CODE > KERNEL_VERSION(6, 10, 0))
-#define VDO_USE_NEXT
-#endif
-#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 5)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#define VDO_USE_NEXT
-#endif
-#else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0))
-#define VDO_USE_NEXT
-#endif
-#endif /* RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
 static const u64 BYTES_PER_WORD = sizeof(u64);
 static const bool NORMAL_OPERATION = true;
 
@@ -432,8 +417,7 @@ static void complete_reaping(struct vdo_completion *completion)
 {
 	struct slab_journal *journal = completion->parent;
 
-	return_vio_to_pool(journal->slab->allocator->vio_pool,
-			   vio_as_pooled_vio(as_vio(vdo_forget(completion))));
+	return_vio_to_pool(vio_as_pooled_vio(as_vio(completion)));
 	finish_reaping(journal);
 	reap_slab_journal(journal);
 }
@@ -716,7 +700,7 @@ static void complete_write(struct vdo_completion *completion)
 	sequence_number_t committed = get_committing_sequence_number(pooled);
 
 	list_del_init(&pooled->list_entry);
-	return_vio_to_pool(journal->slab->allocator->vio_pool, vdo_forget(pooled));
+	return_vio_to_pool(pooled);
 
 	if (result != VDO_SUCCESS) {
 		vio_record_metadata_io_error(as_vio(completion));
@@ -1094,7 +1078,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	/* Release the slab journal lock. */
 	adjust_slab_journal_block_reference(&slab->journal,
 					    block->slab_journal_lock_to_release, -1);
-	return_vio_to_pool(slab->allocator->vio_pool, pooled);
+	return_vio_to_pool(pooled);
 
 	/*
 	 * We can't clear the is_writing flag earlier as releasing the slab journal lock may cause
@@ -1188,8 +1172,8 @@ static void handle_io_error(struct vdo_completion *completion)
 	struct vdo_slab *slab = ((struct reference_block *) completion->parent)->slab;
 
 	vio_record_metadata_io_error(vio);
-	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
-	slab->active_count--;
+	return_vio_to_pool(vio_as_pooled_vio(vio));
+	slab->active_count -= vio->io_size / VDO_BLOCK_SIZE;
 	vdo_enter_read_only_mode(slab->allocator->depot->vdo, result);
 	check_if_slab_drained(slab);
 }
@@ -2258,13 +2242,20 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	struct pooled_vio *pooled = vio_as_pooled_vio(vio);
 	struct reference_block *block = completion->parent;
 	struct vdo_slab *slab = block->slab;
+	unsigned int block_count = vio->io_size / VDO_BLOCK_SIZE;
+	unsigned int i;
+	char *data = vio->data;
 
-	unpack_reference_block((struct packed_reference_block *) vio->data, block);
-	return_vio_to_pool(slab->allocator->vio_pool, pooled);
-	slab->active_count--;
-	clear_provisional_references(block);
+	for (i = 0; i < block_count; i++, block++, data += VDO_BLOCK_SIZE) {
+		struct packed_reference_block *packed = (struct packed_reference_block *) data;
 
-	slab->free_blocks -= block->allocated_count;
+		unpack_reference_block(packed, block);
+		clear_provisional_references(block);
+		slab->free_blocks -= block->allocated_count;
+	}
+	return_vio_to_pool(pooled);
+	slab->active_count -= block_count;
+
 	check_if_slab_drained(slab);
 }
 
@@ -2278,23 +2269,25 @@ static void load_reference_block_endio(struct bio *bio)
 }
 
 /**
- * load_reference_block() - After a block waiter has gotten a VIO from the VIO pool, load the
- *                          block.
- * @waiter: The waiter of the block to load.
+ * load_reference_block_group() - After a block waiter has gotten a VIO from the VIO pool, load
+ *                                a set of blocks.
+ * @waiter: The waiter of the first block to load.
  * @context: The VIO returned by the pool.
  */
-static void load_reference_block(struct vdo_waiter *waiter, void *context)
+static void load_reference_block_group(struct vdo_waiter *waiter, void *context)
 {
 	struct pooled_vio *pooled = context;
 	struct vio *vio = &pooled->vio;
 	struct reference_block *block =
 		container_of(waiter, struct reference_block, waiter);
-	size_t block_offset = (block - block->slab->reference_blocks);
+	u32 block_offset = block - block->slab->reference_blocks;
+	u32 max_block_count = block->slab->reference_block_count - block_offset;
+	u32 block_count = min_t(int, vio->block_count, max_block_count);
 
 	vio->completion.parent = block;
-	vdo_submit_metadata_vio(vio, block->slab->ref_counts_origin + block_offset,
-				load_reference_block_endio, handle_io_error,
-				REQ_OP_READ);
+	vdo_submit_metadata_vio_with_size(vio, block->slab->ref_counts_origin + block_offset,
+					  load_reference_block_endio, handle_io_error,
+					  REQ_OP_READ, block_count * VDO_BLOCK_SIZE);
 }
 
 /**
@@ -2304,14 +2297,21 @@ static void load_reference_block(struct vdo_waiter *waiter, void *context)
 static void load_reference_blocks(struct vdo_slab *slab)
 {
 	block_count_t i;
+	u64 blocks_per_vio = slab->allocator->refcount_blocks_per_big_vio;
+	struct vio_pool *pool = slab->allocator->refcount_big_vio_pool;
+
+	if (!pool) {
+		pool = slab->allocator->vio_pool;
+		blocks_per_vio = 1;
+	}
 
 	slab->free_blocks = slab->block_count;
 	slab->active_count = slab->reference_block_count;
-	for (i = 0; i < slab->reference_block_count; i++) {
+	for (i = 0; i < slab->reference_block_count; i += blocks_per_vio) {
 		struct vdo_waiter *waiter = &slab->reference_blocks[i].waiter;
 
-		waiter->callback = load_reference_block;
-		acquire_vio_from_pool(slab->allocator->vio_pool, waiter);
+		waiter->callback = load_reference_block_group;
+		acquire_vio_from_pool(pool, waiter);
 	}
 }
 
@@ -2447,7 +2447,7 @@ static void finish_loading_journal(struct vdo_completion *completion)
 		initialize_journal_state(journal);
 	}
 
-	return_vio_to_pool(slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	return_vio_to_pool(vio_as_pooled_vio(vio));
 	vdo_finish_loading_with_result(&slab->state, allocate_counters_if_clean(slab));
 }
 
@@ -2467,7 +2467,7 @@ static void handle_load_error(struct vdo_completion *completion)
 	struct vio *vio = as_vio(completion);
 
 	vio_record_metadata_io_error(vio);
-	return_vio_to_pool(journal->slab->allocator->vio_pool, vio_as_pooled_vio(vio));
+	return_vio_to_pool(vio_as_pooled_vio(vio));
 	vdo_finish_loading_with_result(&journal->slab->state, result);
 }
 
@@ -2718,6 +2718,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber, int result)
 			vdo_log_info("VDO commencing normal operation");
 		else if (prior_state == VDO_RECOVERING)
 			vdo_log_info("Exiting recovery mode");
+		free_vio_pool(vdo_forget(allocator->refcount_big_vio_pool));
 	}
 
 	/*
@@ -3304,7 +3305,19 @@ int vdo_release_block_reference(struct block_allocator *allocator,
  * Thus, the ordering is reversed from the usual sense since min_heap returns smaller elements
  * before larger ones.
  */
-#ifndef VDO_USE_NEXT
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
+#ifdef VDO_USE_ALTERNATE
 static bool slab_status_is_less_than(const void *item1, const void *item2)
 #else
 static bool slab_status_is_less_than(const void *item1, const void *item2,
@@ -3321,7 +3334,7 @@ static bool slab_status_is_less_than(const void *item1, const void *item2,
 	return info1->slab_number < info2->slab_number;
 }
 
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 static void swap_slab_statuses(void *item1, void *item2)
 #else
 static void swap_slab_statuses(void *item1, void *item2, void __always_unused *args)
@@ -3334,7 +3347,7 @@ static void swap_slab_statuses(void *item1, void *item2, void __always_unused *a
 }
 
 static const struct min_heap_callbacks slab_status_min_heap = {
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	.elem_size = sizeof(struct slab_status),
 #endif
 	.less = slab_status_is_less_than,
@@ -3536,7 +3549,7 @@ STATIC int get_slab_statuses(struct block_allocator *allocator,
 STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator *allocator)
 {
 	struct slab_status current_slab_status;
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	struct min_heap heap;
 #else
 	DEFINE_MIN_HEAP(struct slab_status, heap) heap;
@@ -3552,7 +3565,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		return result;
 
 	/* Sort the slabs by cleanliness, then by emptiness hint. */
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	heap = (struct min_heap) {
 #else
 	heap = (struct heap) {
@@ -3561,7 +3574,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		.nr = allocator->slab_count,
 		.size = allocator->slab_count,
 	};
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	min_heapify_all(&heap, &slab_status_min_heap);
 #else
 	min_heapify_all(&heap, &slab_status_min_heap, NULL);
@@ -3573,7 +3586,7 @@ STATIC int __must_check vdo_prepare_slabs_for_allocation(struct block_allocator 
 		struct slab_journal *journal;
 
 		current_slab_status = slab_statuses[0];
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 		min_heap_pop(&heap, &slab_status_min_heap);
 #else
 		min_heap_pop(&heap, &slab_status_min_heap, NULL);
@@ -4048,6 +4061,7 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot,
 	struct vdo *vdo = depot->vdo;
 	block_count_t max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + ilog2(max_free_blocks));
+	u32 reference_block_count, refcount_reads_needed, refcount_blocks_per_vio;
 
 	*allocator = (struct block_allocator) {
 		.depot = depot,
@@ -4065,9 +4079,21 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot,
 		return result;
 
 	vdo_initialize_completion(&allocator->completion, vdo, VDO_BLOCK_ALLOCATOR_COMPLETION);
-	result = make_vio_pool(vdo, BLOCK_ALLOCATOR_VIO_POOL_SIZE, allocator->thread_id,
+	result = make_vio_pool(vdo, BLOCK_ALLOCATOR_VIO_POOL_SIZE, 1, allocator->thread_id,
 			       VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA,
 			       allocator, &allocator->vio_pool);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	/* Initialize the refcount-reading vio pool. */
+	reference_block_count = vdo_get_saved_reference_count_size(depot->slab_config.slab_blocks);
+	refcount_reads_needed = DIV_ROUND_UP(reference_block_count, MAX_BLOCKS_PER_VIO);
+	refcount_blocks_per_vio = DIV_ROUND_UP(reference_block_count, refcount_reads_needed);
+	allocator->refcount_blocks_per_big_vio = refcount_blocks_per_vio;
+	result = make_vio_pool(vdo, BLOCK_ALLOCATOR_REFCOUNT_VIO_POOL_SIZE,
+			       allocator->refcount_blocks_per_big_vio, allocator->thread_id,
+			       VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA,
+			       NULL, &allocator->refcount_big_vio_pool);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4294,6 +4320,7 @@ void vdo_free_slab_depot(struct slab_depot *depot)
 		uninitialize_allocator_summary(allocator);
 		uninitialize_scrubber_vio(&allocator->scrubber);
 		free_vio_pool(vdo_forget(allocator->vio_pool));
+		free_vio_pool(vdo_forget(allocator->refcount_big_vio_pool));
 		vdo_free_priority_table(vdo_forget(allocator->prioritized_slabs));
 	}
 

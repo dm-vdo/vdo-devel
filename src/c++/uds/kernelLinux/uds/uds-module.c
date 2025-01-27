@@ -37,7 +37,6 @@ module_init(dedupe_init);
 module_exit(dedupe_exit);
 
 EXPORT_SYMBOL_GPL(uds_close_index);
-EXPORT_SYMBOL_GPL(uds_compute_index_size);
 EXPORT_SYMBOL_GPL(uds_create_index_session);
 EXPORT_SYMBOL_GPL(uds_destroy_index_session);
 EXPORT_SYMBOL_GPL(uds_flush_index_session);
@@ -136,6 +135,7 @@ EXPORT_SYMBOL_GPL(uds_apply_to_threads);
 EXPORT_SYMBOL_GPL(uds_close_open_chapter);
 EXPORT_SYMBOL_GPL(uds_compute_delta_index_save_bytes);
 EXPORT_SYMBOL_GPL(uds_compute_index_page_map_save_size);
+EXPORT_SYMBOL_GPL(uds_compute_index_size);
 EXPORT_SYMBOL_GPL(uds_compute_saved_open_chapter_size);
 EXPORT_SYMBOL_GPL(uds_compute_volume_index_save_blocks);
 EXPORT_SYMBOL_GPL(uds_discard_open_chapter);
