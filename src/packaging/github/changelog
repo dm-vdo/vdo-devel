@@ -21,3 +21,8 @@ vdo:
 * Improved vdoformat error handling.
 * Added clang support.
 * General code clean up and simplification.
+
+Version 8.3.0.73
+vdo:
+* Fix unterminated string initialization.
+* Minor file reorganization.

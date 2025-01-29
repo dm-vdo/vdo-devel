@@ -1,7 +1,7 @@
 # Release numbers and Codenames -*- cperl -*-
 # $Id$
 ##
-VDO_VERSION               = 8.3.0.72
+VDO_VERSION               = 8.3.0.74
 VDO_MARKETING_VERSION     = 8.3
 VDO_PROJECT_CODENAME      = "Argon"
 VDO_MODNAME               = kvdo
