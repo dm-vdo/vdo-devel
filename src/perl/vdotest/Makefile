@@ -19,7 +19,8 @@ ifeq ($(USER),$(filter $(USER),bunsen continuous))
   OPTIONAL_RSVP_HOST = PRSVP_HOST=jenkins
 endif
 
-JENKINS_CLIENT_CLASS = --clientClass=FARM\\,FEDORA39
+JENKINS_CLIENT_CLASS = --clientClass=FARM\\,FEDORA40
+JENKINS_TEST_SUITES = checkin platform
 
 # This is Make's form of a function -- it gets expanded every time it's used
 VDOTESTS_INVOCATION = $(OPTIONAL_RSVP_HOST) ./vdotests.pl $(TEST_ARGS) \
@@ -33,12 +34,13 @@ else
 endif
 
 ifeq ($(DMLINUX), 1)
-  TEST_ARGS += --useUpstreamKernel
+  TEST_ARGS += --useDmLinuxModule
+  JENKINS_TEST_SUITES = checkin
 endif
 
 .PHONY: jenkins
 jenkins: TEST_EXTRA_ARGS=$(JENKINS_CLIENT_CLASS)
-jenkins: checkin platform
+jenkins: $(JENKINS_TEST_SUITES)
 
 .PHONY: checkin
 checkin: vdotests

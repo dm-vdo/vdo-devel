@@ -13,7 +13,7 @@ ifdef LOGDIR
 endif
 
 ifeq ($(DMLINUX), 1)
-  TEST_ARGS += --useUpstreamKernel
+  TEST_ARGS += --useDmLinuxModule
 endif
 
 ifeq ($(USER),continuous)
@@ -27,7 +27,7 @@ checkin:
 .PHONY: jenkins
 jenkins:
 	$(RSVP_HOST) ./dmtests.pl $(TEST_ARGS) \
-	  --scale --clientClass=FARM\\,RAWHIDE $@
+	  --scale --clientClass=FARM\\,FEDORA40 $@
 
 .PHONY:	dmtests
 dmtests: checkin

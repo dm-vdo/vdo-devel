@@ -72,7 +72,7 @@ static void acquireVIO(CustomerWrapper *wrapper)
 static void doReturnVIO(struct vdo_completion *wrapperCompletion)
 {
   CustomerWrapper *wrapper = asWrapper(wrapperCompletion);
-  return_vio_to_pool(wrapper->pool, wrapper->entry);
+  return_vio_to_pool(wrapper->entry);
   vdo_finish_completion(wrapperCompletion);
 }
 
@@ -100,38 +100,46 @@ static void testVIOPool(void)
 {
   struct vio_pool *pool;
   static const size_t poolSize = 5;
-  VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
-                                   poolSize,
-                                   0,
-                                   VIO_TYPE_TEST,
-                                   VIO_PRIORITY_METADATA,
-                                   NULL,
-                                   &pool));
-  CU_ASSERT_PTR_NOT_NULL(pool);
+  int vio_size;
 
-  CustomerWrapper wrappers[7];
-  for (size_t i = 0; i < ARRAY_SIZE(wrappers); i++) {
-    initWrapper(pool, &wrappers[i]);
-    acquireVIO(&wrappers[i]);
+  for (vio_size = 1; vio_size <= 100; vio_size *= 10) {
+    VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
+                                     poolSize,
+                                     vio_size,
+                                     0,
+                                     VIO_TYPE_TEST,
+                                     VIO_PRIORITY_METADATA,
+                                     NULL,
+                                     &pool));
+    CU_ASSERT_PTR_NOT_NULL(pool);
+
+    CustomerWrapper wrappers[7];
+    for (size_t i = 0; i < ARRAY_SIZE(wrappers); i++) {
+      initWrapper(pool, &wrappers[i]);
+      acquireVIO(&wrappers[i]);
+    }
+
+    for (size_t i = 0; i < poolSize; i++) {
+      awaitCompletion(&wrappers[i].completion);
+      CU_ASSERT_EQUAL(wrappers[i].customer.entries[0]->vio.block_count, vio_size);
+    }
+
+    returnVIO(pool, wrappers[0].customer.entries[0]);
+    awaitCompletion(&wrappers[5].completion);
+    CU_ASSERT_EQUAL(wrappers[5].customer.entries[0]->vio.block_count, vio_size);
+
+    returnVIO(pool, wrappers[1].customer.entries[0]);
+    awaitCompletion(&wrappers[6].completion);
+    CU_ASSERT_EQUAL(wrappers[6].customer.entries[0]->vio.block_count, vio_size);
+
+    returnVIO(pool, wrappers[2].customer.entries[0]);
+    returnVIO(pool, wrappers[3].customer.entries[0]);
+    returnVIO(pool, wrappers[4].customer.entries[0]);
+    returnVIO(pool, wrappers[5].customer.entries[0]);
+    returnVIO(pool, wrappers[6].customer.entries[0]);
+
+    free_vio_pool(pool);
   }
-
-  for (size_t i = 0; i < poolSize; i++) {
-    awaitCompletion(&wrappers[i].completion);
-  }
-
-  returnVIO(pool, wrappers[0].customer.entries[0]);
-  awaitCompletion(&wrappers[5].completion);
-
-  returnVIO(pool, wrappers[1].customer.entries[0]);
-  awaitCompletion(&wrappers[6].completion);
-
-  returnVIO(pool, wrappers[2].customer.entries[0]);
-  returnVIO(pool, wrappers[3].customer.entries[0]);
-  returnVIO(pool, wrappers[4].customer.entries[0]);
-  returnVIO(pool, wrappers[5].customer.entries[0]);
-  returnVIO(pool, wrappers[6].customer.entries[0]);
-
-  free_vio_pool(pool);
 }
 
 /**********************************************************************/
@@ -223,6 +231,7 @@ static void testReuseCompletions(void)
   struct vio_pool *pool;
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo,
                                    POOL_SIZE,
+                                   1,
                                    0,
                                    VIO_TYPE_TEST,
                                    VIO_PRIORITY_METADATA,

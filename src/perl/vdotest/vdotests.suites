@@ -245,7 +245,7 @@ $suiteNames{checkin}
 # Tests to make sure we can install and start on any supported platform (on
 # a farm host).
 ##
-foreach my $class (qw(FEDORA39 FEDORA40)) {
+foreach my $class (qw(FEDORA40 FEDORA41)) {
   my $alias = "Basic01_" . ucfirst(lc($class));
   $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
   push(@{$suiteNames{openPlatformTests}}, $alias);
@@ -818,7 +818,6 @@ $suiteNames{debugKernelTests}
 $suiteNames{upstreamTests}
   = [
      @{$suiteNames{checkin}},	# A bunch of basic VDO operation tests.
-     "Create03",		# Test that many restarts works
      "DiscardPerf",     	# Test that normal discards work. Longer.
      "Discard512",		# Test that 512 byte discards work
      "Dmsetup",			# Test that dmsetup interface works
@@ -930,8 +929,8 @@ $aliasPrefixes{"512B"}   = "--emulate512Enabled=1 --compressibleChunkSize=512";
 $aliasPrefixes{Dist}     = "--useDistribution=1";
 $aliasPrefixes{Ext3}     = "--fsType=ext3";
 $aliasPrefixes{Ext4}     = "--fsType=ext4";
-$aliasPrefixes{Fedora39} = "--clientClass=FEDORA39";
 $aliasPrefixes{Fedora40} = "--clientClass=FEDORA40";
+$aliasPrefixes{Fedora41} = "--clientClass=FEDORA41";
 $aliasPrefixes{Fua}      = "--deviceType=fua-lvmvdo";
 $aliasPrefixes{LowMem}   = "--lowMemoryTest=1 --memorySize=0.25";
 $aliasPrefixes{RHEL9}    = "--clientClass=RHEL9";

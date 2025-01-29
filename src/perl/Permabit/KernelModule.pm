@@ -63,6 +63,7 @@ sub load {
         $log->debug("kernel log additions:\n$additions");
       }
     };
+    $log->info("Using kernel module: " . $modName);
     $self->_step(command => "sudo modprobe $modName $self->{modprobeOption}",
                  cleaner => "sudo modprobe -r $modName",
                  diagnostic => $uponModprobeError);
@@ -78,6 +79,12 @@ sub loadFromFiles {
   my ($self) = assertNumArgs(1, @_);
   my $modName = $self->{modName};
   my $modVer = $self->{modVersion};
+
+  # With useUpstream test, we don't need to load upstream
+  # module(dm-vdo), since it is in the kernel already.
+  if ($self->{useUpstream}) {
+    return 1;
+  }
 
   my $loaded = $self->SUPER::loadFromFiles();
   if ($loaded == 0) {

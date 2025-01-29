@@ -147,7 +147,9 @@ our %PROPERTIES
      # @ple The directory to put the user tool binaries in
      userBinaryDir           => undef,
      # @ple Use the dmlinux src rpm for testing.
-     useUpstreamKernel       => 0,
+     useDmLinuxModule        => 0,
+     # @ple Use the installed kernel module, dm-vdo
+     useUpstreamModule       => 0,
     );
 
 my @SRPM_NAMES
@@ -253,6 +255,7 @@ sub _minimumMemory {
   # Fedora 38 measured 2023-07-24 needed 400M for pre-VDO operation.
   # Fedora 39 not measured; assume it needs 400M for pre-VDO operation.
   # Fedora 40 not measured; assume it needs 400M for pre-VDO operation.
+  # Fedora 41 not measured; assume it needs 400M for pre-VDO operation.
   # FEDORANEXT not measured; assume it needs 400M for pre-VDO operation.
   # RHEL8 measured 2023-07-24 needed 400M for pre-VDO operation.
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
@@ -260,6 +263,7 @@ sub _minimumMemory {
     = (
        FEDORA39   => 400 * $MB,
        FEDORA40   => 400 * $MB,
+       FEDORA41   => 400 * $MB,
        FEDORANEXT => 400 * $MB,
        RAWHIDE    => 400 * $MB,
        RHEL8      => 400 * $MB,
@@ -489,7 +493,7 @@ sub getTGZNameForVersion {
 sub listSharedFiles {
   my ($self) = assertNumArgs(1, @_);
   my @files = ($self->SUPER::listSharedFiles(), @SHARED_FILES);
-  if ($self->{useUpstreamKernel}) {
+  if ($self->{useDmLinuxModule}) {
     return (@files, @UPSTREAM_NAMES);
   } elsif ($self->{useDistribution}) {
     return (@files, @RPM_NAMES);

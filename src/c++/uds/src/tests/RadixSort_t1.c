@@ -142,7 +142,7 @@ static void testEmpty(void)
 /**********************************************************************/
 static void testSingleton(void)
 {
-  const u8 name[3] = "foo";
+  const u8 name[] = "foo";
   const u8 *keys[1] = { name };
   sort(keys, 0, UDS_RECORD_NAME_SIZE);
   CU_ASSERT_PTR_EQUAL(name, keys[0]);
