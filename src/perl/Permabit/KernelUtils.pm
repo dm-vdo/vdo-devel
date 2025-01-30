@@ -392,7 +392,7 @@ sub setupKernelMemoryLimiting {
   my $desired         = $target;
   my @hostsInProgress = @$hosts;
   my $iteration       = 0;
-  my $maxIterations   = 5;
+  my $maxIterations   = 15;
   while ((scalar(@hostsInProgress) > 0) && (++$iteration <= $maxIterations)) {
     _rebootWithKernelOption($hosts, "mem",
                             int(($target + $overhead) / $KB) . "K");
