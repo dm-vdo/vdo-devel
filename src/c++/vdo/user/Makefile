@@ -24,6 +24,7 @@ USER_OBJS = blockMapUtils.o      \
             fileLayer.o          \
             messageStatsReader.o \
             parseUtils.o         \
+            printUtils.o         \
             slabSummaryReader.o  \
             userVDO.o            \
             vdoConfig.o          \
@@ -32,6 +33,7 @@ USER_OBJS = blockMapUtils.o      \
 
 PROGS = corruptPBNRef          \
         udsCalculateSize       \
+        vdoCalculateSize       \
         vdoFillIndex           \
         vdoForceRebuild        \
         vdoFormat              \
