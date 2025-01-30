@@ -1,0 +1,58 @@
+.TH VDOCALCULATESIZE 8 "2025-02-24" "Red Hat" \" -*- nroff -*-
+.SH NAME
+vdocalculatesize \- Calculate VDO space and memory usage
+.SH SYNOPSIS
+.B vdocalculatesize
+.RI [ options... ]
+.SH DESCRIPTION
+.B vdocalculatesize
+calculate VDO space and memory usage
+.PP
+.SH OPTIONS
+.TP
+.B \-\-help
+Print help message and exit.
+.TP
+.B \-\-block-map-cache-size=\fIblocks\fP
+Size of the block map cache, in 4K blocks
+.TP
+.B \-\-logical-size=\fIMB\fP
+VDO logical size
+.TP
+.B \-\-physical-size=\fIMB\fP
+VDO physical size
+.TP
+.B \-\-slab\-bits=\fIbits\fP
+Set the free space allocator's slab size to 2^\fIbits\fP 4 KB blocks.
+\fIbits\fP must be a value between 13 and 23 (inclusive),
+corresponding to a slab size between 32 MB and 32 GB. The default
+value is 19 which results in a slab size of 2 GB. This allocator
+manages the space VDO uses to store user data.
+
+The maximum number of slabs in the system is 8192, so this value
+determines the maximum physical size of a VDO volume. One slab is
+the minimum amount by which a VDO volume can be grown. Smaller
+slabs also increase the potential for parallelism if the device
+has multiple physical threads. Therefore, this value should be set
+as small as possible, given the eventual maximal size of the
+volume.
+.TP
+.B \-\-slab-size=\fIMB\fP
+set slab-size directly instead of using --slab-bits. This option is
+mutually exclusive with --slab-bits.
+.TP
+.B \-\-index-memory-size=\fIGB\fP
+Specify the amount of memory, in gigabytes, to devote to the
+index. Accepted options are .25, .5, .75, and all positive
+integers.
+.TP
+.B \-\-sparse-index
+Specify whether or not to use a sparse index.
+.PP
+.SH EXAMPLE
+.nf
+vdoCalculateSize --physical-size 600G --slab-bits 22 --logical-size 2T --index-memory-size 1 --block-map-cache-size 32768
+.fi
+.\" .SH NOTES
+.SH SEE ALSO
+.BR vdo (8).
