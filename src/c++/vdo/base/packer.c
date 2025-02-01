@@ -35,18 +35,19 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 
 /**
  * vdo_get_compressed_block_fragment() - Get a reference to a compressed fragment from a compressed
- *                                       block.
+ *                               block.
  * @mapping_state [in] The mapping state for the look up.
  * @compressed_block [in] The compressed block that was read from disk.
  * @fragment_offset [out] The offset of the fragment within a compressed block.
  * @fragment_size [out] The size of the fragment.
  *
  * Return: If a valid compressed fragment is found, VDO_SUCCESS; otherwise, VDO_INVALID_FRAGMENT if
- *         the fragment is invalid.
+ * the fragment is invalid.
  */
-int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
-				      struct compressed_block *block,
-				      u16 *fragment_offset, u16 *fragment_size)
+STATIC int
+vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
+				 struct compressed_block *block,
+				 u16 *fragment_offset, u16 *fragment_size)
 {
 	u16 compressed_size;
 	u16 offset = 0;
