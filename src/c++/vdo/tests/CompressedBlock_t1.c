@@ -50,7 +50,7 @@ static void testEmptyBlock(void)
 /**********************************************************************/
 static void testInvalidBlock(void)
 {
-  compressedBlock.header.version.major_version
+  compressedBlock.v1.header.version.major_version
     = __cpu_to_le32(INVALID_VERSION);
 
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
@@ -68,7 +68,7 @@ static void testAbsurdBlock(void)
 {
   initialize_compressed_block(&compressedBlock, 101);
   for (unsigned int i = 1; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
-    compressedBlock.header.sizes[i] = __cpu_to_le16(VDO_BLOCK_SIZE + i * 101);
+    compressedBlock.v1.header.sizes[i] = __cpu_to_le16(VDO_BLOCK_SIZE + i * 101);
   }
 
   uint16_t fragmentOffset, fragmentSize;
@@ -104,13 +104,13 @@ static void testValidFragments(void)
        0,
        200,  400,  440,  960, 1130, 1131, 1131,
        1290, 2055, 3012, 3994, 3994, 4050,
-       (VDO_BLOCK_SIZE - sizeof(struct compressed_block_header))
+       (VDO_BLOCK_SIZE - sizeof(struct compressed_block_header_1_0))
   };
 
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     if (i == 0) {
       /* The compressor will put the fragment 0 data in place already */
-      memcpy(compressedBlock.data, originalData, offsets[1]);
+      memcpy(compressedBlock.v1.data, originalData, offsets[1]);
       initialize_compressed_block(&compressedBlock, offsets[1]);
       continue;
     }
@@ -120,7 +120,7 @@ static void testValidFragments(void)
     struct compressed_block fragment_block;
     dataVIO.compression.block = &fragment_block;
     dataVIO.compression.size = offsets[i + 1] - offsets[i];
-    memcpy(fragment_block.data,
+    memcpy(fragment_block.v1.data,
            originalData + offsets[i],
            dataVIO.compression.size);
     CU_ASSERT_EQUAL(offsets[i + 1],
@@ -143,7 +143,7 @@ static void testValidFragments(void)
     size_t expectedSize = offsets[i + 1] - offsets[i];
     CU_ASSERT_EQUAL(fragmentSize, expectedSize);
 
-    UDS_ASSERT_EQUAL_BYTES(compressedBlock.data + fragmentOffset,
+    UDS_ASSERT_EQUAL_BYTES(compressedBlock.v1.data + fragmentOffset,
                            originalData + offsets[i],
                            fragmentSize);
   }
