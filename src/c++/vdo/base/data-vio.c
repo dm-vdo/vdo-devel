@@ -13,7 +13,6 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
-#include <linux/lz4.h>
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
@@ -1818,10 +1817,7 @@ static void compress_data_vio(struct vdo_completion *completion)
 	 * By putting the compressed data at the start of the compressed block data field, we won't
 	 * need to copy it if this data_vio becomes a compressed write agent.
 	 */
-	size = LZ4_compress_default(data_vio->vio.data,
-				    data_vio->compression.block->data, VDO_BLOCK_SIZE,
-				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				    (char *) vdo_get_work_queue_private_data());
+	size = vdo_compress_buffer(data_vio->vio.data, data_vio->compression.block);
 	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);

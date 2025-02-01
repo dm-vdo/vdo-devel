@@ -115,6 +115,24 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 	return result;
 }
 
+/*
+ * vdo_compress_buffer() - Compress a buffer to be a suitable fragment
+ * @buffer [in] The buffer to compress
+ * @block [out] The compressed block to store into
+ *
+ * Return: The size of the compressed data, or 0 or a negative errno.
+ */
+int vdo_compress_buffer(char *buffer, struct compressed_block *block)
+{
+	int size = 0;
+
+	size = LZ4_compress_default(buffer, block->data, VDO_BLOCK_SIZE,
+				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
+				    (char *) vdo_get_work_queue_private_data());
+
+	return size;
+}
+
 /**
  * assert_on_packer_thread() - Check that we are on the packer thread.
  * @packer: The packer.
