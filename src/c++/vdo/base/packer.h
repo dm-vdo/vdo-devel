@@ -92,6 +92,10 @@ struct packer {
 
 	/* Statistics are only updated on the packer thread, but are accessed from other threads */
 	struct packer_statistics statistics;
+
+	/* N blobs of context data for LZ4 code, one per CPU thread. */
+	zone_count_t context_count;
+	char **compression_context;
 };
 
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
