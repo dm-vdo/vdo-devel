@@ -1506,35 +1506,6 @@ void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset)
 }
 
 /**
- * uncompress_data_vio() - Uncompress the data a data_vio has just read.
- * @mapping_state: The mapping state indicating which fragment to decompress.
- * @buffer: The buffer to receive the uncompressed data.
- */
-int uncompress_data_vio(struct data_vio *data_vio,
-			enum block_mapping_state mapping_state, char *buffer)
-{
-	int size;
-	u16 fragment_offset, fragment_size;
-	struct compressed_block *block = data_vio->compression.block;
-	int result = vdo_get_compressed_block_fragment(mapping_state, block,
-						       &fragment_offset, &fragment_size);
-
-	if (result != VDO_SUCCESS) {
-		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
-		return result;
-	}
-
-	size = LZ4_decompress_safe((block->data + fragment_offset), buffer,
-				   fragment_size, VDO_BLOCK_SIZE);
-	if (size != VDO_BLOCK_SIZE) {
-		vdo_log_debug("%s: lz4 error", __func__);
-		return VDO_INVALID_FRAGMENT;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**
  * modify_for_partial_write() - Do the modify-write part of a read-modify-write cycle.
  * @completion: The data_vio which has just finished its read.
  *
@@ -1571,7 +1542,7 @@ static void complete_read(struct vdo_completion *completion)
 	assert_data_vio_on_cpu_thread(data_vio);
 
 	if (compressed) {
-		int result = uncompress_data_vio(data_vio, data_vio->mapped.state, data);
+		int result = vdo_uncompress_to_buffer(data_vio->mapped.state, data_vio->compression.block, data);
 
 		if (result != VDO_SUCCESS) {
 			continue_data_vio_with_error(data_vio, result);

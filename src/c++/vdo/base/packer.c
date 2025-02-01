@@ -7,6 +7,7 @@
 
 #include <linux/atomic.h>
 #include <linux/blkdev.h>
+#include <linux/lz4.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -77,6 +78,41 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	*fragment_offset = offset;
 	*fragment_size = compressed_size;
 	return VDO_SUCCESS;
+}
+
+/*
+ * vdo_uncompress_to_buffer() - Decompress a fragment into a buffer
+ * @mapping_state [in] The mapping state indicating the fragment to decompress.
+ * @compressed_block [in] The compressed block that was read from disk.
+ * @buffer [out] The buffer to decompress into.
+ *
+ * Return: If a valid compressed fragment is found, VDO_SUCCESS; otherwise, VDO_INVALID_FRAGMENT if
+ *         the fragment is invalid.
+ */
+
+int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
+			     struct compressed_block *block, char *buffer)
+{
+	int result;
+	u16 fragment_offset, fragment_size;
+	int size;
+
+	result = vdo_get_compressed_block_fragment(mapping_state, block,
+						   &fragment_offset, &fragment_size);
+
+	if (result != VDO_SUCCESS) {
+		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
+		return result;
+	}
+
+	size = LZ4_decompress_safe((block->data + fragment_offset), buffer,
+				   fragment_size, VDO_BLOCK_SIZE);
+	if (size != VDO_BLOCK_SIZE) {
+		vdo_log_debug("%s: lz4 error", __func__);
+		return VDO_INVALID_FRAGMENT;
+	}
+
+	return result;
 }
 
 /**
