@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/zstd.h>
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -683,6 +684,13 @@ static int parse_zstd(const char *value, struct device_config *config)
 		      value);
 		return -EINVAL;
 	}
+
+	if (level < zstd_min_clevel() || level > zstd_max_clevel()) {
+		vdo_log_error("zstd level invalid, must be between %d and %d, found \"%d\"",
+		      zstd_min_clevel(), zstd_max_clevel(), level);
+		return -EINVAL;
+	}
+
 	config->compression_zstd_level = level;
 	return 0;
 }
