@@ -33,6 +33,13 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 
 #define COMPRESSED_BLOCK_1_0_SIZE (4 + 4 + (2 * VDO_MAX_COMPRESSION_SLOTS))
 
+static const struct version_number COMPRESSED_BLOCK_2_0 = {
+	.major_version = 2,
+	.minor_version = 0,
+};
+
+#define COMPRESSED_BLOCK_2_0_SIZE (4 + 4 + 1 + (2 * VDO_MAX_COMPRESSION_SLOTS))
+
 /**
  * vdo_get_compressed_block_fragment() - Get a reference to a compressed fragment from a compressed
  *                               block.
@@ -40,6 +47,7 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
  * @compressed_block [in] The compressed block that was read from disk.
  * @fragment_offset [out] The offset of the fragment within a compressed block.
  * @fragment_size [out] The size of the fragment.
+ * @type [out] The compression method of the fragment.
  *
  * Return: If a valid compressed fragment is found, VDO_SUCCESS; otherwise, VDO_INVALID_FRAGMENT if
  * the fragment is invalid.
@@ -47,7 +55,8 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 STATIC int
 vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				 struct compressed_block *block,
-				 void **fragment_start, u16 *fragment_size)
+				 void **fragment_start, u16 *fragment_size,
+				 enum vdo_compression_type *type)
 {
 	u16 compressed_size;
 	u16 offset = 0;
@@ -59,24 +68,45 @@ vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 		return VDO_INVALID_FRAGMENT;
 
 	version = vdo_unpack_version_number(block->v1.header.version);
-	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0))
+	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0) &&
+	    !vdo_are_same_version(version, COMPRESSED_BLOCK_2_0))
 		return VDO_INVALID_FRAGMENT;
 
 	slot = mapping_state - VDO_MAPPING_STATE_COMPRESSED_BASE;
 	if (slot >= VDO_MAX_COMPRESSION_SLOTS)
 		return VDO_INVALID_FRAGMENT;
 
-	compressed_size = __le16_to_cpu(block->v1.header.sizes[slot]);
-	for (i = 0; i < slot; i++) {
-		offset += __le16_to_cpu(block->v1.header.sizes[i]);
-		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
+	if (vdo_are_same_version(version, COMPRESSED_BLOCK_1_0)) {
+		compressed_size = __le16_to_cpu(block->v1.header.sizes[slot]);
+		for (i = 0; i < slot; i++) {
+			offset += __le16_to_cpu(block->v1.header.sizes[i]);
+			if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
+				return VDO_INVALID_FRAGMENT;
+		}
+
+		if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
 			return VDO_INVALID_FRAGMENT;
+
+		*type = VDO_LZ4;
+		*fragment_start = block->v1.data + offset;
+	} else {
+		if (block->v2.header.type != VDO_LZ4)
+			return VDO_INVALID_FRAGMENT;
+
+		compressed_size = __le16_to_cpu(block->v2.header.sizes[slot]);
+		for (i = 0; i < slot; i++) {
+			offset += __le16_to_cpu(block->v2.header.sizes[i]);
+			if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0)
+				return VDO_INVALID_FRAGMENT;
+		}
+
+		if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0)
+			return VDO_INVALID_FRAGMENT;
+
+		*type = block->v2.header.type;
+		*fragment_start = block->v2.data + offset;
 	}
 
-	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
-		return VDO_INVALID_FRAGMENT;
-
-	*fragment_start = block->v1.data + offset;
 	*fragment_size = compressed_size;
 	return VDO_SUCCESS;
 }
@@ -97,10 +127,12 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 	int result;
 	u16 fragment_size;
 	void *fragment_start;
+	enum vdo_compression_type type;
 	int size;
 
 	result = vdo_get_compressed_block_fragment(mapping_state, block,
-						   &fragment_start, &fragment_size);
+						   &fragment_start,
+						   &fragment_size, &type);
 
 	if (result != VDO_SUCCESS) {
 		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
@@ -128,7 +160,7 @@ int vdo_compress_buffer(char *buffer, struct compressed_block *block)
 {
 	int size = 0;
 
-	size = LZ4_compress_default(buffer, block->v1.data, VDO_BLOCK_SIZE,
+	size = LZ4_compress_default(buffer, block->v2.data, VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
 				    (char *) vdo_get_work_queue_private_data());
 
@@ -453,6 +485,7 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
 	 * block header.
 	 */
 	BUILD_BUG_ON(sizeof(struct compressed_block_header_1_0) != COMPRESSED_BLOCK_1_0_SIZE);
+	BUILD_BUG_ON(sizeof(struct compressed_block_1_0) != sizeof(struct compressed_block_2_0));
 
 	block->v1.header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
 	block->v1.header.sizes[0] = __cpu_to_le16(size);
@@ -536,7 +569,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 
 	if (slot < VDO_MAX_COMPRESSION_SLOTS) {
 		/* Clear out the sizes of the unused slots */
-		memset(&block->v1.header.sizes[slot], 0,
+		memset(&block->v2.header.sizes[slot], 0,
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
 	}
 
