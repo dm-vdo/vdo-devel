@@ -487,8 +487,9 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
 	BUILD_BUG_ON(sizeof(struct compressed_block_header_1_0) != COMPRESSED_BLOCK_1_0_SIZE);
 	BUILD_BUG_ON(sizeof(struct compressed_block_1_0) != sizeof(struct compressed_block_2_0));
 
-	block->v1.header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
-	block->v1.header.sizes[0] = __cpu_to_le16(size);
+	block->v2.header.version = vdo_pack_version_number(COMPRESSED_BLOCK_2_0);
+	block->v2.header.sizes[0] = __cpu_to_le16(size);
+	block->v2.header.type = VDO_LZ4;
 }
 
 /**
@@ -507,13 +508,13 @@ STATIC block_size_t __must_check pack_fragment(struct compression_state *compres
 					       struct compressed_block *block)
 {
 	struct compression_state *to_pack = &data_vio->compression;
-	char *fragment = to_pack->block->v1.data;
+	char *fragment = to_pack->block->v2.data;
 
 	to_pack->next_in_batch = compression->next_in_batch;
 	compression->next_in_batch = data_vio;
 	to_pack->slot = slot;
-	block->v1.header.sizes[slot] = __cpu_to_le16(to_pack->size);
-	memcpy(&block->v1.data[offset], fragment, to_pack->size);
+	block->v2.header.sizes[slot] = __cpu_to_le16(to_pack->size);
+	memcpy(&block->v2.data[offset], fragment, to_pack->size);
 	return (offset + to_pack->size);
 }
 

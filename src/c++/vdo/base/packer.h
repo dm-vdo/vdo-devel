@@ -48,7 +48,7 @@ enum {
 	 * A compressed block is only written if we can pack at least two fragments into it, so a
 	 * fragment which fills the entire data portion of a compressed block is too big.
 	 */
-	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - 1,
+	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0 - 1,
 };
 
 enum vdo_compression_type {
