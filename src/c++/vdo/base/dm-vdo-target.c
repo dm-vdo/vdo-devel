@@ -644,8 +644,47 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 		config->max_discard_blocks = value;
 		return VDO_SUCCESS;
 	}
+
 	/* Handles unknown key names */
 	return process_one_thread_config_spec(key, value, &config->thread_counts);
+}
+
+/**
+ * parse_zstd() - Process the zstd parameter.
+ * @value: The parameter containing zstd.
+ * @config: The configuration data structure to update.
+ *
+ * If the value requested is invalid, a message is logged and -EINVAL returned.
+ *
+ * Return: 0 or -EINVAL
+ */
+static int parse_zstd(const char *value, struct device_config *config)
+{
+	int result;
+	int level;
+
+	config->compression = VDO_ZSTD;
+	value += strlen("zstd") - 1;
+	if (value[0] == '\0') {
+		config->compression_zstd_level = 0; // DEFAULT
+		return 0;
+	}
+
+	if (value[0] != ':') {
+		vdo_log_error("optional config string error: zstd level needed, found \"%s\"",
+		value);
+		return -EINVAL;
+	}
+
+	value += 1;
+	result = kstrtoint(value, 10, &level);
+	if (result) {
+		vdo_log_error("optional config string error: integer value needed, found \"%s\"",
+		      value);
+		return -EINVAL;
+	}
+	config->compression_zstd_level = level;
+	return 0;
 }
 
 /**
@@ -672,6 +711,15 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 			config->compression = VDO_NO_COMPRESSION;
 		} else if (strcmp("on", value) == 0 || strcmp("lz4", value) == 0) {
 			config->compression = VDO_LZ4;
+		} else if (strncmp("zstd", value, 4)) {
+			if (!IS_ENABLED(CONFIG_ZSTD)) {
+				vdo_log_error("zstd requested, but kernel not build with zstd support");
+				return -EINVAL;
+			}
+
+			result = parse_zstd(value, config);
+			if (result)
+				return result;
 		} else {
 			vdo_log_error("could not parse compression type, found \"%s\"", value);
 			return -EINVAL;
