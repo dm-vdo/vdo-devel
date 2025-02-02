@@ -666,7 +666,7 @@ static int parse_zstd(const char *value, struct device_config *config)
 	config->compression = VDO_ZSTD;
 	value += strlen("zstd") - 1;
 	if (value[0] == '\0') {
-		config->compression_zstd_level = 0; // DEFAULT
+		config->compression_zstd_level = VDO_ZSTD_DEFAULT_LEVEL;
 		return 0;
 	}
 
@@ -712,11 +712,6 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 		} else if (strcmp("on", value) == 0 || strcmp("lz4", value) == 0) {
 			config->compression = VDO_LZ4;
 		} else if (strncmp("zstd", value, 4)) {
-			if (!IS_ENABLED(CONFIG_ZSTD)) {
-				vdo_log_error("zstd requested, but kernel not build with zstd support");
-				return -EINVAL;
-			}
-
 			result = parse_zstd(value, config);
 			if (result)
 				return result;
