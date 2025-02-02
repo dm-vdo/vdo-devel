@@ -37,9 +37,9 @@ static IORequest              *blocked;
 static void createVDOAndFlush(void)
 {
   const TestParameters parameters = {
-    .mappableBlocks     = 64,
-    .journalBlocks      = 8,
-    .enableCompression  = true,
+    .mappableBlocks = 64,
+    .journalBlocks  = 8,
+    .compression    = VDO_LZ4,
   };
   initializeVDOTest(&parameters);
 

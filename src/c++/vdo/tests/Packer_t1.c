@@ -46,7 +46,7 @@ static void initialize(void)
     .mappableBlocks       = 64,
     .journalBlocks        = 8,
     .logicalThreadCount   = 1,
-    .enableCompression    = true,
+    .compression          = VDO_LZ4,
     .disableDeduplication = true,
     .dataFormatter        = fillWithOffsetPlusOne,
   };
