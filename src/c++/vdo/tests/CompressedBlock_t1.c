@@ -40,11 +40,12 @@ static void testEmptyBlock(void)
        i < VDO_MAPPING_STATE_COMPRESSED_BASE; i++) {
     void *fragmentStart;
     uint16_t fragmentSize;
+    enum vdo_compression_type type;
     CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
                     vdo_get_compressed_block_fragment(i,
                                                       &compressedBlock,
                                                       &fragmentStart,
-                                                      &fragmentSize));
+                                                      &fragmentSize, &type));
   }
 }
 
@@ -57,11 +58,12 @@ static void testInvalidBlock(void)
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     void *fragmentStart;
     uint16_t fragmentSize;
+    enum vdo_compression_type type;
     CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
                     vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentStart,
-                                                      &fragmentSize));
+                                                      &fragmentSize, &type));
   }
 }
 
@@ -75,18 +77,19 @@ static void testAbsurdBlock(void)
 
   void *fragmentStart;
   uint16_t fragmentSize;
+  enum vdo_compression_type type;
   CU_ASSERT_EQUAL(VDO_SUCCESS,
                   vdo_get_compressed_block_fragment(getStateForSlot(0),
                                                     &compressedBlock,
                                                     &fragmentStart,
-                                                    &fragmentSize));
+                                                    &fragmentSize, &type));
 
   for (unsigned int i = 1; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
                     vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentStart,
-                                                      &fragmentSize));
+                                                      &fragmentSize, &type));
   }
 }
 
@@ -137,11 +140,12 @@ static void testValidFragments(void)
   for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     void *fragmentStart;
     uint16_t fragmentSize;
+    enum vdo_compression_type type;
     CU_ASSERT_EQUAL(VDO_SUCCESS,
                     vdo_get_compressed_block_fragment(getStateForSlot(i),
                                                       &compressedBlock,
                                                       &fragmentStart,
-                                                      &fragmentSize));
+                                                      &fragmentSize, &type));
     CU_ASSERT_PTR_EQUAL(fragmentStart, compressedBlock.v1.data + offsets[i]);
 
     size_t expectedSize = offsets[i + 1] - offsets[i];
