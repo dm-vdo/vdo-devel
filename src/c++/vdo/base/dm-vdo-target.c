@@ -666,8 +666,19 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "deduplication") == 0)
 		return parse_bool(value, "on", "off", &config->deduplication);
 
-	if (strcmp(key, "compression") == 0)
-		return parse_bool(value, "on", "off", &config->compression);
+	if (strcmp(key, "compression") == 0) {
+		/* Several options: off; on == lz4; and zstd:[int]. */
+		if (strcmp("off", value) == 0) {
+			config->compression = VDO_NO_COMPRESSION;
+		} else if (strcmp("on", value) == 0 || strcmp("lz4", value) == 0) {
+			config->compression = VDO_LZ4;
+		} else {
+			vdo_log_error("could not parse compression type, found \"%s\"", value);
+			return -EINVAL;
+		}
+		return VDO_SUCCESS;
+	}
+
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -826,7 +837,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
-	config->compression = false;
+	config->compression = VDO_NO_COMPRESSION;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;

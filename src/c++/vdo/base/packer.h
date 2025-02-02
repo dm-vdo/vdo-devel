@@ -51,10 +51,6 @@ enum {
 	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0 - 1,
 };
 
-enum vdo_compression_type {
-	VDO_LZ4 = 1,
-};
-
 struct compressed_block_1_0 {
 	struct compressed_block_header_1_0 header;
 	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0];
