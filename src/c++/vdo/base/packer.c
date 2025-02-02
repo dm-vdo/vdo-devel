@@ -238,6 +238,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	if (result != VDO_SUCCESS)
 		return result;
 
+	packer->vdo = vdo;
 	packer->thread_id = vdo->thread_config.packer_thread;
 	packer->size = bin_count;
 	INIT_LIST_HEAD(&packer->bins);
@@ -555,7 +556,8 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	compression = &agent->compression;
 	compression->slot = 0;
 	block = compression->block;
-	initialize_compressed_block(block, compression->size, VDO_LZ4);
+	initialize_compressed_block(block, compression->size,
+				    packer->vdo->device_config->compression);
 	offset = compression->size;
 
 	while ((client = remove_from_bin(packer, bin)) != NULL)

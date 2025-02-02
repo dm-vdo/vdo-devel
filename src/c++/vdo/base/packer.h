@@ -96,6 +96,8 @@ struct packer_bin {
 };
 
 struct packer {
+	/* The parent VDO, used to get the device config */
+	struct vdo *vdo;
 	/* The ID of the packer's callback thread */
 	thread_id_t thread_id;
 	/* The number of bins */

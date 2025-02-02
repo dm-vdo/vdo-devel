@@ -1433,6 +1433,9 @@ static void set_compression_callback(struct vdo_completion *completion)
 
 	if (*enable != was_enabled) {
 		WRITE_ONCE(vdo->compressing, *enable);
+		if (vdo->device_config->compression == VDO_NO_COMPRESSION)
+			vdo->device_config->compression = VDO_LZ4;
+
 		if (was_enabled) {
 			/* Signal the packer to flush since compression has been disabled. */
 			vdo_flush_packer(vdo->packer);
@@ -1453,6 +1456,7 @@ static void set_compression_callback(struct vdo_completion *completion)
  */
 bool vdo_set_compressing(struct vdo *vdo, bool enable)
 {
+	
 	perform_synchronous_action(vdo, set_compression_callback,
 				   vdo->thread_config.packer_thread,
 				   &enable);
