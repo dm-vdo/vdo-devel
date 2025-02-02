@@ -68,9 +68,26 @@ static void testInvalidBlock(void)
 }
 
 /**********************************************************************/
+static void testBadCompressionType(void)
+{
+  initialize_compressed_block(&compressedBlock, 101, VDO_NO_COMPRESSION);
+
+  for (unsigned int i = 0; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
+    void *fragmentStart;
+    uint16_t fragmentSize;
+    enum vdo_compression_type type;
+    CU_ASSERT_EQUAL(VDO_INVALID_FRAGMENT,
+                    vdo_get_compressed_block_fragment(getStateForSlot(i),
+                                                      &compressedBlock,
+                                                      &fragmentStart,
+                                                      &fragmentSize, &type));
+  }
+}
+
+/**********************************************************************/
 static void testAbsurdBlock(void)
 {
-  initialize_compressed_block(&compressedBlock, 101);
+  initialize_compressed_block(&compressedBlock, 101, VDO_LZ4);
   for (unsigned int i = 1; i < VDO_MAX_COMPRESSION_SLOTS; ++i) {
     compressedBlock.v2.header.sizes[i] = __cpu_to_le16(VDO_BLOCK_SIZE + i * 101);
   }
@@ -169,7 +186,7 @@ static void testValidFragments(void)
     if (i == 0) {
       /* The compressor will put the fragment 0 data in place already */
       memcpy(compressedBlock.v2.data, originalData, offsets[1]);
-      initialize_compressed_block(&compressedBlock, offsets[1]);
+      initialize_compressed_block(&compressedBlock, offsets[1], VDO_LZ4);
       continue;
     }
 
@@ -212,11 +229,12 @@ static void testValidFragments(void)
 
 /**********************************************************************/
 static CU_TestInfo compressedBlockTests[] = {
-  { "empty block",     testEmptyBlock       },
-  { "invalid block",   testInvalidBlock     },
-  { "absurd block",    testAbsurdBlock      },
-  { "valid v1",        testValidFragmentsV1 },
-  { "valid fragments", testValidFragments   },
+  { "empty block",     testEmptyBlock         },
+  { "invalid block",   testInvalidBlock       },
+  { "bad type",        testBadCompressionType },
+  { "absurd block",    testAbsurdBlock        },
+  { "valid v1",        testValidFragmentsV1   },
+  { "valid fragments", testValidFragments     },
   CU_TEST_INFO_NULL,
 };
 
