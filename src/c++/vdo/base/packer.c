@@ -47,7 +47,7 @@ static const struct version_number COMPRESSED_BLOCK_1_0 = {
 STATIC int
 vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				 struct compressed_block *block,
-				 u16 *fragment_offset, u16 *fragment_size)
+				 void **fragment_start, u16 *fragment_size)
 {
 	u16 compressed_size;
 	u16 offset = 0;
@@ -76,7 +76,7 @@ vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
 		return VDO_INVALID_FRAGMENT;
 
-	*fragment_offset = offset;
+	*fragment_start = block->v1.data + offset;
 	*fragment_size = compressed_size;
 	return VDO_SUCCESS;
 }
@@ -95,19 +95,20 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 			     struct compressed_block *block, char *buffer)
 {
 	int result;
-	u16 fragment_offset, fragment_size;
+	u16 fragment_size;
+	void *fragment_start;
 	int size;
 
 	result = vdo_get_compressed_block_fragment(mapping_state, block,
-						   &fragment_offset, &fragment_size);
+						   &fragment_start, &fragment_size);
 
 	if (result != VDO_SUCCESS) {
 		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
 		return result;
 	}
 
-	size = LZ4_decompress_safe((block->v1.data + fragment_offset), buffer,
-				   fragment_size, VDO_BLOCK_SIZE);
+	size = LZ4_decompress_safe(fragment_start, buffer, fragment_size,
+				   VDO_BLOCK_SIZE);
 	if (size != VDO_BLOCK_SIZE) {
 		vdo_log_debug("%s: lz4 error", __func__);
 		return VDO_INVALID_FRAGMENT;

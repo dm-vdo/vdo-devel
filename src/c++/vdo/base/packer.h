@@ -106,7 +106,7 @@ struct packer {
 #ifdef INTERNAL
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
-				      u16 *fragment_offset, u16 *fragment_size);
+				      void **fragment_start, u16 *fragment_size);
 #endif /* INTERNAL */
 int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 			     struct compressed_block *block, char *buffer);
