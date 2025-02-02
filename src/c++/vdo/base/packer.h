@@ -155,7 +155,8 @@ void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 void vdo_dump_packer(const struct packer *packer);
 
 #ifdef INTERNAL
-void initialize_compressed_block(struct compressed_block *block, u16 size);
+void initialize_compressed_block(struct compressed_block *block, u16 size,
+				 enum vdo_compression_type type);
 
 struct compression_state;
 block_size_t __must_check pack_fragment(struct compression_state *compression,

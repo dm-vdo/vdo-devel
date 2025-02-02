@@ -478,7 +478,9 @@ static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin
  * data field, it needn't be copied. So all we need do is initialize the header and set the size of
  * the agent's fragment.
  */
-STATIC void initialize_compressed_block(struct compressed_block *block, u16 size)
+STATIC void initialize_compressed_block(struct compressed_block *block,
+					u16 size,
+					enum vdo_compression_type type)
 {
 	/*
 	 * Make sure the block layout isn't accidentally changed by changing the length of the
@@ -489,7 +491,7 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
 
 	block->v2.header.version = vdo_pack_version_number(COMPRESSED_BLOCK_2_0);
 	block->v2.header.sizes[0] = __cpu_to_le16(size);
-	block->v2.header.type = VDO_LZ4;
+	block->v2.header.type = type;
 }
 
 /**
@@ -553,7 +555,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	compression = &agent->compression;
 	compression->slot = 0;
 	block = compression->block;
-	initialize_compressed_block(block, compression->size);
+	initialize_compressed_block(block, compression->size, VDO_LZ4);
 	offset = compression->size;
 
 	while ((client = remove_from_bin(packer, bin)) != NULL)
