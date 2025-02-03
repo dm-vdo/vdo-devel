@@ -44,7 +44,22 @@ static inline size_t zstd_cctx_workspace_bound(const zstd_compression_parameters
 	return ZSTD_estimateCCtxSize_usingCParams(*cparams);
 }
 
-#define zstd_dstream_workspace_bound ZSTD_estimateDStreamSize
+#define zstd_dctx_workspace_bound ZSTD_estimateDCtxSize
+#define zstd_dctx ZSTD_DCtx
+#define zstd_cctx ZSTD_CCtx
 
+static zstd_cctx *zstd_init_cctx(void *workspace, size_t workspace_size)
+{
+	if (workspace == NULL)
+		return NULL;
+	return ZSTD_initStaticCCtx(workspace, workspace_size);
+}
+
+static zstd_dctx *zstd_init_dctx(void *workspace, size_t workspace_size)
+{
+	if (workspace == NULL)
+		return NULL;
+	return ZSTD_initStaticDCtx(workspace, workspace_size);
+}
 
 #endif // FAKE_ZSTD_SHIMS_H
