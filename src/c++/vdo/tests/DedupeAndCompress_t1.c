@@ -66,7 +66,7 @@ static void initializeDedupeAndCompressT1(void)
     .logicalThreadCount  = 3,
     .physicalThreadCount = 2,
     .hashZoneThreadCount = 2,
-    .compression         = VDO_LZ4,
+    .compression         = VDO_ZSTD,
     .cacheSize           = 64,
   };
   initializeVDOTest(&parameters);
