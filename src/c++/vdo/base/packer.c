@@ -8,6 +8,11 @@
 #include <linux/atomic.h>
 #include <linux/blkdev.h>
 #include <linux/lz4.h>
+#if defined(__KERNEL__)
+#include <linux/zstd.h>
+#else
+#include <linux/zstd-shims.h>
+#endif
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -159,10 +164,11 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 int vdo_compress_buffer(char *buffer, struct compressed_block *block)
 {
 	int size = 0;
+	struct compression_context *context = vdo_get_work_queue_private_data();
 
 	size = LZ4_compress_default(buffer, block->v2.data, VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				    (char *) vdo_get_work_queue_private_data());
+				    context->buf);
 
 	return size;
 }
@@ -233,6 +239,7 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	struct packer *packer;
 	block_count_t i;
 	int result;
+	size_t context_size = LZ4_MEM_COMPRESS;
 
 	result = vdo_allocate(1, struct packer, __func__, &packer);
 	if (result != VDO_SUCCESS)
@@ -273,20 +280,45 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	packer->context_count = vdo->device_config->thread_counts.cpu_threads;
 
 	/* Compression context storage */
-	result = vdo_allocate(packer->context_count, char *, "LZ4 context",
+	result = vdo_allocate(packer->context_count,
+			      struct compression_context *,
+			      "compression context",
 			      &packer->compression_context);
 	if (result != VDO_SUCCESS) {
 		vdo_free_packer(packer);
 		return result;
 	}
 
+	/* zstd conveniently doesn't give any good options for finding the
+	 * largest possible needed context size. ugh.
+	 */
+	context_size = max_t(size_t, context_size,
+			     zstd_dstream_workspace_bound(VDO_BLOCK_SIZE));
+	for (int level = zstd_min_clevel(); level <= zstd_max_clevel(); level++) {
+		zstd_parameters params = zstd_get_params(level, VDO_BLOCK_SIZE);
+		context_size = max_t(size_t, context_size,
+				     zstd_cstream_workspace_bound(&params.cParams));
+	}
+
+
 	for (zone_count_t i = 0; i < packer->context_count; i++) {
-		result = vdo_allocate(LZ4_MEM_COMPRESS, char, "LZ4 context",
+		result = vdo_allocate(1, struct compression_context,
+				      "compression context",
 				      &packer->compression_context[i]);
 		if (result != VDO_SUCCESS) {
 			vdo_free_packer(packer);
 			return result;
 		}
+
+		result = vdo_allocate(context_size, char,
+				      "compression context buffer",
+				      &packer->compression_context[i]->buf);
+		if (result != VDO_SUCCESS) {
+			vdo_free_packer(packer);
+			return result;
+		}
+
+		packer->compression_context[i]->size = context_size;
 	}
 
 	*packer_ptr = packer;
@@ -305,8 +337,12 @@ void vdo_free_packer(struct packer *packer)
 		return;
 
 	if (packer->compression_context != NULL) {
-		for (zone_count_t i = 0; i < packer->context_count; i++)
+		for (zone_count_t i = 0; i < packer->context_count; i++) {
+			if (packer->compression_context[i])
+				vdo_free(vdo_forget(packer->compression_context[i]->buf));
+
 			vdo_free(vdo_forget(packer->compression_context[i]));
+		}
 
 		vdo_free(vdo_forget(packer->compression_context));
 	}

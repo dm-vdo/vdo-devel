@@ -98,6 +98,11 @@ struct packer_bin {
 	struct data_vio *incoming[];
 };
 
+struct compression_context {
+	size_t size;
+	char *buf;
+};
+
 struct packer {
 	/* The parent VDO, used to get the device config */
 	struct vdo *vdo;
@@ -124,7 +129,7 @@ struct packer {
 
 	/* N blobs of context data for LZ4 code, one per CPU thread. */
 	zone_count_t context_count;
-	char **compression_context;
+	struct compression_context **compression_context;
 };
 
 #ifdef INTERNAL
