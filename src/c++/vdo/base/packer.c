@@ -154,6 +154,17 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 				      __func__);
 			return VDO_INVALID_FRAGMENT;
 		}
+
+		size = zstd_decompress_dctx(dctx, buffer, VDO_BLOCK_SIZE,
+					    fragment_start, fragment_size);
+
+		if (size != VDO_BLOCK_SIZE) {
+			vdo_log_debug("%s: lz4 error", __func__);
+			return VDO_INVALID_FRAGMENT;
+		}
+
+		return VDO_SUCCESS;
+
 	}
 
 	size = LZ4_decompress_safe(fragment_start, buffer, fragment_size,
@@ -180,6 +191,8 @@ int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *
 	struct compression_context *context = vdo_get_work_queue_private_data();
 
 	if (vdo->device_config->compression == VDO_ZSTD) {
+		int level = vdo->device_config->compression_zstd_level;
+		zstd_parameters params = zstd_get_params(level, VDO_BLOCK_SIZE);
 		zstd_cctx *cctx;
 
 		cctx = zstd_init_cctx(context->buf, context->size);
@@ -188,6 +201,19 @@ int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *
 				      __func__);
 			return -EIO;
 		}
+
+		/* According to bcachefs, ZSTD has a bug
+		 * where it will write just past the end
+		 * of the buffer - so subtract a fudge
+		 * factor of three bytes.
+		 */
+		size = zstd_compress_cctx(cctx, block->v2.data,
+					  VDO_MAX_COMPRESSED_FRAGMENT_SIZE - 3,
+					  buffer, VDO_BLOCK_SIZE, &params);
+		if (zstd_is_error(size))
+			return VDO_BLOCK_SIZE;
+		return size;
+
 	}
 
 	size = LZ4_compress_default(buffer, block->v2.data, VDO_BLOCK_SIZE,
