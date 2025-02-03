@@ -134,6 +134,7 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 	void *fragment_start;
 	enum vdo_compression_type type;
 	int size;
+	struct compression_context *context = vdo_get_work_queue_private_data();
 
 	result = vdo_get_compressed_block_fragment(mapping_state, block,
 						   &fragment_start,
@@ -142,6 +143,17 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 	if (result != VDO_SUCCESS) {
 		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
 		return result;
+	}
+
+	if (type == VDO_ZSTD) {
+		zstd_dctx *dctx;
+
+		dctx = zstd_init_dctx(context->buf, context->size);
+		if (unlikely(!dctx)) {
+			vdo_log_debug("%s: couldn't initialize zstd decompress stream context",
+				      __func__);
+			return VDO_INVALID_FRAGMENT;
+		}
 	}
 
 	size = LZ4_decompress_safe(fragment_start, buffer, fragment_size,
@@ -158,13 +170,25 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
  * vdo_compress_buffer() - Compress a buffer to be a suitable fragment
  * @buffer [in] The buffer to compress
  * @block [out] The compressed block to store into
+ * @vdo [in] The VDO, for the current compression type.
  *
  * Return: The size of the compressed data, or 0 or a negative errno.
  */
-int vdo_compress_buffer(char *buffer, struct compressed_block *block)
+int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *block)
 {
 	int size = 0;
 	struct compression_context *context = vdo_get_work_queue_private_data();
+
+	if (vdo->device_config->compression == VDO_ZSTD) {
+		zstd_cctx *cctx;
+
+		cctx = zstd_init_cctx(context->buf, context->size);
+		if (unlikely(!cctx)) {
+			vdo_log_debug("%s: couldn't initialize zstd compress stream context",
+				      __func__);
+			return -EIO;
+		}
+	}
 
 	size = LZ4_compress_default(buffer, block->v2.data, VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
@@ -292,12 +316,11 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 	/* zstd conveniently doesn't give any good options for finding the
 	 * largest possible needed context size. ugh.
 	 */
-	context_size = max_t(size_t, context_size,
-			     zstd_dstream_workspace_bound(VDO_BLOCK_SIZE));
+	context_size = max_t(size_t, context_size, zstd_dctx_workspace_bound());
 	for (int level = zstd_min_clevel(); level <= zstd_max_clevel(); level++) {
 		zstd_parameters params = zstd_get_params(level, VDO_BLOCK_SIZE);
 		context_size = max_t(size_t, context_size,
-				     zstd_cstream_workspace_bound(&params.cParams));
+				     zstd_cctx_workspace_bound(&params.cParams));
 	}
 
 

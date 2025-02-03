@@ -141,7 +141,7 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 			     struct compressed_block *block, char *buffer);
 
-int vdo_compress_buffer(char *data, struct compressed_block *block);
+int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *block);
 
 int __must_check vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
 				 struct packer **packer_ptr);
