@@ -62,4 +62,50 @@ static zstd_dctx *zstd_init_dctx(void *workspace, size_t workspace_size)
 	return ZSTD_initStaticDCtx(workspace, workspace_size);
 }
 
+#define ZSTD_FORWARD_IF_ERR(ret)            \
+	do {                                \
+		size_t const __ret = (ret); \
+		if (ZSTD_isError(__ret))    \
+			return __ret;       \
+	} while (0)
+
+static size_t zstd_cctx_init(zstd_cctx *cctx, const zstd_parameters *parameters,
+	unsigned long long pledged_src_size)
+{
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_reset(
+		cctx, ZSTD_reset_session_and_parameters));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setPledgedSrcSize(
+		cctx, pledged_src_size));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_windowLog, parameters->cParams.windowLog));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_hashLog, parameters->cParams.hashLog));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_chainLog, parameters->cParams.chainLog));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_searchLog, parameters->cParams.searchLog));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_minMatch, parameters->cParams.minMatch));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_targetLength, parameters->cParams.targetLength));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_strategy, parameters->cParams.strategy));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_contentSizeFlag, parameters->fParams.contentSizeFlag));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_checksumFlag, parameters->fParams.checksumFlag));
+	ZSTD_FORWARD_IF_ERR(ZSTD_CCtx_setParameter(
+		cctx, ZSTD_c_dictIDFlag, !parameters->fParams.noDictIDFlag));
+	return 0;
+}
+
+static size_t zstd_compress_cctx(zstd_cctx *cctx, void *dst, size_t dst_capacity,
+	const void *src, size_t src_size, const zstd_parameters *parameters)
+{
+	ZSTD_FORWARD_IF_ERR(zstd_cctx_init(cctx, parameters, src_size));
+	return ZSTD_compress2(cctx, dst, dst_capacity, src, src_size);
+}
+
+#define zstd_decompress_dctx ZSTD_decompressDCtx
+#define zstd_is_error ZSTD_isError
 #endif // FAKE_ZSTD_SHIMS_H
