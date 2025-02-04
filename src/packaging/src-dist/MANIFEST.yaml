@@ -198,6 +198,7 @@ tarballs:
             - log2.h
             - mutex.h
             - random.h
+            - stddef.h
             - types.h
             - unaligned.h
           undefines:
