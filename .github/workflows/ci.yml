@@ -75,8 +75,8 @@ jobs:
         uses: trstringer/manual-approval@v1
         timeout-minutes: 1440
         with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: ${{ join(github.event.pull_request.requested_reviewers.*.login, ', ') }}
+          secret: ${{ secrets.VDODEVEL }}
+          approvers: bjohnsto, c2redhat, lorelei-sakai, raeburn, rhawalsh
           minimum-approvals: 1
           issue-title: "Verifying pull request for testing"
           issue-body: "Please approve or deny the testing of this pull request."
