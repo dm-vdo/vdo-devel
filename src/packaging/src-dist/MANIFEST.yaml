@@ -84,6 +84,7 @@ tarballs:
             - slabSummaryReader.[hc]
             - userVDO.[hc]
             - vdoAudit.c->vdoaudit.c
+            - vdoCalculateSize.c
             - vdoConfig.[hc]
             - vdoDebugMetadata.c->vdodebugmetadata.c
             - vdoDumpBlockMap.c->vdodumpblockmap.c
