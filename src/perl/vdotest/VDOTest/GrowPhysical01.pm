@@ -77,7 +77,7 @@ sub testNoGrowth {
   eval {
     $device->growPhysical($self->{physicalSize});
   };
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
+  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
     # lvresize apparently thinks zero is a negative number
     assertEvalErrorMatches(qr/Cannot reduce VDO pool data volume/)
   } else {
