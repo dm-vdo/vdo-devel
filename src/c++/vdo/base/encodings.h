@@ -621,10 +621,10 @@ struct vdo_config {
 
 #ifndef VDO_UPSTREAM
 /** The maximum logical space is 4 petabytes, which is 1 terablock. */
-static const block_count_t MAXIMUM_VDO_LOGICAL_BLOCKS = 1024ULL * 1024 * 1024 * 1024;
+#define MAXIMUM_VDO_LOGICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 1024))
 
 /** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
-static const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS = 1024ULL * 1024 * 1024 * 64;
+#define MAXIMUM_VDO_PHYSICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 64))
 
 #endif
 /* This is the structure that captures the vdo fields saved as a super block component. */
