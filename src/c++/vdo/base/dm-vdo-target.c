@@ -12,6 +12,11 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#if defined(__KERNEL__)
+#include <linux/zstd.h>
+#else
+#include <linux/zstd-shims.h>
+#endif
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -644,8 +649,54 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 		config->max_discard_blocks = value;
 		return VDO_SUCCESS;
 	}
+
 	/* Handles unknown key names */
 	return process_one_thread_config_spec(key, value, &config->thread_counts);
+}
+
+/**
+ * parse_zstd() - Process the zstd parameter.
+ * @value: The parameter containing zstd.
+ * @config: The configuration data structure to update.
+ *
+ * If the value requested is invalid, a message is logged and -EINVAL returned.
+ *
+ * Return: 0 or -EINVAL
+ */
+static int parse_zstd(const char *value, struct device_config *config)
+{
+	int result;
+	int level;
+
+	config->compression = VDO_ZSTD;
+	value += strlen("zstd") - 1;
+	if (value[0] == '\0') {
+		config->compression_zstd_level = VDO_ZSTD_DEFAULT_LEVEL;
+		return 0;
+	}
+
+	if (value[0] != ':') {
+		vdo_log_error("optional config string error: zstd level needed, found \"%s\"",
+		value);
+		return -EINVAL;
+	}
+
+	value += 1;
+	result = kstrtoint(value, 10, &level);
+	if (result) {
+		vdo_log_error("optional config string error: integer value needed, found \"%s\"",
+		      value);
+		return -EINVAL;
+	}
+
+	if (level < zstd_min_clevel() || level > zstd_max_clevel()) {
+		vdo_log_error("zstd level invalid, must be between %d and %d, found \"%d\"",
+		      zstd_min_clevel(), zstd_max_clevel(), level);
+		return -EINVAL;
+	}
+
+	config->compression_zstd_level = level;
+	return 0;
 }
 
 /**
@@ -666,8 +717,23 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "deduplication") == 0)
 		return parse_bool(value, "on", "off", &config->deduplication);
 
-	if (strcmp(key, "compression") == 0)
-		return parse_bool(value, "on", "off", &config->compression);
+	if (strcmp(key, "compression") == 0) {
+		/* Several options: off; on == lz4; and zstd:[int]. */
+		if (strcmp("off", value) == 0) {
+			config->compression = VDO_NO_COMPRESSION;
+		} else if (strcmp("on", value) == 0 || strcmp("lz4", value) == 0) {
+			config->compression = VDO_LZ4;
+		} else if (strncmp("zstd", value, 4)) {
+			result = parse_zstd(value, config);
+			if (result)
+				return result;
+		} else {
+			vdo_log_error("could not parse compression type, found \"%s\"", value);
+			return -EINVAL;
+		}
+		return VDO_SUCCESS;
+	}
+
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -826,7 +892,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
-	config->compression = false;
+	config->compression = VDO_NO_COMPRESSION;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;

@@ -122,3 +122,72 @@ int kstrtoull(const char *s, unsigned int base, uint64_t *result)
   *result = tmp;
   return 0;
 }
+
+/**
+ * kstrtoll - convert a string to a long long
+ * @s: The start of the string. The string must be null-terminated, and may also
+ *  include a single newline before its terminating null. The first character
+ *  may also be a plus sign or a minus sign.
+ * @base: The number base to use. The maximum supported base is 16. If base is
+ *  given as 0, then the base of the string is automatically detected with the
+ *  conventional semantics - If it begins with 0x the number will be parsed as a
+ *  hexadecimal (case insensitive), if it otherwise begins with 0, it will be
+ *  parsed as an octal number. Otherwise it will be parsed as a decimal.
+ * @res: Where to write the result of the conversion on success.
+ *
+ * Returns 0 on success, -ERANGE on overflow and -EINVAL on parsing error.
+ * Preferred over simple_strtoll(). Return code must be checked.
+ */
+noinline
+static int kstrtoll(const char *s, unsigned int base, long long *res)
+{
+	uint64_t tmp;
+	int rv;
+
+	if (s[0] == '-') {
+		rv = kstrtoull(s + 1, base, &tmp);
+		if (rv < 0)
+			return rv;
+		if ((long long)-tmp > 0)
+			return -ERANGE;
+		*res = -tmp;
+	} else {
+		rv = kstrtoull(s, base, &tmp);
+		if (rv < 0)
+			return rv;
+		if ((long long)tmp < 0)
+			return -ERANGE;
+		*res = tmp;
+	}
+	return 0;
+}
+
+/**
+ * kstrtoint - convert a string to an int
+ * @s: The start of the string. The string must be null-terminated, and may also
+ *  include a single newline before its terminating null. The first character
+ *  may also be a plus sign or a minus sign.
+ * @base: The number base to use. The maximum supported base is 16. If base is
+ *  given as 0, then the base of the string is automatically detected with the
+ *  conventional semantics - If it begins with 0x the number will be parsed as a
+ *  hexadecimal (case insensitive), if it otherwise begins with 0, it will be
+ *  parsed as an octal number. Otherwise it will be parsed as a decimal.
+ * @res: Where to write the result of the conversion on success.
+ *
+ * Returns 0 on success, -ERANGE on overflow and -EINVAL on parsing error.
+ * Preferred over simple_strtol(). Return code must be checked.
+ */
+noinline
+int kstrtoint(const char *s, unsigned int base, int *res)
+{
+	long long tmp;
+	int rv;
+
+	rv = kstrtoll(s, base, &tmp);
+	if (rv < 0)
+		return rv;
+	if (tmp != (int)tmp)
+		return -ERANGE;
+	*res = tmp;
+	return 0;
+}

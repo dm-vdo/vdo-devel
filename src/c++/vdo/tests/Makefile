@@ -25,7 +25,7 @@ CFLAGS 	  = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
 
 LDFLAGS   = $(GLOBAL_LDFLAGS)
 LDSHFLAGS = -shared
-LDPRFLAGS = -ldl -lm -lz -pthread
+LDPRFLAGS = -ldl -lm -lz -pthread -lzstd
 
 # N.B. We need explicit rules below to make sure each one of these is up to
 # date; we can't use one rule for the VDO_DEPLIBS variable so long as there are

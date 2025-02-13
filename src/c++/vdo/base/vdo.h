@@ -284,8 +284,6 @@ struct vdo {
 	struct kobject stats_directory;
 
 #endif
-	/* N blobs of context data for LZ4 code, one per CPU thread. */
-	char **compression_context;
 };
 
 #if defined(VDO_INTERNAL) || defined(INTERNAL)

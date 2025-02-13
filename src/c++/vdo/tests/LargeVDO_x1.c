@@ -49,7 +49,7 @@ static TestParameters parameters = {
   .slabCount         = 8192,
   .slabJournalBlocks = DEFAULT_VDO_SLAB_JOURNAL_SIZE,
   .dataFormatter     = fillWithOffset,
-  .enableCompression = false,
+  .compression       = VDO_NO_COMPRESSION,
 };
 
 /**
