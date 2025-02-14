@@ -42,7 +42,7 @@ static const TestParameters DEFAULT_PARAMETERS = {
   .hashZoneThreadCount  = 0,
   .synchronousStorage   = false,
   .dataFormatter        = fillWithOffset,
-  .enableCompression    = false,
+  .compression          = VDO_NO_COMPRESSION,
   .disableDeduplication = false,
   .noIndexRegion        = false,
   .backingFile          = NULL,
@@ -121,8 +121,8 @@ static TestParameters applyDefaults(const TestParameters *parameters)
     applied.dataFormatter = parameters->dataFormatter;
   }
 
-  if (parameters->enableCompression != applied.enableCompression) {
-    applied.enableCompression = parameters->enableCompression;
+  if (parameters->compression != applied.compression) {
+    applied.compression = parameters->compression;
   }
 
   if (parameters->disableDeduplication != applied.disableDeduplication) {
@@ -349,7 +349,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
       .logical_blocks     = params.logicalBlocks,
       .logical_block_size = VDO_BLOCK_SIZE,
       .physical_blocks    = params.physicalBlocks + indexBlocks,
-      .compression        = params.enableCompression,
+      .compression        = params.compression,
       .deduplication      = !params.disableDeduplication,
     },
     .indexConfig         = indexConfig,
