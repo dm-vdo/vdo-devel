@@ -183,7 +183,7 @@ sub growPhysical {
 ##
 sub getLVMName {
   my ($self) = assertNumArgs(1, @_);
-  confess("Failed to override the getLVMPoolName method");
+  confess("Failed to override the getLVMName method");
 }
 
 ########################################################################
@@ -191,7 +191,7 @@ sub getLVMName {
 ##
 sub getLVMVDOName {
   my ($self) = assertNumArgs(1, @_);
-  confess("Failed to override the getLVMPoolName method");
+  confess("Failed to override the getLVMVDOName method");
 }
 
 ########################################################################
@@ -367,7 +367,7 @@ sub forceRebuild {
 ##
 sub _changeVDOSetting {
   my ($self, $setting) = assertNumArgs(2, @_);
-  $self->{volumeGroup}->_changeLogicalVolume($self->getVDODeviceName(), $setting);
+  $self->{volumeGroup}->_changeLogicalVolume($self->getLVMVDOName(), $setting);
 }
 
 ########################################################################
