@@ -26,12 +26,14 @@ USER_OBJS = blockMapUtils.o      \
             parseUtils.o         \
             slabSummaryReader.o  \
             userVDO.o            \
+            vdoCalculateSize.o   \
             vdoConfig.o          \
             vdoStatsWriter.o     \
             vdoVolumeUtils.o
 
 PROGS = corruptPBNRef          \
         udsCalculateSize       \
+        vdoCalculateSize       \
         vdoFillIndex           \
         vdoForceRebuild        \
         vdoFormat              \
