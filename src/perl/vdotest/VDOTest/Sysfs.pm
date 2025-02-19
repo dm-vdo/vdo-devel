@@ -74,7 +74,7 @@ sub testSysfs {
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "compressing"), 0);
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_active"), 0);
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_maximum"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "instance"), "1");
+  $self->_readonlyCheck(makeFullPath($sysModDevDir, "instance"), "0");
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_active"), 0);
   $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_limit"),
                         $DEFAULT_MAX_REQUESTS_ACTIVE);
