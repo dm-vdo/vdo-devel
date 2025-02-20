@@ -11,7 +11,7 @@ include $(SRC_DIR)/c++/defines
 BINDIR    = ../bin
 CFLAGS 	  = -fPIC $(GLOBAL_CFLAGS) -Wno-write-strings -DINTERNAL
 LDFLAGS   = $(GLOBAL_LDFLAGS)
-LDPRFLAGS = -ldl -pthread -lz -lrt -lm
+LDPRFLAGS = -ldl -pthread -lz -lrt -lm -lzstd
 
 # To add a new program X, add a new variable X_OBJS here with its dependencies
 # and add X to the variable PROGS
