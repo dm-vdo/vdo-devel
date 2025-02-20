@@ -172,10 +172,10 @@ static const char * const ADMIN_PHASE_NAMES[] = {
 };
 
 /* If we bump this, update the arrays below */
-#define TABLE_VERSION 4
+#define TABLE_VERSION 5
 
 /* arrays for handling different table versions */
-static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
+static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6, 6};
 /* pool name no longer used. only here for verification of older versions */
 static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
@@ -649,6 +649,33 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 }
 
 /**
+ * parse_compression() - Process the compression type parameter.
+ * @value: The parameter specifying the type
+ * @config: The configuration data structure to update.
+ *
+ * If the value requested is invalid, a message is logged and -EINVAL returned.
+ *
+ * Return: 0 or -EINVAL
+ */
+static int parse_compression(const char *value, struct device_config *config)
+{
+	static const char *NONE_STRING = "none";
+	static const char *LZ4_STRING = "lz4";
+
+	if (strncmp(value, NONE_STRING, strlen(NONE_STRING) - 1) == 0) {
+		config->compression = VDO_NO_COMPRESSION;
+	} else if (strncmp(value, LZ4_STRING, strlen(LZ4_STRING) - 1) == 0) {
+		config->compression = VDO_LZ4;
+	} else {
+		vdo_log_error("optional config string error: compressType accepts 'none' and 'lz4' only, got %s",
+			      value);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
  * parse_one_key_value_pair() - Parse one key/value pair and update the configuration data
  *				structure.
  * @key: The optional key name.
@@ -668,14 +695,15 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 
 	if (strcmp(key, "compression") == 0) {
 		bool compress = false;
-
-		result = parse_bool(value, "on", "off", &compress);
-		if (result)
-			return result;
-
-		config->compression = (compress ? VDO_LZ4 : VDO_NO_COMPRESSION);
-		return VDO_SUCCESS;
+		int ret = parse_bool(value, "on", "off", &compress);
+		if (ret)
+			return ret;
+		config->compression = compress ? VDO_LZ4 : VDO_NO_COMPRESSION;
+		return 0;
 	}
+
+	if (strcmp(key, "compressType") == 0)
+		return parse_compression(value, config);
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -3112,7 +3140,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 1, 0 },
+	.version = { 9, 2, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
