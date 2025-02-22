@@ -355,9 +355,9 @@ static void testDedupeVsOverwrittenCompressedBlock(void)
   /*
    * Fill the rest of the physical space.
    */
-  performSetVDOCompressing(false);
+  modifyCompressDedupe(false, true);
   writeData(2, 1, mappableBlocks - 1, VDO_SUCCESS);
-  performSetVDOCompressing(true);
+  modifyCompressDedupe(true, true);
 
   // Overwrite the two compressed blocks with 0 blocks to free the physical
   // block containing the compressed block.

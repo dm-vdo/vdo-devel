@@ -275,7 +275,7 @@ startAndWaitForVDOInRecovery(bool compress, enum vdo_state expectedState)
   }
 
   startVDO(expectedState);
-  performSetVDOCompressing(compress);
+  modifyCompressDedupe(compress, true);
 
   if (slabToLatch != totalSlabs) {
     checkSlabNeedsScrubbing();

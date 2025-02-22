@@ -93,7 +93,7 @@ static void testDataWriteError(void)
 static void testCompressedWriteError(void)
 {
   populateBlockMapTree();
-  performSetVDOCompressing(true);
+  modifyCompressDedupe(true, true);
   errorOperation = REQ_OP_WRITE;
   setBIOSubmitHook(injectError);
   writeAndVerifyData(0,

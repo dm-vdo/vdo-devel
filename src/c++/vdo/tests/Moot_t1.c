@@ -274,9 +274,9 @@ static void testReadFulfillmentAndPackerMooting(void)
   // Make sure the VDO is full
   block_count_t freeBlocks = getPhysicalBlocksFree();
   if (freeBlocks > 0) {
-    performSetVDOCompressing(false);
+    modifyCompressDedupe(false, true);
     writeAndVerifyData(100, 80 - freeBlocks, freeBlocks, 0, 64);
-    performSetVDOCompressing(true);
+    modifyCompressDedupe(true, true);
   }
 
   // Attempt to write unique data which will fail due to lack of space,
@@ -309,9 +309,9 @@ static void testFullOverwriteMooting(void)
   setupPackerNotification();
 
   // Write blocks normally to fill all but one block of the VDO.
-  performSetVDOCompressing(false);
+  modifyCompressDedupe(false, true);
   writeAndVerifyData(1, 0, MAPPABLE_BLOCKS, 1, MAPPABLE_BLOCKS - 1);
-  performSetVDOCompressing(true);
+  modifyCompressDedupe(true, true);
 
   // Write data at LBN 0.
   IORequest *request = launchIndexedWrite(0, 1, MAPPABLE_BLOCKS + 1);

@@ -398,7 +398,7 @@ static void testRebuildWithCompressedBlocks(void)
 {
   PreRebuildData       *originalData;
   struct vdo_statistics originalStats;
-  performSetVDOCompressing(true);
+  modifyCompressDedupe(true, true);
   prepareForRebuildTest(&originalData, &originalStats, true);
   crashVDO();
   rebuildAndVerify(&originalData, &originalStats, VDO_DIRTY, 1, 0);
