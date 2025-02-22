@@ -234,6 +234,7 @@ struct device_config {
 	unsigned int block_map_maximum_age;
 	bool deduplication;
 	enum vdo_compression_type compression;
+	int compression_level;
 	struct thread_count_config thread_counts;
 	block_count_t max_discard_blocks;
 };

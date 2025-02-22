@@ -9,6 +9,7 @@
 #include <linux/delay.h>
 #include <linux/device-mapper.h>
 #include <linux/err.h>
+#include <linux/lz4.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
@@ -649,6 +650,34 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 }
 
 /**
+ * parse_compression_level() - Process the compression level, if any.
+ * @value[in]: The string (possibly only a null byte) recording the level
+ * @level_ptr[out]: The pointer to return the level into, if one is provided.
+ *
+ * Does not log the error reason.
+ *
+ * Return: 0 or -EINVAL.
+ */
+static int parse_compression_level(const char *value, int *level_ptr)
+{
+	int ret;
+	int level;
+
+	if (value[0] == '\0')
+		return 0;
+
+	if (value[0] != ':')
+		return -EINVAL;
+
+	ret = kstrtoint(&value[1], 10, &level);
+	if (ret)
+		return -EINVAL;
+
+	*level_ptr = level;
+	return 0;
+}
+
+/**
  * parse_compression() - Process the compression type parameter.
  * @value: The parameter specifying the type
  * @config: The configuration data structure to update.
@@ -665,7 +694,18 @@ static int parse_compression(const char *value, struct device_config *config)
 	if (strncmp(value, NONE_STRING, strlen(NONE_STRING) - 1) == 0) {
 		config->compression = VDO_NO_COMPRESSION;
 	} else if (strncmp(value, LZ4_STRING, strlen(LZ4_STRING) - 1) == 0) {
+		int ret = 0;
+
 		config->compression = VDO_LZ4;
+		config->compression_level = LZ4_ACCELERATION_DEFAULT;
+
+		ret = parse_compression_level(&value[strlen(LZ4_STRING) - 1],
+					      &config->compression_level);
+		if (ret) {
+			vdo_log_error("optional config string error: compressType allows lz4 levels as 'lz4:<levelNumber>', but got %s",
+				      value);
+			return ret;
+		}
 	} else {
 		vdo_log_error("optional config string error: compressType accepts 'none' and 'lz4' only, got %s",
 			      value);
