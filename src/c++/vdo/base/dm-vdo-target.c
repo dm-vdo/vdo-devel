@@ -9,6 +9,7 @@
 #include <linux/delay.h>
 #include <linux/device-mapper.h>
 #include <linux/err.h>
+#include <linux/lz4.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
@@ -172,10 +173,10 @@ static const char * const ADMIN_PHASE_NAMES[] = {
 };
 
 /* If we bump this, update the arrays below */
-#define TABLE_VERSION 4
+#define TABLE_VERSION 5
 
 /* arrays for handling different table versions */
-static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
+static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6, 6};
 /* pool name no longer used. only here for verification of older versions */
 static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 
@@ -649,6 +650,72 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 }
 
 /**
+ * parse_compression_level() - Process the compression level, if any.
+ * @value[in]: The string (possibly only a null byte) recording the level
+ * @level_ptr[out]: The pointer to return the level into, if one is provided.
+ *
+ * Does not log the error reason.
+ *
+ * Return: 0 or -EINVAL.
+ */
+static int parse_compression_level(const char *value, int *level_ptr)
+{
+	int ret;
+	int level;
+
+	if (value[0] == '\0')
+		return 0;
+
+	if (value[0] != ':')
+		return -EINVAL;
+
+	ret = kstrtoint(&value[1], 10, &level);
+	if (ret)
+		return -EINVAL;
+
+	*level_ptr = level;
+	return 0;
+}
+
+/**
+ * parse_compression() - Process the compression type parameter.
+ * @value: The parameter specifying the type
+ * @config: The configuration data structure to update.
+ *
+ * If the value requested is invalid, a message is logged and -EINVAL returned.
+ *
+ * Return: 0 or -EINVAL
+ */
+static int parse_compression(const char *value, struct device_config *config)
+{
+	static const char *NONE_STRING = "none";
+	static const char *LZ4_STRING = "lz4";
+
+	if (strncmp(value, NONE_STRING, strlen(NONE_STRING) - 1) == 0) {
+		config->compression = VDO_NO_COMPRESSION;
+	} else if (strncmp(value, LZ4_STRING, strlen(LZ4_STRING) - 1) == 0) {
+		int ret = 0;
+
+		config->compression = VDO_LZ4;
+		config->compression_level = LZ4_ACCELERATION_DEFAULT;
+
+		ret = parse_compression_level(&value[strlen(LZ4_STRING) - 1],
+					      &config->compression_level);
+		if (ret) {
+			vdo_log_error("optional config string error: compressType allows lz4 levels as 'lz4:<levelNumber>', but got %s",
+				      value);
+			return ret;
+		}
+	} else {
+		vdo_log_error("optional config string error: compressType accepts 'none' and 'lz4' only, got %s",
+			      value);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
  * parse_one_key_value_pair() - Parse one key/value pair and update the configuration data
  *				structure.
  * @key: The optional key name.
@@ -666,8 +733,17 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "deduplication") == 0)
 		return parse_bool(value, "on", "off", &config->deduplication);
 
-	if (strcmp(key, "compression") == 0)
-		return parse_bool(value, "on", "off", &config->compression);
+	if (strcmp(key, "compression") == 0) {
+		bool compress = false;
+		int ret = parse_bool(value, "on", "off", &compress);
+		if (ret)
+			return ret;
+		config->compression = compress ? VDO_LZ4 : VDO_NO_COMPRESSION;
+		return 0;
+	}
+
+	if (strcmp(key, "compressType") == 0)
+		return parse_compression(value, config);
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -826,7 +902,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
-	config->compression = false;
+	config->compression = VDO_NO_COMPRESSION;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
@@ -2629,7 +2705,7 @@ static void resume_callback(struct vdo_completion *completion)
 	case RESUME_PHASE_PACKER:
 	{
 		bool was_enabled = vdo_get_compressing(vdo);
-		bool enable = vdo->device_config->compression;
+		bool enable = (vdo->device_config->compression != VDO_NO_COMPRESSION);
 
 		if (enable != was_enabled)
 			WRITE_ONCE(vdo->compressing, enable);
@@ -3104,7 +3180,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 1, 0 },
+	.version = { 9, 2, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
