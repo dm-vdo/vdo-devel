@@ -666,8 +666,16 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "deduplication") == 0)
 		return parse_bool(value, "on", "off", &config->deduplication);
 
-	if (strcmp(key, "compression") == 0)
-		return parse_bool(value, "on", "off", &config->compression);
+	if (strcmp(key, "compression") == 0) {
+		bool compress = false;
+
+		result = parse_bool(value, "on", "off", &compress);
+		if (result)
+			return result;
+
+		config->compression = (compress ? VDO_LZ4 : VDO_NO_COMPRESSION);
+		return VDO_SUCCESS;
+	}
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -826,7 +834,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	};
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
-	config->compression = false;
+	config->compression = VDO_NO_COMPRESSION;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
@@ -2629,7 +2637,7 @@ static void resume_callback(struct vdo_completion *completion)
 	case RESUME_PHASE_PACKER:
 	{
 		bool was_enabled = vdo_get_compressing(vdo);
-		bool enable = vdo->device_config->compression;
+		bool enable = (vdo->device_config->compression != VDO_NO_COMPRESSION);
 
 		if (enable != was_enabled)
 			WRITE_ONCE(vdo->compressing, enable);

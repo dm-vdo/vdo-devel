@@ -193,6 +193,12 @@ struct slab_config {
 	block_count_t slab_journal_scrubbing_threshold;
 } __packed;
 
+/* The type of compression that the vdo should be using */
+enum vdo_compression_type {
+	VDO_NO_COMPRESSION = 0,
+	VDO_LZ4 = 1,
+};
+
 #if defined(__KERNEL__) || defined(INTERNAL)
 /*
  * This structure is memcmp'd for equality. Keep it packed and don't add any fields that are not
@@ -227,7 +233,7 @@ struct device_config {
 	unsigned int cache_size;
 	unsigned int block_map_maximum_age;
 	bool deduplication;
-	bool compression;
+	enum vdo_compression_type compression;
 	struct thread_count_config thread_counts;
 	block_count_t max_discard_blocks;
 };
