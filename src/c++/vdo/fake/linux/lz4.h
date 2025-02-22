@@ -11,6 +11,7 @@
 #include "../../tests/lz4.h"
 
 #define LZ4_MEM_COMPRESS LZ4_context_size()
+#define LZ4_ACCELERATION_DEFAULT 1
 
 /**********************************************************************/
 int LZ4_compress_default(const char *source,

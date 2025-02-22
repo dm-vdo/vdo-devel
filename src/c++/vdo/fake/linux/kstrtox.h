@@ -16,6 +16,7 @@
 int
 kstrtouint(const char *string, unsigned int base, unsigned int *result);
 int
+kstrtoint(const char *string, unsigned int base, int *result);
+int
 kstrtoull(const char *s, unsigned int base, u64 *res);
-
 #endif // LINUX_KSTRTOX_H
