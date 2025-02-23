@@ -1177,6 +1177,9 @@ static int __must_check process_vdo_message_locked(struct vdo *vdo, unsigned int
 						   char **argv)
 {
 	if ((argc == 2) && (strcasecmp(argv[0], "compression") == 0)) {
+		vdo_log_warning("dmsetup compression message deprecated and will be removed.");
+		vdo_log_warning("please reload the dmsetup table to change compression.");
+
 		if (strcasecmp(argv[1], "on") == 0) {
 			vdo_set_compressing(vdo, true);
 			return 0;

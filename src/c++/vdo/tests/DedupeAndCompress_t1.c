@@ -196,7 +196,7 @@ static void doReadWriteMix(bool success)
   }
 
   // Turn off compression to prevent further packing and then flush packer.
-  performSetVDOCompressing(false);
+  modifyCompressDedupe(false, true);
 
   // Wait for all writes to complete.
   for (size_t waiting = 0; waiting < writeRequestCount; waiting++) {
