@@ -247,6 +247,9 @@ sub new {
 sub configure {
   my ($self, $arguments) = assertNumArgs(2,  @_);
   $self->SUPER::configure($arguments);
+  my $path = $self->{storageDevice}->getDevicePath();
+  my $output = $self->runOnHost(["sudo wipefs --all --force $path"]);
+  $log->info("$output");
   my $size = $self->{physicalSize};
   if (defined($size)) {
     $self->resizeStorageDevice($size);
