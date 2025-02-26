@@ -9,6 +9,7 @@
 #include <linux/delay.h>
 #include <linux/device-mapper.h>
 #include <linux/err.h>
+#include <linux/lz4.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
@@ -442,6 +443,41 @@ static inline int __must_check parse_bool(const char *bool_str, const char *true
 }
 
 /**
+ * parse_compression() - Parse a compression configuration string.
+ * @string: The string value describing compression options.
+ * @config: The configuration data structure to update.
+ *
+ * Return: VDO_SUCCESS or an error.
+ */
+static int __must_check parse_compression(const char *string,
+					  struct device_config *config)
+{
+	char *delimiter = strchrnul(string, ':');
+	char *option_string = *delimiter ? delimiter + 1 : NULL;
+	int key_length = delimiter - string;
+	int result;
+
+	if (strncmp(string, VDO_COMPRESS_LZ4, key_length) == 0 &&
+	    key_length == strlen(VDO_COMPRESS_LZ4)) {
+		if (!option_string)
+			return VDO_SUCCESS;
+
+		result = kstrtoint(option_string, 10, &config->compression_level);
+		if (result || strlen(option_string) == 0) {
+			vdo_log_error("optional config string error: integer needed, found \"%s\"",
+				      option_string);
+			return VDO_BAD_CONFIGURATION;
+		}
+	} else {
+		vdo_log_error("optional config string error: unknown compression type \"%s\"",
+			      string);
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	return VDO_SUCCESS;
+}
+
+/**
  * process_one_thread_config_spec() - Process one component of a thread parameter configuration
  *				      string and update the configuration data structure.
  * @thread_param_type: The type of thread specified.
@@ -662,13 +698,17 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 	if (strcmp(key, "compression") == 0)
 		return parse_bool(value, "on", "off", &config->compression);
 
-	/* The remaining arguments must have integral values. */
+	if (strcmp(key, "compressionType") == 0)
+		return parse_compression(value, config);
+
+	/* The remaining arguments must have non-negative integral values. */
 	result = kstrtouint(value, 10, &count);
 	if (result) {
-		vdo_log_error("optional config string error: integer value needed, found \"%s\"",
+		vdo_log_error("optional config string error: unsigned integer needed, found \"%s\"",
 			      value);
 		return result;
 	}
+
 	return process_one_key_value_pair(key, count, config);
 }
 
@@ -820,6 +860,7 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
 	config->compression = false;
+	config->compression_level = LZ4_ACCELERATION_DEFAULT;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
@@ -1126,7 +1167,7 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
-	struct device_config *device_config;
+	struct device_config *device_config = ti->private;
 	/* N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen". */
 	int sz = 0;
 
@@ -1137,19 +1178,30 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 		vdo_fetch_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
-		DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
-		       vdo_get_backing_device(vdo), stats->mode,
-		       stats->in_recovery_mode ? "recovering" : "-",
-		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
-		       vdo_get_compressing(vdo) ? "online" : "offline",
-		       stats->data_blocks_used + stats->overhead_blocks_used,
-		       stats->physical_blocks);
+		if (strstr(device_config->original_string, "compressionType")) {
+			DMEMIT("/dev/%pg %s %s %s %s:%d(%s) %llu %llu",
+			       vdo_get_backing_device(vdo), stats->mode,
+			       stats->in_recovery_mode ? "recovering" : "-",
+			       vdo_get_dedupe_index_state_name(vdo->hash_zones),
+			       VDO_COMPRESS_LZ4, device_config->compression_level,
+			       vdo_get_compressing(vdo) ? "on" : "off",
+			       stats->data_blocks_used + stats->overhead_blocks_used,
+			       stats->physical_blocks);
+		} else {
+			DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
+			       vdo_get_backing_device(vdo), stats->mode,
+			       stats->in_recovery_mode ? "recovering" : "-",
+			       vdo_get_dedupe_index_state_name(vdo->hash_zones),
+			       vdo_get_compressing(vdo) ? "online" : "offline",
+			       stats->data_blocks_used + stats->overhead_blocks_used,
+			       stats->physical_blocks);
+		}
+
 		mutex_unlock(&vdo->stats_mutex);
 		break;
 
 	case STATUSTYPE_TABLE:
 		/* Report the string actually specified in the beginning. */
-		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
 
@@ -3064,7 +3116,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 1, 0 },
+	.version = { 9, 2, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
