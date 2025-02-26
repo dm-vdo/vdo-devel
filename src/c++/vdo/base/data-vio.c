@@ -1844,6 +1844,7 @@ static void pack_compressed_data(struct vdo_completion *completion)
 static void compress_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
+	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	int size;
 
 	assert_data_vio_on_cpu_thread(data_vio);
@@ -1852,10 +1853,11 @@ static void compress_data_vio(struct vdo_completion *completion)
 	 * By putting the compressed data at the start of the compressed block data field, we won't
 	 * need to copy it if this data_vio becomes a compressed write agent.
 	 */
-	size = LZ4_compress_default(data_vio->vio.data,
-				    data_vio->compression.block->data, VDO_BLOCK_SIZE,
-				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				    (char *) vdo_get_work_queue_private_data());
+	size = LZ4_compress_fast(data_vio->vio.data,
+				 data_vio->compression.block->data, VDO_BLOCK_SIZE,
+				 VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
+				 vdo->device_config->compression_level,
+				 (char *) vdo_get_work_queue_private_data());
 	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);
