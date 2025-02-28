@@ -302,7 +302,36 @@ sub testMultiVdoDefiningTable {
 }
 
 ###############################################################################
-# Test no optional parameters and make sure it works properly.
+# Test various valid compression type options and associated status output.
+##
+sub testCompressionType {
+  my ($self) = assertNumArgs(1, @_);
+  my $device = $self->getDevice();
+  my $deviceName = $device->getDeviceName();
+
+  $device->{compressionType} = undef;
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}offline( \S+){2}$/,
+                      $device->getStatus());
+
+  $device->{compressionType} = "lz4";
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:1\(off\)( \S+){2}$/,
+                      $device->getStatus());
+
+  $device->{compressionType} = "lz4:5";
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:5\(off\)( \S+){2}$/,
+                      $device->getStatus());
+
+  $device->{compressionType} = "lz4:-5";
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:-5\(off\)( \S+){2}$/,
+                      $device->getStatus());
+}
+
+###############################################################################
+# Test sending no optional parameters and make sure it works properly.
 ##
 sub testOptionalParameters {
   my ($self) = assertNumArgs(1, @_);
@@ -320,6 +349,7 @@ sub testOptionalParameters {
   $device->{physicalThreadCount} = undef;
   $device->{enableDeduplication} = -1;
   $device->{enableCompression} = -1;
+  $device->{compressionType} = undef;
 
   $device->restart();
 
