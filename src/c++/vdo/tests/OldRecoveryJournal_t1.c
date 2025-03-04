@@ -118,7 +118,7 @@ static void generate(void)
   zeroData(0, BATCH_SIZE, VDO_SUCCESS);
 
   // fill two more journal blocks with duplicates of a compressed block.
-  performSetVDOCompressing(true);
+  modifyCompressDedupe(true, true);
   for (u8 i = 0; i < BATCHES; i++) {
     writeData(VDO_BLOCK_MAP_ENTRIES_PER_PAGE + (i * BATCH_SIZE),
               BATCH_SIZE,

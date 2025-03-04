@@ -464,33 +464,6 @@ void waitForRecoveryDone(void)
   }
 }
 
-/**
- * A vdo_action_fn to enable VDO compression from the request thread.
- **/
-static void enableCompressionAction(struct vdo_completion *completion)
-{
-  vdo_set_compressing(vdo, true);
-  vdo_finish_completion(completion);
-}
-
-/**
- * A vdo_action_fn to disable VDO compression from the request thread.
- **/
-static void disableCompressionAction(struct vdo_completion *completion)
-{
-  vdo_set_compressing(vdo, false);
-  vdo_finish_completion(completion);
-}
-
-/**********************************************************************/
-void performSetVDOCompressing(bool enable)
-{
-  performSuccessfulActionOnThread((enable
-                                   ? enableCompressionAction
-                                   : disableCompressionAction),
-                                  vdo->thread_config.packer_thread);
-}
-
 /**********************************************************************/
 block_count_t computeDataBlocksToFill(void)
 {
