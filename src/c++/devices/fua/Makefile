@@ -21,7 +21,7 @@ CFLAGS_super.o := -DDEBUG
 
 MODNAME = pbitdory
 
-EXTRA_CFLAGS += $(INCLUDES)
+ccflags-y += $(INCLUDES)
 
 obj-m := $(MODNAME).o
 $(MODNAME)-objs := $(FUA_OBJS) $(DEVICE_COMMON_OBJS)
