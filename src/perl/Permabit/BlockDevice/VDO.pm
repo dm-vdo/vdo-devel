@@ -136,6 +136,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      blockSize                 => 4 * $KB,
      # The class of machines this test is running on
      clientClass               => undef,
+     # The type of compression to use, plus any arguments
+     compressionType           => undef,
      # The number of "CPU" (hashing etc) threads to use
      cpuThreadCount            => undef,
      # whether to start or skip the indexer
