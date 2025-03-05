@@ -15,4 +15,4 @@ obj-m += $(MODNAME).o
 $(MODNAME)-objs := $(DORY_OBJS)
 
 INCLUDES += -I$(src)/
-EXTRA_CFLAGS += $(INCLUDES)
+ccflags-y += $(INCLUDES)

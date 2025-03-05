@@ -16,7 +16,7 @@ obj-m += $(MODNAME).o
 $(MODNAME)-objs := $(TRACER_OBJS) $(MURMUR_OBJS)
 
 INCLUDES += -I$(src)/
-EXTRA_CFLAGS += $(INCLUDES)
+ccflags-y += $(INCLUDES)
 
 ###############################################################################
 # Override kernel-object build rule when sources are in another directory

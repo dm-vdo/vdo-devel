@@ -30,18 +30,18 @@ EXTRA_ARCH_CFLAGS = -mno-omit-leaf-frame-pointer
 else
 EXTRA_ARCH_CFLAGS =
 endif
-EXTRA_CFLAGS =	-I$(KBUILD_EXTMOD)					\
-		-std=gnu11						\
-		-fno-builtin-memset					\
-		-fno-omit-frame-pointer					\
-		-fno-optimize-sibling-calls				\
-		-fno-stack-protector					\
-		-Werror							\
-		$(EXTRA_GCC_CFLAGS)                                     \
-		$(if $(CONFIG_KASAN)$(LLVM),,-Wframe-larger-than=400)	\
-		-g							\
-		$(EXTRA_ARCH_CFLAGS)					\
-		-DSTATIC=static                				\
-		-DVDO_INTERNAL						\
-		-DRHEL_INTERNAL                                         \
-		-DVDO_VERSION='"$(VDO_VERSION)"'
+ccflags-y = -I$(KBUILD_EXTMOD)						\
+	    -std=gnu11							\
+	    -fno-builtin-memset						\
+	    -fno-omit-frame-pointer					\
+	    -fno-optimize-sibling-calls					\
+	    -fno-stack-protector					\
+	    -Werror							\
+	    $(EXTRA_GCC_CFLAGS)						\
+	    $(if $(CONFIG_KASAN)$(LLVM),,-Wframe-larger-than=400)	\
+	    -g								\
+	    $(EXTRA_ARCH_CFLAGS)					\
+	    -DSTATIC=static                				\
+	    -DVDO_INTERNAL						\
+	    -DRHEL_INTERNAL						\
+	    -DVDO_VERSION='"$(VDO_VERSION)"'

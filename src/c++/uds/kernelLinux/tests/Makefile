@@ -70,7 +70,7 @@ ZUB_DKMS_SOURCES =	albtest.c		\
 
 ZUB_DKMS_HEADERS = $(wildcard $(TEST_DIR)/*.h) $(wildcard ./*.h)
 
-# These are extra EXTRA_CFLAGS for the zubenelgenubi module build.
+# These are extra ccflags-y for the zubenelgenubi module build.
 ZUB_EXTRA = 	$(ZUB_CFLAGS) -DTEST_INTERNAL	\
 		-USTATIC			\
 		-DSTATIC=			\
@@ -84,7 +84,7 @@ $(ZUB_PACKAGE): $(UDS_TGZ) $(ZUB_DKMS_SOURCES) $(ZUB_DKMS_HEADERS) \
 		$(TEST_SOURCES)
 	rm -fr $(UDS_DIR) $(ZUB_DIR)
 	tar xvfz $(UDS_TGZ)
-	echo EXTRA_CFLAGS += $(ZUB_EXTRA) >>$(UDS_DIR)/$(UDS_NAME)/Makefile
+	echo ccflags-y += $(ZUB_EXTRA) >>$(UDS_DIR)/$(UDS_NAME)/Makefile
 	mv $(UDS_DIR) $(ZUB_DIR)
 	mkdir -p $(ZUB_SUBDIR)
 	cp -p $(ZUB_DKMS_SOURCES) $(ZUB_SUBDIR)

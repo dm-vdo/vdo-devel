@@ -21,7 +21,7 @@ CFLAGS_super.o := -DDEBUG
 
 MODNAME = pbitcorruptor
 
-EXTRA_CFLAGS += $(INCLUDES)
+ccflags-y += $(INCLUDES)
 
 obj-m := $(MODNAME).o
 $(MODNAME)-objs := $(CORRUPTOR_OBJS) $(DEVICE_COMMON_OBJS)

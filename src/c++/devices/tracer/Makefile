@@ -22,7 +22,7 @@ CFLAGS_super.o := -DDEBUG
 
 MODNAME = pbittracer
 
-EXTRA_CFLAGS += $(INCLUDES)
+ccflags-y += $(INCLUDES)
 
 obj-m := $(MODNAME).o
 $(MODNAME)-objs := $(TRACER_OBJS) $(MURMUR_OBJS) $(DEVICE_COMMON_OBJS)

@@ -17,9 +17,9 @@ INCLUDES += -I$(DORY_DIR)
 
 VPATH += $(DORY_DIR)
 
-EXTRA_CFLAGS =	-std=gnu11				\
-		-fno-builtin-memset			\
-		-fno-stack-protector			\
-		-Werror					\
-		-Wno-declaration-after-statement	\
-		-DPUBLIC_LINUX_KERNEL
+ccflags-y = -std=gnu11				\
+	    -fno-builtin-memset			\
+	    -fno-stack-protector		\
+	    -Werror				\
+	    -Wno-declaration-after-statement	\
+	    -DPUBLIC_LINUX_KERNEL

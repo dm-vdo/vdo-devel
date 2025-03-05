@@ -12,7 +12,7 @@ VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MICRO = $(word 3,$(subst ., ,$(VDO_VERSION)))
 
 # Stack-overflow debugging support; add $(STACK_CHECK_OPTIONS) to
-# EXTRA_CFLAGS to enable. See kernelLayer.c for implementation
+# ccflags-y to enable. See kernelLayer.c for implementation
 # details. (Only works on x86-64 at the moment.)
 STACK_CHECK_FNS=get_current,current_thread_info
 STACK_CHECK_OPTIONS=							\
