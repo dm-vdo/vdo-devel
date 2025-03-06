@@ -62,8 +62,8 @@ typedef struct testParameters {
   // vdoTestBase parameters
   /** The formatter for test data blocks */
   DataFormatter            *dataFormatter;
-  /** Whether compression should be enabled */
-  bool                      enableCompression;
+  /** Type of compression to use */
+  enum vdo_compression_type compression;
   /** Whether deduplication should be enabled */
   bool                      disableDeduplication;
   /** Whether physicalBlocks should include an index region */
