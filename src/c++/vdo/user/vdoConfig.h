@@ -110,7 +110,7 @@ initializeVolumeGeometry(nonce_t                    nonce,
  *
  * @return VDO_SUCCESS or an error
  **/
-int __must_check formatVDOWithNonce(const struct vdo_config *config,
+int __must_check formatVDOWithNonce(struct vdo_config *config,
 				    const struct index_config *indexConfig,
 				    PhysicalLayer *layer,
 				    nonce_t nonce,
