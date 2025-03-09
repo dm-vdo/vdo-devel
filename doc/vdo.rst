@@ -168,7 +168,16 @@ Miscellaneous parameters:
 
 	compression:
 		Whether compression is enabled. The default is 'off'; the
-		acceptable values are 'on' and 'off'.
+		acceptable values are 'on' and 'off'. It is preferred to
+                use the compressType parameter.
+
+        compressType:
+                The compression type, if any, to use. Acceptable values are
+                'none', the default; 'lz4', which uses the same behavior
+                as the 'compression=on' parameter; and 'lz4:<level>' for
+                integer levels. If a level is specified, this is used as the
+                acceleration factor for lz4. See lz4 docs for the specific
+                meanings of various acceleration factors. 
 
 Device modification
 -------------------
