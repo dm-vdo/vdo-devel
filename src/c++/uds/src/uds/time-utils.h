@@ -17,7 +17,7 @@
 #include <linux/version.h>
 #undef VDO_USE_NEXT
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(10, 0))
+#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(11, 0))
 #define VDO_USE_NEXT
 #endif
 #else /* !RHEL_RELEASE_CODE */
