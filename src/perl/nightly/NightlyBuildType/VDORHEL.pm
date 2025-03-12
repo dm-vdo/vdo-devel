@@ -25,7 +25,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 ##
 sub getSuitesImplementation {
   my ($self) = assertNumArgs(1, @_);
-  return generateTestSuites($self->getSuiteProperties(), ['RHEL9']);
+  return generateTestSuites($self->getSuiteProperties(), ['RHEL10']);
 }
 
 1;
