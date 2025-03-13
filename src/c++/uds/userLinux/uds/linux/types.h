@@ -51,4 +51,6 @@ typedef unsigned int fmode_t;
 typedef int pid_t;
 typedef u64 sector_t;
 
+typedef unsigned int gfp_t;
+
 #endif /* UDS_LINUX_TYPES_H */

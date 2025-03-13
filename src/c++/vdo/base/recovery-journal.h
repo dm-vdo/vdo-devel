@@ -81,6 +81,8 @@
  * 'reap_completion', and will be woken the next time a journal block is reaped.
  */
 
+#define RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER 1
+
 enum vdo_zone_type {
 	VDO_ZONE_TYPE_ADMIN,
 	VDO_ZONE_TYPE_JOURNAL,
