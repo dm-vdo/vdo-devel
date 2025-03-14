@@ -18,8 +18,6 @@ use Permabit::Assertions qw(
   assertNumArgs
 );
 use Permabit::SystemUtils qw(assertCommand getNfsTempFile);
-use Permabit::Triage::Utils qw(getCodename);
-use Permabit::Triage::TestInfo qw(%TEST_INFO);
 use Permabit::Utils qw(makeFullPath);
 
 use base qw(Exporter);
@@ -64,23 +62,6 @@ sub _quoteString {
     return "$value";
   }
   return $value;
-}
-
-#############################################################################
-# Get the codename string to use for 'branch' for the graphing app post
-#
-# XXX This is a hack and will be replaced during our triage code overhaul
-#
-# @param testInfoKey      the TEST_INFO key to use to lookup our project
-#                         from which we will derive our 'branch' string
-##
-sub _getBranchStr {
-  my ($testInfoKey) = assertNumArgs(1, @_);
-  # XXX Hack -- shouldn't have to access TEST_INFO
-  assertDefined($TEST_INFO{$testInfoKey});
-  my $project = $TEST_INFO{$testInfoKey}{project};
-  my $branchStr = lc(getCodename($project));
-  return $branchStr;
 }
 
 
