@@ -20,6 +20,7 @@
 #include "admin-state.h"
 #include "block-map.h"
 #include "completionUtils.h"
+#include "constants.h"
 #include "encodings.h"
 #include "recovery-journal.h"
 #include "slab-depot.h"
@@ -555,6 +556,12 @@ static void addUInt64(char **arg, uint64_t u)
 }
 
 /**********************************************************************/
+static void addCompressionType(char **arg, const char *s, int32_t d)
+{
+  CU_ASSERT(asprintf(arg, "%s:%d", s, d) != -1);
+}
+
+/**********************************************************************/
 static TestConfiguration fixThreadCounts(TestConfiguration configuration)
 {
   struct thread_count_config *threads = &configuration.deviceConfig.thread_counts;
@@ -623,6 +630,9 @@ static int makeTableLine(TestConfiguration configuration, char **argv)
   addString(&argv[argc++],
             (configuration.deviceConfig.compression ? "on" : "off"));
 
+  addString(&argv[argc++], "compressionType");
+  addCompressionType(&argv[argc++], VDO_COMPRESS_LZ4,
+                     configuration.deviceConfig.compression_level);
   return argc;
 }
 
