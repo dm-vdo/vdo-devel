@@ -403,17 +403,11 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->getMachine()->setProcFile(secondsToMS($self->{latencyLimit}),
+                                       $self->getSysModuleDevicePath("$histogram/limit"));
     }
   };
 
@@ -779,35 +773,31 @@ sub waitForIndex {
 ########################################################################
 # Get the compression status of the VDO device.
 #
-# @return the contents of the sysfs compression entry for the device
+# @return the value of the compression state from dmsetup status call
 ##
 sub getVDOCompressionStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("compressing"));
+  my $status = $self->getStatus();
+  $status =~ m/(\S+\s){7}(\S+)/;
+
+  # A repeated capturing group will only capture the last iteration, but it's fine
+  # since we don't care about it.
+  return $2;
 }
 
 ########################################################################
 # Get the dedupe status of the VDO device.
 #
-# @return the contents of the sysfs dedupe/status entry for the device
+# @return the value of the dedupe state from dmsetup status call
 ##
 sub getVDODedupeStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("dedupe/status"));
-}
+  my $status = $self->getStatus();
+  $status =~ m/(\S+\s){6}(\S+)/;
 
-########################################################################
-# Get the number of dedupe queue timeouts.
-#
-# @return the number of dedupe queue timeouts.
-##
-sub getDedupeQueueTimeoutCount {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  my $path = $self->getSysModuleDevicePath("dedupe/queue_timeout_count");
-  return $machine->catAndChomp($path);
+  # A repeated capturing group will only capture the last iteration, but it's fine
+  # since we don't care about it.
+  return $2;
 }
 
 ########################################################################
@@ -922,7 +912,7 @@ sub enableDeduplication {
 ##
 sub isVDOCompressionEnabled {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->getVDOCompressionStatus() eq '1');
+  return ($self->getVDOCompressionStatus() eq 'online');
 }
 
 ########################################################################
@@ -1684,7 +1674,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return ($self->getCurrentVDOStats()->{"instance"});
   };
 }
 
