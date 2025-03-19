@@ -13,7 +13,6 @@ typedef uint64_t sector_t;
 
 #define BIT(nr) (((unsigned long) 1) << (nr))
 
-typedef unsigned int gfp_t;
 #define GFP_KERNEL 1
 #define GFP_NOWAIT 2
 
