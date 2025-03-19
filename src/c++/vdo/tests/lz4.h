@@ -50,6 +50,8 @@
  * Revision: 88
  */
 
+#define LZ4_ACCELERATION_DEFAULT 1
+
 /**
  * Compress 'isize' bytes from 'source' into an output buffer 'dest' of
  * maximum size 'maxOutputSize'.  If it cannot achieve it, compression will
@@ -61,6 +63,7 @@
  * @param dest           Output data
  * @param isize          Input size. Max supported value is ~1.9GB
  * @param maxOutputSize  Size of the destination buffer
+ * @param acceleration   Acceleration factor
  *
  * @return the number of bytes written in buffer 'dest' or 0 if the
  *         compression fails
@@ -69,7 +72,8 @@ int LZ4_compress_ctx_limitedOutput(void       *ctx,
                                    const char *source,
                                    char       *dest,
                                    int         isize,
-                                   int         maxOutputSize);
+                                   int         maxOutputSize,
+                                   int         acceleration);
 
 /**
  * Return the size of the "ctx" block needed by the compression method.

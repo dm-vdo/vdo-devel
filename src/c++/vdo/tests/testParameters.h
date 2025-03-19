@@ -64,6 +64,8 @@ typedef struct testParameters {
   DataFormatter            *dataFormatter;
   /** Whether compression should be enabled */
   bool                      enableCompression;
+  /** The compression level to use if compression is enabled */
+  int                       compressionLevel;
   /** Whether deduplication should be enabled */
   bool                      disableDeduplication;
   /** Whether physicalBlocks should include an index region */
