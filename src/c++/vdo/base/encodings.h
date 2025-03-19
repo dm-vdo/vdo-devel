@@ -852,6 +852,9 @@ int __must_check encode_volume_geometry(u8 *buffer, size_t *offset,
 					u32 version);
 
 #endif /* VDO_USER */
+int __must_check vdo_encode_volume_geometry(u8 *buffer,
+					    const struct volume_geometry *geometry);
+
 static inline bool vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {
 	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
@@ -1335,6 +1338,7 @@ int __must_check vdo_validate_component_states(struct vdo_component_states *stat
 
 void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states);
 int __must_check vdo_decode_super_block(u8 *buffer);
+
 
 /* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
 static inline u32 vdo_crc32(const void *buf, unsigned long len)
