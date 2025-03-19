@@ -234,7 +234,8 @@ int computeIndexBlocks(const struct index_config *index_config,
 
   result = uds_compute_index_size(&uds_parameters, &index_bytes);
   if (result != UDS_SUCCESS)
-    return vdo_log_error_strerror(result, "error computing index size");
+    return vdo_log_error_strerror(uds_status_to_errno(result),
+                                  "error computing index size");
 
   index_blocks = index_bytes / VDO_BLOCK_SIZE;
   if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
