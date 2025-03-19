@@ -161,6 +161,7 @@ tarballs:
         src/c++/uds/userLinux/uds:
           dest: utils/uds
           sources:
+            - blk-lib.c
             - dm-bufio.c
             - fileUtils.[hc]
             - hlist.h
