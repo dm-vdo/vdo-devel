@@ -161,6 +161,7 @@ tarballs:
         src/c++/uds/userLinux/uds:
           dest: utils/uds
           sources:
+            - blk-lib.c
             - dm-bufio.c
             - fileUtils.[hc]
             - hlist.h
@@ -201,6 +202,7 @@ tarballs:
             - stddef.h
             - types.h
             - unaligned.h
+            - uuid.h
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
