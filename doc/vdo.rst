@@ -311,8 +311,8 @@ Status
 
 	index state:
 		The current state of the deduplication index in the vdo
-		volume; values may be 'closed', 'closing', 'error',
-		'offline', 'online', 'opening', and 'unknown'.
+		volume; values may be 'active', 'closed', 'closing',
+		'error', 'inactive', 'opening', 'suspended', and 'unknown'.
 
 	compression state:
 		The current state of compression in the vdo volume; values
