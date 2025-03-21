@@ -39,8 +39,8 @@ tie my %DMSETUP_STATUS_FIELDS, 'Tie::IxHash';
                           device           => undef,
                           mode             => "normal",
                           recoveryMode     => "-",
-                          indexState       => "online",
-                          compressionState => "offline",
+                          indexState       => "active",
+                          compressionState => "lz4:1(off)",
                           blocksUsed       => undef,
                           totalBlocks      => undef,
                          );
@@ -236,8 +236,8 @@ sub testMultiple {
   _checkStatusFields($statusFields2, $statsYaml->{$name2});
 
   # sysfs should show both devices online
-  assertEq("online", $device->getVDODedupeStatus());
-  assertEq("online", $device2->getVDODedupeStatus());
+  assertEq("active", $device->getVDODedupeStatus());
+  assertEq("active", $device2->getVDODedupeStatus());
 
   $machine->assertExecuteCommand("sudo vgdisplay");
   $machine->assertExecuteCommand("sudo lvdisplay");
