@@ -260,6 +260,7 @@ sub _minimumMemory {
   # FEDORANEXT not measured; assume it needs 400M for pre-VDO operation.
   # RHEL8 measured 2023-07-24 needed 400M for pre-VDO operation.
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
+  # RHEL10 not measured; assume it needs 400M for pre-VDO operation. (VDO-5899)
   my %DISTRO_MEMORY_REQUIREMENTS
     = (
        FEDORA39   => 400 * $MB,
@@ -269,6 +270,7 @@ sub _minimumMemory {
        RAWHIDE    => 400 * $MB,
        RHEL8      => 400 * $MB,
        RHEL9      => 400 * $MB,
+       RHEL10     => 400 * $MB,
       );
   my $distro   =  getDistroInfo($host);
   assertDefined($DISTRO_MEMORY_REQUIREMENTS{$distro});
