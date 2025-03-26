@@ -59,6 +59,16 @@ enum {
 	/* The maximum number of physical zones */
 	MAX_VDO_PHYSICAL_ZONES = 16,
 
+	/* The base-2 logarithm of the default blocks in one slab */
+	DEFAULT_VDO_SLAB_BITS = 19,
+
+	/* The base-2 logarithm of the minimum blocks in one slab */
+#ifdef INTERNAL
+	MIN_VDO_SLAB_BITS = 4,
+#else
+	MIN_VDO_SLAB_BITS = 13,
+#endif /* INTERNAL */
+
 	/* The base-2 logarithm of the maximum blocks in one slab */
 	MAX_VDO_SLAB_BITS = 23,
 

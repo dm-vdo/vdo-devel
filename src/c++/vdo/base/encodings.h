@@ -27,6 +27,12 @@
 #include "constants.h"
 #include "types.h"
 
+/** The maximum logical space is 4 petabytes, which is 1 terablock. */
+#define MAXIMUM_VDO_LOGICAL_BLOCKS (1024ULL * 1024 * 1024 * 1024)
+
+/** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
+#define MAXIMUM_VDO_PHYSICAL_BLOCKS (1024ULL * 1024 * 1024 * 64)
+
 /*
  * An in-memory representation of a version number for versioned structures on disk.
  *
@@ -619,14 +625,6 @@ struct vdo_config {
 	block_count_t slab_journal_blocks; /* number of slab journal blocks */
 };
 
-#ifndef VDO_UPSTREAM
-/** The maximum logical space is 4 petabytes, which is 1 terablock. */
-#define MAXIMUM_VDO_LOGICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 1024))
-
-/** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
-#define MAXIMUM_VDO_PHYSICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 64))
-
-#endif
 /* This is the structure that captures the vdo fields saved as a super block component. */
 struct vdo_component {
 	enum vdo_state state;
@@ -850,12 +848,10 @@ vdo_get_index_region_size(struct volume_geometry geometry)
 int __must_check vdo_parse_geometry_block(unsigned char *block,
 					  struct volume_geometry *geometry);
 
-#if (defined(VDO_USER) || defined(INTERNAL))
-int __must_check encode_volume_geometry(u8 *buffer, size_t *offset,
+int __must_check encode_volume_geometry(u8 *buffer,
 					const struct volume_geometry *geometry,
 					u32 version);
 
-#endif /* VDO_USER */
 static inline bool vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {
 	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
