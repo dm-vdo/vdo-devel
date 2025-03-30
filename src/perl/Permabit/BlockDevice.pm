@@ -607,7 +607,7 @@ sub getDeviceMajorMinor {
   my $errno  = $self->sendCommand('ls -Hl ' . $self->getDevicePath());
   assertEqualNumeric(0, $errno);
   my @majorMinor = ($self->getMachine()->getStdout()
-                    =~ m/^b[rwx-]+T?\s+\d+[\s\w]+\s+(\d+),\s+(\d+)/);
+                    =~ m/^b[rwx-]+T?\.?\s+\d+[\s\w]+\s+(\d+),\s+(\d+)/);
   assertEqualNumeric(2, scalar(@majorMinor));
   return @majorMinor;
 }
