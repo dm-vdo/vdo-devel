@@ -140,12 +140,7 @@ int formatVDO(const struct vdo_config   *config,
               const struct index_config *indexConfig,
               PhysicalLayer             *layer)
 {
-  // Generate a uuid.
-  uuid_t uuid;
-  uuid_gen(&uuid);
-
-  return formatVDOWithNonce(config, indexConfig, layer, current_time_us(),
-                            &uuid);
+  return formatVDOWithNonce(config, indexConfig, layer, current_time_us());
 }
 
 /**********************************************************************/
@@ -159,7 +154,7 @@ int calculateMinimumVDOFromConfig(const struct vdo_config   *config,
 
   block_count_t indexSize = 0;
   if (indexConfig != NULL) {
-    int result = computeIndexBlocks(indexConfig, &indexSize);
+    int result = vdo_compute_index_blocks(indexConfig, &indexSize);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -218,71 +213,6 @@ static int __must_check clearPartition(UserVDO *vdo, enum partition_id id)
   return result;
 }
 
-/**********************************************************************/
-int computeIndexBlocks(const struct index_config *index_config,
-                       block_count_t             *index_blocks_ptr)
-{
-  int result;
-  u64 index_bytes;
-  block_count_t index_blocks;
-  struct uds_parameters uds_parameters = {
-    .memory_size = index_config->mem,
-    .sparse = index_config->sparse,
-  };
-
-  result = uds_compute_index_size(&uds_parameters, &index_bytes);
-  if (result != UDS_SUCCESS)
-    return vdo_log_error_strerror(result, "error computing index size");
-
-  index_blocks = index_bytes / VDO_BLOCK_SIZE;
-  if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
-    return vdo_log_error_strerror(VDO_PARAMETER_MISMATCH,
-                                  "index size must be a multiple of block size %d",
-                                  VDO_BLOCK_SIZE);
-
-  *index_blocks_ptr = index_blocks;
-  return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int initializeVolumeGeometry(nonce_t                    nonce,
-                             uuid_t                    *uuid,
-                             const struct index_config *index_config,
-                             struct volume_geometry    *geometry)
-{
-  int result;
-  block_count_t index_size = 0;
-
-  if (index_config != NULL) {
-    result = computeIndexBlocks(index_config, &index_size);
-    if (result != VDO_SUCCESS)
-      return result;
-  }
-
-  *geometry = (struct volume_geometry) {
-    /* This is for backwards compatibility. */
-    .unused = 0,
-    .nonce = nonce,
-    .bio_offset = 0,
-    .regions = {
-      [VDO_INDEX_REGION] = {
-        .id = VDO_INDEX_REGION,
-        .start_block = 1,
-      },
-      [VDO_DATA_REGION] = {
-        .id = VDO_DATA_REGION,
-        .start_block = 1 + index_size,
-      }
-    }
-  };
-
-  uuid_copy(geometry->uuid, *uuid);
-  if (index_size > 0)
-    memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
-
-  return VDO_SUCCESS;
-}
-
 /**
  * Configure a VDO and its geometry and write it out.
  *
@@ -290,15 +220,13 @@ int initializeVolumeGeometry(nonce_t                    nonce,
  * @param config            The configuration parameters for the VDO
  * @param indexConfig       The configuration parameters for the index
  * @param nonce             The nonce for the VDO
- * @param uuid              The uuid for the VDO
  **/
 static int configureAndWriteVDO(UserVDO                   *vdo,
                                 const struct vdo_config   *config,
                                 const struct index_config *indexConfig,
-                                nonce_t                    nonce,
-                                uuid_t                    *uuid)
+                                nonce_t                    nonce)
 {
-  int result = initializeVolumeGeometry(nonce, uuid, indexConfig, &vdo->geometry);
+  int result = vdo_initialize_volume_geometry(indexConfig, nonce, &vdo->geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -341,8 +269,7 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
 int formatVDOWithNonce(const struct vdo_config   *config,
                        const struct index_config *indexConfig,
                        PhysicalLayer             *layer,
-                       nonce_t                    nonce,
-                       uuid_t                    *uuid)
+                       nonce_t                    nonce)
 {
   int result = vdo_register_status_codes();
   if (result != VDO_SUCCESS) {
@@ -360,7 +287,7 @@ int formatVDOWithNonce(const struct vdo_config   *config,
     return result;
   }
 
-  result = configureAndWriteVDO(vdo, config, indexConfig, nonce, uuid);
+  result = configureAndWriteVDO(vdo, config, indexConfig, nonce);
   freeUserVDO(&vdo);
   return result;
 }
