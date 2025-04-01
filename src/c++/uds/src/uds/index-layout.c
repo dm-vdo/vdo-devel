@@ -253,7 +253,6 @@ static int __must_check compute_sizes(const struct uds_configuration *config,
 	return UDS_SUCCESS;
 }
 
-#if defined(TEST_INTERNAL) || !defined(__KERNEL__)
 int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_size)
 {
 	int result;
@@ -268,19 +267,18 @@ int uds_compute_index_size(const struct uds_parameters *parameters, u64 *index_s
 	result = uds_make_configuration(parameters, &index_config);
 	if (result != UDS_SUCCESS) {
 		vdo_log_error_strerror(result, "cannot compute index size");
-		return uds_status_to_errno(result);
+		return result;
 	}
 
 	result = compute_sizes(index_config, &sizes);
 	uds_free_configuration(index_config);
 	if (result != UDS_SUCCESS)
-		return uds_status_to_errno(result);
+		return result;
 
 	*index_size = sizes.total_size;
 	return UDS_SUCCESS;
 }
 
-#endif /*  TEST_INTERNAL || ! __KERNEL__ */
 /* Create unique data using the current time and a pseudorandom number. */
 static void create_unique_nonce_data(u8 *buffer)
 {

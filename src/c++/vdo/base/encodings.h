@@ -11,10 +11,8 @@
 #include <linux/crc32.h>
 #endif /* __KERNEL__ */
 #include <linux/limits.h>
-#ifdef __KERNEL__
 #include <linux/uuid.h>
-#else /* not __KERNEL */
-#include <uuid/uuid.h>
+#ifndef __KERNEL__
 #include <zlib.h>
 #endif /* not __KERNEL__ */
 
@@ -1352,5 +1350,11 @@ static inline u32 vdo_crc32(const void *buf, unsigned long len)
 	return crc32(~0L, buf, len);
 #endif /* __KERNEL__ */
 }
+
+int vdo_compute_index_blocks(const struct index_config *config,
+			     block_count_t *index_blocks_ptr);
+
+int vdo_initialize_volume_geometry(const struct index_config *index_config, nonce_t nonce,
+				   struct volume_geometry *geometry);
 
 #endif /* VDO_ENCODINGS_H */
