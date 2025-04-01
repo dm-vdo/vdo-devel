@@ -1540,6 +1540,136 @@ int vdo_decode_super_block(u8 *buffer)
 }
 
 /**
+ * compute_forest_size() - Compute the approximate number of pages which the
+ *                         forest will allocate in order to map the specified
+ *                         number of logical blocks.
+ * @logical_blocks: The number of blocks to map
+ * @root_count: The number of trees in the forest
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static block_count_t compute_forest_size(block_count_t logical_blocks,
+					 root_count_t root_count)
+{
+	struct boundary new_sizes;
+	block_count_t approximate_non_leaves =
+		vdo_compute_new_forest_pages(root_count, NULL, logical_blocks, &new_sizes);
+
+	/*
+	 * Exclude the tree roots since those aren't allocated from slabs,
+	 * and also exclude the super-roots, which only exist in memory.
+	 */
+	approximate_non_leaves -=
+		root_count * (new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 2] +
+			     new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1]);
+
+	block_count_t approximate_leaves =
+		vdo_compute_block_map_page_count(logical_blocks - approximate_non_leaves);
+
+	return (approximate_non_leaves + approximate_leaves);
+}
+
+
+/**
+ * vdo_initialize_component_states() - Initialize the components so they can be written out.
+ * @vdo_config: The config used for component state initialization.
+ * @starting_offset: The offset on disk where the data region begins.
+ * @nonce: The nonce to use to identify the vdo.
+ * @states: The component states to initialize
+ *
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_initialize_component_states(const struct vdo_config *vdo_config,
+				    physical_block_number_t offset,
+				    nonce_t nonce,
+				    struct vdo_component_states *states)
+{
+	unsigned int result;
+	unsigned int slab_size_shift;
+	slab_count_t slab_count;
+	struct slab_config slab_config;
+	struct partition *partition;
+
+	states->recovery_journal = (struct recovery_journal_state_7_0) {
+		.journal_start = RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER,
+		.logical_blocks_used = 0,
+		.block_map_data_blocks = 0,
+	};
+
+	states->vdo.config = *vdo_config;
+	states->vdo.nonce = nonce;
+	states->volume_version = VDO_VOLUME_VERSION_67_0;
+
+	/*
+	 * The layout starts 1 block past the beginning of the data region, as the
+	 * data region contains the super block but the layout does not.
+	 */
+	result = vdo_initialize_layout(vdo_config->physical_blocks,
+				       offset + 1,
+				       DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+				       states->vdo.config.recovery_journal_size,
+				       VDO_SLAB_SUMMARY_BLOCKS,
+				       &states->layout);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = vdo_configure_slab(states->vdo.config.slab_size,
+				    states->vdo.config.slab_journal_blocks,
+				    &slab_config);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	result = vdo_get_partition(&states->layout, VDO_SLAB_DEPOT_PARTITION,
+				   &partition);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	result = vdo_configure_slab_depot(partition, slab_config, 0,
+					  &states->slab_depot);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	/* Set derived parameters */
+	slab_size_shift = ilog2(states->vdo.config.slab_size);
+	slab_count = vdo_compute_slab_count(states->slab_depot.first_block,
+					    states->slab_depot.last_block,
+					    slab_size_shift);
+
+	if (states->vdo.config.logical_blocks == 0) {
+		block_count_t data_blocks = slab_config.data_blocks * slab_count;
+
+		states->vdo.config.logical_blocks =
+			data_blocks - compute_forest_size(data_blocks,
+							  DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
+	}
+
+	result = vdo_get_partition(&states->layout, VDO_BLOCK_MAP_PARTITION,
+				   &partition);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	states->block_map = (struct block_map_state_2_0) {
+		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
+		.flat_page_count = 0,
+		.root_origin = partition->offset,
+		.root_count = DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+	};
+
+	states->vdo.state = VDO_NEW;
+
+	return VDO_SUCCESS;
+}
+
+/**
  * vdo_compute_index_blocks() - Compute the size that the indexer will take up.
  * @index_config: The index config from which the blocks are calculated.
  * @index_blocks_ptr: The number of blocks the index will use.

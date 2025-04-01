@@ -1351,6 +1351,11 @@ static inline u32 vdo_crc32(const void *buf, unsigned long len)
 #endif /* __KERNEL__ */
 }
 
+int vdo_initialize_component_states(const struct vdo_config *vdo_config,
+				    physical_block_number_t offset,
+				    nonce_t nonce,
+				    struct vdo_component_states *states);
+
 int vdo_compute_index_blocks(const struct index_config *config,
 			     block_count_t *index_blocks_ptr);
 
