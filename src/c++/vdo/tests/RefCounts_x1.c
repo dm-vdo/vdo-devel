@@ -22,7 +22,7 @@
 #include "vdoTestBase.h"
 
 enum {
-  SLAB_SIZE          = 1 << MAX_VDO_SLAB_BITS,
+  SLAB_SIZE          = MAX_VDO_SLAB_BLOCKS,
   SLAB_COUNT         = 15,
   JOURNAL_SIZE       = 2,
   BLOCKS_PER_VIO     = 128,
