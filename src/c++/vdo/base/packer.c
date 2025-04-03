@@ -95,7 +95,7 @@ vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 		*type = VDO_LZ4;
 		*fragment_start = block->v1.data + offset;
 	} else {
-		if (block->v2.header.type != VDO_LZ4)
+		if (block->v2.header.type != VDO_LZ4 && block->v2.header.type != VDO_ZSTD)
 			return VDO_INVALID_FRAGMENT;
 
 		compressed_size = __le16_to_cpu(block->v2.header.sizes[slot]);
@@ -154,6 +154,17 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 				      __func__);
 			return VDO_INVALID_FRAGMENT;
 		}
+
+		size = zstd_decompress_dctx(dctx, buffer, VDO_BLOCK_SIZE,
+					    fragment_start, fragment_size);
+
+		if (size != VDO_BLOCK_SIZE) {
+			vdo_log_debug("%s: lz4 error", __func__);
+			return VDO_INVALID_FRAGMENT;
+		}
+
+		return VDO_SUCCESS;
+
 	}
 
 	size = LZ4_decompress_safe(fragment_start, buffer, fragment_size,
@@ -180,6 +191,8 @@ int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *
 	struct compression_context *context = vdo_get_work_queue_private_data();
 
 	if (vdo->device_config->compression_type == VDO_ZSTD) {
+		int level = vdo->device_config->compression_level;
+		zstd_parameters params = zstd_get_params(level, VDO_BLOCK_SIZE);
 		zstd_cctx *cctx;
 
 		cctx = zstd_init_cctx(context->buf, context->size);
@@ -188,6 +201,18 @@ int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *
 				      __func__);
 			return -EIO;
 		}
+
+		/*
+		 * Allow an extra 7 bytes, as does bcachefs, because zstd may
+		 * write a few bytes past the official end of the buffer.
+		 */
+		size = zstd_compress_cctx(cctx, block->v2.data,
+					  VDO_MAX_COMPRESSED_FRAGMENT_SIZE - 7,
+					  buffer, VDO_BLOCK_SIZE, &params);
+		if (zstd_is_error(size))
+			return VDO_BLOCK_SIZE;
+		return size;
+
 	}
 
 	size = LZ4_compress_default(buffer, block->v2.data, VDO_BLOCK_SIZE,
@@ -607,6 +632,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	struct data_vio *agent = remove_from_bin(packer, bin);
 	struct data_vio *client;
 	struct packer_statistics *stats;
+	struct vdo *vdo;
 
 	if (agent == NULL)
 		return;
@@ -614,7 +640,9 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 	compression = &agent->compression;
 	compression->slot = 0;
 	block = compression->block;
-	initialize_compressed_block(block, compression->size, VDO_LZ4);
+	vdo = vdo_from_data_vio(agent);
+	initialize_compressed_block(block, compression->size,
+				    vdo->device_config->compression_type);
 	offset = compression->size;
 
 	while ((client = remove_from_bin(packer, bin)) != NULL)
