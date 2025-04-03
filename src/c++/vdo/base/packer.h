@@ -49,6 +49,9 @@ enum {
 	 * fragment which fills the entire data portion of a compressed block is too big.
 	 */
 	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0 - 1,
+
+	/* Default vdo zstd level */
+	VDO_ZSTD_DEFAULT_LEVEL = 3,
 };
 
 struct compressed_block_1_0 {

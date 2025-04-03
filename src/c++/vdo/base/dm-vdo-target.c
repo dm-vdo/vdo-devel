@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/zstd.h>
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -466,18 +467,28 @@ static int __must_check parse_compression(const char *string,
 
 	if (strncmp(string, VDO_COMPRESS_LZ4, key_length) == 0 &&
 	    key_length == strlen(VDO_COMPRESS_LZ4)) {
+		config->compression_type = VDO_LZ4;
+		config->compression_level = LZ4_ACCELERATION_DEFAULT;
 		if (!option_string)
 			return VDO_SUCCESS;
 
-		result = kstrtoint(option_string, 10, &config->compression_level);
-		if (result || strlen(option_string) == 0) {
-			vdo_log_error("optional config string error: integer needed, found \"%s\"",
-				      option_string);
-			return VDO_BAD_CONFIGURATION;
-		}
+	} else if (strncmp(string, VDO_COMPRESS_ZSTD, key_length) == 0 &&
+	    key_length == strlen(VDO_COMPRESS_ZSTD)) {
+		config->compression_type = VDO_ZSTD;
+		config->compression_level = VDO_ZSTD_DEFAULT_LEVEL;
+		if (!option_string)
+			return VDO_SUCCESS;
+
 	} else {
 		vdo_log_error("optional config string error: unknown compression type \"%s\"",
 			      string);
+		return VDO_BAD_CONFIGURATION;
+	}
+
+	result = kstrtoint(option_string, 10, &config->compression_level);
+	if (result || strlen(option_string) == 0) {
+		vdo_log_error("optional config string error: integer needed, found \"%s\"",
+			      option_string);
 		return VDO_BAD_CONFIGURATION;
 	}
 
@@ -1163,6 +1174,20 @@ static int vdo_iterate_devices(struct dm_target *ti, iterate_devices_callout_fn 
 		  config->physical_blocks * VDO_SECTORS_PER_BLOCK, data);
 }
 
+static const char *get_compression_string(enum vdo_compression_type type)
+{
+	switch (type) {
+	case VDO_NO_COMPRESSION:
+		return "none";
+	case VDO_LZ4:
+		return VDO_COMPRESS_LZ4;
+	case VDO_ZSTD:
+		return VDO_COMPRESS_ZSTD;
+	default:
+		return "unknown";
+	}
+}
+
 /*
  * Status line is:
  *    <device> <operating mode> <in recovery> <index state> <compression state>
@@ -1189,7 +1214,8 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 		       vdo_get_backing_device(vdo), stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
-		       VDO_COMPRESS_LZ4, device_config->compression_level,
+		       get_compression_string(device_config->compression_type),
+		       device_config->compression_level,
 		       vdo_get_compressing(vdo) ? "on" : "off",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
