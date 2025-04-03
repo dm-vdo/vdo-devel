@@ -4,9 +4,9 @@
  * %LICENSE%
  */
 
-#include <uuid/uuid.h>
-
 #include "vdoConfig.h"
+
+#include <linux/uuid.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -83,7 +83,7 @@ int formatVDO(const struct vdo_config   *config,
 {
   // Generate a uuid.
   uuid_t uuid;
-  uuid_generate(uuid);
+  uuid_gen(&uuid);
 
   return formatVDOWithNonce(config, indexConfig, layer, current_time_us(),
                             &uuid);
