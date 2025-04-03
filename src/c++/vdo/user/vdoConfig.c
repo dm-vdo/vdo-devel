@@ -21,10 +21,6 @@
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
 
-enum {
-  RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER = 1,
-};
-
 /**********************************************************************/
 int initializeLayoutFromConfig(const struct vdo_config  *config,
                                physical_block_number_t   startingOffset,
@@ -78,63 +74,6 @@ computeForestSize(block_count_t logicalBlocks,
   // This can be a slight over-estimate since the tree will never have to
   // address these blocks, so it might be a tiny bit smaller.
   return (approximateNonLeaves + approximateLeaves);
-}
-
-/**
- * Configure a new VDO.
- *
- * @param vdo  The VDO to configure
- *
- * @return VDO_SUCCESS or an error
- **/
-static int __must_check configureVDO(UserVDO *vdo)
-{
-  struct vdo_config *config = &vdo->states.vdo.config;
-
-  // The layout starts 1 block past the beginning of the data region, as the
-  // data region contains the super block but the layout does not.
-  physical_block_number_t startingOffset = vdo_get_data_region_start(vdo->geometry) + 1;
-  int result = initializeLayoutFromConfig(config, startingOffset, &vdo->states.layout);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  vdo->states.recovery_journal = configureRecoveryJournal();
-
-  struct slab_config slabConfig;
-  result = vdo_configure_slab(config->slab_size,
-                              config->slab_journal_blocks,
-                              &slabConfig);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  const struct partition *partition =
-    getPartition(vdo, VDO_SLAB_DEPOT_PARTITION, "no allocator partition");
-  result = vdo_configure_slab_depot(partition, slabConfig, 0, &vdo->states.slab_depot);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  setDerivedSlabParameters(vdo);
-
-  if (config->logical_blocks == 0) {
-    block_count_t dataBlocks = slabConfig.data_blocks * vdo->slabCount;
-    config->logical_blocks
-      = dataBlocks - computeForestSize(dataBlocks,
-                                       DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
-  }
-
-  partition = getPartition(vdo, VDO_BLOCK_MAP_PARTITION, "no block map partition");
-  vdo->states.block_map = (struct block_map_state_2_0) {
-    .flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
-    .flat_page_count = 0,
-    .root_origin = partition->offset,
-    .root_count = DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
-  };
-
-  vdo->states.vdo.state = VDO_NEW;
-  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -252,12 +191,17 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
     return result;
   }
 
-  vdo->states.vdo.config              = *config;
-  vdo->states.vdo.nonce               = nonce;
-  vdo->states.volume_version          = VDO_VOLUME_VERSION_67_0;
-  result = configureVDO(vdo);
+  result = vdo_initialize_component_states(config, &vdo->geometry, nonce, &vdo->states);
   if (result != VDO_SUCCESS) {
     return result;
+  }
+
+  setDerivedSlabParameters(vdo);
+
+  if (vdo->states.vdo.config.logical_blocks == 0) {
+    block_count_t dataBlocks = vdo->states.slab_depot.slab_config.data_blocks * vdo->slabCount;
+    vdo->states.vdo.config.logical_blocks =
+	    dataBlocks - computeForestSize(dataBlocks, DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
   }
 
   result = clearPartition(vdo, VDO_BLOCK_MAP_PARTITION);
