@@ -28,14 +28,27 @@ struct compressed_block_header_1_0 {
 	__le16 sizes[VDO_MAX_COMPRESSION_SLOTS];
 } __packed;
 
+/* The header of a new compressed block. */
+struct compressed_block_header_2_0 {
+	/* Unsigned 32-bit major and minor versions, little-endian */
+	struct packed_version_number version;
+
+	/* List of unsigned 16-bit compressed block sizes, little-endian */
+	__le16 sizes[VDO_MAX_COMPRESSION_SLOTS];
+
+	/* Compression type in use for this block's fragments */
+	u8 type;
+} __packed;
+
 enum {
 	VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 = VDO_BLOCK_SIZE - sizeof(struct compressed_block_header_1_0),
+	VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0 = VDO_BLOCK_SIZE - sizeof(struct compressed_block_header_2_0),
 
 	/*
 	 * A compressed block is only written if we can pack at least two fragments into it, so a
 	 * fragment which fills the entire data portion of a compressed block is too big.
 	 */
-	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - 1,
+	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0 - 1,
 };
 
 struct compressed_block_1_0 {
@@ -43,9 +56,15 @@ struct compressed_block_1_0 {
 	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0];
 } __packed;
 
+struct compressed_block_2_0 {
+	struct compressed_block_header_2_0 header;
+	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE_2_0];
+} __packed;
+
 struct compressed_block {
 	union {
 		struct compressed_block_1_0 v1;
+		struct compressed_block_2_0 v2;
 	};
 };
 
@@ -102,7 +121,8 @@ struct packer {
 #ifdef INTERNAL
 int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 				      struct compressed_block *block,
-				      u16 *fragment_offset, u16 *fragment_size);
+				      void **fragment_start, u16 *fragment_size,
+				      enum vdo_compression_type *type);
 #endif /* INTERNAL */
 int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 			     struct compressed_block *block, char *buffer);
@@ -131,7 +151,8 @@ void vdo_resume_packer(struct packer *packer, struct vdo_completion *parent);
 void vdo_dump_packer(const struct packer *packer);
 
 #ifdef INTERNAL
-void initialize_compressed_block(struct compressed_block *block, u16 size);
+void initialize_compressed_block(struct compressed_block *block, u16 size,
+				 enum vdo_compression_type type);
 
 struct compression_state;
 block_size_t __must_check pack_fragment(struct compression_state *compression,

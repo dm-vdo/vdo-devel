@@ -208,6 +208,12 @@ struct thread_count_config {
 	unsigned int hash_zones;
 } __packed;
 
+enum vdo_compression_type {
+	VDO_NO_COMPRESSION = 0,
+	VDO_LZ4 = 1,
+	VDO_ZSTD = 2
+};
+
 struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
