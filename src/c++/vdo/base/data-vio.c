@@ -1818,7 +1818,7 @@ static void compress_data_vio(struct vdo_completion *completion)
 	 * need to copy it if this data_vio becomes a compressed write agent.
 	 */
 	size = vdo_compress_buffer(data_vio->vio.data, data_vio->compression.block);
-	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
+	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);
 		return;

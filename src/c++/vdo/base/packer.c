@@ -58,7 +58,7 @@ vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	if (!vdo_is_state_compressed(mapping_state))
 		return VDO_INVALID_FRAGMENT;
 
-	version = vdo_unpack_version_number(block->header.version);
+	version = vdo_unpack_version_number(block->v1.header.version);
 	if (!vdo_are_same_version(version, COMPRESSED_BLOCK_1_0))
 		return VDO_INVALID_FRAGMENT;
 
@@ -66,14 +66,14 @@ vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 	if (slot >= VDO_MAX_COMPRESSION_SLOTS)
 		return VDO_INVALID_FRAGMENT;
 
-	compressed_size = __le16_to_cpu(block->header.sizes[slot]);
+	compressed_size = __le16_to_cpu(block->v1.header.sizes[slot]);
 	for (i = 0; i < slot; i++) {
-		offset += __le16_to_cpu(block->header.sizes[i]);
-		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE)
+		offset += __le16_to_cpu(block->v1.header.sizes[i]);
+		if (offset >= VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
 			return VDO_INVALID_FRAGMENT;
 	}
 
-	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE)
+	if ((offset + compressed_size) > VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)
 		return VDO_INVALID_FRAGMENT;
 
 	*fragment_offset = offset;
@@ -106,7 +106,7 @@ int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 		return result;
 	}
 
-	size = LZ4_decompress_safe((block->data + fragment_offset), buffer,
+	size = LZ4_decompress_safe((block->v1.data + fragment_offset), buffer,
 				   fragment_size, VDO_BLOCK_SIZE);
 	if (size != VDO_BLOCK_SIZE) {
 		vdo_log_debug("%s: lz4 error", __func__);
@@ -127,7 +127,7 @@ int vdo_compress_buffer(char *buffer, struct compressed_block *block)
 {
 	int size = 0;
 
-	size = LZ4_compress_default(buffer, block->data, VDO_BLOCK_SIZE,
+	size = LZ4_compress_default(buffer, block->v1.data, VDO_BLOCK_SIZE,
 				    VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
 				    (char *) vdo_get_work_queue_private_data());
 
@@ -180,7 +180,7 @@ static int __must_check make_bin(struct packer *packer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE;
+	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0;
 	INIT_LIST_HEAD(&bin->list);
 	list_add_tail(&bin->list, &packer->bins);
 	return VDO_SUCCESS;
@@ -405,7 +405,7 @@ static struct data_vio *remove_from_bin(struct packer *packer, struct packer_bin
 	}
 
 	/* The bin is now empty. */
-	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE;
+	bin->free_space = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0;
 	return NULL;
 }
 
@@ -425,10 +425,10 @@ STATIC void initialize_compressed_block(struct compressed_block *block, u16 size
 	 * Make sure the block layout isn't accidentally changed by changing the length of the
 	 * block header.
 	 */
-	BUILD_BUG_ON(sizeof(struct compressed_block_header) != COMPRESSED_BLOCK_1_0_SIZE);
+	BUILD_BUG_ON(sizeof(struct compressed_block_header_1_0) != COMPRESSED_BLOCK_1_0_SIZE);
 
-	block->header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
-	block->header.sizes[0] = __cpu_to_le16(size);
+	block->v1.header.version = vdo_pack_version_number(COMPRESSED_BLOCK_1_0);
+	block->v1.header.sizes[0] = __cpu_to_le16(size);
 }
 
 /**
@@ -447,13 +447,13 @@ STATIC block_size_t __must_check pack_fragment(struct compression_state *compres
 					       struct compressed_block *block)
 {
 	struct compression_state *to_pack = &data_vio->compression;
-	char *fragment = to_pack->block->data;
+	char *fragment = to_pack->block->v1.data;
 
 	to_pack->next_in_batch = compression->next_in_batch;
 	compression->next_in_batch = data_vio;
 	to_pack->slot = slot;
-	block->header.sizes[slot] = __cpu_to_le16(to_pack->size);
-	memcpy(&block->data[offset], fragment, to_pack->size);
+	block->v1.header.sizes[slot] = __cpu_to_le16(to_pack->size);
+	memcpy(&block->v1.data[offset], fragment, to_pack->size);
 	return (offset + to_pack->size);
 }
 
@@ -509,7 +509,7 @@ static void write_bin(struct packer *packer, struct packer_bin *bin)
 
 	if (slot < VDO_MAX_COMPRESSION_SLOTS) {
 		/* Clear out the sizes of the unused slots */
-		memset(&block->header.sizes[slot], 0,
+		memset(&block->v1.header.sizes[slot], 0,
 		       (VDO_MAX_COMPRESSION_SLOTS - slot) * sizeof(__le16));
 	}
 
@@ -599,7 +599,7 @@ static struct packer_bin * __must_check select_bin(struct packer *packer,
 	 */
 	fullest_bin = list_first_entry(&packer->bins, struct packer_bin, list);
 	if (data_vio->compression.size >=
-	    (VDO_COMPRESSED_BLOCK_DATA_SIZE - fullest_bin->free_space))
+	    (VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - fullest_bin->free_space))
 		return NULL;
 
 	/*

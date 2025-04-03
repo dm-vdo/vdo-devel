@@ -19,8 +19,8 @@ enum {
 	DEFAULT_PACKER_BINS = 16,
 };
 
-/* The header of a compressed block. */
-struct compressed_block_header {
+/* The header of a old compressed block. */
+struct compressed_block_header_1_0 {
 	/* Unsigned 32-bit major and minor versions, little-endian */
 	struct packed_version_number version;
 
@@ -29,20 +29,25 @@ struct compressed_block_header {
 } __packed;
 
 enum {
-	VDO_COMPRESSED_BLOCK_DATA_SIZE = VDO_BLOCK_SIZE - sizeof(struct compressed_block_header),
+	VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 = VDO_BLOCK_SIZE - sizeof(struct compressed_block_header_1_0),
 
 	/*
 	 * A compressed block is only written if we can pack at least two fragments into it, so a
 	 * fragment which fills the entire data portion of a compressed block is too big.
 	 */
-	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE - 1,
+	VDO_MAX_COMPRESSED_FRAGMENT_SIZE = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - 1,
 };
 
-/* * The compressed block overlay. */
-struct compressed_block {
-	struct compressed_block_header header;
-	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE];
+struct compressed_block_1_0 {
+	struct compressed_block_header_1_0 header;
+	char data[VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0];
 } __packed;
+
+struct compressed_block {
+	union {
+		struct compressed_block_1_0 v1;
+	};
+};
 
 /*
  * Each packer_bin holds an incomplete batch of data_vios that only partially fill a compressed
