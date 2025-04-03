@@ -269,6 +269,25 @@ int vdo_make_packer(struct vdo *vdo, block_count_t bin_count, struct packer **pa
 		return result;
 	}
 
+	packer->context_count = vdo->device_config->thread_counts.cpu_threads;
+
+	/* Compression context storage */
+	result = vdo_allocate(packer->context_count, char *, "LZ4 context",
+			      &packer->compression_context);
+	if (result != VDO_SUCCESS) {
+		vdo_free_packer(packer);
+		return result;
+	}
+
+	for (zone_count_t i = 0; i < packer->context_count; i++) {
+		result = vdo_allocate(LZ4_MEM_COMPRESS, char, "LZ4 context",
+				      &packer->compression_context[i]);
+		if (result != VDO_SUCCESS) {
+			vdo_free_packer(packer);
+			return result;
+		}
+	}
+
 	*packer_ptr = packer;
 	return VDO_SUCCESS;
 }
@@ -283,6 +302,13 @@ void vdo_free_packer(struct packer *packer)
 
 	if (packer == NULL)
 		return;
+
+	if (packer->compression_context != NULL) {
+		for (zone_count_t i = 0; i < packer->context_count; i++)
+			vdo_free(vdo_forget(packer->compression_context[i]));
+
+		vdo_free(vdo_forget(packer->compression_context));
+	}
 
 	list_for_each_entry_safe(bin, tmp, &packer->bins, list) {
 		list_del_init(&bin->list);
