@@ -13,7 +13,11 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#if defined(__KERNEL__)
 #include <linux/zstd.h>
+#else
+#include <linux/zstd-shims.h>
+#endif
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
