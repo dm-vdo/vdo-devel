@@ -201,6 +201,7 @@ tarballs:
             - stddef.h
             - types.h
             - unaligned.h
+            - uuid.h
           undefines:
             - TEST_INTERNAL
             - VDO_INTERNAL
