@@ -672,10 +672,6 @@ void data_vio_allocate_data_block(struct data_vio *data_vio,
 
 void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset);
 
-int __must_check uncompress_data_vio(struct data_vio *data_vio,
-				     enum block_mapping_state mapping_state,
-				     char *buffer);
-
 #ifdef INTERNAL
 bool is_zero_block(char *block);
 #endif /* INTERNAL */

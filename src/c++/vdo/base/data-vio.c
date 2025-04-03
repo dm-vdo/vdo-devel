@@ -13,7 +13,6 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
-#include <linux/lz4.h>
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
@@ -1506,35 +1505,6 @@ void release_data_vio_allocation_lock(struct data_vio *data_vio, bool reset)
 }
 
 /**
- * uncompress_data_vio() - Uncompress the data a data_vio has just read.
- * @mapping_state: The mapping state indicating which fragment to decompress.
- * @buffer: The buffer to receive the uncompressed data.
- */
-int uncompress_data_vio(struct data_vio *data_vio,
-			enum block_mapping_state mapping_state, char *buffer)
-{
-	int size;
-	u16 fragment_offset, fragment_size;
-	struct compressed_block *block = data_vio->compression.block;
-	int result = vdo_get_compressed_block_fragment(mapping_state, block,
-						       &fragment_offset, &fragment_size);
-
-	if (result != VDO_SUCCESS) {
-		vdo_log_debug("%s: compressed fragment error %d", __func__, result);
-		return result;
-	}
-
-	size = LZ4_decompress_safe((block->data + fragment_offset), buffer,
-				   fragment_size, VDO_BLOCK_SIZE);
-	if (size != VDO_BLOCK_SIZE) {
-		vdo_log_debug("%s: lz4 error", __func__);
-		return VDO_INVALID_FRAGMENT;
-	}
-
-	return VDO_SUCCESS;
-}
-
-/**
  * modify_for_partial_write() - Do the modify-write part of a read-modify-write cycle.
  * @completion: The data_vio which has just finished its read.
  *
@@ -1571,7 +1541,7 @@ static void complete_read(struct vdo_completion *completion)
 	assert_data_vio_on_cpu_thread(data_vio);
 
 	if (compressed) {
-		int result = uncompress_data_vio(data_vio, data_vio->mapped.state, data);
+		int result = vdo_uncompress_to_buffer(data_vio->mapped.state, data_vio->compression.block, data);
 
 		if (result != VDO_SUCCESS) {
 			continue_data_vio_with_error(data_vio, result);
@@ -1839,7 +1809,6 @@ static void pack_compressed_data(struct vdo_completion *completion)
 static void compress_data_vio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct vdo *vdo = vdo_from_data_vio(data_vio);
 	int size;
 
 	assert_data_vio_on_cpu_thread(data_vio);
@@ -1848,11 +1817,7 @@ static void compress_data_vio(struct vdo_completion *completion)
 	 * By putting the compressed data at the start of the compressed block data field, we won't
 	 * need to copy it if this data_vio becomes a compressed write agent.
 	 */
-	size = LZ4_compress_fast(data_vio->vio.data,
-				 data_vio->compression.block->data, VDO_BLOCK_SIZE,
-				 VDO_MAX_COMPRESSED_FRAGMENT_SIZE,
-				 vdo->device_config->compression_level,
-				 (char *) vdo_get_work_queue_private_data());
+	size = vdo_compress_buffer(data_vio->vio.data, data_vio->compression.block);
 	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);
