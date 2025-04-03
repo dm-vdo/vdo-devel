@@ -19,10 +19,6 @@
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
 
-enum {
-  RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER = 1,
-};
-
 /**********************************************************************/
 int initializeLayoutFromConfig(const struct vdo_config  *config,
                                physical_block_number_t   startingOffset,
