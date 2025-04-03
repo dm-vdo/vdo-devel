@@ -98,6 +98,11 @@ struct packer_bin {
 	struct data_vio *incoming[];
 };
 
+struct compression_context {
+	size_t size;
+	char *buf;
+};
+
 struct packer {
 	/* The ID of the packer's callback thread */
 	thread_id_t thread_id;
@@ -122,7 +127,7 @@ struct packer {
 
 	/* N blobs of context data for LZ4 code, one per CPU thread. */
 	zone_count_t context_count;
-	char **compression_context;
+	struct compression_context **compression_context;
 };
 
 #ifdef INTERNAL
@@ -134,7 +139,7 @@ int vdo_get_compressed_block_fragment(enum block_mapping_state mapping_state,
 int vdo_uncompress_to_buffer(enum block_mapping_state mapping_state,
 			     struct compressed_block *block, char *buffer);
 
-int vdo_compress_buffer(char *data, struct compressed_block *block);
+int vdo_compress_buffer(char *buffer, struct vdo *vdo, struct compressed_block *block);
 
 int __must_check vdo_make_packer(struct vdo *vdo, block_count_t bin_count,
 				 struct packer **packer_ptr);

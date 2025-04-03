@@ -1817,7 +1817,9 @@ static void compress_data_vio(struct vdo_completion *completion)
 	 * By putting the compressed data at the start of the compressed block data field, we won't
 	 * need to copy it if this data_vio becomes a compressed write agent.
 	 */
-	size = vdo_compress_buffer(data_vio->vio.data, data_vio->compression.block);
+	size = vdo_compress_buffer(data_vio->vio.data,
+				   vdo_from_data_vio(data_vio),
+				   data_vio->compression.block);
 	if ((size > 0) && (size < VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0)) {
 		data_vio->compression.size = size;
 		launch_data_vio_packer_callback(data_vio, pack_compressed_data);
