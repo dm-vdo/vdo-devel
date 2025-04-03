@@ -41,7 +41,7 @@ static void initializeCompressionT1(void)
     .logicalThreadCount  = 1,
     .physicalThreadCount = 1,
     .hashZoneThreadCount = 1,
-    .compression         = VDO_LZ4,
+    .compression         = VDO_ZSTD,
   };
   initializeVDOTest(&parameters);
   finishedCompressedWrite = false;
