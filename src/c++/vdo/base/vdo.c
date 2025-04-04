@@ -481,7 +481,6 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 			  unsigned int instance, char **reason)
 {
 	int result;
-	zone_count_t i;
 
 	vdo->device_config = config;
 	vdo->starting_sector_offset = config->owning_target->begin;
@@ -508,23 +507,6 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 		     config->thread_counts.logical_zones,
 		     config->thread_counts.physical_zones,
 		     config->thread_counts.hash_zones, vdo->thread_config.thread_count);
-
-	/* Compression context storage */
-	result = vdo_allocate(config->thread_counts.cpu_threads, char *, "LZ4 context",
-			      &vdo->compression_context);
-	if (result != VDO_SUCCESS) {
-		*reason = "cannot allocate LZ4 context";
-		return result;
-	}
-
-	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = vdo_allocate(LZ4_MEM_COMPRESS, char, "LZ4 context",
-				      &vdo->compression_context[i]);
-		if (result != VDO_SUCCESS) {
-			*reason = "cannot allocate LZ4 context";
-			return result;
-		}
-	}
 
 	result = register_vdo(vdo);
 	if (result != VDO_SUCCESS) {
@@ -634,7 +616,7 @@ int vdo_make(unsigned int instance, struct device_config *config, char **reason,
 
 	result = vdo_make_thread(vdo, vdo->thread_config.cpu_thread, &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **) vdo->compression_context);
+				 (void **) vdo->packer->compression_context);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
 		return result;
@@ -743,12 +725,6 @@ void vdo_destroy(struct vdo *vdo)
 
 	uninitialize_thread_config(&vdo->thread_config);
 
-	if (vdo->compression_context != NULL) {
-		for (i = 0; i < vdo->device_config->thread_counts.cpu_threads; i++)
-			vdo_free(vdo_forget(vdo->compression_context[i]));
-
-		vdo_free(vdo_forget(vdo->compression_context));
-	}
 #if defined(VDO_INTERNAL) || defined(INTERNAL)
 
 	/*

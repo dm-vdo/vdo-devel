@@ -296,10 +296,10 @@ static void testConcurrentRollOver(void)
 static void testCompressRollOver(void)
 {
   const TestParameters parameters = {
-    .mappableBlocks    = 128,
-    .journalBlocks     = 64,
-    .logicalBlocks     = 384,
-    .enableCompression = true,
+    .mappableBlocks = 128,
+    .journalBlocks  = 64,
+    .logicalBlocks  = 384,
+    .compression    = VDO_LZ4,
   };
   initializeVDOTest(&parameters);
   block_count_t blocksFree = populateBlockMapTree();

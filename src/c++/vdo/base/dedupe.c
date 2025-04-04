@@ -1173,8 +1173,9 @@ static void uncompress_and_verify(struct vdo_completion *completion)
 	struct data_vio *agent = as_data_vio(completion);
 	int result;
 
-	result = uncompress_data_vio(agent, agent->duplicate.state,
-				     agent->scratch_block);
+	result = vdo_uncompress_to_buffer(agent->duplicate.state,
+					  agent->compression.block,
+					  agent->scratch_block);
 	if (result == VDO_SUCCESS) {
 		verify_callback(completion);
 		return;

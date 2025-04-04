@@ -121,6 +121,11 @@ const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.minor_version = 0,
 };
 
+const struct version_number VDO_VOLUME_VERSION_68_0 = {
+	.major_version = 68,
+	.minor_version = 0,
+};
+
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
 	.id = VDO_SUPER_BLOCK,
 	.version = {
@@ -1427,8 +1432,12 @@ int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 
 	/* Check the VDO volume version */
 	decode_version_number(buffer, &offset, &states->volume_version);
-	result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version,
-				  "volume");
+	if (states->volume_version.major_version == VDO_VOLUME_VERSION_67_0.major_version)
+		result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version,
+					  "volume");
+	else
+		result = validate_version(VDO_VOLUME_VERSION_68_0, states->volume_version,
+					  "volume");
 	if (result != VDO_SUCCESS)
 		return result;
 

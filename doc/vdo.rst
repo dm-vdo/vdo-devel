@@ -173,7 +173,7 @@ Miscellaneous parameters:
 	compressionType:
 
 		The compression algorithm to use when compression is enabled.
-		The only supported value is 'lz4'. This may be followed by an
+		This can be 'lz4' or 'zstd'. This may be followed by an
 		option in the form ':<option>'. The interpretation of the
 		option is specific to the selected algorithm.
 
@@ -181,6 +181,9 @@ Miscellaneous parameters:
 		compressing. The option must be an integer. For example,
 		'lz4:3' will use an acceleration factor of 3. See lz4
 		documentation for more detail on the acceleration factor.
+
+                For zstd, the option is the compression level. See zstd
+                documentation for more detail on the compression level.
 
 Device modification
 -------------------

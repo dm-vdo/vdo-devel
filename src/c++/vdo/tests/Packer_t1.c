@@ -46,7 +46,7 @@ static void initialize(void)
     .mappableBlocks       = 64,
     .journalBlocks        = 8,
     .logicalThreadCount   = 1,
-    .enableCompression    = true,
+    .compression          = VDO_LZ4,
     .disableDeduplication = true,
     .dataFormatter        = fillWithOffsetPlusOne,
   };
@@ -140,7 +140,7 @@ static void bestFitTest(void)
   for (block_size_t i = 1; i <= DEFAULT_PACKER_BINS; i++) {
     // For the first batch, set the compressed size of each data_vio to nearly
     // fill a bin and be unique.
-    compressedSizes[i] = VDO_COMPRESSED_BLOCK_DATA_SIZE - i;
+    compressedSizes[i] = VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - i;
     requests[i] = launchIndexedWrite(i, 1, i);
   }
 
@@ -217,7 +217,7 @@ static bool wrapIfHeadingToPacker(struct vdo_completion *completion)
      * that all the bins will be full but that none will write out.
      */
     as_data_vio(completion)->compression.size
-      = (VDO_COMPRESSED_BLOCK_DATA_SIZE - 10) / 2;
+      = (VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0 - 10) / 2;
     wrapCompletionCallback(completion, signalAllBinsFull);
   }
 
@@ -242,7 +242,7 @@ static void suspendAndResumePackerTest(void)
   // Make sure all bins show all their block space free.
   struct packer_bin *bin;
   list_for_each_entry(bin, &vdo->packer->bins, list) {
-    CU_ASSERT_EQUAL(bin->free_space, VDO_COMPRESSED_BLOCK_DATA_SIZE);
+    CU_ASSERT_EQUAL(bin->free_space, VDO_COMPRESSED_BLOCK_DATA_SIZE_1_0);
   }
 
   performSuccessfulPackerAction(VDO_ADMIN_STATE_RESUMING);

@@ -45,8 +45,8 @@ static void initializeCompressionT2(void)
   vio6Physical  = VDO_ZERO_BLOCK;
 
   TestParameters parameters = {
-    .mappableBlocks    = 64,
-    .enableCompression = true,
+    .mappableBlocks = 64,
+    .compression    = VDO_LZ4,
   };
   initializeVDOTest(&parameters);
 }

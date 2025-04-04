@@ -98,5 +98,6 @@ enum {
 
 /* Supported compression algorithms */
 #define VDO_COMPRESS_LZ4 "lz4"
+#define VDO_COMPRESS_ZSTD "zstd"
 
 #endif /* VDO_CONSTANTS_H */

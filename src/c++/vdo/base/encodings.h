@@ -667,6 +667,7 @@ struct packed_vdo_component_41_0 {
  * not be upgraded to at all should increment the major version and set the minor version to 0.
  */
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
+extern const struct version_number VDO_VOLUME_VERSION_68_0;
 
 enum {
 	VDO_ENCODED_HEADER_SIZE = sizeof(struct packed_header),

@@ -13,7 +13,7 @@ CFLAGS 	  = -fPIC $(GLOBAL_CFLAGS) $(INCLUDES) -Wno-write-strings \
 	    -DVDO_USER -DCURRENT_VERSION="\"$(VDO_VERSION)\""
 
 LDFLAGS   = $(GLOBAL_LDFLAGS)
-LDPRFLAGS = -ldl -pthread -lz -lrt -lm -luuid
+LDPRFLAGS = -ldl -pthread -lz -lrt -lm -luuid -lzstd
 LDSHFLAGS = -shared -fPIC
 
 LIBVDO = $(VDO_BASE_DIR)/libvdouser.a
