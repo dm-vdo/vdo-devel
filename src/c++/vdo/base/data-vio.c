@@ -16,8 +16,8 @@
 #include <linux/lz4.h>
 #include <linux/minmax.h>
 #include <linux/sched.h>
-#include <linux/string.h>
 #include <linux/spinlock.h>
+#include <linux/string.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
