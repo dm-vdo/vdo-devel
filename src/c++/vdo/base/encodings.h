@@ -11,10 +11,8 @@
 #include <linux/crc32.h>
 #endif /* __KERNEL__ */
 #include <linux/limits.h>
-#ifdef __KERNEL__
 #include <linux/uuid.h>
-#else /* not __KERNEL */
-#include <uuid/uuid.h>
+#ifndef __KERNEL__
 #include <zlib.h>
 #endif /* not __KERNEL__ */
 
@@ -619,14 +617,12 @@ struct vdo_config {
 	block_count_t slab_journal_blocks; /* number of slab journal blocks */
 };
 
-#ifndef VDO_UPSTREAM
 /** The maximum logical space is 4 petabytes, which is 1 terablock. */
 #define MAXIMUM_VDO_LOGICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 1024))
 
 /** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
 #define MAXIMUM_VDO_PHYSICAL_BLOCKS ((block_count_t)(1024ULL * 1024 * 1024 * 64))
 
-#endif
 /* This is the structure that captures the vdo fields saved as a super block component. */
 struct vdo_component {
 	enum vdo_state state;
@@ -856,6 +852,9 @@ int __must_check encode_volume_geometry(u8 *buffer, size_t *offset,
 					u32 version);
 
 #endif /* VDO_USER */
+int __must_check vdo_encode_volume_geometry(u8 *buffer,
+					    const struct volume_geometry *geometry);
+
 static inline bool vdo_is_state_compressed(const enum block_mapping_state mapping_state)
 {
 	return (mapping_state > VDO_MAPPING_STATE_UNCOMPRESSED);
@@ -1340,6 +1339,7 @@ int __must_check vdo_validate_component_states(struct vdo_component_states *stat
 void vdo_encode_super_block(u8 *buffer, struct vdo_component_states *states);
 int __must_check vdo_decode_super_block(u8 *buffer);
 
+
 /* We start with 0L and postcondition with ~0L to match our historical usage in userspace. */
 static inline u32 vdo_crc32(const void *buf, unsigned long len)
 {
@@ -1354,5 +1354,16 @@ static inline u32 vdo_crc32(const void *buf, unsigned long len)
 	return crc32(~0L, buf, len);
 #endif /* __KERNEL__ */
 }
+
+int vdo_initialize_component_states(const struct vdo_config *vdo_config,
+				    physical_block_number_t offset,
+				    nonce_t nonce,
+				    struct vdo_component_states *states);
+
+int vdo_compute_index_blocks(const struct index_config *config,
+			     block_count_t *index_blocks_ptr);
+
+int vdo_initialize_volume_geometry(const struct index_config *index_config, nonce_t nonce,
+				   struct volume_geometry *geometry);
 
 #endif /* VDO_ENCODINGS_H */

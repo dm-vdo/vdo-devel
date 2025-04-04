@@ -12,17 +12,10 @@
 #include "permassert.h"
 
 #include "constants.h"
+#include "indexer.h"
 #include "status-codes.h"
 #include "types.h"
 
-#ifdef VDO_UPSTREAM
-/** The maximum logical space is 4 petabytes, which is 1 terablock. */
-static const block_count_t MAXIMUM_VDO_LOGICAL_BLOCKS = 1024ULL * 1024 * 1024 * 1024;
-
-/** The maximum physical space is 256 terabytes, which is 64 gigablocks. */
-static const block_count_t MAXIMUM_VDO_PHYSICAL_BLOCKS = 1024ULL * 1024 * 1024 * 64;
-
-#endif
 struct geometry_block {
 	char magic_number[VDO_GEOMETRY_MAGIC_NUMBER_SIZE];
 	struct packed_header header;
@@ -339,6 +332,58 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 }
 
 #endif /* VDO_USER */
+/**
+ * vdo_encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
+ * @buffer: A buffer to store the encoding.
+ * @geometry: The geometry to encode.
+ *
+ * Return: VDO_SUCCESS or an error
+ */
+int vdo_encode_volume_geometry(u8 *buffer, const struct volume_geometry *geometry)
+{
+	enum volume_region_id id;
+	const struct header *header = &GEOMETRY_BLOCK_HEADER_5_0;
+	u32 checksum;
+	size_t offset = 0;
+	int result;
+
+	memcpy(buffer, VDO_GEOMETRY_MAGIC_NUMBER, VDO_GEOMETRY_MAGIC_NUMBER_SIZE);
+	offset += VDO_GEOMETRY_MAGIC_NUMBER_SIZE;
+
+	vdo_encode_header(buffer, &offset, header);
+
+	/* This is for backwards compatibility */
+	encode_u32_le(buffer, &offset, geometry->unused);
+	encode_u64_le(buffer, &offset, geometry->nonce);
+	memcpy(buffer + offset, (unsigned char *) &geometry->uuid, sizeof(uuid_t));
+	offset += sizeof(uuid_t);
+
+	encode_u64_le(buffer, &offset, geometry->bio_offset);
+
+	for (id = 0; id < VDO_VOLUME_REGION_COUNT; id++) {
+		encode_u32_le(buffer, &offset, geometry->regions[id].id);
+		encode_u64_le(buffer, &offset, geometry->regions[id].start_block);
+	}
+
+	encode_u32_le(buffer, &offset, geometry->index_config.mem);
+	encode_u32_le(buffer, &offset, 0);
+
+	if (geometry->index_config.sparse)
+		buffer[offset++] = 1;
+	else
+		buffer[offset++] = 0;
+
+	checksum = vdo_crc32(buffer, offset);
+	encode_u32_le(buffer, &offset, checksum);
+
+	result = VDO_ASSERT(header->size == offset,
+			    "incorrect encoded geometry block size");
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return VDO_SUCCESS;
+}
+
 /**
  * vdo_parse_geometry_block() - Decode and validate an encoded geometry block.
  * @block: The encoded geometry block.
@@ -1271,9 +1316,9 @@ int vdo_validate_config(const struct vdo_config *config,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = VDO_ASSERT(config->slab_size <= (1 << MAX_VDO_SLAB_BITS),
-			    "slab size must be less than or equal to 2^%d",
-			    MAX_VDO_SLAB_BITS);
+	result = VDO_ASSERT(config->slab_size <= MAX_VDO_SLAB_BLOCKS,
+			    "slab size must be power of two less than or equal to %d",
+			    MAX_VDO_SLAB_BLOCKS);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -1544,4 +1589,208 @@ int vdo_decode_super_block(u8 *buffer)
 		return result;
 
 	return ((checksum != saved_checksum) ? VDO_CHECKSUM_MISMATCH : VDO_SUCCESS);
+}
+
+/**
+ * compute_forest_size() - Compute the approximate number of pages which the
+ *                         forest will allocate in order to map the specified
+ *                         number of logical blocks.
+ * @logical_blocks: The number of blocks to map
+ * @root_count: The number of trees in the forest
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static block_count_t compute_forest_size(block_count_t logical_blocks,
+					 root_count_t root_count)
+{
+	struct boundary new_sizes;
+	block_count_t approximate_non_leaves =
+		vdo_compute_new_forest_pages(root_count, NULL, logical_blocks, &new_sizes);
+
+	/*
+	 * Exclude the tree roots since those aren't allocated from slabs,
+	 * and also exclude the super-roots, which only exist in memory.
+	 */
+	approximate_non_leaves -=
+		root_count * (new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 2] +
+			     new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1]);
+
+	block_count_t approximate_leaves =
+		vdo_compute_block_map_page_count(logical_blocks - approximate_non_leaves);
+
+	return (approximate_non_leaves + approximate_leaves);
+}
+
+
+/**
+ * vdo_initialize_component_states() - Initialize the components so they can be written out.
+ * @vdo_config: The config used for component state initialization.
+ * @starting_offset: The offset on disk where the data region begins.
+ * @nonce: The nonce to use to identify the vdo.
+ * @states: The component states to initialize
+ *
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_initialize_component_states(const struct vdo_config *vdo_config,
+				    physical_block_number_t offset,
+				    nonce_t nonce,
+				    struct vdo_component_states *states)
+{
+	unsigned int result;
+	unsigned int slab_size_shift;
+	slab_count_t slab_count;
+	struct slab_config slab_config;
+	struct partition *partition;
+
+	states->recovery_journal = (struct recovery_journal_state_7_0) {
+		.journal_start = RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER,
+		.logical_blocks_used = 0,
+		.block_map_data_blocks = 0,
+	};
+
+	states->vdo.config = *vdo_config;
+	states->vdo.nonce = nonce;
+	states->volume_version = VDO_VOLUME_VERSION_67_0;
+
+	/*
+	 * The layout starts 1 block past the beginning of the data region, as the
+	 * data region contains the super block but the layout does not.
+	 */
+	result = vdo_initialize_layout(vdo_config->physical_blocks,
+				       offset + 1,
+				       DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+				       states->vdo.config.recovery_journal_size,
+				       VDO_SLAB_SUMMARY_BLOCKS,
+				       &states->layout);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = vdo_configure_slab(states->vdo.config.slab_size,
+				    states->vdo.config.slab_journal_blocks,
+				    &slab_config);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	result = vdo_get_partition(&states->layout, VDO_SLAB_DEPOT_PARTITION,
+				   &partition);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	result = vdo_configure_slab_depot(partition, slab_config, 0,
+					  &states->slab_depot);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	/* Set derived parameters */
+	slab_size_shift = ilog2(states->vdo.config.slab_size);
+	slab_count = vdo_compute_slab_count(states->slab_depot.first_block,
+					    states->slab_depot.last_block,
+					    slab_size_shift);
+
+	if (states->vdo.config.logical_blocks == 0) {
+		block_count_t data_blocks = slab_config.data_blocks * slab_count;
+
+		states->vdo.config.logical_blocks =
+			data_blocks - compute_forest_size(data_blocks,
+							  DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
+	}
+
+	result = vdo_get_partition(&states->layout, VDO_BLOCK_MAP_PARTITION,
+				   &partition);
+	if (result != VDO_SUCCESS) {
+		vdo_uninitialize_layout(&states->layout);
+		return result;
+	}
+
+	states->block_map = (struct block_map_state_2_0) {
+		.flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
+		.flat_page_count = 0,
+		.root_origin = partition->offset,
+		.root_count = DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+	};
+
+	states->vdo.state = VDO_NEW;
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * vdo_compute_index_blocks() - Compute the size that the indexer will take up.
+ * @index_config: The index config from which the blocks are calculated.
+ * @index_blocks_ptr: The number of blocks the index will use.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_compute_index_blocks(const struct index_config *config,
+			     block_count_t *index_blocks_ptr)
+{
+	int result;
+	u64 index_bytes;
+
+	struct uds_parameters uds_parameters = {
+		.memory_size = config->mem,
+		.sparse = config->sparse,
+	};
+
+	result = uds_compute_index_size(&uds_parameters, &index_bytes);
+	if (result != UDS_SUCCESS)
+		return -EINVAL;
+
+	*index_blocks_ptr = index_bytes / VDO_BLOCK_SIZE;
+	return VDO_SUCCESS;
+}
+
+/**
+ * vdo_initialize_volume_geometry() - Initialize the volume geometry so it can be written out.
+ * @index_config: The config used for structure initialization
+ * @nonce: The nonce to use to identify the vdo.
+ * @geometry: The volume geometry to initialize
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_initialize_volume_geometry(const struct index_config *index_config, nonce_t nonce,
+				   struct volume_geometry *geometry)
+{
+	int result;
+	block_count_t index_blocks = 0;
+	uuid_t uuid;
+
+	if (index_config != NULL) {
+		result = vdo_compute_index_blocks(index_config, &index_blocks);
+		if (result != VDO_SUCCESS) {
+			vdo_log_error("Error computing index size");
+			return result;
+		}
+	}
+
+	*geometry = (struct volume_geometry) {
+		/* This is for backwards compatibility. */
+		.unused = 0,
+		.nonce = nonce,
+		.bio_offset = 0,
+		.regions = {
+			[VDO_INDEX_REGION] = {
+				.id = VDO_INDEX_REGION,
+				.start_block = 1,
+			},
+			[VDO_DATA_REGION] = {
+				.id = VDO_DATA_REGION,
+				.start_block = 1 + index_blocks,
+			}
+		}
+	};
+
+	uuid_gen(&uuid);
+	memcpy((unsigned char *) &(geometry->uuid), &uuid, sizeof(uuid_t));
+	if (index_blocks > 0)
+		memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
+
+	return VDO_SUCCESS;
 }

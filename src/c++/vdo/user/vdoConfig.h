@@ -68,37 +68,9 @@ initializeLayoutFromConfig(const struct vdo_config *config,
                            struct layout           *layout);
 
 /**
- * Compute the index size in blocks from the index_config.
- *
- * @param index_config      The index config
- * @param index_blocks_ptr  A pointer to return the index size in blocks
- *
- * @return VDO_SUCCESS or an error.
- **/
-int __must_check
-computeIndexBlocks(const struct index_config *index_config,
-                   block_count_t             *index_blocks_ptr);
-
-/**
- * Initialize a volume_geometry for a VDO.
- *
- * @param nonce         The nonce for the VDO
- * @param uuid          The uuid for the VDO
- * @param index_config  The index config of the VDO
- * @param geometry      The geometry being initialized
- *
- * @return VDO_SUCCESS or an error.
- **/
-int __must_check
-initializeVolumeGeometry(nonce_t                    nonce,
-                         uuid_t                    *uuid,
-                         const struct index_config *index_config,
-                         struct volume_geometry    *geometry);
-
-/**
  * This is a version of formatVDO() which allows the caller to supply the
- * desired VDO nonce and uuid. This function exists to facilitate unit tests
- * which attempt to ensure that version numbers are properly updated when
+ * desired VDO nonce. This function exists to facilitate unit tests which
+ * attempt to ensure that version numbers are properly updated when
  * formats change.
  *
  * @param config            The configuration parameters for the VDO
@@ -106,15 +78,13 @@ initializeVolumeGeometry(nonce_t                    nonce,
  * @param indexBlocks       Size of the index in blocks
  * @param layer             The physical layer the VDO will sit on
  * @param nonce             The nonce for the VDO
- * @param uuid              The uuid for the VDO
  *
  * @return VDO_SUCCESS or an error
  **/
 int __must_check formatVDOWithNonce(const struct vdo_config *config,
 				    const struct index_config *indexConfig,
 				    PhysicalLayer *layer,
-				    nonce_t nonce,
-				    uuid_t *uuid);
+				    nonce_t nonce);
 
 /**
  * Force the VDO to exit read-only mode and rebuild when it next loads

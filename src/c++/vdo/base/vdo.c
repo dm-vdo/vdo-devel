@@ -29,8 +29,10 @@
 
 #include "vdo.h"
 
+#include <linux/blkdev.h>
 #include <linux/completion.h>
 #include <linux/device-mapper.h>
+#include <linux/log2.h>
 #include <linux/lz4.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
@@ -58,6 +60,7 @@
 #include "slab-depot.h"
 #include "statistics.h"
 #include "status-codes.h"
+#include "time-utils.h"
 #include "vio.h"
 
 #ifdef __KERNEL__
@@ -274,54 +277,90 @@ STATIC int __must_check initialize_thread_config(struct thread_count_config coun
 }
 
 /**
- * read_geometry_block() - Synchronously read the geometry block from a vdo's underlying block
- *                         device.
- * @vdo: The vdo whose geometry is to be read.
+ * initialize_geometry_block() - Sets up the geometry block for use.
  *
- * Return: VDO_SUCCESS or an error code.
- */
-static int __must_check read_geometry_block(struct vdo *vdo)
+ * @block      The geometry block to check.
+ *
+ * Return: VDO_SUCCESS or error
+ **/
+static int initialize_geometry_block(struct vdo *vdo,
+				     struct vdo_geometry_block *geometry_block)
 {
-	struct vio *vio;
-	char *block;
 	int result;
 
-	result = vdo_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
+	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded geometry block",
+			      (char **) &vdo->geometry_block.buffer);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = create_metadata_vio(vdo, VIO_TYPE_GEOMETRY, VIO_PRIORITY_HIGH, NULL,
-				     block, &vio);
-	if (result != VDO_SUCCESS) {
-		vdo_free(block);
-		return result;
-	}
+	return allocate_vio_components(vdo, VIO_TYPE_GEOMETRY,
+				       VIO_PRIORITY_METADATA, NULL, 1,
+				       (char *) geometry_block->buffer,
+				       &vdo->geometry_block.vio);
+}
 
+static int __must_check read_geometry_block(struct vdo *vdo)
+{
 	/*
 	 * This is only safe because, having not already loaded the geometry, the vdo's geometry's
 	 * bio_offset field is 0, so the fact that vio_reset_bio() will subtract that offset from
 	 * the supplied pbn is not a problem.
 	 */
-	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ,
-			       VDO_GEOMETRY_BLOCK_LOCATION);
-	if (result != VDO_SUCCESS) {
-		free_vio(vdo_forget(vio));
-		vdo_free(block);
+	return vdo_submit_metadata_vio_wait(&vdo->geometry_block.vio,
+					    VDO_GEOMETRY_BLOCK_LOCATION, REQ_OP_READ);
+}
+
+/**
+ * save_geometry_block() - Synchronously write the geometry block to a vdo's underlying block
+ *                         device. Encodes the data.
+ * @vdo: The vdo device whose geometry block is to be written.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+static int __must_check save_geometry_block(struct vdo *vdo)
+{
+	int result;
+
+	result = vdo_encode_volume_geometry(vdo->geometry_block.buffer, &vdo->geometry);
+	if (result != VDO_SUCCESS)
 		return result;
-	}
 
-	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
-	submit_bio_wait(vio->bio);
-	result = blk_status_to_errno(vio->bio->bi_status);
-	free_vio(vdo_forget(vio));
-	if (result != 0) {
-		vdo_log_error_strerror(result, "synchronous read failed");
-		vdo_free(block);
-		return -EIO;
-	}
+	result = vdo_submit_metadata_vio_wait(&vdo->geometry_block.vio,
+					      VDO_GEOMETRY_BLOCK_LOCATION,
+					      REQ_OP_WRITE | REQ_FUA);
+	if (result != VDO_SUCCESS)
+		vdo_log_error_strerror(result, "failed to write geometry block");
+	return result;
+}
 
-	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
-	vdo_free(block);
+static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
+{
+	int result;
+
+	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded super block",
+			      (char **) &vdo->super_block.buffer);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return allocate_vio_components(vdo, VIO_TYPE_SUPER_BLOCK,
+				       VIO_PRIORITY_METADATA, NULL, 1,
+				       (char *) super_block->buffer,
+				       &vdo->super_block.vio);
+}
+
+/**
+ * save_super_block() - Synchronously write the super block to a vdo's underlying block
+ *                      device. Encodes the data.
+ * @vdo: The vdo whose state is being saved.
+ */
+static int save_super_block(struct vdo *vdo)
+{
+	int result;
+
+	vdo_encode_super_block(vdo->super_block.buffer, &vdo->states);
+	result = vdo_submit_metadata_vio_wait(&vdo->super_block.vio,
+					      vdo_get_data_region_start(vdo->geometry),
+					      REQ_OP_WRITE | REQ_PREFLUSH | REQ_FUA);
 	return result;
 }
 
@@ -469,6 +508,124 @@ static int register_vdo(struct vdo *vdo)
 	return result;
 }
 
+static int __must_check clear_partition(struct vdo *vdo, enum partition_id id)
+{
+	struct partition *partition;
+	int result;
+
+	result = vdo_get_partition(&vdo->states.layout, id, &partition);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return blkdev_issue_zeroout(vdo_get_backing_device(vdo),
+				    partition->offset * VDO_SECTORS_PER_BLOCK,
+				    partition->count * VDO_SECTORS_PER_BLOCK,
+				    GFP_NOWAIT, 0);
+}
+
+static int write_format_layout(struct vdo *vdo, char **error_ptr)
+{
+	int result;
+
+	/** Zero out the uds index's first block. */
+	result = blkdev_issue_zeroout(vdo_get_backing_device(vdo),
+				      VDO_SECTORS_PER_BLOCK,
+				      VDO_SECTORS_PER_BLOCK,
+				      GFP_NOWAIT, 0);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "cannot clear index superblock";
+		return result;
+	}
+
+	result = clear_partition(vdo, VDO_BLOCK_MAP_PARTITION);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "cannot clear block map partition";
+		return result;
+	}
+
+	result = clear_partition(vdo, VDO_RECOVERY_JOURNAL_PARTITION);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "cannot clear recovery journal partition";
+		return result;
+	}
+
+	result = save_super_block(vdo);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "cannot write super block";
+		return result;
+	}
+
+	result = save_geometry_block(vdo);
+	if (result != VDO_SUCCESS)
+		*error_ptr = "cannot write geometry block";
+
+	/* Clean up vdo so that we can cleanly load super block later on */
+	vdo_destroy_component_states(&vdo->states);
+	return result;
+}
+
+/**
+ * vdo_format() - Format a block device to function as a new VDO.
+ *
+ * @vdo        The vdo to format.
+ * @error_ptr: The reason for any failure during this call
+ *
+ * This function must be called on a device before a VDO can be loaded for the first time.
+ * Once a device has been formatted, the VDO can be loaded and shut down repeatedly.
+ * If a new VDO is desired, this function should be called again.
+ *
+ * Return: VDO_SUCCESS or an error
+ **/
+static int __must_check vdo_format(struct vdo *vdo, char **error_ptr)
+{
+	int result;
+	physical_block_number_t offset;
+	nonce_t nonce = current_time_us();
+	struct device_config *config = vdo->device_config;
+
+	struct index_config index_config = {
+		.mem    = config->index_memory,
+		.sparse = config->index_sparse,
+	};
+
+	struct vdo_config vdo_config = {
+		.logical_blocks        = config->logical_blocks,
+		.physical_blocks       = config->physical_blocks,
+		.slab_size             = config->slab_blocks,
+		.slab_journal_blocks   = DEFAULT_VDO_SLAB_JOURNAL_SIZE,
+		.recovery_journal_size = DEFAULT_VDO_RECOVERY_JOURNAL_SIZE,
+	};
+
+	result = vdo_initialize_volume_geometry(&index_config, nonce, &vdo->geometry);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "Could not initialize volume geometry during format";
+		return result;
+	}
+
+	offset = vdo_get_data_region_start(vdo->geometry);
+	result = vdo_initialize_component_states(&vdo_config, offset, nonce, &vdo->states);
+	if (result != VDO_SUCCESS) {
+		*error_ptr = "Could not initialize data layout during format";
+		if (result == VDO_NO_SPACE) {
+			block_count_t slab_blocks = config->slab_blocks;
+			/* 1 is counting geometry block */
+			block_count_t fixed_layout_size = 1 +
+				vdo->geometry.regions[VDO_DATA_REGION].start_block +
+				DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT +
+				DEFAULT_VDO_RECOVERY_JOURNAL_SIZE + VDO_SLAB_SUMMARY_BLOCKS;
+			block_count_t necessary_size = fixed_layout_size + slab_blocks;
+
+			vdo_log_error("Minimum required size for VDO volume: %llu bytes",
+				      (unsigned long long) necessary_size * VDO_BLOCK_SIZE);
+			*error_ptr = "Could not allocate enough space for VDO during format";
+		}
+		return result;
+	}
+
+	result = write_format_layout(vdo, error_ptr);
+	return result;
+}
+
 /**
  * initialize_vdo() - Do the portion of initializing a vdo which will clean up after itself on
  *                    error.
@@ -492,9 +649,34 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 	vdo_initialize_completion(&vdo->admin.completion, vdo, VDO_ADMIN_COMPLETION);
 	init_completion(&vdo->admin.callback_sync);
 	mutex_init(&vdo->stats_mutex);
+
+	result = initialize_geometry_block(vdo, &vdo->geometry_block);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not initialize geometry block";
+		return result;
+	}
+
+	result = initialize_super_block(vdo, &vdo->super_block);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not initialize super block";
+		return result;
+	}
+
 	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
-		*reason = "Could not load geometry block";
+		*reason = "Could not read geometry block";
+		return result;
+	}
+
+	if (vdo_is_vio_data_zero(vdo->geometry_block.vio.data)) {
+		result = vdo_format(vdo, reason);
+		if (result != VDO_SUCCESS)
+			return result;
+	}
+
+	result = vdo_parse_geometry_block(vdo->geometry_block.buffer, &vdo->geometry);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not parse geometry block";
 		return result;
 	}
 
@@ -671,6 +853,12 @@ static void free_listeners(struct vdo_thread *thread)
 	}
 }
 
+static void uninitialize_geometry_block(struct vdo_geometry_block *geometry_block)
+{
+	free_vio_components(&geometry_block->vio);
+	vdo_free(geometry_block->buffer);
+}
+
 static void uninitialize_super_block(struct vdo_super_block *super_block)
 {
 	free_vio_components(&super_block->vio);
@@ -727,6 +915,7 @@ void vdo_destroy(struct vdo *vdo)
 	vdo_uninitialize_layout(&vdo->next_layout);
 	if (vdo->partition_copier)
 		dm_kcopyd_client_destroy(vdo_forget(vdo->partition_copier));
+	uninitialize_geometry_block(&vdo->geometry_block);
 	uninitialize_super_block(&vdo->super_block);
 	vdo_free_block_map(vdo_forget(vdo->block_map));
 	vdo_free_hash_zones(vdo_forget(vdo->hash_zones));
@@ -765,21 +954,6 @@ void vdo_destroy(struct vdo *vdo)
 #else
 	vdo_free(vdo);
 #endif
-}
-
-static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
-{
-	int result;
-
-	result = vdo_allocate(VDO_BLOCK_SIZE, char, "encoded super block",
-			      (char **) &vdo->super_block.buffer);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	return allocate_vio_components(vdo, VIO_TYPE_SUPER_BLOCK,
-				       VIO_PRIORITY_METADATA, NULL, 1,
-				       (char *) super_block->buffer,
-				       &vdo->super_block.vio);
 }
 
 /**
@@ -825,14 +999,6 @@ static void read_super_block_endio(struct bio *bio)
  */
 void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent)
 {
-	int result;
-
-	result = initialize_super_block(vdo, &vdo->super_block);
-	if (result != VDO_SUCCESS) {
-		vdo_continue_completion(parent, result);
-		return;
-	}
-
 	vdo->super_block.vio.completion.parent = parent;
 	vdo_submit_metadata_vio(&vdo->super_block.vio,
 				vdo_get_data_region_start(vdo->geometry),

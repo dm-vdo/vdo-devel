@@ -40,7 +40,9 @@ enum {
   MIN_SLAB_BITS     = 13,
 #endif /* INTERNAL */
   DEFAULT_SLAB_BITS = 19,
+  MAX_SLAB_BITS = 23,
 };
+
 
 static const char usageString[] =
   " [--help] [options...] filename";
@@ -169,12 +171,12 @@ static void describeCapacity(const UserVDO *vdo,
     printf("It can grow to address at most ");
     printReadableSize(maxTotalSize);
     printf(" of physical storage in %u slabs.\n", MAX_VDO_SLABS);
-    if (slabBits < MAX_VDO_SLAB_BITS) {
+    if (slabBits < MAX_SLAB_BITS) {
       printf("If a larger maximum size might be needed, use bigger slabs.\n");
     }
   } else {
     printf("The volume has the maximum number of slabs and so cannot grow.\n");
-    if (slabBits < MAX_VDO_SLAB_BITS) {
+    if (slabBits < MAX_SLAB_BITS) {
       printf("Consider using larger slabs to allow the volume to grow.\n");
     }
   }
@@ -437,10 +439,10 @@ int main(int argc, char *argv[])
       break;
 
     case 'S':
-      result = parseUInt(optarg, MIN_SLAB_BITS, MAX_VDO_SLAB_BITS, &slabBits);
+      result = parseUInt(optarg, MIN_SLAB_BITS, MAX_SLAB_BITS, &slabBits);
       if (result != VDO_SUCCESS) {
         warnx("invalid slab bits, must be %u-%u",
-              MIN_SLAB_BITS, MAX_VDO_SLAB_BITS);
+              MIN_SLAB_BITS, MAX_SLAB_BITS);
         usage(argv[0], usageString);
       }
       break;

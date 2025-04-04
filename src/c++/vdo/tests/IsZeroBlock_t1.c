@@ -11,7 +11,7 @@
 
 #include "albtest.h"
 #include "assertions.h"
-#include "data-vio.h"
+#include "vio.h"
 
 /**********************************************************************/
 static void isZeroTest(void)
@@ -30,17 +30,17 @@ static void isZeroTest(void)
 
   // All zeros
   memset(testBlock, 0, sizeof(testBlock));
-  CU_ASSERT_TRUE(is_zero_block(testBlock));
+  CU_ASSERT_TRUE(vdo_is_vio_data_zero(testBlock));
 
   // A run of zeros at the beginning
   for (int i = VDO_BLOCK_SIZE - 1; i >= 0; i--) {
     testBlock[i] = dataBlock[i];
-    CU_ASSERT_FALSE(is_zero_block(testBlock));
+    CU_ASSERT_FALSE(vdo_is_vio_data_zero(testBlock));
   }
   // A run of zeros at the end
   for (int i = VDO_BLOCK_SIZE - 1; i > 0; i -= 1) {
     testBlock[i] = 0;
-    CU_ASSERT_FALSE(is_zero_block(testBlock));
+    CU_ASSERT_FALSE(vdo_is_vio_data_zero(testBlock));
   }
 }
 

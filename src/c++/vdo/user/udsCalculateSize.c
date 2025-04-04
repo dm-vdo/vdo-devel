@@ -111,9 +111,9 @@ int main(int argc, char *argv[])
   }
 
   block_count_t indexBlocks = 0;
-  result = computeIndexBlocks(&indexConfig, &indexBlocks);
+  result = vdo_compute_index_blocks(&indexConfig, &indexBlocks);
   if (result != VDO_SUCCESS) {
-    errx(result, "computeIndexBlocks failed: %s",
+    errx(result, "vdo_compute_index_blocks failed: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
 
