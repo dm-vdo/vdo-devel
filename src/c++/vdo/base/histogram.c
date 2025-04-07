@@ -3,8 +3,6 @@
  * Copyright 2023 Red Hat
  */
 
-#include <linux/kobject.h>
-
 #include "memory-alloc.h"
 #include "permassert.h"
 
@@ -64,12 +62,12 @@ struct histogram {
 	int num_buckets; /* The number of buckets */
 	bool log_flag; /* True if the y scale should be logarithmic */
 	/* These fields are used only when reporting results. */
+	const char *name; /* Histogram name */
 	const char *label; /* Histogram label */
 	const char *counted_items; /* Name for things being counted */
 	const char *metric; /* Term for value used to divide into buckets */
 	const char *sample_units; /* Unit for measuring metric; NULL for count */
 	unsigned int conversion_factor; /* Converts input units to reporting units */
-	struct kobject kobj;
 };
 
 /*
@@ -216,12 +214,6 @@ static const u64 bottom_value[1 + 10 * MAX_LOG_SIZE] = {
 	1000000000000L,
 };
 
-static unsigned int divide_rounding_to_nearest(u64 number, u64 divisor)
-{
-	number += divisor / 2;
-	return number / divisor;
-}
-
 static int max_bucket(struct histogram *h)
 {
 	int max = h->num_buckets;
@@ -232,342 +224,200 @@ static int max_bucket(struct histogram *h)
 	return max;
 }
 
-struct histogram_attribute {
-	struct attribute attr;
-	ssize_t (*show)(struct histogram *h, char *buf);
-	ssize_t (*store)(struct histogram *h, const char *buf, size_t length);
-};
-
-static void histogram_kobj_release(struct kobject *kobj)
+static unsigned int divide_rounding_to_nearest(u64 number, u64 divisor)
 {
-	struct histogram *h = container_of(kobj, struct histogram, kobj);
-
-	vdo_free(h->counters);
-	vdo_free(h);
+	number += divisor / 2;
+	return number / divisor;
 }
 
-static ssize_t histogram_show(struct kobject *kobj, struct attribute *attr, char *buf)
+void write_sstring(const char *prefix, char *value, char *suffix, char **buf,
+		  unsigned int *maxlen)
 {
-	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute,
-						      attr);
-	struct histogram *h = container_of(kobj, struct histogram, kobj);
+	int count;
 
-	if (ha->show == NULL)
-		return -EINVAL;
-
-	return ha->show(h, buf);
+	count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+			  value, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
 }
 
-static ssize_t histogram_store(struct kobject *kobj, struct attribute *attr,
-			       const char *buf, size_t length)
+static void histogram_show_label(char *prefix, struct histogram *h, char *suffix,
+				 char **buf, unsigned int *maxlen)
 {
-	struct histogram_attribute *ha = container_of(attr, struct histogram_attribute,
-						      attr);
-	struct histogram *h = container_of(kobj, struct histogram, kobj);
+	int count;
 
-	if (ha->show == NULL)
-		return -EINVAL;
-
-	return ha->store(h, buf, length);
+	count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+			  h->label, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
 }
 
-static ssize_t histogram_show_count(struct histogram *h, char *buf)
+static void histogram_show_counted_items(char *prefix, struct histogram *h,
+					 char *suffix, char **buf, unsigned int *maxlen)
 {
-	s64 count = atomic64_read(&h->count);
+	int count;
 
-	return sprintf(buf, "%lld\n", count);
+	count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+			  h->counted_items, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
 }
 
-static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
+static void histogram_show_metric(char *prefix, struct histogram *h, char *suffix,
+				  char **buf, unsigned int *maxlen)
 {
-	/*
-	 * We're given one page in which to write. The caller logs a complaint if we report that
-	 * we've written too much, so we'll truncate to PAGE_SIZE-1.
-	 */
-	ssize_t buffer_size = PAGE_SIZE;
-	bool bars = true;
-	ssize_t length = 0;
+	int count;
+
+	count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+			  h->metric, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
+}
+
+static void histogram_show_unit(char *prefix, struct histogram *h, char *suffix,
+				char **buf, unsigned int *maxlen)
+{
+	if (h->sample_units != NULL) {
+		int count;
+
+		count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+			  h->sample_units, suffix == NULL ? "" : suffix);
+		*buf += count;
+		*maxlen -= count;
+	}
+}
+
+static void histogram_show_maximum(char *prefix, struct histogram *h, char *suffix,
+				   char **buf, unsigned int *maxlen)
+{
+	int count;
+
+	/* Maximum is initialized to 0. */
+	unsigned long value = atomic64_read(&h->maximum);
+	count = scnprintf(*buf, *maxlen, "%s%lu%s", prefix == NULL ? "" : prefix,
+			  h->conversion_factor * value, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
+}
+
+static void histogram_show_minimum(char *prefix, struct histogram *h, char *suffix,
+				   char **buf, unsigned int *maxlen)
+{
+	int count;
+
+	/* Minimum is initialized to -1. */
+	unsigned long value = ((atomic64_read(&h->count) > 0) ? atomic64_read(&h->minimum) : 0);
+	count = scnprintf(*buf, *maxlen, "%s%lu%s", prefix == NULL ? "" : prefix,
+			  h->conversion_factor * value, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
+}
+
+static void histogram_show_mean(char *prefix, struct histogram *h, char *suffix,
+				char **buf, unsigned int *maxlen)
+{
+	int count;
+	unsigned long sum_times1000_in_reporting_units;
+	unsigned int mean_times1000;
+	u64 value = atomic64_read(&h->count);
+
+	if (value == 0) {
+		count = scnprintf(*buf, *maxlen, "%s%s%s", prefix == NULL ? "" : prefix,
+				  "0/0", suffix == NULL ? "" : suffix);
+	} else {
+		/* Compute mean, scaled up by 1000, in reporting units */
+		sum_times1000_in_reporting_units = h->conversion_factor * atomic64_read(&h->sum) * 1000;
+		mean_times1000 = divide_rounding_to_nearest(sum_times1000_in_reporting_units,
+						    value);
+		count = scnprintf(*buf, *maxlen, "%s%u.%03u%s", prefix == NULL ? "" : prefix,
+				  mean_times1000 / 1000, mean_times1000 % 1000,
+				  suffix == NULL ? "" : suffix);
+	}
+	*buf += count;
+	*maxlen -= count;
+}
+
+static void histogram_show_count(char *prefix, struct histogram *h, char *suffix,
+				 char **buf, unsigned int *maxlen)
+{
+	int count;
+
+	s64 value = atomic64_read(&h->count);
+	count = scnprintf(*buf, *maxlen, "%s%lld%s", prefix == NULL ? "" : prefix,
+			  value, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
+}
+
+static void histogram_show_histogram(char *prefix, struct histogram *h, char *suffix,
+				     char **buf, unsigned int *maxlen)
+{
+	ssize_t count = 0;
 	int max = max_bucket(h);
 	u64 total = 0;
 	int i;
 
 	/* If max is -1, we'll fall through to reporting the total of zero. */
 
-	enum { BAR_SIZE = 50 };
-	char bar[BAR_SIZE + 2];
-
-	bar[0] = ' ';
-	memset(bar + 1, '=', BAR_SIZE);
-	bar[BAR_SIZE + 1] = '\0';
+	write_sstring(prefix, "{ ", NULL, buf, maxlen);
 
 	for (i = 0; i <= max; i++)
 		total += atomic64_read(&h->counters[i]);
 
-	length += scnprintf(buffer, buffer_size, "%s Histogram - number of %s by %s",
-			    h->label, h->counted_items, h->metric);
-	if (length >= (buffer_size - 1))
-		return buffer_size - 1;
-	if (h->sample_units != NULL) {
-		length += scnprintf(buffer + length, buffer_size - length, " (%s)",
-				    h->sample_units);
-		if (length >= (buffer_size - 1))
-			return buffer_size - 1;
-	}
-	length += scnprintf(buffer + length, buffer_size - length, "\n");
-	if (length >= (buffer_size - 1))
-		return buffer_size - 1;
 	for (i = 0; i <= max; i++) {
 		u64 value = atomic64_read(&h->counters[i]);
-		unsigned int bar_length;
-
-		if (bars && (total != 0)) {
-			/* +1 for the space at the beginning */
-			bar_length = divide_rounding_to_nearest(value * BAR_SIZE, total) + 1;
-			if (bar_length == 1) {
-				/* Don't bother printing just the initial space. */
-				bar_length = 0;
-			}
-		} else {
-			/* 0 means skip the space and the bar */
-			bar_length = 0;
-		}
 
 		if (h->log_flag) {
 			if (i == h->num_buckets) {
-				length += scnprintf(buffer + length,
-						    buffer_size - length, "%-16s",
-						    "Bigger");
+				count = scnprintf(*buf, *maxlen, "%s", "Bigger");
 			} else {
 				unsigned int lower = h->conversion_factor * bottom_value[i];
 				unsigned int upper = h->conversion_factor * bottom_value[i + 1] - 1;
-				length += scnprintf(buffer + length,
-						    buffer_size - length, "%6u - %7u",
-						    lower, upper);
+				count = scnprintf(*buf, *maxlen, "%u - %u", lower, upper);
 			}
 		} else {
 			if (i == h->num_buckets) {
-				length += scnprintf(buffer + length,
-						    buffer_size - length, "%6s",
-						    "Bigger");
+				count = scnprintf(*buf, *maxlen, "%s", "Bigger");
 			} else {
-				length += scnprintf(buffer + length,
-						    buffer_size - length, "%6d", i);
+				count = scnprintf(*buf, *maxlen, "%d", i);
 			}
 		}
+		*buf += count;
+		*maxlen -= count;
 
-		if (length >= (buffer_size - 1))
-			return buffer_size - 1;
-		length += scnprintf(buffer + length, buffer_size - length,
-				    " : %12llu%.*s\n", value, bar_length, bar);
-		if (length >= (buffer_size - 1))
-			return buffer_size - 1;
+		count = scnprintf(*buf, *maxlen, " : %llu, ", value);
+		*buf += count;
+		*maxlen -= count;
 	}
 
-	length += scnprintf(buffer + length, buffer_size - length, "total %llu\n",
-			    total);
-	return min(buffer_size - 1, length);
+	write_sstring(NULL, "}", suffix, buf, maxlen);
 }
 
-static ssize_t histogram_show_maximum(struct histogram *h, char *buf)
+static void histogram_show_unacceptable(char *prefix, struct histogram *h, char *suffix,
+					char **buf, unsigned int *maxlen)
 {
-	/* Maximum is initialized to 0. */
-	unsigned long value = atomic64_read(&h->maximum);
+	int count;
 
-	return sprintf(buf, "%lu\n", h->conversion_factor * value);
+	s64 value = atomic64_read(&h->unacceptable);
+	count = scnprintf(*buf, *maxlen, "%s%lld%s", prefix == NULL ? "" : prefix,
+			  value, suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
 }
 
-static ssize_t histogram_show_minimum(struct histogram *h, char *buf)
+static void histogram_show_limit(char *prefix, struct histogram *h, char *suffix,
+				 char **buf, unsigned int *maxlen)
 {
-	/* Minimum is initialized to -1. */
-	unsigned long value = ((atomic64_read(&h->count) > 0) ? atomic64_read(&h->minimum) : 0);
+	int count;
 
-	return sprintf(buf, "%lu\n", h->conversion_factor * value);
+	count = scnprintf(*buf, *maxlen, "%s%u%s", prefix == NULL ? "" : prefix,
+			  (unsigned int) (h->conversion_factor * h->limit),
+			  suffix == NULL ? "" : suffix);
+	*buf += count;
+	*maxlen -= count;
 }
 
-static ssize_t histogram_show_limit(struct histogram *h, char *buf)
-{
-	/* Display the limit in the reporting units */
-	return sprintf(buf, "%u\n", (unsigned int) (h->conversion_factor * h->limit));
-}
-
-static ssize_t histogram_store_limit(struct histogram *h, const char *buf, size_t length)
-{
-	unsigned int value;
-
-	if ((length > 12) || (sscanf(buf, "%u", &value) != 1))
-		return -EINVAL;
-	/*
-	 * Convert input from reporting units (e.g., milliseconds) to internal recording units
-	 * (e.g., jiffies).
-	 */
-	h->limit = DIV_ROUND_UP(value, h->conversion_factor);
-	atomic64_set(&h->unacceptable, 0);
-	return length;
-}
-
-static ssize_t histogram_show_mean(struct histogram *h, char *buf)
-{
-	unsigned long sum_times1000_in_reporting_units;
-	unsigned int mean_times1000;
-	u64 count = atomic64_read(&h->count);
-
-	if (count == 0)
-		return sprintf(buf, "0/0\n");
-	/* Compute mean, scaled up by 1000, in reporting units */
-	sum_times1000_in_reporting_units = h->conversion_factor * atomic64_read(&h->sum) * 1000;
-	mean_times1000 = divide_rounding_to_nearest(sum_times1000_in_reporting_units,
-						    count);
-	/* Print mean with fractional part */
-	return sprintf(buf, "%u.%03u\n", mean_times1000 / 1000, mean_times1000 % 1000);
-}
-
-static ssize_t histogram_show_unacceptable(struct histogram *h, char *buf)
-{
-	s64 count = atomic64_read(&h->unacceptable);
-
-	return sprintf(buf, "%lld\n", count);
-}
-
-static ssize_t histogram_show_label(struct histogram *h, char *buf)
-{
-	return sprintf(buf, "%s\n", h->label);
-}
-
-static ssize_t histogram_show_unit(struct histogram *h, char *buf)
-{
-	if (h->sample_units != NULL) {
-		return sprintf(buf, "%s\n", h->sample_units);
-	} else {
-		*buf = 0;
-		return 0;
-	}
-}
-
-static struct sysfs_ops histogram_sysfs_ops = {
-	.show = histogram_show,
-	.store = histogram_store,
-};
-
-static struct histogram_attribute count_attribute = {
-	.attr = {
-			.name = "count",
-			.mode = 0444,
-		},
-	.show = histogram_show_count,
-};
-
-static struct histogram_attribute histogram_attribute = {
-	.attr = {
-			.name = "histogram",
-			.mode = 0444,
-		},
-	.show = histogram_show_histogram,
-};
-
-static struct histogram_attribute label_attribute = {
-	.attr = {
-			.name = "label",
-			.mode = 0444,
-		},
-	.show = histogram_show_label,
-};
-
-static struct histogram_attribute maximum_attribute = {
-	.attr = {
-			.name = "maximum",
-			.mode = 0444,
-		},
-	.show = histogram_show_maximum,
-};
-
-static struct histogram_attribute minimum_attribute = {
-	.attr = {
-			.name = "minimum",
-			.mode = 0444,
-		},
-	.show = histogram_show_minimum,
-};
-
-static struct histogram_attribute limit_attribute = {
-	.attr = {
-			.name = "limit",
-			.mode = 0644,
-		},
-	.show = histogram_show_limit,
-	.store = histogram_store_limit,
-};
-
-static struct histogram_attribute mean_attribute = {
-	.attr = {
-			.name = "mean",
-			.mode = 0444,
-		},
-	.show = histogram_show_mean,
-};
-
-static struct histogram_attribute unacceptable_attribute = {
-	.attr = {
-			.name = "unacceptable",
-			.mode = 0444,
-		},
-	.show = histogram_show_unacceptable,
-};
-
-static struct histogram_attribute unit_attribute = {
-	.attr = {
-			.name = "unit",
-			.mode = 0444,
-		},
-	.show = histogram_show_unit,
-};
-
-/* "Real" histogram plotting. */
-static struct attribute *histogram_attrs[] = {
-	&count_attribute.attr,
-	&histogram_attribute.attr,
-	&label_attribute.attr,
-	&limit_attribute.attr,
-	&maximum_attribute.attr,
-	&mean_attribute.attr,
-	&minimum_attribute.attr,
-	&unacceptable_attribute.attr,
-	&unit_attribute.attr,
-	NULL,
-};
-ATTRIBUTE_GROUPS(histogram);
-
-static struct kobj_type histogram_kobj_type = {
-	.release = histogram_kobj_release,
-	.sysfs_ops = &histogram_sysfs_ops,
-	.default_groups = histogram_groups,
-};
-
-#ifdef VDO_INTERNAL
-/*
- * Same as above, just missing the "histogram", "limit", and "unacceptable" entries.
- *
- * We're overloading NO_BUCKETS here to also mean to strip out the limit/unacceptable support added
- * for debugging.
- */
-#endif
-static struct attribute *bucketless_histogram_attrs[] = {
-	&count_attribute.attr,
-	&label_attribute.attr,
-	&maximum_attribute.attr,
-	&mean_attribute.attr,
-	&minimum_attribute.attr,
-	&unit_attribute.attr,
-	NULL,
-};
-ATTRIBUTE_GROUPS(bucketless_histogram);
-
-static struct kobj_type bucketless_histogram_kobj_type = {
-	.release = histogram_kobj_release,
-	.sysfs_ops = &histogram_sysfs_ops,
-	.default_groups = bucketless_histogram_groups,
-};
-
-static struct histogram *make_histogram(struct kobject *parent, const char *name,
+static struct histogram *make_histogram(const char *name,
 					const char *label, const char *counted_items,
 					const char *metric, const char *sample_units,
 					int num_buckets, unsigned long conversion_factor,
@@ -588,6 +438,7 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 		 */
 		log_flag = false;
 
+	h->name = name;
 	h->label = label;
 	h->counted_items = counted_items;
 	h->metric = metric;
@@ -599,22 +450,14 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
 
 	if (vdo_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
 			 &h->counters) != VDO_SUCCESS) {
-		histogram_kobj_release(&h->kobj);
 		return NULL;
 	}
 
-	kobject_init(&h->kobj,
-		     ((num_buckets > 0) ? &histogram_kobj_type : &bucketless_histogram_kobj_type));
-	if (kobject_add(&h->kobj, parent, name) != 0) {
-		histogram_kobj_release(&h->kobj);
-		return NULL;
-	}
 	return h;
 }
 
 /**
  * make_linear_histogram() - Allocate and initialize a histogram that uses linearly sized buckets.
- * @parent: The parent kobject.
  * @name: The short name of the histogram. This label is used for the sysfs node.
  * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
@@ -634,19 +477,18 @@ static struct histogram *make_histogram(struct kobject *parent, const char *name
  *
  * Return: The histogram.
  */
-struct histogram *make_linear_histogram(struct kobject *parent, const char *name,
+struct histogram *make_linear_histogram(const char *name,
 					const char *init_label,
 					const char *counted_items, const char *metric,
 					const char *sample_units, int size)
 {
-	return make_histogram(parent, name, init_label, counted_items, metric,
+	return make_histogram(name, init_label, counted_items, metric,
 			      sample_units, size, 1, false);
 }
 
 /**
  * make_logarithmic_histogram_with_conversion_factor() - Intermediate routine for creating
  *                                                       logarithmic histograms.
- * @parent: The parent kobject.
  * @name: The short name of the histogram. This label is used for the sysfs node.
  * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
@@ -661,21 +503,20 @@ struct histogram *make_linear_histogram(struct kobject *parent, const char *name
  * Return: The histogram.
  */
 static struct histogram *
-make_logarithmic_histogram_with_conversion_factor(struct kobject *parent, const char *name,
+make_logarithmic_histogram_with_conversion_factor(const char *name,
 						  const char *init_label, const char *counted_items,
 						  const char *metric, const char *sample_units,
 						  int log_size, u64 conversion_factor)
 {
 	if (log_size > MAX_LOG_SIZE)
 		log_size = MAX_LOG_SIZE;
-	return make_histogram(parent, name, init_label, counted_items, metric,
+	return make_histogram(name, init_label, counted_items, metric,
 			      sample_units, 10 * log_size, conversion_factor, true);
 }
 
 /**
  * make_logarithmic_histogram() - Allocate and initialize a histogram that uses logarithmically
  *                                sized buckets.
- * @parent: The parent kobject.
  * @name: The short name of the histogram. This label is used for the sysfs node.
  * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
@@ -686,13 +527,13 @@ make_logarithmic_histogram_with_conversion_factor(struct kobject *parent, const 
  *
  * Return: The histogram.
  */
-struct histogram *make_logarithmic_histogram(struct kobject *parent, const char *name,
+struct histogram *make_logarithmic_histogram(const char *name,
 					     const char *init_label,
 					     const char *counted_items,
 					     const char *metric,
 					     const char *sample_units, int log_size)
 {
-	return make_logarithmic_histogram_with_conversion_factor(parent, name,
+	return make_logarithmic_histogram_with_conversion_factor(name,
 								 init_label,
 								 counted_items, metric,
 								 sample_units, log_size, 1);
@@ -701,7 +542,6 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent, const char 
 /**
  * make_logarithmic_jiffies_histogram() - Allocate and initialize a histogram that uses
  *                                        logarithmically sized buckets.
- * @parent: The parent kobject.
  * @name: The short name of the histogram. This label is used for the sysfs node.
  * @init_label: The label for the sampled data. This label is used when we plot the data.
  * @counted_items: A name (plural) for the things being counted.
@@ -713,8 +553,7 @@ struct histogram *make_logarithmic_histogram(struct kobject *parent, const char 
  *
  * Return: The histogram.
  */
-struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
-						     const char *name,
+struct histogram *make_logarithmic_jiffies_histogram(const char *name,
 						     const char *init_label,
 						     const char *counted_items,
 						     const char *metric, int log_size)
@@ -725,7 +564,7 @@ struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
 	 */
 	BUILD_BUG_ON(HZ > MSEC_PER_SEC);
 	BUILD_BUG_ON((MSEC_PER_SEC % HZ) != 0);
-	return make_logarithmic_histogram_with_conversion_factor(parent, name,
+	return make_logarithmic_histogram_with_conversion_factor(name,
 								 init_label,
 								 counted_items, metric,
 								 "milliseconds",
@@ -793,12 +632,54 @@ void enter_histogram_sample(struct histogram *h, u64 sample)
 	}
 }
 
+bool histogram_is_named(struct histogram *histogram, const char *name) {
+	return strcmp(histogram->name, name) == 0;
+}
+
+/**
+ * write_histogram() - Writes histogram info into a bufer.
+ * @histogram: The histogram to write.
+ * @buf: The buffer to write into
+ * @maxlen: The max size of the buffer
+ */
+void write_histogram(struct histogram *histogram, char **buf, unsigned int *maxlen)
+{
+	write_sstring(histogram->name, ": { ", NULL, buf, maxlen);
+	histogram_show_label("label : ", histogram, ", ", buf, maxlen);
+	histogram_show_counted_items("type : ", histogram, ", ", buf, maxlen);
+	histogram_show_metric("metric : ", histogram, ", ", buf, maxlen);
+	histogram_show_unit("unit : ", histogram, ", ", buf, maxlen);
+	histogram_show_count("count : ", histogram, ", ", buf, maxlen);
+	histogram_show_maximum("max : ", histogram, ", ", buf, maxlen);
+	histogram_show_mean("mean : ", histogram, ", ", buf, maxlen);
+	histogram_show_minimum("min : ", histogram, ", ", buf, maxlen);
+	histogram_show_histogram("buckets : ", histogram, ", ", buf, maxlen);
+	histogram_show_unacceptable("unacceptable : ", histogram, ", ", buf, maxlen);
+	histogram_show_limit("limit : ", histogram, ", ", buf, maxlen);
+	write_sstring(NULL, "}, ", NULL, buf, maxlen);
+}
+
+ssize_t set_histogram_limit(struct histogram *h, const char *buf, ssize_t length)
+{
+	unsigned int value;
+
+	if ((length > 12) || (sscanf(buf, "%u", &value) != 1))
+		return -EINVAL;
+	/*
+	 * Convert input from reporting units (e.g., milliseconds) to internal recording units
+	 * (e.g., jiffies).
+	 */
+	h->limit = DIV_ROUND_UP(value, h->conversion_factor);
+	atomic64_set(&h->unacceptable, 0);
+	return length;
+}
+
 /**
  * free_histogram() - Free a histogram.
  * @histogram: The histogram to free.
  */
 void free_histogram(struct histogram *histogram)
 {
-	if (histogram != NULL)
-		kobject_put(&histogram->kobj);
+	vdo_free(histogram->counters);
+	vdo_free(histogram);
 }

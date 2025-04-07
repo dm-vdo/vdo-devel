@@ -414,8 +414,7 @@ sub postActivate {
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->sendMessage("histogram_limit $histogram " . secondsToMS($self->{latencyLimit}));
     }
   };
 
@@ -1219,59 +1218,51 @@ sub logHumanVDOStats {
 sub logHistograms {
   my ($self, @histograms) = assertMinArgs(1, @_);
   my $machine = $self->getMachine();
-  my %paths;
-  if (scalar(@histograms) == 0) {
-    my $sysDir = $self->getSysModuleDevicePath("");
-    $self->sendCommand("find $sysDir -name histogram -print");
-    my @foundPaths = split("\n", $machine->getStdout());
-    # Ensure there is a trailing slash so it also gets removed.
-    $sysDir =~ s|(?<!/)$|/|;
-    %paths = map {
-      dirname(substr($_, length($sysDir))) => $_
-    } @foundPaths;
-    @histograms = sort(keys(%paths));
-  } else {
-    %paths = map {
-      $_ => $self->getSysModuleDevicePath("$_/histogram")
-    } @histograms;
-  }
+  # Histograms are subject to the VDO_INTERNAL build macro.  Release builds
+  # will not have histograms.
+  my $output = "no histograms";
+  eval {
+    $self->sendMessage("histograms");
+    $output = $machine->getStdout();
+  };
   $log->info("Logging histograms for $self->{vdoSymbolicPath}");
-  foreach my $label (@histograms) {
-    my $path = $paths{$label};
-    my $mean = $self->_getHistogramStatistic($label, "mean");
-    # If the mean is undefined, it means that there were no histogram samples.
-    if (defined($mean)) {
-      my $maximum = $self->_getHistogramStatistic($label, "maximum");
-      my $minimum = $self->_getHistogramStatistic($label, "minimum");
-      my $unit = $self->_getHistogramUnits($label);
-
-      $log->debug($machine->cat($path));
-
-      if (defined($unit)) {
-        $log->debug("  $label unit is $unit");
-      } else {
-        $log->debug("  $label is unitless");
-      }
-      my %timeScales = (
-                        "milliseconds" => 1.0e-3,
-                        "microseconds" => 1.0e-6,
-                       );
-      if (defined($unit) && defined($timeScales{$unit})) {
-        for my $variable (\$mean, \$minimum, \$maximum) {
-          if (defined($$variable)) {
-            $$variable = timeToText($$variable * $timeScales{$unit});
-          }
-        }
-      }
-      $log->debug("  $label mean is $mean");
-      if (defined($minimum)) {
-        $log->debug("  $label minimum is $minimum");
-      }
-      if (defined($maximum)) {
-        $log->debug("  $label maximum is $maximum");
-      }
-    }
-  }
+  $log->info($output);
+#  foreach my $label (@histograms) {
+#    my $path = $paths{$label};
+#    my $mean = $self->_getHistogramStatistic($label, "mean");
+#    # If the mean is undefined, it means that there were no histogram samples.
+#    if (defined($mean)) {
+#      my $maximum = $self->_getHistogramStatistic($label, "maximum");
+#      my $minimum = $self->_getHistogramStatistic($label, "minimum");
+#      my $unit = $self->_getHistogramUnits($label);
+#
+#      $log->debug($machine->cat($path));
+#
+#      if (defined($unit)) {
+#        $log->debug("  $label unit is $unit");
+#      } else {
+#        $log->debug("  $label is unitless");
+#      }
+#      my %timeScales = (
+#                        "milliseconds" => 1.0e-3,
+#                        "microseconds" => 1.0e-6,
+#                       );
+#      if (defined($unit) && defined($timeScales{$unit})) {
+#        for my $variable (\$mean, \$minimum, \$maximum) {
+#          if (defined($$variable)) {
+#            $$variable = timeToText($$variable * $timeScales{$unit});
+#          }
+#        }
+#      }
+#      $log->debug("  $label mean is $mean");
+#      if (defined($minimum)) {
+#        $log->debug("  $label minimum is $minimum");
+#      }
+#      if (defined($maximum)) {
+#        $log->debug("  $label maximum is $maximum");
+#      }
+#    }
+#  }
 }
 
 ########################################################################
