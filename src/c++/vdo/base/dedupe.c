@@ -747,8 +747,9 @@ static void process_update_result(struct data_vio *agent)
 		return;
 
 #ifdef VDO_INTERNAL
-	enter_histogram_sample(vdo_from_data_vio(agent)->histograms.update_histogram,
-			       jiffies - context->submission_jiffies);
+	vdo_enter_histogram_sample(&vdo_from_data_vio(agent)->histograms,
+				   HISTOGRAM_DEDUPE_UPDATE,
+				   jiffies - context->submission_jiffies);
 #endif /* VDO_INTERNAL */
 	agent->dedupe_context = NULL;
 	release_context(context);
@@ -1679,11 +1680,13 @@ static void process_query_result(struct data_vio *agent)
 	if (change_context_state(context, DEDUPE_CONTEXT_COMPLETE, DEDUPE_CONTEXT_IDLE)) {
 #ifdef VDO_INTERNAL
 		struct vdo *vdo = vdo_from_data_vio(agent);
-		struct histogram *histogram = ((context->request.type == UDS_POST) ?
-					       vdo->histograms.post_histogram :
-					       vdo->histograms.query_histogram);
+		enum histogram_types type;
 
-		enter_histogram_sample(histogram, jiffies - context->submission_jiffies);
+		type = ((context->request.type == UDS_POST) ? HISTOGRAM_DEDUPE_POST :
+			HISTOGRAM_DEDUPE_QUERY);
+
+		vdo_enter_histogram_sample(&vdo->histograms, type,
+					   jiffies - context->submission_jiffies);
 #endif /* VDO_INTERNAL */
 		agent->is_duplicate = decode_uds_advice(context);
 		agent->dedupe_context = NULL;
