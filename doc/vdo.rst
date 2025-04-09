@@ -315,8 +315,11 @@ Status
 		'offline', 'online', 'opening', and 'unknown'.
 
 	compression state:
-		The current state of compression in the vdo volume; values
-		may be 'offline' and 'online'.
+		The current state of compression in the vdo volume. If
+		the compressionType parameter was not used on the table
+		line, the values may be 'offline' and 'online'. Otherwise,
+		it names the selected compression algorithm and options,
+		followed by '(on)' or '(off)'.
 
 	used physical blocks:
 		The number of physical blocks in use by the vdo volume.
