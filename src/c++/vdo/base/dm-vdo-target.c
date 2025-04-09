@@ -1174,7 +1174,7 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 {
 	struct vdo *vdo = get_vdo_for_target(ti);
 	struct vdo_statistics *stats;
-	struct device_config *device_config = ti->private;
+	struct device_config *device_config;
 	/* N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen". */
 	int sz = 0;
 
@@ -1185,12 +1185,11 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 		vdo_fetch_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
-		DMEMIT("/dev/%pg %s %s %s %s:%d(%s) %llu %llu",
+		DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
 		       vdo_get_backing_device(vdo), stats->mode,
 		       stats->in_recovery_mode ? "recovering" : "-",
 		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
-		       VDO_COMPRESS_LZ4, device_config->compression_level,
-		       vdo_get_compressing(vdo) ? "on" : "off",
+		       vdo_get_compressing(vdo) ? "online" : "offline",
 		       stats->data_blocks_used + stats->overhead_blocks_used,
 		       stats->physical_blocks);
 		mutex_unlock(&vdo->stats_mutex);
@@ -1198,6 +1197,7 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 
 	case STATUSTYPE_TABLE:
 		/* Report the string actually specified in the beginning. */
+		device_config = (struct device_config *) ti->private;
 		DMEMIT("%s", device_config->original_string);
 		break;
 
