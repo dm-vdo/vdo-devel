@@ -302,21 +302,32 @@ sub testMultiVdoDefiningTable {
 }
 
 ###############################################################################
-# Test various valid compression type options.
+# Test various valid compression type options and associated status output.
 ##
 sub testCompressionType {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
   my $deviceName = $device->getDeviceName();
 
+  $device->{compressionType} = undef;
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}offline( \S+){2}$/,
+                      $device->getStatus());
+
   $device->{compressionType} = "lz4";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:1\(off\)( \S+){2}$/,
+                      $device->getStatus());
 
   $device->{compressionType} = "lz4:5";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:5\(off\)( \S+){2}$/,
+                      $device->getStatus());
 
   $device->{compressionType} = "lz4:-5";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:-5\(off\)( \S+){2}$/,
+                      $device->getStatus());
 }
 
 ###############################################################################
