@@ -144,7 +144,7 @@ sub testDisableDeduplicationOnCreate {
   assertFalse($device->isVDODedupeEnabled(),
              "Deduplication should be off");
   $device->enableDeduplication();
-  $device->waitForIndex(statusList => [qw(error active)]);
+  $device->waitForIndex(statusList => [qw(error online)]);
   assertTrue($device->isVDODedupeEnabled(),
              "enableDeduplication command should enable deduplication");
 

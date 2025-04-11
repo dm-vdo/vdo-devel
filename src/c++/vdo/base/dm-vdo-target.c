@@ -1185,14 +1185,25 @@ static void vdo_status(struct dm_target *ti, status_type_t status_type,
 		vdo_fetch_statistics(vdo, &vdo->stats_buffer);
 		stats = &vdo->stats_buffer;
 
-		DMEMIT("/dev/%pg %s %s %s %s:%d(%s) %llu %llu",
-		       vdo_get_backing_device(vdo), stats->mode,
-		       stats->in_recovery_mode ? "recovering" : "-",
-		       vdo_get_dedupe_index_state_name(vdo->hash_zones),
-		       VDO_COMPRESS_LZ4, device_config->compression_level,
-		       vdo_get_compressing(vdo) ? "on" : "off",
-		       stats->data_blocks_used + stats->overhead_blocks_used,
-		       stats->physical_blocks);
+		if (strstr(device_config->original_string, "compressionType")) {
+			DMEMIT("/dev/%pg %s %s %s %s:%d(%s) %llu %llu",
+			       vdo_get_backing_device(vdo), stats->mode,
+			       stats->in_recovery_mode ? "recovering" : "-",
+			       vdo_get_dedupe_index_state_name(vdo->hash_zones),
+			       VDO_COMPRESS_LZ4, device_config->compression_level,
+			       vdo_get_compressing(vdo) ? "on" : "off",
+			       stats->data_blocks_used + stats->overhead_blocks_used,
+			       stats->physical_blocks);
+		} else {
+			DMEMIT("/dev/%pg %s %s %s %s %llu %llu",
+			       vdo_get_backing_device(vdo), stats->mode,
+			       stats->in_recovery_mode ? "recovering" : "-",
+			       vdo_get_dedupe_index_state_name(vdo->hash_zones),
+			       vdo_get_compressing(vdo) ? "online" : "offline",
+			       stats->data_blocks_used + stats->overhead_blocks_used,
+			       stats->physical_blocks);
+		}
+
 		mutex_unlock(&vdo->stats_mutex);
 		break;
 

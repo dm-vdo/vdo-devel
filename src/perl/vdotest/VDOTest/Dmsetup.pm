@@ -46,9 +46,9 @@ sub testBasicOps {
   my $machine = $device->getMachine();
 
   # Check status output contains underlying device, surrounded by
-  # spaces, and reports "active".
+  # spaces, and reports "online".
   my $storageDev = $device->getStorageDevice()->getDevicePath();
-  $self->assert_matches(qr/\s\Q$storageDev\E\s.*\sactive/,
+  $self->assert_matches(qr/\s\Q$storageDev\E\s.*\sonline/,
                         $device->getStatus());
 
   # Check table output matches intended config string.
@@ -101,7 +101,7 @@ sub testConfigNonDefaultSlab {
 # change to the state of the index, which happens by sending a 'dmsetup
 # message' to the VDO device.  These changes are framed by assertions about the
 # deduplication status of VDO.  The relevant checks are often done by calls to
-# the assertDeduplicationActive or assertDeduplicationInactive methods.
+# the assertDeduplicationOffline or assertDeduplicationOnline methods.
 #
 # The second type of operation is the writing of a small slice of data to the
 # device.  Each time we write the exact same data, but the state of the dedupe
@@ -124,9 +124,9 @@ sub testIndex {
   my $blockCount = (int(99 / $blocksPerPage) + 1) * $blocksPerPage;
 
   # Go offline from online
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
   $device->sendMessage("index-disable");
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
 
   # Write a slice without using the index.  There should be no dedupe, and
   # these blocks are not entered into the index.
@@ -136,9 +136,9 @@ sub testIndex {
   $self->_checkIndexEntries(0);
 
   # Go offline from offline
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
   $device->sendMessage("index-disable");
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
 
   # Write a slice without using the index.  There should be no dedupe, and
   # these blocks are not entered into the index.
@@ -149,9 +149,9 @@ sub testIndex {
   $self->_checkIndexEntries(0);
 
   # Go online from offline
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
   $device->sendMessage("index-enable");
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
 
   # Write a slice using the index.  There should be no dedupe, and these blocks
   # will now be entered into the index.  Must use direct I/O on aarch64.
@@ -162,9 +162,9 @@ sub testIndex {
   $self->_checkIndexEntries($blockCount);
 
   # Go online from online
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
   $device->sendMessage("index-enable");
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
 
   # Write a slice using the index.  There should be dedupe this time.  Must use
   # direct I/O on aarch64.
@@ -175,9 +175,9 @@ sub testIndex {
   $self->_checkIndexEntries($blockCount);
 
   # Go offline from online
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
   $device->sendMessage("index-disable");
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
 
   # Write a slice without using the index.  There should be no dedupe, as we do
   # not check the index.
@@ -188,12 +188,12 @@ sub testIndex {
   $self->_checkIndexEntries($blockCount);
 
   # Create a new index and go online from offline
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
   $device->sendMessage("index-create");
   $self->_waitForNewOfflineIndex();
-  $device->assertDeduplicationInactive();
+  $device->assertDeduplicationOffline();
   $device->sendMessage("index-enable");
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
 
   # Write a slice using the index.  There should be no dedupe, and these blocks
   # will now be entered into the index.  Must use direct I/O on aarch64.
@@ -212,7 +212,7 @@ sub testIndex {
   $self->_checkIndexEntries($blockCount);
 
   # Close the index
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
   $device->sendMessage("index-close");
   $device->waitForIndex(statusList => [qw(closed)]);
   assertEq("closed", $device->getVDODedupeStatus());
@@ -229,7 +229,7 @@ sub testIndex {
   assertEq("closed", $device->getVDODedupeStatus());
   $device->sendMessage("index-enable");
   $device->waitForIndex();
-  $device->assertDeduplicationActive();
+  $device->assertDeduplicationOnline();
 
   # Write a slice using the index.  There should be dedupe this time.  Must use
   # direct I/O on aarch64.
@@ -302,21 +302,32 @@ sub testMultiVdoDefiningTable {
 }
 
 ###############################################################################
-# Test various valid compression type options.
+# Test various valid compression type options and associated status output.
 ##
 sub testCompressionType {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
   my $deviceName = $device->getDeviceName();
 
+  $device->{compressionType} = undef;
+  $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}offline( \S+){2}$/,
+                      $device->getStatus());
+
   $device->{compressionType} = "lz4";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:1\(off\)( \S+){2}$/,
+                      $device->getStatus());
 
   $device->{compressionType} = "lz4:5";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:5\(off\)( \S+){2}$/,
+                      $device->getStatus());
 
   $device->{compressionType} = "lz4:-5";
   $device->restart();
+  assertRegexpMatches(qr/^(\S+ ){7}lz4:-5\(off\)( \S+){2}$/,
+                      $device->getStatus());
 }
 
 ###############################################################################
@@ -415,7 +426,7 @@ sub _waitForNewOfflineIndex {
   };
   retryUntilTimeout($noEntriesIndexed, "Index not created", 2 * $MINUTE);
   # Then wait for the device to come back to offline state.
-  $device->waitForIndex(statusList => [qw(inactive)]);
+  $device->waitForIndex(statusList => [qw(offline)]);
 }
 
 ###############################################################################
