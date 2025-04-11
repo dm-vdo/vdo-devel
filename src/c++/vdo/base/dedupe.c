@@ -127,6 +127,9 @@
 #include <linux/ratelimit.h>
 #include <linux/spinlock.h>
 #include <linux/timer.h>
+#ifndef VDO_UPSTREAM
+#include <linux/version.h>
+#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -2343,6 +2346,18 @@ static void finish_index_operation(struct uds_request *request)
 	vdo_funnel_queue_put(context->zone->timed_out_complete, &context->queue_entry);
 }
 
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_ALTERNATE
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(11, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#else /* !RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
+#define VDO_USE_ALTERNATE
+#endif
+#endif /* !RHEL_RELEASE_CODE */
+#endif /* !VDO_UPSTREAM */
 /**
  * check_for_drain_complete() - Check whether this zone has drained.
  * @zone: The zone to check.
@@ -2357,7 +2372,11 @@ static void check_for_drain_complete(struct hash_zone *zone)
 	if ((atomic_read(&zone->timer_state) == DEDUPE_QUERY_TIMER_IDLE) ||
 	    change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING,
 			       DEDUPE_QUERY_TIMER_IDLE)) {
+#ifdef VDO_USE_ALTERNATE
 		del_timer_sync(&zone->timer);
+#else
+		timer_delete_sync(&zone->timer);
+#endif
 	} else {
 		/*
 		 * There is an in flight time-out, which must get processed before we can continue.
