@@ -36,7 +36,9 @@ void __init_timer(struct timer_list *timer,
 
 int mod_timer(struct timer_list *timer, unsigned long expires);
 
+/* Renamed in Linux 6.15 kernel */
 int del_timer_sync(struct timer_list *timer);
+int timer_delete_sync(struct timer_list *timer);
 
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
