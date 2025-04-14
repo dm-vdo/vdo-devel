@@ -32,6 +32,7 @@ USER_OBJS = blockMapUtils.o      \
 
 PROGS = corruptPBNRef          \
         udsCalculateSize       \
+        vdoCalculateSize       \
         vdoFillIndex           \
         vdoForceRebuild        \
         vdoFormat              \
