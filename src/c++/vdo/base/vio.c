@@ -530,3 +530,22 @@ void vdo_count_completed_bios(struct bio *bio)
 	atomic64_inc(&vio->completion.vdo->stats.bios_completed);
 	count_all_bios_completed(vio, bio);
 }
+
+
+bool vdo_is_vio_data_zero(char *data)
+{
+	int i;
+
+#ifdef INTERNAL
+	BUILD_BUG_ON(VDO_BLOCK_SIZE % sizeof(u64) != 0);
+	VDO_ASSERT_LOG_ONLY((uintptr_t) data % sizeof(u64) == 0,
+			    "Data blocks are expected to be aligned");
+
+#endif	/* INTERNAL */
+	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {
+		if (*((u64 *) &data[i]))
+			return false;
+	}
+
+	return true;
+}
