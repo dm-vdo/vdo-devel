@@ -1523,26 +1523,17 @@ int vdo_decode_super_block(u8 *buffer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (header.size > VDO_COMPONENT_DATA_SIZE + sizeof(u32)) {
-		/*
-		 * We can't check release version or checksum until we know the content size, so we
-		 * have to assume a version mismatch on unexpected values.
-		 */
+	if (header.size > VDO_SECTOR_SIZE - offset) {
+		/* If the data claims to extend past a sector, we assume corruption. */
 		return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "super block contents too large: %zu",
 					      header.size);
 	}
 
 	/* Skip past the component data for now, to verify the checksum. */
-	offset += VDO_COMPONENT_DATA_SIZE;
-
+	offset += header.size - sizeof(u32);
 	checksum = vdo_crc32(buffer, offset);
 	decode_u32_le(buffer, &offset, &saved_checksum);
-
-	result = VDO_ASSERT(offset == VDO_SUPER_BLOCK_FIXED_SIZE + VDO_COMPONENT_DATA_SIZE,
-			    "must have decoded entire superblock payload");
-	if (result != VDO_SUCCESS)
-		return result;
 
 	return ((checksum != saved_checksum) ? VDO_CHECKSUM_MISMATCH : VDO_SUCCESS);
 }
