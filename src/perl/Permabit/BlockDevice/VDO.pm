@@ -405,12 +405,6 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
@@ -783,8 +777,9 @@ sub waitForIndex {
 ##
 sub getVDOCompressionStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("compressing"));
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[7];
 }
 
 ########################################################################
@@ -1665,7 +1660,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return $self->getVDOStats()->{"instance"};
   };
 }
 

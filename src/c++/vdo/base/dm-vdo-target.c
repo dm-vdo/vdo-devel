@@ -40,11 +40,6 @@
 #include "logger.h"
 #include "memory-alloc.h"
 #include "message-stats.h"
-#ifdef VDO_INTERNAL
-#ifdef __KERNEL__
-#include "pool-sysfs.h"
-#endif /* __KERNEL__ */
-#endif /* VDO_INTERNAL */
 #include "recovery-journal.h"
 #include "repair.h"
 #include "slab-depot.h"
@@ -2370,27 +2365,6 @@ static void vdo_postsuspend(struct dm_target *ti)
 	vdo_unregister_thread_device_id();
 }
 
-#ifndef __KERNEL__
-/*
- * This is literally the least we can do to for unit tests which don't yet try to simulate or test
- * sysfs.
- */
-static void vdo_pool_release(struct kobject *directory)
-{
-	VDO_ASSERT_LOG_ONLY((atomic_read(&(directory->refcount)) == 0),
-			    "kobject being released has no references");
-	struct vdo *vdo = container_of(directory, struct vdo, vdo_directory);
-
-	vdo_free(vdo);
-}
-
-const struct kobj_type vdo_directory_type = {
-	.release = vdo_pool_release,
-	.sysfs_ops = NULL,
-	.default_groups = NULL,
-};
-
-#endif /* not __KERNEL__ */
 /**
  * was_new() - Check whether the vdo was new when it was loaded.
  * @vdo: The vdo to query.
@@ -2439,33 +2413,6 @@ static enum slab_depot_load_type get_load_type(struct vdo *vdo)
 	return VDO_SLAB_DEPOT_NORMAL_LOAD;
 }
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-/**
- * vdo_initialize_kobjects() - Initialize the vdo sysfs directory.
- * @vdo: The vdo being initialized.
- *
- * Return: VDO_SUCCESS or an error code.
- */
-static int vdo_initialize_kobjects(struct vdo *vdo)
-{
-	int result;
-	struct dm_target *target = vdo->device_config->owning_target;
-	struct mapped_device *md = dm_table_get_md(target->table);
-
-	kobject_init(&vdo->vdo_directory, &vdo_directory_type);
-	vdo->sysfs_added = true;
-	result = kobject_add(&vdo->vdo_directory, &disk_to_dev(dm_disk(md))->kobj,
-			     "vdo");
-	if (result != 0)
-		return VDO_CANT_ADD_SYSFS_NODE;
-
-#ifdef VDO_INTERNAL
-	vdo_initialize_histograms(&vdo->histograms);
-#endif /* VDO_INTERNAL */
-	return VDO_SUCCESS;
-}
-
-#endif
 /**
  * load_callback() - Callback to do the destructive parts of loading a VDO.
  * @completion: The sub-task completion.
@@ -2490,10 +2437,12 @@ static void load_callback(struct vdo_completion *completion)
 					  vdo->block_map);
 		vdo_allow_read_only_mode_entry(completion);
 		return;
-
 #if defined(VDO_INTERNAL) || defined(INTERNAL)
 	case LOAD_PHASE_STATS:
-		vdo_continue_completion(completion, vdo_initialize_kobjects(vdo));
+#if defined(VDO_INTERNAL)
+		vdo_initialize_histograms(&vdo->histograms);
+#endif
+		vdo_continue_completion(completion, VDO_SUCCESS);
 		return;
 
 #endif
