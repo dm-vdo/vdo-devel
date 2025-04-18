@@ -99,4 +99,9 @@ enum {
 /* Supported compression algorithms */
 #define VDO_COMPRESS_LZ4 "lz4"
 
+/* Flags for driver features required by the volume */
+enum {
+	VDO_REQUIRES_LZ4 = (1 << 0),
+};
+
 #endif /* VDO_CONSTANTS_H */

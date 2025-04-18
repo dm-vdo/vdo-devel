@@ -108,8 +108,8 @@ static const enum partition_id REQUIRED_PARTITIONS[] = {
 };
 
 /*
- * The current version for the data encoded in the super block. This must be changed any time there
- * is a change to encoding of the component data of any VDO component.
+ * The current version for the component data encoded in the super block. This must be changed
+ * any time there is a change to the encoding of the data of any VDO component.
  */
 static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 	.major_version = 41,
@@ -119,6 +119,15 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.major_version = 67,
 	.minor_version = 0,
+};
+
+/*
+ * The current version for all data encoded in the super block. This must be changed any time
+ * there is a change to the encoding or meaning of any super block field.
+ */
+const struct version_number VDO_VOLUME_VERSION_67_1 = {
+	.major_version = 67,
+	.minor_version = 1,
 };
 
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
@@ -131,6 +140,8 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 	/* This is the minimum size, if the super block contains no components. */
 	.size = VDO_SUPER_BLOCK_FIXED_SIZE - VDO_ENCODED_HEADER_SIZE,
 };
+
+static const u32 VDO_SUPPORTED_FLAGS = VDO_REQUIRES_LZ4;
 
 /**
  * validate_version() - Check whether a version matches an expected version.
@@ -1438,16 +1449,35 @@ int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 {
 	int result;
 	size_t offset = VDO_COMPONENT_DATA_OFFSET;
+	u32 flags;
 
-	/* This is for backwards compatibility. */
-	decode_u32_le(buffer, &offset, &states->unused);
+	decode_u32_le(buffer, &offset, &flags);
 
 	/* Check the VDO volume version */
 	decode_version_number(buffer, &offset, &states->volume_version);
-	result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version,
+	result = validate_version(VDO_VOLUME_VERSION_67_1, states->volume_version,
 				  "volume");
-	if (result != VDO_SUCCESS)
-		return result;
+	if (result == VDO_SUCCESS) {
+		if ((flags | VDO_SUPPORTED_FLAGS) != VDO_SUPPORTED_FLAGS)
+			return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
+						      "Unsupported feature flags: %u",
+						      flags & ~VDO_SUPPORTED_FLAGS);
+
+		states->required_flags = flags;
+		states->legacy = 0;
+	} else {
+		result = validate_version(VDO_VOLUME_VERSION_67_0,
+					  states->volume_version, "volume");
+		if (result != VDO_SUCCESS)
+			return result;
+
+		/*
+		 * Version 67.0 may have other data in the flags field. Preserve
+		 * it for backwards compatibility but don't validate it.
+		 */
+		states->required_flags = VDO_REQUIRES_LZ4;
+		states->legacy = flags;
+	}
 
 	result = decode_components(buffer, &offset, geometry, states);
 	if (result != VDO_SUCCESS)
@@ -1489,8 +1519,10 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 static void vdo_encode_component_states(u8 *buffer, size_t *offset,
 					const struct vdo_component_states *states)
 {
-	/* This is for backwards compatibility. */
-	encode_u32_le(buffer, offset, states->unused);
+	if (vdo_are_same_version(VDO_VOLUME_VERSION_67_0, states->volume_version))
+		encode_u32_le(buffer, offset, states->legacy);
+	else
+		encode_u32_le(buffer, offset, states->required_flags);
 	encode_version_number(buffer, offset, states->volume_version);
 	encode_vdo_component(buffer, offset, states->vdo);
 	encode_layout(buffer, offset, &states->layout);
