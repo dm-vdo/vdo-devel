@@ -666,6 +666,7 @@ struct packed_vdo_component_41_0 {
  * steps should increment the minor version. Changes which require an offline upgrade or which can
  * not be upgraded to at all should increment the major version and set the minor version to 0.
  */
+extern const struct version_number VDO_VOLUME_VERSION_67_1;
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
 
 enum {
@@ -697,7 +698,8 @@ enum {
 /* The entirety of the component data encoded in the VDO super block. */
 struct vdo_component_states {
 	/* For backwards compatibility */
-	u32 unused;
+	u32 legacy;
+	u32 required_flags;
 
 	/* The VDO volume version */
 	struct version_number volume_version;
