@@ -34,8 +34,6 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
-            - pool-sysfs.c
-            - pool-sysfs.h
             - sysfs.c
             - vdo-histograms.c
             - vdo-histograms.h
@@ -68,8 +66,6 @@ tarballs:
           +excludes:
             - histogram.c
             - histogram.h
-            - pool-sysfs.c
-            - pool-sysfs.h
             - sysfs.c
             - vdo-histograms.c
             - vdo-histograms.h
