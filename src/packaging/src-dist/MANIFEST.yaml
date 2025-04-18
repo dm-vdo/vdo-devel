@@ -257,8 +257,6 @@ tarballs:
             - packer.h
             - physical-zone.c
             - physical-zone.h
-            - pool-sysfs.c
-            - pool-sysfs.h
             - priority-table.c
             - priority-table.h
             - recovery-journal.c

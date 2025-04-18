@@ -193,8 +193,6 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      vdoCheckLatencies         => undef,
      # value to override default max-discard-sectors setting
      vdoMaxDiscardSectors      => undef,
-     # value to override default max-discards-active setting
-     vdoMaxDiscardsActive      => undef,
      # value to override default max-requests-active setting
      vdoMaxRequestsActive      => undef,
      # value to override default min_deduplication_timer_interval setting
@@ -401,12 +399,6 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
@@ -779,8 +771,9 @@ sub waitForIndex {
 ##
 sub getVDOCompressionStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("compressing"));
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[7];
 }
 
 ########################################################################
@@ -907,7 +900,7 @@ sub enableDeduplication {
 ##
 sub isVDOCompressionEnabled {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->getVDOCompressionStatus() eq '1');
+  return ($self->getVDOCompressionStatus() eq 'online');
 }
 
 ########################################################################
@@ -1220,8 +1213,8 @@ sub compare_ranges {
 }
 
 ########################################################################
-# Show histogram detailed output, including bars to help visualize the 
-# distribution of values.  
+# Show histogram detailed output, including bars to help visualize the
+# distribution of values.
 #
 # @param histogram   The histogram to output
 #
@@ -1305,7 +1298,7 @@ sub logHistograms {
     return;
   }
   my $histogramSet = decode_json($output);
-  
+
   $log->info("Logging histograms for $self->{vdoSymbolicPath}");
   foreach my $histogram (@$histogramSet) {
     if ((scalar(@histograms) > 0) && (!grep { $histogram->{"name"} =~ m/$_/ } @histograms)) {
@@ -1532,20 +1525,6 @@ sub getSysModulePath {
 }
 
 ########################################################################
-# Get the path to a sysfs file in the /sys/kvdo subtree for this particular VDO
-# device.
-#
-# @param name  Relative path name to the sysfs file
-#
-# @return the absolute path name to the sysfs file
-##
-sub getSysModuleDevicePath {
-  my ($self, $name) = assertNumArgs(2, @_);
-  my $devName = basename($self->getVDODevicePath());
-  return makeFullPath("/sys/block", $devName, "vdo", $name);
-}
-
-########################################################################
 # Get the maximum discard sectors
 #
 # @return the maximum discard sectors
@@ -1748,7 +1727,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return $self->getVDOStats()->{"instance"};
   };
 }
 

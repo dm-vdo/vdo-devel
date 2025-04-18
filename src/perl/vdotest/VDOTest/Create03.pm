@@ -18,7 +18,6 @@ use Permabit::Assertions qw(
   assertRegexpDoesNotMatch
   assertRegexpMatches
 );
-use Permabit::VDOTask::ReadSysfsWhenNotRunning;
 
 use base qw(VDOTest);
 
@@ -45,9 +44,6 @@ sub testCreate03 {
   my $machine = $device->getMachine();
   my $logCursor;                # undef the first time around
   foreach my $i (0 .. $self->{iterationCount}) {
-    my $sysfsTask
-      = Permabit::VDOTask::ReadSysfsWhenNotRunning->new($self->getDevice(), 0);
-    $sysfsTask->start();
     $device->stop();
     if (defined($logCursor)) {
       # Skipped the first time around when setup would've logged
@@ -64,12 +60,7 @@ sub testCreate03 {
       }
     }
     $logCursor = $machine->getKernelJournalCursor();
-    $sysfsTask->result();
-    $sysfsTask
-      = Permabit::VDOTask::ReadSysfsWhenNotRunning->new($self->getDevice(), 1);
-    $sysfsTask->start();
     $device->start();
-    $sysfsTask->result();
   }
 }
 

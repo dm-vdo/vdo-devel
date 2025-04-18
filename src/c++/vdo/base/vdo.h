@@ -10,9 +10,6 @@
 #include <linux/blk_types.h>
 #include <linux/completion.h>
 #include <linux/dm-kcopyd.h>
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-#include <linux/kobject.h>
-#endif
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
@@ -276,11 +273,6 @@ struct vdo {
 	u64 starting_sector_offset;
 	struct volume_geometry geometry;
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-	/* For sysfs */
-	struct kobject vdo_directory;
-
-#endif
 	/* N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 };
