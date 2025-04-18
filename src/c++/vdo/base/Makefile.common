@@ -22,7 +22,6 @@ BASE_OBJS :=     			\
 	logical-zone.o			\
 	packer.o			\
 	physical-zone.o			\
-	pool-sysfs.o			\
 	priority-table.o		\
 	recovery-journal.o		\
 	repair.o			\
