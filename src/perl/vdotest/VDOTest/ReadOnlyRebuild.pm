@@ -72,8 +72,8 @@ sub _doForceRebuild {
   };
   assertEvalErrorMatches(qr{Input/output error}, "VDO is read-only");
 
-  # Verify that we have sysfs nodes.
-  my $command = 'cat /sys/block/*/vdo/compressing';
+  # Verify that the vdo is active.
+  my $command = "sudo dmsetup status " . $device->getVDODeviceName();
   $device->getMachine()->assertExecuteCommand($command);
 
   # Take the VDO out of read-only mode.
