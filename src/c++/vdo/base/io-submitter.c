@@ -123,10 +123,10 @@ static void send_bio_to_device(struct vio *vio, struct bio *bio)
 	atomic64_inc(&vdo->stats.bios_submitted);
 	count_all_bios(vio, bio);
 #ifdef VDO_INTERNAL
-	enter_histogram_sample(((bio_data_dir(bio) == WRITE) ?
-				histograms->write_queue_histogram :
-				histograms->read_queue_histogram),
-			       jiffies - vio->bio_submission_jiffies);
+	vdo_enter_histogram_sample(histograms, ((bio_data_dir(bio) == WRITE) ?
+						HISTOGRAM_WRITE_QUEUE :
+						HISTOGRAM_READ_QUEUE),
+				   jiffies - vio->bio_submission_jiffies);
 	vio->bio_submission_jiffies = jiffies;
 #endif
 	bio_set_dev(bio, vdo_get_backing_device(vdo));

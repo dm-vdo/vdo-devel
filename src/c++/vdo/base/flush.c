@@ -511,7 +511,7 @@ static void vdo_complete_flush_callback(struct vdo_completion *completion)
 	}
 
 #ifdef VDO_INTERNAL
-	enter_histogram_sample(vdo->histograms.flush_histogram,
+	vdo_enter_histogram_sample(&vdo->histograms, HISTOGRAM_FLUSH,
 			       jiffies - flush->arrival_jiffies);
 #endif /* VDO_INTERNAL */
 

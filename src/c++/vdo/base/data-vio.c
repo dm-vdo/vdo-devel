@@ -298,12 +298,14 @@ static void acknowledge_data_vio(struct data_vio *data_vio)
 	latency_jiffies = jiffies - data_vio->arrival_jiffies;
 	ack_msecs = jiffies_to_msecs(latency_jiffies);
 	if (bio_data_dir(bio) != WRITE)
-		enter_histogram_sample(histograms->read_ack_histogram, latency_jiffies);
+		vdo_enter_histogram_sample(histograms, HISTOGRAM_ACKNOWLEDGE_READ,
+					   latency_jiffies);
 	else if (bio_op(bio) == REQ_OP_DISCARD)
-		enter_histogram_sample(histograms->discard_ack_histogram,
-				       latency_jiffies);
+		vdo_enter_histogram_sample(histograms, HISTOGRAM_ACKNOWLEDGE_DISCARD,
+					   latency_jiffies);
 	else
-		enter_histogram_sample(histograms->write_ack_histogram, latency_jiffies);
+		vdo_enter_histogram_sample(histograms, HISTOGRAM_ACKNOWLEDGE_WRITE,
+					   latency_jiffies);
 
 	if (ack_msecs > 30000) {
 		static DEFINE_RATELIMIT_STATE(latency_limiter, DEFAULT_RATELIMIT_INTERVAL,
@@ -578,8 +580,8 @@ static void launch_bio(struct vdo *vdo, struct data_vio *data_vio, struct bio *b
 
 	data_vio->arrival_jiffies = arrival;
 	if (unlikely(startup_jiffies > 1))
-		enter_histogram_sample(vdo->histograms.start_request_histogram,
-				       startup_jiffies);
+		vdo_enter_histogram_sample(&vdo->histograms, HISTOGRAM_BIO_START,
+					   startup_jiffies);
 #endif /* VDO_INTERNAL */
 	/*
 	 * Zero out the fields which don't need to be preserved (i.e. which are not pointers to

@@ -26,8 +26,6 @@ struct histogram *make_logarithmic_jiffies_histogram(const char *name,
 
 void enter_histogram_sample(struct histogram *h, u64 sample);
 
-bool histogram_is_named(struct histogram *histogram, const char *name);
-
 ssize_t set_histogram_limit(struct histogram *histogram, const char *buf, ssize_t length);
 
 void write_sstring(const char *prefix, char *value, char *suffix, char **buf,

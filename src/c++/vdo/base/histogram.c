@@ -632,10 +632,6 @@ void enter_histogram_sample(struct histogram *h, u64 sample)
 	}
 }
 
-bool histogram_is_named(struct histogram *histogram, const char *name) {
-	return strcmp(histogram->name, name) == 0;
-}
-
 /**
  * write_histogram() - Writes histogram info into a bufer.
  * @histogram: The histogram to write.
