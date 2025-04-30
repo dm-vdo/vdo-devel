@@ -15,14 +15,14 @@
 #include <linux/types.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
-#undef VDO_USE_NEXT
+#undef VDO_USE_ALTERNATE
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(11, 0))
-#define VDO_USE_NEXT
+#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(11, 0))
+#define VDO_USE_ALTERNATE
 #endif
 #else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0))
-#define VDO_USE_NEXT
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 14, 0))
+#define VDO_USE_ALTERNATE
 #endif
 #endif /* !RHEL_RELEASE_CODE */
 #endif /* !VDO_UPSTREAM */
@@ -53,7 +53,7 @@ static inline ktime_t current_time_us(void)
 {
 	return current_time_ns(CLOCK_REALTIME) / NSEC_PER_USEC;
 }
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 
 static inline ktime_t us_to_ktime(u64 microseconds)
 {
