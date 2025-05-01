@@ -666,6 +666,7 @@ struct packed_vdo_component_41_0 {
  * steps should increment the minor version. Changes which require an offline upgrade or which can
  * not be upgraded to at all should increment the major version and set the minor version to 0.
  */
+extern const struct version_number VDO_VOLUME_VERSION_67_1;
 extern const struct version_number VDO_VOLUME_VERSION_67_0;
 
 enum {
@@ -697,7 +698,8 @@ enum {
 /* The entirety of the component data encoded in the VDO super block. */
 struct vdo_component_states {
 	/* For backwards compatibility */
-	u32 unused;
+	u32 legacy;
+	u32 required_flags;
 
 	/* The VDO volume version */
 	struct version_number volume_version;
@@ -725,31 +727,6 @@ static inline bool vdo_are_same_version(struct version_number version_a,
 	return ((version_a.major_version == version_b.major_version) &&
 		(version_a.minor_version == version_b.minor_version));
 }
-
-/**
- * vdo_is_upgradable_version() - Check whether an actual version is upgradable to an expected
- *                               version.
- * @expected_version: The expected version.
- * @actual_version: The version being validated.
- *
- * An actual version is upgradable if its major number is expected but its minor number differs,
- * and the expected version's minor number is greater than the actual version's minor number.
- *
- * Return: true if the actual version is upgradable.
- */
-static inline bool vdo_is_upgradable_version(struct version_number expected_version,
-					     struct version_number actual_version)
-{
-	return ((expected_version.major_version == actual_version.major_version) &&
-		(expected_version.minor_version > actual_version.minor_version));
-}
-
-int __must_check vdo_validate_header(const struct header *expected_header,
-				     const struct header *actual_header, bool exact_size,
-				     const char *component_name);
-
-void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header);
-void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header);
 
 /**
  * vdo_pack_version_number() - Convert a version_number to its packed on-disk representation.
@@ -780,6 +757,11 @@ static inline struct version_number vdo_unpack_version_number(struct packed_vers
 	};
 }
 
+#ifdef INTERNAL
+void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header);
+void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header);
+
+#endif /* INTERNAL */
 /**
  * vdo_pack_header() - Convert a component header to its packed on-disk representation.
  * @header: The header to convert.

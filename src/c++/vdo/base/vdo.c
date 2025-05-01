@@ -974,8 +974,6 @@ const struct admin_state_code *vdo_get_admin_state(const struct vdo *vdo)
  */
 static void record_vdo(struct vdo *vdo)
 {
-	/* This is for backwards compatibility. */
-	vdo->states.unused = vdo->geometry.unused;
 	vdo->states.vdo.state = vdo_get_state(vdo);
 	vdo->states.block_map = vdo_record_block_map(vdo->block_map);
 	vdo->states.recovery_journal = vdo_record_recovery_journal(vdo->recovery_journal);
