@@ -57,7 +57,6 @@ static const TestParameters PARAMETERS = {
 };
 
 static const nonce_t  NONCE     = 0xdeadbeefacedfeed;
-static       uuid_t   TEST_UUID = "flying VDO @ RH";
 
 static char *CURRENT_VERSION_FILE_NAME = "testdata/vdo.current";
 static char *currentVersionFileName    = NULL;
@@ -88,8 +87,7 @@ static void prepareVDO(void)
 {
   stopVDO();
   struct vdo_config config = getTestConfig().config;
-  VDO_ASSERT_SUCCESS(formatVDOWithNonce(&config, NULL, getSynchronousLayer(),
-                                        NONCE, &TEST_UUID));
+  VDO_ASSERT_SUCCESS(formatVDOWithNonce(&config, NULL, getSynchronousLayer(), NONCE));
   startVDO(VDO_NEW);
 
   /*
@@ -168,6 +166,29 @@ static void mismatchChecker(physical_block_number_t pbn,
                             char *expectedBlock,
                             char *actualBlock)
 {
+  if (pbn == 0) {
+    /*
+     * We've moved the uuid generation into the initialze function for the geometry
+     * block, so the pickled data won't compare properly for that field. It also affect
+     * the checksum field.
+     */
+    // Compare all bytes up to uuid. This includes magic number, header, and the first two fields of volume_geometry
+    size_t upToSize = VDO_GEOMETRY_MAGIC_NUMBER_SIZE + sizeof(struct packed_header) + sizeof(u32) + sizeof(nonce_t);
+    UDS_ASSERT_EQUAL_BYTES(expectedBlock, actualBlock, upToSize);
+
+    // We skip over the uuid and just compare to the checksum.
+    size_t skipSize = upToSize + sizeof(uuid_t);
+    size_t length = VDO_GEOMETRY_MAGIC_NUMBER_SIZE + sizeof(struct packed_header) + sizeof(struct volume_geometry);
+    UDS_ASSERT_EQUAL_BYTES(expectedBlock + skipSize,
+                           actualBlock + skipSize,
+                           length - skipSize);
+    skipSize = length + sizeof(u32);
+    UDS_ASSERT_EQUAL_BYTES(expectedBlock + skipSize,
+                           actualBlock + skipSize,
+                           VDO_BLOCK_SIZE - skipSize);
+    return;
+  }
+
   if (pbn == 320) {
     /*
      * The slab summary entry for slab 0 has two valid states. Depending on

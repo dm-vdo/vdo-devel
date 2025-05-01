@@ -200,5 +200,6 @@ void free_vio_pool(struct vio_pool *pool);
 bool __must_check is_vio_pool_busy(struct vio_pool *pool);
 void acquire_vio_from_pool(struct vio_pool *pool, struct vdo_waiter *waiter);
 void return_vio_to_pool(struct pooled_vio *vio);
+bool vdo_is_vio_data_zero(char *data);
 
 #endif /* VIO_H */
