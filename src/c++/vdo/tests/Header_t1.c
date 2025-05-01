@@ -56,14 +56,10 @@ static void testHeaderCoding(void)
   assertSameHeader(&HEADER, &header);
 
   header.version.minor_version++;
-  CU_ASSERT_TRUE(vdo_is_upgradable_version(header.version, HEADER.version));
-  CU_ASSERT_FALSE(vdo_is_upgradable_version(HEADER.version, header.version));
   CU_ASSERT_FALSE(vdo_are_same_version(HEADER.version, header.version));
   header.version.minor_version--;
 
   header.version.major_version++;
-  CU_ASSERT_FALSE(vdo_is_upgradable_version(header.version, HEADER.version));
-  CU_ASSERT_FALSE(vdo_is_upgradable_version(HEADER.version, header.version));
   CU_ASSERT_FALSE(vdo_are_same_version(HEADER.version, header.version));
 }
 
