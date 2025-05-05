@@ -70,23 +70,4 @@ sub testMultipleMigration {
   $self->_runTest();
 }
 
-#############################################################################
-# Run the migration test from MigrationBase, specifying scenarios that
-# involve migration and upgrade.
-##
-sub propertiesMigrateAndUpgrade {
-  return (
-    # @ple The scenario to start with
-    initialScenario       => "X86_RHEL9_8.2.4.9",
-    # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_RHEL9_8.2.4-current", "X86_FEDORA40_head"],
-  );
-}
-
-sub testMigrateAndUpgrade {
-  my ($self) = assertNumArgs(1, @_);
-
-  $self->_runTest();
-}
-
 1;
