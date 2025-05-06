@@ -30,6 +30,7 @@ enum {
 };
 
 static size_t entryCount = 0;
+static struct repair_completion *repair_completion = NULL;
 
 /**
  * Initialize the index, vdo, and test data.
@@ -74,7 +75,7 @@ static bool preventReferenceCountRebuild(struct vdo_completion *completion)
   struct vdo_completion *parent = completion->parent;
   int result = completion->result;
 
-  free_repair_completion((struct repair_completion *) completion);
+  repair_completion = (struct repair_completion *) completion;
   vdo_fail_completion(parent, result);
   return false;
 }
@@ -155,6 +156,7 @@ static void testRecovery(size_t desiredEntryCount)
   // Do a block map recovery.
   setCompletionEnqueueHook(hijackJournalLoad);
   performSuccessfulAction(vdo_repair);
+  free_repair_completion(repair_completion);
 
   // Verify that all block map mappings are either the original value or the
   // new mapping expected from recovery.
