@@ -15,7 +15,6 @@
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
-#include <linux/version.h>
 
 #include "common.h"
 
@@ -33,7 +32,11 @@ char *bufferToString(const char *buf, size_t length)
 }
 
 /**********************************************************************/
-int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev)
+int commonPrepareIoctl(struct dm_target     *ti,
+                       struct block_device **bdev,
+                       unsigned int          cmd __always_unused,
+                       unsigned long         arg __always_unused,
+                       bool                 *forward __always_unused)
 {
   CommonDevice *cd = (CommonDevice *)ti->private;
   struct dm_dev *dev = cd->dev;

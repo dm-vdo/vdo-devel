@@ -162,7 +162,11 @@ extern struct kobj_type emptyObjectType;
 char *bufferToString(const char *buf, size_t length);
 
 /**********************************************************************/
-int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev);
+int commonPrepareIoctl(struct dm_target     *ti,
+                       struct block_device **bdev,
+                       unsigned int          cmd,
+                       unsigned long         arg,
+                       bool                 *forward);
 
 /**********************************************************************/
 int commonIterateDevices(struct dm_target           *ti,
