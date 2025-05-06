@@ -20,6 +20,7 @@
 #include <linux/build_bug.h>
 #include <linux/device-mapper.h>
 #include <linux/kobject.h>
+#include <linux/version.h>
 #include <uapi/linux/dm-ioctl.h>
 
 /**
@@ -161,8 +162,27 @@ extern struct kobj_type emptyObjectType;
 /**********************************************************************/
 char *bufferToString(const char *buf, size_t length);
 
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 1)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#define VDO_USE_NEXT
+#endif
+#else /* RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* RHEL_RELEASE_CODE */
+#ifndef VDO_USE_NEXT
 /**********************************************************************/
 int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev);
+#else
+/**********************************************************************/
+int commonPrepareIoctl(struct dm_target     *ti,
+                       struct block_device **bdev,
+                       unsigned int          cmd,
+                       unsigned long         arg,
+                       bool                 *forward);
+#endif /* VDO_USE_NEXT */
 
 /**********************************************************************/
 int commonIterateDevices(struct dm_target           *ti,
