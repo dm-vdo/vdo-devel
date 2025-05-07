@@ -32,8 +32,27 @@ char *bufferToString(const char *buf, size_t length)
   return string;
 }
 
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 1)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#define VDO_USE_NEXT
+#endif
+#else /* RHEL_RELEASE_CODE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* RHEL_RELEASE_CODE */
+#ifndef VDO_USE_NEXT
 /**********************************************************************/
 int commonPrepareIoctl(struct dm_target *ti, struct block_device **bdev)
+#else
+/**********************************************************************/
+int commonPrepareIoctl(struct dm_target     *ti,
+                       struct block_device **bdev,
+                       unsigned int          cmd __always_unused,
+                       unsigned long         arg __always_unused,
+                       bool                 *forward __always_unused)
+#endif /* VDO_USE_NEXT */
 {
   CommonDevice *cd = (CommonDevice *)ti->private;
   struct dm_dev *dev = cd->dev;
