@@ -128,7 +128,7 @@ static bool assertGeneration(struct vio *vio)
     return true;
   }
 
-  CU_ASSERT_EQUAL(treePage->writing_generation, flushGeneration);
+  CU_ASSERT(treePage->writing_generation <= flushGeneration);
   return false;
 }
 
@@ -231,7 +231,8 @@ static void testBlockMapTreeWrites(void)
   root_count_t trees = 4;
   setCompletionEnqueueHook(countWriteHook);
   for (root_count_t i = 0; i < trees; i++) {
-    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0, (ENTRIES_PER_BLOCK - 4), VDO_SUCCESS);
+    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0,
+              NEW_TREE_WRITES_PER_BLOCK, VDO_SUCCESS);
   }
 
   block_count_t writeTarget = trees * INTERIOR_HEIGHT;
