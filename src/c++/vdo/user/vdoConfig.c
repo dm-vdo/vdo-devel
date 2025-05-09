@@ -319,7 +319,7 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
 
   vdo->states.vdo.config     = *config;
   vdo->states.vdo.nonce      = nonce;
-  vdo->states.volume_version = VDO_VOLUME_VERSION_67_1;
+  vdo->states.volume_version = VDO_VOLUME_VERSION_67_0;
   vdo->states.required_flags = 0;
   result = configureVDO(vdo);
   if (result != VDO_SUCCESS) {
