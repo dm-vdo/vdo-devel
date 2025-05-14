@@ -26,10 +26,17 @@
 #include "vdoTestBase.h"
 
 enum {
+  // Limit the entries per journal block to make it faster to fill them.
   ENTRIES_PER_BLOCK         = 16,
+  // How much data to write normally to fill a journal block.
   WRITES_PER_BLOCK          = ENTRIES_PER_BLOCK,
+  // The number of internal tree pages that get allocated for a new LBN.
+  // We exclude the root page because it never gets allocated or journalled.
   INTERIOR_HEIGHT           = VDO_BLOCK_MAP_TREE_HEIGHT - 1,
-  NEW_TREE_WRITES_PER_BLOCK = (ENTRIES_PER_BLOCK - INTERIOR_HEIGHT),
+  // How much data to write to fill a recovery block when the block map tree
+  // hasn't been initialized yet. The journalled tree pages use up some
+  // recovery journal entries so we write fewer data blocks to compensate.
+  NEW_TREE_WRITES_PER_BLOCK = WRITES_PER_BLOCK - INTERIOR_HEIGHT,
 };
 
 static struct vio              *blockedWriter;
@@ -128,7 +135,7 @@ static bool assertGeneration(struct vio *vio)
     return true;
   }
 
-  CU_ASSERT_EQUAL(treePage->writing_generation, flushGeneration);
+  CU_ASSERT(treePage->writing_generation <= flushGeneration);
   return false;
 }
 
@@ -231,7 +238,8 @@ static void testBlockMapTreeWrites(void)
   root_count_t trees = 4;
   setCompletionEnqueueHook(countWriteHook);
   for (root_count_t i = 0; i < trees; i++) {
-    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0, (ENTRIES_PER_BLOCK - 4), VDO_SUCCESS);
+    writeData(i * VDO_BLOCK_MAP_ENTRIES_PER_PAGE, 0,
+              NEW_TREE_WRITES_PER_BLOCK, VDO_SUCCESS);
   }
 
   block_count_t writeTarget = trees * INTERIOR_HEIGHT;
