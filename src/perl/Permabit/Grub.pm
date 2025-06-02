@@ -13,7 +13,7 @@ use List::Util qw(max);
 use Log::Log4perl;
 use Permabit::Assertions qw(assertDefined assertNumArgs);
 use Permabit::Constants;
-use Permabit::PlatformUtils qw(isPlow);
+use Permabit::PlatformUtils qw(isRedHat);
 use Permabit::SystemUtils qw(
   assertCommand
   runCommand
@@ -79,7 +79,7 @@ sub _installGrubConfig {
 ##
 sub modifyOption {
   my ($self, $kernelOption, $optionValue) = assertNumArgs(3, @_);
-  if (isPlow($self->{host})) {
+  if (isRedHat($self->{host})) {
     assertCommand($self->{host},
                   "sudo grubby --update-kernel=DEFAULT "
                   . "--args=${kernelOption}=${optionValue}");
@@ -105,7 +105,7 @@ sub modifyOption {
 ##
 sub stripOption {
   my ($self, $kernelOption) = assertNumArgs(2, @_);
-  if (isPlow($self->{host})) {
+  if (isRedHat($self->{host})) {
     assertCommand($self->{host},
                   "sudo grubby --update-kernel=DEFAULT "
                   . "--remove-args=${kernelOption}");
