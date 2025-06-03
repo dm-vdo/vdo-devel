@@ -196,7 +196,7 @@ sub createThinPool {
 
   # Create a thin pool in an existing volume group. The pool is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name --type=thin-pool"
+  $machine->runSystemCmd("sudo lvcreate --name $name $dataType --type=thin-pool"
                          . " --size ${ksize}K -an -kn --yes $config"
                          . " $self->{volumeGroup} </dev/null");
 }
