@@ -2376,24 +2376,24 @@ static void timeout_index_operations_callback(struct vdo_completion *completion)
 }
 
 #ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 2))
-#define VDO_USE_ALTERNATE
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 1)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#define VDO_USE_NEXT
 #endif
 #else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0))
-#define VDO_USE_ALTERNATE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#define VDO_USE_NEXT
 #endif
 #endif /* RHEL_RELEASE_CODE */
 #endif /* VDO_UPSTREAM */
 static void timeout_index_operations(struct timer_list *t)
 {
-#ifdef VDO_USE_ALTERNATE
+#ifndef VDO_USE_NEXT
 	struct hash_zone *zone = from_timer(zone, t, timer);
 #else
 	struct hash_zone *zone = timer_container_of(zone, t, timer);
-#endif /* VDO_USE_ALTERNATE */
+#endif /* VDO_USE_NEXT */
 
 	if (change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING,
 			       DEDUPE_QUERY_TIMER_FIRED))
