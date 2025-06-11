@@ -163,11 +163,11 @@ extern struct kobj_type emptyObjectType;
 char *bufferToString(const char *buf, size_t length);
 
 #undef VDO_USE_NEXT
-#if defined(RHEL_RELEASE_CODE)
-#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 1)) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 1))
 #define VDO_USE_NEXT
 #endif
-#else /* RHEL_RELEASE_CODE */
+#else
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 #define VDO_USE_NEXT
 #endif
