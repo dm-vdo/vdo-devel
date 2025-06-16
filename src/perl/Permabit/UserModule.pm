@@ -49,11 +49,11 @@ sub loadFromFiles {
     $log->debug("Using upstream version VDO: $self->{modVersion}");
     my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
     $self->_step(command => "mkdir -p $topdir");
-    my $getFromDnf = join(' ',
+    my $getFromDnf = join(' ', "XDG_STATE_HOME=/tmp",
 			  "dnf", "download", "--destdir",
 			  "$self->{modDir}", "$modFileName");
     $self->_step(command => $getFromDnf);
-    $getFromDnf = join(' ',
+    $getFromDnf = join(' ', "XDG_STATE_HOME=/tmp",
                        "dnf", "download", "--destdir", "$topdir",
                        "$modFileName-support");
     $self->_step(command => $getFromDnf);
