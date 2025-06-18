@@ -13,7 +13,7 @@ use List::Util qw(max);
 use Log::Log4perl;
 use Permabit::Assertions qw(assertDefined assertNumArgs);
 use Permabit::Constants;
-use Permabit::PlatformUtils qw(isRedHat);
+use Permabit::PlatformUtils qw(isRedHat isAdams);
 use Permabit::SystemUtils qw(
   assertCommand
   runCommand
@@ -85,7 +85,11 @@ sub modifyOption {
                   . "--args=${kernelOption}=${optionValue}");
   } else {
     $self->stripOption($kernelOption);
-    my $GRUB2_EDIT = ('if(/^GRUB_CMDLINE_LINUX=/) {'
+    my $grubCmdline = "GRUB_CMDLINE_LINUX";
+    if (isAdams($self->{host})) {
+      $grubCmdline = "GRUB_CMDLINE_LINUX_DEFAULT";
+    }
+    my $GRUB2_EDIT = ('if(/^' . $grubCmdline . '=/) {'
                       . 's/"\n/ ' . $kernelOption . '=' . $optionValue . '"\n/;'
                       . 's/" /"/;'
                       . '}');
