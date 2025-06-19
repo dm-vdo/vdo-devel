@@ -518,10 +518,10 @@ void vdo_count_completed_bios(struct bio *bio)
 	unsigned int bio_msecs = jiffies_to_msecs(bio_jiffies);
 	struct vdo *vdo = vio->completion.vdo;
 
-	enter_histogram_sample(((bio_data_dir(bio) == WRITE) ?
-				vdo->histograms.write_bios_histogram :
-				vdo->histograms.read_bios_histogram),
-			       bio_jiffies);
+	vdo_enter_histogram_sample(&vdo->histograms, ((bio_data_dir(bio) == WRITE) ?
+						      HISTOGRAM_BIO_WRITE :
+						      HISTOGRAM_BIO_READ),
+				   bio_jiffies);
 
 	if (bio_msecs > 30000)
 		vdo_log_info("Bio Latency Violation: %u msecs", bio_msecs);

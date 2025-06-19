@@ -405,17 +405,10 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->sendMessage("histogram_limit $histogram " . secondsToMS($self->{latencyLimit}));
     }
   };
 
@@ -767,11 +760,10 @@ sub waitForIndex {
   $timeout //= $self->{expectRebuild} ? 30 * $MINUTE : undef;
   $timeout //= $self->supportsPerformanceMeasurement() ? 30 : 4 * $MINUTE;
   retryUntilTimeout(sub {
-                      my $status = $self->getStatus();
-                      my $state = ($status =~ m/^(?:\S+\s){6}(\w+)/);
+                      my $state = $self->getVDODedupeStatus();
                       if ($state) {
-                        $log->debug("Index status is $1");
-                        return $statusMap{$1};
+                        $log->debug("Index status is $state");
+                        return $statusMap{$state};
                       }
                       return 0;
                     },
@@ -781,35 +773,25 @@ sub waitForIndex {
 ########################################################################
 # Get the compression status of the VDO device.
 #
-# @return the contents of the sysfs compression entry for the device
+# @return the value of the compression state from dmsetup status call
 ##
 sub getVDOCompressionStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("compressing"));
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[7];
 }
 
 ########################################################################
 # Get the dedupe status of the VDO device.
 #
-# @return the contents of the sysfs dedupe/status entry for the device
+# @return the value of the dedupe state from dmsetup status call
 ##
 sub getVDODedupeStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("dedupe/status"));
-}
-
-########################################################################
-# Get the number of dedupe queue timeouts.
-#
-# @return the number of dedupe queue timeouts.
-##
-sub getDedupeQueueTimeoutCount {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  my $path = $self->getSysModuleDevicePath("dedupe/queue_timeout_count");
-  return $machine->catAndChomp($path);
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[6];
 }
 
 ########################################################################
@@ -924,7 +906,7 @@ sub enableDeduplication {
 ##
 sub isVDOCompressionEnabled {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->getVDOCompressionStatus() eq '1');
+  return ($self->getVDOCompressionStatus() eq 'online');
 }
 
 ########################################################################
@@ -1231,59 +1213,51 @@ sub logHumanVDOStats {
 sub logHistograms {
   my ($self, @histograms) = assertMinArgs(1, @_);
   my $machine = $self->getMachine();
-  my %paths;
-  if (scalar(@histograms) == 0) {
-    my $sysDir = $self->getSysModuleDevicePath("");
-    $self->sendCommand("find $sysDir -name histogram -print");
-    my @foundPaths = split("\n", $machine->getStdout());
-    # Ensure there is a trailing slash so it also gets removed.
-    $sysDir =~ s|(?<!/)$|/|;
-    %paths = map {
-      dirname(substr($_, length($sysDir))) => $_
-    } @foundPaths;
-    @histograms = sort(keys(%paths));
-  } else {
-    %paths = map {
-      $_ => $self->getSysModuleDevicePath("$_/histogram")
-    } @histograms;
-  }
+  # Histograms are subject to the VDO_INTERNAL build macro.  Release builds
+  # will not have histograms.
+  my $output = "no histograms";
+  eval {
+    $self->sendMessage("histograms");
+    $output = $machine->getStdout();
+  };
   $log->info("Logging histograms for $self->{vdoSymbolicPath}");
-  foreach my $label (@histograms) {
-    my $path = $paths{$label};
-    my $mean = $self->_getHistogramStatistic($label, "mean");
-    # If the mean is undefined, it means that there were no histogram samples.
-    if (defined($mean)) {
-      my $maximum = $self->_getHistogramStatistic($label, "maximum");
-      my $minimum = $self->_getHistogramStatistic($label, "minimum");
-      my $unit = $self->_getHistogramUnits($label);
-
-      $log->debug($machine->cat($path));
-
-      if (defined($unit)) {
-        $log->debug("  $label unit is $unit");
-      } else {
-        $log->debug("  $label is unitless");
-      }
-      my %timeScales = (
-                        "milliseconds" => 1.0e-3,
-                        "microseconds" => 1.0e-6,
-                       );
-      if (defined($unit) && defined($timeScales{$unit})) {
-        for my $variable (\$mean, \$minimum, \$maximum) {
-          if (defined($$variable)) {
-            $$variable = timeToText($$variable * $timeScales{$unit});
-          }
-        }
-      }
-      $log->debug("  $label mean is $mean");
-      if (defined($minimum)) {
-        $log->debug("  $label minimum is $minimum");
-      }
-      if (defined($maximum)) {
-        $log->debug("  $label maximum is $maximum");
-      }
-    }
-  }
+  $log->info($output);
+#  foreach my $label (@histograms) {
+#    my $path = $paths{$label};
+#    my $mean = $self->_getHistogramStatistic($label, "mean");
+#    # If the mean is undefined, it means that there were no histogram samples.
+#    if (defined($mean)) {
+#      my $maximum = $self->_getHistogramStatistic($label, "maximum");
+#      my $minimum = $self->_getHistogramStatistic($label, "minimum");
+#      my $unit = $self->_getHistogramUnits($label);
+#
+#      $log->debug($machine->cat($path));
+#
+#      if (defined($unit)) {
+#        $log->debug("  $label unit is $unit");
+#      } else {
+#        $log->debug("  $label is unitless");
+#      }
+#      my %timeScales = (
+#                        "milliseconds" => 1.0e-3,
+#                        "microseconds" => 1.0e-6,
+#                       );
+#      if (defined($unit) && defined($timeScales{$unit})) {
+#        for my $variable (\$mean, \$minimum, \$maximum) {
+#          if (defined($$variable)) {
+#            $$variable = timeToText($$variable * $timeScales{$unit});
+#          }
+#        }
+#      }
+#      $log->debug("  $label mean is $mean");
+#      if (defined($minimum)) {
+#        $log->debug("  $label minimum is $minimum");
+#      }
+#      if (defined($maximum)) {
+#        $log->debug("  $label maximum is $maximum");
+#      }
+#    }
+#  }
 }
 
 ########################################################################
@@ -1686,7 +1660,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return $self->getVDOStats()->{"instance"};
   };
 }
 
