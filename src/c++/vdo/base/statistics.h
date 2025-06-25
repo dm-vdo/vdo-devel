@@ -9,7 +9,6 @@
  * If you add new statistics, be sure to update the following files:
  *
  * ./message-stats.c
- * ./pool-sysfs-stats.c
  * ../user/messageStatsReader.c
  * ../user/vdoStatsWriter.c
  * ../../../perl/Permabit/Statistics/Definitions.pm

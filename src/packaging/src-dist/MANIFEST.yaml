@@ -258,7 +258,6 @@ tarballs:
             - physical-zone.h
             - pool-sysfs.c
             - pool-sysfs.h
-            - pool-sysfs-stats.c
             - priority-table.c
             - priority-table.h
             - recovery-journal.c
