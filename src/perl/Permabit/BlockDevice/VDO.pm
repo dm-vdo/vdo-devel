@@ -767,11 +767,10 @@ sub waitForIndex {
   $timeout //= $self->{expectRebuild} ? 30 * $MINUTE : undef;
   $timeout //= $self->supportsPerformanceMeasurement() ? 30 : 4 * $MINUTE;
   retryUntilTimeout(sub {
-                      my $status = $self->getStatus();
-                      my $state = ($status =~ m/^(?:\S+\s){6}(\w+)/);
+                      my $state = $self->getVDODedupeStatus();
                       if ($state) {
-                        $log->debug("Index status is $1");
-                        return $statusMap{$1};
+                        $log->debug("Index status is $state");
+                        return $statusMap{$state};
                       }
                       return 0;
                     },
@@ -792,24 +791,13 @@ sub getVDOCompressionStatus {
 ########################################################################
 # Get the dedupe status of the VDO device.
 #
-# @return the contents of the sysfs dedupe/status entry for the device
+# @return the value of the dedupe state from dmsetup status call
 ##
 sub getVDODedupeStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("dedupe/status"));
-}
-
-########################################################################
-# Get the number of dedupe queue timeouts.
-#
-# @return the number of dedupe queue timeouts.
-##
-sub getDedupeQueueTimeoutCount {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  my $path = $self->getSysModuleDevicePath("dedupe/queue_timeout_count");
-  return $machine->catAndChomp($path);
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[6];
 }
 
 ########################################################################
