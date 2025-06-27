@@ -11,6 +11,7 @@ use Carp qw(confess croak);
 use English qw(-no_match_vars);
 use File::Basename;
 use File::Path qw(mkpath);
+use JSON;
 use Log::Log4perl;
 
 use Permabit::Assertions qw(
@@ -414,8 +415,7 @@ sub postActivate {
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->sendMessage("histogram_limit $histogram " . secondsToMS($self->{latencyLimit}));
     }
   };
 
@@ -1209,6 +1209,99 @@ sub logHumanVDOStats {
 }
 
 ########################################################################
+# Compare two histogram buckets for sorting.  The "Bigger" bucket is
+# always last.
+##
+sub compare_ranges {
+  if ($a eq "Bigger") {
+    return 1;
+  }
+  if ($b eq "Bigger") {
+    return -1;
+  }
+  my ($lowera) = $a =~ m/(\d+)/;
+  my ($lowerb) = $b =~ m/(\d+)/;
+  return $lowera <=> $lowerb;
+}
+
+########################################################################
+# Show histogram detailed output, including bars to help visualize the 
+# distribution of values.  
+#
+# @param histogram   The histogram to output
+#
+##
+sub logHistogramBars {
+  my ($self, $histogram) = assertNumArgs(2, @_);
+
+  my $bars = 1;
+  my $length = 0;
+  my $total = 0;
+  my $i = 0;
+
+  my $barSize = 50;
+  my $bar = ' ' x $barSize;
+  $bar =~ s/./=/g;
+  $bar .= "\n";
+
+  if ($histogram->{"types"}) {
+    $log->debug($histogram->{"label"} . " Histogram - number of "
+                . $histogram->{"types"} . " by "
+                . $histogram->{"metric"} . " ("
+                . $histogram->{"unit"} . ")");
+  } else {
+    $log->debug($histogram->{"label"} . " Histogram - number of "
+                . $histogram->{"types"} . " by "
+                . $histogram->{"unit"});
+  }
+
+  my $sampleCount = $histogram->{"count"};
+  my $maxBuckets = $histogram->{"bucket count"};
+
+  my $buckets = $histogram->{"buckets"};
+
+  foreach my $bucket ((keys %{ $buckets })) {
+    my $value = $buckets->{$bucket};
+    $total = $total + $value;
+  }
+
+  foreach my $bucket (sort compare_ranges (keys %{ $buckets })) {
+    my $value = $buckets->{$bucket};
+
+    my $barLength;
+    if ($bars && ($total != 0)) {
+      $barLength = int(($value * $barSize) / $total) + 1;
+      if ($barLength == 1) {
+        $barLength = 0;
+      }
+    } else {
+      $barLength = 0;
+    }
+
+    my $rangeString;
+    my $barString;
+    if ($histogram->{"log flag"}) {
+      if ($bucket eq "Bigger") {
+        $rangeString = sprintf("%-16s", $bucket);
+      } else {
+        my ($lower, $upper) = $bucket =~ m/(\d+) - (\d+)/;
+        $rangeString = sprintf("%6d - %7d", $lower, $upper);
+      }
+    } else {
+      if ($bucket eq "Bigger") {
+        $rangeString = sprintf("%6s", $bucket);
+      } else {
+        $rangeString = sprintf("%6d", int($bucket));
+      }
+    }
+    $barString = sprintf(" : %12llu%.*s\n", $value, $barLength, $bar);
+    $log->debug("$rangeString $barString");
+    $i++;
+  }
+  $log->debug("total $total");
+}
+
+########################################################################
 # Log the expected VDO histograms.
 #
 # @oparam histograms  Names of the histograms to be logged. If the list is
@@ -1217,35 +1310,35 @@ sub logHumanVDOStats {
 #                     multiple ("physQ1/wakeup_latency") for work queue stats.
 ##
 sub logHistograms {
-  my ($self, @histograms) = assertMinArgs(1, @_);
+  my ($self, @histograms) = assertMinMaxArgs([], 1, 2, @_);
   my $machine = $self->getMachine();
-  my %paths;
-  if (scalar(@histograms) == 0) {
-    my $sysDir = $self->getSysModuleDevicePath("");
-    $self->sendCommand("find $sysDir -name histogram -print");
-    my @foundPaths = split("\n", $machine->getStdout());
-    # Ensure there is a trailing slash so it also gets removed.
-    $sysDir =~ s|(?<!/)$|/|;
-    %paths = map {
-      dirname(substr($_, length($sysDir))) => $_
-    } @foundPaths;
-    @histograms = sort(keys(%paths));
-  } else {
-    %paths = map {
-      $_ => $self->getSysModuleDevicePath("$_/histogram")
-    } @histograms;
+  # Histograms are subject to the VDO_INTERNAL build macro.  Release builds
+  # will not have histograms.
+  my $output;
+  eval {
+    $self->sendMessage("histograms");
+    $output = $machine->getStdout();
+  };
+  if ($EVAL_ERROR) {
+    return;
   }
+  my $json = decode_json($output);
+
   $log->info("Logging histograms for $self->{vdoSymbolicPath}");
-  foreach my $label (@histograms) {
-    my $path = $paths{$label};
-    my $mean = $self->_getHistogramStatistic($label, "mean");
+  foreach my $name ((keys %{ $json })) {
+    if (scalar(@histograms) > 0 && !grep { $name =~ m/$_/ } @histograms) {
+      next;
+    }
+    my $histogram = $json->{$name};
+    my $label = $histogram->{"label"};
+    my $mean = $histogram->{"mean"};
     # If the mean is undefined, it means that there were no histogram samples.
     if (defined($mean)) {
-      my $maximum = $self->_getHistogramStatistic($label, "maximum");
-      my $minimum = $self->_getHistogramStatistic($label, "minimum");
-      my $unit = $self->_getHistogramUnits($label);
+      my $maximum = $histogram->{"maximum"};
+      my $minimum = $histogram->{"minimum"};
+      my $unit = $histogram->{"unit"};
 
-      $log->debug($machine->cat($path));
+      $self->logHistogramBars($histogram);
 
       if (defined($unit)) {
         $log->debug("  $label unit is $unit");
