@@ -554,7 +554,8 @@ sub suspend {
 sub getModuleVersion {
   my ($self) = assertNumArgs(1, @_);
   if ($self->{useUpstreamModule}) {
-    my $getVerCmd = "yum list $VDO_USER_MODNAME.`uname -m` | " .
+    my $getVerCmd = "XDG_STATE_HOME=/tmp " .
+                    "yum list $VDO_USER_MODNAME.`uname -m` | " .
                     "awk '/^$VDO_USER_MODNAME/ {print \$2}'";
     my @ver = split(/\./,
 		    runCommand($self->getMachineName(), $getVerCmd)->{stdout});
