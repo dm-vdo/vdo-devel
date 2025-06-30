@@ -168,7 +168,7 @@ char *bufferToString(const char *buf, size_t length);
 #define VDO_USE_NEXT
 #endif
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
 #define VDO_USE_NEXT
 #endif
 #endif /* RHEL_RELEASE_CODE */
