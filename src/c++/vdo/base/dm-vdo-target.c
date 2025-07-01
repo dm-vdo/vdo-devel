@@ -1329,6 +1329,21 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
 			*result_buffer = '\0';
 #endif /* __KERNEL__ */
 		result = 1;
+#ifdef VDO_INTERNAL
+	} else if ((argc == 1) && (strcasecmp(argv[0], "histograms") == 0)) {
+#ifdef __KERNEL__
+		vdo_write_histograms(&vdo->histograms, &result_buffer, &maxlen);
+#else /* not __KERNEL__ */
+		if (maxlen > 0)
+			*result_buffer = '\0';
+#endif /* __KERNEL__ */
+		result = 1;
+	} else if ((argc == 3) && (strcasecmp(argv[0], "histogram_limit") == 0)) {
+#ifdef __KERNEL__
+		vdo_store_histogram_limit(&vdo->histograms, argv[1], argv[2], strlen(argv[2]));
+#endif /* __KERNEL__ */
+		result = 1;
+#endif /* VDO_INTERNAL */
 	} else {
 		result = vdo_status_to_errno(process_vdo_message(vdo, argc, argv));
 	}
@@ -2444,7 +2459,7 @@ static int vdo_initialize_kobjects(struct vdo *vdo)
 	if (result != 0)
 		return VDO_CANT_ADD_SYSFS_NODE;
 #ifdef VDO_INTERNAL
-	vdo_initialize_histograms(&vdo->vdo_directory, &vdo->histograms);
+	vdo_initialize_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
 	return VDO_SUCCESS;
 }
