@@ -265,13 +265,6 @@ void rebuildReadOnlyVDO(void);
 void waitForRecoveryDone(void);
 
 /**
- * Set the compression state of the VDO.
- *
- * @param enable  <code>true</code> to enable compression
- **/
-void performSetVDOCompressing(bool enable);
-
-/**
  * Compute the number of contiguous, unique, data blocks which need to be
  * written in order to fill the VDO. This method may not work if the VDO does
  * not start empty (but it might be OK).
