@@ -8,6 +8,22 @@
 
 #include "histogram.h"
 
+enum histogram_types {
+	HISTOGRAM_DEDUPE_POST,
+	HISTOGRAM_DEDUPE_QUERY,
+	HISTOGRAM_DEDUPE_UPDATE,
+	HISTOGRAM_FLUSH,
+	HISTOGRAM_ACKNOWLEDGE_READ,
+	HISTOGRAM_ACKNOWLEDGE_WRITE,
+	HISTOGRAM_ACKNOWLEDGE_DISCARD,
+	HISTOGRAM_BIO_READ,
+	HISTOGRAM_READ_QUEUE,
+	HISTOGRAM_BIO_WRITE,
+	HISTOGRAM_WRITE_QUEUE,
+	HISTOGRAM_BIO_START,
+	HISTOGRAM_LAST,
+};
+
 struct vdo_histograms {
 	struct histogram *post_histogram;
 	struct histogram *query_histogram;
@@ -21,6 +37,7 @@ struct vdo_histograms {
 	struct histogram *write_ack_histogram;
 	struct histogram *write_bios_histogram;
 	struct histogram *write_queue_histogram;
+	struct histogram *histograms[HISTOGRAM_LAST];
 };
 
 void vdo_initialize_histograms(struct vdo_histograms *histograms);
