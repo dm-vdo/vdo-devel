@@ -8,21 +8,18 @@
 
 #include <linux/types.h>
 
-struct histogram *make_linear_histogram(const char *name,
-					const char *init_label,
-					const char *counted_items, const char *metric,
-					const char *sample_units, int size);
+struct histogram_info {
+	char *name; /* The identifier name of the histogram */
+	char *init_label; /* The label for the sampled data */
+	char *counted_items; /* A name (plural) for the things being counted */
+	char *metric; /* The measure being used to divide samples into buckets */
+	char *sample_units; /* The unit (plural) for the metric, or NULL if it's counter */
+	int log_size; /* The number of buckets */
+};
 
-struct histogram *make_logarithmic_histogram(const char *name,
-					     const char *init_label,
-					     const char *counted_items,
-					     const char *metric,
-					     const char *sample_units, int log_size);
-
-struct histogram *make_logarithmic_jiffies_histogram(const char *name,
-						     const char *init_label,
-						     const char *counted_items,
-						     const char *metric, int log_size);
+struct histogram *make_linear_histogram(const struct histogram_info *info);
+struct histogram *make_logarithmic_histogram(const struct histogram_info *info);
+struct histogram *make_logarithmic_jiffies_histogram(const struct histogram_info *info);
 
 void enter_histogram_sample(struct histogram *h, u64 sample);
 
@@ -35,8 +32,6 @@ static inline void histogram_write_string(char **buffer, unsigned int *maxlen, c
 }
 
 void write_histogram(struct histogram *histogram, char **buf, unsigned int *maxlen);
-
-bool histogram_is_named(struct histogram *histogram, const char *name);
 
 ssize_t histogram_store_limit(struct histogram *h, const char *buf, size_t length);
 
