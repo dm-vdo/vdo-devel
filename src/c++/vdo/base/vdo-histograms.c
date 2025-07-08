@@ -9,153 +9,88 @@
 
 #include "histogram.h"
 
+/*
+ * The numeric argument to make_logarithmic_jiffies_histogram is the number of orders of
+ * magnitude in the histogram. The smallest bucket corresponds to 1 jiffy which is 1 msec.
+ * on RedHat or 4 msec. on non-RedHat. Therefore the largest bucket for 4 is 10 seconds,
+ * for 5 is 100 seconds, and for 6 is 1000 seconds. Using a value that is too large is not
+ * expensive.
+ */
+const struct histogram_info histogram_list[] = {
+	[HISTOGRAM_DEDUPE_POST] = { "dedupe_post", "Dedupe Index Post", "operations", "response time", "milliseconds", 4 },
+	[HISTOGRAM_DEDUPE_QUERY] = { "dedupe_query", "Dedupe Index Query", "operations", "response time", "milliseconds", 4 },
+	[HISTOGRAM_DEDUPE_UPDATE] = { "dedupe_update", "Dedupe Index Update", "operations", "response time", "milliseconds", 4 },
+	[HISTOGRAM_FLUSH] = { "flush", "Forward External Flush Request", "flushes", "latency", "milliseconds", 6 },
+	[HISTOGRAM_ACKNOWLEDGE_READ] = { "acknowledge_read", "Acknowledge External Read Request", "reads", "response time", "milliseconds", 5 },
+	[HISTOGRAM_ACKNOWLEDGE_WRITE] = { "acknowledge_write", "Acknowledge External Write Request", "writes", "response time", "milliseconds", 5 },
+	[HISTOGRAM_ACKNOWLEDGE_DISCARD] = { "acknowledge_discard", "Acknowledge External Discard", "discards", "response time", "milliseconds", 5 },
+	[HISTOGRAM_BIO_READ] = { "bio_read", "Read I/O", "reads", "I/O time", "milliseconds", 5 },
+	[HISTOGRAM_READ_QUEUE] = { "read_queue", "Read Queue", "reads", "queue time", "milliseconds", 5 },
+	[HISTOGRAM_BIO_WRITE] = { "bio_write", "Write I/O", "writes", "I/O time", "milliseconds", 5 },
+	[HISTOGRAM_WRITE_QUEUE] = { "write_queue", "Write Queue", "writes", "queue time", "milliseconds", 5 },
+	[HISTOGRAM_BIO_START] = { "bio_start", "Start Request", "requests", "delay time", "milliseconds", 5 },
+};
+
 /**
  * vdo_initialize_histograms() - Make the set of internal histograms for a vdo.
- * @parent: The parent kobject of the histograms.
  * @histograms: The histograms to initialize.
  *
- * Since these are only used for internal testing, allocation errors constructing them will be
- * ignored.
+ * Since these are only used for internal testing, allocation errors
+ * constructing them will be ignored.
  */
 void vdo_initialize_histograms(struct vdo_histograms *histograms)
 {
-	/*
-	 * The numeric argument to make_logarithmic_jiffies_histogram is the number of orders of
-	 * magnitude in the histogram. The smallest bucket corresponds to 1 jiffy which is 1 msec.
-	 * on RedHat or 4 msec. on non-RedHat. Therefore the largest bucket for 4 is 10 seconds,
-	 * for 5 is 100 seconds, and for 6 is 1000 seconds. Using a value that is too large is not
-	 * expensive.
-	 */
-	histograms->post_histogram =
-		make_logarithmic_jiffies_histogram("dedupe_post",
-						   "Dedupe Index Post", "operations",
-						   "response time", 4);
-	histograms->query_histogram =
-		make_logarithmic_jiffies_histogram("dedupe_query",
-						   "Dedupe Index Query", "operations",
-						   "response time", 4);
-	histograms->update_histogram =
-		make_logarithmic_jiffies_histogram("dedupe_update",
-						   "Dedupe Index Update", "operations",
-						   "response time", 4);
-	histograms->flush_histogram =
-		make_logarithmic_jiffies_histogram("flush",
-						   "Forward External Flush Request",
-						   "flushes", "latency", 6);
-	histograms->read_ack_histogram =
-		make_logarithmic_jiffies_histogram("acknowledge_read",
-						   "Acknowledge External Read Request",
-						   "reads", "response time", 5);
-	histograms->write_ack_histogram =
-		make_logarithmic_jiffies_histogram("acknowledge_write",
-						   "Acknowledge External Write Request",
-						   "writes", "response time", 5);
-	histograms->discard_ack_histogram =
-		make_logarithmic_jiffies_histogram("acknowledge_discard",
-						   "Acknowledge External Discard Request",
-						   "discards", "response time", 5);
-	histograms->read_bios_histogram =
-		make_logarithmic_jiffies_histogram("bio_read", "Read I/O",
-						   "reads", "I/O time", 5);
-	histograms->read_queue_histogram =
-		make_logarithmic_jiffies_histogram("read_queue", "Read Queue",
-						   "reads", "queue time", 5);
-	histograms->write_bios_histogram =
-		make_logarithmic_jiffies_histogram("bio_write", "Write I/O",
-						   "writes", "I/O time", 5);
-	histograms->write_queue_histogram =
-		make_logarithmic_jiffies_histogram("write_queue", "Write Queue",
-						   "writes", "queue time", 5);
-	histograms->start_request_histogram =
-		make_logarithmic_jiffies_histogram("bio_start", "Start Request",
-						   "requests", "delay time", 5);
+	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		histograms->histograms[i] = make_logarithmic_jiffies_histogram(&histogram_list[i]);
+	}
+	histograms->post_histogram = histograms->histograms[HISTOGRAM_DEDUPE_POST];
+	histograms->query_histogram = histograms->histograms[HISTOGRAM_DEDUPE_QUERY];
+	histograms->update_histogram = histograms->histograms[HISTOGRAM_DEDUPE_UPDATE];
+	histograms->flush_histogram = histograms->histograms[HISTOGRAM_FLUSH];
+	histograms->read_ack_histogram = histograms->histograms[HISTOGRAM_ACKNOWLEDGE_READ];
+	histograms->write_ack_histogram = histograms->histograms[HISTOGRAM_ACKNOWLEDGE_WRITE];
+	histograms->discard_ack_histogram = histograms->histograms[HISTOGRAM_ACKNOWLEDGE_DISCARD];
+	histograms->read_bios_histogram = histograms->histograms[HISTOGRAM_BIO_READ];
+	histograms->read_queue_histogram = histograms->histograms[HISTOGRAM_READ_QUEUE];
+	histograms->write_bios_histogram = histograms->histograms[HISTOGRAM_BIO_WRITE];
+	histograms->write_queue_histogram = histograms->histograms[HISTOGRAM_WRITE_QUEUE];
+	histograms->start_request_histogram = histograms->histograms[HISTOGRAM_BIO_START];
 }
 
-void vdo_store_histogram_limit(struct vdo_histograms *histograms, char *name,
-			       char *value, unsigned int length)
+/**
+ * vdo_store_histogram_limit() - Store a histogram limit.
+ * @histograms: The list of histograms.
+ * @name: The name of the histogram to store the limit in.
+ * @value: The value to store in the histogram.
+ * @length: The length of the value to store in the histogram.
+ */
+void vdo_store_histogram_limit(struct vdo_histograms *histograms, char *name, char *value,
+			       unsigned int length)
 {
-	if (histogram_is_named(histograms->post_histogram, name)) {
-		histogram_store_limit(histograms->post_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->query_histogram, name)) {
-		histogram_store_limit(histograms->query_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->update_histogram, name)) {
-		histogram_store_limit(histograms->update_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->flush_histogram, name)) {
-		histogram_store_limit(histograms->flush_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->read_ack_histogram, name)) {
-		histogram_store_limit(histograms->read_ack_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->write_ack_histogram, name)) {
-		histogram_store_limit(histograms->write_ack_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->discard_ack_histogram, name)) {
-		histogram_store_limit(histograms->discard_ack_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->read_bios_histogram, name)) {
-		histogram_store_limit(histograms->read_bios_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->read_queue_histogram, name)) {
-		histogram_store_limit(histograms->read_queue_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->write_bios_histogram, name)) {
-		histogram_store_limit(histograms->write_bios_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->write_queue_histogram, name)) {
-		histogram_store_limit(histograms->write_queue_histogram, value, length);
-		return;
-	}
-	if (histogram_is_named(histograms->start_request_histogram, name)) {
-		histogram_store_limit(histograms->start_request_histogram, value, length);
-		return;
+	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		if (strcmp(histogram_list[i].name, name) == 0) {
+			histogram_store_limit(histograms->histograms[i], value, length);
+			return;
+		}
 	}
 }
 
+/**
+ * vdo_write_histograms() - Write the histograms to a buffer in JSON format.
+ * @histograms: The histograms to write.
+ * @buf: The buffer to write to.
+ * @maxlen: The maximum length of the buffer.
+ */
 void vdo_write_histograms(struct vdo_histograms *histograms, char **buf,
 			  unsigned int *maxlen)
 {
-	/*
-	 * Output is a JSON formatted string with a list of histograms. It requires
-	 * a comma after each histogram, but no comma after the last histogram.
-	 */
 	histogram_write_string(buf, maxlen, "[ ");
-	write_histogram(histograms->post_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->query_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->update_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->flush_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->read_ack_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->write_ack_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->discard_ack_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->read_bios_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->read_queue_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->write_bios_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->write_queue_histogram, buf, maxlen);
-	histogram_write_string(buf, maxlen, ", ");
-	write_histogram(histograms->start_request_histogram, buf, maxlen);
-	/* The last histogram is special because json does not allow a comma. */
+	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		write_histogram(histograms->histograms[i], buf, maxlen);
+		if (i < HISTOGRAM_LAST - 1) {
+			histogram_write_string(buf, maxlen, ", ");
+		}
+	}
 	histogram_write_string(buf, maxlen, " ]");
 }
 
@@ -165,16 +100,7 @@ void vdo_write_histograms(struct vdo_histograms *histograms, char **buf,
  */
 void vdo_destroy_histograms(struct vdo_histograms *histograms)
 {
-	free_histogram(vdo_forget(histograms->discard_ack_histogram));
-	free_histogram(vdo_forget(histograms->flush_histogram));
-	free_histogram(vdo_forget(histograms->post_histogram));
-	free_histogram(vdo_forget(histograms->query_histogram));
-	free_histogram(vdo_forget(histograms->read_ack_histogram));
-	free_histogram(vdo_forget(histograms->read_bios_histogram));
-	free_histogram(vdo_forget(histograms->read_queue_histogram));
-	free_histogram(vdo_forget(histograms->start_request_histogram));
-	free_histogram(vdo_forget(histograms->update_histogram));
-	free_histogram(vdo_forget(histograms->write_ack_histogram));
-	free_histogram(vdo_forget(histograms->write_bios_histogram));
-	free_histogram(vdo_forget(histograms->write_queue_histogram));
+	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		free_histogram(histograms->histograms[i]);
+	}
 }

@@ -416,13 +416,7 @@ static struct histogram *make_histogram(const char *name,
 
 /**
  * make_linear_histogram() - Allocate and initialize a histogram that uses linearly sized buckets.
- * @name: The short name of the histogram. This label is used for the sysfs node.
- * @init_label: The label for the sampled data. This label is used when we plot the data.
- * @counted_items: A name (plural) for the things being counted.
- * @metric: The measure being used to divide samples into buckets.
- * @sample_units: The unit (plural) for the metric, or NULL if it's a simple counter.
- * @size: The number of buckets. There are buckets for every value from 0 up to size (but not
- *        including) size. There is an extra bucket for larger samples.
+ * @info: The structure containing creation info for the histogram
  *
  * The histogram label reported via /sys is constructed from several of the values passed here; it
  * will be something like "Init Label Histogram - number of counted_items grouped by metric
@@ -435,13 +429,10 @@ static struct histogram *make_histogram(const char *name,
  *
  * Return: The histogram.
  */
-struct histogram *make_linear_histogram(const char *name,
-					const char *init_label,
-					const char *counted_items, const char *metric,
-					const char *sample_units, int size)
+struct histogram *make_linear_histogram(const struct histogram_info *info)
 {
-	return make_histogram(name, init_label, counted_items, metric,
-			      sample_units, size, 1, false);
+	return make_histogram(info->name, info->init_label, info->counted_items,
+			      info->metric, info->sample_units, info->log_size, 1, false);
 }
 
 /**
@@ -475,46 +466,30 @@ make_logarithmic_histogram_with_conversion_factor(const char *name,
 /**
  * make_logarithmic_histogram() - Allocate and initialize a histogram that uses logarithmically
  *                                sized buckets.
- * @name: The short name of the histogram. This label is used for the sysfs node.
- * @init_label: The label for the sampled data. This label is used when we plot the data.
- * @counted_items: A name (plural) for the things being counted.
- * @metric: The measure being used to divide samples into buckets.
- * @sample_units: The unit (plural) for the metric, or NULL if it's a simple counter.
- * @log_size: The number of buckets. There are buckets for a range of sizes up to 10^log_size, and
- *            an extra bucket for larger samples.
+ * @info: The structure containing creation info for the histogram
  *
  * Return: The histogram.
  */
-struct histogram *make_logarithmic_histogram(const char *name,
-					     const char *init_label,
-					     const char *counted_items,
-					     const char *metric,
-					     const char *sample_units, int log_size)
+struct histogram *make_logarithmic_histogram(const struct histogram_info *info)
 {
-	return make_logarithmic_histogram_with_conversion_factor(name,
-								 init_label,
-								 counted_items, metric,
-								 sample_units, log_size, 1);
+	return make_logarithmic_histogram_with_conversion_factor(info->name,
+								 info->init_label,
+								 info->counted_items,
+								 info->metric,
+								 info->sample_units,
+								 info->log_size, 1);
 }
 
 /**
  * make_logarithmic_jiffies_histogram() - Allocate and initialize a histogram that uses
  *                                        logarithmically sized buckets.
- * @name: The short name of the histogram. This label is used for the sysfs node.
- * @init_label: The label for the sampled data. This label is used when we plot the data.
- * @counted_items: A name (plural) for the things being counted.
- * @metric: The measure being used to divide samples into buckets.
- * @log_size: The number of buckets. There are buckets for a range of sizes up to 10^log_size, and
- *            an extra bucket for larger samples.
+ * @info: The structure containing creation info for the histogram
  *
  * Values are entered that count in jiffies, and they are reported in milliseconds.
  *
  * Return: The histogram.
  */
-struct histogram *make_logarithmic_jiffies_histogram(const char *name,
-						     const char *init_label,
-						     const char *counted_items,
-						     const char *metric, int log_size)
+struct histogram *make_logarithmic_jiffies_histogram(const struct histogram_info *info)
 {
 	/*
 	 * If these fail, we have a jiffy duration that is not an integral number of milliseconds,
@@ -522,11 +497,12 @@ struct histogram *make_logarithmic_jiffies_histogram(const char *name,
 	 */
 	BUILD_BUG_ON(HZ > MSEC_PER_SEC);
 	BUILD_BUG_ON((MSEC_PER_SEC % HZ) != 0);
-	return make_logarithmic_histogram_with_conversion_factor(name,
-								 init_label,
-								 counted_items, metric,
-								 "milliseconds",
-								 log_size,
+	return make_logarithmic_histogram_with_conversion_factor(info->name,
+								 info->init_label,
+								 info->counted_items,
+								 info->metric,
+								 info->sample_units,
+								 info->log_size,
 								 jiffies_to_msecs(1));
 }
 
@@ -577,11 +553,6 @@ void write_histogram(struct histogram *histogram, char **buf, unsigned int *maxl
 	histogram_show_limit(histogram, buf, maxlen);
 	histogram_show_log_flag(histogram, buf, maxlen);
 	histogram_write_string(buf, maxlen, "}");
-}
-
-bool histogram_is_named(struct histogram *histogram, const char *name)
-{
-	return strcmp(histogram->name, name) == 0;
 }
 
 /**
