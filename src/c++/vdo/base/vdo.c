@@ -51,9 +51,6 @@
 #include "logical-zone.h"
 #include "packer.h"
 #include "physical-zone.h"
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-#include "pool-sysfs.h"
-#endif
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "statistics.h"
@@ -740,22 +737,10 @@ void vdo_destroy(struct vdo *vdo)
 
 		vdo_free(vdo_forget(vdo->compression_context));
 	}
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-
-	/*
-	 * The call to kobject_put on the kobj sysfs node will decrement its reference count; when
-	 * the count goes to zero the VDO object will be freed as a side effect.
-	 */
 #ifdef VDO_INTERNAL
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
-	if (!vdo->sysfs_added)
-		vdo_free(vdo);
-	else
-		kobject_put(&vdo->vdo_directory);
-#else
 	vdo_free(vdo);
-#endif
 }
 
 static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)

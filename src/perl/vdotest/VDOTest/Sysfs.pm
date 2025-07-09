@@ -67,25 +67,6 @@ sub testSysfs {
   # This is the directory in /sys where block device parameters are found
   my $blockDevDir = makeFullPath("/sys/dev/block", $majorMinor);
 
-  # This is the directory in /sys where vdo device parameters are found
-  my $sysModDevDir = makeFullPath($blockDevDir, "vdo");
-
-  # Check readonly parameters
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "compressing"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_active"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_maximum"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "instance"), "0");
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_active"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_limit"),
-                        $DEFAULT_MAX_REQUESTS_ACTIVE);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_maximum"),
-                        undef);
-
-  # Check parameters writable only by root
-  $self->_writeCheck(makeFullPath($sysModDevDir, "discards_limit"),
-                     $DEFAULT_MAX_REQUESTS_ACTIVE * $DEFAULT_DISCARD_RATIO,
-                     1234);
-
   # Check reading of block device parameters
   $self->_readCheck(makeFullPath($blockDevDir, "alignment_offset"), 0);
   $self->_readCheck(makeFullPath($blockDevDir, "discard_alignment"), 0);
