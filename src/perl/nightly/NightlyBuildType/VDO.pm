@@ -22,13 +22,6 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 # The following are tests that need to be run nightly.
 my $SUITE_PROPERTIES = {
-  dmRawhideTests => {
-    displayName  => "DM_Nightly_Tests",
-    suiteName    => "nightly",
-    extraArgs    => "--clientClass=PFARM",
-    osClasses    => ["RAWHIDE"],
-    type         => "dm",
-  },
   perlLocalTests => {
     displayName => "Perl_Local_Tests",
     suiteName   => "",
@@ -63,33 +56,11 @@ my $SUITE_PROPERTIES = {
     scale       => "ALBIREO-PMI",
     extraArgs   => "--clientClass=ALBIREO-PMI",
   },
-  vdoMainlineNextTests => {
-    displayName  => "VDO_Mainline_Next_Kernel_Tests",
-    suiteName    => "upstreamTests",
-    scale        => "PFARM",
-    extraArgs    => "--clientClass=PFARM",
-    osClasses    => ["FEDORANEXT"],
-  },
-  vdoUpstreamTests => {
-    displayName    => "VDO_Upstream_Tests",
-    suiteName      => "upstreamTests",
-    scale          => "PFARM",
-    extraArgs      => "--clientClass=PFARM"
-                      . " --useUpstreamModule",
-    osClasses      => ["FEDORANEXT"],
-  },
   vdoPerfTests => {
     displayName => "VDO_Perf_Tests",
     suiteName   => "nightlyVDOPerfTests",
     scale       => "VDO-PMI",
     extraArgs   => "--clientClass=VDO-PMI",
-  },
-  vdoRawhideTests => {
-    displayName  => "VDO_Latest_Kernel_Tests",
-    suiteName    => "upstreamTests",
-    scale        => "PFARM",
-    extraArgs    => "--clientClass=PFARM",
-    osClasses    => ["RAWHIDE"],
   },
   vdoDebugKernelTests => {
     displayName  => "VDO_Debug_Kernel_Tests",
@@ -121,6 +92,38 @@ my $SUITE_PROPERTIES = {
   },
 };
 
+my $UPSTREAM_SUITE_PROPERTIES = {
+  dmRawhideTests => {
+    displayName  => "DM_Nightly_Tests",
+    suiteName    => "nightly",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["RAWHIDE"],
+    type         => "dm",
+  },
+  vdoMainlineNextTests => {
+    displayName  => "VDO_Mainline_Next_Kernel_Tests",
+    suiteName    => "upstreamTests",
+    scale        => "PFARM",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["FEDORANEXT"],
+  },
+  vdoUpstreamTests => {
+    displayName    => "VDO_Upstream_Tests",
+    suiteName      => "upstreamTests",
+    scale          => "PFARM",
+    extraArgs      => "--clientClass=PFARM"
+                      . " --useUpstreamModule",
+    osClasses      => ["FEDORANEXT"],
+  },
+  vdoRawhideTests => {
+    displayName  => "VDO_Latest_Kernel_Tests",
+    suiteName    => "upstreamTests",
+    scale        => "PFARM",
+    extraArgs    => "--clientClass=PFARM",
+    osClasses    => ["RAWHIDE"],
+  },
+};
+
 ######################################################################
 # Get the hash of distinct test suites to run.
 ##
@@ -134,7 +137,9 @@ sub getSuiteProperties {
 ##
 sub getSuitesImplementation {
   my ($self) = assertNumArgs(1, @_);
-  return generateTestSuites($self->getSuiteProperties(), $DEFAULT_OS_CLASSES);
+  my %vdoTestSuite = ( %$SUITE_PROPERTIES, %$UPSTREAM_SUITE_PROPERTIES );
+
+  return generateTestSuites(\%vdoTestSuite, $DEFAULT_OS_CLASSES);
 }
 
 1;
