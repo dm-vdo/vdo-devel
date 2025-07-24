@@ -408,6 +408,7 @@ static struct histogram *make_histogram(const char *name,
 
 	if (vdo_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
 			 &h->counters) != VDO_SUCCESS) {
+		vdo_free(h);
 		return NULL;
 	}
 
