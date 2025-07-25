@@ -87,9 +87,10 @@ static void makeFileName(const char *name)
 static void prepareVDO(void)
 {
   stopVDO();
-  struct vdo_config config = getTestConfig().config;
-  VDO_ASSERT_SUCCESS(formatVDOWithNonce(&config, NULL, getSynchronousLayer(),
-                                        NONCE, &TEST_UUID));
+  TestConfiguration config = getTestConfig();
+  VDO_ASSERT_SUCCESS(formatVDOWithNonce(&config.config, &config.indexConfig,
+                                        getSynchronousLayer(), NONCE,
+                                        &TEST_UUID));
   startVDO(VDO_NEW);
 
   /*
