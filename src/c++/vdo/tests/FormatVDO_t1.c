@@ -20,6 +20,10 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
+static const TestParameters PARAMETERS = {
+  .noIndexRegion  = true,
+};
+
 /**********************************************************************/
 static void assertPartitionIsZeroed(UserVDO *vdo, enum partition_id id)
 {
@@ -39,13 +43,20 @@ static void assertPartitionIsZeroed(UserVDO *vdo, enum partition_id id)
 /**********************************************************************/
 static void zeroingTest(void)
 {
-  struct vdo_config config = getTestConfig().config;
-  VDO_ASSERT_SUCCESS(formatVDO(&config, NULL, getSynchronousLayer()));
+  TestConfiguration config = getTestConfig();
+  VDO_ASSERT_SUCCESS(formatVDO(&config.config, &config.indexConfig,
+                               getSynchronousLayer()));
   UserVDO *vdo;
   VDO_ASSERT_SUCCESS(loadVDO(getSynchronousLayer(), true, &vdo));
   assertPartitionIsZeroed(vdo, VDO_BLOCK_MAP_PARTITION);
   assertPartitionIsZeroed(vdo, VDO_RECOVERY_JOURNAL_PARTITION);
   freeUserVDO(&vdo);
+}
+
+/**********************************************************************/
+static void initialize(void)
+{
+  initializeVDOTest(&PARAMETERS);
 }
 
 /**********************************************************************/
@@ -57,7 +68,7 @@ static CU_TestInfo tests[] = {
 static CU_SuiteInfo suite = {
   .name                     = "VDO format tests (FormatVDO_t1)",
   .initializerWithArguments = NULL,
-  .initializer              = initializeDefaultBasicTest,
+  .initializer              = initialize,
   .cleaner                  = tearDownVDOTest,
   .tests                    = tests
 };

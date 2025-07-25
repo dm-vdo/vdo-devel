@@ -106,14 +106,14 @@ int main(int argc, char *argv[])
   struct index_config indexConfig;
   result = parseIndexConfig(&configStrings, &indexConfig);
   if (result != VDO_SUCCESS) {
-    errx(result, "parseIndexConfig failed: %s",
+    errx(result, "Failed to parse given parameters: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
 
   block_count_t indexBlocks = 0;
-  result = computeIndexBlocks(&indexConfig, &indexBlocks);
+  result = vdo_compute_index_blocks(&indexConfig, &indexBlocks);
   if (result != VDO_SUCCESS) {
-    errx(result, "computeIndexBlocks failed: %s",
+    errx(uds_status_to_errno(result), "Failed to compute space needed for the index: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
 
