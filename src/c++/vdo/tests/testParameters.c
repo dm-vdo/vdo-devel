@@ -326,7 +326,7 @@ TestConfiguration makeTestConfiguration(const TestParameters *parameters)
       .mem    = UDS_MEMORY_CONFIG_TINY_TEST,
       .sparse = false,
     };
-    VDO_ASSERT_SUCCESS(computeIndexBlocks(&indexConfig, &indexBlocks));
+    VDO_ASSERT_SUCCESS(vdo_compute_index_blocks(&indexConfig, &indexBlocks));
   }
 
   TestConfiguration configuration = (TestConfiguration) {
