@@ -91,7 +91,7 @@ static u8 EXPECTED_GEOMETRY_5_0_ENCODING[] =
 static void encodingTest_4_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL, &geometry));
 
   // Fill the geometry fields with bogus values that will test endianness.
   geometry.unused                 = 0x1a1b1c1d;
@@ -120,7 +120,7 @@ static void encodingTest_4_0(void)
 static void encodingTest_5_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL, &geometry));
 
   // Fill the geometry fields with bogus values that will test endianness.
   geometry.unused                            = 0x1a1b1c1d;
@@ -160,7 +160,7 @@ static void assertRegionIs(struct volume_region  *region,
 static void basicTest(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, NULL, &geometry));
   VDO_ASSERT_SUCCESS(writeVolumeGeometry(getSynchronousLayer(), &geometry));
   VDO_ASSERT_SUCCESS(loadVolumeGeometry(getSynchronousLayer(), &geometry));
   CU_ASSERT_EQUAL(geometry.nonce, NONCE);
