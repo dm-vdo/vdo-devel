@@ -134,11 +134,8 @@ PhysicalLayer *getSynchronousLayer(void)
 /**********************************************************************/
 void formatTestVDO(void)
 {
-  struct index_config *indexConfig = ((configuration.indexConfig.mem == 0)
-                                      ? NULL
-                                      : &configuration.indexConfig);
   VDO_ASSERT_SUCCESS(formatVDO(&configuration.config,
-                               indexConfig,
+                               &configuration.indexConfig,
                                synchronousLayer));
 }
 
