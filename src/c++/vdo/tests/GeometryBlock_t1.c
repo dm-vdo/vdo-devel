@@ -28,6 +28,12 @@ enum {
 static nonce_t NONCE     = 0x1020304beef51ab5;
 static uuid_t  TEST_UUID = "fake\0uuid hares";
 
+static struct index_config test_index =
+  {
+    .mem = 0,
+    .sparse = false,
+  };
+
 /*
  * A captured encoding of the geometry block version 4.0 created by
  * encodingTest_4_0(). This is used to check that the encoding format hasn't
@@ -91,7 +97,8 @@ static u8 EXPECTED_GEOMETRY_5_0_ENCODING[] =
 static void encodingTest_4_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, &test_index,
+                                                    &geometry));
 
   // Fill the geometry fields with bogus values that will test endianness.
   geometry.unused                 = 0x1a1b1c1d;
@@ -120,7 +127,8 @@ static void encodingTest_4_0(void)
 static void encodingTest_5_0(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, &test_index,
+                                                    &geometry));
 
   // Fill the geometry fields with bogus values that will test endianness.
   geometry.unused                            = 0x1a1b1c1d;
@@ -160,7 +168,8 @@ static void assertRegionIs(struct volume_region  *region,
 static void basicTest(void)
 {
   struct volume_geometry geometry;
-  VDO_ASSERT_SUCCESS(initializeVolumeGeometry(NONCE, &TEST_UUID, NULL, &geometry));
+  VDO_ASSERT_SUCCESS(vdo_initialize_volume_geometry(NONCE, &TEST_UUID, &test_index,
+                                                    &geometry));
   VDO_ASSERT_SUCCESS(writeVolumeGeometry(getSynchronousLayer(), &geometry));
   VDO_ASSERT_SUCCESS(loadVolumeGeometry(getSynchronousLayer(), &geometry));
   CU_ASSERT_EQUAL(geometry.nonce, NONCE);
