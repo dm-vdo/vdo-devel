@@ -357,6 +357,149 @@ sub _isNear {
 }
 
 #############################################################################
+# Parse dmidecode output, returning sorted and merged memory ranges.
+#
+# Written initially by ChatGPT, then modified.
+#
+# @param text   The output of dmidecode
+#
+# @return an array ref of memory address ranges
+##
+sub _parseDmidecode {
+  # Even on a 64-bit host, calling hex() with values >4G emits a
+  # warning (fatal with our standard settings). TODO: Use Math::BigInt?
+  use bigint;
+  my ($text) = assertNumArgs(1, @_);
+  my @raw_ranges;
+
+  while ($text =~ /Handle\s+\S+,\s+DMI type 19,.*?\n(.*?)(?=\nHandle|\z)/gs) {
+    my $block = $1;
+    my ($start_hex) = $block =~ /Starting Address:\s*0x([0-9a-fA-F]+)/;
+    my ($end_hex)   = $block =~ /Ending Address:\s*0x([0-9a-fA-F]+)/;
+    next unless defined $start_hex && defined $end_hex;
+    my $start = hex($start_hex);
+    my $end   = hex($end_hex);
+    push @raw_ranges, [$start, $end];
+  }
+
+  # Sort and merge ranges
+  @raw_ranges = sort { $a->[0] <=> $b->[0] } @raw_ranges;
+  my @merged;
+
+  for my $range (@raw_ranges) {
+    my ($start, $end) = @$range;
+    if (!@merged || $start > $merged[-1][1] + 1) {
+      push @merged, [$start, $end];
+    } else {
+      $merged[-1][1] = $end if $end > $merged[-1][1];
+    }
+  }
+
+  return \@merged;
+}
+
+#############################################################################
+# Given a memory map and desired memory size in kB, return maximum
+# address in kB. If too large a size is requested, an error is raised.
+#
+# Written initially by ChatGPT, then modified.
+#
+# @param ranges     A memory map returned by _parseDmidecode
+# @param target_kb  The desired memory size
+#
+# @return a maximum address to pass to the kernel via mem=<N>k
+##
+sub _findAddressForMemoryKB {
+  my ($ranges, $target_kb) = assertNumArgs(2, @_);
+  my $accum_kb = 0;
+
+  for my $seg (@$ranges) {
+    my ($start, $end) = @$seg;
+    my $seg_kb = int(($end - $start + 1) / 1024);
+    if ($accum_kb + $seg_kb >= $target_kb) {
+      my $needed_kb = $target_kb - $accum_kb;
+      return int(($start + $needed_kb * 1024) / 1024);
+    }
+    $accum_kb += $seg_kb;
+  }
+
+  confess("Not enough memory found in the map to satisfy ${target_kb}kB");
+}
+
+#############################################################################
+# Set up a host with a specified amount of available memory. Use the
+# maximum amount of memory within the acceptable range.
+#
+# @param host           The host whose memory should be limited
+# @param minimumMemory  The minimum amount of memory to limit host to
+# @param extraMemory    The amount of memory above the minimum to allow,
+#                       if it is available
+#
+# @croaks on various error conditions
+##
+sub _setupKernelMemoryLimiting1Host {
+  my ($host, $minimumMemory, $extraMemory) = assertNumArgs(3, @_);
+  my $hosts = [ $host ];
+
+  # Ensure that each host has at least as much memory as the limit
+  my $target = $minimumMemory + $extraMemory;
+  my $overhead = 0;
+  my $availableMem = getTotalRAM($host);
+  my $actualRAM    = getAddressableMemory($host);
+  $overhead        = max($overhead, ($actualRAM - $availableMem));
+  $target          = min($target, $availableMem);
+  assertGENumeric($availableMem, $minimumMemory,
+                  "$host reports " . sizeToText($availableMem)
+                  . " of memory, should have at least "
+                  . sizeToText($minimumMemory));
+  $log->info("$host reports " . sizeToText($availableMem)
+             . " of available memory, out of " . sizeToText($actualRAM)
+             . " actual RAM");
+  $log->info(sizeToText($overhead) . " of memory overhead required.");
+
+  my $dmidecode = assertCommand($host, "sudo dmidecode -t 19");
+  my $ramRanges = _parseDmidecode($dmidecode->{stdout});
+
+  # Reboot the kernel using this much memory
+  my $desired         = $target;
+  my $done            = 0;
+  my $iteration       = 0;
+  my $maxIterations   = 5;
+  while (!$done && (++$iteration <= $maxIterations)) {
+    # Figure out how much physical RAM we want to use, then map that
+    # to a maximum address based on the machine's memory map.
+    my $targetRAM = int(($target + $overhead) / $KB);
+    my $addrLimit = _findAddressForMemoryKB($ramRanges, $targetRAM);
+    _rebootWithKernelOption($hosts, "mem", "${addrLimit}K");
+    my $currMem = getTotalRAM($host);
+    # Check that it worked... because of other uses of memory that
+    # count against MemTotal, we may not get exactly what we asked,
+    # but we should be vaguely in the ballpark.  The caller can try
+    # again if it needs to fine-tune the value.
+    $log->info("$host now reports " . sizeToText($currMem) . " of memory"
+               . " (was shooting for " . sizeToText($desired) . ")");
+
+    if (_isNear($desired, $currMem, "2%")) {
+      $done = 1;
+    }
+    if (!$done) {
+      $target = $target + ($desired - $currMem) + 3 * $MB;
+    }
+  }
+  if (!$done) {
+    eval {
+      # Remove mem= options even if they weren't working.
+      removeKernelMemoryLimiting($hosts);
+    };
+    confess("unable to adjust system memory parameter: $host");
+  }
+
+  # Set the appropriate hung task timeout now that we've rebooted.
+  setHungTaskTimeout($host);
+}
+
+
+#############################################################################
 # Set up a set of hosts with a specified amount of available memory. Use
 # the maximum amount of memory within the acceptable range.
 #
@@ -370,64 +513,20 @@ sub _isNear {
 sub setupKernelMemoryLimiting {
   my ($hosts, $minimumMemory, $extraMemory) = assertNumArgs(3, @_);
 
-  # Ensure that each host has at least as much memory as the limit
-  my $target = $minimumMemory + $extraMemory;
-  my $overhead = 0;
   foreach my $host (@$hosts) {
-    my $availableMem = getTotalRAM($host);
-    my $actualRAM    = getAddressableMemory($host);
-    $overhead        = max($overhead, ($actualRAM - $availableMem));
-    $target          = min($target, $availableMem);
-    assertGENumeric($availableMem, $minimumMemory,
-                    "$host reports " . sizeToText($availableMem)
-                    . " of memory, should have at least "
-                    . sizeToText($minimumMemory));
-    $log->info("$host reports " . sizeToText($availableMem)
-               . " of available memory, out of " . sizeToText($actualRAM)
-               . " actual RAM");
-  }
-  $log->info(sizeToText($overhead) . " of memory overhead required.");
-
-  # Reboot the kernel using this much memory
-  my $desired         = $target;
-  my @hostsInProgress = @$hosts;
-  my $iteration       = 0;
-  my $maxIterations   = 15;
-  while ((scalar(@hostsInProgress) > 0) && (++$iteration <= $maxIterations)) {
-    _rebootWithKernelOption($hosts, "mem",
-                            int(($target + $overhead) / $KB) . "K");
-    my %currMem = map { $_ => getTotalRAM($_) } @hostsInProgress;
-    # Check that it worked... because of other uses of memory that
-    # count against MemTotal, we may not get exactly what we asked,
-    # but we should be vaguely in the ballpark.  The caller can try
-    # again if it needs to fine-tune the value.
-    foreach my $host (@hostsInProgress) {
-      my $ram = $currMem{$host};
-      $log->info("$host now reports " . sizeToText($ram) . " of memory"
-                 . " (was shooting for " . sizeToText($desired) . ")");
-    };
-
-    @hostsInProgress
-      = grep { !_isNear($desired, $currMem{$_}, "2%") } @hostsInProgress;
-    if (scalar(@hostsInProgress) > 0) {
-      my @diffs = map { abs($currMem{$_} - $desired) } @hostsInProgress;
-      # We assume all the hosts need to go in the direction the first needs to
-      # go.
-      my $shouldGoDown = ((@currMem{$hostsInProgress[0]} - $desired) > 0);
-
-      $target = $target + ($shouldGoDown ? -1 : 1) * max(@diffs) + 3 * $MB;
-    }
-  }
-  if (scalar(@hostsInProgress) > 0) {
     eval {
-      # Remove mem= options even if they weren't working.
-      removeKernelMemoryLimiting($hosts);
+      _setupKernelMemoryLimiting1Host($host, $minimumMemory, $extraMemory);
     };
-    confess("unable to adjust system memory parameter: @hostsInProgress");
-  }
-
-  # Set the appropriate hung task timeout now that we've rebooted.
-  map { setHungTaskTimeout($_) } @$hosts;
+    if (my $error = $EVAL_ERROR) {
+      # Log something here because the remove... cleanup may be verbose.
+      $log->error("_setupKernelMemoryLimiting1Host($host,$minimumMemory,$extraMemory) failed: $error");
+      eval {
+        # Remove mem= options even if they weren't working.
+        removeKernelMemoryLimiting($hosts);
+      };
+      confess("unable to adjust $host system memory parameter: $error");
+    }
+  };
 }
 
 ############################################################################
