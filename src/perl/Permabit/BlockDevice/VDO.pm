@@ -664,6 +664,9 @@ sub installModule {
     $self->runOnHost("sudo ln -snf $moduleBase/extra/kmod-kvdo/vdo/kvdo.ko "
                      . $self->{_dmSymlink}{$machineName});
     $self->runOnHost("sudo depmod -a");
+    # Always follow up mucking around with modules with a sync, in
+    # case we force a crash or unclean reboot.
+    $self->runOnHost("sync");
   }
 }
 
