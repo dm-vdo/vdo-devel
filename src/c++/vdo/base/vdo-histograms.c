@@ -68,6 +68,8 @@ void vdo_store_histogram_limit(struct vdo_histograms *histograms, char *name, ch
 			       unsigned int length)
 {
 	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		if (histograms->histograms[i] == NULL)
+			continue;
 		if (strcmp(histogram_list[i].name, name) == 0) {
 			histogram_store_limit(histograms->histograms[i], value, length);
 			return;
@@ -86,6 +88,8 @@ void vdo_write_histograms(struct vdo_histograms *histograms, char **buf,
 {
 	histogram_write_string(buf, maxlen, "[ ");
 	for (int i = 0; i < HISTOGRAM_LAST; i++) {
+		if (histograms->histograms[i] == NULL)
+			continue;
 		write_histogram(histograms->histograms[i], buf, maxlen);
 		if (i < HISTOGRAM_LAST - 1) {
 			histogram_write_string(buf, maxlen, ", ");
