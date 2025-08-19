@@ -676,9 +676,6 @@ int __must_check uncompress_data_vio(struct data_vio *data_vio,
 				     enum block_mapping_state mapping_state,
 				     char *buffer);
 
-#ifdef INTERNAL
-bool is_zero_block(char *block);
-#endif /* INTERNAL */
 void update_metadata_for_data_vio_write(struct data_vio *data_vio,
 					struct pbn_lock *lock);
 void write_data_vio(struct data_vio *data_vio);

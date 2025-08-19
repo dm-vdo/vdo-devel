@@ -17,6 +17,7 @@
 #include <linux/minmax.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
+#include <linux/string.h>
 #ifndef VDO_UPSTREAM
 #include <linux/version.h>
 #endif /* VDO_UPSTREAM */
@@ -540,24 +541,6 @@ static void launch_data_vio(struct data_vio *data_vio, logical_block_number_t lb
 	vdo_enqueue_completion(completion, VDO_DEFAULT_Q_MAP_BIO_PRIORITY);
 }
 
-STATIC bool is_zero_block(char *block)
-{
-	int i;
-
-#ifdef INTERNAL
-	BUILD_BUG_ON(VDO_BLOCK_SIZE % sizeof(u64) != 0);
-	VDO_ASSERT_LOG_ONLY((uintptr_t) block % sizeof(u64) == 0,
-			    "Data blocks are expected to be aligned");
-
-#endif	/* INTERNAL */
-	for (i = 0; i < VDO_BLOCK_SIZE; i += sizeof(u64)) {
-		if (*((u64 *) &block[i]))
-			return false;
-	}
-
-	return true;
-}
-
 static void copy_from_bio(struct bio *bio, char *data_ptr)
 {
 	struct bio_vec biovec;
@@ -618,7 +601,7 @@ static void launch_bio(struct vdo *vdo, struct data_vio *data_vio, struct bio *b
 		 * we acknowledge the bio.
 		 */
 		copy_from_bio(bio, data_vio->vio.data);
-		data_vio->is_zero = is_zero_block(data_vio->vio.data);
+		data_vio->is_zero = mem_is_zero(data_vio->vio.data, VDO_BLOCK_SIZE);
 		data_vio->write = true;
 	}
 
@@ -1556,7 +1539,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 		copy_from_bio(bio, data + data_vio->offset);
 	}
 
-	data_vio->is_zero = is_zero_block(data);
+	data_vio->is_zero = mem_is_zero(data_vio->vio.data, VDO_BLOCK_SIZE);
 	data_vio->read = false;
 	launch_data_vio_logical_callback(data_vio,
 					 continue_data_vio_with_block_map_slot);
