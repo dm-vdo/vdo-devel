@@ -2461,9 +2461,8 @@ static int make_forest(struct block_map *map, block_count_t entries)
 		return VDO_SUCCESS;
 	}
 
-	result = vdo_allocate_extended(struct forest, map->root_count,
-				       struct block_map_tree, __func__,
-				       &forest);
+	result = vdo_allocate_extended(struct forest, map->root_count, trees,
+				       __func__, &forest);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2683,8 +2682,8 @@ void vdo_traverse_forest(struct block_map *map, vdo_entry_callback_fn callback,
 	struct cursors *cursors;
 	int result;
 
-	result = vdo_allocate_extended(struct cursors, map->root_count,
-				       struct cursor, __func__, &cursors);
+	result = vdo_allocate_extended(struct cursors, map->root_count, cursors,
+				       __func__, &cursors);
 	if (result != VDO_SUCCESS) {
 		vdo_fail_completion(completion, result);
 		return;
@@ -2731,9 +2730,8 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 	zone->thread_id = vdo->thread_config.logical_threads[zone_number];
 	zone->block_map = map;
 
-	result = vdo_allocate_extended(struct dirty_lists, maximum_age,
-				       dirty_era_t, __func__,
-				       &zone->dirty_lists);
+	result = vdo_allocate_extended(struct dirty_lists, maximum_age, eras,
+				       __func__, &zone->dirty_lists);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2875,7 +2873,7 @@ int vdo_decode_block_map(struct block_map_state_2_0 state, block_count_t logical
 
 	result = vdo_allocate_extended(struct block_map,
 				       vdo->thread_config.logical_zone_count,
-				       struct block_map_zone, __func__, &map);
+				       zones, __func__, &map);
 	if (result != VDO_SUCCESS)
 		return result;
 

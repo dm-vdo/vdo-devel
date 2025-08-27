@@ -710,8 +710,7 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state, nonce_t
 	int result;
 
 	result = vdo_allocate_extended(struct recovery_journal,
-				       RECOVERY_JOURNAL_RESERVED_BLOCKS,
-				       struct recovery_journal_block, __func__,
+				       RECOVERY_JOURNAL_RESERVED_BLOCKS, blocks, __func__,
 				       &journal);
 	if (result != VDO_SUCCESS)
 		return result;

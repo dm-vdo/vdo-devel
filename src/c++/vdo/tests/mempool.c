@@ -33,7 +33,7 @@ mempool_t *mempool_create(int min_nr,
   mempool_t *pool;
   VDO_ASSERT_SUCCESS(vdo_allocate_extended(mempool_t,
                                            min_nr,
-                                           void *,
+                                           reserve,
                                            __func__,
                                            &pool));
 

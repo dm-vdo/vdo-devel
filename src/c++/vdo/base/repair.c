@@ -1773,8 +1773,7 @@ void vdo_repair(struct vdo_completion *parent)
 	}
 
 	result = vdo_allocate_extended(struct repair_completion, page_count,
-				       struct vdo_page_completion, __func__,
-				       &repair);
+				       page_completions, __func__, &repair);
 	if (result != VDO_SUCCESS) {
 		vdo_fail_completion(parent, result);
 		return;
