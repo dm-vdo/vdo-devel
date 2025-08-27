@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #endif
+#include <linux/overflow.h>
 
 #include "permassert.h"
 #ifdef __KERNEL__
@@ -47,20 +48,7 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
 static inline int __vdo_do_allocation(size_t count, size_t size, size_t extra,
 				      size_t align, const char *what, void *ptr)
 {
-	size_t total_size = count * size + extra;
-
-	/* Overflow check: */
-	if ((size > 0) && (count > ((SIZE_MAX - extra) / size))) {
-		/*
-		 * This is kind of a hack: We rely on the fact that SIZE_MAX would cover the entire
-		 * address space (minus one byte) and thus the system can never allocate that much
-		 * and the call will always fail. So we can report an overflow as "out of memory"
-		 * by asking for "merely" SIZE_MAX bytes.
-		 */
-		total_size = SIZE_MAX;
-	}
-
-	return vdo_allocate_memory(total_size, align, what, ptr);
+	return vdo_allocate_memory(size_add(size_mul(count, size), extra), align, what, ptr);
 }
 
 /*
