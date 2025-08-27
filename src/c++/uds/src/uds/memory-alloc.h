@@ -69,24 +69,23 @@ static inline int __vdo_do_allocation(size_t count, size_t size, size_t extra,
  * Allocate one object of an indicated type, followed by one or more elements of a second type,
  * logging an error if the allocation fails. The memory will be zeroed.
  *
- * @TYPE1: The type of the primary object to allocate. This type determines the alignment of the
- *         allocated memory.
+ * @TYPE: The type of the primary object to allocate. This type determines the alignment of the
+ *        allocated memory.
  * @COUNT: The number of objects to allocate
- * @TYPE2: The type of array objects to allocate
+ * @FIELD: The flexible array field at the end of the TYPE structure
  * @WHAT: What is being allocated (for error logging)
  * @PTR: A pointer to hold the allocated memory
  *
  * Return: VDO_SUCCESS or an error code
  */
-#define vdo_allocate_extended(TYPE1, COUNT, TYPE2, WHAT, PTR)		\
+#define vdo_allocate_flex(TYPE, COUNT, FIELD, WHAT, PTR)		\
 	__extension__({							\
 		int _result;						\
-		TYPE1 **_ptr = (PTR);					\
-		BUILD_BUG_ON(__alignof__(TYPE1) < __alignof__(TYPE2));	\
+		TYPE **_ptr = (PTR);					\
 		_result = __vdo_do_allocation(COUNT,			\
-					      sizeof(TYPE2),		\
-					      sizeof(TYPE1),		\
-					      __alignof__(TYPE1),	\
+					      sizeof(((TYPE*)0)->FIELD[0]),	\
+					      sizeof(TYPE),		\
+					      __alignof__(TYPE),	\
 					      WHAT,			\
 					      _ptr);			\
 		_result;						\
