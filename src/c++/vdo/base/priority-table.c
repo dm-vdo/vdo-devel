@@ -60,8 +60,7 @@ int vdo_make_priority_table(unsigned int max_priority, struct priority_table **t
 	if (max_priority > MAX_PRIORITY)
 		return UDS_INVALID_ARGUMENT;
 
-	result = vdo_allocate_flex(struct priority_table, max_priority + 1, buckets,
-				   __func__, &table);
+	result = vdo_allocate_flex(max_priority + 1, buckets, __func__, &table);
 	if (result != VDO_SUCCESS)
 		return result;
 

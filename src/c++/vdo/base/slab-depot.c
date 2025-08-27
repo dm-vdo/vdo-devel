@@ -4320,8 +4320,7 @@ int vdo_decode_slab_depot(struct slab_depot_state_2_0 state, struct vdo *vdo,
 	}
 	slab_size_shift = ilog2(slab_size);
 
-	result = vdo_allocate_flex(struct slab_depot,
-				   vdo->thread_config.physical_zone_count,
+	result = vdo_allocate_flex(vdo->thread_config.physical_zone_count,
 				   allocators, __func__, &depot);
 	if (result != VDO_SUCCESS)
 		return result;

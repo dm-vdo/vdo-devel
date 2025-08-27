@@ -68,8 +68,7 @@ int uds_make_open_chapter(const struct index_geometry *geometry, unsigned int zo
 	size_t capacity = geometry->records_per_chapter / zone_count;
 	size_t slot_count = (1 << bits_per(capacity * LOAD_RATIO));
 
-	result = vdo_allocate_flex(struct open_chapter_zone, slot_count, slots,
-				   "open chapter", &open_chapter);
+	result = vdo_allocate_flex(slot_count, slots, "open chapter", &open_chapter);
 	if (result != VDO_SUCCESS)
 		return result;
 

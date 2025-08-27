@@ -411,8 +411,7 @@ static void funnelEventConsume(QueueableBatch *qb)
 static QueueableBatch *allocateBatch(long stream, long count)
 {
   QueueableBatch *qb;
-  UDS_ASSERT_SUCCESS(vdo_allocate_flex(QueueableBatch, count, q,
-				       __func__, &qb));
+  UDS_ASSERT_SUCCESS(vdo_allocate_flex(count, q, __func__, &qb));
   qb->count  = count;
   qb->stream = stream;
   qb->active = 0;
