@@ -57,8 +57,7 @@ static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 	struct bio *bio = NULL;
 	int result;
 
-	result = vdo_allocate_extended(struct bio, size + 1, struct bio_vec,
-				       "bio", &bio);
+	result = vdo_allocate_extended(size + 1, bi_inline_vecs, "bio", &bio);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -352,8 +351,7 @@ int make_vio_pool(struct vdo *vdo, size_t pool_size, size_t block_count, thread_
 	int result;
 	size_t per_vio_size = VDO_BLOCK_SIZE * block_count;
 
-	result = vdo_allocate_extended(struct vio_pool, pool_size, struct pooled_vio,
-				       __func__, &pool);
+	result = vdo_allocate_extended(pool_size, vios, __func__, &pool);
 	if (result != VDO_SUCCESS)
 		return result;
 

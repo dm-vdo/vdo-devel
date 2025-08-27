@@ -31,11 +31,7 @@ mempool_t *mempool_create(int min_nr,
 			  void *pool_data)
 {
   mempool_t *pool;
-  VDO_ASSERT_SUCCESS(vdo_allocate_extended(mempool_t,
-                                           min_nr,
-                                           void *,
-                                           __func__,
-                                           &pool));
+  VDO_ASSERT_SUCCESS(vdo_allocate_extended(min_nr, reserve, __func__, &pool));
 
   pool->constructor  = alloc_fn;
   pool->destructor   = free_fn;
