@@ -23,4 +23,7 @@ static inline size_t size_add(size_t a, size_t b)
 	return a + b;
 }
 
+#define struct_size(PTR, MEMBER, COUNT) \
+	size_add(sizeof(*(PTR)), size_mul((COUNT), sizeof((PTR)->MEMBER[0])))
+
 #endif /* LINUX_OVERFLOW_H */

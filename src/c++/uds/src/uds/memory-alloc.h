@@ -81,15 +81,11 @@ static inline int __must_check __vdo_do_allocation(size_t count, size_t size,
  */
 #define vdo_allocate_flex(TYPE, COUNT, FIELD, WHAT, PTR)		\
 	__extension__({							\
-		int _result;						\
 		TYPE **_ptr = (PTR);					\
-		_result = __vdo_do_allocation(COUNT,			\
-					      sizeof(((TYPE*)0)->FIELD[0]),	\
-					      sizeof(TYPE),		\
-					      __alignof__(TYPE),	\
-					      WHAT,			\
-					      _ptr);			\
-		_result;						\
+		vdo_allocate_memory(struct_size(*_ptr, FIELD, (COUNT)),	\
+				    __alignof__(TYPE),			\
+				    WHAT,				\
+				    _ptr);				\
 	})
 
 /*
