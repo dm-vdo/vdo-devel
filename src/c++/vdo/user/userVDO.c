@@ -22,7 +22,7 @@
 int makeUserVDO(PhysicalLayer *layer, UserVDO **vdoPtr)
 {
   UserVDO *vdo;
-  int result = vdo_allocate(1, UserVDO, __func__, &vdo);
+  int result = vdo_allocate(1, __func__, &vdo);
   if (result != VDO_SUCCESS) {
     return result;
   }

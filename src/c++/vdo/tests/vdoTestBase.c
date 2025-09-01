@@ -88,7 +88,7 @@ void dm_unregister_target(struct target_type *t)
 void registerTearDownAction(TearDownAction *action)
 {
   TearDownItem *item;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, TearDownItem, __func__, &item));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &item));
 
   item->action = action;
   item->next = tearDownItems;
@@ -699,7 +699,7 @@ int modifyCompressDedupe(bool compress, bool dedupe)
   newConfiguration.deviceConfig.deduplication = dedupe;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &target));
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {
@@ -729,7 +729,7 @@ static int modifyVDO(block_count_t logicalSize,
   newConfiguration.config.logical_blocks = logicalSize;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &target));
 
   int result = loadTable(newConfiguration, target);
   if (result != VDO_SUCCESS) {

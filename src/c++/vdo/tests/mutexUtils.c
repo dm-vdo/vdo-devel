@@ -554,7 +554,7 @@ struct task_struct *getCurrentTaskStruct(void)
 {
   struct task_struct *task = pthread_getspecific(taskKey);
   if (task == NULL) {
-    VDO_ASSERT_SUCCESS(vdo_allocate(1, struct task_struct, __func__, &task));
+    VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &task));
     VDO_ASSERT_SUCCESS(pthread_setspecific(taskKey, task));
     task->state = TASK_RUNNING;
     task->id = pthread_self();

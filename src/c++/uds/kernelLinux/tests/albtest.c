@@ -139,7 +139,7 @@ static int parseArgs(const char   *buf,
                      char        **argBufPtr)
 {
   char *argBuf;
-  int result = vdo_allocate(length + 1, char, "argument list", &argBuf);
+  int result = vdo_allocate(length + 1, "argument list", &argBuf);
   if (result != VDO_SUCCESS) {
     return -ENOMEM;
   }
@@ -161,7 +161,7 @@ static int parseArgs(const char   *buf,
   }
   argBuf[length] = '\000';
   const char **argv;
-  result = vdo_allocate(argc, char *, "argv", &argv);
+  result = vdo_allocate(argc, "argv", &argv);
   if (result != VDO_SUCCESS) {
     vdo_free(argBuf);
     return -ENOMEM;
@@ -348,7 +348,7 @@ static struct kobj_type suiteObjectType = {
 static SuiteState *makeSuiteState(const CU_SuiteInfo *suite)
 {
   SuiteState *ss;
-  if (vdo_allocate(1, SuiteState, __func__, &ss) != VDO_SUCCESS) {
+  if (vdo_allocate(1, __func__, &ss) != VDO_SUCCESS) {
     return NULL;
   }
   ss->next = NULL;
