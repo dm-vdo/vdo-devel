@@ -79,17 +79,13 @@ static inline int __must_check __vdo_do_allocation(size_t count, size_t size,
  *
  * Return: VDO_SUCCESS or an error code
  */
-#define vdo_allocate_extended(TYPE, COUNT, FIELD, WHAT, PTR)			\
-	__extension__({								\
-		int _result;							\
-		TYPE **_ptr = (PTR);						\
-		_result = __vdo_do_allocation(COUNT,				\
-					      sizeof(((TYPE*)0)->FIELD[0]),	\
-					      sizeof(TYPE),			\
-					      __alignof__(TYPE),		\
-					      WHAT,				\
-					      _ptr);				\
-		_result;							\
+#define vdo_allocate_extended(TYPE, COUNT, FIELD, WHAT, PTR)		\
+	__extension__({							\
+		TYPE **_ptr = (PTR);					\
+		vdo_allocate_memory(struct_size(*_ptr, FIELD, (COUNT)),	\
+				    __alignof__(TYPE),			\
+				    WHAT,				\
+				    _ptr);				\
 	})
 
 /*
