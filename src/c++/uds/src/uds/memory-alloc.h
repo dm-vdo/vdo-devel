@@ -24,35 +24,6 @@
 int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr);
 
 /*
- * Allocate storage based on element counts, sizes, and alignment.
- *
- * This is a generalized form of our allocation use case: It allocates an array of objects,
- * optionally preceded by one object of another type (i.e., a struct with trailing variable-length
- * array), with the alignment indicated.
- *
- * Why is this inline? The sizes and alignment will always be constant, when invoked through the
- * macros below, and often the count will be a compile-time constant 1 or the number of extra bytes
- * will be a compile-time constant 0. So at least some of the arithmetic can usually be optimized
- * away, and the run-time selection between allocation functions always can. In many cases, it'll
- * boil down to just a function call with a constant size.
- *
- * @count: The number of objects to allocate
- * @size: The size of an object
- * @extra: The number of additional bytes to allocate
- * @align: The required alignment
- * @what: What is being allocated (for error logging)
- * @ptr: A pointer to hold the allocated memory
- *
- * Return: VDO_SUCCESS or an error code
- */
-static inline int __must_check __vdo_do_allocation(size_t count, size_t size,
-						   size_t extra, size_t align,
-						   const char *what, void *ptr)
-{
-	return vdo_allocate_memory(size_add(size_mul(count, size), extra), align, what, ptr);
-}
-
-/*
  * Allocate one or more elements of the indicated type, logging an error if the allocation fails.
  * The memory will be zeroed.
  *
@@ -63,8 +34,9 @@ static inline int __must_check __vdo_do_allocation(size_t count, size_t size,
  *
  * Return: VDO_SUCCESS or an error code
  */
-#define vdo_allocate(COUNT, TYPE, WHAT, PTR) \
-	__vdo_do_allocation(COUNT, sizeof(TYPE), 0, __alignof__(TYPE), WHAT, PTR)
+#define vdo_allocate(COUNT, TYPE, WHAT, PTR)			\
+	vdo_allocate_memory(size_mul((COUNT), sizeof(TYPE)),	\
+			    __alignof__(TYPE), WHAT, PTR)
 
 /*
  * Allocate one object of an indicated type, followed by one or more elements of a second type,
