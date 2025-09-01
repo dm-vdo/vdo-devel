@@ -20,7 +20,6 @@ static struct uds_record_name *generateRandomBlockNames(struct index_geometry *g
 {
   struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(vdo_allocate(g->records_per_chapter,
-                                  struct uds_record_name,
                                   "record names for chapter test",
                                   &names));
   unsigned int i;
@@ -73,8 +72,7 @@ static u8 *packOpenChapter(struct open_chapter_index *oci,
                            bool lastPage)
 {
   u8 *indexPages;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numPages * g->bytes_per_page, u8,
-                                  "memory pages", &indexPages));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numPages * g->bytes_per_page, "memory pages", &indexPages));
   u8 *pageOffset = indexPages;
   unsigned int firstList = 0;
   unsigned int page;
@@ -95,8 +93,7 @@ setupChapterIndexPages(struct index_geometry *g, u8 *indexPages,
                        unsigned int numPages)
 {
   struct delta_index_page *cip;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numPages, struct delta_index_page,
-                                  "chapter index pages", &cip));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numPages, "chapter index pages", &cip));
   unsigned int page;
   for (page = 0; page < numPages; page++) {
     u8 *indexPage = &indexPages[g->bytes_per_page * page];

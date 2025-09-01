@@ -51,7 +51,6 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   // We do not want to time the generation of the random names
   struct uds_record_name *names;
   UDS_ASSERT_SUCCESS(vdo_allocate(openChapter->capacity,
-                                  struct uds_record_name,
                                   "record names for chapter test",
                                   &names));
   unsigned int i;
@@ -142,8 +141,7 @@ static void testFilling(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **openChapters;
-  UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, struct open_chapter_zone *,
-                                  "open chapters", &openChapters));
+  UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, "open chapters", &openChapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
     UDS_ASSERT_SUCCESS(uds_make_open_chapter(volume->geometry, zoneCount, &openChapters[i]));

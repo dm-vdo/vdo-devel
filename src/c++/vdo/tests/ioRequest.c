@@ -188,7 +188,7 @@ static IORequest *allocateIORequest(sector_t       start,
                                     uint32_t       operation)
 {
   IORequest *request;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, IORequest, __func__, &request));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &request));
 
   sector_t end = start + count;
   sector_t nextSector;
@@ -197,7 +197,7 @@ static IORequest *allocateIORequest(sector_t       start,
     nextSector = nextBIOSector(sector, end, operation);
     sector_t length = nextSector - sector;
     uint32_t size   = length * VDO_SECTOR_SIZE;
-    VDO_ASSERT_SUCCESS(vdo_allocate(1, BIO, __func__, tail));
+    VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, tail));
     BIO *bio = *tail;
     VDO_ASSERT_SUCCESS(vdo_create_bio(&bio->bio));
     *bio->bio = (struct bio) {
@@ -421,8 +421,8 @@ void zeroData(logical_block_number_t startBlock,
 {
   // vdo_allocate always returns zeroed data
   char *buffer;
-  VDO_ASSERT_SUCCESS(vdo_allocate(blockCount * VDO_BLOCK_SIZE, char,
-                                  "test buffer", &buffer));
+  VDO_ASSERT_SUCCESS(vdo_allocate(blockCount * VDO_BLOCK_SIZE, "test buffer",
+                                  &buffer));
 
   CU_ASSERT_EQUAL(performWrite(startBlock, blockCount, buffer),
                   expectedResult);

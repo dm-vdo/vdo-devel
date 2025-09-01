@@ -36,8 +36,7 @@ launchAdminAction(void                          *operand,
                   thread_id_t                    threadID)
 {
   AdminOperationCompletion *adminOperation;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, AdminOperationCompletion, __func__,
-                                  &adminOperation));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &adminOperation));
   *adminOperation = (AdminOperationCompletion) {
     .operand      = operand,
     .operation    = operation,

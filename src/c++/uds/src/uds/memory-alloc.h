@@ -28,15 +28,14 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
  * The memory will be zeroed.
  *
  * @COUNT: The number of objects to allocate
- * @TYPE: The type of objects to allocate. This type determines the alignment of the allocation.
  * @WHAT: What is being allocated (for error logging)
  * @PTR: A pointer to hold the allocated memory
  *
  * Return: VDO_SUCCESS or an error code
  */
-#define vdo_allocate(COUNT, TYPE, WHAT, PTR)			\
-	vdo_allocate_memory(size_mul((COUNT), sizeof(TYPE)),	\
-			    __alignof__(TYPE), WHAT, PTR)
+#define vdo_allocate(COUNT, WHAT, PTR)					\
+	vdo_allocate_memory(size_mul((COUNT), sizeof(typeof(**(PTR)))),	\
+			    __alignof__(typeof(**(PTR))), WHAT, PTR)
 
 /*
  * Allocate one object of an indicated type, followed by one or more elements of a second type,

@@ -284,18 +284,16 @@ static void verifyRebuiltDepot(PreRebuildData *originalData)
 static PreRebuildData *copyPreRebuildData(struct slab_depot *depot)
 {
   PreRebuildData *originalData;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, PreRebuildData, __func__, &originalData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &originalData));
   originalData->expectedFreeBlocks = getPhysicalBlocksFree();
   originalData->slabCount = depot->slab_count;
-  VDO_ASSERT_SUCCESS(vdo_allocate(depot->slab_count, RefCountData, __func__,
+  VDO_ASSERT_SUCCESS(vdo_allocate(depot->slab_count, __func__,
                                   &originalData->refCountData));
   for (size_t i = 0; i < depot->slab_count; i++) {
     struct vdo_slab *slab              = depot->slabs[i];
     RefCountData    *originalRefCounts = &originalData->refCountData[i];
     originalRefCounts->counterCount    = slab->block_count;
-    VDO_ASSERT_SUCCESS(vdo_allocate(slab->block_count,
-                                    vdo_refcount_t,
-                                    __func__,
+    VDO_ASSERT_SUCCESS(vdo_allocate(slab->block_count, __func__,
                                     &(originalRefCounts->counters)));
     memcpy(originalRefCounts->counters,
            slab->counters,

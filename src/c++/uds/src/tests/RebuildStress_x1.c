@@ -76,7 +76,7 @@ static void fullRebuildTest(void)
     unsigned int i;
     for (i = 0; i < numBlocks; i++) {
       struct uds_request *udsRequest;
-      UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, __func__,
+      UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__,
                                       &udsRequest));
       uds_acquire_semaphore(&semaphore);
       udsRequest->record_name = hash_record_name(&counter, sizeof(counter));

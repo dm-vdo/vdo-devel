@@ -383,7 +383,7 @@ static struct histogram *make_histogram(const char *name,
 {
 	struct histogram *h;
 
-	if (vdo_allocate(1, struct histogram, "histogram", &h) != VDO_SUCCESS)
+	if (vdo_allocate(1, "histogram", &h) != VDO_SUCCESS)
 		return NULL;
 
 	if (NO_BUCKETS)
@@ -406,8 +406,7 @@ static struct histogram *make_histogram(const char *name,
 	h->conversion_factor = conversion_factor;
 	atomic64_set(&h->minimum, -1UL);
 
-	if (vdo_allocate(h->num_buckets + 1, atomic64_t, "histogram counters",
-			 &h->counters) != VDO_SUCCESS) {
+	if (vdo_allocate(h->num_buckets + 1, "histogram counters", &h->counters) != VDO_SUCCESS) {
 		vdo_free(h);
 		return NULL;
 	}

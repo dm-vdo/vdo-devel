@@ -155,7 +155,7 @@ static void testRandomTable(void)
   enum { COUNT = 1000 * 1000 };
 
   QueueEntry *entries;
-  VDO_ASSERT_SUCCESS(vdo_allocate(COUNT, QueueEntry, __func__, &entries));
+  VDO_ASSERT_SUCCESS(vdo_allocate(COUNT, __func__, &entries));
 
   for (size_t i = 0; i < COUNT; i++) {
     initializeRandomEntry(&entries[i]);

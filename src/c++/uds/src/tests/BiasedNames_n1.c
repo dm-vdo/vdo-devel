@@ -134,8 +134,7 @@ static void testWithCollisions(int offset, int count)
 {
   enum { NUM_CHUNKS = 40000 };
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_CHUNKS, struct uds_record_name, "names",
-                                  &names));
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_CHUNKS, "names", &names));
   int i;
   for (i = 0; i < NUM_CHUNKS; i++) {
     createRandomBlockName(&names[i]);
@@ -168,8 +167,7 @@ static void copy32Test(void)
 {
   enum { NUM_CHUNKS = 40000 };
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_CHUNKS, struct uds_record_name, "names",
-                                  &names));
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_CHUNKS, "names", &names));
   int i, j, k;
   for (i = 0; i < NUM_CHUNKS; i++) {
   try_again:

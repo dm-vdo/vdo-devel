@@ -352,7 +352,7 @@ static void makeWrappedVIO(EntryNumber             entry,
                            struct vdo_completion **completionPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &wrapper));
   initializeWrapper(wrapper);
   resetWrapper(wrapper, entry);
   *completionPtr = &wrapper->completion;
@@ -489,8 +489,7 @@ static EntryNumber addEntries(EntryNumber         start,
 {
   struct vdo_completion ***completions = &wrapped->completions;
   wrapped->count = count;
-  VDO_ASSERT_SUCCESS(vdo_allocate(wrapped->count, struct vdo_completion *,
-                                  __func__, completions));
+  VDO_ASSERT_SUCCESS(vdo_allocate(wrapped->count, __func__, completions));
   for (unsigned int i = 0; i < count; i++) {
     (*completions)[i] = launchAddEntry(start + i);
   }

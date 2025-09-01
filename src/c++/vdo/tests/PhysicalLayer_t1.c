@@ -72,7 +72,7 @@ static void verifyLayerRead(char                    *data,
     return;
   }
 
-  VDO_ASSERT_SUCCESS(vdo_allocate(bufferBytes, char, __func__, &buf));
+  VDO_ASSERT_SUCCESS(vdo_allocate(bufferBytes, __func__, &buf));
   memset(buf, 255, bufferBytes);
   VDO_ASSERT_SUCCESS(layer->reader(layer, start, count, buf));
   CU_ASSERT_EQUAL(memcmp(data, buf, bufferBytes), 0);
@@ -98,8 +98,7 @@ static void verifyLayerWrite(char		      *data,
 
   // Also check an unaligned buffer if the layer is a file layer
   char *buffer;
-  VDO_ASSERT_SUCCESS(vdo_allocate(count * VDO_BLOCK_SIZE, char, __func__,
-                                  &buffer));
+  VDO_ASSERT_SUCCESS(vdo_allocate(count * VDO_BLOCK_SIZE, __func__, &buffer));
   VDO_ASSERT_SUCCESS(layer->writer(layer, start, count, buffer));
   memcpy(buffer, data, count * VDO_BLOCK_SIZE);
   VDO_ASSERT_SUCCESS(layer->writer(layer, start, count, buffer));
