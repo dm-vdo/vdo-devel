@@ -45,8 +45,9 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
  *
  * Return: VDO_SUCCESS or an error code
  */
-static inline int __vdo_do_allocation(size_t count, size_t size, size_t extra,
-				      size_t align, const char *what, void *ptr)
+static inline int __must_check __vdo_do_allocation(size_t count, size_t size,
+						   size_t extra, size_t align,
+						   const char *what, void *ptr)
 {
 	return vdo_allocate_memory(size_add(size_mul(count, size), extra), align, what, ptr);
 }

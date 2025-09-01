@@ -80,8 +80,9 @@ int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
 void *vdo_allocate_memory_nowait(size_t size, const char *what)
 {
 	void *p = NULL;
+	int _unused __attribute__((__unused__));
 
-	vdo_allocate(size, char *, what, &p);
+	_unused = vdo_allocate(size, char *, what, &p);
 	return p;
 }
 
