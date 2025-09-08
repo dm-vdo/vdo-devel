@@ -49,7 +49,7 @@ typedef struct queueableBatch {
   struct mutex            mutex;
   spinlock_t              spin;
   struct semaphore        semaphore;
-  Queueable               q[];
+  Queueable               q[] __counted_by(count);
 } QueueableBatch;
 
 /**********************************************************************/
