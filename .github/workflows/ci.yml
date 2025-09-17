@@ -10,141 +10,16 @@ concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
   cancel-in-progress: true
 
-env:
-  LOGFILE: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-
 jobs:
-  Starting:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Display CI Info
-        run: |
-          echo CI starting for the following:
-          echo org: ${{ github.event.repository.owner.login }}
-          echo repo: ${{ github.event.repository.name }}
-          echo pr: ${{ github.event.pull_request.number }}:
-          echo commit: ${{ github.event.pull_request.head.sha }}
-          echo action: ${{ github.event.action }}
-
-      # Run assignment action
-      - name: Assign reviewers and assignees
-        uses: dm-vdo/vdo-auto-assign@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Remove all known labels
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          labels: verification needed, untested, public testing running, public testing done, public testing failed, private testing running, private testing done, private testing failed
-          type: remove
-
-  Verifying:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    steps:
-      - name: Start verification
-        run: echo Verification Start
-
-      - name: Check for org membership
-        id: is_organization_member
-        uses: jamessingleton/is-organization-member@1.0.0
-        with:
-          organization: dm-vdo
-          username: ${{ github.actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Add untested label
-        if: ${{ steps.is_organization_member.outputs.result == 'true' }}
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.VDODEVEL}}
-          label: untested
-          type: add
-
-      - name: Add verification needed
-        if: ${{ steps.is_organization_member.outputs.result == 'false' }}
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.VDODEVEL}}
-          label: verification needed
-          type: add
-
-      - name: Wait for verification
-        if: ${{ steps.is_organization_member.outputs.result == 'false' }}
-        uses: trstringer/manual-approval@v1
-        timeout-minutes: 1440
-        with:
-          secret: ${{ secrets.VDODEVEL }}
-          approvers: bjohnsto, c2redhat, lorelei-sakai, raeburn, rhawalsh
-          minimum-approvals: 1
-          issue-title: "Verifying pull request for testing"
-          issue-body: "Please approve or deny the testing of this pull request."
-          exclude-workflow-initiator-as-approver: false
-
-      - name: Remove verification needed label
-        if: ${{ steps.is_organization_member.outputs.result == 'false' }}
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.VDODEVEL}}
-          label: verification needed
-          type: remove
-
-  Public-Testing:
-    if: github.event.pull_request.draft == false
-    runs-on: [self-hosted, untrusted]
-    needs: [Verifying]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Start testing
-        run: echo Testing Start
-
-      - name: Add testing running label
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing running
-          type: add
-
-      - name: Remove untested label
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: untested
-          type: remove
-
-      - name: Run-Untrusted-Tests
-        run: |
-          make oss-jenkins
-
-      - name: Remove public testing running label
-        if: always()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing running
-          type: remove
-
-      - name: Add public testing failed
-        if: failure()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing failed
-          type: add
-
-      - name: Upload test results
-        if: failure()
-        uses: EnricoMi/publish-unit-test-result-action/composite@v1
-        with:
-          files: logs/**/*.xml
-
-      - name: Prepare logfiles
-        if: failure()
-        run: |
+  Run-Common-CI:
+    uses: dm-vdo/vdo-org-actions/.github/workflows/ci.yaml@main
+    with:
+      logfile: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+      run-public-build: true
+      public-build-action: make all
+      run-public-tests: true
+      public-tests-action: make oss-jenkins
+      public-tests-failure-action: |
           cd logs
           for i in *;
           do
@@ -160,77 +35,9 @@ jobs:
               mv "${i}" "${i/::/--}"
             fi
           done
-
-      - name: Upload logfiles
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.LOGFILE }}
-          path: logs/*/*.log
-          retention-days: 5
-
-      - name: Add public testing success
-        if: success()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing done
-          type: add
-
-  Private-Testing:
-    if: github.event.pull_request.draft == false
-    runs-on: [self-hosted, trusted]
-    needs: [Verifying, Public-Testing]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Start Private testing
-        run: echo Private Testing Start
-
-      - name: Add public testing success
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing done
-          type: remove
-
-      - name: Add testing running label
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: private testing running
-          type: add
-
-      - name: Run-trusted-Tests
-        run: make jenkins
-
-      - name: Copy log file to /permatbit/user/bunsen/artifacts
-        if: failure()
-        run: |
-          cp -a logs /permabit/user/bunsen/artifacts/${{ env.LOGFILE }}
-
-      - name: Remove private testing running label
-        if: always()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: private testing running
-          type: remove
-
-      - name: Add private testing failed
-        if: failure()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: private testing failed
-          type: add
-
-      - name: Add private testing success
-        if: success()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.VDODEVEL}}
-          label: private testing done
-          type: add
+      run-private-build: true
+      private-build-action: make all
+      run-private-tests: true
+      private-tests-action: make jenkins
+    secrets: inherit
+   
