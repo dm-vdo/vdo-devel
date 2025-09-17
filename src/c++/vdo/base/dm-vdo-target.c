@@ -65,6 +65,10 @@
 
 #endif /* VDO_UPSTREAM */
 enum admin_phases {
+	FORMAT_PHASE_START,
+	FORMAT_PHASE_WRITE_SUPER,
+	FORMAT_PHASE_WRITE_GEOMETRY,
+	FORMAT_PHASE_END,
 	GROW_LOGICAL_PHASE_START,
 	GROW_LOGICAL_PHASE_GROW_BLOCK_MAP,
 	GROW_LOGICAL_PHASE_END,
@@ -117,6 +121,10 @@ enum admin_phases {
 };
 
 static const char * const ADMIN_PHASE_NAMES[] = {
+	"FORMAT_PHASE_START",
+	"FORMAT_PHASE_WRITE_SUPER",
+	"FORMAT_PHASE_WRITE_GEOMETRY",
+	"FORMAT_PHASE_END",
 	"GROW_LOGICAL_PHASE_START",
 	"GROW_LOGICAL_PHASE_GROW_BLOCK_MAP",
 	"GROW_LOGICAL_PHASE_END",
@@ -1703,6 +1711,48 @@ static int __must_check decode_vdo(struct vdo *vdo)
 }
 
 /**
+ * format_callback() - Callback to initiate a format, registered in vdo_initialize().
+ * @completion: The admin completion.
+ */
+static void format_callback(struct vdo_completion *completion)
+{
+	struct vdo *vdo = completion->vdo;
+	int result;
+
+	assert_admin_phase_thread(vdo, __func__);
+
+	switch (advance_phase(vdo)) {
+	case FORMAT_PHASE_START:
+		result = vdo_start_operation(&vdo->admin.state, VDO_ADMIN_STATE_FORMATTING);
+		if (result != VDO_SUCCESS) {
+			vdo_continue_completion(completion, result);
+			return;
+		}
+
+		vdo_continue_completion(completion, vdo_clear_layout(vdo));
+		return;
+
+	case FORMAT_PHASE_WRITE_SUPER:
+		vdo_save_super_block(vdo, completion);
+		return;
+
+	case FORMAT_PHASE_WRITE_GEOMETRY:
+		vdo_save_geometry_block(vdo, completion);
+		return;
+
+	case FORMAT_PHASE_END:
+		/* Clean up the states layout to prevent corruption during pre-load decode */
+		vdo_uninitialize_layout(&vdo->states.layout);
+		break;
+
+	default:
+		vdo_set_completion_result(completion, UDS_BAD_STATE);
+	}
+
+	finish_operation_callback(completion);
+}
+
+/**
  * pre_load_callback() - Callback to initiate a pre-load, registered in vdo_initialize().
  * @completion: The admin completion.
  */
@@ -1803,6 +1853,20 @@ static int vdo_initialize(struct dm_target *ti, unsigned int instance,
 			      result, ti->error);
 		vdo_destroy(vdo);
 		return result;
+	}
+
+	if (vdo_get_state(vdo) == VDO_NEW) {
+		result = perform_admin_operation(vdo, FORMAT_PHASE_START, format_callback,
+						 finish_operation_callback, "format");
+		if (result != VDO_SUCCESS) {
+			ti->error = ((result == VDO_INVALID_ADMIN_STATE) ?
+				     "Format is only valid immediately after initialization" :
+				     "Cannot format device");
+			vdo_log_error("Could not format VDO device. (VDO error %d, message %s)",
+				      result, ti->error);
+			vdo_destroy(vdo);
+			return result;
+		}
 	}
 
 	result = perform_admin_operation(vdo, PRE_LOAD_PHASE_START, pre_load_callback,
@@ -2555,7 +2619,7 @@ static void load_callback(struct vdo_completion *completion)
 		}
 
 		vdo_load_slab_depot(vdo->depot,
-				    (was_new(vdo) ? VDO_ADMIN_STATE_FORMATTING :
+				    (was_new(vdo) ? VDO_ADMIN_STATE_NEW_VDO :
 				     VDO_ADMIN_STATE_LOADING),
 				    completion, NULL);
 		return;

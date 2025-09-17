@@ -4704,7 +4704,7 @@ STATIC void load_slab_summary(void *context, struct vdo_completion *parent)
 		return;
 	}
 
-	if ((operation == VDO_ADMIN_STATE_FORMATTING) ||
+	if ((operation == VDO_ADMIN_STATE_NEW_VDO) ||
 	    (operation == VDO_ADMIN_STATE_LOADING_FOR_REBUILD)) {
 		finish_loading_summary(&vio->completion);
 		return;

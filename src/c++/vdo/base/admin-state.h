@@ -28,6 +28,8 @@ struct admin_state_code {
 extern const struct admin_state_code *VDO_ADMIN_STATE_NORMAL_OPERATION;
 extern const struct admin_state_code *VDO_ADMIN_STATE_OPERATING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_FORMATTING;
+extern const struct admin_state_code *VDO_ADMIN_STATE_FORMATTED;
+extern const struct admin_state_code *VDO_ADMIN_STATE_NEW_VDO;
 extern const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADED;
 extern const struct admin_state_code *VDO_ADMIN_STATE_LOADING;
@@ -123,7 +125,7 @@ static inline bool __must_check vdo_is_state_clean_load(const struct admin_state
 {
 	const struct admin_state_code *code = vdo_get_admin_state_code(state);
 
-	return ((code == VDO_ADMIN_STATE_FORMATTING) || (code == VDO_ADMIN_STATE_LOADING));
+	return ((code == VDO_ADMIN_STATE_NEW_VDO) || (code == VDO_ADMIN_STATE_LOADING));
 }
 
 static inline bool __must_check vdo_is_state_quiescing(const struct admin_state *state)
