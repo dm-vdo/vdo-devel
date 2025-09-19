@@ -459,14 +459,11 @@ sub getLVMDevices {
     my $underlyingDevice = $storageDevice->getStorageDevice();
     my $underlyingStorage = $underlyingDevice->getDevicePath();
 
-    $machine->runSystemCmd("sudo lvmdevices");
-    my $result = $machine->getStdout();
-    my @devices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+    my @validDevices = $machine->getValidDevicesInLVMDevicesFile();
     my @filtered = ();
-    foreach my $device (@devices) {
-      my $resolved = $machine->resolveSymlink($device);
-      if ($resolved !~ /$underlyingStorage/) {
-        push(@filtered, $device);
+    foreach my $deviceInfo (@validDevices) {
+      if ($underlyingStorage !~ /$deviceInfo->{resolvedName}/) {
+        push(@filtered, $deviceInfo->{deviceName});
       }
     }
     if (scalar(@filtered) > 0) {
