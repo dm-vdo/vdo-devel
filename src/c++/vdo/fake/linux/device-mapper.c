@@ -30,7 +30,7 @@ struct device *disk_to_dev(void *disk __attribute__((unused)))
 		return the_fake_device;
 	}
 
-	int result = vdo_allocate(1, struct device, __func__, &the_fake_device);
+	int result = vdo_allocate(1, __func__, &the_fake_device);
 	if (result != VDO_SUCCESS) {
 		return NULL;
 	}

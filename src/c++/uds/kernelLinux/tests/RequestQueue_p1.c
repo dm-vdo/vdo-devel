@@ -49,7 +49,7 @@ typedef struct queueableBatch {
   struct mutex            mutex;
   spinlock_t              spin;
   struct semaphore        semaphore;
-  Queueable               q[];
+  Queueable               q[] __counted_by(count);
 } QueueableBatch;
 
 /**********************************************************************/
@@ -411,8 +411,7 @@ static void funnelEventConsume(QueueableBatch *qb)
 static QueueableBatch *allocateBatch(long stream, long count)
 {
   QueueableBatch *qb;
-  UDS_ASSERT_SUCCESS(vdo_allocate_extended(QueueableBatch, count, Queueable,
-                                           __func__, &qb));
+  UDS_ASSERT_SUCCESS(vdo_allocate_flex(count, q, __func__, &qb));
   qb->count  = count;
   qb->stream = stream;
   qb->active = 0;
