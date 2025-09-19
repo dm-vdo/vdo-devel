@@ -326,24 +326,116 @@ sub start {
 }
 
 ########################################################################
+# Get the device path to use for LVM devices file operations.
+# This can be overridden by subclasses that need special device path logic.
+#
+# @return the device path to use for LVM devices file operations
+##
+sub getDevicesFilePath {
+  my ($self) = assertNumArgs(1, @_);
+  return $self->getDevicePath();
+}
+
+########################################################################
+# Check if lvmdevices is unavailable or the devices file is disabled.
+#
+# @return true if lvmdevices cannot be used, false if it can be used
+##
+sub _isLvmDevicesUnavailable {
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
+
+  if ($machine->sendCommand("sudo lvmdevices 2>&1") != 0) {
+    if ($machine->getStderr() =~ m/Devices file not enabled/m) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+########################################################################
 # Perform action to add device to lvm devices file.
 ##
-sub addToDevicesFile {
+sub addToDevicesFileIfExists {
   my ($self) = assertNumArgs(1, @_);
-  my $device = $self->getDevicePath();
-  my $addDevCmd = "sudo lvmdevices -y --adddev $device";
-  $self->runOnHost($addDevCmd);
-  $self->addDeactivationStep(sub { $self->removeFromDevicesFile($device); })
+  my $device = $self->getDevicesFilePath();
+
+  # If no device path is available, nothing to do
+  if (!defined($device)) {
+    return;
+  }
+
+  # Check if lvmdevices is available and devices file is enabled
+  if ($self->_isLvmDevicesUnavailable()) {
+    return;
+  }
+
+  $self->runOnHost("sudo lvmdevices -y --adddev $device");
+
+  # Find out what LVM actually stored in the devices file (it may canonicalize the path)
+  my $devicesOutput = $self->runOnHost("sudo lvmdevices");
+  my $storedDeviceName = undef;
+  foreach my $line (split(/\n/, $devicesOutput)) {
+    # Extract the DEVNAME from each line
+    if ($line =~ /DEVNAME=(\S+)/) {
+      my $devName = $1;
+      my $resolvedDevName = $self->_resolveSymlink($devName);
+      # Compare the paths using the resolved device path
+      if ($resolvedDevName eq $device) {
+        $storedDeviceName = $devName;
+        $log->info("LVM stored device as: $storedDeviceName (resolved: $resolvedDevName, original: $device)");
+        last;
+      }
+    }
+  }
+
+  # Store the path that LVM actually used, or fall back to our original path
+  $self->{_devicesFilePath} = $storedDeviceName || $device;
 }
 
 ########################################################################
 # Perform action to remove device from lvm devices file.
-# @param device The name of the device to remove.
 ##
-sub removeFromDevicesFile {
-  my ($self, $device) = assertNumArgs(2, @_);
-  my $delDevCmd = "sudo lvmdevices -y --deldev $device";
-  $self->runOnHost($delDevCmd);
+sub removeFromDevicesFileIfExists {
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
+
+  # Do nothing if no device path was stored
+  if (!defined($self->{_devicesFilePath})) {
+    return;
+  }
+
+  # Check if lvmdevices is available and devices file is enabled
+  if ($self->_isLvmDevicesUnavailable()) {
+    return;
+  }
+
+  # Check if the block device still exists on the system using current device path
+  if ($machine->sendCommand("test -e " . $self->getDevicePath()) == 0) {
+    # Non-Raw devices created themselves, so if they still exist, don't remove from
+    # the devices file
+    if (!$self->isa('Permabit::BlockDevice::Raw')) {
+      return;
+    }
+
+    # Raw devices didn't create themselves, so check if stack devices above still exist
+    # If child instances exist, the cleanup process failed partway through, so don't
+    # remove from the devices file
+    if (scalar($self->getChildren()) > 0) {
+      return;
+    }
+  }
+
+  # Normally the device would get removed from the devices file when the device is
+  # destroyed, but if it's not, use sed to directly remove the entry from the devices
+  # file as a safety fallback
+  my $escaped_device = $self->{_devicesFilePath};
+  $escaped_device =~ s/([\/\.])/\\$1/g;  # Escape forward slashes and dots
+  $self->runOnHost("sudo sed -i '/DEVNAME=$escaped_device\\b/d' /etc/lvm/devices/system.devices 2>/dev/null");
+
+  # Clear the stored device path after removal
+  delete $self->{_devicesFilePath};
 }
 
 ########################################################################
@@ -352,7 +444,6 @@ sub removeFromDevicesFile {
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   $self->runOnHost("sudo chmod 666 " . $self->getDevicePath());
-  $self->addToDevicesFile();
 }
 
 ########################################################################
@@ -360,7 +451,8 @@ sub activate {
 ##
 sub postActivate {
   my ($self) = assertNumArgs(1, @_);
-  # By default, nothing to do
+  # Add device to LVM devices file after devices are successfully created
+  $self->addToDevicesFileIfExists();
 }
 
 ######################################################################
@@ -550,6 +642,10 @@ sub destroy {
 sub teardown {
   my ($self) = assertNumArgs(1, @_);
   assertTrue($self->{_destroying});
+
+  # Clean up devices file entry if one was created
+  $self->removeFromDevicesFileIfExists();
+
   if (defined($self->{storageDevice})) {
     $self->{storageDevice}->unregisterChild($self);
   }
