@@ -1539,7 +1539,7 @@ static void modify_for_partial_write(struct vdo_completion *completion)
 		copy_from_bio(bio, data + data_vio->offset);
 	}
 
-	data_vio->is_zero = mem_is_zero(data_vio->vio.data, VDO_BLOCK_SIZE);
+	data_vio->is_zero = mem_is_zero(data, VDO_BLOCK_SIZE);
 	data_vio->read = false;
 	launch_data_vio_logical_callback(data_vio,
 					 continue_data_vio_with_block_map_slot);
