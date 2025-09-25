@@ -149,6 +149,24 @@ int bio_init_clone(struct block_device *bdev, struct bio *bio,
 extern void bio_endio(struct bio *);
 
 extern int submit_bio_wait(struct bio *bio);
+#ifndef VDO_UPSTREAM
+#undef VDO_USE_NEXT
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
+#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 2))
+#define VDO_USE_NEXT
+#endif
+#else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
+#define VDO_USE_NEXT
+#endif
+#endif /* RHEL_RELEASE_CODE */
+#endif /* VDO_UPSTREAM */
+#ifdef VDO_USE_NEXT
+static inline struct bio_vec *bio_inline_vecs(struct bio *bio)
+{
+	return (struct bio_vec *)(bio + 1);
+}
+#endif /* VDO_USE_NEXT */
 void bio_init(struct bio *bio, struct block_device *bdev, struct bio_vec *table,
 	      unsigned short max_vecs, blk_opf_t opf);
 extern void bio_uninit(struct bio *);
