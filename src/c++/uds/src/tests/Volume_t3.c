@@ -75,6 +75,7 @@ static void findBoundariesTest(void)
   static const uint64_t data12[] = { 10, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   testFindBoundaries(1, 10, data12, sizeof(data12));
 
+  set_chapter_tester(NULL);
   vdo_free(vdo_forget(geometry));
 }
 
@@ -152,6 +153,7 @@ static void findConvertedBoundariesTest(void)
 
   static const uint64_t data18[] = { 15, 16, 11, 12, 13, 14, 8 };
   testFindBoundaries(11, 16, data18, sizeof(data18));
+  set_chapter_tester(NULL);
   vdo_free(vdo_forget(geometry));
 }
 
