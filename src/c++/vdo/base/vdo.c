@@ -317,47 +317,17 @@ static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super
  */
 static int __must_check read_geometry_block(struct vdo *vdo)
 {
-	struct vio *vio;
-	char *block;
 	int result;
-
-	result = vdo_allocate(VDO_BLOCK_SIZE, u8, __func__, &block);
-	if (result != VDO_SUCCESS)
-		return result;
-
-	result = create_metadata_vio(vdo, VIO_TYPE_GEOMETRY, VIO_PRIORITY_HIGH, NULL,
-				     block, &vio);
-	if (result != VDO_SUCCESS) {
-		vdo_free(block);
-		return result;
-	}
-
 	/*
 	 * This is only safe because, having not already loaded the geometry, the vdo's geometry's
 	 * bio_offset field is 0, so the fact that vio_reset_bio() will subtract that offset from
 	 * the supplied pbn is not a problem.
 	 */
-	result = vio_reset_bio(vio, block, NULL, REQ_OP_READ,
-			       VDO_GEOMETRY_BLOCK_LOCATION);
-	if (result != VDO_SUCCESS) {
-		free_vio(vdo_forget(vio));
-		vdo_free(block);
+	result = vdo_submit_metadata_vio_wait(&vdo->geometry_block.vio,
+					      VDO_GEOMETRY_BLOCK_LOCATION, REQ_OP_READ);
+	if (result != VDO_SUCCESS)
 		return result;
-	}
-
-	bio_set_dev(vio->bio, vdo_get_backing_device(vdo));
-	submit_bio_wait(vio->bio);
-	result = blk_status_to_errno(vio->bio->bi_status);
-	free_vio(vdo_forget(vio));
-	if (result != 0) {
-		vdo_log_error_strerror(result, "synchronous read failed");
-		vdo_free(block);
-		return -EIO;
-	}
-
-	result = vdo_parse_geometry_block((u8 *) block, &vdo->geometry);
-	vdo_free(block);
-	return result;
+	return vdo_parse_geometry_block(vdo->geometry_block.buffer, &vdo->geometry);
 }
 
 static bool get_zone_thread_name(const thread_id_t thread_ids[], zone_count_t count,
