@@ -161,11 +161,10 @@ int vdo_make_work_queue(const char *thread_name_prefix,
 
   STATIC_ASSERT((int) NO_HOOK_FLAG > (int) VDO_WORK_Q_DEFAULT_PRIORITY);
   STATIC_ASSERT((int) WORK_FLAG    > (int) VDO_WORK_Q_DEFAULT_PRIORITY);
-  VDO_ASSERT_SUCCESS(vdo_allocate_extended(struct vdo_work_queue,
-                                           priorityLevels,
-                                           struct funnel_queue *,
-                                           __func__,
-                                           &queue));
+  VDO_ASSERT_SUCCESS(vdo_allocate_flex(priorityLevels,
+				       queues,
+				       __func__,
+				       &queue));
   VDO_ASSERT_SUCCESS(vdo_duplicate_string(name,
                                           "work queue name",
                                           &queue->name));

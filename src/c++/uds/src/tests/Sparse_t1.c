@@ -189,7 +189,6 @@ static void sparseInitSuite(struct block_device *bdev)
   createIndex(UDS_CREATE);
 
   UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords,
-                                  struct uds_record_name,
                                   "hashes",
                                   &hashes));
 
@@ -215,8 +214,7 @@ static void sparseInitSuite(struct block_device *bdev)
     } while (searchForCollisions(i));
   }
 
-  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, struct uds_record_data,
-                                  "metas", &metas));
+  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, "metas", &metas));
   for (i = 0; i < totalRecords; i++) {
     for (j = 0; j < UDS_RECORD_DATA_SIZE; j++) {
       metas[i].data[j] = i;
