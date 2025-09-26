@@ -19,7 +19,7 @@ jobs:
       public-build-action: make all
       run-public-tests: true
       public-tests-action: make oss-jenkins
-      public-tests-failure-action: |
+      public-tests-action-failure: |
           cd logs
           for i in *;
           do
