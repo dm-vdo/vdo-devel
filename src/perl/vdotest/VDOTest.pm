@@ -356,8 +356,11 @@ sub set_up {
     }
   }
 
-  foreach my $type (reverse(split('-', $self->{deviceType}))) {
-    $self->createTestDevice($type);
+  # if deviceType is none, don't create any devices
+  if ($self->{deviceType} ne 'none') {
+    foreach my $type (reverse(split('-', $self->{deviceType}))) {
+      $self->createTestDevice($type);
+    }
   }
 
   foreach my $host (@{$self->{nfsclientNames}}) {

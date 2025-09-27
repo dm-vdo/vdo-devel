@@ -228,29 +228,19 @@ sub getDevicePath {
 ########################################################################
 # @inherit
 ##
-sub addToDevicesFile {
+sub getDevicePathForDevicesFile {
   my ($self) = assertNumArgs(1, @_);
   if ($self->isPassThrough()) {
-    # Pass through doesn't actually exist
-    return;
+    # Pass through doesn't have a separate device path
+    return undef;
   }
+
+  # For ISCSI devices, we need to find the actual device path using lsscsi
+  # This may be different from getDevicePath() which uses the device name from iscsiadm
   my $lsscsiCmd = "lsscsi 2>/dev/null | grep pbit-target";
   my $lsscsi = $self->runOnHostIgnoreErrors($lsscsiCmd);
   my $device = (split('\s', $lsscsi))[-1];
-  $self->runOnHost("sudo lvmdevices -y --adddev $device");
-  $self->addDeactivationStep(sub { $self->removeFromDevicesFile($device); })
-}
-
-########################################################################
-# @inherit
-##
-sub removeFromDevicesFile {
-  my ($self, $device) = assertNumArgs(2, @_);
-  if ($self->isPassThrough()) {
-    # Pass through doesn't actually exist
-    return;
-  }
-  $self->runOnHost("sudo lvmdevices -y --deldev $device");
+  return $device;
 }
 
 ########################################################################
