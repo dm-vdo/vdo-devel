@@ -152,10 +152,10 @@ sub new {
   assertDefined($self->{scratchDir}, "scratchDir not defined");
   assertDefined($self->{workDir}, "workDir not defined");
   $self->runSystemCmd("mkdir -p $self->{workDir} $self->{scratchDir}");
-  
-  # Ensure that userBinaryDir exists on the host, when defined. 
+
+  # Ensure that userBinaryDir exists on the host, when defined.
   # The userBinaryDir property will not be defined in cases where tests using UserMachine do
-  # not go through VDOTest.pm. 
+  # not go through VDOTest.pm.
   if (defined($self->{userBinaryDir})) {
     $self->runSystemCmd("mkdir -p $self->{userBinaryDir}");
   }
@@ -682,6 +682,93 @@ sub resolveSymlink {
     $log->debug("resolved symlink $path -> $resolvedPath");
   }
   return $resolvedPath;
+}
+
+########################################################################
+# Check if lvmdevices is available and the devices file is enabled. Older
+# versions of LVM do not support the devices file.
+#
+# @return true if lvmdevices can be used, false otherwise
+##
+sub isLvmdevicesAvailable {
+  my ($self) = assertNumArgs(1, @_);
+
+  if ($self->sendCommand("sudo lvmdevices") != 0) {
+    if ($self->getStderr() =~ m/Devices file not enabled/m) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+########################################################################
+# Check if this device is present in the LVM devices file
+#
+# @param devicePath  The path of the device to check
+#
+# @return true if the device is found in the devices file, false otherwise
+##
+sub isInLVMDevicesFile {
+  my ($self, $devicePath) = assertNumArgs(2, @_);
+
+  if (!$self->isLvmdevicesAvailable()) {
+    return 0;
+  }
+
+  $self->runSystemCmd("sudo lvmdevices");
+  my $result = $self->getStdout();
+  my @devices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+  foreach my $device (@devices) {
+    my $resolved;
+    eval {
+      $resolved = $self->resolveSymlink($device);
+    };
+    if ($EVAL_ERROR) {
+      $log->info("Couldn't resolve symlink for device $device ... skipping");
+      next;
+    }
+    if (($devicePath eq $resolved) || ($devicePath eq $device)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+########################################################################
+# Parse LVM devices output and return an array of valid devices.
+#
+# This function runs 'sudo lvmdevices', parses the output for DEVNAME entries,
+# and uses eval to safely skip devices that can't be resolved. This can happen
+# if the device is still in the devices file but doesn't exist anymore, or if
+# the lvm device is not currently enabled.
+#
+# @return An array of device info hashes, each containing:
+#         - deviceName: the original device name from the devices file
+#         - resolvedName: the resolved device path (if available)
+##
+sub getValidDevicesInLVMDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+  my @validDevices = ();
+
+  if (!$self->isLvmdevicesAvailable()) {
+    return @validDevices;
+  }
+
+  $self->runSystemCmd("sudo lvmdevices");
+  my $result = $self->getStdout();
+  my @devices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+  foreach my $device (@devices) {
+    my $resolved;
+    eval {
+      $resolved = $self->resolveSymlink($device);
+    };
+    if ($EVAL_ERROR) {
+      $log->info("Couldn't resolve symlink for device $device ... skipping");
+      next;
+    }
+    push(@validDevices, { deviceName => $device, resolvedName => $resolved, });
+  }
+  return @validDevices;
 }
 
 ###############################################################################
