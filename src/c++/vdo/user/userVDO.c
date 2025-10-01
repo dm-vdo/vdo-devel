@@ -139,25 +139,17 @@ int writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
                                    u32                     version)
 {
   u8 *block;
-  size_t offset = 0;
-  u32 checksum;
   int result;
 
   result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry", (char **) &block);
   if (result != VDO_SUCCESS)
     return result;
 
-  memcpy(block, VDO_GEOMETRY_MAGIC_NUMBER, VDO_GEOMETRY_MAGIC_NUMBER_SIZE);
-  offset += VDO_GEOMETRY_MAGIC_NUMBER_SIZE;
-
-  result = encode_volume_geometry(block, &offset, geometry, version);
+  result = vdo_encode_volume_geometry(block, geometry, version);
   if (result != VDO_SUCCESS) {
     vdo_free(block);
     return result;
   }
-
-  checksum = vdo_crc32(block, offset);
-  encode_u32_le(block, &offset, checksum);
 
   result = layer->writer(layer, VDO_GEOMETRY_BLOCK_LOCATION, 1, (char *) block);
   vdo_free(block);
