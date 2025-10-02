@@ -96,7 +96,7 @@ static void makeWrappedVIO(slab_count_t            slabNumber,
                            struct vdo_completion **completionPtr)
 {
   DataVIOWrapper *wrapper;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, DataVIOWrapper, __func__, &wrapper));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &wrapper));
   initializeWrapper(wrapper);
   resetWrapper(wrapper, slabNumber);
   *completionPtr = &wrapper->completion;

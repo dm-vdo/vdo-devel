@@ -322,7 +322,7 @@ static void testInvalidFragment(void)
   // Smash the compressed block.
   PhysicalLayer *syncLayer = getSynchronousLayer();
   char *buffer;
-  VDO_ASSERT_SUCCESS(vdo_allocate(VDO_BLOCK_SIZE, char, __func__, &buffer));
+  VDO_ASSERT_SUCCESS(vdo_allocate(VDO_BLOCK_SIZE, __func__, &buffer));
   VDO_ASSERT_SUCCESS(syncLayer->writer(syncLayer, compressedPhysical, 1,
                                        buffer));
 

@@ -74,7 +74,7 @@ static int allocateIOBuffer(PhysicalLayer  *layer __attribute__((unused)),
                             const char     *why,
                             char          **bufferPtr)
 {
-  return vdo_allocate(bytes, char, why, bufferPtr);
+  return vdo_allocate(bytes, why, bufferPtr);
 }
 
 /**
@@ -96,7 +96,7 @@ static Region *getRegion(RAMLayer *layer, RegionNumber regionNumber, bool read)
     return region;
   }
 
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, Region, __func__, &region));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &region));
   layer->regions[regionNumber] = region;
   region->next = layer->regionList;
   layer->regionList = region;
@@ -251,7 +251,7 @@ int makeRAMLayer(block_count_t   blockCount,
                  PhysicalLayer **layerPtr)
 {
   RAMLayer *layer;
-  int result = vdo_allocate(1, RAMLayer, __func__, &layer);
+  int result = vdo_allocate(1, __func__, &layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -260,7 +260,6 @@ int makeRAMLayer(block_count_t   blockCount,
   layer->size        = blockCount * VDO_BLOCK_SIZE;
   layer->regionCount = DIV_ROUND_UP(blockCount, REGION_BLOCKS);
   result = vdo_allocate(layer->regionCount,
-                        Region *,
                         __func__,
                         &layer->regions);
   if (result != VDO_SUCCESS) {

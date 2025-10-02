@@ -113,7 +113,6 @@ static void testPBNLockPool(void)
 {
   zone = &vdo->physical_zones->zones[0];
   VDO_ASSERT_SUCCESS(vdo_allocate(MAXIMUM_VDO_USER_VIOS * 2,
-                                  struct pbn_lock *,
                                   __func__,
                                   &locks));
 
