@@ -771,6 +771,51 @@ sub getValidDevicesInLVMDevicesFile {
   return @validDevices;
 }
 
+########################################################################
+# This function runs 'sudo lvmdevices --check' and parses the output for DEVNAME entries.
+#
+# @return An array of device names that are not valid
+##
+sub getInvalidDevicesInLVMDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+  my @invalidDevices = ();
+
+  if (!$self->isLvmdevicesAvailable()) {
+    return @invalidDevices;
+  }
+
+  $self->runSystemCmd("sudo lvmdevices --check");
+  my $result = $self->getStdout();
+  @invalidDevices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+  return @invalidDevices;
+}
+
+########################################################################
+# Clean up invalid entries in the LVM devices file for this machine.
+# This method finds devices that are marked as invalid by lvmdevices --check
+# and removes them from the devices file.
+##
+sub cleanupLVMDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+
+  my $machineName = $self->getName();
+  $log->info("Cleaning up LVM devices file on $machineName");
+
+  # Check for bad devices
+  my @invalidDevices = $self->getInvalidDevicesInLVMDevicesFile();
+  foreach my $deviceName (@invalidDevices) {
+    # Escape the device path for sed command (same logic as in BlockDevice.pm)
+    my $escapedDevicePath = $deviceName;
+    $escapedDevicePath =~ s/([\/\.])/\\$1/g;  # Escape forward slashes and dots
+
+    $self->sendCommand("sudo sed -i '/DEVNAME=$escapedDevicePath\\b/d' "
+                      . "/etc/lvm/devices/system.devices 2>/dev/null");
+  }
+  my @finalDevices = $self->getValidDevicesInLVMDevicesFile();
+  my @finalDeviceNames = map { $_->{deviceName} } @finalDevices;
+  $log->info("Final LVM devices on $machineName: " . join(", ", @finalDeviceNames));
+}
+
 ###############################################################################
 # Overload default stringification to print our hostname
 ##

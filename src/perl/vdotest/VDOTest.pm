@@ -849,6 +849,9 @@ sub tear_down {
     $stack->destroyAll();
     delete $self->{_storageStack};
 
+    # Clean up LVM devices files after all devices are destroyed
+    $self->runTearDownStep(sub { $self->cleanupLVMDevicesFiles(); });
+
     # Close the UserMachines because we are about to release our RSVP
     # reservations.
     map { $_->closeForRelease() } values(%{$self->{_machines}});
@@ -895,6 +898,20 @@ sub destroyDevice {
                                $self->setFailedTest("vdoAudit failed");
                              }
                            });
+  }
+}
+
+########################################################################
+# Clean up all LVM devices files after all devices are destroyed.
+##
+sub cleanupLVMDevicesFiles {
+  my ($self) = assertNumArgs(1, @_);
+
+  # Get all machines that might have LVM devices files to clean up
+  my @machines = values(%{$self->{_machines}});
+
+  foreach my $machine (@machines) {
+    $machine->cleanupLVMDevicesFile();
   }
 }
 
