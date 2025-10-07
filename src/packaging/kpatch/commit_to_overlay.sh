@@ -56,7 +56,9 @@ COMMIT_SHAS=()      # Array of commit SHAs to be processed
 CONFIG_MSG=()       # Array of strings to be used in the configuration message output to stdout
 INPUT_TYPE=         # Indicated input type
 OVERLAY_BRANCH=     # Name to give the kernel overlay branch being created
-KERNEL_REPO_URL=    # URL for the kernel tree repository where the overlay branch will be created
+LINUX_SRC=          # Path to the kernel tree
+CLONED_KERNEL_TREE= # Path to the cloned kernel tree, if any
+KERNEL_REPO_URL=    # URL or path for the kernel repo where the overlay branch will be created
 KERNEL_BRANCH=      # Kernel tree branch to base the overlay on
 PROCESS_INPUT_FX=   # Function to call to process the input(s)
 SOURCE_BRANCH=      # Branch on the source repo where the relevant commits were made
@@ -108,6 +110,21 @@ process_args() {
       ;;
   esac
 
+  if [[ ${KERNEL_REPO_URL} =~ @.*?: ]]; then
+    echo -e "Using kernel repo URL (${KERNEL_REPO_URL})"
+  else
+    echo -e "Using kernel repo path (${KERNEL_REPO_URL})"
+    LINUX_SRC=${RUN_DIR}/${KERNEL_REPO_URL}
+    KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url origin)
+    # Verify that the kernel branch is valid in the local repositoty.
+    git -C ${LINUX_SRC} show-ref --branches --quiet ${KERNEL_BRANCH}
+    if [ $? != 0 ]; then
+      echo -e "${COLOR_RED}ERROR: Branch ${KERNEL_BRANCH} not found" \
+              "in local tree ${LINUX_SRC})${NO_COLOR}"
+      print_usage
+    fi
+  fi
+  
   # Verify the kernel repo URL and branch are valid
   git ls-remote --exit-code ${KERNEL_REPO_URL} ${KERNEL_BRANCH} &>/dev/null
   return=$?
@@ -346,9 +363,9 @@ _cleanup() {
   echo -en "\nCleaning up and exiting\n"
 
   if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
-    if [[ ${MANUAL_PUSH} != 0 ]]; then
-      echo "Removing ${LINUX_SRC}"
-      rm -rf ${LINUX_SRC}
+    if [[ ${MANUAL_PUSH} != 0 ]] && [[-d ${CLONED_KERNEL_TREE} ]]; then
+      echo "Removing ${CLONED_KERNEL_TREE}"
+      rm -rf ${CLONED_KERNEL_TREE}
     fi
 
     echo "Removing ${VDO_TREE}"
@@ -375,12 +392,16 @@ $PROCESS_INPUT_FX
 echo # Intentional blank line
 
 # Store linux repo location as an absolute path in the current directory
-LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
 VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
 
-# Shallow clone the specified dm-linux repo branch into LINUX_SRC
-echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
-git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+if [[ -z ${LINUX_SRC} ]]; then
+  LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
+  CLONED_KERNEL_TREE=${LINUX_SRC}
+
+  # Shallow clone the specified dm-linux repo branch into LINUX_SRC
+  echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
+  git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+fi
 
 LINUX_MD_SRC=${LINUX_SRC}/drivers/md
 LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
