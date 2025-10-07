@@ -49,7 +49,7 @@ typedef struct queueableBatch {
   struct mutex            mutex;
   spinlock_t              spin;
   struct semaphore        semaphore;
-  Queueable               q[];
+  Queueable               queueables[];
 } QueueableBatch;
 
 /**********************************************************************/
@@ -61,10 +61,10 @@ static void mutexSemaphoreProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
     mutex_lock(&qb->mutex);
-    list_add_tail(&qb->q[i].list, &qb->list);
+    list_add_tail(&qb->queueables[i].list, &qb->list);
     mutex_unlock(&qb->mutex);
     uds_release_semaphore(&qb->semaphore);
   }
@@ -92,10 +92,10 @@ static void mutexCompletionProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
     mutex_lock(&qb->mutex);
-    list_add_tail(&qb->q[i].list, &qb->list);
+    list_add_tail(&qb->queueables[i].list, &qb->list);
     if (qb->active++ == 0) {
       complete(&qb->wait);
     }
@@ -132,11 +132,11 @@ static void spinSemaphoreProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
     unsigned long flags;
     spin_lock_irqsave(&qb->spin, flags);
-    list_add_tail(&qb->q[i].list, &qb->list);
+    list_add_tail(&qb->queueables[i].list, &qb->list);
     spin_unlock_irqrestore(&qb->spin, flags);
     uds_release_semaphore(&qb->semaphore);
   }
@@ -165,11 +165,11 @@ static void spinCompletionProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
     unsigned long flags;
     spin_lock_irqsave(&qb->spin, flags);
-    list_add_tail(&qb->q[i].list, &qb->list);
+    list_add_tail(&qb->queueables[i].list, &qb->list);
     if (qb->active++ == 0) {
       complete(&qb->wait);
     }
@@ -207,9 +207,9 @@ static void llistSemaphoreProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    llist_add(&qb->q[i].llist, &qb->llist);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    llist_add(&qb->queueables[i].llist, &qb->llist);
     uds_release_semaphore(&qb->semaphore);
   }
 }
@@ -246,9 +246,9 @@ static void llistWaitqueueProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    llist_add(&qb->q[i].llist, &qb->llist);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    llist_add(&qb->queueables[i].llist, &qb->llist);
     if (waitqueue_active(&qb->wqhead)) {
       wake_up(&qb->wqhead);
     }
@@ -278,9 +278,9 @@ static void llistEventProduce(QueueableBatch *qb, int mySection, int sections)
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    llist_add(&qb->q[i].llist, &qb->llist);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    llist_add(&qb->queueables[i].llist, &qb->llist);
     event_count_broadcast(qb->event);
   }
 }
@@ -318,9 +318,9 @@ static void funnelSemaphoreProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    vdo_funnel_queue_put(qb->funnel, &qb->queueables[i].funnel);
     uds_release_semaphore(&qb->semaphore);
   }
 }
@@ -350,9 +350,9 @@ static void funnelWaitqueueProduce(QueueableBatch *qb,
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    vdo_funnel_queue_put(qb->funnel, &qb->queueables[i].funnel);
     if (wq_has_sleeper(&qb->wqhead)) {
       wake_up(&qb->wqhead);
     }
@@ -376,9 +376,9 @@ static void funnelEventProduce(QueueableBatch *qb, int mySection, int sections)
   long count = qb->count / sections;
   long i;
   for (i = mySection * count; i < (mySection + 1) * count; i++) {
-    qb->q[i].stream = qb->stream;
-    qb->q[i].number = i;
-    vdo_funnel_queue_put(qb->funnel, &qb->q[i].funnel);
+    qb->queueables[i].stream = qb->stream;
+    qb->queueables[i].number = i;
+    vdo_funnel_queue_put(qb->funnel, &qb->queueables[i].funnel);
     event_count_broadcast(qb->event);
   }
 }
