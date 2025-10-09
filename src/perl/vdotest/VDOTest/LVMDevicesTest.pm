@@ -10,10 +10,12 @@ use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
 use Log::Log4perl;
 use Permabit::Assertions qw(
-  assertEq
+  assertEqualNumeric
+  assertFalse
   assertNe
   assertNumArgs
   assertRegexpMatches
+  assertTrue
 );
 
 use base qw(VDOTest);
@@ -29,41 +31,29 @@ our %PROPERTIES = (
 ##
 
 #############################################################################
-# Test that creating and destroying a raw device properly maintains the
-# LVM devices file state and that the system device still exists after destruction
+# Verify that all devices listed in the LVM devices file currently exist
+# on the machine after we cleanup.
 ##
-sub testRawDevice {
+sub assertLVMDevicesCleanupValid {
   my ($self) = assertNumArgs(1, @_);
   my $machine = $self->getUserMachine();
 
-  if (!$machine->isLvmdevicesAvailable()) {
-    $log->info("LVM devices file is not available ... skipping test");
-    return;
+  $machine->cleanupLVMDevicesFile();
+
+  my @devices = $machine->getValidDevicesInLVMDevicesFile();
+  foreach my $device (@devices) {
+    $machine->runSystemCmd("sudo test -e '$device->{resolvedName}'");
   }
-
-  my $rawDevice = $self->createTestDevice("raw");
-  my $devicePath = $rawDevice->getDevicePath();
-
-  my $deviceInFile = $machine->isInLVMDevicesFile($devicePath);
-  assertEq(1, $deviceInFile, "Device should have been added to LVM devices file");
-
-  $self->destroyTestDevice($rawDevice);
-
-  $deviceInFile = $machine->isInLVMDevicesFile($devicePath);
-  assertEq(0, $deviceInFile, "Device should have been removed from LVM devices file");
-
-  my $result = $machine->sendCommand("sudo test -e " . $devicePath);
-  assertEq(0, $result, "Device should still exist after destruction");
 }
 
 #############################################################################
-# Test two scenarios:
-# 1. Removing a raw device from the LVM devices file if the system device still exists
-# but there are other devices on top of it. This should do nothing.
-# 2. Removing a non raw device from the LVM devices file if the system device still
-# exists. This should do nothing.
+# Our cleanup code is done in the VDOTest base class after all devices are
+# destroyed. It has no notion of different devices behaving differently from
+# other devices. This is fine. As long as the device exists in the system,
+# having an entry in the LVM devices file is not a problem. Test some stacks
+# to verify this.
 ##
-sub testBadStack {
+sub testDeviceStack {
   my ($self) = assertNumArgs(1, @_);
   my $machine = $self->getUserMachine();
 
@@ -75,26 +65,23 @@ sub testBadStack {
   my $rawDevice = $self->createTestDevice("raw");
   my $rawDevicePath = $rawDevice->getDevicePath();
 
-  my $deviceInFile = $machine->isInLVMDevicesFile($rawDevicePath);
-  assertEq(1, $deviceInFile, "Raw device should have been added to LVM devices file");
+  assertTrue($machine->isInLVMDevicesFile($rawDevicePath),
+             "Raw device should have been added to LVM devices file");
 
   my $vdoDevice = $self->createTestDevice("lvmvdo");
   my $vdoDevicePath = $vdoDevice->getDevicePath();
 
-  $deviceInFile = $machine->isInLVMDevicesFile($vdoDevicePath);
-  assertEq(1, $deviceInFile, "VDO device should have been added to LVM devices file");
+  assertTrue($machine->isInLVMDevicesFile($vdoDevicePath),
+             "VDO device should have been added to LVM devices file");
 
-  # Scenario 1
-  $rawDevice->removeFromDevicesFile();
+  # Scenario 1 - Cleanup while multiple devices exist
+  $self->assertLVMDevicesCleanupValid();
 
-  $deviceInFile = $machine->isInLVMDevicesFile($rawDevicePath);
-  assertEq(1, $deviceInFile, "Raw device should still be in LVM devices file after removal attempt");
+  assertTrue($machine->isInLVMDevicesFile($rawDevicePath),
+             "Raw device should still be in the LVM devices file");
 
-  # Scenario 2
-  $vdoDevice->removeFromDevicesFile();
-
-  $deviceInFile = $machine->isInLVMDevicesFile($vdoDevicePath);
-  assertEq(1, $deviceInFile, "VDO device should still be in LVM devices file after removal attempt");
+  assertTrue($machine->isInLVMDevicesFile($vdoDevicePath),
+             "VDO device should still be in the LVM devices file");
 
   my $vgName = $vdoDevice->{volumeGroup}->getName();
   my $lvName = $vdoDevice->getDeviceName();
@@ -102,8 +89,11 @@ sub testBadStack {
 
   $self->destroyTestDevice($vdoDevice);
 
-  $deviceInFile = $machine->isInLVMDevicesFile($vdoDevicePath);
-  assertEq(0, $deviceInFile, "VDO device should have been removed from LVM devices file");
+  # Scenario 2 - Cleanup after top device removed from stack
+  $self->assertLVMDevicesCleanupValid();
+
+  assertFalse($machine->isInLVMDevicesFile($vdoDevicePath),
+              "VDO device should not be in the LVM devices file");
 
   # lvs exits with 5 if the VG or LV is not found
   my $result = $machine->sendCommand("sudo lvs '$fullLVName'");
@@ -112,16 +102,19 @@ sub testBadStack {
   my $regexp = qr/[Volume group|Logical volume] ".*" not found/;
   assertRegexpMatches($regexp, $stderr);
 
-  $result = $machine->sendCommand("sudo test -e " . $vdoDevicePath);
-  assertEq(1, $result, "VDO Device should not exist after destruction");
+  $machine->runSystemCmd("sudo test ! -e " . $vdoDevicePath);
 
   $self->destroyTestDevice($rawDevice);
 
-  $deviceInFile = $machine->isInLVMDevicesFile($rawDevicePath);
-  assertEq(0, $deviceInFile, "Raw device should have been removed from LVM devices file");
+  # Scenario 3 - Cleanup after bottom device removed from stack
+  $self->assertLVMDevicesCleanupValid();
 
-  $result = $machine->sendCommand("sudo test -e " . $rawDevicePath);
-  assertEq(0, $result, "Raw device should still exist after destruction");
+  # A raw device will still exist in the system after destruction, so it should
+  # still be in the LVM devices file.
+  assertTrue($machine->isInLVMDevicesFile($rawDevicePath),
+             "Raw device should still be in the LVM devices file after destruction");
+
+  $machine->runSystemCmd("sudo test -e " . $rawDevicePath);
 }
 
 1;
