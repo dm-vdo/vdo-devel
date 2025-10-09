@@ -42,8 +42,6 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
  * Allocate one object of an indicated type, followed by one or more elements of a second type,
  * logging an error if the allocation fails. The memory will be zeroed.
  *
- * @TYPE: The type of the primary object to allocate. This type determines the alignment of the
- *        allocated memory.
  * @COUNT: The number of objects to allocate
  * @FIELD: The flexible array field at the end of the TYPE structure
  * @WHAT: What is being allocated (for error logging)
@@ -51,14 +49,11 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
  *
  * Return: VDO_SUCCESS or an error code
  */
-#define vdo_allocate_extended(TYPE, COUNT, FIELD, WHAT, PTR)		\
-	__extension__({							\
-		TYPE **_ptr = (PTR);					\
-		vdo_allocate_memory(struct_size(*_ptr, FIELD, (COUNT)),	\
-				    __alignof__(TYPE),			\
-				    WHAT,				\
-				    _ptr);				\
-	})
+#define vdo_allocate_extended(COUNT, FIELD, WHAT, PTR)			\
+	vdo_allocate_memory(struct_size(*(PTR), FIELD, (COUNT)),	\
+			    __alignof__(typeof(**(PTR))),		\
+			    WHAT,					\
+			    (PTR))
 
 /*
  * Allocate memory starting on a cache line boundary, logging an error if the allocation fails. The
