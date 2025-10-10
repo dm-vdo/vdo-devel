@@ -163,7 +163,6 @@ tarballs:
           sources:
             - dm-bufio.c
             - fileUtils.[hc]
-            - hlist.h
             - logger.c
             - memoryAlloc.c
             - minisyslog.[hc]
