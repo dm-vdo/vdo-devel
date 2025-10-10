@@ -25,13 +25,19 @@
 #     This local clone will be removed upon exiting the script, unless the DEBUG flag is set
 #     or the manual push option is selected. It is recommended that the SSH URL is used,
 #     as GitHub prompts for a username and password when an HTTPS URL is used.
+#     The <kernel_tree_branch_name> argument must be a branch in the given repository, which
+#     will be the starting point of the new overlay branch.
 #
 #   - If the specifier is a path, it must point to the top level of a kernel clone, and must not
 #     be a bare repository. This clone will create the new overlay branch but it will not otherwise
 #     be altered. A relative path will be interpreted relative to the current working directory.
+#     The <kernel_tree_branch_name> argument must resolve to a commit in the given repository,
+#     which will be the starting point of the new overlay branch. Additionally, if the
+#     <kernel_tree_branch_name> contains a slash, the substring before the first slash is
+#     used as the remote to push the new branch to. The default remote is 'origin'.
 #
 # - The local branch option (-b) relies on detecting differences between the input branch and
-#   origin/HEAD. It is only effective before a rebase of the fork is performed.
+#   the remote HEAD. It is only effective before a rebase of the fork is performed.
 # - The local vdo source tree will be cloned into a local absolute path. By default, it will
 #   be removed upon exiting the script, unless the DEBUG flag is set.
 # - Output from building the VDO tree while processing each change can be found in the
@@ -40,7 +46,8 @@
 #   flag is set.
 #
 # Potential Future Modifications:
-# - Remove the kernel_tree_branch_name input argument if it is always main.
+# - Add a proper optional argument for specifying the remote instead of using part of
+#   <kernel_tree_branch_name>.
 ##
 
 if [[ -z ${DEBUG} ]]; then
@@ -54,18 +61,19 @@ MANUAL_PUSH=1
 COLOR_RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
-ADDITIONAL_ARGS=()  # Array of command line arguments
-COMMIT_SHAS=()      # Array of commit SHAs to be processed
-CONFIG_MSG=()       # Array of strings to be used in the configuration message output to stdout
-INPUT_TYPE=         # Indicated input type
-OVERLAY_BRANCH=     # Name to give the kernel overlay branch being created
-LINUX_SRC=          # Path to the kernel tree
-CLONED_KERNEL_TREE= # Path to the cloned kernel tree, if any
-KERNEL_REPO_URL=    # URL or path for the kernel repo where the overlay branch will be created
-KERNEL_BRANCH=      # Kernel tree branch to base the overlay on
-PROCESS_INPUT_FX=   # Function to call to process the input(s)
-SOURCE_BRANCH=      # Branch on the source repo where the relevant commits were made
-MERGE_COMMIT=       # Merge commit to find commits to apply
+ADDITIONAL_ARGS=()   # Array of command line arguments
+COMMIT_SHAS=()       # Array of commit SHAs to be processed
+CONFIG_MSG=()        # Array of strings to be used in the configuration message output to stdout
+INPUT_TYPE=          # Indicated input type
+OVERLAY_BRANCH=      # Name to give the kernel overlay branch being created
+LINUX_SRC=           # Path to the kernel tree
+CLONED_KERNEL_TREE=  # Path to the cloned kernel tree, if any
+KERNEL_REPO_URL=     # URL or path for the kernel repo where the overlay branch will be created
+KERNEL_BRANCH=       # Kernel tree branch to base the overlay on
+KERNEL_REMOTE=origin # Kernel remote to push changes to
+PROCESS_INPUT_FX=    # Function to call to process the input(s)
+SOURCE_BRANCH=       # Branch on the source repo where the relevant commits were made
+MERGE_COMMIT=        # Merge commit to find commits to apply
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
@@ -133,7 +141,16 @@ process_args() {
     else
       LINUX_SRC=${RUN_DIR}/${KERNEL_REPO_URL}
     fi
-    KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url origin)
+    if [[ ${KERNEL_BRANCH} =~ ^([^/]*)/ ]]; then
+      git -C ${LINUX_SRC} remote get-url ${BASH_REMATCH[1]} &>/dev/null
+      if [ $? == 0 ]; then
+        KERNEL_REMOTE=${BASH_REMATCH[1]}
+      else
+        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid" \
+                "remote; using 'origin'${NO_COLOR}"
+      fi
+    fi
+    KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url ${KERNEL_REMOTE})
 
     # Verify that the provided repository is usable.
     IS_BARE=$(git -C ${LINUX_SRC} rev-parse --is-bare-repository)
@@ -185,6 +202,13 @@ print_usage() {
   echo "  * If the specifier is a URL, the working kernel repository will be cloned from that URL"
   echo "  * If the specifier is a path, it must point to the top level of a non-bare kernel clone"
   echo "  * A relative path will be interpreted relative to the current working directory"
+  echo
+  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will be the"
+  echo "  starting point of the new overlay branch"
+  echo
+  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains a slash,"
+  echo "  the portion of <kernel_tree_branch_name> before the first slash will be used as the"
+  echo "  name of the remote to push to. In all other cases, the remote defaults to 'origin'."
   echo
   echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*
   exit
@@ -532,7 +556,7 @@ cd ${LINUX_SRC}
 prompt_user_push
 
 if [[ ${MANUAL_PUSH} != 0 ]]; then
-  git push -u origin ${OVERLAY_BRANCH}
+  git push -u ${KERNEL_REMOTE} ${OVERLAY_BRANCH}
 fi
 
 exit 0
