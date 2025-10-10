@@ -235,7 +235,7 @@ int make_event_count(struct event_count **count_ptr)
 	int result;
 	struct event_count *count = NULL;
 
-	result = vdo_allocate(1, struct event_count, "event count", &count);
+	result = vdo_allocate(1, "event count", &count);
 	if (result != VDO_SUCCESS)
 		return result;
 

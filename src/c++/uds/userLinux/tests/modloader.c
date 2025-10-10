@@ -87,7 +87,7 @@ int load_module(const char *module_name,
   }
 
   struct module *module;
-  result = vdo_allocate(1, struct module, "module", &module);
+  result = vdo_allocate(1, "module", &module);
   if (result != VDO_SUCCESS) {
     close_module(handle);
     return result;

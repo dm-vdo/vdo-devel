@@ -79,9 +79,10 @@ int vdo_allocate_memory(size_t size, size_t align, const char *what, void *ptr)
  */
 void *vdo_allocate_memory_nowait(size_t size, const char *what)
 {
-	void *p = NULL;
+	char *p = NULL;
+	int result __attribute__((__unused__));
 
-	vdo_allocate(size, char *, what, &p);
+	result = vdo_allocate(size, what, &p);
 	return p;
 }
 
@@ -133,7 +134,7 @@ int vdo_duplicate_string(const char *string,
 	int result;
 	u8 *dup = NULL;
 
-	result = vdo_allocate(strlen(string) + 1, u8, what, &dup);
+	result = vdo_allocate(strlen(string) + 1, what, &dup);
 	if (result != VDO_SUCCESS)
 		return result;
 

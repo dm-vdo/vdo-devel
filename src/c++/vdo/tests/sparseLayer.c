@@ -227,7 +227,7 @@ int makeSparseLayer(const char     *name,
                     PhysicalLayer **layerPtr)
 {
   SparseLayer *layer;
-  int result = vdo_allocate(1, SparseLayer, __func__, &layer);
+  int result = vdo_allocate(1, __func__, &layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -237,14 +237,14 @@ int makeSparseLayer(const char     *name,
     return result;
   }
 
-  result = vdo_allocate(numRanges, MappingRange, __func__, &layer->ranges);
+  result = vdo_allocate(numRanges, __func__, &layer->ranges);
   if (result != VDO_SUCCESS) {
     freeSparseLayer(layer);
     return result;
   }
 
   size_t nameLength = strlen(name) + 1;
-  result = vdo_allocate(nameLength, char, __func__, &layer->name);
+  result = vdo_allocate(nameLength, __func__, &layer->name);
   if (result != VDO_SUCCESS) {
     return result;
   }

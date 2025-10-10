@@ -117,7 +117,7 @@ static void test16BitMap(void)
   VDO_ASSERT_SUCCESS(vdo_int_map_create(U16_MAX + 1, &map));
 
   uint16_t *values;
-  VDO_ASSERT_SUCCESS(vdo_allocate(65536, uint16_t, "16-bit values", &values));
+  VDO_ASSERT_SUCCESS(vdo_allocate(65536, "16-bit values", &values));
   for (int i = 0; i <= U16_MAX; i++) {
     values[i] = i;
   }

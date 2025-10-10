@@ -32,7 +32,7 @@ int uds_make_open_chapter_index(struct open_chapter_index **chapter_index,
 	chapter_index_overflow_count = 0;
 
 #endif /* TEST_INTERNAL */
-	result = vdo_allocate(1, struct open_chapter_index, "open chapter index", &index);
+	result = vdo_allocate(1, "open chapter index", &index);
 	if (result != VDO_SUCCESS)
 		return result;
 
