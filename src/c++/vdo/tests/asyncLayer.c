@@ -119,7 +119,7 @@ static int allocateIOBuffer(PhysicalLayer  *common __attribute__((unused)),
                             const char     *why,
                             char          **bufferPtr)
 {
-  return vdo_allocate(bytes, char, why, bufferPtr);
+  return vdo_allocate(bytes, why, bufferPtr);
 }
 
 /**
@@ -203,7 +203,7 @@ static bool defaultBIOSubmitHook(struct bio *bio __attribute__((unused)))
 void initializeAsyncLayer(PhysicalLayer *syncLayer)
 {
   AsyncLayer *asyncLayer;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, AsyncLayer, __func__, &asyncLayer));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_int_map_create(0, &asyncLayer->completionEnqueueHooksMap));
   mutex_init(&asyncLayer->mutex);
   uds_init_cond(&asyncLayer->condition);
@@ -368,7 +368,7 @@ void startAsyncLayer(TestConfiguration configuration, bool loadVDO)
   asyncLayer->state = QUEUES_STARTED;
 
   struct dm_target *target;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct dm_target, __func__, &target));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &target));
   int result = loadTable(configuration, target);
   if (result != VDO_SUCCESS) {
     assertStartStopExpectation(result);
@@ -502,7 +502,6 @@ void launchAction(vdo_action_fn action, struct vdo_completion *completion)
 
   struct vdo_completion *wrapper;
   VDO_ASSERT_SUCCESS(vdo_allocate(1,
-                                  struct vdo_completion,
                                   __func__,
                                   &wrapper));
   vdo_initialize_completion(wrapper, vdo, VDO_TEST_COMPLETION);
@@ -613,7 +612,7 @@ void clearCompletionEnqueueHooks(void)
 static void addCompletionEnqueueHookLocked(CompletionHook *function)
 {
   CompletionHookEntry *hook;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, CompletionHookEntry, __func__, &hook));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &hook));
   hook->function = function;
 
   CompletionHookEntry *old;

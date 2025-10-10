@@ -35,7 +35,7 @@ struct intIntMap {
 int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
 {
   IntIntMap *intIntMap;
-  int result = vdo_allocate(1, IntIntMap, __func__, &intIntMap);
+  int result = vdo_allocate(1, __func__, &intIntMap);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -98,7 +98,7 @@ int intIntMapPut(IntIntMap *map,
                  uint64_t  *oldValuePtr)
 {
   IntHolder *newHolder;
-  int result = vdo_allocate(1, IntHolder, __func__, &newHolder);
+  int result = vdo_allocate(1, __func__, &newHolder);
   if (result != VDO_SUCCESS) {
     return result;
   }

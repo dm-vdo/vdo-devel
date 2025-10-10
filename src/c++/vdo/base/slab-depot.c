@@ -2445,8 +2445,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_allocate(slab->reference_block_count, struct reference_block,
-			      __func__, &slab->reference_blocks);
+	result = vdo_allocate(slab->reference_block_count, __func__, &slab->reference_blocks);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -2455,8 +2454,7 @@ STATIC int allocate_slab_counters(struct vdo_slab *slab)
 	 * so we can word-search even at the very end.
 	 */
 	bytes = (slab->reference_block_count * COUNTS_PER_BLOCK) + (2 * BYTES_PER_WORD);
-	result = vdo_allocate(bytes, vdo_refcount_t, "ref counts array",
-			      &slab->counters);
+	result = vdo_allocate(bytes, "ref counts array", &slab->counters);
 	if (result != VDO_SUCCESS) {
 		vdo_free(vdo_forget(slab->reference_blocks));
 		return result;
@@ -3586,8 +3584,7 @@ STATIC int get_slab_statuses(struct block_allocator *allocator,
 	struct slab_status *statuses;
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 
-	result = vdo_allocate(allocator->slab_count, struct slab_status, __func__,
-			      &statuses);
+	result = vdo_allocate(allocator->slab_count, __func__, &statuses);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3790,13 +3787,12 @@ static int initialize_slab_journal(struct vdo_slab *slab)
 	const struct slab_config *slab_config = &slab->allocator->depot->slab_config;
 	int result;
 
-	result = vdo_allocate(slab_config->slab_journal_blocks, struct journal_lock,
-			      __func__, &journal->locks);
+	result = vdo_allocate(slab_config->slab_journal_blocks, __func__, &journal->locks);
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_allocate(VDO_BLOCK_SIZE, char, "struct packed_slab_journal_block",
-			      (char **) &journal->block);
+	BUILD_BUG_ON(sizeof(*journal->block) != VDO_BLOCK_SIZE);
+	result = vdo_allocate(1, "struct packed_slab_journal_block", &journal->block);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3851,7 +3847,7 @@ STATIC int __must_check make_slab(physical_block_number_t slab_origin,
 	struct vdo_slab *slab;
 	int result;
 
-	result = vdo_allocate(1, struct vdo_slab, __func__, &slab);
+	result = vdo_allocate(1, __func__, &slab);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -3908,8 +3904,7 @@ static int allocate_slabs(struct slab_depot *depot, slab_count_t slab_count)
 	physical_block_number_t slab_origin;
 	int result;
 
-	result = vdo_allocate(slab_count, struct vdo_slab *,
-			      "slab pointer array", &depot->new_slabs);
+	result = vdo_allocate(slab_count, "slab pointer array", &depot->new_slabs);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4063,8 +4058,7 @@ STATIC int initialize_slab_scrubber(struct block_allocator *allocator)
 	char *journal_data;
 	int result;
 
-	result = vdo_allocate(VDO_BLOCK_SIZE * slab_journal_size,
-			      char, __func__, &journal_data);
+	result = vdo_allocate(VDO_BLOCK_SIZE * slab_journal_size, __func__, &journal_data);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4097,7 +4091,7 @@ static int __must_check initialize_slab_summary_block(struct block_allocator *al
 	struct slab_summary_block *block = &allocator->summary_blocks[index];
 	int result;
 
-	result = vdo_allocate(VDO_BLOCK_SIZE, char, __func__, &block->outgoing_entries);
+	result = vdo_allocate(VDO_BLOCK_SIZE, __func__, &block->outgoing_entries);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -4166,8 +4160,7 @@ static int __must_check initialize_block_allocator(struct slab_depot *depot,
 	if (result != VDO_SUCCESS)
 		return result;
 
-	result = vdo_allocate(VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE,
-			      struct slab_summary_block, __func__,
+	result = vdo_allocate(VDO_SLAB_SUMMARY_BLOCKS_PER_ZONE, __func__,
 			      &allocator->summary_blocks);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -4232,8 +4225,7 @@ static int allocate_components(struct slab_depot *depot,
 
 	depot->summary_origin = summary_partition->offset;
 	depot->hint_shift = vdo_get_slab_summary_hint_shift(depot->slab_size_shift);
-	result = vdo_allocate(MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES,
-			      struct slab_summary_entry, __func__,
+	result = vdo_allocate(MAXIMUM_VDO_SLAB_SUMMARY_ENTRIES, __func__,
 			      &depot->summary_entries);
 	if (result != VDO_SUCCESS)
 		return result;

@@ -70,7 +70,7 @@ int uds_make_io_factory(struct block_device *bdev, struct io_factory **factory_p
 	int result;
 	struct io_factory *factory;
 
-	result = vdo_allocate(1, struct io_factory, __func__, &factory);
+	result = vdo_allocate(1, __func__, &factory);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -155,7 +155,7 @@ int uds_make_buffered_reader(struct io_factory *factory, off_t offset, u64 block
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = vdo_allocate(1, struct buffered_reader, "buffered reader", &reader);
+	result = vdo_allocate(1, "buffered reader", &reader);
 	if (result != VDO_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;
@@ -293,7 +293,7 @@ int uds_make_buffered_writer(struct io_factory *factory, off_t offset, u64 block
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = vdo_allocate(1, struct buffered_writer, "buffered writer", &writer);
+	result = vdo_allocate(1, "buffered writer", &writer);
 	if (result != VDO_SUCCESS) {
 		dm_bufio_client_destroy(client);
 		return result;

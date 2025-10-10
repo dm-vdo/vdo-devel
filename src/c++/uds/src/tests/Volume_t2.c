@@ -64,19 +64,17 @@ static void testWriteChapter(void)
 
   unsigned int zoneCount = config->zone_count;
   struct open_chapter_zone **chapters;
-  UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, struct open_chapter_zone *,
-                                  "open chapters", &chapters));
+  UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, "open chapters", &chapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
     UDS_ASSERT_SUCCESS(uds_make_open_chapter(geometry, zoneCount, &chapters[i]));
   }
 
   struct uds_record_name *hashes;
-  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter,
-                                  struct uds_record_name, "names", &hashes));
+  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter, "names",
+				  &hashes));
   struct uds_record_data *metadata;
-  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter,
-                                  struct uds_record_data, "records",
+  UDS_ASSERT_SUCCESS(vdo_allocate(geometry->records_per_chapter, "records",
                                   &metadata));
 
   // Thanks to zoning, the chapter on disk might not be completely full.

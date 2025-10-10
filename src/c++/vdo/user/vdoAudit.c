@@ -762,7 +762,7 @@ int main(int argc, char *argv[])
     audit->firstError = (slab_block_number) -1;
 
     result
-      = vdo_allocate(slabDataBlocks, uint8_t, __func__, &audit->refCounts);
+      = vdo_allocate(slabDataBlocks, __func__, &audit->refCounts);
     if (result != VDO_SUCCESS) {
       freeAuditAllocations();
       errx(1, "Could not allocate %llu reference counts: %s",

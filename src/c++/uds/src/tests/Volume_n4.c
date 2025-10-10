@@ -144,7 +144,7 @@ static struct uds_request *newReadRequest(uint32_t physicalPage)
 {
   ReadRequest *readRequest = NULL;
 
-  UDS_ASSERT_SUCCESS(vdo_allocate(1, ReadRequest, __func__, &readRequest));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &readRequest));
   readRequest->physicalPage = physicalPage;
   readRequest->request.unbatched = true;
   computeNameOnPage(&readRequest->request.record_name, physicalPage);
@@ -233,7 +233,7 @@ static void testFullReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, struct uds_request *, __func__, &requests));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, __func__, &requests));
 
   volume->read_threads_stopped = true;
   unsigned int i;
@@ -276,7 +276,7 @@ static void testInvalidateReadQueue(void)
 
   const unsigned int numRequests = VOLUME_CACHE_MAX_QUEUED_READS;
   struct uds_request **requests;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, struct uds_request *, __func__, &requests));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numRequests, __func__, &requests));
 
   // Fill up the read queue by stopping the read threads and enqueuing entries
   volume->read_threads_stopped = true;
@@ -475,14 +475,14 @@ static void testMultiThreadStress(unsigned int numAsyncIndexThreads)
   volume->read_threads_stopped = false;
 
   ThreadArg *args;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numZones, ThreadArg, __func__, &args));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numZones, __func__, &args));
   unsigned int k;
   for (k = 0; k < numZones; k++) {
     args[k].zoneNumber = k;
   }
 
   struct thread **threads;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numThreads, struct thread *, __func__, &threads));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numThreads, __func__, &threads));
 
   int result = UDS_SUCCESS;
   for (i = 0; i < numAsyncIndexThreads; i++) {

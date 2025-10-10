@@ -21,10 +21,10 @@
 void makePageArray(unsigned int numPages, size_t pageSize)
 {
   test_page_count = HEADER_PAGES_PER_VOLUME + numPages;
-  UDS_ASSERT_SUCCESS(vdo_allocate(test_page_count, u8 *, __func__, &test_pages));
+  UDS_ASSERT_SUCCESS(vdo_allocate(test_page_count, __func__, &test_pages));
   unsigned int i;
   for (i = 0; i < test_page_count; ++i) {
-    UDS_ASSERT_SUCCESS(vdo_allocate(pageSize, u8, __func__, &test_pages[i]));
+    UDS_ASSERT_SUCCESS(vdo_allocate(pageSize, __func__, &test_pages[i]));
   }
 }
 
@@ -84,8 +84,7 @@ static void fillOpenChapter(struct open_chapter_index *oci,
 void writeTestVolumeChapter(struct volume *volume, struct index_geometry *geometry, u32 chapter)
 {
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(vdo_allocate(1 + geometry->records_per_chapter, struct uds_volume_record,
-                                  __func__, &records));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1 + geometry->records_per_chapter, __func__, &records));
   get_random_bytes((u8 *) records, BYTES_PER_RECORD * (1 + geometry->records_per_chapter));
 
   // Construct an empty delta chapter index for chapter zero. The chapter

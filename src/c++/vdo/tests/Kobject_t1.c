@@ -61,7 +61,7 @@ static void releaseD(struct kobject *kobj)
 static struct kobject *makeKobject(char id, struct kobject *parent)
 {
   struct kobject *kobject;
-  VDO_ASSERT_SUCCESS(vdo_allocate(1, struct kobject, __func__, &kobject));
+  VDO_ASSERT_SUCCESS(vdo_allocate(1, __func__, &kobject));
 
   unsigned int      index    = toIndex(id);
   struct kobj_type *kobjType = &kobjTypes[index];

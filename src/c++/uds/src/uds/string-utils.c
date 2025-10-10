@@ -22,7 +22,7 @@ int vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
 	va_start(args, fmt);
 	count = vsnprintf(NULL, 0, fmt, args) + 1;
 	va_end(args);
-	result = vdo_allocate(count, char, what, strp);
+	result = vdo_allocate(count, what, strp);
 	if (result == VDO_SUCCESS) {
 		va_start(args, fmt);
 		vsnprintf(*strp, count, fmt, args);

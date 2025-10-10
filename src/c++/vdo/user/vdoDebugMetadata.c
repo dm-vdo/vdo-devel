@@ -228,17 +228,15 @@ static void freeState(SlabState *state)
  **/
 static int allocateState(SlabState *state)
 {
-  int result = vdo_allocate(slabConfig->slab_journal_blocks,
-                            struct packed_slab_journal_block *, __func__,
+  int result = vdo_allocate(slabConfig->slab_journal_blocks, __func__,
                             &state->slabJournalBlocks);
   if (result != VDO_SUCCESS) {
     freeState(state);
     return result;
   }
 
-  result = vdo_allocate(slabConfig->reference_count_blocks,
-                        struct packed_reference_block *,
-                        __func__, &state->referenceBlocks);
+  result = vdo_allocate(slabConfig->reference_count_blocks, __func__,
+                        &state->referenceBlocks);
   if (result != VDO_SUCCESS) {
     freeState(state);
     return result;
@@ -275,7 +273,7 @@ static int allocateState(SlabState *state)
 static int allocateMetadataSpace(void)
 {
   slabConfig = &vdo->states.slab_depot.slab_config;
-  int result = vdo_allocate(vdo->slabCount, SlabState, __func__, &slabs);
+  int result = vdo_allocate(vdo->slabCount, __func__, &slabs);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %u slab state pointers", slabCount);
   }
@@ -299,16 +297,14 @@ static int allocateMetadataSpace(void)
          (unsigned long long) journalBytes);
   }
 
-  result = vdo_allocate(config->recovery_journal_size, UnpackedJournalBlock,
-                        __func__, &recoveryJournal);
+  result = vdo_allocate(config->recovery_journal_size, __func__,
+                        &recoveryJournal);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %llu journal block structures",
          (unsigned long long) config->recovery_journal_size);
   }
 
-  result = vdo_allocate(VDO_SLAB_SUMMARY_BLOCKS,
-                        struct slab_summary_entry *,
-                        __func__, &slabSummary);
+  result = vdo_allocate(VDO_SLAB_SUMMARY_BLOCKS, __func__, &slabSummary);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %d slab summary block pointers",
          VDO_SLAB_SUMMARY_BLOCKS);
@@ -615,14 +611,13 @@ int main(int argc, char *argv[])
   }
 
   char *filename;
-  result = vdo_allocate(MAX_PBNS, physical_block_number_t, __func__, &pbns);
+  result = vdo_allocate(MAX_PBNS, __func__, &pbns);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",
          sizeof(physical_block_number_t) * MAX_PBNS);
   }
 
-  result = vdo_allocate(MAX_SEARCH_LBNS, logical_block_number_t, __func__,
-                        &searchLBNs);
+  result = vdo_allocate(MAX_SEARCH_LBNS, __func__, &searchLBNs);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",
          sizeof(logical_block_number_t) * MAX_SEARCH_LBNS);

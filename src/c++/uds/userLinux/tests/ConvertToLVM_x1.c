@@ -200,12 +200,12 @@ static void slide_file(off_t bytes)
   enum {
     BUFFER_SIZE  = 4096,
   };
-  void *buf;
+  u8 *buf;
   off_t offset;
   off_t file_size;
   size_t length;
 
-  UDS_ASSERT_SUCCESS(vdo_allocate(BUFFER_SIZE, u8, "buffer", &buf));
+  UDS_ASSERT_SUCCESS(vdo_allocate(BUFFER_SIZE, "buffer", &buf));
   UDS_ASSERT_SUCCESS(get_open_file_size(testDevice->fd, &file_size));
   file_size = min(file_size, bytes);
 
