@@ -463,7 +463,7 @@ for change in ${COMMIT_SHAS[@]}; do
   fi
 
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  git -C ${LINUX_SRC} diff-index --cached --quiet HEAD
+  git -C ${LINUX_SRC} diff --quiet HEAD
   if [[ $? == 0 ]]; then
     echo "Nothing to apply - moving on."
   else
@@ -472,8 +472,8 @@ for change in ${COMMIT_SHAS[@]}; do
     if [[ $? == 0 ]]; then
       echo "Committed"
     else
-        echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
-                "'${OVERLAY_BRANCH}' failed."
+      echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
+              "'${OVERLAY_BRANCH}' failed."
       exit
     fi
   fi
