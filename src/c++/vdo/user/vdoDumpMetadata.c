@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
          uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
   }
 
-  result = vdo_allocate(MAX_LBNS, physical_block_number_t, __func__, &lbns);
+  result = vdo_allocate(MAX_LBNS, __func__, &lbns);
   if (result != VDO_SUCCESS) {
     errx(1, "Could not allocate %zu bytes",
          sizeof(physical_block_number_t) * MAX_LBNS);

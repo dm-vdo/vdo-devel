@@ -203,7 +203,7 @@ static struct block_device *create_device(const char *name)
     errx(1, "%s is not a block device", name);
   }
 
-  result = vdo_allocate(1, struct block_device, __func__, &device);
+  result = vdo_allocate(1, __func__, &device);
   if (result != VDO_SUCCESS) {
     close_file(fd, NULL);
     errx(1, "Cannot allocate device structure");

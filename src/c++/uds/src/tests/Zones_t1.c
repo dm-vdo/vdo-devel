@@ -79,8 +79,7 @@ static void addBlocksToZone(unsigned int zone, unsigned int count)
   unsigned int i;
   for (i = 0; i < count; i++) {
     struct uds_request *request;
-    UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, "request",
-                                    &request));
+    UDS_ASSERT_SUCCESS(vdo_allocate(1, "request", &request));
     request->new_metadata = metadata;
     request->index        = theIndex;
     request->type         = UDS_POST;
@@ -161,8 +160,7 @@ static void laggingZonesTest(void)
   for (i = 0; i < (recordsPerChapter / 2); i++) {
     createRandomBlockName(&name);
     struct uds_request *request;
-    UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, "request",
-                                    &request));
+    UDS_ASSERT_SUCCESS(vdo_allocate(1, "request", &request));
     request->record_name  = name;
     request->new_metadata = metadata;
     request->index        = theIndex;

@@ -217,7 +217,7 @@ static int __must_check make_empty_index_session(struct uds_index_session **inde
 	int result;
 	struct uds_index_session *session;
 
-	result = vdo_allocate(1, struct uds_index_session, __func__, &session);
+	result = vdo_allocate(1, __func__, &session);
 	if (result != VDO_SUCCESS)
 		return result;
 
@@ -713,7 +713,7 @@ int uds_get_index_parameters(struct uds_index_session *index_session,
 		return -EINVAL;
 	}
 
-	result = vdo_allocate(1, struct uds_parameters, __func__, parameters);
+	result = vdo_allocate(1, __func__, parameters);
 	if (result == VDO_SUCCESS)
 		**parameters = index_session->parameters;
 

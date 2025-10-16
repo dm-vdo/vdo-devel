@@ -78,16 +78,15 @@ static void initializeDedupeAndCompressT1(void)
   size_t totalWritesPerRun
     = WRITE_BATCH + DEDUPE_BATCH + OVERWRITE_BATCH + ZERO_BLOCK_BATCH;
   writeRequestCount = totalWritesPerRun * NUM_RUNS;
-  VDO_ASSERT_SUCCESS(vdo_allocate((writeRequestCount), IORequest *,
-                                  "write requests", &writeRequests));
+  VDO_ASSERT_SUCCESS(vdo_allocate(writeRequestCount, "write requests",
+                                  &writeRequests));
 
   readRequestCount = 2 * READ_BATCH * NUM_RUNS;
-  VDO_ASSERT_SUCCESS(vdo_allocate((readRequestCount), ReadRequest,
-                                  "read requests", &readRequests));
+  VDO_ASSERT_SUCCESS(vdo_allocate(readRequestCount, "read requests",
+                                  &readRequests));
 
   for (size_t i = 0; i < readRequestCount; i++) {
-    VDO_ASSERT_SUCCESS(vdo_allocate(VDO_BLOCK_SIZE, char,
-                                    "read buffer",
+    VDO_ASSERT_SUCCESS(vdo_allocate(VDO_BLOCK_SIZE, "read buffer",
                                     &readRequests[i].buffer));
   }
 }

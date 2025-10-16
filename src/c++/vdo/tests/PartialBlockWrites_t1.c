@@ -51,7 +51,6 @@ static void initializePartialBlockWriteT1(void)
 static void generateData(block_count_t count)
 {
   VDO_ASSERT_SUCCESS(vdo_allocate(count * VDO_BLOCK_SIZE,
-                                  char,
                                   __func__,
                                   &data));
 
@@ -117,7 +116,6 @@ static void testPartialWrites(void)
 
   char *buffer;
   VDO_ASSERT_SUCCESS(vdo_allocate(blocks * VDO_BLOCK_SIZE,
-                                  char,
                                   __func__,
                                   &buffer));
   VDO_ASSERT_SUCCESS(performRead(0, blocks, buffer));

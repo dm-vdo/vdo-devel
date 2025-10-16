@@ -35,7 +35,7 @@ static void callback(struct uds_request *request)
 static void basicsTest(void)
 {
   struct uds_request *request;
-  UDS_ASSERT_SUCCESS(vdo_allocate(1, struct uds_request, __func__, &request));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &request));
   UDS_ASSERT_ERROR(-EINVAL, uds_launch_request(request));
   request->callback = callback;
 

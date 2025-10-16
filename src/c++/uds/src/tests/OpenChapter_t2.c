@@ -107,9 +107,7 @@ static void testSaveLoadWithData(void)
   // Create some random records to put in the open chapter.
   int totalRecords = theIndex->volume->geometry->records_per_chapter / 2;
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords,
-                                  struct uds_volume_record, "test records",
-                                  &records));
+  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, "test records", &records));
 
   int i;
   for (i = 0; i < totalRecords; i++) {
@@ -154,9 +152,7 @@ static void testSaveLoadWithDiscard(void)
   // Fill a one-zone open chapter as full as possible.
   int totalRecords = theIndex->volume->geometry->records_per_chapter - 1;
   struct uds_volume_record *records;
-  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords,
-                                  struct uds_volume_record, "test records",
-                                  &records));
+  UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, "test records", &records));
 
   int i;
   for (i = 0; i < totalRecords; i++) {
@@ -219,7 +215,7 @@ static void modifyOpenChapter(off_t offset, const char *data)
   uds_free_buffered_writer(writer);
 
   u8 *block;
-  UDS_ASSERT_SUCCESS(vdo_allocate(UDS_BLOCK_SIZE, u8, __func__, &block));
+  UDS_ASSERT_SUCCESS(vdo_allocate(UDS_BLOCK_SIZE, __func__, &block));
   struct buffered_reader *reader = openBufferedReaderForChapter();
   UDS_ASSERT_SUCCESS(uds_read_from_buffered_reader(reader, block, UDS_BLOCK_SIZE));
   uds_free_buffered_reader(reader);

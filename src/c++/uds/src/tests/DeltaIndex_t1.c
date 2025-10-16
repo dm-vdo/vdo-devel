@@ -306,8 +306,8 @@ static void testAddRemove(const unsigned int *keys, unsigned int numKeys,
   struct delta_index_entry entry;
   struct uds_record_name *names;
   bool *collides;
-  UDS_ASSERT_SUCCESS(vdo_allocate(numKeys, struct uds_record_name, __func__, &names));
-  UDS_ASSERT_SUCCESS(vdo_allocate(numKeys, bool, __func__, &collides));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numKeys, __func__, &names));
+  UDS_ASSERT_SUCCESS(vdo_allocate(numKeys, __func__, &collides));
 
   // Put all the records in the specified order
   unsigned int i;
@@ -533,8 +533,7 @@ static void lookupTest(void)
   enum { PAYLOAD_BITS = 8 };
 
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(vdo_allocate(8, struct uds_record_name,
-                                  __func__, &names));
+  UDS_ASSERT_SUCCESS(vdo_allocate(8, __func__, &names));
 
   // Create index with 1 delta list.  Ensure that the saved offset is valid.
   UDS_ASSERT_SUCCESS(uds_initialize_delta_index(&di, ONE_ZONE, 1, 256,
@@ -743,9 +742,9 @@ static void saveRestoreTest(void)
   // chapter 0
   unsigned int *keys, *lists;
   struct uds_record_name *names;
-  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, unsigned int, __func__, &keys));
-  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, unsigned int, __func__, &lists));
-  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, struct uds_record_name, __func__, &names));
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, __func__, &keys));
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, __func__, &lists));
+  UDS_ASSERT_SUCCESS(vdo_allocate(NUM_KEYS, __func__, &names));
   unsigned int i;
   for (i = 0; i < NUM_KEYS; i++) {
     keys[i] = random() % MAX_KEY;

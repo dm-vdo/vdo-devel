@@ -49,7 +49,6 @@ static void initializePartialDiscardsT1(void)
 static void generateData(block_count_t count)
 {
   VDO_ASSERT_SUCCESS(vdo_allocate(count * VDO_BLOCK_SIZE,
-                                  char,
                                   __func__,
                                   &data));
 
@@ -81,10 +80,10 @@ static bool persistMetadataWrites(struct bio *bio)
 static void testUnalignedDiscards(void)
 {
   generateData(DATA_BLOCKS);
-  VDO_ASSERT_SUCCESS(vdo_allocate(DATA_BLOCKS * VDO_BLOCK_SIZE, char,
-                                  "expected data", &expectedData));
-  VDO_ASSERT_SUCCESS(vdo_allocate(DATA_BLOCKS * VDO_BLOCK_SIZE, char,
-                                  "actual data", &actualData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(DATA_BLOCKS * VDO_BLOCK_SIZE, "expected data",
+                                  &expectedData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(DATA_BLOCKS * VDO_BLOCK_SIZE, "actual data",
+                                  &actualData));
   setBIOSubmitHook(persistMetadataWrites);
 
   /** Try odd-sized discards at each offset */

@@ -36,7 +36,6 @@ void initializeBlockMapUtils(block_count_t logicalBlocks)
 {
   logicalBlockCount = logicalBlocks;
   VDO_ASSERT_SUCCESS(vdo_allocate(logicalBlocks,
-                                  MappingExpectation,
                                   __func__,
                                   &expectedMappings));
 }

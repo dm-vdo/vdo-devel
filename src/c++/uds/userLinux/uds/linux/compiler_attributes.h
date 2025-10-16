@@ -24,4 +24,10 @@
 #define fallthrough	do {} while (0)  /* fallthrough */
 #endif
 
+#if __has_attribute(__counted_by__)
+#define __counted_by(X) __attribute__((__counted_by__(X)))
+#else
+#define __counted_by(X)
+#endif
+
 #endif /* LINUX_COMPILER_ATTRIBUTES_H */

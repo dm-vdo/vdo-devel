@@ -147,7 +147,7 @@ static void indexOneChapter(void)
   for (numAdded = 0; numAdded < numHashesInChapter; ++numAdded) {
     unsigned int zone = numAdded % theIndex->zone_count;
     struct uds_request *request;
-    vdo_allocate(1, struct uds_request, "req", &request);
+    UDS_ASSERT_SUCCESS(vdo_allocate(1, "req", &request));
     request->type = UDS_POST;
     nextBlockNameInZone(theIndex, zone, &request->record_name);
     dispatchRequest(request);

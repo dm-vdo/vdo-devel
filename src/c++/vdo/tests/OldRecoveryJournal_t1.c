@@ -155,7 +155,7 @@ static void saveExpectedFileContents(const char *fileName, char **expectedData)
   
   VDO_ASSERT_SUCCESS(open_file(fileName, FU_READ_ONLY, &fd));
   VDO_ASSERT_SUCCESS(get_open_file_size(fd, &vdoSize));
-  VDO_ASSERT_SUCCESS(vdo_allocate(vdoSize, char, __func__, expectedData));
+  VDO_ASSERT_SUCCESS(vdo_allocate(vdoSize, __func__, expectedData));
   VDO_ASSERT_SUCCESS(logging_read(fd, *expectedData, vdoSize, __func__,
                                   &bytesRead));
   CU_ASSERT_EQUAL(vdoSize, bytesRead);

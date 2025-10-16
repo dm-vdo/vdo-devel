@@ -211,7 +211,7 @@ static void testBasic(void)
   struct vdo_completion test_completion;
 
   vio_count = vios_per_slab * SLAB_COUNT;
-  VDO_ASSERT_SUCCESS(vdo_allocate(vio_count, struct vio_wrapper, __func__, &wrappers));
+  VDO_ASSERT_SUCCESS(vdo_allocate(vio_count, __func__, &wrappers));
   VDO_ASSERT_SUCCESS(make_vio_pool(vdo, vio_count, BLOCKS_PER_VIO, 0,
                                    VIO_TYPE_TEST, VIO_PRIORITY_METADATA,
                                    NULL, &pool));

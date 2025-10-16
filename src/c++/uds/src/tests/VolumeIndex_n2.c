@@ -42,7 +42,7 @@ static struct block_device *testDevice;
 static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
 {
   TestMI *testmi;
-  UDS_ASSERT_SUCCESS(vdo_allocate(1, TestMI, __func__, &testmi));
+  UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &testmi));
   testmi->numZones = numZones;
 
   // Make the test geometry
