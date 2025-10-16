@@ -80,10 +80,12 @@ tarballs:
             - fileLayer.[hc]
             - messageStatsReader.c
             - parseUtils.[hc]
+            - printUtils.[hc]
             - physicalLayer.h
             - slabSummaryReader.[hc]
             - userVDO.[hc]
             - vdoAudit.c->vdoaudit.c
+            - vdoCalculateSize.c->vdocalculatesize.c
             - vdoConfig.[hc]
             - vdoDebugMetadata.c->vdodebugmetadata.c
             - vdoDumpBlockMap.c->vdodumpblockmap.c

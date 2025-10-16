@@ -10,6 +10,7 @@
 
 PAGES= \
 	vdoaudit.8         \
+	vdocalculatesize.8 \
 	vdodebugmetadata.8 \
 	vdodumpblockmap.8  \
 	vdodumpmetadata.8  \
