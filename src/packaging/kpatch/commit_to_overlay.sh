@@ -6,7 +6,7 @@
 # PR(s) have been merged.
 #
 # Usage:
-# ./commit_to_overlay.sh <kernel_tree_repo_URL> <kernel_tree_branch_name>
+# ./commit_to_overlay.sh <kernel_tree_specifier> <kernel_tree_branch_name>
 #                        <overlay_branch_name> [ -c | -b | -m ] args...
 #
 # Input Type Options:
@@ -20,24 +20,34 @@
 # ** Multiple arguments must be delimited with a space **
 #
 # Notes:
-# - It is recommended that the SSH kernel_tree_repo_URL is input, as GitHub prompts for a
-#   username and password when an HTTPS URL is used.
+# - The <kernel_tree_specifier> argument can be either a URL or a path.
+#   - If the specifier is a URL, the working kernel repository will be cloned from that URL.
+#     This local clone will be removed upon exiting the script, unless the DEBUG flag is set
+#     or the manual push option is selected. It is recommended that the SSH URL is used,
+#     as GitHub prompts for a username and password when an HTTPS URL is used.
+#     The <kernel_tree_branch_name> argument must be a branch in the given repository, which
+#     will be the starting point of the new overlay branch.
+#
+#   - If the specifier is a path, it must point to the top level of a kernel clone, and must not
+#     be a bare repository. This clone will create the new overlay branch but it will not otherwise
+#     be altered. A relative path will be interpreted relative to the current working directory.
+#     The <kernel_tree_branch_name> argument must resolve to a commit in the given repository,
+#     which will be the starting point of the new overlay branch. Additionally, if the
+#     <kernel_tree_branch_name> contains a slash, the substring before the first slash is
+#     used as the remote to push the new branch to. The default remote is 'origin'.
+#
 # - The local branch option (-b) relies on detecting differences between the input branch and
-#   origin/HEAD. It is only effective before a rebase of the fork is performed.
-# - Both the remote kernel tree and local vdo source tree will be cloned into a local absolute path
-#   during this process. By default, they will both be removed upon exiting the script, unless the
-#   DEBUG flag is set.
-# - Regardless of the DEBUG flag setting, the kernel tree clone will be retained if the user elects
-#   (when prompted) to manually push the successfully created overlay branch at a later time.
+#   the remote HEAD. It is only effective before a rebase of the fork is performed.
+# - The local vdo source tree will be cloned into a local absolute path. By default, it will
+#   be removed upon exiting the script, unless the DEBUG flag is set.
 # - Output from building the VDO tree while processing each change can be found in the
 #   /tmp/overlay_build_log* file. The log is removed at the end of each loop iteration upon success.
 #   It is retained until the commit_to_overlay.sh script is re-run upon failure, or when the DEBUG
 #   flag is set.
 #
 # Potential Future Modifications:
-# - Remove the kernel_tree_branch_name input argument if it is always vdo-next.
-# - Modify the kernel_tree_repo_URL input argument to accept a path to an existing clone instead of
-#   a URL. When a path is entered, bypass cloning the repo and use the repo at the path location.
+# - Add a proper optional argument for specifying the remote instead of using part of
+#   <kernel_tree_branch_name>.
 ##
 
 if [[ -z ${DEBUG} ]]; then
@@ -51,16 +61,19 @@ MANUAL_PUSH=1
 COLOR_RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
-ADDITIONAL_ARGS=()  # Array of command line arguments
-COMMIT_SHAS=()      # Array of commit SHAs to be processed
-CONFIG_MSG=()       # Array of strings to be used in the configuration message output to stdout
-INPUT_TYPE=         # Indicated input type
-OVERLAY_BRANCH=     # Name to give the kernel overlay branch being created
-KERNEL_REPO_URL=    # URL for the kernel tree repository where the overlay branch will be created
-KERNEL_BRANCH=      # Kernel tree branch to base the overlay on
-PROCESS_INPUT_FX=   # Function to call to process the input(s)
-SOURCE_BRANCH=      # Branch on the source repo where the relevant commits were made
-MERGE_COMMIT=       # Merge commit to find commits to apply
+ADDITIONAL_ARGS=()   # Array of command line arguments
+COMMIT_SHAS=()       # Array of commit SHAs to be processed
+CONFIG_MSG=()        # Array of strings to be used in the configuration message output to stdout
+INPUT_TYPE=          # Indicated input type
+OVERLAY_BRANCH=      # Name to give the kernel overlay branch being created
+LINUX_SRC=           # Path to the kernel tree
+CLONED_KERNEL_TREE=  # Path to the cloned kernel tree, if any
+KERNEL_REPO_URL=     # URL or path for the kernel repo where the overlay branch will be created
+KERNEL_BRANCH=       # Kernel tree branch to base the overlay on
+KERNEL_REMOTE=origin # Kernel remote to push changes to
+PROCESS_INPUT_FX=    # Function to call to process the input(s)
+SOURCE_BRANCH=       # Branch on the source repo where the relevant commits were made
+MERGE_COMMIT=        # Merge commit to find commits to apply
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
@@ -108,16 +121,49 @@ process_args() {
       ;;
   esac
 
-  # Verify the kernel repo URL and branch are valid
-  git ls-remote --exit-code ${KERNEL_REPO_URL} ${KERNEL_BRANCH} &>/dev/null
-  return=$?
-  if [ $return == 128 ]; then
-    echo -e "${COLOR_RED}ERROR: Input url (${KERNEL_REPO_URL}) is not a valid repository${NO_COLOR}"
-    print_usage
-  elif [ $return == 2 ]; then
-    echo -e "${COLOR_RED}ERROR: Branch ${KERNEL_BRANCH} not found on repo" \
-            "$(get_repo_name ${KERNEL_REPO_URL})${NO_COLOR}"
-    print_usage
+  if [[ ${KERNEL_REPO_URL} =~ : ]]; then
+    echo -e "Using kernel repo URL (${KERNEL_REPO_URL})"
+    git ls-remote --exit-code ${KERNEL_REPO_URL} ${KERNEL_BRANCH} &>/dev/null
+    return=$?
+    if [ $return == 128 ]; then
+      echo -e "${COLOR_RED}ERROR: Input URL (${KERNEL_REPO_URL}) is not" \
+              "a valid repository${NO_COLOR}"
+      print_usage
+    elif [ $return == 2 ]; then
+      echo -e "${COLOR_RED}ERROR: Branch ${KERNEL_BRANCH} not found on repo" \
+              "$(get_repo_name ${KERNEL_REPO_URL})${NO_COLOR}"
+      print_usage
+    fi
+  else
+    echo -e "Using kernel repo path (${KERNEL_REPO_URL})"
+    if [[ ${KERNEL_REPO_URL} =~ ^/ ]]; then
+      LINUX_SRC=${KERNEL_REPO_URL}
+    else
+      LINUX_SRC=${RUN_DIR}/${KERNEL_REPO_URL}
+    fi
+    if [[ ${KERNEL_BRANCH} =~ ^([^/]*)/ ]]; then
+      git -C ${LINUX_SRC} remote get-url ${BASH_REMATCH[1]} &>/dev/null
+      if [ $? == 0 ]; then
+        KERNEL_REMOTE=${BASH_REMATCH[1]}
+      else
+        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid" \
+                "remote; using 'origin'${NO_COLOR}"
+      fi
+    fi
+    KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url ${KERNEL_REMOTE})
+
+    # Verify that the provided repository is usable.
+    IS_BARE=$(git -C ${LINUX_SRC} rev-parse --is-bare-repository)
+    if [[ ${IS_BARE} =~ true ]]; then
+      echo -e "${COLOR_RED}ERROR: ${LINUX_SRC} is a bare repository${NO_COLOR}"
+      print_usage
+    fi
+    git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH}
+    if [ $? != 0 ]; then
+      echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} not valid in local" \
+              "tree ${LINUX_SRC}${NO_COLOR}"
+      print_usage
+    fi
   fi
 
   # Verify the overlay branch name does not already exist
@@ -138,7 +184,7 @@ print_usage() {
   printf "%${indent}s%s\n" ' ' 'of commits, or local branch'
   echo
   echo "  Usage: "
-  echo "  ./${TOOL} <kernel_tree_repo_URL> <kernel_tree_branch_name>"
+  echo "  ./${TOOL} <kernel_tree_specifier> <kernel_tree_branch_name>"
   printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b | -m ] args...'
   echo
   echo "  Input Type Options:"
@@ -152,6 +198,19 @@ print_usage() {
   echo
   echo "  ** Multiple arguments must be delimited with a space **"
   echo
+  echo "  <kernel_tree_specifier> can be either a URL or a path"
+  echo "  * If the specifier is a URL, the working kernel repository will be cloned from that URL"
+  echo "  * If the specifier is a path, it must point to the top level of a non-bare kernel clone"
+  echo "  * A relative path will be interpreted relative to the current working directory"
+  echo
+  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will be the"
+  echo "  starting point of the new overlay branch"
+  echo
+  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains a slash,"
+  echo "  the portion of <kernel_tree_branch_name> before the first slash will be used as the"
+  echo "  name of the remote to push to. In all other cases, the remote defaults to 'origin'."
+  echo
+  echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*
   exit
 }
 
@@ -346,9 +405,9 @@ _cleanup() {
   echo -en "\nCleaning up and exiting\n"
 
   if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
-    if [[ ${MANUAL_PUSH} != 0 ]]; then
-      echo "Removing ${LINUX_SRC}"
-      rm -rf ${LINUX_SRC}
+    if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
+      echo "Removing ${CLONED_KERNEL_TREE}"
+      rm -rf ${CLONED_KERNEL_TREE}
     fi
 
     echo "Removing ${VDO_TREE}"
@@ -375,12 +434,16 @@ $PROCESS_INPUT_FX
 echo # Intentional blank line
 
 # Store linux repo location as an absolute path in the current directory
-LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
 VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
 
-# Shallow clone the specified dm-linux repo branch into LINUX_SRC
-echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
-git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+if [[ -z ${LINUX_SRC} ]]; then
+  LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
+  CLONED_KERNEL_TREE=${LINUX_SRC}
+
+  # Shallow clone the specified dm-linux repo branch into LINUX_SRC
+  echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
+  git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
+fi
 
 LINUX_MD_SRC=${LINUX_SRC}/drivers/md
 LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
@@ -463,7 +526,7 @@ for change in ${COMMIT_SHAS[@]}; do
   fi
 
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
-  git -C ${LINUX_SRC} diff-index --cached --quiet HEAD
+  git -C ${LINUX_SRC} diff --quiet HEAD
   if [[ $? == 0 ]]; then
     echo "Nothing to apply - moving on."
   else
@@ -472,8 +535,8 @@ for change in ${COMMIT_SHAS[@]}; do
     if [[ $? == 0 ]]; then
       echo "Committed"
     else
-        echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
-                "'${OVERLAY_BRANCH}' failed."
+      echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
+              "'${OVERLAY_BRANCH}' failed."
       exit
     fi
   fi
@@ -493,7 +556,7 @@ cd ${LINUX_SRC}
 prompt_user_push
 
 if [[ ${MANUAL_PUSH} != 0 ]]; then
-  git push -u origin ${OVERLAY_BRANCH}
+  git push -u ${KERNEL_REMOTE} ${OVERLAY_BRANCH}
 fi
 
 exit 0
