@@ -210,7 +210,7 @@ print_usage() {
   echo "  the portion of <kernel_tree_branch_name> before the first slash will be used as the"
   echo "  name of the remote to push to. In all other cases, the remote defaults to 'origin'."
   echo
-  echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*
+  echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*"
   exit
 }
 
