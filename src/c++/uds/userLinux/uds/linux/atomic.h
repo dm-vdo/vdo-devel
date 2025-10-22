@@ -208,58 +208,59 @@ static inline void smp_mb__after_atomic(void)
  * the required ordering.
  */
 
-#define READ_ONCE(x)                                 \
-  __extension__ ({                                   \
-    union { __typeof__(x) __val; char __c[1]; } __u; \
-    read_once_size(&(x), __u.__c, sizeof(x));        \
-    __u.__val;                                       \
-  })
+#define __scalar_type_to_expr_cases(type)				\
+		unsigned type:	(unsigned type)0,			\
+		signed type:	(signed type)0
 
-#define WRITE_ONCE(x, val)                          \
-  __extension__ ({                                  \
-    union { __typeof__(x) __val; char __c[1]; } __u \
-      = { .__val = (__typeof__(x)) (val) };         \
-    write_once_size(&(x), __u.__c, sizeof(x));      \
-    __u.__val;                                      \
-  })
+#define __unqual_scalar_typeof(x) typeof(				\
+		_Generic((x),						\
+			 char:	(char)0,				\
+			 __scalar_type_to_expr_cases(char),		\
+			 __scalar_type_to_expr_cases(short),		\
+			 __scalar_type_to_expr_cases(int),		\
+			 __scalar_type_to_expr_cases(long),		\
+			 __scalar_type_to_expr_cases(long long),	\
+			 default: (x)))
 
-static inline void read_once_size(const volatile void *p, void *res, int size)
-{
-  switch (size) {
-  case 1: *(u8 *)res       = *(const volatile u8 *)p;       break;
-  case 2: *(uint16_t *)res = *(const volatile uint16_t *)p; break;
-  case 4: *(uint32_t *)res = *(const volatile uint32_t *)p; break;
-  case 8: *(uint64_t *)res = *(const volatile uint64_t *)p; break;
-  default:
-    barrier();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-    __builtin_memcpy((void *)res, (const void *)p, size);
-#pragma GCC diagnostic pop
-    barrier();
-  }
-  /*
-   * FIXME: Some platforms such as Alpha may need an additional barrier
-   * here. See https://lkml.org/lkml/2019/11/8/1021
-   */
-}
+/*
+ * A couple platforms do more work in the kernel's READ_ONCE. Arm
+ * guards against LTO optimizations that enable problematic CPU
+ * reordering, by using specially crafted asm instructions for each
+ * size of object. Alpha has to deal with address-dependent loads
+ * explicitly. We don't care about fine-tuning the performance here,
+ * so full barriers will just be simpler to maintain.
+ */
+#if defined(__aarch64__) || defined(__alpha__)
+#define mb_for_read_once() mb()
+#else
+#define mb_for_read_once() ((void)0)
+#endif
 
-static inline void write_once_size(volatile void *p, void *res, int size)
-{
-  switch (size) {
-  case 1: *(volatile u8 *)p       = *(u8 *)res;       break;
-  case 2: *(volatile uint16_t *)p = *(uint16_t *)res; break;
-  case 4: *(volatile uint32_t *)p = *(uint32_t *)res; break;
-  case 8: *(volatile uint64_t *)p = *(uint64_t *)res; break;
-  default:
-    barrier();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-    __builtin_memcpy((void *)p, (const void *)res, size);
-#pragma GCC diagnostic pop
-    barrier();
-  }
-}
+/*
+ * The casts here, when reading or writing a pointer type, trip gcc's
+ * cast-qual warning, which the kernel doesn't use normally but VDO's
+ * user-mode builds do.
+ */
+#define READ_ONCE(x)							\
+	__extension__({							\
+			typeof(&(x)) __ptr = &(x);			\
+			mb_for_read_once();				\
+			_Pragma("GCC diagnostic push");			\
+			_Pragma("GCC diagnostic ignored \"-Wcast-qual\""); \
+			__unqual_scalar_typeof(x) __val =		\
+				*((const volatile typeof(*__ptr) *)__ptr);	\
+			_Pragma("GCC diagnostic pop");			\
+			mb_for_read_once();				\
+			(typeof(x))__val;				\
+		})
+
+#define WRITE_ONCE(x, val)					\
+do {								\
+	_Pragma("GCC diagnostic push");				\
+	_Pragma("GCC diagnostic ignored \"-Wcast-qual\"");	\
+	*(volatile typeof(x) *)&(x) = (val);			\
+	_Pragma("GCC diagnostic pop");				\
+} while (0)
 #else /* TEST_INTERNAL */
 #define READ_ONCE(x)        (x)
 #define WRITE_ONCE(x, val)  ((x) = (val))
