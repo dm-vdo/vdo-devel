@@ -57,7 +57,8 @@ static int create_multi_block_bio(block_count_t size, struct bio **bio_ptr)
 	struct bio *bio = NULL;
 	int result;
 
-	result = vdo_allocate_extended(size + 1, bi_inline_vecs, "bio", &bio);
+	result = vdo_allocate_memory(sizeof(struct bio) + sizeof(struct bio_vec) * (size + 1),
+				     __alignof__(struct bio), "bio", &bio);
 	if (result != VDO_SUCCESS)
 		return result;
 
