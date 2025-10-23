@@ -11,10 +11,10 @@ use English qw(-no_match_vars);
 
 use Carp qw(confess);
 use Log::Log4perl;
+use Time::Piece;
 
 use Permabit::Assertions qw(assertDefined assertMinMaxArgs assertNumArgs);
 use Permabit::ProcessServer;
-use Permabit::SupportUtils qw(convertToFormatted);
 use Permabit::SystemUtils qw(runCommand);
 
 use base qw(Permabit::GenericCommand);
@@ -105,9 +105,9 @@ sub new {
     my @pathComponents = split('/', $self->{devicePath});
     $self->{coreFileName} = $pathComponents[-1];
   }
-  my $date = convertToFormatted(time(), 1);
-  $date =~ s/[\/:\s]/_/g;
-  $self->{_baseFileName} = join(".", $self->{coreFileName}, $date);
+  my $date = localtime(time());
+  my $datestr = $date->strftime("%m_%d_%Y_%H_%M_%S");
+  $self->{_baseFileName} = join(".", $self->{coreFileName}, $datestr);
   return $self;
 }
 
