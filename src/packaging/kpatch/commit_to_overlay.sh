@@ -5,6 +5,13 @@
 # This script is intended to be run from a developer fork of dm-vdo/vdo-devel after the relevant
 # PR(s) have been merged.
 #
+# In addition to the selected commits, the script will overlay additional bogus
+# "difference-capture" commits to account for discrepancies between the source
+# and target trees. The script will attempt to remove these commits via rebase
+# at the end of the process, but that rebase may cause conflicts and need to be
+# resolved manually in some cases. The extra commits are clearly labelled as
+# "Bogus commit" so it should be easy to determine what to drop.
+#
 # Usage:
 # ./commit_to_overlay.sh <kernel_tree_specifier> <kernel_tree_branch_name>
 #                        <overlay_branch_name> [ -c | -b | -m ] args...
@@ -36,6 +43,8 @@
 #     <kernel_tree_branch_name> contains a slash, the substring before the first slash is
 #     used as the remote to push the new branch to. The default remote is 'origin'.
 #
+# - The single commits option (-c) relies on commits appearing in commit order. If commits are
+#   provided in a different order than in the source repo, strange things may happen.
 # - The local branch option (-b) relies on detecting differences between the input branch and
 #   the remote HEAD. It is only effective before a rebase of the fork is performed.
 # - The local vdo source tree will be cloned into a local absolute path. By default, it will
@@ -62,7 +71,9 @@ COLOR_RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
 ADDITIONAL_ARGS=()   # Array of command line arguments
-COMMIT_SHAS=()       # Array of commit SHAs to be processed
+COMMIT_SHAS=()       # Array of commit SHAs to be added to the overlay
+FAKE_SHAS=()         # Array of commit SHAs to turn into bogus commits
+REMOVE_SHAS=()       # Array of bogus commit SHAs to be removed at the end
 CONFIG_MSG=()        # Array of strings to be used in the configuration message output to stdout
 INPUT_TYPE=          # Indicated input type
 OVERLAY_BRANCH=      # Name to give the kernel overlay branch being created
@@ -290,7 +301,15 @@ process_commits() {
     # Compare the first 7 characters to find duplicates, as both full and partial SHAs may be input
     # Only the first valid entry will be kept
     if [[ ! ${COMMIT_SHAS[@]} =~ ${commit::7} ]]; then
-      COMMIT_SHAS+=(${commit})
+      parent=$(git rev-parse ${commit}^1)
+      if [[ ${COMMIT_SHAS[@]} =~ ${parent::7} ]]; then
+        # If this commit's parent is already in the list, we don't need a bogus commit
+        COMMIT_SHAS+=(${commit})
+      else
+        # Apply this commit's parent as a bogus commit, but remember it for later removal
+        COMMIT_SHAS+=(${parent} ${commit})
+        FAKE_SHAS+=(${parent})
+      fi
     else
       echo "Duplicate commit SHA found and removed ($commit)"
     fi
@@ -316,9 +335,14 @@ process_merge() {
     exit
   fi
 
+  # Apply this merge commit's parent as a bogus commit, but remember it for later removal
+  parent=$(git rev-parse ${MERGE_COMMIT}^1)
+  COMMIT_SHAS=(${parent})
+  FAKE_SHAS+=(${parent})
+
   # List all commits merged in this commit
-  COMMIT_SHAS=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
-  if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
+  COMMIT_SHAS+=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
+  if [[ ${#COMMIT_SHAS[@]} == 1 ]]; then
     echo "No commits identified"
     exit
   fi
@@ -329,6 +353,11 @@ process_merge() {
 # Process the input branch, determining the applicable commit SHAs to be included in the patchset
 process_branch() {
   echo -en "\nFinding relevant commits on branch '$SOURCE_BRANCH'...\n"
+
+  # Apply the merge base as a bogus commit, but remember it for later removal
+  merge_base=$(git merge-base ${SOURCE_BRANCH} origin/HEAD)
+  COMMIT_SHAS=(${merge_base})
+  FAKE_SHAS+=(${merge_base})
 
   # List all commits on SOURCE_BRANCH that are not on origin/HEAD
   COMMIT_SHAS=($(git rev-list --reverse --no-merges ${SOURCE_BRANCH} ^origin/HEAD))
@@ -347,7 +376,9 @@ prompt_user_verify() {
   while [[ ! ${user_input} =~ ^(y|Y) ]]; do
     echo "Commits to be included in the kernel overlay:"
     for sha in ${COMMIT_SHAS[@]}; do
-      printf '%2s%s\n' '' "$(git show --no-patch --oneline ${sha})"
+      if [[ ! ${FAKE_SHAS[@]} =~ ${sha} ]]; then
+        printf '%2s%s\n' '' "$(git show --no-patch --oneline ${sha})"
+      fi
     done
 
     echo -en "\n"
@@ -478,7 +509,16 @@ for change in ${COMMIT_SHAS[@]}; do
   # Capture the commit message from the change
   echo "Creating the initial commit file using the commit message from the change"
   commit_file=$(mktemp /tmp/overlay_commit_file.XXXXX)
-  git log --format=%B -n 1 ${change} > ${commit_file}
+  if [[ ! ${FAKE_SHAS[@]} =~ ${change} ]]; then
+    git log --format=%B -n 1 ${change} > ${commit_file}
+  else
+    echo "Bogus commit: Drop before submitting upstream" > ${commit_file}
+    echo "" >> ${commit_file}
+    echo "This commit is intended to capture tree differences between" >> ${commit_file}
+    echo "vdo-devel and upstream so they don't get combined with desired" >> ${commit_file}
+    echo "changes. This commit must be dropped from the series before" >> ${commit_file}
+    echo "making a PR or submitting to upstream." >> ${commit_file}
+  fi
 
   # Capture authorship information for use later
   commit_author_email=$(git log --format=%aE -1 ${change})
@@ -534,6 +574,12 @@ for change in ${COMMIT_SHAS[@]}; do
     git -C ${LINUX_SRC} commit -s "${gitauthor}" "${gitdate}" --file "${commit_file}"
     if [[ $? == 0 ]]; then
       echo "Committed"
+      if [[ ${FAKE_SHAS[@]} =~ ${change} ]]; then
+        # Remember the new commit SHA for bogus commits. The removal list must be
+        # ordered newest to oldest, so that rebasing doesn't rewrite the SHAs of
+        # commits that haven't been handled yet.
+        REMOVE_SHAS=($(git -C ${LINUX_SRC} rev-parse HEAD) "${REMOVE_SHAS[@]}")
+      fi
     else
       echo -e "${COLOR_RED}ERROR: Applying the kernel overlay to branch" \
               "'${OVERLAY_BRANCH}' failed."
@@ -548,6 +594,19 @@ for change in ${COMMIT_SHAS[@]}; do
 
   if [[ ${DEBUG} != 0 ]]; then
     rm -fv ${build_log_file}
+  fi
+done
+
+# Loop over each commit in REMOVE_SHAS and rebase to remove it.
+# This list need to be ordered newest to oldest so rebases don't
+# rewrite the SHAs of commits we still need to remove.
+for remove_change in ${REMOVE_SHAS[@]}; do
+  git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
+  if [[ $? != 0 ]]; then
+    git -C ${LINUX_SRC} rebase --abort
+    echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed." \
+            "Fix branch manually by dropping these commits: ${REMOVE_SHAS[@]}${NO_COLOR}"
+    exit
   fi
 done
 
