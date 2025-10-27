@@ -224,7 +224,7 @@ int vio_reset_bio_with_size(struct vio *vio, char *data, int size, bio_end_io_t 
 #define VDO_USE_NEXT
 #endif
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
 #define VDO_USE_NEXT
 #endif
 #endif /* RHEL_RELEASE_CODE */
