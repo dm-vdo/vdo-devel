@@ -85,6 +85,7 @@ DEPLIBS  = $(UDS_DIR)/libuds.a
 LIBFLAGS = -pthread -lrt
 
 PROGS = vdoaudit         \
+        vdocalculatesize \
         vdodebugmetadata \
         vdodumpblockmap  \
         vdodumpmetadata  \
