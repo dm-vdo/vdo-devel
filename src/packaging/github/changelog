@@ -30,3 +30,7 @@ vdo:
 Version 8.3.1.1
 vdo:
 * Enforce minimum slab size in vdoformat.
+
+Version 8.3.2.1
+vdo:
+* Add vdocalculatesize utility.
