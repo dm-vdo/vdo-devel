@@ -11,6 +11,7 @@ use Carp qw(confess croak);
 use English qw(-no_match_vars);
 use File::Basename;
 use File::Path qw(mkpath);
+use JSON;
 use Log::Log4perl;
 
 use Permabit::Assertions qw(
@@ -192,8 +193,6 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      vdoCheckLatencies         => undef,
      # value to override default max-discard-sectors setting
      vdoMaxDiscardSectors      => undef,
-     # value to override default max-discards-active setting
-     vdoMaxDiscardsActive      => undef,
      # value to override default max-requests-active setting
      vdoMaxRequestsActive      => undef,
      # value to override default min_deduplication_timer_interval setting
@@ -400,17 +399,10 @@ sub postActivate {
     $self->setAffinityList($self->{vdoAffinityList});
   }
 
-  # Set parameters that are device specific
-  my $machine = $self->getMachine();
-  if (defined($self->{vdoMaxDiscardsActive})) {
-    $machine->setProcFile($self->{vdoMaxDiscardsActive},
-                          $self->getSysModuleDevicePath("discards_limit"));
-  }
   # These parameters are only defined on non-release builds
   eval {
     foreach my $histogram (keys(%LATENCY_CHECKS)) {
-      $machine->setProcFile(secondsToMS($self->{latencyLimit}),
-                            $self->getSysModuleDevicePath("$histogram/limit"));
+      $self->sendMessage("histogram_limit $histogram " . secondsToMS($self->{latencyLimit}));
     }
   };
 
@@ -762,11 +754,10 @@ sub waitForIndex {
   $timeout //= $self->{expectRebuild} ? 30 * $MINUTE : undef;
   $timeout //= $self->supportsPerformanceMeasurement() ? 30 : 4 * $MINUTE;
   retryUntilTimeout(sub {
-                      my $status = $self->getStatus();
-                      my $state = ($status =~ m/^(?:\S+\s){6}(\w+)/);
+                      my $state = $self->getVDODedupeStatus();
                       if ($state) {
-                        $log->debug("Index status is $1");
-                        return $statusMap{$1};
+                        $log->debug("Index status is $state");
+                        return $statusMap{$state};
                       }
                       return 0;
                     },
@@ -780,31 +771,21 @@ sub waitForIndex {
 ##
 sub getVDOCompressionStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("compressing"));
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[7];
 }
 
 ########################################################################
 # Get the dedupe status of the VDO device.
 #
-# @return the contents of the sysfs dedupe/status entry for the device
+# @return the value of the dedupe state from dmsetup status call
 ##
 sub getVDODedupeStatus {
   my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  return $machine->catAndChomp($self->getSysModuleDevicePath("dedupe/status"));
-}
-
-########################################################################
-# Get the number of dedupe queue timeouts.
-#
-# @return the number of dedupe queue timeouts.
-##
-sub getDedupeQueueTimeoutCount {
-  my ($self) = assertNumArgs(1, @_);
-  my $machine = $self->getMachine();
-  my $path = $self->getSysModuleDevicePath("dedupe/queue_timeout_count");
-  return $machine->catAndChomp($path);
+  my $status = $self->getStatus();
+  my @fields = split(' ', $status);
+  return $fields[6];
 }
 
 ########################################################################
@@ -919,7 +900,7 @@ sub enableDeduplication {
 ##
 sub isVDOCompressionEnabled {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->getVDOCompressionStatus() eq '1');
+  return ($self->getVDOCompressionStatus() eq 'online');
 }
 
 ########################################################################
@@ -1216,6 +1197,86 @@ sub logHumanVDOStats {
 }
 
 ########################################################################
+# Compare two histogram buckets for sorting.  The "Bigger" bucket is
+# always last.
+##
+sub compare_ranges {
+  if ($a eq "Bigger") {
+    return 1;
+  }
+  if ($b eq "Bigger") {
+    return -1;
+  }
+  my ($lowera) = $a =~ m/^(\d+)/;
+  my ($lowerb) = $b =~ m/^(\d+)/;
+  return $lowera <=> $lowerb;
+}
+
+########################################################################
+# Show histogram detailed output, including bars to help visualize the
+# distribution of values.
+#
+# @param histogram   The histogram to output
+#
+##
+sub logHistogramBars {
+  my ($self, $histogram) = assertNumArgs(2, @_);
+
+  if ($histogram->{"unit"}) {
+    $log->debug($histogram->{"label"} . " Histogram - number of "
+                . $histogram->{"types"} . " by "
+                . $histogram->{"metric"} . " ("
+                . $histogram->{"unit"} . ")");
+  } else {
+    $log->debug($histogram->{"label"} . " Histogram - number of "
+                . $histogram->{"types"} . " by "
+                . $histogram->{"metric"});
+  }
+
+  my $buckets = $histogram->{"buckets"};
+
+  my $total = 0;
+  foreach my $bucketRange ((keys %{ $buckets })) {
+    $total = $total + $buckets->{$bucketRange};
+  }
+
+  foreach my $bucketRange (sort compare_ranges (keys %{ $buckets })) {
+    my $value = $buckets->{$bucketRange};
+
+    my $barLength;
+    if ($total > 0) {
+      $barLength = int(($value * 50) / $total) + 1;
+      if ($barLength == 1) {
+        $barLength = 0;
+      }
+    } else {
+      $barLength = 0;
+    }
+
+    my $rangeString;
+    my $barString;
+    if ($histogram->{"logarithmic"}) {
+      if ($bucketRange eq "Bigger") {
+        $rangeString = sprintf("%-16s", $bucketRange);
+      } else {
+        my ($lower, $upper) = $bucketRange =~ m/^(\d+) - (\d+)/;
+        $rangeString = sprintf("%6d - %7d", $lower, $upper);
+      }
+    } else {
+      if ($bucketRange eq "Bigger") {
+        $rangeString = sprintf("%6s", $bucketRange);
+      } else {
+        $rangeString = sprintf("%6d", int($bucketRange));
+      }
+    }
+
+    $barString = sprintf(" : %12llu%s\n", $value, '=' x $barLength);
+    $log->debug("$rangeString $barString");
+  }
+  $log->debug("total $total");
+}
+
+########################################################################
 # Log the expected VDO histograms.
 #
 # @oparam histograms  Names of the histograms to be logged. If the list is
@@ -1226,33 +1287,32 @@ sub logHumanVDOStats {
 sub logHistograms {
   my ($self, @histograms) = assertMinArgs(1, @_);
   my $machine = $self->getMachine();
-  my %paths;
-  if (scalar(@histograms) == 0) {
-    my $sysDir = $self->getSysModuleDevicePath("");
-    $self->sendCommand("find $sysDir -name histogram -print");
-    my @foundPaths = split("\n", $machine->getStdout());
-    # Ensure there is a trailing slash so it also gets removed.
-    $sysDir =~ s|(?<!/)$|/|;
-    %paths = map {
-      dirname(substr($_, length($sysDir))) => $_
-    } @foundPaths;
-    @histograms = sort(keys(%paths));
-  } else {
-    %paths = map {
-      $_ => $self->getSysModuleDevicePath("$_/histogram")
-    } @histograms;
+  # Histograms are subject to the VDO_INTERNAL build macro.  Release builds
+  # will not have histograms.
+  my $output;
+  eval {
+    $self->sendMessage("histograms");
+    $output = $machine->getStdout();
+  };
+  if ($EVAL_ERROR) {
+    return;
   }
+  my $histogramSet = decode_json($output);
+
   $log->info("Logging histograms for $self->{vdoSymbolicPath}");
-  foreach my $label (@histograms) {
-    my $path = $paths{$label};
-    my $mean = $self->_getHistogramStatistic($label, "mean");
+  foreach my $histogram (@$histogramSet) {
+    if ((scalar(@histograms) > 0) && (!grep { $histogram->{"name"} =~ m/$_/ } @histograms)) {
+      next;
+    }
+    my $label = $histogram->{"label"};
+    my $mean = $histogram->{"mean"};
     # If the mean is undefined, it means that there were no histogram samples.
     if (defined($mean)) {
-      my $maximum = $self->_getHistogramStatistic($label, "maximum");
-      my $minimum = $self->_getHistogramStatistic($label, "minimum");
-      my $unit = $self->_getHistogramUnits($label);
+      my $maximum = $histogram->{"maximum"};
+      my $minimum = $histogram->{"minimum"};
+      my $unit = $histogram->{"unit"};
 
-      $log->debug($machine->cat($path));
+      $self->logHistogramBars($histogram);
 
       if (defined($unit)) {
         $log->debug("  $label unit is $unit");
@@ -1465,20 +1525,6 @@ sub getSysModulePath {
 }
 
 ########################################################################
-# Get the path to a sysfs file in the /sys/kvdo subtree for this particular VDO
-# device.
-#
-# @param name  Relative path name to the sysfs file
-#
-# @return the absolute path name to the sysfs file
-##
-sub getSysModuleDevicePath {
-  my ($self, $name) = assertNumArgs(2, @_);
-  my $devName = basename($self->getVDODevicePath());
-  return makeFullPath("/sys/block", $devName, "vdo", $name);
-}
-
-########################################################################
 # Get the maximum discard sectors
 #
 # @return the maximum discard sectors
@@ -1681,7 +1727,7 @@ sub getInstance {
   my $machine = $self->getMachine();
   # may not exist for upgrade tests using older versions of VDO
   return eval {
-    return $machine->catAndChomp($self->getSysModuleDevicePath("instance"));
+    return $self->getVDOStats()->{"instance"};
   };
 }
 

@@ -67,27 +67,6 @@ sub testSysfs {
   # This is the directory in /sys where block device parameters are found
   my $blockDevDir = makeFullPath("/sys/dev/block", $majorMinor);
 
-  # This is the directory in /sys where vdo device parameters are found
-  my $sysModDevDir = makeFullPath($blockDevDir, "vdo");
-
-  # Check readonly parameters
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "compressing"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_active"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "discards_maximum"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "instance"), "1");
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_active"), 0);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_limit"),
-                        $DEFAULT_MAX_REQUESTS_ACTIVE);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "requests_maximum"),
-                        undef);
-  $self->_readonlyCheck(makeFullPath($sysModDevDir, "dedupe/status"),
-                        "online");
-
-  # Check parameters writable only by root
-  $self->_writeCheck(makeFullPath($sysModDevDir, "discards_limit"),
-                     $DEFAULT_MAX_REQUESTS_ACTIVE * $DEFAULT_DISCARD_RATIO,
-                     1234);
-
   # Check reading of block device parameters
   $self->_readCheck(makeFullPath($blockDevDir, "alignment_offset"), 0);
   $self->_readCheck(makeFullPath($blockDevDir, "discard_alignment"), 0);
@@ -107,33 +86,6 @@ sub testSysfs {
                     4 * $KB);
   $self->_readCheck(makeFullPath($blockDevDir, "queue/physical_block_size"),
                     4 * $KB);
-}
-
-#############################################################################
-##
-sub testSysfsStats {
-  my ($self) = assertNumArgs(1, @_);
-  my $device = $self->getDevice();
-  my $majorMinor = join(":", $device->getVDODeviceMajorMinor());
-
-  # This is the directory in /sys where the kvdo statistics are found
-  my $statsDir = makeFullPath("/sys/dev/block", $majorMinor, "vdo/statistics");
-
-  my $stats = $device->getVDOStats();
-  # Statistics called out in VDOSTORY-72 as supported/documented
-  $self->_readCheck(makeFullPath($statsDir, "data_blocks_used"), undef);
-  $self->_readCheck(makeFullPath($statsDir, "logical_blocks_used"), undef);
-  $self->_readCheck(makeFullPath($statsDir, "physical_blocks"),
-		   $stats->{"physical blocks"});
-  $self->_readCheck(makeFullPath($statsDir, "logical_blocks"),
-		   $stats->{"logical blocks"});
-  $self->_readCheck(makeFullPath($statsDir, "mode"),
-		   $stats->{"mode"});
-
-  # Other statistics
-  $self->_readCheck(makeFullPath($statsDir, "block_size"),
-		   $stats->{"block size"});
-  $self->_readCheck(makeFullPath($statsDir, "bios_out_read"), undef);
 }
 
 #############################################################################

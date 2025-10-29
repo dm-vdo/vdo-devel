@@ -10,9 +10,6 @@
 #include <linux/blk_types.h>
 #include <linux/completion.h>
 #include <linux/dm-kcopyd.h>
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-#include <linux/kobject.h>
-#endif
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
@@ -260,8 +257,6 @@ struct vdo {
 #if defined(VDO_INTERNAL) || defined(INTERNAL)
 	/* true if sysfs directory is set up */
 	bool sysfs_added;
-	/* Used when shutting down the sysfs statistics */
-	struct completion stats_shutdown;
 #endif
 
 #ifdef VDO_INTERNAL
@@ -278,12 +273,6 @@ struct vdo {
 	u64 starting_sector_offset;
 	struct volume_geometry geometry;
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-	/* For sysfs */
-	struct kobject vdo_directory;
-	struct kobject stats_directory;
-
-#endif
 	/* N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compression_context;
 };
@@ -334,10 +323,6 @@ void vdo_destroy(struct vdo *vdo);
 
 void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent);
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-int __must_check vdo_add_sysfs_stats_dir(struct vdo *vdo);
-
-#endif
 struct block_device * __must_check vdo_get_backing_device(const struct vdo *vdo);
 
 const char * __must_check vdo_get_device_name(const struct dm_target *target);

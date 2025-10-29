@@ -53,9 +53,6 @@
 #include "logical-zone.h"
 #include "packer.h"
 #include "physical-zone.h"
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-#include "pool-sysfs.h"
-#endif
 #include "recovery-journal.h"
 #include "slab-depot.h"
 #include "statistics.h"
@@ -708,15 +705,6 @@ void vdo_destroy(struct vdo *vdo)
 
 	vdo->allocations_allowed = true;
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-	/* Stop services that need to gather VDO statistics from the worker threads. */
-	if (vdo->sysfs_added) {
-		init_completion(&vdo->stats_shutdown);
-		kobject_put(&vdo->stats_directory);
-		wait_for_completion(&vdo->stats_shutdown);
-	}
-
-#endif
 	finish_vdo(vdo);
 	unregister_vdo(vdo);
 	free_data_vio_pool(vdo->data_vio_pool);
@@ -751,22 +739,10 @@ void vdo_destroy(struct vdo *vdo)
 
 		vdo_free(vdo_forget(vdo->compression_context));
 	}
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-
-	/*
-	 * The call to kobject_put on the kobj sysfs node will decrement its reference count; when
-	 * the count goes to zero the VDO object will be freed as a side effect.
-	 */
 #ifdef VDO_INTERNAL
 	vdo_destroy_histograms(&vdo->histograms);
 #endif /* VDO_INTERNAL */
-	if (!vdo->sysfs_added)
-		vdo_free(vdo);
-	else
-		kobject_put(&vdo->vdo_directory);
-#else
 	vdo_free(vdo);
-#endif
 }
 
 static int initialize_super_block(struct vdo *vdo, struct vdo_super_block *super_block)
@@ -843,44 +819,6 @@ void vdo_load_super_block(struct vdo *vdo, struct vdo_completion *parent)
 				REQ_OP_READ);
 }
 
-#if defined(VDO_INTERNAL) || defined(INTERNAL)
-/**
- * pool_stats_release() - Signal that sysfs stats have been shut down.
- * @directory: The vdo stats directory.
- */
-static void pool_stats_release(struct kobject *directory)
-{
-	struct vdo *vdo = container_of(directory, struct vdo, stats_directory);
-
-	complete(&vdo->stats_shutdown);
-}
-
-ATTRIBUTE_GROUPS(vdo_pool_stats);
-static const struct kobj_type stats_directory_type = {
-	.release = pool_stats_release,
-	.sysfs_ops = &vdo_pool_stats_sysfs_ops,
-	.default_groups = vdo_pool_stats_groups,
-};
-
-/**
- * vdo_add_sysfs_stats_dir() - Add the stats directory to the vdo sysfs directory.
- * @vdo: The vdo.
- *
- * Return: VDO_SUCCESS or an error.
- */
-int vdo_add_sysfs_stats_dir(struct vdo *vdo)
-{
-	int result;
-
-	kobject_init(&vdo->stats_directory, &stats_directory_type);
-	result = kobject_add(&vdo->stats_directory, &vdo->vdo_directory, "statistics");
-	if (result != 0)
-		return VDO_CANT_ADD_SYSFS_NODE;
-
-	return VDO_SUCCESS;
-}
-
-#endif
 /**
  * vdo_get_backing_device() - Get the block device object underlying a vdo.
  * @vdo: The vdo.
