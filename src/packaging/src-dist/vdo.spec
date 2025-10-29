@@ -65,6 +65,7 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 
 %files
 %license COPYING
+%{_bindir}/vdocalculatesize
 %{_bindir}/vdoforcerebuild
 %{_bindir}/vdoformat
 %{_bindir}/vdostats
@@ -75,6 +76,7 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_logicalSpace.pl
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_physicalSpace.pl
 %doc %{_defaultdocdir}/%{name}/examples/monitor/monitor_check_vdostats_savingPercent.pl
+%{_mandir}/man8/vdocalculatesize.8*
 %{_mandir}/man8/vdoforcerebuild.8*
 %{_mandir}/man8/vdoformat.8*
 %{_mandir}/man8/vdostats.8*
@@ -98,6 +100,9 @@ make install DESTDIR=$RPM_BUILD_ROOT INSTALLOWNER= name=%{name} bindir=%{_bindir
 %{_mandir}/man8/vdorecover.8*
 
 %changelog
+* Tue Oct 28 2025 - Chung Chung <cchung@redhat.com> - 8.4.0.0-35
+- Add vdocalculatesize utility.
+
 * Mon May 20 2024 - Matthew Sakai <msakai@redhat.com> - 8.4.0.0-34
 - Removed vdodmeventd, vdosetuuid, vdodumpconfig, and vdoregenerategeometry.
 
