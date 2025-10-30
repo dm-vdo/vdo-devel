@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   Run-Common-CI:
-    uses: dm-vdo/vdo-org-actions/.github/workflows/ci.yaml@main
+    uses: dm-vdo/vdo-org-actions/.github/workflows/ci.yaml@raeburn-test
     with:
       logfile: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
       run-public-build: true
