@@ -65,6 +65,17 @@ recent updates enter the mainline Linux kernel through the
 Userspace tools for managing dm-vdo device-mapper targets are published
 periodically through the [vdo](https://github.com/dm-vdo/vdo) repository.
 
+Branch name | RHEL version
+:---------- | :--------------------------
+8.3         | RHEL 10 ongoing development 
+8.3.0       | RHEL 10.0 (GA)       
+8.3.1       | RHEL 10.1            
+
+Release branches are named for their primary version number. They are intended
+to track userspace releases, but they are kept up-to-date with the RHEL kernel
+in order to run tests on them. As RHEL versions are released, new branches will
+be created to track them.
+
 ## Building
 
 In order to build the entire project, invoke the following command from the
