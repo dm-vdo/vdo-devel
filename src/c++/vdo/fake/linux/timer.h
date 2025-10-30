@@ -40,25 +40,7 @@ int mod_timer(struct timer_list *timer, unsigned long expires);
 int del_timer_sync(struct timer_list *timer);
 int timer_delete_sync(struct timer_list *timer);
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#include <linux/version.h>
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(11, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* RHEL_RELEASE_CODE */
-#endif /* VDO_UPSTREAM */
-#ifdef VDO_USE_ALTERNATE
-#define from_timer(var, callback_timer, timer_fieldname) \
-	container_of(callback_timer, typeof(*var), timer_fieldname)
-#else
 #define timer_container_of(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
-#endif /* VDO_USE_ALTERNATE */
 
 #endif /* LINUX_TIMER_H */

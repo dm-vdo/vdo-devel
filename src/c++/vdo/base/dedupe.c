@@ -2392,25 +2392,9 @@ static void timeout_index_operations_callback(struct vdo_completion *completion)
 	check_for_drain_complete(zone);
 }
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(11, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* RHEL_RELEASE_CODE */
-#endif /* VDO_UPSTREAM */
 static void timeout_index_operations(struct timer_list *t)
 {
-#ifdef VDO_USE_ALTERNATE
-	struct hash_zone *zone = from_timer(zone, t, timer);
-#else
 	struct hash_zone *zone = timer_container_of(zone, t, timer);
-#endif /* VDO_USE_ALTERNATE */
 
 	if (change_timer_state(zone, DEDUPE_QUERY_TIMER_RUNNING,
 			       DEDUPE_QUERY_TIMER_FIRED))
