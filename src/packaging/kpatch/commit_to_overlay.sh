@@ -19,6 +19,7 @@
 # Input Type Options:
 #  -c  Process a commit or series of commits into a kernel overlay branch
 #  -b  Process all changes on a local branch into a kernel overlay branch
+#  -m  Process all changes merged in the named merge commit
 #
 # Accepted Arguments:
 #  Commit SHA(s) ordered from oldest to newest
