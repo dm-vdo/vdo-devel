@@ -9,8 +9,8 @@ X86_RHEL9_head:
   arch: X86_64
   moduleVersion: head
 
-X86_FEDORA41_head:
-  rsvpOSClass: FEDORA41
+X86_FEDORA42_head:
+  rsvpOSClass: FEDORA42
   arch: X86_64
   moduleVersion: head
 
