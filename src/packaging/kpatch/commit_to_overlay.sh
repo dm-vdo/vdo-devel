@@ -1,6 +1,6 @@
 #!/bin/bash
 # commit_to_overlay.sh
-# Create a kernel tree overlay branch from a commit, series of commits, or local branch.
+# Create a kernel tree overlay branch from a commit or series of commits.
 #
 # This script is intended to be run from a developer fork of dm-vdo/vdo-devel after the relevant
 # PR(s) have been merged.
@@ -14,16 +14,14 @@
 #
 # Usage:
 # ./commit_to_overlay.sh <kernel_tree_specifier> <kernel_tree_branch_name>
-#                        <overlay_branch_name> [ -c | -b | -m ] args...
+#                        <overlay_branch_name> [ -c | -m ] args...
 #
 # Input Type Options:
 #  -c  Process a commit or series of commits into a kernel overlay branch
-#  -b  Process all changes on a local branch into a kernel overlay branch
 #  -m  Process all changes merged in the named merge commit
 #
 # Accepted Arguments:
 #  Commit SHA(s) ordered from oldest to newest
-#  Local branch name
 #
 # ** Multiple arguments must be delimited with a space **
 #
@@ -46,8 +44,6 @@
 #
 # - The single commits option (-c) relies on commits appearing in commit order. If commits are
 #   provided in a different order than in the source repo, strange things may happen.
-# - The local branch option (-b) relies on detecting differences between the input branch and
-#   the remote HEAD. It is only effective before a rebase of the fork is performed.
 # - The local vdo source tree will be cloned into a local absolute path. By default, it will
 #   be removed upon exiting the script, unless the DEBUG flag is set.
 # - Output from building the VDO tree while processing each change can be found in the
@@ -84,7 +80,6 @@ KERNEL_REPO_URL=     # URL or path for the kernel repo where the overlay branch 
 KERNEL_BRANCH=       # Kernel tree branch to base the overlay on
 KERNEL_REMOTE=origin # Kernel remote to push changes to
 PROCESS_INPUT_FX=    # Function to call to process the input(s)
-SOURCE_BRANCH=       # Branch on the source repo where the relevant commits were made
 MERGE_COMMIT=        # Merge commit to find commits to apply
 
 # Expand the arguments provided into the necessary parameters to operate on.
@@ -108,19 +103,6 @@ process_args() {
     "-c"|"--c"|"c")
       PROCESS_INPUT_FX=process_commits
       CONFIG_MSG=("commit" "Commit(s) to be used in overlay:")
-      ;;
-    "-b"|"--b"|"b")
-      PROCESS_INPUT_FX=process_branch
-      CONFIG_MSG=("branch" "Local branch to be used in overlay:")
-      SOURCE_BRANCH=${ADDITIONAL_ARGS[0]}
-
-      # Verify input branch exists
-      git ls-remote --exit-code --heads --refs ${SOURCE_REPO_URL} ${SOURCE_BRANCH} &>/dev/null
-      if [ $? == 2 ]; then
-        echo -e "${COLOR_RED}ERROR: Branch ${SOURCE_BRANCH} not found on repo" \
-                "$(get_repo_name ${SOURCE_REPO_URL})${NO_COLOR}"
-        print_usage
-      fi
       ;;
     "-m"|"--m"|"m")
       PROCESS_INPUT_FX=process_merge
@@ -192,21 +174,19 @@ print_usage() {
   indent=$((${#TOOL}+2))
 
   echo
-  echo "${TOOL}: Create a kernel tree overlay branch from a commit, series"
-  printf "%${indent}s%s\n" ' ' 'of commits, or local branch'
+  echo "${TOOL}: Create a kernel tree overlay branch from a commit or a"
+  printf "%${indent}s%s\n" ' ' 'series of commits.'
   echo
   echo "  Usage: "
   echo "  ./${TOOL} <kernel_tree_specifier> <kernel_tree_branch_name>"
-  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b | -m ] args...'
+  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -m ] args...'
   echo
   echo "  Input Type Options:"
   echo "     -c  Process a commit or series of commits into a kernel overlay branch"
-  echo "     -b  Process all changes on a local branch into a kernel overlay branch"
   echo "     -m  Process all changes merged in the named merge commit"
   echo
   echo "  Accepted Arguments:"
   echo "     Commit SHA(s) ordered from oldest to newest"
-  echo "     Local branch name"
   echo
   echo "  ** Multiple arguments must be delimited with a space **"
   echo
@@ -243,7 +223,6 @@ print_config() {
   printf '=%.0s' $(seq 1 ${#title_str})
   echo # Intentional blank line
   echo "* Source repo: ${SOURCE_REPO_URL}"
-  echo "* Source branch: ${SOURCE_BRANCH}"
   echo "* Kernel repo: ${KERNEL_REPO_URL}"
   echo "* Overlay branch to be created on kernel repo: ${OVERLAY_BRANCH}"
   echo "* Processing based on: ${CONFIG_MSG[0]}"
@@ -257,40 +236,9 @@ print_config() {
   echo -en "\n\n"
 }
 
-# Checkout the SOURCE_BRANCH if not already checked out
-checkout_source_branch() {
-  echo "Checking out the VDO source branch..."
-
-  # Determine the source branch if unknown
-  if [[ -z ${SOURCE_BRANCH} ]]; then
-    SOURCE_BRANCH=$(git branch --show-current)
-
-    # If a branch is not checked out, `git branch --show-current` will return an empty string
-    if [[ -z ${SOURCE_BRANCH} ]]; then
-      status=$(git status)
-      branch_name="${status%% *}"
-      SOURCE_BRANCH=$(git name-rev --name-only $branch_name)
-    fi
-  fi
-
-  current_branch=$(git name-rev --name-only $(git branch --show-current))
-  if [[ ! ${current_branch} =~ ${SOURCE_BRANCH} ]]; then
-    # Fail if pending tracked/untracked changes are identified
-    if [[ $(git status -s | wc -l) == 0 ]]; then
-      git checkout ${SOURCE_BRANCH}
-    else
-      echo -e "${COLOR_RED}ERROR: Unable to checkout branch '${SOURCE_BRANCH}' - unclean tree"
-      echo -e "Please resolve the issue and re-run this script${NO_COLOR}"
-      exit
-    fi
-  else
-    echo "Branch ${SOURCE_BRANCH} already checked out"
-  fi
-}
-
 # Process the input commit SHA(s), verifying they are valid
 process_commits() {
-  echo -en "\nValidating input commit SHAs on branch '${SOURCE_BRANCH}'...\n"
+  echo -en "\nValidating input commit SHAs...\n"
   for commit in ${ADDITIONAL_ARGS[@]}; do
     git show ${commit} &>/dev/null
     if [ $? != 0 ]; then
@@ -344,25 +292,6 @@ process_merge() {
   # List all commits merged in this commit
   COMMIT_SHAS+=($(git rev-list --reverse --no-merges ${MERGE_COMMIT}^2 ^${MERGE_COMMIT}^1))
   if [[ ${#COMMIT_SHAS[@]} == 1 ]]; then
-    echo "No commits identified"
-    exit
-  fi
-
-  prompt_user_verify
-}
-
-# Process the input branch, determining the applicable commit SHAs to be included in the patchset
-process_branch() {
-  echo -en "\nFinding relevant commits on branch '$SOURCE_BRANCH'...\n"
-
-  # Apply the merge base as a bogus commit, but remember it for later removal
-  merge_base=$(git merge-base ${SOURCE_BRANCH} origin/HEAD)
-  COMMIT_SHAS=(${merge_base})
-  FAKE_SHAS+=(${merge_base})
-
-  # List all commits on SOURCE_BRANCH that are not on origin/HEAD
-  COMMIT_SHAS=($(git rev-list --reverse --no-merges ${SOURCE_BRANCH} ^origin/HEAD))
-  if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
     echo "No commits identified"
     exit
   fi
@@ -460,7 +389,6 @@ test "$#" -lt 5 && print_usage
 
 process_args $@
 print_config
-checkout_source_branch
 $PROCESS_INPUT_FX
 
 echo # Intentional blank line
