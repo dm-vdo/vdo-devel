@@ -116,7 +116,7 @@ process_args() {
   esac
 
   if [[ ${KERNEL_REPO_URL} =~ : ]]; then
-    echo -e "Using kernel repo URL (${KERNEL_REPO_URL})"
+    echo "Using kernel repo URL (${KERNEL_REPO_URL})"
     git ls-remote --exit-code ${KERNEL_REPO_URL} ${KERNEL_BRANCH} &>/dev/null
     return=$?
     if [ $return == 128 ]; then
@@ -129,7 +129,7 @@ process_args() {
       print_usage
     fi
   else
-    echo -e "Using kernel repo path (${KERNEL_REPO_URL})"
+    echo "Using kernel repo path (${KERNEL_REPO_URL})"
     if [[ ${KERNEL_REPO_URL} =~ ^/ ]]; then
       LINUX_SRC=${KERNEL_REPO_URL}
     else
@@ -140,8 +140,8 @@ process_args() {
       if [ $? == 0 ]; then
         KERNEL_REMOTE=${BASH_REMATCH[1]}
       else
-        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid" \
-                "remote; using 'origin'${NO_COLOR}"
+        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid remote"
+        echo -e "Using 'origin' instead${NO_COLOR}"
       fi
     fi
     KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url ${KERNEL_REMOTE})
@@ -154,7 +154,7 @@ process_args() {
     fi
     git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH}
     if [ $? != 0 ]; then
-      echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} not valid in local" \
+      echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} does not exist in local" \
               "tree ${LINUX_SRC}${NO_COLOR}"
       print_usage
     fi
@@ -190,19 +190,21 @@ print_usage() {
   echo
   echo "  ** Multiple arguments must be delimited with a space **"
   echo
-  echo "  <kernel_tree_specifier> can be either a URL or a path"
-  echo "  * If the specifier is a URL, the working kernel repository will be cloned from that URL"
-  echo "  * If the specifier is a path, it must point to the top level of a non-bare kernel clone"
-  echo "  * A relative path will be interpreted relative to the current working directory"
+  echo "  <kernel_tree_specifier> can be either a URL or a path:"
+  echo "  * If a URL is given, the kernel repository will be cloned from that URL"
+  echo "  * If a path is given, it must be the top level of a non-bare kernel clone"
+  echo "  * A relative path will be resolved from the current working directory"
   echo
-  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will be the"
-  echo "  starting point of the new overlay branch"
+  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will"
+  echo "  be the starting point of the new overlay branch"
   echo
-  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains a slash,"
-  echo "  the portion of <kernel_tree_branch_name> before the first slash will be used as the"
-  echo "  name of the remote to push to. In all other cases, the remote defaults to 'origin'."
+  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains"
+  echo "  a slash, the portion of <kernel_tree_branch_name> before the first slash"
+  echo "  will be used as the name of the remote to push to. In all other cases, the"
+  echo "  remote defaults to 'origin'."
   echo
-  echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*"
+  echo "  If the script exits with an error, details can be found in the build logs"
+  echo "  in /tmp/overlay_build_log*"
   exit
 }
 
@@ -219,7 +221,8 @@ get_repo_name() {
 print_config() {
   title_str="Proceeding with the following configuration:"
 
-  echo -en "\n$title_str\n"
+  echo
+  echo "$title_str"
   printf '=%.0s' $(seq 1 ${#title_str})
   echo # Intentional blank line
   echo "* Source repo: ${SOURCE_REPO_URL}"
@@ -233,12 +236,14 @@ print_config() {
   done
 
   printf '=%.0s' $(seq 1 ${#title_str})
-  echo -en "\n\n"
+  echo
+  echo
 }
 
 # Process the input commit SHA(s), verifying they are valid
 process_commits() {
-  echo -en "\nValidating input commit SHAs...\n"
+  echo
+  echo "Validating input commit SHAs..."
   for commit in ${ADDITIONAL_ARGS[@]}; do
     git show ${commit} &>/dev/null
     if [ $? != 0 ]; then
@@ -247,7 +252,7 @@ process_commits() {
       exit
     fi
 
-    # Compare the first 7 characters to find duplicates, as both full and partial SHAs may be input
+    # Compare the first 7 characters to find duplicates, to account for partial SHAs
     # Only the first valid entry will be kept
     if [[ ! ${COMMIT_SHAS[@]} =~ ${commit::7} ]]; then
       parent=$(git rev-parse ${commit}^1)
@@ -269,7 +274,8 @@ process_commits() {
 
 # Process the input commit SHA(s), verifying they are valid
 process_merge() {
-  echo -en "\nValidating input commit SHA ($MERGE_COMMIT)...\n"
+  echo
+  echo "Validating input commit SHA ($MERGE_COMMIT)..."
   git show ${MERGE_COMMIT} &>/dev/null
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
@@ -311,7 +317,7 @@ prompt_user_verify() {
       fi
     done
 
-    echo -en "\n"
+    echo
     read -p "Is this correct? [y - proceed | n - exit]: " user_input
     case "${user_input}" in
       "y"*|"Y"*)
@@ -322,8 +328,9 @@ prompt_user_verify() {
         exit
         ;;
       *)
-        echo -en "${COLOR_RED}ERROR: Invalid response.\nPlease enter 'y' to proceed, or 'n' to" \
-                 "exit.${NO_COLOR}\n\n"
+        echo -e "${COLOR_RED}ERROR: Invalid response."
+        echo -e "Please enter 'y' to proceed, or 'n' to exit.${NO_COLOR}"
+        echo
         ;;
     esac
   done
@@ -334,15 +341,17 @@ prompt_user_push() {
   user_input=""
 
   while [[ ! ${user_input} =~ ^(y|Y|m|M) ]]; do
-    echo -en "\nPlease verify everything expected has been applied to overlay branch" \
-             "${OVERLAY_BRANCH}.\n"
+    echo
+    echo "Please verify everything expected has been applied to overlay branch" \
+         "${OVERLAY_BRANCH}."
     echo "Ready to push ${OVERLAY_BRANCH} to $(get_repo_name ${KERNEL_REPO_URL})?"
-    echo -en "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
+    echo -n "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
     read user_input
 
     case "${user_input}" in
       "y"*|"Y"*)
-        echo -en "Proceeding with push.\n\n"
+        echo "Proceeding with push."
+        echo
         ;;
       "n"*|"N"*)
         exit
@@ -352,9 +361,10 @@ prompt_user_push() {
         MANUAL_PUSH=0
         ;;
       *)
-        echo -en "${COLOR_RED}ERROR: Invalid response.\nPlease enter 'y' to proceed with push," \
-                 "'n' to delete the branch and exit,\nor 'm' to retain the branch for manual" \
-                 "push at a later time.${NO_COLOR}\n\n"
+        echo -e "${COLOR_RED}ERROR: Invalid response."
+        echo -e "Please enter 'y' to proceed with push, 'n' to delete the branch and exit,"
+        echo -e "or 'm' to retain the branch for manual push at a later time.${NO_COLOR}"
+        echo
         ;;
     esac
   done
@@ -363,7 +373,8 @@ prompt_user_push() {
 # Cleanup artifacts
 _cleanup() {
   cd $RUN_DIR
-  echo -en "\nCleaning up and exiting\n"
+  echo
+  echo "Cleaning up and exiting"
 
   if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
     if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
@@ -414,18 +425,20 @@ git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 
 # Need to detect that our repo is x number of commits ahead of dm-vdo/vdo-devel
 # Clone the current repo as ${VDO_TREE}? Is VDO_TREE even needed? Aren't we working from the clone when this script is called? Need to make a copy?
-echo -en "\nCloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})\n"
+echo
+echo "Cloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})"
 git clone $SOURCE_REPO_URL ${VDO_TREE}
 
 # Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
 for change in ${COMMIT_SHAS[@]}; do
-  echo -en "\nProcessing changes from commit $change\n"
+  echo
+  echo "Processing changes from commit $change"
 
   cd ${VDO_TREE}
 
   # Clean up from the last build, if necessary
   if [[ "${change}" != "${COMMIT_SHAS[0]}" ]]; then
-    echo -en "Cleaning up from the last build... "
+    echo -n "Cleaning up from the last build... "
     git clean -fdxq
     echo "Done"
   fi
@@ -458,12 +471,12 @@ for change in ${COMMIT_SHAS[@]}; do
 
   # Build the perl tree so the prepare script can run.
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
-  echo -en "Building the VDO perl directory... "
+  echo -n "Building the VDO perl directory... "
   make -C src/perl >> ${build_log_file} 2>&1
   if [[ $? != 0 ]]; then
     echo
-    echo -e "${COLOR_RED}ERROR: Building the VDO tree failed. See ${build_log_file} for more" \
-            "information.${NO_COLOR}"
+    echo -e "${COLOR_RED}ERROR: Building the VDO tree failed."
+    echo -e "See ${build_log_file} for more information.${NO_COLOR}"
     exit
   fi
   echo "Done"
@@ -475,8 +488,8 @@ for change in ${COMMIT_SHAS[@]}; do
   export LINUX_SRC=${LINUX_SRC}
   make prepare >> ${build_log_file}
   if [[ $? != 0 ]]; then
-    echo -e "${COLOR_RED}ERROR: Preparing kernel files failed. See ${build_log_file} for" \
-            "more information.${NO_COLOR}"
+    echo -e "${COLOR_RED}ERROR: Preparing kernel files failed."
+    echo -e "See ${build_log_file} for more information.${NO_COLOR}"
     exit
   fi
 
@@ -531,8 +544,9 @@ for remove_change in ${REMOVE_SHAS[@]}; do
   git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
   if [[ $? != 0 ]]; then
     git -C ${LINUX_SRC} rebase --abort
-    echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed." \
-            "Fix branch manually by dropping these commits: ${REMOVE_SHAS[@]}${NO_COLOR}"
+    echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed."
+    echo -e "Fix branch manually by dropping these commits:"
+    echo -e "  ${REMOVE_SHAS[@]}${NO_COLOR}"
     exit
   fi
 done
