@@ -456,19 +456,17 @@ for change in ${COMMIT_SHAS[@]}; do
   gitauthor="--author=\"${commit_author_name} <${commit_author_email}>\""
   gitdate="--date=\"${commit_date}\""
 
-  # Build the necessary parts of the tree
+  # Build the perl tree so the prepare script can run.
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
   echo -en "Building the VDO perl directory... "
   make -C src/perl >> ${build_log_file} 2>&1
-  echo
-  echo -en "Generating VDO statistics files... "
-  make -C src/stats >> ${build_log_file} 2>&1
-  echo "Done"
   if [[ $? != 0 ]]; then
+    echo
     echo -e "${COLOR_RED}ERROR: Building the VDO tree failed. See ${build_log_file} for more" \
             "information.${NO_COLOR}"
     exit
   fi
+  echo "Done"
 
   # Generate the kernel overlay and apply it to the linux tree
   echo "Generating the kernel overlay"
