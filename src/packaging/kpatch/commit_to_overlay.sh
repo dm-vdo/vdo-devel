@@ -2,8 +2,8 @@
 # commit_to_overlay.sh
 # Create a kernel tree overlay branch from a commit or series of commits.
 #
-# This script is intended to be run from a developer fork of dm-vdo/vdo-devel after the relevant
-# PR(s) have been merged.
+# This script is intended to be run from a developer fork of dm-vdo/vdo-devel
+# after the relevant PR(s) have been merged.
 #
 # In addition to the selected commits, the script will overlay additional bogus
 # "difference-capture" commits to account for discrepancies between the source
@@ -27,33 +27,42 @@
 #
 # Notes:
 # - The <kernel_tree_specifier> argument can be either a URL or a path.
-#   - If the specifier is a URL, the working kernel repository will be cloned from that URL.
-#     This local clone will be removed upon exiting the script, unless the DEBUG flag is set
-#     or the manual push option is selected. It is recommended that the SSH URL is used,
-#     as GitHub prompts for a username and password when an HTTPS URL is used.
-#     The <kernel_tree_branch_name> argument must be a branch in the given repository, which
-#     will be the starting point of the new overlay branch.
 #
-#   - If the specifier is a path, it must point to the top level of a kernel clone, and must not
-#     be a bare repository. This clone will create the new overlay branch but it will not otherwise
-#     be altered. A relative path will be interpreted relative to the current working directory.
-#     The <kernel_tree_branch_name> argument must resolve to a commit in the given repository,
-#     which will be the starting point of the new overlay branch. Additionally, if the
-#     <kernel_tree_branch_name> contains a slash, the substring before the first slash is
-#     used as the remote to push the new branch to. The default remote is 'origin'.
+#   - If the specifier is a URL, the working kernel repository will be cloned
+#     from that URL.  This local clone will be removed upon exiting the script,
+#     unless the DEBUG flag is set or the manual push option is selected. It is
+#     recommended that the SSH URL is used, as GitHub prompts for a username
+#     and password when an HTTPS URL is used.  The <kernel_tree_branch_name>
+#     argument must be a branch in the given repository, which will be the
+#     starting point of the new overlay branch.
 #
-# - The single commits option (-c) relies on commits appearing in commit order. If commits are
-#   provided in a different order than in the source repo, strange things may happen.
-# - The local vdo source tree will be cloned into a local absolute path. By default, it will
-#   be removed upon exiting the script, unless the DEBUG flag is set.
-# - Output from building the VDO tree while processing each change can be found in the
-#   /tmp/overlay_build_log* file. The log is removed at the end of each loop iteration upon success.
-#   It is retained until the commit_to_overlay.sh script is re-run upon failure, or when the DEBUG
-#   flag is set.
+#   - If the specifier is a path, it must point to the top level of a kernel
+#     clone, and must not be a bare repository. This clone will create the new
+#     overlay branch but it will not otherwise be altered. A relative path will
+#     be interpreted relative to the current working directory.  The
+#     <kernel_tree_branch_name> argument must resolve to a commit in the given
+#     repository, which will be the starting point of the new overlay
+#     branch. Additionally, if the <kernel_tree_branch_name> contains a slash,
+#     the substring before the first slash is used as the remote to push the
+#     new branch to. The default remote is 'origin'.
+#
+# - The single commits option (-c) relies on commits appearing in commit
+#   order. If commits are provided in a different order than in the source
+#   repo, strange things may happen.
+#
+# - The local vdo source tree will be cloned into a local absolute path. By
+#   default, it will be removed upon exiting the script, unless the DEBUG flag
+#   is set.
+#
+# - Output from building the VDO tree while processing each change can be found
+#   in the /tmp/overlay_build_log* file. The log is removed at the end of each
+#   loop iteration upon success.  It is retained until the commit_to_overlay.sh
+#   script is re-run upon failure, or when the DEBUG flag is set.
 #
 # Potential Future Modifications:
-# - Add a proper optional argument for specifying the remote instead of using part of
-#   <kernel_tree_branch_name>.
+#
+# - Add a proper optional argument for specifying the remote instead of using
+#   part of <kernel_tree_branch_name>.
 ##
 
 if [[ -z ${DEBUG} ]]; then
@@ -67,20 +76,34 @@ MANUAL_PUSH=1
 COLOR_RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
-ADDITIONAL_ARGS=()   # Array of command line arguments
-COMMIT_SHAS=()       # Array of commit SHAs to be added to the overlay
-FAKE_SHAS=()         # Array of commit SHAs to turn into bogus commits
-REMOVE_SHAS=()       # Array of bogus commit SHAs to be removed at the end
-CONFIG_MSG=()        # Array of strings to be used in the configuration message output to stdout
-INPUT_TYPE=          # Indicated input type
-OVERLAY_BRANCH=      # Name to give the kernel overlay branch being created
-LINUX_SRC=           # Path to the kernel tree
-CLONED_KERNEL_TREE=  # Path to the cloned kernel tree, if any
-KERNEL_REPO_URL=     # URL or path for the kernel repo where the overlay branch will be created
-KERNEL_BRANCH=       # Kernel tree branch to base the overlay on
-KERNEL_REMOTE=origin # Kernel remote to push changes to
-PROCESS_INPUT_FX=    # Function to call to process the input(s)
-MERGE_COMMIT=        # Merge commit to find commits to apply
+# Array of command line arguments
+ADDITIONAL_ARGS=()
+# Array of commit SHAs to be added to the overlay
+COMMIT_SHAS=()
+# Array of commit SHAs to turn into bogus commits
+FAKE_SHAS=()
+# Array of bogus commit SHAs to be removed at the end
+REMOVE_SHAS=()
+# Array of strings to be used in the configuration message output to stdout
+CONFIG_MSG=()
+# Indicated input type
+INPUT_TYPE=
+# Name to give the kernel overlay branch being created
+OVERLAY_BRANCH=
+# Path to the kernel tree
+LINUX_SRC=
+# Path to the cloned kernel tree, if any
+CLONED_KERNEL_TREE=
+# URL or path for the kernel repo where the overlay branch will be created
+KERNEL_REPO_URL=
+# Kernel tree branch to base the overlay on
+KERNEL_BRANCH=
+# Kernel remote to push changes to
+KERNEL_REMOTE=origin
+# Function to call to process the input(s)
+PROCESS_INPUT_FX=
+# Merge commit to find commits to apply
+MERGE_COMMIT=
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
@@ -423,8 +446,6 @@ LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
 cd $LINUX_SRC
 git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 
-# Need to detect that our repo is x number of commits ahead of dm-vdo/vdo-devel
-# Clone the current repo as ${VDO_TREE}? Is VDO_TREE even needed? Aren't we working from the clone when this script is called? Need to make a copy?
 echo
 echo "Cloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})"
 git clone $SOURCE_REPO_URL ${VDO_TREE}
@@ -443,7 +464,8 @@ for change in ${COMMIT_SHAS[@]}; do
     echo "Done"
   fi
 
-  # Check out the new version to build and post - do we need to do this - it puts us in a detached HEAD state, so commits will not be retained
+  # This puts us in a detached HEAD state
+  # Perhaps we should suppress the warning
   #sudo git config --system advice.detachedHead "false"
   echo "Checking out the change to build and post it"
   git checkout ${change}
