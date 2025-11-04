@@ -7,6 +7,7 @@ package Permabit::ModuleBase;
 
 use strict;
 use warnings FATAL => qw(all);
+use Carp qw(croak);
 use English qw(-no_match_vars);
 use Log::Log4perl;
 use Permabit::Assertions qw(
@@ -135,6 +136,27 @@ sub loadFromFiles {
 }
 
 ###############################################################################
+# Check for DKMS build failure during an installation step.
+#
+# @param output   The command output to examine
+##
+sub _checkDKMSBuildFailure {
+  my ($self, $output)= assertNumArgs(2, @_);
+  my $dkms_build_err = qr/Consult (\/var\/lib\/dkms\/.*\/build\/make.log) for more information/;
+
+  if ($output =~ $dkms_build_err) {
+    $log->error($output);
+    my $makeLog;
+    eval {
+      $makeLog = $self->{machine}->cat($1);
+    };
+    if ($makeLog) {
+      croak("rpm install logged a dkms build error: $makeLog");
+    }
+  }
+}
+
+###############################################################################
 # Load the module from a binary RPM on the remote host.
 #
 # @param filename      The name of the binary RPM to load
@@ -154,10 +176,11 @@ sub loadFromBinaryRPM {
 
   $self->_step(command => "cd $topdir && sudo rpm -iv $filename",
                cleaner => "cd $topdir && sudo rpm -e $modFileName");
+  # RPM masks the DKMS exit status, but we still see the messages.
   $self->_step(command => sub {
-                 assertRegexpDoesNotMatch(qr/failed/i,
-                                          $machine->getStdout()
-                                          . $machine->getStderr(),
+                 my $output = $machine->getStdout() . $machine->getStderr();
+                 $self->_checkDKMSBuildFailure($output);
+                 assertRegexpDoesNotMatch(qr/failed/i, $output,
                                           "rpm install logged a failure");
                });
 }
