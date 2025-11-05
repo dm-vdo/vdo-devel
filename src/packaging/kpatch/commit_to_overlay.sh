@@ -107,8 +107,9 @@ MERGE_COMMIT=
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
+  test "$#" -lt 5 && print_usage
   if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ]; then
-    printUsage
+    print_usage
   fi
 
   KERNEL_REPO_URL=$1
@@ -359,99 +360,33 @@ prompt_user_verify() {
   done
 }
 
-# Prompt the user to push the overlay branch upstream
-prompt_user_push() {
-  user_input=""
-
-  while [[ ! ${user_input} =~ ^(y|Y|m|M) ]]; do
-    echo
-    echo "Please verify everything expected has been applied to overlay branch" \
-         "${OVERLAY_BRANCH}."
-    echo "Ready to push ${OVERLAY_BRANCH} to $(get_repo_name ${KERNEL_REPO_URL})?"
-    echo -n "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
-    read user_input
-
-    case "${user_input}" in
-      "y"*|"Y"*)
-        echo "Proceeding with push."
-        echo
-        ;;
-      "n"*|"N"*)
-        exit
-        ;;
-      "m"*|"M"*)
-        echo "Retaining ${LINUX_SRC} and branch ${OVERLAY_BRANCH} for manual push later."
-        MANUAL_PUSH=0
-        ;;
-      *)
-        echo -e "${COLOR_RED}ERROR: Invalid response."
-        echo -e "Please enter 'y' to proceed with push, 'n' to delete the branch and exit,"
-        echo -e "or 'm' to retain the branch for manual push at a later time.${NO_COLOR}"
-        echo
-        ;;
-    esac
-  done
-}
-
-# Cleanup artifacts
-_cleanup() {
-  cd $RUN_DIR
+# Set up the working repositories, cloning them if necessary
+setup_repos() {
   echo
-  echo "Cleaning up and exiting"
+  echo "Cloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})"
+  VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
+  git clone $SOURCE_REPO_URL ${VDO_TREE}
 
-  if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
-    if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
-      echo "Removing ${CLONED_KERNEL_TREE}"
-      rm -rf ${CLONED_KERNEL_TREE}
-    fi
+  if [[ -z ${LINUX_SRC} ]]; then
+    LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
+    CLONED_KERNEL_TREE=${LINUX_SRC}
 
-    echo "Removing ${VDO_TREE}"
-    rm -rf ${VDO_TREE}
+    # Shallow clone the specified dm-linux repo branch into LINUX_SRC
+    echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
+    git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
   fi
 
-  if [[ -e ${commit_file} ]] && [[ -f ${commit_file} ]]; then
-    rm -fv ${commit_file}
-  fi
+  LINUX_MD_SRC=${LINUX_SRC}/drivers/md
+  LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
+  LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
 
-  unset -f DEBUG LINUX_SRC
+  cd $LINUX_SRC
+  git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 }
 
-###############################################################################
-# main()
-trap _cleanup EXIT
-test "$#" -lt 5 && print_usage
-
-process_args $@
-print_config
-$PROCESS_INPUT_FX
-
-echo # Intentional blank line
-
-# Store linux repo location as an absolute path in the current directory
-VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
-
-if [[ -z ${LINUX_SRC} ]]; then
-  LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
-  CLONED_KERNEL_TREE=${LINUX_SRC}
-
-  # Shallow clone the specified dm-linux repo branch into LINUX_SRC
-  echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
-  git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
-fi
-
-LINUX_MD_SRC=${LINUX_SRC}/drivers/md
-LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
-LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
-
-cd $LINUX_SRC
-git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
-
-echo
-echo "Cloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})"
-git clone $SOURCE_REPO_URL ${VDO_TREE}
-
-# Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
-for change in ${COMMIT_SHAS[@]}; do
+# Build and overlay one commit on LINUX_SRC
+overlay_commit() {
+  change=$1
   echo
   echo "Processing changes from commit $change"
 
@@ -515,7 +450,8 @@ for change in ${COMMIT_SHAS[@]}; do
     exit
   fi
 
-  WORK_DIR=work/kvdo-* # Location of the prepared kernel products
+  # Copy the prepared kernel products into the target repo
+  WORK_DIR=work/kvdo-*
   rm -rf ${LINUX_VDO_SRC} && \
   mkdir -p ${LINUX_VDO_SRC} && \
   cp -r ${WORK_DIR}/dm-vdo/* ${LINUX_VDO_SRC} && \
@@ -527,6 +463,7 @@ for change in ${COMMIT_SHAS[@]}; do
     exit
   fi
 
+  # Commit the changes to the target overlay branch, if any
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
   git -C ${LINUX_SRC} diff --quiet HEAD
   if [[ $? == 0 ]]; then
@@ -557,21 +494,95 @@ for change in ${COMMIT_SHAS[@]}; do
   if [[ ${DEBUG} != 0 ]]; then
     rm -fv ${build_log_file}
   fi
-done
+}
+ 
+# Remove each commit in REMOVE_SHAS from the branch.
+remove_bogus_commits () {
+  # This list need to be ordered newest to oldest so rebases don't
+  # rewrite the SHAs of commits we still need to remove.
+  for remove_change in ${REMOVE_SHAS[@]}; do
+    git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
+    if [[ $? != 0 ]]; then
+      git -C ${LINUX_SRC} rebase --abort
+      echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed."
+      echo -e "Fix branch manually by dropping these commits:"
+      echo -e "  ${REMOVE_SHAS[@]}${NO_COLOR}"
+      exit
+    fi
+  done
+}
+ 
+# Prompt the user to push the overlay branch upstream
+prompt_user_push() {
+  user_input=""
 
-# Loop over each commit in REMOVE_SHAS and rebase to remove it.
-# This list need to be ordered newest to oldest so rebases don't
-# rewrite the SHAs of commits we still need to remove.
-for remove_change in ${REMOVE_SHAS[@]}; do
-  git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
-  if [[ $? != 0 ]]; then
-    git -C ${LINUX_SRC} rebase --abort
-    echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed."
-    echo -e "Fix branch manually by dropping these commits:"
-    echo -e "  ${REMOVE_SHAS[@]}${NO_COLOR}"
-    exit
+  while [[ ! ${user_input} =~ ^(y|Y|m|M) ]]; do
+    echo
+    echo "Please verify everything expected has been applied to overlay branch" \
+         "${OVERLAY_BRANCH}."
+    echo "Ready to push ${OVERLAY_BRANCH} to $(get_repo_name ${KERNEL_REPO_URL})?"
+    echo -n "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
+    read user_input
+
+    case "${user_input}" in
+      "y"*|"Y"*)
+        echo "Proceeding with push."
+        echo
+        ;;
+      "n"*|"N"*)
+        exit
+        ;;
+      "m"*|"M"*)
+        echo "Retaining ${LINUX_SRC} and branch ${OVERLAY_BRANCH} for manual push later."
+        MANUAL_PUSH=0
+        ;;
+      *)
+        echo -e "${COLOR_RED}ERROR: Invalid response."
+        echo -e "Please enter 'y' to proceed with push, 'n' to delete the branch and exit,"
+        echo -e "or 'm' to retain the branch for manual push at a later time.${NO_COLOR}"
+        echo
+        ;;
+    esac
+  done
+}
+
+# Cleanup artifacts
+_cleanup() {
+  cd $RUN_DIR
+  echo
+  echo "Cleaning up and exiting"
+
+  if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
+    if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
+      echo "Removing ${CLONED_KERNEL_TREE}"
+      rm -rf ${CLONED_KERNEL_TREE}
+    fi
+
+    echo "Removing ${VDO_TREE}"
+    rm -rf ${VDO_TREE}
   fi
+
+  if [[ -e ${commit_file} ]] && [[ -f ${commit_file} ]]; then
+    rm -fv ${commit_file}
+  fi
+
+  unset -f DEBUG LINUX_SRC
+}
+
+###############################################################################
+# main()
+trap _cleanup EXIT
+
+process_args $@
+print_config
+$PROCESS_INPUT_FX
+setup_repos
+
+# Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
+for change in ${COMMIT_SHAS[@]}; do
+  overlay_commit "${change}"
 done
+remove_bogus_commits
 
 # Push the kernel overlay branch to the remote kernel repository
 cd ${LINUX_SRC}
