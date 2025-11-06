@@ -176,7 +176,7 @@ process_args() {
       echo -e "${COLOR_RED}ERROR: ${LINUX_SRC} is a bare repository${NO_COLOR}"
       print_usage
     fi
-    git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH}
+    git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH} &>/dev/null
     if [ $? != 0 ]; then
       echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} does not exist in local" \
               "tree ${LINUX_SRC}${NO_COLOR}"
@@ -269,7 +269,7 @@ process_commits() {
   echo
   echo "Validating input commit SHAs..."
   for commit in ${ADDITIONAL_ARGS[@]}; do
-    git show ${commit} &>/dev/null
+    git rev-parse --quiet --verify ${commit}^{commit} &>/dev/null
     if [ $? != 0 ]; then
       echo -e "${COLOR_RED}ERROR: Invalid commit SHA encountered ($commit)"
       echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
@@ -300,14 +300,14 @@ process_commits() {
 process_merge() {
   echo
   echo "Validating input commit SHA ($MERGE_COMMIT)..."
-  git show ${MERGE_COMMIT} &>/dev/null
+  git rev-parse --quiet --verify ${MERGE_COMMIT}^{commit} &>/dev/null
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
     exit
   fi
 
-  git show ${MERGE_COMMIT}^2 &>/dev/null
+  git rev-parse --quiet --verify ${MERGE_COMMIT}^2^{commit} &>/dev/null
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Commit SHA ($MERGE_COMMIT) is not a merge"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
