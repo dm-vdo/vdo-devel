@@ -1,9 +1,9 @@
 #!/bin/bash
 # commit_to_overlay.sh
-# Create a kernel tree overlay branch from a commit, series of commits, or local branch.
+# Create a kernel tree overlay branch from a commit or series of commits.
 #
-# This script is intended to be run from a developer fork of dm-vdo/vdo-devel after the relevant
-# PR(s) have been merged.
+# This script is intended to be run from a developer fork of dm-vdo/vdo-devel
+# after the relevant PR(s) have been merged.
 #
 # In addition to the selected commits, the script will overlay additional bogus
 # "difference-capture" commits to account for discrepancies between the source
@@ -14,49 +14,55 @@
 #
 # Usage:
 # ./commit_to_overlay.sh <kernel_tree_specifier> <kernel_tree_branch_name>
-#                        <overlay_branch_name> [ -c | -b | -m ] args...
+#                        <overlay_branch_name> [ -c | -m ] args...
 #
 # Input Type Options:
 #  -c  Process a commit or series of commits into a kernel overlay branch
-#  -b  Process all changes on a local branch into a kernel overlay branch
+#  -m  Process all changes merged in the named merge commit
 #
 # Accepted Arguments:
 #  Commit SHA(s) ordered from oldest to newest
-#  Local branch name
 #
 # ** Multiple arguments must be delimited with a space **
 #
 # Notes:
 # - The <kernel_tree_specifier> argument can be either a URL or a path.
-#   - If the specifier is a URL, the working kernel repository will be cloned from that URL.
-#     This local clone will be removed upon exiting the script, unless the DEBUG flag is set
-#     or the manual push option is selected. It is recommended that the SSH URL is used,
-#     as GitHub prompts for a username and password when an HTTPS URL is used.
-#     The <kernel_tree_branch_name> argument must be a branch in the given repository, which
-#     will be the starting point of the new overlay branch.
 #
-#   - If the specifier is a path, it must point to the top level of a kernel clone, and must not
-#     be a bare repository. This clone will create the new overlay branch but it will not otherwise
-#     be altered. A relative path will be interpreted relative to the current working directory.
-#     The <kernel_tree_branch_name> argument must resolve to a commit in the given repository,
-#     which will be the starting point of the new overlay branch. Additionally, if the
-#     <kernel_tree_branch_name> contains a slash, the substring before the first slash is
-#     used as the remote to push the new branch to. The default remote is 'origin'.
+#   - If the specifier is a URL, the working kernel repository will be cloned
+#     from that URL.  This local clone will be removed upon exiting the script,
+#     unless the DEBUG flag is set or the manual push option is selected. It is
+#     recommended that the SSH URL is used, as GitHub prompts for a username
+#     and password when an HTTPS URL is used.  The <kernel_tree_branch_name>
+#     argument must be a branch in the given repository, which will be the
+#     starting point of the new overlay branch.
 #
-# - The single commits option (-c) relies on commits appearing in commit order. If commits are
-#   provided in a different order than in the source repo, strange things may happen.
-# - The local branch option (-b) relies on detecting differences between the input branch and
-#   the remote HEAD. It is only effective before a rebase of the fork is performed.
-# - The local vdo source tree will be cloned into a local absolute path. By default, it will
-#   be removed upon exiting the script, unless the DEBUG flag is set.
-# - Output from building the VDO tree while processing each change can be found in the
-#   /tmp/overlay_build_log* file. The log is removed at the end of each loop iteration upon success.
-#   It is retained until the commit_to_overlay.sh script is re-run upon failure, or when the DEBUG
-#   flag is set.
+#   - If the specifier is a path, it must point to the top level of a kernel
+#     clone, and must not be a bare repository. This clone will create the new
+#     overlay branch but it will not otherwise be altered. A relative path will
+#     be interpreted relative to the current working directory.  The
+#     <kernel_tree_branch_name> argument must resolve to a commit in the given
+#     repository, which will be the starting point of the new overlay
+#     branch. Additionally, if the <kernel_tree_branch_name> contains a slash,
+#     the substring before the first slash is used as the remote to push the
+#     new branch to. The default remote is 'origin'.
+#
+# - The single commits option (-c) relies on commits appearing in commit
+#   order. If commits are provided in a different order than in the source
+#   repo, strange things may happen.
+#
+# - The local vdo source tree will be cloned into a local absolute path. By
+#   default, it will be removed upon exiting the script, unless the DEBUG flag
+#   is set.
+#
+# - Output from building the VDO tree while processing each change can be found
+#   in the /tmp/overlay_build_log* file. The log is removed at the end of each
+#   loop iteration upon success.  It is retained until the commit_to_overlay.sh
+#   script is re-run upon failure, or when the DEBUG flag is set.
 #
 # Potential Future Modifications:
-# - Add a proper optional argument for specifying the remote instead of using part of
-#   <kernel_tree_branch_name>.
+#
+# - Add a proper optional argument for specifying the remote instead of using
+#   part of <kernel_tree_branch_name>.
 ##
 
 if [[ -z ${DEBUG} ]]; then
@@ -70,26 +76,40 @@ MANUAL_PUSH=1
 COLOR_RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
-ADDITIONAL_ARGS=()   # Array of command line arguments
-COMMIT_SHAS=()       # Array of commit SHAs to be added to the overlay
-FAKE_SHAS=()         # Array of commit SHAs to turn into bogus commits
-REMOVE_SHAS=()       # Array of bogus commit SHAs to be removed at the end
-CONFIG_MSG=()        # Array of strings to be used in the configuration message output to stdout
-INPUT_TYPE=          # Indicated input type
-OVERLAY_BRANCH=      # Name to give the kernel overlay branch being created
-LINUX_SRC=           # Path to the kernel tree
-CLONED_KERNEL_TREE=  # Path to the cloned kernel tree, if any
-KERNEL_REPO_URL=     # URL or path for the kernel repo where the overlay branch will be created
-KERNEL_BRANCH=       # Kernel tree branch to base the overlay on
-KERNEL_REMOTE=origin # Kernel remote to push changes to
-PROCESS_INPUT_FX=    # Function to call to process the input(s)
-SOURCE_BRANCH=       # Branch on the source repo where the relevant commits were made
-MERGE_COMMIT=        # Merge commit to find commits to apply
+# Array of command line arguments
+ADDITIONAL_ARGS=()
+# Array of commit SHAs to be added to the overlay
+COMMIT_SHAS=()
+# Array of commit SHAs to turn into bogus commits
+FAKE_SHAS=()
+# Array of bogus commit SHAs to be removed at the end
+REMOVE_SHAS=()
+# Array of strings to be used in the configuration message output to stdout
+CONFIG_MSG=()
+# Indicated input type
+INPUT_TYPE=
+# Name to give the kernel overlay branch being created
+OVERLAY_BRANCH=
+# Path to the kernel tree
+LINUX_SRC=
+# Path to the cloned kernel tree, if any
+CLONED_KERNEL_TREE=
+# URL or path for the kernel repo where the overlay branch will be created
+KERNEL_REPO_URL=
+# Kernel tree branch to base the overlay on
+KERNEL_BRANCH=
+# Kernel remote to push changes to
+KERNEL_REMOTE=origin
+# Function to call to process the input(s)
+PROCESS_INPUT_FX=
+# Merge commit to find commits to apply
+MERGE_COMMIT=
 
 # Expand the arguments provided into the necessary parameters to operate on.
 process_args() {
+  test "$#" -lt 5 && print_usage
   if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ]; then
-    printUsage
+    print_usage
   fi
 
   KERNEL_REPO_URL=$1
@@ -108,19 +128,6 @@ process_args() {
       PROCESS_INPUT_FX=process_commits
       CONFIG_MSG=("commit" "Commit(s) to be used in overlay:")
       ;;
-    "-b"|"--b"|"b")
-      PROCESS_INPUT_FX=process_branch
-      CONFIG_MSG=("branch" "Local branch to be used in overlay:")
-      SOURCE_BRANCH=${ADDITIONAL_ARGS[0]}
-
-      # Verify input branch exists
-      git ls-remote --exit-code --heads --refs ${SOURCE_REPO_URL} ${SOURCE_BRANCH} &>/dev/null
-      if [ $? == 2 ]; then
-        echo -e "${COLOR_RED}ERROR: Branch ${SOURCE_BRANCH} not found on repo" \
-                "$(get_repo_name ${SOURCE_REPO_URL})${NO_COLOR}"
-        print_usage
-      fi
-      ;;
     "-m"|"--m"|"m")
       PROCESS_INPUT_FX=process_merge
       CONFIG_MSG=("merge" "Merge commit to be used in overlay:")
@@ -133,7 +140,7 @@ process_args() {
   esac
 
   if [[ ${KERNEL_REPO_URL} =~ : ]]; then
-    echo -e "Using kernel repo URL (${KERNEL_REPO_URL})"
+    echo "Using kernel repo URL (${KERNEL_REPO_URL})"
     git ls-remote --exit-code ${KERNEL_REPO_URL} ${KERNEL_BRANCH} &>/dev/null
     return=$?
     if [ $return == 128 ]; then
@@ -146,7 +153,7 @@ process_args() {
       print_usage
     fi
   else
-    echo -e "Using kernel repo path (${KERNEL_REPO_URL})"
+    echo "Using kernel repo path (${KERNEL_REPO_URL})"
     if [[ ${KERNEL_REPO_URL} =~ ^/ ]]; then
       LINUX_SRC=${KERNEL_REPO_URL}
     else
@@ -157,8 +164,8 @@ process_args() {
       if [ $? == 0 ]; then
         KERNEL_REMOTE=${BASH_REMATCH[1]}
       else
-        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid" \
-                "remote; using 'origin'${NO_COLOR}"
+        echo -e "${COLOR_RED}WARNING: ${BASH_REMATCH[1]} is not a valid remote"
+        echo -e "Using 'origin' instead${NO_COLOR}"
       fi
     fi
     KERNEL_REPO_URL=$(git -C ${LINUX_SRC} remote get-url ${KERNEL_REMOTE})
@@ -169,9 +176,9 @@ process_args() {
       echo -e "${COLOR_RED}ERROR: ${LINUX_SRC} is a bare repository${NO_COLOR}"
       print_usage
     fi
-    git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH}
+    git -C ${LINUX_SRC} rev-parse --verify --quiet ${KERNEL_BRANCH} &>/dev/null
     if [ $? != 0 ]; then
-      echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} not valid in local" \
+      echo -e "${COLOR_RED}ERROR: ${KERNEL_BRANCH} does not exist in local" \
               "tree ${LINUX_SRC}${NO_COLOR}"
       print_usage
     fi
@@ -191,37 +198,37 @@ print_usage() {
   indent=$((${#TOOL}+2))
 
   echo
-  echo "${TOOL}: Create a kernel tree overlay branch from a commit, series"
-  printf "%${indent}s%s\n" ' ' 'of commits, or local branch'
+  echo "${TOOL}: Create a kernel tree overlay branch from a commit or a"
+  printf "%${indent}s%s\n" ' ' 'series of commits.'
   echo
   echo "  Usage: "
   echo "  ./${TOOL} <kernel_tree_specifier> <kernel_tree_branch_name>"
-  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -b | -m ] args...'
+  printf "%$((${indent}+3))s%s\n" ' ' '<overlay_branch_name> [ -c | -m ] args...'
   echo
   echo "  Input Type Options:"
   echo "     -c  Process a commit or series of commits into a kernel overlay branch"
-  echo "     -b  Process all changes on a local branch into a kernel overlay branch"
   echo "     -m  Process all changes merged in the named merge commit"
   echo
   echo "  Accepted Arguments:"
   echo "     Commit SHA(s) ordered from oldest to newest"
-  echo "     Local branch name"
   echo
   echo "  ** Multiple arguments must be delimited with a space **"
   echo
-  echo "  <kernel_tree_specifier> can be either a URL or a path"
-  echo "  * If the specifier is a URL, the working kernel repository will be cloned from that URL"
-  echo "  * If the specifier is a path, it must point to the top level of a non-bare kernel clone"
-  echo "  * A relative path will be interpreted relative to the current working directory"
+  echo "  <kernel_tree_specifier> can be either a URL or a path:"
+  echo "  * If a URL is given, the kernel repository will be cloned from that URL"
+  echo "  * If a path is given, it must be the top level of a non-bare kernel clone"
+  echo "  * A relative path will be resolved from the current working directory"
   echo
-  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will be the"
-  echo "  starting point of the new overlay branch"
+  echo "  <kernel_tree_branch_name> argument must be a branch or commit, which will"
+  echo "  be the starting point of the new overlay branch"
   echo
-  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains a slash,"
-  echo "  the portion of <kernel_tree_branch_name> before the first slash will be used as the"
-  echo "  name of the remote to push to. In all other cases, the remote defaults to 'origin'."
+  echo "  If <kernel_tree_specifier> is a path and <kernel_tree_branch_name> contains"
+  echo "  a slash, the portion of <kernel_tree_branch_name> before the first slash"
+  echo "  will be used as the name of the remote to push to. In all other cases, the"
+  echo "  remote defaults to 'origin'."
   echo
-  echo "  If the script exits with an error, logs can be found at /tmp/overlay_build_log*"
+  echo "  If the script exits with an error, details can be found in the build logs"
+  echo "  in /tmp/overlay_build_log*"
   exit
 }
 
@@ -238,11 +245,11 @@ get_repo_name() {
 print_config() {
   title_str="Proceeding with the following configuration:"
 
-  echo -en "\n$title_str\n"
+  echo
+  echo "$title_str"
   printf '=%.0s' $(seq 1 ${#title_str})
   echo # Intentional blank line
   echo "* Source repo: ${SOURCE_REPO_URL}"
-  echo "* Source branch: ${SOURCE_BRANCH}"
   echo "* Kernel repo: ${KERNEL_REPO_URL}"
   echo "* Overlay branch to be created on kernel repo: ${OVERLAY_BRANCH}"
   echo "* Processing based on: ${CONFIG_MSG[0]}"
@@ -253,52 +260,23 @@ print_config() {
   done
 
   printf '=%.0s' $(seq 1 ${#title_str})
-  echo -en "\n\n"
-}
-
-# Checkout the SOURCE_BRANCH if not already checked out
-checkout_source_branch() {
-  echo "Checking out the VDO source branch..."
-
-  # Determine the source branch if unknown
-  if [[ -z ${SOURCE_BRANCH} ]]; then
-    SOURCE_BRANCH=$(git branch --show-current)
-
-    # If a branch is not checked out, `git branch --show-current` will return an empty string
-    if [[ -z ${SOURCE_BRANCH} ]]; then
-      status=$(git status)
-      branch_name="${status%% *}"
-      SOURCE_BRANCH=$(git name-rev --name-only $branch_name)
-    fi
-  fi
-
-  current_branch=$(git name-rev --name-only $(git branch --show-current))
-  if [[ ! ${current_branch} =~ ${SOURCE_BRANCH} ]]; then
-    # Fail if pending tracked/untracked changes are identified
-    if [[ $(git status -s | wc -l) == 0 ]]; then
-      git checkout ${SOURCE_BRANCH}
-    else
-      echo -e "${COLOR_RED}ERROR: Unable to checkout branch '${SOURCE_BRANCH}' - unclean tree"
-      echo -e "Please resolve the issue and re-run this script${NO_COLOR}"
-      exit
-    fi
-  else
-    echo "Branch ${SOURCE_BRANCH} already checked out"
-  fi
+  echo
+  echo
 }
 
 # Process the input commit SHA(s), verifying they are valid
 process_commits() {
-  echo -en "\nValidating input commit SHAs on branch '${SOURCE_BRANCH}'...\n"
+  echo
+  echo "Validating input commit SHAs..."
   for commit in ${ADDITIONAL_ARGS[@]}; do
-    git show ${commit} &>/dev/null
+    git rev-parse --quiet --verify ${commit}^{commit} &>/dev/null
     if [ $? != 0 ]; then
       echo -e "${COLOR_RED}ERROR: Invalid commit SHA encountered ($commit)"
       echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
       exit
     fi
 
-    # Compare the first 7 characters to find duplicates, as both full and partial SHAs may be input
+    # Compare the first 7 characters to find duplicates, to account for partial SHAs
     # Only the first valid entry will be kept
     if [[ ! ${COMMIT_SHAS[@]} =~ ${commit::7} ]]; then
       parent=$(git rev-parse ${commit}^1)
@@ -320,15 +298,16 @@ process_commits() {
 
 # Process the input commit SHA(s), verifying they are valid
 process_merge() {
-  echo -en "\nValidating input commit SHA ($MERGE_COMMIT)...\n"
-  git show ${MERGE_COMMIT} &>/dev/null
+  echo
+  echo "Validating input commit SHA ($MERGE_COMMIT)..."
+  git rev-parse --quiet --verify ${MERGE_COMMIT}^{commit} &>/dev/null
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Invalid commit SHA ($MERGE_COMMIT)"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
     exit
   fi
 
-  git show ${MERGE_COMMIT}^2 &>/dev/null
+  git rev-parse --quiet --verify ${MERGE_COMMIT}^2^{commit} &>/dev/null
   if [ $? != 0 ]; then
     echo -e "${COLOR_RED}ERROR: Commit SHA ($MERGE_COMMIT) is not a merge"
     echo -e "Please verify the input arguments and re-run this script${NO_COLOR}"
@@ -350,25 +329,6 @@ process_merge() {
   prompt_user_verify
 }
 
-# Process the input branch, determining the applicable commit SHAs to be included in the patchset
-process_branch() {
-  echo -en "\nFinding relevant commits on branch '$SOURCE_BRANCH'...\n"
-
-  # Apply the merge base as a bogus commit, but remember it for later removal
-  merge_base=$(git merge-base ${SOURCE_BRANCH} origin/HEAD)
-  COMMIT_SHAS=(${merge_base})
-  FAKE_SHAS+=(${merge_base})
-
-  # List all commits on SOURCE_BRANCH that are not on origin/HEAD
-  COMMIT_SHAS=($(git rev-list --reverse --no-merges ${SOURCE_BRANCH} ^origin/HEAD))
-  if [[ ${#COMMIT_SHAS[@]} == 0 ]]; then
-    echo "No commits identified"
-    exit
-  fi
-
-  prompt_user_verify
-}
-
 # Prompt the user to verify the commits that will be included in the overlay
 prompt_user_verify() {
   user_input=""
@@ -381,7 +341,7 @@ prompt_user_verify() {
       fi
     done
 
-    echo -en "\n"
+    echo
     read -p "Is this correct? [y - proceed | n - exit]: " user_input
     case "${user_input}" in
       "y"*|"Y"*)
@@ -392,116 +352,55 @@ prompt_user_verify() {
         exit
         ;;
       *)
-        echo -en "${COLOR_RED}ERROR: Invalid response.\nPlease enter 'y' to proceed, or 'n' to" \
-                 "exit.${NO_COLOR}\n\n"
+        echo -e "${COLOR_RED}ERROR: Invalid response."
+        echo -e "Please enter 'y' to proceed, or 'n' to exit.${NO_COLOR}"
+        echo
         ;;
     esac
   done
 }
 
-# Prompt the user to push the overlay branch upstream
-prompt_user_push() {
-  user_input=""
+# Set up the working repositories, cloning them if necessary
+setup_repos() {
+  echo
+  echo "Cloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})"
+  VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
+  git clone $SOURCE_REPO_URL ${VDO_TREE}
 
-  while [[ ! ${user_input} =~ ^(y|Y|m|M) ]]; do
-    echo -en "\nPlease verify everything expected has been applied to overlay branch" \
-             "${OVERLAY_BRANCH}.\n"
-    echo "Ready to push ${OVERLAY_BRANCH} to $(get_repo_name ${KERNEL_REPO_URL})?"
-    echo -en "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
-    read user_input
+  if [[ -z ${LINUX_SRC} ]]; then
+    LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
+    CLONED_KERNEL_TREE=${LINUX_SRC}
 
-    case "${user_input}" in
-      "y"*|"Y"*)
-        echo -en "Proceeding with push.\n\n"
-        ;;
-      "n"*|"N"*)
-        exit
-        ;;
-      "m"*|"M"*)
-        echo "Retaining ${LINUX_SRC} and branch ${OVERLAY_BRANCH} for manual push later."
-        MANUAL_PUSH=0
-        ;;
-      *)
-        echo -en "${COLOR_RED}ERROR: Invalid response.\nPlease enter 'y' to proceed with push," \
-                 "'n' to delete the branch and exit,\nor 'm' to retain the branch for manual" \
-                 "push at a later time.${NO_COLOR}\n\n"
-        ;;
-    esac
-  done
-}
-
-# Cleanup artifacts
-_cleanup() {
-  cd $RUN_DIR
-  echo -en "\nCleaning up and exiting\n"
-
-  if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
-    if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
-      echo "Removing ${CLONED_KERNEL_TREE}"
-      rm -rf ${CLONED_KERNEL_TREE}
-    fi
-
-    echo "Removing ${VDO_TREE}"
-    rm -rf ${VDO_TREE}
+    # Shallow clone the specified dm-linux repo branch into LINUX_SRC
+    echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
+    git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
   fi
 
-  if [[ -e ${commit_file} ]] && [[ -f ${commit_file} ]]; then
-    rm -fv ${commit_file}
-  fi
+  LINUX_MD_SRC=${LINUX_SRC}/drivers/md
+  LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
+  LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
 
-  unset -f DEBUG LINUX_SRC
+  cd $LINUX_SRC
+  git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
 }
 
-###############################################################################
-# main()
-trap _cleanup EXIT
-test "$#" -lt 5 && print_usage
-
-process_args $@
-print_config
-checkout_source_branch
-$PROCESS_INPUT_FX
-
-echo # Intentional blank line
-
-# Store linux repo location as an absolute path in the current directory
-VDO_TREE=${RUN_DIR}/$(mktemp -d vdo-raw-XXXXXX)
-
-if [[ -z ${LINUX_SRC} ]]; then
-  LINUX_SRC=${RUN_DIR}/$(mktemp -d vdo-kernel-XXXXXX)
-  CLONED_KERNEL_TREE=${LINUX_SRC}
-
-  # Shallow clone the specified dm-linux repo branch into LINUX_SRC
-  echo "Cloning kernel repo $(get_repo_name ${KERNEL_REPO_URL})/${KERNEL_BRANCH}"
-  git clone --branch ${KERNEL_BRANCH} --depth 1 ${KERNEL_REPO_URL} ${LINUX_SRC}
-fi
-
-LINUX_MD_SRC=${LINUX_SRC}/drivers/md
-LINUX_VDO_SRC=${LINUX_MD_SRC}/dm-vdo
-LINUX_DOC_SRC=${LINUX_SRC}/Documentation/admin-guide/device-mapper
-
-cd $LINUX_SRC
-git checkout -b ${OVERLAY_BRANCH} ${KERNEL_BRANCH}
-
-# Need to detect that our repo is x number of commits ahead of dm-vdo/vdo-devel
-# Clone the current repo as ${VDO_TREE}? Is VDO_TREE even needed? Aren't we working from the clone when this script is called? Need to make a copy?
-echo -en "\nCloning VDO tree $(get_repo_name ${SOURCE_REPO_URL})\n"
-git clone $SOURCE_REPO_URL ${VDO_TREE}
-
-# Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
-for change in ${COMMIT_SHAS[@]}; do
-  echo -en "\nProcessing changes from commit $change\n"
+# Build and overlay one commit on LINUX_SRC
+overlay_commit() {
+  change=$1
+  echo
+  echo "Processing changes from commit $change"
 
   cd ${VDO_TREE}
 
   # Clean up from the last build, if necessary
   if [[ "${change}" != "${COMMIT_SHAS[0]}" ]]; then
-    echo -en "Cleaning up from the last build... "
+    echo -n "Cleaning up from the last build... "
     git clean -fdxq
     echo "Done"
   fi
 
-  # Check out the new version to build and post - do we need to do this - it puts us in a detached HEAD state, so commits will not be retained
+  # This puts us in a detached HEAD state
+  # Perhaps we should suppress the warning
   #sudo git config --system advice.detachedHead "false"
   echo "Checking out the change to build and post it"
   git checkout ${change}
@@ -527,19 +426,17 @@ for change in ${COMMIT_SHAS[@]}; do
   gitauthor="--author=\"${commit_author_name} <${commit_author_email}>\""
   gitdate="--date=\"${commit_date}\""
 
-  # Build the necessary parts of the tree
+  # Build the perl tree so the prepare script can run.
   build_log_file=$(mktemp /tmp/overlay_build_log.XXXXX)
-  echo -en "Building the VDO perl directory... "
+  echo -n "Building the VDO perl directory... "
   make -C src/perl >> ${build_log_file} 2>&1
-  echo
-  echo -en "Generating VDO statistics files... "
-  make -C src/stats >> ${build_log_file} 2>&1
-  echo "Done"
   if [[ $? != 0 ]]; then
-    echo -e "${COLOR_RED}ERROR: Building the VDO tree failed. See ${build_log_file} for more" \
-            "information.${NO_COLOR}"
+    echo
+    echo -e "${COLOR_RED}ERROR: Building the VDO tree failed."
+    echo -e "See ${build_log_file} for more information.${NO_COLOR}"
     exit
   fi
+  echo "Done"
 
   # Generate the kernel overlay and apply it to the linux tree
   echo "Generating the kernel overlay"
@@ -548,12 +445,13 @@ for change in ${COMMIT_SHAS[@]}; do
   export LINUX_SRC=${LINUX_SRC}
   make prepare >> ${build_log_file}
   if [[ $? != 0 ]]; then
-    echo -e "${COLOR_RED}ERROR: Preparing kernel files failed. See ${build_log_file} for" \
-            "more information.${NO_COLOR}"
+    echo -e "${COLOR_RED}ERROR: Preparing kernel files failed."
+    echo -e "See ${build_log_file} for more information.${NO_COLOR}"
     exit
   fi
 
-  WORK_DIR=work/kvdo-* # Location of the prepared kernel products
+  # Copy the prepared kernel products into the target repo
+  WORK_DIR=work/kvdo-*
   rm -rf ${LINUX_VDO_SRC} && \
   mkdir -p ${LINUX_VDO_SRC} && \
   cp -r ${WORK_DIR}/dm-vdo/* ${LINUX_VDO_SRC} && \
@@ -565,6 +463,7 @@ for change in ${COMMIT_SHAS[@]}; do
     exit
   fi
 
+  # Commit the changes to the target overlay branch, if any
   echo "Applying the kernel overlay to branch '${OVERLAY_BRANCH}'"
   git -C ${LINUX_SRC} diff --quiet HEAD
   if [[ $? == 0 ]]; then
@@ -595,20 +494,95 @@ for change in ${COMMIT_SHAS[@]}; do
   if [[ ${DEBUG} != 0 ]]; then
     rm -fv ${build_log_file}
   fi
-done
+}
+ 
+# Remove each commit in REMOVE_SHAS from the branch.
+remove_bogus_commits () {
+  # This list need to be ordered newest to oldest so rebases don't
+  # rewrite the SHAs of commits we still need to remove.
+  for remove_change in ${REMOVE_SHAS[@]}; do
+    git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
+    if [[ $? != 0 ]]; then
+      git -C ${LINUX_SRC} rebase --abort
+      echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed."
+      echo -e "Fix branch manually by dropping these commits:"
+      echo -e "  ${REMOVE_SHAS[@]}${NO_COLOR}"
+      exit
+    fi
+  done
+}
+ 
+# Prompt the user to push the overlay branch upstream
+prompt_user_push() {
+  user_input=""
 
-# Loop over each commit in REMOVE_SHAS and rebase to remove it.
-# This list need to be ordered newest to oldest so rebases don't
-# rewrite the SHAs of commits we still need to remove.
-for remove_change in ${REMOVE_SHAS[@]}; do
-  git -C ${LINUX_SRC} rebase --onto ${remove_change}^1 ${remove_change} ${OVERLAY_BRANCH}
-  if [[ $? != 0 ]]; then
-    git -C ${LINUX_SRC} rebase --abort
-    echo -e "${COLOR_RED}ERROR: Removal of bogus difference-capture commits failed." \
-            "Fix branch manually by dropping these commits: ${REMOVE_SHAS[@]}${NO_COLOR}"
-    exit
+  while [[ ! ${user_input} =~ ^(y|Y|m|M) ]]; do
+    echo
+    echo "Please verify everything expected has been applied to overlay branch" \
+         "${OVERLAY_BRANCH}."
+    echo "Ready to push ${OVERLAY_BRANCH} to $(get_repo_name ${KERNEL_REPO_URL})?"
+    echo -n "[y - yes, push | n - no, delete | m - keep branch for manual push later]: "
+    read user_input
+
+    case "${user_input}" in
+      "y"*|"Y"*)
+        echo "Proceeding with push."
+        echo
+        ;;
+      "n"*|"N"*)
+        exit
+        ;;
+      "m"*|"M"*)
+        echo "Retaining ${LINUX_SRC} and branch ${OVERLAY_BRANCH} for manual push later."
+        MANUAL_PUSH=0
+        ;;
+      *)
+        echo -e "${COLOR_RED}ERROR: Invalid response."
+        echo -e "Please enter 'y' to proceed with push, 'n' to delete the branch and exit,"
+        echo -e "or 'm' to retain the branch for manual push at a later time.${NO_COLOR}"
+        echo
+        ;;
+    esac
+  done
+}
+
+# Cleanup artifacts
+_cleanup() {
+  cd $RUN_DIR
+  echo
+  echo "Cleaning up and exiting"
+
+  if [[ -d ${LINUX_SRC} ]] && [[ -d ${VDO_TREE} ]] && [[ ${DEBUG} != 0 ]]; then
+    if [[ ${MANUAL_PUSH} != 0 ]] && [[ -d ${CLONED_KERNEL_TREE} ]]; then
+      echo "Removing ${CLONED_KERNEL_TREE}"
+      rm -rf ${CLONED_KERNEL_TREE}
+    fi
+
+    echo "Removing ${VDO_TREE}"
+    rm -rf ${VDO_TREE}
   fi
+
+  if [[ -e ${commit_file} ]] && [[ -f ${commit_file} ]]; then
+    rm -fv ${commit_file}
+  fi
+
+  unset -f DEBUG LINUX_SRC
+}
+
+###############################################################################
+# main()
+trap _cleanup EXIT
+
+process_args $@
+print_config
+$PROCESS_INPUT_FX
+setup_repos
+
+# Loop over each commit in COMMIT_SHAS and overlay it on LINUX_SRC
+for change in ${COMMIT_SHAS[@]}; do
+  overlay_commit "${change}"
 done
+remove_bogus_commits
 
 # Push the kernel overlay branch to the remote kernel repository
 cd ${LINUX_SRC}
