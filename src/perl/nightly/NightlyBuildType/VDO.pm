@@ -67,7 +67,7 @@ my $SUITE_PROPERTIES = {
     suiteName    => "debugKernelTests",
     scale        => "PFARM",
     extraArgs    => "--clientClass=PFARM",
-    osClasses    => ["FEDORA40DEBUG"],
+    osClasses    => ["RHEL10DEBUG"],
   },
   vdoSingle => {
     displayName => "VDO_Single_Threaded_Tests",
