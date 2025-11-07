@@ -39,12 +39,6 @@ my $SUITE_PROPERTIES = {
     extraArgs   => "--clientClass=PFARM --threads=5",
     type        => "uds",
   },
-# XXX OPS-6500
-#  vdoLocalKmemleakTests => {
-#    displayName => "VDO_Local_Kmemleak_Tests",
-#    suiteName   => "kmemleak",
-#    scale       => "FARM",
-#  },
   vdoLocalTests => {
     displayName => "VDO_Local_Tests",
     suiteName   => "localTests",

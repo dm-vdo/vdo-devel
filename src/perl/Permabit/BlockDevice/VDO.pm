@@ -151,8 +151,6 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      enableDeduplication       => 1,
      # Number of hash lock threads/zones to use
      hashZoneThreadCount       => 1,
-     # Turn on the kernel memory allocation checker
-     kmemleak                  => 0,
      # Maximum VDO I/O request latency in seconds
      latencyLimit              => 30,
      # VDO logical size (in bytes)
@@ -383,11 +381,6 @@ sub postActivate {
       return;
     }
     $self->_doVDOWarmup();
-  }
-
-  if ($self->{kmemleak}) {
-    my $moduleName = $self->getModuleName();
-    $self->runOnHost("grep $moduleName /proc/kallsyms", 1);
   }
 
   my %kernelPidMap = $self->_getKernelThreadIDs();
