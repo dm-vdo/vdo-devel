@@ -25,7 +25,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 our %PROPERTIES =
   (
    # @ple The scenario to start with
-   initialScenario       => "X86_FEDORA40_head",
+   initialScenario       => "X86_RHEL10_head",
    # @ple The intermediate scenarios to go through
    intermediateScenarios => [],
    # @ple VDO physical size
@@ -39,9 +39,9 @@ our %PROPERTIES =
 sub propertiesSimpleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_FEDORA40_head",
+    initialScenario       => "X86_RHEL10_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_FEDORA40_head"],
+    intermediateScenarios => ["X86_RHEL10_head"],
   );
 }
 
@@ -58,9 +58,9 @@ sub testSimpleMigration {
 sub propertiesMultipleMigration {
   return (
     # @ple The scenario to start with
-    initialScenario       => "X86_FEDORA40_head",
+    initialScenario       => "X86_RHEL10_head",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_FEDORA40_head", "X86_FEDORA40_head"],
+    intermediateScenarios => ["X86_RHEL10_head", "X86_RHEL10_head"],
   );
 }
 
@@ -79,7 +79,7 @@ sub propertiesMigrateAndUpgrade {
     # @ple The scenario to start with
     initialScenario       => "X86_RHEL9_8.2.7.2",
     # @ple The intermediate versions to go through
-    intermediateScenarios => ["X86_RHEL9_8.2.7-current", "X86_FEDORA42_head"],
+    intermediateScenarios => ["X86_RHEL9_8.2.7-current", "X86_RHEL10_head"],
   );
 }
 
