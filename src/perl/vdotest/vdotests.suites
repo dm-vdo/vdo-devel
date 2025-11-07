@@ -312,19 +312,6 @@ $suiteNames{ext4Basic} = [ map { "Ext4$_" } @{$suiteNames{basic}} ];
 ##
 $suiteNames{xfs} = [ @{$suiteNames{filesystem}} ];
 
-###########################################################################
-# Tests that run under the kmemleak kernel memory checker
-##
-$suiteNames{kmemleak}
-  = [
-     map { "Kmemleak$_" }
-         (
-          @{$suiteNames{basic}},
-          @{$suiteNames{direct}},
-          @{$suiteNames{genData}},
-         )
-    ];
-
 ############################################################################
 # Test that stress the kernel code by running with extremely limited
 # physical memory.  We start with a full Albireo index so that albireo
@@ -935,8 +922,6 @@ $aliasPrefixes{LowMem}   = "--lowMemoryTest=1 --memorySize=0.25";
 $aliasPrefixes{RHEL9}    = "--clientClass=RHEL9";
 $aliasPrefixes{Xfs}      = "--fsType=xfs";
 
-$aliasPrefixes{Kmemleak}
-  = "--kmemleak=1 --stallDetection=0 --clientClass=ALBIREO-PMI";
 $aliasPrefixes{Nfs}      = "--fsType=nfs-xfs";
 
 ############################################################################

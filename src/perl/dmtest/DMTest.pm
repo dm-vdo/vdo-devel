@@ -31,8 +31,6 @@ use Permabit::KernelModule;
 use Permabit::KernelUtils qw(
   setupKernelMemoryLimiting
   removeKernelMemoryLimiting
-  setupKmemleak
-  removeKmemleak
   setupRawhideKernel
   removeRawhideKernel
 );
@@ -87,8 +85,6 @@ our %PROPERTIES
      randomizeReservations  => 1,
      # @ple the max number of hung task warnings to report in kern.log
      hungTaskWarnings       => 25,
-     # @ple Turn on the kernel memory allocation checker
-     kmemleak               => 0,
      # @ple use one client machine
      numClients             => 1,
      # @ple Ask rsvpd to randomize its list of available hosts before selecting

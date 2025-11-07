@@ -35,8 +35,6 @@ use Permabit::GenSlice;
 use Permabit::KernelUtils qw(
   setupKernelMemoryLimiting
   removeKernelMemoryLimiting
-  setupKmemleak
-  removeKmemleak
   setupRawhideKernel
   removeRawhideKernel
 );
@@ -102,8 +100,6 @@ our %PROPERTIES
      fsType                  => "xfs",
      # @ple the max number of hung task warnings to report in kern.log
      hungTaskWarnings        => 25,
-     # @ple Turn on the kernel memory allocation checker
-     kmemleak                => 0,
      # @ple the extent size of the logical volume
      logicalVolumeExtentSize => undef,
      # @ple physical size of the underlying storage (may include a suffix),
@@ -311,10 +307,6 @@ sub set_up {
 
   $self->{scratchDir} = makeFullPath($self->{workDir}, 'scratch');
   $self->{userBinaryDir} = makeFullPath($self->{runDir}, 'executables');
-
-  if ($self->{kmemleak}) {
-    setupKmemleak($self->{clientNames});
-  }
 
   foreach my $byteSize (qw(blockMapCacheSize
                            logicalSize
@@ -870,10 +862,6 @@ sub tear_down {
         removeRawhideKernel($self->{clientNames});
       };
       $self->runTearDownStep($removeRawhide);
-    }
-
-    if ($self->{kmemleak}) {
-      $self->runTearDownStep(sub { removeKmemleak($self->{clientNames}); } );
     }
   }
 

@@ -22,9 +22,7 @@ use Permabit::Constants;
 use Permabit::KernelUtils qw(
   getAddressableMemory
   removeKernelMemoryLimiting
-  removeKmemleak
   setupKernelMemoryLimiting
-  setupKmemleak
 );
 use Permabit::Utils qw(ceilMultiple sizeToText);
 
@@ -58,8 +56,6 @@ our %PROPERTIES
 sub _addTests {
   my ($package, $suite, $name, $key, $value) = assertNumArgs(5, @_);
   my %cases = (
-# Kmemleak does not currently run on FEDORA machines, so don't test it.
-#               kmemleak => \&testKmemleak,
                limit    => \&testLimit,
               );
   while (my ($prefix, $coderef) = each(%cases)) {
@@ -111,25 +107,6 @@ sub set_up {
   my ($self) = assertNumArgs(1, @_);
   $self->SUPER::set_up();
   $self->reserveHostGroup("client");
-}
-
-######################################################################
-##
-sub testKmemleak {
-  my ($self) = assertNumArgs(1, @_);
-  my $rsvp = Permabit::RSVP->new();
-
-  foreach my $host (@{$self->{clientNames}}) {
-    if ($rsvp->isInClass($host, "FEDORA29") && !isVirtualMachine($host)) {
-      # Make sure kmemleak works where we expect it to.
-      setupKmemleak([$host]);
-      removeKmemleak([$host]);
-    } else {
-      # Make sure kmemleak does not work where we expect it not to.
-      eval { setupKmemleak([$host]); };
-      assertTrue($EVAL_ERROR);
-    }
-  }
 }
 
 ######################################################################
