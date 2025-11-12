@@ -71,8 +71,6 @@ use Storable qw(dclone);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
-my $GEN_DATA_BLOCKS = "src/c++/vdo/bin/genDataBlocks";
-
 #############################################################################
 # @paramList{new}
 my %PROPERTIES
@@ -399,8 +397,7 @@ sub _genDataBlocks {
   my $machine = $self->{device}->getMachine();
 
   # Run the command.  Save the exit status for use by the caller.
-  my $command = $machine->makeNfsSharePath($GEN_DATA_BLOCKS);
-  my $cmd = join(" ", "sudo", $command, @$options, $action);
+  my $cmd = join(" ", "sudo", "genDataBlocks", @$options, $action);
   $log->info($machine->getName() . ": $cmd");
   $self->{_status} = $machine->sendCommand($cmd);
 

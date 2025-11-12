@@ -14,25 +14,15 @@ X86_FEDORA42_head:
   arch: X86_64
   moduleVersion: head
 
-X86_RHEL9_8.2.4.9:
+X86_RHEL9_8.2.7.2:
   rsvpOSClass: RHEL9
   arch: X86_64
-  moduleVersion: 8.2.4.9
+  moduleVersion: 8.2.7.2
 
-X86_RHEL9_8.2.4-current:
+X86_RHEL9_8.2.7-current:
   rsvpOSClass: RHEL9
   arch: X86_64
-  moduleVersion: 8.2.4-current
-
-X86_RHEL9_8.2.3.2:
-  rsvpOSClass: RHEL9
-  arch: X86_64
-  moduleVersion: 8.2.3.2
-
-X86_RHEL9_8.2.3-current:
-  rsvpOSClass: RHEL9
-  arch: X86_64
-  moduleVersion: 8.2.3-current
+  moduleVersion: 8.2.7-current
 
 AARCH64_RHEL9_head:
   rsvpOSClass: RHEL9

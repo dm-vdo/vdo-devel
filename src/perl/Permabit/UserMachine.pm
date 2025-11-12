@@ -56,7 +56,6 @@ my $GENDATA_SEED_REGEXP = 'gen.randseed=(\d+)';
 # Locations of executables copied to nfsShareDir by Permabit::FileCopier.
 my $FSYNC          = "executables/fsync";
 my $GEN_DATA_SET   = "src/python/bin/genDataSet.py";
-my $GEN_DISCARD    = "src/c++/vdo/bin/genDiscard";
 my $MURMUR3COLLIDE = "src/c++/vdo/bin/murmur3collide";
 
 # Map of kernel-error labels to regular expressions or code that will match
@@ -377,7 +376,7 @@ sub fsync {
 ##
 sub genDiscard {
   my ($self, %params) = assertMinArgs(1, @_);
-  my $command = join(" ", "sudo", $self->makeNfsSharePath($GEN_DISCARD),
+  my $command = join(" ", "sudo", "genDiscard",
                      map { "--$_=$params{$_}" } keys(%params));
   $self->runSystemCmd($command);
   $log->debug($self->getStdout());
