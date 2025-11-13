@@ -23,6 +23,16 @@ static const struct admin_state_code VDO_CODE_OPERATING = {
 	.operating = true,
 };
 const struct admin_state_code *VDO_ADMIN_STATE_OPERATING = &VDO_CODE_OPERATING;
+static const struct admin_state_code VDO_CODE_KERNEL_FORMATTING = {
+	.name = "VDO_ADMIN_STATE_KERNEL_FORMATTING",
+	.operating = true,
+	.loading = true
+};
+const struct admin_state_code *VDO_ADMIN_STATE_KERNEL_FORMATTING = &VDO_CODE_KERNEL_FORMATTING;
+static const struct admin_state_code VDO_CODE_KERNEL_FORMATTED = {
+	.name = "VDO_ADMIN_STATE_KERNEL_FORMATTED",
+};
+const struct admin_state_code *VDO_ADMIN_STATE_KERNEL_FORMATTED = &VDO_CODE_KERNEL_FORMATTED;
 static const struct admin_state_code VDO_CODE_FORMATTING = {
 	.name = "VDO_ADMIN_STATE_FORMATTING",
 	.operating = true,
@@ -174,8 +184,12 @@ static const struct admin_state_code *get_next_state(const struct admin_state *s
 	if (operation == VDO_ADMIN_STATE_STOPPING)
 		return (code == VDO_ADMIN_STATE_NORMAL_OPERATION ? VDO_ADMIN_STATE_STOPPED : NULL);
 
+	if (operation == VDO_ADMIN_STATE_KERNEL_FORMATTING)
+		return (code == VDO_ADMIN_STATE_INITIALIZED ? VDO_ADMIN_STATE_KERNEL_FORMATTED : NULL);
+
 	if (operation == VDO_ADMIN_STATE_PRE_LOADING)
-		return (code == VDO_ADMIN_STATE_INITIALIZED ? VDO_ADMIN_STATE_PRE_LOADED : NULL);
+		return (((code == VDO_ADMIN_STATE_INITIALIZED) ||
+			 (code == VDO_ADMIN_STATE_KERNEL_FORMATTED)) ? VDO_ADMIN_STATE_PRE_LOADED : NULL);
 
 	if (operation == VDO_ADMIN_STATE_SUSPENDED_OPERATION) {
 		return (((code == VDO_ADMIN_STATE_SUSPENDED) ||
