@@ -156,7 +156,6 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 my $setNumber = 0;
 my $BLOCK_SIZE = 4 * $KB;
-my $GEN_DATA_BLOCKS = "src/c++/vdo/bin/genDataBlocks";
 
 # State constants
 my $WRITING  = -1;
@@ -558,8 +557,8 @@ sub _do_verify {
 sub _genDataBlocks {
   my ($self, $action) = assertNumArgs(2, @_);
   my $machine  = $self->{_machine};
-  my $cmd = join(" ", $machine->makeNfsSharePath($GEN_DATA_BLOCKS),
-                 "--dir=$self->{_dir}", @{$self->{_options}}, $action);
+  my $cmd = join(" ", "genDataBlocks", "--dir=$self->{_dir}",
+                 @{$self->{_options}}, $action);
   $machine->runSystemCmd($cmd);
 }
 
