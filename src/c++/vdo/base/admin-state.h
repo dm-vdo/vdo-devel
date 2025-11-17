@@ -27,6 +27,8 @@ struct admin_state_code {
 
 extern const struct admin_state_code *VDO_ADMIN_STATE_NORMAL_OPERATION;
 extern const struct admin_state_code *VDO_ADMIN_STATE_OPERATING;
+extern const struct admin_state_code *VDO_ADMIN_STATE_KERNEL_FORMATTING;
+extern const struct admin_state_code *VDO_ADMIN_STATE_KERNEL_FORMATTED;
 extern const struct admin_state_code *VDO_ADMIN_STATE_FORMATTING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADING;
 extern const struct admin_state_code *VDO_ADMIN_STATE_PRE_LOADED;
