@@ -97,6 +97,7 @@ C_WARNS          =				\
 OPT_FLAGS	 = -O3 -fno-omit-frame-pointer
 DEBUG_FLAGS      =
 GLOBAL_FLAGS     = -D_GNU_SOURCE -D_FORTIFY_SOURCE=2			\
+		   -fno-strict-aliasing					\
 		   -g $(OPT_FLAGS) $(WARNS)				\
 		   $(shell getconf LFS_CFLAGS) -fpic $(DEBUG_FLAGS)
 GLOBAL_CFLAGS	 = $(GLOBAL_FLAGS) -std=gnu11 -pedantic $(C_WARNS)	\
