@@ -1,6 +1,7 @@
 corruptPBNRef
 udsCalculateSize
 vdoAudit
+vdoCalculateSize
 vdoDebugMetadata
 vdoDumpBlockMap
 vdoDumpMetadata
