@@ -159,6 +159,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      logicalThreadCount        => 3,
      # Memory size of albireo index
      memorySize                => 0.25,
+     # @ple VDO settings to apply at next restart
+     pendingSettings           => {},
      # @ple VDO physical size (in bytes)
      physicalSize              => undef,
      # Number of physical threads/zones to use
@@ -286,12 +288,29 @@ sub makeBackingDevice {
 }
 
 ########################################################################
+# Change a set of VDO properties on the VDO volume via lvchange.
+# Property changes will take effect after the next VDO restart.
+#
+# @param args  a hashref of preperty-value pairs
+##
+sub changeVDOSettings {
+  my ($self, $args) = assertNumArgs(2, @_);
+  # This operation is only defined for LVMVDO devices right now.
+  confess("Failed to override the changeVDOSettings method");
+}
+
+########################################################################
 # @inherit
 ##
 sub start {
   my ($self) = assertNumArgs(1, @_);
   my $machineName = $self->getMachineName();
   my $moduleName = $self->getModuleName();
+
+  if (%{$self->{pendingSettings}}) {
+    $self->changeVDOSettings($self->{pendingSettings});
+    $self->{pendingSettings} = {};
+  }
 
   if ($self->{_modules}{$machineName}) {
     $self->{_modules}{$machineName}{$moduleName}->reload();
