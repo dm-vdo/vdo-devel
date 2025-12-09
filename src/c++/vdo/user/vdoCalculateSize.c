@@ -200,9 +200,9 @@ static u64 getUDSIndexSize(char *memorySize, int sparseIndex)
   }
 
   block_count_t indexBlocks = 0;
-  result = computeIndexBlocks(&indexConfig, &indexBlocks);
+  result = vdo_compute_index_blocks(&indexConfig, &indexBlocks);
   if (result != VDO_SUCCESS) {
-    errx(EXIT_FAILURE, "computeIndexBlocks failed: %s",
+    errx(EXIT_FAILURE, "vdo_compute_index_blocks failed: %s",
          uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
   }
   return indexBlocks;
