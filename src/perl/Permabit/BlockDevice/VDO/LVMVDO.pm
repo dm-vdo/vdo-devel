@@ -379,6 +379,16 @@ sub _changeVDOSetting {
 ########################################################################
 # @inherit
 ##
+sub changeVDOSettings {
+  my ($self, $args) = assertNumArgs(2, @_);
+  my $settings =
+    "--vdosettings '" . join(' ', map("$_=$args->{$_}", keys(%$args))) . "'";
+  $self->_changeVDOSetting($settings);
+}
+
+########################################################################
+# @inherit
+##
 sub disableCompression {
   my ($self) = assertNumArgs(1, @_);
   if ($self->isVDOCompressionEnabled()) {

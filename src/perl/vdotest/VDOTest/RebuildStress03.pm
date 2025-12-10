@@ -191,13 +191,6 @@ sub doThreadCountChange {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getDevice();
 
-  # XXX when LVM adds support for changing thread counts (BZ 2070777), remove
-  # this and implement properly at the bottom.
-  if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
-    $log->info("Skipping thread count change on Managed device");
-    return;
-  }
-
   $log->info("Changing thread counts (will take effect next reboot/restart)");
 
   my @threadCountFields
@@ -220,16 +213,16 @@ sub doThreadCountChange {
     $self->{blockMapCacheSize} = $requiredBlockMapCache;
   }
 
-  my $modifyArgs = {
-    blockMapCacheSize  => sizeToLvmText($self->{blockMapCacheSize}),
-    vdoAckThreads      => $self->{bioAckThreadCount},
-    vdoBioThreads      => $self->{bioThreadCount},
-    vdoCpuThreads      => $self->{cpuThreadCount},
-    vdoHashZoneThreads => $self->{hashZoneThreadCount},
-    vdoLogicalThreads  => $self->{logicalThreadCount},
-    vdoPhysicalThreads => $self->{physicalThreadCount},
+  my $newSettings = {
+    block_map_cache_size_mb => sizeToLvmText($self->{blockMapCacheSize}),
+    vdo_ack_threads         => $self->{bioAckThreadCount},
+    vdo_bio_threads         => $self->{bioThreadCount},
+    vdo_cpu_threads         => $self->{cpuThreadCount},
+    vdo_hash_zone_threads   => $self->{hashZoneThreadCount},
+    vdo_logical_threads     => $self->{logicalThreadCount},
+    vdo_physical_threads    => $self->{physicalThreadCount},
   };
-  $device->assertVDOCommand("modify", $modifyArgs);
+  $device->{pendingSettings} = $newSettings;
 }
 
 1;
