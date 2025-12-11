@@ -179,6 +179,12 @@ sub logout {
 ##
 sub migrate {
   my ($self, $newMachine) = assertNumArgs(2, @_);
+  # Try to flush out anything that might be cached.
+  # This attempts to address an intermittent problem where some of our writes
+  # seem to vanish. It's hard to reproduce, so this "fix" is unproven.
+  $self->getMachine()->runSystemCmd("sync");
+  $self->getMachine()->runSystemCmd("sudo blockdev --flushbufs " .
+                                    $self->getDevicePath());
   my $migrate = sub {
     my $currentHost = $self->getMachineName();
     my $newHost = $newMachine->getName();
