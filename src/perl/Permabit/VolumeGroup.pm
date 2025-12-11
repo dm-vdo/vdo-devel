@@ -146,7 +146,7 @@ sub createLogicalVolume {
   # a yes/no on whether to wipeout a filesystem signature (it does on RHEL7),
   # the input redirection will cause the answer to be "no". The volume is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name -an --size ${ksize}K --yes"
+  $machine->runSystemCmd("sudo lvcreate --name $name -an -ky --size ${ksize}K --yes"
                          . " $config $self->{volumeGroup} </dev/null");
 }
 
@@ -197,7 +197,7 @@ sub createThinPool {
   # Create a thin pool in an existing volume group. The pool is not
   # immediately enabled.
   $machine->runSystemCmd("sudo lvcreate --name $name $dataType --type=thin-pool"
-                         . " --size ${ksize}K -an -kn --yes $config"
+                         . " --size ${ksize}K -an -ky --yes $config"
                          . " $self->{volumeGroup} </dev/null");
 }
 
@@ -278,7 +278,7 @@ sub createVDOVolume {
   }
 
   my $args = join(' ', map { "--$_ $args{$_}" } keys(%args));
-  $machine->runSystemCmd("sudo lvcreate $args -an -kn --yes $config"
+  $machine->runSystemCmd("sudo lvcreate $args -an -ky --yes $config"
                          . " $self->{volumeGroup} </dev/null");
 }
 
@@ -299,37 +299,6 @@ sub deleteLogicalVolume {
     $log->info("Automatically removing VG " . $self->{volumeGroup});
     $self->remove();
   }
-}
-
-########################################################################
-# Delete a thin volume and its pool
-#
-# @param name  Logical volume name
-##
-sub deleteThinVolume {
-  my ($self, $name) = assertNumArgs(2, @_);
-  $self->disableLogicalVolume($name);
-  # remove a logical volume
-  my $machine = $self->{storageDevice}->getMachine();
-  my $lvPath = "$self->{volumeGroup}/$name";
-  my $config = $self->getLVMOptions();
-  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
-  $lvPath = "$self->{volumeGroup}/$name-pool";
-  $machine->runSystemCmd("sudo lvremove --force $config $lvPath");
-  if (--$self->{_useCount} == 0) {
-    $log->info("Automatically removing VG " . $self->{volumeGroup});
-    $self->remove();
-  }
-}
-
-########################################################################
-# Disable auto activation of logical volume
-#
-# @param name  Logical volume name
-##
-sub disableAutoActivation {
-  my ($self, $name) = assertNumArgs(2, @_);
-  $self->_changeLogicalVolume($name, '-ky');
 }
 
 ########################################################################
