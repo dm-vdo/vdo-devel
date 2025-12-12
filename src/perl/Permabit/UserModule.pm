@@ -47,13 +47,20 @@ sub loadFromFiles {
 
   if ($self->{useUpstream}) {
     $log->debug("Using upstream version VDO: $self->{modVersion}");
+    my $scratchDir = $machine->getScratchDir();
+    # Concurrent tests on multiple machines can collide accessing NFS
+    # homedirs.
+    my $xdgStateDir = "$scratchDir/xdgState";
+    my $xdgCacheDir = "$scratchDir/xdgCache";
     my $topdir = makeFullPath($machine->{workDir}, $self->{modVersion});
-    $self->_step(command => "mkdir -p $topdir");
-    my $getFromDnf = join(' ', "XDG_STATE_HOME=/tmp",
+    $self->_step(command => "mkdir -p $topdir $xdgStateDir $xdgCacheDir");
+    my $getFromDnf = join(' ', "XDG_STATE_HOME=$xdgStateDir",
+                          "XDG_CACHE_HOME=$xdgCacheDir",
 			  "dnf", "download", "--destdir",
 			  "$self->{modDir}", "$modFileName");
     $self->_step(command => $getFromDnf);
-    $getFromDnf = join(' ', "XDG_STATE_HOME=/tmp",
+    $getFromDnf = join(' ', "XDG_STATE_HOME=$xdgStateDir",
+                       "XDG_CACHE_HOME=$xdgCacheDir",
                        "dnf", "download", "--destdir", "$topdir",
                        "$modFileName-support");
     $self->_step(command => $getFromDnf);

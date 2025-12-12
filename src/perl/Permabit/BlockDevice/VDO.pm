@@ -558,11 +558,16 @@ sub suspend {
 sub getModuleVersion {
   my ($self) = assertNumArgs(1, @_);
   if ($self->{useUpstreamModule}) {
-    my $getVerCmd = "XDG_STATE_HOME=/tmp " .
+    # Concurrent tests on multiple machines can collide accessing NFS
+    # homedirs.
+    my $scratchDir = $self->getMachine()->getScratchDir();
+    my $xdgStateDir = "$scratchDir/xdgState";
+    my $xdgCacheDir = "$scratchDir/xdgCache";
+    my $getVerCmd = "XDG_STATE_HOME=$xdgStateDir " .
+                    "XDG_CACHE_HOME=$xdgCacheDir " .
                     "yum list $VDO_USER_MODNAME.`uname -m` | " .
                     "awk '/^$VDO_USER_MODNAME/ {print \$2}'";
-    my @ver = split(/\./,
-		    runCommand($self->getMachineName(), $getVerCmd)->{stdout});
+    my @ver = split(/\./, $self->runOnHost($getVerCmd));
     $self->setModuleVersion("$ver[0].$ver[1]");
   }
   return $self->{moduleVersion};
