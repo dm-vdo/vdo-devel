@@ -214,13 +214,13 @@ sub doThreadCountChange {
   }
 
   my $newSettings = {
-    block_map_cache_size_mb => sizeToLvmText($self->{blockMapCacheSize}),
-    vdo_ack_threads         => $self->{bioAckThreadCount},
-    vdo_bio_threads         => $self->{bioThreadCount},
-    vdo_cpu_threads         => $self->{cpuThreadCount},
-    vdo_hash_zone_threads   => $self->{hashZoneThreadCount},
-    vdo_logical_threads     => $self->{logicalThreadCount},
-    vdo_physical_threads    => $self->{physicalThreadCount},
+    vdo_block_map_cache_size_mb => int($self->{blockMapCacheSize} / $MB),
+    vdo_ack_threads             => $self->{bioAckThreadCount},
+    vdo_bio_threads             => $self->{bioThreadCount},
+    vdo_cpu_threads             => $self->{cpuThreadCount},
+    vdo_hash_zone_threads       => $self->{hashZoneThreadCount},
+    vdo_logical_threads         => $self->{logicalThreadCount},
+    vdo_physical_threads        => $self->{physicalThreadCount},
   };
   $device->{pendingSettings} = $newSettings;
 }
