@@ -218,22 +218,22 @@ int vio_reset_bio_with_size(struct vio *vio, char *data, int size, bio_end_io_t 
 
 	bio->bi_ioprio = 0;
 #ifndef VDO_UPSTREAM
-#undef VDO_USE_NEXT
+#undef VDO_USE_ALTERNATE
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(10, 2))
-#define VDO_USE_NEXT
+#if (RHEL_RELEASE_CODE <= RHEL_RELEASE_VERSION(10, 2))
+#define VDO_USE_ALTERNATE
 #endif
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0))
-#define VDO_USE_NEXT
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0))
+#define VDO_USE_ALTERNATE
 #endif
 #endif /* RHEL_RELEASE_CODE */
 #endif /* VDO_UPSTREAM */
-#ifndef VDO_USE_NEXT
+#ifdef VDO_USE_ALTERNATE
 	bio->bi_io_vec = bio->bi_inline_vecs;
 #else
 	bio->bi_io_vec = bio_inline_vecs(bio);
-#endif /* VDO_USE_NEXT */
+#endif /* VDO_USE_ALTERNATE */
 	bio->bi_max_vecs = vio->block_count + 1;
 	if (VDO_ASSERT(size <= vio_size, "specified size %d is not greater than allocated %d",
 		       size, vio_size) != VDO_SUCCESS)
