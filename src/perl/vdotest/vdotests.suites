@@ -843,6 +843,7 @@ $suiteNames{beakerExcludedTests}
   = (
      "DirtyUpgrade",               # Requires explicit upgrade step
      "Downgrade",                  # Requires explicit upgrade step
+     "SimpleMigration",            # VDO-6018
      "LargeUpgrade",               # VDO-5257
      "Upgrade",                    # VDO-5257
      "UpgradeCompressDedupe",      # VDO-5257
