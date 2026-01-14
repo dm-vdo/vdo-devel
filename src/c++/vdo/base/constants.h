@@ -96,7 +96,4 @@ enum {
 	VDO_ZERO_BLOCK = 0,
 };
 
-/* Supported compression algorithms */
-#define VDO_COMPRESS_LZ4 "lz4"
-
 #endif /* VDO_CONSTANTS_H */

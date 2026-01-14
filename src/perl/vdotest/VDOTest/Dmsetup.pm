@@ -302,25 +302,7 @@ sub testMultiVdoDefiningTable {
 }
 
 ###############################################################################
-# Test various valid compression type options.
-##
-sub testCompressionType {
-  my ($self) = assertNumArgs(1, @_);
-  my $device = $self->getDevice();
-  my $deviceName = $device->getDeviceName();
-
-  $device->{compressionType} = "lz4";
-  $device->restart();
-
-  $device->{compressionType} = "lz4:5";
-  $device->restart();
-
-  $device->{compressionType} = "lz4:-5";
-  $device->restart();
-}
-
-###############################################################################
-# Test sending no optional parameters and make sure it works properly.
+# Test no optional parameters and make sure it works properly.
 ##
 sub testOptionalParameters {
   my ($self) = assertNumArgs(1, @_);
@@ -338,7 +320,6 @@ sub testOptionalParameters {
   $device->{physicalThreadCount} = undef;
   $device->{enableDeduplication} = -1;
   $device->{enableCompression} = -1;
-  $device->{compressionType} = undef;
 
   $device->restart();
 

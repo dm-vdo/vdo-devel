@@ -356,11 +356,10 @@ static inline int LZ4_NbCommonBytes (register U32 val)
 // return : the number of bytes written in buffer 'dest', or 0 if the compression fails
 
 static inline int LZ4_compressCtx(void** ctx,
-                                  const char* source,
-                                  char* dest,
-                                  int isize,
-                                  int maxOutputSize,
-                                  int acceleration)
+                 const char* source,
+                 char* dest,
+                 int isize,
+                 int maxOutputSize)
 {
 #if HEAPMODE
     struct refTables *srt = (struct refTables *) (*ctx);
@@ -401,7 +400,7 @@ static inline int LZ4_compressCtx(void** ctx,
     // Main Loop
     for ( ; ; )
     {
-        int findMatchAttempts = (acceleration << skipStrength) + 3;
+        int findMatchAttempts = (1U << skipStrength) + 3;
         const BYTE* forwardIp = ip;
         const BYTE* ref;
         BYTE* token;
@@ -518,11 +517,10 @@ _last_literals:
 #define LZ4_HASH64K_FUNCTION(i)	(((i) * 2654435761U) >> ((MINMATCH*8)-HASHLOG64K))
 #define LZ4_HASH64K_VALUE(p)	LZ4_HASH64K_FUNCTION(A32(p))
 static inline int LZ4_compress64kCtx(void** ctx,
-                                     const char* source,
-                                     char* dest,
-                                     int isize,
-                                     int maxOutputSize,
-                                     int acceleration)
+                 const char* source,
+                 char* dest,
+                 int isize,
+                 int maxOutputSize)
 {
 #if HEAPMODE
     struct refTables *srt = (struct refTables *) (*ctx);
@@ -562,7 +560,7 @@ static inline int LZ4_compress64kCtx(void** ctx,
     // Main Loop
     for ( ; ; )
     {
-        int findMatchAttempts = (acceleration << skipStrength) + 3;
+        int findMatchAttempts = (1U << skipStrength) + 3;
         const BYTE* forwardIp = ip;
         const BYTE* ref;
         BYTE* token;
@@ -675,16 +673,12 @@ int LZ4_compress_ctx_limitedOutput(void       *ctx,
                                    const char *source,
                                    char       *dest,
                                    int         isize,
-                                   int         maxOutputSize,
-                                   int         acceleration)
+                                   int         maxOutputSize)
 {
-  if (acceleration < LZ4_ACCELERATION_DEFAULT) {
-    acceleration = LZ4_ACCELERATION_DEFAULT;
-  }
   if (isize < LZ4_64KLIMIT) {
-    return LZ4_compress64kCtx(&ctx, source, dest, isize, maxOutputSize, acceleration);
+    return LZ4_compress64kCtx(&ctx, source, dest, isize, maxOutputSize);
   } else {
-    return LZ4_compressCtx(&ctx, source, dest, isize, maxOutputSize, acceleration);
+    return LZ4_compressCtx(&ctx, source, dest, isize, maxOutputSize);
   }
 }
 
