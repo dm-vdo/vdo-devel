@@ -857,6 +857,7 @@ $suiteNames{beakerExcludedTests}
      "DirtyUpgrade",               # Requires explicit upgrade step
      "Downgrade",                  # Requires explicit upgrade step
      "LargeUpgrade",               # VDO-5257
+     "SimpleMigration",            # VDO-6018
      "Upgrade",                    # VDO-5257
      "UpgradeCompressDedupe",      # VDO-5257
      "UpgradeLatest",              # VDO-5257
