@@ -107,6 +107,19 @@ $suiteNames{filesystem}
      "Zero01",
     ];
 
+# VDO tests that exercise the vdoformat in kernel code.
+$suiteNames{kernelformat}
+  = [
+     (map { "Bare$_" } (
+       @{$suiteNames{basic}},
+       "Direct06",
+       "AuditTool",
+       "Compress01",
+       "Direct04",
+     )),
+     "DoryRebuildFast",
+    ];
+
 ###########################################################################
 # Rebuild stress tests
 ##
@@ -915,6 +928,7 @@ $aliasNames{RawDirect06}
 
 $aliasPrefixes{"512B"}   = "--emulate512Enabled=1 --compressibleChunkSize=512";
 $aliasPrefixes{Dist}     = "--useDistribution=1";
+$aliasPrefixes{Bare}     = "--deviceType=vdo";
 $aliasPrefixes{Ext3}     = "--fsType=ext3";
 $aliasPrefixes{Ext4}     = "--fsType=ext4";
 $aliasPrefixes{Fedora42} = "--clientClass=FEDORA42";
