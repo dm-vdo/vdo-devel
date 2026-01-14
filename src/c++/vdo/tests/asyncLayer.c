@@ -226,7 +226,7 @@ static void wrapOpenIndex(struct vdo_completion *completion)
 {
   runSavedCallback(completion);
   CU_ASSERT_STRING_EQUAL(vdo_get_dedupe_index_state_name(vdo->hash_zones),
-                         "active");
+                         "online");
   signalState(&asAsyncLayer()->indexOpen);
 }
 

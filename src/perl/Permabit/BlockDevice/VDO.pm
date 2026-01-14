@@ -765,13 +765,13 @@ sub getStatus {
 # Wait until the index service is available.
 #
 # @oparam statusList  Listref of acceptable status strings.  Defaults to
-#                     "active" only.
+#                     "online" only.
 # @oparam timeout     The maximum time to wait, in seconds. Defaults to a value
 #                     that depends upon the type of the host.
 ##
 sub waitForIndex {
   my %OPTIONS = (
-                 statusList => [qw(active)],
+                 statusList => [qw(online)],
                  timeout    => undef,
                 );
   my ($self, $options) = assertOptionalArgs(1, \%OPTIONS, @_);
@@ -936,7 +936,7 @@ sub isVDOCompressionEnabled {
 ##
 sub isVDODedupeEnabled {
   my ($self) = assertNumArgs(1, @_);
-  return ($self->getVDODedupeStatus() eq 'active');
+  return ($self->getVDODedupeStatus() eq 'online');
 }
 
 ########################################################################
@@ -1462,19 +1462,19 @@ sub assertPerformanceExpectations {
 }
 
 ########################################################################
-# Verify that the deduplication service is active.
+# Verify that the deduplication service is online.
 ##
-sub assertDeduplicationActive {
+sub assertDeduplicationOnline {
   my ($self) = assertNumArgs(1, @_);
-  assertEq("active", $self->getVDODedupeStatus());
+  assertEq("online", $self->getVDODedupeStatus());
 }
 
 ########################################################################
-# Verify that the deduplication service is inactive.
+# Verify that the deduplication service is offline.
 ##
-sub assertDeduplicationInactive {
+sub assertDeduplicationOffline {
   my ($self) = assertNumArgs(1, @_);
-  assertEq("inactive", $self->getVDODedupeStatus());
+  assertEq("offline", $self->getVDODedupeStatus());
 }
 
 ########################################################################
