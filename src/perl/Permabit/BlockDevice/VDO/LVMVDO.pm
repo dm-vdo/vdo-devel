@@ -91,12 +91,6 @@ sub makeLVMConfigString {
       push(@values, ["vdo_use_compression", $self->{enableCompression}]);
     }
   }
-
-  # lvm does not support this feature yet (VDO-5892)
-  if (defined($self->{compressionType})) {
-    push(@values, ["vdo_compression_type", "$self->{compressionType}"]);
-  }
-
   if (defined($self->{enableDeduplication})) {
     # magic value -1 suppresses the option completely
     if ($self->{enableDeduplication} != -1) {

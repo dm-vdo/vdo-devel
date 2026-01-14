@@ -108,8 +108,8 @@ static const enum partition_id REQUIRED_PARTITIONS[] = {
 };
 
 /*
- * The current version for the component data encoded in the super block. This must be changed
- * any time there is a change to the encoding of the data of any VDO component.
+ * The current version for the data encoded in the super block. This must be changed any time there
+ * is a change to encoding of the component data of any VDO component.
  */
 static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 	.major_version = 41,
@@ -119,15 +119,6 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 const struct version_number VDO_VOLUME_VERSION_67_0 = {
 	.major_version = 67,
 	.minor_version = 0,
-};
-
-/*
- * The current version for all data encoded in the super block. This must be changed any time
- * there is a change to the encoding or meaning of any super block field.
- */
-const struct version_number VDO_VOLUME_VERSION_67_1 = {
-	.major_version = 67,
-	.minor_version = 1,
 };
 
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
@@ -140,8 +131,6 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
 	/* This is the minimum size, if the super block contains no components. */
 	.size = VDO_SUPER_BLOCK_FIXED_SIZE - VDO_ENCODED_HEADER_SIZE,
 };
-
-static const u32 VDO_SUPPORTED_FLAGS = VDO_REQUIRES_LZ4;
 
 /**
  * validate_version() - Check whether a version matches an expected version.
@@ -185,9 +174,9 @@ static int __must_check validate_version(struct version_number expected_version,
  *         VDO_INCORRECT_COMPONENT if the component ids don't match,
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match.
  */
-static int vdo_validate_header(const struct header *expected_header,
-			       const struct header *actual_header,
-			       bool exact_size, const char *name)
+int vdo_validate_header(const struct header *expected_header,
+			const struct header *actual_header, bool exact_size,
+			const char *name)
 {
 	int result;
 
@@ -223,8 +212,7 @@ static void encode_version_number(u8 *buffer, size_t *offset,
 	*offset += sizeof(packed);
 }
 
-STATIC void vdo_encode_header(u8 *buffer, size_t *offset,
-			      const struct header *header)
+void vdo_encode_header(u8 *buffer, size_t *offset, const struct header *header)
 {
 	struct packed_header packed = vdo_pack_header(header);
 
@@ -242,7 +230,7 @@ static void decode_version_number(u8 *buffer, size_t *offset,
 	*version = vdo_unpack_version_number(packed);
 }
 
-STATIC void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header)
+void vdo_decode_header(u8 *buffer, size_t *offset, struct header *header)
 {
 	struct packed_header packed;
 
@@ -1449,35 +1437,16 @@ int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 {
 	int result;
 	size_t offset = VDO_COMPONENT_DATA_OFFSET;
-	u32 flags;
 
-	decode_u32_le(buffer, &offset, &flags);
+	/* This is for backwards compatibility. */
+	decode_u32_le(buffer, &offset, &states->unused);
 
 	/* Check the VDO volume version */
 	decode_version_number(buffer, &offset, &states->volume_version);
-	result = validate_version(VDO_VOLUME_VERSION_67_1, states->volume_version,
+	result = validate_version(VDO_VOLUME_VERSION_67_0, states->volume_version,
 				  "volume");
-	if (result == VDO_SUCCESS) {
-		if ((flags | VDO_SUPPORTED_FLAGS) != VDO_SUPPORTED_FLAGS)
-			return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
-						      "Unsupported feature flags: %u",
-						      flags & ~VDO_SUPPORTED_FLAGS);
-
-		states->required_flags = flags;
-		states->legacy = 0;
-	} else {
-		result = validate_version(VDO_VOLUME_VERSION_67_0,
-					  states->volume_version, "volume");
-		if (result != VDO_SUCCESS)
-			return result;
-
-		/*
-		 * Version 67.0 may have other data in the flags field. Preserve
-		 * it for backwards compatibility but don't validate it.
-		 */
-		states->required_flags = VDO_REQUIRES_LZ4;
-		states->legacy = flags;
-	}
+	if (result != VDO_SUCCESS)
+		return result;
 
 	result = decode_components(buffer, &offset, geometry, states);
 	if (result != VDO_SUCCESS)
@@ -1519,10 +1488,8 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 static void vdo_encode_component_states(u8 *buffer, size_t *offset,
 					const struct vdo_component_states *states)
 {
-	if (vdo_are_same_version(VDO_VOLUME_VERSION_67_0, states->volume_version))
-		encode_u32_le(buffer, offset, states->legacy);
-	else
-		encode_u32_le(buffer, offset, states->required_flags);
+	/* This is for backwards compatibility. */
+	encode_u32_le(buffer, offset, states->unused);
 	encode_version_number(buffer, offset, states->volume_version);
 	encode_vdo_component(buffer, offset, states->vdo);
 	encode_layout(buffer, offset, &states->layout);
@@ -1577,17 +1544,26 @@ int vdo_decode_super_block(u8 *buffer)
 	if (result != VDO_SUCCESS)
 		return result;
 
-	if (header.size > VDO_SECTOR_SIZE - offset) {
-		/* If the data claims to extend past a sector, we assume corruption. */
+	if (header.size > VDO_COMPONENT_DATA_SIZE + sizeof(u32)) {
+		/*
+		 * We can't check release version or checksum until we know the content size, so we
+		 * have to assume a version mismatch on unexpected values.
+		 */
 		return vdo_log_error_strerror(VDO_UNSUPPORTED_VERSION,
 					      "super block contents too large: %zu",
 					      header.size);
 	}
 
 	/* Skip past the component data for now, to verify the checksum. */
-	offset += header.size - sizeof(u32);
+	offset += VDO_COMPONENT_DATA_SIZE;
+
 	checksum = vdo_crc32(buffer, offset);
 	decode_u32_le(buffer, &offset, &saved_checksum);
+
+	result = VDO_ASSERT(offset == VDO_SUPER_BLOCK_FIXED_SIZE + VDO_COMPONENT_DATA_SIZE,
+			    "must have decoded entire superblock payload");
+	if (result != VDO_SUCCESS)
+		return result;
 
 	return ((checksum != saved_checksum) ? VDO_CHECKSUM_MISMATCH : VDO_SUCCESS);
 }

@@ -124,10 +124,6 @@ sub makeConfigString {
     }
   }
 
-  if (defined($self->{compressionType})) {
-    push(@optional, ["compressionType", "$self->{compressionType}"]);
-  }
-
   if (defined($self->{enableDeduplication})) {
     # magic value -1 suppresses the option completely
     if ($self->{enableDeduplication} != -1) {
