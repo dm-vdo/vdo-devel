@@ -2951,15 +2951,6 @@ static int perform_grow_physical(struct vdo *vdo, block_count_t new_physical_blo
 }
 
 /**
- * vdo_set_required_flags() - Set any flags requested by the device config.
- * @vdo: The vdo being loaded.
- */
-static void vdo_set_required_flags(struct vdo *vdo)
-{
-	vdo->states.required_flags |= VDO_REQUIRES_LZ4;
-}
-
-/**
  * apply_new_vdo_configuration() - Attempt to make any configuration changes from the table being
  *                                 resumed.
  * @vdo: The vdo being resumed.
@@ -2972,8 +2963,6 @@ static int __must_check apply_new_vdo_configuration(struct vdo *vdo,
 						    struct device_config *config)
 {
 	int result;
-
-	vdo_set_required_flags(vdo);
 
 	result = perform_grow_logical(vdo, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
