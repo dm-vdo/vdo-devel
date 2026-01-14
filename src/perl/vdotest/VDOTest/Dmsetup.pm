@@ -309,12 +309,6 @@ sub testCompressionType {
   my $device = $self->getDevice();
   my $deviceName = $device->getDeviceName();
 
-  # Don't run this test against linux-next because the compressionType feature
-  # doesn't exist there yet.
-  if ($self->{useUpstreamModule}) {
-    return;
-  }
-
   $device->{compressionType} = undef;
   $device->restart();
   assertRegexpMatches(qr/^(\S+ ){7}offline( \S+){2}$/,
