@@ -72,7 +72,7 @@ sub testStart {
       # but if we go into read-only mode, we might not start the index.
       $vdoMode = (split(' ', $device->getStatus()))[4];
       if ($vdoMode ne "read-only") {
-        $device->waitForIndex(statusList => [qw(error online)]);
+        $device->waitForIndex(statusList => [qw(error active)]);
       }
     }
 
@@ -84,7 +84,7 @@ sub testStart {
       # VDO and the dedupe index should have started.
       assertFalse($startError);
       if ($vdoMode ne "read-only") {
-        $device->assertDeduplicationOnline();
+        $device->assertDeduplicationActive();
       }
       last;
     }

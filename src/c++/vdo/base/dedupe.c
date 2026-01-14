@@ -180,11 +180,11 @@ enum index_state {
 	IS_OPENED,
 };
 
+static const char *ACTIVE = "active";
 static const char *CLOSED = "closed";
 static const char *CLOSING = "closing";
 static const char *ERROR = "error";
-static const char *OFFLINE = "offline";
-static const char *ONLINE = "online";
+static const char *INACTIVE = "inactive";
 static const char *OPENING = "opening";
 static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
@@ -2818,7 +2818,7 @@ static const char *index_state_to_string(struct hash_zones *zones,
 	case IS_CHANGING:
 		return zones->index_target == IS_OPENED ? OPENING : CLOSING;
 	case IS_OPENED:
-		return READ_ONCE(zones->dedupe_flag) ? ONLINE : OFFLINE;
+		return READ_ONCE(zones->dedupe_flag) ? ACTIVE : INACTIVE;
 	default:
 		return UNKNOWN;
 	}
