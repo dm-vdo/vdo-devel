@@ -105,17 +105,18 @@ sub testCorruptGeometry {
   my $machine = $device->getMachine();
 
   $device->stop();
-  # Annihilate the geometry block.
+  # Corrupt the geometry block with random data (not zeros, which would
+  # trigger in-kernel formatting).
   $device->{storageDevice}->ddWrite((bs    => 4096,
                                      count => 1,
-                                     if    => "/dev/zero"));
+                                     if    => "/dev/urandom"));
 
   my $currentCursor = $machine->getKernelJournalCursor();
   eval {
     $device->start();
   };
   assertEvalErrorMatches(qr/\s*Failed while running sudo dmsetup create /);
-  my $pattern = " Could not load geometry block";
+  my $pattern = " Could not parse geometry block";
   assertTrue($machine->searchKernelJournalSince($currentCursor, $pattern));
 }
 
