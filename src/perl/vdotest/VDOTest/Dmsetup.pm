@@ -320,6 +320,9 @@ sub testOptionalParameters {
   $device->{physicalThreadCount} = undef;
   $device->{enableDeduplication} = -1;
   $device->{enableCompression} = -1;
+  $device->{memorySize} = -1;
+  $device->{sparse} = -1;
+  $device->{slabBits} = -1;
 
   $device->restart();
 
