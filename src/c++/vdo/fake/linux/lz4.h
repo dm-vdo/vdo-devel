@@ -20,14 +20,6 @@ int LZ4_compress_default(const char *source,
                          void *context);
 
 /**********************************************************************/
-int LZ4_compress_fast(const char *source,
-                      char *dest,
-                      int isize,
-                      int maxOutputSize,
-                      int acceleration,
-                      void *context);
-
-/**********************************************************************/
 int LZ4_decompress_safe(const char *source,
                         char *dest,
                         int isize,

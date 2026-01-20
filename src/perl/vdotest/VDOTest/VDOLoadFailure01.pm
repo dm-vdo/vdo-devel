@@ -39,7 +39,7 @@ sub _tryIllegal {
   my ($self, $valueHash, $failPattern) = assertNumArgs(3, @_);
   my $device = $self->getDevice();
   my $machine = $device->getMachine();
-
+  
   my $oldValues = {};
   for my $k ( keys(%$valueHash) ) {
     my $value = $valueHash->{$k};
@@ -81,37 +81,20 @@ sub testIllegalValues {
   $self->_tryIllegal({ hashZoneThreadCount => 101 },
 		     "at most 100 'hash' threads are allowed");
   $self->_tryIllegal({ logicalThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
   $self->_tryIllegal({ physicalThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
   $self->_tryIllegal({ bioAckThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
   $self->_tryIllegal({ bioThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
   $self->_tryIllegal({ cpuThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
   $self->_tryIllegal({ hashZoneThreadCount => (1 << 32) },
-		     "unsigned integer needed, found");
+		     "integer value needed, found");
 
   $self->_tryIllegal({ logicalThreadCount => 1, physicalThreadCount => 16 },
 		     " physical zones exceeds slab count ");
-
-  $self->_tryIllegal({ compressionType => "elephant"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "elephant:3"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "lz4extra"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "lz4extra:4"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "lz"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "lz:5"},
-		     "unknown compression type");
-  $self->_tryIllegal({ compressionType => "lz4:ivory"},
-		     "integer needed, found");
-  $self->_tryIllegal({ compressionType => "lz4:"},
-		     "integer needed, found");
 }
 
 #############################################################################

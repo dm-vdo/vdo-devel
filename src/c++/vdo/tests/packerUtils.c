@@ -137,26 +137,13 @@ int LZ4_compress_default(const char *source,
                          int maxOutputSize,
                          void *context)
 {
-  return LZ4_compress_fast(source, dest, isize, maxOutputSize,
-                           LZ4_ACCELERATION_DEFAULT, context);
-}
-
-/**********************************************************************/
-int LZ4_compress_fast(const char *source,
-                      char *dest,
-                      int isize,
-                      int maxOutputSize,
-                      int acceleration,
-                      void *context)
-{
   return (READ_ONCE(packingPrevented)
           ? VDO_BLOCK_SIZE
           : LZ4_compress_ctx_limitedOutput(context,
                                            source,
                                            dest,
                                            isize,
-                                           maxOutputSize,
-                                           acceleration));
+                                           maxOutputSize));
 }
 
 /**********************************************************************/

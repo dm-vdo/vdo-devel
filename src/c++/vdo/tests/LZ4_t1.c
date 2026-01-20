@@ -72,7 +72,7 @@ static void uncompressRandomData(const char* source, int isize, int osize)
 }
 
 /**********************************************************************/
-static void compressString(const char *source, int acceleration)
+static void compressString(const char *source)
 {
   int sourceLen = strlen(source);
   char *compressed, *copy, *ctx;
@@ -81,8 +81,7 @@ static void compressString(const char *source, int acceleration)
   VDO_ASSERT_SUCCESS(vdo_allocate(LZ4_context_size(), __func__, &ctx));
   // Test the data are compressed
   int compressedLen = LZ4_compress_ctx_limitedOutput(ctx, source, compressed,
-                                                     sourceLen, sourceLen,
-                                                     acceleration);
+                                                     sourceLen, sourceLen);
   CU_ASSERT(compressedLen > 0);
   CU_ASSERT(compressedLen < sourceLen);
   // Test the data cannot be uncompressed when the destination is too small
@@ -113,10 +112,8 @@ static void compressString(const char *source, int acceleration)
 /**********************************************************************/
 static void testPoetry(void)
 {
-  compressString(SHAKESPEARE_SONNET_2, LZ4_ACCELERATION_DEFAULT);
-  compressString(SHAKESPEARE_SONNET_3, 0);
-  compressString(SHAKESPEARE_SONNET_2, 5);
-  compressString(SHAKESPEARE_SONNET_3, -5);
+  compressString(SHAKESPEARE_SONNET_2);
+  compressString(SHAKESPEARE_SONNET_3);
 }
 
 /**********************************************************************/
@@ -130,8 +127,7 @@ static int compressBlockFromStream(FILE *stream, int sourceLen)
   CU_ASSERT(fread(source, sourceLen, 1, stream) == 1);
   uncompressRandomData(source, sourceLen, sourceLen);
   int compressedLen = LZ4_compress_ctx_limitedOutput(ctx, source, compressed,
-                                                     sourceLen, sourceLen,
-                                                     LZ4_ACCELERATION_DEFAULT);
+                                                     sourceLen, sourceLen);
   if ((compressedLen > 0) && (compressedLen < sourceLen)) {
     int copyLen = LZ4_uncompress_unknownOutputSize(compressed, copy,
                                                    compressedLen, sourceLen);
