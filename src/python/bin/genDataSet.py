@@ -290,7 +290,7 @@ class RandomState(numpy.random.RandomState):
     """
     Choose a random 64-bit seed.
     """ 
-    return int(self.randint(256, size=8).astype(numpy.int8).view(int))
+    return int(self.randint(256, size=8).astype(numpy.int8).view(numpy.int64)[0])
 
 
 class Node(object):
