@@ -63,6 +63,12 @@ my $SUITE_PROPERTIES = {
     extraArgs    => "--clientClass=PFARM",
     osClasses    => ["FEDORA42DEBUG"],
   },
+  vdoKernelFormatTests => {
+    displayName => "VDO_Kernel_Format_Tests",
+    suiteName   => "kernelformat",
+    scale       => "PFARM",
+    extraArgs   => "--clientClass=PFARM --formatInKernel=1",
+  },
   vdoSingle => {
     displayName => "VDO_Single_Threaded_Tests",
     suiteName   => "",
