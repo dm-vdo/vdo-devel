@@ -17,7 +17,7 @@ use Permabit::Assertions qw(
 );
 use Permabit::Constants;
 use Permabit::GenDataFiles qw(genDataFiles);
-use Permabit::Utils qw(retryUntilTimeout);
+use Permabit::Utils qw(makeFullPath retryUntilTimeout);
 use Permabit::VDOTask::SliceOperation;
 
 use base qw(VDOTest);
@@ -26,6 +26,9 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 my $DEFAULT_TMP_STORAGE_SIZE = 5 * $GB / $KB;
 my $INTERVAL = 10;
+my $SENTINEL_BASENAME = "vdorecover-continue";
+
+
 
 #############################################################################
 # @paramList{getProperties}
@@ -43,6 +46,18 @@ our %PROPERTIES
      slabBits => $SLAB_BITS_TINY,
     );
 ##
+ 
+#############################################################################
+# Return the path to the sentinel file for a specific machine.
+#
+# @param machine  The machine object
+#
+# @return the full path to the sentinel file
+##
+sub _sentinelPath {
+  my ($self, $machine) = assertNumArgs(2, @_);
+  return makeFullPath($machine->getScratchDir(), $SENTINEL_BASENAME);
+}
 
 #############################################################################
 # @inherit
@@ -55,30 +70,29 @@ sub listSharedFiles {
 }
 
 #############################################################################
-# Run vdorecover on the specified VDO device.
+# Run vdorecover on the specified VDO device, coordinated by a sentinel file.
 ##
 sub runVdorecover {
-  my ($self, $vdoDeviceName, $tmpStorageKB)
-    = assertMinMaxArgs([$DEFAULT_TMP_STORAGE_SIZE], 2, 3, @_);
-  my $machine = $self->getDevice()->getMachine();
-  my $vdorecover = $self->findBinary("vdorecover");
+  my ($self, $vdoDeviceName, $sentinelPath) = assertNumArgs(3, @_);
+  my $machine     = $self->getDevice()->getMachine();
+  my $vdorecover  = $self->findBinary("vdorecover");
   my $vdostatsDir = dirname($machine->findNamedExecutable('vdostats'));
 
-  # Write 'y\n' to the script every 10 seconds, a maximum of 20 times -- this
-  # is chosen to be twice as many times as ever observed to be needed. We need
-  # some mechanism to keep issuing 'y' to the script every so often until it
-  # is done, and just piping 'yes' into it results in OOMing, so this is the
-  # current, suboptimal, method to do so... 
-  #
-  # If the script doesn't finish within 200 seconds, it will never get more
-  # input and the test will hang. 
+  # Wait up to 200 seconds for the sentinel; if found, send one 'y', then exit.
   my $inputter
-    = "i=0; while [ \$((++i)) -le 20 ]; do echo y; sleep $INTERVAL; done";
+    = "i=0; while [ \$i -lt 200 ]; do "
+    . "if [ -f '$sentinelPath' ]; then echo y; break; fi; "
+    . "sleep 1; i=\$((i+1)); "
+    . "done";
+
+  # Use the default temporary storage size
+  my $tmpStorageKB = $DEFAULT_TMP_STORAGE_SIZE;
+
   # Have to set PATH because the script expects to find vdostats in it.
   $machine->assertExecuteCommand("$inputter | sudo LOOPBACK_DIR=/u1"
-				 . " TMPFILESZ=$tmpStorageKB"
-				 . " PATH=$vdostatsDir:\$PATH"
-				 . " $vdorecover $vdoDeviceName");
+                                 . " TMPFILESZ=$tmpStorageKB"
+                                 . " PATH=$vdostatsDir:\$PATH"
+                                 . " $vdorecover $vdoDeviceName");
 }
 
 #############################################################################
@@ -111,7 +125,11 @@ sub testBasic {
   $slice->write(tag => "recov", dedupe => 0.9, direct => 1);
 
   my $vdoDeviceName = $self->_getVDODevicePath();
-  $self->runVdorecover($vdoDeviceName);
+  my $machine = $self->getDevice()->getMachine();
+  my $sentinel = $self->_sentinelPath($machine);
+  $machine->runSystemCmd("rm -f '$sentinel'");
+  $machine->runSystemCmd("touch '$sentinel'");
+  $self->runVdorecover($vdoDeviceName, $sentinel);
   $slice->verify();
 }
 
@@ -132,9 +150,13 @@ sub testFullDirect {
   $slice->write(tag => "recov", direct => 1);
   $slice2->writeENOSPC(tag => "recov2", direct => 1);
 
+  my $machine = $self->getDevice()->getMachine();
+  my $sentinel = $self->_sentinelPath($machine);
+  $machine->runSystemCmd("rm -f '$sentinel'");
+
   my $doVdoRecover = sub {
     my $vdoDeviceName = $self->_getVDODevicePath();
-    $self->runVdorecover($vdoDeviceName);
+    $self->runVdorecover($vdoDeviceName, $sentinel);
   };
   my $recoverTask = Permabit::AsyncSub->new(code => $doVdoRecover);
   $recoverTask->start();
@@ -144,6 +166,9 @@ sub testFullDirect {
 
   # Trim some data
   $slice2->trim();
+
+  # Allow vdorecover to proceed
+  $machine->runSystemCmd("touch '$sentinel'");
 
   # Make sure we succeeded at recovering.
   # There is a built-in wait mechanism in AsyncSub that waits for completion before returning
@@ -230,9 +255,12 @@ sub testFullFilesystem {
   $device->runOnHost("sudo dmesg -c");
 
   # Define the recovery utility execution process and start an async recovery task
+  my $sentinel = $self->_sentinelPath($machine);
+  $machine->runSystemCmd("rm -f '$sentinel'");
+
   my $doVdoRecover = sub {
     my $vdoDeviceName = $self->_getVDODevicePath();
-    $self->runVdorecover($vdoDeviceName);
+    $self->runVdorecover($vdoDeviceName, $sentinel);
   };
   my $recoverTask = Permabit::AsyncSub->new(code => $doVdoRecover);
   $recoverTask->start();
@@ -250,6 +278,9 @@ sub testFullFilesystem {
   $device->runOnHost("sudo dmesg -c", 1);
   $fs->unmount();
   $device->runOnHost("sudo dmesg -c >/dev/null");
+
+  # Allow vdorecover to proceed
+  $machine->runSystemCmd("touch '$sentinel'");
 
   # Make sure we succeeded at recovering.
 
@@ -284,6 +315,21 @@ sub testFullFilesystem {
   # Sleep to make sure the input script notices that its output pipe is
   # closed and therefore stops.
   sleep($INTERVAL);
+}
+
+# Override tear_down to perform test-specific cleanup:
+# - remove the sentinel file if present
+sub tear_down {
+  my ($self) = assertNumArgs(1, @_);
+
+  my $machine;
+  eval { $machine = $self->getDevice()->getMachine(); };
+  if ($machine) {
+    my $sentinel = $self->_sentinelPath($machine);
+    $machine->sendCommand("rm -f '$sentinel'");
+  }
+
+  $self->SUPER::tear_down();
 }
 
 1;
