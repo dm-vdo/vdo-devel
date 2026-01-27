@@ -16,6 +16,8 @@ use Permabit::Assertions qw(
   assertGTNumeric
   assertNumArgs
 );
+use Permabit::Constants qw($MINUTE);
+use Permabit::Utils qw(retryUntilTimeout);
 
 use base qw(Permabit::BlockDevice::Bottom);
 
@@ -85,6 +87,32 @@ sub setup {
 		   . " --level=$type --raid-devices=$count --force");
 
   $self->Permabit::BlockDevice::VDO::setup();
+}
+
+########################################################################
+# @inherit
+##
+sub activate {
+  my ($self) = assertNumArgs(1, @_);
+  my $devName = $self->{deviceName};
+
+  # Wait for the RAID device to be fully assembled and active
+  my $TIMEOUT = 5;
+  $log->info("Waiting up to $TIMEOUT minutes for RAID device $devName to be usable");
+  my $checkActive = sub {
+    my $result = $self->sendCommand("sudo mdadm --detail /dev/$devName 2>&1");
+    if ($result != 0) {
+      return 0;
+    }
+    my $output = $self->getMachine()->getStdout();
+    return ($output =~ /State\s*:\s*(?:clean|active)/);
+  };
+
+  retryUntilTimeout($checkActive,
+                    "RAID device /dev/$devName did not start",
+                    $TIMEOUT * $MINUTE);
+
+  $self->SUPER::activate();
 }
 
 ########################################################################
