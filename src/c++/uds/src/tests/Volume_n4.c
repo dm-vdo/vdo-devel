@@ -527,11 +527,10 @@ static void testMultiThreadStress4Async(void)
 static const CU_TestInfo tests[] = {
   {"Invalid Read Queue", testInvalidateReadQueue},
   {"SequentialGet",      testSequentialGet},
+  {"StumblingGet",       testStumblingGet},
   {"Full Read Queue",    testFullReadQueue},
   {"MT Stress 1 async",  testMultiThreadStress1Async},
   {"MT Stress 4 async",  testMultiThreadStress4Async},
-  CU_TEST_INFO_NULL,
-  {"StumblingGet",       testStumblingGet},
   CU_TEST_INFO_NULL,
 };
 

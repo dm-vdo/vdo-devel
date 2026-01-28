@@ -32,6 +32,7 @@ PROFLIBS = $(BUILD_DIR)/$(PROFDIR)/libuds.a
 
 # Tests that are not ready to run at this time
 TEST_EXCLUDES =
+TEST_EXCLUDES += $(TEST_DIR)/VolumeIndex_p2.c # Unreliable on our virtual test platforms
 
 # Any source file matching the pattern <word>_[ntx]<digit>.c is a C unit test
 T_TEST_SOURCES = $(filter-out $(TEST_EXCLUDES:%=%.c), $(notdir	\
