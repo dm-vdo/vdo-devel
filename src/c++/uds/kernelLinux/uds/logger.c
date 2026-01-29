@@ -94,10 +94,10 @@ static void emit_log_message_to_kernel(int priority, const char *fmt, ...)
  *
  * Context info formats:
  *
- * interrupt:           uds[NMI]: blah
- * kvdo thread:         kvdo12:foobarQ: blah
- * thread w/device id:  kvdo12:myprog: blah
- * other thread:        uds: myprog: blah
+ * interrupt:           device-mapper: vdo[NMI]: blah
+ * thread w/device id:  device-mapper: vdo12:myprog: blah
+ * dm-vdo thread:       device-mapper: vdo12:foobarQ: blah
+ * other thread:        device-mapper: vdo: myprog: blah
  *
  * Fields: module name, interrupt level, process name, device ID.
  *
@@ -134,13 +134,13 @@ static void emit_log_message(int priority, const char *module, const char *prefi
 	}
 
 	/*
-	 * If it's a kernel thread and the module name is a prefix of its name, assume it is ours
-	 * and only identify the thread.
+	 * If it's a kernel thread and the target name is a prefix of the thread name, assume it
+	 * is ours and collapse the names.
 	 */
 	if (((current->flags & PF_KTHREAD) != 0) &&
-	    (strncmp(module, current->comm, strlen(module)) == 0)) {
-		emit_log_message_to_kernel(priority, "%s: %s%pV%pV\n", current->comm,
-					   prefix, vaf1, vaf2);
+	    (strncmp(DM_MSG_PREFIX, current->comm, strlen(DM_MSG_PREFIX)) == 0)) {
+		emit_log_message_to_kernel(priority, "%s: %s: %s%pV%pV\n", DM_NAME,
+					   current->comm, prefix, vaf1, vaf2);
 		return;
 	}
 
