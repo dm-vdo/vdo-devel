@@ -1594,8 +1594,8 @@ sub _getKernelThreadIDs {
   my ($self) = assertNumArgs(1, @_);
   my $moduleName = $self->getModuleName();
   my $instance = $self->{instance} // "[0-9]+";
-  # N.B.: This will fail if we get to three-digit instances, because
-  # "kvdo100:journalQ" is too long for a process name and will be truncated.
+  # N.B.: This will fail if we get to four-digit instances, because
+  # "vdo1000:journalQ" is too long for a process name and will be truncated.
   my $cmd = ("ps ax | "
              . "awk '/\\[${moduleName}${instance}:[a-zA-Z0-9]+Q[0-9]*\\]/"
              . " { print \$1, \$NF }'");
