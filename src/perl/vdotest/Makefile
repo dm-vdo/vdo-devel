@@ -19,7 +19,7 @@ ifeq ($(USER),$(filter $(USER),bunsen continuous))
   OPTIONAL_RSVP_HOST = PRSVP_HOST=jenkins
 endif
 
-JENKINS_CLIENT_CLASS = --clientClass=FARM\\,FEDORA40
+JENKINS_CLIENT_CLASS = --clientClass=FARM\\,RHEL10
 JENKINS_TEST_SUITES = checkin platform
 
 # This is Make's form of a function -- it gets expanded every time it's used
@@ -48,7 +48,7 @@ checkin: vdotests
 .PHONY:	vdotests
 vdotests: TEST_PARALLEL_ARGUMENT = --scale
 vdotests: TEST_SUITES = checkin
-vdotests: 
+vdotests:
 	$(VDOTESTS_INVOCATION)
 
 .PHONY: platform

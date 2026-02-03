@@ -90,97 +90,10 @@ jobs:
           label: verification needed
           type: remove
 
-  Public-Testing:
-    if: github.event.pull_request.draft == false
-    runs-on: [self-hosted, untrusted]
-    needs: [Verifying]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Start testing
-        run: echo Testing Start
-
-      - name: Add testing running label
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing running
-          type: add
-
-      - name: Remove untested label
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: untested
-          type: remove
-
-      - name: Run-Untrusted-Tests
-        run: |
-          make oss-jenkins
-
-      - name: Remove public testing running label
-        if: always()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing running
-          type: remove
-
-      - name: Add public testing failed
-        if: failure()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing failed
-          type: add
-
-      - name: Upload test results
-        if: failure()
-        uses: EnricoMi/publish-unit-test-result-action/composite@v1
-        with:
-          files: logs/**/*.xml
-
-      - name: Prepare logfiles
-        if: failure()
-        run: |
-          cd logs
-          for i in *;
-          do
-            if [ -d "$i" ]; then
-              cd $i
-              for file in *::*.log;
-              do
-                [ -e "$file" ] || continue
-                mv "${file}" "${file/::/--}"
-              done
-              cd ..
-            else
-              mv "${i}" "${i/::/--}"
-            fi
-          done
-
-      - name: Upload logfiles
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.LOGFILE }}
-          path: logs/*/*.log
-          retention-days: 5
-
-      - name: Add public testing success
-        if: success()
-        uses: buildsville/add-remove-label@v2.0.0
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing done
-          type: add
-
   Private-Testing:
     if: github.event.pull_request.draft == false
     runs-on: [self-hosted, trusted]
-    needs: [Verifying, Public-Testing]
+    needs: [Verifying]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -189,11 +102,11 @@ jobs:
       - name: Start Private testing
         run: echo Private Testing Start
 
-      - name: Add public testing success
+      - name: Remove untested label
         uses: buildsville/add-remove-label@v2.0.0
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          label: public testing done
+          label: untested
           type: remove
 
       - name: Add testing running label
