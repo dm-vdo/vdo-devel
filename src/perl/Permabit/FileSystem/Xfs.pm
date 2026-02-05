@@ -9,12 +9,15 @@ use strict;
 use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
 use File::Basename qw(basename);
+use Log::Log4perl;
 use Permabit::Assertions qw(assertFalse assertMinMaxArgs assertNumArgs);
 use Permabit::PlatformUtils qw(isMaipo);
 use Permabit::Utils qw(makeFullPath);
 use Storable qw(dclone);
 
 use base qw(Permabit::FileSystem);
+
+my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
 #############################################################################
 # @paramList{new}
@@ -63,10 +66,50 @@ sub getBlockSizeMkfsOption {
 }
 
 #############################################################################
+# Per-machine setup (once per test) of XFS error_level
+##
+sub _ensureXfsErrorLevelConfigured {
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
+
+  if (!$machine->{_xfs_error_level_configured}) {
+    # Ensure xfs sysctl is present (ignore failures)
+    $machine->sendCommand("sudo modprobe xfs");
+
+    # Read and remember current value
+    $machine->runSystemCmd("sysctl -n fs.xfs.error_level");
+    my $originalErrorLevel = $machine->getStdout();
+    chomp($originalErrorLevel);
+
+    $machine->{_xfs_error_level_configured} = 1;
+
+    # Restore on cleanup; log failures, don’t croak
+    $machine->addCleanupStep(sub {
+      my ($userMachine) = assertNumArgs(1, @_);
+      local $EVAL_ERROR;
+      eval {
+        $userMachine->runSystemCmd("sudo sysctl -w fs.xfs.error_level=$originalErrorLevel");
+      };
+      if ($EVAL_ERROR) {
+        $log->warn("Failed to restore fs.xfs.error_level to $originalErrorLevel on "
+                   . $userMachine->getName() . ": $EVAL_ERROR");
+      }
+    });
+
+    # Set desired runtime value
+    $machine->runSystemCmd("sudo sysctl -w fs.xfs.error_level=11");
+  }
+}
+
+#############################################################################
 # @inherit
 ##
 sub mount {
   my ($self, $mountDir) = assertMinMaxArgs([undef], 1, 2, @_);
+
+  # Ensure XFS error level is configured once per machine
+  $self->_ensureXfsErrorLevelConfigured();
+
   $self->SUPER::mount($mountDir);
   
   # XFS's default behavior when encountering ENOSPC/EIO is to retry
