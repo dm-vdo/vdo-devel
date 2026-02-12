@@ -867,6 +867,25 @@ sub getTable {
 }
 
 ########################################################################
+# Get the target version of the VDO device mapper module.
+#
+# @return array of target version numbers, undef if the version cannot be determined
+##
+sub getTargetVersion {
+  my ($self) = assertNumArgs(1, @_);
+  # Use "vdo" as the target name for dmsetup (not the kernel module name)
+  my $output = $self->runOnHost("sudo dmsetup target-version vdo");
+  chomp($output);
+  # Output format is typically: "vdo              v9.3.1"
+  if ($output =~ /v([\d.]+)/) {
+    my @ver = split(/\./, $1);
+    return @ver;
+  }
+  $log->error("Failed to extract target version from output: $output");
+  return ();
+}
+
+########################################################################
 # Disable the compression on a VDO device
 ##
 sub disableCompression {

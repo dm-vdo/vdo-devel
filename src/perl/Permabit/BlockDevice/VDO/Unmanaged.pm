@@ -183,31 +183,35 @@ sub makeConfigString {
     }
   }
 
-  my $memorySize
-    = defined($extraArgs->{albireoMem}) ? $extraArgs->{albireoMem} : $self->{memorySize};
-  if (defined($memorySize)) {
-    # magic value -1 suppresses the option completely
-    if ($memorySize != -1) {
-      push(@optional, ["indexMemory", "$memorySize"]);
+  my @targetVersion = $self->getTargetVersion();
+  # Check if version is >= 9.2.0 by comparing array elements
+  if ($targetVersion[0] > 9 || ($targetVersion[0] == 9 && $targetVersion[1] > 2)) {
+    my $memorySize
+      = defined($extraArgs->{albireoMem}) ? $extraArgs->{albireoMem} : $self->{memorySize};
+    if (defined($memorySize)) {
+      # magic value -1 suppresses the option completely
+      if ($memorySize != -1) {
+        push(@optional, ["indexMemory", "$memorySize"]);
+      }
     }
-  }
 
-  my $sparse
-    = defined($extraArgs->{albireoSparse}) ? $extraArgs->{albireoSparse} : $self->{sparse};
-  if (defined($sparse)) {
-    # magic value -1 suppresses the option completely
-    if ($sparse != -1) {
-      push(@optional, ["indexSparse", $sparse ? "on" : "off"]);
+    my $sparse
+      = defined($extraArgs->{albireoSparse}) ? $extraArgs->{albireoSparse} : $self->{sparse};
+    if (defined($sparse)) {
+      # magic value -1 suppresses the option completely
+      if ($sparse != -1) {
+        push(@optional, ["indexSparse", $sparse ? "on" : "off"]);
+      }
     }
-  }
 
-  my $slabBits
-    = defined($extraArgs->{slabBits}) ? $extraArgs->{slabBits} : $self->{slabBits};
-  if (defined($slabBits)) {
-    # magic value -1 suppresses the option completely
-    if ($slabBits != -1) {
-      my $slabSize = 2 ** $slabBits;
-      push(@optional, ["slabSize", "$slabSize"]);
+    my $slabBits
+      = defined($extraArgs->{slabBits}) ? $extraArgs->{slabBits} : $self->{slabBits};
+    if (defined($slabBits)) {
+      # magic value -1 suppresses the option completely
+      if ($slabBits != -1) {
+        my $slabSize = 2 ** $slabBits;
+        push(@optional, ["slabSize", "$slabSize"]);
+      }
     }
   }
 
