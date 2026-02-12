@@ -167,6 +167,14 @@ sub makeConfigString {
 
   my @optional = ();
 
+  # Don't add new parameters if we are using vdo modules that are older than 9.2.0.
+  my @targetVersion = $self->getTargetVersion();
+  if ($targetVersion[0] <= 8 || ($targetVersion[0] == 9 && $targetVersion[1] <= 1)) {
+    $extraArgs->{albireoMem} = -1;
+    $extraArgs->{albireoSparse} = -1;
+    $extraArgs->{slabBits} = -1;
+  }
+
   if (defined($self->{enableCompression})) {
     # magic value -1 suppresses the option completely
     if ($self->{enableCompression} != -1) {
