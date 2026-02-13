@@ -35,17 +35,6 @@ const char * const *getTestIndexNames(void)
 }
 
 /**********************************************************************/
-const char *const *getTestMultiIndexNames(void)
-{
-  static const char *const names[3] = {
-    "/u1/zubenelgenubi-0",
-    "/u1/zubenelgenubi-1",
-    NULL,
-  };
-  return names;
-}
-
-/**********************************************************************/
 static struct block_device *getDeviceFromName(const char *name)
 {
   int result;

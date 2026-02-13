@@ -196,24 +196,12 @@ static void setupTestState(void)
     createTestFile(*names);
     names++;
   }
-
-  names = getTestMultiIndexNames();
-  while (*names != NULL) {
-    createTestFile(*names);
-    names++;
-  }
 }
 
 /**********************************************************************/
 static void cleanupTestState(void)
 {
   const char *const *names = getTestIndexNames();
-  while (*names != NULL) {
-    removeTestFile(*names);
-    names++;
-  }
-
-  names = getTestMultiIndexNames();
   while (*names != NULL) {
     removeTestFile(*names);
     names++;
