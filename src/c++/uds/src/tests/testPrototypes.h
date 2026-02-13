@@ -180,16 +180,6 @@ static inline const char *getTestIndexName(void)
   return *getTestIndexNames();
 }
 
-/**
- * Get test index names for indices that can be used at the same time in a
- * multiindex test.  The index names are platform-specific, and therefore
- * this method is defined by platform dependent code.
- *
- * @return an array of names that can each be passed to uds_open_index()
- **/
-const char *const *getTestMultiIndexNames(void)
-  __attribute__((warn_unused_result));
-
 #endif /* __KERNEL__ */
 /**
  * Get the primary test block device, which is the created from the name
