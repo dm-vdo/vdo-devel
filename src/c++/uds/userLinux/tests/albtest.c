@@ -191,13 +191,7 @@ static void removeTestFile(const char *path)
 /**********************************************************************/
 static void setupTestState(void)
 {
-  const char *const *names = getTestIndexNames();
-  while (*names != NULL) {
-    createTestFile(*names);
-    names++;
-  }
-
-  names = getTestMultiIndexNames();
+  char *const *names = getTestIndexNames();
   while (*names != NULL) {
     createTestFile(*names);
     names++;
@@ -207,17 +201,13 @@ static void setupTestState(void)
 /**********************************************************************/
 static void cleanupTestState(void)
 {
-  const char *const *names = getTestIndexNames();
+  char *const *names = getTestIndexNames();
   while (*names != NULL) {
     removeTestFile(*names);
     names++;
   }
-
-  names = getTestMultiIndexNames();
-  while (*names != NULL) {
-    removeTestFile(*names);
-    names++;
-  }
+  
+  freeTestIndexNames();
 }
 
 /**********************************************************************/
