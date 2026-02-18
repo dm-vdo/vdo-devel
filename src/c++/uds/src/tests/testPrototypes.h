@@ -166,7 +166,7 @@ static inline void freeRequest(struct uds_request *request)
  *         entry is the primary index name and will be used by any test
  *         that wants to operate on only one index.
  **/
-const char *const *getTestIndexNames(void) __attribute__((warn_unused_result));
+char *const *getTestIndexNames(void) __attribute__((warn_unused_result));
 
 /**
  * Get the primary test index name, which is the first name in the list
@@ -180,15 +180,8 @@ static inline const char *getTestIndexName(void)
   return *getTestIndexNames();
 }
 
-/**
- * Get test index names for indices that can be used at the same time in a
- * multiindex test.  The index names are platform-specific, and therefore
- * this method is defined by platform dependent code.
- *
- * @return an array of names that can each be passed to uds_open_index()
- **/
-const char *const *getTestMultiIndexNames(void)
-  __attribute__((warn_unused_result));
+/** Free any memory allocated for test index names.*/
+void freeTestIndexNames(void);
 
 #endif /* __KERNEL__ */
 /**
