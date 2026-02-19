@@ -4,9 +4,9 @@
  * %LICENSE%
  */
 
-#include <uuid/uuid.h>
-
 #include "vdoConfig.h"
+
+#include <linux/uuid.h>
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -20,10 +20,6 @@
 #include "physicalLayer.h"
 #include "userVDO.h"
 #include "vdoVolumeUtils.h"
-
-enum {
-  RECOVERY_JOURNAL_STARTING_SEQUENCE_NUMBER = 1,
-};
 
 /**********************************************************************/
 int initializeLayoutFromConfig(const struct vdo_config  *config,
@@ -80,63 +76,6 @@ computeForestSize(block_count_t logicalBlocks,
   return (approximateNonLeaves + approximateLeaves);
 }
 
-/**
- * Configure a new VDO.
- *
- * @param vdo  The VDO to configure
- *
- * @return VDO_SUCCESS or an error
- **/
-static int __must_check configureVDO(UserVDO *vdo)
-{
-  struct vdo_config *config = &vdo->states.vdo.config;
-
-  // The layout starts 1 block past the beginning of the data region, as the
-  // data region contains the super block but the layout does not.
-  physical_block_number_t startingOffset = vdo_get_data_region_start(vdo->geometry) + 1;
-  int result = initializeLayoutFromConfig(config, startingOffset, &vdo->states.layout);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  vdo->states.recovery_journal = configureRecoveryJournal();
-
-  struct slab_config slabConfig;
-  result = vdo_configure_slab(config->slab_size,
-                              config->slab_journal_blocks,
-                              &slabConfig);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  const struct partition *partition =
-    getPartition(vdo, VDO_SLAB_DEPOT_PARTITION, "no allocator partition");
-  result = vdo_configure_slab_depot(partition, slabConfig, 0, &vdo->states.slab_depot);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  setDerivedSlabParameters(vdo);
-
-  if (config->logical_blocks == 0) {
-    block_count_t dataBlocks = slabConfig.data_blocks * vdo->slabCount;
-    config->logical_blocks
-      = dataBlocks - computeForestSize(dataBlocks,
-                                       DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
-  }
-
-  partition = getPartition(vdo, VDO_BLOCK_MAP_PARTITION, "no block map partition");
-  vdo->states.block_map = (struct block_map_state_2_0) {
-    .flat_page_origin = VDO_BLOCK_MAP_FLAT_PAGE_ORIGIN,
-    .flat_page_count = 0,
-    .root_origin = partition->offset,
-    .root_count = DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
-  };
-
-  vdo->states.vdo.state = VDO_NEW;
-  return VDO_SUCCESS;
-}
-
 /**********************************************************************/
 int formatVDO(const struct vdo_config   *config,
               const struct index_config *indexConfig,
@@ -144,7 +83,7 @@ int formatVDO(const struct vdo_config   *config,
 {
   // Generate a uuid.
   uuid_t uuid;
-  uuid_generate(uuid);
+  uuid_gen(&uuid);
 
   return formatVDOWithNonce(config, indexConfig, layer, current_time_us(),
                             &uuid);
@@ -161,7 +100,7 @@ int calculateMinimumVDOFromConfig(const struct vdo_config   *config,
 
   block_count_t indexSize = 0;
   if (indexConfig != NULL) {
-    int result = computeIndexBlocks(indexConfig, &indexSize);
+    int result = vdo_compute_index_blocks(indexConfig, &indexSize);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -220,71 +159,6 @@ static int __must_check clearPartition(UserVDO *vdo, enum partition_id id)
   return result;
 }
 
-/**********************************************************************/
-int computeIndexBlocks(const struct index_config *index_config,
-                       block_count_t             *index_blocks_ptr)
-{
-  int result;
-  u64 index_bytes;
-  block_count_t index_blocks;
-  struct uds_parameters uds_parameters = {
-    .memory_size = index_config->mem,
-    .sparse = index_config->sparse,
-  };
-
-  result = uds_compute_index_size(&uds_parameters, &index_bytes);
-  if (result != UDS_SUCCESS)
-    return vdo_log_error_strerror(result, "error computing index size");
-
-  index_blocks = index_bytes / VDO_BLOCK_SIZE;
-  if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes)
-    return vdo_log_error_strerror(VDO_PARAMETER_MISMATCH,
-                                  "index size must be a multiple of block size %d",
-                                  VDO_BLOCK_SIZE);
-
-  *index_blocks_ptr = index_blocks;
-  return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int initializeVolumeGeometry(nonce_t                    nonce,
-                             uuid_t                    *uuid,
-                             const struct index_config *index_config,
-                             struct volume_geometry    *geometry)
-{
-  int result;
-  block_count_t index_size = 0;
-
-  if (index_config != NULL) {
-    result = computeIndexBlocks(index_config, &index_size);
-    if (result != VDO_SUCCESS)
-      return result;
-  }
-
-  *geometry = (struct volume_geometry) {
-    /* This is for backwards compatibility. */
-    .unused = 0,
-    .nonce = nonce,
-    .bio_offset = 0,
-    .regions = {
-      [VDO_INDEX_REGION] = {
-        .id = VDO_INDEX_REGION,
-        .start_block = 1,
-      },
-      [VDO_DATA_REGION] = {
-        .id = VDO_DATA_REGION,
-        .start_block = 1 + index_size,
-      }
-    }
-  };
-
-  uuid_copy(geometry->uuid, *uuid);
-  if (index_size > 0)
-    memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
-
-  return VDO_SUCCESS;
-}
-
 /**
  * Configure a VDO and its geometry and write it out.
  *
@@ -300,7 +174,7 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
                                 nonce_t                    nonce,
                                 uuid_t                    *uuid)
 {
-  int result = initializeVolumeGeometry(nonce, uuid, indexConfig, &vdo->geometry);
+  int result = vdo_initialize_volume_geometry(nonce, uuid, indexConfig, &vdo->geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -317,12 +191,17 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
     return result;
   }
 
-  vdo->states.vdo.config              = *config;
-  vdo->states.vdo.nonce               = nonce;
-  vdo->states.volume_version          = VDO_VOLUME_VERSION_67_0;
-  result = configureVDO(vdo);
+  result = vdo_initialize_component_states(config, &vdo->geometry, nonce, &vdo->states);
   if (result != VDO_SUCCESS) {
     return result;
+  }
+
+  setDerivedSlabParameters(vdo);
+
+  if (vdo->states.vdo.config.logical_blocks == 0) {
+    block_count_t dataBlocks = vdo->states.slab_depot.slab_config.data_blocks * vdo->slabCount;
+    vdo->states.vdo.config.logical_blocks =
+	    dataBlocks - computeForestSize(dataBlocks, DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
   }
 
   result = clearPartition(vdo, VDO_BLOCK_MAP_PARTITION);

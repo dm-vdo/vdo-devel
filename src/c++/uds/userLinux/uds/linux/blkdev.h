@@ -1,5 +1,5 @@
 /*
- * Unit test requirements from linux/blkdev.h and other kernel headers.
+ * User mode version of linux/blkdev.h and other kernel headers.
  */
 
 #ifndef LINUX_BLKDEV_H
@@ -91,5 +91,19 @@ static inline loff_t bdev_nr_bytes(struct block_device *bdev)
 {
 	return bdev->size;
 }
+
+/**
+ * blkdev_issue_zeroout - zero-fill a block range
+ * @bdev:	blockdev to write
+ * @sector:	start sector
+ * @nr_sects:	number of sectors to write
+ * @gfp_mask:	memory allocation flags (for bio_alloc)
+ * @flags:	controls detailed behavior
+ *
+ * Description:
+ *  Zero-fill a block range. This is the usermode version of the kernel function.
+ */
+int blkdev_issue_zeroout(struct block_device *bdev, sector_t sector,
+			 sector_t nr_sects, gfp_t gfp_mask, unsigned flags);
 
 #endif // LINUX_BLKDEV_H

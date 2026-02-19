@@ -147,6 +147,8 @@ our %BLOCKDEVICE_INHERITED_PROPERTIES
      enableCompression         => 0,
      # whether to enable deduplication in module
      enableDeduplication       => 1,
+     # @ple whether to format using vdoformat or through the kernel.
+     formatInKernel            => 0,
      # Number of hash lock threads/zones to use
      hashZoneThreadCount       => 1,
      # Maximum VDO I/O request latency in seconds
@@ -862,6 +864,22 @@ sub getTable {
     = $self->runOnHost("sudo dmsetup table $self->{vdoDeviceName} $options");
   $log->debug("table output: $output");
   return $output;
+}
+
+########################################################################
+# Get the target version of the VDO device mapper module.
+#
+# @return array of target version numbers, croaks if cannot be determined
+##
+sub getTargetVersion {
+  my ($self) = assertNumArgs(1, @_);
+  my $output = $self->runOnHost("sudo dmsetup target-version vdo");
+  chomp($output);
+  # Output format is typically: "vdo              v9.3.1"
+  if ($output =~ /v([\d.]+)/) {
+    return split(/\./, $1);
+  }
+  croak("Failed to extract target version from output: $output");
 }
 
 ########################################################################

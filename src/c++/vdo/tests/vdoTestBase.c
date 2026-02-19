@@ -130,14 +130,24 @@ PhysicalLayer *getSynchronousLayer(void)
   return synchronousLayer;
 }
 
+void zeroGeometryBlock(void)
+{
+  char buffer[VDO_BLOCK_SIZE] = {0};
+  PhysicalLayer *layer = getSynchronousLayer();
+  VDO_ASSERT_SUCCESS(layer->writer(layer, 0, 1, buffer));
+}
+
 /**********************************************************************/
 void formatTestVDO(void)
 {
-  struct index_config *indexConfig = ((configuration.indexConfig.mem == 0)
-                                      ? NULL
-                                      : &configuration.indexConfig);
+  // Skip formatting using vdoformat code if formatInKernel is on
+  if (configuration.formatInKernel) {
+    zeroGeometryBlock();
+    return;
+  }
+
   VDO_ASSERT_SUCCESS(formatVDO(&configuration.config,
-                               indexConfig,
+                               &configuration.indexConfig,
                                synchronousLayer));
 }
 
@@ -576,6 +586,22 @@ static TestConfiguration fixThreadCounts(TestConfiguration configuration)
 }
 
 /**********************************************************************/
+static void write_index_memory(char **arg, uds_memory_config_size_t memory_size)
+{
+  int result = 0;
+  if (memory_size == UDS_MEMORY_CONFIG_256MB) {
+    result = asprintf(arg, "%s", "0.25");
+  } else if (memory_size == UDS_MEMORY_CONFIG_512MB) {
+    result = asprintf(arg, "%s", "0.50");
+  } else if (memory_size == UDS_MEMORY_CONFIG_768MB) {
+    result = asprintf(arg, "%s", "0.75");
+  } else {
+    result = asprintf(arg, "%u", (unsigned int)memory_size);
+  }
+  CU_ASSERT(result != -1);
+}
+
+/**********************************************************************/
 static int makeTableLine(TestConfiguration configuration, char **argv)
 {
   int argc = 0;
@@ -623,6 +649,16 @@ static int makeTableLine(TestConfiguration configuration, char **argv)
   addString(&argv[argc++],
             (configuration.deviceConfig.compression ? "on" : "off"));
 
+  if (configuration.formatInKernel) {
+    addString(&argv[argc++], "indexMemory");
+    write_index_memory(&argv[argc++], configuration.deviceConfig.index_memory);
+    addString(&argv[argc++], "indexSparse");
+    addString(&argv[argc++],
+              (configuration.deviceConfig.index_sparse ? "on" : "off"));
+    addString(&argv[argc++], "slabSize");
+    addUInt32(&argv[argc++],
+              configuration.config.slab_size);
+  }
   return argc;
 }
 
@@ -635,7 +671,7 @@ int loadTable(TestConfiguration configuration, struct dm_target *target)
 
   target->len = configuration.config.logical_blocks * VDO_SECTORS_PER_BLOCK;
 
-  char *argv[32];
+  char *argv[80];
   int argc = makeTableLine(fixThreadCounts(configuration), argv);
   int result = vdoTargetType->ctr(target, argc, argv);
   while (argc-- > 0) {
