@@ -42,6 +42,9 @@ use Permabit::Assertions qw(assertMinArgs
 use Permabit::SystemUtils qw(assertCommand
                              assertSystem);
 
+# Turn off warning about 'Name "main::log" used only once:'
+no warnings qw(once);
+
 our %PROPERTIES
   = (
      # @ple A method for parsing arguments remaining after GetOptions().
