@@ -55,6 +55,7 @@
 #endif /* VDO_UPSTREAM */
 
 #define MAX_CACHE_BLOCKS 0xFFEC
+#define MAX_MASK_LENGTH 64
 #define LOSSY_NAME_SIZE 12
 #define DM_MSG_PREFIX "lossy"
 
@@ -671,14 +672,17 @@ static void freeLossyDeviceCache(struct lossy_device *ld)
 /**********************************************************************/
 static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-  if (argc != 4) {
-    ti->error = "requires exactly 4 arguments";
+  if (argc != 6) {
+    ti->error = "requires exactly 6 arguments";
     return -EINVAL;
   }
   const char *deviceName = argv[0];
   const char *devicePath = argv[1];
   int result;
-  unsigned long long blockSize, cacheBlockCount;
+  unsigned long long blockSize;
+  unsigned int cacheBlockCount;
+  unsigned int tornModulus;
+  unsigned long long tornMask;
 
   result = kstrtoull(argv[2], 10, &blockSize);
   if (result)
@@ -688,12 +692,33 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  result = kstrtoull(argv[3], 10, &cacheBlockCount);
+  result = kstrtouint(argv[3], 10, &cacheBlockCount);
   if (result)
     return result;
   if (cacheBlockCount > MAX_CACHE_BLOCKS) {
     ti->error = "Invalid cache size";
     return -EINVAL;
+  }
+
+  result = kstrtouint(argv[5], 10, &tornModulus);
+  if (result)
+    return result;
+  if (tornModulus > MAX_MASK_LENGTH) {
+    ti->error = "Modulus is too large";
+    return -EINVAL;
+  }
+
+  result = kstrtoull(argv[4], 10, &tornMask);
+  if (result)
+    return result;
+  if (tornMask >> tornModulus != 0) {
+    ti->error = "Mask has too many bits";
+    return -EINVAL;
+  }
+
+  if (tornMask == 0 && tornModulus == 0) {
+    tornMask = ~0;
+    tornModulus = 8;
   }
 
   struct lossy_device *ld
@@ -719,8 +744,8 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
   ld->cacheBlockCount = cacheBlockCount;
   ld->ioError         = BLK_STS_IOERR;
   ld->stopFlag        = false;
-  ld->tornMask        = ~0;
-  ld->tornModulus     = 8;
+  ld->tornMask        = tornMask;
+  ld->tornModulus     = tornModulus;
   strncpy(ld->name, deviceName, LOSSY_NAME_SIZE);
   bio_list_init(&ld->flushBios);
   bio_list_init(&ld->waitingBios);
@@ -839,28 +864,6 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 			ld->ioError = BLK_STS_OK;
 		else if (val == 1)
 			ld->ioError = BLK_STS_IOERR;
-	} else if (!strcasecmp(argv[0], "torn_mask")) {
-		if (argc != 2) {
-			DMERR("%s takes exactly one argument", argv[0]);
-			return -EINVAL;
-		}
-
-		errval = kstrtouint(argv[1], 0, &val);
-		if (errval)
-			return errval;
-
-		ld->tornMask = val;
-	} else if (!strcasecmp(argv[0], "torn_modulus")) {
-		if (argc != 2) {
-			DMERR("%s takes exactly one argument", argv[0]);
-			return -EINVAL;
-		}
-
-		errval = kstrtouint(argv[1], 0, &val);
-		if (errval)
-			return errval;
-
-		ld->tornModulus = val;
 	} else if (!strcasecmp(argv[0], "show_mode")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
@@ -868,20 +871,6 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		}
 
 		DMEMIT(ld->stopFlag ? "stop\n" : "running\n");
-	} else if (!strcasecmp(argv[0], "show_modulus")) {
-		if (argc != 1) {
-			DMERR("%s takes no arguments", argv[0]);
-			return -EINVAL;
-		}
-
-		DMEMIT("%u\n", ld->tornModulus);
-	} else if (!strcasecmp(argv[0], "show_mask")) {
-		if (argc != 1) {
-			DMERR("%s takes no arguments", argv[0]);
-			return -EINVAL;
-		}
-
-		DMEMIT("%u\n", ld->tornMask);
 	} else if (!strcasecmp(argv[0], "state")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
