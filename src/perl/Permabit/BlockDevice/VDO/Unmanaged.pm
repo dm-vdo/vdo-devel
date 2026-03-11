@@ -60,6 +60,12 @@ sub configure {
 sub formatVDO {
   my ($self, $extraArgs) = assertMinMaxArgs([{}], 1, 2, @_);
 
+  # Sets up the formatting variables for the table line.
+  if ($self->{formatInKernel}) {
+    $self->formatVDOInKernel($extraArgs);
+    return;
+  }
+
   my $device = $self->{storageDevice};
   my $machine = $device->getMachine();
   my $args = {
@@ -78,15 +84,56 @@ sub formatVDO {
 }
 
 ########################################################################
+# This is the formatVDO() version of formatting in the kernel. Instead
+# of calling vdoformat, we instead wipe the geometry block of the storage
+# device of the VDO.
+#
+# If extraArgs is passed in (meaning we are calling the formatVDOInKernel()
+# function directly to test formatting options), we make a fake version of
+# the table line from the passed parameters and then start and stop the vdo
+# device using that table line, since that is how we test the parsing and use
+# of the options in the kernel.
+#
+# @oparam extraArgs    extra arguments for formatting in the kernel
+##
+sub formatVDOInKernel {
+  my ($self, $extraArgs) = assertMinMaxArgs([{}], 1, 2, @_);
+
+  my $path = $self->getStoragePath();
+  # We can't really rely on wipefs to do the right thing. It will only wipe
+  # if known signatures are found. If there is just crud there, nothing
+  # will happen. So dd the device instead.
+
+  # In formatVDO above, force is on by default unless a test turns it
+  # off by passing in $extraArgs->{force} with a value of 0. This
+  # code should do the same thing.
+  if ((!defined($extraArgs->{force}) || $extraArgs->{force})) {
+    $self->runOnHost(["sudo dd if=/dev/zero of=$path bs=4096 count=1"]);
+  }
+
+  if ($extraArgs) {
+    $self->runOnHost(["sudo dmsetup targets",
+                      "sudo dmsetup create $self->{deviceName} --table \""
+                      . $self->makeConfigString($extraArgs) . '"',
+                      "sudo dmsetup status",
+                      "sudo dmsetup table $self->{deviceName}",
+                      "sudo dmsetup info $self->{deviceName}",
+                     ], 1);
+    $self->waitForIndex();
+    $self->runOnHost(["sudo dmsetup remove $self->{deviceName}"], 1);
+  }
+}
+
+########################################################################
 # Make the dmsetup table to create this VDO invocation. Include
 # support for old table lines to allow for testing of mismatched
 # user and kernel modes. The version is determined by a property
 # of this object.
 #
-# @oparam poolName  override value for pool name
+# @extraArgs extraArgs override values for config string
 ##
 sub makeConfigString {
-  my ($self, $poolName) = assertMinMaxArgs([undef], 1, 2, @_);
+  my ($self, $extraArgs) = assertMinMaxArgs([{}], 1, 2, @_);
 
   # If you add a new version, please update the default value
   # in the property list and add a config below.
@@ -114,7 +161,19 @@ sub makeConfigString {
     push(@threadCounts, ["physical", "$self->{physicalThreadCount}"]);
   }
 
+  my $logicalSize
+    = defined($extraArgs->{logicalSize}) ? $extraArgs->{logicalSize}
+                                         : $self->{logicalSize};
+
   my @optional = ();
+
+  # Don't add new parameters if we are using vdo modules that are older than 9.2.0.
+  my @targetVersion = $self->getTargetVersion();
+  if ($targetVersion[0] <= 8 || ($targetVersion[0] == 9 && $targetVersion[1] <= 1)) {
+    $extraArgs->{albireoMem} = -1;
+    $extraArgs->{albireoSparse} = -1;
+    $extraArgs->{slabBits} = -1;
+  }
 
   if (defined($self->{enableCompression})) {
     # magic value -1 suppresses the option completely
@@ -132,6 +191,34 @@ sub makeConfigString {
     }
   }
 
+  my $memorySize
+    = defined($extraArgs->{albireoMem}) ? $extraArgs->{albireoMem} : $self->{memorySize};
+  if (defined($memorySize)) {
+    # magic value -1 suppresses the option completely
+    if ($memorySize != -1) {
+      push(@optional, ["indexMemory", "$memorySize"]);
+    }
+  }
+
+  my $sparse
+    = defined($extraArgs->{albireoSparse}) ? $extraArgs->{albireoSparse} : $self->{sparse};
+  if (defined($sparse)) {
+    # magic value -1 suppresses the option completely
+    if ($sparse != -1) {
+      push(@optional, ["indexSparse", $sparse ? "on" : "off"]);
+    }
+  }
+
+  my $slabBits
+    = defined($extraArgs->{slabBits}) ? $extraArgs->{slabBits} : $self->{slabBits};
+  if (defined($slabBits)) {
+    # magic value -1 suppresses the option completely
+    if ($slabBits != -1) {
+      my $slabSize = 2 ** $slabBits;
+      push(@optional, ["slabSize", "$slabSize"]);
+    }
+  }
+
   my $storageSpecification
     = ($self->{useMajorMinor}
        ? join( ":", $self->getStorageDevice()->getDeviceMajorMinor())
@@ -140,7 +227,7 @@ sub makeConfigString {
   my %config;
   $config{5} = [
 		0,
-		int($self->{logicalSize} / $SECTOR_SIZE),
+		int($logicalSize / $SECTOR_SIZE),
 		"vdo",
 		"V4",
 		$storageSpecification,
@@ -188,7 +275,7 @@ sub makeConfigString {
 		$self->{blockMapPeriod},
 		"on",
 		$self->{_writePolicy},
-		$poolName ? $poolName : $self->{deviceName},
+		defined($extraArgs->{poolName}) ? $extraArgs->{poolName} : $self->{deviceName},
 		join(" ", map { join(" ", @$_) } @threadCounts),
 	       ];
   if (defined($self->{vdoMaxDiscardSectors})) {
@@ -303,7 +390,7 @@ sub _reloadTable {
 sub _renameTable {
   my ($self, $newName, $okToFail) = assertMinMaxArgs([0], 2, 3, @_);
   my $commands = ["sudo dmsetup reload $self->{deviceName} --table \""
-                  . $self->makeConfigString($newName) . '"',
+                  . $self->makeConfigString({poolName => $newName}) . '"',
 		  "sudo dmsetup rename $self->{deviceName} $newName",
 		  "sudo dmsetup resume $newName"];
   if ($okToFail) {
