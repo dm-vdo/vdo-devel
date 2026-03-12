@@ -137,13 +137,13 @@ struct lossy_device {
   // The block size, which must be either 512 or 4K.
   size_t          blockSize;
   // Settings for producing torn writes.
-  unsigned int    tornMask;
-  unsigned int    tornModulus;
+  u32             tornMask;
+  u32             tornModulus;
   // The block shift, which is used to convert sector numbers to block numbers.
   // Will be either 0 (for blockSize 512) or 3 (for blockSize 4K).
-  unsigned int    blockShift;
+  u16             blockShift;
   // The number of cache blocks, which may be zero for no block cache.
-  unsigned int    cacheBlockCount;
+  u16             cacheBlockCount;
   // The busy count of the device, which is used to implement proper REQ_FLUSH
   // requests when there is a block cache.  It counts the number of bios that
   // we are actively working on, and the number of dirty blocks in the block
@@ -563,7 +563,7 @@ static int processBioLocked(struct cache_block *cb,
  **/
 static void flushTheCache(struct lossy_device *ld)
 {
-  unsigned int i;
+  u16 i;
 
   for (i = 0; i < ld->cacheBlockCount; i++) {
     struct cache_block *cb = &ld->cacheBlocks[i];
@@ -637,7 +637,7 @@ static int processBio(struct lossy_device *ld, struct bio *bio,
     result = DM_MAPIO_SUBMITTED;
   } else {
     sector_t blockNumber;
-    unsigned int slotNumber;
+    u16 slotNumber;
     struct cache_block *cb;
 
     spin_unlock_irq(&ld->flushLock);
@@ -678,7 +678,7 @@ static void processBioList(struct lossy_device *ld, struct bio_list *ready)
 /**********************************************************************/
 static void freeLossyDeviceCache(struct lossy_device *ld)
 {
-  unsigned int i;
+  u16 i;
 
   // Free the cache data blocks.
   vfree(ld->cacheData);
@@ -708,7 +708,7 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
   unsigned int cacheBlockCount;
   unsigned int tornModulus;
   unsigned long long tornMask;
-  unsigned int i;
+  u16 i;
 
   if (argc != 6) {
     ti->error = "requires exactly 6 arguments";
@@ -960,7 +960,7 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       (long long)atomic64_read(&ld->successBios),
 		       (long long)atomic64_read(&ld->errorBios));
 	} else if (!strcasecmp(argv[0], "show_cache")) {
-		unsigned int i;
+		u16 i;
 
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
