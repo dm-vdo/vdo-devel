@@ -222,9 +222,11 @@ static void processBioList(struct lossy_device *ld, struct bio_list *ready);
 static void processDelayed(struct work_struct *work)
 {
   struct lossy_device *ld = container_of(work, struct lossy_device, workWork);
+  struct bio_list flushes;
+  struct bio_list ready;
+  struct bio *bio;
 
   // Under the worklock, grab the lists of bios to be processed.
-  struct bio_list flushes, ready;
   bio_list_init(&flushes);
   bio_list_init(&ready);
   spin_lock_irq(&ld->workLock);
@@ -233,7 +235,6 @@ static void processDelayed(struct work_struct *work)
   spin_unlock_irq(&ld->workLock);
 
   // Process the completed flushes.
-  struct bio *bio;
   while ((bio = bio_list_pop(&flushes))) {
     if (ld->stopFlag && (atomic64_read(&ld->writeFailure) > 0)) {
       // We are stopping writes and failed to write a cached block.
@@ -266,6 +267,8 @@ static void scheduleDelayedProcessing(struct lossy_device *ld,
 {
   bool haveBios = !bio_list_empty(ready);
   bool haveFlushes = flushes && !bio_list_empty(flushes);
+  bool schedulingNeeded;
+  unsigned long flags;
 
   // If the lists of new bios are empty, there is nothing to do.
   if (!haveFlushes && !haveBios)
@@ -273,10 +276,9 @@ static void scheduleDelayedProcessing(struct lossy_device *ld,
 
   // Under the worklock, add the new bios to the existing lists of bios to
   // process.
-  unsigned long flags;
   spin_lock_irqsave(&ld->workLock, flags);
-  bool schedulingNeeded = (bio_list_empty(&ld->workBios)
-                           && bio_list_empty(&ld->workFlushBios);
+  schedulingNeeded = (bio_list_empty(&ld->workBios)
+                      && bio_list_empty(&ld->workFlushBios);
   if (haveBios)
     bio_list_merge_init(&ld->workBios, ready);
   if (haveFlushes)
@@ -300,11 +302,13 @@ static void scheduleDelayedProcessing(struct lossy_device *ld,
  **/
 static void decrementBusyCountAndTest(struct lossy_device *ld)
 {
+  struct bio_list completedFlushes;
+  struct bio_list readyBios;
+  unsigned long flags;
+
   if (atomic_dec_and_test(&ld->busyCount)) {
     // The busy count has just dropped to zero, so we need to take flushLock
     // and deal with any flushes in progress.
-    struct bio_list completedFlushes, readyBios;
-    unsigned long flags;
     bio_list_init(&completedFlushes);
     bio_list_init(&readyBios);
     spin_lock_irqsave(&ld->flushLock, flags);
@@ -335,14 +339,15 @@ static void endFlushCacheBlock(struct bio *bio)
   struct cache_block *cb = bio->bi_private;
   struct lossy_device *ld = cb->device;
   struct bio_list ready;
-  bio_list_init(&ready);
+  unsigned long flags;
 
   if (error)
     DMWARN("error flushing at sector %llu: %d\n",
            (unsigned long long) (cb->blockNumber << ld->blockShift), error);
 
+  bio_list_init(&ready);
+
   // Set the block state to EMPTY.  This is a transition from WRITING to EMPTY.
-  unsigned long flags;
   spin_lock_irqsave(&cb->lock, flags);
   cb->state = EMPTY;
   // Record the bios that are now ready to start
@@ -365,6 +370,7 @@ static void endFlushCacheBlock(struct bio *bio)
 static void flushCacheBlock(struct cache_block *cb)
 {
   struct lossy_device *ld = cb->device;
+  int bytes_added;
 
   // Set the block state to WRITING, and release the cache block lock.  We do
   // not want to hold the lock while we write the data.
@@ -380,7 +386,7 @@ static void flushCacheBlock(struct cache_block *cb)
   cb->blockBio->bi_io_vec = bio_inline_vecs(cb->blockBio);
   cb->blockBio->bi_max_vecs = 1;
 
-  int bytes_added =
+  bytes_added =
     bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), ld->blockSize,
                  offset_in_page(cb->blockData));
   if (bytes_added != ld->blockSize) {
@@ -415,6 +421,11 @@ static void processBioCached(struct cache_block *cb,
                              struct bio_list    *ready)
 {
   struct lossy_device *ld = cb->device;
+  struct bio_vec bv;
+  struct bvec_iter iter;
+  sector_t blockNumber;
+  size_t offset;
+  char *data;
 
   // Set the block state to COPYING, and release the cache block lock.  We do
   // not want to hold the lock while we copy the data.
@@ -422,16 +433,17 @@ static void processBioCached(struct cache_block *cb,
   spin_unlock_irq(&cb->lock);
 
   // Compute the cache address to begin transfers.
-  sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
-  size_t offset = (bio->bi_iter.bi_sector - (blockNumber << ld->blockShift)) << SECTOR_SHIFT;
-  char *data = cb->blockData + offset;
+  blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+  offset = (bio->bi_iter.bi_sector - (blockNumber << ld->blockShift)) << SECTOR_SHIFT;
+  data = cb->blockData + offset;
 
   // Copy the data.
-  struct bio_vec bv;
-  for (struct bvec_iter iter = bio->bi_iter; iter.bi_size > 0;
+  for (iter = bio->bi_iter; iter.bi_size > 0;
        bio_advance_iter(bio, &iter, bv.bv_len)) {
+    char *buffer;
+
     bv = bio_iter_iovec(bio, iter);
-    char *buffer = page_address(bv.bv_page) + bv.bv_offset;
+    buffer = page_address(bv.bv_page) + bv.bv_offset;
     if (bio_data_dir(bio) == READ)
       memcpy(buffer, data, bv.bv_len);
     else
@@ -487,6 +499,7 @@ static int processBioLocked(struct cache_block *cb,
 {
   struct lossy_device *ld = cb->device;
   sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+
   if (cb->state == EMPTY) {
     // Cache block is unused.  Look for a reason to do the I/O directly.  In
     // order: It's a read; it's a REQ_FUA; it's a REQ_DISCARD; it's a partial
@@ -550,8 +563,11 @@ static int processBioLocked(struct cache_block *cb,
  **/
 static void flushTheCache(struct lossy_device *ld)
 {
-  for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+  unsigned int i;
+
+  for (i = 0; i < ld->cacheBlockCount; i++) {
     struct cache_block *cb = &ld->cacheBlocks[i];
+
     spin_lock_irq(&cb->lock);
     if (cb->state == DIRTY)
       flushCacheBlock(cb);
@@ -580,6 +596,8 @@ static void flushTheCache(struct lossy_device *ld)
 static int processBio(struct lossy_device *ld, struct bio *bio,
                       struct bio_list *ready)
 {
+  int result;
+
   if ((bio_data_dir(bio) == WRITE) && ld->stopFlag) {
     // We have been told to stop writing.  Make it so.
     atomic64_inc(&ld->writeFailure);
@@ -597,15 +615,16 @@ static int processBio(struct lossy_device *ld, struct bio *bio,
   atomic_inc(&ld->busyCount);
 
   spin_lock_irq(&ld->flushLock);
-  int result;
   if ((bio_op(bio) == REQ_OP_FLUSH) || (bio->bi_opf & REQ_PREFLUSH)) {
+    bool firstFlush;
+
     if (bio->bi_iter.bi_size > 0)
       DMWARN("flush bio too big!");
 
     // Add to the list of active flush bios.  If we are the first one, we must
     // initiate flushing the cache.
     bio_list_add(&ld->flushBios, bio);
-    bool firstFlush = !ld->flushFlag;
+    firstFlush = !ld->flushFlag;
     ld->flushFlag = true;
     spin_unlock_irq(&ld->flushLock);
     if (firstFlush)
@@ -617,12 +636,16 @@ static int processBio(struct lossy_device *ld, struct bio *bio,
     spin_unlock_irq(&ld->flushLock);
     result = DM_MAPIO_SUBMITTED;
   } else {
+    sector_t blockNumber;
+    unsigned int slotNumber;
+    struct cache_block *cb;
+
     spin_unlock_irq(&ld->flushLock);
     // There is no flush in progress, so we may lock the cache block and
     // proceed to do the I/O.
-    sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
-    unsigned int slotNumber = blockNumber % ld->cacheBlockCount;
-    struct cache_block *cb = &ld->cacheBlocks[slotNumber];
+    blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+    slotNumber = blockNumber % ld->cacheBlockCount;
+    cb = &ld->cacheBlocks[slotNumber];
     spin_lock_irq(&cb->lock);
     result = processBioLocked(cb, bio, ready);
     spin_unlock_irq(&cb->lock);
@@ -643,6 +666,7 @@ static int processBio(struct lossy_device *ld, struct bio *bio,
 static void processBioList(struct lossy_device *ld, struct bio_list *ready)
 {
   struct bio *bio;
+
   while ((bio = bio_list_pop(ready))) {
     if (processBio(ld, bio, ready) == DM_MAPIO_REMAPPED) {
       submit_bio_noacct(bio);
@@ -654,12 +678,15 @@ static void processBioList(struct lossy_device *ld, struct bio_list *ready)
 /**********************************************************************/
 static void freeLossyDeviceCache(struct lossy_device *ld)
 {
+  unsigned int i;
+
   // Free the cache data blocks.
   vfree(ld->cacheData);
 
   // Free the bios for the cache data blocks.
-  for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+  for (i = 0; i < ld->cacheBlockCount; i++) {
     struct cache_block *cb = &ld->cacheBlocks[i];
+
     if (cb->blockBio != NULL) {
       bio_uninit(cb->blockBio);
       kfree(cb->blockBio);
@@ -672,18 +699,24 @@ static void freeLossyDeviceCache(struct lossy_device *ld)
 /**********************************************************************/
 static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-  if (argc != 6) {
-    ti->error = "requires exactly 6 arguments";
-    return -EINVAL;
-  }
-  const char *deviceName = argv[0];
-  const char *devicePath = argv[1];
+  const char *deviceName;
+  const char *devicePath;
+  struct lossy_device *ld;
+  char *cacheData;
   int result;
   unsigned long long blockSize;
   unsigned int cacheBlockCount;
   unsigned int tornModulus;
   unsigned long long tornMask;
+  unsigned int i;
 
+  if (argc != 6) {
+    ti->error = "requires exactly 6 arguments";
+    return -EINVAL;
+  }
+
+  deviceName = argv[0];
+  devicePath = argv[1];
   result = kstrtoull(argv[2], 10, &blockSize);
   if (result)
     return result;
@@ -721,15 +754,14 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
     tornModulus = 8;
   }
 
-  struct lossy_device *ld
-    = kzalloc(sizeof(struct lossy_device)
-              + cacheBlockCount * sizeof(struct cache_block),
-              GFP_KERNEL);
+  ld = kzalloc(sizeof(struct lossy_device)
+               + cacheBlockCount * sizeof(struct cache_block),
+               GFP_KERNEL);
   if (ld == NULL) {
     ti->error = "Cannot allocate context";
     return -ENOMEM;
   }
-  char *cacheData = NULL;
+
   if (cacheBlockCount > 0) {
     cacheData = __vmalloc(cacheBlockCount * blockSize, GFP_KERNEL);
     if (cacheData == NULL) {
@@ -753,8 +785,9 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
   bio_list_init(&ld->workFlushBios);
   spin_lock_init(&ld->flushLock);
   spin_lock_init(&ld->workLock);
-  for (unsigned int i = 0; i < cacheBlockCount; i++) {
+  for (i = 0; i < cacheBlockCount; i++) {
     struct cache_block *cb = &ld->cacheBlocks[i];
+
     bio_list_init(&cb->waitingBios);
     spin_lock_init(&cb->lock);
     cb->blockBio = bio_kmalloc(1, GFP_KERNEL);
@@ -795,6 +828,7 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
 static void lossyDtr(struct dm_target *ti)
 {
   struct lossy_device *ld = ti->private;
+
   dm_put_device(ti, ld->dev);
   freLossyDeviceCache(ld);
 }
@@ -926,12 +960,14 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       (long long)atomic64_read(&ld->successBios),
 		       (long long)atomic64_read(&ld->errorBios));
 	} else if (!strcasecmp(argv[0], "show_cache")) {
+		unsigned int i;
+
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
 		}
 
-		for (unsigned int i = 0; i < ld->cacheBlockCount; i++) {
+		for (i = 0; i < ld->cacheBlockCount; i++) {
 			struct cache_block *cb = &ld->cacheBlocks[i];
 			unsigned int waiter_count;
 			sector_t sector;
@@ -973,6 +1009,8 @@ static int lossyMap(struct dm_target *ti,
                     struct bio       *bio)
 {
   struct lossy_device *ld = ti->private;
+  struct bio_list readyList;
+  int result;
 
   // Map the I/O to the storage device.
   bio_set_dev(bio, ld->dev->bdev);
@@ -995,9 +1033,8 @@ static int lossyMap(struct dm_target *ti,
   }
 
   // Process the already mapped I/O.
-  struct bio_list readyList;
   bio_list_init(&readyList);
-  int result = processBio(ld, bio, &readyList);
+  result = processBio(ld, bio, &readyList);
 
   // If the processing released any other bio requests, process them now.  This
   // indirect method of making a list to process one at a time ensures that we
@@ -1068,6 +1105,7 @@ static struct target_type lossyTargetType = {
 int __init lossyInit(void)
 {
   int result = dm_register_target(&lossyTargetType);
+
   if (result < 0)
     DMERR("dm_register_target failed %d", result);
   return result;
