@@ -837,8 +837,6 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 	unsigned int work_flush_count;
 	unsigned int work_bio_count;
 	unsigned int sz = 0;
-	int errval;
-	unsigned int val;
 
 	if (!strcasecmp(argv[0], "stop")) {
 		if (argc != 1) {
@@ -850,21 +848,7 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		ld->stopFlag = true;
 		ld->readsAtStop = atomic64_read(&ld->readTotal);
 		ld->writesAtStop = atomic64_read(&ld->writeTotal);
-	} else if (!strcasecmp(argv[0], "return_eio")) {
-		if (argc != 2) {
-			DMERR("%s takes exactly one argument", argv[0]);
-			return -EINVAL;
-		}
 
-		errval = kstrtouint(argv[1], 0, &val);
-		if (errval)
-			return errval;
-
-		if (val == 0)
-			ld->ioError = BLK_STS_OK;
-		else if (val == 1)
-			ld->ioError = BLK_STS_IOERR;
-	} else if (!strcasecmp(argv[0], "show_mode")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
 			return -EINVAL;
@@ -1030,6 +1014,16 @@ static int lossyMap(struct dm_target *ti,
 }
 
 /**********************************************************************/
+static void lossy_presuspend(struct dm_target *ti)
+{
+  /*
+   * When suspending, pretend all writes succeeded even when stopped.
+   * This can reduce complications for devices above this one.
+   */
+  ((struct lossy_device *) ti->private)->ioError = BLK_STS_OK;
+}
+
+/**********************************************************************/
 static void lossyStatus(struct dm_target *ti,
                         status_type_t     type,
                         unsigned int      status_flags,
@@ -1064,6 +1058,7 @@ static struct target_type lossyTargetType = {
   .iterate_devices = lossyIterateDevices,
   .map             = lossyMap,
   .message         = lossy_message,
+  .presuspend      = lossy_presuspend,
   .status          = lossyStatus,
   // Put version specific functions at the bottom
   .prepare_ioctl   = lossyPrepareIoctl,
