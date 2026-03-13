@@ -6,5 +6,5 @@
 
 #include <linux/module.h>
 
-int __init lossyInit(void);
-void __exit lossyExit(void);
+int __init lossy_init(void);
+void __exit lossy_exit(void);

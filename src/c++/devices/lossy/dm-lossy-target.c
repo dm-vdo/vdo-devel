@@ -118,7 +118,7 @@ struct cache_block {
   // Pointer to the bio reserved for use when we need to write this block.
   struct bio              *bio;
   // The BLOCK number of this block (not the sector number).
-  sector_t                 blockNumber;
+  sector_t                 block_number;
   // The state of this cache block
   enum block_state         state;
 };
@@ -133,79 +133,79 @@ struct lossy_device {
   // The name of the device.
   char            name[LOSSY_NAME_SIZE + 1];
   // Pointer to the cached data, used only for allocate/free of the memory.
-  char           *cacheData;
+  char           *cache_data;
   // The block size, which must be either 512 or 4K.
-  size_t          blockSize;
+  size_t          block_size;
   // Settings for producing torn writes.
   u32             block_mask;
   u32             mask_length;
   // The block shift, which is used to convert sector numbers to block numbers.
-  // Will be either 0 (for blockSize 512) or 3 (for blockSize 4K).
-  u16             blockShift;
+  // Will be either 0 (for block size 512) or 3 (for block size 4K).
+  u16             block_shift;
   // The number of cache blocks, which may be zero for no block cache.
-  u16             cacheBlockCount;
+  u16             cache_block_count;
   // The busy count of the device, which is used to implement proper REQ_FLUSH
   // requests when there is a block cache.  It counts the number of bios that
   // we are actively working on, and the number of dirty blocks in the block
   // cache.  An REQ_FLUSH request cannot be completed until this count goes to
   // zero.
-  atomic_t        busyCount;
+  atomic_t        busy_count;
 
   // BEGIN data that pertains to work done in a kworker thread for this
   // device.  This spin lock protects these data, and it is taken by the
   // bi_end_io callback when we write a cache block, and therefore should be
   // used with spin_lock_irq or spin_lock_irqsave.
-  spinlock_t         workLock;
+  spinlock_t         work_lock;
   // When the processing of a bio has been delayed, it will eventually be put
   // on this list and processed in a kworker thread.
-  struct bio_list    workBios;
+  struct bio_list    work_bios;
   // When the processing of an REQ_FLUSH request has been completed, it will be
   // put on this list and processed in a kworker thread.
-  struct bio_list    workFlushBios;
-  // This is a Linux work item used to schedule processing of the workBios
+  struct bio_list    work_flush_bios;
+  // This is a Linux work item used to schedule processing of the work_bios
   // list.
   struct work_struct work_item;
-  // END of data protected by workLock.
+  // END of data protected by work_lock.
 
   // BEGIN data that pertains to processing REQ_FLUSH requests.  This spin lock
   // protects these data, and may be taken by the bi_end_io callback when we
   // write a cache block, and therefore should be used with spin_lock_irq or
   // spin_lock_irqsave.
-  spinlock_t      flushLock;
+  spinlock_t      flush_lock;
   // A flag to indicate that a flush is in progress.
   bool            flushing;
   // When an REQ_FLUSH bio arrives, it will be put onto this list for
   // processing at the proper time.
-  struct bio_list flushBios;
+  struct bio_list flush_bios;
   // While flushing, all non-REQ_FLUSH bios are put onto this list for
   // processing when the flush is completed.
   struct bio_list pending_bios;
-  // END of data protected by flushLock.
+  // END of data protected by flush_lock.
 
   // BEGIN data that are merely statistics and do not effect code behavior.
-  // These stats count the bios that arrive into the lossyMap method.
+  // These stats count the bios that arrive into the lossy_map method.
   atomic64_t    total_reads;
   atomic64_t    total_writes;
   atomic64_t    total_flushes;
   atomic64_t    total_fuas;
-  atomic64_t    writeFailure;
-  atomic64_t    flushFailure;
-  unsigned long readsAtLastFlush;
-  unsigned long writesAtLastFlush;
-  unsigned long readsAtStop;
-  unsigned long writesAtStop;
-  // These stats count the values returned by the lossyMap method.
-  atomic64_t    mappedReturns;
-  atomic64_t    submittedReturns;
-  // These stats count the bios for which the lossyMap method returned
+  atomic64_t    write_failures;
+  atomic64_t    flush_failures;
+  unsigned long reads_at_last_flush;
+  unsigned long writes_at_last_flush;
+  unsigned long reads_at_stop;
+  unsigned long writes_at_stop;
+  // These stats count the values returned by the lossy_map method.
+  atomic64_t    mapped_returns;
+  atomic64_t    submitted_returns;
+  // These stats count the bios for which the lossy_map method returned
   // "submitted".
-  atomic64_t    submittedBios;
-  atomic64_t    successBios;
-  atomic64_t    errorBios;
+  atomic64_t    submitted_bios;
+  atomic64_t    success_bios;
+  atomic64_t    error_bios;
   // END of statistics
 
   // The block cache (variable sized, so it goes at the end).
-  struct cache_block cacheBlocks[];
+  struct cache_block cache_blocks[];
 };
 
 /**********************************************************************/
@@ -229,22 +229,22 @@ static void process_pending_bios(struct work_struct *work)
   // Under the worklock, grab the lists of bios to be processed.
   bio_list_init(&flushes);
   bio_list_init(&ready);
-  spin_lock_irq(&ld->workLock);
-  bio_list_merge_init(&flushes, &ld->workFlushBios);
-  bio_list_merge_init(&ready, &ld->workBios);
-  spin_unlock_irq(&ld->workLock);
+  spin_lock_irq(&ld->work_lock);
+  bio_list_merge_init(&flushes, &ld->work_flush_bios);
+  bio_list_merge_init(&ready, &ld->work_bios);
+  spin_unlock_irq(&ld->work_lock);
 
   // Process the completed flushes.
   while ((bio = bio_list_pop(&flushes))) {
-    if (ld->stopped && (atomic64_read(&ld->writeFailure) > 0)) {
+    if (ld->stopped && (atomic64_read(&ld->write_failures) > 0)) {
       // We are stopping writes and failed to write a cached block.
       bio->bi_status = ld->error_status;
       bio_endio(bio);
-      atomic64_inc(&ld->errorBios);
+      atomic64_inc(&ld->error_bios);
     } else {
       // Still succeeding, so forward the flush to the storage medium.
       submit_bio_noacct(bio);
-      atomic64_inc(&ld->submittedBios);
+      atomic64_inc(&ld->submitted_bios);
     }
   }
 
@@ -276,14 +276,14 @@ static void schedule_pending_bios(struct lossy_device *ld,
 
   // Under the worklock, add the new bios to the existing lists of bios to
   // process.
-  spin_lock_irqsave(&ld->workLock, flags);
-  schedule_work_item = (bio_list_empty(&ld->workBios)
-                        && bio_list_empty(&ld->workFlushBios));
+  spin_lock_irqsave(&ld->work_lock, flags);
+  schedule_work_item = (bio_list_empty(&ld->work_bios)
+                        && bio_list_empty(&ld->work_flush_bios));
   if (new_bios)
-    bio_list_merge_init(&ld->workBios, ready);
+    bio_list_merge_init(&ld->work_bios, ready);
   if (new_flushes)
-    bio_list_merge_init(&ld->workFlushBios, flushes);
-  spin_unlock_irqrestore(&ld->workLock, flags);
+    bio_list_merge_init(&ld->work_flush_bios, flushes);
+  spin_unlock_irqrestore(&ld->work_lock, flags);
 
   // If we added to empty lists, schedule a work item.  Otherwise there is
   // already a work item scheduled.
@@ -302,28 +302,28 @@ static void schedule_pending_bios(struct lossy_device *ld,
  **/
 static void complete_flushes(struct lossy_device *ld)
 {
-  struct bio_list completedFlushes;
-  struct bio_list readyBios;
+  struct bio_list completed_flushes;
+  struct bio_list ready_bios;
   unsigned long flags;
 
-  if (atomic_dec_and_test(&ld->busyCount)) {
-    // The busy count has just dropped to zero, so we need to take flushLock
+  if (atomic_dec_and_test(&ld->busy_count)) {
+    // The busy count has just dropped to zero, so we need to take flush_lock
     // and deal with any flushes in progress.
-    bio_list_init(&completedFlushes);
-    bio_list_init(&readyBios);
-    spin_lock_irqsave(&ld->flushLock, flags);
+    bio_list_init(&completed_flushes);
+    bio_list_init(&ready_bios);
+    spin_lock_irqsave(&ld->flush_lock, flags);
     if (ld->flushing) {
       // And there are REQ_FLUSH requests in progress.
       ld->flushing = false;
       // Record the flush bios that are complete.
-      bio_list_merge_init(&completedFlushes, &ld->flushBios);
+      bio_list_merge_init(&completed_flushes, &ld->flush_bios);
       // Record the bios that are now ready to start.
-      bio_list_merge_init(&readyBios, &ld->pending_bios);
+      bio_list_merge_init(&ready_bios, &ld->pending_bios);
      }
-    spin_unlock_irqrestore(&ld->flushLock, flags);
+    spin_unlock_irqrestore(&ld->flush_lock, flags);
 
     // Start the "ready" ones.
-    schedule_pending_bios(ld, &readyBios, &completedFlushes);
+    schedule_pending_bios(ld, &ready_bios, &completed_flushes);
   }
 }
 
@@ -333,7 +333,7 @@ static void complete_flushes(struct lossy_device *ld)
  *
  * @param bio    The bio
  **/
-static void endFlushCacheBlock(struct bio *bio)
+static void end_flush_cache_block(struct bio *bio)
 {
   int result = blk_status_to_errno(bio->bi_status);
   struct cache_block *cb = bio->bi_private;
@@ -343,7 +343,7 @@ static void endFlushCacheBlock(struct bio *bio)
 
   if (result)
     DMWARN("error flushing at sector %llu: %d\n",
-           (unsigned long long) (cb->blockNumber << ld->blockShift), result);
+           (unsigned long long) (cb->block_number << ld->block_shift), result);
 
   bio_list_init(&ready);
 
@@ -367,7 +367,7 @@ static void endFlushCacheBlock(struct bio *bio)
  *
  * @param cb  The cache block (locked)
  **/
-static void flushCacheBlock(struct cache_block *cb)
+static void flush_cache_block(struct cache_block *cb)
 {
   struct lossy_device *ld = cb->device;
   int bytes_added;
@@ -379,23 +379,23 @@ static void flushCacheBlock(struct cache_block *cb)
 
   // Start writing the cache block
   bio_reset(cb->bio, ld->dev->bdev, REQ_OP_WRITE);
-  cb->bio->bi_end_io  = endFlushCacheBlock;
+  cb->bio->bi_end_io  = end_flush_cache_block;
   cb->bio->bi_private = cb;
   bio_set_dev(cb->bio, ld->dev->bdev);
-  cb->bio->bi_iter.bi_sector = (cb->blockNumber << ld->blockShift);
+  cb->bio->bi_iter.bi_sector = (cb->block_number << ld->block_shift);
   cb->bio->bi_io_vec = bio_inline_vecs(cb->bio);
   cb->bio->bi_max_vecs = 1;
 
   bytes_added =
-    bio_add_page(cb->bio, vmalloc_to_page(cb->data), ld->blockSize,
+    bio_add_page(cb->bio, vmalloc_to_page(cb->data), ld->block_size,
                  offset_in_page(cb->data));
-  if (bytes_added != ld->blockSize) {
+  if (bytes_added != ld->block_size) {
     /* This should never fail, and there's nowhere to report an error. */
     DMWARN("problem adding block data to bio");
   }
   if (ld->stopped) {
     // We are supposed to stop writing, so fail the write.
-    atomic64_inc(&ld->flushFailure);
+    atomic64_inc(&ld->flush_failures);
     cb->bio->bi_status = ld->error_status;
     bio_endio(cb->bio);
   } else {
@@ -423,7 +423,7 @@ static void process_cached_bio(struct cache_block *cb,
   struct lossy_device *ld = cb->device;
   struct bio_vec bv;
   struct bvec_iter iter;
-  sector_t blockNumber;
+  sector_t block_number;
   size_t offset;
   char *data;
 
@@ -433,8 +433,8 @@ static void process_cached_bio(struct cache_block *cb,
   spin_unlock_irq(&cb->lock);
 
   // Compute the cache address to begin transfers.
-  blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
-  offset = (bio->bi_iter.bi_sector - (blockNumber << ld->blockShift)) << SECTOR_SHIFT;
+  block_number = bio->bi_iter.bi_sector >> ld->block_shift;
+  offset = (bio->bi_iter.bi_sector - (block_number << ld->block_shift)) << SECTOR_SHIFT;
   data = cb->data + offset;
 
   // Copy the data.
@@ -455,7 +455,7 @@ static void process_cached_bio(struct cache_block *cb,
   // We are done with the bio.
   bio->bi_status = 0;
   bio_endio(bio);
-  atomic64_inc(&ld->successBios);
+  atomic64_inc(&ld->success_bios);
 
   // Grab the cache block lock, and set the block state to DIRTY.
   spin_lock_irq(&cb->lock);
@@ -471,7 +471,7 @@ static void process_cached_bio(struct cache_block *cb,
   // state.  The cache block spinlock has provided us with adequate memory
   // barriers.
   if (ld->flushing)
-    flushCacheBlock(cb);
+    flush_cache_block(cb);
 }
 
 /**********************************************************************/
@@ -493,12 +493,12 @@ static void process_cached_bio(struct cache_block *cb,
  *                            and calling bio_endio, or forwarding it onward
  *                            by submitting it to the next layer.
  **/
-static int processBioLocked(struct cache_block *cb,
-                            struct bio         *bio,
-                            struct bio_list    *ready)
+static int process_bio_locked(struct cache_block *cb,
+                              struct bio         *bio,
+                              struct bio_list    *ready)
 {
   struct lossy_device *ld = cb->device;
-  sector_t blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
+  sector_t block_number = bio->bi_iter.bi_sector >> ld->block_shift;
 
   if (cb->state == EMPTY) {
     // Cache block is unused.  Look for a reason to do the I/O directly.  In
@@ -507,7 +507,7 @@ static int processBioLocked(struct cache_block *cb,
     if ((bio_data_dir(bio) == READ)
         || (bio->bi_opf & REQ_FUA)
         || (bio_op(bio) == REQ_OP_DISCARD)
-        || (bio->bi_iter.bi_size < ld->blockSize))
+        || (bio->bi_iter.bi_size < ld->block_size))
       return DM_MAPIO_REMAPPED;
 
     // We have an unused cache block for an ordinary write of a full block.
@@ -515,16 +515,16 @@ static int processBioLocked(struct cache_block *cb,
     // cause the block to be cached.  We expect to use these defaults for 4K
     // blocks.  When the blocksize if 512, we expect that the mask/modules
     // settings will be used to test with torn writes.
-    if ((ld->block_mask & (1 << (blockNumber % ld->mask_length))) == 0)
+    if ((ld->block_mask & (1 << (block_number % ld->mask_length))) == 0)
       return DM_MAPIO_REMAPPED;
 
     // Use this cache block.  This is an EMPTY to DIRTY transition, so bump the
     // busy count.
-    atomic_inc(&ld->busyCount);
-    cb->blockNumber = blockNumber;
+    atomic_inc(&ld->busy_count);
+    cb->block_number = block_number;
     process_cached_bio(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (cb->blockNumber != blockNumber) {
+  } else if (cb->block_number != block_number) {
     // This is not the block we are looking for.
     return DM_MAPIO_REMAPPED;
   };
@@ -539,18 +539,18 @@ static int processBioLocked(struct cache_block *cb,
     // using the cache.
     process_cached_bio(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (bio->bi_iter.bi_size == ld->blockSize) {
+  } else if (bio->bi_iter.bi_size == ld->block_size) {
     // It's a full block FUA write or discard, so drop the cache block and just
     // do the write.  Because our bio is known to be busy, this can never drop
     // the busy count to zero.
     cb->state = EMPTY;
-    atomic_dec(&ld->busyCount);
+    atomic_dec(&ld->busy_count);
     return DM_MAPIO_REMAPPED;
   } else {
     // It's a partial block FUA write or discard, so wait while we flush the
     // whole cached block to storage.
     bio_list_add(&cb->pending_bios, bio);
-    flushCacheBlock(cb);
+    flush_cache_block(cb);
     return DM_MAPIO_SUBMITTED;
   }
 }
@@ -565,12 +565,12 @@ static void flush_cache(struct lossy_device *ld)
 {
   u16 i;
 
-  for (i = 0; i < ld->cacheBlockCount; i++) {
-    struct cache_block *cb = &ld->cacheBlocks[i];
+  for (i = 0; i < ld->cache_block_count; i++) {
+    struct cache_block *cb = &ld->cache_blocks[i];
 
     spin_lock_irq(&cb->lock);
     if (cb->state == DIRTY)
-      flushCacheBlock(cb);
+      flush_cache_block(cb);
     spin_unlock_irq(&cb->lock);
   }
 }
@@ -593,28 +593,28 @@ static void flush_cache(struct lossy_device *ld)
  *                            and calling bio_endio, or forwarding it onward
  *                            by submitting it to the next layer.
  **/
-static int processBio(struct lossy_device *ld, struct bio *bio,
-                      struct bio_list *ready)
+static int process_bio(struct lossy_device *ld, struct bio *bio,
+                       struct bio_list *ready)
 {
   int result;
 
   if ((bio_data_dir(bio) == WRITE) && ld->stopped) {
     // We have been told to stop writing.  Make it so.
-    atomic64_inc(&ld->writeFailure);
+    atomic64_inc(&ld->write_failures);
     bio->bi_status = ld->error_status;
     bio_endio(bio);
     return DM_MAPIO_SUBMITTED;
   }
 
-  if (ld->cacheBlockCount == 0)
+  if (ld->cache_block_count == 0)
     // We are not doing caching.  Just go ahead and do the I/O.
     return DM_MAPIO_REMAPPED;
 
   // We are doing caching.  When this busy count returns to zero, it will be
   // time to acknowledge empty flushes.
-  atomic_inc(&ld->busyCount);
+  atomic_inc(&ld->busy_count);
 
-  spin_lock_irq(&ld->flushLock);
+  spin_lock_irq(&ld->flush_lock);
   if ((bio_op(bio) == REQ_OP_FLUSH) || (bio->bi_opf & REQ_PREFLUSH)) {
     bool flushing;
 
@@ -623,31 +623,31 @@ static int processBio(struct lossy_device *ld, struct bio *bio,
 
     // Add to the list of active flush bios.  If we are the first one, we must
     // initiate flushing the cache.
-    bio_list_add(&ld->flushBios, bio);
+    bio_list_add(&ld->flush_bios, bio);
     flushing = ld->flushing;
     ld->flushing = true;
-    spin_unlock_irq(&ld->flushLock);
+    spin_unlock_irq(&ld->flush_lock);
     if (!flushing)
       flush_cache(ld);
     result = DM_MAPIO_SUBMITTED;
   } else if (ld->flushing) {
     // A flush is in progress.  Need to defer this bio.
     bio_list_add(&ld->pending_bios, bio);
-    spin_unlock_irq(&ld->flushLock);
+    spin_unlock_irq(&ld->flush_lock);
     result = DM_MAPIO_SUBMITTED;
   } else {
-    sector_t blockNumber;
+    sector_t block_number;
     u16 slotNumber;
     struct cache_block *cb;
 
-    spin_unlock_irq(&ld->flushLock);
+    spin_unlock_irq(&ld->flush_lock);
     // There is no flush in progress, so we may lock the cache block and
     // proceed to do the I/O.
-    blockNumber = bio->bi_iter.bi_sector >> ld->blockShift;
-    slotNumber = blockNumber % ld->cacheBlockCount;
-    cb = &ld->cacheBlocks[slotNumber];
+    block_number = bio->bi_iter.bi_sector >> ld->block_shift;
+    slotNumber = block_number % ld->cache_block_count;
+    cb = &ld->cache_blocks[slotNumber];
     spin_lock_irq(&cb->lock);
-    result = processBioLocked(cb, bio, ready);
+    result = process_bio_locked(cb, bio, ready);
     spin_unlock_irq(&cb->lock);
   }
 
@@ -668,9 +668,9 @@ static void process_ready_bios(struct lossy_device *ld, struct bio_list *ready)
   struct bio *bio;
 
   while ((bio = bio_list_pop(ready))) {
-    if (processBio(ld, bio, ready) == DM_MAPIO_REMAPPED) {
+    if (process_bio(ld, bio, ready) == DM_MAPIO_REMAPPED) {
       submit_bio_noacct(bio);
-      atomic64_inc(&ld->submittedBios);
+      atomic64_inc(&ld->submitted_bios);
     }
   }
 }
@@ -681,11 +681,11 @@ static void free_cache_blocks(struct lossy_device *ld)
   u16 i;
 
   // Free the cache data blocks.
-  vfree(ld->cacheData);
+  vfree(ld->cache_data);
 
   // Free the bios for the cache data blocks.
-  for (i = 0; i < ld->cacheBlockCount; i++) {
-    struct cache_block *cb = &ld->cacheBlocks[i];
+  for (i = 0; i < ld->cache_block_count; i++) {
+    struct cache_block *cb = &ld->cache_blocks[i];
 
     if (cb->bio != NULL) {
       bio_uninit(cb->bio);
@@ -697,15 +697,15 @@ static void free_cache_blocks(struct lossy_device *ld)
 /**********************************************************************/
 // BEGIN device methods for the lossy target type
 /**********************************************************************/
-static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
+static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-  const char *deviceName;
-  const char *devicePath;
+  const char *device_name;
+  const char *device_path;
   struct lossy_device *ld;
-  char *cacheData;
+  char *cache_data;
   int result;
-  unsigned long long blockSize;
-  unsigned int cacheBlockCount;
+  unsigned long long block_size;
+  unsigned int cache_block_count;
   unsigned int mask_length;
   unsigned long long block_mask;
   u16 i;
@@ -715,20 +715,20 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  deviceName = argv[0];
-  devicePath = argv[1];
-  result = kstrtoull(argv[2], 10, &blockSize);
+  device_name = argv[0];
+  device_path = argv[1];
+  result = kstrtoull(argv[2], 10, &block_size);
   if (result)
     return result;
-  if ((blockSize != 512) && (blockSize != 4096)) {
+  if ((block_size != 512) && (block_size != 4096)) {
     ti->error = "Invalid block size";
     return -EINVAL;
   }
 
-  result = kstrtouint(argv[3], 10, &cacheBlockCount);
+  result = kstrtouint(argv[3], 10, &cache_block_count);
   if (result)
     return result;
-  if (cacheBlockCount > MAX_CACHE_BLOCKS) {
+  if (cache_block_count > MAX_CACHE_BLOCKS) {
     ti->error = "Invalid cache size";
     return -EINVAL;
   }
@@ -755,46 +755,46 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   ld = kzalloc(sizeof(struct lossy_device)
-               + cacheBlockCount * sizeof(struct cache_block),
+               + cache_block_count * sizeof(struct cache_block),
                GFP_KERNEL);
   if (ld == NULL) {
     ti->error = "Cannot allocate context";
     return -ENOMEM;
   }
 
-  if (cacheBlockCount > 0) {
-    cacheData = __vmalloc(cacheBlockCount * blockSize, GFP_KERNEL);
-    if (cacheData == NULL) {
+  if (cache_block_count > 0) {
+    cache_data = __vmalloc(cache_block_count * block_size, GFP_KERNEL);
+    if (cache_data == NULL) {
       kfree(ld);
       ti->error = "Cannot allocate cache";
       return -ENOMEM;
     }
   }
-  ld->blockShift      = blockSize == 4096 ? 3 : 0;
-  ld->blockSize       = blockSize;
-  ld->cacheData       = cacheData;
-  ld->cacheBlockCount = cacheBlockCount;
-  ld->error_status    = BLK_STS_IOERR;
-  ld->stopped         = false;
-  ld->block_mask      = block_mask;
-  ld->mask_length     = mask_length;
-  strncpy(ld->name, deviceName, LOSSY_NAME_SIZE);
-  bio_list_init(&ld->flushBios);
+  ld->block_shift       = block_size == 4096 ? 3 : 0;
+  ld->block_size        = block_size;
+  ld->cache_data        = cache_data;
+  ld->cache_block_count = cache_block_count;
+  ld->error_status      = BLK_STS_IOERR;
+  ld->stopped           = false;
+  ld->block_mask        = block_mask;
+  ld->mask_length       = mask_length;
+  strncpy(ld->name, device_name, LOSSY_NAME_SIZE);
+  bio_list_init(&ld->flush_bios);
   bio_list_init(&ld->pending_bios);
-  bio_list_init(&ld->workBios);
-  bio_list_init(&ld->workFlushBios);
-  spin_lock_init(&ld->flushLock);
-  spin_lock_init(&ld->workLock);
-  for (i = 0; i < cacheBlockCount; i++) {
-    struct cache_block *cb = &ld->cacheBlocks[i];
+  bio_list_init(&ld->work_bios);
+  bio_list_init(&ld->work_flush_bios);
+  spin_lock_init(&ld->flush_lock);
+  spin_lock_init(&ld->work_lock);
+  for (i = 0; i < cache_block_count; i++) {
+    struct cache_block *cb = &ld->cache_blocks[i];
 
     bio_list_init(&cb->pending_bios);
     spin_lock_init(&cb->lock);
     cb->bio = bio_kmalloc(1, GFP_KERNEL);
-    cb->data = cacheData;
+    cb->data = cache_data;
     cb->device = ld;
     cb->state = EMPTY;
-    cacheData += blockSize;
+    cache_data += block_size;
     if (cb->bio == NULL) {
       free_cache_blocks(ld);
       kfree(ld);
@@ -803,7 +803,7 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
     }
   }
 
-  if (dm_get_device(ti, devicePath, dm_table_get_mode(ti->table), &ld->dev)) {
+  if (dm_get_device(ti, device_path, dm_table_get_mode(ti->table), &ld->dev)) {
     ti->error = "Device lookup failed";
     free_cache_blocks(ld);
     kfree(ld);
@@ -811,7 +811,7 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   ti->flush_supported = 1;
-  if (dm_set_target_max_io_len(ti, blockSize >> SECTOR_SHIFT) != 0) {
+  if (dm_set_target_max_io_len(ti, block_size >> SECTOR_SHIFT) != 0) {
     ti->error = "Set max io failed";
     dm_put_device(ti, ld->dev);
     free_cache_blocks(ld);
@@ -825,7 +825,8 @@ static int lossyCtr(struct dm_target *ti, unsigned int argc, char **argv)
 }
 
 /**********************************************************************/
-static void lossyDtr(struct dm_target *ti)
+
+static void lossy_dtr(struct dm_target *ti)
 {
   struct lossy_device *ld = ti->private;
 
@@ -834,11 +835,11 @@ static void lossyDtr(struct dm_target *ti)
 }
 
 /**********************************************************************/
-static int lossyPrepareIoctl(struct dm_target     *ti,
-                             struct block_device **bdev,
-                             unsigned int          cmd,
-                             unsigned long         arg,
-                             bool                 *forward)
+static int lossy_prepare_ioctl(struct dm_target     *ti,
+                               struct block_device **bdev,
+                               unsigned int          cmd,
+                               unsigned long         arg,
+                               bool                 *forward)
 {
   struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
 
@@ -852,9 +853,9 @@ static int lossyPrepareIoctl(struct dm_target     *ti,
 }
 
 /**********************************************************************/
-static int lossyIterateDevices(struct dm_target           *ti,
-                               iterate_devices_callout_fn  fn,
-                               void                       *data)
+static int lossy_iterate_devices(struct dm_target           *ti,
+                                 iterate_devices_callout_fn  fn,
+                                 void                       *data)
 {
   struct dm_dev *dev = ((struct lossy_device *) ti->private)->dev;
 
@@ -880,8 +881,8 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 
 		DMINFO("stopping");
 		ld->stopped = true;
-		ld->readsAtStop = atomic64_read(&ld->total_reads);
-		ld->writesAtStop = atomic64_read(&ld->total_writes);
+		ld->reads_at_stop = atomic64_read(&ld->total_reads);
+		ld->writes_at_stop = atomic64_read(&ld->total_writes);
 	} else if (!strcasecmp(argv[0], "show_mode")) {
 		if (argc != 1) {
 			DMERR("%s takes no arguments", argv[0]);
@@ -895,14 +896,14 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 			return -EINVAL;
 		}
 
-		spin_lock_irq(&ld->flushLock);
-		flush_flush_count = bio_list_size(&ld->flushBios);
+		spin_lock_irq(&ld->flush_lock);
+		flush_flush_count = bio_list_size(&ld->flush_bios);
 		flush_bio_count = bio_list_size(&ld->pending_bios);
-		spin_unlock_irq(&ld->flushLock);
-		spin_lock_irq(&ld->workLock);
-		work_flush_count = bio_list_size(&ld->workFlushBios);
-		work_bio_count = bio_list_size(&ld->workBios);
-		spin_unlock_irq(&ld->workLock);
+		spin_unlock_irq(&ld->flush_lock);
+		spin_lock_irq(&ld->work_lock);
+		work_flush_count = bio_list_size(&ld->work_flush_bios);
+		work_bio_count = bio_list_size(&ld->work_bios);
+		spin_unlock_irq(&ld->work_lock);
 		DMEMIT("block_size: %zu\n"
 		       "cache_block_count: %u\n"
 		       "block_mask: %u\n"
@@ -914,11 +915,11 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       "flush_bio_count: %u\n"
 		       "work_flush_count: %u\n"
 		       "work_bio_count: %u\n",
-		       ld->blockSize,
-		       ld->cacheBlockCount,
+		       ld->block_size,
+		       ld->cache_block_count,
 		       ld->block_mask,
 		       ld->mask_length,
-		       atomic_read(&ld->busyCount),
+		       atomic_read(&ld->busy_count),
 		       ld->stopped,
 		       ld->flushing,
 		       flush_flush_count,
@@ -950,15 +951,15 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 		       (long long)atomic64_read(&ld->total_writes),
 		       (long long)atomic64_read(&ld->total_flushes),
 		       (long long)atomic64_read(&ld->total_fuas),
-		       (long long)atomic64_read(&ld->writeFailure),
-		       (long long)atomic64_read(&ld->flushFailure),
-		       ld->readsAtLastFlush, ld->writesAtLastFlush,
-		       ld->readsAtStop, ld->writesAtStop,
-		       (long long)atomic64_read(&ld->mappedReturns),
-		       (long long)atomic64_read(&ld->submittedReturns),
-		       (long long)atomic64_read(&ld->submittedBios),
-		       (long long)atomic64_read(&ld->successBios),
-		       (long long)atomic64_read(&ld->errorBios));
+		       (long long)atomic64_read(&ld->write_failures),
+		       (long long)atomic64_read(&ld->flush_failures),
+		       ld->reads_at_last_flush, ld->writes_at_last_flush,
+		       ld->reads_at_stop, ld->writes_at_stop,
+		       (long long)atomic64_read(&ld->mapped_returns),
+		       (long long)atomic64_read(&ld->submitted_returns),
+		       (long long)atomic64_read(&ld->submitted_bios),
+		       (long long)atomic64_read(&ld->success_bios),
+		       (long long)atomic64_read(&ld->error_bios));
 	} else if (!strcasecmp(argv[0], "show_cache")) {
 		u16 i;
 
@@ -967,8 +968,8 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 			return -EINVAL;
 		}
 
-		for (i = 0; i < ld->cacheBlockCount; i++) {
-			struct cache_block *cb = &ld->cacheBlocks[i];
+		for (i = 0; i < ld->cache_block_count; i++) {
+			struct cache_block *cb = &ld->cache_blocks[i];
 			unsigned int waiter_count;
 			sector_t sector;
 			enum block_state block_state;
@@ -976,7 +977,7 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 
 			spin_lock_irq(&cb->lock);
 			waiter_count = bio_list_size(&cb->pending_bios);
-			sector = cb->blockNumber << ld->blockShift;
+			sector = cb->block_number << ld->block_shift;
 			block_state = cb->state;
 			spin_unlock_irq(&cb->lock);
 			state = "UNKNOWN";
@@ -1005,8 +1006,8 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 }
 
 /**********************************************************************/
-static int lossyMap(struct dm_target *ti,
-                    struct bio       *bio)
+static int lossy_map(struct dm_target *ti,
+                     struct bio       *bio)
 {
   struct lossy_device *ld = ti->private;
   struct bio_list ready_bios;
@@ -1022,8 +1023,8 @@ static int lossyMap(struct dm_target *ti,
   } else {
     if ((bio_op(bio) == REQ_OP_FLUSH) || (bio->bi_opf & REQ_PREFLUSH)) {
       atomic64_inc(&ld->total_flushes);
-      ld->readsAtLastFlush  = atomic64_read(&ld->total_reads);
-      ld->writesAtLastFlush = atomic64_read(&ld->total_writes);
+      ld->reads_at_last_flush  = atomic64_read(&ld->total_reads);
+      ld->writes_at_last_flush = atomic64_read(&ld->total_writes);
     }
     if (bio->bi_opf & REQ_FUA)
       atomic64_inc(&ld->total_fuas);
@@ -1034,7 +1035,7 @@ static int lossyMap(struct dm_target *ti,
 
   // Process the already mapped I/O.
   bio_list_init(&ready_bios);
-  result = processBio(ld, bio, &ready_bios);
+  result = process_bio(ld, bio, &ready_bios);
 
   // If the processing released any other bio requests, process them now.  This
   // indirect method of making a list to process one at a time ensures that we
@@ -1043,14 +1044,13 @@ static int lossyMap(struct dm_target *ti,
 
   // Perform return value accounting.
   if (result == DM_MAPIO_REMAPPED)
-    atomic64_inc(&ld->mappedReturns);
+    atomic64_inc(&ld->mapped_returns);
   else if (result == DM_MAPIO_SUBMITTED)
-    atomic64_inc(&ld->submittedReturns);
+    atomic64_inc(&ld->submitted_returns);
 
   return result;
 }
 
-/**********************************************************************/
 static void lossy_presuspend(struct dm_target *ti)
 {
   /*
@@ -1060,12 +1060,11 @@ static void lossy_presuspend(struct dm_target *ti)
   ((struct lossy_device *) ti->private)->error_status = BLK_STS_OK;
 }
 
-/**********************************************************************/
-static void lossyStatus(struct dm_target *ti,
-                        status_type_t     type,
-                        unsigned int      status_flags,
-                        char             *result,
-                        unsigned int      maxlen)
+static void lossy_status(struct dm_target *ti,
+                         status_type_t     type,
+                         unsigned int      status_flags,
+                         char             *result,
+                         unsigned int      maxlen)
 {
   struct lossy_device *ld = ti->private;
   unsigned int sz = 0;  // used by the DMEMIT macro
@@ -1076,8 +1075,8 @@ static void lossyStatus(struct dm_target *ti,
     break;
 
   case STATUSTYPE_TABLE:
-    DMEMIT("%s %s %zu %u", ld->name, ld->dev->name, ld->blockSize,
-           ld->cacheBlockCount);
+    DMEMIT("%s %s %zu %u", ld->name, ld->dev->name, ld->block_size,
+           ld->cache_block_count);
     break;
   case STATUSTYPE_IMA:
     *result = '\0';
@@ -1086,25 +1085,25 @@ static void lossyStatus(struct dm_target *ti,
 }
 
 /**********************************************************************/
-static struct target_type lossyTargetType = {
+static struct target_type lossy_target_type = {
   .name            = "lossy",
   .version         = { 1, 0, 0 },
   .module          = THIS_MODULE,
-  .ctr             = lossyCtr,
-  .dtr             = lossyDtr,
-  .iterate_devices = lossyIterateDevices,
-  .map             = lossyMap,
+  .ctr             = lossy_ctr,
+  .dtr             = lossy_dtr,
+  .iterate_devices = lossy_iterate_devices,
+  .map             = lossy_map,
   .message         = lossy_message,
   .presuspend      = lossy_presuspend,
-  .status          = lossyStatus,
+  .status          = lossy_status,
   // Put version specific functions at the bottom
-  .prepare_ioctl   = lossyPrepareIoctl,
+  .prepare_ioctl   = lossy_prepare_ioctl,
 };
 
 /**********************************************************************/
-int __init lossyInit(void)
+int __init lossy_init(void)
 {
-  int result = dm_register_target(&lossyTargetType);
+  int result = dm_register_target(&lossy_target_type);
 
   if (result < 0)
     DMERR("dm_register_target failed %d", result);
@@ -1112,13 +1111,13 @@ int __init lossyInit(void)
 }
 
 /**********************************************************************/
-void __exit lossyExit(void)
+void __exit lossy_exit(void)
 {
-  dm_unregister_target(&lossyTargetType);
+  dm_unregister_target(&lossy_target_type);
 }
 
-module_init(lossyInit);
-module_exit(lossyExit);
+module_init(lossy_init);
+module_exit(lossy_exit);
 
 MODULE_DESCRIPTION(DM_NAME " lossy testing device");
 MODULE_AUTHOR("Matthew Sakai <dm-devel@lists.linux.dev>");
