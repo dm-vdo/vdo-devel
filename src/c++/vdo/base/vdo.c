@@ -274,13 +274,6 @@ STATIC int __must_check initialize_thread_config(struct thread_count_config coun
 	return VDO_SUCCESS;
 }
 
-/**
- * initialize_geometry_block() - Sets up the geometry block for use.
- *
- * @block      The geometry block to check.
- *
- * Return: VDO_SUCCESS or error
- **/
 static int initialize_geometry_block(struct vdo *vdo,
 				     struct vdo_geometry_block *geometry_block)
 {
