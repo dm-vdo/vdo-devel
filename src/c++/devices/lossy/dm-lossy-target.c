@@ -2,45 +2,19 @@
 /*
  * Copyright (C) 2026 Red Hat, Inc.
  *
- * It has these expected usage modes:
+ * This is a test target designed to create specific data patterns on the
+ * underlying block device by selectively preventing writes. It is intended to
+ * help tests create data patterns that are technically possible, but difficult
+ * to create through simpler means. It uses adversarial flushing, intentionally
+ * holding back unflushed writes, to test the limits of the flush guarantees of
+ * other storage targets.
  *
- * 1 - No cache, device stops suddenly.
- *
- *     There is no cache.  At a point chosen by the test, we suddenly start
- *     failing all writes with an EIO.
- *
- * 2 - There is a cache of 4K blocks.  The device obeys proper REQ_FLUSH and
- *     REQ_FUA semantics.  At a point chosen by the test, we suddenly start
- *     failing all writes with an EIO, and forget to write the contents of the
- *     write cache.
- *
- *     The cache is not managed to improve performance or reliability, but
- *     merely provides data that we forget to write.
- *
- *     The cache size can be large or small, which determines the size of the
- *     disruption caused by the device failure.
- *
- * 3 - There is a cache of 512 byte blocks (sectors).  The device obeys proper
- *     REQ_FLUSH and REQ_FUA semantics.  At a point chosen by the test, we
- *     suddenly start failing all writes with an EIO, and forget to write the
- *     contents of the write cache.
- *
- *     We do not cache every sector, but select which sectors to cache so as to
- *     produce torn writes when we stop the device.  We use a modulus and mask
- *     to decide with sectors to cache.  Specifically, we cache a sector when
- *     this expression evaluates to a true value:
- *
- *          mask & (1 << (sector_number % modulus))
- *
- *     Using modulus of 8 with a mask with only 1 bit set will cache only 1
- *     sector of a 4K block and will cause the lossy device to fail to write
- *     that sector.  Using modulus of 8 with a mask with only 1 bit clear will
- *     cache all but 1 sector of a 4K block, and will cause the lossy device to
- *     write only 1 sector of the block.
- *
- *     A more interesting effect happens with a modulus of 9.  Similar mask
- *     settings will result in the sector that is/isn't written to change to a
- *     different offset in each 4K block.
+ * In normal mode, dm-lossy acts as a passthrough to the device under it. At
+ * any time, a message can be used to stop dm-lossy and prevent any future
+ * writes, as well as "forgetting" any previously acknowledged writes which
+ * were not flushed. In addition, once dm-lossy is suspended in either mode,
+ * it will no longer return errors for rejected writes, allowing any targets
+ * above it to be suspended and removed without any extra error handling.
  */
 
 #include <linux/blk_types.h>
