@@ -220,7 +220,7 @@ int vio_reset_bio_with_size(struct vio *vio, char *data, int size, bio_end_io_t 
 #ifndef VDO_UPSTREAM
 #undef VDO_USE_ALTERNATE
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE <= RHEL_RELEASE_VERSION(10, 9))
+#if (RHEL_RELEASE_CODE <= RHEL_RELEASE_VERSION(10, 2))
 #define VDO_USE_ALTERNATE
 #endif
 #else
