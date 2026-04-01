@@ -555,11 +555,7 @@ static void processDelayed(struct work_struct *work)
       atomic64_inc(&dd->errorBios);
     } else {
       // Still succeeding, so forward the flush to the storage medium.
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
       submit_bio_noacct(bio);
-#else
-      dm_submit_bio_remap(bio, NULL);
-#endif
       atomic64_inc(&dd->submittedBios);
     }
   }
@@ -714,10 +710,14 @@ static void flushCacheBlock(CacheBlock *cb)
   cb->blockBio->bi_private = cb;
   setBioBlockDevice(cb->blockBio, dd->dev->bdev);
   setBioSector(cb->blockBio, cb->blockNumber << dd->blockShift);
+  cb->blockBio->bi_io_vec = bio_inline_vecs(cb->blockBio);
+  cb->blockBio->bi_max_vecs = 1;
+  
   int bytes_added =
     bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), dd->blockSize,
-                 (unsigned long) cb->blockData % PAGE_SIZE);
+                 offset_in_page(cb->blockData));
   if (bytes_added != dd->blockSize) {
+    /* This should never fail, and there's nowhere to report an error. */
     printk(KERN_WARNING "problem adding block data to bio");
   }
   if (dd->stopFlag) {
@@ -725,11 +725,7 @@ static void flushCacheBlock(CacheBlock *cb)
     atomic64_inc(&dd->flushFailure);
     endio(cb->blockBio, dd->ioError);
   } else {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
     submit_bio_noacct(cb->blockBio);
-#else
-    dm_submit_bio_remap(cb->blockBio, NULL);
-#endif
   }
 
   // Grab the cache block lock, as we are expected to hold it when we return.
@@ -983,11 +979,7 @@ static void processBioList(DoryDevice *dd, struct bio_list *ready)
   struct bio *bio;
   while ((bio = bio_list_pop(ready)) != NULL) {
     if (processBio(dd, bio, ready) == DM_MAPIO_REMAPPED) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
       submit_bio_noacct(bio);
-#else
-      dm_submit_bio_remap(bio, NULL);
-#endif
       atomic64_inc(&dd->submittedBios);
     }
   }

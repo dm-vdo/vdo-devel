@@ -189,7 +189,17 @@ sub set_up {
 ##
 sub createTestDevice {
   my ($self, $deviceType, %extra) = assertMinArgs(2, @_);
-  return $self->getStorageStack()->create($deviceType, { %extra });
+  my %deviceOptions = ();
+
+  # This option allows tests to specify options for specific device
+  # classes on the command line, allowing easy configuration of
+  # test devices other than vdo.
+  if (defined($self->{"${deviceType}Options"})) {
+    %deviceOptions = ( %{$self->{"${deviceType}Options"}});
+  }
+
+  my $deviceArgs = { %deviceOptions, %extra };
+  return $self->getStorageStack()->create($deviceType, $deviceArgs);
 }
 
 ########################################################################
