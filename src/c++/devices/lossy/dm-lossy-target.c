@@ -28,7 +28,7 @@
 #include "dm-lossy-target.h"
 #endif /* VDO_UPSTREAM */
 
-#define MAX_CACHE_BLOCKS 0xFFEC
+#define MAX_CACHE_BLOCKS 236
 #define MAX_MASK_LENGTH 64
 #define LOSSY_NAME_SIZE 12
 #define DM_MSG_PREFIX "lossy"
