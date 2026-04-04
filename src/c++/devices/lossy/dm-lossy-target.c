@@ -33,45 +33,17 @@
 #define LOSSY_NAME_SIZE 12
 #define DM_MSG_PREFIX "lossy"
 
-/*
- * Cache block states.  Note that all state changes are protected by a spin
- * lock.  The states are:
- *
- *   EMPTY    The cache block is not used and is available.
- *
- *   COPYING  There is an active bio doing a read or write to the cache block.
- *
- *   DIRTY    The cache block is in use, but there is no active I/O on it.
- *
- *   WRITING  The cache block is being written to storage.
- *
- * This driver intends to be correct until it is told to stop doing any writing
- * to storage.  It sometimes prefers to be simple rather than fast.  These are
- * the state transitions that it performs:
- *
- *   EMPTY => COPYING => DIRTY
- *
- *     This transition takes a cache block from unused to used.  We only do
- *     this for an ordinary write of a full block.  This means the "copying"
- *     copies a full block from the I/O request into the cache, and ensures
- *     that there are no partial blocks in the cache.
- *
- *   DIRTY => COPYING => DIRTY
- *
- *     This transition services an I/O request using the cache block.
- *
- *   DIRTY => WRITING => EMPTY
- *
- *     This transition writes the cache block to storage.  It can occur
- *     when an empty REQ_FLUSH request is being processed, or when a write
- *     request to this block is either an REQ_DISCARD or REQ_FUA request.
- *     When the write completes, the cache block returns to EMPTY state.
- *     We do not try to maintain any "clean" blocks in the cache.
- */
 enum __attribute__((__packed__)) block_state {
+  /* This cache block has no data yet */
   EMPTY,
-  COPYING,
+  /* This cache block has data and is not changing */
   DIRTY,
+  /*
+   * Some I/O is currently using the cache block contents. This can
+   * be an incoming write storing data in this cache block, or else
+   * the block contents are being written to the underlying storage.
+   * Incoming I/O must wait for the current operation to completee.
+   */
   WRITING,
 };
 
@@ -333,7 +305,7 @@ static void process_cached_bio(struct cache_block *cb,
   char *data;
 
   /* Copy the new data into the cache block */
-  cb->state = COPYING;
+  cb->state = WRITING;
   spin_unlock_irq(&cb->lock);
 
   block_number = bio->bi_iter.bi_sector >> ld->block_shift;
@@ -404,7 +376,7 @@ static int process_bio_locked(struct cache_block *cb,
     return DM_MAPIO_REMAPPED;
   };
 
-  if (cb->state != DIRTY) {
+  if (cb->state == WRITING) {
     bio_list_add(&cb->pending_bios, bio);
     return DM_MAPIO_SUBMITTED;
   } else if (!(bio->bi_opf & REQ_FUA) && (bio_op(bio) != REQ_OP_DISCARD)) {
@@ -816,9 +788,6 @@ static int lossy_message(struct dm_target *ti, unsigned int argc, char **argv,
 			switch (block_state) {
 			case EMPTY:
 				continue;
-			case COPYING:
-				state = "COPYING";
-				break;
 			case DIRTY:
 				state = "DIRTY";
 				break;
