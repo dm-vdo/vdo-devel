@@ -712,7 +712,7 @@ static void flushCacheBlock(CacheBlock *cb)
   setBioSector(cb->blockBio, cb->blockNumber << dd->blockShift);
   cb->blockBio->bi_io_vec = bio_inline_vecs(cb->blockBio);
   cb->blockBio->bi_max_vecs = 1;
-  
+
   int bytes_added =
     bio_add_page(cb->blockBio, vmalloc_to_page(cb->blockData), dd->blockSize,
                  offset_in_page(cb->blockData));
@@ -1093,10 +1093,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   ti->flush_supported = 1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
-  ti->accounts_remapped_io = 1;
-#endif
-  BUG_ON(dm_set_target_max_io_len(ti, blockSize >> 9) != 0); 
+  BUG_ON(dm_set_target_max_io_len(ti, blockSize >> 9) != 0);
   ti->num_flush_bios = 1;
   ti->private = dd;
   return 0;
