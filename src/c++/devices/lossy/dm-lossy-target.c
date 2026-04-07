@@ -368,26 +368,31 @@ static int process_bio_locked(struct cache_block *cb,
     cb->block_number = block_number;
     process_cached_bio(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (cb->block_number != block_number) {
+  }
+
+  if (cb->block_number != block_number)
     return DM_MAPIO_REMAPPED;
-  };
 
   if (cb->state == WRITING) {
     bio_list_add(&cb->pending_bios, bio);
     return DM_MAPIO_SUBMITTED;
-  } else if (!(bio->bi_opf & REQ_FUA) && (bio_op(bio) != REQ_OP_DISCARD)) {
+  }
+
+  if (!(bio->bi_opf & REQ_FUA) && (bio_op(bio) != REQ_OP_DISCARD)) {
     process_cached_bio(cb, bio, ready);
     return DM_MAPIO_SUBMITTED;
-  } else if (bio->bi_iter.bi_size == ld->block_size) {
+  }
+
+  if (bio->bi_iter.bi_size == ld->block_size) {
     cb->state = EMPTY;
     /* This decrement can never drop the busy count to zero */
     atomic_dec(&ld->busy_count);
     return DM_MAPIO_REMAPPED;
-  } else {
-    bio_list_add(&cb->pending_bios, bio);
-    flush_cache_block(cb);
-    return DM_MAPIO_SUBMITTED;
   }
+
+  bio_list_add(&cb->pending_bios, bio);
+  flush_cache_block(cb);
+  return DM_MAPIO_SUBMITTED;
 }
 
 /**
