@@ -486,9 +486,11 @@ static void process_ready_bios(struct lossy_device *ld, struct bio_list *ready)
   }
 }
 
-static void free_cache_blocks(struct lossy_device *ld)
+static void free_lossy_device(struct lossy_device *ld)
 {
+  bioset_exit(&ld->bio_set);
   vfree(ld->cache_data);
+  kfree(ld);
 }
 
 static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
@@ -568,8 +570,7 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
   result = bioset_init(&ld->bio_set, min(cache_block_count, 8),
                        0, BIOSET_NEED_BVECS);
   if (result) {
-    free_cache_blocks(ld);
-    kfree(ld);
+    free_lossy_device(ld);
     ti->error = "Cannot initialize bio set";
     return result;
   }
@@ -602,9 +603,7 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
   if (dm_get_device(ti, device_path, dm_table_get_mode(ti->table), &ld->dev)) {
     ti->error = "Device lookup failed";
-    bioset_exit(&ld->bio_set);
-    free_cache_blocks(ld);
-    kfree(ld);
+    free_lossy_device(ld);
     return -EINVAL;
   }
 
@@ -612,9 +611,7 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
   if (dm_set_target_max_io_len(ti, block_size >> SECTOR_SHIFT) != 0) {
     ti->error = "Set max io failed";
     dm_put_device(ti, ld->dev);
-    bioset_exit(&ld->bio_set);
-    free_cache_blocks(ld);
-    kfree(ld);
+    free_lossy_device(ld);
     return -EINVAL;
   }
 
@@ -628,8 +625,7 @@ static void lossy_dtr(struct dm_target *ti)
   struct lossy_device *ld = ti->private;
 
   dm_put_device(ti, ld->dev);
-  bioset_exit(&ld->bio_set);
-  free_cache_blocks(ld);
+  free_lossy_device(ld);
 }
 
 static int lossy_prepare_ioctl(struct dm_target     *ti,
