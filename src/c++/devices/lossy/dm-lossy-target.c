@@ -271,11 +271,7 @@ static void flush_cache_block(struct cache_block *cb)
   bytes_added =
     bio_add_page(cb->bio, vmalloc_to_page(cb->data), ld->block_size,
                  offset_in_page(cb->data));
-  if (bytes_added != ld->block_size) {
-    /* This should never fail, and there's nowhere to report an error. */
-    DMWARN("problem adding block data to bio");
-  }
-  if (ld->stopped) {
+  if (ld->stopped || (bytes_added != ld->block_size)) {
     atomic64_inc(&ld->flush_failures);
     cb->bio->bi_status = ld->error_status;
     bio_endio(cb->bio);
