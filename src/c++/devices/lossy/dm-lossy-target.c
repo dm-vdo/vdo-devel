@@ -58,8 +58,6 @@ struct cache_block {
   struct lossy_device     *device;
   /* A pointer to the data for this block */
   char                    *data;
-  /* A pointer to the bio reserved for writing this block */
-  struct bio              *bio;
   /* The block number of the data in this cache block */
   sector_t                 block_number;
   /* The state of this cache block */
@@ -75,6 +73,8 @@ struct lossy_device {
   bool            stopped;
   /* The name of the device */
   char            name[LOSSY_NAME_SIZE + 1];
+  /* A bioset for allocating cache bios */
+  struct bio_set  bio_set;
   /* A pointer to the data array for cache blocks */
   char           *cache_data;
   /* The block size (must be 512 or 4096) */
@@ -237,6 +237,7 @@ static void end_flush_cache_block(struct bio *bio)
     DMWARN("error flushing at sector %llu: %d\n",
            (unsigned long long) (cb->block_number << ld->block_shift), result);
 
+  bio_put(bio);
   bio_list_init(&ready);
 
   spin_lock_irqsave(&cb->lock, flags);
@@ -255,28 +256,27 @@ static void end_flush_cache_block(struct bio *bio)
 static void flush_cache_block(struct cache_block *cb)
 {
   struct lossy_device *ld = cb->device;
+  struct bio *bio;
   int bytes_added;
 
   cb->state = WRITING;
   spin_unlock_irq(&cb->lock);
 
-  bio_reset(cb->bio, ld->dev->bdev, REQ_OP_WRITE);
-  cb->bio->bi_end_io  = end_flush_cache_block;
-  cb->bio->bi_private = cb;
-  bio_set_dev(cb->bio, ld->dev->bdev);
-  cb->bio->bi_iter.bi_sector = (cb->block_number << ld->block_shift);
-  cb->bio->bi_io_vec = bio_inline_vecs(cb->bio);
-  cb->bio->bi_max_vecs = 1;
+  bio = bio_alloc_bioset(ld->dev->bdev, 1, REQ_OP_WRITE,
+                         GFP_KERNEL, &ld->bio_set);
+  bio->bi_end_io = end_flush_cache_block;
+  bio->bi_private = cb;
+  bio->bi_iter.bi_sector = (cb->block_number << ld->block_shift);
 
   bytes_added =
-    bio_add_page(cb->bio, vmalloc_to_page(cb->data), ld->block_size,
+    bio_add_page(bio, vmalloc_to_page(cb->data), ld->block_size,
                  offset_in_page(cb->data));
   if (ld->stopped || (bytes_added != ld->block_size)) {
     atomic64_inc(&ld->flush_failures);
-    cb->bio->bi_status = ld->error_status;
-    bio_endio(cb->bio);
+    bio->bi_status = ld->error_status;
+    bio_endio(bio);
   } else {
-    submit_bio_noacct(cb->bio);
+    submit_bio_noacct(bio);
   }
 
   /* The caller expects to still hold the cache block lock */
@@ -488,18 +488,7 @@ static void process_ready_bios(struct lossy_device *ld, struct bio_list *ready)
 
 static void free_cache_blocks(struct lossy_device *ld)
 {
-  u16 i;
-
   vfree(ld->cache_data);
-
-  for (i = 0; i < ld->cache_block_count; i++) {
-    struct cache_block *cb = &ld->cache_blocks[i];
-
-    if (cb->bio != NULL) {
-      bio_uninit(cb->bio);
-      kfree(cb->bio);
-    }
-  }
 }
 
 static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
@@ -575,6 +564,16 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
       return -ENOMEM;
     }
   }
+
+  result = bioset_init(&ld->bio_set, min(cache_block_count, 8),
+                       0, BIOSET_NEED_BVECS);
+  if (result) {
+    free_cache_blocks(ld);
+    kfree(ld);
+    ti->error = "Cannot initialize bio set";
+    return result;
+  }
+
   ld->block_shift       = block_size == 4096 ? 3 : 0;
   ld->block_size        = block_size;
   ld->cache_data        = cache_data;
@@ -595,21 +594,15 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
     bio_list_init(&cb->pending_bios);
     spin_lock_init(&cb->lock);
-    cb->bio = bio_kmalloc(1, GFP_KERNEL);
     cb->data = cache_data;
     cb->device = ld;
     cb->state = EMPTY;
     cache_data += block_size;
-    if (cb->bio == NULL) {
-      free_cache_blocks(ld);
-      kfree(ld);
-      ti->error = "Cannot allocate cache bio";
-      return -ENOMEM;
-    }
   }
 
   if (dm_get_device(ti, device_path, dm_table_get_mode(ti->table), &ld->dev)) {
     ti->error = "Device lookup failed";
+    bioset_exit(&ld->bio_set);
     free_cache_blocks(ld);
     kfree(ld);
     return -EINVAL;
@@ -619,6 +612,7 @@ static int lossy_ctr(struct dm_target *ti, unsigned int argc, char **argv)
   if (dm_set_target_max_io_len(ti, block_size >> SECTOR_SHIFT) != 0) {
     ti->error = "Set max io failed";
     dm_put_device(ti, ld->dev);
+    bioset_exit(&ld->bio_set);
     free_cache_blocks(ld);
     kfree(ld);
     return -EINVAL;
@@ -634,6 +628,7 @@ static void lossy_dtr(struct dm_target *ti)
   struct lossy_device *ld = ti->private;
 
   dm_put_device(ti, ld->dev);
+  bioset_exit(&ld->bio_set);
   free_cache_blocks(ld);
 }
 
