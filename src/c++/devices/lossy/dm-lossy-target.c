@@ -300,7 +300,7 @@ static void process_cached_bio(struct cache_block *cb,
   struct lossy_device *ld = cb->device;
   struct bio_vec bv;
   struct bvec_iter iter;
-  sector_t block_number;
+  u16 offset_mask;
   size_t offset;
   char *data;
 
@@ -308,8 +308,8 @@ static void process_cached_bio(struct cache_block *cb,
   cb->state = WRITING;
   spin_unlock_irq(&cb->lock);
 
-  block_number = bio->bi_iter.bi_sector >> ld->block_shift;
-  offset = (bio->bi_iter.bi_sector - (block_number << ld->block_shift)) << SECTOR_SHIFT;
+  offset_mask = (1 << ld->block_shift) - 1;
+  offset = (bio->bi_iter.bi_sector & offset_mask) << SECTOR_SHIFT;
   data = cb->data + offset;
 
   for (iter = bio->bi_iter; iter.bi_size > 0;
