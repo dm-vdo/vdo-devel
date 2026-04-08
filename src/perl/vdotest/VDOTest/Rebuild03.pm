@@ -26,7 +26,7 @@ our %PROPERTIES
      compressibleChunkSize => 6 * $KB,
      # @ple Make each chunk mostly compressible
      compressibility       => 55,
-     # @ple Use a fast Dory rebuild, even though Xfs sometimes fails. Never
+     # @ple Use a fast Lossy rebuild, even though Xfs sometimes fails. Never
      #      use a real reboot with a stripfua device; it doesn't survive.
      deviceType            => "lvmvdo-lossy",
      # @ple Enable compression by VDO

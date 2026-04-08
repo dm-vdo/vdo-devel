@@ -17,7 +17,7 @@ use Log::Log4perl;
 use Permabit::Assertions qw(assertNumArgs);
 use Permabit::VDOTask::SliceOperation;
 
-use base qw(VDOTest::DoryBase);
+use base qw(VDOTest::LossyBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -49,7 +49,7 @@ sub testAudit {
 }
 
 ########################################################################
-# Trim data from a VDO device, interrupting the trim by stopping the Dory
+# Trim data from a VDO device, interrupting the trim by stopping the Lossy
 # device.  Then recover and audit the VDO device.
 #
 # @croaks if the VDO recovery fails or the vdoAudit finds a problem.
@@ -65,7 +65,7 @@ sub _trimInterruptRecoverAndAudit {
   my $task = Permabit::VDOTask::SliceOperation->new($slice, "trimEIO");
   $self->getAsyncTasks()->addTask($task);
   $task->start();
-  $self->stopDoryDelayed(5);
+  $self->stopLossyDelayed(5);
   $task->result();
 
   # Try to recover

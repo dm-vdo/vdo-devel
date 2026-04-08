@@ -1,16 +1,16 @@
 ##
 # Test VDO rebuild behavior when the device dies unexpectedly.
 #
-# This test uses the "dory" device to suddenly stop the storage device from
+# This test uses the "lossy" device to suddenly stop the storage device from
 # doing writes.  It expects the rebuild to succeed, and for a vdoAudit to
 # succeed.  There are two reasonable cases to run:
 #
-#   DoryRebuild02::testNoCache*   - no data cache
-#   DoryRebuild02::testMiniCache* - small data cache
+#   LossyRebuild02::testNoCache*   - no data cache
+#   LossyRebuild02::testMiniCache* - small data cache
 #
 # $Id$
 ##
-package VDOTest::DoryRebuild02;
+package VDOTest::LossyRebuild02;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -18,7 +18,7 @@ use English qw(-no_match_vars);
 use Log::Log4perl;
 use Permabit::Assertions qw(assertNumArgs);
 
-use base qw(VDOTest::DoryBase);
+use base qw(VDOTest::LossyBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 

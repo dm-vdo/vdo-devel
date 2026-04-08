@@ -685,7 +685,7 @@ sub createVolumeGroup {
 ########################################################################
 # Get a Lossy device that exists in the device hierarchy.
 ##
-sub getDoryDevice {
+sub getLossyDevice {
   my ($self) = assertNumArgs(1, @_);
   return $self->getDevice('Permabit::BlockDevice::TestDevice::Lossy');
 }

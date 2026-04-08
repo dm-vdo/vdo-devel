@@ -21,7 +21,7 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES
   = (
-     # @ple Using dory give the test more control of the VDO device state.
+     # @ple Using lossy give the test more control of the VDO device state.
      deviceType    => "lvmvdo-lossy",
      # @ple A filesystem would be unnecessary complication here.
      useFilesystem => 0,
@@ -36,9 +36,9 @@ our %PROPERTIES
 ##
 sub makeRecoveringVDO {
   my ($self) = assertNumArgs(1, @_);
-  my $vdoDevice  = $self->getDevice();
-  my $doryDevice = $self->getDoryDevice();
-  my $machine    = $vdoDevice->getMachine();
+  my $vdoDevice   = $self->getDevice();
+  my $lossyDevice = $self->getLossyDevice();
+  my $machine     = $vdoDevice->getMachine();
 
   # Add some data so that the VDO device is not empty.
   my $dataPath = $self->generateDataFile($MB, "source");
@@ -60,15 +60,15 @@ sub makeRecoveringVDO {
   $vdoDevice->{expectIndexer} = 0;
 
   my $doStop = sub {
-    $doryDevice->stopWriting();
+    $lossyDevice->stopWriting();
     $log->info("Stop VDO");
     $vdoDevice->stop();
     $vdoDevice->dumpMetadata("before");
   };
   $machine->withKernelLogErrorCheckDisabled($doStop, "readonly");
 
-  $log->info("Restart Dory");
-  $doryDevice->restart();
+  $log->info("Restart Lossy");
+  $lossyDevice->restart();
 
   # Fill the index with chunk names so UDS rebuild takes some time.
   $vdoDevice->fillIndex(1);

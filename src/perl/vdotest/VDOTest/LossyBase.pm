@@ -1,23 +1,23 @@
 ##
-# Base class for tests that use the Dory device.
+# Base class for tests that use the Lossy device.
 #
-# The Dory device supports a stopWriting() method that causes future write
-# requests to fail.  There is little sense to using a Dory device unless this
+# The Lossy device supports a stopWriting() method that causes future write
+# requests to fail.  There is little sense to using a Lossy device unless this
 # stopWriting() method is called.
 #
 # This base class provide these services:
 #
-# -- The setup code that sets up a VDO device on top of a Dory device.
+# -- The setup code that sets up a VDO device on top of a Lossy device.
 #
 # -- A recoverAndAuditVDO method that will recover VDO and audit the VDO after
-#    a Dory device has been stopped.
+#    a Lossy device has been stopped.
 #
-# -- A stopDoryDelayed method that will use an AsyncSub to stop the Dory device
+# -- A stopLossyDelayed method that will use an AsyncSub to stop the Lossy device
 #    after a time delay.
 #
 # $Id$
 ##
-package VDOTest::DoryBase;
+package VDOTest::LossyBase;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -50,15 +50,15 @@ our %PROPERTIES
 ##
 
 ########################################################################
-# Recover from stopping a dory device.  Shut down the VDO device and the dory
-# device.  Then restart the dory device and the VDO device.
+# Recover from stopping a lossy device.  Shut down the VDO device and the lossy
+# device.  Then restart the lossy device and the VDO device.
 #
 # @croaks if the VDO recovery fails
 ##
 sub recoverVDO {
   my ($self) = assertNumArgs(1, @_);
-  my $doryDevice = $self->getDoryDevice();
-  my $vdoDevice  = $self->getDevice();
+  my $lossyDevice = $self->getLossyDevice();
+  my $vdoDevice   = $self->getDevice();
 
   my $fs;
   if ($self->{useFilesystem}) {
@@ -70,10 +70,10 @@ sub recoverVDO {
   $log->info("Stop VDO");
   $vdoDevice->stop();
   $vdoDevice->dumpMetadata("before");
-  $log->info("Stop DORY");
-  $doryDevice->stop();
-  $log->info("Start DORY");
-  $doryDevice->start();
+  $log->info("Stop LOSSY");
+  $lossyDevice->stop();
+  $log->info("Start LOSSY");
+  $lossyDevice->start();
 
   eval {
     $log->info("Recover VDO");
@@ -90,8 +90,8 @@ sub recoverVDO {
 }
 
 ########################################################################
-# Recover from stopping a dory device.  Shut down the VDO device and the dory
-# device.  Then restart the dory device and the VDO device.  Finally shutdown
+# Recover from stopping a lossy device.  Shut down the VDO device and the lossy
+# device.  Then restart the lossy device and the VDO device.  Finally shutdown
 # and audit the VDO device.
 #
 # @croaks if the VDO recovery fails or the vdoAudit finds a problem.
@@ -125,18 +125,18 @@ sub recoverAndAuditVDO {
 }
 
 ########################################################################
-# Stop the Dory device after a time delay
+# Stop the Lossy device after a time delay
 #
 # @param delay  Time delay in seconds
 ##
-sub stopDoryDelayed {
+sub stopLossyDelayed {
   my ($self, $delay) = assertNumArgs(2, @_);
   reallySleep($delay);
-  $self->getDoryDevice()->stopWriting();
+  $self->getLossyDevice()->stopWriting();
 }
 
 ########################################################################
-# Write data to VDO, interrupting the write by stopping the Dory device.  Then
+# Write data to VDO, interrupting the write by stopping the Lossy device.  Then
 # recover and audit the VDO device.
 #
 # @param writeEIOArgs  A hashref to the arguments for writing a slice using
@@ -168,7 +168,7 @@ sub writeInterruptRecoverAndAudit {
   }
   $self->getAsyncTasks()->addTask($task);
   $task->start();
-  $self->stopDoryDelayed(30);
+  $self->stopLossyDelayed(30);
   $task->result();
 
   # Try to recover
@@ -183,8 +183,8 @@ sub writeInterruptRecoverAndAudit {
 sub _recoveryFailure {
   my ($self, $label) = assertNumArgs(2, @_);
   my $host    = $self->getDevice()->getMachine()->getName();
-  $self->manualWaitPoint("doryFailure",
-                         "Dory test failed on host $host"
+  $self->manualWaitPoint("lossyFailure",
+                         "Lossy test failed on host $host"
                          . " with failed $label");
   $log->info(ucfirst($label) . " failed, so dump the metadata");
   $self->getDevice()->dumpMetadata("after");

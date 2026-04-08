@@ -1,16 +1,16 @@
 ##
 # Test VDO rebuild behavior when the device dies unexpectedly.
 #
-# This test uses the "dory" device to suddenly stop the storage device from
+# This test uses the "lossy" device to suddenly stop the storage device from
 # doing writes.  It expects the rebuild to succeed, and for a vdoAudit to
 # succeed.  There are two reasonable cases to run:
 #
-#   DoryRebuild03::testNoCache*   - no data cache
-#   DoryRebuild03::testMiniCache* - small data cache
+#   LossyRebuild03::testNoCache*   - no data cache
+#   LossyRebuild03::testMiniCache* - small data cache
 #
 # $Id$
 ##
-package VDOTest::DoryRebuild03;
+package VDOTest::LossyRebuild03;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -21,7 +21,7 @@ use Permabit::Constants;
 use Permabit::Utils qw(getRandomElement getRandomElements);
 use Permabit::VDOTask::SliceOperation;
 
-use base qw(VDOTest::DoryBase);
+use base qw(VDOTest::LossyBase);
 
 my $DURATION = $HOUR;
 
@@ -66,7 +66,7 @@ sub _testLoop {
                                                %{getRandomElement($dataArgs)});
       $self->getAsyncTasks()->addTask($task);
       $task->start();
-      $self->stopDoryDelayed(30);
+      $self->stopLossyDelayed(30);
       $task->result();
       # Try to recover
       $self->recoverAndAuditVDO();

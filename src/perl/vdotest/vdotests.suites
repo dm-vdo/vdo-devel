@@ -57,10 +57,10 @@ $suiteNames{genData}
 # VDO functional tests of dirty shutdown and rebuild that can run anywhere.
 $suiteNames{rebuild}
   = [
-     "DoryRebuild01",
-     "DoryRebuild02",
-     "DoryRebuild03",
-     "DoryRebuildFast",
+     "LossyRebuild01",
+     "LossyRebuild02",
+     "LossyRebuild03",
+     "LossyRebuildFast",
      "Rebuild01",
      "Rebuild02",
      "Rebuild03",
@@ -117,7 +117,7 @@ $suiteNames{kernelformat}
        "Compress01",
        "Direct04",
      )),
-     "DoryRebuildFast",
+     "LossyRebuildFast",
     ];
 
 ###########################################################################
@@ -242,13 +242,13 @@ $suiteNames{weeklyVDOUpgradeTests}
 
 ###########################################################################
 # Tests that should be run before any commit. Not alphebetized so that
-# the longest tests (DoryRebuildFast and Direct06) start first.
+# the longest tests (LossyRebuildFast and Direct06) start first.
 ##
 $suiteNames{checkin}
   = [
      @{$suiteNames{basic}},
      "Direct06",
-     "DoryRebuildFast",
+     "LossyRebuildFast",
      "AuditTool",
      "Compress01",
      "Direct04",
@@ -893,7 +893,7 @@ $suiteNames{beakerExcludedTests}
      "Create02",            # This mostly just tests VDOTest infrastructure
      "DefaultLogicalSize",  # May fail until lvm is consistent about rounding
                             # [VDO-5457].
-     "DoryBase",            # Base class
+     "LossyBase",           # Base class
      "FullBase",            # Base class
      "GrowFailure01",       # Manual test
      "Manual01",            # Manual test
