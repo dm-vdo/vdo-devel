@@ -7,9 +7,6 @@
 
 #include <linux/min_heap.h>
 #include <linux/minmax.h>
-#ifndef VDO_UPSTREAM
-#include <linux/version.h>
-#endif /* VDO_UPSTREAM */
 
 #include "logger.h"
 #include "memory-alloc.h"
@@ -54,21 +51,8 @@ struct recovery_point {
 	bool increment_applied;
 };
 
-#ifndef VDO_UPSTREAM
-#undef VDO_USE_ALTERNATE
-#if defined(RHEL_RELEASE_CODE) && defined(RHEL_MINOR) && (RHEL_MINOR < 50)
-#if (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#else /* !RHEL_RELEASE_CODE */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0))
-#define VDO_USE_ALTERNATE
-#endif
-#endif /* !RHEL_RELEASE_CODE */
-#endif /* !VDO_UPSTREAM */
-#ifndef VDO_USE_ALTERNATE
 DEFINE_MIN_HEAP(struct numbered_block_mapping, replay_heap);
-#endif
+
 struct repair_completion {
 	/* The completion header */
 	struct vdo_completion completion;
@@ -115,11 +99,7 @@ struct repair_completion {
 	 * order, then original journal order. This permits efficient iteration over the journal
 	 * entries in order.
 	 */
-#ifdef VDO_USE_ALTERNATE
-	struct min_heap replay_heap;
-#else
 	struct replay_heap replay_heap;
-#endif
 	/* Fields tracking progress through the journal entries. */
 	struct numbered_block_mapping *current_entry;
 	struct numbered_block_mapping *current_unfetched_entry;
@@ -157,11 +137,7 @@ struct repair_completion {
  * to sort by slot while still ensuring we replay all entries with the same slot in the exact order
  * as they appeared in the journal.
  */
-#ifdef VDO_USE_ALTERNATE
-static bool mapping_is_less_than(const void *item1, const void *item2)
-#else
 static bool mapping_is_less_than(const void *item1, const void *item2, void __always_unused *args)
-#endif
 {
 	const struct numbered_block_mapping *mapping1 =
 		(const struct numbered_block_mapping *) item1;
@@ -180,11 +156,7 @@ static bool mapping_is_less_than(const void *item1, const void *item2, void __al
 	return 0;
 }
 
-#ifdef VDO_USE_ALTERNATE
-static void swap_mappings(void *item1, void *item2)
-#else
 static void swap_mappings(void *item1, void *item2, void __always_unused *args)
-#endif
 {
 	struct numbered_block_mapping *mapping1 = item1;
 	struct numbered_block_mapping *mapping2 = item2;
@@ -193,20 +165,13 @@ static void swap_mappings(void *item1, void *item2, void __always_unused *args)
 }
 
 static const struct min_heap_callbacks repair_min_heap = {
-#ifdef VDO_USE_ALTERNATE
-	.elem_size = sizeof(struct numbered_block_mapping),
-#endif
 	.less = mapping_is_less_than,
 	.swp = swap_mappings,
 };
 
 static struct numbered_block_mapping *sort_next_heap_element(struct repair_completion *repair)
 {
-#ifdef VDO_USE_ALTERNATE
-	struct min_heap *heap = &repair->replay_heap;
-#else
 	struct replay_heap *heap = &repair->replay_heap;
-#endif
 	struct numbered_block_mapping *last;
 
 	if (heap->nr == 0)
@@ -217,13 +182,8 @@ static struct numbered_block_mapping *sort_next_heap_element(struct repair_compl
 	 * restore the heap invariant, and return a pointer to the popped element.
 	 */
 	last = &repair->entries[--heap->nr];
-#ifdef VDO_USE_ALTERNATE
-	swap_mappings(heap->data, last);
-	min_heapify(heap, 0, &repair_min_heap);
-#else
 	swap_mappings(heap->data, last, NULL);
 	min_heap_sift_down(heap, 0, &repair_min_heap, NULL);
-#endif
 	return last;
 }
 
@@ -1160,20 +1120,12 @@ STATIC void recover_block_map(struct vdo_completion *completion)
 	 * Organize the journal entries into a binary heap so we can iterate over them in sorted
 	 * order incrementally, avoiding an expensive sort call.
 	 */
-#ifdef VDO_USE_ALTERNATE
-	repair->replay_heap = (struct min_heap) {
-#else
 	repair->replay_heap = (struct replay_heap) {
-#endif
 		.data = repair->entries,
 		.nr = repair->block_map_entry_count,
 		.size = repair->block_map_entry_count,
 	};
-#ifdef VDO_USE_ALTERNATE
-	min_heapify_all(&repair->replay_heap, &repair_min_heap);
-#else
 	min_heapify_all(&repair->replay_heap, &repair_min_heap, NULL);
-#endif
 
 #ifdef INTERNAL
 	/* This message must be in sync with VDOTest::RebuildBase. */
