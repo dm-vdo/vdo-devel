@@ -15,6 +15,7 @@ typedef uint64_t sector_t;
 
 #define GFP_KERNEL 1
 #define GFP_NOWAIT 2
+#define GFP_NOIO   4
 
 #define pgoff_t unsigned long
 
