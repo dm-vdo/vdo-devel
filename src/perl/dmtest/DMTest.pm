@@ -122,7 +122,6 @@ my @UPSTREAM_NAMES
 my @SHARED_PYTHON_FILES
   = (
      "dmtest",
-     "src/scripts/make-config",
      );
 
 my @SHARED_FILES
@@ -170,11 +169,10 @@ sub set_up {
   my $machine = $stack->getUserMachine();
   my $storage = $self->getDevice()->getDevicePath();
   my $config = "$self->{dmtestDir}/config.toml";
-  $self->runOnHost($self->{dmtestDir} . "/src/scripts/make-config"
-                   . " --dataDevice=$storage"
-                   . " --metadataDevice=$storage"
-                   . " --disableDeviceCheck"
-                   . " --outputFile=$config");
+  my $configContent = "metadata_dev = '$storage'\n"
+                    . "data_dev = '$storage'\n"
+                    . "disable_by_id_check = true\n";
+  createRemoteFile($machine->getName(), $configContent, $config);
 
   $self->runOnHost("test -e $config");
 }
