@@ -76,7 +76,7 @@ our %PROPERTIES
      # @ple the regexp to choose for running tests
      dmtestName             => ".*",
      # @ple where to get dmtest-python from
-     dmtestRepo             => "https://github.com/dm-vdo/dmtest-python.git",
+     dmtestRepo             => "https://github.com/device-mapper-utils/dmtest-python.git",
      # @ple use one client machine
      numClients             => 1,
      # @ple Reference to the list of pre-reserved hosts passed in to the test.
