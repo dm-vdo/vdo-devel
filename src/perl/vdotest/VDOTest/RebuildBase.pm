@@ -39,9 +39,9 @@ our %PROPERTIES
   = (
      # @ple Whether to enable vdoAudit
      auditVDO        => 1,
-     # @ple Either 'lvmvdo' (to do a real reboot) or 'lvmvdo-dory'
-     #      to use a dory-simulated crash.
-     deviceType      => "lvmvdo-dory",
+     # @ple Either 'lvmvdo' (to do a real reboot) or 'lvmvdo-lossy'
+     #      to use a simulated crash.
+     deviceType      => "lvmvdo-lossy",
      # @ple If non-zero, randomly discard (trim) this fraction of blocks
      randomlyDiscard => 0,
      # @ple If non-zero, randomly zero this fraction of blocks
@@ -106,17 +106,17 @@ sub _assertRebuildLimits {
 }
 
 ########################################################################
-# Do a rebuild using Dory to simulate a crash, and return a log cursor#
+# Do a rebuild using Lossy to simulate a crash, and return a log cursor#
 # from the moment where VDO restarts.
 ##
-sub causeDoryRecovery {
+sub causeLossyRecovery {
   my ($self) = assertNumArgs(1, @_);
-  my $doryDevice = $self->getDoryDevice();
-  my $vdoDevice  = $self->getVDODevice();
-  my $machine    = $vdoDevice->getMachine();
+  my $lossyDevice = $self->getLossyDevice();
+  my $vdoDevice   = $self->getVDODevice();
+  my $machine     = $vdoDevice->getMachine();
 
   my $doStop = sub {
-    $doryDevice->stopWriting();
+    $lossyDevice->stopWriting();
 
     if ($self->{useFilesystem}) {
       $log->info("Stop Filesystem");
@@ -130,8 +130,8 @@ sub causeDoryRecovery {
   };
   $machine->withKernelLogErrorCheckDisabled($doStop, "readonly");
 
-  $log->info("Restart Dory");
-  $doryDevice->restart();
+  $log->info("Restart Lossy");
+  $lossyDevice->restart();
 
   my $prerecoveryCursor = $machine->getKernelJournalCursor();
   $log->info("Recover VDO");
@@ -149,8 +149,8 @@ sub causeRecovery {
   my ($self) = assertNumArgs(1, @_);
   my $device = $self->getVDODevice();
   my $machine = $device->getMachine();
-  if (defined($self->getDoryDevice())) {
-    return $self->causeDoryRecovery();
+  if (defined($self->getLossyDevice())) {
+    return $self->causeLossyRecovery();
   }
 
   my $rebootCursor = $machine->getKernelJournalCursor();

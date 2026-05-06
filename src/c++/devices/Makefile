@@ -10,8 +10,8 @@
 SRC_DIR = ../..
 include $(SRC_DIR)/c++/defines
 
-KERNEL_MODULES = pbitcorruptor-1.tgz pbitfua-1.tgz pbitdory-1.tgz \
-                  pbittracer-1.tgz
+KERNEL_MODULES = pbitcorruptor-1.tgz pbitlossy-1.tgz \
+                 pbitfua-1.tgz pbittracer-1.tgz
 
 .PHONY: all
 all: $(KERNEL_MODULES)
@@ -40,6 +40,15 @@ pbitcorruptor-1.tgz: $(addprefix corruptor/, \
 		--show-transformed-names 		\
 		$^
 
+pbitlossy-1.tgz: $(addprefix lossy/, \
+		   dkms.conf Makefile.dkms Makefile.common )	\
+		$(filter-out lossy/pbitlossy%, $(wildcard lossy/*.[ch]))
+	tar cvfz $@ \
+		--transform s,Makefile.dkms,Makefile,	\
+		--transform s,lossy/,pbitlossy-1/, 	\
+		--show-transformed-names 		\
+		$^
+
 pbitfua-1.tgz:	$(addprefix fua/, \
 	          dkms.conf Makefile.dkms Makefile.common)	\
 		$(filter-out fua/pbitfua%, $(wildcard fua/*.[ch])) \
@@ -48,17 +57,6 @@ pbitfua-1.tgz:	$(addprefix fua/, \
 		--transform s,Makefile.dkms,Makefile,		\
 		--transform s,fua/,pbitfua-1/, 	\
 		--transform s,^common,pbitfua-1/common,	\
-		--show-transformed-names 		\
-		$^
-
-pbitdory-1.tgz:	$(addprefix dory/, \
-	          dkms.conf Makefile.dkms Makefile.common )	\
-		$(filter-out dory/pbitdory%, $(wildcard dory/*.[ch])) \
-		$(wildcard common.[ch])
-	tar cvfz $@ \
-		--transform s,Makefile.dkms,Makefile,	\
-		--transform s,dory/,pbitdory-1/, 	\
-		--transform s,^common,pbitdory-1/common,	\
 		--show-transformed-names 		\
 		$^
 

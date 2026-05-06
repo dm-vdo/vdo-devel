@@ -1,9 +1,9 @@
 ##
 # Test VDO rebuild behavior when the device dies unexpectedly.
 #
-# This base class provides a test using the Dory device to suddenly stop
+# This base class provides a test using the Lossy device to suddenly stop
 # the storage device from doing writes.  It expects the rebuild to succeed,
-# and for a vdoAudit to succeed. The Dory device always uses a 512 byte
+# and for a vdoAudit to succeed. The Lossy device always uses a 512 byte
 # block size, and is always set up to tear a few 4K block writes.
 #
 # $Id$
@@ -17,7 +17,7 @@ use Log::Log4perl;
 use Permabit::Assertions qw(assertNumArgs);
 use Permabit::VDOTask::SliceOperation;
 
-use base qw(VDOTest::DoryBase);
+use base qw(VDOTest::LossyBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -25,11 +25,11 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 # @paramList{getProperties}
 our %PROPERTIES
   = (
-     # @ple Run Dory with small blocks so we can tear writes
-     doryOptions => {
-                     blockSize    => 512,
-                     cacheBlocks  => 11,
-                    },
+     # @ple Run Lossy with small blocks so we can tear writes
+     lossyOptions => {
+                      blockSize    => 512,
+                      cacheBlocks  => 11,
+                     },
     );
 ##
 
@@ -49,7 +49,7 @@ sub testAudit {
 }
 
 ########################################################################
-# Trim data from a VDO device, interrupting the trim by stopping the Dory
+# Trim data from a VDO device, interrupting the trim by stopping the Lossy
 # device.  Then recover and audit the VDO device.
 #
 # @croaks if the VDO recovery fails or the vdoAudit finds a problem.
@@ -65,7 +65,7 @@ sub _trimInterruptRecoverAndAudit {
   my $task = Permabit::VDOTask::SliceOperation->new($slice, "trimEIO");
   $self->getAsyncTasks()->addTask($task);
   $task->start();
-  $self->stopDoryDelayed(5);
+  $self->stopLossyDelayed(5);
   $task->result();
 
   # Try to recover
