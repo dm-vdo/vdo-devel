@@ -7,7 +7,6 @@
 # Our tests are OS-agnostic, and clientClass never contains an OS class. We
 # use these prefixes to select an OS to test on.
 ##
-$aliasPrefixes{Fedora42} = "--rsvpOSClass=FEDORA42";
 $aliasPrefixes{Fedora43} = "--rsvpOSClass=FEDORA43";
 $aliasPrefixes{RHEL8}    = "--rsvpOSClass=RHEL8";
 $aliasPrefixes{RHEL9}    = "--rsvpOSClass=RHEL9";
