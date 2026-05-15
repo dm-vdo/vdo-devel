@@ -258,7 +258,7 @@ $suiteNames{checkin}
 # Tests to make sure we can install and start on any supported platform (on
 # a farm host).
 ##
-foreach my $class (qw(FEDORA42 FEDORA43)) {
+foreach my $class (qw(FEDORA43)) {
   my $alias = "Basic01_" . ucfirst(lc($class));
   $aliasNames{$alias} = "Basic01 --clientClass=FARM\\," . $class;
   push(@{$suiteNames{openPlatformTests}}, $alias);
@@ -931,7 +931,6 @@ $aliasPrefixes{Dist}     = "--useDistribution=1";
 $aliasPrefixes{Bare}     = "--deviceType=vdo";
 $aliasPrefixes{Ext3}     = "--fsType=ext3";
 $aliasPrefixes{Ext4}     = "--fsType=ext4";
-$aliasPrefixes{Fedora42} = "--clientClass=FEDORA42";
 $aliasPrefixes{Fedora43} = "--clientClass=FEDORA43";
 $aliasPrefixes{Fua}      = "--deviceType=fua-lvmvdo";
 $aliasPrefixes{LowMem}   = "--lowMemoryTest=1 --memorySize=0.25";
