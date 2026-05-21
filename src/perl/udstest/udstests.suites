@@ -8,6 +8,7 @@
 # use these prefixes to select an OS to test on.
 ##
 $aliasPrefixes{Fedora43} = "--rsvpOSClass=FEDORA43";
+$aliasPrefixes{Fedora44} = "--rsvpOSClass=FEDORA44";
 $aliasPrefixes{RHEL8}    = "--rsvpOSClass=RHEL8";
 $aliasPrefixes{RHEL9}    = "--rsvpOSClass=RHEL9";
 
