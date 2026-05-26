@@ -255,6 +255,7 @@ sub _minimumMemory {
   # Fedora 41 not measured; assume it needs 400M for pre-VDO operation.
   # Fedora 42 not measured; assume it needs 400M for pre-VDO operation.
   # Fedora 43 not measured; assume it needs 400M for pre-VDO operation.
+  # Fedora 44 not measured; assume it needs 400M for pre-VDO operation.
   # FEDORANEXT not measured; assume it needs 400M for pre-VDO operation.
   # RHEL8 measured 2023-07-24 needed 400M for pre-VDO operation.
   # RHEL9 measured 2023-07-24 needed 400M for pre-VDO operation. (VDO-5559)
@@ -266,6 +267,7 @@ sub _minimumMemory {
        FEDORA41   => 400 * $MB,
        FEDORA42   => 400 * $MB,
        FEDORA43   => 400 * $MB,
+       FEDORA44   => 400 * $MB,
        FEDORANEXT => 400 * $MB,
        RAWHIDE    => 400 * $MB,
        RHEL8      => 400 * $MB,
