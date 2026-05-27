@@ -23,4 +23,3 @@ jobs:
       private-build-action: make all
       run-private-tests: true
       private-tests-action: make jenkins
-    secrets: inherit
