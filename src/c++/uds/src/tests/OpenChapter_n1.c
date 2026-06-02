@@ -66,7 +66,7 @@ static void fillOpenChapterZone(struct open_chapter_zone *openChapter)
   uint64_t recordCount = 0;
   unsigned int remaining;
   for (remaining = UINT_MAX; remaining > 0;) {
-    struct uds_record_data metaData;
+    struct uds_record_data metaData = { .data = {0} };
 
     remaining = uds_put_open_chapter(openChapter, &names[recordCount], &metaData);
     ++recordCount;
