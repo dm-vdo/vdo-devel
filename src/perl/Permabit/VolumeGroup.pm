@@ -145,15 +145,8 @@ sub createLogicalVolume {
   # a yes/no on whether to wipeout a filesystem signature (it does on RHEL7),
   # the input redirection will cause the answer to be "no". The volume is not
   # immediately enabled.
-  $machine->runSystemCmd("sudo lvcreate --name $name --size ${ksize}K --yes"
+  $machine->runSystemCmd("sudo lvcreate --name $name -an -ky --size ${ksize}K --yes"
                          . " $config $self->{volumeGroup} </dev/null");
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableLogicalVolume($name);
 }
 
 ########################################################################
@@ -250,17 +243,8 @@ sub createVDOVolume {
   }
 
   my $args = join(' ', map { "--$_ $args{$_}" } keys(%args));
-  $machine->runSystemCmd("sudo lvcreate $args --yes -ay $config"
+  $machine->runSystemCmd("sudo lvcreate $args -an -ky --yes $config"
                          . " $self->{volumeGroup} </dev/null");
-
-  # Make sure to wait for the udev event recording the new event has
-  # been processed. Otherwise, the lv may be open due to blkid when
-  # we try to disable it below.
-  $machine->sendCommand("sudo udevadm settle");
-  # XXX As soon as we get rid of Squeeze, on which lvcreate doesn't have the
-  # -a flag, we can stop doing two separate commands and use lvcreate -an.
-  $self->disableAutoActivation($name);
-  $self->disableLogicalVolume($name);
 }
 
 ########################################################################
@@ -304,16 +288,6 @@ sub deleteThinVolume {
 }
 
 ########################################################################
-# Disable auto activation of logical volume
-#
-# @param name  Logical volume name
-##
-sub disableAutoActivation {
-  my ($self, $name) = assertNumArgs(2, @_);
-  $self->_changeLogicalVolume($name, '-ky');
-}
-
-########################################################################
 # Disable a logical volume
 #
 # @param name  Logical volume name
@@ -321,16 +295,6 @@ sub disableAutoActivation {
 sub disableLogicalVolume {
   my ($self, $name) = assertNumArgs(2, @_);
   $self->_changeLogicalVolume($name, '-an');
-}
-
-########################################################################
-# Enable auto activation of logical volume
-#
-# @param name  Logical volume name
-##
-sub enableAutoActivation {
-  my ($self, $name) = assertNumArgs(2, @_);
-  $self->_changeLogicalVolume($name, '-kn');
 }
 
 ########################################################################
@@ -461,14 +425,11 @@ sub getLVMDevices {
     my $underlyingDevice = $storageDevice->getStorageDevice();
     my $underlyingStorage = $underlyingDevice->getDevicePath();
 
-    $machine->runSystemCmd("sudo lvmdevices");
-    my $result = $machine->getStdout();
-    my @devices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
+    my @validDevices = $machine->getValidDevicesInLVMDevicesFile();
     my @filtered = ();
-    foreach my $device (@devices) {
-      my $resolved = $machine->resolveSymlink($device);
-      if ($resolved !~ /$underlyingStorage/) {
-        push(@filtered, $device);
+    foreach my $deviceInfo (@validDevices) {
+      if ($underlyingStorage !~ /$deviceInfo->{resolvedName}/) {
+        push(@filtered, $deviceInfo->{deviceName});
       }
     }
     if (scalar(@filtered) > 0) {

@@ -78,6 +78,8 @@ our %BLOCKDEVICE_PROPERTIES
      setupOnCreation     => 1,
      # @ple the BlockDevice this device is build on top of
      storageDevice       => undef,
+     # @ple the pathname of the device stored in the LVM devices file
+     storedDevicePath    => undef,
      # @ple pathname of the device as assigned by the user or test
      symbolicPath        => undef,
      # @ple the short name of the device type (for toString)
@@ -326,24 +328,118 @@ sub start {
 }
 
 ########################################################################
+# Get the device path to use for adding the device to the devices file.
+# This can be overridden by subclasses that need special device path logic.
+# See Permabit::BlockDevice::ISCSI for an example.
+#
+# @return the device path to use for adding the device to the devices file
+##
+sub getDevicePathForDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+  return $self->getDevicePath();
+}
+
+########################################################################
+# Check if a device is being used by other devices for storage.
+# Uses lsblk to determine if the device has any dependent devices.
+#
+# @return true if device is in use by other devices, false otherwise
+##
+sub _isDeviceInUse {
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
+  my $devicePath = $self->getDevicePath();
+
+  my $result = $machine->sendCommand("lsblk -n -P -o NAME,KNAME,TYPE '$devicePath' 2>/dev/null");
+
+  if ($result != 0) {
+    return 0;
+  }
+
+  my $output = $machine->getStdout();
+  my @lines = split(/\n/, $output);
+
+  if (scalar(@lines) > 1) {
+    return 1;
+  }
+
+  return 0;
+}
+
+########################################################################
 # Perform action to add device to lvm devices file.
 ##
 sub addToDevicesFile {
   my ($self) = assertNumArgs(1, @_);
-  my $device = $self->getDevicePath();
-  my $addDevCmd = "sudo lvmdevices -y --adddev $device";
-  $self->runOnHost($addDevCmd);
-  $self->addDeactivationStep(sub { $self->removeFromDevicesFile($device); })
+  my $machine = $self->getMachine();
+  my $devicePath = $self->getDevicePathForDevicesFile();
+
+  # This is a valid case for some devices, such as pass-through ISCSI devices.
+  if (!defined($devicePath)) {
+    return;
+  }
+
+  if (!$machine->isLvmdevicesAvailable()) {
+    return;
+  }
+
+  $self->runOnHost("sudo lvmdevices -y --adddev $devicePath");
+
+  # Store the path that is in the lvm devices file so we can remove it later
+  my @validDevices = $machine->getValidDevicesInLVMDevicesFile();
+  my $storedDevicePath = undef;
+  foreach my $deviceInfo (@validDevices) {
+    if ($devicePath eq $deviceInfo->{resolvedName}) {
+      $storedDevicePath = $deviceInfo->{deviceName};
+      $log->info("Stored path in lvm devices file: $storedDevicePath (original: $devicePath)");
+      last;
+    }
+  }
+  $self->{storedDevicePath} = $storedDevicePath || $devicePath;
 }
 
 ########################################################################
 # Perform action to remove device from lvm devices file.
-# @param device The name of the device to remove.
 ##
 sub removeFromDevicesFile {
-  my ($self, $device) = assertNumArgs(2, @_);
-  my $delDevCmd = "sudo lvmdevices -y --deldev $device";
-  $self->runOnHost($delDevCmd);
+  my ($self) = assertNumArgs(1, @_);
+  my $machine = $self->getMachine();
+
+  if (!defined($self->{storedDevicePath})) {
+    return;
+  }
+
+  # Non-Raw BlockDevice classes create their own system devices, so if those system
+  # devices still exist at this point, something bad went wrong in the test. We don't want
+  # to remove their entry from the devices file because then they would be hidden from
+  # lvm tools when we try to clean things up in checkServer.
+
+  # For Raw, check if the device is being used by other devices. If it is, the test
+  # failed partway through, so don't remove their entry from the devices file because
+  # then they would be hidden from lvm tools when we try to clean things up in
+  # checkServer.
+  my $devicePath = $self->getDevicePath();
+  if ($machine->sendCommand("test -e " . $devicePath) == 0) {
+    if (!$self->isa('Permabit::BlockDevice::Raw')) {
+      return;
+    }
+
+    if ($self->_isDeviceInUse()) {
+      $log->info("Device " . $devicePath . " is in use by other devices"
+        . " - skipping removal from LVM devices file");
+      return;
+    }
+  }
+
+  # LVM will automatically remove an entry from the devices file when the system device
+  # is removed using calls like lvremove. However, some of our devices are not removed
+  # that way, so we need to remove the entry from the devices file manually.
+  my $escapedDevicePath = $self->{storedDevicePath};
+  $escapedDevicePath =~ s/([\/\.])/\\$1/g;  # Escape forward slashes and dots
+  $self->runOnHost("sudo sed -i '/DEVNAME=$escapedDevicePath\\b/d' "
+                   . "/etc/lvm/devices/system.devices 2>/dev/null");
+
+  delete $self->{storedDevicePath};
 }
 
 ########################################################################
@@ -352,7 +448,6 @@ sub removeFromDevicesFile {
 sub activate {
   my ($self) = assertNumArgs(1, @_);
   $self->runOnHost("sudo chmod 666 " . $self->getDevicePath());
-  $self->addToDevicesFile();
 }
 
 ########################################################################
@@ -360,7 +455,8 @@ sub activate {
 ##
 sub postActivate {
   my ($self) = assertNumArgs(1, @_);
-  # By default, nothing to do
+  # Add device to LVM devices file after it's successfully created
+  $self->addToDevicesFile();
 }
 
 ######################################################################
@@ -539,6 +635,11 @@ sub destroy {
   }
 
   $self->teardown();
+
+  # The actual system device, if created, should be gone by this point, so
+  # we can remove the devices file entry.
+  $self->removeFromDevicesFile();
+
   if ($stopError) {
     die($stopError);
   }
