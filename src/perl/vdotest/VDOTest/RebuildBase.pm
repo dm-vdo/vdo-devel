@@ -345,8 +345,8 @@ sub simpleRecovery {
     my $newPhysicalThreadCount = $self->{physicalThreadCount} + $zoneDelta;
     # XXX when LVM adds support for changing thread counts (BZ 2070777),
     # remove this and implement properly.
-    if ($device->isa("Permabit::BlockDevice::VDO::LVMManaged")) {
-      $log->info("Skipping thread count change on LVMManaged");
+    if ($device->isa("Permabit::BlockDevice::VDO::LVMVDO::Managed")) {
+      $log->info("Skipping thread count change on Managed device");
     } else {
       my $modifyArgs = { vdoPhysicalThreads => $newPhysicalThreadCount };
       $device->assertVDOCommand("modify", $modifyArgs);
