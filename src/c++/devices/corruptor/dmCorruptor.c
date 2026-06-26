@@ -505,7 +505,7 @@ static int corruptorCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   cd->corruptorName = ((char *) cd) + sizeof(CorruptorDevice);
-  strncpy(cd->corruptorName, corruptorName, corruptorNameLength);
+  strscpy(cd->corruptorName, corruptorName, corruptorNameLength);
 
   if (dmGetDevice(ti, devicePath, &cd->dev)) {
     ti->error = "Device lookup failed";

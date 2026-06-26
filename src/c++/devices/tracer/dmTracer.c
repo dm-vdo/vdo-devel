@@ -207,7 +207,7 @@ static int tracerCtr(struct dm_target *ti, unsigned int argc, char **argv)
   }
 
   td->tracerName = ((char *) td) + sizeof(TracerDevice);
-  strncpy(td->tracerName, tracerName, tracerNameLength);
+  strscpy(td->tracerName, tracerName, tracerNameLength);
 
   // Tracing off by default
   td->enabled = false;
