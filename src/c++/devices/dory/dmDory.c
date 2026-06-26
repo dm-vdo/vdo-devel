@@ -1051,7 +1051,7 @@ static int doryCtr(struct dm_target *ti, unsigned int argc, char **argv)
   dd->stopFlag        = false;
   dd->tornMask        = ~0;
   dd->tornModulus     = 8;
-  strncpy(dd->doryName, doryName, DORY_NAME_SIZE);
+  strscpy(dd->doryName, doryName, DORY_NAME_SIZE);
   bio_list_init(&dd->flushBios);
   bio_list_init(&dd->waitingBios);
   bio_list_init(&dd->workBios);
