@@ -169,7 +169,8 @@ sub set_up {
   my $machine = $stack->getUserMachine();
   my $storage = $self->getDevice()->getDevicePath();
   my $config = "$self->{dmtestDir}/config.toml";
-  my $configContent = "metadata_dev = '$storage'\n"
+  my $configContent = "[devices]\n"
+                    . "metadata_dev = '$storage'\n"
                     . "data_dev = '$storage'\n"
                     . "disable_by_id_check = true\n";
   createRemoteFile($machine->getName(), $configContent, $config);
