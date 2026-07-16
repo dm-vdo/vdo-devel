@@ -580,8 +580,12 @@ sub uninstallModules {
     }
   }
 
+  my $userMachine = $self->getUserMachine();
+  # Some dm tests put vdo into readonly mode in order to rebuild
+  $userMachine->removeKernelLogErrorCheck("rebuild");
+  $userMachine->removeKernelLogErrorCheck("readonly");
   # Memory leaks are not logged until the module is uninstalled
-  $self->getUserMachine()->checkForKernelLogErrors();
+  $userMachine->checkForKernelLogErrors();
 }
 
 ########################################################################
