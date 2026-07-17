@@ -106,7 +106,7 @@ static void init(void)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   resizeDenseConfiguration(config, 4 * BYTES_PER_RECORD, 5, 10);
 
-  UDS_ASSERT_SUCCESS(initialize_page_cache(&cache, config->geometry, config->cache_chapters,
+  UDS_ASSERT_SUCCESS(initialize_page_cache(&cache, &config->geometry, config->cache_chapters,
                                            config->zone_count));
 }
 

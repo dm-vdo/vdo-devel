@@ -35,7 +35,7 @@ static int __must_check move_chapter(struct volume *volume,
 				     struct index_layout *layout,
 				     uint64_t new_physical)
 {
-	struct index_geometry *geometry = volume->geometry;
+	struct index_geometry *geometry = &volume->geometry;
 	struct dm_bufio_client *client;
 	struct dm_buffer *buffer;
 	u8 *data;
@@ -105,7 +105,7 @@ static void cleanup_session(struct uds_index_session *session)
 static int reduce_index_page_map(struct volume *volume, uint64_t new_physical)
 {
 	struct index_page_map *map = volume->index_page_map;
-	struct index_geometry *geometry = volume->geometry;
+	struct index_geometry *geometry = &volume->geometry;
 	int entries_per_chapter = map->entries_per_chapter;
 	int reduced_entries =
 		(geometry->chapters_per_volume - 1) * entries_per_chapter;
@@ -159,10 +159,10 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 	volume = index->volume;
 	oldest = index->oldest_virtual_chapter;
 	newest = index->newest_virtual_chapter;
-	chapters_per_volume = volume->geometry->chapters_per_volume;
+	chapters_per_volume = volume->geometry.chapters_per_volume;
 
-	bytes_per_chapter = volume->geometry->bytes_per_page *
-		volume->geometry->pages_per_chapter;
+	bytes_per_chapter = volume->geometry.bytes_per_page *
+		volume->geometry.pages_per_chapter;
 	result = VDO_ASSERT(freed_space <= bytes_per_chapter,
 			    "cannot free more than %zu bytes (%zu requested)",
 			    bytes_per_chapter, freed_space);
@@ -223,10 +223,10 @@ int uds_convert_to_lvm(struct uds_parameters *parameters,
 		return result;
 	}
 
-	index_config->geometry->remapped_virtual = remapped_virtual;
-	index_config->geometry->remapped_physical = new_physical - 1;
+	index_config->geometry.remapped_virtual = remapped_virtual;
+	index_config->geometry.remapped_physical = new_physical - 1;
 
-	*volume->geometry = *index_config->geometry;
+	volume->geometry = index_config->geometry;
 	vdo_log_debug("Saving updated layout and writing index configuration");
 	result = update_uds_layout(layout, index_config, freed_space,
 				   bytes_per_chapter);

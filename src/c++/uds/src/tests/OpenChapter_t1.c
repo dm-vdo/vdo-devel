@@ -25,10 +25,10 @@ static void initializeTest(void)
   };
 
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
-  resizeDenseConfiguration(conf, conf->geometry->bytes_per_page / 8,
-                           conf->geometry->record_pages_per_chapter / 2,
+  resizeDenseConfiguration(conf, conf->geometry.bytes_per_page / 8,
+                           conf->geometry.record_pages_per_chapter / 2,
                            CHAPTER_COUNT);
-  geometry = conf->geometry;
+  geometry = &conf->geometry;
 
   UDS_ASSERT_SUCCESS(uds_make_open_chapter(geometry, 1, &openChapter));
 }

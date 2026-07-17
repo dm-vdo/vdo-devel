@@ -140,7 +140,7 @@ static void assertIsHook(unsigned int hashIndex)
  **/
 static bool searchForCollisions(unsigned int lastHash)
 {
-  struct index_geometry *geometry = theIndex->volume->geometry;
+  struct index_geometry *geometry = &theIndex->volume->geometry;
   const struct uds_record_name *candidate = &hashes[lastHash];
   u32 chapter_address = uds_hash_to_chapter_delta_address(candidate, geometry);
   const struct volume_sub_index *sub_index = get_sub_index(theIndex->volume_index, candidate);
@@ -478,11 +478,11 @@ static void sparseRebuildTest(void)
   cleanupIndex();
   createIndex(UDS_NO_REBUILD);
 
-  CU_ASSERT_EQUAL(theIndex->volume->geometry->chapters_per_volume - 1,
+  CU_ASSERT_EQUAL(theIndex->volume->geometry.chapters_per_volume - 1,
                   theIndex->newest_virtual_chapter);
   CU_ASSERT_EQUAL(0, theIndex->oldest_virtual_chapter);
   CU_ASSERT_EQUAL(SPARSE_CHAPTERS_PER_VOLUME,
-                  theIndex->volume->geometry->sparse_chapters_per_volume);
+                  theIndex->volume->geometry.sparse_chapters_per_volume);
 
   UDS_ASSERT_SUCCESS(discard_index_state_data(theIndex->layout));
   cleanupIndex();

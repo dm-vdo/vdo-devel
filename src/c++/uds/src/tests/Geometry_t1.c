@@ -61,7 +61,7 @@ static void testDefault(void)
 {
   /* Test default 1024 chapters/volume */
   struct uds_configuration *config = makeDenseConfiguration(1);
-  struct index_geometry *g = config->geometry;
+  struct index_geometry *g = &config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME);
   /**
    * Verify that this geometry allows indexing 1TB of 4K blocks.
@@ -79,7 +79,7 @@ static void testDefaultReduced(void)
    */
   struct uds_configuration *config
     = makeDenseConfiguration(1 | UDS_MEMORY_CONFIG_REDUCED);
-  struct index_geometry *g = config->geometry;
+  struct index_geometry *g = &config->geometry;
   checkDefaultGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME - 1);
   /**
    * Verify that this geometry allows indexing 1TB of 4K blocks minus
@@ -111,7 +111,7 @@ static void testSmall(void)
 {
   struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_256MB);
-  struct index_geometry *g = config->geometry;
+  struct index_geometry *g = &config->geometry;
 
   checkSmallGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME);
   /**
@@ -128,7 +128,7 @@ static void testSmallReduced(void)
 {
   struct uds_configuration *config
     = makeDenseConfiguration(UDS_MEMORY_CONFIG_REDUCED_256MB);
-  struct index_geometry *g = config->geometry;
+  struct index_geometry *g = &config->geometry;
 
   checkSmallGeometry(g, DEFAULT_CHAPTERS_PER_VOLUME - 1);
   /**
@@ -143,29 +143,27 @@ static void testSmallReduced(void)
 /**********************************************************************/
 static void checkComputations(bool sparse)
 {
-  struct index_geometry *geometry;
   unsigned int chapters = 10;
   unsigned int sparseChapters = (sparse ? 5 : 0);
-  UDS_ASSERT_SUCCESS(uds_make_index_geometry(1024, 1, chapters, sparseChapters, 0, 0, &geometry));
-  checkSparsenessAndDensity(geometry, sparse);
+  struct index_geometry geometry = uds_init_index_geometry(1024, 1, chapters, sparseChapters, 0, 0);
+  checkSparsenessAndDensity(&geometry, sparse);
 
   uint64_t chapter, newest, oldest;
   for (oldest = 0; oldest < chapters; oldest++) {
     for (newest = oldest; newest < chapters; newest++) {
       uint64_t active = newest - oldest + 1;
-      bool hasSparse = uds_has_sparse_chapters(geometry, oldest, newest);
+      bool hasSparse = uds_has_sparse_chapters(&geometry, oldest, newest);
       CU_ASSERT_EQUAL(hasSparse,
-                      (active > geometry->dense_chapters_per_volume));
+                      (active > geometry.dense_chapters_per_volume));
       for (chapter = oldest; chapter <= newest; chapter++) {
         bool shouldBeSparse
           = (hasSparse
-             && (chapter <= newest - geometry->dense_chapters_per_volume));
-        CU_ASSERT_EQUAL(uds_is_chapter_sparse(geometry, oldest, newest, chapter),
+             && (chapter <= newest - geometry.dense_chapters_per_volume));
+        CU_ASSERT_EQUAL(uds_is_chapter_sparse(&geometry, oldest, newest, chapter),
                         shouldBeSparse);
       }
     }
   }
-  uds_free_index_geometry(geometry);
 }
 
 /**********************************************************************/

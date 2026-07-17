@@ -76,7 +76,7 @@ static void reportVolumeIndexMemory(struct volume_index *volumeIndex)
 /**********************************************************************/
 static ktime_t fillChapter(struct volume_index *mi, uint64_t virtualChapter)
 {
-  int blocksPerChapter = config->geometry->records_per_chapter;
+  int blocksPerChapter = config->geometry.records_per_chapter;
   ktime_t startTime = current_time_ns(CLOCK_MONOTONIC);
   uds_set_volume_index_open_chapter(mi, virtualChapter);
   int count;
@@ -98,8 +98,8 @@ static void fillTestIndex(struct volume_index *volumeIndex)
 
   // Fill the index, reporting after every 4M chunks
   ktime_t elapsed = 0;
-  int blocksPerChapter = config->geometry->records_per_chapter;
-  int chapterCount = config->geometry->chapters_per_volume;
+  int blocksPerChapter = config->geometry.records_per_chapter;
+  int chapterCount = config->geometry.chapters_per_volume;
   int fillGroupMask = (REPORT_INTERVAL / blocksPerChapter) - 1;
   long numBlocks = 0;
   int chapter;

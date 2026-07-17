@@ -8,7 +8,6 @@
 #include "memory-alloc.h"
 #include "volume.h"
 
-static struct index_geometry *geometry;
 struct volume volume;
 static const u64 BAD_CHAPTER = U64_MAX;
 const uint64_t *chapterData;
@@ -38,12 +37,11 @@ static void testFindBoundaries(uint64_t        expectedLowest,
 /**********************************************************************/
 static void findBoundariesTest(void)
 {
-  UDS_ASSERT_SUCCESS(uds_make_index_geometry(DEFAULT_BYTES_PER_PAGE,
-                                             DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                             DEFAULT_CHAPTERS_PER_VOLUME,
-                                             DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                             0, 0, &geometry));
-  volume.geometry = geometry;
+  volume.geometry = uds_init_index_geometry(DEFAULT_BYTES_PER_PAGE,
+					    DEFAULT_RECORD_PAGES_PER_CHAPTER,
+					    DEFAULT_CHAPTERS_PER_VOLUME,
+					    DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+					    0, 0);
   set_chapter_tester(myProbe);
 
   static const uint64_t data1[] = { 0, 1, 2, 3 };
@@ -76,19 +74,17 @@ static void findBoundariesTest(void)
   testFindBoundaries(1, 10, data12, sizeof(data12));
 
   set_chapter_tester(NULL);
-  vdo_free(vdo_forget(geometry));
 }
 
 /**********************************************************************/
 static void findConvertedBoundariesTest(void)
 {
   // Remap a chapter in the middle
-  UDS_ASSERT_SUCCESS(uds_make_index_geometry(DEFAULT_BYTES_PER_PAGE,
-                                             DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                             7,
-                                             DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                             8, 2, &geometry));
-  volume.geometry = geometry;
+  volume.geometry = uds_init_index_geometry(DEFAULT_BYTES_PER_PAGE,
+					    DEFAULT_RECORD_PAGES_PER_CHAPTER,
+					    7,
+					    DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+					    8, 2);
   set_chapter_tester(myProbe);
 
   static const uint64_t data1[] = { 9, 10, 8, 4, 5, 6, 7 };
@@ -135,15 +131,13 @@ static void findConvertedBoundariesTest(void)
 
   static const uint64_t data15[] = { 15, 16, 17, BAD_CHAPTER, BAD_CHAPTER, 13, 14 };
   testFindBoundaries(13, 17, data15, sizeof(data15));
-  vdo_free(vdo_forget(geometry));
 
   // Remapped a chapter to the end of the volume.
-  UDS_ASSERT_SUCCESS(uds_make_index_geometry(DEFAULT_BYTES_PER_PAGE,
-                                             DEFAULT_RECORD_PAGES_PER_CHAPTER,
-                                             7,
-                                             DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
-                                             8, 6, &geometry));
-  volume.geometry = geometry;
+  volume.geometry = uds_init_index_geometry(DEFAULT_BYTES_PER_PAGE,
+					    DEFAULT_RECORD_PAGES_PER_CHAPTER,
+					    7,
+					    DEFAULT_SPARSE_CHAPTERS_PER_VOLUME,
+					    8, 6);
 
   static const uint64_t data16[] = { 9, 10, 11, 12, 13, 14, 8 };
   testFindBoundaries(8, 14, data16, sizeof(data16));
@@ -154,7 +148,6 @@ static void findConvertedBoundariesTest(void)
   static const uint64_t data18[] = { 15, 16, 11, 12, 13, 14, 8 };
   testFindBoundaries(11, 16, data18, sizeof(data18));
   set_chapter_tester(NULL);
-  vdo_free(vdo_forget(geometry));
 }
 
 /**********************************************************************/

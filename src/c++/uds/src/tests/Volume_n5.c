@@ -130,7 +130,7 @@ static void fillOpenChapter(uint64_t chapterNumber, unsigned int numAdded)
 
   static unsigned int zone = 0;
   for (;
-       numAdded < theIndex->volume->geometry->records_per_chapter;
+       numAdded < theIndex->volume->geometry.records_per_chapter;
        ++numAdded)
   {
     struct uds_request request = { .type = UDS_POST };
@@ -168,7 +168,7 @@ static void testInvalidateChapter(void)
   fillOpenChapter(0, 1);
 
   unsigned int i;
-  for (i = 1; i < config->geometry->chapters_per_volume - 1; i++) {
+  for (i = 1; i < config->geometry.chapters_per_volume - 1; i++) {
     fillOpenChapter(i, 0);
   }
 
@@ -188,7 +188,7 @@ static void testInvalidateChapter(void)
   createRandomMetadata(&request2->new_metadata);
   dispatchRequest(request2, UDS_LOCATION_UNAVAILABLE, NULL);
 
-  fillOpenChapter(config->geometry->chapters_per_volume - 1, 1);
+  fillOpenChapter(config->geometry.chapters_per_volume - 1, 1);
 
   // Wake the read queues.
   volume->read_threads_stopped = false;
@@ -199,7 +199,7 @@ static void testInvalidateChapter(void)
   assertLastLocation(UDS_LOCATION_UNAVAILABLE);
 
   // Add some more stuff to make sure the library hasn't been disabled.
-  fillOpenChapter(config->geometry->chapters_per_volume, 1);
+  fillOpenChapter(config->geometry.chapters_per_volume, 1);
   vdo_join_threads(thread);
 
   vdo_free(request);

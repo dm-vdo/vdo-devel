@@ -35,7 +35,7 @@ static void init(struct block_device *bdev)
 
   UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 
-  geometry = config->geometry;
+  geometry = &config->geometry;
   makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
   writeTestVolumeData(volume, geometry);
 }
