@@ -119,7 +119,7 @@ static void reportCollisions(struct volume_index *volumeIndex)
 /**********************************************************************/
 static ktime_t fillChapter(struct volume_index *mi, uint64_t virtualChapter)
 {
-  int blocksPerChapter = config->geometry->records_per_chapter;
+  int blocksPerChapter = config->geometry.records_per_chapter;
   ktime_t start = current_time_ns(CLOCK_MONOTONIC);
   uds_set_volume_index_open_chapter(mi, virtualChapter);
   int count;
@@ -132,8 +132,8 @@ static ktime_t fillChapter(struct volume_index *mi, uint64_t virtualChapter)
 /**********************************************************************/
 static void miPerfTest(void)
 {
-  int blocksPerChapter = config->geometry->records_per_chapter;
-  int chapterCount = config->geometry->chapters_per_volume;
+  int blocksPerChapter = config->geometry.records_per_chapter;
+  int chapterCount = config->geometry.chapters_per_volume;
 
   struct volume_index *volumeIndex;
   UDS_ASSERT_SUCCESS(uds_make_volume_index(config, 0, &volumeIndex));

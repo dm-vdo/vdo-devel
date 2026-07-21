@@ -95,14 +95,14 @@ static void fillOpenChapter(struct open_chapter_zone **openChapters,
 
   size_t collatedRecordsSize
     = (sizeof(struct uds_volume_record)
-        * (1 + volume->geometry->records_per_chapter));
+        * (1 + volume->geometry.records_per_chapter));
   struct uds_volume_record *collatedRecords;
   UDS_ASSERT_SUCCESS(vdo_allocate_cache_aligned(collatedRecordsSize,
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
   UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&openChapterIndex,
-                                                 volume->geometry,
+                                                 &volume->geometry,
                                                  volume->nonce));
   uds_empty_open_chapter_index(openChapterIndex, 0);
 
@@ -144,7 +144,7 @@ static void testFilling(void)
   UDS_ASSERT_SUCCESS(vdo_allocate(zoneCount, "open chapters", &openChapters));
   unsigned int i;
   for (i = 0; i < zoneCount; i++) {
-    UDS_ASSERT_SUCCESS(uds_make_open_chapter(volume->geometry, zoneCount, &openChapters[i]));
+    UDS_ASSERT_SUCCESS(uds_make_open_chapter(&volume->geometry, zoneCount, &openChapters[i]));
   }
 
   for (i = 0; i < CHAPTER_COUNT; i++) {

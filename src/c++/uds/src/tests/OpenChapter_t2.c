@@ -29,16 +29,15 @@ static void initializeTest(void)
   };
   testDevice = params.bdev;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
-  resizeDenseConfiguration(config, config->geometry->bytes_per_page / 8,
-                           config->geometry->record_pages_per_chapter / 2, 16);
+  resizeDenseConfiguration(config, config->geometry.bytes_per_page / 8,
+                           config->geometry.record_pages_per_chapter / 2, 16);
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
   UDS_ASSERT_SUCCESS(uds_make_io_factory(params.bdev, &factory));
 
   UDS_ASSERT_SUCCESS(uds_compute_index_size(&params, &scratchOffset));
   scratchOffset = DIV_ROUND_UP(scratchOffset, UDS_BLOCK_SIZE);
-  chapterBlocks
-    = DIV_ROUND_UP(uds_compute_saved_open_chapter_size(config->geometry),
-                   UDS_BLOCK_SIZE);
+  chapterBlocks = DIV_ROUND_UP(uds_compute_saved_open_chapter_size(&config->geometry),
+                               UDS_BLOCK_SIZE);
 
   initialize_test_requests();
 }
@@ -105,7 +104,7 @@ static void testSaveLoadEmpty(void)
 static void testSaveLoadWithData(void)
 {
   // Create some random records to put in the open chapter.
-  int totalRecords = theIndex->volume->geometry->records_per_chapter / 2;
+  int totalRecords = theIndex->volume->geometry.records_per_chapter / 2;
   struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, "test records", &records));
 
@@ -150,7 +149,7 @@ static void testSaveLoadWithDiscard(void)
   UDS_ASSERT_SUCCESS(uds_make_index(config, UDS_CREATE, NULL, NULL, &theIndex));
 
   // Fill a one-zone open chapter as full as possible.
-  int totalRecords = theIndex->volume->geometry->records_per_chapter - 1;
+  int totalRecords = theIndex->volume->geometry.records_per_chapter - 1;
   struct uds_volume_record *records;
   UDS_ASSERT_SUCCESS(vdo_allocate(totalRecords, "test records", &records));
 

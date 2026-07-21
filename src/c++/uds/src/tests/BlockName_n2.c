@@ -180,7 +180,7 @@ static void modifySessionConfiguration(struct uds_index_session *indexSession,
   if (params->sparse) {
     struct uds_configuration *config;
     UDS_ASSERT_SUCCESS(uds_make_configuration(params, &config));
-    unsigned int chapters_per_volume = config->geometry->chapters_per_volume;
+    unsigned int chapters_per_volume = config->geometry.chapters_per_volume;
     resizeSparseConfiguration(config, 0, 0, 0, chapters_per_volume - 2, 0);
     config->cache_chapters = 3;
 

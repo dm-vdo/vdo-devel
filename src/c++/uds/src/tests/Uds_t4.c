@@ -47,8 +47,8 @@ static void checkMemoryConfig(uds_memory_config_size_t size, uint64_t pages)
   struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
-  CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
-                  (uint64_t) config->geometry->record_pages_per_chapter,
+  CU_ASSERT_EQUAL((uint64_t) config->geometry.chapters_per_volume *
+                  (uint64_t) config->geometry.record_pages_per_chapter,
                   pages);
   uds_free_configuration(config);
 }
@@ -64,8 +64,8 @@ static void checkSparseMemoryConfig(uds_memory_config_size_t size,
   struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   // Peek inside the config and validate it.
-  CU_ASSERT_EQUAL((uint64_t) config->geometry->chapters_per_volume *
-                  (uint64_t) config->geometry->record_pages_per_chapter,
+  CU_ASSERT_EQUAL((uint64_t) config->geometry.chapters_per_volume *
+                  (uint64_t) config->geometry.record_pages_per_chapter,
                   pages);
   uds_free_configuration(config);
 }

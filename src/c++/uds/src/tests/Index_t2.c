@@ -54,7 +54,7 @@ static void indexInitSuite(struct block_device *bdev)
   // Set up the geometry and config for sparse index testing
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &sparseConfig));
   resizeSparseConfiguration(sparseConfig,
-                            sparseConfig->geometry->bytes_per_page / 8,
+                            sparseConfig->geometry.bytes_per_page / 8,
                             64, NUM_CHAPTERS, NUM_CHAPTERS / 2, 2);
 
   testConfig = denseConfig;
@@ -83,7 +83,7 @@ static void initTestData(unsigned int numChapters, unsigned int collisionFreq)
 
   // Create a lot of records. Will use the metadata to store chapter number.
   testData.recordsPerChapter
-    = testData.index->volume->geometry->records_per_chapter;
+    = testData.index->volume->geometry.records_per_chapter;
   testData.totalRecords = testData.recordsPerChapter * numChapters;
   UDS_ASSERT_SUCCESS(vdo_allocate(testData.totalRecords,
                                   __func__, &testData.hashes));
@@ -185,7 +185,7 @@ static void verifyData(unsigned int expectedLost)
 
     // We cannot expect to find entries in chapters that are sparse.
     // TODO: we can if they are hooks.
-    if (uds_is_chapter_sparse(index->volume->geometry,
+    if (uds_is_chapter_sparse(&index->volume->geometry,
                               index->oldest_virtual_chapter,
                               index->newest_virtual_chapter,
                               metaChapter)) {
@@ -247,7 +247,7 @@ static void rebuildIndex(void)
 static void fullVolumeZeroStartTest(void)
 {
   initTestData(NUM_CHAPTERS, 0);
-  CU_ASSERT_TRUE(testData.index->volume->geometry->index_pages_per_chapter
+  CU_ASSERT_TRUE(testData.index->volume->geometry.index_pages_per_chapter
                    > 1);
   addData(false);
   rebuildIndex();

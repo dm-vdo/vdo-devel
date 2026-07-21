@@ -20,7 +20,7 @@ static void recordPageTest(int numRecords)
   struct uds_configuration *conf;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
-  struct index_geometry *g = conf->geometry;
+  struct index_geometry *g = &conf->geometry;
 
   u8 *recordPage;
   UDS_ASSERT_SUCCESS(vdo_allocate(bytesPerPage, __func__, &recordPage));
@@ -37,7 +37,7 @@ static void recordPageTest(int numRecords)
   UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &volume));
   UDS_ASSERT_SUCCESS(uds_make_radix_sorter(g->records_per_page,
                                            &volume->radix_sorter));
-  volume->geometry        = g;
+  volume->geometry        = *g;
   volume->record_pointers = recordPointers;
 
   albPrint("===== Testing %zdK Byte Record Pages ====", bytesPerPage / 1024);

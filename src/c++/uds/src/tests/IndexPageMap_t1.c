@@ -28,7 +28,7 @@ static void setup(void)
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(uds_make_io_factory(params.bdev, &factory));
 
-  geometry = config->geometry;
+  geometry = &config->geometry;
   vcn = geometry->chapters_per_volume * 3;
   UDS_ASSERT_SUCCESS(vdo_allocate((geometry->index_pages_per_chapter
                                    * geometry->chapters_per_volume),

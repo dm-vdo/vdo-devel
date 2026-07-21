@@ -97,7 +97,7 @@ static void init(request_restarter_fn restartRequest, unsigned int zoneCount)
 
   UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 
-  geometry = config->geometry;
+  geometry = &config->geometry;
   makePageArray(geometry->pages_per_volume, geometry->bytes_per_page);
   writeTestVolumeData(volume, geometry);
 }

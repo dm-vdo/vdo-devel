@@ -40,7 +40,7 @@ static void testEarlyLRU(int numZones)
   // Make the test configuration
   struct uds_configuration config;
   memset(&config, 0, sizeof(struct uds_configuration));
-  config.geometry = &geometry;
+  config.geometry = geometry;
   config.volume_index_mean_delta = meanDelta;
   config.zone_count = numZones;
 

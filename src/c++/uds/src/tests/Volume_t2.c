@@ -30,7 +30,7 @@ static void init(uds_memory_config_size_t memGB)
   testDevice = params.bdev;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
   UDS_ASSERT_SUCCESS(uds_make_index_layout(config, true, &layout));
-  geometry = config->geometry;
+  geometry = &config->geometry;
 
   UDS_ASSERT_SUCCESS(uds_make_volume(config, layout, &volume));
 }
@@ -99,14 +99,14 @@ static void testWriteChapter(void)
 
   size_t collatedRecordsSize
     = (sizeof(struct uds_volume_record)
-       * (1 + volume->geometry->records_per_chapter));
+       * (1 + volume->geometry.records_per_chapter));
   struct uds_volume_record *collatedRecords;
   UDS_ASSERT_SUCCESS(vdo_allocate_cache_aligned(collatedRecordsSize,
                                                 "collated records",
                                                 &collatedRecords));
   struct open_chapter_index *openChapterIndex;
   UDS_ASSERT_SUCCESS(uds_make_open_chapter_index(&openChapterIndex,
-                                                 volume->geometry,
+                                                 &volume->geometry,
                                                  volume->nonce));
   uds_empty_open_chapter_index(openChapterIndex, 0);
   UDS_ASSERT_SUCCESS(uds_close_open_chapter(chapters,

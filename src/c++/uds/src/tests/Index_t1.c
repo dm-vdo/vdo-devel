@@ -274,9 +274,9 @@ static void saveLoadTest(void)
   uint64_t     oldestChapter = theIndex->oldest_virtual_chapter;
 
   unsigned int newestPhysicalChapter
-    = uds_map_to_physical_chapter(theIndex->volume->geometry, newestChapter);
+    = uds_map_to_physical_chapter(&theIndex->volume->geometry, newestChapter);
   unsigned int oldestPhysicalChapter
-    = uds_map_to_physical_chapter(theIndex->volume->geometry, oldestChapter);
+    = uds_map_to_physical_chapter(&theIndex->volume->geometry, oldestChapter);
 
   UDS_ASSERT_SUCCESS(uds_save_index(theIndex));
   uds_free_index(theIndex);
@@ -287,10 +287,10 @@ static void saveLoadTest(void)
   CU_ASSERT_EQUAL(newestChapter, theIndex->newest_virtual_chapter);
   CU_ASSERT_EQUAL(oldestChapter, theIndex->oldest_virtual_chapter);
   CU_ASSERT_EQUAL(newestPhysicalChapter,
-                  uds_map_to_physical_chapter(theIndex->volume->geometry,
+                  uds_map_to_physical_chapter(&theIndex->volume->geometry,
                                               theIndex->newest_virtual_chapter));
   CU_ASSERT_EQUAL(oldestPhysicalChapter,
-                  uds_map_to_physical_chapter(theIndex->volume->geometry,
+                  uds_map_to_physical_chapter(&theIndex->volume->geometry,
                                               theIndex->oldest_virtual_chapter));
   uds_free_index(theIndex);
 

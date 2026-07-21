@@ -50,7 +50,7 @@ static TestMI *openVolumeIndex(unsigned int numZones, bool sparse)
   testmi->geometry.records_per_chapter = DEFAULT_RECORDS_PER_PAGE;
 
   // Make the test configuration
-  testmi->config.geometry = &testmi->geometry;
+  testmi->config.geometry = testmi->geometry;
   testmi->config.volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   testmi->config.zone_count = numZones;
 

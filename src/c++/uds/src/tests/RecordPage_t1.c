@@ -22,7 +22,7 @@ static void testSearchRecordPage(void)
   struct uds_configuration *conf;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &conf));
   resizeDenseConfiguration(conf, bytesPerPage, 1, 1);
-  struct index_geometry *g = conf->geometry;
+  struct index_geometry *g = &conf->geometry;
 
   u8 *recordPage;
   UDS_ASSERT_SUCCESS(vdo_allocate(bytesPerPage, __func__, &recordPage));
@@ -35,7 +35,7 @@ static void testSearchRecordPage(void)
   struct volume *volume;
   UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &volume));
   // A fake volume but good enough for the encode_record_page interface
-  volume->geometry = g;
+  volume->geometry = *g;
 
   UDS_ASSERT_SUCCESS(vdo_allocate(g->records_per_page,
                                   __func__, &volume->record_pointers));

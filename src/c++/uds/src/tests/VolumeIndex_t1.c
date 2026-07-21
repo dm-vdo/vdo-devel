@@ -57,11 +57,10 @@ static struct uds_configuration *makeTestConfig(int numChapters)
 {
   struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &config));
-  UDS_ASSERT_SUCCESS(vdo_allocate(1, __func__, &config->geometry));
   config->volume_index_mean_delta = DEFAULT_VOLUME_INDEX_MEAN_DELTA;
   config->zone_count = 1;
-  config->geometry->chapters_per_volume = numChapters;
-  config->geometry->records_per_chapter = 16;
+  config->geometry.chapters_per_volume = numChapters;
+  config->geometry.records_per_chapter = 16;
   return config;
 }
 

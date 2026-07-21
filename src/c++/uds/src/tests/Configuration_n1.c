@@ -74,7 +74,7 @@ static void savedTest(void)
 
   // Fill 16 chapters
   uint64_t counter;
-  uint64_t recordCount = 16 * config->geometry->records_per_chapter;
+  uint64_t recordCount = 16 * config->geometry.records_per_chapter;
   for (counter = 0; counter < recordCount; counter++) {
     struct uds_record_name chunkName = hash_record_name(&counter,
                                                         sizeof(counter));
@@ -131,17 +131,17 @@ static void testRun(TestConfig *tc)
   // Test that the geometry is as expected
   struct uds_configuration *config;
   UDS_ASSERT_SUCCESS(uds_make_configuration(&params, &config));
-  CU_ASSERT_EQUAL(DEFAULT_BYTES_PER_PAGE, config->geometry->bytes_per_page);
+  CU_ASSERT_EQUAL(DEFAULT_BYTES_PER_PAGE, config->geometry.bytes_per_page);
   CU_ASSERT_EQUAL(tc->recordPagesPerChapter,
-                  config->geometry->record_pages_per_chapter);
+                  config->geometry.record_pages_per_chapter);
   CU_ASSERT_EQUAL(tc->chaptersPerVolume,
-                  config->geometry->chapters_per_volume);
+                  config->geometry.chapters_per_volume);
   CU_ASSERT_EQUAL(tc->recordPagesPerChapter,
-                  config->geometry->record_pages_per_chapter);
+                  config->geometry.record_pages_per_chapter);
   CU_ASSERT_EQUAL(tc->chaptersPerVolume,
-                  config->geometry->chapters_per_volume);
+                  config->geometry.chapters_per_volume);
   CU_ASSERT_EQUAL(tc->indexPagesPerChapter,
-                  config->geometry->index_pages_per_chapter);
+                  config->geometry.index_pages_per_chapter);
   /*
    * Test that we can create an index.  There are three possible failures that
    * are acceptable to this test.
@@ -192,7 +192,7 @@ static void testRun(TestConfig *tc)
     int chapter;
     for (chapter = 0; chapter < numChapters; chapter++) {
       unsigned int n;
-      for (n = 0; n < config->geometry->records_per_chapter; n++) {
+      for (n = 0; n < config->geometry.records_per_chapter; n++) {
         struct uds_record_name chunkName = hash_record_name(&counter,
                                                             sizeof(counter));
         oldPostBlockName(indexSession, NULL,
