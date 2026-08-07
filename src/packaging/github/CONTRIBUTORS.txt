@@ -1,33 +1,41 @@
-The Red Hat VDO Team:
-  Principal Engineer/Lead Architect:
-    J. corwin Coburn <corwin@redhat.com>
+Current Maintainers:
+  Matthew Sakai <msakai@redhat.com>
+  Ken Raeburn <raeburn@redhat.com>
 
+Additional Support:
+  Chung Chung <cchung@redhat.com>
+  Andrew Walsh <awalsh@redhat.com>
+
+Testing:
+  Filip Suba <fsuba@redhat.com>
+
+Original Open Source Release:
   Primary Authors:
-    Joseph Chapman <jochapma@redhat.com>
-    Sweet Tea Dorminy <sweettea@redhat.com>
-    *Thomas Jaskiewicz <tom@jaskiewicz.us>
-    Bruce Johnston <bjohnsto@redhat.com>
-    Susan McGhee <slegendr@redhat.com>
-    Ken Raeburn <raeburn@redhat.com>
-    Michael Sclafani <sclafani@redhat.com>
-    Matthew Sakai <msakai@redhat.com>
-    Joseph Shimkus <jshimkus@redhat.com>
-    John Wiele <jwiele@redhat.com>
+    J. corwin Coburn (Lead Architect)
+    Joseph Chapman
+    Sweet Tea Dorminy
+    Thomas Jaskiewicz
+    Bruce Johnston
+    Susan McGhee
+    Ken Raeburn
+    Matthew Sakai
+    Michael Sclafani
+    Joseph Shimkus
+    John Wiele
 
-  Support, Testing, Documentation, and other things too numerous to mention:
-    Chung Chung <cchung@redhat.com>:
-    Bryan Gurney <bgurney@redhat.com>
-    *Simon J. Hernandez <sihernan@redhat.com>
-    Jakub Krysl <jkrysl@redhat.com>
-    Marek Suchanek <msuchane@redhat.com>
+  Support, Testing & Documentation:
+    Chung Chung
+    Bryan Gurney
+    Simon J. Hernandez
+    Jakub Krysl
+    Filip Suba
+    Marek Suchanek
 
   Project Management & Technical Direction:
-    Jered Floyd <jered@redhat.com>
-    Louis Imershein <limershe@redhat.com>
-    Dennis Keefe <dkeefe@redhat.com>
-    Andrew Walsh <awalsh@redhat.com>
-
-  *former team members
+    Jered Floyd
+    Louis Imershein
+    Dennis Keefe
+    Andrew Walsh
 
 Other Contributors:
   Ji-Hyeon Gim <potatogim@potatogim.net>:
@@ -48,24 +56,38 @@ Other Contributors:
 VDO was originally created at Permabit Technology Corporation, and was
 subsequently acquired and open-sourced by Red Hat.
 
-Former Members of the Permabit VDO Team:
+Members of the Permabit VDO Team:
   Engineers:
+    J. corwin Coburn (Lead Architect)
     Mark Amidon
     David Buckle
+    Joseph Chapman
     Jacky Chu
+    Sweet Tea Dorminy
     Joel Hoff
+    Thomas Jaskiewicz
+    Bruce Johnston
     Dimitri Kountourogianni
     Alexis Layton
     Michael Lee
     Rich Macchi
+    Susan McGhee
     Dave Paniriti
+    Ken Raeburn
     Karl Ramm
+    Matthew Sakai
+    Michael Sclafani
+    Joseph Shimkus
     Hooman Vassef
     Assar Westurlund
+    John Wiele
 
   Support, Testing, Documentation, etc.
     Carl Alexander
     Mike Chu
+    Chung Chung
+    Bryan Gurney
+    Simon J. Hernandez
     Mark Iskra
     Farid Jahanmir
     Francesca Koulikov
@@ -90,7 +112,11 @@ Former Members of the Permabit VDO Team:
     Lori Monteleone
 
   Project Management & Technical Direction:
+    Jered Floyd
     Michael Fortson
+    Louis Imershein
+    Dennis Keefe
+    Andrew Walsh
 
 Other Past Permabit Contributors (for early work on the index):
     James Clough
