@@ -22,7 +22,8 @@ int readSlabSummary(UserVDO *vdo, struct slab_summary_entry **entriesPtr)
 {
   zone_count_t zones = vdo->states.slab_depot.zone_count;
   if (zones == 0) {
-    return VDO_SUCCESS;
+    warnx("invalid zone_count of 0 in slab depot");
+    return VDO_BAD_CONFIGURATION;
   }
 
   struct slab_summary_entry *entries;
