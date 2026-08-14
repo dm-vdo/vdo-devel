@@ -55,7 +55,7 @@ static struct data_vio *blocked[REQUEST_COUNT + DATA_VIO_COUNT];
 static uint8_t          blockedCount;
 static uint8_t          nextLBNExpected;
 static struct thread   *threads[REQUEST_COUNT];
-static uint8_t          targetBlockedThreadCount;
+static uint32_t         targetBlockedThreadCount;
 
 /**
  * Test-specific initialization.
