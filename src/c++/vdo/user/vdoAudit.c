@@ -760,9 +760,7 @@ int main(int argc, char *argv[])
   struct slab_depot_state_2_0 depot = vdo->states.slab_depot;
   physical_block_number_t slabOrigin = depot.first_block;
   slabDataBlocks = depot.slab_config.data_blocks;
-  slab_count_t slabCount = vdo_compute_slab_count(depot.first_block,
-                                                  depot.last_block,
-                                                  vdo->slabSizeShift);
+  slab_count_t slabCount = vdo->slabCount;
   for (slab_count_t i = 0; i < slabCount; i++) {
     SlabAudit *audit = &slabs[i];
     audit->slabNumber = i;
