@@ -93,15 +93,16 @@ int main(int argc, char *argv[])
 
   char *filename = argv[optind];
   PhysicalLayer *layer;
+  char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
   result = makeFileLayer(filename, 0, &layer);
   if (result != VDO_SUCCESS) {
-    errx(result, "makeFileLayer failed on '%s'", filename);
+    errx(1, "makeFileLayer failed on '%s': %s",
+         filename, uds_string_error(result, buf, sizeof(buf)));
   }
 
   result = setVDOReadOnlyMode(layer);
   if (result != VDO_SUCCESS) {
-    char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
-    errx(result, "setting read-only mode failed on '%s': %s",
+    errx(1, "setting read-only mode failed on '%s': %s",
          filename, uds_string_error(result, buf, sizeof(buf)));
   }
 
