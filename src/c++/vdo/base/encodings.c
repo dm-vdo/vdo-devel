@@ -1508,6 +1508,53 @@ int vdo_decode_component_states(u8 *buffer, struct volume_geometry *geometry,
 }
 
 /**
+ * validate_slab_config() - Check consistency of slab config fields decoded from the super block.
+ * @slab_config: The slab configuration to validate.
+ *
+ * Return: VDO_SUCCESS or an error if the configuration is invalid.
+ */
+static int validate_slab_config(struct slab_config *slab_config)
+{
+	int result;
+	struct slab_config computed_config;
+
+	result = VDO_ASSERT(is_power_of_2(slab_config->slab_blocks) &&
+			    (slab_config->slab_blocks <= MAX_VDO_SLAB_BLOCKS),
+			    "slab_blocks (%llu) is a power of two not greater than %u",
+			    (unsigned long long) slab_config->slab_blocks,
+			    MAX_VDO_SLAB_BLOCKS);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = VDO_ASSERT((slab_config->slab_journal_blocks > 0) &&
+			    (slab_config->slab_journal_blocks <=
+			     DEFAULT_VDO_SLAB_JOURNAL_SIZE),
+			    "slab_journal_blocks (%llu) is between 1 and %u",
+			    (unsigned long long) slab_config->slab_journal_blocks,
+			    DEFAULT_VDO_SLAB_JOURNAL_SIZE);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	result = vdo_configure_slab(slab_config->slab_blocks,
+				    slab_config->slab_journal_blocks,
+				    &computed_config);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return VDO_ASSERT((computed_config.data_blocks == slab_config->data_blocks) &&
+			  (computed_config.reference_count_blocks ==
+			   slab_config->reference_count_blocks) &&
+			  (computed_config.slab_journal_flushing_threshold ==
+			   slab_config->slab_journal_flushing_threshold) &&
+			  (computed_config.slab_journal_blocking_threshold ==
+			   slab_config->slab_journal_blocking_threshold) &&
+			  (computed_config.slab_journal_scrubbing_threshold ==
+			   slab_config->slab_journal_scrubbing_threshold),
+			  "slab config matches one freshly computed for slab_blocks (%llu)",
+			  (unsigned long long) slab_config->slab_blocks);
+}
+
+/**
  * vdo_validate_component_states() - Validate the decoded super block configuration.
  * @states: The state decoded from the super block.
  * @geometry_nonce: The nonce from the geometry block.
@@ -1521,6 +1568,8 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 				  nonce_t geometry_nonce, block_count_t physical_size,
 				  block_count_t logical_size)
 {
+	int result;
+
 	if (geometry_nonce != states->vdo.nonce) {
 		return vdo_log_error_strerror(VDO_BAD_NONCE,
 					      "Geometry nonce %llu does not match superblock nonce %llu",
@@ -1528,7 +1577,11 @@ int vdo_validate_component_states(struct vdo_component_states *states,
 					      (unsigned long long) states->vdo.nonce);
 	}
 
-	return vdo_validate_config(&states->vdo.config, physical_size, logical_size);
+	result = vdo_validate_config(&states->vdo.config, physical_size, logical_size);
+	if (result != VDO_SUCCESS)
+		return result;
+
+	return validate_slab_config(&states->slab_depot.slab_config);
 }
 
 /**
