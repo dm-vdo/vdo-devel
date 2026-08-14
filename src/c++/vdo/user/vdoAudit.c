@@ -648,6 +648,16 @@ static int verifySlab(slab_count_t slabNumber, char *buffer)
 static int verifyPBNRefCounts(void)
 {
   struct slab_config slabConfig = vdo->states.slab_depot.slab_config;
+  block_count_t expectedRefCountBlocks = DIV_ROUND_UP(slabDataBlocks, COUNTS_PER_BLOCK);
+  if (slabConfig.reference_count_blocks != expectedRefCountBlocks) {
+    warnx("reference_count_blocks (%llu) inconsistent with data_blocks (%llu),"
+          " expected %llu",
+          (unsigned long long) slabConfig.reference_count_blocks,
+          (unsigned long long) slabConfig.data_blocks,
+          (unsigned long long) expectedRefCountBlocks);
+    return VDO_BAD_CONFIGURATION;
+  }
+
   size_t refCountBytes = (slabConfig.reference_count_blocks * VDO_BLOCK_SIZE);
 
   char *buffer;
