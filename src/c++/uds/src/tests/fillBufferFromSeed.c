@@ -3,15 +3,11 @@
  * Copyright 2023 Red Hat
  */
 
+#include <linux/unaligned.h>
+
 #include "murmurhash3.h"
 #include "string-utils.h"
 #include "testPrototypes.h"
-
-/**********************************************************************/
-static inline uint32_t numberFromBuffer(const u8 *buffer)
-{
-  return buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
-}
 
 /**********************************************************************/
 uint64_t fillBufferFromSeed(uint64_t seed, void *buffer, size_t size)
@@ -40,9 +36,9 @@ uint64_t fillBufferFromSeed(uint64_t seed, void *buffer, size_t size)
   do {
     murmurhash3_128(hashBuffer, sizeof(hashBuffer), seed1, outBuffer);
     uint32_t temp = seed1;
-    seed1 = (seed2 ^ numberFromBuffer(&outBuffer[0])) + i;
-    seed2 = (seed3 ^ numberFromBuffer(&outBuffer[4])) + 2 * i;
-    seed3 = (temp  ^ numberFromBuffer(&outBuffer[8])) + 3 * i;
+    seed1 = (seed2 ^ get_unaligned_le32(&outBuffer[0])) + i;
+    seed2 = (seed3 ^ get_unaligned_le32(&outBuffer[4])) + 2 * i;
+    seed3 = (temp  ^ get_unaligned_le32(&outBuffer[8])) + 3 * i;
 
     size_t n = size < HASH_SIZE ? size : HASH_SIZE;
     if (n > 0) {
