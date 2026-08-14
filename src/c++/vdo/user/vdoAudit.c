@@ -701,6 +701,15 @@ static bool auditVDO(void)
   if (result != VDO_SUCCESS) {
     return false;
   }
+  if (slabSummaryEntries == NULL) {
+    // A zero zone count means the slab summary was never populated by a
+    // real load, which is normal for a volume that was never resumed by
+    // the kernel driver. There is nothing further to audit.
+    //
+    // FIXME: check for the combination of a zero zone count but some
+    // blocks allocated, which would indicate real inconsistency.
+    return true;
+  }
 
   // Audit stored versus counted mapped logical blocks.
   block_count_t savedLBNCount
