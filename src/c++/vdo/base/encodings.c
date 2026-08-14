@@ -449,6 +449,13 @@ STATIC int decode_block_map_state_2_0(u8 *buffer, size_t *offset,
 	decode_u64_le(buffer, offset, &root_origin);
 	decode_u64_le(buffer, offset, &root_count);
 
+	result = VDO_ASSERT(root_count == DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+			    "root_count must be %u (recorded as %llu)",
+			    DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT,
+			    (unsigned long long) root_count);
+	if (result != VDO_SUCCESS)
+		return result;
+
 	result = VDO_ASSERT(VDO_BLOCK_MAP_HEADER_2_0.size == *offset - initial_offset,
 			    "decoded block map component size must match header size");
 	if (result != VDO_SUCCESS)
