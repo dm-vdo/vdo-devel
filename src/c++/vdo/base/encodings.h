@@ -511,7 +511,7 @@ struct packed_slab_journal_block_header {
 	/* 8-bit metadata type (should always be two, for the slab journal) */
 	u8 metadata_type;
 	/* Whether this block contains block map increments */
-	bool has_block_map_increments;
+	u8 has_block_map_increments;
 	/* 16-bit count of the entries encoded in the block */
 	__le16 entry_count;
 } __packed;
@@ -1195,7 +1195,7 @@ vdo_unpack_slab_journal_block_header(const struct packed_slab_journal_block_head
 		.nonce = __le64_to_cpu(packed->nonce),
 		.entry_count = __le16_to_cpu(packed->entry_count),
 		.metadata_type = packed->metadata_type,
-		.has_block_map_increments = packed->has_block_map_increments,
+		.has_block_map_increments = (packed->has_block_map_increments != 0),
 	};
 	vdo_unpack_journal_point(&packed->recovery_point, &header->recovery_point);
 }

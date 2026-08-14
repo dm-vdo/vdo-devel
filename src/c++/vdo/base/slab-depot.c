@@ -2502,7 +2502,6 @@ static void finish_loading_journal(struct vdo_completion *completion)
 
 	vdo_unpack_slab_journal_block_header(&block->header, &header);
 
-	/* FIXME: should it be an error if the following conditional fails? */
 	if ((header.metadata_type == VDO_METADATA_SLAB_JOURNAL) &&
 	    (header.nonce == slab->allocator->nonce)) {
 		journal->tail = header.sequence_number + 1;
