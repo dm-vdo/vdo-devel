@@ -566,7 +566,7 @@ static int search_page(struct cached_page *page, const struct volume *volume,
 			location = UDS_LOCATION_UNAVAILABLE;
 		} else {
 			location = UDS_LOCATION_INDEX_PAGE_LOOKUP;
-			*((u16 *) &request->old_metadata) = record_page_number;
+			put_unaligned_le16(record_page_number, &request->old_metadata);
 		}
 	}
 
@@ -1015,7 +1015,7 @@ int uds_search_volume_page_cache(struct volume *volume, struct uds_request *requ
 						       physical_chapter);
 
 	if (request->location == UDS_LOCATION_INDEX_PAGE_LOOKUP) {
-		record_page_number = *((u16 *) &request->old_metadata);
+		record_page_number = get_unaligned_le16(&request->old_metadata);
 	} else {
 		result = search_cached_index_page(volume, request, physical_chapter,
 						  index_page_number,
