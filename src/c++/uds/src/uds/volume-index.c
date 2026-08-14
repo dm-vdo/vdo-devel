@@ -740,7 +740,7 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 					    unsigned int zone_number,
 					    u64 virtual_chapter)
 {
-	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
+	struct mutex *mutex;
 
 	set_volume_sub_index_zone_open_chapter(&volume_index->vi_non_hook, zone_number,
 					       virtual_chapter);
@@ -750,6 +750,7 @@ void uds_set_volume_index_zone_open_chapter(struct volume_index *volume_index,
 	 * chapter number is changing.
 	 */
 	if (has_sparse(volume_index)) {
+		mutex = &volume_index->zones[zone_number].hook_mutex;
 		mutex_lock(mutex);
 		set_volume_sub_index_zone_open_chapter(&volume_index->vi_hook,
 						       zone_number, virtual_chapter);
@@ -841,12 +842,13 @@ u64 uds_lookup_volume_index_name(const struct volume_index *volume_index,
 				 const struct uds_record_name *name)
 {
 	unsigned int zone_number = uds_get_volume_index_zone(volume_index, name);
-	struct mutex *mutex = &volume_index->zones[zone_number].hook_mutex;
+	struct mutex *mutex;
 	u64 virtual_chapter;
 
 	if (!uds_is_volume_index_sample(volume_index, name))
 		return NO_CHAPTER;
 
+	mutex = &volume_index->zones[zone_number].hook_mutex;
 	mutex_lock(mutex);
 	virtual_chapter = lookup_volume_sub_index_name(&volume_index->vi_hook, name);
 	mutex_unlock(mutex);
