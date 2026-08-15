@@ -189,8 +189,15 @@ int saveVDO(UserVDO *vdo, bool saveGeometry)
 int setDerivedSlabParameters(UserVDO *vdo)
 {
   struct slab_depot_state_2_0 *depot = &vdo->states.slab_depot;
+  block_count_t slab_size = vdo->states.vdo.config.slab_size;
 
-  vdo->slabSizeShift = ilog2(vdo->states.vdo.config.slab_size);
+  if (!is_power_of_2(slab_size) || (slab_size > MAX_VDO_SLAB_BLOCKS)) {
+    warnx("slab_size (%llu) is not a power of two in range [1, %u]",
+          (unsigned long long) slab_size, MAX_VDO_SLAB_BLOCKS);
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  vdo->slabSizeShift = ilog2(slab_size);
 
   if (depot->first_block >= depot->last_block) {
     warnx("slab depot last_block %llu <= first_block %llu",
