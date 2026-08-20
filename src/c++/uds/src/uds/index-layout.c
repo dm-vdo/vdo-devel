@@ -61,6 +61,14 @@ atomic_t saves_begun;
 #define NONCE_INFO_SIZE 32
 #define MAX_SAVES 2
 
+/* Minimum on-disk super block payload: all fields through page_map_blocks. */
+#define SUPER_BLOCK_DATA_MIN_SIZE \
+	(MAGIC_SIZE + NONCE_INFO_SIZE + \
+	 sizeof(u64) + sizeof(u32) + sizeof(u32) + sizeof(u16) + sizeof(u16) + \
+	 sizeof(u32) + sizeof(u64) + sizeof(u64))
+/* Maximum on-disk super block payload: base + volume_offset + start_offset. */
+#define SUPER_BLOCK_DATA_MAX_SIZE (SUPER_BLOCK_DATA_MIN_SIZE + 2 * sizeof(u64))
+
 enum region_kind {
 	RL_KIND_EMPTY = 0,
 	RL_KIND_HEADER = 1,
@@ -1211,6 +1219,14 @@ static int __must_check read_super_block_data(struct buffered_reader *reader,
 	struct super_block_data *super = &layout->super;
 	u8 *buffer;
 	size_t offset = 0;
+
+	if (saved_size < SUPER_BLOCK_DATA_MIN_SIZE ||
+	    saved_size > SUPER_BLOCK_DATA_MAX_SIZE)
+		return vdo_log_error_strerror(UDS_CORRUPT_DATA,
+					      "super block payload %zu out of valid range [%zu, %zu]",
+					      saved_size,
+					      (size_t) SUPER_BLOCK_DATA_MIN_SIZE,
+					      (size_t) SUPER_BLOCK_DATA_MAX_SIZE);
 
 	result = vdo_allocate(saved_size, "super block data", &buffer);
 	if (result != VDO_SUCCESS)
