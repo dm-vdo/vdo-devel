@@ -70,4 +70,15 @@ sub usingDiscard {
   return $self->{fs}->usingDiscard();
 }
 
+#############################################################################
+# @inherit
+##
+sub unmount {
+  my ($self) = assertNumArgs(1, @_);
+  $self->SUPER::unmount();
+  # Tests treat the Nfs filesystem and the underlying system as monolithic,
+  # so unmount the underlying filesystem, too.
+  $self->{fs}->unmount();
+}
+
 1;
