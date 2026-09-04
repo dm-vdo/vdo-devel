@@ -783,7 +783,7 @@ sub getInvalidDevicesInLVMDevicesFile {
     return @invalidDevices;
   }
 
-  $self->runSystemCmd("sudo lvmdevices --check");
+  $self->executeCommand("sudo lvmdevices --check");
   my $result = $self->getStdout();
   @invalidDevices = ( $result =~ /.*DEVNAME=([^\s]*)/g );
   return @invalidDevices;
