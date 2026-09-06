@@ -26,11 +26,11 @@ my @deviceTypes = qw(
   corruptor
   crypt
   delay
-  dory
   fua
   iscsi
   linear
   loop
+  lossy
   lvmvdo
   raw
   tracer
@@ -38,13 +38,13 @@ my @deviceTypes = qw(
   corruptor-raw
   crypt-raw
   delay-raw
-  dory-linear
-  dory-raw
   fua-lvmvdo
   fua-raw
   fua-vdo
   iscsi-raw
   linear-raw
+  lossy-linear
+  lossy-raw
   lvmvdo-iscsi
   lvmvdo-linear
   lvmvdo-loop
@@ -56,15 +56,15 @@ my @deviceTypes = qw(
   vdo-raw
   vdo-stripfua
   lvmvdo-crypt-raw
-  lvmvdo-dory-raw
   lvmvdo-iscsi-linear
+  lvmvdo-lossy-raw
   lvmvdo-tracer-raw
   thin-thinpool-raw
   thin-thinpool-lvmvdo
   thin-thinpool-vdo
   tracer-corruptor-raw
   vdo-crypt-raw
-  vdo-dory-raw
+  vdo-lossy-raw
   vdo-tracer-raw
   tracer-lvmvdo-tracer-raw
   tracer-vdo-tracer-raw
@@ -101,7 +101,7 @@ sub suite {
   my $suite = Test::Unit::TestSuite->empty_new($package);
   my $options = $package->makeDummyTest();
   foreach my $deviceType (@deviceTypes) {
-    # Convert vdo-loop to VDOLoop, dory-raw to DoryRaw, etc.
+    # Convert vdo-loop to VDOLoop, lossy-raw to LossyRaw, etc.
     my @subtypes = split("-", $deviceType);
     @subtypes = map { m/^(fua|iscsi|vdo)$/ ? uc($_) : ucfirst($_) } @subtypes;
     my $name =  join("", $package, "::test", @subtypes);

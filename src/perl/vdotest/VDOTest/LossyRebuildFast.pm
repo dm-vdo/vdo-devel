@@ -1,16 +1,16 @@
 ##
-# Do a very fast rebuild test with Dory.
+# Do a very fast rebuild test with Lossy.
 #
 # $Id$
 ##
-package VDOTest::DoryRebuildFast;
+package VDOTest::LossyRebuildFast;
 
 use strict;
 use warnings FATAL => qw(all);
 use English qw(-no_match_vars);
 use Log::Log4perl;
 
-use base qw(VDOTest::DoryRebuild01);
+use base qw(VDOTest::LossyRebuild01);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 

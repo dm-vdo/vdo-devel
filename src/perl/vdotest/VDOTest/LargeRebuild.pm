@@ -31,7 +31,7 @@ our %PROPERTIES
      # @ple device stack must be lvmvdo-linear at present; due to
      #      physical size, must have a linear just under VDO, and
      #      RebuildBase is not yet smart enough to start multiple
-     #      devices atop Dory.
+     #      devices atop Lossy.
      deviceType        => "lvmvdo-linear",
      # @ple volume size
      logicalSize       => 256 * $TB,
