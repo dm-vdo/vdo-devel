@@ -1068,13 +1068,16 @@ vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
  * @last_block: PBN of the last data block.
  * @slab_size_shift: Exponent for the number of blocks per slab.
  *
- * Return: The number of slabs.
+ * Return: The number of slabs, or zero if first_block >= last_block.
  */
-static inline slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
-						  physical_block_number_t last_block,
-						  unsigned int slab_size_shift)
+static inline block_count_t vdo_compute_slab_count(physical_block_number_t first_block,
+						   physical_block_number_t last_block,
+						   unsigned int slab_size_shift)
 {
-	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
+	if (first_block >= last_block)
+		return 0;
+
+	return (last_block - first_block) >> slab_size_shift;
 }
 
 int __must_check vdo_configure_slab_depot(const struct partition *partition,

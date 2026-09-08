@@ -10,7 +10,10 @@
 /**********************************************************************/
 static inline uint32_t numberFromBuffer(const u8 *buffer)
 {
-  return buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
+  return ((uint32_t)buffer[0])
+       | ((uint32_t)buffer[1] << 8)
+       | ((uint32_t)buffer[2] << 16)
+       | ((uint32_t)buffer[3] << 24);
 }
 
 /**********************************************************************/

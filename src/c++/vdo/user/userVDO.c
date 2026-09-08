@@ -94,7 +94,11 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
     }
   }
 
-  setDerivedSlabParameters(vdo);
+  result = setDerivedSlabParameters(vdo);
+  if (result != VDO_SUCCESS) {
+    freeUserVDO(&vdo);
+    return result;
+  }
 
   *vdoPtr = vdo;
   return VDO_SUCCESS;
@@ -182,13 +186,38 @@ int saveVDO(UserVDO *vdo, bool saveGeometry)
 }
 
 /**********************************************************************/
-void setDerivedSlabParameters(UserVDO *vdo)
+int setDerivedSlabParameters(UserVDO *vdo)
 {
-  vdo->slabSizeShift = ilog2(vdo->states.vdo.config.slab_size);
-  vdo->slabCount = vdo_compute_slab_count(vdo->states.slab_depot.first_block,
-                                          vdo->states.slab_depot.last_block,
-                                          vdo->slabSizeShift);
+  struct slab_depot_state_2_0 *depot = &vdo->states.slab_depot;
+  block_count_t slab_size = vdo->states.vdo.config.slab_size;
+
+  if (!is_power_of_2(slab_size) || (slab_size > MAX_VDO_SLAB_BLOCKS)) {
+    warnx("slab_size (%llu) is not a power of two in range [1, %u]",
+          (unsigned long long) slab_size, MAX_VDO_SLAB_BLOCKS);
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  vdo->slabSizeShift = ilog2(slab_size);
+
+  if (depot->first_block >= depot->last_block) {
+    warnx("slab depot last_block %llu <= first_block %llu",
+          (unsigned long long) depot->last_block,
+          (unsigned long long) depot->first_block);
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  block_count_t slabCount = vdo_compute_slab_count(depot->first_block,
+                                                   depot->last_block,
+                                                   vdo->slabSizeShift);
+  if ((slabCount == 0) || (slabCount > MAX_VDO_SLABS)) {
+    warnx("slab count %llu is out of range [1, %u]",
+          (unsigned long long) slabCount, MAX_VDO_SLABS);
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  vdo->slabCount = slabCount;
   vdo->slabOffsetMask = (1ULL << vdo->slabSizeShift) - 1;
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/

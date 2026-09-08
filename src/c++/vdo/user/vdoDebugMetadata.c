@@ -595,7 +595,10 @@ readVDOFromDump(const char *filename)
   }
 
   vdo->states.layout.start = 2;
-  setDerivedSlabParameters(vdo);
+  result = setDerivedSlabParameters(vdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
   return VDO_SUCCESS;
 }
 

@@ -726,6 +726,19 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state, nonce_t
 	journal->logical_blocks_used = state.logical_blocks_used;
 	journal->block_map_data_blocks = state.block_map_data_blocks;
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
+
+	/*
+	 * Reject journal_start values that set_journal_tail() considers overflow. At this
+	 * point flush_vio has not been initialized, so enter_journal_read_only_mode() would
+	 * dereference a NULL pointer.
+	 */
+	if (state.journal_start >= (1ULL << 48)) {
+		vdo_free(journal);
+		return vdo_log_error_strerror(UDS_CORRUPT_DATA,
+					      "invalid recovery journal_start %llu",
+					      (unsigned long long) state.journal_start);
+	}
+
 	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
 	/* TODO: this will have to change if we make initial resume of a VDO a real resume */

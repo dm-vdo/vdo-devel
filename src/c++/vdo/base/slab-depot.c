@@ -4169,7 +4169,7 @@ static int allocate_components(struct slab_depot *depot,
 {
 	int result;
 	zone_count_t zone;
-	slab_count_t slab_count;
+	block_count_t slab_count;
 	u8 hint;
 	u32 i;
 	const struct thread_config *thread_config = &depot->vdo->thread_config;
@@ -4209,13 +4209,27 @@ static int allocate_components(struct slab_depot *depot,
 		};
 	}
 
+	if (depot->first_block >= depot->last_block) {
+		return vdo_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "slab depot last_block %llu <= first_block %llu",
+					      (unsigned long long) depot->last_block,
+					      (unsigned long long) depot->first_block);
+	}
+
 	slab_count = vdo_compute_slab_count(depot->first_block, depot->last_block,
 					    depot->slab_size_shift);
+	if ((slab_count == 0) || (slab_count > MAX_VDO_SLABS)) {
+		return vdo_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "slab count %llu is out of range [1, %u]",
+					      (unsigned long long) slab_count,
+					      MAX_VDO_SLABS);
+	}
+
 	if (thread_config->physical_zone_count > slab_count) {
 		return vdo_log_error_strerror(VDO_BAD_CONFIGURATION,
-					      "%u physical zones exceeds slab count %u",
+					      "%u physical zones exceeds slab count %llu",
 					      thread_config->physical_zone_count,
-					      slab_count);
+					      (unsigned long long) slab_count);
 	}
 
 	/* Initialize the block allocators. */
@@ -4769,7 +4783,7 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot,
 {
 	struct slab_depot_state_2_0 new_state;
 	int result;
-	slab_count_t new_slab_count;
+	block_count_t new_slab_count;
 
 	if ((partition->count >> depot->slab_size_shift) <= depot->slab_count)
 		return VDO_INCREMENT_TOO_SMALL;
@@ -4782,9 +4796,17 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot,
 	if (result != VDO_SUCCESS)
 		return result;
 
+	if (depot->first_block >= new_state.last_block)
+		return VDO_INCREMENT_TOO_SMALL;
+
 	new_slab_count = vdo_compute_slab_count(depot->first_block,
 						new_state.last_block,
 						depot->slab_size_shift);
+	if ((new_slab_count == 0) || (new_slab_count > MAX_VDO_SLABS))
+		return vdo_log_error_strerror(VDO_BAD_CONFIGURATION,
+					      "slab count %llu is out of range [1, %u]",
+					      (unsigned long long) new_slab_count,
+					      MAX_VDO_SLABS);
 	if (new_slab_count <= depot->slab_count)
 		return vdo_log_error_strerror(VDO_INCREMENT_TOO_SMALL,
 					      "Depot can only grow");
