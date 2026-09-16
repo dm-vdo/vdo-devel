@@ -95,6 +95,11 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
   }
 
   setDerivedSlabParameters(vdo);
+  if (vdo->slabCount == 0) {
+    warnx("Could not determine slab count");
+    freeUserVDO(&vdo);
+    return VDO_BAD_CONFIGURATION;
+  }
 
   *vdoPtr = vdo;
   return VDO_SUCCESS;

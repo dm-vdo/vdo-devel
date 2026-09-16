@@ -273,18 +273,21 @@ static int allocateState(SlabState *state)
 static int allocateMetadataSpace(void)
 {
   slabConfig = &vdo->states.slab_depot.slab_config;
-  int result = vdo_allocate(vdo->slabCount, __func__, &slabs);
-  if (result != VDO_SUCCESS) {
-    errx(1, "Could not allocate %u slab state pointers", slabCount);
-  }
-
-  while (slabCount < vdo->slabCount) {
-    result = allocateState(&slabs[slabCount]);
+  int result = VDO_SUCCESS;
+  if (vdo->slabCount > 0) {
+    result = vdo_allocate(vdo->slabCount, __func__, &slabs);
     if (result != VDO_SUCCESS) {
-      errx(1, "Could not allocate slab state for slab %u", slabCount);
+      errx(1, "Could not allocate %u slab state pointers", slabCount);
     }
 
-    slabCount++;
+    while (slabCount < vdo->slabCount) {
+      result = allocateState(&slabs[slabCount]);
+      if (result != VDO_SUCCESS) {
+        errx(1, "Could not allocate slab state for slab %u", slabCount);
+      }
+
+      slabCount++;
+    }
   }
 
   PhysicalLayer *layer = vdo->layer;
@@ -377,22 +380,24 @@ static void readMetadata(void)
   nextBlock
     = (vdo->layer->getBlockCount(vdo->layer) - totalNonBlockMapMetadataBlocks);
 
-  for (slab_count_t i = 0; i < slabCount; i++) {
-    SlabState *slab = &slabs[i];
-    for (block_count_t j = 0; j < slabConfig->reference_count_blocks; j++) {
-      int result = readBlocks(1, (char *) slab->referenceBlocks[j]);
-      if (result != VDO_SUCCESS) {
-        errx(1, "Could not read reference block %llu for slab %u",
-	     (unsigned long long) j,
-             i);
+  if (slabs != NULL) {
+    for (slab_count_t i = 0; i < slabCount; i++) {
+      SlabState *slab = &slabs[i];
+      for (block_count_t j = 0; j < slabConfig->reference_count_blocks; j++) {
+        int result = readBlocks(1, (char *) slab->referenceBlocks[j]);
+        if (result != VDO_SUCCESS) {
+          errx(1, "Could not read reference block %llu for slab %u",
+	       (unsigned long long) j,
+               i);
+        }
       }
-    }
 
-    for (block_count_t j = 0; j < slabConfig->slab_journal_blocks; j++) {
-      int result = readBlocks(1, (char *) slab->slabJournalBlocks[j]);
-      if (result != VDO_SUCCESS) {
-        errx(1, "Could not read slab journal block %llu for slab %u",
-             (unsigned long long) j, i);
+      for (block_count_t j = 0; j < slabConfig->slab_journal_blocks; j++) {
+        int result = readBlocks(1, (char *) slab->slabJournalBlocks[j]);
+        if (result != VDO_SUCCESS) {
+          errx(1, "Could not read slab journal block %llu for slab %u",
+               (unsigned long long) j, i);
+        }
       }
     }
   }
@@ -596,6 +601,9 @@ readVDOFromDump(const char *filename)
 
   vdo->states.layout.start = 2;
   setDerivedSlabParameters(vdo);
+  if (vdo->slabCount == 0) {
+    warnx("Could not determine slab count");
+  }
   return VDO_SUCCESS;
 }
 
@@ -642,8 +650,12 @@ int main(int argc, char *argv[])
   printf("Nonce value: %llu\n", (unsigned long long) vdo->states.vdo.nonce);
 
   // For any PBNs specified, process them.
-  for (uint8_t i = 0; i < pbnCount; i++) {
-    findSlabJournalEntries(pbns[i]);
+  if ((pbnCount > 0) && (slabs == NULL)) {
+    printf("No slab data available (slab count is zero); skipping PBN search.\n");
+  } else {
+    for (uint8_t i = 0; i < pbnCount; i++) {
+      findSlabJournalEntries(pbns[i]);
+    }
   }
 
   // Process any search LBNs.

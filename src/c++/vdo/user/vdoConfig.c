@@ -6,6 +6,7 @@
 
 #include "vdoConfig.h"
 
+#include <err.h>
 #include <linux/uuid.h>
 
 #include "logger.h"
@@ -197,6 +198,10 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
   }
 
   setDerivedSlabParameters(vdo);
+  if (vdo->slabCount == 0) {
+    warnx("Could not determine slab count");
+    return VDO_BAD_CONFIGURATION;
+  }
 
   if (vdo->states.vdo.config.logical_blocks == 0) {
     block_count_t dataBlocks = vdo->states.slab_depot.slab_config.data_blocks * vdo->slabCount;
