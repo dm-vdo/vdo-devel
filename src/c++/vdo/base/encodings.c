@@ -602,6 +602,47 @@ const char *vdo_get_journal_operation_name(enum journal_operation operation)
 }
 
 /**
+ * vdo_compute_slab_count() - Compute the number of slabs a depot with given parameters would have.
+ * @first_block: PBN of the first data block.
+ * @last_block: PBN of the last data block.
+ * @slab_size_shift: Exponent for the number of blocks per slab.
+ *
+ * Return: The number of slabs, or zero if invalid
+ */
+slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
+				    physical_block_number_t last_block,
+				    unsigned int slab_size_shift)
+{
+	/* Keep values as 64 bits until after validation */
+	physical_block_number_t slab_count;
+
+	if (first_block >= last_block) {
+		vdo_log_error_strerror(VDO_OUT_OF_RANGE,
+				       "reversed slab block range, first=%llu last=%llu",
+				       (unsigned long long) first_block,
+				       (unsigned long long) last_block);
+		return 0;
+	}
+
+	slab_count = (last_block - first_block) >> slab_size_shift;
+	if (slab_count == 0) {
+		vdo_log_error_strerror(VDO_OUT_OF_RANGE,
+				       "block range too small for even one slab");
+		return 0;
+	}
+
+	if (slab_count > MAX_VDO_SLABS) {
+		vdo_log_error_strerror(VDO_TOO_MANY_SLABS,
+				       "computed %llu slabs from block range; max %u",
+				       (unsigned long long) slab_count,
+				       MAX_VDO_SLABS);
+		return 0;
+	}
+
+	return slab_count;
+}
+
+/**
  * encode_slab_depot_state_2_0() - Encode the state of a slab depot into a buffer.
  * @buffer: A buffer to store the encoding.
  * @offset: The offset in the buffer at which to encode.

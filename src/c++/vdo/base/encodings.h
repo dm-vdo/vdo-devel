@@ -1062,20 +1062,9 @@ vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
 	};
 }
 
-/**
- * vdo_compute_slab_count() - Compute the number of slabs a depot with given parameters would have.
- * @first_block: PBN of the first data block.
- * @last_block: PBN of the last data block.
- * @slab_size_shift: Exponent for the number of blocks per slab.
- *
- * Return: The number of slabs.
- */
-static inline slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
-						  physical_block_number_t last_block,
-						  unsigned int slab_size_shift)
-{
-	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
-}
+slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
+				    physical_block_number_t last_block,
+				    unsigned int slab_size_shift);
 
 int __must_check vdo_configure_slab_depot(const struct partition *partition,
 					  struct slab_config slab_config,
